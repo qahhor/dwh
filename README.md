@@ -40,6 +40,8 @@
 | [ADR-0011](docs/adr/ADR-0011-provider-spi.md) | Механизм провайдеров: Provider SPI, выбор конфигурацией |
 | [ADR-0012](docs/adr/ADR-0012-ui-foundation.md) | UI-фундамент: Angular Material + CDK, строгая тема из токенов |
 | [План M0](docs/plan/M0-plan.md) | Декомпозиция первой вехи: спайк, потоки, календарь |
+| [Онбординг](docs/onboarding.md) | Порядок чтения: 2 часа — и ты в контексте |
+| [CONTRIBUTING](CONTRIBUTING.md) | Процесс: ветки/PR/ревью, DoR/DoD (действует со старта разработки) |
 
 ## Этапы
 
