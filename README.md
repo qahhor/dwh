@@ -23,10 +23,17 @@
 
 | Документ | Что внутри |
 |---|---|
-| [ТЗ-01: CMS](docs/trd/TRD-01-cms.md) | Требования Этапа 1: экземпляр + control plane; разд. 8.2 — матрица точных результатов |
-| [ТЗ-02: UI/UX](docs/trd/TRD-02-uiux.md) | Корпоративный минимализм: токены, паттерны, каталог экранов с результатами |
-| [ТЗ-03: Сценарии](docs/trd/TRD-03-flows.md) | 9 пользовательских flows с ошибочными ветками — динамика системы |
-| [ТЗ-04: API](docs/trd/TRD-04-api.md) | Спецификация ядра M1–M2: эндпоинты с (form, action), каталог ошибок |
+| [ТЗ-01: CMS](docs/trd/TRD-01-cms.md) | Требования Этапа 1: экземпляр + control plane; разд. 6 — DDL-спецификация, разд. 8.2 — матрица результатов |
+| [ТЗ-02: UI/UX](docs/trd/TRD-02-uiux.md) | Корпоративный минимализм: токены, паттерны, каталог экранов, SSE-реконнект, адаптивность |
+| [ТЗ-03: Сценарии](docs/trd/TRD-03-flows.md) | 13 пользовательских flows с ошибочными ветками — динамика системы |
+| [ТЗ-04: API](docs/trd/TRD-04-api.md) | Полная спецификация ядра Этапа 1 (M1–M4 + Control Plane v2.0): эндпоинты, SSE, каталог ошибок |
+| [CODE_STYLE](CODE_STYLE.md) | Стандарты разработки: Java 25, Spring Boot 4.1, транзакции, SQL, логи без ПДн, Angular 22 |
+| [Стратегия тестирования](docs/guidelines/testing-strategy.md) | Пирамида тестов: ArchUnit правила, Testcontainers (PG18 + S3), контрактные тесты SPI |
+| [Миграции БД](docs/guidelines/database-migrations.md) | Регламент безопасных миграций Flyway и шаблоны expand/contract в PostgreSQL 18 |
+| [Структура монорепо](docs/architecture/monorepo-structure.md) | Спецификация структуры Maven multi-module и Angular workspace |
+| [Biruni/Smartup Стандарты](docs/architecture/biruni-smartup-conventions.md) | Наследование опыта: префиксы модулей (md, kauth, ms, mf), именование классов, *Pref константы |
+| [Создание новых модулей](docs/guidelines/module-development-guide.md) | Пошаговый алгоритм добавления нового бизнес-модуля (MDK): DDL, *Pref, сервисы, RBAC, UI |
+| [Runbooks](docs/runbooks/) | Эксплуатационные регламенты: отказ узла (RB-01), Vault unseal (RB-02), ротация ключей (RB-03), сбои миграций (RB-04) |
 | [AUDIT-01](docs/audit/AUDIT-01-design-review.md) | Аудит проектных решений и статус устранения находок |
 | [ADR-0001](docs/adr/ADR-0001-architecture-model.md) | Где живёт логика: приложение, не БД (анализ модели Biruni) |
 | [ADR-0002](docs/adr/ADR-0002-backend-stack.md) | Стек и фиксация версий + политика обновлений |

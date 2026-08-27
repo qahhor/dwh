@@ -351,6 +351,33 @@ DWH и ETL (Этап 2, ТЗ-02) · динамические дашборды (�
 | FR-CP-9 | Статистика прочтения объявлений по клиентам. | S |
 | FR-CP-10 | Управление кольцами развёртывания из UI. | L |
 
+### 4.16. Динамические атрибуты и поля (ATTR)
+
+| ID | Требование | Прио |
+|---|---|---|
+| FR-ATTR-1 | **Реестр динамических полей:** Администратор может создавать произвольные атрибуты для сущностей (`USER`, `TASK`, `PROJECT`) через `md_custom_fields` без DDL-миграций. | M |
+| FR-ATTR-2 | **Типы атрибутов:** Поддержка типов `string`, `number`, `date`, `boolean`, `select` (выбор из списка), `user_ref` (ссылка на пользователя). | M |
+| FR-ATTR-3 | **Хранение и индексация:** Данные хранятся в колонке `attributes jsonb` сущностей; быстрый поиск обеспечивается GIN-индексом (`jsonb_path_ops`). | M |
+| FR-ATTR-4 | **Валидация:** Серверная проверка обязательности (`is_required`) и типов при сохранении сущности; динамический рендеринг формы в UI. | M |
+
+### 4.17. Полнотекстовый и быстрый поиск (SEARCH)
+
+| ID | Требование | Прио |
+|---|---|---|
+| FR-SEARCH-1 | **Глобальный поиск (Instant Search):** Мгновенный сквозной поиск по задачам, проектам, пользователям, комментариям, файлам и динамическим атрибутам. | M |
+| FR-SEARCH-2 | **Двухуровневый движок:** Профиль **S** — встроенный `pg_trgm` PostgreSQL 18; профили **M/L** — выделенный контейнер **Typesense** в Nomad. | M |
+| FR-SEARCH-3 | **Асинхронный CDC:** Синхронизация изменений через `@TransactionalEventListener(phase = AFTER_COMMIT)` в фоновый воркер `TypesenseSyncWorker`. | M |
+| FR-SEARCH-4 | **Fuzzy matching & Highlight:** Поиск с исправлением опечаток (нечеткое соответствие) и подсветкой найденных фрагментов текста. | M |
+
+### 4.18. Исходящие вебхуки (KWH) — опыт Smartup Core
+
+| ID | Требование | Прио |
+|---|---|---|
+| FR-KWH-1 | **Регистрация подписок:** Настройка вебхуков (`kwh_subscriptions`) на системные события (создание задачи, смена статуса, блокировка пользователя) с целевым URL и HMAC-секретом. | M |
+| FR-KWH-2 | **Transactional Outbox:** Гарантированная доставка через очередь `kwh_outbox` с экспоненциальным backoff (до 5 попыток). | M |
+| FR-KWH-3 | **Криптографическая подпись:** Каждый HTTP POST подписывается заголовком `X-Signature-SHA256: hmac_sha256(payload, secret)` для верификации принимающей стороной (1С/CRM). | M |
+| FR-KWH-4 | **Журнал и Dead-Letter:** Логирование попыток доставки (`kwh_logs`) и перевод постоянных ошибок в Dead-Letter для ручного разбора. | M |
+
 ---
 
 ## 5. Нефункциональные требования
@@ -398,47 +425,284 @@ PostgreSQL DWH 12 ГБ · Garage 1 ГБ · резерв ОС 3 ГБ.
 
 ---
 
-## 6. Модель данных (ядро экземпляра)
+## 6. Модель данных и DDL-спецификация ядра
 
-Обычные PK (`bigint generated always as identity`), обычные FK, без `company_id`, без RLS.
-Служебные колонки: `created_by/created_at/modified_by/modified_at`.
+### 6.1. Общие принципы проектирования схемы PostgreSQL 18
 
-| Таблица | Прототип Biruni | Отличия |
-|---|---|---|
-| `instance_info` | `md_companies` | одна строка: код клиента, профиль ресурсов, ключи CP |
-| `users` | `md_persons`+`md_users` | слиты; Argon2id; уникальность в экземпляре |
-| `roles`, `role_permissions` | `md_roles`, `md_role_form_actions` | pcode для системных |
-| `user_roles` | `md_user_roles` | `(user_id, role_id)` |
-| `user_permissions` | `md_user_form_actions` | `(user_id, form, action)` |
-| `effective_permissions` | `md_gen_user_form_actions` | + `permissions_version`, статус фонового пересчёта |
-| `role_hidden_columns` | `md_role_revoked_columns` | (S) |
-| `forms`, `form_actions` | `md_forms`, `md_form_actions` | из кода |
-| `sessions`, `login_attempts` | `kauth_sessions`, `kauth_log_in_attempts` | |
-| `otp_codes` | `kauth_onetime_passwords` + лимиты | hash; канал SMS/TG |
-| `api_tokens` | `kauth_tokens` | hash, срок, last_used |
-| `password_reset_codes` | `md_recover_password_codes` | |
-| `task_projects`, `task_project_members` | `ms_task_projects`, `ms_task_project_persons` | |
-| `task_statuses`, `tasks`, `task_members` | `ms_task_statuses`, `ms_tasks`, `ms_task_persons` | описание markdown, признак терминального статуса |
-| `task_comments`, `task_comment_files` | `ms_task_comments`, `ms_task_comment_files` | |
-| `notifications` | `ms_notifications` | `source_code`-upsert |
-| `notification_outbox` | — | очередь: канал, статус, ретраи, dead-letter, идемпотентность |
-| `notification_templates` | шаблоны | мультиязычные, все каналы |
-| `user_channels` | привязки устройств | Telegram chat_id, подтверждённый телефон |
-| `notification_prefs` | — | матрица событие×канал (S) |
-| `announcements_cache`, `announcement_reads` | `ms_announcements`, `ms_announcement_users` | контент из CP + локальные |
-| `delivery_logs` | `ms_notifier_logs` | |
-| `files` | `biruni_files` | SHA-256, Garage |
-| `audit_log` | X-таблицы | партиционированная, JSONB, retention 12 мес |
-| `security_events` | `kauth_login_histories` и др. | append-only |
-| `settings` | `md_preferences` | экземпляр → пользователь |
-| `idempotency_keys` | — | FR-API-3 |
-| `rate_limit_events` | — | срабатывания лимитов (в составе `security_events`) |
+1. **Первичные ключи:** Суррогатные `bigint generated always as identity` (или `uuid` для внешних/публичных идентификаторов).
+2. **Внешние ключи:** Явные `FOREIGN KEY ... ON DELETE RESTRICT` (защита от случайных каскадных удалений бизнес-данных). Каскадное удаление (`ON DELETE CASCADE`) разрешено только для дочерних таблиц внутри агрегата (например, `task_members` при удалении черновика задачи).
+3. **Изоляция:** Без `company_id`, без RLS (физическая изоляция экземпляров, ADR-0004).
+4. **Служебные колонки:** Каждая бизнес-таблица содержит:
+   - `created_at timestamptz not null default now()`
+   - `created_by bigint references users(id)` *(NULL для системных/фоновых операций)*
+   - `modified_at timestamptz not null default now()`
+   - `modified_by bigint references users(id)`
+5. **Временные метки:** Исключительно `timestamptz` (хранение в UTC, отображение в часовом поясе пользователя, FR-I18N-2).
 
-**Control plane (своя БД):** `clients`, `instances`, `instance_heartbeats`, `instance_versions`,
-`licenses`, `backup_verifications`, `announcements`, `announcement_targets`,
-`announcement_contents` + собственные users/roles (упрощённые, FR-CP-7).
+---
 
-DDL — в миграциях Flyway.
+### 6.2. Детальная спецификация таблиц экземпляра (Префиксы Biruni/Smartup)
+
+#### Модуль `md` (Master Data, Инициализация и Конфигурация)
+- **`md_instance_info`** — системные метаданные экземпляра (ровно 1 строка):
+  - `client_code text primary key` (например, `'client-042'`)
+  - `client_name text not null`
+  - `resource_profile text not null check (resource_profile in ('S', 'M', 'L'))`
+  - `license_token text not null`
+  - `license_status text not null default 'ACTIVE' check (license_status in ('ACTIVE', 'GRACE', 'READ_ONLY'))`
+  - `grace_until timestamptz`
+  - `cp_public_keys jsonb not null default '[]'::jsonb`
+  - `created_at timestamptz not null default now()`, `modified_at timestamptz not null default now()`
+- **`md_settings`** — иерархические настройки (экземпляр → пользователь):
+  - `id bigint generated always as identity primary key`
+  - `user_id bigint references md_users(id) on delete cascade` *(NULL = глобальная настройка экземпляра)*
+  - `key text not null`, `value text not null`
+  - `unique (user_id, key)`
+- **`md_custom_fields`** — реестр динамических полей (FR-ATTR-1…4):
+  - `id bigint generated always as identity primary key`
+  - `entity_type text not null check (entity_type in ('USER', 'TASK', 'PROJECT'))`
+  - `code text not null`, `name text not null`
+  - `field_type text not null check (field_type in ('string', 'number', 'date', 'boolean', 'select', 'user_ref'))`
+  - `is_required boolean not null default false`
+  - `default_value text`
+  - `options_json jsonb not null default '[]'::jsonb` *(для типа select)*
+  - `order_no int not null default 0`
+  - `created_at timestamptz not null default now()`
+  - `unique (entity_type, code)`
+- **`idempotency_keys`** — фиксация идемпотентности мутирующих запросов (FR-API-3):
+  - `key uuid primary key`
+  - `user_id bigint references md_users(id)`
+  - `request_hash text not null`
+  - `response_status int not null`, `response_body jsonb not null`
+  - `created_at timestamptz not null default now()` *(индекс по `created_at` для очистки записей старше 24 ч)*
+
+#### Модуль `md` и `kauth` (Пользователи, сессии, токены, 2FA)
+- **`md_users`** — учётные записи сотрудников:
+  - `id bigint generated always as identity primary key`
+  - `name text not null`, `login text not null unique`, `email text not null unique`
+  - `phone text`, `password_hash text` *(Argon2id, NULL для приглашённых до первого входа)*
+  - `state text not null default 'A' check (state in ('A', 'P'))` *(A = Active, P = Passive/Заблокирован)*
+  - `manager_id bigint references md_users(id) on delete set null`
+  - `language text not null default 'ru'`, `timezone text not null default 'UTC'`
+  - `avatar_file_id uuid references mf_files(id) on delete set null`
+  - `attributes jsonb not null default '{}'::jsonb` *(динамические поля FR-ATTR-3)*
+  - `is_2fa_enabled boolean not null default false`
+  - `force_password_change boolean not null default false`
+  - `password_changed_at timestamptz`
+  - `created_at timestamptz not null default now()`, `modified_at timestamptz not null default now()`
+  - `created_by bigint references md_users(id)`, `modified_by bigint references md_users(id)`
+  - `unique index md_users_phone_active_uq on md_users (phone) where (state = 'A' and phone is not null)`
+  - `index md_users_attributes_gin_idx on md_users using gin (attributes jsonb_path_ops)`
+- **`kauth_sessions`** — активные серверные сессии (FR-AUTH-2):
+  - `id bigint generated always as identity primary key`
+  - `user_id bigint not null references md_users(id) on delete cascade`
+  - `token_hash text not null unique` *(хеш сессионной cookie)*
+  - `ip inet not null`, `user_agent text not null`, `device_info text`
+  - `created_at timestamptz not null default now()`, `last_seen_at timestamptz not null default now()`
+  - `closed_at timestamptz`
+  - `index kauth_sessions_user_active_idx on kauth_sessions (user_id) where closed_at is null`
+- **`kauth_login_attempts`** — журнал попыток входа для защиты от brute-force:
+  - `id bigint generated always as identity primary key`
+  - `login text not null`, `ip inet not null`
+  - `is_success boolean not null`, `failure_reason text`
+  - `attempt_at timestamptz not null default now()`
+  - `index kauth_login_attempts_ip_time_idx on kauth_login_attempts (ip, attempt_at desc)`
+- **`kauth_otp_codes`** — одноразовые пароли для 2FA:
+  - `id bigint generated always as identity primary key`
+  - `user_id bigint not null references md_users(id) on delete cascade`
+  - `channel text not null check (channel in ('telegram', 'sms'))`
+  - `code_hash text not null` *(хеш 6-значного кода)*
+  - `attempts_left int not null default 3`
+  - `expires_at timestamptz not null`, `created_at timestamptz not null default now()`
+  - `is_used boolean not null default false`
+- **`kauth_api_tokens`** — отзываемые сервисные токены доступа (FR-AUTH-6):
+  - `id bigint generated always as identity primary key`
+  - `user_id bigint not null references md_users(id) on delete cascade`
+  - `name text not null`, `token_prefix text not null` *(первые 8 символов)*
+  - `token_hash text not null unique` *(SHA-256 хеш полного токена)*
+  - `expires_at timestamptz`, `created_at timestamptz not null default now()`
+  - `last_used_at timestamptz`, `revoked_at timestamptz`
+- **`kauth_password_reset_codes`** — одноразовые токены сброса пароля (FR-AUTH-7):
+  - `id bigint generated always as identity primary key`
+  - `user_id bigint not null references md_users(id) on delete cascade`
+  - `code_hash text not null unique`
+  - `expires_at timestamptz not null`, `created_at timestamptz not null default now()`
+  - `is_used boolean not null default false`
+- **`kauth_user_channels`** — подтверждённые каналы доставки пользователя:
+  - `id bigint generated always as identity primary key`
+  - `user_id bigint not null references md_users(id) on delete cascade`
+  - `channel text not null check (channel in ('telegram', 'sms', 'email'))`
+  - `address text not null` *(например, Telegram `chat_id` или номер телефона)*
+  - `is_verified boolean not null default false`
+  - `created_at timestamptz not null default now()`
+  - `unique (user_id, channel)`
+
+#### Модуль `md` (Каталог прав, роли, материализация)
+- **`md_forms`** и **`md_form_actions`** — реестр форм и операций (генерируется из кода):
+  - `md_forms`: `code text primary key` (например, `'ms_tasks'`), `module text not null`, `name text not null`
+  - `md_form_actions`: `(form_code text references md_forms(code) on delete cascade, action text not null, name text not null, primary key (form_code, action))`
+- **`md_roles`** — роли пользователей:
+  - `id bigint generated always as identity primary key`
+  - `name text not null unique`, `pcode text unique` *(заполнен только для системных ролей: admin, manager, auditor, user)*
+  - `state text not null default 'A' check (state in ('A', 'P'))`
+  - `order_no int not null default 0`
+  - `created_at timestamptz not null default now()`, `modified_at timestamptz not null default now()`
+- **`md_role_permissions`** — права роли:
+  - `role_id bigint not null references md_roles(id) on delete cascade`
+  - `form_code text not null`, `action text not null`
+  - `primary key (role_id, form_code, action)`
+  - `foreign key (form_code, action) references md_form_actions(form_code, action) on delete cascade`
+- **`md_user_roles`** — назначение ролей пользователям:
+  - `user_id bigint not null references md_users(id) on delete cascade`
+  - `role_id bigint not null references md_roles(id) on delete cascade`
+  - `primary key (user_id, role_id)`
+- **`md_user_permissions`** — персональные права пользователя поверх ролей:
+  - `user_id bigint not null references md_users(id) on delete cascade`
+  - `form_code text not null`, `action text not null`
+  - `primary key (user_id, form_code, action)`
+- **`md_effective_permissions`** — материализованные эффективные права (FR-PERM-6):
+  - `user_id bigint not null references md_users(id) on delete cascade`
+  - `form_code text not null`, `action text not null`
+  - `source_role_id bigint references md_roles(id) on delete cascade` *(NULL = персональное право)*
+  - `primary key (user_id, form_code, action)`
+- **`md_user_permission_versions`** — версионирование кэша прав:
+  - `user_id bigint primary key references md_users(id) on delete cascade`
+  - `permissions_version bigint not null default 1`
+  - `is_recalculating boolean not null default false`
+
+#### Модуль `ms` (Проекты, задачи, комментарии)
+- **`ms_task_projects`** — проекты задач:
+  - `id bigint generated always as identity primary key`
+  - `name text not null unique`, `description text`
+  - `state text not null default 'A' check (state in ('A', 'P'))`
+  - `attributes jsonb not null default '{}'::jsonb`
+  - `created_at timestamptz not null default now()`, `created_by bigint references md_users(id)`
+- **`ms_task_project_members`** — участники проекта и их права:
+  - `project_id bigint not null references ms_task_projects(id) on delete cascade`
+  - `user_id bigint not null references md_users(id) on delete cascade`
+  - `access_kind text not null check (access_kind in ('R', 'W'))` *(R = Read-Only, W = Read-Write)*
+  - `primary key (project_id, user_id)`
+- **`ms_task_statuses`** — справочник статусов задач:
+  - `id bigint generated always as identity primary key`
+  - `pcode text unique check (pcode in ('new', 'in_progress', 'done', 'cancelled'))`
+  - `name text not null`, `color text not null`, `order_no int not null default 0`
+  - `is_terminal boolean not null default false`
+- **`ms_tasks`** — агрегат задачи (I-T1…I-T7):
+  - `id bigint generated always as identity primary key`
+  - `project_id bigint references ms_task_projects(id) on delete restrict`
+  - `parent_task_id bigint references ms_tasks(id) on delete restrict` *(один уровень вложенности)*
+  - `title text not null`, `description_markdown text not null default ''`
+  - `status_id bigint not null references ms_task_statuses(id)`
+  - `priority text not null default 'medium' check (priority in ('low', 'medium', 'high', 'critical'))`
+  - `reporter_id bigint not null references md_users(id)` *(постановщик, неизменяем)*
+  - `attributes jsonb not null default '{}'::jsonb` *(динамические поля FR-ATTR-3)*
+  - `begin_time timestamptz`, `end_time timestamptz`, `resolved_time timestamptz`
+  - `created_at timestamptz not null default now()`, `modified_at timestamptz not null default now()`
+  - `created_by bigint references md_users(id)`, `modified_by bigint references md_users(id)`
+  - `check (begin_time is null or end_time is null or begin_time <= end_time)`
+  - `index ms_tasks_attributes_gin_idx on ms_tasks using gin (attributes jsonb_path_ops)`
+- **`ms_task_members`** — участники задачи по ролям:
+  - `task_id bigint not null references ms_tasks(id) on delete cascade`
+  - `user_id bigint not null references md_users(id) on delete cascade`
+  - `involve_kind text not null check (involve_kind in ('R', 'E', 'P', 'A', 'O'))` *(R=Responsible/Ответственный, E=Executor/Исполнитель, P=Participant/Участник, A=Author/Постановщик, O=Observer/Наблюдатель)*
+  - `is_viewed boolean not null default false`
+  - `primary key (task_id, user_id, involve_kind)`
+  - `unique index ms_task_single_responsible_uq on ms_task_members (task_id) where (involve_kind = 'R')` *(I-T1)*
+- **`ms_task_comments`** и **`ms_task_comment_files`** — комментарии и вложения:
+  - `ms_task_comments`: `id bigint generated always as identity primary key`, `task_id bigint not null references ms_tasks(id) on delete cascade`, `user_id bigint not null references md_users(id)`, `text_markdown text not null`, `created_at timestamptz not null default now()`
+  - `ms_task_comment_files`: `(comment_id bigint not null references ms_task_comments(id) on delete cascade, file_id uuid not null references mf_files(id) on delete cascade, primary key (comment_id, file_id))`
+
+#### Модуль `ms` (Оповещения, очереди, шаблоны, объявления)
+- **`ms_notifications`** — персональные in-app уведомления (FR-NOTIF-1):
+  - `id bigint generated always as identity primary key`
+  - `user_id bigint not null references md_users(id) on delete cascade`
+  - `type text not null check (type in ('info', 'success', 'warning', 'danger'))`
+  - `title text not null`, `body text not null`, `form_link text`
+  - `source_code text` *(для upsert/дедупликации)*
+  - `is_read boolean not null default false`
+  - `created_at timestamptz not null default now()`
+  - `index ms_notifications_user_unread_idx on ms_notifications (user_id, created_at desc) where not is_read`
+- **`ms_notification_outbox`** — транзакционная очередь доставки (Transactional Outbox):
+  - `id bigint generated always as identity primary key`
+  - `channel text not null check (channel in ('email', 'telegram', 'sms'))`
+  - `recipient text not null` *(email, chat_id или phone)*
+  - `template_code text not null`, `payload jsonb not null`
+  - `status text not null default 'PENDING' check (status in ('PENDING', 'PROCESSING', 'SENT', 'FAILED', 'DEAD_LETTER'))`
+  - `attempts int not null default 0`, `max_attempts int not null default 5`
+  - `next_attempt_at timestamptz not null default now()`
+  - `idempotency_key uuid not null unique`
+  - `last_error text`, `created_at timestamptz not null default now()`, `processed_at timestamptz`
+  - `index ms_outbox_worker_idx on ms_notification_outbox (next_attempt_at) where (status = 'PENDING')`
+- **`ms_notification_prefs`** — матрица «тип события × канал»:
+  - `user_id bigint not null references md_users(id) on delete cascade`
+  - `event_type text not null`, `channel text not null`
+  - `is_enabled boolean not null default true`
+  - `primary key (user_id, event_type, channel)`
+- **`ms_announcements_cache`** и **`ms_announcement_reads`** — объявления из Control Plane (FR-CP-5):
+  - `ms_announcements_cache`: `id bigint primary key`, `title_json jsonb not null`, `body_json jsonb not null`, `banner_type text not null`, `published_at timestamptz not null`, `state text not null default 'published'`
+  - `ms_announcement_reads`: `(announcement_id bigint not null references ms_announcements_cache(id) on delete cascade, user_id bigint not null references md_users(id) on delete cascade, read_at timestamptz not null default now(), primary key (announcement_id, user_id))`
+
+#### Модуль `kwh` (Исходящие вебхуки, Smartup Core, FR-KWH-1…4)
+- **`kwh_subscriptions`** — регистрация подписок на события:
+  - `id bigint generated always as identity primary key`
+  - `name text not null`, `target_url text not null`
+  - `secret_token text not null` *(для вычисления HMAC-SHA256 подписи)*
+  - `subscribed_events text[] not null` *(например, `['task.created', 'user.blocked']`)*
+  - `state text not null default 'A' check (state in ('A', 'P'))`
+  - `created_at timestamptz not null default now()`, `created_by bigint references md_users(id)`
+- **`kwh_outbox`** — Transactional Outbox для доставки вебхуков:
+  - `id bigint generated always as identity primary key`
+  - `subscription_id bigint not null references kwh_subscriptions(id) on delete cascade`
+  - `event_type text not null`, `payload jsonb not null`
+  - `status text not null default 'PENDING' check (status in ('PENDING', 'SENT', 'FAILED', 'DEAD_LETTER'))`
+  - `attempts int not null default 0`, `max_attempts int not null default 5`
+  - `next_attempt_at timestamptz not null default now()`
+  - `last_error text`, `last_http_status int`
+  - `created_at timestamptz not null default now()`, `processed_at timestamptz`
+  - `index kwh_outbox_worker_idx on kwh_outbox (next_attempt_at) where (status = 'PENDING')`
+- **`kwh_logs`** — журнал отправленных вебхуков (retention 14 дней):
+  - `id bigint generated always as identity primary key`
+  - `subscription_id bigint not null references kwh_subscriptions(id) on delete cascade`
+  - `event_type text not null`, `http_status int not null`, `duration_ms int not null`
+  - `is_success boolean not null`, `sent_at timestamptz not null default now()`
+
+#### Модуль `mf` и `audit` (Хранилище и Журналы)
+- **`mf_files`** — метаданные файлов в Garage (S3):
+  - `id uuid primary key default gen_random_uuid()`
+  - `sha256 text not null unique` *(дедупликация на уровне хранилища, FR-FILE-1)*
+  - `original_name text not null`, `size_bytes bigint not null`, `mime_type text not null`
+  - `storage_bucket text not null`, `storage_key text not null`
+  - `created_at timestamptz not null default now()`, `created_by bigint references md_users(id)`
+- **`audit_log`** — партиционированный журнал изменений (FR-AUD-1, FR-AUD-2):
+  - `id bigint generated always as identity`
+  - `table_name text not null`, `row_pk text not null`
+  - `event char(1) not null check (event in ('I', 'U', 'D'))`
+  - `changed_by bigint`, `session_id bigint`, `is_api boolean not null default false`
+  - `changed_at timestamptz not null default now()`
+  - `changed_columns text[]`, `old_row jsonb`, `new_row jsonb`
+  - `primary key (changed_at, id)`
+  - `partition by range (changed_at)` *(партиции по месяцам, retention 12 месяцев online)*
+- **`security_events`** — append-only журнал событий безопасности (FR-AUD-3):
+  - `id bigint generated always as identity primary key`
+  - `event_type text not null` *(login_success, login_failed, password_changed, role_assigned, token_issued, rate_limit_hit)*
+  - `user_id bigint`, `ip inet not null`, `user_agent text`
+  - `details jsonb not null default '{}'::jsonb`
+  - `created_at timestamptz not null default now()`
+  - `index security_events_time_idx on security_events (created_at desc)`
+
+---
+
+### 6.3. Схема базы данных Control Plane (`control-plane-db`)
+
+Control Plane использует собственную независимую базу данных с префиксом `cp_`:
+- **`cp_clients`** (`id, code unique, name, contacts, resource_profile, created_at`)
+- **`cp_instances`** (`id, client_id references cp_clients(id), environment, url, status, last_heartbeat_at`)
+- **`cp_instance_heartbeats`** (`id, instance_id references cp_instances(id), app_version, schema_version, metrics jsonb, received_at`)
+- **`cp_licenses`** (`id, client_id references cp_clients(id), kid, valid_from, valid_to, grace_days, features text[], signature text`)
+- **`cp_backup_verifications`** (`id, client_id references cp_clients(id), is_success, check_duration_sec, details text, verified_at`)
+- **`cp_announcements`**, **`cp_announcement_targets`**, **`cp_announcement_contents`** — создание и таргетинг объявлений
+- **`cp_users`**, **`cp_roles`**, **`cp_user_roles`** — простая административная авторизация сотрудников команды (FR-CP-7)
+
 
 ---
 
