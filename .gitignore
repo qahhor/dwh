@@ -1,5 +1,31 @@
-# Object file
-*.o
+# --- Java / Maven ---
+target/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
 
-# Ada Library Information
-*.ali
+# --- Node / Angular ---
+node_modules/
+dist/
+.angular/
+npm-debug.log*
+
+# --- IDE ---
+.idea/
+*.iml
+.vscode/
+!.vscode/extensions.json
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+
+# --- Env / secrets (никогда в репо) ---
+.env
+.env.*
+*.local.properties
+secrets/
+
+# --- Логи и временное ---
+*.log
+tmp/
