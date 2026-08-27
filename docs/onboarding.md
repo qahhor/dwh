@@ -12,7 +12,7 @@
 
 ## Шаг 2. Рамки и план (40 мин)
 
-4. [ТЗ-01](trd/TRD-01-cms.md) — читать §1–3 (рамки, термины, архитектура), затем §8 целиком:
+4. [ТЗ-01](trd/TRD-01-cms.md) — читать 1–3 (рамки, термины, архитектура), затем 8 целиком:
    MVP-линия, **матрица точных результатов 8.2**, трассировка 8.3. Остальные разделы — по мере
    работы со своим блоком (25 мин).
 5. [ТЗ-03: сценарии](trd/TRD-03-flows.md) — все 9 flows; это динамика системы и язык приёмки (15 мин).
@@ -21,9 +21,9 @@
 
 | Роль | Читать |
 |---|---|
-| Backend | [ТЗ-04 API](trd/TRD-04-api.md) · [ADR-0006](adr/ADR-0006-modular-monolith.md) (модули и инварианты) · [ADR-0003](adr/ADR-0003-tenancy-rbac.md) §2.2–2.3 (RBAC, аудит) · [ADR-0011](adr/ADR-0011-provider-spi.md) |
+| Backend | [ТЗ-04 API](trd/TRD-04-api.md) · [ADR-0006](adr/ADR-0006-modular-monolith.md) (модули и инварианты) · [ADR-0003](adr/ADR-0003-tenancy-rbac.md) 2.2–2.3 (RBAC, аудит) · [ADR-0011](adr/ADR-0011-provider-spi.md) |
 | Infra | [ADR-0007](adr/ADR-0007-fleet-strategy.md) (флот) · [ADR-0009](adr/ADR-0009-observability.md) · [ADR-0010](adr/ADR-0010-resilience-tiers.md) · [План M0](plan/M0-plan.md) · `deploy/spike/README.md` |
-| Frontend | [ТЗ-02 UI/UX](trd/TRD-02-uiux.md) · [ADR-0012](adr/ADR-0012-ui-foundation.md) · ТЗ-04 §1, §6 (конвенции и коды ошибок) |
+| Frontend | [ТЗ-02 UI/UX](trd/TRD-02-uiux.md) · [ADR-0012](adr/ADR-0012-ui-foundation.md) · ТЗ-04 1, 6 (конвенции и коды ошибок) |
 
 ## Шаг 4. Правила работы (10 мин)
 
