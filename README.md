@@ -32,6 +32,8 @@
 | [ADR-0006](docs/adr/ADR-0006-modular-monolith.md) | Модульный монолит: границы модулей и инварианты |
 | [ADR-0007](docs/adr/ADR-0007-fleet-strategy.md) | Флот: Nomad, миграции, кольца развёртывания, бэкапы |
 | [ADR-0008](docs/adr/ADR-0008-security-baseline.md) | Базовые требования безопасности |
+| [ADR-0009](docs/adr/ADR-0009-observability.md) | Наблюдаемость флота: логи, метрики, трейсы, алертинг |
+| [ADR-0010](docs/adr/ADR-0010-resilience-tiers.md) | Отказоустойчивость: тарифы доступности, кворум платформы |
 
 ## Этапы
 
