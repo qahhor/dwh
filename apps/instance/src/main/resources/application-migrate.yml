@@ -1,0 +1,8 @@
+# Профиль migrate — ЕДИНСТВЕННАЯ точка применения миграций (NFR-10, ADR-0007 разд. 2.3).
+# Запуск: java -jar instance.jar --spring.profiles.active=migrate
+# В фазе P этот запуск станет Nomad batch-job'ом перед обновлением группы app.
+spring:
+  main:
+    web-application-type: none
+  flyway:
+    enabled: true

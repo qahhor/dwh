@@ -35,11 +35,11 @@
 
 | # | Проблема | Доказательство | Закрывается |
 |---|---|---|---|
-| C-1 | **Захардкоженный админ `admin/Admin123!`** в миграции V002, `force_password_change=false`, 2FA off — известный пароль на каждом экземпляре | V002 стр. 76–82 | Инициализация первого админа из env/секрета (FR-INST-1); фаза P |
-| C-2 | **DEMO-клиент и demo_license_token в миграции** — каждый prod-экземпляр станет «DWH Demo Enterprise» | V002 стр. 5–8 | Вынести seed из миграций в параметризованную инициализацию |
+| C-1 ✅ | ~~Захардкоженный админ в миграции~~ — **закрыт 2026-08-28 (R4):** InstanceBootstrap из конфигурации, force_password_change=true, дефолтов нет | V002 очищен | — |
+| C-2 ✅ | ~~DEMO-клиент в миграции~~ — **закрыт 2026-08-28 (R4):** instance_info создаёт InstanceBootstrap из dwh.instance.* | V002 очищен | — |
 | C-3 | **Файлы на локальном диске** (`./data/storage`), не S3/Garage — потеря при пересоздании контейнера, нет бэкапа | LocalStorageProvider | Garage-адаптер StorageProvider; фаза P |
-| C-4 | **Миграции при старте приложения** (flyway.enabled=true) — регресс A-4, нет пути отката | application.yml | R4 (следующие шаги фазы R) |
-| C-5 | **Нет rate limiting** — Bucket4j только в зависимостях | grep по коду: 0 | R3 |
+| C-4 ✅ | ~~Миграции при старте~~ — **закрыт 2026-08-28 (R4):** flyway off, профиль migrate, SchemaVersionGate (FR-INST-2) | тест MigrationGateAndBootstrapTest | — |
+| C-5 ✅ | ~~Нет rate limiting~~ — **закрыт 2026-08-28 (R3)** | RateLimitFilterTest | — |
 | C-6 | **Нет CI** — ArchUnit/тесты/сканы не гейтят merge | .github отсутствует | R5 |
 | C-7 | **Секреты через env с dev-фолбэками** (`DB_PASSWORD:postgres`), Vault не интегрирован | application.yml | Фаза P (Vault) |
 | C-8 | **Нет SSE** (FR-NOTIF-2, FR-API-5 — M) | grep: 0 | Фаза F |
@@ -51,11 +51,11 @@
 
 | Файл | Проблема | Действие |
 |---|---|---|
-| `scripts/test-api.ps1` | Dev-инструмент ручной проверки API в корне scripts | Переместить в `scripts/dev/` (не удалять — полезен) |
-| `docs/plan/stage-1-completion.md` | Утверждает «Завершено на 100%» — опровергнуто AUDIT-02/03, вводит в заблуждение | Заменить содержимое ссылкой на актуальный статус (AUDIT-02 + remediation-plan) |
+| ~~`scripts/test-api.ps1`~~ | ✅ перемещён в `scripts/dev/` (R4) | — |
+| ~~`docs/plan/stage-1-completion.md`~~ | ✅ заменён указателем на актуальные статусы (R4) | — |
 | `.mvn/wrapper/` (properties без mvnw-скриптов) | Неработоспособный half-wrapper | Доукомплектовать скриптами в R5 (CI) либо удалить |
-| `V002__seed_initial_data.sql` (части: DEMO-клиент, admin-пароль) | Тестовые данные в prod-миграции (C-1, C-2) | Рефакторинг: справочники (формы/роли/статусы) остаются; instance_info и админ — из инициализации экземпляра |
-| `System.out.println(...SEED_ADMIN_HASH...)` в KauthPasswordHasherTest | Печать хеша в лог тестов | Удалить строку (заменить на assert) |
+| ~~`V002` (DEMO/админ)~~ | ✅ вырезано, справочники сохранены (R4) | — |
+| ~~println(SEED_ADMIN_HASH)~~ | ✅ удалён (R4) | — |
 | `deploy/spike/` | Не prod-конфигурация | Оставить (нужен фазе P), пометить README «не для прод» — уже помечен |
 
 Проверено и чисто: `target/`, `node_modules/`, `dist/` — не в git; H2 — scope test;

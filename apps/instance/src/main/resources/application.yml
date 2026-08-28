@@ -21,7 +21,10 @@ spring:
       connection-timeout: 20000
       max-lifetime: 1200000
   flyway:
-    enabled: true
+    # NFR-10 / ADR-0007 2.3: приложение НЕ мигрирует схему. Миграции — только
+    # отдельным запуском: --spring.profiles.active=migrate (batch-job фазы P).
+    # При старте приложение лишь проверяет схему (SchemaVersionGate, FR-INST-2).
+    enabled: false
     locations: classpath:db/migration
     baseline-on-migrate: false
   jackson:
