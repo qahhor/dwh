@@ -2,6 +2,8 @@ package com.greenwhite.dwh.instance.mf.controller;
 
 import com.greenwhite.dwh.instance.common.security.SecurityContext;
 import com.greenwhite.dwh.instance.mf.repository.MfFileRepository;
+import com.greenwhite.dwh.instance.common.annotation.RequiresPermission;
+import com.greenwhite.dwh.instance.mf.pref.MfPref;
 import com.greenwhite.dwh.instance.mf.service.MfFileService;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
@@ -27,6 +29,7 @@ public class MfFileController {
     }
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @RequiresPermission(form = MfPref.FORM_FILES, action = "upload")
     public ResponseEntity<MfFileRepository.FileRecord> uploadFile(@RequestParam("file") MultipartFile file) throws IOException {
         Long currentUserId = SecurityContext.getCurrentUserId();
 
@@ -42,11 +45,13 @@ public class MfFileController {
     }
 
     @GetMapping("/{id}")
+    @RequiresPermission(form = MfPref.FORM_FILES, action = "view")
     public ResponseEntity<MfFileRepository.FileRecord> getFileMetadata(@PathVariable("id") UUID id) {
         return ResponseEntity.ok(fileService.getFileMetadata(id));
     }
 
     @GetMapping("/{id}/download")
+    @RequiresPermission(form = MfPref.FORM_FILES, action = "view")
     public ResponseEntity<InputStreamResource> downloadFile(@PathVariable("id") UUID id) {
         var metadata = fileService.getFileMetadata(id);
         var stream = fileService.downloadFile(id);

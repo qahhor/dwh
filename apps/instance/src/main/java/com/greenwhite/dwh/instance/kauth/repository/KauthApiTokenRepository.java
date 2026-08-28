@@ -106,6 +106,13 @@ public class KauthApiTokenRepository {
                 .update();
     }
 
+    /** Массовый отзыв всех активных токенов пользователя (инвариант I-U1). */
+    public void revokeAllUserTokens(Long userId) {
+        jdbcClient.sql("update kauth_api_tokens set revoked_at = now() where user_id = :userId and revoked_at is null")
+                .param("userId", userId)
+                .update();
+    }
+
     public record ApiTokenRecord(
             Long id,
             Long userId,

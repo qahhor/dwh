@@ -44,7 +44,7 @@ Provider SPI, outbox `SKIP LOCKED`, keyset, RFC 9457, Argon2id, инвариан
 | D-4 | **Rate limiting не реализован** (bucket4j объявлен в pom, в коде не используется) | FR-SEC-2 | 🔴 | **R3 ✅ закрыт 2026-08-28** |
 | D-5 | **Flyway `enabled: true` при старте приложения** — регресс находки A-4 AUDIT-01 (нет пути отката) | NFR-10, ADR-0007 | 🔴 | **R4 ✅ закрыт 2026-08-28** |
 | D-6 | **CI отсутствует** — гейты ArchUnit/gitleaks/Trivy/SBOM не существуют | FR-SEC-4, FR-MOD-2 | 🔴 | **R5** |
-| D-7 | Тесты: 11 классов на 27,8 тыс. строк; Testcontainers — 1; интеграционных RBAC-тестов нет | NFR-11 | 🟠 | **R6** |
+| D-7 | Тесты: 11 классов на 27,8 тыс. строк; Testcontainers — 1; интеграционных RBAC-тестов нет | NFR-11 | 🟠 | R6 ✅ закрыт 2026-08-28 |
 | D-8 | **Vault нигде** — секреты в application.yml/env | FR-SEC-3 | 🟠 | P |
 | D-9 | **SSE не реализован** — realtime-уведомлений нет | FR-NOTIF-2, FR-API-5 | 🟠 | F |
 | D-10 | PostgreSQL 16 вместо 18 (+pgvector) | ADR-0002, ADR-0005 | 🟠 | R1 ✅ закрыт 2026-08-28 (тесты на postgres:18; pgvector в образ — фаза P) |
