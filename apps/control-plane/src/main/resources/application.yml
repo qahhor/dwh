@@ -24,6 +24,14 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: false
 
+dwh:
+  cp:
+    # Первый сотрудник control plane. Без этих значений в панель не войти.
+    admin-login: ${CP_ADMIN_LOGIN:}
+    admin-email: ${CP_ADMIN_EMAIL:}
+    admin-password: ${CP_ADMIN_PASSWORD:}
+    admin-name: ${CP_ADMIN_NAME:Platform Administrator}
+
 management:
   server:
     port: 9091

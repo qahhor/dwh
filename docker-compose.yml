@@ -106,6 +106,9 @@ services:
       CP_DB_URL: jdbc:postgresql://db-cp:5432/${CP_DB_NAME:-dwh_control_plane}
       CP_DB_USER: ${CP_DB_USER:-dwh_cp}
       CP_DB_PASSWORD: ${CP_DB_PASSWORD:-dwh_cp_local_dev}
+      CP_ADMIN_LOGIN: ${CP_ADMIN_LOGIN:-cpadmin}
+      CP_ADMIN_EMAIL: ${CP_ADMIN_EMAIL:-cpadmin@dev.local}
+      CP_ADMIN_PASSWORD: ${CP_ADMIN_PASSWORD:-CpDevOnly-ChangeMe-1}
       MANAGEMENT_PORT: 9091      # у control plane свой actuator-порт
       TZ: UTC
     depends_on:
