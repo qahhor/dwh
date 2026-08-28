@@ -1,0 +1,143 @@
+package com.greenwhite.dwh.instance.ms.task.controller;
+
+import com.greenwhite.dwh.core.pagination.KeysetPage;
+import com.greenwhite.dwh.instance.common.security.SecurityContext;
+import com.greenwhite.dwh.instance.common.annotation.RequiresPermission;
+import com.greenwhite.dwh.instance.ms.task.pref.MsTaskPref;
+import com.greenwhite.dwh.instance.ms.task.repository.MsTaskMemberRepository;
+import com.greenwhite.dwh.instance.ms.task.repository.MsTaskRepository;
+import com.greenwhite.dwh.instance.ms.task.service.MsTaskService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/v1/tasks/items")
+public class MsTaskController {
+
+    private final MsTaskService taskService;
+
+    public MsTaskController(MsTaskService taskService) {
+        this.taskService = taskService;
+    }
+
+    @GetMapping
+    @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
+    public ResponseEntity<KeysetPage<MsTaskRepository.TaskRecord>> listTasks(
+            @RequestParam(name = "limit", defaultValue = "20") int limit,
+            @RequestParam(name = "cursor", required = false) String cursor,
+            @RequestParam(name = "project_id", required = false) Long projectId,
+            @RequestParam(name = "status_id", required = false) Long statusId,
+            @RequestParam(name = "priority", required = false) String priority,
+            @RequestParam(name = "search", required = false) String search) {
+
+        return ResponseEntity.ok(taskService.listTasks(limit, cursor, projectId, statusId, priority, search));
+    }
+
+    @GetMapping("/{id}")
+    @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
+    public ResponseEntity<TaskDetailResponse> getTask(@PathVariable("id") Long id) {
+        var task = taskService.getTaskById(id);
+        var members = taskService.getTaskMembers(id);
+
+        Long currentUserId = SecurityContext.getCurrentUserId();
+        if (currentUserId != null) {
+            taskService.markViewed(id, currentUserId);
+        }
+
+        return ResponseEntity.ok(new TaskDetailResponse(task, members));
+    }
+
+    @PostMapping
+    @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "create")
+    public ResponseEntity<MsTaskRepository.TaskRecord> createTask(@Valid @RequestBody CreateTaskDto body) {
+        Long currentUserId = SecurityContext.getCurrentUserId();
+
+        var task = taskService.createTask(
+                body.projectId(),
+                body.parentTaskId(),
+                body.title(),
+                body.descriptionMarkdown(),
+                body.priority(),
+                body.responsibleUserId(),
+                body.executorUserIds(),
+                body.attributes(),
+                body.beginTime(),
+                body.endTime(),
+                currentUserId
+        );
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(task);
+    }
+
+    @PatchMapping("/{id}")
+    @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
+    public ResponseEntity<Void> updateTask(@PathVariable("id") Long id, @RequestBody UpdateTaskDto body) {
+        Long currentUserId = SecurityContext.getCurrentUserId();
+
+        taskService.updateTask(
+                id,
+                body.title(),
+                body.descriptionMarkdown(),
+                body.priority(),
+                body.parentTaskId(),
+                body.attributes(),
+                body.beginTime(),
+                body.endTime(),
+                currentUserId
+        );
+
+        if (body.responsibleUserId() != null) {
+            taskService.setResponsible(id, body.responsibleUserId());
+        }
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/status")
+    @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
+    public ResponseEntity<Void> changeStatus(@PathVariable("id") Long id, @Valid @RequestBody ChangeStatusDto body) {
+        Long currentUserId = SecurityContext.getCurrentUserId();
+        taskService.changeStatus(id, body.statusId(), currentUserId);
+        return ResponseEntity.noContent().build();
+    }
+
+    public record CreateTaskDto(
+            @NotBlank String title,
+            String descriptionMarkdown,
+            Long projectId,
+            Long parentTaskId,
+            String priority,
+            Long responsibleUserId,
+            List<Long> executorUserIds,
+            Map<String, Object> attributes,
+            Instant beginTime,
+            Instant endTime
+    ) {}
+
+    public record UpdateTaskDto(
+            String title,
+            String descriptionMarkdown,
+            Long parentTaskId,
+            String priority,
+            Long responsibleUserId,
+            Map<String, Object> attributes,
+            Instant beginTime,
+            Instant endTime
+    ) {}
+
+    public record ChangeStatusDto(
+            Long statusId
+    ) {}
+
+    public record TaskDetailResponse(
+            MsTaskRepository.TaskRecord task,
+            List<MsTaskMemberRepository.TaskMemberRecord> members
+    ) {}
+}
