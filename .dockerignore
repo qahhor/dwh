@@ -1,0 +1,18 @@
+# Всё, что не должно попасть в build-контекст (скорость сборки + безопасность)
+.git
+.github
+**/target
+**/node_modules
+**/dist
+**/.angular
+docs
+deploy
+scripts
+*.md
+!README.md
+.env
+.env.*
+secrets/
+**/*.log
+.idea
+.vscode

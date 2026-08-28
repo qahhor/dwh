@@ -56,7 +56,8 @@ public class SecurityConfig {
                         .ignoringRequestMatchers(SecurityConfig::isCsrfExempt))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_PATHS).permitAll()
-                        .requestMatchers("/actuator/health/**", "/actuator/info").permitAll()
+                        // Actuator живёт на отдельном management-порту, наружу не публикуется
+                        .requestMatchers("/actuator/**").permitAll()
                         .anyRequest().authenticated())
                 .httpBasic(basic -> basic.disable())
                 .formLogin(form -> form.disable())

@@ -1,0 +1,119 @@
+# Production-развёртывание ОДНОГО экземпляра клиента через Docker Compose.
+#
+# ВАЖНО про место в архитектуре: целевой оркестратор — Nomad (ADR-0007).
+# Этот compose — законный промежуточный контур для пилота/одиночного клиента
+# и эталон состава стека; при переходе на Nomad job-файл повторяет эту же
+# топологию. Kubernetes/Helm сознательно не используются (ADR-0007 разд. 2.1).
+#
+# Запуск:
+#   1) cp .env.example .env  и заполнить (секреты НЕ коммитить)
+#   2) docker compose -f docker-compose.prod.yml --env-file .env run --rm migrate
+#   3) docker compose -f docker-compose.prod.yml --env-file .env up -d
+#
+# Порядок обязателен: миграции — отдельным шагом (NFR-10), приложение при
+# старте только проверяет схему и откажется стартовать при несовпадении.
+
+name: dwh-${CLIENT_CODE:?требуется CLIENT_CODE}
+
+x-app-common: &app-common
+  image: ${IMAGE_REGISTRY:-dwh}/instance:${APP_VERSION:?требуется APP_VERSION}
+  restart: unless-stopped
+  environment:
+    DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-dwh_instance}
+    DB_USER: ${DB_USER:?}
+    DB_PASSWORD: ${DB_PASSWORD:?}
+    TZ: UTC
+  networks: [dwh-internal]
+  logging:
+    driver: json-file
+    options: {max-size: "50m", max-file: "5"}   # до централизованных логов (фаза P)
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-dwh_instance}
+      POSTGRES_USER: ${DB_USER:?}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?}
+      # Инициализация с checksums: критично для раннего выявления порчи страниц
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./backups:/backups
+    # Порт наружу НЕ публикуется: доступ только из внутренней сети compose
+    networks: [dwh-internal]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME:-dwh_instance}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    stop_grace_period: 1m
+    shm_size: 256mb
+    deploy:
+      resources:
+        limits: {cpus: "${PG_CPUS:-2}", memory: "${PG_MEMORY:-4g}"}
+
+  # Одноразовый шаг миграций. Не поднимается вместе со стеком (profile: tools) —
+  # запускается явно перед обновлением: docker compose run --rm migrate
+  migrate:
+    <<: *app-common
+    profiles: [tools]
+    command: ["--spring.profiles.active=migrate"]
+    restart: "no"
+    depends_on:
+      postgres: {condition: service_healthy}
+
+  app:
+    <<: *app-common
+    depends_on:
+      postgres: {condition: service_healthy}
+    ports:
+      - "${APP_BIND:-127.0.0.1}:${APP_PORT:-8080}:8080"   # за reverse proxy с TLS
+    volumes:
+      - appdata:/var/lib/dwh                              # ВРЕМЕННО до Garage (C-3)
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9090/actuator/health/readiness || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 4
+      start_period: 60s
+    stop_grace_period: 30s        # graceful shutdown приложения — 30 с
+    deploy:
+      resources:
+        limits: {cpus: "${APP_CPUS:-2}", memory: "${APP_MEMORY:-2g}"}
+
+  # Ежесуточный базовый бэкап. ВНИМАНИЕ: это минимальный контур —
+  # без WAL-архива, шифрования и автопроверки восстановления (NFR-7).
+  # Полный контур — фаза P; до неё проверять восстановление вручную (RB-05).
+  backup:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      PGPASSWORD: ${DB_PASSWORD:?}
+    volumes:
+      - ./backups:/backups
+    networks: [dwh-internal]
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        while true; do
+          TS=$$(date -u +%Y%m%dT%H%M%SZ)
+          pg_dump -h postgres -U "${DB_USER}" -d "${DB_NAME:-dwh_instance}" -Fc \
+            -f "/backups/${CLIENT_CODE}-$$TS.dump" \
+            && echo "backup ok: $$TS" \
+            || echo "BACKUP FAILED: $$TS"
+          find /backups -name '*.dump' -mtime +${BACKUP_RETENTION_DAYS:-14} -delete
+          sleep ${BACKUP_INTERVAL_SECONDS:-86400}
+        done
+    depends_on:
+      postgres: {condition: service_healthy}
+
+networks:
+  dwh-internal:
+    driver: bridge
+
+volumes:
+  pgdata:
+  appdata:

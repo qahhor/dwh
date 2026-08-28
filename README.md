@@ -4,10 +4,12 @@
 оповещения) + хранилище данных (DWH) + дашборды. Поставляется **отдельным экземпляром на
 каждого клиента**; флот экземпляров управляется центральным **control plane**.
 
-**Статус:** ТЗ утверждено (v1.1); реализация ядра создана 28.08.2026, идёт **фаза ремедиации R**
-(приведение к утверждённым версиям и требованиям безопасности) — см.
-[AUDIT-02](docs/audit/AUDIT-02-implementation-review.md) и
-[план ремедиации](docs/plan/remediation-plan.md). Объём заморожен: «углублять, не расширять»
+**Статус:** ТЗ утверждено (v1.1). **Фаза ремедиации R завершена** (R1–R6: версии, Spring
+Security, лимиты, миграции отдельным шагом, CI, тесты RBAC). Готовность к production —
+**PARTIALLY READY**: пилот допустим, коммерческая поставка нет
+([AUDIT-04](docs/audit/AUDIT-04-devops-readiness.md),
+[launch checklist](docs/ops/production-launch-checklist.md)). Дальше — фаза P (платформа,
+нужен стенд) и F (SSE, OpenAPI, реальные каналы). Объём заморожен: «углублять, не расширять»
 (CEO, 28.08). Начало чтения — [docs/onboarding.md](docs/onboarding.md).
 
 ## Архитектура (коротко)
@@ -54,6 +56,14 @@
 | [ADR-0012](docs/adr/ADR-0012-ui-foundation.md) | UI-фундамент: Angular Material + CDK, строгая тема из токенов |
 | [План M0](docs/plan/M0-plan.md) | Декомпозиция первой вехи: спайк, потоки, календарь |
 | [Онбординг](docs/onboarding.md) | Порядок чтения: 2 часа — и ты в контексте |
+| **Эксплуатация** | |
+| [Развёртывание](docs/ops/deployment-guide.md) | Prerequisites Checklist и пошаговый деплой экземпляра |
+| [Operations Runbook](docs/ops/operations-runbook.md) | Ежедневный контроль, диагностика, матрица эскалации |
+| [Откат релиза](docs/ops/rollback.md) | Откат образа и восстановление из бэкапа |
+| [Обслуживание](docs/ops/maintenance-guide.md) | Обновления, патчи, бэкапы, ротация секретов |
+| [Архитектура для эксплуатации](docs/ops/architecture-overview.md) | Состав, потоки данных, порты, состояние |
+| [Launch Checklist](docs/ops/production-launch-checklist.md) | Критерии go/no-go |
+| [AUDIT-04](docs/audit/AUDIT-04-devops-readiness.md) | DevOps-аудит: PARTIALLY READY, gap-анализ |
 | [CONTRIBUTING](CONTRIBUTING.md) | Процесс: ветки/PR/ревью, DoR/DoD (действует со старта разработки) |
 
 ## Этапы

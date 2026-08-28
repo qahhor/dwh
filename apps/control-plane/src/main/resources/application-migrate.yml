@@ -1,0 +1,7 @@
+# Профиль migrate control plane — единственная точка применения миграций (NFR-10).
+# Запуск: java -jar control-plane.jar --spring.profiles.active=migrate
+spring:
+  main:
+    web-application-type: none
+  flyway:
+    enabled: true
