@@ -70,14 +70,14 @@ jobs:
 
       # FR-SEC-3: секретов в репозитории нет — любой найденный блокирует merge
       - name: Gitleaks
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # FR-SEC-4: Critical/High уязвимости зависимостей блокируют merge.
       # Исключения — только через .trivyignore с обоснованием и сроком (ревью обязательно).
       - name: Trivy (dependencies)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: .
