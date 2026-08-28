@@ -41,7 +41,7 @@ Provider SPI, outbox `SKIP LOCKED`, keyset, RFC 9457, Argon2id, инвариан
 | D-1 | **Spring Boot 3.4.3 + Java 23** (pom.xml): Boot 3.4 вне OSS-поддержки, Java 23 не LTS и без патчей | ADR-0002 | 🔴 | **R1 ✅ закрыт 2026-08-28** (Boot 4.1.1, Java 25, Jackson 3) |
 | D-2 | **Spring Security отсутствует** — самописный auth-фильтр (`KauthAuthenticationFilter`) | ADR-0002, NFR-8 | 🔴 | **R2 ✅ закрыт 2026-08-28** |
 | D-3 | **CSRF не реализован** (0 упоминаний в коде) при cookie-сессиях | FR-SEC-1 | 🔴 | **R2 ✅ закрыт 2026-08-28** |
-| D-4 | **Rate limiting не реализован** (bucket4j объявлен в pom, в коде не используется) | FR-SEC-2 | 🔴 | **R3** |
+| D-4 | **Rate limiting не реализован** (bucket4j объявлен в pom, в коде не используется) | FR-SEC-2 | 🔴 | **R3 ✅ закрыт 2026-08-28** |
 | D-5 | **Flyway `enabled: true` при старте приложения** — регресс находки A-4 AUDIT-01 (нет пути отката) | NFR-10, ADR-0007 | 🔴 | **R4** |
 | D-6 | **CI отсутствует** — гейты ArchUnit/gitleaks/Trivy/SBOM не существуют | FR-SEC-4, FR-MOD-2 | 🔴 | **R5** |
 | D-7 | Тесты: 11 классов на 27,8 тыс. строк; Testcontainers — 1; интеграционных RBAC-тестов нет | NFR-11 | 🟠 | **R6** |

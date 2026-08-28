@@ -39,6 +39,17 @@ management:
       probes:
         enabled: true
 
+dwh:
+  rate-limit:
+    enabled: true
+    ip-per-minute: 60        # неаутентифицированные, по IP
+    user-per-minute: 600     # cookie-сессии
+    token-per-minute: 300    # Bearer, на владельца токена
+    expensive-per-minute: 10 # дорогие операции (пути ниже)
+    expensive-paths:
+      - /api/v1/audit/**
+      - /api/v1/search/**
+
 logging:
   pattern:
     level: "%5p [traceparent=%X{traceparent}] [client=%X{client_code}]"

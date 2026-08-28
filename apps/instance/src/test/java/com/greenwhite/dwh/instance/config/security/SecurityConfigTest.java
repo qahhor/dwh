@@ -1,5 +1,6 @@
 package com.greenwhite.dwh.instance.config.security;
 
+import com.greenwhite.dwh.instance.audit.service.AuditLogService;
 import com.greenwhite.dwh.instance.kauth.repository.KauthSessionRepository;
 import com.greenwhite.dwh.instance.kauth.security.KauthAuthenticationFilter;
 import com.greenwhite.dwh.instance.kauth.service.KauthApiTokenService;
@@ -40,7 +41,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @WebMvcTest(controllers = SecurityTestController.class)
 @Import({SecurityConfig.class, ProblemDetailAuthHandlers.class,
-        KauthAuthenticationFilter.class, SecurityTestController.class})
+        KauthAuthenticationFilter.class, RateLimitFilter.class, RateLimitService.class,
+        SecurityTestController.class})
 class SecurityConfigTest {
 
     private static final String SESSION_COOKIE = "DWH_SESSION";
@@ -56,6 +58,8 @@ class SecurityConfigTest {
     MdUserService userService;
     @MockitoBean
     MdPermissionService permissionService;
+    @MockitoBean
+    AuditLogService auditLogService;
 
     @Test
     @DisplayName("FR-SEC-1: мутирующий запрос с cookie-сессией без CSRF-токена -> 403 csrf_token_invalid")

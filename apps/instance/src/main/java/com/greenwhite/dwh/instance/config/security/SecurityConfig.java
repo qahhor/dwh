@@ -4,6 +4,7 @@ import com.greenwhite.dwh.instance.kauth.pref.KauthPref;
 import com.greenwhite.dwh.instance.kauth.security.KauthAuthenticationFilter;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,6 +14,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
+import org.springframework.security.web.context.SecurityContextHolderFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.security.web.header.writers.StaticHeadersWriter;
@@ -27,6 +29,7 @@ import org.springframework.security.web.header.writers.StaticHeadersWriter;
  */
 @Configuration
 @EnableWebSecurity
+@EnableConfigurationProperties(RateLimitProperties.class)
 public class SecurityConfig {
 
     private static final String[] PUBLIC_PATHS = {
@@ -40,6 +43,7 @@ public class SecurityConfig {
     SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             KauthAuthenticationFilter kauthAuthenticationFilter,
+            RateLimitFilter rateLimitFilter,
             ProblemDetailAuthHandlers problemHandlers) throws Exception {
 
         http
@@ -71,7 +75,11 @@ public class SecurityConfig {
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(problemHandlers)
                         .accessDeniedHandler(problemHandlers))
-                .addFilterBefore(kauthAuthenticationFilter, AuthorizationFilter.class);
+                // Порядок детерминирован разными якорями: аутентификация — сразу после
+                // установки контекста; лимиты — после неё (нужна личность), до авторизации,
+                // чтобы превышение отвечало 429, а не 401/403.
+                .addFilterAfter(kauthAuthenticationFilter, SecurityContextHolderFilter.class)
+                .addFilterBefore(rateLimitFilter, AuthorizationFilter.class);
 
         return http.build();
     }
@@ -85,6 +93,13 @@ public class SecurityConfig {
     FilterRegistrationBean<KauthAuthenticationFilter> kauthFilterAutoRegistrationDisabled(
             KauthAuthenticationFilter filter) {
         FilterRegistrationBean<KauthAuthenticationFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
+    }
+
+    @Bean
+    FilterRegistrationBean<RateLimitFilter> rateLimitFilterAutoRegistrationDisabled(RateLimitFilter filter) {
+        FilterRegistrationBean<RateLimitFilter> registration = new FilterRegistrationBean<>(filter);
         registration.setEnabled(false);
         return registration;
     }

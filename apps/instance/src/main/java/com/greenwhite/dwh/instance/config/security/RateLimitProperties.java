@@ -1,0 +1,29 @@
+package com.greenwhite.dwh.instance.config.security;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
+import java.util.List;
+
+/**
+ * Лимиты частоты запросов (FR-SEC-2, ADR-0008 разд. 2.2). Значения — в минуту.
+ * Все значения настраиваются конфигурацией экземпляра.
+ */
+@ConfigurationProperties(prefix = "dwh.rate-limit")
+public record RateLimitProperties(
+        boolean enabled,
+        int ipPerMinute,
+        int userPerMinute,
+        int tokenPerMinute,
+        int expensivePerMinute,
+        List<String> expensivePaths
+) {
+    public RateLimitProperties {
+        if (ipPerMinute <= 0) ipPerMinute = 60;
+        if (userPerMinute <= 0) userPerMinute = 600;
+        if (tokenPerMinute <= 0) tokenPerMinute = 300;
+        if (expensivePerMinute <= 0) expensivePerMinute = 10;
+        if (expensivePaths == null) {
+            expensivePaths = List.of("/api/v1/audit/**", "/api/v1/search/**");
+        }
+    }
+}
