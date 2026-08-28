@@ -32,6 +32,10 @@ spring:
     default-property-inclusion: non_null
 
 management:
+  server:
+    # Actuator на отдельном порту: НЕ публикуется наружу (compose/Nomad),
+    # доступен только сети мониторинга. Поэтому в SecurityConfig он permitAll.
+    port: 9090
   endpoints:
     web:
       exposure:

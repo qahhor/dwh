@@ -18,6 +18,21 @@ spring:
       maximum-pool-size: 10
       minimum-idle: 2
   flyway:
-    enabled: true
+    # NFR-10 / ADR-0007 2.3 — паритет с instance: приложение НЕ мигрирует схему.
+    # Миграции: --spring.profiles.active=migrate. При старте — SchemaVersionGate.
+    enabled: false
     locations: classpath:db/migration
     baseline-on-migrate: false
+
+management:
+  server:
+    port: 9091
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
