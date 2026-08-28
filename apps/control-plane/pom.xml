@@ -85,6 +85,7 @@
                              "no main manifest attribute" (паритет с instance) -->
                         <goals>
                             <goal>repackage</goal>
+                            <goal>build-info</goal>
                         </goals>
                     </execution>
                 </executions>
