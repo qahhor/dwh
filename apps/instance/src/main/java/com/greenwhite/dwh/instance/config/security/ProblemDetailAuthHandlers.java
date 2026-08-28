@@ -33,7 +33,7 @@ public class ProblemDetailAuthHandlers implements AuthenticationEntryPoint, Acce
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response,
                          AuthenticationException authException) throws IOException {
-        write(response, ErrorCode.UNAUTHORIZED,
+        writeProblem(response, ErrorCode.UNAUTHORIZED,
                 "Требуется аутентификация для доступа к ресурсу", request.getRequestURI());
     }
 
@@ -46,10 +46,10 @@ public class ProblemDetailAuthHandlers implements AuthenticationEntryPoint, Acce
         String detail = code == ErrorCode.CSRF_TOKEN_INVALID
                 ? "Отсутствует или недействителен CSRF-токен (заголовок X-XSRF-TOKEN)"
                 : "Доступ запрещён";
-        write(response, code, detail, request.getRequestURI());
+        writeProblem(response, code, detail, request.getRequestURI());
     }
 
-    private void write(HttpServletResponse response, ErrorCode code, String detail, String uri)
+    public void writeProblem(HttpServletResponse response, ErrorCode code, String detail, String uri)
             throws IOException {
         ProblemDetailRecord problem = ProblemDetailRecord.of(code, detail, uri);
         response.setStatus(code.getDefaultStatus());
