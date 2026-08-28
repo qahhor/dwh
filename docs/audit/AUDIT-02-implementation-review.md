@@ -38,7 +38,7 @@ Provider SPI, outbox `SKIP LOCKED`, keyset, RFC 9457, Argon2id, инвариан
 
 | ID | Расхождение (факт) | Нарушает | Тяжесть | Фаза |
 |---|---|---|---|---|
-| D-1 | **Spring Boot 3.4.3 + Java 23** (pom.xml): Boot 3.4 вне OSS-поддержки, Java 23 не LTS и без патчей | ADR-0002 | 🔴 | **R1** |
+| D-1 | **Spring Boot 3.4.3 + Java 23** (pom.xml): Boot 3.4 вне OSS-поддержки, Java 23 не LTS и без патчей | ADR-0002 | 🔴 | **R1 ✅ закрыт 2026-08-28** (Boot 4.1.1, Java 25, Jackson 3) |
 | D-2 | **Spring Security отсутствует** — самописный auth-фильтр (`KauthAuthenticationFilter`) | ADR-0002, NFR-8 | 🔴 | **R2** |
 | D-3 | **CSRF не реализован** (0 упоминаний в коде) при cookie-сессиях | FR-SEC-1 | 🔴 | **R2** |
 | D-4 | **Rate limiting не реализован** (bucket4j объявлен в pom, в коде не используется) | FR-SEC-2 | 🔴 | **R3** |
@@ -47,7 +47,7 @@ Provider SPI, outbox `SKIP LOCKED`, keyset, RFC 9457, Argon2id, инвариан
 | D-7 | Тесты: 11 классов на 27,8 тыс. строк; Testcontainers — 1; интеграционных RBAC-тестов нет | NFR-11 | 🟠 | **R6** |
 | D-8 | **Vault нигде** — секреты в application.yml/env | FR-SEC-3 | 🟠 | P |
 | D-9 | **SSE не реализован** — realtime-уведомлений нет | FR-NOTIF-2, FR-API-5 | 🟠 | F |
-| D-10 | PostgreSQL 16 вместо 18 (+pgvector) | ADR-0002, ADR-0005 | 🟠 | R1 |
+| D-10 | PostgreSQL 16 вместо 18 (+pgvector) | ADR-0002, ADR-0005 | 🟠 | R1 ✅ закрыт 2026-08-28 (тесты на postgres:18; pgvector в образ — фаза P) |
 | D-11 | Nomad-развёртывание реализации отсутствует (deploy/ не тронут, только спайк-кит) | NFR-12, план M0 | 🟠 | P |
 | D-12 | Наблюдаемость: в коде нет ни Micrometer-метрик очередей, ни структурных JSON-логов с маскированием | FR-OBS-2/4, NFR-9 | 🟠 | P |
 | D-13 | Документы: ATTR/SEARCH/KWH не были внесены в 8.2/8.3; разд. 1.4 противоречил им; отчёт «100%» | Правила ТЗ | 🟠 | ✅ закрыто ТЗ v1.1 |
