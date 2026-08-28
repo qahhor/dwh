@@ -9,21 +9,18 @@
 FROM maven:3.9-eclipse-temurin-25 AS build
 WORKDIR /build
 
-# Сначала только POM'ы — слой с зависимостями переиспользуется, пока они не менялись
 COPY pom.xml .
-COPY libs/core-types/pom.xml   libs/core-types/
-COPY libs/provider-spi/pom.xml libs/provider-spi/
-COPY apps/instance/pom.xml     apps/instance/
-COPY apps/control-plane/pom.xml apps/control-plane/
-RUN mvn -B -q dependency:go-offline -DskipTests || true
-
 COPY libs libs
 COPY apps/instance apps/instance
 COPY apps/control-plane apps/control-plane
 
 ARG APP=instance
 # Тесты в образе не гоняем: это делает CI (там Docker для Testcontainers).
-RUN mvn -B -q -pl apps/${APP} -am -DskipTests package \
+# Cache mount для ~/.m2: зависимости скачиваются один раз и переиспользуются
+# между сборками. Без него каждая сборка тянет ~100 МБ заново — первая сборка
+# занимала минуты и упиралась в таймауты.
+RUN --mount=type=cache,target=/root/.m2,sharing=locked \
+    mvn -B -q -pl apps/${APP} -am -DskipTests package \
  && cp apps/${APP}/target/${APP}-*.jar /build/app.jar
 
 # Распаковка fat-jar: рядом появляются lib/ (зависимости) и запускаемый jar.
@@ -60,14 +57,19 @@ COPY --from=build --chown=dwh:dwh /layers/run.jar ./app.jar
 USER dwh:dwh
 EXPOSE 8080 9090
 
-# Контейнерные умолчания JVM: heap от лимита памяти cgroup, не от хоста
-ENV JAVA_OPTS="-XX:MaxRAMPercentage=75 -XX:InitialRAMPercentage=50 \
--XX:+ExitOnOutOfMemoryError -XX:+UseZGC -XX:+UseCompressedOops \
+# Контейнерные умолчания JVM: heap от лимита памяти cgroup, не от хоста.
+# JAVA_TOOL_OPTIONS вместо своей переменной — JVM подхватывает её сама,
+# поэтому ENTRYPOINT остаётся exec-формой без шелла (см. ниже).
+ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75 -XX:InitialRAMPercentage=50 \
+-XX:+ExitOnOutOfMemoryError -XX:+UseZGC \
 -Djava.security.egd=file:/dev/./urandom -Duser.timezone=UTC"
 
 # Health-check уровня контейнера. Оркестратор (Nomad, фаза P) использует
 # свои проверки поверх тех же actuator-эндпоинтов.
 HEALTHCHECK --interval=15s --timeout=3s --start-period=45s --retries=4 \
-  CMD curl -fsS http://localhost:${MANAGEMENT_PORT:-9090}/actuator/health/readiness || exit 1
+  CMD curl -fsS http://127.0.0.1:${MANAGEMENT_PORT:-9090}/actuator/health/readiness || exit 1
 
-ENTRYPOINT ["sh","-c","exec java $JAVA_OPTS -jar app.jar"]
+# Exec-форма обязательна: при ENTRYPOINT ["sh","-c","..."] аргументы из
+# command (например --spring.profiles.active=migrate) НЕ доходят до Java —
+# из-за этого шаг миграций молча запускался с профилем приложения.
+ENTRYPOINT ["java", "-jar", "app.jar"]

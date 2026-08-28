@@ -31,6 +31,9 @@
 - [ ] Linux x86-64 с systemd (проверено: Ubuntu 24.04 LTS, Debian 12)
 - [ ] Docker Engine ≥ 26 и Docker Compose plugin v2 (`docker compose version`)
 - [ ] Файловая система с поддержкой `--data-checksums` для тома PostgreSQL
+- [ ] Учтено: в PostgreSQL 18 том монтируется на `/var/lib/postgresql` целиком
+      (не на `/var/lib/postgresql/data`) — образ 18+ отказывается стартовать
+      при старой раскладке
 - [ ] Синхронизированное время (chrony/systemd-timesyncd) — критично для сессий, OTP и аудита
 - [ ] Reverse proxy с TLS перед приложением (nginx/Caddy/Traefik) — приложение
       публикуется **только на loopback**
@@ -58,12 +61,25 @@
 
 ## 2. Развёртывание
 
+### Шаг 0. Имя проекта (группа в Docker)
+
+Все контейнеры экземпляра объединяются в одну группу Docker. Имя берётся из
+`PROJECT_NAME` в `.env`, по умолчанию **SmartupCMS**.
+
+```bash
+grep PROJECT_NAME .env
+```
+
+Docker приводит имя группы к нижнему регистру — в Docker Desktop она видна как
+`smartupcms-<код-клиента>`. Имена контейнеров регистр сохраняют:
+`SmartupCMS-app`, `SmartupCMS-db`. Это не ошибка, а нормализация Docker.
+
 ### Шаг 1. Сборка образа
 
 Выполняется на CI или машине сборки, не на прод-узле:
 
 ```bash
-docker build --build-arg APP=instance -t dwh/instance:1.0.0 .
+docker build --build-arg APP=instance -t smartupcms/instance:1.0.0 .
 ```
 
 Проверка образа перед выкладкой:
