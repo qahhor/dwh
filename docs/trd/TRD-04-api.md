@@ -110,6 +110,12 @@
 
 ### 4.4. `rbac.roles` и `rbac.assignments` — Роли и права доступа (F-04)
 
+> **Фактические пути реализации (2026-08-28):** эндпоинты назначения живут под
+> `/api/v1/iam/users/{id}/…` — единообразно с остальными операциями над
+> пользователями. В таблицах ниже путь `/users/{id}/…` читать как
+> `/api/v1/iam/users/{id}/…`. Реализовано: `GET|PUT /roles`,
+> `GET|PUT /permissions`, `GET /effective-permissions`.
+
 | HTTP и Маршрут | Действие | Вход → Выход | Ошибки (разд. 8) |
 |---|---|---|---|
 | `GET /roles` | `view` | → `200 {items: [{id, name, pcode, state, order_no, members_count}]}` | `403 permission_denied` |

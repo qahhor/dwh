@@ -3,6 +3,7 @@ package com.greenwhite.dwh.instance.md.repository;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -59,7 +60,10 @@ public class MdPermissionRepository {
                 .param("userId", userId)
                 .query(Long.class)
                 .optional()
-                .orElse(1L);
+                // Нет строки — версия 0, а НЕ 1: первый пересчёт вставляет 1,
+                // и версия обязана вырасти, иначе кэш прав не инвалидируется
+                // и выданные права не вступят в силу (FR-PERM-6).
+                .orElse(0L);
     }
 
     public void recalculateEffectivePermissions(Long userId) {
@@ -121,6 +125,61 @@ public class MdPermissionRepository {
                 ))
                 .list();
     }
+
+
+    // ------------------------------------------------------------------
+    // Персональные права поверх ролей (FR-PERM-5)
+    // ------------------------------------------------------------------
+
+    public Set<String> getUserPersonalPermissions(Long userId) {
+        return new HashSet<>(jdbcClient.sql(
+                        "select form_code || '.' || action from md_user_permissions where user_id = :userId")
+                .param("userId", userId)
+                .query(String.class)
+                .list());
+    }
+
+    /** Полная замена набора персональных прав (семантика PUT из ТЗ-04). */
+    public void replaceUserPermissions(Long userId, List<MdRoleRepository.PermissionPair> permissions) {
+        jdbcClient.sql("delete from md_user_permissions where user_id = :userId")
+                .param("userId", userId)
+                .update();
+        for (var p : permissions) {
+            jdbcClient.sql("""
+                            insert into md_user_permissions (user_id, form_code, action)
+                            values (:userId, :formCode, :action)
+                            on conflict do nothing
+                            """)
+                    .param("userId", userId)
+                    .param("formCode", p.formCode())
+                    .param("action", p.action())
+                    .update();
+        }
+    }
+
+    /**
+     * Эффективные права с указанием источника — экран «права глазами
+     * пользователя» (FR-PERM-10): видно, откуда пришло каждое право.
+     */
+    public List<EffectivePermissionItem> getEffectivePermissionsWithSource(Long userId) {
+        return jdbcClient.sql("""
+                        select ep.form_code, ep.action, ep.source_role_id, r.name as role_name
+                        from md_effective_permissions ep
+                        left join md_roles r on r.id = ep.source_role_id
+                        where ep.user_id = :userId
+                        order by ep.form_code, ep.action
+                        """)
+                .param("userId", userId)
+                .query((rs, rowNum) -> new EffectivePermissionItem(
+                        rs.getString("form_code"),
+                        rs.getString("action"),
+                        rs.getString("role_name") != null
+                                ? "role:" + rs.getString("role_name")
+                                : "personal"))
+                .list();
+    }
+
+    public record EffectivePermissionItem(String formCode, String action, String source) {}
 
     public record FormTreeItem(
             String formCode,

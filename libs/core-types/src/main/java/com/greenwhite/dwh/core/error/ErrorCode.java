@@ -30,6 +30,7 @@ public enum ErrorCode {
     PERMISSION_DENIED("permission_denied", 403),
     USER_BLOCKED("user_blocked", 403),
     SUPERADMIN_IMMUTABLE("superadmin_immutable", 403),
+    LAST_ADMIN("last_admin", 409),
     LICENSE_READ_ONLY("license_read_only", 403),
 
     // 404 Not Found
