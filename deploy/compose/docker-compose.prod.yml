@@ -13,10 +13,13 @@
 # Порядок обязателен: миграции — отдельным шагом (NFR-10), приложение при
 # старте только проверяет схему и откажется стартовать при несовпадении.
 
-name: dwh-${CLIENT_CODE:?требуется CLIENT_CODE}
+# Группа в Docker: PROJECT_NAME (умолчание SmartupCMS) + код клиента, чтобы
+# несколько экземпляров на одном узле не смешивались. Docker приводит имя
+# группы к нижнему регистру; имена контейнеров регистр сохраняют.
+name: ${PROJECT_NAME:-SmartupCMS}-${CLIENT_CODE:?требуется CLIENT_CODE}
 
 x-app-common: &app-common
-  image: ${IMAGE_REGISTRY:-dwh}/instance:${APP_VERSION:?требуется APP_VERSION}
+  image: ${IMAGE_REGISTRY:-smartupcms}/instance:${APP_VERSION:?требуется APP_VERSION}
   restart: unless-stopped
   environment:
     DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-dwh_instance}
@@ -39,7 +42,7 @@ services:
       # Инициализация с checksums: критично для раннего выявления порчи страниц
       POSTGRES_INITDB_ARGS: "--data-checksums"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql   # PG 18: том монтируется на каталог целиком, не на /data
       - ./backups:/backups
     # Порт наружу НЕ публикуется: доступ только из внутренней сети compose
     networks: [dwh-internal]

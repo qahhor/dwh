@@ -1,23 +1,140 @@
-version: '3.8'
+# Весь проект одной группой в Docker.
+#
+# Имя группы берётся из PROJECT_NAME (файл .env), по умолчанию SmartupCMS.
+# ВНИМАНИЕ: Docker Compose приводит имя проекта к нижнему регистру, поэтому
+# в Docker Desktop группа отображается как `smartupcms`. Имена контейнеров
+# регистр сохраняют: SmartupCMS-app, SmartupCMS-db и т. д.
+#
+# Запуск (порядок обязателен — миграции отдельным шагом, NFR-10):
+#   cp .env.example .env
+#   docker compose run --rm migrate
+#   docker compose run --rm migrate-cp
+#   docker compose up -d
+#
+# Прод-развёртывание одного клиента — deploy/compose/docker-compose.prod.yml.
+
+name: ${PROJECT_NAME:-SmartupCMS}
+
+x-instance-env: &instance-env
+  DB_URL: jdbc:postgresql://db:5432/${DB_NAME:-dwh_instance}
+  DB_USER: ${DB_USER:-dwh}
+  DB_PASSWORD: ${DB_PASSWORD:-dwh_local_dev}
+  DWH_INSTANCE_CLIENT_CODE: ${CLIENT_CODE:-dev-local}
+  DWH_INSTANCE_CLIENT_NAME: ${CLIENT_NAME:-Local Development}
+  DWH_INSTANCE_RESOURCE_PROFILE: ${RESOURCE_PROFILE:-S}
+  DWH_INSTANCE_ADMIN_LOGIN: ${ADMIN_LOGIN:-admin}
+  DWH_INSTANCE_ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@dev.local}
+  DWH_INSTANCE_ADMIN_PASSWORD: ${ADMIN_PASSWORD:-DevOnly-ChangeMe-1}
+  MANAGEMENT_PORT: 9090          # порт для HEALTHCHECK образа
+  TZ: UTC
 
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: dwh-postgres
+  # ------------------------------------------------------------ экземпляр
+  db:
+    image: postgres:18-alpine
+    container_name: ${PROJECT_NAME:-SmartupCMS}-db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: dwh_instance
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${DB_NAME:-dwh_instance}
+      POSTGRES_USER: ${DB_USER:-dwh}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-dwh_local_dev}
+      POSTGRES_INITDB_ARGS: "--data-checksums"
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5432}:5432"     # наружу только для отладки в dev
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - db-data:/var/lib/postgresql   # PG 18: том монтируется на каталог целиком, не на /data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d dwh_instance"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-dwh} -d ${DB_NAME:-dwh_instance}"]
+      interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 20s
+
+  migrate:
+    build: {context: ., args: {APP: instance}}
+    image: ${PROJECT_NAME:-SmartupCMS}/instance:${APP_VERSION:-dev}
+    container_name: ${PROJECT_NAME:-SmartupCMS}-migrate
+    profiles: [tools]              # не поднимается вместе со стеком
+    restart: "no"
+    command: ["--spring.profiles.active=migrate"]
+    environment: *instance-env
+    depends_on:
+      db: {condition: service_healthy}
+
+  app:
+    build: {context: ., args: {APP: instance}}
+    image: ${PROJECT_NAME:-SmartupCMS}/instance:${APP_VERSION:-dev}
+    container_name: ${PROJECT_NAME:-SmartupCMS}-app
+    restart: unless-stopped
+    command: ["--spring.profiles.active=${SPRING_PROFILE:-dev}"]
+    environment: *instance-env
+    ports:
+      - "${APP_PORT:-8080}:8080"
+      - "${APP_MGMT_PORT:-9090}:9090"   # actuator: в проде наружу НЕ публикуется
+    volumes:
+      - app-files:/var/lib/dwh          # ВРЕМЕННО до Garage/S3 (блокер C-3)
+    depends_on:
+      db: {condition: service_healthy}
+
+  # ------------------------------------------------------- control plane
+  db-cp:
+    image: postgres:18-alpine
+    container_name: ${PROJECT_NAME:-SmartupCMS}-db-cp
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${CP_DB_NAME:-dwh_control_plane}
+      POSTGRES_USER: ${CP_DB_USER:-dwh_cp}
+      POSTGRES_PASSWORD: ${CP_DB_PASSWORD:-dwh_cp_local_dev}
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+    volumes:
+      - db-cp-data:/var/lib/postgresql   # PG 18: том монтируется на каталог целиком, не на /data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${CP_DB_USER:-dwh_cp} -d ${CP_DB_NAME:-dwh_control_plane}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  migrate-cp:
+    build: {context: ., args: {APP: control-plane}}
+    image: ${PROJECT_NAME:-SmartupCMS}/control-plane:${APP_VERSION:-dev}
+    container_name: ${PROJECT_NAME:-SmartupCMS}-migrate-cp
+    profiles: [tools]
+    restart: "no"
+    command: ["--spring.profiles.active=migrate"]
+    environment: &cp-env
+      CP_DB_URL: jdbc:postgresql://db-cp:5432/${CP_DB_NAME:-dwh_control_plane}
+      CP_DB_USER: ${CP_DB_USER:-dwh_cp}
+      CP_DB_PASSWORD: ${CP_DB_PASSWORD:-dwh_cp_local_dev}
+      MANAGEMENT_PORT: 9091      # у control plane свой actuator-порт
+      TZ: UTC
+    depends_on:
+      db-cp: {condition: service_healthy}
+
+  control-plane:
+    build: {context: ., args: {APP: control-plane}}
+    image: ${PROJECT_NAME:-SmartupCMS}/control-plane:${APP_VERSION:-dev}
+    container_name: ${PROJECT_NAME:-SmartupCMS}-control-plane
+    restart: unless-stopped
+    environment: *cp-env
+    ports:
+      - "${CP_PORT:-8082}:8081"
+      - "${CP_MGMT_PORT:-9091}:9091"
+    depends_on:
+      db-cp: {condition: service_healthy}
+
+  # ------------------------------------------------------------- фронтенд
+  web:
+    build: {context: ./apps/web-instance}
+    image: ${PROJECT_NAME:-SmartupCMS}/web:${APP_VERSION:-dev}
+    container_name: ${PROJECT_NAME:-SmartupCMS}-web
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-4200}:8080"
+    depends_on:
+      - app
 
 volumes:
-  pgdata:
+  db-data:
+  db-cp-data:
+  app-files:
