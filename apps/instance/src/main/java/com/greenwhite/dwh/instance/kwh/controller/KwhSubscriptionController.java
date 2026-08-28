@@ -4,7 +4,7 @@ import com.greenwhite.dwh.instance.common.security.SecurityContext;
 import com.greenwhite.dwh.instance.kwh.repository.KwhSubscriptionRepository;
 import com.greenwhite.dwh.instance.kwh.service.KwhWebhookService;
 import com.greenwhite.dwh.instance.common.annotation.RequiresPermission;
-import com.greenwhite.dwh.instance.md.pref.MdPref;
+import com.greenwhite.dwh.instance.kwh.pref.KwhPref;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -25,13 +25,13 @@ public class KwhSubscriptionController {
     }
 
     @GetMapping
-    @RequiresPermission(form = MdPref.FORM_SETTINGS, action = "view")
+    @RequiresPermission(form = KwhPref.FORM_WEBHOOKS, action = "view")
     public ResponseEntity<List<KwhSubscriptionRepository.SubscriptionRecord>> listSubscriptions() {
         return ResponseEntity.ok(webhookService.listSubscriptions());
     }
 
     @PostMapping
-    @RequiresPermission(form = MdPref.FORM_SETTINGS, action = "update")
+    @RequiresPermission(form = KwhPref.FORM_WEBHOOKS, action = "manage")
     public ResponseEntity<KwhSubscriptionRepository.SubscriptionRecord> createSubscription(
             @Valid @RequestBody CreateSubscriptionDto body) {
 
@@ -41,7 +41,7 @@ public class KwhSubscriptionController {
     }
 
     @PatchMapping("/{id}")
-    @RequiresPermission(form = MdPref.FORM_SETTINGS, action = "update")
+    @RequiresPermission(form = KwhPref.FORM_WEBHOOKS, action = "manage")
     public ResponseEntity<Void> updateSubscription(
             @PathVariable("id") Long id,
             @RequestBody UpdateSubscriptionDto body) {
@@ -51,7 +51,7 @@ public class KwhSubscriptionController {
     }
 
     @DeleteMapping("/{id}")
-    @RequiresPermission(form = MdPref.FORM_SETTINGS, action = "update")
+    @RequiresPermission(form = KwhPref.FORM_WEBHOOKS, action = "manage")
     public ResponseEntity<Void> deleteSubscription(@PathVariable("id") Long id) {
         webhookService.deleteSubscription(id);
         return ResponseEntity.noContent().build();

@@ -8,6 +8,7 @@ import com.greenwhite.dwh.instance.md.service.MdCustomFieldService;
 import com.greenwhite.dwh.instance.md.service.MdPermissionService;
 import com.greenwhite.dwh.instance.md.service.MdUserService;
 import com.greenwhite.dwh.instance.md.service.PasswordHasher;
+import com.greenwhite.dwh.instance.md.service.UserSessionInvalidator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -26,9 +27,11 @@ class MdUserServiceTest {
     private final MdPermissionService permissionService = Mockito.mock(MdPermissionService.class);
     private final MdCustomFieldService customFieldService = Mockito.mock(MdCustomFieldService.class);
     private final PasswordHasher passwordHasher = Mockito.mock(PasswordHasher.class);
+    private final UserSessionInvalidator sessionInvalidator = Mockito.mock(UserSessionInvalidator.class);
 
     private final MdUserService userService = new MdUserService(
-            userRepository, roleRepository, permissionService, customFieldService, passwordHasher
+            userRepository, roleRepository, permissionService, customFieldService, passwordHasher,
+            sessionInvalidator
     );
 
     @Test

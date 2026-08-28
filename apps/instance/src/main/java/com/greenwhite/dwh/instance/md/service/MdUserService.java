@@ -23,12 +23,16 @@ public class MdUserService {
     private final MdCustomFieldService customFieldService;
     private final PasswordHasher passwordHasher;
 
+    private final UserSessionInvalidator sessionInvalidator;
+
     public MdUserService(
             MdUserRepository userRepository,
             MdRoleRepository roleRepository,
             MdPermissionService permissionService,
             MdCustomFieldService customFieldService,
-            PasswordHasher passwordHasher) {
+            PasswordHasher passwordHasher,
+            UserSessionInvalidator sessionInvalidator) {
+        this.sessionInvalidator = sessionInvalidator;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.permissionService = permissionService;
@@ -132,5 +136,11 @@ public class MdUserService {
         }
 
         userRepository.setState(targetUserId, newState, currentUserId);
+
+        // I-U1 (FR-USR-4): блокировка атомарно закрывает сессии и отзывает токены —
+        // в ТОЙ ЖЕ транзакции, никаких «окон», когда state=P, а сессия жива.
+        if (MdPref.STATE_PASSIVE.equals(newState)) {
+            sessionInvalidator.invalidateAllAccess(targetUserId);
+        }
     }
 }

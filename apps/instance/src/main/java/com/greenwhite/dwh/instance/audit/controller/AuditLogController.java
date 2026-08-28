@@ -2,6 +2,7 @@ package com.greenwhite.dwh.instance.audit.controller;
 
 import com.greenwhite.dwh.instance.audit.repository.AuditLogRepository;
 import com.greenwhite.dwh.instance.audit.service.AuditLogService;
+import com.greenwhite.dwh.instance.audit.pref.AuditPref;
 import com.greenwhite.dwh.instance.common.annotation.RequiresPermission;
 import com.greenwhite.dwh.instance.md.pref.MdPref;
 import org.springframework.http.ResponseEntity;
@@ -23,7 +24,7 @@ public class AuditLogController {
     }
 
     @GetMapping("/logs")
-    @RequiresPermission(form = MdPref.FORM_SETTINGS, action = "view")
+    @RequiresPermission(form = AuditPref.FORM_AUDIT_LOG, action = "view")
     public ResponseEntity<List<AuditLogRepository.AuditRecord>> listLogs(
             @RequestParam(name = "table_name", required = false) String tableName,
             @RequestParam(name = "row_pk", required = false) String rowPk,
@@ -34,7 +35,7 @@ public class AuditLogController {
     }
 
     @GetMapping("/security-events")
-    @RequiresPermission(form = MdPref.FORM_SETTINGS, action = "view")
+    @RequiresPermission(form = AuditPref.FORM_AUDIT_LOG, action = "view")
     public ResponseEntity<List<AuditLogRepository.SecurityEventRecord>> listSecurityEvents(
             @RequestParam(name = "limit", defaultValue = "50") int limit) {
 
