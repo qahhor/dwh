@@ -7,6 +7,7 @@ import com.greenwhite.dwh.instance.kauth.service.KauthAuthService;
 import com.greenwhite.dwh.instance.kauth.service.KauthSessionService;
 import com.greenwhite.dwh.instance.common.annotation.RequiresPermission;
 import com.greenwhite.dwh.instance.md.pref.MdPref;
+import com.greenwhite.dwh.instance.md.service.MdUserView;
 import com.greenwhite.dwh.instance.md.service.MdUserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -59,7 +60,7 @@ public class KauthAuthController {
 
         return ResponseEntity.ok(Map.of(
                 "step", "success",
-                "user", result.user()
+                "user", MdUserView.from(result.user())
         ));
     }
 
@@ -77,7 +78,7 @@ public class KauthAuthController {
 
         return ResponseEntity.ok(Map.of(
                 "step", "success",
-                "user", result.user()
+                "user", MdUserView.from(result.user())
         ));
     }
 
@@ -114,7 +115,7 @@ public class KauthAuthController {
         Set<String> permissions = principal != null ? principal.effectivePermissions() : Set.of();
         long version = principal != null ? principal.permissionVersion() : 1L;
 
-        return ResponseEntity.ok(new MeResponse(user, permissions, version));
+        return ResponseEntity.ok(new MeResponse(MdUserView.from(user), permissions, version));
     }
 
     @PostMapping("/password-reset/request")
@@ -170,7 +171,7 @@ public class KauthAuthController {
     ) {}
 
     public record MeResponse(
-            Object user,
+            MdUserView user,
             Set<String> permissions,
             long permissionsVersion
     ) {}
