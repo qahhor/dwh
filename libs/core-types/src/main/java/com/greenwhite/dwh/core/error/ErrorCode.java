@@ -26,6 +26,7 @@ public enum ErrorCode {
 
     // 403 Forbidden
     FORBIDDEN("forbidden", 403),
+    CSRF_TOKEN_INVALID("csrf_token_invalid", 403),
     PERMISSION_DENIED("permission_denied", 403),
     USER_BLOCKED("user_blocked", 403),
     SUPERADMIN_IMMUTABLE("superadmin_immutable", 403),
