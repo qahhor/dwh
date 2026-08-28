@@ -1,0 +1,86 @@
+# CI-гейты (R5, ремедиация): сборка + тесты + ArchUnit + SBOM + сканы.
+# Правила блокировки (FR-SEC-4, FR-MOD-2): красный джоб = merge запрещён.
+# Ветки защищаются в настройках GitHub (required checks: backend, frontend, security).
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: backend (mvn verify + ArchUnit + SBOM)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      # Тесты включают Testcontainers (PostgreSQL 18) — Docker есть на раннере.
+      # ArchUnit-тесты границ модулей падают -> сборка красная (FR-MOD-2).
+      - name: Build & test
+        run: mvn -B verify
+
+      - name: SBOM (CycloneDX)
+        run: mvn -B org.cyclonedx:cyclonedx-maven-plugin:2.9.1:makeAggregateBom -DoutputFormat=json
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: target/bom.json
+          if-no-files-found: error
+
+  frontend:
+    name: frontend (ng build production)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web-instance
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: apps/web-instance/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Build (production)
+        run: npm run build
+
+  security:
+    name: security (gitleaks + trivy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # gitleaks сканирует историю
+
+      # FR-SEC-3: секретов в репозитории нет — любой найденный блокирует merge
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # FR-SEC-4: Critical/High уязвимости зависимостей блокируют merge.
+      # Исключения — только через .trivyignore с обоснованием и сроком (ревью обязательно).
+      - name: Trivy (dependencies)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: CRITICAL,HIGH
+          exit-code: '1'
+          ignore-unfixed: true

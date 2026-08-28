@@ -40,7 +40,7 @@
 | C-3 | **Файлы на локальном диске** (`./data/storage`), не S3/Garage — потеря при пересоздании контейнера, нет бэкапа | LocalStorageProvider | Garage-адаптер StorageProvider; фаза P |
 | C-4 ✅ | ~~Миграции при старте~~ — **закрыт 2026-08-28 (R4):** flyway off, профиль migrate, SchemaVersionGate (FR-INST-2) | тест MigrationGateAndBootstrapTest | — |
 | C-5 ✅ | ~~Нет rate limiting~~ — **закрыт 2026-08-28 (R3)** | RateLimitFilterTest | — |
-| C-6 | **Нет CI** — ArchUnit/тесты/сканы не гейтят merge | .github отсутствует | R5 |
+| C-6 ✅ | ~~Нет CI~~ — **закрыт 2026-08-28 (R5):** три обязательных джоба, SBOM, сканы | .github/workflows/ci.yml | — |
 | C-7 | **Секреты через env с dev-фолбэками** (`DB_PASSWORD:postgres`), Vault не интегрирован | application.yml | Фаза P (Vault) |
 | C-8 | **Нет SSE** (FR-NOTIF-2, FR-API-5 — M) | grep: 0 | Фаза F |
 | C-9 | **Нет OpenAPI из кода** (FR-API-1 — M; заявлен в DoD CONTRIBUTING) | springdoc отсутствует в pom | Фаза F |
@@ -53,7 +53,7 @@
 |---|---|---|
 | ~~`scripts/test-api.ps1`~~ | ✅ перемещён в `scripts/dev/` (R4) | — |
 | ~~`docs/plan/stage-1-completion.md`~~ | ✅ заменён указателем на актуальные статусы (R4) | — |
-| `.mvn/wrapper/` (properties без mvnw-скриптов) | Неработоспособный half-wrapper | Доукомплектовать скриптами в R5 (CI) либо удалить |
+| ~~`.mvn/wrapper/`~~ | ✅ удалён (R5): CI и разработчики используют системный Maven | — |
 | ~~`V002` (DEMO/админ)~~ | ✅ вырезано, справочники сохранены (R4) | — |
 | ~~println(SEED_ADMIN_HASH)~~ | ✅ удалён (R4) | — |
 | `deploy/spike/` | Не prod-конфигурация | Оставить (нужен фазе P), пометить README «не для прод» — уже помечен |
