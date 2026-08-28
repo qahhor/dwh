@@ -1,0 +1,12 @@
+# ТОЛЬКО локальная разработка (--spring.profiles.active=dev).
+# В прод-развёртывании эти значения приходят из конфигурации job'а (фаза P: Vault).
+dwh:
+  schema-gate:
+    enabled: true
+  instance:
+    client-code: dev-local
+    client-name: Local Development
+    resource-profile: S
+    admin-login: admin
+    admin-email: admin@dev.local
+    admin-password: DevOnly-ChangeMe-1  # force_password_change=true при первом входе

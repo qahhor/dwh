@@ -16,8 +16,6 @@ class KauthPasswordHasherTest {
         String rawPassword = "Admin123!";
         String hash = hasher.hashPassword(rawPassword);
 
-        System.out.println("SEED_ADMIN_HASH=" + hash);
-
         assertThat(hash).isNotNull().startsWith("$argon2id$");
         assertThat(hasher.verifyPassword(rawPassword, hash)).isTrue();
         assertThat(hasher.verifyPassword("WrongPassword123!", hash)).isFalse();
