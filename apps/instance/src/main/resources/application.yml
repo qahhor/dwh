@@ -25,8 +25,7 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: false
   jackson:
-    serialization:
-      write-dates-as-timestamps: false
+    # Jackson 3: даты ISO-8601 по умолчанию, write-dates-as-timestamps удалён
     default-property-inclusion: non_null
 
 management:

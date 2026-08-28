@@ -1,0 +1,37 @@
+package com.greenwhite.dwh.instance.config.security;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.security.web.csrf.CsrfToken;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import org.springframework.security.web.csrf.CsrfTokenRequestHandler;
+import org.springframework.security.web.csrf.XorCsrfTokenRequestAttributeHandler;
+import org.springframework.util.StringUtils;
+
+import java.util.function.Supplier;
+
+/**
+ * Документированный Spring Security паттерн CSRF для SPA:
+ * - значение из заголовка (SPA шлёт cookie как есть) резолвится plain-обработчиком;
+ * - значение из параметра формы — Xor-обработчиком (BREACH-защита);
+ * - csrfToken.get() форсирует выдачу cookie XSRF-TOKEN на каждом ответе,
+ *   чтобы SPA всегда имела актуальный токен.
+ */
+final class SpaCsrfTokenRequestHandler implements CsrfTokenRequestHandler {
+
+    private final CsrfTokenRequestHandler plain = new CsrfTokenRequestAttributeHandler();
+    private final CsrfTokenRequestHandler xor = new XorCsrfTokenRequestAttributeHandler();
+
+    @Override
+    public void handle(HttpServletRequest request, HttpServletResponse response, Supplier<CsrfToken> csrfToken) {
+        this.xor.handle(request, response, csrfToken);
+        csrfToken.get();
+    }
+
+    @Override
+    public String resolveCsrfTokenValue(HttpServletRequest request, CsrfToken csrfToken) {
+        String headerValue = request.getHeader(csrfToken.getHeaderName());
+        return (StringUtils.hasText(headerValue) ? this.plain : this.xor)
+                .resolveCsrfTokenValue(request, csrfToken);
+    }
+}

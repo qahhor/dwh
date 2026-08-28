@@ -13,6 +13,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,6 +32,12 @@ public class GlobalExceptionHandler {
                 : ProblemDetailRecord.of(ex.getErrorCode(), ex.getMessage(), request.getRequestURI());
 
         return ResponseEntity.status(status).body(problem);
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ProblemDetailRecord> handleNoResourceFound(NoResourceFoundException ex, HttpServletRequest request) {
+        var problem = ProblemDetailRecord.of(ErrorCode.NOT_FOUND, "Ресурс не найден", request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(problem);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
