@@ -3,6 +3,8 @@ package com.greenwhite.dwh.instance.ms.notify.service;
 import com.greenwhite.dwh.instance.ms.notify.repository.MsAnnouncementRepository;
 import com.greenwhite.dwh.instance.ms.notify.repository.MsNotificationRepository;
 import com.greenwhite.dwh.instance.ms.notify.repository.MsOutboxRepository;
+import com.greenwhite.dwh.instance.ms.notify.sse.MsNotificationCreatedEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,11 +18,14 @@ public class MsNotificationService {
     private final MsNotificationRepository notificationRepository;
     private final MsOutboxRepository outboxRepository;
     private final MsAnnouncementRepository announcementRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public MsNotificationService(
             MsNotificationRepository notificationRepository,
             MsOutboxRepository outboxRepository,
-            MsAnnouncementRepository announcementRepository) {
+            MsAnnouncementRepository announcementRepository,
+            ApplicationEventPublisher eventPublisher) {
+        this.eventPublisher = eventPublisher;
         this.notificationRepository = notificationRepository;
         this.outboxRepository = outboxRepository;
         this.announcementRepository = announcementRepository;
@@ -28,7 +33,9 @@ public class MsNotificationService {
 
     @Transactional
     public void sendInAppNotification(Long userId, String type, String title, String body, String formLink, String sourceCode) {
-        notificationRepository.create(userId, type, title, body, formLink, sourceCode);
+        var created = notificationRepository.create(userId, type, title, body, formLink, sourceCode);
+        // Доставка в открытые SSE-потоки произойдёт после коммита (MsSsePublisher)
+        eventPublisher.publishEvent(new MsNotificationCreatedEvent(userId, created));
     }
 
     @Transactional

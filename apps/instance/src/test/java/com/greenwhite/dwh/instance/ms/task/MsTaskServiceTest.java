@@ -23,8 +23,12 @@ class MsTaskServiceTest {
     private final MsProjectRepository projectRepository = Mockito.mock(MsProjectRepository.class);
     private final MdCustomFieldService customFieldService = Mockito.mock(MdCustomFieldService.class);
 
+    private final org.springframework.context.ApplicationEventPublisher eventPublisher =
+            Mockito.mock(org.springframework.context.ApplicationEventPublisher.class);
+
     private final MsTaskService service = new MsTaskService(
-            taskRepository, statusRepository, memberRepository, projectRepository, customFieldService
+            taskRepository, statusRepository, memberRepository, projectRepository, customFieldService,
+            eventPublisher
     );
 
     @Test

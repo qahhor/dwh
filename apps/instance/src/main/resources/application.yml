@@ -30,6 +30,12 @@ spring:
   jackson:
     # Jackson 3: даты ISO-8601 по умолчанию, write-dates-as-timestamps удалён
     default-property-inclusion: non_null
+    deserialization:
+      # Jackson 3 включил fail-on-null-for-primitives по умолчанию (в Jackson 2
+      # было выключено). Из-за этого клиент, опустивший необязательное поле
+      # с примитивным типом, получал 400. Контракт ТЗ-04: такие поля
+      # необязательны и берут значение по умолчанию — возвращаем прежнее поведение.
+      fail-on-null-for-primitives: false
 
 management:
   server:
@@ -47,6 +53,10 @@ management:
         enabled: true
 
 dwh:
+  sse:
+    timeout-ms: 1800000            # 30 мин; EventSource переподключается сам
+    heartbeat-ms: 25000            # keep-alive < таймаута прокси (обычно 60 с)
+    max-connections-per-user: 5    # защита от утечки вкладок на клиенте
   rate-limit:
     enabled: true
     ip-per-minute: 60        # неаутентифицированные, по IP

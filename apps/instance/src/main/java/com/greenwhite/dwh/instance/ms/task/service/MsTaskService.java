@@ -5,12 +5,15 @@ import com.greenwhite.dwh.core.pagination.CursorUtils;
 import com.greenwhite.dwh.core.pagination.KeysetPage;
 import com.greenwhite.dwh.instance.common.error.ApiException;
 import com.greenwhite.dwh.instance.md.service.MdCustomFieldService;
+import com.greenwhite.dwh.instance.ms.task.event.MsTaskEvents;
 import com.greenwhite.dwh.instance.ms.task.pref.MsTaskPref;
+import org.springframework.context.ApplicationEventPublisher;
 import com.greenwhite.dwh.instance.ms.task.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -22,13 +25,16 @@ public class MsTaskService {
     private final MsTaskMemberRepository memberRepository;
     private final MsProjectRepository projectRepository;
     private final MdCustomFieldService customFieldService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public MsTaskService(
             MsTaskRepository taskRepository,
             MsTaskStatusRepository statusRepository,
             MsTaskMemberRepository memberRepository,
             MsProjectRepository projectRepository,
-            MdCustomFieldService customFieldService) {
+            MdCustomFieldService customFieldService,
+            ApplicationEventPublisher eventPublisher) {
+        this.eventPublisher = eventPublisher;
         this.taskRepository = taskRepository;
         this.statusRepository = statusRepository;
         this.memberRepository = memberRepository;
@@ -78,6 +84,19 @@ public class MsTaskService {
             for (Long execId : executorUserIds) {
                 memberRepository.addOrUpdateMember(task.id(), execId, MsTaskPref.INVOLVE_EXECUTOR, false);
             }
+        }
+
+        // FR-TASK-8: назначенные узнают о задаче; автор себя не уведомляет
+        List<Long> assigned = new ArrayList<>();
+        if (responsibleUserId != null) {
+            assigned.add(responsibleUserId);
+        }
+        if (executorUserIds != null) {
+            assigned.addAll(executorUserIds);
+        }
+        if (!assigned.isEmpty()) {
+            eventPublisher.publishEvent(new MsTaskEvents.TaskAssigned(
+                    task.id(), task.title(), assigned, reporterId));
         }
 
         return task;
@@ -149,6 +168,11 @@ public class MsTaskService {
 
         Instant resolvedTime = newStatus.isTerminal() ? Instant.now() : null;
         taskRepository.updateStatus(taskId, newStatusId, resolvedTime, currentUserId);
+
+        var task = getTaskById(taskId);
+        eventPublisher.publishEvent(new MsTaskEvents.TaskStatusChanged(
+                taskId, task.title(), newStatus.name(), newStatus.isTerminal(),
+                memberUserIds(taskId), currentUserId));
     }
 
     @Transactional
@@ -157,7 +181,18 @@ public class MsTaskService {
         memberRepository.removeMembersByKind(taskId, MsTaskPref.INVOLVE_RESPONSIBLE);
         if (responsibleUserId != null) {
             memberRepository.addOrUpdateMember(taskId, responsibleUserId, MsTaskPref.INVOLVE_RESPONSIBLE, false);
+            var task = getTaskById(taskId);
+            eventPublisher.publishEvent(new MsTaskEvents.TaskAssigned(
+                    taskId, task.title(), List.of(responsibleUserId), null));
         }
+    }
+
+    /** Все участники задачи — получатели уведомлений о ней (FR-TASK-4). */
+    private List<Long> memberUserIds(Long taskId) {
+        return memberRepository.getTaskMembers(taskId).stream()
+                .map(MsTaskMemberRepository.TaskMemberRecord::userId)
+                .distinct()
+                .toList();
     }
 
     @Transactional(readOnly = true)

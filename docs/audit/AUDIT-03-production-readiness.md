@@ -42,7 +42,7 @@
 | C-5 ✅ | ~~Нет rate limiting~~ — **закрыт 2026-08-28 (R3)** | RateLimitFilterTest | — |
 | C-6 ✅ | ~~Нет CI~~ — **закрыт 2026-08-28 (R5):** три обязательных джоба, SBOM, сканы | .github/workflows/ci.yml | — |
 | C-7 | **Секреты через env с dev-фолбэками** (`DB_PASSWORD:postgres`), Vault не интегрирован | application.yml | Фаза P (Vault) |
-| C-8 | **Нет SSE** (FR-NOTIF-2, FR-API-5 — M) | grep: 0 | Фаза F |
+| C-8 ✅ | ~~Нет SSE~~ — **закрыт 2026-08-28 (F1):** `/api/v1/events`, heartbeat, доставка после коммита; попутно реализован FR-TASK-8 (задачи не порождали уведомлений вовсе) | сквозной прогон: уведомление в потоке | — |
 | C-9 | **Нет OpenAPI из кода** (FR-API-1 — M; заявлен в DoD CONTRIBUTING) | springdoc отсутствует в pom | Фаза F |
 | C-10 | Mail/SMS — console-заглушки; Telegram-адаптер без Vault-секретов | ConsoleMailProvider и др. | Фаза F (реальные адаптеры) |
 | C-11 | Нет деплой-контура (Nomad), наблюдаемости, бэкапов как процессов | deploy/ = только spike | Фаза P |

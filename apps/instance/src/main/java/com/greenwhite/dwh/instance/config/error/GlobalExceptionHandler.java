@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -32,6 +33,17 @@ public class GlobalExceptionHandler {
                 : ProblemDetailRecord.of(ex.getErrorCode(), ex.getMessage(), request.getRequestURI());
 
         return ResponseEntity.status(status).body(problem);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ProblemDetailRecord> handleUnreadableBody(HttpMessageNotReadableException ex,
+                                                                    HttpServletRequest request) {
+        // Некорректный JSON — вина клиента, а не сервера: 400, не 500.
+        // Текст исключения наружу не отдаём (может содержать фрагменты тела).
+        log.warn("Некорректное тело запроса {}: {}", request.getRequestURI(), ex.getMessage());
+        var problem = ProblemDetailRecord.of(ErrorCode.BAD_REQUEST,
+                "Некорректный формат тела запроса", request.getRequestURI());
+        return ResponseEntity.badRequest().body(problem);
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
