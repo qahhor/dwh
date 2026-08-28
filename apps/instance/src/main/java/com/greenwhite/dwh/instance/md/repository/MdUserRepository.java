@@ -247,6 +247,18 @@ public class MdUserRepository {
         }
     }
 
+    /** Сколько АКТИВНЫХ пользователей имеют указанную роль (защита последнего админа). */
+    public int countUsersWithRole(Long roleId) {
+        return jdbcClient.sql("""
+                        select count(*) from md_user_roles ur
+                        join md_users u on u.id = ur.user_id and u.state = 'A'
+                        where ur.role_id = :roleId
+                        """)
+                .param("roleId", roleId)
+                .query(Integer.class)
+                .single();
+    }
+
     public record UserRecord(
             Long id,
             String name,
