@@ -6,6 +6,7 @@ import com.greenwhite.dwh.instance.common.security.SecurityContext;
 import com.greenwhite.dwh.instance.md.pref.MdPref;
 import com.greenwhite.dwh.instance.md.repository.MdUserRepository;
 import com.greenwhite.dwh.instance.md.service.MdUserService;
+import com.greenwhite.dwh.instance.md.service.MdUserView;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -30,24 +31,27 @@ public class MdUserController {
 
     @GetMapping
     @RequiresPermission(form = MdPref.FORM_USERS, action = "view")
-    public ResponseEntity<KeysetPage<MdUserRepository.UserRecord>> listUsers(
+    public ResponseEntity<KeysetPage<MdUserView>> listUsers(
             @RequestParam(name = "limit", defaultValue = "20") int limit,
             @RequestParam(name = "cursor", required = false) String cursor,
             @RequestParam(name = "search", required = false) String search,
             @RequestParam(name = "state", required = false) String state) {
 
-        return ResponseEntity.ok(userService.listUsers(limit, cursor, search, state));
+        var page = userService.listUsers(limit, cursor, search, state);
+        return ResponseEntity.ok(new KeysetPage<>(
+                page.items().stream().map(MdUserView::from).toList(),
+                page.nextCursor(), page.hasMore(), page.totalEstimated()));
     }
 
     @GetMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_USERS, action = "view")
-    public ResponseEntity<MdUserRepository.UserRecord> getUser(@PathVariable("id") Long id) {
-        return ResponseEntity.ok(userService.getUserById(id));
+    public ResponseEntity<MdUserView> getUser(@PathVariable("id") Long id) {
+        return ResponseEntity.ok(MdUserView.from(userService.getUserById(id)));
     }
 
     @PostMapping
     @RequiresPermission(form = MdPref.FORM_USERS, action = "create")
-    public ResponseEntity<MdUserRepository.UserRecord> createUser(@Valid @RequestBody CreateUserDto body) {
+    public ResponseEntity<MdUserView> createUser(@Valid @RequestBody CreateUserDto body) {
         Long currentUserId = SecurityContext.getCurrentUserId();
 
         var user = userService.createUser(
@@ -66,7 +70,7 @@ public class MdUserController {
                 currentUserId
         );
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(user);
+        return ResponseEntity.status(HttpStatus.CREATED).body(MdUserView.from(user));
     }
 
     @PatchMapping("/{id}")
