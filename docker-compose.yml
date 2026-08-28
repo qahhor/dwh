@@ -137,6 +137,18 @@ services:
     depends_on:
       - app
 
+  # Панель управления флотом. Отдельный контур сотрудников платформы:
+  # свой origin, своя cookie-сессия, к экземпляру клиента отношения не имеет.
+  web-cp:
+    build: {context: ./apps/web-cp}
+    image: ${PROJECT_NAME:-SmartupCMS}/web-cp:${APP_VERSION:-dev}
+    container_name: ${PROJECT_NAME:-SmartupCMS}-web-cp
+    restart: unless-stopped
+    ports:
+      - "${CP_WEB_PORT:-4300}:8080"
+    depends_on:
+      - control-plane
+
 volumes:
   db-data:
   db-cp-data:

@@ -87,7 +87,7 @@ PostgreSQL; триггер пишет в `audit_log`. Доменное собы�
 Одна группа на экземпляр: `${PROJECT_NAME}` (умолчание `SmartupCMS`), в прод-контуре
 дополняется кодом клиента. Docker нормализует имя группы к нижнему регистру;
 контейнеры именуются `SmartupCMS-app`, `SmartupCMS-db`, `SmartupCMS-web`,
-`SmartupCMS-control-plane`, `SmartupCMS-db-cp`.
+`SmartupCMS-web-cp`, `SmartupCMS-control-plane`, `SmartupCMS-db-cp`.
 
 ## 5. Порты
 
@@ -96,6 +96,18 @@ PostgreSQL; триггер пишет в `audit_log`. Доменное собы�
 | 8080 | приложение (API + SPA) | только `127.0.0.1`, наружу — через proxy |
 | 9090 | actuator: health, метрики | только в сеть мониторинга |
 | 5432 | PostgreSQL | не публикуется, доступ из сети compose |
+
+Control plane и его панель живут в отдельном контуре сотрудников платформы
+и рядом с экземпляром клиента не разворачиваются:
+
+| Порт | Слушает | Публикуется |
+|---|---|---|
+| 8081 | API control plane | только внутрь контура платформы |
+| 9091 | actuator control plane | только в сеть мониторинга |
+| 8080 (`web-cp`) | панель управления флотом | через proxy, доступ по VPN/SSO |
+
+В dev-группе они видны на хосте как `CP_PORT` (8082), `CP_MGMT_PORT` (9191)
+и `CP_WEB_PORT` (4300).
 
 Проверить, что actuator не торчит наружу:
 
