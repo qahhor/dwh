@@ -12,18 +12,17 @@
     <description>Enterprise Modular Monolith Platform for Single-Tenant Instances &amp; Fleet Management</description>
 
     <properties>
-        <java.version>23</java.version>
-        <maven.compiler.release>23</maven.compiler.release>
+        <java.version>25</java.version>
+        <maven.compiler.release>25</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <!-- Framework & Libraries Versions -->
-        <spring-boot.version>3.4.3</spring-boot.version>
+        <spring-boot.version>4.1.1</spring-boot.version>
         <postgresql.version>42.7.5</postgresql.version>
-        <flyway.version>10.20.1</flyway.version>
+        <!-- flyway версией управляет Spring Boot BOM (Flyway 11.x в Boot 4.1) -->
         <archunit.version>1.3.0</archunit.version>
-        <testcontainers.version>1.20.4</testcontainers.version>
-        <jackson.version>2.18.2</jackson.version>
+        <testcontainers.version>1.21.3</testcontainers.version>
         <argon2.version>2.11</argon2.version>
         <bucket4j.version>8.10.1</bucket4j.version>
         <typesense.version>0.6.0</typesense.version>
@@ -87,14 +86,14 @@
             </dependency>
 
             <!-- Testcontainers BOM -->
-            <dependency>
+                    <dependency>
                 <groupId>org.testcontainers</groupId>
                 <artifactId>testcontainers-bom</artifactId>
                 <version>${testcontainers.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-        </dependencies>
+</dependencies>
     </dependencyManagement>
 
     <build>

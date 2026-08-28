@@ -1,6 +1,6 @@
 package com.greenwhite.dwh.instance.kwh.worker;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.greenwhite.dwh.instance.kwh.repository.KwhOutboxRepository;
 import com.greenwhite.dwh.instance.kwh.service.KwhWebhookService;
 import org.slf4j.Logger;
