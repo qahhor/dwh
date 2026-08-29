@@ -38,6 +38,8 @@ public class SecurityConfig {
             "/api/v1/auth/login",
             "/api/v1/auth/otp",
             "/api/v1/auth/password-reset/**",
+            "/api/v1/openapi.json",
+            "/v3/api-docs/**",
             "/error"
     };
 
@@ -46,6 +48,7 @@ public class SecurityConfig {
             HttpSecurity http,
             KauthAuthenticationFilter kauthAuthenticationFilter,
             RateLimitFilter rateLimitFilter,
+            com.greenwhite.dwh.instance.config.idempotency.IdempotencyFilter idempotencyFilter,
             ProblemDetailAuthHandlers problemHandlers) throws Exception {
 
         http
@@ -88,20 +91,14 @@ public class SecurityConfig {
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(problemHandlers)
                         .accessDeniedHandler(problemHandlers))
-                // Порядок детерминирован разными якорями: аутентификация — сразу после
-                // установки контекста; лимиты — после неё (нужна личность), до авторизации,
-                // чтобы превышение отвечало 429, а не 401/403.
+                // Порядок детерминирован: аутентификация -> лимиты -> идемпотентность -> авторизация
                 .addFilterAfter(kauthAuthenticationFilter, SecurityContextHolderFilter.class)
-                .addFilterBefore(rateLimitFilter, AuthorizationFilter.class);
+                .addFilterBefore(rateLimitFilter, AuthorizationFilter.class)
+                .addFilterAfter(idempotencyFilter, RateLimitFilter.class);
 
         return http.build();
     }
 
-    /**
-     * Фильтр объявлен @Component ради DI, но участвовать должен только в цепочке
-     * Spring Security — авто-регистрацию в servlet-контейнере выключаем,
-     * иначе он выполнялся бы дважды на каждый запрос.
-     */
     @Bean
     FilterRegistrationBean<KauthAuthenticationFilter> kauthFilterAutoRegistrationDisabled(
             KauthAuthenticationFilter filter) {
@@ -116,6 +113,15 @@ public class SecurityConfig {
         registration.setEnabled(false);
         return registration;
     }
+
+    @Bean
+    FilterRegistrationBean<com.greenwhite.dwh.instance.config.idempotency.IdempotencyFilter> idempotencyFilterAutoRegistrationDisabled(
+            com.greenwhite.dwh.instance.config.idempotency.IdempotencyFilter filter) {
+        FilterRegistrationBean<com.greenwhite.dwh.instance.config.idempotency.IdempotencyFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
+    }
+
 
     private static boolean isCsrfExempt(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");

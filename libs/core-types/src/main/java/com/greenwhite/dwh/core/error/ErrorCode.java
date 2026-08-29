@@ -14,6 +14,7 @@ public enum ErrorCode {
     CODE_ALREADY_EXISTS("code_already_exists", 400),
     INVALID_URL("invalid_url", 400),
     WEBHOOK_TARGET_UNREACHABLE("webhook_target_unreachable", 400),
+    IDEMPOTENCY_KEY_INVALID("idempotency_key_invalid", 400),
 
     // 401 Unauthorized
     UNAUTHORIZED("unauthorized", 401),
@@ -47,6 +48,8 @@ public enum ErrorCode {
     TASK_PARENT_CYCLE("task_parent_cycle", 409),
     SINGLE_RESPONSIBLE_VIOLATION("single_responsible_violation", 409),
     FIELD_IN_USE("field_in_use", 409),
+    IDEMPOTENCY_KEY_PAYLOAD_MISMATCH("idempotency_key_payload_mismatch", 409),
+
 
     // 413 Payload Too Large & 415 Unsupported Media Type
     FILE_SIZE_EXCEEDED("file_size_exceeded", 413),

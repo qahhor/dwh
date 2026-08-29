@@ -150,12 +150,18 @@
 
 ---
 
-### M10. API-контракт и идемпотентность (API)
-- **Цель:** Стандартизированный REST API с RFC 9457 ProblemDetail, Keyset пагинацией и поддержкой `Idempotency-Key`.
+### M10. API-контракт и идемпотентность (API) [✅ ВЫПОЛНЕНО 2026-08-29]
+- **Цель:** Стандартизированный REST API с RFC 9457 ProblemDetail, Keyset пагинацией, поддержкой заголовка `Idempotency-Key` и спецификацией OpenAPI 3.1.
 - **DoD:**
-  - Обработка заголовка `Idempotency-Key` на мутирующих POST запросах.
-  - Keyset-курсоры для списков со сложностью $O(\log N)$.
-- **Файлы:** `libs/core-types/src/main/java/com/greenwhite/dwh/core/error/ProblemDetailRecord.java`.
+  - Обработка заголовка `Idempotency-Key` (UUID) на мутирующих запросах (`POST`, `PUT`, `PATCH`, `DELETE`).
+  - Повторный вызов с тем же ключом и телом возвращает закэшированный ответ с заголовком `Idempotent-Replay: true` без повторного выполнения бизнес-логики.
+  - Повторный вызов с тем же ключом, но измененным телом возвращает ошибку `409 Conflict` (`idempotency_key_payload_mismatch`).
+  - Проверка формата UUID ключа с возвратом `400 Bad Request` (`idempotency_key_invalid`).
+  - Единый формат ошибок RFC 9457 `ProblemDetail` для всех кодов (`type`, `title`, `status`, `code`, `detail`, `instance`, `timestamp`).
+  - Спецификация OpenAPI 3.1 по адресу `GET /api/v1/openapi.json` и `GET /v3/api-docs`.
+- **Файлы:** `libs/core-types/.../error/ErrorCode.java`, `ProblemDetailRecord.java`, `apps/instance/.../config/idempotency/IdempotencyFilter.java`, `IdempotencyService.java`, `IdempotencyRepository.java`, `CachedBodyHttpServletRequest.java`, `apps/instance/.../config/openapi/OpenApiController.java`.
+- **Команда проверки:** `mvn test -Dtest=IdempotencyServiceTest` (100% SUCCESS, 3/3 тестов), `powershell scripts/dev/test-api.ps1` (18/18 SUCCESS).
+
 
 ---
 

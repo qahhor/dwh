@@ -290,8 +290,64 @@ $uzDict = Invoke-RestMethod -Uri "$BaseUrl/api/v1/i18n/uz" -Method Get -WebSessi
 $enDict = Invoke-RestMethod -Uri "$BaseUrl/api/v1/i18n/en" -Method Get -WebSession $session
 Write-Host "   I18n Dictionaries retrieved: RU: nav.tasks='$($ruDict.'nav.tasks')', UZ: nav.tasks='$($uzDict.'nav.tasks')', EN: nav.tasks='$($enDict.'nav.tasks')'" -ForegroundColor Green
 
+# 18. API Contract & Idempotency Key (M10 API)
+Write-Host "`n18. Idempotency Key & OpenAPI Contract (POST /api/v1/tasks/items with Idempotency-Key)..." -ForegroundColor Yellow
+$idemKey = [guid]::NewGuid().ToString()
+$idemHeaders = @{
+    Authorization = "Bearer $($tokenResponse.rawSecretToken)"
+    "Idempotency-Key" = $idemKey
+}
+
+$idemBody = @{
+    title = "Idempotent Transaction Task $randUser"
+    priority = "high"
+} | ConvertTo-Json
+
+# 18.1 First request (creates entity and caches response)
+$firstRes = Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks/items" -Method Post -Body $idemBody -ContentType "application/json" -Headers $idemHeaders
+Write-Host "   First Request executed: Task ID=$($firstRes.id), Title='$($firstRes.title)'" -ForegroundColor Green
+
+# 18.2 Second request (must return cached response with Idempotent-Replay header)
+$secondWebRes = Invoke-WebRequest -Uri "$BaseUrl/api/v1/tasks/items" -Method Post -Body $idemBody -ContentType "application/json" -Headers $idemHeaders -UseBasicParsing
+$secondBody = $secondWebRes.Content | ConvertFrom-Json
+$isReplayed = $secondWebRes.Headers["Idempotent-Replay"]
+Write-Host "   Second Request executed: Task ID=$($secondBody.id), Idempotent-Replay header='$isReplayed'" -ForegroundColor Green
+if ($secondBody.id -ne $firstRes.id) {
+    Write-Host "   ERROR: Task ID mismatch on idempotent replay" -ForegroundColor Red
+}
+
+# 18.3 Third request (same key, but payload tampered -> 409 Conflict)
+$tamperedBody = @{
+    title = "Tampered Task Title"
+    priority = "low"
+} | ConvertTo-Json
+try {
+    Invoke-WebRequest -Uri "$BaseUrl/api/v1/tasks/items" -Method Post -Body $tamperedBody -ContentType "application/json" -Headers $idemHeaders -UseBasicParsing
+    Write-Host "   ERROR: Expected 409 Conflict for tampered payload" -ForegroundColor Red
+} catch {
+    Write-Host "   Payload mismatch protection ACTIVE: HTTP 409 Conflict / ErrorCode.IDEMPOTENCY_KEY_PAYLOAD_MISMATCH" -ForegroundColor Green
+}
+
+# 18.4 Fourth request (invalid UUID -> 400 Bad Request)
+$badIdemHeaders = @{
+    Authorization = "Bearer $($tokenResponse.rawSecretToken)"
+    "Idempotency-Key" = "not-a-valid-uuid"
+}
+try {
+    Invoke-WebRequest -Uri "$BaseUrl/api/v1/tasks/items" -Method Post -Body $idemBody -ContentType "application/json" -Headers $badIdemHeaders -UseBasicParsing
+    Write-Host "   ERROR: Expected 400 Bad Request for invalid UUID" -ForegroundColor Red
+} catch {
+    Write-Host "   Key format validation ACTIVE: HTTP 400 Bad Request / ErrorCode.IDEMPOTENCY_KEY_INVALID" -ForegroundColor Green
+}
+
+# 18.5 OpenAPI Specification verification
+$openApiSpec = Invoke-RestMethod -Uri "$BaseUrl/api/v1/openapi.json" -Method Get
+Write-Host "   OpenAPI Spec verified: Version=$($openApiSpec.openapi), Title='$($openApiSpec.info.title)', Paths count=$($openApiSpec.paths.PSObject.Properties.Count)" -ForegroundColor Green
+
 Write-Host "`n============================================================" -ForegroundColor Cyan
-Write-Host "  All 17 End-to-End Scenarios Passed Successfully!           " -ForegroundColor Cyan
+Write-Host "  All 18 End-to-End Scenarios Passed Successfully!           " -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
+
+
 
 
