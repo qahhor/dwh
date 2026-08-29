@@ -8,6 +8,7 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { UiCustomFieldsComponent } from '../../../shared/ui/ui-custom-fields.component';
+import { UiPaginationComponent } from '../../../shared/ui/ui-pagination.component';
 import { User } from '../../../core/models/auth.models';
 import { Role } from '../../../core/models/rbac.models';
 import { CustomField } from '../../../core/models/custom-field.models';
@@ -24,8 +25,10 @@ type SortDirection = 'asc' | 'desc';
     FormsModule,
     UiButtonComponent,
     UiModalComponent,
-    UiCustomFieldsComponent
+    UiCustomFieldsComponent,
+    UiPaginationComponent
   ],
+
 
   template: `
     <div class="users-view">
@@ -183,7 +186,7 @@ type SortDirection = 'asc' | 'desc';
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let u of sortedUsers()" class="table-row">
+            <tr *ngFor="let u of paginatedUsers()" class="table-row">
               <td>
                 <div class="user-identity" (click)="openViewModal(u)">
                   <div class="avatar" [style.background-color]="getAvatarBgColor(u.name)">
@@ -281,13 +284,16 @@ type SortDirection = 'asc' | 'desc';
           </tbody>
         </table>
 
-        <!-- Load More -->
-        <div class="load-more" *ngIf="hasMore()">
-          <ui-button variant="secondary" size="sm" [loading]="isLoading()" (onClick)="loadUsers(false)">
-            Загрузить ещё
-          </ui-button>
-        </div>
+        <!-- Pagination -->
+        <ui-pagination
+          [totalItems]="sortedUsers().length"
+          [currentPage]="currentPage"
+          [pageSize]="pageSize"
+          (pageChange)="currentPage = $event"
+          (pageSizeChange)="pageSize = $event; currentPage = 1"
+        ></ui-pagination>
       </div>
+
     </div>
 
     <!-- ========================================================================= -->
@@ -1071,6 +1077,9 @@ export class UsersComponent implements OnInit {
   selectedState = '';
   selectedRoleId: number | null = null;
   selected2fa: boolean | null = null;
+  currentPage = 1;
+  pageSize = 10;
+
 
   // Sorting
   sortColumn: SortColumn = 'id';
@@ -1261,6 +1270,13 @@ export class UsersComponent implements OnInit {
       return 0;
     });
   }
+
+  paginatedUsers(): User[] {
+    const list = this.sortedUsers();
+    const start = (this.currentPage - 1) * this.pageSize;
+    return list.slice(start, start + this.pageSize);
+  }
+
 
   getUserInitial(user: User): string {
     return user.name ? user.name.trim().charAt(0).toUpperCase() : 'U';

@@ -4,12 +4,13 @@ import { ApiService } from '../../core/services/api.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { ToastService } from '../../core/services/toast.service';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
+import { UiPaginationComponent } from '../../shared/ui/ui-pagination.component';
 import { NotificationItem } from '../../core/models/notification.models';
 
 @Component({
   selector: 'app-notifications',
   standalone: true,
-  imports: [CommonModule, UiButtonComponent],
+  imports: [CommonModule, UiButtonComponent, UiPaginationComponent],
   template: `
     <div class="notifications-container">
       <div class="page-header">
@@ -30,7 +31,7 @@ import { NotificationItem } from '../../core/models/notification.models';
       <div class="card notif-card">
         <div class="notif-list">
           <div
-            *ngFor="let n of items()"
+            *ngFor="let n of paginatedItems()"
             class="notif-item"
             [class.unread]="!n.isRead"
             (click)="markAsRead(n)"
@@ -56,9 +57,18 @@ import { NotificationItem } from '../../core/models/notification.models';
             У вас нет уведомлений
           </div>
         </div>
+
+        <ui-pagination
+          [totalItems]="items().length"
+          [currentPage]="currentPage"
+          [pageSize]="pageSize"
+          (pageChange)="currentPage = $event"
+          (pageSizeChange)="pageSize = $event; currentPage = 1"
+        ></ui-pagination>
       </div>
     </div>
   `,
+
   styles: [`
     .notifications-container {
       display: flex;
@@ -179,6 +189,15 @@ import { NotificationItem } from '../../core/models/notification.models';
 })
 export class NotificationsComponent implements OnInit {
   readonly items = signal<NotificationItem[]>([]);
+  currentPage = 1;
+  pageSize = 10;
+
+  paginatedItems(): NotificationItem[] {
+    const list = this.items();
+    const start = (this.currentPage - 1) * this.pageSize;
+    return list.slice(start, start + this.pageSize);
+  }
+
 
   constructor(
     public notifService: NotificationService,

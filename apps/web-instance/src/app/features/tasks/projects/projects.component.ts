@@ -7,12 +7,14 @@ import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
+import { UiPaginationComponent } from '../../../shared/ui/ui-pagination.component';
 import { Project, ProjectTaskStats } from '../../../core/models/task.models';
 
 @Component({
   selector: 'app-projects',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, UiButtonComponent, UiModalComponent],
+  imports: [CommonModule, FormsModule, RouterModule, UiButtonComponent, UiModalComponent, UiPaginationComponent],
+
   template: `
     <div class="projects-page">
       <!-- Header -->
@@ -119,7 +121,7 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let p of filteredProjects()" class="project-row" (click)="viewProjectTasks(p)">
+              <tr *ngFor="let p of paginatedProjects()" class="project-row" (click)="viewProjectTasks(p)">
                 <td class="tabular-nums font-mono text-muted">#{{ p.id }}</td>
                 <td>
                   <div class="project-title-cell">
@@ -193,75 +195,94 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
             </tbody>
           </table>
         </div>
+
+        <ui-pagination
+          [totalItems]="filteredProjects().length"
+          [currentPage]="currentPage"
+          [pageSize]="pageSize"
+          (pageChange)="currentPage = $event"
+          (pageSizeChange)="pageSize = $event; currentPage = 1"
+        ></ui-pagination>
       </div>
 
       <!-- ======================================================================= -->
       <!-- VIEW 2: CARDS GRID VIEW                                                 -->
       <!-- ======================================================================= -->
-      <div class="projects-grid" *ngIf="viewMode === 'cards'">
-        <div
-          *ngFor="let p of filteredProjects()"
-          class="project-card"
-          (click)="viewProjectTasks(p)"
-        >
-          <div class="card-top">
-            <div class="project-icon-box">
-              <span class="material-symbols-outlined">folder</span>
+      <div class="cards-view-wrapper" *ngIf="viewMode === 'cards'">
+        <div class="projects-grid">
+          <div
+            *ngFor="let p of paginatedProjects()"
+            class="project-card"
+            (click)="viewProjectTasks(p)"
+          >
+            <div class="card-top">
+              <div class="project-icon-box">
+                <span class="material-symbols-outlined">folder</span>
+              </div>
+              <div class="card-top-right">
+                <span class="status-pill" [class.active]="p.state === 'A'">
+                  <span class="status-dot" [class.active]="p.state === 'A'"></span>
+                  {{ p.state === 'A' ? 'Активен' : 'Архив' }}
+                </span>
+                <button
+                  *ngIf="canUpdateProject()"
+                  type="button"
+                  class="edit-btn"
+                  title="Редактировать проект"
+                  (click)="$event.stopPropagation(); openEditModal(p)"
+                >
+                  <span class="material-symbols-outlined">edit</span>
+                </button>
+              </div>
             </div>
-            <div class="card-top-right">
-              <span class="status-pill" [class.active]="p.state === 'A'">
-                <span class="status-dot" [class.active]="p.state === 'A'"></span>
-                {{ p.state === 'A' ? 'Активен' : 'Архив' }}
+
+            <div class="card-content">
+              <h3 class="project-title">{{ p.name }}</h3>
+              <p class="project-desc">{{ p.description || 'Описание проекта отсутствует' }}</p>
+            </div>
+
+            <div class="card-progress">
+              <div class="progress-labels">
+                <span class="progress-count tabular-nums">
+                  {{ getProjectDoneCount(p.id) }} / {{ getProjectTotalCount(p.id) }} выполнено
+                </span>
+                <span class="progress-percent tabular-nums">
+                  {{ getProjectPercent(p.id) }}%
+                </span>
+              </div>
+              <div class="progress-bar-bg">
+                <div
+                  class="progress-bar-fill"
+                  [style.width.%]="getProjectPercent(p.id)"
+                  [class.complete]="getProjectPercent(p.id) === 100 && getProjectTotalCount(p.id) > 0"
+                ></div>
+              </div>
+            </div>
+
+            <div class="card-foot">
+              <span class="foot-date tabular-nums">Создан: {{ p.createdAt | date:'dd.MM.yyyy' }}</span>
+              <span class="view-tasks-link">
+                Задачи ({{ getProjectTotalCount(p.id) }}) →
               </span>
-              <button
-                *ngIf="canUpdateProject()"
-                type="button"
-                class="edit-btn"
-                title="Редактировать проект"
-                (click)="$event.stopPropagation(); openEditModal(p)"
-              >
-                <span class="material-symbols-outlined">edit</span>
-              </button>
             </div>
           </div>
 
-          <div class="card-content">
-            <h3 class="project-title">{{ p.name }}</h3>
-            <p class="project-desc">{{ p.description || 'Описание проекта отсутствует' }}</p>
-          </div>
-
-          <div class="card-progress">
-            <div class="progress-labels">
-              <span class="progress-count tabular-nums">
-                {{ getProjectDoneCount(p.id) }} / {{ getProjectTotalCount(p.id) }} выполнено
-              </span>
-              <span class="progress-percent tabular-nums">
-                {{ getProjectPercent(p.id) }}%
-              </span>
-            </div>
-            <div class="progress-bar-bg">
-              <div
-                class="progress-bar-fill"
-                [style.width.%]="getProjectPercent(p.id)"
-                [class.complete]="getProjectPercent(p.id) === 100 && getProjectTotalCount(p.id) > 0"
-              ></div>
-            </div>
-          </div>
-
-          <div class="card-foot">
-            <span class="foot-date tabular-nums">Создан: {{ p.createdAt | date:'dd.MM.yyyy' }}</span>
-            <span class="view-tasks-link">
-              Задачи ({{ getProjectTotalCount(p.id) }}) →
-            </span>
+          <div *ngIf="filteredProjects().length === 0 && !isLoading()" class="empty-projects-cell">
+            <span class="material-symbols-outlined empty-icon">folder_off</span>
+            <p>Проекты не найдены</p>
           </div>
         </div>
 
-        <div *ngIf="filteredProjects().length === 0 && !isLoading()" class="empty-projects-cell">
-          <span class="material-symbols-outlined empty-icon">folder_off</span>
-          <p>Проекты не найдены</p>
-        </div>
+        <ui-pagination
+          [totalItems]="filteredProjects().length"
+          [currentPage]="currentPage"
+          [pageSize]="pageSize"
+          (pageChange)="currentPage = $event"
+          (pageSizeChange)="pageSize = $event; currentPage = 1"
+        ></ui-pagination>
       </div>
     </div>
+
 
     <!-- ======================================================================= -->
     <!-- Create Project Modal                                                    -->
@@ -744,6 +765,9 @@ export class ProjectsComponent implements OnInit {
   viewMode: 'list' | 'cards' = 'list';
   searchQuery = '';
   selectedState = 'all';
+  currentPage = 1;
+  pageSize = 10;
+
 
   isCreateSubmitted = false;
   isEditSubmitted = false;
@@ -811,6 +835,13 @@ export class ProjectsComponent implements OnInit {
       return matchSearch && matchState;
     });
   }
+
+  paginatedProjects(): Project[] {
+    const list = this.filteredProjects();
+    const start = (this.currentPage - 1) * this.pageSize;
+    return list.slice(start, start + this.pageSize);
+  }
+
 
   getProjectTotalCount(projectId: number): number {
     return this.projectStats()[projectId]?.totalTasks || 0;

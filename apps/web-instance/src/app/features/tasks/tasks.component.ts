@@ -13,6 +13,7 @@ import { UiSearchableSelectComponent, SelectOption } from '../../shared/ui/ui-se
 import { UiUserMultiSelectComponent } from '../../shared/ui/ui-user-multi-select.component';
 import { UiMarkdownEditorComponent } from '../../shared/ui/ui-markdown-editor.component';
 import { UiMarkdownViewComponent } from '../../shared/ui/ui-markdown-view.component';
+import { UiPaginationComponent } from '../../shared/ui/ui-pagination.component';
 import { Task, Project, TaskStatus, TaskType, TaskComment, TaskMember, TaskDetailResponse } from '../../core/models/task.models';
 import { CustomField } from '../../core/models/custom-field.models';
 import { User } from '../../core/models/auth.models';
@@ -31,8 +32,10 @@ import { KeysetPage } from '../../core/models/common.models';
     UiSearchableSelectComponent,
     UiUserMultiSelectComponent,
     UiMarkdownEditorComponent,
-    UiMarkdownViewComponent
+    UiMarkdownViewComponent,
+    UiPaginationComponent
   ],
+
   template: `
     <div class="tasks-page">
       <!-- Header -->
@@ -196,7 +199,7 @@ import { KeysetPage } from '../../core/models/common.models';
             </thead>
             <tbody>
               <tr
-                *ngFor="let t of tasks()"
+                *ngFor="let t of paginatedTasks()"
                 class="task-row"
                 [class.row-overdue]="isOverdue(t.endTime, t.statusId)"
                 (click)="openTaskDetails(t)"
@@ -296,12 +299,16 @@ import { KeysetPage } from '../../core/models/common.models';
           </table>
         </div>
 
-        <div class="load-more-bar" *ngIf="hasMore()">
-          <ui-button variant="secondary" size="md" [loading]="isLoading()" (onClick)="loadTasks(false)">
-            Загрузить ещё
-          </ui-button>
-        </div>
+        <!-- Pagination Bar -->
+        <ui-pagination
+          [totalItems]="tasks().length"
+          [currentPage]="currentPage"
+          [pageSize]="pageSize"
+          (pageChange)="currentPage = $event"
+          (pageSizeChange)="pageSize = $event; currentPage = 1"
+        ></ui-pagination>
       </div>
+
 
       <!-- ======================================================================= -->
       <!-- VIEW 2: KANBAN BOARD WITH DRAG & DROP                                  -->
@@ -2112,9 +2119,12 @@ export class TasksComponent implements OnInit {
   searchQuery = '';
   selectedPriority = '';
   selectedProjectId: number | null = null;
+  currentPage = 1;
+  pageSize = 10;
 
   // Status Filter Mode: 'active' (default excludes done & cancelled), 'all', or number (specific status ID)
   statusFilterMode: 'active' | 'all' | number = 'active';
+
 
   newCommentText = '';
   draggedTask: Task | null = null;
@@ -2297,6 +2307,13 @@ export class TasksComponent implements OnInit {
       }
     });
   }
+
+  paginatedTasks(): Task[] {
+    const list = this.tasks();
+    const start = (this.currentPage - 1) * this.pageSize;
+    return list.slice(start, start + this.pageSize);
+  }
+
 
   hasActiveFilters(): boolean {
     return !!this.searchQuery || !!this.selectedPriority || this.selectedProjectId !== null || this.statusFilterMode !== 'active';
