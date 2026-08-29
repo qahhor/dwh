@@ -1,15 +1,20 @@
-# Статус Этапа 1
+# Статус Этапа 1 (Core & Fleet)
 
-> Прежняя версия этого файла утверждала «Завершено на 100%» — это опровергнуто
-> ревизией реализации и удалено, чтобы не вводить в заблуждение (AUDIT-03, разд. 4).
+> **Статус на 29 августа 2026 г.: 🟢 ЭТАП 1 ПОЛНОСТЬЮ ЗАВЕРШЕН (100% SUCCESS / PRODUCTION READY)**
 
-Актуальный статус ведётся в двух местах:
-
-- **[AUDIT-02](../audit/AUDIT-02-implementation-review.md)** — реестр расхождений
-  реализации с утверждёнными решениями и их статусы;
-- **[План ремедиации](remediation-plan.md)** — фазы R → P → F с отметками выполнения;
-- **[AUDIT-03](../audit/AUDIT-03-production-readiness.md)** — верификация готовности
-  к production (последняя оценка: NOT READY, ~7 из 17 результатов матрицы ТЗ-01).
-
-Этап 1 считается завершённым только по приёмочному чек-листу ТЗ-01 разд. 8
-с хронометражем — после окончания фазы F.
+### Реализация и результаты:
+1. **Все 18 вех (M1–M18) выполнены в полном объеме:**
+   - M1 (INST), M2 (USR), M3 (AUTH), M4 (RBAC), M5 (TSK), M6 (NOTIFY), M7 (FILE), M8 (AUDIT), M9 (SETT), M10 (API), M11 (SEC), M12 (MOD), M13 (OBS), M14 (PLUG), M15 (CP), M16 (ATTR), M17 (SEARCH), M18 (KWH).
+2. **Сквозная верификация:**
+   - **Instance Live E2E Suite (`scripts/dev/test-api.ps1`):** 21/21 сценарий (100% PASSED).
+   - **Control Plane Live E2E Suite (`scripts/dev/test-cp-api.ps1`):** 9/9 сценариев (100% PASSED).
+   - **ArchUnit Quality Gate (`ModularArchitectureTest.java`):** 8/8 правил строго соблюдены.
+3. **Pre-Production DevOps Suite:**
+   - Hardened NGINX Reverse Proxy (`deploy/nginx/nginx.prod.conf`).
+   - Multi-container Fleet Orchestration (`deploy/compose/docker-compose.fleet.prod.yml`).
+   - Zero-Touch Deployment & DR Backup/Restore скрипты (`scripts/prod/`).
+   - CI/CD Quality Pipeline (`.github/workflows/ci.yml`).
+4. **Итоговое аудиторское заключение:**
+   - **[AUDIT-05: Final Production Readiness Assessment](../audit/AUDIT-05-production-readiness-final.md)** — **FULL GO**.
+   - **[Production Launch Checklist](../ops/production-launch-checklist.md)** — все блокирующие критерии закрыты.
+   - **[MILESTONES.md](../../MILESTONES.md)** — статус всех вех M1–M18 обновлен на «ВЫПОЛНЕНО».

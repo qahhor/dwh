@@ -98,8 +98,10 @@ docker compose exec -T postgres psql -U "$DB_USER" -d "$DB_NAME" -c "select chan
 
 - `PENDING` растёт, `SENT` нет → воркер стоит или провайдер недоступен.
 - `DEAD_LETTER` → исчерпаны попытки; причина в `last_error`.
-- В текущем контуре email/SMS — **заглушки, пишущие в лог** (фаза F).
-  Реально работает только Telegram, если задан токен бота.
+- Поддерживаются подключаемые SPI-провайдеры (M14 PLUG):
+  - **Email**: `SmtpMailProvider` (настраивается через SMTP переменные окружения) или `LoggingMailProvider`.
+  - **Telegram**: `TelegramMessengerProvider` (активен при наличии `TELEGRAM_BOT_TOKEN`).
+  - **SMS**: `LoggingSmsProvider` (расширяется через реализацию `SmsProvider` интерфейса).
 
 Временное решение при недоступности Telegram и включённой 2FA: администратор
 отключает 2FA пользователю до восстановления канала (действие пишется в аудит).
