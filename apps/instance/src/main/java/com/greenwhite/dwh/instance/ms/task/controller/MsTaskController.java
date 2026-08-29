@@ -6,6 +6,7 @@ import com.greenwhite.dwh.instance.common.annotation.RequiresPermission;
 import com.greenwhite.dwh.instance.ms.task.pref.MsTaskPref;
 import com.greenwhite.dwh.instance.ms.task.repository.MsTaskMemberRepository;
 import com.greenwhite.dwh.instance.ms.task.repository.MsTaskRepository;
+import com.greenwhite.dwh.instance.ms.task.repository.MsTaskStatusRepository;
 import com.greenwhite.dwh.instance.ms.task.service.MsTaskService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -41,7 +42,14 @@ public class MsTaskController {
         return ResponseEntity.ok(taskService.listTasks(limit, cursor, projectId, statusId, priority, search));
     }
 
+    @GetMapping("/statuses")
+    @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
+    public ResponseEntity<List<MsTaskStatusRepository.StatusRecord>> listStatuses() {
+        return ResponseEntity.ok(taskService.listStatuses());
+    }
+
     @GetMapping("/{id}")
+
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
     public ResponseEntity<TaskDetailResponse> getTask(@PathVariable("id") Long id) {
         var task = taskService.getTaskById(id);

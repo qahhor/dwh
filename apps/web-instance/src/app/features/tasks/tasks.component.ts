@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
@@ -10,6 +10,7 @@ import { UiModalComponent } from '../../shared/ui/ui-modal.component';
 import { UiCustomFieldsComponent } from '../../shared/ui/ui-custom-fields.component';
 import { Task, Project, TaskStatus, TaskComment } from '../../core/models/task.models';
 import { CustomField } from '../../core/models/custom-field.models';
+import { User } from '../../core/models/auth.models';
 import { KeysetPage } from '../../core/models/common.models';
 
 @Component({
@@ -19,90 +20,158 @@ import { KeysetPage } from '../../core/models/common.models';
     CommonModule,
     FormsModule,
     UiButtonComponent,
-    UiBadgeComponent,
     UiModalComponent,
     UiCustomFieldsComponent
   ],
+
   template: `
-    <div class="tasks-container">
-      <div class="page-header">
-        <div>
-          <h2 class="page-title">Задачи</h2>
-          <p class="page-subtitle">Трекинг задач, иерархические структуры и командная работа</p>
+    <div class="tasks-page">
+      <!-- Minimal Header -->
+      <div class="view-header">
+        <div class="header-left">
+          <h1 class="view-title">Задачи</h1>
+          <span class="task-count">{{ tasks().length }}</span>
         </div>
-        <ui-button
-          *ngIf="permService.canCreate('ms_tasks')"
-          variant="primary"
-          icon="add_task"
-          (onClick)="openCreateTaskModal()"
-        >
-          Новая задача
-        </ui-button>
+        <div class="header-right">
+          <ui-button
+            *ngIf="canCreateTask()"
+            variant="primary"
+            size="md"
+            icon="add"
+            (onClick)="openCreateTaskModal()"
+          >
+            Новая задача
+          </ui-button>
+        </div>
       </div>
 
-      <!-- Filters Toolbar -->
-      <div class="card toolbar-card">
-        <div class="search-box">
-          <span class="material-symbols-outlined">search</span>
+      <!-- Compact Single-Line Toolbar -->
+      <div class="toolbar">
+        <div class="search-field">
+          <span class="material-symbols-outlined search-icon">search</span>
           <input
             type="text"
-            class="toolbar-input"
+            class="search-input"
             placeholder="Поиск по названию или описанию..."
             [(ngModel)]="searchQuery"
             (keyup.enter)="loadTasks(true)"
           />
+          <button *ngIf="searchQuery" type="button" class="clear-btn" (click)="clearSearch()">
+            <span class="material-symbols-outlined">close</span>
+          </button>
         </div>
 
-        <div class="filter-box">
-          <select class="toolbar-select" [(ngModel)]="selectedPriority" (change)="loadTasks(true)">
+        <div class="toolbar-controls">
+          <!-- Project Filter -->
+          <select
+            class="clean-select"
+            [(ngModel)]="selectedProjectId"
+            (change)="loadTasks(true)"
+          >
+            <option [ngValue]="null">Все проекты</option>
+            <option *ngFor="let p of projects()" [ngValue]="p.id">{{ p.name }}</option>
+          </select>
+
+          <!-- Status Filter -->
+          <select
+            class="clean-select"
+            [(ngModel)]="selectedStatusId"
+            (change)="loadTasks(true)"
+          >
+            <option [ngValue]="null">Все статусы</option>
+            <option *ngFor="let s of statuses()" [ngValue]="s.id">{{ s.name }}</option>
+          </select>
+
+          <!-- Priority Filter -->
+          <select
+            class="clean-select"
+            [(ngModel)]="selectedPriority"
+            (change)="loadTasks(true)"
+          >
             <option value="">Все приоритеты</option>
             <option value="urgent">Срочный</option>
             <option value="high">Высокий</option>
             <option value="normal">Обычный</option>
             <option value="low">Низкий</option>
           </select>
-          <ui-button variant="secondary" size="md" (onClick)="loadTasks(true)">Применить</ui-button>
+
+          <button
+            *ngIf="hasActiveFilters()"
+            type="button"
+            class="reset-filters-btn"
+            (click)="resetFilters()"
+            title="Сбросить фильтры"
+          >
+            <span class="material-symbols-outlined">filter_alt_off</span>
+          </button>
         </div>
       </div>
 
-      <!-- Tasks Grid -->
-      <div class="card table-card">
+      <!-- Tasks Table Card -->
+      <div class="table-card">
         <div class="table-wrapper">
           <table class="data-table">
             <thead>
               <tr>
                 <th style="width: 70px;">ID</th>
-                <th>Название задачи</th>
+                <th>Задача</th>
+                <th>Проект</th>
                 <th>Приоритет</th>
                 <th>Статус</th>
                 <th>Создана</th>
-                <th class="text-right">Действие</th>
+                <th class="text-right" style="width: 80px;"></th>
               </tr>
             </thead>
             <tbody>
               <tr *ngFor="let t of tasks()" class="task-row" (click)="selectTask(t)">
                 <td class="tabular-nums font-mono text-muted">#{{ t.id }}</td>
                 <td>
-                  <div class="task-title-box">
-                    <span class="task-title font-medium">{{ t.title }}</span>
-                    <span *ngIf="t.parentTaskId" class="parent-badge">Родитель: #{{ t.parentTaskId }}</span>
+                  <div class="task-title-cell">
+                    <span class="task-title">{{ t.title }}</span>
+                    <span *ngIf="t.parentTaskId" class="parent-chip font-mono">
+                      ↳ подзадача #{{ t.parentTaskId }}
+                    </span>
                   </div>
                 </td>
                 <td>
-                  <ui-badge [variant]="t.priority">
-                    {{ getPriorityLabel(t.priority) }}
-                  </ui-badge>
+                  <span class="project-tag" *ngIf="getProjectName(t.projectId) as pName">
+                    <span class="material-symbols-outlined folder-ico">folder</span>
+                    {{ pName }}
+                  </span>
+                  <span class="text-muted" *ngIf="!t.projectId">—</span>
                 </td>
                 <td>
-                  <ui-badge variant="info">{{ getStatusName(t.statusId) }}</ui-badge>
+                  <span class="priority-pill" [attr.data-priority]="t.priority">
+                    {{ getPriorityLabel(t.priority) }}
+                  </span>
+                </td>
+                <td>
+                  <span
+                    class="status-pill"
+                    [style.color]="getStatusColor(t.statusId)"
+                    [style.border-color]="getStatusColor(t.statusId)"
+                  >
+                    <span class="status-dot" [style.background-color]="getStatusColor(t.statusId)"></span>
+                    {{ getStatusName(t.statusId) }}
+                  </span>
                 </td>
                 <td class="tabular-nums text-muted">{{ t.createdAt | date:'dd.MM.yyyy' }}</td>
                 <td class="text-right actions-cell" (click)="$event.stopPropagation()">
-                  <ui-button variant="ghost" size="sm" icon="visibility" (onClick)="selectTask(t)"></ui-button>
+                  <button
+                    type="button"
+                    class="icon-ghost-btn"
+                    title="Просмотреть детали"
+                    (click)="selectTask(t)"
+                  >
+                    <span class="material-symbols-outlined">visibility</span>
+                  </button>
                 </td>
               </tr>
               <tr *ngIf="tasks().length === 0 && !isLoading()">
-                <td colspan="6" class="empty-cell">Задачи не найдены</td>
+                <td colspan="7" class="empty-state-cell">
+                  <span class="material-symbols-outlined icon">task</span>
+                  <p>Задачи не найдены</p>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -116,60 +185,106 @@ import { KeysetPage } from '../../core/models/common.models';
       </div>
     </div>
 
-    <!-- Task Details Slideover / Modal -->
+    <!-- ======================================================================= -->
+    <!-- Task Details Modal                                                      -->
+    <!-- ======================================================================= -->
     <ui-modal
       [isOpen]="selectedTask() !== null"
       [title]="'Задача #' + selectedTask()?.id"
       size="lg"
       (close)="selectedTask.set(null)"
     >
-      <div body class="task-detail-body" *ngIf="selectedTask() as t">
-        <h3 class="detail-task-title">{{ t.title }}</h3>
-        
-        <div class="detail-meta-grid">
-          <div class="meta-item">
-            <span class="meta-label">Приоритет:</span>
-            <ui-badge [variant]="t.priority">{{ getPriorityLabel(t.priority) }}</ui-badge>
-          </div>
-          <div class="meta-item">
-            <span class="meta-label">Статус:</span>
-            <ui-badge variant="info">{{ getStatusName(t.statusId) }}</ui-badge>
+      <div body class="task-details-view" *ngIf="selectedTask() as t">
+        <div class="detail-header-row">
+          <h2 class="detail-title">{{ t.title }}</h2>
+          <div class="detail-status-changer">
+            <label class="status-change-label">Статус:</label>
+            <select
+              class="clean-select status-select"
+              [ngModel]="t.statusId"
+              (ngModelChange)="updateStatus(t.id, $event)"
+              [disabled]="!canUpdateTask()"
+            >
+              <option *ngFor="let s of statuses()" [ngValue]="s.id">{{ s.name }}</option>
+            </select>
           </div>
         </div>
 
-        <div class="detail-description" *ngIf="t.descriptionMarkdown">
-          <div class="desc-label">Описание:</div>
-          <div class="desc-text">{{ t.descriptionMarkdown }}</div>
+        <div class="detail-meta-cards">
+          <div class="meta-card">
+            <span class="meta-k">Приоритет</span>
+            <span class="priority-pill" [attr.data-priority]="t.priority">
+              {{ getPriorityLabel(t.priority) }}
+            </span>
+          </div>
+          <div class="meta-card">
+            <span class="meta-k">Проект</span>
+            <span class="meta-v">{{ getProjectName(t.projectId) || 'Без проекта' }}</span>
+          </div>
+          <div class="meta-card" *ngIf="t.parentTaskId">
+            <span class="meta-k">Родитель</span>
+            <span class="meta-v font-mono">#{{ t.parentTaskId }}</span>
+          </div>
+          <div class="meta-card">
+            <span class="meta-k">Создана</span>
+            <span class="meta-v tabular-nums">{{ t.createdAt | date:'dd.MM.yyyy HH:mm' }}</span>
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div class="detail-section" *ngIf="t.descriptionMarkdown">
+          <h4 class="section-label">Описание задачи</h4>
+          <div class="description-box">{{ t.descriptionMarkdown }}</div>
+        </div>
+
+        <!-- Dynamic Attributes -->
+        <div class="detail-section" *ngIf="hasAttributes(t.attributes)">
+          <h4 class="section-label">Дополнительные поля</h4>
+          <div class="attributes-grid">
+            <div *ngFor="let item of formatAttributes(t.attributes)" class="attr-pill">
+              <span class="attr-k">{{ item.key }}:</span>
+              <span class="attr-v">{{ item.value }}</span>
+            </div>
+          </div>
         </div>
 
         <!-- Comments Feed -->
-        <div class="comments-section">
-          <h4 class="comments-title">Комментарии ({{ comments().length }})</h4>
-          <div class="comments-list">
-            <div *ngFor="let c of comments()" class="comment-item">
-              <div class="comment-header">
-                <span class="comment-author">{{ c.userName }} (&#64;{{ c.userLogin }})</span>
+        <div class="detail-section comments-section">
+          <h4 class="section-label">Комментарии ({{ comments().length }})</h4>
+          <div class="comments-feed">
+            <div *ngFor="let c of comments()" class="comment-card">
+              <div class="comment-top">
+                <span class="comment-author">{{ c.userName }} <span class="text-muted">&#64;{{ c.userLogin }}</span></span>
                 <span class="comment-time tabular-nums">{{ c.createdAt | date:'dd.MM.yyyy HH:mm' }}</span>
               </div>
               <div class="comment-text">{{ c.commentMarkdown }}</div>
             </div>
-            <div *ngIf="comments().length === 0" class="no-comments">Комментариев пока нет</div>
+            <div *ngIf="comments().length === 0" class="no-comments-hint">
+              Комментариев пока нет. Напишите первый комментарий!
+            </div>
           </div>
 
           <div class="add-comment-box">
             <textarea
-              class="comment-input"
+              class="comment-textarea"
               rows="2"
-              placeholder="Написать комментарий..."
+              placeholder="Написать комментарий к задаче..."
               [(ngModel)]="newCommentText"
             ></textarea>
-            <ui-button variant="primary" size="sm" icon="send" (onClick)="submitComment()">Отправить</ui-button>
+            <ui-button variant="primary" size="sm" icon="send" (onClick)="submitComment()">
+              Отправить
+            </ui-button>
           </div>
         </div>
       </div>
+      <div footer>
+        <ui-button variant="secondary" size="md" (onClick)="selectedTask.set(null)">Закрыть</ui-button>
+      </div>
     </ui-modal>
 
-    <!-- Create Task Modal -->
+    <!-- ======================================================================= -->
+    <!-- Create Task Modal                                                       -->
+    <!-- ======================================================================= -->
     <ui-modal
       [isOpen]="isCreateModalOpen()"
       title="Создание новой задачи"
@@ -178,32 +293,66 @@ import { KeysetPage } from '../../core/models/common.models';
     >
       <div body class="modal-form">
         <div class="form-group">
-          <label class="form-label">Название задачи <span class="req">*</span></label>
-          <input type="text" class="form-input" [(ngModel)]="createForm.title" placeholder="Краткое описание сути задачи" />
+          <label class="clean-label">Название задачи <span class="req">*</span></label>
+          <input
+            type="text"
+            class="clean-input"
+            [(ngModel)]="createForm.title"
+            placeholder="Краткая формулировка задачи"
+          />
         </div>
 
-        <div class="form-row">
-          <div class="form-group flex-1">
-            <label class="form-label">Приоритет</label>
-            <select class="form-input" [(ngModel)]="createForm.priority">
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="clean-label">Проект</label>
+            <select class="clean-input" [(ngModel)]="createForm.projectId">
+              <option [ngValue]="null">Без проекта</option>
+              <option *ngFor="let p of projects()" [ngValue]="p.id">{{ p.name }}</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="clean-label">Приоритет</label>
+            <select class="clean-input" [(ngModel)]="createForm.priority">
               <option value="low">Низкий</option>
               <option value="normal">Обычный</option>
               <option value="high">Высокий</option>
               <option value="urgent">Срочный</option>
             </select>
           </div>
-          <div class="form-group flex-1">
-            <label class="form-label">Родительская задача (ID)</label>
-            <input type="number" class="form-input" [(ngModel)]="createForm.parentTaskId" placeholder="ID задачи (опционально)" />
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="clean-label">Ответственный (I-T1)</label>
+            <select class="clean-input" [(ngModel)]="createForm.responsibleUserId">
+              <option [ngValue]="null">Не назначен</option>
+              <option *ngFor="let u of usersList()" [ngValue]="u.id">{{ u.name }} (&#64;{{ u.login }})</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="clean-label">Родительская задача (ID)</label>
+            <input
+              type="number"
+              class="clean-input font-mono"
+              [(ngModel)]="createForm.parentTaskId"
+              placeholder="ID родительской задачи (опционально)"
+            />
           </div>
         </div>
 
         <div class="form-group">
-          <label class="form-label">Подробное описание (Markdown)</label>
-          <textarea class="form-input" rows="4" [(ngModel)]="createForm.descriptionMarkdown" placeholder="Детали задачи, критерии приёмки..."></textarea>
+          <label class="clean-label">Подробное описание (Markdown)</label>
+          <textarea
+            class="clean-input clean-textarea"
+            rows="3"
+            [(ngModel)]="createForm.descriptionMarkdown"
+            placeholder="Детали задачи, контекст и критерии готовности..."
+          ></textarea>
         </div>
 
-        <!-- Custom Fields for Task -->
+        <!-- Custom Dynamic Fields -->
         <div class="custom-fields-section" *ngIf="taskCustomFields().length > 0">
           <h4 class="custom-fields-title">Дополнительные поля</h4>
           <ui-custom-fields
@@ -219,335 +368,391 @@ import { KeysetPage } from '../../core/models/common.models';
     </ui-modal>
   `,
   styles: [`
-    .tasks-container {
+    .tasks-page {
       display: flex;
       flex-direction: column;
       gap: 16px;
-      max-width: 1400px;
-    }
-
-    .page-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .page-title {
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--text-main);
-    }
-
-    .page-subtitle {
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-
-    .card {
-      background-color: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-lg);
-    }
-
-    .toolbar-card {
-      padding: 12px 16px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-    }
-
-    .search-box {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex: 1;
-      max-width: 420px;
-      background-color: var(--bg-hover);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      padding: 4px 10px;
-      color: var(--text-muted);
-    }
-
-    .toolbar-input {
-      border: none;
-      background: transparent;
-      outline: none;
-      font-size: 13px;
-      font-family: inherit;
-      color: var(--text-main);
       width: 100%;
     }
 
-    .filter-box {
+    /* Minimal Header */
+    .view-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .view-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-main);
+      margin: 0;
+    }
+    .task-count {
+      font-size: 12px;
+      color: var(--text-muted);
+      background-color: var(--bg-hover);
+      padding: 1px 7px;
+      border-radius: 10px;
+      font-weight: 500;
+      border: 1px solid var(--border-color);
+    }
+    .header-right {
       display: flex;
       align-items: center;
       gap: 8px;
     }
 
-    .toolbar-select {
-      height: 34px;
-      padding: 4px 10px;
+    /* Compact Toolbar */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 8px 12px;
+    }
+    .search-field {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background-color: var(--bg-hover);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 4px 8px;
+      width: 280px;
+      max-width: 100%;
+    }
+    .search-icon { font-size: 16px; color: var(--text-muted); }
+    .search-input {
+      border: none;
+      background: transparent;
+      outline: none;
+      font-size: 12px;
+      color: var(--text-main);
+      width: 100%;
+    }
+    .clear-btn {
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      padding: 0;
+    }
+    .clear-btn .material-symbols-outlined { font-size: 14px; }
+
+    .toolbar-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .clean-select {
+      height: 30px;
+      padding: 2px 8px;
       border-radius: var(--radius-sm);
       border: 1px solid var(--border-color);
       background-color: var(--bg-surface);
       color: var(--text-main);
-      font-size: 13px;
+      font-size: 12px;
       outline: none;
     }
+    .clean-select:focus { border-color: var(--primary); }
 
+    .reset-filters-btn {
+      border: 1px solid var(--border-color);
+      background-color: var(--bg-hover);
+      color: var(--text-muted);
+      border-radius: var(--radius-sm);
+      height: 30px;
+      width: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .reset-filters-btn:hover { color: var(--text-main); border-color: var(--text-muted); }
+    .reset-filters-btn .material-symbols-outlined { font-size: 16px; }
+
+    /* Table Card */
     .table-card {
-      padding: 0;
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
       overflow: hidden;
     }
-
-    .table-wrapper {
-      overflow-x: auto;
-    }
-
+    .table-wrapper { overflow-x: auto; }
     .data-table {
       width: 100%;
       border-collapse: collapse;
       font-size: 13px;
     }
-
     .data-table th {
       text-align: left;
-      padding: 10px 14px;
-      font-weight: 600;
-      color: var(--text-muted);
-      border-bottom: 1px solid var(--border-color);
+      padding: 8px 12px;
       background-color: var(--bg-hover);
-      font-size: 12px;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
     }
-
     .data-table td {
-      padding: 10px 14px;
+      padding: 10px 12px;
       border-bottom: 1px solid var(--border-color);
       color: var(--text-main);
     }
-
     .task-row {
       cursor: pointer;
-      transition: background-color 0.1s ease;
+      transition: background 0.1s ease;
     }
-    .task-row:hover {
-      background-color: var(--bg-hover);
-    }
+    .task-row:hover { background-color: var(--bg-hover); }
+    .task-row:last-child td { border-bottom: none; }
 
-    .task-title-box {
+    .task-title-cell {
       display: flex;
       align-items: center;
       gap: 8px;
+      flex-wrap: wrap;
     }
-
-    .parent-badge {
+    .task-title { font-weight: 500; }
+    .parent-chip {
       font-size: 10px;
       background-color: var(--bg-hover);
       color: var(--text-muted);
       padding: 1px 5px;
-      border-radius: var(--radius-sm);
+      border-radius: 4px;
       border: 1px solid var(--border-color);
     }
 
-    .text-right { text-align: right; }
-    .text-muted { color: var(--text-muted); }
-    .font-mono { font-family: monospace; }
-    .font-medium { font-weight: 500; }
+    .project-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .folder-ico { font-size: 14px; color: var(--warning); }
 
-    .load-more-bar {
-      padding: 12px;
-      display: flex;
-      justify-content: center;
-      background-color: var(--bg-hover);
-      border-top: 1px solid var(--border-color);
+    /* Priority Pills */
+    .priority-pill {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 2px 7px;
+      border-radius: 10px;
+      display: inline-block;
+    }
+    .priority-pill[data-priority="urgent"] { background-color: var(--danger-bg); color: var(--danger); }
+    .priority-pill[data-priority="high"] { background-color: var(--warning-bg); color: var(--warning); }
+    .priority-pill[data-priority="normal"] { background-color: var(--bg-hover); color: var(--text-muted); }
+    .priority-pill[data-priority="low"] { background-color: var(--bg-hover); color: var(--text-light); }
+
+    /* Status Pills */
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 1px 6px;
+      border-radius: 10px;
+      border: 1px solid;
+    }
+    .status-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
     }
 
-    .empty-cell {
+    .icon-ghost-btn {
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .icon-ghost-btn:hover { color: var(--text-main); background-color: var(--bg-hover); }
+    .icon-ghost-btn .material-symbols-outlined { font-size: 18px; }
+
+    .empty-state-cell {
+      padding: 40px;
       text-align: center;
       color: var(--text-muted);
-      padding: 32px !important;
+    }
+    .empty-state-cell .icon { font-size: 36px; color: var(--text-light); margin-bottom: 6px; }
+
+    .load-more-bar {
+      padding: 10px;
+      display: flex;
+      justify-content: center;
+      border-top: 1px solid var(--border-color);
+      background-color: var(--bg-hover);
     }
 
-    .modal-form {
+    /* Task Details Slide/Modal */
+    .task-details-view {
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 16px;
     }
-
-    .form-row {
+    .detail-header-row {
       display: flex;
-      gap: 14px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 12px;
+    }
+    .detail-title { font-size: 16px; font-weight: 600; margin: 0; color: var(--text-main); }
+    .detail-status-changer { display: flex; align-items: center; gap: 8px; }
+    .status-change-label { font-size: 12px; color: var(--text-muted); }
+    .status-select { font-weight: 500; }
+
+    .detail-meta-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+    }
+    .meta-card {
+      background-color: var(--bg-hover);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .meta-k { font-size: 10px; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
+    .meta-v { font-size: 12px; font-weight: 500; color: var(--text-main); }
+
+    .detail-section { display: flex; flex-direction: column; gap: 6px; }
+    .section-label { font-size: 12px; font-weight: 600; color: var(--text-muted); margin: 0; }
+    .description-box {
+      background-color: var(--bg-hover);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      font-size: 13px;
+      line-height: 1.5;
+      white-space: pre-wrap;
     }
 
-    .flex-1 { flex: 1; }
+    .attributes-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+    .attr-pill {
+      background-color: var(--bg-hover);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-xs);
+      padding: 3px 8px;
+      font-size: 11px;
+      display: inline-flex;
+      gap: 4px;
+    }
+    .attr-k { color: var(--text-muted); }
+    .attr-v { color: var(--text-main); font-weight: 500; }
 
-    .form-group {
+    .comments-section { border-top: 1px solid var(--border-color); padding-top: 12px; }
+    .comments-feed {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .comment-card {
+      background-color: var(--bg-hover);
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
       display: flex;
       flex-direction: column;
       gap: 4px;
     }
-
-    .form-label {
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--text-main);
-    }
-
-    .req { color: var(--danger); }
-
-    .form-input {
-      padding: 6px 10px;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      background-color: var(--bg-surface);
-      color: var(--text-main);
-      font-size: 13px;
-      font-family: inherit;
-      outline: none;
-    }
-
-    .detail-task-title {
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--text-main);
-      margin-bottom: 12px;
-    }
-
-    .detail-meta-grid {
-      display: flex;
-      gap: 16px;
-      margin-bottom: 16px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid var(--border-color);
-    }
-
-    .meta-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-    }
-
-    .meta-label {
-      color: var(--text-muted);
-    }
-
-    .detail-description {
-      margin-bottom: 20px;
-    }
-
-    .desc-label {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-muted);
-      margin-bottom: 4px;
-    }
-
-    .desc-text {
-      font-size: 13px;
-      color: var(--text-main);
-      line-height: 1.5;
-      background-color: var(--bg-hover);
-      padding: 10px 14px;
-      border-radius: var(--radius-md);
-      white-space: pre-wrap;
-    }
-
-    .comments-section {
-      border-top: 1px solid var(--border-color);
-      padding-top: 16px;
-    }
-
-    .comments-title {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text-main);
-      margin-bottom: 10px;
-    }
-
-    .comments-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-bottom: 12px;
-      max-height: 240px;
-      overflow-y: auto;
-    }
-
-    .comment-item {
-      background-color: var(--bg-hover);
-      padding: 8px 12px;
-      border-radius: var(--radius-md);
-    }
-
-    .comment-header {
+    .comment-top {
       display: flex;
       justify-content: space-between;
       font-size: 11px;
-      margin-bottom: 4px;
     }
-
-    .comment-author {
-      font-weight: 600;
-      color: var(--text-main);
-    }
-
-    .comment-time {
-      color: var(--text-muted);
-    }
-
-    .comment-text {
-      font-size: 12px;
-      color: var(--text-main);
-    }
-
-    .no-comments {
-      font-size: 12px;
-      color: var(--text-muted);
-      text-align: center;
-      padding: 12px;
-    }
+    .comment-author { font-weight: 600; color: var(--text-main); }
+    .comment-time { color: var(--text-muted); font-size: 10px; }
+    .comment-text { font-size: 12px; color: var(--text-main); }
+    .no-comments-hint { font-size: 12px; color: var(--text-muted); padding: 8px 0; }
 
     .add-comment-box {
       display: flex;
       gap: 8px;
       align-items: flex-end;
+      margin-top: 6px;
     }
-
-    .comment-input {
+    .comment-textarea {
       flex: 1;
-      padding: 6px 10px;
       border: 1px solid var(--border-color);
       border-radius: var(--radius-sm);
       background-color: var(--bg-surface);
       color: var(--text-main);
+      padding: 6px 8px;
       font-size: 12px;
       font-family: inherit;
       outline: none;
       resize: vertical;
     }
 
-    .custom-fields-section {
-      margin-top: 8px;
-      padding-top: 12px;
-      border-top: 1px dashed var(--border-color);
-    }
-
-    .custom-fields-title {
-      font-size: 13px;
-      font-weight: 600;
+    /* Modal Form */
+    .modal-form { display: flex; flex-direction: column; gap: 12px; }
+    .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .clean-label { font-size: 11px; font-weight: 500; color: var(--text-muted); }
+    .clean-input {
+      height: 32px;
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      background-color: var(--bg-surface);
       color: var(--text-main);
-      margin-bottom: 8px;
+      font-size: 13px;
+      outline: none;
     }
+    .clean-input:focus { border-color: var(--primary); }
+    .clean-textarea { height: auto; padding: 6px 8px; resize: vertical; font-family: inherit; }
+
+    .custom-fields-section {
+      border-top: 1px dashed var(--border-color);
+      padding-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .custom-fields-title { font-size: 12px; font-weight: 600; color: var(--text-muted); margin: 0; }
+
+    .req { color: var(--danger); }
+    .font-mono { font-family: monospace; }
+    .text-right { text-align: right; }
+    .text-muted { color: var(--text-muted); }
+    .tabular-nums { font-variant-numeric: tabular-nums; }
   `]
 })
 export class TasksComponent implements OnInit {
   readonly tasks = signal<Task[]>([]);
+  readonly projects = signal<Project[]>([]);
+  readonly statuses = signal<TaskStatus[]>([]);
+  readonly usersList = signal<User[]>([]);
   readonly taskCustomFields = signal<CustomField[]>([]);
   readonly selectedTask = signal<Task | null>(null);
   readonly comments = signal<TaskComment[]>([]);
+
   readonly isLoading = signal<boolean>(false);
   readonly isSubmitting = signal<boolean>(false);
   readonly hasMore = signal<boolean>(false);
@@ -555,15 +760,19 @@ export class TasksComponent implements OnInit {
 
   searchQuery = '';
   selectedPriority = '';
+  selectedProjectId: number | null = null;
+  selectedStatusId: number | null = null;
   newCommentText = '';
 
   readonly isCreateModalOpen = signal<boolean>(false);
-  createForm: any = {
+  createForm = {
     title: '',
     descriptionMarkdown: '',
+    projectId: null as number | null,
     priority: 'normal',
-    parentTaskId: null,
-    attributes: {}
+    responsibleUserId: null as number | null,
+    parentTaskId: null as number | null,
+    attributes: {} as Record<string, any>
   };
 
   constructor(
@@ -573,8 +782,43 @@ export class TasksComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.loadTasks(true);
+    this.loadStatuses();
+    this.loadProjects();
+    this.loadUsers();
     this.loadTaskCustomFields();
+    this.loadTasks(true);
+  }
+
+  canCreateTask(): boolean {
+    return this.permService.canCreate('tasks.items') || this.permService.canCreate('tasks') || this.permService.canCreate('ms_tasks');
+  }
+
+  canUpdateTask(): boolean {
+    return this.permService.canUpdate('tasks.items') || this.permService.canUpdate('tasks') || this.permService.canUpdate('ms_tasks');
+  }
+
+  loadStatuses() {
+    this.api.get<TaskStatus[]>('/tasks/statuses').subscribe(res => {
+      this.statuses.set(res || []);
+    });
+  }
+
+  loadProjects() {
+    this.api.get<Project[]>('/tasks/projects').subscribe(res => {
+      this.projects.set(res || []);
+    });
+  }
+
+  loadUsers() {
+    this.api.get<KeysetPage<User>>('/iam/users', { limit: 100 }).subscribe(res => {
+      this.usersList.set(res?.items || []);
+    });
+  }
+
+  loadTaskCustomFields() {
+    this.api.get<CustomField[]>('/custom-fields', { entity_type: 'TASK' }).subscribe(res => {
+      this.taskCustomFields.set(res || []);
+    });
   }
 
   loadTasks(reset: boolean = false) {
@@ -587,7 +831,9 @@ export class TasksComponent implements OnInit {
       limit: 20,
       cursor: this.nextCursor || undefined,
       search: this.searchQuery || undefined,
-      priority: this.selectedPriority || undefined
+      priority: this.selectedPriority || undefined,
+      project_id: this.selectedProjectId || undefined,
+      status_id: this.selectedStatusId || undefined
     }).subscribe({
       next: res => {
         this.isLoading.set(false);
@@ -605,10 +851,21 @@ export class TasksComponent implements OnInit {
     });
   }
 
-  loadTaskCustomFields() {
-    this.api.get<CustomField[]>('/custom-fields', { entity_type: 'TASK' }).subscribe(res => {
-      this.taskCustomFields.set(res || []);
-    });
+  hasActiveFilters(): boolean {
+    return !!this.searchQuery || !!this.selectedPriority || this.selectedProjectId !== null || this.selectedStatusId !== null;
+  }
+
+  clearSearch() {
+    this.searchQuery = '';
+    this.loadTasks(true);
+  }
+
+  resetFilters() {
+    this.searchQuery = '';
+    this.selectedPriority = '';
+    this.selectedProjectId = null;
+    this.selectedStatusId = null;
+    this.loadTasks(true);
   }
 
   selectTask(task: Task) {
@@ -633,11 +890,25 @@ export class TasksComponent implements OnInit {
     });
   }
 
+  updateStatus(taskId: number, newStatusId: number) {
+    this.api.post(`/tasks/${taskId}/status`, { statusId: newStatusId }).subscribe({
+      next: () => {
+        this.toast.success('Статус задачи обновлен');
+        if (this.selectedTask()?.id === taskId) {
+          this.selectedTask.update(t => t ? { ...t, statusId: newStatusId } : null);
+        }
+        this.loadTasks(true);
+      }
+    });
+  }
+
   openCreateTaskModal() {
     this.createForm = {
       title: '',
       descriptionMarkdown: '',
+      projectId: this.selectedProjectId,
       priority: 'normal',
+      responsibleUserId: null,
       parentTaskId: null,
       attributes: {}
     };
@@ -664,6 +935,24 @@ export class TasksComponent implements OnInit {
     });
   }
 
+  getProjectName(projectId: number | null | undefined): string | null {
+    if (!projectId) return null;
+    const p = this.projects().find(x => x.id === projectId);
+    return p ? p.name : `#${projectId}`;
+  }
+
+  getStatusName(statusId: number | null | undefined): string {
+    if (!statusId) return 'Новая';
+    const s = this.statuses().find(x => x.id === statusId);
+    return s ? s.name : 'В работе';
+  }
+
+  getStatusColor(statusId: number | null | undefined): string {
+    if (!statusId) return 'var(--primary)';
+    const s = this.statuses().find(x => x.id === statusId);
+    return s?.color || 'var(--primary)';
+  }
+
   getPriorityLabel(priority: string): string {
     switch (priority) {
       case 'urgent': return 'Срочный';
@@ -673,7 +962,12 @@ export class TasksComponent implements OnInit {
     }
   }
 
-  getStatusName(statusId: number): string {
-    return 'В работе';
+  hasAttributes(attrs: any): boolean {
+    return attrs && typeof attrs === 'object' && Object.keys(attrs).length > 0;
+  }
+
+  formatAttributes(attrs: any): Array<{ key: string; value: string }> {
+    if (!this.hasAttributes(attrs)) return [];
+    return Object.entries(attrs).map(([k, v]) => ({ key: k, value: String(v) }));
   }
 }

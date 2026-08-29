@@ -204,4 +204,11 @@ public class MsTaskService {
     public void markViewed(Long taskId, Long userId) {
         memberRepository.markViewed(taskId, userId);
     }
+
+    @Transactional
+    public List<MsTaskStatusRepository.StatusRecord> listStatuses() {
+        statusRepository.initDefaultStatusesIfEmpty();
+        return statusRepository.listStatuses();
+    }
 }
+

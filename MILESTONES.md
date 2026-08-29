@@ -76,14 +76,17 @@
 
 ---
 
-### M5. Мини таск-менеджер (TASK)
-- **Цель:** Управление проектами и задачами, инварианты I-T1 (ровно один ответственный) и I-T2 (защита от циклов в дереве задач).
+### M5. Мини таск-менеджер (TASK) [✅ ВЫПОЛНЕНО 2026-08-29]
+- **Цель:** Управление проектами и задачами, инварианты I-T1 (ровно один ответственный) и I-T2 (защита от циклов в дереве задач), минималистичный UI/UX.
 - **DoD:**
-  - Проекты, статусы (системные/кастомные, терминальные).
-  - Рекурсивный CTE `isDescendantOf` предотвращает зацикливание подзадач.
-  - Доменные события `TaskCreatedEvent`, `TaskStatusChangedEvent` публикуются в модуль `ms.notify`.
-- **Файлы:** `apps/instance/.../ms/task/service/MsTaskService.java`, `MsProjectService.java`.
-- **Команда проверки:** `mvn test -Dtest=MsTaskServiceTest`
+  - Проекты, статусы (системные/кастомные, терминальные с временем завершения).
+  - Рекурсивный CTE `isDescendantOf` предотвращает зацикливание подзадач при обновлении и назначении родительской задачи.
+  - Доменные события `TaskAssigned`, `TaskStatusChanged` публикуются через `eventPublisher`.
+  - Эндпоинт справочника статусов `GET /api/v1/tasks/statuses`.
+  - Минималистичный и адаптивный интерфейс управления задачами и проектами (`tasks.component.ts`, `projects.component.ts`) с фильтрацией, динамическими полями и комментариями Markdown.
+- **Файлы:** `apps/instance/.../ms/task/service/MsTaskService.java`, `MsProjectService.java`, `MsTaskController.java`, `apps/web-instance/src/app/features/tasks/tasks.component.ts`, `projects.component.ts`.
+- **Команда проверки:** `mvn test -Dtest=MsTaskServiceTest` (100% SUCCESS), `powershell scripts/dev/test-api.ps1` (15/15 SUCCESS).
+
 
 ---
 

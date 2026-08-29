@@ -22,10 +22,12 @@ export interface TaskStatus {
   id: number;
   pcode: string;
   name: string;
+  color?: string;
   colorHex?: string;
   isTerminal: boolean;
   orderNo: number;
 }
+
 
 export interface Task {
   id: number;

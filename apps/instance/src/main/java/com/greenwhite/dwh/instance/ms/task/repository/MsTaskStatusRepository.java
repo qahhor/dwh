@@ -20,13 +20,14 @@ public class MsTaskStatusRepository {
         if (count == 0) {
             jdbcClient.sql("""
                     insert into ms_task_statuses (pcode, name, color, order_no, is_terminal) values
-                    ('new', 'РќРѕРІР°СЏ', '#3b82f6', 10, false),
-                    ('in_progress', 'Р’ СЂР°Р±РѕС‚Рµ', '#eab308', 20, false),
-                    ('done', 'Р’С‹РїРѕР»РЅРµРЅР°', '#22c55e', 30, true),
-                    ('cancelled', 'РћС‚РјРµРЅРµРЅР°', '#ef4444', 40, true)
+                    ('new', 'Новая', '#3b82f6', 10, false),
+                    ('in_progress', 'В работе', '#eab308', 20, false),
+                    ('done', 'Выполнена', '#22c55e', 30, true),
+                    ('cancelled', 'Отменена', '#ef4444', 40, true)
                     """).update();
         }
     }
+
 
     public List<StatusRecord> listStatuses() {
         return jdbcClient.sql("""
