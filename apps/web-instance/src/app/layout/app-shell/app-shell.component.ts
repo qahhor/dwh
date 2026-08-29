@@ -349,11 +349,13 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
     /* Main Wrapper */
     .main-wrapper {
       flex: 1;
+      min-width: 0;
       display: flex;
       flex-direction: column;
       overflow: hidden;
       background-color: var(--bg-app);
     }
+
 
     /* Topbar */
     .topbar {
@@ -484,9 +486,11 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
 
     .page-content {
       flex: 1;
+      min-width: 0;
       overflow-y: auto;
       padding: 20px;
     }
+
   `]
 })
 export class AppShellComponent implements OnInit {

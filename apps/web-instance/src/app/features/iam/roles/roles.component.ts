@@ -32,12 +32,12 @@ interface ModuleGroup {
   standalone: true,
   imports: [CommonModule, FormsModule, UiButtonComponent, UiModalComponent],
   template: `
-    <div class="roles-view">
-      <!-- Header -->
-      <div class="view-header">
+    <div class="roles-container">
+      <!-- Top Page Header -->
+      <div class="page-header">
         <div class="header-left">
-          <h1 class="view-title">Роли и матрица прав</h1>
-          <span class="role-count">{{ roles().length }}</span>
+          <h1 class="page-title">Роли и матрица прав</h1>
+          <span class="roles-count-pill">{{ roles().length }} ролей</span>
         </div>
         <div class="header-right">
           <ui-button
@@ -52,47 +52,52 @@ interface ModuleGroup {
         </div>
       </div>
 
-      <!-- Master-Detail Layout -->
-      <div class="rbac-layout">
-        <!-- Sidebar: Roles List -->
-        <div class="roles-sidebar">
-          <div class="sidebar-header">
-            <div class="sidebar-search">
-              <span class="material-symbols-outlined icon">search</span>
+      <!-- Master-Detail 2-Column Container -->
+      <div class="rbac-columns">
+        <!-- Left Column: Roles Sidebar -->
+        <div class="roles-sidebar-box">
+          <div class="sidebar-top">
+            <div class="sidebar-search-box">
+              <span class="material-symbols-outlined search-ico">search</span>
               <input
                 type="text"
-                class="search-input"
+                class="sidebar-search-input"
                 placeholder="Поиск роли..."
                 [(ngModel)]="roleSearchQuery"
               />
             </div>
-            <button class="add-role-mini-btn" *ngIf="canCreateRole()" (click)="openCreateModal()" title="Создать роль">
+            <button
+              class="add-role-btn"
+              *ngIf="canCreateRole()"
+              (click)="openCreateModal()"
+              title="Создать новую роль"
+            >
               <span class="material-symbols-outlined">add</span>
             </button>
           </div>
 
-          <div class="roles-list">
+          <div class="roles-scroll-list">
             <div
               *ngFor="let r of filteredRoles()"
-              class="role-card"
+              class="role-item-card"
               [class.active]="selectedRole()?.id === r.id"
               (click)="selectRole(r)"
             >
-              <div class="role-card-top">
-                <span class="role-name">{{ r.name }}</span>
-                <span class="system-tag font-mono" *ngIf="r.pcode">{{ r.pcode }}</span>
-                <span class="custom-tag" *ngIf="!r.pcode">Пользовательская</span>
+              <div class="role-item-main">
+                <span class="role-item-name">{{ r.name }}</span>
+                <span class="role-pcode-tag font-mono" *ngIf="r.pcode">{{ r.pcode }}</span>
+                <span class="role-custom-tag" *ngIf="!r.pcode">Пользовательская</span>
               </div>
 
-              <div class="role-card-bot">
-                <span class="status-dot" [class.active]="r.state === 'A'"></span>
-                <span class="status-lbl">{{ r.state === 'A' ? 'Активна' : 'Отключена' }}</span>
+              <div class="role-item-sub">
+                <span class="role-status-dot" [class.active]="r.state === 'A'"></span>
+                <span class="role-status-text">{{ r.state === 'A' ? 'Активна' : 'Отключена' }}</span>
 
-                <div class="role-card-actions" (click)="$event.stopPropagation()">
+                <div class="role-item-actions" (click)="$event.stopPropagation()">
                   <button
                     type="button"
-                    class="action-mini-btn"
-                    title="Редактировать параметры роли"
+                    class="role-action-btn"
+                    title="Редактировать роль"
                     *ngIf="canUpdateRole()"
                     (click)="openEditRoleModal(r)"
                   >
@@ -100,7 +105,7 @@ interface ModuleGroup {
                   </button>
                   <button
                     type="button"
-                    class="action-mini-btn delete"
+                    class="role-action-btn delete"
                     title="Удалить роль"
                     *ngIf="!r.pcode && canDeleteRole()"
                     (click)="openDeleteRoleModal(r)"
@@ -111,35 +116,35 @@ interface ModuleGroup {
               </div>
             </div>
 
-            <div *ngIf="filteredRoles().length === 0" class="sidebar-empty">
+            <div *ngIf="filteredRoles().length === 0" class="roles-empty-box">
               <span>Роли не найдены</span>
             </div>
           </div>
         </div>
 
-        <!-- Main Panel: Permission Matrix -->
-        <div class="matrix-panel" *ngIf="selectedRole() as role">
-          <!-- Role Details Header -->
-          <div class="matrix-topbar">
-            <div class="role-headline">
-              <div class="role-title-row">
-                <h2 class="selected-role-name">{{ role.name }}</h2>
-                <span class="system-badge font-mono" *ngIf="role.pcode">Системная: {{ role.pcode }}</span>
-                <span class="status-pill" [class.active]="role.state === 'A'">
+        <!-- Right Column: Permission Matrix -->
+        <div class="matrix-main-box" *ngIf="selectedRole() as role">
+          <!-- Selected Role Info Banner -->
+          <div class="matrix-role-header">
+            <div class="matrix-role-info">
+              <div class="matrix-title-line">
+                <h2 class="role-heading">{{ role.name }}</h2>
+                <span class="system-code-pill font-mono" *ngIf="role.pcode">Системная: {{ role.pcode }}</span>
+                <span class="role-active-badge" [class.active]="role.state === 'A'">
                   {{ role.state === 'A' ? 'Активна' : 'Отключена' }}
                 </span>
               </div>
-              <div class="role-stats-row">
-                <span class="perm-counter">
+              <div class="matrix-stat-line">
+                <span class="matrix-stat-text">
                   Разрешено: <strong>{{ activePermissionsCount() }}</strong> из {{ totalActionsCount() }} действий
                 </span>
-                <div class="perm-progress-bar">
-                  <div class="perm-progress-fill" [style.width.%]="permissionPercentage()"></div>
+                <div class="matrix-stat-bar">
+                  <div class="matrix-stat-fill" [style.width.%]="permissionPercentage()"></div>
                 </div>
               </div>
             </div>
 
-            <div class="topbar-save-actions">
+            <div class="matrix-save-box">
               <ui-button
                 *ngIf="canGrant()"
                 variant="primary"
@@ -153,39 +158,39 @@ interface ModuleGroup {
             </div>
           </div>
 
-          <!-- Banner for Superadmin -->
-          <div *ngIf="role.pcode === 'admin'" class="admin-notice-banner">
-            <span class="material-symbols-outlined icon">verified_user</span>
+          <!-- Admin notice -->
+          <div *ngIf="role.pcode === 'admin'" class="admin-shield-banner">
+            <span class="material-symbols-outlined banner-ico">verified_user</span>
             <span>Роль администратора обладает абсолютными правами (100% покрытие каталога системы по инварианту I-P4).</span>
           </div>
 
-          <!-- Module Navigation Pills & Search Toolbar -->
-          <div class="matrix-toolbar">
-            <div class="toolbar-search-row">
-              <div class="toolbar-search">
+          <!-- Matrix Controls: Search & Module Tabs -->
+          <div class="matrix-controls-bar">
+            <div class="controls-search-row">
+              <div class="matrix-search-box">
                 <span class="material-symbols-outlined icon">search</span>
                 <input
                   type="text"
-                  class="search-input"
-                  placeholder="Поиск по названию формы, коду или действию..."
+                  class="matrix-search-input"
+                  placeholder="Поиск по названию формы, действию или коду..."
                   [(ngModel)]="matrixSearchQuery"
                 />
-                <button *ngIf="matrixSearchQuery" class="clear-search" (click)="matrixSearchQuery = ''">
+                <button *ngIf="matrixSearchQuery" class="matrix-clear-btn" (click)="matrixSearchQuery = ''">
                   <span class="material-symbols-outlined">close</span>
                 </button>
               </div>
 
-              <div class="global-expand-actions">
-                <button type="button" class="link-btn" (click)="setAllModulesExpanded(true)">Развернуть все</button>
-                <span class="sep">•</span>
-                <button type="button" class="link-btn" (click)="setAllModulesExpanded(false)">Свернуть все</button>
+              <div class="matrix-global-actions">
+                <button type="button" class="action-link" (click)="setAllModulesExpanded(true)">Развернуть все</button>
+                <span class="action-sep">•</span>
+                <button type="button" class="action-link" (click)="setAllModulesExpanded(false)">Свернуть все</button>
               </div>
             </div>
 
-            <div class="module-tabs-scroll">
+            <div class="module-pills-wrap">
               <button
                 type="button"
-                class="mod-tab"
+                class="module-pill-btn"
                 [class.active]="selectedModuleTab === 'all'"
                 (click)="selectedModuleTab = 'all'"
               >
@@ -194,7 +199,7 @@ interface ModuleGroup {
               <button
                 *ngFor="let mod of moduleGroups"
                 type="button"
-                class="mod-tab"
+                class="module-pill-btn"
                 [class.active]="selectedModuleTab === mod.moduleCode"
                 (click)="selectedModuleTab = mod.moduleCode"
               >
@@ -203,33 +208,33 @@ interface ModuleGroup {
             </div>
           </div>
 
-          <!-- Permission Matrix Content Area -->
-          <div class="matrix-content-scroll">
-            <div *ngFor="let mod of visibleModuleGroups()" class="module-card">
+          <!-- Matrix Accordion & Tables -->
+          <div class="matrix-body-scroll">
+            <div *ngFor="let mod of visibleModuleGroups()" class="mod-group-card">
               <!-- Module Section Header -->
-              <div class="module-card-header" (click)="toggleModuleExpand(mod)">
-                <div class="mod-title-box">
-                  <span class="material-symbols-outlined expand-arrow">
+              <div class="mod-group-header" (click)="toggleModuleExpand(mod)">
+                <div class="mod-header-left">
+                  <span class="material-symbols-outlined mod-arrow-ico">
                     {{ mod.isExpanded ? 'expand_more' : 'chevron_right' }}
                   </span>
-                  <span class="material-symbols-outlined mod-icon">{{ getModuleIcon(mod.moduleCode) }}</span>
-                  <h3 class="mod-title-text">{{ mod.moduleName }}</h3>
-                  <span class="mod-form-count">({{ mod.forms.length }} форм)</span>
+                  <span class="material-symbols-outlined mod-type-ico">{{ getModuleIcon(mod.moduleCode) }}</span>
+                  <h3 class="mod-header-title">{{ mod.moduleName }}</h3>
+                  <span class="mod-header-forms-count">({{ mod.forms.length }} форм)</span>
                 </div>
 
-                <div class="mod-header-actions" (click)="$event.stopPropagation()">
+                <div class="mod-header-right" (click)="$event.stopPropagation()">
                   <button
                     type="button"
-                    class="batch-link"
+                    class="mod-batch-btn"
                     [disabled]="role.pcode === 'admin'"
                     (click)="toggleAllModule(mod, true)"
                   >
                     ✓ Выбрать все
                   </button>
-                  <span class="action-divider">|</span>
+                  <span class="mod-batch-sep">|</span>
                   <button
                     type="button"
-                    class="batch-link"
+                    class="mod-batch-btn"
                     [disabled]="role.pcode === 'admin'"
                     (click)="toggleAllModule(mod, false)"
                   >
@@ -238,40 +243,40 @@ interface ModuleGroup {
                 </div>
               </div>
 
-              <!-- Module Forms Body -->
-              <div class="module-card-body" *ngIf="mod.isExpanded">
-                <table class="forms-table">
+              <!-- Module Forms Table -->
+              <div class="mod-group-body" *ngIf="mod.isExpanded">
+                <table class="rbac-matrix-table">
                   <tbody>
-                    <tr *ngFor="let f of mod.forms" class="form-row">
-                      <td class="form-meta-col">
-                        <div class="form-meta">
-                          <span class="form-title">{{ f.formName }}</span>
-                          <span class="form-code font-mono">{{ f.formCode }}</span>
-                          <div class="form-row-quick-btns" *ngIf="role.pcode !== 'admin'">
-                            <button type="button" class="mini-txt-btn" (click)="toggleAllForm(f, true)">все</button>
-                            <span class="dot-sep">•</span>
-                            <button type="button" class="mini-txt-btn" (click)="toggleAllForm(f, false)">снять</button>
+                    <tr *ngFor="let f of mod.forms" class="matrix-form-row">
+                      <td class="col-form-info">
+                        <div class="form-title-block">
+                          <span class="form-display-name">{{ f.formName }}</span>
+                          <span class="form-system-code font-mono">{{ f.formCode }}</span>
+                          <div class="form-quick-links" *ngIf="role.pcode !== 'admin'">
+                            <button type="button" class="link-sm" (click)="toggleAllForm(f, true)">все</button>
+                            <span class="link-dot">•</span>
+                            <button type="button" class="link-sm" (click)="toggleAllForm(f, false)">снять</button>
                           </div>
                         </div>
                       </td>
 
-                      <td class="form-actions-col">
-                        <div class="actions-pill-grid">
+                      <td class="col-form-actions">
+                        <div class="action-badges-grid">
                           <label
                             *ngFor="let act of f.actions"
-                            class="action-pill"
-                            [class.granted]="hasPermission(f.formCode, act.action)"
-                            [class.disabled]="role.pcode === 'admin'"
+                            class="action-toggle-card"
+                            [class.active]="hasPermission(f.formCode, act.action)"
+                            [class.admin-locked]="role.pcode === 'admin'"
                             [title]="f.formCode + '.' + act.action"
                           >
                             <input
                               type="checkbox"
-                              class="action-checkbox"
+                              class="action-chk"
                               [checked]="hasPermission(f.formCode, act.action)"
                               [disabled]="role.pcode === 'admin'"
                               (change)="togglePermission(f.formCode, act.action, $event)"
                             />
-                            <span class="action-name">{{ act.actionName }}</span>
+                            <span class="action-chk-label">{{ act.actionName }}</span>
                           </label>
                         </div>
                       </td>
@@ -281,7 +286,7 @@ interface ModuleGroup {
               </div>
             </div>
 
-            <div *ngIf="visibleModuleGroups().length === 0" class="empty-matrix-results">
+            <div *ngIf="visibleModuleGroups().length === 0" class="matrix-no-results">
               <span class="material-symbols-outlined icon">search_off</span>
               <p>Формы не найдены по запросу «{{ matrixSearchQuery }}»</p>
             </div>
@@ -299,21 +304,21 @@ interface ModuleGroup {
       size="sm"
       (close)="isCreateModalOpen.set(false)"
     >
-      <div body class="modal-form">
-        <div class="form-group">
-          <label class="clean-label">Название роли <span class="req">*</span></label>
+      <div body class="modal-form-grid">
+        <div class="form-row-group">
+          <label class="modal-lbl">Название роли <span class="req">*</span></label>
           <input
             type="text"
-            class="clean-input"
+            class="modal-input"
             [(ngModel)]="newRoleForm.name"
             placeholder="Например: Старший инженер данных"
           />
         </div>
-        <div class="form-group">
-          <label class="clean-label">Порядок отображения</label>
+        <div class="form-row-group">
+          <label class="modal-lbl">Порядок отображения</label>
           <input
             type="number"
-            class="clean-input font-mono"
+            class="modal-input font-mono"
             [(ngModel)]="newRoleForm.orderNo"
             placeholder="0"
           />
@@ -334,22 +339,22 @@ interface ModuleGroup {
       size="sm"
       (close)="isEditModalOpen.set(false)"
     >
-      <div body class="modal-form" *ngIf="editingRole as r">
-        <div class="form-group">
-          <label class="clean-label">Название роли <span class="req">*</span></label>
-          <input type="text" class="clean-input" [(ngModel)]="editRoleForm.name" />
+      <div body class="modal-form-grid" *ngIf="editingRole as r">
+        <div class="form-row-group">
+          <label class="modal-lbl">Название роли <span class="req">*</span></label>
+          <input type="text" class="modal-input" [(ngModel)]="editRoleForm.name" />
         </div>
-        <div class="form-group">
-          <label class="clean-label">Статус активности</label>
-          <select class="clean-input" [(ngModel)]="editRoleForm.state" [disabled]="r.pcode === 'admin'">
+        <div class="form-row-group">
+          <label class="modal-lbl">Статус активности</label>
+          <select class="modal-input" [(ngModel)]="editRoleForm.state" [disabled]="r.pcode === 'admin'">
             <option value="A">Активна (A)</option>
             <option value="P">Отключена (P)</option>
           </select>
-          <span class="field-hint" *ngIf="r.pcode === 'admin'">Роль суперадминистратора всегда активна.</span>
+          <span class="modal-hint" *ngIf="r.pcode === 'admin'">Роль суперадминистратора всегда активна.</span>
         </div>
-        <div class="form-group">
-          <label class="clean-label">Порядок отображения</label>
-          <input type="number" class="clean-input font-mono" [(ngModel)]="editRoleForm.orderNo" />
+        <div class="form-row-group">
+          <label class="modal-lbl">Порядок отображения</label>
+          <input type="number" class="modal-input font-mono" [(ngModel)]="editRoleForm.orderNo" />
         </div>
       </div>
       <div footer>
@@ -367,11 +372,11 @@ interface ModuleGroup {
       size="sm"
       (close)="isDeleteModalOpen.set(false)"
     >
-      <div body class="modal-delete" *ngIf="deletingRole as r">
-        <p class="delete-msg">
+      <div body class="delete-warning-body" *ngIf="deletingRole as r">
+        <p class="delete-txt">
           Вы действительно хотите удалить пользовательскую роль <strong>{{ r.name }}</strong>?
         </p>
-        <span class="delete-sub">Все назначенные права этой роли будут удалены. Если роль назначена пользователям, удаление будет отклонено.</span>
+        <span class="delete-sub-txt">Все назначенные права этой роли будут удалены. Если роль назначена пользователям, удаление будет отклонено.</span>
       </div>
       <div footer>
         <ui-button variant="secondary" size="md" (onClick)="isDeleteModalOpen.set(false)">Отмена</ui-button>
@@ -380,67 +385,79 @@ interface ModuleGroup {
     </ui-modal>
   `,
   styles: [`
-    .roles-view {
+    .roles-container {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 14px;
       width: 100%;
       min-width: 0;
     }
 
-    /* Header */
-    .view-header {
+    /* Page Header */
+    .page-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
     }
     .header-left {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
     }
-    .view-title {
+    .page-title {
       font-size: 18px;
       font-weight: 600;
       color: var(--text-main);
       margin: 0;
     }
-    .role-count {
+    .roles-count-pill {
       font-size: 12px;
       color: var(--text-muted);
       background-color: var(--bg-hover);
-      padding: 1px 7px;
-      border-radius: 10px;
+      padding: 2px 8px;
+      border-radius: 12px;
       font-weight: 500;
+      border: 1px solid var(--border-color);
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
-    /* Layout */
-    .rbac-layout {
-      display: grid;
-      grid-template-columns: 260px minmax(0, 1fr);
+    /* Master-Detail 2-Column Layout */
+    .rbac-columns {
+      display: flex;
       gap: 16px;
-      align-items: start;
+      align-items: stretch;
       width: 100%;
       min-width: 0;
+      height: calc(100vh - 150px);
     }
 
-    @media (max-width: 1024px) {
-      .rbac-layout {
-        grid-template-columns: 1fr;
+    @media (max-width: 900px) {
+      .rbac-columns {
+        flex-direction: column;
+        height: auto;
       }
     }
 
-    /* Sidebar */
-    .roles-sidebar {
+    /* Left Sidebar */
+    .roles-sidebar-box {
+      width: 260px;
+      min-width: 240px;
+      flex-shrink: 0;
       background-color: var(--bg-surface);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-md);
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      min-width: 0;
     }
-    .sidebar-header {
+
+    .sidebar-top {
       display: flex;
       align-items: center;
       gap: 6px;
@@ -448,15 +465,15 @@ interface ModuleGroup {
       border-bottom: 1px solid var(--border-color);
       background-color: var(--bg-hover);
     }
-    .sidebar-search {
+    .sidebar-search-box {
       display: flex;
       align-items: center;
       gap: 6px;
       flex: 1;
       min-width: 0;
     }
-    .sidebar-search .icon { font-size: 16px; color: var(--text-muted); }
-    .sidebar-search .search-input {
+    .search-ico { font-size: 16px; color: var(--text-muted); }
+    .sidebar-search-input {
       border: none;
       background: transparent;
       outline: none;
@@ -464,7 +481,7 @@ interface ModuleGroup {
       color: var(--text-main);
       width: 100%;
     }
-    .add-role-mini-btn {
+    .add-role-btn {
       border: 1px solid var(--border-color);
       background: var(--bg-surface);
       color: var(--primary);
@@ -477,16 +494,16 @@ interface ModuleGroup {
       cursor: pointer;
       flex-shrink: 0;
     }
-    .add-role-mini-btn .material-symbols-outlined { font-size: 16px; }
-    .add-role-mini-btn:hover { background-color: var(--bg-hover); }
+    .add-role-btn .material-symbols-outlined { font-size: 16px; }
+    .add-role-btn:hover { background-color: var(--bg-hover); }
 
-    .roles-list {
+    .roles-scroll-list {
+      flex: 1;
       display: flex;
       flex-direction: column;
-      max-height: calc(100vh - 220px);
       overflow-y: auto;
     }
-    .role-card {
+    .role-item-card {
       padding: 10px 12px;
       border-bottom: 1px solid var(--border-color);
       cursor: pointer;
@@ -495,21 +512,21 @@ interface ModuleGroup {
       gap: 5px;
       transition: all 0.1s ease;
     }
-    .role-card:last-child { border-bottom: none; }
-    .role-card:hover { background-color: var(--bg-hover); }
-    .role-card.active {
+    .role-item-card:last-child { border-bottom: none; }
+    .role-item-card:hover { background-color: var(--bg-hover); }
+    .role-item-card.active {
       background-color: rgba(99,102,241,0.08);
       border-left: 3px solid var(--primary);
     }
 
-    .role-card-top {
+    .role-item-main {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 6px;
     }
-    .role-name { font-size: 13px; font-weight: 500; color: var(--text-main); }
-    .system-tag {
+    .role-item-name { font-size: 13px; font-weight: 500; color: var(--text-main); }
+    .role-pcode-tag {
       font-size: 10px;
       background-color: var(--bg-hover);
       color: var(--primary);
@@ -517,26 +534,26 @@ interface ModuleGroup {
       border-radius: 4px;
       border: 1px solid var(--border-color);
     }
-    .custom-tag { font-size: 10px; color: var(--text-muted); }
+    .role-custom-tag { font-size: 10px; color: var(--text-muted); }
 
-    .role-card-bot {
+    .role-item-sub {
       display: flex;
       align-items: center;
       gap: 6px;
       font-size: 11px;
       color: var(--text-muted);
     }
-    .status-dot {
+    .role-status-dot {
       width: 6px;
       height: 6px;
       border-radius: 50%;
       background-color: var(--text-light);
     }
-    .status-dot.active { background-color: var(--success); }
-    .status-lbl { flex: 1; }
+    .role-status-dot.active { background-color: var(--success); }
+    .role-status-text { flex: 1; }
 
-    .role-card-actions { display: flex; align-items: center; gap: 3px; }
-    .action-mini-btn {
+    .role-item-actions { display: flex; align-items: center; gap: 3px; }
+    .role-action-btn {
       border: none;
       background: transparent;
       color: var(--text-muted);
@@ -545,29 +562,30 @@ interface ModuleGroup {
       border-radius: 3px;
       display: flex;
     }
-    .action-mini-btn .material-symbols-outlined { font-size: 15px; }
-    .action-mini-btn:hover { color: var(--text-main); background-color: var(--bg-hover); }
-    .action-mini-btn.delete:hover { color: var(--danger); }
+    .role-action-btn .material-symbols-outlined { font-size: 15px; }
+    .role-action-btn:hover { color: var(--text-main); background-color: var(--bg-hover); }
+    .role-action-btn.delete:hover { color: var(--danger); }
 
-    .sidebar-empty {
+    .roles-empty-box {
       padding: 24px 12px;
       text-align: center;
       color: var(--text-muted);
       font-size: 12px;
     }
 
-    /* Matrix Main Panel */
-    .matrix-panel {
+    /* Right Matrix Main Box */
+    .matrix-main-box {
+      flex: 1;
+      min-width: 0;
       background-color: var(--bg-surface);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-md);
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      min-width: 0;
-      width: 100%;
     }
-    .matrix-topbar {
+
+    .matrix-role-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -577,17 +595,17 @@ interface ModuleGroup {
       gap: 12px;
       flex-wrap: wrap;
     }
-    .role-headline { display: flex; flex-direction: column; gap: 4px; }
-    .role-title-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .selected-role-name { font-size: 16px; font-weight: 600; margin: 0; color: var(--text-main); }
-    .system-badge {
+    .matrix-role-info { display: flex; flex-direction: column; gap: 4px; }
+    .matrix-title-line { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .role-heading { font-size: 16px; font-weight: 600; margin: 0; color: var(--text-main); }
+    .system-code-pill {
       font-size: 11px;
       color: var(--primary);
       background: rgba(99,102,241,0.1);
       padding: 1px 6px;
       border-radius: 4px;
     }
-    .status-pill {
+    .role-active-badge {
       font-size: 11px;
       color: var(--text-muted);
       background: var(--bg-surface);
@@ -595,28 +613,24 @@ interface ModuleGroup {
       padding: 1px 6px;
       border-radius: 4px;
     }
-    .status-pill.active { color: var(--success); border-color: rgba(16,185,129,0.3); }
+    .role-active-badge.active { color: var(--success); border-color: rgba(16,185,129,0.3); }
 
-    .role-stats-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .perm-counter { font-size: 11px; color: var(--text-muted); }
-    .perm-progress-bar {
+    .matrix-stat-line { display: flex; align-items: center; gap: 10px; }
+    .matrix-stat-text { font-size: 11px; color: var(--text-muted); }
+    .matrix-stat-bar {
       width: 100px;
       height: 4px;
       background-color: var(--border-color);
       border-radius: 2px;
       overflow: hidden;
     }
-    .perm-progress-fill {
+    .matrix-stat-fill {
       height: 100%;
       background-color: var(--primary);
       transition: width 0.2s ease;
     }
 
-    .admin-notice-banner {
+    .admin-shield-banner {
       display: flex;
       align-items: center;
       gap: 8px;
@@ -626,10 +640,10 @@ interface ModuleGroup {
       font-size: 12px;
       color: var(--primary);
     }
-    .admin-notice-banner .icon { font-size: 18px; flex-shrink: 0; }
+    .admin-shield-banner .banner-ico { font-size: 18px; flex-shrink: 0; }
 
-    /* Toolbar: Tabs & Search */
-    .matrix-toolbar {
+    /* Matrix Controls */
+    .matrix-controls-bar {
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -639,15 +653,14 @@ interface ModuleGroup {
       min-width: 0;
     }
 
-    .toolbar-search-row {
+    .controls-search-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
       flex-wrap: wrap;
     }
-
-    .toolbar-search {
+    .matrix-search-box {
       display: flex;
       align-items: center;
       gap: 6px;
@@ -658,8 +671,8 @@ interface ModuleGroup {
       width: 320px;
       max-width: 100%;
     }
-    .toolbar-search .icon { font-size: 16px; color: var(--text-muted); }
-    .toolbar-search .search-input {
+    .matrix-search-box .icon { font-size: 16px; color: var(--text-muted); }
+    .matrix-search-input {
       border: none;
       background: transparent;
       outline: none;
@@ -667,7 +680,7 @@ interface ModuleGroup {
       color: var(--text-main);
       width: 100%;
     }
-    .clear-search {
+    .matrix-clear-btn {
       border: none;
       background: transparent;
       color: var(--text-muted);
@@ -675,15 +688,15 @@ interface ModuleGroup {
       display: flex;
       padding: 0;
     }
-    .clear-search .material-symbols-outlined { font-size: 14px; }
+    .matrix-clear-btn .material-symbols-outlined { font-size: 14px; }
 
-    .global-expand-actions {
+    .matrix-global-actions {
       display: flex;
       align-items: center;
       gap: 6px;
       font-size: 11px;
     }
-    .link-btn {
+    .action-link {
       background: transparent;
       border: none;
       color: var(--primary);
@@ -691,19 +704,17 @@ interface ModuleGroup {
       cursor: pointer;
       padding: 0;
     }
-    .link-btn:hover { text-decoration: underline; }
-    .sep { color: var(--text-light); }
+    .action-link:hover { text-decoration: underline; }
+    .action-sep { color: var(--text-light); }
 
-    .module-tabs-scroll {
+    .module-pills-wrap {
       display: flex;
       align-items: center;
       gap: 6px;
-      overflow-x: auto;
-      padding-bottom: 2px;
-      scrollbar-width: thin;
+      flex-wrap: wrap;
       min-width: 0;
     }
-    .mod-tab {
+    .module-pill-btn {
       border: 1px solid var(--border-color);
       background: var(--bg-hover);
       padding: 4px 10px;
@@ -712,36 +723,35 @@ interface ModuleGroup {
       font-weight: 500;
       color: var(--text-muted);
       cursor: pointer;
-      white-space: nowrap;
       transition: all 0.1s ease;
-      flex-shrink: 0;
+      white-space: nowrap;
     }
-    .mod-tab:hover { color: var(--text-main); border-color: var(--text-muted); }
-    .mod-tab.active {
+    .module-pill-btn:hover { color: var(--text-main); border-color: var(--text-muted); }
+    .module-pill-btn.active {
       color: #ffffff;
       background-color: var(--primary);
       border-color: var(--primary);
     }
 
-    /* Matrix Content Scroll */
-    .matrix-content-scroll {
+    /* Matrix Body Scroll */
+    .matrix-body-scroll {
+      flex: 1;
       padding: 16px;
       display: flex;
       flex-direction: column;
-      gap: 16px;
-      max-height: calc(100vh - 270px);
+      gap: 14px;
       overflow-y: auto;
       min-width: 0;
     }
 
-    /* Module Card */
-    .module-card {
+    /* Module Group Card */
+    .mod-group-card {
       background-color: var(--bg-surface);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-sm);
       overflow: hidden;
     }
-    .module-card-header {
+    .mod-group-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -751,22 +761,22 @@ interface ModuleGroup {
       cursor: pointer;
       user-select: none;
     }
-    .mod-title-box {
+    .mod-header-left {
       display: flex;
       align-items: center;
       gap: 6px;
     }
-    .expand-arrow { font-size: 18px; color: var(--text-muted); }
-    .mod-icon { font-size: 16px; color: var(--primary); }
-    .mod-title-text { font-size: 13px; font-weight: 600; color: var(--text-main); margin: 0; }
-    .mod-form-count { font-size: 11px; color: var(--text-muted); }
+    .mod-arrow-ico { font-size: 18px; color: var(--text-muted); }
+    .mod-type-ico { font-size: 16px; color: var(--primary); }
+    .mod-header-title { font-size: 13px; font-weight: 600; color: var(--text-main); margin: 0; }
+    .mod-header-forms-count { font-size: 11px; color: var(--text-muted); }
 
-    .mod-header-actions {
+    .mod-header-right {
       display: flex;
       align-items: center;
       gap: 6px;
     }
-    .batch-link {
+    .mod-batch-btn {
       background: transparent;
       border: none;
       color: var(--primary);
@@ -774,40 +784,39 @@ interface ModuleGroup {
       cursor: pointer;
       padding: 0;
     }
-    .batch-link:hover { text-decoration: underline; }
-    .batch-link:disabled { opacity: 0.5; cursor: not-allowed; }
-    .action-divider { color: var(--text-light); font-size: 10px; }
+    .mod-batch-btn:hover { text-decoration: underline; }
+    .mod-batch-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .mod-batch-sep { color: var(--text-light); font-size: 10px; }
 
-    /* Module Forms Body */
-    .module-card-body {
+    .mod-group-body {
       padding: 0;
       overflow-x: auto;
     }
-    .forms-table {
+    .rbac-matrix-table {
       width: 100%;
       border-collapse: collapse;
     }
-    .form-row {
+    .matrix-form-row {
       border-bottom: 1px solid var(--border-color);
     }
-    .form-row:last-child { border-bottom: none; }
-    .form-row:hover { background-color: var(--bg-hover); }
+    .matrix-form-row:last-child { border-bottom: none; }
+    .matrix-form-row:hover { background-color: var(--bg-hover); }
 
-    .form-meta-col {
+    .col-form-info {
       padding: 10px 14px;
       width: 240px;
       vertical-align: top;
       border-right: 1px solid var(--border-color);
     }
-    .form-meta {
+    .form-title-block {
       display: flex;
       flex-direction: column;
       gap: 2px;
     }
-    .form-title { font-size: 12px; font-weight: 600; color: var(--text-main); }
-    .form-code { font-size: 10px; color: var(--text-muted); }
+    .form-display-name { font-size: 12px; font-weight: 600; color: var(--text-main); }
+    .form-system-code { font-size: 10px; color: var(--text-muted); }
 
-    .form-row-quick-btns {
+    .form-quick-links {
       display: flex;
       align-items: center;
       gap: 4px;
@@ -815,7 +824,7 @@ interface ModuleGroup {
       color: var(--text-light);
       margin-top: 4px;
     }
-    .mini-txt-btn {
+    .link-sm {
       background: transparent;
       border: none;
       font-size: 10px;
@@ -823,19 +832,19 @@ interface ModuleGroup {
       cursor: pointer;
       padding: 0;
     }
-    .mini-txt-btn:hover { text-decoration: underline; }
-    .dot-sep { color: var(--text-light); font-size: 8px; }
+    .link-sm:hover { text-decoration: underline; }
+    .link-dot { color: var(--text-light); font-size: 8px; }
 
-    .form-actions-col {
+    .col-form-actions {
       padding: 10px 14px;
       vertical-align: middle;
     }
-    .actions-pill-grid {
+    .action-badges-grid {
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
     }
-    .action-pill {
+    .action-toggle-card {
       display: inline-flex;
       align-items: center;
       gap: 6px;
@@ -849,18 +858,18 @@ interface ModuleGroup {
       user-select: none;
       transition: all 0.1s ease;
     }
-    .action-pill:hover { border-color: var(--text-muted); }
-    .action-pill.granted {
+    .action-toggle-card:hover { border-color: var(--text-muted); }
+    .action-toggle-card.active {
       background-color: rgba(99,102,241,0.08);
       border-color: var(--primary);
       color: var(--text-main);
       font-weight: 500;
     }
-    .action-pill.disabled { opacity: 0.9; cursor: not-allowed; }
-    .action-checkbox { margin: 0; cursor: pointer; }
-    .action-name { font-size: 11px; }
+    .action-toggle-card.admin-locked { opacity: 0.9; cursor: not-allowed; }
+    .action-chk { margin: 0; cursor: pointer; }
+    .action-chk-label { font-size: 11px; }
 
-    .empty-matrix-results {
+    .matrix-no-results {
       padding: 32px;
       text-align: center;
       color: var(--text-muted);
@@ -869,17 +878,17 @@ interface ModuleGroup {
       align-items: center;
       gap: 6px;
     }
-    .empty-matrix-results .icon { font-size: 32px; color: var(--text-light); }
+    .matrix-no-results .icon { font-size: 32px; color: var(--text-light); }
 
     /* Modals */
-    .modal-form {
+    .modal-form-grid {
       display: flex;
       flex-direction: column;
       gap: 12px;
     }
-    .form-group { display: flex; flex-direction: column; gap: 4px; }
-    .clean-label { font-size: 11px; font-weight: 500; color: var(--text-muted); }
-    .clean-input {
+    .form-row-group { display: flex; flex-direction: column; gap: 4px; }
+    .modal-lbl { font-size: 11px; font-weight: 500; color: var(--text-muted); }
+    .modal-input {
       height: 32px;
       padding: 4px 8px;
       border-radius: var(--radius-sm);
@@ -889,12 +898,12 @@ interface ModuleGroup {
       font-size: 13px;
       outline: none;
     }
-    .clean-input:focus { border-color: var(--primary); }
-    .field-hint { font-size: 11px; color: var(--text-muted); }
+    .modal-input:focus { border-color: var(--primary); }
+    .modal-hint { font-size: 11px; color: var(--text-muted); }
 
-    .modal-delete { display: flex; flex-direction: column; gap: 6px; }
-    .delete-msg { font-size: 13px; margin: 0; }
-    .delete-sub { font-size: 11px; color: var(--text-muted); }
+    .delete-warning-body { display: flex; flex-direction: column; gap: 6px; }
+    .delete-txt { font-size: 13px; margin: 0; }
+    .delete-sub-txt { font-size: 11px; color: var(--text-muted); }
 
     .req { color: var(--danger); }
     .font-mono { font-family: monospace; }
