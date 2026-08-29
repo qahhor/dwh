@@ -56,28 +56,41 @@ public class MfFileService {
 
         String tempKey = "temp_" + UUID.randomUUID();
         StoredFileMetadata stored = storageProvider.upload(DEFAULT_BUCKET, tempKey, contentStream, sizeBytes, mimeType);
+        String sha256 = stored.sha256();
 
-        // Deduplication Check
-        var existingOpt = fileRepository.findBySha256(stored.sha256());
-        if (existingOpt.isPresent()) {
-            // Delete duplicate temp file, reuse existing storage
+        // Свою же копию отдаём как есть: повторная загрузка того же файла не
+        // плодит записи и не списывает квоту дважды.
+        var ownOpt = fileRepository.findBySha256AndOwner(sha256, createdBy);
+        if (ownOpt.isPresent()) {
             storageProvider.delete(DEFAULT_BUCKET, tempKey);
-            return existingOpt.get();
+            return ownOpt.get();
         }
 
-        // Final storage key using SHA-256
-        String finalKey = stored.sha256().substring(0, 2) + "/" + stored.sha256();
-        if (!storageProvider.exists(DEFAULT_BUCKET, finalKey)) {
-            storageProvider.upload(DEFAULT_BUCKET, finalKey, storageProvider.download(DEFAULT_BUCKET, tempKey).inputStream(), stored.sizeBytes(), mimeType);
+        // Дедупликация — на уровне физического объекта, не записи владения (V010).
+        // Чужую запись возвращать нельзя: её удаление владельцем каскадом снесло
+        // бы вложения у всех остальных, а квота второго загрузившего не росла бы.
+        String finalKey = sha256.substring(0, 2) + "/" + sha256;
+        var sameContent = fileRepository.findBySha256(sha256);
+        if (sameContent.isPresent()) {
+            // Объект уже лежит на диске — переиспользуем его ключ, временный удаляем
+            finalKey = sameContent.get().storageKey();
+            storageProvider.delete(DEFAULT_BUCKET, tempKey);
+        } else {
+            if (!storageProvider.exists(DEFAULT_BUCKET, finalKey)) {
+                storageProvider.upload(DEFAULT_BUCKET, finalKey,
+                        storageProvider.download(DEFAULT_BUCKET, tempKey).inputStream(),
+                        stored.sizeBytes(), mimeType);
+            }
+            storageProvider.delete(DEFAULT_BUCKET, tempKey);
         }
-        storageProvider.delete(DEFAULT_BUCKET, tempKey);
 
+        // Своя запись владения: своё имя файла, своя квота, своё право на удаление
         return fileRepository.create(
-                stored.sha256(),
+                sha256,
                 originalName,
                 stored.sizeBytes(),
                 mimeType != null ? mimeType : "application/octet-stream",
-                DEFAULT_BUCKET,
+                sameContent.map(MfFileRepository.FileRecord::storageBucket).orElse(DEFAULT_BUCKET),
                 finalKey,
                 createdBy
         );
@@ -117,8 +130,11 @@ public class MfFileService {
         }
 
         fileRepository.delete(id);
-        // If no other record has this sha256, we can remove physical file
-        if (fileRepository.findBySha256(file.sha256()).isEmpty()) {
+
+        // Объект с диска удаляем, только когда на него не осталось ни одной
+        // записи владения. До V010 sha256 был unique, поэтому проверка была
+        // мёртвой — файл сносился всегда, вместе с копиями других владельцев.
+        if (!fileRepository.existsBySha256(file.sha256())) {
             storageProvider.delete(file.storageBucket(), file.storageKey());
         }
     }
