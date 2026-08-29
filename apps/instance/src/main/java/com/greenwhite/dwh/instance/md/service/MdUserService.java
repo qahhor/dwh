@@ -26,6 +26,7 @@ public class MdUserService {
     private final UserSessionInvalidator sessionInvalidator;
     private final com.greenwhite.dwh.instance.search.typesense.TypesenseIndexer typesenseIndexer;
     private final com.greenwhite.dwh.instance.audit.service.AuditLogService auditLogService;
+    private final MdScopeService scopeService;
 
     public MdUserService(
             MdUserRepository userRepository,
@@ -36,8 +37,10 @@ public class MdUserService {
             PasswordValidator passwordValidator,
             UserSessionInvalidator sessionInvalidator,
             com.greenwhite.dwh.instance.search.typesense.TypesenseIndexer typesenseIndexer,
-            com.greenwhite.dwh.instance.audit.service.AuditLogService auditLogService) {
+            com.greenwhite.dwh.instance.audit.service.AuditLogService auditLogService,
+            MdScopeService scopeService) {
         this.sessionInvalidator = sessionInvalidator;
+        this.scopeService = scopeService;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.permissionService = permissionService;
@@ -126,8 +129,15 @@ public class MdUserService {
         }
 
         int fetchLimit = limit + 1;
+        // ADR-0013: список ограничивается скоупом текущего пользователя.
+        // Для правила ALL — а его сегодня имеют все роли — предикат пуст
+        // и запрос не меняется ни на символ.
+        var scope = scopeService.filterFor(
+                com.greenwhite.dwh.instance.common.security.SecurityContext.getCurrentUserId(),
+                "md_users.org_unit_id", "md_users.id");
+
         List<MdUserRepository.UserRecord> users = userRepository.listUsers(
-                fetchLimit, afterId, search, state, roleId, managerId, is2faEnabled);
+                fetchLimit, afterId, search, state, roleId, managerId, is2faEnabled, scope);
 
         boolean hasMore = users.size() > limit;
         List<MdUserRepository.UserRecord> resultItems = hasMore ? users.subList(0, limit) : users;

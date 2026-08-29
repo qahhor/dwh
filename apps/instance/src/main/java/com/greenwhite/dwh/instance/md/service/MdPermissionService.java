@@ -66,6 +66,13 @@ public class MdPermissionService {
         permissionRepository.registerFormAction(MdPref.FORM_CUSTOM_FIELDS, "update", "Редактирование");
         permissionRepository.registerFormAction(MdPref.FORM_CUSTOM_FIELDS, "delete", "Удаление");
 
+        permissionRepository.registerForm(MdPref.FORM_ORG_UNITS, MdPref.MODULE_CODE, "Оргструктура");
+        permissionRepository.registerFormAction(MdPref.FORM_ORG_UNITS, "view", "Просмотр оргструктуры");
+        permissionRepository.registerFormAction(MdPref.FORM_ORG_UNITS, "create", "Создание узла");
+        permissionRepository.registerFormAction(MdPref.FORM_ORG_UNITS, "update", "Редактирование узла");
+        permissionRepository.registerFormAction(MdPref.FORM_ORG_UNITS, "delete", "Удаление узла");
+        permissionRepository.registerFormAction(MdPref.FORM_ORG_UNITS, "assign", "Назначение сотрудников и правил видимости");
+
         permissionRepository.registerForm(MdPref.FORM_SETTINGS, MdPref.MODULE_CODE, "Настройки экземпляра");
         permissionRepository.registerFormAction(MdPref.FORM_SETTINGS, "view", "Просмотр настроек");
         permissionRepository.registerFormAction(MdPref.FORM_SETTINGS, "update", "Изменение настроек");
