@@ -92,6 +92,17 @@ public class KauthSessionRepository {
                 .update();
     }
 
+    public int closeInactiveSessions(Instant cutoff) {
+        return jdbcClient.sql("""
+                update kauth_sessions
+                set closed_at = now()
+                where closed_at is null and last_seen_at < :cutoff
+                """)
+                .param("cutoff", cutoff)
+                .update();
+    }
+
+
     public List<SessionRecord> findActiveByUserId(Long userId) {
         return jdbcClient.sql("""
                 select id, user_id, token_hash, host(ip) as ip_str, user_agent, device_info, created_at, last_seen_at, closed_at

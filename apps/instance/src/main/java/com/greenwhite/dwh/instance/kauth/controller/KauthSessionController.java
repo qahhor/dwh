@@ -38,4 +38,18 @@ public class KauthSessionController {
         sessionService.closeSession(id);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/users/{userId}")
+    @RequiresPermission(form = MdPref.FORM_USERS, action = "view")
+    public ResponseEntity<List<KauthSessionRepository.SessionRecord>> listUserSessions(@PathVariable("userId") Long userId) {
+        return ResponseEntity.ok(sessionService.getUserActiveSessions(userId));
+    }
+
+    @DeleteMapping("/users/{userId}")
+    @RequiresPermission(form = MdPref.FORM_USERS, action = "block")
+    public ResponseEntity<Void> closeAllUserSessions(@PathVariable("userId") Long userId) {
+        sessionService.closeAllUserSessions(userId);
+        return ResponseEntity.noContent().build();
+    }
 }
+

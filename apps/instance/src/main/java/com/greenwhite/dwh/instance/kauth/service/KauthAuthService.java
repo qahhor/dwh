@@ -27,6 +27,7 @@ public class KauthAuthService {
     private final KauthOtpCodeRepository otpCodeRepository;
     private final KauthPasswordResetRepository passwordResetRepository;
     private final KauthPasswordHasher passwordHasher;
+    private final com.greenwhite.dwh.instance.md.service.PasswordValidator passwordValidator;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public KauthAuthService(
@@ -35,14 +36,17 @@ public class KauthAuthService {
             KauthLoginAttemptRepository loginAttemptRepository,
             KauthOtpCodeRepository otpCodeRepository,
             KauthPasswordResetRepository passwordResetRepository,
-            KauthPasswordHasher passwordHasher) {
+            KauthPasswordHasher passwordHasher,
+            com.greenwhite.dwh.instance.md.service.PasswordValidator passwordValidator) {
         this.userRepository = userRepository;
         this.sessionRepository = sessionRepository;
         this.loginAttemptRepository = loginAttemptRepository;
         this.otpCodeRepository = otpCodeRepository;
         this.passwordResetRepository = passwordResetRepository;
         this.passwordHasher = passwordHasher;
+        this.passwordValidator = passwordValidator;
     }
+
 
     @Transactional
     public LoginResult login(String login, String password, String ip, String userAgent, String deviceInfo) {
@@ -151,12 +155,18 @@ public class KauthAuthService {
         var reset = passwordResetRepository.findActiveByCodeHash(codeHash)
                 .orElseThrow(() -> ApiException.badRequest(ErrorCode.RESET_CODE_INVALID, "Неверный или просроченный код сброса пароля"));
 
+        var user = userRepository.findById(reset.userId())
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.USER_NOT_FOUND, "Пользователь не найден"));
+
+        passwordValidator.validate(newPassword, user.login());
+
         passwordResetRepository.markAsUsed(reset.id());
 
         String newHash = passwordHasher.hashPassword(newPassword);
         userRepository.updatePassword(reset.userId(), newHash);
         sessionRepository.closeAllUserSessions(reset.userId());
     }
+
 
     private String generateSecureToken() {
         byte[] bytes = new byte[32];

@@ -41,4 +41,10 @@ public class KauthSessionService {
     public void closeAllUserSessions(Long userId) {
         sessionRepository.closeAllUserSessions(userId);
     }
+
+    @Transactional
+    public int closeInactiveSessions(java.time.Instant cutoff) {
+        return sessionRepository.closeInactiveSessions(cutoff);
+    }
 }
+

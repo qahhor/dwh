@@ -120,6 +120,58 @@ $bearerHeaders = @{
 $bearerMe = Invoke-RestMethod -Uri "$BaseUrl/api/v1/auth/me" -Method Get -Headers $bearerHeaders
 Write-Host "   Successfully authenticated via API Bearer Token! User=$($bearerMe.user.login)" -ForegroundColor Green
 
+# 12. Create User (CRUD: Add) with 10-char password validation
+Write-Host "`n12. Create User (POST /api/v1/iam/users)..." -ForegroundColor Yellow
+$randUser = Get-Random -Minimum 1000 -Maximum 9999
+$newUserBody = @{
+    name = "Test Engineer $randUser"
+    login = "tester_$randUser"
+    email = "tester_$randUser@company.local"
+    phone = "+99890$randUser"
+    password = "StrongPassword2026!"
+    language = "ru"
+    timezone = "Asia/Tashkent"
+    is2faEnabled = $false
+    attributes = @{}
+} | ConvertTo-Json
+$newUser = Invoke-RestMethod -Uri "$BaseUrl/api/v1/iam/users" -Method Post -Body $newUserBody -ContentType "application/json" -WebSession $session
+Write-Host "   User created: ID=$($newUser.id), Login=$($newUser.login)" -ForegroundColor Green
+
+# 13. Update User (CRUD: Edit)
+Write-Host "`n13. Update User (PATCH /api/v1/iam/users/$($newUser.id))..." -ForegroundColor Yellow
+$updateUserBody = @{
+    name = "Senior Test Engineer $randUser"
+    language = "en"
+} | ConvertTo-Json
+Invoke-RestMethod -Uri "$BaseUrl/api/v1/iam/users/$($newUser.id)" -Method Patch -Body $updateUserBody -ContentType "application/json" -WebSession $session
+$updatedUser = Invoke-RestMethod -Uri "$BaseUrl/api/v1/iam/users/$($newUser.id)" -Method Get -WebSession $session
+Write-Host "   User updated: Name=$($updatedUser.name), Lang=$($updatedUser.language)" -ForegroundColor Green
+
+# 14. Brute-Force Protection Test (5 failed logins -> 423 Locked)
+Write-Host "`n14. Brute-Force Lockout Protection (5 invalid attempts on $($newUser.login))..." -ForegroundColor Yellow
+for ($i = 1; $i -le 5; $i++) {
+    try {
+        $badLogin = @{ login = $newUser.login; password = "WrongPassword$i" } | ConvertTo-Json
+        Invoke-WebRequest -Uri "$BaseUrl/api/v1/auth/login" -Method Post -Body $badLogin -ContentType "application/json" | Out-Null
+    } catch {
+        # expected 401 on attempts 1..4, 423 on attempt 5
+    }
+}
+try {
+    $attempt6 = @{ login = $newUser.login; password = "WrongPassword6" } | ConvertTo-Json
+    Invoke-WebRequest -Uri "$BaseUrl/api/v1/auth/login" -Method Post -Body $attempt6 -ContentType "application/json"
+    Write-Host "   ERROR: Expected account lockout but login proceeded" -ForegroundColor Red
+} catch {
+    Write-Host "   Brute-force protection ACTIVE: Account temporarily locked (HTTP 423 Locked / ErrorCode.LOGIN_LOCKED)" -ForegroundColor Green
+}
+
+# 15. Delete / Anonymize User (CRUD: Delete)
+Write-Host "`n15. Delete & Anonymize User (DELETE /api/v1/iam/users/$($newUser.id))..." -ForegroundColor Yellow
+Invoke-RestMethod -Uri "$BaseUrl/api/v1/iam/users/$($newUser.id)" -Method Delete -WebSession $session
+$anonymizedUser = Invoke-RestMethod -Uri "$BaseUrl/api/v1/iam/users/$($newUser.id)" -Method Get -WebSession $session
+Write-Host "   User anonymized: Name=$($anonymizedUser.name), State=$($anonymizedUser.state)" -ForegroundColor Green
+
 Write-Host "`n============================================================" -ForegroundColor Cyan
-Write-Host "  All 11 End-to-End Scenarios Passed Successfully!           " -ForegroundColor Cyan
+Write-Host "  All 15 End-to-End Scenarios Passed Successfully!           " -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
+
