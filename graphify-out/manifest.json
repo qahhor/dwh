@@ -1242,9 +1242,9 @@
     "semantic_hash": ""
   },
   "apps/web-instance/src/app/layout/app-shell/app-shell.component.ts": {
-    "mtime": 1788018377.2143002,
-    "seen": 1788018628.0489593,
-    "ast_hash": "b8611241c9d076b2b7a33f37dd58249f",
+    "mtime": 1788018921.5839498,
+    "seen": 1788018987.5996509,
+    "ast_hash": "43e9b2a12a2acc5beb877a0b1a81889d",
     "semantic_hash": ""
   },
   "apps/web-instance/src/app/layout/command-palette/command-palette.component.ts": {
