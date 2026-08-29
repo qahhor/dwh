@@ -1554,10 +1554,10 @@
     "semantic_hash": ""
   },
   ".github/workflows/ci.yml": {
-    "mtime": 1787926298.4635217,
-    "seen": 1788008255.2068477,
-    "ast_hash": "19de2504575c1d840ab5b09eec20b6c4",
-    "semantic_hash": "19de2504575c1d840ab5b09eec20b6c4"
+    "mtime": 1788019705.1705673,
+    "seen": 1788019813.7358005,
+    "ast_hash": "876827171733bbc8fcf4689450fa3011",
+    "semantic_hash": ""
   },
   "AGENTS.md": {
     "mtime": 1788005808.1444402,
@@ -1824,10 +1824,10 @@
     "semantic_hash": "7af4043cbded1e71f22157cc39462374"
   },
   "docs/ops/production-launch-checklist.md": {
-    "mtime": 1787938537.0515463,
-    "seen": 1788008255.2068477,
-    "ast_hash": "3504372342b1a04e1050f848ec845c42",
-    "semantic_hash": "3504372342b1a04e1050f848ec845c42"
+    "mtime": 1788019780.902195,
+    "seen": 1788019813.7358005,
+    "ast_hash": "54d279378ddb666d5a620af3e36c160e",
+    "semantic_hash": ""
   },
   "docs/ops/rollback.md": {
     "mtime": 1787938537.0525475,
@@ -2073,6 +2073,54 @@
     "mtime": 1788018095.3700576,
     "seen": 1788018190.3285851,
     "ast_hash": "253ebbbe09675b6da03e68fd4d620a7a",
+    "semantic_hash": ""
+  },
+  "scripts/prod/backup.ps1": {
+    "mtime": 1788019771.2100918,
+    "seen": 1788019813.7358005,
+    "ast_hash": "ffbc060b11c11a7432b097dbaed7896d",
+    "semantic_hash": ""
+  },
+  "scripts/prod/backup.sh": {
+    "mtime": 1788019771.2095814,
+    "seen": 1788019813.7358005,
+    "ast_hash": "6fac2e1366609db92bd399424658f182",
+    "semantic_hash": ""
+  },
+  "scripts/prod/deploy.ps1": {
+    "mtime": 1788019771.2095814,
+    "seen": 1788019813.7358005,
+    "ast_hash": "c5a3338b8a30104d98d28660b78b5aa7",
+    "semantic_hash": ""
+  },
+  "scripts/prod/deploy.sh": {
+    "mtime": 1788019771.209157,
+    "seen": 1788019813.7358005,
+    "ast_hash": "012b074920baab5d8ab94a35db288d4b",
+    "semantic_hash": ""
+  },
+  "scripts/prod/restore.ps1": {
+    "mtime": 1788019771.2106102,
+    "seen": 1788019813.7358005,
+    "ast_hash": "70d18811027188da3ab8cdb4e85528cc",
+    "semantic_hash": ""
+  },
+  "scripts/prod/restore.sh": {
+    "mtime": 1788019771.2100918,
+    "seen": 1788019813.7358005,
+    "ast_hash": "f704320ab584dc8f017766ff8e91648f",
+    "semantic_hash": ""
+  },
+  "deploy/compose/docker-compose.fleet.prod.yml": {
+    "mtime": 1788019771.2086513,
+    "seen": 1788019813.7358005,
+    "ast_hash": "963b5ba5fd60210db3362e971c0183d0",
+    "semantic_hash": ""
+  },
+  "docs/audit/AUDIT-05-production-readiness-final.md": {
+    "mtime": 1788019771.2106102,
+    "seen": 1788019813.7358005,
+    "ast_hash": "edf5ae8d3efb9530e7c9d77fde916f93",
     "semantic_hash": ""
   }
 }
