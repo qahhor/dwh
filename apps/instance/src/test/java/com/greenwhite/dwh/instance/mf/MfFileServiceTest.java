@@ -35,28 +35,82 @@ class MfFileServiceTest {
                 .hasMessageContaining("Загрузка исполняемых файлов (.sh) запрещена");
     }
 
-    @Test
-    @DisplayName("Дедупликация файлов: повторная загрузка файла с тем же SHA-256 должна возвращать существующую запись")
-    void shouldDeduplicateIdenticalFiles() {
-        String sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
-        var existingFile = new MfFileRepository.FileRecord(
-                UUID.randomUUID(), sha256, "report.pdf", 1024, "application/pdf",
-                "instance-files", "e3/" + sha256, Instant.now(), 1L
-        );
+    private static final String SHA = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
-        when(storageProvider.upload(anyString(), anyString(), any(), anyLong(), anyString()))
-                .thenReturn(new StoredFileMetadata("instance-files", "temp_1", sha256, 1024, "application/pdf", Instant.now()));
-        when(fileRepository.findBySha256(sha256)).thenReturn(Optional.of(existingFile));
-
+    private void givenRoomInQuotas(Long userId) {
         when(fileRepository.getCompanyQuotaBytes()).thenReturn(50L * 1024 * 1024 * 1024);
         when(fileRepository.getTotalCompanyUsedBytes()).thenReturn(0L);
-        when(fileRepository.getUserEffectiveQuotaBytes(1L)).thenReturn(1024L * 1024 * 1024);
-        when(fileRepository.getUserUsedBytes(1L)).thenReturn(0L);
+        when(fileRepository.getUserEffectiveQuotaBytes(userId)).thenReturn(1024L * 1024 * 1024);
+        when(fileRepository.getUserUsedBytes(userId)).thenReturn(0L);
+        when(storageProvider.upload(anyString(), anyString(), any(), anyLong(), anyString()))
+                .thenReturn(new StoredFileMetadata("instance-files", "temp_1", SHA, 1024, "application/pdf", Instant.now()));
+    }
 
-        var result = service.uploadFile("report_copy.pdf", "application/pdf", new ByteArrayInputStream(new byte[1024]), 1024, 1L);
+    private static MfFileRepository.FileRecord record(String name, Long owner) {
+        return new MfFileRepository.FileRecord(
+                UUID.randomUUID(), SHA, name, 1024, "application/pdf",
+                "instance-files", "e3/" + SHA, Instant.now(), owner);
+    }
 
-        assertThat(result.id()).isEqualTo(existingFile.id());
-        assertThat(result.sha256()).isEqualTo(sha256);
+    @Test
+    @DisplayName("Повторная загрузка своего же файла возвращает прежнюю запись и не списывает квоту дважды")
+    void shouldReuseOwnRecordOnRepeatedUpload() {
+        var own = record("report.pdf", 1L);
+        givenRoomInQuotas(1L);
+        when(fileRepository.findBySha256AndOwner(SHA, 1L)).thenReturn(Optional.of(own));
+
+        var result = service.uploadFile("report_copy.pdf", "application/pdf",
+                new ByteArrayInputStream(new byte[1024]), 1024, 1L);
+
+        assertThat(result.id()).isEqualTo(own.id());
+        Mockito.verify(fileRepository, Mockito.never())
+                .create(anyString(), anyString(), anyLong(), anyString(), anyString(), anyString(), any());
+    }
+
+    @Test
+    @DisplayName("Тот же файл от другого пользователя даёт СВОЮ запись владения, а не чужую (Д-1)")
+    void shouldCreateOwnRecordWhenContentBelongsToAnotherUser() {
+        var foreign = record("dogovor_A.pdf", 1L);
+        givenRoomInQuotas(2L);
+        when(fileRepository.findBySha256AndOwner(SHA, 2L)).thenReturn(Optional.empty());
+        when(fileRepository.findBySha256(SHA)).thenReturn(Optional.of(foreign));
+        when(fileRepository.create(anyString(), anyString(), anyLong(), anyString(), anyString(), anyString(), any()))
+                .thenAnswer(inv -> record(inv.getArgument(1), inv.getArgument(6)));
+
+        var result = service.uploadFile("my_copy.pdf", "application/pdf",
+                new ByteArrayInputStream(new byte[1024]), 1024, 2L);
+
+        assertThat(result.id()).isNotEqualTo(foreign.id());
+        assertThat(result.createdBy()).isEqualTo(2L);
+        assertThat(result.originalName()).isEqualTo("my_copy.pdf");
+        // Содержимое уже на диске — повторно не заливаем
+        Mockito.verify(storageProvider, Mockito.never())
+                .upload(eq("instance-files"), eq("e3/" + SHA), any(), anyLong(), anyString());
+    }
+
+    @Test
+    @DisplayName("Удаление не трогает объект на диске, пока у содержимого остались владельцы (Д-2)")
+    void shouldKeepPhysicalObjectWhileOtherOwnersRemain() {
+        var mine = record("my_copy.pdf", 2L);
+        when(fileRepository.findById(mine.id())).thenReturn(Optional.of(mine));
+        when(fileRepository.existsBySha256(SHA)).thenReturn(true);
+
+        service.deleteFile(mine.id(), 2L, false);
+
+        Mockito.verify(fileRepository).delete(mine.id());
+        Mockito.verify(storageProvider, Mockito.never()).delete(anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("Удаление последней записи владения убирает объект с диска")
+    void shouldRemovePhysicalObjectWhenLastOwnerGone() {
+        var last = record("report.pdf", 1L);
+        when(fileRepository.findById(last.id())).thenReturn(Optional.of(last));
+        when(fileRepository.existsBySha256(SHA)).thenReturn(false);
+
+        service.deleteFile(last.id(), 1L, false);
+
+        Mockito.verify(storageProvider).delete("instance-files", "e3/" + SHA);
     }
 
     @Test

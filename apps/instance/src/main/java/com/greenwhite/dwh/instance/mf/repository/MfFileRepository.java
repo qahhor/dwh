@@ -46,6 +46,12 @@ public class MfFileRepository {
                 .optional();
     }
 
+    /**
+     * Любая запись владения с таким содержимым — нужна, чтобы переиспользовать
+     * уже лежащий на диске объект вместо повторной заливки. Возвращённая запись
+     * может принадлежать другому пользователю, поэтому наружу её отдавать нельзя
+     * (V010): из неё берутся только bucket и ключ.
+     */
     public Optional<FileRecord> findBySha256(String sha256) {
         return jdbcClient.sql("""
                 select id, sha256, original_name, size_bytes, mime_type, storage_bucket, storage_key, created_at, created_by
@@ -56,6 +62,31 @@ public class MfFileRepository {
                 .param("sha256", sha256)
                 .query(this::mapRecord)
                 .optional();
+    }
+
+    /** Запись владения этого пользователя на это содержимое — повторная загрузка своего же файла. */
+    public Optional<FileRecord> findBySha256AndOwner(String sha256, Long ownerId) {
+        if (ownerId == null) {
+            return Optional.empty();
+        }
+        return jdbcClient.sql("""
+                select id, sha256, original_name, size_bytes, mime_type, storage_bucket, storage_key, created_at, created_by
+                from mf_files
+                where sha256 = :sha256 and created_by = :ownerId
+                """)
+                .param("sha256", sha256)
+                .param("ownerId", ownerId)
+                .query(this::mapRecord)
+                .optional();
+    }
+
+    /** Остались ли владельцы у этого содержимого — проверка перед удалением объекта с диска. */
+    public boolean existsBySha256(String sha256) {
+        Long count = jdbcClient.sql("select count(*) from mf_files where sha256 = :sha256")
+                .param("sha256", sha256)
+                .query(Long.class)
+                .single();
+        return count != null && count > 0;
     }
 
     public void delete(UUID id) {

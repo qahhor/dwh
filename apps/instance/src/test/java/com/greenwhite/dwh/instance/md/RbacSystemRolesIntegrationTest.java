@@ -57,10 +57,16 @@ class RbacSystemRolesIntegrationTest {
     // FR-PERM-8 + FR-PERM-1: контроллеры ↔ каталог
     // ------------------------------------------------------------------
 
-    /** Контроллеры аутентификации: публичный/сессионный контур без RBAC-декларации. */
+    /**
+     * Контроллеры вне матрицы прав. Исключение допустимо только если эндпоинт
+     * не отдаёт данных экземпляра: иначе право обязано быть объявлено (FR-PERM-8).
+     * Список закрытый — новый контроллер сюда не добавляется без обоснования.
+     */
     private static final Set<String> PUBLIC_CONTROLLER_ALLOWLIST = Set.of(
             "KauthAuthController",   // публичный/сессионный контур входа
-            "SecurityTestController" // тестовый стенд CSRF/лимитов (test-classpath)
+            "SecurityTestController", // тестовый стенд CSRF/лимитов (test-classpath)
+            "OpenApiController",     // спецификация API, permitAll в SecurityConfig
+            "MdI18nController"       // статический словарь интерфейса, одинаков для всех
     );
 
     @Test

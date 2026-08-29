@@ -21,7 +21,21 @@ try {
 
 # 2. Login as admin
 Write-Host "`n2. Authentication (POST /api/v1/auth/login)..." -ForegroundColor Yellow
-$adminPassword = if ($env:ADMIN_PASSWORD) { $env:ADMIN_PASSWORD } else { "Qazaq#1212" }
+# Пароль берём из окружения, иначе из локального .env — он в .gitignore и
+# содержит фактические значения стенда. В самом скрипте пароля нет: файл
+# отслеживается git'ом, а значения там быстро расходятся с реальностью.
+$adminPassword = $env:ADMIN_PASSWORD
+if (-not $adminPassword) {
+    $envFile = Join-Path $PSScriptRoot "..\..\.env"
+    if (Test-Path $envFile) {
+        $line = Select-String -Path $envFile -Pattern '^\s*ADMIN_PASSWORD\s*=\s*(.+?)\s*$' | Select-Object -First 1
+        if ($line) { $adminPassword = $line.Matches[0].Groups[1].Value }
+    }
+}
+if (-not $adminPassword) {
+    Write-Host "Пароль администратора не найден: задайте `$env:ADMIN_PASSWORD или ADMIN_PASSWORD в .env" -ForegroundColor Red
+    exit 1
+}
 
 $loginBody = @{
     login = "admin"
