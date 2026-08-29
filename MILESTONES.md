@@ -103,14 +103,18 @@
 
 ---
 
-### M7. Файловое хранилище (FILE)
-- **Цель:** Загрузка, стриминг и хранение файлов с дедупликацией по SHA-256 и проверкой прав доступа.
+### M7. Файловое хранилище (FILE) [✅ ВЫПОЛНЕНО 2026-08-29]
+- **Цель:** Загрузка, стриминг и хранение файлов с дедупликацией по SHA-256, проверка прав доступа, прикрепление файлов к задачам и Drag & Drop интерфейс.
 - **DoD:**
-  - Потоковый расчет SHA-256 хеша на лету.
-  - Дедупликация идентичных файлов.
-  - Блокировка потенциально опасных исполняемых расширений.
-- **Файлы:** `apps/instance/.../mf/service/MfFileService.java`.
-- **Команда проверки:** `mvn test -Dtest=MfFileServiceTest`
+  - Потоковый расчет SHA-256 хеша на лету (`LocalStorageProvider`).
+  - Дедупликация идентичных файлов по SHA-256 (`MfFileService`).
+  - Блокировка потенциально опасных исполняемых расширений (`.exe`, `.sh`, `.bat` и др.).
+  - Таблица связей `ms_task_files` (миграция `V008__task_file_attachments.sql`).
+  - Эндпоинты прикрепления, открепления и получения файлов задач (`POST/DELETE/GET /api/v1/tasks/{taskId}/files`).
+  - Универсальный компонент Drag & Drop вложений `UiFileUploadComponent` в модальном окне задачи с превью, форматированием размера и скачиванием.
+- **Файлы:** `apps/instance/.../mf/service/MfFileService.java`, `LocalStorageProvider.java`, `MsTaskController.java`, `apps/web-instance/.../shared/ui/ui-file-upload.component.ts`.
+- **Команда проверки:** `mvn test -Dtest=MfFileServiceTest` (100% SUCCESS), `powershell scripts/dev/test-api.ps1` (15/15 SUCCESS).
+
 
 ---
 

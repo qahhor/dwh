@@ -132,10 +132,27 @@ public class MsTaskService {
         return task;
     }
 
+    @Transactional
+    public void attachFile(Long taskId, java.util.UUID fileId, Long currentUserId) {
+        getTaskById(taskId);
+        taskRepository.attachFile(taskId, fileId);
+    }
+
+    @Transactional
+    public void detachFile(Long taskId, java.util.UUID fileId, Long currentUserId) {
+        getTaskById(taskId);
+        taskRepository.detachFile(taskId, fileId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<MsTaskRepository.TaskFileRecord> listTaskFiles(Long taskId) {
+        return taskRepository.listTaskFiles(taskId);
+    }
 
     // Overload for backwards compatibility
     @Transactional
     public MsTaskRepository.TaskRecord createTask(
+
             Long projectId, Long parentTaskId, String title, String descriptionMarkdown,
             String priority, Long responsibleUserId, List<Long> executorUserIds,
             Map<String, Object> attributes, Instant beginTime, Instant endTime, Long reporterId) {

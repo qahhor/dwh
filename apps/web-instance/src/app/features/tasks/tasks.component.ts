@@ -14,7 +14,8 @@ import { UiUserMultiSelectComponent } from '../../shared/ui/ui-user-multi-select
 import { UiMarkdownEditorComponent } from '../../shared/ui/ui-markdown-editor.component';
 import { UiMarkdownViewComponent } from '../../shared/ui/ui-markdown-view.component';
 import { UiPaginationComponent } from '../../shared/ui/ui-pagination.component';
-import { Task, Project, TaskStatus, TaskType, TaskComment, TaskMember, TaskDetailResponse } from '../../core/models/task.models';
+import { UiFileUploadComponent } from '../../shared/ui/ui-file-upload.component';
+import { Task, Project, TaskStatus, TaskType, TaskComment, TaskMember, TaskDetailResponse, TaskFile } from '../../core/models/task.models';
 import { CustomField } from '../../core/models/custom-field.models';
 import { User } from '../../core/models/auth.models';
 import { KeysetPage } from '../../core/models/common.models';
@@ -33,8 +34,10 @@ import { KeysetPage } from '../../core/models/common.models';
     UiUserMultiSelectComponent,
     UiMarkdownEditorComponent,
     UiMarkdownViewComponent,
-    UiPaginationComponent
+    UiPaginationComponent,
+    UiFileUploadComponent
   ],
+
 
   template: `
     <div class="tasks-page">
@@ -513,9 +516,23 @@ import { KeysetPage } from '../../core/models/common.models';
               </div>
             </div>
 
+            <!-- Attachments & Files Section -->
+            <div class="detail-section files-section">
+              <h4 class="section-label">Вложения и файлы ({{ taskFiles().length }})</h4>
+              <ui-file-upload
+                [files]="taskFiles()"
+                [canUpload]="canUpdateTask()"
+                [canDelete]="canUpdateTask()"
+                (fileAttached)="onTaskFileAttached($event)"
+                (fileRemoved)="onTaskFileRemoved($event)"
+              ></ui-file-upload>
+            </div>
+
+
             <!-- Comments Feed -->
             <div class="detail-section comments-section">
               <h4 class="section-label">Комментарии ({{ comments().length }})</h4>
+
               <div class="comments-feed">
                 <div *ngFor="let c of comments()" class="comment-card">
                   <div class="comment-top">
@@ -2107,7 +2124,9 @@ export class TasksComponent implements OnInit {
   readonly taskMembers = signal<TaskMember[]>([]);
   readonly taskSubtasks = signal<Task[]>([]);
   readonly taskAncestors = signal<Task[]>([]);
+  readonly taskFiles = signal<TaskFile[]>([]);
   readonly comments = signal<TaskComment[]>([]);
+
 
   readonly isLoading = signal<boolean>(false);
   readonly isSubmitting = signal<boolean>(false);
@@ -2481,11 +2500,41 @@ export class TasksComponent implements OnInit {
           this.taskMembers.set(res.members || []);
           this.taskSubtasks.set(res.subtasks || []);
           this.taskAncestors.set(res.ancestors || []);
+          this.taskFiles.set(res.files || []);
         }
       },
       error: () => {}
     });
   }
+
+  onTaskFileAttached(file: TaskFile) {
+    const t = this.selectedTask();
+    if (!t) return;
+    this.api.post(`/tasks/${t.id}/files`, { fileId: file.fileId }).subscribe({
+      next: () => {
+        this.taskFiles.update(list => [...list, file]);
+        this.toast.success(`Файл «${file.fileName}» прикреплен к задаче`);
+      },
+      error: err => {
+        this.toast.error(err.error?.message || 'Не удалось прикрепить файл');
+      }
+    });
+  }
+
+  onTaskFileRemoved(file: TaskFile) {
+    const t = this.selectedTask();
+    if (!t) return;
+    this.api.delete(`/tasks/${t.id}/files/${file.fileId}`).subscribe({
+      next: () => {
+        this.taskFiles.update(list => list.filter(f => f.fileId !== file.fileId));
+        this.toast.success(`Файл «${file.fileName}» удален`);
+      },
+      error: err => {
+        this.toast.error(err.error?.message || 'Не удалось удалить файл');
+      }
+    });
+  }
+
 
   loadComments(taskId: number) {
     this.api.get<TaskComment[]>(`/tasks/${taskId}/comments`).subscribe({

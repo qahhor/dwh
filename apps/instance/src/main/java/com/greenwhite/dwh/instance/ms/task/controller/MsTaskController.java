@@ -11,6 +11,8 @@ import com.greenwhite.dwh.instance.ms.task.repository.MsTaskTypeRepository;
 import com.greenwhite.dwh.instance.ms.task.service.MsTaskService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -138,13 +140,36 @@ public class MsTaskController {
         var members = taskService.getTaskMembers(id);
         var subtasks = taskService.getSubtasks(id);
         var ancestors = taskService.getAncestorChain(id);
+        var files = taskService.listTaskFiles(id);
 
         Long currentUserId = SecurityContext.getCurrentUserId();
         if (currentUserId != null) {
             taskService.markViewed(id, currentUserId);
         }
 
-        return ResponseEntity.ok(new TaskDetailResponse(task, members, subtasks, ancestors));
+        return ResponseEntity.ok(new TaskDetailResponse(task, members, subtasks, ancestors, files));
+    }
+
+    @GetMapping("/{id}/files")
+    @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
+    public ResponseEntity<List<MsTaskRepository.TaskFileRecord>> getTaskFiles(@PathVariable("id") Long id) {
+        return ResponseEntity.ok(taskService.listTaskFiles(id));
+    }
+
+    @PostMapping("/{id}/files")
+    @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
+    public ResponseEntity<Void> attachFile(@PathVariable("id") Long id, @RequestBody AttachFileDto body) {
+        Long currentUserId = SecurityContext.getCurrentUserId();
+        taskService.attachFile(id, body.fileId(), currentUserId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{id}/files/{fileId}")
+    @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
+    public ResponseEntity<Void> detachFile(@PathVariable("id") Long id, @PathVariable("fileId") java.util.UUID fileId) {
+        Long currentUserId = SecurityContext.getCurrentUserId();
+        taskService.detachFile(id, fileId, currentUserId);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{id}/subtasks")
@@ -152,6 +177,7 @@ public class MsTaskController {
     public ResponseEntity<List<MsTaskRepository.TaskRecord>> getSubtasks(@PathVariable("id") Long id) {
         return ResponseEntity.ok(taskService.getSubtasks(id));
     }
+
 
     @PostMapping
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "create")
@@ -279,10 +305,16 @@ public class MsTaskController {
             Integer orderNo
     ) {}
 
+    public record AttachFileDto(
+            @NotNull java.util.UUID fileId
+    ) {}
+
     public record TaskDetailResponse(
             MsTaskRepository.TaskRecord task,
             List<MsTaskMemberRepository.TaskMemberRecord> members,
             List<MsTaskRepository.TaskRecord> subtasks,
-            List<MsTaskRepository.TaskRecord> ancestors
+            List<MsTaskRepository.TaskRecord> ancestors,
+            List<MsTaskRepository.TaskFileRecord> files
     ) {}
 }
+

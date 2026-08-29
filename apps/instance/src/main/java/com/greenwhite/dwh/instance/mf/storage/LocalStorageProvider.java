@@ -52,9 +52,14 @@ public class LocalStorageProvider implements StorageProvider {
                 throw new SecurityException("Path traversal attempt in storage key: " + key);
             }
 
+            if (targetFile.getParent() != null) {
+                Files.createDirectories(targetFile.getParent());
+            }
+
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             try (DigestInputStream dis = new DigestInputStream(contentStream, digest);
                  FileOutputStream fos = new FileOutputStream(targetFile.toFile())) {
+
 
                 byte[] buffer = new byte[8192];
                 int bytesRead;

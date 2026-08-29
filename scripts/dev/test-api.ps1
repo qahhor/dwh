@@ -122,6 +122,58 @@ $commentBody = @{
 $commentResponse = Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks/items/$($taskResponse.id)/comments" -Method Post -Body $commentBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
 Write-Host "   Comment added: ID=$($commentResponse.id)" -ForegroundColor Green
 
+# 9b. Upload and Attach File to Task (M7 FILE)
+Write-Host "`n9b. Upload & Attach File (POST /api/v1/files/upload & POST /api/v1/tasks/$($taskResponse.id)/files)..." -ForegroundColor Yellow
+Add-Type -AssemblyName System.Net.Http
+$tempFilePath = [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), "sample_replication_log.txt")
+
+[System.IO.File]::WriteAllText($tempFilePath, "Sample replication log report for task $($taskResponse.id)")
+
+$xsrf = (Get-CsrfHeaders)["X-XSRF-TOKEN"]
+$handler = New-Object System.Net.Http.HttpClientHandler
+$cookieContainer = New-Object System.Net.CookieContainer
+foreach ($c in $session.Cookies.GetCookies([System.Uri]$BaseUrl)) {
+    $cookieContainer.Add([System.Uri]$BaseUrl, (New-Object System.Net.Cookie($c.Name, $c.Value)))
+}
+$handler.CookieContainer = $cookieContainer
+$client = New-Object System.Net.Http.HttpClient($handler)
+$client.DefaultRequestHeaders.Add("X-XSRF-TOKEN", $xsrf)
+
+$formContent = New-Object System.Net.Http.MultipartFormDataContent
+$fileBytes = [System.IO.File]::ReadAllBytes($tempFilePath)
+$byteContent = New-Object System.Net.Http.ByteArrayContent($fileBytes, 0, $fileBytes.Length)
+$formContent.Add($byteContent, "file", [System.IO.Path]::GetFileName($tempFilePath))
+
+$httpRes = $client.PostAsync("$BaseUrl/api/v1/files/upload", $formContent).Result
+$resStr = $httpRes.Content.ReadAsStringAsync().Result
+Remove-Item $tempFilePath
+
+if (-not $httpRes.IsSuccessStatusCode) {
+    Write-Host "   Upload failed: HTTP $($httpRes.StatusCode), Body: $resStr" -ForegroundColor Red
+    throw "Upload failed"
+}
+
+$fileUploadRes = $resStr | ConvertFrom-Json
+Write-Host "   File uploaded: ID=$($fileUploadRes.id), Name=$($fileUploadRes.originalName), Size=$($fileUploadRes.sizeBytes) bytes, SHA256=$($fileUploadRes.sha256.Substring(0, 16))..." -ForegroundColor Green
+
+
+
+# Attach to task
+$attachBody = @{
+    fileId = $fileUploadRes.id
+} | ConvertTo-Json
+Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks/$($taskResponse.id)/files" -Method Post -Body $attachBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders) | Out-Null
+Write-Host "   File attached to Task $($taskResponse.id) successfully" -ForegroundColor Green
+
+# Verify in task details
+$taskDetail = Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks/$($taskResponse.id)" -Method Get -WebSession $session
+Write-Host "   Task details retrieved: Attached files count = $($taskDetail.files.Count), First file = $($taskDetail.files[0].fileName)" -ForegroundColor Green
+
+# Download file verification
+$downloadedContent = Invoke-RestMethod -Uri "$BaseUrl/api/v1/files/$($fileUploadRes.id)/download" -Method Get -WebSession $session
+Write-Host "   File downloaded successfully: Content='$downloadedContent'" -ForegroundColor Green
+
+
 # 10. Issue API Token
 Write-Host "`n10. Issue Bearer API Token (POST /api/v1/iam/profile/tokens)..." -ForegroundColor Yellow
 $tokenBody = @{

@@ -92,9 +92,19 @@ export interface TaskComment {
   modifiedAt?: string;
 }
 
+export interface TaskFile {
+  fileId: string;
+  fileName: string;
+  sizeBytes: number;
+  mimeType: string;
+  createdAt: string;
+}
+
 export interface TaskDetailResponse {
   task: Task;
   members: TaskMember[];
   subtasks?: Task[];
   ancestors?: Task[];
+  files?: TaskFile[];
 }
+
