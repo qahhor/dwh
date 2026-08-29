@@ -1,4 +1,5 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal } from '@angular/core';
+
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
@@ -129,11 +130,12 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
             </button>
 
             <!-- Logout -->
-            <button class="icon-btn logout-btn" (click)="authService.logout()" title="Выйти из системы">
+            <button class="icon-btn logout-btn" (click)="onLogout()" title="Выйти из системы">
               <span class="material-symbols-outlined">logout</span>
             </button>
           </div>
         </header>
+
 
         <!-- Active Announcement Banner -->
         <div *ngIf="notifService.activeAnnouncement()" class="announcement-banner">
@@ -493,7 +495,7 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
 
   `]
 })
-export class AppShellComponent implements OnInit {
+export class AppShellComponent implements OnInit, OnDestroy {
   readonly isCollapsed = signal<boolean>(false);
 
   constructor(
@@ -509,7 +511,13 @@ export class AppShellComponent implements OnInit {
   ngOnInit() {
     this.notifService.fetchUnreadCount().subscribe();
     this.notifService.fetchActiveAnnouncement().subscribe();
+    this.notifService.connectSse();
   }
+
+  ngOnDestroy() {
+    this.notifService.disconnectSse();
+  }
+
 
   toggleSidebar() {
     this.isCollapsed.update(v => !v);
@@ -555,4 +563,10 @@ export class AppShellComponent implements OnInit {
       this.notifService.dismissAnnouncement(a.id).subscribe();
     }
   }
+
+  onLogout() {
+    this.notifService.disconnectSse();
+    this.authService.logout();
+  }
 }
+

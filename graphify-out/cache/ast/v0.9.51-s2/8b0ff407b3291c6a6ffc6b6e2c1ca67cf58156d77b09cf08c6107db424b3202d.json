@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_apps_instance_src_main_resources_db_migration_v004_rbac_assignments_actions_sql", "label": "V004__rbac_assignments_actions.sql", "file_type": "code", "source_file": "apps/instance/src/main/resources/db/migration/V004__rbac_assignments_actions.sql", "source_location": null}], "edges": []}

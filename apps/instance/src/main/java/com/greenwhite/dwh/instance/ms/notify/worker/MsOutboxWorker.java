@@ -65,8 +65,9 @@ public class MsOutboxWorker {
         String body = item.payload() != null && item.payload().get("body") != null
                 ? item.payload().get("body").toString() : "";
         String subject = item.payload() != null && item.payload().get("subject") != null
-                ? item.payload().get("subject").toString() : "РЈРІРµРґРѕРјР»РµРЅРёРµ DWH";
+                ? item.payload().get("subject").toString() : "Уведомление DWH";
         String idempotencyKey = item.idempotencyKey().toString();
+
 
         switch (item.channel().toLowerCase()) {
             case "email" -> {

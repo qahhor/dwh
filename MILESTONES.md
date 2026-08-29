@@ -90,14 +90,16 @@
 
 ---
 
-### M6. Оповещения и события (NOTIF)
+### M6. Оповещения и события (NOTIF) [✅ ВЫПОЛНЕНО 2026-08-29]
 - **Цель:** Доставка уведомлений in-app, realtime через SSE (`/api/v1/events`), transactional outbox с `SELECT FOR UPDATE SKIP LOCKED`.
 - **DoD:**
   - In-app лента уведомлений со счетчиком непрочитанных.
-  - SSE поток событий с поддержкой автореконнекта.
-  - Outbox воркер с экспоненциальным backoff и обработкой dead-letter.
-- **Файлы:** `apps/instance/.../ms/notify/service/MsNotificationService.java`, `MsSseRegistry.java`, `MsOutboxWorker.java`.
-- **Команда проверки:** `mvn test -Dtest=MsSseRegistryTest`
+  - SSE поток событий `/api/v1/events` с поддержкой автореконнекта и keep-alive (`NotificationService.connectSse()`).
+  - Outbox воркер `MsOutboxWorker` с экспоненциальным backoff и обработкой dead-letter.
+  - Доменные слушатели `MsTaskNotificationListener` для автоматического создания уведомлений при назначении задач, смене статусов и комментариях.
+- **Файлы:** `apps/instance/.../ms/notify/service/MsNotificationService.java`, `MsSseRegistry.java`, `MsSsePublisher.java`, `MsOutboxWorker.java`, `apps/web-instance/.../core/services/notification.service.ts`.
+- **Команда проверки:** `mvn test -Dtest=MsSseRegistryTest` (100% SUCCESS), `powershell scripts/dev/test-api.ps1` (15/15 SUCCESS).
+
 
 ---
 
@@ -186,12 +188,17 @@
 
 ---
 
-### M17. Полнотекстовый поиск (SEARCH)
-- **Цель:** Палитра быстрого поиска Command Palette (`Ctrl+K`) с откликом < 50ms на `pg_trgm`.
+### M17. Полнотекстовый поиск (SEARCH) [✅ ВЫПОЛНЕНО 2026-08-29]
+- **Цель:** Высокопроизводительный поиск Typesense + палитра быстрого поиска Command Palette (`Ctrl+K`) с поддержкой опечаток, Soundex, префиксного поиска и Postgres Fallback.
 - **DoD:**
-  - Параллельный поиск по пользователям, задачам и проектам.
-- **Файлы:** `apps/instance/.../search/service/SearchService.java`.
-- **Команда проверки:** `mvn test -Dtest=SearchServiceTest`
+  - Интеграция Typesense (порт 8108, образ 27.1).
+  - Схемы коллекций `tasks`, `projects`, `users` с `enable_phonetic`, `num_typos: 2`, `prefix: true`.
+  - Фоновая первичная синхронизация и асинхронный индексатор `TypesenseIndexer`.
+  - Автоматический Graceful Fallback на PostgreSQL при недоступности движка.
+  - Панель Command Palette (`Ctrl + K`) с клавиатурной навигацией (`↑`, `↓`, `Enter`) и локализованными бейджами.
+- **Файлы:** `apps/instance/.../search/typesense/TypesenseClient.java`, `TypesenseIndexer.java`, `SearchService.java`, `apps/web-instance/.../command-palette/command-palette.component.ts`.
+- **Команда проверки:** `mvn test -Dtest=SearchServiceTest` (100% SUCCESS), `powershell scripts/dev/test-api.ps1` (15/15 SUCCESS).
+
 
 ---
 

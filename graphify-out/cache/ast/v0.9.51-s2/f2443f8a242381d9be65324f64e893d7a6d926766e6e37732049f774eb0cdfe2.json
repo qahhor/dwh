@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_deploy_spike_vault_policy_instance_demo_hcl", "label": "policy-instance-demo.hcl", "file_type": "code", "source_file": "deploy/spike/vault/policy-instance-demo.hcl", "source_location": null}], "edges": []}
