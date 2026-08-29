@@ -80,7 +80,12 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
             <span class="material-symbols-outlined nav-icon">history</span>
             <span class="nav-label" *ngIf="!isCollapsed()">{{ 'nav.audit' | t }}</span>
           </a>
+          <a routerLink="/settings" routerLinkActive="active" class="nav-item" title="Настройки">
+            <span class="material-symbols-outlined nav-icon">settings</span>
+            <span class="nav-label" *ngIf="!isCollapsed()">{{ 'nav.settings' | t }}</span>
+          </a>
         </nav>
+
 
 
         <div class="sidebar-footer">

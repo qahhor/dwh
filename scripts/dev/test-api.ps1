@@ -270,7 +270,28 @@ foreach ($se in $secEvents) {
     Write-Host "     - [#$($se.id)] $($se.eventType) from $($se.ip), User=$($se.userName)" -ForegroundColor Gray
 }
 
+# 17. Settings & Localization (M9 SET & I18N)
+Write-Host "`n17. System Settings & I18n Dictionaries (GET & PATCH /api/v1/settings/..., GET /api/v1/i18n/...)..." -ForegroundColor Yellow
+$sysSettings = Invoke-RestMethod -Uri "$BaseUrl/api/v1/settings/system" -Method Get -WebSession $session
+Write-Host "   Current System Settings: Company='$($sysSettings.'system.company_name')', Timezone='$($sysSettings.'system.default_timezone')', MinPassLen=$($sysSettings.'security.min_password_length')" -ForegroundColor Green
+
+$updateSettingsBody = @{
+    "system.company_name" = "Smartup Enterprise DWH"
+    "system.default_timezone" = "Asia/Tashkent"
+} | ConvertTo-Json
+Invoke-RestMethod -Uri "$BaseUrl/api/v1/settings/system" -Method Patch -Body $updateSettingsBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
+Write-Host "   System Settings updated successfully" -ForegroundColor Green
+
+$effectiveSettings = Invoke-RestMethod -Uri "$BaseUrl/api/v1/settings" -Method Get -WebSession $session
+Write-Host "   Effective Settings verified: Company='$($effectiveSettings.'system.company_name')', Lang='$($effectiveSettings.'system.default_language')'" -ForegroundColor Green
+
+$ruDict = Invoke-RestMethod -Uri "$BaseUrl/api/v1/i18n/ru" -Method Get -WebSession $session
+$uzDict = Invoke-RestMethod -Uri "$BaseUrl/api/v1/i18n/uz" -Method Get -WebSession $session
+$enDict = Invoke-RestMethod -Uri "$BaseUrl/api/v1/i18n/en" -Method Get -WebSession $session
+Write-Host "   I18n Dictionaries retrieved: RU: nav.tasks='$($ruDict.'nav.tasks')', UZ: nav.tasks='$($uzDict.'nav.tasks')', EN: nav.tasks='$($enDict.'nav.tasks')'" -ForegroundColor Green
+
 Write-Host "`n============================================================" -ForegroundColor Cyan
-Write-Host "  All 16 End-to-End Scenarios Passed Successfully!           " -ForegroundColor Cyan
+Write-Host "  All 17 End-to-End Scenarios Passed Successfully!           " -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
+
 

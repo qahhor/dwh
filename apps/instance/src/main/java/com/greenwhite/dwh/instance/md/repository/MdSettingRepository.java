@@ -17,27 +17,33 @@ public class MdSettingRepository {
     }
 
     public void setInstanceSetting(String key, String value) {
-        jdbcClient.sql("""
-                insert into md_settings (user_id, key, value)
-                values (null, :key, :value)
-                on conflict (user_id, key) do update set value = :value
-                """)
+        int updated = jdbcClient.sql("update md_settings set value = :value where user_id is null and key = :key")
                 .param("key", key)
                 .param("value", value)
                 .update();
+        if (updated == 0) {
+            jdbcClient.sql("insert into md_settings (user_id, key, value) values (null, :key, :value)")
+                    .param("key", key)
+                    .param("value", value)
+                    .update();
+        }
     }
 
     public void setUserSetting(Long userId, String key, String value) {
-        jdbcClient.sql("""
-                insert into md_settings (user_id, key, value)
-                values (:userId, :key, :value)
-                on conflict (user_id, key) do update set value = :value
-                """)
+        int updated = jdbcClient.sql("update md_settings set value = :value where user_id = :userId and key = :key")
                 .param("userId", userId)
                 .param("key", key)
                 .param("value", value)
                 .update();
+        if (updated == 0) {
+            jdbcClient.sql("insert into md_settings (user_id, key, value) values (:userId, :key, :value)")
+                    .param("userId", userId)
+                    .param("key", key)
+                    .param("value", value)
+                    .update();
+        }
     }
+
 
     public Optional<String> getInstanceSetting(String key) {
         return jdbcClient.sql("select value from md_settings where user_id is null and key = :key")
@@ -57,9 +63,11 @@ public class MdSettingRepository {
     public Map<String, String> getAllInstanceSettings() {
         Map<String, String> map = new HashMap<>();
         jdbcClient.sql("select key, value from md_settings where user_id is null")
-                .query((rs, rowNum) -> {
-                    map.put(rs.getString("key"), rs.getString("value"));
-                    return null;
+                .query(rs -> {
+                    while (rs.next()) {
+                        map.put(rs.getString("key"), rs.getString("value"));
+                    }
+                    return map;
                 });
         return map;
     }
@@ -68,10 +76,13 @@ public class MdSettingRepository {
         Map<String, String> map = new HashMap<>();
         jdbcClient.sql("select key, value from md_settings where user_id = :userId")
                 .param("userId", userId)
-                .query((rs, rowNum) -> {
-                    map.put(rs.getString("key"), rs.getString("value"));
-                    return null;
+                .query(rs -> {
+                    while (rs.next()) {
+                        map.put(rs.getString("key"), rs.getString("value"));
+                    }
+                    return map;
                 });
         return map;
     }
 }
+

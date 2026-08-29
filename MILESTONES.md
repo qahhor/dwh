@@ -135,12 +135,18 @@
 
 ---
 
-### M9. Настройки и локализация (SET & I18N)
-- **Цель:** Иерархические настройки ключ-значение и мультиязычный интерфейс (ru, uz, en).
+### M9. Настройки и локализация (SET & I18N) [✅ ВЫПОЛНЕНО 2026-08-29]
+- **Цель:** Иерархические настройки ключ-значение (Defaults $\rightarrow$ Instance Settings $\rightarrow$ User Settings), аудит мутаций настроек, эндпоинты API и мультиязычный интерфейс (ru, uz, en).
 - **DoD:**
-  - Наследование настроек: системные $\rightarrow$ пользовательские.
-  - Внешние JSON-словари i18n без захардкоженных строк в UI.
-- **Файлы:** `apps/instance/.../md/service/MdSettingService.java`, `apps/web-instance/src/app/core/services/i18n.service.ts`.
+  - Наследование настроек: системные $\rightarrow$ пользовательские (автоматический fallback на значения по умолчанию при отсутствии пользовательских переопределений).
+  - Безопасный upsert системных и пользовательских настроек в `MdSettingRepository`.
+  - Автоматическая фиксация изменений системных настроек в `audit_log` через `AuditLogService`.
+  - Эндпоинты `/api/v1/settings` (effective), `/api/v1/settings/system` (view/update), `/api/v1/settings/user` (view/update), `/api/v1/i18n/{lang}` (словари).
+  - Полнофункциональный веб-интерфейс «Настройки системы и персонализация» (`SettingsComponent` по адресу `/settings`): вкладки «Общие настройки», «Безопасность и пароли», «Хранилище», «Мои предпочтения».
+  - Полноценные JSON-словари `ru`, `uz`, `en` с динамическим переключением языка на лету без перезагрузки страницы.
+- **Файлы:** `apps/instance/.../md/service/MdSettingService.java`, `MdSettingRepository.java`, `MdSettingController.java`, `MdI18nController.java`, `apps/web-instance/.../features/settings/settings.component.ts`, `i18n.service.ts`.
+- **Команда проверки:** `mvn test -Dtest=MdSettingServiceTest` (100% SUCCESS, 3/3 тестов), `powershell scripts/dev/test-api.ps1` (17/17 SUCCESS).
+
 
 ---
 
