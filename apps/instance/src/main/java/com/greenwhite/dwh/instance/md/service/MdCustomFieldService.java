@@ -24,6 +24,9 @@ public class MdCustomFieldService {
 
     @Transactional(readOnly = true)
     public List<MdCustomFieldRepository.CustomFieldRecord> getFields(String entityType) {
+        if (entityType == null || entityType.isBlank() || entityType.equalsIgnoreCase("ALL")) {
+            return customFieldRepository.findAll();
+        }
         return customFieldRepository.findByEntityType(entityType);
     }
 

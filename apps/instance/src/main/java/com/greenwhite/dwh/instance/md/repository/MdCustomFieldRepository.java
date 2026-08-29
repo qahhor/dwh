@@ -76,6 +76,16 @@ public class MdCustomFieldRepository {
                 .list();
     }
 
+    public List<CustomFieldRecord> findAll() {
+        return jdbcClient.sql("""
+                select id, entity_type, code, name, field_type, is_required, default_value, options_json::text as options_str, order_no, created_at
+                from md_custom_fields
+                order by entity_type asc, order_no asc, id asc
+                """)
+                .query(this::mapRecord)
+                .list();
+    }
+
     public void update(Long id, String name, Boolean isRequired, String defaultValue, Object options, Integer orderNo) {
         String optionsJson = options != null ? toJson(options) : null;
 

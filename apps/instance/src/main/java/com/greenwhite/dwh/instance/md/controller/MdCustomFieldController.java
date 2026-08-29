@@ -25,7 +25,7 @@ public class MdCustomFieldController {
     @GetMapping
     @RequiresPermission(form = MdPref.FORM_CUSTOM_FIELDS, action = "view")
     public ResponseEntity<List<MdCustomFieldRepository.CustomFieldRecord>> getFields(
-            @RequestParam("entity_type") String entityType) {
+            @RequestParam(name = "entity_type", required = false) String entityType) {
 
         return ResponseEntity.ok(customFieldService.getFields(entityType));
     }
