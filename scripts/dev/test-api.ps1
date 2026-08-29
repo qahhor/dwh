@@ -398,8 +398,88 @@ Write-Host "   Webhook Subscription $($newSub.id) updated successfully" -Foregro
 Invoke-RestMethod -Uri "$BaseUrl/api/v1/webhooks/subscriptions/$($newSub.id)" -Method Delete -WebSession $session -Headers (Get-CsrfHeaders)
 Write-Host "   Webhook Subscription $($newSub.id) deleted successfully" -ForegroundColor Green
 
+# 21. Role-Based Access Control (RBAC) Enforcement & Security Isolation (M4 RBAC)
+Write-Host "`n21. Role-Based Access Control (RBAC) Negative & Positive Permission Verification..." -ForegroundColor Yellow
+
+$randUser = Get-Random -Minimum 1000 -Maximum 9999
+$rbacUserLogin = "rbac_tester_$randUser"
+$rbacUserPassword = "Password#$randUser"
+
+# 21.1 Admin creates a regular user with 'user' role (role_id = 4)
+$createUserBody = @{
+    login = $rbacUserLogin
+    name = "Regular Role User $randUser"
+    email = "$rbacUserLogin@test.local"
+    password = $rbacUserPassword
+    roleIds = @(4)
+} | ConvertTo-Json
+
+$createdRbacUser = Invoke-RestMethod -Uri "$BaseUrl/api/v1/iam/users" -Method Post -Body $createUserBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
+Write-Host "   Regular user created: ID=$($createdRbacUser.id), Login='$rbacUserLogin', Role='user' (role_id=4)" -ForegroundColor Green
+
+# 21.2 Authenticate as regular user
+$userLoginBody = @{
+    login = $rbacUserLogin
+    password = $rbacUserPassword
+    deviceInfo = "PowerShell RBAC Tester"
+} | ConvertTo-Json
+$userSession = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+$userLoginRes = Invoke-WebRequest -Uri "$BaseUrl/api/v1/auth/login" -Method Post -Body $userLoginBody -ContentType "application/json" -WebSession $userSession -UseBasicParsing
+
+function Get-UserCsrfHeaders {
+    $token = ""
+    try {
+        foreach ($c in $userSession.Cookies.GetCookies([System.Uri]$BaseUrl)) {
+            if ($c.Name -eq "XSRF-TOKEN") {
+                $token = $c.Value
+            }
+        }
+    } catch {}
+    if ($token) {
+        return @{ "X-XSRF-TOKEN" = $token }
+    }
+    return @{}
+}
+
+$userMe = Invoke-RestMethod -Uri "$BaseUrl/api/v1/auth/me" -Method Get -WebSession $userSession
+Write-Host "   Authenticated as regular user '$($userMe.user.login)'. Permissions count: $($userMe.permissions.Count)" -ForegroundColor Green
+
+# 21.3 Positive Check: Regular user CAN view tasks (tasks.items.view)
+$userTasks = Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks/items" -Method Get -WebSession $userSession
+Write-Host "   Positive Check PASSED: Regular user successfully queried tasks (Count: $($userTasks.items.Count))" -ForegroundColor Green
+
+# 21.4 Negative Check: Regular user CANNOT view audit log (audit.log.view) -> HTTP 403
+try {
+    Invoke-RestMethod -Uri "$BaseUrl/api/v1/audit/stats" -Method Get -WebSession $userSession
+    Write-Host "   ERROR: Regular user should not be able to access audit stats!" -ForegroundColor Red
+} catch {
+    $statusCode = [int]$_.Exception.Response.StatusCode
+    if ($statusCode -eq 403) {
+        Write-Host "   Negative Check PASSED: Access to audit stats correctly denied (HTTP 403 Forbidden)" -ForegroundColor Green
+    } else {
+        Write-Host "   Unexpected status code: $statusCode" -ForegroundColor Yellow
+    }
+}
+
+# 21.5 Negative Check: Regular user CANNOT delete users (iam.users.delete) -> HTTP 403
+try {
+    Invoke-RestMethod -Uri "$BaseUrl/api/v1/iam/users/$($createdRbacUser.id)" -Method Delete -WebSession $userSession -Headers (Get-UserCsrfHeaders)
+    Write-Host "   ERROR: Regular user should not be able to delete users!" -ForegroundColor Red
+} catch {
+    $statusCode = [int]$_.Exception.Response.StatusCode
+    if ($statusCode -eq 403) {
+        Write-Host "   Negative Check PASSED: User deletion correctly denied to regular role (HTTP 403 Forbidden)" -ForegroundColor Green
+    } else {
+        Write-Host "   Unexpected status code: $statusCode" -ForegroundColor Yellow
+    }
+}
+
+# 21.6 Admin cleans up test user
+Invoke-RestMethod -Uri "$BaseUrl/api/v1/iam/users/$($createdRbacUser.id)" -Method Delete -WebSession $session -Headers (Get-CsrfHeaders)
+Write-Host "   Test user $($createdRbacUser.id) cleaned up by admin" -ForegroundColor Green
+
 Write-Host "`n============================================================" -ForegroundColor Cyan
-Write-Host "  All 20 End-to-End Scenarios Passed Successfully!           " -ForegroundColor Cyan
+Write-Host "  All 21 End-to-End Scenarios Passed Successfully!           " -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
 
 

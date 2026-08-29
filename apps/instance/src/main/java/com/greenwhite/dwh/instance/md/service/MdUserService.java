@@ -92,6 +92,8 @@ public class MdUserService {
             );
         }
 
+        permissionService.recalculateEffectivePermissions(user.id());
+
         typesenseIndexer.indexUser(user.id());
 
         auditLogService.logChange("md_users", String.valueOf(user.id()), "I",
