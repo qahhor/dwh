@@ -1596,10 +1596,10 @@
     "semantic_hash": ""
   },
   "REPORT.md": {
-    "mtime": 1787995301.6393037,
-    "seen": 1788008255.2068477,
-    "ast_hash": "aed388c9d815dbb99b06044bfdeb269f",
-    "semantic_hash": "aed388c9d815dbb99b06044bfdeb269f"
+    "mtime": 1788020069.8022482,
+    "seen": 1788020150.2731998,
+    "ast_hash": "321f7e2c7ed328a84b92af4d66ff4e55",
+    "semantic_hash": ""
   },
   "STATS_MAP.md": {
     "mtime": 1787993541.0314772,
@@ -1794,10 +1794,10 @@
     "semantic_hash": "5978b072f99d780739732a0e591a537b"
   },
   "docs/onboarding.md": {
-    "mtime": 1787859057.1397052,
-    "seen": 1788008255.2068477,
-    "ast_hash": "6d39db717c9c8450363da25b26aaa3de",
-    "semantic_hash": "6d39db717c9c8450363da25b26aaa3de"
+    "mtime": 1788020109.5063567,
+    "seen": 1788020150.2731998,
+    "ast_hash": "02799d582e0a5915108321374a1489f8",
+    "semantic_hash": ""
   },
   "docs/ops/architecture-overview.md": {
     "mtime": 1787992227.3948853,
@@ -1806,10 +1806,10 @@
     "semantic_hash": "7715ec5e5da8756f979ef7dc89c3f689"
   },
   "docs/ops/deployment-guide.md": {
-    "mtime": 1787992227.3958848,
-    "seen": 1788008255.2068477,
-    "ast_hash": "6f8692a6f7c7b6cce7a1da8203f860fe",
-    "semantic_hash": "6f8692a6f7c7b6cce7a1da8203f860fe"
+    "mtime": 1788020122.5463417,
+    "seen": 1788020150.2731998,
+    "ast_hash": "fb405323437b0e4ed07309a4479915f4",
+    "semantic_hash": ""
   },
   "docs/ops/maintenance-guide.md": {
     "mtime": 1787938537.0515463,
@@ -1818,10 +1818,10 @@
     "semantic_hash": "2574fbc85d13cdf5f11b4e3cb78b55b9"
   },
   "docs/ops/operations-runbook.md": {
-    "mtime": 1787992227.3958848,
-    "seen": 1788008255.2068477,
-    "ast_hash": "7af4043cbded1e71f22157cc39462374",
-    "semantic_hash": "7af4043cbded1e71f22157cc39462374"
+    "mtime": 1788020131.5365412,
+    "seen": 1788020150.2731998,
+    "ast_hash": "712690d6f4f5eb5bf21eed698f9144f6",
+    "semantic_hash": ""
   },
   "docs/ops/production-launch-checklist.md": {
     "mtime": 1788019780.902195,
@@ -1854,10 +1854,10 @@
     "semantic_hash": "6ce5e1a86e0f38e731eab355977db607"
   },
   "docs/plan/stage-1-completion.md": {
-    "mtime": 1787925897.7373767,
-    "seen": 1788008255.2068477,
-    "ast_hash": "0ceb9500cb036de0305e5e9475a794b2",
-    "semantic_hash": "0ceb9500cb036de0305e5e9475a794b2"
+    "mtime": 1788020115.457334,
+    "seen": 1788020150.2731998,
+    "ast_hash": "8c573a299615a6ef46bbb92a58225c61",
+    "semantic_hash": ""
   },
   "docs/runbooks/RB-01-node-failure-recovery.md": {
     "mtime": 1787857586.0396962,
