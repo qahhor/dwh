@@ -369,6 +369,17 @@ public class MsTaskService {
         typeRepository.delete(id);
     }
 
+    @Transactional
+    public void reorderStatuses(List<Long> orderedIds) {
+        statusRepository.reorder(orderedIds);
+    }
+
+    @Transactional
+    public void reorderTypes(List<Long> orderedIds) {
+        typeRepository.reorder(orderedIds);
+    }
+
+
     private String normalizePriority(String priority) {
         if (priority == null || priority.isBlank()) {
             return "medium";

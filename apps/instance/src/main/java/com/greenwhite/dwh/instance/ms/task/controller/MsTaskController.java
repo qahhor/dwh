@@ -72,6 +72,13 @@ public class MsTaskController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/statuses/reorder")
+    @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
+    public ResponseEntity<Void> reorderStatuses(@RequestBody List<Long> orderedIds) {
+        taskService.reorderStatuses(orderedIds);
+        return ResponseEntity.noContent().build();
+    }
+
     // =========================================================================
     // Types API
     // =========================================================================
@@ -101,6 +108,14 @@ public class MsTaskController {
         taskService.deleteType(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/types/reorder")
+    @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
+    public ResponseEntity<Void> reorderTypes(@RequestBody List<Long> orderedIds) {
+        taskService.reorderTypes(orderedIds);
+        return ResponseEntity.noContent().build();
+    }
+
 
     // =========================================================================
     // Project Stats API

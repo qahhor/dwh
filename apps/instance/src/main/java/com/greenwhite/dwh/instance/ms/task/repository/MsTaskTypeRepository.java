@@ -135,6 +135,17 @@ public class MsTaskTypeRepository {
         return rows > 0;
     }
 
+    public void reorder(List<Long> orderedIds) {
+        if (orderedIds == null || orderedIds.isEmpty()) return;
+        for (int i = 0; i < orderedIds.size(); i++) {
+            jdbcClient.sql("update ms_task_types set order_no = :orderNo where id = :id")
+                    .param("orderNo", (i + 1) * 10)
+                    .param("id", orderedIds.get(i))
+                    .update();
+        }
+    }
+
+
     public record TypeRecord(
             Long id,
             String code,
