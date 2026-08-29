@@ -53,6 +53,13 @@ management:
         enabled: true
 
 dwh:
+  audit:
+    # Запас месячных партиций audit_log вперёд (FR-AUD-2). Партиция, не
+    # созданная вовремя, — тупик: аудит уходит в default, откуда retention
+    # его не отцепит, а создать нужную партицию задним числом PostgreSQL
+    # уже не даст.
+    partition-runway-months: ${DWH_AUDIT_PARTITION_RUNWAY:6}
+    partition-cron: ${DWH_AUDIT_PARTITION_CRON:0 30 3 * * *}
   control-plane:
     # Heartbeat в control plane (FR-INST-3). Пусто — отправка выключена:
     # экземпляр обязан работать и на изолированном контуре клиента.
