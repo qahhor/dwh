@@ -41,17 +41,17 @@ import { KeysetPage } from '../../core/models/common.models';
           <h1 class="view-title">Задачи</h1>
           <span class="task-count">{{ tasks().length }}</span>
 
-          <!-- View Mode Switcher -->
+          <!-- View Mode Switcher: Table / Kanban -->
           <div class="view-switcher">
             <button
               type="button"
               class="view-btn"
               [class.active]="viewMode === 'table'"
               (click)="viewMode = 'table'"
-              title="Табличный вид"
+              title="Табличный вид (по умолчанию)"
             >
               <span class="material-symbols-outlined">table_rows</span>
-              <span>Таблица</span>
+              <span>Список</span>
             </button>
             <button
               type="button"
@@ -108,13 +108,24 @@ import { KeysetPage } from '../../core/models/common.models';
         </div>
 
         <div class="toolbar-controls">
-          <!-- Status Quick Switcher (in Table view) -->
+          <!-- Status Filter Tabs (Default: 'active' which excludes done & cancelled) -->
           <div class="status-tabs" *ngIf="viewMode === 'table'">
             <button
               type="button"
               class="status-tab"
-              [class.active]="selectedStatusId === null"
-              (click)="setStatusFilter(null)"
+              [class.active]="statusFilterMode === 'active'"
+              (click)="setStatusFilterMode('active')"
+              title="Только активные задачи (без выполненных и отмененных)"
+            >
+              <span class="status-tab-dot active-dot"></span>
+              Активные
+            </button>
+            <button
+              type="button"
+              class="status-tab"
+              [class.active]="statusFilterMode === 'all'"
+              (click)="setStatusFilterMode('all')"
+              title="Все задачи, включая завершенные"
             >
               Все
             </button>
@@ -122,8 +133,8 @@ import { KeysetPage } from '../../core/models/common.models';
               *ngFor="let s of statuses()"
               type="button"
               class="status-tab"
-              [class.active]="selectedStatusId === s.id"
-              (click)="setStatusFilter(s.id)"
+              [class.active]="statusFilterMode === s.id"
+              (click)="setStatusFilterMode(s.id)"
             >
               <span class="status-tab-dot" [style.background-color]="s.color || 'var(--primary)'"></span>
               {{ s.name }}
@@ -166,7 +177,7 @@ import { KeysetPage } from '../../core/models/common.models';
       </div>
 
       <!-- ======================================================================= -->
-      <!-- VIEW 1: TABLE VIEW                                                      -->
+      <!-- VIEW 1: TABLE / LIST VIEW (Default View)                                -->
       <!-- ======================================================================= -->
       <div class="table-card" *ngIf="viewMode === 'table'">
         <div class="table-wrapper">
@@ -300,6 +311,9 @@ import { KeysetPage } from '../../core/models/common.models';
           *ngFor="let status of statuses()"
           class="kanban-column"
           [style.border-top-color]="status.color || 'var(--primary)'"
+          (dragover)="onHtml5DragOver($event)"
+          (dragleave)="onHtml5DragLeave($event)"
+          (drop)="onHtml5Drop($event, status.id)"
         >
           <!-- Column Header -->
           <div class="column-header">
@@ -322,6 +336,8 @@ import { KeysetPage } from '../../core/models/common.models';
               *ngFor="let task of getTasksByStatus(status.id)"
               cdkDrag
               [cdkDragData]="task"
+              draggable="true"
+              (dragstart)="onHtml5DragStart($event, task)"
               class="kanban-card"
               [class.card-overdue]="isOverdue(task.endTime, task.statusId)"
               (click)="openTaskDetails(task)"
@@ -1037,7 +1053,7 @@ import { KeysetPage } from '../../core/models/common.models';
             (cdkDropListDropped)="onTypeDrop($event)"
           >
             <div
-              *ngFor="let ty of taskTypes(); let i = index; let first = first; let last = last"
+              *ngFor="let ty of taskTypes()"
               cdkDrag
               class="dict-row"
             >
@@ -1084,7 +1100,7 @@ import { KeysetPage } from '../../core/models/common.models';
             (cdkDropListDropped)="onStatusDrop($event)"
           >
             <div
-              *ngFor="let s of statuses(); let i = index; let first = first; let last = last"
+              *ngFor="let s of statuses()"
               cdkDrag
               class="dict-row"
             >
@@ -1292,9 +1308,12 @@ import { KeysetPage } from '../../core/models/common.models';
       box-shadow: var(--shadow-sm);
     }
     .status-tab-dot {
-      width: 5px;
-      height: 5px;
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
+    }
+    .status-tab-dot.active-dot {
+      background-color: #10b981;
     }
 
     .clean-select {
@@ -1511,6 +1530,11 @@ import { KeysetPage } from '../../core/models/common.models';
       gap: 10px;
       padding: 12px;
       min-height: 250px;
+      transition: background-color 0.15s ease, border-color 0.15s ease;
+    }
+    .kanban-column.drag-over {
+      background-color: rgba(99,102,241,0.06);
+      border-color: var(--primary);
     }
 
     .column-header {
@@ -1551,11 +1575,12 @@ import { KeysetPage } from '../../core/models/common.models';
       display: flex;
       flex-direction: column;
       gap: 8px;
-      cursor: pointer;
+      cursor: grab;
       transition: all 0.12s ease;
       box-shadow: var(--shadow-sm);
       user-select: none;
     }
+    .kanban-card:active { cursor: grabbing; }
     .kanban-card:hover {
       border-color: var(--primary);
       transform: translateY(-1px);
@@ -1566,7 +1591,7 @@ import { KeysetPage } from '../../core/models/common.models';
       background-color: rgba(239, 68, 68, 0.02);
     }
 
-    /* Dragging Preview & Placeholder */
+    /* CDK Dragging Preview & Placeholder */
     .cdk-drag-preview {
       box-sizing: border-box;
       border-radius: var(--radius-sm);
@@ -1597,7 +1622,7 @@ import { KeysetPage } from '../../core/models/common.models';
       font-size: 16px;
       color: var(--text-muted);
       cursor: grab;
-      opacity: 0.5;
+      opacity: 0.6;
     }
     .drag-grip-icon:hover { opacity: 1; color: var(--primary); }
 
@@ -2082,12 +2107,17 @@ export class TasksComponent implements OnInit {
   readonly hasMore = signal<boolean>(false);
   nextCursor: string | null = null;
 
-  viewMode: 'table' | 'kanban' = 'kanban';
+  // View Mode: 'table' (List / Table) is now default as requested
+  viewMode: 'table' | 'kanban' = 'table';
   searchQuery = '';
   selectedPriority = '';
   selectedProjectId: number | null = null;
-  selectedStatusId: number | null = null;
+
+  // Status Filter Mode: 'active' (default excludes done & cancelled), 'all', or number (specific status ID)
+  statusFilterMode: 'active' | 'all' | number = 'active';
+
   newCommentText = '';
+  draggedTask: Task | null = null;
 
   // Dictionaries Settings Modal
   readonly isSettingsModalOpen = signal<boolean>(false);
@@ -2231,6 +2261,17 @@ export class TasksComponent implements OnInit {
       this.nextCursor = null;
     }
 
+    let statusIdParam: number | undefined = undefined;
+    let hideTerminalParam: boolean | undefined = undefined;
+
+    if (this.statusFilterMode === 'active') {
+      hideTerminalParam = true;
+    } else if (this.statusFilterMode === 'all') {
+      hideTerminalParam = false;
+    } else if (typeof this.statusFilterMode === 'number') {
+      statusIdParam = this.statusFilterMode;
+    }
+
     this.isLoading.set(true);
     this.api.get<KeysetPage<Task>>('/tasks', {
       limit: 50,
@@ -2238,7 +2279,8 @@ export class TasksComponent implements OnInit {
       search: this.searchQuery || undefined,
       priority: this.selectedPriority || undefined,
       project_id: this.selectedProjectId || undefined,
-      status_id: this.selectedStatusId || undefined
+      status_id: statusIdParam,
+      hide_terminal: hideTerminalParam
     }).subscribe({
       next: res => {
         this.isLoading.set(false);
@@ -2257,7 +2299,7 @@ export class TasksComponent implements OnInit {
   }
 
   hasActiveFilters(): boolean {
-    return !!this.searchQuery || !!this.selectedPriority || this.selectedProjectId !== null || this.selectedStatusId !== null;
+    return !!this.searchQuery || !!this.selectedPriority || this.selectedProjectId !== null || this.statusFilterMode !== 'active';
   }
 
   clearSearch() {
@@ -2265,8 +2307,8 @@ export class TasksComponent implements OnInit {
     this.loadTasks(true);
   }
 
-  setStatusFilter(statusId: number | null) {
-    this.selectedStatusId = statusId;
+  setStatusFilterMode(mode: 'active' | 'all' | number) {
+    this.statusFilterMode = mode;
     this.loadTasks(true);
   }
 
@@ -2274,7 +2316,7 @@ export class TasksComponent implements OnInit {
     this.searchQuery = '';
     this.selectedPriority = '';
     this.selectedProjectId = null;
-    this.selectedStatusId = null;
+    this.statusFilterMode = 'active';
     this.loadTasks(true);
   }
 
@@ -2305,7 +2347,7 @@ export class TasksComponent implements OnInit {
   }
 
   // =========================================================================
-  // CDK Drag & Drop Handler for Kanban Cards
+  // Drag & Drop: Angular CDK Handler
   // =========================================================================
   onTaskDrop(event: CdkDragDrop<Task[]>, targetStatusId: number) {
     const task = event.item.data as Task;
@@ -2315,6 +2357,53 @@ export class TasksComponent implements OnInit {
       return;
     }
 
+    this.executeStatusChange(task, targetStatusId);
+  }
+
+  // =========================================================================
+  // Drag & Drop: HTML5 Native Fallback Handlers
+  // =========================================================================
+  onHtml5DragStart(event: DragEvent, task: Task) {
+    this.draggedTask = task;
+    if (event.dataTransfer) {
+      event.dataTransfer.setData('text/plain', String(task.id));
+      event.dataTransfer.effectAllowed = 'move';
+    }
+  }
+
+  onHtml5DragOver(event: DragEvent) {
+    event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'move';
+    }
+    const col = (event.currentTarget as HTMLElement);
+    if (col && !col.classList.contains('drag-over')) {
+      col.classList.add('drag-over');
+    }
+  }
+
+  onHtml5DragLeave(event: DragEvent) {
+    const col = (event.currentTarget as HTMLElement);
+    if (col) {
+      col.classList.remove('drag-over');
+    }
+  }
+
+  onHtml5Drop(event: DragEvent, targetStatusId: number) {
+    event.preventDefault();
+    const col = (event.currentTarget as HTMLElement);
+    if (col) {
+      col.classList.remove('drag-over');
+    }
+
+    const task = this.draggedTask;
+    this.draggedTask = null;
+    if (!task || task.statusId === targetStatusId) return;
+
+    this.executeStatusChange(task, targetStatusId);
+  }
+
+  private executeStatusChange(task: Task, targetStatusId: number) {
     // Optimistic UI update
     this.tasks.update(list => list.map(t => t.id === task.id ? { ...t, statusId: targetStatusId } : t));
     if (this.selectedTask()?.id === task.id) {

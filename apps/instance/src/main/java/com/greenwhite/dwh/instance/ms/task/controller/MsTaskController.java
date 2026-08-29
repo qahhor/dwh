@@ -37,10 +37,12 @@ public class MsTaskController {
             @RequestParam(name = "project_id", required = false) Long projectId,
             @RequestParam(name = "status_id", required = false) Long statusId,
             @RequestParam(name = "priority", required = false) String priority,
-            @RequestParam(name = "search", required = false) String search) {
+            @RequestParam(name = "search", required = false) String search,
+            @RequestParam(name = "hide_terminal", required = false) Boolean hideTerminal) {
 
-        return ResponseEntity.ok(taskService.listTasks(limit, cursor, projectId, statusId, priority, search));
+        return ResponseEntity.ok(taskService.listTasks(limit, cursor, projectId, statusId, priority, search, hideTerminal));
     }
+
 
     // =========================================================================
     // Statuses API

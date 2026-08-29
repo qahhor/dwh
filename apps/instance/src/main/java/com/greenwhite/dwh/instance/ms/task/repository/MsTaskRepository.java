@@ -64,7 +64,7 @@ public class MsTaskRepository {
     }
 
     public List<TaskRecord> listTasks(int limit, Long afterId, Long projectId, Long statusId,
-                                      String priority, String search) {
+                                      String priority, String search, Boolean hideTerminal) {
         StringBuilder sql = new StringBuilder("""
                 select id, project_id, parent_task_id, title, description_markdown, status_id,
                        priority, reporter_id, attributes::text as attributes_str, begin_time,
@@ -81,6 +81,8 @@ public class MsTaskRepository {
         }
         if (statusId != null) {
             sql.append(" and status_id = :statusId");
+        } else if (Boolean.TRUE.equals(hideTerminal)) {
+            sql.append(" and status_id not in (select id from ms_task_statuses where is_terminal = true)");
         }
         if (priority != null && !priority.isBlank()) {
             sql.append(" and priority = :priority");
@@ -101,6 +103,7 @@ public class MsTaskRepository {
 
         return query.query(this::mapRecord).list();
     }
+
 
     public void update(Long id, TaskUpdateData data, Long modifiedBy) {
         String attrsJson = data.attributes() != null ? toJson(data.attributes()) : null;

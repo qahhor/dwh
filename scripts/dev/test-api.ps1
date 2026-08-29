@@ -21,7 +21,8 @@ try {
 
 # 2. Login as admin
 Write-Host "`n2. Authentication (POST /api/v1/auth/login)..." -ForegroundColor Yellow
-$adminPassword = if ($env:ADMIN_PASSWORD) { $env:ADMIN_PASSWORD } else { "DevOnly-ChangeMe-1" }
+$adminPassword = if ($env:ADMIN_PASSWORD) { $env:ADMIN_PASSWORD } else { "Qazaq#1212" }
+
 $loginBody = @{
     login = "admin"
     password = $adminPassword

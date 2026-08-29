@@ -145,6 +145,12 @@ public class MsTaskService {
     @Transactional(readOnly = true)
     public KeysetPage<MsTaskRepository.TaskRecord> listTasks(
             int limit, String cursor, Long projectId, Long statusId, String priority, String search) {
+        return listTasks(limit, cursor, projectId, statusId, priority, search, false);
+    }
+
+    @Transactional(readOnly = true)
+    public KeysetPage<MsTaskRepository.TaskRecord> listTasks(
+            int limit, String cursor, Long projectId, Long statusId, String priority, String search, Boolean hideTerminal) {
 
         Long afterId = null;
         if (cursor != null && !cursor.isBlank()) {
@@ -157,7 +163,7 @@ public class MsTaskService {
         }
 
         int fetchLimit = limit + 1;
-        List<MsTaskRepository.TaskRecord> tasks = taskRepository.listTasks(fetchLimit, afterId, projectId, statusId, priority, search);
+        List<MsTaskRepository.TaskRecord> tasks = taskRepository.listTasks(fetchLimit, afterId, projectId, statusId, priority, search, hideTerminal);
 
         boolean hasMore = tasks.size() > limit;
         List<MsTaskRepository.TaskRecord> resultItems = hasMore ? tasks.subList(0, limit) : tasks;
@@ -170,6 +176,7 @@ public class MsTaskService {
 
         return KeysetPage.of(resultItems, nextCursor, hasMore, resultItems.size());
     }
+
 
     @Transactional
     public void updateTask(Long taskId, Long projectId, String title, String descriptionMarkdown, String priority,
