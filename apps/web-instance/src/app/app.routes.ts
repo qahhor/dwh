@@ -34,6 +34,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/iam/roles/roles.component').then(m => m.RolesComponent)
       },
       {
+        path: 'iam/custom-fields',
+        loadComponent: () => import('./features/iam/custom-fields/custom-fields.component').then(m => m.CustomFieldsComponent)
+      },
+      {
         path: 'iam/profile',
         loadComponent: () => import('./features/iam/profile/profile.component').then(m => m.ProfileComponent)
       },

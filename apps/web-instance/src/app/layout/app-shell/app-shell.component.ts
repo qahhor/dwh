@@ -37,12 +37,12 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
 
         <nav class="sidebar-nav">
           <!-- Tasks & Workflows -->
-          <div class="nav-section-title" *ngIf="!isCollapsed()">{{ 'nav.tasks' | t }}</div>
-          <a routerLink="/tasks" routerLinkActive="active" class="nav-item" title="Задачи">
+          <div class="nav-section-title" *ngIf="!isCollapsed() && (canViewTasks() || canViewProjects())">{{ 'nav.tasks' | t }}</div>
+          <a *ngIf="canViewTasks()" routerLink="/tasks" routerLinkActive="active" class="nav-item" title="Задачи">
             <span class="material-symbols-outlined nav-icon">task_alt</span>
             <span class="nav-label" *ngIf="!isCollapsed()">{{ 'nav.tasks' | t }}</span>
           </a>
-          <a routerLink="/tasks/projects" routerLinkActive="active" class="nav-item" title="Проекты">
+          <a *ngIf="canViewProjects()" routerLink="/tasks/projects" routerLinkActive="active" class="nav-item" title="Проекты">
             <span class="material-symbols-outlined nav-icon">folder</span>
             <span class="nav-label" *ngIf="!isCollapsed()">{{ 'nav.projects' | t }}</span>
           </a>
@@ -62,14 +62,13 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
             <span class="nav-label" *ngIf="!isCollapsed()">{{ 'nav.custom_fields' | t }}</span>
           </a>
 
-
           <!-- System -->
-          <div class="nav-section-title" *ngIf="!isCollapsed()">Система</div>
-          <a routerLink="/files" routerLinkActive="active" class="nav-item" title="Файловое хранилище">
+          <div class="nav-section-title" *ngIf="!isCollapsed() && (canViewFiles() || canViewNotifications() || canViewAudit() || canViewSettings())">Система</div>
+          <a *ngIf="canViewFiles()" routerLink="/files" routerLinkActive="active" class="nav-item" title="Файловое хранилище">
             <span class="material-symbols-outlined nav-icon">folder_open</span>
             <span class="nav-label" *ngIf="!isCollapsed()">Файлы</span>
           </a>
-          <a routerLink="/notifications" routerLinkActive="active" class="nav-item" title="Уведомления">
+          <a *ngIf="canViewNotifications()" routerLink="/notifications" routerLinkActive="active" class="nav-item" title="Уведомления">
             <span class="material-symbols-outlined nav-icon">notifications</span>
             <span class="nav-label" *ngIf="!isCollapsed()">{{ 'nav.notifications' | t }}</span>
             <span class="unread-chip" *ngIf="notifService.unreadCount() > 0 && !isCollapsed()">
@@ -80,7 +79,7 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
             <span class="material-symbols-outlined nav-icon">history</span>
             <span class="nav-label" *ngIf="!isCollapsed()">{{ 'nav.audit' | t }}</span>
           </a>
-          <a routerLink="/settings" routerLinkActive="active" class="nav-item" title="Настройки">
+          <a *ngIf="canViewSettings()" routerLink="/settings" routerLinkActive="active" class="nav-item" title="Настройки">
             <span class="material-symbols-outlined nav-icon">settings</span>
             <span class="nav-label" *ngIf="!isCollapsed()">{{ 'nav.settings' | t }}</span>
           </a>
@@ -533,6 +532,14 @@ export class AppShellComponent implements OnInit, OnDestroy {
     this.isCollapsed.update(v => !v);
   }
 
+  canViewTasks(): boolean {
+    return this.permService.canView('tasks.items') || this.permService.canView('tasks');
+  }
+
+  canViewProjects(): boolean {
+    return this.permService.canView('tasks.projects') || this.permService.canView('projects');
+  }
+
   canViewUsers(): boolean {
     return this.permService.canView('iam.users') || this.permService.canView('md_users');
   }
@@ -542,14 +549,27 @@ export class AppShellComponent implements OnInit, OnDestroy {
   }
 
   canViewCustomFields(): boolean {
-    return this.permService.canView('system.custom_fields') || this.permService.canView('md_custom_fields') || this.permService.canView('md.custom_fields');
+    return this.permService.canView('md.custom_fields') || this.permService.canView('system.custom_fields') || this.permService.canView('md_custom_fields');
   }
 
+  canViewFiles(): boolean {
+    return this.permService.canView('platform.files') || this.permService.canView('files');
+  }
+
+  canViewNotifications(): boolean {
+    return this.permService.canView('notify.inbox') || this.permService.canView('notifications');
+  }
 
   canViewAudit(): boolean {
-    return this.permService.hasPermission('audit.log', 'view') ||
-           this.permService.hasPermission('audit.logs', 'view') ||
-           this.permService.hasPermission('audit', 'view');
+    return this.permService.canView('audit.log') ||
+           this.permService.canView('audit.logs') ||
+           this.permService.canView('audit');
+  }
+
+  canViewSettings(): boolean {
+    return this.permService.canView('platform.settings') ||
+           this.permService.canView('settings') ||
+           true; // Базовые личные настройки (язык, тема, пароль) доступны всем аутентифицированным пользователям
   }
 
 
