@@ -62,14 +62,17 @@
 
 ---
 
-### M4. Ролевой доступ RBAC (PERM)
-- **Цель:** Разграничение прав на базе пар `(form, action)`, материализованная таблица прав `md_effective_permissions`, защита системных ролей (I-P4).
+### M4. Ролевой доступ RBAC (PERM) [✅ ВЫПОЛНЕНО 2026-08-29]
+- **Цель:** Разграничение прав на базе пар `(form, action)`, материализованная таблица прав `md_effective_permissions`, защита системных ролей (I-P4), мгновенная инвалидация и современный UI матрицы прав.
 - **DoD:**
   - Автоматическая синхронизация каталога форм из аннотаций `@RequiresPermission`.
   - Матрица системных ролей (admin, manager, user, auditor) проверена интеграционными тестами.
-  - Изменение ролей инкрементирует `permissions_version` и мгновенно отражается на доступе.
-- **Файлы:** `apps/instance/.../md/service/MdRoleService.java`, `MdPermissionService.java`.
-- **Команда проверки:** `mvn test -Dtest=RbacSystemRolesIntegrationTest`
+  - Изменение ролей инкрементирует `permissions_version` и мгновенно пересчитывает эффективные права всех затронутых пользователей (`getUserIdsByRole`).
+  - Защита системных ролей от удаления и суперадминистратора от перевода в пассивный статус (`ErrorCode.SUPERADMIN_IMMUTABLE`).
+  - Минималистичный и функциональный UI матрицы прав с группировкой по модулям, поиском и пакетными действиями (`Выбрать все` / `Снять все`).
+- **Файлы:** `apps/instance/.../md/service/MdRoleService.java`, `MdPermissionService.java`, `MdRoleRepository.java`, `apps/web-instance/src/app/features/iam/roles/roles.component.ts`.
+- **Команда проверки:** `mvn test -Dtest=RbacSystemRolesIntegrationTest` (100% SUCCESS), `powershell scripts/dev/test-api.ps1` (15/15 SUCCESS).
+
 
 ---
 
