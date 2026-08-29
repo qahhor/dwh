@@ -35,9 +35,12 @@ public class MdUserController {
             @RequestParam(name = "limit", defaultValue = "20") int limit,
             @RequestParam(name = "cursor", required = false) String cursor,
             @RequestParam(name = "search", required = false) String search,
-            @RequestParam(name = "state", required = false) String state) {
+            @RequestParam(name = "state", required = false) String state,
+            @RequestParam(name = "role_id", required = false) Long roleId,
+            @RequestParam(name = "manager_id", required = false) Long managerId,
+            @RequestParam(name = "is_2fa_enabled", required = false) Boolean is2faEnabled) {
 
-        var page = userService.listUsers(limit, cursor, search, state);
+        var page = userService.listUsers(limit, cursor, search, state, roleId, managerId, is2faEnabled);
         var userIds = page.items().stream().map(MdUserRepository.UserRecord::id).toList();
         var rolesMap = userService.getUsersRoleIds(userIds);
 
@@ -45,6 +48,7 @@ public class MdUserController {
                 page.items().stream().map(u -> MdUserView.from(u, rolesMap.getOrDefault(u.id(), List.of()))).toList(),
                 page.nextCursor(), page.hasMore(), page.totalEstimated()));
     }
+
 
     @GetMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_USERS, action = "view")

@@ -16,8 +16,9 @@ import java.util.List;
 import java.util.Set;
 
 @RestController
-@RequestMapping("/api/v1/rbac")
+@RequestMapping({"/api/v1/rbac", "/api/v1/iam"})
 public class MdRoleController {
+
 
     private final MdRoleService roleService;
     private final MdPermissionService permissionService;

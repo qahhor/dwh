@@ -140,7 +140,7 @@ public class MdUserRepository {
                 .update();
     }
 
-    public List<UserRecord> listUsers(int limit, Long afterId, String search, String state) {
+    public List<UserRecord> listUsers(int limit, Long afterId, String search, String state, Long roleId, Long managerId, Boolean is2faEnabled) {
         StringBuilder sql = new StringBuilder("""
                 select id, name, login, email, phone, password_hash, state, manager_id, language, timezone,
                        avatar_file_id, attributes::text as attributes_str, is_2fa_enabled, force_password_change,
@@ -155,8 +155,17 @@ public class MdUserRepository {
         if (state != null && !state.isBlank()) {
             sql.append(" and state = :state");
         }
+        if (roleId != null) {
+            sql.append(" and exists (select 1 from md_user_roles ur where ur.user_id = md_users.id and ur.role_id = :roleId)");
+        }
+        if (managerId != null) {
+            sql.append(" and manager_id = :managerId");
+        }
+        if (is2faEnabled != null) {
+            sql.append(" and is_2fa_enabled = :is2faEnabled");
+        }
         if (search != null && !search.isBlank()) {
-            sql.append(" and (name ilike :search or login ilike :search or email ilike :search)");
+            sql.append(" and (name ilike :search or login ilike :search or email ilike :search or phone ilike :search)");
         }
 
         sql.append(" order by id asc limit :limit");
@@ -170,12 +179,26 @@ public class MdUserRepository {
         if (state != null && !state.isBlank()) {
             query.param("state", state);
         }
+        if (roleId != null) {
+            query.param("roleId", roleId);
+        }
+        if (managerId != null) {
+            query.param("managerId", managerId);
+        }
+        if (is2faEnabled != null) {
+            query.param("is2faEnabled", is2faEnabled);
+        }
         if (search != null && !search.isBlank()) {
             query.param("search", "%" + search.trim() + "%");
         }
 
         return query.query(this::mapUser).list();
     }
+
+    public List<UserRecord> listUsers(int limit, Long afterId, String search, String state) {
+        return listUsers(limit, afterId, search, state, null, null, null);
+    }
+
 
     public void updatePassword(Long userId, String newPasswordHash) {
         jdbcClient.sql("""

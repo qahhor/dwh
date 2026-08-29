@@ -96,7 +96,8 @@ public class MdUserService {
     }
 
     @Transactional(readOnly = true)
-    public KeysetPage<MdUserRepository.UserRecord> listUsers(int limit, String cursor, String search, String state) {
+    public KeysetPage<MdUserRepository.UserRecord> listUsers(
+            int limit, String cursor, String search, String state, Long roleId, Long managerId, Boolean is2faEnabled) {
         Long afterId = null;
         if (cursor != null && !cursor.isBlank()) {
             String decoded = CursorUtils.decode(cursor);
@@ -108,7 +109,8 @@ public class MdUserService {
         }
 
         int fetchLimit = limit + 1;
-        List<MdUserRepository.UserRecord> users = userRepository.listUsers(fetchLimit, afterId, search, state);
+        List<MdUserRepository.UserRecord> users = userRepository.listUsers(
+                fetchLimit, afterId, search, state, roleId, managerId, is2faEnabled);
 
         boolean hasMore = users.size() > limit;
         List<MdUserRepository.UserRecord> resultItems = hasMore ? users.subList(0, limit) : users;
@@ -121,6 +123,12 @@ public class MdUserService {
 
         return KeysetPage.of(resultItems, nextCursor, hasMore, resultItems.size());
     }
+
+    @Transactional(readOnly = true)
+    public KeysetPage<MdUserRepository.UserRecord> listUsers(int limit, String cursor, String search, String state) {
+        return listUsers(limit, cursor, search, state, null, null, null);
+    }
+
 
     @Transactional(readOnly = true)
     public List<Long> getUserRoleIds(Long userId) {

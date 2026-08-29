@@ -18,14 +18,14 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
       <div class="page-header">
         <div>
           <h2 class="page-title">Мой профиль</h2>
-          <p class="page-subtitle">Управление личными данными, активными сессиями и API токенами</p>
+          <p class="page-subtitle">Управление учётной записью, безопасностью, сессиями и API токенами</p>
         </div>
       </div>
 
       <!-- User Info Card -->
       <div class="card user-card" *ngIf="authService.currentUser() as user">
         <div class="user-avatar-large">
-          {{ user.name.charAt(0).toUpperCase() }}
+          {{ user.name ? user.name.charAt(0).toUpperCase() : 'U' }}
         </div>
         <div class="user-details">
           <div class="user-title-row">
@@ -33,39 +33,155 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
             <ui-badge [variant]="user.state === 'A' ? 'active' : 'passive'" [dot]="true">
               {{ user.state === 'A' ? 'Активен' : 'Заблокирован' }}
             </ui-badge>
-            <ui-badge *ngIf="user.is2faEnabled" variant="info">2FA Включена</ui-badge>
+            <ui-badge *ngIf="user.is2faEnabled" variant="active">
+              <span class="material-symbols-outlined badge-icon">verified_user</span> 2FA Включена
+            </ui-badge>
           </div>
           <div class="user-info-grid">
             <div class="info-item">
               <span class="info-label">Логин:</span>
-              <span class="info-value">&#64;{{ user.login }}</span>
+              <span class="info-value font-mono">&#64;{{ user.login }}</span>
             </div>
             <div class="info-item">
               <span class="info-label">Email:</span>
-              <span class="info-value">{{ user.email }}</span>
+              <span class="info-value font-mono">{{ user.email }}</span>
             </div>
             <div class="info-item" *ngIf="user.phone">
               <span class="info-label">Телефон:</span>
-              <span class="info-value">{{ user.phone }}</span>
+              <span class="info-value font-mono">{{ user.phone }}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">Часовой пояс:</span>
-              <span class="info-value">{{ user.timezone }}</span>
+              <span class="info-label">Язык / Зона:</span>
+              <span class="info-value">{{ user.language || 'ru' }} ({{ user.timezone || 'Asia/Tashkent' }})</span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Sections Grid -->
+      <!-- Main Grid Sections -->
       <div class="sections-grid">
-        <!-- Active Sessions -->
+        <!-- Change Password Card -->
         <div class="card section-card">
           <div class="section-header">
             <div class="section-title-box">
-              <span class="material-symbols-outlined">devices</span>
-              <h4 class="section-title">Активные сессии</h4>
+              <span class="material-symbols-outlined section-icon">lock_reset</span>
+              <h4 class="section-title">Смена пароля</h4>
             </div>
-            <ui-button variant="secondary" size="sm" (onClick)="loadSessions()">Обновить</ui-button>
+          </div>
+
+          <form class="password-form" (submit)="submitChangePassword($event)">
+            <div class="form-group">
+              <label class="form-label">Текущий пароль <span class="req">*</span></label>
+              <input
+                type="password"
+                class="form-input font-mono"
+                [(ngModel)]="passwordForm.oldPassword"
+                name="oldPassword"
+                placeholder="Введите текущий пароль"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Новый пароль <span class="req">*</span></label>
+              <div class="password-input-box">
+                <input
+                  [type]="showNewPassword() ? 'text' : 'password'"
+                  class="form-input font-mono"
+                  [(ngModel)]="passwordForm.newPassword"
+                  name="newPassword"
+                  placeholder="Минимум 10 символов"
+                  required
+                />
+                <button type="button" class="pwd-toggle-btn" (click)="showNewPassword.update(v => !v)">
+                  <span class="material-symbols-outlined">{{ showNewPassword() ? 'visibility_off' : 'visibility' }}</span>
+                </button>
+              </div>
+              <span class="field-hint">Минимум 10 символов, не из черного списка и не совпадает с логином</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Подтверждение нового пароля <span class="req">*</span></label>
+              <input
+                type="password"
+                class="form-input font-mono"
+                [(ngModel)]="passwordForm.confirmPassword"
+                name="confirmPassword"
+                placeholder="Повторите новый пароль"
+                required
+              />
+            </div>
+
+            <div class="form-actions">
+              <ui-button variant="primary" size="md" [loading]="isChangingPassword()" type="submit">
+                Обновить пароль
+              </ui-button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Security & 2FA Info Card -->
+        <div class="card section-card">
+          <div class="section-header">
+            <div class="section-title-box">
+              <span class="material-symbols-outlined section-icon">security</span>
+              <h4 class="section-title">Безопасность и 2FA</h4>
+            </div>
+          </div>
+
+          <div class="security-info-box">
+            <div class="twofa-status-banner" [class.enabled]="authService.currentUser()?.is2faEnabled">
+              <span class="material-symbols-outlined twofa-big-icon">
+                {{ authService.currentUser()?.is2faEnabled ? 'verified_user' : 'gpp_maybe' }}
+              </span>
+              <div class="twofa-status-text">
+                <div class="twofa-status-title">
+                  {{ authService.currentUser()?.is2faEnabled ? 'Двухфакторная защита активна' : '2FA защита не включена' }}
+                </div>
+                <div class="twofa-status-desc">
+                  {{ authService.currentUser()?.is2faEnabled
+                    ? 'При входе с новых устройств запрашивается 6-значный OTP код подтверждения.'
+                    : 'Обратитесь к администратору для включения обязательной 2FA аутентификации.' }}
+                </div>
+              </div>
+            </div>
+
+            <div class="security-tips">
+              <div class="tip-item">
+                <span class="material-symbols-outlined tip-icon">check_circle</span>
+                <span>Защита от подбора паролей: 5 неверных попыток блокируют вход на 10 минут.</span>
+              </div>
+              <div class="tip-item">
+                <span class="material-symbols-outlined tip-icon">check_circle</span>
+                <span>Сессии автоматически закрываются при бездействии более 12 часов.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Active Sessions Card -->
+        <div class="card section-card full-width">
+          <div class="section-header">
+            <div class="section-title-box">
+              <span class="material-symbols-outlined section-icon">devices</span>
+              <h4 class="section-title">Активные сессии</h4>
+              <span class="badge-count">{{ sessions().length }}</span>
+            </div>
+            <div class="sessions-header-actions">
+              <ui-button
+                *ngIf="sessions().length > 1"
+                variant="danger"
+                size="sm"
+                icon="logout"
+                title="Завершить все остальные сессии кроме текущей"
+                (onClick)="terminateOtherSessions()"
+              >
+                Завершить другие сессии
+              </ui-button>
+              <ui-button variant="secondary" size="sm" icon="refresh" (onClick)="loadSessions()">
+                Обновить
+              </ui-button>
+            </div>
           </div>
 
           <div class="table-wrapper">
@@ -73,7 +189,8 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
               <thead>
                 <tr>
                   <th>IP Адрес</th>
-                  <th>Устройство</th>
+                  <th>Устройство / Браузер</th>
+                  <th>Создана</th>
                   <th>Последняя активность</th>
                   <th class="text-right">Действие</th>
                 </tr>
@@ -81,26 +198,28 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
               <tbody>
                 <tr *ngFor="let s of sessions()">
                   <td class="tabular-nums font-mono">{{ s.ip }}</td>
-                  <td>{{ s.deviceInfo || s.userAgent }}</td>
-                  <td class="tabular-nums">{{ s.lastSeenAt | date:'dd.MM.yyyy HH:mm' }}</td>
+                  <td>{{ s.deviceInfo || s.userAgent || 'Неизвестное устройство' }}</td>
+                  <td class="tabular-nums text-muted">{{ s.createdAt | date:'dd.MM.yyyy HH:mm' }}</td>
+                  <td class="tabular-nums font-medium">{{ s.lastSeenAt | date:'dd.MM.yyyy HH:mm:ss' }}</td>
                   <td class="text-right">
                     <ui-button variant="danger" size="sm" (onClick)="terminateSession(s.id)">Завершить</ui-button>
                   </td>
                 </tr>
                 <tr *ngIf="sessions().length === 0">
-                  <td colspan="4" class="empty-cell">Нет активных сессий</td>
+                  <td colspan="5" class="empty-cell">Нет активных сессий</td>
                 </tr>
               </tbody>
             </table>
           </div>
         </div>
 
-        <!-- API Tokens -->
-        <div class="card section-card">
+        <!-- API Tokens Card -->
+        <div class="card section-card full-width">
           <div class="section-header">
             <div class="section-title-box">
-              <span class="material-symbols-outlined">key</span>
-              <h4 class="section-title">API Токены доступа</h4>
+              <span class="material-symbols-outlined section-icon">key</span>
+              <h4 class="section-title">API Токены доступа (Bearer Tokens)</h4>
+              <span class="badge-count">{{ tokens().length }}</span>
             </div>
             <ui-button variant="primary" size="sm" icon="add" (onClick)="openCreateTokenModal()">Выпустить токен</ui-button>
           </div>
@@ -109,23 +228,25 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>Название</th>
-                  <th>Префикс</th>
-                  <th>Истекает</th>
+                  <th>Название токена</th>
+                  <th>Префикс токена</th>
+                  <th>Создан</th>
+                  <th>Срок действия</th>
                   <th class="text-right">Действие</th>
                 </tr>
               </thead>
               <tbody>
                 <tr *ngFor="let t of tokens()">
                   <td class="font-medium">{{ t.name }}</td>
-                  <td class="tabular-nums font-mono">{{ t.tokenPrefix }}...</td>
+                  <td class="tabular-nums font-mono token-prefix-cell">{{ t.tokenPrefix }}...</td>
+                  <td class="tabular-nums text-muted">{{ t.createdAt | date:'dd.MM.yyyy' }}</td>
                   <td class="tabular-nums">{{ t.expiresAt ? (t.expiresAt | date:'dd.MM.yyyy') : 'Бессрочно' }}</td>
                   <td class="text-right">
-                    <ui-button variant="danger" size="sm" (onClick)="revokeToken(t.id)">Отозвать</ui-button>
+                    <ui-button variant="danger" size="sm" icon="delete" (onClick)="revokeToken(t.id)">Отозвать</ui-button>
                   </td>
                 </tr>
                 <tr *ngIf="tokens().length === 0">
-                  <td colspan="4" class="empty-cell">Нет созданных API токенов</td>
+                  <td colspan="5" class="empty-cell">Нет созданных API токенов</td>
                 </tr>
               </tbody>
             </table>
@@ -143,8 +264,8 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
     >
       <div body class="token-form">
         <div class="form-group">
-          <label class="form-label">Название токена</label>
-          <input type="text" class="form-input" [(ngModel)]="newTokenName" placeholder="Например: CI/CD Deployer" />
+          <label class="form-label">Название токена <span class="req">*</span></label>
+          <input type="text" class="form-input" [(ngModel)]="newTokenName" placeholder="Например: CI/CD Deployer / Kafka Sync" />
         </div>
       </div>
       <div footer>
@@ -168,7 +289,7 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
         </div>
         <div class="token-secret-box">
           <code>{{ createdTokenSecret }}</code>
-          <ui-button variant="secondary" size="sm" (onClick)="copySecret()">Скопировать</ui-button>
+          <ui-button variant="secondary" size="sm" icon="content_copy" (onClick)="copySecret()">Скопировать</ui-button>
         </div>
         <ui-button variant="primary" size="md" class="mt-4" (onClick)="isTokenSecretModalOpen.set(false)">Я сохранил токен</ui-button>
       </div>
@@ -179,7 +300,7 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
       display: flex;
       flex-direction: column;
       gap: 16px;
-      max-width: 1200px;
+      max-width: 1400px;
     }
 
     .page-header {
@@ -187,14 +308,15 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
     }
 
     .page-title {
-      font-size: 18px;
-      font-weight: 600;
+      font-size: 20px;
+      font-weight: 700;
       color: var(--text-main);
     }
 
     .page-subtitle {
-      font-size: 12px;
+      font-size: 13px;
       color: var(--text-muted);
+      margin-top: 2px;
     }
 
     .card {
@@ -211,12 +333,12 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
     }
 
     .user-avatar-large {
-      width: 60px;
-      height: 60px;
+      width: 64px;
+      height: 64px;
       border-radius: 50%;
       background-color: var(--primary);
       color: #ffffff;
-      font-size: 24px;
+      font-size: 26px;
       font-weight: 700;
       display: flex;
       align-items: center;
@@ -224,9 +346,7 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
       flex-shrink: 0;
     }
 
-    .user-details {
-      flex: 1;
-    }
+    .user-details { flex: 1; }
 
     .user-title-row {
       display: flex;
@@ -236,32 +356,32 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
     }
 
     .user-fullname {
-      font-size: 16px;
+      font-size: 18px;
       font-weight: 600;
       color: var(--text-main);
+      margin: 0;
     }
+
+    .badge-icon { font-size: 14px; vertical-align: middle; }
 
     .user-info-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 10px;
       font-size: 13px;
     }
 
-    .info-label {
-      color: var(--text-muted);
-      margin-right: 6px;
-    }
-
-    .info-value {
-      color: var(--text-main);
-      font-weight: 500;
-    }
+    .info-label { color: var(--text-muted); margin-right: 6px; }
+    .info-value { color: var(--text-main); font-weight: 500; }
 
     .sections-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 16px;
+    }
+
+    .full-width {
+      grid-column: 1 / -1;
     }
 
     @media (max-width: 1024px) {
@@ -274,7 +394,9 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 12px;
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-color);
     }
 
     .section-title-box {
@@ -284,34 +406,188 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
       color: var(--text-main);
     }
 
-    .section-title {
-      font-size: 14px;
-      font-weight: 600;
+    .section-icon {
+      font-size: 20px;
+      color: var(--primary);
     }
 
-    .table-wrapper {
-      overflow-x: auto;
+    .section-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin: 0;
     }
+
+    .badge-count {
+      background-color: var(--bg-hover);
+      color: var(--primary);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 1px 6px;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+    }
+
+    .sessions-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .password-form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .form-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-main);
+    }
+
+    .req { color: var(--danger); }
+
+    .field-hint {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .form-input {
+      height: 36px;
+      padding: 6px 10px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      background-color: var(--bg-surface);
+      color: var(--text-main);
+      font-size: 13px;
+      outline: none;
+    }
+    .form-input:focus { border-color: var(--primary); }
+
+    .password-input-box {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .password-input-box .form-input {
+      width: 100%;
+      padding-right: 36px;
+    }
+    .pwd-toggle-btn {
+      position: absolute;
+      right: 6px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      padding: 4px;
+    }
+
+    .form-actions {
+      margin-top: 4px;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .security-info-box {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .twofa-status-banner {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: var(--radius-md);
+      background-color: var(--bg-hover);
+      border: 1px solid var(--border-color);
+    }
+    .twofa-status-banner.enabled {
+      background-color: rgba(16, 185, 129, 0.08);
+      border-color: rgba(16, 185, 129, 0.25);
+    }
+
+    .twofa-big-icon {
+      font-size: 32px;
+      color: var(--text-light);
+    }
+    .twofa-status-banner.enabled .twofa-big-icon {
+      color: var(--success);
+    }
+
+    .twofa-status-text {
+      display: flex;
+      flex-direction: column;
+    }
+    .twofa-status-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+    .twofa-status-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .security-tips {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 10px 12px;
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+    }
+
+    .tip-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .tip-icon { font-size: 16px; color: var(--primary); }
+
+    .table-wrapper { overflow-x: auto; }
 
     .data-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 12px;
+      font-size: 13px;
     }
 
     .data-table th {
       text-align: left;
-      padding: 8px 10px;
+      padding: 8px 12px;
       font-weight: 600;
       color: var(--text-muted);
       border-bottom: 1px solid var(--border-color);
       background-color: var(--bg-hover);
+      font-size: 12px;
     }
 
     .data-table td {
-      padding: 8px 10px;
+      padding: 10px 12px;
       border-bottom: 1px solid var(--border-color);
       color: var(--text-main);
+      vertical-align: middle;
+    }
+
+    .token-prefix-cell {
+      background-color: var(--bg-hover);
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: inline-block;
     }
 
     .text-right { text-align: right; }
@@ -352,8 +628,17 @@ export class ProfileComponent implements OnInit {
 
   readonly isCreateTokenModalOpen = signal<boolean>(false);
   readonly isTokenSecretModalOpen = signal<boolean>(false);
+  readonly showNewPassword = signal<boolean>(false);
+  readonly isChangingPassword = signal<boolean>(false);
+
   newTokenName = '';
   createdTokenSecret = '';
+
+  passwordForm = {
+    oldPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  };
 
   constructor(
     public authService: AuthService,
@@ -379,6 +664,55 @@ export class ProfileComponent implements OnInit {
     });
   }
 
+  terminateOtherSessions() {
+    if (confirm('Вы действительно хотите завершить все остальные активные сессии кроме текущей?')) {
+      this.api.delete('/iam/profile/sessions/others').subscribe({
+        next: () => {
+          this.toast.success('Все остальные сессии успешно завершены');
+          this.loadSessions();
+        },
+        error: (err: any) => {
+          this.toast.error(err?.error?.detail || 'Ошибка при завершении сессий');
+        }
+      });
+    }
+  }
+
+  submitChangePassword(event: Event) {
+    event.preventDefault();
+
+    if (!this.passwordForm.oldPassword || !this.passwordForm.newPassword || !this.passwordForm.confirmPassword) {
+      this.toast.warning('Заполните все поля смены пароля');
+      return;
+    }
+
+    if (this.passwordForm.newPassword.length < 10) {
+      this.toast.warning('Новый пароль должен содержать минимум 10 символов');
+      return;
+    }
+
+    if (this.passwordForm.newPassword !== this.passwordForm.confirmPassword) {
+      this.toast.warning('Новый пароль и подтверждение не совпадают');
+      return;
+    }
+
+    this.isChangingPassword.set(true);
+    this.api.post('/iam/users/me/password', {
+      oldPassword: this.passwordForm.oldPassword,
+      newPassword: this.passwordForm.newPassword
+    }).subscribe({
+      next: () => {
+        this.isChangingPassword.set(false);
+        this.toast.success('Пароль успешно изменён');
+        this.passwordForm = { oldPassword: '', newPassword: '', confirmPassword: '' };
+      },
+      error: (err: any) => {
+        this.isChangingPassword.set(false);
+        this.toast.error(err?.error?.detail || 'Ошибка при смене пароля');
+      }
+    });
+  }
+
   loadTokens() {
     this.api.get<ApiToken[]>('/iam/profile/tokens').subscribe(res => {
       this.tokens.set(res || []);
@@ -391,21 +725,36 @@ export class ProfileComponent implements OnInit {
   }
 
   createTokenSubmit() {
-    if (!this.newTokenName.trim()) return;
+    if (!this.newTokenName.trim()) {
+      this.toast.warning('Введите название API токена');
+      return;
+    }
 
-    this.api.post<CreatedTokenResponse>('/iam/profile/tokens', { name: this.newTokenName.trim() }).subscribe(res => {
-      this.isCreateTokenModalOpen.set(false);
-      this.createdTokenSecret = res.rawSecretToken;
-      this.isTokenSecretModalOpen.set(true);
-      this.loadTokens();
+    this.api.post<CreatedTokenResponse>('/iam/profile/tokens', { name: this.newTokenName.trim() }).subscribe({
+      next: res => {
+        this.isCreateTokenModalOpen.set(false);
+        this.createdTokenSecret = res.rawSecretToken;
+        this.isTokenSecretModalOpen.set(true);
+        this.loadTokens();
+      },
+      error: (err: any) => {
+        this.toast.error(err?.error?.detail || 'Ошибка при создании API токена');
+      }
     });
   }
 
   revokeToken(id: number) {
-    this.api.delete(`/iam/profile/tokens/${id}`).subscribe(() => {
-      this.toast.success('Токен успешно отозван');
-      this.loadTokens();
-    });
+    if (confirm('Вы действительно хотите отозвать данный API токен? Это действие необратимо.')) {
+      this.api.delete(`/iam/profile/tokens/${id}`).subscribe({
+        next: () => {
+          this.toast.success('Токен успешно отозван');
+          this.loadTokens();
+        },
+        error: (err: any) => {
+          this.toast.error(err?.error?.detail || 'Ошибка при отзыве токена');
+        }
+      });
+    }
   }
 
   copySecret() {
