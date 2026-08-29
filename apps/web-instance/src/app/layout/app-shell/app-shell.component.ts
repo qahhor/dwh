@@ -592,8 +592,10 @@ export class AppShellComponent implements OnInit, OnDestroy {
 
   dismissAnnouncement() {
     const a = this.notifService.activeAnnouncement();
-    if (a) {
+    if (a && a.id) {
       this.notifService.dismissAnnouncement(a.id).subscribe();
+    } else {
+      this.notifService.activeAnnouncement.set(null);
     }
   }
 

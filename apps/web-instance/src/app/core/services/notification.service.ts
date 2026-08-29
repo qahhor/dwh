@@ -1,5 +1,5 @@
 import { Injectable, signal } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import { Observable, map, of, tap } from 'rxjs';
 import { ApiService } from './api.service';
 import { ToastService } from './toast.service';
 import { NotificationItem, Announcement } from '../models/notification.models';
@@ -37,12 +37,22 @@ export class NotificationService {
   }
 
   fetchActiveAnnouncement(): Observable<Announcement | null> {
-    return this.api.get<Announcement | null>('/announcements/active').pipe(
+    return this.api.get<Announcement[] | Announcement | null>('/announcements/active').pipe(
+      map(res => {
+        if (Array.isArray(res)) {
+          return res.length > 0 ? res[0] : null;
+        }
+        return res || null;
+      }),
       tap(a => this.activeAnnouncement.set(a))
     );
   }
 
-  dismissAnnouncement(id: number): Observable<void> {
+  dismissAnnouncement(id?: number): Observable<void> {
+    if (!id) {
+      this.activeAnnouncement.set(null);
+      return of(undefined as unknown as void);
+    }
     return this.api.post<void>(`/announcements/${id}/read`).pipe(
       tap(() => this.activeAnnouncement.set(null))
     );

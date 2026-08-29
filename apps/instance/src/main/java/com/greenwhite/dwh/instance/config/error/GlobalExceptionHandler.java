@@ -68,6 +68,20 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(problem);
     }
 
+    @ExceptionHandler(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ProblemDetailRecord> handleTypeMismatch(
+            org.springframework.web.method.annotation.MethodArgumentTypeMismatchException ex,
+            HttpServletRequest request) {
+        log.warn("Некорректный тип аргумента в запросе {}: параметр '{}' имеет значение '{}'",
+                request.getRequestURI(), ex.getName(), ex.getValue());
+        var problem = ProblemDetailRecord.of(
+                ErrorCode.BAD_REQUEST,
+                "Некорректный параметр запроса: " + ex.getName(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.badRequest().body(problem);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetailRecord> handleGenericException(Exception ex, HttpServletRequest request) {
         log.error("Unhandled exception at {}", request.getRequestURI(), ex);
