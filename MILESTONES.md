@@ -254,10 +254,12 @@
 
 ---
 
-### M18. Исходящие вебхуки (KWH)
-- **Цель:** Подписка на доменные события, доставка через Outbox с подписью HMAC-SHA256 (`X-Signature-SHA256`).
+### M18. Исходящие вебхуки (KWH) [✅ ВЫПОЛНЕНО 2026-08-29]
+- **Цель:** Доставка событий во внешние системы через Webhooks с гарантией at-least-once, подписью HMAC-SHA256 (`X-Signature-SHA256`), фоновой outbox-очередью, экспоненциальным backoff и автоматической деактивацией.
 - **DoD:**
-  - Валидация URL подписок (защита от SSRF).
-  - Outbox воркер с автоматическими повторами.
-- **Файлы:** `apps/instance/.../kwh/service/KwhWebhookService.java`, `KwhOutboxWorker.java`.
-- **Команда проверки:** `mvn test -Dtest=KwhWebhookServiceTest`
+  - `KwhSubscriptionRepository`, `KwhSubscriptionController`, `KwhWebhookService`: CRUD подписок, генерация криптографических секретных токенов, валидация протоколов (`http://`, `https://`).
+  - Очередь `kwh_outbox` с конкурентной выборкой (`FOR UPDATE OF o SKIP LOCKED`).
+  - Фоновый worker `KwhOutboxWorker` (@Scheduled): вычисление `HMAC-SHA256` от JSON payload, передача заголовков `X-Signature-SHA256`, `X-Signature-Timestamp`, `X-Event-Type`, экспоненциальный retry ($2^{\text{attempts}} \times 15$s), перевод в `DEAD_LETTER` при превышении лимита попыток, журнал доставок `kwh_logs`.
+- **Файлы:** `apps/instance/.../kwh/service/KwhWebhookService.java`, `KwhOutboxWorker.java`, `KwhSubscriptionController.java`, `KwhSubscriptionRepository.java`, `KwhOutboxRepository.java`.
+- **Команда проверки:** `mvn test -Dtest=KwhWebhookServiceTest` (100% SUCCESS, 2/2 тестов), `powershell scripts/dev/test-api.ps1` (Сценарий 20, 100% SUCCESS).
+

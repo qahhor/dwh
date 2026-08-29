@@ -366,9 +366,42 @@ $hasJvmMetrics = $promMetrics -match "jvm_memory_used_bytes"
 $hasUptime = $promMetrics -match "process_uptime_seconds"
 Write-Host "   Prometheus Metrics verified: JVM metrics=$hasJvmMetrics, Uptime metrics=$hasUptime" -ForegroundColor Green
 
+# 20. Outbound Webhooks (M18 KWH)
+Write-Host "`n20. Outbound Webhooks Management & Subscription Lifecycle (M18 KWH)..." -ForegroundColor Yellow
+
+$randWh = Get-Random -Minimum 1000 -Maximum 9999
+$whBody = @{
+    name = "Integration Webhook $randWh"
+    targetUrl = "http://instance:8080/actuator/health"
+    subscribedEvents = @("task.created", "user.created", "file.uploaded")
+} | ConvertTo-Json
+
+# 20.1 Create Subscription
+$newSub = Invoke-RestMethod -Uri "$BaseUrl/api/v1/webhooks/subscriptions" -Method Post -Body $whBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
+Write-Host "   Webhook Subscription created: ID=$($newSub.id), Name='$($newSub.name)', Secret Token=$($newSub.secretToken.Substring(0, 10))..." -ForegroundColor Green
+
+# 20.2 List Subscriptions
+$subsList = Invoke-RestMethod -Uri "$BaseUrl/api/v1/webhooks/subscriptions" -Method Get -WebSession $session
+Write-Host "   Active Webhook Subscriptions count: $($subsList.Count)" -ForegroundColor Green
+
+# 20.3 Update Subscription
+$updateWhBody = @{
+    name = "Integration Webhook $randWh (Updated)"
+    targetUrl = "http://instance:8080/actuator/health"
+    subscribedEvents = @("task.created", "task.status_changed")
+    state = "A"
+} | ConvertTo-Json
+Invoke-RestMethod -Uri "$BaseUrl/api/v1/webhooks/subscriptions/$($newSub.id)" -Method Patch -Body $updateWhBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
+Write-Host "   Webhook Subscription $($newSub.id) updated successfully" -ForegroundColor Green
+
+# 20.4 Delete Subscription
+Invoke-RestMethod -Uri "$BaseUrl/api/v1/webhooks/subscriptions/$($newSub.id)" -Method Delete -WebSession $session -Headers (Get-CsrfHeaders)
+Write-Host "   Webhook Subscription $($newSub.id) deleted successfully" -ForegroundColor Green
+
 Write-Host "`n============================================================" -ForegroundColor Cyan
-Write-Host "  All 19 End-to-End Scenarios Passed Successfully!           " -ForegroundColor Cyan
+Write-Host "  All 20 End-to-End Scenarios Passed Successfully!           " -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
+
 
 
 
