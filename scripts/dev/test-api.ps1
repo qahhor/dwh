@@ -21,13 +21,21 @@ try {
 
 # 2. Login as admin
 Write-Host "`n2. Authentication (POST /api/v1/auth/login)..." -ForegroundColor Yellow
-# Пароль берётся только из окружения. Значения по умолчанию здесь быть не может:
-# скрипт лежит в репозитории, а FR-SEC-3 запрещает хранить в нём секреты.
-if (-not $env:ADMIN_PASSWORD) {
-    Write-Host "Не задан ADMIN_PASSWORD. Запустите: `$env:ADMIN_PASSWORD='<пароль из .env>'" -ForegroundColor Red
+# Пароль берём из окружения, иначе из локального .env — он в .gitignore и
+# содержит фактические значения стенда. В самом скрипте пароля нет: файл
+# отслеживается git'ом, а значения там быстро расходятся с реальностью.
+$adminPassword = $env:ADMIN_PASSWORD
+if (-not $adminPassword) {
+    $envFile = Join-Path $PSScriptRoot "..\..\.env"
+    if (Test-Path $envFile) {
+        $line = Select-String -Path $envFile -Pattern '^\s*ADMIN_PASSWORD\s*=\s*(.+?)\s*$' | Select-Object -First 1
+        if ($line) { $adminPassword = $line.Matches[0].Groups[1].Value }
+    }
+}
+if (-not $adminPassword) {
+    Write-Host "Пароль администратора не найден: задайте `$env:ADMIN_PASSWORD или ADMIN_PASSWORD в .env" -ForegroundColor Red
     exit 1
 }
-$adminPassword = $env:ADMIN_PASSWORD
 
 $loginBody = @{
     login = "admin"
