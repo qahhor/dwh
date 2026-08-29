@@ -1098,9 +1098,9 @@
     "semantic_hash": "ce410c50e3f6ba10240683ecbe2aa700"
   },
   "apps/web-instance/src/app/app.routes.ts": {
-    "mtime": 1788015362.0618398,
-    "seen": 1788017905.2839012,
-    "ast_hash": "6eb4ed771f01d264edd14c929375e0f8",
+    "mtime": 1788018099.6069682,
+    "seen": 1788018190.3285851,
+    "ast_hash": "66f8f56242677b3cad9bbe671d3ea35d",
     "semantic_hash": ""
   },
   "apps/web-instance/src/app/core/guards/auth.guard.ts": {
@@ -1182,10 +1182,10 @@
     "semantic_hash": ""
   },
   "apps/web-instance/src/app/core/services/permission.service.ts": {
-    "mtime": 1787998380.5215762,
-    "seen": 1788008255.2068477,
-    "ast_hash": "c7631d4f4e798e6cb457cf9ac69b6294",
-    "semantic_hash": "c7631d4f4e798e6cb457cf9ac69b6294"
+    "mtime": 1788018084.9560182,
+    "seen": 1788018190.3285851,
+    "ast_hash": "12609612c2241aedb08772414af0642b",
+    "semantic_hash": ""
   },
   "apps/web-instance/src/app/core/services/theme.service.ts": {
     "mtime": 1787916079.5324688,
@@ -1242,9 +1242,9 @@
     "semantic_hash": ""
   },
   "apps/web-instance/src/app/layout/app-shell/app-shell.component.ts": {
-    "mtime": 1788015366.6106317,
-    "seen": 1788017905.2839012,
-    "ast_hash": "47d47f4107771c863c4c37347d42c2db",
+    "mtime": 1788018112.5449123,
+    "seen": 1788018190.3285851,
+    "ast_hash": "477bad84217b355da308bd31b3dcae4b",
     "semantic_hash": ""
   },
   "apps/web-instance/src/app/layout/command-palette/command-palette.component.ts": {
@@ -2067,6 +2067,12 @@
     "mtime": 1788017220.062135,
     "seen": 1788017905.2839012,
     "ast_hash": "2c4aebd43fefad8d0547d560354e46e8",
+    "semantic_hash": ""
+  },
+  "apps/web-instance/src/app/features/iam/custom-fields/custom-fields.component.ts": {
+    "mtime": 1788018095.3700576,
+    "seen": 1788018190.3285851,
+    "ast_hash": "253ebbbe09675b6da03e68fd4d620a7a",
     "semantic_hash": ""
   }
 }
