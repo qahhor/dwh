@@ -248,8 +248,8 @@
   - Фоновая первичная синхронизация и асинхронный индексатор `TypesenseIndexer`.
   - Автоматический Graceful Fallback на PostgreSQL при недоступности движка.
   - Панель Command Palette (`Ctrl + K`) с клавиатурной навигацией (`↑`, `↓`, `Enter`) и локализованными бейджами.
-- **Файлы:** `apps/instance/.../search/typesense/TypesenseClient.java`, `TypesenseIndexer.java`, `SearchService.java`, `apps/web-instance/.../command-palette/command-palette.component.ts`.
-- **Команда проверки:** `mvn test -Dtest=SearchServiceTest` (100% SUCCESS), `powershell scripts/dev/test-api.ps1` (15/15 SUCCESS).
+- **Команда проверки:** `mvn test -Dtest=SearchServiceTest` (100% SUCCESS, 2/2 тестов), `powershell scripts/dev/test-api.ps1` (Сценарий 8, 100% SUCCESS).
+
 
 
 ---
