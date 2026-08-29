@@ -38,7 +38,7 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
         <nav class="sidebar-nav">
           <!-- Tasks & Workflows -->
           <div class="nav-section-title" *ngIf="!isCollapsed() && (canViewTasks() || canViewProjects())">{{ 'nav.tasks' | t }}</div>
-          <a *ngIf="canViewTasks()" routerLink="/tasks" routerLinkActive="active" class="nav-item" title="Задачи">
+          <a *ngIf="canViewTasks()" routerLink="/tasks" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="nav-item" title="Задачи">
             <span class="material-symbols-outlined nav-icon">task_alt</span>
             <span class="nav-label" *ngIf="!isCollapsed()">{{ 'nav.tasks' | t }}</span>
           </a>
