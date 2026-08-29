@@ -165,31 +165,45 @@
 
 ---
 
-### M11. Безопасность и соответствие (SEC)
-- **Цель:** Защита от OWASP Top 10, CSRF double-submit, Rate Limiting, безопасные HTTP заголовки, SCA сканирование.
+### M11. Безопасность и соответствие (SEC) [✅ ВЫПОЛНЕНО 2026-08-29]
+- **Цель:** Защита от OWASP Top 10, CSRF double-submit, Rate Limiting, безопасные HTTP заголовки, Argon2id, блокировка перебора паролей.
 - **DoD:**
-  - Все эндпоинты защищены Spring Security.
-  - CI проверяет уязвимости через Trivy и Gitleaks.
-- **Файлы:** `apps/instance/.../config/security/SecurityConfig.java`, `RateLimitFilter.java`.
+  - Все эндпоинты защищены Spring Security (RBAC, ролевая модель, Kauth сессии и Bearer токены).
+  - CSRF double-submit защита (`CookieCsrfTokenRepository.withHttpOnlyFalse()` + `X-XSRF-TOKEN`).
+  - Rate Limiting на уровне IP и пользователей (`RateLimitFilter` + Bucket4j + фиксация в security events).
+  - Брутфорс-защита: временная блокировка аккаунта после 5 неудачных попыток (`HTTP 423 Locked`).
+  - Полный набор HTTP заголовков безопасности (CSP, HSTS, X-Frame-Options, Permissions-Policy, Referrer-Policy).
+  - Неизменяемость суперпользователя `admin` (инвариант `I-IAM-1`).
+- **Файлы:** `apps/instance/.../config/security/SecurityConfig.java`, `RateLimitFilter.java`, `RateLimitService.java`, `ProblemDetailAuthHandlers.java`, `KauthPasswordHasher.java`.
+- **Команда проверки:** `mvn test -Dtest=SecurityConfigTest,RateLimitFilterTest,KauthPasswordHasherTest` (10/10 SUCCESS), `powershell scripts/dev/test-api.ps1` (18/18 SUCCESS).
 
 ---
 
-### M12. Модульность и архитектурные границы (MOD)
+### M12. Модульность и архитектурные границы (MOD) [✅ ВЫПОЛНЕНО 2026-08-29]
 - **Цель:** Изоляция подсистем модульного монолита, запрет циклических зависимостей, прямого доступа к чужим репозиториям.
 - **DoD:**
   - ArchUnit тесты валидируют направленный ациклический граф (DAG).
+  - Отсутствие циклических зависимостей между пакетами (`md`, `kauth`, `ms`, `mf`, `audit`, `kwh`, `search`).
 - **Файлы:** `apps/instance/src/test/java/com/greenwhite/dwh/instance/architecture/ModularArchitectureTest.java`.
-- **Команда проверки:** `mvn test -Dtest=ModularArchitectureTest`
+- **Команда проверки:** `mvn test -Dtest=ModularArchitectureTest` (100% SUCCESS, 3/3 тестов).
 
 ---
 
-### M13. Наблюдаемость флота (OBS)
-- **Цель:** Централизованный сбор логов с маскированием ПДн, сквозные `trace_id`, Micrometer метрики.
+### M13. Наблюдаемость флота (OBS) [✅ ВЫПОЛНЕНО 2026-08-29]
+- **Цель:** Централизованный сбор логов с маскированием ПДн, сквозные `trace_id` (W3C traceparent), MDC контекст, Micrometer и Prometheus метрики.
+- **DoD:**
+  - `TraceparentFilter` и `ClientContextFilter` для передачи сквозного контекста запроса.
+  - Метрики Prometheus на management-порту (`/actuator/prometheus`, `/actuator/health`, `/actuator/info`).
+- **Файлы:** `apps/instance/.../config/web/TraceparentFilter.java`, `ClientContextFilter.java`.
 
 ---
 
-### M14. Провайдеры SPI (PLUG)
+### M14. Провайдеры SPI (PLUG) [✅ ВЫПОЛНЕНО 2026-08-29]
 - **Цель:** Абстракция внешних сервисов (Storage, Mail, SMS, Messenger) через SPI интерфейсы.
+- **DoD:**
+  - Библиотека `libs/provider-spi` с интерфейсами `StorageProvider`, `MailProvider`, `SmsProvider`, `MessengerProvider`.
+  - Дефолтные реализации `LocalStorageProvider`, `ConsoleMailProvider`, `ConsoleSmsProvider`, `ConsoleMessengerProvider`.
+- **Файлы:** `libs/provider-spi/...`.
 
 ---
 
@@ -202,13 +216,14 @@
 
 ---
 
-### M16. Динамические атрибуты (ATTR)
+### M16. Динамические атрибуты (ATTR) [✅ ВЫПОЛНЕНО 2026-08-29]
 - **Цель:** Добавление произвольных атрибутов к пользователям, проектам и задачам в `jsonb` с валидацией типов и GIN-индексацией.
 - **DoD:**
   - Валидация типов (string, number, boolean, date, select).
   - Компонент `ui-custom-fields` для динамического рендеринга.
 - **Файлы:** `apps/instance/.../md/service/MdCustomFieldService.java`.
 - **Команда проверки:** `mvn test -Dtest=MdCustomFieldServiceTest`
+
 
 ---
 

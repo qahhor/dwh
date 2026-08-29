@@ -44,6 +44,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(controllers = SecurityTestController.class)
 @Import({SecurityConfig.class, ProblemDetailAuthHandlers.class,
         KauthAuthenticationFilter.class, RateLimitFilter.class, RateLimitService.class,
+        com.greenwhite.dwh.instance.config.idempotency.IdempotencyFilter.class,
         SecurityTestController.class})
 @TestPropertySource(properties = {
         "dwh.rate-limit.ip-per-minute=2",
@@ -65,6 +66,9 @@ class RateLimitFilterTest {
     MdPermissionService permissionService;
     @MockitoBean
     AuditLogService auditLogService;
+    @MockitoBean
+    com.greenwhite.dwh.instance.config.idempotency.IdempotencyService idempotencyService;
+
 
     @Test
     @DisplayName("IP-лимит: 3-й неаутентифицированный запрос -> 429 + Retry-After + событие в журнале")

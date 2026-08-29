@@ -42,6 +42,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(controllers = SecurityTestController.class)
 @Import({SecurityConfig.class, ProblemDetailAuthHandlers.class,
         KauthAuthenticationFilter.class, RateLimitFilter.class, RateLimitService.class,
+        com.greenwhite.dwh.instance.config.idempotency.IdempotencyFilter.class,
         SecurityTestController.class})
 class SecurityConfigTest {
 
@@ -60,6 +61,10 @@ class SecurityConfigTest {
     MdPermissionService permissionService;
     @MockitoBean
     AuditLogService auditLogService;
+    @MockitoBean
+    com.greenwhite.dwh.instance.config.idempotency.IdempotencyService idempotencyService;
+
+
 
     @Test
     @DisplayName("FR-SEC-1: мутирующий запрос с cookie-сессией без CSRF-токена -> 403 csrf_token_invalid")
