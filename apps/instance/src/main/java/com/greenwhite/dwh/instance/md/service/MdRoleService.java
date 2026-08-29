@@ -38,13 +38,29 @@ public class MdRoleService {
 
     @Transactional
     public void updateRole(Long id, String name, String state, Integer orderNo) {
-        getRoleById(id);
-        roleRepository.update(id, name, state, orderNo != null ? orderNo : 0);
+        var role = getRoleById(id);
+        if (role.pcode() != null && "admin".equals(role.pcode()) && "P".equalsIgnoreCase(state)) {
+            throw ApiException.forbidden(ErrorCode.SUPERADMIN_IMMUTABLE, "Роль администратора не может быть переведена в пассивный статус");
+        }
+        roleRepository.update(id, name, state != null ? state : role.state(), orderNo != null ? orderNo : role.orderNo());
+        if (state != null && !state.equals(role.state())) {
+            List<Long> userIds = roleRepository.getUserIdsByRole(id);
+            for (Long uid : userIds) {
+                permissionService.recalculateEffectivePermissions(uid);
+            }
+        }
     }
 
     @Transactional
     public void deleteRole(Long id) {
-        getRoleById(id);
+        var role = getRoleById(id);
+        if (role.pcode() != null) {
+            throw ApiException.forbidden(ErrorCode.SUPERADMIN_IMMUTABLE, "Системные роли не могут быть удалены");
+        }
+        List<Long> userIds = roleRepository.getUserIdsByRole(id);
+        if (!userIds.isEmpty()) {
+            throw ApiException.conflict(ErrorCode.ROLE_NOT_FOUND, "Роль назначена пользователям и не может быть удалена");
+        }
         roleRepository.delete(id);
     }
 
@@ -55,7 +71,12 @@ public class MdRoleService {
 
     @Transactional
     public void setRolePermissions(Long roleId, List<MdRoleRepository.PermissionPair> permissions) {
-        getRoleById(roleId);
+        var role = getRoleById(roleId);
         roleRepository.replaceRolePermissions(roleId, permissions);
+        List<Long> userIds = roleRepository.getUserIdsByRole(roleId);
+        for (Long uid : userIds) {
+            permissionService.recalculateEffectivePermissions(uid);
+        }
     }
 }
+

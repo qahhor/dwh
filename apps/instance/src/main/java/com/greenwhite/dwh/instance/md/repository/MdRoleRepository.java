@@ -148,6 +148,14 @@ public class MdRoleRepository {
                 .list();
     }
 
+    public List<Long> getUserIdsByRole(Long roleId) {
+        return jdbcClient.sql("select user_id from md_user_roles where role_id = :roleId")
+                .param("roleId", roleId)
+                .query(Long.class)
+                .list();
+    }
+
+
     public java.util.Map<Long, List<Long>> getUsersRoleIds(List<Long> userIds) {
         if (userIds == null || userIds.isEmpty()) return java.util.Map.of();
         java.util.Map<Long, List<Long>> map = new java.util.HashMap<>();

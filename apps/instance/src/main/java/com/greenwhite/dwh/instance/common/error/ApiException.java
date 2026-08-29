@@ -57,9 +57,18 @@ public class ApiException extends RuntimeException {
         return new ApiException(code, message);
     }
 
+    public static ApiException forbidden(ErrorCode code, String message) {
+        return new ApiException(code, message);
+    }
+
+    public static ApiException forbidden(String message) {
+        return new ApiException(ErrorCode.FORBIDDEN, message);
+    }
+
     public static ApiException locked(ErrorCode code, String message) {
         return new ApiException(code, message);
     }
+
 
     public static ApiException validation(String message, List<FieldErrorItem> errors) {
         return new ApiException(ErrorCode.VALIDATION_FAILED, message, errors);
