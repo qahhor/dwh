@@ -43,12 +43,35 @@ class MdCustomFieldServiceTest {
                 ),
                 new MdCustomFieldRepository.CustomFieldRecord(
                         2L, "USER", "is_vip", "VIP клиент", "boolean", false, "false", "[]", 1, Instant.now()
+                ),
+                new MdCustomFieldRepository.CustomFieldRecord(
+                        3L, "USER", "birth_date", "Дата рождения", "date", false, null, "[]", 2, Instant.now()
                 )
         ));
 
         assertThatCode(() -> service.validateAttributes("USER", Map.of(
                 "inn", 123456789,
-                "is_vip", true
+                "is_vip", true,
+                "birth_date", "2026-08-29"
         ))).doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("Валидация должна отклонять невалидный формат числа и даты")
+    void shouldRejectInvalidDataFormats() {
+        when(customFieldRepository.findByEntityType("TASK")).thenReturn(List.of(
+                new MdCustomFieldRepository.CustomFieldRecord(
+                        1L, "TASK", "deadline", "Срок", "date", false, null, "[]", 0, Instant.now()
+                ),
+                new MdCustomFieldRepository.CustomFieldRecord(
+                        2L, "TASK", "cost", "Стоимость", "number", false, null, "[]", 1, Instant.now()
+                )
+        ));
+
+        assertThatThrownBy(() -> service.validateAttributes("TASK", Map.of("deadline", "invalid-date")))
+                .isInstanceOf(ApiException.class);
+
+        assertThatThrownBy(() -> service.validateAttributes("TASK", Map.of("cost", "not_a_number")))
+                .isInstanceOf(ApiException.class);
     }
 }

@@ -228,12 +228,14 @@
 ---
 
 ### M16. Динамические атрибуты (ATTR) [✅ ВЫПОЛНЕНО 2026-08-29]
-- **Цель:** Добавление произвольных атрибутов к пользователям, проектам и задачам в `jsonb` с валидацией типов и GIN-индексацией.
+- **Цель:** Добавление произвольных атрибутов к пользователям, проектам и задачам в `jsonb` с валидацией типов (string, number, boolean, date, select) и GIN-индексацией.
 - **DoD:**
-  - Валидация типов (string, number, boolean, date, select).
-  - Компонент `ui-custom-fields` для динамического рендеринга.
-- **Файлы:** `apps/instance/.../md/service/MdCustomFieldService.java`.
-- **Команда проверки:** `mvn test -Dtest=MdCustomFieldServiceTest`
+  - `MdCustomFieldRepository`, `MdCustomFieldService`, `MdCustomFieldController` (`/api/v1/custom-fields`).
+  - Строгая валидация типов данных перед сохранением в `jsonb attributes` (числа, даты, булевы значения, списки опций, обязательные поля).
+  - Компонент `ui-custom-fields` для динамического рендеринга на веб-фронтенде.
+- **Файлы:** `apps/instance/.../md/service/MdCustomFieldService.java`, `MdCustomFieldRepository.java`, `MdCustomFieldController.java`.
+- **Команда проверки:** `mvn test -Dtest=MdCustomFieldServiceTest` (100% SUCCESS, 3/3 тестов), `powershell scripts/dev/test-api.ps1` (Сценарии 5 и 7, 100% SUCCESS).
+
 
 
 ---
