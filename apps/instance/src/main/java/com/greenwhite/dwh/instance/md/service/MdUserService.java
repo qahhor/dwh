@@ -25,6 +25,7 @@ public class MdUserService {
     private final PasswordValidator passwordValidator;
     private final UserSessionInvalidator sessionInvalidator;
     private final com.greenwhite.dwh.instance.search.typesense.TypesenseIndexer typesenseIndexer;
+    private final com.greenwhite.dwh.instance.audit.service.AuditLogService auditLogService;
 
     public MdUserService(
             MdUserRepository userRepository,
@@ -34,7 +35,8 @@ public class MdUserService {
             PasswordHasher passwordHasher,
             PasswordValidator passwordValidator,
             UserSessionInvalidator sessionInvalidator,
-            com.greenwhite.dwh.instance.search.typesense.TypesenseIndexer typesenseIndexer) {
+            com.greenwhite.dwh.instance.search.typesense.TypesenseIndexer typesenseIndexer,
+            com.greenwhite.dwh.instance.audit.service.AuditLogService auditLogService) {
         this.sessionInvalidator = sessionInvalidator;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
@@ -43,7 +45,9 @@ public class MdUserService {
         this.passwordHasher = passwordHasher;
         this.passwordValidator = passwordValidator;
         this.typesenseIndexer = typesenseIndexer;
+        this.auditLogService = auditLogService;
     }
+
 
 
     @Transactional
@@ -88,12 +92,16 @@ public class MdUserService {
             );
         }
 
-        permissionService.recalculateEffectivePermissions(user.id());
-
         typesenseIndexer.indexUser(user.id());
+
+        auditLogService.logChange("md_users", String.valueOf(user.id()), "I",
+                List.of("name", "login", "email", "phone"),
+                null,
+                Map.of("id", user.id(), "name", name, "login", login, "email", email));
 
         return user;
     }
+
 
 
     @Transactional(readOnly = true)
@@ -183,6 +191,11 @@ public class MdUserService {
         }
 
         typesenseIndexer.indexUser(userId);
+
+        auditLogService.logChange("md_users", String.valueOf(userId), "U",
+                List.of("name", "phone", "language", "timezone"),
+                Map.of("name", existingUser.name(), "phone", existingUser.phone() != null ? existingUser.phone() : ""),
+                Map.of("name", name != null ? name : existingUser.name(), "phone", phone != null ? phone : ""));
     }
 
 
@@ -198,6 +211,8 @@ public class MdUserService {
 
         String newHash = passwordHasher.hashPassword(newPassword);
         userRepository.updatePassword(userId, newHash);
+
+        auditLogService.logSecurityEvent("PASSWORD_CHANGED", userId, null, null, Map.of("login", user.login()));
     }
 
 
@@ -219,6 +234,11 @@ public class MdUserService {
         }
 
         typesenseIndexer.indexUser(targetUserId);
+
+        auditLogService.logChange("md_users", String.valueOf(targetUserId), "U",
+                List.of("state"),
+                Map.of("state", targetUser.state()),
+                Map.of("state", newState));
     }
 
     @Transactional
@@ -237,7 +257,13 @@ public class MdUserService {
         sessionInvalidator.invalidateAllAccess(targetUserId);
 
         typesenseIndexer.deleteUser(targetUserId);
+
+        auditLogService.logChange("md_users", String.valueOf(targetUserId), "D",
+                List.of("state", "name", "email", "phone"),
+                Map.of("name", targetUser.name(), "login", targetUser.login()),
+                Map.of("name", "Deleted User " + targetUserId, "state", "P"));
     }
+
 
 
 }

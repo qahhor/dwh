@@ -542,8 +542,11 @@ export class AppShellComponent implements OnInit, OnDestroy {
 
 
   canViewAudit(): boolean {
-    return this.permService.hasPermission('audit.logs', 'view') || this.permService.hasPermission('audit', 'view');
+    return this.permService.hasPermission('audit.log', 'view') ||
+           this.permService.hasPermission('audit.logs', 'view') ||
+           this.permService.hasPermission('audit', 'view');
   }
+
 
 
   getUserInitial(): string {

@@ -35,12 +35,20 @@ public class AuditLogService {
     }
 
     @Transactional(readOnly = true)
-    public List<AuditLogRepository.AuditRecord> listAuditLogs(String tableName, String rowPk, Long userId, int limit) {
-        return auditLogRepository.listAuditLogs(tableName, rowPk, userId, limit);
+    public List<AuditLogRepository.AuditRecord> listAuditLogs(String tableName, String rowPk, String event, Long userId,
+                                                              java.time.Instant from, java.time.Instant to, int limit) {
+        return auditLogRepository.listAuditLogs(tableName, rowPk, event, userId, from, to, limit);
     }
 
     @Transactional(readOnly = true)
-    public List<AuditLogRepository.SecurityEventRecord> listSecurityEvents(int limit) {
-        return auditLogRepository.listSecurityEvents(limit);
+    public List<AuditLogRepository.SecurityEventRecord> listSecurityEvents(String eventType, Long userId, String ip,
+                                                                          java.time.Instant from, java.time.Instant to, int limit) {
+        return auditLogRepository.listSecurityEvents(eventType, userId, ip, from, to, limit);
+    }
+
+    @Transactional(readOnly = true)
+    public AuditLogRepository.AuditStats getAuditStats() {
+        return auditLogRepository.getAuditStats();
     }
 }
+

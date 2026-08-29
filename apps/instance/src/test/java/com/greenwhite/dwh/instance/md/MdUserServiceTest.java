@@ -31,14 +31,17 @@ class MdUserServiceTest {
     private final UserSessionInvalidator sessionInvalidator = Mockito.mock(UserSessionInvalidator.class);
     private final com.greenwhite.dwh.instance.search.typesense.TypesenseIndexer typesenseIndexer =
             Mockito.mock(com.greenwhite.dwh.instance.search.typesense.TypesenseIndexer.class);
+    private final com.greenwhite.dwh.instance.audit.service.AuditLogService auditLogService =
+            Mockito.mock(com.greenwhite.dwh.instance.audit.service.AuditLogService.class);
 
 
     private final PasswordValidator passwordValidator = new PasswordValidator();
 
     private final MdUserService userService = new MdUserService(
             userRepository, roleRepository, permissionService, customFieldService, passwordHasher,
-            passwordValidator, sessionInvalidator, typesenseIndexer
+            passwordValidator, sessionInvalidator, typesenseIndexer, auditLogService
     );
+
 
 
     @Test

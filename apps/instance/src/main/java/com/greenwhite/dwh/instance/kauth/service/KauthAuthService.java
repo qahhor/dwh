@@ -28,6 +28,7 @@ public class KauthAuthService {
     private final KauthPasswordResetRepository passwordResetRepository;
     private final KauthPasswordHasher passwordHasher;
     private final com.greenwhite.dwh.instance.md.service.PasswordValidator passwordValidator;
+    private final com.greenwhite.dwh.instance.audit.service.AuditLogService auditLogService;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public KauthAuthService(
@@ -37,7 +38,8 @@ public class KauthAuthService {
             KauthOtpCodeRepository otpCodeRepository,
             KauthPasswordResetRepository passwordResetRepository,
             KauthPasswordHasher passwordHasher,
-            com.greenwhite.dwh.instance.md.service.PasswordValidator passwordValidator) {
+            com.greenwhite.dwh.instance.md.service.PasswordValidator passwordValidator,
+            com.greenwhite.dwh.instance.audit.service.AuditLogService auditLogService) {
         this.userRepository = userRepository;
         this.sessionRepository = sessionRepository;
         this.loginAttemptRepository = loginAttemptRepository;
@@ -45,6 +47,7 @@ public class KauthAuthService {
         this.passwordResetRepository = passwordResetRepository;
         this.passwordHasher = passwordHasher;
         this.passwordValidator = passwordValidator;
+        this.auditLogService = auditLogService;
     }
 
 
@@ -55,33 +58,41 @@ public class KauthAuthService {
         int failedIp = loginAttemptRepository.countFailedAttemptsForIpSince(ip, tenMinutesAgo);
         if (failedIp >= MAX_FAILED_ATTEMPTS_PER_IP) {
             loginAttemptRepository.recordAttempt(login, ip, false, "IP_RATE_LIMITED");
+            auditLogService.logSecurityEvent("IP_RATE_LIMITED", null, ip, userAgent, java.util.Map.of("login", login));
             throw ApiException.locked(ErrorCode.RATE_LIMITED, "Слишком много неудачных попыток входа с вашего IP");
         }
 
         int failedUser = loginAttemptRepository.countFailedAttemptsForLoginSince(login, tenMinutesAgo);
         if (failedUser >= MAX_FAILED_ATTEMPTS_PER_USER) {
             loginAttemptRepository.recordAttempt(login, ip, false, "USER_LOCKED");
+            auditLogService.logSecurityEvent("LOGIN_LOCKED", null, ip, userAgent, java.util.Map.of("login", login));
             throw ApiException.locked(ErrorCode.LOGIN_LOCKED, "Учётная запись временно заблокирована из-за частых ошибок ввода пароля");
         }
 
         var userOpt = userRepository.findByLogin(login);
         if (userOpt.isEmpty()) {
             loginAttemptRepository.recordAttempt(login, ip, false, "USER_NOT_FOUND");
+            auditLogService.logSecurityEvent("LOGIN_FAILED", null, ip, userAgent, java.util.Map.of("login", login, "reason", "USER_NOT_FOUND"));
             throw ApiException.invalidCredentials();
         }
 
         var user = userOpt.get();
         if (MdPref.STATE_PASSIVE.equals(user.state())) {
             loginAttemptRepository.recordAttempt(login, ip, false, "USER_BLOCKED");
+            auditLogService.logSecurityEvent("LOGIN_FAILED", user.id(), ip, userAgent, java.util.Map.of("login", login, "reason", "USER_BLOCKED"));
             throw ApiException.conflict(ErrorCode.USER_BLOCKED, "Учётная запись заблокирована");
         }
 
         if (!passwordHasher.verifyPassword(password, user.passwordHash())) {
             loginAttemptRepository.recordAttempt(login, ip, false, "INVALID_PASSWORD");
+            auditLogService.logSecurityEvent("LOGIN_FAILED", user.id(), ip, userAgent, java.util.Map.of("login", login, "reason", "INVALID_PASSWORD"));
             throw ApiException.invalidCredentials();
         }
 
         loginAttemptRepository.recordAttempt(login, ip, true, null);
+        auditLogService.logSecurityEvent("LOGIN_SUCCESS", user.id(), ip, userAgent,
+                java.util.Map.of("login", login, "deviceInfo", deviceInfo != null ? deviceInfo : "web"));
+
 
         // Check 2FA
         if (user.is2faEnabled()) {

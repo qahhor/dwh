@@ -32,6 +32,9 @@ public class MsTaskService {
     private final MdCustomFieldService customFieldService;
     private final ApplicationEventPublisher eventPublisher;
     private final com.greenwhite.dwh.instance.search.typesense.TypesenseIndexer typesenseIndexer;
+    private final com.greenwhite.dwh.instance.audit.service.AuditLogService auditLogService;
+
+
 
     public MsTaskService(
             MsTaskRepository taskRepository,
@@ -41,7 +44,8 @@ public class MsTaskService {
             MsProjectRepository projectRepository,
             MdCustomFieldService customFieldService,
             ApplicationEventPublisher eventPublisher,
-            com.greenwhite.dwh.instance.search.typesense.TypesenseIndexer typesenseIndexer) {
+            com.greenwhite.dwh.instance.search.typesense.TypesenseIndexer typesenseIndexer,
+            com.greenwhite.dwh.instance.audit.service.AuditLogService auditLogService) {
         this.taskRepository = taskRepository;
         this.statusRepository = statusRepository;
         this.typeRepository = typeRepository;
@@ -50,7 +54,9 @@ public class MsTaskService {
         this.customFieldService = customFieldService;
         this.eventPublisher = eventPublisher;
         this.typesenseIndexer = typesenseIndexer;
+        this.auditLogService = auditLogService;
     }
+
 
 
     @Transactional
@@ -129,8 +135,14 @@ public class MsTaskService {
 
         typesenseIndexer.indexTask(task.id());
 
+        auditLogService.logChange("ms_tasks", String.valueOf(task.id()), "I",
+                List.of("title", "project_id", "priority", "status_id"),
+                null,
+                Map.of("id", task.id(), "title", title, "projectId", projectId != null ? projectId : 0, "priority", safePriority));
+
         return task;
     }
+
 
     @Transactional
     public void attachFile(Long taskId, java.util.UUID fileId, Long currentUserId) {
@@ -225,13 +237,20 @@ public class MsTaskService {
             customFieldService.validateAttributes("TASK", attributes);
         }
 
-        String safePriority = normalizePriority(priority);
+        var existing = getTaskById(taskId);
+        String safePriority = normalizePriority(priority != null ? priority : existing.priority());
 
         taskRepository.update(taskId, new MsTaskRepository.TaskUpdateData(
                 projectId, title, descriptionMarkdown, null, safePriority, parentTaskId, attributes, beginTime, endTime, null
         ), currentUserId);
 
+
         typesenseIndexer.indexTask(taskId);
+
+        auditLogService.logChange("ms_tasks", String.valueOf(taskId), "U",
+                List.of("title", "priority", "project_id"),
+                Map.of("title", existing.title(), "priority", existing.priority()),
+                Map.of("title", title != null ? title : existing.title(), "priority", safePriority));
     }
 
     @Transactional
@@ -243,7 +262,7 @@ public class MsTaskService {
 
     @Transactional
     public void changeStatus(Long taskId, Long newStatusId, Long currentUserId) {
-        getTaskById(taskId);
+        var existing = getTaskById(taskId);
         var newStatus = statusRepository.findById(newStatusId)
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Статус не найден"));
 
@@ -256,7 +275,13 @@ public class MsTaskService {
                 memberUserIds(taskId), currentUserId));
 
         typesenseIndexer.indexTask(taskId);
+
+        auditLogService.logChange("ms_tasks", String.valueOf(taskId), "U",
+                List.of("status_id"),
+                Map.of("statusId", existing.statusId()),
+                Map.of("statusId", newStatusId, "statusName", newStatus.name()));
     }
+
 
 
     @Transactional

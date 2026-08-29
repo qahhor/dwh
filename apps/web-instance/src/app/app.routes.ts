@@ -44,9 +44,14 @@ export const routes: Routes = [
       {
         path: 'files',
         loadComponent: () => import('./features/files/files.component').then(m => m.FilesComponent)
+      },
+      {
+        path: 'audit',
+        loadComponent: () => import('./features/audit/audit.component').then(m => m.AuditComponent)
       }
     ]
   },
+
 
   {
     path: '**',

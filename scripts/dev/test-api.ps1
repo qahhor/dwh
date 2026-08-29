@@ -253,6 +253,24 @@ Invoke-RestMethod -Uri "$BaseUrl/api/v1/iam/users/$($newUser.id)" -Method Delete
 $anonymizedUser = Invoke-RestMethod -Uri "$BaseUrl/api/v1/iam/users/$($newUser.id)" -Method Get -WebSession $session
 Write-Host "   User anonymized: Name=$($anonymizedUser.name), State=$($anonymizedUser.state)" -ForegroundColor Green
 
+# 16. Audit Log & Security Events (M8 AUD)
+Write-Host "`n16. Audit Log & Security Events Verification (GET /api/v1/audit/...)..." -ForegroundColor Yellow
+$auditStats = Invoke-RestMethod -Uri "$BaseUrl/api/v1/audit/stats" -Method Get -WebSession $session
+Write-Host "   Audit Stats: Total Logs=$($auditStats.totalAuditLogs), Total Sec Events=$($auditStats.totalSecurityEvents), Sec Events (24h)=$($auditStats.securityEventsLast24h), Failed Logins (24h)=$($auditStats.failedLoginsLast24h)" -ForegroundColor Green
+
+$auditLogs = Invoke-RestMethod -Uri "$BaseUrl/api/v1/audit/logs?limit=5" -Method Get -WebSession $session
+Write-Host "   Recent Audit Logs count=$($auditLogs.Count):" -ForegroundColor Green
+foreach ($l in $auditLogs) {
+    Write-Host "     - [#$($l.id)] [$($l.event)] Table=$($l.tableName), PK=$($l.rowPk), Author=$($l.changedByName)" -ForegroundColor Gray
+}
+
+$secEvents = Invoke-RestMethod -Uri "$BaseUrl/api/v1/audit/security-events?limit=5" -Method Get -WebSession $session
+Write-Host "   Recent Security Events count=$($secEvents.Count):" -ForegroundColor Green
+foreach ($se in $secEvents) {
+    Write-Host "     - [#$($se.id)] $($se.eventType) from $($se.ip), User=$($se.userName)" -ForegroundColor Gray
+}
+
 Write-Host "`n============================================================" -ForegroundColor Cyan
-Write-Host "  All 15 End-to-End Scenarios Passed Successfully!           " -ForegroundColor Cyan
+Write-Host "  All 16 End-to-End Scenarios Passed Successfully!           " -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
+

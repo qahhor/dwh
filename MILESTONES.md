@@ -122,12 +122,16 @@
 
 ---
 
-### M8. Аудит и безопасность (AUD)
-- **Цель:** Неизменяемый партиционированный журнал аудита изменений (`audit_log`) и журнал security-событий (`security_events`).
+### M8. Аудит и безопасность (AUD) [✅ ВЫПОЛНЕНО 2026-08-29]
+- **Цель:** Неизменяемый партиционированный журнал аудита изменений (`audit_log`) и журнал security-событий (`security_events`), REST API аудита со статистикой и полноценный веб-интерфейс с Visual Diff сравнением.
 - **DoD:**
-  - Запись старых и новых значений при мутациях бизнес-сущностей.
-  - Фиксация событий авторизации, смены паролей, выдачи прав и срабатывания rate limiting.
-- **Файлы:** `apps/instance/.../audit/service/AuditLogService.java`.
+  - Запись старых и новых значений при мутациях бизнес-сущностей (`md_users`, `ms_tasks`, `ms_projects`, `md_roles`, `md_custom_fields`).
+  - Фиксация событий авторизации (`LOGIN_SUCCESS`, `LOGIN_FAILED`), смены паролей, сброса, 2FA, выдачи API-токенов и срабатывания rate limiting (`LOGIN_LOCKED`, `IP_RATE_LIMITED`).
+  - REST API эндпоинты `/api/v1/audit/logs`, `/api/v1/audit/security-events`, `/api/v1/audit/stats` с фильтрами по таблицам, событиям, пользователям, IP и датам.
+  - Полноценный веб-интерфейс `AuditComponent` (`/audit`) со сводными карточками метрик за 24ч, вкладками «Журнал изменений» и «События безопасности», модальным окном интерактивного Visual Diff (подсветка измененных полей) и просмотром JSON параметров.
+- **Файлы:** `apps/instance/.../audit/service/AuditLogService.java`, `AuditLogRepository.java`, `AuditLogController.java`, `apps/web-instance/.../features/audit/audit.component.ts`.
+- **Команда проверки:** `mvn test -Dtest=AuditLogServiceTest` (100% SUCCESS), `powershell scripts/dev/test-api.ps1` (16/16 SUCCESS).
+
 
 ---
 
