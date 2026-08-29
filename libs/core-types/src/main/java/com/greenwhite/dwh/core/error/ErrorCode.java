@@ -51,6 +51,9 @@ public enum ErrorCode {
     // 413 Payload Too Large & 415 Unsupported Media Type
     FILE_SIZE_EXCEEDED("file_size_exceeded", 413),
     FILE_TYPE_FORBIDDEN("file_type_forbidden", 415),
+    STORAGE_QUOTA_EXCEEDED("storage_quota_exceeded", 413),
+    USER_STORAGE_QUOTA_EXCEEDED("user_storage_quota_exceeded", 413),
+
 
     // 422 Unprocessable Entity
     VALIDATION_FAILED("validation_failed", 422),

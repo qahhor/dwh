@@ -103,17 +103,21 @@
 
 ---
 
-### M7. Файловое хранилище (FILE) [✅ ВЫПОЛНЕНО 2026-08-29]
-- **Цель:** Загрузка, стриминг и хранение файлов с дедупликацией по SHA-256, проверка прав доступа, прикрепление файлов к задачам и Drag & Drop интерфейс.
+### M7. Файловое хранилище и квоты компании/сотрудников (FILE) [✅ ВЫПОЛНЕНО 2026-08-29]
+- **Цель:** Загрузка, стриминг и хранение файлов с дедупликацией по SHA-256, проверка прав доступа, прикрепление файлов к задачам, многоуровневые дисковые квоты компании и сотрудников, управление лимитами по ролям и Control Plane, раздел «Файловое хранилище» (`/files`).
 - **DoD:**
   - Потоковый расчет SHA-256 хеша на лету (`LocalStorageProvider`).
   - Дедупликация идентичных файлов по SHA-256 (`MfFileService`).
   - Блокировка потенциально опасных исполняемых расширений (`.exe`, `.sh`, `.bat` и др.).
   - Таблица связей `ms_task_files` (миграция `V008__task_file_attachments.sql`).
-  - Эндпоинты прикрепления, открепления и получения файлов задач (`POST/DELETE/GET /api/v1/tasks/{taskId}/files`).
-  - Универсальный компонент Drag & Drop вложений `UiFileUploadComponent` в модальном окне задачи с превью, форматированием размера и скачиванием.
-- **Файлы:** `apps/instance/.../mf/service/MfFileService.java`, `LocalStorageProvider.java`, `MsTaskController.java`, `apps/web-instance/.../shared/ui/ui-file-upload.component.ts`.
-- **Команда проверки:** `mvn test -Dtest=MfFileServiceTest` (100% SUCCESS), `powershell scripts/dev/test-api.ps1` (15/15 SUCCESS).
+  - Миграция `V009__storage_quotas_and_file_management.sql` (`storage_quota_bytes` в `md_instance_info`, `md_roles`, `md_users`).
+  - Проверка инвариантов: `companyQuota >= userQuota`, блокировка загрузки при превышении лимитов (`STORAGE_QUOTA_EXCEEDED`, `USER_STORAGE_QUOTA_EXCEEDED`).
+  - Телеметрия хранилища в Heartbeat для Control Plane (`storageUsedBytes`, `storageQuotaBytes`).
+  - Эндпоинты `/api/v1/files/storage/stats`, `/api/v1/files`, `/api/v1/files/{id}` (удаление с очисткой квоты).
+  - Полнофункциональный интерфейс «Файловое хранилище» (`FilesComponent`): карточки квот компании и пользователя с цветовой градацией, вкладки «Все файлы компании» / «Мои файлы», поиск, фильтрация, пагинация, скачивание и удаление.
+- **Файлы:** `apps/instance/.../mf/service/MfFileService.java`, `MfFileRepository.java`, `MfFileController.java`, `LocalStorageProvider.java`, `apps/web-instance/.../features/files/files.component.ts`.
+- **Команда проверки:** `mvn test -Dtest=MfFileServiceTest` (100% SUCCESS, 4/4 тестов), `powershell scripts/dev/test-api.ps1` (15/15 SUCCESS).
+
 
 
 ---

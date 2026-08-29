@@ -65,6 +65,10 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
 
           <!-- System -->
           <div class="nav-section-title" *ngIf="!isCollapsed()">Система</div>
+          <a routerLink="/files" routerLinkActive="active" class="nav-item" title="Файловое хранилище">
+            <span class="material-symbols-outlined nav-icon">folder_open</span>
+            <span class="nav-label" *ngIf="!isCollapsed()">Файлы</span>
+          </a>
           <a routerLink="/notifications" routerLinkActive="active" class="nav-item" title="Уведомления">
             <span class="material-symbols-outlined nav-icon">notifications</span>
             <span class="nav-label" *ngIf="!isCollapsed()">{{ 'nav.notifications' | t }}</span>
@@ -77,6 +81,7 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
             <span class="nav-label" *ngIf="!isCollapsed()">{{ 'nav.audit' | t }}</span>
           </a>
         </nav>
+
 
         <div class="sidebar-footer">
           <a routerLink="/iam/profile" routerLinkActive="active" class="user-profile-btn" title="Мой профиль">

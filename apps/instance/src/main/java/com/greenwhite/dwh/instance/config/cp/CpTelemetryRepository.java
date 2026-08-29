@@ -46,8 +46,13 @@ public class CpTelemetryRepository {
                 count("select count(*) from ms_notification_outbox where status = 'PENDING'"));
         metrics.put("outboxDeadLetter",
                 count("select count(*) from ms_notification_outbox where status = 'DEAD_LETTER'"));
+        metrics.put("storageUsedBytes",
+                count("select coalesce(sum(size_bytes), 0) from mf_files"));
+        metrics.put("storageQuotaBytes",
+                count("select coalesce(storage_quota_bytes, 53687091200) from md_instance_info limit 1"));
         return metrics;
     }
+
 
     private long count(String sql) {
         Long value = jdbc.sql(sql).query(Long.class).single();

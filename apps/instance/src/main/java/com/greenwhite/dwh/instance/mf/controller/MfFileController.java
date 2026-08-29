@@ -44,6 +44,34 @@ public class MfFileController {
         return ResponseEntity.status(HttpStatus.CREATED).body(record);
     }
 
+    @GetMapping("/storage/stats")
+    @RequiresPermission(form = MfPref.FORM_FILES, action = "view")
+    public ResponseEntity<MfFileService.StorageStats> getStorageStats() {
+        Long currentUserId = SecurityContext.getCurrentUserId();
+        return ResponseEntity.ok(fileService.getStorageStats(currentUserId));
+    }
+
+    @GetMapping
+    @RequiresPermission(form = MfPref.FORM_FILES, action = "view")
+    public ResponseEntity<java.util.List<MfFileRepository.FileDetailRecord>> listFiles(
+            @RequestParam(name = "scope", defaultValue = "all") String scope,
+            @RequestParam(name = "q", required = false) String query,
+            @RequestParam(name = "limit", defaultValue = "50") int limit
+    ) {
+        Long currentUserId = SecurityContext.getCurrentUserId();
+        boolean onlyMine = "mine".equalsIgnoreCase(scope);
+        return ResponseEntity.ok(fileService.listFiles(currentUserId, onlyMine, query, limit));
+    }
+
+    @DeleteMapping("/{id}")
+    @RequiresPermission(form = MfPref.FORM_FILES, action = "delete")
+    public ResponseEntity<Void> deleteFile(@PathVariable("id") UUID id) {
+        Long currentUserId = SecurityContext.getCurrentUserId();
+        boolean canDeleteAny = SecurityContext.hasPermission(MfPref.FORM_FILES, "manage_quotas");
+        fileService.deleteFile(id, currentUserId, canDeleteAny);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/{id}")
     @RequiresPermission(form = MfPref.FORM_FILES, action = "view")
     public ResponseEntity<MfFileRepository.FileRecord> getFileMetadata(@PathVariable("id") UUID id) {
@@ -65,3 +93,4 @@ public class MfFileController {
                 .body(new InputStreamResource(stream.inputStream()));
     }
 }
+

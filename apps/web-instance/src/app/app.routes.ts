@@ -40,9 +40,14 @@ export const routes: Routes = [
       {
         path: 'notifications',
         loadComponent: () => import('./features/notifications/notifications.component').then(m => m.NotificationsComponent)
+      },
+      {
+        path: 'files',
+        loadComponent: () => import('./features/files/files.component').then(m => m.FilesComponent)
       }
     ]
   },
+
   {
     path: '**',
     redirectTo: 'tasks'

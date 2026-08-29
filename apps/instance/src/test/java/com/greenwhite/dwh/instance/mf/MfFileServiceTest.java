@@ -48,9 +48,43 @@ class MfFileServiceTest {
                 .thenReturn(new StoredFileMetadata("instance-files", "temp_1", sha256, 1024, "application/pdf", Instant.now()));
         when(fileRepository.findBySha256(sha256)).thenReturn(Optional.of(existingFile));
 
+        when(fileRepository.getCompanyQuotaBytes()).thenReturn(50L * 1024 * 1024 * 1024);
+        when(fileRepository.getTotalCompanyUsedBytes()).thenReturn(0L);
+        when(fileRepository.getUserEffectiveQuotaBytes(1L)).thenReturn(1024L * 1024 * 1024);
+        when(fileRepository.getUserUsedBytes(1L)).thenReturn(0L);
+
         var result = service.uploadFile("report_copy.pdf", "application/pdf", new ByteArrayInputStream(new byte[1024]), 1024, 1L);
 
         assertThat(result.id()).isEqualTo(existingFile.id());
         assertThat(result.sha256()).isEqualTo(sha256);
     }
+
+    @Test
+    @DisplayName("Превышение дисковой квоты компании должно блокировать загрузку (STORAGE_QUOTA_EXCEEDED)")
+    void shouldRejectWhenCompanyQuotaExceeded() {
+        when(fileRepository.getCompanyQuotaBytes()).thenReturn(1000L);
+        when(fileRepository.getTotalCompanyUsedBytes()).thenReturn(950L);
+
+        byte[] content = new byte[100]; // 950 + 100 = 1050 > 1000
+
+        assertThatThrownBy(() -> service.uploadFile("data.bin", "application/octet-stream", new ByteArrayInputStream(content), content.length, 1L))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("Превышена дисковая квота компании");
+    }
+
+    @Test
+    @DisplayName("Превышение персональной квоты пользователя должно блокировать загрузку (USER_STORAGE_QUOTA_EXCEEDED)")
+    void shouldRejectWhenUserQuotaExceeded() {
+        when(fileRepository.getCompanyQuotaBytes()).thenReturn(10_000_000L);
+        when(fileRepository.getTotalCompanyUsedBytes()).thenReturn(0L);
+        when(fileRepository.getUserEffectiveQuotaBytes(2L)).thenReturn(500L);
+        when(fileRepository.getUserUsedBytes(2L)).thenReturn(450L);
+
+        byte[] content = new byte[100]; // 450 + 100 = 550 > 500
+
+        assertThatThrownBy(() -> service.uploadFile("my_doc.pdf", "application/pdf", new ByteArrayInputStream(content), content.length, 2L))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("Превышена ваша персональная дисковая квота");
+    }
 }
+

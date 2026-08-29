@@ -169,9 +169,18 @@ Write-Host "   File attached to Task $($taskResponse.id) successfully" -Foregrou
 $taskDetail = Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks/$($taskResponse.id)" -Method Get -WebSession $session
 Write-Host "   Task details retrieved: Attached files count = $($taskDetail.files.Count), First file = $($taskDetail.files[0].fileName)" -ForegroundColor Green
 
+# Storage Quotas & Stats verification
+$storageStats = Invoke-RestMethod -Uri "$BaseUrl/api/v1/files/storage/stats" -Method Get -WebSession $session
+Write-Host "   Storage stats: Company Quota=$([Math]::Round($storageStats.companyQuotaBytes / 1GB, 1)) GB, Company Used=$($storageStats.companyUsedBytes) bytes, User Quota=$([Math]::Round($storageStats.userQuotaBytes / 1MB, 0)) MB, User Used=$($storageStats.userUsedBytes) bytes" -ForegroundColor Green
+
+# Files list verification
+$filesList = Invoke-RestMethod -Uri "$BaseUrl/api/v1/files?scope=all" -Method Get -WebSession $session
+Write-Host "   Files list retrieved: Total count = $($filesList.Count), Most recent = $($filesList[0].originalName) by $($filesList[0].creatorName)" -ForegroundColor Green
+
 # Download file verification
 $downloadedContent = Invoke-RestMethod -Uri "$BaseUrl/api/v1/files/$($fileUploadRes.id)/download" -Method Get -WebSession $session
 Write-Host "   File downloaded successfully: Content='$downloadedContent'" -ForegroundColor Green
+
 
 
 # 10. Issue API Token

@@ -36,6 +36,24 @@ public class MfFileService {
 
         validateFileExtension(originalName);
 
+        // Check Company Quota
+        long companyQuota = fileRepository.getCompanyQuotaBytes();
+        long companyUsed = fileRepository.getTotalCompanyUsedBytes();
+        if (companyUsed + sizeBytes > companyQuota) {
+            throw ApiException.badRequest(ErrorCode.STORAGE_QUOTA_EXCEEDED,
+                    "Превышена дисковая квота компании (" + formatBytes(companyQuota) + "). Занято: " + formatBytes(companyUsed));
+        }
+
+        // Check User Quota
+        if (createdBy != null) {
+            long userQuota = fileRepository.getUserEffectiveQuotaBytes(createdBy);
+            long userUsed = fileRepository.getUserUsedBytes(createdBy);
+            if (userUsed + sizeBytes > userQuota) {
+                throw ApiException.badRequest(ErrorCode.USER_STORAGE_QUOTA_EXCEEDED,
+                        "Превышена ваша персональная дисковая квота (" + formatBytes(userQuota) + "). Занято: " + formatBytes(userUsed));
+            }
+        }
+
         String tempKey = "temp_" + UUID.randomUUID();
         StoredFileMetadata stored = storageProvider.upload(DEFAULT_BUCKET, tempKey, contentStream, sizeBytes, mimeType);
 
@@ -66,6 +84,46 @@ public class MfFileService {
     }
 
     @Transactional(readOnly = true)
+    public StorageStats getStorageStats(Long userId) {
+        long companyQuota = fileRepository.getCompanyQuotaBytes();
+        long companyUsed = fileRepository.getTotalCompanyUsedBytes();
+        long userQuota = fileRepository.getUserEffectiveQuotaBytes(userId);
+        long userUsed = fileRepository.getUserUsedBytes(userId);
+        int totalFiles = fileRepository.countTotalFiles();
+        int userFiles = fileRepository.countUserFiles(userId);
+
+        return new StorageStats(
+                companyQuota,
+                companyUsed,
+                Math.max(0, companyQuota - companyUsed),
+                userQuota,
+                userUsed,
+                Math.max(0, userQuota - userUsed),
+                totalFiles,
+                userFiles
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.List<MfFileRepository.FileDetailRecord> listFiles(Long userId, boolean onlyMine, String query, int limit) {
+        return fileRepository.listFiles(userId, onlyMine, query, limit);
+    }
+
+    @Transactional
+    public void deleteFile(UUID id, Long currentUserId, boolean canDeleteAny) {
+        var file = getFileMetadata(id);
+        if (!canDeleteAny && (file.createdBy() == null || !file.createdBy().equals(currentUserId))) {
+            throw ApiException.forbidden("У вас нет прав на удаление этого файла");
+        }
+
+        fileRepository.delete(id);
+        // If no other record has this sha256, we can remove physical file
+        if (fileRepository.findBySha256(file.sha256()).isEmpty()) {
+            storageProvider.delete(file.storageBucket(), file.storageKey());
+        }
+    }
+
+    @Transactional(readOnly = true)
     public MfFileRepository.FileRecord getFileMetadata(UUID id) {
         return fileRepository.findById(id)
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.FILE_NOT_FOUND, "Файл не найден"));
@@ -90,4 +148,23 @@ public class MfFileService {
             }
         }
     }
+
+    private String formatBytes(long bytes) {
+        if (bytes < 1024) return bytes + " B";
+        int exp = (int) (Math.log(bytes) / Math.log(1024));
+        String pre = "KMGTPE".charAt(exp - 1) + "";
+        return String.format("%.1f %sB", bytes / Math.pow(1024, exp), pre);
+    }
+
+    public record StorageStats(
+            long companyQuotaBytes,
+            long companyUsedBytes,
+            long companyAvailableBytes,
+            long userQuotaBytes,
+            long userUsedBytes,
+            long userAvailableBytes,
+            int totalFilesCount,
+            int userFilesCount
+    ) {}
 }
+
