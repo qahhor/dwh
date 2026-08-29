@@ -66,10 +66,13 @@ public class MsTaskService {
         var defaultStatus = statusRepository.findByPcode(MsTaskPref.STATUS_NEW)
                 .orElseThrow(() -> ApiException.badRequest(ErrorCode.INTERNAL_ERROR, "Базовый статус задачи не найден"));
 
+        String safePriority = normalizePriority(priority);
+
         var task = taskRepository.create(new MsTaskRepository.TaskCreateData(
                 projectId, parentTaskId, title, descriptionMarkdown,
-                defaultStatus.id(), priority, reporterId, attributes, beginTime, endTime
+                defaultStatus.id(), safePriority, reporterId, attributes, beginTime, endTime
         ), reporterId);
+
 
         // Assign Author
         memberRepository.addOrUpdateMember(task.id(), reporterId, MsTaskPref.INVOLVE_AUTHOR, true);
@@ -155,10 +158,13 @@ public class MsTaskService {
             customFieldService.validateAttributes("TASK", attributes);
         }
 
+        String safePriority = normalizePriority(priority);
+
         taskRepository.update(taskId, new MsTaskRepository.TaskUpdateData(
-                title, descriptionMarkdown, null, priority, parentTaskId, attributes, beginTime, endTime, null
+                title, descriptionMarkdown, null, safePriority, parentTaskId, attributes, beginTime, endTime, null
         ), currentUserId);
     }
+
 
     @Transactional
     public void changeStatus(Long taskId, Long newStatusId, Long currentUserId) {
@@ -210,5 +216,20 @@ public class MsTaskService {
         statusRepository.initDefaultStatusesIfEmpty();
         return statusRepository.listStatuses();
     }
+
+    private String normalizePriority(String priority) {
+        if (priority == null || priority.isBlank()) {
+            return "medium";
+        }
+        String p = priority.trim().toLowerCase();
+        return switch (p) {
+            case "low" -> "low";
+            case "high" -> "high";
+            case "critical", "urgent" -> "critical";
+            case "medium", "normal" -> "medium";
+            default -> "medium";
+        };
+    }
 }
+
 

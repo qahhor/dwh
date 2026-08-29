@@ -1,11 +1,10 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
 import { PermissionService } from '../../core/services/permission.service';
 import { ToastService } from '../../core/services/toast.service';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
-import { UiBadgeComponent } from '../../shared/ui/ui-badge.component';
 import { UiModalComponent } from '../../shared/ui/ui-modal.component';
 import { UiCustomFieldsComponent } from '../../shared/ui/ui-custom-fields.component';
 import { Task, Project, TaskStatus, TaskComment } from '../../core/models/task.models';
@@ -23,10 +22,9 @@ import { KeysetPage } from '../../core/models/common.models';
     UiModalComponent,
     UiCustomFieldsComponent
   ],
-
   template: `
     <div class="tasks-page">
-      <!-- Minimal Header -->
+      <!-- Header -->
       <div class="view-header">
         <div class="header-left">
           <h1 class="view-title">Задачи</h1>
@@ -45,7 +43,7 @@ import { KeysetPage } from '../../core/models/common.models';
         </div>
       </div>
 
-      <!-- Compact Single-Line Toolbar -->
+      <!-- Linear-Style Toolbar -->
       <div class="toolbar">
         <div class="search-field">
           <span class="material-symbols-outlined search-icon">search</span>
@@ -62,6 +60,28 @@ import { KeysetPage } from '../../core/models/common.models';
         </div>
 
         <div class="toolbar-controls">
+          <!-- Status Quick Switcher -->
+          <div class="status-tabs">
+            <button
+              type="button"
+              class="status-tab"
+              [class.active]="selectedStatusId === null"
+              (click)="setStatusFilter(null)"
+            >
+              Все
+            </button>
+            <button
+              *ngFor="let s of statuses()"
+              type="button"
+              class="status-tab"
+              [class.active]="selectedStatusId === s.id"
+              (click)="setStatusFilter(s.id)"
+            >
+              <span class="status-tab-dot" [style.background-color]="s.color || 'var(--primary)'"></span>
+              {{ s.name }}
+            </button>
+          </div>
+
           <!-- Project Filter -->
           <select
             class="clean-select"
@@ -72,16 +92,6 @@ import { KeysetPage } from '../../core/models/common.models';
             <option *ngFor="let p of projects()" [ngValue]="p.id">{{ p.name }}</option>
           </select>
 
-          <!-- Status Filter -->
-          <select
-            class="clean-select"
-            [(ngModel)]="selectedStatusId"
-            (change)="loadTasks(true)"
-          >
-            <option [ngValue]="null">Все статусы</option>
-            <option *ngFor="let s of statuses()" [ngValue]="s.id">{{ s.name }}</option>
-          </select>
-
           <!-- Priority Filter -->
           <select
             class="clean-select"
@@ -89,9 +99,9 @@ import { KeysetPage } from '../../core/models/common.models';
             (change)="loadTasks(true)"
           >
             <option value="">Все приоритеты</option>
-            <option value="urgent">Срочный</option>
+            <option value="critical">Критический</option>
             <option value="high">Высокий</option>
-            <option value="normal">Обычный</option>
+            <option value="medium">Средний</option>
             <option value="low">Низкий</option>
           </select>
 
@@ -100,7 +110,7 @@ import { KeysetPage } from '../../core/models/common.models';
             type="button"
             class="reset-filters-btn"
             (click)="resetFilters()"
-            title="Сбросить фильтры"
+            title="Сбросить все фильтры"
           >
             <span class="material-symbols-outlined">filter_alt_off</span>
           </button>
@@ -128,7 +138,7 @@ import { KeysetPage } from '../../core/models/common.models';
                 <td>
                   <div class="task-title-cell">
                     <span class="task-title">{{ t.title }}</span>
-                    <span *ngIf="t.parentTaskId" class="parent-chip font-mono">
+                    <span *ngIf="t.parentTaskId" class="parent-chip font-mono" title="Родительская задача">
                       ↳ подзадача #{{ t.parentTaskId }}
                     </span>
                   </div>
@@ -270,6 +280,7 @@ import { KeysetPage } from '../../core/models/common.models';
               rows="2"
               placeholder="Написать комментарий к задаче..."
               [(ngModel)]="newCommentText"
+              (keydown.ctrl.enter)="submitComment()"
             ></textarea>
             <ui-button variant="primary" size="sm" icon="send" (onClick)="submitComment()">
               Отправить
@@ -314,10 +325,10 @@ import { KeysetPage } from '../../core/models/common.models';
           <div class="form-group">
             <label class="clean-label">Приоритет</label>
             <select class="clean-input" [(ngModel)]="createForm.priority">
-              <option value="low">Низкий</option>
-              <option value="normal">Обычный</option>
-              <option value="high">Высокий</option>
-              <option value="urgent">Срочный</option>
+              <option value="low">Низкий (low)</option>
+              <option value="medium">Средний (medium)</option>
+              <option value="high">Высокий (high)</option>
+              <option value="critical">Критический (critical)</option>
             </select>
           </div>
         </div>
@@ -337,7 +348,7 @@ import { KeysetPage } from '../../core/models/common.models';
               type="number"
               class="clean-input font-mono"
               [(ngModel)]="createForm.parentTaskId"
-              placeholder="ID родительской задачи (опционально)"
+              placeholder="ID задачи (опционально)"
             />
           </div>
         </div>
@@ -429,7 +440,7 @@ import { KeysetPage } from '../../core/models/common.models';
       border: 1px solid var(--border-color);
       border-radius: var(--radius-sm);
       padding: 4px 8px;
-      width: 280px;
+      width: 260px;
       max-width: 100%;
     }
     .search-icon { font-size: 16px; color: var(--text-muted); }
@@ -457,6 +468,41 @@ import { KeysetPage } from '../../core/models/common.models';
       gap: 8px;
       flex-wrap: wrap;
     }
+
+    .status-tabs {
+      display: flex;
+      background-color: var(--bg-hover);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 2px;
+      gap: 2px;
+    }
+    .status-tab {
+      border: none;
+      background: transparent;
+      padding: 3px 8px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-muted);
+      border-radius: var(--radius-xs);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.1s ease;
+    }
+    .status-tab:hover { color: var(--text-main); }
+    .status-tab.active {
+      background-color: var(--bg-surface);
+      color: var(--text-main);
+      box-shadow: var(--shadow-sm);
+    }
+    .status-tab-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+    }
+
     .clean-select {
       height: 30px;
       padding: 2px 8px;
@@ -553,9 +599,9 @@ import { KeysetPage } from '../../core/models/common.models';
       border-radius: 10px;
       display: inline-block;
     }
-    .priority-pill[data-priority="urgent"] { background-color: var(--danger-bg); color: var(--danger); }
+    .priority-pill[data-priority="critical"] { background-color: var(--danger-bg); color: var(--danger); }
     .priority-pill[data-priority="high"] { background-color: var(--warning-bg); color: var(--warning); }
-    .priority-pill[data-priority="normal"] { background-color: var(--bg-hover); color: var(--text-muted); }
+    .priority-pill[data-priority="medium"] { background-color: var(--bg-hover); color: var(--text-muted); }
     .priority-pill[data-priority="low"] { background-color: var(--bg-hover); color: var(--text-light); }
 
     /* Status Pills */
@@ -769,7 +815,7 @@ export class TasksComponent implements OnInit {
     title: '',
     descriptionMarkdown: '',
     projectId: null as number | null,
-    priority: 'normal',
+    priority: 'medium',
     responsibleUserId: null as number | null,
     parentTaskId: null as number | null,
     attributes: {} as Record<string, any>
@@ -860,6 +906,11 @@ export class TasksComponent implements OnInit {
     this.loadTasks(true);
   }
 
+  setStatusFilter(statusId: number | null) {
+    this.selectedStatusId = statusId;
+    this.loadTasks(true);
+  }
+
   resetFilters() {
     this.searchQuery = '';
     this.selectedPriority = '';
@@ -907,7 +958,7 @@ export class TasksComponent implements OnInit {
       title: '',
       descriptionMarkdown: '',
       projectId: this.selectedProjectId,
-      priority: 'normal',
+      priority: 'medium',
       responsibleUserId: null,
       parentTaskId: null,
       attributes: {}
@@ -955,10 +1006,16 @@ export class TasksComponent implements OnInit {
 
   getPriorityLabel(priority: string): string {
     switch (priority) {
-      case 'urgent': return 'Срочный';
-      case 'high': return 'Высокий';
-      case 'normal': return 'Обычный';
-      default: return 'Низкий';
+      case 'critical':
+      case 'urgent':
+        return 'Критический';
+      case 'high':
+        return 'Высокий';
+      case 'medium':
+      case 'normal':
+        return 'Средний';
+      default:
+        return 'Низкий';
     }
   }
 
