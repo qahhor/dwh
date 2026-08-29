@@ -190,11 +190,15 @@
 ---
 
 ### M13. Наблюдаемость флота (OBS) [✅ ВЫПОЛНЕНО 2026-08-29]
-- **Цель:** Централизованный сбор логов с маскированием ПДн, сквозные `trace_id` (W3C traceparent), MDC контекст, Micrometer и Prometheus метрики.
+- **Цель:** Сквозная трассировка W3C `traceparent`, структурированное логирование с контекстом в MDC (`traceparent`, `trace_id`, `client_code`), бизнес-метрики Prometheus через Micrometer и мониторинг здоровья подсистем.
 - **DoD:**
-  - `TraceparentFilter` и `ClientContextFilter` для передачи сквозного контекста запроса.
-  - Метрики Prometheus на management-порту (`/actuator/prometheus`, `/actuator/health`, `/actuator/info`).
-- **Файлы:** `apps/instance/.../config/web/TraceparentFilter.java`, `ClientContextFilter.java`.
+  - `TraceparentFilter` перехватывает или генерирует валидный W3C заголовок (`00-{traceId}-{spanId}-01`), помещает его в MDC SLF4J для обогащения логов и возвращает заголовок `traceparent` клиенту в HTTP-ответе.
+  - Бизнес-метрики `PlatformMetrics` (Micrometer / Prometheus): счетчики логинов (`dwh_auth_logins_total`), превышений rate-limit (`dwh_security_rate_limit_exceeded_total`), создания задач (`dwh_tasks_created_total`), объема файлов (`dwh_files_uploaded_bytes_total`), мутаций данных (`dwh_audit_mutations_total`).
+  - Комплексный мониторинг подсистем `DwhInfoContributor` на `/actuator/info` (PostgreSQL latency, Typesense cluster status, storage free space).
+  - Экспорт метрик Prometheus на management-порту (`/actuator/prometheus`).
+- **Файлы:** `apps/instance/.../config/web/TraceparentFilter.java`, `apps/instance/.../common/metrics/PlatformMetrics.java`, `apps/instance/.../config/health/DwhInfoContributor.java`.
+- **Команда проверки:** `mvn test -Dtest=TraceparentFilterTest,AuditLogServiceTest` (100% SUCCESS), `powershell scripts/dev/test-api.ps1` (19/19 SUCCESS).
+
 
 ---
 

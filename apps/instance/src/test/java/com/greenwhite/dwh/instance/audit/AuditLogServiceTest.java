@@ -16,7 +16,9 @@ import static org.mockito.Mockito.*;
 class AuditLogServiceTest {
 
     private final AuditLogRepository repository = Mockito.mock(AuditLogRepository.class);
-    private final AuditLogService service = new AuditLogService(repository);
+    private final com.greenwhite.dwh.instance.common.metrics.PlatformMetrics metrics = Mockito.mock(com.greenwhite.dwh.instance.common.metrics.PlatformMetrics.class);
+    private final AuditLogService service = new AuditLogService(repository, metrics);
+
 
     @Test
     @DisplayName("Фиксация мутации сущности должна делегироваться в AuditLogRepository с параметрами")

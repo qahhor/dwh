@@ -12,9 +12,12 @@ import java.util.Map;
 public class AuditLogService {
 
     private final AuditLogRepository auditLogRepository;
+    private final com.greenwhite.dwh.instance.common.metrics.PlatformMetrics platformMetrics;
 
-    public AuditLogService(AuditLogRepository auditLogRepository) {
+    public AuditLogService(AuditLogRepository auditLogRepository,
+                           com.greenwhite.dwh.instance.common.metrics.PlatformMetrics platformMetrics) {
         this.auditLogRepository = auditLogRepository;
+        this.platformMetrics = platformMetrics;
     }
 
     @Transactional
@@ -27,7 +30,11 @@ public class AuditLogService {
         boolean isApi = principal != null && principal.isApi();
 
         auditLogRepository.logChange(tableName, rowPk, event, userId, sessionId, isApi, changedColumns, oldRow, newRow);
+        if (platformMetrics != null) {
+            platformMetrics.incrementAuditMutation();
+        }
     }
+
 
     @Transactional
     public void logSecurityEvent(String eventType, Long userId, String ip, String userAgent, Map<String, Object> details) {

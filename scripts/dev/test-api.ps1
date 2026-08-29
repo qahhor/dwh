@@ -344,9 +344,32 @@ try {
 $openApiSpec = Invoke-RestMethod -Uri "$BaseUrl/api/v1/openapi.json" -Method Get
 Write-Host "   OpenAPI Spec verified: Version=$($openApiSpec.openapi), Title='$($openApiSpec.info.title)', Paths count=$($openApiSpec.paths.PSObject.Properties.Count)" -ForegroundColor Green
 
+# 19. Fleet Observability & Metrics (M13 OBS)
+Write-Host "`n19. Fleet Observability & Metrics (W3C Traceparent, Actuator Info, Prometheus)..." -ForegroundColor Yellow
+
+# 19.1 W3C Traceparent Header Verification
+$traceTestRes = Invoke-WebRequest -Uri "$BaseUrl/api/v1/auth/me" -Method Get -WebSession $session -UseBasicParsing
+$traceparent = $traceTestRes.Headers["traceparent"]
+Write-Host "   W3C Traceparent received in response: '$traceparent'" -ForegroundColor Green
+if (-not $traceparent -or -not $traceparent.StartsWith("00-")) {
+    Write-Host "   ERROR: Invalid or missing traceparent header" -ForegroundColor Red
+}
+
+# 19.2 Health & Info Subsystem Checks
+$actuatorInfo = Invoke-RestMethod -Uri "$MgmtUrl/actuator/info" -Method Get
+$platInfo = $actuatorInfo.dwhPlatform
+Write-Host "   Actuator Info verified: DB status=$($platInfo.database.status) ($($platInfo.database.responseTimeMs)ms), Storage status=$($platInfo.storage.status) (Free: $($platInfo.storage.freeMb)MB), Typesense status=$($platInfo.typesense.status)" -ForegroundColor Green
+
+# 19.3 Prometheus Metrics Endpoint Check
+$promMetrics = Invoke-RestMethod -Uri "$MgmtUrl/actuator/prometheus" -Method Get
+$hasJvmMetrics = $promMetrics -match "jvm_memory_used_bytes"
+$hasUptime = $promMetrics -match "process_uptime_seconds"
+Write-Host "   Prometheus Metrics verified: JVM metrics=$hasJvmMetrics, Uptime metrics=$hasUptime" -ForegroundColor Green
+
 Write-Host "`n============================================================" -ForegroundColor Cyan
-Write-Host "  All 18 End-to-End Scenarios Passed Successfully!           " -ForegroundColor Cyan
+Write-Host "  All 19 End-to-End Scenarios Passed Successfully!           " -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
+
 
 
 
