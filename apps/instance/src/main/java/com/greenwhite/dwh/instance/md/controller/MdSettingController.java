@@ -19,7 +19,11 @@ public class MdSettingController {
         this.settingService = settingService;
     }
 
+    // Свои настройки пользователя — это часть профиля, а не администрирования
+    // экземпляра: право берём от формы профиля, которая есть у всех системных
+    // ролей (ТЗ-01 разд. 4.4.1). Форма platform.settings остаётся за админом.
     @GetMapping
+    @RequiresPermission(form = MdPref.FORM_PROFILE, action = "view")
     public ResponseEntity<Map<String, String>> getEffectiveSettings() {
         Long userId = SecurityContext.getCurrentUserId();
         return ResponseEntity.ok(settingService.getEffectiveSettings(userId));
@@ -39,12 +43,14 @@ public class MdSettingController {
     }
 
     @GetMapping("/user")
+    @RequiresPermission(form = MdPref.FORM_PROFILE, action = "view")
     public ResponseEntity<Map<String, String>> getUserSettings() {
         Long userId = SecurityContext.getCurrentUserId();
         return ResponseEntity.ok(settingService.getUserSettings(userId));
     }
 
     @PatchMapping("/user")
+    @RequiresPermission(form = MdPref.FORM_PROFILE, action = "update")
     public ResponseEntity<Void> updateUserSettings(@RequestBody Map<String, String> body) {
         Long userId = SecurityContext.getCurrentUserId();
         settingService.updateUserSettings(userId, body);
