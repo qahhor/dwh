@@ -21,14 +21,15 @@
 
 ---
 
-### M1. Экземпляр и инициализация (INST)
+### M1. Экземпляр и инициализация (INST) [✅ ВЫПОЛНЕНО 2026-08-29]
 - **Цель:** Надежный жизненный цикл клиентского инстанса, schema-gate защита, регистрация первого админа, периодический heartbeat в Control Plane.
 - **DoD:**
   - `InstanceBootstrap` инициализирует `md_instance_info` и аккаунт `admin` (с `force_password_change = true`).
   - `SchemaVersionGate` блокирует запуск приложения при несовпадении версий схемы Flyway.
-  - `HeartbeatSenderWorker` отправляет периодические heartbeats в Control Plane (`POST /api/v1/cp/heartbeat`).
-- **Файлы:** `apps/instance/.../config/bootstrap/InstanceBootstrap.java`, `SchemaVersionGate.java`, `HeartbeatSenderWorker.java`.
-- **Команда проверки:** `mvn test -Dtest=MigrationGateAndBootstrapTest`
+  - `CpHeartbeatWorker` отправляет периодические heartbeats в Control Plane (`POST /api/v1/instances/heartbeat`).
+- **Файлы:** `apps/instance/.../config/bootstrap/InstanceBootstrap.java`, `SchemaVersionGate.java`, `CpHeartbeatWorker.java`.
+- **Команда проверки:** `mvn test` (100% SUCCESS), `powershell scripts/dev/test-api.ps1` (Сценарии 1-3, 100% SUCCESS).
+
 
 ---
 
