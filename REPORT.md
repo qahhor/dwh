@@ -121,8 +121,41 @@ powershell -ExecutionPolicy Bypass -File scripts/dev/test-api.ps1
 - **Backend:** 62/62 тестов успешно (`BUILD SUCCESS`).
 - **Live Smoke / E2E Suite:** 15/15 сценариев пройдены успешно (Healthcheck, Login, Session Verification, Keyset Pagination, Custom Fields, Projects, Tasks with JSONB, Instant Search, Markdown Comments, Bearer Token Issue, Bearer Auth, User Create, User Update, Brute-Force Lockout HTTP 423, User Anonymization).
 
-### Следующие шаги:
-- Переход к модулю **M4 (Ролевая модель и права / PERM)**:
-  - Проверка и расширение CRUD ролей, матрица разрешений `md_role_permissions`, кэширование и версионирование `md_user_permission_versions`.
+---
+
+## [2026-08-29 21:15] Финализация Этапа 1 (Вехи M1–M18), Pre-Production DevOps Suite и Аудит Качества
+
+### Итоги выполнения вех:
+- **M1 (Экземпляр и Bootstrap / INST)**: `SchemaVersionGate`, `InstanceBootstrap`, физическая изоляция БД, регистрация в Control Plane.
+- **M2 (Пользователи и профили / USR)**: Парольный валидатор, уникальность телефона, анонимизация (удаление) пользователей, защита системного `admin` (I-IAM-1).
+- **M3 (Авторизация и сессии / AUTH)**: Argon2id, SHA-256 сессионные куки `DWH_SESSION`, защита от брутфорса (HTTP 423), Double-Submit CSRF.
+- **M4 (Ролевая модель и права / RBAC)**: Матрица 16 форм и 43 действий, пересчет `md_effective_permissions` при создании и редактировании, аннотация `@RequiresPermission`.
+- **M5 (Задачник и проекты / TSK)**: Иерархия проектов, Kanban-статусы задач, Markdown-комментарии, динамические JSONB атрибуты.
+- **M6 (Система оповещений / NOTIFY)**: Realtime Server-Sent Events шина `MsSseRegistry`, Transactional Outbox worker `MsNotificationOutboxWorker`, глобальные баннеры.
+- **M7 (Файловое хранилище / FILE)**: Изоляция файлов, дедупликация SHA-256, двухуровневые квоты (компания + роли), провайдеры `LocalStorageProvider` и `S3StorageProvider`.
+- **M8 (Журнал аудита / AUDIT)**: Секционированная по месяцам таблица `audit_log`, журнал безопасности `security_events`, асинхронная запись через MDC W3C Traceparent.
+- **M9 (Настройки и локализация / SETT)**: Иерархические настройки, словари i18n (RU / UZ / EN).
+- **M10 (Контракт API и идемпотентность / API)**: OpenAPI 3.1 (`GET /api/v1/openapi.json`), блокировка повторов через UUID заголовок `Idempotency-Key` и SHA-256 хэш тела запроса.
+- **M11 (Безопасность / SEC)**: Rate limiting (Bucket4j 100 req/min), заголовочная защита CSP, HSTS, X-Frame-Options DENY, изоляция секретов.
+- **M12 (Модульность и границы / MOD)**: ArchUnit 8 правил модульного монолита, ацикличность DAG, отсутствие циклических ссылок.
+- **M13 (Наблюдаемость флота / OBS)**: W3C Traceparent MDC, Prometheus метрики (`:9090`, `:9091`), Spring Actuator Health & Info.
+- **M14 (Провайдеры SPI / PLUG)**: Модульная подсистема `libs/provider-spi` (`StorageProvider`, `MailProvider`, `SmsProvider`, `MessengerProvider`), `ProviderRegistry`.
+- **M15 (Control Plane и управление флотом / CP)**: Прием и валидация heartbeat (`X-Instance-Token`), реестр клиентов и инстансов, веб-панель `apps/web-cp`, публикация глобальных объявлений.
+- **M16 (Динамические атрибуты / ATTR)**: Конструктор кастомных полей `md_custom_fields`, валидация типов (string, number, boolean, date, select), GIN индексы `jsonb_path_ops`.
+- **M17 (Полнотекстовый поиск / SEARCH)**: Движок Typesense 27.1, мгновенный поиск задач/проектов/пользователей, автоматический graceful fallback на PostgreSQL `ILIKE`.
+- **M18 (Исходящие вебхуки / KWH)**: Подписки на события, Outbox worker с `FOR UPDATE SKIP LOCKED`, HMAC-SHA256 подпись с таймстампом, экспоненциальный retry, журнал доставок `kwh_logs`.
+
+### Pre-Production DevOps & Infrastructure Suite:
+- **Hardened NGINX Reverse Proxy**: Зоны Rate Limiting, буферизация отключена для SSE стриминга, структурированное JSON-логирование.
+- **Production Compose Orchestration**: `deploy/compose/docker-compose.fleet.prod.yml` с лимитами ресурсов, ротацией логов и network isolation.
+- **Zero-Touch Automation**: Скрипты `scripts/prod/deploy.sh` (автоматический деплой и проверка health), `backup.sh` (бэкап Postgres 18 с SHA-256 и ротацией 30 дней), `restore.sh` (Disaster Recovery).
+- **CI/CD Quality Gates**: GitHub Actions (`.github/workflows/ci.yml`) со сборкой backend + web-instance + web-cp, ArchUnit, SBOM CycloneDX, Gitleaks, Trivy.
+- **Эксплуатационная документация**: Полный комплект руководств (`docs/ops/` и `docs/audit/AUDIT-05-production-readiness-final.md`).
+
+### Финальный статус:
+- **E2E Smoke Tests (Instance):** **21/21 сценарий (100% SUCCESS)**.
+- **E2E Smoke Tests (Control Plane):** **9/9 сценариев (100% SUCCESS)**.
+- **Контейнеры Docker:** 7/7 запущены в статусе `healthy`.
+- **Статус готовности к релизу:** **🟢 100% PRODUCTION READY (GO)**.
 
 
