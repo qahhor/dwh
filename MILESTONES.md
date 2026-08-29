@@ -203,11 +203,14 @@
 ---
 
 ### M14. Провайдеры SPI (PLUG) [✅ ВЫПОЛНЕНО 2026-08-29]
-- **Цель:** Абстракция внешних сервисов (Storage, Mail, SMS, Messenger) через SPI интерфейсы.
+- **Цель:** Абстракция внешних сервисов (Storage, Mail, SMS, Messenger) через SPI интерфейсы, динамический реестр `ProviderRegistry` и единый мониторинг здоровья всех провайдеров.
 - **DoD:**
-  - Библиотека `libs/provider-spi` с интерфейсами `StorageProvider`, `MailProvider`, `SmsProvider`, `MessengerProvider`.
-  - Дефолтные реализации `LocalStorageProvider`, `ConsoleMailProvider`, `ConsoleSmsProvider`, `ConsoleMessengerProvider`.
-- **Файлы:** `libs/provider-spi/...`.
+  - Библиотека `libs/provider-spi` с интерфейсами `StorageProvider`, `MailProvider`, `SmsProvider`, `MessengerProvider` и структурой `ProviderHealth`.
+  - Реализации провайдеров: `LocalStorageProvider` (файлы и квоты), `ConsoleMailProvider` (email), `ConsoleSmsProvider` (SMS), `TelegramMessengerProvider` (Telegram Bot).
+  - Компонент `ProviderRegistry` с поддержкой конфигурационных свойств Spring Boot (`dwh.providers.storage`, `dwh.providers.mail`, `dwh.providers.sms`, `dwh.providers.messenger`) и методом `checkAllHealth()`.
+- **Файлы:** `libs/provider-spi/...`, `apps/instance/.../common/provider/ProviderRegistry.java`.
+- **Команда проверки:** `mvn test -Dtest=ProviderRegistryTest` (100% SUCCESS, 2/2 тестов), `powershell scripts/dev/test-api.ps1` (19/19 SUCCESS).
+
 
 ---
 
