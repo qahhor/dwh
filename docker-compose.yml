@@ -30,6 +30,20 @@ x-instance-env: &instance-env
   # регистрации экземпляра в панели; пустой — отправка выключена.
   DWH_CP_URL: ${DWH_CP_URL:-}
   DWH_CP_HEARTBEAT_TOKEN: ${DWH_CP_HEARTBEAT_TOKEN:-}
+  # Каналы доставки (FR-NOTIF-3/4/5). Пустой SMTP_HOST или TELEGRAM_BOT_TOKEN
+  # означает заглушку: письма и коды пишутся в журнал и никуда не уходят.
+  # Чтобы канал заработал, нужны ОБА параметра: адрес шлюза и выбор провайдера.
+  SMTP_HOST: ${SMTP_HOST:-}
+  SMTP_PORT: ${SMTP_PORT:-587}
+  SMTP_USER: ${SMTP_USER:-}
+  SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+  SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
+  DWH_MAIL_FROM: ${DWH_MAIL_FROM:-no-reply@localhost}
+  DWH_MAIL_FROM_NAME: ${DWH_MAIL_FROM_NAME:-DWH Platform}
+  TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+  DWH_PROVIDER_MAIL: ${DWH_PROVIDER_MAIL:-console_mail}
+  DWH_PROVIDER_SMS: ${DWH_PROVIDER_SMS:-console_sms}
+  DWH_PROVIDER_MESSENGER: ${DWH_PROVIDER_MESSENGER:-console_messenger}
   DWH_TYPESENSE_URL: ${DWH_TYPESENSE_URL:-http://typesense:8108}
   DWH_TYPESENSE_API_KEY: ${TYPESENSE_API_KEY:-dwh_typesense_local_dev_key}
   DWH_TYPESENSE_ENABLED: ${DWH_TYPESENSE_ENABLED:-true}

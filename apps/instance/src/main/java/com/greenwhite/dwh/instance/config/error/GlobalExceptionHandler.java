@@ -7,10 +7,14 @@ import com.greenwhite.dwh.instance.common.error.ApiException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -18,6 +22,8 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -44,6 +50,49 @@ public class GlobalExceptionHandler {
         var problem = ProblemDetailRecord.of(ErrorCode.BAD_REQUEST,
                 "Некорректный формат тела запроса", request.getRequestURI());
         return ResponseEntity.badRequest().body(problem);
+    }
+
+    /**
+     * Д-9 (AUDIT-05): метод не поддержан маршрутом — это ошибка клиента, а не сбой сервера.
+     * Раньше исключение проваливалось в общий обработчик: клиент получал 500, а в журнал
+     * шло «Unhandled exception», маскируя настоящие сбои.
+     * RFC 9110 требует на 405 заголовок Allow — отдаём его, чтобы клиент знал разрешённые методы.
+     */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ProblemDetailRecord> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex,
+                                                                        HttpServletRequest request) {
+        log.warn("Метод {} не поддержан маршрутом {}", ex.getMethod(), request.getRequestURI());
+
+        var problem = ProblemDetailRecord.of(ErrorCode.METHOD_NOT_ALLOWED,
+                "Метод " + ex.getMethod() + " не поддерживается этим ресурсом",
+                request.getRequestURI());
+
+        var builder = ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED);
+        Set<HttpMethod> supported = ex.getSupportedHttpMethods();
+        if (supported != null && !supported.isEmpty()) {
+            String allow = supported.stream().map(HttpMethod::name).collect(Collectors.joining(", "));
+            return builder.header("Allow", allow).body(problem);
+        }
+        return builder.body(problem);
+    }
+
+    /**
+     * Нарушение ограничения БД (unique, not null, внешний ключ) — следствие
+     * данных запроса, а не сбоя сервера. Раньше уходило в общий обработчик:
+     * клиент получал 500, а в журнал шло «Unhandled exception».
+     *
+     * Наружу идёт только код и общий текст: имя ограничения и фрагмент SQL —
+     * внутренняя деталь схемы, по которой не должен строиться клиент.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ProblemDetailRecord> handleDataIntegrityViolation(DataIntegrityViolationException ex,
+                                                                            HttpServletRequest request) {
+        log.warn("Нарушение ограничения целостности на {}: {}", request.getRequestURI(), ex.getMostSpecificCause().getMessage());
+
+        ErrorCode code = ex instanceof DuplicateKeyException ? ErrorCode.CODE_ALREADY_EXISTS : ErrorCode.CONFLICT;
+        var problem = ProblemDetailRecord.of(code,
+                "Запрос нарушает ограничение целостности данных", request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
     }
 
     @ExceptionHandler(NoResourceFoundException.class)

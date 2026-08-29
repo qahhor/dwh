@@ -10,6 +10,11 @@ import org.springframework.stereotype.Component;
 
 import java.util.UUID;
 
+/**
+ * Заглушка канала почты для разработки: пишет письмо в журнал и никуда его не шлёт.
+ * Здоровье намеренно отрицательное — восстановление пароля через такой канал
+ * не доходит до получателя, и знать об этом должна эксплуатация, а не пользователь.
+ */
 @Component
 public class ConsoleMailProvider implements MailProvider {
 
@@ -22,8 +27,8 @@ public class ConsoleMailProvider implements MailProvider {
 
     @Override
     public MailSendResult send(MailMessage message) {
-        log.info("[MAIL OUTBOX] Sending to <{}>: Subject='{}', Body='{}'",
-                message.recipientEmail(), message.subject(),
+        log.warn("[ЗАГЛУШКА ПОЧТЫ — НЕ ДОСТАВЛЕНО] Тема: {}, тело: {}",
+                message.subject(),
                 message.htmlBody() != null ? message.htmlBody() : message.textBody());
 
         return MailSendResult.success(UUID.randomUUID().toString(), 5);
@@ -31,6 +36,7 @@ public class ConsoleMailProvider implements MailProvider {
 
     @Override
     public ProviderHealth checkHealth() {
-        return ProviderHealth.healthy(getProviderCode(), 1);
+        return ProviderHealth.unhealthy(getProviderCode(),
+                "Заглушка: письма не доставляются. Задайте spring.mail.host и dwh.providers.mail=smtp", 0);
     }
 }
