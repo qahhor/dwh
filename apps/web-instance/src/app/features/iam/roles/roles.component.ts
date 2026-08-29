@@ -21,7 +21,7 @@ import { Role, FormTreeItem, PermissionPair } from '../../../core/models/rbac.mo
           <p class="page-subtitle">Настройка ролевого доступа RBAC к формам и действиям системы</p>
         </div>
         <ui-button
-          *ngIf="permService.canCreate('md_roles')"
+          *ngIf="permService.canCreate('iam.roles') || permService.canCreate('md_roles')"
           variant="primary"
           icon="add"
           (onClick)="openCreateRoleModal()"
@@ -58,7 +58,7 @@ import { Role, FormTreeItem, PermissionPair } from '../../../core/models/rbac.mo
               <p class="matrix-subtitle">Отметьте разрешённые действия для каждой формы</p>
             </div>
             <ui-button
-              *ngIf="permService.hasPermission('md_roles', 'grant')"
+              *ngIf="permService.hasPermission('iam.roles', 'grant') || permService.hasPermission('md_roles', 'grant') || permService.canUpdate('iam.roles')"
               variant="primary"
               size="md"
               [loading]="isSaving()"
@@ -66,6 +66,7 @@ import { Role, FormTreeItem, PermissionPair } from '../../../core/models/rbac.mo
             >
               Сохранить права
             </ui-button>
+
           </div>
 
           <div class="matrix-table-wrapper">

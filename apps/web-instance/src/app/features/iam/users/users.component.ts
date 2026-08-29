@@ -32,7 +32,7 @@ import { KeysetPage } from '../../../core/models/common.models';
           <p class="page-subtitle">Управление учётными записями, ролями и динамическими полями</p>
         </div>
         <ui-button
-          *ngIf="permService.canCreate('md_users')"
+          *ngIf="canCreateUser()"
           variant="primary"
           icon="person_add"
           (onClick)="openCreateModal()"
@@ -58,7 +58,7 @@ import { KeysetPage } from '../../../core/models/common.models';
           <select class="toolbar-select" [(ngModel)]="selectedState" (change)="loadUsers(true)">
             <option value="">Все статусы</option>
             <option value="A">Активные</option>
-            <option value="P">Заблокированные</option>
+            <option value="P">Заблокированные / Удаленные</option>
           </select>
           <ui-button variant="secondary" size="md" (onClick)="loadUsers(true)">Применить</ui-button>
         </div>
@@ -74,6 +74,7 @@ import { KeysetPage } from '../../../core/models/common.models';
                 <th>Пользователь</th>
                 <th>Логин</th>
                 <th>Email / Телефон</th>
+                <th>Язык / Зона</th>
                 <th>2FA</th>
                 <th>Статус</th>
                 <th>Создан</th>
@@ -85,7 +86,7 @@ import { KeysetPage } from '../../../core/models/common.models';
                 <td class="tabular-nums font-mono text-muted">#{{ u.id }}</td>
                 <td>
                   <div class="user-cell">
-                    <div class="user-avatar-sm">{{ u.name.charAt(0).toUpperCase() }}</div>
+                    <div class="user-avatar-sm">{{ u.name ? u.name.charAt(0).toUpperCase() : 'U' }}</div>
                     <span class="user-fullname font-medium">{{ u.name }}</span>
                   </div>
                 </td>
@@ -95,6 +96,10 @@ import { KeysetPage } from '../../../core/models/common.models';
                     <div>{{ u.email }}</div>
                     <div class="text-muted" *ngIf="u.phone">{{ u.phone }}</div>
                   </div>
+                </td>
+                <td class="text-muted text-xs">
+                  <div>{{ u.language || 'ru' }}</div>
+                  <div>{{ u.timezone || 'Asia/Tashkent' }}</div>
                 </td>
                 <td>
                   <span class="material-symbols-outlined twofa-icon" [class.enabled]="u.is2faEnabled">
@@ -109,7 +114,7 @@ import { KeysetPage } from '../../../core/models/common.models';
                 <td class="tabular-nums text-muted">{{ u.createdAt | date:'dd.MM.yyyy' }}</td>
                 <td class="text-right actions-cell">
                   <ui-button
-                    *ngIf="permService.canUpdate('md_users')"
+                    *ngIf="canUpdateUser()"
                     variant="ghost"
                     size="sm"
                     icon="edit"
@@ -117,7 +122,7 @@ import { KeysetPage } from '../../../core/models/common.models';
                     (onClick)="openEditModal(u)"
                   ></ui-button>
                   <ui-button
-                    *ngIf="u.state === 'A' && permService.hasPermission('md_users', 'block')"
+                    *ngIf="u.state === 'A' && canBlockUser()"
                     variant="ghost"
                     size="sm"
                     icon="lock"
@@ -125,7 +130,7 @@ import { KeysetPage } from '../../../core/models/common.models';
                     (onClick)="toggleUserState(u, 'block')"
                   ></ui-button>
                   <ui-button
-                    *ngIf="u.state === 'P' && permService.hasPermission('md_users', 'unblock')"
+                    *ngIf="u.state === 'P' && canUnblockUser()"
                     variant="ghost"
                     size="sm"
                     icon="lock_open"
@@ -133,7 +138,7 @@ import { KeysetPage } from '../../../core/models/common.models';
                     (onClick)="toggleUserState(u, 'unblock')"
                   ></ui-button>
                   <ui-button
-                    *ngIf="u.login !== 'admin' && permService.hasPermission('md_users', 'delete')"
+                    *ngIf="u.login !== 'admin' && canDeleteUser()"
                     variant="ghost"
                     size="sm"
                     icon="delete"
@@ -144,7 +149,7 @@ import { KeysetPage } from '../../../core/models/common.models';
               </tr>
 
               <tr *ngIf="users().length === 0 && !isLoading()">
-                <td colspan="8" class="empty-cell">Пользователи не найдены</td>
+                <td colspan="9" class="empty-cell">Пользователи не найдены</td>
               </tr>
             </tbody>
           </table>
@@ -189,11 +194,37 @@ import { KeysetPage } from '../../../core/models/common.models';
           </div>
         </div>
 
-        <div class="form-group">
-          <label class="form-label">Временный пароль <span class="req">*</span></label>
-          <input type="password" class="form-input" [(ngModel)]="createForm.password" placeholder="Минимум 10 символов" />
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label class="form-label">Временный пароль <span class="req">*</span></label>
+            <input type="password" class="form-input" [(ngModel)]="createForm.password" placeholder="Минимум 10 символов" />
+          </div>
+          <div class="form-group flex-1">
+            <label class="form-label">Язык интерфейса</label>
+            <select class="form-input" [(ngModel)]="createForm.language">
+              <option value="ru">Русский (ru)</option>
+              <option value="uz">O'zbekcha (uz)</option>
+              <option value="en">English (en)</option>
+            </select>
+          </div>
         </div>
 
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label class="form-label">Часовой пояс</label>
+            <select class="form-input" [(ngModel)]="createForm.timezone">
+              <option value="Asia/Tashkent">Asia/Tashkent (UTC+5)</option>
+              <option value="Europe/Moscow">Europe/Moscow (UTC+3)</option>
+              <option value="UTC">UTC (UTC+0)</option>
+            </select>
+          </div>
+          <div class="form-group flex-1 checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" [(ngModel)]="createForm.is2faEnabled" />
+              <span>Включить 2FA (двухфакторную аутентификацию)</span>
+            </label>
+          </div>
+        </div>
 
         <!-- Dynamic Custom Fields -->
         <div class="custom-fields-section" *ngIf="customFields().length > 0">
@@ -207,6 +238,66 @@ import { KeysetPage } from '../../../core/models/common.models';
       <div footer>
         <ui-button variant="secondary" size="md" (onClick)="isCreateModalOpen.set(false)">Отмена</ui-button>
         <ui-button variant="primary" size="md" [loading]="isSubmitting()" (onClick)="submitCreateUser()">Создать</ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- Edit User Modal -->
+    <ui-modal
+      [isOpen]="isEditModalOpen()"
+      title="Редактирование пользователя"
+      size="lg"
+      (close)="isEditModalOpen.set(false)"
+    >
+      <div body class="modal-form">
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label class="form-label">ФИО <span class="req">*</span></label>
+            <input type="text" class="form-input" [(ngModel)]="editForm.name" placeholder="Иванов Иван" />
+          </div>
+          <div class="form-group flex-1">
+            <label class="form-label">Телефон</label>
+            <input type="text" class="form-input" [(ngModel)]="editForm.phone" placeholder="+998901234567" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label class="form-label">Язык интерфейса</label>
+            <select class="form-input" [(ngModel)]="editForm.language">
+              <option value="ru">Русский (ru)</option>
+              <option value="uz">O'zbekcha (uz)</option>
+              <option value="en">English (en)</option>
+            </select>
+          </div>
+          <div class="form-group flex-1">
+            <label class="form-label">Часовой пояс</label>
+            <select class="form-input" [(ngModel)]="editForm.timezone">
+              <option value="Asia/Tashkent">Asia/Tashkent (UTC+5)</option>
+              <option value="Europe/Moscow">Europe/Moscow (UTC+3)</option>
+              <option value="UTC">UTC (UTC+0)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" [(ngModel)]="editForm.is2faEnabled" />
+            <span>Включить 2FA (двухфакторную аутентификацию)</span>
+          </label>
+        </div>
+
+        <!-- Dynamic Custom Fields -->
+        <div class="custom-fields-section" *ngIf="customFields().length > 0">
+          <h4 class="custom-fields-title">Дополнительные атрибуты</h4>
+          <ui-custom-fields
+            [fields]="customFields()"
+            [(values)]="editForm.attributes"
+          ></ui-custom-fields>
+        </div>
+      </div>
+      <div footer>
+        <ui-button variant="secondary" size="md" (onClick)="isEditModalOpen.set(false)">Отмена</ui-button>
+        <ui-button variant="primary" size="md" [loading]="isSubmitting()" (onClick)="submitEditUser()">Сохранить</ui-button>
       </div>
     </ui-modal>
   `,
@@ -341,6 +432,7 @@ import { KeysetPage } from '../../../core/models/common.models';
 
     .text-right { text-align: right; }
     .text-muted { color: var(--text-muted); }
+    .text-xs { font-size: 11px; }
     .font-mono { font-family: monospace; }
     .font-medium { font-weight: 500; }
     .actions-cell { white-space: nowrap; }
@@ -384,6 +476,20 @@ import { KeysetPage } from '../../../core/models/common.models';
       display: flex;
       flex-direction: column;
       gap: 4px;
+    }
+
+    .checkbox-group {
+      justify-content: center;
+      padding-top: 18px;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-main);
+      cursor: pointer;
     }
 
     .form-label {
@@ -440,6 +546,20 @@ export class UsersComponent implements OnInit {
     email: '',
     phone: '',
     password: '',
+    language: 'ru',
+    timezone: 'Asia/Tashkent',
+    is2faEnabled: false,
+    attributes: {}
+  };
+
+  readonly isEditModalOpen = signal<boolean>(false);
+  editUserId: number | null = null;
+  editForm: any = {
+    name: '',
+    phone: '',
+    language: 'ru',
+    timezone: 'Asia/Tashkent',
+    is2faEnabled: false,
     attributes: {}
   };
 
@@ -452,6 +572,26 @@ export class UsersComponent implements OnInit {
   ngOnInit() {
     this.loadUsers(true);
     this.loadCustomFields();
+  }
+
+  canCreateUser(): boolean {
+    return this.permService.canCreate('iam.users') || this.permService.canCreate('md_users');
+  }
+
+  canUpdateUser(): boolean {
+    return this.permService.canUpdate('iam.users') || this.permService.canUpdate('md_users');
+  }
+
+  canDeleteUser(): boolean {
+    return this.permService.canDelete('iam.users') || this.permService.canDelete('md_users');
+  }
+
+  canBlockUser(): boolean {
+    return this.permService.hasPermission('iam.users', 'block') || this.permService.hasPermission('md_users', 'block');
+  }
+
+  canUnblockUser(): boolean {
+    return this.permService.hasPermission('iam.users', 'unblock') || this.permService.hasPermission('md_users', 'unblock');
   }
 
   loadUsers(reset: boolean = false) {
@@ -495,6 +635,9 @@ export class UsersComponent implements OnInit {
       email: '',
       phone: '',
       password: '',
+      language: 'ru',
+      timezone: 'Asia/Tashkent',
+      is2faEnabled: false,
       attributes: {}
     };
     this.isCreateModalOpen.set(true);
@@ -506,6 +649,11 @@ export class UsersComponent implements OnInit {
       return;
     }
 
+    if (this.createForm.password.length < 10) {
+      this.toast.warning('Пароль должен содержать не менее 10 символов');
+      return;
+    }
+
     this.isSubmitting.set(true);
     this.api.post('/iam/users', this.createForm).subscribe({
       next: () => {
@@ -514,20 +662,57 @@ export class UsersComponent implements OnInit {
         this.toast.success('Пользователь успешно создан');
         this.loadUsers(true);
       },
-      error: () => {
+      error: (err: any) => {
         this.isSubmitting.set(false);
+        this.toast.error(err?.error?.detail || 'Ошибка при создании пользователя');
       }
     });
   }
 
   openEditModal(user: User) {
-    // Edit action
+    this.editUserId = user.id;
+    this.editForm = {
+      name: user.name,
+      phone: user.phone || '',
+      language: (user as any).language || 'ru',
+      timezone: (user as any).timezone || 'Asia/Tashkent',
+      is2faEnabled: !!user.is2faEnabled,
+      attributes: { ...(user.attributes || {}) }
+    };
+    this.isEditModalOpen.set(true);
+  }
+
+  submitEditUser() {
+    if (!this.editUserId) return;
+    if (!this.editForm.name) {
+      this.toast.warning('Имя пользователя обязательно');
+      return;
+    }
+
+    this.isSubmitting.set(true);
+    this.api.patch(`/iam/users/${this.editUserId}`, this.editForm).subscribe({
+      next: () => {
+        this.isSubmitting.set(false);
+        this.isEditModalOpen.set(false);
+        this.toast.success('Данные пользователя обновлены');
+        this.loadUsers(true);
+      },
+      error: (err: any) => {
+        this.isSubmitting.set(false);
+        this.toast.error(err?.error?.detail || 'Ошибка при сохранении пользователя');
+      }
+    });
   }
 
   toggleUserState(user: User, action: 'block' | 'unblock') {
-    this.api.post(`/iam/users/${user.id}/${action}`).subscribe(() => {
-      this.toast.success(action === 'block' ? 'Пользователь заблокирован' : 'Пользователь разблокирован');
-      this.loadUsers(true);
+    this.api.post(`/iam/users/${user.id}/${action}`).subscribe({
+      next: () => {
+        this.toast.success(action === 'block' ? 'Пользователь заблокирован' : 'Пользователь разблокирован');
+        this.loadUsers(true);
+      },
+      error: (err: any) => {
+        this.toast.error(err?.error?.detail || 'Ошибка при изменении статуса');
+      }
     });
   }
 
@@ -545,4 +730,3 @@ export class UsersComponent implements OnInit {
     }
   }
 }
-

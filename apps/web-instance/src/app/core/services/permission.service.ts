@@ -7,6 +7,21 @@ export class PermissionService {
   readonly permissions = signal<Set<string>>(new Set());
   readonly permissionVersion = signal<number>(1);
 
+  private readonly formAliases: Record<string, string[]> = {
+    'md_users': ['iam.users', 'md_users'],
+    'iam.users': ['iam.users', 'md_users'],
+    'md_roles': ['iam.roles', 'md_roles'],
+    'iam.roles': ['iam.roles', 'md_roles'],
+    'md_custom_fields': ['system.custom_fields', 'md_custom_fields', 'iam.users'],
+    'system.custom_fields': ['system.custom_fields', 'md_custom_fields', 'iam.users'],
+    'iam.profile': ['iam.profile', 'md_profile'],
+    'md_profile': ['iam.profile', 'md_profile'],
+    'tasks': ['tasks.items', 'tasks'],
+    'tasks.items': ['tasks.items', 'tasks'],
+    'tasks.projects': ['tasks.projects', 'projects'],
+    'audit': ['audit.logs', 'audit']
+  };
+
   setPermissions(perms: string[], version: number = 1) {
     this.permissions.set(new Set(perms));
     this.permissionVersion.set(version);
@@ -22,7 +37,16 @@ export class PermissionService {
     if (perms.has('*.*')) {
       return true;
     }
-    return perms.has(`${form}.${action}`);
+    if (perms.has(`${form}.${action}`) || perms.has(`${form}.*`)) {
+      return true;
+    }
+    const aliases = this.formAliases[form] || [form];
+    for (const alias of aliases) {
+      if (perms.has(`${alias}.${action}`) || perms.has(`${alias}.*`)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   canView(form: string): boolean {

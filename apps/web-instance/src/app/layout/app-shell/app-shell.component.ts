@@ -511,20 +511,21 @@ export class AppShellComponent implements OnInit {
   }
 
   canViewUsers(): boolean {
-    return this.permService.canView('md_users');
+    return this.permService.canView('iam.users') || this.permService.canView('md_users');
   }
 
   canViewRoles(): boolean {
-    return this.permService.canView('md_roles');
+    return this.permService.canView('iam.roles') || this.permService.canView('md_roles');
   }
 
   canViewCustomFields(): boolean {
-    return this.permService.canView('md_custom_fields');
+    return this.permService.canView('system.custom_fields') || this.permService.canView('md_custom_fields');
   }
 
   canViewAudit(): boolean {
-    return this.permService.hasPermission('audit', 'view');
+    return this.permService.hasPermission('audit.logs', 'view') || this.permService.hasPermission('audit', 'view');
   }
+
 
   getUserInitial(): string {
     const user = this.authService.currentUser();
