@@ -65,14 +65,15 @@ TOTAL             280           22,712 (без вендорных lock-файл�
 ## 4. Тестовое покрытие и верификация
 
 - **Фреймворки:** JUnit 5, Mockito, Spring Boot Test, Testcontainers (PostgreSQL 18), ArchUnit.
-- **Общее количество тестов:** **57 тестов** (100% проходят успешно).
+- **Общее количество тестов:** **61 тест** (100% проходят успешно).
   - `libs/core-types`: 2 теста (Keyset пагинация, утилиты курсоров).
-  - `apps/instance`: 54 теста (Security Config, CSRF, Rate Limiting, RBAC Integration, User Blocking Invariant, Password Hasher, Flyway Migrations, Webhook HMAC, SSE Registry, Task Aggregates, Search, File Streaming).
+  - `apps/instance`: 58 тестов (Security Config, CSRF, Rate Limiting, RBAC Integration, User Blocking Invariant, Password Validator & Hasher, Phone Uniqueness, Anonymization, Flyway Migrations, Webhook HMAC, SSE Registry, Task Aggregates, Search, File Streaming).
   - `apps/control-plane`: 1 тест (Flyway Script Integrity).
 - **Команда запуска всех тестов:**
   ```bash
   mvn test
   ```
+
 
 ---
 

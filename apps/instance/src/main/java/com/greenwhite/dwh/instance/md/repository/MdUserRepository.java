@@ -112,6 +112,34 @@ public class MdUserRepository {
                 .single() > 0;
     }
 
+    public boolean existsByPhone(String phone) {
+        if (phone == null || phone.isBlank()) return false;
+        return jdbcClient.sql("select count(*) from md_users where phone = :phone and state = 'A'")
+                .param("phone", phone.trim())
+                .query(Integer.class)
+                .single() > 0;
+    }
+
+    public void anonymizeUser(Long userId, Long modifiedBy) {
+        jdbcClient.sql("""
+                update md_users
+                set name = 'Deleted User ' || :userId,
+                    login = 'deleted_' || :userId,
+                    email = 'deleted_' || :userId || '@anonymized.local',
+                    phone = null,
+                    password_hash = 'ANONYMIZED',
+                    avatar_file_id = null,
+                    attributes = '{}'::jsonb,
+                    state = 'P',
+                    modified_at = now(),
+                    modified_by = :modifiedBy
+                where id = :userId
+                """)
+                .param("userId", userId)
+                .param("modifiedBy", modifiedBy)
+                .update();
+    }
+
     public List<UserRecord> listUsers(int limit, Long afterId, String search, String state) {
         StringBuilder sql = new StringBuilder("""
                 select id, name, login, email, phone, password_hash, state, manager_id, language, timezone,

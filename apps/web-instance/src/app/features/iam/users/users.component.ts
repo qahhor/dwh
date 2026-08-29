@@ -132,8 +132,17 @@ import { KeysetPage } from '../../../core/models/common.models';
                     title="Разблокировать"
                     (onClick)="toggleUserState(u, 'unblock')"
                   ></ui-button>
+                  <ui-button
+                    *ngIf="u.login !== 'admin' && permService.hasPermission('md_users', 'delete')"
+                    variant="ghost"
+                    size="sm"
+                    icon="delete"
+                    title="Удалить (анонимизировать)"
+                    (onClick)="deleteUser(u)"
+                  ></ui-button>
                 </td>
               </tr>
+
               <tr *ngIf="users().length === 0 && !isLoading()">
                 <td colspan="8" class="empty-cell">Пользователи не найдены</td>
               </tr>
@@ -182,8 +191,9 @@ import { KeysetPage } from '../../../core/models/common.models';
 
         <div class="form-group">
           <label class="form-label">Временный пароль <span class="req">*</span></label>
-          <input type="password" class="form-input" [(ngModel)]="createForm.password" placeholder="Минимум 8 символов" />
+          <input type="password" class="form-input" [(ngModel)]="createForm.password" placeholder="Минимум 10 символов" />
         </div>
+
 
         <!-- Dynamic Custom Fields -->
         <div class="custom-fields-section" *ngIf="customFields().length > 0">
@@ -520,4 +530,19 @@ export class UsersComponent implements OnInit {
       this.loadUsers(true);
     });
   }
+
+  deleteUser(user: User) {
+    if (confirm(`Вы действительно хотите удалить и анонимизировать пользователя "${user.name}" (@${user.login})? Это действие необратимо.`)) {
+      this.api.delete(`/iam/users/${user.id}`).subscribe({
+        next: () => {
+          this.toast.success(`Пользователь ${user.name} успешно удален и анонимизирован`);
+          this.loadUsers(true);
+        },
+        error: (err: any) => {
+          this.toast.error(err?.error?.detail || 'Ошибка при удалении пользователя');
+        }
+      });
+    }
+  }
 }
+

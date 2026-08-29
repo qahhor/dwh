@@ -22,7 +22,7 @@ public class MdUserService {
     private final MdPermissionService permissionService;
     private final MdCustomFieldService customFieldService;
     private final PasswordHasher passwordHasher;
-
+    private final PasswordValidator passwordValidator;
     private final UserSessionInvalidator sessionInvalidator;
 
     public MdUserService(
@@ -31,6 +31,7 @@ public class MdUserService {
             MdPermissionService permissionService,
             MdCustomFieldService customFieldService,
             PasswordHasher passwordHasher,
+            PasswordValidator passwordValidator,
             UserSessionInvalidator sessionInvalidator) {
         this.sessionInvalidator = sessionInvalidator;
         this.userRepository = userRepository;
@@ -38,6 +39,7 @@ public class MdUserService {
         this.permissionService = permissionService;
         this.customFieldService = customFieldService;
         this.passwordHasher = passwordHasher;
+        this.passwordValidator = passwordValidator;
     }
 
     @Transactional
@@ -51,6 +53,14 @@ public class MdUserService {
         }
         if (userRepository.existsByEmail(email)) {
             throw ApiException.conflict(ErrorCode.CODE_ALREADY_EXISTS, "Пользователь с таким email уже существует");
+        }
+        if (phone != null && !phone.isBlank() && userRepository.existsByPhone(phone)) {
+            throw ApiException.conflict(ErrorCode.CODE_ALREADY_EXISTS, "Активный пользователь с таким номером телефона уже существует");
+        }
+
+        // FR-USR-2: Password complexity & dictionary check
+        if (rawPassword != null && !rawPassword.isBlank()) {
+            passwordValidator.validate(rawPassword, login);
         }
 
         // Validate custom dynamic fields
@@ -117,6 +127,14 @@ public class MdUserService {
                            String language, String timezone, UUID avatarFileId,
                            Map<String, Object> attributes, Boolean is2faEnabled, Long modifiedBy) {
 
+        var existingUser = getUserById(userId);
+
+        if (phone != null && !phone.isBlank() && !phone.equals(existingUser.phone())) {
+            if (userRepository.existsByPhone(phone)) {
+                throw ApiException.conflict(ErrorCode.CODE_ALREADY_EXISTS, "Активный пользователь с таким номером телефона уже существует");
+            }
+        }
+
         if (attributes != null) {
             customFieldService.validateAttributes("USER", attributes);
         }
@@ -125,6 +143,21 @@ public class MdUserService {
                 name, phone, managerId, language, timezone, avatarFileId, attributes, is2faEnabled
         ), modifiedBy);
     }
+
+    @Transactional
+    public void changePassword(Long userId, String oldPassword, String newPassword) {
+        var user = getUserById(userId);
+
+        if (user.passwordHash() != null && !passwordHasher.verifyPassword(oldPassword, user.passwordHash())) {
+            throw ApiException.badRequest(ErrorCode.INVALID_CREDENTIALS, "Неверный текущий пароль");
+        }
+
+        passwordValidator.validate(newPassword, user.login());
+
+        String newHash = passwordHasher.hashPassword(newPassword);
+        userRepository.updatePassword(userId, newHash);
+    }
+
 
     @Transactional
     public void setUserState(Long targetUserId, String newState, Long currentUserId) {
@@ -143,4 +176,21 @@ public class MdUserService {
             sessionInvalidator.invalidateAllAccess(targetUserId);
         }
     }
+
+    @Transactional
+    public void anonymizeUser(Long targetUserId, Long currentUserId) {
+        var targetUser = getUserById(targetUserId);
+
+        // I-IAM-1: Системный администратор не может быть удалён или анонимизирован
+        if (targetUser.login().equalsIgnoreCase("admin")) {
+            throw ApiException.conflict(ErrorCode.SUPERADMIN_IMMUTABLE, "Системный администратор не может быть удалён");
+        }
+
+        // FR-USR-8: Анонимизация ПДн с сохранением реляционной целостности для аудита
+        userRepository.anonymizeUser(targetUserId, currentUserId);
+
+        // Закрытие всех сессий и отзыв токенов
+        sessionInvalidator.invalidateAllAccess(targetUserId);
+    }
+
 }

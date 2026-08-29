@@ -110,12 +110,29 @@ public class MdUserController {
         return ResponseEntity.noContent().build();
     }
 
+    @DeleteMapping("/{id}")
+    @RequiresPermission(form = MdPref.FORM_USERS, action = "delete")
+    public ResponseEntity<Void> deleteUser(@PathVariable("id") Long id) {
+        Long currentUserId = SecurityContext.getCurrentUserId();
+        userService.anonymizeUser(id, currentUserId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/me/password")
+    @RequiresPermission(form = MdPref.FORM_PROFILE, action = "update")
+    public ResponseEntity<Void> changeMyPassword(@Valid @RequestBody ChangePasswordDto body) {
+        Long currentUserId = SecurityContext.getCurrentUserId();
+        userService.changePassword(currentUserId, body.oldPassword(), body.newPassword());
+        return ResponseEntity.noContent().build();
+    }
+
+
     public record CreateUserDto(
             @NotBlank String name,
             @NotBlank @Size(min = 3, max = 50) String login,
             @NotBlank @Email String email,
             String phone,
-            @NotBlank @Size(min = 8) String password,
+            @NotBlank @Size(min = 10) String password,
             Long managerId,
             String language,
             String timezone,
@@ -135,4 +152,10 @@ public class MdUserController {
             Map<String, Object> attributes,
             Boolean is2faEnabled
     ) {}
+
+    public record ChangePasswordDto(
+            @NotBlank String oldPassword,
+            @NotBlank @Size(min = 10) String newPassword
+    ) {}
 }
+
