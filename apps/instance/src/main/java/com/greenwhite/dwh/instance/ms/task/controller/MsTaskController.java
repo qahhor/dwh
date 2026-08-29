@@ -18,8 +18,9 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/v1/tasks/items")
+@RequestMapping({"/api/v1/tasks/items", "/api/v1/tasks"})
 public class MsTaskController {
+
 
     private final MsTaskService taskService;
 

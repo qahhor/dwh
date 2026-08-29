@@ -14,7 +14,9 @@ export interface ProblemDetail {
   instance?: string;
   timestamp?: string;
   errors?: FieldErrorItem[];
+  invalid_params?: Array<{ name: string; reason: string; code?: string }>;
 }
+
 
 export interface FieldErrorItem {
   field: string;

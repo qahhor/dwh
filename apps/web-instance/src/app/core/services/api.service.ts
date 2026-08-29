@@ -69,22 +69,36 @@ export class ApiService {
   private handleError(error: HttpErrorResponse): Observable<never> {
     let problem: ProblemDetail;
 
-    if (error.error && typeof error.error === 'object' && error.error.code) {
-      problem = error.error as ProblemDetail;
+    if (error.error && typeof error.error === 'object') {
+      const p = error.error as any;
+      let detail = p.detail || p.message;
+      if (Array.isArray(p.invalid_params) && p.invalid_params.length > 0) {
+        const fieldMsgs = p.invalid_params.map((ip: any) => `${ip.name}: ${ip.reason || ip.code}`).join('; ');
+        detail = detail ? `${detail} (${fieldMsgs})` : fieldMsgs;
+      }
+      problem = {
+        title: p.title || 'Ошибка',
+        status: error.status || 400,
+        code: p.code || 'API_ERROR',
+        detail: detail || p.title || 'Произошла ошибка при выполнении операции',
+        invalid_params: p.invalid_params
+      };
     } else {
       problem = {
         title: 'Ошибка соединения',
         status: error.status || 500,
         code: 'NETWORK_ERROR',
-        detail: error.message || 'Не удалось выполнить запрос к серверу'
+        detail: error.status === 0 ? 'Сервер недоступен или отсутствует соединение с сетью' : (error.message || 'Не удалось выполнить запрос')
       };
     }
 
-    // Don't toast 401 on initial /auth/me check
-    if (error.status !== 401 || !error.url?.includes('/auth/me')) {
-      this.toast.error(problem.detail || problem.title, problem.code);
+    // Don't toast 401 on initial /auth/me verification or normal 404 search
+    const isAuthCheck = error.status === 401 && error.url?.includes('/auth/me');
+    if (!isAuthCheck) {
+      this.toast.error(problem.detail || problem.title);
     }
 
     return throwError(() => problem);
   }
+
 }

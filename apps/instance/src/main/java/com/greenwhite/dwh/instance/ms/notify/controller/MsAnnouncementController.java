@@ -21,9 +21,10 @@ public class MsAnnouncementController {
         this.notificationService = notificationService;
     }
 
-    @GetMapping
+    @GetMapping({"", "/active"})
     @RequiresPermission(form = MsNotifyPref.FORM_ANNOUNCEMENTS, action = "view")
     public ResponseEntity<List<MsAnnouncementRepository.AnnouncementRecord>> getAnnouncements(
+
             @RequestParam(name = "language", defaultValue = "ru") String language) {
 
         Long userId = SecurityContext.getCurrentUserId();
