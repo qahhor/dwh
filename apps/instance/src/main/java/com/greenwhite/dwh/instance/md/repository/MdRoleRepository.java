@@ -148,18 +148,39 @@ public class MdRoleRepository {
                 .list();
     }
 
+    public java.util.Map<Long, List<Long>> getUsersRoleIds(List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) return java.util.Map.of();
+        java.util.Map<Long, List<Long>> map = new java.util.HashMap<>();
+        for (Long id : userIds) {
+            map.put(id, new java.util.ArrayList<>());
+        }
+        String inSql = String.join(",", java.util.Collections.nCopies(userIds.size(), "?"));
+        jdbcClient.sql("select user_id, role_id from md_user_roles where user_id in (" + inSql + ")")
+                .params(userIds.toArray())
+                .query((rs, rowNum) -> {
+                    Long uid = rs.getLong("user_id");
+                    Long rid = rs.getLong("role_id");
+                    map.computeIfAbsent(uid, k -> new java.util.ArrayList<>()).add(rid);
+                    return null;
+                });
+        return map;
+    }
+
     public void assignRolesToUser(Long userId, List<Long> roleIds) {
         jdbcClient.sql("delete from md_user_roles where user_id = :userId")
                 .param("userId", userId)
                 .update();
 
-        for (Long roleId : roleIds) {
-            jdbcClient.sql("insert into md_user_roles (user_id, role_id) values (:userId, :roleId)")
-                    .param("userId", userId)
-                    .param("roleId", roleId)
-                    .update();
+        if (roleIds != null) {
+            for (Long roleId : roleIds) {
+                jdbcClient.sql("insert into md_user_roles (user_id, role_id) values (:userId, :roleId)")
+                        .param("userId", userId)
+                        .param("roleId", roleId)
+                        .update();
+            }
         }
     }
+
 
     public record RoleRecord(
             Long id,

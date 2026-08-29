@@ -122,10 +122,21 @@ public class MdUserService {
         return KeysetPage.of(resultItems, nextCursor, hasMore, resultItems.size());
     }
 
+    @Transactional(readOnly = true)
+    public List<Long> getUserRoleIds(Long userId) {
+        return roleRepository.getUserRoleIds(userId);
+    }
+
+    @Transactional(readOnly = true)
+    public Map<Long, List<Long>> getUsersRoleIds(List<Long> userIds) {
+        return roleRepository.getUsersRoleIds(userIds);
+    }
+
     @Transactional
     public void updateUser(Long userId, String name, String phone, Long managerId,
                            String language, String timezone, UUID avatarFileId,
-                           Map<String, Object> attributes, Boolean is2faEnabled, Long modifiedBy) {
+                           Map<String, Object> attributes, Boolean is2faEnabled,
+                           List<Long> roleIds, Long modifiedBy) {
 
         var existingUser = getUserById(userId);
 
@@ -142,7 +153,21 @@ public class MdUserService {
         userRepository.update(userId, new MdUserRepository.UserUpdateData(
                 name, phone, managerId, language, timezone, avatarFileId, attributes, is2faEnabled
         ), modifiedBy);
+
+        if (roleIds != null) {
+            // I-IAM-1: Нельзя снять роль администратора с системного администратора admin
+            if (existingUser.login().equalsIgnoreCase("admin")) {
+                roleRepository.findByPcode(MdPref.ROLE_ADMIN).ifPresent(adminRole -> {
+                    if (!roleIds.contains(adminRole.id())) {
+                        throw ApiException.conflict(ErrorCode.SUPERADMIN_IMMUTABLE, "Роль администратора не может быть снята с системного администратора");
+                    }
+                });
+            }
+            roleRepository.assignRolesToUser(userId, roleIds);
+            permissionService.recalculateEffectivePermissions(userId);
+        }
     }
+
 
     @Transactional
     public void changePassword(Long userId, String oldPassword, String newPassword) {

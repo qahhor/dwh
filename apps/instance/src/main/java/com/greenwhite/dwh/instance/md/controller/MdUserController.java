@@ -38,15 +38,20 @@ public class MdUserController {
             @RequestParam(name = "state", required = false) String state) {
 
         var page = userService.listUsers(limit, cursor, search, state);
+        var userIds = page.items().stream().map(MdUserRepository.UserRecord::id).toList();
+        var rolesMap = userService.getUsersRoleIds(userIds);
+
         return ResponseEntity.ok(new KeysetPage<>(
-                page.items().stream().map(MdUserView::from).toList(),
+                page.items().stream().map(u -> MdUserView.from(u, rolesMap.getOrDefault(u.id(), List.of()))).toList(),
                 page.nextCursor(), page.hasMore(), page.totalEstimated()));
     }
 
     @GetMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_USERS, action = "view")
     public ResponseEntity<MdUserView> getUser(@PathVariable("id") Long id) {
-        return ResponseEntity.ok(MdUserView.from(userService.getUserById(id)));
+        var user = userService.getUserById(id);
+        var roleIds = userService.getUserRoleIds(id);
+        return ResponseEntity.ok(MdUserView.from(user, roleIds));
     }
 
     @PostMapping
@@ -70,7 +75,8 @@ public class MdUserController {
                 currentUserId
         );
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(MdUserView.from(user));
+        var roleIds = userService.getUserRoleIds(user.id());
+        return ResponseEntity.status(HttpStatus.CREATED).body(MdUserView.from(user, roleIds));
     }
 
     @PatchMapping("/{id}")
@@ -88,11 +94,13 @@ public class MdUserController {
                 body.avatarFileId(),
                 body.attributes(),
                 body.is2faEnabled(),
+                body.roleIds(),
                 currentUserId
         );
 
         return ResponseEntity.noContent().build();
     }
+
 
     @PostMapping("/{id}/block")
     @RequiresPermission(form = MdPref.FORM_USERS, action = "block")
@@ -150,8 +158,10 @@ public class MdUserController {
             String timezone,
             UUID avatarFileId,
             Map<String, Object> attributes,
-            Boolean is2faEnabled
+            Boolean is2faEnabled,
+            List<Long> roleIds
     ) {}
+
 
     public record ChangePasswordDto(
             @NotBlank String oldPassword,

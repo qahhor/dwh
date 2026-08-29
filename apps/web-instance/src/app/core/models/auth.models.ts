@@ -12,10 +12,12 @@ export interface User {
   attributes: Record<string, any>;
   is2faEnabled: boolean;
   forcePasswordChange: boolean;
+  roleIds?: number[];
   passwordChangedAt?: string;
   createdAt: string;
   modifiedAt: string;
 }
+
 
 export interface LoginResponse {
   step: 'success' | 'otp';
