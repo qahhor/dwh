@@ -25,6 +25,11 @@ x-instance-env: &instance-env
   DWH_INSTANCE_ADMIN_LOGIN: ${ADMIN_LOGIN:-admin}
   DWH_INSTANCE_ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@dev.local}
   DWH_INSTANCE_ADMIN_PASSWORD: ${ADMIN_PASSWORD:-DevOnly-ChangeMe-1}
+  # Heartbeat в control plane (FR-INST-3). Токен выдаётся один раз при
+  # регистрации экземпляра в панели; пустой — отправка выключена.
+  DWH_CP_URL: ${DWH_CP_URL:-}
+  DWH_CP_HEARTBEAT_TOKEN: ${DWH_CP_HEARTBEAT_TOKEN:-}
+  DWH_CP_HEARTBEAT_INTERVAL: ${DWH_CP_HEARTBEAT_INTERVAL:-5m}
   MANAGEMENT_PORT: 9090          # порт для HEALTHCHECK образа
   TZ: UTC
 
@@ -106,6 +111,9 @@ services:
       CP_DB_URL: jdbc:postgresql://db-cp:5432/${CP_DB_NAME:-dwh_control_plane}
       CP_DB_USER: ${CP_DB_USER:-dwh_cp}
       CP_DB_PASSWORD: ${CP_DB_PASSWORD:-dwh_cp_local_dev}
+      CP_ADMIN_LOGIN: ${CP_ADMIN_LOGIN:-cpadmin}
+      CP_ADMIN_EMAIL: ${CP_ADMIN_EMAIL:-cpadmin@dev.local}
+      CP_ADMIN_PASSWORD: ${CP_ADMIN_PASSWORD:-CpDevOnly-ChangeMe-1}
       MANAGEMENT_PORT: 9091      # у control plane свой actuator-порт
       TZ: UTC
     depends_on:
@@ -133,6 +141,18 @@ services:
       - "${WEB_PORT:-4200}:8080"
     depends_on:
       - app
+
+  # Панель управления флотом. Отдельный контур сотрудников платформы:
+  # свой origin, своя cookie-сессия, к экземпляру клиента отношения не имеет.
+  web-cp:
+    build: {context: ./apps/web-cp}
+    image: ${PROJECT_NAME:-SmartupCMS}/web-cp:${APP_VERSION:-dev}
+    container_name: ${PROJECT_NAME:-SmartupCMS}-web-cp
+    restart: unless-stopped
+    ports:
+      - "${CP_WEB_PORT:-4300}:8080"
+    depends_on:
+      - control-plane
 
 volumes:
   db-data:

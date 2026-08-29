@@ -1,0 +1,8 @@
+# Без этого в образ уезжают Windows-сборки нативных модулей и 90+ МБ мусора,
+# а COPY . . затирает зависимости, установленные npm ci внутри контейнера.
+node_modules
+dist
+.angular
+npm-debug.log*
+Dockerfile
+.dockerignore

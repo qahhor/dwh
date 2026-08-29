@@ -53,6 +53,15 @@ management:
         enabled: true
 
 dwh:
+  control-plane:
+    # Heartbeat в control plane (FR-INST-3). Пусто — отправка выключена:
+    # экземпляр обязан работать и на изолированном контуре клиента.
+    # Токен выдаётся один раз при регистрации экземпляра в панели.
+    # Отдельный префикс, не dwh.instance: там живут параметры первичной
+    # инициализации (FR-INST-1), у них другой жизненный цикл.
+    url: ${DWH_CP_URL:}
+    token: ${DWH_CP_HEARTBEAT_TOKEN:}
+    interval: ${DWH_CP_HEARTBEAT_INTERVAL:5m}
   sse:
     timeout-ms: 1800000            # 30 мин; EventSource переподключается сам
     heartbeat-ms: 25000            # keep-alive < таймаута прокси (обычно 60 с)

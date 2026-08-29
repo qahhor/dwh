@@ -8,6 +8,12 @@ spring:
   threads:
     virtual:
       enabled: true
+  mvc:
+    # RFC 9457 problem+json (ADR-0008) — паритет с instance.
+    # Без этого reason из ResponseStatusException теряется и панель
+    # не может показать оператору причину отказа.
+    problemdetails:
+      enabled: true
   datasource:
     url: ${CP_DB_URL:jdbc:postgresql://localhost:5432/dwh_control_plane}
     username: ${CP_DB_USER:postgres}
@@ -23,6 +29,14 @@ spring:
     enabled: false
     locations: classpath:db/migration
     baseline-on-migrate: false
+
+dwh:
+  cp:
+    # Первый сотрудник control plane. Без этих значений в панель не войти.
+    admin-login: ${CP_ADMIN_LOGIN:}
+    admin-email: ${CP_ADMIN_EMAIL:}
+    admin-password: ${CP_ADMIN_PASSWORD:}
+    admin-name: ${CP_ADMIN_NAME:Platform Administrator}
 
 management:
   server:

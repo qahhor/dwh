@@ -130,6 +130,9 @@
                     <execution>
                         <goals>
                             <goal>repackage</goal>
+                            <!-- build-info: версия приложения в /actuator/info и в
+                                 heartbeat control plane (FR-CP-2 «инвентарь версий») -->
+                            <goal>build-info</goal>
                         </goals>
                     </execution>
                 </executions>

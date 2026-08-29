@@ -24,6 +24,30 @@ Security, лимиты, миграции отдельным шагом, CI, те
 - Модель предметной области унаследована от платформы Biruni (формы/действия/роли,
   эффективные права, аудит), механизм — переписан под PostgreSQL и приложение-центричную модель.
 
+## Локальный запуск
+
+Весь проект поднимается одной compose-группой; её имя берётся из `PROJECT_NAME`
+в `.env` (по умолчанию `SmartupCMS`). Порядок обязателен — миграции отдельным
+шагом (NFR-10):
+
+```bash
+cp .env.example .env
+docker compose run --rm migrate
+docker compose run --rm migrate-cp
+docker compose up -d
+```
+
+| Что | Адрес | Учётные данные |
+|---|---|---|
+| Интерфейс экземпляра | http://localhost:4200 | `ADMIN_LOGIN` / `ADMIN_PASSWORD` из `.env` |
+| Панель управления флотом | http://localhost:4300 | `CP_ADMIN_LOGIN` / `CP_ADMIN_PASSWORD` из `.env` |
+| API экземпляра | http://localhost:8080 | сессионная cookie |
+| API control plane | http://localhost:8082 | сессионная cookie |
+
+Порты меняются переменными `WEB_PORT`, `CP_WEB_PORT`, `APP_PORT`, `CP_PORT`.
+Пароли из `.env.example` — только для разработки, в production они обязаны
+задаваться из Vault ([ADR-0008](docs/adr/ADR-0008-security-baseline.md)).
+
 ## Документация
 
 | Документ | Что внутри |

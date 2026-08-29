@@ -25,6 +25,20 @@ x-app-common: &app-common
     DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-dwh_instance}
     DB_USER: ${DB_USER:?}
     DB_PASSWORD: ${DB_PASSWORD:?}
+    # Инициализация экземпляра (FR-INST-1). Значения из .env сами в контейнер
+    # не попадают — compose использует .env только для подстановки, поэтому
+    # каждую переменную приходится перечислять явно.
+    DWH_INSTANCE_CLIENT_CODE: ${CLIENT_CODE:?требуется CLIENT_CODE}
+    DWH_INSTANCE_CLIENT_NAME: ${CLIENT_NAME:?требуется CLIENT_NAME}
+    DWH_INSTANCE_RESOURCE_PROFILE: ${RESOURCE_PROFILE:-S}
+    DWH_INSTANCE_ADMIN_LOGIN: ${DWH_INSTANCE_ADMIN_LOGIN:-admin}
+    DWH_INSTANCE_ADMIN_EMAIL: ${DWH_INSTANCE_ADMIN_EMAIL:-}
+    DWH_INSTANCE_ADMIN_PASSWORD: ${DWH_INSTANCE_ADMIN_PASSWORD:-}
+    # Heartbeat в control plane (FR-INST-3). Токен выдаётся один раз при
+    # регистрации экземпляра в панели; пустой — отправка выключена.
+    DWH_CP_URL: ${DWH_CP_URL:-}
+    DWH_CP_HEARTBEAT_TOKEN: ${DWH_CP_HEARTBEAT_TOKEN:-}
+    DWH_CP_HEARTBEAT_INTERVAL: ${DWH_CP_HEARTBEAT_INTERVAL:-5m}
     TZ: UTC
   networks: [dwh-internal]
   logging:
