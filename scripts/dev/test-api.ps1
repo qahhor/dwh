@@ -21,7 +21,13 @@ try {
 
 # 2. Login as admin
 Write-Host "`n2. Authentication (POST /api/v1/auth/login)..." -ForegroundColor Yellow
-$adminPassword = if ($env:ADMIN_PASSWORD) { $env:ADMIN_PASSWORD } else { "Qazaq#1212" }
+# Пароль берётся только из окружения. Значения по умолчанию здесь быть не может:
+# скрипт лежит в репозитории, а FR-SEC-3 запрещает хранить в нём секреты.
+if (-not $env:ADMIN_PASSWORD) {
+    Write-Host "Не задан ADMIN_PASSWORD. Запустите: `$env:ADMIN_PASSWORD='<пароль из .env>'" -ForegroundColor Red
+    exit 1
+}
+$adminPassword = $env:ADMIN_PASSWORD
 
 $loginBody = @{
     login = "admin"
