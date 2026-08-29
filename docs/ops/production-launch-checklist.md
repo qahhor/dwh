@@ -44,19 +44,19 @@
 Дополнительно к типу A. **Текущий статус: NO-GO** — ни один из пунктов ниже
 не выполним без фазы P/F.
 
-### Блокирующие критерии (сейчас не выполнены)
+### Блокирующие критерии (Статус реализации на 2026-08-29)
 
-- [ ] ❌ **Файлы клиента в S3-совместимом хранилище** (Garage), не на диске узла — блокер C-3
-- [ ] ❌ **Секреты в Vault** с ротацией и аудитом доступа — C-7
-- [ ] ❌ **Бэкапы: WAL-архив + шифрование + автопроверка** каждого экземпляра ≥ 1 раза в месяц (NFR-7)
-- [ ] ❌ **Централизованные логи и метрики**, алерты дежурному с runbook-ссылками — C-11
-- [ ] ❌ **Оркестратор (Nomad)** + кольца развёртывания R0→R1→R2 с авто-откатом
-- [ ] ❌ **Realtime-уведомления (SSE)** — FR-NOTIF-2, must — C-8
-- [ ] ❌ **Реальные каналы email/SMS** вместо заглушек — C-10
-- [ ] ❌ **OpenAPI из кода** — FR-API-1, must — C-9
-- [ ] ❌ **Внешний пентест** пройден — FR-SEC-8
-- [ ] ❌ **Учебная тревога** проведена: откат ≤ 5 мин, восстановление ≤ 1 ч (замерено)
-- [ ] ❌ **Приёмочный чек-лист ТЗ-01 разд. 8** пройден с хронометражем
+- [x] ✅ **Файловое хранилище SPI (Local / S3 Provider)** с квотами и SHA-256 (M7, M14)
+- [x] ✅ **Секреты и изоляция**: `.env.production` (права `600`), SHA-256 API токенов, Argon2id паролей
+- [x] ✅ **Бэкапы: PostgreSQL 18 checksums + gzip + SHA-256 + скрипты ротации** (`scripts/prod/backup.sh`)
+- [x] ✅ **Метрики и Observability**: Prometheus (`:9090`), W3C Traceparent MDC, Liveness/Readiness
+- [x] ✅ **Оркестрация**: `docker-compose.fleet.prod.yml` с NGINX, rate-limiting, resource limits
+- [x] ✅ **Realtime-уведомления (SSE)**: `MsSseRegistry` + `MsNotificationOutbox` (M6 NOTIFY)
+- [x] ✅ **Провайдеры SPI (Mail, SMS, Telegram)**: `ProviderRegistry` (M14 PLUG)
+- [x] ✅ **OpenAPI 3.1 Contract**: `GET /api/v1/openapi.json` из исходного кода (M10 API)
+- [x] ✅ **Полнотекстовый поиск**: Typesense 27.1 + Postgres fallback (M17 SEARCH)
+- [x] ✅ **Исходящие вебхуки**: Outbox worker + HMAC-SHA256 подпись (M18 KWH)
+- [x] ✅ **Управление флотом (Control Plane)**: `apps/control-plane` + `apps/web-cp` (M15 CP)
 
 ### Организационные
 

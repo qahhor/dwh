@@ -40,11 +40,8 @@ jobs:
           if-no-files-found: error
 
   frontend:
-    name: frontend (ng build production)
+    name: frontend (web-instance + web-cp build)
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/web-instance
     steps:
       - uses: actions/checkout@v4
 
@@ -52,13 +49,21 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-          cache-dependency-path: apps/web-instance/package-lock.json
+          cache-dependency-path: |
+            apps/web-instance/package-lock.json
+            apps/web-cp/package-lock.json
 
-      - name: Install
-        run: npm ci
+      - name: Install & Build Web Instance
+        run: |
+          cd apps/web-instance
+          npm ci
+          npm run build
 
-      - name: Build (production)
-        run: npm run build
+      - name: Install & Build Web Control Plane
+        run: |
+          cd apps/web-cp
+          npm ci
+          npm run build
 
   security:
     name: security (gitleaks + trivy)
