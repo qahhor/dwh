@@ -24,29 +24,84 @@ Security, лимиты, миграции отдельным шагом, CI, те
 - Модель предметной области унаследована от платформы Biruni (формы/действия/роли,
   эффективные права, аудит), механизм — переписан под PostgreSQL и приложение-центричную модель.
 
-## Локальный запуск
+## Системные требования (Requirements)
 
-Весь проект поднимается одной compose-группой; её имя берётся из `PROJECT_NAME`
-в `.env` (по умолчанию `SmartupCMS`). Порядок обязателен — миграции отдельным
-шагом (NFR-10):
+- **Java Development Kit:** JDK 25 LTS (с поддержкой Virtual Threads)
+- **Node.js & npm:** Node.js 22.x / 24.x LTS, npm 10+
+- **Docker & Docker Compose:** Docker Engine 24+, Compose v2+
+- **СУБД (для локального запуска без Docker):** PostgreSQL 18+
+
+---
+
+## Быстрый старт (Quickstart)
+
+### Вариант 1. Запуск через Docker Compose (Рекомендуемый)
 
 ```bash
+# 1. Клонирование и настройка переменных окружения
 cp .env.example .env
+
+# 2. Выполнение миграций схемы БД (отдельным шагом)
 docker compose run --rm migrate
 docker compose run --rm migrate-cp
+
+# 3. Запуск всех сервисов (Backend + Frontend + Control Plane + PostgreSQL)
 docker compose up -d
 ```
 
-| Что | Адрес | Учётные данные |
-|---|---|---|
-| Интерфейс экземпляра | http://localhost:4200 | `ADMIN_LOGIN` / `ADMIN_PASSWORD` из `.env` |
-| Панель управления флотом | http://localhost:4300 | `CP_ADMIN_LOGIN` / `CP_ADMIN_PASSWORD` из `.env` |
-| API экземпляра | http://localhost:8080 | сессионная cookie |
-| API control plane | http://localhost:8082 | сессионная cookie |
+### Вариант 2. Локальная разработка (Backend + Frontend)
 
-Порты меняются переменными `WEB_PORT`, `CP_WEB_PORT`, `APP_PORT`, `CP_PORT`.
-Пароли из `.env.example` — только для разработки, в production они обязаны
-задаваться из Vault ([ADR-0008](docs/adr/ADR-0008-security-baseline.md)).
+```bash
+# 1. Запуск базы данных PostgreSQL
+docker compose up -d postgres
+
+# 2. Сборка и прогон тестов бэкенда (57 тестов)
+mvn clean test
+
+# 3. Применение миграций схемы
+mvn -pl apps/instance -Dspring.profiles.active=migrate spring-boot:run
+
+# 4. Запуск бэкенда инстанса
+mvn -pl apps/instance spring-boot:run
+
+# 5. Запуск фронтенда CMS (в отдельном терминале)
+cd apps/web-instance
+npm install
+npm start
+```
+
+### Точки доступа к сервисам:
+
+| Сервис / Интерфейс | Адрес | Учётные данные по умолчанию |
+| :--- | :--- | :--- |
+| **CMS Интерфейс экземпляра** | http://localhost:4200 | `admin` / `Admin123!` (или `ADMIN_PASSWORD` из `.env`) |
+| **Панель управления флотом (CP)** | http://localhost:4300 | `cp_admin` / `CPAdmin123!` (из `.env`) |
+| **REST API экземпляра** | http://localhost:8080 | Сессионная Cookie `DWH_SESSION` или Bearer Token |
+| **REST API Control Plane** | http://localhost:8082 | Сессионная Cookie `DWH_CP_SESSION` |
+| **Actuator Health Check** | http://localhost:8080/actuator/health | `{"status":"UP"}` |
+
+---
+
+## Устранение неполадок (Troubleshooting)
+
+1. **Ошибка `SchemaVersionGate: Pending migrations detected`**:
+   - Приложение блокирует запуск, если схема БД не актуальна.
+   - **Решение:** Запустите `mvn -pl apps/instance -Dspring.profiles.active=migrate spring-boot:run` или `docker compose run --rm migrate`.
+2. **Ошибка `CSRF Token Invalid` (403 Forbidden)**:
+   - Мутирующие HTTP-запросы (POST, PUT, DELETE, PATCH) с сессионной cookie требуют передачи заголовка `X-XSRF-TOKEN` (со значением из cookie `XSRF-TOKEN`).
+   - Запросы с заголовком `Authorization: Bearer <token>` освобождены от CSRF-проверки.
+3. **Ошибка `Rate limit exceeded` (429 Too Many Requests)**:
+   - Превышен лимит запросов с IP-адреса или токена. В заголовке ответа `Retry-After` указано время ожидания в секундах.
+4. **Конфликт чексумм Flyway миграций**:
+   - При модификации уже примененных миграций на локальной базе: сбросьте базу `docker exec dwh-postgres psql -U postgres -c "DROP DATABASE dwh_instance; CREATE DATABASE dwh_instance;"` и выполните миграцию заново.
+
+---
+
+## Навигация по проекту
+
+- **[STATS_MAP.md](STATS_MAP.md)** — Карта статистик проекта (файлы, строки кода, зависимости, тесты).
+- **[MILESTONES.md](MILESTONES.md)** — Каталог вех и дорожная карта (M1 → M18).
+- **[REPORT.md](REPORT.md)** — Журнал работ и отчётов.
 
 ## Документация
 
