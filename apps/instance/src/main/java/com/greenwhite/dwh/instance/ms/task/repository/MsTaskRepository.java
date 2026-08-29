@@ -153,6 +153,46 @@ public class MsTaskRepository {
                 .update();
     }
 
+    public List<TaskRecord> findSubtasks(Long parentTaskId) {
+        return jdbcClient.sql("""
+                select id, project_id, parent_task_id, title, description_markdown, status_id,
+                       priority, reporter_id, attributes::text as attributes_str, begin_time,
+                       end_time, resolved_time, created_at, modified_at, created_by, modified_by
+                from ms_tasks
+                where parent_task_id = :parentTaskId
+                order by id asc
+                """)
+                .param("parentTaskId", parentTaskId)
+                .query(this::mapRecord)
+                .list();
+    }
+
+    public List<TaskRecord> findAncestorChain(Long taskId) {
+        return jdbcClient.sql("""
+                with recursive ancestors as (
+                    select id, project_id, parent_task_id, title, description_markdown, status_id,
+                           priority, reporter_id, attributes::text as attributes_str, begin_time,
+                           end_time, resolved_time, created_at, modified_at, created_by, modified_by, 1 as depth
+                    from ms_tasks
+                    where id = (select parent_task_id from ms_tasks where id = :taskId)
+                    union all
+                    select t.id, t.project_id, t.parent_task_id, t.title, t.description_markdown, t.status_id,
+                           t.priority, t.reporter_id, t.attributes::text as attributes_str, t.begin_time,
+                           t.end_time, t.resolved_time, t.created_at, t.modified_at, t.created_by, t.modified_by, a.depth + 1
+                    from ms_tasks t
+                    join ancestors a on a.parent_task_id = t.id
+                )
+                select id, project_id, parent_task_id, title, description_markdown, status_id,
+                       priority, reporter_id, attributes_str, begin_time,
+                       end_time, resolved_time, created_at, modified_at, created_by, modified_by
+                from ancestors
+                order by depth desc
+                """)
+                .param("taskId", taskId)
+                .query(this::mapRecord)
+                .list();
+    }
+
     public boolean isDescendantOf(Long potentialDescendantId, Long ancestorId) {
         // Recursive CTE to check parent tree cycle
         return jdbcClient.sql("""
@@ -169,6 +209,35 @@ public class MsTaskRepository {
                 .query(Integer.class)
                 .single() > 0;
     }
+
+    public List<ProjectTaskStats> getProjectTaskStats() {
+
+        return jdbcClient.sql("""
+                select p.id as project_id,
+                       count(t.id) as total_tasks,
+                       count(t.id) filter (where s.is_terminal = false) as active_tasks,
+                       count(t.id) filter (where s.is_terminal = true) as done_tasks
+                from ms_task_projects p
+                left join ms_tasks t on t.project_id = p.id
+                left join ms_task_statuses s on s.id = t.status_id
+                group by p.id
+                """)
+                .query((rs, rowNum) -> new ProjectTaskStats(
+                        rs.getLong("project_id"),
+                        rs.getInt("total_tasks"),
+                        rs.getInt("active_tasks"),
+                        rs.getInt("done_tasks")
+                ))
+                .list();
+    }
+
+    public record ProjectTaskStats(
+            Long projectId,
+            int totalTasks,
+            int activeTasks,
+            int doneTasks
+    ) {}
+
 
     private TaskRecord mapRecord(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
         return new TaskRecord(

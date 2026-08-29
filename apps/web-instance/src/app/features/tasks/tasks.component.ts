@@ -1,13 +1,15 @@
 import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
 import { PermissionService } from '../../core/services/permission.service';
 import { ToastService } from '../../core/services/toast.service';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 import { UiModalComponent } from '../../shared/ui/ui-modal.component';
 import { UiCustomFieldsComponent } from '../../shared/ui/ui-custom-fields.component';
-import { Task, Project, TaskStatus, TaskComment, TaskMember, TaskDetailResponse } from '../../core/models/task.models';
+import { UiSearchableSelectComponent, SelectOption } from '../../shared/ui/ui-searchable-select.component';
+import { Task, Project, TaskStatus, TaskType, TaskComment, TaskMember, TaskDetailResponse } from '../../core/models/task.models';
 import { CustomField } from '../../core/models/custom-field.models';
 import { User } from '../../core/models/auth.models';
 import { KeysetPage } from '../../core/models/common.models';
@@ -20,7 +22,8 @@ import { KeysetPage } from '../../core/models/common.models';
     FormsModule,
     UiButtonComponent,
     UiModalComponent,
-    UiCustomFieldsComponent
+    UiCustomFieldsComponent,
+    UiSearchableSelectComponent
   ],
   template: `
     <div class="tasks-page">
@@ -56,6 +59,18 @@ import { KeysetPage } from '../../core/models/common.models';
         </div>
 
         <div class="header-right">
+          <!-- Dictionary Settings Button -->
+          <button
+            type="button"
+            class="settings-btn"
+            title="Управление статусами и типами задач"
+            (click)="openSettingsModal()"
+          >
+            <span class="material-symbols-outlined">tune</span>
+            <span>Справочники</span>
+          </button>
+
+          <!-- Create Task Button -->
           <ui-button
             *ngIf="canCreateTask()"
             variant="primary"
@@ -151,7 +166,7 @@ import { KeysetPage } from '../../core/models/common.models';
             <thead>
               <tr>
                 <th style="width: 60px;">ID</th>
-                <th style="width: 100px;">Тип</th>
+                <th style="width: 120px;">Тип</th>
                 <th>Задача</th>
                 <th>Проект</th>
                 <th>Приоритет</th>
@@ -164,9 +179,9 @@ import { KeysetPage } from '../../core/models/common.models';
               <tr *ngFor="let t of tasks()" class="task-row" (click)="openTaskDetails(t)">
                 <td class="tabular-nums font-mono text-muted">#{{ t.id }}</td>
                 <td>
-                  <span class="task-type-badge" [attr.data-type]="getTaskType(t)">
-                    <span class="material-symbols-outlined type-icon">{{ getTaskTypeIcon(t) }}</span>
-                    {{ getTaskTypeLabel(t) }}
+                  <span class="task-type-badge" [style.color]="getTypeColor(t)" [style.background-color]="getTypeBg(t)">
+                    <span class="material-symbols-outlined type-icon">{{ getTypeIcon(t) }}</span>
+                    {{ getTypeLabel(t) }}
                   </span>
                 </td>
                 <td>
@@ -282,8 +297,8 @@ import { KeysetPage } from '../../core/models/common.models';
             >
               <!-- Card Top -->
               <div class="card-top-row">
-                <span class="task-type-badge-mini" [attr.data-type]="getTaskType(task)">
-                  <span class="material-symbols-outlined mini-ico">{{ getTaskTypeIcon(task) }}</span>
+                <span class="task-type-badge-mini" [style.color]="getTypeColor(task)">
+                  <span class="material-symbols-outlined mini-ico">{{ getTypeIcon(task) }}</span>
                   <span class="task-id font-mono">#{{ task.id }}</span>
                 </span>
                 <span class="priority-pill" [attr.data-priority]="task.priority">
@@ -350,7 +365,7 @@ import { KeysetPage } from '../../core/models/common.models';
     </div>
 
     <!-- ======================================================================= -->
-    <!-- Task Details Modal                                                      -->
+    <!-- Task Details Modal (With Subtasks & Ancestor Trail)                     -->
     <!-- ======================================================================= -->
     <ui-modal
       [isOpen]="selectedTask() !== null"
@@ -359,11 +374,23 @@ import { KeysetPage } from '../../core/models/common.models';
       (close)="selectedTask.set(null)"
     >
       <div body class="task-details-view" *ngIf="selectedTask() as t">
+        <!-- Ancestor Breadcrumbs Trail -->
+        <div class="ancestor-trail" *ngIf="taskAncestors().length > 0">
+          <span class="trail-label">Иерархия:</span>
+          <ng-container *ngFor="let anc of taskAncestors(); let last = last">
+            <span class="anc-link" (click)="openTaskDetails(anc)">
+              #{{ anc.id }} {{ anc.title }}
+            </span>
+            <span class="anc-sep">›</span>
+          </ng-container>
+          <span class="anc-current">#{{ t.id }} {{ t.title }}</span>
+        </div>
+
         <div class="detail-header-row">
           <div class="detail-title-group">
-            <span class="task-type-badge" [attr.data-type]="getTaskType(t)">
-              <span class="material-symbols-outlined type-icon">{{ getTaskTypeIcon(t) }}</span>
-              {{ getTaskTypeLabel(t) }}
+            <span class="task-type-badge" [style.color]="getTypeColor(t)" [style.background-color]="getTypeBg(t)">
+              <span class="material-symbols-outlined type-icon">{{ getTypeIcon(t) }}</span>
+              {{ getTypeLabel(t) }}
             </span>
             <h2 class="detail-title">{{ t.title }}</h2>
           </div>
@@ -424,8 +451,8 @@ import { KeysetPage } from '../../core/models/common.models';
           <h4 class="section-label">Участники задачи</h4>
           <div class="members-grid">
             <div *ngFor="let m of taskMembers()" class="member-chip">
-              <span class="member-role-badge" [attr.data-role]="m.involveKind">
-                {{ getInvolveKindLabel(m.involveKind) }}
+              <span class="member-role-badge" [attr.data-role]="m.involveKind || m.involvementKind">
+                {{ getInvolveKindLabel(m.involveKind || m.involvementKind) }}
               </span>
               <span class="member-name">{{ m.userName }}</span>
               <span class="member-login text-muted">&#64;{{ m.userLogin }}</span>
@@ -437,6 +464,45 @@ import { KeysetPage } from '../../core/models/common.models';
         <div class="detail-section" *ngIf="t.descriptionMarkdown">
           <h4 class="section-label">Описание задачи</h4>
           <div class="description-box">{{ t.descriptionMarkdown }}</div>
+        </div>
+
+        <!-- Subtasks Section -->
+        <div class="detail-section">
+          <div class="section-header-between">
+            <h4 class="section-label">Подзадачи ({{ taskSubtasks().length }})</h4>
+            <button
+              *ngIf="canCreateTask()"
+              type="button"
+              class="add-subtask-btn"
+              (click)="openAddSubtaskModal(t)"
+            >
+              <span class="material-symbols-outlined">add</span>
+              Добавить подзадачу
+            </button>
+          </div>
+
+          <div class="subtasks-list" *ngIf="taskSubtasks().length > 0">
+            <div
+              *ngFor="let sub of taskSubtasks()"
+              class="subtask-row"
+              (click)="openTaskDetails(sub)"
+            >
+              <span class="subtask-type" [style.color]="getTypeColor(sub)">
+                <span class="material-symbols-outlined type-icon">{{ getTypeIcon(sub) }}</span>
+              </span>
+              <span class="font-mono text-muted text-xs">#{{ sub.id }}</span>
+              <span class="subtask-title">{{ sub.title }}</span>
+              <span class="inline-status-badge" [style.color]="getStatusColor(sub.statusId)">
+                {{ getStatusName(sub.statusId) }}
+              </span>
+              <span class="priority-pill" [attr.data-priority]="sub.priority">
+                {{ getPriorityLabel(sub.priority) }}
+              </span>
+            </div>
+          </div>
+          <div *ngIf="taskSubtasks().length === 0" class="no-subtasks-hint text-muted">
+            У этой задачи пока нет подзадач.
+          </div>
         </div>
 
         <!-- Dynamic Attributes -->
@@ -486,11 +552,11 @@ import { KeysetPage } from '../../core/models/common.models';
     </ui-modal>
 
     <!-- ======================================================================= -->
-    <!-- Create Task Modal                                                       -->
+    <!-- Create Task Modal (With Searchable Select for Assignees & Parent)       -->
     <!-- ======================================================================= -->
     <ui-modal
       [isOpen]="isCreateModalOpen()"
-      title="Создание новой задачи"
+      [title]="createForm.parentTaskId ? 'Создание подзадачи к #' + createForm.parentTaskId : 'Создание новой задачи'"
       size="lg"
       (close)="isCreateModalOpen.set(false)"
     >
@@ -514,16 +580,15 @@ import { KeysetPage } from '../../core/models/common.models';
         </div>
 
         <div class="form-grid-3">
-          <!-- Task Type Selector -->
+          <!-- Dynamic Task Type Selector -->
           <div class="form-group">
             <div class="label-row">
               <label class="clean-label">Тип задачи</label>
             </div>
             <select class="clean-input" [(ngModel)]="createForm.taskType">
-              <option value="task">📋 Задача (Task)</option>
-              <option value="bug">🐛 Ошибка (Bug)</option>
-              <option value="feature">⚡ Улучшение (Feature)</option>
-              <option value="research">🔍 Исследование (Research)</option>
+              <option *ngFor="let ty of taskTypes()" [value]="ty.code">
+                {{ ty.name }}
+              </option>
             </select>
           </div>
 
@@ -553,26 +618,34 @@ import { KeysetPage } from '../../core/models/common.models';
         </div>
 
         <div class="form-grid-2">
-          <!-- Responsible User (I-T1) -->
+          <!-- Responsible User (Searchable Select) -->
           <div class="form-group">
             <div class="label-row">
               <label class="clean-label">Ответственный сотрудник (I-T1)</label>
             </div>
-            <select class="clean-input" [(ngModel)]="createForm.responsibleUserId">
-              <option [ngValue]="null">Не назначен</option>
-              <option *ngFor="let u of usersList()" [ngValue]="u.id">{{ u.name }} (&#64;{{ u.login }})</option>
-            </select>
+            <ui-searchable-select
+              [options]="userSelectOptions()"
+              [selectedId]="createForm.responsibleUserId"
+              (selectedIdChange)="createForm.responsibleUserId = $event"
+              placeholder="Выберите ответственного..."
+              searchPlaceholder="Поиск сотрудника по имени или логину..."
+              emptyLabel="Не назначен"
+            ></ui-searchable-select>
           </div>
 
-          <!-- Parent Task Dropdown -->
+          <!-- Parent Task (Searchable Select) -->
           <div class="form-group">
             <div class="label-row">
               <label class="clean-label">Родительская задача</label>
             </div>
-            <select class="clean-input" [(ngModel)]="createForm.parentTaskId">
-              <option [ngValue]="null">Без родителя (корневая задача)</option>
-              <option *ngFor="let pt of tasks()" [ngValue]="pt.id">#{{ pt.id }} — {{ pt.title }}</option>
-            </select>
+            <ui-searchable-select
+              [options]="taskSelectOptions()"
+              [selectedId]="createForm.parentTaskId"
+              (selectedIdChange)="createForm.parentTaskId = $event"
+              placeholder="Без родителя (корневая задача)"
+              searchPlaceholder="Поиск задачи по ID или названию..."
+              emptyLabel="Без родителя (корневая задача)"
+            ></ui-searchable-select>
           </div>
         </div>
 
@@ -643,7 +716,7 @@ import { KeysetPage } from '../../core/models/common.models';
     </ui-modal>
 
     <!-- ======================================================================= -->
-    <!-- Edit Task Modal                                                         -->
+    <!-- Edit Task Modal (With Searchable Select for Assignees & Parent)         -->
     <!-- ======================================================================= -->
     <ui-modal
       [isOpen]="isEditModalOpen()"
@@ -670,16 +743,15 @@ import { KeysetPage } from '../../core/models/common.models';
         </div>
 
         <div class="form-grid-3">
-          <!-- Task Type Selector -->
+          <!-- Dynamic Task Type Selector -->
           <div class="form-group">
             <div class="label-row">
               <label class="clean-label">Тип задачи</label>
             </div>
             <select class="clean-input" [(ngModel)]="editForm.taskType">
-              <option value="task">📋 Задача (Task)</option>
-              <option value="bug">🐛 Ошибка (Bug)</option>
-              <option value="feature">⚡ Улучшение (Feature)</option>
-              <option value="research">🔍 Исследование (Research)</option>
+              <option *ngFor="let ty of taskTypes()" [value]="ty.code">
+                {{ ty.name }}
+              </option>
             </select>
           </div>
 
@@ -709,31 +781,34 @@ import { KeysetPage } from '../../core/models/common.models';
         </div>
 
         <div class="form-grid-2">
-          <!-- Responsible User (I-T1) -->
+          <!-- Responsible User (Searchable Select) -->
           <div class="form-group">
             <div class="label-row">
               <label class="clean-label">Ответственный сотрудник (I-T1)</label>
             </div>
-            <select class="clean-input" [(ngModel)]="editForm.responsibleUserId">
-              <option [ngValue]="null">Не назначен</option>
-              <option *ngFor="let u of usersList()" [ngValue]="u.id">{{ u.name }} (&#64;{{ u.login }})</option>
-            </select>
+            <ui-searchable-select
+              [options]="userSelectOptions()"
+              [selectedId]="editForm.responsibleUserId"
+              (selectedIdChange)="editForm.responsibleUserId = $event"
+              placeholder="Выберите ответственного..."
+              searchPlaceholder="Поиск сотрудника по имени или логину..."
+              emptyLabel="Не назначен"
+            ></ui-searchable-select>
           </div>
 
-          <!-- Parent Task Dropdown -->
+          <!-- Parent Task (Searchable Select) -->
           <div class="form-group">
             <div class="label-row">
               <label class="clean-label">Родительская задача</label>
             </div>
-            <select class="clean-input" [(ngModel)]="editForm.parentTaskId">
-              <option [ngValue]="null">Без родителя (корневая задача)</option>
-              <option
-                *ngFor="let pt of getAvailableParentTasks(task.id)"
-                [ngValue]="pt.id"
-              >
-                #{{ pt.id }} — {{ pt.title }}
-              </option>
-            </select>
+            <ui-searchable-select
+              [options]="getAvailableParentTaskOptions(task.id)"
+              [selectedId]="editForm.parentTaskId"
+              (selectedIdChange)="editForm.parentTaskId = $event"
+              placeholder="Без родителя (корневая задача)"
+              searchPlaceholder="Поиск задачи по ID или названию..."
+              emptyLabel="Без родителя (корневая задача)"
+            ></ui-searchable-select>
           </div>
         </div>
 
@@ -801,6 +876,112 @@ import { KeysetPage } from '../../core/models/common.models';
         <ui-button variant="primary" size="md" [loading]="isSubmitting()" (onClick)="submitEditTask()">Сохранить изменения</ui-button>
       </div>
     </ui-modal>
+
+    <!-- ======================================================================= -->
+    <!-- Dictionaries Settings Modal (Dynamic Types & Statuses)                  -->
+    <!-- ======================================================================= -->
+    <ui-modal
+      [isOpen]="isSettingsModalOpen()"
+      title="Настройка справочников задач"
+      size="md"
+      (close)="isSettingsModalOpen.set(false)"
+    >
+      <div body class="settings-modal-content">
+        <!-- Settings Tabs -->
+        <div class="settings-tabs">
+          <button
+            type="button"
+            class="tab-btn"
+            [class.active]="settingsTab === 'types'"
+            (click)="settingsTab = 'types'"
+          >
+            Типы задач ({{ taskTypes().length }})
+          </button>
+          <button
+            type="button"
+            class="tab-btn"
+            [class.active]="settingsTab === 'statuses'"
+            (click)="settingsTab = 'statuses'"
+          >
+            Статусы задач ({{ statuses().length }})
+          </button>
+        </div>
+
+        <!-- TAB 1: Task Types -->
+        <div class="tab-pane" *ngIf="settingsTab === 'types'">
+          <div class="dict-list">
+            <div *ngFor="let ty of taskTypes()" class="dict-row">
+              <div class="dict-item-info">
+                <span class="material-symbols-outlined dict-ico" [style.color]="ty.color">{{ ty.icon }}</span>
+                <span class="dict-name">{{ ty.name }}</span>
+                <span class="font-mono text-muted text-xs">({{ ty.code }})</span>
+                <span *ngIf="ty.isSystem" class="sys-badge">Системный</span>
+              </div>
+              <div class="dict-actions" *ngIf="!ty.isSystem">
+                <button type="button" class="mini-del-btn" title="Удалить" (click)="deleteTaskType(ty.id)">
+                  <span class="material-symbols-outlined">delete</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Add New Type Form -->
+          <div class="add-dict-box">
+            <h5 class="add-dict-title">Добавить новый тип задачи</h5>
+            <div class="form-grid-3">
+              <input type="text" class="clean-input" placeholder="Код (lat), e.g. doc" [(ngModel)]="newTypeForm.code" />
+              <input type="text" class="clean-input" placeholder="Название, e.g. Документ" [(ngModel)]="newTypeForm.name" />
+              <input type="color" class="clean-input color-picker" [(ngModel)]="newTypeForm.color" title="Цвет" />
+            </div>
+            <div class="add-dict-actions">
+              <ui-button variant="secondary" size="sm" icon="add" (onClick)="submitCreateType()">
+                Добавить тип
+              </ui-button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: Task Statuses -->
+        <div class="tab-pane" *ngIf="settingsTab === 'statuses'">
+          <div class="dict-list">
+            <div *ngFor="let s of statuses()" class="dict-row">
+              <div class="dict-item-info">
+                <span class="status-dot" [style.background-color]="s.color"></span>
+                <span class="dict-name">{{ s.name }}</span>
+                <span *ngIf="s.isTerminal" class="term-badge">Завершающий</span>
+                <span *ngIf="s.pcode" class="sys-badge">Базовый</span>
+              </div>
+              <div class="dict-actions" *ngIf="!s.pcode">
+                <button type="button" class="mini-del-btn" title="Удалить" (click)="deleteTaskStatus(s.id)">
+                  <span class="material-symbols-outlined">delete</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Add New Status Form -->
+          <div class="add-dict-box">
+            <h5 class="add-dict-title">Добавить новый статус</h5>
+            <div class="form-grid-3">
+              <input type="text" class="clean-input" placeholder="Название статуса..." [(ngModel)]="newStatusForm.name" />
+              <input type="color" class="clean-input color-picker" [(ngModel)]="newStatusForm.color" title="Цвет статуса" />
+              <label class="terminal-toggle-label">
+                <input type="checkbox" [(ngModel)]="newStatusForm.isTerminal" />
+                <span>Завершающий</span>
+              </label>
+            </div>
+            <div class="add-dict-actions">
+              <ui-button variant="secondary" size="sm" icon="add" (onClick)="submitCreateStatus()">
+                Добавить статус
+              </ui-button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div footer>
+        <ui-button variant="secondary" size="md" (onClick)="isSettingsModalOpen.set(false)">Закрыть</ui-button>
+      </div>
+    </ui-modal>
   `,
   styles: [`
     .tasks-page {
@@ -810,7 +991,7 @@ import { KeysetPage } from '../../core/models/common.models';
       width: 100%;
     }
 
-    /* Minimal Header */
+    /* Header */
     .view-header {
       display: flex;
       align-items: center;
@@ -818,12 +999,7 @@ import { KeysetPage } from '../../core/models/common.models';
       gap: 12px;
       flex-wrap: wrap;
     }
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
+    .header-left { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     .view-title {
       font-size: 18px;
       font-weight: 600;
@@ -870,11 +1046,25 @@ import { KeysetPage } from '../../core/models/common.models';
       box-shadow: var(--shadow-sm);
     }
 
-    .header-right {
-      display: flex;
+    .header-right { display: flex; align-items: center; gap: 8px; }
+
+    .settings-btn {
+      display: inline-flex;
       align-items: center;
-      gap: 8px;
+      gap: 5px;
+      height: 32px;
+      padding: 0 10px;
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      color: var(--text-main);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.12s ease;
     }
+    .settings-btn:hover { border-color: var(--primary); }
+    .settings-btn .material-symbols-outlined { font-size: 16px; color: var(--text-muted); }
 
     /* Compact Toolbar */
     .toolbar {
@@ -1030,13 +1220,8 @@ import { KeysetPage } from '../../core/models/common.models';
       font-weight: 500;
       padding: 1px 6px;
       border-radius: 4px;
-      background-color: var(--bg-hover);
-      color: var(--text-muted);
     }
     .task-type-badge .type-icon { font-size: 13px; }
-    .task-type-badge[data-type="bug"] { color: var(--danger); background-color: var(--danger-bg); }
-    .task-type-badge[data-type="feature"] { color: var(--warning); background-color: var(--warning-bg); }
-    .task-type-badge[data-type="research"] { color: var(--primary); background-color: rgba(99,102,241,0.1); }
 
     .task-title-cell {
       display: flex;
@@ -1140,9 +1325,7 @@ import { KeysetPage } from '../../core/models/common.models';
       background-color: var(--bg-hover);
     }
 
-    /* ========================================================================= */
-    /* KANBAN BOARD STYLES                                                       */
-    /* ========================================================================= */
+    /* Kanban */
     .kanban-board {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -1215,12 +1398,8 @@ import { KeysetPage } from '../../core/models/common.models';
       align-items: center;
       gap: 3px;
       font-size: 10px;
-      color: var(--text-muted);
     }
     .task-type-badge-mini .mini-ico { font-size: 13px; }
-    .task-type-badge-mini[data-type="bug"] { color: var(--danger); }
-    .task-type-badge-mini[data-type="feature"] { color: var(--warning); }
-    .task-type-badge-mini[data-type="research"] { color: var(--primary); }
 
     .card-title {
       font-size: 13px;
@@ -1276,6 +1455,24 @@ import { KeysetPage } from '../../core/models/common.models';
 
     /* Task Details Slide/Modal */
     .task-details-view { display: flex; flex-direction: column; gap: 16px; }
+
+    /* Ancestor Trail */
+    .ancestor-trail {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      font-size: 11px;
+      background-color: var(--bg-hover);
+      padding: 6px 10px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+    }
+    .trail-label { color: var(--text-muted); font-weight: 500; }
+    .anc-link { color: var(--primary); cursor: pointer; text-decoration: underline; }
+    .anc-sep { color: var(--text-muted); }
+    .anc-current { font-weight: 600; color: var(--text-main); }
+
     .detail-header-row {
       display: flex;
       align-items: center;
@@ -1345,6 +1542,7 @@ import { KeysetPage } from '../../core/models/common.models';
     .member-role-badge[data-role="A"] { background-color: rgba(16,185,129,0.15); color: var(--success); }
 
     .detail-section { display: flex; flex-direction: column; gap: 6px; }
+    .section-header-between { display: flex; align-items: center; justify-content: space-between; }
     .section-label { font-size: 12px; font-weight: 600; color: var(--text-muted); margin: 0; }
     .description-box {
       background-color: var(--bg-hover);
@@ -1354,6 +1552,41 @@ import { KeysetPage } from '../../core/models/common.models';
       line-height: 1.5;
       white-space: pre-wrap;
     }
+
+    /* Subtasks in Details */
+    .add-subtask-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      border: 1px solid var(--border-color);
+      background-color: var(--bg-hover);
+      color: var(--primary);
+      padding: 2px 8px;
+      border-radius: var(--radius-xs);
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .add-subtask-btn .material-symbols-outlined { font-size: 14px; }
+    .add-subtask-btn:hover { border-color: var(--primary); }
+
+    .subtasks-list { display: flex; flex-direction: column; gap: 4px; }
+    .subtask-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      background-color: var(--bg-hover);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-xs);
+      cursor: pointer;
+      font-size: 12px;
+      transition: background 0.1s ease;
+    }
+    .subtask-row:hover { border-color: var(--primary); }
+    .subtask-title { flex: 1; font-weight: 500; }
+    .inline-status-badge { font-size: 11px; font-weight: 500; }
+    .no-subtasks-hint { font-size: 12px; font-style: italic; padding: 4px 0; }
 
     .attributes-grid { display: flex; flex-wrap: wrap; gap: 6px; }
     .attr-pill {
@@ -1425,7 +1658,7 @@ import { KeysetPage } from '../../core/models/common.models';
       border-radius: 4px;
     }
     .clean-input {
-      height: 32px;
+      height: 34px;
       padding: 4px 8px;
       border-radius: var(--radius-sm);
       border: 1px solid var(--border-color);
@@ -1479,6 +1712,88 @@ import { KeysetPage } from '../../core/models/common.models';
     }
     .custom-fields-title { font-size: 12px; font-weight: 600; color: var(--text-muted); margin: 0; }
 
+    /* Dictionaries Settings Modal */
+    .settings-modal-content { display: flex; flex-direction: column; gap: 14px; }
+    .settings-tabs {
+      display: flex;
+      background-color: var(--bg-hover);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 2px;
+      gap: 2px;
+    }
+    .tab-btn {
+      flex: 1;
+      border: none;
+      background: transparent;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      border-radius: var(--radius-xs);
+      cursor: pointer;
+      transition: all 0.1s ease;
+    }
+    .tab-btn.active {
+      background-color: var(--bg-surface);
+      color: var(--text-main);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .tab-pane { display: flex; flex-direction: column; gap: 12px; }
+    .dict-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .dict-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 8px;
+      background-color: var(--bg-hover);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-xs);
+      font-size: 12px;
+    }
+    .dict-item-info { display: flex; align-items: center; gap: 6px; }
+    .dict-ico { font-size: 16px; }
+    .dict-name { font-weight: 500; color: var(--text-main); }
+    .sys-badge { font-size: 10px; background-color: rgba(99,102,241,0.1); color: var(--primary); padding: 1px 4px; border-radius: 3px; }
+    .term-badge { font-size: 10px; background-color: rgba(16,185,129,0.1); color: var(--success); padding: 1px 4px; border-radius: 3px; }
+    .mini-del-btn {
+      border: none;
+      background: transparent;
+      color: var(--danger);
+      cursor: pointer;
+      padding: 2px;
+      display: flex;
+    }
+    .mini-del-btn .material-symbols-outlined { font-size: 16px; }
+
+    .add-dict-box {
+      background-color: var(--bg-hover);
+      border: 1px dashed var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .add-dict-title { font-size: 11px; font-weight: 600; color: var(--text-muted); margin: 0; }
+    .color-picker { width: 100%; padding: 2px; cursor: pointer; }
+    .terminal-toggle-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: var(--text-main);
+      cursor: pointer;
+    }
+    .add-dict-actions { display: flex; justify-content: flex-end; }
+
     .status-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
     .font-mono { font-family: monospace; }
     .text-right { text-align: right; }
@@ -1492,10 +1807,14 @@ export class TasksComponent implements OnInit {
   readonly tasks = signal<Task[]>([]);
   readonly projects = signal<Project[]>([]);
   readonly statuses = signal<TaskStatus[]>([]);
+  readonly taskTypes = signal<TaskType[]>([]);
   readonly usersList = signal<User[]>([]);
   readonly taskCustomFields = signal<CustomField[]>([]);
+
   readonly selectedTask = signal<Task | null>(null);
   readonly taskMembers = signal<TaskMember[]>([]);
+  readonly taskSubtasks = signal<Task[]>([]);
+  readonly taskAncestors = signal<Task[]>([]);
   readonly comments = signal<TaskComment[]>([]);
 
   readonly isLoading = signal<boolean>(false);
@@ -1509,6 +1828,12 @@ export class TasksComponent implements OnInit {
   selectedProjectId: number | null = null;
   selectedStatusId: number | null = null;
   newCommentText = '';
+
+  // Dictionaries Settings Modal
+  readonly isSettingsModalOpen = signal<boolean>(false);
+  settingsTab: 'types' | 'statuses' = 'types';
+  newTypeForm = { code: '', name: '', icon: 'task_alt', color: '#6366f1' };
+  newStatusForm = { name: '', color: '#3b82f6', isTerminal: false };
 
   // Create Modal
   readonly isCreateModalOpen = signal<boolean>(false);
@@ -1548,15 +1873,50 @@ export class TasksComponent implements OnInit {
   constructor(
     public permService: PermissionService,
     private api: ApiService,
-    private toast: ToastService
+    private toast: ToastService,
+    private route: ActivatedRoute
   ) {}
 
   ngOnInit() {
+    this.route.queryParams.subscribe(params => {
+      if (params['project_id']) {
+        this.selectedProjectId = Number(params['project_id']);
+      }
+    });
+
     this.loadStatuses();
+    this.loadTypes();
     this.loadProjects();
     this.loadUsers();
     this.loadTaskCustomFields();
     this.loadTasks(true);
+  }
+
+  // Options for Searchable Select
+  userSelectOptions(): SelectOption[] {
+    return this.usersList().map(u => ({
+      id: u.id,
+      label: u.name,
+      subLabel: `@${u.login}`
+    }));
+  }
+
+  taskSelectOptions(): SelectOption[] {
+    return this.tasks().map(t => ({
+      id: t.id,
+      label: `#${t.id} ${t.title}`,
+      icon: 'task_alt'
+    }));
+  }
+
+  getAvailableParentTaskOptions(currentTaskId: number): SelectOption[] {
+    return this.tasks()
+      .filter(t => t.id !== currentTaskId)
+      .map(t => ({
+        id: t.id,
+        label: `#${t.id} ${t.title}`,
+        icon: 'task_alt'
+      }));
   }
 
   canCreateTask(): boolean {
@@ -1570,6 +1930,13 @@ export class TasksComponent implements OnInit {
   loadStatuses() {
     this.api.get<TaskStatus[]>('/tasks/statuses').subscribe({
       next: res => this.statuses.set(res || []),
+      error: () => {}
+    });
+  }
+
+  loadTypes() {
+    this.api.get<TaskType[]>('/tasks/types').subscribe({
+      next: res => this.taskTypes.set(res || []),
       error: () => {}
     });
   }
@@ -1685,6 +2052,8 @@ export class TasksComponent implements OnInit {
         if (res) {
           this.selectedTask.set(res.task);
           this.taskMembers.set(res.members || []);
+          this.taskSubtasks.set(res.subtasks || []);
+          this.taskAncestors.set(res.ancestors || []);
         }
       },
       error: () => {}
@@ -1730,18 +2099,36 @@ export class TasksComponent implements OnInit {
   }
 
   // =========================================================================
-  // Task Creation
+  // Task Creation & Subtasks
   // =========================================================================
   openCreateTaskModal() {
     this.isCreateSubmitted = false;
     this.createForm = {
       title: '',
-      taskType: 'task',
+      taskType: this.taskTypes().length > 0 ? this.taskTypes()[0].code : 'task',
       descriptionMarkdown: '',
       projectId: this.selectedProjectId,
       priority: 'medium',
       responsibleUserId: null,
       parentTaskId: null,
+      observerUserIds: [],
+      beginTime: '',
+      endTime: '',
+      attributes: {}
+    };
+    this.isCreateModalOpen.set(true);
+  }
+
+  openAddSubtaskModal(parentTask: Task) {
+    this.isCreateSubmitted = false;
+    this.createForm = {
+      title: '',
+      taskType: this.taskTypes().length > 0 ? this.taskTypes()[0].code : 'task',
+      descriptionMarkdown: '',
+      projectId: parentTask.projectId || null,
+      priority: parentTask.priority || 'medium',
+      responsibleUserId: null,
+      parentTaskId: parentTask.id,
       observerUserIds: [],
       beginTime: '',
       endTime: '',
@@ -1786,12 +2173,15 @@ export class TasksComponent implements OnInit {
     };
 
     this.isSubmitting.set(true);
-    this.api.post('/tasks', payload).subscribe({
+    this.api.post<Task>('/tasks', payload).subscribe({
       next: () => {
         this.isSubmitting.set(false);
         this.isCreateModalOpen.set(false);
         this.toast.success('Задача успешно создана');
         this.loadTasks(true);
+        if (this.selectedTask() && this.createForm.parentTaskId === this.selectedTask()?.id) {
+          this.loadTaskFullDetails(this.selectedTask()!.id);
+        }
       },
       error: err => {
         this.isSubmitting.set(false);
@@ -1807,14 +2197,13 @@ export class TasksComponent implements OnInit {
     this.isEditSubmitted = false;
     this.editingTask = task;
 
-    // Load task members to populate observers
     this.api.get<TaskDetailResponse>(`/tasks/${task.id}`).subscribe({
       next: res => {
         const obsIds = (res?.members || [])
-          .filter(m => m.involveKind === 'O' || m.involvementKind === 'O')
+          .filter(m => (m.involveKind || m.involvementKind) === 'O')
           .map(m => m.userId);
 
-        const respMember = (res?.members || []).find(m => m.involveKind === 'R' || m.involvementKind === 'R');
+        const respMember = (res?.members || []).find(m => (m.involveKind || m.involvementKind) === 'R');
 
         this.editForm = {
           title: task.title,
@@ -1848,10 +2237,6 @@ export class TasksComponent implements OnInit {
         this.isEditModalOpen.set(true);
       }
     });
-  }
-
-  getAvailableParentTasks(currentTaskId: number): Task[] {
-    return this.tasks().filter(t => t.id !== currentTaskId);
   }
 
   isObserverSelectedInEdit(userId: number): boolean {
@@ -1909,30 +2294,106 @@ export class TasksComponent implements OnInit {
   }
 
   // =========================================================================
+  // Dictionaries Management
+  // =========================================================================
+  openSettingsModal() {
+    this.newTypeForm = { code: '', name: '', icon: 'task_alt', color: '#6366f1' };
+    this.newStatusForm = { name: '', color: '#3b82f6', isTerminal: false };
+    this.isSettingsModalOpen.set(true);
+  }
+
+  submitCreateType() {
+    if (!this.newTypeForm.code.trim() || !this.newTypeForm.name.trim()) {
+      this.toast.warning('Укажите код и название типа');
+      return;
+    }
+
+    this.api.post('/tasks/types', {
+      code: this.newTypeForm.code.trim(),
+      name: this.newTypeForm.name.trim(),
+      icon: this.newTypeForm.icon.trim() || 'task_alt',
+      color: this.newTypeForm.color,
+      orderNo: (this.taskTypes().length + 1) * 10
+    }).subscribe({
+      next: () => {
+        this.toast.success('Тип задачи добавлен');
+        this.newTypeForm = { code: '', name: '', icon: 'task_alt', color: '#6366f1' };
+        this.loadTypes();
+      },
+      error: err => this.toast.error(err.error?.message || 'Ошибка добавления типа')
+    });
+  }
+
+  deleteTaskType(id: number) {
+    if (!confirm('Удалить этот тип задачи?')) return;
+    this.api.delete(`/tasks/types/${id}`).subscribe({
+      next: () => {
+        this.toast.success('Тип задачи удален');
+        this.loadTypes();
+      },
+      error: err => this.toast.error(err.error?.message || 'Ошибка удаления типа')
+    });
+  }
+
+  submitCreateStatus() {
+    if (!this.newStatusForm.name.trim()) {
+      this.toast.warning('Укажите название статуса');
+      return;
+    }
+
+    this.api.post('/tasks/statuses', {
+      name: this.newStatusForm.name.trim(),
+      color: this.newStatusForm.color,
+      orderNo: (this.statuses().length + 1) * 10,
+      isTerminal: this.newStatusForm.isTerminal
+    }).subscribe({
+      next: () => {
+        this.toast.success('Статус задачи добавлен');
+        this.newStatusForm = { name: '', color: '#3b82f6', isTerminal: false };
+        this.loadStatuses();
+      },
+      error: err => this.toast.error(err.error?.message || 'Ошибка добавления статуса')
+    });
+  }
+
+  deleteTaskStatus(id: number) {
+    if (!confirm('Удалить этот статус?')) return;
+    this.api.delete(`/tasks/statuses/${id}`).subscribe({
+      next: () => {
+        this.toast.success('Статус удален');
+        this.loadStatuses();
+      },
+      error: err => this.toast.error(err.error?.message || 'Нельзя удалить статус, привязанный к задачам')
+    });
+  }
+
+  // =========================================================================
   // Helpers
   // =========================================================================
-  getTaskType(task: Task): string {
-    return (task.attributes && task.attributes['task_type']) || 'task';
+  getTypeObj(task: Task): TaskType | null {
+    const code = (task.attributes && task.attributes['task_type']) || 'task';
+    return this.taskTypes().find(ty => ty.code === code) || null;
   }
 
-  getTaskTypeLabel(task: Task): string {
-    const type = this.getTaskType(task);
-    switch (type) {
-      case 'bug': return 'Ошибка';
-      case 'feature': return 'Улучшение';
-      case 'research': return 'Исследование';
-      default: return 'Задача';
-    }
+  getTypeLabel(task: Task): string {
+    const obj = this.getTypeObj(task);
+    return obj ? obj.name : 'Задача';
   }
 
-  getTaskTypeIcon(task: Task): string {
-    const type = this.getTaskType(task);
-    switch (type) {
-      case 'bug': return 'bug_report';
-      case 'feature': return 'bolt';
-      case 'research': return 'science';
-      default: return 'task_alt';
-    }
+  getTypeIcon(task: Task): string {
+    const obj = this.getTypeObj(task);
+    return obj ? obj.icon : 'task_alt';
+  }
+
+  getTypeColor(task: Task): string {
+    const obj = this.getTypeObj(task);
+    return obj ? obj.color : 'var(--primary)';
+  }
+
+  getTypeBg(task: Task): string {
+    const obj = this.getTypeObj(task);
+    if (!obj) return 'var(--bg-hover)';
+    return `${obj.color}18`; // 10% opacity hex
   }
 
   getProjectName(projectId: number | null | undefined): string | null {
@@ -1971,7 +2432,7 @@ export class TasksComponent implements OnInit {
   isOverdue(endTime: string | null | undefined, statusId: number): boolean {
     if (!endTime) return false;
     const s = this.statuses().find(x => x.id === statusId);
-    if (s && s.isTerminal) return false; // Done or cancelled is not overdue
+    if (s && s.isTerminal) return false;
     return new Date(endTime).getTime() < Date.now();
   }
 

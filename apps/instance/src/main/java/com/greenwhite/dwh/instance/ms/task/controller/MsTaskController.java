@@ -7,6 +7,7 @@ import com.greenwhite.dwh.instance.ms.task.pref.MsTaskPref;
 import com.greenwhite.dwh.instance.ms.task.repository.MsTaskMemberRepository;
 import com.greenwhite.dwh.instance.ms.task.repository.MsTaskRepository;
 import com.greenwhite.dwh.instance.ms.task.repository.MsTaskStatusRepository;
+import com.greenwhite.dwh.instance.ms.task.repository.MsTaskTypeRepository;
 import com.greenwhite.dwh.instance.ms.task.service.MsTaskService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -41,24 +42,98 @@ public class MsTaskController {
         return ResponseEntity.ok(taskService.listTasks(limit, cursor, projectId, statusId, priority, search));
     }
 
+    // =========================================================================
+    // Statuses API
+    // =========================================================================
     @GetMapping("/statuses")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
     public ResponseEntity<List<MsTaskStatusRepository.StatusRecord>> listStatuses() {
         return ResponseEntity.ok(taskService.listStatuses());
     }
 
+    @PostMapping("/statuses")
+    @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "create")
+    public ResponseEntity<MsTaskStatusRepository.StatusRecord> createStatus(@Valid @RequestBody CreateStatusDto body) {
+        var status = taskService.createStatus(body.pcode(), body.name(), body.color(), body.orderNo(), body.isTerminal());
+        return ResponseEntity.status(HttpStatus.CREATED).body(status);
+    }
+
+    @PatchMapping("/statuses/{id}")
+    @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
+    public ResponseEntity<Void> updateStatus(@PathVariable("id") Long id, @RequestBody UpdateStatusDto body) {
+        taskService.updateStatusRecord(id, body.name(), body.color(), body.orderNo(), body.isTerminal());
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/statuses/{id}")
+    @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
+    public ResponseEntity<Void> deleteStatus(@PathVariable("id") Long id) {
+        taskService.deleteStatus(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // =========================================================================
+    // Types API
+    // =========================================================================
+    @GetMapping("/types")
+    @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
+    public ResponseEntity<List<MsTaskTypeRepository.TypeRecord>> listTypes() {
+        return ResponseEntity.ok(taskService.listTypes());
+    }
+
+    @PostMapping("/types")
+    @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "create")
+    public ResponseEntity<MsTaskTypeRepository.TypeRecord> createType(@Valid @RequestBody CreateTypeDto body) {
+        var type = taskService.createType(body.code(), body.name(), body.icon(), body.color(), body.orderNo());
+        return ResponseEntity.status(HttpStatus.CREATED).body(type);
+    }
+
+    @PatchMapping("/types/{id}")
+    @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
+    public ResponseEntity<Void> updateType(@PathVariable("id") Long id, @RequestBody UpdateTypeDto body) {
+        taskService.updateType(id, body.name(), body.icon(), body.color(), body.orderNo());
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/types/{id}")
+    @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
+    public ResponseEntity<Void> deleteType(@PathVariable("id") Long id) {
+        taskService.deleteType(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // =========================================================================
+    // Project Stats API
+    // =========================================================================
+    @GetMapping("/projects/stats")
+    @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
+    public ResponseEntity<List<MsTaskRepository.ProjectTaskStats>> getProjectStats() {
+        return ResponseEntity.ok(taskService.getProjectTaskStats());
+    }
+
+    // =========================================================================
+    // Task Details & Subtasks
+    // =========================================================================
     @GetMapping("/{id}")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
     public ResponseEntity<TaskDetailResponse> getTask(@PathVariable("id") Long id) {
         var task = taskService.getTaskById(id);
         var members = taskService.getTaskMembers(id);
+        var subtasks = taskService.getSubtasks(id);
+        var ancestors = taskService.getAncestorChain(id);
 
         Long currentUserId = SecurityContext.getCurrentUserId();
         if (currentUserId != null) {
             taskService.markViewed(id, currentUserId);
         }
 
-        return ResponseEntity.ok(new TaskDetailResponse(task, members));
+        return ResponseEntity.ok(new TaskDetailResponse(task, members, subtasks, ancestors));
+    }
+
+    @GetMapping("/{id}/subtasks")
+    @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
+    public ResponseEntity<List<MsTaskRepository.TaskRecord>> getSubtasks(@PathVariable("id") Long id) {
+        return ResponseEntity.ok(taskService.getSubtasks(id));
     }
 
     @PostMapping
@@ -157,8 +232,40 @@ public class MsTaskController {
             Long statusId
     ) {}
 
+    public record CreateStatusDto(
+            String pcode,
+            @NotBlank String name,
+            String color,
+            int orderNo,
+            boolean isTerminal
+    ) {}
+
+    public record UpdateStatusDto(
+            String name,
+            String color,
+            Integer orderNo,
+            Boolean isTerminal
+    ) {}
+
+    public record CreateTypeDto(
+            @NotBlank String code,
+            @NotBlank String name,
+            String icon,
+            String color,
+            int orderNo
+    ) {}
+
+    public record UpdateTypeDto(
+            String name,
+            String icon,
+            String color,
+            Integer orderNo
+    ) {}
+
     public record TaskDetailResponse(
             MsTaskRepository.TaskRecord task,
-            List<MsTaskMemberRepository.TaskMemberRecord> members
+            List<MsTaskMemberRepository.TaskMemberRecord> members,
+            List<MsTaskRepository.TaskRecord> subtasks,
+            List<MsTaskRepository.TaskRecord> ancestors
     ) {}
 }

@@ -7,6 +7,16 @@ export interface Project {
   createdAt: string;
   modifiedAt?: string;
   createdBy?: number;
+  totalTasks?: number;
+  activeTasks?: number;
+  doneTasks?: number;
+}
+
+export interface ProjectTaskStats {
+  projectId: number;
+  totalTasks: number;
+  activeTasks: number;
+  doneTasks: number;
 }
 
 export interface ProjectMember {
@@ -20,12 +30,22 @@ export interface ProjectMember {
 
 export interface TaskStatus {
   id: number;
-  pcode: string;
+  pcode?: string | null;
   name: string;
   color?: string;
   colorHex?: string;
   isTerminal: boolean;
   orderNo: number;
+}
+
+export interface TaskType {
+  id: number;
+  code: string;
+  name: string;
+  icon: string;
+  color: string;
+  orderNo: number;
+  isSystem: boolean;
 }
 
 export interface Task {
@@ -75,4 +95,6 @@ export interface TaskComment {
 export interface TaskDetailResponse {
   task: Task;
   members: TaskMember[];
+  subtasks?: Task[];
+  ancestors?: Task[];
 }

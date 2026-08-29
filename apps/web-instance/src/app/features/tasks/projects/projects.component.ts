@@ -7,7 +7,7 @@ import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
-import { Project } from '../../../core/models/task.models';
+import { Project, ProjectTaskStats } from '../../../core/models/task.models';
 
 @Component({
   selector: 'app-projects',
@@ -20,7 +20,32 @@ import { Project } from '../../../core/models/task.models';
         <div class="header-left">
           <h1 class="view-title">Проекты</h1>
           <span class="proj-count">{{ filteredProjects().length }}</span>
+
+          <!-- View Mode Switcher -->
+          <div class="view-switcher">
+            <button
+              type="button"
+              class="view-btn"
+              [class.active]="viewMode === 'list'"
+              (click)="viewMode = 'list'"
+              title="Список / Таблица"
+            >
+              <span class="material-symbols-outlined">table_rows</span>
+              <span>Список</span>
+            </button>
+            <button
+              type="button"
+              class="view-btn"
+              [class.active]="viewMode === 'cards'"
+              (click)="viewMode = 'cards'"
+              title="Карточки"
+            >
+              <span class="material-symbols-outlined">grid_view</span>
+              <span>Карточки</span>
+            </button>
+          </div>
         </div>
+
         <div class="header-right">
           <ui-button
             *ngIf="canCreateProject()"
@@ -41,7 +66,7 @@ import { Project } from '../../../core/models/task.models';
           <input
             type="text"
             class="search-input"
-            placeholder="Поиск проекта..."
+            placeholder="Поиск по названию или описанию..."
             [(ngModel)]="searchQuery"
           />
           <button *ngIf="searchQuery" type="button" class="clear-btn" (click)="searchQuery = ''">
@@ -77,8 +102,103 @@ import { Project } from '../../../core/models/task.models';
         </div>
       </div>
 
-      <!-- Projects Grid -->
-      <div class="projects-grid">
+      <!-- ======================================================================= -->
+      <!-- VIEW 1: TABLE / LIST VIEW (Default)                                     -->
+      <!-- ======================================================================= -->
+      <div class="table-card" *ngIf="viewMode === 'list'">
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width: 60px;">ID</th>
+                <th>Проект</th>
+                <th style="width: 110px;">Статус</th>
+                <th style="width: 220px;">Прогресс задач</th>
+                <th style="width: 120px;">Создан</th>
+                <th class="text-right" style="width: 140px;">Действия</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let p of filteredProjects()" class="project-row" (click)="viewProjectTasks(p)">
+                <td class="tabular-nums font-mono text-muted">#{{ p.id }}</td>
+                <td>
+                  <div class="project-title-cell">
+                    <span class="material-symbols-outlined folder-icon">folder</span>
+                    <div class="project-info-group">
+                      <span class="project-name">{{ p.name }}</span>
+                      <span *ngIf="p.description" class="project-desc-line">{{ p.description }}</span>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span class="status-pill" [class.active]="p.state === 'A'">
+                    <span class="status-dot" [class.active]="p.state === 'A'"></span>
+                    {{ p.state === 'A' ? 'Активен' : 'Архив' }}
+                  </span>
+                </td>
+                <td>
+                  <div class="progress-cell">
+                    <div class="progress-labels">
+                      <span class="progress-count tabular-nums">
+                        {{ getProjectDoneCount(p.id) }} / {{ getProjectTotalCount(p.id) }} готово
+                      </span>
+                      <span class="progress-percent tabular-nums">
+                        {{ getProjectPercent(p.id) }}%
+                      </span>
+                    </div>
+                    <div class="progress-bar-bg">
+                      <div
+                        class="progress-bar-fill"
+                        [style.width.%]="getProjectPercent(p.id)"
+                        [class.complete]="getProjectPercent(p.id) === 100 && getProjectTotalCount(p.id) > 0"
+                      ></div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span class="tabular-nums text-muted text-xs">
+                    {{ p.createdAt | date:'dd.MM.yyyy' }}
+                  </span>
+                </td>
+                <td class="text-right" (click)="$event.stopPropagation()">
+                  <div class="row-action-btns">
+                    <button
+                      type="button"
+                      class="action-link-btn"
+                      title="Перейти к задачам проекта"
+                      (click)="viewProjectTasks(p)"
+                    >
+                      <span class="material-symbols-outlined">task_alt</span>
+                      Задачи
+                    </button>
+                    <button
+                      *ngIf="canUpdateProject()"
+                      type="button"
+                      class="icon-ghost-btn"
+                      title="Редактировать проект"
+                      (click)="openEditModal(p)"
+                    >
+                      <span class="material-symbols-outlined">edit</span>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+
+              <tr *ngIf="filteredProjects().length === 0 && !isLoading()">
+                <td colspan="6" class="empty-state-cell">
+                  <span class="material-symbols-outlined empty-icon">folder_off</span>
+                  <p>Проекты не найдены</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ======================================================================= -->
+      <!-- VIEW 2: CARDS GRID VIEW                                                 -->
+      <!-- ======================================================================= -->
+      <div class="projects-grid" *ngIf="viewMode === 'cards'">
         <div
           *ngFor="let p of filteredProjects()"
           class="project-card"
@@ -110,16 +230,34 @@ import { Project } from '../../../core/models/task.models';
             <p class="project-desc">{{ p.description || 'Описание проекта отсутствует' }}</p>
           </div>
 
+          <div class="card-progress">
+            <div class="progress-labels">
+              <span class="progress-count tabular-nums">
+                {{ getProjectDoneCount(p.id) }} / {{ getProjectTotalCount(p.id) }} выполнено
+              </span>
+              <span class="progress-percent tabular-nums">
+                {{ getProjectPercent(p.id) }}%
+              </span>
+            </div>
+            <div class="progress-bar-bg">
+              <div
+                class="progress-bar-fill"
+                [style.width.%]="getProjectPercent(p.id)"
+                [class.complete]="getProjectPercent(p.id) === 100 && getProjectTotalCount(p.id) > 0"
+              ></div>
+            </div>
+          </div>
+
           <div class="card-foot">
             <span class="foot-date tabular-nums">Создан: {{ p.createdAt | date:'dd.MM.yyyy' }}</span>
             <span class="view-tasks-link">
-              Задачи →
+              Задачи ({{ getProjectTotalCount(p.id) }}) →
             </span>
           </div>
         </div>
 
-        <div *ngIf="filteredProjects().length === 0" class="empty-projects-cell">
-          <span class="material-symbols-outlined icon">folder_off</span>
+        <div *ngIf="filteredProjects().length === 0 && !isLoading()" class="empty-projects-cell">
+          <span class="material-symbols-outlined empty-icon">folder_off</span>
           <p>Проекты не найдены</p>
         </div>
       </div>
@@ -165,7 +303,7 @@ import { Project } from '../../../core/models/task.models';
       </div>
       <div footer>
         <ui-button variant="secondary" size="md" (onClick)="isCreateModalOpen.set(false)">Отмена</ui-button>
-        <ui-button variant="primary" size="md" [loading]="isSubmitting()" (onClick)="submitCreateProject()">Создать</ui-button>
+        <ui-button variant="primary" size="md" [loading]="isSubmitting()" (onClick)="submitCreateProject()">Создать проект</ui-button>
       </div>
     </ui-modal>
 
@@ -232,7 +370,7 @@ import { Project } from '../../../core/models/task.models';
       gap: 12px;
       flex-wrap: wrap;
     }
-    .header-left { display: flex; align-items: center; gap: 8px; }
+    .header-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     .view-title {
       font-size: 18px;
       font-weight: 600;
@@ -248,6 +386,37 @@ import { Project } from '../../../core/models/task.models';
       font-weight: 500;
       border: 1px solid var(--border-color);
     }
+
+    /* View Switcher */
+    .view-switcher {
+      display: flex;
+      background-color: var(--bg-hover);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 2px;
+      gap: 2px;
+    }
+    .view-btn {
+      border: none;
+      background: transparent;
+      padding: 3px 8px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-muted);
+      border-radius: var(--radius-xs);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.1s ease;
+    }
+    .view-btn .material-symbols-outlined { font-size: 15px; }
+    .view-btn.active {
+      background-color: var(--bg-surface);
+      color: var(--text-main);
+      box-shadow: var(--shadow-sm);
+    }
+
     .header-right { display: flex; align-items: center; gap: 8px; }
 
     /* Toolbar */
@@ -317,6 +486,132 @@ import { Project } from '../../../core/models/task.models';
       box-shadow: var(--shadow-sm);
     }
 
+    /* Table Styles */
+    .table-card {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+    .table-wrapper { overflow-x: auto; }
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .data-table th {
+      text-align: left;
+      padding: 8px 12px;
+      background-color: var(--bg-hover);
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .data-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-main);
+    }
+    .project-row {
+      cursor: pointer;
+      transition: background 0.1s ease;
+    }
+    .project-row:hover { background-color: var(--bg-hover); }
+    .project-row:last-child td { border-bottom: none; }
+
+    .project-title-cell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .folder-icon { font-size: 20px; color: var(--warning); flex-shrink: 0; }
+    .project-info-group { display: flex; flex-direction: column; gap: 2px; }
+    .project-name { font-weight: 600; color: var(--text-main); }
+    .project-desc-line {
+      font-size: 11px;
+      color: var(--text-muted);
+      max-width: 400px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .status-pill {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 2px 7px;
+      border-radius: 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background-color: var(--bg-hover);
+      color: var(--text-muted);
+    }
+    .status-pill.active { background-color: rgba(16,185,129,0.1); color: var(--success); }
+    .status-dot { width: 5px; height: 5px; border-radius: 50%; background-color: var(--text-muted); }
+    .status-dot.active { background-color: var(--success); }
+
+    /* Progress Cell */
+    .progress-cell { display: flex; flex-direction: column; gap: 4px; }
+    .progress-labels { display: flex; justify-content: space-between; font-size: 11px; }
+    .progress-count { color: var(--text-muted); font-size: 10px; }
+    .progress-percent { font-weight: 600; color: var(--text-main); font-size: 10px; }
+    .progress-bar-bg {
+      height: 5px;
+      background-color: var(--bg-hover);
+      border-radius: 3px;
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background-color: var(--primary);
+      border-radius: 2px;
+      transition: width 0.3s ease;
+    }
+    .progress-bar-fill.complete { background-color: var(--success); }
+
+    .row-action-btns { display: inline-flex; align-items: center; gap: 6px; }
+    .action-link-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: var(--radius-xs);
+      border: 1px solid var(--border-color);
+      background-color: var(--bg-hover);
+      color: var(--text-main);
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .action-link-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .action-link-btn .material-symbols-outlined { font-size: 14px; }
+
+    .icon-ghost-btn {
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .icon-ghost-btn:hover { color: var(--text-main); background-color: var(--bg-hover); }
+    .icon-ghost-btn .material-symbols-outlined { font-size: 16px; }
+
+    .empty-state-cell {
+      padding: 40px;
+      text-align: center;
+      color: var(--text-muted);
+    }
+    .empty-icon { font-size: 36px; color: var(--text-light); margin-bottom: 6px; }
+
     /* Grid */
     .projects-grid {
       display: grid;
@@ -350,65 +645,48 @@ import { Project } from '../../../core/models/task.models';
       width: 32px;
       height: 32px;
       border-radius: var(--radius-sm);
-      background-color: rgba(99,102,241,0.1);
-      color: var(--primary);
+      background-color: rgba(245, 158, 11, 0.12);
+      color: var(--warning);
       display: flex;
       align-items: center;
       justify-content: center;
     }
     .project-icon-box .material-symbols-outlined { font-size: 18px; }
-
     .card-top-right { display: flex; align-items: center; gap: 6px; }
-    .status-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 11px;
-      padding: 1px 6px;
-      border-radius: 10px;
-      border: 1px solid var(--border-color);
-      color: var(--text-muted);
-    }
-    .status-pill.active { color: var(--success); border-color: rgba(16,185,129,0.3); }
-    .status-dot {
-      width: 5px;
-      height: 5px;
-      border-radius: 50%;
-      background-color: var(--text-light);
-    }
-    .status-dot.active { background-color: var(--success); }
 
     .edit-btn {
       border: none;
       background: transparent;
       color: var(--text-muted);
       cursor: pointer;
-      padding: 2px;
-      border-radius: 3px;
+      padding: 3px;
+      border-radius: 4px;
       display: flex;
     }
-    .edit-btn .material-symbols-outlined { font-size: 15px; }
     .edit-btn:hover { color: var(--text-main); background-color: var(--bg-hover); }
+    .edit-btn .material-symbols-outlined { font-size: 15px; }
 
-    .card-content { display: flex; flex-direction: column; gap: 4px; flex: 1; }
-    .project-title { font-size: 14px; font-weight: 600; color: var(--text-main); margin: 0; }
+    .card-content { display: flex; flex-direction: column; gap: 4px; }
+    .project-title { font-size: 14px; font-weight: 600; margin: 0; color: var(--text-main); }
     .project-desc {
       font-size: 12px;
       color: var(--text-muted);
+      margin: 0;
       line-height: 1.4;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
-      margin: 0;
     }
 
+    .card-progress { display: flex; flex-direction: column; gap: 4px; padding-top: 4px; }
+
     .card-foot {
-      padding-top: 8px;
-      border-top: 1px solid var(--border-color);
       display: flex;
       align-items: center;
       justify-content: space-between;
+      padding-top: 8px;
+      border-top: 1px solid var(--border-color);
       font-size: 11px;
     }
     .foot-date { color: var(--text-muted); }
@@ -420,9 +698,8 @@ import { Project } from '../../../core/models/task.models';
       text-align: center;
       color: var(--text-muted);
     }
-    .empty-projects-cell .icon { font-size: 36px; color: var(--text-light); margin-bottom: 6px; }
 
-    /* Modals */
+    /* Modal Form */
     .modal-form { display: flex; flex-direction: column; gap: 12px; }
     .form-group { display: flex; flex-direction: column; gap: 4px; }
     .label-row { display: flex; align-items: center; justify-content: space-between; }
@@ -444,7 +721,6 @@ import { Project } from '../../../core/models/task.models';
       color: var(--text-main);
       font-size: 13px;
       outline: none;
-      transition: border-color 0.15s ease;
     }
     .clean-input:focus { border-color: var(--primary); }
     .clean-input.input-error { border-color: var(--danger); background-color: var(--danger-bg); }
@@ -453,13 +729,19 @@ import { Project } from '../../../core/models/task.models';
     .clean-textarea { height: auto; padding: 6px 8px; resize: vertical; font-family: inherit; }
 
     .tabular-nums { font-variant-numeric: tabular-nums; }
+    .font-mono { font-family: monospace; }
+    .text-right { text-align: right; }
+    .text-muted { color: var(--text-muted); }
+    .text-xs { font-size: 11px; }
   `]
 })
 export class ProjectsComponent implements OnInit {
   readonly projects = signal<Project[]>([]);
+  readonly projectStats = signal<Record<number, ProjectTaskStats>>({});
   readonly isLoading = signal<boolean>(false);
   readonly isSubmitting = signal<boolean>(false);
 
+  viewMode: 'list' | 'cards' = 'list';
   searchQuery = '';
   selectedState = 'all';
 
@@ -482,6 +764,7 @@ export class ProjectsComponent implements OnInit {
 
   ngOnInit() {
     this.loadProjects();
+    this.loadStats();
   }
 
   canCreateProject(): boolean {
@@ -505,6 +788,19 @@ export class ProjectsComponent implements OnInit {
     });
   }
 
+  loadStats() {
+    this.api.get<ProjectTaskStats[]>('/tasks/projects/stats').subscribe({
+      next: res => {
+        const map: Record<number, ProjectTaskStats> = {};
+        for (const s of res || []) {
+          map[s.projectId] = s;
+        }
+        this.projectStats.set(map);
+      },
+      error: () => {}
+    });
+  }
+
   filteredProjects(): Project[] {
     const q = this.searchQuery.trim().toLowerCase();
     const st = this.selectedState;
@@ -514,6 +810,21 @@ export class ProjectsComponent implements OnInit {
       const matchState = st === 'all' || p.state === st;
       return matchSearch && matchState;
     });
+  }
+
+  getProjectTotalCount(projectId: number): number {
+    return this.projectStats()[projectId]?.totalTasks || 0;
+  }
+
+  getProjectDoneCount(projectId: number): number {
+    return this.projectStats()[projectId]?.doneTasks || 0;
+  }
+
+  getProjectPercent(projectId: number): number {
+    const total = this.getProjectTotalCount(projectId);
+    if (total === 0) return 0;
+    const done = this.getProjectDoneCount(projectId);
+    return Math.round((done / total) * 100);
   }
 
   openCreateModal() {
@@ -539,6 +850,7 @@ export class ProjectsComponent implements OnInit {
         this.isCreateModalOpen.set(false);
         this.toast.success('Проект успешно создан');
         this.loadProjects();
+        this.loadStats();
       },
       error: err => {
         this.isSubmitting.set(false);
@@ -577,6 +889,7 @@ export class ProjectsComponent implements OnInit {
         this.isEditModalOpen.set(false);
         this.toast.success('Проект обновлен');
         this.loadProjects();
+        this.loadStats();
       },
       error: err => {
         this.isSubmitting.set(false);

@@ -19,6 +19,7 @@ class MsTaskServiceTest {
 
     private final MsTaskRepository taskRepository = Mockito.mock(MsTaskRepository.class);
     private final MsTaskStatusRepository statusRepository = Mockito.mock(MsTaskStatusRepository.class);
+    private final MsTaskTypeRepository typeRepository = Mockito.mock(MsTaskTypeRepository.class);
     private final MsTaskMemberRepository memberRepository = Mockito.mock(MsTaskMemberRepository.class);
     private final MsProjectRepository projectRepository = Mockito.mock(MsProjectRepository.class);
     private final MdCustomFieldService customFieldService = Mockito.mock(MdCustomFieldService.class);
@@ -27,9 +28,10 @@ class MsTaskServiceTest {
             Mockito.mock(org.springframework.context.ApplicationEventPublisher.class);
 
     private final MsTaskService service = new MsTaskService(
-            taskRepository, statusRepository, memberRepository, projectRepository, customFieldService,
+            taskRepository, statusRepository, typeRepository, memberRepository, projectRepository, customFieldService,
             eventPublisher
     );
+
 
     @Test
     @DisplayName("Установка задачи самой себе в качестве родительской должна вызывать ошибку TASK_PARENT_CYCLE")
