@@ -2,6 +2,7 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
+import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { ApiService } from '../../core/services/api.service';
 import { PermissionService } from '../../core/services/permission.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -9,6 +10,9 @@ import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 import { UiModalComponent } from '../../shared/ui/ui-modal.component';
 import { UiCustomFieldsComponent } from '../../shared/ui/ui-custom-fields.component';
 import { UiSearchableSelectComponent, SelectOption } from '../../shared/ui/ui-searchable-select.component';
+import { UiUserMultiSelectComponent } from '../../shared/ui/ui-user-multi-select.component';
+import { UiMarkdownEditorComponent } from '../../shared/ui/ui-markdown-editor.component';
+import { UiMarkdownViewComponent } from '../../shared/ui/ui-markdown-view.component';
 import { Task, Project, TaskStatus, TaskType, TaskComment, TaskMember, TaskDetailResponse } from '../../core/models/task.models';
 import { CustomField } from '../../core/models/custom-field.models';
 import { User } from '../../core/models/auth.models';
@@ -20,10 +24,14 @@ import { KeysetPage } from '../../core/models/common.models';
   imports: [
     CommonModule,
     FormsModule,
+    DragDropModule,
     UiButtonComponent,
     UiModalComponent,
     UiCustomFieldsComponent,
-    UiSearchableSelectComponent
+    UiSearchableSelectComponent,
+    UiUserMultiSelectComponent,
+    UiMarkdownEditorComponent,
+    UiMarkdownViewComponent
   ],
   template: `
     <div class="tasks-page">
@@ -50,7 +58,7 @@ import { KeysetPage } from '../../core/models/common.models';
               class="view-btn"
               [class.active]="viewMode === 'kanban'"
               (click)="viewMode = 'kanban'"
-              title="Канбан-доска"
+              title="Канбан-доска (Drag & Drop)"
             >
               <span class="material-symbols-outlined">view_kanban</span>
               <span>Канбан</span>
@@ -285,9 +293,9 @@ import { KeysetPage } from '../../core/models/common.models';
       </div>
 
       <!-- ======================================================================= -->
-      <!-- VIEW 2: KANBAN BOARD VIEW                                               -->
+      <!-- VIEW 2: KANBAN BOARD WITH DRAG & DROP                                  -->
       <!-- ======================================================================= -->
-      <div class="kanban-board" *ngIf="viewMode === 'kanban'">
+      <div class="kanban-board" cdkDropListGroup *ngIf="viewMode === 'kanban'">
         <div
           *ngFor="let status of statuses()"
           class="kanban-column"
@@ -302,20 +310,33 @@ import { KeysetPage } from '../../core/models/common.models';
             <span class="column-badge">{{ getTasksByStatus(status.id).length }}</span>
           </div>
 
-          <!-- Column Tasks -->
-          <div class="column-tasks">
+          <!-- Drop List Zone for CDK Drag & Drop -->
+          <div
+            cdkDropList
+            [cdkDropListData]="getTasksByStatus(status.id)"
+            [id]="'col-' + status.id"
+            class="column-tasks-dropzone"
+            (cdkDropListDropped)="onTaskDrop($event, status.id)"
+          >
             <div
               *ngFor="let task of getTasksByStatus(status.id)"
+              cdkDrag
+              [cdkDragData]="task"
               class="kanban-card"
               [class.card-overdue]="isOverdue(task.endTime, task.statusId)"
               (click)="openTaskDetails(task)"
             >
               <!-- Card Top -->
               <div class="card-top-row">
-                <span class="task-type-badge-mini" [style.color]="getTypeColor(task)">
-                  <span class="material-symbols-outlined mini-ico">{{ getTypeIcon(task) }}</span>
-                  <span class="task-id font-mono">#{{ task.id }}</span>
-                </span>
+                <div class="card-type-group">
+                  <span class="material-symbols-outlined drag-grip-icon" cdkDragHandle title="Перетащить карточку">
+                    drag_indicator
+                  </span>
+                  <span class="task-type-badge-mini" [style.color]="getTypeColor(task)">
+                    <span class="material-symbols-outlined mini-ico">{{ getTypeIcon(task) }}</span>
+                    <span class="task-id font-mono">#{{ task.id }}</span>
+                  </span>
+                </div>
                 <span class="priority-pill" [attr.data-priority]="task.priority">
                   {{ getPriorityLabel(task.priority) }}
                 </span>
@@ -376,7 +397,7 @@ import { KeysetPage } from '../../core/models/common.models';
             </div>
 
             <div *ngIf="getTasksByStatus(status.id).length === 0" class="kanban-empty-col">
-              Нет задач
+              Перетащите задачу сюда
             </div>
           </div>
         </div>
@@ -418,13 +439,13 @@ import { KeysetPage } from '../../core/models/common.models';
               <h2 class="detail-main-title">{{ t.title }}</h2>
             </div>
 
-            <!-- Description -->
+            <!-- Description (Rich Markdown View) -->
             <div class="detail-section">
-              <h4 class="section-label">Описание</h4>
-              <div class="description-box" *ngIf="t.descriptionMarkdown">
-                {{ t.descriptionMarkdown }}
+              <h4 class="section-label">Описание задачи</h4>
+              <div class="description-card" *ngIf="t.descriptionMarkdown">
+                <ui-markdown-view [content]="t.descriptionMarkdown"></ui-markdown-view>
               </div>
-              <div class="description-box empty-desc text-muted" *ngIf="!t.descriptionMarkdown">
+              <div class="description-card empty-desc text-muted" *ngIf="!t.descriptionMarkdown">
                 Описание отсутствует. Нажмите «Редактировать», чтобы добавить детали.
               </div>
             </div>
@@ -475,10 +496,15 @@ import { KeysetPage } from '../../core/models/common.models';
               <div class="comments-feed">
                 <div *ngFor="let c of comments()" class="comment-card">
                   <div class="comment-top">
-                    <span class="comment-author">{{ c.userName }} <span class="text-muted">&#64;{{ c.userLogin }}</span></span>
+                    <div class="comment-author-badge">
+                      <span class="avatar-mini">{{ getInitials(c.userName) }}</span>
+                      <span class="comment-author">{{ c.userName }} <span class="text-muted">&#64;{{ c.userLogin }}</span></span>
+                    </div>
                     <span class="comment-time tabular-nums">{{ c.createdAt | date:'dd.MM.yyyy HH:mm' }}</span>
                   </div>
-                  <div class="comment-text">{{ c.textMarkdown || c.commentMarkdown }}</div>
+                  <div class="comment-text">
+                    <ui-markdown-view [content]="c.textMarkdown || c.commentMarkdown"></ui-markdown-view>
+                  </div>
                 </div>
                 <div *ngIf="comments().length === 0" class="no-comments-hint text-muted">
                   Комментариев пока нет.
@@ -608,7 +634,7 @@ import { KeysetPage } from '../../core/models/common.models';
     </ui-modal>
 
     <!-- ======================================================================= -->
-    <!-- Create Task Modal (Enhanced UI/UX)                                     -->
+    <!-- Create Task Modal (With RichText MD Editor & User Multi-Select)         -->
     <!-- ======================================================================= -->
     <ui-modal
       [isOpen]="isCreateModalOpen()"
@@ -749,38 +775,31 @@ import { KeysetPage } from '../../core/models/common.models';
           </div>
         </div>
 
-        <!-- Observers Multi-Select -->
+        <!-- Observers Searchable Multi-Select Tags Input -->
         <div class="form-group">
           <div class="label-row">
             <label class="clean-label">Наблюдатели (получают уведомления)</label>
           </div>
-          <div class="users-chips-box">
-            <label
-              *ngFor="let u of usersList()"
-              class="user-chip-toggle"
-              [class.active]="isObserverSelectedInCreate(u.id)"
-            >
-              <input
-                type="checkbox"
-                [checked]="isObserverSelectedInCreate(u.id)"
-                (change)="toggleObserverInCreate(u.id)"
-              />
-              <span>{{ u.name }}</span>
-            </label>
-          </div>
+          <ui-user-multi-select
+            [users]="usersList()"
+            [selectedUserIds]="createForm.observerUserIds"
+            (selectedUserIdsChange)="createForm.observerUserIds = $event"
+            placeholder="Нажмите для добавления наблюдателей..."
+            searchPlaceholder="Поиск сотрудника..."
+          ></ui-user-multi-select>
         </div>
 
-        <!-- Description -->
+        <!-- RichText Markdown Editor for Description -->
         <div class="form-group">
           <div class="label-row">
-            <label class="clean-label">Подробное описание (Markdown)</label>
+            <label class="clean-label">Подробное описание (Markdown RichText)</label>
           </div>
-          <textarea
-            class="clean-input clean-textarea"
-            rows="3"
-            [(ngModel)]="createForm.descriptionMarkdown"
-            placeholder="Контекст, требования, ссылки и критерии готовности задачи..."
-          ></textarea>
+          <ui-markdown-editor
+            [value]="createForm.descriptionMarkdown"
+            (valueChange)="createForm.descriptionMarkdown = $event"
+            placeholder="Контекст, критерии готовности, задачи, ссылки (поддерживается разметка Markdown)..."
+            [rows]="4"
+          ></ui-markdown-editor>
         </div>
 
         <!-- Custom Dynamic Fields -->
@@ -799,7 +818,7 @@ import { KeysetPage } from '../../core/models/common.models';
     </ui-modal>
 
     <!-- ======================================================================= -->
-    <!-- Edit Task Modal (Enhanced UI/UX)                                       -->
+    <!-- Edit Task Modal (With RichText MD Editor & User Multi-Select)           -->
     <!-- ======================================================================= -->
     <ui-modal
       [isOpen]="isEditModalOpen()"
@@ -939,37 +958,30 @@ import { KeysetPage } from '../../core/models/common.models';
           </div>
         </div>
 
-        <!-- Observers Multi-Select -->
+        <!-- Observers Searchable Multi-Select Tags Input -->
         <div class="form-group">
           <div class="label-row">
             <label class="clean-label">Наблюдатели (получают уведомления)</label>
           </div>
-          <div class="users-chips-box">
-            <label
-              *ngFor="let u of usersList()"
-              class="user-chip-toggle"
-              [class.active]="isObserverSelectedInEdit(u.id)"
-            >
-              <input
-                type="checkbox"
-                [checked]="isObserverSelectedInEdit(u.id)"
-                (change)="toggleObserverInEdit(u.id)"
-              />
-              <span>{{ u.name }}</span>
-            </label>
-          </div>
+          <ui-user-multi-select
+            [users]="usersList()"
+            [selectedUserIds]="editForm.observerUserIds"
+            (selectedUserIdsChange)="editForm.observerUserIds = $event"
+            placeholder="Нажмите для добавления наблюдателей..."
+            searchPlaceholder="Поиск сотрудника..."
+          ></ui-user-multi-select>
         </div>
 
-        <!-- Description -->
+        <!-- RichText Markdown Editor for Description -->
         <div class="form-group">
           <div class="label-row">
-            <label class="clean-label">Подробное описание (Markdown)</label>
+            <label class="clean-label">Подробное описание (Markdown RichText)</label>
           </div>
-          <textarea
-            class="clean-input clean-textarea"
-            rows="4"
-            [(ngModel)]="editForm.descriptionMarkdown"
-          ></textarea>
+          <ui-markdown-editor
+            [value]="editForm.descriptionMarkdown"
+            (valueChange)="editForm.descriptionMarkdown = $event"
+            [rows]="4"
+          ></ui-markdown-editor>
         </div>
 
         <!-- Custom Dynamic Fields -->
@@ -988,7 +1000,7 @@ import { KeysetPage } from '../../core/models/common.models';
     </ui-modal>
 
     <!-- ======================================================================= -->
-    <!-- Dictionaries Settings Modal (With Reordering Support)                   -->
+    <!-- Dictionaries Settings Modal (With CDK Drag & Drop Reordering)           -->
     <!-- ======================================================================= -->
     <ui-modal
       [isOpen]="isSettingsModalOpen()"
@@ -1017,16 +1029,22 @@ import { KeysetPage } from '../../core/models/common.models';
           </button>
         </div>
 
-        <!-- TAB 1: Task Types -->
+        <!-- TAB 1: Task Types (Drag & Drop Reordering) -->
         <div class="tab-pane" *ngIf="settingsTab === 'types'">
-          <div class="dict-list">
-            <div *ngFor="let ty of taskTypes(); let i = index; let first = first; let last = last" class="dict-row">
+          <div
+            cdkDropList
+            class="dict-list"
+            (cdkDropListDropped)="onTypeDrop($event)"
+          >
+            <div
+              *ngFor="let ty of taskTypes(); let i = index; let first = first; let last = last"
+              cdkDrag
+              class="dict-row"
+            >
               <div class="dict-item-info">
-                <!-- Reorder buttons -->
-                <div class="reorder-btns">
-                  <button type="button" class="reorder-btn" [disabled]="first" (click)="moveType(i, -1)">▲</button>
-                  <button type="button" class="reorder-btn" [disabled]="last" (click)="moveType(i, 1)">▼</button>
-                </div>
+                <span cdkDragHandle class="material-symbols-outlined drag-grip-icon" title="Перетащите для изменения порядка">
+                  drag_indicator
+                </span>
                 <span class="material-symbols-outlined dict-ico" [style.color]="ty.color">{{ ty.icon }}</span>
                 <span class="dict-name">{{ ty.name }}</span>
                 <span class="font-mono text-muted text-xs">({{ ty.code }})</span>
@@ -1046,7 +1064,9 @@ import { KeysetPage } from '../../core/models/common.models';
             <div class="form-grid-3">
               <input type="text" class="clean-input" placeholder="Код (lat), e.g. doc" [(ngModel)]="newTypeForm.code" />
               <input type="text" class="clean-input" placeholder="Название, e.g. Документ" [(ngModel)]="newTypeForm.name" />
-              <input type="color" class="clean-input color-picker" [(ngModel)]="newTypeForm.color" title="Цвет" />
+              <div class="color-picker-row">
+                <input type="color" class="clean-input color-picker" [(ngModel)]="newTypeForm.color" title="Выбрать цвет" />
+              </div>
             </div>
             <div class="add-dict-actions">
               <ui-button variant="secondary" size="sm" icon="add" (onClick)="submitCreateType()">
@@ -1056,16 +1076,22 @@ import { KeysetPage } from '../../core/models/common.models';
           </div>
         </div>
 
-        <!-- TAB 2: Task Statuses -->
+        <!-- TAB 2: Task Statuses (Drag & Drop Reordering) -->
         <div class="tab-pane" *ngIf="settingsTab === 'statuses'">
-          <div class="dict-list">
-            <div *ngFor="let s of statuses(); let i = index; let first = first; let last = last" class="dict-row">
+          <div
+            cdkDropList
+            class="dict-list"
+            (cdkDropListDropped)="onStatusDrop($event)"
+          >
+            <div
+              *ngFor="let s of statuses(); let i = index; let first = first; let last = last"
+              cdkDrag
+              class="dict-row"
+            >
               <div class="dict-item-info">
-                <!-- Reorder buttons -->
-                <div class="reorder-btns">
-                  <button type="button" class="reorder-btn" [disabled]="first" (click)="moveStatus(i, -1)">▲</button>
-                  <button type="button" class="reorder-btn" [disabled]="last" (click)="moveStatus(i, 1)">▼</button>
-                </div>
+                <span cdkDragHandle class="material-symbols-outlined drag-grip-icon" title="Перетащите для изменения порядка">
+                  drag_indicator
+                </span>
                 <span class="status-dot" [style.background-color]="s.color"></span>
                 <span class="dict-name">{{ s.name }}</span>
                 <span *ngIf="s.isTerminal" class="term-badge">Завершающий</span>
@@ -1084,7 +1110,9 @@ import { KeysetPage } from '../../core/models/common.models';
             <h5 class="add-dict-title">Добавить новый статус</h5>
             <div class="form-grid-3">
               <input type="text" class="clean-input" placeholder="Название статуса..." [(ngModel)]="newStatusForm.name" />
-              <input type="color" class="clean-input color-picker" [(ngModel)]="newStatusForm.color" title="Цвет статуса" />
+              <div class="color-picker-row">
+                <input type="color" class="clean-input color-picker" [(ngModel)]="newStatusForm.color" title="Выбрать цвет" />
+              </div>
               <label class="terminal-toggle-label">
                 <input type="checkbox" [(ngModel)]="newStatusForm.isTerminal" />
                 <span>Завершающий</span>
@@ -1340,9 +1368,6 @@ import { KeysetPage } from '../../core/models/common.models';
     .task-row.row-overdue:hover {
       background-color: rgba(239, 68, 68, 0.08);
     }
-    .title-overdue {
-      color: var(--text-main);
-    }
     .overdue-tag {
       font-size: 9px;
       font-weight: 600;
@@ -1467,7 +1492,7 @@ import { KeysetPage } from '../../core/models/common.models';
       background-color: var(--bg-hover);
     }
 
-    /* Kanban */
+    /* Kanban Board & CDK Drag & Drop */
     .kanban-board {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -1485,6 +1510,7 @@ import { KeysetPage } from '../../core/models/common.models';
       flex-direction: column;
       gap: 10px;
       padding: 12px;
+      min-height: 250px;
     }
 
     .column-header {
@@ -1505,11 +1531,16 @@ import { KeysetPage } from '../../core/models/common.models';
       border-radius: 10px;
     }
 
-    .column-tasks {
+    .column-tasks-dropzone {
       display: flex;
       flex-direction: column;
       gap: 10px;
-      min-height: 100px;
+      min-height: 150px;
+      border-radius: var(--radius-xs);
+      transition: background-color 0.15s ease;
+    }
+    .column-tasks-dropzone.cdk-drop-list-dragging {
+      background-color: rgba(99,102,241,0.03);
     }
 
     .kanban-card {
@@ -1523,6 +1554,7 @@ import { KeysetPage } from '../../core/models/common.models';
       cursor: pointer;
       transition: all 0.12s ease;
       box-shadow: var(--shadow-sm);
+      user-select: none;
     }
     .kanban-card:hover {
       border-color: var(--primary);
@@ -1534,11 +1566,41 @@ import { KeysetPage } from '../../core/models/common.models';
       background-color: rgba(239, 68, 68, 0.02);
     }
 
+    /* Dragging Preview & Placeholder */
+    .cdk-drag-preview {
+      box-sizing: border-box;
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow-lg);
+      background-color: var(--bg-surface);
+      border: 1px solid var(--primary);
+      padding: 10px;
+      opacity: 0.95;
+    }
+    .cdk-drag-placeholder {
+      opacity: 0.3;
+      border: 2px dashed var(--primary);
+      background-color: rgba(99,102,241,0.05);
+      border-radius: var(--radius-sm);
+      min-height: 70px;
+    }
+    .cdk-drag-animating {
+      transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+    }
+
     .card-top-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
+    .card-type-group { display: flex; align-items: center; gap: 4px; }
+    .drag-grip-icon {
+      font-size: 16px;
+      color: var(--text-muted);
+      cursor: grab;
+      opacity: 0.5;
+    }
+    .drag-grip-icon:hover { opacity: 1; color: var(--primary); }
+
     .task-type-badge-mini {
       display: inline-flex;
       align-items: center;
@@ -1592,7 +1654,7 @@ import { KeysetPage } from '../../core/models/common.models';
     .move-btn .material-symbols-outlined { font-size: 14px; }
 
     .kanban-empty-col {
-      padding: 24px 0;
+      padding: 30px 0;
       text-align: center;
       color: var(--text-muted);
       font-size: 12px;
@@ -1649,13 +1711,11 @@ import { KeysetPage } from '../../core/models/common.models';
     .detail-section { display: flex; flex-direction: column; gap: 6px; }
     .section-header-between { display: flex; align-items: center; justify-content: space-between; }
     .section-label { font-size: 12px; font-weight: 600; color: var(--text-muted); margin: 0; }
-    .description-box {
+    .description-card {
       background-color: var(--bg-hover);
+      border: 1px solid var(--border-color);
       border-radius: var(--radius-sm);
       padding: 10px 12px;
-      font-size: 13px;
-      line-height: 1.5;
-      white-space: pre-wrap;
     }
     .empty-desc { font-style: italic; }
 
@@ -1698,18 +1758,32 @@ import { KeysetPage } from '../../core/models/common.models';
       display: flex;
       flex-direction: column;
       gap: 8px;
-      max-height: 200px;
+      max-height: 220px;
       overflow-y: auto;
     }
     .comment-card {
       background-color: var(--bg-hover);
+      border: 1px solid var(--border-color);
       border-radius: var(--radius-sm);
       padding: 8px 10px;
       display: flex;
       flex-direction: column;
       gap: 4px;
     }
-    .comment-top { display: flex; justify-content: space-between; font-size: 11px; }
+    .comment-top { display: flex; justify-content: space-between; align-items: center; font-size: 11px; }
+    .comment-author-badge { display: flex; align-items: center; gap: 5px; }
+    .avatar-mini {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background-color: var(--primary);
+      color: #fff;
+      font-size: 9px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
     .comment-author { font-weight: 600; color: var(--text-main); }
     .comment-time { color: var(--text-muted); font-size: 10px; }
     .comment-text { font-size: 12px; color: var(--text-main); }
@@ -1886,37 +1960,6 @@ import { KeysetPage } from '../../core/models/common.models';
     .prio-chip-btn.prio-high.active { color: var(--warning); }
     .prio-chip-btn.prio-critical.active { color: var(--danger); }
 
-    .clean-textarea { height: auto; padding: 6px 8px; resize: vertical; font-family: inherit; }
-
-    .users-chips-box {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      max-height: 100px;
-      overflow-y: auto;
-      padding: 4px;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      background-color: var(--bg-hover);
-    }
-    .user-chip-toggle {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 11px;
-      padding: 2px 6px;
-      border-radius: 3px;
-      background-color: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      cursor: pointer;
-    }
-    .user-chip-toggle.active {
-      border-color: var(--primary);
-      background-color: rgba(99,102,241,0.1);
-      color: var(--primary);
-      font-weight: 500;
-    }
-
     .custom-fields-section {
       border-top: 1px dashed var(--border-color);
       padding-top: 10px;
@@ -1971,25 +2014,9 @@ import { KeysetPage } from '../../core/models/common.models';
       border: 1px solid var(--border-color);
       border-radius: var(--radius-xs);
       font-size: 12px;
+      user-select: none;
     }
     .dict-item-info { display: flex; align-items: center; gap: 6px; }
-    .reorder-btns { display: flex; flex-direction: column; gap: 1px; }
-    .reorder-btn {
-      border: 1px solid var(--border-color);
-      background-color: var(--bg-surface);
-      color: var(--text-muted);
-      font-size: 8px;
-      width: 16px;
-      height: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      border-radius: 2px;
-      padding: 0;
-    }
-    .reorder-btn:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
-    .reorder-btn:disabled { opacity: 0.2; cursor: not-allowed; }
 
     .dict-ico { font-size: 16px; }
     .dict-name { font-weight: 500; color: var(--text-main); }
@@ -2015,7 +2042,8 @@ import { KeysetPage } from '../../core/models/common.models';
       gap: 8px;
     }
     .add-dict-title { font-size: 11px; font-weight: 600; color: var(--text-muted); margin: 0; }
-    .color-picker { width: 100%; padding: 2px; cursor: pointer; }
+    .color-picker-row { display: flex; align-items: center; }
+    .color-picker { width: 100%; padding: 2px; height: 34px; cursor: pointer; }
     .terminal-toggle-label {
       display: inline-flex;
       align-items: center;
@@ -2054,7 +2082,7 @@ export class TasksComponent implements OnInit {
   readonly hasMore = signal<boolean>(false);
   nextCursor: string | null = null;
 
-  viewMode: 'table' | 'kanban' = 'table';
+  viewMode: 'table' | 'kanban' = 'kanban';
   searchQuery = '';
   selectedPriority = '';
   selectedProjectId: number | null = null;
@@ -2124,8 +2152,13 @@ export class TasksComponent implements OnInit {
     this.loadTasks(true);
   }
 
+  // Active users only for selectors
+  activeUsers(): User[] {
+    return this.usersList().filter(u => u.state !== 'P' && !u.name.toLowerCase().includes('deleted user'));
+  }
+
   userSelectOptions(): SelectOption[] {
-    return this.usersList().map(u => ({
+    return this.activeUsers().map(u => ({
       id: u.id,
       label: u.name,
       subLabel: `@${u.login}`
@@ -2271,6 +2304,63 @@ export class TasksComponent implements OnInit {
     }
   }
 
+  // =========================================================================
+  // CDK Drag & Drop Handler for Kanban Cards
+  // =========================================================================
+  onTaskDrop(event: CdkDragDrop<Task[]>, targetStatusId: number) {
+    const task = event.item.data as Task;
+    if (!task) return;
+
+    if (task.statusId === targetStatusId) {
+      return;
+    }
+
+    // Optimistic UI update
+    this.tasks.update(list => list.map(t => t.id === task.id ? { ...t, statusId: targetStatusId } : t));
+    if (this.selectedTask()?.id === task.id) {
+      this.selectedTask.update(t => t ? { ...t, statusId: targetStatusId } : null);
+    }
+
+    // Backend update
+    this.api.post(`/tasks/${task.id}/status`, { statusId: targetStatusId }).subscribe({
+      next: () => {
+        const sName = this.getStatusName(targetStatusId);
+        this.toast.success(`Задача #${task.id} перенесена в «${sName}»`);
+      },
+      error: err => {
+        this.toast.error(err.error?.message || 'Не удалось изменить статус задачи');
+        this.loadTasks(true);
+      }
+    });
+  }
+
+  // =========================================================================
+  // CDK Drag & Drop Handlers for Settings Modal
+  // =========================================================================
+  onStatusDrop(event: CdkDragDrop<TaskStatus[]>) {
+    const list = [...this.statuses()];
+    moveItemInArray(list, event.previousIndex, event.currentIndex);
+    this.statuses.set(list);
+
+    const orderedIds = list.map(s => s.id);
+    this.api.post('/tasks/statuses/reorder', orderedIds).subscribe({
+      next: () => this.toast.success('Порядок статусов сохранен'),
+      error: err => this.toast.error(err.error?.message || 'Ошибка изменения порядка')
+    });
+  }
+
+  onTypeDrop(event: CdkDragDrop<TaskType[]>) {
+    const list = [...this.taskTypes()];
+    moveItemInArray(list, event.previousIndex, event.currentIndex);
+    this.taskTypes.set(list);
+
+    const orderedIds = list.map(t => t.id);
+    this.api.post('/tasks/types/reorder', orderedIds).subscribe({
+      next: () => this.toast.success('Порядок типов задач сохранен'),
+      error: err => this.toast.error(err.error?.message || 'Ошибка изменения порядка')
+    });
+  }
+
   openTaskDetails(task: Task) {
     this.selectedTask.set(task);
     this.loadTaskFullDetails(task.id);
@@ -2368,19 +2458,6 @@ export class TasksComponent implements OnInit {
     this.isCreateModalOpen.set(true);
   }
 
-  isObserverSelectedInCreate(userId: number): boolean {
-    return this.createForm.observerUserIds.includes(userId);
-  }
-
-  toggleObserverInCreate(userId: number) {
-    const idx = this.createForm.observerUserIds.indexOf(userId);
-    if (idx >= 0) {
-      this.createForm.observerUserIds.splice(idx, 1);
-    } else {
-      this.createForm.observerUserIds.push(userId);
-    }
-  }
-
   submitCreateTask() {
     this.isCreateSubmitted = true;
     if (!this.createForm.title.trim()) {
@@ -2470,19 +2547,6 @@ export class TasksComponent implements OnInit {
     });
   }
 
-  isObserverSelectedInEdit(userId: number): boolean {
-    return this.editForm.observerUserIds.includes(userId);
-  }
-
-  toggleObserverInEdit(userId: number) {
-    const idx = this.editForm.observerUserIds.indexOf(userId);
-    if (idx >= 0) {
-      this.editForm.observerUserIds.splice(idx, 1);
-    } else {
-      this.editForm.observerUserIds.push(userId);
-    }
-  }
-
   submitEditTask() {
     if (!this.editingTask) return;
     this.isEditSubmitted = true;
@@ -2525,48 +2589,12 @@ export class TasksComponent implements OnInit {
   }
 
   // =========================================================================
-  // Dictionaries Management (With Move Up / Move Down Reordering)
+  // Dictionaries Management
   // =========================================================================
   openSettingsModal() {
     this.newTypeForm = { code: '', name: '', icon: 'task_alt', color: '#6366f1' };
     this.newStatusForm = { name: '', color: '#3b82f6', isTerminal: false };
     this.isSettingsModalOpen.set(true);
-  }
-
-  moveType(index: number, direction: -1 | 1) {
-    const list = [...this.taskTypes()];
-    const targetIdx = index + direction;
-    if (targetIdx < 0 || targetIdx >= list.length) return;
-
-    const temp = list[index];
-    list[index] = list[targetIdx];
-    list[targetIdx] = temp;
-
-    this.taskTypes.set(list);
-    const orderedIds = list.map(t => t.id);
-
-    this.api.post('/tasks/types/reorder', orderedIds).subscribe({
-      next: () => this.toast.success('Порядок типов задач сохранен'),
-      error: err => this.toast.error(err.error?.message || 'Ошибка изменения порядка')
-    });
-  }
-
-  moveStatus(index: number, direction: -1 | 1) {
-    const list = [...this.statuses()];
-    const targetIdx = index + direction;
-    if (targetIdx < 0 || targetIdx >= list.length) return;
-
-    const temp = list[index];
-    list[index] = list[targetIdx];
-    list[targetIdx] = temp;
-
-    this.statuses.set(list);
-    const orderedIds = list.map(s => s.id);
-
-    this.api.post('/tasks/statuses/reorder', orderedIds).subscribe({
-      next: () => this.toast.success('Порядок статусов сохранен'),
-      error: err => this.toast.error(err.error?.message || 'Ошибка изменения порядка')
-    });
   }
 
   submitCreateType() {
@@ -2711,6 +2739,15 @@ export class TasksComponent implements OnInit {
       case 'A': return 'Автор';
       default: return 'Участник';
     }
+  }
+
+  getInitials(name: string | undefined): string {
+    if (!name) return 'U';
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
   }
 
   hasAttributes(attrs: any): boolean {

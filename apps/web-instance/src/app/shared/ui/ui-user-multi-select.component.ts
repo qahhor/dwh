@@ -1,0 +1,296 @@
+import { Component, Input, Output, EventEmitter, signal, ElementRef, HostListener } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { User } from '../../core/models/auth.models';
+
+@Component({
+  selector: 'ui-user-multi-select',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  template: `
+    <div class="user-multi-select-container">
+      <!-- Selected Users Tag List -->
+      <div class="selected-tags-box" (click)="openDropdown()">
+        <div *ngFor="let u of getSelectedUsers()" class="user-tag" (click)="$event.stopPropagation()">
+          <span class="user-avatar-mini">{{ getInitials(u.name) }}</span>
+          <span class="user-name">{{ u.name }}</span>
+          <button type="button" class="tag-remove-btn" (click)="removeUser(u.id)" title="Удалить">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <button type="button" class="add-user-btn" (click)="toggleDropdown($event)">
+          <span class="material-symbols-outlined ico">person_add</span>
+          <span>{{ selectedUserIds.length === 0 ? placeholder : '+ Добавить' }}</span>
+        </button>
+      </div>
+
+      <!-- Autocomplete Dropdown Panel -->
+      <div class="dropdown-panel" *ngIf="isOpen()">
+        <div class="search-row">
+          <span class="material-symbols-outlined search-ico">search</span>
+          <input
+            #searchInput
+            type="text"
+            class="search-input"
+            [placeholder]="searchPlaceholder"
+            [(ngModel)]="searchQuery"
+            (click)="$event.stopPropagation()"
+          />
+          <button *ngIf="searchQuery" type="button" class="clear-btn" (click)="searchQuery = ''">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <div class="users-options-list">
+          <div
+            *ngFor="let u of filteredUsers()"
+            class="user-option"
+            [class.selected]="isSelected(u.id)"
+            (click)="toggleUser(u.id)"
+          >
+            <div class="user-info-left">
+              <span class="user-avatar">{{ getInitials(u.name) }}</span>
+              <div class="user-texts">
+                <span class="u-name">{{ u.name }}</span>
+                <span class="u-login text-muted">&#64;{{ u.login }}</span>
+              </div>
+            </div>
+
+            <span class="material-symbols-outlined check-ico" *ngIf="isSelected(u.id)">check</span>
+          </div>
+
+          <div *ngIf="filteredUsers().length === 0" class="no-options">
+            Сотрудники не найдены
+          </div>
+        </div>
+      </div>
+    </div>
+  `,
+  styles: [`
+    .user-multi-select-container {
+      position: relative;
+      width: 100%;
+    }
+
+    .selected-tags-box {
+      min-height: 36px;
+      padding: 4px 6px;
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      transition: border-color 0.15s ease;
+    }
+    .selected-tags-box:hover { border-color: var(--primary); }
+
+    .user-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background-color: var(--bg-hover);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1px 6px 1px 2px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-main);
+    }
+    .user-avatar-mini {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background-color: var(--primary);
+      color: #fff;
+      font-size: 9px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .user-name { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .tag-remove-btn {
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      padding: 0;
+      margin-left: 2px;
+    }
+    .tag-remove-btn:hover { color: var(--danger); }
+    .tag-remove-btn .material-symbols-outlined { font-size: 13px; }
+
+    .add-user-btn {
+      border: none;
+      background: transparent;
+      color: var(--primary);
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 2px 6px;
+      border-radius: var(--radius-xs);
+    }
+    .add-user-btn:hover { background-color: rgba(99,102,241,0.08); }
+    .add-user-btn .ico { font-size: 14px; }
+
+    /* Dropdown Panel */
+    .dropdown-panel {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow-lg);
+      z-index: 1050;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .search-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 8px;
+      background-color: var(--bg-hover);
+      border-bottom: 1px solid var(--border-color);
+    }
+    .search-ico { font-size: 16px; color: var(--text-muted); }
+    .search-input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      outline: none;
+      font-size: 12px;
+      color: var(--text-main);
+    }
+    .clear-btn { border: none; background: transparent; color: var(--text-muted); cursor: pointer; display: flex; }
+    .clear-btn .material-symbols-outlined { font-size: 14px; }
+
+    .users-options-list {
+      max-height: 180px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .user-option {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 10px;
+      cursor: pointer;
+      transition: background 0.1s ease;
+    }
+    .user-option:hover { background-color: var(--bg-hover); }
+    .user-option.selected { background-color: rgba(99,102,241,0.08); }
+
+    .user-info-left { display: flex; align-items: center; gap: 8px; }
+    .user-avatar {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background-color: var(--primary);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .user-texts { display: flex; flex-direction: column; }
+    .u-name { font-size: 12px; font-weight: 500; color: var(--text-main); }
+    .u-login { font-size: 10px; }
+
+    .check-ico { font-size: 16px; color: var(--primary); }
+    .no-options { padding: 12px; text-align: center; color: var(--text-muted); font-size: 12px; }
+    .text-muted { color: var(--text-muted); }
+  `]
+})
+export class UiUserMultiSelectComponent {
+  @Input() users: User[] = [];
+  @Input() selectedUserIds: number[] = [];
+  @Input() placeholder = 'Добавить наблюдателей...';
+  @Input() searchPlaceholder = 'Поиск сотрудника...';
+  @Output() selectedUserIdsChange = new EventEmitter<number[]>();
+
+  isOpen = signal<boolean>(false);
+  searchQuery = '';
+
+  constructor(private elementRef: ElementRef) {}
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    if (!this.elementRef.nativeElement.contains(event.target)) {
+      this.isOpen.set(false);
+    }
+  }
+
+  openDropdown() {
+    this.isOpen.set(true);
+  }
+
+  toggleDropdown(event: MouseEvent) {
+    event.stopPropagation();
+    this.isOpen.update(v => !v);
+  }
+
+  getSelectedUsers(): User[] {
+    const idSet = new Set(this.selectedUserIds);
+    return this.users.filter(u => idSet.has(u.id));
+  }
+
+  filteredUsers(): User[] {
+    // Only active users
+    const activeUsers = this.users.filter(u => u.state !== 'P' && !u.name.toLowerCase().includes('deleted user'));
+    const q = this.searchQuery.trim().toLowerCase();
+    if (!q) return activeUsers;
+
+    return activeUsers.filter(u =>
+      u.name.toLowerCase().includes(q) ||
+      u.login.toLowerCase().includes(q)
+    );
+  }
+
+  isSelected(userId: number): boolean {
+    return this.selectedUserIds.includes(userId);
+  }
+
+  toggleUser(userId: number) {
+    const list = [...this.selectedUserIds];
+    const idx = list.indexOf(userId);
+    if (idx >= 0) {
+      list.splice(idx, 1);
+    } else {
+      list.push(userId);
+    }
+    this.selectedUserIds = list;
+    this.selectedUserIdsChange.emit(list);
+  }
+
+  removeUser(userId: number) {
+    const list = this.selectedUserIds.filter(id => id !== userId);
+    this.selectedUserIds = list;
+    this.selectedUserIdsChange.emit(list);
+  }
+
+  getInitials(name: string): string {
+    if (!name) return 'U';
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  }
+}
