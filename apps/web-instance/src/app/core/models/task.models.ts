@@ -3,10 +3,10 @@ export interface Project {
   name: string;
   description?: string;
   state: 'A' | 'P';
-  attributes: Record<string, any>;
+  attributes?: Record<string, any>;
   createdAt: string;
-  modifiedAt: string;
-  createdBy: number;
+  modifiedAt?: string;
+  createdBy?: number;
 }
 
 export interface ProjectMember {
@@ -28,35 +28,36 @@ export interface TaskStatus {
   orderNo: number;
 }
 
-
 export interface Task {
   id: number;
-  projectId?: number;
-  parentTaskId?: number;
+  projectId?: number | null;
+  parentTaskId?: number | null;
   title: string;
   descriptionMarkdown?: string;
   statusId: number;
-  priority: 'low' | 'normal' | 'high' | 'urgent';
-  reporterId: number;
+  priority: 'low' | 'medium' | 'high' | 'critical' | string;
+  reporterId?: number;
   attributes: Record<string, any>;
-  beginTime?: string;
-  endTime?: string;
-  resolvedTime?: string;
+  beginTime?: string | null;
+  endTime?: string | null;
+  resolvedTime?: string | null;
   createdAt: string;
-  modifiedAt: string;
-  createdBy: number;
-  modifiedBy: number;
+  modifiedAt?: string;
+  createdBy?: number;
+  modifiedBy?: number;
 }
 
 export interface TaskMember {
   taskId: number;
   userId: number;
-  involvementKind: 'A' | 'R' | 'E' | 'D' | 'V'; // Author, Responsible, Executor, Director, Viewer
-  isDirect: boolean;
+  involveKind?: 'A' | 'R' | 'E' | 'D' | 'V' | 'O' | 'P' | string;
+  involvementKind?: 'A' | 'R' | 'E' | 'D' | 'V' | 'O' | 'P' | string;
+  isViewed?: boolean;
+  isDirect?: boolean;
   viewedAt?: string;
   userName: string;
   userLogin: string;
-  userEmail: string;
+  userEmail?: string;
 }
 
 export interface TaskComment {
@@ -65,7 +66,13 @@ export interface TaskComment {
   userId: number;
   userName: string;
   userLogin: string;
-  commentMarkdown: string;
+  commentMarkdown?: string;
+  textMarkdown?: string;
   createdAt: string;
-  modifiedAt: string;
+  modifiedAt?: string;
+}
+
+export interface TaskDetailResponse {
+  task: Task;
+  members: TaskMember[];
 }

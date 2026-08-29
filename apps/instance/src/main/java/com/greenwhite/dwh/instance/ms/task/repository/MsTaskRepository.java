@@ -111,6 +111,7 @@ public class MsTaskRepository {
                     description_markdown = coalesce(:descriptionMarkdown, description_markdown),
                     status_id = coalesce(:statusId, status_id),
                     priority = coalesce(:priority, priority),
+                    project_id = coalesce(:projectId, project_id),
                     parent_task_id = coalesce(:parentTaskId, parent_task_id),
                     begin_time = coalesce(:beginTime, begin_time),
                     end_time = coalesce(:endTime, end_time),
@@ -125,6 +126,7 @@ public class MsTaskRepository {
                 .param("descriptionMarkdown", data.descriptionMarkdown())
                 .param("statusId", data.statusId())
                 .param("priority", data.priority())
+                .param("projectId", data.projectId())
                 .param("parentTaskId", data.parentTaskId())
                 .param("beginTime", data.beginTime() != null ? java.sql.Timestamp.from(data.beginTime()) : null)
                 .param("endTime", data.endTime() != null ? java.sql.Timestamp.from(data.endTime()) : null)
@@ -133,6 +135,7 @@ public class MsTaskRepository {
                 .param("modifiedBy", modifiedBy)
                 .update();
     }
+
 
     public void updateStatus(Long taskId, Long statusId, Instant resolvedTime, Long modifiedBy) {
         jdbcClient.sql("""
@@ -240,6 +243,7 @@ public class MsTaskRepository {
     ) {}
 
     public record TaskUpdateData(
+            Long projectId,
             String title,
             String descriptionMarkdown,
             Long statusId,
@@ -251,3 +255,4 @@ public class MsTaskRepository {
             Instant resolvedTime
     ) {}
 }
+

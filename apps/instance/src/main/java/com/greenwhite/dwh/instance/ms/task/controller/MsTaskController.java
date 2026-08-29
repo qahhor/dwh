@@ -22,7 +22,6 @@ import java.util.Map;
 @RequestMapping({"/api/v1/tasks/items", "/api/v1/tasks"})
 public class MsTaskController {
 
-
     private final MsTaskService taskService;
 
     public MsTaskController(MsTaskService taskService) {
@@ -32,7 +31,7 @@ public class MsTaskController {
     @GetMapping
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
     public ResponseEntity<KeysetPage<MsTaskRepository.TaskRecord>> listTasks(
-            @RequestParam(name = "limit", defaultValue = "20") int limit,
+            @RequestParam(name = "limit", defaultValue = "50") int limit,
             @RequestParam(name = "cursor", required = false) String cursor,
             @RequestParam(name = "project_id", required = false) Long projectId,
             @RequestParam(name = "status_id", required = false) Long statusId,
@@ -49,7 +48,6 @@ public class MsTaskController {
     }
 
     @GetMapping("/{id}")
-
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
     public ResponseEntity<TaskDetailResponse> getTask(@PathVariable("id") Long id) {
         var task = taskService.getTaskById(id);
@@ -76,6 +74,7 @@ public class MsTaskController {
                 body.priority(),
                 body.responsibleUserId(),
                 body.executorUserIds(),
+                body.observerUserIds(),
                 body.attributes(),
                 body.beginTime(),
                 body.endTime(),
@@ -92,6 +91,7 @@ public class MsTaskController {
 
         taskService.updateTask(
                 id,
+                body.projectId(),
                 body.title(),
                 body.descriptionMarkdown(),
                 body.priority(),
@@ -104,6 +104,14 @@ public class MsTaskController {
 
         if (body.responsibleUserId() != null) {
             taskService.setResponsible(id, body.responsibleUserId());
+        }
+
+        if (body.executorUserIds() != null) {
+            taskService.setExecutors(id, body.executorUserIds());
+        }
+
+        if (body.observerUserIds() != null) {
+            taskService.setObservers(id, body.observerUserIds());
         }
 
         return ResponseEntity.noContent().build();
@@ -125,17 +133,21 @@ public class MsTaskController {
             String priority,
             Long responsibleUserId,
             List<Long> executorUserIds,
+            List<Long> observerUserIds,
             Map<String, Object> attributes,
             Instant beginTime,
             Instant endTime
     ) {}
 
     public record UpdateTaskDto(
+            Long projectId,
             String title,
             String descriptionMarkdown,
             Long parentTaskId,
             String priority,
             Long responsibleUserId,
+            List<Long> executorUserIds,
+            List<Long> observerUserIds,
             Map<String, Object> attributes,
             Instant beginTime,
             Instant endTime

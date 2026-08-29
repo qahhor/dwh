@@ -1,14 +1,17 @@
 package com.greenwhite.dwh.instance.ms.task.service;
 
-import com.greenwhite.dwh.core.error.ErrorCode;
 import com.greenwhite.dwh.core.pagination.CursorUtils;
 import com.greenwhite.dwh.core.pagination.KeysetPage;
+import com.greenwhite.dwh.core.error.ErrorCode;
 import com.greenwhite.dwh.instance.common.error.ApiException;
 import com.greenwhite.dwh.instance.md.service.MdCustomFieldService;
 import com.greenwhite.dwh.instance.ms.task.event.MsTaskEvents;
 import com.greenwhite.dwh.instance.ms.task.pref.MsTaskPref;
+import com.greenwhite.dwh.instance.ms.task.repository.MsProjectRepository;
+import com.greenwhite.dwh.instance.ms.task.repository.MsTaskMemberRepository;
+import com.greenwhite.dwh.instance.ms.task.repository.MsTaskRepository;
+import com.greenwhite.dwh.instance.ms.task.repository.MsTaskStatusRepository;
 import org.springframework.context.ApplicationEventPublisher;
-import com.greenwhite.dwh.instance.ms.task.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,19 +37,20 @@ public class MsTaskService {
             MsProjectRepository projectRepository,
             MdCustomFieldService customFieldService,
             ApplicationEventPublisher eventPublisher) {
-        this.eventPublisher = eventPublisher;
         this.taskRepository = taskRepository;
         this.statusRepository = statusRepository;
         this.memberRepository = memberRepository;
         this.projectRepository = projectRepository;
         this.customFieldService = customFieldService;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
     public MsTaskRepository.TaskRecord createTask(
             Long projectId, Long parentTaskId, String title, String descriptionMarkdown,
             String priority, Long responsibleUserId, List<Long> executorUserIds,
-            Map<String, Object> attributes, Instant beginTime, Instant endTime, Long reporterId) {
+            List<Long> observerUserIds, Map<String, Object> attributes,
+            Instant beginTime, Instant endTime, Long reporterId) {
 
         if (projectId != null) {
             projectRepository.findById(projectId)
@@ -73,7 +77,6 @@ public class MsTaskService {
                 defaultStatus.id(), safePriority, reporterId, attributes, beginTime, endTime
         ), reporterId);
 
-
         // Assign Author
         memberRepository.addOrUpdateMember(task.id(), reporterId, MsTaskPref.INVOLVE_AUTHOR, true);
 
@@ -85,7 +88,18 @@ public class MsTaskService {
         // Assign Executors
         if (executorUserIds != null) {
             for (Long execId : executorUserIds) {
-                memberRepository.addOrUpdateMember(task.id(), execId, MsTaskPref.INVOLVE_EXECUTOR, false);
+                if (execId != null) {
+                    memberRepository.addOrUpdateMember(task.id(), execId, MsTaskPref.INVOLVE_EXECUTOR, false);
+                }
+            }
+        }
+
+        // Assign Observers
+        if (observerUserIds != null) {
+            for (Long obsId : observerUserIds) {
+                if (obsId != null) {
+                    memberRepository.addOrUpdateMember(task.id(), obsId, MsTaskPref.INVOLVE_OBSERVER, false);
+                }
             }
         }
 
@@ -103,6 +117,16 @@ public class MsTaskService {
         }
 
         return task;
+    }
+
+    // Overload for backwards compatibility
+    @Transactional
+    public MsTaskRepository.TaskRecord createTask(
+            Long projectId, Long parentTaskId, String title, String descriptionMarkdown,
+            String priority, Long responsibleUserId, List<Long> executorUserIds,
+            Map<String, Object> attributes, Instant beginTime, Instant endTime, Long reporterId) {
+        return createTask(projectId, parentTaskId, title, descriptionMarkdown, priority,
+                responsibleUserId, executorUserIds, null, attributes, beginTime, endTime, reporterId);
     }
 
     @Transactional(readOnly = true)
@@ -141,11 +165,16 @@ public class MsTaskService {
     }
 
     @Transactional
-    public void updateTask(Long taskId, String title, String descriptionMarkdown, String priority,
+    public void updateTask(Long taskId, Long projectId, String title, String descriptionMarkdown, String priority,
                            Long parentTaskId, Map<String, Object> attributes, Instant beginTime,
                            Instant endTime, Long currentUserId) {
 
         getTaskById(taskId);
+
+        if (projectId != null) {
+            projectRepository.findById(projectId)
+                    .orElseThrow(() -> ApiException.notFound(ErrorCode.PROJECT_NOT_FOUND, "Проект не найден"));
+        }
 
         // Cycle check
         if (parentTaskId != null) {
@@ -161,10 +190,16 @@ public class MsTaskService {
         String safePriority = normalizePriority(priority);
 
         taskRepository.update(taskId, new MsTaskRepository.TaskUpdateData(
-                title, descriptionMarkdown, null, safePriority, parentTaskId, attributes, beginTime, endTime, null
+                projectId, title, descriptionMarkdown, null, safePriority, parentTaskId, attributes, beginTime, endTime, null
         ), currentUserId);
     }
 
+    @Transactional
+    public void updateTask(Long taskId, String title, String descriptionMarkdown, String priority,
+                           Long parentTaskId, Map<String, Object> attributes, Instant beginTime,
+                           Instant endTime, Long currentUserId) {
+        updateTask(taskId, null, title, descriptionMarkdown, priority, parentTaskId, attributes, beginTime, endTime, currentUserId);
+    }
 
     @Transactional
     public void changeStatus(Long taskId, Long newStatusId, Long currentUserId) {
@@ -190,6 +225,32 @@ public class MsTaskService {
             var task = getTaskById(taskId);
             eventPublisher.publishEvent(new MsTaskEvents.TaskAssigned(
                     taskId, task.title(), List.of(responsibleUserId), null));
+        }
+    }
+
+    @Transactional
+    public void setExecutors(Long taskId, List<Long> executorUserIds) {
+        getTaskById(taskId);
+        memberRepository.removeMembersByKind(taskId, MsTaskPref.INVOLVE_EXECUTOR);
+        if (executorUserIds != null) {
+            for (Long uid : executorUserIds) {
+                if (uid != null) {
+                    memberRepository.addOrUpdateMember(taskId, uid, MsTaskPref.INVOLVE_EXECUTOR, false);
+                }
+            }
+        }
+    }
+
+    @Transactional
+    public void setObservers(Long taskId, List<Long> observerUserIds) {
+        getTaskById(taskId);
+        memberRepository.removeMembersByKind(taskId, MsTaskPref.INVOLVE_OBSERVER);
+        if (observerUserIds != null) {
+            for (Long uid : observerUserIds) {
+                if (uid != null) {
+                    memberRepository.addOrUpdateMember(taskId, uid, MsTaskPref.INVOLVE_OBSERVER, false);
+                }
+            }
         }
     }
 
@@ -231,5 +292,3 @@ public class MsTaskService {
         };
     }
 }
-
-

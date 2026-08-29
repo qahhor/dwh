@@ -56,8 +56,8 @@ public class MsTaskMemberRepository {
 
     public List<TaskMemberRecord> getTaskMembers(Long taskId) {
         return jdbcClient.sql("""
-                select tm.task_id, tm.user_id, u.name as user_name, u.email as user_email,
-                       tm.involve_kind, tm.is_viewed
+                select tm.task_id, tm.user_id, u.name as user_name, u.login as user_login,
+                       u.email as user_email, tm.involve_kind, tm.is_viewed
                 from ms_task_members tm
                 join md_users u on u.id = tm.user_id
                 where tm.task_id = :taskId
@@ -68,6 +68,7 @@ public class MsTaskMemberRepository {
                         rs.getLong("task_id"),
                         rs.getLong("user_id"),
                         rs.getString("user_name"),
+                        rs.getString("user_login"),
                         rs.getString("user_email"),
                         rs.getString("involve_kind"),
                         rs.getBoolean("is_viewed")
@@ -90,8 +91,10 @@ public class MsTaskMemberRepository {
             Long taskId,
             Long userId,
             String userName,
+            String userLogin,
             String userEmail,
             String involveKind,
             boolean isViewed
     ) {}
 }
+
