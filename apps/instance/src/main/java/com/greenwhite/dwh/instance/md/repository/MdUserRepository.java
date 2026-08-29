@@ -208,15 +208,17 @@ public class MdUserRepository {
                 update md_users
                 set name = coalesce(:name, name),
                     phone = coalesce(:phone, phone),
-                    manager_id = coalesce(:managerId, manager_id),
+                    manager_id = coalesce(cast(:managerId as bigint), manager_id),
                     language = coalesce(:language, language),
                     timezone = coalesce(:timezone, timezone),
-                    avatar_file_id = coalesce(:avatarFileId, avatar_file_id),
-                    attributes = case when :attributes is not null then cast(:attributes as jsonb) else attributes end,
-                    is_2fa_enabled = coalesce(:is2faEnabled, is_2fa_enabled),
+                    avatar_file_id = coalesce(cast(:avatarFileId as uuid), avatar_file_id),
+                    attributes = coalesce(cast(:attributes as jsonb), attributes),
+                    is_2fa_enabled = coalesce(cast(:is2faEnabled as boolean), is_2fa_enabled),
                     modified_at = now(),
                     modified_by = :modifiedBy
                 where id = :userId
+
+
                 """)
                 .param("userId", userId)
                 .param("name", data.name())

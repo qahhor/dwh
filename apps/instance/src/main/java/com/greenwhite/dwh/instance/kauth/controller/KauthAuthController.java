@@ -56,7 +56,7 @@ public class KauthAuthController {
             ));
         }
 
-        setSessionCookie(response, result.rawSessionCookie());
+        setSessionCookie(request, response, result.rawSessionCookie());
 
         return ResponseEntity.ok(Map.of(
                 "step", "success",
@@ -74,7 +74,7 @@ public class KauthAuthController {
         String userAgent = request.getHeader("User-Agent") != null ? request.getHeader("User-Agent") : "Unknown";
 
         var result = authService.verifyOtp(body.otpToken(), body.code(), ip, userAgent, body.deviceInfo());
-        setSessionCookie(response, result.rawSessionCookie());
+        setSessionCookie(request, response, result.rawSessionCookie());
 
         return ResponseEntity.ok(Map.of(
                 "step", "success",
@@ -83,16 +83,16 @@ public class KauthAuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(HttpServletResponse response) {
+    public ResponseEntity<Void> logout(HttpServletRequest request, HttpServletResponse response) {
         var principal = SecurityContext.getPrincipal();
         if (principal != null && principal.sessionId() != null) {
             sessionService.closeSession(principal.sessionId());
         }
 
-        // Clear session cookie
+        boolean isSecure = request.isSecure() || "https".equalsIgnoreCase(request.getHeader("X-Forwarded-Proto"));
         ResponseCookie cookie = ResponseCookie.from(KauthPref.SESSION_COOKIE_NAME, "")
                 .httpOnly(true)
-                .secure(true)
+                .secure(isSecure)
                 .sameSite("Lax")
                 .path("/")
                 .maxAge(0)
@@ -107,7 +107,7 @@ public class KauthAuthController {
     public ResponseEntity<MeResponse> me() {
         Long userId = SecurityContext.getCurrentUserId();
         if (userId == null) {
-            throw ApiException.unauthorized("РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ Р°РІС‚РѕСЂРёР·РѕРІР°РЅ");
+            throw ApiException.unauthorized("Пользователь не авторизован");
         }
 
         var user = userService.getUserById(userId);
@@ -130,16 +130,18 @@ public class KauthAuthController {
         return ResponseEntity.noContent().build();
     }
 
-    private void setSessionCookie(HttpServletResponse response, String rawToken) {
+    private void setSessionCookie(HttpServletRequest request, HttpServletResponse response, String rawToken) {
+        boolean isSecure = request.isSecure() || "https".equalsIgnoreCase(request.getHeader("X-Forwarded-Proto"));
         ResponseCookie cookie = ResponseCookie.from(KauthPref.SESSION_COOKIE_NAME, rawToken)
                 .httpOnly(true)
-                .secure(true)
+                .secure(isSecure)
                 .sameSite("Lax")
                 .path("/")
                 .maxAge(60 * 60 * 24 * 7) // 7 days
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
+
 
     private String getClientIp(HttpServletRequest request) {
         String xff = request.getHeader("X-Forwarded-For");

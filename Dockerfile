@@ -60,9 +60,10 @@ EXPOSE 8080 9090
 # Контейнерные умолчания JVM: heap от лимита памяти cgroup, не от хоста.
 # JAVA_TOOL_OPTIONS вместо своей переменной — JVM подхватывает её сама,
 # поэтому ENTRYPOINT остаётся exec-формой без шелла (см. ниже).
-ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75 -XX:InitialRAMPercentage=50 \
+ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75 \
 -XX:+ExitOnOutOfMemoryError -XX:+UseZGC \
 -Djava.security.egd=file:/dev/./urandom -Duser.timezone=UTC"
+
 
 # Health-check уровня контейнера. Оркестратор (Nomad, фаза P) использует
 # свои проверки поверх тех же actuator-эндпоинтов.

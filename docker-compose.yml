@@ -16,6 +16,7 @@
 name: ${PROJECT_NAME:-SmartupCMS}
 
 x-instance-env: &instance-env
+  JAVA_TOOL_OPTIONS: "-Xms256m -Xmx1024m -XX:+ExitOnOutOfMemoryError -XX:+UseZGC -Djava.security.egd=file:/dev/./urandom -Duser.timezone=UTC"
   DB_URL: jdbc:postgresql://db:5432/${DB_NAME:-dwh_instance}
   DB_USER: ${DB_USER:-dwh}
   DB_PASSWORD: ${DB_PASSWORD:-dwh_local_dev}
@@ -32,6 +33,7 @@ x-instance-env: &instance-env
   DWH_CP_HEARTBEAT_INTERVAL: ${DWH_CP_HEARTBEAT_INTERVAL:-5m}
   MANAGEMENT_PORT: 9090          # порт для HEALTHCHECK образа
   TZ: UTC
+
 
 services:
   # ------------------------------------------------------------ экземпляр
@@ -108,6 +110,7 @@ services:
     restart: "no"
     command: ["--spring.profiles.active=migrate"]
     environment: &cp-env
+      JAVA_TOOL_OPTIONS: "-Xms256m -Xmx512m -XX:+ExitOnOutOfMemoryError -XX:+UseZGC -Djava.security.egd=file:/dev/./urandom -Duser.timezone=UTC"
       CP_DB_URL: jdbc:postgresql://db-cp:5432/${CP_DB_NAME:-dwh_control_plane}
       CP_DB_USER: ${CP_DB_USER:-dwh_cp}
       CP_DB_PASSWORD: ${CP_DB_PASSWORD:-dwh_cp_local_dev}
@@ -116,6 +119,7 @@ services:
       CP_ADMIN_PASSWORD: ${CP_ADMIN_PASSWORD:-CpDevOnly-ChangeMe-1}
       MANAGEMENT_PORT: 9091      # у control plane свой actuator-порт
       TZ: UTC
+
     depends_on:
       db-cp: {condition: service_healthy}
 

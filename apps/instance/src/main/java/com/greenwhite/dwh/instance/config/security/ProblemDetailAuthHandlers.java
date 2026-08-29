@@ -37,6 +37,8 @@ public class ProblemDetailAuthHandlers implements AuthenticationEntryPoint, Acce
                 "Требуется аутентификация для доступа к ресурсу", request.getRequestURI());
     }
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ProblemDetailAuthHandlers.class);
+
     @Override
     public void handle(HttpServletRequest request, HttpServletResponse response,
                        AccessDeniedException accessDeniedException) throws IOException {
@@ -46,8 +48,13 @@ public class ProblemDetailAuthHandlers implements AuthenticationEntryPoint, Acce
         String detail = code == ErrorCode.CSRF_TOKEN_INVALID
                 ? "Отсутствует или недействителен CSRF-токен (заголовок X-XSRF-TOKEN)"
                 : "Доступ запрещён";
+        log.warn("AccessDenied [code={}] on {}: {} | header X-XSRF-TOKEN={}, cookies={}",
+                code, request.getRequestURI(), accessDeniedException.getMessage(),
+                request.getHeader("X-XSRF-TOKEN"),
+                request.getCookies() != null ? java.util.Arrays.stream(request.getCookies()).map(c -> c.getName() + "=" + c.getValue()).toList() : "null");
         writeProblem(response, code, detail, request.getRequestURI());
     }
+
 
     public void writeProblem(HttpServletResponse response, ErrorCode code, String detail, String uri)
             throws IOException {

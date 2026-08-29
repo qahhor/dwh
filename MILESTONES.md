@@ -47,15 +47,18 @@
 
 ---
 
-### M3. Авторизация и аутентификация (AUTH)
-- **Цель:** Безопасный вход, серверные сессии с CSRF защитой, 2FA OTP через Telegram/SMS, отзываемые API-токены.
+### M3. Авторизация и аутентификация (AUTH) [✅ ВЫПОЛНЕНО 2026-08-29]
+- **Цель:** Безопасный вход, серверные сессии с CSRF защитой, 2FA OTP через Telegram/SMS, отзываемые API-токены, защита от подбора паролей и управление жизненным циклом сессий.
 - **DoD:**
-  - Двухэтапный вход (пароль + 2FA OTP).
-  - Защита от brute-force с задержкой и блокировкой.
-  - Управление сессиями (просмотр своих сессий, принудительное завершение).
-  - Автоматическое закрытие неактивных сессий (12 ч).
-- **Файлы:** `apps/instance/.../kauth/service/KauthAuthService.java`, `KauthSessionService.java`.
-- **Команда проверки:** `mvn test -Dtest=SecurityConfigTest,RateLimitFilterTest`
+  - FR-AUTH-4: Защита от brute-force с блокировкой на 10 минут после 5 неудачных попыток (`ErrorCode.LOGIN_LOCKED`, HTTP 423).
+  - FR-AUTH-7: Восстановление пароля по 6-значному OTP-коду (SHA-256 хэш, 15 мин TTL, `PasswordValidator`, аннулирование всех активных сессий).
+  - FR-AUTH-8: Фоновый воркер `KauthSessionCleanupWorker` для автоматического закрытия сессий, неактивных более 12 ч.
+  - FR-AUTH-3: Эндпоинты управления сессиями пользователей администратором (`GET/DELETE /api/v1/iam/profile/sessions/users/{userId}`).
+  - FR-SEC-1: Двухфакторная CSRF double-submit защита (cookie `XSRF-TOKEN` + заголовок `X-XSRF-TOKEN`).
+  - FR-AUTH-6: Генерация и аутентификация через Bearer API-токены (`dwh_...`) с SHA-256 хэшированием и префиксом.
+- **Файлы:** `apps/instance/.../kauth/service/KauthAuthService.java`, `KauthSessionService.java`, `KauthSessionCleanupWorker.java`, `KauthAuthController.java`, `KauthSessionController.java`, `KauthApiTokenController.java`.
+- **Команда проверки:** `mvn test` (62/62 тестов пройдено), `powershell scripts/dev/test-api.ps1` (15/15 E2E сценариев на Docker пройдены).
+
 
 ---
 

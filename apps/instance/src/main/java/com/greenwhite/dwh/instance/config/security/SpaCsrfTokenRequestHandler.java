@@ -17,21 +17,28 @@ import java.util.function.Supplier;
  * - csrfToken.get() форсирует выдачу cookie XSRF-TOKEN на каждом ответе,
  *   чтобы SPA всегда имела актуальный токен.
  */
-final class SpaCsrfTokenRequestHandler implements CsrfTokenRequestHandler {
+final class SpaCsrfTokenRequestHandler extends CsrfTokenRequestAttributeHandler {
 
-    private final CsrfTokenRequestHandler plain = new CsrfTokenRequestAttributeHandler();
-    private final CsrfTokenRequestHandler xor = new XorCsrfTokenRequestAttributeHandler();
+    private final CsrfTokenRequestHandler delegate = new XorCsrfTokenRequestAttributeHandler();
 
     @Override
     public void handle(HttpServletRequest request, HttpServletResponse response, Supplier<CsrfToken> csrfToken) {
-        this.xor.handle(request, response, csrfToken);
+        this.delegate.handle(request, response, csrfToken);
         csrfToken.get();
     }
 
     @Override
     public String resolveCsrfTokenValue(HttpServletRequest request, CsrfToken csrfToken) {
         String headerValue = request.getHeader(csrfToken.getHeaderName());
-        return (StringUtils.hasText(headerValue) ? this.plain : this.xor)
-                .resolveCsrfTokenValue(request, csrfToken);
+        if (!StringUtils.hasText(headerValue)) {
+            headerValue = request.getHeader("X-XSRF-TOKEN");
+        }
+        if (!StringUtils.hasText(headerValue)) {
+            headerValue = request.getHeader("X-CSRF-TOKEN");
+        }
+        return StringUtils.hasText(headerValue)
+                ? super.resolveCsrfTokenValue(request, csrfToken)
+                : this.delegate.resolveCsrfTokenValue(request, csrfToken);
     }
 }
+

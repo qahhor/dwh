@@ -16,7 +16,9 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.context.SecurityContextHolderFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
+
 import org.springframework.security.web.header.writers.StaticHeadersWriter;
 
 /**
@@ -48,12 +50,22 @@ public class SecurityConfig {
 
         http
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .csrf(csrf -> csrf
-                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                        .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler())
-                        // FR-SEC-1: CSRF применяется к мутирующим запросам С cookie-аутентификацией.
-                        // Bearer-запросы и запросы без сессионной cookie вектору не подвержены.
-                        .ignoringRequestMatchers(SecurityConfig::isCsrfExempt))
+                .csrf(csrf -> {
+                    CookieCsrfTokenRepository tokenRepository = CookieCsrfTokenRepository.withHttpOnlyFalse();
+                    tokenRepository.setHeaderName("X-XSRF-TOKEN");
+                    tokenRepository.setCookieName("XSRF-TOKEN");
+                    tokenRepository.setCookiePath("/");
+
+                    CsrfTokenRequestAttributeHandler requestHandler = new CsrfTokenRequestAttributeHandler();
+                    requestHandler.setCsrfRequestAttributeName(null);
+
+                    csrf.csrfTokenRepository(tokenRepository)
+                            .csrfTokenRequestHandler(requestHandler)
+                            // FR-SEC-1: CSRF применяется к мутирующим запросам С cookie-аутентификацией.
+                            // Bearer-запросы и запросы без сессионной cookie вектору не подвержены.
+                            .ignoringRequestMatchers(SecurityConfig::isCsrfExempt);
+                })
+
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_PATHS).permitAll()
                         // Actuator живёт на отдельном management-порту, наружу не публикуется

@@ -3,6 +3,7 @@
 # ============================================================================
 $ErrorActionPreference = "Stop"
 $BaseUrl = "http://localhost:8080"
+$MgmtUrl = "http://localhost:9190"
 
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host "  DWH Platform - Live Smoke Test Suite                      " -ForegroundColor Cyan
@@ -10,26 +11,44 @@ Write-Host "============================================================" -Foreg
 
 # 1. Health Check
 Write-Host "`n1. Actuator Health Check..." -ForegroundColor Yellow
-$health = Invoke-RestMethod -Uri "$BaseUrl/actuator/health" -Method Get
-Write-Host "   Status: $($health.status)" -ForegroundColor Green
+try {
+    $health = Invoke-RestMethod -Uri "$MgmtUrl/actuator/health" -Method Get
+    Write-Host "   Status: $($health.status)" -ForegroundColor Green
+} catch {
+    $health = Invoke-RestMethod -Uri "$BaseUrl/actuator/health" -Method Get
+    Write-Host "   Status: $($health.status)" -ForegroundColor Green
+}
 
 # 2. Login as admin
 Write-Host "`n2. Authentication (POST /api/v1/auth/login)..." -ForegroundColor Yellow
+$adminPassword = if ($env:ADMIN_PASSWORD) { $env:ADMIN_PASSWORD } else { "DevOnly-ChangeMe-1" }
 $loginBody = @{
     login = "admin"
-    password = "Admin123!"
+    password = $adminPassword
     deviceInfo = "PowerShell Smoke Tester"
 } | ConvertTo-Json
 
-$loginResponse = Invoke-WebRequest -Uri "$BaseUrl/api/v1/auth/login" -Method Post -Body $loginBody -ContentType "application/json" -SessionVariable session
+$loginResponse = Invoke-WebRequest -Uri "$BaseUrl/api/v1/auth/login" -Method Post -Body $loginBody -ContentType "application/json" -SessionVariable session -UseBasicParsing
 $userJson = $loginResponse.Content | ConvertFrom-Json
 Write-Host "   Login Success! User: $($userJson.user.name) ($($userJson.user.email))" -ForegroundColor Green
 
-# 3. GET /api/v1/auth/me
+# 3. GET /api/v1/auth/me (initializes session context)
 Write-Host "`n3. Verify Session (GET /api/v1/auth/me)..." -ForegroundColor Yellow
 $meResponse = Invoke-RestMethod -Uri "$BaseUrl/api/v1/auth/me" -Method Get -WebSession $session
 Write-Host "   User Verified: $($meResponse.user.login)" -ForegroundColor Green
 Write-Host "   Effective Permissions Count: $($meResponse.permissions.Count)" -ForegroundColor Green
+
+function Get-CsrfHeaders {
+    $token = ""
+    try {
+        foreach ($c in $session.Cookies.GetCookies([System.Uri]$BaseUrl)) {
+            if ($c.Name -eq "XSRF-TOKEN") {
+                $token = $c.Value
+            }
+        }
+    } catch {}
+    return @{ "X-XSRF-TOKEN" = $token }
+}
 
 # 4. GET /api/v1/iam/users
 Write-Host "`n4. List Users with Keyset Pagination (GET /api/v1/iam/users)..." -ForegroundColor Yellow
@@ -49,7 +68,7 @@ $fieldBody = @{
 } | ConvertTo-Json
 
 try {
-    $fieldResponse = Invoke-RestMethod -Uri "$BaseUrl/api/v1/custom-fields" -Method Post -Body $fieldBody -ContentType "application/json" -WebSession $session
+    $fieldResponse = Invoke-RestMethod -Uri "$BaseUrl/api/v1/custom-fields" -Method Post -Body $fieldBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
     Write-Host "   Custom field created: $($fieldResponse.name) ($($fieldResponse.code))" -ForegroundColor Green
 } catch {
     Write-Host "   Custom field already exists." -ForegroundColor Gray
@@ -65,7 +84,7 @@ $projectBody = @{
     attributes = @{}
 } | ConvertTo-Json
 
-$projectResponse = Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks/projects" -Method Post -Body $projectBody -ContentType "application/json" -WebSession $session
+$projectResponse = Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks/projects" -Method Post -Body $projectBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
 Write-Host "   Project created: ID=$($projectResponse.id), Name=$($projectResponse.name)" -ForegroundColor Green
 
 # 7. Create Task with dynamic custom attributes
@@ -81,7 +100,7 @@ $taskBody = @{
     }
 } | ConvertTo-Json
 
-$taskResponse = Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks/items" -Method Post -Body $taskBody -ContentType "application/json" -WebSession $session
+$taskResponse = Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks/items" -Method Post -Body $taskBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
 Write-Host "   Task created: ID=$($taskResponse.id), Title=$($taskResponse.title)" -ForegroundColor Green
 Write-Host "   Dynamic attributes stored: $($taskResponse.attributes | ConvertTo-Json -Compress)" -ForegroundColor Green
 
@@ -99,7 +118,7 @@ $commentBody = @{
     textMarkdown = "Initial replication tests passed cleanly"
     fileIds = @()
 } | ConvertTo-Json
-$commentResponse = Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks/items/$($taskResponse.id)/comments" -Method Post -Body $commentBody -ContentType "application/json" -WebSession $session
+$commentResponse = Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks/items/$($taskResponse.id)/comments" -Method Post -Body $commentBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
 Write-Host "   Comment added: ID=$($commentResponse.id)" -ForegroundColor Green
 
 # 10. Issue API Token
@@ -107,18 +126,19 @@ Write-Host "`n10. Issue Bearer API Token (POST /api/v1/iam/profile/tokens)..." -
 $tokenBody = @{
     name = "CI Integration Token"
 } | ConvertTo-Json
-$tokenResponse = Invoke-RestMethod -Uri "$BaseUrl/api/v1/iam/profile/tokens" -Method Post -Body $tokenBody -ContentType "application/json" -WebSession $session
-Write-Host "   API Token created: $($tokenResponse.name)" -ForegroundColor Green
-Write-Host "   Prefix: $($tokenResponse.token_prefix)..." -ForegroundColor Green
-Write-Host "   Raw Secret Token: $($tokenResponse.token)" -ForegroundColor Yellow
+$tokenResponse = Invoke-RestMethod -Uri "$BaseUrl/api/v1/iam/profile/tokens" -Method Post -Body $tokenBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
+Write-Host "   API Token created: $($tokenResponse.record.name)" -ForegroundColor Green
+Write-Host "   Prefix: $($tokenResponse.record.tokenPrefix)..." -ForegroundColor Green
+Write-Host "   Raw Secret Token: $($tokenResponse.rawSecretToken)" -ForegroundColor Yellow
 
 # 11. Test Bearer Token Authentication
 Write-Host "`n11. Verify Bearer Token Auth (GET /api/v1/auth/me with Authorization header)..." -ForegroundColor Yellow
 $bearerHeaders = @{
-    Authorization = "Bearer $($tokenResponse.token)"
+    Authorization = "Bearer $($tokenResponse.rawSecretToken)"
 }
 $bearerMe = Invoke-RestMethod -Uri "$BaseUrl/api/v1/auth/me" -Method Get -Headers $bearerHeaders
 Write-Host "   Successfully authenticated via API Bearer Token! User=$($bearerMe.user.login)" -ForegroundColor Green
+
 
 # 12. Create User (CRUD: Add) with 10-char password validation
 Write-Host "`n12. Create User (POST /api/v1/iam/users)..." -ForegroundColor Yellow
@@ -134,7 +154,7 @@ $newUserBody = @{
     is2faEnabled = $false
     attributes = @{}
 } | ConvertTo-Json
-$newUser = Invoke-RestMethod -Uri "$BaseUrl/api/v1/iam/users" -Method Post -Body $newUserBody -ContentType "application/json" -WebSession $session
+$newUser = Invoke-RestMethod -Uri "$BaseUrl/api/v1/iam/users" -Method Post -Body $newUserBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
 Write-Host "   User created: ID=$($newUser.id), Login=$($newUser.login)" -ForegroundColor Green
 
 # 13. Update User (CRUD: Edit)
@@ -143,7 +163,7 @@ $updateUserBody = @{
     name = "Senior Test Engineer $randUser"
     language = "en"
 } | ConvertTo-Json
-Invoke-RestMethod -Uri "$BaseUrl/api/v1/iam/users/$($newUser.id)" -Method Patch -Body $updateUserBody -ContentType "application/json" -WebSession $session
+Invoke-RestMethod -Uri "$BaseUrl/api/v1/iam/users/$($newUser.id)" -Method Patch -Body $updateUserBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
 $updatedUser = Invoke-RestMethod -Uri "$BaseUrl/api/v1/iam/users/$($newUser.id)" -Method Get -WebSession $session
 Write-Host "   User updated: Name=$($updatedUser.name), Lang=$($updatedUser.language)" -ForegroundColor Green
 
@@ -152,14 +172,14 @@ Write-Host "`n14. Brute-Force Lockout Protection (5 invalid attempts on $($newUs
 for ($i = 1; $i -le 5; $i++) {
     try {
         $badLogin = @{ login = $newUser.login; password = "WrongPassword$i" } | ConvertTo-Json
-        Invoke-WebRequest -Uri "$BaseUrl/api/v1/auth/login" -Method Post -Body $badLogin -ContentType "application/json" | Out-Null
+        Invoke-WebRequest -Uri "$BaseUrl/api/v1/auth/login" -Method Post -Body $badLogin -ContentType "application/json" -UseBasicParsing | Out-Null
     } catch {
         # expected 401 on attempts 1..4, 423 on attempt 5
     }
 }
 try {
     $attempt6 = @{ login = $newUser.login; password = "WrongPassword6" } | ConvertTo-Json
-    Invoke-WebRequest -Uri "$BaseUrl/api/v1/auth/login" -Method Post -Body $attempt6 -ContentType "application/json"
+    Invoke-WebRequest -Uri "$BaseUrl/api/v1/auth/login" -Method Post -Body $attempt6 -ContentType "application/json" -UseBasicParsing
     Write-Host "   ERROR: Expected account lockout but login proceeded" -ForegroundColor Red
 } catch {
     Write-Host "   Brute-force protection ACTIVE: Account temporarily locked (HTTP 423 Locked / ErrorCode.LOGIN_LOCKED)" -ForegroundColor Green
@@ -167,11 +187,10 @@ try {
 
 # 15. Delete / Anonymize User (CRUD: Delete)
 Write-Host "`n15. Delete & Anonymize User (DELETE /api/v1/iam/users/$($newUser.id))..." -ForegroundColor Yellow
-Invoke-RestMethod -Uri "$BaseUrl/api/v1/iam/users/$($newUser.id)" -Method Delete -WebSession $session
+Invoke-RestMethod -Uri "$BaseUrl/api/v1/iam/users/$($newUser.id)" -Method Delete -WebSession $session -Headers (Get-CsrfHeaders)
 $anonymizedUser = Invoke-RestMethod -Uri "$BaseUrl/api/v1/iam/users/$($newUser.id)" -Method Get -WebSession $session
 Write-Host "   User anonymized: Name=$($anonymizedUser.name), State=$($anonymizedUser.state)" -ForegroundColor Green
 
 Write-Host "`n============================================================" -ForegroundColor Cyan
 Write-Host "  All 15 End-to-End Scenarios Passed Successfully!           " -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
-

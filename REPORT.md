@@ -80,11 +80,49 @@ cd apps/web-instance && npm run build
 - **Frontend:** Сборка `web-instance` собрана без предупреждений (110.8 kB Gzip).
 
 ### Следующие шаги:
-- Переход к модулю **M3 (Авторизация и сессии / AUTH)**:
-  - Эндпоинт управления сессиями всех пользователей для администратора.
-  - Планировщик фонового закрытия неактивных сессий (12 ч).
-  - Проверка анти-brute-force логики и задержек.
+- Модуль M2 полностью завершен и принят.
 
-### Риски и технический долг:
-- Интеграция внешних SMS/Email провайдеров для 2FA OTP требует настройки боевых ключей в фазе F.
+---
+
+## [2026-08-29 14:22] Этап M3. Авторизация и аутентификация (AUTH)
+
+### Что сделано:
+- **FR-AUTH-4 (Защита от brute-force)**:
+  - Реализован счетчик неудачных попыток входа с блокировкой учетной записи на 10 минут после 5 неверных попыток (`ErrorCode.LOGIN_LOCKED`, HTTP 423 Locked).
+- **FR-AUTH-7 (Восстановление пароля)**:
+  - Добавлена генерация 6-значных OTP токенов со сроком действия 15 минут, валидация нового пароля через `PasswordValidator` и отзыв всех сессий пользователя после сброса.
+- **FR-AUTH-8 (Автоматическая очистка сессий)**:
+  - Разработан фоновый воркер `KauthSessionCleanupWorker` (@Scheduled(cron = "0 0 * * * *")), закрывающий сессии, неактивные более 12 часов (`closeInactiveSessions`).
+- **FR-AUTH-3 (Управление сессиями администратором)**:
+  - Добавлены эндпоинты `GET /api/v1/iam/profile/sessions/users/{userId}` и `DELETE /api/v1/iam/profile/sessions/users/{userId}` с проверкой прав `iam.users.view` и `iam.users.block`.
+- **FR-SEC-1 (CSRF Double-Submit & SPA)**:
+  - Стабилизирована обработка CSRF-токена в Spring Security для Angular SPA и внешних REST-клиентов через `CookieCsrfTokenRepository.withHttpOnlyFalse()` и `SpaCsrfTokenRequestHandler`.
+- **Синхронизация эффективных прав (FR-PERM-6)**:
+  - Добавлена миграция `V006__sync_effective_permissions.sql` и вызов `syncEffectivePermissions` в `InstanceBootstrap` для автоматической материализации выданных прав в `md_effective_permissions`.
+- **Оптимизация Docker Stand**:
+  - Настроены параметры памяти JVM в `docker-compose.yml` (`-Xms256m -Xmx1024m -XX:+UseZGC`) для стабильного запуска на Windows/Linux.
+  - Написан и проверен расширенный E2E сценарий `scripts/dev/test-api.ps1` из 15 сценариев проверки живого стенда в Docker.
+
+### Команды:
+```bash
+# 1. Прогон всех unit/integration тестов в Maven
+mvn test
+
+# 2. Пересборка и запуск контейнеров в Docker
+docker compose build app
+docker compose run --rm migrate
+docker compose up -d app
+
+# 3. Полный прогон живых E2E сценариев API
+powershell -ExecutionPolicy Bypass -File scripts/dev/test-api.ps1
+```
+
+### Результат:
+- **Backend:** 62/62 тестов успешно (`BUILD SUCCESS`).
+- **Live Smoke / E2E Suite:** 15/15 сценариев пройдены успешно (Healthcheck, Login, Session Verification, Keyset Pagination, Custom Fields, Projects, Tasks with JSONB, Instant Search, Markdown Comments, Bearer Token Issue, Bearer Auth, User Create, User Update, Brute-Force Lockout HTTP 423, User Anonymization).
+
+### Следующие шаги:
+- Переход к модулю **M4 (Ролевая модель и права / PERM)**:
+  - Проверка и расширение CRUD ролей, матрица разрешений `md_role_permissions`, кэширование и версионирование `md_user_permission_versions`.
+
 

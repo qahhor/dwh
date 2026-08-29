@@ -98,9 +98,10 @@ public class KauthSessionRepository {
                 set closed_at = now()
                 where closed_at is null and last_seen_at < :cutoff
                 """)
-                .param("cutoff", cutoff)
+                .param("cutoff", java.sql.Timestamp.from(cutoff))
                 .update();
     }
+
 
 
     public List<SessionRecord> findActiveByUserId(Long userId) {
