@@ -8,16 +8,23 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { Role, FormTreeItem, PermissionPair } from '../../../core/models/rbac.models';
 
+interface FormActionItem {
+  action: string;
+  actionName: string;
+}
+
 interface GroupedForm {
   module: string;
   formCode: string;
   formName: string;
-  actions: Array<{ action: string; actionName: string }>;
+  actions: FormActionItem[];
 }
 
 interface ModuleGroup {
+  moduleCode: string;
   moduleName: string;
   forms: GroupedForm[];
+  isExpanded: boolean;
 }
 
 @Component({
@@ -26,35 +33,42 @@ interface ModuleGroup {
   imports: [CommonModule, FormsModule, UiButtonComponent, UiModalComponent],
   template: `
     <div class="roles-view">
-      <!-- Minimal Header -->
+      <!-- Header -->
       <div class="view-header">
         <div class="header-left">
           <h1 class="view-title">Роли и матрица прав</h1>
           <span class="role-count">{{ roles().length }}</span>
         </div>
-        <ui-button
-          *ngIf="canCreateRole()"
-          variant="primary"
-          size="md"
-          icon="add"
-          (onClick)="openCreateModal()"
-        >
-          Создать роль
-        </ui-button>
+        <div class="header-right">
+          <ui-button
+            *ngIf="canCreateRole()"
+            variant="primary"
+            size="md"
+            icon="add"
+            (onClick)="openCreateModal()"
+          >
+            Новая роль
+          </ui-button>
+        </div>
       </div>
 
-      <!-- Master-Detail RBAC Layout -->
-      <div class="rbac-grid">
-        <!-- Roles List Sidebar -->
+      <!-- Master-Detail Layout -->
+      <div class="rbac-layout">
+        <!-- Sidebar: Roles List -->
         <div class="roles-sidebar">
-          <div class="sidebar-search">
-            <span class="material-symbols-outlined icon">search</span>
-            <input
-              type="text"
-              class="search-input"
-              placeholder="Поиск ролей..."
-              [(ngModel)]="roleSearchQuery"
-            />
+          <div class="sidebar-header">
+            <div class="sidebar-search">
+              <span class="material-symbols-outlined icon">search</span>
+              <input
+                type="text"
+                class="search-input"
+                placeholder="Поиск роли..."
+                [(ngModel)]="roleSearchQuery"
+              />
+            </div>
+            <button class="add-role-mini-btn" *ngIf="canCreateRole()" (click)="openCreateModal()" title="Создать роль">
+              <span class="material-symbols-outlined">add</span>
+            </button>
           </div>
 
           <div class="roles-list">
@@ -66,49 +80,66 @@ interface ModuleGroup {
             >
               <div class="role-card-top">
                 <span class="role-name">{{ r.name }}</span>
-                <span class="system-tag" *ngIf="r.pcode">{{ r.pcode }}</span>
-                <span class="custom-tag" *ngIf="!r.pcode">Пользовательская</span>
+                <span class="system-tag font-mono" *ngIf="r.pcode">{{ r.pcode }}</span>
+                <span class="custom-tag" *ngIf="!r.pcode">Кастомная</span>
               </div>
+
               <div class="role-card-bot">
                 <span class="status-dot" [class.active]="r.state === 'A'"></span>
                 <span class="status-lbl">{{ r.state === 'A' ? 'Активна' : 'Отключена' }}</span>
-                <div class="role-actions" *ngIf="!r.pcode" (click)="$event.stopPropagation()">
-                  <button type="button" class="icon-btn" title="Редактировать роль" (click)="openEditRoleModal(r)">
+
+                <div class="role-card-actions" (click)="$event.stopPropagation()">
+                  <button
+                    type="button"
+                    class="action-mini-btn"
+                    title="Редактировать параметры роли"
+                    *ngIf="canUpdateRole()"
+                    (click)="openEditRoleModal(r)"
+                  >
                     <span class="material-symbols-outlined">edit</span>
                   </button>
-                  <button type="button" class="icon-btn" title="Удалить роль" (click)="openDeleteRoleModal(r)">
+                  <button
+                    type="button"
+                    class="action-mini-btn delete"
+                    title="Удалить роль"
+                    *ngIf="!r.pcode && canDeleteRole()"
+                    (click)="openDeleteRoleModal(r)"
+                  >
                     <span class="material-symbols-outlined">delete</span>
                   </button>
                 </div>
               </div>
             </div>
+
+            <div *ngIf="filteredRoles().length === 0" class="sidebar-empty">
+              <span>Роли не найдены</span>
+            </div>
           </div>
         </div>
 
-        <!-- Permission Matrix Main View -->
+        <!-- Main Panel: Permission Matrix -->
         <div class="matrix-panel" *ngIf="selectedRole() as role">
-          <!-- Role Details Header Bar -->
+          <!-- Role Details Header -->
           <div class="matrix-topbar">
-            <div class="role-info">
-              <div class="title-row">
+            <div class="role-headline">
+              <div class="role-title-row">
                 <h2 class="selected-role-name">{{ role.name }}</h2>
-                <span class="system-pill" *ngIf="role.pcode">Системная роль: {{ role.pcode }}</span>
+                <span class="system-badge font-mono" *ngIf="role.pcode">Системная: {{ role.pcode }}</span>
+                <span class="status-pill" [class.active]="role.state === 'A'">
+                  {{ role.state === 'A' ? 'Активна' : 'Отключена' }}
+                </span>
               </div>
-              <span class="role-desc">
-                {{ role.pcode === 'admin' ? 'Полный доступ ко всем модулям системы (I-P4 Invariant)' : 'Настройте доступ к формам и операциям ниже' }}
-              </span>
+              <div class="role-stats-row">
+                <span class="perm-counter">
+                  Разрешено: <strong>{{ activePermissionsCount() }}</strong> из {{ totalActionsCount() }} действий
+                </span>
+                <div class="perm-progress-bar">
+                  <div class="perm-progress-fill" [style.width.%]="permissionPercentage()"></div>
+                </div>
+              </div>
             </div>
 
-            <div class="topbar-actions">
-              <div class="form-search">
-                <span class="material-symbols-outlined icon">search</span>
-                <input
-                  type="text"
-                  class="search-input"
-                  placeholder="Фильтр форм и действий..."
-                  [(ngModel)]="matrixSearchQuery"
-                />
-              </div>
+            <div class="topbar-save-actions">
               <ui-button
                 *ngIf="canGrant()"
                 variant="primary"
@@ -117,86 +148,154 @@ interface ModuleGroup {
                 [loading]="isSaving()"
                 (onClick)="savePermissions()"
               >
-                Сохранить матрицу
+                Сохранить права
               </ui-button>
             </div>
           </div>
 
-          <!-- Grouped Modules & Forms Matrix -->
-          <div class="matrix-scroll-area">
-            <div *ngFor="let mod of filteredModuleGroups()" class="module-section">
-              <div class="module-header">
-                <span class="material-symbols-outlined mod-icon">{{ getModuleIcon(mod.moduleName) }}</span>
-                <h3 class="module-title">{{ getModuleDisplayName(mod.moduleName) }}</h3>
-                <div class="module-quick-actions">
-                  <button type="button" class="text-action-btn" (click)="toggleAllModule(mod, true)">Выбрать все</button>
-                  <span class="divider">/</span>
-                  <button type="button" class="text-action-btn" (click)="toggleAllModule(mod, false)">Снять все</button>
+          <!-- Module Navigation Pills & Search Toolbar -->
+          <div class="matrix-toolbar">
+            <div class="module-tabs">
+              <button
+                type="button"
+                class="mod-tab"
+                [class.active]="selectedModuleTab === 'all'"
+                (click)="selectedModuleTab = 'all'"
+              >
+                Все разделы ({{ forms().length }})
+              </button>
+              <button
+                *ngFor="let mod of moduleGroups"
+                type="button"
+                class="mod-tab"
+                [class.active]="selectedModuleTab === mod.moduleCode"
+                (click)="selectedModuleTab = mod.moduleCode"
+              >
+                {{ mod.moduleName }} ({{ mod.forms.length }})
+              </button>
+            </div>
+
+            <div class="toolbar-search">
+              <span class="material-symbols-outlined icon">search</span>
+              <input
+                type="text"
+                class="search-input"
+                placeholder="Поиск по названию формы, действию или коду..."
+                [(ngModel)]="matrixSearchQuery"
+              />
+              <button *ngIf="matrixSearchQuery" class="clear-search" (click)="matrixSearchQuery = ''">
+                <span class="material-symbols-outlined">close</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Permission Matrix Content Area -->
+          <div class="matrix-content-scroll">
+            <div *ngIf="role.pcode === 'admin'" class="admin-notice-banner">
+              <span class="material-symbols-outlined">verified_user</span>
+              <span>Роль администратора обладает абсолютными правами (100% покрытие каталога системы по инварианту I-P4).</span>
+            </div>
+
+            <div *ngFor="let mod of visibleModuleGroups()" class="module-card">
+              <!-- Module Section Header -->
+              <div class="module-card-header" (click)="toggleModuleExpand(mod)">
+                <div class="mod-title-box">
+                  <span class="material-symbols-outlined expand-arrow">
+                    {{ mod.isExpanded ? 'expand_more' : 'chevron_right' }}
+                  </span>
+                  <span class="material-symbols-outlined mod-icon">{{ getModuleIcon(mod.moduleCode) }}</span>
+                  <h3 class="mod-title-text">{{ mod.moduleName }}</h3>
+                  <span class="mod-form-count">({{ mod.forms.length }} форм)</span>
+                </div>
+
+                <div class="mod-header-actions" (click)="$event.stopPropagation()">
+                  <button
+                    type="button"
+                    class="batch-link"
+                    [disabled]="role.pcode === 'admin'"
+                    (click)="toggleAllModule(mod, true)"
+                  >
+                    ✓ Выбрать все
+                  </button>
+                  <span class="action-divider">|</span>
+                  <button
+                    type="button"
+                    class="batch-link"
+                    [disabled]="role.pcode === 'admin'"
+                    (click)="toggleAllModule(mod, false)"
+                  >
+                    ✗ Снять все
+                  </button>
                 </div>
               </div>
 
-              <div class="forms-grid">
-                <div *ngFor="let f of mod.forms" class="form-card">
-                  <div class="form-card-header">
-                    <div class="form-title-box">
-                      <span class="form-name">{{ f.formName }}</span>
+              <!-- Module Forms Body -->
+              <div class="module-card-body" *ngIf="mod.isExpanded">
+                <div class="forms-table">
+                  <div *ngFor="let f of mod.forms" class="form-row">
+                    <div class="form-meta">
+                      <span class="form-title">{{ f.formName }}</span>
                       <span class="form-code font-mono">{{ f.formCode }}</span>
+                      <div class="form-row-quick-btns" *ngIf="role.pcode !== 'admin'">
+                        <button type="button" class="mini-txt-btn" (click)="toggleAllForm(f, true)">все</button>
+                        <span>•</span>
+                        <button type="button" class="mini-txt-btn" (click)="toggleAllForm(f, false)">снять</button>
+                      </div>
                     </div>
-                    <div class="form-quick-actions">
-                      <button type="button" class="form-mini-btn" (click)="toggleAllForm(f, true)" title="Выбрать все">✓ Все</button>
-                      <button type="button" class="form-mini-btn" (click)="toggleAllForm(f, false)" title="Снять все">✗ Снять</button>
-                    </div>
-                  </div>
 
-                  <div class="actions-chips">
-                    <label
-                      *ngFor="let act of f.actions"
-                      class="action-chip"
-                      [class.checked]="hasPermission(f.formCode, act.action)"
-                      [class.locked]="role.pcode === 'admin'"
-                    >
-                      <input
-                        type="checkbox"
-                        [checked]="hasPermission(f.formCode, act.action)"
-                        [disabled]="role.pcode === 'admin'"
-                        (change)="togglePermission(f.formCode, act.action, $event)"
-                      />
-                      <span class="action-label">{{ act.actionName }}</span>
-                      <span class="action-code font-mono">{{ act.action }}</span>
-                    </label>
+                    <div class="actions-pill-grid">
+                      <label
+                        *ngFor="let act of f.actions"
+                        class="action-pill"
+                        [class.granted]="hasPermission(f.formCode, act.action)"
+                        [class.disabled]="role.pcode === 'admin'"
+                      >
+                        <input
+                          type="checkbox"
+                          class="action-checkbox"
+                          [checked]="hasPermission(f.formCode, act.action)"
+                          [disabled]="role.pcode === 'admin'"
+                          (change)="togglePermission(f.formCode, act.action, $event)"
+                        />
+                        <span class="action-name">{{ act.actionName }}</span>
+                        <span class="action-tag font-mono">{{ act.action }}</span>
+                      </label>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div *ngIf="filteredModuleGroups().length === 0" class="empty-matrix">
-              <span class="material-symbols-outlined ico">filter_list_off</span>
-              <p>Формы по запросу «{{ matrixSearchQuery }}» не найдены</p>
+            <div *ngIf="visibleModuleGroups().length === 0" class="empty-matrix-results">
+              <span class="material-symbols-outlined icon">search_off</span>
+              <p>Формы не найдены по запросу «{{ matrixSearchQuery }}»</p>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Create Role Modal -->
+    <!-- ======================================================================= -->
+    <!-- Create Role Modal                                                       -->
+    <!-- ======================================================================= -->
     <ui-modal
       [isOpen]="isCreateModalOpen()"
-      title="Новая роль"
+      title="Создание новой роли"
       size="sm"
       (close)="isCreateModalOpen.set(false)"
     >
-      <div body class="clean-form">
+      <div body class="modal-form">
         <div class="form-group">
           <label class="clean-label">Название роли <span class="req">*</span></label>
           <input
             type="text"
             class="clean-input"
             [(ngModel)]="newRoleForm.name"
-            placeholder="Например: Старший аналитик данных"
+            placeholder="Например: Старший инженер данных"
           />
         </div>
         <div class="form-group">
-          <label class="clean-label">Порядок сортировки</label>
+          <label class="clean-label">Порядок отображения</label>
           <input
             type="number"
             class="clean-input font-mono"
@@ -211,27 +310,30 @@ interface ModuleGroup {
       </div>
     </ui-modal>
 
-    <!-- Edit Role Modal -->
+    <!-- ======================================================================= -->
+    <!-- Edit Role Modal                                                         -->
+    <!-- ======================================================================= -->
     <ui-modal
       [isOpen]="isEditModalOpen()"
-      title="Редактировать роль"
+      title="Редактирование роли"
       size="sm"
       (close)="isEditModalOpen.set(false)"
     >
-      <div body class="clean-form" *ngIf="editingRole as r">
+      <div body class="modal-form" *ngIf="editingRole as r">
         <div class="form-group">
           <label class="clean-label">Название роли <span class="req">*</span></label>
           <input type="text" class="clean-input" [(ngModel)]="editRoleForm.name" />
         </div>
         <div class="form-group">
-          <label class="clean-label">Статус</label>
-          <select class="clean-input" [(ngModel)]="editRoleForm.state">
+          <label class="clean-label">Статус активности</label>
+          <select class="clean-input" [(ngModel)]="editRoleForm.state" [disabled]="r.pcode === 'admin'">
             <option value="A">Активна (A)</option>
             <option value="P">Отключена (P)</option>
           </select>
+          <span class="field-hint" *ngIf="r.pcode === 'admin'">Роль суперадминистратора всегда активна.</span>
         </div>
         <div class="form-group">
-          <label class="clean-label">Порядок сортировки</label>
+          <label class="clean-label">Порядок отображения</label>
           <input type="number" class="clean-input font-mono" [(ngModel)]="editRoleForm.orderNo" />
         </div>
       </div>
@@ -241,18 +343,20 @@ interface ModuleGroup {
       </div>
     </ui-modal>
 
-    <!-- Delete Role Modal -->
+    <!-- ======================================================================= -->
+    <!-- Delete Role Modal                                                       -->
+    <!-- ======================================================================= -->
     <ui-modal
       [isOpen]="isDeleteModalOpen()"
       title="Удаление роли"
       size="sm"
       (close)="isDeleteModalOpen.set(false)"
     >
-      <div body class="delete-form" *ngIf="deletingRole as r">
+      <div body class="modal-delete" *ngIf="deletingRole as r">
         <p class="delete-msg">
           Вы действительно хотите удалить пользовательскую роль <strong>{{ r.name }}</strong>?
         </p>
-        <span class="delete-hint">Все назначенные права этой роли будут отозваны.</span>
+        <span class="delete-sub">Все назначенные права этой роли будут удалены. Если роль назначена пользователям, удаление будет отклонено.</span>
       </div>
       <div footer>
         <ui-button variant="secondary" size="md" (onClick)="isDeleteModalOpen.set(false)">Отмена</ui-button>
@@ -295,15 +399,15 @@ interface ModuleGroup {
     }
 
     /* Layout */
-    .rbac-grid {
+    .rbac-layout {
       display: grid;
       grid-template-columns: 280px 1fr;
       gap: 16px;
       align-items: start;
     }
 
-    @media (max-width: 900px) {
-      .rbac-grid { grid-template-columns: 1fr; }
+    @media (max-width: 960px) {
+      .rbac-layout { grid-template-columns: 1fr; }
     }
 
     /* Sidebar */
@@ -315,13 +419,19 @@ interface ModuleGroup {
       flex-direction: column;
       overflow: hidden;
     }
-    .sidebar-search {
+    .sidebar-header {
       display: flex;
       align-items: center;
       gap: 6px;
       padding: 8px 10px;
       border-bottom: 1px solid var(--border-color);
       background-color: var(--bg-hover);
+    }
+    .sidebar-search {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
     }
     .sidebar-search .icon { font-size: 16px; color: var(--text-muted); }
     .sidebar-search .search-input {
@@ -332,6 +442,20 @@ interface ModuleGroup {
       color: var(--text-main);
       width: 100%;
     }
+    .add-role-mini-btn {
+      border: 1px solid var(--border-color);
+      background: var(--bg-surface);
+      color: var(--primary);
+      border-radius: 4px;
+      width: 26px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .add-role-mini-btn .material-symbols-outlined { font-size: 16px; }
+    .add-role-mini-btn:hover { background-color: var(--bg-hover); }
 
     .roles-list {
       display: flex;
@@ -345,8 +469,8 @@ interface ModuleGroup {
       cursor: pointer;
       display: flex;
       flex-direction: column;
-      gap: 4px;
-      transition: background 0.1s ease;
+      gap: 5px;
+      transition: all 0.1s ease;
     }
     .role-card:last-child { border-bottom: none; }
     .role-card:hover { background-color: var(--bg-hover); }
@@ -364,22 +488,18 @@ interface ModuleGroup {
     .role-name { font-size: 13px; font-weight: 500; color: var(--text-main); }
     .system-tag {
       font-size: 10px;
-      font-family: monospace;
       background-color: var(--bg-hover);
       color: var(--primary);
       padding: 1px 5px;
       border-radius: 4px;
       border: 1px solid var(--border-color);
     }
-    .custom-tag {
-      font-size: 10px;
-      color: var(--text-muted);
-    }
+    .custom-tag { font-size: 10px; color: var(--text-muted); }
 
     .role-card-bot {
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 6px;
       font-size: 11px;
       color: var(--text-muted);
     }
@@ -392,8 +512,8 @@ interface ModuleGroup {
     .status-dot.active { background-color: var(--success); }
     .status-lbl { flex: 1; }
 
-    .role-actions { display: flex; align-items: center; gap: 2px; }
-    .icon-btn {
+    .role-card-actions { display: flex; align-items: center; gap: 3px; }
+    .action-mini-btn {
       border: none;
       background: transparent;
       color: var(--text-muted);
@@ -402,8 +522,16 @@ interface ModuleGroup {
       border-radius: 3px;
       display: flex;
     }
-    .icon-btn .material-symbols-outlined { font-size: 14px; }
-    .icon-btn:hover { color: var(--text-main); background-color: var(--bg-hover); }
+    .action-mini-btn .material-symbols-outlined { font-size: 15px; }
+    .action-mini-btn:hover { color: var(--text-main); background-color: var(--bg-hover); }
+    .action-mini-btn.delete:hover { color: var(--danger); }
+
+    .sidebar-empty {
+      padding: 24px 12px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 12px;
+    }
 
     /* Matrix Main Panel */
     .matrix-panel {
@@ -424,69 +552,165 @@ interface ModuleGroup {
       gap: 12px;
       flex-wrap: wrap;
     }
-    .role-info { display: flex; flex-direction: column; gap: 2px; }
-    .title-row { display: flex; align-items: center; gap: 8px; }
-    .selected-role-name { font-size: 15px; font-weight: 600; margin: 0; color: var(--text-main); }
-    .system-pill {
+    .role-headline { display: flex; flex-direction: column; gap: 4px; }
+    .role-title-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .selected-role-name { font-size: 16px; font-weight: 600; margin: 0; color: var(--text-main); }
+    .system-badge {
       font-size: 11px;
-      font-family: monospace;
       color: var(--primary);
       background: rgba(99,102,241,0.1);
       padding: 1px 6px;
       border-radius: 4px;
     }
-    .role-desc { font-size: 12px; color: var(--text-muted); }
+    .status-pill {
+      font-size: 11px;
+      color: var(--text-muted);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+    .status-pill.active { color: var(--success); border-color: rgba(16,185,129,0.3); }
 
-    .topbar-actions {
+    .role-stats-row {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
     }
-    .form-search {
+    .perm-counter { font-size: 11px; color: var(--text-muted); }
+    .perm-progress-bar {
+      width: 100px;
+      height: 4px;
+      background-color: var(--border-color);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .perm-progress-fill {
+      height: 100%;
+      background-color: var(--primary);
+      transition: width 0.2s ease;
+    }
+
+    /* Toolbar: Tabs & Search */
+    .matrix-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 16px;
+      border-bottom: 1px solid var(--border-color);
+      background-color: var(--bg-surface);
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .module-tabs {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      overflow-x: auto;
+    }
+    .mod-tab {
+      border: 1px solid transparent;
+      background: transparent;
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.1s ease;
+    }
+    .mod-tab:hover { color: var(--text-main); background-color: var(--bg-hover); }
+    .mod-tab.active {
+      color: var(--primary);
+      background-color: rgba(99,102,241,0.08);
+      border-color: rgba(99,102,241,0.2);
+    }
+
+    .toolbar-search {
       display: flex;
       align-items: center;
       gap: 6px;
-      background-color: var(--bg-surface);
+      background-color: var(--bg-hover);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-sm);
       padding: 3px 8px;
-      width: 220px;
+      width: 240px;
     }
-    .form-search .icon { font-size: 16px; color: var(--text-muted); }
-    .form-search .search-input {
+    .toolbar-search .icon { font-size: 16px; color: var(--text-muted); }
+    .toolbar-search .search-input {
       border: none;
       background: transparent;
       outline: none;
-      font-size: 12px;
+      font-size: 11px;
       color: var(--text-main);
       width: 100%;
     }
+    .clear-search {
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      padding: 0;
+    }
+    .clear-search .material-symbols-outlined { font-size: 14px; }
 
-    .matrix-scroll-area {
+    /* Matrix Content Scroll */
+    .matrix-content-scroll {
       padding: 16px;
       display: flex;
       flex-direction: column;
-      gap: 20px;
-      max-height: calc(100vh - 220px);
+      gap: 14px;
+      max-height: calc(100vh - 240px);
       overflow-y: auto;
     }
 
-    .module-section {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .module-header {
+    .admin-notice-banner {
       display: flex;
       align-items: center;
       gap: 8px;
-      padding-bottom: 6px;
-      border-bottom: 1px solid var(--border-color);
+      padding: 8px 12px;
+      background-color: rgba(99,102,241,0.06);
+      border: 1px solid rgba(99,102,241,0.2);
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      color: var(--primary);
     }
-    .mod-icon { font-size: 18px; color: var(--primary); }
-    .module-title { font-size: 13px; font-weight: 600; color: var(--text-main); margin: 0; flex: 1; }
-    .module-quick-actions { display: flex; align-items: center; gap: 4px; }
-    .text-action-btn {
+
+    /* Module Card */
+    .module-card {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+    .module-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background-color: var(--bg-hover);
+      border-bottom: 1px solid var(--border-color);
+      cursor: pointer;
+      user-select: none;
+    }
+    .mod-title-box {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .expand-arrow { font-size: 18px; color: var(--text-muted); }
+    .mod-icon { font-size: 16px; color: var(--primary); }
+    .mod-title-text { font-size: 13px; font-weight: 600; color: var(--text-main); margin: 0; }
+    .mod-form-count { font-size: 11px; color: var(--text-muted); }
+
+    .mod-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .batch-link {
       background: transparent;
       border: none;
       color: var(--primary);
@@ -494,51 +718,65 @@ interface ModuleGroup {
       cursor: pointer;
       padding: 0;
     }
-    .text-action-btn:hover { text-decoration: underline; }
-    .divider { color: var(--text-light); font-size: 11px; }
+    .batch-link:hover { text-decoration: underline; }
+    .batch-link:disabled { opacity: 0.5; cursor: not-allowed; }
+    .action-divider { color: var(--text-light); font-size: 10px; }
 
-    .forms-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-      gap: 12px;
+    /* Module Forms Body */
+    .module-card-body {
+      padding: 0;
     }
-    .form-card {
-      background-color: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      padding: 10px;
+    .forms-table {
       display: flex;
       flex-direction: column;
-      gap: 8px;
     }
-    .form-card-header {
+    .form-row {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 12px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border-color);
+      align-items: center;
+    }
+    .form-row:last-child { border-bottom: none; }
+
+    @media (max-width: 800px) {
+      .form-row { grid-template-columns: 1fr; gap: 6px; }
+    }
+
+    .form-meta {
       display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 6px;
+      flex-direction: column;
+      gap: 2px;
     }
-    .form-title-box { display: flex; flex-direction: column; }
-    .form-name { font-size: 12px; font-weight: 600; color: var(--text-main); }
+    .form-title { font-size: 12px; font-weight: 600; color: var(--text-main); }
     .form-code { font-size: 10px; color: var(--text-muted); }
 
-    .form-quick-actions { display: flex; align-items: center; gap: 4px; }
-    .form-mini-btn {
-      border: 1px solid var(--border-color);
-      background-color: var(--bg-hover);
+    .form-row-quick-btns {
+      display: flex;
+      align-items: center;
+      gap: 4px;
       font-size: 10px;
-      color: var(--text-muted);
-      border-radius: 3px;
-      padding: 1px 4px;
-      cursor: pointer;
+      color: var(--text-light);
+      margin-top: 2px;
     }
-    .form-mini-btn:hover { color: var(--text-main); border-color: var(--text-muted); }
+    .mini-txt-btn {
+      background: transparent;
+      border: none;
+      font-size: 10px;
+      color: var(--primary);
+      cursor: pointer;
+      padding: 0;
+    }
+    .mini-txt-btn:hover { text-decoration: underline; }
 
-    .actions-chips {
+    /* Actions Pill Grid */
+    .actions-pill-grid {
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
     }
-    .action-chip {
+    .action-pill {
       display: inline-flex;
       align-items: center;
       gap: 5px;
@@ -549,33 +787,34 @@ interface ModuleGroup {
       font-size: 11px;
       color: var(--text-muted);
       cursor: pointer;
-      transition: all 0.1s ease;
       user-select: none;
+      transition: all 0.1s ease;
     }
-    .action-chip:hover { border-color: var(--text-muted); }
-    .action-chip.checked {
+    .action-pill:hover { border-color: var(--text-muted); }
+    .action-pill.granted {
       background-color: rgba(99,102,241,0.08);
       border-color: var(--primary);
       color: var(--text-main);
       font-weight: 500;
     }
-    .action-chip.locked { opacity: 0.85; cursor: not-allowed; }
-    .action-label { font-size: 11px; }
-    .action-code { font-size: 9px; color: var(--text-light); }
+    .action-pill.disabled { opacity: 0.85; cursor: not-allowed; }
+    .action-checkbox { margin: 0; }
+    .action-name { font-size: 11px; }
+    .action-tag { font-size: 9px; color: var(--text-light); }
 
-    .empty-matrix {
-      text-align: center;
+    .empty-matrix-results {
       padding: 32px;
+      text-align: center;
       color: var(--text-muted);
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 6px;
     }
-    .empty-matrix .ico { font-size: 32px; color: var(--text-light); }
+    .empty-matrix-results .icon { font-size: 32px; color: var(--text-light); }
 
-    /* Forms in Modals */
-    .clean-form {
+    /* Modals */
+    .modal-form {
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -593,10 +832,11 @@ interface ModuleGroup {
       outline: none;
     }
     .clean-input:focus { border-color: var(--primary); }
+    .field-hint { font-size: 11px; color: var(--text-muted); }
 
-    .delete-form { display: flex; flex-direction: column; gap: 6px; }
+    .modal-delete { display: flex; flex-direction: column; gap: 6px; }
     .delete-msg { font-size: 13px; margin: 0; }
-    .delete-hint { font-size: 11px; color: var(--text-muted); }
+    .delete-sub { font-size: 11px; color: var(--text-muted); }
 
     .req { color: var(--danger); }
     .font-mono { font-family: monospace; }
@@ -614,6 +854,9 @@ export class RolesComponent implements OnInit {
 
   roleSearchQuery = '';
   matrixSearchQuery = '';
+  selectedModuleTab = 'all';
+
+  moduleGroups: ModuleGroup[] = [];
 
   // Modals
   readonly isCreateModalOpen = signal<boolean>(false);
@@ -646,13 +889,21 @@ export class RolesComponent implements OnInit {
   }
 
   canCreateRole(): boolean {
-    return this.permService.canCreate('iam.roles') || this.permService.canCreate('md_roles');
+    return this.permService.canCreate('rbac.roles') || this.permService.canCreate('iam.roles') || this.permService.canCreate('md_roles');
+  }
+
+  canUpdateRole(): boolean {
+    return this.permService.canUpdate('rbac.roles') || this.permService.canUpdate('iam.roles') || this.permService.canUpdate('md_roles');
+  }
+
+  canDeleteRole(): boolean {
+    return this.permService.canDelete('rbac.roles') || this.permService.canDelete('iam.roles') || this.permService.canDelete('md_roles');
   }
 
   canGrant(): boolean {
-    return this.permService.hasPermission('iam.roles', 'grant') ||
-           this.permService.hasPermission('md_roles', 'grant') ||
-           this.permService.canUpdate('iam.roles');
+    return this.permService.hasPermission('rbac.roles', 'grant') ||
+           this.permService.hasPermission('iam.roles', 'grant') ||
+           this.permService.canUpdate('rbac.roles');
   }
 
   loadRoles() {
@@ -680,43 +931,16 @@ export class RolesComponent implements OnInit {
 
   loadForms() {
     this.api.get<FormTreeItem[]>('/rbac/forms').subscribe(res => {
-      this.forms.set(res || []);
+      const items = res || [];
+      this.forms.set(items);
+      this.buildModuleGroups(items);
     });
   }
 
-  selectRole(role: Role) {
-    this.selectedRole.set(role);
-    this.api.get<string[]>(`/rbac/roles/${role.id}/permissions`).subscribe(res => {
-      this.rolePermissions.set(new Set(res || []));
-    });
-  }
-
-  filteredRoles(): Role[] {
-    const q = this.roleSearchQuery.trim().toLowerCase();
-    if (!q) return this.roles();
-    return this.roles().filter(r =>
-      r.name.toLowerCase().includes(q) || (r.pcode && r.pcode.toLowerCase().includes(q))
-    );
-  }
-
-  filteredModuleGroups(): ModuleGroup[] {
-    const allForms = this.forms();
-    const q = this.matrixSearchQuery.trim().toLowerCase();
-
-    // Group forms by module and formCode
+  buildModuleGroups(items: FormTreeItem[]) {
     const groupedMap = new Map<string, Map<string, GroupedForm>>();
 
-    for (const item of allForms) {
-      if (q) {
-        const matches =
-          item.formName.toLowerCase().includes(q) ||
-          item.formCode.toLowerCase().includes(q) ||
-          item.actionName.toLowerCase().includes(q) ||
-          item.action.toLowerCase().includes(q) ||
-          item.module.toLowerCase().includes(q);
-        if (!matches) continue;
-      }
-
+    for (const item of items) {
       if (!groupedMap.has(item.module)) {
         groupedMap.set(item.module, new Map());
       }
@@ -738,14 +962,56 @@ export class RolesComponent implements OnInit {
     }
 
     const groups: ModuleGroup[] = [];
-    groupedMap.forEach((formMap, modName) => {
+    groupedMap.forEach((formMap, modCode) => {
       groups.push({
-        moduleName: modName,
-        forms: Array.from(formMap.values())
+        moduleCode: modCode,
+        moduleName: this.getModuleDisplayName(modCode),
+        forms: Array.from(formMap.values()),
+        isExpanded: true
       });
     });
 
-    return groups;
+    this.moduleGroups = groups;
+  }
+
+  selectRole(role: Role) {
+    this.selectedRole.set(role);
+    this.api.get<string[]>(`/rbac/roles/${role.id}/permissions`).subscribe(res => {
+      this.rolePermissions.set(new Set(res || []));
+    });
+  }
+
+  filteredRoles(): Role[] {
+    const q = this.roleSearchQuery.trim().toLowerCase();
+    if (!q) return this.roles();
+    return this.roles().filter(r =>
+      r.name.toLowerCase().includes(q) || (r.pcode && r.pcode.toLowerCase().includes(q))
+    );
+  }
+
+  visibleModuleGroups(): ModuleGroup[] {
+    const q = this.matrixSearchQuery.trim().toLowerCase();
+    const activeTab = this.selectedModuleTab;
+
+    return this.moduleGroups
+      .filter(mod => activeTab === 'all' || mod.moduleCode === activeTab)
+      .map(mod => {
+        if (!q) return mod;
+        const matchingForms = mod.forms.filter(f =>
+          f.formName.toLowerCase().includes(q) ||
+          f.formCode.toLowerCase().includes(q) ||
+          f.actions.some(a => a.actionName.toLowerCase().includes(q) || a.action.toLowerCase().includes(q))
+        );
+        return {
+          ...mod,
+          forms: matchingForms
+        };
+      })
+      .filter(mod => mod.forms.length > 0);
+  }
+
+  toggleModuleExpand(mod: ModuleGroup) {
+    mod.isExpanded = !mod.isExpanded;
   }
 
   getModuleDisplayName(mod: string): string {
@@ -770,6 +1036,23 @@ export class RolesComponent implements OnInit {
       'audit': 'history'
     };
     return map[mod] || 'folder';
+  }
+
+  totalActionsCount(): number {
+    return this.forms().length;
+  }
+
+  activePermissionsCount(): number {
+    if (this.selectedRole()?.pcode === 'admin') {
+      return this.totalActionsCount();
+    }
+    return this.rolePermissions().size;
+  }
+
+  permissionPercentage(): number {
+    const total = this.totalActionsCount();
+    if (total === 0) return 0;
+    return Math.round((this.activePermissionsCount() / total) * 100);
   }
 
   hasPermission(formCode: string, action: string): boolean {

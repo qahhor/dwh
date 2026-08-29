@@ -47,7 +47,7 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
           </a>
 
           <!-- Master Data & IAM -->
-          <div class="nav-section-title" *ngIf="!isCollapsed() && canViewUsers()">IAM & Настройки</div>
+          <div class="nav-section-title" *ngIf="!isCollapsed() && (canViewUsers() || canViewRoles() || canViewCustomFields())">IAM & Настройки</div>
           <a *ngIf="canViewUsers()" routerLink="/iam/users" routerLinkActive="active" class="nav-item" title="Пользователи">
             <span class="material-symbols-outlined nav-icon">people</span>
             <span class="nav-label" *ngIf="!isCollapsed()">{{ 'nav.users' | t }}</span>
@@ -60,6 +60,7 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
             <span class="material-symbols-outlined nav-icon">tune</span>
             <span class="nav-label" *ngIf="!isCollapsed()">{{ 'nav.custom_fields' | t }}</span>
           </a>
+
 
           <!-- System -->
           <div class="nav-section-title" *ngIf="!isCollapsed()">Система</div>
@@ -515,12 +516,13 @@ export class AppShellComponent implements OnInit {
   }
 
   canViewRoles(): boolean {
-    return this.permService.canView('iam.roles') || this.permService.canView('md_roles');
+    return this.permService.canView('rbac.roles') || this.permService.canView('iam.roles') || this.permService.canView('md_roles') || this.permService.canView('md.roles');
   }
 
   canViewCustomFields(): boolean {
-    return this.permService.canView('system.custom_fields') || this.permService.canView('md_custom_fields');
+    return this.permService.canView('system.custom_fields') || this.permService.canView('md_custom_fields') || this.permService.canView('md.custom_fields');
   }
+
 
   canViewAudit(): boolean {
     return this.permService.hasPermission('audit.logs', 'view') || this.permService.hasPermission('audit', 'view');

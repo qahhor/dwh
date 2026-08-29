@@ -10,10 +10,13 @@ export class PermissionService {
   private readonly formAliases: Record<string, string[]> = {
     'md_users': ['iam.users', 'md_users'],
     'iam.users': ['iam.users', 'md_users'],
-    'md_roles': ['iam.roles', 'md_roles'],
-    'iam.roles': ['iam.roles', 'md_roles'],
-    'md_custom_fields': ['system.custom_fields', 'md_custom_fields', 'iam.users'],
-    'system.custom_fields': ['system.custom_fields', 'md_custom_fields', 'iam.users'],
+    'md_roles': ['rbac.roles', 'iam.roles', 'md_roles', 'md.roles'],
+    'iam.roles': ['rbac.roles', 'iam.roles', 'md_roles', 'md.roles'],
+    'rbac.roles': ['rbac.roles', 'iam.roles', 'md_roles', 'md.roles'],
+    'md.roles': ['rbac.roles', 'iam.roles', 'md_roles', 'md.roles'],
+    'rbac.assignments': ['rbac.assignments', 'iam.assignments'],
+    'md_custom_fields': ['system.custom_fields', 'md_custom_fields', 'md.custom_fields', 'iam.users'],
+    'system.custom_fields': ['system.custom_fields', 'md_custom_fields', 'md.custom_fields', 'iam.users'],
     'iam.profile': ['iam.profile', 'md_profile'],
     'md_profile': ['iam.profile', 'md_profile'],
     'tasks': ['tasks.items', 'tasks'],
@@ -21,6 +24,7 @@ export class PermissionService {
     'tasks.projects': ['tasks.projects', 'projects'],
     'audit': ['audit.logs', 'audit']
   };
+
 
   setPermissions(perms: string[], version: number = 1) {
     this.permissions.set(new Set(perms));
