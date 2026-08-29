@@ -15,10 +15,15 @@ public class MsProjectService {
 
     private final MsProjectRepository projectRepository;
     private final MdCustomFieldService customFieldService;
+    private final com.greenwhite.dwh.instance.search.typesense.TypesenseIndexer typesenseIndexer;
 
-    public MsProjectService(MsProjectRepository projectRepository, MdCustomFieldService customFieldService) {
+    public MsProjectService(
+            MsProjectRepository projectRepository,
+            MdCustomFieldService customFieldService,
+            com.greenwhite.dwh.instance.search.typesense.TypesenseIndexer typesenseIndexer) {
         this.projectRepository = projectRepository;
         this.customFieldService = customFieldService;
+        this.typesenseIndexer = typesenseIndexer;
     }
 
     @Transactional
@@ -29,8 +34,11 @@ public class MsProjectService {
             customFieldService.validateAttributes("PROJECT", attributes);
         }
 
-        return projectRepository.create(name, description, state, attributes, createdBy);
+        var project = projectRepository.create(name, description, state, attributes, createdBy);
+        typesenseIndexer.indexProject(project.id());
+        return project;
     }
+
 
     @Transactional(readOnly = true)
     public MsProjectRepository.ProjectRecord getProjectById(Long id) {
@@ -50,7 +58,9 @@ public class MsProjectService {
             customFieldService.validateAttributes("PROJECT", attributes);
         }
         projectRepository.update(id, name, description, state, attributes);
+        typesenseIndexer.indexProject(id);
     }
+
 
     @Transactional
     public void addProjectMember(Long projectId, Long userId, String accessKind) {

@@ -26,11 +26,14 @@ class MsTaskServiceTest {
 
     private final org.springframework.context.ApplicationEventPublisher eventPublisher =
             Mockito.mock(org.springframework.context.ApplicationEventPublisher.class);
+    private final com.greenwhite.dwh.instance.search.typesense.TypesenseIndexer typesenseIndexer =
+            Mockito.mock(com.greenwhite.dwh.instance.search.typesense.TypesenseIndexer.class);
 
     private final MsTaskService service = new MsTaskService(
             taskRepository, statusRepository, typeRepository, memberRepository, projectRepository, customFieldService,
-            eventPublisher
+            eventPublisher, typesenseIndexer
     );
+
 
 
     @Test

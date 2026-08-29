@@ -75,6 +75,12 @@ dwh:
     expensive-paths:
       - /api/v1/audit/**
       - /api/v1/search/**
+  typesense:
+    url: ${DWH_TYPESENSE_URL:http://typesense:8108}
+    api-key: ${DWH_TYPESENSE_API_KEY:dwh_typesense_local_dev_key}
+    enabled: ${DWH_TYPESENSE_ENABLED:true}
+    sync-on-startup: true
+
 
 logging:
   pattern:

@@ -31,6 +31,7 @@ public class MsTaskService {
     private final MsProjectRepository projectRepository;
     private final MdCustomFieldService customFieldService;
     private final ApplicationEventPublisher eventPublisher;
+    private final com.greenwhite.dwh.instance.search.typesense.TypesenseIndexer typesenseIndexer;
 
     public MsTaskService(
             MsTaskRepository taskRepository,
@@ -39,7 +40,8 @@ public class MsTaskService {
             MsTaskMemberRepository memberRepository,
             MsProjectRepository projectRepository,
             MdCustomFieldService customFieldService,
-            ApplicationEventPublisher eventPublisher) {
+            ApplicationEventPublisher eventPublisher,
+            com.greenwhite.dwh.instance.search.typesense.TypesenseIndexer typesenseIndexer) {
         this.taskRepository = taskRepository;
         this.statusRepository = statusRepository;
         this.typeRepository = typeRepository;
@@ -47,7 +49,9 @@ public class MsTaskService {
         this.projectRepository = projectRepository;
         this.customFieldService = customFieldService;
         this.eventPublisher = eventPublisher;
+        this.typesenseIndexer = typesenseIndexer;
     }
+
 
     @Transactional
     public MsTaskRepository.TaskRecord createTask(
@@ -123,8 +127,11 @@ public class MsTaskService {
                     task.id(), task.title(), assigned, reporterId));
         }
 
+        typesenseIndexer.indexTask(task.id());
+
         return task;
     }
+
 
     // Overload for backwards compatibility
     @Transactional
@@ -206,6 +213,8 @@ public class MsTaskService {
         taskRepository.update(taskId, new MsTaskRepository.TaskUpdateData(
                 projectId, title, descriptionMarkdown, null, safePriority, parentTaskId, attributes, beginTime, endTime, null
         ), currentUserId);
+
+        typesenseIndexer.indexTask(taskId);
     }
 
     @Transactional
@@ -228,7 +237,10 @@ public class MsTaskService {
         eventPublisher.publishEvent(new MsTaskEvents.TaskStatusChanged(
                 taskId, task.title(), newStatus.name(), newStatus.isTerminal(),
                 memberUserIds(taskId), currentUserId));
+
+        typesenseIndexer.indexTask(taskId);
     }
+
 
     @Transactional
     public void setResponsible(Long taskId, Long responsibleUserId) {

@@ -30,9 +30,12 @@ x-instance-env: &instance-env
   # регистрации экземпляра в панели; пустой — отправка выключена.
   DWH_CP_URL: ${DWH_CP_URL:-}
   DWH_CP_HEARTBEAT_TOKEN: ${DWH_CP_HEARTBEAT_TOKEN:-}
-  DWH_CP_HEARTBEAT_INTERVAL: ${DWH_CP_HEARTBEAT_INTERVAL:-5m}
+  DWH_TYPESENSE_URL: ${DWH_TYPESENSE_URL:-http://typesense:8108}
+  DWH_TYPESENSE_API_KEY: ${TYPESENSE_API_KEY:-dwh_typesense_local_dev_key}
+  DWH_TYPESENSE_ENABLED: ${DWH_TYPESENSE_ENABLED:-true}
   MANAGEMENT_PORT: 9090          # порт для HEALTHCHECK образа
   TZ: UTC
+
 
 
 services:
@@ -158,7 +161,24 @@ services:
     depends_on:
       - control-plane
 
+  # ------------------------------------------------------------- поиск (Typesense)
+  typesense:
+    image: typesense/typesense:27.1
+
+    container_name: ${PROJECT_NAME:-SmartupCMS}-typesense
+    restart: unless-stopped
+    environment:
+      TYPESENSE_API_KEY: ${TYPESENSE_API_KEY:-dwh_typesense_local_dev_key}
+      TYPESENSE_DATA_DIR: /data
+      TYPESENSE_ENABLE_CORS: "true"
+    ports:
+      - "${TYPESENSE_PORT:-8108}:8108"
+    volumes:
+      - typesense-data:/data
+
 volumes:
   db-data:
   db-cp-data:
   app-files:
+  typesense-data:
+

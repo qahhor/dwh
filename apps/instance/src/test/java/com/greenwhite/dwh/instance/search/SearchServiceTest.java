@@ -12,7 +12,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class SearchServiceTest {
 
     private final JdbcClient jdbcClient = Mockito.mock(JdbcClient.class);
-    private final SearchService service = new SearchService(jdbcClient);
+    private final com.greenwhite.dwh.instance.search.typesense.TypesenseClient typesenseClient = Mockito.mock(com.greenwhite.dwh.instance.search.typesense.TypesenseClient.class);
+    private final SearchService service = new SearchService(jdbcClient, typesenseClient);
+
 
     @Test
     @DisplayName("Поиск по строке короче 2 символов должен отклоняться ошибкой EMPTY_QUERY")

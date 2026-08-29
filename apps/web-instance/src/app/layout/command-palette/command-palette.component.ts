@@ -41,9 +41,11 @@ import { Subject, debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs
 
           <div class="results-list" *ngIf="results().length > 0">
             <div
-              *ngFor="let hit of results()"
+              *ngFor="let hit of results(); let idx = index"
               class="result-item"
+              [class.active]="selectedIndex === idx"
               (click)="navigateTo(hit)"
+              (mouseenter)="selectedIndex = idx"
             >
               <div class="result-icon-box" [class]="'icon-' + hit.entityType.toLowerCase()">
                 <span class="material-symbols-outlined">
@@ -54,9 +56,12 @@ import { Subject, debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs
                 <div class="result-title">{{ hit.title }}</div>
                 <div class="result-desc">{{ hit.description }}</div>
               </div>
-              <div class="result-badge">{{ hit.entityType }}</div>
+              <div class="result-badge" [class]="'badge-' + hit.entityType.toLowerCase()">
+                {{ getEntityBadge(hit.entityType) }}
+              </div>
             </div>
           </div>
+
         </div>
       </div>
     </div>
@@ -213,6 +218,7 @@ import { Subject, debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs
 })
 export class CommandPaletteComponent {
   searchQuery = '';
+  selectedIndex = 0;
   readonly isLoading = signal<boolean>(false);
   readonly results = signal<SearchHit[]>([]);
   private searchSubject = new Subject<string>();
@@ -222,7 +228,7 @@ export class CommandPaletteComponent {
     private router: Router
   ) {
     this.searchSubject.pipe(
-      debounceTime(150),
+      debounceTime(120),
       distinctUntilChanged(),
       switchMap(query => {
         if (!query || query.trim().length < 2) {
@@ -234,6 +240,7 @@ export class CommandPaletteComponent {
       })
     ).subscribe(res => {
       this.results.set(res.hits || []);
+      this.selectedIndex = 0;
       this.isLoading.set(false);
     });
   }
@@ -245,8 +252,23 @@ export class CommandPaletteComponent {
       this.paletteService.toggle();
       this.searchQuery = '';
       this.results.set([]);
+      this.selectedIndex = 0;
     } else if (event.key === 'Escape' && this.paletteService.isOpen()) {
       this.paletteService.close();
+    } else if (this.paletteService.isOpen() && this.results().length > 0) {
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        this.selectedIndex = (this.selectedIndex + 1) % this.results().length;
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        this.selectedIndex = (this.selectedIndex - 1 + this.results().length) % this.results().length;
+      } else if (event.key === 'Enter') {
+        event.preventDefault();
+        const hit = this.results()[this.selectedIndex];
+        if (hit) {
+          this.navigateTo(hit);
+        }
+      }
     }
   }
 
@@ -279,4 +301,14 @@ export class CommandPaletteComponent {
       default: return 'description';
     }
   }
+
+  getEntityBadge(type: string): string {
+    switch (type) {
+      case 'TASK': return 'Задача';
+      case 'PROJECT': return 'Проект';
+      case 'USER': return 'Сотрудник';
+      default: return type;
+    }
+  }
 }
+

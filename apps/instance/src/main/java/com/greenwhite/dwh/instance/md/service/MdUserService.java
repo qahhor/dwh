@@ -24,6 +24,7 @@ public class MdUserService {
     private final PasswordHasher passwordHasher;
     private final PasswordValidator passwordValidator;
     private final UserSessionInvalidator sessionInvalidator;
+    private final com.greenwhite.dwh.instance.search.typesense.TypesenseIndexer typesenseIndexer;
 
     public MdUserService(
             MdUserRepository userRepository,
@@ -32,7 +33,8 @@ public class MdUserService {
             MdCustomFieldService customFieldService,
             PasswordHasher passwordHasher,
             PasswordValidator passwordValidator,
-            UserSessionInvalidator sessionInvalidator) {
+            UserSessionInvalidator sessionInvalidator,
+            com.greenwhite.dwh.instance.search.typesense.TypesenseIndexer typesenseIndexer) {
         this.sessionInvalidator = sessionInvalidator;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
@@ -40,7 +42,9 @@ public class MdUserService {
         this.customFieldService = customFieldService;
         this.passwordHasher = passwordHasher;
         this.passwordValidator = passwordValidator;
+        this.typesenseIndexer = typesenseIndexer;
     }
+
 
     @Transactional
     public MdUserRepository.UserRecord createUser(
@@ -86,8 +90,11 @@ public class MdUserService {
 
         permissionService.recalculateEffectivePermissions(user.id());
 
+        typesenseIndexer.indexUser(user.id());
+
         return user;
     }
+
 
     @Transactional(readOnly = true)
     public MdUserRepository.UserRecord getUserById(Long userId) {
@@ -174,6 +181,8 @@ public class MdUserService {
             roleRepository.assignRolesToUser(userId, roleIds);
             permissionService.recalculateEffectivePermissions(userId);
         }
+
+        typesenseIndexer.indexUser(userId);
     }
 
 
@@ -208,6 +217,8 @@ public class MdUserService {
         if (MdPref.STATE_PASSIVE.equals(newState)) {
             sessionInvalidator.invalidateAllAccess(targetUserId);
         }
+
+        typesenseIndexer.indexUser(targetUserId);
     }
 
     @Transactional
@@ -224,6 +235,9 @@ public class MdUserService {
 
         // Закрытие всех сессий и отзыв токенов
         sessionInvalidator.invalidateAllAccess(targetUserId);
+
+        typesenseIndexer.deleteUser(targetUserId);
     }
+
 
 }

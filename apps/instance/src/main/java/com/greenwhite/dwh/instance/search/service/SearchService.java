@@ -2,6 +2,9 @@ package com.greenwhite.dwh.instance.search.service;
 
 import com.greenwhite.dwh.core.error.ErrorCode;
 import com.greenwhite.dwh.instance.common.error.ApiException;
+import com.greenwhite.dwh.instance.search.typesense.TypesenseClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,10 +15,14 @@ import java.util.List;
 @Service
 public class SearchService {
 
-    private final JdbcClient jdbcClient;
+    private static final Logger log = LoggerFactory.getLogger(SearchService.class);
 
-    public SearchService(JdbcClient jdbcClient) {
+    private final JdbcClient jdbcClient;
+    private final TypesenseClient typesenseClient;
+
+    public SearchService(JdbcClient jdbcClient, TypesenseClient typesenseClient) {
         this.jdbcClient = jdbcClient;
+        this.typesenseClient = typesenseClient;
     }
 
     @Transactional(readOnly = true)
@@ -25,8 +32,27 @@ public class SearchService {
         }
 
         String cleanQuery = query.trim();
-        List<SearchHit> hits = new ArrayList<>();
+        int safeLimit = Math.clamp(limit, 1, 100);
 
+        // 1. Попытка высокоскоростного поиска через Typesense (Typo-tolerance, Soundex, Prefix, Highlighting)
+        if (typesenseClient.isEnabled()) {
+            try {
+                List<SearchHit> typesenseHits = typesenseClient.search(cleanQuery, entityType, safeLimit);
+                if (typesenseHits != null) {
+                    return new SearchResult(cleanQuery, typesenseHits.size(), typesenseHits);
+                }
+            } catch (Exception e) {
+                log.warn("Поиск через Typesense завершился с ошибкой, активирован автоматический fallback на PostgreSQL: {}", e.getMessage());
+            }
+        }
+
+        // 2. Graceful Fallback на PostgreSQL SQL (ilike / trigram)
+        List<SearchHit> hits = fallbackPostgresSearch(cleanQuery, entityType, safeLimit);
+        return new SearchResult(cleanQuery, hits.size(), hits);
+    }
+
+    private List<SearchHit> fallbackPostgresSearch(String cleanQuery, String entityType, int limit) {
+        List<SearchHit> hits = new ArrayList<>();
         boolean searchAll = entityType == null || entityType.isBlank() || entityType.equalsIgnoreCase("ALL");
 
         // 1. Search Users
@@ -55,7 +81,7 @@ public class SearchService {
             var taskHits = jdbcClient.sql("""
                     select t.id, t.title, t.priority, s.name as status_name
                     from ms_tasks t
-                    join ms_task_statuses s on s.id = t.status_id
+                    left join ms_task_statuses s on s.id = t.status_id
                     where t.title ilike :q or t.description_markdown ilike :q
                     limit :limit
                     """)
@@ -65,7 +91,8 @@ public class SearchService {
                             "TASK",
                             String.valueOf(rs.getLong("id")),
                             rs.getString("title"),
-                            "Статус: " + rs.getString("status_name") + " | Приоритет: " + rs.getString("priority"),
+                            "Статус: " + (rs.getString("status_name") != null ? rs.getString("status_name") : "Новая")
+                                    + " | Приоритет: " + rs.getString("priority"),
                             "/tasks/items/" + rs.getLong("id")
                     ))
                     .list();
@@ -93,7 +120,7 @@ public class SearchService {
             hits.addAll(projectHits);
         }
 
-        return new SearchResult(cleanQuery, hits.size(), hits);
+        return hits;
     }
 
     public record SearchHit(
