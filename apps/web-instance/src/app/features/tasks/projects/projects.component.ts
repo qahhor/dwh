@@ -136,16 +136,25 @@ import { Project } from '../../../core/models/task.models';
     >
       <div body class="modal-form">
         <div class="form-group">
-          <label class="clean-label">Название проекта <span class="req">*</span></label>
+          <div class="label-row">
+            <label class="clean-label">Название проекта</label>
+            <span class="req-tag">Обязательное поле</span>
+          </div>
           <input
             type="text"
             class="clean-input"
+            [class.input-error]="isCreateSubmitted && !createForm.name.trim()"
             [(ngModel)]="createForm.name"
             placeholder="Например: Внедрение DWH & CDC"
           />
+          <span class="error-msg" *ngIf="isCreateSubmitted && !createForm.name.trim()">
+            Пожалуйста, укажите название проекта
+          </span>
         </div>
         <div class="form-group">
-          <label class="clean-label">Описание</label>
+          <div class="label-row">
+            <label class="clean-label">Описание проекта</label>
+          </div>
           <textarea
             class="clean-input clean-textarea"
             rows="3"
@@ -171,18 +180,33 @@ import { Project } from '../../../core/models/task.models';
     >
       <div body class="modal-form" *ngIf="editingProject as p">
         <div class="form-group">
-          <label class="clean-label">Название проекта <span class="req">*</span></label>
-          <input type="text" class="clean-input" [(ngModel)]="editForm.name" />
+          <div class="label-row">
+            <label class="clean-label">Название проекта</label>
+            <span class="req-tag">Обязательное поле</span>
+          </div>
+          <input
+            type="text"
+            class="clean-input"
+            [class.input-error]="isEditSubmitted && !editForm.name.trim()"
+            [(ngModel)]="editForm.name"
+          />
+          <span class="error-msg" *ngIf="isEditSubmitted && !editForm.name.trim()">
+            Название проекта не может быть пустым
+          </span>
         </div>
         <div class="form-group">
-          <label class="clean-label">Статус активности</label>
+          <div class="label-row">
+            <label class="clean-label">Статус активности</label>
+          </div>
           <select class="clean-input" [(ngModel)]="editForm.state">
             <option value="A">Активен (A)</option>
             <option value="P">В архиве (P)</option>
           </select>
         </div>
         <div class="form-group">
-          <label class="clean-label">Описание</label>
+          <div class="label-row">
+            <label class="clean-label">Описание</label>
+          </div>
           <textarea class="clean-input clean-textarea" rows="3" [(ngModel)]="editForm.description"></textarea>
         </div>
       </div>
@@ -401,7 +425,16 @@ import { Project } from '../../../core/models/task.models';
     /* Modals */
     .modal-form { display: flex; flex-direction: column; gap: 12px; }
     .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .label-row { display: flex; align-items: center; justify-content: space-between; }
     .clean-label { font-size: 11px; font-weight: 500; color: var(--text-muted); }
+    .req-tag {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--danger);
+      background-color: var(--danger-bg);
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
     .clean-input {
       height: 32px;
       padding: 4px 8px;
@@ -411,11 +444,14 @@ import { Project } from '../../../core/models/task.models';
       color: var(--text-main);
       font-size: 13px;
       outline: none;
+      transition: border-color 0.15s ease;
     }
     .clean-input:focus { border-color: var(--primary); }
+    .clean-input.input-error { border-color: var(--danger); background-color: var(--danger-bg); }
+    .error-msg { font-size: 11px; color: var(--danger); margin-top: 2px; }
+
     .clean-textarea { height: auto; padding: 6px 8px; resize: vertical; font-family: inherit; }
 
-    .req { color: var(--danger); }
     .tabular-nums { font-variant-numeric: tabular-nums; }
   `]
 })
@@ -426,6 +462,9 @@ export class ProjectsComponent implements OnInit {
 
   searchQuery = '';
   selectedState = 'all';
+
+  isCreateSubmitted = false;
+  isEditSubmitted = false;
 
   readonly isCreateModalOpen = signal<boolean>(false);
   readonly isEditModalOpen = signal<boolean>(false);
@@ -478,11 +517,13 @@ export class ProjectsComponent implements OnInit {
   }
 
   openCreateModal() {
+    this.isCreateSubmitted = false;
     this.createForm = { name: '', description: '' };
     this.isCreateModalOpen.set(true);
   }
 
   submitCreateProject() {
+    this.isCreateSubmitted = true;
     if (!this.createForm.name.trim()) {
       this.toast.warning('Введите название проекта');
       return;
@@ -499,13 +540,15 @@ export class ProjectsComponent implements OnInit {
         this.toast.success('Проект успешно создан');
         this.loadProjects();
       },
-      error: () => {
+      error: err => {
         this.isSubmitting.set(false);
+        this.toast.error(err.error?.message || 'Ошибка при сохранении проекта');
       }
     });
   }
 
   openEditModal(p: Project) {
+    this.isEditSubmitted = false;
     this.editingProject = p;
     this.editForm = {
       name: p.name,
@@ -517,21 +560,27 @@ export class ProjectsComponent implements OnInit {
 
   submitEditProject() {
     if (!this.editingProject) return;
+    this.isEditSubmitted = true;
     if (!this.editForm.name.trim()) {
       this.toast.warning('Название проекта обязательно');
       return;
     }
 
     this.isSubmitting.set(true);
-    this.api.patch(`/tasks/projects/${this.editingProject.id}`, this.editForm).subscribe({
+    this.api.patch(`/tasks/projects/${this.editingProject.id}`, {
+      name: this.editForm.name.trim(),
+      description: this.editForm.description.trim(),
+      state: this.editForm.state
+    }).subscribe({
       next: () => {
         this.isSubmitting.set(false);
         this.isEditModalOpen.set(false);
         this.toast.success('Проект обновлен');
         this.loadProjects();
       },
-      error: () => {
+      error: err => {
         this.isSubmitting.set(false);
+        this.toast.error(err.error?.message || 'Ошибка при обновлении проекта');
       }
     });
   }

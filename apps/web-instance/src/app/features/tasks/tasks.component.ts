@@ -303,27 +303,41 @@ import { KeysetPage } from '../../core/models/common.models';
       (close)="isCreateModalOpen.set(false)"
     >
       <div body class="modal-form">
+        <!-- Title Input (Required) -->
         <div class="form-group">
-          <label class="clean-label">Название задачи <span class="req">*</span></label>
+          <div class="label-row">
+            <label class="clean-label">Название задачи</label>
+            <span class="req-tag">Обязательное поле</span>
+          </div>
           <input
             type="text"
             class="clean-input"
+            [class.input-error]="isCreateSubmitted && !createForm.title.trim()"
             [(ngModel)]="createForm.title"
-            placeholder="Краткая формулировка задачи"
+            placeholder="Краткая и ясная формулировка задачи..."
           />
+          <span class="error-msg" *ngIf="isCreateSubmitted && !createForm.title.trim()">
+            Пожалуйста, укажите название задачи
+          </span>
         </div>
 
         <div class="form-grid-2">
+          <!-- Project Selector -->
           <div class="form-group">
-            <label class="clean-label">Проект</label>
+            <div class="label-row">
+              <label class="clean-label">Проект</label>
+            </div>
             <select class="clean-input" [(ngModel)]="createForm.projectId">
               <option [ngValue]="null">Без проекта</option>
               <option *ngFor="let p of projects()" [ngValue]="p.id">{{ p.name }}</option>
             </select>
           </div>
 
+          <!-- Priority Selector -->
           <div class="form-group">
-            <label class="clean-label">Приоритет</label>
+            <div class="label-row">
+              <label class="clean-label">Приоритет</label>
+            </div>
             <select class="clean-input" [(ngModel)]="createForm.priority">
               <option value="low">Низкий (low)</option>
               <option value="medium">Средний (medium)</option>
@@ -334,38 +348,45 @@ import { KeysetPage } from '../../core/models/common.models';
         </div>
 
         <div class="form-grid-2">
+          <!-- Responsible User (I-T1) -->
           <div class="form-group">
-            <label class="clean-label">Ответственный (I-T1)</label>
+            <div class="label-row">
+              <label class="clean-label">Ответственный (I-T1)</label>
+            </div>
             <select class="clean-input" [(ngModel)]="createForm.responsibleUserId">
               <option [ngValue]="null">Не назначен</option>
               <option *ngFor="let u of usersList()" [ngValue]="u.id">{{ u.name }} (&#64;{{ u.login }})</option>
             </select>
           </div>
 
+          <!-- Parent Task Dropdown -->
           <div class="form-group">
-            <label class="clean-label">Родительская задача (ID)</label>
-            <input
-              type="number"
-              class="clean-input font-mono"
-              [(ngModel)]="createForm.parentTaskId"
-              placeholder="ID задачи (опционально)"
-            />
+            <div class="label-row">
+              <label class="clean-label">Родительская задача</label>
+            </div>
+            <select class="clean-input" [(ngModel)]="createForm.parentTaskId">
+              <option [ngValue]="null">Без родителя (корневая задача)</option>
+              <option *ngFor="let pt of tasks()" [ngValue]="pt.id">#{{ pt.id }} — {{ pt.title }}</option>
+            </select>
           </div>
         </div>
 
+        <!-- Description -->
         <div class="form-group">
-          <label class="clean-label">Подробное описание (Markdown)</label>
+          <div class="label-row">
+            <label class="clean-label">Подробное описание (Markdown)</label>
+          </div>
           <textarea
             class="clean-input clean-textarea"
             rows="3"
             [(ngModel)]="createForm.descriptionMarkdown"
-            placeholder="Детали задачи, контекст и критерии готовности..."
+            placeholder="Контекст, требования, ссылки и критерии готовности задачи..."
           ></textarea>
         </div>
 
         <!-- Custom Dynamic Fields -->
         <div class="custom-fields-section" *ngIf="taskCustomFields().length > 0">
-          <h4 class="custom-fields-title">Дополнительные поля</h4>
+          <h4 class="custom-fields-title">Дополнительные настраиваемые поля</h4>
           <ui-custom-fields
             [fields]="taskCustomFields()"
             [(values)]="createForm.attributes"
@@ -760,7 +781,20 @@ import { KeysetPage } from '../../core/models/common.models';
     .modal-form { display: flex; flex-direction: column; gap: 12px; }
     .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .label-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
     .clean-label { font-size: 11px; font-weight: 500; color: var(--text-muted); }
+    .req-tag {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--danger);
+      background-color: var(--danger-bg);
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
     .clean-input {
       height: 32px;
       padding: 4px 8px;
@@ -770,8 +804,12 @@ import { KeysetPage } from '../../core/models/common.models';
       color: var(--text-main);
       font-size: 13px;
       outline: none;
+      transition: border-color 0.15s ease;
     }
     .clean-input:focus { border-color: var(--primary); }
+    .clean-input.input-error { border-color: var(--danger); background-color: var(--danger-bg); }
+    .error-msg { font-size: 11px; color: var(--danger); margin-top: 2px; }
+
     .clean-textarea { height: auto; padding: 6px 8px; resize: vertical; font-family: inherit; }
 
     .custom-fields-section {
@@ -783,7 +821,6 @@ import { KeysetPage } from '../../core/models/common.models';
     }
     .custom-fields-title { font-size: 12px; font-weight: 600; color: var(--text-muted); margin: 0; }
 
-    .req { color: var(--danger); }
     .font-mono { font-family: monospace; }
     .text-right { text-align: right; }
     .text-muted { color: var(--text-muted); }
@@ -802,6 +839,7 @@ export class TasksComponent implements OnInit {
   readonly isLoading = signal<boolean>(false);
   readonly isSubmitting = signal<boolean>(false);
   readonly hasMore = signal<boolean>(false);
+  isCreateSubmitted = false;
   nextCursor: string | null = null;
 
   searchQuery = '';
@@ -844,26 +882,30 @@ export class TasksComponent implements OnInit {
   }
 
   loadStatuses() {
-    this.api.get<TaskStatus[]>('/tasks/statuses').subscribe(res => {
-      this.statuses.set(res || []);
+    this.api.get<TaskStatus[]>('/tasks/statuses').subscribe({
+      next: res => this.statuses.set(res || []),
+      error: () => {}
     });
   }
 
   loadProjects() {
-    this.api.get<Project[]>('/tasks/projects').subscribe(res => {
-      this.projects.set(res || []);
+    this.api.get<Project[]>('/tasks/projects').subscribe({
+      next: res => this.projects.set(res || []),
+      error: () => {}
     });
   }
 
   loadUsers() {
-    this.api.get<KeysetPage<User>>('/iam/users', { limit: 100 }).subscribe(res => {
-      this.usersList.set(res?.items || []);
+    this.api.get<KeysetPage<User>>('/iam/users', { limit: 100 }).subscribe({
+      next: res => this.usersList.set(res?.items || []),
+      error: () => {}
     });
   }
 
   loadTaskCustomFields() {
-    this.api.get<CustomField[]>('/custom-fields', { entity_type: 'TASK' }).subscribe(res => {
-      this.taskCustomFields.set(res || []);
+    this.api.get<CustomField[]>('/custom-fields', { entity_type: 'TASK' }).subscribe({
+      next: res => this.taskCustomFields.set(res || []),
+      error: () => {}
     });
   }
 
@@ -925,8 +967,9 @@ export class TasksComponent implements OnInit {
   }
 
   loadComments(taskId: number) {
-    this.api.get<TaskComment[]>(`/tasks/${taskId}/comments`).subscribe(res => {
-      this.comments.set(res || []);
+    this.api.get<TaskComment[]>(`/tasks/${taskId}/comments`).subscribe({
+      next: res => this.comments.set(res || []),
+      error: () => {}
     });
   }
 
@@ -934,10 +977,15 @@ export class TasksComponent implements OnInit {
     const task = this.selectedTask();
     if (!task || !this.newCommentText.trim()) return;
 
-    this.api.post(`/tasks/${task.id}/comments`, { commentMarkdown: this.newCommentText.trim() }).subscribe(() => {
-      this.newCommentText = '';
-      this.loadComments(task.id);
-      this.toast.success('Комментарий добавлен');
+    this.api.post(`/tasks/${task.id}/comments`, { commentMarkdown: this.newCommentText.trim() }).subscribe({
+      next: () => {
+        this.newCommentText = '';
+        this.loadComments(task.id);
+        this.toast.success('Комментарий добавлен');
+      },
+      error: err => {
+        this.toast.error(err.error?.message || 'Не удалось отправить комментарий');
+      }
     });
   }
 
@@ -949,11 +997,15 @@ export class TasksComponent implements OnInit {
           this.selectedTask.update(t => t ? { ...t, statusId: newStatusId } : null);
         }
         this.loadTasks(true);
+      },
+      error: err => {
+        this.toast.error(err.error?.message || 'Не удалось изменить статус');
       }
     });
   }
 
   openCreateTaskModal() {
+    this.isCreateSubmitted = false;
     this.createForm = {
       title: '',
       descriptionMarkdown: '',
@@ -967,21 +1019,33 @@ export class TasksComponent implements OnInit {
   }
 
   submitCreateTask() {
+    this.isCreateSubmitted = true;
     if (!this.createForm.title.trim()) {
       this.toast.warning('Укажите название задачи');
       return;
     }
 
+    const payload = {
+      title: this.createForm.title.trim(),
+      descriptionMarkdown: this.createForm.descriptionMarkdown?.trim() || '',
+      projectId: this.createForm.projectId ? Number(this.createForm.projectId) : null,
+      priority: this.createForm.priority || 'medium',
+      responsibleUserId: this.createForm.responsibleUserId ? Number(this.createForm.responsibleUserId) : null,
+      parentTaskId: this.createForm.parentTaskId ? Number(this.createForm.parentTaskId) : null,
+      attributes: this.createForm.attributes || {}
+    };
+
     this.isSubmitting.set(true);
-    this.api.post('/tasks', this.createForm).subscribe({
+    this.api.post('/tasks', payload).subscribe({
       next: () => {
         this.isSubmitting.set(false);
         this.isCreateModalOpen.set(false);
         this.toast.success('Задача успешно создана');
         this.loadTasks(true);
       },
-      error: () => {
+      error: err => {
         this.isSubmitting.set(false);
+        this.toast.error(err.error?.message || 'Ошибка при сохранении задачи');
       }
     });
   }

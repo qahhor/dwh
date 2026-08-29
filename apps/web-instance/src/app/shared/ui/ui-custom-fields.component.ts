@@ -10,10 +10,10 @@ import { CustomField } from '../../core/models/custom-field.models';
   template: `
     <div class="custom-fields-grid" *ngIf="fields && fields.length > 0">
       <div class="field-item" *ngFor="let f of fields">
-        <label class="field-label">
-          {{ f.name }}
-          <span *ngIf="f.isRequired" class="req-star">*</span>
-        </label>
+        <div class="field-header">
+          <label class="field-label">{{ f.name }}</label>
+          <span *ngIf="f.isRequired" class="req-tag">Обязательно</span>
+        </div>
 
         <!-- String Input -->
         <input
@@ -22,7 +22,7 @@ import { CustomField } from '../../core/models/custom-field.models';
           class="form-control"
           [ngModel]="values[f.code]"
           (ngModelChange)="onValueChange(f.code, $event)"
-          [placeholder]="f.defaultValue || ''"
+          [placeholder]="f.defaultValue || 'Текстовое значение...'"
         />
 
         <!-- Number Input -->
@@ -32,7 +32,7 @@ import { CustomField } from '../../core/models/custom-field.models';
           class="form-control"
           [ngModel]="values[f.code]"
           (ngModelChange)="onValueChange(f.code, $event)"
-          [placeholder]="f.defaultValue || ''"
+          [placeholder]="f.defaultValue || '0'"
         />
 
         <!-- Date Input -->
@@ -70,19 +70,30 @@ import { CustomField } from '../../core/models/custom-field.models';
       gap: 4px;
     }
 
+    .field-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
     .field-label {
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 500;
       color: var(--text-muted);
     }
 
-    .req-star {
+    .req-tag {
+      font-size: 9px;
+      font-weight: 500;
       color: var(--danger);
+      background-color: var(--danger-bg);
+      padding: 1px 4px;
+      border-radius: 3px;
     }
 
     .form-control {
       height: 32px;
-      padding: 4px 10px;
+      padding: 4px 8px;
       border: 1px solid var(--border-color);
       border-radius: var(--radius-sm);
       background-color: var(--bg-surface);
