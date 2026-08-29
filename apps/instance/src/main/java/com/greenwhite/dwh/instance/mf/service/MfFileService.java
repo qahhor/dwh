@@ -6,6 +6,7 @@ import com.greenwhite.dwh.instance.mf.repository.MfFileRepository;
 import com.greenwhite.dwh.spi.storage.FileDownloadStream;
 import com.greenwhite.dwh.spi.storage.StorageProvider;
 import com.greenwhite.dwh.spi.storage.StoredFileMetadata;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -85,15 +86,24 @@ public class MfFileService {
         }
 
         // Своя запись владения: своё имя файла, своя квота, своё право на удаление
-        return fileRepository.create(
-                sha256,
-                originalName,
-                stored.sizeBytes(),
-                mimeType != null ? mimeType : "application/octet-stream",
-                sameContent.map(MfFileRepository.FileRecord::storageBucket).orElse(DEFAULT_BUCKET),
-                finalKey,
-                createdBy
-        );
+        try {
+            return fileRepository.create(
+                    sha256,
+                    originalName,
+                    stored.sizeBytes(),
+                    mimeType != null ? mimeType : "application/octet-stream",
+                    sameContent.map(MfFileRepository.FileRecord::storageBucket).orElse(DEFAULT_BUCKET),
+                    finalKey,
+                    createdBy
+            );
+        } catch (DuplicateKeyException e) {
+            // Тот же пользователь отправил файл дважды одновременно (двойной клик):
+            // проверка выше у обоих запросов прошла до того, как первый вставил
+            // строку. Уникальный индекс (created_by, sha256) поймал второго —
+            // это не ошибка, а та же дедупликация, только выигранная гонкой.
+            return fileRepository.findBySha256AndOwner(sha256, createdBy)
+                    .orElseThrow(() -> e);
+        }
     }
 
     @Transactional(readOnly = true)

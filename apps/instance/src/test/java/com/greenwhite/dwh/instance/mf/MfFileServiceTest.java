@@ -8,6 +8,7 @@ import com.greenwhite.dwh.spi.storage.StoredFileMetadata;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.dao.DuplicateKeyException;
 
 import java.io.ByteArrayInputStream;
 import java.time.Instant;
@@ -140,5 +141,25 @@ class MfFileServiceTest {
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("Превышена ваша персональная дисковая квота");
     }
-}
 
+    @Test
+    @DisplayName("Двойная отправка одного файла одним пользователем не падает, а возвращает запись (Д-3)")
+    void shouldResolveConcurrentDuplicateUpload() {
+        var winner = record("report.pdf", 3L);
+        givenRoomInQuotas(3L);
+        // Первый запрос успел вставить строку между нашей проверкой и вставкой
+        when(fileRepository.findBySha256AndOwner(SHA, 3L))
+                .thenReturn(Optional.empty())
+                .thenReturn(Optional.of(winner));
+        when(fileRepository.findBySha256(SHA)).thenReturn(Optional.empty());
+        // Объект уже на диске — заливать нечего, интересна только вставка строки
+        when(storageProvider.exists(anyString(), anyString())).thenReturn(true);
+        when(fileRepository.create(anyString(), anyString(), anyLong(), anyString(), anyString(), anyString(), any()))
+                .thenThrow(new DuplicateKeyException("mf_files_owner_sha256_uidx"));
+
+        var result = service.uploadFile("report.pdf", "application/pdf",
+                new ByteArrayInputStream(new byte[1024]), 1024, 3L);
+
+        assertThat(result.id()).isEqualTo(winner.id());
+    }
+}
