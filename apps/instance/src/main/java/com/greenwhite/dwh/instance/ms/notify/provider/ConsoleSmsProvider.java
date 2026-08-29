@@ -10,6 +10,10 @@ import org.springframework.stereotype.Component;
 
 import java.util.UUID;
 
+/**
+ * Заглушка канала SMS для разработки: пишет сообщение в журнал и никуда его не шлёт.
+ * Номер телефона — персональные данные, в журнал не попадает (CODE_STYLE).
+ */
 @Component
 public class ConsoleSmsProvider implements SmsProvider {
 
@@ -22,13 +26,14 @@ public class ConsoleSmsProvider implements SmsProvider {
 
     @Override
     public SmsSendResult send(SmsMessage message) {
-        log.info("[SMS OUTBOX] Sending SMS to <{}>: Text='{}'", message.recipientPhone(), message.text());
+        log.warn("[ЗАГЛУШКА SMS — НЕ ДОСТАВЛЕНО] текст: {}", message.text());
 
         return SmsSendResult.success(UUID.randomUUID().toString(), 3);
     }
 
     @Override
     public ProviderHealth checkHealth() {
-        return ProviderHealth.healthy(getProviderCode(), 1);
+        return ProviderHealth.unhealthy(getProviderCode(),
+                "Заглушка: SMS не доставляются. Подключите шлюз оператора", 0);
     }
 }

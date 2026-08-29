@@ -42,6 +42,9 @@ public enum ErrorCode {
     TASK_NOT_FOUND("task_not_found", 404),
     FILE_NOT_FOUND("file_not_found", 404),
 
+    // 405 Method Not Allowed
+    METHOD_NOT_ALLOWED("method_not_allowed", 405),
+
     // 409 Conflict
     CONFLICT("conflict", 409),
     STATUS_TRANSITION_FORBIDDEN("status_transition_forbidden", 409),

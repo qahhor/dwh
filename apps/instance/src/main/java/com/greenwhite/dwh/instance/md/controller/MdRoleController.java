@@ -85,6 +85,6 @@ public class MdRoleController {
     public record UpdateRoleDto(
             String name,
             String state,
-            int orderNo
+            Integer orderNo
     ) {}
 }

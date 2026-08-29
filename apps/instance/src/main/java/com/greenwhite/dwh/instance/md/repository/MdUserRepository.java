@@ -141,6 +141,18 @@ public class MdUserRepository {
     }
 
     public List<UserRecord> listUsers(int limit, Long afterId, String search, String state, Long roleId, Long managerId, Boolean is2faEnabled) {
+        return listUsers(limit, afterId, search, state, roleId, managerId, is2faEnabled,
+                com.greenwhite.dwh.instance.common.security.ScopeFilter.unrestricted());
+    }
+
+    /**
+     * Тот же список, но ограниченный скоупом данных (ADR-0013).
+     * Предикат уходит в SQL, а не фильтрует результат: иначе страница в 50
+     * строк после фильтра становится короче, и keyset-пагинация врёт.
+     */
+    public List<UserRecord> listUsers(int limit, Long afterId, String search, String state, Long roleId,
+                                      Long managerId, Boolean is2faEnabled,
+                                      com.greenwhite.dwh.instance.common.security.ScopeFilter scope) {
         StringBuilder sql = new StringBuilder("""
                 select id, name, login, email, phone, password_hash, state, manager_id, language, timezone,
                        avatar_file_id, attributes::text as attributes_str, is_2fa_enabled, force_password_change,
@@ -168,6 +180,10 @@ public class MdUserRepository {
             sql.append(" and (name ilike :search or login ilike :search or email ilike :search or phone ilike :search)");
         }
 
+        if (!scope.isUnrestricted()) {
+            sql.append(scope.sql());
+        }
+
         sql.append(" order by id asc limit :limit");
 
         var query = jdbcClient.sql(sql.toString())
@@ -190,6 +206,9 @@ public class MdUserRepository {
         }
         if (search != null && !search.isBlank()) {
             query.param("search", "%" + search.trim() + "%");
+        }
+        if (scope.bindsUserId()) {
+            query.param("scopeUserId", scope.userId());
         }
 
         return query.query(this::mapUser).list();

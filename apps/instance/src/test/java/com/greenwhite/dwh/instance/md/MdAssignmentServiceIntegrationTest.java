@@ -42,6 +42,7 @@ class MdAssignmentServiceIntegrationTest {
     static MdAssignmentService service;
     static MdRoleRepository roleRepository;
     static MdPermissionService permissionService;
+    static com.greenwhite.dwh.instance.audit.service.AuditLogService auditLogService;
 
     @BeforeAll
     static void setup() {
@@ -53,7 +54,10 @@ class MdAssignmentServiceIntegrationTest {
         roleRepository = new MdRoleRepository(jdbc);
         var permissionRepository = new MdPermissionRepository(jdbc);
         permissionService = new MdPermissionService(permissionRepository);
-        service = new MdAssignmentService(userRepository, roleRepository, permissionRepository, permissionService);
+        auditLogService = new com.greenwhite.dwh.instance.audit.service.AuditLogService(
+                new com.greenwhite.dwh.instance.audit.repository.AuditLogRepository(jdbc, new ObjectMapper()), null);
+        service = new MdAssignmentService(userRepository, roleRepository, permissionRepository,
+                permissionService, auditLogService);
     }
 
     private static Long createUser(String login) {
@@ -162,5 +166,54 @@ class MdAssignmentServiceIntegrationTest {
 
         assertThat(service.getUserRoleIds(first)).doesNotContain(roleId("admin"));
         assertThat(service.getUserRoleIds(second)).contains(roleId("admin"));
+    }
+
+    /**
+     * FR-AUD-1: выдача доступа обязана оставлять след. До этой правки изменение
+     * ролей и персональных прав не писалось в аудит вовсе — восстановить
+     * «кто кому выдал право» было нечем.
+     */
+    @Test
+    @DisplayName("Назначение ролей пишется в аудит с диффом granted/revoked")
+    void roleAssignmentIsAudited() {
+        Long userId = createUser("audited_roles");
+
+        service.assignRoles(userId, List.of(roleId("manager")));
+        service.assignRoles(userId, List.of(roleId("user")));
+
+        var rows = auditRows("md_user_roles", userId);
+        assertThat(rows).as("две операции — две записи").hasSize(2);
+
+        assertThat(rows.get(0)).as("в журнале имя роли, а не служебный код").contains("Менеджер").contains("granted");
+        assertThat(rows.get(1)).as("снятие роли видно как revoked").contains("revoked").contains("Менеджер");
+        assertThat(rows.get(1)).contains("Пользователь");
+    }
+
+    @Test
+    @DisplayName("Персональные права пишутся в аудит отдельной строкой")
+    void personalPermissionChangeIsAudited() {
+        Long userId = createUser("audited_perms");
+
+        service.replacePersonalPermissions(userId,
+                List.of(new MdRoleRepository.PermissionPair("audit.log", "view")));
+        service.replacePersonalPermissions(userId, List.of());
+
+        var rows = auditRows("md_user_permissions", userId);
+        assertThat(rows).hasSize(2);
+        assertThat(rows.get(0)).contains("audit.log.view").contains("granted");
+        assertThat(rows.get(1)).contains("revoked").contains("audit.log.view");
+    }
+
+    /** new_row как текст: проверяем факт записи и содержимое диффа, а не форму сериализации. */
+    private static List<String> auditRows(String tableName, Long rowPk) {
+        return jdbc.sql("""
+                        select coalesce(old_row::text, '') || ' ' || coalesce(new_row::text, '')
+                        from audit_log
+                        where table_name = :t and row_pk = :pk
+                        order by id
+                        """)
+                .param("t", tableName)
+                .param("pk", String.valueOf(rowPk))
+                .query(String.class).list();
     }
 }

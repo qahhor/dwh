@@ -41,7 +41,7 @@ public class ProviderRegistry {
             @Value("${dwh.providers.storage:local}") String activeStorageCode,
             @Value("${dwh.providers.mail:console_mail}") String activeMailCode,
             @Value("${dwh.providers.sms:console_sms}") String activeSmsCode,
-            @Value("${dwh.providers.messenger:telegram}") String activeMessengerCode) {
+            @Value("${dwh.providers.messenger:console_messenger}") String activeMessengerCode) {
 
         this.storageProviders = storageList.stream()
                 .collect(Collectors.toMap(StorageProvider::getProviderCode, Function.identity(), (a, b) -> a));

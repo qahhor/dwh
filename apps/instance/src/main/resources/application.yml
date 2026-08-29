@@ -27,6 +27,21 @@ spring:
     enabled: false
     locations: classpath:db/migration
     baseline-on-migrate: false
+  mail:
+    # FR-NOTIF-3. Пусто -> SmtpMailProvider не поднимается и активной остаётся
+    # заглушка: канал восстановления пароля работать не будет, и об этом
+    # предупредит NotificationChannelStartupCheck при старте.
+    host: ${SMTP_HOST:}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USER:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${SMTP_AUTH:true}
+      mail.smtp.starttls.enable: ${SMTP_STARTTLS:true}
+      # Без таймаутов недоступный шлюз держит поток отправки до упора.
+      mail.smtp.connectiontimeout: 10000
+      mail.smtp.timeout: 10000
+      mail.smtp.writetimeout: 10000
   jackson:
     # Jackson 3: даты ISO-8601 по умолчанию, write-dates-as-timestamps удалён
     default-property-inclusion: non_null
@@ -51,8 +66,27 @@ management:
       show-details: when_authorized
       probes:
         enabled: true
+  health:
+    mail:
+      # Недоступность почтового шлюза не должна ронять экземпляр: healthcheck
+      # контейнера читает этот же эндпоинт и перезапустил бы приложение.
+      # Состояние канала показывает NotificationChannelStartupCheck и журнал.
+      enabled: false
 
 dwh:
+  providers:
+    # Активный провайдер каждого канала (ADR-0011). Значение console_* означает
+    # заглушку: сообщения пишутся в журнал и никуда не уходят.
+    mail: ${DWH_PROVIDER_MAIL:console_mail}
+    sms: ${DWH_PROVIDER_SMS:console_sms}
+    messenger: ${DWH_PROVIDER_MESSENGER:console_messenger}
+  mail:
+    from: ${DWH_MAIL_FROM:no-reply@localhost}
+    from-name: ${DWH_MAIL_FROM_NAME:DWH Platform}
+  telegram:
+    # FR-NOTIF-4. Пусто -> TelegramBotMessengerProvider не поднимается.
+    bot-token: ${TELEGRAM_BOT_TOKEN:}
+    api-url: ${TELEGRAM_API_URL:https://api.telegram.org}
   audit:
     # Запас месячных партиций audit_log вперёд (FR-AUD-2). Партиция, не
     # созданная вовремя, — тупик: аудит уходит в default, откуда retention

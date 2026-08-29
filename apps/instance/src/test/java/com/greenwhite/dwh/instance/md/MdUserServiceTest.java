@@ -37,9 +37,12 @@ class MdUserServiceTest {
 
     private final PasswordValidator passwordValidator = new PasswordValidator();
 
+    private final com.greenwhite.dwh.instance.md.service.MdScopeService scopeService =
+            Mockito.mock(com.greenwhite.dwh.instance.md.service.MdScopeService.class);
+
     private final MdUserService userService = new MdUserService(
             userRepository, roleRepository, permissionService, customFieldService, passwordHasher,
-            passwordValidator, sessionInvalidator, typesenseIndexer, auditLogService
+            passwordValidator, sessionInvalidator, typesenseIndexer, auditLogService, scopeService
     );
 
 

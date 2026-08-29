@@ -25,4 +25,5 @@ public final class MdPref {
     public static final String FORM_ASSIGNMENTS = "rbac.assignments";
     public static final String FORM_CUSTOM_FIELDS = "md.custom_fields";
     public static final String FORM_SETTINGS = "platform.settings";
+    public static final String FORM_ORG_UNITS = "iam.org_units";
 }

@@ -66,7 +66,8 @@ class RbacSystemRolesIntegrationTest {
             "KauthAuthController",   // публичный/сессионный контур входа
             "SecurityTestController", // тестовый стенд CSRF/лимитов (test-classpath)
             "OpenApiController",     // спецификация API, permitAll в SecurityConfig
-            "MdI18nController"       // статический словарь интерфейса, одинаков для всех
+            "MdI18nController",      // статический словарь интерфейса, одинаков для всех
+            "ReadOnlyTestController" // тестовый стенд обработчика ошибок 405 (test-classpath)
     );
 
     @Test

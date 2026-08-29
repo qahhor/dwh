@@ -48,6 +48,11 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
         <dependency>
+            <!-- FR-NOTIF-3: доставка почты по SMTP. Без этого канал восстановления пароля мёртв -->
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+        <dependency>
             <!-- Без этого /actuator/prometheus не существует, хотя и объявлен в exposure -->
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
