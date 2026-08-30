@@ -28,6 +28,7 @@
   --warning: #d97706;
   --warning-bg: #fef3c7;
   --danger: #dc2626;
+  --danger-hover: #b91c1c;
   --danger-bg: #fee2e2;
   --info: #2563eb;
   --info-bg: #dbeafe;
@@ -38,6 +39,8 @@
   --radius-lg: 8px;
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-overlay: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --focus-ring: #0ea5e9;
+  --control-min-size: 34px;
 
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
@@ -69,9 +72,11 @@
   --warning: #f59e0b;
   --warning-bg: #451a03;
   --danger: #ef4444;
+  --danger-hover: #f87171;
   --danger-bg: #450a0a;
   --info: #3b82f6;
   --info-bg: #172554;
+  --focus-ring: #7dd3fc;
 }
 
 * {
@@ -89,6 +94,36 @@ html, body {
   background-color: var(--bg-app);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+body.modal-open {
+  overflow: hidden;
+}
+
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--focus-ring) !important;
+  outline-offset: 2px !important;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Material Symbols */
