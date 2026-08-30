@@ -96,7 +96,8 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-body.modal-open {
+body.modal-open,
+body.palette-open {
   overflow: hidden;
 }
 

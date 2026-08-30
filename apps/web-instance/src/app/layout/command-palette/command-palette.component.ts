@@ -1,6 +1,7 @@
-import { Component, HostListener, signal } from '@angular/core';
+import { Component, ElementRef, HostListener, OnDestroy, ViewChild, effect, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { A11yModule } from '@angular/cdk/a11y';
 import { Router } from '@angular/router';
 import { CommandPaletteService } from '../../core/services/command-palette.service';
 import { SearchHit } from '../../core/models/search.models';
@@ -9,29 +10,45 @@ import { Subject, debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs
 @Component({
   selector: 'app-command-palette',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, A11yModule],
   template: `
     <div *ngIf="paletteService.isOpen()" class="palette-backdrop" (click)="onBackdropClick($event)">
-      <div class="palette-dialog" role="dialog">
+      <div
+        class="palette-dialog"
+        role="dialog"
+        aria-modal="true"
+        [attr.aria-labelledby]="titleId"
+        cdkTrapFocus
+        [cdkTrapFocusAutoCapture]="true"
+      >
+        <h2 class="sr-only" [id]="titleId">Глобальный поиск</h2>
         <div class="palette-search-box">
-          <span class="material-symbols-outlined search-icon">search</span>
+          <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
+          <label class="sr-only" [for]="inputId">Поиск задач, проектов и пользователей</label>
           <input
+            #searchInput
+            [id]="inputId"
             type="text"
             class="palette-input"
+            role="combobox"
+            aria-autocomplete="list"
+            [attr.aria-expanded]="results().length > 0"
+            [attr.aria-controls]="listboxId"
+            [attr.aria-activedescendant]="results().length > 0 ? optionId(selectedIndex) : null"
             placeholder="Поиск задач, проектов, пользователей... (Esc для закрытия)"
             [(ngModel)]="searchQuery"
             (ngModelChange)="onSearchChange($event)"
             autofocus
           />
-          <kbd class="esc-badge">ESC</kbd>
+          <kbd class="esc-badge" aria-hidden="true">ESC</kbd>
         </div>
 
         <div class="palette-results">
-          <div *ngIf="isLoading()" class="palette-loading">
+          <div *ngIf="isLoading()" class="palette-loading" role="status" aria-live="polite">
             Поиск...
           </div>
 
-          <div *ngIf="!isLoading() && results().length === 0 && searchQuery.length >= 2" class="palette-empty">
+          <div *ngIf="!isLoading() && results().length === 0 && searchQuery.length >= 2" class="palette-empty" role="status">
             Ничего не найдено по запросу «{{ searchQuery }}»
           </div>
 
@@ -39,16 +56,20 @@ import { Subject, debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs
             Введите минимум 2 символа для мгновенного поиска...
           </div>
 
-          <div class="results-list" *ngIf="results().length > 0">
-            <div
+          <div class="results-list" *ngIf="results().length > 0" role="listbox" [id]="listboxId" aria-label="Результаты поиска">
+            <button
               *ngFor="let hit of results(); let idx = index"
+              type="button"
+              role="option"
+              [id]="optionId(idx)"
               class="result-item"
               [class.active]="selectedIndex === idx"
+              [attr.aria-selected]="selectedIndex === idx"
               (click)="navigateTo(hit)"
               (mouseenter)="selectedIndex = idx"
             >
               <div class="result-icon-box" [class]="'icon-' + hit.entityType.toLowerCase()">
-                <span class="material-symbols-outlined">
+                <span class="material-symbols-outlined" aria-hidden="true">
                   {{ getIcon(hit.entityType) }}
                 </span>
               </div>
@@ -59,7 +80,7 @@ import { Subject, debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs
               <div class="result-badge" [class]="'badge-' + hit.entityType.toLowerCase()">
                 {{ getEntityBadge(hit.entityType) }}
               </div>
-            </div>
+            </button>
           </div>
 
         </div>
@@ -115,7 +136,6 @@ import { Subject, debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs
       font-size: 15px;
       font-family: inherit;
       color: var(--text-main);
-      outline: none;
     }
 
     .esc-badge {
@@ -155,9 +175,16 @@ import { Subject, debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs
       border-radius: var(--radius-md);
       cursor: pointer;
       transition: background-color 0.1s ease;
+      width: 100%;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      text-align: left;
     }
 
-    .result-item:hover {
+    .result-item:hover,
+    .result-item.active {
       background-color: var(--bg-hover);
     }
 
@@ -214,19 +241,52 @@ import { Subject, debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs
         transform: translateY(0) scale(1);
       }
     }
+
+    @media (max-width: 680px) {
+      .palette-backdrop { padding: 10vh 12px 12px; }
+      .palette-dialog { max-height: 75vh; }
+      .result-badge { display: none; }
+    }
   `]
 })
-export class CommandPaletteComponent {
+export class CommandPaletteComponent implements OnDestroy {
+  private static nextId = 0;
+
   searchQuery = '';
   selectedIndex = 0;
   readonly isLoading = signal<boolean>(false);
   readonly results = signal<SearchHit[]>([]);
   private searchSubject = new Subject<string>();
+  private readonly componentId = CommandPaletteComponent.nextId++;
+  readonly titleId = `command-palette-title-${this.componentId}`;
+  readonly inputId = `command-palette-input-${this.componentId}`;
+  readonly listboxId = `command-palette-results-${this.componentId}`;
+  private previouslyFocusedElement: HTMLElement | null = null;
+  private wasOpen = false;
+
+  @ViewChild('searchInput') private searchInput?: ElementRef<HTMLInputElement>;
 
   constructor(
     public paletteService: CommandPaletteService,
     private router: Router
   ) {
+    effect(() => {
+      const isOpen = this.paletteService.isOpen();
+      if (isOpen && !this.wasOpen) {
+        this.previouslyFocusedElement = document.activeElement instanceof HTMLElement
+          ? document.activeElement
+          : null;
+        document.body.classList.add('palette-open');
+        queueMicrotask(() => this.searchInput?.nativeElement.focus());
+      } else if (!isOpen && this.wasOpen) {
+        document.body.classList.remove('palette-open');
+        const focusTarget = this.previouslyFocusedElement;
+        queueMicrotask(() => focusTarget?.focus());
+        this.previouslyFocusedElement = null;
+      }
+      this.wasOpen = isOpen;
+    });
+
     this.searchSubject.pipe(
       debounceTime(120),
       distinctUntilChanged(),
@@ -243,6 +303,11 @@ export class CommandPaletteComponent {
       this.selectedIndex = 0;
       this.isLoading.set(false);
     });
+  }
+
+  ngOnDestroy() {
+    this.searchSubject.complete();
+    document.body.classList.remove('palette-open');
   }
 
   @HostListener('document:keydown', ['$event'])
@@ -274,6 +339,10 @@ export class CommandPaletteComponent {
 
   onSearchChange(query: string) {
     this.searchSubject.next(query);
+  }
+
+  optionId(index: number): string {
+    return `${this.listboxId}-option-${index}`;
   }
 
   navigateTo(hit: SearchHit) {
@@ -311,4 +380,3 @@ export class CommandPaletteComponent {
     }
   }
 }
-
