@@ -81,6 +81,8 @@ describe('AppShellComponent', () => {
     const fixture = TestBed.createComponent(AppShellComponent);
     fixture.detectChanges();
 
+    const languageButtons = Array.from(fixture.nativeElement.querySelectorAll('.lang-btn')) as HTMLButtonElement[];
+    expect(languageButtons.every(button => button.type === 'button')).toBe(true);
     expect(fixture.nativeElement.querySelector('.lang-btn[aria-pressed="true"]')?.textContent).toContain('RU');
     expect(fixture.nativeElement.querySelector('.notif-btn .sr-only')?.textContent).toContain('3');
   });

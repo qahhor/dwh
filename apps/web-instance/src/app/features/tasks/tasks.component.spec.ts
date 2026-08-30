@@ -100,4 +100,29 @@ describe('TasksComponent UI contracts', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Удалить тип задачи «Проверка»?');
   });
+
+  it('renders each subtask action as a native named button', async () => {
+    const fixture = await createFixture();
+    const parent: Task = {
+      id: 10,
+      title: 'Родительская задача',
+      statusId: 1,
+      priority: 'medium',
+      attributes: {},
+      createdAt: '2026-08-30T00:00:00Z'
+    };
+    const subtask: Task = {
+      ...parent,
+      id: 11,
+      title: 'Проверить подзадачу'
+    };
+    fixture.componentInstance.selectedTask.set(parent);
+    fixture.componentInstance.taskSubtasks.set([subtask]);
+    fixture.detectChanges();
+
+    const action = fixture.nativeElement.querySelector('.subtask-row') as HTMLButtonElement;
+    expect(action.tagName).toBe('BUTTON');
+    expect(action.type).toBe('button');
+    expect(action.getAttribute('aria-label')).toBe('Открыть подзадачу #11: Проверить подзадачу');
+  });
 });

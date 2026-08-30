@@ -522,9 +522,11 @@ import { KeysetPage } from '../../core/models/common.models';
               </div>
 
               <div class="subtasks-list" *ngIf="taskSubtasks().length > 0">
-                <div
+                <button
+                  type="button"
                   *ngFor="let sub of taskSubtasks()"
                   class="subtask-row"
+                  [attr.aria-label]="'Открыть подзадачу #' + sub.id + ': ' + sub.title"
                   [class.row-overdue]="isOverdue(sub.endTime, sub.statusId)"
                   (click)="openTaskDetails(sub)"
                 >
@@ -539,7 +541,7 @@ import { KeysetPage } from '../../core/models/common.models';
                   <span class="priority-pill" [attr.data-priority]="sub.priority">
                     {{ getPriorityLabel(sub.priority) }}
                   </span>
-                </div>
+                </button>
               </div>
               <div *ngIf="taskSubtasks().length === 0" class="no-subtasks-hint text-muted">
                 У этой задачи пока нет подзадач.
@@ -1908,6 +1910,10 @@ import { KeysetPage } from '../../core/models/common.models';
       border-radius: var(--radius-xs);
       cursor: pointer;
       font-size: 12px;
+      font-family: inherit;
+      color: inherit;
+      text-align: left;
+      width: 100%;
       transition: background 0.1s ease;
     }
     .subtask-row:hover { border-color: var(--primary); }

@@ -124,6 +124,7 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
             <!-- Language Switcher -->
             <div class="lang-selector">
               <button
+                type="button"
                 *ngFor="let lang of ['ru', 'uz', 'en']"
                 [class.active]="i18n.currentLang() === lang"
                 class="lang-btn"

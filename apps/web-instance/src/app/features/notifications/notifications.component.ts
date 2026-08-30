@@ -29,15 +29,14 @@ import { NotificationItem } from '../../core/models/notification.models';
       </div>
 
       <div class="card notif-card">
-        <div class="notif-list">
-          <div
+        <div class="notif-list" role="region" aria-label="Список уведомлений">
+          <article
             *ngFor="let n of paginatedItems()"
             class="notif-item"
             [class.unread]="!n.isRead"
-            (click)="markAsRead(n)"
           >
             <div class="notif-icon-box" [class.unread-icon]="!n.isRead">
-              <span class="material-symbols-outlined">
+              <span class="material-symbols-outlined" aria-hidden="true">
                 {{ n.isRead ? 'drafts' : 'mark_email_unread' }}
               </span>
             </div>
@@ -48,10 +47,18 @@ import { NotificationItem } from '../../core/models/notification.models';
               </div>
               <p class="notif-text" *ngIf="n.bodyMarkdown">{{ n.bodyMarkdown }}</p>
             </div>
-            <div class="notif-badge" *ngIf="!n.isRead">
-              <span class="dot"></span>
+            <div class="notif-actions" *ngIf="!n.isRead">
+              <span class="dot" aria-hidden="true"></span>
+              <button
+                type="button"
+                class="mark-read-btn"
+                [attr.aria-label]="'Отметить уведомление «' + n.title + '» как прочитанное'"
+                (click)="markAsRead(n)"
+              >
+                <span class="material-symbols-outlined" aria-hidden="true">done</span>
+              </button>
             </div>
-          </div>
+          </article>
 
           <div *ngIf="items().length === 0" class="empty-notif">
             У вас нет уведомлений
@@ -112,7 +119,6 @@ import { NotificationItem } from '../../core/models/notification.models';
       gap: 14px;
       padding: 14px 18px;
       border-bottom: 1px solid var(--border-color);
-      cursor: pointer;
       transition: background-color 0.1s ease;
     }
     .notif-item:last-child {
@@ -169,13 +175,39 @@ import { NotificationItem } from '../../core/models/notification.models';
       line-height: 1.4;
     }
 
-    .notif-badge .dot {
+    .notif-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .notif-actions .dot {
       width: 8px;
       height: 8px;
       border-radius: 50%;
       background-color: var(--primary);
       display: inline-block;
     }
+
+    .mark-read-btn {
+      width: 30px;
+      height: 30px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      background: var(--bg-surface);
+      color: var(--primary);
+      cursor: pointer;
+    }
+
+    .mark-read-btn:hover {
+      border-color: var(--primary);
+      background: var(--bg-hover);
+    }
+
+    .mark-read-btn .material-symbols-outlined { font-size: 18px; }
 
     .font-medium { font-weight: 500; }
     .text-muted { color: var(--text-muted); }

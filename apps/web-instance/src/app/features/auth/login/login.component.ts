@@ -12,11 +12,11 @@ import { ApiService } from '../../../core/services/api.service';
   standalone: true,
   imports: [CommonModule, FormsModule, UiButtonComponent, UiModalComponent],
   template: `
-    <div class="login-wrapper">
+    <main class="login-wrapper">
       <div class="login-card">
         <div class="login-header">
           <div class="brand-badge">DWH</div>
-          <h2 class="login-title">Корпоративный вход</h2>
+          <h1 class="login-title">Корпоративный вход</h1>
           <p class="login-subtitle">Платформа управления данными и задачами</p>
         </div>
 
@@ -132,7 +132,7 @@ import { ApiService } from '../../../core/services/api.service';
           </div>
         </form>
       </div>
-    </div>
+    </main>
 
     <!-- Password Reset Modal -->
     <ui-modal

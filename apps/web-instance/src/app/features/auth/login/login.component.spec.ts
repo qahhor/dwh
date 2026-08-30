@@ -42,6 +42,15 @@ describe('LoginComponent', () => {
     expect(password.autocomplete).toBe('current-password');
   });
 
+  it('exposes the login screen as the primary page landmark', () => {
+    const fixture = TestBed.createComponent(LoginComponent);
+    fixture.detectChanges();
+
+    const main = fixture.nativeElement.querySelector('main.login-wrapper') as HTMLElement;
+    expect(main).not.toBeNull();
+    expect(main.querySelector('h1')?.textContent).toContain('Корпоративный вход');
+  });
+
   it('renders password recovery as a real button', () => {
     const fixture = TestBed.createComponent(LoginComponent);
     fixture.detectChanges();
