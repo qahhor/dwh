@@ -11,17 +11,18 @@ import { ToastService, ToastMessage } from '../../core/services/toast.service';
       <div
         *ngFor="let toast of toastService.toasts()"
         [class]="'toast-item toast-' + toast.type"
-        (click)="toastService.dismiss(toast.id)"
+        [attr.role]="toast.type === 'error' ? 'alert' : 'status'"
+        [attr.aria-live]="toast.type === 'error' ? 'assertive' : 'polite'"
       >
-        <span class="material-symbols-outlined toast-icon">
+        <span class="material-symbols-outlined toast-icon" aria-hidden="true">
           {{ getIcon(toast.type) }}
         </span>
         <div class="toast-content">
           <div *ngIf="toast.title" class="toast-title">{{ toast.title }}</div>
           <div class="toast-message">{{ toast.message }}</div>
         </div>
-        <button class="toast-close" (click)="toastService.dismiss(toast.id); $event.stopPropagation()">
-          <span class="material-symbols-outlined">close</span>
+        <button type="button" class="toast-close" aria-label="Закрыть уведомление" (click)="toastService.dismiss(toast.id)">
+          <span class="material-symbols-outlined" aria-hidden="true">close</span>
         </button>
       </div>
     </div>
@@ -35,7 +36,7 @@ import { ToastService, ToastMessage } from '../../core/services/toast.service';
       display: flex;
       flex-direction: column;
       gap: 8px;
-      max-width: 400px;
+      width: min(400px, calc(100vw - 32px));
       pointer-events: none;
     }
 
@@ -49,13 +50,7 @@ import { ToastService, ToastMessage } from '../../core/services/toast.service';
       box-shadow: var(--shadow-overlay);
       background-color: var(--bg-surface);
       border: 1px solid var(--border-color);
-      cursor: pointer;
       animation: toastIn 0.2s ease-out;
-      transition: transform 0.15s ease;
-    }
-
-    .toast-item:hover {
-      transform: translateY(-2px);
     }
 
     .toast-icon {
