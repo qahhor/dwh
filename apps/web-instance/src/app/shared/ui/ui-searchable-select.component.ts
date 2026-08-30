@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, ElementRef, HostListener, signal, computed } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ElementRef, HostListener, ViewChild, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -17,81 +17,94 @@ export interface SelectOption {
   template: `
     <div class="searchable-select-container" [class.disabled]="disabled">
       <!-- Select Button / Trigger -->
-      <button
-        type="button"
-        class="select-trigger"
-        [class.is-open]="isOpen()"
-        [class.has-value]="selectedOption() !== null"
-        [disabled]="disabled"
-        (click)="toggleDropdown()"
-      >
-        <div class="trigger-content">
-          <span *ngIf="selectedOption()?.icon" class="material-symbols-outlined trigger-icon" [style.color]="selectedOption()?.color">
-            {{ selectedOption()?.icon }}
+      <div class="select-control">
+        <button
+          #trigger
+          type="button"
+          class="select-trigger"
+          [class.is-open]="isOpen()"
+          [class.has-value]="selectedOption() !== null"
+          [disabled]="disabled"
+          [attr.aria-label]="ariaLabel"
+          [attr.aria-expanded]="isOpen()"
+          aria-haspopup="listbox"
+          [attr.aria-controls]="listboxId"
+          (click)="toggleDropdown()"
+        >
+          <span class="trigger-content">
+            <span *ngIf="selectedOption()?.icon" class="material-symbols-outlined trigger-icon" [style.color]="selectedOption()?.color" aria-hidden="true">
+              {{ selectedOption()?.icon }}
+            </span>
+            <span class="trigger-label">
+              {{ selectedOption() ? selectedOption()?.label : placeholder }}
+            </span>
+            <span *ngIf="selectedOption()?.subLabel" class="trigger-sublabel text-muted">
+              {{ selectedOption()?.subLabel }}
+            </span>
           </span>
-          <span class="trigger-label">
-            {{ selectedOption() ? selectedOption()?.label : placeholder }}
-          </span>
-          <span *ngIf="selectedOption()?.subLabel" class="trigger-sublabel text-muted">
-            {{ selectedOption()?.subLabel }}
-          </span>
-        </div>
 
-        <div class="trigger-actions">
-          <button
-            *ngIf="allowClear && selectedOption() !== null && !disabled"
-            type="button"
-            class="clear-btn"
-            title="Очистить выбор"
-            (click)="clearSelection($event)"
-          >
-            <span class="material-symbols-outlined">close</span>
-          </button>
-          <span class="material-symbols-outlined arrow-icon">
+          <span class="material-symbols-outlined arrow-icon" aria-hidden="true">
             {{ isOpen() ? 'expand_less' : 'expand_more' }}
           </span>
-        </div>
-      </button>
+        </button>
+        <button
+          *ngIf="allowClear && selectedOption() !== null && !disabled"
+          type="button"
+          class="clear-btn"
+          aria-label="Очистить выбор"
+          title="Очистить выбор"
+          (click)="clearSelection($event)"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">close</span>
+        </button>
+      </div>
 
       <!-- Dropdown Popover -->
       <div class="dropdown-popover" *ngIf="isOpen()">
         <!-- Search Input -->
         <div class="search-box">
-          <span class="material-symbols-outlined search-ico">search</span>
+          <span class="material-symbols-outlined search-ico" aria-hidden="true">search</span>
           <input
             #searchInput
             type="text"
             class="search-input"
             [placeholder]="searchPlaceholder"
+            aria-label="Поиск по вариантам"
             [(ngModel)]="searchQuery"
             (click)="$event.stopPropagation()"
           />
-          <button *ngIf="searchQuery" type="button" class="mini-clear-btn" (click)="searchQuery = ''">
-            <span class="material-symbols-outlined">close</span>
+          <button *ngIf="searchQuery" type="button" class="mini-clear-btn" aria-label="Очистить поиск" (click)="searchQuery = ''">
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
           </button>
         </div>
 
         <!-- Options List -->
-        <div class="options-list">
+        <div class="options-list" [id]="listboxId" role="listbox" [attr.aria-label]="ariaLabel">
           <!-- Clear / None Option -->
-          <div
+          <button
             *ngIf="allowClear"
+            type="button"
+            role="option"
             class="option-item none-option"
             [class.selected]="selectedId === null || selectedId === undefined"
+            [attr.aria-selected]="selectedId === null || selectedId === undefined"
             (click)="selectOption(null)"
           >
             <span class="option-label text-muted">{{ emptyLabel }}</span>
-          </div>
+          </button>
 
           <!-- Filtered Options -->
-          <div
+          <button
             *ngFor="let opt of filteredOptions()"
+            type="button"
+            role="option"
             class="option-item"
             [class.selected]="opt.id === selectedId"
+            [attr.aria-selected]="opt.id === selectedId"
             (click)="selectOption(opt.id)"
           >
             <div class="opt-left">
-              <span *ngIf="opt.icon" class="material-symbols-outlined opt-icon" [style.color]="opt.color">
+              <span *ngIf="opt.icon" class="material-symbols-outlined opt-icon" [style.color]="opt.color" aria-hidden="true">
                 {{ opt.icon }}
               </span>
               <span class="opt-avatar" *ngIf="!opt.icon">
@@ -100,8 +113,8 @@ export interface SelectOption {
               <span class="opt-label">{{ opt.label }}</span>
               <span *ngIf="opt.subLabel" class="opt-sublabel text-muted">{{ opt.subLabel }}</span>
             </div>
-            <span *ngIf="opt.id === selectedId" class="material-symbols-outlined check-ico">check</span>
-          </div>
+            <span *ngIf="opt.id === selectedId" class="material-symbols-outlined check-ico" aria-hidden="true">check</span>
+          </button>
 
           <!-- Empty Result Hint -->
           <div *ngIf="filteredOptions().length === 0" class="no-results-hint">
@@ -121,6 +134,10 @@ export interface SelectOption {
       pointer-events: none;
     }
 
+    .select-control {
+      position: relative;
+    }
+
     .select-trigger {
       display: flex;
       align-items: center;
@@ -134,7 +151,6 @@ export interface SelectOption {
       color: var(--text-main);
       font-size: 13px;
       cursor: pointer;
-      outline: none;
       transition: all 0.15s ease;
       text-align: left;
     }
@@ -167,14 +183,11 @@ export interface SelectOption {
     }
     .trigger-sublabel { font-size: 11px; flex-shrink: 0; }
 
-    .trigger-actions {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      margin-left: 6px;
-      flex-shrink: 0;
-    }
     .clear-btn {
+      position: absolute;
+      top: 50%;
+      right: 28px;
+      transform: translateY(-50%);
       border: none;
       background: transparent;
       color: var(--text-muted);
@@ -186,6 +199,7 @@ export interface SelectOption {
     .clear-btn:hover { color: var(--danger); background-color: var(--danger-bg); }
     .clear-btn .material-symbols-outlined { font-size: 14px; }
     .arrow-icon { font-size: 18px; color: var(--text-muted); }
+    .select-trigger.has-value { padding-right: 50px; }
 
     /* Popover */
     .dropdown-popover {
@@ -255,6 +269,12 @@ export interface SelectOption {
       cursor: pointer;
       font-size: 12px;
       transition: background 0.1s ease;
+      width: 100%;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font-family: inherit;
+      text-align: left;
     }
     .option-item:hover {
       background-color: var(--bg-hover);
@@ -308,6 +328,8 @@ export interface SelectOption {
   `]
 })
 export class UiSearchableSelectComponent {
+  private static nextId = 0;
+
   @Input() options: SelectOption[] = [];
   @Input() selectedId: any = null;
   @Input() placeholder: string = 'Выберите из списка...';
@@ -315,11 +337,15 @@ export class UiSearchableSelectComponent {
   @Input() emptyLabel: string = 'Не выбрано / Снять выбор';
   @Input() allowClear: boolean = true;
   @Input() disabled: boolean = false;
+  @Input() ariaLabel: string = 'Выбор значения';
 
   @Output() selectedIdChange = new EventEmitter<any>();
 
   readonly isOpen = signal<boolean>(false);
+  readonly listboxId = `ui-searchable-select-${UiSearchableSelectComponent.nextId++}`;
   searchQuery = '';
+
+  @ViewChild('trigger') private trigger?: ElementRef<HTMLButtonElement>;
 
   constructor(private elementRef: ElementRef) {}
 
@@ -328,6 +354,12 @@ export class UiSearchableSelectComponent {
     if (!this.elementRef.nativeElement.contains(event.target)) {
       this.isOpen.set(false);
     }
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape() {
+    if (!this.isOpen()) return;
+    this.closeAndFocusTrigger();
   }
 
   toggleDropdown() {
@@ -357,7 +389,7 @@ export class UiSearchableSelectComponent {
   selectOption(id: any) {
     this.selectedId = id;
     this.selectedIdChange.emit(id);
-    this.isOpen.set(false);
+    this.closeAndFocusTrigger();
   }
 
   clearSelection(event: MouseEvent) {
@@ -372,5 +404,10 @@ export class UiSearchableSelectComponent {
       return (parts[0][0] + parts[1][0]).toUpperCase();
     }
     return name.substring(0, 2).toUpperCase();
+  }
+
+  private closeAndFocusTrigger() {
+    this.isOpen.set(false);
+    queueMicrotask(() => this.trigger?.nativeElement.focus());
   }
 }

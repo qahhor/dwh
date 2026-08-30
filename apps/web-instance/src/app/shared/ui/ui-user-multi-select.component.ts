@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, signal, ElementRef, HostListener } from '@angular/core';
+import { Component, Input, Output, EventEmitter, signal, ElementRef, HostListener, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { User } from '../../core/models/auth.models';
@@ -10,17 +10,26 @@ import { User } from '../../core/models/auth.models';
   template: `
     <div class="user-multi-select-container">
       <!-- Selected Users Tag List -->
-      <div class="selected-tags-box" (click)="openDropdown()">
-        <div *ngFor="let u of getSelectedUsers()" class="user-tag" (click)="$event.stopPropagation()">
+      <div class="selected-tags-box">
+        <div *ngFor="let u of getSelectedUsers()" class="user-tag">
           <span class="user-avatar-mini">{{ getInitials(u.name) }}</span>
           <span class="user-name">{{ u.name }}</span>
-          <button type="button" class="tag-remove-btn" (click)="removeUser(u.id)" title="Удалить">
-            <span class="material-symbols-outlined">close</span>
+          <button type="button" class="tag-remove-btn" (click)="removeUser(u.id)" [attr.aria-label]="'Удалить ' + u.name" title="Удалить">
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
           </button>
         </div>
 
-        <button type="button" class="add-user-btn" (click)="toggleDropdown($event)">
-          <span class="material-symbols-outlined ico">person_add</span>
+        <button
+          #trigger
+          type="button"
+          class="add-user-btn"
+          aria-label="Выбрать пользователей"
+          aria-haspopup="listbox"
+          [attr.aria-expanded]="isOpen()"
+          [attr.aria-controls]="listboxId"
+          (click)="toggleDropdown($event)"
+        >
+          <span class="material-symbols-outlined ico" aria-hidden="true">person_add</span>
           <span>{{ selectedUserIds.length === 0 ? placeholder : '+ Добавить' }}</span>
         </button>
       </div>
@@ -28,25 +37,29 @@ import { User } from '../../core/models/auth.models';
       <!-- Autocomplete Dropdown Panel -->
       <div class="dropdown-panel" *ngIf="isOpen()">
         <div class="search-row">
-          <span class="material-symbols-outlined search-ico">search</span>
+          <span class="material-symbols-outlined search-ico" aria-hidden="true">search</span>
           <input
             #searchInput
             type="text"
             class="search-input"
             [placeholder]="searchPlaceholder"
+            aria-label="Поиск сотрудников"
             [(ngModel)]="searchQuery"
             (click)="$event.stopPropagation()"
           />
-          <button *ngIf="searchQuery" type="button" class="clear-btn" (click)="searchQuery = ''">
-            <span class="material-symbols-outlined">close</span>
+          <button *ngIf="searchQuery" type="button" class="clear-btn" aria-label="Очистить поиск" (click)="searchQuery = ''">
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
           </button>
         </div>
 
-        <div class="users-options-list">
-          <div
+        <div class="users-options-list" [id]="listboxId" role="listbox" aria-label="Пользователи" aria-multiselectable="true">
+          <button
             *ngFor="let u of filteredUsers()"
+            type="button"
+            role="option"
             class="user-option"
             [class.selected]="isSelected(u.id)"
+            [attr.aria-selected]="isSelected(u.id)"
             (click)="toggleUser(u.id)"
           >
             <div class="user-info-left">
@@ -57,8 +70,8 @@ import { User } from '../../core/models/auth.models';
               </div>
             </div>
 
-            <span class="material-symbols-outlined check-ico" *ngIf="isSelected(u.id)">check</span>
-          </div>
+            <span class="material-symbols-outlined check-ico" *ngIf="isSelected(u.id)" aria-hidden="true">check</span>
+          </button>
 
           <div *ngIf="filteredUsers().length === 0" class="no-options">
             Сотрудники не найдены
@@ -83,7 +96,6 @@ import { User } from '../../core/models/auth.models';
       flex-wrap: wrap;
       align-items: center;
       gap: 4px;
-      cursor: pointer;
       transition: border-color 0.15s ease;
     }
     .selected-tags-box:hover { border-color: var(--primary); }
@@ -171,7 +183,6 @@ import { User } from '../../core/models/auth.models';
       flex: 1;
       border: none;
       background: transparent;
-      outline: none;
       font-size: 12px;
       color: var(--text-main);
     }
@@ -192,6 +203,12 @@ import { User } from '../../core/models/auth.models';
       padding: 6px 10px;
       cursor: pointer;
       transition: background 0.1s ease;
+      width: 100%;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font-family: inherit;
+      text-align: left;
     }
     .user-option:hover { background-color: var(--bg-hover); }
     .user-option.selected { background-color: rgba(99,102,241,0.08); }
@@ -219,6 +236,8 @@ import { User } from '../../core/models/auth.models';
   `]
 })
 export class UiUserMultiSelectComponent {
+  private static nextId = 0;
+
   @Input() users: User[] = [];
   @Input() selectedUserIds: number[] = [];
   @Input() placeholder = 'Добавить наблюдателей...';
@@ -226,7 +245,10 @@ export class UiUserMultiSelectComponent {
   @Output() selectedUserIdsChange = new EventEmitter<number[]>();
 
   isOpen = signal<boolean>(false);
+  readonly listboxId = `ui-user-multi-select-${UiUserMultiSelectComponent.nextId++}`;
   searchQuery = '';
+
+  @ViewChild('trigger') private trigger?: ElementRef<HTMLButtonElement>;
 
   constructor(private elementRef: ElementRef) {}
 
@@ -237,8 +259,10 @@ export class UiUserMultiSelectComponent {
     }
   }
 
-  openDropdown() {
-    this.isOpen.set(true);
+  @HostListener('document:keydown.escape')
+  onEscape() {
+    if (!this.isOpen()) return;
+    this.closeAndFocusTrigger();
   }
 
   toggleDropdown(event: MouseEvent) {
@@ -292,5 +316,10 @@ export class UiUserMultiSelectComponent {
       return (parts[0][0] + parts[1][0]).toUpperCase();
     }
     return name.substring(0, 2).toUpperCase();
+  }
+
+  private closeAndFocusTrigger() {
+    this.isOpen.set(false);
+    queueMicrotask(() => this.trigger?.nativeElement.focus());
   }
 }
