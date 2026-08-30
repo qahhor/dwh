@@ -23,25 +23,30 @@ import { ApiService } from '../../../core/services/api.service';
         <!-- Step 1: Login & Password Form -->
         <form *ngIf="step() === 'credentials'" (ngSubmit)="onLoginSubmit()" class="login-form">
           <div class="form-group">
-            <label class="form-label">Логин или Email</label>
+            <label class="form-label" for="login">Логин или Email</label>
             <input
+              id="login"
               type="text"
               class="form-input"
               [(ngModel)]="login"
               name="login"
               required
               autocomplete="username"
-              placeholder="admin"
+              placeholder="user@company.com"
+              aria-required="true"
+              [attr.aria-invalid]="formError() ? 'true' : null"
+              [attr.aria-describedby]="formError() ? 'login-error' : null"
               [disabled]="isLoading()"
             />
           </div>
 
           <div class="form-group">
             <div class="password-label-row">
-              <label class="form-label">Пароль</label>
-              <a class="forgot-link" (click)="openResetModal()">Забыли пароль?</a>
+              <label class="form-label" for="password">Пароль</label>
+              <button type="button" class="forgot-link" (click)="openResetModal()">Забыли пароль?</button>
             </div>
             <input
+              id="password"
               type="password"
               class="form-input"
               [(ngModel)]="password"
@@ -49,15 +54,21 @@ import { ApiService } from '../../../core/services/api.service';
               required
               autocomplete="current-password"
               placeholder="••••••••"
+              aria-required="true"
+              [attr.aria-invalid]="formError() ? 'true' : null"
+              [attr.aria-describedby]="formError() ? 'login-error' : null"
               [disabled]="isLoading()"
             />
           </div>
+
+          <p *ngIf="formError()" id="login-error" class="form-error" role="alert">{{ formError() }}</p>
 
           <ui-button
             type="submit"
             variant="primary"
             size="lg"
             [loading]="isLoading()"
+            [fullWidth]="true"
             class="submit-btn"
           >
             Войти в систему
@@ -70,13 +81,14 @@ import { ApiService } from '../../../core/services/api.service';
             <span class="material-symbols-outlined">shield_person</span>
             <div>
               <strong>Двухфакторная аутентификация</strong>
-              <p>Введите 6-значный код подтверждения, отправленный в ваш Telegram</p>
+              <p id="otp-hint">Введите 6-значный код подтверждения, отправленный в ваш Telegram</p>
             </div>
           </div>
 
           <div class="form-group">
-            <label class="form-label">Код подтверждения (OTP)</label>
+            <label class="form-label" for="otp-code">Код подтверждения (OTP)</label>
             <input
+              id="otp-code"
               type="text"
               class="form-input otp-input tabular-nums"
               [(ngModel)]="otpCode"
@@ -84,10 +96,18 @@ import { ApiService } from '../../../core/services/api.service';
               required
               maxlength="6"
               placeholder="123456"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              pattern="[0-9]*"
+              aria-required="true"
+              aria-describedby="otp-hint"
+              [attr.aria-invalid]="formError() ? 'true' : null"
               [disabled]="isLoading()"
               autofocus
             />
           </div>
+
+          <p *ngIf="formError()" class="form-error" role="alert">{{ formError() }}</p>
 
           <div class="otp-actions">
             <ui-button
@@ -95,6 +115,7 @@ import { ApiService } from '../../../core/services/api.service';
               variant="primary"
               size="lg"
               [loading]="isLoading()"
+              [fullWidth]="true"
               class="submit-btn"
             >
               Подтвердить вход
@@ -121,16 +142,22 @@ import { ApiService } from '../../../core/services/api.service';
       (close)="isResetModalOpen.set(false)"
     >
       <div body class="reset-body">
-        <p class="reset-hint">Введите email вашей учётной записи. Мы отправим код для сброса пароля.</p>
+        <p id="reset-hint" class="reset-hint">Введите email вашей учётной записи. Мы отправим код для сброса пароля.</p>
         <div class="form-group">
-          <label class="form-label">Email</label>
+          <label class="form-label" for="reset-email">Email</label>
           <input
+            id="reset-email"
+            name="resetEmail"
             type="email"
             class="form-input"
             [(ngModel)]="resetEmail"
             placeholder="user@company.com"
+            autocomplete="email"
+            aria-describedby="reset-hint"
+            [attr.aria-invalid]="resetError() ? 'true' : null"
           />
         </div>
+        <p *ngIf="resetError()" class="form-error" role="alert">{{ resetError() }}</p>
       </div>
       <div footer>
         <ui-button variant="secondary" size="md" (onClick)="isResetModalOpen.set(false)">Отмена</ui-button>
@@ -219,6 +246,10 @@ import { ApiService } from '../../../core/services/api.service';
       color: var(--primary);
       cursor: pointer;
       text-decoration: none;
+      border: 0;
+      padding: 2px;
+      background: transparent;
+      font-family: inherit;
     }
     .forgot-link:hover {
       text-decoration: underline;
@@ -269,6 +300,12 @@ import { ApiService } from '../../../core/services/api.service';
       gap: 8px;
     }
 
+    .form-error {
+      color: var(--danger);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
     .reset-hint {
       font-size: 12px;
       color: var(--text-muted);
@@ -278,7 +315,7 @@ import { ApiService } from '../../../core/services/api.service';
   `]
 })
 export class LoginComponent {
-  login = 'admin';
+  login = '';
   password = '';
   otpCode = '';
   otpToken = '';
@@ -287,6 +324,8 @@ export class LoginComponent {
   readonly isLoading = signal<boolean>(false);
   readonly isResetModalOpen = signal<boolean>(false);
   readonly isResetLoading = signal<boolean>(false);
+  readonly formError = signal<string>('');
+  readonly resetError = signal<string>('');
   resetEmail = '';
 
   constructor(
@@ -298,6 +337,7 @@ export class LoginComponent {
   onLoginSubmit() {
     if (!this.login || !this.password) return;
 
+    this.formError.set('');
     this.isLoading.set(true);
     this.authService.login(this.login, this.password, navigator.userAgent).subscribe({
       next: res => {
@@ -307,8 +347,9 @@ export class LoginComponent {
           this.step.set('otp');
         }
       },
-      error: () => {
+      error: err => {
         this.isLoading.set(false);
+        this.formError.set(this.errorMessage(err, 'Не удалось выполнить вход. Проверьте данные и повторите попытку.'));
       }
     });
   }
@@ -316,24 +357,28 @@ export class LoginComponent {
   onOtpSubmit() {
     if (!this.otpCode || !this.otpToken) return;
 
+    this.formError.set('');
     this.isLoading.set(true);
     this.authService.verifyOtp(this.otpToken, this.otpCode, navigator.userAgent).subscribe({
       next: () => {
         this.isLoading.set(false);
       },
-      error: () => {
+      error: err => {
         this.isLoading.set(false);
+        this.formError.set(this.errorMessage(err, 'Код не подтверждён. Проверьте код и повторите попытку.'));
       }
     });
   }
 
   openResetModal() {
     this.resetEmail = '';
+    this.resetError.set('');
     this.isResetModalOpen.set(true);
   }
 
   sendResetRequest() {
     if (!this.resetEmail) return;
+    this.resetError.set('');
     this.isResetLoading.set(true);
     this.api.post('/auth/password-reset/request', { email: this.resetEmail }).subscribe({
       next: () => {
@@ -341,9 +386,19 @@ export class LoginComponent {
         this.isResetModalOpen.set(false);
         this.toast.success('Инструкция по сбросу пароля отправлена на указанный email');
       },
-      error: () => {
+      error: err => {
         this.isResetLoading.set(false);
+        this.resetError.set(this.errorMessage(err, 'Не удалось отправить инструкцию. Повторите попытку позже.'));
       }
     });
+  }
+
+  private errorMessage(error: unknown, fallback: string): string {
+    if (error && typeof error === 'object') {
+      const value = error as { detail?: unknown; message?: unknown };
+      if (typeof value.detail === 'string' && value.detail.trim()) return value.detail;
+      if (typeof value.message === 'string' && value.message.trim()) return value.message;
+    }
+    return fallback;
   }
 }
