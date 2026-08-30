@@ -1548,9 +1548,9 @@
     "semantic_hash": ""
   },
   ".github/workflows/ci.yml": {
-    "mtime": 1788019705.1705673,
-    "seen": 1788019813.7358005,
-    "ast_hash": "876827171733bbc8fcf4689450fa3011",
+    "mtime": 1788107165.5081372,
+    "seen": 1788107890.8896317,
+    "ast_hash": "da1a9d7e8e7c2c8fac407dd6a05a06a1",
     "semantic_hash": ""
   },
   "AGENTS.md": {
@@ -2058,9 +2058,9 @@
     "semantic_hash": ""
   },
   "scripts/dev/test-cp-api.ps1": {
-    "mtime": 1788017220.062135,
-    "seen": 1788017905.2839012,
-    "ast_hash": "2c4aebd43fefad8d0547d560354e46e8",
+    "mtime": 1788107247.3756487,
+    "seen": 1788107890.8896317,
+    "ast_hash": "4a8fcc77b1320161933d29eddbca639a",
     "semantic_hash": ""
   },
   "apps/web-instance/src/app/features/iam/custom-fields/custom-fields.component.ts": {
@@ -2535,6 +2535,156 @@
     "mtime": 1788100937.527827,
     "seen": 1788101032.1956787,
     "ast_hash": "82bb3293703c9ee1877c686f58bf3b98",
+    "semantic_hash": ""
+  },
+  "e2e/package.json": {
+    "mtime": 1788107019.285603,
+    "seen": 1788107890.8896317,
+    "ast_hash": "d881ee08d88fef235fe71bc645e02cf1",
+    "semantic_hash": ""
+  },
+  "e2e/playwright.artifact-security.config.ts": {
+    "mtime": 1788107570.896437,
+    "seen": 1788107890.8896317,
+    "ast_hash": "074cec9fb4ecc5e529128af840fedd44",
+    "semantic_hash": ""
+  },
+  "e2e/playwright.config.ts": {
+    "mtime": 1788107570.8954368,
+    "seen": 1788107890.8896317,
+    "ast_hash": "a17260a771a5f7f095da83399b93a0a2",
+    "semantic_hash": ""
+  },
+  "e2e/scripts/verify-artifact-security.mjs": {
+    "mtime": 1788107772.7334592,
+    "seen": 1788107890.8896317,
+    "ast_hash": "91dbddb77a7e0e8c42920371d9e3f54b",
+    "semantic_hash": ""
+  },
+  "e2e/support/auth.ts": {
+    "mtime": 1788107064.1425478,
+    "seen": 1788107890.8896317,
+    "ast_hash": "e0b35851189d5628c25b0625ab318d75",
+    "semantic_hash": ""
+  },
+  "e2e/support/diagnostics.ts": {
+    "mtime": 1788105827.6280723,
+    "seen": 1788107890.8896317,
+    "ast_hash": "d50ab1ecbb57c5346a519020bb3fde80",
+    "semantic_hash": ""
+  },
+  "e2e/support/env.d.mts": {
+    "mtime": 1788105854.3751156,
+    "seen": 1788107890.8896317,
+    "ast_hash": "3d0994fd411f5a6f6fbf98c259c09790",
+    "semantic_hash": ""
+  },
+  "e2e/support/env.mjs": {
+    "mtime": 1788105699.9883027,
+    "seen": 1788107890.8896317,
+    "ast_hash": "2b489934f9cc7100c2aebb2c76a8b6a6",
+    "semantic_hash": ""
+  },
+  "e2e/support/playwright-security.ts": {
+    "mtime": 1788107570.894436,
+    "seen": 1788107890.8896317,
+    "ast_hash": "a02dff306f567e66c154e18c9f0ad0d7",
+    "semantic_hash": ""
+  },
+  "e2e/support/secret.ts": {
+    "mtime": 1788107064.1415484,
+    "seen": 1788107890.8896317,
+    "ast_hash": "53b306ad3dfc4b4bc04c7fa8e7788838",
+    "semantic_hash": ""
+  },
+  "e2e/support/sensitive.ts": {
+    "mtime": 1788107570.8954368,
+    "seen": 1788107890.8896317,
+    "ast_hash": "aad3a9d47823c8c4534756298cb52a34",
+    "semantic_hash": ""
+  },
+  "e2e/tests/browser/control-plane/auth.spec.ts": {
+    "mtime": 1788105985.1104565,
+    "seen": 1788107890.8896317,
+    "ast_hash": "c29d77995ddffa30c97517e40b9b7a02",
+    "semantic_hash": ""
+  },
+  "e2e/tests/browser/control-plane/fleet-registration.spec.ts": {
+    "mtime": 1788107570.897436,
+    "seen": 1788107890.8896317,
+    "ast_hash": "2524125a76b97bb2d5fbf3b83dd5c7dc",
+    "semantic_hash": ""
+  },
+  "e2e/tests/browser/control-plane/fleet.spec.ts": {
+    "mtime": 1788107602.0713868,
+    "seen": 1788107890.8896317,
+    "ast_hash": "a3b9165d01fbe09c2f2b434bb9ec61a3",
+    "semantic_hash": ""
+  },
+  "e2e/tests/browser/instance/auth.spec.ts": {
+    "mtime": 1788105985.1084557,
+    "seen": 1788107890.8896317,
+    "ast_hash": "dba1076726a49eb60b2cdece8dcf8eb8",
+    "semantic_hash": ""
+  },
+  "e2e/tests/browser/instance/tasks.spec.ts": {
+    "mtime": 1788105985.1094556,
+    "seen": 1788107890.8896317,
+    "ast_hash": "9dddd4fd21988820f07b3fc362fdcf66",
+    "semantic_hash": ""
+  },
+  "e2e/tests/config/env.test.mjs": {
+    "mtime": 1788105684.32559,
+    "seen": 1788107890.8896317,
+    "ast_hash": "12fc15e3a533e9013dc3b0325390ad9a",
+    "semantic_hash": ""
+  },
+  "e2e/tests/security/credential-artifact-probe.spec.ts": {
+    "mtime": 1788107746.0618682,
+    "seen": 1788107890.8896317,
+    "ast_hash": "65e13dc71a19551593092eba75702b1b",
+    "semantic_hash": ""
+  },
+  "e2e/tsconfig.json": {
+    "mtime": 1788107570.897436,
+    "seen": 1788107890.8896317,
+    "ast_hash": "bdbe1d1630877b3ccedf87350951e6ed",
+    "semantic_hash": ""
+  },
+  "scripts/dev/dotenv.ps1": {
+    "mtime": 1788107137.6970599,
+    "seen": 1788107890.8896317,
+    "ast_hash": "7056e78c212f7fc06add2b43ecf91af0",
+    "semantic_hash": ""
+  },
+  "scripts/dev/test-dotenv-parser.ps1": {
+    "mtime": 1788107120.0474257,
+    "seen": 1788107890.8896317,
+    "ast_hash": "93433b6e3ab2661e0385af8fa24ee10a",
+    "semantic_hash": ""
+  },
+  "scripts/dev/test-e2e.ps1": {
+    "mtime": 1788107165.5081372,
+    "seen": 1788107890.8896317,
+    "ast_hash": "f4485982d174ab1e7032b05d39c4c9af",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-08-30-e2e-browser-testing-implementation.md": {
+    "mtime": 1788107260.2373354,
+    "seen": 1788107890.8896317,
+    "ast_hash": "8d5b2ef821a90c18f0b6e3ea6fba2fdd",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-08-30-e2e-browser-testing-design.md": {
+    "mtime": 1788107799.2451024,
+    "seen": 1788107890.8896317,
+    "ast_hash": "e272019b39e09cbc2ebbc68d0ad9faaa",
+    "semantic_hash": ""
+  },
+  "e2e/README.md": {
+    "mtime": 1788107799.2435977,
+    "seen": 1788107890.8896317,
+    "ast_hash": "ea8c55cdd9ca4bab875ebc417473166d",
     "semantic_hash": ""
   }
 }

@@ -1,0 +1,22 @@
+{
+  "name": "smartupcms-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "test": "playwright test",
+    "test:artifact-security": "node scripts/verify-artifact-security.mjs",
+    "test:config": "node --test tests/config/*.test.mjs",
+    "test:instance": "playwright test --project=instance",
+    "test:cp": "playwright test --project=control-plane",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.1",
+    "@types/node": "^24.0.0",
+    "typescript": "~6.0.0"
+  }
+}

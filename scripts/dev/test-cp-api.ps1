@@ -4,6 +4,7 @@
 $ErrorActionPreference = "Stop"
 $CpBaseUrl = "http://localhost:8082"
 $CpMgmtUrl = "http://localhost:9191"
+. (Join-Path $PSScriptRoot "dotenv.ps1")
 
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host "  DWH Control Plane and Fleet - Live Smoke Test Suite       " -ForegroundColor Cyan
@@ -14,21 +15,39 @@ Write-Host "`n1. Control Plane Actuator Health Check..." -ForegroundColor Yellow
 $health = Invoke-RestMethod -Uri "$CpMgmtUrl/actuator/health" -Method Get
 Write-Host "   Status: $($health.status)" -ForegroundColor Green
 
-# 2. Login as cpadmin
+# 2. Login as control-plane administrator
 Write-Host "`n2. Authentication (POST /api/v1/auth/login)..." -ForegroundColor Yellow
+$cpAdminLogin = $env:CP_ADMIN_LOGIN
+$cpAdminPassword = $env:CP_ADMIN_PASSWORD
+if (-not $cpAdminLogin -or -not $cpAdminPassword) {
+    $envFile = Join-Path $PSScriptRoot "..\..\.env"
+    if (-not $cpAdminLogin) { $cpAdminLogin = Get-DotEnvValue -Path $envFile -Key "CP_ADMIN_LOGIN" }
+    if (-not $cpAdminPassword) { $cpAdminPassword = Get-DotEnvValue -Path $envFile -Key "CP_ADMIN_PASSWORD" }
+}
+if (-not $cpAdminLogin -or -not $cpAdminPassword) {
+    Write-Host "Учётные данные Control Plane не найдены: задайте CP_ADMIN_LOGIN и CP_ADMIN_PASSWORD" -ForegroundColor Red
+    exit 1
+}
+
 $loginBody = @{
-    login = "cpadmin"
-    password = "CpDevOnly-ChangeMe-1"
+    login = $cpAdminLogin
+    password = $cpAdminPassword
 } | ConvertTo-Json
 
 $loginResponse = Invoke-WebRequest -Uri "$CpBaseUrl/api/v1/auth/login" -Method Post -Body $loginBody -ContentType "application/json" -SessionVariable cpSession -UseBasicParsing
 $userJson = $loginResponse.Content | ConvertFrom-Json
-Write-Host "   Login Success! User: $($userJson.user.name) ($($userJson.user.role))" -ForegroundColor Green
+if ($userJson.login -ne $cpAdminLogin -or -not $userJson.name -or -not $userJson.roles) {
+    throw "Control Plane login response does not match the expected CpUser contract"
+}
+Write-Host "   Login Success! User: $($userJson.name), Roles: $($userJson.roles -join ', ')" -ForegroundColor Green
 
 # 3. GET /api/v1/auth/me
 Write-Host "`n3. Verify Session (GET /api/v1/auth/me)..." -ForegroundColor Yellow
 $meResponse = Invoke-RestMethod -Uri "$CpBaseUrl/api/v1/auth/me" -Method Get -WebSession $cpSession
-Write-Host "   User Verified: $($meResponse.user.login), Role: $($meResponse.user.role)" -ForegroundColor Green
+if ($meResponse.login -ne $cpAdminLogin -or -not $meResponse.roles) {
+    throw "Control Plane session response does not match the expected CpUser contract"
+}
+Write-Host "   User Verified: $($meResponse.login), Roles: $($meResponse.roles -join ', ')" -ForegroundColor Green
 
 function Get-CpCsrfHeaders {
     $token = ""
@@ -70,7 +89,7 @@ $instanceBody = @{
 
 $newInstance = Invoke-RestMethod -Uri "$CpBaseUrl/api/v1/instances" -Method Post -Body $instanceBody -ContentType "application/json" -WebSession $cpSession -Headers (Get-CpCsrfHeaders)
 Write-Host "   Instance Registered: ID=$($newInstance.instanceId)" -ForegroundColor Green
-Write-Host "   Generated Heartbeat Token: $($newInstance.heartbeatToken.Substring(0, 15))..." -ForegroundColor Green
+Write-Host "   One-time heartbeat token kept in memory for the verification request" -ForegroundColor Green
 
 # 7. Ingest Heartbeat from Instance
 Write-Host "`n7. Ingest Heartbeat (POST /api/v1/instances/heartbeat with X-Instance-Token)..." -ForegroundColor Yellow
@@ -89,7 +108,7 @@ $heartbeatBody = @{
     }
 } | ConvertTo-Json
 
-Invoke-RestMethod -Uri "$CpBaseUrl/api/v1/instances/heartbeat" -Method Post -Body $heartbeatBody -ContentType "application/json" -Headers $heartbeatHeaders
+Invoke-RestMethod -Uri "$CpBaseUrl/api/v1/instances/heartbeat" -Method Post -Body $heartbeatBody -ContentType "application/json" -Headers $heartbeatHeaders | Out-Null
 Write-Host "   Heartbeat ingested successfully for instance $($newInstance.instanceId)" -ForegroundColor Green
 
 
@@ -133,6 +152,15 @@ Write-Host "   Announcement $($announcement.id) published successfully" -Foregro
 
 $announcementsList = Invoke-RestMethod -Uri "$CpBaseUrl/api/v1/announcements" -Method Get -WebSession $cpSession
 Write-Host "   Active Announcements count: $($announcementsList.Count)" -ForegroundColor Green
+
+Invoke-RestMethod -Uri "$CpBaseUrl/api/v1/announcements/$($announcement.id)/archive" -Method Post -WebSession $cpSession -Headers (Get-CpCsrfHeaders) | Out-Null
+$archivedAnnouncement = (Invoke-RestMethod -Uri "$CpBaseUrl/api/v1/announcements" -Method Get -WebSession $cpSession) |
+    Where-Object { $_.id -eq $announcement.id } |
+    Select-Object -First 1
+if (-not $archivedAnnouncement -or $archivedAnnouncement.state -ne "archived") {
+    throw "Announcement $($announcement.id) was not archived after verification"
+}
+Write-Host "   Announcement $($announcement.id) archived after verification" -ForegroundColor Green
 
 Write-Host "`n============================================================" -ForegroundColor Cyan
 Write-Host "  All Control Plane and Fleet Scenarios Passed Successfully! " -ForegroundColor Cyan

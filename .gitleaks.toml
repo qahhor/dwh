@@ -1,0 +1,8 @@
+title = "SmartupCMS gitleaks configuration"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Graphify stat index stores only generated SHA-256 content hashes"
+paths = ['''^graphify-out/cache/stat-index\.json$''']

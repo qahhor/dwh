@@ -1,6 +1,6 @@
 # CI-гейты (R5, ремедиация): сборка + тесты + ArchUnit + SBOM + сканы.
 # Правила блокировки (FR-SEC-4, FR-MOD-2): красный джоб = merge запрещён.
-# Ветки защищаются в настройках GitHub (required checks: backend, frontend, security).
+# Ветки защищаются в настройках GitHub (required checks: backend, frontend, e2e, security).
 name: ci
 
 on:
@@ -64,6 +64,81 @@ jobs:
           cd apps/web-cp
           npm ci
           npm run build
+
+  e2e:
+    name: e2e (clean deploy + Playwright Chromium)
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+
+      - name: Generate ephemeral test credentials
+        shell: bash
+        run: |
+          instance_password="CiA1-$(openssl rand -hex 16)"
+          cp_password="CiCpA1-$(openssl rand -hex 16)"
+          echo "::add-mask::$instance_password"
+          echo "::add-mask::$cp_password"
+          {
+            echo "ADMIN_PASSWORD=$instance_password"
+            echo "CP_ADMIN_LOGIN=cpadmin"
+            echo "CP_ADMIN_PASSWORD=$cp_password"
+          } >> "$GITHUB_ENV"
+
+      - name: Validate PowerShell dotenv parser
+        shell: pwsh
+        run: ./scripts/dev/test-dotenv-parser.ps1
+
+      - name: Build clean Compose images
+        run: docker compose build --pull
+
+      - name: Migrate empty databases
+        run: |
+          docker compose run --rm migrate
+          docker compose run --rm migrate-cp
+
+      - name: Start stack and wait for health
+        shell: bash
+        run: |
+          docker compose up -d --remove-orphans
+          curl --fail --silent --show-error --retry 60 --retry-delay 2 --retry-all-errors http://localhost:9190/actuator/health
+          curl --fail --silent --show-error --retry 60 --retry-delay 2 --retry-all-errors http://localhost:9191/actuator/health
+          curl --fail --silent --show-error --retry 30 --retry-delay 2 --retry-all-errors http://localhost:4200/
+          curl --fail --silent --show-error --retry 30 --retry-delay 2 --retry-all-errors http://localhost:4300/
+
+      - name: Install E2E dependencies
+        working-directory: e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Run browser E2E suite
+        working-directory: e2e
+        run: |
+          npm run test:config
+          npm run typecheck
+          npm run test:artifact-security
+          npm test
+
+      - name: Upload E2E failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failure-artifacts
+          path: e2e/test-results
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Clean isolated Compose resources
+        if: always()
+        run: docker compose down --volumes --remove-orphans
 
   security:
     name: security (gitleaks + trivy)
