@@ -88,15 +88,14 @@ public class MdAssignmentService {
         requireUser(userId);
         List<MdRoleRepository.PermissionPair> requested = permissions != null ? permissions : List.of();
 
-        // Права выдаются только на существующие пары каталога (FR-PERM-1):
-        // иначе в системе появятся мёртвые права, которые ничего не открывают.
-        var catalog = permissionService.getFormCatalog().stream()
-                .map(f -> f.formCode() + "." + f.action())
-                .toList();
+        // Права выдаются только на живые пары каталога (FR-PERM-1): устаревшая
+        // пара ничего не открывает, и выданное по ней право неотличимо от
+        // ошибки настройки доступа.
+        var grantable = permissionService.getGrantablePairs();
         for (var p : requested) {
-            if (!catalog.contains(p.formCode() + "." + p.action())) {
+            if (!grantable.contains(p.formCode() + "." + p.action())) {
                 throw ApiException.badRequest(ErrorCode.VALIDATION_FAILED,
-                        "Неизвестная пара форма/действие: " + p.formCode() + "." + p.action());
+                        "Пара форма/действие недоступна для выдачи: " + p.formCode() + "." + p.action());
             }
         }
 

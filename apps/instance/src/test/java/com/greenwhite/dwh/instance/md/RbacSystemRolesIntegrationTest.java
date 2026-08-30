@@ -64,10 +64,8 @@ class RbacSystemRolesIntegrationTest {
      */
     private static final Set<String> PUBLIC_CONTROLLER_ALLOWLIST = Set.of(
             "KauthAuthController",   // публичный/сессионный контур входа
-            "SecurityTestController", // тестовый стенд CSRF/лимитов (test-classpath)
             "OpenApiController",     // спецификация API, permitAll в SecurityConfig
-            "MdI18nController",      // статический словарь интерфейса, одинаков для всех
-            "ReadOnlyTestController" // тестовый стенд обработчика ошибок 405 (test-classpath)
+            "MdI18nController"       // статический словарь интерфейса, одинаков для всех
     );
 
     @Test
@@ -215,7 +213,15 @@ class RbacSystemRolesIntegrationTest {
         List<Class<?>> result = new ArrayList<>();
         for (var bd : scanner.findCandidateComponents("com.greenwhite.dwh.instance")) {
             try {
-                result.add(Class.forName(bd.getBeanClassName()));
+                Class<?> controller = Class.forName(bd.getBeanClassName());
+                // Тестовые стенды (SecurityTestController и подобные) охраняют
+                // выдуманные формы: в матрице прав приложения их быть не должно,
+                // и держать их в списке исключений — лишний повод его редактировать.
+                var source = controller.getProtectionDomain().getCodeSource();
+                if (source != null && source.getLocation().getPath().contains("test-classes")) {
+                    continue;
+                }
+                result.add(controller);
             } catch (ClassNotFoundException e) {
                 throw new IllegalStateException(e);
             }

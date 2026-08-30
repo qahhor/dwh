@@ -119,6 +119,16 @@ public class MdRoleService {
     public void setRolePermissions(Long roleId, List<MdRoleRepository.PermissionPair> permissions) {
         var role = getRoleById(roleId);
 
+        // Матрица роли раньше не проверялась вовсе: в md_role_permissions можно
+        // было записать любую пару, и она попадала в эффективные права (FR-PERM-1).
+        var grantable = permissionService.getGrantablePairs();
+        for (var p : permissions != null ? permissions : List.<MdRoleRepository.PermissionPair>of()) {
+            if (!grantable.contains(p.formCode() + "." + p.action())) {
+                throw ApiException.badRequest(ErrorCode.VALIDATION_FAILED,
+                        "Пара форма/действие недоступна для выдачи: " + p.formCode() + "." + p.action());
+            }
+        }
+
         // Снимок «до» нужен именно здесь: после replace старый набор восстановить неоткуда.
         Set<String> before = new TreeSet<>(roleRepository.getRolePermissions(roleId));
 
