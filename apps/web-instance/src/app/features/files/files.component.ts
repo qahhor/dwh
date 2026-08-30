@@ -55,7 +55,7 @@ export interface StorageStats {
           <span class="file-count-badge">{{ files().length }}</span>
         </div>
         <div class="header-actions">
-          <ui-button variant="primary" icon="cloud_upload" (click)="isUploadModalOpen.set(true)">
+          <ui-button variant="primary" icon="cloud_upload" (onClick)="isUploadModalOpen.set(true)">
             Загрузить файл
           </ui-button>
         </div>
@@ -67,7 +67,7 @@ export interface StorageStats {
         <div class="metric-card company-card">
           <div class="metric-header">
             <div class="metric-title-group">
-              <span class="material-symbols-outlined card-icon">corporate_fare</span>
+              <span class="material-symbols-outlined card-icon" aria-hidden="true">corporate_fare</span>
               <span class="card-title">Дисковое пространство компании</span>
             </div>
             <span class="percent-badge" [class.danger]="getCompanyPercent(s) >= 90" [class.warning]="getCompanyPercent(s) >= 75 && getCompanyPercent(s) < 90">
@@ -82,7 +82,14 @@ export interface StorageStats {
               <span class="quota-val">{{ formatBytes(s.companyQuotaBytes) }}</span>
             </div>
 
-            <div class="progress-bar-track">
+            <div
+              class="progress-bar-track"
+              role="progressbar"
+              aria-label="Использование хранилища компании"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              [attr.aria-valuenow]="getCompanyPercent(s)"
+            >
               <div
                 class="progress-bar-fill"
                 [style.width.%]="getCompanyPercent(s)"
@@ -102,7 +109,7 @@ export interface StorageStats {
         <div class="metric-card user-card">
           <div class="metric-header">
             <div class="metric-title-group">
-              <span class="material-symbols-outlined card-icon">person</span>
+              <span class="material-symbols-outlined card-icon" aria-hidden="true">person</span>
               <span class="card-title">Моя персональная квота</span>
             </div>
             <span class="percent-badge user-badge" [class.danger]="getUserPercent(s) >= 90" [class.warning]="getUserPercent(s) >= 75 && getUserPercent(s) < 90">
@@ -117,7 +124,14 @@ export interface StorageStats {
               <span class="quota-val">{{ formatBytes(s.userQuotaBytes) }}</span>
             </div>
 
-            <div class="progress-bar-track">
+            <div
+              class="progress-bar-track"
+              role="progressbar"
+              aria-label="Использование персональной квоты"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              [attr.aria-valuenow]="getUserPercent(s)"
+            >
               <div
                 class="progress-bar-fill user-fill"
                 [style.width.%]="getUserPercent(s)"
@@ -138,51 +152,58 @@ export interface StorageStats {
       <div class="filter-toolbar">
         <div class="toolbar-left">
           <!-- Scope Tabs -->
-          <div class="scope-tabs">
+          <div class="scope-tabs" role="group" aria-label="Область файлов">
             <button
+              type="button"
               class="tab-btn"
               [class.active]="scope === 'all'"
+              [attr.aria-pressed]="scope === 'all'"
               (click)="setScope('all')"
             >
-              <span class="material-symbols-outlined">folder_shared</span>
+              <span class="material-symbols-outlined" aria-hidden="true">folder_shared</span>
               Все файлы компании
             </button>
             <button
+              type="button"
               class="tab-btn"
               [class.active]="scope === 'mine'"
+              [attr.aria-pressed]="scope === 'mine'"
               (click)="setScope('mine')"
             >
-              <span class="material-symbols-outlined">person</span>
+              <span class="material-symbols-outlined" aria-hidden="true">person</span>
               Мои файлы
             </button>
           </div>
 
           <!-- Search Input -->
           <div class="search-box">
-            <span class="material-symbols-outlined search-icon">search</span>
+            <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
+            <label class="sr-only" for="file-search">Поиск файлов</label>
             <input
+              id="file-search"
+              name="fileSearch"
               type="text"
               class="search-input"
               placeholder="Поиск файлов по имени..."
               [(ngModel)]="searchQuery"
               (keyup.enter)="loadFiles()"
             />
-            <button class="clear-btn" *ngIf="searchQuery" (click)="searchQuery = ''; loadFiles()">
-              <span class="material-symbols-outlined">close</span>
+            <button type="button" class="clear-btn" aria-label="Очистить поиск файлов" *ngIf="searchQuery" (click)="searchQuery = ''; loadFiles()">
+              <span class="material-symbols-outlined" aria-hidden="true">close</span>
             </button>
           </div>
         </div>
 
         <div class="toolbar-right">
-          <button class="icon-refresh-btn" (click)="refreshAll()" title="Обновить список">
-            <span class="material-symbols-outlined">refresh</span>
+          <button type="button" class="icon-refresh-btn" aria-label="Обновить список файлов" (click)="refreshAll()" title="Обновить список">
+            <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
           </button>
         </div>
       </div>
 
       <!-- Files Table -->
-      <div class="table-container">
-        <table class="data-table">
+      <div class="table-container" role="region" aria-label="Таблица файлов" tabindex="0" [attr.aria-busy]="isLoading()">
+        <table class="data-table" aria-label="Список файлов">
           <thead>
             <tr>
               <th style="width: 48px;"></th>
@@ -199,16 +220,16 @@ export interface StorageStats {
               <!-- Icon -->
               <td>
                 <div class="file-icon-wrapper" [ngClass]="getFileCategory(file.mimeType, file.originalName)">
-                  <span class="material-symbols-outlined">{{ getFileIcon(file.mimeType, file.originalName) }}</span>
+                  <span class="material-symbols-outlined" aria-hidden="true">{{ getFileIcon(file.mimeType, file.originalName) }}</span>
                 </div>
               </td>
 
               <!-- File Name -->
               <td>
-                <div class="file-name-cell" (click)="downloadFile(file)" title="Скачать файл">
+                <button type="button" class="file-name-cell" (click)="downloadFile(file)" [attr.aria-label]="'Скачать файл ' + file.originalName" title="Скачать файл">
                   <span class="primary-name">{{ file.originalName }}</span>
                   <span class="sha-sub text-muted text-xs font-mono">{{ file.sha256.substring(0, 12) }}...</span>
-                </div>
+                </button>
               </td>
 
               <!-- Size -->
@@ -238,16 +259,18 @@ export interface StorageStats {
               <!-- Actions -->
               <td style="text-align: right;">
                 <div class="row-actions">
-                  <button class="action-btn download-btn" (click)="downloadFile(file)" title="Скачать">
-                    <span class="material-symbols-outlined">download</span>
+                  <button type="button" class="action-btn download-btn" [attr.aria-label]="'Скачать файл ' + file.originalName" (click)="downloadFile(file)" title="Скачать">
+                    <span class="material-symbols-outlined" aria-hidden="true">download</span>
                   </button>
                   <button
                     *ngIf="canDeleteFile(file)"
+                    type="button"
                     class="action-btn delete-btn"
+                    [attr.aria-label]="'Удалить файл ' + file.originalName"
                     (click)="confirmDeleteFile(file)"
                     title="Удалить"
                   >
-                    <span class="material-symbols-outlined">delete</span>
+                    <span class="material-symbols-outlined" aria-hidden="true">delete</span>
                   </button>
                 </div>
               </td>
@@ -257,7 +280,7 @@ export interface StorageStats {
             <tr *ngIf="files().length === 0 && !isLoading()">
               <td colspan="7" class="empty-state-cell">
                 <div class="empty-state-box">
-                  <span class="material-symbols-outlined empty-icon">folder_open</span>
+                  <span class="material-symbols-outlined empty-icon" aria-hidden="true">folder_open</span>
                   <h3>Файлы не найдены</h3>
                   <p>Загрузите первый файл с помощью кнопки «Загрузить файл»</p>
                 </div>
@@ -294,7 +317,7 @@ export interface StorageStats {
           ></ui-file-upload>
         </div>
         <div footer class="modal-footer-actions">
-          <ui-button variant="secondary" (click)="closeUploadModal()">Закрыть</ui-button>
+          <ui-button variant="secondary" (onClick)="closeUploadModal()">Закрыть</ui-button>
         </div>
       </ui-modal>
 
@@ -310,8 +333,8 @@ export interface StorageStats {
           <p class="text-muted text-xs">Занятый объем ({{ formatBytes(fileToDelete.sizeBytes) }}) будет освобожден в вашей квоте.</p>
         </div>
         <div footer class="modal-footer-actions">
-          <ui-button variant="secondary" (click)="fileToDelete = null">Отмена</ui-button>
-          <ui-button variant="danger" (click)="executeDeleteFile()">Удалить</ui-button>
+          <ui-button variant="secondary" (onClick)="fileToDelete = null">Отмена</ui-button>
+          <ui-button variant="danger" (onClick)="executeDeleteFile()">Удалить</ui-button>
         </div>
       </ui-modal>
     </div>
@@ -638,9 +661,16 @@ export interface StorageStats {
     .file-icon-wrapper.other { background: rgba(148, 163, 184, 0.15); color: #94a3b8; }
 
     .file-name-cell {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      color: inherit;
       cursor: pointer;
       display: flex;
       flex-direction: column;
+      font: inherit;
+      padding: 0;
+      text-align: left;
     }
 
     .primary-name {

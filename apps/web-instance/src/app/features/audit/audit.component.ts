@@ -61,8 +61,8 @@ export interface AuditStats {
           <span class="view-subtitle">Неизменяемый журнал мутаций данных и security-событий</span>
         </div>
         <div class="header-actions">
-          <button class="icon-refresh-btn" (click)="refreshAll()" title="Обновить журнал">
-            <span class="material-symbols-outlined">refresh</span>
+          <button type="button" class="icon-refresh-btn" aria-label="Обновить журнал аудита" (click)="refreshAll()" title="Обновить журнал">
+            <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
           </button>
         </div>
       </div>
@@ -71,7 +71,7 @@ export interface AuditStats {
       <div class="stats-grid" *ngIf="stats() as s">
         <div class="stat-card">
           <div class="stat-icon-wrapper blue">
-            <span class="material-symbols-outlined">history</span>
+            <span class="material-symbols-outlined" aria-hidden="true">history</span>
           </div>
           <div class="stat-info">
             <span class="stat-value">{{ s.totalAuditLogs }}</span>
@@ -81,7 +81,7 @@ export interface AuditStats {
 
         <div class="stat-card">
           <div class="stat-icon-wrapper indigo">
-            <span class="material-symbols-outlined">security</span>
+            <span class="material-symbols-outlined" aria-hidden="true">security</span>
           </div>
           <div class="stat-info">
             <span class="stat-value">{{ s.totalSecurityEvents }}</span>
@@ -91,7 +91,7 @@ export interface AuditStats {
 
         <div class="stat-card">
           <div class="stat-icon-wrapper amber">
-            <span class="material-symbols-outlined">schedule</span>
+            <span class="material-symbols-outlined" aria-hidden="true">schedule</span>
           </div>
           <div class="stat-info">
             <span class="stat-value">{{ s.securityEventsLast24h }}</span>
@@ -101,7 +101,7 @@ export interface AuditStats {
 
         <div class="stat-card">
           <div class="stat-icon-wrapper red">
-            <span class="material-symbols-outlined">gpp_bad</span>
+            <span class="material-symbols-outlined" aria-hidden="true">gpp_bad</span>
           </div>
           <div class="stat-info">
             <span class="stat-value">{{ s.failedLoginsLast24h }}</span>
@@ -112,22 +112,32 @@ export interface AuditStats {
 
       <!-- Tabs Navigation -->
       <div class="tabs-nav-bar">
-        <div class="tab-buttons">
+        <div class="tab-buttons" role="tablist" aria-label="Разделы аудита">
           <button
+            id="audit-log-tab"
+            type="button"
+            role="tab"
             class="nav-tab-btn"
             [class.active]="activeTab === 'audit'"
+            [attr.aria-selected]="activeTab === 'audit'"
+            aria-controls="audit-log-panel"
             (click)="setTab('audit')"
           >
-            <span class="material-symbols-outlined">database</span>
+            <span class="material-symbols-outlined" aria-hidden="true">database</span>
             Журнал изменений данных
             <span class="tab-counter">{{ auditLogs().length }}</span>
           </button>
           <button
+            id="security-events-tab"
+            type="button"
+            role="tab"
             class="nav-tab-btn"
             [class.active]="activeTab === 'security'"
+            [attr.aria-selected]="activeTab === 'security'"
+            aria-controls="security-events-panel"
             (click)="setTab('security')"
           >
-            <span class="material-symbols-outlined">shield</span>
+            <span class="material-symbols-outlined" aria-hidden="true">shield</span>
             События безопасности
             <span class="tab-counter">{{ securityEvents().length }}</span>
           </button>
@@ -137,11 +147,12 @@ export interface AuditStats {
       <!-- =================================================================== -->
       <!-- TAB 1: AUDIT LOGS -->
       <!-- =================================================================== -->
-      <div class="tab-content" *ngIf="activeTab === 'audit'">
+      <div id="audit-log-panel" class="tab-content" role="tabpanel" aria-labelledby="audit-log-tab" *ngIf="activeTab === 'audit'">
         <!-- Filter Toolbar -->
         <div class="filter-toolbar">
           <div class="filter-group">
-            <select class="filter-select" [(ngModel)]="tableFilter" (change)="loadAuditLogs()">
+            <label class="sr-only" for="audit-table-filter">Фильтр журнала по таблице</label>
+            <select id="audit-table-filter" name="auditTableFilter" class="filter-select" [(ngModel)]="tableFilter" (change)="loadAuditLogs()">
               <option value="">Все таблицы</option>
               <option value="md_users">Пользователи (md_users)</option>
               <option value="ms_tasks">Задачи (ms_tasks)</option>
@@ -150,7 +161,8 @@ export interface AuditStats {
               <option value="md_custom_fields">Динамические поля (md_custom_fields)</option>
             </select>
 
-            <select class="filter-select" [(ngModel)]="eventFilter" (change)="loadAuditLogs()">
+            <label class="sr-only" for="audit-event-filter">Фильтр журнала по действию</label>
+            <select id="audit-event-filter" name="auditEventFilter" class="filter-select" [(ngModel)]="eventFilter" (change)="loadAuditLogs()">
               <option value="">Все действия</option>
               <option value="I">Создание (INSERT)</option>
               <option value="U">Изменение (UPDATE)</option>
@@ -160,8 +172,8 @@ export interface AuditStats {
         </div>
 
         <!-- Audit Table -->
-        <div class="table-container">
-          <table class="data-table">
+        <div class="table-container" role="region" aria-label="Таблица журнала изменений" tabindex="0" [attr.aria-busy]="isLoading()">
+          <table class="data-table" aria-label="Журнал изменений данных">
             <thead>
               <tr>
                 <th style="width: 70px;">ID</th>
@@ -175,7 +187,7 @@ export interface AuditStats {
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let item of paginatedAuditLogs()" (click)="selectAuditRecord(item)" class="clickable-row">
+              <tr *ngFor="let item of paginatedAuditLogs()">
                 <td class="tabular-nums font-mono text-muted">#{{ item.id }}</td>
                 <td>
                   <span class="table-tag font-mono">{{ item.tableName }}</span>
@@ -197,7 +209,7 @@ export interface AuditStats {
                 </td>
                 <td>
                   <span class="channel-pill" [class.api-pill]="item.isApi">
-                    <span class="material-symbols-outlined">{{ item.isApi ? 'terminal' : 'web' }}</span>
+                    <span class="material-symbols-outlined" aria-hidden="true">{{ item.isApi ? 'terminal' : 'web' }}</span>
                     {{ item.isApi ? 'REST API' : 'Web UI' }}
                   </span>
                 </td>
@@ -205,8 +217,8 @@ export interface AuditStats {
                   <span class="date-cell tabular-nums">{{ item.changedAt | date:'dd.MM.yyyy HH:mm:ss' }}</span>
                 </td>
                 <td style="text-align: right;">
-                  <button class="diff-btn" title="Просмотр изменений">
-                    <span class="material-symbols-outlined">difference</span>
+                  <button type="button" class="diff-btn" [attr.aria-label]="'Просмотреть изменение #' + item.id" title="Просмотр изменений" (click)="selectAuditRecord(item)">
+                    <span class="material-symbols-outlined" aria-hidden="true">difference</span>
                   </button>
                 </td>
               </tr>
@@ -214,7 +226,7 @@ export interface AuditStats {
               <tr *ngIf="auditLogs().length === 0 && !isLoading()">
                 <td colspan="8" class="empty-state-cell">
                   <div class="empty-state-box">
-                    <span class="material-symbols-outlined empty-icon">history_toggle_off</span>
+                    <span class="material-symbols-outlined empty-icon" aria-hidden="true">history_toggle_off</span>
                     <h3>Записей аудита не найдено</h3>
                     <p>Попробуйте сбросить выбранные фильтры</p>
                   </div>
@@ -237,11 +249,12 @@ export interface AuditStats {
       <!-- =================================================================== -->
       <!-- TAB 2: SECURITY EVENTS -->
       <!-- =================================================================== -->
-      <div class="tab-content" *ngIf="activeTab === 'security'">
+      <div id="security-events-panel" class="tab-content" role="tabpanel" aria-labelledby="security-events-tab" *ngIf="activeTab === 'security'">
         <!-- Filter Toolbar -->
         <div class="filter-toolbar">
           <div class="filter-group">
-            <select class="filter-select" [(ngModel)]="secEventTypeFilter" (change)="loadSecurityEvents()">
+            <label class="sr-only" for="security-event-filter">Фильтр событий безопасности</label>
+            <select id="security-event-filter" name="securityEventFilter" class="filter-select" [(ngModel)]="secEventTypeFilter" (change)="loadSecurityEvents()">
               <option value="">Все события</option>
               <option value="LOGIN_SUCCESS">Успешный вход (LOGIN_SUCCESS)</option>
               <option value="LOGIN_FAILED">Ошибка входа (LOGIN_FAILED)</option>
@@ -252,8 +265,11 @@ export interface AuditStats {
             </select>
 
             <div class="search-box">
-              <span class="material-symbols-outlined search-icon">search</span>
+              <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
+              <label class="sr-only" for="security-ip-search">Поиск событий по IP-адресу</label>
               <input
+                id="security-ip-search"
+                name="securityIpSearch"
                 type="text"
                 class="search-input"
                 placeholder="Поиск по IP..."
@@ -265,8 +281,8 @@ export interface AuditStats {
         </div>
 
         <!-- Security Events Table -->
-        <div class="table-container">
-          <table class="data-table">
+        <div class="table-container" role="region" aria-label="Таблица событий безопасности" tabindex="0" [attr.aria-busy]="isLoading()">
+          <table class="data-table" aria-label="События безопасности">
             <thead>
               <tr>
                 <th style="width: 70px;">ID</th>
@@ -279,11 +295,11 @@ export interface AuditStats {
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let item of paginatedSecurityEvents()" (click)="selectSecurityEvent(item)" class="clickable-row">
+              <tr *ngFor="let item of paginatedSecurityEvents()">
                 <td class="tabular-nums font-mono text-muted">#{{ item.id }}</td>
                 <td>
                   <span class="sec-event-badge" [ngClass]="getSecurityEventBadgeClass(item.eventType)">
-                    <span class="material-symbols-outlined">{{ getSecurityEventIcon(item.eventType) }}</span>
+                    <span class="material-symbols-outlined" aria-hidden="true">{{ getSecurityEventIcon(item.eventType) }}</span>
                     {{ item.eventType }}
                   </span>
                 </td>
@@ -306,8 +322,8 @@ export interface AuditStats {
                   <span class="date-cell tabular-nums">{{ item.createdAt | date:'dd.MM.yyyy HH:mm:ss' }}</span>
                 </td>
                 <td style="text-align: right;">
-                  <button class="diff-btn" title="Просмотр деталей">
-                    <span class="material-symbols-outlined">info</span>
+                  <button type="button" class="diff-btn" [attr.aria-label]="'Просмотреть событие безопасности #' + item.id" title="Просмотр деталей" (click)="selectSecurityEvent(item)">
+                    <span class="material-symbols-outlined" aria-hidden="true">info</span>
                   </button>
                 </td>
               </tr>
@@ -315,7 +331,7 @@ export interface AuditStats {
               <tr *ngIf="securityEvents().length === 0 && !isLoading()">
                 <td colspan="7" class="empty-state-cell">
                   <div class="empty-state-box">
-                    <span class="material-symbols-outlined empty-icon">verified_user</span>
+                    <span class="material-symbols-outlined empty-icon" aria-hidden="true">verified_user</span>
                     <h3>Событий безопасности не найдено</h3>
                     <p>Все подозрительные события и входы фиксируются здесь</p>
                   </div>
@@ -370,8 +386,8 @@ export interface AuditStats {
 
           <!-- Diff Table -->
           <div class="diff-section-title">Сравнение полей (Diff):</div>
-          <div class="diff-table-box" *ngIf="getDiffKeys(audit).length > 0; else noDiff">
-            <table class="diff-table">
+          <div class="diff-table-box" role="region" aria-label="Сравнение изменённых полей" tabindex="0" *ngIf="getDiffKeys(audit).length > 0; else noDiff">
+            <table class="diff-table" aria-label="Сравнение значений до и после изменения">
               <thead>
                 <tr>
                   <th style="width: 25%;">Поле</th>
@@ -397,7 +413,7 @@ export interface AuditStats {
           </ng-template>
         </div>
         <div footer class="modal-footer-actions">
-          <ui-button variant="secondary" (click)="selectedAudit = null">Закрыть</ui-button>
+          <ui-button variant="secondary" (onClick)="selectedAudit = null">Закрыть</ui-button>
         </div>
       </ui-modal>
 
@@ -440,7 +456,7 @@ export interface AuditStats {
           <pre class="json-details-viewer">{{ ev.details | json }}</pre>
         </div>
         <div footer class="modal-footer-actions">
-          <ui-button variant="secondary" (click)="selectedSecEvent = null">Закрыть</ui-button>
+          <ui-button variant="secondary" (onClick)="selectedSecEvent = null">Закрыть</ui-button>
         </div>
       </ui-modal>
     </div>
@@ -690,15 +706,6 @@ export interface AuditStats {
       border-bottom: 1px solid rgba(255, 255, 255, 0.04);
       color: var(--text-primary, #f1f5f9);
       vertical-align: middle;
-    }
-
-    .clickable-row {
-      cursor: pointer;
-      transition: background 0.15s ease;
-    }
-
-    .clickable-row:hover td {
-      background: rgba(255, 255, 255, 0.03);
     }
 
     .table-tag {
