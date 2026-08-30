@@ -130,15 +130,6 @@ public class MdUserController {
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/me/password")
-    @RequiresPermission(form = MdPref.FORM_PROFILE, action = "update")
-    public ResponseEntity<Void> changeMyPassword(@Valid @RequestBody ChangePasswordDto body) {
-        Long currentUserId = SecurityContext.getCurrentUserId();
-        userService.changePassword(currentUserId, body.oldPassword(), body.newPassword());
-        return ResponseEntity.noContent().build();
-    }
-
-
     public record CreateUserDto(
             @NotBlank String name,
             @NotBlank @Size(min = 3, max = 50) String login,
@@ -167,9 +158,5 @@ public class MdUserController {
     ) {}
 
 
-    public record ChangePasswordDto(
-            @NotBlank String oldPassword,
-            @NotBlank @Size(min = 10) String newPassword
-    ) {}
 }
 
