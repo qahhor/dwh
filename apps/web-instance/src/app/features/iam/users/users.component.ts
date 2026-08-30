@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed, HostListener, ElementRef } from '@angular/core';
+import { Component, OnInit, signal, computed, HostListener, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
@@ -63,26 +63,30 @@ type SortDirection = 'asc' | 'desc';
       <!-- Compact Single-Line Toolbar -->
       <div class="toolbar">
         <div class="search-field">
-          <span class="material-symbols-outlined search-icon">search</span>
+          <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
+          <label class="sr-only" for="user-search">Поиск пользователей</label>
           <input
+            id="user-search"
+            name="userSearch"
             type="text"
             class="search-input"
             placeholder="Поиск по имени, логину, email..."
             [(ngModel)]="searchQuery"
             (input)="onSearchInput()"
           />
-          <button *ngIf="searchQuery" type="button" class="clear-btn" (click)="clearSearch()">
-            <span class="material-symbols-outlined">close</span>
+          <button *ngIf="searchQuery" type="button" class="clear-btn" aria-label="Очистить поиск пользователей" (click)="clearSearch()">
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
           </button>
         </div>
 
         <div class="toolbar-controls">
           <!-- Segmented Status Switcher -->
-          <div class="segmented-control">
+          <div class="segmented-control" role="group" aria-label="Фильтр пользователей по статусу">
             <button
               type="button"
               class="seg-btn"
               [class.active]="selectedState === ''"
+              [attr.aria-pressed]="selectedState === ''"
               (click)="setStateFilter('')"
             >
               Все
@@ -91,6 +95,7 @@ type SortDirection = 'asc' | 'desc';
               type="button"
               class="seg-btn"
               [class.active]="selectedState === 'A'"
+              [attr.aria-pressed]="selectedState === 'A'"
               (click)="setStateFilter('A')"
             >
               Активные
@@ -99,6 +104,7 @@ type SortDirection = 'asc' | 'desc';
               type="button"
               class="seg-btn"
               [class.active]="selectedState === 'P'"
+              [attr.aria-pressed]="selectedState === 'P'"
               (click)="setStateFilter('P')"
             >
               Заблокированные
@@ -108,19 +114,23 @@ type SortDirection = 'asc' | 'desc';
           <!-- Grouped Filter Popover Trigger -->
           <div class="filter-popover-wrapper">
             <button
+              #filterTrigger
               type="button"
               class="filter-trigger-btn"
+              aria-haspopup="dialog"
+              [attr.aria-expanded]="isFilterMenuOpen()"
+              aria-controls="user-extra-filters"
               [class.has-filters]="hasExtraFilters()"
               [class.open]="isFilterMenuOpen()"
               (click)="toggleFilterMenu($event)"
             >
-              <span class="material-symbols-outlined icon">tune</span>
+              <span class="material-symbols-outlined icon" aria-hidden="true">tune</span>
               <span>Фильтры</span>
               <span class="filter-dot" *ngIf="hasExtraFilters()"></span>
             </button>
 
             <!-- Filter Dropdown Panel -->
-            <div class="filter-dropdown" *ngIf="isFilterMenuOpen()" (click)="$event.stopPropagation()">
+            <div id="user-extra-filters" class="filter-dropdown" role="dialog" aria-label="Дополнительные фильтры пользователей" *ngIf="isFilterMenuOpen()" (click)="$event.stopPropagation()">
               <div class="filter-dropdown-header">
                 <span class="dropdown-title">Дополнительные фильтры</span>
                 <button type="button" class="reset-link" *ngIf="hasExtraFilters()" (click)="resetExtraFilters()">
@@ -130,16 +140,16 @@ type SortDirection = 'asc' | 'desc';
 
               <div class="filter-dropdown-body">
                 <div class="filter-group">
-                  <label class="filter-caption">Роль пользователя</label>
-                  <select class="filter-select" [(ngModel)]="selectedRoleId" (change)="loadUsers(true)">
+                  <label class="filter-caption" for="user-role-filter">Роль пользователя</label>
+                  <select id="user-role-filter" name="userRoleFilter" class="filter-select" [(ngModel)]="selectedRoleId" (change)="loadUsers(true)">
                     <option [ngValue]="null">Все роли</option>
                     <option *ngFor="let r of roles()" [ngValue]="r.id">{{ r.name }}</option>
                   </select>
                 </div>
 
                 <div class="filter-group">
-                  <label class="filter-caption">Двухфакторная защита (2FA)</label>
-                  <select class="filter-select" [(ngModel)]="selected2fa" (change)="loadUsers(true)">
+                  <label class="filter-caption" for="user-2fa-filter">Двухфакторная защита (2FA)</label>
+                  <select id="user-2fa-filter" name="user2faFilter" class="filter-select" [(ngModel)]="selected2fa" (change)="loadUsers(true)">
                     <option [ngValue]="null">Любой статус 2FA</option>
                     <option [ngValue]="true">Только с 2FA</option>
                     <option [ngValue]="false">Без 2FA</option>
@@ -153,6 +163,7 @@ type SortDirection = 'asc' | 'desc';
             variant="ghost"
             size="sm"
             icon="refresh"
+            ariaLabel="Обновить список пользователей"
             [loading]="isLoading()"
             title="Обновить"
             (onClick)="loadUsers(true)"
@@ -161,26 +172,30 @@ type SortDirection = 'asc' | 'desc';
       </div>
 
       <!-- Minimal Data Table -->
-      <div class="table-container">
-        <table class="clean-table">
+      <div class="table-container" role="region" aria-label="Таблица пользователей" tabindex="0">
+        <table class="clean-table" aria-label="Список пользователей">
           <thead>
             <tr>
-              <th class="th-sort" (click)="changeSort('name')">
-                Пользователь
-                <span class="material-symbols-outlined sort-ico" *ngIf="sortColumn === 'name'">
-                  {{ sortDirection === 'asc' ? 'north' : 'south' }}
-                </span>
+              <th class="th-sort">
+                <button type="button" class="sort-button" (click)="changeSort('name')" [attr.aria-pressed]="sortColumn === 'name'">
+                  Пользователь
+                  <span class="material-symbols-outlined sort-ico" aria-hidden="true" *ngIf="sortColumn === 'name'">
+                    {{ sortDirection === 'asc' ? 'north' : 'south' }}
+                  </span>
+                </button>
               </th>
               <th>Контакты</th>
               <th>Роли</th>
               <th>Руководитель</th>
               <th class="text-center" style="width: 70px;">2FA</th>
               <th style="width: 110px;">Статус</th>
-              <th class="th-sort text-right" style="width: 110px;" (click)="changeSort('createdAt')">
-                Создан
-                <span class="material-symbols-outlined sort-ico" *ngIf="sortColumn === 'createdAt'">
-                  {{ sortDirection === 'asc' ? 'north' : 'south' }}
-                </span>
+              <th class="th-sort text-right" style="width: 110px;">
+                <button type="button" class="sort-button align-right" (click)="changeSort('createdAt')" [attr.aria-pressed]="sortColumn === 'createdAt'">
+                  Создан
+                  <span class="material-symbols-outlined sort-ico" aria-hidden="true" *ngIf="sortColumn === 'createdAt'">
+                    {{ sortDirection === 'asc' ? 'north' : 'south' }}
+                  </span>
+                </button>
               </th>
               <th class="text-right" style="width: 140px;"></th>
             </tr>
@@ -188,7 +203,7 @@ type SortDirection = 'asc' | 'desc';
           <tbody>
             <tr *ngFor="let u of paginatedUsers()" class="table-row">
               <td>
-                <div class="user-identity" (click)="openViewModal(u)">
+                <button type="button" class="user-identity" (click)="openViewModal(u)" [attr.aria-label]="'Открыть профиль пользователя ' + u.name">
                   <div class="avatar" [style.background-color]="getAvatarBgColor(u.name)">
                     {{ getUserInitial(u) }}
                   </div>
@@ -196,7 +211,7 @@ type SortDirection = 'asc' | 'desc';
                     <span class="full-name">{{ u.name }}</span>
                     <span class="login-handle font-mono">&#64;{{ u.login }}</span>
                   </div>
-                </div>
+                </button>
               </td>
               <td>
                 <div class="contacts-cell">
@@ -221,6 +236,7 @@ type SortDirection = 'asc' | 'desc';
                   class="material-symbols-outlined twofa-dot"
                   [class.active]="u.is2faEnabled"
                   [title]="u.is2faEnabled ? '2FA включена' : '2FA выключена'"
+                  [attr.aria-label]="u.is2faEnabled ? '2FA включена' : '2FA выключена'"
                 >
                   {{ u.is2faEnabled ? 'check_circle' : 'remove' }}
                 </span>
@@ -237,6 +253,7 @@ type SortDirection = 'asc' | 'desc';
                   variant="ghost"
                   size="sm"
                   icon="visibility"
+                  [ariaLabel]="'Просмотреть пользователя ' + u.name"
                   title="Просмотр"
                   (onClick)="openViewModal(u)"
                 ></ui-button>
@@ -245,6 +262,7 @@ type SortDirection = 'asc' | 'desc';
                   variant="ghost"
                   size="sm"
                   icon="edit"
+                  [ariaLabel]="'Редактировать пользователя ' + u.name"
                   title="Редактировать"
                   (onClick)="openEditModal(u)"
                 ></ui-button>
@@ -253,6 +271,7 @@ type SortDirection = 'asc' | 'desc';
                   variant="ghost"
                   size="sm"
                   icon="lock"
+                  [ariaLabel]="'Заблокировать пользователя ' + u.name"
                   title="Заблокировать"
                   (onClick)="toggleUserState(u, 'block')"
                 ></ui-button>
@@ -261,6 +280,7 @@ type SortDirection = 'asc' | 'desc';
                   variant="ghost"
                   size="sm"
                   icon="lock_open"
+                  [ariaLabel]="'Разблокировать пользователя ' + u.name"
                   title="Разблокировать"
                   (onClick)="toggleUserState(u, 'unblock')"
                 ></ui-button>
@@ -269,6 +289,7 @@ type SortDirection = 'asc' | 'desc';
                   variant="ghost"
                   size="sm"
                   icon="delete"
+                  [ariaLabel]="'Удалить пользователя ' + u.name"
                   title="Удалить"
                   (onClick)="openDeleteConfirmModal(u)"
                 ></ui-button>
@@ -277,7 +298,7 @@ type SortDirection = 'asc' | 'desc';
 
             <tr *ngIf="users().length === 0 && !isLoading()">
               <td colspan="8" class="empty-state">
-                <span class="material-symbols-outlined empty-ico">search_off</span>
+                <span class="material-symbols-outlined empty-ico" aria-hidden="true">search_off</span>
                 <p class="empty-text">Пользователи не найдены</p>
               </td>
             </tr>
@@ -308,52 +329,72 @@ type SortDirection = 'asc' | 'desc';
       <div body class="clean-modal-body">
         <div class="form-grid">
           <div class="form-group span-2">
-            <label class="clean-label">ФИО <span class="req">*</span></label>
-            <input type="text" class="clean-input" [(ngModel)]="createForm.name" placeholder="Иванов Иван Иванович" />
+            <label class="clean-label" for="user-create-name">ФИО <span class="req">*</span></label>
+            <input id="user-create-name" name="userCreateName" type="text" class="clean-input" required
+              [attr.aria-invalid]="isCreateSubmitted && !createForm.name.trim()"
+              [attr.aria-describedby]="isCreateSubmitted && !createForm.name.trim() ? 'user-create-name-error' : null"
+              [(ngModel)]="createForm.name" placeholder="Иванов Иван Иванович" />
+            <span id="user-create-name-error" class="field-error" *ngIf="isCreateSubmitted && !createForm.name.trim()">Укажите ФИО пользователя</span>
           </div>
 
           <div class="form-group">
-            <label class="clean-label">Логин <span class="req">*</span></label>
-            <input type="text" class="clean-input font-mono" [(ngModel)]="createForm.login" placeholder="ivanov" />
+            <label class="clean-label" for="user-create-login">Логин <span class="req">*</span></label>
+            <input id="user-create-login" name="userCreateLogin" type="text" class="clean-input font-mono" required autocomplete="username"
+              [attr.aria-invalid]="isCreateSubmitted && !createForm.login.trim()"
+              [attr.aria-describedby]="isCreateSubmitted && !createForm.login.trim() ? 'user-create-login-error' : null"
+              [(ngModel)]="createForm.login" placeholder="ivanov" />
+            <span id="user-create-login-error" class="field-error" *ngIf="isCreateSubmitted && !createForm.login.trim()">Укажите логин</span>
           </div>
 
           <div class="form-group">
-            <label class="clean-label">Email <span class="req">*</span></label>
-            <input type="email" class="clean-input font-mono" [(ngModel)]="createForm.email" placeholder="ivanov@company.local" />
+            <label class="clean-label" for="user-create-email">Email <span class="req">*</span></label>
+            <input id="user-create-email" name="userCreateEmail" type="email" class="clean-input font-mono" required autocomplete="email"
+              [attr.aria-invalid]="isCreateSubmitted && !createForm.email.trim()"
+              [attr.aria-describedby]="isCreateSubmitted && !createForm.email.trim() ? 'user-create-email-error' : null"
+              [(ngModel)]="createForm.email" placeholder="ivanov@company.local" />
+            <span id="user-create-email-error" class="field-error" *ngIf="isCreateSubmitted && !createForm.email.trim()">Укажите email</span>
           </div>
 
           <div class="form-group">
-            <label class="clean-label">Телефон</label>
-            <input type="text" class="clean-input font-mono" [(ngModel)]="createForm.phone" placeholder="+998901234567" />
+            <label class="clean-label" for="user-create-phone">Телефон</label>
+            <input id="user-create-phone" name="userCreatePhone" type="tel" class="clean-input font-mono" autocomplete="tel" [(ngModel)]="createForm.phone" placeholder="+998901234567" />
           </div>
 
           <div class="form-group">
-            <label class="clean-label">Руководитель</label>
-            <select class="clean-input" [(ngModel)]="createForm.managerId">
+            <label class="clean-label" for="user-create-manager">Руководитель</label>
+            <select id="user-create-manager" name="userCreateManager" class="clean-input" [(ngModel)]="createForm.managerId">
               <option [ngValue]="null">Без руководителя</option>
               <option *ngFor="let u of users()" [ngValue]="u.id">{{ u.name }} (&#64;{{ u.login }})</option>
             </select>
           </div>
 
           <div class="form-group span-2">
-            <label class="clean-label">Временный пароль <span class="req">*</span></label>
+            <label class="clean-label" for="user-create-password">Временный пароль <span class="req">*</span></label>
             <div class="pwd-wrapper">
               <input
+                id="user-create-password"
+                name="userCreatePassword"
                 [type]="showPassword() ? 'text' : 'password'"
                 class="clean-input font-mono"
+                required
+                minlength="10"
+                autocomplete="new-password"
+                [attr.aria-invalid]="isCreateSubmitted && createForm.password.length < 10"
+                [attr.aria-describedby]="isCreateSubmitted && createForm.password.length < 10 ? 'user-create-password-error user-create-password-hint' : 'user-create-password-hint'"
                 [(ngModel)]="createForm.password"
                 placeholder="Минимум 10 символов"
               />
-              <button type="button" class="pwd-btn" (click)="showPassword.update(v => !v)">
-                <span class="material-symbols-outlined">{{ showPassword() ? 'visibility_off' : 'visibility' }}</span>
+              <button type="button" class="pwd-btn" [attr.aria-label]="showPassword() ? 'Скрыть пароль' : 'Показать пароль'" [attr.aria-pressed]="showPassword()" (click)="showPassword.update(v => !v)">
+                <span class="material-symbols-outlined" aria-hidden="true">{{ showPassword() ? 'visibility_off' : 'visibility' }}</span>
               </button>
             </div>
-            <span class="clean-hint">Не менее 10 символов, без совпадений с логином</span>
+            <span id="user-create-password-hint" class="clean-hint">Не менее 10 символов, без совпадений с логином</span>
+            <span id="user-create-password-error" class="field-error" *ngIf="isCreateSubmitted && createForm.password.length < 10">Пароль должен содержать не менее 10 символов</span>
           </div>
 
           <div class="form-group">
-            <label class="clean-label">Язык</label>
-            <select class="clean-input" [(ngModel)]="createForm.language">
+            <label class="clean-label" for="user-create-language">Язык</label>
+            <select id="user-create-language" name="userCreateLanguage" class="clean-input" [(ngModel)]="createForm.language">
               <option value="ru">Русский (ru)</option>
               <option value="uz">O'zbekcha (uz)</option>
               <option value="en">English (en)</option>
@@ -361,8 +402,8 @@ type SortDirection = 'asc' | 'desc';
           </div>
 
           <div class="form-group">
-            <label class="clean-label">Часовой пояс</label>
-            <select class="clean-input" [(ngModel)]="createForm.timezone">
+            <label class="clean-label" for="user-create-timezone">Часовой пояс</label>
+            <select id="user-create-timezone" name="userCreateTimezone" class="clean-input" [(ngModel)]="createForm.timezone">
               <option value="Asia/Tashkent">Asia/Tashkent (UTC+5)</option>
               <option value="Europe/Moscow">Europe/Moscow (UTC+3)</option>
               <option value="UTC">UTC (UTC+0)</option>
@@ -373,14 +414,14 @@ type SortDirection = 'asc' | 'desc';
 
           <div class="form-group span-2">
             <label class="clean-checkbox">
-              <input type="checkbox" [(ngModel)]="createForm.is2faEnabled" />
+              <input name="userCreate2fa" type="checkbox" [(ngModel)]="createForm.is2faEnabled" />
               <span>Включить двухфакторную защиту (2FA OTP)</span>
             </label>
           </div>
 
           <!-- Roles -->
           <div class="form-group span-2" *ngIf="roles().length > 0">
-            <label class="clean-label">Роли доступа (RBAC)</label>
+            <span class="clean-label">Роли доступа (RBAC)</span>
             <div class="roles-chips">
               <label
                 *ngFor="let role of roles()"
@@ -399,7 +440,7 @@ type SortDirection = 'asc' | 'desc';
 
           <!-- Custom Fields -->
           <div class="form-group span-2" *ngIf="customFields().length > 0">
-            <label class="clean-label">Дополнительные поля</label>
+            <span class="clean-label">Дополнительные поля</span>
             <ui-custom-fields
               [fields]="customFields()"
               [(values)]="createForm.attributes"
@@ -425,28 +466,32 @@ type SortDirection = 'asc' | 'desc';
       <div body class="clean-modal-body" *ngIf="editingUser as u">
         <div class="form-grid">
           <div class="form-group span-2">
-            <label class="clean-label">ФИО <span class="req">*</span></label>
-            <input type="text" class="clean-input" [(ngModel)]="editForm.name" placeholder="Иванов Иван Иванович" />
+            <label class="clean-label" for="user-edit-name">ФИО <span class="req">*</span></label>
+            <input id="user-edit-name" name="userEditName" type="text" class="clean-input" required
+              [attr.aria-invalid]="isEditSubmitted && !editForm.name.trim()"
+              [attr.aria-describedby]="isEditSubmitted && !editForm.name.trim() ? 'user-edit-name-error' : null"
+              [(ngModel)]="editForm.name" placeholder="Иванов Иван Иванович" />
+            <span id="user-edit-name-error" class="field-error" *ngIf="isEditSubmitted && !editForm.name.trim()">Укажите ФИО пользователя</span>
           </div>
 
           <div class="form-group">
-            <label class="clean-label">Логин (чтение)</label>
-            <input type="text" class="clean-input font-mono disabled" [value]="u.login" disabled />
+            <label class="clean-label" for="user-edit-login">Логин (чтение)</label>
+            <input id="user-edit-login" type="text" class="clean-input font-mono disabled" [value]="u.login" disabled />
           </div>
 
           <div class="form-group">
-            <label class="clean-label">Email (чтение)</label>
-            <input type="email" class="clean-input font-mono disabled" [value]="u.email" disabled />
+            <label class="clean-label" for="user-edit-email">Email (чтение)</label>
+            <input id="user-edit-email" type="email" class="clean-input font-mono disabled" [value]="u.email" disabled />
           </div>
 
           <div class="form-group">
-            <label class="clean-label">Телефон</label>
-            <input type="text" class="clean-input font-mono" [(ngModel)]="editForm.phone" placeholder="+998901234567" />
+            <label class="clean-label" for="user-edit-phone">Телефон</label>
+            <input id="user-edit-phone" name="userEditPhone" type="tel" class="clean-input font-mono" autocomplete="tel" [(ngModel)]="editForm.phone" placeholder="+998901234567" />
           </div>
 
           <div class="form-group">
-            <label class="clean-label">Руководитель</label>
-            <select class="clean-input" [(ngModel)]="editForm.managerId">
+            <label class="clean-label" for="user-edit-manager">Руководитель</label>
+            <select id="user-edit-manager" name="userEditManager" class="clean-input" [(ngModel)]="editForm.managerId">
               <option [ngValue]="null">Без руководителя</option>
               <option *ngFor="let m of getAvailableManagers(u.id)" [ngValue]="m.id">
                 {{ m.name }} (&#64;{{ m.login }})
@@ -455,8 +500,8 @@ type SortDirection = 'asc' | 'desc';
           </div>
 
           <div class="form-group">
-            <label class="clean-label">Язык</label>
-            <select class="clean-input" [(ngModel)]="editForm.language">
+            <label class="clean-label" for="user-edit-language">Язык</label>
+            <select id="user-edit-language" name="userEditLanguage" class="clean-input" [(ngModel)]="editForm.language">
               <option value="ru">Русский (ru)</option>
               <option value="uz">O'zbekcha (uz)</option>
               <option value="en">English (en)</option>
@@ -464,8 +509,8 @@ type SortDirection = 'asc' | 'desc';
           </div>
 
           <div class="form-group">
-            <label class="clean-label">Часовой пояс</label>
-            <select class="clean-input" [(ngModel)]="editForm.timezone">
+            <label class="clean-label" for="user-edit-timezone">Часовой пояс</label>
+            <select id="user-edit-timezone" name="userEditTimezone" class="clean-input" [(ngModel)]="editForm.timezone">
               <option value="Asia/Tashkent">Asia/Tashkent (UTC+5)</option>
               <option value="Europe/Moscow">Europe/Moscow (UTC+3)</option>
               <option value="UTC">UTC (UTC+0)</option>
@@ -476,14 +521,14 @@ type SortDirection = 'asc' | 'desc';
 
           <div class="form-group span-2">
             <label class="clean-checkbox">
-              <input type="checkbox" [(ngModel)]="editForm.is2faEnabled" />
+              <input name="userEdit2fa" type="checkbox" [(ngModel)]="editForm.is2faEnabled" />
               <span>Включить двухфакторную защиту (2FA OTP)</span>
             </label>
           </div>
 
           <!-- Roles -->
           <div class="form-group span-2" *ngIf="roles().length > 0">
-            <label class="clean-label">Роли доступа (RBAC)</label>
+            <span class="clean-label">Роли доступа (RBAC)</span>
             <div class="roles-chips">
               <label
                 *ngFor="let role of roles()"
@@ -505,7 +550,7 @@ type SortDirection = 'asc' | 'desc';
 
           <!-- Custom Fields -->
           <div class="form-group span-2" *ngIf="customFields().length > 0">
-            <label class="clean-label">Дополнительные поля</label>
+            <span class="clean-label">Дополнительные поля</span>
             <ui-custom-fields
               [fields]="customFields()"
               [(values)]="editForm.attributes"
@@ -820,8 +865,21 @@ type SortDirection = 'asc' | 'desc';
       user-select: none;
       white-space: nowrap;
     }
-    .th-sort { cursor: pointer; }
+    .th-sort { padding: 0 !important; }
     .th-sort:hover { color: var(--text-main); }
+    .sort-button {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+      font: inherit;
+      letter-spacing: inherit;
+      padding: 8px 12px;
+      text-align: left;
+      text-transform: inherit;
+    }
+    .sort-button.align-right { text-align: right; }
     .sort-ico { font-size: 13px; vertical-align: middle; margin-left: 2px; }
 
     .clean-table td {
@@ -835,10 +893,17 @@ type SortDirection = 'asc' | 'desc';
 
     /* Identity */
     .user-identity {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      color: inherit;
       display: flex;
       align-items: center;
       gap: 8px;
       cursor: pointer;
+      font: inherit;
+      padding: 0;
+      text-align: left;
     }
     .avatar {
       width: 28px;
@@ -978,6 +1043,7 @@ type SortDirection = 'asc' | 'desc';
       padding: 2px;
     }
     .clean-hint { font-size: 10px; color: var(--text-muted); }
+    .field-error { font-size: 10px; color: var(--danger); }
 
     .clean-checkbox {
       display: inline-flex;
@@ -1070,6 +1136,8 @@ export class UsersComponent implements OnInit {
   readonly hasMore = signal<boolean>(false);
   readonly showPassword = signal<boolean>(false);
   readonly isFilterMenuOpen = signal<boolean>(false);
+  isCreateSubmitted = false;
+  isEditSubmitted = false;
   nextCursor: string | null = null;
 
   // Filter state
@@ -1129,11 +1197,20 @@ export class UsersComponent implements OnInit {
     private elementRef: ElementRef
   ) {}
 
+  @ViewChild('filterTrigger') private filterTrigger?: ElementRef<HTMLButtonElement>;
+
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
     if (!this.elementRef.nativeElement.contains(event.target)) {
       this.isFilterMenuOpen.set(false);
     }
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape() {
+    if (!this.isFilterMenuOpen()) return;
+    this.isFilterMenuOpen.set(false);
+    queueMicrotask(() => this.filterTrigger?.nativeElement.focus());
   }
 
   ngOnInit() {
@@ -1340,6 +1417,7 @@ export class UsersComponent implements OnInit {
       attributes: {}
     };
     this.showPassword.set(false);
+    this.isCreateSubmitted = false;
     this.isCreateModalOpen.set(true);
   }
 
@@ -1357,6 +1435,7 @@ export class UsersComponent implements OnInit {
   }
 
   submitCreateUser() {
+    this.isCreateSubmitted = true;
     if (!this.createForm.name || !this.createForm.login || !this.createForm.email || !this.createForm.password) {
       this.toast.warning('Заполните обязательные поля');
       return;
@@ -1393,6 +1472,7 @@ export class UsersComponent implements OnInit {
       roleIds: user.roleIds ? [...user.roleIds] : [],
       attributes: { ...(user.attributes || {}) }
     };
+    this.isEditSubmitted = false;
     this.isEditModalOpen.set(true);
   }
 
@@ -1411,6 +1491,7 @@ export class UsersComponent implements OnInit {
 
   submitEditUser() {
     if (!this.editingUser) return;
+    this.isEditSubmitted = true;
     if (!this.editForm.name) {
       this.toast.warning('Имя пользователя обязательно');
       return;

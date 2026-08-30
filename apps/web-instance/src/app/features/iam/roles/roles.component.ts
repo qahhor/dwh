@@ -57,8 +57,11 @@ interface ModuleGroup {
         <div class="roles-strip-header">
           <span class="strip-title">Выберите роль для настройки прав:</span>
           <div class="roles-filter-box">
-            <span class="material-symbols-outlined icon">search</span>
+            <span class="material-symbols-outlined icon" aria-hidden="true">search</span>
+            <label class="sr-only" for="role-search">Поиск ролей</label>
             <input
+              id="role-search"
+              name="roleSearch"
               type="text"
               class="roles-filter-input"
               placeholder="Фильтр ролей..."
@@ -72,38 +75,46 @@ interface ModuleGroup {
             *ngFor="let r of filteredRoles()"
             class="role-card-btn"
             [class.active]="selectedRole()?.id === r.id"
-            (click)="selectRole(r)"
           >
-            <div class="role-card-head">
-              <span class="role-card-title">{{ r.name }}</span>
-              <span class="role-sys-tag font-mono" *ngIf="r.pcode">{{ r.pcode }}</span>
-              <span class="role-custom-tag" *ngIf="!r.pcode">Кастомная</span>
-            </div>
-
-            <div class="role-card-foot">
+            <button
+              type="button"
+              class="role-select-btn"
+              [attr.aria-label]="'Выбрать роль ' + r.name"
+              [attr.aria-pressed]="selectedRole()?.id === r.id"
+              (click)="selectRole(r)"
+            >
+              <span class="role-card-head">
+                <span class="role-card-title">{{ r.name }}</span>
+                <span class="role-sys-tag font-mono" *ngIf="r.pcode">{{ r.pcode }}</span>
+                <span class="role-custom-tag" *ngIf="!r.pcode">Кастомная</span>
+              </span>
               <div class="role-status-line">
-                <span class="status-dot" [class.active]="r.state === 'A'"></span>
+                <span class="status-dot" aria-hidden="true" [class.active]="r.state === 'A'"></span>
                 <span class="status-text">{{ r.state === 'A' ? 'Активна' : 'Отключена' }}</span>
               </div>
+            </button>
 
-              <div class="role-btns" (click)="$event.stopPropagation()">
+            <div class="role-card-foot">
+              <div class="role-btns">
                 <button
                   type="button"
                   class="mini-btn"
+                  [attr.aria-label]="'Редактировать роль ' + r.name"
                   title="Редактировать роль"
                   *ngIf="canUpdateRole()"
                   (click)="openEditRoleModal(r)"
                 >
-                  <span class="material-symbols-outlined">edit</span>
+                  <span class="material-symbols-outlined" aria-hidden="true">edit</span>
                 </button>
                 <button
                   type="button"
                   class="mini-btn delete"
+                  [attr.aria-label]="'Удалить роль ' + r.name"
                   title="Удалить роль"
                   *ngIf="!r.pcode && canDeleteRole()"
                   (click)="openDeleteRoleModal(r)"
                 >
-                  <span class="material-symbols-outlined">delete</span>
+                  <span class="material-symbols-outlined" aria-hidden="true">delete</span>
                 </button>
               </div>
             </div>
@@ -115,7 +126,7 @@ interface ModuleGroup {
             *ngIf="canCreateRole()"
             (click)="openCreateModal()"
           >
-            <span class="material-symbols-outlined">add</span>
+            <span class="material-symbols-outlined" aria-hidden="true">add</span>
             <span>Создать роль</span>
           </button>
         </div>
@@ -139,7 +150,14 @@ interface ModuleGroup {
                 Разрешено: <strong>{{ activePermissionsCount() }}</strong> из {{ totalActionsCount() }} действий
                 ({{ permissionPercentage() }}%)
               </span>
-              <div class="meter-track">
+              <div
+                class="meter-track"
+                role="progressbar"
+                aria-label="Доля разрешённых действий"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                [attr.aria-valuenow]="permissionPercentage()"
+              >
                 <div class="meter-fill" [style.width.%]="permissionPercentage()"></div>
               </div>
             </div>
@@ -161,7 +179,7 @@ interface ModuleGroup {
 
         <!-- Superadmin Shield Banner -->
         <div *ngIf="role.pcode === 'admin'" class="admin-notice">
-          <span class="material-symbols-outlined icon">verified_user</span>
+          <span class="material-symbols-outlined icon" aria-hidden="true">verified_user</span>
           <span>Роль суперадминистратора обладает абсолютными правами (100% покрытие системы по инварианту I-P4).</span>
         </div>
 
@@ -169,15 +187,18 @@ interface ModuleGroup {
         <div class="matrix-toolbar-box">
           <div class="search-and-expand-row">
             <div class="matrix-search-field">
-              <span class="material-symbols-outlined icon">search</span>
+              <span class="material-symbols-outlined icon" aria-hidden="true">search</span>
+              <label class="sr-only" for="permission-search">Поиск по матрице прав</label>
               <input
+                id="permission-search"
+                name="permissionSearch"
                 type="text"
                 class="matrix-search-input"
                 placeholder="Поиск по названию формы, действию или коду..."
                 [(ngModel)]="matrixSearchQuery"
               />
-              <button *ngIf="matrixSearchQuery" class="clear-search-btn" (click)="matrixSearchQuery = ''">
-                <span class="material-symbols-outlined">close</span>
+              <button *ngIf="matrixSearchQuery" type="button" class="clear-search-btn" aria-label="Очистить поиск по матрице прав" (click)="matrixSearchQuery = ''">
+                <span class="material-symbols-outlined" aria-hidden="true">close</span>
               </button>
             </div>
 
@@ -189,11 +210,12 @@ interface ModuleGroup {
           </div>
 
           <!-- Module Pill Selector -->
-          <div class="module-filter-pills">
+          <div class="module-filter-pills" role="group" aria-label="Фильтр модулей матрицы прав">
             <button
               type="button"
               class="mod-pill-btn"
               [class.active]="selectedModuleTab === 'all'"
+              [attr.aria-pressed]="selectedModuleTab === 'all'"
               (click)="selectedModuleTab = 'all'"
             >
               Все разделы ({{ forms().length }})
@@ -203,6 +225,7 @@ interface ModuleGroup {
               type="button"
               class="mod-pill-btn"
               [class.active]="selectedModuleTab === mod.moduleCode"
+              [attr.aria-pressed]="selectedModuleTab === mod.moduleCode"
               (click)="selectedModuleTab = mod.moduleCode"
             >
               {{ mod.moduleName }} ({{ getModuleActionsCount(mod) }})
@@ -214,17 +237,23 @@ interface ModuleGroup {
         <div class="modules-stack">
           <div *ngFor="let mod of visibleModuleGroups()" class="mod-section-card">
             <!-- Module Section Header -->
-            <div class="mod-section-header" (click)="toggleModuleExpand(mod)">
-              <div class="mod-header-left">
-                <span class="material-symbols-outlined chevron-icon">
+            <div class="mod-section-header">
+              <button
+                type="button"
+                class="mod-header-left mod-toggle-btn"
+                [attr.aria-expanded]="mod.isExpanded"
+                [attr.aria-controls]="'role-module-' + mod.moduleCode"
+                (click)="toggleModuleExpand(mod)"
+              >
+                <span class="material-symbols-outlined chevron-icon" aria-hidden="true">
                   {{ mod.isExpanded ? 'expand_more' : 'chevron_right' }}
                 </span>
-                <span class="material-symbols-outlined mod-icon">{{ getModuleIcon(mod.moduleCode) }}</span>
+                <span class="material-symbols-outlined mod-icon" aria-hidden="true">{{ getModuleIcon(mod.moduleCode) }}</span>
                 <h3 class="mod-title">{{ mod.moduleName }}</h3>
                 <span class="mod-count">({{ mod.forms.length }} форм)</span>
-              </div>
+              </button>
 
-              <div class="mod-header-right" (click)="$event.stopPropagation()">
+              <div class="mod-header-right">
                 <button
                   type="button"
                   class="batch-btn"
@@ -246,8 +275,15 @@ interface ModuleGroup {
             </div>
 
             <!-- Forms Table -->
-            <div class="mod-section-body" *ngIf="mod.isExpanded">
-              <table class="forms-grid-table">
+            <div
+              class="mod-section-body"
+              *ngIf="mod.isExpanded"
+              [id]="'role-module-' + mod.moduleCode"
+              role="region"
+              [attr.aria-label]="'Права модуля ' + mod.moduleName"
+              tabindex="0"
+            >
+              <table class="forms-grid-table" [attr.aria-label]="'Права модуля ' + mod.moduleName">
                 <tbody>
                   <tr *ngFor="let f of mod.forms" class="form-grid-row">
                     <td class="form-title-col">
@@ -289,7 +325,7 @@ interface ModuleGroup {
           </div>
 
           <div *ngIf="visibleModuleGroups().length === 0" class="no-forms-box">
-            <span class="material-symbols-outlined icon">search_off</span>
+            <span class="material-symbols-outlined icon" aria-hidden="true">search_off</span>
             <p>Формы не найдены по запросу «{{ matrixSearchQuery }}»</p>
           </div>
         </div>
@@ -307,17 +343,26 @@ interface ModuleGroup {
     >
       <div body class="modal-body-form">
         <div class="modal-field">
-          <label class="modal-label">Название роли <span class="req">*</span></label>
+          <label class="modal-label" for="role-create-name">Название роли <span class="req">*</span></label>
           <input
+            id="role-create-name"
+            name="roleCreateName"
             type="text"
             class="modal-text-input"
+            required
+            [class.input-error]="isCreateSubmitted && !newRoleForm.name.trim()"
+            [attr.aria-invalid]="isCreateSubmitted && !newRoleForm.name.trim()"
+            [attr.aria-describedby]="isCreateSubmitted && !newRoleForm.name.trim() ? 'role-create-name-error' : null"
             [(ngModel)]="newRoleForm.name"
             placeholder="Например: Старший аналитик данных"
           />
+          <span id="role-create-name-error" class="field-error" *ngIf="isCreateSubmitted && !newRoleForm.name.trim()">Укажите название роли</span>
         </div>
         <div class="modal-field">
-          <label class="modal-label">Порядок отображения</label>
+          <label class="modal-label" for="role-create-order">Порядок отображения</label>
           <input
+            id="role-create-order"
+            name="roleCreateOrder"
             type="number"
             class="modal-text-input font-mono"
             [(ngModel)]="newRoleForm.orderNo"
@@ -342,20 +387,25 @@ interface ModuleGroup {
     >
       <div body class="modal-body-form" *ngIf="editingRole as r">
         <div class="modal-field">
-          <label class="modal-label">Название роли <span class="req">*</span></label>
-          <input type="text" class="modal-text-input" [(ngModel)]="editRoleForm.name" />
+          <label class="modal-label" for="role-edit-name">Название роли <span class="req">*</span></label>
+          <input id="role-edit-name" name="roleEditName" type="text" class="modal-text-input" required
+            [class.input-error]="isEditSubmitted && !editRoleForm.name.trim()"
+            [attr.aria-invalid]="isEditSubmitted && !editRoleForm.name.trim()"
+            [attr.aria-describedby]="isEditSubmitted && !editRoleForm.name.trim() ? 'role-edit-name-error' : null"
+            [(ngModel)]="editRoleForm.name" />
+          <span id="role-edit-name-error" class="field-error" *ngIf="isEditSubmitted && !editRoleForm.name.trim()">Укажите название роли</span>
         </div>
         <div class="modal-field">
-          <label class="modal-label">Статус активности</label>
-          <select class="modal-text-input" [(ngModel)]="editRoleForm.state" [disabled]="r.pcode === 'admin'">
+          <label class="modal-label" for="role-edit-state">Статус активности</label>
+          <select id="role-edit-state" name="roleEditState" class="modal-text-input" [(ngModel)]="editRoleForm.state" [disabled]="r.pcode === 'admin'">
             <option value="A">Активна (A)</option>
             <option value="P">Отключена (P)</option>
           </select>
           <span class="modal-help" *ngIf="r.pcode === 'admin'">Роль суперадминистратора всегда активна.</span>
         </div>
         <div class="modal-field">
-          <label class="modal-label">Порядок отображения</label>
-          <input type="number" class="modal-text-input font-mono" [(ngModel)]="editRoleForm.orderNo" />
+          <label class="modal-label" for="role-edit-order">Порядок отображения</label>
+          <input id="role-edit-order" name="roleEditOrder" type="number" class="modal-text-input font-mono" [(ngModel)]="editRoleForm.orderNo" />
         </div>
       </div>
       <div footer>
@@ -500,6 +550,19 @@ interface ModuleGroup {
       border-color: var(--primary);
       box-shadow: 0 0 0 1px var(--primary);
     }
+    .role-select-btn {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      font: inherit;
+      gap: 6px;
+      padding: 0;
+      text-align: left;
+    }
 
     .role-card-head {
       display: flex;
@@ -520,7 +583,7 @@ interface ModuleGroup {
     .role-card-foot {
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      justify-content: flex-end;
       gap: 6px;
       font-size: 11px;
     }
@@ -741,10 +804,19 @@ interface ModuleGroup {
       padding: 10px 14px;
       background-color: var(--bg-hover);
       border-bottom: 1px solid var(--border-color);
-      cursor: pointer;
       user-select: none;
     }
     .mod-header-left { display: flex; align-items: center; gap: 8px; }
+    .mod-toggle-btn {
+      min-width: 0;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+      font: inherit;
+      padding: 0;
+      text-align: left;
+    }
     .chevron-icon { font-size: 18px; color: var(--text-muted); }
     .mod-icon { font-size: 18px; color: var(--primary); }
     .mod-title { font-size: 13px; font-weight: 600; color: var(--text-main); margin: 0; }
@@ -870,7 +942,9 @@ interface ModuleGroup {
       outline: none;
     }
     .modal-text-input:focus { border-color: var(--primary); }
+    .modal-text-input.input-error { border-color: var(--danger); }
     .modal-help { font-size: 11px; color: var(--text-muted); }
+    .field-error { font-size: 10px; color: var(--danger); }
 
     .modal-delete-body { display: flex; flex-direction: column; gap: 6px; }
     .delete-title { font-size: 13px; margin: 0; }
@@ -900,6 +974,8 @@ export class RolesComponent implements OnInit {
   readonly isCreateModalOpen = signal<boolean>(false);
   readonly isEditModalOpen = signal<boolean>(false);
   readonly isDeleteModalOpen = signal<boolean>(false);
+  isCreateSubmitted = false;
+  isEditSubmitted = false;
 
   editingRole: Role | null = null;
   deletingRole: Role | null = null;
@@ -1184,10 +1260,12 @@ export class RolesComponent implements OnInit {
 
   openCreateModal() {
     this.newRoleForm = { name: '', orderNo: 0 };
+    this.isCreateSubmitted = false;
     this.isCreateModalOpen.set(true);
   }
 
   submitCreateRole() {
+    this.isCreateSubmitted = true;
     if (!this.newRoleForm.name.trim()) {
       this.toast.warning('Введите название роли');
       return;
@@ -1218,11 +1296,13 @@ export class RolesComponent implements OnInit {
       state: role.state,
       orderNo: role.orderNo
     };
+    this.isEditSubmitted = false;
     this.isEditModalOpen.set(true);
   }
 
   submitEditRole() {
     if (!this.editingRole) return;
+    this.isEditSubmitted = true;
     if (!this.editRoleForm.name.trim()) {
       this.toast.warning('Название роли обязательно');
       return;
