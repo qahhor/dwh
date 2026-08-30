@@ -17,6 +17,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 import java.time.Instant;
 import java.util.Map;
@@ -28,6 +29,8 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -121,6 +124,27 @@ class SecurityConfigTest {
                 .andExpect(header().string("Referrer-Policy", "same-origin"))
                 .andExpect(header().string("Permissions-Policy", containsString("geolocation=()")))
                 .andExpect(header().string("Strict-Transport-Security", containsString("max-age=31536000")));
+    }
+
+    @Test
+    @DisplayName("ASYNC dispatch после аутентифицированного запроса не проходит повторную авторизацию")
+    void authenticatedAsyncDispatchIsNotRejectedAfterResponseStarts() throws Exception {
+        when(sessionService.getActiveSession("raw-session")).thenReturn(Optional.of(
+                new KauthSessionRepository.SessionRecord(
+                        11L, 7L, "hash", "127.0.0.1", "ua", null,
+                        Instant.now(), Instant.now(), null)));
+        when(userService.getUserById(7L)).thenReturn(activeUser());
+        when(permissionService.getEffectivePermissions(7L)).thenReturn(Set.of("*.*"));
+        when(permissionService.getPermissionVersion(7L)).thenReturn(1L);
+
+        MvcResult initial = mvc.perform(get("/api/v1/security-test/async")
+                        .cookie(new Cookie(SESSION_COOKIE, "raw-session")))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mvc.perform(asyncDispatch(initial))
+                .andExpect(status().isOk())
+                .andExpect(content().string("ok"));
     }
 
     @Test

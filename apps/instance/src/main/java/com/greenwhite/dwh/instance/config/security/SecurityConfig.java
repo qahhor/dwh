@@ -2,6 +2,7 @@ package com.greenwhite.dwh.instance.config.security;
 
 import com.greenwhite.dwh.instance.kauth.pref.KauthPref;
 import com.greenwhite.dwh.instance.kauth.security.KauthAuthenticationFilter;
+import jakarta.servlet.DispatcherType;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -70,6 +71,9 @@ public class SecurityConfig {
                 })
 
                 .authorizeHttpRequests(auth -> auth
+                        // ASYNC/ERROR are continuations of an already-authorized request. Re-authorizing
+                        // them after an SSE/client disconnect can only produce a second, committed response.
+                        .dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll()
                         .requestMatchers(PUBLIC_PATHS).permitAll()
                         // Actuator живёт на отдельном management-порту, наружу не публикуется
                         .requestMatchers("/actuator/**").permitAll()

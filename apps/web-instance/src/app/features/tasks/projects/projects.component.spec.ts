@@ -8,13 +8,17 @@ import { ToastService } from '../../../core/services/toast.service';
 import { ProjectsComponent } from './projects.component';
 
 describe('ProjectsComponent UI contracts', () => {
-  async function createFixture() {
+  async function createFixture(api: Record<string, unknown> = {
+    get: vi.fn(() => of([])),
+    post: vi.fn(() => of({})),
+    patch: vi.fn(() => of({}))
+  }) {
     await TestBed.configureTestingModule({
       imports: [ProjectsComponent],
       providers: [
-        { provide: ApiService, useValue: { get: vi.fn(() => of([])), post: vi.fn(() => of({})), patch: vi.fn(() => of({})) } },
+        { provide: ApiService, useValue: api },
         { provide: PermissionService, useValue: { canCreate: () => true, canUpdate: () => true } },
-        { provide: ToastService, useValue: { success: vi.fn(), error: vi.fn() } },
+        { provide: ToastService, useValue: { success: vi.fn(), warning: vi.fn(), error: vi.fn() } },
         { provide: Router, useValue: { navigate: vi.fn() } }
       ]
     }).compileComponents();
@@ -49,5 +53,42 @@ describe('ProjectsComponent UI contracts', () => {
     expect(name.getAttribute('aria-invalid')).toBe('true');
     expect(name.getAttribute('aria-describedby')).toBe(error.id);
     expect(fixture.nativeElement.querySelector('#project-create-description')).not.toBeNull();
+  });
+
+  it('reveals a newly created project even when it belongs on a later page', async () => {
+    const existing = Array.from({ length: 10 }, (_, index) => ({
+      id: index + 1,
+      name: `Project ${index + 1}`,
+      state: 'A' as const,
+      createdAt: '2026-08-30T00:00:00Z'
+    }));
+    const created = {
+      id: 11,
+      name: 'Newly created project',
+      state: 'A' as const,
+      createdAt: '2026-08-30T00:00:00Z'
+    };
+    let wasCreated = false;
+    const api = {
+      get: vi.fn((url: string) => of(url.endsWith('/stats') ? [] : wasCreated ? [...existing, created] : existing)),
+      post: vi.fn(() => {
+        wasCreated = true;
+        return of(created);
+      }),
+      patch: vi.fn(() => of({}))
+    };
+    const fixture = await createFixture(api);
+    const component = fixture.componentInstance;
+    component.searchQuery = 'old filter';
+    component.selectedState = 'P';
+    component.openCreateModal();
+    component.createForm = { name: created.name, description: '' };
+
+    component.submitCreateProject();
+
+    expect(component.searchQuery).toBe('');
+    expect(component.selectedState).toBe('all');
+    expect(component.currentPage).toBe(2);
+    expect(component.paginatedProjects().map(project => project.id)).toContain(created.id);
   });
 });

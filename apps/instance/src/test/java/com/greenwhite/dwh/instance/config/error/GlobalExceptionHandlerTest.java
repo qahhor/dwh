@@ -1,17 +1,27 @@
 package com.greenwhite.dwh.instance.config.error;
 
+import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.concurrent.Callable;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -65,6 +75,22 @@ class GlobalExceptionHandlerTest {
         mvc.perform(get("/api/v1/read-only")).andExpect(status().isOk());
     }
 
+    @Test
+    @DisplayName("Отключение клиента после committed response не превращается в internal_error")
+    void clientDisconnectIsConsumedWithoutResponseRewrite() throws Exception {
+        MvcResult initial = mvc.perform(get("/api/v1/read-only/disconnect"))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        MvcResult completed = mvc.perform(asyncDispatch(initial))
+                .andExpect(status().isNoContent())
+                .andExpect(content().string(""))
+                .andReturn();
+
+        assertThat(completed.getResponse().isCommitted()).isTrue();
+        assertThat(completed.getResolvedException()).isInstanceOf(AsyncRequestNotUsableException.class);
+    }
+
     @RestController
     @RequestMapping("/api/v1/read-only")
     static class ReadOnlyTestController {
@@ -81,6 +107,15 @@ class GlobalExceptionHandlerTest {
         @GetMapping("/integrity")
         String integrity() {
             throw new org.springframework.dao.DataIntegrityViolationException("not-null constraint violated");
+        }
+
+        @GetMapping("/disconnect")
+        Callable<Void> disconnect(HttpServletResponse response) {
+            return () -> {
+                response.setStatus(HttpStatus.NO_CONTENT.value());
+                response.flushBuffer();
+                throw new AsyncRequestNotUsableException("Broken pipe");
+            };
         }
     }
 }

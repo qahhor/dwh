@@ -851,12 +851,19 @@ export class ProjectsComponent implements OnInit {
     return this.permService.canUpdate('tasks.projects') || this.permService.canUpdate('tasks');
   }
 
-  loadProjects() {
+  loadProjects(focusProjectId?: number) {
     this.isLoading.set(true);
     this.api.get<Project[]>('/tasks/projects').subscribe({
       next: res => {
         this.isLoading.set(false);
-        this.projects.set(res || []);
+        const projects = res || [];
+        this.projects.set(projects);
+        if (focusProjectId !== undefined) {
+          const projectIndex = projects.findIndex(project => project.id === focusProjectId);
+          if (projectIndex >= 0) {
+            this.currentPage = Math.floor(projectIndex / this.pageSize) + 1;
+          }
+        }
       },
       error: () => {
         this.isLoading.set(false);
@@ -928,11 +935,15 @@ export class ProjectsComponent implements OnInit {
       name: this.createForm.name.trim(),
       description: this.createForm.description.trim()
     }).subscribe({
-      next: () => {
+      next: created => {
         this.isSubmitting.set(false);
         this.isCreateModalOpen.set(false);
         this.toast.success('Проект успешно создан');
-        this.loadProjects();
+        // Creation must leave the user looking at the new record, even when the
+        // current filters or pagination would otherwise hide it.
+        this.searchQuery = '';
+        this.selectedState = 'all';
+        this.loadProjects(created.id);
         this.loadStats();
       },
       error: err => {

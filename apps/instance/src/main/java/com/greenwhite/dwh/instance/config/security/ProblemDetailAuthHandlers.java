@@ -23,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 public class ProblemDetailAuthHandlers implements AuthenticationEntryPoint, AccessDeniedHandler {
 
     private static final String PROBLEM_JSON = "application/problem+json";
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ProblemDetailAuthHandlers.class);
 
     private final ObjectMapper objectMapper;
 
@@ -33,31 +34,42 @@ public class ProblemDetailAuthHandlers implements AuthenticationEntryPoint, Acce
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response,
                          AuthenticationException authException) throws IOException {
+        if (response.isCommitted()) {
+            log.debug("Authentication failure after response commit on {}", request.getRequestURI());
+            return;
+        }
         writeProblem(response, ErrorCode.UNAUTHORIZED,
                 "Требуется аутентификация для доступа к ресурсу", request.getRequestURI());
     }
 
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ProblemDetailAuthHandlers.class);
-
     @Override
     public void handle(HttpServletRequest request, HttpServletResponse response,
                        AccessDeniedException accessDeniedException) throws IOException {
+        if (response.isCommitted()) {
+            log.debug("Access denied after response commit on {}", request.getRequestURI());
+            return;
+        }
         ErrorCode code = accessDeniedException instanceof CsrfException
                 ? ErrorCode.CSRF_TOKEN_INVALID
                 : ErrorCode.FORBIDDEN;
         String detail = code == ErrorCode.CSRF_TOKEN_INVALID
                 ? "Отсутствует или недействителен CSRF-токен (заголовок X-XSRF-TOKEN)"
                 : "Доступ запрещён";
-        log.warn("AccessDenied [code={}] on {}: {} | header X-XSRF-TOKEN={}, cookies={}",
-                code, request.getRequestURI(), accessDeniedException.getMessage(),
-                request.getHeader("X-XSRF-TOKEN"),
-                request.getCookies() != null ? java.util.Arrays.stream(request.getCookies()).map(c -> c.getName() + "=" + c.getValue()).toList() : "null");
+        log.warn("AccessDenied [code={}] on {} | exceptionType={}, csrfHeaderPresent={}, cookieNames={}",
+                code, request.getRequestURI(), accessDeniedException.getClass().getSimpleName(),
+                request.getHeader("X-XSRF-TOKEN") != null,
+                request.getCookies() != null
+                        ? java.util.Arrays.stream(request.getCookies()).map(jakarta.servlet.http.Cookie::getName).toList()
+                        : java.util.List.of());
         writeProblem(response, code, detail, request.getRequestURI());
     }
 
 
     public void writeProblem(HttpServletResponse response, ErrorCode code, String detail, String uri)
             throws IOException {
+        if (response.isCommitted()) {
+            return;
+        }
         ProblemDetailRecord problem = ProblemDetailRecord.of(code, detail, uri);
         response.setStatus(code.getDefaultStatus());
         response.setContentType(PROBLEM_JSON);
