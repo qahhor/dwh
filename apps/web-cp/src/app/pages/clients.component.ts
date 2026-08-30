@@ -16,10 +16,10 @@ import { dt, errorText } from '../core/format';
       </div>
     </div>
 
-    @if (error()) { <div class="alert alert-error">{{ error() }}</div> }
+    @if (error()) { <div class="alert alert-error" role="alert">{{ error() }}</div> }
 
     @if (issuedToken(); as token) {
-      <div class="card token-card">
+      <div class="card token-card" role="status" aria-live="polite">
         <div class="card-head">Heartbeat-токен экземпляра — сохраните сейчас</div>
         <div class="card-body">
           <p class="token-note">
@@ -28,10 +28,10 @@ import { dt, errorText } from '../core/format';
           </p>
           <div class="token-row">
             <code class="mono token">{{ token }}</code>
-            <button class="btn btn-secondary btn-sm" (click)="copyToken(token)">
+            <button type="button" class="btn btn-secondary btn-sm" (click)="copyToken(token)">
               {{ copied() ? 'Скопировано' : 'Копировать' }}
             </button>
-            <button class="btn btn-secondary btn-sm" (click)="issuedToken.set('')">Скрыть</button>
+            <button type="button" class="btn btn-secondary btn-sm" (click)="issuedToken.set('')">Скрыть токен</button>
           </div>
         </div>
       </div>
@@ -39,55 +39,55 @@ import { dt, errorText } from '../core/format';
 
     @if (canManage()) {
       <div class="card">
-        <div class="card-head">Новый клиент</div>
+        <div class="card-head" id="cp-new-client-title">Новый клиент</div>
         <div class="card-body">
-          <form class="form-row" (ngSubmit)="createClient()">
-            <label class="field">
-              <span>Код</span>
-              <input name="code" [(ngModel)]="code" placeholder="acme" required>
-            </label>
-            <label class="field">
-              <span>Название</span>
-              <input name="name" [(ngModel)]="name" placeholder="ООО «Акме»" required>
-            </label>
-            <label class="field">
-              <span>Профиль ресурсов</span>
-              <select name="profile" [(ngModel)]="profile">
+          <form class="form-row" (ngSubmit)="createClient()" aria-labelledby="cp-new-client-title">
+            <div class="field">
+              <label for="cp-client-code">Код</label>
+              <input id="cp-client-code" name="code" [(ngModel)]="code" placeholder="acme" autocomplete="off" spellcheck="false" required>
+            </div>
+            <div class="field">
+              <label for="cp-client-name">Название</label>
+              <input id="cp-client-name" name="name" [(ngModel)]="name" placeholder="ООО «Акме»" autocomplete="organization" required>
+            </div>
+            <div class="field">
+              <label for="cp-client-profile">Профиль ресурсов</label>
+              <select id="cp-client-profile" name="profile" [(ngModel)]="profile">
                 <option value="S">S — малый</option>
                 <option value="M">M — средний</option>
                 <option value="L">L — крупный</option>
               </select>
-            </label>
-            <button class="btn" type="submit" [disabled]="busy()">Создать</button>
+            </div>
+            <button class="btn" type="submit" [disabled]="busy()" [attr.aria-busy]="busy()">Создать</button>
           </form>
         </div>
       </div>
 
       <div class="card">
-        <div class="card-head">Регистрация экземпляра</div>
+        <div class="card-head" id="cp-register-instance-title">Регистрация экземпляра</div>
         <div class="card-body">
-          <form class="form-row" (ngSubmit)="registerInstance()">
-            <label class="field">
-              <span>Клиент</span>
-              <select name="instClient" [(ngModel)]="instClient">
+          <form class="form-row" (ngSubmit)="registerInstance()" aria-labelledby="cp-register-instance-title">
+            <div class="field">
+              <label for="cp-instance-client">Клиент</label>
+              <select id="cp-instance-client" name="instClient" [(ngModel)]="instClient" required>
                 <option value="">— выберите —</option>
                 @for (c of clients(); track c.id) {
                   <option [value]="c.code">{{ c.name }} ({{ c.code }})</option>
                 }
               </select>
-            </label>
-            <label class="field">
-              <span>Контур</span>
-              <select name="instEnv" [(ngModel)]="instEnv">
+            </div>
+            <div class="field">
+              <label for="cp-instance-environment">Контур</label>
+              <select id="cp-instance-environment" name="instEnv" [(ngModel)]="instEnv">
                 <option value="production">production</option>
                 <option value="staging">staging</option>
               </select>
-            </label>
-            <label class="field">
-              <span>Адрес</span>
-              <input name="instUrl" [(ngModel)]="instUrl" placeholder="https://acme.smartup.uz">
-            </label>
-            <button class="btn" type="submit" [disabled]="busy()">Зарегистрировать</button>
+            </div>
+            <div class="field">
+              <label for="cp-instance-url">Адрес</label>
+              <input id="cp-instance-url" name="instUrl" type="url" [(ngModel)]="instUrl" placeholder="https://acme.smartup.uz" autocomplete="url" required>
+            </div>
+            <button class="btn" type="submit" [disabled]="busy()" [attr.aria-busy]="busy()">Зарегистрировать</button>
           </form>
         </div>
       </div>
@@ -95,7 +95,8 @@ import { dt, errorText } from '../core/format';
 
     <div class="card">
       <div class="card-head">Список клиентов</div>
-      <table>
+      <div class="table-scroll" role="region" aria-label="Таблица клиентов" tabindex="0">
+      <table aria-label="Список клиентов">
         <thead>
           <tr><th>Код</th><th>Название</th><th>Профиль</th><th>Создан</th></tr>
         </thead>
@@ -112,6 +113,7 @@ import { dt, errorText } from '../core/format';
           }
         </tbody>
       </table>
+      </div>
     </div>
   `,
   styles: [`

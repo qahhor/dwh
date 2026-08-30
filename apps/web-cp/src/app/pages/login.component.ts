@@ -8,41 +8,56 @@ import { CpApiService } from '../core/cp-api.service';
   standalone: true,
   imports: [FormsModule],
   template: `
-    <div class="login-wrap">
-      <form class="login-card" (ngSubmit)="submit()">
+    <main class="login-wrap">
+      <form class="login-card" (ngSubmit)="submit()" aria-labelledby="cp-login-title">
         <div class="brand">
-          <span class="brand-mark">CP</span>
+          <span class="brand-mark" aria-hidden="true">CP</span>
           <div>
-            <h1>Control Panel</h1>
+            <h1 id="cp-login-title">Control Panel</h1>
             <p class="muted">Управление флотом экземпляров</p>
           </div>
         </div>
 
-        <label>
-          Логин
-          <input name="login" [(ngModel)]="login" autocomplete="username" required autofocus>
-        </label>
+        <label for="cp-login">Логин</label>
+        <input
+          id="cp-login"
+          name="login"
+          [(ngModel)]="login"
+          autocomplete="username"
+          autocapitalize="none"
+          spellcheck="false"
+          [attr.aria-invalid]="error() ? 'true' : null"
+          [attr.aria-describedby]="error() ? 'cp-login-error' : null"
+          required
+          autofocus
+        >
 
-        <label>
-          Пароль
-          <input name="password" type="password" [(ngModel)]="password"
-                 autocomplete="current-password" required>
-        </label>
+        <label for="cp-password">Пароль</label>
+        <input
+          id="cp-password"
+          name="password"
+          type="password"
+          [(ngModel)]="password"
+          autocomplete="current-password"
+          [attr.aria-invalid]="error() ? 'true' : null"
+          [attr.aria-describedby]="error() ? 'cp-login-error' : null"
+          required
+        >
 
         @if (error()) {
-          <p class="error" role="alert">{{ error() }}</p>
+          <p id="cp-login-error" class="error" role="alert">{{ error() }}</p>
         }
 
-        <button type="submit" [disabled]="busy()">
+        <button type="submit" [disabled]="busy()" [attr.aria-busy]="busy()">
           {{ busy() ? 'Проверяем…' : 'Войти' }}
         </button>
       </form>
-    </div>
+    </main>
   `,
   styles: [`
     .login-wrap { min-height: 100vh; display: grid; place-items: center; background: var(--bg-app); }
     .login-card {
-      width: 360px; padding: 32px; background: var(--bg-surface);
+      width: min(360px, calc(100% - 32px)); padding: 32px; background: var(--bg-surface);
       border: 1px solid var(--border-color); border-radius: var(--radius-lg);
       box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 16px;
     }
@@ -54,7 +69,7 @@ import { CpApiService } from '../core/cp-api.service';
     }
     h1 { margin: 0; font-size: 18px; color: var(--text-main); }
     .muted { margin: 2px 0 0; font-size: 13px; color: var(--text-muted); }
-    label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--text-muted); }
+    label { margin-bottom: -10px; font-size: 13px; color: var(--text-muted); }
     input {
       padding: 10px 12px; border: 1px solid var(--border-color);
       border-radius: var(--radius-md); font-size: 14px; color: var(--text-main);
@@ -71,6 +86,9 @@ import { CpApiService } from '../core/cp-api.service';
     .error {
       margin: 0; padding: 10px 12px; border-radius: var(--radius-md);
       background: var(--danger-bg); color: var(--danger); font-size: 13px;
+    }
+    @media (max-width: 480px) {
+      .login-card { padding: 24px 20px; }
     }
   `]
 })

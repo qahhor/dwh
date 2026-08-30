@@ -12,13 +12,13 @@ import { ago, dt, errorText } from '../core/format';
         <p>Экземпляр считается недоступным, если heartbeat молчит дольше
            {{ timeout() }} мин</p>
       </div>
-      <button class="btn btn-secondary" (click)="load()" [disabled]="busy()">
+      <button type="button" class="btn btn-secondary" (click)="load()" [disabled]="busy()" [attr.aria-busy]="busy()">
         {{ busy() ? 'Обновляем…' : 'Обновить' }}
       </button>
     </div>
 
     @if (error()) {
-      <div class="alert alert-error">{{ error() }}</div>
+      <div class="alert alert-error" role="alert">{{ error() }}</div>
     }
 
     <div class="tiles">
@@ -37,7 +37,8 @@ import { ago, dt, errorText } from '../core/format';
     </div>
 
     <div class="card">
-      <table>
+      <div class="table-scroll" role="region" aria-label="Таблица флота экземпляров" tabindex="0">
+      <table aria-label="Флот экземпляров">
         <thead>
           <tr>
             <th>Клиент</th>
@@ -75,6 +76,7 @@ import { ago, dt, errorText } from '../core/format';
           }
         </tbody>
       </table>
+      </div>
     </div>
   `,
   styles: [`

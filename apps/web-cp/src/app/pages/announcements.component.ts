@@ -16,33 +16,33 @@ import { dt, errorText } from '../core/format';
       </div>
     </div>
 
-    @if (error()) { <div class="alert alert-error">{{ error() }}</div> }
+    @if (error()) { <div class="alert alert-error" role="alert">{{ error() }}</div> }
 
     @if (canEdit()) {
       <div class="card">
-        <div class="card-head">Новое объявление</div>
+        <div class="card-head" id="cp-new-announcement-title">Новое объявление</div>
         <div class="card-body">
-          <form (ngSubmit)="create()">
+          <form (ngSubmit)="create()" aria-labelledby="cp-new-announcement-title">
             <div class="form-row">
-              <label class="field">
-                <span>Тип баннера</span>
-                <select name="type" [(ngModel)]="bannerType">
+              <div class="field">
+                <label for="cp-announcement-type">Тип баннера</label>
+                <select id="cp-announcement-type" name="type" [(ngModel)]="bannerType">
                   <option value="info">Информация</option>
                   <option value="warning">Предупреждение</option>
                   <option value="critical">Критично</option>
                 </select>
-              </label>
-              <label class="field" style="grid-column: span 2">
-                <span>Заголовок</span>
-                <input name="title" [(ngModel)]="title" placeholder="Плановые работы">
-              </label>
+              </div>
+              <div class="field wide-field">
+                <label for="cp-announcement-title">Заголовок</label>
+                <input id="cp-announcement-title" name="title" [(ngModel)]="title" placeholder="Плановые работы" required>
+              </div>
             </div>
-            <label class="field" style="margin-top: 14px">
-              <span>Текст</span>
-              <textarea name="body" [(ngModel)]="body"
-                        placeholder="В субботу с 02:00 до 04:00 обновление платформы"></textarea>
-            </label>
-            <button class="btn" type="submit" [disabled]="busy()" style="margin-top: 14px">
+            <div class="field body-field">
+              <label for="cp-announcement-body">Текст</label>
+              <textarea id="cp-announcement-body" name="body" [(ngModel)]="body"
+                        placeholder="В субботу с 02:00 до 04:00 обновление платформы" required></textarea>
+            </div>
+            <button class="btn submit-button" type="submit" [disabled]="busy()" [attr.aria-busy]="busy()">
               Сохранить черновик
             </button>
           </form>
@@ -52,7 +52,8 @@ import { dt, errorText } from '../core/format';
 
     <div class="card">
       <div class="card-head">Все объявления</div>
-      <table>
+      <div class="table-scroll" role="region" aria-label="Таблица объявлений" tabindex="0">
+      <table aria-label="Все объявления">
         <thead>
           <tr>
             <th>Заголовок</th><th>Тип</th><th>Состояние</th>
@@ -73,10 +74,10 @@ import { dt, errorText } from '../core/format';
               <td class="actions">
                 @if (canEdit()) {
                   @if (a.state === 'draft') {
-                    <button class="btn btn-sm" (click)="publish(a.id)" [disabled]="busy()">Опубликовать</button>
+                    <button type="button" class="btn btn-sm" (click)="publish(a.id)" [disabled]="busy()" [attr.aria-label]="'Опубликовать ' + (ru(a)?.title || 'объявление')">Опубликовать</button>
                   }
                   @if (a.state === 'published') {
-                    <button class="btn btn-secondary btn-sm" (click)="archive(a.id)" [disabled]="busy()">В архив</button>
+                    <button type="button" class="btn btn-secondary btn-sm" (click)="archive(a.id)" [disabled]="busy()" [attr.aria-label]="'Архивировать ' + (ru(a)?.title || 'объявление')">В архив</button>
                   }
                 }
               </td>
@@ -86,11 +87,17 @@ import { dt, errorText } from '../core/format';
           }
         </tbody>
       </table>
+      </div>
     </div>
   `,
   styles: [`
     .sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
     .actions { text-align: right; white-space: nowrap; }
+    .wide-field { grid-column: span 2; }
+    .body-field, .submit-button { margin-top: 14px; }
+    @media (max-width: 640px) {
+      .wide-field { grid-column: auto; }
+    }
   `]
 })
 export class AnnouncementsComponent implements OnInit {

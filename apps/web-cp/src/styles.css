@@ -189,6 +189,13 @@ body.modal-open {
 .card-body { padding: 18px; }
 
 table { width: 100%; border-collapse: collapse; }
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+}
+.table-scroll:focus-visible {
+  outline-offset: -2px !important;
+}
 th {
   text-align: left;
   padding: 10px 18px;
@@ -251,7 +258,7 @@ tbody tr:hover { background: var(--bg-hover); }
 .btn-sm { padding: 5px 10px; font-size: 12px; }
 
 .field { display: flex; flex-direction: column; gap: 6px; }
-.field > span { font-size: 12px; color: var(--text-muted); }
+.field > span, .field > label { font-size: 12px; color: var(--text-muted); }
 input, textarea, select {
   padding: 8px 11px;
   border: 1px solid var(--border-color);
@@ -286,3 +293,13 @@ textarea { resize: vertical; min-height: 68px; }
 .alert-info    { background: var(--info-bg);    color: var(--info); }
 
 .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 12px; }
+
+@media (max-width: 640px) {
+  .page-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .page-head > .btn { align-self: flex-start; }
+  .card-body { padding: 14px; }
+  th, td { padding-left: 14px; padding-right: 14px; }
+}

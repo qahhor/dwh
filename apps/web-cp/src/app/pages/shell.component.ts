@@ -7,34 +7,42 @@ import { CpApiService } from '../core/cp-api.service';
   standalone: true,
   imports: [RouterOutlet, RouterLink, RouterLinkActive],
   template: `
+    <a class="skip-link" href="#cp-main-content">Перейти к основному содержимому</a>
     <div class="shell">
-      <aside>
+      <aside aria-label="Панель Control Panel">
         <div class="brand">
-          <span class="brand-mark">CP</span>
+          <span class="brand-mark" aria-hidden="true">CP</span>
           <span class="brand-text">Control Panel</span>
         </div>
 
-        <nav>
-          <a routerLink="/fleet" routerLinkActive="active">Флот</a>
-          <a routerLink="/clients" routerLinkActive="active">Клиенты</a>
-          <a routerLink="/backups" routerLinkActive="active">Бэкапы</a>
-          <a routerLink="/announcements" routerLinkActive="active">Объявления</a>
+        <nav aria-label="Основная навигация">
+          <a routerLink="/fleet" routerLinkActive="active" ariaCurrentWhenActive="page">Флот</a>
+          <a routerLink="/clients" routerLinkActive="active" ariaCurrentWhenActive="page">Клиенты</a>
+          <a routerLink="/backups" routerLinkActive="active" ariaCurrentWhenActive="page">Бэкапы</a>
+          <a routerLink="/announcements" routerLinkActive="active" ariaCurrentWhenActive="page">Объявления</a>
         </nav>
 
         <div class="who">
           <div class="who-name">{{ api.user()?.name }}</div>
           <div class="who-roles">{{ roles() }}</div>
-          <button type="button" (click)="logout()">Выйти</button>
+          <button type="button" (click)="logout()" aria-label="Выйти из Control Panel">Выйти</button>
         </div>
       </aside>
 
-      <main>
+      <main id="cp-main-content" tabindex="-1">
         <router-outlet />
       </main>
     </div>
   `,
   styles: [`
     .shell { display: grid; grid-template-columns: 232px 1fr; min-height: 100vh; }
+    .skip-link {
+      position: fixed; top: 8px; left: 8px; z-index: 1000;
+      padding: 8px 12px; border-radius: var(--radius-md);
+      background: var(--bg-surface); color: var(--text-main);
+      transform: translateY(-160%);
+    }
+    .skip-link:focus { transform: translateY(0); }
     aside {
       background: var(--bg-sidebar); display: flex; flex-direction: column;
       padding: 20px 12px; gap: 24px;
@@ -63,6 +71,32 @@ import { CpApiService } from '../core/cp-api.service';
     }
     .who button:hover { background: var(--bg-sidebar-hover); color: var(--text-inverse); }
     main { background: var(--bg-app); padding: 28px 32px; overflow: auto; }
+
+    @media (max-width: 768px) {
+      .shell { display: block; }
+      aside {
+        position: sticky; top: 0; z-index: 20;
+        flex-flow: row wrap; align-items: center;
+        gap: 12px; padding: 12px;
+      }
+      nav {
+        order: 3; flex: 1 0 100%;
+        flex-direction: row; overflow-x: auto;
+        padding-bottom: 2px;
+      }
+      nav a { white-space: nowrap; }
+      .who {
+        margin-left: auto; padding: 0; border-top: 0;
+        display: flex; align-items: center; gap: 8px;
+      }
+      .who-roles { display: none; }
+      .who button { width: auto; }
+      main { min-width: 0; padding: 18px 16px; overflow: visible; }
+    }
+
+    @media (max-width: 420px) {
+      .brand-text, .who-name { display: none; }
+    }
   `]
 })
 export class ShellComponent {

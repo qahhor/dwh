@@ -16,7 +16,7 @@
             "index": "src/index.html",
             "browser": "src/main.ts",
             "polyfills": ["zone.js"],
-            "tsConfig": "tsconfig.json",
+            "tsConfig": "tsconfig.app.json",
             "styles": ["src/styles.css"]
           },
           "configurations": {
@@ -45,5 +45,8 @@
         }
       }
     }
+  },
+  "cli": {
+    "analytics": false
   }
 }

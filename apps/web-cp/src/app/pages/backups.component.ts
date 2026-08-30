@@ -12,13 +12,14 @@ import { dt, errorText } from '../core/format';
         <p>Экземпляры сами отчитываются о восстановлении: бэкап без успешной
            проверки восстановлением бэкапом не считается.</p>
       </div>
-      <button class="btn btn-secondary" (click)="load()" [disabled]="busy()">Обновить</button>
+      <button type="button" class="btn btn-secondary" (click)="load()" [disabled]="busy()" [attr.aria-busy]="busy()">Обновить</button>
     </div>
 
-    @if (error()) { <div class="alert alert-error">{{ error() }}</div> }
+    @if (error()) { <div class="alert alert-error" role="alert">{{ error() }}</div> }
 
     <div class="card">
-      <table>
+      <div class="table-scroll" role="region" aria-label="Таблица проверок бэкапов" tabindex="0">
+      <table aria-label="Проверки бэкапов">
         <thead>
           <tr>
             <th>Клиент</th><th>Результат</th><th>Длительность</th>
@@ -43,6 +44,7 @@ import { dt, errorText } from '../core/format';
           }
         </tbody>
       </table>
+      </div>
     </div>
   `
 })
