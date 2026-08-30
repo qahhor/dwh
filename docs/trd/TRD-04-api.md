@@ -63,11 +63,18 @@
 | `POST /auth/otp` | `{otp_token, code}` | `200 {step: "done"}` + сессионная cookie | `401 otp_invalid`<br>`401 otp_expired`<br>`423 otp_attempts_exceeded`<br>`429 rate_limited` |
 | `POST /auth/otp/resend` | `{otp_token}` | `204 No Content` | `429 otp_rate_limited` |
 | `POST /auth/logout` | — *(требует сессию)* | `204 No Content`, сессия закрыта, cookie очищена | — |
+| `POST /auth/password` | `{old_password, new_password}` *(требует сессию/токен, права формы НЕ требует — Д-7)* | `204 No Content` | `401 invalid_credentials` *(неверный текущий пароль)*<br>`422 password_policy` |
 | `POST /auth/password-reset/request` | `{email}` | **Всегда `204 No Content`** *(не раскрывает наличие email в базе)* | `429 rate_limited` |
 | `POST /auth/password-reset/confirm` | `{code, new_password}` | `204 No Content` *(все активные сессии пользователя закрываются)* | `400 reset_code_invalid`<br>`400 reset_code_expired`<br>`422 password_policy` |
 | `POST /invitations/{code}/accept` | `{password}` | `204 No Content` *(активация аккаунта)* | `400 invite_invalid`<br>`400 invite_expired`<br>`422 password_policy` |
 | `GET /auth/me` | — *(требует сессию/токен)* | `200 {user: {...}, permissions: ["form.action", ...], permissions_version: 12, instance: {code, name, languages, resource_profile}}` — Bootstrap для SPA | `401 unauthorized` |
 
+
+**О `POST /auth/password`.** Смена собственного пароля живёт в контуре аутентификации, а не в
+матрице форм: собственные учётные данные не являются данными экземпляра. Раньше операция
+требовала `iam.profile:update`, из-за чего роль `auditor` не могла сменить себе пароль вовсе
+(дефект Д-7, решение CEO 30.08). Старый путь `POST /iam/users/me/password` сохранён как
+псевдоним того же обработчика — удаление эндпоинта ломающее и требует `/api/v2` (разд. 9).
 ---
 
 ## 4. Спецификация эндпоинтов по модулям
