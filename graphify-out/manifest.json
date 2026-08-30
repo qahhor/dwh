@@ -348,10 +348,10 @@
     "semantic_hash": "1050014383130278b1e8be19b01b0806"
   },
   "apps/instance/src/main/java/com/greenwhite/dwh/instance/kauth/repository/KauthChannelRepository.java": {
-    "mtime": 1787915517.0823405,
-    "seen": 1788008255.2068477,
-    "ast_hash": "619cbf742b84d9259072b544eb7ac0a7",
-    "semantic_hash": "619cbf742b84d9259072b544eb7ac0a7"
+    "mtime": 1788054422.2578123,
+    "seen": 1788055071.0906181,
+    "ast_hash": "08ca9420d7a2af138b3843b38832b849",
+    "semantic_hash": ""
   },
   "apps/instance/src/main/java/com/greenwhite/dwh/instance/kauth/repository/KauthLoginAttemptRepository.java": {
     "mtime": 1787915517.0830712,
@@ -360,10 +360,10 @@
     "semantic_hash": "7b06a2ddb13ce576a23d554569e08a9d"
   },
   "apps/instance/src/main/java/com/greenwhite/dwh/instance/kauth/repository/KauthOtpCodeRepository.java": {
-    "mtime": 1787915517.0834215,
-    "seen": 1788008255.2068477,
-    "ast_hash": "c796330f88b677e47f673b355e0ddf1a",
-    "semantic_hash": "c796330f88b677e47f673b355e0ddf1a"
+    "mtime": 1788054361.0574424,
+    "seen": 1788055071.0906181,
+    "ast_hash": "4fb186d931d5beead920e51a924af916",
+    "semantic_hash": ""
   },
   "apps/instance/src/main/java/com/greenwhite/dwh/instance/kauth/repository/KauthPasswordResetRepository.java": {
     "mtime": 1787915517.0839314,
@@ -402,9 +402,9 @@
     "semantic_hash": "2a86d438a168e15a28cea142515f0068"
   },
   "apps/instance/src/main/java/com/greenwhite/dwh/instance/kauth/service/KauthAuthService.java": {
-    "mtime": 1788014394.4600587,
-    "seen": 1788017905.2839012,
-    "ast_hash": "3fd00a6f12281e49887d1ec461bc7302",
+    "mtime": 1788054456.8507226,
+    "seen": 1788055071.0906181,
+    "ast_hash": "8dea43d4f9fe626d4007f1ca72edac97",
     "semantic_hash": ""
   },
   "apps/instance/src/main/java/com/greenwhite/dwh/instance/kauth/service/KauthPasswordHasher.java": {
@@ -492,8 +492,8 @@
     "semantic_hash": ""
   },
   "apps/instance/src/main/java/com/greenwhite/dwh/instance/md/controller/MdUserController.java": {
-    "mtime": 1788053597.4441736,
-    "seen": 1788054184.3774104,
+    "mtime": 1788054207.2963715,
+    "seen": 1788055071.0906181,
     "ast_hash": "fe0495b548ca73b73ea6d13736fd8c3d",
     "semantic_hash": ""
   },
@@ -876,8 +876,8 @@
     "semantic_hash": ""
   },
   "apps/instance/src/test/java/com/greenwhite/dwh/instance/config/security/SecurityConfigTest.java": {
-    "mtime": 1788053636.3181129,
-    "seen": 1788054184.3774104,
+    "mtime": 1788054207.2973714,
+    "seen": 1788055071.0906181,
     "ast_hash": "abe03edee04789f762456508b8c9308b",
     "semantic_hash": ""
   },
@@ -936,8 +936,8 @@
     "semantic_hash": ""
   },
   "apps/instance/src/test/java/com/greenwhite/dwh/instance/md/RbacSystemRolesIntegrationTest.java": {
-    "mtime": 1788053597.474011,
-    "seen": 1788054184.3774104,
+    "mtime": 1788054207.2973714,
+    "seen": 1788055071.0906181,
     "ast_hash": "af40929e1106a13f162e2429d3e3dd99",
     "semantic_hash": ""
   },
@@ -1398,9 +1398,9 @@
     "semantic_hash": "3e4a7a41cc5267e526d1b531a1a0173c"
   },
   "libs/core-types/src/main/java/com/greenwhite/dwh/core/error/ErrorCode.java": {
-    "mtime": 1788032629.322849,
-    "seen": 1788048563.7091937,
-    "ast_hash": "eaf2dd178eded6171d629cccde730855",
+    "mtime": 1788054361.0574424,
+    "seen": 1788055071.0906181,
+    "ast_hash": "26e155fc03269318256f982da92550b1",
     "semantic_hash": ""
   },
   "libs/core-types/src/main/java/com/greenwhite/dwh/core/error/FieldErrorItem.java": {
@@ -1578,21 +1578,21 @@
     "semantic_hash": "28df271683729e009ea97656dbc032fa"
   },
   "MILESTONES.md": {
-    "mtime": 1788054150.9426763,
-    "seen": 1788054184.3774104,
-    "ast_hash": "54719fdc6900c8facebcec641b006e98",
+    "mtime": 1788055025.721093,
+    "seen": 1788055071.0906181,
+    "ast_hash": "907c787c22ad110305ab0fd504b46828",
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1788054174.47216,
-    "seen": 1788054184.3774104,
-    "ast_hash": "9d223908feea6836eb0fd70699f758ca",
+    "mtime": 1788055054.7482605,
+    "seen": 1788055071.0906181,
+    "ast_hash": "e0210517a7bf9278d5253c1cf049b735",
     "semantic_hash": ""
   },
   "REPORT.md": {
-    "mtime": 1788054169.2204995,
-    "seen": 1788054184.3774104,
-    "ast_hash": "1796352c2f65e679f7c40fb7e5609e17",
+    "mtime": 1788055054.777786,
+    "seen": 1788055071.0906181,
+    "ast_hash": "2879a276edb6b82ab116eeb531dd1f4e",
     "semantic_hash": ""
   },
   "STATS_MAP.md": {
@@ -1878,8 +1878,8 @@
     "semantic_hash": "12c7a24686f9ae20874816e6b258072a"
   },
   "docs/trd/TRD-01-cms.md": {
-    "mtime": 1788054119.2354162,
-    "seen": 1788054184.3774104,
+    "mtime": 1788054207.2983735,
+    "seen": 1788055071.0906181,
     "ast_hash": "d7671a908c16d86c0a1cc5075a91149c",
     "semantic_hash": ""
   },
@@ -1896,9 +1896,9 @@
     "semantic_hash": "2f215c5f2c168e070259ed9fb8dc1baf"
   },
   "docs/trd/TRD-04-api.md": {
-    "mtime": 1788054132.7595,
-    "seen": 1788054184.3774104,
-    "ast_hash": "b41e311c4efc27a62ed05f51cf7bee17",
+    "mtime": 1788055025.7140925,
+    "seen": 1788055071.0906181,
+    "ast_hash": "727a84ba9887e1d1aae5b8241ad799d3",
     "semantic_hash": ""
   },
   "apps/control-plane/src/test/java/com/greenwhite/dwh/cp/CpAuthServiceTest.java": {
@@ -2238,8 +2238,8 @@
     "semantic_hash": ""
   },
   "docs/audit/AUDIT-05-deep-review.md": {
-    "mtime": 1788054150.9359052,
-    "seen": 1788054184.3774104,
+    "mtime": 1788054207.2983735,
+    "seen": 1788055071.0906181,
     "ast_hash": "a14a353d45f11977eb81596c02e58520",
     "semantic_hash": ""
   },
@@ -2292,9 +2292,45 @@
     "semantic_hash": ""
   },
   "apps/instance/src/main/java/com/greenwhite/dwh/instance/kauth/controller/KauthPasswordController.java": {
-    "mtime": 1788053583.7414808,
-    "seen": 1788054184.3774104,
-    "ast_hash": "cbfa867aad045ea88ec1a1c2bff3e651",
+    "mtime": 1788054207.2963715,
+    "seen": 1788055071.0906181,
+    "ast_hash": "1de8b116660efba531e298b1fb8fe2f4",
+    "semantic_hash": ""
+  },
+  "apps/instance/src/main/java/com/greenwhite/dwh/instance/kauth/controller/KauthChannelController.java": {
+    "mtime": 1788054436.0797312,
+    "seen": 1788055071.0906181,
+    "ast_hash": "7e6aa213e9e90e97d396a3d9ff227a1b",
+    "semantic_hash": ""
+  },
+  "apps/instance/src/main/java/com/greenwhite/dwh/instance/kauth/service/KauthChannelService.java": {
+    "mtime": 1788054416.4146466,
+    "seen": 1788055071.0906181,
+    "ast_hash": "e40a970e2dacd3811104540ee609bb76",
+    "semantic_hash": ""
+  },
+  "apps/instance/src/main/java/com/greenwhite/dwh/instance/kauth/service/KauthOtpSender.java": {
+    "mtime": 1788054501.6303432,
+    "seen": 1788055071.0906181,
+    "ast_hash": "fe20212d3c9ef69fc1a839ea6b0f3f9e",
+    "semantic_hash": ""
+  },
+  "apps/instance/src/main/resources/db/migration/V015__otp_token_binding.sql": {
+    "mtime": 1788054343.6491725,
+    "seen": 1788055071.0906181,
+    "ast_hash": "6b28cbf4d4b1ccae60cdee23a7729e3a",
+    "semantic_hash": ""
+  },
+  "apps/instance/src/test/java/com/greenwhite/dwh/instance/kauth/KauthOtpLoginIntegrationTest.java": {
+    "mtime": 1788054609.082671,
+    "seen": 1788055071.0906181,
+    "ast_hash": "d7e8ea52cbb5889b155dfbad3dc15b51",
+    "semantic_hash": ""
+  },
+  "docs/audit/AUDIT-06-m3-auth-review.md": {
+    "mtime": 1788055004.4697075,
+    "seen": 1788055071.0906181,
+    "ast_hash": "244bf909fcb366777304c8041497a284",
     "semantic_hash": ""
   }
 }
