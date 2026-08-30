@@ -25,51 +25,71 @@ import { UiButtonComponent } from '../../shared/ui/ui-button.component';
           <span class="view-subtitle">{{ 'settings.subtitle' | t }}</span>
         </div>
         <div class="header-actions">
-          <button class="icon-refresh-btn" (click)="loadAllSettings()" title="{{ 'common.refresh' | t }}">
-            <span class="material-symbols-outlined">refresh</span>
+          <button type="button" class="icon-refresh-btn" [attr.aria-label]="'common.refresh' | t" (click)="loadAllSettings()" title="{{ 'common.refresh' | t }}">
+            <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
           </button>
         </div>
       </div>
 
       <!-- Tabs Navigation -->
       <div class="tabs-nav-bar">
-        <div class="tab-buttons">
+        <div class="tab-buttons" role="tablist" aria-label="Разделы настроек">
           <button
             *ngIf="canManageSystemSettings()"
+            id="settings-general-tab"
+            type="button"
+            role="tab"
             class="nav-tab-btn"
             [class.active]="activeTab === 'general'"
+            [attr.aria-selected]="activeTab === 'general'"
+            aria-controls="settings-general-panel"
             (click)="activeTab = 'general'"
           >
-            <span class="material-symbols-outlined">tune</span>
+            <span class="material-symbols-outlined" aria-hidden="true">tune</span>
             {{ 'settings.tab.general' | t }}
           </button>
 
           <button
             *ngIf="canManageSystemSettings()"
+            id="settings-security-tab"
+            type="button"
+            role="tab"
             class="nav-tab-btn"
             [class.active]="activeTab === 'security'"
+            [attr.aria-selected]="activeTab === 'security'"
+            aria-controls="settings-security-panel"
             (click)="activeTab = 'security'"
           >
-            <span class="material-symbols-outlined">security</span>
+            <span class="material-symbols-outlined" aria-hidden="true">security</span>
             {{ 'settings.tab.security' | t }}
           </button>
 
           <button
             *ngIf="canManageSystemSettings()"
+            id="settings-storage-tab"
+            type="button"
+            role="tab"
             class="nav-tab-btn"
             [class.active]="activeTab === 'storage'"
+            [attr.aria-selected]="activeTab === 'storage'"
+            aria-controls="settings-storage-panel"
             (click)="activeTab = 'storage'"
           >
-            <span class="material-symbols-outlined">cloud</span>
+            <span class="material-symbols-outlined" aria-hidden="true">cloud</span>
             {{ 'settings.tab.storage' | t }}
           </button>
 
           <button
+            id="settings-preferences-tab"
+            type="button"
+            role="tab"
             class="nav-tab-btn"
             [class.active]="activeTab === 'preferences'"
+            [attr.aria-selected]="activeTab === 'preferences'"
+            aria-controls="settings-preferences-panel"
             (click)="activeTab = 'preferences'"
           >
-            <span class="material-symbols-outlined">person</span>
+            <span class="material-symbols-outlined" aria-hidden="true">person</span>
             {{ 'settings.tab.preferences' | t }}
           </button>
         </div>
@@ -78,11 +98,11 @@ import { UiButtonComponent } from '../../shared/ui/ui-button.component';
       <!-- =================================================================== -->
       <!-- TAB 1: GENERAL SYSTEM SETTINGS -->
       <!-- =================================================================== -->
-      <div class="tab-content" *ngIf="activeTab === 'general' && canManageSystemSettings()">
+      <div id="settings-general-panel" class="tab-content" role="tabpanel" aria-labelledby="settings-general-tab" *ngIf="activeTab === 'general' && canManageSystemSettings()">
         <div class="settings-card">
           <div class="card-header-bar">
             <div class="card-title-group">
-              <span class="material-symbols-outlined card-icon">corporate_fare</span>
+              <span class="material-symbols-outlined card-icon" aria-hidden="true">corporate_fare</span>
               <div>
                 <h3 class="card-title">Конфигурация компании</h3>
                 <p class="card-desc">Глобальные параметры для всех сотрудников организации</p>
@@ -92,8 +112,10 @@ import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 
           <div class="form-grid">
             <div class="form-group full-width">
-              <label class="form-label">{{ 'settings.company_name' | t }}</label>
+              <label class="form-label" for="settings-company-name">{{ 'settings.company_name' | t }}</label>
               <input
+                id="settings-company-name"
+                name="settingsCompanyName"
                 type="text"
                 class="form-input"
                 [(ngModel)]="systemSettings['system.company_name']"
@@ -102,8 +124,8 @@ import { UiButtonComponent } from '../../shared/ui/ui-button.component';
             </div>
 
             <div class="form-group">
-              <label class="form-label">{{ 'settings.default_language' | t }}</label>
-              <select class="form-select" [(ngModel)]="systemSettings['system.default_language']">
+              <label class="form-label" for="settings-default-language">{{ 'settings.default_language' | t }}</label>
+              <select id="settings-default-language" name="settingsDefaultLanguage" class="form-select" [(ngModel)]="systemSettings['system.default_language']">
                 <option value="ru">Русский (RU) 🇷🇺</option>
                 <option value="uz">O'zbekcha (UZ) 🇺🇿</option>
                 <option value="en">English (EN) 🇬🇧</option>
@@ -111,8 +133,8 @@ import { UiButtonComponent } from '../../shared/ui/ui-button.component';
             </div>
 
             <div class="form-group">
-              <label class="form-label">{{ 'settings.default_timezone' | t }}</label>
-              <select class="form-select" [(ngModel)]="systemSettings['system.default_timezone']">
+              <label class="form-label" for="settings-default-timezone">{{ 'settings.default_timezone' | t }}</label>
+              <select id="settings-default-timezone" name="settingsDefaultTimezone" class="form-select" [(ngModel)]="systemSettings['system.default_timezone']">
                 <option value="Asia/Tashkent">Asia/Tashkent (UTC+5)</option>
                 <option value="Asia/Almaty">Asia/Almaty (UTC+5)</option>
                 <option value="Europe/Moscow">Europe/Moscow (UTC+3)</option>
@@ -121,8 +143,8 @@ import { UiButtonComponent } from '../../shared/ui/ui-button.component';
             </div>
 
             <div class="form-group">
-              <label class="form-label">{{ 'settings.date_format' | t }}</label>
-              <select class="form-select" [(ngModel)]="systemSettings['system.date_format']">
+              <label class="form-label" for="settings-date-format">{{ 'settings.date_format' | t }}</label>
+              <select id="settings-date-format" name="settingsDateFormat" class="form-select" [(ngModel)]="systemSettings['system.date_format']">
                 <option value="dd.MM.yyyy HH:mm">29.08.2026 14:30 (dd.MM.yyyy HH:mm)</option>
                 <option value="yyyy-MM-dd HH:mm">2026-08-29 14:30 (yyyy-MM-dd HH:mm)</option>
                 <option value="MM/dd/yyyy hh:mm a">08/29/2026 02:30 PM (MM/dd/yyyy)</option>
@@ -131,7 +153,7 @@ import { UiButtonComponent } from '../../shared/ui/ui-button.component';
           </div>
 
           <div class="card-footer-actions">
-            <ui-button [loading]="isSaving()" (click)="saveSystemSettings()">
+            <ui-button [loading]="isSaving()" (onClick)="saveSystemSettings()">
               {{ 'common.save' | t }}
             </ui-button>
           </div>
@@ -141,11 +163,11 @@ import { UiButtonComponent } from '../../shared/ui/ui-button.component';
       <!-- =================================================================== -->
       <!-- TAB 2: SECURITY POLICIES -->
       <!-- =================================================================== -->
-      <div class="tab-content" *ngIf="activeTab === 'security' && canManageSystemSettings()">
+      <div id="settings-security-panel" class="tab-content" role="tabpanel" aria-labelledby="settings-security-tab" *ngIf="activeTab === 'security' && canManageSystemSettings()">
         <div class="settings-card">
           <div class="card-header-bar">
             <div class="card-title-group">
-              <span class="material-symbols-outlined card-icon">lock</span>
+              <span class="material-symbols-outlined card-icon" aria-hidden="true">lock</span>
               <div>
                 <h3 class="card-title">Политики безопасности и авторизации</h3>
                 <p class="card-desc">Требования к паролям, 2FA и веб-сессиям</p>
@@ -155,49 +177,58 @@ import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 
           <div class="form-grid">
             <div class="form-group">
-              <label class="form-label">{{ 'settings.min_password_len' | t }}</label>
+              <label class="form-label" for="settings-password-length">{{ 'settings.min_password_len' | t }}</label>
               <input
+                id="settings-password-length"
+                name="settingsPasswordLength"
                 type="number"
                 min="8"
                 max="32"
                 class="form-input"
+                aria-describedby="settings-password-length-hint"
                 [(ngModel)]="systemSettings['security.min_password_length']"
               />
-              <span class="hint-text">Рекомендуется не менее 10 символов</span>
+              <span id="settings-password-length-hint" class="hint-text">Рекомендуется не менее 10 символов</span>
             </div>
 
             <div class="form-group">
-              <label class="form-label">{{ 'settings.session_lifetime' | t }}</label>
+              <label class="form-label" for="settings-session-lifetime">{{ 'settings.session_lifetime' | t }}</label>
               <input
+                id="settings-session-lifetime"
+                name="settingsSessionLifetime"
                 type="number"
                 min="1"
                 max="8760"
                 class="form-input"
+                aria-describedby="settings-session-lifetime-hint"
                 [(ngModel)]="systemSettings['security.session_lifetime_hours']"
               />
-              <span class="hint-text">По умолчанию: 720 часов (30 дней)</span>
+              <span id="settings-session-lifetime-hint" class="hint-text">По умолчанию: 720 часов (30 дней)</span>
             </div>
 
             <div class="form-group full-width">
               <div class="toggle-row">
                 <div class="toggle-info">
-                  <span class="toggle-title">{{ 'settings.require_2fa' | t }}</span>
+                  <span id="settings-require-2fa-label" class="toggle-title">{{ 'settings.require_2fa' | t }}</span>
                   <span class="toggle-desc">Принудительно требовать двухфакторную аутентификацию (OTP) для всех аккаунтов</span>
                 </div>
                 <label class="switch-toggle">
                   <input
+                    id="settings-require-2fa"
+                    name="settingsRequire2fa"
                     type="checkbox"
+                    aria-labelledby="settings-require-2fa-label"
                     [checked]="systemSettings['security.require_2fa'] === 'true'"
                     (change)="toggleRequire2fa($event)"
                   />
-                  <span class="toggle-slider"></span>
+                  <span class="toggle-slider" aria-hidden="true"></span>
                 </label>
               </div>
             </div>
           </div>
 
           <div class="card-footer-actions">
-            <ui-button [loading]="isSaving()" (click)="saveSystemSettings()">
+            <ui-button [loading]="isSaving()" (onClick)="saveSystemSettings()">
               {{ 'common.save' | t }}
             </ui-button>
           </div>
@@ -207,11 +238,11 @@ import { UiButtonComponent } from '../../shared/ui/ui-button.component';
       <!-- =================================================================== -->
       <!-- TAB 3: STORAGE QUOTAS -->
       <!-- =================================================================== -->
-      <div class="tab-content" *ngIf="activeTab === 'storage' && canManageSystemSettings()">
+      <div id="settings-storage-panel" class="tab-content" role="tabpanel" aria-labelledby="settings-storage-tab" *ngIf="activeTab === 'storage' && canManageSystemSettings()">
         <div class="settings-card">
           <div class="card-header-bar">
             <div class="card-title-group">
-              <span class="material-symbols-outlined card-icon">folder_shared</span>
+              <span class="material-symbols-outlined card-icon" aria-hidden="true">folder_shared</span>
               <div>
                 <h3 class="card-title">Параметры хранилища и квоты</h3>
                 <p class="card-desc">Лимиты дискового пространства для новых сотрудников</p>
@@ -221,20 +252,23 @@ import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 
           <div class="form-grid">
             <div class="form-group">
-              <label class="form-label">{{ 'settings.default_user_quota' | t }}</label>
+              <label class="form-label" for="settings-user-quota">{{ 'settings.default_user_quota' | t }}</label>
               <input
+                id="settings-user-quota"
+                name="settingsUserQuota"
                 type="number"
                 min="100"
                 max="102400"
                 class="form-input"
+                aria-describedby="settings-user-quota-hint"
                 [(ngModel)]="systemSettings['storage.default_user_quota_mb']"
               />
-              <span class="hint-text">1024 MB = 1 GB на каждого сотрудника</span>
+              <span id="settings-user-quota-hint" class="hint-text">1024 MB = 1 GB на каждого сотрудника</span>
             </div>
           </div>
 
           <div class="card-footer-actions">
-            <ui-button [loading]="isSaving()" (click)="saveSystemSettings()">
+            <ui-button [loading]="isSaving()" (onClick)="saveSystemSettings()">
               {{ 'common.save' | t }}
             </ui-button>
           </div>
@@ -244,11 +278,11 @@ import { UiButtonComponent } from '../../shared/ui/ui-button.component';
       <!-- =================================================================== -->
       <!-- TAB 4: USER PREFERENCES -->
       <!-- =================================================================== -->
-      <div class="tab-content" *ngIf="activeTab === 'preferences'">
+      <div id="settings-preferences-panel" class="tab-content" role="tabpanel" aria-labelledby="settings-preferences-tab" *ngIf="activeTab === 'preferences'">
         <div class="settings-card">
           <div class="card-header-bar">
             <div class="card-title-group">
-              <span class="material-symbols-outlined card-icon">palette</span>
+              <span class="material-symbols-outlined card-icon" aria-hidden="true">palette</span>
               <div>
                 <h3 class="card-title">Персональные предпочтения</h3>
                 <p class="card-desc">Настройки внешнего вида и языка для вашей учётной записи</p>
@@ -258,8 +292,8 @@ import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 
           <div class="form-grid">
             <div class="form-group">
-              <label class="form-label">Язык интерфейса</label>
-              <select class="form-select" [ngModel]="i18n.currentLang()" (ngModelChange)="changePersonalLang($event)">
+              <label class="form-label" for="settings-interface-language">Язык интерфейса</label>
+              <select id="settings-interface-language" name="settingsInterfaceLanguage" class="form-select" [ngModel]="i18n.currentLang()" (ngModelChange)="changePersonalLang($event)">
                 <option value="ru">Русский (RU) 🇷🇺</option>
                 <option value="uz">O'zbekcha (UZ) 🇺🇿</option>
                 <option value="en">English (EN) 🇬🇧</option>
@@ -267,8 +301,8 @@ import { UiButtonComponent } from '../../shared/ui/ui-button.component';
             </div>
 
             <div class="form-group">
-              <label class="form-label">{{ 'settings.theme' | t }}</label>
-              <select class="form-select" [(ngModel)]="userSettings['user.theme']">
+              <label class="form-label" for="settings-theme">{{ 'settings.theme' | t }}</label>
+              <select id="settings-theme" name="settingsTheme" class="form-select" [(ngModel)]="userSettings['user.theme']">
                 <option value="dark">Тёмная (Dark Premium) 🌙</option>
                 <option value="light">Светлая (Light Clean) ☀️</option>
                 <option value="system">Системная тема 💻</option>
@@ -278,23 +312,26 @@ import { UiButtonComponent } from '../../shared/ui/ui-button.component';
             <div class="form-group full-width">
               <div class="toggle-row">
                 <div class="toggle-info">
-                  <span class="toggle-title">{{ 'settings.notifications_sound' | t }}</span>
+                  <span id="settings-notification-sound-label" class="toggle-title">{{ 'settings.notifications_sound' | t }}</span>
                   <span class="toggle-desc">Воспроизводить звуковой сигнал при получении нового уведомления</span>
                 </div>
                 <label class="switch-toggle">
                   <input
+                    id="settings-notification-sound"
+                    name="settingsNotificationSound"
                     type="checkbox"
+                    aria-labelledby="settings-notification-sound-label"
                     [checked]="userSettings['user.notifications_sound'] !== 'false'"
                     (change)="toggleSound($event)"
                   />
-                  <span class="toggle-slider"></span>
+                  <span class="toggle-slider" aria-hidden="true"></span>
                 </label>
               </div>
             </div>
           </div>
 
           <div class="card-footer-actions">
-            <ui-button [loading]="isSaving()" (click)="saveUserSettings()">
+            <ui-button [loading]="isSaving()" (onClick)="saveUserSettings()">
               {{ 'common.save' | t }}
             </ui-button>
           </div>

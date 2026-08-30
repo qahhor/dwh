@@ -34,7 +34,7 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
               {{ user.state === 'A' ? 'Активен' : 'Заблокирован' }}
             </ui-badge>
             <ui-badge *ngIf="user.is2faEnabled" variant="active">
-              <span class="material-symbols-outlined badge-icon">verified_user</span> 2FA Включена
+              <span class="material-symbols-outlined badge-icon" aria-hidden="true">verified_user</span> 2FA Включена
             </ui-badge>
           </div>
           <div class="user-info-grid">
@@ -64,52 +64,70 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
         <div class="card section-card">
           <div class="section-header">
             <div class="section-title-box">
-              <span class="material-symbols-outlined section-icon">lock_reset</span>
+              <span class="material-symbols-outlined section-icon" aria-hidden="true">lock_reset</span>
               <h4 class="section-title">Смена пароля</h4>
             </div>
           </div>
 
           <form class="password-form" (submit)="submitChangePassword($event)">
             <div class="form-group">
-              <label class="form-label">Текущий пароль <span class="req">*</span></label>
+              <label class="form-label" for="profile-current-password">Текущий пароль <span class="req">*</span></label>
               <input
+                id="profile-current-password"
                 type="password"
                 class="form-input font-mono"
+                autocomplete="current-password"
                 [(ngModel)]="passwordForm.oldPassword"
                 name="oldPassword"
+                [attr.aria-invalid]="isPasswordSubmitted && !passwordForm.oldPassword"
+                [attr.aria-describedby]="isPasswordSubmitted && !passwordForm.oldPassword ? 'profile-current-password-error' : null"
                 placeholder="Введите текущий пароль"
                 required
               />
+              <span id="profile-current-password-error" class="field-error" *ngIf="isPasswordSubmitted && !passwordForm.oldPassword">Введите текущий пароль</span>
             </div>
 
             <div class="form-group">
-              <label class="form-label">Новый пароль <span class="req">*</span></label>
+              <label class="form-label" for="profile-new-password">Новый пароль <span class="req">*</span></label>
               <div class="password-input-box">
                 <input
+                  id="profile-new-password"
                   [type]="showNewPassword() ? 'text' : 'password'"
                   class="form-input font-mono"
+                  autocomplete="new-password"
+                  minlength="10"
                   [(ngModel)]="passwordForm.newPassword"
                   name="newPassword"
+                  [attr.aria-invalid]="isPasswordSubmitted && passwordForm.newPassword.length < 10"
+                  [attr.aria-describedby]="isPasswordSubmitted && passwordForm.newPassword.length < 10 ? 'profile-new-password-hint profile-new-password-error' : 'profile-new-password-hint'"
                   placeholder="Минимум 10 символов"
                   required
                 />
-                <button type="button" class="pwd-toggle-btn" (click)="showNewPassword.update(v => !v)">
-                  <span class="material-symbols-outlined">{{ showNewPassword() ? 'visibility_off' : 'visibility' }}</span>
+                <button type="button" class="pwd-toggle-btn" [attr.aria-label]="showNewPassword() ? 'Скрыть новый пароль' : 'Показать новый пароль'" [attr.aria-pressed]="showNewPassword()" (click)="showNewPassword.update(v => !v)">
+                  <span class="material-symbols-outlined" aria-hidden="true">{{ showNewPassword() ? 'visibility_off' : 'visibility' }}</span>
                 </button>
               </div>
-              <span class="field-hint">Минимум 10 символов, не из черного списка и не совпадает с логином</span>
+              <span id="profile-new-password-hint" class="field-hint">Минимум 10 символов, не из черного списка и не совпадает с логином</span>
+              <span id="profile-new-password-error" class="field-error" *ngIf="isPasswordSubmitted && passwordForm.newPassword.length < 10">Пароль должен содержать не менее 10 символов</span>
             </div>
 
             <div class="form-group">
-              <label class="form-label">Подтверждение нового пароля <span class="req">*</span></label>
+              <label class="form-label" for="profile-confirm-password">Подтверждение нового пароля <span class="req">*</span></label>
               <input
+                id="profile-confirm-password"
                 type="password"
                 class="form-input font-mono"
+                autocomplete="new-password"
                 [(ngModel)]="passwordForm.confirmPassword"
                 name="confirmPassword"
+                [attr.aria-invalid]="isPasswordSubmitted && (!passwordForm.confirmPassword || passwordForm.newPassword !== passwordForm.confirmPassword)"
+                [attr.aria-describedby]="isPasswordSubmitted && (!passwordForm.confirmPassword || passwordForm.newPassword !== passwordForm.confirmPassword) ? 'profile-confirm-password-error' : null"
                 placeholder="Повторите новый пароль"
                 required
               />
+              <span id="profile-confirm-password-error" class="field-error" *ngIf="isPasswordSubmitted && (!passwordForm.confirmPassword || passwordForm.newPassword !== passwordForm.confirmPassword)">
+                {{ !passwordForm.confirmPassword ? 'Подтвердите новый пароль' : 'Пароли не совпадают' }}
+              </span>
             </div>
 
             <div class="form-actions">
@@ -124,14 +142,14 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
         <div class="card section-card">
           <div class="section-header">
             <div class="section-title-box">
-              <span class="material-symbols-outlined section-icon">security</span>
+              <span class="material-symbols-outlined section-icon" aria-hidden="true">security</span>
               <h4 class="section-title">Безопасность и 2FA</h4>
             </div>
           </div>
 
           <div class="security-info-box">
             <div class="twofa-status-banner" [class.enabled]="authService.currentUser()?.is2faEnabled">
-              <span class="material-symbols-outlined twofa-big-icon">
+              <span class="material-symbols-outlined twofa-big-icon" aria-hidden="true">
                 {{ authService.currentUser()?.is2faEnabled ? 'verified_user' : 'gpp_maybe' }}
               </span>
               <div class="twofa-status-text">
@@ -148,11 +166,11 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
 
             <div class="security-tips">
               <div class="tip-item">
-                <span class="material-symbols-outlined tip-icon">check_circle</span>
+                <span class="material-symbols-outlined tip-icon" aria-hidden="true">check_circle</span>
                 <span>Защита от подбора паролей: 5 неверных попыток блокируют вход на 10 минут.</span>
               </div>
               <div class="tip-item">
-                <span class="material-symbols-outlined tip-icon">check_circle</span>
+                <span class="material-symbols-outlined tip-icon" aria-hidden="true">check_circle</span>
                 <span>Сессии автоматически закрываются при бездействии более 12 часов.</span>
               </div>
             </div>
@@ -163,7 +181,7 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
         <div class="card section-card full-width">
           <div class="section-header">
             <div class="section-title-box">
-              <span class="material-symbols-outlined section-icon">devices</span>
+              <span class="material-symbols-outlined section-icon" aria-hidden="true">devices</span>
               <h4 class="section-title">Активные сессии</h4>
               <span class="badge-count">{{ sessions().length }}</span>
             </div>
@@ -174,7 +192,7 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
                 size="sm"
                 icon="logout"
                 title="Завершить все остальные сессии кроме текущей"
-                (onClick)="terminateOtherSessions()"
+                (onClick)="requestTerminateOtherSessions()"
               >
                 Завершить другие сессии
               </ui-button>
@@ -184,8 +202,8 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
             </div>
           </div>
 
-          <div class="table-wrapper">
-            <table class="data-table">
+          <div class="table-wrapper" role="region" aria-label="Таблица активных сессий" tabindex="0">
+            <table class="data-table" aria-label="Активные сессии">
               <thead>
                 <tr>
                   <th>IP Адрес</th>
@@ -202,7 +220,7 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
                   <td class="tabular-nums text-muted">{{ s.createdAt | date:'dd.MM.yyyy HH:mm' }}</td>
                   <td class="tabular-nums font-medium">{{ s.lastSeenAt | date:'dd.MM.yyyy HH:mm:ss' }}</td>
                   <td class="text-right">
-                    <ui-button variant="danger" size="sm" (onClick)="terminateSession(s.id)">Завершить</ui-button>
+                    <ui-button variant="danger" size="sm" [ariaLabel]="'Завершить сессию с IP ' + s.ip" (onClick)="requestTerminateSession(s)">Завершить</ui-button>
                   </td>
                 </tr>
                 <tr *ngIf="sessions().length === 0">
@@ -217,15 +235,15 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
         <div class="card section-card full-width">
           <div class="section-header">
             <div class="section-title-box">
-              <span class="material-symbols-outlined section-icon">key</span>
+              <span class="material-symbols-outlined section-icon" aria-hidden="true">key</span>
               <h4 class="section-title">API Токены доступа (Bearer Tokens)</h4>
               <span class="badge-count">{{ tokens().length }}</span>
             </div>
             <ui-button variant="primary" size="sm" icon="add" (onClick)="openCreateTokenModal()">Выпустить токен</ui-button>
           </div>
 
-          <div class="table-wrapper">
-            <table class="data-table">
+          <div class="table-wrapper" role="region" aria-label="Таблица API-токенов" tabindex="0">
+            <table class="data-table" aria-label="API-токены">
               <thead>
                 <tr>
                   <th>Название токена</th>
@@ -242,7 +260,7 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
                   <td class="tabular-nums text-muted">{{ t.createdAt | date:'dd.MM.yyyy' }}</td>
                   <td class="tabular-nums">{{ t.expiresAt ? (t.expiresAt | date:'dd.MM.yyyy') : 'Бессрочно' }}</td>
                   <td class="text-right">
-                    <ui-button variant="danger" size="sm" icon="delete" (onClick)="revokeToken(t.id)">Отозвать</ui-button>
+                    <ui-button variant="danger" size="sm" icon="delete" [ariaLabel]="'Отозвать API-токен ' + t.name" (onClick)="requestRevokeToken(t)">Отозвать</ui-button>
                   </td>
                 </tr>
                 <tr *ngIf="tokens().length === 0">
@@ -264,8 +282,12 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
     >
       <div body class="token-form">
         <div class="form-group">
-          <label class="form-label">Название токена <span class="req">*</span></label>
-          <input type="text" class="form-input" [(ngModel)]="newTokenName" placeholder="Например: CI/CD Deployer / Kafka Sync" />
+          <label class="form-label" for="profile-token-name">Название токена <span class="req">*</span></label>
+          <input id="profile-token-name" name="profileTokenName" type="text" class="form-input" required
+            [attr.aria-invalid]="isTokenSubmitted && !newTokenName.trim()"
+            [attr.aria-describedby]="isTokenSubmitted && !newTokenName.trim() ? 'profile-token-name-error' : null"
+            [(ngModel)]="newTokenName" placeholder="Например: CI/CD Deployer / Kafka Sync" />
+          <span id="profile-token-name-error" class="field-error" *ngIf="isTokenSubmitted && !newTokenName.trim()">Введите название API-токена</span>
         </div>
       </div>
       <div footer>
@@ -284,7 +306,7 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
     >
       <div body class="secret-reveal-body">
         <div class="warning-box">
-          <span class="material-symbols-outlined">warning</span>
+          <span class="material-symbols-outlined" aria-hidden="true">warning</span>
           <p>Скопируйте и сохраните токен сейчас. В целях безопасности он больше никогда не будет показан!</p>
         </div>
         <div class="token-secret-box">
@@ -292,6 +314,41 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
           <ui-button variant="secondary" size="sm" icon="content_copy" (onClick)="copySecret()">Скопировать</ui-button>
         </div>
         <ui-button variant="primary" size="md" class="mt-4" (onClick)="isTokenSecretModalOpen.set(false)">Я сохранил токен</ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- Session Termination Confirmation -->
+    <ui-modal
+      [isOpen]="sessionToTerminate !== null"
+      title="Завершение сессии"
+      size="sm"
+      (close)="sessionToTerminate = null"
+    >
+      <div body class="confirmation-body" *ngIf="sessionToTerminate as target">
+        <p *ngIf="target === 'others'">Завершить все остальные активные сессии, кроме текущей?</p>
+        <p *ngIf="target !== 'others'">Завершить сессию с IP <strong>{{ target.ip }}</strong>?</p>
+        <span class="confirmation-hint">На завершённых устройствах потребуется выполнить вход заново.</span>
+      </div>
+      <div footer>
+        <ui-button variant="secondary" size="md" (onClick)="sessionToTerminate = null">Отмена</ui-button>
+        <ui-button variant="danger" size="md" (onClick)="confirmTerminateSession()">Завершить</ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- Token Revocation Confirmation -->
+    <ui-modal
+      [isOpen]="tokenToRevoke !== null"
+      title="Отзыв API-токена"
+      size="sm"
+      (close)="tokenToRevoke = null"
+    >
+      <div body class="confirmation-body" *ngIf="tokenToRevoke as token">
+        <p>Отозвать API-токен <strong>{{ token.name }}</strong>?</p>
+        <span class="confirmation-hint">Интеграции с этим токеном немедленно потеряют доступ. Действие необратимо.</span>
+      </div>
+      <div footer>
+        <ui-button variant="secondary" size="md" (onClick)="tokenToRevoke = null">Отмена</ui-button>
+        <ui-button variant="danger" size="md" (onClick)="confirmRevokeToken()">Отозвать</ui-button>
       </div>
     </ui-modal>
   `,
@@ -457,6 +514,7 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
       font-size: 11px;
       color: var(--text-muted);
     }
+    .field-error { font-size: 11px; color: var(--danger); }
 
     .form-input {
       height: 36px;
@@ -620,6 +678,9 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
     }
 
     .mt-4 { margin-top: 16px; }
+    .confirmation-body { display: flex; flex-direction: column; gap: 8px; }
+    .confirmation-body p { margin: 0; }
+    .confirmation-hint { color: var(--text-muted); font-size: 12px; }
   `]
 })
 export class ProfileComponent implements OnInit {
@@ -630,9 +691,13 @@ export class ProfileComponent implements OnInit {
   readonly isTokenSecretModalOpen = signal<boolean>(false);
   readonly showNewPassword = signal<boolean>(false);
   readonly isChangingPassword = signal<boolean>(false);
+  isPasswordSubmitted = false;
+  isTokenSubmitted = false;
 
   newTokenName = '';
   createdTokenSecret = '';
+  sessionToTerminate: UserSession | 'others' | null = null;
+  tokenToRevoke: ApiToken | null = null;
 
   passwordForm = {
     oldPassword: '',
@@ -657,17 +722,22 @@ export class ProfileComponent implements OnInit {
     });
   }
 
-  terminateSession(id: number) {
-    this.api.delete(`/iam/profile/sessions/${id}`).subscribe(() => {
-      this.toast.success('Сессия успешно завершена');
-      this.loadSessions();
-    });
+  requestTerminateSession(session: UserSession) {
+    this.sessionToTerminate = session;
   }
 
-  terminateOtherSessions() {
-    if (confirm('Вы действительно хотите завершить все остальные активные сессии кроме текущей?')) {
+  requestTerminateOtherSessions() {
+    this.sessionToTerminate = 'others';
+  }
+
+  confirmTerminateSession() {
+    const target = this.sessionToTerminate;
+    if (!target) return;
+
+    if (target === 'others') {
       this.api.delete('/iam/profile/sessions/others').subscribe({
         next: () => {
+          this.sessionToTerminate = null;
           this.toast.success('Все остальные сессии успешно завершены');
           this.loadSessions();
         },
@@ -675,11 +745,24 @@ export class ProfileComponent implements OnInit {
           this.toast.error(err?.error?.detail || 'Ошибка при завершении сессий');
         }
       });
+      return;
     }
+
+    this.api.delete(`/iam/profile/sessions/${target.id}`).subscribe({
+      next: () => {
+        this.sessionToTerminate = null;
+        this.toast.success('Сессия успешно завершена');
+        this.loadSessions();
+      },
+      error: (err: any) => {
+        this.toast.error(err?.error?.detail || 'Ошибка при завершении сессии');
+      }
+    });
   }
 
   submitChangePassword(event: Event) {
     event.preventDefault();
+    this.isPasswordSubmitted = true;
 
     if (!this.passwordForm.oldPassword || !this.passwordForm.newPassword || !this.passwordForm.confirmPassword) {
       this.toast.warning('Заполните все поля смены пароля');
@@ -705,6 +788,7 @@ export class ProfileComponent implements OnInit {
         this.isChangingPassword.set(false);
         this.toast.success('Пароль успешно изменён');
         this.passwordForm = { oldPassword: '', newPassword: '', confirmPassword: '' };
+        this.isPasswordSubmitted = false;
       },
       error: (err: any) => {
         this.isChangingPassword.set(false);
@@ -721,10 +805,12 @@ export class ProfileComponent implements OnInit {
 
   openCreateTokenModal() {
     this.newTokenName = '';
+    this.isTokenSubmitted = false;
     this.isCreateTokenModalOpen.set(true);
   }
 
   createTokenSubmit() {
+    this.isTokenSubmitted = true;
     if (!this.newTokenName.trim()) {
       this.toast.warning('Введите название API токена');
       return;
@@ -733,6 +819,7 @@ export class ProfileComponent implements OnInit {
     this.api.post<CreatedTokenResponse>('/iam/profile/tokens', { name: this.newTokenName.trim() }).subscribe({
       next: res => {
         this.isCreateTokenModalOpen.set(false);
+        this.isTokenSubmitted = false;
         this.createdTokenSecret = res.rawSecretToken;
         this.isTokenSecretModalOpen.set(true);
         this.loadTokens();
@@ -743,18 +830,23 @@ export class ProfileComponent implements OnInit {
     });
   }
 
-  revokeToken(id: number) {
-    if (confirm('Вы действительно хотите отозвать данный API токен? Это действие необратимо.')) {
-      this.api.delete(`/iam/profile/tokens/${id}`).subscribe({
-        next: () => {
-          this.toast.success('Токен успешно отозван');
-          this.loadTokens();
-        },
-        error: (err: any) => {
-          this.toast.error(err?.error?.detail || 'Ошибка при отзыве токена');
-        }
-      });
-    }
+  requestRevokeToken(token: ApiToken) {
+    this.tokenToRevoke = token;
+  }
+
+  confirmRevokeToken() {
+    if (!this.tokenToRevoke) return;
+    const token = this.tokenToRevoke;
+    this.api.delete(`/iam/profile/tokens/${token.id}`).subscribe({
+      next: () => {
+        this.tokenToRevoke = null;
+        this.toast.success('Токен успешно отозван');
+        this.loadTokens();
+      },
+      error: (err: any) => {
+        this.toast.error(err?.error?.detail || 'Ошибка при отзыве токена');
+      }
+    });
   }
 
   copySecret() {
