@@ -4,6 +4,7 @@ import com.greenwhite.dwh.instance.common.annotation.RequiresPermission;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.annotation.Profile;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
@@ -29,6 +30,7 @@ import java.util.TreeSet;
  * права, а временное переименование эндпоинта молча лишило бы людей доступа.
  */
 @Component
+@Profile("!migrate")
 public class MdFormCatalogSynchronizer {
 
     private static final Logger log = LoggerFactory.getLogger(MdFormCatalogSynchronizer.class);

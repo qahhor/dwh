@@ -2250,9 +2250,9 @@
     "semantic_hash": ""
   },
   "apps/instance/src/main/java/com/greenwhite/dwh/instance/md/service/MdFormCatalogSynchronizer.java": {
-    "mtime": 1788048620.5835936,
-    "seen": 1788054184.3774104,
-    "ast_hash": "bd108aa2df53df56ca5418d43eee6e62",
+    "mtime": 1788104150.8951542,
+    "seen": 1788104296.6083992,
+    "ast_hash": "9e1d66ab6e6c6b4b119618efb80af02a",
     "semantic_hash": ""
   },
   "apps/instance/src/main/resources/db/migration/V013__form_catalog_deprecation.sql": {
@@ -2286,9 +2286,9 @@
     "semantic_hash": ""
   },
   "apps/instance/src/test/java/com/greenwhite/dwh/instance/md/MdFormCatalogTest.java": {
-    "mtime": 1788048620.5885935,
-    "seen": 1788054184.3774104,
-    "ast_hash": "eefc6167187b03ed2de3d9a90785c72e",
+    "mtime": 1788104047.2232223,
+    "seen": 1788104296.6083992,
+    "ast_hash": "535de29acb25dc34886365eb1fc5c2d3",
     "semantic_hash": ""
   },
   "apps/instance/src/main/java/com/greenwhite/dwh/instance/kauth/controller/KauthPasswordController.java": {

@@ -3,13 +3,16 @@ package com.greenwhite.dwh.instance.md;
 import com.greenwhite.dwh.instance.common.annotation.RequiresPermission;
 import com.greenwhite.dwh.instance.md.pref.MdFormCatalog;
 import com.greenwhite.dwh.instance.md.service.MdFormCatalogSynchronizer;
+import com.greenwhite.dwh.instance.md.service.MdPermissionService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.method.HandlerMethod;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -18,6 +21,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 /**
  * FR-PERM-1: каталог форм — производная от кода, а не наоборот.
@@ -40,6 +44,22 @@ class MdFormCatalogTest {
 
         assertThat(MdFormCatalogSynchronizer.declaredPairs(handlers))
                 .containsExactly("sample.form.create", "sample.form.view");
+    }
+
+    @Test
+    @DisplayName("Профиль миграций не поднимает синхронизатор, которому нужен web-контекст")
+    void migrationProfileDoesNotCreateWebCatalogSynchronizer() {
+        try (var context = new AnnotationConfigApplicationContext()) {
+            context.getEnvironment().setActiveProfiles("migrate");
+            context.registerBean(RequestMappingHandlerMapping.class,
+                    () -> mock(RequestMappingHandlerMapping.class));
+            context.registerBean(MdPermissionService.class,
+                    () -> mock(MdPermissionService.class));
+            context.register(MdFormCatalogSynchronizer.class);
+            context.refresh();
+
+            assertThat(context.getBeansOfType(MdFormCatalogSynchronizer.class)).isEmpty();
+        }
     }
 
     @Test
