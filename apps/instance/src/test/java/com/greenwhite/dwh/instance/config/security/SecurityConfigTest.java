@@ -39,11 +39,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Матрица результатов ТЗ-01 разд. 8.2, блок SEC:
  * «мутирующий запрос без CSRF-токена -> 403».
  */
-@WebMvcTest(controllers = SecurityTestController.class)
+@WebMvcTest(controllers = {SecurityTestController.class,
+        com.greenwhite.dwh.instance.kauth.controller.KauthPasswordController.class})
 @Import({SecurityConfig.class, ProblemDetailAuthHandlers.class,
         KauthAuthenticationFilter.class, RateLimitFilter.class, RateLimitService.class,
         com.greenwhite.dwh.instance.config.idempotency.IdempotencyFilter.class,
-        SecurityTestController.class})
+        SecurityTestController.class,
+        com.greenwhite.dwh.instance.kauth.controller.KauthPasswordController.class})
 class SecurityConfigTest {
 
     private static final String SESSION_COOKIE = "DWH_SESSION";
@@ -134,5 +136,60 @@ class SecurityConfigTest {
                 7L, "Test User", "test", "test@example.com", null, "hash",
                 MdPref.STATE_ACTIVE, null, "ru", "UTC", null, Map.of(),
                 false, false, null, Instant.now(), Instant.now(), null, null);
+    }
+
+    // ------------------------------------------------------------------
+    // Д-7: смена своего пароля живёт в контуре аутентификации
+    // ------------------------------------------------------------------
+
+    @Test
+    @DisplayName("Д-7: смена своего пароля требует аутентификации, но не права формы")
+    void ownPasswordChangeNeedsAuthenticationNotPermission() throws Exception {
+        when(sessionService.getActiveSession("raw-session")).thenReturn(Optional.of(
+                new KauthSessionRepository.SessionRecord(
+                        11L, 7L, "hash", "127.0.0.1", "ua", null,
+                        Instant.now(), Instant.now(), null)));
+        when(userService.getUserById(7L)).thenReturn(activeUser());
+        // Пусто — ни одного права: ровно положение роли auditor (ТЗ-01 разд. 4.4.1)
+        when(permissionService.getEffectivePermissions(7L)).thenReturn(Set.of());
+        when(permissionService.getPermissionVersion(7L)).thenReturn(1L);
+
+        mvc.perform(post("/api/v1/auth/password")
+                        .cookie(new Cookie(SESSION_COOKIE, "raw-session"),
+                                new Cookie("XSRF-TOKEN", "test-csrf-token"))
+                        .header("X-XSRF-TOKEN", "test-csrf-token")
+                        .contentType("application/json")
+                        .content("{\"oldPassword\":\"OldPass-2026\",\"newPassword\":\"NewPass-2026!\"}"))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("Старый путь смены пароля продолжает работать: удаление эндпоинта — ломающее изменение")
+    void legacyPasswordPathStillWorks() throws Exception {
+        when(sessionService.getActiveSession("raw-session")).thenReturn(Optional.of(
+                new KauthSessionRepository.SessionRecord(
+                        11L, 7L, "hash", "127.0.0.1", "ua", null,
+                        Instant.now(), Instant.now(), null)));
+        when(userService.getUserById(7L)).thenReturn(activeUser());
+        when(permissionService.getEffectivePermissions(7L)).thenReturn(Set.of());
+        when(permissionService.getPermissionVersion(7L)).thenReturn(1L);
+
+        mvc.perform(post("/api/v1/iam/users/me/password")
+                        .cookie(new Cookie(SESSION_COOKIE, "raw-session"),
+                                new Cookie("XSRF-TOKEN", "test-csrf-token"))
+                        .header("X-XSRF-TOKEN", "test-csrf-token")
+                        .contentType("application/json")
+                        .content("{\"oldPassword\":\"OldPass-2026\",\"newPassword\":\"NewPass-2026!\"}"))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("Без аутентификации смена пароля отклоняется: путь не публичный")
+    void ownPasswordChangeRejectedWithoutSession() throws Exception {
+        mvc.perform(post("/api/v1/auth/password")
+                        .header("Authorization", "Bearer invalid-token")
+                        .contentType("application/json")
+                        .content("{\"oldPassword\":\"a\",\"newPassword\":\"b\"}"))
+                .andExpect(status().isUnauthorized());
     }
 }
