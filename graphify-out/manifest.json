@@ -456,8 +456,8 @@
     "semantic_hash": "88cb513a7b2a8a25541e1719918f652d"
   },
   "apps/instance/src/main/java/com/greenwhite/dwh/instance/kwh/service/KwhWebhookService.java": {
-    "mtime": 1788047317.4286647,
-    "seen": 1788048563.7091937,
+    "mtime": 1788048620.5825894,
+    "seen": 1788054184.3774104,
     "ast_hash": "435e266f7b7d1ae16af31919e5b598ed",
     "semantic_hash": ""
   },
@@ -492,10 +492,10 @@
     "semantic_hash": ""
   },
   "apps/instance/src/main/java/com/greenwhite/dwh/instance/md/controller/MdUserController.java": {
-    "mtime": 1787996288.8329053,
-    "seen": 1788008255.2068477,
-    "ast_hash": "91b8f1a7afbae885bf23533bff6bb54a",
-    "semantic_hash": "91b8f1a7afbae885bf23533bff6bb54a"
+    "mtime": 1788053597.4441736,
+    "seen": 1788054184.3774104,
+    "ast_hash": "fe0495b548ca73b73ea6d13736fd8c3d",
+    "semantic_hash": ""
   },
   "apps/instance/src/main/java/com/greenwhite/dwh/instance/md/pref/MdPref.java": {
     "mtime": 1788032629.2625942,
@@ -510,9 +510,9 @@
     "semantic_hash": ""
   },
   "apps/instance/src/main/java/com/greenwhite/dwh/instance/md/repository/MdPermissionRepository.java": {
-    "mtime": 1788047052.7176967,
-    "seen": 1788048563.7091937,
-    "ast_hash": "7b67c0d3723e8afb552fa2962dbfc32c",
+    "mtime": 1788048620.5825894,
+    "seen": 1788054184.3774104,
+    "ast_hash": "bb0c1355ff687637cafb33eedbf5abb8",
     "semantic_hash": ""
   },
   "apps/instance/src/main/java/com/greenwhite/dwh/instance/md/repository/MdRoleRepository.java": {
@@ -534,26 +534,26 @@
     "semantic_hash": ""
   },
   "apps/instance/src/main/java/com/greenwhite/dwh/instance/md/service/MdAssignmentService.java": {
-    "mtime": 1788047101.0224223,
-    "seen": 1788048563.7091937,
+    "mtime": 1788048620.5835936,
+    "seen": 1788054184.3774104,
     "ast_hash": "0031375b8888ac670de7e7832a091550",
     "semantic_hash": ""
   },
   "apps/instance/src/main/java/com/greenwhite/dwh/instance/md/service/MdCustomFieldService.java": {
-    "mtime": 1788047291.6462798,
-    "seen": 1788048563.7091937,
+    "mtime": 1788048620.5835936,
+    "seen": 1788054184.3774104,
     "ast_hash": "b560387f83b53f02ae927b6659984f8c",
     "semantic_hash": ""
   },
   "apps/instance/src/main/java/com/greenwhite/dwh/instance/md/service/MdPermissionService.java": {
-    "mtime": 1788047084.1657817,
-    "seen": 1788048563.7091937,
+    "mtime": 1788048620.5845935,
+    "seen": 1788054184.3774104,
     "ast_hash": "d894ad09d57d09e2618762da1d237012",
     "semantic_hash": ""
   },
   "apps/instance/src/main/java/com/greenwhite/dwh/instance/md/service/MdRoleService.java": {
-    "mtime": 1788047101.023424,
-    "seen": 1788048563.7091937,
+    "mtime": 1788048620.5845935,
+    "seen": 1788054184.3774104,
     "ast_hash": "763034ef07358efaa43f786f5c44c522",
     "semantic_hash": ""
   },
@@ -612,8 +612,8 @@
     "semantic_hash": ""
   },
   "apps/instance/src/main/java/com/greenwhite/dwh/instance/mf/service/MfFileService.java": {
-    "mtime": 1788047317.4276614,
-    "seen": 1788048563.7091937,
+    "mtime": 1788048620.5845935,
+    "seen": 1788054184.3774104,
     "ast_hash": "6adb0577fe735b0500a018a087903852",
     "semantic_hash": ""
   },
@@ -780,14 +780,14 @@
     "semantic_hash": "89d886cbf6d6158429b12d902f158326"
   },
   "apps/instance/src/main/java/com/greenwhite/dwh/instance/ms/task/service/MsProjectService.java": {
-    "mtime": 1788047339.0210977,
-    "seen": 1788048563.7091937,
+    "mtime": 1788048620.5855937,
+    "seen": 1788054184.3774104,
     "ast_hash": "1d8c7fbe38f298caa9dfdf4484872b36",
     "semantic_hash": ""
   },
   "apps/instance/src/main/java/com/greenwhite/dwh/instance/ms/task/service/MsTaskCommentService.java": {
-    "mtime": 1788047587.55724,
-    "seen": 1788048563.7091937,
+    "mtime": 1788048620.5855937,
+    "seen": 1788054184.3774104,
     "ast_hash": "5eb5535915e16c6c618aa30d881c2542",
     "semantic_hash": ""
   },
@@ -876,9 +876,9 @@
     "semantic_hash": ""
   },
   "apps/instance/src/test/java/com/greenwhite/dwh/instance/config/security/SecurityConfigTest.java": {
-    "mtime": 1788016044.8471267,
-    "seen": 1788017905.2839012,
-    "ast_hash": "ed6da31f1e90e78dc6d2cebcf661ecaa",
+    "mtime": 1788053636.3181129,
+    "seen": 1788054184.3774104,
+    "ast_hash": "abe03edee04789f762456508b8c9308b",
     "semantic_hash": ""
   },
   "apps/instance/src/test/java/com/greenwhite/dwh/instance/config/security/SecurityTestController.java": {
@@ -912,8 +912,8 @@
     "semantic_hash": "75c15fd2f0dcd32444485f0eb7fcca1a"
   },
   "apps/instance/src/test/java/com/greenwhite/dwh/instance/kwh/KwhWebhookServiceTest.java": {
-    "mtime": 1788047347.8348854,
-    "seen": 1788048563.7091937,
+    "mtime": 1788048620.5875936,
+    "seen": 1788054184.3774104,
     "ast_hash": "dbf1c4565c11c9cbc0888f0078f41f59",
     "semantic_hash": ""
   },
@@ -924,8 +924,8 @@
     "semantic_hash": ""
   },
   "apps/instance/src/test/java/com/greenwhite/dwh/instance/md/MdCustomFieldServiceTest.java": {
-    "mtime": 1788047347.8348854,
-    "seen": 1788048563.7091937,
+    "mtime": 1788048620.5875936,
+    "seen": 1788054184.3774104,
     "ast_hash": "65e3f9d2fd55db2e50829dbd2c33af7d",
     "semantic_hash": ""
   },
@@ -936,9 +936,9 @@
     "semantic_hash": ""
   },
   "apps/instance/src/test/java/com/greenwhite/dwh/instance/md/RbacSystemRolesIntegrationTest.java": {
-    "mtime": 1788047595.767521,
-    "seen": 1788048563.7091937,
-    "ast_hash": "09fd8a3ec04a87a0641bb84d0ad4f622",
+    "mtime": 1788053597.474011,
+    "seen": 1788054184.3774104,
+    "ast_hash": "af40929e1106a13f162e2429d3e3dd99",
     "semantic_hash": ""
   },
   "apps/instance/src/test/java/com/greenwhite/dwh/instance/md/UserBlockingInvariantTest.java": {
@@ -948,8 +948,8 @@
     "semantic_hash": "02c1f4a149ddde6b493904b0332824c4"
   },
   "apps/instance/src/test/java/com/greenwhite/dwh/instance/mf/MfFileServiceTest.java": {
-    "mtime": 1788047347.8348854,
-    "seen": 1788048563.7091937,
+    "mtime": 1788048620.5885935,
+    "seen": 1788054184.3774104,
     "ast_hash": "3de375ed76f1a5738ada21c0256a30c8",
     "semantic_hash": ""
   },
@@ -1578,21 +1578,21 @@
     "semantic_hash": "28df271683729e009ea97656dbc032fa"
   },
   "MILESTONES.md": {
-    "mtime": 1788048503.7278378,
-    "seen": 1788048563.7091937,
-    "ast_hash": "54725d038cb46276cd564a02552572d6",
+    "mtime": 1788054150.9426763,
+    "seen": 1788054184.3774104,
+    "ast_hash": "54719fdc6900c8facebcec641b006e98",
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1788048522.786886,
-    "seen": 1788048563.7091937,
-    "ast_hash": "b47ebfa6db1c579f1e832566caf8c89a",
+    "mtime": 1788054174.47216,
+    "seen": 1788054184.3774104,
+    "ast_hash": "9d223908feea6836eb0fd70699f758ca",
     "semantic_hash": ""
   },
   "REPORT.md": {
-    "mtime": 1788048550.690585,
-    "seen": 1788048563.7091937,
-    "ast_hash": "ec8b35bbbc5bdc66d5af61f63ef9e535",
+    "mtime": 1788054169.2204995,
+    "seen": 1788054184.3774104,
+    "ast_hash": "1796352c2f65e679f7c40fb7e5609e17",
     "semantic_hash": ""
   },
   "STATS_MAP.md": {
@@ -1626,8 +1626,8 @@
     "semantic_hash": "b2f68c04985b24101481d2ef9594267b"
   },
   "apps/instance/src/main/resources/application.yml": {
-    "mtime": 1788047935.742185,
-    "seen": 1788048563.7091937,
+    "mtime": 1788048620.5855937,
+    "seen": 1788054184.3774104,
     "ast_hash": "eb4564805768d96b0db4714289a691d1",
     "semantic_hash": ""
   },
@@ -1878,10 +1878,10 @@
     "semantic_hash": "12c7a24686f9ae20874816e6b258072a"
   },
   "docs/trd/TRD-01-cms.md": {
-    "mtime": 1787921619.7151086,
-    "seen": 1788008255.2068477,
-    "ast_hash": "3688be923c49851e3976cc526b3d5715",
-    "semantic_hash": "3688be923c49851e3976cc526b3d5715"
+    "mtime": 1788054119.2354162,
+    "seen": 1788054184.3774104,
+    "ast_hash": "d7671a908c16d86c0a1cc5075a91149c",
+    "semantic_hash": ""
   },
   "docs/trd/TRD-02-uiux.md": {
     "mtime": 1787859032.8619661,
@@ -1896,9 +1896,9 @@
     "semantic_hash": "2f215c5f2c168e070259ed9fb8dc1baf"
   },
   "docs/trd/TRD-04-api.md": {
-    "mtime": 1788032629.271352,
-    "seen": 1788048563.7091937,
-    "ast_hash": "db3ad9ebf354f47e37165a016d0778c6",
+    "mtime": 1788054132.7595,
+    "seen": 1788054184.3774104,
+    "ast_hash": "b41e311c4efc27a62ed05f51cf7bee17",
     "semantic_hash": ""
   },
   "apps/control-plane/src/test/java/com/greenwhite/dwh/cp/CpAuthServiceTest.java": {
@@ -2118,14 +2118,14 @@
     "semantic_hash": ""
   },
   "apps/instance/src/main/java/com/greenwhite/dwh/instance/audit/repository/AuditPartitionRepository.java": {
-    "mtime": 1788047928.6152837,
-    "seen": 1788048563.7091937,
+    "mtime": 1788048620.5810845,
+    "seen": 1788054184.3774104,
     "ast_hash": "1032533829e894594e4a1b7312b732fe",
     "semantic_hash": ""
   },
   "apps/instance/src/main/java/com/greenwhite/dwh/instance/audit/worker/AuditPartitionWorker.java": {
-    "mtime": 1788047928.6152837,
-    "seen": 1788048563.7091937,
+    "mtime": 1788048620.5825894,
+    "seen": 1788054184.3774104,
     "ast_hash": "27a66e43412c6e6cff7ee18db76374c3",
     "semantic_hash": ""
   },
@@ -2208,8 +2208,8 @@
     "semantic_hash": ""
   },
   "apps/instance/src/test/java/com/greenwhite/dwh/instance/audit/AuditPartitionWorkerTest.java": {
-    "mtime": 1788047950.0790813,
-    "seen": 1788048563.7091937,
+    "mtime": 1788048620.5875936,
+    "seen": 1788054184.3774104,
     "ast_hash": "4d8eb25f4495d7a7665e57b293cabdfb",
     "semantic_hash": ""
   },
@@ -2238,57 +2238,63 @@
     "semantic_hash": ""
   },
   "docs/audit/AUDIT-05-deep-review.md": {
-    "mtime": 1788048522.729391,
-    "seen": 1788048563.7091937,
-    "ast_hash": "71731e4cd84f24acba68cf2678401da9",
+    "mtime": 1788054150.9359052,
+    "seen": 1788054184.3774104,
+    "ast_hash": "a14a353d45f11977eb81596c02e58520",
     "semantic_hash": ""
   },
   "apps/instance/src/main/java/com/greenwhite/dwh/instance/md/pref/MdFormCatalog.java": {
-    "mtime": 1788046990.8182178,
-    "seen": 1788048563.7091937,
-    "ast_hash": "4a85a6296ca211fac7a22c759b8e277b",
+    "mtime": 1788048620.5825894,
+    "seen": 1788054184.3774104,
+    "ast_hash": "7efca4f2eb7fd2753d38dbe89f6232fa",
     "semantic_hash": ""
   },
   "apps/instance/src/main/java/com/greenwhite/dwh/instance/md/service/MdFormCatalogSynchronizer.java": {
-    "mtime": 1788047101.023424,
-    "seen": 1788048563.7091937,
+    "mtime": 1788048620.5835936,
+    "seen": 1788054184.3774104,
     "ast_hash": "bd108aa2df53df56ca5418d43eee6e62",
     "semantic_hash": ""
   },
   "apps/instance/src/main/resources/db/migration/V013__form_catalog_deprecation.sql": {
-    "mtime": 1788047006.9273388,
-    "seen": 1788048563.7091937,
-    "ast_hash": "5f45e1d3b640230ed69bd9039db11a30",
+    "mtime": 1788048620.586594,
+    "seen": 1788054184.3774104,
+    "ast_hash": "1a38b8367fcf164abd26a309204492c0",
     "semantic_hash": ""
   },
   "apps/instance/src/main/resources/db/migration/V014__audit_log_immutable.sql": {
-    "mtime": 1788048278.9449213,
-    "seen": 1788048563.7091937,
-    "ast_hash": "8b761e895aa694ed5e02385cd66590a8",
+    "mtime": 1788048620.586594,
+    "seen": 1788054184.3774104,
+    "ast_hash": "4311f744d0a732c9528d88f814308e0e",
     "semantic_hash": ""
   },
   "apps/instance/src/test/java/com/greenwhite/dwh/instance/audit/AuditCoverageTest.java": {
-    "mtime": 1788047587.55724,
-    "seen": 1788048563.7091937,
+    "mtime": 1788048620.586594,
+    "seen": 1788054184.3774104,
     "ast_hash": "577a2fffb0efdd6523fbea3c6ac1ebd2",
     "semantic_hash": ""
   },
   "apps/instance/src/test/java/com/greenwhite/dwh/instance/audit/AuditPartitionRepositoryIntegrationTest.java": {
-    "mtime": 1788048291.1307442,
-    "seen": 1788048563.7091937,
+    "mtime": 1788048620.586594,
+    "seen": 1788054184.3774104,
     "ast_hash": "3030f86bdd879d4101b17bd628790a68",
     "semantic_hash": ""
   },
   "apps/instance/src/test/java/com/greenwhite/dwh/instance/md/MdFormCatalogIntegrationTest.java": {
-    "mtime": 1788047187.698812,
-    "seen": 1788048563.7091937,
-    "ast_hash": "5ccf83f62e53ab8d40aac072af8a2e90",
+    "mtime": 1788048620.5875936,
+    "seen": 1788054184.3774104,
+    "ast_hash": "019c80dcf22ac410a823b9ac51b6f77a",
     "semantic_hash": ""
   },
   "apps/instance/src/test/java/com/greenwhite/dwh/instance/md/MdFormCatalogTest.java": {
-    "mtime": 1788047159.96091,
-    "seen": 1788048563.7091937,
+    "mtime": 1788048620.5885935,
+    "seen": 1788054184.3774104,
     "ast_hash": "eefc6167187b03ed2de3d9a90785c72e",
+    "semantic_hash": ""
+  },
+  "apps/instance/src/main/java/com/greenwhite/dwh/instance/kauth/controller/KauthPasswordController.java": {
+    "mtime": 1788053583.7414808,
+    "seen": 1788054184.3774104,
+    "ast_hash": "cbfa867aad045ea88ec1a1c2bff3e651",
     "semantic_hash": ""
   }
 }
