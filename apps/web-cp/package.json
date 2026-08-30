@@ -6,7 +6,11 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve --port 4300",
-    "build": "ng build --configuration production"
+    "build": "ng build --configuration production",
+    "test": "ng test --watch=false"
+  },
+  "engines": {
+    "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
   },
   "dependencies": {
     "@angular/common": "^22.1.4",
@@ -23,6 +27,8 @@
     "@angular-devkit/build-angular": "^22.1.4",
     "@angular/cli": "^22.1.4",
     "@angular/compiler-cli": "^22.1.4",
-    "typescript": "~6.0.0"
+    "jsdom": "^29.1.1",
+    "typescript": "~6.0.0",
+    "vitest": "^4.1.11"
   }
 }

@@ -10,10 +10,14 @@ import { CommonModule } from '@angular/common';
       [type]="type"
       [disabled]="disabled || loading"
       [class]="'btn btn-' + variant + ' btn-' + size"
+      [class.btn-full-width]="fullWidth"
+      [attr.aria-busy]="loading ? 'true' : null"
+      [attr.aria-label]="ariaLabel || null"
       (click)="onClick.emit($event)"
     >
-      <span *ngIf="loading" class="spinner"></span>
-      <span *ngIf="icon && !loading" class="material-symbols-outlined icon">{{ icon }}</span>
+      <span *ngIf="loading" class="spinner" aria-hidden="true"></span>
+      <span *ngIf="loading" class="sr-only">Выполняется…</span>
+      <span *ngIf="icon && !loading" class="material-symbols-outlined icon" aria-hidden="true">{{ icon }}</span>
       <ng-content></ng-content>
     </button>
   `,
@@ -29,9 +33,13 @@ import { CommonModule } from '@angular/common';
       border: 1px solid transparent;
       cursor: pointer;
       transition: all 0.15s ease-in-out;
-      outline: none;
       white-space: nowrap;
       user-select: none;
+    }
+
+    button:focus-visible {
+      outline: 2px solid var(--focus-ring, var(--primary));
+      outline-offset: 2px;
     }
 
     button:disabled {
@@ -58,6 +66,10 @@ import { CommonModule } from '@angular/common';
       height: 40px;
     }
 
+    .btn-full-width {
+      width: 100%;
+    }
+
     /* Variants */
     .btn-primary {
       background-color: var(--primary);
@@ -81,7 +93,7 @@ import { CommonModule } from '@angular/common';
       color: var(--text-inverse);
     }
     .btn-danger:hover:not(:disabled) {
-      background-color: #b91c1c;
+      background-color: var(--danger-hover, #b91c1c);
     }
 
     .btn-ghost {
@@ -106,6 +118,18 @@ import { CommonModule } from '@angular/common';
       animation: spin 0.6s linear infinite;
     }
 
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
@@ -118,6 +142,8 @@ export class UiButtonComponent {
   @Input() disabled: boolean = false;
   @Input() loading: boolean = false;
   @Input() icon?: string;
+  @Input() fullWidth: boolean = false;
+  @Input() ariaLabel?: string;
 
   @Output() onClick = new EventEmitter<MouseEvent>();
 }
