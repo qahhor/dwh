@@ -23,7 +23,7 @@ import { User } from '../../core/models/auth.models';
           #trigger
           type="button"
           class="add-user-btn"
-          aria-label="Выбрать пользователей"
+          [attr.aria-label]="ariaLabel"
           aria-haspopup="listbox"
           [attr.aria-expanded]="isOpen()"
           [attr.aria-controls]="listboxId"
@@ -242,6 +242,7 @@ export class UiUserMultiSelectComponent {
   @Input() selectedUserIds: number[] = [];
   @Input() placeholder = 'Добавить наблюдателей...';
   @Input() searchPlaceholder = 'Поиск сотрудника...';
+  @Input() ariaLabel = 'Выбрать пользователей';
   @Output() selectedUserIdsChange = new EventEmitter<number[]>();
 
   isOpen = signal<boolean>(false);

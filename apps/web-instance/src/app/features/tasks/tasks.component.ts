@@ -48,25 +48,27 @@ import { KeysetPage } from '../../core/models/common.models';
           <span class="task-count">{{ tasks().length }}</span>
 
           <!-- View Mode Switcher: Table / Kanban -->
-          <div class="view-switcher">
+          <div class="view-switcher" role="group" aria-label="Режим отображения задач">
             <button
               type="button"
               class="view-btn"
               [class.active]="viewMode === 'table'"
+              [attr.aria-pressed]="viewMode === 'table'"
               (click)="viewMode = 'table'"
               title="Табличный вид (по умолчанию)"
             >
-              <span class="material-symbols-outlined">table_rows</span>
+              <span class="material-symbols-outlined" aria-hidden="true">table_rows</span>
               <span>Список</span>
             </button>
             <button
               type="button"
               class="view-btn"
               [class.active]="viewMode === 'kanban'"
+              [attr.aria-pressed]="viewMode === 'kanban'"
               (click)="viewMode = 'kanban'"
               title="Канбан-доска (Drag & Drop)"
             >
-              <span class="material-symbols-outlined">view_kanban</span>
+              <span class="material-symbols-outlined" aria-hidden="true">view_kanban</span>
               <span>Канбан</span>
             </button>
           </div>
@@ -80,7 +82,7 @@ import { KeysetPage } from '../../core/models/common.models';
             title="Управление статусами и типами задач"
             (click)="openSettingsModal()"
           >
-            <span class="material-symbols-outlined">tune</span>
+            <span class="material-symbols-outlined" aria-hidden="true">tune</span>
             <span>Справочники</span>
           </button>
 
@@ -100,36 +102,41 @@ import { KeysetPage } from '../../core/models/common.models';
       <!-- Linear-Style Toolbar -->
       <div class="toolbar">
         <div class="search-field">
-          <span class="material-symbols-outlined search-icon">search</span>
+          <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
+          <label class="sr-only" for="task-search">Поиск задач</label>
           <input
+            id="task-search"
+            name="taskSearch"
             type="text"
             class="search-input"
             placeholder="Поиск по названию или описанию..."
             [(ngModel)]="searchQuery"
             (keyup.enter)="loadTasks(true)"
           />
-          <button *ngIf="searchQuery" type="button" class="clear-btn" (click)="clearSearch()">
-            <span class="material-symbols-outlined">close</span>
+          <button *ngIf="searchQuery" type="button" class="clear-btn" aria-label="Очистить поиск задач" (click)="clearSearch()">
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
           </button>
         </div>
 
         <div class="toolbar-controls">
           <!-- Status Filter Tabs (Default: 'active' which excludes done & cancelled) -->
-          <div class="status-tabs" *ngIf="viewMode === 'table'">
+          <div class="status-tabs" *ngIf="viewMode === 'table'" role="group" aria-label="Фильтр по статусу">
             <button
               type="button"
               class="status-tab"
               [class.active]="statusFilterMode === 'active'"
+              [attr.aria-pressed]="statusFilterMode === 'active'"
               (click)="setStatusFilterMode('active')"
               title="Только активные задачи (без выполненных и отмененных)"
             >
-              <span class="status-tab-dot active-dot"></span>
+              <span class="status-tab-dot active-dot" aria-hidden="true"></span>
               Активные
             </button>
             <button
               type="button"
               class="status-tab"
               [class.active]="statusFilterMode === 'all'"
+              [attr.aria-pressed]="statusFilterMode === 'all'"
               (click)="setStatusFilterMode('all')"
               title="Все задачи, включая завершенные"
             >
@@ -140,15 +147,19 @@ import { KeysetPage } from '../../core/models/common.models';
               type="button"
               class="status-tab"
               [class.active]="statusFilterMode === s.id"
+              [attr.aria-pressed]="statusFilterMode === s.id"
               (click)="setStatusFilterMode(s.id)"
             >
-              <span class="status-tab-dot" [style.background-color]="s.color || 'var(--primary)'"></span>
+              <span class="status-tab-dot" [style.background-color]="s.color || 'var(--primary)'" aria-hidden="true"></span>
               {{ s.name }}
             </button>
           </div>
 
           <!-- Project Filter -->
+          <label class="sr-only" for="task-project-filter">Фильтр по проекту</label>
           <select
+            id="task-project-filter"
+            name="taskProjectFilter"
             class="clean-select"
             [(ngModel)]="selectedProjectId"
             (change)="loadTasks(true)"
@@ -158,7 +169,10 @@ import { KeysetPage } from '../../core/models/common.models';
           </select>
 
           <!-- Priority Filter -->
+          <label class="sr-only" for="task-priority-filter">Фильтр по приоритету</label>
           <select
+            id="task-priority-filter"
+            name="taskPriorityFilter"
             class="clean-select"
             [(ngModel)]="selectedPriority"
             (change)="loadTasks(true)"
@@ -174,10 +188,11 @@ import { KeysetPage } from '../../core/models/common.models';
             *ngIf="hasActiveFilters()"
             type="button"
             class="reset-filters-btn"
+            aria-label="Сбросить все фильтры"
             (click)="resetFilters()"
             title="Сбросить все фильтры"
           >
-            <span class="material-symbols-outlined">filter_alt_off</span>
+            <span class="material-symbols-outlined" aria-hidden="true">filter_alt_off</span>
           </button>
         </div>
       </div>
@@ -186,8 +201,8 @@ import { KeysetPage } from '../../core/models/common.models';
       <!-- VIEW 1: TABLE / LIST VIEW (Default View)                                -->
       <!-- ======================================================================= -->
       <div class="table-card" *ngIf="viewMode === 'table'">
-        <div class="table-wrapper">
-          <table class="data-table">
+        <div class="table-wrapper" role="region" aria-label="Таблица задач" tabindex="0">
+          <table class="data-table" aria-label="Список задач">
             <thead>
               <tr>
                 <th style="width: 60px;">ID</th>
@@ -204,15 +219,20 @@ import { KeysetPage } from '../../core/models/common.models';
               <tr
                 *ngFor="let t of paginatedTasks()"
                 class="task-row"
+                role="button"
+                tabindex="0"
+                [attr.aria-label]="'Открыть задачу #' + t.id + ': ' + t.title"
                 [class.row-overdue]="isOverdue(t.endTime, t.statusId)"
                 (click)="openTaskDetails(t)"
+                (keydown.enter)="openTaskDetails(t)"
+                (keydown.space)="$event.preventDefault(); openTaskDetails(t)"
               >
                 <td class="tabular-nums font-mono" [class.text-danger]="isOverdue(t.endTime, t.statusId)" [class.text-muted]="!isOverdue(t.endTime, t.statusId)">
                   #{{ t.id }}
                 </td>
                 <td>
                   <span class="task-type-badge" [style.color]="getTypeColor(t)" [style.background-color]="getTypeBg(t)">
-                    <span class="material-symbols-outlined type-icon">{{ getTypeIcon(t) }}</span>
+                    <span class="material-symbols-outlined type-icon" aria-hidden="true">{{ getTypeIcon(t) }}</span>
                     {{ getTypeLabel(t) }}
                   </span>
                 </td>
@@ -250,6 +270,7 @@ import { KeysetPage } from '../../core/models/common.models';
                       [ngModel]="t.statusId"
                       (ngModelChange)="updateStatus(t.id, $event)"
                       [disabled]="!canUpdateTask()"
+                      [attr.aria-label]="'Статус задачи #' + t.id"
                       title="Нажмите для смены статуса"
                     >
                       <option *ngFor="let s of statuses()" [ngValue]="s.id">{{ s.name }}</option>
@@ -263,7 +284,7 @@ import { KeysetPage } from '../../core/models/common.models';
                     [class.overdue]="isOverdue(t.endTime, t.statusId)"
                     [title]="'Срок: ' + (t.endTime | date:'dd.MM.yyyy HH:mm')"
                   >
-                    <span class="material-symbols-outlined ico">
+                    <span class="material-symbols-outlined ico" aria-hidden="true">
                       {{ isOverdue(t.endTime, t.statusId) ? 'warning' : 'event' }}
                     </span>
                     {{ t.endTime | date:'dd.MM.yyyy' }}
@@ -276,25 +297,27 @@ import { KeysetPage } from '../../core/models/common.models';
                       *ngIf="canUpdateTask()"
                       type="button"
                       class="icon-ghost-btn"
+                      [attr.aria-label]="'Редактировать задачу #' + t.id"
                       title="Редактировать задачу"
                       (click)="openEditModal(t)"
                     >
-                      <span class="material-symbols-outlined">edit</span>
+                      <span class="material-symbols-outlined" aria-hidden="true">edit</span>
                     </button>
                     <button
                       type="button"
                       class="icon-ghost-btn"
+                      [attr.aria-label]="'Просмотреть задачу #' + t.id"
                       title="Просмотреть детали"
                       (click)="openTaskDetails(t)"
                     >
-                      <span class="material-symbols-outlined">visibility</span>
+                      <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
                     </button>
                   </div>
                 </td>
               </tr>
               <tr *ngIf="tasks().length === 0 && !isLoading()">
                 <td colspan="8" class="empty-state-cell">
-                  <span class="material-symbols-outlined icon">task</span>
+                  <span class="material-symbols-outlined icon" aria-hidden="true">task</span>
                   <p>Задачи не найдены</p>
                 </td>
               </tr>
@@ -316,7 +339,7 @@ import { KeysetPage } from '../../core/models/common.models';
       <!-- ======================================================================= -->
       <!-- VIEW 2: KANBAN BOARD WITH DRAG & DROP                                  -->
       <!-- ======================================================================= -->
-      <div class="kanban-board" cdkDropListGroup *ngIf="viewMode === 'kanban'">
+      <div class="kanban-board" cdkDropListGroup *ngIf="viewMode === 'kanban'" role="region" aria-label="Канбан-доска задач">
         <div
           *ngFor="let status of statuses()"
           class="kanban-column"
@@ -349,8 +372,13 @@ import { KeysetPage } from '../../core/models/common.models';
               draggable="true"
               (dragstart)="onHtml5DragStart($event, task)"
               class="kanban-card"
+              role="button"
+              tabindex="0"
+              [attr.aria-label]="'Открыть задачу #' + task.id + ': ' + task.title"
               [class.card-overdue]="isOverdue(task.endTime, task.statusId)"
               (click)="openTaskDetails(task)"
+              (keydown.enter)="openTaskDetails(task)"
+              (keydown.space)="$event.preventDefault(); openTaskDetails(task)"
             >
               <!-- Card Top -->
               <div class="card-top-row">
@@ -403,20 +431,22 @@ import { KeysetPage } from '../../core/models/common.models';
                   <button
                     type="button"
                     class="move-btn"
+                    [attr.aria-label]="'Переместить задачу #' + task.id + ' назад'"
                     title="Переместить назад"
                     [disabled]="isFirstStatus(status.id)"
                     (click)="moveTaskStatus(task, -1)"
                   >
-                    <span class="material-symbols-outlined">chevron_left</span>
+                    <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
                   </button>
                   <button
                     type="button"
                     class="move-btn"
+                    [attr.aria-label]="'Переместить задачу #' + task.id + ' вперёд'"
                     title="Переместить вперед"
                     [disabled]="isLastStatus(status.id)"
                     (click)="moveTaskStatus(task, 1)"
                   >
-                    <span class="material-symbols-outlined">chevron_right</span>
+                    <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
                   </button>
                 </div>
               </div>
@@ -444,10 +474,10 @@ import { KeysetPage } from '../../core/models/common.models';
         <div class="ancestor-trail" *ngIf="taskAncestors().length > 0">
           <span class="trail-label">Иерархия:</span>
           <ng-container *ngFor="let anc of taskAncestors()">
-            <span class="anc-link" (click)="openTaskDetails(anc)">
+            <button type="button" class="anc-link" (click)="openTaskDetails(anc)">
               #{{ anc.id }} {{ anc.title }}
-            </span>
-            <span class="anc-sep">›</span>
+            </button>
+            <span class="anc-sep" aria-hidden="true">›</span>
           </ng-container>
           <span class="anc-current">#{{ t.id }} {{ t.title }}</span>
         </div>
@@ -686,17 +716,22 @@ import { KeysetPage } from '../../core/models/common.models';
         <!-- Title Input (Required) -->
         <div class="form-group">
           <div class="label-row">
-            <label class="clean-label">Название задачи</label>
+            <label class="clean-label" for="task-create-title">Название задачи</label>
             <span class="req-tag">Обязательное поле</span>
           </div>
           <input
+            id="task-create-title"
+            name="taskCreateTitle"
             type="text"
             class="clean-input title-input"
+            required
+            [attr.aria-invalid]="isCreateSubmitted && !createForm.title.trim()"
+            [attr.aria-describedby]="isCreateSubmitted && !createForm.title.trim() ? 'task-create-title-error' : null"
             [class.input-error]="isCreateSubmitted && !createForm.title.trim()"
             [(ngModel)]="createForm.title"
             placeholder="Краткая и ясная формулировка задачи..."
           />
-          <span class="error-msg" *ngIf="isCreateSubmitted && !createForm.title.trim()">
+          <span id="task-create-title-error" class="error-msg" *ngIf="isCreateSubmitted && !createForm.title.trim()">
             Пожалуйста, укажите название задачи
           </span>
         </div>
@@ -704,18 +739,19 @@ import { KeysetPage } from '../../core/models/common.models';
         <!-- Visual Type Selector Chips -->
         <div class="form-group">
           <div class="label-row">
-            <label class="clean-label">Тип задачи</label>
+            <span class="clean-label">Тип задачи</span>
           </div>
-          <div class="type-chips-selector">
+          <div class="type-chips-selector" role="group" aria-label="Тип задачи">
             <button
               *ngFor="let ty of taskTypes()"
               type="button"
               class="type-chip-btn"
               [class.active]="createForm.taskType === ty.code"
+              [attr.aria-pressed]="createForm.taskType === ty.code"
               (click)="createForm.taskType = ty.code"
               [style.--chip-color]="ty.color"
             >
-              <span class="material-symbols-outlined">{{ ty.icon }}</span>
+              <span class="material-symbols-outlined" aria-hidden="true">{{ ty.icon }}</span>
               <span>{{ ty.name }}</span>
             </button>
           </div>
@@ -724,13 +760,14 @@ import { KeysetPage } from '../../core/models/common.models';
         <!-- Visual Priority Selector Pills -->
         <div class="form-group">
           <div class="label-row">
-            <label class="clean-label">Приоритет</label>
+            <span class="clean-label">Приоритет</span>
           </div>
-          <div class="priority-chips-selector">
+          <div class="priority-chips-selector" role="group" aria-label="Приоритет задачи">
             <button
               type="button"
               class="prio-chip-btn prio-low"
               [class.active]="createForm.priority === 'low'"
+              [attr.aria-pressed]="createForm.priority === 'low'"
               (click)="createForm.priority = 'low'"
             >
               Низкий
@@ -739,6 +776,7 @@ import { KeysetPage } from '../../core/models/common.models';
               type="button"
               class="prio-chip-btn prio-medium"
               [class.active]="createForm.priority === 'medium'"
+              [attr.aria-pressed]="createForm.priority === 'medium'"
               (click)="createForm.priority = 'medium'"
             >
               Средний
@@ -747,6 +785,7 @@ import { KeysetPage } from '../../core/models/common.models';
               type="button"
               class="prio-chip-btn prio-high"
               [class.active]="createForm.priority === 'high'"
+              [attr.aria-pressed]="createForm.priority === 'high'"
               (click)="createForm.priority = 'high'"
             >
               Высокий
@@ -755,6 +794,7 @@ import { KeysetPage } from '../../core/models/common.models';
               type="button"
               class="prio-chip-btn prio-critical"
               [class.active]="createForm.priority === 'critical'"
+              [attr.aria-pressed]="createForm.priority === 'critical'"
               (click)="createForm.priority = 'critical'"
             >
               Критический
@@ -766,9 +806,9 @@ import { KeysetPage } from '../../core/models/common.models';
           <!-- Project Selector -->
           <div class="form-group">
             <div class="label-row">
-              <label class="clean-label">Проект</label>
+              <label class="clean-label" for="task-create-project">Проект</label>
             </div>
-            <select class="clean-input" [(ngModel)]="createForm.projectId">
+            <select id="task-create-project" name="taskCreateProject" class="clean-input" [(ngModel)]="createForm.projectId">
               <option [ngValue]="null">Без проекта</option>
               <option *ngFor="let p of projects()" [ngValue]="p.id">{{ p.name }}</option>
             </select>
@@ -777,11 +817,12 @@ import { KeysetPage } from '../../core/models/common.models';
           <!-- Parent Task (Searchable Select) -->
           <div class="form-group">
             <div class="label-row">
-              <label class="clean-label">Родительская задача</label>
+              <span class="clean-label">Родительская задача</span>
             </div>
             <ui-searchable-select
               [options]="taskSelectOptions()"
               [selectedId]="createForm.parentTaskId"
+              ariaLabel="Родительская задача"
               (selectedIdChange)="createForm.parentTaskId = $event"
               placeholder="Без родителя (корневая задача)"
               searchPlaceholder="Поиск задачи по ID или названию..."
@@ -794,11 +835,12 @@ import { KeysetPage } from '../../core/models/common.models';
           <!-- Responsible User (Searchable Select) -->
           <div class="form-group">
             <div class="label-row">
-              <label class="clean-label">Ответственный сотрудник (I-T1)</label>
+              <span class="clean-label">Ответственный сотрудник (I-T1)</span>
             </div>
             <ui-searchable-select
               [options]="userSelectOptions()"
               [selectedId]="createForm.responsibleUserId"
+              ariaLabel="Ответственный сотрудник"
               (selectedIdChange)="createForm.responsibleUserId = $event"
               placeholder="Выберите ответственного..."
               searchPlaceholder="Поиск сотрудника по имени или логину..."
@@ -809,20 +851,21 @@ import { KeysetPage } from '../../core/models/common.models';
           <!-- Deadlines: End Date / Deadline -->
           <div class="form-group">
             <div class="label-row">
-              <label class="clean-label">Срок сдачи (Дедлайн)</label>
+              <label class="clean-label" for="task-create-deadline">Срок сдачи (Дедлайн)</label>
             </div>
-            <input type="datetime-local" class="clean-input font-mono" [(ngModel)]="createForm.endTime" />
+            <input id="task-create-deadline" name="taskCreateDeadline" type="datetime-local" class="clean-input font-mono" [(ngModel)]="createForm.endTime" />
           </div>
         </div>
 
         <!-- Observers Searchable Multi-Select Tags Input -->
         <div class="form-group">
           <div class="label-row">
-            <label class="clean-label">Наблюдатели (получают уведомления)</label>
+            <span class="clean-label">Наблюдатели (получают уведомления)</span>
           </div>
           <ui-user-multi-select
             [users]="usersList()"
             [selectedUserIds]="createForm.observerUserIds"
+            ariaLabel="Наблюдатели"
             (selectedUserIdsChange)="createForm.observerUserIds = $event"
             placeholder="Нажмите для добавления наблюдателей..."
             searchPlaceholder="Поиск сотрудника..."
@@ -832,10 +875,11 @@ import { KeysetPage } from '../../core/models/common.models';
         <!-- RichText Markdown Editor for Description -->
         <div class="form-group">
           <div class="label-row">
-            <label class="clean-label">Подробное описание (Markdown RichText)</label>
+            <span class="clean-label">Подробное описание (Markdown RichText)</span>
           </div>
           <ui-markdown-editor
             [value]="createForm.descriptionMarkdown"
+            ariaLabel="Подробное описание задачи"
             (valueChange)="createForm.descriptionMarkdown = $event"
             placeholder="Контекст, критерии готовности, задачи, ссылки (поддерживается разметка Markdown)..."
             [rows]="4"
@@ -870,16 +914,21 @@ import { KeysetPage } from '../../core/models/common.models';
         <!-- Title Input (Required) -->
         <div class="form-group">
           <div class="label-row">
-            <label class="clean-label">Название задачи</label>
+            <label class="clean-label" for="task-edit-title">Название задачи</label>
             <span class="req-tag">Обязательное поле</span>
           </div>
           <input
+            id="task-edit-title"
+            name="taskEditTitle"
             type="text"
             class="clean-input title-input"
+            required
+            [attr.aria-invalid]="isEditSubmitted && !editForm.title.trim()"
+            [attr.aria-describedby]="isEditSubmitted && !editForm.title.trim() ? 'task-edit-title-error' : null"
             [class.input-error]="isEditSubmitted && !editForm.title.trim()"
             [(ngModel)]="editForm.title"
           />
-          <span class="error-msg" *ngIf="isEditSubmitted && !editForm.title.trim()">
+          <span id="task-edit-title-error" class="error-msg" *ngIf="isEditSubmitted && !editForm.title.trim()">
             Название задачи не может быть пустым
           </span>
         </div>
@@ -887,18 +936,19 @@ import { KeysetPage } from '../../core/models/common.models';
         <!-- Visual Type Selector Chips -->
         <div class="form-group">
           <div class="label-row">
-            <label class="clean-label">Тип задачи</label>
+            <span class="clean-label">Тип задачи</span>
           </div>
-          <div class="type-chips-selector">
+          <div class="type-chips-selector" role="group" aria-label="Тип задачи">
             <button
               *ngFor="let ty of taskTypes()"
               type="button"
               class="type-chip-btn"
               [class.active]="editForm.taskType === ty.code"
+              [attr.aria-pressed]="editForm.taskType === ty.code"
               (click)="editForm.taskType = ty.code"
               [style.--chip-color]="ty.color"
             >
-              <span class="material-symbols-outlined">{{ ty.icon }}</span>
+              <span class="material-symbols-outlined" aria-hidden="true">{{ ty.icon }}</span>
               <span>{{ ty.name }}</span>
             </button>
           </div>
@@ -907,13 +957,14 @@ import { KeysetPage } from '../../core/models/common.models';
         <!-- Visual Priority Selector Pills -->
         <div class="form-group">
           <div class="label-row">
-            <label class="clean-label">Приоритет</label>
+            <span class="clean-label">Приоритет</span>
           </div>
-          <div class="priority-chips-selector">
+          <div class="priority-chips-selector" role="group" aria-label="Приоритет задачи">
             <button
               type="button"
               class="prio-chip-btn prio-low"
               [class.active]="editForm.priority === 'low'"
+              [attr.aria-pressed]="editForm.priority === 'low'"
               (click)="editForm.priority = 'low'"
             >
               Низкий
@@ -922,6 +973,7 @@ import { KeysetPage } from '../../core/models/common.models';
               type="button"
               class="prio-chip-btn prio-medium"
               [class.active]="editForm.priority === 'medium'"
+              [attr.aria-pressed]="editForm.priority === 'medium'"
               (click)="editForm.priority = 'medium'"
             >
               Средний
@@ -930,6 +982,7 @@ import { KeysetPage } from '../../core/models/common.models';
               type="button"
               class="prio-chip-btn prio-high"
               [class.active]="editForm.priority === 'high'"
+              [attr.aria-pressed]="editForm.priority === 'high'"
               (click)="editForm.priority = 'high'"
             >
               Высокий
@@ -938,6 +991,7 @@ import { KeysetPage } from '../../core/models/common.models';
               type="button"
               class="prio-chip-btn prio-critical"
               [class.active]="editForm.priority === 'critical'"
+              [attr.aria-pressed]="editForm.priority === 'critical'"
               (click)="editForm.priority = 'critical'"
             >
               Критический
@@ -949,9 +1003,9 @@ import { KeysetPage } from '../../core/models/common.models';
           <!-- Project Selector -->
           <div class="form-group">
             <div class="label-row">
-              <label class="clean-label">Проект</label>
+              <label class="clean-label" for="task-edit-project">Проект</label>
             </div>
-            <select class="clean-input" [(ngModel)]="editForm.projectId">
+            <select id="task-edit-project" name="taskEditProject" class="clean-input" [(ngModel)]="editForm.projectId">
               <option [ngValue]="null">Без проекта</option>
               <option *ngFor="let p of projects()" [ngValue]="p.id">{{ p.name }}</option>
             </select>
@@ -960,11 +1014,12 @@ import { KeysetPage } from '../../core/models/common.models';
           <!-- Parent Task (Searchable Select) -->
           <div class="form-group">
             <div class="label-row">
-              <label class="clean-label">Родительская задача</label>
+              <span class="clean-label">Родительская задача</span>
             </div>
             <ui-searchable-select
               [options]="getAvailableParentTaskOptions(task.id)"
               [selectedId]="editForm.parentTaskId"
+              ariaLabel="Родительская задача"
               (selectedIdChange)="editForm.parentTaskId = $event"
               placeholder="Без родителя (корневая задача)"
               searchPlaceholder="Поиск задачи по ID или названию..."
@@ -977,11 +1032,12 @@ import { KeysetPage } from '../../core/models/common.models';
           <!-- Responsible User (Searchable Select) -->
           <div class="form-group">
             <div class="label-row">
-              <label class="clean-label">Ответственный сотрудник (I-T1)</label>
+              <span class="clean-label">Ответственный сотрудник (I-T1)</span>
             </div>
             <ui-searchable-select
               [options]="userSelectOptions()"
               [selectedId]="editForm.responsibleUserId"
+              ariaLabel="Ответственный сотрудник"
               (selectedIdChange)="editForm.responsibleUserId = $event"
               placeholder="Выберите ответственного..."
               searchPlaceholder="Поиск сотрудника по имени или логину..."
@@ -992,20 +1048,21 @@ import { KeysetPage } from '../../core/models/common.models';
           <!-- Deadlines: End Date / Deadline -->
           <div class="form-group">
             <div class="label-row">
-              <label class="clean-label">Срок сдачи (Дедлайн)</label>
+              <label class="clean-label" for="task-edit-deadline">Срок сдачи (Дедлайн)</label>
             </div>
-            <input type="datetime-local" class="clean-input font-mono" [(ngModel)]="editForm.endTime" />
+            <input id="task-edit-deadline" name="taskEditDeadline" type="datetime-local" class="clean-input font-mono" [(ngModel)]="editForm.endTime" />
           </div>
         </div>
 
         <!-- Observers Searchable Multi-Select Tags Input -->
         <div class="form-group">
           <div class="label-row">
-            <label class="clean-label">Наблюдатели (получают уведомления)</label>
+            <span class="clean-label">Наблюдатели (получают уведомления)</span>
           </div>
           <ui-user-multi-select
             [users]="usersList()"
             [selectedUserIds]="editForm.observerUserIds"
+            ariaLabel="Наблюдатели"
             (selectedUserIdsChange)="editForm.observerUserIds = $event"
             placeholder="Нажмите для добавления наблюдателей..."
             searchPlaceholder="Поиск сотрудника..."
@@ -1015,10 +1072,11 @@ import { KeysetPage } from '../../core/models/common.models';
         <!-- RichText Markdown Editor for Description -->
         <div class="form-group">
           <div class="label-row">
-            <label class="clean-label">Подробное описание (Markdown RichText)</label>
+            <span class="clean-label">Подробное описание (Markdown RichText)</span>
           </div>
           <ui-markdown-editor
             [value]="editForm.descriptionMarkdown"
+            ariaLabel="Подробное описание задачи"
             (valueChange)="editForm.descriptionMarkdown = $event"
             [rows]="4"
           ></ui-markdown-editor>
@@ -1726,7 +1784,15 @@ import { KeysetPage } from '../../core/models/common.models';
       border: 1px solid var(--border-color);
     }
     .trail-label { color: var(--text-muted); font-weight: 500; }
-    .anc-link { color: var(--primary); cursor: pointer; text-decoration: underline; }
+    .anc-link {
+      border: 0;
+      background: transparent;
+      color: var(--primary);
+      cursor: pointer;
+      font: inherit;
+      padding: 0;
+      text-decoration: underline;
+    }
     .anc-sep { color: var(--text-muted); }
     .anc-current { font-weight: 600; color: var(--text-main); }
 

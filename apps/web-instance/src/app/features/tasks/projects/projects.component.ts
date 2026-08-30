@@ -24,25 +24,27 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
           <span class="proj-count">{{ filteredProjects().length }}</span>
 
           <!-- View Mode Switcher -->
-          <div class="view-switcher">
+          <div class="view-switcher" role="group" aria-label="Режим отображения проектов">
             <button
               type="button"
               class="view-btn"
               [class.active]="viewMode === 'list'"
+              [attr.aria-pressed]="viewMode === 'list'"
               (click)="viewMode = 'list'"
               title="Список / Таблица"
             >
-              <span class="material-symbols-outlined">table_rows</span>
+              <span class="material-symbols-outlined" aria-hidden="true">table_rows</span>
               <span>Список</span>
             </button>
             <button
               type="button"
               class="view-btn"
               [class.active]="viewMode === 'cards'"
+              [attr.aria-pressed]="viewMode === 'cards'"
               (click)="viewMode = 'cards'"
               title="Карточки"
             >
-              <span class="material-symbols-outlined">grid_view</span>
+              <span class="material-symbols-outlined" aria-hidden="true">grid_view</span>
               <span>Карточки</span>
             </button>
           </div>
@@ -64,23 +66,27 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
       <!-- Toolbar -->
       <div class="toolbar">
         <div class="search-box">
-          <span class="material-symbols-outlined icon">search</span>
+          <span class="material-symbols-outlined icon" aria-hidden="true">search</span>
+          <label class="sr-only" for="project-search">Поиск проектов</label>
           <input
+            id="project-search"
+            name="projectSearch"
             type="text"
             class="search-input"
             placeholder="Поиск по названию или описанию..."
             [(ngModel)]="searchQuery"
           />
-          <button *ngIf="searchQuery" type="button" class="clear-btn" (click)="searchQuery = ''">
-            <span class="material-symbols-outlined">close</span>
+          <button *ngIf="searchQuery" type="button" class="clear-btn" aria-label="Очистить поиск проектов" (click)="searchQuery = ''">
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
           </button>
         </div>
 
-        <div class="segmented-control">
+        <div class="segmented-control" role="group" aria-label="Фильтр проектов по статусу">
           <button
             type="button"
             class="segment-btn"
             [class.active]="selectedState === 'all'"
+            [attr.aria-pressed]="selectedState === 'all'"
             (click)="selectedState = 'all'"
           >
             Все
@@ -89,6 +95,7 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
             type="button"
             class="segment-btn"
             [class.active]="selectedState === 'A'"
+            [attr.aria-pressed]="selectedState === 'A'"
             (click)="selectedState = 'A'"
           >
             Активные
@@ -97,6 +104,7 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
             type="button"
             class="segment-btn"
             [class.active]="selectedState === 'P'"
+            [attr.aria-pressed]="selectedState === 'P'"
             (click)="selectedState = 'P'"
           >
             Архив
@@ -108,8 +116,8 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
       <!-- VIEW 1: TABLE / LIST VIEW (Default)                                     -->
       <!-- ======================================================================= -->
       <div class="table-card" *ngIf="viewMode === 'list'">
-        <div class="table-wrapper">
-          <table class="data-table">
+        <div class="table-wrapper" role="region" aria-label="Таблица проектов" tabindex="0">
+          <table class="data-table" aria-label="Список проектов">
             <thead>
               <tr>
                 <th style="width: 60px;">ID</th>
@@ -121,13 +129,15 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let p of paginatedProjects()" class="project-row" (click)="viewProjectTasks(p)">
+              <tr *ngFor="let p of paginatedProjects()" class="project-row">
                 <td class="tabular-nums font-mono text-muted">#{{ p.id }}</td>
                 <td>
                   <div class="project-title-cell">
-                    <span class="material-symbols-outlined folder-icon">folder</span>
+                    <span class="material-symbols-outlined folder-icon" aria-hidden="true">folder</span>
                     <div class="project-info-group">
-                      <span class="project-name">{{ p.name }}</span>
+                      <button type="button" class="project-name" (click)="viewProjectTasks(p)">
+                        {{ p.name }}
+                      </button>
                       <span *ngIf="p.description" class="project-desc-line">{{ p.description }}</span>
                     </div>
                   </div>
@@ -148,7 +158,14 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
                         {{ getProjectPercent(p.id) }}%
                       </span>
                     </div>
-                    <div class="progress-bar-bg">
+                    <div
+                      class="progress-bar-bg"
+                      role="progressbar"
+                      [attr.aria-label]="'Прогресс проекта ' + p.name"
+                      aria-valuemin="0"
+                      aria-valuemax="100"
+                      [attr.aria-valuenow]="getProjectPercent(p.id)"
+                    >
                       <div
                         class="progress-bar-fill"
                         [style.width.%]="getProjectPercent(p.id)"
@@ -162,25 +179,27 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
                     {{ p.createdAt | date:'dd.MM.yyyy' }}
                   </span>
                 </td>
-                <td class="text-right" (click)="$event.stopPropagation()">
+                <td class="text-right">
                   <div class="row-action-btns">
                     <button
                       type="button"
                       class="action-link-btn"
+                      [attr.aria-label]="'Открыть задачи проекта ' + p.name"
                       title="Перейти к задачам проекта"
                       (click)="viewProjectTasks(p)"
                     >
-                      <span class="material-symbols-outlined">task_alt</span>
+                      <span class="material-symbols-outlined" aria-hidden="true">task_alt</span>
                       Задачи
                     </button>
                     <button
                       *ngIf="canUpdateProject()"
                       type="button"
                       class="icon-ghost-btn"
+                      [attr.aria-label]="'Редактировать проект ' + p.name"
                       title="Редактировать проект"
                       (click)="openEditModal(p)"
                     >
-                      <span class="material-symbols-outlined">edit</span>
+                      <span class="material-symbols-outlined" aria-hidden="true">edit</span>
                     </button>
                   </div>
                 </td>
@@ -188,7 +207,7 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
 
               <tr *ngIf="filteredProjects().length === 0 && !isLoading()">
                 <td colspan="6" class="empty-state-cell">
-                  <span class="material-symbols-outlined empty-icon">folder_off</span>
+                  <span class="material-symbols-outlined empty-icon" aria-hidden="true">folder_off</span>
                   <p>Проекты не найдены</p>
                 </td>
               </tr>
@@ -213,11 +232,10 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
           <div
             *ngFor="let p of paginatedProjects()"
             class="project-card"
-            (click)="viewProjectTasks(p)"
           >
             <div class="card-top">
               <div class="project-icon-box">
-                <span class="material-symbols-outlined">folder</span>
+                <span class="material-symbols-outlined" aria-hidden="true">folder</span>
               </div>
               <div class="card-top-right">
                 <span class="status-pill" [class.active]="p.state === 'A'">
@@ -228,16 +246,21 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
                   *ngIf="canUpdateProject()"
                   type="button"
                   class="edit-btn"
+                  [attr.aria-label]="'Редактировать проект ' + p.name"
                   title="Редактировать проект"
-                  (click)="$event.stopPropagation(); openEditModal(p)"
+                  (click)="openEditModal(p)"
                 >
-                  <span class="material-symbols-outlined">edit</span>
+                  <span class="material-symbols-outlined" aria-hidden="true">edit</span>
                 </button>
               </div>
             </div>
 
             <div class="card-content">
-              <h3 class="project-title">{{ p.name }}</h3>
+              <h3 class="project-title">
+                <button type="button" class="project-title-btn" (click)="viewProjectTasks(p)">
+                  {{ p.name }}
+                </button>
+              </h3>
               <p class="project-desc">{{ p.description || 'Описание проекта отсутствует' }}</p>
             </div>
 
@@ -250,7 +273,14 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
                   {{ getProjectPercent(p.id) }}%
                 </span>
               </div>
-              <div class="progress-bar-bg">
+              <div
+                class="progress-bar-bg"
+                role="progressbar"
+                [attr.aria-label]="'Прогресс проекта ' + p.name"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                [attr.aria-valuenow]="getProjectPercent(p.id)"
+              >
                 <div
                   class="progress-bar-fill"
                   [style.width.%]="getProjectPercent(p.id)"
@@ -261,14 +291,14 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
 
             <div class="card-foot">
               <span class="foot-date tabular-nums">Создан: {{ p.createdAt | date:'dd.MM.yyyy' }}</span>
-              <span class="view-tasks-link">
+              <button type="button" class="view-tasks-link" (click)="viewProjectTasks(p)">
                 Задачи ({{ getProjectTotalCount(p.id) }}) →
-              </span>
+              </button>
             </div>
           </div>
 
           <div *ngIf="filteredProjects().length === 0 && !isLoading()" class="empty-projects-cell">
-            <span class="material-symbols-outlined empty-icon">folder_off</span>
+            <span class="material-symbols-outlined empty-icon" aria-hidden="true">folder_off</span>
             <p>Проекты не найдены</p>
           </div>
         </div>
@@ -296,25 +326,32 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
       <div body class="modal-form">
         <div class="form-group">
           <div class="label-row">
-            <label class="clean-label">Название проекта</label>
+            <label class="clean-label" for="project-create-name">Название проекта</label>
             <span class="req-tag">Обязательное поле</span>
           </div>
           <input
+            id="project-create-name"
+            name="projectCreateName"
             type="text"
             class="clean-input"
+            required
+            [attr.aria-invalid]="isCreateSubmitted && !createForm.name.trim()"
+            [attr.aria-describedby]="isCreateSubmitted && !createForm.name.trim() ? 'project-create-name-error' : null"
             [class.input-error]="isCreateSubmitted && !createForm.name.trim()"
             [(ngModel)]="createForm.name"
             placeholder="Например: Внедрение DWH & CDC"
           />
-          <span class="error-msg" *ngIf="isCreateSubmitted && !createForm.name.trim()">
+          <span id="project-create-name-error" class="error-msg" *ngIf="isCreateSubmitted && !createForm.name.trim()">
             Пожалуйста, укажите название проекта
           </span>
         </div>
         <div class="form-group">
           <div class="label-row">
-            <label class="clean-label">Описание проекта</label>
+            <label class="clean-label" for="project-create-description">Описание проекта</label>
           </div>
           <textarea
+            id="project-create-description"
+            name="projectCreateDescription"
             class="clean-input clean-textarea"
             rows="3"
             [(ngModel)]="createForm.description"
@@ -340,33 +377,38 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
       <div body class="modal-form" *ngIf="editingProject as p">
         <div class="form-group">
           <div class="label-row">
-            <label class="clean-label">Название проекта</label>
+            <label class="clean-label" for="project-edit-name">Название проекта</label>
             <span class="req-tag">Обязательное поле</span>
           </div>
           <input
+            id="project-edit-name"
+            name="projectEditName"
             type="text"
             class="clean-input"
+            required
+            [attr.aria-invalid]="isEditSubmitted && !editForm.name.trim()"
+            [attr.aria-describedby]="isEditSubmitted && !editForm.name.trim() ? 'project-edit-name-error' : null"
             [class.input-error]="isEditSubmitted && !editForm.name.trim()"
             [(ngModel)]="editForm.name"
           />
-          <span class="error-msg" *ngIf="isEditSubmitted && !editForm.name.trim()">
+          <span id="project-edit-name-error" class="error-msg" *ngIf="isEditSubmitted && !editForm.name.trim()">
             Название проекта не может быть пустым
           </span>
         </div>
         <div class="form-group">
           <div class="label-row">
-            <label class="clean-label">Статус активности</label>
+            <label class="clean-label" for="project-edit-state">Статус активности</label>
           </div>
-          <select class="clean-input" [(ngModel)]="editForm.state">
+          <select id="project-edit-state" name="projectEditState" class="clean-input" [(ngModel)]="editForm.state">
             <option value="A">Активен (A)</option>
             <option value="P">В архиве (P)</option>
           </select>
         </div>
         <div class="form-group">
           <div class="label-row">
-            <label class="clean-label">Описание</label>
+            <label class="clean-label" for="project-edit-description">Описание</label>
           </div>
-          <textarea class="clean-input clean-textarea" rows="3" [(ngModel)]="editForm.description"></textarea>
+          <textarea id="project-edit-description" name="projectEditDescription" class="clean-input clean-textarea" rows="3" [(ngModel)]="editForm.description"></textarea>
         </div>
       </div>
       <div footer>
@@ -536,10 +578,7 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
       border-bottom: 1px solid var(--border-color);
       color: var(--text-main);
     }
-    .project-row {
-      cursor: pointer;
-      transition: background 0.1s ease;
-    }
+    .project-row { transition: background 0.1s ease; }
     .project-row:hover { background-color: var(--bg-hover); }
     .project-row:last-child td { border-bottom: none; }
 
@@ -550,7 +589,20 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
     }
     .folder-icon { font-size: 20px; color: var(--warning); flex-shrink: 0; }
     .project-info-group { display: flex; flex-direction: column; gap: 2px; }
+    .project-name,
+    .project-title-btn,
+    .view-tasks-link {
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+      font: inherit;
+      padding: 0;
+      text-align: left;
+    }
     .project-name { font-weight: 600; color: var(--text-main); }
+    .project-name:hover,
+    .project-title-btn:hover,
+    .view-tasks-link:hover { text-decoration: underline; }
     .project-desc-line {
       font-size: 11px;
       color: var(--text-muted);
@@ -648,7 +700,6 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
       display: flex;
       flex-direction: column;
       gap: 10px;
-      cursor: pointer;
       transition: all 0.12s ease;
     }
     .project-card:hover {
@@ -711,6 +762,7 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
       font-size: 11px;
     }
     .foot-date { color: var(--text-muted); }
+    .project-title-btn { color: inherit; font-weight: inherit; }
     .view-tasks-link { color: var(--primary); font-weight: 500; }
 
     .empty-projects-cell {
