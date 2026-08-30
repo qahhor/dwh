@@ -47,6 +47,7 @@ public enum ErrorCode {
 
     // 409 Conflict
     CONFLICT("conflict", 409),
+    OTP_CHANNEL_MISSING("otp_channel_missing", 409),
     STATUS_TRANSITION_FORBIDDEN("status_transition_forbidden", 409),
     TASK_PARENT_CYCLE("task_parent_cycle", 409),
     SINGLE_RESPONSIBLE_VIOLATION("single_responsible_violation", 409),
@@ -76,7 +77,8 @@ public enum ErrorCode {
 
     // 500 Internal Error
     INTERNAL_ERROR("internal_error", 500),
-    SERVICE_UNAVAILABLE("service_unavailable", 503);
+    SERVICE_UNAVAILABLE("service_unavailable", 503),
+    OTP_SEND_FAILED("otp_send_failed", 503);
 
     private final String code;
     private final int defaultStatus;
