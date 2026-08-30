@@ -78,7 +78,7 @@
 
 ---
 
-### M4. Ролевой доступ RBAC (PERM) [◐ ЧАСТИЧНО] код 2026-08-29 · 30.08 добавлен скоуп данных (ADR-0013) · FR-PERM-1 закрыт наполовину (Д-5: каталог форм из кода на 6 форм из 16, пометки устаревших нет)
+### M4. Ролевой доступ RBAC (PERM) [✅ ЗАКРЫТО 2026-08-30] FR-PERM-1 закрыт: каталог синхронизируется из @RequiresPermission, устаревшие пары помечаются и не выдаются (Д-5) · 30.08 добавлен скоуп данных (ADR-0013)
 - **Цель:** Разграничение прав на базе пар `(form, action)`, материализованная таблица прав `md_effective_permissions`, защита системных ролей (I-P4), мгновенная инвалидация и современный UI матрицы прав.
 - **DoD:**
   - Автоматическая синхронизация каталога форм из аннотаций `@RequiresPermission`.
@@ -86,8 +86,15 @@
   - Изменение ролей инкрементирует `permissions_version` и мгновенно пересчитывает эффективные права всех затронутых пользователей (`getUserIdsByRole`).
   - Защита системных ролей от удаления и суперадминистратора от перевода в пассивный статус (`ErrorCode.SUPERADMIN_IMMUTABLE`).
   - Минималистичный и функциональный UI матрицы прав с группировкой по модулям, поиском и пакетными действиями (`Выбрать все` / `Снять все`).
-- **Файлы:** `apps/instance/.../md/service/MdRoleService.java`, `MdPermissionService.java`, `MdRoleRepository.java`, `apps/web-instance/src/app/features/iam/roles/roles.component.ts`.
-- **Команда проверки:** `mvn test -Dtest=RbacSystemRolesIntegrationTest` (100% SUCCESS), `powershell scripts/dev/test-api.ps1` (15/15 SUCCESS).
+- **Закрыто 30.08 (Д-5):** каталог форм синхронизируется при старте из аннотаций
+  `@RequiresPermission` (`MdFormCatalogSynchronizer`), имена берутся из `MdFormCatalog`,
+  запись без эндпоинта помечается устаревшей и не может быть выдана ни роли, ни лично.
+  Найдено и помечено четыре мёртвых пары: `notify.preferences.view/.update`,
+  `iam.profile.manage_channels`, `platform.files.manage_quotas`.
+- **Файлы:** `apps/instance/.../md/service/MdRoleService.java`, `MdPermissionService.java`,
+  `MdFormCatalogSynchronizer.java`, `md/pref/MdFormCatalog.java`, `MdRoleRepository.java`,
+  `apps/web-instance/src/app/features/iam/roles/roles.component.ts`.
+- **Команда проверки:** `mvn test` (139 тестов, BUILD SUCCESS), живой прогон 9/9.
 
 
 ---
@@ -138,15 +145,29 @@
 
 ---
 
-### M8. Аудит и безопасность (AUD) [◐ ЧАСТИЧНО] 30.08 аудит расставлен на выдачу прав, роли, оргструктуру и скоуп · без следа остаются файлы, вебхуки и динамические поля
+### M8. Аудит и безопасность (AUD) [✅ ЗАКРЫТО 2026-08-30] аудит расставлен по всем мутирующим сервисам и закреплён тестом-стражем · FR-AUD-2 срок хранения отцеплением партиций · журнал стал действительно неизменяемым (V014)
 - **Цель:** Неизменяемый партиционированный журнал аудита изменений (`audit_log`) и журнал security-событий (`security_events`), REST API аудита со статистикой и полноценный веб-интерфейс с Visual Diff сравнением.
 - **DoD:**
   - Запись старых и новых значений при мутациях бизнес-сущностей (`md_users`, `ms_tasks`, `ms_projects`, `md_roles`, `md_custom_fields`).
   - Фиксация событий авторизации (`LOGIN_SUCCESS`, `LOGIN_FAILED`), смены паролей, сброса, 2FA, выдачи API-токенов и срабатывания rate limiting (`LOGIN_LOCKED`, `IP_RATE_LIMITED`).
   - REST API эндпоинты `/api/v1/audit/logs`, `/api/v1/audit/security-events`, `/api/v1/audit/stats` с фильтрами по таблицам, событиям, пользователям, IP и датам.
   - Полноценный веб-интерфейс `AuditComponent` (`/audit`) со сводными карточками метрик за 24ч, вкладками «Журнал изменений» и «События безопасности», модальным окном интерактивного Visual Diff (подсветка измененных полей) и просмотром JSON параметров.
-- **Файлы:** `apps/instance/.../audit/service/AuditLogService.java`, `AuditLogRepository.java`, `AuditLogController.java`, `apps/web-instance/.../features/audit/audit.component.ts`.
-- **Команда проверки:** `mvn test -Dtest=AuditLogServiceTest` (100% SUCCESS), `powershell scripts/dev/test-api.ps1` (16/16 SUCCESS).
+- **Закрыто 30.08:**
+  - аудит пишут все мутирующие сервисы: права и роли, оргструктура и скоуп, файлы,
+    вебхуки, динамические поля, проекты и их участники, комментарии;
+  - `AuditCoverageTest` не даёт этому разъехаться снова: мутирующий сервис без
+    `AuditLogService` валит сборку, список исключений закрытый и проверяется на протухание;
+  - FR-AUD-2: партиции старше срока хранения отцепляются и переименовываются в
+    `audit_log_archived_YYYY_MM`. Данные не удаляются — автоматическое удаление аудита
+    необратимо, решение за эксплуатацией;
+  - V014: журнал стал действительно неизменяемым — UPDATE и DELETE по `audit_log`
+    отклоняются на уровне базы. До этого «неизменяемость» была только словом в цели вехи.
+  - Секреты в журнал не попадают: токен подписи вебхука и текст комментария не пишутся.
+- **Файлы:** `apps/instance/.../audit/service/AuditLogService.java`, `AuditLogRepository.java`,
+  `AuditPartitionRepository.java`, `AuditPartitionWorker.java`, `AuditLogController.java`,
+  `apps/web-instance/.../features/audit/audit.component.ts`.
+- **Команда проверки:** `mvn test` (139 тестов, BUILD SUCCESS), живой прогон 9/9
+  плюс проверка неизменяемости прямым psql к стенду.
 
 
 ---
@@ -304,9 +325,7 @@
 
 | Пункт | Чего ждёт |
 |---|---|
-| Д-5 — каталог форм из кода, пометка устаревших | работы; закрывается в рамках пересмотра M4 |
 | Д-7 — аудитор не может сменить свой пароль | **решения CEO** (рекомендация — вариант «б» из AUDIT-05) |
 | FR-NOTIF-5 — боевой SMS | договора с оператором |
 | FR-FILE-1 — S3/Garage, FR-SEC-3 — Vault, FR-OBS-* — стек, FR-CP-3/4/8 | стенда фазы P |
-| Аудит файлов, вебхуков, динамических полей | работы; закрывается в рамках пересмотра M8 |
 | Применение предиката скоупа к остальным спискам | по мере пересмотра модулей (ADR-0013 разд. 4) |
