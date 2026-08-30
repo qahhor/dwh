@@ -26,14 +26,14 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
           <span class="view-subtitle">Настройка произвольных полей для пользователей, проектов и задач</span>
         </div>
         <div class="header-actions">
-          <button class="icon-refresh-btn" (click)="loadFields()" title="Обновить">
-            <span class="material-symbols-outlined">refresh</span>
+          <button type="button" class="icon-refresh-btn" (click)="loadFields()" aria-label="Обновить поля" title="Обновить">
+            <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
           </button>
           <ui-button
             *ngIf="canManage()"
             variant="primary"
             icon="add"
-            (clicked)="openCreateModal()"
+            (onClick)="openCreateModal()"
           >
             Добавить поле
           </ui-button>
@@ -41,11 +41,13 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
       </div>
 
       <!-- Entity Type Filter Tabs -->
-      <div class="filter-tabs">
+      <div class="filter-tabs" role="group" aria-label="Фильтр по типу сущности">
         <button
           *ngFor="let ent of ['ALL', 'USER', 'PROJECT', 'TASK']"
+          type="button"
           class="tab-btn"
           [class.active]="selectedEntity === ent"
+          [attr.aria-pressed]="selectedEntity === ent"
           (click)="filterByEntity(ent)"
         >
           {{ getEntityLabel(ent) }}
@@ -55,7 +57,7 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
       <!-- Grid / Table -->
       <div class="card table-card">
         <div class="table-wrapper">
-          <table class="data-table">
+          <table class="data-table" aria-label="Динамические атрибуты">
             <thead>
               <tr>
                 <th>Код поля</th>
@@ -86,19 +88,19 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
                 </td>
                 <td class="text-muted">{{ f.defaultValue || '—' }}</td>
                 <td *ngIf="canManage()" class="text-right">
-                  <button class="action-btn" (click)="openEditModal(f)" title="Редактировать">
-                    <span class="material-symbols-outlined">edit</span>
+                  <button type="button" class="action-btn" (click)="openEditModal(f)" [attr.aria-label]="'Редактировать ' + f.name" title="Редактировать">
+                    <span class="material-symbols-outlined" aria-hidden="true">edit</span>
                   </button>
-                  <button class="action-btn danger" (click)="deleteField(f)" title="Удалить">
-                    <span class="material-symbols-outlined">delete</span>
+                  <button type="button" class="action-btn danger" (click)="deleteField(f)" [attr.aria-label]="'Удалить ' + f.name" title="Удалить">
+                    <span class="material-symbols-outlined" aria-hidden="true">delete</span>
                   </button>
                 </td>
               </tr>
 
               <tr *ngIf="filteredFields.length === 0">
-                <td colspan="7" class="empty-row">
+                <td [attr.colspan]="canManage() ? 7 : 6" class="empty-row">
                   <div class="empty-state">
-                    <span class="material-symbols-outlined empty-icon">tune</span>
+                    <span class="material-symbols-outlined empty-icon" aria-hidden="true">tune</span>
                     <p>Динамические поля не найдены</p>
                   </div>
                 </td>
@@ -111,13 +113,15 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
       <!-- Create / Edit Modal -->
       <ui-modal
         *ngIf="showModal"
+        [isOpen]="showModal"
         [title]="editingField ? 'Редактирование поля' : 'Новое динамическое поле'"
-        (closed)="closeModal()"
+        [hasFooter]="false"
+        (close)="closeModal()"
       >
-        <div class="modal-form">
+        <form class="modal-form" (ngSubmit)="saveField()">
           <div class="form-group" *ngIf="!editingField">
-            <label class="form-label">Целевая сущность <span class="req">*</span></label>
-            <select class="form-select" [(ngModel)]="formData.entityType">
+            <label class="form-label" for="custom-field-entity">Целевая сущность <span class="req" aria-hidden="true">*</span></label>
+            <select id="custom-field-entity" name="entityType" class="form-select" [(ngModel)]="formData.entityType" required>
               <option value="USER">Пользователь (USER)</option>
               <option value="PROJECT">Проект (PROJECT)</option>
               <option value="TASK">Задача (TASK)</option>
@@ -126,31 +130,37 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 
           <div class="form-row">
             <div class="form-group flex-1">
-              <label class="form-label">Код поля (slug) <span class="req">*</span></label>
+              <label class="form-label" for="custom-field-code">Код поля (slug) <span class="req" aria-hidden="true">*</span></label>
               <input
+                id="custom-field-code"
+                name="code"
                 type="text"
                 class="form-input font-mono"
                 [(ngModel)]="formData.code"
                 [disabled]="!!editingField"
                 placeholder="например: inn, budget"
+                required
               />
             </div>
 
             <div class="form-group flex-1">
-              <label class="form-label">Название поля <span class="req">*</span></label>
+              <label class="form-label" for="custom-field-name">Название поля <span class="req" aria-hidden="true">*</span></label>
               <input
+                id="custom-field-name"
+                name="name"
                 type="text"
                 class="form-input"
                 [(ngModel)]="formData.name"
                 placeholder="например: ИНН, Бюджет проекта"
+                required
               />
             </div>
           </div>
 
           <div class="form-row" *ngIf="!editingField">
             <div class="form-group flex-1">
-              <label class="form-label">Тип данных <span class="req">*</span></label>
-              <select class="form-select" [(ngModel)]="formData.fieldType">
+              <label class="form-label" for="custom-field-type">Тип данных <span class="req" aria-hidden="true">*</span></label>
+              <select id="custom-field-type" name="fieldType" class="form-select" [(ngModel)]="formData.fieldType" required>
                 <option value="string">Текст (string)</option>
                 <option value="number">Число (number)</option>
                 <option value="boolean">Логический переключатель (boolean)</option>
@@ -160,8 +170,10 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
             </div>
 
             <div class="form-group flex-1">
-              <label class="form-label">Значение по умолчанию</label>
+              <label class="form-label" for="custom-field-default">Значение по умолчанию</label>
               <input
+                id="custom-field-default"
+                name="defaultValue"
                 type="text"
                 class="form-input"
                 [(ngModel)]="formData.defaultValue"
@@ -170,18 +182,34 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
             </div>
           </div>
 
+          <div class="form-group" *ngIf="formData.fieldType === 'select'">
+            <label class="form-label" for="custom-field-options">Варианты списка <span class="req" aria-hidden="true">*</span></label>
+            <textarea
+              id="custom-field-options"
+              name="optionsText"
+              class="form-input options-input"
+              [(ngModel)]="formData.optionsText"
+              rows="4"
+              placeholder="По одному варианту в строке"
+              required
+            ></textarea>
+            <span class="form-hint">По одному варианту в строке. Для отдельного кода используйте формат: код | подпись.</span>
+          </div>
+
           <div class="form-group checkbox-group">
-            <label class="checkbox-label">
-              <input type="checkbox" [(ngModel)]="formData.isRequired" />
+            <label class="checkbox-label" for="custom-field-required">
+              <input id="custom-field-required" name="isRequired" type="checkbox" [(ngModel)]="formData.isRequired" />
               <span>Обязательное для заполнения</span>
             </label>
           </div>
 
+          <p *ngIf="formError" class="form-error" role="alert">{{ formError }}</p>
+
           <div class="modal-actions">
-            <ui-button variant="secondary" (clicked)="closeModal()">Отмена</ui-button>
-            <ui-button variant="primary" [loading]="saving" (clicked)="saveField()">Сохранить</ui-button>
+            <ui-button type="button" variant="secondary" (onClick)="closeModal()">Отмена</ui-button>
+            <ui-button type="submit" variant="primary" [loading]="saving">Сохранить</ui-button>
           </div>
-        </div>
+        </form>
       </ui-modal>
     </div>
   `,
@@ -273,9 +301,12 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 
     .data-table {
       width: 100%;
+      min-width: 760px;
       border-collapse: collapse;
       text-align: left;
     }
+
+    .table-wrapper { overflow-x: auto; }
 
     .data-table th {
       padding: 14px 16px;
@@ -403,8 +434,24 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
       padding: 10px 12px;
       color: #ffffff;
       font-size: 14px;
-      outline: none;
       transition: border-color 0.2s;
+    }
+
+    .options-input {
+      min-height: 92px;
+      resize: vertical;
+      font-family: inherit;
+    }
+
+    .form-hint {
+      color: var(--text-secondary, #94a3b8);
+      font-size: 12px;
+    }
+
+    .form-error {
+      margin: 0;
+      color: var(--danger, #ef4444);
+      font-size: 13px;
     }
 
     .form-input:focus, .form-select:focus {
@@ -432,6 +479,20 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
       padding-top: 16px;
       border-top: 1px solid rgba(255, 255, 255, 0.08);
     }
+
+    @media (max-width: 640px) {
+      .view-header, .form-row {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .filter-tabs {
+        width: 100%;
+        overflow-x: auto;
+      }
+
+      .tab-btn { white-space: nowrap; }
+    }
   `]
 })
 export class CustomFieldsComponent implements OnInit {
@@ -442,6 +503,7 @@ export class CustomFieldsComponent implements OnInit {
   showModal: boolean = false;
   editingField: CustomField | null = null;
   saving: boolean = false;
+  formError: string = '';
 
   formData: any = {
     entityType: 'USER',
@@ -450,7 +512,8 @@ export class CustomFieldsComponent implements OnInit {
     fieldType: 'string',
     isRequired: false,
     defaultValue: '',
-    orderNo: 0
+    orderNo: 0,
+    optionsText: ''
   };
 
   constructor(
@@ -522,36 +585,50 @@ export class CustomFieldsComponent implements OnInit {
       fieldType: 'string',
       isRequired: false,
       defaultValue: '',
-      orderNo: 0
+      orderNo: 0,
+      optionsText: ''
     };
+    this.formError = '';
     this.showModal = true;
   }
 
   openEditModal(f: CustomField) {
     this.editingField = f;
     this.formData = {
-      ...f
+      ...f,
+      optionsText: this.optionsToText(f.optionsJson)
     };
+    this.formError = '';
     this.showModal = true;
   }
 
   closeModal() {
     this.showModal = false;
     this.editingField = null;
+    this.formError = '';
   }
 
   saveField() {
     if (!this.formData.name || !this.formData.code) {
+      this.formError = 'Заполните обязательные поля';
       this.toast.error('Заполните обязательные поля');
       return;
     }
 
+    const options = this.parseOptionsText(this.formData.optionsText);
+    if (this.formData.fieldType === 'select' && options.length === 0) {
+      this.formError = 'Добавьте хотя бы один вариант списка';
+      return;
+    }
+
+    this.formError = '';
     this.saving = true;
     if (this.editingField) {
       this.api.patch(`/custom-fields/${this.editingField.id}`, {
         name: this.formData.name,
         isRequired: this.formData.isRequired,
         defaultValue: this.formData.defaultValue,
+        options,
         orderNo: this.formData.orderNo
       }).subscribe({
         next: () => {
@@ -574,7 +651,7 @@ export class CustomFieldsComponent implements OnInit {
         isRequired: this.formData.isRequired,
         defaultValue: this.formData.defaultValue,
         orderNo: this.formData.orderNo,
-        options: []
+        options
       }).subscribe({
         next: () => {
           this.saving = false;
@@ -599,6 +676,46 @@ export class CustomFieldsComponent implements OnInit {
         },
         error: () => this.toast.error('Ошибка удаления поля')
       });
+    }
+  }
+
+  private parseOptionsText(value: string | undefined): Array<string | { value: string; label: string }> {
+    return (value || '')
+      .split(/\r?\n/)
+      .map(option => option.trim())
+      .filter((option, index, all) => option.length > 0 && all.indexOf(option) === index)
+      .map(option => {
+        const separatorIndex = option.indexOf('|');
+        if (separatorIndex < 0) return option;
+
+        const optionValue = option.slice(0, separatorIndex).trim();
+        const optionLabel = option.slice(separatorIndex + 1).trim();
+        return optionValue && optionLabel
+          ? { value: optionValue, label: optionLabel }
+          : option;
+      });
+  }
+
+  private optionsToText(optionsJson: string | undefined): string {
+    if (!optionsJson) return '';
+    try {
+      const options: unknown = JSON.parse(optionsJson);
+      if (!Array.isArray(options)) return '';
+      return options
+        .map(option => {
+          if (typeof option !== 'object' || option === null) return String(option);
+          if (!('value' in option)) return '';
+
+          const optionValue = String((option as { value: unknown }).value);
+          const optionLabel = 'label' in option
+            ? String((option as { label: unknown }).label)
+            : optionValue;
+          return optionValue === optionLabel ? optionValue : `${optionValue} | ${optionLabel}`;
+        })
+        .filter(Boolean)
+        .join('\n');
+    } catch {
+      return '';
     }
   }
 }

@@ -10,65 +10,73 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
   template: `
     <div class="md-editor-container" [class.focused]="isFocused">
       <!-- Toolbar -->
-      <div class="md-toolbar">
+      <div class="md-toolbar" role="toolbar" aria-label="Форматирование Markdown">
         <div class="toolbar-actions">
-          <button type="button" class="tool-btn" (click)="insertFormat('bold')" title="Жирный (Ctrl+B)">
-            <span class="material-symbols-outlined">format_bold</span>
+          <button type="button" class="tool-btn" (click)="insertFormat('bold')" aria-label="Жирный" title="Жирный (Ctrl+B)">
+            <span class="material-symbols-outlined" aria-hidden="true">format_bold</span>
           </button>
-          <button type="button" class="tool-btn" (click)="insertFormat('italic')" title="Курсив (Ctrl+I)">
-            <span class="material-symbols-outlined">format_italic</span>
+          <button type="button" class="tool-btn" (click)="insertFormat('italic')" aria-label="Курсив" title="Курсив (Ctrl+I)">
+            <span class="material-symbols-outlined" aria-hidden="true">format_italic</span>
           </button>
-          <button type="button" class="tool-btn" (click)="insertFormat('strike')" title="Зачеркнутый">
-            <span class="material-symbols-outlined">format_strikethrough</span>
+          <button type="button" class="tool-btn" (click)="insertFormat('strike')" aria-label="Зачёркнутый" title="Зачеркнутый">
+            <span class="material-symbols-outlined" aria-hidden="true">format_strikethrough</span>
           </button>
-          <span class="tool-sep"></span>
+          <span class="tool-sep" role="separator" aria-orientation="vertical"></span>
 
-          <button type="button" class="tool-btn" (click)="insertFormat('h2')" title="Заголовок">
-            <span class="material-symbols-outlined">title</span>
+          <button type="button" class="tool-btn" (click)="insertFormat('h2')" aria-label="Заголовок" title="Заголовок">
+            <span class="material-symbols-outlined" aria-hidden="true">title</span>
           </button>
-          <button type="button" class="tool-btn" (click)="insertFormat('bullet-list')" title="Маркированный список">
-            <span class="material-symbols-outlined">format_list_bulleted</span>
+          <button type="button" class="tool-btn" (click)="insertFormat('bullet-list')" aria-label="Маркированный список" title="Маркированный список">
+            <span class="material-symbols-outlined" aria-hidden="true">format_list_bulleted</span>
           </button>
-          <button type="button" class="tool-btn" (click)="insertFormat('num-list')" title="Нумерованный список">
-            <span class="material-symbols-outlined">format_list_numbered</span>
+          <button type="button" class="tool-btn" (click)="insertFormat('num-list')" aria-label="Нумерованный список" title="Нумерованный список">
+            <span class="material-symbols-outlined" aria-hidden="true">format_list_numbered</span>
           </button>
-          <button type="button" class="tool-btn" (click)="insertFormat('task-list')" title="Чек-лист задач">
-            <span class="material-symbols-outlined">checklist</span>
+          <button type="button" class="tool-btn" (click)="insertFormat('task-list')" aria-label="Чек-лист задач" title="Чек-лист задач">
+            <span class="material-symbols-outlined" aria-hidden="true">checklist</span>
           </button>
-          <span class="tool-sep"></span>
+          <span class="tool-sep" role="separator" aria-orientation="vertical"></span>
 
-          <button type="button" class="tool-btn" (click)="insertFormat('code')" title="Код">
-            <span class="material-symbols-outlined">code</span>
+          <button type="button" class="tool-btn" (click)="insertFormat('code')" aria-label="Код" title="Код">
+            <span class="material-symbols-outlined" aria-hidden="true">code</span>
           </button>
-          <button type="button" class="tool-btn" (click)="insertFormat('quote')" title="Цитата">
-            <span class="material-symbols-outlined">format_quote</span>
+          <button type="button" class="tool-btn" (click)="insertFormat('quote')" aria-label="Цитата" title="Цитата">
+            <span class="material-symbols-outlined" aria-hidden="true">format_quote</span>
           </button>
-          <button type="button" class="tool-btn" (click)="insertFormat('link')" title="Ссылка">
-            <span class="material-symbols-outlined">link</span>
+          <button type="button" class="tool-btn" (click)="insertFormat('link')" aria-label="Ссылка" title="Ссылка">
+            <span class="material-symbols-outlined" aria-hidden="true">link</span>
           </button>
-          <button type="button" class="tool-btn" (click)="insertFormat('table')" title="Таблица">
-            <span class="material-symbols-outlined">table</span>
+          <button type="button" class="tool-btn" (click)="insertFormat('table')" aria-label="Таблица" title="Таблица">
+            <span class="material-symbols-outlined" aria-hidden="true">table</span>
           </button>
         </div>
 
         <!-- Mode Toggle Tabs -->
-        <div class="mode-tabs">
+        <div class="mode-tabs" role="tablist" aria-label="Режим Markdown">
           <button
             type="button"
             class="mode-btn"
+            role="tab"
+            [id]="editTabId"
             [class.active]="mode === 'edit'"
+            [attr.aria-selected]="mode === 'edit'"
+            [attr.aria-controls]="editPanelId"
             (click)="mode = 'edit'"
           >
-            <span class="material-symbols-outlined ico">edit_note</span>
+            <span class="material-symbols-outlined ico" aria-hidden="true">edit_note</span>
             <span>Редактор</span>
           </button>
           <button
             type="button"
             class="mode-btn"
+            role="tab"
+            [id]="previewTabId"
             [class.active]="mode === 'preview'"
+            [attr.aria-selected]="mode === 'preview'"
+            [attr.aria-controls]="previewPanelId"
             (click)="mode = 'preview'"
           >
-            <span class="material-symbols-outlined ico">visibility</span>
+            <span class="material-symbols-outlined ico" aria-hidden="true">visibility</span>
             <span>Предпросмотр</span>
           </button>
         </div>
@@ -77,23 +85,29 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
       <!-- Editor Content -->
       <div class="md-body">
         <!-- Textarea Mode -->
-        <textarea
-          #textareaRef
-          *ngIf="mode === 'edit'"
-          class="md-textarea"
-          [rows]="rows"
-          [placeholder]="placeholder"
-          [ngModel]="value"
-          (ngModelChange)="onTextChange($event)"
-          (focus)="isFocused = true"
-          (blur)="isFocused = false"
-          (keydown)="handleKeydown($event)"
-        ></textarea>
+        <div *ngIf="mode === 'edit'" class="editor-pane" role="tabpanel" [id]="editPanelId" [attr.aria-labelledby]="editTabId">
+          <label class="sr-only" [for]="textareaId">{{ ariaLabel }}</label>
+          <textarea
+            #textareaRef
+            [id]="textareaId"
+            class="md-textarea"
+            [rows]="rows"
+            [placeholder]="placeholder"
+            [ngModel]="value"
+            (ngModelChange)="onTextChange($event)"
+            (focus)="isFocused = true"
+            (blur)="isFocused = false"
+            (keydown)="handleKeydown($event)"
+          ></textarea>
+        </div>
 
         <!-- Preview Mode -->
         <div
           *ngIf="mode === 'preview'"
           class="md-preview-pane"
+          role="tabpanel"
+          [id]="previewPanelId"
+          [attr.aria-labelledby]="previewTabId"
           [innerHTML]="renderMarkdown(value)"
         ></div>
       </div>
@@ -191,6 +205,11 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
       display: flex;
       flex-direction: column;
       position: relative;
+    }
+
+    .editor-pane {
+      display: flex;
+      flex-direction: column;
     }
 
     .md-textarea {
@@ -291,15 +310,24 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
   `]
 })
 export class UiMarkdownEditorComponent {
+  private static nextId = 0;
+
   @Input() value = '';
   @Input() placeholder = 'Напишите текст задачи (поддерживается Markdown)...';
   @Input() rows = 4;
+  @Input() ariaLabel = 'Текст в формате Markdown';
   @Output() valueChange = new EventEmitter<string>();
 
   @ViewChild('textareaRef') textareaRef?: ElementRef<HTMLTextAreaElement>;
 
   mode: 'edit' | 'preview' = 'edit';
   isFocused = false;
+  private readonly componentId = UiMarkdownEditorComponent.nextId++;
+  readonly textareaId = `ui-markdown-editor-${this.componentId}`;
+  readonly editTabId = `ui-markdown-edit-tab-${this.componentId}`;
+  readonly previewTabId = `ui-markdown-preview-tab-${this.componentId}`;
+  readonly editPanelId = `ui-markdown-edit-panel-${this.componentId}`;
+  readonly previewPanelId = `ui-markdown-preview-panel-${this.componentId}`;
 
   constructor(private sanitizer: DomSanitizer) {}
 

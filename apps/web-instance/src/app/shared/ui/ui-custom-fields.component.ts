@@ -11,45 +11,76 @@ import { CustomField } from '../../core/models/custom-field.models';
     <div class="custom-fields-grid" *ngIf="fields && fields.length > 0">
       <div class="field-item" *ngFor="let f of fields">
         <div class="field-header">
-          <label class="field-label">{{ f.name }}</label>
+          <label class="field-label" [for]="controlId(f)">{{ f.name }}</label>
           <span *ngIf="f.isRequired" class="req-tag">Обязательно</span>
         </div>
 
         <!-- String Input -->
         <input
           *ngIf="f.fieldType === 'string'"
+          [id]="controlId(f)"
+          [name]="f.code"
           type="text"
           class="form-control"
           [ngModel]="values[f.code]"
           (ngModelChange)="onValueChange(f.code, $event)"
           [placeholder]="f.defaultValue || 'Текстовое значение...'"
+          [required]="f.isRequired"
+          [attr.aria-required]="f.isRequired"
         />
 
         <!-- Number Input -->
         <input
           *ngIf="f.fieldType === 'number'"
+          [id]="controlId(f)"
+          [name]="f.code"
           type="number"
           class="form-control"
           [ngModel]="values[f.code]"
           (ngModelChange)="onValueChange(f.code, $event)"
           [placeholder]="f.defaultValue || '0'"
+          [required]="f.isRequired"
+          [attr.aria-required]="f.isRequired"
         />
 
         <!-- Date Input -->
         <input
           *ngIf="f.fieldType === 'date'"
+          [id]="controlId(f)"
+          [name]="f.code"
           type="date"
           class="form-control"
           [ngModel]="values[f.code]"
           (ngModelChange)="onValueChange(f.code, $event)"
+          [required]="f.isRequired"
+          [attr.aria-required]="f.isRequired"
         />
+
+        <!-- Select Input -->
+        <select
+          *ngIf="f.fieldType === 'select'"
+          [id]="controlId(f)"
+          [name]="f.code"
+          class="form-control"
+          [ngModel]="values[f.code] ?? null"
+          (ngModelChange)="onValueChange(f.code, $event)"
+          [required]="f.isRequired"
+          [attr.aria-required]="f.isRequired"
+        >
+          <option [ngValue]="null">Выберите значение</option>
+          <option *ngFor="let option of getSelectOptions(f)" [ngValue]="option.value">{{ option.label }}</option>
+        </select>
 
         <!-- Boolean Toggle -->
         <label *ngIf="f.fieldType === 'boolean'" class="checkbox-label">
           <input
+            [id]="controlId(f)"
+            [name]="f.code"
             type="checkbox"
             [ngModel]="values[f.code] === true || values[f.code] === 'true'"
             (ngModelChange)="onValueChange(f.code, $event)"
+            [required]="f.isRequired"
+            [attr.aria-required]="f.isRequired"
           />
           <span>Включено</span>
         </label>
@@ -100,7 +131,6 @@ import { CustomField } from '../../core/models/custom-field.models';
       color: var(--text-main);
       font-size: 13px;
       font-family: inherit;
-      outline: none;
       transition: border-color 0.15s ease;
     }
 
@@ -120,10 +150,45 @@ import { CustomField } from '../../core/models/custom-field.models';
   `]
 })
 export class UiCustomFieldsComponent {
+  private static nextId = 0;
+
   @Input() fields: CustomField[] = [];
   @Input() values: Record<string, any> = {};
 
   @Output() valuesChange = new EventEmitter<Record<string, any>>();
+
+  private readonly componentId = UiCustomFieldsComponent.nextId++;
+
+  controlId(field: CustomField): string {
+    return `ui-custom-field-${this.componentId}-${field.id}-${field.code.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
+  }
+
+  getSelectOptions(field: CustomField): Array<{ value: string | number | boolean; label: string }> {
+    if (!field.optionsJson) return [];
+
+    try {
+      const options: unknown = JSON.parse(field.optionsJson);
+      if (!Array.isArray(options)) return [];
+
+      return options.flatMap(option => {
+        if (typeof option === 'string' || typeof option === 'number' || typeof option === 'boolean') {
+          return [{ value: option, label: String(option) }];
+        }
+
+        if (option && typeof option === 'object' && 'value' in option) {
+          const value = (option as { value: unknown }).value;
+          const label = 'label' in option ? (option as { label: unknown }).label : value;
+          if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+            return [{ value, label: String(label) }];
+          }
+        }
+
+        return [];
+      });
+    } catch {
+      return [];
+    }
+  }
 
   onValueChange(code: string, value: any) {
     this.values[code] = value;
