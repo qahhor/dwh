@@ -22,6 +22,7 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
     UiToastContainerComponent
   ],
   template: `
+    <a class="skip-link" href="#main-content">Перейти к основному содержимому</a>
     <div class="app-layout">
       <!-- Sidebar -->
       <aside class="sidebar" [class.collapsed]="isCollapsed()">
@@ -30,57 +31,64 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
             <span class="brand-icon">D</span>
             <span class="brand-name">DWH Platform</span>
           </div>
-          <button class="toggle-btn" (click)="toggleSidebar()" [title]="isCollapsed() ? 'Развернуть' : 'Свернуть'">
-            <span class="material-symbols-outlined">{{ isCollapsed() ? 'chevron_right' : 'chevron_left' }}</span>
+          <button
+            type="button"
+            class="toggle-btn"
+            (click)="toggleSidebar()"
+            [attr.aria-label]="isCollapsed() ? 'Развернуть навигацию' : 'Свернуть навигацию'"
+            [attr.aria-expanded]="!isCollapsed()"
+            [title]="isCollapsed() ? 'Развернуть' : 'Свернуть'"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">{{ isCollapsed() ? 'chevron_right' : 'chevron_left' }}</span>
           </button>
         </div>
 
-        <nav class="sidebar-nav">
+        <nav class="sidebar-nav" aria-label="Основная навигация">
           <!-- Tasks & Workflows -->
           <div class="nav-section-title" *ngIf="!isCollapsed() && (canViewTasks() || canViewProjects())">{{ 'nav.tasks' | t }}</div>
-          <a *ngIf="canViewTasks()" routerLink="/tasks" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="nav-item" title="Задачи">
-            <span class="material-symbols-outlined nav-icon">task_alt</span>
+          <a *ngIf="canViewTasks()" routerLink="/tasks" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" [attr.aria-current]="isRouteActive('/tasks', true) ? 'page' : null" class="nav-item" title="Задачи">
+            <span class="material-symbols-outlined nav-icon" aria-hidden="true">task_alt</span>
             <span class="nav-label" *ngIf="!isCollapsed()">{{ 'nav.tasks' | t }}</span>
           </a>
-          <a *ngIf="canViewProjects()" routerLink="/tasks/projects" routerLinkActive="active" class="nav-item" title="Проекты">
-            <span class="material-symbols-outlined nav-icon">folder</span>
+          <a *ngIf="canViewProjects()" routerLink="/tasks/projects" routerLinkActive="active" [attr.aria-current]="isRouteActive('/tasks/projects') ? 'page' : null" class="nav-item" title="Проекты">
+            <span class="material-symbols-outlined nav-icon" aria-hidden="true">folder</span>
             <span class="nav-label" *ngIf="!isCollapsed()">{{ 'nav.projects' | t }}</span>
           </a>
 
           <!-- Master Data & IAM -->
           <div class="nav-section-title" *ngIf="!isCollapsed() && (canViewUsers() || canViewRoles() || canViewCustomFields())">IAM & Настройки</div>
-          <a *ngIf="canViewUsers()" routerLink="/iam/users" routerLinkActive="active" class="nav-item" title="Пользователи">
-            <span class="material-symbols-outlined nav-icon">people</span>
+          <a *ngIf="canViewUsers()" routerLink="/iam/users" routerLinkActive="active" [attr.aria-current]="isRouteActive('/iam/users') ? 'page' : null" class="nav-item" title="Пользователи">
+            <span class="material-symbols-outlined nav-icon" aria-hidden="true">people</span>
             <span class="nav-label" *ngIf="!isCollapsed()">{{ 'nav.users' | t }}</span>
           </a>
-          <a *ngIf="canViewRoles()" routerLink="/iam/roles" routerLinkActive="active" class="nav-item" title="Роли и права">
-            <span class="material-symbols-outlined nav-icon">security</span>
+          <a *ngIf="canViewRoles()" routerLink="/iam/roles" routerLinkActive="active" [attr.aria-current]="isRouteActive('/iam/roles') ? 'page' : null" class="nav-item" title="Роли и права">
+            <span class="material-symbols-outlined nav-icon" aria-hidden="true">security</span>
             <span class="nav-label" *ngIf="!isCollapsed()">{{ 'nav.roles' | t }}</span>
           </a>
-          <a *ngIf="canViewCustomFields()" routerLink="/iam/custom-fields" routerLinkActive="active" class="nav-item" title="Динамические поля">
-            <span class="material-symbols-outlined nav-icon">tune</span>
+          <a *ngIf="canViewCustomFields()" routerLink="/iam/custom-fields" routerLinkActive="active" [attr.aria-current]="isRouteActive('/iam/custom-fields') ? 'page' : null" class="nav-item" title="Динамические поля">
+            <span class="material-symbols-outlined nav-icon" aria-hidden="true">tune</span>
             <span class="nav-label" *ngIf="!isCollapsed()">{{ 'nav.custom_fields' | t }}</span>
           </a>
 
           <!-- System -->
           <div class="nav-section-title" *ngIf="!isCollapsed() && (canViewFiles() || canViewNotifications() || canViewAudit() || canViewSettings())">Система</div>
-          <a *ngIf="canViewFiles()" routerLink="/files" routerLinkActive="active" class="nav-item" title="Файловое хранилище">
-            <span class="material-symbols-outlined nav-icon">folder_open</span>
+          <a *ngIf="canViewFiles()" routerLink="/files" routerLinkActive="active" [attr.aria-current]="isRouteActive('/files') ? 'page' : null" class="nav-item" title="Файловое хранилище">
+            <span class="material-symbols-outlined nav-icon" aria-hidden="true">folder_open</span>
             <span class="nav-label" *ngIf="!isCollapsed()">Файлы</span>
           </a>
-          <a *ngIf="canViewNotifications()" routerLink="/notifications" routerLinkActive="active" class="nav-item" title="Уведомления">
-            <span class="material-symbols-outlined nav-icon">notifications</span>
+          <a *ngIf="canViewNotifications()" routerLink="/notifications" routerLinkActive="active" [attr.aria-current]="isRouteActive('/notifications') ? 'page' : null" class="nav-item" title="Уведомления">
+            <span class="material-symbols-outlined nav-icon" aria-hidden="true">notifications</span>
             <span class="nav-label" *ngIf="!isCollapsed()">{{ 'nav.notifications' | t }}</span>
             <span class="unread-chip" *ngIf="notifService.unreadCount() > 0 && !isCollapsed()">
               {{ notifService.unreadCount() }}
             </span>
           </a>
-          <a *ngIf="canViewAudit()" routerLink="/audit" routerLinkActive="active" class="nav-item" title="Аудит">
-            <span class="material-symbols-outlined nav-icon">history</span>
+          <a *ngIf="canViewAudit()" routerLink="/audit" routerLinkActive="active" [attr.aria-current]="isRouteActive('/audit') ? 'page' : null" class="nav-item" title="Аудит">
+            <span class="material-symbols-outlined nav-icon" aria-hidden="true">history</span>
             <span class="nav-label" *ngIf="!isCollapsed()">{{ 'nav.audit' | t }}</span>
           </a>
-          <a *ngIf="canViewSettings()" routerLink="/settings" routerLinkActive="active" class="nav-item" title="Настройки">
-            <span class="material-symbols-outlined nav-icon">settings</span>
+          <a *ngIf="canViewSettings()" routerLink="/settings" routerLinkActive="active" [attr.aria-current]="isRouteActive('/settings') ? 'page' : null" class="nav-item" title="Настройки">
+            <span class="material-symbols-outlined nav-icon" aria-hidden="true">settings</span>
             <span class="nav-label" *ngIf="!isCollapsed()">{{ 'nav.settings' | t }}</span>
           </a>
         </nav>
@@ -88,7 +96,7 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
 
 
         <div class="sidebar-footer">
-          <a routerLink="/iam/profile" routerLinkActive="active" class="user-profile-btn" title="Мой профиль">
+          <a routerLink="/iam/profile" routerLinkActive="active" [attr.aria-current]="isRouteActive('/iam/profile') ? 'page' : null" class="user-profile-btn" title="Мой профиль">
             <div class="avatar-circle">
               {{ getUserInitial() }}
             </div>
@@ -105,8 +113,8 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
         <!-- Top Navigation -->
         <header class="topbar">
           <div class="topbar-left">
-            <button class="palette-trigger" (click)="paletteService.open()">
-              <span class="material-symbols-outlined">search</span>
+            <button type="button" class="palette-trigger" aria-label="Открыть глобальный поиск" (click)="paletteService.open()">
+              <span class="material-symbols-outlined" aria-hidden="true">search</span>
               <span class="trigger-text">Поиск...</span>
               <kbd class="shortcut-kbd">Ctrl K</kbd>
             </button>
@@ -119,6 +127,8 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
                 *ngFor="let lang of ['ru', 'uz', 'en']"
                 [class.active]="i18n.currentLang() === lang"
                 class="lang-btn"
+                [attr.aria-label]="'Выбрать язык ' + lang.toUpperCase()"
+                [attr.aria-pressed]="i18n.currentLang() === lang"
                 (click)="i18n.setLanguage(asLang(lang))"
               >
                 {{ lang.toUpperCase() }}
@@ -126,41 +136,42 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
             </div>
 
             <!-- Theme Toggle -->
-            <button class="icon-btn" (click)="themeService.toggleTheme()" [title]="themeService.currentTheme() === 'light' ? 'Тёмная тема' : 'Светлая тема'">
-              <span class="material-symbols-outlined">
+            <button type="button" class="icon-btn" aria-label="Переключить тему" [attr.aria-pressed]="themeService.currentTheme() === 'dark'" (click)="themeService.toggleTheme()" [title]="themeService.currentTheme() === 'light' ? 'Тёмная тема' : 'Светлая тема'">
+              <span class="material-symbols-outlined" aria-hidden="true">
                 {{ themeService.currentTheme() === 'light' ? 'dark_mode' : 'light_mode' }}
               </span>
             </button>
 
             <!-- Notification Bell -->
-            <button class="icon-btn notif-btn" routerLink="/notifications" title="Уведомления">
-              <span class="material-symbols-outlined">notifications</span>
-              <span class="bell-dot" *ngIf="notifService.unreadCount() > 0"></span>
+            <button type="button" class="icon-btn notif-btn" routerLink="/notifications" aria-label="Открыть уведомления" title="Уведомления">
+              <span class="material-symbols-outlined" aria-hidden="true">notifications</span>
+              <span class="bell-dot" *ngIf="notifService.unreadCount() > 0" aria-hidden="true"></span>
+              <span class="sr-only" *ngIf="notifService.unreadCount() > 0">Непрочитанных уведомлений: {{ notifService.unreadCount() }}</span>
             </button>
 
             <!-- Logout -->
-            <button class="icon-btn logout-btn" (click)="onLogout()" title="Выйти из системы">
-              <span class="material-symbols-outlined">logout</span>
+            <button type="button" class="icon-btn logout-btn" aria-label="Выйти из системы" (click)="onLogout()" title="Выйти из системы">
+              <span class="material-symbols-outlined" aria-hidden="true">logout</span>
             </button>
           </div>
         </header>
 
 
         <!-- Active Announcement Banner -->
-        <div *ngIf="notifService.activeAnnouncement()" class="announcement-banner">
+        <div *ngIf="notifService.activeAnnouncement()" class="announcement-banner" role="status">
           <div class="announcement-content">
-            <span class="material-symbols-outlined banner-icon">campaign</span>
+            <span class="material-symbols-outlined banner-icon" aria-hidden="true">campaign</span>
             <span class="banner-text">
               {{ getAnnouncementTitle() }}
             </span>
           </div>
-          <button class="banner-close" (click)="dismissAnnouncement()">
-            <span class="material-symbols-outlined">close</span>
+          <button type="button" class="banner-close" aria-label="Закрыть объявление" (click)="dismissAnnouncement()">
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
           </button>
         </div>
 
         <!-- Page View Outlet -->
-        <main class="page-content">
+        <main id="main-content" class="page-content" tabindex="-1">
           <router-outlet></router-outlet>
         </main>
       </div>
@@ -173,6 +184,23 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
     <ui-toast-container></ui-toast-container>
   `,
   styles: [`
+    .skip-link {
+      position: fixed;
+      top: 8px;
+      left: 8px;
+      z-index: 3000;
+      transform: translateY(-160%);
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-surface);
+      color: var(--text-main);
+      box-shadow: var(--shadow-overlay);
+    }
+
+    .skip-link:focus {
+      transform: translateY(0);
+    }
+
     .app-layout {
       display: flex;
       height: 100vh;
@@ -502,6 +530,48 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
       padding: 20px;
     }
 
+    @media (max-width: 1023px) {
+      .sidebar,
+      .sidebar.collapsed {
+        width: 60px;
+      }
+
+      .brand-logo,
+      .nav-label,
+      .nav-section-title,
+      .user-meta,
+      .unread-chip {
+        display: none;
+      }
+
+      .palette-trigger {
+        width: min(240px, 40vw);
+      }
+    }
+
+    @media (max-width: 767px) {
+      .topbar {
+        padding-inline: 10px;
+      }
+
+      .trigger-text,
+      .shortcut-kbd,
+      .lang-selector {
+        display: none;
+      }
+
+      .palette-trigger {
+        width: 36px;
+        padding: 6px;
+        justify-content: center;
+      }
+
+      .page-content {
+        padding: 12px;
+        overflow-x: auto;
+      }
+    }
+
   `]
 })
 export class AppShellComponent implements OnInit, OnDestroy {
@@ -530,6 +600,10 @@ export class AppShellComponent implements OnInit, OnDestroy {
 
   toggleSidebar() {
     this.isCollapsed.update(v => !v);
+  }
+
+  isRouteActive(route: string, exact: boolean = false): boolean {
+    return exact ? this.router.url === route : this.router.url.startsWith(route);
   }
 
   canViewTasks(): boolean {
@@ -604,4 +678,3 @@ export class AppShellComponent implements OnInit, OnDestroy {
     this.authService.logout();
   }
 }
-
