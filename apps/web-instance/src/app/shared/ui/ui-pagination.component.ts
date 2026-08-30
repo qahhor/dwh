@@ -7,9 +7,9 @@ import { FormsModule } from '@angular/forms';
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="pagination-bar" *ngIf="totalItems > 0">
+    <nav class="pagination-bar" *ngIf="totalItems > 0" aria-label="Пагинация">
       <!-- Left: Item Range & Total Counter -->
-      <div class="pagination-info">
+      <div class="pagination-info" role="status" aria-live="polite" aria-atomic="true">
         <span class="range-text">
           Показано <strong class="highlight font-mono">{{ startItem }}–{{ endItem }}</strong> из <strong class="highlight font-mono">{{ totalItems }}</strong>
         </span>
@@ -19,8 +19,9 @@ import { FormsModule } from '@angular/forms';
       <div class="pagination-controls">
         <!-- Page Size Selector -->
         <div class="page-size-picker" *ngIf="showPageSize">
-          <span class="size-label">Строк:</span>
+          <label class="size-label" [for]="pageSizeSelectId">Строк:</label>
           <select
+            [id]="pageSizeSelectId"
             class="size-select"
             [ngModel]="pageSize"
             (ngModelChange)="onPageSizeChange($event)"
@@ -35,33 +36,37 @@ import { FormsModule } from '@angular/forms';
           <button
             type="button"
             class="nav-btn"
+            aria-label="Первая страница"
             title="Первая страница"
             [disabled]="currentPage === 1"
             (click)="goToPage(1)"
           >
-            <span class="material-symbols-outlined icon">first_page</span>
+            <span class="material-symbols-outlined icon" aria-hidden="true">first_page</span>
           </button>
 
           <!-- Prev Page -->
           <button
             type="button"
             class="nav-btn"
+            aria-label="Предыдущая страница"
             title="Предыдущая страница"
             [disabled]="currentPage === 1"
             (click)="goToPage(currentPage - 1)"
           >
-            <span class="material-symbols-outlined icon">chevron_left</span>
+            <span class="material-symbols-outlined icon" aria-hidden="true">chevron_left</span>
           </button>
 
           <!-- Page Numbers -->
           <div class="page-numbers">
             <ng-container *ngFor="let p of visiblePages">
-              <span *ngIf="p === -1" class="ellipsis">…</span>
+              <span *ngIf="p === -1" class="ellipsis" aria-hidden="true">…</span>
               <button
                 *ngIf="p !== -1"
                 type="button"
                 class="page-btn font-mono"
                 [class.active]="p === currentPage"
+                [attr.aria-label]="'Страница ' + p"
+                [attr.aria-current]="p === currentPage ? 'page' : null"
                 (click)="goToPage(p)"
               >
                 {{ p }}
@@ -73,26 +78,28 @@ import { FormsModule } from '@angular/forms';
           <button
             type="button"
             class="nav-btn"
+            aria-label="Следующая страница"
             title="Следующая страница"
             [disabled]="currentPage >= totalPages"
             (click)="goToPage(currentPage + 1)"
           >
-            <span class="material-symbols-outlined icon">chevron_right</span>
+            <span class="material-symbols-outlined icon" aria-hidden="true">chevron_right</span>
           </button>
 
           <!-- Last Page -->
           <button
             type="button"
             class="nav-btn"
+            aria-label="Последняя страница"
             title="Последняя страница"
             [disabled]="currentPage >= totalPages"
             (click)="goToPage(totalPages)"
           >
-            <span class="material-symbols-outlined icon">last_page</span>
+            <span class="material-symbols-outlined icon" aria-hidden="true">last_page</span>
           </button>
         </div>
       </div>
-    </div>
+    </nav>
   `,
   styles: [`
     .pagination-bar {
@@ -138,7 +145,6 @@ import { FormsModule } from '@angular/forms';
       background-color: var(--bg-hover);
       color: var(--text-main);
       font-size: 12px;
-      outline: none;
       cursor: pointer;
     }
     .size-select:focus {
@@ -225,6 +231,8 @@ import { FormsModule } from '@angular/forms';
   `]
 })
 export class UiPaginationComponent implements OnChanges {
+  private static nextId = 0;
+
   @Input() totalItems: number = 0;
   @Input() currentPage: number = 1;
   @Input() pageSize: number = 10;
@@ -238,6 +246,7 @@ export class UiPaginationComponent implements OnChanges {
   startItem: number = 0;
   endItem: number = 0;
   visiblePages: number[] = [];
+  readonly pageSizeSelectId = `ui-pagination-size-${UiPaginationComponent.nextId++}`;
 
   ngOnChanges(changes: SimpleChanges): void {
     this.calculatePagination();

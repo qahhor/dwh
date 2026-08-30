@@ -11,33 +11,42 @@ import { ToastService } from '../../core/services/toast.service';
   template: `
     <div class="file-upload-wrapper">
       <!-- Drag & Drop Upload Zone -->
-      <div
+      <label
         *ngIf="canUpload"
         class="drop-zone"
+        [for]="fileInputId"
         [class.dragging]="isDragging()"
         (dragover)="onDragOver($event)"
         (dragleave)="onDragLeave($event)"
         (drop)="onDrop($event)"
-        (click)="fileInput.click()"
       >
         <input
-          #fileInput
+          [id]="fileInputId"
           type="file"
           [multiple]="multiple"
-          style="display: none"
+          class="sr-only"
           (change)="onFilesSelected($event)"
         />
         <div class="drop-content">
-          <span class="material-symbols-outlined drop-icon">cloud_upload</span>
+          <span class="material-symbols-outlined drop-icon" aria-hidden="true">cloud_upload</span>
           <div class="drop-text">
             <span class="primary-text">Перетащите файлы сюда или <strong>нажмите для выбора</strong></span>
             <span class="sub-text">До 50 МБ на файл (PDF, PNG, JPG, DOCX, ZIP и др.)</span>
           </div>
         </div>
-      </div>
+      </label>
 
       <!-- Upload Progress Indicator -->
-      <div *ngIf="isUploading()" class="upload-progress-bar">
+      <div
+        *ngIf="isUploading()"
+        class="upload-progress-bar"
+        role="progressbar"
+        aria-label="Загрузка файлов"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        [attr.aria-valuenow]="uploadProgress()"
+        [attr.aria-valuetext]="uploadProgress() + '%'"
+      >
         <div class="progress-track">
           <div class="progress-fill" [style.width.%]="uploadProgress()"></div>
         </div>
@@ -45,33 +54,35 @@ import { ToastService } from '../../core/services/toast.service';
       </div>
 
       <!-- File Attachment List -->
-      <div class="attachments-list" *ngIf="files && files.length > 0">
-        <div *ngFor="let file of files" class="file-card">
+      <div class="attachments-list" *ngIf="files && files.length > 0" role="list" aria-label="Прикреплённые файлы">
+        <div *ngFor="let file of files" class="file-card" role="listitem">
           <div class="file-type-icon" [ngClass]="getFileCategory(file.mimeType, file.fileName)">
-            <span class="material-symbols-outlined">{{ getFileIcon(file.mimeType, file.fileName) }}</span>
+            <span class="material-symbols-outlined" aria-hidden="true">{{ getFileIcon(file.mimeType, file.fileName) }}</span>
           </div>
-          <div class="file-info" (click)="downloadFile(file)" title="Скачать файл">
+          <button type="button" class="file-info" (click)="downloadFile(file)" [attr.aria-label]="'Скачать ' + file.fileName" title="Скачать файл">
             <span class="file-name">{{ file.fileName }}</span>
             <span class="file-size">{{ formatBytes(file.sizeBytes) }}</span>
-          </div>
+          </button>
           <div class="file-actions">
-            <button class="action-btn download" (click)="downloadFile(file)" title="Скачать">
-              <span class="material-symbols-outlined">download</span>
+            <button type="button" class="action-btn download" (click)="downloadFile(file)" [attr.aria-label]="'Скачать ' + file.fileName" title="Скачать">
+              <span class="material-symbols-outlined" aria-hidden="true">download</span>
             </button>
             <button
               *ngIf="canDelete"
+              type="button"
               class="action-btn delete"
               (click)="removeFile(file, $event)"
+              [attr.aria-label]="'Удалить ' + file.fileName"
               title="Удалить вложение"
             >
-              <span class="material-symbols-outlined">delete</span>
+              <span class="material-symbols-outlined" aria-hidden="true">delete</span>
             </button>
           </div>
         </div>
       </div>
 
       <div *ngIf="(!files || files.length === 0) && !canUpload" class="empty-files">
-        <span class="material-symbols-outlined empty-icon">attach_file</span>
+        <span class="material-symbols-outlined empty-icon" aria-hidden="true">attach_file</span>
         <span>Нет прикрепленных файлов</span>
       </div>
     </div>
@@ -204,6 +215,13 @@ import { ToastService } from '../../core/services/toast.service';
       cursor: pointer;
       display: flex;
       flex-direction: column;
+      align-items: flex-start;
+      border: 0;
+      padding: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      text-align: left;
     }
 
     .file-name {
@@ -269,6 +287,8 @@ import { ToastService } from '../../core/services/toast.service';
   `]
 })
 export class UiFileUploadComponent {
+  private static nextId = 0;
+
   @Input() files: TaskFile[] = [];
   @Input() canUpload = true;
   @Input() canDelete = true;
@@ -280,6 +300,7 @@ export class UiFileUploadComponent {
   readonly isDragging = signal<boolean>(false);
   readonly isUploading = signal<boolean>(false);
   readonly uploadProgress = signal<number>(0);
+  readonly fileInputId = `ui-file-upload-${UiFileUploadComponent.nextId++}`;
 
   constructor(
     private http: HttpClient,
@@ -360,7 +381,7 @@ export class UiFileUploadComponent {
   }
 
   downloadFile(file: TaskFile) {
-    window.open(`/api/v1/files/${file.fileId}/download`, '_blank');
+    window.open(`/api/v1/files/${file.fileId}/download`, '_blank', 'noopener,noreferrer');
   }
 
   removeFile(file: TaskFile, event: Event) {
