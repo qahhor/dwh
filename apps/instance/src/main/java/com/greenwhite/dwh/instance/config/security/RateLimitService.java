@@ -4,7 +4,7 @@ import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.ConsumptionProbe;
 import io.github.bucket4j.Refill;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.util.Map;
@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * Ограничение роста карты: при превышении порога вычищаются записи,
  * к которым не обращались дольше 10 минут.
  */
-@Component
+@Service
 public class RateLimitService {
 
     private static final int CLEANUP_THRESHOLD = 50_000;

@@ -1,5 +1,6 @@
 package com.greenwhite.dwh.instance.architecture;
 
+import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class ModularArchitectureTest {
 
@@ -23,6 +25,15 @@ class ModularArchitectureTest {
         importedClasses = new ClassFileImporter()
                 .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
                 .importPackages("com.greenwhite.dwh.instance");
+    }
+
+    @Test
+    @DisplayName("0. Архитектурный анализ должен импортировать классы приложения")
+    void architectureAnalysisShouldImportApplicationClasses() {
+        assertThat(importedClasses.stream()
+                .map(JavaClass::getName)
+                .toList())
+                .contains("com.greenwhite.dwh.instance.InstanceApplication");
     }
 
     @Test
