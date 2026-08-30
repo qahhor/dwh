@@ -31,11 +31,14 @@ public class AuditPartitionWorker {
 
     private final AuditPartitionRepository partitionRepository;
     private final int runwayMonths;
+    private final int retentionMonths;
 
     public AuditPartitionWorker(AuditPartitionRepository partitionRepository,
-                                @Value("${dwh.audit.partition-runway-months:6}") int runwayMonths) {
+                                @Value("${dwh.audit.partition-runway-months:6}") int runwayMonths,
+                                @Value("${dwh.audit.retention-months:12}") int retentionMonths) {
         this.partitionRepository = partitionRepository;
         this.runwayMonths = runwayMonths;
+        this.retentionMonths = retentionMonths;
     }
 
     /** Экземпляр мог простоять выключенным дольше запаса — проверяем сразу на старте. */
@@ -46,7 +49,40 @@ public class AuditPartitionWorker {
 
     @Scheduled(cron = "${dwh.audit.partition-cron:0 30 3 * * *}", zone = "UTC")
     public void ensureRunway() {
-        ensureRunwayFrom(YearMonth.now(ZoneOffset.UTC));
+        YearMonth now = YearMonth.now(ZoneOffset.UTC);
+        ensureRunwayFrom(now);
+        applyRetentionFrom(now);
+    }
+
+    /**
+     * Срок хранения оперативного журнала (FR-AUD-2): партиции старше окна
+     * отцепляются от {@code audit_log} и переименовываются в архивные.
+     *
+     * Данные не удаляются намеренно. Удаление аудита необратимо, и решение
+     * «выгрузить в холодное хранилище или стереть» принимает эксплуатация,
+     * а не ночной воркер. Ноль и отрицательные значения выключают отцепление —
+     * так экземпляр можно поставить в режим «хранить всё».
+     */
+    public void applyRetentionFrom(YearMonth now) {
+        if (retentionMonths <= 0) {
+            return;
+        }
+        YearMonth cutoff = now.minusMonths(retentionMonths);
+        List<String> archived = new ArrayList<>();
+
+        for (YearMonth month : partitionRepository.attachedPartitionsBefore(cutoff)) {
+            try {
+                archived.add(partitionRepository.detachAndArchive(month));
+            } catch (Exception e) {
+                log.error("Не удалось отцепить партицию аудита за {}: {}", month, e.getMessage());
+            }
+        }
+
+        if (!archived.isEmpty()) {
+            log.warn("Срок хранения {} мес. истёк, партиции аудита отцеплены и переименованы: {}. "
+                    + "Данные не удалены — решение о выгрузке или удалении за эксплуатацией (FR-AUD-2)",
+                    retentionMonths, String.join(", ", archived));
+        }
     }
 
     /** Отдельный метод с явным месяцем: так поведение проверяется тестом без ожидания календаря. */

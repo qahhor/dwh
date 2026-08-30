@@ -24,7 +24,7 @@ class MfFileServiceTest {
 
     private final MfFileRepository fileRepository = Mockito.mock(MfFileRepository.class);
     private final StorageProvider storageProvider = Mockito.mock(StorageProvider.class);
-    private final MfFileService service = new MfFileService(fileRepository, storageProvider);
+    private final MfFileService service = new MfFileService(fileRepository, storageProvider, Mockito.mock(com.greenwhite.dwh.instance.audit.service.AuditLogService.class));
 
     @Test
     @DisplayName("Загрузка исполняемых файлов (.exe, .sh, .bat) должна отклоняться политикой безопасности")

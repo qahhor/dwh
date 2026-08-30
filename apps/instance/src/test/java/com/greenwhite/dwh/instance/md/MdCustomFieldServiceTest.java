@@ -18,7 +18,7 @@ import static org.mockito.Mockito.when;
 class MdCustomFieldServiceTest {
 
     private final MdCustomFieldRepository customFieldRepository = Mockito.mock(MdCustomFieldRepository.class);
-    private final MdCustomFieldService service = new MdCustomFieldService(customFieldRepository);
+    private final MdCustomFieldService service = new MdCustomFieldService(customFieldRepository, Mockito.mock(com.greenwhite.dwh.instance.audit.service.AuditLogService.class));
 
     @Test
     @DisplayName("Валидация динамических полей должна отклонять отсутствующие обязательные поля")
