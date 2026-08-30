@@ -1,17 +1,34 @@
-import { Component, Input, Output, EventEmitter, HostListener } from '@angular/core';
+import {
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  HostListener,
+  OnChanges,
+  OnDestroy,
+  SimpleChanges
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { A11yModule } from '@angular/cdk/a11y';
 
 @Component({
   selector: 'ui-modal',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, A11yModule],
   template: `
     <div *ngIf="isOpen" class="modal-backdrop" (click)="onBackdropClick($event)">
-      <div [class]="'modal-dialog modal-' + size" role="dialog" aria-modal="true">
+      <div
+        [class]="'modal-dialog modal-' + size"
+        role="dialog"
+        aria-modal="true"
+        [attr.aria-labelledby]="titleId"
+        cdkTrapFocus
+        [cdkTrapFocusAutoCapture]="true"
+      >
         <div class="modal-header">
-          <h3 class="modal-title">{{ title }}</h3>
-          <button class="modal-close" (click)="close.emit()" aria-label="Закрыть">
-            <span class="material-symbols-outlined">close</span>
+          <h3 class="modal-title" [id]="titleId">{{ title }}</h3>
+          <button *ngIf="dismissible" type="button" class="modal-close" (click)="close.emit()" aria-label="Закрыть">
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
           </button>
         </div>
         <div class="modal-body">
@@ -117,24 +134,50 @@ import { CommonModule } from '@angular/common';
     }
   `]
 })
-export class UiModalComponent {
+export class UiModalComponent implements OnChanges, OnDestroy {
+  private static nextId = 0;
+  private static openModalCount = 0;
+
+  readonly titleId = `ui-modal-title-${UiModalComponent.nextId++}`;
+  private bodyLocked = false;
+
   @Input() isOpen: boolean = false;
   @Input() title: string = '';
   @Input() size: 'sm' | 'md' | 'lg' | 'xl' = 'md';
   @Input() hasFooter: boolean = true;
+  @Input() dismissible: boolean = true;
 
   @Output() close = new EventEmitter<void>();
 
   @HostListener('document:keydown.escape')
   onEscape() {
-    if (this.isOpen) {
+    if (this.isOpen && this.dismissible) {
       this.close.emit();
     }
   }
 
   onBackdropClick(event: MouseEvent) {
-    if ((event.target as HTMLElement).classList.contains('modal-backdrop')) {
+    if (this.dismissible && (event.target as HTMLElement).classList.contains('modal-backdrop')) {
       this.close.emit();
     }
+  }
+
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['isOpen']) {
+      this.syncBodyLock(this.isOpen);
+    }
+  }
+
+  ngOnDestroy() {
+    this.syncBodyLock(false);
+  }
+
+  private syncBodyLock(shouldLock: boolean) {
+    if (shouldLock === this.bodyLocked) return;
+
+    this.bodyLocked = shouldLock;
+    UiModalComponent.openModalCount += shouldLock ? 1 : -1;
+    UiModalComponent.openModalCount = Math.max(0, UiModalComponent.openModalCount);
+    document.body.classList.toggle('modal-open', UiModalComponent.openModalCount > 0);
   }
 }
