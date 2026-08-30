@@ -76,4 +76,28 @@ describe('TasksComponent UI contracts', () => {
     expect(fixture.nativeElement.querySelector('ui-user-multi-select button[aria-label="Наблюдатели"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('ui-markdown-editor textarea')?.getAttribute('id')).not.toBe('');
   });
+
+  it('labels task dictionaries and confirms destructive actions in-app', async () => {
+    const fixture = await createFixture();
+    fixture.componentInstance.taskTypes.set([{
+      id: 5,
+      code: 'review',
+      name: 'Проверка',
+      icon: 'fact_check',
+      color: '#6366f1',
+      orderNo: 10,
+      isSystem: false
+    }]);
+    fixture.componentInstance.openSettingsModal();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[role="tablist"][aria-label="Справочники задач"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('label[for="task-type-code"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('label[for="task-type-name"]')).not.toBeNull();
+
+    const remove = fixture.nativeElement.querySelector('button[aria-label="Удалить тип задачи Проверка"]') as HTMLButtonElement;
+    remove.click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Удалить тип задачи «Проверка»?');
+  });
 });

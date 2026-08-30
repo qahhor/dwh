@@ -1108,19 +1108,27 @@ import { KeysetPage } from '../../core/models/common.models';
     >
       <div body class="settings-modal-content">
         <!-- Settings Tabs -->
-        <div class="settings-tabs">
+        <div class="settings-tabs" role="tablist" aria-label="Справочники задач">
           <button
+            id="task-types-tab"
             type="button"
+            role="tab"
             class="tab-btn"
             [class.active]="settingsTab === 'types'"
+            [attr.aria-selected]="settingsTab === 'types'"
+            aria-controls="task-types-panel"
             (click)="settingsTab = 'types'"
           >
             Типы задач ({{ taskTypes().length }})
           </button>
           <button
+            id="task-statuses-tab"
             type="button"
+            role="tab"
             class="tab-btn"
             [class.active]="settingsTab === 'statuses'"
+            [attr.aria-selected]="settingsTab === 'statuses'"
+            aria-controls="task-statuses-panel"
             (click)="settingsTab = 'statuses'"
           >
             Статусы задач ({{ statuses().length }})
@@ -1128,29 +1136,35 @@ import { KeysetPage } from '../../core/models/common.models';
         </div>
 
         <!-- TAB 1: Task Types (Drag & Drop Reordering) -->
-        <div class="tab-pane" *ngIf="settingsTab === 'types'">
+        <div id="task-types-panel" class="tab-pane" role="tabpanel" aria-labelledby="task-types-tab" *ngIf="settingsTab === 'types'">
           <div
             cdkDropList
             class="dict-list"
             (cdkDropListDropped)="onTypeDrop($event)"
           >
             <div
-              *ngFor="let ty of taskTypes()"
+              *ngFor="let ty of taskTypes(); let typeIndex = index"
               cdkDrag
               class="dict-row"
             >
               <div class="dict-item-info">
-                <span cdkDragHandle class="material-symbols-outlined drag-grip-icon" title="Перетащите для изменения порядка">
+                <span cdkDragHandle class="material-symbols-outlined drag-grip-icon" aria-hidden="true" title="Перетащите для изменения порядка">
                   drag_indicator
                 </span>
-                <span class="material-symbols-outlined dict-ico" [style.color]="ty.color">{{ ty.icon }}</span>
+                <span class="material-symbols-outlined dict-ico" aria-hidden="true" [style.color]="ty.color">{{ ty.icon }}</span>
                 <span class="dict-name">{{ ty.name }}</span>
                 <span class="font-mono text-muted text-xs">({{ ty.code }})</span>
                 <span *ngIf="ty.isSystem" class="sys-badge">Системный</span>
               </div>
               <div class="dict-actions" *ngIf="!ty.isSystem">
-                <button type="button" class="mini-del-btn" title="Удалить" (click)="deleteTaskType(ty.id)">
-                  <span class="material-symbols-outlined">delete</span>
+                <button type="button" class="mini-move-btn" [disabled]="typeIndex === 0" [attr.aria-label]="'Поднять тип задачи ' + ty.name" (click)="moveDictionaryType(typeIndex, -1)">
+                  <span class="material-symbols-outlined" aria-hidden="true">arrow_upward</span>
+                </button>
+                <button type="button" class="mini-move-btn" [disabled]="typeIndex === taskTypes().length - 1" [attr.aria-label]="'Опустить тип задачи ' + ty.name" (click)="moveDictionaryType(typeIndex, 1)">
+                  <span class="material-symbols-outlined" aria-hidden="true">arrow_downward</span>
+                </button>
+                <button type="button" class="mini-del-btn" title="Удалить" [attr.aria-label]="'Удалить тип задачи ' + ty.name" (click)="requestDeleteDictionaryItem('type', ty.id, ty.name)">
+                  <span class="material-symbols-outlined" aria-hidden="true">delete</span>
                 </button>
               </div>
             </div>
@@ -1160,10 +1174,17 @@ import { KeysetPage } from '../../core/models/common.models';
           <div class="add-dict-box">
             <h5 class="add-dict-title">Добавить новый тип задачи</h5>
             <div class="form-grid-3">
-              <input type="text" class="clean-input" placeholder="Код (lat), e.g. doc" [(ngModel)]="newTypeForm.code" />
-              <input type="text" class="clean-input" placeholder="Название, e.g. Документ" [(ngModel)]="newTypeForm.name" />
+              <div class="dict-form-field">
+                <label class="clean-label" for="task-type-code">Код типа</label>
+                <input id="task-type-code" name="taskTypeCode" type="text" class="clean-input" placeholder="Например: doc" [(ngModel)]="newTypeForm.code" />
+              </div>
+              <div class="dict-form-field">
+                <label class="clean-label" for="task-type-name">Название типа</label>
+                <input id="task-type-name" name="taskTypeName" type="text" class="clean-input" placeholder="Например: Документ" [(ngModel)]="newTypeForm.name" />
+              </div>
               <div class="color-picker-row">
-                <input type="color" class="clean-input color-picker" [(ngModel)]="newTypeForm.color" title="Выбрать цвет" />
+                <label class="clean-label" for="task-type-color">Цвет типа</label>
+                <input id="task-type-color" name="taskTypeColor" type="color" class="clean-input color-picker" [(ngModel)]="newTypeForm.color" title="Выбрать цвет" />
               </div>
             </div>
             <div class="add-dict-actions">
@@ -1175,19 +1196,19 @@ import { KeysetPage } from '../../core/models/common.models';
         </div>
 
         <!-- TAB 2: Task Statuses (Drag & Drop Reordering) -->
-        <div class="tab-pane" *ngIf="settingsTab === 'statuses'">
+        <div id="task-statuses-panel" class="tab-pane" role="tabpanel" aria-labelledby="task-statuses-tab" *ngIf="settingsTab === 'statuses'">
           <div
             cdkDropList
             class="dict-list"
             (cdkDropListDropped)="onStatusDrop($event)"
           >
             <div
-              *ngFor="let s of statuses()"
+              *ngFor="let s of statuses(); let statusIndex = index"
               cdkDrag
               class="dict-row"
             >
               <div class="dict-item-info">
-                <span cdkDragHandle class="material-symbols-outlined drag-grip-icon" title="Перетащите для изменения порядка">
+                <span cdkDragHandle class="material-symbols-outlined drag-grip-icon" aria-hidden="true" title="Перетащите для изменения порядка">
                   drag_indicator
                 </span>
                 <span class="status-dot" [style.background-color]="s.color"></span>
@@ -1196,8 +1217,14 @@ import { KeysetPage } from '../../core/models/common.models';
                 <span *ngIf="s.pcode" class="sys-badge">Базовый</span>
               </div>
               <div class="dict-actions" *ngIf="!s.pcode">
-                <button type="button" class="mini-del-btn" title="Удалить" (click)="deleteTaskStatus(s.id)">
-                  <span class="material-symbols-outlined">delete</span>
+                <button type="button" class="mini-move-btn" [disabled]="statusIndex === 0" [attr.aria-label]="'Поднять статус ' + s.name" (click)="moveDictionaryStatus(statusIndex, -1)">
+                  <span class="material-symbols-outlined" aria-hidden="true">arrow_upward</span>
+                </button>
+                <button type="button" class="mini-move-btn" [disabled]="statusIndex === statuses().length - 1" [attr.aria-label]="'Опустить статус ' + s.name" (click)="moveDictionaryStatus(statusIndex, 1)">
+                  <span class="material-symbols-outlined" aria-hidden="true">arrow_downward</span>
+                </button>
+                <button type="button" class="mini-del-btn" title="Удалить" [attr.aria-label]="'Удалить статус ' + s.name" (click)="requestDeleteDictionaryItem('status', s.id, s.name)">
+                  <span class="material-symbols-outlined" aria-hidden="true">delete</span>
                 </button>
               </div>
             </div>
@@ -1207,12 +1234,16 @@ import { KeysetPage } from '../../core/models/common.models';
           <div class="add-dict-box">
             <h5 class="add-dict-title">Добавить новый статус</h5>
             <div class="form-grid-3">
-              <input type="text" class="clean-input" placeholder="Название статуса..." [(ngModel)]="newStatusForm.name" />
+              <div class="dict-form-field">
+                <label class="clean-label" for="task-status-name">Название статуса</label>
+                <input id="task-status-name" name="taskStatusName" type="text" class="clean-input" placeholder="Название статуса..." [(ngModel)]="newStatusForm.name" />
+              </div>
               <div class="color-picker-row">
-                <input type="color" class="clean-input color-picker" [(ngModel)]="newStatusForm.color" title="Выбрать цвет" />
+                <label class="clean-label" for="task-status-color">Цвет статуса</label>
+                <input id="task-status-color" name="taskStatusColor" type="color" class="clean-input color-picker" [(ngModel)]="newStatusForm.color" title="Выбрать цвет" />
               </div>
               <label class="terminal-toggle-label">
-                <input type="checkbox" [(ngModel)]="newStatusForm.isTerminal" />
+                <input name="taskStatusTerminal" type="checkbox" [(ngModel)]="newStatusForm.isTerminal" />
                 <span>Завершающий</span>
               </label>
             </div>
@@ -1226,6 +1257,22 @@ import { KeysetPage } from '../../core/models/common.models';
       </div>
       <div footer>
         <ui-button variant="secondary" size="md" (onClick)="isSettingsModalOpen.set(false)">Закрыть</ui-button>
+      </div>
+    </ui-modal>
+
+    <ui-modal
+      [isOpen]="dictionaryDeleteTarget !== null"
+      title="Удаление элемента справочника"
+      size="sm"
+      (close)="dictionaryDeleteTarget = null"
+    >
+      <div body class="dictionary-delete-body" *ngIf="dictionaryDeleteTarget as target">
+        <p>Удалить {{ target.kind === 'type' ? 'тип задачи' : 'статус' }} <strong>«{{ target.name }}»</strong>?</p>
+        <span>Удаление будет отклонено, если элемент уже используется задачами.</span>
+      </div>
+      <div footer>
+        <ui-button variant="secondary" size="md" (onClick)="dictionaryDeleteTarget = null">Отмена</ui-button>
+        <ui-button variant="danger" size="md" (onClick)="confirmDeleteDictionaryItem()">Удалить</ui-button>
       </div>
     </ui-modal>
   `,
@@ -2132,6 +2179,7 @@ import { KeysetPage } from '../../core/models/common.models';
       user-select: none;
     }
     .dict-item-info { display: flex; align-items: center; gap: 6px; }
+    .dict-actions { display: flex; align-items: center; gap: 2px; }
 
     .dict-ico { font-size: 16px; }
     .dict-name { font-weight: 500; color: var(--text-main); }
@@ -2146,6 +2194,16 @@ import { KeysetPage } from '../../core/models/common.models';
       display: flex;
     }
     .mini-del-btn .material-symbols-outlined { font-size: 16px; }
+    .mini-move-btn {
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 2px;
+      display: flex;
+    }
+    .mini-move-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .mini-move-btn .material-symbols-outlined { font-size: 16px; }
 
     .add-dict-box {
       background-color: var(--bg-hover);
@@ -2157,7 +2215,8 @@ import { KeysetPage } from '../../core/models/common.models';
       gap: 8px;
     }
     .add-dict-title { font-size: 11px; font-weight: 600; color: var(--text-muted); margin: 0; }
-    .color-picker-row { display: flex; align-items: center; }
+    .dict-form-field,
+    .color-picker-row { display: flex; flex-direction: column; gap: 4px; }
     .color-picker { width: 100%; padding: 2px; height: 34px; cursor: pointer; }
     .terminal-toggle-label {
       display: inline-flex;
@@ -2168,6 +2227,9 @@ import { KeysetPage } from '../../core/models/common.models';
       cursor: pointer;
     }
     .add-dict-actions { display: flex; justify-content: flex-end; }
+    .dictionary-delete-body { display: flex; flex-direction: column; gap: 8px; }
+    .dictionary-delete-body p { margin: 0; }
+    .dictionary-delete-body span { color: var(--text-muted); font-size: 12px; }
 
     .status-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
     .font-mono { font-family: monospace; }
@@ -2219,6 +2281,7 @@ export class TasksComponent implements OnInit {
   settingsTab: 'types' | 'statuses' = 'types';
   newTypeForm = { code: '', name: '', icon: 'task_alt', color: '#6366f1' };
   newStatusForm = { name: '', color: '#3b82f6', isTerminal: false };
+  dictionaryDeleteTarget: { kind: 'type' | 'status'; id: number; name: string } | null = null;
 
   // Create Modal
   readonly isCreateModalOpen = signal<boolean>(false);
@@ -2532,19 +2595,43 @@ export class TasksComponent implements OnInit {
     const list = [...this.statuses()];
     moveItemInArray(list, event.previousIndex, event.currentIndex);
     this.statuses.set(list);
-
-    const orderedIds = list.map(s => s.id);
-    this.api.post('/tasks/statuses/reorder', orderedIds).subscribe({
-      next: () => this.toast.success('Порядок статусов сохранен'),
-      error: err => this.toast.error(err.error?.message || 'Ошибка изменения порядка')
-    });
+    this.persistStatusOrder(list);
   }
 
   onTypeDrop(event: CdkDragDrop<TaskType[]>) {
     const list = [...this.taskTypes()];
     moveItemInArray(list, event.previousIndex, event.currentIndex);
     this.taskTypes.set(list);
+    this.persistTypeOrder(list);
+  }
 
+  moveDictionaryStatus(index: number, delta: -1 | 1) {
+    const list = [...this.statuses()];
+    const nextIndex = index + delta;
+    if (index < 0 || nextIndex < 0 || nextIndex >= list.length) return;
+    moveItemInArray(list, index, nextIndex);
+    this.statuses.set(list);
+    this.persistStatusOrder(list);
+  }
+
+  moveDictionaryType(index: number, delta: -1 | 1) {
+    const list = [...this.taskTypes()];
+    const nextIndex = index + delta;
+    if (index < 0 || nextIndex < 0 || nextIndex >= list.length) return;
+    moveItemInArray(list, index, nextIndex);
+    this.taskTypes.set(list);
+    this.persistTypeOrder(list);
+  }
+
+  private persistStatusOrder(list: TaskStatus[]) {
+    const orderedIds = list.map(status => status.id);
+    this.api.post('/tasks/statuses/reorder', orderedIds).subscribe({
+      next: () => this.toast.success('Порядок статусов сохранен'),
+      error: err => this.toast.error(err.error?.message || 'Ошибка изменения порядка')
+    });
+  }
+
+  private persistTypeOrder(list: TaskType[]) {
     const orderedIds = list.map(t => t.id);
     this.api.post('/tasks/types/reorder', orderedIds).subscribe({
       next: () => this.toast.success('Порядок типов задач сохранен'),
@@ -2840,17 +2927,6 @@ export class TasksComponent implements OnInit {
     });
   }
 
-  deleteTaskType(id: number) {
-    if (!confirm('Удалить этот тип задачи?')) return;
-    this.api.delete(`/tasks/types/${id}`).subscribe({
-      next: () => {
-        this.toast.success('Тип задачи удален');
-        this.loadTypes();
-      },
-      error: err => this.toast.error(err.error?.message || 'Ошибка удаления типа')
-    });
-  }
-
   submitCreateStatus() {
     if (!this.newStatusForm.name.trim()) {
       this.toast.warning('Укажите название статуса');
@@ -2872,14 +2948,28 @@ export class TasksComponent implements OnInit {
     });
   }
 
-  deleteTaskStatus(id: number) {
-    if (!confirm('Удалить этот статус?')) return;
-    this.api.delete(`/tasks/statuses/${id}`).subscribe({
+  requestDeleteDictionaryItem(kind: 'type' | 'status', id: number, name: string) {
+    this.dictionaryDeleteTarget = { kind, id, name };
+  }
+
+  confirmDeleteDictionaryItem() {
+    if (!this.dictionaryDeleteTarget) return;
+    const target = this.dictionaryDeleteTarget;
+    const endpoint = target.kind === 'type' ? `/tasks/types/${target.id}` : `/tasks/statuses/${target.id}`;
+    this.api.delete(endpoint).subscribe({
       next: () => {
-        this.toast.success('Статус удален');
-        this.loadStatuses();
+        this.dictionaryDeleteTarget = null;
+        if (target.kind === 'type') {
+          this.toast.success('Тип задачи удален');
+          this.loadTypes();
+        } else {
+          this.toast.success('Статус удален');
+          this.loadStatuses();
+        }
       },
-      error: err => this.toast.error(err.error?.message || 'Нельзя удалить статус, привязанный к задачам')
+      error: err => this.toast.error(err.error?.message || (target.kind === 'type'
+        ? 'Ошибка удаления типа'
+        : 'Нельзя удалить статус, привязанный к задачам'))
     });
   }
 

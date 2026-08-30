@@ -4,12 +4,13 @@ import { describe, expect, it, vi } from 'vitest';
 import { ApiService } from '../../../core/services/api.service';
 import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { CustomField } from '../../../core/models/custom-field.models';
 import { CustomFieldsComponent } from './custom-fields.component';
 
 describe('CustomFieldsComponent', () => {
-  async function createFixture() {
+  async function createFixture(initialFields: CustomField[] = []) {
     const api = {
-      get: vi.fn(() => of([])),
+      get: vi.fn(() => of(initialFields)),
       post: vi.fn(() => of({})),
       patch: vi.fn(() => of({})),
       delete: vi.fn(() => of({}))
@@ -93,5 +94,30 @@ describe('CustomFieldsComponent', () => {
     expect(api.post).toHaveBeenCalledWith('/custom-fields', expect.objectContaining({
       options: ['Новый', 'В работе', 'Готово']
     }));
+  });
+
+  it('keeps the table keyboard-scrollable and confirms deletion in-app', async () => {
+    const field: CustomField = {
+      id: 8,
+      entityType: 'TASK',
+      code: 'budget',
+      name: 'Бюджет',
+      fieldType: 'number',
+      isRequired: false,
+      orderNo: 10,
+      createdAt: '2026-08-30T00:00:00Z'
+    };
+    const { fixture } = await createFixture([field]);
+    fixture.detectChanges();
+
+    const region = fixture.nativeElement.querySelector('.table-wrapper[role="region"]') as HTMLElement;
+    expect(region.tabIndex).toBe(0);
+    expect(fixture.componentInstance.filteredFields).toHaveLength(1);
+    expect(fixture.componentInstance.canManage()).toBe(true);
+    const remove = fixture.nativeElement.querySelector('button.action-btn.danger') as HTMLButtonElement;
+    expect(remove?.getAttribute('aria-label')).toBe('Удалить Бюджет');
+    remove.click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Удалить динамическое поле «Бюджет»');
   });
 });

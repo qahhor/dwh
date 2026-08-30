@@ -126,8 +126,8 @@ export class UiMarkdownViewComponent implements OnChanges {
     html = html.replace(/^> (.*$)/gim, '<blockquote>$1</blockquote>');
 
     // Checklist: - [ ] and - [x]
-    html = html.replace(/^- \[ \] (.*$)/gim, '<div><input type="checkbox" disabled /> $1</div>');
-    html = html.replace(/^- \[x\] (.*$)/gim, '<div><input type="checkbox" checked disabled /> <del>$1</del></div>');
+    html = html.replace(/^- \[ \] (.*$)/gim, '<div><label><input type="checkbox" disabled /> $1</label></div>');
+    html = html.replace(/^- \[x\] (.*$)/gim, '<div><label><input type="checkbox" checked disabled /> <del>$1</del></label></div>');
 
     // Lists
     html = html.replace(/^\- (.*$)/gim, '<li>$1</li>');

@@ -56,7 +56,7 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 
       <!-- Grid / Table -->
       <div class="card table-card">
-        <div class="table-wrapper">
+        <div class="table-wrapper" role="region" aria-label="Таблица динамических атрибутов" tabindex="0">
           <table class="data-table" aria-label="Динамические атрибуты">
             <thead>
               <tr>
@@ -91,7 +91,7 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
                   <button type="button" class="action-btn" (click)="openEditModal(f)" [attr.aria-label]="'Редактировать ' + f.name" title="Редактировать">
                     <span class="material-symbols-outlined" aria-hidden="true">edit</span>
                   </button>
-                  <button type="button" class="action-btn danger" (click)="deleteField(f)" [attr.aria-label]="'Удалить ' + f.name" title="Удалить">
+                  <button type="button" class="action-btn danger" (click)="requestDeleteField(f)" [attr.aria-label]="'Удалить ' + f.name" title="Удалить">
                     <span class="material-symbols-outlined" aria-hidden="true">delete</span>
                   </button>
                 </td>
@@ -210,6 +210,22 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
             <ui-button type="submit" variant="primary" [loading]="saving">Сохранить</ui-button>
           </div>
         </form>
+      </ui-modal>
+
+      <ui-modal
+        [isOpen]="fieldToDelete !== null"
+        title="Удаление динамического поля"
+        size="sm"
+        (close)="fieldToDelete = null"
+      >
+        <div body class="delete-confirmation" *ngIf="fieldToDelete as field">
+          <p>Удалить динамическое поле <strong>«{{ field.name }}»</strong> ({{ field.code }})?</p>
+          <span>Сохранённые значения этого атрибута могут стать недоступны.</span>
+        </div>
+        <div footer>
+          <ui-button type="button" variant="secondary" (onClick)="fieldToDelete = null">Отмена</ui-button>
+          <ui-button type="button" variant="danger" (onClick)="confirmDeleteField()">Удалить</ui-button>
+        </div>
       </ui-modal>
     </div>
   `,
@@ -479,6 +495,9 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
       padding-top: 16px;
       border-top: 1px solid rgba(255, 255, 255, 0.08);
     }
+    .delete-confirmation { display: flex; flex-direction: column; gap: 8px; }
+    .delete-confirmation p { margin: 0; }
+    .delete-confirmation span { color: var(--text-muted); font-size: 12px; }
 
     @media (max-width: 640px) {
       .view-header, .form-row {
@@ -504,6 +523,7 @@ export class CustomFieldsComponent implements OnInit {
   editingField: CustomField | null = null;
   saving: boolean = false;
   formError: string = '';
+  fieldToDelete: CustomField | null = null;
 
   formData: any = {
     entityType: 'USER',
@@ -667,16 +687,21 @@ export class CustomFieldsComponent implements OnInit {
     }
   }
 
-  deleteField(f: CustomField) {
-    if (confirm(`Удалить динамическое поле "${f.name}" (${f.code})?`)) {
-      this.api.delete(`/custom-fields/${f.id}`).subscribe({
-        next: () => {
-          this.toast.success('Поле удалено');
-          this.loadFields();
-        },
-        error: () => this.toast.error('Ошибка удаления поля')
-      });
-    }
+  requestDeleteField(field: CustomField) {
+    this.fieldToDelete = field;
+  }
+
+  confirmDeleteField() {
+    if (!this.fieldToDelete) return;
+    const field = this.fieldToDelete;
+    this.api.delete(`/custom-fields/${field.id}`).subscribe({
+      next: () => {
+        this.fieldToDelete = null;
+        this.toast.success('Поле удалено');
+        this.loadFields();
+      },
+      error: () => this.toast.error('Ошибка удаления поля')
+    });
   }
 
   private parseOptionsText(value: string | undefined): Array<string | { value: string; label: string }> {
