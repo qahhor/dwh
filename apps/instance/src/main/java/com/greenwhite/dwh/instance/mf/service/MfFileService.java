@@ -1,6 +1,7 @@
 package com.greenwhite.dwh.instance.mf.service;
 
 import com.greenwhite.dwh.core.error.ErrorCode;
+import com.greenwhite.dwh.instance.audit.service.AuditLogService;
 import com.greenwhite.dwh.instance.common.error.ApiException;
 import com.greenwhite.dwh.instance.mf.repository.MfFileRepository;
 import com.greenwhite.dwh.spi.storage.FileDownloadStream;
@@ -23,10 +24,13 @@ public class MfFileService {
 
     private final MfFileRepository fileRepository;
     private final StorageProvider storageProvider;
+    private final AuditLogService auditLogService;
 
-    public MfFileService(MfFileRepository fileRepository, StorageProvider storageProvider) {
+    public MfFileService(MfFileRepository fileRepository, StorageProvider storageProvider,
+                         AuditLogService auditLogService) {
         this.fileRepository = fileRepository;
         this.storageProvider = storageProvider;
+        this.auditLogService = auditLogService;
     }
 
     @Transactional
@@ -87,7 +91,7 @@ public class MfFileService {
 
         // Своя запись владения: своё имя файла, своя квота, своё право на удаление
         try {
-            return fileRepository.create(
+            var created = fileRepository.create(
                     sha256,
                     originalName,
                     stored.sizeBytes(),
@@ -96,6 +100,15 @@ public class MfFileService {
                     finalKey,
                     createdBy
             );
+
+            auditLogService.logChange("mf_files", created.id().toString(), "I",
+                    java.util.List.of("original_name", "size_bytes", "mime_type"),
+                    null,
+                    java.util.Map.of("original_name", originalName,
+                            "size_bytes", stored.sizeBytes(),
+                            "mime_type", created.mimeType()));
+
+            return created;
         } catch (DuplicateKeyException e) {
             // Тот же пользователь отправил файл дважды одновременно (двойной клик):
             // проверка выше у обоих запросов прошла до того, как первый вставил
@@ -140,6 +153,15 @@ public class MfFileService {
         }
 
         fileRepository.delete(id);
+
+        // Удаление файла — единственная необратимая операция хранилища,
+        // поэтому её след в журнале обязателен (FR-AUD-1).
+        auditLogService.logChange("mf_files", id.toString(), "D",
+                java.util.List.of("original_name", "size_bytes", "created_by"),
+                java.util.Map.of("original_name", file.originalName(),
+                        "size_bytes", file.sizeBytes(),
+                        "created_by", file.createdBy() != null ? file.createdBy() : "null"),
+                null);
 
         // Объект с диска удаляем, только когда на него не осталось ни одной
         // записи владения. До V010 sha256 был unique, поэтому проверка была

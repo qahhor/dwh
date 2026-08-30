@@ -18,9 +18,10 @@ public class MdPermissionRepository {
 
     public void registerForm(String code, String module, String name) {
         jdbcClient.sql("""
-                insert into md_forms (code, module, name)
-                values (:code, :module, :name)
-                on conflict (code) do update set module = :module, name = :name
+                insert into md_forms (code, module, name, is_deprecated)
+                values (:code, :module, :name, false)
+                on conflict (code) do update
+                    set module = :module, name = :name, is_deprecated = false
                 """)
                 .param("code", code)
                 .param("module", module)
@@ -30,14 +31,67 @@ public class MdPermissionRepository {
 
     public void registerFormAction(String formCode, String action, String name) {
         jdbcClient.sql("""
-                insert into md_form_actions (form_code, action, name)
-                values (:formCode, :action, :name)
-                on conflict (form_code, action) do update set name = :name
+                insert into md_form_actions (form_code, action, name, is_deprecated)
+                values (:formCode, :action, :name, false)
+                on conflict (form_code, action) do update
+                    set name = :name, is_deprecated = false
                 """)
                 .param("formCode", formCode)
                 .param("action", action)
                 .param("name", name)
                 .update();
+    }
+
+    /**
+     * Помечает устаревшим всё, чего нет среди объявленных в коде пар (FR-PERM-1).
+     *
+     * Удаления здесь нет намеренно: удаление формы каскадом снимет уже выданные
+     * права, а временное переименование эндпоинта молча лишило бы людей доступа.
+     *
+     * @param livePairs пары вида {@code form.action}, найденные среди @RequiresPermission
+     * @return сколько записей стало устаревшими в этот проход
+     */
+    public int deprecateMissing(Set<String> livePairs) {
+        if (livePairs.isEmpty()) {
+            // Ни одной пары в коде — значит живых прав нет вовсе.
+            // Ситуация ненормальная, но помечать надо честно, а не молчать.
+            return jdbcClient.sql("update md_form_actions set is_deprecated = true where not is_deprecated").update()
+                    + jdbcClient.sql("update md_forms set is_deprecated = true where not is_deprecated").update();
+        }
+
+        Set<String> liveForms = livePairs.stream()
+                .map(pair -> pair.substring(0, pair.lastIndexOf('.')))
+                .collect(java.util.stream.Collectors.toSet());
+
+        int actions = jdbcClient.sql("""
+                update md_form_actions
+                set is_deprecated = true
+                where not is_deprecated and (form_code || '.' || action) <> all (:pairs)
+                """)
+                .param("pairs", livePairs.toArray(new String[0]))
+                .update();
+
+        int forms = jdbcClient.sql("""
+                update md_forms
+                set is_deprecated = true
+                where not is_deprecated and code <> all (:forms)
+                """)
+                .param("forms", liveForms.toArray(new String[0]))
+                .update();
+
+        return actions + forms;
+    }
+
+    /** Живые пары каталога — то, что реально можно выдать (FR-PERM-1). */
+    public Set<String> getGrantablePairs() {
+        return new HashSet<>(jdbcClient.sql("""
+                select fa.form_code || '.' || fa.action
+                from md_form_actions fa
+                join md_forms f on f.code = fa.form_code
+                where not fa.is_deprecated and not f.is_deprecated
+                """)
+                .query(String.class)
+                .list());
     }
 
     public Set<String> getEffectivePermissionsForUser(Long userId) {
@@ -111,7 +165,8 @@ public class MdPermissionRepository {
     public List<FormTreeItem> getAllFormsWithActions() {
         return jdbcClient.sql("""
                 select f.code as form_code, f.module, f.name as form_name,
-                       fa.action, fa.name as action_name
+                       fa.action, fa.name as action_name,
+                       (f.is_deprecated or fa.is_deprecated) as is_deprecated
                 from md_forms f
                 join md_form_actions fa on fa.form_code = f.code
                 order by f.module asc, f.code asc, fa.action asc
@@ -121,7 +176,8 @@ public class MdPermissionRepository {
                         rs.getString("module"),
                         rs.getString("form_name"),
                         rs.getString("action"),
-                        rs.getString("action_name")
+                        rs.getString("action_name"),
+                        rs.getBoolean("is_deprecated")
                 ))
                 .list();
     }
@@ -186,6 +242,7 @@ public class MdPermissionRepository {
             String module,
             String formName,
             String action,
-            String actionName
+            String actionName,
+            boolean isDeprecated
     ) {}
 }

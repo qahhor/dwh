@@ -94,6 +94,11 @@ dwh:
     # уже не даст.
     partition-runway-months: ${DWH_AUDIT_PARTITION_RUNWAY:6}
     partition-cron: ${DWH_AUDIT_PARTITION_CRON:0 30 3 * * *}
+    # Срок хранения оперативного журнала (FR-AUD-2). Партиции старше окна
+    # отцепляются и переименовываются в audit_log_archived_YYYY_MM — данные
+    # остаются в базе, решение об их судьбе принимает эксплуатация.
+    # 0 — не отцеплять ничего.
+    retention-months: ${DWH_AUDIT_RETENTION_MONTHS:12}
   control-plane:
     # Heartbeat в control plane (FR-INST-3). Пусто — отправка выключена:
     # экземпляр обязан работать и на изолированном контуре клиента.

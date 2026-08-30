@@ -1,5 +1,6 @@
 package com.greenwhite.dwh.instance.ms.task.service;
 
+import com.greenwhite.dwh.instance.audit.service.AuditLogService;
 import com.greenwhite.dwh.instance.ms.task.repository.MsTaskCommentRepository;
 import com.greenwhite.dwh.instance.ms.task.event.MsTaskEvents;
 import org.springframework.context.ApplicationEventPublisher;
@@ -16,12 +17,15 @@ public class MsTaskCommentService {
     private final MsTaskService taskService;
 
     private final ApplicationEventPublisher eventPublisher;
+    private final AuditLogService auditLogService;
 
     public MsTaskCommentService(MsTaskCommentRepository commentRepository, MsTaskService taskService,
-                                ApplicationEventPublisher eventPublisher) {
+                                ApplicationEventPublisher eventPublisher,
+                                AuditLogService auditLogService) {
         this.commentRepository = commentRepository;
         this.taskService = taskService;
         this.eventPublisher = eventPublisher;
+        this.auditLogService = auditLogService;
     }
 
     @Transactional
@@ -35,6 +39,14 @@ public class MsTaskCommentService {
                 .map(m -> m.userId()).distinct().toList();
         eventPublisher.publishEvent(new MsTaskEvents.TaskCommented(
                 taskId, task.title(), recipients, userId));
+
+        // Текст комментария в журнал не кладём: это содержимое переписки,
+        // а аудит читают шире, чем задачу. В журнале — факт и автор.
+        auditLogService.logChange("ms_task_comments", String.valueOf(comment.id()), "I",
+                java.util.List.of("task_id", "created_by"),
+                null,
+                java.util.Map.of("task_id", taskId, "created_by", userId,
+                        "files_attached", fileIds != null ? fileIds.size() : 0));
 
         return comment;
     }

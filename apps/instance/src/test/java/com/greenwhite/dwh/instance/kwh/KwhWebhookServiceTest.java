@@ -17,7 +17,7 @@ class KwhWebhookServiceTest {
 
     private final KwhSubscriptionRepository subscriptionRepository = Mockito.mock(KwhSubscriptionRepository.class);
     private final KwhOutboxRepository outboxRepository = Mockito.mock(KwhOutboxRepository.class);
-    private final KwhWebhookService service = new KwhWebhookService(subscriptionRepository, outboxRepository);
+    private final KwhWebhookService service = new KwhWebhookService(subscriptionRepository, outboxRepository, Mockito.mock(com.greenwhite.dwh.instance.audit.service.AuditLogService.class));
 
     @Test
     @DisplayName("HMAC-SHA256 подпись должна вычисляться детерминированно")

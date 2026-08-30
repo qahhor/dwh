@@ -1,6 +1,6 @@
 package com.greenwhite.dwh.instance.md.service;
 
-import com.greenwhite.dwh.instance.md.pref.MdPref;
+import com.greenwhite.dwh.instance.md.pref.MdFormCatalog;
 import com.greenwhite.dwh.instance.md.repository.MdPermissionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,44 +37,46 @@ public class MdPermissionService {
         return permissionRepository.getAllFormsWithActions();
     }
 
+    /**
+     * Приводит каталог форм в соответствие с кодом (FR-PERM-1).
+     *
+     * Существование пары определяется аннотациями {@code @RequiresPermission},
+     * имена — справочником {@link MdFormCatalog}. Всё, чего нет среди
+     * объявленных пар, помечается устаревшим, но не удаляется: удаление
+     * каскадом сняло бы уже выданные права.
+     *
+     * @param declaredPairs пары {@code form.action}, найденные в коде
+     */
     @Transactional
-    public void initSystemFormsIfEmpty() {
-        permissionRepository.registerForm(MdPref.FORM_PROFILE, MdPref.MODULE_CODE, "Мой профиль");
-        permissionRepository.registerFormAction(MdPref.FORM_PROFILE, "view", "Просмотр профиля");
-        permissionRepository.registerFormAction(MdPref.FORM_PROFILE, "update", "Изменение данных");
-        permissionRepository.registerFormAction(MdPref.FORM_PROFILE, "change_password", "Смена пароля");
-        permissionRepository.registerFormAction(MdPref.FORM_PROFILE, "manage_channels", "Управление каналами");
-        permissionRepository.registerFormAction(MdPref.FORM_PROFILE, "manage_tokens", "Управление токенами");
+    public CatalogSyncResult syncFormCatalog(Set<String> declaredPairs) {
+        Set<String> beforeGrantable = permissionRepository.getGrantablePairs();
 
-        permissionRepository.registerForm(MdPref.FORM_USERS, MdPref.MODULE_CODE, "Пользователи");
-        permissionRepository.registerFormAction(MdPref.FORM_USERS, "view", "Просмотр списка");
-        permissionRepository.registerFormAction(MdPref.FORM_USERS, "create", "Создание пользователя");
-        permissionRepository.registerFormAction(MdPref.FORM_USERS, "update", "Редактирование");
-        permissionRepository.registerFormAction(MdPref.FORM_USERS, "block", "Блокировка");
-        permissionRepository.registerFormAction(MdPref.FORM_USERS, "unblock", "Разблокировка");
+        for (String pair : declaredPairs) {
+            int dot = pair.lastIndexOf('.');
+            String formCode = pair.substring(0, dot);
+            String action = pair.substring(dot + 1);
 
-        permissionRepository.registerForm(MdPref.FORM_ROLES, MdPref.MODULE_CODE, "Роли и права");
-        permissionRepository.registerFormAction(MdPref.FORM_ROLES, "view", "Просмотр ролей");
-        permissionRepository.registerFormAction(MdPref.FORM_ROLES, "create", "Создание роли");
-        permissionRepository.registerFormAction(MdPref.FORM_ROLES, "update", "Редактирование");
-        permissionRepository.registerFormAction(MdPref.FORM_ROLES, "delete", "Удаление");
-        permissionRepository.registerFormAction(MdPref.FORM_ROLES, "grant", "Настройка матрицы прав");
+            permissionRepository.registerForm(formCode,
+                    MdFormCatalog.moduleOf(formCode), MdFormCatalog.formNameOf(formCode));
+            permissionRepository.registerFormAction(formCode, action,
+                    MdFormCatalog.actionNameOf(formCode, action));
+        }
 
-        permissionRepository.registerForm(MdPref.FORM_CUSTOM_FIELDS, MdPref.MODULE_CODE, "Динамические поля");
-        permissionRepository.registerFormAction(MdPref.FORM_CUSTOM_FIELDS, "view", "Просмотр полей");
-        permissionRepository.registerFormAction(MdPref.FORM_CUSTOM_FIELDS, "create", "Создание поля");
-        permissionRepository.registerFormAction(MdPref.FORM_CUSTOM_FIELDS, "update", "Редактирование");
-        permissionRepository.registerFormAction(MdPref.FORM_CUSTOM_FIELDS, "delete", "Удаление");
+        int deprecated = permissionRepository.deprecateMissing(declaredPairs);
 
-        permissionRepository.registerForm(MdPref.FORM_ORG_UNITS, MdPref.MODULE_CODE, "Оргструктура");
-        permissionRepository.registerFormAction(MdPref.FORM_ORG_UNITS, "view", "Просмотр оргструктуры");
-        permissionRepository.registerFormAction(MdPref.FORM_ORG_UNITS, "create", "Создание узла");
-        permissionRepository.registerFormAction(MdPref.FORM_ORG_UNITS, "update", "Редактирование узла");
-        permissionRepository.registerFormAction(MdPref.FORM_ORG_UNITS, "delete", "Удаление узла");
-        permissionRepository.registerFormAction(MdPref.FORM_ORG_UNITS, "assign", "Назначение сотрудников и правил видимости");
+        List<String> deprecatedPairs = beforeGrantable.stream()
+                .filter(pair -> !declaredPairs.contains(pair))
+                .sorted()
+                .toList();
 
-        permissionRepository.registerForm(MdPref.FORM_SETTINGS, MdPref.MODULE_CODE, "Настройки экземпляра");
-        permissionRepository.registerFormAction(MdPref.FORM_SETTINGS, "view", "Просмотр настроек");
-        permissionRepository.registerFormAction(MdPref.FORM_SETTINGS, "update", "Изменение настроек");
+        return new CatalogSyncResult(declaredPairs.size(), deprecated, deprecatedPairs);
     }
+
+    /** Пары, которые реально можно выдать: устаревшие исключены (FR-PERM-1). */
+    @Transactional(readOnly = true)
+    public Set<String> getGrantablePairs() {
+        return permissionRepository.getGrantablePairs();
+    }
+
+    public record CatalogSyncResult(int declared, int deprecated, List<String> deprecatedPairs) {}
 }

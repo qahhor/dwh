@@ -1,6 +1,7 @@
 package com.greenwhite.dwh.instance.kwh.service;
 
 import com.greenwhite.dwh.core.error.ErrorCode;
+import com.greenwhite.dwh.instance.audit.service.AuditLogService;
 import com.greenwhite.dwh.instance.common.error.ApiException;
 import com.greenwhite.dwh.instance.kwh.repository.KwhOutboxRepository;
 import com.greenwhite.dwh.instance.kwh.repository.KwhSubscriptionRepository;
@@ -23,10 +24,14 @@ public class KwhWebhookService {
     private final KwhSubscriptionRepository subscriptionRepository;
     private final KwhOutboxRepository outboxRepository;
     private final SecureRandom secureRandom = new SecureRandom();
+    private final AuditLogService auditLogService;
 
-    public KwhWebhookService(KwhSubscriptionRepository subscriptionRepository, KwhOutboxRepository outboxRepository) {
+    public KwhWebhookService(KwhSubscriptionRepository subscriptionRepository,
+                             KwhOutboxRepository outboxRepository,
+                             AuditLogService auditLogService) {
         this.subscriptionRepository = subscriptionRepository;
         this.outboxRepository = outboxRepository;
+        this.auditLogService = auditLogService;
     }
 
     @Transactional(readOnly = true)
@@ -44,7 +49,19 @@ public class KwhWebhookService {
         secureRandom.nextBytes(secretBytes);
         String secretToken = Base64.getUrlEncoder().withoutPadding().encodeToString(secretBytes);
 
-        return subscriptionRepository.create(name, targetUrl, secretToken, subscribedEvents, createdBy);
+        var subscription = subscriptionRepository.create(name, targetUrl, secretToken, subscribedEvents, createdBy);
+
+        // Подписка — канал утечки данных наружу, поэтому её появление, смена
+        // адреса и удаление обязаны быть в журнале (FR-AUD-1).
+        // Секретный токен в журнал НЕ попадает: аудит читают больше людей,
+        // чем должны знать ключ подписи.
+        auditLogService.logChange("kwh_subscriptions", String.valueOf(subscription.id()), "I",
+                List.of("name", "target_url", "subscribed_events"),
+                null,
+                Map.of("name", name, "target_url", targetUrl,
+                        "subscribed_events", subscribedEvents != null ? subscribedEvents : List.of()));
+
+        return subscription;
     }
 
     @Transactional
@@ -52,12 +69,31 @@ public class KwhWebhookService {
         if (targetUrl != null) {
             validateUrl(targetUrl);
         }
+        var before = requireSubscription(id);
         subscriptionRepository.update(id, name, targetUrl, subscribedEvents, state);
+
+        auditLogService.logChange("kwh_subscriptions", String.valueOf(id), "U",
+                List.of("name", "target_url", "subscribed_events", "state"),
+                Map.of("name", before.name(), "target_url", before.targetUrl(), "state", before.state()),
+                Map.of("name", name != null ? name : before.name(),
+                        "target_url", targetUrl != null ? targetUrl : before.targetUrl(),
+                        "state", state != null ? state : before.state()));
     }
 
     @Transactional
     public void deleteSubscription(Long id) {
+        var before = requireSubscription(id);
         subscriptionRepository.delete(id);
+
+        auditLogService.logChange("kwh_subscriptions", String.valueOf(id), "D",
+                List.of("name", "target_url"),
+                Map.of("name", before.name(), "target_url", before.targetUrl()),
+                null);
+    }
+
+    private KwhSubscriptionRepository.SubscriptionRecord requireSubscription(Long id) {
+        return subscriptionRepository.findById(id).orElseThrow(() ->
+                ApiException.notFound(ErrorCode.NOT_FOUND, "Подписка на события не найдена"));
     }
 
     @Transactional

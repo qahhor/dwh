@@ -15,7 +15,7 @@ import static org.mockito.Mockito.when;
 class AuditPartitionWorkerTest {
 
     private final AuditPartitionRepository repository = Mockito.mock(AuditPartitionRepository.class);
-    private final AuditPartitionWorker worker = new AuditPartitionWorker(repository, 6);
+    private final AuditPartitionWorker worker = new AuditPartitionWorker(repository, 6, 12);
 
     @Test
     @DisplayName("Имя партиции строится из месяца с ведущим нулём")
@@ -63,5 +63,46 @@ class AuditPartitionWorkerTest {
         // упавший месяц не остановил цикл: остальные шесть созданы
         Mockito.verify(repository).create(YearMonth.of(2027, 1));
         Mockito.verify(repository, Mockito.times(7)).create(any());
+    }
+
+    // ------------------------------------------------------------------
+    // FR-AUD-2: срок хранения оперативного журнала
+    // ------------------------------------------------------------------
+
+    @Test
+    @DisplayName("Партиции старше срока хранения отцепляются, свежие остаются")
+    void shouldDetachPartitionsOlderThanRetention() {
+        when(repository.attachedPartitionsBefore(YearMonth.of(2026, 1)))
+                .thenReturn(java.util.List.of(YearMonth.of(2025, 8), YearMonth.of(2025, 11)));
+
+        worker.applyRetentionFrom(YearMonth.of(2027, 1));
+
+        Mockito.verify(repository).detachAndArchive(YearMonth.of(2025, 8));
+        Mockito.verify(repository).detachAndArchive(YearMonth.of(2025, 11));
+        Mockito.verify(repository, Mockito.times(2)).detachAndArchive(any());
+    }
+
+    @Test
+    @DisplayName("Отказ на одной партиции не мешает отцепить остальные")
+    void shouldContinueRetentionAfterFailure() {
+        when(repository.attachedPartitionsBefore(any()))
+                .thenReturn(java.util.List.of(YearMonth.of(2025, 8), YearMonth.of(2025, 9)));
+        Mockito.doThrow(new RuntimeException("партиция занята"))
+                .when(repository).detachAndArchive(YearMonth.of(2025, 8));
+
+        worker.applyRetentionFrom(YearMonth.of(2027, 1));
+
+        Mockito.verify(repository).detachAndArchive(YearMonth.of(2025, 9));
+    }
+
+    @Test
+    @DisplayName("Нулевой срок хранения выключает отцепление: экземпляр хранит всё")
+    void zeroRetentionKeepsEverything() {
+        var keepAll = new AuditPartitionWorker(repository, 6, 0);
+
+        keepAll.applyRetentionFrom(YearMonth.of(2027, 1));
+
+        Mockito.verify(repository, Mockito.never()).attachedPartitionsBefore(any());
+        Mockito.verify(repository, Mockito.never()).detachAndArchive(any());
     }
 }
