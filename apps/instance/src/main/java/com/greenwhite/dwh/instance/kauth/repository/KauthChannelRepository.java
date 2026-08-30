@@ -77,6 +77,13 @@ public class KauthChannelRepository {
                 .list();
     }
 
+    public void delete(Long userId, String channel) {
+        jdbcClient.sql("delete from kauth_user_channels where user_id = :userId and channel = :channel")
+                .param("userId", userId)
+                .param("channel", channel)
+                .update();
+    }
+
     public record ChannelRecord(
             Long id,
             Long userId,

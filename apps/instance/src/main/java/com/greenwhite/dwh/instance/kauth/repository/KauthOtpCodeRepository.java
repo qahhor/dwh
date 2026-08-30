@@ -16,15 +16,26 @@ public class KauthOtpCodeRepository {
         this.jdbcClient = jdbcClient;
     }
 
-    public OtpRecord create(Long userId, String channel, String codeHash, Instant expiresAt) {
+    /**
+     * Код второго фактора, привязанный к своему токену (FR-AUTH-5).
+     *
+     * Токен хранится хешем и служит единственным способом найти этот код.
+     * До V015 его не было вовсе, и код искали по идентификатору пользователя,
+     * который проверка возвращала захардкоженным.
+     */
+    public OtpRecord create(Long userId, String channel, String codeHash, String otpTokenHash,
+                            String purpose, Instant expiresAt) {
         return jdbcClient.sql("""
-                insert into kauth_otp_codes (user_id, channel, code_hash, attempts_left, expires_at, created_at, is_used)
-                values (:userId, :channel, :codeHash, 3, :expiresAt, now(), false)
+                insert into kauth_otp_codes (user_id, channel, code_hash, otp_token_hash, purpose,
+                                             attempts_left, expires_at, created_at, is_used)
+                values (:userId, :channel, :codeHash, :otpTokenHash, :purpose, 3, :expiresAt, now(), false)
                 returning id, user_id, channel, code_hash, attempts_left, expires_at, created_at, is_used
                 """)
                 .param("userId", userId)
                 .param("channel", channel)
                 .param("codeHash", codeHash)
+                .param("otpTokenHash", otpTokenHash)
+                .param("purpose", purpose)
                 .param("expiresAt", expiresAt != null ? Timestamp.from(expiresAt) : null)
                 .query((rs, rowNum) -> new OtpRecord(
                         rs.getLong("id"),
@@ -39,15 +50,16 @@ public class KauthOtpCodeRepository {
                 .single();
     }
 
-    public Optional<OtpRecord> findLatestActiveByUserId(Long userId) {
+    /** Единственный правильный способ найти код: по хешу выданного токена. */
+    public Optional<OtpRecord> findActiveByTokenHash(String otpTokenHash, String purpose) {
         return jdbcClient.sql("""
                 select id, user_id, channel, code_hash, attempts_left, expires_at, created_at, is_used
                 from kauth_otp_codes
-                where user_id = :userId and not is_used and expires_at > now() and attempts_left > 0
-                order by created_at desc
-                limit 1
+                where otp_token_hash = :otpTokenHash and purpose = :purpose
+                      and not is_used and attempts_left > 0
                 """)
-                .param("userId", userId)
+                .param("otpTokenHash", otpTokenHash)
+                .param("purpose", purpose)
                 .query((rs, rowNum) -> new OtpRecord(
                         rs.getLong("id"),
                         rs.getLong("user_id"),

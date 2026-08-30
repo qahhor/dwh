@@ -66,9 +66,21 @@
 | `POST /auth/password` | `{old_password, new_password}` *(требует сессию/токен, права формы НЕ требует — Д-7)* | `204 No Content` | `401 invalid_credentials` *(неверный текущий пароль)*<br>`422 password_policy` |
 | `POST /auth/password-reset/request` | `{email}` | **Всегда `204 No Content`** *(не раскрывает наличие email в базе)* | `429 rate_limited` |
 | `POST /auth/password-reset/confirm` | `{code, new_password}` | `204 No Content` *(все активные сессии пользователя закрываются)* | `400 reset_code_invalid`<br>`400 reset_code_expired`<br>`422 password_policy` |
+| `GET /iam/profile/channels` | — *(право `iam.profile:manage_channels`)* | `200 [{id, channel, address, is_verified}]` | — |
+| `POST /iam/profile/channels` | `{channel, address}` → код уходит на адрес | `200 {verify_token}` | `422 validation_failed`<br>`503 otp_send_failed` |
+| `POST /iam/profile/channels/confirm` | `{verify_token, code}` | `204 No Content` *(канал становится подтверждённым)* | `401 otp_invalid`<br>`401 otp_expired`<br>`423 otp_attempts_exceeded` |
+| `DELETE /iam/profile/channels/{channel}` | — | `204 No Content` | — |
 | `POST /invitations/{code}/accept` | `{password}` | `204 No Content` *(активация аккаунта)* | `400 invite_invalid`<br>`400 invite_expired`<br>`422 password_policy` |
 | `GET /auth/me` | — *(требует сессию/токен)* | `200 {user: {...}, permissions: ["form.action", ...], permissions_version: 12, instance: {code, name, languages, resource_profile}}` — Bootstrap для SPA | `401 unauthorized` |
 
+
+**О втором факторе.** `POST /auth/login` при включённой 2FA возвращает
+`{step: "otp", otp_token}`. Токен — секрет: он хранится хешем рядом с кодом и служит
+единственным способом найти этот код в `POST /auth/otp`. До 30.08 связи не было вовсе
+(дефект Д-11, AUDIT-06), а сам код никуда не отправлялся (Д-10). Канал берётся из
+подтверждённых каналов пользователя по порядку предпочтения telegram → sms → email;
+если подтверждённого канала нет, вход отклоняется `409 otp_channel_missing`, и код
+не выпускается.
 
 **О `POST /auth/password`.** Смена собственного пароля живёт в контуре аутентификации, а не в
 матрице форм: собственные учётные данные не являются данными экземпляра. Раньше операция
@@ -376,6 +388,8 @@ data: {"operation_id": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d", "status": "runnin
 ├── validation_failed               # 422 Ошибка валидации входных данных
 ├── not_found                       # 404 Запрашиваемый ресурс не найден
 ├── method_not_allowed              # 405 Метод не поддержан маршрутом (ответ несёт заголовок Allow)
+├── otp_channel_missing             # 409 Второй фактор включён, но подтверждённого канала нет
+├── otp_send_failed                 # 503 Код не удалось доставить в канал
 ├── code_already_exists             # 409 Нарушено ограничение уникальности
 └── conflict                        # 409 Конфликт состояния данных
 

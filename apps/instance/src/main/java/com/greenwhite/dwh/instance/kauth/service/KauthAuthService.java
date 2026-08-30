@@ -29,6 +29,8 @@ public class KauthAuthService {
     private final KauthPasswordHasher passwordHasher;
     private final com.greenwhite.dwh.instance.md.service.PasswordValidator passwordValidator;
     private final com.greenwhite.dwh.instance.audit.service.AuditLogService auditLogService;
+    private final KauthChannelService channelService;
+    private final KauthOtpSender otpSender;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public KauthAuthService(
@@ -39,7 +41,9 @@ public class KauthAuthService {
             KauthPasswordResetRepository passwordResetRepository,
             KauthPasswordHasher passwordHasher,
             com.greenwhite.dwh.instance.md.service.PasswordValidator passwordValidator,
-            com.greenwhite.dwh.instance.audit.service.AuditLogService auditLogService) {
+            com.greenwhite.dwh.instance.audit.service.AuditLogService auditLogService,
+            KauthChannelService channelService,
+            KauthOtpSender otpSender) {
         this.userRepository = userRepository;
         this.sessionRepository = sessionRepository;
         this.loginAttemptRepository = loginAttemptRepository;
@@ -48,6 +52,8 @@ public class KauthAuthService {
         this.passwordHasher = passwordHasher;
         this.passwordValidator = passwordValidator;
         this.auditLogService = auditLogService;
+        this.channelService = channelService;
+        this.otpSender = otpSender;
     }
 
 
@@ -94,13 +100,26 @@ public class KauthAuthService {
                 java.util.Map.of("login", login, "deviceInfo", deviceInfo != null ? deviceInfo : "web"));
 
 
-        // Check 2FA
+        // FR-AUTH-5: второй фактор. Канал выбирает не код, а пользователь —
+        // берём подтверждённый по порядку предпочтения. Нет канала — отказ со
+        // внятной причиной, а не токен, которым нельзя воспользоваться.
         if (user.is2faEnabled()) {
+            var channel = channelService.resolveOtpChannel(user.id());
+
             String otpToken = generateSecureToken();
             String otpCode = String.format("%06d", secureRandom.nextInt(1000000));
-            String codeHash = KauthPasswordHasher.sha256(otpCode);
 
-            otpCodeRepository.create(user.id(), "telegram", codeHash, Instant.now().plusSeconds(300));
+            otpCodeRepository.create(user.id(), channel.channel(),
+                    KauthPasswordHasher.sha256(otpCode), KauthPasswordHasher.sha256(otpToken),
+                    "login", Instant.now().plusSeconds(300));
+
+            // Отправка синхронная: код живёт пять минут, очередь с повторами
+            // здесь работает против пользователя. Провал — отказ входа.
+            otpSender.sendLoginCode(channel, otpCode);
+
+            auditLogService.logSecurityEvent("OTP_SENT", user.id(), ip, userAgent,
+                    java.util.Map.of("channel", channel.channel()));
+
             return LoginResult.requires2fa(otpToken, user.id());
         }
 
@@ -116,14 +135,16 @@ public class KauthAuthService {
 
     @Transactional
     public LoginResult verifyOtp(String otpToken, String code, String ip, String userAgent, String deviceInfo) {
-        Long userId = extractUserIdFromOtpToken(otpToken);
-
-        var otpOpt = otpCodeRepository.findLatestActiveByUserId(userId);
-        if (otpOpt.isEmpty()) {
+        if (otpToken == null || otpToken.isBlank()) {
             throw ApiException.badRequest(ErrorCode.OTP_INVALID, "Некорректный OTP токен");
         }
 
-        var otp = otpOpt.get();
+        // Код ищется по хешу выданного токена и только по нему. До V015 здесь
+        // стоял extractUserIdFromOtpToken(), возвращавший захардкоженную 1L:
+        // любой непустой токен приводил к коду администратора.
+        var otp = otpCodeRepository.findActiveByTokenHash(KauthPasswordHasher.sha256(otpToken), "login")
+                .orElseThrow(() -> ApiException.badRequest(ErrorCode.OTP_INVALID, "Некорректный OTP токен"));
+        Long userId = otp.userId();
         if (otp.expiresAt().isBefore(Instant.now())) {
             throw ApiException.badRequest(ErrorCode.OTP_EXPIRED, "Срок действия OTP-кода истёк");
         }
@@ -185,12 +206,6 @@ public class KauthAuthService {
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
-    private Long extractUserIdFromOtpToken(String otpToken) {
-        if (otpToken == null || otpToken.isBlank()) {
-            throw ApiException.badRequest(ErrorCode.OTP_INVALID, "Некорректный OTP токен");
-        }
-        return 1L;
-    }
 
     public record LoginResult(
             boolean isOtpRequired,
