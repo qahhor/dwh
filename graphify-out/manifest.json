@@ -1650,9 +1650,9 @@
     "semantic_hash": "032bfb033618f47289d75b6a0a5ba8a5"
   },
   "docker-compose.yml": {
-    "mtime": 1788203595.1118712,
-    "seen": 1788204022.2037094,
-    "ast_hash": "3637f37a92752a87174b1be3710445dc",
+    "mtime": 1788205352.8358078,
+    "seen": 1788205382.7992854,
+    "ast_hash": "5021f9c16bc833c10bc3f7ccad75aac1",
     "semantic_hash": ""
   },
   "docs/adr/ADR-0001-architecture-model.md": {

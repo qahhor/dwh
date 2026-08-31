@@ -97,7 +97,7 @@ services:
     environment: *instance-env
     ports:
       - "${APP_PORT:-8080}:8080"
-      - "${APP_MGMT_PORT:-9090}:9090"   # actuator: в проде наружу НЕ публикуется
+      - "${APP_MGMT_PORT:-9190}:9090"   # actuator: в проде наружу НЕ публикуется
     volumes:
       - app-files:/var/lib/dwh          # ВРЕМЕННО до Garage/S3 (блокер C-3)
     depends_on:
@@ -154,7 +154,7 @@ services:
     environment: *cp-env
     ports:
       - "${CP_PORT:-8082}:8081"
-      - "${CP_MGMT_PORT:-9091}:9091"
+      - "${CP_MGMT_PORT:-9191}:9091"
     depends_on:
       db-cp: {condition: service_healthy}
 
