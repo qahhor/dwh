@@ -139,6 +139,10 @@ public final class MdFormCatalog {
                 "view", "Просмотр подписок",
                 "manage", "Управление подписками")));
 
+        forms.put("analytics.dashboard", new FormMeta("analytics", "Аналитика и дашборды", ordered(
+                "view", "Просмотр аналитики",
+                "manage", "Управление дашбордами")));
+
         return Map.copyOf(forms);
     }
 

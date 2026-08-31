@@ -58,88 +58,89 @@ export interface AuditStats {
       <div class="view-header">
         <div class="header-left">
           <h1 class="view-title">Аудит и безопасность</h1>
-          <span class="view-subtitle">Неизменяемый журнал мутаций данных и security-событий</span>
+          <span class="count-badge">WORM Log</span>
         </div>
-        <div class="header-actions">
-          <button type="button" class="icon-refresh-btn" aria-label="Обновить журнал аудита" (click)="refreshAll()" title="Обновить журнал">
+        <div class="header-right">
+          <button type="button" class="btn btn-secondary" aria-label="Обновить журнал аудита" (click)="refreshAll()" title="Обновить журнал">
             <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
+            <span>Обновить</span>
           </button>
         </div>
       </div>
 
       <!-- Stats Cards -->
-      <div class="stats-grid" *ngIf="stats() as s">
-        <div class="stat-card">
-          <div class="stat-icon-wrapper blue">
-            <span class="material-symbols-outlined" aria-hidden="true">history</span>
+      <div class="tiles" *ngIf="stats() as s">
+        <div class="tile">
+          <div class="tile-header">
+            <span class="tile-label">Всего записей аудита</span>
+            <span class="material-symbols-outlined" style="color: var(--primary);">history</span>
           </div>
-          <div class="stat-info">
-            <span class="stat-value">{{ s.totalAuditLogs }}</span>
-            <span class="stat-label">Всего записей аудита</span>
-          </div>
+          <div class="tile-value">{{ s.totalAuditLogs }}</div>
+          <div class="tile-meta" style="color: var(--text-muted); font-size: 11px;">Неизменяемый журнал</div>
         </div>
 
-        <div class="stat-card">
-          <div class="stat-icon-wrapper indigo">
-            <span class="material-symbols-outlined" aria-hidden="true">security</span>
+        <div class="tile">
+          <div class="tile-header">
+            <span class="tile-label">Событий безопасности</span>
+            <span class="material-symbols-outlined" style="color: var(--info);">security</span>
           </div>
-          <div class="stat-info">
-            <span class="stat-value">{{ s.totalSecurityEvents }}</span>
-            <span class="stat-label">Событий безопасности</span>
-          </div>
+          <div class="tile-value">{{ s.totalSecurityEvents }}</div>
+          <div class="tile-meta" style="color: var(--text-muted); font-size: 11px;">Все типы событий</div>
         </div>
 
-        <div class="stat-card">
-          <div class="stat-icon-wrapper amber">
-            <span class="material-symbols-outlined" aria-hidden="true">schedule</span>
+        <div class="tile">
+          <div class="tile-header">
+            <span class="tile-label">Событий за 24 часа</span>
+            <span class="material-symbols-outlined" style="color: var(--warning);">schedule</span>
           </div>
-          <div class="stat-info">
-            <span class="stat-value">{{ s.securityEventsLast24h }}</span>
-            <span class="stat-label">Событий за 24 часа</span>
-          </div>
+          <div class="tile-value">{{ s.securityEventsLast24h }}</div>
+          <div class="tile-meta" style="color: var(--text-muted); font-size: 11px;">Суточная активность</div>
         </div>
 
-        <div class="stat-card">
-          <div class="stat-icon-wrapper red">
-            <span class="material-symbols-outlined" aria-hidden="true">gpp_bad</span>
+        <div class="tile" [class.tile-alarm]="s.failedLoginsLast24h > 0">
+          <div class="tile-header">
+            <span class="tile-label">Неудачных входов / блокировок</span>
+            <span class="material-symbols-outlined" [style.color]="s.failedLoginsLast24h > 0 ? 'var(--danger)' : 'var(--success)'">
+              {{ s.failedLoginsLast24h > 0 ? 'gpp_bad' : 'verified_user' }}
+            </span>
           </div>
-          <div class="stat-info">
-            <span class="stat-value">{{ s.failedLoginsLast24h }}</span>
-            <span class="stat-label">Неудачных входов / блокировок</span>
+          <div class="tile-value" [style.color]="s.failedLoginsLast24h > 0 ? 'var(--danger)' : 'var(--text-main)'">
+            {{ s.failedLoginsLast24h }}
+          </div>
+          <div class="tile-meta" [style.color]="s.failedLoginsLast24h > 0 ? 'var(--danger)' : 'var(--success)'" style="font-size: 11px; font-weight: 600;">
+            {{ s.failedLoginsLast24h > 0 ? 'Требует внимания' : 'Аномалий не обнаружено' }}
           </div>
         </div>
       </div>
 
       <!-- Tabs Navigation -->
-      <div class="tabs-nav-bar">
-        <div class="tab-buttons" role="tablist" aria-label="Разделы аудита">
+      <div class="toolbar">
+        <div class="status-tabs" role="tablist" aria-label="Разделы аудита">
           <button
             id="audit-log-tab"
             type="button"
             role="tab"
-            class="nav-tab-btn"
+            class="status-tab"
             [class.active]="activeTab === 'audit'"
             [attr.aria-selected]="activeTab === 'audit'"
             aria-controls="audit-log-panel"
             (click)="setTab('audit')"
           >
-            <span class="material-symbols-outlined" aria-hidden="true">database</span>
-            Журнал изменений данных
-            <span class="tab-counter">{{ auditLogs().length }}</span>
+            <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">database</span>
+            <span>Журнал изменений данных ({{ auditLogs().length }})</span>
           </button>
           <button
             id="security-events-tab"
             type="button"
             role="tab"
-            class="nav-tab-btn"
+            class="status-tab"
             [class.active]="activeTab === 'security'"
             [attr.aria-selected]="activeTab === 'security'"
             aria-controls="security-events-panel"
             (click)="setTab('security')"
           >
-            <span class="material-symbols-outlined" aria-hidden="true">shield</span>
-            События безопасности
-            <span class="tab-counter">{{ securityEvents().length }}</span>
+            <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">shield</span>
+            <span>События безопасности ({{ securityEvents().length }})</span>
           </button>
         </div>
       </div>

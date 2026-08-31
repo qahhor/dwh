@@ -40,6 +40,10 @@ public class RequiresPermissionInterceptor implements HandlerInterceptor {
             throw ApiException.unauthorized("Требуется авторизация для доступа к ресурсу");
         }
 
+        if (SecurityContext.getPrincipal() != null && SecurityContext.getPrincipal().forcePasswordChange()) {
+            throw ApiException.forbidden(com.greenwhite.dwh.core.error.ErrorCode.MUST_CHANGE_PASSWORD, "Требуется обязательная смена временного пароля перед началом работы");
+        }
+
         if (!SecurityContext.hasPermission(annotation.form(), annotation.action())) {
             throw ApiException.permissionDenied(annotation.form(), annotation.action());
         }

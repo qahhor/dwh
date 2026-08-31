@@ -20,7 +20,6 @@
         <!-- Framework & Libraries Versions -->
         <spring-boot.version>4.1.1</spring-boot.version>
         <postgresql.version>42.7.5</postgresql.version>
-        <!-- flyway версией управляет Spring Boot BOM (Flyway 11.x в Boot 4.1) -->
         <archunit.version>1.5.0</archunit.version>
         <testcontainers.version>1.21.3</testcontainers.version>
         <argon2.version>2.11</argon2.version>
@@ -35,6 +34,7 @@
 
     <modules>
         <module>libs/core-types</module>
+        <module>libs/platform-common</module>
         <module>libs/provider-spi</module>
         <module>apps/instance</module>
         <module>apps/control-plane</module>
@@ -55,6 +55,11 @@
             <dependency>
                 <groupId>com.greenwhite.dwh</groupId>
                 <artifactId>core-types</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.greenwhite.dwh</groupId>
+                <artifactId>platform-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -86,14 +91,14 @@
             </dependency>
 
             <!-- Testcontainers BOM -->
-                    <dependency>
+            <dependency>
                 <groupId>org.testcontainers</groupId>
                 <artifactId>testcontainers-bom</artifactId>
                 <version>${testcontainers.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-</dependencies>
+        </dependencies>
     </dependencyManagement>
 
     <build>

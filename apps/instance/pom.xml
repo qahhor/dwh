@@ -23,6 +23,10 @@
         </dependency>
         <dependency>
             <groupId>com.greenwhite.dwh</groupId>
+            <artifactId>platform-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.greenwhite.dwh</groupId>
             <artifactId>provider-spi</artifactId>
         </dependency>
 

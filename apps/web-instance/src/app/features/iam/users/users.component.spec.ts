@@ -64,7 +64,7 @@ describe('UsersComponent UI contracts', () => {
     const identity = fixture.nativeElement.querySelector('.user-identity') as HTMLElement;
 
     expect(fixture.nativeElement.querySelector(`label[for="${search.id}"]`)).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('.segmented-control[role="group"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[role="group"][aria-label="Фильтр пользователей по статусу"]')).not.toBeNull();
     expect(region.tabIndex).toBe(0);
     expect(region.querySelector('table')?.getAttribute('aria-label')).toBe('Список пользователей');
     expect(identity.tagName).toBe('BUTTON');

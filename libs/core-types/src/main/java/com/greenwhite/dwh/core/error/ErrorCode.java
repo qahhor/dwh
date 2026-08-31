@@ -29,6 +29,7 @@ public enum ErrorCode {
     FORBIDDEN("forbidden", 403),
     CSRF_TOKEN_INVALID("csrf_token_invalid", 403),
     PERMISSION_DENIED("permission_denied", 403),
+    MUST_CHANGE_PASSWORD("must_change_password", 403),
     USER_BLOCKED("user_blocked", 403),
     SUPERADMIN_IMMUTABLE("superadmin_immutable", 403),
     LAST_ADMIN("last_admin", 409),

@@ -1,7 +1,7 @@
 import { Component, Input, Output, EventEmitter, signal, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { replaceMarkdownLinksWithSafeAnchors } from './markdown-link-sanitizer';
 
 @Component({
   selector: 'ui-markdown-editor',
@@ -329,8 +329,6 @@ export class UiMarkdownEditorComponent {
   readonly editPanelId = `ui-markdown-edit-panel-${this.componentId}`;
   readonly previewPanelId = `ui-markdown-preview-panel-${this.componentId}`;
 
-  constructor(private sanitizer: DomSanitizer) {}
-
   onTextChange(newVal: string) {
     this.value = newVal;
     this.valueChange.emit(newVal);
@@ -423,9 +421,9 @@ export class UiMarkdownEditorComponent {
     }, 0);
   }
 
-  renderMarkdown(text: string): SafeHtml {
+  renderMarkdown(text: string): string {
     if (!text || !text.trim()) {
-      return this.sanitizer.bypassSecurityTrustHtml('<span style="color:var(--text-muted);font-style:italic;">Предпросмотр пуст</span>');
+      return '<span class="md-empty-preview">Предпросмотр пуст</span>';
     }
 
     let html = this.escapeHtml(text);
@@ -458,12 +456,12 @@ export class UiMarkdownEditorComponent {
     html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
 
     // Links [text](url)
-    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    html = replaceMarkdownLinksWithSafeAnchors(html);
 
     // Linebreaks
     html = html.replace(/\n/g, '<br/>');
 
-    return this.sanitizer.bypassSecurityTrustHtml(html);
+    return html;
   }
 
   private escapeHtml(str: string): string {

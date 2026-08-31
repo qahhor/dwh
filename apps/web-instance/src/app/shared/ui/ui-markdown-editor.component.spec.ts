@@ -37,4 +37,18 @@ describe('UiMarkdownEditorComponent', () => {
     expect(tabs[1].getAttribute('aria-selected')).toBe('true');
     expect(fixture.nativeElement.querySelector(`#${tabs[1].getAttribute('aria-controls')}[role="tabpanel"]`)).not.toBeNull();
   });
+
+  it('does not create executable links in preview mode', async () => {
+    await TestBed.configureTestingModule({ imports: [UiMarkdownEditorComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(UiMarkdownEditorComponent);
+    fixture.componentInstance.value = '[safe](mailto:help@example.com) [unsafe](javascript:alert(1))';
+    fixture.componentInstance.mode = 'preview';
+    fixture.detectChanges();
+
+    const links = Array.from(fixture.nativeElement.querySelectorAll('.md-preview-pane a')) as HTMLAnchorElement[];
+    expect(links).toHaveLength(1);
+    expect(links[0].textContent).toBe('safe');
+    expect(links[0].getAttribute('href')).toBe('mailto:help@example.com');
+    expect(fixture.nativeElement.querySelector('.md-preview-pane')?.textContent).toContain('unsafe');
+  });
 });

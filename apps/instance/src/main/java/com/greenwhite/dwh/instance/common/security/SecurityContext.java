@@ -43,6 +43,11 @@ public final class SecurityContext {
             Long sessionId,
             boolean isApi,
             Set<String> effectivePermissions,
-            long permissionVersion
-    ) {}
+            long permissionVersion,
+            boolean forcePasswordChange
+    ) {
+        public KauthPrincipal(Long userId, String login, String email, Long sessionId, boolean isApi, Set<String> effectivePermissions, long permissionVersion) {
+            this(userId, login, email, sessionId, isApi, effectivePermissions, permissionVersion, false);
+        }
+    }
 }

@@ -44,7 +44,7 @@ describe('CustomFieldsComponent', () => {
       expect(control.id).not.toBe('');
       expect(fixture.nativeElement.querySelector(`label[for="${control.id}"]`)).not.toBeNull();
     }
-    expect(fixture.nativeElement.querySelector('.icon-refresh-btn')?.getAttribute('aria-label')).toBe('Обновить поля');
+    expect(fixture.nativeElement.querySelector('button[aria-label="Обновить поля"]')).not.toBeNull();
   });
 
   it('configures select values and sends them to the existing API', async () => {

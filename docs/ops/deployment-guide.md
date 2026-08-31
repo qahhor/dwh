@@ -1,10 +1,10 @@
 # Руководство по развёртыванию платформы Smartup DWH / CMS
 
 **Версия:** 2.0 · **Дата:** 2026-08-29  
-**Область:** промышленное развёртывание экземпляра и Control Plane через Docker Compose Fleet + NGINX Hardened.  
-**Проверено:** сквозные тесты 21/21 E2E, Zero-touch скрипты, NGINX SSL/HTTP2, дамп PostgreSQL 18.
+**Область:** пилотное развёртывание экземпляра и Control Plane через Docker Compose Fleet + внутренний NGINX.
+**Проверено:** `docker compose config`, `nginx -t`, fail-closed backup/deploy regression и синтаксис Bash/PowerShell-скриптов.
 
-> ✅ Система полностью готова к промышленной эксплуатации ([Production Launch Checklist](production-launch-checklist.md), [AUDIT-05](../audit/AUDIT-05-production-readiness-final.md)).
+> Решение GO принимается только по [Production Launch Checklist](production-launch-checklist.md). Наличие compose-файла само по себе не подтверждает production readiness.
 
 ---
 
@@ -39,7 +39,8 @@
 | Направление | Порт | Назначение |
 |---|---|---|
 | Входящий (публично) | 443 | HTTPS через reverse proxy |
-| Входящий (loopback) | 8080 | приложение — только с локального хоста |
+| Входящий (loopback) | 8088 | fleet proxy без TLS — только для host reverse proxy |
+| Входящий (loopback) | 8080 | одиночный instance — только для host reverse proxy |
 | Внутренний (сеть мониторинга) | 9090 | `/actuator/*` — **наружу не публиковать** |
 | Внутренний (сеть compose) | 5432 | PostgreSQL — наружу не публикуется |
 | Исходящий | 443 | Telegram Bot API, SMS-шлюз, control plane |
@@ -56,6 +57,48 @@
 ---
 
 ## 2. Развёртывание
+
+### Вариант A. Fleet (instance + Control Plane + оба UI)
+
+Fleet compose **не завершает TLS** и не публикует фиктивный HTTPS-порт. Он
+слушает `127.0.0.1:8088`; host nginx/Caddy/Traefik с валидным сертификатом
+должен пересылать HTTPS-трафик на этот адрес. Публикация `PROXY_BIND=0.0.0.0`
+без отдельного защищённого сетевого периметра запрещена.
+
+```bash
+cp deploy/compose/.env.example .env.production
+chmod 600 .env.production
+```
+
+Заполните все обязательные секреты, затем выполните единый release gate:
+
+```bash
+COMPOSE_FILE=deploy/compose/docker-compose.fleet.prod.yml \
+ENV_FILE=.env.production \
+bash scripts/prod/deploy.sh
+```
+
+PowerShell-вариант:
+
+```powershell
+./scripts/prod/deploy.ps1 -ComposeFile deploy/compose/docker-compose.fleet.prod.yml -EnvFile .env.production
+```
+
+Скрипт валидирует Compose, снимает обязательные бэкапы существующих БД,
+последовательно применяет обе миграции и завершится успешно только после
+`docker compose up --wait`. Для первого запуска бэкап пропускается лишь когда
+контейнеров обеих БД ещё нет.
+
+Проверка внутреннего proxy до подключения TLS:
+
+```bash
+curl -fsS http://127.0.0.1:8088/healthz
+```
+
+Ожидаемый ответ: `ok`. Затем обязательно проверьте внешний HTTPS и отсутствие
+публичного доступа к `8088`, `9090`, `9091`, PostgreSQL и Typesense.
+
+### Вариант B. Один экземпляр без Control Plane UI
 
 ### Шаг 0. Имя проекта (группа в Docker)
 

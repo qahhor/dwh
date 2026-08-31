@@ -1,38 +1,68 @@
-# ==============================================================================
-# Smartup DWH / CMS Production Zero-Touch Deployment Orchestrator (PowerShell)
-# ==============================================================================
 param(
     [string]$ComposeFile = "deploy/compose/docker-compose.fleet.prod.yml",
-    [string]$EnvFile = ".env.production"
+    [string]$EnvFile = ".env.production",
+    [ValidateRange(1, 3600)]
+    [int]$HealthTimeoutSeconds = 180
 )
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "============================================================" -ForegroundColor Cyan
-Write-Host "  Smartup DWH / CMS - Production Deployment Orchestrator    " -ForegroundColor Cyan
-Write-Host "============================================================" -ForegroundColor Cyan
+function Invoke-Compose {
+    param([Parameter(ValueFromRemainingArguments = $true)][string[]]$ComposeArguments)
 
-if (-not (Test-Path $EnvFile)) {
-    Write-Host "[ERROR] Environment file $EnvFile not found! Copy .env.prod.example to $EnvFile." -ForegroundColor Red
+    & docker compose -f $ComposeFile --env-file $EnvFile @ComposeArguments
+    if ($LASTEXITCODE -ne 0) {
+        throw "docker compose failed: $($ComposeArguments -join ' ')"
+    }
+}
+
+if (-not (Test-Path -LiteralPath $EnvFile -PathType Leaf)) {
+    throw "Environment file '$EnvFile' was not found."
+}
+
+try {
+    Write-Host "[1/8] Validating Docker Compose and production configuration..." -ForegroundColor Yellow
+    & docker compose version | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Docker Compose is unavailable."
+    }
+    Invoke-Compose config --quiet
+
+    Write-Host "[2/8] Pulling immutable application and external runtime images..." -ForegroundColor Yellow
+    Invoke-Compose pull --ignore-buildable
+
+    Write-Host "[3/8] Building the hardened PostgreSQL runtime..." -ForegroundColor Yellow
+    Invoke-Compose build --pull db typesense proxy
+
+    Write-Host "[4/8] Creating mandatory backup for an existing fleet..." -ForegroundColor Yellow
+    $instanceDbId = & docker compose -f $ComposeFile --env-file $EnvFile ps -a -q db
+    if ($LASTEXITCODE -ne 0) { throw "Unable to inspect instance database service." }
+    $cpDbId = & docker compose -f $ComposeFile --env-file $EnvFile ps -a -q db-cp
+    if ($LASTEXITCODE -ne 0) { throw "Unable to inspect control-plane database service." }
+
+    if (-not [string]::IsNullOrWhiteSpace((@($instanceDbId, $cpDbId) -join ""))) {
+        & (Join-Path $PSScriptRoot "backup.ps1") -ComposeFile $ComposeFile -EnvFile $EnvFile
+    }
+    else {
+        Write-Host "No existing database containers found; treating this as an initial deployment."
+    }
+
+    Write-Host "[5/8] Applying instance database migrations..." -ForegroundColor Yellow
+    Invoke-Compose run --rm migrate
+
+    Write-Host "[6/8] Applying control-plane database migrations..." -ForegroundColor Yellow
+    Invoke-Compose run --rm migrate-cp
+
+    Write-Host "[7/8] Starting the fleet and waiting for readiness..." -ForegroundColor Yellow
+    Invoke-Compose up -d --remove-orphans --wait --wait-timeout $HealthTimeoutSeconds
+
+    Write-Host "[8/8] Recording final service state..." -ForegroundColor Yellow
+    Invoke-Compose ps
+}
+catch {
+    Write-Error $_
+    & docker compose -f $ComposeFile --env-file $EnvFile ps
     exit 1
 }
 
-Write-Host "[1/5] Validating Docker Engine..." -ForegroundColor Yellow
-docker compose version
-
-Write-Host "[2/5] Executing Database Migrations (Instance & Control Plane)..." -ForegroundColor Yellow
-docker compose -f $ComposeFile --env-file $EnvFile run --rm migrate
-docker compose -f $ComposeFile --env-file $EnvFile run --rm migrate-cp
-
-Write-Host "[3/5] Starting Fleet Services..." -ForegroundColor Yellow
-docker compose -f $ComposeFile --env-file $EnvFile up -d --remove-orphans
-
-Write-Host "[4/5] Verifying Service Health..." -ForegroundColor Yellow
-Start-Sleep -Seconds 10
-$status = docker compose -f $ComposeFile ps
-Write-Host $status
-
-Write-Host ""
-Write-Host "============================================================" -ForegroundColor Green
-Write-Host "  Deployment Completed Successfully!                        " -ForegroundColor Green
-Write-Host "============================================================" -ForegroundColor Green
+Write-Host "Deployment completed successfully: migrations passed and all services are ready." -ForegroundColor Green

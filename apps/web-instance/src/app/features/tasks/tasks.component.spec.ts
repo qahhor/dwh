@@ -50,7 +50,7 @@ describe('TasksComponent UI contracts', () => {
     const row = fixture.nativeElement.querySelector('tr.task-row') as HTMLTableRowElement;
 
     expect(fixture.nativeElement.querySelector(`label[for="${search.id}"]`)).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('.view-switcher[role="group"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[role="group"][aria-label="Режим отображения задач"]')).not.toBeNull();
     expect(region.tabIndex).toBe(0);
     expect(region.querySelector('table')?.getAttribute('aria-label')).toBe('Список задач');
     expect(row.getAttribute('role')).toBe('button');

@@ -2,6 +2,7 @@ package com.greenwhite.dwh.instance.search.service;
 
 import com.greenwhite.dwh.core.error.ErrorCode;
 import com.greenwhite.dwh.instance.common.error.ApiException;
+import com.greenwhite.dwh.instance.common.security.SecurityContext;
 import com.greenwhite.dwh.instance.search.typesense.TypesenseClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +28,8 @@ public class SearchService {
 
     @Transactional(readOnly = true)
     public SearchResult search(String query, String entityType, int limit) {
+        requireUnrestrictedSearchScope();
+
         if (query == null || query.trim().length() < 2) {
             throw ApiException.badRequest(ErrorCode.EMPTY_QUERY, "Поисковый запрос должен содержать минимум 2 символа");
         }
@@ -49,6 +52,17 @@ public class SearchService {
         // 2. Graceful Fallback на PostgreSQL SQL (ilike / trigram)
         List<SearchHit> hits = fallbackPostgresSearch(cleanQuery, entityType, safeLimit);
         return new SearchResult(cleanQuery, hits.size(), hits);
+    }
+
+    private void requireUnrestrictedSearchScope() {
+        var principal = SecurityContext.getPrincipal();
+        if (principal == null) {
+            throw ApiException.unauthorized("Требуется авторизация для поиска");
+        }
+        if (!principal.effectivePermissions().contains("*.*")) {
+            throw ApiException.forbidden(
+                    "Глобальный поиск доступен только администраторам до внедрения scope-фильтрации");
+        }
     }
 
     private List<SearchHit> fallbackPostgresSearch(String cleanQuery, String entityType, int limit) {

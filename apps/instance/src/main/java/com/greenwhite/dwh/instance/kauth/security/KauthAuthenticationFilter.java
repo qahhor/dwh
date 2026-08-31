@@ -67,7 +67,7 @@ public class KauthAuthenticationFilter extends OncePerRequestFilter {
                             Set<String> permissions = permissionService.getEffectivePermissions(user.id());
                             long version = permissionService.getPermissionVersion(user.id());
                             authenticate(new SecurityContext.KauthPrincipal(
-                                    user.id(), user.login(), user.email(), null, true, permissions, version
+                                    user.id(), user.login(), user.email(), null, true, permissions, version, user.forcePasswordChange()
                             ));
                         }
                     } catch (Exception ignored) {}
@@ -88,7 +88,7 @@ public class KauthAuthenticationFilter extends OncePerRequestFilter {
                                 Set<String> permissions = permissionService.getEffectivePermissions(user.id());
                                 long version = permissionService.getPermissionVersion(user.id());
                                 authenticate(new SecurityContext.KauthPrincipal(
-                                        user.id(), user.login(), user.email(), session.id(), false, permissions, version
+                                        user.id(), user.login(), user.email(), session.id(), false, permissions, version, user.forcePasswordChange()
                                 ));
                             }
                         } catch (Exception ignored) {}

@@ -52,9 +52,9 @@ export interface StorageStats {
       <div class="view-header">
         <div class="header-left">
           <h1 class="view-title">Файловое хранилище</h1>
-          <span class="file-count-badge">{{ files().length }}</span>
+          <span class="count-badge">{{ files().length }}</span>
         </div>
-        <div class="header-actions">
+        <div class="header-right">
           <ui-button variant="primary" icon="cloud_upload" (onClick)="isUploadModalOpen.set(true)">
             Загрузить файл
           </ui-button>

@@ -55,7 +55,10 @@ x-instance-env: &instance-env
 services:
   # ------------------------------------------------------------ экземпляр
   db:
-    image: postgres:18-alpine
+    build:
+      context: .
+      dockerfile: deploy/images/postgres/Dockerfile
+    image: ${POSTGRES_IMAGE:-smartupcms/postgres:18-alpine-hardened}
     container_name: ${PROJECT_NAME:-SmartupCMS}-db
     restart: unless-stopped
     environment:
@@ -76,7 +79,7 @@ services:
 
   migrate:
     build: {context: ., args: {APP: instance}}
-    image: ${PROJECT_NAME:-SmartupCMS}/instance:${APP_VERSION:-dev}
+    image: ${IMAGE_REGISTRY:-smartupcms}/instance:${APP_VERSION:-dev}
     container_name: ${PROJECT_NAME:-SmartupCMS}-migrate
     profiles: [tools]              # не поднимается вместе со стеком
     restart: "no"
@@ -87,7 +90,7 @@ services:
 
   app:
     build: {context: ., args: {APP: instance}}
-    image: ${PROJECT_NAME:-SmartupCMS}/instance:${APP_VERSION:-dev}
+    image: ${IMAGE_REGISTRY:-smartupcms}/instance:${APP_VERSION:-dev}
     container_name: ${PROJECT_NAME:-SmartupCMS}-app
     restart: unless-stopped
     command: ["--spring.profiles.active=${SPRING_PROFILE:-dev}"]
@@ -102,7 +105,10 @@ services:
 
   # ------------------------------------------------------- control plane
   db-cp:
-    image: postgres:18-alpine
+    build:
+      context: .
+      dockerfile: deploy/images/postgres/Dockerfile
+    image: ${POSTGRES_IMAGE:-smartupcms/postgres:18-alpine-hardened}
     container_name: ${PROJECT_NAME:-SmartupCMS}-db-cp
     restart: unless-stopped
     environment:
@@ -121,7 +127,7 @@ services:
 
   migrate-cp:
     build: {context: ., args: {APP: control-plane}}
-    image: ${PROJECT_NAME:-SmartupCMS}/control-plane:${APP_VERSION:-dev}
+    image: ${IMAGE_REGISTRY:-smartupcms}/control-plane:${APP_VERSION:-dev}
     container_name: ${PROJECT_NAME:-SmartupCMS}-migrate-cp
     profiles: [tools]
     restart: "no"
@@ -142,7 +148,7 @@ services:
 
   control-plane:
     build: {context: ., args: {APP: control-plane}}
-    image: ${PROJECT_NAME:-SmartupCMS}/control-plane:${APP_VERSION:-dev}
+    image: ${IMAGE_REGISTRY:-smartupcms}/control-plane:${APP_VERSION:-dev}
     container_name: ${PROJECT_NAME:-SmartupCMS}-control-plane
     restart: unless-stopped
     environment: *cp-env
@@ -155,7 +161,7 @@ services:
   # ------------------------------------------------------------- фронтенд
   web:
     build: {context: ./apps/web-instance}
-    image: ${PROJECT_NAME:-SmartupCMS}/web:${APP_VERSION:-dev}
+    image: ${IMAGE_REGISTRY:-smartupcms}/web:${APP_VERSION:-dev}
     container_name: ${PROJECT_NAME:-SmartupCMS}-web
     restart: unless-stopped
     ports:
@@ -167,7 +173,7 @@ services:
   # свой origin, своя cookie-сессия, к экземпляру клиента отношения не имеет.
   web-cp:
     build: {context: ./apps/web-cp}
-    image: ${PROJECT_NAME:-SmartupCMS}/web-cp:${APP_VERSION:-dev}
+    image: ${IMAGE_REGISTRY:-smartupcms}/web-cp:${APP_VERSION:-dev}
     container_name: ${PROJECT_NAME:-SmartupCMS}-web-cp
     restart: unless-stopped
     ports:
@@ -177,7 +183,10 @@ services:
 
   # ------------------------------------------------------------- поиск (Typesense)
   typesense:
-    image: typesense/typesense:27.1
+    build:
+      context: .
+      dockerfile: deploy/images/typesense/Dockerfile
+    image: ${TYPESENSE_IMAGE:-smartupcms/typesense:27.1-hardened}
 
     container_name: ${PROJECT_NAME:-SmartupCMS}-typesense
     restart: unless-stopped

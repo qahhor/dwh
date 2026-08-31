@@ -1,6 +1,5 @@
-# CI-гейты (R5, ремедиация): сборка + тесты + ArchUnit + SBOM + сканы.
-# Правила блокировки (FR-SEC-4, FR-MOD-2): красный джоб = merge запрещён.
-# Ветки защищаются в настройках GitHub (required checks: backend, frontend, e2e, security).
+# CI gates: backend, frontend, production config, E2E and security.
+# A red required job must block merge in GitHub branch protection.
 name: ci
 
 on:
@@ -24,8 +23,6 @@ jobs:
           java-version: '25'
           cache: maven
 
-      # Тесты включают Testcontainers (PostgreSQL 18) — Docker есть на раннере.
-      # ArchUnit-тесты границ модулей падают -> сборка красная (FR-MOD-2).
       - name: Build & test
         run: mvn -B verify
 
@@ -40,42 +37,65 @@ jobs:
           if-no-files-found: error
 
   frontend:
-    name: frontend (web-instance + web-cp build)
+    name: frontend (unit + typecheck + build)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version-file: '.node-version'
           cache: npm
           cache-dependency-path: |
             apps/web-instance/package-lock.json
             apps/web-cp/package-lock.json
 
-      - name: Install & Build Web Instance
+      - name: Install Web Instance
+        working-directory: apps/web-instance
+        run: npm ci
+
+      - name: Test, typecheck & build Web Instance
+        working-directory: apps/web-instance
         run: |
-          cd apps/web-instance
-          npm ci
+          npm test
+          npm run typecheck
           npm run build
 
-      - name: Install & Build Web Control Plane
+      - name: Install Web Control Plane
+        working-directory: apps/web-cp
+        run: npm ci
+
+      - name: Test, typecheck & build Web Control Plane
+        working-directory: apps/web-cp
         run: |
-          cd apps/web-cp
-          npm ci
+          npm test
+          npm run typecheck
           npm run build
+
+  release-config:
+    name: release config (Compose + NGINX + fail-closed deploy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate production Compose, proxy and scripts
+        shell: pwsh
+        run: ./scripts/prod/test-release-config.ps1
+
+      - name: Verify backup failure blocks migrations
+        run: bash scripts/prod/test-deploy-fail-closed.sh
 
   e2e:
     name: e2e (clean deploy + Playwright Chromium)
     runs-on: ubuntu-latest
-    needs: [backend, frontend]
+    needs: [backend, frontend, release-config]
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version-file: '.node-version'
           cache: npm
           cache-dependency-path: e2e/package-lock.json
 
@@ -99,19 +119,27 @@ jobs:
       - name: Build clean Compose images
         run: docker compose build --pull
 
+      - name: Build hardened production proxy image
+        run: docker build --pull -f deploy/images/nginx-proxy/Dockerfile -t smartupcms/nginx-proxy:1.28-alpine-hardened .
+
+      - name: Scan runtime images
+        shell: pwsh
+        run: ./scripts/security/scan-runtime-images.ps1
+
       - name: Migrate empty databases
         run: |
           docker compose run --rm migrate
           docker compose run --rm migrate-cp
 
       - name: Start stack and wait for health
-        shell: bash
+        run: docker compose up -d --remove-orphans --wait --wait-timeout 180
+
+      - name: Smoke public endpoints
         run: |
-          docker compose up -d --remove-orphans
-          curl --fail --silent --show-error --retry 60 --retry-delay 2 --retry-all-errors http://localhost:9190/actuator/health
-          curl --fail --silent --show-error --retry 60 --retry-delay 2 --retry-all-errors http://localhost:9191/actuator/health
-          curl --fail --silent --show-error --retry 30 --retry-delay 2 --retry-all-errors http://localhost:4200/
-          curl --fail --silent --show-error --retry 30 --retry-delay 2 --retry-all-errors http://localhost:4300/
+          curl --fail --silent --show-error http://localhost:9190/actuator/health
+          curl --fail --silent --show-error http://localhost:9191/actuator/health
+          curl --fail --silent --show-error http://localhost:4200/
+          curl --fail --silent --show-error http://localhost:4300/
 
       - name: Install E2E dependencies
         working-directory: e2e
@@ -146,16 +174,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # gitleaks сканирует историю
+          fetch-depth: 0
 
-      # FR-SEC-3: секретов в репозитории нет — любой найденный блокирует merge
       - name: Gitleaks
         uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # FR-SEC-4: Critical/High уязвимости зависимостей блокируют merge.
-      # Исключения — только через .trivyignore с обоснованием и сроком (ревью обязательно).
       - name: Trivy (dependencies)
         uses: aquasecurity/trivy-action@v0.36.0
         with:

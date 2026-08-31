@@ -23,6 +23,11 @@ describe('AppShellComponent', () => {
   };
   const i18nService = {
     currentLang: signal('ru'),
+    languages: signal([
+      { code: 'ru', name: 'Русский' },
+      { code: 'uz', name: "O‘zbekcha" },
+      { code: 'en', name: 'English' }
+    ]),
     setLanguage: vi.fn(),
     translate: (key: string) => key
   };

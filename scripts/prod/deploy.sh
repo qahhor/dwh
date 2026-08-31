@@ -1,46 +1,60 @@
 #!/usr/bin/env bash
-# ==============================================================================
-# Smartup DWH / CMS Production Zero-Touch Deployment Orchestrator
-# ==============================================================================
+# Production fleet deployment with backup, migration and readiness gates.
 set -euo pipefail
 
 COMPOSE_FILE="${COMPOSE_FILE:-deploy/compose/docker-compose.fleet.prod.yml}"
 ENV_FILE="${ENV_FILE:-.env.production}"
+HEALTH_TIMEOUT_SECONDS="${HEALTH_TIMEOUT_SECONDS:-180}"
+compose=(docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE")
 
-echo "============================================================"
-echo "  Smartup DWH / CMS - Production Deployment Orchestrator    "
-echo "============================================================"
+on_error() {
+    local exit_code=$?
+    echo "[ERROR] Deployment failed. Current service state:" >&2
+    "${compose[@]}" ps >&2 || true
+    exit "$exit_code"
+}
+trap on_error ERR
 
-# 1. Pre-flight Checks
-if [ ! -f "$ENV_FILE" ]; then
-    echo "[ERROR] Environment file $ENV_FILE not found! Copy .env.prod.example and configure secrets."
+if [[ ! -f "$ENV_FILE" ]]; then
+    echo "[ERROR] Environment file '$ENV_FILE' was not found." >&2
     exit 1
 fi
 
-echo "[1/5] Validating Docker Engine & Compose..."
+if [[ ! "$HEALTH_TIMEOUT_SECONDS" =~ ^[1-9][0-9]*$ ]]; then
+    echo "[ERROR] HEALTH_TIMEOUT_SECONDS must be a positive integer." >&2
+    exit 1
+fi
+
+echo "[1/8] Validating Docker Compose and production configuration..."
 docker compose version >/dev/null
+"${compose[@]}" config --quiet
 
-echo "[2/5] Running Pre-deploy Backup..."
-bash scripts/prod/backup.sh || echo "[WARN] Backup skipped or failed, proceeding with care..."
+echo "[2/8] Pulling immutable application and external runtime images..."
+"${compose[@]}" pull --ignore-buildable
 
-echo "[3/5] Executing Database Migrations (Schema Version Gate)..."
-docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" run --rm migrate
-docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" run --rm migrate-cp
+echo "[3/8] Building the hardened PostgreSQL runtime..."
+"${compose[@]}" build --pull db typesense proxy
 
-echo "[4/5] Deploying Production Container Fleet..."
-docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --remove-orphans
+echo "[4/8] Creating mandatory backup for an existing fleet..."
+instance_db_id="$("${compose[@]}" ps -a -q db)"
+cp_db_id="$("${compose[@]}" ps -a -q db-cp)"
+if [[ -n "$instance_db_id" || -n "$cp_db_id" ]]; then
+    COMPOSE_FILE="$COMPOSE_FILE" ENV_FILE="$ENV_FILE" bash scripts/prod/backup.sh
+else
+    echo "No existing database containers found; treating this as an initial deployment."
+fi
 
-echo "[5/5] Polling Health Probes (Readiness Gate)..."
-for i in {1..20}; do
-    if docker compose -f "$COMPOSE_FILE" ps | grep -q "(unhealthy)"; then
-        echo "[ERROR] Unhealthy container detected! Initiating triage..."
-        docker compose -f "$COMPOSE_FILE" ps
-        exit 1
-    fi
-    echo "Waiting for services to become healthy ($i/20)..."
-    sleep 3
-done
+echo "[5/8] Applying instance database migrations..."
+"${compose[@]}" run --rm migrate
 
-echo "============================================================"
-echo "  DEPLOYMENT SUCCESSFUL! All services healthy & operational. "
-echo "============================================================"
+echo "[6/8] Applying control-plane database migrations..."
+"${compose[@]}" run --rm migrate-cp
+
+echo "[7/8] Starting the fleet and waiting for readiness..."
+"${compose[@]}" up -d --remove-orphans --wait --wait-timeout "$HEALTH_TIMEOUT_SECONDS"
+
+echo "[8/8] Recording final service state..."
+"${compose[@]}" ps
+
+trap - ERR
+echo "Deployment completed successfully: migrations passed and all services are ready."

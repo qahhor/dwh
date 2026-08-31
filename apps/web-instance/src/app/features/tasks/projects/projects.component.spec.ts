@@ -34,7 +34,7 @@ describe('ProjectsComponent UI contracts', () => {
     const region = fixture.nativeElement.querySelector('.table-wrapper[role="region"]') as HTMLElement;
 
     expect(fixture.nativeElement.querySelector(`label[for="${search.id}"]`)).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('.view-switcher[role="group"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[role="group"][aria-label="Режим отображения проектов"]')).not.toBeNull();
     expect(region.tabIndex).toBe(0);
     expect(region.querySelector('table')?.getAttribute('aria-label')).toBe('Список проектов');
   });

@@ -100,7 +100,19 @@ public class CpFleetController {
         return ResponseEntity.ok(fleetRepository.listBackupChecks(Math.min(limit, 500)));
     }
 
+    @org.springframework.web.bind.annotation.PutMapping("/instances/{id}/status")
+    @CpRequiresRole({CpPref.ROLE_ADMIN, CpPref.ROLE_ENGINEER})
+    @Transactional
+    public ResponseEntity<Map<String, Object>> updateStatus(
+            @org.springframework.web.bind.annotation.PathVariable("id") Long id,
+            @RequestBody UpdateStatusDto body) {
+        fleetRepository.updateInstanceStatus(id, body.status());
+        return ResponseEntity.ok(Map.of("instanceId", id, "status", body.status()));
+    }
+
     public record CreateClientDto(@NotBlank String code, @NotBlank String name, String resourceProfile) {}
 
     public record RegisterInstanceDto(@NotBlank String clientCode, String environment, @NotBlank String url) {}
+
+    public record UpdateStatusDto(@NotBlank String status) {}
 }

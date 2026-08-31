@@ -19,9 +19,10 @@ test('admin can navigate operational pages and log out without browser errors', 
 
   const routes = [
     ['/fleet', 'Флот экземпляров'],
-    ['/clients', 'Клиенты'],
-    ['/backups', 'Проверки бэкапов'],
-    ['/announcements', 'Объявления платформы'],
+    ['/clients', 'Клиенты и Организации'],
+    ['/modules', 'Модерация пользовательских модулей'],
+    ['/backups', 'Проверка бэкапов'],
+    ['/announcements', 'Системные объявления'],
   ] as const;
 
   for (const [path, heading] of routes) {

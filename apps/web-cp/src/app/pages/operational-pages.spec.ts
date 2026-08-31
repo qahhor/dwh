@@ -28,7 +28,7 @@ describe('Control Plane operational pages', () => {
     }).compileComponents();
   }
 
-  function create(component: Type<unknown>): ComponentFixture<unknown> {
+  function create<T>(component: Type<T>): ComponentFixture<T> {
     const fixture = TestBed.createComponent(component);
     fixture.detectChanges();
     return fixture;
@@ -53,17 +53,24 @@ describe('Control Plane operational pages', () => {
     await configure();
     const clients = create(ClientsComponent);
     const announcements = create(AnnouncementsComponent);
+    await Promise.all([clients.whenStable(), announcements.whenStable()]);
+    clients.componentInstance.openCreateClientModal();
+    announcements.componentInstance.showModal = true;
+    clients.changeDetectorRef.markForCheck();
+    announcements.changeDetectorRef.markForCheck();
+    clients.detectChanges();
+    announcements.detectChanges();
 
-    for (const fixture of [clients, announcements]) {
+    for (const [page, fixture] of [['clients', clients], ['announcements', announcements]] as const) {
       const controls = Array.from(fixture.nativeElement.querySelectorAll('form input, form select, form textarea')) as Array<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>;
-      expect(controls.length).toBeGreaterThan(0);
+      expect(controls.length, `${page} modal form controls`).toBeGreaterThan(0);
       for (const control of controls) {
         expect(control.id).not.toBe('');
         expect(fixture.nativeElement.querySelector(`label[for="${control.id}"]`)).not.toBeNull();
       }
     }
 
-    expect(clients.nativeElement.querySelector('#cp-client-code').required).toBe(true);
-    expect(announcements.nativeElement.querySelector('#cp-announcement-title').required).toBe(true);
+    expect(clients.nativeElement.querySelector('#new-client-code').required).toBe(true);
+    expect(announcements.nativeElement.querySelector('#ann-title').required).toBe(true);
   });
 });

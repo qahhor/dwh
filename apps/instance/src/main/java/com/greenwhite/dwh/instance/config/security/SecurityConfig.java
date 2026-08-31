@@ -19,17 +19,8 @@ import org.springframework.security.web.context.SecurityContextHolderFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
-
 import org.springframework.security.web.header.writers.StaticHeadersWriter;
 
-/**
- * Каркас безопасности (ремедиация R2, ADR-0008):
- * - аутентификация — KauthAuthenticationFilter (cookie-сессии + Bearer) внутри цепочки Spring Security;
- * - CSRF double-submit (FR-SEC-1): cookie XSRF-TOKEN + заголовок X-XSRF-TOKEN (Angular-совместимо);
- *   освобождены Bearer-запросы и запросы без сессионной cookie;
- * - заголовки безопасности (FR-SEC-5);
- * - 401/403 — RFC 9457 problem+json (ProblemDetailAuthHandlers).
- */
 @Configuration
 @EnableWebSecurity
 @EnableConfigurationProperties(RateLimitProperties.class)
@@ -125,7 +116,6 @@ public class SecurityConfig {
         registration.setEnabled(false);
         return registration;
     }
-
 
     private static boolean isCsrfExempt(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");

@@ -151,7 +151,7 @@ import { User } from '../../core/models/auth.models';
       padding: 2px 6px;
       border-radius: var(--radius-xs);
     }
-    .add-user-btn:hover { background-color: rgba(99,102,241,0.08); }
+    .add-user-btn:hover { background-color: var(--primary-subtle); }
     .add-user-btn .ico { font-size: 14px; }
 
     /* Dropdown Panel */

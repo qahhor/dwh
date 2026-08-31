@@ -15,10 +15,10 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
   imports: [CommonModule, FormsModule, UiButtonComponent, UiBadgeComponent, UiModalComponent],
   template: `
     <div class="profile-container">
-      <div class="page-header">
-        <div>
-          <h2 class="page-title">Мой профиль</h2>
-          <p class="page-subtitle">Управление учётной записью, безопасностью, сессиями и API токенами</p>
+      <div class="view-header">
+        <div class="header-left">
+          <h1 class="view-title">Мой профиль</h1>
+          <span class="count-badge">Security & Settings</span>
         </div>
       </div>
 

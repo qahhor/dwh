@@ -2,8 +2,13 @@
 
 **Дата:** 29 августа 2026 г.  
 **Роль:** Senior DevOps Architect  
-**Статус готовности:** 🟢 **100% PRODUCTION READY**  
+**Статус готовности:** ⚠️ **ИСТОРИЧЕСКИЙ ОТЧЁТ — НЕ ИСПОЛЬЗОВАТЬ ДЛЯ GO/NO-GO**
 **Целевая архитектура:** Multi-tenant SaaS Fleet (Java 25, Postgres 18, Typesense 27.1, Angular 20, NGINX Hardened).
+
+> Отчёт содержал неподтверждённые утверждения о TLS/HTTP2, автоматическом
+> откате и полном E2E. Актуальное решение принимается по
+> `audit/00-master-improvement-plan-2026-08-31.md` и
+> `docs/ops/production-launch-checklist.md` после выполнения измеримых gates.
 
 ---
 

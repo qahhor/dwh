@@ -57,7 +57,8 @@ public class MdUserService {
     public MdUserRepository.UserRecord createUser(
             String name, String login, String email, String phone, String rawPassword,
             Long managerId, String language, String timezone, UUID avatarFileId,
-            Map<String, Object> attributes, boolean is2faEnabled, List<Long> roleIds, Long createdBy) {
+            Map<String, Object> attributes, boolean is2faEnabled, boolean forcePasswordChange,
+            List<Long> roleIds, Long createdBy) {
 
         if (userRepository.existsByLogin(login)) {
             throw ApiException.conflict(ErrorCode.CODE_ALREADY_EXISTS, "Пользователь с таким логином уже существует");
@@ -83,7 +84,7 @@ public class MdUserService {
 
         var user = userRepository.create(new MdUserRepository.UserCreateData(
                 name, login, email, phone, passwordHash, MdPref.STATE_ACTIVE,
-                managerId, language, timezone, avatarFileId, attributes, is2faEnabled, false
+                managerId, language, timezone, avatarFileId, attributes, is2faEnabled, forcePasswordChange
         ), createdBy);
 
         if (roleIds != null && !roleIds.isEmpty()) {
@@ -107,7 +108,14 @@ public class MdUserService {
         return user;
     }
 
-
+    @Transactional
+    public MdUserRepository.UserRecord createUser(
+            String name, String login, String email, String phone, String rawPassword,
+            Long managerId, String language, String timezone, UUID avatarFileId,
+            Map<String, Object> attributes, boolean is2faEnabled, List<Long> roleIds, Long createdBy) {
+        return createUser(name, login, email, phone, rawPassword, managerId, language, timezone,
+                avatarFileId, attributes, is2faEnabled, false, roleIds, createdBy);
+    }
 
     @Transactional(readOnly = true)
     public MdUserRepository.UserRecord getUserById(Long userId) {

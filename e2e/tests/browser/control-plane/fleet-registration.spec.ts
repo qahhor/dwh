@@ -13,18 +13,22 @@ test('registers an isolated client and instance without retaining its token', as
   await loginToControlPlane(page);
   const assertNoPageErrors = collectPageErrors(page);
   await page.goto('/clients');
-  await page.getByLabel('Код').fill(clientCode);
-  await page.getByLabel('Название').fill(clientName);
-  await page.getByRole('button', { name: 'Создать', exact: true }).click();
+  await page.getByRole('button', { name: 'Новый клиент' }).click();
+  const createDialog = page.getByRole('dialog', { name: 'Создание новой организации' });
+  await createDialog.getByLabel('Название компании').fill(clientName);
+  await createDialog.getByLabel('Системный код').fill(clientCode);
+  await createDialog.getByRole('button', { name: 'Создать организацию' }).click();
   await expect(page.getByRole('table', { name: 'Список клиентов' })).toContainText(clientCode);
 
-  await page.getByLabel('Клиент', { exact: true }).selectOption(clientCode);
-  await page.getByLabel('Адрес').fill(`https://${clientCode}.e2e.invalid`);
-  await page.getByRole('button', { name: 'Зарегистрировать' }).click();
-  const tokenStatus = page.getByRole('status');
+  await page.getByRole('button', { name: 'Зарегистрировать экземпляр' }).click();
+  const registerDialog = page.getByRole('dialog', { name: 'Регистрация экземпляра клиента' });
+  await registerDialog.getByLabel('Клиент (организация)').selectOption(clientCode);
+  await registerDialog.getByLabel('URL экземпляра').fill(`https://${clientCode}.e2e.invalid`);
+  await registerDialog.getByRole('button', { name: 'Сгенерировать токен' }).click();
+  const tokenStatus = page.getByRole('status').filter({ hasText: 'Heartbeat-токен' });
   await dismissSensitiveStatus(
     tokenStatus,
-    tokenStatus.getByRole('button', { name: 'Скрыть токен' }),
+    tokenStatus.getByRole('button', { name: 'Закрыть' }),
   );
 
   await page.goto('/fleet');

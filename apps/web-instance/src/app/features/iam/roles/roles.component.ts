@@ -34,10 +34,10 @@ interface ModuleGroup {
   template: `
     <div class="roles-page">
       <!-- Top Page Header -->
-      <div class="page-header">
+      <div class="view-header">
         <div class="header-left">
-          <h1 class="page-title">Роли и матрица прав</h1>
-          <span class="role-badge">{{ roles().length }} ролей</span>
+          <h1 class="view-title">Роли и матрица прав</h1>
+          <span class="count-badge">{{ roles().length }}</span>
         </div>
         <div class="header-right">
           <ui-button
@@ -56,14 +56,15 @@ interface ModuleGroup {
       <div class="roles-strip-container">
         <div class="roles-strip-header">
           <span class="strip-title">Выберите роль для настройки прав:</span>
-          <div class="roles-filter-box">
-            <span class="material-symbols-outlined icon" aria-hidden="true">search</span>
+          <div class="search-field" style="width: 220px;">
+            <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
             <label class="sr-only" for="role-search">Поиск ролей</label>
             <input
               id="role-search"
               name="roleSearch"
               type="text"
-              class="roles-filter-input"
+              class="search-input"
+              style="height: 30px;"
               placeholder="Фильтр ролей..."
               [(ngModel)]="roleSearchQuery"
             />
@@ -181,6 +182,12 @@ interface ModuleGroup {
         <div *ngIf="role.pcode === 'admin'" class="admin-notice">
           <span class="material-symbols-outlined icon" aria-hidden="true">verified_user</span>
           <span>Роль суперадминистратора обладает абсолютными правами (100% покрытие системы по инварианту I-P4).</span>
+        </div>
+
+        <!-- Auditor Read-Only Banner -->
+        <div *ngIf="role.pcode === 'auditor'" class="admin-notice auditor-notice">
+          <span class="material-symbols-outlined icon" aria-hidden="true">visibility</span>
+          <span>Роль аудитора предназначена для проверяющих органов и финконтроля: работает строго в режиме «Только чтение» без прав на изменение данных.</span>
         </div>
 
         <!-- Filter & Search Toolbar -->

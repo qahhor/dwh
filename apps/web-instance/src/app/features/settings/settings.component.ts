@@ -6,6 +6,7 @@ import { ToastService } from '../../core/services/toast.service';
 import { I18nService, Language, TranslatePipe } from '../../core/services/i18n.service';
 import { PermissionService } from '../../core/services/permission.service';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
+import { UiModalComponent } from '../../shared/ui/ui-modal.component';
 
 @Component({
   selector: 'app-settings',
@@ -14,7 +15,8 @@ import { UiButtonComponent } from '../../shared/ui/ui-button.component';
     CommonModule,
     FormsModule,
     TranslatePipe,
-    UiButtonComponent
+    UiButtonComponent,
+    UiModalComponent
   ],
   template: `
     <div class="settings-page">
@@ -22,31 +24,32 @@ import { UiButtonComponent } from '../../shared/ui/ui-button.component';
       <div class="view-header">
         <div class="header-left">
           <h1 class="view-title">{{ 'settings.title' | t }}</h1>
-          <span class="view-subtitle">{{ 'settings.subtitle' | t }}</span>
+          <span class="count-badge">System Settings</span>
         </div>
-        <div class="header-actions">
-          <button type="button" class="icon-refresh-btn" [attr.aria-label]="'common.refresh' | t" (click)="loadAllSettings()" title="{{ 'common.refresh' | t }}">
+        <div class="header-right">
+          <button type="button" class="btn btn-secondary" [attr.aria-label]="'common.refresh' | t" (click)="loadAllSettings()" title="{{ 'common.refresh' | t }}">
             <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
+            <span>{{ 'common.refresh' | t }}</span>
           </button>
         </div>
       </div>
 
       <!-- Tabs Navigation -->
-      <div class="tabs-nav-bar">
-        <div class="tab-buttons" role="tablist" aria-label="Разделы настроек">
+      <div class="toolbar">
+        <div class="status-tabs" role="tablist" aria-label="Разделы настроек">
           <button
             *ngIf="canManageSystemSettings()"
             id="settings-general-tab"
             type="button"
             role="tab"
-            class="nav-tab-btn"
+            class="status-tab"
             [class.active]="activeTab === 'general'"
             [attr.aria-selected]="activeTab === 'general'"
             aria-controls="settings-general-panel"
             (click)="activeTab = 'general'"
           >
-            <span class="material-symbols-outlined" aria-hidden="true">tune</span>
-            {{ 'settings.tab.general' | t }}
+            <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">tune</span>
+            <span>{{ 'settings.tab.general' | t }}</span>
           </button>
 
           <button
@@ -54,14 +57,14 @@ import { UiButtonComponent } from '../../shared/ui/ui-button.component';
             id="settings-security-tab"
             type="button"
             role="tab"
-            class="nav-tab-btn"
+            class="status-tab"
             [class.active]="activeTab === 'security'"
             [attr.aria-selected]="activeTab === 'security'"
             aria-controls="settings-security-panel"
             (click)="activeTab = 'security'"
           >
-            <span class="material-symbols-outlined" aria-hidden="true">security</span>
-            {{ 'settings.tab.security' | t }}
+            <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">security</span>
+            <span>{{ 'settings.tab.security' | t }}</span>
           </button>
 
           <button
@@ -69,28 +72,73 @@ import { UiButtonComponent } from '../../shared/ui/ui-button.component';
             id="settings-storage-tab"
             type="button"
             role="tab"
-            class="nav-tab-btn"
+            class="status-tab"
             [class.active]="activeTab === 'storage'"
             [attr.aria-selected]="activeTab === 'storage'"
             aria-controls="settings-storage-panel"
             (click)="activeTab = 'storage'"
           >
-            <span class="material-symbols-outlined" aria-hidden="true">cloud</span>
-            {{ 'settings.tab.storage' | t }}
+            <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">cloud</span>
+            <span>{{ 'settings.tab.storage' | t }}</span>
           </button>
 
           <button
             id="settings-preferences-tab"
             type="button"
             role="tab"
-            class="nav-tab-btn"
+            class="status-tab"
             [class.active]="activeTab === 'preferences'"
             [attr.aria-selected]="activeTab === 'preferences'"
             aria-controls="settings-preferences-panel"
             (click)="activeTab = 'preferences'"
           >
-            <span class="material-symbols-outlined" aria-hidden="true">person</span>
-            {{ 'settings.tab.preferences' | t }}
+            <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">person</span>
+            <span>{{ 'settings.tab.preferences' | t }}</span>
+          </button>
+
+          <button
+            *ngIf="canManageSystemSettings()"
+            id="settings-languages-tab"
+            type="button"
+            role="tab"
+            class="status-tab"
+            [class.active]="activeTab === 'languages'"
+            [attr.aria-selected]="activeTab === 'languages'"
+            aria-controls="settings-languages-panel"
+            (click)="activeTab = 'languages'"
+          >
+            <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">language</span>
+            <span>Языки и Локализация</span>
+          </button>
+
+          <button
+            *ngIf="canManageSystemSettings()"
+            id="settings-modules-tab"
+            type="button"
+            role="tab"
+            class="status-tab"
+            [class.active]="activeTab === 'modules'"
+            [attr.aria-selected]="activeTab === 'modules'"
+            aria-controls="settings-modules-panel"
+            (click)="activeTab = 'modules'; loadCustomModules()"
+          >
+            <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">extension</span>
+            <span>Модули и Расширения</span>
+          </button>
+
+          <button
+            *ngIf="canManageSystemSettings()"
+            id="settings-system-tab"
+            type="button"
+            role="tab"
+            class="status-tab"
+            [class.active]="activeTab === 'system'"
+            [attr.aria-selected]="activeTab === 'system'"
+            aria-controls="settings-system-panel"
+            (click)="activeTab = 'system'"
+          >
+            <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">dns</span>
+            <span>Система и Лицензия</span>
           </button>
         </div>
       </div>
@@ -337,7 +385,288 @@ import { UiButtonComponent } from '../../shared/ui/ui-button.component';
           </div>
         </div>
       </div>
+
+      <!-- =================================================================== -->
+      <!-- TAB 5: SYSTEM & LICENSE STATUS -->
+      <!-- =================================================================== -->
+      <div id="settings-system-panel" class="tab-content" role="tabpanel" aria-labelledby="settings-system-tab" *ngIf="activeTab === 'system' && canManageSystemSettings()">
+        <div class="settings-card">
+          <div class="card-header-bar">
+            <div class="card-title-group">
+              <span class="material-symbols-outlined card-icon" aria-hidden="true">dns</span>
+              <div>
+                <h3 class="card-title">Состояние системы и лицензии</h3>
+                <p class="card-desc">Текущие параметры экземпляра, статус связи с Control Plane и версии ядра</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-body">
+            <div class="system-status-grid">
+              <div class="status-card">
+                <span class="status-card-label">Код экземпляра (Client Code)</span>
+                <span class="status-card-val mono">{{ licenseInfo()?.clientCode || 'dev-local' }}</span>
+              </div>
+              <div class="status-card">
+                <span class="status-card-label">Название организации</span>
+                <span class="status-card-val">{{ licenseInfo()?.clientName || 'Local Development' }}</span>
+              </div>
+              <div class="status-card">
+                <span class="status-card-label">Статус лицензии</span>
+                <span class="status-badge" [class.badge-active]="licenseInfo()?.licenseStatus === 'ACTIVE'" [class.badge-suspended]="licenseInfo()?.licenseStatus === 'SUSPENDED'">
+                  {{ licenseInfo()?.licenseStatus === 'ACTIVE' ? '🟢 АКТИВНА' : (licenseInfo()?.licenseStatus || '🟢 АКТИВНА') }}
+                </span>
+              </div>
+              <div class="status-card">
+                <span class="status-card-label">Профиль ресурсов (S/M/L)</span>
+                <span class="status-card-val font-semibold">Профиль {{ licenseInfo()?.resourceProfile || 'S' }}</span>
+              </div>
+              <div class="status-card">
+                <span class="status-card-label">Связь с Control Plane</span>
+                <span class="status-card-val">
+                  {{ licenseInfo()?.controlPlaneConfigured ? '🟢 Подключен (Heartbeat 5 мин)' : '⚪ Автономный режим' }}
+                </span>
+              </div>
+              <div class="status-card">
+                <span class="status-card-label">Версия ядра платформы</span>
+                <span class="status-card-val mono">{{ licenseInfo()?.appVersion || '1.0.0' }}</span>
+              </div>
+              <div class="status-card">
+                <span class="status-card-label">Версия схемы БД (Flyway)</span>
+                <span class="status-card-val mono">v{{ licenseInfo()?.schemaVersion || '009' }}</span>
+              </div>
+              <div class="status-card">
+                <span class="status-card-label">Режим работы</span>
+                <span class="status-card-val font-semibold text-success">Полный доступ (Чтение / Запись)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- =================================================================== -->
+      <!-- TAB 6: LANGUAGES & TRANSLATIONS -->
+      <!-- =================================================================== -->
+      <div id="settings-languages-panel" class="tab-content" role="tabpanel" aria-labelledby="settings-languages-tab" *ngIf="activeTab === 'languages' && canManageSystemSettings()">
+        <div class="settings-card">
+          <div class="card-header-bar">
+            <div class="card-title-group">
+              <span class="material-symbols-outlined card-icon" aria-hidden="true">translate</span>
+              <div>
+                <h3 class="card-title">Управление языковыми пакетами и локализацией</h3>
+                <p class="card-desc">Динамическое добавление новых языков и импорт/экспорт JSON-словарей</p>
+              </div>
+            </div>
+            <button type="button" class="btn btn-primary" (click)="openAddLangModal()">
+              <span class="material-symbols-outlined" aria-hidden="true">add</span>
+              <span>Добавить язык</span>
+            </button>
+          </div>
+
+          <div class="table-card">
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Код</th>
+                    <th>Название языка</th>
+                    <th>Тип</th>
+                    <th>Статус</th>
+                    <th style="text-align: right;">Действия</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let lang of i18n.languages()">
+                    <td><span class="badge badge-neutral mono">{{ lang.code.toUpperCase() }}</span></td>
+                    <td class="font-medium">{{ lang.name }}</td>
+                    <td>
+                      <span class="badge" [class.badge-active]="!lang.isCustom" [class.badge-info]="lang.isCustom">
+                        {{ lang.isCustom ? 'Пользовательский' : 'Встроенный' }}
+                      </span>
+                    </td>
+                    <td>
+                      <span class="badge badge-active" *ngIf="i18n.currentLang() === lang.code">Текущий активный</span>
+                      <span class="badge badge-neutral" *ngIf="i18n.currentLang() !== lang.code">Доступен</span>
+                    </td>
+                    <td style="text-align: right;">
+                      <div class="table-actions-right">
+                        <button type="button" class="btn btn-secondary btn-sm" (click)="exportLangJson(lang.code)" title="Экспортировать JSON">
+                          <span class="material-symbols-outlined" aria-hidden="true">download</span>
+                          <span>JSON</span>
+                        </button>
+                        <button type="button" class="btn btn-primary btn-sm" *ngIf="i18n.currentLang() !== lang.code" (click)="i18n.setLanguage(lang.code)">
+                          <span>Активировать</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- =================================================================== -->
+      <!-- TAB 7: CUSTOM CLIENT MODULES & SDK -->
+      <!-- =================================================================== -->
+      <div id="settings-modules-panel" class="tab-content" role="tabpanel" aria-labelledby="settings-modules-tab" *ngIf="activeTab === 'modules' && canManageSystemSettings()">
+        <div class="settings-card">
+          <div class="card-header-bar">
+            <div class="card-title-group">
+              <span class="material-symbols-outlined card-icon" aria-hidden="true">extension</span>
+              <div>
+                <h3 class="card-title">Пользовательские модули и расширения (Plugin SDK)</h3>
+                <p class="card-desc">Разработка микрофронтендов и интеграций с подтверждением Control Plane</p>
+              </div>
+            </div>
+            <button type="button" class="btn btn-primary" (click)="openCreateModuleModal()">
+              <span class="material-symbols-outlined" aria-hidden="true">add</span>
+              <span>Создать манифест модуля</span>
+            </button>
+          </div>
+
+          <div class="table-card">
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Модуль</th>
+                    <th>Код</th>
+                    <th>Версия</th>
+                    <th>Категория</th>
+                    <th>Точка входа (URL)</th>
+                    <th>Статус модерации</th>
+                    <th style="text-align: right;">Действия</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let mod of customModules()">
+                    <td>
+                      <div class="cell-entity">
+                        <span class="material-symbols-outlined entity-icon" aria-hidden="true">{{ mod.icon || 'extension' }}</span>
+                        <div>
+                          <div class="entity-title font-medium">{{ mod.name }}</div>
+                          <div class="entity-sub text-muted" *ngIf="mod.description">{{ mod.description }}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td><span class="badge badge-neutral mono">{{ mod.code }}</span></td>
+                    <td><span class="mono">{{ mod.version }}</span></td>
+                    <td>{{ mod.category }}</td>
+                    <td><a [href]="mod.entrypointUrl" target="_blank" rel="noopener noreferrer" class="link mono text-xs">{{ mod.entrypointUrl }}</a></td>
+                    <td>
+                      <span class="badge badge-neutral" *ngIf="mod.status === 'DRAFT'">Черновик</span>
+                      <span class="badge badge-warning" *ngIf="mod.status === 'PENDING_APPROVAL'">На модерации CP</span>
+                      <span class="badge badge-active" *ngIf="mod.status === 'APPROVED'">Одобрен CP</span>
+                      <span class="badge badge-danger" *ngIf="mod.status === 'REJECTED'" [title]="mod.rejectionReason || 'Отклонено'">Отклонен</span>
+                    </td>
+                    <td style="text-align: right;">
+                      <div class="table-actions-right">
+                        <button
+                          *ngIf="mod.status === 'DRAFT' || mod.status === 'REJECTED'"
+                          type="button"
+                          class="btn btn-primary btn-sm"
+                          (click)="submitModuleForApproval(mod.id)"
+                        >
+                          <span class="material-symbols-outlined" aria-hidden="true">send</span>
+                          <span>В Control Plane</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-danger btn-sm"
+                          (click)="deleteCustomModule(mod.id)"
+                          title="Удалить модуль"
+                        >
+                          <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr *ngIf="customModules().length === 0">
+                    <td colspan="7" class="text-center py-6 text-muted">
+                      Кастомные модули еще не зарегистрированы. Нажмите «Создать манифест модуля».
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
+
+    <!-- Modal: Add New Custom Language -->
+    <ui-modal
+      *ngIf="isAddLangModalOpen()"
+      title="Добавление нового языка"
+      ariaLabel="Добавление нового языка"
+      (close)="isAddLangModalOpen.set(false)"
+    >
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label" for="new-lang-code">Код языка (ISO 639-1)</label>
+          <input id="new-lang-code" type="text" class="form-input" [(ngModel)]="newLangCode" placeholder="kk, ky, tg, de, tr" maxlength="10">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="new-lang-name">Название языка</label>
+          <input id="new-lang-name" type="text" class="form-input" [(ngModel)]="newLangName" placeholder="Қазақша, Deutsch, etc.">
+        </div>
+        <div class="form-group full-width">
+          <label class="form-label" for="new-lang-json">JSON словарь переводов (опционально)</label>
+          <textarea id="new-lang-json" class="form-input mono" rows="6" [(ngModel)]="newLangJson" placeholder='{ "nav.tasks": "Тапсырмалар", "common.save": "Сақтау" }'></textarea>
+        </div>
+      </div>
+      <div modal-footer class="modal-footer-btns">
+        <button type="button" class="btn btn-secondary" (click)="isAddLangModalOpen.set(false)">Отмена</button>
+        <button type="button" class="btn btn-primary" (click)="saveNewLanguage()" [disabled]="!newLangCode || !newLangName">Сохранить язык</button>
+      </div>
+    </ui-modal>
+
+    <!-- Modal: Create Custom Module Manifest -->
+    <ui-modal
+      *ngIf="isCreateModuleModalOpen()"
+      title="Создание манифеста модуля (Plugin SDK)"
+      ariaLabel="Создание манифеста модуля"
+      (close)="isCreateModuleModalOpen.set(false)"
+    >
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label" for="mod-name">Название модуля</label>
+          <input id="mod-name" type="text" class="form-input" [(ngModel)]="newModName" placeholder="HR Портал / Складской учет">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="mod-code">Системный код модуля</label>
+          <input id="mod-code" type="text" class="form-input mono" [(ngModel)]="newModCode" placeholder="hr_portal, warehouse_ops">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="mod-version">Версия</label>
+          <input id="mod-version" type="text" class="form-input mono" [(ngModel)]="newModVersion" placeholder="1.0.0">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="mod-category">Категория</label>
+          <select id="mod-category" class="form-select" [(ngModel)]="newModCategory">
+            <option value="business">Бизнес-процессы</option>
+            <option value="integration">Интеграция</option>
+            <option value="analytics">Аналитика</option>
+            <option value="custom">Пользовательский</option>
+          </select>
+        </div>
+        <div class="form-group full-width">
+          <label class="form-label" for="mod-entrypoint">Точка входа (Iframe / Microfrontend URL)</label>
+          <input id="mod-entrypoint" type="url" class="form-input mono" [(ngModel)]="newModEntrypoint" placeholder="https://apps.company.com/hr-microfrontend/index.html">
+        </div>
+        <div class="form-group full-width">
+          <label class="form-label" for="mod-desc">Описание назначения модуля</label>
+          <textarea id="mod-desc" class="form-input" rows="3" [(ngModel)]="newModDesc" placeholder="Опишите функции модуля для модераторов Control Plane..."></textarea>
+        </div>
+      </div>
+      <div modal-footer class="modal-footer-btns">
+        <button type="button" class="btn btn-secondary" (click)="isCreateModuleModalOpen.set(false)">Отмена</button>
+        <button type="button" class="btn btn-primary" (click)="saveCustomModule()" [disabled]="!newModName || !newModCode || !newModEntrypoint">Зарегистрировать манифест</button>
+      </div>
+    </ui-modal>
   `,
   styles: [`
     .settings-page {
@@ -608,15 +937,71 @@ import { UiButtonComponent } from '../../shared/ui/ui-button.component';
       padding-top: 12px;
       border-top: 1px solid rgba(255, 255, 255, 0.06);
     }
+
+    .system-status-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .status-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .status-card-label {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    .status-card-val {
+      font-size: 14px;
+      color: #f1f5f9;
+      font-weight: 500;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      width: fit-content;
+    }
+
+    .badge-active { background: rgba(34, 197, 94, 0.15); color: #16a34a; }
+    .badge-suspended { background: rgba(239, 68, 68, 0.15); color: #dc2626; }
+    .text-success { color: #16a34a; }
   `]
 })
 export class SettingsComponent implements OnInit {
-  activeTab: 'general' | 'security' | 'storage' | 'preferences' = 'general';
+  activeTab: 'general' | 'security' | 'storage' | 'preferences' | 'system' | 'languages' | 'modules' = 'general';
 
   systemSettings: Record<string, string> = {};
   userSettings: Record<string, string> = {};
-
+  readonly licenseInfo = signal<any>(null);
   readonly isSaving = signal<boolean>(false);
+
+  // Languages Management
+  readonly isAddLangModalOpen = signal<boolean>(false);
+  newLangCode = '';
+  newLangName = '';
+  newLangJson = '';
+
+  // Custom Modules Management
+  readonly customModules = signal<any[]>([]);
+  readonly isCreateModuleModalOpen = signal<boolean>(false);
+  newModName = '';
+  newModCode = '';
+  newModVersion = '1.0.0';
+  newModCategory = 'custom';
+  newModEntrypoint = '';
+  newModDesc = '';
 
   constructor(
     private api: ApiService,
@@ -644,10 +1029,24 @@ export class SettingsComponent implements OnInit {
       this.api.get<Record<string, string>>('/settings/system').subscribe({
         next: res => this.systemSettings = { ...res }
       });
+
+      this.api.get<any>('/system/license-info').subscribe({
+        next: res => this.licenseInfo.set(res),
+        error: () => this.licenseInfo.set(null)
+      });
+
+      this.loadCustomModules();
     }
 
     this.api.get<Record<string, string>>('/settings/user').subscribe({
       next: res => this.userSettings = { ...res }
+    });
+  }
+
+  loadCustomModules() {
+    this.api.get<any[]>('/modules').subscribe({
+      next: res => this.customModules.set(res || []),
+      error: () => this.customModules.set([])
     });
   }
 
@@ -673,7 +1072,7 @@ export class SettingsComponent implements OnInit {
     });
   }
 
-  changePersonalLang(lang: Language) {
+  changePersonalLang(lang: string) {
     this.i18n.setLanguage(lang);
     this.userSettings['user.language'] = lang;
   }
@@ -684,5 +1083,97 @@ export class SettingsComponent implements OnInit {
 
   toggleSound(event: any) {
     this.userSettings['user.notifications_sound'] = event.target.checked ? 'true' : 'false';
+  }
+
+  // Language management methods
+  openAddLangModal() {
+    this.newLangCode = '';
+    this.newLangName = '';
+    this.newLangJson = '';
+    this.isAddLangModalOpen.set(true);
+  }
+
+  saveNewLanguage() {
+    if (!this.newLangCode || !this.newLangName) return;
+
+    let dict: Record<string, string> = {};
+    if (this.newLangJson) {
+      try {
+        dict = JSON.parse(this.newLangJson);
+      } catch (e) {
+        this.toast.error('Неверный формат JSON словаря');
+        return;
+      }
+    }
+
+    this.i18n.registerLanguage(this.newLangCode, this.newLangName, dict);
+    this.isAddLangModalOpen.set(false);
+    this.toast.success(`Язык ${this.newLangName} успешно добавлен в систему!`);
+  }
+
+  exportLangJson(langCode: string) {
+    const json = this.i18n.exportDictionary(langCode);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `dwh-translations-${langCode}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    this.toast.info(`Словарь ${langCode.toUpperCase()} экспортирован в JSON`);
+  }
+
+  // Custom Module methods
+  openCreateModuleModal() {
+    this.newModName = '';
+    this.newModCode = '';
+    this.newModVersion = '1.0.0';
+    this.newModCategory = 'custom';
+    this.newModEntrypoint = '';
+    this.newModDesc = '';
+    this.isCreateModuleModalOpen.set(true);
+  }
+
+  saveCustomModule() {
+    if (!this.newModName || !this.newModCode || !this.newModEntrypoint) return;
+
+    this.api.post('/modules', {
+      code: this.newModCode,
+      name: this.newModName,
+      version: this.newModVersion,
+      category: this.newModCategory,
+      entrypointUrl: this.newModEntrypoint,
+      description: this.newModDesc,
+      icon: 'extension'
+    }).subscribe({
+      next: () => {
+        this.isCreateModuleModalOpen.set(false);
+        this.toast.success(`Манифест модуля ${this.newModName} успешно создан!`);
+        this.loadCustomModules();
+      },
+      error: err => this.toast.error(err.message || 'Ошибка создания модуля')
+    });
+  }
+
+  submitModuleForApproval(id: number) {
+    this.api.post(`/modules/${id}/submit`, {}).subscribe({
+      next: () => {
+        this.toast.success('Модуль отправлен на модерацию в Control Plane!');
+        this.loadCustomModules();
+      },
+      error: err => this.toast.error(err.message || 'Ошибка отправки на модерацию')
+    });
+  }
+
+  deleteCustomModule(id: number) {
+    if (!confirm('Вы уверены, что хотите удалить этот модуль?')) return;
+
+    this.api.delete(`/modules/${id}`).subscribe({
+      next: () => {
+        this.toast.success('Модуль удален');
+        this.loadCustomModules();
+      },
+      error: err => this.toast.error(err.message || 'Ошибка удаления модуля')
+    });
   }
 }

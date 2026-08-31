@@ -2,7 +2,7 @@
 # Собирается в ту же compose-группу, что и остальные сервисы.
 
 # ---------------------------------------------------------------- build
-FROM node:24-alpine AS build
+FROM node:24.15.0-alpine AS build
 WORKDIR /build
 
 # Слой зависимостей кэшируется отдельно от исходников
@@ -13,15 +13,20 @@ COPY . .
 RUN npm run build
 
 # ---------------------------------------------------------------- runtime
-FROM nginx:1.27-alpine AS runtime
+FROM nginx:1.28-alpine@sha256:a8b39bd9cf0f83869a2162827a0caf6137ddf759d50a171451b335cecc87d236 AS runtime
 
 # nginx под non-root: стандартный образ пишет pid и кэш в каталоги root
-RUN addgroup -g 10001 -S web && adduser -u 10001 -S web -G web \
- && mkdir -p /var/cache/nginx /tmp/nginx \
- && chown -R web:web /var/cache/nginx /tmp/nginx /usr/share/nginx/html \
- && sed -i 's|^pid .*|pid /tmp/nginx/nginx.pid;|' /etc/nginx/nginx.conf
+RUN apk del nginx-module-acme nginx-module-geoip nginx-module-image-filter nginx-module-njs nginx-module-xslt \
+ && sed -i 's/^nginx=.*/nginx/' /etc/apk/world \
+ && apk add --upgrade --no-cache nginx \
+ && apk upgrade --no-cache \
+ && addgroup -g 10001 -S web && adduser -u 10001 -S web -G web \
+ && rm -f /etc/nginx/conf.d/default.conf \
+ && sed -i '/^user nginx;/d' /etc/nginx/nginx.conf \
+ && mkdir -p /var/cache/nginx /var/lib/nginx /var/run/nginx /tmp/nginx /usr/share/nginx/html \
+ && chown -R web:web /var/cache/nginx /var/lib/nginx /var/run/nginx /tmp/nginx /usr/share/nginx/html
 
-COPY --chown=web:web nginx.conf /etc/nginx/conf.d/default.conf
+COPY --chown=web:web nginx.conf /etc/nginx/http.d/default.conf
 COPY --from=build --chown=web:web /build/dist/web-cp/browser /usr/share/nginx/html
 
 USER web:web

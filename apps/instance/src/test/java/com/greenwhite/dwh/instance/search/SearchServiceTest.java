@@ -1,16 +1,20 @@
 package com.greenwhite.dwh.instance.search;
 
 import com.greenwhite.dwh.instance.common.error.ApiException;
+import com.greenwhite.dwh.instance.common.security.SecurityContext;
 import com.greenwhite.dwh.instance.search.service.SearchService;
 import com.greenwhite.dwh.instance.search.service.SearchService.SearchHit;
 import com.greenwhite.dwh.instance.search.service.SearchService.SearchResult;
 import com.greenwhite.dwh.instance.search.typesense.TypesenseClient;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
 import java.util.List;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -21,6 +25,16 @@ class SearchServiceTest {
     private final JdbcClient jdbcClient = Mockito.mock(JdbcClient.class);
     private final TypesenseClient typesenseClient = Mockito.mock(TypesenseClient.class);
     private final SearchService service = new SearchService(jdbcClient, typesenseClient);
+
+    @BeforeEach
+    void authenticateAsAdministrator() {
+        SecurityContext.setPrincipal(principalWithPermissions(Set.of("*.*")));
+    }
+
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContext.clear();
+    }
 
     @Test
     @DisplayName("Поиск по строке короче 2 символов должен отклоняться ошибкой EMPTY_QUERY")
@@ -46,5 +60,29 @@ class SearchServiceTest {
         assertThat(result.hits().get(0).targetUrl()).isEqualTo("/tasks/items/101");
 
         verify(typesenseClient, times(1)).search("Kafka", "ALL", 10);
+    }
+
+    @Test
+    @DisplayName("Глобальный поиск должен быть недоступен без неограниченного административного scope")
+    void shouldRejectSearchWithoutUnrestrictedScope() {
+        SecurityContext.setPrincipal(principalWithPermissions(Set.of("platform.search.view")));
+
+        assertThatThrownBy(() -> service.search("Kafka", "ALL", 10))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("Глобальный поиск доступен только администраторам");
+
+        verifyNoInteractions(typesenseClient, jdbcClient);
+    }
+
+    private SecurityContext.KauthPrincipal principalWithPermissions(Set<String> permissions) {
+        return new SecurityContext.KauthPrincipal(
+                42L,
+                "tester",
+                "tester@example.com",
+                100L,
+                false,
+                permissions,
+                1L
+        );
     }
 }

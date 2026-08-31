@@ -1,6 +1,6 @@
 import { Component, Input, OnChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { replaceMarkdownLinksWithSafeAnchors } from './markdown-link-sanitizer';
 
 @Component({
   selector: 'ui-markdown-view',
@@ -90,18 +90,15 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 })
 export class UiMarkdownViewComponent implements OnChanges {
   @Input() content: string | undefined = '';
-  renderedHtml: SafeHtml = '';
-
-
-  constructor(private sanitizer: DomSanitizer) {}
+  renderedHtml = '';
 
   ngOnChanges() {
     this.renderedHtml = this.parseMarkdown(this.content || '');
   }
 
-  private parseMarkdown(text: string): SafeHtml {
+  private parseMarkdown(text: string): string {
     if (!text || !text.trim()) {
-      return this.sanitizer.bypassSecurityTrustHtml('');
+      return '';
     }
 
     let html = this.escapeHtml(text);
@@ -134,12 +131,12 @@ export class UiMarkdownViewComponent implements OnChanges {
     html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
 
     // Links [text](url)
-    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    html = replaceMarkdownLinksWithSafeAnchors(html);
 
     // Linebreaks
     html = html.replace(/\n/g, '<br/>');
 
-    return this.sanitizer.bypassSecurityTrustHtml(html);
+    return html;
   }
 
   private escapeHtml(str: string): string {

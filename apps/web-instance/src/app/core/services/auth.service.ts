@@ -43,9 +43,11 @@ export class AuthService {
       tap(res => {
         if (res.step === 'success' && res.user) {
           this.currentUser.set(res.user);
-          this.refreshMe().subscribe();
-          this.toast.success(`Добро пожаловать, ${res.user.name}!`);
-          this.router.navigate(['/tasks']);
+          if (!res.user.forcePasswordChange) {
+            this.refreshMe().subscribe();
+            this.toast.success(`Добро пожаловать, ${res.user.name}!`);
+            this.router.navigate(['/tasks']);
+          }
         }
       })
     );
@@ -56,9 +58,11 @@ export class AuthService {
       tap(res => {
         if (res.step === 'success' && res.user) {
           this.currentUser.set(res.user);
-          this.refreshMe().subscribe();
-          this.toast.success(`Вход успешно подтвержден!`);
-          this.router.navigate(['/tasks']);
+          if (!res.user.forcePasswordChange) {
+            this.refreshMe().subscribe();
+            this.toast.success(`Вход успешно подтвержден!`);
+            this.router.navigate(['/tasks']);
+          }
         }
       })
     );

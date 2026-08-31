@@ -75,6 +75,7 @@ public class MdUserController {
                 body.avatarFileId(),
                 body.attributes(),
                 body.is2faEnabled(),
+                Boolean.TRUE.equals(body.forcePasswordChange()),
                 body.roleIds(),
                 currentUserId
         );
@@ -142,6 +143,7 @@ public class MdUserController {
             UUID avatarFileId,
             Map<String, Object> attributes,
             boolean is2faEnabled,
+            Boolean forcePasswordChange,
             List<Long> roleIds
     ) {}
 

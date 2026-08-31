@@ -33,9 +33,11 @@ RUN java -Djarmode=tools -jar /build/app.jar extract --destination /layers \
 FROM eclipse-temurin:25-jre AS runtime
 
 # Hardening:non-root пользователь, только необходимые пакеты, чистый apt-кэш
-RUN groupadd --system --gid 10001 dwh \
+RUN apt-get update && apt-get upgrade -y --no-install-recommends \
+ && groupadd --system --gid 10001 dwh \
  && useradd  --system --uid 10001 --gid dwh --home-dir /app --shell /usr/sbin/nologin dwh \
- && apt-get update && apt-get install -y --no-install-recommends curl \
+ && apt-get install -y --no-install-recommends curl \
+ && rm -f /usr/bin/pebble \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

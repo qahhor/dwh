@@ -1,6 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
@@ -73,6 +74,7 @@ import { ApiService } from '../../../core/services/api.service';
           >
             Войти в систему
           </ui-button>
+
         </form>
 
         <!-- Step 2: 2FA OTP Code Verification -->
@@ -128,6 +130,72 @@ import { ApiService } from '../../../core/services/api.service';
               (onClick)="step.set('credentials')"
             >
               Вернуться назад
+            </ui-button>
+          </div>
+        </form>
+
+        <!-- Step 3: Mandatory Password Change on First Login -->
+        <form *ngIf="step() === 'must_change_password'" (ngSubmit)="onChangePasswordSubmit()" class="login-form">
+          <div class="otp-banner" style="background-color: var(--warning-bg); color: var(--warning);">
+            <span class="material-symbols-outlined">lock_reset</span>
+            <div>
+              <strong>Смена временного пароля</strong>
+              <p style="font-size: 11px; margin-top: 2px;">Установите постоянный пароль (от 10 символов) для завершения входа.</p>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="new-password">Новый пароль</label>
+            <input
+              id="new-password"
+              type="password"
+              class="form-input"
+              [(ngModel)]="newPassword"
+              name="newPassword"
+              required
+              minlength="10"
+              placeholder="••••••••••••"
+              [disabled]="isLoading()"
+              autofocus
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="confirm-new-password">Повторите новый пароль</label>
+            <input
+              id="confirm-new-password"
+              type="password"
+              class="form-input"
+              [(ngModel)]="confirmNewPassword"
+              name="confirmNewPassword"
+              required
+              minlength="10"
+              placeholder="••••••••••••"
+              [disabled]="isLoading()"
+            />
+          </div>
+
+          <p *ngIf="formError()" class="form-error" role="alert">{{ formError() }}</p>
+
+          <div class="otp-actions">
+            <ui-button
+              type="submit"
+              variant="primary"
+              size="lg"
+              [loading]="isLoading()"
+              [fullWidth]="true"
+              class="submit-btn"
+            >
+              Сменить пароль и войти
+            </ui-button>
+
+            <ui-button
+              type="button"
+              variant="ghost"
+              size="md"
+              (onClick)="step.set('credentials')"
+            >
+              Отмена
             </ui-button>
           </div>
         </form>
@@ -312,6 +380,7 @@ import { ApiService } from '../../../core/services/api.service';
       margin-bottom: 12px;
       line-height: 1.4;
     }
+
   `]
 })
 export class LoginComponent {
@@ -319,8 +388,11 @@ export class LoginComponent {
   password = '';
   otpCode = '';
   otpToken = '';
+  newPassword = '';
+  confirmNewPassword = '';
+  tempOldPassword = '';
 
-  readonly step = signal<'credentials' | 'otp'>('credentials');
+  readonly step = signal<'credentials' | 'otp' | 'must_change_password'>('credentials');
   readonly isLoading = signal<boolean>(false);
   readonly isResetModalOpen = signal<boolean>(false);
   readonly isResetLoading = signal<boolean>(false);
@@ -331,7 +403,8 @@ export class LoginComponent {
   constructor(
     private authService: AuthService,
     private api: ApiService,
-    private toast: ToastService
+    private toast: ToastService,
+    private router: Router
   ) {}
 
   onLoginSubmit() {
@@ -345,6 +418,11 @@ export class LoginComponent {
         if (res.step === 'otp') {
           this.otpToken = res.otp_token || '';
           this.step.set('otp');
+        } else if (res.step === 'success' && res.user?.forcePasswordChange) {
+          this.tempOldPassword = this.password;
+          this.newPassword = '';
+          this.confirmNewPassword = '';
+          this.step.set('must_change_password');
         }
       },
       error: err => {
@@ -360,12 +438,50 @@ export class LoginComponent {
     this.formError.set('');
     this.isLoading.set(true);
     this.authService.verifyOtp(this.otpToken, this.otpCode, navigator.userAgent).subscribe({
-      next: () => {
+      next: res => {
         this.isLoading.set(false);
+        if (res.step === 'success' && res.user?.forcePasswordChange) {
+          this.tempOldPassword = this.password;
+          this.newPassword = '';
+          this.confirmNewPassword = '';
+          this.step.set('must_change_password');
+        }
       },
       error: err => {
         this.isLoading.set(false);
         this.formError.set(this.errorMessage(err, 'Код не подтверждён. Проверьте код и повторите попытку.'));
+      }
+    });
+  }
+
+  onChangePasswordSubmit() {
+    if (!this.newPassword || !this.confirmNewPassword) return;
+    if (this.newPassword.length < 10) {
+      this.formError.set('Длина нового пароля должна быть не менее 10 символов');
+      return;
+    }
+    if (this.newPassword !== this.confirmNewPassword) {
+      this.formError.set('Введенные пароли не совпадают');
+      return;
+    }
+
+    this.formError.set('');
+    this.isLoading.set(true);
+    this.api.post('/auth/password', {
+      oldPassword: this.tempOldPassword || this.password,
+      newPassword: this.newPassword
+    }).subscribe({
+      next: () => {
+        this.isLoading.set(false);
+        this.toast.success('Пароль успешно изменен! Добро пожаловать.');
+        this.authService.refreshMe().subscribe({
+          next: () => this.router.navigate(['/tasks']),
+          error: () => this.router.navigate(['/tasks'])
+        });
+      },
+      error: err => {
+        this.isLoading.set(false);
+        this.formError.set(this.errorMessage(err, 'Не удалось изменить пароль. Проверьте сложность пароля.'));
       }
     });
   }

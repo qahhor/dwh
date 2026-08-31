@@ -36,7 +36,7 @@ type SortDirection = 'asc' | 'desc';
       <div class="view-header">
         <div class="header-left">
           <h1 class="view-title">Пользователи</h1>
-          <span class="user-count">{{ users().length }}</span>
+          <span class="count-badge">{{ users().length }}</span>
         </div>
         <div class="header-right">
           <ui-button
@@ -74,17 +74,17 @@ type SortDirection = 'asc' | 'desc';
             [(ngModel)]="searchQuery"
             (input)="onSearchInput()"
           />
-          <button *ngIf="searchQuery" type="button" class="clear-btn" aria-label="Очистить поиск пользователей" (click)="clearSearch()">
-            <span class="material-symbols-outlined" aria-hidden="true">close</span>
+          <button *ngIf="searchQuery" type="button" class="btn-icon" style="position: absolute; right: 6px;" aria-label="Очистить поиск пользователей" (click)="clearSearch()">
+            <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">close</span>
           </button>
         </div>
 
         <div class="toolbar-controls">
           <!-- Segmented Status Switcher -->
-          <div class="segmented-control" role="group" aria-label="Фильтр пользователей по статусу">
+          <div class="status-tabs" role="group" aria-label="Фильтр пользователей по статусу">
             <button
               type="button"
-              class="seg-btn"
+              class="status-tab"
               [class.active]="selectedState === ''"
               [attr.aria-pressed]="selectedState === ''"
               (click)="setStateFilter('')"
@@ -93,20 +93,22 @@ type SortDirection = 'asc' | 'desc';
             </button>
             <button
               type="button"
-              class="seg-btn"
+              class="status-tab"
               [class.active]="selectedState === 'A'"
               [attr.aria-pressed]="selectedState === 'A'"
               (click)="setStateFilter('A')"
             >
+              <span class="status-tab-dot" style="background-color: var(--success);" aria-hidden="true"></span>
               Активные
             </button>
             <button
               type="button"
-              class="seg-btn"
+              class="status-tab"
               [class.active]="selectedState === 'P'"
               [attr.aria-pressed]="selectedState === 'P'"
               (click)="setStateFilter('P')"
             >
+              <span class="status-tab-dot" style="background-color: var(--danger);" aria-hidden="true"></span>
               Заблокированные
             </button>
           </div>

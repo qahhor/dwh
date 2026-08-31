@@ -96,19 +96,19 @@ import { ToastService } from '../../core/services/toast.service';
     }
 
     .drop-zone {
-      border: 2px dashed rgba(255, 255, 255, 0.15);
-      border-radius: 10px;
+      border: 2px dashed var(--border-color);
+      border-radius: var(--radius-md);
       padding: 20px;
       text-align: center;
       cursor: pointer;
-      background: rgba(255, 255, 255, 0.02);
-      transition: all 0.2s ease;
+      background: var(--bg-hover);
+      transition: all 0.15s ease;
       user-select: none;
     }
 
     .drop-zone:hover, .drop-zone.dragging {
-      border-color: var(--color-primary, #6366f1);
-      background: rgba(99, 102, 241, 0.06);
+      border-color: var(--primary);
+      background: var(--primary-subtle);
     }
 
     .drop-content {
@@ -120,7 +120,7 @@ import { ToastService } from '../../core/services/toast.service';
 
     .drop-icon {
       font-size: 32px;
-      color: var(--color-primary, #6366f1);
+      color: var(--primary);
     }
 
     .drop-text {
@@ -131,16 +131,16 @@ import { ToastService } from '../../core/services/toast.service';
 
     .primary-text {
       font-size: 13px;
-      color: var(--text-primary, #f1f5f9);
+      color: var(--text-main);
     }
 
     .primary-text strong {
-      color: var(--color-primary, #818cf8);
+      color: var(--primary);
     }
 
     .sub-text {
       font-size: 11px;
-      color: var(--text-secondary, #94a3b8);
+      color: var(--text-muted);
     }
 
     /* Progress bar */
@@ -153,20 +153,20 @@ import { ToastService } from '../../core/services/toast.service';
     .progress-track {
       flex: 1;
       height: 6px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 3px;
+      background: var(--bg-hover);
+      border-radius: var(--radius-xs);
       overflow: hidden;
     }
 
     .progress-fill {
       height: 100%;
-      background: var(--color-primary, #6366f1);
+      background: var(--primary);
       transition: width 0.15s ease;
     }
 
     .progress-label {
       font-size: 12px;
-      color: var(--text-secondary, #94a3b8);
+      color: var(--text-muted);
     }
 
     /* Attachments list */
@@ -181,20 +181,20 @@ import { ToastService } from '../../core/services/toast.service';
       align-items: center;
       gap: 10px;
       padding: 8px 12px;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 8px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
       transition: background 0.15s ease;
     }
 
     .file-card:hover {
-      background: rgba(255, 255, 255, 0.08);
+      background: var(--bg-hover);
     }
 
     .file-type-icon {
       width: 32px;
       height: 32px;
-      border-radius: 6px;
+      border-radius: var(--radius-xs);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -202,12 +202,12 @@ import { ToastService } from '../../core/services/toast.service';
       flex-shrink: 0;
     }
 
-    .file-type-icon.image { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
-    .file-type-icon.pdf { background: rgba(248, 113, 113, 0.15); color: #f87171; }
-    .file-type-icon.doc { background: rgba(96, 165, 250, 0.15); color: #60a5fa; }
-    .file-type-icon.sheet { background: rgba(52, 211, 153, 0.15); color: #34d399; }
-    .file-type-icon.archive { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
-    .file-type-icon.other { background: rgba(148, 163, 184, 0.15); color: #94a3b8; }
+    .file-type-icon.image { background: var(--primary-subtle); color: var(--primary); }
+    .file-type-icon.pdf { background: var(--danger-bg); color: var(--danger); }
+    .file-type-icon.doc { background: var(--info-bg); color: var(--info); }
+    .file-type-icon.sheet { background: var(--success-bg); color: var(--success); }
+    .file-type-icon.archive { background: var(--warning-bg); color: var(--warning); }
+    .file-type-icon.other { background: var(--bg-hover); color: var(--text-muted); }
 
     .file-info {
       flex: 1;
@@ -227,7 +227,7 @@ import { ToastService } from '../../core/services/toast.service';
     .file-name {
       font-size: 13px;
       font-weight: 500;
-      color: var(--text-primary, #f1f5f9);
+      color: var(--text-main);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -235,7 +235,7 @@ import { ToastService } from '../../core/services/toast.service';
 
     .file-size {
       font-size: 11px;
-      color: var(--text-secondary, #94a3b8);
+      color: var(--text-muted);
     }
 
     .file-actions {
@@ -247,10 +247,10 @@ import { ToastService } from '../../core/services/toast.service';
     .action-btn {
       width: 28px;
       height: 28px;
-      border-radius: 4px;
+      border-radius: var(--radius-xs);
       border: none;
       background: transparent;
-      color: #94a3b8;
+      color: var(--text-muted);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -263,13 +263,13 @@ import { ToastService } from '../../core/services/toast.service';
     }
 
     .action-btn.download:hover {
-      background: rgba(99, 102, 241, 0.15);
-      color: #818cf8;
+      background: var(--primary-subtle);
+      color: var(--primary);
     }
 
     .action-btn.delete:hover {
-      background: rgba(239, 68, 68, 0.15);
-      color: #ef4444;
+      background: var(--danger-bg);
+      color: var(--danger);
     }
 
     .empty-files {
@@ -277,7 +277,7 @@ import { ToastService } from '../../core/services/toast.service';
       align-items: center;
       gap: 8px;
       font-size: 13px;
-      color: #64748b;
+      color: var(--text-muted);
       padding: 8px 0;
     }
 

@@ -13,19 +13,21 @@ import { NotificationItem } from '../../core/models/notification.models';
   imports: [CommonModule, UiButtonComponent, UiPaginationComponent],
   template: `
     <div class="notifications-container">
-      <div class="page-header">
-        <div>
-          <h2 class="page-title">Центр уведомлений</h2>
-          <p class="page-subtitle">История системных сообщений, задач и обновлений</p>
+      <div class="view-header">
+        <div class="header-left">
+          <h1 class="view-title">Центр уведомлений</h1>
+          <span class="count-badge">{{ items().length }}</span>
         </div>
-        <ui-button
-          variant="secondary"
-          icon="done_all"
-          [disabled]="notifService.unreadCount() === 0"
-          (onClick)="markAllAsRead()"
-        >
-          Прочитать все
-        </ui-button>
+        <div class="header-right">
+          <ui-button
+            variant="secondary"
+            icon="done_all"
+            [disabled]="notifService.unreadCount() === 0"
+            (onClick)="markAllAsRead()"
+          >
+            Прочитать все
+          </ui-button>
+        </div>
       </div>
 
       <div class="card notif-card">

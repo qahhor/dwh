@@ -92,6 +92,7 @@ public class CpFleetRepository {
                         select i.id, c.code as client_code, c.name as client_name,
                                c.resource_profile, i.environment, i.url,
                                i.app_version, i.schema_version, i.last_heartbeat_at,
+                               coalesce(i.license_status, 'ACTIVE') as license_status,
                                case
                                    when i.last_heartbeat_at is null then 'NEVER'
                                    when i.last_heartbeat_at < now() - make_interval(mins => :timeout) then 'DOWN'
@@ -113,8 +114,35 @@ public class CpFleetRepository {
                         rs.getString("schema_version"),
                         rs.getTimestamp("last_heartbeat_at") != null
                                 ? rs.getTimestamp("last_heartbeat_at").toInstant() : null,
-                        rs.getString("health")))
+                        rs.getString("health"),
+                        rs.getString("license_status")))
                 .list();
+    }
+
+    public Optional<CpInstanceLicense> findInstanceLicense(Long instanceId) {
+        return jdbc.sql("""
+                        select i.id, c.code as client_code, coalesce(i.license_status, 'ACTIVE') as license_status,
+                               c.resource_profile, i.license_expires_at
+                        from cp_instances i
+                        join cp_clients c on c.id = i.client_id
+                        where i.id = :id
+                        """)
+                .param("id", instanceId)
+                .query((rs, n) -> new CpInstanceLicense(
+                        rs.getLong("id"),
+                        rs.getString("client_code"),
+                        rs.getString("license_status"),
+                        rs.getString("resource_profile"),
+                        rs.getTimestamp("license_expires_at") != null
+                                ? rs.getTimestamp("license_expires_at").toInstant() : null))
+                .optional();
+    }
+
+    public void updateInstanceStatus(Long instanceId, String status) {
+        jdbc.sql("update cp_instances set license_status = :status where id = :id")
+                .param("id", instanceId)
+                .param("status", status)
+                .update();
     }
 
     public void recordHeartbeat(Long instanceId, String appVersion, String schemaVersion,
@@ -194,7 +222,10 @@ public class CpFleetRepository {
     public record CpFleetItem(Long instanceId, String clientCode, String clientName,
                               String resourceProfile, String environment, String url,
                               String appVersion, String schemaVersion,
-                              Instant lastHeartbeatAt, String health) {}
+                              Instant lastHeartbeatAt, String health, String licenseStatus) {}
+
+    public record CpInstanceLicense(Long id, String clientCode, String licenseStatus,
+                                    String resourceProfile, Instant expiresAt) {}
 
     public record CpBackupCheck(Long id, String clientCode, boolean success,
                                 int durationSec, String details, Instant verifiedAt) {}

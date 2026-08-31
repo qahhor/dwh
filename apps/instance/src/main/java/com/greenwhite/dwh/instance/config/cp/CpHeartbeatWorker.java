@@ -39,6 +39,7 @@ public class CpHeartbeatWorker {
 
     private final CpClientProperties props;
     private final CpTelemetryRepository telemetry;
+    private final com.greenwhite.dwh.instance.config.license.LicenseGateService licenseService;
     private final RestClient restClient;
     private final String appVersion;
     private final long startedAtEpoch = System.currentTimeMillis();
@@ -48,9 +49,11 @@ public class CpHeartbeatWorker {
 
     public CpHeartbeatWorker(CpClientProperties props,
                              CpTelemetryRepository telemetry,
+                             com.greenwhite.dwh.instance.config.license.LicenseGateService licenseService,
                              ObjectProvider<BuildProperties> buildProperties) {
         this.props = props;
         this.telemetry = telemetry;
+        this.licenseService = licenseService;
         // BuildProperties появляется только если maven-плагин сгенерировал build-info;
         // в тестах и при запуске из IDE его может не быть — версия не критична
         this.appVersion = buildProperties.getIfAvailable() != null
@@ -83,13 +86,20 @@ public class CpHeartbeatWorker {
         body.put("metrics", metrics);
 
         try {
-            restClient.post()
+            @SuppressWarnings("unchecked")
+            Map<String, Object> resp = restClient.post()
                     .uri(props.url() + "/api/v1/instances/heartbeat")
                     .contentType(MediaType.APPLICATION_JSON)
                     .header(TOKEN_HEADER, props.token())
                     .body(body)
                     .retrieve()
-                    .toBodilessEntity();
+                    .body(Map.class);
+
+            if (resp != null) {
+                String licenseStatus = (String) resp.get("licenseStatus");
+                String resourceProfile = (String) resp.get("resourceProfile");
+                licenseService.updateStatus(licenseStatus, resourceProfile);
+            }
 
             if (lastAttemptFailed) {
                 log.info("Связь с control plane восстановлена");

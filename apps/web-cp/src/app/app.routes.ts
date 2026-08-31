@@ -13,6 +13,7 @@ export const routes: Routes = [
     children: [
       { path: 'fleet', loadComponent: () => import('./pages/fleet.component').then(m => m.FleetComponent) },
       { path: 'clients', loadComponent: () => import('./pages/clients.component').then(m => m.ClientsComponent) },
+      { path: 'modules', loadComponent: () => import('./pages/modules.component').then(m => m.ModulesComponent) },
       { path: 'backups', loadComponent: () => import('./pages/backups.component').then(m => m.BackupsComponent) },
       { path: 'announcements', loadComponent: () => import('./pages/announcements.component').then(m => m.AnnouncementsComponent) },
       { path: '', pathMatch: 'full', redirectTo: 'fleet' }

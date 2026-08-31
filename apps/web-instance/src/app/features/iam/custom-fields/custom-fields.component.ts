@@ -23,11 +23,12 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
       <div class="view-header">
         <div class="header-left">
           <h1 class="view-title">Динамические атрибуты</h1>
-          <span class="view-subtitle">Настройка произвольных полей для пользователей, проектов и задач</span>
+          <span class="count-badge">{{ filteredFields.length }}</span>
         </div>
-        <div class="header-actions">
-          <button type="button" class="icon-refresh-btn" (click)="loadFields()" aria-label="Обновить поля" title="Обновить">
+        <div class="header-right">
+          <button type="button" class="btn btn-secondary" (click)="loadFields()" aria-label="Обновить поля" title="Обновить">
             <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
+            <span>Обновить</span>
           </button>
           <ui-button
             *ngIf="canManage()"
@@ -41,17 +42,19 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
       </div>
 
       <!-- Entity Type Filter Tabs -->
-      <div class="filter-tabs" role="group" aria-label="Фильтр по типу сущности">
-        <button
-          *ngFor="let ent of ['ALL', 'USER', 'PROJECT', 'TASK']"
-          type="button"
-          class="tab-btn"
-          [class.active]="selectedEntity === ent"
-          [attr.aria-pressed]="selectedEntity === ent"
-          (click)="filterByEntity(ent)"
-        >
-          {{ getEntityLabel(ent) }}
-        </button>
+      <div class="toolbar">
+        <div class="status-tabs" role="group" aria-label="Фильтр по типу сущности">
+          <button
+            *ngFor="let ent of ['ALL', 'USER', 'PROJECT', 'TASK']"
+            type="button"
+            class="status-tab"
+            [class.active]="selectedEntity === ent"
+            [attr.aria-pressed]="selectedEntity === ent"
+            (click)="filterByEntity(ent)"
+          >
+            {{ getEntityLabel(ent) }}
+          </button>
+        </div>
       </div>
 
       <!-- Grid / Table -->

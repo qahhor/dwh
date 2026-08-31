@@ -21,30 +21,30 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
       <div class="view-header">
         <div class="header-left">
           <h1 class="view-title">Проекты</h1>
-          <span class="proj-count">{{ filteredProjects().length }}</span>
+          <span class="count-badge">{{ filteredProjects().length }}</span>
 
           <!-- View Mode Switcher -->
-          <div class="view-switcher" role="group" aria-label="Режим отображения проектов">
+          <div class="status-tabs" role="group" aria-label="Режим отображения проектов">
             <button
               type="button"
-              class="view-btn"
+              class="status-tab"
               [class.active]="viewMode === 'list'"
               [attr.aria-pressed]="viewMode === 'list'"
               (click)="viewMode = 'list'"
               title="Список / Таблица"
             >
-              <span class="material-symbols-outlined" aria-hidden="true">table_rows</span>
+              <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">table_rows</span>
               <span>Список</span>
             </button>
             <button
               type="button"
-              class="view-btn"
+              class="status-tab"
               [class.active]="viewMode === 'cards'"
               [attr.aria-pressed]="viewMode === 'cards'"
               (click)="viewMode = 'cards'"
               title="Карточки"
             >
-              <span class="material-symbols-outlined" aria-hidden="true">grid_view</span>
+              <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">grid_view</span>
               <span>Карточки</span>
             </button>
           </div>
@@ -65,8 +65,8 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
 
       <!-- Toolbar -->
       <div class="toolbar">
-        <div class="search-box">
-          <span class="material-symbols-outlined icon" aria-hidden="true">search</span>
+        <div class="search-field">
+          <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
           <label class="sr-only" for="project-search">Поиск проектов</label>
           <input
             id="project-search"
@@ -76,15 +76,15 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
             placeholder="Поиск по названию или описанию..."
             [(ngModel)]="searchQuery"
           />
-          <button *ngIf="searchQuery" type="button" class="clear-btn" aria-label="Очистить поиск проектов" (click)="searchQuery = ''">
-            <span class="material-symbols-outlined" aria-hidden="true">close</span>
+          <button *ngIf="searchQuery" type="button" class="btn-icon" style="position: absolute; right: 6px;" aria-label="Очистить поиск проектов" (click)="searchQuery = ''">
+            <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">close</span>
           </button>
         </div>
 
-        <div class="segmented-control" role="group" aria-label="Фильтр проектов по статусу">
+        <div class="status-tabs" role="group" aria-label="Фильтр проектов по статусу">
           <button
             type="button"
-            class="segment-btn"
+            class="status-tab"
             [class.active]="selectedState === 'all'"
             [attr.aria-pressed]="selectedState === 'all'"
             (click)="selectedState = 'all'"
@@ -93,20 +93,22 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
           </button>
           <button
             type="button"
-            class="segment-btn"
+            class="status-tab"
             [class.active]="selectedState === 'A'"
             [attr.aria-pressed]="selectedState === 'A'"
             (click)="selectedState = 'A'"
           >
+            <span class="status-tab-dot" style="background-color: var(--success);" aria-hidden="true"></span>
             Активные
           </button>
           <button
             type="button"
-            class="segment-btn"
+            class="status-tab"
             [class.active]="selectedState === 'P'"
             [attr.aria-pressed]="selectedState === 'P'"
             (click)="selectedState = 'P'"
           >
+            <span class="status-tab-dot" style="background-color: var(--text-light);" aria-hidden="true"></span>
             Архив
           </button>
         </div>

@@ -159,7 +159,7 @@ export interface SelectOption {
     }
     .select-trigger.is-open {
       border-color: var(--primary);
-      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+      box-shadow: 0 0 0 2px var(--primary-subtle);
     }
 
     .trigger-content {

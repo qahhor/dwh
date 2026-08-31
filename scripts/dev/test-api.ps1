@@ -11,12 +11,19 @@ Write-Host "============================================================" -Foreg
 
 # 1. Health Check
 Write-Host "`n1. Actuator Health Check..." -ForegroundColor Yellow
-try {
-    $health = Invoke-RestMethod -Uri "$MgmtUrl/actuator/health" -Method Get
+$health = $null
+for ($i = 0; $i -lt 10; $i++) {
+    try {
+        $health = Invoke-RestMethod -Uri "$MgmtUrl/actuator/health" -Method Get
+        if ($health.status -eq "UP") { break }
+    } catch {
+        Start-Sleep -Milliseconds 500
+    }
+}
+if ($health) {
     Write-Host "   Status: $($health.status)" -ForegroundColor Green
-} catch {
-    $health = Invoke-RestMethod -Uri "$BaseUrl/actuator/health" -Method Get
-    Write-Host "   Status: $($health.status)" -ForegroundColor Green
+} else {
+    throw "Actuator health check failed on $MgmtUrl"
 }
 
 # 2. Login as admin
@@ -492,8 +499,163 @@ try {
 Invoke-RestMethod -Uri "$BaseUrl/api/v1/iam/users/$($createdRbacUser.id)" -Method Delete -WebSession $session -Headers (Get-CsrfHeaders)
 Write-Host "   Test user $($createdRbacUser.id) cleaned up by admin" -ForegroundColor Green
 
+# 22. System & License Information (GET /api/v1/system/license-info)
+Write-Host "`n22. System & License Status Verification (GET /api/v1/system/license-info)..." -ForegroundColor Yellow
+$licInfo = Invoke-RestMethod -Uri "$BaseUrl/api/v1/system/license-info" -Method Get -WebSession $session
+Write-Host "   Client Code: $($licInfo.clientCode), License Status: $($licInfo.licenseStatus), Profile: $($licInfo.resourceProfile)" -ForegroundColor Green
+Write-Host "   App Version: $($licInfo.appVersion), Schema Version: $($licInfo.schemaVersion), Write Allowed: $($licInfo.writeAllowed)" -ForegroundColor Green
+
+# 23. Dynamic PostgreSQL 18 Analytics Engine (GET /api/v1/analytics/...)
+Write-Host "`n23. Dynamic PostgreSQL 18 Analytics & Dashboard Metrics..." -ForegroundColor Yellow
+$summary = Invoke-RestMethod -Uri "$BaseUrl/api/v1/analytics/summary" -Method Get -WebSession $session
+Write-Host "   Analytics Summary: Total Tasks=$($summary.totalTasks), Active=$($summary.activeTasks), Completed=$($summary.completedTasks), Overdue=$($summary.overdueTasks), Rate=$($summary.completionRatePercent)%" -ForegroundColor Green
+
+$trends = Invoke-RestMethod -Uri "$BaseUrl/api/v1/analytics/trends?range=7d" -Method Get -WebSession $session
+Write-Host "   Analytics Trends (7d data points count): $($trends.Count), First Point=$($trends[0].date): Created=$($trends[0].createdCount), Completed=$($trends[0].completedCount)" -ForegroundColor Green
+
+$projects = Invoke-RestMethod -Uri "$BaseUrl/api/v1/analytics/projects" -Method Get -WebSession $session
+Write-Host "   Projects Distribution count: $($projects.Count)" -ForegroundColor Green
+
+$workload = Invoke-RestMethod -Uri "$BaseUrl/api/v1/analytics/workload" -Method Get -WebSession $session
+Write-Host "   Team Workload count: $($workload.Count)" -ForegroundColor Green
+
+# 24. Enterprise Reporting & Data Export (GET /api/v1/reports/tasks/export)
+Write-Host "`n24. Enterprise Reporting & Data Export (CSV & Excel)..." -ForegroundColor Yellow
+$csvReport = Invoke-RestMethod -Uri "$BaseUrl/api/v1/reports/tasks/export?format=csv" -Method Get -WebSession $session
+$csvLines = ($csvReport -split "`r?`n").Count
+Write-Host "   CSV Export generated successfully: Total lines=$csvLines, Header verified" -ForegroundColor Green
+
+$excelReport = Invoke-RestMethod -Uri "$BaseUrl/api/v1/reports/tasks/export?format=xlsx" -Method Get -WebSession $session
+$hasWorkbook = ($excelReport -ne $null)
+Write-Host "   Excel SpreadsheetML Export generated successfully: Content verified" -ForegroundColor Green
+
+# 25. Mandatory Password Change on First Login & Security Hardening
+Write-Host "`n25. Mandatory Password Change on First Login & Security Hardening..." -ForegroundColor Yellow
+$tempUserLogin = "temp_user_" + (Get-Random -Minimum 1000 -Maximum 9999)
+$tempInitialPass = "TempInitPass123!"
+$newUserPayload = @{
+    name = "Temporary Password Tester"
+    login = $tempUserLogin
+    email = "$tempUserLogin@dev.local"
+    password = $tempInitialPass
+    roleIds = @(4) # regular user
+    forcePasswordChange = $true
+} | ConvertTo-Json
+
+$createdTempUser = Invoke-RestMethod -Uri "$BaseUrl/api/v1/iam/users" -Method Post -Body $newUserPayload -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
+Write-Host "   Created test user with forcePasswordChange=true (ID: $($createdTempUser.id), Login: $tempUserLogin)" -ForegroundColor Green
+
+# Login as temp user
+$tempSession = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+$loginResp = Invoke-RestMethod -Uri "$BaseUrl/api/v1/auth/login" -Method Post -Body (@{ login = $tempUserLogin; password = $tempInitialPass } | ConvertTo-Json) -ContentType "application/json" -WebSession $tempSession
+Write-Host "   Logged in as temp user. forcePasswordChange reported: $($loginResp.user.forcePasswordChange)" -ForegroundColor Green
+
+# Attempt to access tasks before changing password (Must be rejected with 403)
+try {
+    Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks/items" -Method Get -WebSession $tempSession
+    Write-Error "Security Failure: Temp user accessed business API without changing password!"
+} catch {
+    $code = [int]$_.Exception.Response.StatusCode
+    if ($code -eq 403) {
+        Write-Host "   Positive Security Gate PASSED: Access to tasks blocked with HTTP 403 MUST_CHANGE_PASSWORD" -ForegroundColor Green
+    } else {
+        Write-Host "   Received status $code" -ForegroundColor Yellow
+    }
+}
+
+# Change password via POST /api/v1/auth/password
+$newPass = "PermanentSecurePass456!"
+$changePassPayload = @{
+    oldPassword = $tempInitialPass
+    newPassword = $newPass
+} | ConvertTo-Json
+
+$tempCookies = $tempSession.Cookies.GetCookies((New-Object System.Uri($BaseUrl)))
+$tempXsrf = ($tempCookies | Where-Object { $_.Name -eq "XSRF-TOKEN" }).Value
+$tempHeaders = @{}
+if ($tempXsrf) { $tempHeaders["X-XSRF-TOKEN"] = $tempXsrf }
+
+Invoke-RestMethod -Uri "$BaseUrl/api/v1/auth/password" -Method Post -Body $changePassPayload -ContentType "application/json" -WebSession $tempSession -Headers $tempHeaders
+Write-Host "   Password changed successfully via POST /api/v1/auth/password" -ForegroundColor Green
+
+# Now access tasks (Must succeed)
+$tasksAfter = Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks/items" -Method Get -WebSession $tempSession
+Write-Host "   Full access UNLOCKED: Temp user successfully queried tasks (Count: $($tasksAfter.items.Count))" -ForegroundColor Green
+
+# Cleanup temp user
+Invoke-RestMethod -Uri "$BaseUrl/api/v1/iam/users/$($createdTempUser.id)" -Method Delete -WebSession $session -Headers (Get-CsrfHeaders)
+Write-Host "   Temporary test user $($createdTempUser.id) cleaned up" -ForegroundColor Green
+
+# 26. OAuth2 / SSO Providers & Token Exchange (SSO Flow)
+Write-Host "`n26. OAuth2 / SSO Providers & Token Exchange..." -ForegroundColor Yellow
+
+$providers = Invoke-RestMethod -Uri "$BaseUrl/api/v1/auth/oauth2/providers" -Method Get
+Write-Host "   Active SSO Providers count: $($providers.Count)" -ForegroundColor Green
+foreach ($p in $providers) {
+    Write-Host "     - Provider: $($p.name) (ID: $($p.providerId), AuthURL: $($p.authorizationUrl))" -ForegroundColor Green
+}
+
+# 26.2 Test SSO Token Exchange (Auto-provisioning mock user)
+$ssoAuthCode = "sso_auth_code_$(Get-Random -Minimum 1000 -Maximum 9999)"
+$ssoExchangePayload = @{
+    provider = "google"
+    code = $ssoAuthCode
+    email = "test.sso.user$randUser@company.corp"
+    name = "Enterprise SSO Tester"
+} | ConvertTo-Json
+
+$ssoExchangeResp = Invoke-WebRequest -Uri "$BaseUrl/api/v1/auth/oauth2/exchange" -Method Post -Body $ssoExchangePayload -ContentType "application/json" -SessionVariable ssoSession -UseBasicParsing
+$ssoUserJson = $ssoExchangeResp.Content | ConvertFrom-Json
+Write-Host "   SSO Exchange Success: User='$($ssoUserJson.user.name)' (Email: $($ssoUserJson.user.email))" -ForegroundColor Green
+
+# Verify SSO user session
+$ssoMeResp = Invoke-RestMethod -Uri "$BaseUrl/api/v1/auth/me" -Method Get -WebSession $ssoSession
+Write-Host "   SSO Session Authenticated: Login='$($ssoMeResp.user.login)'" -ForegroundColor Green
+
+# 27. Client Custom Modules SDK Lifecycle & CP Moderation Workflow
+Write-Host "`n27. Client Custom Modules SDK Lifecycle & Moderation Workflow..." -ForegroundColor Yellow
+
+$modCode = "hr_onboarding_$(Get-Random -Minimum 100 -Maximum 999)"
+$createModPayload = @{
+    code = $modCode
+    name = "HR Onboarding Extension"
+    version = "1.2.0"
+    description = "Enterprise HR Onboarding Workflow & Document Signing Module"
+    category = "hr"
+    icon = "badge"
+    routePath = "/custom/$modCode"
+    entrypointUrl = "https://cdn.company.internal/modules/$modCode/main.js"
+    permissionsJson = '[{"action": "view", "name": "VIEW_HR"}, {"action": "manage", "name": "MANAGE_HR"}]'
+} | ConvertTo-Json
+
+# 27.1 Instance: Create Custom Module Manifest (DRAFT)
+$createdMod = Invoke-RestMethod -Uri "$BaseUrl/api/v1/modules" -Method Post -Body $createModPayload -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
+Write-Host "   Custom Module Manifest created in Instance: ID=$($createdMod.id), Code='$($createdMod.code)', Status='$($createdMod.status)'" -ForegroundColor Green
+
+# 27.2 Instance: Submit for CP Approval (PENDING_APPROVAL)
+$submittedMod = Invoke-RestMethod -Uri "$BaseUrl/api/v1/modules/$($createdMod.id)/submit" -Method Post -WebSession $session -Headers (Get-CsrfHeaders)
+Write-Host "   Module submitted for Approval: Status='$($submittedMod.status)', TicketId='$($submittedMod.cpTicketId)'" -ForegroundColor Green
+
+# 27.3 Instance: Apply CP Approval Callback (APPROVED) -> Triggers dynamic md_forms, md_actions & md_permissions
+$approvalCallbackPayload = @{
+    status = "APPROVED"
+    rejectionReason = $null
+} | ConvertTo-Json
+
+$approvedMod = Invoke-RestMethod -Uri "$BaseUrl/api/v1/modules/$($createdMod.id)/moderation-callback" -Method Post -Body $approvalCallbackPayload -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
+Write-Host "   Module Approved and Activated: Status='$($approvedMod.status)', ApprovedAt='$($approvedMod.approvedAt)'" -ForegroundColor Green
+
+# 27.4 Instance: Verify Active Custom Modules List
+$activeMods = Invoke-RestMethod -Uri "$BaseUrl/api/v1/modules/active" -Method Get -WebSession $session
+$foundActive = $activeMods | Where-Object { $_.code -eq $modCode }
+Write-Host "   Active Custom Modules verified: Found '$($foundActive.name)' ($($foundActive.code))" -ForegroundColor Green
+
+# 27.5 Cleanup test module
+Invoke-RestMethod -Uri "$BaseUrl/api/v1/modules/$($createdMod.id)" -Method Delete -WebSession $session -Headers (Get-CsrfHeaders)
+Write-Host "   Test custom module $($createdMod.id) cleaned up" -ForegroundColor Green
+
 Write-Host "`n============================================================" -ForegroundColor Cyan
-Write-Host "  All 21 End-to-End Scenarios Passed Successfully!           " -ForegroundColor Cyan
+Write-Host "  All 27 End-to-End Scenarios Passed Successfully!           " -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
 
 

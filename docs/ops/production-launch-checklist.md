@@ -44,19 +44,19 @@
 Дополнительно к типу A. **Текущий статус: NO-GO** — ни один из пунктов ниже
 не выполним без фазы P/F.
 
-### Блокирующие критерии (Статус реализации на 2026-08-29)
+### Блокирующие критерии (требуют проверки на целевом окружении)
 
-- [x] ✅ **Файловое хранилище SPI (Local / S3 Provider)** с квотами и SHA-256 (M7, M14)
-- [x] ✅ **Секреты и изоляция**: `.env.production` (права `600`), SHA-256 API токенов, Argon2id паролей
-- [x] ✅ **Бэкапы: PostgreSQL 18 checksums + gzip + SHA-256 + скрипты ротации** (`scripts/prod/backup.sh`)
-- [x] ✅ **Метрики и Observability**: Prometheus (`:9090`), W3C Traceparent MDC, Liveness/Readiness
-- [x] ✅ **Оркестрация**: `docker-compose.fleet.prod.yml` с NGINX, rate-limiting, resource limits
-- [x] ✅ **Realtime-уведомления (SSE)**: `MsSseRegistry` + `MsNotificationOutbox` (M6 NOTIFY)
-- [x] ✅ **Провайдеры SPI (Mail, SMS, Telegram)**: `ProviderRegistry` (M14 PLUG)
-- [x] ✅ **OpenAPI 3.1 Contract**: `GET /api/v1/openapi.json` из исходного кода (M10 API)
-- [x] ✅ **Полнотекстовый поиск**: Typesense 27.1 + Postgres fallback (M17 SEARCH)
-- [x] ✅ **Исходящие вебхуки**: Outbox worker + HMAC-SHA256 подпись (M18 KWH)
-- [x] ✅ **Управление флотом (Control Plane)**: `apps/control-plane` + `apps/web-cp` (M15 CP)
+- [ ] **Файловое хранилище**: выбран Local/S3 provider; restore файлов проверен вместе с БД
+- [ ] **Секреты и изоляция**: `.env.production` имеет права `600`; секреты не попали в логи/репозиторий
+- [ ] **Бэкапы**: оба `.dump` и SHA-256 созданы; восстановление проверено на отдельном контуре
+- [ ] **Метрики и observability**: readiness/liveness доступны мониторингу; внешне закрыты; алерты доставляются
+- [ ] **Оркестрация**: release config gate зелёный; host TLS настроен; `127.0.0.1:8088` извне недоступен
+- [ ] **Realtime-уведомления (SSE)**: reconnect и деградация проверены на целевом proxy
+- [ ] **Провайдеры Mail/SMS/Telegram**: реальные credentials и тестовая доставка подтверждены
+- [ ] **OpenAPI 3.1**: контракт опубликован и smoke-проверен на release image
+- [ ] **Поиск**: Typesense health зелёный; обычная роль не получает unrestricted результаты
+- [ ] **Исходящие webhooks**: подпись и retry/DLQ проверены на тестовом endpoint
+- [ ] **Control Plane**: вход, fleet heartbeat и обе БД проверены после deploy
 
 ### Организационные
 

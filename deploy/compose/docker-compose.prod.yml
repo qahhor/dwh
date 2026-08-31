@@ -47,7 +47,10 @@ x-app-common: &app-common
 
 services:
   postgres:
-    image: postgres:18-alpine
+    build:
+      context: ../..
+      dockerfile: deploy/images/postgres/Dockerfile
+    image: ${POSTGRES_IMAGE:-smartupcms/postgres:18-alpine-hardened}
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${DB_NAME:-dwh_instance}
@@ -105,7 +108,8 @@ services:
   # без WAL-архива, шифрования и автопроверки восстановления (NFR-7).
   # Полный контур — фаза P; до неё проверять восстановление вручную (RB-05).
   backup:
-    image: postgres:18-alpine
+    image: ${POSTGRES_IMAGE:-smartupcms/postgres:18-alpine-hardened}
+    user: "${BACKUP_UID:-1000}:${BACKUP_GID:-1000}"
     restart: unless-stopped
     environment:
       PGPASSWORD: ${DB_PASSWORD:?}

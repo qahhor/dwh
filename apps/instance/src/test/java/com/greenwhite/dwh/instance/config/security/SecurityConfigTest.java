@@ -43,7 +43,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * «мутирующий запрос без CSRF-токена -> 403».
  */
 @WebMvcTest(controllers = {SecurityTestController.class,
-        com.greenwhite.dwh.instance.kauth.controller.KauthPasswordController.class})
+        com.greenwhite.dwh.instance.kauth.controller.KauthPasswordController.class,
+        com.greenwhite.dwh.instance.kauth.controller.OAuth2AuthController.class,
+        com.greenwhite.dwh.instance.md.controller.MdCustomModuleController.class})
 @Import({SecurityConfig.class, ProblemDetailAuthHandlers.class,
         KauthAuthenticationFilter.class, RateLimitFilter.class, RateLimitService.class,
         com.greenwhite.dwh.instance.config.idempotency.IdempotencyFilter.class,
@@ -68,6 +70,10 @@ class SecurityConfigTest {
     AuditLogService auditLogService;
     @MockitoBean
     com.greenwhite.dwh.instance.config.idempotency.IdempotencyService idempotencyService;
+    @MockitoBean
+    com.greenwhite.dwh.instance.kauth.service.OAuth2AuthService oauth2AuthService;
+    @MockitoBean
+    com.greenwhite.dwh.instance.md.service.MdCustomModuleService customModuleService;
 
 
 
@@ -153,6 +159,62 @@ class SecurityConfigTest {
         int status = mvc.perform(post("/api/v1/auth/login"))
                 .andReturn().getResponse().getStatus();
         org.assertj.core.api.Assertions.assertThat(status).isNotIn(401, 403);
+    }
+
+    @Test
+    @DisplayName("Нереализованный OAuth2 exchange не является публичным authentication boundary")
+    void oauth2ExchangeWithoutSessionIsRejected() throws Exception {
+        mvc.perform(post("/api/v1/auth/oauth2/exchange")
+                        .contentType("application/json")
+                        .content("{\"provider\":\"google\",\"code\":\"forged\",\"email\":\"admin@example.com\"}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("Callback модерации без аутентификации не может менять состояние модуля")
+    void moderationCallbackWithoutSessionIsRejected() throws Exception {
+        mvc.perform(post("/api/v1/modules/42/moderation-callback")
+                        .contentType("application/json")
+                        .content("{\"status\":\"APPROVED\"}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("Даже аутентифицированный пользователь не может вызвать незавершённый OAuth2 exchange")
+    void oauth2ExchangeHasNoAuthenticatedRoute() throws Exception {
+        stubAuthenticatedUser(Set.of("*.*"));
+
+        mvc.perform(post("/api/v1/auth/oauth2/exchange")
+                        .cookie(new Cookie(SESSION_COOKIE, "raw-session"),
+                                new Cookie("XSRF-TOKEN", "test-csrf-token"))
+                        .header("X-XSRF-TOKEN", "test-csrf-token")
+                        .contentType("application/json")
+                        .content("{\"provider\":\"google\",\"code\":\"forged\",\"email\":\"admin@example.com\"}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("Callback модерации отсутствует и для аутентифицированного администратора")
+    void moderationCallbackHasNoAuthenticatedRoute() throws Exception {
+        stubAuthenticatedUser(Set.of("*.*"));
+
+        mvc.perform(post("/api/v1/modules/42/moderation-callback")
+                        .cookie(new Cookie(SESSION_COOKIE, "raw-session"),
+                                new Cookie("XSRF-TOKEN", "test-csrf-token"))
+                        .header("X-XSRF-TOKEN", "test-csrf-token")
+                        .contentType("application/json")
+                        .content("{\"status\":\"APPROVED\"}"))
+                .andExpect(status().isNotFound());
+    }
+
+    private void stubAuthenticatedUser(Set<String> permissions) {
+        when(sessionService.getActiveSession("raw-session")).thenReturn(Optional.of(
+                new KauthSessionRepository.SessionRecord(
+                        11L, 7L, "hash", "127.0.0.1", "ua", null,
+                        Instant.now(), Instant.now(), null)));
+        when(userService.getUserById(7L)).thenReturn(activeUser());
+        when(permissionService.getEffectivePermissions(7L)).thenReturn(permissions);
+        when(permissionService.getPermissionVersion(7L)).thenReturn(1L);
     }
 
     private static MdUserRepository.UserRecord activeUser() {

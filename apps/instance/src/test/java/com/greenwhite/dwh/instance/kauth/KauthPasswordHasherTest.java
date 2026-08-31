@@ -1,5 +1,6 @@
 package com.greenwhite.dwh.instance.kauth;
 
+import com.greenwhite.dwh.common.crypto.Argon2idPasswordHasher;
 import com.greenwhite.dwh.instance.kauth.service.KauthPasswordHasher;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -8,7 +9,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class KauthPasswordHasherTest {
 
-    private final KauthPasswordHasher hasher = new KauthPasswordHasher();
+    private final KauthPasswordHasher hasher = new KauthPasswordHasher(new Argon2idPasswordHasher());
 
     @Test
     @DisplayName("Argon2id должен успешно хешировать пароль и валидировать правильный/неправильный ввод")

@@ -72,7 +72,7 @@ docker compose exec -T app sh -c 'java -version' 2>&1 | head -1
 Непроверенный бэкап следует считать отсутствующим.
 
 ```bash
-docker run -d --name pg-restore-test -e POSTGRES_PASSWORD=t -e POSTGRES_DB=restore_test postgres:18-alpine
+docker run -d --name pg-restore-test -e POSTGRES_PASSWORD=t -e POSTGRES_DB=restore_test smartupcms/postgres:18-alpine-hardened
 ```
 
 ```bash

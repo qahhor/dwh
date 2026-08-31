@@ -45,30 +45,30 @@ import { KeysetPage } from '../../core/models/common.models';
       <div class="view-header">
         <div class="header-left">
           <h1 class="view-title">Задачи</h1>
-          <span class="task-count">{{ tasks().length }}</span>
+          <span class="count-badge">{{ tasks().length }}</span>
 
           <!-- View Mode Switcher: Table / Kanban -->
-          <div class="view-switcher" role="group" aria-label="Режим отображения задач">
+          <div class="status-tabs" role="group" aria-label="Режим отображения задач">
             <button
               type="button"
-              class="view-btn"
+              class="status-tab"
               [class.active]="viewMode === 'table'"
               [attr.aria-pressed]="viewMode === 'table'"
               (click)="viewMode = 'table'"
-              title="Табличный вид (по умолчанию)"
+              title="Табличный вид"
             >
-              <span class="material-symbols-outlined" aria-hidden="true">table_rows</span>
+              <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">table_rows</span>
               <span>Список</span>
             </button>
             <button
               type="button"
-              class="view-btn"
+              class="status-tab"
               [class.active]="viewMode === 'kanban'"
               [attr.aria-pressed]="viewMode === 'kanban'"
               (click)="viewMode = 'kanban'"
-              title="Канбан-доска (Drag & Drop)"
+              title="Канбан-доска"
             >
-              <span class="material-symbols-outlined" aria-hidden="true">view_kanban</span>
+              <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">view_kanban</span>
               <span>Канбан</span>
             </button>
           </div>
@@ -78,13 +78,37 @@ import { KeysetPage } from '../../core/models/common.models';
           <!-- Dictionary Settings Button -->
           <button
             type="button"
-            class="settings-btn"
+            class="btn btn-secondary"
             title="Управление статусами и типами задач"
             (click)="openSettingsModal()"
           >
             <span class="material-symbols-outlined" aria-hidden="true">tune</span>
             <span>Справочники</span>
           </button>
+
+          <!-- Export Dropdown -->
+          <div class="export-dropdown-container" style="position: relative; display: inline-block;">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              title="Экспорт списка задач"
+              (click)="showExportMenu = !showExportMenu"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">download</span>
+              <span>Экспорт</span>
+              <span class="material-symbols-outlined" style="font-size: 16px;">arrow_drop_down</span>
+            </button>
+            <div class="export-popover" *ngIf="showExportMenu" style="position: absolute; top: 100%; right: 0; margin-top: 4px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); box-shadow: var(--shadow-md); z-index: 100; min-width: 160px; overflow: hidden; display: flex; flex-direction: column;">
+              <button type="button" class="export-item-btn" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 12px; background: none; border: none; width: 100%; text-align: left; cursor: pointer; color: var(--text-main);" (click)="exportTasks('xlsx')">
+                <span class="material-symbols-outlined" style="color: var(--success); font-size: 18px;">table_view</span>
+                <span>Excel (.xlsx)</span>
+              </button>
+              <button type="button" class="export-item-btn" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 12px; background: none; border: none; width: 100%; text-align: left; cursor: pointer; color: var(--text-main); border-top: 1px solid var(--border-subtle);" (click)="exportTasks('csv')">
+                <span class="material-symbols-outlined" style="color: var(--primary); font-size: 18px;">description</span>
+                <span>CSV (UTF-8)</span>
+              </button>
+            </div>
+          </div>
 
           <!-- Create Task Button -->
           <ui-button
@@ -890,11 +914,19 @@ import { KeysetPage } from '../../core/models/common.models';
 
         <!-- Custom Dynamic Fields -->
         <div class="custom-fields-section" *ngIf="taskCustomFields().length > 0">
-          <h4 class="custom-fields-title">Дополнительные настраиваемые поля</h4>
+          <h4 class="custom-fields-title">
+            <span>🧩 Дополнительные настраиваемые поля</span>
+            <span class="custom-fields-subhint">(настраиваются в меню «Настраиваемые поля»)</span>
+          </h4>
           <ui-custom-fields
             [fields]="taskCustomFields()"
             [(values)]="createForm.attributes"
           ></ui-custom-fields>
+        </div>
+
+        <div class="custom-fields-empty-tip" *ngIf="taskCustomFields().length === 0">
+          <span class="material-symbols-outlined tip-icon" aria-hidden="true">extension</span>
+          <span class="tip-text">Нужны специфические поля (Бюджет, Номер договора, ИНН)? Создайте их в меню <strong>Настраиваемые поля</strong>.</span>
         </div>
       </div>
       <div footer>
@@ -2135,7 +2167,22 @@ import { KeysetPage } from '../../core/models/common.models';
       flex-direction: column;
       gap: 6px;
     }
-    .custom-fields-title { font-size: 12px; font-weight: 600; color: var(--text-muted); margin: 0; }
+    .custom-fields-title { font-size: 12px; font-weight: 600; color: var(--text-muted); margin: 0; display: flex; align-items: center; gap: 6px; }
+    .custom-fields-subhint { font-size: 11px; font-weight: 400; color: var(--text-muted); opacity: 0.8; }
+    .custom-fields-empty-tip {
+      background: rgba(99, 102, 241, 0.06);
+      border: 1px dashed rgba(99, 102, 241, 0.2);
+      border-radius: 8px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+    .custom-fields-empty-tip .tip-icon { font-size: 18px; color: var(--color-primary, #6366f1); flex-shrink: 0; }
+    .custom-fields-empty-tip .tip-text { line-height: 1.4; }
 
     /* Dictionaries Settings Modal */
     .settings-modal-content { display: flex; flex-direction: column; gap: 14px; }
@@ -2281,6 +2328,13 @@ export class TasksComponent implements OnInit {
 
   newCommentText = '';
   draggedTask: Task | null = null;
+
+  showExportMenu = false;
+
+  exportTasks(format: 'xlsx' | 'csv'): void {
+    this.showExportMenu = false;
+    window.open(`/api/v1/reports/tasks/export?format=${format}`, '_blank');
+  }
 
   // Dictionaries Settings Modal
   readonly isSettingsModalOpen = signal<boolean>(false);

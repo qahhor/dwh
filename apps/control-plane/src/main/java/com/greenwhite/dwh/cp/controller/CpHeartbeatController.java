@@ -39,7 +39,13 @@ public class CpHeartbeatController {
                                                          HttpServletRequest request) {
         Long instanceId = requireInstance(request);
         fleetRepository.recordHeartbeat(instanceId, body.appVersion(), body.schemaVersion(), body.metrics());
-        return ResponseEntity.ok(Map.of("accepted", true, "instanceId", instanceId));
+        var license = fleetRepository.findInstanceLicense(instanceId).orElse(null);
+        return ResponseEntity.ok(Map.of(
+                "accepted", true,
+                "instanceId", instanceId,
+                "licenseStatus", license != null ? license.licenseStatus() : "ACTIVE",
+                "resourceProfile", license != null ? license.resourceProfile() : "S",
+                "clientCode", license != null ? license.clientCode() : ""));
     }
 
     @PostMapping("/backup-report")

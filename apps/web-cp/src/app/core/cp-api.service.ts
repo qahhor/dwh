@@ -9,6 +9,7 @@ export interface FleetItem {
   resourceProfile: string; environment: string; url: string;
   appVersion: string | null; schemaVersion: string | null;
   lastHeartbeatAt: string | null; health: 'UP' | 'DOWN' | 'NEVER';
+  licenseStatus?: string;
 }
 
 export interface FleetResponse {
@@ -71,9 +72,16 @@ export class CpApiService {
       { code, name, resourceProfile }, { withCredentials: true }));
   }
 
-  registerInstance(clientCode: string, environment: string, url: string) {
-    return firstValueFrom(this.http.post<{ instanceId: number; heartbeatToken: string }>(
-      '/api/v1/instances', { clientCode, environment, url }, { withCredentials: true }));
+  async registerInstance(clientCode: string, url: string, environment: string): Promise<{ instanceId: number; heartbeatToken: string }> {
+    return firstValueFrom(
+      this.http.post<{ instanceId: number; heartbeatToken: string }>(
+        '/api/v1/instances', { clientCode, url, environment }, { withCredentials: true }));
+  }
+
+  async updateInstanceStatus(instanceId: number, status: string): Promise<void> {
+    await firstValueFrom(
+      this.http.put<{ instanceId: number; status: string }>(
+        `/api/v1/instances/${instanceId}/status`, { status }, { withCredentials: true }));
   }
 
   backupChecks() {
@@ -96,5 +104,17 @@ export class CpApiService {
 
   archiveAnnouncement(id: number) {
     return firstValueFrom(this.http.post(`/api/v1/announcements/${id}/archive`, {}, { withCredentials: true }));
+  }
+
+  modules() {
+    return firstValueFrom(this.http.get<any[]>('/api/v1/moderation/modules', { withCredentials: true }));
+  }
+
+  approveModule(id: number, notes: string) {
+    return firstValueFrom(this.http.post(`/api/v1/moderation/modules/${id}/approve`, { notes }, { withCredentials: true }));
+  }
+
+  rejectModule(id: number, notes: string) {
+    return firstValueFrom(this.http.post(`/api/v1/moderation/modules/${id}/reject`, { notes }, { withCredentials: true }));
   }
 }

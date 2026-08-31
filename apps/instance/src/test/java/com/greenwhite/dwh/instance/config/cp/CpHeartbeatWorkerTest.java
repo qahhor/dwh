@@ -14,6 +14,8 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 class CpHeartbeatWorkerTest {
 
     private final CpTelemetryRepository telemetry = Mockito.mock(CpTelemetryRepository.class);
+    private final com.greenwhite.dwh.instance.config.license.LicenseGateService licenseService =
+            Mockito.mock(com.greenwhite.dwh.instance.config.license.LicenseGateService.class);
 
     @SuppressWarnings("unchecked")
     private final ObjectProvider<org.springframework.boot.info.BuildProperties> noBuildInfo =
@@ -42,7 +44,7 @@ class CpHeartbeatWorkerTest {
     @Test
     @DisplayName("При выключенном heartbeat база не опрашивается")
     void shouldNotTouchDatabaseWhenDisabled() {
-        var worker = new CpHeartbeatWorker(new CpClientProperties(null, null, null), telemetry, noBuildInfo);
+        var worker = new CpHeartbeatWorker(new CpClientProperties(null, null, null), telemetry, licenseService, noBuildInfo);
 
         worker.sendHeartbeat();
 
@@ -57,7 +59,7 @@ class CpHeartbeatWorkerTest {
         Mockito.when(telemetry.schemaVersion()).thenReturn("004");
         Mockito.when(telemetry.metrics()).thenReturn(Map.of("users", 1L));
         var worker = new CpHeartbeatWorker(
-                new CpClientProperties("http://127.0.0.1:1", "token", null), telemetry, noBuildInfo);
+                new CpClientProperties("http://127.0.0.1:1", "token", null), telemetry, licenseService, noBuildInfo);
 
         assertThatCode(worker::sendHeartbeat).doesNotThrowAnyException();
     }

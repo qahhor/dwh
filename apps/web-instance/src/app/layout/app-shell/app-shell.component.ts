@@ -24,10 +24,13 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
   template: `
     <a class="skip-link" href="#main-content">Перейти к основному содержимому</a>
     <div class="app-layout">
+      <!-- Mobile Drawer Backdrop -->
+      <div *ngIf="isMobileMenuOpen()" class="mobile-drawer-backdrop" (click)="closeMobileMenu()" aria-hidden="true"></div>
+
       <!-- Sidebar -->
-      <aside class="sidebar" [class.collapsed]="isCollapsed()">
+      <aside class="sidebar" [class.collapsed]="isCollapsed()" [class.mobile-open]="isMobileMenuOpen()">
         <div class="sidebar-header">
-          <div class="brand-logo" *ngIf="!isCollapsed()">
+          <div class="brand-logo" *ngIf="!isCollapsed() || isMobileMenuOpen()">
             <span class="brand-icon">D</span>
             <span class="brand-name">DWH Platform</span>
           </div>
@@ -43,64 +46,66 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
           </button>
         </div>
 
-        <nav class="sidebar-nav" aria-label="Основная навигация">
+        <nav class="sidebar-nav" aria-label="Основная навигация" (click)="closeMobileMenu()">
           <!-- Tasks & Workflows -->
-          <div class="nav-section-title" *ngIf="!isCollapsed() && (canViewTasks() || canViewProjects())">{{ 'nav.tasks' | t }}</div>
+          <div class="nav-section-title" *ngIf="(!isCollapsed() || isMobileMenuOpen()) && (canViewTasks() || canViewProjects())">{{ 'nav.tasks' | t }}</div>
           <a *ngIf="canViewTasks()" routerLink="/tasks" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" [attr.aria-current]="isRouteActive('/tasks', true) ? 'page' : null" class="nav-item" title="Задачи">
             <span class="material-symbols-outlined nav-icon" aria-hidden="true">task_alt</span>
-            <span class="nav-label" *ngIf="!isCollapsed()">{{ 'nav.tasks' | t }}</span>
+            <span class="nav-label" *ngIf="!isCollapsed() || isMobileMenuOpen()">{{ 'nav.tasks' | t }}</span>
           </a>
           <a *ngIf="canViewProjects()" routerLink="/tasks/projects" routerLinkActive="active" [attr.aria-current]="isRouteActive('/tasks/projects') ? 'page' : null" class="nav-item" title="Проекты">
             <span class="material-symbols-outlined nav-icon" aria-hidden="true">folder</span>
-            <span class="nav-label" *ngIf="!isCollapsed()">{{ 'nav.projects' | t }}</span>
+            <span class="nav-label" *ngIf="!isCollapsed() || isMobileMenuOpen()">{{ 'nav.projects' | t }}</span>
+          </a>
+          <a *ngIf="canViewAnalytics()" routerLink="/analytics" routerLinkActive="active" [attr.aria-current]="isRouteActive('/analytics') ? 'page' : null" class="nav-item" title="Аналитика и дашборды">
+            <span class="material-symbols-outlined nav-icon" aria-hidden="true">insights</span>
+            <span class="nav-label" *ngIf="!isCollapsed() || isMobileMenuOpen()">Аналитика</span>
           </a>
 
           <!-- Master Data & IAM -->
-          <div class="nav-section-title" *ngIf="!isCollapsed() && (canViewUsers() || canViewRoles() || canViewCustomFields())">IAM & Настройки</div>
+          <div class="nav-section-title" *ngIf="(!isCollapsed() || isMobileMenuOpen()) && (canViewUsers() || canViewRoles() || canViewCustomFields())">IAM & Настройки</div>
           <a *ngIf="canViewUsers()" routerLink="/iam/users" routerLinkActive="active" [attr.aria-current]="isRouteActive('/iam/users') ? 'page' : null" class="nav-item" title="Пользователи">
             <span class="material-symbols-outlined nav-icon" aria-hidden="true">people</span>
-            <span class="nav-label" *ngIf="!isCollapsed()">{{ 'nav.users' | t }}</span>
+            <span class="nav-label" *ngIf="!isCollapsed() || isMobileMenuOpen()">{{ 'nav.users' | t }}</span>
           </a>
           <a *ngIf="canViewRoles()" routerLink="/iam/roles" routerLinkActive="active" [attr.aria-current]="isRouteActive('/iam/roles') ? 'page' : null" class="nav-item" title="Роли и права">
             <span class="material-symbols-outlined nav-icon" aria-hidden="true">security</span>
-            <span class="nav-label" *ngIf="!isCollapsed()">{{ 'nav.roles' | t }}</span>
+            <span class="nav-label" *ngIf="!isCollapsed() || isMobileMenuOpen()">{{ 'nav.roles' | t }}</span>
           </a>
           <a *ngIf="canViewCustomFields()" routerLink="/iam/custom-fields" routerLinkActive="active" [attr.aria-current]="isRouteActive('/iam/custom-fields') ? 'page' : null" class="nav-item" title="Динамические поля">
             <span class="material-symbols-outlined nav-icon" aria-hidden="true">tune</span>
-            <span class="nav-label" *ngIf="!isCollapsed()">{{ 'nav.custom_fields' | t }}</span>
+            <span class="nav-label" *ngIf="!isCollapsed() || isMobileMenuOpen()">{{ 'nav.custom_fields' | t }}</span>
           </a>
 
           <!-- System -->
-          <div class="nav-section-title" *ngIf="!isCollapsed() && (canViewFiles() || canViewNotifications() || canViewAudit() || canViewSettings())">Система</div>
+          <div class="nav-section-title" *ngIf="(!isCollapsed() || isMobileMenuOpen()) && (canViewFiles() || canViewNotifications() || canViewAudit() || canViewSettings())">Система</div>
           <a *ngIf="canViewFiles()" routerLink="/files" routerLinkActive="active" [attr.aria-current]="isRouteActive('/files') ? 'page' : null" class="nav-item" title="Файловое хранилище">
             <span class="material-symbols-outlined nav-icon" aria-hidden="true">folder_open</span>
-            <span class="nav-label" *ngIf="!isCollapsed()">Файлы</span>
+            <span class="nav-label" *ngIf="!isCollapsed() || isMobileMenuOpen()">Файлы</span>
           </a>
           <a *ngIf="canViewNotifications()" routerLink="/notifications" routerLinkActive="active" [attr.aria-current]="isRouteActive('/notifications') ? 'page' : null" class="nav-item" title="Уведомления">
             <span class="material-symbols-outlined nav-icon" aria-hidden="true">notifications</span>
-            <span class="nav-label" *ngIf="!isCollapsed()">{{ 'nav.notifications' | t }}</span>
-            <span class="unread-chip" *ngIf="notifService.unreadCount() > 0 && !isCollapsed()">
+            <span class="nav-label" *ngIf="!isCollapsed() || isMobileMenuOpen()">{{ 'nav.notifications' | t }}</span>
+            <span class="unread-chip" *ngIf="notifService.unreadCount() > 0">
               {{ notifService.unreadCount() }}
             </span>
           </a>
           <a *ngIf="canViewAudit()" routerLink="/audit" routerLinkActive="active" [attr.aria-current]="isRouteActive('/audit') ? 'page' : null" class="nav-item" title="Аудит">
             <span class="material-symbols-outlined nav-icon" aria-hidden="true">history</span>
-            <span class="nav-label" *ngIf="!isCollapsed()">{{ 'nav.audit' | t }}</span>
+            <span class="nav-label" *ngIf="!isCollapsed() || isMobileMenuOpen()">{{ 'nav.audit' | t }}</span>
           </a>
           <a *ngIf="canViewSettings()" routerLink="/settings" routerLinkActive="active" [attr.aria-current]="isRouteActive('/settings') ? 'page' : null" class="nav-item" title="Настройки">
             <span class="material-symbols-outlined nav-icon" aria-hidden="true">settings</span>
-            <span class="nav-label" *ngIf="!isCollapsed()">{{ 'nav.settings' | t }}</span>
+            <span class="nav-label" *ngIf="!isCollapsed() || isMobileMenuOpen()">{{ 'nav.settings' | t }}</span>
           </a>
         </nav>
 
-
-
         <div class="sidebar-footer">
-          <a routerLink="/iam/profile" routerLinkActive="active" [attr.aria-current]="isRouteActive('/iam/profile') ? 'page' : null" class="user-profile-btn" title="Мой профиль">
+          <a routerLink="/iam/profile" routerLinkActive="active" [attr.aria-current]="isRouteActive('/iam/profile') ? 'page' : null" class="user-profile-btn" title="Мой профиль" (click)="closeMobileMenu()">
             <div class="avatar-circle">
               {{ getUserInitial() }}
             </div>
-            <div class="user-meta" *ngIf="!isCollapsed()">
+            <div class="user-meta" *ngIf="!isCollapsed() || isMobileMenuOpen()">
               <div class="user-name">{{ authService.currentUser()?.name }}</div>
               <div class="user-role">&#64;{{ authService.currentUser()?.login }}</div>
             </div>
@@ -113,6 +118,10 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
         <!-- Top Navigation -->
         <header class="topbar">
           <div class="topbar-left">
+            <button type="button" class="icon-btn mobile-menu-btn" aria-label="Открыть меню навигации" (click)="toggleMobileMenu()">
+              <span class="material-symbols-outlined" aria-hidden="true">{{ isMobileMenuOpen() ? 'close' : 'menu' }}</span>
+            </button>
+
             <button type="button" class="palette-trigger" aria-label="Открыть глобальный поиск" (click)="paletteService.open()">
               <span class="material-symbols-outlined" aria-hidden="true">search</span>
               <span class="trigger-text">Поиск...</span>
@@ -125,14 +134,14 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
             <div class="lang-selector">
               <button
                 type="button"
-                *ngFor="let lang of ['ru', 'uz', 'en']"
-                [class.active]="i18n.currentLang() === lang"
+                *ngFor="let lang of i18n.languages().slice(0, 3)"
+                [class.active]="i18n.currentLang() === lang.code"
                 class="lang-btn"
-                [attr.aria-label]="'Выбрать язык ' + lang.toUpperCase()"
-                [attr.aria-pressed]="i18n.currentLang() === lang"
-                (click)="i18n.setLanguage(asLang(lang))"
+                [attr.aria-label]="'Выбрать язык ' + lang.name"
+                [attr.aria-pressed]="i18n.currentLang() === lang.code"
+                (click)="i18n.setLanguage(lang.code)"
               >
-                {{ lang.toUpperCase() }}
+                {{ lang.code.toUpperCase() }}
               </button>
             </div>
 
@@ -531,6 +540,15 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
       padding: 20px;
     }
 
+    /* Mobile Drawer */
+    .mobile-menu-btn {
+      display: none;
+    }
+
+    .mobile-drawer-backdrop {
+      display: none;
+    }
+
     @media (max-width: 1023px) {
       .sidebar,
       .sidebar.collapsed {
@@ -551,6 +569,44 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
     }
 
     @media (max-width: 767px) {
+      .mobile-menu-btn {
+        display: inline-flex;
+        margin-right: 6px;
+      }
+
+      .mobile-drawer-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(3px);
+        z-index: 1100;
+        animation: fadeIn 0.15s ease-out;
+      }
+
+      .sidebar {
+        position: fixed;
+        left: -260px;
+        top: 0;
+        bottom: 0;
+        width: 250px !important;
+        z-index: 1200;
+        box-shadow: var(--shadow-overlay);
+        transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .sidebar.mobile-open {
+        left: 0;
+      }
+
+      .sidebar.mobile-open .brand-logo,
+      .sidebar.mobile-open .nav-label,
+      .sidebar.mobile-open .nav-section-title,
+      .sidebar.mobile-open .user-meta,
+      .sidebar.mobile-open .unread-chip {
+        display: flex !important;
+      }
+
       .topbar {
         padding-inline: 10px;
       }
@@ -577,6 +633,7 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
 })
 export class AppShellComponent implements OnInit, OnDestroy {
   readonly isCollapsed = signal<boolean>(false);
+  readonly isMobileMenuOpen = signal<boolean>(false);
 
   constructor(
     public authService: AuthService,
@@ -598,9 +655,16 @@ export class AppShellComponent implements OnInit, OnDestroy {
     this.notifService.disconnectSse();
   }
 
-
   toggleSidebar() {
     this.isCollapsed.update(v => !v);
+  }
+
+  toggleMobileMenu() {
+    this.isMobileMenuOpen.update(v => !v);
+  }
+
+  closeMobileMenu() {
+    this.isMobileMenuOpen.set(false);
   }
 
   isRouteActive(route: string, exact: boolean = false): boolean {
@@ -613,6 +677,10 @@ export class AppShellComponent implements OnInit, OnDestroy {
 
   canViewProjects(): boolean {
     return this.permService.canView('tasks.projects') || this.permService.canView('projects');
+  }
+
+  canViewAnalytics(): boolean {
+    return this.permService.canView('analytics.dashboard') || this.permService.canView('analytics');
   }
 
   canViewUsers(): boolean {

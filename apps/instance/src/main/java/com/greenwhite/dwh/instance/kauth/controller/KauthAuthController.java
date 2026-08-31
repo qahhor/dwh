@@ -103,7 +103,6 @@ public class KauthAuthController {
     }
 
     @GetMapping("/me")
-    @RequiresPermission(form = MdPref.FORM_PROFILE, action = "view")
     public ResponseEntity<MeResponse> me() {
         Long userId = SecurityContext.getCurrentUserId();
         if (userId == null) {

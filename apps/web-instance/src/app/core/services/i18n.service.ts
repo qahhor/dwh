@@ -234,27 +234,125 @@ const DICTIONARIES: Record<Language, Record<string, string>> = {
 };
 
 
+export interface LanguageInfo {
+  code: string;
+  name: string;
+  isCustom?: boolean;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class I18nService {
-  readonly currentLang = signal<Language>('ru');
+  private readonly customDictionaries: Record<string, Record<string, string>> = {};
+  readonly languages = signal<LanguageInfo[]>([
+    { code: 'ru', name: 'Русский' },
+    { code: 'uz', name: 'Oʻzbekcha' },
+    { code: 'en', name: 'English' },
+    { code: 'kk', name: 'Қазақша', isCustom: true },
+    { code: 'ky', name: 'Кыргызча', isCustom: true },
+    { code: 'tg', name: 'Тоҷикӣ', isCustom: true },
+    { code: 'de', name: 'Deutsch', isCustom: true },
+    { code: 'tr', name: 'Türkçe', isCustom: true }
+  ]);
+
+  readonly currentLang = signal<string>('ru');
 
   constructor() {
-    const saved = localStorage.getItem('dwh_lang') as Language;
-    if (saved && ['ru', 'uz', 'en'].includes(saved)) {
+    this.loadCustomLanguagesFromStorage();
+    const saved = localStorage.getItem('dwh_lang');
+    if (saved) {
       this.currentLang.set(saved);
     }
   }
 
-  setLanguage(lang: Language) {
+  setLanguage(lang: string) {
     this.currentLang.set(lang);
     localStorage.setItem('dwh_lang', lang);
   }
 
+  registerLanguage(code: string, name: string, dictionary: Record<string, string>) {
+    const cleanCode = code.toLowerCase().trim();
+    this.customDictionaries[cleanCode] = dictionary;
+
+    const current = this.languages();
+    if (!current.some(l => l.code === cleanCode)) {
+      this.languages.set([...current, { code: cleanCode, name, isCustom: true }]);
+    }
+
+    this.saveCustomLanguagesToStorage();
+  }
+
+  getDictionary(lang: string): Record<string, string> {
+    const safe = lang.toLowerCase().trim();
+    if (this.customDictionaries[safe]) {
+      return { ...DICTIONARIES['ru'], ...this.customDictionaries[safe] };
+    }
+    if (DICTIONARIES[safe as Language]) {
+      return DICTIONARIES[safe as Language];
+    }
+    return DICTIONARIES['ru'];
+  }
+
+  exportDictionary(lang: string): string {
+    return JSON.stringify(this.getDictionary(lang), null, 2);
+  }
+
+  importDictionary(code: string, name: string, jsonContent: string): boolean {
+    try {
+      const parsed = JSON.parse(jsonContent);
+      if (typeof parsed === 'object' && parsed !== null) {
+        this.registerLanguage(code, name, parsed);
+        return true;
+      }
+    } catch (e) {
+      console.error('Failed to import dictionary:', e);
+    }
+    return false;
+  }
+
   translate(key: string): string {
     const lang = this.currentLang();
-    return DICTIONARIES[lang]?.[key] || DICTIONARIES['ru']?.[key] || key;
+    if (this.customDictionaries[lang]?.[key]) {
+      return this.customDictionaries[lang][key];
+    }
+    const standard = DICTIONARIES[lang as Language];
+    if (standard?.[key]) {
+      return standard[key];
+    }
+    return DICTIONARIES['ru']?.[key] || key;
+  }
+
+  private loadCustomLanguagesFromStorage() {
+    try {
+      const raw = localStorage.getItem('dwh_custom_languages');
+      if (raw) {
+        const stored = JSON.parse(raw);
+        for (const [code, entry] of Object.entries<any>(stored)) {
+          this.customDictionaries[code] = entry.dict || {};
+          if (!this.languages().some(l => l.code === code)) {
+            this.languages.set([...this.languages(), { code, name: entry.name, isCustom: true }]);
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load custom languages:', e);
+    }
+  }
+
+  private saveCustomLanguagesToStorage() {
+    try {
+      const payload: Record<string, any> = {};
+      for (const lang of this.languages().filter(l => l.isCustom)) {
+        payload[lang.code] = {
+          name: lang.name,
+          dict: this.customDictionaries[lang.code] || {}
+        };
+      }
+      localStorage.setItem('dwh_custom_languages', JSON.stringify(payload));
+    } catch (e) {
+      console.error('Failed to save custom languages:', e);
+    }
   }
 }
 
