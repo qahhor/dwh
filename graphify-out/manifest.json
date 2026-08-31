@@ -1548,9 +1548,9 @@
     "semantic_hash": ""
   },
   ".github/workflows/ci.yml": {
-    "mtime": 1788203595.1133728,
-    "seen": 1788204022.2032104,
-    "ast_hash": "e1bf04578166152d8c347c068791e62a",
+    "mtime": 1788204918.614732,
+    "seen": 1788204933.4318252,
+    "ast_hash": "f255a4ee802bfd70bc98cc3c0c6f307e",
     "semantic_hash": ""
   },
   "AGENTS.md": {
