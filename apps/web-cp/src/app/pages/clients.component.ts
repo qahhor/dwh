@@ -1,7 +1,12 @@
 import { Component, OnInit, computed, inject, signal, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Client, CpApiService } from '../core/cp-api.service';
+import {
+  Client,
+  CpApiService,
+  InstanceEnrollment,
+  InstanceRegistrationRequest
+} from '../core/cp-api.service';
 import { dt, errorText } from '../core/format';
 import { UiPaginationComponent } from '../shared/ui-pagination.component';
 
@@ -39,20 +44,21 @@ type SortDir = 'asc' | 'desc';
     </div>
 
     <!-- Issued Token Banner -->
-    <div *ngIf="issuedToken()" class="alert alert-success" role="status" style="display: flex; flex-direction: column; align-items: flex-start; gap: 8px;">
+    <div *ngIf="issuedEnrollment() as enrollment" class="alert alert-success" role="status" style="display: flex; flex-direction: column; align-items: flex-start; gap: 8px;">
       <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
         <div style="font-weight: 700; display: flex; align-items: center; gap: 6px;">
           <span class="material-symbols-outlined">key</span>
-          <span>Heartbeat-токен экземпляра успешно сгенерирован</span>
+          <span>Одноразовый enrollment-токен создан</span>
         </div>
-        <button type="button" class="btn btn-sm btn-secondary" (click)="issuedToken.set('')">Закрыть</button>
+        <button type="button" class="btn btn-sm btn-secondary" (click)="dismissIssuedEnrollment()">Закрыть</button>
       </div>
       <div style="font-size: 12px; color: var(--text-main);">
-        Сохраните этот токен прямо сейчас — он отображается один раз. Пропишите его экземпляру в переменную <code>DWH_CP_HEARTBEAT_TOKEN</code>.
+        Передайте токен установщику по защищённому каналу. Он отображается один раз.
+        <span style="display: block; margin-top: 4px;">Действует до <strong>{{ dt(enrollment.expiresAt) }}</strong>.</span>
       </div>
       <div style="display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 4px;">
-        <code class="mono" style="background: var(--bg-surface); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); flex: 1; word-break: break-all; font-weight: 600;">{{ issuedToken() }}</code>
-        <button type="button" class="btn btn-secondary btn-sm" (click)="copyToken(issuedToken())">
+        <code class="mono" style="background: var(--bg-surface); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); flex: 1; word-break: break-all; font-weight: 600;">{{ enrollment.enrollmentToken }}</code>
+        <button type="button" class="btn btn-secondary btn-sm" (click)="copyToken(enrollment.enrollmentToken)">
           <span class="material-symbols-outlined" style="font-size: 16px;">{{ copied() ? 'check' : 'content_copy' }}</span>
           <span>{{ copied() ? 'Скопировано' : 'Копировать' }}</span>
         </button>
@@ -280,7 +286,7 @@ type SortDir = 'asc' | 'desc';
       <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="register-instance-title">
         <div class="modal-header">
           <h2 id="register-instance-title" class="modal-title">Регистрация экземпляра клиента</h2>
-          <button type="button" class="btn-icon" (click)="showRegisterModal = false" aria-label="Закрыть окно">
+          <button type="button" class="btn-icon" (click)="closeRegisterModal()" aria-label="Закрыть окно">
             <span class="material-symbols-outlined">close</span>
           </button>
         </div>
@@ -297,11 +303,54 @@ type SortDir = 'asc' | 'desc';
             </div>
             <div class="form-group">
               <label class="form-label" for="reg-env">Контур окружения *</label>
-              <select id="reg-env" name="regEnv" class="form-select" [(ngModel)]="instEnv">
+              <select id="reg-env" name="regEnv" class="form-select" [(ngModel)]="instEnv" required>
                 <option value="production">production — Промышленный контур</option>
                 <option value="staging">staging — Тестовый предпрод</option>
                 <option value="dev">dev — Разработка</option>
               </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="reg-mode">Режим размещения *</label>
+              <select
+                id="reg-mode"
+                name="regMode"
+                class="form-select"
+                [(ngModel)]="instDeploymentMode"
+                (ngModelChange)="applyDeploymentDefaults()"
+                required
+              >
+                <option value="MANAGED_CLOUD">Наше облако — управляется платформой</option>
+                <option value="CUSTOMER_HOSTED">Инфраструктура клиента</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="reg-jurisdiction">Юрисдикция *</label>
+              <input id="reg-jurisdiction" name="regJurisdiction" class="form-input"
+                     [(ngModel)]="instJurisdiction"
+                     [readOnly]="instDeploymentMode === 'MANAGED_CLOUD'" maxlength="64" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="reg-cloud">Облачный провайдер *</label>
+              <input id="reg-cloud" name="regCloud" class="form-input mono"
+                     [(ngModel)]="instCloudProvider"
+                     [readOnly]="instDeploymentMode === 'MANAGED_CLOUD'" maxlength="64" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="reg-storage">Объектное хранилище *</label>
+              <input id="reg-storage" name="regStorage" class="form-input mono"
+                     [(ngModel)]="instStorageProvider"
+                     [readOnly]="instDeploymentMode === 'MANAGED_CLOUD'" maxlength="64" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="reg-edge">Edge и защита</label>
+              <input id="reg-edge" name="regEdge" class="form-input mono"
+                     [(ngModel)]="instEdgeProvider"
+                     [readOnly]="instDeploymentMode === 'MANAGED_CLOUD'" maxlength="64" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="reg-support">Уровень поддержки *</label>
+              <input id="reg-support" name="regSupport" class="form-input mono"
+                     [(ngModel)]="instSupportTier" readOnly required />
             </div>
             <div class="form-group">
               <label class="form-label" for="reg-url">URL экземпляра *</label>
@@ -317,9 +366,9 @@ type SortDir = 'asc' | 'desc';
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" (click)="showRegisterModal = false">Отмена</button>
-            <button type="submit" class="btn btn-primary" [disabled]="busy() || !instClient || !instUrl">
-              {{ busy() ? 'Регистрируем...' : 'Сгенерировать токен' }}
+            <button type="button" class="btn btn-secondary" (click)="closeRegisterModal()">Отмена</button>
+            <button type="submit" class="btn btn-primary" [disabled]="busy() || !canRegisterInstance()">
+              {{ busy() ? 'Регистрируем...' : 'Создать enrollment' }}
             </button>
           </div>
         </form>
@@ -506,7 +555,7 @@ export class ClientsComponent implements OnInit {
   clients = signal<Client[]>([]);
   busy = signal(false);
   error = signal('');
-  issuedToken = signal('');
+  issuedEnrollment = signal<InstanceEnrollment | null>(null);
   copied = signal(false);
 
   searchQuery = '';
@@ -528,8 +577,14 @@ export class ClientsComponent implements OnInit {
   profile = 'S';
 
   instClient = '';
-  instEnv = 'production';
+  instEnv: InstanceRegistrationRequest['environment'] = 'production';
   instUrl = '';
+  instDeploymentMode: InstanceRegistrationRequest['deploymentMode'] = 'MANAGED_CLOUD';
+  instJurisdiction = 'EU';
+  instCloudProvider = 'HETZNER';
+  instStorageProvider = 'CLOUDFLARE_R2';
+  instEdgeProvider = 'CLOUDFLARE';
+  instSupportTier: InstanceRegistrationRequest['supportTier'] = 'MANAGED_995';
 
   dt = dt;
 
@@ -542,7 +597,7 @@ export class ClientsComponent implements OnInit {
   handleEscape(): void {
     if (this.selectedClient) this.closeDrawer();
     if (this.showCreateModal) this.showCreateModal = false;
-    if (this.showRegisterModal) this.showRegisterModal = false;
+    if (this.showRegisterModal) this.closeRegisterModal();
   }
 
   sortedAndFilteredClients(): Client[] {
@@ -614,6 +669,9 @@ export class ClientsComponent implements OnInit {
     this.instClient = c.code;
     this.instEnv = 'production';
     this.instUrl = '';
+    this.instDeploymentMode = 'MANAGED_CLOUD';
+    this.applyDeploymentDefaults();
+    this.dismissIssuedEnrollment();
     this.showRegisterModal = true;
   }
 
@@ -628,7 +686,42 @@ export class ClientsComponent implements OnInit {
     this.instClient = '';
     this.instEnv = 'production';
     this.instUrl = '';
+    this.instDeploymentMode = 'MANAGED_CLOUD';
+    this.applyDeploymentDefaults();
+    this.dismissIssuedEnrollment();
     this.showRegisterModal = true;
+  }
+
+  closeRegisterModal(): void {
+    this.showRegisterModal = false;
+    this.instUrl = '';
+  }
+
+  applyDeploymentDefaults(): void {
+    if (this.instDeploymentMode === 'MANAGED_CLOUD') {
+      this.instJurisdiction = 'EU';
+      this.instCloudProvider = 'HETZNER';
+      this.instStorageProvider = 'CLOUDFLARE_R2';
+      this.instEdgeProvider = 'CLOUDFLARE';
+      this.instSupportTier = 'MANAGED_995';
+      return;
+    }
+    this.instJurisdiction = '';
+    this.instCloudProvider = '';
+    this.instStorageProvider = '';
+    this.instEdgeProvider = '';
+    this.instSupportTier = 'CUSTOMER_HOSTED_SUPPORT';
+  }
+
+  canRegisterInstance(): boolean {
+    return Boolean(
+      this.instClient
+      && this.instUrl
+      && this.instJurisdiction.trim()
+      && this.instCloudProvider.trim()
+      && this.instStorageProvider.trim()
+      && this.instSupportTier
+    );
   }
 
   async load(): Promise<void> {
@@ -660,13 +753,23 @@ export class ClientsComponent implements OnInit {
   }
 
   async registerInstance(): Promise<void> {
-    if (!this.instClient || !this.instUrl) return;
+    if (!this.canRegisterInstance()) return;
     this.busy.set(true);
     try {
-      const resp = await this.api.registerInstance(this.instClient, this.instUrl.trim(), this.instEnv);
-      this.issuedToken.set(resp.heartbeatToken);
-      this.showRegisterModal = false;
-      this.instUrl = '';
+      const request: InstanceRegistrationRequest = {
+        clientCode: this.instClient,
+        environment: this.instEnv,
+        url: this.instUrl.trim(),
+        deploymentMode: this.instDeploymentMode,
+        jurisdiction: this.instJurisdiction.trim(),
+        cloudProvider: this.instCloudProvider.trim(),
+        storageProvider: this.instStorageProvider.trim(),
+        edgeProvider: this.instEdgeProvider.trim() || null,
+        supportTier: this.instSupportTier
+      };
+      const resp = await this.api.registerInstance(request);
+      this.issuedEnrollment.set(resp);
+      this.closeRegisterModal();
       await this.load();
     } catch (e) {
       this.error.set(errorText(e, 'Не удалось зарегистрировать экземпляр'));
@@ -683,5 +786,10 @@ export class ClientsComponent implements OnInit {
     } catch {
       // ignore
     }
+  }
+
+  dismissIssuedEnrollment(): void {
+    this.issuedEnrollment.set(null);
+    this.copied.set(false);
   }
 }

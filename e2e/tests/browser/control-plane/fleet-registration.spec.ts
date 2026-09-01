@@ -23,9 +23,14 @@ test('registers an isolated client and instance without retaining its token', as
   await page.getByRole('button', { name: 'Зарегистрировать экземпляр' }).click();
   const registerDialog = page.getByRole('dialog', { name: 'Регистрация экземпляра клиента' });
   await registerDialog.getByLabel('Клиент (организация)').selectOption(clientCode);
+  await registerDialog.getByLabel('Режим размещения').selectOption('MANAGED_CLOUD');
+  await expect(registerDialog.getByLabel('Облачный провайдер')).toHaveValue('HETZNER');
+  await expect(registerDialog.getByLabel('Объектное хранилище')).toHaveValue('CLOUDFLARE_R2');
+  await expect(registerDialog.getByLabel('Edge и защита')).toHaveValue('CLOUDFLARE');
   await registerDialog.getByLabel('URL экземпляра').fill(`https://${clientCode}.e2e.invalid`);
-  await registerDialog.getByRole('button', { name: 'Сгенерировать токен' }).click();
-  const tokenStatus = page.getByRole('status').filter({ hasText: 'Heartbeat-токен' });
+  await registerDialog.getByRole('button', { name: 'Создать enrollment' }).click();
+  const tokenStatus = page.getByRole('status').filter({ hasText: 'Одноразовый enrollment-токен' });
+  await expect(tokenStatus).toContainText('Действует до');
   await dismissSensitiveStatus(
     tokenStatus,
     tokenStatus.getByRole('button', { name: 'Закрыть' }),

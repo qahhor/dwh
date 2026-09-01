@@ -18,6 +18,24 @@ export interface FleetResponse {
 
 export interface Client { id: number; code: string; name: string; resourceProfile: string; createdAt: string; }
 
+export interface InstanceRegistrationRequest {
+  clientCode: string;
+  environment: 'production' | 'staging' | 'dev';
+  url: string;
+  deploymentMode: 'MANAGED_CLOUD' | 'CUSTOMER_HOSTED';
+  jurisdiction: string;
+  cloudProvider: string;
+  storageProvider: string;
+  edgeProvider: string | null;
+  supportTier: 'MANAGED_995' | 'CUSTOMER_HOSTED_SUPPORT';
+}
+
+export interface InstanceEnrollment {
+  instanceId: number;
+  enrollmentToken: string;
+  expiresAt: string;
+}
+
 export interface BackupCheck {
   id: number; clientCode: string; success: boolean;
   durationSec: number; details: string | null; verifiedAt: string;
@@ -72,10 +90,10 @@ export class CpApiService {
       { code, name, resourceProfile }, { withCredentials: true }));
   }
 
-  async registerInstance(clientCode: string, url: string, environment: string): Promise<{ instanceId: number; heartbeatToken: string }> {
+  async registerInstance(request: InstanceRegistrationRequest): Promise<InstanceEnrollment> {
     return firstValueFrom(
-      this.http.post<{ instanceId: number; heartbeatToken: string }>(
-        '/api/v1/instances', { clientCode, url, environment }, { withCredentials: true }));
+      this.http.post<InstanceEnrollment>(
+        '/api/v1/instances', request, { withCredentials: true }));
   }
 
   async updateInstanceStatus(instanceId: number, status: string): Promise<void> {

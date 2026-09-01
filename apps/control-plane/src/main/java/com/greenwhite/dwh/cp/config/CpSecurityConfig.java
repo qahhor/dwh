@@ -1,6 +1,7 @@
 package com.greenwhite.dwh.cp.config;
 
 import com.greenwhite.dwh.cp.pref.CpPref;
+import com.greenwhite.dwh.cp.instance.CpInstanceAuthFilter;
 import com.greenwhite.dwh.cp.security.CpAuthEntryPoint;
 import com.greenwhite.dwh.cp.security.CpAuthFilter;
 import com.greenwhite.dwh.cp.security.CpSpaCsrfHandler;
@@ -10,6 +11,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -33,8 +35,7 @@ public class CpSecurityConfig implements WebMvcConfigurer {
 
     private static final String[] PUBLIC_PATHS = {
             "/api/v1/auth/login",
-            "/api/v1/instances/heartbeat",  // экземпляры шлют со своим токеном
-            "/api/v1/instances/backup-report",
+            "/api/v1/instances/enroll",
             "/error"
     };
 
@@ -51,6 +52,7 @@ public class CpSecurityConfig implements WebMvcConfigurer {
 
     @Bean
     SecurityFilterChain cpFilterChain(HttpSecurity http, CpAuthFilter authFilter,
+                                      CpInstanceAuthFilter instanceAuthFilter,
                                       CpAuthEntryPoint entryPoint) throws Exception {
         http
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -62,6 +64,10 @@ public class CpSecurityConfig implements WebMvcConfigurer {
                         .ignoringRequestMatchers(CpSecurityConfig::noSessionCookie))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_PATHS).permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/instances/heartbeat").hasRole("INSTANCE")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/instances/backup-reports").hasRole("INSTANCE")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/instances/desired-state").hasRole("INSTANCE")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/instances/credentials/rotate").hasRole("INSTANCE")
                         .requestMatchers("/actuator/**").permitAll()  // отдельный порт, наружу не публикуется
                         .anyRequest().authenticated())
                 .httpBasic(b -> b.disable())
@@ -76,7 +82,8 @@ public class CpSecurityConfig implements WebMvcConfigurer {
                         .addHeaderWriter(new StaticHeadersWriter(
                                 "Permissions-Policy", "geolocation=(), camera=(), microphone=()")))
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(entryPoint))
-                .addFilterAfter(authFilter, SecurityContextHolderFilter.class);
+                .addFilterAfter(authFilter, SecurityContextHolderFilter.class)
+                .addFilterBefore(instanceAuthFilter, AuthorizationFilter.class);
 
         return http.build();
     }
@@ -85,6 +92,14 @@ public class CpSecurityConfig implements WebMvcConfigurer {
     @Bean
     FilterRegistrationBean<CpAuthFilter> cpAuthFilterAutoRegistrationDisabled(CpAuthFilter filter) {
         FilterRegistrationBean<CpAuthFilter> reg = new FilterRegistrationBean<>(filter);
+        reg.setEnabled(false);
+        return reg;
+    }
+
+    @Bean
+    FilterRegistrationBean<CpInstanceAuthFilter> cpInstanceAuthFilterAutoRegistrationDisabled(
+            CpInstanceAuthFilter filter) {
+        FilterRegistrationBean<CpInstanceAuthFilter> reg = new FilterRegistrationBean<>(filter);
         reg.setEnabled(false);
         return reg;
     }

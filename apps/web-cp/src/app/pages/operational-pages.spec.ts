@@ -73,4 +73,48 @@ describe('Control Plane operational pages', () => {
     expect(clients.nativeElement.querySelector('#new-client-code').required).toBe(true);
     expect(announcements.nativeElement.querySelector('#ann-title').required).toBe(true);
   });
+
+  it('registers an explicit managed placement and removes enrollment secret on dismiss', async () => {
+    const enrollment = {
+      instanceId: 42,
+      enrollmentToken: 'one-time-enrollment-secret',
+      expiresAt: '2026-09-01T00:15:00Z'
+    };
+    api.clients.mockResolvedValueOnce([{
+      id: 7,
+      code: 'alpha',
+      name: 'Alpha',
+      resourceProfile: 'S',
+      createdAt: '2026-09-01T00:00:00Z'
+    }]);
+    api.registerInstance.mockResolvedValueOnce(enrollment);
+    await configure();
+    const clients = create(ClientsComponent);
+    await clients.whenStable();
+    clients.componentInstance.openRegisterModal();
+    clients.componentInstance.instClient = 'alpha';
+    clients.componentInstance.instUrl = 'https://alpha.invalid';
+
+    await clients.componentInstance.registerInstance();
+
+    expect(api.registerInstance).toHaveBeenCalledWith({
+      clientCode: 'alpha',
+      environment: 'production',
+      url: 'https://alpha.invalid',
+      deploymentMode: 'MANAGED_CLOUD',
+      jurisdiction: 'EU',
+      cloudProvider: 'HETZNER',
+      storageProvider: 'CLOUDFLARE_R2',
+      edgeProvider: 'CLOUDFLARE',
+      supportTier: 'MANAGED_995'
+    });
+    clients.detectChanges();
+    expect(clients.nativeElement.textContent).toContain('Одноразовый enrollment-токен');
+    expect(clients.nativeElement.textContent).toContain('one-time-enrollment-secret');
+    expect(clients.nativeElement.textContent).toContain('Действует до');
+
+    clients.componentInstance.dismissIssuedEnrollment();
+    clients.detectChanges();
+    expect(clients.nativeElement.textContent).not.toContain('one-time-enrollment-secret');
+  });
 });

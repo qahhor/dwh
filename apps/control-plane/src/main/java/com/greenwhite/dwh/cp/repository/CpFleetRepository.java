@@ -58,29 +58,6 @@ public class CpFleetRepository {
                 .single();
     }
 
-    // ------------------------------------------------------------ экземпляры
-
-    public Long createInstance(Long clientId, String environment, String url, String heartbeatTokenHash) {
-        return jdbc.sql("""
-                        insert into cp_instances (client_id, environment, url, heartbeat_token_hash)
-                        values (:clientId, :env, :url, :hash)
-                        returning id
-                        """)
-                .param("clientId", clientId)
-                .param("env", environment)
-                .param("url", url)
-                .param("hash", heartbeatTokenHash)
-                .query(Long.class)
-                .single();
-    }
-
-    public Optional<Long> findInstanceByHeartbeatToken(String tokenHash) {
-        return jdbc.sql("select id from cp_instances where heartbeat_token_hash = :hash")
-                .param("hash", tokenHash)
-                .query(Long.class)
-                .optional();
-    }
-
     /**
      * Флот с вычисленным состоянием: DOWN, если heartbeat не приходил дольше
      * таймаута. Состояние считается запросом, а не хранится — иначе оно
@@ -194,18 +171,6 @@ public class CpFleetRepository {
                         rs.getString("details"),
                         rs.getTimestamp("verified_at").toInstant()))
                 .list();
-    }
-
-    public void recordBackupCheck(Long clientId, boolean success, int durationSec, String details) {
-        jdbc.sql("""
-                        insert into cp_backup_verifications (client_id, is_success, check_duration_sec, details)
-                        values (:clientId, :success, :dur, :details)
-                        """)
-                .param("clientId", clientId)
-                .param("success", success)
-                .param("dur", durationSec)
-                .param("details", details)
-                .update();
     }
 
     private static CpClient mapClient(ResultSet rs, int rowNum) throws SQLException {

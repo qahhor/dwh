@@ -1,14 +1,22 @@
 package com.greenwhite.dwh.cp.controller;
 
 import com.greenwhite.dwh.cp.pref.CpPref;
+import com.greenwhite.dwh.cp.instance.CpInstanceCredentialService;
+import com.greenwhite.dwh.cp.instance.CpInstanceDeploymentMode;
+import com.greenwhite.dwh.cp.instance.CpInstanceRegistrationService;
 import com.greenwhite.dwh.cp.repository.CpFleetRepository;
-import com.greenwhite.dwh.cp.security.CpPasswordHasher;
 import com.greenwhite.dwh.cp.security.CpRequiresRole;
+import com.greenwhite.dwh.cp.security.CpSecurityContext;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -16,8 +24,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.security.SecureRandom;
-import java.util.Base64;
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
@@ -26,12 +33,16 @@ import java.util.Map;
 @RequestMapping("/api/v1")
 public class CpFleetController {
 
-    private static final SecureRandom RANDOM = new SecureRandom();
-
     private final CpFleetRepository fleetRepository;
+    private final CpInstanceRegistrationService registrationService;
+    private final CpInstanceCredentialService credentialService;
 
-    public CpFleetController(CpFleetRepository fleetRepository) {
+    public CpFleetController(CpFleetRepository fleetRepository,
+                             CpInstanceRegistrationService registrationService,
+                             CpInstanceCredentialService credentialService) {
         this.fleetRepository = fleetRepository;
+        this.registrationService = registrationService;
+        this.credentialService = credentialService;
     }
 
     // ------------------------------------------------------------- клиенты
@@ -45,7 +56,7 @@ public class CpFleetController {
     @PostMapping("/clients")
     @CpRequiresRole({CpPref.ROLE_ADMIN})
     @Transactional
-    public ResponseEntity<Map<String, Object>> createClient(@RequestBody CreateClientDto body) {
+    public ResponseEntity<Map<String, Object>> createClient(@Valid @RequestBody CreateClientDto body) {
         if (fleetRepository.findClientByCode(body.code()).isPresent()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Клиент с таким кодом уже существует");
         }
@@ -56,29 +67,32 @@ public class CpFleetController {
 
     // ---------------------------------------------------------- экземпляры
 
-    /**
-     * Регистрация экземпляра. Возвращает heartbeat-токен — единственный раз,
-     * как и любой токен в системе: в БД хранится только его hash.
-     */
     @PostMapping("/instances")
     @CpRequiresRole({CpPref.ROLE_ADMIN})
-    @Transactional
-    public ResponseEntity<Map<String, Object>> registerInstance(@RequestBody RegisterInstanceDto body) {
-        var client = fleetRepository.findClientByCode(body.clientCode())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Клиент не найден"));
+    public ResponseEntity<CpInstanceCredentialService.IssuedEnrollment> registerInstance(
+            @Valid @RequestBody RegisterInstanceDto body) {
+        var enrollment = registrationService.register(
+                new CpInstanceRegistrationService.RegistrationCommand(
+                        body.clientCode(),
+                        body.environment(),
+                        body.url(),
+                        body.deploymentMode(),
+                        body.jurisdiction(),
+                        body.cloudProvider(),
+                        body.storageProvider(),
+                        body.edgeProvider(),
+                        body.supportTier()),
+                requireOperatorId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(enrollment);
+    }
 
-        byte[] bytes = new byte[32];
-        RANDOM.nextBytes(bytes);
-        String rawToken = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-
-        Long id = fleetRepository.createInstance(client.id(),
-                body.environment() != null ? body.environment() : "production",
-                body.url(), CpPasswordHasher.sha256(rawToken));
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
-                "instanceId", id,
-                "heartbeatToken", rawToken,
-                "note", "Токен показывается один раз — сохраните его в конфигурации экземпляра"));
+    @PostMapping("/instances/{instanceId}/credentials/{credentialId}/revoke")
+    @CpRequiresRole({CpPref.ROLE_ADMIN})
+    public ResponseEntity<Void> revokeCredential(
+            @PathVariable long instanceId,
+            @PathVariable long credentialId) {
+        credentialService.revoke(instanceId, credentialId, requireOperatorId());
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/fleet")
@@ -105,14 +119,32 @@ public class CpFleetController {
     @Transactional
     public ResponseEntity<Map<String, Object>> updateStatus(
             @org.springframework.web.bind.annotation.PathVariable("id") Long id,
-            @RequestBody UpdateStatusDto body) {
+            @Valid @RequestBody UpdateStatusDto body) {
         fleetRepository.updateInstanceStatus(id, body.status());
         return ResponseEntity.ok(Map.of("instanceId", id, "status", body.status()));
     }
 
     public record CreateClientDto(@NotBlank String code, @NotBlank String name, String resourceProfile) {}
 
-    public record RegisterInstanceDto(@NotBlank String clientCode, String environment, @NotBlank String url) {}
+    public record RegisterInstanceDto(
+            @NotBlank String clientCode,
+            @NotBlank @Pattern(regexp = "production|staging|dev") String environment,
+            @NotNull URI url,
+            @NotNull CpInstanceDeploymentMode deploymentMode,
+            @NotBlank @Size(max = 64) String jurisdiction,
+            @NotBlank @Size(max = 64) String cloudProvider,
+            @NotBlank @Size(max = 64) String storageProvider,
+            @Size(max = 64) String edgeProvider,
+            @NotBlank @Size(max = 64) String supportTier) {
+    }
 
     public record UpdateStatusDto(@NotBlank String status) {}
+
+    private static long requireOperatorId() {
+        Long userId = CpSecurityContext.currentUserId();
+        if (userId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Требуется вход в control plane");
+        }
+        return userId;
+    }
 }

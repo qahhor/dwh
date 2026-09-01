@@ -5,6 +5,9 @@ server:
 spring:
   application:
     name: dwh-control-plane
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
   threads:
     virtual:
       enabled: true
