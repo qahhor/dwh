@@ -41,6 +41,19 @@ export interface BackupCheck {
   durationSec: number; details: string | null; verifiedAt: string;
 }
 
+export interface InstanceBackupReport {
+  backupId: string;
+  instanceId: number;
+  clientCode: string;
+  artifactStatus: 'UPLOADED' | 'VERIFIED' | 'FAILED';
+  checksumSha256: string | null;
+  durationSec: number;
+  reasonCode: string | null;
+  completedAt: string;
+  receivedAt: string;
+  verifiedAt: string | null;
+}
+
 export interface AnnouncementContent { language: string; title: string; body: string; }
 
 export interface Announcement {
@@ -104,6 +117,11 @@ export class CpApiService {
 
   backupChecks() {
     return firstValueFrom(this.http.get<BackupCheck[]>('/api/v1/backup-checks', { withCredentials: true }));
+  }
+
+  backupReports() {
+    return firstValueFrom(this.http.get<InstanceBackupReport[]>(
+      '/api/v1/backup-reports', { withCredentials: true }));
   }
 
   announcements() {

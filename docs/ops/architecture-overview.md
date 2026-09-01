@@ -1,6 +1,6 @@
 # Обзор архитектуры для эксплуатации
 
-**Версия:** 1.0 · **Дата:** 2026-08-28
+**Версия:** 1.1 · **Дата:** 2026-09-01
 **Назначение:** карта системы для дежурного и администратора — что из чего состоит,
 куда идут данные, где искать причину. Проектные обоснования — в ADR-0001…0012.
 
@@ -71,6 +71,34 @@ PostgreSQL; триггер пишет в `audit_log`. Доменное собы�
 | SMS-шлюз | исходящее | не доставляются OTP по SMS |
 | Prometheus | входящее на 9090 | пропадают метрики, работа не нарушается |
 
+### 3.1. Граница доверия Fleet Foundation
+
+```text
+Operator session + CSRF                  Runtime credential
+┌──────────────────────┐             ┌────────────────────────┐
+│ Control Plane UI/API │◀────────────│ isolated client instance│
+│                      │ heartbeat   │                        │
+│ release → target     │ backup      │ no inbound CP access   │
+│ audit + deployment   │ desired     │ no arbitrary commands  │
+└──────────────────────┘             └────────────────────────┘
+          │                                      │
+          │ managed policy                       │ customer-hosted policy
+          ▼                                      ▼
+ Hetzner + Cloudflare edge/R2        client-selected compatible providers
+```
+
+Оператор регистрирует placement и получает одноразовый enrollment token на 15
+минут. Instance обменивает его один раз и далее аутентифицируется runtime credential
+в `X-Instance-Token`. Control Plane получает instance identity только из credential,
+а не из `instanceId`/`clientCode` в body. Target декларативен: release digest,
+config version и maintenance window; shell-команды в контракт не входят.
+
+Для управляемой инфраструктуры утверждена связка Hetzner + Cloudflare edge +
+Cloudflare R2. На инфраструктуре клиента допускается выбранный клиентом S3-compatible
+provider после compatibility suite. Текущий Compose всё ещё использует локальный
+`appdata`: runtime S3 adapter и migration этого тома в данном срезе не реализованы,
+поэтому наличие provider metadata ещё не подтверждает перенос файлов в R2.
+
 ## 4. Состояние: что где хранится
 
 | Данные | Где | Переживает пересоздание контейнера |
@@ -125,7 +153,7 @@ curl -s -o /dev/null -w '%{http_code}\n' http://<внешний-адрес>:8080
 |---|---|
 | Docker Compose на одном узле | Nomad + Consul + Vault, кворум из трёх узлов |
 | Секреты в `.env` | Vault, ротация, изоляция путей по клиентам |
-| Файлы на диске узла | Garage (S3-совместимое) |
+| Файлы на диске узла | managed: Cloudflare R2; customer-hosted: совместимый S3 provider клиента |
 | Локальные логи | Alloy → Loki, сквозной `trace_id` |
 | Бэкап `pg_dump` без проверки | базовый + WAL, шифрование, ежемесячная автопроверка каждого экземпляра |
 | Обновление вручную | кольца R0→R1→R2 с canary и авто-откатом |

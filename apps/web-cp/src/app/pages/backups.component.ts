@@ -1,7 +1,7 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { BackupCheck, CpApiService } from '../core/cp-api.service';
+import { BackupCheck, CpApiService, InstanceBackupReport } from '../core/cp-api.service';
 import { dt, errorText } from '../core/format';
 
 type BackupSortCol = 'clientCode' | 'success' | 'durationSec' | 'verifiedAt';
@@ -17,10 +17,10 @@ type SortDir = 'asc' | 'desc';
       <div class="header-left">
         <div>
           <div style="display: flex; align-items: center; gap: 10px;">
-            <h1 class="view-title">Проверка бэкапов</h1>
-            <span class="count-badge">{{ checks().length }}</span>
+            <h1 class="view-title">Резервные копии</h1>
+            <span class="count-badge">{{ reports().length }}</span>
           </div>
-          <p class="view-desc">Журнал автоматических тестовых восстановлений баз данных экземпляров</p>
+          <p class="view-desc">Артефакты резервного копирования и отдельный журнал тестовых восстановлений</p>
         </div>
       </div>
 
@@ -38,11 +38,83 @@ type SortDir = 'asc' | 'desc';
       <span>{{ error() }}</span>
     </div>
 
+    <section class="artifact-section" data-testid="backup-artifact-reports" aria-labelledby="artifact-heading">
+      <div class="section-header">
+        <div>
+          <h2 id="artifact-heading" class="section-heading">Артефакты резервных копий</h2>
+          <p class="section-copy">
+            «Загружен» подтверждает только приём артефакта. Готовность к восстановлению подтверждает статус «Проверен».
+          </p>
+        </div>
+        <div class="artifact-summary" aria-label="Сводка статусов артефактов">
+          <span class="badge badge-warning">Загружено: {{ uploadedReportCount() }}</span>
+          <span class="badge badge-success">Проверено: {{ verifiedReportCount() }}</span>
+          <span class="badge badge-danger">Ошибок: {{ failedReportCount() }}</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="table-scroll" role="region" aria-label="Таблица артефактов резервных копий" tabindex="0">
+          <table aria-label="Артефакты резервных копий">
+            <thead>
+              <tr>
+                <th>Клиент</th>
+                <th>Экземпляр</th>
+                <th>Состояние артефакта</th>
+                <th>Длительность</th>
+                <th>Контрольная сумма</th>
+                <th>Завершён</th>
+                <th>Получен</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let report of reports(); trackBy: trackByBackupId">
+                <td>
+                  <span class="mono badge badge-neutral artifact-client">{{ report.clientCode }}</span>
+                </td>
+                <td class="tabular-nums mono artifact-secondary">#{{ report.instanceId }}</td>
+                <td>
+                  <span class="badge" [ngClass]="artifactStatusClass(report.artifactStatus)">
+                    {{ artifactStatusLabel(report.artifactStatus) }}
+                  </span>
+                  <div *ngIf="report.reasonCode" class="artifact-reason">
+                    Код причины: <span class="mono">{{ report.reasonCode }}</span>
+                  </div>
+                </td>
+                <td class="tabular-nums mono artifact-secondary">{{ report.durationSec }} сек</td>
+                <td class="mono artifact-secondary">{{ checksumFingerprint(report.checksumSha256) }}</td>
+                <td class="artifact-secondary">{{ dt(report.completedAt) }}</td>
+                <td class="artifact-secondary">{{ dt(report.receivedAt) }}</td>
+              </tr>
+              <tr *ngIf="reports().length === 0 && !busy()">
+                <td colspan="7" class="empty">
+                  <div class="empty-stack">
+                    <span class="material-symbols-outlined empty-icon" aria-hidden="true">inventory_2</span>
+                    <span>Отчёты об артефактах ещё не поступали.</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section data-testid="restore-verification-checks" aria-labelledby="restore-heading">
+      <div class="section-header restore-header">
+        <div>
+          <h2 id="restore-heading" class="section-heading">Тестовые восстановления</h2>
+          <p class="section-copy">Независимая проверка возможности восстановить базу данных из резервной копии.</p>
+        </div>
+      </div>
+
     <!-- KPI Metric Cards (Interactive) -->
     <div class="tiles">
-      <div
+      <button
+        type="button"
         class="tile clickable-tile"
         [class.active-tile]="selectedFilter === 'all'"
+        [attr.aria-pressed]="selectedFilter === 'all'"
         (click)="selectedFilter = 'all'"
         title="Все проверки"
       >
@@ -51,11 +123,13 @@ type SortDir = 'asc' | 'desc';
           <span class="tile-value">{{ checks().length }}</span>
           <span class="material-symbols-outlined tile-hint-icon">history</span>
         </div>
-      </div>
+      </button>
 
-      <div
+      <button
+        type="button"
         class="tile clickable-tile"
         [class.active-tile]="selectedFilter === 'success'"
+        [attr.aria-pressed]="selectedFilter === 'success'"
         (click)="selectedFilter = 'success'"
         title="Только успешные восстановления"
       >
@@ -64,12 +138,14 @@ type SortDir = 'asc' | 'desc';
           <span class="tile-value" style="color: var(--success);">{{ successCount() }}</span>
           <span class="material-symbols-outlined tile-hint-icon" style="color: var(--success);">check_circle</span>
         </div>
-      </div>
+      </button>
 
-      <div
+      <button
+        type="button"
         class="tile clickable-tile"
         [class.tile-alarm]="failureCount() > 0"
         [class.active-tile]="selectedFilter === 'failed'"
+        [attr.aria-pressed]="selectedFilter === 'failed'"
         (click)="selectedFilter = 'failed'"
         title="Только сбои"
       >
@@ -78,7 +154,7 @@ type SortDir = 'asc' | 'desc';
           <span class="tile-value">{{ failureCount() }}</span>
           <span class="material-symbols-outlined tile-hint-icon">{{ failureCount() > 0 ? 'error' : 'shield' }}</span>
         </div>
-      </div>
+      </button>
     </div>
 
     <!-- Toolbar -->
@@ -142,30 +218,38 @@ type SortDir = 'asc' | 'desc';
         <table aria-label="Проверки бэкапов">
           <thead>
             <tr>
-              <th class="sortable-th" (click)="setSort('clientCode')">
-                <span>Клиент</span>
-                <span class="material-symbols-outlined sort-icon" *ngIf="sortCol === 'clientCode'">
-                  {{ sortDir === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
-                </span>
+              <th class="sortable-th" [attr.aria-sort]="sortAria('clientCode')">
+                <button type="button" class="sort-button" (click)="setSort('clientCode')">
+                  <span>Клиент</span>
+                  <span class="material-symbols-outlined sort-icon" *ngIf="sortCol === 'clientCode'" aria-hidden="true">
+                    {{ sortDir === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
+                  </span>
+                </button>
               </th>
-              <th class="sortable-th" (click)="setSort('success')">
-                <span>Результат восстановления</span>
-                <span class="material-symbols-outlined sort-icon" *ngIf="sortCol === 'success'">
-                  {{ sortDir === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
-                </span>
+              <th class="sortable-th" [attr.aria-sort]="sortAria('success')">
+                <button type="button" class="sort-button" (click)="setSort('success')">
+                  <span>Результат восстановления</span>
+                  <span class="material-symbols-outlined sort-icon" *ngIf="sortCol === 'success'" aria-hidden="true">
+                    {{ sortDir === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
+                  </span>
+                </button>
               </th>
-              <th class="sortable-th" (click)="setSort('durationSec')">
-                <span>Длительность</span>
-                <span class="material-symbols-outlined sort-icon" *ngIf="sortCol === 'durationSec'">
-                  {{ sortDir === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
-                </span>
+              <th class="sortable-th" [attr.aria-sort]="sortAria('durationSec')">
+                <button type="button" class="sort-button" (click)="setSort('durationSec')">
+                  <span>Длительность</span>
+                  <span class="material-symbols-outlined sort-icon" *ngIf="sortCol === 'durationSec'" aria-hidden="true">
+                    {{ sortDir === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
+                  </span>
+                </button>
               </th>
               <th>Детали</th>
-              <th class="sortable-th" (click)="setSort('verifiedAt')">
-                <span>Дата и время проверки</span>
-                <span class="material-symbols-outlined sort-icon" *ngIf="sortCol === 'verifiedAt'">
-                  {{ sortDir === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
-                </span>
+              <th class="sortable-th" [attr.aria-sort]="sortAria('verifiedAt')">
+                <button type="button" class="sort-button" (click)="setSort('verifiedAt')">
+                  <span>Дата и время проверки</span>
+                  <span class="material-symbols-outlined sort-icon" *ngIf="sortCol === 'verifiedAt'" aria-hidden="true">
+                    {{ sortDir === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
+                  </span>
+                </button>
               </th>
             </tr>
           </thead>
@@ -195,10 +279,72 @@ type SortDir = 'asc' | 'desc';
         </table>
       </div>
     </div>
+    </section>
   `,
   styles: [`
+    .artifact-section {
+      margin-bottom: 32px;
+    }
+    .section-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin: 0 0 12px;
+    }
+    .restore-header {
+      margin-top: 4px;
+    }
+    .section-heading {
+      margin: 0;
+      color: var(--text-main);
+      font-size: 17px;
+      font-weight: 700;
+    }
+    .section-copy {
+      max-width: 760px;
+      margin: 4px 0 0;
+      color: var(--text-muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .artifact-summary {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+    .artifact-client {
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .artifact-secondary {
+      color: var(--text-muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .artifact-reason {
+      margin-top: 5px;
+      color: var(--danger);
+      font-size: 11px;
+    }
+    .empty-stack {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    .empty-icon {
+      color: var(--text-light);
+      font-size: 36px;
+    }
     .clickable-tile {
+      appearance: none;
+      width: 100%;
       cursor: pointer;
+      color: inherit;
+      font: inherit;
+      text-align: left;
       user-select: none;
     }
     .clickable-tile:hover {
@@ -219,13 +365,26 @@ type SortDir = 'asc' | 'desc';
     }
 
     .sortable-th {
-      cursor: pointer;
-      user-select: none;
       transition: background-color 0.1s ease;
     }
-    .sortable-th:hover {
+    .sortable-th:has(.sort-button:hover),
+    .sortable-th:has(.sort-button:focus-visible) {
       background-color: var(--border-color);
       color: var(--text-main);
+    }
+    .sort-button {
+      appearance: none;
+      display: inline-flex;
+      align-items: center;
+      width: 100%;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+      font: inherit;
+      font-weight: inherit;
+      text-align: left;
     }
     .sort-icon {
       font-size: 14px;
@@ -240,12 +399,21 @@ type SortDir = 'asc' | 'desc';
       from { transform: rotate(0deg); }
       to { transform: rotate(360deg); }
     }
+    @media (max-width: 760px) {
+      .section-header {
+        flex-direction: column;
+      }
+      .artifact-summary {
+        justify-content: flex-start;
+      }
+    }
   `]
 })
 export class BackupsComponent implements OnInit {
   private api = inject(CpApiService);
 
   checks = signal<BackupCheck[]>([]);
+  reports = signal<InstanceBackupReport[]>([]);
   busy = signal(false);
   error = signal('');
   searchQuery = '';
@@ -258,6 +426,12 @@ export class BackupsComponent implements OnInit {
 
   successCount = computed(() => this.checks().filter(c => c.success).length);
   failureCount = computed(() => this.checks().filter(c => !c.success).length);
+  uploadedReportCount = computed(() => this.reports().filter(
+    report => report.artifactStatus === 'UPLOADED').length);
+  verifiedReportCount = computed(() => this.reports().filter(
+    report => report.artifactStatus === 'VERIFIED').length);
+  failedReportCount = computed(() => this.reports().filter(
+    report => report.artifactStatus === 'FAILED').length);
 
   sortedAndFilteredChecks(): BackupCheck[] {
     const q = this.searchQuery.trim().toLowerCase();
@@ -296,6 +470,33 @@ export class BackupsComponent implements OnInit {
     return item.id;
   }
 
+  trackByBackupId(index: number, item: InstanceBackupReport): string {
+    return item.backupId;
+  }
+
+  artifactStatusLabel(status: InstanceBackupReport['artifactStatus']): string {
+    switch (status) {
+      case 'UPLOADED': return 'Загружен, не проверен';
+      case 'VERIFIED': return 'Проверен';
+      case 'FAILED': return 'Ошибка загрузки';
+    }
+  }
+
+  artifactStatusClass(status: InstanceBackupReport['artifactStatus']): string {
+    switch (status) {
+      case 'UPLOADED': return 'badge-warning';
+      case 'VERIFIED': return 'badge-success';
+      case 'FAILED': return 'badge-danger';
+    }
+  }
+
+  checksumFingerprint(checksum: string | null): string {
+    if (!checksum) return '—';
+    return checksum.length > 24
+      ? `${checksum.slice(0, 12)}…${checksum.slice(-8)}`
+      : checksum;
+  }
+
   setSort(col: BackupSortCol): void {
     if (this.sortCol === col) {
       this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc';
@@ -305,13 +506,23 @@ export class BackupsComponent implements OnInit {
     }
   }
 
+  sortAria(col: BackupSortCol): 'ascending' | 'descending' | null {
+    if (this.sortCol !== col) return null;
+    return this.sortDir === 'asc' ? 'ascending' : 'descending';
+  }
+
   async load(): Promise<void> {
     this.busy.set(true);
     try {
-      this.checks.set(await this.api.backupChecks());
+      const [reports, checks] = await Promise.all([
+        this.api.backupReports(),
+        this.api.backupChecks()
+      ]);
+      this.reports.set(reports);
+      this.checks.set(checks);
       this.error.set('');
     } catch (e) {
-      this.error.set(errorText(e, 'Не удалось загрузить журнал проверок'));
+      this.error.set(errorText(e, 'Не удалось загрузить данные о резервных копиях'));
     } finally {
       this.busy.set(false);
     }

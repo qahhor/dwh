@@ -185,13 +185,21 @@ curl -fsS http://127.0.0.1:8080/api/v1/auth/login -X POST -H 'Content-Type: appl
    название, профиль ресурсов.
 3. **Регистрация экземпляра**: клиент, контур (`production` / `staging`),
    внешний адрес экземпляра.
-4. Панель покажет **heartbeat-токен один раз** — в базе хранится только его
-   hash, повторно посмотреть нельзя. Скопируйте его сразу.
-5. Впишите в `.env` экземпляра и перезапустите приложение:
+4. Панель покажет **одноразовый enrollment token** и срок действия. Это ещё не
+   runtime credential: token действует 15 минут и уничтожается первым успешным
+   обменом через `POST /api/v1/instances/enroll`.
+5. Передайте enrollment token защищённому bootstrap-процессу в памяти. Не
+   записывайте его в `.env`, shell history, URL или логи. Bootstrap-процесс должен
+   сохранить только поле `credential` из ответа enrollment в secret-хранилище.
+   Полный request/response-контракт приведён в
+   [Control Plane Instance API v1](../api/control-plane-instance-v1.md).
+6. В текущем Compose имя переменной сохранено для обратной совместимости:
+   `DWH_CP_HEARTBEAT_TOKEN` содержит именно **runtime credential**, а не enrollment
+   token. Заполните конфигурацию экземпляра и перезапустите приложение:
 
 ```bash
 DWH_CP_URL=https://cp.smartup.uz
-DWH_CP_HEARTBEAT_TOKEN=<токен из панели>
+DWH_CP_HEARTBEAT_TOKEN=<runtime credential из enrollment response>
 DWH_CP_HEARTBEAT_INTERVAL=5m
 ```
 
@@ -199,9 +207,12 @@ DWH_CP_HEARTBEAT_INTERVAL=5m
 Через минуту экземпляр появляется на вкладке **Флот** в состоянии
 «работает» с фактической версией приложения и схемы.
 
-Токен потерян — зарегистрируйте экземпляр заново и замените значение в `.env`;
-старая запись останется в реестре со статусом «недоступен», её удаляет
-администратор платформы.
+Runtime credential ротируется через `POST /api/v1/instances/credentials/rotate`:
+новое значение сохраняется до перезапуска, затем старое отзывается оператором.
+Overlap старого и нового credential — 24 часа. Публичного endpoint повторной выдачи
+enrollment для существующего instance в текущем срезе нет: потеря обоих runtime
+credentials требует операторского recovery и не должна маскироваться повторным
+использованием старого enrollment token.
 
 ### Шаг 7. Обязательные действия после первого запуска
 

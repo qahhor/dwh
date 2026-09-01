@@ -13,6 +13,7 @@ describe('Control Plane operational pages', () => {
     fleet: vi.fn().mockResolvedValue({ items: [], total: 0, problems: 0, heartbeatTimeoutMinutes: 10 }),
     clients: vi.fn().mockResolvedValue([]),
     backupChecks: vi.fn().mockResolvedValue([]),
+    backupReports: vi.fn().mockResolvedValue([]),
     announcements: vi.fn().mockResolvedValue([]),
     createClient: vi.fn(),
     registerInstance: vi.fn(),
@@ -116,5 +117,84 @@ describe('Control Plane operational pages', () => {
     clients.componentInstance.dismissIssuedEnrollment();
     clients.detectChanges();
     expect(clients.nativeElement.textContent).not.toContain('one-time-enrollment-secret');
+  });
+
+  it('separates backup artifact state from restore verification without exposing links', async () => {
+    api.backupReports.mockResolvedValueOnce([
+      {
+        backupId: '11111111-1111-1111-1111-111111111111',
+        instanceId: 42,
+        clientCode: 'alpha',
+        artifactStatus: 'UPLOADED',
+        checksumSha256: null,
+        durationSec: 17,
+        reasonCode: null,
+        completedAt: '2026-09-01T08:00:00Z',
+        receivedAt: '2026-09-01T08:00:05Z',
+        verifiedAt: null
+      },
+      {
+        backupId: '22222222-2222-2222-2222-222222222222',
+        instanceId: 43,
+        clientCode: 'beta',
+        artifactStatus: 'VERIFIED',
+        checksumSha256: 'a'.repeat(64),
+        durationSec: 21,
+        reasonCode: null,
+        completedAt: '2026-09-01T09:00:00Z',
+        receivedAt: '2026-09-01T09:00:05Z',
+        verifiedAt: '2026-09-01T09:00:06Z'
+      },
+      {
+        backupId: '33333333-3333-3333-3333-333333333333',
+        instanceId: 44,
+        clientCode: 'gamma',
+        artifactStatus: 'FAILED',
+        checksumSha256: null,
+        durationSec: 8,
+        reasonCode: 'upload_timeout',
+        completedAt: '2026-09-01T10:00:00Z',
+        receivedAt: '2026-09-01T10:00:05Z',
+        verifiedAt: null
+      }
+    ]);
+    await configure();
+    const backups = create(BackupsComponent);
+    await backups.whenStable();
+    backups.detectChanges();
+
+    const artifactSection = backups.nativeElement.querySelector(
+      '[data-testid="backup-artifact-reports"]') as HTMLElement;
+    const restoreSection = backups.nativeElement.querySelector(
+      '[data-testid="restore-verification-checks"]') as HTMLElement;
+
+    expect(artifactSection).not.toBeNull();
+    expect(restoreSection).not.toBeNull();
+    expect(artifactSection.textContent).toContain('Загружен, не проверен');
+    expect(artifactSection.textContent).toContain('Проверен');
+    expect(artifactSection.textContent).toContain('Ошибка загрузки');
+    expect(artifactSection.textContent).toContain('upload_timeout');
+    expect(artifactSection.querySelectorAll('a')).toHaveLength(0);
+    expect(artifactSection.innerHTML).not.toContain('href=');
+  });
+
+  it('makes backup filters and sortable columns keyboard-operable', async () => {
+    await configure();
+    const backups = create(BackupsComponent);
+    await backups.whenStable();
+    backups.detectChanges();
+
+    const filterButtons = Array.from(
+      backups.nativeElement.querySelectorAll('.clickable-tile')) as HTMLButtonElement[];
+    const sortButtons = Array.from(
+      backups.nativeElement.querySelectorAll('th.sortable-th button')) as HTMLButtonElement[];
+
+    expect(filterButtons).toHaveLength(3);
+    expect(filterButtons.every(button => button.tagName === 'BUTTON')).toBe(true);
+    expect(filterButtons.every(button => button.type === 'button')).toBe(true);
+    expect(filterButtons.map(button => button.getAttribute('aria-pressed')))
+      .toEqual(['true', 'false', 'false']);
+    expect(sortButtons).toHaveLength(4);
+    expect(sortButtons.every(button => button.type === 'button')).toBe(true);
   });
 });

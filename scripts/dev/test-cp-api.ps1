@@ -61,135 +61,198 @@ function Get-CpCsrfHeaders {
     return @{ "X-XSRF-TOKEN" = $token }
 }
 
-# 4. List Clients
-Write-Host "`n4. List Clients (GET /api/v1/clients)..." -ForegroundColor Yellow
-$clients = Invoke-RestMethod -Uri "$CpBaseUrl/api/v1/clients" -Method Get -WebSession $cpSession
-Write-Host "   Existing Clients count: $($clients.Count)" -ForegroundColor Green
-
-# 5. Create New Client
-$randClient = Get-Random -Minimum 1000 -Maximum 9999
-$clientCode = "client_$randClient"
-Write-Host "`n5. Create New Client '$clientCode' (POST /api/v1/clients)..." -ForegroundColor Yellow
-$clientBody = @{
-    code = $clientCode
-    name = "Enterprise Client $randClient Corp"
-    resourceProfile = "M"
-} | ConvertTo-Json
-
-$newClient = Invoke-RestMethod -Uri "$CpBaseUrl/api/v1/clients" -Method Post -Body $clientBody -ContentType "application/json" -WebSession $cpSession -Headers (Get-CpCsrfHeaders)
-Write-Host "   Client Created: ID=$($newClient.id), Code=$($newClient.code)" -ForegroundColor Green
-
-# 6. Register New Instance for Client
-Write-Host "`n6. Register Instance for '$clientCode' (POST /api/v1/instances)..." -ForegroundColor Yellow
-$instanceBody = @{
-    clientCode = $clientCode
-    environment = "production"
-    url = "https://$clientCode.dwh.internal"
-} | ConvertTo-Json
-
-$newInstance = Invoke-RestMethod -Uri "$CpBaseUrl/api/v1/instances" -Method Post -Body $instanceBody -ContentType "application/json" -WebSession $cpSession -Headers (Get-CpCsrfHeaders)
-Write-Host "   Instance Registered: ID=$($newInstance.instanceId)" -ForegroundColor Green
-Write-Host "   One-time heartbeat token kept in memory for the verification request" -ForegroundColor Green
-
-# 7. Ingest Heartbeat from Instance
-Write-Host "`n7. Ingest Heartbeat (POST /api/v1/instances/heartbeat with X-Instance-Token)..." -ForegroundColor Yellow
-$heartbeatHeaders = @{
-    "X-Instance-Token" = $newInstance.heartbeatToken
-}
-$heartbeatBody = @{
-    appVersion = "1.0.0-PROD"
-    schemaVersion = "009"
-    metrics = @{
-        usersCount = 150
-        tasksCount = 3400
-        storageBytes = 10737418240
-        memoryUsedMb = 512
-        cpuPercent = 14.5
-    }
-} | ConvertTo-Json
-
-Invoke-RestMethod -Uri "$CpBaseUrl/api/v1/instances/heartbeat" -Method Post -Body $heartbeatBody -ContentType "application/json" -Headers $heartbeatHeaders | Out-Null
-Write-Host "   Heartbeat ingested successfully for instance $($newInstance.instanceId)" -ForegroundColor Green
-
-
-# 8. List Fleet Status & Dashboard Metrics
-Write-Host "`n8. Fleet Overview & Monitoring (GET /api/v1/fleet)..." -ForegroundColor Yellow
-$fleet = Invoke-RestMethod -Uri "$CpBaseUrl/api/v1/fleet" -Method Get -WebSession $cpSession
-Write-Host "   Fleet Summary: Total Instances=$($fleet.total), Problems=$($fleet.problems), Timeout=$($fleet.heartbeatTimeoutMinutes)m" -ForegroundColor Green
-foreach ($item in $fleet.items) {
-    Write-Host "     - [$($item.health)] Client='$($item.clientCode)' ($($item.clientName)), Env=$($item.environment), Version=$($item.appVersion), Heartbeat=$($item.lastHeartbeatAt)" -ForegroundColor Gray
-}
-
-# 9. Create and Publish Global Announcement
-Write-Host "`n9. Global Announcements (POST /api/v1/announcements and /publish)..." -ForegroundColor Yellow
-$announcementBody = @{
-    bannerType = "warning"
-    targetClientIds = @($newClient.id)
-    contents = @(
-        @{
-            language = "ru"
-            title = "Scheduled Platform Maintenance RU"
-            body = "Maintenance window on Sunday 02:00 to 04:00 UTC."
-        },
-        @{
-            language = "uz"
-            title = "Scheduled Platform Maintenance UZ"
-            body = "Profilaktika ishlari yakshanba kuni soat 02:00 dan 04:00 gacha."
-        },
-        @{
-            language = "en"
-            title = "Scheduled Platform Maintenance EN"
-            body = "Maintenance window is scheduled for Sunday 02:00 - 04:00 UTC."
-        }
+function Invoke-ExpectStatus {
+    param(
+        [Parameter(Mandatory = $true)][string]$Uri,
+        [Parameter(Mandatory = $true)][string]$Method,
+        [Parameter(Mandatory = $true)][int]$ExpectedStatus,
+        [string]$Body,
+        [hashtable]$Headers,
+        $WebSession
     )
-} | ConvertTo-Json -Depth 5
 
-$announcement = Invoke-RestMethod -Uri "$CpBaseUrl/api/v1/announcements" -Method Post -Body $announcementBody -ContentType "application/json" -WebSession $cpSession -Headers (Get-CpCsrfHeaders)
-Write-Host "   Announcement Created: ID=$($announcement.id), State=$($announcement.state)" -ForegroundColor Green
+    $request = @{
+        Uri = $Uri
+        Method = $Method
+        UseBasicParsing = $true
+        ErrorAction = "Stop"
+    }
+    if ($Body) {
+        $request.Body = $Body
+        $request.ContentType = "application/json"
+    }
+    if ($Headers) { $request.Headers = $Headers }
+    if ($WebSession) { $request.WebSession = $WebSession }
 
-Invoke-RestMethod -Uri "$CpBaseUrl/api/v1/announcements/$($announcement.id)/publish" -Method Post -WebSession $cpSession -Headers (Get-CpCsrfHeaders)
-Write-Host "   Announcement $($announcement.id) published successfully" -ForegroundColor Green
-
-$announcementsList = Invoke-RestMethod -Uri "$CpBaseUrl/api/v1/announcements" -Method Get -WebSession $cpSession
-Write-Host "   Active Announcements count: $($announcementsList.Count)" -ForegroundColor Green
-
-Invoke-RestMethod -Uri "$CpBaseUrl/api/v1/announcements/$($announcement.id)/archive" -Method Post -WebSession $cpSession -Headers (Get-CpCsrfHeaders) | Out-Null
-$archivedAnnouncement = (Invoke-RestMethod -Uri "$CpBaseUrl/api/v1/announcements" -Method Get -WebSession $cpSession) |
-    Where-Object { $_.id -eq $announcement.id } |
-    Select-Object -First 1
-if (-not $archivedAnnouncement -or $archivedAnnouncement.state -ne "archived") {
-    throw "Announcement $($announcement.id) was not archived after verification"
-}
-Write-Host "   Announcement $($announcement.id) archived after verification" -ForegroundColor Green
-
-# 10. Custom Modules Fleet Moderation (M19 SDK Moderation)
-Write-Host "`n10. Custom Modules Fleet Moderation (GET /api/v1/moderation/modules & /approve)..." -ForegroundColor Yellow
-
-# 10.1 List module submissions in Control Plane
-$modSubmissions = Invoke-RestMethod -Uri "$CpBaseUrl/api/v1/moderation/modules" -Method Get -WebSession $cpSession
-Write-Host "   Existing Module Submissions in Control Plane: $($modSubmissions.Count)" -ForegroundColor Green
-
-# 10.2 Create moderation ticket in CP DB directly/via mock submission
-$testTicketId = "TICKET-CP-$(Get-Random -Minimum 1000 -Maximum 9999)"
-$moderationRecord = @{
-    clientCode = "dev-local"
-    instanceId = $newInst.id
-    moduleCode = "crm_leads_$(Get-Random -Minimum 100 -Maximum 999)"
-    name = "CRM Leads Module"
-    version = "1.0.0"
-    description = "Enterprise CRM Leads & Contacts Integration"
-    category = "crm"
-    icon = "user-check"
-    routePath = "/custom/crm-leads"
-    entrypointUrl = "https://cdn.enterprise.local/modules/crm/main.js"
-    permissionsJson = '[{"action":"view","name":"VIEW_LEADS"},{"action":"manage","name":"MANAGE_LEADS"}]'
-    settingsSchemaJson = '{}'
+    $actualStatus = 0
+    try {
+        $response = Invoke-WebRequest @request
+        $actualStatus = [int]$response.StatusCode
+    } catch {
+        if (-not $_.Exception.Response) { throw }
+        $actualStatus = [int]$_.Exception.Response.StatusCode
+    }
+    if ($actualStatus -ne $ExpectedStatus) {
+        throw "Expected HTTP $ExpectedStatus from $Method $Uri, received $actualStatus"
+    }
 }
 
-$connStr = "Host=localhost;Port=5432;Database=dwh_control_plane;Username=dwh;Password=dwh"
-# Or let's test via direct list & verify endpoint response structure
-Write-Host "   CP Module Moderation API verified: Listing & Structure OK" -ForegroundColor Green
+function New-SmokeClient {
+    param([Parameter(Mandatory = $true)][string]$Code)
+    $body = @{
+        code = $Code
+        name = "Fleet smoke $Code"
+        resourceProfile = "S"
+    } | ConvertTo-Json
+    return Invoke-RestMethod -Uri "$CpBaseUrl/api/v1/clients" -Method Post `
+        -Body $body -ContentType "application/json" -WebSession $cpSession `
+        -Headers (Get-CpCsrfHeaders)
+}
+
+function Register-ManagedInstance {
+    param([Parameter(Mandatory = $true)][string]$ClientCode)
+    $hostLabel = $ClientCode.Replace('_', '-')
+    $body = @{
+        clientCode = $ClientCode
+        environment = "production"
+        url = "https://$hostLabel.invalid"
+        deploymentMode = "MANAGED_CLOUD"
+        jurisdiction = "EU"
+        cloudProvider = "HETZNER"
+        storageProvider = "CLOUDFLARE_R2"
+        edgeProvider = "CLOUDFLARE"
+        supportTier = "MANAGED_995"
+    } | ConvertTo-Json
+    return Invoke-RestMethod -Uri "$CpBaseUrl/api/v1/instances" -Method Post `
+        -Body $body -ContentType "application/json" -WebSession $cpSession `
+        -Headers (Get-CpCsrfHeaders)
+}
+
+$runSuffix = [Guid]::NewGuid().ToString("N").Substring(0, 8)
+$clientCodeA = "smoke_a_$runSuffix"
+$clientCodeB = "smoke_b_$runSuffix"
+
+# 4. Create client A and register instance A
+Write-Host "`n4. Create client A and register a managed instance..." -ForegroundColor Yellow
+$clientA = New-SmokeClient -Code $clientCodeA
+$enrollmentA = Register-ManagedInstance -ClientCode $clientCodeA
+if (-not $clientA.id -or -not $enrollmentA.instanceId -or
+    -not $enrollmentA.enrollmentToken -or -not $enrollmentA.expiresAt) {
+    throw "Client A registration did not return the expected enrollment contract"
+}
+Write-Host "   Client A and instance A registered; enrollment secret retained only in memory" -ForegroundColor Green
+
+# 5. Exchange one-time enrollment token
+Write-Host "`n5. Exchange the one-time enrollment token..." -ForegroundColor Yellow
+$enrollBodyA = @{ enrollmentToken = $enrollmentA.enrollmentToken } | ConvertTo-Json
+$runtimeA = Invoke-RestMethod -Uri "$CpBaseUrl/api/v1/instances/enroll" -Method Post `
+    -Body $enrollBodyA -ContentType "application/json"
+if ($runtimeA.instanceId -ne $enrollmentA.instanceId -or -not $runtimeA.credential) {
+    throw "Enrollment exchange did not return the expected runtime credential contract"
+}
+$runtimeHeadersA = @{ "X-Instance-Token" = $runtimeA.credential }
+Write-Host "   Enrollment exchanged; runtime credential retained only in memory" -ForegroundColor Green
+
+# 6. Prove enrollment replay fails closed
+Write-Host "`n6. Reject replay of the consumed enrollment token..." -ForegroundColor Yellow
+Invoke-ExpectStatus -Uri "$CpBaseUrl/api/v1/instances/enroll" -Method Post `
+    -ExpectedStatus 401 -Body $enrollBodyA
+Write-Host "   Replayed enrollment token rejected with HTTP 401" -ForegroundColor Green
+
+# 7. Send typed heartbeat
+Write-Host "`n7. Send typed heartbeat with the runtime credential..." -ForegroundColor Yellow
+$heartbeatBody = @{
+    appVersion = "1.0.0-smoke"
+    schemaVersion = "006"
+    releaseVersion = "1.0.0-smoke"
+    configVersion = "smoke-1"
+    components = @{
+        app = "UP"
+        database = "UP"
+        typesense = "UP"
+        objectStorage = "UP"
+    }
+    storage = @{
+        usedBytes = 1073741824
+        quotaBytes = 10737418240
+    }
+    backup = @{
+        lastCompletedAt = [DateTimeOffset]::UtcNow.AddMinutes(-5).ToString("o")
+        status = "UPLOADED"
+    }
+    agents = @{
+        tunnel = "UP"
+        telemetry = "UP"
+    }
+    deploymentState = "IDLE"
+    capacity = @{
+        activeUsers = 3
+        outboxPending = 0
+        outboxDeadLetter = 0
+    }
+} | ConvertTo-Json -Depth 6
+$heartbeat = Invoke-RestMethod -Uri "$CpBaseUrl/api/v1/instances/heartbeat" -Method Post `
+    -Body $heartbeatBody -ContentType "application/json" -Headers $runtimeHeadersA
+if (-not $heartbeat.accepted -or $heartbeat.instanceId -ne $enrollmentA.instanceId) {
+    throw "Typed heartbeat response did not match instance A"
+}
+Write-Host "   Typed heartbeat accepted for instance A" -ForegroundColor Green
+
+# 8. Create client B and register instance B for the cross-client negative path
+Write-Host "`n8. Create isolated client B and instance B..." -ForegroundColor Yellow
+$clientB = New-SmokeClient -Code $clientCodeB
+$enrollmentB = Register-ManagedInstance -ClientCode $clientCodeB
+if (-not $clientB.id -or -not $enrollmentB.instanceId -or
+    -not $enrollmentB.enrollmentToken -or -not $enrollmentB.expiresAt) {
+    throw "Client B registration did not return the expected enrollment contract"
+}
+Write-Host "   Client B and instance B registered independently" -ForegroundColor Green
+
+# 9. Record a valid backup report as instance A and verify the operator projection
+Write-Host "`n9. Record and verify an instance-bound backup report..." -ForegroundColor Yellow
+$backupIdA = [Guid]::NewGuid()
+$backupBodyA = @{
+    backupId = $backupIdA
+    status = "UPLOADED"
+    checksumSha256 = ('a' * 64 -join '')
+    durationSec = 19
+    completedAt = [DateTimeOffset]::UtcNow.AddMinutes(-1).ToString("o")
+    reasonCode = $null
+} | ConvertTo-Json
+Invoke-ExpectStatus -Uri "$CpBaseUrl/api/v1/instances/backup-reports" -Method Post `
+    -ExpectedStatus 202 -Body $backupBodyA -Headers $runtimeHeadersA
+$reports = Invoke-RestMethod -Uri "$CpBaseUrl/api/v1/backup-reports?limit=100" `
+    -Method Get -WebSession $cpSession
+$storedReport = $reports | Where-Object {
+    $_.backupId -eq $backupIdA.ToString()
+} | Select-Object -First 1
+if (-not $storedReport -or $storedReport.instanceId -ne $enrollmentA.instanceId -or
+    $storedReport.clientCode -ne $clientCodeA -or $storedReport.artifactStatus -ne "UPLOADED") {
+    throw "Backup report was not projected under instance A ownership"
+}
+Write-Host "   Backup report persisted and projected under client A" -ForegroundColor Green
+
+# 10. Prove caller identity wins over a cross-client body
+Write-Host "`n10. Reject a cross-client backup body submitted with credential A..." -ForegroundColor Yellow
+$crossClientBody = @{
+    backupId = [Guid]::NewGuid()
+    status = "UPLOADED"
+    checksumSha256 = ('b' * 64 -join '')
+    durationSec = 20
+    completedAt = [DateTimeOffset]::UtcNow.AddMinutes(-1).ToString("o")
+    reasonCode = $null
+    clientCode = $clientCodeB
+} | ConvertTo-Json
+Invoke-ExpectStatus -Uri "$CpBaseUrl/api/v1/instances/backup-reports" -Method Post `
+    -ExpectedStatus 400 -Body $crossClientBody -Headers $runtimeHeadersA
+Write-Host "   Cross-client body rejected with HTTP 400" -ForegroundColor Green
+
+# 11. No target means an explicit 204, not an invented desired state
+Write-Host "`n11. Verify desired state before assignment..." -ForegroundColor Yellow
+Invoke-ExpectStatus -Uri "$CpBaseUrl/api/v1/instances/desired-state" -Method Get `
+    -ExpectedStatus 204 -Headers $runtimeHeadersA
+Write-Host "   Desired-state endpoint returned HTTP 204 before assignment" -ForegroundColor Green
 
 Write-Host "`n============================================================" -ForegroundColor Cyan
-Write-Host "  All Control Plane and Fleet Scenarios Passed Successfully! " -ForegroundColor Cyan
+Write-Host "  Secure Control Plane instance contract passed successfully  " -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
