@@ -1,6 +1,7 @@
 package com.greenwhite.dwh.cp.instance;
 
 import com.greenwhite.dwh.cp.error.CpApiException;
+import com.greenwhite.dwh.cp.instance.api.CpBackupReportRequest;
 import com.greenwhite.dwh.cp.instance.api.CpCredentialRotationResponse;
 import com.greenwhite.dwh.cp.instance.api.CpEnrollmentRequest;
 import com.greenwhite.dwh.cp.instance.api.CpEnrollmentResponse;
@@ -8,6 +9,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,9 +20,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class CpInstanceApiController {
 
     private final CpInstanceCredentialService credentials;
+    private final CpBackupReportService backupReports;
 
-    public CpInstanceApiController(CpInstanceCredentialService credentials) {
+    public CpInstanceApiController(CpInstanceCredentialService credentials,
+                                   CpBackupReportService backupReports) {
         this.credentials = credentials;
+        this.backupReports = backupReports;
     }
 
     @PostMapping("/enroll")
@@ -46,5 +51,13 @@ public class CpInstanceApiController {
                 issued.instanceId(),
                 issued.credential(),
                 issued.previousValidUntil()));
+    }
+
+    @PostMapping("/backup-reports")
+    public ResponseEntity<Void> recordBackup(
+            @AuthenticationPrincipal CpInstancePrincipal principal,
+            @Valid @RequestBody CpBackupReportRequest request) {
+        backupReports.recordBackup(principal, request);
+        return ResponseEntity.accepted().build();
     }
 }

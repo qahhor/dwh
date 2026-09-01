@@ -33,7 +33,7 @@ public class CpProblemDetailsHandler {
     })
     ResponseEntity<ProblemBody> handleValidation(Exception error, HttpServletRequest request) {
         return problem(
-                HttpStatus.UNPROCESSABLE_CONTENT,
+                HttpStatus.BAD_REQUEST,
                 "validation_failed",
                 "Request validation failed",
                 request);

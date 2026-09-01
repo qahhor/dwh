@@ -1,9 +1,10 @@
 package com.greenwhite.dwh.cp.controller;
 
-import com.greenwhite.dwh.cp.pref.CpPref;
+import com.greenwhite.dwh.cp.instance.CpBackupReportRepository;
 import com.greenwhite.dwh.cp.instance.CpInstanceCredentialService;
 import com.greenwhite.dwh.cp.instance.CpInstanceDeploymentMode;
 import com.greenwhite.dwh.cp.instance.CpInstanceRegistrationService;
+import com.greenwhite.dwh.cp.pref.CpPref;
 import com.greenwhite.dwh.cp.repository.CpFleetRepository;
 import com.greenwhite.dwh.cp.security.CpRequiresRole;
 import com.greenwhite.dwh.cp.security.CpSecurityContext;
@@ -36,13 +37,16 @@ public class CpFleetController {
     private final CpFleetRepository fleetRepository;
     private final CpInstanceRegistrationService registrationService;
     private final CpInstanceCredentialService credentialService;
+    private final CpBackupReportRepository backupReportRepository;
 
     public CpFleetController(CpFleetRepository fleetRepository,
                              CpInstanceRegistrationService registrationService,
-                             CpInstanceCredentialService credentialService) {
+                             CpInstanceCredentialService credentialService,
+                             CpBackupReportRepository backupReportRepository) {
         this.fleetRepository = fleetRepository;
         this.registrationService = registrationService;
         this.credentialService = credentialService;
+        this.backupReportRepository = backupReportRepository;
     }
 
     // ------------------------------------------------------------- клиенты
@@ -112,6 +116,14 @@ public class CpFleetController {
     public ResponseEntity<List<CpFleetRepository.CpBackupCheck>> backupChecks(
             @RequestParam(name = "limit", defaultValue = "50") int limit) {
         return ResponseEntity.ok(fleetRepository.listBackupChecks(Math.min(limit, 500)));
+    }
+
+    @GetMapping("/backup-reports")
+    @CpRequiresRole({CpPref.ROLE_ENGINEER, CpPref.ROLE_ADMIN})
+    public ResponseEntity<List<CpBackupReportRepository.BackupReportView>> backupReports(
+            @RequestParam(name = "limit", defaultValue = "50") int limit) {
+        int boundedLimit = Math.max(1, Math.min(limit, 500));
+        return ResponseEntity.ok(backupReportRepository.listReports(boundedLimit));
     }
 
     @org.springframework.web.bind.annotation.PutMapping("/instances/{id}/status")
