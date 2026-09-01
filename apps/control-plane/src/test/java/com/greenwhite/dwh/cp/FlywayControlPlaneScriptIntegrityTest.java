@@ -1,37 +1,26 @@
 package com.greenwhite.dwh.cp;
 
-import org.junit.jupiter.api.DisplayName;
+import com.greenwhite.dwh.cp.support.CpPostgresIntegrationSupport;
 import org.junit.jupiter.api.Test;
-import org.springframework.core.io.ClassPathResource;
-
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class FlywayControlPlaneScriptIntegrityTest {
+class FlywayControlPlaneScriptIntegrityTest extends CpPostgresIntegrationSupport {
 
     @Test
-    @DisplayName("Файл миграции V001__init_cp_schema.sql должен присутствовать в classpath и содержать все таблицы CP")
-    void shouldVerifyCpMigrationScriptIntegrity() throws Exception {
-        ClassPathResource resource = new ClassPathResource("db/migration/V001__init_cp_schema.sql");
-        assertThat(resource.exists()).isTrue();
+    void appliesEveryControlPlaneMigrationToAnEmptyPostgresSchema() {
+        cleanAndMigrateTo("6");
 
-        try (InputStream is = resource.getInputStream()) {
-            String sql = new String(is.readAllBytes(), StandardCharsets.UTF_8);
-
-            assertThat(sql)
-                    .contains("create table cp_clients")
-                    .contains("create table cp_instances")
-                    .contains("create table cp_instance_heartbeats")
-                    .contains("create table cp_licenses")
-                    .contains("create table cp_backup_verifications")
-                    .contains("create table cp_announcements")
-                    .contains("create table cp_announcement_targets")
-                    .contains("create table cp_announcement_contents")
-                    .contains("create table cp_users")
-                    .contains("create table cp_roles")
-                    .contains("create table cp_user_roles");
-        }
+        assertThat(jdbc().sql("""
+                        select version
+                        from flyway_schema_history
+                        where success
+                        order by installed_rank desc
+                        limit 1
+                        """)
+                .query(String.class)
+                .single()).isEqualTo("006");
+        assertThat(tableExists("cp_releases")).isTrue();
+        assertThat(tableExists("cp_audit_events")).isTrue();
     }
 }
