@@ -53,9 +53,9 @@ import { CpApiService } from '../core/cp-api.service';
             <span class="nav-label" *ngIf="!isCollapsed() || isMobileMenuOpen()">Модерация модулей</span>
           </a>
 
-          <a routerLink="/backups" routerLinkActive="active" class="nav-item" title="Бэкапы">
+          <a routerLink="/backups" routerLinkActive="active" class="nav-item" title="Резервные копии">
             <span class="material-symbols-outlined nav-icon" aria-hidden="true">history</span>
-            <span class="nav-label" *ngIf="!isCollapsed() || isMobileMenuOpen()">Проверка бэкапов</span>
+            <span class="nav-label" *ngIf="!isCollapsed() || isMobileMenuOpen()">Резервные копии</span>
           </a>
 
           <a routerLink="/announcements" routerLinkActive="active" class="nav-item" title="Объявления">

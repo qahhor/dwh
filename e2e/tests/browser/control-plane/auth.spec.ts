@@ -21,7 +21,7 @@ test('admin can navigate operational pages and log out without browser errors', 
     ['/fleet', 'Флот экземпляров'],
     ['/clients', 'Клиенты и Организации'],
     ['/modules', 'Модерация пользовательских модулей'],
-    ['/backups', 'Проверка бэкапов'],
+    ['/backups', 'Резервные копии'],
     ['/announcements', 'Системные объявления'],
   ] as const;
 
