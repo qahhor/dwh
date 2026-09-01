@@ -24,22 +24,26 @@ public class CpTargetService {
     private final CpTargetRepository repository;
     private final CpReleaseService releaseService;
     private final CpAuditRepository auditRepository;
+    private final CpDeploymentService deploymentService;
     private final Clock clock;
 
     @Autowired
     public CpTargetService(CpTargetRepository repository,
                            CpReleaseService releaseService,
-                           CpAuditRepository auditRepository) {
-        this(repository, releaseService, auditRepository, Clock.systemUTC());
+                           CpAuditRepository auditRepository,
+                           CpDeploymentService deploymentService) {
+        this(repository, releaseService, auditRepository, deploymentService, Clock.systemUTC());
     }
 
     CpTargetService(CpTargetRepository repository,
                     CpReleaseService releaseService,
                     CpAuditRepository auditRepository,
+                    CpDeploymentService deploymentService,
                     Clock clock) {
         this.repository = repository;
         this.releaseService = releaseService;
         this.auditRepository = auditRepository;
+        this.deploymentService = deploymentService;
         this.clock = clock;
     }
 
@@ -80,8 +84,14 @@ public class CpTargetService {
                 "instance.target.assigned",
                 "instance",
                 Long.toString(instanceId));
-        return repository.findByInstanceId(instanceId)
+        CpTarget target = repository.findByInstanceId(instanceId)
                 .orElseThrow(() -> new IllegalStateException("Assigned target was not persisted"));
+        deploymentService.request(
+                target.instanceId(),
+                target.releaseId(),
+                target.generation(),
+                target.currentReleaseId());
+        return target;
     }
 
     @Transactional(readOnly = true)

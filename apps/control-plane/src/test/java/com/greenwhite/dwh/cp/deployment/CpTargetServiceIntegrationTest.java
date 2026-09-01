@@ -116,6 +116,19 @@ class CpTargetServiceIntegrationTest {
                 .query(Long.class).single()).isOne();
         assertThat(jdbc.sql("select count(*) from cp_audit_events where action = 'instance.target.assigned'")
                 .query(Long.class).single()).isEqualTo(2);
+        assertThat(jdbc.sql("select count(*) from cp_deployments where instance_id = :instanceId")
+                .param("instanceId", instanceId)
+                .query(Long.class).single()).isEqualTo(2);
+        assertThat(jdbc.sql("""
+                        select count(*)
+                        from cp_deployment_events event
+                        join cp_deployments deployment on deployment.id = event.deployment_id
+                        where deployment.instance_id = :instanceId
+                          and event.sequence_no = 1
+                          and event.status = 'REQUESTED'
+                        """)
+                .param("instanceId", instanceId)
+                .query(Long.class).single()).isEqualTo(2);
     }
 
     @Test
@@ -218,6 +231,52 @@ class CpTargetServiceIntegrationTest {
                 .query(Long.class).single()).isZero();
         assertThat(service.assign(instanceId, command(releaseId, "config-after-rollback"), actorId)
                 .generation()).isEqualTo(1);
+    }
+
+    @Test
+    void deploymentEventFailureRollsBackTargetAuditGenerationAndDeployment() {
+        long actorId = createUser("deployment-rollback-admin", CpPref.ROLE_ADMIN);
+        long instanceId = createInstance("deployment-rollback", DeploymentMode.MANAGED_CLOUD);
+        UUID releaseId = createReadyRelease(
+                "2026.9.9", Set.of(DeploymentMode.MANAGED_CLOUD));
+        jdbc.sql("""
+                        create function cp_test_reject_requested_event() returns trigger
+                        language plpgsql as $$
+                        begin
+                            if new.sequence_no = 1 and new.status = 'REQUESTED' then
+                                raise exception 'requested event rejected';
+                            end if;
+                            return new;
+                        end
+                        $$
+                        """).update();
+        jdbc.sql("""
+                        create trigger cp_test_reject_requested_event_trigger
+                        before insert on cp_deployment_events
+                        for each row execute function cp_test_reject_requested_event()
+                        """).update();
+        try {
+            assertThatThrownBy(() -> service.assign(
+                    instanceId, command(releaseId, "config-deployment-failure"), actorId))
+                    .isInstanceOf(RuntimeException.class);
+        } finally {
+            jdbc.sql("drop trigger cp_test_reject_requested_event_trigger on cp_deployment_events")
+                    .update();
+            jdbc.sql("drop function cp_test_reject_requested_event()")
+                    .update();
+        }
+
+        assertThat(jdbc.sql("select count(*) from cp_instance_targets")
+                .query(Long.class).single()).isZero();
+        assertThat(jdbc.sql("select count(*) from cp_deployments")
+                .query(Long.class).single()).isZero();
+        assertThat(jdbc.sql("select count(*) from cp_deployment_events")
+                .query(Long.class).single()).isZero();
+        assertThat(jdbc.sql("select count(*) from cp_audit_events where action = 'instance.target.assigned'")
+                .query(Long.class).single()).isZero();
+        assertThat(jdbc.sql("select current_generation from cp_instances where id = :instanceId")
+                .param("instanceId", instanceId)
+                .query(Long.class).single()).isZero();
     }
 
     @Test

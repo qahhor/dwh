@@ -2,7 +2,7 @@ package com.greenwhite.dwh.cp.error;
 
 import org.springframework.http.HttpStatus;
 
-public final class CpApiException extends RuntimeException {
+public class CpApiException extends RuntimeException {
 
     private final HttpStatus status;
     private final String errorCode;
