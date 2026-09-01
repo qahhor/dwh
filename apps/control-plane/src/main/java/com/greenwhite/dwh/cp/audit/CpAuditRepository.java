@@ -29,4 +29,25 @@ public class CpAuditRepository {
                 .param("entityId", entityId)
                 .update();
     }
+
+    public void record(String actorType,
+                       String actorId,
+                       String action,
+                       String entityType,
+                       String entityId,
+                       String reason) {
+        jdbc.sql("""
+                        insert into cp_audit_events(
+                            actor_type, actor_id, action, entity_type, entity_id, details)
+                        values (:actorType, :actorId, :action, :entityType, :entityId,
+                                jsonb_build_object('reason', :reason))
+                        """)
+                .param("actorType", actorType)
+                .param("actorId", actorId)
+                .param("action", action)
+                .param("entityType", entityType)
+                .param("entityId", entityId)
+                .param("reason", reason)
+                .update();
+    }
 }
