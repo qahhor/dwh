@@ -4,9 +4,6 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-
 /**
  * Показатели экземпляра для heartbeat (FR-INST-3).
  *
@@ -38,24 +35,24 @@ public class CpTelemetryRepository {
     }
 
     @Transactional(readOnly = true)
-    public Map<String, Object> metrics() {
-        Map<String, Object> metrics = new LinkedHashMap<>();
-        metrics.put("users", count("select count(*) from md_users where state = 'A'"));
-        metrics.put("sessions", count("select count(*) from kauth_sessions where closed_at is null"));
-        metrics.put("outboxPending",
-                count("select count(*) from ms_notification_outbox where status = 'PENDING'"));
-        metrics.put("outboxDeadLetter",
-                count("select count(*) from ms_notification_outbox where status = 'DEAD_LETTER'"));
-        metrics.put("storageUsedBytes",
-                count("select coalesce(sum(size_bytes), 0) from mf_files"));
-        metrics.put("storageQuotaBytes",
-                count("select coalesce(storage_quota_bytes, 53687091200) from md_instance_info limit 1"));
-        return metrics;
-    }
-
-
-    private long count(String sql) {
-        Long value = jdbc.sql(sql).query(Long.class).single();
-        return value != null ? value : 0L;
+    public CpTelemetrySnapshot snapshot() {
+        return jdbc.sql("""
+                        select
+                            (select count(*) from md_users where state = 'A') as active_users,
+                            (select count(*) from ms_notification_outbox
+                                where status = 'PENDING') as outbox_pending,
+                            (select count(*) from ms_notification_outbox
+                                where status = 'DEAD_LETTER') as outbox_dead_letter,
+                            (select coalesce(sum(size_bytes), 0) from mf_files) as storage_used_bytes,
+                            coalesce((select storage_quota_bytes from md_instance_info limit 1),
+                                53687091200) as storage_quota_bytes
+                        """)
+                .query((rs, rowNum) -> new CpTelemetrySnapshot(
+                        rs.getLong("active_users"),
+                        rs.getLong("outbox_pending"),
+                        rs.getLong("outbox_dead_letter"),
+                        rs.getLong("storage_used_bytes"),
+                        rs.getLong("storage_quota_bytes")))
+                .single();
     }
 }

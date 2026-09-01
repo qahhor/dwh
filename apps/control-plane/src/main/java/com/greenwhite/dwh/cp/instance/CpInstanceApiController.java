@@ -5,6 +5,8 @@ import com.greenwhite.dwh.cp.instance.api.CpBackupReportRequest;
 import com.greenwhite.dwh.cp.instance.api.CpCredentialRotationResponse;
 import com.greenwhite.dwh.cp.instance.api.CpEnrollmentRequest;
 import com.greenwhite.dwh.cp.instance.api.CpEnrollmentResponse;
+import com.greenwhite.dwh.cp.instance.api.CpHeartbeatRequest;
+import com.greenwhite.dwh.cp.instance.api.CpHeartbeatResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,11 +23,14 @@ public class CpInstanceApiController {
 
     private final CpInstanceCredentialService credentials;
     private final CpBackupReportService backupReports;
+    private final CpHeartbeatService heartbeats;
 
     public CpInstanceApiController(CpInstanceCredentialService credentials,
-                                   CpBackupReportService backupReports) {
+                                   CpBackupReportService backupReports,
+                                   CpHeartbeatService heartbeats) {
         this.credentials = credentials;
         this.backupReports = backupReports;
+        this.heartbeats = heartbeats;
     }
 
     @PostMapping("/enroll")
@@ -59,5 +64,12 @@ public class CpInstanceApiController {
             @Valid @RequestBody CpBackupReportRequest request) {
         backupReports.recordBackup(principal, request);
         return ResponseEntity.accepted().build();
+    }
+
+    @PostMapping("/heartbeat")
+    public ResponseEntity<CpHeartbeatResponse> heartbeat(
+            @AuthenticationPrincipal CpInstancePrincipal principal,
+            @Valid @RequestBody CpHeartbeatRequest request) {
+        return ResponseEntity.ok(heartbeats.recordHeartbeat(principal, request));
     }
 }

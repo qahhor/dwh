@@ -3,13 +3,11 @@ package com.greenwhite.dwh.cp.repository;
 import com.greenwhite.dwh.cp.pref.CpPref;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
-import tools.jackson.databind.ObjectMapper;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 /** Реестр клиентов и экземпляров + приём heartbeat (FR-CP-1, FR-CP-2). */
@@ -17,11 +15,9 @@ import java.util.Optional;
 public class CpFleetRepository {
 
     private final JdbcClient jdbc;
-    private final ObjectMapper objectMapper;
 
-    public CpFleetRepository(JdbcClient jdbc, ObjectMapper objectMapper) {
+    public CpFleetRepository(JdbcClient jdbc) {
         this.jdbc = jdbc;
-        this.objectMapper = objectMapper;
     }
 
     // ---------------------------------------------------------------- клиенты
@@ -119,35 +115,6 @@ public class CpFleetRepository {
         jdbc.sql("update cp_instances set license_status = :status where id = :id")
                 .param("id", instanceId)
                 .param("status", status)
-                .update();
-    }
-
-    public void recordHeartbeat(Long instanceId, String appVersion, String schemaVersion,
-                                Map<String, Object> metrics) {
-        String metricsJson;
-        try {
-            metricsJson = objectMapper.writeValueAsString(metrics != null ? metrics : Map.of());
-        } catch (Exception e) {
-            metricsJson = "{}";
-        }
-        jdbc.sql("""
-                        insert into cp_instance_heartbeats (instance_id, app_version, schema_version, metrics)
-                        values (:id, :app, :schema, cast(:metrics as jsonb))
-                        """)
-                .param("id", instanceId)
-                .param("app", appVersion)
-                .param("schema", schemaVersion)
-                .param("metrics", metricsJson)
-                .update();
-
-        jdbc.sql("""
-                        update cp_instances
-                        set last_heartbeat_at = now(), app_version = :app, schema_version = :schema
-                        where id = :id
-                        """)
-                .param("id", instanceId)
-                .param("app", appVersion)
-                .param("schema", schemaVersion)
                 .update();
     }
 

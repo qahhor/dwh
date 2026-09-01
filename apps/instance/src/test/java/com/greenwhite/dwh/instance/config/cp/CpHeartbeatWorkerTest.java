@@ -1,12 +1,17 @@
 package com.greenwhite.dwh.instance.config.cp;
 
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import com.greenwhite.dwh.instance.config.license.LicenseGateService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.info.BuildProperties;
 
 import java.time.Duration;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -14,12 +19,11 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 class CpHeartbeatWorkerTest {
 
     private final CpTelemetryRepository telemetry = Mockito.mock(CpTelemetryRepository.class);
-    private final com.greenwhite.dwh.instance.config.license.LicenseGateService licenseService =
-            Mockito.mock(com.greenwhite.dwh.instance.config.license.LicenseGateService.class);
+    private final CpControlPlaneClient client = Mockito.mock(CpControlPlaneClient.class);
+    private final LicenseGateService licenseService = Mockito.mock(LicenseGateService.class);
 
     @SuppressWarnings("unchecked")
-    private final ObjectProvider<org.springframework.boot.info.BuildProperties> noBuildInfo =
-            Mockito.mock(ObjectProvider.class);
+    private final ObjectProvider<BuildProperties> buildProperties = Mockito.mock(ObjectProvider.class);
 
     @Test
     @DisplayName("Без адреса или токена heartbeat выключен")
@@ -44,23 +48,75 @@ class CpHeartbeatWorkerTest {
     @Test
     @DisplayName("При выключенном heartbeat база не опрашивается")
     void shouldNotTouchDatabaseWhenDisabled() {
-        var worker = new CpHeartbeatWorker(new CpClientProperties(null, null, null), telemetry, licenseService, noBuildInfo);
+        Mockito.when(client.enabled()).thenReturn(false);
+        var worker = new CpHeartbeatWorker(client, telemetry, licenseService, buildProperties);
 
         worker.sendHeartbeat();
 
         Mockito.verifyNoInteractions(telemetry);
+        Mockito.verify(client, Mockito.never()).sendHeartbeat(Mockito.any());
     }
 
     @Test
-    @DisplayName("Недоступный control plane не роняет экземпляр")
-    void shouldSwallowDeliveryFailure() {
-        // Порт 1 гарантированно закрыт: проверяем, что отказ доставки остаётся
-        // внутри воркера, а не всплывает в планировщик
-        Mockito.when(telemetry.schemaVersion()).thenReturn("004");
-        Mockito.when(telemetry.metrics()).thenReturn(Map.of("users", 1L));
-        var worker = new CpHeartbeatWorker(
-                new CpClientProperties("http://127.0.0.1:1", "token", null), telemetry, licenseService, noBuildInfo);
+    @DisplayName("Воркер передаёт только фиксированные агрегаты и применяет ответ лицензии")
+    void shouldSendExactTypedPayloadAndApplyLicenseReply() {
+        var build = Mockito.mock(BuildProperties.class);
+        Mockito.when(build.getVersion()).thenReturn("1.2.3");
+        Mockito.when(buildProperties.getIfAvailable()).thenReturn(build);
+        Mockito.when(client.enabled()).thenReturn(true);
+        Mockito.when(telemetry.schemaVersion()).thenReturn("006");
+        Mockito.when(telemetry.snapshot()).thenReturn(new CpTelemetrySnapshot(
+                17, 3, 1, 1024, 4096));
+        Mockito.when(client.sendHeartbeat(Mockito.any())).thenReturn(new CpHeartbeatReply(
+                true, 42, "ACTIVE", "M", 7));
+        var worker = new CpHeartbeatWorker(client, telemetry, licenseService, buildProperties);
 
-        assertThatCode(worker::sendHeartbeat).doesNotThrowAnyException();
+        worker.sendHeartbeat();
+
+        var payload = ArgumentCaptor.forClass(CpHeartbeatPayload.class);
+        Mockito.verify(client).sendHeartbeat(payload.capture());
+        assertThat(payload.getValue()).isEqualTo(new CpHeartbeatPayload(
+                "1.2.3",
+                "006",
+                null,
+                null,
+                new CpHeartbeatPayload.ComponentHealth("UP", "UP", "UNKNOWN", "UNKNOWN"),
+                new CpHeartbeatPayload.StorageTelemetry(1024, 4096),
+                new CpHeartbeatPayload.BackupTelemetry(null, "UNKNOWN"),
+                new CpHeartbeatPayload.AgentTelemetry("UNKNOWN", "UP"),
+                "IDLE",
+                new CpHeartbeatPayload.CapacityTelemetry(17, 3, 1)));
+        Mockito.verify(licenseService).updateStatus("ACTIVE", "M");
+    }
+
+    @Test
+    @DisplayName("Ошибка доставки остаётся fail-open и не раскрывает credential в журнале")
+    void shouldSwallowDeliveryFailureWithoutLoggingCredential() {
+        String secret = "credential-must-never-be-logged";
+        Mockito.when(client.enabled()).thenReturn(true);
+        Mockito.when(telemetry.schemaVersion()).thenReturn("006");
+        Mockito.when(telemetry.snapshot()).thenReturn(new CpTelemetrySnapshot(
+                1, 0, 0, 0, 4096));
+        Mockito.when(client.sendHeartbeat(Mockito.any()))
+                .thenThrow(new IllegalStateException("delivery failed for " + secret));
+        var logger = (ch.qos.logback.classic.Logger)
+                LoggerFactory.getLogger(CpHeartbeatWorker.class);
+        var appender = new ListAppender<ILoggingEvent>();
+        appender.start();
+        logger.addAppender(appender);
+
+        try {
+            var worker = new CpHeartbeatWorker(client, telemetry, licenseService, buildProperties);
+
+            assertThatCode(worker::sendHeartbeat).doesNotThrowAnyException();
+
+            assertThat(appender.list)
+                    .extracting(ILoggingEvent::getFormattedMessage)
+                    .allMatch(message -> !message.contains(secret));
+            Mockito.verifyNoInteractions(licenseService);
+        } finally {
+            logger.detachAppender(appender);
+            appender.stop();
+        }
     }
 }

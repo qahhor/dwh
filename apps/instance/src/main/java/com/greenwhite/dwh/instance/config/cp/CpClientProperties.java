@@ -8,11 +8,11 @@ import java.time.Duration;
  * Параметры связи экземпляра с control plane (FR-INST-3).
  *
  * Связь только исходящая (ADR-0004): control plane внутрь экземпляра не ходит.
- * Токен выдаётся один раз при регистрации экземпляра в панели и хранится
+ * Runtime credential получается через одноразовый enrollment и хранится
  * в конфигурации развёртывания (env, в фазе P — Vault).
  *
  * @param url      базовый адрес control plane; пусто — heartbeat выключен
- * @param token    токен экземпляра для заголовка X-Instance-Token
+ * @param token    runtime credential экземпляра для заголовка X-Instance-Token
  * @param interval период отправки; ТЗ допускает 1–5 мин
  */
 @ConfigurationProperties(prefix = "dwh.control-plane")
