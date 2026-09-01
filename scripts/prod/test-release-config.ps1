@@ -85,9 +85,21 @@ if ($LASTEXITCODE -ne 0) {
     throw "Production NGINX configuration failed nginx -t."
 }
 
+$bashSyntaxCheck = @'
+set -eu
+mkdir -p /tmp/release-scripts
+for script in deploy.sh backup.sh restore.sh test-deploy-fail-closed.sh; do
+    sed 's/\r$//' "/scripts/$script" > "/tmp/release-scripts/$script"
+done
+bash -n /tmp/release-scripts/deploy.sh \
+    /tmp/release-scripts/backup.sh \
+    /tmp/release-scripts/restore.sh \
+    /tmp/release-scripts/test-deploy-fail-closed.sh
+'@
+
 docker run --rm `
     -v "${PSScriptRoot}:/scripts:ro" `
-    bash:5.2 bash -n /scripts/deploy.sh /scripts/backup.sh /scripts/restore.sh /scripts/test-deploy-fail-closed.sh
+    bash:5.2 bash -ec $bashSyntaxCheck
 if ($LASTEXITCODE -ne 0) {
     throw "Production Bash scripts failed syntax validation."
 }
