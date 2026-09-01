@@ -34,3 +34,6 @@ backups/
 *.log
 tmp/
 data/
+
+# --- Local Git worktrees ---
+.worktrees/
