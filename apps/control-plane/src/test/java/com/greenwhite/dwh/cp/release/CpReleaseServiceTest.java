@@ -162,13 +162,13 @@ class CpReleaseServiceTest {
     @Test
     void requireReadyRejectsMissingDraftAndRevokedReleases() {
         UUID missing = UUID.randomUUID();
-        when(repository.findById(missing)).thenReturn(Optional.empty());
+        when(repository.findByIdForShare(missing)).thenReturn(Optional.empty());
         assertThatThrownBy(() -> service.requireReady(missing))
                 .isInstanceOfSatisfying(CpApiException.class,
                         error -> assertThat(error.errorCode()).isEqualTo("release_not_found"));
 
         UUID revokedId = UUID.randomUUID();
-        when(repository.findById(revokedId)).thenReturn(Optional.of(
+        when(repository.findByIdForShare(revokedId)).thenReturn(Optional.of(
                 release(revokedId, validCommand(), ReleaseStatus.REVOKED)));
         assertThatThrownBy(() -> service.requireReady(revokedId))
                 .isInstanceOfSatisfying(CpApiException.class,

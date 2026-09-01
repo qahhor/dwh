@@ -128,9 +128,9 @@ public class CpReleaseService {
         return repository.list();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public CpRelease requireReady(UUID releaseId) {
-        CpRelease release = repository.findById(releaseId)
+        CpRelease release = repository.findByIdForShare(releaseId)
                 .orElseThrow(() -> new CpApiException(
                         HttpStatus.NOT_FOUND,
                         "release_not_found",

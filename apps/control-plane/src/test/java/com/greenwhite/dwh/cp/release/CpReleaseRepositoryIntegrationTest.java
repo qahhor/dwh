@@ -78,6 +78,7 @@ class CpReleaseRepositoryIntegrationTest {
         UUID second = service.registerVerified(command, "github-actions:release.yml@main");
 
         assertThat(second).isEqualTo(first);
+        assertThat(service.requireReady(first).id()).isEqualTo(first);
         assertThat(repository.requireById(first)).isEqualTo(
                 repository.list().getFirst());
         CpRelease stored = repository.requireById(first);

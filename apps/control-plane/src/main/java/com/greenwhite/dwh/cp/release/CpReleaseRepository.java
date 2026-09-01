@@ -117,6 +117,14 @@ public class CpReleaseRepository {
                 .map(this::assemble);
     }
 
+    public Optional<CpRelease> findByIdForShare(UUID releaseId) {
+        return jdbc.sql(RELEASE_SELECT + " where id = :releaseId for share")
+                .param("releaseId", releaseId)
+                .query(CpReleaseRepository::mapRow)
+                .optional()
+                .map(this::assemble);
+    }
+
     public CpRelease requireById(UUID releaseId) {
         return findById(releaseId)
                 .orElseThrow(() -> new IllegalStateException("Release row not found: " + releaseId));
