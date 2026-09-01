@@ -40,6 +40,12 @@ dwh:
     admin-email: ${CP_ADMIN_EMAIL:}
     admin-password: ${CP_ADMIN_PASSWORD:}
     admin-name: ${CP_ADMIN_NAME:Platform Administrator}
+    instance-api:
+      max-body-bytes: 16384
+      heartbeat-capacity: 2
+      heartbeat-refill: 1m
+      raw-retention: 30d
+      aggregate-retention: 395d
 
 management:
   server:

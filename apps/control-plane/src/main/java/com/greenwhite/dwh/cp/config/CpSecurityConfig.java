@@ -2,6 +2,7 @@ package com.greenwhite.dwh.cp.config;
 
 import com.greenwhite.dwh.cp.pref.CpPref;
 import com.greenwhite.dwh.cp.instance.CpInstanceAuthFilter;
+import com.greenwhite.dwh.cp.instance.CpInstanceRequestGuardFilter;
 import com.greenwhite.dwh.cp.security.CpAuthEntryPoint;
 import com.greenwhite.dwh.cp.security.CpAuthFilter;
 import com.greenwhite.dwh.cp.security.CpSpaCsrfHandler;
@@ -53,6 +54,7 @@ public class CpSecurityConfig implements WebMvcConfigurer {
     @Bean
     SecurityFilterChain cpFilterChain(HttpSecurity http, CpAuthFilter authFilter,
                                       CpInstanceAuthFilter instanceAuthFilter,
+                                      CpInstanceRequestGuardFilter instanceRequestGuardFilter,
                                       CpAuthEntryPoint entryPoint) throws Exception {
         http
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -83,7 +85,8 @@ public class CpSecurityConfig implements WebMvcConfigurer {
                                 "Permissions-Policy", "geolocation=(), camera=(), microphone=()")))
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(entryPoint))
                 .addFilterAfter(authFilter, SecurityContextHolderFilter.class)
-                .addFilterBefore(instanceAuthFilter, AuthorizationFilter.class);
+                .addFilterBefore(instanceAuthFilter, AuthorizationFilter.class)
+                .addFilterAfter(instanceRequestGuardFilter, CpInstanceAuthFilter.class);
 
         return http.build();
     }
@@ -100,6 +103,14 @@ public class CpSecurityConfig implements WebMvcConfigurer {
     FilterRegistrationBean<CpInstanceAuthFilter> cpInstanceAuthFilterAutoRegistrationDisabled(
             CpInstanceAuthFilter filter) {
         FilterRegistrationBean<CpInstanceAuthFilter> reg = new FilterRegistrationBean<>(filter);
+        reg.setEnabled(false);
+        return reg;
+    }
+
+    @Bean
+    FilterRegistrationBean<CpInstanceRequestGuardFilter> cpInstanceRequestGuardFilterAutoRegistrationDisabled(
+            CpInstanceRequestGuardFilter filter) {
+        FilterRegistrationBean<CpInstanceRequestGuardFilter> reg = new FilterRegistrationBean<>(filter);
         reg.setEnabled(false);
         return reg;
     }

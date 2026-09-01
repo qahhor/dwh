@@ -1,5 +1,6 @@
 package com.greenwhite.dwh.cp.error;
 
+import com.greenwhite.dwh.cp.instance.CpInstanceRequestGuardFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
@@ -42,11 +43,29 @@ public class CpProblemDetailsHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     ResponseEntity<ProblemBody> handleMalformed(HttpMessageNotReadableException error,
                                                 HttpServletRequest request) {
+        if (hasCause(error, CpInstanceRequestGuardFilter.PayloadTooLargeException.class)) {
+            return problem(
+                    HttpStatus.PAYLOAD_TOO_LARGE,
+                    "instance_payload_too_large",
+                    "Instance request body exceeds the configured limit",
+                    request);
+        }
         return problem(
                 HttpStatus.BAD_REQUEST,
                 "request_malformed",
                 "Request body is malformed or contains unknown fields",
                 request);
+    }
+
+    private static boolean hasCause(Throwable error, Class<? extends Throwable> expected) {
+        Throwable current = error;
+        while (current != null) {
+            if (expected.isInstance(current)) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     @ExceptionHandler(ResponseStatusException.class)

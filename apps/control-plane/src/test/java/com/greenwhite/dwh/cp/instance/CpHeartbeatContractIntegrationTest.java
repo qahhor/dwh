@@ -61,7 +61,9 @@ class CpHeartbeatContractIntegrationTest {
 
     @BeforeEach
     void resetData() {
-        jdbc.sql("truncate table cp_clients, cp_users restart identity cascade").update();
+        // Identity values intentionally keep increasing: the production rate-limit bucket is
+        // keyed by immutable instanceId and must not be reset between test invocations.
+        jdbc.sql("truncate table cp_clients, cp_users cascade").update();
         long clientId = jdbc.sql("""
                         insert into cp_clients(code, name, resource_profile)
                         values ('alpha', 'Alpha', 'M')
