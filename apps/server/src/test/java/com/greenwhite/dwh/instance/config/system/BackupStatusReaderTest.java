@@ -2,11 +2,14 @@ package com.greenwhite.dwh.instance.config.system;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.core.env.MapPropertySource;
 import tools.jackson.databind.ObjectMapper;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -16,6 +19,22 @@ class BackupStatusReaderTest {
     Path directory;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @Test
+    void productionConstructorIsResolvableBySpring() {
+        try (var context = new AnnotationConfigApplicationContext()) {
+            context.getEnvironment().getPropertySources().addFirst(new MapPropertySource(
+                    "test",
+                    Map.of("dwh.backup.status-file", directory.resolve("status.json").toString())));
+            context.registerBean(ObjectMapper.class, () -> new ObjectMapper());
+            context.register(BackupStatusReader.class);
+
+            context.refresh();
+
+            assertThat(context.getBean(BackupStatusReader.class).read())
+                    .isEqualTo(new BackupStatus("NEVER", null, null));
+        }
+    }
 
     @Test
     void readsTypedSuccessfulStatusAndDropsUntrustedFields() throws Exception {

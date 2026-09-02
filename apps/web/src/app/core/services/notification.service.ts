@@ -5,6 +5,22 @@ import { ToastService } from './toast.service';
 import { NotificationItem, Announcement } from '../models/notification.models';
 import { KeysetPage } from '../models/common.models';
 
+interface BackendNotification {
+  id: number;
+  userId: number;
+  type: string;
+  title: string;
+  body?: string;
+  formLink?: string;
+  sourceCode?: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
+interface BackendUnreadCount {
+  unread_count: number;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -21,17 +37,41 @@ export class NotificationService {
   ) {}
 
   fetchUnreadCount(): Observable<{ unreadCount: number }> {
-    return this.api.get<{ unreadCount: number }>('/notifications/unread-count').pipe(
+    return this.api.get<BackendUnreadCount>('/notifications/unread-count').pipe(
+      map(res => ({ unreadCount: res.unread_count })),
       tap(res => this.unreadCount.set(res.unreadCount))
     );
   }
 
-  fetchNotifications(limit: number = 20, cursor?: string): Observable<KeysetPage<NotificationItem>> {
-    return this.api.get<KeysetPage<NotificationItem>>('/notifications', { limit, cursor });
+  fetchNotifications(limit: number = 20, _cursor?: string): Observable<KeysetPage<NotificationItem>> {
+    return this.api.get<BackendNotification[]>('/notifications/inbox', { limit }).pipe(
+      map(records => {
+        const items = records.map(record => ({
+          id: record.id,
+          userId: record.userId,
+          title: record.title,
+          bodyMarkdown: record.body,
+          sourceModule: record.sourceCode,
+          targetUrl: record.formLink,
+          isRead: record.isRead,
+          createdAt: record.createdAt,
+        }));
+        return {
+          items,
+          nextCursor: null,
+          hasMore: false,
+          totalReturned: items.length,
+        };
+      })
+    );
+  }
+
+  markAsRead(id: number): Observable<void> {
+    return this.api.post<void>(`/notifications/inbox/${id}/read`);
   }
 
   markAllAsRead(): Observable<void> {
-    return this.api.post<void>('/notifications/read-all').pipe(
+    return this.api.post<void>('/notifications/inbox/read-all').pipe(
       tap(() => this.unreadCount.set(0))
     );
   }

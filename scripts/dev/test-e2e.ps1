@@ -13,7 +13,7 @@ $root = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\.."))
 $e2eDirectory = Join-Path $root "e2e"
 
 if ([string]::IsNullOrWhiteSpace($InstanceBaseUrl)) { $InstanceBaseUrl = "http://localhost:4200" }
-if ([string]::IsNullOrWhiteSpace($InstanceHealthUrl)) { $InstanceHealthUrl = "http://localhost:9190/actuator/health" }
+if ([string]::IsNullOrWhiteSpace($InstanceHealthUrl)) { $InstanceHealthUrl = $InstanceBaseUrl.TrimEnd('/') + '/healthz' }
 $env:INSTANCE_BASE_URL = $InstanceBaseUrl
 
 function Invoke-CheckedStep {
@@ -50,8 +50,8 @@ Write-Host "============================================================" -Foreg
 Write-Host "  SmartupCMS - Browser E2E Suite                            " -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
 
-Assert-HttpReady "Instance UI" ($InstanceBaseUrl.TrimEnd('/') + '/')
-Assert-HttpReady "Instance API" $InstanceHealthUrl
+Assert-HttpReady "SmartupCMS web origin" ($InstanceBaseUrl.TrimEnd('/') + '/')
+Assert-HttpReady "SmartupCMS health through the web origin" $InstanceHealthUrl
 
 Write-Host "`nValidate PowerShell dotenv parser" -ForegroundColor Yellow
 & (Join-Path $PSScriptRoot "test-dotenv-parser.ps1")

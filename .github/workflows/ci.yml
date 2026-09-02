@@ -161,10 +161,19 @@ jobs:
   security:
     name: security (gitleaks + trivy)
     runs-on: ubuntu-24.04
+    needs: backend
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
+
+      # Trivy resolves Maven BOMs from ~/.m2. Reusing the backend cache avoids
+      # non-deterministic Maven Central lookups and CI-wide HTTP 429 failures.
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
 
       - name: Gitleaks
         uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3

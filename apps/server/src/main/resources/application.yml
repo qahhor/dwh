@@ -103,6 +103,16 @@ dwh:
   backup:
     # Status is written atomically by the local backup command/sidecar.
     status-file: ${DWH_BACKUP_STATUS_FILE:/var/lib/smartupcms/backup/status.json}
+  webhooks:
+    # Outbound webhooks are a deliberate egress boundary. The default install
+    # is fail-closed; enabling requires an exact, comma-separated host allow-list.
+    enabled: ${DWH_WEBHOOKS_ENABLED:false}
+    allowed-hosts: ${DWH_WEBHOOKS_ALLOWED_HOSTS:}
+    # Client-owned installations may explicitly allow an internal destination.
+    # Keep false for internet-facing and Smartup-managed installations.
+    allow-private-addresses: ${DWH_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES:false}
+    connect-timeout: ${DWH_WEBHOOKS_CONNECT_TIMEOUT:3s}
+    read-timeout: ${DWH_WEBHOOKS_READ_TIMEOUT:10s}
   storage:
     local-path: ${DWH_STORAGE_LOCAL_PATH:./data/storage}
     s3:

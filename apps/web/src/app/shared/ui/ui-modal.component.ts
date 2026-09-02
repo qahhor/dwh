@@ -27,7 +27,13 @@ import { A11yModule } from '@angular/cdk/a11y';
       >
         <div class="modal-header">
           <h3 class="modal-title" [id]="titleId">{{ title }}</h3>
-          <button *ngIf="dismissible" type="button" class="modal-close" (click)="close.emit()" aria-label="Закрыть">
+          <button
+            *ngIf="dismissible"
+            type="button"
+            class="modal-close"
+            (click)="close.emit()"
+            [attr.aria-label]="'Закрыть диалог «' + title + '»'"
+          >
             <span class="material-symbols-outlined" aria-hidden="true">close</span>
           </button>
         </div>
@@ -66,7 +72,6 @@ import { A11yModule } from '@angular/cdk/a11y';
       max-height: 90vh;
       display: flex;
       flex-direction: column;
-      animation: modalEnter 0.15s ease-out;
     }
 
     .modal-sm { max-width: 400px; }
@@ -122,16 +127,6 @@ import { A11yModule } from '@angular/cdk/a11y';
       border-bottom-right-radius: var(--radius-lg);
     }
 
-    @keyframes modalEnter {
-      from {
-        opacity: 0;
-        transform: scale(0.98);
-      }
-      to {
-        opacity: 1;
-        transform: scale(1);
-      }
-    }
   `]
 })
 export class UiModalComponent implements OnChanges, OnDestroy {

@@ -260,8 +260,8 @@ interface ApiProblem {
     .card-heading time { flex: 0 0 auto; color: var(--text-muted); font-size: 11px; }
     .card-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; color: var(--text-muted); font-size: 11px; }
     .state-badge { padding: 3px 8px; border-radius: 999px; font-weight: 700; }
-    .state-draft { color: var(--warning); background: color-mix(in srgb, var(--warning) 14%, transparent); }
-    .state-published { color: var(--success); background: color-mix(in srgb, var(--success) 14%, transparent); }
+    .state-draft { color: var(--warning); background: var(--warning-bg); }
+    .state-published { color: var(--success); background: var(--success-bg); }
     .state-archived { color: var(--text-muted); background: var(--bg-hover); }
     .type-label { font-weight: 600; text-transform: uppercase; }
     .announcement-body { margin: 10px 0 14px; color: var(--text-muted); font-size: 13px; line-height: 1.55; white-space: pre-line; }

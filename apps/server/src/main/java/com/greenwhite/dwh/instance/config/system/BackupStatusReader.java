@@ -1,5 +1,6 @@
 package com.greenwhite.dwh.instance.config.system;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.DeserializationFeature;
@@ -37,6 +38,7 @@ public class BackupStatusReader {
     private final Path statusFile;
     private final ObjectMapper objectMapper;
 
+    @Autowired
     public BackupStatusReader(
             @Value("${dwh.backup.status-file:/var/lib/smartupcms/backup/status.json}") String statusFile,
             ObjectMapper objectMapper) {

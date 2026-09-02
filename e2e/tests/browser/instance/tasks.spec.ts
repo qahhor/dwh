@@ -15,7 +15,11 @@ test('project to task to comment works through the visible UI', async ({ page })
   await page.getByRole('button', { name: 'Новый проект' }).click();
   await page.getByLabel('Название проекта').fill(projectName);
   await page.getByLabel('Описание проекта').fill('Playwright critical vertical slice');
+  const projectResponse = page.waitForResponse(response =>
+    response.request().method() === 'POST' && response.url().endsWith('/api/v1/tasks/projects')
+  );
   await page.getByRole('button', { name: 'Создать проект' }).click();
+  expect((await projectResponse).ok()).toBe(true);
   const projectButton = page.getByRole('button', { name: projectName, exact: true });
   await expect(projectButton).toBeVisible();
 
@@ -25,7 +29,11 @@ test('project to task to comment works through the visible UI', async ({ page })
   await page.getByLabel('Название задачи').fill(taskName);
   await page.getByRole('button', { name: 'Высокий' }).click();
   await page.getByLabel('Подробное описание задачи').fill('Created by the browser E2E suite.');
+  const taskResponse = page.waitForResponse(response =>
+    response.request().method() === 'POST' && response.url().endsWith('/api/v1/tasks')
+  );
   await page.getByRole('button', { name: 'Создать задачу' }).click();
+  expect((await taskResponse).ok()).toBe(true);
 
   const taskRowAction = page.getByRole('button', { name: new RegExp(taskName, 'u') }).first();
   await expect(taskRowAction).toBeVisible();
@@ -34,7 +42,11 @@ test('project to task to comment works through the visible UI', async ({ page })
   const dialog = page.getByRole('dialog', { name: /Задача #\d+/u });
   await expect(dialog.getByRole('heading', { name: taskName })).toBeVisible();
   await dialog.getByPlaceholder(/Написать комментарий/u).fill(comment);
+  const commentResponse = page.waitForResponse(response =>
+    response.request().method() === 'POST' && /\/api\/v1\/tasks\/\d+\/comments$/u.test(response.url())
+  );
   await dialog.getByRole('button', { name: 'Отправить' }).click();
+  expect((await commentResponse).ok()).toBe(true);
   await expect(dialog.getByText(comment)).toBeVisible();
   assertNoPageErrors();
 });

@@ -50,7 +50,6 @@ import { ToastService, ToastMessage } from '../../core/services/toast.service';
       box-shadow: var(--shadow-overlay);
       background-color: var(--bg-surface);
       border: 1px solid var(--border-color);
-      animation: toastIn 0.2s ease-out;
     }
 
     .toast-icon {
@@ -95,16 +94,6 @@ import { ToastService, ToastMessage } from '../../core/services/toast.service';
       color: var(--text-main);
     }
 
-    @keyframes toastIn {
-      from {
-        opacity: 0;
-        transform: translateY(10px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
   `]
 })
 export class UiToastContainerComponent {

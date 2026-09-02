@@ -1,6 +1,5 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ApiService } from '../../core/services/api.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { ToastService } from '../../core/services/toast.service';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
@@ -235,7 +234,6 @@ export class NotificationsComponent implements OnInit {
 
   constructor(
     public notifService: NotificationService,
-    private api: ApiService,
     private toast: ToastService
   ) {}
 
@@ -258,7 +256,7 @@ export class NotificationsComponent implements OnInit {
 
   markAsRead(item: NotificationItem) {
     if (item.isRead) return;
-    this.api.post(`/notifications/${item.id}/read`).subscribe(() => {
+    this.notifService.markAsRead(item.id).subscribe(() => {
       this.items.update(list => list.map(i => i.id === item.id ? { ...i, isRead: true } : i));
       this.notifService.fetchUnreadCount().subscribe();
     });

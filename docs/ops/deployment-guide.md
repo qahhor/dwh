@@ -72,6 +72,14 @@ Cloudflare R2.
 
 ## 3. Validate before first start
 
+Outbound webhooks are disabled by default. If the installation needs them, set
+`DWH_WEBHOOKS_ENABLED=true` and list each exact destination host, without scheme,
+path, or wildcard, in comma-separated `DWH_WEBHOOKS_ALLOWED_HOSTS`. Keep
+`DWH_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES=false` for Smartup-managed and public
+installations. Client-owned internal destinations require a documented network
+review before opting in. Host OS/firewall egress policy remains the final
+network boundary.
+
 ```bash
 docker compose -f deploy/compose/docker-compose.prod.yml \
   --env-file .env.production config --quiet

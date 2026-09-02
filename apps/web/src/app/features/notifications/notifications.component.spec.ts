@@ -2,7 +2,6 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ApiService } from '../../core/services/api.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { ToastService } from '../../core/services/toast.service';
 import { NotificationsComponent } from './notifications.component';
@@ -12,9 +11,9 @@ describe('NotificationsComponent UI contracts', () => {
     unreadCount: signal(1),
     fetchNotifications: vi.fn(() => of({ items: [] })),
     fetchUnreadCount: vi.fn(() => of(1)),
-    markAllAsRead: vi.fn(() => of(undefined))
+    markAllAsRead: vi.fn(() => of(undefined)),
+    markAsRead: vi.fn(() => of(undefined))
   };
-  const apiService = { post: vi.fn(() => of(undefined)) };
   const toastService = { success: vi.fn() };
 
   beforeEach(async () => {
@@ -23,7 +22,6 @@ describe('NotificationsComponent UI contracts', () => {
       imports: [NotificationsComponent],
       providers: [
         { provide: NotificationService, useValue: notificationService },
-        { provide: ApiService, useValue: apiService },
         { provide: ToastService, useValue: toastService }
       ]
     }).compileComponents();

@@ -1,7 +1,6 @@
 package com.greenwhite.dwh.instance.kwh.controller;
 
 import com.greenwhite.dwh.instance.common.security.SecurityContext;
-import com.greenwhite.dwh.instance.kwh.repository.KwhSubscriptionRepository;
 import com.greenwhite.dwh.instance.kwh.service.KwhWebhookService;
 import com.greenwhite.dwh.instance.common.annotation.RequiresPermission;
 import com.greenwhite.dwh.instance.kwh.pref.KwhPref;
@@ -26,13 +25,13 @@ public class KwhSubscriptionController {
 
     @GetMapping
     @RequiresPermission(form = KwhPref.FORM_WEBHOOKS, action = "view")
-    public ResponseEntity<List<KwhSubscriptionRepository.SubscriptionRecord>> listSubscriptions() {
+    public ResponseEntity<List<KwhWebhookService.SubscriptionView>> listSubscriptions() {
         return ResponseEntity.ok(webhookService.listSubscriptions());
     }
 
     @PostMapping
     @RequiresPermission(form = KwhPref.FORM_WEBHOOKS, action = "manage")
-    public ResponseEntity<KwhSubscriptionRepository.SubscriptionRecord> createSubscription(
+    public ResponseEntity<KwhWebhookService.CreatedSubscription> createSubscription(
             @Valid @RequestBody CreateSubscriptionDto body) {
 
         Long currentUserId = SecurityContext.getCurrentUserId();

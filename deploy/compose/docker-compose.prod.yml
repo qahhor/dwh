@@ -16,6 +16,11 @@ x-server-common: &server-common
     DWH_PROVIDER_STORAGE: ${DWH_PROVIDER_STORAGE:-local_disk}
     DWH_STORAGE_LOCAL_PATH: /var/lib/smartupcms/storage
     DWH_BACKUP_STATUS_FILE: /var/lib/smartupcms/backup/status.json
+    DWH_WEBHOOKS_ENABLED: ${DWH_WEBHOOKS_ENABLED:-false}
+    DWH_WEBHOOKS_ALLOWED_HOSTS: ${DWH_WEBHOOKS_ALLOWED_HOSTS:-}
+    DWH_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES: ${DWH_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES:-false}
+    DWH_WEBHOOKS_CONNECT_TIMEOUT: ${DWH_WEBHOOKS_CONNECT_TIMEOUT:-3s}
+    DWH_WEBHOOKS_READ_TIMEOUT: ${DWH_WEBHOOKS_READ_TIMEOUT:-10s}
     DWH_S3_ENDPOINT: ${DWH_S3_ENDPOINT:-}
     DWH_S3_REGION: ${DWH_S3_REGION:-auto}
     DWH_S3_ACCESS_KEY: ${DWH_S3_ACCESS_KEY:-}
@@ -31,7 +36,11 @@ x-server-common: &server-common
   security_opt: [no-new-privileges:true]
   cap_drop: [ALL]
   read_only: true
-  tmpfs: [/tmp]
+  # JNA extracts Argon2's native library at startup. Keep generic /tmp noexec,
+  # but provide one private executable tmpfs for that library only.
+  tmpfs:
+    - /tmp:rw,nosuid,nodev,noexec
+    - /opt/smartupcms/jna:rw,nosuid,nodev,exec,size=16m,uid=10001,gid=10001,mode=0700
   logging:
     driver: json-file
     options: {max-size: "50m", max-file: "5"}
@@ -103,7 +112,10 @@ services:
     security_opt: [no-new-privileges:true]
     cap_drop: [ALL]
     read_only: true
-    tmpfs: [/tmp, /var/cache/nginx, /var/run]
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,noexec,mode=1777
+      - /var/lib/nginx/tmp:rw,nosuid,nodev,noexec,uid=10001,gid=10001,mode=0700
+      - /run/nginx:rw,nosuid,nodev,noexec,uid=10001,gid=10001,mode=0750
     logging:
       driver: json-file
       options: {max-size: "50m", max-file: "5"}
@@ -119,7 +131,12 @@ services:
       - typesense-data:/data
     networks: [backend]
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8108/health"]
+      test:
+        - CMD-SHELL
+        - >-
+          bash -ec "exec 3<>/dev/tcp/127.0.0.1/8108;
+          printf 'GET /health HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3;
+          grep -q '\"ok\":true' <&3"
       interval: 10s
       timeout: 3s
       retries: 10

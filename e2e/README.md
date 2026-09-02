@@ -27,8 +27,12 @@ checks use the same UI variable; a non-default management endpoint can be set wi
 
 ## Coverage
 
-- Instance protected-route redirect, invalid login, admin navigation and logout;
-- Instance project → task → comment vertical slice;
+- Protected-route redirect, invalid login, admin navigation and logout;
+- Project → task → comment vertical slice;
+- User create/delete and file upload/delete through the visible UI;
+- Local System status and announcement draft → publish → archive lifecycle;
+- Keyboard focus, narrow viewport overflow and critical/serious axe checks on
+  the local administration screens;
 - browser console and uncaught page-error checks after authentication.
 
 Tests use accessible roles and labels. Trace, video and HTML reports are disabled so

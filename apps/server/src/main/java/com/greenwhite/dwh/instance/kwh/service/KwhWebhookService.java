@@ -10,9 +10,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.List;
@@ -25,25 +25,28 @@ public class KwhWebhookService {
     private final KwhOutboxRepository outboxRepository;
     private final SecureRandom secureRandom = new SecureRandom();
     private final AuditLogService auditLogService;
+    private final WebhookTargetPolicy targetPolicy;
 
     public KwhWebhookService(KwhSubscriptionRepository subscriptionRepository,
                              KwhOutboxRepository outboxRepository,
-                             AuditLogService auditLogService) {
+                             AuditLogService auditLogService,
+                             WebhookTargetPolicy targetPolicy) {
         this.subscriptionRepository = subscriptionRepository;
         this.outboxRepository = outboxRepository;
         this.auditLogService = auditLogService;
+        this.targetPolicy = targetPolicy;
     }
 
     @Transactional(readOnly = true)
-    public List<KwhSubscriptionRepository.SubscriptionRecord> listSubscriptions() {
-        return subscriptionRepository.listSubscriptions();
+    public List<SubscriptionView> listSubscriptions() {
+        return subscriptionRepository.listSubscriptions().stream().map(this::toView).toList();
     }
 
     @Transactional
-    public KwhSubscriptionRepository.SubscriptionRecord createSubscription(
+    public CreatedSubscription createSubscription(
             String name, String targetUrl, List<String> subscribedEvents, Long createdBy) {
 
-        validateUrl(targetUrl);
+        var validatedTarget = targetPolicy.validate(targetUrl);
 
         byte[] secretBytes = new byte[32];
         secureRandom.nextBytes(secretBytes);
@@ -58,25 +61,28 @@ public class KwhWebhookService {
         auditLogService.logChange("kwh_subscriptions", String.valueOf(subscription.id()), "I",
                 List.of("name", "target_url", "subscribed_events"),
                 null,
-                Map.of("name", name, "target_url", targetUrl,
+                Map.of("name", name, "target_url", targetPolicy.redact(validatedTarget),
                         "subscribed_events", subscribedEvents != null ? subscribedEvents : List.of()));
 
-        return subscription;
+        return new CreatedSubscription(
+                subscription.id(), subscription.name(), targetPolicy.redact(validatedTarget),
+                subscription.secretToken(), subscription.subscribedEvents(), subscription.state(),
+                subscription.createdAt(), subscription.createdBy());
     }
 
     @Transactional
     public void updateSubscription(Long id, String name, String targetUrl, List<String> subscribedEvents, String state) {
         if (targetUrl != null) {
-            validateUrl(targetUrl);
+            targetPolicy.validate(targetUrl);
         }
         var before = requireSubscription(id);
         subscriptionRepository.update(id, name, targetUrl, subscribedEvents, state);
 
         auditLogService.logChange("kwh_subscriptions", String.valueOf(id), "U",
                 List.of("name", "target_url", "subscribed_events", "state"),
-                Map.of("name", before.name(), "target_url", before.targetUrl(), "state", before.state()),
+                Map.of("name", before.name(), "target_url", redact(before.targetUrl()), "state", before.state()),
                 Map.of("name", name != null ? name : before.name(),
-                        "target_url", targetUrl != null ? targetUrl : before.targetUrl(),
+                        "target_url", redact(targetUrl != null ? targetUrl : before.targetUrl()),
                         "state", state != null ? state : before.state()));
     }
 
@@ -87,7 +93,7 @@ public class KwhWebhookService {
 
         auditLogService.logChange("kwh_subscriptions", String.valueOf(id), "D",
                 List.of("name", "target_url"),
-                Map.of("name", before.name(), "target_url", before.targetUrl()),
+                Map.of("name", before.name(), "target_url", redact(before.targetUrl())),
                 null);
     }
 
@@ -119,16 +125,39 @@ public class KwhWebhookService {
         }
     }
 
-    private void validateUrl(String url) {
+    private String redact(String url) {
         try {
-            URI uri = URI.create(url);
-            if (uri.getScheme() == null || (!uri.getScheme().equalsIgnoreCase("http") && !uri.getScheme().equalsIgnoreCase("https"))) {
-                throw ApiException.badRequest(ErrorCode.INVALID_URL, "URL вебхука должен начинаться с http:// или https://");
-            }
-        } catch (ApiException e) {
-            throw e;
-        } catch (Exception e) {
-            throw ApiException.badRequest(ErrorCode.INVALID_URL, "Некорректный формат URL вебхука");
+            return targetPolicy.redact(java.net.URI.create(url));
+        } catch (RuntimeException exception) {
+            return "invalid-webhook-target";
         }
     }
+
+    private SubscriptionView toView(KwhSubscriptionRepository.SubscriptionRecord subscription) {
+        return new SubscriptionView(
+                subscription.id(), subscription.name(), redact(subscription.targetUrl()),
+                subscription.subscribedEvents(), subscription.state(),
+                subscription.createdAt(), subscription.createdBy());
+    }
+
+    public record SubscriptionView(
+            Long id,
+            String name,
+            String targetUrl,
+            List<String> subscribedEvents,
+            String state,
+            Instant createdAt,
+            Long createdBy
+    ) {}
+
+    public record CreatedSubscription(
+            Long id,
+            String name,
+            String targetUrl,
+            String secretToken,
+            List<String> subscribedEvents,
+            String state,
+            Instant createdAt,
+            Long createdBy
+    ) {}
 }

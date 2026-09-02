@@ -5,4 +5,15 @@ useDefault = true
 
 [[allowlists]]
 description = "Graphify stat index stores only generated SHA-256 content hashes"
-paths = ['''^graphify-out/cache/stat-index\.json$''']
+paths = ['''(?:^|/)graphify-out/cache/stat-index\.json$''']
+
+[[allowlists]]
+description = "Maven target directories contain generated test reports and build artifacts"
+paths = ['''(?:^|/)target/''']
+
+[[allowlists]]
+description = "S3 credentials are intentionally empty in environment templates"
+condition = "AND"
+regexTarget = "match"
+paths = ['''(?:^|/)(?:deploy/compose/)?\.env\.example$''']
+regexes = ['''DWH_S3_(?:ACCESS|SECRET)_KEY=\s+DWH_S3_(?:SECRET_KEY|BUCKET)=''']

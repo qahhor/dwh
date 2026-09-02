@@ -307,7 +307,7 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
       text-transform: uppercase;
       font-weight: 600;
       letter-spacing: 0.5px;
-      color: #475569;
+      color: #94a3b8;
       padding: 10px 8px 4px 8px;
     }
 
@@ -397,7 +397,7 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
 
     .user-role {
       font-size: 11px;
-      color: #64748b;
+      color: #94a3b8;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;

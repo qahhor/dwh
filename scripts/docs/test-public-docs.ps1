@@ -31,6 +31,7 @@ $activeDocs = @(
     'README.md',
     'CONTRIBUTING.md',
     'docs/onboarding.md',
+    'docs/security/threat-model.md',
     'docs/ops/architecture-overview.md',
     'docs/ops/deployment-guide.md',
     'docs/ops/maintenance-guide.md',

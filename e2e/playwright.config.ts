@@ -20,7 +20,7 @@ export default defineConfig({
   projects: [
     {
       name: 'instance',
-      testMatch: /instance\/.*\.spec\.ts/,
+      testMatch: /(?:instance|system|announcements)\/.*\.spec\.ts/,
       use: { baseURL: environment.instance.baseURL },
     },
   ],

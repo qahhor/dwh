@@ -41,8 +41,8 @@ WORKDIR /app
 
 # Каталог local_disk provider под non-root. В production этот путь обязан быть
 # томом; S3-compatible provider хранит bytes вне контейнера.
-RUN mkdir -p /var/lib/smartupcms/storage /var/lib/smartupcms/backup \
- && chown -R dwh:dwh /var/lib/smartupcms
+RUN mkdir -p /var/lib/smartupcms/storage /var/lib/smartupcms/backup /opt/smartupcms/jna \
+ && chown -R dwh:dwh /var/lib/smartupcms /opt/smartupcms/jna
 ENV DWH_STORAGE_LOCAL_PATH=/var/lib/smartupcms/storage \
     DWH_BACKUP_STATUS_FILE=/var/lib/smartupcms/backup/status.json
 VOLUME ["/var/lib/smartupcms"]
@@ -60,7 +60,8 @@ EXPOSE 8080 9090
 # поэтому ENTRYPOINT остаётся exec-формой без шелла (см. ниже).
 ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75 \
 -XX:+ExitOnOutOfMemoryError -XX:+UseZGC \
--Djava.security.egd=file:/dev/./urandom -Duser.timezone=UTC"
+-Djava.security.egd=file:/dev/./urandom -Duser.timezone=UTC \
+-Djna.tmpdir=/opt/smartupcms/jna"
 
 
 # Health-check уровня контейнера; Compose использует тот же readiness endpoint.

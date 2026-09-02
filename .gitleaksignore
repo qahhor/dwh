@@ -4,3 +4,8 @@
 
 # Testcontainers-only credential used by an isolated OTP integration test.
 6a29a4fbde3343aa0d2a42aafe58a49a080fc97c:apps/server/src/test/java/com/greenwhite/dwh/instance/kauth/KauthOtpLoginIntegrationTest.java:generic-api-key:65
+
+# False positives: empty S3 access-key placeholders were combined with the
+# following empty secret-key line by the generic multiline rule.
+1a53d4908a15974641311b617c5ed494d0f22a78:.env.example:generic-api-key:32
+e13a296a81b85cc81b8a1b477655c887c2b1fa82:deploy/compose/.env.example:generic-api-key:29

@@ -1,0 +1,19 @@
+services:
+  postgres:
+    networks: [monitored]
+
+  migrate:
+    networks: [monitored]
+
+  server:
+    networks: [monitored]
+
+  web:
+    networks: [monitored]
+
+  typesense:
+    networks: [monitored]
+
+networks:
+  monitored:
+    internal: true

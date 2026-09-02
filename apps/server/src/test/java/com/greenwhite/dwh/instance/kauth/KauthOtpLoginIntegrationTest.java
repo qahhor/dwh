@@ -63,7 +63,7 @@ import static org.mockito.Mockito.when;
 class KauthOtpLoginIntegrationTest {
 
     private static final Pattern CODE = Pattern.compile("(\\d{6})");
-    private static final String PASSWORD = "OtpProbe-Pass-2026";
+    private static final String PASSWORD = "OtpProbe-Pass-2026"; // gitleaks:allow -- isolated test credential
 
     @Container
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:18-alpine")

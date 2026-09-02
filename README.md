@@ -103,6 +103,7 @@ Read [onboarding](docs/onboarding.md) for the code map and
 - [Operations runbook](docs/ops/operations-runbook.md)
 - [Backup, restore, and maintenance](docs/ops/maintenance-guide.md)
 - [Rollback procedure](docs/ops/rollback.md)
+- [Threat model and personal-data inventory](docs/security/threat-model.md)
 - [Security policy and private reporting](SECURITY.md)
 - [Support policy](SUPPORT.md)
 

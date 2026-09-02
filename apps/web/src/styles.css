@@ -12,25 +12,25 @@
   --border-subtle: #f1f5f9;
 
   --text-main: #0f172a;
-  --text-muted: #64748b;
-  --text-light: #94a3b8;
+  --text-muted: #334155;
+  --text-light: #475569;
   --text-inverse: #ffffff;
 
   /* Smartup Brand Accent */
-  --primary: #0284c7;
-  --primary-hover: #0369a1;
+  --primary: #0369a1;
+  --primary-hover: #075985;
   --primary-subtle: #e0f2fe;
   --primary-text: #0369a1;
 
   /* Semantics */
-  --success: #16a34a;
+  --success: #166534;
   --success-bg: #dcfce7;
-  --warning: #d97706;
+  --warning: #92400e;
   --warning-bg: #fef3c7;
-  --danger: #dc2626;
+  --danger: #991b1b;
   --danger-hover: #b91c1c;
   --danger-bg: #fee2e2;
-  --info: #2563eb;
+  --info: #1d4ed8;
   --info-bg: #dbeafe;
 
   /* Metrics & Layout */
@@ -41,7 +41,7 @@
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
   --shadow-overlay: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --focus-ring: #0ea5e9;
+  --focus-ring: #0369a1;
 
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }

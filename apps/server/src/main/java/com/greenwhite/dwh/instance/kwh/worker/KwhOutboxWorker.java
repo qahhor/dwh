@@ -2,14 +2,18 @@ package com.greenwhite.dwh.instance.kwh.worker;
 
 import tools.jackson.databind.ObjectMapper;
 import com.greenwhite.dwh.instance.kwh.repository.KwhOutboxRepository;
+import com.greenwhite.dwh.instance.kwh.service.KwhWebhookProperties;
 import com.greenwhite.dwh.instance.kwh.service.KwhWebhookService;
+import com.greenwhite.dwh.instance.kwh.service.WebhookTargetPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+import java.net.http.HttpClient;
 import java.time.Instant;
 import java.util.List;
 
@@ -21,15 +25,30 @@ public class KwhOutboxWorker {
     private final KwhOutboxRepository outboxRepository;
     private final ObjectMapper objectMapper;
     private final RestClient restClient;
+    private final KwhWebhookProperties properties;
+    private final WebhookTargetPolicy targetPolicy;
 
-    public KwhOutboxWorker(KwhOutboxRepository outboxRepository, ObjectMapper objectMapper) {
+    public KwhOutboxWorker(KwhOutboxRepository outboxRepository, ObjectMapper objectMapper,
+                           KwhWebhookProperties properties, WebhookTargetPolicy targetPolicy) {
         this.outboxRepository = outboxRepository;
         this.objectMapper = objectMapper;
-        this.restClient = RestClient.builder().build();
+        this.properties = properties;
+        this.targetPolicy = targetPolicy;
+        properties.validate();
+        var httpClient = HttpClient.newBuilder()
+                .connectTimeout(properties.getConnectTimeout())
+                .followRedirects(HttpClient.Redirect.NEVER)
+                .build();
+        var requestFactory = new JdkClientHttpRequestFactory(httpClient);
+        requestFactory.setReadTimeout(properties.getReadTimeout());
+        this.restClient = RestClient.builder().requestFactory(requestFactory).build();
     }
 
     @Scheduled(fixedDelay = 3000)
     public void processWebhooks() {
+        if (!properties.isEnabled()) {
+            return;
+        }
         List<KwhOutboxRepository.KwhOutboxRecord> items = outboxRepository.fetchPending(20);
         if (items.isEmpty()) {
             return;
@@ -42,12 +61,13 @@ public class KwhOutboxWorker {
             String lastError = null;
 
             try {
+                var target = targetPolicy.validate(item.targetUrl());
                 String payloadJson = objectMapper.writeValueAsString(item.payload());
                 String signature = KwhWebhookService.computeHmacSha256(payloadJson, item.secretToken());
                 long timestamp = Instant.now().getEpochSecond();
 
                 var response = restClient.post()
-                        .uri(item.targetUrl())
+                        .uri(target)
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("X-Signature-SHA256", signature)
                         .header("X-Signature-Timestamp", String.valueOf(timestamp))
@@ -64,8 +84,10 @@ public class KwhOutboxWorker {
                 } else {
                     lastError = "Non-2xx response: " + httpStatus;
                 }
-            } catch (Exception e) {
-                lastError = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            } catch (com.greenwhite.dwh.instance.common.error.ApiException exception) {
+                lastError = "webhook_target_rejected";
+            } catch (Exception exception) {
+                lastError = "webhook_delivery_failed";
             }
 
             int durationMs = (int) (System.currentTimeMillis() - startTime);
@@ -84,8 +106,8 @@ public class KwhOutboxWorker {
                 Instant nextAttempt = Instant.now().plusSeconds(backoffSeconds);
 
                 outboxRepository.markFailed(item.id(), newAttempts, nextAttempt, httpStatus, lastError, isDeadLetter);
-                log.warn("Webhook dispatch failed id={}, url={}, attempt {}/{}: {}",
-                        item.id(), item.targetUrl(), newAttempts, item.maxAttempts(), lastError);
+                log.warn("Webhook dispatch failed id={}, attempt {}/{}: {}",
+                        item.id(), newAttempts, item.maxAttempts(), lastError);
             }
         }
     }

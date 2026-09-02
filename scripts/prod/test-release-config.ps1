@@ -37,6 +37,13 @@ Assert-Matches $composeSource '/typesense:\$\{APP_VERSION' 'Production must use 
 Assert-DoesNotMatch $composeSource 'control-plane|web-cp|db-cp|migrate-cp|smartupcms/instance' 'Retired Control Plane topology remains in production Compose.'
 Assert-Matches $composeSource 'internal:\s*true' 'The database network must be internal.'
 Assert-Matches $composeSource 'backup-status:/var/lib/smartupcms/backup:ro' 'The server must receive backup status read-only.'
+Assert-Matches $composeSource '/tmp:rw,nosuid,nodev,noexec' 'The generic server temporary directory must remain noexec.'
+Assert-Matches $composeSource '/opt/smartupcms/jna:rw,nosuid,nodev,exec,size=16m,uid=10001,gid=10001,mode=0700' 'Argon2/JNA must have a private executable tmpfs owned by the non-root server user.'
+Assert-Matches $composeSource '/var/lib/nginx/tmp:rw,nosuid,nodev,noexec,uid=10001,gid=10001,mode=0700' 'NGINX temporary files must use a private non-executable tmpfs owned by the web user.'
+Assert-Matches $composeSource '/run/nginx:rw,nosuid,nodev,noexec,uid=10001,gid=10001,mode=0750' 'NGINX PID files must use a private non-executable tmpfs owned by the web user.'
+Assert-Matches $composeSource 'DWH_WEBHOOKS_ENABLED:\s*\$\{DWH_WEBHOOKS_ENABLED:-false\}' 'Outbound webhooks must be disabled by default.'
+Assert-Matches $composeSource 'DWH_WEBHOOKS_ALLOWED_HOSTS:\s*\$\{DWH_WEBHOOKS_ALLOWED_HOSTS:-\}' 'Outbound webhooks must require an explicit host allow-list.'
+Assert-Matches $composeSource 'DWH_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES:\s*\$\{DWH_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES:-false\}' 'Private webhook destinations must require an explicit opt-in.'
 Assert-Matches $webNginx 'server:8080' 'The single web origin must proxy API traffic to server:8080.'
 Assert-DoesNotMatch $webNginx 'control-plane|web-cp|app:8080' 'The web origin still references a retired runtime.'
 

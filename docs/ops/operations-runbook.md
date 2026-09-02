@@ -110,6 +110,14 @@ deliver externally. Inspect sanitized server logs and dead-letter state, then
 test provider DNS/TLS, credential scope, quota, and destination policy. Avoid
 retry storms: fix the cause before replaying failed deliveries.
 
+Webhooks are fail-closed unless `DWH_WEBHOOKS_ENABLED=true` and every destination
+host is present in `DWH_WEBHOOKS_ALLOWED_HOSTS`. Do not add wildcard hosts. Keep
+`DWH_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES=false` on Smartup-managed or
+internet-facing installations. A client-owned private target may opt in only
+after the destination and network boundary are reviewed. The API returns a
+signing secret only when the subscription is created; rotate by replacing the
+subscription if that one-time value is lost or exposed.
+
 ## Storage failure
 
 For local storage, check `server-data` capacity, permissions, and host health.

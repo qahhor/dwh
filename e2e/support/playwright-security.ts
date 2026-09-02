@@ -6,6 +6,7 @@ export const secureBrowserUse = {
   ...devices['Desktop Chrome'],
   locale: 'ru-RU',
   timezoneId: 'Asia/Tashkent',
+  reducedMotion: 'reduce' as const,
   screenshot: 'only-on-failure' as const,
   trace: 'off' as const,
   video: 'off' as const,
