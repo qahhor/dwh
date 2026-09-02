@@ -1,22 +1,22 @@
 # ==============================================================================
-# DWH Platform Makefile (Automation Commands)
+# SmartupCMS Makefile (Automation Commands)
 # ==============================================================================
 
-.PHONY: help install build test test-m1 clean docker-up docker-down run-instance
+.PHONY: help install build test test-m1 clean docker-up docker-down run-server
 
 help:
-	@echo "DWH Platform Commands:"
+	@echo "SmartupCMS Commands:"
 	@echo "  make build          - Compile all Java modules and Angular apps"
 	@echo "  make test           - Run full test suite (57 tests on PostgreSQL 18)"
 	@echo "  make test-m1        - Run M1 Instance & Bootstrap tests"
 	@echo "  make docker-up      - Start Docker infrastructure (PostgreSQL 18)"
 	@echo "  make docker-down    - Stop Docker infrastructure"
 	@echo "  make migrate        - Run Flyway schema migrations on instance"
-	@echo "  make run-instance   - Start DWH Instance backend (:8080)"
+	@echo "  make run-server     - Start SmartupCMS backend (:8080)"
 
 build:
 	mvn clean package -DskipTests
-	cd apps/web-instance && npm run build
+	cd apps/web && npm run build
 
 test:
 	mvn test
@@ -34,7 +34,7 @@ docker-down:
 	docker compose down
 
 migrate:
-	mvn -pl apps/instance -Dspring.profiles.active=migrate spring-boot:run
+	mvn -pl apps/server -Dspring.profiles.active=migrate spring-boot:run
 
-run-instance:
-	mvn -pl apps/instance spring-boot:run
+run-server:
+	mvn -pl apps/server spring-boot:run

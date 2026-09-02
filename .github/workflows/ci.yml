@@ -46,14 +46,14 @@ jobs:
         with:
           node-version-file: '.node-version'
           cache: npm
-          cache-dependency-path: apps/web-instance/package-lock.json
+          cache-dependency-path: apps/web/package-lock.json
 
-      - name: Install Web Instance
-        working-directory: apps/web-instance
+      - name: Install web application
+        working-directory: apps/web
         run: npm ci
 
-      - name: Test, typecheck & build Web Instance
-        working-directory: apps/web-instance
+      - name: Test, typecheck & build web application
+        working-directory: apps/web
         run: |
           npm test
           npm run typecheck
@@ -72,6 +72,10 @@ jobs:
       - name: Validate production Compose, proxy and scripts
         shell: pwsh
         run: ./scripts/prod/test-release-config.ps1
+
+      - name: Validate encrypted backup status contract
+        shell: pwsh
+        run: ./scripts/prod/test-backup-status.ps1
 
       - name: Verify backup failure blocks migrations
         run: bash scripts/prod/test-deploy-fail-closed.sh
@@ -102,10 +106,7 @@ jobs:
         run: ./scripts/dev/test-dotenv-parser.ps1
 
       - name: Build clean Compose images
-        run: docker compose build --pull
-
-      - name: Build hardened production proxy image
-        run: docker build --pull -f deploy/images/nginx-proxy/Dockerfile -t smartupcms/nginx-proxy:1.28-alpine-hardened .
+        run: docker compose --profile backup build --pull
 
       - name: Scan runtime images
         shell: pwsh
@@ -119,7 +120,7 @@ jobs:
 
       - name: Smoke public endpoints
         run: |
-          curl --fail --silent --show-error http://localhost:9190/actuator/health
+          curl --fail --silent --show-error http://localhost:4200/healthz
           curl --fail --silent --show-error http://localhost:4200/
 
       - name: Install E2E dependencies

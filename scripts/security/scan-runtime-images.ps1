@@ -8,11 +8,11 @@ param(
 $ErrorActionPreference = "Stop"
 
 $images = @(
-    "${ImageRegistry}/instance:${AppVersion}",
+    "${ImageRegistry}/server:${AppVersion}",
     "${ImageRegistry}/web:${AppVersion}",
+    "${ImageRegistry}/backup:${AppVersion}",
     "smartupcms/postgres:18-alpine-hardened",
-    "smartupcms/typesense:27.1-hardened",
-    "smartupcms/nginx-proxy:1.28-alpine-hardened"
+    "smartupcms/typesense:27.1-hardened"
 )
 
 foreach ($image in $images) {

@@ -27,7 +27,7 @@ RUN apk del nginx-module-acme nginx-module-geoip nginx-module-image-filter nginx
  && chown -R web:web /var/cache/nginx /var/lib/nginx /var/run/nginx /tmp/nginx /usr/share/nginx/html
 
 COPY --chown=web:web nginx.conf /etc/nginx/http.d/default.conf
-COPY --from=build --chown=web:web /build/dist/web-instance/browser /usr/share/nginx/html
+COPY --from=build --chown=web:web /build/dist/web/browser /usr/share/nginx/html
 
 USER web:web
 EXPOSE 8080

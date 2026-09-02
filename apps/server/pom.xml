@@ -6,14 +6,14 @@
 
     <parent>
         <groupId>com.greenwhite.dwh</groupId>
-        <artifactId>dwh-platform</artifactId>
+        <artifactId>smartupcms-platform</artifactId>
         <version>1.0.0-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
-    <artifactId>instance</artifactId>
-    <name>Instance Application</name>
-    <description>Single-Tenant Instance Modular Monolith Core Backend (md, kauth, ms, mf, audit, kwh)</description>
+    <artifactId>server</artifactId>
+    <name>SmartupCMS Server</name>
+    <description>Single-organization SmartupCMS modular monolith backend</description>
 
     <dependencies>
         <!-- Internal Platform Libraries -->

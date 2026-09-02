@@ -11,15 +11,11 @@ trap 'rm -rf "$test_dir"' EXIT
 docker() {
     printf '%s\n' "$*" >> "$FAKE_DOCKER_LOG"
 
-    if [[ "$*" == *"ps -a -q db-cp" ]]; then
-        printf '%s\n' "fake-control-plane-db"
+    if [[ "$*" == *"ps -a -q postgres" ]]; then
+        printf '%s\n' "fake-postgres"
         return 0
     fi
-    if [[ "$*" == *"ps -a -q db" ]]; then
-        printf '%s\n' "fake-instance-db"
-        return 0
-    fi
-    if [[ "$*" == *"exec -T db sh -ec"* ]]; then
+    if [[ "$*" == *"run --rm --no-deps -e BACKUP_RUN_ONCE=true backup"* ]]; then
         return 42
     fi
     return 0
@@ -30,7 +26,7 @@ export FAKE_DOCKER_LOG="$fake_log"
 set +e
 (
     cd "$repo_root"
-    COMPOSE_FILE="deploy/compose/docker-compose.fleet.prod.yml" \
+    COMPOSE_FILE="deploy/compose/docker-compose.prod.yml" \
     ENV_FILE="scripts/prod/release-config.test.env" \
     BACKUP_DIR="$test_dir/backups" \
     bash scripts/prod/deploy.sh
@@ -50,7 +46,7 @@ if grep -q 'run --rm migrate' "$fake_log"; then
     exit 1
 fi
 
-if ! grep -q 'exec -T db sh -ec' "$fake_log"; then
+if ! grep -q 'run --rm --no-deps -e BACKUP_RUN_ONCE=true backup' "$fake_log"; then
     echo "The pre-deploy backup was not attempted." >&2
     cat "$fake_log" >&2
     exit 1

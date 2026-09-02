@@ -1,5 +1,5 @@
 # Multi-stage образ backend-приложения SmartupCMS:
-#   docker build -t smartupcms/instance:<ver> .
+#   docker build -t smartupcms/server:<ver> .
 #
 # Слоистая сборка (Spring Boot layertools): зависимости кэшируются отдельно от
 # кода приложения — пересборка после правки кода не тянет заново ~100 МБ библиотек.
@@ -10,15 +10,15 @@ WORKDIR /build
 
 COPY pom.xml .
 COPY libs libs
-COPY apps/instance apps/instance
+COPY apps/server apps/server
 
 # Тесты в образе не гоняем: это делает CI (там Docker для Testcontainers).
 # Cache mount для ~/.m2: зависимости скачиваются один раз и переиспользуются
 # между сборками. Без него каждая сборка тянет ~100 МБ заново — первая сборка
 # занимала минуты и упиралась в таймауты.
 RUN --mount=type=cache,target=/root/.m2,sharing=locked \
-    mvn -B -q -pl apps/instance -am -DskipTests package \
- && cp apps/instance/target/instance-*.jar /build/app.jar
+    mvn -B -q -pl apps/server -am -DskipTests package \
+ && cp apps/server/target/server-*.jar /build/app.jar
 
 # Распаковка fat-jar: рядом появляются lib/ (зависимости) и запускаемый jar.
 # Разделение нужно для кэша Docker: lib меняется редко, код — каждую сборку.
@@ -42,9 +42,11 @@ WORKDIR /app
 # Каталог данных под non-root. ВРЕМЕННО: файлы клиента лежат на диске узла
 # (блокер C-3 AUDIT-03). До перехода на Garage/S3 (фаза P) этот путь ОБЯЗАН
 # монтироваться томом — иначе пересоздание контейнера теряет файлы.
-RUN mkdir -p /var/lib/dwh/storage && chown -R dwh:dwh /var/lib/dwh
-ENV DWH_STORAGE_LOCAL_PATH=/var/lib/dwh/storage
-VOLUME ["/var/lib/dwh"]
+RUN mkdir -p /var/lib/smartupcms/storage /var/lib/smartupcms/backup \
+ && chown -R dwh:dwh /var/lib/smartupcms
+ENV DWH_STORAGE_LOCAL_PATH=/var/lib/smartupcms/storage \
+    DWH_BACKUP_STATUS_FILE=/var/lib/smartupcms/backup/status.json
+VOLUME ["/var/lib/smartupcms"]
 
 # Порядок COPY = порядок изменчивости (реже меняется — раньше): зависимости,
 # затем код приложения. Правка кода не инвалидирует ~100 МБ слоя с библиотеками.

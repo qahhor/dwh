@@ -4,7 +4,7 @@ server:
 
 spring:
   application:
-    name: dwh-instance
+    name: smartupcms-server
   threads:
     virtual:
       enabled: true
@@ -14,7 +14,7 @@ spring:
     password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
     hikari:
-      pool-name: InstanceHikariPool
+      pool-name: SmartupCmsHikariPool
       maximum-pool-size: 20
       minimum-idle: 5
       idle-timeout: 300000
@@ -83,7 +83,7 @@ dwh:
     messenger: ${DWH_PROVIDER_MESSENGER:console_messenger}
   mail:
     from: ${DWH_MAIL_FROM:no-reply@localhost}
-    from-name: ${DWH_MAIL_FROM_NAME:DWH Platform}
+    from-name: ${DWH_MAIL_FROM_NAME:SmartupCMS}
   telegram:
     # FR-NOTIF-4. Пусто -> TelegramBotMessengerProvider не поднимается.
     bot-token: ${TELEGRAM_BOT_TOKEN:}

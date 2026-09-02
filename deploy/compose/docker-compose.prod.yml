@@ -1,140 +1,213 @@
-# Production-развёртывание ОДНОГО экземпляра клиента через Docker Compose.
-#
-# ВАЖНО про место в архитектуре: целевой оркестратор — Nomad (ADR-0007).
-# Этот compose — законный промежуточный контур для пилота/одиночного клиента
-# и эталон состава стека; при переходе на Nomad job-файл повторяет эту же
-# топологию. Kubernetes/Helm сознательно не используются (ADR-0007 разд. 2.1).
-#
-# Запуск:
-#   1) cp .env.example .env  и заполнить (секреты НЕ коммитить)
-#   2) docker compose -f docker-compose.prod.yml --env-file .env run --rm migrate
-#   3) docker compose -f docker-compose.prod.yml --env-file .env up -d
-#
-# Порядок обязателен: миграции — отдельным шагом (NFR-10), приложение при
-# старте только проверяет схему и откажется стартовать при несовпадении.
+name: ${PROJECT_NAME:-smartupcms}
 
-# Группа в Docker: PROJECT_NAME (умолчание SmartupCMS) + код клиента, чтобы
-# несколько экземпляров на одном узле не смешивались. Docker приводит имя
-# группы к нижнему регистру; имена контейнеров регистр сохраняют.
-name: ${PROJECT_NAME:-SmartupCMS}-${CLIENT_CODE:?требуется CLIENT_CODE}
-
-x-app-common: &app-common
-  image: ${IMAGE_REGISTRY:-smartupcms}/instance:${APP_VERSION:?требуется APP_VERSION}
+x-server-common: &server-common
+  image: ${IMAGE_REGISTRY:-ghcr.io/smartupcms}/server:${APP_VERSION:?APP_VERSION must be an immutable release tag}
   restart: unless-stopped
   environment:
-    DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-dwh_instance}
-    DB_USER: ${DB_USER:?}
-    DB_PASSWORD: ${DB_PASSWORD:?}
-    # Инициализация экземпляра (FR-INST-1). Значения из .env сами в контейнер
-    # не попадают — compose использует .env только для подстановки, поэтому
-    # каждую переменную приходится перечислять явно.
-    DWH_INSTANCE_CLIENT_CODE: ${CLIENT_CODE:?требуется CLIENT_CODE}
-    DWH_INSTANCE_CLIENT_NAME: ${CLIENT_NAME:?требуется CLIENT_NAME}
+    DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-smartupcms}
+    DB_USER: ${DB_USER:?DB_USER is required}
+    DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+    DWH_INSTANCE_CLIENT_CODE: ${ORGANIZATION_CODE:-default}
+    DWH_INSTANCE_CLIENT_NAME: ${ORGANIZATION_NAME:?ORGANIZATION_NAME is required}
     DWH_INSTANCE_RESOURCE_PROFILE: ${RESOURCE_PROFILE:-S}
-    DWH_INSTANCE_ADMIN_LOGIN: ${DWH_INSTANCE_ADMIN_LOGIN:-admin}
-    DWH_INSTANCE_ADMIN_EMAIL: ${DWH_INSTANCE_ADMIN_EMAIL:-}
-    DWH_INSTANCE_ADMIN_PASSWORD: ${DWH_INSTANCE_ADMIN_PASSWORD:-}
-    # Heartbeat в control plane (FR-INST-3). Токен выдаётся один раз при
-    # регистрации экземпляра в панели; пустой — отправка выключена.
-    DWH_CP_URL: ${DWH_CP_URL:-}
-    DWH_CP_HEARTBEAT_TOKEN: ${DWH_CP_HEARTBEAT_TOKEN:-}
-    DWH_CP_HEARTBEAT_INTERVAL: ${DWH_CP_HEARTBEAT_INTERVAL:-5m}
+    DWH_INSTANCE_ADMIN_LOGIN: ${ADMIN_LOGIN:-admin}
+    DWH_INSTANCE_ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+    DWH_INSTANCE_ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+    DWH_PROVIDER_STORAGE: ${DWH_PROVIDER_STORAGE:-local_disk}
+    DWH_STORAGE_LOCAL_PATH: /var/lib/smartupcms/storage
+    DWH_BACKUP_STATUS_FILE: /var/lib/smartupcms/backup/status.json
+    DWH_S3_ENDPOINT: ${DWH_S3_ENDPOINT:-}
+    DWH_S3_REGION: ${DWH_S3_REGION:-auto}
+    DWH_S3_ACCESS_KEY: ${DWH_S3_ACCESS_KEY:-}
+    DWH_S3_SECRET_KEY: ${DWH_S3_SECRET_KEY:-}
+    DWH_S3_BUCKET: ${DWH_S3_BUCKET:-}
+    DWH_S3_PATH_STYLE: ${DWH_S3_PATH_STYLE:-true}
+    DWH_TYPESENSE_URL: http://typesense:8108
+    DWH_TYPESENSE_API_KEY: ${TYPESENSE_API_KEY:?TYPESENSE_API_KEY is required}
+    DWH_TYPESENSE_ENABLED: ${DWH_TYPESENSE_ENABLED:-true}
+    MANAGEMENT_PORT: 9090
     TZ: UTC
-  networks: [dwh-internal]
+  networks: [backend]
+  security_opt: [no-new-privileges:true]
+  cap_drop: [ALL]
+  read_only: true
+  tmpfs: [/tmp]
   logging:
     driver: json-file
-    options: {max-size: "50m", max-file: "5"}   # до централизованных логов (фаза P)
+    options: {max-size: "50m", max-file: "5"}
 
 services:
   postgres:
-    build:
-      context: ../..
-      dockerfile: deploy/images/postgres/Dockerfile
     image: ${POSTGRES_IMAGE:-smartupcms/postgres:18-alpine-hardened}
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DB_NAME:-dwh_instance}
-      POSTGRES_USER: ${DB_USER:?}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:?}
-      # Инициализация с checksums: критично для раннего выявления порчи страниц
+      POSTGRES_DB: ${DB_NAME:-smartupcms}
+      POSTGRES_USER: ${DB_USER:?DB_USER is required}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       POSTGRES_INITDB_ARGS: "--data-checksums"
     volumes:
-      - pgdata:/var/lib/postgresql   # PG 18: том монтируется на каталог целиком, не на /data
-      - ./backups:/backups
-    # Порт наружу НЕ публикуется: доступ только из внутренней сети compose
-    networks: [dwh-internal]
+      - postgres-data:/var/lib/postgresql
+    networks: [backend]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME:-dwh_instance}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME:-smartupcms}"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 30s
     stop_grace_period: 1m
     shm_size: 256mb
-    deploy:
-      resources:
-        limits: {cpus: "${PG_CPUS:-2}", memory: "${PG_MEMORY:-4g}"}
+    security_opt: [no-new-privileges:true]
+    logging:
+      driver: json-file
+      options: {max-size: "50m", max-file: "5"}
 
-  # Одноразовый шаг миграций. Не поднимается вместе со стеком (profile: tools) —
-  # запускается явно перед обновлением: docker compose run --rm migrate
   migrate:
-    <<: *app-common
+    <<: *server-common
     profiles: [tools]
     command: ["--spring.profiles.active=migrate"]
     restart: "no"
     depends_on:
       postgres: {condition: service_healthy}
 
-  app:
-    <<: *app-common
+  server:
+    <<: *server-common
+    networks: [frontend, backend]
+    volumes:
+      - server-data:/var/lib/smartupcms
+      - backup-status:/var/lib/smartupcms/backup:ro
     depends_on:
       postgres: {condition: service_healthy}
-    ports:
-      - "${APP_BIND:-127.0.0.1}:${APP_PORT:-8080}:8080"   # за reverse proxy с TLS
-    volumes:
-      - appdata:/var/lib/dwh                              # ВРЕМЕННО до Garage (C-3)
+      typesense: {condition: service_healthy}
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:9090/actuator/health/readiness || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9090/actuator/health/readiness || exit 1"]
       interval: 15s
       timeout: 3s
       retries: 4
       start_period: 60s
-    stop_grace_period: 30s        # graceful shutdown приложения — 30 с
-    deploy:
-      resources:
-        limits: {cpus: "${APP_CPUS:-2}", memory: "${APP_MEMORY:-2g}"}
+    stop_grace_period: 30s
 
-  # Ежесуточный базовый бэкап. ВНИМАНИЕ: это минимальный контур —
-  # без WAL-архива, шифрования и автопроверки восстановления (NFR-7).
-  # Полный контур — фаза P; до неё проверять восстановление вручную (RB-05).
-  backup:
-    image: ${POSTGRES_IMAGE:-smartupcms/postgres:18-alpine-hardened}
-    user: "${BACKUP_UID:-1000}:${BACKUP_GID:-1000}"
+  web:
+    image: ${IMAGE_REGISTRY:-ghcr.io/smartupcms}/web:${APP_VERSION:?APP_VERSION must be an immutable release tag}
+    restart: unless-stopped
+    ports:
+      - "${HTTP_BIND:-127.0.0.1}:${HTTP_PORT:-8080}:8080"
+    networks: [frontend]
+    depends_on:
+      server: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/healthz >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 4
+      start_period: 15s
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    read_only: true
+    tmpfs: [/tmp, /var/cache/nginx, /var/run]
+    logging:
+      driver: json-file
+      options: {max-size: "50m", max-file: "5"}
+
+  typesense:
+    image: ${TYPESENSE_IMAGE:-smartupcms/typesense:27.1-hardened}
     restart: unless-stopped
     environment:
-      PGPASSWORD: ${DB_PASSWORD:?}
+      TYPESENSE_API_KEY: ${TYPESENSE_API_KEY:?TYPESENSE_API_KEY is required}
+      TYPESENSE_DATA_DIR: /data
+      TYPESENSE_ENABLE_CORS: "false"
     volumes:
-      - ./backups:/backups
-    networks: [dwh-internal]
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - |
-        while true; do
-          TS=$$(date -u +%Y%m%dT%H%M%SZ)
-          pg_dump -h postgres -U "${DB_USER}" -d "${DB_NAME:-dwh_instance}" -Fc \
-            -f "/backups/${CLIENT_CODE}-$$TS.dump" \
-            && echo "backup ok: $$TS" \
-            || echo "BACKUP FAILED: $$TS"
-          find /backups -name '*.dump' -mtime +${BACKUP_RETENTION_DAYS:-14} -delete
-          sleep ${BACKUP_INTERVAL_SECONDS:-86400}
-        done
+      - typesense-data:/data
+    networks: [backend]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8108/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
+    security_opt: [no-new-privileges:true]
+    logging:
+      driver: json-file
+      options: {max-size: "50m", max-file: "5"}
+
+  backup-bootstrap:
+    image: ${IMAGE_REGISTRY:-ghcr.io/smartupcms}/backup:${APP_VERSION:?APP_VERSION must be an immutable release tag}
+    profiles: [tools]
+    restart: "no"
+    entrypoint: ["/usr/local/bin/bootstrap-role"]
+    environment:
+      PGHOST: postgres
+      PGDATABASE: ${DB_NAME:-smartupcms}
+      PGUSER: ${DB_USER:?DB_USER is required}
+      PGPASSWORD_FILE: /run/secrets/database_password
+      BACKUP_DB_USER: ${BACKUP_DB_USER:-smartupcms_backup}
+      BACKUP_DB_PASSWORD_FILE: /run/secrets/backup_database_password
+    secrets: [database_password, backup_database_password]
+    networks: [backend]
     depends_on:
       postgres: {condition: service_healthy}
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    read_only: true
+    tmpfs: [/tmp]
+
+  backup:
+    image: ${IMAGE_REGISTRY:-ghcr.io/smartupcms}/backup:${APP_VERSION:?APP_VERSION must be an immutable release tag}
+    restart: unless-stopped
+    environment:
+      PGHOST: postgres
+      PGDATABASE: ${DB_NAME:-smartupcms}
+      PGUSER: ${BACKUP_DB_USER:-smartupcms_backup}
+      PGPASSWORD_FILE: /run/secrets/backup_database_password
+      AGE_RECIPIENT: ${BACKUP_AGE_RECIPIENT:?BACKUP_AGE_RECIPIENT is required}
+      BACKUP_INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-86400}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+      BACKUP_STORAGE_MODE: ${BACKUP_STORAGE_MODE:-local}
+      BACKUP_S3_ENDPOINT: ${BACKUP_S3_ENDPOINT:-}
+      BACKUP_S3_REGION: ${BACKUP_S3_REGION:-auto}
+      BACKUP_S3_BUCKET: ${BACKUP_S3_BUCKET:-}
+      BACKUP_S3_PREFIX: ${BACKUP_S3_PREFIX:-backups}
+      BACKUP_S3_ACCESS_KEY_ID_FILE: /run/secrets/backup_s3_access_key_id
+      BACKUP_S3_SECRET_ACCESS_KEY_FILE: /run/secrets/backup_s3_secret_access_key
+    secrets:
+      - backup_database_password
+      - backup_s3_access_key_id
+      - backup_s3_secret_access_key
+    volumes:
+      - backups:/backups
+      - backup-status:/status
+    networks: [backend, egress]
+    depends_on:
+      postgres: {condition: service_healthy}
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    read_only: true
+    tmpfs: [/tmp]
+    logging:
+      driver: json-file
+      options: {max-size: "50m", max-file: "5"}
 
 networks:
-  dwh-internal:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
+    internal: true
+  egress:
     driver: bridge
 
+secrets:
+  database_password:
+    file: ${DB_PASSWORD_FILE:?DB_PASSWORD_FILE is required}
+  backup_database_password:
+    file: ${BACKUP_DB_PASSWORD_FILE:?BACKUP_DB_PASSWORD_FILE is required}
+  backup_s3_access_key_id:
+    file: ${BACKUP_S3_ACCESS_KEY_ID_FILE:-${BACKUP_DB_PASSWORD_FILE:?BACKUP_DB_PASSWORD_FILE is required}}
+  backup_s3_secret_access_key:
+    file: ${BACKUP_S3_SECRET_ACCESS_KEY_FILE:-${BACKUP_DB_PASSWORD_FILE:?BACKUP_DB_PASSWORD_FILE is required}}
+
 volumes:
-  pgdata:
-  appdata:
+  postgres-data:
+  server-data:
+  typesense-data:
+  backups:
+  backup-status:

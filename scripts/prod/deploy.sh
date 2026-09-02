@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-# Production fleet deployment with backup, migration and readiness gates.
 set -euo pipefail
 
-COMPOSE_FILE="${COMPOSE_FILE:-deploy/compose/docker-compose.fleet.prod.yml}"
+COMPOSE_FILE="${COMPOSE_FILE:-deploy/compose/docker-compose.prod.yml}"
 ENV_FILE="${ENV_FILE:-.env.production}"
 HEALTH_TIMEOUT_SECONDS="${HEALTH_TIMEOUT_SECONDS:-180}"
 compose=(docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE")
@@ -15,46 +14,37 @@ on_error() {
 }
 trap on_error ERR
 
-if [[ ! -f "$ENV_FILE" ]]; then
-    echo "[ERROR] Environment file '$ENV_FILE' was not found." >&2
-    exit 1
-fi
+[[ -f "$ENV_FILE" ]] || { echo "[ERROR] Environment file '$ENV_FILE' was not found." >&2; exit 1; }
+[[ "$HEALTH_TIMEOUT_SECONDS" =~ ^[1-9][0-9]*$ ]] \
+    || { echo '[ERROR] HEALTH_TIMEOUT_SECONDS must be a positive integer.' >&2; exit 1; }
 
-if [[ ! "$HEALTH_TIMEOUT_SECONDS" =~ ^[1-9][0-9]*$ ]]; then
-    echo "[ERROR] HEALTH_TIMEOUT_SECONDS must be a positive integer." >&2
-    exit 1
-fi
-
-echo "[1/8] Validating Docker Compose and production configuration..."
+echo '[1/7] Validating the unified production configuration...'
 docker compose version >/dev/null
 "${compose[@]}" config --quiet
 
-echo "[2/8] Pulling immutable application and external runtime images..."
-"${compose[@]}" pull --ignore-buildable
+echo '[2/7] Pulling immutable release images...'
+"${compose[@]}" pull
 
-echo "[3/8] Building the hardened PostgreSQL runtime..."
-"${compose[@]}" build --pull db typesense proxy
-
-echo "[4/8] Creating mandatory backup for an existing fleet..."
-instance_db_id="$("${compose[@]}" ps -a -q db)"
-cp_db_id="$("${compose[@]}" ps -a -q db-cp)"
-if [[ -n "$instance_db_id" || -n "$cp_db_id" ]]; then
+echo '[3/7] Creating the mandatory pre-migration backup when data exists...'
+postgres_id="$("${compose[@]}" ps -a -q postgres)"
+if [[ -n "$postgres_id" ]]; then
     COMPOSE_FILE="$COMPOSE_FILE" ENV_FILE="$ENV_FILE" bash scripts/prod/backup.sh
 else
-    echo "No existing database containers found; treating this as an initial deployment."
+    echo 'No existing PostgreSQL container found; treating this as an initial deployment.'
 fi
 
-echo "[5/8] Applying instance database migrations..."
+echo '[4/7] Starting dependencies...'
+"${compose[@]}" up -d --wait --wait-timeout "$HEALTH_TIMEOUT_SECONDS" postgres typesense
+
+echo '[5/7] Applying forward-only database migrations...'
 "${compose[@]}" run --rm migrate
 
-echo "[6/8] Applying control-plane database migrations..."
-"${compose[@]}" run --rm migrate-cp
+echo '[6/7] Creating or refreshing the dedicated read-only backup role...'
+"${compose[@]}" run --rm backup-bootstrap
 
-echo "[7/8] Starting the fleet and waiting for readiness..."
+echo '[7/7] Starting SmartupCMS and waiting for readiness...'
 "${compose[@]}" up -d --remove-orphans --wait --wait-timeout "$HEALTH_TIMEOUT_SECONDS"
-
-echo "[8/8] Recording final service state..."
 "${compose[@]}" ps
 
 trap - ERR
-echo "Deployment completed successfully: migrations passed and all services are ready."
+echo 'Deployment completed successfully.'

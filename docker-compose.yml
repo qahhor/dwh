@@ -1,72 +1,60 @@
-# Весь проект одной группой в Docker.
-#
-# Имя группы берётся из PROJECT_NAME (файл .env), по умолчанию SmartupCMS.
-# ВНИМАНИЕ: Docker Compose приводит имя проекта к нижнему регистру, поэтому
-# в Docker Desktop группа отображается как `smartupcms`. Имена контейнеров
-# регистр сохраняют: SmartupCMS-app, SmartupCMS-db и т. д.
-#
-# Запуск (порядок обязателен — миграции отдельным шагом, NFR-10):
-#   cp .env.example .env
-#   docker compose run --rm migrate
-#   docker compose up -d
-#
-# Прод-развёртывание одного клиента — deploy/compose/docker-compose.prod.yml.
+name: ${PROJECT_NAME:-smartupcms}
 
-name: ${PROJECT_NAME:-SmartupCMS}
-
-x-instance-env: &instance-env
+x-server-environment: &server-environment
   JAVA_TOOL_OPTIONS: "-Xms256m -Xmx1024m -XX:+ExitOnOutOfMemoryError -XX:+UseZGC -Djava.security.egd=file:/dev/./urandom -Duser.timezone=UTC"
-  DB_URL: jdbc:postgresql://db:5432/${DB_NAME:-dwh_instance}
-  DB_USER: ${DB_USER:-dwh}
-  DB_PASSWORD: ${DB_PASSWORD:-dwh_local_dev}
-  DWH_INSTANCE_CLIENT_CODE: ${CLIENT_CODE:-dev-local}
-  DWH_INSTANCE_CLIENT_NAME: ${CLIENT_NAME:-Local Development}
+  DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-smartupcms}
+  DB_USER: ${DB_USER:-smartupcms}
+  DB_PASSWORD: ${DB_PASSWORD:-smartupcms_local_dev}
+  DWH_INSTANCE_CLIENT_CODE: ${ORGANIZATION_CODE:-local}
+  DWH_INSTANCE_CLIENT_NAME: ${ORGANIZATION_NAME:-Local Organization}
   DWH_INSTANCE_RESOURCE_PROFILE: ${RESOURCE_PROFILE:-S}
   DWH_INSTANCE_ADMIN_LOGIN: ${ADMIN_LOGIN:-admin}
-  DWH_INSTANCE_ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@dev.local}
+  DWH_INSTANCE_ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@localhost}
   DWH_INSTANCE_ADMIN_PASSWORD: ${ADMIN_PASSWORD:-DevOnly-ChangeMe-1}
-  # Каналы доставки (FR-NOTIF-3/4/5). Пустой SMTP_HOST или TELEGRAM_BOT_TOKEN
-  # означает заглушку: письма и коды пишутся в журнал и никуда не уходят.
-  # Чтобы канал заработал, нужны ОБА параметра: адрес шлюза и выбор провайдера.
+  DWH_PROVIDER_STORAGE: ${DWH_PROVIDER_STORAGE:-local_disk}
+  DWH_STORAGE_LOCAL_PATH: /var/lib/smartupcms/storage
+  DWH_BACKUP_STATUS_FILE: /var/lib/smartupcms/backup/status.json
+  DWH_S3_ENDPOINT: ${DWH_S3_ENDPOINT:-}
+  DWH_S3_REGION: ${DWH_S3_REGION:-auto}
+  DWH_S3_ACCESS_KEY: ${DWH_S3_ACCESS_KEY:-}
+  DWH_S3_SECRET_KEY: ${DWH_S3_SECRET_KEY:-}
+  DWH_S3_BUCKET: ${DWH_S3_BUCKET:-}
+  DWH_S3_PATH_STYLE: ${DWH_S3_PATH_STYLE:-true}
   SMTP_HOST: ${SMTP_HOST:-}
   SMTP_PORT: ${SMTP_PORT:-587}
   SMTP_USER: ${SMTP_USER:-}
   SMTP_PASSWORD: ${SMTP_PASSWORD:-}
   SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
   DWH_MAIL_FROM: ${DWH_MAIL_FROM:-no-reply@localhost}
-  DWH_MAIL_FROM_NAME: ${DWH_MAIL_FROM_NAME:-DWH Platform}
+  DWH_MAIL_FROM_NAME: ${DWH_MAIL_FROM_NAME:-SmartupCMS}
   TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
   DWH_PROVIDER_MAIL: ${DWH_PROVIDER_MAIL:-console_mail}
   DWH_PROVIDER_SMS: ${DWH_PROVIDER_SMS:-console_sms}
   DWH_PROVIDER_MESSENGER: ${DWH_PROVIDER_MESSENGER:-console_messenger}
-  DWH_TYPESENSE_URL: ${DWH_TYPESENSE_URL:-http://typesense:8108}
-  DWH_TYPESENSE_API_KEY: ${TYPESENSE_API_KEY:-dwh_typesense_local_dev_key}
+  DWH_TYPESENSE_URL: http://typesense:8108
+  DWH_TYPESENSE_API_KEY: ${TYPESENSE_API_KEY:-smartupcms_typesense_local_dev}
   DWH_TYPESENSE_ENABLED: ${DWH_TYPESENSE_ENABLED:-true}
-  MANAGEMENT_PORT: 9090          # порт для HEALTHCHECK образа
+  MANAGEMENT_PORT: 9090
   TZ: UTC
 
-
-
 services:
-  # ------------------------------------------------------------ экземпляр
-  db:
+  postgres:
     build:
       context: .
       dockerfile: deploy/images/postgres/Dockerfile
     image: ${POSTGRES_IMAGE:-smartupcms/postgres:18-alpine-hardened}
-    container_name: ${PROJECT_NAME:-SmartupCMS}-db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DB_NAME:-dwh_instance}
-      POSTGRES_USER: ${DB_USER:-dwh}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-dwh_local_dev}
+      POSTGRES_DB: ${DB_NAME:-smartupcms}
+      POSTGRES_USER: ${DB_USER:-smartupcms}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-smartupcms_local_dev}
       POSTGRES_INITDB_ARGS: "--data-checksums"
     ports:
-      - "${DB_PORT:-5432}:5432"     # наружу только для отладки в dev
+      - "${DB_PORT:-5432}:5432"
     volumes:
-      - db-data:/var/lib/postgresql   # PG 18: том монтируется на каталог целиком, не на /data
+      - postgres-data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-dwh} -d ${DB_NAME:-dwh_instance}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-smartupcms} -d ${DB_NAME:-smartupcms}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -74,61 +62,118 @@ services:
 
   migrate:
     build: {context: .}
-    image: ${IMAGE_REGISTRY:-smartupcms}/instance:${APP_VERSION:-dev}
-    container_name: ${PROJECT_NAME:-SmartupCMS}-migrate
-    profiles: [tools]              # не поднимается вместе со стеком
+    image: ${IMAGE_REGISTRY:-smartupcms}/server:${APP_VERSION:-dev}
+    profiles: [tools]
     restart: "no"
     command: ["--spring.profiles.active=migrate"]
-    environment: *instance-env
+    environment: *server-environment
     depends_on:
-      db: {condition: service_healthy}
+      postgres: {condition: service_healthy}
 
-  app:
+  server:
     build: {context: .}
-    image: ${IMAGE_REGISTRY:-smartupcms}/instance:${APP_VERSION:-dev}
-    container_name: ${PROJECT_NAME:-SmartupCMS}-app
+    image: ${IMAGE_REGISTRY:-smartupcms}/server:${APP_VERSION:-dev}
     restart: unless-stopped
     command: ["--spring.profiles.active=${SPRING_PROFILE:-dev}"]
-    environment: *instance-env
-    ports:
-      - "${APP_PORT:-8080}:8080"
-      - "${APP_MGMT_PORT:-9190}:9090"   # actuator: в проде наружу НЕ публикуется
+    environment: *server-environment
     volumes:
-      - app-files:/var/lib/dwh          # ВРЕМЕННО до Garage/S3 (блокер C-3)
+      - server-data:/var/lib/smartupcms
+      - backup-status:/var/lib/smartupcms/backup:ro
     depends_on:
-      db: {condition: service_healthy}
+      postgres: {condition: service_healthy}
+      typesense: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9090/actuator/health/readiness || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 4
+      start_period: 60s
 
-  # ------------------------------------------------------------- фронтенд
   web:
-    build: {context: ./apps/web-instance}
+    build: {context: ./apps/web}
     image: ${IMAGE_REGISTRY:-smartupcms}/web:${APP_VERSION:-dev}
-    container_name: ${PROJECT_NAME:-SmartupCMS}-web
     restart: unless-stopped
     ports:
       - "${WEB_PORT:-4200}:8080"
     depends_on:
-      - app
+      server: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/healthz >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 4
+      start_period: 15s
 
-  # ------------------------------------------------------------- поиск (Typesense)
   typesense:
     build:
       context: .
       dockerfile: deploy/images/typesense/Dockerfile
     image: ${TYPESENSE_IMAGE:-smartupcms/typesense:27.1-hardened}
-
-    container_name: ${PROJECT_NAME:-SmartupCMS}-typesense
     restart: unless-stopped
     environment:
-      TYPESENSE_API_KEY: ${TYPESENSE_API_KEY:-dwh_typesense_local_dev_key}
+      TYPESENSE_API_KEY: ${TYPESENSE_API_KEY:-smartupcms_typesense_local_dev}
       TYPESENSE_DATA_DIR: /data
-      TYPESENSE_ENABLE_CORS: "true"
+      TYPESENSE_ENABLE_CORS: "false"
     ports:
       - "${TYPESENSE_PORT:-8108}:8108"
     volumes:
       - typesense-data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8108/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
+
+  backup-bootstrap:
+    build:
+      context: ./deploy/images/backup
+    image: ${IMAGE_REGISTRY:-smartupcms}/backup:${APP_VERSION:-dev}
+    profiles: [tools]
+    restart: "no"
+    entrypoint: ["/usr/local/bin/bootstrap-role"]
+    environment:
+      PGHOST: postgres
+      PGDATABASE: ${DB_NAME:-smartupcms}
+      PGUSER: ${DB_USER:-smartupcms}
+      PGPASSWORD_FILE: /run/secrets/database_password
+      BACKUP_DB_USER: ${BACKUP_DB_USER:-smartupcms_backup}
+      BACKUP_DB_PASSWORD_FILE: /run/secrets/backup_database_password
+    secrets: [database_password, backup_database_password]
+    depends_on:
+      postgres: {condition: service_healthy}
+
+  backup:
+    build:
+      context: ./deploy/images/backup
+    image: ${IMAGE_REGISTRY:-smartupcms}/backup:${APP_VERSION:-dev}
+    profiles: [backup]
+    restart: unless-stopped
+    environment:
+      PGHOST: postgres
+      PGDATABASE: ${DB_NAME:-smartupcms}
+      PGUSER: ${BACKUP_DB_USER:-smartupcms_backup}
+      PGPASSWORD_FILE: /run/secrets/backup_database_password
+      AGE_RECIPIENT: ${BACKUP_AGE_RECIPIENT:-}
+      BACKUP_INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-86400}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+      BACKUP_STORAGE_MODE: ${BACKUP_STORAGE_MODE:-local}
+    secrets: [backup_database_password]
+    volumes:
+      - backups:/backups
+      - backup-status:/status
+    depends_on:
+      postgres: {condition: service_healthy}
+
+secrets:
+  database_password:
+    file: ${DB_PASSWORD_FILE:-deploy/compose/.secrets/database-password}
+  backup_database_password:
+    file: ${BACKUP_DB_PASSWORD_FILE:-deploy/compose/.secrets/backup-database-password}
 
 volumes:
-  db-data:
-  app-files:
+  postgres-data:
+  server-data:
   typesense-data:
-
+  backups:
+  backup-status:
