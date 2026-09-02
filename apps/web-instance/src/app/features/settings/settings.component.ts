@@ -8,23 +8,6 @@ import { PermissionService } from '../../core/services/permission.service';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 import { UiModalComponent } from '../../shared/ui/ui-modal.component';
 
-interface SystemInfo {
-  appVersion: string;
-  schemaVersion: string;
-  organization: {
-    code: string;
-    name: string;
-    resourceProfile: string;
-  };
-  storageProvider: string;
-  components: Record<string, { status: string }>;
-  backup: {
-    status: string;
-    completedAt: string | null;
-    failureCode: string | null;
-  };
-}
-
 @Component({
   selector: 'app-settings',
   standalone: true,
@@ -128,20 +111,6 @@ interface SystemInfo {
             <span>Языки и Локализация</span>
           </button>
 
-          <button
-            *ngIf="canManageSystemSettings()"
-            id="settings-system-tab"
-            type="button"
-            role="tab"
-            class="status-tab"
-            [class.active]="activeTab === 'system'"
-            [attr.aria-selected]="activeTab === 'system'"
-            aria-controls="settings-system-panel"
-            (click)="activeTab = 'system'"
-          >
-            <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">dns</span>
-            <span>Система</span>
-          </button>
         </div>
       </div>
 
@@ -169,7 +138,7 @@ interface SystemInfo {
                 type="text"
                 class="form-input"
                 [(ngModel)]="systemSettings['system.company_name']"
-                placeholder="Smartup DWH Platform"
+                placeholder="SmartupCMS"
               />
             </div>
 
@@ -384,67 +353,6 @@ interface SystemInfo {
             <ui-button [loading]="isSaving()" (onClick)="saveUserSettings()">
               {{ 'common.save' | t }}
             </ui-button>
-          </div>
-        </div>
-      </div>
-
-      <!-- =================================================================== -->
-      <!-- TAB 5: LOCAL SYSTEM STATUS -->
-      <!-- =================================================================== -->
-      <div id="settings-system-panel" class="tab-content" role="tabpanel" aria-labelledby="settings-system-tab" *ngIf="activeTab === 'system' && canManageSystemSettings()">
-        <div class="settings-card">
-          <div class="card-header-bar">
-            <div class="card-title-group">
-              <span class="material-symbols-outlined card-icon" aria-hidden="true">dns</span>
-              <div>
-                <h3 class="card-title">Состояние системы</h3>
-                <p class="card-desc">Локальная диагностика установки без секретов и внешней телеметрии</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="form-body">
-            <div class="system-status-grid">
-              <div class="status-card">
-                <span class="status-card-label">Код организации</span>
-                <span class="status-card-val mono">{{ systemInfo()?.organization?.code || '—' }}</span>
-              </div>
-              <div class="status-card">
-                <span class="status-card-label">Название организации</span>
-                <span class="status-card-val">{{ systemInfo()?.organization?.name || '—' }}</span>
-              </div>
-              <div class="status-card">
-                <span class="status-card-label">Профиль ресурсов</span>
-                <span class="status-card-val font-semibold">{{ systemInfo()?.organization?.resourceProfile || '—' }}</span>
-              </div>
-              <div class="status-card">
-                <span class="status-card-label">Хранилище</span>
-                <span class="status-card-val mono">{{ systemInfo()?.storageProvider || '—' }}</span>
-              </div>
-              <div class="status-card">
-                <span class="status-card-label">PostgreSQL</span>
-                <span class="status-badge" [class.badge-active]="systemInfo()?.components?.['database']?.status === 'UP'">
-                  {{ systemInfo()?.components?.['database']?.status || 'UNKNOWN' }}
-                </span>
-              </div>
-              <div class="status-card">
-                <span class="status-card-label">Версия ядра платформы</span>
-                <span class="status-card-val mono">{{ systemInfo()?.appVersion || '—' }}</span>
-              </div>
-              <div class="status-card">
-                <span class="status-card-label">Версия схемы БД (Flyway)</span>
-                <span class="status-card-val mono">v{{ systemInfo()?.schemaVersion || '—' }}</span>
-              </div>
-              <div class="status-card">
-                <span class="status-card-label">Последняя резервная копия</span>
-                <span class="status-card-val">
-                  {{ systemInfo()?.backup?.status || 'UNKNOWN' }}
-                  <span *ngIf="systemInfo()?.backup?.completedAt" class="mono">
-                    · {{ systemInfo()?.backup?.completedAt | date:'medium' }}
-                  </span>
-                </span>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -812,53 +720,13 @@ interface SystemInfo {
       border-top: 1px solid rgba(255, 255, 255, 0.06);
     }
 
-    .system-status-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 16px;
-    }
-
-    .status-card {
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 8px;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .status-card-label {
-      font-size: 12px;
-      color: #94a3b8;
-    }
-
-    .status-card-val {
-      font-size: 14px;
-      color: #f1f5f9;
-      font-weight: 500;
-    }
-
-    .status-badge {
-      display: inline-block;
-      padding: 3px 8px;
-      border-radius: 4px;
-      font-size: 12px;
-      font-weight: 600;
-      width: fit-content;
-    }
-
-    .badge-active { background: rgba(34, 197, 94, 0.15); color: #16a34a; }
-    .badge-suspended { background: rgba(239, 68, 68, 0.15); color: #dc2626; }
-    .text-success { color: #16a34a; }
   `]
 })
 export class SettingsComponent implements OnInit {
-  activeTab: 'general' | 'security' | 'storage' | 'preferences' | 'system' | 'languages' = 'general';
+  activeTab: 'general' | 'security' | 'storage' | 'preferences' | 'languages' = 'general';
 
   systemSettings: Record<string, string> = {};
   userSettings: Record<string, string> = {};
-  readonly systemInfo = signal<SystemInfo | null>(null);
   readonly isSaving = signal<boolean>(false);
 
   // Languages Management
@@ -894,10 +762,6 @@ export class SettingsComponent implements OnInit {
         next: res => this.systemSettings = { ...res }
       });
 
-      this.api.get<SystemInfo>('/system/info').subscribe({
-        next: res => this.systemInfo.set(res),
-        error: () => this.systemInfo.set(null)
-      });
     }
 
     this.api.get<Record<string, string>>('/settings/user').subscribe({

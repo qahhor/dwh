@@ -16,7 +16,7 @@ import { ApiService } from '../../../core/services/api.service';
     <main class="login-wrapper">
       <div class="login-card">
         <div class="login-header">
-          <div class="brand-badge">DWH</div>
+          <div class="brand-badge">SmartupCMS</div>
           <h1 class="login-title">Корпоративный вход</h1>
           <p class="login-subtitle">Платформа управления данными и задачами</p>
         </div>

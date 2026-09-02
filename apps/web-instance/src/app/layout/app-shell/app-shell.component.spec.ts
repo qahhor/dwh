@@ -16,7 +16,10 @@ describe('AppShellComponent', () => {
     currentUser: signal({ name: 'Иван Иванов', login: 'ivan' }),
     logout: vi.fn()
   };
-  const permissionService = { canView: vi.fn(() => true) };
+  const permissionService = {
+    canView: vi.fn(() => true),
+    canUpdate: vi.fn(() => true)
+  };
   const themeService = {
     currentTheme: signal('light'),
     toggleTheme: vi.fn()
@@ -71,6 +74,16 @@ describe('AppShellComponent', () => {
     expect(fixture.nativeElement.querySelector('a.skip-link[href="#main-content"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('main#main-content')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('nav[aria-label="Основная навигация"]')).not.toBeNull();
+  });
+
+  it('uses the SmartupCMS brand and exposes local administration routes', () => {
+    const fixture = TestBed.createComponent(AppShellComponent);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('SmartupCMS');
+    expect(fixture.nativeElement.textContent).not.toContain('DWH Platform');
+    expect(fixture.nativeElement.querySelector('a[href="/announcements"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('a[href="/system"]')).not.toBeNull();
   });
 
   it('names icon-only shell actions without relying on title', () => {

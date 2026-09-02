@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { AppShellComponent } from './layout/app-shell/app-shell.component';
+import { permissionGuard } from './core/services/permission.service';
 
 export const routes: Routes = [
   {
@@ -60,6 +61,16 @@ export const routes: Routes = [
       {
         path: 'settings',
         loadComponent: () => import('./features/settings/settings.component').then(m => m.SettingsComponent)
+      },
+      {
+        path: 'system',
+        canActivate: [permissionGuard('platform.settings', 'view')],
+        loadComponent: () => import('./features/system/system.component').then(m => m.SystemComponent)
+      },
+      {
+        path: 'announcements',
+        canActivate: [permissionGuard('platform.announcements', 'update')],
+        loadComponent: () => import('./features/announcements/announcements.component').then(m => m.AnnouncementsComponent)
       }
     ]
   },

@@ -10,7 +10,7 @@ import { AuthService } from './core/services/auth.service';
   template: `
     <div *ngIf="authService.isLoading()" class="app-loader">
       <div class="loader-spinner"></div>
-      <div class="loader-text">Инициализация DWH Platform...</div>
+      <div class="loader-text">Инициализация SmartupCMS…</div>
     </div>
 
     <router-outlet *ngIf="!authService.isLoading()"></router-outlet>

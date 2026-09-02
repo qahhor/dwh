@@ -1,4 +1,5 @@
-import { Injectable, signal } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
+import { CanActivateFn, Router } from '@angular/router';
 
 @Injectable({
   providedIn: 'root'
@@ -31,6 +32,8 @@ export class PermissionService {
     'files': ['platform.files', 'files'],
     'platform.settings': ['platform.settings', 'settings'],
     'settings': ['platform.settings', 'settings'],
+    'platform.announcements': ['platform.announcements', 'announcements'],
+    'announcements': ['platform.announcements', 'announcements'],
     'notify.inbox': ['notify.inbox', 'notifications'],
     'notifications': ['notify.inbox', 'notifications'],
     'platform.webhooks': ['platform.webhooks', 'webhooks'],
@@ -79,4 +82,14 @@ export class PermissionService {
   canDelete(form: string): boolean {
     return this.hasPermission(form, 'delete');
   }
+}
+
+export function permissionGuard(form: string, action: string = 'view'): CanActivateFn {
+  return () => {
+    const permissions = inject(PermissionService);
+    const router = inject(Router);
+    return permissions.hasPermission(form, action)
+      ? true
+      : router.createUrlTree(['/settings']);
+  };
 }

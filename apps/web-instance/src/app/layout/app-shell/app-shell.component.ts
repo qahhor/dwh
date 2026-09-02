@@ -31,8 +31,8 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
       <aside class="sidebar" [class.collapsed]="isCollapsed()" [class.mobile-open]="isMobileMenuOpen()">
         <div class="sidebar-header">
           <div class="brand-logo" *ngIf="!isCollapsed() || isMobileMenuOpen()">
-            <span class="brand-icon">D</span>
-            <span class="brand-name">DWH Platform</span>
+            <span class="brand-icon">S</span>
+            <span class="brand-name">SmartupCMS</span>
           </div>
           <button
             type="button"
@@ -78,7 +78,7 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
           </a>
 
           <!-- System -->
-          <div class="nav-section-title" *ngIf="(!isCollapsed() || isMobileMenuOpen()) && (canViewFiles() || canViewNotifications() || canViewAudit() || canViewSettings())">Система</div>
+          <div class="nav-section-title" *ngIf="(!isCollapsed() || isMobileMenuOpen()) && (canViewFiles() || canViewNotifications() || canViewAnnouncements() || canViewAudit() || canViewSystem() || canViewSettings())">Система</div>
           <a *ngIf="canViewFiles()" routerLink="/files" routerLinkActive="active" [attr.aria-current]="isRouteActive('/files') ? 'page' : null" class="nav-item" title="Файловое хранилище">
             <span class="material-symbols-outlined nav-icon" aria-hidden="true">folder_open</span>
             <span class="nav-label" *ngIf="!isCollapsed() || isMobileMenuOpen()">Файлы</span>
@@ -90,9 +90,17 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
               {{ notifService.unreadCount() }}
             </span>
           </a>
+          <a *ngIf="canViewAnnouncements()" routerLink="/announcements" routerLinkActive="active" [attr.aria-current]="isRouteActive('/announcements') ? 'page' : null" class="nav-item" title="Управление объявлениями">
+            <span class="material-symbols-outlined nav-icon" aria-hidden="true">campaign</span>
+            <span class="nav-label" *ngIf="!isCollapsed() || isMobileMenuOpen()">Объявления</span>
+          </a>
           <a *ngIf="canViewAudit()" routerLink="/audit" routerLinkActive="active" [attr.aria-current]="isRouteActive('/audit') ? 'page' : null" class="nav-item" title="Аудит">
             <span class="material-symbols-outlined nav-icon" aria-hidden="true">history</span>
             <span class="nav-label" *ngIf="!isCollapsed() || isMobileMenuOpen()">{{ 'nav.audit' | t }}</span>
+          </a>
+          <a *ngIf="canViewSystem()" routerLink="/system" routerLinkActive="active" [attr.aria-current]="isRouteActive('/system') ? 'page' : null" class="nav-item" title="Состояние системы">
+            <span class="material-symbols-outlined nav-icon" aria-hidden="true">monitor_heart</span>
+            <span class="nav-label" *ngIf="!isCollapsed() || isMobileMenuOpen()">Состояние</span>
           </a>
           <a *ngIf="canViewSettings()" routerLink="/settings" routerLinkActive="active" [attr.aria-current]="isRouteActive('/settings') ? 'page' : null" class="nav-item" title="Настройки">
             <span class="material-symbols-outlined nav-icon" aria-hidden="true">settings</span>
@@ -418,6 +426,12 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
       flex-shrink: 0;
     }
 
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+    }
+
     .palette-trigger {
       display: flex;
       align-items: center;
@@ -493,6 +507,13 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
     .icon-btn:hover {
       background-color: var(--bg-hover);
       color: var(--text-main);
+    }
+
+    .palette-trigger:focus-visible,
+    .icon-btn:focus-visible,
+    .lang-btn:focus-visible {
+      outline: 2px solid var(--focus-ring, var(--primary));
+      outline-offset: 2px;
     }
 
     .bell-dot {
@@ -703,6 +724,10 @@ export class AppShellComponent implements OnInit, OnDestroy {
     return this.permService.canView('notify.inbox') || this.permService.canView('notifications');
   }
 
+  canViewAnnouncements(): boolean {
+    return this.permService.canUpdate('platform.announcements');
+  }
+
   canViewAudit(): boolean {
     return this.permService.canView('audit.log') ||
            this.permService.canView('audit.logs') ||
@@ -713,6 +738,10 @@ export class AppShellComponent implements OnInit, OnDestroy {
     return this.permService.canView('platform.settings') ||
            this.permService.canView('settings') ||
            true; // Базовые личные настройки (язык, тема, пароль) доступны всем аутентифицированным пользователям
+  }
+
+  canViewSystem(): boolean {
+    return this.permService.canView('platform.settings');
   }
 
 
