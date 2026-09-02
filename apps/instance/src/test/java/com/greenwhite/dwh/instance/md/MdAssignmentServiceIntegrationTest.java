@@ -1,6 +1,7 @@
 package com.greenwhite.dwh.instance.md;
 
 import com.greenwhite.dwh.instance.common.error.ApiException;
+import com.greenwhite.dwh.instance.config.db.FlywayUtcConfiguration;
 import com.greenwhite.dwh.instance.md.repository.MdPermissionRepository;
 import com.greenwhite.dwh.instance.md.repository.MdRoleRepository;
 import com.greenwhite.dwh.instance.md.repository.MdUserRepository;
@@ -47,7 +48,8 @@ class MdAssignmentServiceIntegrationTest {
     @BeforeAll
     static void setup() {
         var ds = new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
-        Flyway.configure().dataSource(ds).locations("classpath:db/migration").load().migrate();
+        FlywayUtcConfiguration.configure(Flyway.configure())
+                .dataSource(ds).locations("classpath:db/migration").load().migrate();
         jdbc = JdbcClient.create(ds);
 
         var userRepository = new MdUserRepository(jdbc, new ObjectMapper());

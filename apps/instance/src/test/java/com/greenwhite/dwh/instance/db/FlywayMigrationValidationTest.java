@@ -1,5 +1,6 @@
 package com.greenwhite.dwh.instance.db;
 
+import com.greenwhite.dwh.instance.config.db.FlywayUtcConfiguration;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,7 +26,7 @@ class FlywayMigrationValidationTest {
             return;
         }
 
-        Flyway flyway = Flyway.configure()
+        Flyway flyway = FlywayUtcConfiguration.configure(Flyway.configure())
                 .dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
                 .locations("classpath:db/migration")
                 .load();

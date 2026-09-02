@@ -1,6 +1,7 @@
 package com.greenwhite.dwh.instance.md;
 
 import com.greenwhite.dwh.instance.common.annotation.RequiresPermission;
+import com.greenwhite.dwh.instance.config.db.FlywayUtcConfiguration;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -49,7 +50,8 @@ class RbacSystemRolesIntegrationTest {
     @BeforeAll
     static void migrate() {
         var ds = new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
-        Flyway.configure().dataSource(ds).locations("classpath:db/migration").load().migrate();
+        FlywayUtcConfiguration.configure(Flyway.configure())
+                .dataSource(ds).locations("classpath:db/migration").load().migrate();
         jdbc = JdbcClient.create(ds);
     }
 

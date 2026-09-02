@@ -1,5 +1,6 @@
 package com.greenwhite.dwh.instance.md;
 
+import com.greenwhite.dwh.instance.config.db.FlywayUtcConfiguration;
 import com.greenwhite.dwh.instance.kauth.repository.KauthApiTokenRepository;
 import com.greenwhite.dwh.instance.kauth.repository.KauthSessionRepository;
 import com.greenwhite.dwh.instance.kauth.service.KauthUserSessionInvalidator;
@@ -34,7 +35,8 @@ class UserBlockingInvariantTest {
     @BeforeAll
     static void migrate() {
         var ds = new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
-        Flyway.configure().dataSource(ds).locations("classpath:db/migration").load().migrate();
+        FlywayUtcConfiguration.configure(Flyway.configure())
+                .dataSource(ds).locations("classpath:db/migration").load().migrate();
         jdbc = JdbcClient.create(ds);
     }
 

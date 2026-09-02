@@ -4,6 +4,7 @@ import com.greenwhite.dwh.instance.audit.repository.AuditLogRepository;
 import com.greenwhite.dwh.instance.audit.service.AuditLogService;
 import com.greenwhite.dwh.instance.common.error.ApiException;
 import com.greenwhite.dwh.instance.common.provider.ProviderRegistry;
+import com.greenwhite.dwh.instance.config.db.FlywayUtcConfiguration;
 import com.greenwhite.dwh.instance.kauth.repository.KauthChannelRepository;
 import com.greenwhite.dwh.instance.kauth.repository.KauthLoginAttemptRepository;
 import com.greenwhite.dwh.instance.kauth.repository.KauthOtpCodeRepository;
@@ -80,7 +81,8 @@ class KauthOtpLoginIntegrationTest {
     @BeforeAll
     static void setup() {
         var ds = new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
-        Flyway.configure().dataSource(ds).locations("classpath:db/migration").load().migrate();
+        FlywayUtcConfiguration.configure(Flyway.configure())
+                .dataSource(ds).locations("classpath:db/migration").load().migrate();
         jdbc = JdbcClient.create(ds);
 
         var mapper = new ObjectMapper();

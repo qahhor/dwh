@@ -3,6 +3,7 @@ package com.greenwhite.dwh.instance.db;
 import com.greenwhite.dwh.instance.config.bootstrap.InstanceBootstrap;
 import com.greenwhite.dwh.instance.config.bootstrap.InstanceBootstrapProperties;
 import com.greenwhite.dwh.instance.config.db.SchemaVersionGate;
+import com.greenwhite.dwh.instance.config.db.FlywayUtcConfiguration;
 import com.greenwhite.dwh.instance.kauth.service.KauthPasswordHasher;
 import com.greenwhite.dwh.instance.md.repository.MdPermissionRepository;
 import com.greenwhite.dwh.instance.md.service.MdPermissionService;
@@ -56,7 +57,7 @@ class MigrationGateAndBootstrapTest {
     @Test
     @Order(2)
     void gatePassesAfterExplicitMigration() {
-        Flyway.configure()
+        FlywayUtcConfiguration.configure(Flyway.configure())
                 .dataSource(dataSource())
                 .locations("classpath:db/migration")
                 .load()

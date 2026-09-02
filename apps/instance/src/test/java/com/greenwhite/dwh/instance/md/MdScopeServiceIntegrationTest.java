@@ -3,6 +3,7 @@ package com.greenwhite.dwh.instance.md;
 import com.greenwhite.dwh.instance.audit.repository.AuditLogRepository;
 import com.greenwhite.dwh.instance.audit.service.AuditLogService;
 import com.greenwhite.dwh.instance.common.error.ApiException;
+import com.greenwhite.dwh.instance.config.db.FlywayUtcConfiguration;
 import com.greenwhite.dwh.instance.md.repository.MdOrgUnitRepository;
 import com.greenwhite.dwh.instance.md.repository.MdPermissionRepository;
 import com.greenwhite.dwh.instance.md.repository.MdRoleRepository;
@@ -61,7 +62,8 @@ class MdScopeServiceIntegrationTest {
     @BeforeAll
     static void setup() {
         var ds = new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
-        Flyway.configure().dataSource(ds).locations("classpath:db/migration").load().migrate();
+        FlywayUtcConfiguration.configure(Flyway.configure())
+                .dataSource(ds).locations("classpath:db/migration").load().migrate();
         jdbc = JdbcClient.create(ds);
 
         var auditLogService = new AuditLogService(new AuditLogRepository(jdbc, new ObjectMapper()), null);
