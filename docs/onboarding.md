@@ -1,51 +1,91 @@
-# Онбординг: 2 часа — и ты в контексте
+# SmartupCMS contributor onboarding
 
-Порядок чтения для нового участника команды. Не читай всё подряд — иди по шагам.
+This path gives a new contributor a current, evidence-based view of the project
+without requiring historical audit documents.
 
-## Шаг 1. Общая картина (30 мин)
+## 1. Product and operating model
 
-1. [README](../README.md) — что строим, стек, карта документов (10 мин).
-2. [ADR-0001](adr/ADR-0001-architecture-model.md) — почему логика в приложении, а не в БД,
-   и что мы взяли у Biruni (10 мин).
-3. [ADR-0004](adr/ADR-0004-deployment-model.md) — почему экземпляр на клиента и что такое
-   control plane (10 мин).
+Read [README](../README.md), the
+[unified open-source design](superpowers/specs/2026-09-02-smartupcms-unified-open-source-design.md),
+and [ADR-0006](adr/ADR-0006-modular-monolith.md). The essential constraints are:
 
-## Шаг 2. Рамки и план (40 мин)
+- one installation belongs to one organization and serves many users;
+- the complete product is self-hostable;
+- runtime behavior is local unless an administrator explicitly configures a
+  provider;
+- database migrations and backups are operator-controlled, fail-closed steps.
 
-4. [ТЗ-01](trd/TRD-01-cms.md) — читать 1–3 (рамки, термины, архитектура), затем 8 целиком:
-   MVP-линия, **матрица точных результатов 8.2**, трассировка 8.3. Остальные разделы — по мере
-   работы со своим блоком (25 мин).
-5. [ТЗ-03: сценарии](trd/TRD-03-flows.md) — все 13 flows; это динамика системы и язык приёмки (15 мин).
+Historical ADRs remain in the repository as decision records. An ADR marked
+`Заменено` is not an active operating instruction.
 
-## Шаг 3. По твоей роли (30–40 мин)
+## 2. Repository map
 
-| Роль | Читать |
+| Path | Purpose |
 |---|---|
-| Backend | [CODE_STYLE](../CODE_STYLE.md) · [Biruni/Smartup Стандарты](architecture/biruni-smartup-conventions.md) · [Создание модулей](guidelines/module-development-guide.md) · [ТЗ-04 API](trd/TRD-04-api.md) · [Стратегия тестирования](guidelines/testing-strategy.md) · [Миграции БД](guidelines/database-migrations.md) · [Структура монорепо](architecture/monorepo-structure.md) · [ADR-0006](adr/ADR-0006-modular-monolith.md) · [ADR-0011](adr/ADR-0011-provider-spi.md) |
-| Infra | [Runbooks](runbooks/) · [ADR-0007](adr/ADR-0007-fleet-strategy.md) (флот) · [ADR-0009](adr/ADR-0009-observability.md) · [ADR-0010](adr/ADR-0010-resilience-tiers.md) · [План M0](plan/M0-plan.md) · `deploy/spike/README.md` |
-| Frontend | [CODE_STYLE](../CODE_STYLE.md) · [ТЗ-02 UI/UX](trd/TRD-02-uiux.md) · [ADR-0012](adr/ADR-0012-ui-foundation.md) · [ТЗ-04 API](trd/TRD-04-api.md) разд. 1, 8 |
+| `apps/server` | Spring Boot application, business modules, APIs, migrations |
+| `apps/web` | Angular application and design system |
+| `libs/core-types` | Shared domain primitives |
+| `libs/platform-common` | Cross-module technical support |
+| `libs/provider-spi` | Storage and delivery provider contracts |
+| `deploy/compose` | Production Compose and environment template |
+| `deploy/images` | Hardened PostgreSQL, Typesense, proxy, and backup images |
+| `scripts/prod` | Deploy, backup, restore, and release-contract checks |
+| `e2e` | Playwright configuration and critical-flow tests |
+| `docs/ops` | Active deployment and operations guidance |
 
-## Шаг 4. Правила работы (10 мин)
+For a focused code question, use the repository knowledge graph described in
+`AGENTS.md`; generated `graphify-out` files are not product source.
 
-6. [CONTRIBUTING](../CONTRIBUTING.md) — DoR/DoD, ветки, ревью. Главные правила:
-   - задача без **точного результата и приемочных критериев** не берётся в работу;
-   - расхождение реализации со сценарием ТЗ-03 — дефект, а не интерпретация;
-   - код строго следует правилам ArchUnit и покрывается сквозными E2E-тестами (`test-api.ps1`).
+## 3. Architecture and security
 
-## Самопроверка (если ответил на все — ты в контексте)
+Read these documents before changing their area:
 
-1. Почему в схеме БД нет `company_id` и что вместо этого изолирует клиентов?
-2. Где живёт бизнес-логика и что разрешено триггерам БД?
-3. Что делает schema-gate и почему приложение не мигрирует схему само?
-4. Как отзывается право у пользователя и за какое время оно перестаёт действовать?
-5. Что такое кольца R0/R1/R2 и что происходит с плохой canary?
-6. Чем `auditor` отличается от остальных системных ролей одной фразой?
-7. Куда смотреть, если у клиента 042 ночью провалилась проверка бэкапа?
+- [ADR-0001](adr/ADR-0001-architecture-model.md): application and database
+  responsibility.
+- [ADR-0003](adr/ADR-0003-tenancy-rbac.md): historical tenancy decision; the
+  active model is separate installation and database per organization.
+- [ADR-0008](adr/ADR-0008-security-baseline.md): security baseline.
+- [ADR-0009](adr/ADR-0009-observability.md): health and observability model.
+- [ADR-0011](adr/ADR-0011-provider-spi.md): provider boundaries.
+- [ADR-0012](adr/ADR-0012-ui-foundation.md): UI foundation.
+- [Database migrations](guidelines/database-migrations.md) and
+  [testing strategy](guidelines/testing-strategy.md).
 
-Ответы — в документах шагов 1–3; спроси команду, если после чтения вопрос остался.
+Treat `docs/audit`, `docs/superpowers/plans`, and superseded ADRs as historical
+evidence. Check current code and active operations docs before acting on them.
 
-## Контекст-справка (по мере надобности)
+## 4. Verify the workspace
 
-[AUDIT-01](audit/AUDIT-01-design-review.md) — какие слабости находили и как закрыли ·
-ADR-0002 (версии и политика обновлений) · ADR-0005 (готовность к AI/ML) ·
-ADR-0008 (безопасность) · прототип предметной модели — платформа Biruni (`d:\DATA\SMARTUP\biruni`).
+From the repository root:
+
+```bash
+mvn -B verify
+```
+
+```bash
+cd apps/web
+npm ci
+npm test
+npm run typecheck
+npm run build
+```
+
+For the running product, follow the [quick start](../README.md#quick-start).
+Before changing deployment behavior, read the
+[deployment guide](ops/deployment-guide.md) and
+[rollback procedure](ops/rollback.md).
+
+## 5. First contribution checklist
+
+- Read [CONTRIBUTING](../CONTRIBUTING.md) and sign every commit with `-s`.
+- Confirm the issue states the user problem, acceptance criterion, and non-goals.
+- Locate the owning module and its authorization boundary.
+- Write or update the smallest test that proves the behavior.
+- Run the relevant backend, web, release, and E2E gates.
+- Update documentation and the changelog when behavior changes.
+- Verify that no secret, personal data, dump, or generated graph artifact is
+  staged.
+
+If the expected behavior, data owner, permission, migration path, or rollback is
+not documented, raise that uncertainty in the issue or pull request rather than
+guessing.

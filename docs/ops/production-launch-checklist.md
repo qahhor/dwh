@@ -1,101 +1,97 @@
-# Production Launch Checklist — критерии go/no-go
+# SmartupCMS production launch checklist
 
-**Версия:** 1.0 · **Дата:** 2026-08-28
-**Как пользоваться:** решение принимается по разделу, соответствующему типу
-запуска. Любой невыполненный пункт **блокирующей** группы = **NO-GO**.
-Обход блокирующего пункта возможен только письменным решением CEO
-с фиксацией принятого риска в журнале решений ТЗ-01.
+**Version:** 2.0
 
----
+**Updated:** 2026-09-02
 
-## Тип A. Пилотное развёртывание (1–2 лояльных клиента)
+Every unchecked blocking item means **NO-GO** for that installation. Evidence
+must identify the release tag, environment, UTC time, command/check, result, and
+owner. A commercial SLA cannot override a failed safety gate.
 
-Условие допуска: клиент **письменно** проинформирован об ограничениях
-(разд. «Ограничения» ниже) и согласен на них.
+## Release integrity
 
-### Блокирующие критерии
+- [ ] Release tag is immutable SemVer and resolves to the reviewed commit.
+- [ ] Required CI and DCO checks are green on that commit.
+- [ ] Server, web, and backup image digests match the release manifest.
+- [ ] Image signatures, provenance, and SBOMs verify successfully.
+- [ ] No Critical/High accepted vulnerability lacks a documented owner,
+      mitigation, expiry date, and release decision.
+- [ ] Changelog, migration notes, known limits, and rollback path are published.
 
-- [ ] CI зелёный на коммите, из которого собран образ (три джоба)
-- [ ] Образ собран с **конкретным тегом версии**, не `latest`
-- [ ] Prerequisites Checklist [Deployment Guide](deployment-guide.md) разд. 1 пройден целиком
-- [ ] `.env` заполнен, права `600`, паролей-умолчаний нет
-- [ ] Reverse proxy с валидным TLS перед приложением; приложение слушает только loopback
-- [ ] `/actuator/*` **недоступен** с внешнего адреса (проверка: `curl` внешне → 404)
-- [ ] Миграции применены отдельным шагом; приложение стартовало (schema-gate прошёл)
-- [ ] Вход администратора выполнен, **пароль сменён**, 2FA включена
-- [ ] Пароль администратора удалён из `.env`
-- [ ] Бэкап снят вручную **и восстановление проверено** на тестовом контуре
-- [ ] Каталог бэкапов — на отдельном диске, права ограничены
-- [ ] Дежурный назначен, знает [Operations Runbook](operations-runbook.md) и матрицу эскалации
-- [ ] Процедура [отката](rollback.md) прочитана ответственным; предыдущая версия образа доступна
+## Installation and network
 
-### Некритичные, но желательные
+- [ ] Production Compose renders successfully with no default or blank required
+      credential and no `latest` tag.
+- [ ] Only the web origin is published; PostgreSQL, Typesense, server, management
+      endpoints, secret files, and Docker socket are unreachable externally.
+- [ ] HTTPS, certificate renewal, security headers, upload limits, and edge rate
+      limits are tested from an external network.
+- [ ] `.env.production` and `.secrets` have restricted ownership/permissions and
+      are excluded from source control and support artifacts.
+- [ ] Host capacity covers forecast data, 50 GB/month object growth assumption,
+      database growth, logs, backup retention, and restore workspace with alert
+      thresholds below exhaustion.
 
-- [ ] Telegram-бот настроен (единственный работающий канал OTP)
-- [ ] Экземпляр зарегистрирован в реестре control plane
-- [ ] Согласовано окно обслуживания с клиентом
+## Data and recovery
 
-**Решение GO при типе A:** все блокирующие отмечены + письменное согласие клиента.
+- [ ] Flyway migration succeeds from the oldest supported release and from an
+      empty database.
+- [ ] Upgrade stops before migration when the mandatory encrypted backup fails.
+- [ ] A fresh encrypted database archive passes checksum and isolated restore.
+- [ ] The age identity is recoverable by authorized operators if the application
+      host is lost and is not stored only with the encrypted backup.
+- [ ] Uploaded-object recovery is tested for the selected local or S3-compatible
+      provider; database restore alone is not accepted.
+- [ ] Measured RPO/RTO and retention are documented and fit the customer/SLA.
+- [ ] Restore and rollback drills have named evidence and an operator who can
+      execute them without repository authors.
 
----
+## Security and access
 
-## Тип B. Коммерческая поставка с SLA
+- [ ] Initial administrator password is changed and removed from bootstrap
+      configuration where supported.
+- [ ] Least-privilege administrator, operator, auditor, and normal-user scenarios
+      are tested; denied operations are rejected by the API.
+- [ ] Session revocation, password recovery, CSRF, rate limits, and audit events
+      pass the release test suite.
+- [ ] Real delivery-provider and object-storage credentials are least-privilege,
+      scoped to this installation, and successfully rotated in a drill.
+- [ ] A minimal threat model and personal-data inventory identify trust
+      boundaries, owners, retention, log masking, and incident actions.
+- [ ] Private vulnerability reporting and the security response owner are live.
 
-Дополнительно к типу A. **Текущий статус: NO-GO** — ни один из пунктов ниже
-не выполним без фазы P/F.
+## Product workflows and UX
 
-### Блокирующие критерии (требуют проверки на целевом окружении)
+- [ ] Clean-install E2E covers sign-in, forced password change, navigation,
+      users/roles, tasks, files, notifications, announcements, and System status.
+- [ ] Authorization tests include cross-role and direct-API negative cases.
+- [ ] Loading, empty, success, error, keyboard, screen-reader, and narrow-viewport
+      states pass for critical workflows.
+- [ ] A representative upload/download succeeds at the configured production
+      size limit and interrupted upload behavior is understood.
+- [ ] No unsafe placeholder provider or disabled module is presented as a
+      working production capability.
 
-- [ ] **Файловое хранилище**: выбран Local/S3 provider; restore файлов проверен вместе с БД
-- [ ] **Секреты и изоляция**: `.env.production` имеет права `600`; секреты не попали в логи/репозиторий
-- [ ] **Бэкапы**: оба `.dump` и SHA-256 созданы; восстановление проверено на отдельном контуре
-- [ ] **Метрики и observability**: readiness/liveness доступны мониторингу; внешне закрыты; алерты доставляются
-- [ ] **Оркестрация**: release config gate зелёный; host TLS настроен; `127.0.0.1:8088` извне недоступен
-- [ ] **Realtime-уведомления (SSE)**: reconnect и деградация проверены на целевом proxy
-- [ ] **Провайдеры Mail/SMS/Telegram**: реальные credentials и тестовая доставка подтверждены
-- [ ] **OpenAPI 3.1**: контракт опубликован и smoke-проверен на release image
-- [ ] **Поиск**: Typesense health зелёный; обычная роль не получает unrestricted результаты
-- [ ] **Исходящие webhooks**: подпись и retry/DLQ проверены на тестовом endpoint
-- [ ] **Control Plane**: вход, fleet heartbeat и обе БД проверены после deploy
+## Operations
 
-### Организационные
+- [ ] Health, latency/error, capacity, certificate, backup age/failure, database,
+      object storage, and delivery dead-letter alerts reach the on-call owner.
+- [ ] Logs are retained, access-controlled, time-synchronized, searchable by
+      request/audit identifiers, and verified free of secrets/personal payloads.
+- [ ] Incident severity, escalation, maintenance window, customer communication,
+      and security disclosure owners are named.
+- [ ] Daily/weekly/monthly tasks in the
+      [maintenance guide](maintenance-guide.md) are scheduled.
+- [ ] A clean deployment on the target class of infrastructure runs for the
+      agreed soak period without unexplained errors or resource growth.
 
-- [ ] SLA согласован и соответствует техническим возможностям
-      (сейчас достижимо: 99,5% Standard, RPO 24 ч — **не** 15 мин)
-- [ ] Определён порядок уведомления клиента об инцидентах
-- [ ] Договоры с провайдерами SMS/SMTP заключены
+## Explicit release record
 
----
+Record one of:
 
-## Ограничения текущего контура (для информирования клиента)
+- **GO:** every blocking item is evidenced; link the evidence bundle.
+- **NO-GO:** list failed items, owner, and next review date.
 
-Формулировки для письма/приложения к договору при пилоте:
-
-1. Файлы, загруженные в систему, хранятся на диске сервера экземпляра.
-   При аппаратном отказе сервера они не восстанавливаются из резервной копии
-   базы данных.
-2. Резервное копирование выполняется раз в сутки. Максимальный объём потерь
-   при аварии — данные за период до 24 часов.
-3. Уведомления по электронной почте и SMS в текущей версии не отправляются;
-   доступны уведомления в интерфейсе и в Telegram.
-4. Уведомления в интерфейсе появляются после обновления страницы
-   (мгновенная доставка — в следующей версии).
-5. Плановая доступность — 99,5%; восстановление после отказа сервера
-   выполняется вручную и занимает до 4 часов.
-
-## Матрица решения
-
-| Ситуация | Решение |
-|---|---|
-| Все блокирующие типа A + письменное согласие клиента | **GO** (пилот) |
-| Хотя бы один блокирующий типа A не выполнен | **NO-GO** |
-| Запрос на коммерческий SLA сейчас | **NO-GO** — сначала фазы P и F |
-| Клиент требует 99,9% или RPO 15 минут | **NO-GO** — тариф HA не реализован (ADR-0010) |
-
-## Подписи
-
-| Роль | Имя | Дата | Решение |
-|---|---|---|---|
-| Техлид | | | GO / NO-GO |
-| Ответственный за эксплуатацию | | | GO / NO-GO |
-| CEO | | | GO / NO-GO |
+There is no implied GO. As of this document update, the repository itself does
+not contain target-environment evidence, an approved production SLO/SLA, or a
+completed four-month launch sign-off; those remain installation-specific inputs.

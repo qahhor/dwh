@@ -1,158 +1,121 @@
-# DWH Platform
+# SmartupCMS
 
-Платформа для клиентов GreenWhite: административное ядро (пользователи, RBAC, задачник,
-оповещения) + хранилище данных (DWH) + дашборды. Поставляется **отдельным экземпляром на
-каждого клиента**; флот экземпляров управляется центральным **control plane**.
+SmartupCMS is a self-hosted content and operations platform for one
+organization and many users. It combines user and role administration, tasks,
+notifications, audited administrative actions, file storage, search, and
+dashboard-oriented workflows in one modular product.
 
-**Статус на 30.08.2026:** Этап 1 (CMS) — код всех 18 вех написан, сборка зелёная
-(**149 тестов**, `BUILD SUCCESS`). Закрытыми по требованиям считаются 7 вех; остальные
-помечены «частично» с указанием, чего именно ждут — Vault, Garage, стенда фазы P или
-договора с оператором связи. Разделение введено осознанно: раньше отчётность заявляла
-«100% completed», и это расходилось с фактом (см. [AUDIT-05](docs/audit/AUDIT-05-deep-review.md),
-дефект Д-6). Точный статус каждой вехи — [MILESTONES.md](MILESTONES.md).
+The project is pre-1.0. Use an immutable release tag and complete the
+[production launch checklist](docs/ops/production-launch-checklist.md) before a
+production rollout.
 
-**До передачи пилотному клиенту остаётся:** боевой SMS-шлюз (SMTP и Telegram уже работают),
-Garage/S3 вместо локального хранилища и Vault вместо `.env`.
+## Product model
 
-Начало чтения — [docs/onboarding.md](docs/onboarding.md).
+- One installation serves one organization; isolation between organizations is
+  provided by separate installations and databases.
+- The complete product is available in this repository under Apache-2.0.
+- Self-hosted and Smartup-managed deployments use the same product. Commercial
+  services may cover hosting, operations, support, and SLA.
+- No telemetry, licensing callback, remote enrollment, or phone-home connection
+  is enabled by default.
+- Local disk and S3-compatible object storage are supported. Smartup-managed
+  infrastructure targets Cloudflare R2; self-hosters may use AWS S3, R2, MinIO,
+  Garage, or another compatible provider.
 
-## Архитектура (коротко)
+## Architecture
 
-- **Экземпляр клиента:** Spring Boot 4.1 (Java 25 Virtual Threads) + PostgreSQL 18 (+pgvector, OLTP) + Typesense 27.1 (FTS) + Angular 20 (Signals, OnPush). Модульный монолит: чистая архитектура, бизнес-логика в сервисах, в БД — целостность и секционированный аудит. Без multi-tenancy: изоляция физическая (Database-per-Tenant). Профили ресурсов S/M/L.
-- **Control plane (наш, один):** реестр клиентов и инстансов, инвентарь версий, лицензии, глобальные объявления, heartbeat-мониторинг. Связь — только исходящая от экземпляра.
-- **Инфраструктура и оркестрация:** Docker Compose Fleet + NGINX Hardened Reverse Proxy. Обновления по кольцам с авто-проверкой здоровья (`SchemaVersionGate`). Миграции — отдельным шагом по правилу expand/contract.
-- **Модель предметной области:** унаследована от платформы Biruni (формы/действия/роли, матрица 43 прав, эффективные права, аудит), архитектура переписана под современные cloud-native стандарты.
+SmartupCMS is a modular monolith with separately deployable runtime containers:
 
-## Системные требования (Requirements)
+| Component | Implementation | Responsibility |
+|---|---|---|
+| `web` | Angular 22 | Browser UI and the only public application origin |
+| `server` | Java 25, Spring Boot 4.1 | APIs, authorization, business modules, audit |
+| `postgres` | PostgreSQL 18 | Transactional data and Flyway schema history |
+| `typesense` | Typesense 27.1 | Full-text search |
+| `backup` | PostgreSQL client, `age`, AWS CLI | Encrypted database backups and local status |
 
-- **Java Development Kit:** JDK 25 LTS (с поддержкой Virtual Threads)
-- **Node.js & npm:** Node.js 22.x / 24.x LTS, npm 10+
-- **Docker & Docker Compose:** Docker Engine 24+, Compose v2+
-- **СУБД (для локального запуска без Docker):** PostgreSQL 18+
+The web container proxies API traffic to the server. PostgreSQL, Typesense, and
+management endpoints are not published by the production Compose topology.
+Database migrations are a separate, fail-closed step. See the
+[architecture overview](docs/ops/architecture-overview.md).
 
----
+## Quick start
 
-## Быстрый старт (Quickstart)
-
-### Вариант 1. Запуск через Docker Compose (Рекомендуемый)
+Prerequisites: Docker Engine 26+ with Docker Compose v2.
 
 ```bash
-# 1. Клонирование и настройка переменных окружения
 cp .env.example .env
-
-# 2. Выполнение миграций схемы БД (отдельным шагом)
 docker compose run --rm migrate
-docker compose run --rm migrate-cp
-
-# 3. Запуск всех сервисов (Backend + Frontend + Control Plane + PostgreSQL)
-docker compose up -d
+docker compose up -d --wait
 ```
 
-### Вариант 2. Локальная разработка (Backend + Frontend)
+Open <http://localhost:4200>. The development defaults create the initial
+administrator `admin` with the password in `ADMIN_PASSWORD`. Change it on first
+sign-in. The defaults in `.env.example` are for local development only.
+
+Stop the stack without deleting data:
 
 ```bash
-# 1. Запуск базы данных PostgreSQL
-docker compose up -d postgres
-
-# 2. Сборка и прогон тестов бэкенда (57 тестов)
-mvn clean test
-
-# 3. Применение миграций схемы
-mvn -pl apps/instance -Dspring.profiles.active=migrate spring-boot:run
-
-# 4. Запуск бэкенда инстанса
-mvn -pl apps/instance spring-boot:run
-
-# 5. Запуск фронтенда CMS (в отдельном терминале)
-cd apps/web-instance
-npm install
-npm start
+docker compose down
 ```
 
-### Точки доступа к сервисам:
+The optional encrypted backup service requires secret files and an age
+recipient. Follow the [deployment guide](docs/ops/deployment-guide.md) instead of
+enabling it with development credentials.
 
-| Сервис / Интерфейс | Адрес | Учётные данные по умолчанию |
-| :--- | :--- | :--- |
-| **CMS Интерфейс экземпляра** | http://localhost:4200 | `admin` / `Admin123!` (или `ADMIN_PASSWORD` из `.env`) |
-| **Панель управления флотом (CP)** | http://localhost:4300 | `cp_admin` / `CPAdmin123!` (из `.env`) |
-| **REST API экземпляра** | http://localhost:8080 | Сессионная Cookie `DWH_SESSION` или Bearer Token |
-| **REST API Control Plane** | http://localhost:8082 | Сессионная Cookie `DWH_CP_SESSION` |
-| **Actuator Health Check** | http://localhost:8080/actuator/health | `{"status":"UP"}` |
+## Development
 
----
+Prerequisites: JDK 25, Maven 3.9+, Node.js from [`.node-version`](.node-version),
+npm, and Docker for integration tests.
 
-## Устранение неполадок (Troubleshooting)
+Backend verification:
 
-1. **Ошибка `SchemaVersionGate: Pending migrations detected`**:
-   - Приложение блокирует запуск, если схема БД не актуальна.
-   - **Решение:** Запустите `mvn -pl apps/instance -Dspring.profiles.active=migrate spring-boot:run` или `docker compose run --rm migrate`.
-2. **Ошибка `CSRF Token Invalid` (403 Forbidden)**:
-   - Мутирующие HTTP-запросы (POST, PUT, DELETE, PATCH) с сессионной cookie требуют передачи заголовка `X-XSRF-TOKEN` (со значением из cookie `XSRF-TOKEN`).
-   - Запросы с заголовком `Authorization: Bearer <token>` освобождены от CSRF-проверки.
-3. **Ошибка `Rate limit exceeded` (429 Too Many Requests)**:
-   - Превышен лимит запросов с IP-адреса или токена. В заголовке ответа `Retry-After` указано время ожидания в секундах.
-4. **Конфликт чексумм Flyway миграций**:
-   - При модификации уже примененных миграций на локальной базе: сбросьте базу `docker exec dwh-postgres psql -U postgres -c "DROP DATABASE dwh_instance; CREATE DATABASE dwh_instance;"` и выполните миграцию заново.
+```bash
+mvn -B verify
+```
 
----
+Web verification:
 
-## Навигация по проекту
+```bash
+cd apps/web
+npm ci
+npm test
+npm run typecheck
+npm run build
+```
 
-- **[STATS_MAP.md](STATS_MAP.md)** — Карта статистик проекта (файлы, строки кода, зависимости, тесты).
-- **[MILESTONES.md](MILESTONES.md)** — Каталог вех и дорожная карта (M1 → M18).
-- **[REPORT.md](REPORT.md)** — Журнал работ и отчётов.
+End-to-end verification runs against the Compose deployment started in the
+quick start:
 
-## Документация
+```bash
+cd e2e
+npm ci
+npx playwright install chromium
+npm test
+```
 
-| Документ | Что внутри |
-|---|---|
-| [ТЗ-01: CMS](docs/trd/TRD-01-cms.md) | Требования Этапа 1: экземпляр + control plane; разд. 6 — DDL-спецификация, разд. 8.2 — матрица результатов |
-| [ТЗ-02: UI/UX](docs/trd/TRD-02-uiux.md) | Корпоративный минимализм: токены, паттерны, каталог экранов, SSE-реконнект, адаптивность |
-| [ТЗ-03: Сценарии](docs/trd/TRD-03-flows.md) | 13 пользовательских flows с ошибочными ветками — динамика системы |
-| [ТЗ-04: API](docs/trd/TRD-04-api.md) | Полная спецификация ядра Этапа 1 (M1–M4 + Control Plane v2.0): эндпоинты, SSE, каталог ошибок |
-| [CODE_STYLE](CODE_STYLE.md) | Стандарты разработки: Java 25, Spring Boot 4.1, транзакции, SQL, логи без ПДн, Angular 22 |
-| [Стратегия тестирования](docs/guidelines/testing-strategy.md) | Пирамида тестов: ArchUnit правила, Testcontainers (PG18 + S3), контрактные тесты SPI |
-| [Миграции БД](docs/guidelines/database-migrations.md) | Регламент безопасных миграций Flyway и шаблоны expand/contract в PostgreSQL 18 |
-| [Структура монорепо](docs/architecture/monorepo-structure.md) | Спецификация структуры Maven multi-module и Angular workspace |
-| [Biruni/Smartup Стандарты](docs/architecture/biruni-smartup-conventions.md) | Наследование опыта: префиксы модулей (md, kauth, ms, mf), именование классов, *Pref константы |
-| [Создание новых модулей](docs/guidelines/module-development-guide.md) | Пошаговый алгоритм добавления нового бизнес-модуля (MDK): DDL, *Pref, сервисы, RBAC, UI |
-| [Runbooks](docs/runbooks/) | Эксплуатационные регламенты: отказ узла (RB-01), Vault unseal (RB-02), ротация ключей (RB-03), сбои миграций (RB-04) |
-| [AUDIT-01](docs/audit/AUDIT-01-design-review.md) | Аудит проектных решений и статус устранения находок |
-| [AUDIT-02](docs/audit/AUDIT-02-implementation-review.md) | Ревизия реализации 28.08: реестр расхождений, фазы R/P/F |
-| [AUDIT-06](docs/audit/AUDIT-06-m3-auth-review.md) | Пересмотр M3: второй фактор — что было сломано и как починено |
-| [План ремедиации](docs/plan/remediation-plan.md) | Фазы R (санация кода) → P (платформа) → F (достройка) |
-| [ADR-0001](docs/adr/ADR-0001-architecture-model.md) | Где живёт логика: приложение, не БД (анализ модели Biruni) |
-| [ADR-0002](docs/adr/ADR-0002-backend-stack.md) | Стек и фиксация версий + политика обновлений |
-| [ADR-0003](docs/adr/ADR-0003-tenancy-rbac.md) | RBAC и аудит (раздел изоляции заменён ADR-0004) |
-| [ADR-0004](docs/adr/ADR-0004-deployment-model.md) | Экземпляр на клиента + control plane |
-| [ADR-0005](docs/adr/ADR-0005-ai-ml-readiness.md) | Принципы готовности к AI/ML |
-| [ADR-0006](docs/adr/ADR-0006-modular-monolith.md) | Модульный монолит: границы модулей и инварианты |
-| [ADR-0007](docs/adr/ADR-0007-fleet-strategy.md) | Флот: Nomad, миграции, кольца развёртывания, бэкапы |
-| [ADR-0008](docs/adr/ADR-0008-security-baseline.md) | Базовые требования безопасности |
-| [ADR-0009](docs/adr/ADR-0009-observability.md) | Наблюдаемость флота: логи, метрики, трейсы, алертинг |
-| [ADR-0010](docs/adr/ADR-0010-resilience-tiers.md) | Отказоустойчивость: тарифы доступности, кворум платформы |
-| [ADR-0011](docs/adr/ADR-0011-provider-spi.md) | Механизм провайдеров: Provider SPI, выбор конфигурацией |
-| [ADR-0012](docs/adr/ADR-0012-ui-foundation.md) | UI-фундамент: Angular Material + CDK, строгая тема из токенов |
-| [ADR-0013](docs/adr/ADR-0013-data-scope.md) | Скоуп данных: оргструктура, правило видимости, доступ к строкам |
-| [План M0](docs/plan/M0-plan.md) | Декомпозиция первой вехи: спайк, потоки, календарь |
-| [Онбординг](docs/onboarding.md) | Порядок чтения: 2 часа — и ты в контексте |
-| **Эксплуатация** | |
-| [Развёртывание](docs/ops/deployment-guide.md) | Prerequisites Checklist и пошаговый деплой экземпляра |
-| [Operations Runbook](docs/ops/operations-runbook.md) | Ежедневный контроль, диагностика, матрица эскалации |
-| [Откат релиза](docs/ops/rollback.md) | Откат образа и восстановление из бэкапа |
-| [Обслуживание](docs/ops/maintenance-guide.md) | Обновления, патчи, бэкапы, ротация секретов |
-| [Архитектура для эксплуатации](docs/ops/architecture-overview.md) | Состав, потоки данных, порты, состояние |
-| [Launch Checklist](docs/ops/production-launch-checklist.md) | Критерии go/no-go |
-| [AUDIT-04](docs/audit/AUDIT-04-devops-readiness.md) | DevOps-аудит: PARTIALLY READY, gap-анализ |
-| [CONTRIBUTING](CONTRIBUTING.md) | Процесс: ветки/PR/ревью, DoR/DoD (действует со старта разработки) |
+Read [onboarding](docs/onboarding.md) for the code map and
+[CONTRIBUTING.md](CONTRIBUTING.md) before submitting a change.
 
-## Этапы
+## Operations and security
 
-1. **CMS** — авторизация, пользователи, RBAC, задачник, оповещения, control plane (ТЗ-01).
-2. **DWH** — ELT из источников (в т.ч. Oracle Smartup5x), слои raw → core → marts (ТЗ-02, будет).
-3. **Дашборды** — динамическая аналитика поверх DWH (ТЗ-03, будет).
+- [Production deployment](docs/ops/deployment-guide.md)
+- [Operations runbook](docs/ops/operations-runbook.md)
+- [Backup, restore, and maintenance](docs/ops/maintenance-guide.md)
+- [Rollback procedure](docs/ops/rollback.md)
+- [Security policy and private reporting](SECURITY.md)
+- [Support policy](SUPPORT.md)
 
-## Лицензия
+Do not report suspected vulnerabilities in public issues. Never commit `.env`,
+secret files, database dumps, customer data, or decrypted backups.
 
-Проприетарное программное обеспечение. © 2026 Smartup. Все права защищены.
-См. [LICENSE](LICENSE). Использование — только по письменному соглашению с правообладателем.
+## Community and license
+
+Contributions require a Developer Certificate of Origin sign-off (`git commit
+-s`). Project decisions and conduct are described in
+[GOVERNANCE.md](GOVERNANCE.md) and
+[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+
+Copyright 2026 Smartup. Licensed under the [Apache License 2.0](LICENSE). See
+[NOTICE](NOTICE) and [RELICENSE.md](RELICENSE.md) for attribution and historical
+relicensing information.

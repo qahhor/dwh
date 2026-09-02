@@ -69,6 +69,10 @@ jobs:
         shell: pwsh
         run: ./scripts/architecture/test-unified-boundaries.ps1
 
+      - name: Validate public documentation contract
+        shell: pwsh
+        run: ./scripts/docs/test-public-docs.ps1
+
       - name: Validate production Compose, proxy and scripts
         shell: pwsh
         run: ./scripts/prod/test-release-config.ps1

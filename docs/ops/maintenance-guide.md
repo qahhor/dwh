@@ -1,171 +1,117 @@
-# Руководство по обслуживанию
+# SmartupCMS maintenance guide
 
-**Версия:** 1.0 · **Дата:** 2026-08-28
-**Область:** плановые работы на экземпляре — обновления, патчи, бэкапы,
-ротация секретов, обслуживание БД.
+**Version:** 2.0
 
----
+**Updated:** 2026-09-02
 
-## 1. Обновление версии приложения
+## Release upgrade
 
-Окно обслуживания согласуется с клиентом (NFR-6: работы вне его рабочего времени).
+1. Read the release notes and migration notes.
+2. Verify the target image signatures and release manifest.
+3. Confirm current health, free space, and a successful recent restore drill.
+4. Set the immutable target `APP_VERSION` in `.env.production`.
+5. Run the supported deploy script:
 
-### Порядок (нарушать нельзя)
+```bash
+bash scripts/prod/deploy.sh
+```
 
-1. **Прочитать release notes** — есть ли деструктивные миграции или ручные шаги.
-2. **Свежий бэкап перед обновлением** (не полагаться на ночной):
-   ```bash
-   cd /opt/dwh/<client-code> && docker compose exec -T postgres pg_dump -U "$DB_USER" -d "$DB_NAME" -Fc -f "/backups/pre-upgrade-$(date -u +%Y%m%dT%H%M%SZ).dump"
-   ```
-3. **Забрать образ заранее** — чтобы простой не включал время скачивания:
-   ```bash
-   docker pull ${IMAGE_REGISTRY}/instance:<новая-версия>
-   ```
-4. **Миграции отдельным шагом**:
-   ```bash
-   docker compose -f docker-compose.prod.yml --env-file .env run --rm migrate
-   ```
-   Провал — не продолжать, идти в [RB-04](../runbooks/RB-04-migration-failure-triage.md).
-5. **Обновить версию и перезапустить приложение**:
-   ```bash
-   sed -i 's/^APP_VERSION=.*/APP_VERSION=<новая-версия>/' .env && docker compose -f docker-compose.prod.yml --env-file .env up -d app
-   ```
-6. **Проверить**: health, вход, одна бизнес-операция, очередь доставки.
-7. При проблемах — [откат](rollback.md), не «чиним на живом».
+```powershell
+./scripts/prod/deploy.ps1
+```
 
-**Правило пилота:** новую версию сначала на внутренний стенд, затем на 1–2
-согласованных клиентов, и только потом на остальных. Автоматические кольца
-развёртывания появятся в фазе P; пока порядок соблюдается вручную.
+The script creates an encrypted database backup before migrating an existing
+database and stops on backup, pull, migration, or readiness failure. Do not run
+Flyway manually around a failed gate. Follow [rollback](rollback.md).
 
-## 2. Патчинг зависимостей и базовых образов
+## On-demand encrypted backup
 
-| Что | Периодичность | Как |
+```bash
+bash scripts/prod/backup.sh
+```
+
+```powershell
+./scripts/prod/backup.ps1
+```
+
+Success means all of the following happened: `pg_dump` completed, the stream was
+encrypted with the configured age recipient before persistence, a SHA-256 file
+was written, the configured local/S3 target accepted the artifact, and sanitized
+status was updated. A zero-byte file, log message, or stale status is not backup
+evidence.
+
+The database backup does not include uploaded objects. Operate and test the
+independent `server-data` or S3 bucket recovery policy.
+
+## Restore drill
+
+Test restore at least monthly and before a risky upgrade. Use a separate
+`PROJECT_NAME`, host port, database volume, and object-storage test location.
+Never point a drill at production.
+
+Prepare a temporary environment file based on the production template, with a
+unique project name such as `smartupcms-restore-test` and `HTTP_PORT=18080`.
+Start only its database, then restore the encrypted archive:
+
+```bash
+docker compose -f deploy/compose/docker-compose.prod.yml \
+  --env-file .env.restore-test up -d --wait postgres
+COMPOSE_FILE=deploy/compose/docker-compose.prod.yml \
+ENV_FILE=.env.restore-test \
+bash scripts/prod/restore.sh /secure/backup.dump.age /secure/backup-age-identity.txt
+```
+
+PowerShell equivalent:
+
+```powershell
+docker compose -f deploy/compose/docker-compose.prod.yml `
+  --env-file .env.restore-test up -d --wait postgres
+./scripts/prod/restore.ps1 `
+  -EnvFile .env.restore-test `
+  -BackupFile C:\secure\backup.dump.age `
+  -AgeIdentityFile C:\secure\backup-age-identity.txt
+```
+
+The restore script verifies SHA-256 and the `pg_restore` catalog before stopping
+the server. It preserves the previous database under a timestamped name, streams
+decrypted data directly into PostgreSQL, applies forward migrations, and waits
+for readiness.
+
+Validate sign-in, representative record counts, permissions, audit history,
+search reindex behavior, and uploaded-object recovery. Record archive timestamp,
+checksum, recovery duration, and verifier. Remove only the explicitly named
+disposable project after the evidence is retained:
+
+```bash
+docker compose -f deploy/compose/docker-compose.prod.yml \
+  --env-file .env.restore-test down --volumes --remove-orphans
+```
+
+## Secret rotation
+
+| Secret | Rotate when | Minimum verification |
 |---|---|---|
-| Уязвимости Critical/High в зависимостях | немедленно при обнаружении | CI (Trivy) блокирует сборку; обновить, выпустить патч-релиз |
-| Базовый образ (`eclipse-temurin`, `postgres`) | ежемесячно | пересобрать образ, прогнать CI, выкатить по разд. 1 |
-| Minor-версии Spring Boot | в течение квартала после выхода | ADR-0002, политика обновлений |
-| Java | только LTS | переход на следующий LTS в течение 6–12 мес |
+| Initial/admin credentials | bootstrap complete, suspected exposure, policy date | old credential denied; administrator sign-in works |
+| Application database password | suspected exposure or policy date | migrations and server readiness pass |
+| Backup database password | suspected exposure or policy date | bootstrap role and one-shot backup pass |
+| S3/R2 keys | suspected exposure or provider policy date | upload/download/delete plus encrypted backup pass |
+| Mail/SMS/messenger token | suspected exposure or provider policy date | test delivery and redacted logs |
+| age recipient | planned rekey or identity exposure | new backup and isolated restore pass before retiring old identity |
 
-Проверить, что стоит сейчас:
+Store secrets outside Git, use least-privilege provider credentials, and retain
+an old age identity until every archive encrypted to it expires or is rekeyed.
 
-```bash
-docker compose exec -T app sh -c 'java -version' 2>&1 | head -1
-```
+## Database and storage maintenance
 
-## 3. Бэкапы и проверка восстановления
+- Daily: check health, backup age/status, delivery dead letters, and disk usage.
+- Weekly: review error trends, object-store failures, PostgreSQL volume growth,
+  and Typesense health.
+- Monthly: restore drill, base-image/dependency review, audit partition horizon,
+  and certificate expiry.
+- Quarterly: access review, rollback exercise, object recovery drill, capacity
+  forecast, and retention review.
 
-### Что настроено
-
-Ежесуточный `pg_dump` в `./backups`, хранение `BACKUP_RETENTION_DAYS` (умолчание 14).
-
-### Ограничения текущего контура — знать наизусть
-
-- **Нет WAL-архива**: точка восстановления — момент последнего дампа
-  (до суток потерь), а не 15 минут по NFR-7.
-- **Нет шифрования**: каталог бэкапов содержит данные клиента в открытом виде —
-  доступ к нему ограничить правами ФС; на внешние носители не копировать
-  без шифрования.
-- **Нет автопроверки**: восстановление проверяется вручную.
-
-### Ежемесячная проверка восстановления (обязательна)
-
-Непроверенный бэкап следует считать отсутствующим.
-
-```bash
-docker run -d --name pg-restore-test -e POSTGRES_PASSWORD=t -e POSTGRES_DB=restore_test smartupcms/postgres:18-alpine-hardened
-```
-
-```bash
-docker cp ./backups/<последний>.dump pg-restore-test:/tmp/b.dump
-```
-
-```bash
-docker exec pg-restore-test pg_restore -U postgres -d restore_test --no-owner /tmp/b.dump
-```
-
-Smoke-проверки после восстановления:
-
-```bash
-docker exec pg-restore-test psql -U postgres -d restore_test -c "select (select count(*) from md_users) users, (select count(*) from ms_tasks) tasks, (select max(version) from flyway_schema_history) schema_version"
-```
-
-Счётчики правдоподобны и версия схемы совпадает с боевой — проверка пройдена.
-Записать результат в отчёт эксплуатации. Убрать за собой:
-
-```bash
-docker rm -f pg-restore-test
-```
-
-## 4. Ротация секретов
-
-| Секрет | Периодичность | Процедура |
-|---|---|---|
-| Пароль БД | ежегодно и при увольнении имевшего доступ | сменить в PostgreSQL, обновить `.env`, перезапустить стек в окне |
-| Пароль администратора | по политике клиента | самим администратором через профиль |
-| Токен Telegram-бота | при подозрении на утечку | перевыпустить у BotFather, обновить `.env`, перезапустить |
-| API-токены клиента | по запросу или при увольнении | отозвать в UI (немедленное действие, перезапуск не нужен) |
-| Ключ подписи лицензий | при компрометации | [RB-03](../runbooks/RB-03-license-key-emergency-rotation.md) |
-
-Смена пароля БД:
-
-```bash
-docker compose exec -T postgres psql -U "$DB_USER" -d postgres -c "alter user \"$DB_USER\" with password '<новый>'"
-```
-
-Затем обновить `.env` (права 600) и `docker compose up -d`. Порядок именно такой:
-сначала БД, потом конфиг — иначе приложение не подключится.
-
-## 5. Обслуживание базы данных
-
-### Рост таблицы аудита
-
-`audit_log` партиционирована по месяцам, retention 12 месяцев (FR-AUD-2).
-Проверить размер:
-
-```bash
-docker compose exec -T postgres psql -U "$DB_USER" -d "$DB_NAME" -c "select relname, pg_size_pretty(pg_total_relation_size(relid)) from pg_catalog.pg_statio_user_tables order by pg_total_relation_size(relid) desc limit 10"
-```
-
-Отцепление старой партиции — только после выгрузки в архив:
-
-```bash
-docker compose exec -T postgres pg_dump -U "$DB_USER" -d "$DB_NAME" -t audit_log_YYYY_MM -Fc -f /backups/audit_YYYY_MM.dump
-```
-
-```bash
-docker compose exec -T postgres psql -U "$DB_USER" -d "$DB_NAME" -c "alter table audit_log detach partition audit_log_YYYY_MM; drop table audit_log_YYYY_MM"
-```
-
-**Создание партиций на будущее** — обязательный плановый пункт: партиции заданы
-миграцией на конкретные месяцы, при их исчерпании записи уходят в
-`audit_log_default`. Проверять наличие партиций на 2 месяца вперёд.
-
-### Обслуживание статистики
-
-Автовакуум PostgreSQL включён по умолчанию и вмешательства обычно не требует.
-После массовых удалений (например, отцепления партиций) полезно:
-
-```bash
-docker compose exec -T postgres psql -U "$DB_USER" -d "$DB_NAME" -c "analyze"
-```
-
-## 6. Пересмотр доступа (ежеквартально)
-
-Организационная процедура, которую спросит любой enterprise-клиент:
-
-```bash
-docker compose exec -T postgres psql -U "$DB_USER" -d "$DB_NAME" -c "select u.login, u.state, string_agg(r.name, ', ') roles from md_users u left join md_user_roles ur on ur.user_id = u.id left join md_roles r on r.id = ur.role_id group by u.login, u.state order by u.login"
-```
-
-Проверить: нет активных учёток уволенных; нет лишних носителей роли `admin`;
-API-токены с давним `last_used_at` отозваны. Результат — в журнал пересмотра.
-
-## 7. Календарь обслуживания
-
-| Когда | Что |
-|---|---|
-| Ежедневно | health, очередь доставки, свежесть бэкапа |
-| Еженедельно | место на диске, разбор dead-letter, рост аудита |
-| Ежемесячно | проверка восстановления, обновление базовых образов, партиции на 2 мес вперёд |
-| Ежеквартально | пересмотр доступа, учебный откат и восстановление, ротация по календарю |
-| Ежегодно | ротация пароля БД, пересмотр политик хранения |
+Use PostgreSQL maintenance commands only after measuring the need. Do not edit
+Flyway history or rewrite an applied migration. Audit retention, personal-data
+retention, and object lifecycle must match the organization's documented policy;
+no universal retention period is asserted by this repository.

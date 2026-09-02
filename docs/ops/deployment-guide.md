@@ -1,250 +1,148 @@
-# Руководство по развёртыванию платформы Smartup DWH / CMS
+# SmartupCMS production deployment
 
-**Версия:** 2.0 · **Дата:** 2026-08-29  
-**Область:** пилотное развёртывание экземпляра и Control Plane через Docker Compose Fleet + внутренний NGINX.
-**Проверено:** `docker compose config`, `nginx -t`, fail-closed backup/deploy regression и синтаксис Bash/PowerShell-скриптов.
+**Version:** 2.0
 
-> Решение GO принимается только по [Production Launch Checklist](production-launch-checklist.md). Наличие compose-файла само по себе не подтверждает production readiness.
+**Updated:** 2026-09-02
 
----
+**Supported path:** one organization on one Docker Compose host.
 
-## 1. Prerequisites Checklist
+Deployment is not production-ready until every blocking item in the
+[production launch checklist](production-launch-checklist.md) is evidenced.
 
-Отметьте всё до начала. Пропуск пункта = отказ развёртывания.
+## 1. Prerequisites
 
-### Аппаратные требования (по профилю ресурсов, ТЗ-01 разд. 5.1)
+- Linux host with Docker Engine 26+ and Docker Compose v2.
+- A dedicated non-root deployment account and restricted deployment directory.
+- DNS, TLS, and a host reverse proxy or Cloudflare forwarding HTTPS to
+  `127.0.0.1:8080`.
+- Capacity monitoring for the Docker data directory and backup target.
+- `age-keygen` on a trusted administrator workstation.
+- An immutable SmartupCMS release tag and its verified release artifacts.
+- A documented recovery location for uploaded objects as well as the database.
 
-| Профиль | Пользователей | RAM | vCPU | Диск | Кому |
-|---|---|---|---|---|---|
-| **S** | до 50 | 10 ГБ | 4 | 200 ГБ SSD | малый клиент |
-| **M** | до 500 | 24 ГБ | 8 | 1 ТБ SSD | средний |
-| **L** | до 10 000 | 64 ГБ | 16 | 4 ТБ SSD | крупный (DWH на отдельном узле) |
+The production file publishes only the web origin. Do not publish PostgreSQL,
+Typesense, port 9090, or the Docker socket.
 
-Указанные значения — на весь стек экземпляра (приложение + PostgreSQL + хранилище файлов).
+## 2. Prepare configuration and secrets
 
-### Программные требования
-
-- [ ] Linux x86-64 с systemd (проверено: Ubuntu 24.04 LTS, Debian 12)
-- [ ] Docker Engine ≥ 26 и Docker Compose plugin v2 (`docker compose version`)
-- [ ] Файловая система с поддержкой `--data-checksums` для тома PostgreSQL
-- [ ] Учтено: в PostgreSQL 18 том монтируется на `/var/lib/postgresql` целиком
-      (не на `/var/lib/postgresql/data`) — образ 18+ отказывается стартовать
-      при старой раскладке
-- [ ] Синхронизированное время (chrony/systemd-timesyncd) — критично для сессий, OTP и аудита
-- [ ] Reverse proxy с TLS перед приложением (nginx/Caddy/Traefik) — приложение
-      публикуется **только на loopback**
-
-### Сетевые требования
-
-| Направление | Порт | Назначение |
-|---|---|---|
-| Входящий (публично) | 443 | HTTPS через reverse proxy |
-| Входящий (loopback) | 8088 | fleet proxy без TLS — только для host reverse proxy |
-| Входящий (loopback) | 8080 | одиночный instance — только для host reverse proxy |
-| Внутренний (сеть мониторинга) | 9090 | `/actuator/*` — **наружу не публиковать** |
-| Внутренний (сеть compose) | 5432 | PostgreSQL — наружу не публикуется |
-| Исходящий | 443 | Telegram Bot API, SMS-шлюз, control plane |
-| Исходящий | 587/465 | SMTP |
-
-### Подготовка
-
-- [ ] Создан несистемный пользователь для деплоя, добавлен в группу `docker`
-- [ ] Каталог развёртывания: `/opt/dwh/<client-code>/`
-- [ ] Каталог бэкапов на **отдельном томе/диске** (не на системном)
-- [ ] Сгенерированы пароли: `openssl rand -base64 24` — БД и первый администратор
-- [ ] Известен тег образа (конкретная версия, **никогда `latest`**)
-
----
-
-## 2. Развёртывание
-
-### Вариант A. Fleet (instance + Control Plane + оба UI)
-
-Fleet compose **не завершает TLS** и не публикует фиктивный HTTPS-порт. Он
-слушает `127.0.0.1:8088`; host nginx/Caddy/Traefik с валидным сертификатом
-должен пересылать HTTPS-трафик на этот адрес. Публикация `PROXY_BIND=0.0.0.0`
-без отдельного защищённого сетевого периметра запрещена.
+From a clean release checkout:
 
 ```bash
 cp deploy/compose/.env.example .env.production
+install -d -m 700 deploy/compose/.secrets
 chmod 600 .env.production
 ```
 
-Заполните все обязательные секреты, затем выполните единый release gate:
+Set `APP_VERSION` to an immutable SemVer tag and replace every blank or example
+credential in `.env.production`. Create these files with mode `0600`:
+
+```text
+deploy/compose/.secrets/database-password
+deploy/compose/.secrets/backup-database-password
+```
+
+The first file must contain the same value as `DB_PASSWORD`. The second must be
+a distinct random password for the dedicated read-only backup role. Do not add a
+trailing explanatory line or commit the files.
+
+Generate the age identity on a trusted workstation, store the private identity
+outside the deployment host, and place only its public recipient in
+`BACKUP_AGE_RECIPIENT`:
 
 ```bash
-COMPOSE_FILE=deploy/compose/docker-compose.fleet.prod.yml \
-ENV_FILE=.env.production \
+age-keygen -o backup-age-identity.txt
+age-keygen -y backup-age-identity.txt
+```
+
+For local backup storage, keep `BACKUP_STORAGE_MODE=local` and put the Docker
+backup volume on storage that survives loss of the application volume. For an
+off-host S3/R2 copy, set `BACKUP_STORAGE_MODE=s3`, configure endpoint, bucket,
+region, and prefix, then create these mode-`0600` files:
+
+```text
+deploy/compose/.secrets/backup-s3-access-key-id
+deploy/compose/.secrets/backup-s3-secret-access-key
+```
+
+For application file storage, `DWH_PROVIDER_STORAGE=local_disk` requires an
+operator backup for `server-data`. With `DWH_PROVIDER_STORAGE=s3`, configure the
+S3-compatible application variables and verify upload, download, delete, and
+recovery against the selected provider. Smartup-managed deployments use
+Cloudflare R2.
+
+## 3. Validate before first start
+
+```bash
+docker compose -f deploy/compose/docker-compose.prod.yml \
+  --env-file .env.production config --quiet
+pwsh -NoProfile -File scripts/prod/test-release-config.ps1
+pwsh -NoProfile -File scripts/prod/test-backup-status.ps1
+```
+
+Inspect the rendered configuration without sharing its environment values.
+Confirm that only `web` contains `ports:` and that the bind address is loopback.
+
+## 4. Deploy
+
+Linux/macOS:
+
+```bash
 bash scripts/prod/deploy.sh
 ```
 
-PowerShell-вариант:
+PowerShell:
 
 ```powershell
-./scripts/prod/deploy.ps1 -ComposeFile deploy/compose/docker-compose.fleet.prod.yml -EnvFile .env.production
+./scripts/prod/deploy.ps1
 ```
 
-Скрипт валидирует Compose, снимает обязательные бэкапы существующих БД,
-последовательно применяет обе миграции и завершится успешно только после
-`docker compose up --wait`. Для первого запуска бэкап пропускается лишь когда
-контейнеров обеих БД ещё нет.
+The script validates Compose, pulls release images, creates a mandatory
+pre-migration encrypted backup when an existing database is present, starts
+dependencies, runs Flyway, refreshes the read-only backup role, and waits for
+all services. Any failed step exits non-zero. A failed backup prevents the
+migration.
 
-Проверка внутреннего proxy до подключения TLS:
+## 5. Configure TLS
+
+Forward the public HTTPS origin to `http://127.0.0.1:8080`. Preserve the `Host`
+and forwarding headers, enable WebSocket/SSE-friendly response streaming, and
+set upload limits/timeouts to the organization's file policy. At the edge,
+enable rate limiting and managed WAF rules appropriate to the deployment, but do
+not bypass application authentication or authorization.
+
+From an external network, verify that only HTTPS is reachable. Requests to
+PostgreSQL, Typesense, the server port, and `/actuator/*` must fail.
+
+## 6. Acceptance checks
 
 ```bash
-curl -fsS http://127.0.0.1:8088/healthz
+docker compose -f deploy/compose/docker-compose.prod.yml \
+  --env-file .env.production ps
+curl --fail --silent --show-error http://127.0.0.1:8080/healthz
 ```
 
-Ожидаемый ответ: `ok`. Затем обязательно проверьте внешний HTTPS и отсутствие
-публичного доступа к `8088`, `9090`, `9091`, PostgreSQL и Typesense.
+Then verify through HTTPS:
 
-### Вариант B. Один экземпляр без Control Plane UI
+1. Sign in as the initial administrator and immediately change the password.
+2. Create a non-administrator role and user; confirm a denied action is denied
+   by the API as well as hidden in the UI.
+3. Upload and download a representative file.
+4. Create and publish a local announcement, then verify its audit entry.
+5. Run an encrypted one-shot backup and perform an isolated restore drill.
+6. Configure alerts for service health, disk capacity, backup age/failure,
+   certificate expiry, and elevated error rate.
 
-### Шаг 0. Имя проекта (группа в Docker)
+Remove `ADMIN_PASSWORD` from `.env.production` after bootstrap if the current
+installation no longer requires it, then redeploy and confirm restart succeeds.
 
-Все контейнеры экземпляра объединяются в одну группу Docker. Имя берётся из
-`PROJECT_NAME` в `.env`, по умолчанию **SmartupCMS**.
+## 7. Clean installation and removal
 
-```bash
-grep PROJECT_NAME .env
-```
+A new `PROJECT_NAME` creates isolated volumes and is the supported clean-install
+test. `docker compose down` preserves data. `docker compose down --volumes`
+permanently deletes the installation's database, files, search index, backups,
+and backup status; use it only for an explicitly identified disposable project
+after confirming the project name and recovery requirements.
 
-Docker приводит имя группы к нижнему регистру — в Docker Desktop она видна как
-`smartupcms-<код-клиента>`. Имена контейнеров регистр сохраняют:
-`SmartupCMS-app`, `SmartupCMS-db`. Это не ошибка, а нормализация Docker.
-
-### Шаг 1. Сборка образа
-
-Выполняется на CI или машине сборки, не на прод-узле:
-
-```bash
-docker build --build-arg APP=instance -t smartupcms/instance:1.0.0 .
-```
-
-Проверка образа перед выкладкой:
-
-```bash
-docker run --rm --entrypoint sh dwh/instance:1.0.0 -c "id"
-```
-
-Ожидаемо: `uid=10001(dwh)` — приложение не работает от root.
-
-### Шаг 2. Конфигурация
-
-```bash
-mkdir -p /opt/dwh/client-042 && cd /opt/dwh/client-042
-cp <repo>/deploy/compose/docker-compose.prod.yml .
-cp <repo>/deploy/compose/.env.example .env
-chmod 600 .env
-```
-
-Заполните `.env`. Обязательные без умолчаний: `CLIENT_CODE`, `APP_VERSION`,
-`DB_PASSWORD`, `DWH_INSTANCE_ADMIN_*`. Compose откажется стартовать без них —
-это защита от развёртывания с пустыми паролями.
-
-### Шаг 3. Миграции (отдельным шагом — обязательно)
-
-```bash
-docker compose -f docker-compose.prod.yml --env-file .env run --rm migrate
-```
-
-Ожидаемо в конце: `Миграции применены. Текущая версия схемы: 003`.
-Приложение мигрировать схему **не может** — при несовпадении версии оно
-откажется стартовать (schema-gate, FR-INST-2). Это защита от отката без плана.
-
-### Шаг 4. Запуск
-
-```bash
-docker compose -f docker-compose.prod.yml --env-file .env up -d
-```
-
-### Шаг 5. Проверка развёртывания
-
-```bash
-docker compose -f docker-compose.prod.yml ps
-```
-
-Все сервисы — `healthy`. Далее:
-
-```bash
-curl -fsS http://127.0.0.1:8080/api/v1/auth/login -X POST -H 'Content-Type: application/json' -d '{"login":"admin","password":"<пароль из .env>"}' -i | head -3
-```
-
-Ожидаемо: `HTTP/1.1 200`, заголовки `Set-Cookie: DWH_SESSION=…; Secure; HttpOnly`
-и `XSRF-TOKEN`. В логах при первом старте:
-`Экземпляр инициализирован: client_code=…` и `Первый администратор создан`.
-
-### Шаг 6. Регистрация экземпляра в control plane
-
-Пока экземпляр не зарегистрирован, он не виден в реестре флота: панель не
-покажет ни его версию, ни доступность, ни отчёты о бэкапах. На работу самого
-экземпляра это не влияет — связь односторонняя и необязательная (ADR-0004).
-
-1. Откройте панель управления, вкладка **Клиенты**.
-2. Если клиента ещё нет — **Новый клиент**: код (совпадает с `CLIENT_CODE`),
-   название, профиль ресурсов.
-3. **Регистрация экземпляра**: клиент, контур (`production` / `staging`),
-   внешний адрес экземпляра.
-4. Панель покажет **одноразовый enrollment token** и срок действия. Это ещё не
-   runtime credential: token действует 15 минут и уничтожается первым успешным
-   обменом через `POST /api/v1/instances/enroll`.
-5. Передайте enrollment token защищённому bootstrap-процессу в памяти. Не
-   записывайте его в `.env`, shell history, URL или логи. Bootstrap-процесс должен
-   сохранить только поле `credential` из ответа enrollment в secret-хранилище.
-   Полный request/response-контракт приведён в
-   [Control Plane Instance API v1](../api/control-plane-instance-v1.md).
-6. В текущем Compose имя переменной сохранено для обратной совместимости:
-   `DWH_CP_HEARTBEAT_TOKEN` содержит именно **runtime credential**, а не enrollment
-   token. Заполните конфигурацию экземпляра и перезапустите приложение:
-
-```bash
-DWH_CP_URL=https://cp.smartup.uz
-DWH_CP_HEARTBEAT_TOKEN=<runtime credential из enrollment response>
-DWH_CP_HEARTBEAT_INTERVAL=5m
-```
-
-В логах после старта: `Heartbeat в control plane включён: … каждые 5 мин`.
-Через минуту экземпляр появляется на вкладке **Флот** в состоянии
-«работает» с фактической версией приложения и схемы.
-
-Runtime credential ротируется через `POST /api/v1/instances/credentials/rotate`:
-новое значение сохраняется до перезапуска, затем старое отзывается оператором.
-Overlap старого и нового credential — 24 часа. Публичного endpoint повторной выдачи
-enrollment для существующего instance в текущем срезе нет: потеря обоих runtime
-credentials требует операторского recovery и не должна маскироваться повторным
-использованием старого enrollment token.
-
-### Шаг 7. Обязательные действия после первого запуска
-
-- [ ] Войти администратором и **сменить пароль** (система потребует сама)
-- [ ] Включить 2FA администратору
-- [ ] Удалить пароль администратора из `.env` (он больше не нужен — учётка создана)
-- [ ] Проверить восстановление из бэкапа на тестовом контуре (см.
-      [Maintenance Guide](maintenance-guide.md), разд. «Проверка бэкапов»)
-- [ ] Убедиться, что экземпляр виден в панели в состоянии «работает» (шаг 6)
-
----
-
-## 3. Типичные ошибки развёртывания
-
-| Симптом | Причина | Решение |
-|---|---|---|
-| `Схема БД не соответствует приложению` при старте | не выполнен шаг 3 | запустить `run --rm migrate` |
-| `Экземпляр не инициализирован: задайте dwh.instance.client-code` | не заполнен `.env` | заполнить обязательные переменные |
-| `Could not initialize local storage path` | том `appdata` не смонтирован | проверить секцию `volumes` сервиса `app` |
-| Контейнер `unhealthy`, в логах пусто | приложение не успело подняться | увеличить `start_period` (медленный диск) |
-| 401 на `/actuator/prometheus` | обращение на публичный порт | actuator живёт на 9090, не на 8080 |
-
----
-
-## 4. Что это развёртывание НЕ обеспечивает
-
-Осознанные ограничения текущего контура (закрываются фазой P):
-
-- **Файлы клиента лежат на диске узла** — при потере узла теряются (блокер C-3).
-- **Секреты в `.env`-файле**, не в Vault — нет ротации и аудита доступа (C-7).
-- **Логи только локальные** — централизованного поиска нет (C-11).
-- **Бэкапы без WAL-архива, шифрования и автопроверки** — RPO равен суткам,
-  а не 15 минутам по NFR-7.
-- **Один узел** — отказ узла = простой до ручного восстановления.
-- **Email/SMS — заглушки в лог**, реальные каналы появятся в фазе F.
+For upgrades use the [maintenance guide](maintenance-guide.md). For incidents
+use the [operations runbook](operations-runbook.md) and
+[rollback procedure](rollback.md).

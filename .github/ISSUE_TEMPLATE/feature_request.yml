@@ -1,0 +1,45 @@
+name: Feature request
+description: Propose a focused improvement to an existing SmartupCMS workflow
+title: "[Feature]: "
+labels: [enhancement, triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        SmartupCMS prioritizes depth and reliability over scope expansion.
+        Explain the user problem before proposing a solution.
+  - type: textarea
+    id: problem
+    attributes:
+      label: User problem
+      description: Who is blocked, in which workflow, and what evidence shows the impact?
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Required outcome
+      description: State an observable acceptance criterion without prescribing an implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope and non-goals
+      description: Identify the smallest useful scope and what must remain unchanged.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Include current workarounds and why they are insufficient.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Submission checks
+      options:
+        - label: I searched existing issues and discussions.
+          required: true
+        - label: The request contains no secrets, personal data, or private customer information.
+          required: true

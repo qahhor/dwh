@@ -1,159 +1,107 @@
-# Обзор архитектуры для эксплуатации
+# SmartupCMS operations architecture
 
-**Версия:** 1.1 · **Дата:** 2026-09-01
-**Назначение:** карта системы для дежурного и администратора — что из чего состоит,
-куда идут данные, где искать причину. Проектные обоснования — в ADR-0001…0012.
+**Version:** 2.0
 
----
+**Updated:** 2026-09-02
 
-## 1. Состав экземпляра клиента
+**Scope:** the supported single-organization Docker Compose topology.
 
-Каждый клиент получает изолированный экземпляр (ADR-0004): своё приложение,
-своя БД, своё файловое хранилище. Общих данных между клиентами нет.
-
-```
-                        Интернет
-                            │ HTTPS/443
-                    ┌───────▼────────┐
-                    │ reverse proxy  │  TLS, публикация наружу
-                    │ (nginx/Caddy)  │
-                    └───────┬────────┘
-                            │ 127.0.0.1:8080          сеть мониторинга
-   ┌────────────────────────▼──────────────────────────────┐  :9090
-   │  app (Spring Boot 4.1 / Java 25)                      │◀────── метрики
-   │  ┌──────────────────────────────────────────────────┐ │        Prometheus
-   │  │ Фильтры: аутентификация → лимиты → авторизация    │ │
-   │  ├──────────────────────────────────────────────────┤ │
-   │  │ Модули: md (пользователи, роли, права)           │ │
-   │  │         kauth (сессии, токены, OTP)              │ │
-   │  │         ms.task / ms.notify (задачи, оповещения) │ │
-   │  │         mf (файлы) · audit · kwh (вебхуки)       │ │
-   │  └──────────────────────────────────────────────────┘ │
-   └───┬───────────────────────┬──────────────────┬────────┘
-       │ JDBC                  │ файлы            │ HTTPS исходящие
-┌──────▼────────┐   ┌──────────▼────────┐   ┌─────▼──────────────────┐
-│ PostgreSQL 18 │   │ том appdata       │   │ Telegram · SMTP · SMS  │
-│ (внутр. сеть, │   │ ⚠ ВРЕМЕННО:       │   │ control plane          │
-│  порт закрыт) │   │ диск узла, не S3  │   └────────────────────────┘
-└──────┬────────┘   └───────────────────┘
-       │ pg_dump (ежесуточно)
-┌──────▼────────┐
-│ ./backups     │  ⚠ без WAL, шифрования и автопроверки (до фазы P)
-└───────────────┘
-```
-
-## 2. Потоки данных
-
-**Вход пользователя.** Браузер → reverse proxy → `app`: проверка пароля (Argon2id) →
-при включённой 2FA отправка OTP через канал → создание сессии в
-`kauth_sessions` → cookie `DWH_SESSION` (HttpOnly, Secure) + `XSRF-TOKEN`.
-Каждый последующий запрос: фильтр аутентификации поднимает эффективные права
-пользователя → фильтр лимитов → проверка `(форма, действие)` перехватчиком.
-
-**Изменение бизнес-данных.** Контроллер → сервис (транзакция) → репозиторий →
-PostgreSQL; триггер пишет в `audit_log`. Доменное событие → модуль `notify` →
-запись в `ms_notification_outbox` → фоновый воркер (`FOR UPDATE SKIP LOCKED`) →
-провайдер канала → отметка доставки или dead-letter после исчерпания попыток.
-
-**Загрузка файла.** Контроллер `mf` → вычисление SHA-256 → дедупликация
-(файл с тем же хешем не дублируется) → запись в хранилище → метаданные в БД.
-
-**Исходящие вебхуки.** Событие → `kwh_outbox` → воркер → HTTP POST с подписью
-`X-Signature-SHA256` → лог попытки в `kwh_logs`.
-
-## 3. Точки интеграции
-
-| Интеграция | Направление | Отказ приводит к |
-|---|---|---|
-| Control plane | исходящее от экземпляра | лицензия работает по grace-периоду; объявления не обновляются; работа клиента не нарушается |
-| Telegram Bot API | исходящее | не доставляются OTP и уведомления → вход с 2FA невозможен, если это единственный канал |
-| SMTP | исходящее | не доставляются письма и коды восстановления |
-| SMS-шлюз | исходящее | не доставляются OTP по SMS |
-| Prometheus | входящее на 9090 | пропадают метрики, работа не нарушается |
-
-### 3.1. Граница доверия Fleet Foundation
+## Runtime map
 
 ```text
-Operator session + CSRF                  Runtime credential
-┌──────────────────────┐             ┌────────────────────────┐
-│ Control Plane UI/API │◀────────────│ isolated client instance│
-│                      │ heartbeat   │                        │
-│ release → target     │ backup      │ no inbound CP access   │
-│ audit + deployment   │ desired     │ no arbitrary commands  │
-└──────────────────────┘             └────────────────────────┘
-          │                                      │
-          │ managed policy                       │ customer-hosted policy
-          ▼                                      ▼
- Hetzner + Cloudflare edge/R2        client-selected compatible providers
+Internet
+   |
+   | HTTPS :443 (operator-managed Cloudflare or reverse proxy)
+   v
+web :8080  -------------------->  server :8080
+   |                                 |       |
+   | frontend network                |       +--> configured mail/SMS/messenger providers
+   |                                 |
+   |                                 +--> PostgreSQL :5432
+   |                                 +--> Typesense :8108
+   |                                      backend network (internal)
+   |
+   +-- one browser origin for SPA and /api
+
+backup --> PostgreSQL (read-only role) --> age-encrypted .dump.age
+                                      \--> local volume or explicit S3/R2 target
 ```
 
-Оператор регистрирует placement и получает одноразовый enrollment token на 15
-минут. Instance обменивает его один раз и далее аутентифицируется runtime credential
-в `X-Instance-Token`. Control Plane получает instance identity только из credential,
-а не из `instanceId`/`clientCode` в body. Target декларативен: release digest,
-config version и maintenance window; shell-команды в контракт не входят.
+The production Compose file is
+[`deploy/compose/docker-compose.prod.yml`](../../deploy/compose/docker-compose.prod.yml).
+Only `web` publishes a host port, bound to `127.0.0.1:8080` by default. A host
+proxy or Cloudflare terminates TLS and forwards to that listener. `server`,
+PostgreSQL, Typesense, and the management port remain on Compose networks.
 
-Для управляемой инфраструктуры утверждена связка Hetzner + Cloudflare edge +
-Cloudflare R2. На инфраструктуре клиента допускается выбранный клиентом S3-compatible
-provider после compatibility suite. Текущий Compose всё ещё использует локальный
-`appdata`: runtime S3 adapter и migration этого тома в данном срезе не реализованы,
-поэтому наличие provider metadata ещё не подтверждает перенос файлов в R2.
+## Components and trust boundaries
 
-## 4. Состояние: что где хранится
-
-| Данные | Где | Переживает пересоздание контейнера |
+| Component | Trust boundary | Persistent state |
 |---|---|---|
-| Бизнес-данные, аудит, сессии | том `pgdata` | да |
-| Файлы пользователей | том `appdata` | да, но **не** переживает потерю узла (C-3) |
-| Бэкапы | `./backups` | зависит от монтирования (обязателен отдельный диск) |
-| Секреты | файл `.env` на узле | да; ротации и аудита доступа нет (C-7) |
-| Кэш эффективных прав | память процесса | нет — восстанавливается из БД |
-| Bucket'ы лимитов частоты | память процесса | нет — счётчики обнуляются при рестарте |
+| `web` | Untrusted browser input; reverse proxy to application API | none |
+| `server` | Authentication, server-side authorization, validation, business transactions | `server-data` for local file storage |
+| `postgres` | Authoritative transactional state and audit records | `postgres-data` |
+| `typesense` | Derived search index; not an authorization source | `typesense-data` |
+| `backup` | Dedicated read-only database role; encryption before persistence | `backups`, `backup-status` |
+| `migrate` | One-shot schema mutation with application database credentials | PostgreSQL schema history |
 
-## 4.1. Именование в Docker
+The browser receives a `DWH_SESSION` HttpOnly session cookie. Mutating browser
+requests are protected by CSRF controls, and permissions are checked by the
+server. Search results must remain constrained by application authorization;
+Typesense is not exposed to browsers in production.
 
-Одна группа на экземпляр: `${PROJECT_NAME}` (умолчание `SmartupCMS`), в прод-контуре
-дополняется кодом клиента. Docker нормализует имя группы к нижнему регистру;
-контейнеры именуются `SmartupCMS-app`, `SmartupCMS-db`, `SmartupCMS-web`,
-`SmartupCMS-web-cp`, `SmartupCMS-control-plane`, `SmartupCMS-db-cp`.
+## Data flows
 
-## 5. Порты
+- Business writes: browser -> `web` -> `server` -> PostgreSQL transaction and
+  audit record.
+- File uploads: `server` calculates metadata and stores bytes in the configured
+  `local_disk` or S3-compatible provider. Database backups do not contain these
+  object bytes.
+- Search: `server` writes and queries Typesense through the private network.
+- Notifications and webhooks: outbound requests occur only when an
+  administrator selects and configures a real provider. Console providers are
+  the default.
+- Announcements: authorship, publication, dismissal, and audit remain inside the
+  installation.
+- Backups: `pg_dump` streams directly through `age`; plaintext dumps are not
+  written to disk. A SHA-256 sidecar and sanitized status file accompany the
+  encrypted archive.
 
-| Порт | Слушает | Публикуется |
-|---|---|---|
-| 8080 | приложение (API + SPA) | только `127.0.0.1`, наружу — через proxy |
-| 9090 | actuator: health, метрики | только в сеть мониторинга |
-| 5432 | PostgreSQL | не публикуется, доступ из сети compose |
+No telemetry, enrollment, licensing callback, or other mandatory external
+connection is part of the runtime.
 
-Control plane и его панель живут в отдельном контуре сотрудников платформы
-и рядом с экземпляром клиента не разворачиваются:
+## Storage choices
 
-| Порт | Слушает | Публикуется |
-|---|---|---|
-| 8081 | API control plane | только внутрь контура платформы |
-| 9091 | actuator control plane | только в сеть мониторинга |
-| 8080 (`web-cp`) | панель управления флотом | через proxy, доступ по VPN/SSO |
+`DWH_PROVIDER_STORAGE=local_disk` stores uploaded objects in `server-data`. This
+survives container recreation but not loss of the Docker volume or host.
+Production operators using local disk must implement an independent encrypted
+copy and restore drill for that volume.
 
-В dev-группе они видны на хосте как `CP_PORT` (8082), `CP_MGMT_PORT` (9191)
-и `CP_WEB_PORT` (4300).
+`DWH_PROVIDER_STORAGE=s3` supports S3-compatible endpoints. Smartup-managed
+installations use Cloudflare R2; self-hosters may select another compatible
+provider. Bucket encryption, versioning, lifecycle, retention, and recovery are
+operator/provider responsibilities and must be tested before launch.
 
-Проверить, что actuator не торчит наружу:
+## Deployment invariants
 
-```bash
-curl -s -o /dev/null -w '%{http_code}\n' http://<внешний-адрес>:8080/actuator/health
-```
+1. Images use immutable release tags; `latest` is not a release input.
+2. Migrations run as a separate one-shot service before the new server starts.
+3. An upgrade with existing PostgreSQL data must create an encrypted backup
+   first; backup failure stops deployment before migration.
+4. The backup identity is held outside the deployment host or backup volume.
+5. The application reads only a sanitized backup status file, never backup
+   credentials or decrypted content.
+6. Destructive schema rollback is not automated. Recovery uses the documented
+   image rollback or encrypted restore procedure.
 
-Ожидаемо `404`. Любой другой ответ — инцидент конфигурации.
+## Known operational limits
 
-## 6. Отличия от целевой архитектуры
+- The bundled database backup is scheduled `pg_dump`, not continuous WAL
+  archiving; default RPO is up to 24 hours.
+- Object bytes require a separate local-volume or bucket recovery policy.
+- Metrics collection, alert delivery, and external log aggregation are not
+  provisioned by the Compose file and must be supplied by the operator.
+- High availability across hosts is not provided by the bundled single-host
+  topology.
 
-Текущий контур — промежуточный. Целевой (ADR-0004, 0007, 0009, 0010):
-
-| Сейчас | Цель (фаза P) |
-|---|---|
-| Docker Compose на одном узле | Nomad + Consul + Vault, кворум из трёх узлов |
-| Секреты в `.env` | Vault, ротация, изоляция путей по клиентам |
-| Файлы на диске узла | managed: Cloudflare R2; customer-hosted: совместимый S3 provider клиента |
-| Локальные логи | Alloy → Loki, сквозной `trace_id` |
-| Бэкап `pg_dump` без проверки | базовый + WAL, шифрование, ежемесячная автопроверка каждого экземпляра |
-| Обновление вручную | кольца R0→R1→R2 с canary и авто-откатом |
+These limits must be reflected in any managed SLA and in the
+[production launch checklist](production-launch-checklist.md).

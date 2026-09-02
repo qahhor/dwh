@@ -1,0 +1,67 @@
+name: Bug report
+description: Report a reproducible SmartupCMS defect
+title: "[Bug]: "
+labels: [bug, triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Search existing issues first. Do not include secrets, personal data,
+        database dumps, private URLs, or vulnerability details. Report security
+        issues privately according to SECURITY.md.
+  - type: input
+    id: version
+    attributes:
+      label: SmartupCMS version
+      description: Release tag or Git commit SHA; do not write "latest".
+      placeholder: v0.1.0 or abc1234
+    validations:
+      required: true
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: Deployment method
+      options:
+        - Production Docker Compose
+        - Development Docker Compose
+        - Local source build
+        - Custom deployment
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: Provide the smallest deterministic sequence that triggers the defect.
+      placeholder: |
+        1. Sign in as ...
+        2. Open ...
+        3. Select ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Sanitized evidence
+      description: Add relevant logs, screenshots, and browser/OS details after removing sensitive data.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Submission checks
+      options:
+        - label: I searched existing issues.
+          required: true
+        - label: This report contains no secrets, personal data, or vulnerability details.
+          required: true

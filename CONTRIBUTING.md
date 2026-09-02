@@ -1,63 +1,86 @@
-# Процесс разработки
+# Contributing to SmartupCMS
 
-**Статус:** действует с момента команды CEO на старт разработки.
-До этой команды в репозиторий попадают **только документы** (docs/) — решение CEO 2026-08-27.
+Thank you for improving SmartupCMS. The project optimizes for a small, reliable
+product surface: fix the underlying workflow and preserve module boundaries
+before adding new concepts.
 
-## 1. Ветки и слияния
+By participating, you agree to follow the
+[Code of Conduct](CODE_OF_CONDUCT.md). Report vulnerabilities privately through
+[SECURITY.md](SECURITY.md), not in issues or pull requests.
 
-- `main` — защищённая, прямые коммиты запрещены. Всегда в состоянии «можно собрать релиз».
-- Рабочие ветки: `feat/<кратко>`, `fix/<кратко>`, `docs/<кратко>`. Живут ≤ 3 дней —
-  дольше значит задача нарезана неверно.
-- Слияние — только через PR с ревью; merge-коммит (`--no-ff`), ветка удаляется после слияния.
-- Коммиты: повелительное наклонение, первая строка ≤ 72 символов, тело отвечает «зачем».
+## Before starting
 
-## 2. Definition of Ready (DoR) — задача берётся в разработку, только если:
+Search existing issues and pull requests. For a material behavior or API
+change, open an issue that identifies the user problem, measurable outcome,
+smallest scope, and non-goals. Architecture changes require an ADR.
 
-1. **Трассируемость требований:** Есть прямая ссылка на `FR-*` (ТЗ-01), номер сценария `F-*` (ТЗ-03) или контракт API (ТЗ-04).
-2. **Точный критерий демонстрации:** Чётко сформулировано, ЧТО именно будет продемонстрировано на приёмке (по матрице результатов ТЗ-01 §8.2).
-3. **Оценка и декомпозиция:** Оценка трудоёмкости ≤ 3 идеальных человеко-дней (более крупные задачи обязательно декомпозируются).
-4. **Контракт безопасности RBAC:** Зафиксирована форма и требуемое действие `(form, action)` согласно каталогу прав ТЗ-04 §2.
-5. **Дизайн и UI/UX:** Для экранных задач — пройдено wireframe-ревью и подтверждено соответствие дизайн-токенам ТЗ-02.
-6. **Схема данных:** Для изменений БД — предварительно согласован DDL с префиксами `md_`, `kauth_`, `ms_`, `mf_`, `kwh_`.
+Prerequisites:
 
-## 3. Definition of Done (DoD) — задача закрыта и принята, только если:
+- JDK 25 and Maven 3.9+
+- Node.js version from [`.node-version`](.node-version) and npm
+- Docker Engine 26+ with Docker Compose v2
 
-1. **Демонстрация результата:** В комментарии к PR прикреплена видеозапись/скринкаст работы, либо лог успешного прогона интеграционного теста.
-2. **Тестирование (Testing Strategy):**
-   - 100% покрытие изменённых инвариантов бизнес-логики и прав доступа юнит- и интеграционными тестами.
-   - Интеграционные тесты репозиториев и миграций выполнены через **Testcontainers** (PostgreSQL 18 + S3 Garage).
-   - Нет нарушений архитектурных границ (пройдена проверка **ArchUnit**).
-3. **Безопасные миграции БД:** Миграция написана по стандарту `expand/contract` (PostgreSQL 18); деструктивные DDL-операции запрещены без отдельного согласования.
-4. **Конвенции кода и именования:** Код строго следует `CODE_STYLE.md` и `biruni-smartup-conventions.md` (`*Pref`, DTO, Records, логи без ПДн).
-5. **Актуализация документации:** Обновлены ТЗ-01, ТЗ-04 (OpenAPI/эндпоинты), если контракт был уточнён в ходе разработки.
-6. **CI/CD Quality Gate:** Полностью зелёный пайплайн в CI:
-   - Сборка Maven Java 25 & Angular 22.
-   - 0 проваленных тестов.
-   - 0 найденных секретов (gitleaks).
-   - 0 критических уязвимостей (Trivy SBOM).
-   - 0 пропусков i18n ключей и 0 критических замечаний axe-core по доступности.
-7. **Код-ревью:** Минимум 1 аппрув от Senior-разработчика; 2 аппрува для ядра (`md`, `kauth`, Vault, миграции).
+## Development workflow
 
-## 4. Pull Request
+Create a short-lived branch from the default branch. The repository uses
+Conventional Commit-style subjects such as `fix(web): ...` and `docs(oss): ...`.
+Keep commits reviewable and avoid mixing unrelated cleanup with the change.
 
-- Малый PR — норма: ориентир ≤ 400 строк диффа; больше — только с объяснением, почему нельзя разрезать.
-- Шаблон описания: «Что» (1–2 предложения) · «Зачем» (ссылка FR/flow) · «Как проверено»
-  (демонстрация результата) · «Риски/откат».
-- Ревью отвечается ≤ 1 рабочего дня; блокирующие замечания — только по дефектам и нарушениям
-  правил, вкусовые — как «nit:» и не блокируют.
+Every commit must certify the [Developer Certificate of Origin](DCO):
 
-## 5. Владения (обновлять при фиксации команды)
+```bash
+git commit -s -m "fix(scope): describe the change"
+```
 
-| Область | Владелец |
-|---|---|
-| UI-кит и токены (ТЗ-02) | FE-senior — назначить |
-| Платформа (Nomad/Vault/бэкапы) | Infra — назначить |
-| Модули iam/rbac | назначить |
-| Каталог ошибок и API-конвенции (ТЗ-04) | назначить |
+The resulting commit message must contain a valid `Signed-off-by: Name
+<email>` trailer. If an existing local commit is yours and lacks the trailer,
+amend it with `git commit --amend -s`; do not rewrite other contributors'
+commits without their permission. A CLA is not required.
 
-Владелец — обязательный ревьюер изменений своей области.
+## Required verification
 
-## 6. Онбординг
+Run the checks relevant to the change and record exact commands and outcomes in
+the pull request.
 
-Новичок читает [docs/onboarding.md](docs/onboarding.md) — 2 часа, и он в контексте.
-Вопросы самопроверки — там же.
+```bash
+mvn -B verify
+```
+
+```bash
+cd apps/web
+npm ci
+npm test
+npm run typecheck
+npm run build
+```
+
+For changes to user workflows, Compose, authentication, routing, or deployment,
+also run the affected Playwright and release-configuration checks. CI remains
+the authoritative gate.
+
+## Engineering rules
+
+- Enforce permissions on the server; hiding a UI action is not authorization.
+- Preserve module boundaries checked by ArchUnit.
+- Use structured errors and do not place credentials or personal data in logs.
+- Keep database migrations forward-only and compatible with the previous
+  release during the expand phase. Never silently rewrite an applied migration.
+- Add tests for changed invariants, authorization rules, failure behavior, and
+  migrations.
+- For UI changes, cover keyboard navigation, accessible names, loading, empty,
+  error, success, and narrow-viewport states.
+- Update public documentation when commands, configuration, APIs, migrations,
+  or operating procedures change.
+- Do not commit `.env`, files under `.secrets`, customer data, database dumps,
+  decrypted backups, or generated `graphify-out` artifacts.
+
+## Pull requests
+
+Use the pull request template. Explain the problem and scope, provide test
+evidence, identify data/security/deployment risk, and document rollback. Keep a
+pull request focused; if it cannot be reviewed independently, split it by
+behavior rather than by technical layer.
+
+Maintainers may request additional security, migration, browser, or clean-deploy
+evidence before merge. Acceptance and release decisions follow
+[GOVERNANCE.md](GOVERNANCE.md).

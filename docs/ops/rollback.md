@@ -1,150 +1,101 @@
-# Процедуры отката релиза
+# SmartupCMS release rollback and recovery
 
-**Версия:** 1.0 · **Дата:** 2026-08-28
-**Правило:** решение об откате принимается быстро. Если сомневаетесь —
-откатывайтесь: вернуться к работающей версии дешевле, чем чинить в проде.
+**Version:** 2.0
 
----
+**Updated:** 2026-09-02
 
-## 1. Почему откат вообще возможен
+Choose image rollback only when the previous server is compatible with the
+current database schema. If compatibility is unknown or data is damaged, use
+the encrypted pre-migration backup. Never reverse Flyway history or improvise
+destructive SQL during an incident.
 
-Схема БД развивается по правилу **expand/contract** (ADR-0007 разд. 2.3):
-релиз N только добавляет структуры, удаление старых — не раньше релиза N+1.
-Поэтому схема совместима минимум с двумя соседними версиями кода, и откат
-приложения **не требует отката схемы**.
+## Decision table
 
-Из этого следует главное ограничение: **откат безопасен через одну версию назад.**
-Через две и более — только с восстановлением из бэкапа.
+| Condition | Action |
+|---|---|
+| New web image fails; API and data are healthy | roll back `web` image only |
+| New server fails; migration did not run | roll back `server` and `web` images |
+| Migration completed; previous server passes its schema gate | roll back images and verify |
+| Previous server rejects the schema | restore the pre-migration backup |
+| Data is corrupted or unauthorized writes occurred | contain incident, then restore verified data and objects |
+| Only search index is damaged | rebuild derived index; do not roll back authoritative data |
 
-## 2. Матрица решений
+## Preserve evidence
 
-| Ситуация | Процедура | Простой |
-|---|---|---|
-| Плохой релиз, миграции применились штатно | разд. 3 — откат образа | ~1 мин |
-| Миграция упала на середине | [RB-04](../runbooks/RB-04-migration-failure-triage.md), затем разд. 3 | до 15 мин |
-| Миграция применилась, но повредила данные | разд. 4 — восстановление из бэкапа | до 4 часов |
-| Нужно откатиться на 2+ версии назад | разд. 4 | до 4 часов |
-
-## 3. Откат образа (штатный путь)
-
-### 3.1. Перед откатом — 30 секунд на фиксацию фактов
+Before changing state, record the UTC incident time, current and previous image
+digests, environment release tag, service state, and sanitized logs:
 
 ```bash
-cd /opt/dwh/<client-code>
-docker compose logs app --tail 200 > /tmp/rollback-evidence-$(date -u +%Y%m%dT%H%M%SZ).log
-grep APP_VERSION .env
+docker compose -f deploy/compose/docker-compose.prod.yml \
+  --env-file .env.production ps
+docker compose -f deploy/compose/docker-compose.prod.yml \
+  --env-file .env.production images
+docker compose -f deploy/compose/docker-compose.prod.yml \
+  --env-file .env.production logs --since 30m server web migrate
 ```
 
-Без этих логов причину плохого релиза потом не найти — контейнер их унесёт.
+Store evidence outside ephemeral containers. Do not include `.env.production`,
+cookies, tokens, personal data, or object contents.
 
-### 3.2. Откат
+## Image rollback
 
-Установите предыдущую версию в `.env`:
+Set `APP_VERSION` in `.env.production` to the exact previous verified tag, then:
 
 ```bash
-sed -i 's/^APP_VERSION=.*/APP_VERSION=<предыдущая-версия>/' .env
+docker compose -f deploy/compose/docker-compose.prod.yml \
+  --env-file .env.production pull server web
+docker compose -f deploy/compose/docker-compose.prod.yml \
+  --env-file .env.production up -d --wait server web
 ```
+
+Do not run `migrate` during image rollback. If readiness/schema checks reject the
+older server, stop and restore. After a successful start, verify HTTPS health,
+administrator and normal-user sign-in, one read/write workflow, denied
+authorization, file access, search, audit, and provider queues.
+
+## Database restore
+
+Identify the encrypted pre-migration `.dump.age`, its `.sha256`, and the matching
+age identity. Confirm the backup timestamp and expected data loss window. Stop
+incoming traffic before restore.
+
+Linux/macOS:
 
 ```bash
-docker compose -f docker-compose.prod.yml --env-file .env up -d app
+bash scripts/prod/restore.sh \
+  /secure/pre-migration.dump.age \
+  /secure/backup-age-identity.txt
 ```
 
-**Миграции при откате НЕ запускаются** — схема остаётся на текущей версии.
-Приложение стартует, если schema-gate признаёт схему совместимой; при отказе
-старта см. разд. 4.
+PowerShell:
 
-### 3.3. Проверка после отката
-
-```bash
-docker compose ps
+```powershell
+./scripts/prod/restore.ps1 `
+  -BackupFile C:\secure\pre-migration.dump.age `
+  -AgeIdentityFile C:\secure\backup-age-identity.txt
 ```
 
-```bash
-curl -fsS http://localhost:9090/actuator/health/readiness
-```
+The script verifies checksum and archive catalog before stopping the server,
+renames the current database to a timestamped recovery name, streams decrypted
+data directly into a clean database, applies current forward migrations,
+refreshes the backup role, and waits for health. If the restore fails after the
+database rename, keep traffic closed and preserve both databases for recovery.
 
-Проверить вход пользователя и одну бизнес-операцию (создание задачи).
-Убедиться, что очередь доставки не встала (Operations Runbook разд. 3.3).
+Restore uploaded objects separately from the tested local-volume or
+S3-compatible recovery source, then verify database metadata and object bytes
+refer to a consistent point. A database-only rollback can leave missing or
+orphaned objects.
 
-### 3.4. После отката — обязательно
+## Reopen and close
 
-- [ ] Уведомить клиента, если был заметный простой
-- [ ] Завести дефект с приложенными логами из 3.1
-- [ ] Зафиксировать причину: **релиз не выкатывается повторно, пока причина не найдена**
+Before reopening traffic:
 
-## 4. Восстановление из бэкапа (тяжёлый путь)
+- compare expected release and image digests;
+- verify critical workflows and direct-API authorization negatives;
+- confirm audit continuity, backup status, and object recovery;
+- rotate credentials if compromise was possible;
+- start enhanced error, latency, and integrity monitoring.
 
-Применяется, когда данные повреждены или откат через несколько версий.
-**Потеря данных неизбежна**: всё, что записано после момента бэкапа
-(в текущем контуре — до суток; после фазы P с WAL-архивом — до 15 минут).
-
-### 4.1. Остановить приём трафика
-
-```bash
-docker compose stop app
-```
-
-БД не останавливать — она нужна для восстановления.
-
-### 4.2. Выбрать бэкап
-
-```bash
-ls -lt ./backups | head
-```
-
-Берите последний **до** момента порчи, а не просто последний.
-
-### 4.3. Восстановить
-
-```bash
-docker compose exec -T postgres psql -U "$DB_USER" -d postgres -c "drop database if exists ${DB_NAME}_broken"
-```
-
-```bash
-docker compose exec -T postgres psql -U "$DB_USER" -d postgres -c "alter database $DB_NAME rename to ${DB_NAME}_broken"
-```
-
-Повреждённую БД **переименовываем, а не удаляем** — она понадобится для разбора
-инцидента и, возможно, для ручного извлечения потерянных записей.
-
-```bash
-docker compose exec -T postgres psql -U "$DB_USER" -d postgres -c "create database $DB_NAME owner $DB_USER"
-```
-
-```bash
-docker compose exec -T postgres pg_restore -U "$DB_USER" -d "$DB_NAME" --no-owner /backups/<файл>.dump
-```
-
-### 4.4. Привести схему к версии приложения
-
-```bash
-docker compose -f docker-compose.prod.yml --env-file .env run --rm migrate
-```
-
-### 4.5. Запустить и проверить
-
-```bash
-docker compose -f docker-compose.prod.yml --env-file .env up -d app
-```
-
-Проверки: health, вход, контрольные счётчики (число пользователей, задач)
-сверить с ожидаемыми до инцидента.
-
-### 4.6. После восстановления
-
-- [ ] Сообщить клиенту **объём потерянных данных** (интервал времени), не замалчивать
-- [ ] Сохранить `${DB_NAME}_broken` минимум на 30 дней
-- [ ] Разбор инцидента: почему бэкап оказался единственным выходом
-
-## 5. Учебная тревога
-
-Процедура, которую никто не репетировал, в реальном инциденте не работает.
-Раз в квартал на тестовом контуре:
-
-1. Развернуть экземпляр, наполнить данными.
-2. Выполнить откат образа (разд. 3) — **с секундомером**.
-3. Выполнить восстановление из бэкапа (разд. 4) — **с секундомером**.
-4. Записать фактическое время в отчёт эксплуатации.
-
-Целевые значения (NFR-6/NFR-7): откат образа ≤ 5 мин, восстановление ≤ 1 часа.
-Если факт хуже цели — это дефект процедуры, а не «так получилось».
+Record impact, data-loss interval, recovery duration, root cause, and the test or
+gate that will prevent recurrence. Do not redeploy the failed release until that
+gate is green.

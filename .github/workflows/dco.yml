@@ -1,0 +1,54 @@
+name: DCO
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  signed-off-commits:
+    name: Verify commit sign-offs
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out pull request history
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Require a DCO trailer on every commit
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t commits < <(git rev-list --reverse "${BASE_SHA}..${HEAD_SHA}")
+          if (( ${#commits[@]} == 0 )); then
+            echo "No pull request commits were found." >&2
+            exit 1
+          fi
+
+          failed=0
+          for commit in "${commits[@]}"; do
+            # The policy is prospective: commits made before the repository
+            # contained DCO are covered by the project relicensing statement.
+            if ! git cat-file -e "${commit}^:DCO" 2>/dev/null; then
+              echo "DCO policy not active for historical commit: ${commit}"
+              continue
+            fi
+
+            if ! git show -s --format=%B "${commit}" \
+              | grep -Eq '^Signed-off-by: .+ <[^<>[:space:]]+@[^<>[:space:]]+>$'; then
+              echo "Missing valid Signed-off-by trailer: ${commit}" >&2
+              failed=1
+            fi
+          done
+
+          if (( failed != 0 )); then
+            echo "Sign commits with: git commit -s" >&2
+            echo "See DCO and CONTRIBUTING.md for remediation." >&2
+            exit 1
+          fi

@@ -1,151 +1,135 @@
-# Operations Runbook — эксплуатация экземпляра
+# SmartupCMS operations runbook
 
-**Версия:** 1.0 · **Дата:** 2026-08-28
-**Аудитория:** дежурный инженер, администратор экземпляра.
-**Связанные процедуры:** [RB-01 отказ узла](../runbooks/RB-01-node-failure-recovery.md) ·
-[RB-02 Vault и кворум](../runbooks/RB-02-vault-unseal-and-raft-quorum.md) ·
-[RB-03 ротация ключа лицензий](../runbooks/RB-03-license-key-emergency-rotation.md) ·
-[RB-04 провал миграции](../runbooks/RB-04-migration-failure-triage.md) ·
-[Откат релиза](rollback.md)
+**Version:** 2.0
 
----
+**Updated:** 2026-09-02
 
-## 1. Ежедневный контроль (5 минут)
+**Audience:** the operator responsible for one SmartupCMS installation.
+
+Use the exact production Compose and environment files for every command:
 
 ```bash
-cd /opt/dwh/<client-code> && docker compose ps
+docker compose -f deploy/compose/docker-compose.prod.yml \
+  --env-file .env.production ps
 ```
 
-Все сервисы `Up (healthy)`. Далее:
+## Severity and first response
 
-```bash
-curl -fsS http://localhost:9090/actuator/health | head -c 200
-```
-
-Проверить глубину очереди доставки (растёт — значит канал не работает):
-
-```bash
-docker compose exec -T postgres psql -U "$DB_USER" -d "$DB_NAME" -c "select status, count(*) from ms_notification_outbox group by status"
-```
-
-Проверить свежесть бэкапа: последний файл в `./backups` не старше суток.
-
-Со стороны платформы то же самое видно разом по всему флоту: вкладка **Флот**
-в панели управления. Счётчик «Требуют внимания» — число экземпляров, от которых
-heartbeat не приходил дольше 10 минут. Если экземпляр помечен «недоступен», а
-сам он работает, причина обычно в исходящем доступе к control plane или в
-затёртом `DWH_CP_HEARTBEAT_TOKEN`:
-
-```bash
-docker compose logs app --tail 200 | grep -i heartbeat
-```
-
-`Heartbeat в control plane выключен` — переменные не заданы; `не доставлен` —
-адрес недоступен или токен отозван.
-
-## 2. Матрица эскалации
-
-| Уровень | Что случилось | Реакция | Кто |
-|---|---|---|---|
-| **P1 инцидент** | Экземпляр недоступен; потеря или порча данных; подозрение на компрометацию | немедленно, круглосуточно | дежурный → техлид → CEO |
-| **P2 высокий** | Не работает вход у части пользователей; провал миграции; провал проверки бэкапа; dead-letter растёт | в течение рабочего дня | дежурный → техлид |
-| **P3 средний** | Деградация скорости; отказ одного канала доставки; отставание версии > 2 minor | в течение недели | дежурный |
-| **P4 низкий** | Косметика, единичные ошибки без влияния на пользователей | в плановом порядке | бэклог |
-
-Правило: если сомневаетесь между P1 и P2 — это P1. Ложная тревога дешевле
-пропущенного инцидента.
-
-## 3. Сценарии диагностики
-
-### 3.1. Приложение не стартует
-
-```bash
-docker compose logs app --tail 50
-```
-
-| В логах | Причина | Действие |
+| Severity | Examples | First response target |
 |---|---|---|
-| `Схема БД не соответствует приложению` | не применены миграции или откат версии без плана | [RB-04](../runbooks/RB-04-migration-failure-triage.md) |
-| `Экземпляр не инициализирован: задайте …` | пустые переменные в `.env` | заполнить, перезапустить |
-| `Could not initialize local storage path` | не смонтирован том `appdata` | проверить `volumes`, перезапустить |
-| `Connection refused` к postgres | БД не поднялась | `docker compose logs postgres`, проверить место на диске |
-| `Port 8080 already in use` | остался прежний контейнер/процесс | `docker compose down`, затем `up -d` |
+| P1 | unavailable installation, active compromise, confirmed data loss/corruption | immediate |
+| P2 | failed migration/backup, widespread sign-in failure, sustained delivery failure | same working day |
+| P3 | degraded performance, isolated provider failure, capacity warning | planned with owner |
 
-### 3.2. Пользователи не могут войти
+For P1/P2: record UTC time, release tag, affected workflows, service state, and
+sanitized logs; stop further rollout; protect evidence; identify an incident
+owner. Never paste credentials, session cookies, personal data, object contents,
+or database dumps into a public issue.
 
-1. Массово или один? Один — проверить состояние учётки:
-   ```bash
-   docker compose exec -T postgres psql -U "$DB_USER" -d "$DB_NAME" -c "select login, state, force_password_change from md_users where login = '<login>'"
-   ```
-   `state = 'P'` — учётка заблокирована администратором (это не сбой).
-2. Массово — проверить журнал попыток:
-   ```bash
-   docker compose exec -T postgres psql -U "$DB_USER" -d "$DB_NAME" -c "select failure_reason, count(*) from kauth_login_attempts where attempt_at > now() - interval '15 min' group by 1 order by 2 desc"
-   ```
-3. Много `429` в ответах — сработали лимиты частоты. Смотреть события:
-   ```bash
-   docker compose exec -T postgres psql -U "$DB_USER" -d "$DB_NAME" -c "select details, count(*) from security_events where event_type = 'rate_limit_exceeded' and created_at > now() - interval '1 hour' group by 1 order by 2 desc limit 10"
-   ```
-   Чаще всего это некорректная интеграция клиента, а не атака: найти токен,
-   связаться с клиентом, при необходимости отозвать токен.
-4. Не приходит OTP — см. 3.3.
-
-### 3.3. Не доставляются уведомления или OTP
+## Daily checks
 
 ```bash
-docker compose exec -T postgres psql -U "$DB_USER" -d "$DB_NAME" -c "select channel, status, count(*), max(last_error) from ms_notification_outbox where created_at > now() - interval '1 hour' group by 1,2"
+docker compose -f deploy/compose/docker-compose.prod.yml \
+  --env-file .env.production ps
+curl --fail --silent --show-error http://127.0.0.1:8080/healthz
 ```
 
-- `PENDING` растёт, `SENT` нет → воркер стоит или провайдер недоступен.
-- `DEAD_LETTER` → исчерпаны попытки; причина в `last_error`.
-- Поддерживаются подключаемые SPI-провайдеры (M14 PLUG):
-  - **Email**: `SmtpMailProvider` (настраивается через SMTP переменные окружения) или `LoggingMailProvider`.
-  - **Telegram**: `TelegramMessengerProvider` (активен при наличии `TELEGRAM_BOT_TOKEN`).
-  - **SMS**: `LoggingSmsProvider` (расширяется через реализацию `SmsProvider` интерфейса).
+Confirm all long-running services are healthy, the backup status in the System
+screen is successful and younger than the accepted RPO, disk usage is below the
+operator threshold, TLS is valid, and error/dead-letter alerts are quiet.
 
-Временное решение при недоступности Telegram и включённой 2FA: администратор
-отключает 2FA пользователю до восстановления канала (действие пишется в аудит).
+## Service is unavailable
 
-### 3.4. Медленная работа
+Capture evidence before restarting:
 
 ```bash
-docker stats --no-stream
+docker compose -f deploy/compose/docker-compose.prod.yml \
+  --env-file .env.production logs --since 30m server web postgres typesense
 ```
+
+Check in order:
+
+1. `web` health and host reverse-proxy/TLS routing.
+2. `server` readiness and its PostgreSQL/Typesense connection errors.
+3. PostgreSQL health, disk capacity, and filesystem errors.
+4. Whether a migration failed or the release tag changed unexpectedly.
+
+Restart only the failed stateless service when the cause is understood:
 
 ```bash
-docker compose exec -T postgres psql -U "$DB_USER" -d "$DB_NAME" -c "select pid, state, wait_event_type, left(query,80) from pg_stat_activity where state <> 'idle' order by query_start limit 10"
+docker compose -f deploy/compose/docker-compose.prod.yml \
+  --env-file .env.production up -d --wait web server
 ```
 
-Проверить исчерпание пула соединений (метрика `hikaricp_connections_pending`
-на `:9090/actuator/prometheus`). Проверить место на диске: `df -h`.
+Do not delete volumes, edit Flyway history, or repeatedly restart a corrupt
+database. Use [rollback](rollback.md) when a release caused the incident.
 
-### 3.5. Кончается место на диске
+## Sign-in or authorization failure
 
-Порядок безопасного освобождения:
-1. Старые бэкапы сверх политики хранения.
-2. Логи Docker: `docker system prune -f` (не трогает тома).
-3. Старые партиции аудита — только по регламенту, см.
-   [Maintenance Guide](maintenance-guide.md).
+- Confirm whether the failure affects one user, one role, or every user.
+- Check browser time, TLS, cookie/CSRF errors, account state, and recent role
+  changes.
+- Reproduce the denied API request with a test account of the same role; do not
+  weaken server-side permission checks to restore access.
+- Review audit entries for account, role, token, and session changes.
+- If all administrators are locked out, preserve evidence and use a documented,
+  reviewed recovery procedure. No emergency default password is provided.
 
-**Никогда** не удаляйте файлы из тома `appdata` вручную: там пользовательские
-файлы, на которые ссылаются записи в БД.
+An action visible in the UI but rejected by the API is a UI permissions defect;
+an action accepted by the API without permission is a P1 security incident.
 
-## 4. Регулярные проверки
+## Backup failure or stale status
 
-| Периодичность | Что | Где описано |
-|---|---|---|
-| Ежедневно | health, очередь доставки, свежесть бэкапа | разд. 1 |
-| Еженедельно | рост `audit_log`, свободное место, `dead_letter` разобран | Maintenance |
-| Ежемесячно | **тестовое восстановление из бэкапа** | Maintenance |
-| Ежемесячно | обновление образов (патчи безопасности) | Maintenance |
-| Ежеквартально | пересмотр прав пользователей, ротация секретов | Maintenance |
+```bash
+docker compose -f deploy/compose/docker-compose.prod.yml \
+  --env-file .env.production logs --since 24h backup
+bash scripts/prod/backup.sh
+```
 
-## 5. Что ещё не автоматизировано (делать руками)
+Check the age recipient, read-only database credential, target capacity, and
+S3/R2 endpoint/permissions. The backup process deliberately exits non-zero if
+dump, encryption, checksum, or upload fails. Do not run a migration until a
+one-shot backup succeeds or a documented risk owner explicitly stops the
+release.
 
-Честный список ограничений текущего контура:
+Backup recovery is not proven until [an isolated restore drill](maintenance-guide.md#restore-drill)
+passes. Database success does not prove recovery of uploaded objects.
 
-- Мониторинг и алерты — нет централизованного стека, проверки ручные (фаза P).
-- Проверка восстановления бэкапа — вручную, ежемесячно (в фазе P станет автоматической).
-- Обновление — вручную по [rollback.md](rollback.md) и Deployment Guide;
-  колец развёртывания и canary пока нет.
-- Ротация секретов — вручную; Vault появится в фазе P.
+## Search failure
+
+If PostgreSQL-backed workflows work but search fails, inspect Typesense and
+server logs. Keep Typesense private and never point the browser directly at it.
+Because the search index is derived data, prefer a documented reindex over
+restoring it as authoritative state. Confirm authorization filtering after any
+reindex.
+
+## Notification or webhook failure
+
+Check whether a real provider was explicitly selected; console providers do not
+deliver externally. Inspect sanitized server logs and dead-letter state, then
+test provider DNS/TLS, credential scope, quota, and destination policy. Avoid
+retry storms: fix the cause before replaying failed deliveries.
+
+## Storage failure
+
+For local storage, check `server-data` capacity, permissions, and host health.
+For S3-compatible storage, check endpoint reachability, bucket policy,
+credentials, region/path-style settings, quota, and provider incident status.
+Do not switch providers during an incident without an inventory and migration
+plan; database metadata and object bytes must stay consistent.
+
+## Suspected compromise
+
+1. Restrict external access without destroying containers or volumes.
+2. Preserve UTC logs, image digests, Compose configuration, audit records, and
+   provider access logs in a protected location.
+3. Revoke affected sessions, API/provider credentials, and edge tokens.
+4. Report privately according to [SECURITY.md](../../SECURITY.md).
+5. Recover from verified images and backups; validate permissions and object
+   integrity before reopening access.
+
+## Incident closure
+
+Document impact, timeline, root cause, data/security assessment, remediation,
+test evidence, and follow-up owner/date. Update this runbook when the actual
+recovery path differed from the documented one.
