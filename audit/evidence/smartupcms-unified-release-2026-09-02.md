@@ -46,4 +46,3 @@ created because that external collaboration action was not part of the request.
   uploaded-object recovery were not verified.
 - No representative 100-concurrent-user/50-GB-per-month load or soak evidence
   exists.
-

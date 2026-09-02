@@ -35,4 +35,3 @@ forecast 500 users / 100 concurrent users. HA or microservices are not release
 requirements unless the approved SLO makes a single-host recovery model
 unacceptable. Scaling horizontally before atomic idempotency/outbox claims is
 unsafe.
-

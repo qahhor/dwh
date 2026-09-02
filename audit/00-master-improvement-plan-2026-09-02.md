@@ -107,4 +107,3 @@ Evidence: [unified release verification](evidence/smartupcms-unified-release-202
 8. Какой representative dataset разрешён для 100-user load/soak без реальных PII?
 9. Нужны ли webhooks в первом релизе? Если нет, безопасный release state — disabled.
 10. Какой внешний API официально поддерживается и требует versioned contract compatibility?
-
