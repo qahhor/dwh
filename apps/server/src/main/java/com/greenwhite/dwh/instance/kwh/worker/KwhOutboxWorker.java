@@ -72,6 +72,7 @@ public class KwhOutboxWorker {
                         .header("X-Signature-SHA256", signature)
                         .header("X-Signature-Timestamp", String.valueOf(timestamp))
                         .header("X-Event-Type", item.eventType())
+                        .header("X-Delivery-Id", String.valueOf(item.id()))
                         .body(payloadJson)
                         .retrieve()
                         .toBodilessEntity();
@@ -80,7 +81,7 @@ public class KwhOutboxWorker {
                 isSuccess = response.getStatusCode().is2xxSuccessful();
 
                 if (isSuccess) {
-                    outboxRepository.markSuccess(item.id(), httpStatus);
+                    outboxRepository.markSuccess(item.id(), item.claimToken(), httpStatus);
                 } else {
                     lastError = "Non-2xx response: " + httpStatus;
                 }
@@ -105,7 +106,9 @@ public class KwhOutboxWorker {
                 long backoffSeconds = (long) Math.pow(2, newAttempts) * 15;
                 Instant nextAttempt = Instant.now().plusSeconds(backoffSeconds);
 
-                outboxRepository.markFailed(item.id(), newAttempts, nextAttempt, httpStatus, lastError, isDeadLetter);
+                outboxRepository.markFailed(
+                        item.id(), item.claimToken(), newAttempts, nextAttempt,
+                        httpStatus, lastError, isDeadLetter);
                 log.warn("Webhook dispatch failed id={}, attempt {}/{}: {}",
                         item.id(), newAttempts, item.maxAttempts(), lastError);
             }

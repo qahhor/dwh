@@ -9,10 +9,24 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.HexFormat;
 import java.util.Optional;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
 public class IdempotencyService {
+
+    public enum ClaimState {
+        ACQUIRED,
+        IN_PROGRESS,
+        REPLAY,
+        PAYLOAD_MISMATCH
+    }
+
+    public record Claim(
+            ClaimState state,
+            UUID reservationToken,
+            IdempotencyRepository.IdempotencyRecord existing
+    ) {}
 
     private final IdempotencyRepository idempotencyRepository;
 
@@ -20,14 +34,40 @@ public class IdempotencyService {
         this.idempotencyRepository = idempotencyRepository;
     }
 
-    @Transactional(readOnly = true)
-    public Optional<IdempotencyRepository.IdempotencyRecord> findByKey(UUID key) {
-        return idempotencyRepository.findByKey(key);
+    @Transactional
+    public Claim claim(UUID key, Long userId, String requestHash) {
+        UUID reservationToken = UUID.randomUUID();
+        if (idempotencyRepository.tryReserve(key, userId, requestHash, reservationToken)) {
+            return new Claim(ClaimState.ACQUIRED, reservationToken, null);
+        }
+
+        Optional<IdempotencyRepository.IdempotencyRecord> existing = idempotencyRepository.findByKey(key);
+        if (existing.isEmpty()) {
+            // A conflicting reservation may have just been released. Returning a
+            // retryable conflict is safer than executing the operation twice.
+            return new Claim(ClaimState.IN_PROGRESS, null, null);
+        }
+
+        IdempotencyRepository.IdempotencyRecord record = existing.get();
+        if (!Objects.equals(record.userId(), userId) || !record.requestHash().equals(requestHash)) {
+            return new Claim(ClaimState.PAYLOAD_MISMATCH, null, record);
+        }
+        if (record.state() == IdempotencyRepository.State.PENDING) {
+            return new Claim(ClaimState.IN_PROGRESS, null, record);
+        }
+        return new Claim(ClaimState.REPLAY, null, record);
     }
 
     @Transactional
-    public void save(UUID key, Long userId, String requestHash, int responseStatus, String responseBodyJson) {
-        idempotencyRepository.save(key, userId, requestHash, responseStatus, responseBodyJson);
+    public void complete(UUID key, UUID reservationToken, int responseStatus, String responseBodyJson) {
+        if (!idempotencyRepository.complete(key, reservationToken, responseStatus, responseBodyJson)) {
+            throw new IllegalStateException("Idempotency reservation is no longer owned by this request");
+        }
+    }
+
+    @Transactional
+    public void release(UUID key, UUID reservationToken) {
+        idempotencyRepository.release(key, reservationToken);
     }
 
     @Transactional

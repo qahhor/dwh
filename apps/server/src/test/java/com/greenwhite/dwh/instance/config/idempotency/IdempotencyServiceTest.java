@@ -38,25 +38,31 @@ class IdempotencyServiceTest {
     void shouldFindExistingKey() {
         UUID key = UUID.randomUUID();
         var record = new IdempotencyRepository.IdempotencyRecord(
-                key, 1L, "abc123hash", 200, "{\"id\":42}", Instant.now()
+                key, 1L, "abc123hash", 200, "{\"id\":42}",
+                IdempotencyRepository.State.COMPLETED, Instant.now()
         );
 
+        when(repository.tryReserve(eq(key), eq(1L), eq("abc123hash"), any(UUID.class))).thenReturn(false);
         when(repository.findByKey(key)).thenReturn(Optional.of(record));
 
-        var result = service.findByKey(key);
+        var result = service.claim(key, 1L, "abc123hash");
 
-        assertThat(result).isPresent();
-        assertThat(result.get().key()).isEqualTo(key);
-        assertThat(result.get().responseStatus()).isEqualTo(200);
-        assertThat(result.get().responseBody()).isEqualTo("{\"id\":42}");
+        assertThat(result.state()).isEqualTo(IdempotencyService.ClaimState.REPLAY);
+        assertThat(result.existing().key()).isEqualTo(key);
+        assertThat(result.existing().responseStatus()).isEqualTo(200);
+        assertThat(result.existing().responseBody()).isEqualTo("{\"id\":42}");
     }
 
     @Test
-    @DisplayName("Сохранение закэшированного ответа должно делегироваться в репозиторий")
-    void shouldSaveIdempotencyRecord() {
+    @DisplayName("Завершение резервации должно сохранять ответ только по token владельца")
+    void shouldCompleteOwnedReservation() {
         UUID key = UUID.randomUUID();
-        service.save(key, 5L, "hash_xyz", 201, "{\"id\":100}");
+        UUID reservationToken = UUID.randomUUID();
+        when(repository.complete(key, reservationToken, 201, "{\"id\":100}"))
+                .thenReturn(true);
 
-        verify(repository, times(1)).save(key, 5L, "hash_xyz", 201, "{\"id\":100}");
+        service.complete(key, reservationToken, 201, "{\"id\":100}");
+
+        verify(repository).complete(key, reservationToken, 201, "{\"id\":100}");
     }
 }

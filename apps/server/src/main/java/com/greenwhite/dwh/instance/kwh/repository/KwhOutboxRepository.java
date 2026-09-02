@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Repository
 public class KwhOutboxRepository {
@@ -34,46 +35,75 @@ public class KwhOutboxRepository {
     }
 
     public List<KwhOutboxRecord> fetchPending(int limit) {
+        UUID claimToken = UUID.randomUUID();
         return jdbcClient.sql("""
-                select o.id, o.subscription_id, o.event_type, o.payload::text as payload_str,
-                       o.status, o.attempts, o.max_attempts, o.next_attempt_at, o.last_error,
-                       o.last_http_status, o.created_at, o.processed_at,
-                       s.target_url, s.secret_token
-                from kwh_outbox o
-                join kwh_subscriptions s on s.id = o.subscription_id
-                where o.status = 'PENDING' and o.next_attempt_at <= now() and s.state = 'A'
-                order by o.next_attempt_at asc
-                limit :limit
-                for update of o skip locked
+                with candidates as (
+                    select outbox.id
+                    from kwh_outbox as outbox
+                    join kwh_subscriptions as subscription on subscription.id = outbox.subscription_id
+                    where subscription.state = 'A'
+                      and ((outbox.status = 'PENDING' and outbox.next_attempt_at <= now())
+                        or (outbox.status = 'PROCESSING'
+                            and outbox.claimed_at <= now() - interval '5 minutes'))
+                    order by coalesce(outbox.claimed_at, outbox.next_attempt_at) asc
+                    limit :limit
+                    for update of outbox skip locked
+                ), claimed as (
+                    update kwh_outbox as outbox
+                    set status = 'PROCESSING',
+                        claim_token = :claimToken,
+                        claimed_at = now()
+                    from candidates
+                    where outbox.id = candidates.id
+                    returning outbox.*
+                )
+                select claimed.id, claimed.subscription_id, claimed.event_type,
+                       claimed.payload::text as payload_str, claimed.status, claimed.attempts,
+                       claimed.max_attempts, claimed.next_attempt_at, claimed.last_error,
+                       claimed.last_http_status, claimed.created_at, claimed.processed_at,
+                       claimed.claim_token, claimed.claimed_at,
+                       subscription.target_url, subscription.secret_token
+                from claimed
+                join kwh_subscriptions as subscription on subscription.id = claimed.subscription_id
                 """)
                 .param("limit", limit)
+                .param("claimToken", claimToken)
                 .query(this::mapRecord)
                 .list();
     }
 
-    public void markSuccess(Long id, int httpStatus) {
-        jdbcClient.sql("""
+    public boolean markSuccess(Long id, UUID claimToken, int httpStatus) {
+        return jdbcClient.sql("""
                 update kwh_outbox
-                set status = 'SENT', last_http_status = :httpStatus, processed_at = now()
+                set status = 'SENT', last_http_status = :httpStatus, processed_at = now(),
+                    claim_token = null, claimed_at = null
                 where id = :id
+                  and status = 'PROCESSING'
+                  and claim_token = :claimToken
                 """)
                 .param("id", id)
                 .param("httpStatus", httpStatus)
-                .update();
+                .param("claimToken", claimToken)
+                .update() == 1;
     }
 
-    public void markFailed(Long id, int newAttempts, Instant nextAttemptAt, int httpStatus, String error, boolean isDeadLetter) {
+    public boolean markFailed(Long id, UUID claimToken, int newAttempts, Instant nextAttemptAt,
+                              int httpStatus, String error, boolean isDeadLetter) {
         String status = isDeadLetter ? "DEAD_LETTER" : "PENDING";
 
-        jdbcClient.sql("""
+        return jdbcClient.sql("""
                 update kwh_outbox
                 set status = :status,
                     attempts = :attempts,
                     next_attempt_at = :nextAttemptAt,
                     last_http_status = :httpStatus,
                     last_error = :error,
-                    processed_at = case when :isDeadLetter then now() else null end
+                    processed_at = case when :isDeadLetter then now() else null end,
+                    claim_token = null,
+                    claimed_at = null
                 where id = :id
+                  and status = 'PROCESSING'
+                  and claim_token = :claimToken
                 """)
                 .param("status", status)
                 .param("attempts", newAttempts)
@@ -82,7 +112,8 @@ public class KwhOutboxRepository {
                 .param("error", error)
                 .param("isDeadLetter", isDeadLetter)
                 .param("id", id)
-                .update();
+                .param("claimToken", claimToken)
+                .update() == 1;
     }
 
     public void recordLog(Long subscriptionId, String eventType, int httpStatus, int durationMs, boolean isSuccess) {
@@ -112,6 +143,8 @@ public class KwhOutboxRepository {
                 rs.getObject("last_http_status") != null ? rs.getInt("last_http_status") : null,
                 rs.getTimestamp("created_at").toInstant(),
                 rs.getTimestamp("processed_at") != null ? rs.getTimestamp("processed_at").toInstant() : null,
+                rs.getObject("claim_token", UUID.class),
+                rs.getTimestamp("claimed_at") != null ? rs.getTimestamp("claimed_at").toInstant() : null,
                 rs.getString("target_url"),
                 rs.getString("secret_token")
         );
@@ -149,6 +182,8 @@ public class KwhOutboxRepository {
             Integer lastHttpStatus,
             Instant createdAt,
             Instant processedAt,
+            UUID claimToken,
+            Instant claimedAt,
             String targetUrl,
             String secretToken
     ) {}

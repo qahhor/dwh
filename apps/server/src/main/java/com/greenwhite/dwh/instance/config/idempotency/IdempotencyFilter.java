@@ -65,45 +65,57 @@ public class IdempotencyFilter extends OncePerRequestFilter {
                 method, request.getRequestURI(), request.getQueryString(), requestBody
         );
 
-        // Check if key already processed
-        var existingOpt = idempotencyService.findByKey(idempotencyKey);
-        if (existingOpt.isPresent()) {
-            var existing = existingOpt.get();
-
-            // Check if payload matches
-            if (existing.requestHash().equals(requestHash)) {
-                // Replay cached response
+        Long userId = SecurityContext.getCurrentUserId();
+        IdempotencyService.Claim claim = idempotencyService.claim(idempotencyKey, userId, requestHash);
+        switch (claim.state()) {
+            case REPLAY -> {
+                var existing = claim.existing();
                 response.setStatus(existing.responseStatus());
                 response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                 response.setHeader(HEADER_IDEMPOTENT_REPLAY, "true");
                 response.getOutputStream().write(existing.responseBody().getBytes(StandardCharsets.UTF_8));
                 response.getOutputStream().flush();
                 return;
-            } else {
-                // Payload mismatch -> 409 Conflict
+            }
+            case PAYLOAD_MISMATCH -> {
                 writeProblemDetail(response, HttpServletResponse.SC_CONFLICT, ErrorCode.IDEMPOTENCY_KEY_PAYLOAD_MISMATCH,
                         "Тело или параметры запроса не совпадают с исходным запросом для данного Idempotency-Key.",
                         request.getRequestURI());
                 return;
             }
+            case IN_PROGRESS -> {
+                writeProblemDetail(response, HttpServletResponse.SC_CONFLICT, ErrorCode.IDEMPOTENCY_REQUEST_IN_PROGRESS,
+                        "Запрос с данным Idempotency-Key уже выполняется. Повторите запрос позднее.",
+                        request.getRequestURI());
+                return;
+            }
+            case ACQUIRED -> {
+                // Continue below: this request owns the database reservation.
+            }
         }
 
-        // Key is new -> process request and cache response
         ContentCachingResponseWrapper responseWrapper = new ContentCachingResponseWrapper(response);
+        boolean chainCompleted = false;
         try {
             filterChain.doFilter(wrappedRequest, responseWrapper);
+            chainCompleted = true;
         } finally {
             int status = responseWrapper.getStatus();
             byte[] responseBytes = responseWrapper.getContentAsByteArray();
 
-            // Cache successful or client-side responses (2xx, 3xx, 4xx) but not 5xx internal server errors
-            if (status >= 200 && status < 500) {
-                Long userId = SecurityContext.getCurrentUserId();
-                String responseBodyStr = new String(responseBytes, StandardCharsets.UTF_8);
-                idempotencyService.save(idempotencyKey, userId, requestHash, status, responseBodyStr);
+            try {
+                // Cache successful and client-side responses. Exceptions and 5xx
+                // release the reservation so a corrected retry can execute.
+                if (chainCompleted && status >= 200 && status < 500) {
+                    String responseBodyStr = new String(responseBytes, StandardCharsets.UTF_8);
+                    idempotencyService.complete(
+                            idempotencyKey, claim.reservationToken(), status, responseBodyStr);
+                } else {
+                    idempotencyService.release(idempotencyKey, claim.reservationToken());
+                }
+            } finally {
+                responseWrapper.copyBodyToResponse();
             }
-
-            responseWrapper.copyBodyToResponse();
         }
     }
 

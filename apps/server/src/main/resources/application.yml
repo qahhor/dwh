@@ -103,6 +103,15 @@ dwh:
   backup:
     # Status is written atomically by the local backup command/sidecar.
     status-file: ${DWH_BACKUP_STATUS_FILE:/var/lib/smartupcms/backup/status.json}
+  files:
+    scanner:
+      required: ${DWH_FILE_SCANNER_REQUIRED:false}
+      clamav:
+        enabled: ${DWH_FILE_SCANNER_CLAMAV_ENABLED:false}
+        host: ${DWH_FILE_SCANNER_CLAMAV_HOST:clamav}
+        port: ${DWH_FILE_SCANNER_CLAMAV_PORT:3310}
+        connect-timeout: ${DWH_FILE_SCANNER_CLAMAV_CONNECT_TIMEOUT:3s}
+        read-timeout: ${DWH_FILE_SCANNER_CLAMAV_READ_TIMEOUT:60s}
   webhooks:
     # Outbound webhooks are a deliberate egress boundary. The default install
     # is fail-closed; enabling requires an exact, comma-separated host allow-list.

@@ -70,6 +70,15 @@ S3-compatible application variables and verify upload, download, delete, and
 recovery against the selected provider. Smartup-managed deployments use
 Cloudflare R2.
 
+Every upload is checked against executable signatures and strict MIME magic
+bytes before storage. For production, run a reachable `clamd`, set
+`DWH_FILE_SCANNER_CLAMAV_ENABLED=true` and `DWH_FILE_SCANNER_REQUIRED=true`,
+and configure its host/port and timeouts. The temporary object remains under an
+unpublished quarantine key until all active scanners return `CLEAN`; an
+infected verdict or scanner failure deletes it. SmartupCMS does not publish a
+ClamAV container: the operator owns image pinning, signature updates, resource
+limits, health monitoring, and network isolation for that service.
+
 ## 3. Validate before first start
 
 Outbound webhooks are disabled by default. If the installation needs them, set

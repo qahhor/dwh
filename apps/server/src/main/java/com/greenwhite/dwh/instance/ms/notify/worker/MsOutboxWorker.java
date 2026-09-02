@@ -46,7 +46,7 @@ public class MsOutboxWorker {
         for (var item : items) {
             try {
                 deliverItem(item);
-                outboxRepository.markSuccess(item.id());
+                outboxRepository.markSuccess(item.id(), item.claimToken());
                 log.debug("Delivered notification outbox id={}", item.id());
             } catch (Exception e) {
                 int newAttempts = item.attempts() + 1;
@@ -54,7 +54,8 @@ public class MsOutboxWorker {
                 long backoffSeconds = (long) Math.pow(2, newAttempts) * 10;
                 Instant nextAttempt = Instant.now().plusSeconds(backoffSeconds);
 
-                outboxRepository.markFailed(item.id(), newAttempts, nextAttempt, e.getMessage(), isDeadLetter);
+                outboxRepository.markFailed(
+                        item.id(), item.claimToken(), newAttempts, nextAttempt, e.getMessage(), isDeadLetter);
                 log.warn("Failed to deliver notification outbox id={}, attempt {}/{}: {}",
                         item.id(), newAttempts, item.maxAttempts(), e.getMessage());
             }

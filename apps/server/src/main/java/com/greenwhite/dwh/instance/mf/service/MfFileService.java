@@ -5,6 +5,7 @@ import com.greenwhite.dwh.instance.audit.service.AuditLogService;
 import com.greenwhite.dwh.instance.common.error.ApiException;
 import com.greenwhite.dwh.instance.mf.repository.MfFileRepository;
 import com.greenwhite.dwh.spi.storage.FileDownloadStream;
+import com.greenwhite.dwh.spi.storage.FileScanner;
 import com.greenwhite.dwh.spi.storage.StorageProvider;
 import com.greenwhite.dwh.spi.storage.StoredFileMetadata;
 import org.springframework.dao.DuplicateKeyException;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.InputStream;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -25,12 +27,17 @@ public class MfFileService {
     private final MfFileRepository fileRepository;
     private final StorageProvider storageProvider;
     private final AuditLogService auditLogService;
+    private final FileContentInspector contentInspector;
+    private final List<FileScanner> fileScanners;
 
     public MfFileService(MfFileRepository fileRepository, StorageProvider storageProvider,
-                         AuditLogService auditLogService) {
+                         AuditLogService auditLogService, FileContentInspector contentInspector,
+                         List<FileScanner> fileScanners) {
         this.fileRepository = fileRepository;
         this.storageProvider = storageProvider;
         this.auditLogService = auditLogService;
+        this.contentInspector = contentInspector;
+        this.fileScanners = List.copyOf(fileScanners);
     }
 
     @Transactional
@@ -40,6 +47,8 @@ public class MfFileService {
         }
 
         validateFileExtension(originalName);
+        FileContentInspector.Inspection inspection = contentInspector.inspect(mimeType, contentStream);
+        String verifiedMimeType = inspection.verifiedMimeType();
 
         // Check Company Quota
         long companyQuota = fileRepository.getCompanyQuotaBytes();
@@ -60,14 +69,30 @@ public class MfFileService {
         }
 
         String tempKey = "temp_" + UUID.randomUUID();
-        StoredFileMetadata stored = storageProvider.upload(DEFAULT_BUCKET, tempKey, contentStream, sizeBytes, mimeType);
+        StoredFileMetadata stored = storageProvider.upload(
+                DEFAULT_BUCKET, tempKey, inspection.content(), sizeBytes, verifiedMimeType);
+        RuntimeException uploadFailure = null;
+        try {
+            return publishQuarantinedFile(
+                    originalName, createdBy, tempKey, stored, verifiedMimeType);
+        } catch (RuntimeException failure) {
+            uploadFailure = failure;
+            throw failure;
+        } finally {
+            deleteQuarantinedObject(tempKey, uploadFailure);
+        }
+    }
+
+    private MfFileRepository.FileRecord publishQuarantinedFile(
+            String originalName, Long createdBy, String tempKey,
+            StoredFileMetadata stored, String verifiedMimeType) {
+        scanQuarantinedObject(tempKey, stored.sizeBytes(), verifiedMimeType);
         String sha256 = stored.sha256();
 
         // Свою же копию отдаём как есть: повторная загрузка того же файла не
         // плодит записи и не списывает квоту дважды.
         var ownOpt = fileRepository.findBySha256AndOwner(sha256, createdBy);
         if (ownOpt.isPresent()) {
-            storageProvider.delete(DEFAULT_BUCKET, tempKey);
             return ownOpt.get();
         }
 
@@ -77,16 +102,12 @@ public class MfFileService {
         String finalKey = sha256.substring(0, 2) + "/" + sha256;
         var sameContent = fileRepository.findBySha256(sha256);
         if (sameContent.isPresent()) {
-            // Объект уже лежит на диске — переиспользуем его ключ, временный удаляем
+            // Объект уже лежит на диске — переиспользуем его ключ.
             finalKey = sameContent.get().storageKey();
-            storageProvider.delete(DEFAULT_BUCKET, tempKey);
         } else {
             if (!storageProvider.exists(DEFAULT_BUCKET, finalKey)) {
-                storageProvider.upload(DEFAULT_BUCKET, finalKey,
-                        storageProvider.download(DEFAULT_BUCKET, tempKey).inputStream(),
-                        stored.sizeBytes(), mimeType);
+                copyQuarantinedObject(tempKey, finalKey, stored.sizeBytes(), verifiedMimeType);
             }
-            storageProvider.delete(DEFAULT_BUCKET, tempKey);
         }
 
         // Своя запись владения: своё имя файла, своя квота, своё право на удаление
@@ -95,7 +116,7 @@ public class MfFileService {
                     sha256,
                     originalName,
                     stored.sizeBytes(),
-                    mimeType != null ? mimeType : "application/octet-stream",
+                    verifiedMimeType,
                     sameContent.map(MfFileRepository.FileRecord::storageBucket).orElse(DEFAULT_BUCKET),
                     finalKey,
                     createdBy
@@ -116,6 +137,18 @@ public class MfFileService {
             // это не ошибка, а та же дедупликация, только выигранная гонкой.
             return fileRepository.findBySha256AndOwner(sha256, createdBy)
                     .orElseThrow(() -> e);
+        }
+    }
+
+    private void copyQuarantinedObject(String tempKey, String finalKey, long sizeBytes, String contentType) {
+        try (FileDownloadStream quarantined = storageProvider.download(DEFAULT_BUCKET, tempKey)) {
+            if (quarantined == null || quarantined.inputStream() == null) {
+                throw new IllegalStateException("Quarantined object is not readable");
+            }
+            storageProvider.upload(
+                    DEFAULT_BUCKET, finalKey, quarantined.inputStream(), sizeBytes, contentType);
+        } catch (java.io.IOException exception) {
+            throw new IllegalStateException("Failed to close quarantined object stream", exception);
         }
     }
 
@@ -193,6 +226,45 @@ public class MfFileService {
         for (String ext : FORBIDDEN_EXTENSIONS) {
             if (lower.endsWith(ext)) {
                 throw ApiException.badRequest(ErrorCode.FILE_TYPE_FORBIDDEN, "Загрузка исполняемых файлов (" + ext + ") запрещена правилами безопасности");
+            }
+        }
+    }
+
+    private void scanQuarantinedObject(String tempKey, long sizeBytes, String contentType) {
+        for (FileScanner scanner : fileScanners) {
+            try (FileDownloadStream quarantined = storageProvider.download(DEFAULT_BUCKET, tempKey)) {
+                if (quarantined == null || quarantined.inputStream() == null) {
+                    throw new IllegalStateException("Quarantined object is not readable");
+                }
+                FileScanner.ScanResult result = scanner.scan(
+                        quarantined.inputStream(), sizeBytes, contentType);
+                if (result == null) {
+                    throw new IllegalStateException(
+                            "File scanner returned no verdict: " + scanner.getProviderCode());
+                }
+                if (result.verdict() == FileScanner.Verdict.INFECTED) {
+                    throw new ApiException(
+                            ErrorCode.FILE_MALWARE_DETECTED,
+                            "Файл содержит вредоносное содержимое и был отклонён");
+                }
+            } catch (ApiException exception) {
+                throw exception;
+            } catch (Exception exception) {
+                throw new ApiException(
+                        ErrorCode.FILE_SCAN_FAILED,
+                        "Проверка файла не завершена; загрузка отменена");
+            }
+        }
+    }
+
+    private void deleteQuarantinedObject(String tempKey, RuntimeException uploadFailure) {
+        try {
+            storageProvider.delete(DEFAULT_BUCKET, tempKey);
+        } catch (RuntimeException cleanupFailure) {
+            if (uploadFailure != null) {
+                uploadFailure.addSuppressed(cleanupFailure);
+            } else {
+                throw cleanupFailure;
             }
         }
     }

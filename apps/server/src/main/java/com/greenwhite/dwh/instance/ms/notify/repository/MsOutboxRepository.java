@@ -35,7 +35,7 @@ public class MsOutboxRepository {
                 on conflict (idempotency_key) do nothing
                 returning id, channel, recipient, template_code, payload::text as payload_str,
                           status, attempts, max_attempts, next_attempt_at, idempotency_key,
-                          last_error, created_at, processed_at
+                          last_error, created_at, processed_at, claim_token, claimed_at
                 """)
                 .param("channel", channel)
                 .param("recipient", recipient)
@@ -49,42 +49,64 @@ public class MsOutboxRepository {
     }
 
     public List<OutboxRecord> fetchPending(int limit) {
+        UUID claimToken = UUID.randomUUID();
         return jdbcClient.sql("""
-                select id, channel, recipient, template_code, payload::text as payload_str,
-                       status, attempts, max_attempts, next_attempt_at, idempotency_key,
-                       last_error, created_at, processed_at
-                from ms_notification_outbox
-                where status = 'PENDING' and next_attempt_at <= now()
-                order by next_attempt_at asc
-                limit :limit
-                for update skip locked
+                with candidates as (
+                    select id
+                    from ms_notification_outbox
+                    where (status = 'PENDING' and next_attempt_at <= now())
+                       or (status = 'PROCESSING' and claimed_at <= now() - interval '5 minutes')
+                    order by coalesce(claimed_at, next_attempt_at) asc
+                    limit :limit
+                    for update skip locked
+                )
+                update ms_notification_outbox as outbox
+                set status = 'PROCESSING',
+                    claim_token = :claimToken,
+                    claimed_at = now()
+                from candidates
+                where outbox.id = candidates.id
+                returning outbox.id, outbox.channel, outbox.recipient, outbox.template_code,
+                          outbox.payload::text as payload_str, outbox.status, outbox.attempts,
+                          outbox.max_attempts, outbox.next_attempt_at, outbox.idempotency_key,
+                          outbox.last_error, outbox.created_at, outbox.processed_at,
+                          outbox.claim_token, outbox.claimed_at
                 """)
                 .param("limit", limit)
+                .param("claimToken", claimToken)
                 .query(this::mapRecord)
                 .list();
     }
 
-    public void markSuccess(Long id) {
-        jdbcClient.sql("""
+    public boolean markSuccess(Long id, UUID claimToken) {
+        return jdbcClient.sql("""
                 update ms_notification_outbox
-                set status = 'SENT', processed_at = now()
+                set status = 'SENT', processed_at = now(), claim_token = null, claimed_at = null
                 where id = :id
+                  and status = 'PROCESSING'
+                  and claim_token = :claimToken
                 """)
                 .param("id", id)
-                .update();
+                .param("claimToken", claimToken)
+                .update() == 1;
     }
 
-    public void markFailed(Long id, int newAttempts, Instant nextAttemptAt, String error, boolean isDeadLetter) {
+    public boolean markFailed(Long id, UUID claimToken, int newAttempts, Instant nextAttemptAt,
+                              String error, boolean isDeadLetter) {
         String status = isDeadLetter ? MsNotifyPref.OUTBOX_DEAD_LETTER : MsNotifyPref.OUTBOX_PENDING;
 
-        jdbcClient.sql("""
+        return jdbcClient.sql("""
                 update ms_notification_outbox
                 set status = :status,
                     attempts = :attempts,
                     next_attempt_at = :nextAttemptAt,
                     last_error = :error,
-                    processed_at = case when :isDeadLetter then now() else null end
+                    processed_at = case when :isDeadLetter then now() else null end,
+                    claim_token = null,
+                    claimed_at = null
                 where id = :id
+                  and status = 'PROCESSING'
+                  and claim_token = :claimToken
                 """)
                 .param("status", status)
                 .param("attempts", newAttempts)
@@ -92,7 +114,8 @@ public class MsOutboxRepository {
                 .param("error", error)
                 .param("isDeadLetter", isDeadLetter)
                 .param("id", id)
-                .update();
+                .param("claimToken", claimToken)
+                .update() == 1;
     }
 
     private OutboxRecord mapRecord(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
@@ -109,7 +132,9 @@ public class MsOutboxRepository {
                 UUID.fromString(rs.getString("idempotency_key")),
                 rs.getString("last_error"),
                 rs.getTimestamp("created_at").toInstant(),
-                rs.getTimestamp("processed_at") != null ? rs.getTimestamp("processed_at").toInstant() : null
+                rs.getTimestamp("processed_at") != null ? rs.getTimestamp("processed_at").toInstant() : null,
+                rs.getObject("claim_token", UUID.class),
+                rs.getTimestamp("claimed_at") != null ? rs.getTimestamp("claimed_at").toInstant() : null
         );
     }
 
@@ -145,6 +170,8 @@ public class MsOutboxRepository {
             UUID idempotencyKey,
             String lastError,
             Instant createdAt,
-            Instant processedAt
+            Instant processedAt,
+            UUID claimToken,
+            Instant claimedAt
     ) {}
 }

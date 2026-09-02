@@ -54,6 +54,7 @@ public enum ErrorCode {
     SINGLE_RESPONSIBLE_VIOLATION("single_responsible_violation", 409),
     FIELD_IN_USE("field_in_use", 409),
     IDEMPOTENCY_KEY_PAYLOAD_MISMATCH("idempotency_key_payload_mismatch", 409),
+    IDEMPOTENCY_REQUEST_IN_PROGRESS("idempotency_request_in_progress", 409),
 
 
     // 413 Payload Too Large & 415 Unsupported Media Type
@@ -67,6 +68,7 @@ public enum ErrorCode {
     VALIDATION_FAILED("validation_failed", 422),
     PASSWORD_POLICY("password_policy", 422),
     EMPTY_QUERY("empty_query", 422),
+    FILE_MALWARE_DETECTED("file_malware_detected", 422),
 
     // 423 Locked
     LOGIN_LOCKED("login_locked", 423),
@@ -79,6 +81,7 @@ public enum ErrorCode {
     // 500 Internal Error
     INTERNAL_ERROR("internal_error", 500),
     SERVICE_UNAVAILABLE("service_unavailable", 503),
+    FILE_SCAN_FAILED("file_scan_failed", 503),
     OTP_SEND_FAILED("otp_send_failed", 503);
 
     private final String code;

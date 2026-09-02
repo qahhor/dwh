@@ -69,6 +69,8 @@ owner. A commercial SLA cannot override a failed safety gate.
       states pass for critical workflows.
 - [ ] A representative upload/download succeeds at the configured production
       size limit and interrupted upload behavior is understood.
+- [ ] `DWH_FILE_SCANNER_REQUIRED=true`; the ClamAV EICAR test is rejected,
+      scanner outage fails closed, and quarantine objects are removed.
 - [ ] No unsafe placeholder provider or disabled module is presented as a
       working production capability.
 

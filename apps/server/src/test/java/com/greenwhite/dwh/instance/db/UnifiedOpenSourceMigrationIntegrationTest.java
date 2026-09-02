@@ -64,6 +64,14 @@ class UnifiedOpenSourceMigrationIntegrationTest {
                             (code, name, route_path, entrypoint_url, status, cp_ticket_id)
                         values ('legacy-module', 'Legacy Module', '/legacy', 'https://legacy.invalid/module.js',
                                 'APPROVED', 'TICKET-MOD-LEGACY')
+                """)
+                .update();
+        jdbc.sql("""
+                        insert into ms_notification_outbox
+                            (channel, recipient, template_code, payload, status, idempotency_key)
+                        values
+                            ('email', 'upgrade@example.test', 'legacy-processing', '{}',
+                             'PROCESSING', gen_random_uuid())
                         """)
                 .update();
 
@@ -90,6 +98,12 @@ class UnifiedOpenSourceMigrationIntegrationTest {
         assertThat(columns(jdbc, "md_custom_modules")).doesNotContain("cp_ticket_id");
         assertThat(jdbc.sql("select legacy_approval_reference from md_custom_modules where code = 'legacy-module'")
                 .query(String.class).single()).isEqualTo("TICKET-MOD-LEGACY");
+        assertThat(jdbc.sql("""
+                        select status
+                        from ms_notification_outbox
+                        where template_code = 'legacy-processing'
+                        """).query(String.class).single())
+                .isEqualTo("PENDING");
 
         Long newAnnouncementId = jdbc.sql("""
                         insert into ms_announcements (title_json, body_json, banner_type)
