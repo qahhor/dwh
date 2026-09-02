@@ -125,7 +125,11 @@ public final class MdFormCatalog {
                 "view", "Просмотр входящих")));
 
         forms.put("platform.announcements", new FormMeta("ms.notify", "Объявления", ordered(
-                "view", "Просмотр объявлений")));
+                "view", "Просмотр объявлений",
+                "create", "Создание объявления",
+                "update", "Редактирование объявления",
+                "publish", "Публикация объявления",
+                "archive", "Архивация объявления")));
 
         forms.put("platform.files", new FormMeta("mf", "Файлы", ordered(
                 "view", "Просмотр и скачивание",
