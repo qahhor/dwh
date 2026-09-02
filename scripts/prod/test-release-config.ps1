@@ -32,6 +32,8 @@ $restorePs = Get-Content -LiteralPath $restorePsPath -Raw
 Assert-Matches $composeSource '/server:\$\{APP_VERSION' 'Production must use the versioned SmartupCMS server image.'
 Assert-Matches $composeSource '/web:\$\{APP_VERSION' 'Production must use the versioned SmartupCMS web image.'
 Assert-Matches $composeSource '/backup:\$\{APP_VERSION' 'Production must use the versioned SmartupCMS backup image.'
+Assert-Matches $composeSource '/postgres:\$\{APP_VERSION' 'Production must use the versioned SmartupCMS PostgreSQL image.'
+Assert-Matches $composeSource '/typesense:\$\{APP_VERSION' 'Production must use the versioned SmartupCMS Typesense image.'
 Assert-DoesNotMatch $composeSource 'control-plane|web-cp|db-cp|migrate-cp|smartupcms/instance' 'Retired Control Plane topology remains in production Compose.'
 Assert-Matches $composeSource 'internal:\s*true' 'The database network must be internal.'
 Assert-Matches $composeSource 'backup-status:/var/lib/smartupcms/backup:ro' 'The server must receive backup status read-only.'

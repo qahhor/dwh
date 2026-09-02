@@ -1,0 +1,272 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions: {}
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify release source
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Check out complete history
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Require a stable SemVer tag on the default branch
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          STABLE_SEMVER: '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "${GITHUB_REF_TYPE}" == "tag" && "${GITHUB_REF_NAME}" =~ ${STABLE_SEMVER} ]] || {
+            echo "Release ref must be a stable SemVer tag such as v1.2.3." >&2
+            exit 1
+          }
+          git fetch --no-tags origin "+refs/heads/${DEFAULT_BRANCH}:refs/remotes/origin/${DEFAULT_BRANCH}"
+          git merge-base --is-ancestor "${GITHUB_SHA}" "origin/${DEFAULT_BRANCH}" || {
+            echo "Release commit is not reachable from ${DEFAULT_BRANCH}." >&2
+            exit 1
+          }
+
+      - name: Set up Java
+        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: '.node-version'
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Verify backend
+        run: mvn -B verify
+
+      - name: Verify web application
+        working-directory: apps/web
+        run: |
+          npm ci
+          npm test
+          npm run typecheck
+          npm run build
+
+      - name: Verify public and release contracts
+        shell: pwsh
+        run: |
+          ./scripts/docs/test-public-docs.ps1
+          ./scripts/architecture/test-unified-boundaries.ps1
+          ./scripts/release/verify-release.ps1
+          ./scripts/prod/test-release-config.ps1
+          ./scripts/prod/test-backup-status.ps1
+
+  build:
+    name: Build, attest, and sign ${{ matrix.image }}
+    needs: verify
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: server
+            repository: smartupcms/server
+            context: .
+            file: ./Dockerfile
+          - image: web
+            repository: smartupcms/web
+            context: ./apps/web
+            file: ./apps/web/Dockerfile
+          - image: backup
+            repository: smartupcms/backup
+            context: ./deploy/images/backup
+            file: ./deploy/images/backup/Dockerfile
+          - image: postgres
+            repository: smartupcms/postgres
+            context: ./deploy/images/postgres
+            file: ./deploy/images/postgres/Dockerfile
+          - image: typesense
+            repository: smartupcms/typesense
+            context: ./deploy/images/typesense
+            file: ./deploy/images/typesense/Dockerfile
+    steps:
+      - name: Check out release source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Resolve lowercase image reference
+        id: reference
+        env:
+          IMAGE_REPOSITORY: ${{ matrix.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          echo "image_ref=ghcr.io/${owner}/${IMAGE_REPOSITORY}" >> "${GITHUB_OUTPUT}"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Authenticate to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build and push immutable multi-architecture image
+        id: build
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.reference.outputs.image_ref }}:${{ github.ref_name }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ github.ref_name }}
+            org.opencontainers.image.licenses=Apache-2.0
+          provenance: mode=max
+          sbom: true
+
+      - name: Create GitHub provenance attestation
+        id: attest
+        uses: actions/attest-build-provenance@43d14bc2b83dec42d39ecae14e916627a18bb661 # v3
+        with:
+          subject-name: ${{ steps.reference.outputs.image_ref }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@f713795cb21599bc4e5c4b58cbad1da852d7eeb9 # v3
+        with:
+          cosign-release: v3.1.3
+
+      - name: Sign immutable digest with GitHub OIDC
+        env:
+          IMAGE_REF: ${{ steps.reference.outputs.image_ref }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        shell: bash
+        run: cosign sign --yes "${IMAGE_REF}@${DIGEST}"
+
+      - name: Prepare release metadata directory
+        run: mkdir -p dist
+
+      - name: Generate SPDX SBOM with Syft
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
+        with:
+          image: ${{ steps.reference.outputs.image_ref }}@${{ steps.build.outputs.digest }}
+          format: spdx-json
+          output-file: dist/smartupcms-${{ matrix.image }}-${{ github.ref_name }}.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Generate CycloneDX SBOM with Syft
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
+        with:
+          image: ${{ steps.reference.outputs.image_ref }}@${{ steps.build.outputs.digest }}
+          format: cyclonedx-json
+          output-file: dist/smartupcms-${{ matrix.image }}-${{ github.ref_name }}.cdx.json
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Record immutable image and provenance
+        env:
+          IMAGE_REF: ${{ steps.reference.outputs.image_ref }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+          PROVENANCE_BUNDLE: ${{ steps.attest.outputs.bundle-path }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s@%s\n' "${IMAGE_REF}" "${DIGEST}" \
+            > "dist/smartupcms-${{ matrix.image }}-${GITHUB_REF_NAME}.image.txt"
+          cp "${PROVENANCE_BUNDLE}" \
+            "dist/smartupcms-${{ matrix.image }}-${GITHUB_REF_NAME}.provenance.json"
+
+      - name: Upload signed image metadata
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-metadata-${{ matrix.image }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - name: Check out release source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Download image metadata
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: release-metadata-*
+          path: dist
+          merge-multiple: true
+
+      - name: Build versioned Compose bundle and checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundle="smartupcms-${GITHUB_REF_NAME}"
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          mkdir -p "dist/${bundle}/scripts"
+          cp deploy/compose/docker-compose.prod.yml "dist/${bundle}/docker-compose.yml"
+          cp deploy/compose/.env.example "dist/${bundle}/.env.example"
+          sed -i "s|^IMAGE_REGISTRY=.*|IMAGE_REGISTRY=ghcr.io/${owner}/smartupcms|" \
+            "dist/${bundle}/.env.example"
+          sed -i "s|^APP_VERSION=.*|APP_VERSION=${GITHUB_REF_NAME}|" \
+            "dist/${bundle}/.env.example"
+          cp scripts/prod/deploy.sh scripts/prod/backup.sh scripts/prod/restore.sh \
+            scripts/prod/deploy.ps1 scripts/prod/backup.ps1 scripts/prod/restore.ps1 \
+            "dist/${bundle}/scripts/"
+          cp README.md LICENSE NOTICE SECURITY.md SUPPORT.md CHANGELOG.md "dist/${bundle}/"
+          cat dist/*.image.txt | sort > "dist/${bundle}/IMAGES.txt"
+          tar -C dist -czf "dist/${bundle}.tar.gz" "${bundle}"
+          (cd dist && zip -qr "${bundle}.zip" "${bundle}")
+          checksums="${RUNNER_TEMP}/smartupcms-SHA256SUMS"
+          (
+            cd dist
+            find . -maxdepth 1 -type f -printf '%P\0' \
+              | sort -z \
+              | xargs -0 sha256sum
+          ) > "${checksums}"
+          mv "${checksums}" dist/SHA256SUMS
+
+      - name: Publish immutable release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            dist/*.tar.gz dist/*.zip dist/*.json dist/*.txt dist/SHA256SUMS \
+            --verify-tag \
+            --title "SmartupCMS ${GITHUB_REF_NAME}" \
+            --generate-notes

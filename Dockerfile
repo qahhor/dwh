@@ -5,7 +5,7 @@
 # кода приложения — пересборка после правки кода не тянет заново ~100 МБ библиотек.
 
 # ---------------------------------------------------------------- build
-FROM maven:3.9-eclipse-temurin-25 AS build
+FROM maven:3.9-eclipse-temurin-25@sha256:d67198007bb4441b07d45587320f83154de80ece3608f80408ef14c6ea847753 AS build
 WORKDIR /build
 
 COPY pom.xml .
@@ -27,7 +27,7 @@ RUN java -Djarmode=tools -jar /build/app.jar extract --destination /layers \
  && mv /layers/app-*.jar /layers/run.jar 2>/dev/null || mv /layers/*.jar /layers/run.jar
 
 # ---------------------------------------------------------------- runtime
-FROM eclipse-temurin:25-jre AS runtime
+FROM eclipse-temurin:25-jre@sha256:f9e65324a37f28209ce7dd0e5149a7aa954520ed936fb87813cf6ded2400a112 AS runtime
 
 # Hardening:non-root пользователь, только необходимые пакеты, чистый apt-кэш
 RUN apt-get update && apt-get upgrade -y --no-install-recommends \
@@ -39,9 +39,8 @@ RUN apt-get update && apt-get upgrade -y --no-install-recommends \
 
 WORKDIR /app
 
-# Каталог данных под non-root. ВРЕМЕННО: файлы клиента лежат на диске узла
-# (блокер C-3 AUDIT-03). До перехода на Garage/S3 (фаза P) этот путь ОБЯЗАН
-# монтироваться томом — иначе пересоздание контейнера теряет файлы.
+# Каталог local_disk provider под non-root. В production этот путь обязан быть
+# томом; S3-compatible provider хранит bytes вне контейнера.
 RUN mkdir -p /var/lib/smartupcms/storage /var/lib/smartupcms/backup \
  && chown -R dwh:dwh /var/lib/smartupcms
 ENV DWH_STORAGE_LOCAL_PATH=/var/lib/smartupcms/storage \
@@ -64,8 +63,7 @@ ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75 \
 -Djava.security.egd=file:/dev/./urandom -Duser.timezone=UTC"
 
 
-# Health-check уровня контейнера. Оркестратор (Nomad, фаза P) использует
-# свои проверки поверх тех же actuator-эндпоинтов.
+# Health-check уровня контейнера; Compose использует тот же readiness endpoint.
 HEALTHCHECK --interval=15s --timeout=3s --start-period=45s --retries=4 \
   CMD curl -fsS http://127.0.0.1:${MANAGEMENT_PORT:-9090}/actuator/health/readiness || exit 1
 

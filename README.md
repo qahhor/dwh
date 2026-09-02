@@ -109,6 +109,41 @@ Read [onboarding](docs/onboarding.md) for the code map and
 Do not report suspected vulnerabilities in public issues. Never commit `.env`,
 secret files, database dumps, customer data, or decrypted backups.
 
+## Verifying a release
+
+A stable SemVer tag publishes five `linux/amd64` and `linux/arm64` images:
+`server`, `web`, `backup`, `postgres`, and `typesense`. The GitHub Release also
+contains a versioned Compose bundle, SHA-256 checksums, SPDX and CycloneDX SBOMs,
+and provenance bundles. Images are signed keylessly with GitHub OIDC and Cosign;
+no long-lived signing secret is used.
+
+After downloading the assets, verify their checksums:
+
+```bash
+sha256sum -c SHA256SUMS
+```
+
+Use the digest from `IMAGES.txt` in the Compose bundle, then verify both the
+Cosign signature and GitHub provenance. Replace the uppercase placeholders with
+the repository coordinates and exact release tag:
+
+```bash
+cosign verify \
+  --certificate-identity-regexp '^https://github.com/OWNER/REPOSITORY/.github/workflows/release.yml@refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$' \
+  --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
+  'ghcr.io/OWNER/smartupcms/server@sha256:DIGEST'
+```
+
+```bash
+gh attestation verify \
+  'oci://ghcr.io/OWNER/smartupcms/server@sha256:DIGEST' \
+  --repo OWNER/REPOSITORY
+```
+
+Repeat verification for every image used by the deployment. A mutable tag or an
+image reference without a matching digest, signature, and provenance is not a
+release input.
+
 ## Community and license
 
 Contributions require a Developer Certificate of Origin sign-off (`git commit

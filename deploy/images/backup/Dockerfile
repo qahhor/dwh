@@ -1,4 +1,4 @@
-FROM postgres:18-alpine
+FROM postgres:18-alpine@sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2
 
 # UID/GID 10001 intentionally matches the server image so its read-only mount
 # can read the 0600 status file without weakening file permissions.

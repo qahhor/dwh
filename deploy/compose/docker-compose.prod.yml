@@ -38,7 +38,7 @@ x-server-common: &server-common
 
 services:
   postgres:
-    image: ${POSTGRES_IMAGE:-smartupcms/postgres:18-alpine-hardened}
+    image: ${POSTGRES_IMAGE:-${IMAGE_REGISTRY:-ghcr.io/smartupcms}/postgres:${APP_VERSION:?APP_VERSION must be an immutable release tag}}
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${DB_NAME:-smartupcms}
@@ -109,7 +109,7 @@ services:
       options: {max-size: "50m", max-file: "5"}
 
   typesense:
-    image: ${TYPESENSE_IMAGE:-smartupcms/typesense:27.1-hardened}
+    image: ${TYPESENSE_IMAGE:-${IMAGE_REGISTRY:-ghcr.io/smartupcms}/typesense:${APP_VERSION:?APP_VERSION must be an immutable release tag}}
     restart: unless-stopped
     environment:
       TYPESENSE_API_KEY: ${TYPESENSE_API_KEY:?TYPESENSE_API_KEY is required}
