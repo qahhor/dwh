@@ -5,9 +5,7 @@
 param(
     [switch]$SkipInstall,
     [string]$InstanceBaseUrl = $env:INSTANCE_BASE_URL,
-    [string]$InstanceHealthUrl = $env:INSTANCE_HEALTH_URL,
-    [string]$ControlPlaneBaseUrl = $env:CP_BASE_URL,
-    [string]$ControlPlaneHealthUrl = $env:CP_HEALTH_URL
+    [string]$InstanceHealthUrl = $env:INSTANCE_HEALTH_URL
 )
 
 $ErrorActionPreference = "Stop"
@@ -16,11 +14,7 @@ $e2eDirectory = Join-Path $root "e2e"
 
 if ([string]::IsNullOrWhiteSpace($InstanceBaseUrl)) { $InstanceBaseUrl = "http://localhost:4200" }
 if ([string]::IsNullOrWhiteSpace($InstanceHealthUrl)) { $InstanceHealthUrl = "http://localhost:9190/actuator/health" }
-if ([string]::IsNullOrWhiteSpace($ControlPlaneBaseUrl)) { $ControlPlaneBaseUrl = "http://localhost:4300" }
-if ([string]::IsNullOrWhiteSpace($ControlPlaneHealthUrl)) { $ControlPlaneHealthUrl = "http://localhost:9191/actuator/health" }
-
 $env:INSTANCE_BASE_URL = $InstanceBaseUrl
-$env:CP_BASE_URL = $ControlPlaneBaseUrl
 
 function Invoke-CheckedStep {
     param(
@@ -58,8 +52,6 @@ Write-Host "============================================================" -Foreg
 
 Assert-HttpReady "Instance UI" ($InstanceBaseUrl.TrimEnd('/') + '/')
 Assert-HttpReady "Instance API" $InstanceHealthUrl
-Assert-HttpReady "Control Plane UI" ($ControlPlaneBaseUrl.TrimEnd('/') + '/')
-Assert-HttpReady "Control Plane API" $ControlPlaneHealthUrl
 
 Write-Host "`nValidate PowerShell dotenv parser" -ForegroundColor Yellow
 & (Join-Path $PSScriptRoot "test-dotenv-parser.ps1")

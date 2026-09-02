@@ -23,10 +23,5 @@ export default defineConfig({
       testMatch: /instance\/.*\.spec\.ts/,
       use: { baseURL: environment.instance.baseURL },
     },
-    {
-      name: 'control-plane',
-      testMatch: /control-plane\/.*\.spec\.ts/,
-      use: { baseURL: environment.controlPlane.baseURL },
-    },
   ],
 });

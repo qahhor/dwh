@@ -1,6 +1,5 @@
-# Multi-stage образ приложений DWH. Один Dockerfile на оба приложения:
-#   docker build --build-arg APP=instance      -t dwh/instance:<ver> .
-#   docker build --build-arg APP=control-plane -t dwh/control-plane:<ver> .
+# Multi-stage образ backend-приложения SmartupCMS:
+#   docker build -t smartupcms/instance:<ver> .
 #
 # Слоистая сборка (Spring Boot layertools): зависимости кэшируются отдельно от
 # кода приложения — пересборка после правки кода не тянет заново ~100 МБ библиотек.
@@ -12,16 +11,14 @@ WORKDIR /build
 COPY pom.xml .
 COPY libs libs
 COPY apps/instance apps/instance
-COPY apps/control-plane apps/control-plane
 
-ARG APP=instance
 # Тесты в образе не гоняем: это делает CI (там Docker для Testcontainers).
 # Cache mount для ~/.m2: зависимости скачиваются один раз и переиспользуются
 # между сборками. Без него каждая сборка тянет ~100 МБ заново — первая сборка
 # занимала минуты и упиралась в таймауты.
 RUN --mount=type=cache,target=/root/.m2,sharing=locked \
-    mvn -B -q -pl apps/${APP} -am -DskipTests package \
- && cp apps/${APP}/target/${APP}-*.jar /build/app.jar
+    mvn -B -q -pl apps/instance -am -DskipTests package \
+ && cp apps/instance/target/instance-*.jar /build/app.jar
 
 # Распаковка fat-jar: рядом появляются lib/ (зависимости) и запускаемый jar.
 # Разделение нужно для кэша Docker: lib меняется редко, код — каждую сборку.
@@ -41,8 +38,6 @@ RUN apt-get update && apt-get upgrade -y --no-install-recommends \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-ARG APP=instance
-ENV APP_NAME=${APP}
 
 # Каталог данных под non-root. ВРЕМЕННО: файлы клиента лежат на диске узла
 # (блокер C-3 AUDIT-03). До перехода на Garage/S3 (фаза P) этот путь ОБЯЗАН

@@ -46,9 +46,7 @@ jobs:
         with:
           node-version-file: '.node-version'
           cache: npm
-          cache-dependency-path: |
-            apps/web-instance/package-lock.json
-            apps/web-cp/package-lock.json
+          cache-dependency-path: apps/web-instance/package-lock.json
 
       - name: Install Web Instance
         working-directory: apps/web-instance
@@ -61,22 +59,15 @@ jobs:
           npm run typecheck
           npm run build
 
-      - name: Install Web Control Plane
-        working-directory: apps/web-cp
-        run: npm ci
-
-      - name: Test, typecheck & build Web Control Plane
-        working-directory: apps/web-cp
-        run: |
-          npm test
-          npm run typecheck
-          npm run build
-
   release-config:
     name: release config (Compose + NGINX + fail-closed deploy)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Validate unified architecture boundary
+        shell: pwsh
+        run: ./scripts/architecture/test-unified-boundaries.ps1
 
       - name: Validate production Compose, proxy and scripts
         shell: pwsh
@@ -103,14 +94,8 @@ jobs:
         shell: bash
         run: |
           instance_password="CiA1-$(openssl rand -hex 16)"
-          cp_password="CiCpA1-$(openssl rand -hex 16)"
           echo "::add-mask::$instance_password"
-          echo "::add-mask::$cp_password"
-          {
-            echo "ADMIN_PASSWORD=$instance_password"
-            echo "CP_ADMIN_LOGIN=cpadmin"
-            echo "CP_ADMIN_PASSWORD=$cp_password"
-          } >> "$GITHUB_ENV"
+          echo "ADMIN_PASSWORD=$instance_password" >> "$GITHUB_ENV"
 
       - name: Validate PowerShell dotenv parser
         shell: pwsh
@@ -127,9 +112,7 @@ jobs:
         run: ./scripts/security/scan-runtime-images.ps1
 
       - name: Migrate empty databases
-        run: |
-          docker compose run --rm migrate
-          docker compose run --rm migrate-cp
+        run: docker compose run --rm migrate
 
       - name: Start stack and wait for health
         run: docker compose up -d --remove-orphans --wait --wait-timeout 180
@@ -137,9 +120,7 @@ jobs:
       - name: Smoke public endpoints
         run: |
           curl --fail --silent --show-error http://localhost:9190/actuator/health
-          curl --fail --silent --show-error http://localhost:9191/actuator/health
           curl --fail --silent --show-error http://localhost:4200/
-          curl --fail --silent --show-error http://localhost:4300/
 
       - name: Install E2E dependencies
         working-directory: e2e

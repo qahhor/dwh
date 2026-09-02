@@ -50,10 +50,5 @@ export function loadE2eEnv({
       login: source.ADMIN_LOGIN?.trim() || 'admin',
       password: required(source, 'ADMIN_PASSWORD'),
     }),
-    controlPlane: Object.freeze({
-      baseURL: source.CP_BASE_URL?.trim() || 'http://localhost:4300',
-      login: source.CP_ADMIN_LOGIN?.trim() || 'cpadmin',
-      password: required(source, 'CP_ADMIN_PASSWORD'),
-    }),
   });
 }

@@ -33,7 +33,6 @@ $restoreSh = Get-Content -Raw $restoreShPath
 $restorePs = Get-Content -Raw $restorePsPath
 
 Assert-Matches $nginx 'server\s+web:8080;' "Production proxy must route to the non-root web container on port 8080."
-Assert-Matches $nginx 'server\s+web-cp:8080;' "Production proxy must route to the non-root control-plane UI on port 8080."
 Assert-Matches $compose '\$\{PROXY_BIND:-127\.0\.0\.1\}:\$\{HTTP_PORT:-8088\}:8080' "Plain HTTP proxy must bind to loopback for an external TLS terminator."
 Assert-DoesNotMatch $compose 'HTTPS_PORT' "Compose must not publish a fake HTTPS port without certificates and a TLS listener."
 Assert-DoesNotMatch $compose 'typesense-server.*--health' "Typesense healthcheck must probe HTTP; --health is not a supported server command."

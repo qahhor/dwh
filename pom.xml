@@ -9,7 +9,7 @@
     <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>DWH Platform</name>
-    <description>Enterprise Modular Monolith Platform for Single-Tenant Instances &amp; Fleet Management</description>
+    <description>Single-organization SmartupCMS modular monolith</description>
 
     <properties>
         <java.version>25</java.version>
@@ -37,7 +37,6 @@
         <module>libs/platform-common</module>
         <module>libs/provider-spi</module>
         <module>apps/instance</module>
-        <module>apps/control-plane</module>
     </modules>
 
     <dependencyManagement>

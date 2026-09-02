@@ -8,7 +8,6 @@
 # Запуск (порядок обязателен — миграции отдельным шагом, NFR-10):
 #   cp .env.example .env
 #   docker compose run --rm migrate
-#   docker compose run --rm migrate-cp
 #   docker compose up -d
 #
 # Прод-развёртывание одного клиента — deploy/compose/docker-compose.prod.yml.
@@ -26,10 +25,6 @@ x-instance-env: &instance-env
   DWH_INSTANCE_ADMIN_LOGIN: ${ADMIN_LOGIN:-admin}
   DWH_INSTANCE_ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@dev.local}
   DWH_INSTANCE_ADMIN_PASSWORD: ${ADMIN_PASSWORD:-DevOnly-ChangeMe-1}
-  # Heartbeat в control plane (FR-INST-3). Токен выдаётся один раз при
-  # регистрации экземпляра в панели; пустой — отправка выключена.
-  DWH_CP_URL: ${DWH_CP_URL:-}
-  DWH_CP_HEARTBEAT_TOKEN: ${DWH_CP_HEARTBEAT_TOKEN:-}
   # Каналы доставки (FR-NOTIF-3/4/5). Пустой SMTP_HOST или TELEGRAM_BOT_TOKEN
   # означает заглушку: письма и коды пишутся в журнал и никуда не уходят.
   # Чтобы канал заработал, нужны ОБА параметра: адрес шлюза и выбор провайдера.
@@ -78,7 +73,7 @@ services:
       start_period: 20s
 
   migrate:
-    build: {context: ., args: {APP: instance}}
+    build: {context: .}
     image: ${IMAGE_REGISTRY:-smartupcms}/instance:${APP_VERSION:-dev}
     container_name: ${PROJECT_NAME:-SmartupCMS}-migrate
     profiles: [tools]              # не поднимается вместе со стеком
@@ -89,7 +84,7 @@ services:
       db: {condition: service_healthy}
 
   app:
-    build: {context: ., args: {APP: instance}}
+    build: {context: .}
     image: ${IMAGE_REGISTRY:-smartupcms}/instance:${APP_VERSION:-dev}
     container_name: ${PROJECT_NAME:-SmartupCMS}-app
     restart: unless-stopped
@@ -103,61 +98,6 @@ services:
     depends_on:
       db: {condition: service_healthy}
 
-  # ------------------------------------------------------- control plane
-  db-cp:
-    build:
-      context: .
-      dockerfile: deploy/images/postgres/Dockerfile
-    image: ${POSTGRES_IMAGE:-smartupcms/postgres:18-alpine-hardened}
-    container_name: ${PROJECT_NAME:-SmartupCMS}-db-cp
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${CP_DB_NAME:-dwh_control_plane}
-      POSTGRES_USER: ${CP_DB_USER:-dwh_cp}
-      POSTGRES_PASSWORD: ${CP_DB_PASSWORD:-dwh_cp_local_dev}
-      POSTGRES_INITDB_ARGS: "--data-checksums"
-    volumes:
-      - db-cp-data:/var/lib/postgresql   # PG 18: том монтируется на каталог целиком, не на /data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${CP_DB_USER:-dwh_cp} -d ${CP_DB_NAME:-dwh_control_plane}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
-
-  migrate-cp:
-    build: {context: ., args: {APP: control-plane}}
-    image: ${IMAGE_REGISTRY:-smartupcms}/control-plane:${APP_VERSION:-dev}
-    container_name: ${PROJECT_NAME:-SmartupCMS}-migrate-cp
-    profiles: [tools]
-    restart: "no"
-    command: ["--spring.profiles.active=migrate"]
-    environment: &cp-env
-      JAVA_TOOL_OPTIONS: "-Xms256m -Xmx512m -XX:+ExitOnOutOfMemoryError -XX:+UseZGC -Djava.security.egd=file:/dev/./urandom -Duser.timezone=UTC"
-      CP_DB_URL: jdbc:postgresql://db-cp:5432/${CP_DB_NAME:-dwh_control_plane}
-      CP_DB_USER: ${CP_DB_USER:-dwh_cp}
-      CP_DB_PASSWORD: ${CP_DB_PASSWORD:-dwh_cp_local_dev}
-      CP_ADMIN_LOGIN: ${CP_ADMIN_LOGIN:-cpadmin}
-      CP_ADMIN_EMAIL: ${CP_ADMIN_EMAIL:-cpadmin@dev.local}
-      CP_ADMIN_PASSWORD: ${CP_ADMIN_PASSWORD:-CpDevOnly-ChangeMe-1}
-      MANAGEMENT_PORT: 9091      # у control plane свой actuator-порт
-      TZ: UTC
-
-    depends_on:
-      db-cp: {condition: service_healthy}
-
-  control-plane:
-    build: {context: ., args: {APP: control-plane}}
-    image: ${IMAGE_REGISTRY:-smartupcms}/control-plane:${APP_VERSION:-dev}
-    container_name: ${PROJECT_NAME:-SmartupCMS}-control-plane
-    restart: unless-stopped
-    environment: *cp-env
-    ports:
-      - "${CP_PORT:-8082}:8081"
-      - "${CP_MGMT_PORT:-9191}:9091"
-    depends_on:
-      db-cp: {condition: service_healthy}
-
   # ------------------------------------------------------------- фронтенд
   web:
     build: {context: ./apps/web-instance}
@@ -168,18 +108,6 @@ services:
       - "${WEB_PORT:-4200}:8080"
     depends_on:
       - app
-
-  # Панель управления флотом. Отдельный контур сотрудников платформы:
-  # свой origin, своя cookie-сессия, к экземпляру клиента отношения не имеет.
-  web-cp:
-    build: {context: ./apps/web-cp}
-    image: ${IMAGE_REGISTRY:-smartupcms}/web-cp:${APP_VERSION:-dev}
-    container_name: ${PROJECT_NAME:-SmartupCMS}-web-cp
-    restart: unless-stopped
-    ports:
-      - "${CP_WEB_PORT:-4300}:8080"
-    depends_on:
-      - control-plane
 
   # ------------------------------------------------------------- поиск (Typesense)
   typesense:
@@ -201,7 +129,6 @@ services:
 
 volumes:
   db-data:
-  db-cp-data:
   app-files:
   typesense-data:
 

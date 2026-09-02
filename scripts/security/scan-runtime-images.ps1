@@ -9,9 +9,7 @@ $ErrorActionPreference = "Stop"
 
 $images = @(
     "${ImageRegistry}/instance:${AppVersion}",
-    "${ImageRegistry}/control-plane:${AppVersion}",
     "${ImageRegistry}/web:${AppVersion}",
-    "${ImageRegistry}/web-cp:${AppVersion}",
     "smartupcms/postgres:18-alpine-hardened",
     "smartupcms/typesense:27.1-hardened",
     "smartupcms/nginx-proxy:1.28-alpine-hardened"

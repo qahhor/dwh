@@ -36,7 +36,6 @@ try {
       env: {
         ...process.env,
         ADMIN_PASSWORD: sentinels[0],
-        CP_ADMIN_PASSWORD: sentinels[0],
         E2E_ARTIFACT_TOKEN_SENTINEL: sentinels[1],
       },
       maxBuffer: 10 * 1024 * 1024,

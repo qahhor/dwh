@@ -58,17 +58,3 @@ export async function loginToInstance(page: Page): Promise<void> {
   await expect(page).toHaveURL(/\/tasks(?:\?.*)?$/u);
   await expect(page.getByRole('navigation', { name: 'Основная навигация' })).toBeVisible();
 }
-
-export async function loginToControlPlane(page: Page): Promise<void> {
-  await page.goto('/login');
-  await page.getByLabel('Логин').fill(environment.controlPlane.login);
-  const password = page.getByLabel('Пароль', { exact: true });
-  await fillSecret(password, environment.controlPlane.password);
-  try {
-    await page.getByRole('button', { name: 'Войти' }).click();
-    await expect(page).toHaveURL(/\/fleet$/u);
-    await expect(page.getByRole('navigation', { name: 'Основная навигация' })).toBeVisible();
-  } finally {
-    await clearSecret(password);
-  }
-}

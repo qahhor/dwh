@@ -11,7 +11,6 @@
     "test:artifact-security": "node scripts/verify-artifact-security.mjs",
     "test:config": "node --test tests/config/*.test.mjs",
     "test:instance": "playwright test --project=instance",
-    "test:cp": "playwright test --project=control-plane",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
