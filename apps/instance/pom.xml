@@ -82,6 +82,16 @@
             <artifactId>flyway-database-postgresql</artifactId>
         </dependency>
 
+        <!-- Object storage: one S3-compatible contract for AWS, R2, MinIO and Garage. -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>url-connection-client</artifactId>
+        </dependency>
+
         <!-- Security: Argon2 Hashing & Rate Limiting -->
         <dependency>
             <groupId>de.mkammerer</groupId>

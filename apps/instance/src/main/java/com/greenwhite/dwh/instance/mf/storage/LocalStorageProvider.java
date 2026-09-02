@@ -5,6 +5,7 @@ import com.greenwhite.dwh.spi.storage.FileDownloadStream;
 import com.greenwhite.dwh.spi.storage.StorageProvider;
 import com.greenwhite.dwh.spi.storage.StoredFileMetadata;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
@@ -23,6 +24,7 @@ import java.util.HexFormat;
  * File storage provider supporting local filesystem storage with S3 compatible semantics.
  */
 @Component
+@ConditionalOnProperty(name = "dwh.providers.storage", havingValue = "local_disk", matchIfMissing = true)
 public class LocalStorageProvider implements StorageProvider {
 
     private final Path basePath;
@@ -43,15 +45,11 @@ public class LocalStorageProvider implements StorageProvider {
 
     @Override
     public StoredFileMetadata upload(String bucket, String key, InputStream contentStream, long sizeBytes, String contentType) {
+        if (contentStream == null || sizeBytes < 0) {
+            throw new IllegalArgumentException("Storage content and non-negative size are required");
+        }
+        Path targetFile = resolveObjectPath(bucket, key);
         try {
-            Path targetDir = basePath.resolve(bucket).normalize();
-            Files.createDirectories(targetDir);
-
-            Path targetFile = targetDir.resolve(key).normalize();
-            if (!targetFile.startsWith(basePath)) {
-                throw new SecurityException("Path traversal attempt in storage key: " + key);
-            }
-
             if (targetFile.getParent() != null) {
                 Files.createDirectories(targetFile.getParent());
             }
@@ -63,8 +61,18 @@ public class LocalStorageProvider implements StorageProvider {
 
                 byte[] buffer = new byte[8192];
                 int bytesRead;
+                long written = 0;
                 while ((bytesRead = dis.read(buffer)) != -1) {
+                    if (written + bytesRead > sizeBytes) {
+                        throw new IllegalArgumentException(
+                                "Declared storage object size does not match content length");
+                    }
                     fos.write(buffer, 0, bytesRead);
+                    written += bytesRead;
+                }
+                if (written != sizeBytes) {
+                    throw new IllegalArgumentException(
+                            "Declared storage object size does not match content length");
                 }
             }
 
@@ -72,15 +80,19 @@ public class LocalStorageProvider implements StorageProvider {
             long actualSize = Files.size(targetFile);
 
             return new StoredFileMetadata(bucket, key, sha256, actualSize, contentType, Instant.now());
+        } catch (IllegalArgumentException e) {
+            deletePartialFile(targetFile);
+            throw e;
         } catch (Exception e) {
+            deletePartialFile(targetFile);
             throw new RuntimeException("Failed to upload file to storage", e);
         }
     }
 
     @Override
     public FileDownloadStream download(String bucket, String key) {
+        Path filePath = resolveObjectPath(bucket, key);
         try {
-            Path filePath = basePath.resolve(bucket).resolve(key).normalize();
             if (!Files.exists(filePath)) {
                 return null;
             }
@@ -98,16 +110,17 @@ public class LocalStorageProvider implements StorageProvider {
 
     @Override
     public void delete(String bucket, String key) {
+        Path filePath = resolveObjectPath(bucket, key);
         try {
-            Path filePath = basePath.resolve(bucket).resolve(key).normalize();
             Files.deleteIfExists(filePath);
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to delete file from storage", e);
+        }
     }
 
     @Override
     public boolean exists(String bucket, String key) {
-        Path filePath = basePath.resolve(bucket).resolve(key).normalize();
-        return Files.exists(filePath);
+        return Files.exists(resolveObjectPath(bucket, key));
     }
 
     @Override
@@ -115,5 +128,24 @@ public class LocalStorageProvider implements StorageProvider {
         boolean writable = Files.isWritable(basePath);
         return writable ? ProviderHealth.healthy(getProviderCode(), 1)
                         : ProviderHealth.unhealthy(getProviderCode(), "Storage path is not writable", 1);
+    }
+
+    private Path resolveObjectPath(String bucket, String key) {
+        if (bucket == null || bucket.isBlank() || key == null || key.isBlank()) {
+            throw new IllegalArgumentException("Storage bucket and key are required");
+        }
+        Path resolved = basePath.resolve(bucket).resolve(key).normalize();
+        if (!resolved.startsWith(basePath)) {
+            throw new IllegalArgumentException("Unsafe storage bucket or key");
+        }
+        return resolved;
+    }
+
+    private static void deletePartialFile(Path targetFile) {
+        try {
+            Files.deleteIfExists(targetFile);
+        } catch (Exception ignored) {
+            // Preserve the original upload error.
+        }
     }
 }

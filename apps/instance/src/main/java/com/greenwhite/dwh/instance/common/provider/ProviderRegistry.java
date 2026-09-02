@@ -38,7 +38,7 @@ public class ProviderRegistry {
             List<MailProvider> mailList,
             List<SmsProvider> smsList,
             List<MessengerProvider> messengerList,
-            @Value("${dwh.providers.storage:local}") String activeStorageCode,
+            @Value("${dwh.providers.storage:local_disk}") String activeStorageCode,
             @Value("${dwh.providers.mail:console_mail}") String activeMailCode,
             @Value("${dwh.providers.sms:console_sms}") String activeSmsCode,
             @Value("${dwh.providers.messenger:console_messenger}") String activeMessengerCode) {
