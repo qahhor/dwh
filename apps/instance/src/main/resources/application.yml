@@ -99,15 +99,9 @@ dwh:
     # остаются в базе, решение об их судьбе принимает эксплуатация.
     # 0 — не отцеплять ничего.
     retention-months: ${DWH_AUDIT_RETENTION_MONTHS:12}
-  control-plane:
-    # Heartbeat в control plane (FR-INST-3). Пусто — отправка выключена:
-    # экземпляр обязан работать и на изолированном контуре клиента.
-    # Runtime credential получается обменом одноразового enrollment-токена.
-    # Отдельный префикс, не dwh.instance: там живут параметры первичной
-    # инициализации (FR-INST-1), у них другой жизненный цикл.
-    url: ${DWH_CP_URL:}
-    token: ${DWH_CP_HEARTBEAT_TOKEN:}
-    interval: ${DWH_CP_HEARTBEAT_INTERVAL:5m}
+  backup:
+    # Status is written atomically by the local backup command/sidecar.
+    status-file: ${DWH_BACKUP_STATUS_FILE:/var/lib/smartupcms/backup/status.json}
   sse:
     timeout-ms: 1800000            # 30 мин; EventSource переподключается сам
     heartbeat-ms: 25000            # keep-alive < таймаута прокси (обычно 60 с)

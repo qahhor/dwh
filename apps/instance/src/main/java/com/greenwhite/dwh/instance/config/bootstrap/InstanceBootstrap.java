@@ -67,11 +67,10 @@ public class InstanceBootstrap implements ApplicationRunner {
         }
         require(props.clientCode(), "dwh.instance.client-code");
         require(props.clientName(), "dwh.instance.client-name");
-        // license_token: до интеграции лицензий control plane (фаза P) — маркер UNLICENSED
         jdbc.sql("""
                         insert into md_instance_info
-                            (client_code, client_name, resource_profile, license_token, license_status)
-                        values (:code, :name, :profile, 'UNLICENSED', 'ACTIVE')
+                            (client_code, client_name, resource_profile)
+                        values (:code, :name, :profile)
                         """)
                 .param("code", props.clientCode())
                 .param("name", props.clientName())

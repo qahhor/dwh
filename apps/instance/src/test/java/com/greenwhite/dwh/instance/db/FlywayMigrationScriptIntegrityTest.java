@@ -69,4 +69,25 @@ class FlywayMigrationScriptIntegrityTest {
                     .contains("create unique index ms_task_single_responsible_uq on ms_task_members (task_id) where (involve_kind = 'R')");
         }
     }
+
+    @Test
+    @DisplayName("V019 должна быть forward-only миграцией единого open-source продукта")
+    void shouldContainUnifiedOpenSourceForwardMigration() throws Exception {
+        ClassPathResource resource = new ClassPathResource(
+                "db/migration/V019__unified_open_source_core.sql");
+        assertThat(resource.exists()).isTrue();
+
+        try (InputStream is = resource.getInputStream()) {
+            String sql = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+
+            assertThat(sql)
+                    .contains("alter table ms_announcements_cache rename to ms_announcements")
+                    .contains("rename column cp_ticket_id to legacy_approval_reference")
+                    .contains("drop column license_token")
+                    .contains("drop column cp_public_keys")
+                    .contains("('platform.announcements', 'publish'")
+                    .doesNotContain("drop table ms_announcements_cache")
+                    .doesNotContain("drop table md_custom_modules");
+        }
+    }
 }

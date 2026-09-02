@@ -52,4 +52,19 @@ describe('SettingsComponent UI contracts', () => {
     expect(passwordLength.getAttribute('aria-describedby')).toBe('settings-password-length-hint');
     expect(fixture.nativeElement.querySelector('#settings-require-2fa[aria-labelledby="settings-require-2fa-label"]')).not.toBeNull();
   });
+
+  it('uses only local system information and exposes no custom-module controls', async () => {
+    const fixture = await createFixture();
+    const api = TestBed.inject(ApiService) as unknown as { get: ReturnType<typeof vi.fn> };
+
+    expect(api.get).toHaveBeenCalledWith('/system/info');
+    expect(api.get).not.toHaveBeenCalledWith('/system/license-info');
+    expect(api.get).not.toHaveBeenCalledWith('/modules');
+    expect(fixture.nativeElement.querySelector('#settings-modules-tab')).toBeNull();
+
+    fixture.componentInstance.activeTab = 'system';
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).not.toContain('Control Plane');
+    expect(fixture.nativeElement.textContent).not.toContain('Лиценз');
+  });
 });
