@@ -97,6 +97,10 @@ npm test
 Read [onboarding](docs/onboarding.md) for the code map and
 [CONTRIBUTING.md](CONTRIBUTING.md) before submitting a change.
 
+Use the [documentation index](docs/README.md) to navigate authority levels and
+the [canonical technical specification](docs/technical-specification.md) for
+normative product and release requirements.
+
 ## Operations and security
 
 - [Production deployment](docs/ops/deployment-guide.md)
