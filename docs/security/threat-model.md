@@ -21,7 +21,8 @@ Trust boundaries are:
 
 1. Browser to the single `web` HTTPS origin.
 2. `web` reverse proxy to `server` on the private backend network.
-3. `server` to PostgreSQL, Typesense, and local/S3-compatible object storage.
+3. `server` to PostgreSQL, Typesense, ClamAV, and local/S3-compatible object
+   storage.
 4. Optional `server` egress to explicitly configured notification providers and
    webhook destinations.
 5. `backup` to PostgreSQL, local backup storage, and optional off-host R2/S3.
@@ -41,7 +42,7 @@ configured external providers remain outside the application's trust boundary.
 | CSRF / XSS / clickjacking | Cookie requests require CSRF token; strict markdown URL handling; CSP, frame denial, referrer and permissions headers | Terminate HTTPS correctly and test headers at the external origin; inline styles remain allowed by the web CSP |
 | SQL/command injection | Parameterized JDBC access and no user input passed to release shell commands | Static analysis and adversarial API tests remain required for every release |
 | SSRF and uncontrolled egress | Webhooks disabled by default; exact host allow-list; private/special addresses rejected unless explicitly opted in; URL revalidated before dispatch; redirects disabled; connect/read timeouts; no default telemetry | Keep private-address opt-in false on managed/internet installations; enforce host-level egress controls and trusted DNS for enabled providers |
-| Malicious file upload | 50 MB application limit, executable-signature rejection, strict MIME/magic validation, non-public quarantine keys, pluggable fail-closed scanners, permission-checked `Content-Disposition: attachment` download, object quota | Production must enable `DWH_FILE_SCANNER_REQUIRED` with a maintained scanner, prove EICAR rejection and scanner-outage cleanup, and enforce the upload limit at the external edge; the repository does not bundle or operate ClamAV |
+| Malicious file upload | 50 MiB application limit, 51 MiB proxy/request envelope, executable-signature rejection, strict MIME/magic validation, non-public quarantine keys, bundled fail-closed ClamAV in production Compose, permission-checked `Content-Disposition: attachment` download, object quota | Keep the scanner image and signatures current, prove EICAR rejection and scanner-outage cleanup, and enforce an equivalent upload limit at any external edge |
 | Secret/PII disclosure through API or logs | Webhook signing secret returned only at creation; webhook query/credentials redacted; structured audit; secret scan gate | Provider error text and support bundles must be reviewed; never attach dumps, object bytes, `.env`, or decrypted backups to public issues |
 | Supply-chain compromise | Locked dependencies, pinned CI actions and base images, multi-arch builds, SBOM, provenance, keyless Cosign signing, digest verification | Protect repository permissions, branch/tag rules, and GitHub OIDC workflow; verify every deployed digest/signature/provenance |
 | Data loss/corruption | Separate Flyway migration, mandatory pre-migration encrypted backup, checksums, restore and rollback scripts | Object bytes need a separate recovery source; execute target restore and object-consistency drills and keep age identity off-host |

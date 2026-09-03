@@ -11,6 +11,7 @@ import org.springframework.web.context.request.async.AsyncRequestNotUsableExcept
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.concurrent.Callable;
 
@@ -70,6 +71,16 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    @DisplayName("Multipart body over the configured boundary returns stable 413 problem detail")
+    void oversizedMultipartReturnsStable413() throws Exception {
+        mvc.perform(get("/api/v1/read-only/oversized-upload"))
+                .andExpect(status().isPayloadTooLarge())
+                .andExpect(content().contentType("application/problem+json"))
+                .andExpect(jsonPath("$.code").value("file_size_exceeded"))
+                .andExpect(jsonPath("$.status").value(413));
+    }
+
+    @Test
     @DisplayName("Поддерживаемый метод по тому же маршруту продолжает работать")
     void supportedMethodStillWorks() throws Exception {
         mvc.perform(get("/api/v1/read-only")).andExpect(status().isOk());
@@ -107,6 +118,11 @@ class GlobalExceptionHandlerTest {
         @GetMapping("/integrity")
         String integrity() {
             throw new org.springframework.dao.DataIntegrityViolationException("not-null constraint violated");
+        }
+
+        @GetMapping("/oversized-upload")
+        String oversizedUpload() {
+            throw new MaxUploadSizeExceededException(50L * 1024L * 1024L);
         }
 
         @GetMapping("/disconnect")

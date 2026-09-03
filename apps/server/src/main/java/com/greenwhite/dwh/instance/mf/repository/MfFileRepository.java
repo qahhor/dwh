@@ -10,6 +10,8 @@ import java.util.UUID;
 @Repository
 public class MfFileRepository {
 
+    private static final long FILE_QUOTA_LOCK_KEY = 0x4D46514CL;
+
     private final JdbcClient jdbcClient;
 
     public MfFileRepository(JdbcClient jdbcClient) {
@@ -93,6 +95,17 @@ public class MfFileRepository {
         jdbcClient.sql("delete from mf_files where id = :id")
                 .param("id", id)
                 .update();
+    }
+
+    /**
+     * Serializes file-quota writers for the duration of the current transaction.
+     * Reads remain lock-free; callers must re-read usage after acquiring the lock.
+     */
+    public void lockQuotaBudget() {
+        jdbcClient.sql("select pg_advisory_xact_lock(:lockKey)")
+                .param("lockKey", FILE_QUOTA_LOCK_KEY)
+                .query((rs, rowNum) -> Boolean.TRUE)
+                .single();
     }
 
     public long getTotalCompanyUsedBytes() {

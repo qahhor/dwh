@@ -1,4 +1,7 @@
 import { expect, test } from '@playwright/test';
+import { mkdtemp, open, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 import { loginToInstance } from '../../../support/auth.js';
 import { collectPageErrors } from '../../../support/diagnostics.js';
@@ -153,4 +156,47 @@ test('administrator can create and remove a user and upload and delete a file', 
   expect((await deleteFileResponse).ok()).toBe(true);
   await expect(fileTable.getByRole('button', { name: `Скачать файл ${fileName}` }).first()).toHaveCount(0);
   assertNoPageErrors();
+});
+
+test('oversized file is rejected with the stable 413 contract and a visible error', async ({ page }) => {
+  test.setTimeout(90_000);
+  const oversizedFileName = `oversize-${Date.now()}.pdf`;
+  const temporaryDirectory = await mkdtemp(join(tmpdir(), 'smartupcms-e2e-upload-'));
+  const oversizedFilePath = join(temporaryDirectory, oversizedFileName);
+  const oversizedFile = await open(oversizedFilePath, 'w');
+  try {
+    await oversizedFile.write(Buffer.from('%PDF-1.7', 'ascii'));
+    await oversizedFile.truncate(50 * 1024 * 1024 + 1);
+  } finally {
+    await oversizedFile.close();
+  }
+
+  try {
+    await loginToInstance(page);
+    const assertNoPageErrors = collectPageErrors(page, [
+      /^Failed to load resource: the server responded with a status of 413 \(\)$/u,
+    ]);
+    await page.goto('/files');
+    await page.getByRole('button', { name: 'Загрузить файл' }).click();
+
+    const uploadDialog = page.getByRole('dialog', { name: 'Загрузка файлов в хранилище' });
+    const uploadResponse = page.waitForResponse(response =>
+      response.request().method() === 'POST' && response.url().endsWith('/api/v1/files/upload')
+    );
+    await uploadDialog.locator('input[type="file"]').setInputFiles(oversizedFilePath);
+
+    const response = await uploadResponse;
+    expect(response.status()).toBe(413);
+    expect(response.headers()['content-type']).toContain('application/problem+json');
+    await expect(response.json()).resolves.toMatchObject({
+      status: 413,
+      code: 'file_size_exceeded',
+    });
+    await expect(page.getByRole('alert')).toContainText('Размер файла превышает допустимые 50 МБ');
+    await expect(page.getByRole('region', { name: 'Таблица файлов' })
+      .getByText(oversizedFileName, { exact: true })).toHaveCount(0);
+    assertNoPageErrors();
+  } finally {
+    await rm(temporaryDirectory, { recursive: true, force: true });
+  }
 });

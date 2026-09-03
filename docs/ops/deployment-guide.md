@@ -71,13 +71,15 @@ recovery against the selected provider. Smartup-managed deployments use
 Cloudflare R2.
 
 Every upload is checked against executable signatures and strict MIME magic
-bytes before storage. For production, run a reachable `clamd`, set
-`DWH_FILE_SCANNER_CLAMAV_ENABLED=true` and `DWH_FILE_SCANNER_REQUIRED=true`,
-and configure its host/port and timeouts. The temporary object remains under an
-unpublished quarantine key until all active scanners return `CLEAN`; an
-infected verdict or scanner failure deletes it. SmartupCMS does not publish a
-ClamAV container: the operator owns image pinning, signature updates, resource
-limits, health monitoring, and network isolation for that service.
+bytes before storage. Production Compose starts the official multi-architecture
+ClamAV image pinned by version and digest, persists signatures in `clamav-data`,
+and waits for its built-in health check before starting the server. Both
+`DWH_FILE_SCANNER_REQUIRED` and the ClamAV provider are forced on in this
+supported topology. The temporary object remains under an unpublished
+quarantine key until every active scanner returns `CLEAN`; an infected verdict
+or scanner failure deletes it. Operators may override `CLAMAV_IMAGE` only with
+another reviewed immutable image and must monitor signature freshness and
+scanner memory on the host.
 
 ## 3. Validate before first start
 

@@ -34,6 +34,7 @@ Assert-Matches $composeSource '/web:\$\{APP_VERSION' 'Production must use the ve
 Assert-Matches $composeSource '/backup:\$\{APP_VERSION' 'Production must use the versioned SmartupCMS backup image.'
 Assert-Matches $composeSource '/postgres:\$\{APP_VERSION' 'Production must use the versioned SmartupCMS PostgreSQL image.'
 Assert-Matches $composeSource '/typesense:\$\{APP_VERSION' 'Production must use the versioned SmartupCMS Typesense image.'
+Assert-Matches $composeSource 'clamav/clamav-debian:1\.5\.3@sha256:[a-f0-9]{64}' 'Production must pin the official ClamAV image by version and digest.'
 Assert-DoesNotMatch $composeSource 'control-plane|web-cp|db-cp|migrate-cp|smartupcms/instance' 'Retired Control Plane topology remains in production Compose.'
 Assert-Matches $composeSource 'internal:\s*true' 'The database network must be internal.'
 Assert-Matches $composeSource 'backup-status:/var/lib/smartupcms/backup:ro' 'The server must receive backup status read-only.'
@@ -87,7 +88,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Production Compose failed config validation.' }
     $config = $configJsonText | ConvertFrom-Json
 
-    $requiredServices = @('postgres', 'migrate', 'server', 'web', 'typesense', 'backup', 'backup-bootstrap')
+    $requiredServices = @('postgres', 'migrate', 'server', 'web', 'typesense', 'clamav', 'backup', 'backup-bootstrap')
     foreach ($service in $requiredServices) {
         if ($config.services.PSObject.Properties.Name -notcontains $service) {
             throw "Production Compose is missing service '$service'."
@@ -96,12 +97,21 @@ try {
     if ($null -eq $config.services.web.ports -or @($config.services.web.ports).Count -ne 1) {
         throw 'Web must be the only service with one published port.'
     }
-    foreach ($service in @('postgres', 'server', 'typesense', 'backup')) {
+    foreach ($service in @('postgres', 'server', 'typesense', 'clamav', 'backup')) {
         if ($null -ne $config.services.$service.ports -and @($config.services.$service.ports).Count -gt 0) {
             throw "Service '$service' must not publish a host port."
         }
     }
     if (-not $config.networks.backend.internal) { throw 'Production backend network is not internal.' }
+    if ("$($config.services.server.environment.DWH_FILE_SCANNER_REQUIRED)" -ne 'true') {
+        throw 'Production server must require a malware scanner by default.'
+    }
+    if ("$($config.services.server.environment.DWH_FILE_SCANNER_CLAMAV_ENABLED)" -ne 'true') {
+        throw 'Production server must activate the bundled ClamAV provider.'
+    }
+    if ("$($config.services.server.depends_on.clamav.condition)" -ne 'service_healthy') {
+        throw 'Production server must wait for a healthy ClamAV service.'
+    }
 }
 finally {
     $env:DB_PASSWORD_FILE = $previousDbPasswordFile
@@ -122,11 +132,14 @@ if ($LASTEXITCODE -ne 0 -or $backupUid.Trim() -ne '10001') {
     throw 'Backup image UID must match the server data UID so 0600 status remains readable.'
 }
 
-docker run --rm `
+$nginxConfigOutput = docker run --rm `
     --add-host server:127.0.0.1 `
     -v "${webNginxPath}:/etc/nginx/conf.d/default.conf:ro" `
-    nginx:1.28-alpine nginx -t
+    nginx:1.28-alpine nginx -T 2>&1
 if ($LASTEXITCODE -ne 0) { throw 'Web NGINX configuration failed nginx -t.' }
+Assert-Matches ($nginxConfigOutput -join [Environment]::NewLine) `
+    'client_max_body_size\s+51m' `
+    'Web NGINX must allow a 50 MiB file plus bounded multipart overhead.'
 
 $bashSyntaxCheck = @'
 set -eu
@@ -139,6 +152,7 @@ for script in write-status.sh backup-loop.sh bootstrap-role.sh; do
 done
 bash -n /tmp/release-scripts/*.sh /tmp/backup-scripts/*.sh
 '@
+$bashSyntaxCheck = $bashSyntaxCheck.Replace("`r", '')
 docker run --rm `
     -v "${PSScriptRoot}:/release:ro" `
     -v "$(Join-Path $repoRoot 'deploy/images/backup'):/backup:ro" `

@@ -4,6 +4,8 @@ import com.greenwhite.dwh.instance.common.error.ApiException;
 import com.greenwhite.dwh.instance.mf.repository.MfFileRepository;
 import com.greenwhite.dwh.instance.mf.service.MfFileService;
 import com.greenwhite.dwh.instance.mf.service.FileContentInspector;
+import com.greenwhite.dwh.instance.mf.service.MfFileMetadataService;
+import com.greenwhite.dwh.instance.mf.service.MfFileObjectLock;
 import com.greenwhite.dwh.spi.storage.StorageProvider;
 import com.greenwhite.dwh.spi.storage.StoredFileMetadata;
 import com.greenwhite.dwh.spi.storage.FileDownloadStream;
@@ -29,12 +31,16 @@ class MfFileServiceTest {
 
     private final MfFileRepository fileRepository = Mockito.mock(MfFileRepository.class);
     private final StorageProvider storageProvider = Mockito.mock(StorageProvider.class);
+    private final com.greenwhite.dwh.instance.audit.service.AuditLogService auditLogService =
+            Mockito.mock(com.greenwhite.dwh.instance.audit.service.AuditLogService.class);
+    private final MfFileMetadataService metadataService =
+            new MfFileMetadataService(fileRepository, auditLogService);
     private final MfFileService service = new MfFileService(
-            fileRepository,
+            metadataService,
             storageProvider,
-            Mockito.mock(com.greenwhite.dwh.instance.audit.service.AuditLogService.class),
             new FileContentInspector(),
-            List.of());
+            List.of(),
+            new MfFileObjectLock());
 
     @Test
     @DisplayName("Загрузка исполняемых файлов (.exe, .sh, .bat) должна отклоняться политикой безопасности")
@@ -73,11 +79,11 @@ class MfFileServiceTest {
         byte[] content = pdfBytes(128);
         FileScanner scanner = Mockito.mock(FileScanner.class);
         MfFileService scanningService = new MfFileService(
-                fileRepository,
+                metadataService,
                 storageProvider,
-                Mockito.mock(com.greenwhite.dwh.instance.audit.service.AuditLogService.class),
                 new FileContentInspector(),
-                List.of(scanner));
+                List.of(scanner),
+                new MfFileObjectLock());
         givenRoomInQuotas(1L);
         when(storageProvider.upload(anyString(), anyString(), any(), anyLong(), anyString()))
                 .thenReturn(new StoredFileMetadata(
@@ -248,6 +254,37 @@ class MfFileServiceTest {
                 new ByteArrayInputStream(pdfBytes(1024)), 1024, 3L);
 
         assertThat(result.id()).isEqualTo(winner.id());
+    }
+
+    @Test
+    @DisplayName("Квота повторно проверяется атомарно после scan/storage и отклонённый объект очищается")
+    void shouldRecheckQuotaAtPublicationAndCleanUnpublishedObject() {
+        byte[] content = pdfBytes(1024);
+        when(fileRepository.getCompanyQuotaBytes()).thenReturn(2_000L);
+        when(fileRepository.getTotalCompanyUsedBytes()).thenReturn(0L, 1_500L);
+        when(fileRepository.getUserEffectiveQuotaBytes(9L)).thenReturn(10_000L);
+        when(fileRepository.getUserUsedBytes(9L)).thenReturn(0L);
+        when(fileRepository.findBySha256AndOwner(SHA, 9L)).thenReturn(Optional.empty());
+        when(fileRepository.findBySha256(SHA)).thenReturn(Optional.empty());
+        when(fileRepository.existsBySha256(SHA)).thenReturn(false);
+        when(storageProvider.exists("instance-files", "e3/" + SHA)).thenReturn(false);
+        when(storageProvider.upload(anyString(), anyString(), any(), anyLong(), anyString()))
+                .thenReturn(new StoredFileMetadata(
+                        "instance-files", "temp_quota", SHA, content.length,
+                        "application/pdf", Instant.now()));
+        when(storageProvider.download(eq("instance-files"), startsWith("temp_")))
+                .thenReturn(new FileDownloadStream(
+                        new ByteArrayInputStream(content), content.length, "application/pdf"));
+
+        assertThatThrownBy(() -> service.uploadFile(
+                "report.pdf", "application/pdf", new ByteArrayInputStream(content),
+                content.length, 9L))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("Превышена дисковая квота компании");
+
+        Mockito.verify(fileRepository).lockQuotaBudget();
+        Mockito.verify(storageProvider).delete("instance-files", "e3/" + SHA);
+        Mockito.verify(storageProvider).delete(eq("instance-files"), startsWith("temp_"));
     }
 
     private static byte[] pdfBytes(int size) {

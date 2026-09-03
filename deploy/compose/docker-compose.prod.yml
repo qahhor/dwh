@@ -27,8 +27,10 @@ x-server-common: &server-common
     DWH_S3_SECRET_KEY: ${DWH_S3_SECRET_KEY:-}
     DWH_S3_BUCKET: ${DWH_S3_BUCKET:-}
     DWH_S3_PATH_STYLE: ${DWH_S3_PATH_STYLE:-true}
-    DWH_FILE_SCANNER_REQUIRED: ${DWH_FILE_SCANNER_REQUIRED:-false}
-    DWH_FILE_SCANNER_CLAMAV_ENABLED: ${DWH_FILE_SCANNER_CLAMAV_ENABLED:-false}
+    # Production file uploads are fail-closed. Development Compose remains
+    # optional, but the supported production topology cannot disable scanning.
+    DWH_FILE_SCANNER_REQUIRED: "true"
+    DWH_FILE_SCANNER_CLAMAV_ENABLED: "true"
     DWH_FILE_SCANNER_CLAMAV_HOST: ${DWH_FILE_SCANNER_CLAMAV_HOST:-clamav}
     DWH_FILE_SCANNER_CLAMAV_PORT: ${DWH_FILE_SCANNER_CLAMAV_PORT:-3310}
     DWH_FILE_SCANNER_CLAMAV_CONNECT_TIMEOUT: ${DWH_FILE_SCANNER_CLAMAV_CONNECT_TIMEOUT:-3s}
@@ -93,6 +95,7 @@ services:
     depends_on:
       postgres: {condition: service_healthy}
       typesense: {condition: service_healthy}
+      clamav: {condition: service_healthy}
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9090/actuator/health/readiness || exit 1"]
       interval: 15s
@@ -147,6 +150,19 @@ services:
       timeout: 3s
       retries: 10
       start_period: 20s
+    security_opt: [no-new-privileges:true]
+    logging:
+      driver: json-file
+      options: {max-size: "50m", max-file: "5"}
+
+  clamav:
+    # Official multi-architecture image, pinned to both a security-patched
+    # release and its immutable OCI index digest.
+    image: ${CLAMAV_IMAGE:-clamav/clamav-debian:1.5.3@sha256:741e6c447241220e0792a901befcaec1d55a755c5097fc9cd88d7fd8be251a5c}
+    restart: unless-stopped
+    volumes:
+      - clamav-data:/var/lib/clamav
+    networks: [backend, egress]
     security_opt: [no-new-privileges:true]
     logging:
       driver: json-file
@@ -232,5 +248,6 @@ volumes:
   postgres-data:
   server-data:
   typesense-data:
+  clamav-data:
   backups:
   backup-status:

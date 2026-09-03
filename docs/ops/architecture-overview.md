@@ -19,6 +19,7 @@ web :8080  -------------------->  server :8080
    |                                 |
    |                                 +--> PostgreSQL :5432
    |                                 +--> Typesense :8108
+   |                                 +--> ClamAV :3310
    |                                      backend network (internal)
    |
    +-- one browser origin for SPA and /api
@@ -31,7 +32,8 @@ The production Compose file is
 [`deploy/compose/docker-compose.prod.yml`](../../deploy/compose/docker-compose.prod.yml).
 Only `web` publishes a host port, bound to `127.0.0.1:8080` by default. A host
 proxy or Cloudflare terminates TLS and forwards to that listener. `server`,
-PostgreSQL, Typesense, and the management port remain on Compose networks.
+PostgreSQL, Typesense, ClamAV, and the management port remain on Compose
+networks.
 
 ## Components and trust boundaries
 
@@ -41,6 +43,7 @@ PostgreSQL, Typesense, and the management port remain on Compose networks.
 | `server` | Authentication, server-side authorization, validation, business transactions | `server-data` for local file storage |
 | `postgres` | Authoritative transactional state and audit records | `postgres-data` |
 | `typesense` | Derived search index; not an authorization source | `typesense-data` |
+| `clamav` | Untrusted quarantined upload bytes; malware verdicts fail closed | `clamav-data` for signatures |
 | `backup` | Dedicated read-only database role; encryption before persistence | `backups`, `backup-status` |
 | `migrate` | One-shot schema mutation with application database credentials | PostgreSQL schema history |
 
@@ -53,9 +56,10 @@ Typesense is not exposed to browsers in production.
 
 - Business writes: browser -> `web` -> `server` -> PostgreSQL transaction and
   audit record.
-- File uploads: `server` calculates metadata and stores bytes in the configured
-  `local_disk` or S3-compatible provider. Database backups do not contain these
-  object bytes.
+- File uploads: `server` validates metadata and content, stores bytes under an
+  unpublished quarantine key, and sends them to ClamAV before publishing in the
+  configured `local_disk` or S3-compatible provider. Database backups do not
+  contain these object bytes.
 - Search: `server` writes and queries Typesense through the private network.
 - Notifications and webhooks: outbound requests occur only when an
   administrator selects and configures a real provider. Console providers are

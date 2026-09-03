@@ -5,6 +5,13 @@ server:
 spring:
   application:
     name: smartupcms-server
+  servlet:
+    multipart:
+      # Product contract: a file can contain up to 50 MiB. The request gets one
+      # additional MiB for the multipart boundary and metadata; the service
+      # remains the final per-file validator.
+      max-file-size: 50MB
+      max-request-size: 51MB
   threads:
     virtual:
       enabled: true

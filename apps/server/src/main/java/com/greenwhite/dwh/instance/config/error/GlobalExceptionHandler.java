@@ -19,6 +19,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.ArrayList;
@@ -94,6 +95,20 @@ public class GlobalExceptionHandler {
         var problem = ProblemDetailRecord.of(code,
                 "Запрос нарушает ограничение целостности данных", request.getRequestURI());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ProblemDetailRecord> handleMaxUploadSizeExceeded(
+            MaxUploadSizeExceededException ex,
+            HttpServletRequest request) {
+        log.warn("Upload rejected because it exceeds the configured size boundary: {}", request.getRequestURI());
+        var problem = ProblemDetailRecord.of(
+                ErrorCode.FILE_SIZE_EXCEEDED,
+                "Размер файла превышает допустимые 50 МБ",
+                request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+                .contentType(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON)
+                .body(problem);
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
