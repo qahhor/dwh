@@ -72,6 +72,8 @@ legal and ownership decisions.
 ## Project entry points and historical material
 
 - [Project overview and quick start](../README.md)
+- [AI project context](ai-context.md) — concise handoff for AI-assisted work;
+  subordinate to this authority model and the canonical specification.
 - [Contribution guide](../CONTRIBUTING.md)
 
 `audit/` contains dated evidence and findings. `docs/superpowers/` contains

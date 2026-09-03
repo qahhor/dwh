@@ -1,6 +1,6 @@
 # Техническое задание SmartupCMS
 
-**Версия:** 1.0
+**Версия:** 1.1
 
 **Статус:** Базовая спецификация для подготовки релиза
 
@@ -11,6 +11,8 @@
 Этот документ является единым нормативным ТЗ. При расхождении документации
 фактическое поведение подтверждается кодом и автоматическими контрактами, а
 расхождение регистрируется как дефект документации до изменения требований.
+[Контекст для AI-ассистентов](ai-context.md) является только кратким handoff и
+не может добавлять или изменять требования этого ТЗ.
 
 ## 1. Назначение и границы продукта
 
@@ -51,6 +53,12 @@ SmartupCMS — самостоятельно размещаемая платфо�
 обязательная телеметрия, удалённая регистрация установки, контроль лицензии,
 дистрибуция через Nomad, Consul или Kubernetes, встроенная multi-host HA и
 обязательный облачный провайдер для self-hosted-оператора.
+
+В управляемой Smartup инфраструктуре внешний DNS/TLS/security edge должен
+работать через Cloudflare, а объектное хранилище — через Cloudflare R2. На
+инфраструктуре клиента оператор может использовать собственный edge и любой
+проверенный `local_disk` или S3-совместимый provider, не изменяя продуктовую
+модель.
 
 ## 2. Правила трассируемости
 
@@ -158,7 +166,7 @@ SmartupCMS — самостоятельно размещаемая платфо�
 | `NFR-SEC-01` | Система должна применять проверяемые OWASP-контроли для аутентификации, авторизации, CSRF, rate limiting, безопасных ошибок и загрузок. | `apps/server/src/main/java/com/greenwhite/dwh/instance/config/security/`; `apps/server/src/test/java/com/greenwhite/dwh/instance/config/security/`; `docs/security/threat-model.md` | `mvn -B verify` и негативный security suite проходят; release review сопоставляет актуальные угрозы и остаточные риски. |
 | `NFR-SEC-02` | Производственные контейнеры и database/backup роли должны работать с наименьшими необходимыми правами. | `deploy/compose/docker-compose.prod.yml`; `deploy/images/backup/bootstrap-role.sh`; `Dockerfile` | Контракт Compose проверяет `no-new-privileges`, dropped capabilities/read-only FS; DB-тест подтверждает запрет записи backup-роли. |
 | `NFR-SEC-03` | Секреты, `.env`, dumps, customer data и расшифрованные backup не должны попадать в Git, логи или публичные diagnostic artifacts. | `.gitignore`; `SECURITY.md`; `e2e/scripts/verify-artifact-security.mjs`; `scripts/prod/test-backup-status.ps1` | Secret scan и artifact-security тест проходят на commit и релизном evidence bundle. |
-| `NFR-SEC-04` | Производственная установка должна завершать TLS на внешнем edge и не публиковать PostgreSQL, Typesense или management endpoints. | `deploy/compose/docker-compose.prod.yml`; `deploy/nginx/nginx.prod.conf`; `docs/ops/deployment-guide.md` | С внешней сети доступны только утверждённый HTTPS domain и web origin; скан портов подтверждает недоступность внутренних сервисов. Конкретный domain является входом установки. |
+| `NFR-SEC-04` | Производственная установка должна завершать TLS на внешнем edge и не публиковать PostgreSQL, Typesense или management endpoints. Smartup-managed установка должна использовать Cloudflare edge; self-hosted оператор может использовать собственный проверенный edge. | `deploy/compose/docker-compose.prod.yml`; `deploy/nginx/nginx.prod.conf`; `docs/ops/deployment-guide.md`; `docs/adr/ADR-0014-unified-open-source-runtime.md` | С внешней сети доступны только утверждённый HTTPS domain и web origin; скан портов подтверждает недоступность внутренних сервисов. Для managed-профиля дополнительно зафиксированы Cloudflare zone, WAF/rate-limit policy и блокировка прямого origin-доступа. Конкретный domain является входом установки. |
 | `NFR-SEC-05` | Производственный upload должен проходить content validation и fail-closed malware scanning до публикации. | `apps/server/src/main/java/com/greenwhite/dwh/instance/mf/service/FileContentInspector.java`; `apps/server/src/main/java/com/greenwhite/dwh/instance/mf/scan/ClamAvFileScanner.java`; `deploy/compose/docker-compose.prod.yml` | EICAR и executable-signature samples отклоняются; scanner outage не создаёт доступного объекта или метаданных. |
 | `NFR-SEC-06` | Исходящие webhook должны быть защищены от SSRF посредством схемы HTTPS, точного allow-list, проверки DNS/IP и запрета private ranges по умолчанию. | `apps/server/src/main/java/com/greenwhite/dwh/instance/kwh/service/WebhookTargetPolicy.java`; `apps/server/src/test/java/com/greenwhite/dwh/instance/kwh/service/WebhookTargetPolicyTest.java` | Набор тестов покрывает loopback, link-local, private IPv4/IPv6, DNS rebinding и разрешённый публичный host. |
 | `NFR-SEC-07` | Релиз должен проверяться по digest, SHA-256, SBOM, provenance и keyless Cosign signature до развёртывания. | `.github/workflows/release.yml`; `scripts/release/verify-release.ps1`; `README.md` | На release candidate успешно выполняются checksum, `cosign verify`, attestation verification и сверка SBOM для каждого image digest. |
