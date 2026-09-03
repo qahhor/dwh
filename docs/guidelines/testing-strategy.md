@@ -1,175 +1,83 @@
-# Стратегия тестирования и архитектурный тест-план
+# Стратегия тестирования SmartupCMS
 
-**Версия:** 1.0
-**Дата:** 2026-08-28
-**Основание:** ТЗ-01 NFR-11, ADR-0002, ADR-0006, ADR-0008, ADR-0011, CODE_STYLE.md
+**Версия:** 2.0
 
----
+**Обновлено:** 2026-09-03
 
-## 1. Пирамида тестирования
+**Основание:** текущий CI и критерии `AC-01..12` из
+[канонического ТЗ](../technical-specification.md).
 
-```
-           / \
-          / E2E \         Сквозные пользовательские сценарии (Playwright, F-01…F-09)
-         /───────\
-        / Contract \      Контрактные тесты адаптеров Provider SPI (MockServer)
-       /─────────────\
-      /  Integration  \   Spring Boot + Testcontainers (PostgreSQL 18, Garage S3)
-     /─────────────────\
-    /     ArchUnit      \ Архитектурные тесты границ модулей и инвариантов
-   /─────────────────────\
-  /         Unit          \ Юнит-тесты чистой доменной логики и инвариантов агрегатов
- /─────────────────────────\
-```
+Качество релиза доказывается несколькими слоями. Прохождение одного слоя не
+заменяет другой: unit test не доказывает production Compose, а успешный E2E не
+заменяет проверку архитектурной границы или supply chain.
 
----
+## Обязательные локальные gates
 
-## 2. Юнит-тестирование (Unit Tests)
+Из корня репозитория в PowerShell выполните эти команды без изменения их
+семантики:
 
-- **Фреймворки:** JUnit 5, AssertJ, Mockito.
-- **Обязательное покрытие:**
-  - Доменные агрегаты и правила инвариантов: `Task` (I-T1…I-T7), `EffectivePermissions` (I-P1…I-P4), `User` (I-U1…I-U3), `NotificationOutbox` (I-N1…I-N2).
-  - Никакой зависимости от Spring Context или базы данных — мгновенное выполнение (миллисекунды).
-- **Пример теста агрегата Task (I-T6: закрытие с открытыми подзадачами):**
-  ```java
-  @Test
-  void should_reject_closing_task_when_subtasks_are_open() {
-      Task parentTask = TaskFixture.createInProgressTask();
-      parentTask.addSubtask(TaskFixture.createOpenSubtask());
-
-      assertThatThrownBy(() -> parentTask.changeStatus(TaskStatus.DONE, currentUser))
-          .isInstanceOf(DomainRuleViolationException.class)
-          .hasMessageContaining("task_closed_with_open_subtasks");
-  }
-  ```
-
----
-
-## 3. Архитектурное тестирование (ArchUnit)
-
-Обязательный шаг сборки CI (`mvn test`). Нарушение правил немедленно валит сборку.
-
-### 3.1. Правило 1: Изоляция модулей и запрет циклов
-```java
-@ArchTest
-public static final ArchRule no_cyclic_dependencies_between_modules =
-    slices().matching("com.greenwhite.dwh.instance.(*)..")
-            .should().beFreeOfCycles();
-
-@ArchTest
-public static final ArchRule module_internal_packages_are_isolated =
-    noClasses().that().resideInAPackage("..tasks..")
-               .should().dependOnClassesThat().resideInAPackage("..iam.internal..");
+```powershell
+mvn -B verify
+Push-Location apps/web; npm test; npm run typecheck; npm run build; Pop-Location
+./scripts/architecture/test-unified-boundaries.ps1
+./scripts/docs/test-public-docs.ps1
+./scripts/docs/test-repository-hygiene.ps1
+./scripts/release/verify-release.ps1
+./scripts/prod/test-release-config.ps1
+./scripts/prod/test-backup-status.ps1
+Push-Location e2e; npm run test:config; npm run typecheck; npm run test:artifact-security; npm test; Pop-Location
 ```
 
-### 3.2. Правило 2: Инкапсуляция репозиториев
-```java
-@ArchTest
-public static final ArchRule repositories_must_only_be_accessed_by_own_services =
-    classes().that().haveSimpleNameEndingWith("Repository")
-             .should().onlyBeAccessed().byClassesThat()
-             .resideInAnyPackage("..repository..", "..service..");
-```
+Перед первым npm-запуском зависимости устанавливаются через `npm ci` в
+соответствующем каталоге. Browser E2E (`e2e` `npm test`) требует Compose-стек,
+подготовленный по root README. Ненулевой код любого обязательного gate блокирует
+merge или release.
 
-### 3.3. Правило 3: Защита контроллеров аннотациями прав (FR-PERM-8)
-```java
-@ArchTest
-public static final ArchRule all_rest_controllers_must_have_permission_annotation =
-    methods().that().areDeclaredInClassesThat().areAnnotatedWith(RestController.class)
-             .and().arePublic()
-             .should().beAnnotatedWith(RequiresPermission.class)
-             .orShould().beAnnotatedWith(PublicEndpoint.class);
-```
+## Слои и критерии приёмки
 
-### 3.4. Правило 4: Изоляция внешних вызовов (Provider SPI, ADR-0011)
-```java
-@ArchTest
-public static final ArchRule external_providers_must_only_be_called_from_adapters =
-    noClasses().that().resideOutsideOfPackages("com.greenwhite.dwh.libs.adapters..")
-               .should().dependOnClassesThat().resideInAnyPackage("org.telegram..", "com.twilio..");
-```
+| Слой | Что доказывает | Критерии ТЗ |
+|---|---|---|
+| Unit | Изолированные инварианты backend и Angular-компонентов, обработка ошибок и негативные ветви. | `AC-01`, `AC-02`, часть `AC-07` и `AC-10` |
+| Integration | Spring/SQL/provider поведение на реальных границах, вся цепочка Flyway, upgrade данных, storage и authorization integration. | `AC-01`, `AC-04`, `AC-07`, `AC-09`, `AC-10` |
+| Architecture | Maven/ArchUnit и unified-boundary правила: направление зависимостей, единственный server/web runtime, отсутствие обхода API. | `AC-03`, поддерживает `AC-10` |
+| Configuration | Рендеринг Compose/NGINX, fail-closed deploy, schema readiness, backup status и installation-specific входы. | `AC-03`, `AC-05`, `AC-08`, `AC-12` |
+| Security и supply chain | Secret/artifact controls, upload/scanner отказ, negative authorization/IDOR, dependency/image scan, SBOM, checksum, signature и provenance. | `AC-03`, `AC-07`, `AC-10`, `AC-11` |
+| E2E | Чистый migrate/start и критические Chromium journeys через публичный web origin; smoke, файлы и восстановительные проверки. | `AC-05`, `AC-06`, `AC-08`, `AC-09` |
 
----
+Все `AC-01..12` требуют evidence на точном release commit/image digest.
+`AC-12` не автоматизируется целиком: владелец релиза проверяет, что для каждой
+установки назначены SLO, privacy/retention, incident, RPO/RTO, domain, region и
+rollback owners.
 
-## 4. Интеграционное тестирование (Testcontainers)
+## Соответствие CI
 
-- **Инфраструктура:** Единый переиспользуемый контейнер `PostgreSQL 18` с расширением `pgvector` и `Garage S3`.
-- **Базовый тестовый класс:**
-  ```java
-  @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-  @Testcontainers
-  public abstract class AbstractIntegrationTest {
-      @Container
-      static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:18-alpine")
-              .withDatabaseName("dwh_test")
-              .withUsername("test")
-              .withPassword("test");
+CI выполняет следующие независимые jobs:
 
-      @DynamicPropertySource
-      static void configureProperties(DynamicPropertyRegistry registry) {
-          registry.add("spring.datasource.url", postgres::getJdbcUrl);
-          registry.add("spring.datasource.username", postgres::getUsername);
-          registry.add("spring.datasource.password", postgres::getPassword);
-      }
-  }
-  ```
+- **backend:** `mvn -B verify`, включая unit/integration/ArchUnit, затем
+  формирование CycloneDX SBOM;
+- **frontend:** `npm ci`, unit tests, typecheck и production build из
+  `apps/web`;
+- **release config:** unified architecture, public docs, repository hygiene,
+  release supply-chain, production Compose и encrypted-backup contracts, а
+  также fail-closed deploy test;
+- **E2E:** ephemeral credentials, Compose build, runtime-image scan, отдельный
+  migrate, healthy startup, public smoke и Playwright Chromium;
+- **security:** Gitleaks по истории Git и Trivy по зависимостям.
 
-### Обязательные интеграционные тест-сьюты:
-1. **RBAC & Эффективные права:**
-   - Изменение прав роли пересчитывает `effective_permissions` в той же транзакции.
-   - Инкремент `permissions_version` пользователя.
-   - Отзыв прав блокирует доступ к эндпоинту за ≤ 60 с без повторного логина.
-2. **Transactional Outbox:**
-   - Сохранение задачи создаёт запись в `notification_outbox`.
-   - Воркер успешно блокирует строки через `FOR UPDATE SKIP LOCKED` и производит отправку.
-   - Сбойные отправки после 5 попыток перемещаются в статус `DEAD_LETTER`.
-3. **Файловое хранилище (Garage S3):**
-   - Загрузка двух одинаковых файлов создаёт одну физическую запись в Garage (SHA-256 дедупликация).
-   - Загрузка файла с поддельным расширением (`.exe`, переименованный в `.png`) отклоняется валидатором magic-bytes с кодом `415 file_type_forbidden`.
+Required job с ошибкой должен блокировать merge. Исключение теста, понижение
+severity или обновление snapshot требует review с явным обоснованием и ссылкой
+на затронутый критерий ТЗ.
 
----
+## Требования к тестам и evidence
 
-## 5. Контрактный тест-кит Provider SPI (ADR-0011)
-
-Каждый адаптер внешнего провайдера (SMS, Email, Telegram, LLM) обязан проходить стандартный контрактный тест-сьют перед добавлением в сборку.
-
-### Базовый контракт для SMS-провайдеров:
-```java
-public abstract class AbstractSmsProviderContractTest {
-    protected abstract SmsProvider createProvider();
-    protected abstract void mockSuccessfulDelivery(String phone, String text);
-    protected abstract void mockProviderNetworkError();
-    protected abstract void mockInvalidRecipientError(String phone);
-
-    @Test
-    void should_successfully_deliver_sms_message() {
-        SmsProvider provider = createProvider();
-        mockSuccessfulDelivery("+998901234567", "Your OTP: 123456");
-
-        DeliveryResult result = provider.send(new SmsMessage("+998901234567", "Your OTP: 123456"));
-        assertThat(result).isInstanceOf(DeliveryResult.Success.class);
-    }
-
-    @Test
-    void should_return_retryable_failure_on_network_timeout() {
-        SmsProvider provider = createProvider();
-        mockProviderNetworkError();
-
-        DeliveryResult result = provider.send(new SmsMessage("+998901234567", "Test"));
-        assertThat(result).isInstanceOf(DeliveryResult.Failure.class);
-        assertThat(((DeliveryResult.Failure) result).retryable()).isTrue();
-    }
-}
-```
-
----
-
-## 6. Тестирование безопасности и комплаенса (Security Tests)
-
-1. **CSRF Double-Submit:**
-   - Мутирующий запрос (`POST /api/v1/tasks`) с сессионной cookie без заголовка `X-CSRF-Token` возвращает `403 Forbidden`.
-   - Тот же запрос с `Authorization: Bearer <api-token>` успешно проходит без CSRF-токена.
-2. **Rate Limiting (Bucket4j):**
-   - 61-й неаутентифицированный запрос за 1 минуту возвращает `429 Too Many Requests` с заголовком `Retry-After`.
-3. **Маскирование в логах:**
-   - Тест перехватывает вывод Logback при вызове аутентификации и проверяет, что пароли, токены и телефоны заменяются на `***MASKED***`.
+1. Исправление дефекта получает regression test, воспроизводящий исходный сбой.
+2. Авторизационная функция покрывает разрешённую и запрещённую роли, прямой
+   запрос по чужому ID и отсутствие доверия к скрытию элемента в UI.
+3. Миграция проверяется на пустой и upgrade базе, включая повторный запуск и
+   `flyway_schema_history`.
+4. Внешний provider тестируется контрактом SPI; production integration test не
+   публикует credentials или customer data.
+5. Failure artifacts проходят `npm run test:artifact-security`; логи, отчёты и
+   screenshots не содержат пароли, tokens, cookies или содержимое `.env`.
+6. Release evidence фиксирует commit SHA, image digest, версии инструментов,
+   точные команды, exit codes и ссылки на сохранённые безопасные artifacts.

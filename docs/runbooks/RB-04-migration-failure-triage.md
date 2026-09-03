@@ -1,53 +1,131 @@
-# Runbook RB-04: Диагностика и устранение сбоев миграций Flyway
+# RB-04: Migration failure triage
 
-**Версия:** 1.0
-**Основание:** ADR-0007 (разд. 2.3), guidelines/database-migrations.md
-**Актор:** Инженер релизного конвейера / Дежурный инженер.
+**Version:** 2.0
 
----
+**Updated:** 2026-09-03
 
-## 1. Симптомы и детекция
+**Applies to:** the supported Docker Compose deployment described by
+[ADR-0014](../adr/ADR-0014-unified-open-source-runtime.md).
 
-1. В процессе развёртывания в кольце (R0, R1 или R2) Nomad batch-job `flyway-migration` завершился с ошибкой `Exit Code 1`.
-2. Canary-развёртывание группы `app` **автоматически заблокировано** (старые версии приложения продолжают работать благодаря правилу expand/contract).
-3. Алерт в Telegram: `[ERROR] MigrationFailed: client-042 (script: V012__add_task_priority.sql)`.
+## Trigger and objective
 
----
+Use this runbook when the `migrate` service exits non-zero or schema readiness
+blocks `server`. The objective is to protect authoritative PostgreSQL data,
+choose a safe forward fix or restore, and record the actual recovery outcome.
 
-## 2. Порядок диагностики
+## Immediate action
 
-1. Получить логи упавшей миграции из Nomad:
-   ```bash
-   nomad alloc logs -job flyway-migration-client-042
-   ```
-2. Типовые причины сбоев:
-   - **Lock Timeout (504):** Таблица была заблокирована долгой аналитической транзакцией > 2с (`lock_timeout = '2s'`).
-   - **Data Conflict (Duplicate/Null violation):** В таблице есть исторические строки, нарушающие новый `CHECK` или `UNIQUE` констрейнт.
-   - **Syntax Error / Schema mismatch:** Ошибка в SQL-скрипте миграции.
+1. Stop the deployment. Do not start the new `server` or continue rollout.
+2. Do not edit an applied Flyway file and do not run manual destructive SQL.
+3. Preserve the migration output and relevant service events in the restricted
+   incident record. Redact passwords, connection strings, tokens, environment
+   values, customer content, and other secrets before sharing logs.
+4. Record the incident start time, affected installation, release tag and image
+   digest, expected migration version, current availability, and decision owner.
+5. Confirm that the verified encrypted pre-migration backup and its checksum are
+   available before attempting a recovery that may modify data.
 
----
+## Diagnosis
 
-## 3. Процедура устранения
+Run the migration once from the correct deployment directory and retain its
+exit code and secret-safe output:
 
-### Вариант А: Сбой из-за Lock Timeout (Транзиентная ошибка)
-1. Убедиться, что в базе нет «зависших» транзакций:
+```powershell
+docker compose run --rm migrate
+```
+
+For a production bundle, use its configured Compose file and environment file;
+do not substitute development credentials. Then:
+
+1. Inspect `docker compose ps` and the PostgreSQL health status.
+2. Through an operator-controlled, authenticated PostgreSQL session, inspect
+   Flyway history without exposing credentials:
+
    ```sql
-   select pid, now() - query_start as duration, state, query
-   from pg_stat_activity
-   where state != 'idle' and now() - query_start > interval '10 seconds';
-   ```
-2. При необходимости завершить блокирующую транзакцию (`SELECT pg_terminate_backend(pid)`).
-3. Повторно запустить batch-job миграции:
-   ```bash
-   nomad job dispatch -meta client_code="client-042" dwh-flyway-migration
+   select installed_rank, version, description, type, script,
+          checksum, installed_on, execution_time, success
+   from flyway_schema_history
+   order by installed_rank;
    ```
 
-### Вариант Б: Ошибка данных или дефект в SQL-скрипте
-1. Поскольку в PostgreSQL 18 DDL транзакционен, упавшая миграция откатилась автоматически (`ROLLBACK`), база осталась в согласованном состоянии версии `V011`.
-2. Если таблица `flyway_schema_history` зафиксировала статус `success = false`:
-   - Запустить процедуру восстановления состояния истории:
-   ```bash
-   flyway repair -url=jdbc:postgresql://... -user=... -password=...
-   ```
-3. Разработчик исправляет миграцию в ветке `hotfix/migration-fix`.
-4. Новый релиз проходит сборку в CI и повторно подаётся в кольцо R0.
+3. Compare the failed version and checksum with the immutable release artifact.
+   Determine whether Flyway recorded the migration and whether PostgreSQL rolled
+   back its transaction.
+4. Check database connectivity, DNS/network reachability inside the Compose
+   network, database role permissions, connection limits, locks, statement
+   errors, and available disk/inode capacity for PostgreSQL and Docker.
+5. Identify the failure class: configuration/precondition, an idempotent
+   interrupted operation, migration defect requiring a forward fix, or
+   data/schema incompatibility requiring restore.
+
+Do not mark or delete a Flyway history row to make validation pass. Escalate any
+uncertain database state to the database/release owner.
+
+## Recovery decision
+
+Choose exactly one branch and record the decision owner and rationale.
+
+### A. Correct configuration and retry
+
+Use this branch only when the SQL artifact is correct and the failure is a
+configuration, connectivity, capacity, or permission issue. Correct the
+precondition, prove that the migration is idempotent or that PostgreSQL rolled
+it back completely, and rerun the normal `migrate` service. Do not retry an
+unknown partially applied operation.
+
+### B. Deploy a corrected forward migration
+
+Use this branch when released migration logic is wrong but the current data can
+be advanced safely. Keep every previously published Flyway file unchanged.
+Review and release a new migration with a new version, an integration test, and
+a documented compatibility window; deploy it through the normal fail-closed
+release process.
+
+### C. Restore and roll back the release
+
+Use this branch when the schema/data state is incompatible and a safe forward
+fix cannot meet the incident objective. Keep the deployment stopped, verify the
+encrypted pre-migration backup checksum and decryption identity, and follow the
+[restore procedure](../ops/maintenance-guide.md) in an operator-controlled
+environment. Restore the database (and object data when required for
+consistency), then deploy the previous immutable image digest. A mutable tag is
+not acceptable recovery evidence.
+
+Restoring loses changes after the selected backup. The decision owner must
+approve that data-loss window against the installation RPO before execution.
+
+## Validation before reopening traffic
+
+1. Run the Flyway migration path and confirm exit code 0 and a successful,
+   checksum-consistent `flyway_schema_history`.
+2. Start the selected server/web release and confirm server readiness plus
+   healthy mandatory Compose services.
+3. Run public health smoke checks and the critical Playwright journeys for
+   sign-in, tasks, announcements, files, and system status as applicable.
+4. Compare agreed pre/post data counts and domain invariants. Sample critical
+   records and verify that expected audit entries remain present; never copy
+   customer rows into a public incident report.
+5. Confirm Typesense can be rebuilt from authorized PostgreSQL data and that
+   search results remain server-authorized.
+6. Keep traffic closed and return to diagnosis if any validation fails.
+
+## Required incident evidence
+
+The final restricted incident record must contain:
+
+- incident, detection, decision, recovery-start, recovery-end, and validation
+  timestamps in UTC;
+- installation identifier, release tag, release/image digest, migration version,
+  script checksum, and Flyway result;
+- encrypted backup identifier and SHA-256 checksum, without the decryption
+  identity or storage credentials;
+- diagnosis, selected recovery branch, decision owner, operators, and approvals;
+- secret-safe command outputs for migration, readiness, smoke/E2E, audit checks,
+  and agreed data counts;
+- expected and measured RPO/RTO, including the actual data-loss window and
+  service restoration time;
+- follow-up owner and due date for the forward fix, test, or runbook correction.
+
+See the [database migration guide](../guidelines/database-migrations.md) for
+authoring rules and the [rollback procedure](../ops/rollback.md) for
+application-only rollback compatibility checks.

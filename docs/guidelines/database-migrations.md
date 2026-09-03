@@ -1,135 +1,93 @@
-# Регламент безопасных миграций базы данных (Flyway & PostgreSQL 18)
+# Миграции базы данных
 
-**Версия:** 1.0
-**Дата:** 2026-08-27
-**Основание:** ADR-0007 (разд. 2.3: миграции отдельным batch-job и правило expand/contract), ТЗ-01 NFR-10, CONTRIBUTING.md
-**Назначение:** обязательное руководство для инженеров по написанию версионируемых SQL-миграций Flyway для PostgreSQL 18.
+**Версия:** 2.0
 
----
+**Обновлено:** 2026-09-03
 
-## 1. Общие правила и организация файлов
+**Основание:** [каноническое ТЗ](../technical-specification.md),
+[ADR-0014](../adr/ADR-0014-unified-open-source-runtime.md) и production
+[руководство по развёртыванию](../ops/deployment-guide.md).
 
-1. **Именование файлов:** `V{NNN}__{short_description}.sql` (например, `V001__init_schema.sql`, `V012__add_task_priority.sql`). Версии сквозные, трёхзначные с ведущими нулями.
-2. **Повторяемые миграции (Repeatable):** `R__{description}.sql` (только для представлений `VIEW`, триггерных функций и процедур).
-3. **Один релиз — одна цель:** DDL-структура и DML-сиды разносятся по разным файлам миграций.
-4. **Таймауты блокировок:** Каждая DDL-миграция обязана начинаться с настройки таймаута блокировки во избежание захвата эксклюзивных локов в production:
-   ```sql
-   set lock_timeout = '2s';
-   set statement_timeout = '60s';
-   ```
-5. **Тестирование в CI:** Каждая миграция автоматически валидируется линтером и прогоняется на анонимизированном дампе крупнейшего клиента с замером времени выполнения.
+PostgreSQL — источник истины, а Flyway — единственный поддерживаемый механизм
+изменения схемы. Сервер не изменяет схему при обычном старте: отдельный сервис
+`migrate` должен успешно завершиться до проверки readiness сервера.
 
----
+## Локальная разработка
 
-## 2. Принцип Expand/Contract (Двухфазные миграции)
+Из корня репозитория с подготовленным `.env` выполните:
 
-Любое нетривиальное изменение схемы, затрагивающее существующие данные и код, обязано выполняться минимум в **два последовательных релиза**:
-
-```
-[Релиз N: EXPAND]          ──► [Релиз N: ДЕПЛОЙ КОДА]   ──► [Релиз N+1: CONTRACT]
-Добавляем новую колонку/        Код начинает писать/         Удаляем старую колонку/
-индекс/таблицу (совместимо      читать по-новому, но          таблицу после полного
-со старым кодом)                готов к откату                перехода флота
+```powershell
+docker compose run --rm migrate
 ```
 
----
+Ненулевой exit code блокирует запуск новой версии. Повторный запуск без новых
+миграций должен быть безопасным и не менять схему.
 
-## 3. Шаблоны безопасных DDL-операций в PostgreSQL 18
+## Production-релиз
 
-### 3.1. Добавление новой колонки со значением по умолчанию
-В PostgreSQL 18 добавление колонки с `DEFAULT` выполняется мгновенно на уровне метаданных без перезаписи всей таблицы.
-```sql
--- Релиз N (Expand)
-alter table tasks add column priority text not null default 'medium' check (priority in ('low', 'medium', 'high', 'critical'));
+Для upgrade используйте документированный fail-closed сценарий, а не запускайте
+Flyway вручную:
+
+```powershell
+./scripts/prod/deploy.ps1
 ```
 
-### 3.2. Удаление колонки (Contract)
-Удаление колонки выполняется только после того, как приложение перестало к ней обращаться (минимум через 1 релиз).
-```sql
--- Релиз N+1 (Contract)
--- destructive: approved (требует ревью второго инженера)
-alter table users drop column if exists legacy_nickname;
+Сценарий проверяет production Compose, получает неизменяемые образы, создаёт
+обязательный зашифрованный pre-migration backup существующей базы, запускает
+зависимости, применяет миграции и только затем запускает сервер с readiness
+проверкой. Linux-оператор использует эквивалентный `scripts/prod/deploy.sh`, как
+описано в руководстве по развёртыванию.
+
+## Правила авторинга
+
+1. Новый файл помещается в
+   `apps/server/src/main/resources/db/migration` и следует текущей схеме
+   `VNNN__short_description.sql`.
+2. Применённый Flyway-файл неизменяем: его нельзя редактировать, переименовывать,
+   переставлять или удалять. Исправление выпускается следующей forward migration.
+3. Совместимое изменение выполняется по expand/contract: сначала добавить новую
+   структуру и совместимый код, затем перенести/проверить данные, и только в
+   отдельном последующем релизе удалить старую структуру.
+4. DDL выполняется в транзакции там, где PostgreSQL это поддерживает.
+   Нетранзакционную операцию нужно изолировать, документировать её retry/recovery
+   свойства и проверить на disposable базе.
+5. Миграция данных должна быть детерминированной и безопасной при повторной
+   проверке. Большие backfill-операции обязаны учитывать блокировки, объём WAL,
+   свободное место и время выполнения.
+6. Запрещено полагаться на Typesense как на источник данных или авторизации:
+   производный индекс перестраивается после подтверждённой схемы PostgreSQL.
+
+## Проверка изменения
+
+Каждая миграция получает integration test на PostgreSQL. Минимум нужно доказать:
+
+- применение всей цепочки на пустой базе;
+- корректный upgrade с предыдущей поддерживаемой схемы и репрезентативными
+  данными;
+- валидную `flyway_schema_history` и отсутствие потери данных;
+- безопасный повторный запуск;
+- отказ readiness сервера при отстающей или несовместимой схеме.
+
+Текущие примеры находятся в `FlywayMigrationValidationTest` и
+`UnifiedOpenSourceMigrationIntegrationTest`; они выполняются через:
+
+```powershell
+mvn -B verify
 ```
 
-### 3.3. Создание индексов на работающих таблицах
-Создание индекса не должно блокировать запись в таблицу (`CREATE INDEX CONCURRENTLY`). В Flyway для этого миграция помечается как `non-transactional`.
-```sql
--- V015__create_tasks_assignee_idx.sql
--- flyway:non-transactional
+## Ошибка и восстановление
 
-create index concurrently if not exists tasks_assignee_status_idx on tasks (reporter_id, status_id);
-```
+Если миграция несовместима с данными или новым runtime, остановите rollout и
+следуйте [RB-04](../runbooks/RB-04-migration-failure-triage.md). Не исправляйте
+применённый файл и не выполняйте разрушительный SQL вручную.
 
-### 3.4. Добавление внешнего ключа (Foreign Key) без долгой блокировки
-Добавление FK на большую таблицу разбивается на два шага: создание ограничения без проверки существующих строк (`NOT VALID`) и последующая фоновая валидация (`VALIDATE CONSTRAINT`).
-```sql
--- Шаг 1: Быстрое добавление (требует лишь кратковременного замка)
-alter table task_comments
-  add constraint fk_task_comments_task
-  foreign key (task_id) references tasks(id)
-  not valid;
+- Конфигурационную ошибку можно исправить и повторить только при доказанной
+  идемпотентности незавершённой миграции.
+- Ошибку логики исправляют новой forward migration.
+- Если безопасное движение вперёд невозможно, восстановите проверенный
+  зашифрованный pre-migration backup и предыдущий неизменяемый image digest.
 
--- Шаг 2: Валидация данных без эксклюзивной блокировки всей таблицы
-alter table task_comments
-  validate constraint fk_task_comments_task;
-```
-
-### 3.5. Переименование колонки
-Прямой `RENAME COLUMN` ломает обратную совместимость и возможность отката canary-деплоя.
-**Безопасный алгоритм:**
-1. **Релиз N (Expand):** Добавить новую колонку `new_name` (nullable).
-2. **Релиз N (Триггер/Код):** Код пишет в обе колонки, читает из `new_name` (с fallback на `old_name`). Фоновый batch копирует старые данные: `UPDATE table SET new_name = old_name WHERE new_name IS NULL`.
-3. **Релиз N+1 (Contract):** Удалить `old_name`.
-
-### 3.6. Добавление значения в ENUM / CHECK-ограничение
-```sql
--- Для CHECK-констрейнтов:
-alter table tasks drop constraint tasks_priority_check;
-alter table tasks add constraint tasks_priority_check check (priority in ('low', 'medium', 'high', 'critical', 'urgent'));
-```
-
----
-
-## 4. Шаблон создания новой таблицы с аудитом и служебными колонками
-
-Каждая новая бизнес-таблица обязана следовать стандарту:
-
-```sql
--- V020__create_inventory_items.sql
-set lock_timeout = '2s';
-
-create table inventory_items (
-    id bigint generated always as identity primary key,
-    code text not null unique,
-    name text not null,
-    quantity int not null default 0 check (quantity >= 0),
-    
-    -- Служебные метаданные
-    created_at timestamptz not null default now(),
-    created_by bigint references users(id),
-    modified_at timestamptz not null default now(),
-    modified_by bigint references users(id)
-);
-
--- Подключение системного триггера аудита изменений (JSONB)
-create trigger trg_audit_inventory_items
-    after insert or update or delete on inventory_items
-    for each row execute function audit_log_trigger();
-```
-
----
-
-## 5. Линтер миграций и деструктивные операции
-
-Следующие операции в миграциях блокируют сборку CI, если в начале файла отсутствует явная пометка согласования:
-- `DROP TABLE`, `DROP COLUMN`
-- `ALTER TABLE ... ALTER COLUMN ... TYPE ...` (сужение типа)
-- `ALTER TABLE ... ADD COLUMN ... NOT NULL` без `DEFAULT`
-- `TRUNCATE`
-
-**Формат пометки:**
-```sql
--- destructive: approved
--- reason: Удаление устаревшей колонки legacy_status после релиза M2
--- approved_by: @techlead, @db-engineer
-```
+Application rollback без восстановления данных допустим только когда старая
+версия доказанно совместима с уже применённой схемой. Для несовместимой схемы
+поддерживаемый recovery является restore-based и должен фиксировать фактические
+RPO/RTO.
