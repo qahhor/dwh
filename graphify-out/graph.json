@@ -30256,7 +30256,7 @@
       "node_kind": "heading",
       "norm_label": "2. \u043d\u043e\u0440\u043c\u0430\u0442\u0438\u0432\u043d\u044b\u0435 \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0438",
       "source_file": "docs/ai-context.md",
-      "source_location": "L34"
+      "source_location": "L35"
     },
     {
       "id": "docs_ai_context_3_\u043a\u0430\u0440\u0442\u0430_\u0441\u0438\u0441\u0442\u0435\u043c\u044b",
@@ -30268,7 +30268,7 @@
       "node_kind": "heading",
       "norm_label": "3. \u043a\u0430\u0440\u0442\u0430 \u0441\u0438\u0441\u0442\u0435\u043c\u044b",
       "source_file": "docs/ai-context.md",
-      "source_location": "L50"
+      "source_location": "L51"
     },
     {
       "id": "docs_ai_context_4_deployment_\u0438_provider_policy",
@@ -30280,7 +30280,7 @@
       "node_kind": "heading",
       "norm_label": "4. deployment \u0438 provider policy",
       "source_file": "docs/ai-context.md",
-      "source_location": "L69"
+      "source_location": "L70"
     },
     {
       "id": "docs_ai_context_5_\u0438\u043d\u0432\u0430\u0440\u0438\u0430\u043d\u0442\u044b_\u0431\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u043e\u0441\u0442\u0438_\u0438_\u0434\u0430\u043d\u043d\u044b\u0445",
@@ -30292,7 +30292,7 @@
       "node_kind": "heading",
       "norm_label": "5. \u0438\u043d\u0432\u0430\u0440\u0438\u0430\u043d\u0442\u044b \u0431\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u043e\u0441\u0442\u0438 \u0438 \u0434\u0430\u043d\u043d\u044b\u0445",
       "source_file": "docs/ai-context.md",
-      "source_location": "L83"
+      "source_location": "L84"
     },
     {
       "id": "docs_ai_context_6_\u043f\u043e\u0441\u043b\u0435\u0434\u043d\u044f\u044f_\u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0451\u043d\u043d\u0430\u044f_\u043b\u043e\u043a\u0430\u043b\u044c\u043d\u0430\u044f_\u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430",
@@ -30304,7 +30304,7 @@
       "node_kind": "heading",
       "norm_label": "6. \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u044f\u044f \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u043d\u0430\u044f \u043b\u043e\u043a\u0430\u043b\u044c\u043d\u0430\u044f \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430",
       "source_file": "docs/ai-context.md",
-      "source_location": "L101"
+      "source_location": "L102"
     },
     {
       "id": "docs_ai_context_7_\u043e\u0442\u043a\u0440\u044b\u0442\u044b\u0435_release_gates",
@@ -30316,7 +30316,7 @@
       "node_kind": "heading",
       "norm_label": "7. \u043e\u0442\u043a\u0440\u044b\u0442\u044b\u0435 release gates",
       "source_file": "docs/ai-context.md",
-      "source_location": "L115"
+      "source_location": "L116"
     },
     {
       "id": "docs_ai_context_8_\u0440\u0430\u0431\u043e\u0447\u0438\u0439_\u043f\u0440\u043e\u0442\u043e\u043a\u043e\u043b_\u0434\u043b\u044f_ai",
@@ -30328,7 +30328,7 @@
       "node_kind": "heading",
       "norm_label": "8. \u0440\u0430\u0431\u043e\u0447\u0438\u0438 \u043f\u0440\u043e\u0442\u043e\u043a\u043e\u043b \u0434\u043b\u044f ai",
       "source_file": "docs/ai-context.md",
-      "source_location": "L132"
+      "source_location": "L133"
     },
     {
       "id": "docs_ai_context_\u043a\u043e\u043d\u0442\u0435\u043a\u0441\u0442_smartupcms_\u0434\u043b\u044f_ai_\u0430\u0441\u0441\u0438\u0441\u0442\u0435\u043d\u0442\u043e\u0432",
@@ -120493,7 +120493,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/ai-context.md",
-      "source_location": "L101",
+      "source_location": "L102",
       "weight": 1.0
     },
     {
@@ -120504,7 +120504,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/ai-context.md",
-      "source_location": "L115",
+      "source_location": "L116",
       "weight": 1.0
     },
     {
@@ -120515,7 +120515,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/ai-context.md",
-      "source_location": "L132",
+      "source_location": "L133",
       "weight": 1.0
     },
     {
@@ -120537,7 +120537,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/ai-context.md",
-      "source_location": "L34",
+      "source_location": "L35",
       "weight": 1.0
     },
     {
@@ -120548,7 +120548,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/ai-context.md",
-      "source_location": "L50",
+      "source_location": "L51",
       "weight": 1.0
     },
     {
@@ -120559,7 +120559,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/ai-context.md",
-      "source_location": "L69",
+      "source_location": "L70",
       "weight": 1.0
     },
     {
@@ -120570,7 +120570,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/ai-context.md",
-      "source_location": "L83",
+      "source_location": "L84",
       "weight": 1.0
     },
     {
@@ -146568,7 +146568,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/ai-context.md",
-      "source_location": "L129",
+      "source_location": "L130",
       "weight": 1.0
     },
     {
@@ -146579,7 +146579,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/ai-context.md",
-      "source_location": "L41",
+      "source_location": "L42",
       "weight": 1.0
     },
     {
@@ -146590,7 +146590,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/ai-context.md",
-      "source_location": "L97",
+      "source_location": "L98",
       "weight": 1.0
     },
     {
@@ -164630,5 +164630,5 @@
       "source_file": ".github/workflows/ci.yml"
     }
   ],
-  "built_at_commit": "47aa8aa31d29211acaab770cc879222a51330d18"
+  "built_at_commit": "d55a699550b0d7aa73e6612db0f04147c2f7d71f"
 }

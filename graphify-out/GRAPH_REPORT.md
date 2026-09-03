@@ -1,7 +1,7 @@
-# Graph Report - graphify-ai-context-47aa8aa  (2026-09-03)
+# Graph Report - graphify-ai-context-d55a699  (2026-09-03)
 
 ## Corpus Check
-- 470 files · ~191,906 words
+- 470 files · ~191,908 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `47aa8aa3`
+- Built from commit: `d55a6995`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
