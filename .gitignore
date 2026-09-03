@@ -37,3 +37,11 @@ data/
 
 # --- Local Git worktrees ---
 .worktrees/
+
+# --- Local browser automation state ---
+.playwright-cli/
+
+# --- Graphify generated caches and snapshots ---
+graphify-out/cache/
+graphify-out/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/
+graphify-out/last_query_stamp

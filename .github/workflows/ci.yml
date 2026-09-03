@@ -73,6 +73,10 @@ jobs:
         shell: pwsh
         run: ./scripts/docs/test-public-docs.ps1
 
+      - name: Validate repository hygiene contract
+        shell: pwsh
+        run: ./scripts/docs/test-repository-hygiene.ps1
+
       - name: Validate release supply-chain contract
         shell: pwsh
         run: ./scripts/release/verify-release.ps1

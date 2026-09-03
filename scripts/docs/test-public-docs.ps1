@@ -13,6 +13,9 @@ $requiredFiles = @(
     'GOVERNANCE.md',
     'SUPPORT.md',
     'CHANGELOG.md',
+    'docs/README.md',
+    'docs/technical-specification.md',
+    'docs/adr/ADR-0014-unified-open-source-runtime.md',
     '.github/pull_request_template.md',
     '.github/ISSUE_TEMPLATE/bug_report.yml',
     '.github/ISSUE_TEMPLATE/feature_request.yml',
@@ -30,17 +33,25 @@ foreach ($relativePath in $requiredFiles) {
 $activeDocs = @(
     'README.md',
     'CONTRIBUTING.md',
+    'docs/README.md',
+    'docs/technical-specification.md',
     'docs/onboarding.md',
+    'docs/architecture/biruni-smartup-conventions.md',
+    'docs/architecture/monorepo-structure.md',
+    'docs/guidelines/database-migrations.md',
+    'docs/guidelines/module-development-guide.md',
+    'docs/guidelines/testing-strategy.md',
     'docs/security/threat-model.md',
     'docs/ops/architecture-overview.md',
     'docs/ops/deployment-guide.md',
     'docs/ops/maintenance-guide.md',
     'docs/ops/operations-runbook.md',
     'docs/ops/production-launch-checklist.md',
-    'docs/ops/rollback.md'
+    'docs/ops/rollback.md',
+    'docs/runbooks/RB-04-migration-failure-triage.md'
 )
 
-$retiredTerms = '(?i)control[ -]plane|fleet proxy|migrate-cp|web-instance|apps/instance|docker-compose\.fleet|DWH_CP_'
+$retiredTerms = '(?i)apps/(?:instance|control-plane|web-instance|web-cp)|docker-compose\.fleet|migrate-cp|DWH_CP_|TRD-\d|TZ-\d'
 foreach ($relativePath in $activeDocs) {
     $absolutePath = Join-Path $repoRoot $relativePath
     if (-not (Test-Path -LiteralPath $absolutePath)) {
@@ -60,12 +71,28 @@ $supersededAdrs = @(
 )
 foreach ($relativePath in $supersededAdrs) {
     $content = Get-Content -LiteralPath (Join-Path $repoRoot $relativePath) -Raw
-    if ($content -notmatch '(?im)^\*\*Статус:\*\* Заменено') {
+    if ($content -notmatch 'Заменено ADR-0014') {
         $errors.Add("Historical ADR is not explicitly superseded: $relativePath")
     }
 }
 
-$markdownFiles = @($requiredFiles + $activeDocs + $supersededAdrs) |
+$partiallySupersededAdrs = @(
+    'docs/adr/ADR-0001-architecture-model.md',
+    'docs/adr/ADR-0003-tenancy-rbac.md',
+    'docs/adr/ADR-0006-modular-monolith.md',
+    'docs/adr/ADR-0008-security-baseline.md',
+    'docs/adr/ADR-0009-observability.md',
+    'docs/adr/ADR-0010-resilience-tiers.md',
+    'docs/adr/ADR-0011-provider-spi.md'
+)
+foreach ($relativePath in $partiallySupersededAdrs) {
+    $content = Get-Content -LiteralPath (Join-Path $repoRoot $relativePath) -Raw
+    if ($content -notmatch 'Частично заменено ADR-0014|Частично заменён ADR-0014') {
+        $errors.Add("Historical ADR is not explicitly partially superseded: $relativePath")
+    }
+}
+
+$markdownFiles = @($requiredFiles + $activeDocs + $supersededAdrs + $partiallySupersededAdrs) |
     Where-Object { $_ -match '\.md$' } |
     Sort-Object -Unique
 
