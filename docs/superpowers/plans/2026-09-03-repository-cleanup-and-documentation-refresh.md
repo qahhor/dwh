@@ -94,9 +94,43 @@ $obsoletePaths = @(
     'docs/runbooks/RB-01-node-failure-recovery.md',
     'docs/runbooks/RB-02-vault-unseal-and-raft-quorum.md',
     'docs/runbooks/RB-03-license-key-emergency-rotation.md',
+    'docs/superpowers/specs/2026-08-30-e2e-browser-testing-design.md',
+    'docs/superpowers/specs/2026-08-30-ui-ux-hardening-design.md',
     'docs/superpowers/specs/2026-09-01-fleet-foundation-design.md',
+    'docs/superpowers/plans/2026-08-30-e2e-browser-testing-implementation.md',
+    'docs/superpowers/plans/2026-08-30-ui-feature-screens.md',
+    'docs/superpowers/plans/2026-08-30-ui-foundation-entry-shell.md',
     'docs/superpowers/plans/2026-09-01-fleet-foundation-control-plane-contract-security-implementation.md'
 )
+
+$obsoleteAuditPaths = @(
+    'audit/00-master-improvement-plan-2026-08-31.md',
+    'audit/00-master-improvement-plan-2026-09-02.md',
+    'audit/architecture-2026-08-31.md',
+    'audit/architecture-2026-09-02.md',
+    'audit/code-quality-2026-08-31.md',
+    'audit/devops-2026-08-31.md',
+    'audit/devops-2026-09-02.md',
+    'audit/documentation-2026-08-31.md',
+    'audit/documentation-2026-09-02.md',
+    'audit/health-check-2026-08-31.md',
+    'audit/performance-2026-08-31.md',
+    'audit/security-2026-08-31.md',
+    'audit/security-2026-09-02.md',
+    'audit/testing-2026-08-31.md',
+    'audit/testing-2026-09-02.md',
+    'audit/widgets-2026-08-30.md',
+    'audit/widgets-2026-08-31.md',
+    'audit/widgets-2026-09-02.md',
+    'audit/evidence/fleet-foundation-cp-contract-2026-09-01.md',
+    'audit/evidence/verification-2026-08-31.md',
+    'audit/evidence/web-cp-login-desktop.png',
+    'audit/evidence/web-cp-login-mobile.png',
+    'audit/evidence/web-instance-login-desktop.png',
+    'audit/evidence/web-instance-login-mobile.png'
+)
+
+$obsoletePaths += $obsoleteAuditPaths
 
 foreach ($relativePath in $obsoletePaths) {
     if (Test-Path -LiteralPath (Join-Path $repoRoot $relativePath)) {
@@ -197,8 +231,15 @@ git commit -s -m "test(docs): enforce repository hygiene"
 - Delete: `docs/runbooks/RB-01-node-failure-recovery.md`
 - Delete: `docs/runbooks/RB-02-vault-unseal-and-raft-quorum.md`
 - Delete: `docs/runbooks/RB-03-license-key-emergency-rotation.md`
+- Delete: `docs/superpowers/specs/2026-08-30-e2e-browser-testing-design.md`
+- Delete: `docs/superpowers/specs/2026-08-30-ui-ux-hardening-design.md`
 - Delete: `docs/superpowers/specs/2026-09-01-fleet-foundation-design.md`
+- Delete: `docs/superpowers/plans/2026-08-30-e2e-browser-testing-implementation.md`
+- Delete: `docs/superpowers/plans/2026-08-30-ui-feature-screens.md`
+- Delete: `docs/superpowers/plans/2026-08-30-ui-foundation-entry-shell.md`
 - Delete: `docs/superpowers/plans/2026-09-01-fleet-foundation-control-plane-contract-security-implementation.md`
+- Delete: dated audit reports from 2026-08-30 through 2026-09-02 listed in Task 1's `$obsoleteAuditPaths`, plus their obsolete Control Plane screenshots and pre-unification evidence
+- Preserve: `audit/*2026-09-03.md`, `audit/evidence/cto-audit-2026-09-03.md`, `audit/evidence/smartupcms-unified-release-2026-09-02.md`, and `audit/fixes/`
 - Delete from Git and local workspace: `graphify-out/cache/`, `graphify-out/2026-08-29/`, `graphify-out/2026-08-30/`, `graphify-out/2026-08-31/`, `graphify-out/2026-09-01/`, `graphify-out/2026-09-03/`, and `.playwright-cli/`
 
 **Interfaces:**
@@ -247,7 +288,7 @@ Expected: every path starts with `D:\Claude\dwh\`; none resolves to the reposito
 
 - [ ] **Step 3: Delete the approved textual and PoC files**
 
-Use `apply_patch` delete operations for the root reports, runbooks, Fleet documents, and files under `docs/audit/` and `deploy/spike/`. Do not delete any other `docs/superpowers` document or ADR.
+Use `apply_patch` delete operations for the root reports, runbooks, listed superseded Superpowers documents, listed dated audit artifacts, and files under `docs/audit/` and `deploy/spike/`. Do not delete the 2026-09-02 unified-open-source design/plan, the 2026-09-03 cleanup design/plan, any current 2026-09-03 audit, `audit/evidence/smartupcms-unified-release-2026-09-02.md`, `audit/fixes/`, or any ADR.
 
 - [ ] **Step 4: Remove only the validated generated directories**
 
@@ -278,7 +319,7 @@ Expected: the same named volumes still exist; running services remain present an
 - [ ] **Step 7: Commit only cleanup and generated-artifact policy results**
 
 ```powershell
-git add -u REPORT.md STATS_MAP.md deploy/spike docs/audit docs/runbooks docs/superpowers graphify-out/cache graphify-out/2026-08-29 graphify-out/2026-08-30 graphify-out/2026-08-31 graphify-out/2026-09-01
+git add -u REPORT.md STATS_MAP.md deploy/spike docs/audit docs/runbooks docs/superpowers audit graphify-out/cache graphify-out/2026-08-29 graphify-out/2026-08-30 graphify-out/2026-08-31 graphify-out/2026-09-01
 git commit -s -m "chore(repo): remove obsolete platform artifacts"
 ```
 
