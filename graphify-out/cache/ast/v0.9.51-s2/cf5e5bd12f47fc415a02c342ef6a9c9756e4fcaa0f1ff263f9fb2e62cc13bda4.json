@@ -1,1 +1,0 @@
-{"nodes": [{"id": "$graphify-root$_apps_instance_src_main_resources_db_migration_v005_user_delete_and_profile_actions_sql", "label": "V005__user_delete_and_profile_actions.sql", "file_type": "code", "source_file": "apps/instance/src/main/resources/db/migration/V005__user_delete_and_profile_actions.sql", "source_location": null}], "edges": []}

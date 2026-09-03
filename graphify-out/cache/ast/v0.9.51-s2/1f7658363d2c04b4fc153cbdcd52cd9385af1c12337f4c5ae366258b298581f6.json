@@ -1,1 +1,0 @@
-{"nodes": [{"id": "$graphify-root$_deploy_spike_nomad_server_hcl", "label": "server.hcl", "file_type": "code", "source_file": "deploy/spike/nomad/server.hcl", "source_location": null}], "edges": []}

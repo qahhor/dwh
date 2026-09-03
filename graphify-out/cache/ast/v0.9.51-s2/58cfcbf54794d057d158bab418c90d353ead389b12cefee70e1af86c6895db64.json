@@ -1,1 +1,0 @@
-{"nodes": [{"id": "$graphify-root$_apps_instance_src_main_resources_db_migration_v016_analytics_schema_sql", "label": "V016__analytics_schema.sql", "file_type": "code", "source_file": "apps/instance/src/main/resources/db/migration/V016__analytics_schema.sql", "source_location": null}], "edges": []}
