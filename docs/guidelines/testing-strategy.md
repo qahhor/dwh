@@ -39,7 +39,7 @@ merge или release.
 |---|---|---|
 | Unit | Изолированные инварианты backend и Angular-компонентов, обработка ошибок и негативные ветви. | `AC-01`, `AC-02`, часть `AC-07` и `AC-10` |
 | Integration | Spring/SQL/provider поведение на реальных границах, вся цепочка Flyway, upgrade данных, portable S3-compatible storage и authorization integration. | `AC-01`, `AC-04`, `AC-07`, часть `AC-09` и `AC-10` |
-| Architecture | Maven/ArchUnit и unified-boundary правила: направление зависимостей, единственный server/web runtime, отсутствие обхода API. | `AC-03`, поддерживает `AC-10` |
+| Architecture | Maven/ArchUnit и unified-boundary правила проверяют состав reactor/runtime и настроенные package-level ограничения. Они не доказывают каждое dependency edge или каждый путь browser-запроса. | `AC-03`, поддерживает `AC-10` |
 | Configuration | Рендеринг Compose/NGINX, fail-closed deploy, schema readiness и backup-status contracts. | `AC-03`, часть `AC-05` и `AC-08` |
 | Security и supply chain | Secret/artifact controls, upload/scanner отказ, negative authorization/IDOR, dependency/image scan и release supply-chain configuration contracts. | `AC-03`, `AC-07`, `AC-10`, часть `AC-11` |
 | E2E | Чистый migrate/start и критические Chromium journeys через публичный web origin. | `AC-05`, `AC-06` |
@@ -47,6 +47,9 @@ merge или release.
 Эта таблица описывает автоматизированный baseline, а не полное release
 acceptance. Все `AC-01..12` требуют evidence на точном release commit/image
 digest; часть критериев закрывается только release/operator проверками ниже.
+Требование обращаться из browser только к server API подтверждается review и
+сетевыми/E2E-сценариями через публичный web origin; отдельного статического gate,
+гарантирующего это для каждого вызова, в текущем CI нет.
 
 ## Соответствие CI
 

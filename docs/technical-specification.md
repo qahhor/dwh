@@ -167,7 +167,7 @@ SmartupCMS — самостоятельно размещаемая платфо�
 
 | ID | Требование («Должна») | Подтверждение в репозитории | Метод приёмки |
 |---|---|---|---|
-| `NFR-PERF-01` | До release система должна пройти воспроизводимый нагрузочный и soak-профиль на репрезентативных данных для суммарного планового контура 500 registered/100 active users и 50 ГБ upload в месяц с отдельно зафиксированным распределением по установкам. | `docs/ops/production-launch-checklist.md`; `audit/performance-2026-09-03.md` | Release evidence фиксирует commit/image digest, host profile, dataset, сценарии, распределение нагрузки, p50/p95/p99, error rate и saturation; результат утверждает владелец SLO. |
+| `NFR-PERF-01` | До release система должна пройти воспроизводимый нагрузочный и soak-профиль на репрезентативных данных для суммарного планового контура 500 registered/100 active users и 50 ГБ upload в месяц с отдельно зафиксированным распределением по установкам. | `docs/ops/production-launch-checklist.md`; `audit/fixes/P-01-performance-baseline.md` | Release evidence фиксирует commit/image digest, host profile, dataset, сценарии, распределение нагрузки, p50/p95/p99, error rate и saturation; результат утверждает владелец SLO. |
 | `NFR-PERF-02` | Числовые цели p95 API и загрузки страниц должны считаться неутверждёнными входными данными релиза, пока их не утвердят владельцы продукта и эксплуатации; текущее ТЗ не задаёт непроверенных чисел. | `docs/ops/production-launch-checklist.md`; `audit/fixes/P-01-performance-baseline.md` | В installation/release annex заполнены числовые пороги и решение владельца; без них performance gate и `AC-12` не выполнены. |
 
 ### 5.3. Надёжность

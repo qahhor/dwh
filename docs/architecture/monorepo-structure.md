@@ -50,13 +50,19 @@ graphify-out/              current generated navigation outputs only
 5. PostgreSQL является источником истины. Typesense содержит производный,
    перестраиваемый индекс и никогда не принимает решения об авторизации.
 
-Эти правила проверяются Maven/ArchUnit и
-[`scripts/architecture/test-unified-boundaries.ps1`](../../scripts/architecture/test-unified-boundaries.ps1).
+Maven/ArchUnit и
+[`scripts/architecture/test-unified-boundaries.ps1`](../../scripts/architecture/test-unified-boundaries.ps1)
+автоматизируют только настроенные проверки: состав reactor/runtime и отдельные
+package-level границы сервера. Направление всех зависимостей, использование
+браузером только server API и отсутствие авторизации через Typesense дополнительно
+проверяются review и целевыми тестами; единого статического правила для каждого
+такого ребра или browser-запроса сейчас нет.
 
 ## Исполняемая модель
 
-Поддерживаемая поставка использует Docker Compose. Обязательный путь запуска
-состоит из PostgreSQL, отдельного шага `migrate`, сервера, web/NGINX и
-Typesense. ClamAV и зашифрованный backup включаются согласно production
-конфигурации. Схема базы должна быть готова до старта сервера, а внешней
-публичной точкой приложения остаётся только web origin.
+Поддерживаемая поставка использует Docker Compose. Локальная/development-
+топология может работать без ClamAV и планового backup. Production bundle
+обязательно включает PostgreSQL, отдельный шаг `migrate`, сервер, web/NGINX,
+Typesense, fail-closed ClamAV и зашифрованный backup. Схема базы должна быть
+готова до старта сервера, а внешней публичной точкой приложения остаётся только
+web origin.
