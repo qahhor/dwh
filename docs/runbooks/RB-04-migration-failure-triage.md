@@ -84,12 +84,32 @@ release process.
 ### C. Restore and roll back the release
 
 Use this branch when the schema/data state is incompatible and a safe forward
-fix cannot meet the incident objective. Keep the deployment stopped, verify the
-encrypted pre-migration backup checksum and decryption identity, and follow the
-[restore procedure](../ops/maintenance-guide.md) in an operator-controlled
-environment. Restore the database (and object data when required for
-consistency), then deploy the previous immutable image digest. A mutable tag is
-not acceptable recovery evidence.
+fix cannot meet the incident objective. Keep the deployment stopped and perform
+these steps in order:
+
+1. Identify the exact previous verified release tag. Set `APP_VERSION` in
+   `.env.production` to that tag **before** invoking `scripts/prod/restore.ps1`
+   or `scripts/prod/restore.sh`.
+2. Pull the images selected by that environment, list the resolved service
+   images, and inspect their repository digests:
+
+   ```powershell
+   docker compose -f deploy/compose/docker-compose.prod.yml --env-file .env.production pull server web backup postgres typesense
+   docker compose -f deploy/compose/docker-compose.prod.yml --env-file .env.production config --images
+   docker image inspect <each-image-reference> --format '{{json .RepoDigests}}'
+   ```
+
+   Record the resolved digests and verify each one against the previous
+   release's verified manifest/signature evidence. Stop if any digest is absent
+   or differs. Compose interpolates the tag from `APP_VERSION`; the restore
+   scripts do not consume a raw digest argument.
+3. Verify the encrypted pre-migration backup checksum, catalog, timestamp,
+   decryption identity, and approved data-loss window. Then invoke the
+   [restore procedure](../ops/maintenance-guide.md) in an operator-controlled
+   environment using `scripts/prod/restore.ps1` or `scripts/prod/restore.sh`.
+4. Restore object data when required for consistency. After the script starts
+   services, resolve and verify the running image digests again before reopening
+   traffic.
 
 Restoring loses changes after the selected backup. The decision owner must
 approve that data-loss window against the installation RPO before execution.

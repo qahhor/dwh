@@ -25,18 +25,39 @@ docker compose run --rm migrate
 
 ## Production-релиз
 
-Для upgrade используйте документированный fail-closed сценарий, а не запускайте
-Flyway вручную:
+Перед каждым upgrade оператор обязан выполнить preflight:
+
+1. Проверить выбранные Compose project, `deploy/compose/docker-compose.prod.yml`
+   и `.env.production`, затем убедиться, что команда
+   `docker compose -f deploy/compose/docker-compose.prod.yml --env-file .env.production ps -a -q postgres`
+   возвращает ID ожидаемого PostgreSQL container. Через `docker inspect`
+   проверьте, что он подключён к ожидаемому data volume.
+2. Создать свежий encrypted backup через `./scripts/prod/backup.ps1` и проверить
+   timestamp/status, наличие зашифрованного artifact и совпадение его SHA-256 с
+   sidecar в настроенном local/S3 target. Запишите эту проверку в release
+   evidence до запуска миграции.
+3. Если данные сохранены в volume, но PostgreSQL container отсутствует, не
+   запускайте deploy: восстановите ожидаемую привязку container к volume в
+   оператор-контролируемой процедуре, подтвердите данные и только затем создайте
+   backup.
+
+Это обязательная компенсация известного ограничения текущих `deploy.ps1` и
+`deploy.sh`: scripts обнаруживают существующую БД только через
+`docker compose ... ps -a -q postgres`. Сохранённый volume без container они
+могут принять за initial deployment и пропустить backup.
+
+После успешного preflight используйте документированный fail-closed сценарий,
+а не запускайте Flyway вручную:
 
 ```powershell
 ./scripts/prod/deploy.ps1
 ```
 
-Сценарий проверяет production Compose, получает неизменяемые образы, создаёт
-обязательный зашифрованный pre-migration backup существующей базы, запускает
-зависимости, применяет миграции и только затем запускает сервер с readiness
-проверкой. Linux-оператор использует эквивалентный `scripts/prod/deploy.sh`, как
-описано в руководстве по развёртыванию.
+Сценарий проверяет production Compose, получает образы выбранного release tag,
+повторно создаёт pre-migration backup, когда обнаруживает существующий
+PostgreSQL container, запускает зависимости, применяет миграции и только затем
+запускает сервер с readiness проверкой. Linux-оператор использует эквивалентный
+`scripts/prod/deploy.sh`, как описано в руководстве по развёртыванию.
 
 ## Правила авторинга
 
@@ -84,8 +105,14 @@ mvn -B verify
 - Конфигурационную ошибку можно исправить и повторить только при доказанной
   идемпотентности незавершённой миграции.
 - Ошибку логики исправляют новой forward migration.
-- Если безопасное движение вперёд невозможно, восстановите проверенный
-  зашифрованный pre-migration backup и предыдущий неизменяемый image digest.
+- Если безопасное движение вперёд невозможно, сначала установите в
+  `.env.production` `APP_VERSION` равным точному предыдущему проверенному release
+  tag. Получите соответствующие образы, разрешите их в фактические digests,
+  запишите и сравните digests с проверенным release manifest. Только после этого
+  запускайте `scripts/prod/restore.ps1` или `scripts/prod/restore.sh` с
+  проверенным зашифрованным pre-migration backup. Compose scripts используют
+  tag из `APP_VERSION`, а не переданный raw digest; digest является обязательной
+  проверкой и evidence выбранных образов.
 
 Application rollback без восстановления данных допустим только когда старая
 версия доказанно совместима с уже применённой схемой. Для несовместимой схемы

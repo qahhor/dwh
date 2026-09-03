@@ -33,21 +33,20 @@ Push-Location e2e; npm run test:config; npm run typecheck; npm run test:artifact
 подготовленный по root README. Ненулевой код любого обязательного gate блокирует
 merge или release.
 
-## Слои и критерии приёмки
+## Автоматизированные слои и критерии приёмки
 
-| Слой | Что доказывает | Критерии ТЗ |
+| Слой | Что доказывает автоматизированный baseline | Критерии ТЗ |
 |---|---|---|
 | Unit | Изолированные инварианты backend и Angular-компонентов, обработка ошибок и негативные ветви. | `AC-01`, `AC-02`, часть `AC-07` и `AC-10` |
-| Integration | Spring/SQL/provider поведение на реальных границах, вся цепочка Flyway, upgrade данных, storage и authorization integration. | `AC-01`, `AC-04`, `AC-07`, `AC-09`, `AC-10` |
+| Integration | Spring/SQL/provider поведение на реальных границах, вся цепочка Flyway, upgrade данных, portable S3-compatible storage и authorization integration. | `AC-01`, `AC-04`, `AC-07`, часть `AC-09` и `AC-10` |
 | Architecture | Maven/ArchUnit и unified-boundary правила: направление зависимостей, единственный server/web runtime, отсутствие обхода API. | `AC-03`, поддерживает `AC-10` |
-| Configuration | Рендеринг Compose/NGINX, fail-closed deploy, schema readiness, backup status и installation-specific входы. | `AC-03`, `AC-05`, `AC-08`, `AC-12` |
-| Security и supply chain | Secret/artifact controls, upload/scanner отказ, negative authorization/IDOR, dependency/image scan, SBOM, checksum, signature и provenance. | `AC-03`, `AC-07`, `AC-10`, `AC-11` |
-| E2E | Чистый migrate/start и критические Chromium journeys через публичный web origin; smoke, файлы и восстановительные проверки. | `AC-05`, `AC-06`, `AC-08`, `AC-09` |
+| Configuration | Рендеринг Compose/NGINX, fail-closed deploy, schema readiness и backup-status contracts. | `AC-03`, часть `AC-05` и `AC-08` |
+| Security и supply chain | Secret/artifact controls, upload/scanner отказ, negative authorization/IDOR, dependency/image scan и release supply-chain configuration contracts. | `AC-03`, `AC-07`, `AC-10`, часть `AC-11` |
+| E2E | Чистый migrate/start и критические Chromium journeys через публичный web origin. | `AC-05`, `AC-06` |
 
-Все `AC-01..12` требуют evidence на точном release commit/image digest.
-`AC-12` не автоматизируется целиком: владелец релиза проверяет, что для каждой
-установки назначены SLO, privacy/retention, incident, RPO/RTO, domain, region и
-rollback owners.
+Эта таблица описывает автоматизированный baseline, а не полное release
+acceptance. Все `AC-01..12` требуют evidence на точном release commit/image
+digest; часть критериев закрывается только release/operator проверками ниже.
 
 ## Соответствие CI
 
@@ -67,6 +66,46 @@ CI выполняет следующие независимые jobs:
 Required job с ошибкой должен блокировать merge. Исключение теста, понижение
 severity или обновление snapshot требует review с явным обоснованием и ссылкой
 на затронутый критерий ТЗ.
+
+Текущий `.github/workflows/ci.yml` не запускает no-default-egress observation,
+изолированный restore drill или lifecycle/recovery на целевом S3/R2. Наличие
+unit/integration/config contract для этих функций не является evidence их
+production-приёмки.
+
+## Release/operator evidence сверх текущего CI
+
+Для `AC-03` выполните фактический standalone gate наблюдения исходящего трафика
+на disposable Compose project:
+
+```powershell
+./scripts/security/test-no-default-egress.ps1
+```
+
+Скрипт строит отдельный стек, наблюдает network traffic не менее 65 секунд и
+удаляет созданные им containers/network/volumes. Его exit code и secret-safe log
+включаются в release evidence; этот gate существует в репозитории, но сейчас не
+включён в CI workflow.
+
+Для `AC-08` выполните изолированный restore drill по
+[maintenance guide](../ops/maintenance-guide.md): отдельные `PROJECT_NAME`, env,
+PostgreSQL volume и object-storage location; проверенный encrypted backup и
+SHA-256; restore; сверка схемы, representative data/audit counts и object
+consistency. Evidence фиксирует archive timestamp, checksum, release/image
+digests, начало/окончание и измеренные RPO/RTO. Backup-status contract или
+успешное создание архива не заменяет restore.
+
+Для `AC-09` выполните lifecycle на фактическом target S3/R2 bucket/prefix:
+upload, byte-for-byte download, existence check, удаление первой и последней
+ссылки, физическое delete и отдельное object recovery. Запишите target
+endpoint class/region без credentials, object checksums и результат recovery.
+`S3StorageProviderIntegrationTest` с disposable S3-compatible service доказывает
+portable baseline, но не принимает конкретный production provider.
+
+Для `AC-11` release owner проверяет опубликованные digests, signatures,
+provenance, SBOM и checksums, а не только структуру release scripts. `AC-12` не
+автоматизируется целиком: до production для каждой установки должны быть
+назначены SLO, privacy/retention, incident, RPO/RTO, domain, region и rollback
+owners.
 
 ## Требования к тестам и evidence
 
