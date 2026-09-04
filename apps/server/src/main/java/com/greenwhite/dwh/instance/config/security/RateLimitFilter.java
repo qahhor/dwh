@@ -70,8 +70,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
             limit = props.userPerMinute();
         }
 
-        if (isExpensivePath(request.getRequestURI())) {
-            key = key + ":exp";
+        String expensivePathFamily = findExpensivePathFamily(request.getRequestURI());
+        if (expensivePathFamily != null) {
+            key = key + ":exp:" + expensivePathFamily;
             limit = Math.min(limit, props.expensivePerMinute());
         }
 
@@ -95,13 +96,13 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 request.getRequestURI());
     }
 
-    private boolean isExpensivePath(String uri) {
+    private String findExpensivePathFamily(String uri) {
         for (String pattern : props.expensivePaths()) {
             if (pathMatcher.match(pattern, uri)) {
-                return true;
+                return pattern;
             }
         }
-        return false;
+        return null;
     }
 
     private String clientIp(HttpServletRequest request) {

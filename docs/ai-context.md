@@ -103,18 +103,12 @@ repositories/adapters — I/O. Детали приведены в
 ## 6. Последняя подтверждённая проверка
 
 Опубликованный `main`/`origin/main` перед текущим локальным patch указывает на
-`5917e812a13daa36811c067c80641e74bbc97265`. Предыдущий commit `4a7fece2` имеет
-полностью зелёный remote CI run `33883389351`. Для `5917e812` remote run
-`33886730107` завершился ошибкой только в browser E2E; backend, frontend,
-release-config и security jobs зелёные. Публичный GitHub API не раскрывает лог
-упавшего шага без авторизации, поэтому причина remote E2E не подтверждена.
+`57efcd77c1bdc5946daf95647bf3a821572a1e73`. Предыдущий commit `4a7fece2` имеет
+полностью зелёный remote CI run `33883389351`. Для `57efcd77` remote run
+`33908930474` завершился ошибкой только в browser E2E; backend, frontend,
+release-config и security jobs зелёные.
 
-На `5917e812` локально подтверждены: полный Maven, Angular unit/typecheck/build,
-release/config/documentation gates, healthy Compose deployment и 24/24 browser
-E2E. Commit включает централизованную локализацию, страницу «Состояние»,
-пагинацию/retention/export аудита и UI/a11y regression suite.
-
-Текущий незакоммиченный patch закрывает локальную реализацию `P0-14`:
+`57efcd77` закрывает локальную реализацию `P0-14`:
 
 - ADR-0013 фиксирует единый контракт `ALL/SUBTREE/UNITS/SELF` для задач,
   комментариев и файлов; недоступный прямой идентификатор возвращает `404`;
@@ -124,13 +118,20 @@ E2E. Commit включает централизованную локализац
 - назначения участников проверяются по actor scope, а замена роли
   пересчитывает permissions и effective data scope в одной транзакции;
 - Flyway `V024` добавляет обратный индекс вложений комментариев;
-- полный Maven после добавления comment regression tests: 262 теста, 0
-  failures/errors/skipped; Angular: 31 test files / 107 tests, typecheck,
-  localization audit `1009/1022` и production build; E2E config/typecheck/
-  artifact-security и семь architecture/docs/release/production gates зелёные.
+- Maven: 262 теста, 0 failures/errors/skipped; Angular: 31 test files / 107
+  tests, typecheck, localization audit `1009/1022` и production build; E2E
+  config/typecheck/artifact-security и семь architecture/docs/release/
+  production gates зелёные.
 
-До публикации patch требуются immutable commit/push, green remote CI и clean
-Docker/browser evidence. Не считать `P0-14` verified до выполнения этих шагов.
+Локально воспроизведена причина E2E failure: `/api/v1/audit/**` и
+`/api/v1/search/**` разделяли один expensive rate-limit bucket пользователя,
+поэтому аудит исчерпывал лимит поиска. Текущий follow-up patch разделяет buckets
+по семействам путей. Новый regression test и полный Maven 263/263 зелёные;
+Docker server пересобран, схема V024 и индекс
+`ms_task_comment_files_file_idx` подтверждены, полный browser E2E 24/24.
+
+До статуса `Verified` нужны commit/push follow-up patch и полностью зелёный
+remote CI на новом immutable SHA.
 
 ## 7. Открытые release gates
 

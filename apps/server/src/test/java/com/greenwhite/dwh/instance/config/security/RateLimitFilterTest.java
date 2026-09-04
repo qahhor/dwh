@@ -120,6 +120,22 @@ class RateLimitFilterTest {
                 .andExpect(status().isTooManyRequests());
     }
 
+    @Test
+    @DisplayName("Дорогие search и audit пути не должны исчерпывать общий лимит друг друга")
+    void expensivePathFamiliesUseIndependentBuckets() throws Exception {
+        mockAuthenticatedUser(9L, "session-9");
+
+        mvc.perform(get("/api/v1/search").param("q", "admin")
+                        .cookie(new Cookie("DWH_SESSION", "session-9")))
+                .andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/audit/logs")
+                        .cookie(new Cookie("DWH_SESSION", "session-9")))
+                .andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/search").param("q", "admin")
+                        .cookie(new Cookie("DWH_SESSION", "session-9")))
+                .andExpect(status().isTooManyRequests());
+    }
+
     private void mockAuthenticatedUser(long userId, String rawSession) {
         when(sessionService.getActiveSession(rawSession)).thenReturn(Optional.of(
                 new KauthSessionRepository.SessionRecord(
