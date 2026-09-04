@@ -2,6 +2,7 @@ package com.greenwhite.dwh.instance.ms.notify;
 
 import com.greenwhite.dwh.instance.audit.repository.AuditLogRepository;
 import com.greenwhite.dwh.instance.audit.service.AuditLogService;
+import com.greenwhite.dwh.instance.audit.service.AuditDataRedactor;
 import com.greenwhite.dwh.instance.common.annotation.RequiresPermission;
 import com.greenwhite.dwh.instance.common.error.ApiException;
 import com.greenwhite.dwh.instance.common.security.SecurityContext;
@@ -66,7 +67,7 @@ class MsAnnouncementServiceIntegrationTest {
         ObjectMapper objectMapper = new ObjectMapper();
         repository = new MsAnnouncementRepository(jdbc, objectMapper);
         AuditLogService audit = new AuditLogService(
-                new AuditLogRepository(jdbc, objectMapper), null);
+                new AuditLogRepository(jdbc, objectMapper), null, new AuditDataRedactor());
         service = new MsAnnouncementService(repository, audit);
     }
 

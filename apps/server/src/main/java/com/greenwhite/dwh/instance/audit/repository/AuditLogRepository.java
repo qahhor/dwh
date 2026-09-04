@@ -61,7 +61,8 @@ public class AuditLogRepository {
     }
 
     public List<AuditRecord> listAuditLogs(String tableName, String rowPk, String event, Long userId,
-                                           Instant from, Instant to, int limit) {
+                                           Instant from, Instant to, Instant cursorChangedAt,
+                                           Long cursorId, int limit) {
         StringBuilder sql = new StringBuilder("""
                 select a.id, a.table_name, a.row_pk, a.event, a.changed_by, a.session_id, a.is_api,
                        a.changed_at, a.changed_columns, a.old_row::text as old_str, a.new_row::text as new_str,
@@ -89,22 +90,29 @@ public class AuditLogRepository {
         if (to != null) {
             sql.append(" and a.changed_at <= :to");
         }
+        if (cursorChangedAt != null && cursorId != null) {
+            sql.append(" and (a.changed_at < :cursorChangedAt or (a.changed_at = :cursorChangedAt and a.id < :cursorId))");
+        }
 
-        sql.append(" order by a.changed_at desc limit :limit");
+        sql.append(" order by a.changed_at desc, a.id desc limit :limit");
 
         var query = jdbcClient.sql(sql.toString()).param("limit", limit > 0 ? limit : 50);
         if (tableName != null && !tableName.isBlank()) query.param("tableName", tableName);
         if (rowPk != null && !rowPk.isBlank()) query.param("rowPk", rowPk);
         if (event != null && !event.isBlank()) query.param("event", event);
         if (userId != null) query.param("userId", userId);
-        if (from != null) query.param("from", from);
-        if (to != null) query.param("to", to);
+        if (from != null) query.param("from", java.sql.Timestamp.from(from));
+        if (to != null) query.param("to", java.sql.Timestamp.from(to));
+        if (cursorChangedAt != null && cursorId != null) {
+            query.param("cursorChangedAt", java.sql.Timestamp.from(cursorChangedAt)).param("cursorId", cursorId);
+        }
 
         return query.query(this::mapAuditRecord).list();
     }
 
     public List<SecurityEventRecord> listSecurityEvents(String eventType, Long userId, String ip,
-                                                       Instant from, Instant to, int limit) {
+                                                       Instant from, Instant to, Instant cursorCreatedAt,
+                                                       Long cursorId, int limit) {
         StringBuilder sql = new StringBuilder("""
                 select s.id, s.event_type, s.user_id, host(s.ip) as ip_str, s.user_agent,
                        s.details::text as details_str, s.created_at,
@@ -129,15 +137,21 @@ public class AuditLogRepository {
         if (to != null) {
             sql.append(" and s.created_at <= :to");
         }
+        if (cursorCreatedAt != null && cursorId != null) {
+            sql.append(" and (s.created_at < :cursorCreatedAt or (s.created_at = :cursorCreatedAt and s.id < :cursorId))");
+        }
 
-        sql.append(" order by s.created_at desc limit :limit");
+        sql.append(" order by s.created_at desc, s.id desc limit :limit");
 
         var query = jdbcClient.sql(sql.toString()).param("limit", limit > 0 ? limit : 50);
         if (eventType != null && !eventType.isBlank()) query.param("eventType", eventType);
         if (userId != null) query.param("userId", userId);
         if (ip != null && !ip.isBlank()) query.param("ip", "%" + ip + "%");
-        if (from != null) query.param("from", from);
-        if (to != null) query.param("to", to);
+        if (from != null) query.param("from", java.sql.Timestamp.from(from));
+        if (to != null) query.param("to", java.sql.Timestamp.from(to));
+        if (cursorCreatedAt != null && cursorId != null) {
+            query.param("cursorCreatedAt", java.sql.Timestamp.from(cursorCreatedAt)).param("cursorId", cursorId);
+        }
 
         return query.query((rs, rowNum) -> new SecurityEventRecord(
                 rs.getLong("id"),
@@ -150,6 +164,43 @@ public class AuditLogRepository {
                 rs.getString("user_name"),
                 rs.getString("user_login")
         )).list();
+    }
+
+    public long countAuditLogs(String tableName, String rowPk, String event, Long userId,
+                               Instant from, Instant to) {
+        StringBuilder sql = new StringBuilder("select count(*) from audit_log a where 1=1");
+        if (tableName != null && !tableName.isBlank()) sql.append(" and a.table_name = :tableName");
+        if (rowPk != null && !rowPk.isBlank()) sql.append(" and a.row_pk = :rowPk");
+        if (event != null && !event.isBlank()) sql.append(" and a.event = :event");
+        if (userId != null) sql.append(" and a.changed_by = :userId");
+        if (from != null) sql.append(" and a.changed_at >= :from");
+        if (to != null) sql.append(" and a.changed_at <= :to");
+
+        var query = jdbcClient.sql(sql.toString());
+        if (tableName != null && !tableName.isBlank()) query.param("tableName", tableName);
+        if (rowPk != null && !rowPk.isBlank()) query.param("rowPk", rowPk);
+        if (event != null && !event.isBlank()) query.param("event", event);
+        if (userId != null) query.param("userId", userId);
+        if (from != null) query.param("from", java.sql.Timestamp.from(from));
+        if (to != null) query.param("to", java.sql.Timestamp.from(to));
+        return query.query(Long.class).single();
+    }
+
+    public long countSecurityEvents(String eventType, Long userId, String ip, Instant from, Instant to) {
+        StringBuilder sql = new StringBuilder("select count(*) from security_events s where 1=1");
+        if (eventType != null && !eventType.isBlank()) sql.append(" and s.event_type = :eventType");
+        if (userId != null) sql.append(" and s.user_id = :userId");
+        if (ip != null && !ip.isBlank()) sql.append(" and host(s.ip) like :ip");
+        if (from != null) sql.append(" and s.created_at >= :from");
+        if (to != null) sql.append(" and s.created_at <= :to");
+
+        var query = jdbcClient.sql(sql.toString());
+        if (eventType != null && !eventType.isBlank()) query.param("eventType", eventType);
+        if (userId != null) query.param("userId", userId);
+        if (ip != null && !ip.isBlank()) query.param("ip", "%" + ip + "%");
+        if (from != null) query.param("from", java.sql.Timestamp.from(from));
+        if (to != null) query.param("to", java.sql.Timestamp.from(to));
+        return query.query(Long.class).single();
     }
 
     public AuditStats getAuditStats() {

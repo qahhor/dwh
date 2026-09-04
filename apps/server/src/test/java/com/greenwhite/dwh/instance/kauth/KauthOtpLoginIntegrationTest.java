@@ -2,6 +2,7 @@ package com.greenwhite.dwh.instance.kauth;
 
 import com.greenwhite.dwh.instance.audit.repository.AuditLogRepository;
 import com.greenwhite.dwh.instance.audit.service.AuditLogService;
+import com.greenwhite.dwh.instance.audit.service.AuditDataRedactor;
 import com.greenwhite.dwh.instance.common.error.ApiException;
 import com.greenwhite.dwh.instance.common.provider.ProviderRegistry;
 import com.greenwhite.dwh.instance.config.db.FlywayUtcConfiguration;
@@ -87,7 +88,8 @@ class KauthOtpLoginIntegrationTest {
 
         var mapper = new ObjectMapper();
         var userRepository = new MdUserRepository(jdbc, mapper);
-        var auditLogService = new AuditLogService(new AuditLogRepository(jdbc, mapper), null);
+        var auditLogService = new AuditLogService(new AuditLogRepository(jdbc, mapper), null,
+                new AuditDataRedactor());
         channelRepository = new KauthChannelRepository(jdbc);
         otpCodeRepository = new KauthOtpCodeRepository(jdbc);
         messenger = new CapturingMessenger();

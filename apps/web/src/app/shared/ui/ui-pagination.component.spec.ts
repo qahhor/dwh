@@ -35,4 +35,21 @@ describe('UiPaginationComponent', () => {
     expect(label.textContent).toContain('Строк');
     expect(range.textContent).toContain('1–10');
   });
+
+  it('uses sequential previous and next controls in cursor mode', async () => {
+    await TestBed.configureTestingModule({ imports: [UiPaginationComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(UiPaginationComponent);
+    fixture.componentRef.setInput('totalItems', 120);
+    fixture.componentRef.setInput('currentPage', 2);
+    fixture.componentRef.setInput('pageSize', 20);
+    fixture.componentRef.setInput('cursorMode', true);
+    fixture.componentRef.setInput('hasNextPage', true);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('button[aria-label="Первая страница"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('button[aria-label="Последняя страница"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.page-numbers')).toBeNull();
+    expect((fixture.nativeElement.querySelector('button[aria-label="Предыдущая страница"]') as HTMLButtonElement).disabled).toBe(false);
+    expect((fixture.nativeElement.querySelector('button[aria-label="Следующая страница"]') as HTMLButtonElement).disabled).toBe(false);
+  });
 });

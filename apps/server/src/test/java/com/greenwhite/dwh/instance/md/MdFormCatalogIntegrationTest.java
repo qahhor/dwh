@@ -2,6 +2,7 @@ package com.greenwhite.dwh.instance.md;
 
 import com.greenwhite.dwh.instance.audit.repository.AuditLogRepository;
 import com.greenwhite.dwh.instance.audit.service.AuditLogService;
+import com.greenwhite.dwh.instance.audit.service.AuditDataRedactor;
 import com.greenwhite.dwh.instance.common.error.ApiException;
 import com.greenwhite.dwh.instance.config.db.FlywayUtcConfiguration;
 import com.greenwhite.dwh.instance.md.repository.MdPermissionRepository;
@@ -59,7 +60,8 @@ class MdFormCatalogIntegrationTest {
         permissionService = new MdPermissionService(new MdPermissionRepository(jdbc));
         roleRepository = new MdRoleRepository(jdbc);
         roleService = new MdRoleService(roleRepository, permissionService,
-                new AuditLogService(new AuditLogRepository(jdbc, new ObjectMapper()), null),
+                new AuditLogService(new AuditLogRepository(jdbc, new ObjectMapper()), null,
+                        new AuditDataRedactor()),
                 new MdScopeRepository(jdbc));
     }
 

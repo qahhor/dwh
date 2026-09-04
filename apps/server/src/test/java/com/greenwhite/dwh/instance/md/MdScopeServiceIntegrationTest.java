@@ -2,6 +2,7 @@ package com.greenwhite.dwh.instance.md;
 
 import com.greenwhite.dwh.instance.audit.repository.AuditLogRepository;
 import com.greenwhite.dwh.instance.audit.service.AuditLogService;
+import com.greenwhite.dwh.instance.audit.service.AuditDataRedactor;
 import com.greenwhite.dwh.instance.common.error.ApiException;
 import com.greenwhite.dwh.instance.config.db.FlywayUtcConfiguration;
 import com.greenwhite.dwh.instance.md.repository.MdOrgUnitRepository;
@@ -66,7 +67,8 @@ class MdScopeServiceIntegrationTest {
                 .dataSource(ds).locations("classpath:db/migration").load().migrate();
         jdbc = JdbcClient.create(ds);
 
-        var auditLogService = new AuditLogService(new AuditLogRepository(jdbc, new ObjectMapper()), null);
+        var auditLogService = new AuditLogService(new AuditLogRepository(jdbc, new ObjectMapper()), null,
+                new AuditDataRedactor());
         scopeRepository = new MdScopeRepository(jdbc);
         orgUnitRepository = new MdOrgUnitRepository(jdbc);
         roleRepository = new MdRoleRepository(jdbc);

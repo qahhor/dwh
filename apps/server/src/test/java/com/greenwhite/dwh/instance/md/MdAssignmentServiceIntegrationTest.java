@@ -57,7 +57,8 @@ class MdAssignmentServiceIntegrationTest {
         var permissionRepository = new MdPermissionRepository(jdbc);
         permissionService = new MdPermissionService(permissionRepository);
         auditLogService = new com.greenwhite.dwh.instance.audit.service.AuditLogService(
-                new com.greenwhite.dwh.instance.audit.repository.AuditLogRepository(jdbc, new ObjectMapper()), null);
+                new com.greenwhite.dwh.instance.audit.repository.AuditLogRepository(jdbc, new ObjectMapper()), null,
+                new com.greenwhite.dwh.instance.audit.service.AuditDataRedactor());
         service = new MdAssignmentService(userRepository, roleRepository, permissionRepository,
                 permissionService, auditLogService);
     }

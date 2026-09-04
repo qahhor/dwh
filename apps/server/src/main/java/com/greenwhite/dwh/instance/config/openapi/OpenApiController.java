@@ -103,9 +103,34 @@ public class OpenApiController {
                         )),
                         Map.entry("/api/v1/audit/logs", Map.of(
                                 "get", Map.of(
-                                        "summary", "Query immutable audit trail records",
+                                        "summary", "Query immutable audit trail records with keyset pagination",
                                         "tags", List.of("Audit"),
-                                        "responses", Map.of("200", Map.of("description", "List of mutation logs with visual diffs"))
+                                        "parameters", List.of(
+                                                Map.of("name", "limit", "in", "query", "required", false,
+                                                        "description", "Page size, capped at 200", "schema", Map.of("type", "integer", "default", 50, "maximum", 200)),
+                                                Map.of("name", "cursor", "in", "query", "required", false,
+                                                        "description", "Opaque nextCursor returned by the preceding page", "schema", Map.of("type", "string"))
+                                        ),
+                                        "responses", Map.of(
+                                                "200", Map.of("description", "KeysetPage of mutation logs; credential fields are server-redacted"),
+                                                "400", Map.of("description", "Malformed cursor")
+                                        )
+                                )
+                        )),
+                        Map.entry("/api/v1/audit/security-events", Map.of(
+                                "get", Map.of(
+                                        "summary", "Query security events with keyset pagination",
+                                        "tags", List.of("Audit"),
+                                        "parameters", List.of(
+                                                Map.of("name", "limit", "in", "query", "required", false,
+                                                        "description", "Page size, capped at 200", "schema", Map.of("type", "integer", "default", 50, "maximum", 200)),
+                                                Map.of("name", "cursor", "in", "query", "required", false,
+                                                        "description", "Opaque nextCursor returned by the preceding page", "schema", Map.of("type", "string"))
+                                        ),
+                                        "responses", Map.of(
+                                                "200", Map.of("description", "KeysetPage of security events; credential fields are server-redacted"),
+                                                "400", Map.of("description", "Malformed cursor")
+                                        )
                                 )
                         )),
                         Map.entry("/api/v1/settings", Map.of(

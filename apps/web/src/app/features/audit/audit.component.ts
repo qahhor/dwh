@@ -43,6 +43,13 @@ export interface AuditStats {
   failedLoginsLast24h: number;
 }
 
+export interface AuditPage<T> {
+  items: T[];
+  nextCursor: string | null;
+  hasMore: boolean;
+  totalEstimated: number;
+}
+
 @Component({
   selector: 'app-audit',
   standalone: true,
@@ -129,7 +136,7 @@ export interface AuditStats {
             (click)="setTab('audit')"
           >
             <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">database</span>
-            <span>{{ 'audit.change_log_count' | t:{count: auditLogs().length} }}</span>
+            <span>{{ 'audit.change_log_count' | t:{count: auditTotal()} }}</span>
           </button>
           <button
             id="security-events-tab"
@@ -142,7 +149,7 @@ export interface AuditStats {
             (click)="setTab('security')"
           >
             <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">shield</span>
-            <span>{{ 'audit.security_events_count' | t:{count: securityEvents().length} }}</span>
+            <span>{{ 'audit.security_events_count' | t:{count: securityTotal()} }}</span>
           </button>
         </div>
       </div>
@@ -155,7 +162,7 @@ export interface AuditStats {
         <div class="filter-toolbar">
           <div class="filter-group">
             <label class="sr-only" for="audit-table-filter">{{ 'audit.filtr_zhurnala_po_tablice' | t }}</label>
-            <select id="audit-table-filter" name="auditTableFilter" class="filter-select" [(ngModel)]="tableFilter" (change)="loadAuditLogs()">
+            <select id="audit-table-filter" name="auditTableFilter" class="filter-select" [(ngModel)]="tableFilter" (change)="loadAuditLogs(true)">
               <option value="">{{ 'audit.vse_tablicy' | t }}</option>
               <option value="md_users">{{ 'audit.polzovateli_md_users' | t }}</option>
               <option value="ms_tasks">{{ 'audit.zadachi_ms_tasks' | t }}</option>
@@ -165,7 +172,7 @@ export interface AuditStats {
             </select>
 
             <label class="sr-only" for="audit-event-filter">{{ 'audit.filtr_zhurnala_po_deystviyu' | t }}</label>
-            <select id="audit-event-filter" name="auditEventFilter" class="filter-select" [(ngModel)]="eventFilter" (change)="loadAuditLogs()">
+            <select id="audit-event-filter" name="auditEventFilter" class="filter-select" [(ngModel)]="eventFilter" (change)="loadAuditLogs(true)">
               <option value="">{{ 'audit.vse_deystviya' | t }}</option>
               <option value="I">{{ 'audit.sozdanie_insert' | t }}</option>
               <option value="U">{{ 'audit.izmenenie_update' | t }}</option>
@@ -240,12 +247,14 @@ export interface AuditStats {
         </div>
 
         <ui-pagination
-          *ngIf="auditLogs().length > 0"
-          [totalItems]="auditLogs().length"
+          *ngIf="auditTotal() > 0"
+          [totalItems]="auditTotal()"
           [pageSize]="auditPageSize"
           [currentPage]="auditCurrentPage"
-          (pageChange)="auditCurrentPage = $event"
-          (pageSizeChange)="auditPageSize = $event; auditCurrentPage = 1"
+          [cursorMode]="true"
+          [hasNextPage]="auditHasMore()"
+          (pageChange)="onAuditPageChange($event)"
+          (pageSizeChange)="onAuditPageSizeChange($event)"
         ></ui-pagination>
       </div>
 
@@ -257,7 +266,7 @@ export interface AuditStats {
         <div class="filter-toolbar">
           <div class="filter-group">
             <label class="sr-only" for="security-event-filter">{{ 'audit.filtr_sobytiy_bezopasnosti' | t }}</label>
-            <select id="security-event-filter" name="securityEventFilter" class="filter-select" [(ngModel)]="secEventTypeFilter" (change)="loadSecurityEvents()">
+            <select id="security-event-filter" name="securityEventFilter" class="filter-select" [(ngModel)]="secEventTypeFilter" (change)="loadSecurityEvents(true)">
               <option value="">{{ 'audit.vse_sobytiya' | t }}</option>
               <option value="LOGIN_SUCCESS">{{ 'audit.uspeshnyy_vhod_login_success' | t }}</option>
               <option value="LOGIN_FAILED">{{ 'audit.oshibka_vhoda_login_failed' | t }}</option>
@@ -277,7 +286,7 @@ export interface AuditStats {
                 class="search-input"
                 [placeholder]="'audit.poisk_po_ip' | t"
                 [(ngModel)]="secIpFilter"
-                (keyup.enter)="loadSecurityEvents()"
+                (keyup.enter)="loadSecurityEvents(true)"
               />
             </div>
           </div>
@@ -345,12 +354,14 @@ export interface AuditStats {
         </div>
 
         <ui-pagination
-          *ngIf="securityEvents().length > 0"
-          [totalItems]="securityEvents().length"
+          *ngIf="securityTotal() > 0"
+          [totalItems]="securityTotal()"
           [pageSize]="secPageSize"
           [currentPage]="secCurrentPage"
-          (pageChange)="secCurrentPage = $event"
-          (pageSizeChange)="secPageSize = $event; secCurrentPage = 1"
+          [cursorMode]="true"
+          [hasNextPage]="securityHasMore()"
+          (pageChange)="onSecurityPageChange($event)"
+          (pageSizeChange)="onSecurityPageSizeChange($event)"
         ></ui-pagination>
       </div>
 
@@ -965,6 +976,10 @@ export interface AuditStats {
 export class AuditComponent implements OnInit {
   readonly auditLogs = signal<AuditRecord[]>([]);
   readonly securityEvents = signal<SecurityEventRecord[]>([]);
+  readonly auditTotal = signal<number>(0);
+  readonly securityTotal = signal<number>(0);
+  readonly auditHasMore = signal<boolean>(false);
+  readonly securityHasMore = signal<boolean>(false);
   readonly stats = signal<AuditStats | null>(null);
   readonly isLoading = signal<boolean>(false);
 
@@ -975,6 +990,8 @@ export class AuditComponent implements OnInit {
   eventFilter = '';
   auditCurrentPage = 1;
   auditPageSize = 20;
+  private auditNextCursor: string | null = null;
+  private auditPageCursors: Array<string | null> = [null];
   selectedAudit: AuditRecord | null = null;
 
   // Security Events Filters & Pagination
@@ -982,6 +999,8 @@ export class AuditComponent implements OnInit {
   secIpFilter = '';
   secCurrentPage = 1;
   secPageSize = 20;
+  private securityNextCursor: string | null = null;
+  private securityPageCursors: Array<string | null> = [null];
   selectedSecEvent: SecurityEventRecord | null = null;
 
   constructor(
@@ -996,9 +1015,9 @@ export class AuditComponent implements OnInit {
   refreshAll() {
     this.loadStats();
     if (this.activeTab === 'audit') {
-      this.loadAuditLogs();
+      this.loadAuditLogs(true);
     } else {
-      this.loadSecurityEvents();
+      this.loadSecurityEvents(true);
     }
   }
 
@@ -1018,30 +1037,42 @@ export class AuditComponent implements OnInit {
     });
   }
 
-  loadAuditLogs() {
+  loadAuditLogs(resetPagination = false) {
+    if (resetPagination) this.resetAuditPagination();
+    const cursor = this.auditPageCursors[this.auditCurrentPage - 1] ?? undefined;
     this.isLoading.set(true);
-    this.api.get<AuditRecord[]>('/audit/logs', {
+    this.api.get<AuditPage<AuditRecord>>('/audit/logs', {
       table_name: this.tableFilter || undefined,
       event: this.eventFilter || undefined,
-      limit: 100
+      limit: this.auditPageSize,
+      cursor
     }).subscribe({
       next: res => {
-        this.auditLogs.set(res || []);
+        this.auditLogs.set(res?.items || []);
+        this.auditTotal.set(res?.totalEstimated || 0);
+        this.auditNextCursor = res?.nextCursor || null;
+        this.auditHasMore.set(Boolean(res?.hasMore));
         this.isLoading.set(false);
       },
       error: () => this.isLoading.set(false)
     });
   }
 
-  loadSecurityEvents() {
+  loadSecurityEvents(resetPagination = false) {
+    if (resetPagination) this.resetSecurityPagination();
+    const cursor = this.securityPageCursors[this.secCurrentPage - 1] ?? undefined;
     this.isLoading.set(true);
-    this.api.get<SecurityEventRecord[]>('/audit/security-events', {
+    this.api.get<AuditPage<SecurityEventRecord>>('/audit/security-events', {
       event_type: this.secEventTypeFilter || undefined,
       ip: this.secIpFilter || undefined,
-      limit: 100
+      limit: this.secPageSize,
+      cursor
     }).subscribe({
       next: res => {
-        this.securityEvents.set(res || []);
+        this.securityEvents.set(res?.items || []);
+        this.securityTotal.set(res?.totalEstimated || 0);
+        this.securityNextCursor = res?.nextCursor || null;
+        this.securityHasMore.set(Boolean(res?.hasMore));
         this.isLoading.set(false);
       },
       error: () => this.isLoading.set(false)
@@ -1049,13 +1080,57 @@ export class AuditComponent implements OnInit {
   }
 
   paginatedAuditLogs(): AuditRecord[] {
-    const start = (this.auditCurrentPage - 1) * this.auditPageSize;
-    return this.auditLogs().slice(start, start + this.auditPageSize);
+    return this.auditLogs();
   }
 
   paginatedSecurityEvents(): SecurityEventRecord[] {
-    const start = (this.secCurrentPage - 1) * this.secPageSize;
-    return this.securityEvents().slice(start, start + this.secPageSize);
+    return this.securityEvents();
+  }
+
+  onAuditPageChange(page: number) {
+    if (page === this.auditCurrentPage + 1) {
+      if (!this.auditHasMore() || !this.auditNextCursor) return;
+      this.auditPageCursors[page - 1] = this.auditNextCursor;
+    } else if (page !== this.auditCurrentPage - 1 || page < 1) {
+      return;
+    }
+    this.auditCurrentPage = page;
+    this.loadAuditLogs();
+  }
+
+  onAuditPageSizeChange(pageSize: number) {
+    this.auditPageSize = pageSize;
+    this.loadAuditLogs(true);
+  }
+
+  onSecurityPageChange(page: number) {
+    if (page === this.secCurrentPage + 1) {
+      if (!this.securityHasMore() || !this.securityNextCursor) return;
+      this.securityPageCursors[page - 1] = this.securityNextCursor;
+    } else if (page !== this.secCurrentPage - 1 || page < 1) {
+      return;
+    }
+    this.secCurrentPage = page;
+    this.loadSecurityEvents();
+  }
+
+  onSecurityPageSizeChange(pageSize: number) {
+    this.secPageSize = pageSize;
+    this.loadSecurityEvents(true);
+  }
+
+  private resetAuditPagination() {
+    this.auditCurrentPage = 1;
+    this.auditPageCursors = [null];
+    this.auditNextCursor = null;
+    this.auditHasMore.set(false);
+  }
+
+  private resetSecurityPagination() {
+    this.secCurrentPage = 1;
+    this.securityPageCursors = [null];
+    this.securityNextCursor = null;
+    this.securityHasMore.set(false);
   }
 
   selectAuditRecord(record: AuditRecord) {
@@ -1113,8 +1188,7 @@ export class AuditComponent implements OnInit {
   getDiffKeys(record: AuditRecord): string[] {
     const oldKeys = Object.keys(record.oldRow || {});
     const newKeys = Object.keys(record.newRow || {});
-    const all = Array.from(new Set([...oldKeys, ...newKeys, ...(record.changedColumns || [])]));
-    return all.filter(k => k !== 'password_hash'); // Hide sensitive hashes
+    return Array.from(new Set([...oldKeys, ...newKeys, ...(record.changedColumns || [])]));
   }
 
   formatValue(val: any): string {

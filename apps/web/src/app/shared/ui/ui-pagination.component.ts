@@ -36,6 +36,7 @@ import { TranslatePipe } from '../../core/services/i18n.service';
         <div class="page-nav">
           <!-- First Page -->
           <button
+            *ngIf="!cursorMode"
             type="button"
             class="nav-btn"
             [attr.aria-label]="'ui.pagination.pervaya_stranica' | t"
@@ -59,7 +60,7 @@ import { TranslatePipe } from '../../core/services/i18n.service';
           </button>
 
           <!-- Page Numbers -->
-          <div class="page-numbers">
+          <div class="page-numbers" *ngIf="!cursorMode">
             <ng-container *ngFor="let p of visiblePages">
               <span *ngIf="p === -1" class="ellipsis" aria-hidden="true">…</span>
               <button
@@ -76,13 +77,22 @@ import { TranslatePipe } from '../../core/services/i18n.service';
             </ng-container>
           </div>
 
+          <span
+            *ngIf="cursorMode"
+            class="current-page-indicator font-mono"
+            aria-current="page"
+            [attr.aria-label]="'ui.pagination.page_number' | t:{page: currentPage}"
+          >
+            {{ currentPage }}
+          </span>
+
           <!-- Next Page -->
           <button
             type="button"
             class="nav-btn"
             [attr.aria-label]="'ui.pagination.sleduyuschaya_stranica' | t"
             [title]="'ui.pagination.sleduyuschaya_stranica' | t"
-            [disabled]="currentPage >= totalPages"
+            [disabled]="cursorMode ? !hasNextPage : currentPage >= totalPages"
             (click)="goToPage(currentPage + 1)"
           >
             <span class="material-symbols-outlined icon" aria-hidden="true">chevron_right</span>
@@ -90,6 +100,7 @@ import { TranslatePipe } from '../../core/services/i18n.service';
 
           <!-- Last Page -->
           <button
+            *ngIf="!cursorMode"
             type="button"
             class="nav-btn"
             [attr.aria-label]="'ui.pagination.poslednyaya_stranica' | t"
@@ -227,6 +238,19 @@ import { TranslatePipe } from '../../core/services/i18n.service';
       user-select: none;
     }
 
+    .current-page-indicator {
+      min-width: 28px;
+      height: 28px;
+      padding: 0 6px;
+      border-radius: var(--radius-xs);
+      background-color: var(--primary);
+      color: #ffffff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+    }
+
     .font-mono {
       font-family: monospace;
     }
@@ -240,6 +264,8 @@ export class UiPaginationComponent implements OnChanges {
   @Input() pageSize: number = 10;
   @Input() pageSizeOptions: number[] = [10, 25, 50, 100];
   @Input() showPageSize: boolean = true;
+  @Input() cursorMode: boolean = false;
+  @Input() hasNextPage: boolean = false;
 
   @Output() pageChange = new EventEmitter<number>();
   @Output() pageSizeChange = new EventEmitter<number>();
