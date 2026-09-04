@@ -52,6 +52,7 @@ export const routes: Routes = [
       },
       {
         path: 'audit',
+        canActivate: [permissionGuard('audit.log', 'view')],
         loadComponent: () => import('./features/audit/audit.component').then(m => m.AuditComponent)
       },
       {

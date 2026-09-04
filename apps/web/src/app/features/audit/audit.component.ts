@@ -122,6 +122,14 @@ export interface AuditPage<T> {
         </div>
       </div>
 
+      <div id="audit-stats-error" class="inline-feedback" role="alert" *ngIf="statsError()">
+        <span class="material-symbols-outlined" aria-hidden="true">error</span>
+        <span>{{ 'audit.load_stats_error' | t }}</span>
+        <ui-button variant="secondary" size="sm" icon="refresh" (onClick)="loadStats()">
+          {{ 'audit.retry' | t }}
+        </ui-button>
+      </div>
+
       <!-- Tabs Navigation -->
       <div class="toolbar">
         <div class="status-tabs" role="tablist" [attr.aria-label]="'audit.razdely_audita' | t">
@@ -178,7 +186,44 @@ export interface AuditPage<T> {
               <option value="U">{{ 'audit.izmenenie_update' | t }}</option>
               <option value="D">{{ 'audit.udalenie_delete' | t }}</option>
             </select>
+
+            <div class="compact-filter">
+              <label for="audit-row-pk-filter">{{ 'audit.row_pk' | t }}</label>
+              <input id="audit-row-pk-filter" name="auditRowPkFilter" class="filter-input" type="text"
+                [(ngModel)]="rowPkFilter" (keyup.enter)="loadAuditLogs(true)" />
+            </div>
+
+            <div class="compact-filter compact-filter-narrow">
+              <label for="audit-user-filter">{{ 'audit.user_id' | t }}</label>
+              <input id="audit-user-filter" name="auditUserFilter" class="filter-input" type="text" inputmode="numeric"
+                pattern="[0-9]*" [(ngModel)]="auditUserFilter" (keyup.enter)="loadAuditLogs(true)" />
+            </div>
+
+            <div class="compact-filter">
+              <label for="audit-from-filter">{{ 'audit.date_from_utc' | t }}</label>
+              <input id="audit-from-filter" name="auditFromFilter" class="filter-input" type="date"
+                [(ngModel)]="auditFromFilter" />
+            </div>
+
+            <div class="compact-filter">
+              <label for="audit-to-filter">{{ 'audit.date_to_utc' | t }}</label>
+              <input id="audit-to-filter" name="auditToFilter" class="filter-input" type="date"
+                [(ngModel)]="auditToFilter" />
+            </div>
+
+            <ui-button id="audit-apply-filters" variant="primary" size="sm" icon="filter_alt"
+              (onClick)="loadAuditLogs(true)">{{ 'audit.apply_filters' | t }}</ui-button>
+            <ui-button id="audit-reset-filters" variant="ghost" size="sm" icon="filter_alt_off"
+              (onClick)="resetAuditFilters()">{{ 'audit.reset_filters' | t }}</ui-button>
           </div>
+        </div>
+
+        <div id="audit-load-error" class="inline-feedback" role="alert" *ngIf="auditError()">
+          <span class="material-symbols-outlined" aria-hidden="true">error</span>
+          <span>{{ 'audit.load_log_error' | t }}</span>
+          <ui-button variant="secondary" size="sm" icon="refresh" (onClick)="loadAuditLogs()">
+            {{ 'audit.retry' | t }}
+          </ui-button>
         </div>
 
         <!-- Audit Table -->
@@ -197,6 +242,9 @@ export interface AuditPage<T> {
               </tr>
             </thead>
             <tbody>
+              <tr *ngIf="isLoading() && auditLogs().length === 0">
+                <td colspan="8" class="loading-state-cell" role="status">{{ 'audit.loading_log' | t }}</td>
+              </tr>
               <tr *ngFor="let item of paginatedAuditLogs()">
                 <td class="tabular-nums font-mono text-muted">#{{ item.id }}</td>
                 <td>
@@ -233,7 +281,7 @@ export interface AuditPage<T> {
                 </td>
               </tr>
 
-              <tr *ngIf="auditLogs().length === 0 && !isLoading()">
+              <tr *ngIf="auditLogs().length === 0 && !isLoading() && !auditError()">
                 <td colspan="8" class="empty-state-cell">
                   <div class="empty-state-box">
                     <span class="material-symbols-outlined empty-icon" aria-hidden="true">history_toggle_off</span>
@@ -289,7 +337,38 @@ export interface AuditPage<T> {
                 (keyup.enter)="loadSecurityEvents(true)"
               />
             </div>
+
+            <div class="compact-filter compact-filter-narrow">
+              <label for="security-user-filter">{{ 'audit.user_id' | t }}</label>
+              <input id="security-user-filter" name="securityUserFilter" class="filter-input" type="text" inputmode="numeric"
+                pattern="[0-9]*" [(ngModel)]="securityUserFilter" (keyup.enter)="loadSecurityEvents(true)" />
+            </div>
+
+            <div class="compact-filter">
+              <label for="security-from-filter">{{ 'audit.date_from_utc' | t }}</label>
+              <input id="security-from-filter" name="securityFromFilter" class="filter-input" type="date"
+                [(ngModel)]="securityFromFilter" />
+            </div>
+
+            <div class="compact-filter">
+              <label for="security-to-filter">{{ 'audit.date_to_utc' | t }}</label>
+              <input id="security-to-filter" name="securityToFilter" class="filter-input" type="date"
+                [(ngModel)]="securityToFilter" />
+            </div>
+
+            <ui-button id="security-apply-filters" variant="primary" size="sm" icon="filter_alt"
+              (onClick)="loadSecurityEvents(true)">{{ 'audit.apply_filters' | t }}</ui-button>
+            <ui-button id="security-reset-filters" variant="ghost" size="sm" icon="filter_alt_off"
+              (onClick)="resetSecurityFilters()">{{ 'audit.reset_filters' | t }}</ui-button>
           </div>
+        </div>
+
+        <div id="security-load-error" class="inline-feedback" role="alert" *ngIf="securityError()">
+          <span class="material-symbols-outlined" aria-hidden="true">error</span>
+          <span>{{ 'audit.load_security_error' | t }}</span>
+          <ui-button variant="secondary" size="sm" icon="refresh" (onClick)="loadSecurityEvents()">
+            {{ 'audit.retry' | t }}
+          </ui-button>
         </div>
 
         <!-- Security Events Table -->
@@ -307,6 +386,9 @@ export interface AuditPage<T> {
               </tr>
             </thead>
             <tbody>
+              <tr *ngIf="isLoading() && securityEvents().length === 0">
+                <td colspan="7" class="loading-state-cell" role="status">{{ 'audit.loading_security' | t }}</td>
+              </tr>
               <tr *ngFor="let item of paginatedSecurityEvents()">
                 <td class="tabular-nums font-mono text-muted">#{{ item.id }}</td>
                 <td>
@@ -340,7 +422,7 @@ export interface AuditPage<T> {
                 </td>
               </tr>
 
-              <tr *ngIf="securityEvents().length === 0 && !isLoading()">
+              <tr *ngIf="securityEvents().length === 0 && !isLoading() && !securityError()">
                 <td colspan="7" class="empty-state-cell">
                   <div class="empty-state-box">
                     <span class="material-symbols-outlined empty-icon" aria-hidden="true">verified_user</span>
@@ -649,6 +731,66 @@ export interface AuditPage<T> {
       color: var(--text-main);
     }
 
+    .compact-filter {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      min-width: 142px;
+    }
+
+    .compact-filter-narrow {
+      min-width: 92px;
+      width: 110px;
+    }
+
+    .compact-filter label {
+      color: var(--text-light);
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .filter-input {
+      min-height: 32px;
+      width: 100%;
+      box-sizing: border-box;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 6px 10px;
+      color: var(--text-main);
+      font: inherit;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .filter-input:focus,
+    .filter-select:focus,
+    .search-box:focus-within {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px var(--primary-subtle);
+    }
+
+    .inline-feedback {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      padding: 10px 12px;
+      border: 1px solid var(--danger);
+      border-radius: 10px;
+      background: var(--danger-bg);
+      color: var(--danger);
+      font-size: 13px;
+    }
+
+    .inline-feedback > ui-button {
+      margin-left: auto;
+    }
+
+    .inline-feedback .material-symbols-outlined {
+      font-size: 19px;
+    }
+
     .search-box {
       display: flex;
       align-items: center;
@@ -835,6 +977,12 @@ export interface AuditPage<T> {
       text-align: center;
     }
 
+    .loading-state-cell {
+      padding: 28px !important;
+      text-align: center;
+      color: var(--text-muted) !important;
+    }
+
     .empty-state-box {
       display: flex;
       flex-direction: column;
@@ -982,12 +1130,19 @@ export class AuditComponent implements OnInit {
   readonly securityHasMore = signal<boolean>(false);
   readonly stats = signal<AuditStats | null>(null);
   readonly isLoading = signal<boolean>(false);
+  readonly statsError = signal<boolean>(false);
+  readonly auditError = signal<boolean>(false);
+  readonly securityError = signal<boolean>(false);
 
   activeTab: 'audit' | 'security' = 'audit';
 
   // Audit Filters & Pagination
   tableFilter = '';
   eventFilter = '';
+  rowPkFilter = '';
+  auditUserFilter = '';
+  auditFromFilter = '';
+  auditToFilter = '';
   auditCurrentPage = 1;
   auditPageSize = 20;
   private auditNextCursor: string | null = null;
@@ -997,6 +1152,9 @@ export class AuditComponent implements OnInit {
   // Security Events Filters & Pagination
   secEventTypeFilter = '';
   secIpFilter = '';
+  securityUserFilter = '';
+  securityFromFilter = '';
+  securityToFilter = '';
   secCurrentPage = 1;
   secPageSize = 20;
   private securityNextCursor: string | null = null;
@@ -1031,19 +1189,28 @@ export class AuditComponent implements OnInit {
   }
 
   loadStats() {
+    this.statsError.set(false);
     this.api.get<AuditStats>('/audit/stats').subscribe({
-      next: res => this.stats.set(res),
-      error: () => {}
+      next: res => {
+        this.stats.set(res);
+        this.statsError.set(false);
+      },
+      error: () => this.statsError.set(true)
     });
   }
 
   loadAuditLogs(resetPagination = false) {
     if (resetPagination) this.resetAuditPagination();
     const cursor = this.auditPageCursors[this.auditCurrentPage - 1] ?? undefined;
+    this.auditError.set(false);
     this.isLoading.set(true);
     this.api.get<AuditPage<AuditRecord>>('/audit/logs', {
       table_name: this.tableFilter || undefined,
+      row_pk: this.rowPkFilter.trim() || undefined,
       event: this.eventFilter || undefined,
+      user_id: this.auditUserFilter.trim() || undefined,
+      from: this.startOfUtcDay(this.auditFromFilter),
+      to: this.endOfUtcDay(this.auditToFilter),
       limit: this.auditPageSize,
       cursor
     }).subscribe({
@@ -1052,19 +1219,27 @@ export class AuditComponent implements OnInit {
         this.auditTotal.set(res?.totalEstimated || 0);
         this.auditNextCursor = res?.nextCursor || null;
         this.auditHasMore.set(Boolean(res?.hasMore));
+        this.auditError.set(false);
         this.isLoading.set(false);
       },
-      error: () => this.isLoading.set(false)
+      error: () => {
+        this.auditError.set(true);
+        this.isLoading.set(false);
+      }
     });
   }
 
   loadSecurityEvents(resetPagination = false) {
     if (resetPagination) this.resetSecurityPagination();
     const cursor = this.securityPageCursors[this.secCurrentPage - 1] ?? undefined;
+    this.securityError.set(false);
     this.isLoading.set(true);
     this.api.get<AuditPage<SecurityEventRecord>>('/audit/security-events', {
       event_type: this.secEventTypeFilter || undefined,
+      user_id: this.securityUserFilter.trim() || undefined,
       ip: this.secIpFilter || undefined,
+      from: this.startOfUtcDay(this.securityFromFilter),
+      to: this.endOfUtcDay(this.securityToFilter),
       limit: this.secPageSize,
       cursor
     }).subscribe({
@@ -1073,10 +1248,33 @@ export class AuditComponent implements OnInit {
         this.securityTotal.set(res?.totalEstimated || 0);
         this.securityNextCursor = res?.nextCursor || null;
         this.securityHasMore.set(Boolean(res?.hasMore));
+        this.securityError.set(false);
         this.isLoading.set(false);
       },
-      error: () => this.isLoading.set(false)
+      error: () => {
+        this.securityError.set(true);
+        this.isLoading.set(false);
+      }
     });
+  }
+
+  resetAuditFilters() {
+    this.tableFilter = '';
+    this.eventFilter = '';
+    this.rowPkFilter = '';
+    this.auditUserFilter = '';
+    this.auditFromFilter = '';
+    this.auditToFilter = '';
+    this.loadAuditLogs(true);
+  }
+
+  resetSecurityFilters() {
+    this.secEventTypeFilter = '';
+    this.secIpFilter = '';
+    this.securityUserFilter = '';
+    this.securityFromFilter = '';
+    this.securityToFilter = '';
+    this.loadSecurityEvents(true);
   }
 
   paginatedAuditLogs(): AuditRecord[] {
@@ -1131,6 +1329,14 @@ export class AuditComponent implements OnInit {
     this.securityPageCursors = [null];
     this.securityNextCursor = null;
     this.securityHasMore.set(false);
+  }
+
+  private startOfUtcDay(value: string): string | undefined {
+    return value ? `${value}T00:00:00.000Z` : undefined;
+  }
+
+  private endOfUtcDay(value: string): string | undefined {
+    return value ? `${value}T23:59:59.999Z` : undefined;
   }
 
   selectAuditRecord(record: AuditRecord) {
