@@ -159,7 +159,9 @@ dwh:
     token-per-minute: ${DWH_RATE_LIMIT_TOKEN_PER_MINUTE:300}           # Bearer, на владельца токена
     expensive-per-minute: ${DWH_RATE_LIMIT_EXPENSIVE_PER_MINUTE:10}    # дорогие операции (пути ниже)
     expensive-paths:
-      - /api/v1/audit/**
+      - /api/v1/audit/stats
+      - /api/v1/audit/logs
+      - /api/v1/audit/security-events
       - /api/v1/search/**
   typesense:
     url: ${DWH_TYPESENSE_URL:http://typesense:8108}

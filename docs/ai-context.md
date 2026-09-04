@@ -102,11 +102,20 @@ repositories/adapters — I/O. Детали приведены в
 
 ## 6. Последняя подтверждённая проверка
 
-Опубликованный `main`/`origin/main` указывает на immutable commit
+Последний полностью зелёный опубликованный baseline — immutable commit
 `6606a7a723a3bbbb67d26135aad2ef150990bdbb`. Remote CI
 [run `33915401176`](https://github.com/qahhor/dwh/actions/runs/33915401176)
 завершён `success`: backend, frontend, release-config, security и clean-deploy
 browser E2E jobs зелёные.
+
+`main`/`origin/main` указывает на docs-only commit
+`03956fd3e42a76297e029c139981c4de2c0425b5`. Его remote CI
+[run `33916140833`](https://github.com/qahhor/dwh/actions/runs/33916140833)
+не является зелёным: backend, frontend, release-config и security прошли, но
+E2E завершился 23/24 из-за воспроизведённого `429` на audit-странице. Причина —
+три независимых read endpoint (`stats`, `logs`, `security-events`) делили один
+expensive bucket `/api/v1/audit/**`; предыдущие audit/light-theme запросы
+исчерпывали его перед dark-theme сценарием.
 
 `57efcd77` закрывает локальную реализацию `P0-14`:
 
@@ -141,6 +150,16 @@ preflight/host contracts, digest-only deployment evidence, 100-user/20-upload/
 4h k6 profiles, runtime storage/scanner latency metrics, failure drills,
 encrypted object backup, combined isolated restore и published-release
 verification. Это код и процедура, не доказательство реального окружения.
+
+Текущий checkout разделяет expensive buckets для трёх audit endpoint и
+добавляет regression test независимости лимитов. TDD evidence: до исправления
+test ожидал `404` для `/audit/stats`, но получал `429`; после исправления
+`RateLimitFilterTest` — 6/6. Полный Maven `verify` с PostgreSQL/MinIO
+Testcontainers — 265 тестов, 0 failures/errors/skipped. Пересобранный Docker
+runtime на чистых изолированных volumes прошёл Playwright 24/24; основной
+локальный runtime после проверки восстановлен и healthy. До commit/push и
+зелёного remote CI это evidence остаётся локальным и не повышает release gate
+до `Verified`.
 
 ## 7. Открытые release gates
 

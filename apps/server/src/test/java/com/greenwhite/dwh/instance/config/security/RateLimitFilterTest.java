@@ -154,6 +154,26 @@ class RateLimitFilterTest {
                 .andExpect(status().isTooManyRequests());
     }
 
+    @Test
+    @DisplayName("Дорогие audit endpoints не должны исчерпывать общий лимит страницы")
+    void expensiveAuditEndpointsUseIndependentBuckets() throws Exception {
+        mockAuthenticatedUser(10L, "session-10");
+
+        mvc.perform(get("/api/v1/audit/logs")
+                        .cookie(new Cookie("DWH_SESSION", "session-10")))
+                .andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/audit/stats")
+                        .cookie(new Cookie("DWH_SESSION", "session-10")))
+                .andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/audit/security-events")
+                        .cookie(new Cookie("DWH_SESSION", "session-10")))
+                .andExpect(status().isNotFound());
+
+        mvc.perform(get("/api/v1/audit/logs")
+                        .cookie(new Cookie("DWH_SESSION", "session-10")))
+                .andExpect(status().isTooManyRequests());
+    }
+
     private void mockAuthenticatedUser(long userId, String rawSession) {
         when(sessionService.getActiveSession(rawSession)).thenReturn(Optional.of(
                 new KauthSessionRepository.SessionRecord(

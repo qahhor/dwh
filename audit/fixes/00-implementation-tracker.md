@@ -6,12 +6,17 @@ Source of truth: [каноническое ТЗ](../../docs/technical-specificat
 Foundation удалены из
 поддерживаемого runtime и остаются только историческим evidence. `Verified`
 разрешён только для immutable pushed SHA с зелёным remote CI и clean deployment.
-Текущее code evidence: `main`/`6606a7a`, remote CI
+Последний полностью зелёный code baseline: `main`/`6606a7a`, remote CI
 [`33915401176`](https://github.com/qahhor/dwh/actions/runs/33915401176) — `success`.
+Текущий `origin/main`/`03956fd` имеет четыре зелёных jobs и красный E2E
+[`33916140833`](https://github.com/qahhor/dwh/actions/runs/33916140833): общий
+`/api/v1/audit/**` bucket воспроизводимо отдавал `429`. Исправление и regression
+test локально green (Maven 265/265, clean isolated Docker E2E 24/24), но требует
+commit/push и remote CI.
 
 | ID | Карточка | Priority | Effort | Owner | Status | Текущее evidence / остаток |
 |---|---|---|---|---|---|---|
-| P0-01/P0-08 | [T-01 release gates](T-01-release-gates.md) | P0 | M | TBD | Verified | `main`/`6606a7a`: remote CI `33915401176` полностью green — Maven verify/SBOM, frontend unit/typecheck/build, release-config, clean-deploy browser E2E и gitleaks/Trivy |
+| P0-01/P0-08 | [T-01 release gates](T-01-release-gates.md) | P0 | M | TBD | In review | Последний green baseline: `6606a7a`/`33915401176`. Run `03956fd`/`33916140833` выявил общий audit rate-limit bucket; endpoint buckets разделены, regression test, Maven 265/265 и clean isolated Docker E2E 24/24 локально green; нужен green remote CI нового SHA |
 | P0-02 | [S-01 SSO](S-01-sso-disable-or-verify.md) | P0 | S/M | TBD | Verified | Публичный exchange удалён, providers выключены V018, negative integration contract входит в green remote Maven suite; полноценный OIDC не входит в release scope |
 | P0-03 | [S-02 module callback](S-02-module-callback-hardening.md) | P0 | S/M | TBD | Verified | Публичный moderation callback удалён вместе с retired Control Plane runtime; server-side mutation/audit tests входят в green remote Maven suite |
 | P0-04 | [S-03 markdown XSS](S-03-markdown-xss.md) | P0 | M | TBD | Verified | Unsafe bypass удалён, URL sanitizer и strict CSP добавлены; unit/build/clean browser E2E green на `6606a7a` |

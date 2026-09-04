@@ -25,7 +25,11 @@ public record RateLimitProperties(
         if (tokenPerMinute <= 0) tokenPerMinute = 300;
         if (expensivePerMinute <= 0) expensivePerMinute = 10;
         if (expensivePaths == null) {
-            expensivePaths = List.of("/api/v1/audit/**", "/api/v1/search/**");
+            expensivePaths = List.of(
+                    "/api/v1/audit/stats",
+                    "/api/v1/audit/logs",
+                    "/api/v1/audit/security-events",
+                    "/api/v1/search/**");
         }
     }
 }
