@@ -6,24 +6,23 @@ Source of truth: [каноническое ТЗ](../../docs/technical-specificat
 Foundation удалены из
 поддерживаемого runtime и остаются только историческим evidence. `Verified`
 разрешён только для immutable pushed SHA с зелёным remote CI и clean deployment.
-Последний полностью зелёный code baseline: `main`/`7df3d64`, remote CI
-[`33918379895`](https://github.com/qahhor/dwh/actions/runs/33918379895) —
-`success` для всех пяти jobs. Общий `/api/v1/audit/**` rate-limit bucket разделён
-по endpoint; Maven 265/265 и clean Docker E2E 24/24 подтверждены локально и
-remote. Текущий checkout дополнительно переводит официальные GitHub Actions на
-проверенные Node 24 pins и добавляет supply-chain contract против их регрессии;
-его итоговый статус определяется обязательным remote CI текущего SHA.
+Последний полностью зелёный code-bearing baseline: `main`/`bd99b4f`, remote CI
+[`33919377814`](https://github.com/qahhor/dwh/actions/runs/33919377814) —
+`success` для всех пяти jobs без Node 20 annotations. Общий `/api/v1/audit/**`
+rate-limit bucket разделён по endpoint; Maven 265/265 и clean Docker E2E 24/24
+подтверждены локально и remote. Официальные GitHub Actions переведены на
+проверенные Node 24 pins; supply-chain contract блокирует их регрессию.
 
 | ID | Карточка | Priority | Effort | Owner | Status | Текущее evidence / остаток |
 |---|---|---|---|---|---|---|
-| P0-01/P0-08 | [T-01 release gates](T-01-release-gates.md) | P0 | M | TBD | Verified | `7df3d64`/`33918379895`: Maven verify/SBOM, frontend unit/typecheck/build, release-config, gitleaks/Trivy и clean-deploy browser E2E полностью green; audit endpoint buckets изолированы и защищены regression test |
+| P0-01/P0-08 | [T-01 release gates](T-01-release-gates.md) | P0 | M | TBD | Verified | `bd99b4f`/`33919377814`: Maven verify/SBOM, frontend unit/typecheck/build, release-config, gitleaks/Trivy и clean-deploy browser E2E полностью green; Node 24 actions и audit endpoint buckets защищены regression contracts |
 | P0-02 | [S-01 SSO](S-01-sso-disable-or-verify.md) | P0 | S/M | TBD | Verified | Публичный exchange удалён, providers выключены V018, negative integration contract входит в green remote Maven suite; полноценный OIDC не входит в release scope |
 | P0-03 | [S-02 module callback](S-02-module-callback-hardening.md) | P0 | S/M | TBD | Verified | Публичный moderation callback удалён вместе с retired Control Plane runtime; server-side mutation/audit tests входят в green remote Maven suite |
 | P0-04 | [S-03 markdown XSS](S-03-markdown-xss.md) | P0 | M | TBD | Verified | Unsafe bypass удалён, URL sanitizer и strict CSP добавлены; unit/build/clean browser E2E green на `6606a7a` |
 | P0-05 | [S-04 search authorization](S-04-search-authorization.md) | P0 | M | TBD | Verified | Global search fail-closed для non-wildcard admin до реализации Typesense data-scope filtering; authorization tests входят в green remote suite |
 | P0-06 | [D-01 production topology](D-01-production-topology.md) | P0 | M | TBD | In review | Unified web/server/PostgreSQL/Typesense/backup topology; release-config и V018→V019 production rehearsal green; внешний Hetzner/Cloudflare TLS не подтверждён |
 | P0-07 | [D-02 deploy recovery](D-02-deploy-recovery.md) | P0 | M | TBD | In progress | Encrypted V018 backup before V019 and HTTP 200 green; target restore, automatic previous-digest rollback и file/object recovery отсутствуют |
-| P0-09 | Security artifact | P0 | S | TBD | In progress | Tomcat 11.0.25 и resolved-SBOM Trivy дают 0 HIGH/CRITICAL; remote security job `33918379895` green, GitHub Actions переводятся на pinned Node 24 releases; нужен signed artifact от stable release tag |
+| P0-09 | Security artifact | P0 | S | TBD | In progress | Tomcat 11.0.25 и resolved-SBOM Trivy дают 0 HIGH/CRITICAL; remote security job `33919377814` green, GitHub Actions используют pinned Node 24 releases; нужен signed artifact от stable release tag |
 | P0-11 | File ingress contract | P0 | S | TBD | In progress | Spring 50/51 MiB, NGINX 51m, stable 413 handler и config tests реализованы; требуется clean browser evidence для success boundary и >50 MiB через production origin |
 | P0-12 | File pipeline isolation | P0 | M | TBD | Verified | Quarantine/scan/copy выполняются вне короткой `MfFileMetadataService.publish` transaction; boundary/concurrency tests входят в green remote Maven suite `33915401176` |
 | P0-13 | Production file scanner | P0 | S/M | TBD | In review | Production Compose требует активный ClamAV и ждёт его health; startup/EICAR/quarantine cleanup tests green локально, target outage smoke остаётся installation evidence |

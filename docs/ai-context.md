@@ -102,9 +102,9 @@ repositories/adapters — I/O. Детали приведены в
 
 ## 6. Последняя подтверждённая проверка
 
-Последний полностью зелёный опубликованный baseline — immutable commit
-`7df3d64c34397dd1e66ecf0122c07ec559ebff91`. Remote CI
-[run `33918379895`](https://github.com/qahhor/dwh/actions/runs/33918379895)
+Последний полностью зелёный опубликованный code-bearing baseline — immutable
+commit `bd99b4f5f1a59532c7b8d5f320c3d214fd09e003`. Remote CI
+[run `33919377814`](https://github.com/qahhor/dwh/actions/runs/33919377814)
 завершён `success`: backend, frontend, release-config, security и clean-deploy
 browser E2E jobs зелёные.
 
@@ -160,13 +160,13 @@ runtime на чистых изолированных volumes прошёл Playwr
 локальный runtime после проверки восстановлен и healthy. Remote CI подтвердил
 исправление на том же SHA и вернул release gate в `Verified`.
 
-Текущий checkout также заменяет deprecated Node 20 pins во всех GitHub
+Commit `bd99b4f` также заменяет deprecated Node 20 pins во всех GitHub
 workflows на официальные Node 24 releases: checkout v6.1.0, setup-node v6.5.0,
 setup-java v5.6.0, upload-artifact v6.0.0 и download-artifact v7.0.0. Все
 actions по-прежнему зафиксированы immutable SHA; `verify-release.ps1` теперь
-запрещает возврат этих пяти action families на неутверждённый pin. Локальный
-supply-chain contract зелёный; итоговый статус этого workflow-only изменения
-определяется обязательным remote CI текущего SHA.
+запрещает возврат этих пяти action families на неутверждённый pin. Локальные
+`actionlint` и supply-chain contract зелёные; remote CI `33919377814` подтвердил
+все пять jobs без прежних Node 20 annotations.
 
 ## 7. Открытые release gates
 
