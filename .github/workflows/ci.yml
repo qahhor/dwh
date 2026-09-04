@@ -166,18 +166,19 @@ jobs:
     name: security (gitleaks + trivy)
     runs-on: ubuntu-24.04
     needs: backend
+    permissions:
+      actions: read
+      contents: read
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
 
-      # Trivy resolves Maven BOMs from ~/.m2. Reusing the backend cache avoids
-      # non-deterministic Maven Central lookups and CI-wide HTTP 429 failures.
-      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+      - name: Download resolved backend SBOM
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          distribution: temurin
-          java-version: '25'
-          cache: maven
+          name: sbom
+          path: security-input/backend-sbom
 
       - name: Gitleaks
         uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3
@@ -185,11 +186,36 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_VERSION: 8.28.0
 
-      - name: Trivy (dependencies)
+      - name: Trivy (resolved backend SBOM)
         uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
         with:
+          version: v0.70.0
+          scan-type: sbom
+          scan-ref: security-input/backend-sbom/bom.json
+          severity: CRITICAL,HIGH
+          exit-code: '1'
+          ignore-unfixed: true
+
+      - name: Trivy (web application and build dependencies)
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        env:
+          TRIVY_INCLUDE_DEV_DEPS: 'true'
+        with:
+          version: v0.70.0
           scan-type: fs
-          scan-ref: .
+          scan-ref: apps/web
+          severity: CRITICAL,HIGH
+          exit-code: '1'
+          ignore-unfixed: true
+
+      - name: Trivy (E2E toolchain dependencies)
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        env:
+          TRIVY_INCLUDE_DEV_DEPS: 'true'
+        with:
+          version: v0.70.0
+          scan-type: fs
+          scan-ref: e2e
           severity: CRITICAL,HIGH
           exit-code: '1'
           ignore-unfixed: true

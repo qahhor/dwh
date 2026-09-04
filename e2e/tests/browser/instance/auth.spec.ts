@@ -16,6 +16,17 @@ test('protected route redirects to the accessible login form', async ({ page }) 
   await expect(page.getByLabel('Пароль')).toBeVisible();
 });
 
+test('login page publishes a reachable browser icon', async ({ page, request }) => {
+  await page.goto('/login');
+
+  const iconHref = await page.locator('link[rel="icon"]').getAttribute('href');
+  expect(iconHref).toBeTruthy();
+
+  const iconResponse = await request.get(iconHref!);
+  expect(iconResponse.status()).toBe(200);
+  expect((await iconResponse.body()).byteLength).toBeGreaterThan(0);
+});
+
 test('invalid credentials keep the user on login and show an alert', async ({ page }) => {
   await page.goto('/login');
   await page.getByLabel('Логин или Email').fill(`invalid-${Date.now()}`);

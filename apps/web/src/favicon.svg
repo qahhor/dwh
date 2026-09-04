@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="SmartupCMS">
+  <rect width="64" height="64" rx="14" fill="#0369a1"/>
+  <path
+    d="M43.5 19.5C40.1 15.8 35.7 14 30.2 14C22.9 14 18 17.9 18 23.7C18 29.8 23.1 32 32.4 34C41.6 36 46 39.4 46 46.2C46 54.1 39.2 58 30.6 58C23.7 58 18 55.8 14.5 51.5"
+    fill="none"
+    stroke="#fff"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="7"
+  />
+</svg>

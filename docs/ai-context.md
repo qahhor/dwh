@@ -1,6 +1,6 @@
 # Контекст SmartupCMS для AI-ассистентов
 
-**Актуализировано:** 2026-09-03
+**Актуализировано:** 2026-09-04
 
 **Назначение:** краткий воспроизводимый handoff для следующей AI-сессии
 
@@ -99,19 +99,38 @@ repositories/adapters — I/O. Детали приведены в
 [migration guidance](guidelines/database-migrations.md) и
 [production launch checklist](ops/production-launch-checklist.md).
 
-## 6. Последняя подтверждённая локальная проверка
+## 6. Последняя подтверждённая проверка
 
-Перед созданием этого контекста на commit `dcebe16` были подтверждены:
+Базовый `main` и `origin/main` перед локальным patch указывали на
+`1b24d3f5e63256fcb4257ae230a57c59fa73d6bf`. Для этого SHA ранее в чистом
+checkout подтверждены web 26 files / 68 tests, typecheck/build, E2E
+typecheck/artifact-security/theme 2/2 и здоровая Docker-топология из четырёх
+runtime services.
 
-- 6/6 documentation, architecture, release и production contract gates;
-- Maven: 214 тестов, 0 failures/errors/skipped;
-- web: 26 test files / 68 tests, typecheck и production build;
-- E2E contracts: 3/3 config tests, typecheck и artifact-security.
+Remote CI run `33833803385` для этого SHA красный: frontend и backend jobs
+зелёные, но `release-config` упал на backup-status contract, а `security` — на
+Trivy. Поэтому `1b24d3f` не является release-ready baseline.
 
-Это локальная проверка, а не immutable remote-SHA release evidence. Полный
-browser E2E в указанном прогоне не выполнялся. Следующая AI-сессия обязана
-повторно проверить текущий `HEAD`, status и применимые gates перед заявлением о
-готовности.
+Локальный рабочий patch от 2026-09-04 исправляет обе первопричины:
+
+- backup-status contract использует изолированный Docker volume с production
+  UID/GID 10001 вместо root-owned host bind file;
+- embedded Tomcat обновлён с 11.0.24 до 11.0.25;
+- Trivy проверяет resolved backend CycloneDX SBOM, web application/build и E2E dev
+  toolchain раздельно, сохраняя fail-closed HIGH/CRITICAL threshold.
+
+На этом локальном patch подтверждены:
+
+- Maven: 214 тестов, 0 failures/errors/skipped, `BUILD SUCCESS`;
+- Trivy 0.70.0: 0 HIGH/CRITICAL для backend SBOM, web включая dev
+  dependencies и E2E;
+- 7/7 architecture/docs/release/production contract gates;
+- `actionlint` 1.7.7.
+
+Изменения ещё не прошли remote CI на immutable commit. Не заявлять R-01
+закрытым до push и полного green run. При следующей сессии сначала проверить
+`HEAD`, `git status` и применимые gates; не включать в работу unrelated dirty
+UI/E2E changes и локальные audit drafts без отдельного решения пользователя.
 
 ## 7. Открытые release gates
 
@@ -127,7 +146,7 @@ Production readiness остаётся условной, пока не закры
 - CI/release evidence, связанное с immutable remote commit и image digests.
 
 Текущий список и доказательства находятся в
-[health report](../audit/health-check-2026-09-03.md) и
+`audit/health-check-2026-09-04.md` и
 [production launch checklist](ops/production-launch-checklist.md).
 
 ## 8. Рабочий протокол для AI
