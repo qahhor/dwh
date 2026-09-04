@@ -48,6 +48,13 @@ Assert-Matches $workflow 'stableSemVer|stable_semver|STABLE_SEMVER' 'Workflow mu
 Assert-Matches $workflow '(?m)^concurrency:' 'Release workflow must serialize a release tag.'
 
 $usesMatches = [regex]::Matches($workflow, '(?m)^\s*-?\s*uses:\s*([^\s#]+)')
+$node24ActionPins = @{
+    'actions/checkout'          = 'd23441a48e516b6c34aea4fa41551a30e30af803'
+    'actions/setup-node'        = '249970729cb0ef3589644e2896645e5dc5ba9c38'
+    'actions/setup-java'        = '03ad4de0992f5dab5e18fcb136590ce7c4a0ac95'
+    'actions/upload-artifact'   = 'b7c566a772e6b6bfb58ed0dc250532a479d7789f'
+    'actions/download-artifact' = '37930b1c2abaa49bbe596cd826c3c89aef350131'
+}
 foreach ($workflowFile in Get-ChildItem -LiteralPath (Join-Path $repoRoot '.github/workflows') -Filter '*.yml') {
     $candidateWorkflow = Get-Content -LiteralPath $workflowFile.FullName -Raw
     foreach ($usesMatch in [regex]::Matches($candidateWorkflow, '(?m)^\s*-?\s*uses:\s*([^\s#]+)')) {
@@ -55,6 +62,11 @@ foreach ($workflowFile in Get-ChildItem -LiteralPath (Join-Path $repoRoot '.gith
         if ($reference.StartsWith('./')) { continue }
         if ($reference -notmatch '@[0-9a-f]{40}$') {
             Add-ContractError "External action is not pinned to a full commit SHA in $($workflowFile.Name): $reference"
+        }
+        $referenceParts = $reference -split '@', 2
+        if ($referenceParts.Count -eq 2 -and $node24ActionPins.ContainsKey($referenceParts[0]) -and
+            $referenceParts[1] -ne $node24ActionPins[$referenceParts[0]]) {
+            Add-ContractError "Official action is not pinned to the approved Node 24 release in $($workflowFile.Name): $reference"
         }
     }
 }

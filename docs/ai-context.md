@@ -103,8 +103,8 @@ repositories/adapters — I/O. Детали приведены в
 ## 6. Последняя подтверждённая проверка
 
 Последний полностью зелёный опубликованный baseline — immutable commit
-`6606a7a723a3bbbb67d26135aad2ef150990bdbb`. Remote CI
-[run `33915401176`](https://github.com/qahhor/dwh/actions/runs/33915401176)
+`7df3d64c34397dd1e66ecf0122c07ec559ebff91`. Remote CI
+[run `33918379895`](https://github.com/qahhor/dwh/actions/runs/33918379895)
 завершён `success`: backend, frontend, release-config, security и clean-deploy
 browser E2E jobs зелёные.
 
@@ -151,15 +151,22 @@ preflight/host contracts, digest-only deployment evidence, 100-user/20-upload/
 encrypted object backup, combined isolated restore и published-release
 verification. Это код и процедура, не доказательство реального окружения.
 
-Текущий checkout разделяет expensive buckets для трёх audit endpoint и
+Commit `7df3d64` разделяет expensive buckets для трёх audit endpoint и
 добавляет regression test независимости лимитов. TDD evidence: до исправления
 test ожидал `404` для `/audit/stats`, но получал `429`; после исправления
 `RateLimitFilterTest` — 6/6. Полный Maven `verify` с PostgreSQL/MinIO
 Testcontainers — 265 тестов, 0 failures/errors/skipped. Пересобранный Docker
 runtime на чистых изолированных volumes прошёл Playwright 24/24; основной
-локальный runtime после проверки восстановлен и healthy. До commit/push и
-зелёного remote CI это evidence остаётся локальным и не повышает release gate
-до `Verified`.
+локальный runtime после проверки восстановлен и healthy. Remote CI подтвердил
+исправление на том же SHA и вернул release gate в `Verified`.
+
+Текущий checkout также заменяет deprecated Node 20 pins во всех GitHub
+workflows на официальные Node 24 releases: checkout v6.1.0, setup-node v6.5.0,
+setup-java v5.6.0, upload-artifact v6.0.0 и download-artifact v7.0.0. Все
+actions по-прежнему зафиксированы immutable SHA; `verify-release.ps1` теперь
+запрещает возврат этих пяти action families на неутверждённый pin. Локальный
+supply-chain contract зелёный; итоговый статус этого workflow-only изменения
+определяется обязательным remote CI текущего SHA.
 
 ## 7. Открытые release gates
 
