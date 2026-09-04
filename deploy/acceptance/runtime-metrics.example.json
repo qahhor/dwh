@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "windowStart": null,
+  "windowEnd": null,
+  "hikariPendingMax": null,
+  "heapPercentMax": null,
+  "freeDiskGiBMin": null,
+  "tempGrowthMiB": null,
+  "scannerP95Ms": null,
+  "r2P95Ms": null,
+  "orphanObjects": null,
+  "sourceDashboard": null,
+  "collector": null
+}

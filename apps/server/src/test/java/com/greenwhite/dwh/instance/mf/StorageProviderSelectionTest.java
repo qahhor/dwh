@@ -3,6 +3,8 @@ package com.greenwhite.dwh.instance.mf;
 import com.greenwhite.dwh.instance.mf.storage.LocalStorageProvider;
 import com.greenwhite.dwh.instance.mf.storage.S3StorageConfiguration;
 import com.greenwhite.dwh.spi.storage.StorageProvider;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -17,7 +19,8 @@ class StorageProviderSelectionTest {
     Path storagePath;
 
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
-            .withUserConfiguration(LocalStorageProvider.class, S3StorageConfiguration.class);
+            .withUserConfiguration(LocalStorageProvider.class, S3StorageConfiguration.class)
+            .withBean(MeterRegistry.class, SimpleMeterRegistry::new);
 
     @Test
     void selectsExactlyOneLocalProviderByDefault() {

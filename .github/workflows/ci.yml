@@ -89,6 +89,10 @@ jobs:
         shell: pwsh
         run: ./scripts/prod/test-backup-status.ps1
 
+      - name: Validate managed infrastructure acceptance contract
+        shell: pwsh
+        run: ./scripts/acceptance/test-managed-acceptance.ps1
+
       - name: Verify backup failure blocks migrations
         run: bash scripts/prod/test-deploy-fail-closed.sh
 

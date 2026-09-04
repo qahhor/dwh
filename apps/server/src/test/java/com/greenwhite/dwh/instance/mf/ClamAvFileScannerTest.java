@@ -2,6 +2,7 @@ package com.greenwhite.dwh.instance.mf;
 
 import com.greenwhite.dwh.instance.mf.scan.ClamAvFileScanner;
 import com.greenwhite.dwh.spi.storage.FileScanner;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
@@ -23,7 +24,9 @@ class ClamAvFileScannerTest {
 
         try (ServerSocket server = new ServerSocket(0)) {
             CompletableFuture<byte[]> received = CompletableFuture.supplyAsync(() -> receiveScan(server));
+            var meterRegistry = new SimpleMeterRegistry();
             var scanner = new ClamAvFileScanner(
+                    meterRegistry,
                     "127.0.0.1",
                     server.getLocalPort(),
                     Duration.ofSeconds(1),
@@ -35,6 +38,10 @@ class ClamAvFileScannerTest {
             assertThat(result.verdict()).isEqualTo(FileScanner.Verdict.INFECTED);
             assertThat(result.threatName()).isEqualTo("Eicar-Test-Signature");
             assertThat(received.get(1, TimeUnit.SECONDS)).containsExactly(content);
+            assertThat(meterRegistry.get("dwh.file.scanner")
+                    .tag("provider", "clamav")
+                    .tag("outcome", "infected")
+                    .timer().count()).isEqualTo(1);
         }
     }
 

@@ -59,8 +59,13 @@ public class RateLimitFilter extends OncePerRequestFilter {
         String key;
         int limit;
         if (principal == null) {
-            key = "ip:" + clientIp(request);
-            limit = props.ipPerMinute();
+            if (isPublicI18nRead(request)) {
+                key = "ip:" + clientIp(request) + ":public-read";
+                limit = props.publicReadPerMinute();
+            } else {
+                key = "ip:" + clientIp(request);
+                limit = props.ipPerMinute();
+            }
         } else if (principal.isApi()) {
             // Лимит на владельца токена: сервисная учётка = одна интеграция (разд. 4.4.1 ТЗ-01)
             key = "api:" + principal.userId();
@@ -103,6 +108,15 @@ public class RateLimitFilter extends OncePerRequestFilter {
             }
         }
         return null;
+    }
+
+    private boolean isPublicI18nRead(HttpServletRequest request) {
+        if (!"GET".equalsIgnoreCase(request.getMethod())) {
+            return false;
+        }
+        String uri = request.getRequestURI();
+        return "/api/v1/i18n/languages".equals(uri)
+                || uri.matches("/api/v1/i18n/[a-zA-Z]{2,3}(?:-[a-zA-Z0-9]{2,8})*");
     }
 
     private String clientIp(HttpServletRequest request) {

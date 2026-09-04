@@ -13,6 +13,8 @@ $deployShPath = Join-Path $PSScriptRoot 'deploy.sh'
 $deployPsPath = Join-Path $PSScriptRoot 'deploy.ps1'
 $restoreShPath = Join-Path $PSScriptRoot 'restore.sh'
 $restorePsPath = Join-Path $PSScriptRoot 'restore.ps1'
+$backupObjectsPsPath = Join-Path $PSScriptRoot 'backup-objects.ps1'
+$restoreCombinedPsPath = Join-Path $PSScriptRoot 'restore-combined.ps1'
 
 function Assert-Matches([string]$Text, [string]$Pattern, [string]$Message) {
     if ($Text -notmatch $Pattern) { throw $Message }
@@ -62,7 +64,8 @@ Assert-Matches $restorePs 'decryptArguments[\s\S]*pg_restore' 'PowerShell restor
 Assert-Matches $restoreSh 'sha256sum' 'Bash restore must verify the encrypted artifact checksum.'
 Assert-Matches $restorePs 'Get-FileHash' 'PowerShell restore must verify the encrypted artifact checksum.'
 
-foreach ($scriptPath in @($deployPsPath, (Join-Path $PSScriptRoot 'backup.ps1'), $restorePsPath, (Join-Path $PSScriptRoot 'test-backup-status.ps1'))) {
+foreach ($scriptPath in @($deployPsPath, (Join-Path $PSScriptRoot 'backup.ps1'), $restorePsPath,
+        $backupObjectsPsPath, $restoreCombinedPsPath, (Join-Path $PSScriptRoot 'test-backup-status.ps1'))) {
     [scriptblock]::Create((Get-Content -LiteralPath $scriptPath -Raw)) | Out-Null
 }
 

@@ -2,7 +2,7 @@
 
 Source of truth: [каноническое ТЗ](../../docs/technical-specification.md) и
 [ADR-0014](../../docs/adr/ADR-0014-unified-open-source-runtime.md). Статус
-обновлён 2026-09-04 для единого open-source SmartupCMS. Control Plane/Fleet
+обновлён 2026-09-05 для единого open-source SmartupCMS. Control Plane/Fleet
 Foundation удалены из
 поддерживаемого runtime и остаются только историческим evidence. `Verified`
 разрешён только для immutable pushed SHA с зелёным remote CI и clean deployment;
@@ -21,8 +21,8 @@ Foundation удалены из
 | P0-11 | File ingress contract | P0 | S | TBD | In progress | Spring 50/51 MiB, NGINX 51m, stable 413 handler и config tests реализованы; требуется clean browser evidence для success boundary и >50 MiB через production origin |
 | P0-12 | File pipeline isolation | P0 | M | TBD | In review | Quarantine/scan/copy выполняются вне короткой `MfFileMetadataService.publish` transaction; boundary/concurrency tests входят в Maven green suite, remote full CI ещё red |
 | P0-13 | Production file scanner | P0 | S/M | TBD | In review | Production Compose требует активный ClamAV и ждёт его health; startup/EICAR/quarantine cleanup tests green локально, target outage smoke остаётся installation evidence |
-| P0-14 | Task/file data scope | P0 conditional | M | TBD | In review | ADR-0013 фиксирует `ALL/SUBTREE/UNITS/SELF`; task/comment/file list, direct reads и mutations используют SQL row-scope, роль пересчитывает effective scope в той же транзакции; PostgreSQL policy tests и direct-API 403/404/200 tests green локально. Нужны immutable push, remote CI и clean Docker/browser evidence |
-| P0-15 | Target acceptance | P0 | M | TBD | Not started | Hetzner/Cloudflare/R2, alerts, 100-user load/soak и combined DB+objects restore не подтверждены |
+| P0-14 | Task/file data scope | P0 conditional | M | TBD | In review | ADR-0013 фиксирует `ALL/SUBTREE/UNITS/SELF`; task/comment/file list, direct reads и mutations используют SQL row-scope, роль пересчитывает effective scope в той же транзакции; PostgreSQL policy/direct-API tests и clean Docker/browser 24/24 green локально. Remote run `33909868657` подтвердил все jobs кроме browser E2E и выявил общий anonymous/i18n NAT bucket; regression patch локально green, нужны immutable push и полностью green remote CI |
+| P0-15 | Target acceptance | P0 | M | TBD | In review | Реализованы non-secret managed template, external/host fail-closed preflight, private R2 policy/round-trip, digest deployment overrides, 100-user/20-upload/4h k6 profiles, scanner/database/backup drills, scanner/R2 latency metrics, encrypted object backup, isolated combined restore и published-release verifier. Реальный Hetzner/Cloudflare/R2/alert/load/negative-restore evidence отсутствует и остаётся `UNVERIFIED` |
 | CP-FF-01 | Historical Fleet Foundation evidence (удалено в `c6a1181`, доступно только в предшествующей истории Git) | — | — | — | Superseded | Control Plane/Fleet runtime удалён; historical evidence не является частью текущего release contour |
 | P1 | [S-05 webhook hardening](S-05-webhook-hardening.md) | P1 | M | TBD | In review | Fail-closed, exact allow-list, SSRF ranges, redirect/timeout/redaction/secret-once; focused and full backend tests green; target egress firewall остаётся installation control |
 | P1 | [W-01 a11y consistency](W-01-a11y-consistency.md) | P1 | M | TBD | In review | Семантика/labels/focus/states исправлены; axe critical/serious, keyboard и narrow viewport включены; clean browser E2E 9/9 |

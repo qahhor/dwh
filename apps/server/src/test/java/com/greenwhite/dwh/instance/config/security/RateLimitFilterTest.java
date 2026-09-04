@@ -48,6 +48,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         SecurityTestController.class})
 @TestPropertySource(properties = {
         "dwh.rate-limit.ip-per-minute=2",
+        "dwh.rate-limit.public-read-per-minute=4",
         "dwh.rate-limit.user-per-minute=3",
         "dwh.rate-limit.expensive-per-minute=1"
 })
@@ -117,6 +118,23 @@ class RateLimitFilterTest {
         mvc.perform(get("/api/v1/search").param("q", "x")
                         .with(r -> { r.setRemoteAddr("10.9.9.3"); return r; })
                         .cookie(new Cookie("DWH_SESSION", "session-8")))
+                .andExpect(status().isTooManyRequests());
+    }
+
+    @Test
+    @DisplayName("Публичные i18n reads не расходуют строгий bucket входа за общим NAT")
+    void publicI18nReadsUseIndependentHigherCapacityBucket() throws Exception {
+        for (int i = 0; i < 2; i++) {
+            mvc.perform(post("/api/v1/auth/login").with(r -> { r.setRemoteAddr("10.9.9.9"); return r; }));
+        }
+        mvc.perform(post("/api/v1/auth/login").with(r -> { r.setRemoteAddr("10.9.9.9"); return r; }))
+                .andExpect(status().isTooManyRequests());
+
+        for (int i = 0; i < 4; i++) {
+            mvc.perform(get("/api/v1/i18n/ru").with(r -> { r.setRemoteAddr("10.9.9.9"); return r; }))
+                    .andExpect(status().isNotFound());
+        }
+        mvc.perform(get("/api/v1/i18n/ru").with(r -> { r.setRemoteAddr("10.9.9.9"); return r; }))
                 .andExpect(status().isTooManyRequests());
     }
 

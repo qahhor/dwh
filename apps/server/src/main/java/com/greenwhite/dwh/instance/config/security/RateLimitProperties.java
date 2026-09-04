@@ -12,6 +12,7 @@ import java.util.List;
 public record RateLimitProperties(
         boolean enabled,
         int ipPerMinute,
+        int publicReadPerMinute,
         int userPerMinute,
         int tokenPerMinute,
         int expensivePerMinute,
@@ -19,6 +20,7 @@ public record RateLimitProperties(
 ) {
     public RateLimitProperties {
         if (ipPerMinute <= 0) ipPerMinute = 60;
+        if (publicReadPerMinute <= 0) publicReadPerMinute = 600;
         if (userPerMinute <= 0) userPerMinute = 600;
         if (tokenPerMinute <= 0) tokenPerMinute = 300;
         if (expensivePerMinute <= 0) expensivePerMinute = 10;

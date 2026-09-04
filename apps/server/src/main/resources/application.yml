@@ -153,10 +153,11 @@ dwh:
     max-connections-per-user: 5    # защита от утечки вкладок на клиенте
   rate-limit:
     enabled: true
-    ip-per-minute: 60        # неаутентифицированные, по IP
-    user-per-minute: 600     # cookie-сессии
-    token-per-minute: 300    # Bearer, на владельца токена
-    expensive-per-minute: 10 # дорогие операции (пути ниже)
+    ip-per-minute: ${DWH_RATE_LIMIT_IP_PER_MINUTE:60}                  # вход и прочие anonymous requests
+    public-read-per-minute: ${DWH_RATE_LIMIT_PUBLIC_READ_PER_MINUTE:600} # публичные словари i18n за общим NAT
+    user-per-minute: ${DWH_RATE_LIMIT_USER_PER_MINUTE:600}             # cookie-сессии
+    token-per-minute: ${DWH_RATE_LIMIT_TOKEN_PER_MINUTE:300}           # Bearer, на владельца токена
+    expensive-per-minute: ${DWH_RATE_LIMIT_EXPENSIVE_PER_MINUTE:10}    # дорогие операции (пути ниже)
     expensive-paths:
       - /api/v1/audit/**
       - /api/v1/search/**

@@ -46,7 +46,7 @@ configured external providers remain outside the application's trust boundary.
 | Secret/PII disclosure through API or logs | Webhook signing secret returned only at creation; webhook query/credentials redacted; structured audit; secret scan gate | Provider error text and support bundles must be reviewed; never attach dumps, object bytes, `.env`, or decrypted backups to public issues |
 | Supply-chain compromise | Locked dependencies, pinned CI actions and base images, multi-arch builds, SBOM, provenance, keyless Cosign signing, digest verification | Protect repository permissions, branch/tag rules, and GitHub OIDC workflow; verify every deployed digest/signature/provenance |
 | Data loss/corruption | Separate Flyway migration, mandatory pre-migration encrypted backup, checksums, restore and rollback scripts | Object bytes need a separate recovery source; execute target restore and object-consistency drills and keep age identity off-host |
-| Availability / resource exhaustion | Request rate limits, file/company quotas, bounded webhook retries/timeouts, health endpoints, graceful shutdown | No bundled HA or alert delivery; size host and alerts for 100 concurrent users and 50 GB/month upload growth, then run a soak test |
+| Availability / resource exhaustion | Separate anonymous/login, public-i18n, authenticated, API-token, and expensive-path rate-limit buckets; file/company quotas; bounded webhook retries/timeouts; health endpoints; graceful shutdown | In-memory buckets assume one server process; no bundled HA or alert delivery. Size host and alerts for 100 concurrent users and 50 GB/month upload growth, then run a soak test |
 
 ## Personal-data inventory
 

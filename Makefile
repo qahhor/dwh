@@ -7,7 +7,7 @@
 help:
 	@echo "SmartupCMS Commands:"
 	@echo "  make build          - Compile all Java modules and Angular apps"
-	@echo "  make test           - Run full test suite (57 tests on PostgreSQL 18)"
+	@echo "  make test           - Run the full PostgreSQL-backed test suite"
 	@echo "  make test-m1        - Run M1 Instance & Bootstrap tests"
 	@echo "  make docker-up      - Start Docker infrastructure (PostgreSQL 18)"
 	@echo "  make docker-down    - Stop Docker infrastructure"

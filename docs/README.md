@@ -69,6 +69,7 @@ as coverage in Settings.
 - [Maintenance, backup, and restore](ops/maintenance-guide.md)
 - [Operations runbook](ops/operations-runbook.md)
 - [Production launch checklist](ops/production-launch-checklist.md)
+- [Smartup-managed infrastructure acceptance](ops/managed-infrastructure-acceptance.md)
 - [Rollback and recovery](ops/rollback.md)
 - [RB-04 migration failure triage](runbooks/RB-04-migration-failure-triage.md)
 - [Threat model and personal-data inventory](security/threat-model.md)

@@ -4,6 +4,8 @@ import com.greenwhite.dwh.spi.common.ProviderHealth;
 import com.greenwhite.dwh.spi.storage.FileDownloadStream;
 import com.greenwhite.dwh.spi.storage.StorageProvider;
 import com.greenwhite.dwh.spi.storage.StoredFileMetadata;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -36,11 +38,13 @@ public final class S3StorageProvider implements StorageProvider {
 
     private final S3Client client;
     private final S3StorageProperties properties;
+    private final MeterRegistry meterRegistry;
 
-    public S3StorageProvider(S3Client client, S3StorageProperties properties) {
+    public S3StorageProvider(S3Client client, S3StorageProperties properties, MeterRegistry meterRegistry) {
         properties.validate();
         this.client = client;
         this.properties = properties;
+        this.meterRegistry = meterRegistry;
     }
 
     @Override
@@ -60,6 +64,8 @@ public final class S3StorageProvider implements StorageProvider {
             throw new IllegalArgumentException("Storage content and non-negative size are required");
         }
 
+        long startedAt = System.nanoTime();
+        String outcome = "error";
         Path staged = null;
         try {
             staged = Files.createTempFile("smartupcms-s3-", ".upload");
@@ -103,20 +109,26 @@ public final class S3StorageProvider implements StorageProvider {
                 delete(bucket, key);
                 throw new IllegalStateException("S3 response checksum does not match uploaded content");
             }
-            return new StoredFileMetadata(
+            StoredFileMetadata metadata = new StoredFileMetadata(
                     bucket, key, sha256, actualSize, resolvedContentType, Instant.now());
+            outcome = "success";
+            return metadata;
         } catch (IllegalArgumentException error) {
+            outcome = "rejected";
             throw error;
         } catch (Exception error) {
             throw storageFailure("upload", error);
         } finally {
             deleteStagedFile(staged);
+            recordOperation("upload", outcome, startedAt);
         }
     }
 
     @Override
     public FileDownloadStream download(String bucket, String key) {
         validateObjectAddress(bucket, key);
+        long startedAt = System.nanoTime();
+        String outcome = "error";
         try {
             ResponseInputStream<GetObjectResponse> stream = client.getObject(GetObjectRequest.builder()
                     .bucket(properties.getBucket())
@@ -124,66 +136,100 @@ public final class S3StorageProvider implements StorageProvider {
                     .checksumMode("ENABLED")
                     .build());
             GetObjectResponse response = stream.response();
-            return new FileDownloadStream(
+            FileDownloadStream download = new FileDownloadStream(
                     stream,
                     response.contentLength() == null ? 0 : response.contentLength(),
                     normalizedContentType(response.contentType()));
+            outcome = "success";
+            return download;
         } catch (NoSuchKeyException error) {
+            outcome = "not_found";
             return null;
         } catch (S3Exception error) {
             if (error.statusCode() == 404) {
+                outcome = "not_found";
                 return null;
             }
             throw storageFailure("download", error);
         } catch (Exception error) {
             throw storageFailure("download", error);
+        } finally {
+            recordOperation("download", outcome, startedAt);
         }
     }
 
     @Override
     public void delete(String bucket, String key) {
         validateObjectAddress(bucket, key);
+        long startedAt = System.nanoTime();
+        String outcome = "error";
         try {
             client.deleteObject(DeleteObjectRequest.builder()
                     .bucket(properties.getBucket())
                     .key(physicalKey(bucket, key))
                     .build());
+            outcome = "success";
         } catch (Exception error) {
             throw storageFailure("delete", error);
+        } finally {
+            recordOperation("delete", outcome, startedAt);
         }
     }
 
     @Override
     public boolean exists(String bucket, String key) {
         validateObjectAddress(bucket, key);
+        long startedAt = System.nanoTime();
+        String outcome = "error";
         try {
             client.headObject(HeadObjectRequest.builder()
                     .bucket(properties.getBucket())
                     .key(physicalKey(bucket, key))
                     .build());
+            outcome = "success";
             return true;
         } catch (NoSuchKeyException error) {
+            outcome = "not_found";
             return false;
         } catch (S3Exception error) {
             if (error.statusCode() == 404) {
+                outcome = "not_found";
                 return false;
             }
             throw storageFailure("exists", error);
         } catch (Exception error) {
             throw storageFailure("exists", error);
+        } finally {
+            recordOperation("exists", outcome, startedAt);
         }
     }
 
     @Override
     public ProviderHealth checkHealth() {
         Instant startedAt = Instant.now();
+        long metricStartedAt = System.nanoTime();
+        String outcome = "error";
         try {
             client.headBucket(HeadBucketRequest.builder().bucket(properties.getBucket()).build());
+            outcome = "success";
             return ProviderHealth.healthy(getProviderCode(), elapsedMillis(startedAt));
         } catch (Exception error) {
             return ProviderHealth.unhealthy(
                     getProviderCode(), "S3 storage is unavailable", elapsedMillis(startedAt));
+        } finally {
+            recordOperation("health", outcome, metricStartedAt);
         }
+    }
+
+    private void recordOperation(String operation, String outcome, long startedAt) {
+        Timer.builder("dwh.storage.operation")
+                .description("S3-compatible storage operation latency")
+                .tag("provider", getProviderCode())
+                .tag("operation", operation)
+                .tag("outcome", outcome)
+                .publishPercentiles(0.95, 0.99)
+                .register(meterRegistry)
+                .record(Duration.ofNanos(Math.max(0, System.nanoTime() - startedAt)));
     }
 
     private static RuntimeException storageFailure(String operation, Exception cause) {

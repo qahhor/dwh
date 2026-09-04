@@ -2,12 +2,14 @@
 
 **Version:** 2.0
 
-**Updated:** 2026-09-02
+**Updated:** 2026-09-05
 
 **Supported path:** one organization on one Docker Compose host.
 
 Deployment is not production-ready until every blocking item in the
 [production launch checklist](production-launch-checklist.md) is evidenced.
+Smartup-managed Hetzner + Cloudflare + R2 installations must also pass the
+[managed infrastructure acceptance](managed-infrastructure-acceptance.md).
 
 ## 1. Prerequisites
 
@@ -44,6 +46,11 @@ deploy/compose/.secrets/backup-database-password
 The first file must contain the same value as `DB_PASSWORD`. The second must be
 a distinct random password for the dedicated read-only backup role. Do not add a
 trailing explanatory line or commit the files.
+
+For Smartup-managed installations, also copy the five full `SERVER_IMAGE`,
+`WEB_IMAGE`, `BACKUP_IMAGE`, `POSTGRES_IMAGE`, and `TYPESENSE_IMAGE` references
+from the signed release bundle. Each must end in `@sha256:<digest>`; the managed
+host check rejects tag-only containers.
 
 Generate the age identity on a trusted workstation, store the private identity
 outside the deployment host, and place only its public recipient in
@@ -103,6 +110,7 @@ docker compose -f deploy/compose/docker-compose.prod.yml \
   --env-file .env.production config --quiet
 pwsh -NoProfile -File scripts/prod/test-release-config.ps1
 pwsh -NoProfile -File scripts/prod/test-backup-status.ps1
+pwsh -NoProfile -File scripts/acceptance/test-managed-acceptance.ps1
 ```
 
 Inspect the rendered configuration without sharing its environment values.
@@ -157,6 +165,11 @@ Then verify through HTTPS:
 5. Run an encrypted one-shot backup and perform an isolated restore drill.
 6. Configure alerts for service health, disk capacity, backup age/failure,
    certificate expiry, and elevated error rate.
+
+For a Smartup-managed installation, run the external preflight, capacity and
+failure profiles, independent published-release verification, and combined
+database/object restore exactly as documented in the managed acceptance
+runbook. Local Compose or MinIO emulation cannot replace target evidence.
 
 Remove `ADMIN_PASSWORD` from `.env.production` after bootstrap if the current
 installation no longer requires it, then redeploy and confirm restart succeeds.

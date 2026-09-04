@@ -2,7 +2,7 @@
 
 **Version:** 2.0
 
-**Updated:** 2026-09-02
+**Updated:** 2026-09-05
 
 **Audience:** the operator responsible for one SmartupCMS installation.
 
@@ -94,6 +94,9 @@ release.
 
 Backup recovery is not proven until [an isolated restore drill](maintenance-guide.md#restore-drill)
 passes. Database success does not prove recovery of uploaded objects.
+Use `backup-objects.ps1` and `restore-combined.ps1` for the release drill; the
+combined evidence must reject a missing/wrong age key, partial object archive,
+inventory mismatch, or RPO/RTO breach.
 
 ## Search failure
 

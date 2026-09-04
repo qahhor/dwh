@@ -1,5 +1,6 @@
 package com.greenwhite.dwh.instance.mf.storage;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -38,7 +39,10 @@ public class S3StorageConfiguration {
     }
 
     @Bean
-    public S3StorageProvider s3StorageProvider(S3Client client, S3StorageProperties properties) {
-        return new S3StorageProvider(client, properties);
+    public S3StorageProvider s3StorageProvider(
+            S3Client client,
+            S3StorageProperties properties,
+            MeterRegistry meterRegistry) {
+        return new S3StorageProvider(client, properties, meterRegistry);
     }
 }

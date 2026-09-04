@@ -73,6 +73,7 @@ jobs:
           ./scripts/release/verify-release.ps1
           ./scripts/prod/test-release-config.ps1
           ./scripts/prod/test-backup-status.ps1
+          ./scripts/acceptance/test-managed-acceptance.ps1
 
   build:
     name: Build, attest, and sign ${{ matrix.image }}
@@ -237,17 +238,46 @@ jobs:
           set -euo pipefail
           bundle="smartupcms-${GITHUB_REF_NAME}"
           owner="${GITHUB_REPOSITORY_OWNER,,}"
-          mkdir -p "dist/${bundle}/scripts"
+          mkdir -p "dist/${bundle}/scripts/prod" \
+            "dist/${bundle}/scripts/acceptance/load" \
+            "dist/${bundle}/scripts/release" \
+            "dist/${bundle}/deploy/acceptance"
           cp deploy/compose/docker-compose.prod.yml "dist/${bundle}/docker-compose.yml"
           cp deploy/compose/.env.example "dist/${bundle}/.env.example"
           sed -i "s|^IMAGE_REGISTRY=.*|IMAGE_REGISTRY=ghcr.io/${owner}/smartupcms|" \
             "dist/${bundle}/.env.example"
           sed -i "s|^APP_VERSION=.*|APP_VERSION=${GITHUB_REF_NAME}|" \
             "dist/${bundle}/.env.example"
+          for component in server web backup postgres typesense; do
+            variable="${component^^}_IMAGE"
+            image_ref="$(cat "dist/smartupcms-${component}-${GITHUB_REF_NAME}.image.txt")"
+            sed -i "s|^${variable}=.*|${variable}=${image_ref}|" \
+              "dist/${bundle}/.env.example"
+          done
           cp scripts/prod/deploy.sh scripts/prod/backup.sh scripts/prod/restore.sh \
             scripts/prod/deploy.ps1 scripts/prod/backup.ps1 scripts/prod/restore.ps1 \
-            "dist/${bundle}/scripts/"
-          cp README.md LICENSE NOTICE SECURITY.md SUPPORT.md CHANGELOG.md "dist/${bundle}/"
+            scripts/prod/backup-objects.ps1 scripts/prod/restore-combined.ps1 \
+            "dist/${bundle}/scripts/prod/"
+          cp scripts/acceptance/invoke-managed-preflight.ps1 \
+            scripts/acceptance/invoke-managed-host-check.ps1 \
+            scripts/acceptance/run-capacity.ps1 \
+            scripts/acceptance/run-failure-scenario.ps1 \
+            "dist/${bundle}/scripts/acceptance/"
+          cp scripts/acceptance/load/*.js "dist/${bundle}/scripts/acceptance/load/"
+          cp scripts/release/verify-published-release.ps1 "dist/${bundle}/scripts/release/"
+          cp deploy/acceptance/.env.managed.example \
+            deploy/acceptance/runtime-metrics.example.json \
+            "dist/${bundle}/deploy/acceptance/"
+          for component in server web backup postgres typesense; do
+            variable="ACCEPTANCE_EXPECTED_${component^^}_IMAGE"
+            image_ref="$(cat "dist/smartupcms-${component}-${GITHUB_REF_NAME}.image.txt")"
+            sed -i "s|^${variable}=.*|${variable}=${image_ref}|" \
+              "dist/${bundle}/deploy/acceptance/.env.managed.example"
+          done
+          cp -R docs "dist/${bundle}/"
+          cp README.md LICENSE NOTICE SECURITY.md SUPPORT.md CHANGELOG.md \
+            CODE_OF_CONDUCT.md CONTRIBUTING.md GOVERNANCE.md RELICENSE.md \
+            "dist/${bundle}/"
           cat dist/*.image.txt | sort > "dist/${bundle}/IMAGES.txt"
           tar -C dist -czf "dist/${bundle}.tar.gz" "${bundle}"
           (cd dist && zip -qr "${bundle}.zip" "${bundle}")

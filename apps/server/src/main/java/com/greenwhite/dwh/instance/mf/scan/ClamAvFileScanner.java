@@ -1,6 +1,8 @@
 package com.greenwhite.dwh.instance.mf.scan;
 
 import com.greenwhite.dwh.spi.storage.FileScanner;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -13,6 +15,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Locale;
 
 @Component
 @ConditionalOnProperty(name = "dwh.files.scanner.clamav.enabled", havingValue = "true")
@@ -25,8 +28,10 @@ public class ClamAvFileScanner implements FileScanner {
     private final int port;
     private final Duration connectTimeout;
     private final Duration readTimeout;
+    private final MeterRegistry meterRegistry;
 
     public ClamAvFileScanner(
+            MeterRegistry meterRegistry,
             @Value("${dwh.files.scanner.clamav.host:clamav}") String host,
             @Value("${dwh.files.scanner.clamav.port:3310}") int port,
             @Value("${dwh.files.scanner.clamav.connect-timeout:3s}") Duration connectTimeout,
@@ -39,6 +44,7 @@ public class ClamAvFileScanner implements FileScanner {
         if (readTimeout.isNegative() || readTimeout.isZero()) {
             throw new IllegalArgumentException("ClamAV read timeout must be positive");
         }
+        this.meterRegistry = meterRegistry;
         this.host = host;
         this.port = port;
         this.connectTimeout = connectTimeout;
@@ -52,6 +58,8 @@ public class ClamAvFileScanner implements FileScanner {
 
     @Override
     public ScanResult scan(InputStream content, long sizeBytes, String contentType) {
+        long startedAt = System.nanoTime();
+        String outcome = "error";
         try (Socket socket = new Socket()) {
             socket.connect(new InetSocketAddress(host, port), timeoutMillis(connectTimeout));
             socket.setSoTimeout(timeoutMillis(readTimeout));
@@ -68,9 +76,19 @@ public class ClamAvFileScanner implements FileScanner {
             output.writeInt(0);
             output.flush();
 
-            return parseResponse(readResponse(socket.getInputStream()));
+            ScanResult result = parseResponse(readResponse(socket.getInputStream()));
+            outcome = result.verdict().name().toLowerCase(Locale.ROOT);
+            return result;
         } catch (IOException exception) {
             throw new IllegalStateException("ClamAV scan failed", exception);
+        } finally {
+            Timer.builder("dwh.file.scanner")
+                    .description("End-to-end file scanner latency")
+                    .tag("provider", getProviderCode())
+                    .tag("outcome", outcome)
+                    .publishPercentiles(0.95, 0.99)
+                    .register(meterRegistry)
+                    .record(Duration.ofNanos(Math.max(0, System.nanoTime() - startedAt)));
         }
     }
 

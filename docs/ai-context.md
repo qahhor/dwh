@@ -1,6 +1,6 @@
 # Контекст SmartupCMS для AI-ассистентов
 
-**Актуализировано:** 2026-09-04
+**Актуализировано:** 2026-09-05
 
 **Назначение:** краткий воспроизводимый handoff для следующей AI-сессии
 
@@ -103,9 +103,8 @@ repositories/adapters — I/O. Детали приведены в
 ## 6. Последняя подтверждённая проверка
 
 Опубликованный `main`/`origin/main` перед текущим локальным patch указывает на
-`57efcd77c1bdc5946daf95647bf3a821572a1e73`. Предыдущий commit `4a7fece2` имеет
-полностью зелёный remote CI run `33883389351`. Для `57efcd77` remote run
-`33908930474` завершился ошибкой только в browser E2E; backend, frontend,
+`5eba93f58e7613a8dce040a83c55fdb9d76b98e4`. Для него remote CI run
+`33909868657` завершился ошибкой только в browser E2E; backend, frontend,
 release-config и security jobs зелёные.
 
 `57efcd77` закрывает локальную реализацию `P0-14`:
@@ -123,15 +122,24 @@ release-config и security jobs зелёные.
   config/typecheck/artifact-security и семь architecture/docs/release/
   production gates зелёные.
 
-Локально воспроизведена причина E2E failure: `/api/v1/audit/**` и
-`/api/v1/search/**` разделяли один expensive rate-limit bucket пользователя,
-поэтому аудит исчерпывал лимит поиска. Текущий follow-up patch разделяет buckets
-по семействам путей. Новый regression test и полный Maven 263/263 зелёные;
-Docker server пересобран, схема V024 и индекс
-`ms_task_comment_files_file_idx` подтверждены, полный browser E2E 24/24.
+Первый E2E-дефект (общий expensive bucket для `/api/v1/audit/**` и
+`/api/v1/search/**`) исправлен в `5eba93f`; локально Maven и browser E2E 24/24
+были зелёными. Артефакт run `33909868657` выявил второй дефект: все
+неаутентифицированные запросы делили строгий IP bucket, поэтому параллельные
+browser contexts за одним CI/corporate NAT получали `429` при загрузке публичных
+i18n-словарей и показывали raw translation keys на форме входа. Текущий patch
+выделяет `GET /api/v1/i18n/languages` и locale dictionaries в независимый
+настраиваемый `public-read` bucket; новый regression test сначала красный
+(`404` ожидался, получен `429`), после исправления зелёный 5/5. Полный Maven
+suite с PostgreSQL/MinIO Testcontainers: 264 теста, 0 failures/errors/skipped;
+Angular: 31 файлов / 107 тестов, typecheck/build/i18n audit green; пересобранный
+Docker runtime: Playwright 24/24 green.
 
-До статуса `Verified` нужны commit/push follow-up patch и полностью зелёный
-remote CI на новом immutable SHA.
+Текущий patch также реализует локальную часть `P0-15`: fail-closed managed
+preflight/host contracts, digest-only deployment evidence, 100-user/20-upload/
+4h k6 profiles, runtime storage/scanner latency metrics, failure drills,
+encrypted object backup, combined isolated restore и published-release
+verification. Это код и процедура, не доказательство реального окружения.
 
 ## 7. Открытые release gates
 
@@ -145,6 +153,13 @@ Production readiness остаётся условной, пока не закры
 - installation-specific domain, Cloudflare/origin policy либо альтернативный
   self-hosted edge, provider region и rollback/go-no-go owner;
 - CI/release evidence, связанное с immutable remote commit и image digests.
+
+Для выполнения target-only managed gate отсутствуют: Hetzner staging host,
+production/staging hostname, Cloudflare zone/token, отдельные application и
+recovery R2 buckets/credentials, alert receiver и named on-call, утверждённые
+SLO/RPO/RTO thresholds, 100 staging load-user tokens и опубликованный release
+tag с пятью digest-addressed images. Эти пункты остаются `UNVERIFIED` и блокируют
+GO; локальная эмуляция не может изменить их статус.
 
 Текущий список и доказательства находятся в
 `audit/health-check-2026-09-04.md` и

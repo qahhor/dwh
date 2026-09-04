@@ -107,6 +107,7 @@ normative product and release requirements.
 
 - [Production deployment](docs/ops/deployment-guide.md)
 - [Operations runbook](docs/ops/operations-runbook.md)
+- [Smartup-managed infrastructure acceptance](docs/ops/managed-infrastructure-acceptance.md)
 - [Backup, restore, and maintenance](docs/ops/maintenance-guide.md)
 - [Rollback procedure](docs/ops/rollback.md)
 - [Threat model and personal-data inventory](docs/security/threat-model.md)

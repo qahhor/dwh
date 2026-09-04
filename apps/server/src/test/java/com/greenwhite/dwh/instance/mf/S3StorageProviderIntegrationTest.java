@@ -3,6 +3,7 @@ package com.greenwhite.dwh.instance.mf;
 import com.greenwhite.dwh.instance.mf.storage.S3StorageConfiguration;
 import com.greenwhite.dwh.instance.mf.storage.S3StorageProperties;
 import com.greenwhite.dwh.instance.mf.storage.S3StorageProvider;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -50,7 +51,8 @@ class S3StorageProviderIntegrationTest {
         var configuration = new S3StorageConfiguration();
         try (var client = configuration.s3Client(properties)) {
             client.createBucket(CreateBucketRequest.builder().bucket(PHYSICAL_BUCKET).build());
-            var provider = new S3StorageProvider(client, properties);
+            var meterRegistry = new SimpleMeterRegistry();
+            var provider = new S3StorageProvider(client, properties, meterRegistry);
             byte[] content = "SmartupCMS S3-compatible storage".getBytes(StandardCharsets.UTF_8);
 
             assertThatThrownBy(() -> provider.upload(
@@ -92,6 +94,11 @@ class S3StorageProviderIntegrationTest {
             provider.delete("instance-files", "documents/release.txt");
             assertThat(provider.exists("instance-files", "documents/release.txt")).isFalse();
             assertThat(provider.download("instance-files", "documents/release.txt")).isNull();
+            assertThat(meterRegistry.get("dwh.storage.operation")
+                    .tag("provider", "s3")
+                    .tag("operation", "upload")
+                    .tag("outcome", "success")
+                    .timer().count()).isEqualTo(1);
         }
     }
 }

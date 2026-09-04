@@ -2,7 +2,7 @@
 
 **Версия:** 2.0
 
-**Обновлено:** 2026-09-03
+**Обновлено:** 2026-09-05
 
 **Основание:** текущий CI и критерии `AC-01..12` из
 [канонического ТЗ](../technical-specification.md).
@@ -25,6 +25,7 @@ Push-Location apps/web; npm test; npm run typecheck; npm run build; Pop-Location
 ./scripts/release/verify-release.ps1
 ./scripts/prod/test-release-config.ps1
 ./scripts/prod/test-backup-status.ps1
+./scripts/acceptance/test-managed-acceptance.ps1
 Push-Location e2e; npm run test:config; npm run typecheck; npm run test:artifact-security; npm test; Pop-Location
 ```
 
@@ -60,8 +61,8 @@ CI выполняет следующие независимые jobs:
 - **frontend:** `npm ci`, unit tests, typecheck и production build из
   `apps/web`;
 - **release config:** unified architecture, public docs, repository hygiene,
-  release supply-chain, production Compose и encrypted-backup contracts, а
-  также fail-closed deploy test;
+  release supply-chain, production Compose, encrypted-backup и managed
+  acceptance contracts, а также fail-closed deploy test;
 - **E2E:** ephemeral credentials, Compose build, runtime-image scan, отдельный
   migrate, healthy startup, public smoke и Playwright Chromium;
 - **security:** Gitleaks по истории Git и Trivy по зависимостям.
