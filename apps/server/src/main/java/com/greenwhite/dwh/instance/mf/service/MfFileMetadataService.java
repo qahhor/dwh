@@ -3,6 +3,7 @@ package com.greenwhite.dwh.instance.mf.service;
 import com.greenwhite.dwh.core.error.ErrorCode;
 import com.greenwhite.dwh.instance.audit.service.AuditLogService;
 import com.greenwhite.dwh.instance.common.error.ApiException;
+import com.greenwhite.dwh.instance.common.security.ScopeFilter;
 import com.greenwhite.dwh.instance.mf.repository.MfFileRepository;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
@@ -115,7 +116,12 @@ public class MfFileMetadataService {
 
     @Transactional
     public DeletionResult delete(UUID id, Long currentUserId, boolean canDeleteAny) {
-        var file = requireFile(id);
+        return delete(id, currentUserId, canDeleteAny, ScopeFilter.unrestricted());
+    }
+
+    @Transactional
+    public DeletionResult delete(UUID id, Long currentUserId, boolean canDeleteAny, ScopeFilter scope) {
+        var file = requireFile(id, scope);
         if (!canDeleteAny && (file.createdBy() == null || !file.createdBy().equals(currentUserId))) {
             throw ApiException.forbidden("У вас нет прав на удаление этого файла");
         }
@@ -133,7 +139,12 @@ public class MfFileMetadataService {
 
     @Transactional(readOnly = true)
     public MfFileRepository.FileRecord requireFile(UUID id) {
-        return fileRepository.findById(id)
+        return requireFile(id, ScopeFilter.unrestricted());
+    }
+
+    @Transactional(readOnly = true)
+    public MfFileRepository.FileRecord requireFile(UUID id, ScopeFilter scope) {
+        return fileRepository.findById(id, scope)
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.FILE_NOT_FOUND, "Файл не найден"));
     }
 
@@ -158,7 +169,13 @@ public class MfFileMetadataService {
     @Transactional(readOnly = true)
     public List<MfFileRepository.FileDetailRecord> listFiles(
             Long userId, boolean onlyMine, String query, int limit) {
-        return fileRepository.listFiles(userId, onlyMine, query, limit);
+        return listFiles(userId, onlyMine, query, limit, ScopeFilter.unrestricted());
+    }
+
+    @Transactional(readOnly = true)
+    public List<MfFileRepository.FileDetailRecord> listFiles(
+            Long userId, boolean onlyMine, String query, int limit, ScopeFilter scope) {
+        return fileRepository.listFiles(userId, onlyMine, query, limit, scope);
     }
 
     private void validateQuota(Long ownerId, long requestedBytes) {

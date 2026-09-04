@@ -52,6 +52,9 @@ owner. A commercial SLA cannot override a failed safety gate.
       configuration where supported.
 - [ ] Least-privilege administrator, operator, auditor, and normal-user scenarios
       are tested; denied operations are rejected by the API.
+- [ ] Configured `ALL/SUBTREE/UNITS/SELF` roles pass cross-branch task, comment,
+      file metadata/download/delete and direct-ID negative tests; unexpected
+      identifiers return `404`, not entity metadata.
 - [ ] Session revocation, password recovery, CSRF, rate limits, and audit events
       pass the release test suite.
 - [ ] Real delivery-provider and object-storage credentials are least-privilege,

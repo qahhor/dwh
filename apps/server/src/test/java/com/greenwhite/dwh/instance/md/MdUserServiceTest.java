@@ -5,7 +5,6 @@ import com.greenwhite.dwh.instance.md.pref.MdPref;
 import com.greenwhite.dwh.instance.md.repository.MdRoleRepository;
 import com.greenwhite.dwh.instance.md.repository.MdUserRepository;
 import com.greenwhite.dwh.instance.md.service.MdCustomFieldService;
-import com.greenwhite.dwh.instance.md.service.MdPermissionService;
 import com.greenwhite.dwh.instance.md.service.MdUserService;
 import com.greenwhite.dwh.instance.md.service.PasswordHasher;
 import com.greenwhite.dwh.instance.md.service.PasswordValidator;
@@ -25,7 +24,6 @@ class MdUserServiceTest {
 
     private final MdUserRepository userRepository = Mockito.mock(MdUserRepository.class);
     private final MdRoleRepository roleRepository = Mockito.mock(MdRoleRepository.class);
-    private final MdPermissionService permissionService = Mockito.mock(MdPermissionService.class);
     private final MdCustomFieldService customFieldService = Mockito.mock(MdCustomFieldService.class);
     private final PasswordHasher passwordHasher = Mockito.mock(PasswordHasher.class);
     private final UserSessionInvalidator sessionInvalidator = Mockito.mock(UserSessionInvalidator.class);
@@ -41,7 +39,7 @@ class MdUserServiceTest {
             Mockito.mock(com.greenwhite.dwh.instance.md.service.MdScopeService.class);
 
     private final MdUserService userService = new MdUserService(
-            userRepository, roleRepository, permissionService, customFieldService, passwordHasher,
+            userRepository, roleRepository, customFieldService, passwordHasher,
             passwordValidator, sessionInvalidator, typesenseIndexer, auditLogService, scopeService
     );
 

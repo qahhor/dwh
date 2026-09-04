@@ -3,10 +3,13 @@ package com.greenwhite.dwh.instance.md;
 import com.greenwhite.dwh.instance.common.error.ApiException;
 import com.greenwhite.dwh.instance.config.db.FlywayUtcConfiguration;
 import com.greenwhite.dwh.instance.md.repository.MdPermissionRepository;
+import com.greenwhite.dwh.instance.md.repository.MdOrgUnitRepository;
 import com.greenwhite.dwh.instance.md.repository.MdRoleRepository;
+import com.greenwhite.dwh.instance.md.repository.MdScopeRepository;
 import com.greenwhite.dwh.instance.md.repository.MdUserRepository;
 import com.greenwhite.dwh.instance.md.service.MdAssignmentService;
 import com.greenwhite.dwh.instance.md.service.MdPermissionService;
+import com.greenwhite.dwh.instance.md.service.MdScopeService;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -43,6 +46,9 @@ class MdAssignmentServiceIntegrationTest {
     static MdAssignmentService service;
     static MdRoleRepository roleRepository;
     static MdPermissionService permissionService;
+    static MdScopeService scopeService;
+    static MdScopeRepository scopeRepository;
+    static Long scopeUnitId;
     static com.greenwhite.dwh.instance.audit.service.AuditLogService auditLogService;
 
     @BeforeAll
@@ -59,8 +65,17 @@ class MdAssignmentServiceIntegrationTest {
         auditLogService = new com.greenwhite.dwh.instance.audit.service.AuditLogService(
                 new com.greenwhite.dwh.instance.audit.repository.AuditLogRepository(jdbc, new ObjectMapper()), null,
                 new com.greenwhite.dwh.instance.audit.service.AuditDataRedactor());
-        service = new MdAssignmentService(userRepository, roleRepository, permissionRepository,
+        scopeRepository = new MdScopeRepository(jdbc);
+        scopeService = new MdScopeService(scopeRepository, new MdOrgUnitRepository(jdbc),
                 permissionService, auditLogService);
+        service = new MdAssignmentService(userRepository, roleRepository, permissionRepository,
+                permissionService, scopeService, auditLogService);
+        scopeUnitId = jdbc.sql("""
+                        insert into md_org_units (parent_id, code, name, kind, state, order_no)
+                        values (null, 'ASSIGN-HQ', 'Assignment HQ', 'company', 'A', 10)
+                        returning id
+                        """)
+                .query(Long.class).single();
     }
 
     private static Long createUser(String login) {
@@ -169,6 +184,26 @@ class MdAssignmentServiceIntegrationTest {
 
         assertThat(service.getUserRoleIds(first)).doesNotContain(roleId("admin"));
         assertThat(service.getUserRoleIds(second)).contains(roleId("admin"));
+    }
+
+    @Test
+    @DisplayName("Замена роли атомарно заменяет и effective data scope")
+    void roleReplacementRecalculatesDataScopeInSameTransaction() {
+        Long userId = createUser("scope_role_replace");
+        jdbc.sql("insert into md_user_org_units (user_id, org_unit_id) values (:userId, :unitId)")
+                .param("userId", userId)
+                .param("unitId", scopeUnitId)
+                .update();
+        Long narrowRole = roleRepository.create("Scoped unit role", null, "A", 100).id();
+        scopeRepository.setRoleRule(narrowRole, MdScopeService.RULE_UNITS);
+
+        service.assignRoles(userId, List.of(roleId("user")));
+        assertThat(scopeService.getUserScope(userId).rule()).isEqualTo(MdScopeService.RULE_ALL);
+
+        service.assignRoles(userId, List.of(narrowRole));
+
+        assertThat(scopeService.getUserScope(userId).rule()).isEqualTo(MdScopeService.RULE_UNITS);
+        assertThat(scopeService.getUserScope(userId).visibleOrgUnitIds()).containsExactly(scopeUnitId);
     }
 
     /**

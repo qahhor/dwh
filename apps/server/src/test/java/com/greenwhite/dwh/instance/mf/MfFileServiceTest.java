@@ -2,6 +2,8 @@ package com.greenwhite.dwh.instance.mf;
 
 import com.greenwhite.dwh.instance.common.error.ApiException;
 import com.greenwhite.dwh.instance.mf.repository.MfFileRepository;
+import com.greenwhite.dwh.instance.common.security.ScopeFilter;
+import com.greenwhite.dwh.instance.md.service.MdScopeService;
 import com.greenwhite.dwh.instance.mf.service.MfFileService;
 import com.greenwhite.dwh.instance.mf.service.FileContentInspector;
 import com.greenwhite.dwh.instance.mf.service.MfFileMetadataService;
@@ -35,12 +37,18 @@ class MfFileServiceTest {
             Mockito.mock(com.greenwhite.dwh.instance.audit.service.AuditLogService.class);
     private final MfFileMetadataService metadataService =
             new MfFileMetadataService(fileRepository, auditLogService);
+    private final MdScopeService scopeService = Mockito.mock(MdScopeService.class);
     private final MfFileService service = new MfFileService(
             metadataService,
             storageProvider,
             new FileContentInspector(),
             List.of(),
-            new MfFileObjectLock());
+            new MfFileObjectLock(),
+            scopeService);
+
+    {
+        when(scopeService.filterForFiles(any())).thenReturn(ScopeFilter.unrestricted());
+    }
 
     @Test
     @DisplayName("Загрузка исполняемых файлов (.exe, .sh, .bat) должна отклоняться политикой безопасности")
@@ -83,7 +91,8 @@ class MfFileServiceTest {
                 storageProvider,
                 new FileContentInspector(),
                 List.of(scanner),
-                new MfFileObjectLock());
+                new MfFileObjectLock(),
+                scopeService);
         givenRoomInQuotas(1L);
         when(storageProvider.upload(anyString(), anyString(), any(), anyLong(), anyString()))
                 .thenReturn(new StoredFileMetadata(
@@ -186,7 +195,7 @@ class MfFileServiceTest {
     @DisplayName("Удаление не трогает объект на диске, пока у содержимого остались владельцы (Д-2)")
     void shouldKeepPhysicalObjectWhileOtherOwnersRemain() {
         var mine = record("my_copy.pdf", 2L);
-        when(fileRepository.findById(mine.id())).thenReturn(Optional.of(mine));
+        when(fileRepository.findById(eq(mine.id()), any(ScopeFilter.class))).thenReturn(Optional.of(mine));
         when(fileRepository.existsBySha256(SHA)).thenReturn(true);
 
         service.deleteFile(mine.id(), 2L, false);
@@ -199,7 +208,7 @@ class MfFileServiceTest {
     @DisplayName("Удаление последней записи владения убирает объект с диска")
     void shouldRemovePhysicalObjectWhenLastOwnerGone() {
         var last = record("report.pdf", 1L);
-        when(fileRepository.findById(last.id())).thenReturn(Optional.of(last));
+        when(fileRepository.findById(eq(last.id()), any(ScopeFilter.class))).thenReturn(Optional.of(last));
         when(fileRepository.existsBySha256(SHA)).thenReturn(false);
 
         service.deleteFile(last.id(), 1L, false);

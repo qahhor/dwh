@@ -33,17 +33,20 @@ public class MdAssignmentService {
     private final MdRoleRepository roleRepository;
     private final MdPermissionRepository permissionRepository;
     private final MdPermissionService permissionService;
+    private final MdScopeService scopeService;
     private final AuditLogService auditLogService;
 
     public MdAssignmentService(MdUserRepository userRepository,
                                MdRoleRepository roleRepository,
                                MdPermissionRepository permissionRepository,
                                MdPermissionService permissionService,
+                               MdScopeService scopeService,
                                AuditLogService auditLogService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.permissionRepository = permissionRepository;
         this.permissionService = permissionService;
+        this.scopeService = scopeService;
         this.auditLogService = auditLogService;
     }
 
@@ -68,7 +71,7 @@ public class MdAssignmentService {
         guardLastAdmin(userId, requested);
 
         roleRepository.assignRolesToUser(userId, requested);
-        permissionService.recalculateEffectivePermissions(userId);
+        scopeService.recalculateFor(userId);
 
         Set<Long> after = new TreeSet<>(requested);
         var names = roleNames();

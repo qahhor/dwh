@@ -1,5 +1,6 @@
 package com.greenwhite.dwh.instance.mf.repository;
 
+import com.greenwhite.dwh.instance.common.security.ScopeFilter;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -38,14 +39,19 @@ public class MfFileRepository {
     }
 
     public Optional<FileRecord> findById(UUID id) {
-        return jdbcClient.sql("""
-                select id, sha256, original_name, size_bytes, mime_type, storage_bucket, storage_key, created_at, created_by
-                from mf_files
-                where id = :id
-                """)
-                .param("id", id)
-                .query(this::mapRecord)
-                .optional();
+        return findById(id, ScopeFilter.unrestricted());
+    }
+
+    public Optional<FileRecord> findById(UUID id, ScopeFilter scope) {
+        String sql = """
+                select f.id, f.sha256, f.original_name, f.size_bytes, f.mime_type,
+                       f.storage_bucket, f.storage_key, f.created_at, f.created_by
+                from mf_files f
+                where f.id = :id
+                """ + scope.sql();
+        var query = jdbcClient.sql(sql).param("id", id);
+        if (scope.bindsUserId()) query = query.param("scopeUserId", scope.userId());
+        return query.query(this::mapRecord).optional();
     }
 
     /**
@@ -170,6 +176,11 @@ public class MfFileRepository {
     }
 
     public java.util.List<FileDetailRecord> listFiles(Long userId, boolean onlyMine, String query, int limit) {
+        return listFiles(userId, onlyMine, query, limit, ScopeFilter.unrestricted());
+    }
+
+    public java.util.List<FileDetailRecord> listFiles(
+            Long userId, boolean onlyMine, String query, int limit, ScopeFilter scope) {
         StringBuilder sql = new StringBuilder("""
                 select f.id, f.sha256, f.original_name, f.size_bytes, f.mime_type,
                        f.storage_bucket, f.storage_key, f.created_at, f.created_by,
@@ -178,6 +189,8 @@ public class MfFileRepository {
                 left join md_users u on u.id = f.created_by
                 where 1=1
                 """);
+
+        sql.append(scope.sql());
 
         var client = jdbcClient;
         if (onlyMine && userId != null) {
@@ -189,6 +202,9 @@ public class MfFileRepository {
         sql.append(" order by f.created_at desc limit :limit");
 
         var querySpec = client.sql(sql.toString());
+        if (scope.bindsUserId()) {
+            querySpec = querySpec.param("scopeUserId", scope.userId());
+        }
         if (onlyMine && userId != null) {
             querySpec = querySpec.param("userId", userId);
         }

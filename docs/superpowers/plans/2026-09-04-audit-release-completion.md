@@ -105,7 +105,7 @@
 
 ### Task 7: Continue release blockers in separate focused plans
 
-- [ ] Create a decision-and-test plan for `P0-14` task/file data scope based on ADR-0013.
-- [ ] Create an acceptance plan for `P0-15` covering Hetzner, Cloudflare/R2, alerts, 100-user load/soak, and combined database/object restore.
+- [x] Create a decision-and-test plan for `P0-14` task/file data scope based on ADR-0013.
+- [x] Create an acceptance plan for `P0-15` covering Hetzner, Cloudflare/R2, alerts, 100-user load/soak, and combined database/object restore.
 - [ ] Implement every locally provable item in order.
 - [ ] Record target-only checks as unverified until the required environment, DNS, R2, alerting, and release credentials are available.

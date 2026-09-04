@@ -3,6 +3,7 @@ package com.greenwhite.dwh.instance.mf.service;
 import com.greenwhite.dwh.core.error.ErrorCode;
 import com.greenwhite.dwh.instance.common.error.ApiException;
 import com.greenwhite.dwh.instance.mf.repository.MfFileRepository;
+import com.greenwhite.dwh.instance.md.service.MdScopeService;
 import com.greenwhite.dwh.spi.storage.FileDownloadStream;
 import com.greenwhite.dwh.spi.storage.FileScanner;
 import com.greenwhite.dwh.spi.storage.StorageProvider;
@@ -26,16 +27,19 @@ public class MfFileService {
     private final FileContentInspector contentInspector;
     private final List<FileScanner> fileScanners;
     private final MfFileObjectLock objectLock;
+    private final MdScopeService scopeService;
 
     public MfFileService(MfFileMetadataService metadataService, StorageProvider storageProvider,
                          FileContentInspector contentInspector,
                          List<FileScanner> fileScanners,
-                         MfFileObjectLock objectLock) {
+                         MfFileObjectLock objectLock,
+                         MdScopeService scopeService) {
         this.metadataService = metadataService;
         this.storageProvider = storageProvider;
         this.contentInspector = contentInspector;
         this.fileScanners = List.copyOf(fileScanners);
         this.objectLock = objectLock;
+        this.scopeService = scopeService;
     }
 
     public MfFileRepository.FileRecord uploadFile(String originalName, String mimeType, InputStream contentStream, long sizeBytes, Long createdBy) {
@@ -135,13 +139,15 @@ public class MfFileService {
     }
 
     public java.util.List<MfFileRepository.FileDetailRecord> listFiles(Long userId, boolean onlyMine, String query, int limit) {
-        return metadataService.listFiles(userId, onlyMine, query, limit);
+        return metadataService.listFiles(
+                userId, onlyMine, query, limit, scopeService.filterForFiles(userId));
     }
 
     public void deleteFile(UUID id, Long currentUserId, boolean canDeleteAny) {
-        var snapshot = metadataService.requireFile(id);
+        var scope = scopeService.filterForFiles(currentUserId);
+        var snapshot = metadataService.requireFile(id, scope);
         objectLock.withLock(snapshot.sha256(), () -> {
-            var deletion = metadataService.delete(id, currentUserId, canDeleteAny);
+            var deletion = metadataService.delete(id, currentUserId, canDeleteAny, scope);
             if (deletion.deletePhysicalObject()) {
                 storageProvider.delete(
                         deletion.file().storageBucket(), deletion.file().storageKey());
@@ -153,8 +159,21 @@ public class MfFileService {
         return metadataService.requireFile(id);
     }
 
+    public MfFileRepository.FileRecord getFileMetadata(UUID id, Long currentUserId) {
+        return metadataService.requireFile(id, scopeService.filterForFiles(currentUserId));
+    }
+
     public FileDownloadStream downloadFile(UUID id) {
         var metadata = getFileMetadata(id);
+        var stream = storageProvider.download(metadata.storageBucket(), metadata.storageKey());
+        if (stream == null) {
+            throw ApiException.notFound(ErrorCode.FILE_NOT_FOUND, "Физический файл не найден в хранилище");
+        }
+        return stream;
+    }
+
+    public FileDownloadStream downloadFile(UUID id, Long currentUserId) {
+        var metadata = getFileMetadata(id, currentUserId);
         var stream = storageProvider.download(metadata.storageBucket(), metadata.storageKey());
         if (stream == null) {
             throw ApiException.notFound(ErrorCode.FILE_NOT_FOUND, "Физический файл не найден в хранилище");

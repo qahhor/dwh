@@ -42,7 +42,9 @@ public class MsTaskController {
             @RequestParam(name = "search", required = false) String search,
             @RequestParam(name = "hide_terminal", required = false) Boolean hideTerminal) {
 
-        return ResponseEntity.ok(taskService.listTasks(limit, cursor, projectId, statusId, priority, search, hideTerminal));
+        return ResponseEntity.ok(taskService.listTasks(
+                limit, cursor, projectId, statusId, priority, search, hideTerminal,
+                SecurityContext.getCurrentUserId()));
     }
 
 
@@ -127,7 +129,7 @@ public class MsTaskController {
     @GetMapping("/projects/stats")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
     public ResponseEntity<List<MsTaskRepository.ProjectTaskStats>> getProjectStats() {
-        return ResponseEntity.ok(taskService.getProjectTaskStats());
+        return ResponseEntity.ok(taskService.getProjectTaskStats(SecurityContext.getCurrentUserId()));
     }
 
     // =========================================================================
@@ -136,13 +138,13 @@ public class MsTaskController {
     @GetMapping("/{id}")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
     public ResponseEntity<TaskDetailResponse> getTask(@PathVariable("id") Long id) {
-        var task = taskService.getTaskById(id);
-        var members = taskService.getTaskMembers(id);
-        var subtasks = taskService.getSubtasks(id);
-        var ancestors = taskService.getAncestorChain(id);
-        var files = taskService.listTaskFiles(id);
-
         Long currentUserId = SecurityContext.getCurrentUserId();
+        var task = taskService.getTaskById(id, currentUserId);
+        var members = taskService.getTaskMembers(id, currentUserId);
+        var subtasks = taskService.getSubtasks(id, currentUserId);
+        var ancestors = taskService.getAncestorChain(id, currentUserId);
+        var files = taskService.listTaskFiles(id, currentUserId);
+
         if (currentUserId != null) {
             taskService.markViewed(id, currentUserId);
         }
@@ -153,7 +155,7 @@ public class MsTaskController {
     @GetMapping("/{id}/files")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
     public ResponseEntity<List<MsTaskRepository.TaskFileRecord>> getTaskFiles(@PathVariable("id") Long id) {
-        return ResponseEntity.ok(taskService.listTaskFiles(id));
+        return ResponseEntity.ok(taskService.listTaskFiles(id, SecurityContext.getCurrentUserId()));
     }
 
     @PostMapping("/{id}/files")
@@ -175,7 +177,7 @@ public class MsTaskController {
     @GetMapping("/{id}/subtasks")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
     public ResponseEntity<List<MsTaskRepository.TaskRecord>> getSubtasks(@PathVariable("id") Long id) {
-        return ResponseEntity.ok(taskService.getSubtasks(id));
+        return ResponseEntity.ok(taskService.getSubtasks(id, SecurityContext.getCurrentUserId()));
     }
 
 
@@ -221,15 +223,15 @@ public class MsTaskController {
         );
 
         if (body.responsibleUserId() != null) {
-            taskService.setResponsible(id, body.responsibleUserId());
+            taskService.setResponsible(id, body.responsibleUserId(), currentUserId);
         }
 
         if (body.executorUserIds() != null) {
-            taskService.setExecutors(id, body.executorUserIds());
+            taskService.setExecutors(id, body.executorUserIds(), currentUserId);
         }
 
         if (body.observerUserIds() != null) {
-            taskService.setObservers(id, body.observerUserIds());
+            taskService.setObservers(id, body.observerUserIds(), currentUserId);
         }
 
         return ResponseEntity.noContent().build();

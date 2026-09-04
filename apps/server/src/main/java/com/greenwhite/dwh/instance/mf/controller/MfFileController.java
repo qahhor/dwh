@@ -75,14 +75,15 @@ public class MfFileController {
     @GetMapping("/{id}")
     @RequiresPermission(form = MfPref.FORM_FILES, action = "view")
     public ResponseEntity<MfFileRepository.FileRecord> getFileMetadata(@PathVariable("id") UUID id) {
-        return ResponseEntity.ok(fileService.getFileMetadata(id));
+        return ResponseEntity.ok(fileService.getFileMetadata(id, SecurityContext.getCurrentUserId()));
     }
 
     @GetMapping("/{id}/download")
     @RequiresPermission(form = MfPref.FORM_FILES, action = "view")
     public ResponseEntity<InputStreamResource> downloadFile(@PathVariable("id") UUID id) {
-        var metadata = fileService.getFileMetadata(id);
-        var stream = fileService.downloadFile(id);
+        Long currentUserId = SecurityContext.getCurrentUserId();
+        var metadata = fileService.getFileMetadata(id, currentUserId);
+        var stream = fileService.downloadFile(id, currentUserId);
 
         String encodedFilename = URLEncoder.encode(metadata.originalName(), StandardCharsets.UTF_8).replace("+", "%20");
 

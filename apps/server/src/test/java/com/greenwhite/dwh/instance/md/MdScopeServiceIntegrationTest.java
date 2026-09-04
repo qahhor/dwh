@@ -13,6 +13,8 @@ import com.greenwhite.dwh.instance.md.repository.MdUserRepository;
 import com.greenwhite.dwh.instance.md.service.MdOrgUnitService;
 import com.greenwhite.dwh.instance.md.service.MdPermissionService;
 import com.greenwhite.dwh.instance.md.service.MdScopeService;
+import com.greenwhite.dwh.instance.mf.repository.MfFileRepository;
+import com.greenwhite.dwh.instance.ms.task.repository.MsTaskRepository;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -25,6 +27,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -54,6 +57,8 @@ class MdScopeServiceIntegrationTest {
     static MdRoleRepository roleRepository;
     static MdUserRepository userRepository;
     static MdPermissionService permissionService;
+    static MsTaskRepository taskRepository;
+    static MfFileRepository fileRepository;
 
     static Long company;
     static Long regionTashkent;
@@ -74,6 +79,8 @@ class MdScopeServiceIntegrationTest {
         roleRepository = new MdRoleRepository(jdbc);
         userRepository = new MdUserRepository(jdbc, new ObjectMapper());
         permissionService = new MdPermissionService(new MdPermissionRepository(jdbc));
+        taskRepository = new MsTaskRepository(jdbc, new ObjectMapper());
+        fileRepository = new MfFileRepository(jdbc);
 
         scopeService = new MdScopeService(scopeRepository, orgUnitRepository, permissionService, auditLogService);
         orgUnitService = new MdOrgUnitService(orgUnitRepository, scopeService, auditLogService);
@@ -253,6 +260,98 @@ class MdScopeServiceIntegrationTest {
     }
 
     @Test
+    @DisplayName("SUBTREE ограничивает задачи участниками ветки, а файлы — владельцем или видимой задачей")
+    void subtreeRestrictsTasksAndFilesAcrossOrganizationBranches() {
+        Long viewer = createUser("scope_task_viewer", regionTashkent);
+        assignRole(viewer, createRole("Менеджер задач Ташкента", MdScopeService.RULE_SUBTREE));
+        scopeService.assignUserOrgUnits(viewer, List.of(regionTashkent));
+
+        Long inBranch = createUser("scope_task_in_branch", branchYunusabad);
+        scopeService.assignUserOrgUnits(inBranch, List.of(branchYunusabad));
+        Long outsideBranch = createUser("scope_task_outside", regionSamarkand);
+        scopeService.assignUserOrgUnits(outsideBranch, List.of(regionSamarkand));
+
+        Long visibleTask = createTask("Видимая задача", inBranch);
+        Long hiddenTask = createTask("Чужая задача", outsideBranch);
+        UUID linkedToVisibleTask = createFile("linked-visible.txt", outsideBranch);
+        UUID linkedThroughComment = createFile("comment-visible.txt", outsideBranch);
+        UUID visibleByOwnerUnit = createFile("branch-owned.txt", inBranch);
+        UUID hiddenStandalone = createFile("outside-standalone.txt", outsideBranch);
+        attachFile(visibleTask, linkedToVisibleTask);
+        attachFileToComment(visibleTask, inBranch, linkedThroughComment);
+
+        assertThat(visibleTaskIds(viewer)).contains(visibleTask).doesNotContain(hiddenTask);
+        assertThat(visibleFileIds(viewer))
+                .contains(linkedToVisibleTask, linkedThroughComment, visibleByOwnerUnit)
+                .doesNotContain(hiddenStandalone);
+        assertThat(scopeService.canAccessUser(viewer, inBranch)).isTrue();
+        assertThat(scopeService.canAccessUser(viewer, outsideBranch)).isFalse();
+    }
+
+    @Test
+    @DisplayName("SELF видит собственные и назначенные задачи, но не соседние строки")
+    void selfRestrictsTasksAndFilesToOwnershipAndParticipation() {
+        Long viewer = createUser("scope_self_viewer", null);
+        assignRole(viewer, createRole("Исполнитель только своих задач", MdScopeService.RULE_SELF));
+        Long colleague = createUser("scope_self_colleague", null);
+
+        Long ownTask = createTask("Своя задача", viewer);
+        Long assignedTask = createTask("Назначенная задача", colleague);
+        addTaskMember(assignedTask, viewer, "E");
+        Long unrelatedTask = createTask("Посторонняя задача", colleague);
+        UUID ownFile = createFile("own.txt", viewer);
+        UUID linkedFile = createFile("linked.txt", colleague);
+        UUID hiddenFile = createFile("hidden.txt", colleague);
+        attachFile(assignedTask, linkedFile);
+
+        assertThat(visibleTaskIds(viewer)).contains(ownTask, assignedTask).doesNotContain(unrelatedTask);
+        assertThat(visibleFileIds(viewer)).contains(ownFile, linkedFile).doesNotContain(hiddenFile);
+        assertThat(scopeService.canAccessUser(viewer, viewer)).isTrue();
+        assertThat(scopeService.canAccessUser(viewer, colleague)).isFalse();
+    }
+
+    @Test
+    @DisplayName("ALL сохраняет совместимость и видит задачи и файлы всей установки")
+    void allKeepsTaskAndFileVisibilityUnrestricted() {
+        Long viewer = createUser("scope_all_resources", null);
+        assignRole(viewer, roleRepository.findByPcode("admin").orElseThrow().id());
+        Long other = createUser("scope_all_other", regionSamarkand);
+        Long task = createTask("Общая задача", other);
+        UUID file = createFile("shared.txt", other);
+
+        assertThat(scopeService.filterForTasks(viewer).isUnrestricted()).isTrue();
+        assertThat(scopeService.filterForFiles(viewer).isUnrestricted()).isTrue();
+        assertThat(visibleTaskIds(viewer)).contains(task);
+        assertThat(visibleFileIds(viewer)).contains(file);
+    }
+
+    @Test
+    @DisplayName("Репозитории применяют scope к list, detail и агрегатам, а не фильтруют результат в памяти")
+    void repositoriesApplyScopeToListsDetailsAndCounts() {
+        Long viewer = createUser("scope_repository_viewer", null);
+        assignRole(viewer, createRole("Repository SELF", MdScopeService.RULE_SELF));
+        Long other = createUser("scope_repository_other", null);
+        Long visibleTask = createTask("Repository visible", viewer);
+        Long hiddenTask = createTask("Repository hidden", other);
+        UUID visibleFile = createFile("repository-visible.txt", viewer);
+        UUID hiddenFile = createFile("repository-hidden.txt", other);
+
+        var taskScope = scopeService.filterForTasks(viewer);
+        var taskIds = taskRepository.listTasks(100, null, null, null, null, null, false, taskScope)
+                .stream().map(MsTaskRepository.TaskRecord::id).toList();
+        assertThat(taskIds).contains(visibleTask).doesNotContain(hiddenTask);
+        assertThat(taskRepository.findById(visibleTask, taskScope)).isPresent();
+        assertThat(taskRepository.findById(hiddenTask, taskScope)).isEmpty();
+
+        var fileScope = scopeService.filterForFiles(viewer);
+        var fileIds = fileRepository.listFiles(viewer, false, null, 100, fileScope)
+                .stream().map(MfFileRepository.FileDetailRecord::id).toList();
+        assertThat(fileIds).contains(visibleFile).doesNotContain(hiddenFile);
+        assertThat(fileRepository.findById(visibleFile, fileScope)).isPresent();
+        assertThat(fileRepository.findById(hiddenFile, fileScope)).isEmpty();
+    }
+
+    @Test
     @DisplayName("Неизвестное правило видимости отклоняется, а не пишется в базу")
     void unknownRuleIsRejected() {
         Long roleId = createRole("Роль с плохим правилом", MdScopeService.RULE_ALL);
@@ -277,6 +376,86 @@ class MdScopeServiceIntegrationTest {
                 .query(Long.class).single();
         scopeService.recalculateFor(id);
         return id;
+    }
+
+    private static Long createTask(String title, Long participantUserId) {
+        Long statusId = jdbc.sql("select id from ms_task_statuses order by id limit 1")
+                .query(Long.class).single();
+        Long taskId = jdbc.sql("""
+                        insert into ms_tasks (title, description_markdown, status_id, priority, reporter_id,
+                                              attributes, created_by, modified_by)
+                        values (:title, '', :statusId, 'medium', :userId, '{}'::jsonb, :userId, :userId)
+                        returning id
+                        """)
+                .param("title", title)
+                .param("statusId", statusId)
+                .param("userId", participantUserId)
+                .query(Long.class).single();
+        addTaskMember(taskId, participantUserId, "A");
+        return taskId;
+    }
+
+    private static void addTaskMember(Long taskId, Long userId, String kind) {
+        jdbc.sql("""
+                        insert into ms_task_members (task_id, user_id, involve_kind, is_viewed)
+                        values (:taskId, :userId, :kind, false)
+                        """)
+                .param("taskId", taskId)
+                .param("userId", userId)
+                .param("kind", kind)
+                .update();
+    }
+
+    private static UUID createFile(String name, Long ownerId) {
+        UUID id = UUID.randomUUID();
+        jdbc.sql("""
+                        insert into mf_files (id, sha256, original_name, size_bytes, mime_type,
+                                              storage_bucket, storage_key, created_by)
+                        values (:id, :sha, :name, 1, 'text/plain', 'instance-files', :key, :ownerId)
+                        """)
+                .param("id", id)
+                .param("sha", id.toString().replace("-", ""))
+                .param("name", name)
+                .param("key", id.toString())
+                .param("ownerId", ownerId)
+                .update();
+        return id;
+    }
+
+    private static void attachFile(Long taskId, UUID fileId) {
+        jdbc.sql("insert into ms_task_files (task_id, file_id) values (:taskId, :fileId)")
+                .param("taskId", taskId)
+                .param("fileId", fileId)
+                .update();
+    }
+
+    private static void attachFileToComment(Long taskId, Long authorId, UUID fileId) {
+        Long commentId = jdbc.sql("""
+                        insert into ms_task_comments (task_id, user_id, text_markdown)
+                        values (:taskId, :authorId, 'Комментарий')
+                        returning id
+                        """)
+                .param("taskId", taskId)
+                .param("authorId", authorId)
+                .query(Long.class).single();
+        jdbc.sql("insert into ms_task_comment_files (comment_id, file_id) values (:commentId, :fileId)")
+                .param("commentId", commentId)
+                .param("fileId", fileId)
+                .update();
+    }
+
+    private static List<Long> visibleTaskIds(Long viewerId) {
+        var scope = scopeService.filterForTasks(viewerId);
+        var query = jdbc.sql("select t.id from ms_tasks t where 1=1" + scope.sql() + " order by t.id");
+        if (scope.bindsUserId()) query = query.param("scopeUserId", scope.userId());
+        return query.query(Long.class).list();
+    }
+
+    private static List<UUID> visibleFileIds(Long viewerId) {
+        var scope = scopeService.filterForFiles(viewerId);
+        var query = jdbc.sql("select f.id from mf_files f where 1=1" + scope.sql() + " order by f.id");
+        if (scope.bindsUserId()) query = query.param("scopeUserId", scope.userId());
+        return query.query((rs, rowNum) -> UUID.fromString(rs.getString("id"))).list();
     }
 
     private static Long createRole(String name, String rule) {

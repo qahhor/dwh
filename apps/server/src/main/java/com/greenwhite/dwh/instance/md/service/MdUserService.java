@@ -19,7 +19,6 @@ public class MdUserService {
 
     private final MdUserRepository userRepository;
     private final MdRoleRepository roleRepository;
-    private final MdPermissionService permissionService;
     private final MdCustomFieldService customFieldService;
     private final PasswordHasher passwordHasher;
     private final PasswordValidator passwordValidator;
@@ -31,7 +30,6 @@ public class MdUserService {
     public MdUserService(
             MdUserRepository userRepository,
             MdRoleRepository roleRepository,
-            MdPermissionService permissionService,
             MdCustomFieldService customFieldService,
             PasswordHasher passwordHasher,
             PasswordValidator passwordValidator,
@@ -43,7 +41,6 @@ public class MdUserService {
         this.scopeService = scopeService;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
-        this.permissionService = permissionService;
         this.customFieldService = customFieldService;
         this.passwordHasher = passwordHasher;
         this.passwordValidator = passwordValidator;
@@ -96,7 +93,7 @@ public class MdUserService {
             );
         }
 
-        permissionService.recalculateEffectivePermissions(user.id());
+        scopeService.recalculateFor(user.id());
 
         typesenseIndexer.indexUser(user.id());
 
@@ -207,7 +204,7 @@ public class MdUserService {
                 });
             }
             roleRepository.assignRolesToUser(userId, roleIds);
-            permissionService.recalculateEffectivePermissions(userId);
+            scopeService.recalculateFor(userId);
         }
 
         typesenseIndexer.indexUser(userId);

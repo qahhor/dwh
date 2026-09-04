@@ -214,4 +214,41 @@ public class MdScopeRepository {
                 .query(Long.class)
                 .optional();
     }
+
+    /** True when at least one target position intersects the viewer's materialized scope. */
+    public boolean isUserInEffectiveScope(Long viewerId, Long targetUserId) {
+        return jdbcClient.sql("""
+                        select exists (
+                            select 1
+                            from md_users target
+                            where target.id = :targetUserId
+                              and (
+                                   target.org_unit_id in (
+                                       select org_unit_id
+                                       from md_effective_scope
+                                       where user_id = :viewerId
+                                   )
+                                or exists (
+                                       select 1
+                                       from md_user_org_units target_uou
+                                       join md_effective_scope viewer_scope
+                                         on viewer_scope.org_unit_id = target_uou.org_unit_id
+                                        and viewer_scope.user_id = :viewerId
+                                       where target_uou.user_id = target.id
+                                   )
+                              )
+                        )
+                        """)
+                .param("viewerId", viewerId)
+                .param("targetUserId", targetUserId)
+                .query(Boolean.class)
+                .single();
+    }
+
+    public boolean userExists(Long userId) {
+        return jdbcClient.sql("select exists (select 1 from md_users where id = :userId)")
+                .param("userId", userId)
+                .query(Boolean.class)
+                .single();
+    }
 }

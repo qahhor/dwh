@@ -1,6 +1,7 @@
 package com.greenwhite.dwh.instance.ms.task.service;
 
 import com.greenwhite.dwh.instance.audit.service.AuditLogService;
+import com.greenwhite.dwh.instance.mf.service.MfFileService;
 import com.greenwhite.dwh.instance.ms.task.repository.MsTaskCommentRepository;
 import com.greenwhite.dwh.instance.ms.task.event.MsTaskEvents;
 import org.springframework.context.ApplicationEventPublisher;
@@ -15,22 +16,30 @@ public class MsTaskCommentService {
 
     private final MsTaskCommentRepository commentRepository;
     private final MsTaskService taskService;
+    private final MfFileService fileService;
 
     private final ApplicationEventPublisher eventPublisher;
     private final AuditLogService auditLogService;
 
     public MsTaskCommentService(MsTaskCommentRepository commentRepository, MsTaskService taskService,
+                                MfFileService fileService,
                                 ApplicationEventPublisher eventPublisher,
                                 AuditLogService auditLogService) {
         this.commentRepository = commentRepository;
         this.taskService = taskService;
+        this.fileService = fileService;
         this.eventPublisher = eventPublisher;
         this.auditLogService = auditLogService;
     }
 
     @Transactional
     public MsTaskCommentRepository.CommentRecord addComment(Long taskId, Long userId, String textMarkdown, List<UUID> fileIds) {
-        var task = taskService.getTaskById(taskId);
+        var task = taskService.getTaskById(taskId, userId);
+        if (fileIds != null) {
+            for (UUID fileId : fileIds) {
+                fileService.getFileMetadata(fileId, userId);
+            }
+        }
         var comment = commentRepository.create(taskId, userId, textMarkdown, fileIds);
         taskService.markViewed(taskId, userId);
 
@@ -53,6 +62,12 @@ public class MsTaskCommentService {
 
     @Transactional(readOnly = true)
     public List<MsTaskCommentRepository.CommentRecord> listComments(Long taskId) {
+        return commentRepository.listComments(taskId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<MsTaskCommentRepository.CommentRecord> listComments(Long taskId, Long currentUserId) {
+        taskService.getTaskById(taskId, currentUserId);
         return commentRepository.listComments(taskId);
     }
 }

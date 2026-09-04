@@ -1,6 +1,8 @@
 package com.greenwhite.dwh.instance.mf;
 
 import com.greenwhite.dwh.instance.audit.service.AuditLogService;
+import com.greenwhite.dwh.instance.common.security.ScopeFilter;
+import com.greenwhite.dwh.instance.md.service.MdScopeService;
 import com.greenwhite.dwh.instance.mf.repository.MfFileRepository;
 import com.greenwhite.dwh.instance.mf.service.FileContentInspector;
 import com.greenwhite.dwh.instance.mf.service.MfFileService;
@@ -43,6 +45,8 @@ class MfFileTransactionBoundaryTest {
         MfFileRepository repository = Mockito.mock(MfFileRepository.class);
         StorageProvider storage = Mockito.mock(StorageProvider.class);
         AuditLogService auditLog = Mockito.mock(AuditLogService.class);
+        MdScopeService scopeService = Mockito.mock(MdScopeService.class);
+        when(scopeService.filterForFiles(any())).thenReturn(ScopeFilter.unrestricted());
         List<Boolean> transactionStatesAtStorageBoundary = new ArrayList<>();
         byte[] content = pdfBytes(128);
 
@@ -52,6 +56,7 @@ class MfFileTransactionBoundaryTest {
         when(repository.getUserUsedBytes(1L)).thenReturn(0L);
         when(repository.findBySha256AndOwner(SHA, 1L)).thenReturn(Optional.of(record()));
         when(repository.findById(any())).thenReturn(Optional.of(record()));
+        when(repository.findById(any(), any(ScopeFilter.class))).thenReturn(Optional.of(record()));
         when(repository.existsBySha256(SHA)).thenReturn(false);
         when(storage.upload(anyString(), anyString(), any(), anyLong(), anyString()))
                 .thenAnswer(invocation -> {
@@ -88,7 +93,7 @@ class MfFileTransactionBoundaryTest {
                     () -> new MfFileService(
                             context.getBean(MfFileMetadataService.class),
                             storage, new FileContentInspector(), List.of(),
-                            new MfFileObjectLock()));
+                            new MfFileObjectLock(), scopeService));
             context.refresh();
 
             MfFileService service = context.getBean(MfFileService.class);

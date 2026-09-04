@@ -1,5 +1,6 @@
 package com.greenwhite.dwh.instance.ms.task.repository;
 
+import com.greenwhite.dwh.instance.common.security.ScopeFilter;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -51,50 +52,63 @@ public class MsTaskRepository {
     }
 
     public Optional<TaskRecord> findById(Long id) {
-        return jdbcClient.sql("""
-                select id, project_id, parent_task_id, title, description_markdown, status_id,
-                       priority, reporter_id, attributes::text as attributes_str, begin_time,
-                       end_time, resolved_time, created_at, modified_at, created_by, modified_by
-                from ms_tasks
-                where id = :id
-                """)
-                .param("id", id)
-                .query(this::mapRecord)
-                .optional();
+        return findById(id, ScopeFilter.unrestricted());
+    }
+
+    public Optional<TaskRecord> findById(Long id, ScopeFilter scope) {
+        String sql = """
+                select t.id, t.project_id, t.parent_task_id, t.title, t.description_markdown, t.status_id,
+                       t.priority, t.reporter_id, t.attributes::text as attributes_str, t.begin_time,
+                       t.end_time, t.resolved_time, t.created_at, t.modified_at, t.created_by, t.modified_by
+                from ms_tasks t
+                where t.id = :id
+                """ + scope.sql();
+        var query = jdbcClient.sql(sql).param("id", id);
+        if (scope.bindsUserId()) query = query.param("scopeUserId", scope.userId());
+        return query.query(this::mapRecord).optional();
     }
 
     public List<TaskRecord> listTasks(int limit, Long afterId, Long projectId, Long statusId,
                                       String priority, String search, Boolean hideTerminal) {
+        return listTasks(limit, afterId, projectId, statusId, priority, search, hideTerminal,
+                ScopeFilter.unrestricted());
+    }
+
+    public List<TaskRecord> listTasks(int limit, Long afterId, Long projectId, Long statusId,
+                                      String priority, String search, Boolean hideTerminal, ScopeFilter scope) {
         StringBuilder sql = new StringBuilder("""
-                select id, project_id, parent_task_id, title, description_markdown, status_id,
-                       priority, reporter_id, attributes::text as attributes_str, begin_time,
-                       end_time, resolved_time, created_at, modified_at, created_by, modified_by
-                from ms_tasks
+                select t.id, t.project_id, t.parent_task_id, t.title, t.description_markdown, t.status_id,
+                       t.priority, t.reporter_id, t.attributes::text as attributes_str, t.begin_time,
+                       t.end_time, t.resolved_time, t.created_at, t.modified_at, t.created_by, t.modified_by
+                from ms_tasks t
                 where 1=1
                 """);
 
+        sql.append(scope.sql());
+
         if (afterId != null) {
-            sql.append(" and id > :afterId");
+            sql.append(" and t.id > :afterId");
         }
         if (projectId != null) {
-            sql.append(" and project_id = :projectId");
+            sql.append(" and t.project_id = :projectId");
         }
         if (statusId != null) {
-            sql.append(" and status_id = :statusId");
+            sql.append(" and t.status_id = :statusId");
         } else if (Boolean.TRUE.equals(hideTerminal)) {
-            sql.append(" and status_id not in (select id from ms_task_statuses where is_terminal = true)");
+            sql.append(" and t.status_id not in (select id from ms_task_statuses where is_terminal = true)");
         }
         if (priority != null && !priority.isBlank()) {
-            sql.append(" and priority = :priority");
+            sql.append(" and t.priority = :priority");
         }
         if (search != null && !search.isBlank()) {
-            sql.append(" and (title ilike :search or description_markdown ilike :search)");
+            sql.append(" and (t.title ilike :search or t.description_markdown ilike :search)");
         }
 
-        sql.append(" order by id asc limit :limit");
+        sql.append(" order by t.id asc limit :limit");
 
         var query = jdbcClient.sql(sql.toString()).param("limit", limit);
 
+        if (scope.bindsUserId()) query = query.param("scopeUserId", scope.userId());
         if (afterId != null) query.param("afterId", afterId);
         if (projectId != null) query.param("projectId", projectId);
         if (statusId != null) query.param("statusId", statusId);
@@ -157,43 +171,48 @@ public class MsTaskRepository {
     }
 
     public List<TaskRecord> findSubtasks(Long parentTaskId) {
-        return jdbcClient.sql("""
-                select id, project_id, parent_task_id, title, description_markdown, status_id,
-                       priority, reporter_id, attributes::text as attributes_str, begin_time,
-                       end_time, resolved_time, created_at, modified_at, created_by, modified_by
-                from ms_tasks
-                where parent_task_id = :parentTaskId
-                order by id asc
-                """)
-                .param("parentTaskId", parentTaskId)
-                .query(this::mapRecord)
-                .list();
+        return findSubtasks(parentTaskId, ScopeFilter.unrestricted());
+    }
+
+    public List<TaskRecord> findSubtasks(Long parentTaskId, ScopeFilter scope) {
+        String sql = """
+                select t.id, t.project_id, t.parent_task_id, t.title, t.description_markdown, t.status_id,
+                       t.priority, t.reporter_id, t.attributes::text as attributes_str, t.begin_time,
+                       t.end_time, t.resolved_time, t.created_at, t.modified_at, t.created_by, t.modified_by
+                from ms_tasks t
+                where t.parent_task_id = :parentTaskId
+                """ + scope.sql() + " order by t.id asc";
+        var query = jdbcClient.sql(sql).param("parentTaskId", parentTaskId);
+        if (scope.bindsUserId()) query = query.param("scopeUserId", scope.userId());
+        return query.query(this::mapRecord).list();
     }
 
     public List<TaskRecord> findAncestorChain(Long taskId) {
-        return jdbcClient.sql("""
-                with recursive ancestors as (
-                    select id, project_id, parent_task_id, title, description_markdown, status_id,
-                           priority, reporter_id, attributes::text as attributes_str, begin_time,
-                           end_time, resolved_time, created_at, modified_at, created_by, modified_by, 1 as depth
-                    from ms_tasks
-                    where id = (select parent_task_id from ms_tasks where id = :taskId)
+        return findAncestorChain(taskId, ScopeFilter.unrestricted());
+    }
+
+    public List<TaskRecord> findAncestorChain(Long taskId, ScopeFilter scope) {
+        String sql = """
+                with recursive ancestors(id, depth) as (
+                    select root.parent_task_id, 1
+                    from ms_tasks root
+                    where root.id = :taskId and root.parent_task_id is not null
                     union all
-                    select t.id, t.project_id, t.parent_task_id, t.title, t.description_markdown, t.status_id,
-                           t.priority, t.reporter_id, t.attributes::text as attributes_str, t.begin_time,
-                           t.end_time, t.resolved_time, t.created_at, t.modified_at, t.created_by, t.modified_by, a.depth + 1
-                    from ms_tasks t
-                    join ancestors a on a.parent_task_id = t.id
+                    select parent.parent_task_id, a.depth + 1
+                    from ms_tasks parent
+                    join ancestors a on a.id = parent.id
+                    where parent.parent_task_id is not null
                 )
-                select id, project_id, parent_task_id, title, description_markdown, status_id,
-                       priority, reporter_id, attributes_str, begin_time,
-                       end_time, resolved_time, created_at, modified_at, created_by, modified_by
-                from ancestors
-                order by depth desc
-                """)
-                .param("taskId", taskId)
-                .query(this::mapRecord)
-                .list();
+                select t.id, t.project_id, t.parent_task_id, t.title, t.description_markdown, t.status_id,
+                       t.priority, t.reporter_id, t.attributes::text as attributes_str, t.begin_time,
+                       t.end_time, t.resolved_time, t.created_at, t.modified_at, t.created_by, t.modified_by
+                from ancestors a
+                join ms_tasks t on t.id = a.id
+                where 1=1
+                """ + scope.sql() + " order by a.depth desc";
+        var query = jdbcClient.sql(sql).param("taskId", taskId);
+        if (scope.bindsUserId()) query = query.param("scopeUserId", scope.userId());
+        return query.query(this::mapRecord).list();
     }
 
     public boolean isDescendantOf(Long potentialDescendantId, Long ancestorId) {
@@ -214,24 +233,29 @@ public class MsTaskRepository {
     }
 
     public List<ProjectTaskStats> getProjectTaskStats() {
+        return getProjectTaskStats(ScopeFilter.unrestricted());
+    }
 
-        return jdbcClient.sql("""
+    public List<ProjectTaskStats> getProjectTaskStats(ScopeFilter scope) {
+        String sql = """
                 select p.id as project_id,
                        count(t.id) as total_tasks,
                        count(t.id) filter (where s.is_terminal = false) as active_tasks,
                        count(t.id) filter (where s.is_terminal = true) as done_tasks
                 from ms_task_projects p
                 left join ms_tasks t on t.project_id = p.id
+                """ + scope.sql() + """
                 left join ms_task_statuses s on s.id = t.status_id
                 group by p.id
-                """)
-                .query((rs, rowNum) -> new ProjectTaskStats(
+                """;
+        var query = jdbcClient.sql(sql);
+        if (scope.bindsUserId()) query = query.param("scopeUserId", scope.userId());
+        return query.query((rs, rowNum) -> new ProjectTaskStats(
                         rs.getLong("project_id"),
                         rs.getInt("total_tasks"),
                         rs.getInt("active_tasks"),
                         rs.getInt("done_tasks")
-                ))
-                .list();
+                )).list();
     }
 
     public record ProjectTaskStats(

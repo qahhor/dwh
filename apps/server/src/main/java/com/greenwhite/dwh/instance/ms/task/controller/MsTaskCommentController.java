@@ -28,7 +28,7 @@ public class MsTaskCommentController {
     @GetMapping
     @RequiresPermission(form = MsTaskPref.FORM_COMMENTS, action = "view")
     public ResponseEntity<List<MsTaskCommentRepository.CommentRecord>> listComments(@PathVariable("taskId") Long taskId) {
-        return ResponseEntity.ok(commentService.listComments(taskId));
+        return ResponseEntity.ok(commentService.listComments(taskId, SecurityContext.getCurrentUserId()));
     }
 
     @PostMapping

@@ -150,6 +150,45 @@ public class MdScopeService {
         };
     }
 
+    /** Row visibility for queries whose task table alias is {@code t}. */
+    @Transactional(readOnly = true)
+    public ScopeFilter filterForTasks(Long userId) {
+        if (userId == null) {
+            return ScopeFilter.unrestricted();
+        }
+        return switch (scopeRepository.getUserRule(userId)) {
+            case RULE_SUBTREE, RULE_UNITS -> ScopeFilter.taskByParticipantOrgUnit(userId);
+            case RULE_SELF -> ScopeFilter.taskSelf(userId);
+            default -> ScopeFilter.unrestricted();
+        };
+    }
+
+    /** Row visibility for queries whose file table alias is {@code f}. */
+    @Transactional(readOnly = true)
+    public ScopeFilter filterForFiles(Long userId) {
+        if (userId == null) {
+            return ScopeFilter.unrestricted();
+        }
+        return switch (scopeRepository.getUserRule(userId)) {
+            case RULE_SUBTREE, RULE_UNITS -> ScopeFilter.fileByOwnerOrTaskOrgUnit(userId);
+            case RULE_SELF -> ScopeFilter.fileSelf(userId);
+            default -> ScopeFilter.unrestricted();
+        };
+    }
+
+    /** Validates assignees before a scoped actor can add them to a task. */
+    @Transactional(readOnly = true)
+    public boolean canAccessUser(Long viewerId, Long targetUserId) {
+        if (viewerId == null || targetUserId == null) {
+            return viewerId == null;
+        }
+        return switch (scopeRepository.getUserRule(viewerId)) {
+            case RULE_SELF -> viewerId.equals(targetUserId) && scopeRepository.userExists(targetUserId);
+            case RULE_SUBTREE, RULE_UNITS -> scopeRepository.isUserInEffectiveScope(viewerId, targetUserId);
+            default -> scopeRepository.userExists(targetUserId);
+        };
+    }
+
     private static String normalize(String rule) {
         String normalized = rule != null ? rule.trim().toUpperCase() : "";
         if (!VALID_RULES.contains(normalized)) {

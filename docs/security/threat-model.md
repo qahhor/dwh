@@ -2,7 +2,7 @@
 
 **Version:** 1.0
 
-**Updated:** 2026-09-02
+**Updated:** 2026-09-04
 
 **Scope:** one SmartupCMS installation, one organization, many users
 
@@ -38,7 +38,7 @@ configured external providers remain outside the application's trust boundary.
 | Threat | Repository control | Installation requirement / residual risk |
 |---|---|---|
 | Credential theft and account takeover | Argon2id password hashing, hashed session/API tokens, session revocation, rate limits, forced bootstrap-password change | Protect TLS, secret files, mail/OTP providers, admin devices, and recovery channels; prove rotation and recovery |
-| IDOR / privilege escalation | Server authentication plus `@RequiresPermission`, scoped task/file checks, fail-closed search for unsupported scope | Execute cross-role/direct-API negative tests against the release and review new endpoints |
+| IDOR / privilege escalation | Server authentication plus `@RequiresPermission`; SQL row predicates for task participants and file ownership/task/comment linkage; scoped reads before task/comment/file mutations; inaccessible direct IDs return 404; participant assignments are constrained to the actor scope; Typesense search is fail-closed to unrestricted administrators | Execute `MdScopeServiceIntegrationTest` and `TaskFileDataScopeControllerTest` against the release; repeat cross-role negative tests for every new entity/endpoint |
 | CSRF / XSS / clickjacking | Cookie requests require CSRF token; strict markdown URL handling; CSP, frame denial, referrer and permissions headers | Terminate HTTPS correctly and test headers at the external origin; inline styles remain allowed by the web CSP |
 | SQL/command injection | Parameterized JDBC access and no user input passed to release shell commands | Static analysis and adversarial API tests remain required for every release |
 | SSRF and uncontrolled egress | Webhooks disabled by default; exact host allow-list; private/special addresses rejected unless explicitly opted in; URL revalidated before dispatch; redirects disabled; connect/read timeouts; no default telemetry | Keep private-address opt-in false on managed/internet installations; enforce host-level egress controls and trusted DNS for enabled providers |

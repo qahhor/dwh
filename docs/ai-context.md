@@ -102,63 +102,35 @@ repositories/adapters — I/O. Детали приведены в
 
 ## 6. Последняя подтверждённая проверка
 
-Базовый `main` и `origin/main` перед локальным patch указывали на
-`1b24d3f5e63256fcb4257ae230a57c59fa73d6bf`. Для этого SHA ранее в чистом
-checkout подтверждены web 26 files / 68 tests, typecheck/build, E2E
-typecheck/artifact-security/theme 2/2 и здоровая Docker-топология из четырёх
-runtime services.
+Опубликованный `main`/`origin/main` перед текущим локальным patch указывает на
+`5917e812a13daa36811c067c80641e74bbc97265`. Предыдущий commit `4a7fece2` имеет
+полностью зелёный remote CI run `33883389351`. Для `5917e812` remote run
+`33886730107` завершился ошибкой только в browser E2E; backend, frontend,
+release-config и security jobs зелёные. Публичный GitHub API не раскрывает лог
+упавшего шага без авторизации, поэтому причина remote E2E не подтверждена.
 
-Remote CI run `33833803385` для этого SHA красный: frontend и backend jobs
-зелёные, но `release-config` упал на backup-status contract, а `security` — на
-Trivy. Поэтому `1b24d3f` не является release-ready baseline.
+На `5917e812` локально подтверждены: полный Maven, Angular unit/typecheck/build,
+release/config/documentation gates, healthy Compose deployment и 24/24 browser
+E2E. Commit включает централизованную локализацию, страницу «Состояние»,
+пагинацию/retention/export аудита и UI/a11y regression suite.
 
-Локальный рабочий patch от 2026-09-04 исправляет обе первопричины:
+Текущий незакоммиченный patch закрывает локальную реализацию `P0-14`:
 
-- backup-status contract использует изолированный Docker volume с production
-  UID/GID 10001 вместо root-owned host bind file;
-- embedded Tomcat обновлён с 11.0.24 до 11.0.25;
-- Trivy проверяет resolved backend CycloneDX SBOM, web application/build и E2E dev
-  toolchain раздельно, сохраняя fail-closed HIGH/CRITICAL threshold.
+- ADR-0013 фиксирует единый контракт `ALL/SUBTREE/UNITS/SELF` для задач,
+  комментариев и файлов; недоступный прямой идентификатор возвращает `404`;
+- task/file repositories применяют row-scope в SQL до пагинации и подсчётов,
+  HTTP controllers всегда передают идентификатор аутентифицированного
+  пользователя;
+- назначения участников проверяются по actor scope, а замена роли
+  пересчитывает permissions и effective data scope в одной транзакции;
+- Flyway `V024` добавляет обратный индекс вложений комментариев;
+- полный Maven после добавления comment regression tests: 262 теста, 0
+  failures/errors/skipped; Angular: 31 test files / 107 tests, typecheck,
+  localization audit `1009/1022` и production build; E2E config/typecheck/
+  artifact-security и семь architecture/docs/release/production gates зелёные.
 
-На этом локальном patch подтверждены:
-
-- Maven: 214 тестов, 0 failures/errors/skipped, `BUILD SUCCESS`;
-- Trivy 0.70.0: 0 HIGH/CRITICAL для backend SBOM, web включая dev
-  dependencies и E2E;
-- 7/7 architecture/docs/release/production contract gates;
-- `actionlint` 1.7.7.
-
-Изменения ещё не прошли remote CI на immutable commit. Не заявлять R-01
-закрытым до push и полного green run. При следующей сессии сначала проверить
-`HEAD`, `git status` и применимые gates; не включать в работу unrelated dirty
-UI/E2E changes и локальные audit drafts без отдельного решения пользователя.
-
-Текущий незакоммиченный localization patch добавляет Flyway `V022`, публичные
-словари и защищённый admin API, редактор переводов, динамический выбор языка,
-атомарную синхронизацию предпочтения с `md_users.language` и миграцию legacy
-browser-пакетов. Вся
-статическая Angular-копия сведена в русский каталог; неполные целевые каталоги
-явно показывают coverage и используют русский fallback. На текущем patch
-локально подтверждены: localization audit `976/987`, Angular 30 файлов / 87
-тестов, frontend typecheck и production build (initial bundle 476.53 kB), E2E
-typecheck, полный instance E2E 18/18 и Maven 229 тестов без
-failures/errors/skipped. Чистые Testcontainers-БД успешно применяют 22 Flyway
-миграции до `V022`; локальные Docker server/web пересобраны и healthy. E2E
-возвращает исходные переводы и язык администратора (`ru`). Remote CI и commit
-для этого patch ещё не подтверждены.
-
-Текущий незакоммиченный patch страницы «Состояние» добавляет серверную отметку
-`checkedAt`, параллельные проверки компонентов с настраиваемым пределом
-`DWH_SYSTEM_HEALTH_TIMEOUT`, агрегированный статус установки, явную индикацию
-устаревшего snapshot после ошибки обновления и семантически разные состояния
-backup. Backup freshness оценивается относительно явно заданного
-`DWH_BACKUP_MAX_AGE`; `0s` означает неподтверждённую политику и не даёт
-зелёного статуса, превышение порога возвращает `STALE`. После объединения с
-localization patch локально подтверждены: localization audit 997 используемых
-ключей / 1010 русских ключей, Angular 30 файлов / 93 теста, frontend и E2E
-typecheck, Maven 231 тест без failures/errors/skipped, production release-config
-gate, system E2E 4/4 и полный instance E2E 20/20 на пересобранном healthy
-Docker-стеке. Remote CI и immutable commit не подтверждены.
+До публикации patch требуются immutable commit/push, green remote CI и clean
+Docker/browser evidence. Не считать `P0-14` verified до выполнения этих шагов.
 
 ## 7. Открытые release gates
 
