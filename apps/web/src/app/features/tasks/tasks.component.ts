@@ -1453,6 +1453,7 @@ import { KeysetPage } from '../../core/models/common.models';
     .status-tab {
       border: none;
       background: transparent;
+      min-height: 28px;
       padding: 3px 8px;
       font-size: 11px;
       font-weight: 500;
@@ -2072,6 +2073,29 @@ import { KeysetPage } from '../../core/models/common.models';
     .modal-form { display: flex; flex-direction: column; gap: 12px; }
     .form-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
     .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    @media (max-width: 640px) {
+      .view-header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+      .header-right {
+        width: 100%;
+        flex-wrap: wrap;
+      }
+      .toolbar { align-items: stretch; }
+      .search-field,
+      .toolbar-controls { width: 100%; }
+      .toolbar-controls { min-width: 0; }
+      .status-tabs {
+        max-width: 100%;
+        overflow-x: auto;
+      }
+      .modal-form,
+      .form-group { min-width: 0; }
+      .form-grid-2,
+      .form-grid-3 { grid-template-columns: minmax(0, 1fr); }
+    }
     .form-group { display: flex; flex-direction: column; gap: 4px; }
     .label-row { display: flex; align-items: center; justify-content: space-between; }
     .clean-label { font-size: 11px; font-weight: 500; color: var(--text-muted); }

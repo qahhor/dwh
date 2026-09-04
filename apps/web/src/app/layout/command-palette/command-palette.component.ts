@@ -5,7 +5,7 @@ import { A11yModule } from '@angular/cdk/a11y';
 import { Router } from '@angular/router';
 import { CommandPaletteService } from '../../core/services/command-palette.service';
 import { SearchHit } from '../../core/models/search.models';
-import { Subject, debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
+import { Subject, catchError, debounceTime, of, switchMap } from 'rxjs';
 
 @Component({
   selector: 'app-command-palette',
@@ -48,7 +48,12 @@ import { Subject, debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs
             Поиск...
           </div>
 
-          <div *ngIf="!isLoading() && results().length === 0 && searchQuery.length >= 2" class="palette-empty" role="status">
+          <div *ngIf="!isLoading() && errorMessage()" class="palette-error" role="alert">
+            <span>{{ errorMessage() }}</span>
+            <button type="button" class="palette-retry" (click)="retrySearch()">Повторить</button>
+          </div>
+
+          <div *ngIf="!isLoading() && !errorMessage() && results().length === 0 && searchQuery.length >= 2" class="palette-empty" role="status">
             Ничего не найдено по запросу «{{ searchQuery }}»
           </div>
 
@@ -154,12 +159,34 @@ import { Subject, debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs
       flex: 1;
     }
 
-    .palette-loading, .palette-empty, .palette-hint {
+    .palette-loading, .palette-empty, .palette-hint, .palette-error {
       padding: 24px;
       text-align: center;
       color: var(--text-muted);
       font-size: 13px;
     }
+
+    .palette-error {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      color: var(--danger);
+    }
+
+    .palette-retry {
+      min-height: 30px;
+      padding: 4px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      background: var(--bg-surface);
+      color: var(--text-main);
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .palette-retry:hover { border-color: var(--primary); color: var(--primary); }
 
     .results-list {
       display: flex;
@@ -256,6 +283,7 @@ export class CommandPaletteComponent implements OnDestroy {
   selectedIndex = 0;
   readonly isLoading = signal<boolean>(false);
   readonly results = signal<SearchHit[]>([]);
+  readonly errorMessage = signal<string>('');
   private searchSubject = new Subject<string>();
   private readonly componentId = CommandPaletteComponent.nextId++;
   readonly titleId = `command-palette-title-${this.componentId}`;
@@ -289,16 +317,25 @@ export class CommandPaletteComponent implements OnDestroy {
 
     this.searchSubject.pipe(
       debounceTime(120),
-      distinctUntilChanged(),
       switchMap(query => {
         if (!query || query.trim().length < 2) {
           this.isLoading.set(false);
+          this.errorMessage.set('');
           return of({ query, totalHits: 0, hits: [] });
         }
         this.isLoading.set(true);
-        return this.paletteService.search(query.trim());
+        this.errorMessage.set('');
+        return this.paletteService.search(query.trim()).pipe(
+          catchError(error => {
+            this.results.set([]);
+            this.isLoading.set(false);
+            this.errorMessage.set(this.getSearchErrorMessage(error));
+            return of(null);
+          })
+        );
       })
     ).subscribe(res => {
+      if (!res) return;
       this.results.set(res.hits || []);
       this.selectedIndex = 0;
       this.isLoading.set(false);
@@ -341,6 +378,10 @@ export class CommandPaletteComponent implements OnDestroy {
     this.searchSubject.next(query);
   }
 
+  retrySearch() {
+    this.searchSubject.next(this.searchQuery);
+  }
+
   optionId(index: number): string {
     return `${this.listboxId}-option-${index}`;
   }
@@ -378,5 +419,13 @@ export class CommandPaletteComponent implements OnDestroy {
       case 'USER': return 'Сотрудник';
       default: return type;
     }
+  }
+
+  private getSearchErrorMessage(error: unknown): string {
+    if (error && typeof error === 'object') {
+      const detail = (error as { detail?: unknown }).detail;
+      if (typeof detail === 'string' && detail.trim()) return detail;
+    }
+    return 'Не удалось выполнить поиск. Проверьте соединение и повторите попытку.';
   }
 }

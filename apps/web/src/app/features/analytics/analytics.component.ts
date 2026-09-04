@@ -466,6 +466,18 @@ export interface UserWorkload {
     }
 
     @media (max-width: 640px) {
+      .view-header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+      .header-right {
+        width: 100%;
+        flex-wrap: wrap;
+      }
+      .status-tabs {
+        max-width: 100%;
+        overflow-x: auto;
+      }
       .tiles {
         grid-template-columns: 1fr;
       }

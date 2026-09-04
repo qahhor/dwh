@@ -1005,6 +1005,27 @@ type SortDirection = 'asc' | 'desc';
     }
     .span-2 { grid-column: 1 / -1; }
 
+    @media (max-width: 640px) {
+      .view-header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+      .header-right,
+      .toolbar-controls {
+        width: 100%;
+        flex-wrap: wrap;
+      }
+      .toolbar-controls { min-width: 0; }
+      .status-tabs {
+        max-width: 100%;
+        overflow-x: auto;
+      }
+      .modal-form,
+      .form-group { min-width: 0; }
+      .form-grid { grid-template-columns: minmax(0, 1fr); }
+      .span-2 { grid-column: auto; }
+    }
+
     .form-group {
       display: flex;
       flex-direction: column;

@@ -1,8 +1,9 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
+import { SearchResult } from '../../core/models/search.models';
 import { CommandPaletteService } from '../../core/services/command-palette.service';
 import { CommandPaletteComponent } from './command-palette.component';
 
@@ -14,7 +15,7 @@ describe('CommandPaletteComponent', () => {
       open: vi.fn(() => isOpen.set(true)),
       close: vi.fn(() => isOpen.set(false)),
       toggle: vi.fn(() => isOpen.update(value => !value)),
-      search: vi.fn(() => of({ query: '', totalHits: 0, hits: [] }))
+      search: vi.fn((_query: string) => of<SearchResult>({ query: '', totalHits: 0, hits: [] }))
     };
     await TestBed.configureTestingModule({
       imports: [CommandPaletteComponent],
@@ -72,5 +73,45 @@ describe('CommandPaletteComponent', () => {
     expect(service.close).toHaveBeenCalled();
     expect(document.activeElement).toBe(trigger);
     trigger.remove();
+  });
+
+  it('shows a recoverable inline error and can retry the same query', async () => {
+    vi.useFakeTimers();
+    try {
+      const { fixture, service } = await createFixture();
+      service.search
+        .mockReturnValueOnce(throwError(() => ({ detail: 'Поиск временно недоступен' })))
+        .mockReturnValueOnce(of({
+          query: 'Тест',
+          totalHits: 1,
+          hits: [{
+            entityType: 'TASK',
+            id: '42',
+            title: 'Тестовая задача',
+            description: 'Результат повторного запроса',
+            targetUrl: '/tasks/items/42'
+          }]
+        }));
+      fixture.detectChanges();
+
+      fixture.componentInstance.searchQuery = 'Тест';
+      fixture.componentInstance.onSearchChange('Тест');
+      await vi.advanceTimersByTimeAsync(121);
+      fixture.detectChanges();
+
+      const error = fixture.nativeElement.querySelector('.palette-error[role="alert"]') as HTMLElement;
+      expect(error.textContent).toContain('Поиск временно недоступен');
+      expect(fixture.componentInstance.isLoading()).toBe(false);
+
+      (fixture.nativeElement.querySelector('.palette-retry') as HTMLButtonElement).click();
+      await vi.advanceTimersByTimeAsync(121);
+      fixture.detectChanges();
+
+      expect(service.search).toHaveBeenCalledTimes(2);
+      expect(fixture.nativeElement.querySelector('.result-title')?.textContent).toContain('Тестовая задача');
+      expect(fixture.nativeElement.querySelector('.palette-error')).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

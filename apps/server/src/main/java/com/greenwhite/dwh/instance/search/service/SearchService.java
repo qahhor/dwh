@@ -2,6 +2,7 @@ package com.greenwhite.dwh.instance.search.service;
 
 import com.greenwhite.dwh.core.error.ErrorCode;
 import com.greenwhite.dwh.instance.common.error.ApiException;
+import com.greenwhite.dwh.instance.common.security.RoleMembershipAuthorizer;
 import com.greenwhite.dwh.instance.common.security.SecurityContext;
 import com.greenwhite.dwh.instance.search.typesense.TypesenseClient;
 import org.slf4j.Logger;
@@ -17,13 +18,19 @@ import java.util.List;
 public class SearchService {
 
     private static final Logger log = LoggerFactory.getLogger(SearchService.class);
+    private static final String ADMINISTRATOR_ROLE = "admin";
 
     private final JdbcClient jdbcClient;
     private final TypesenseClient typesenseClient;
+    private final RoleMembershipAuthorizer roleMembershipAuthorizer;
 
-    public SearchService(JdbcClient jdbcClient, TypesenseClient typesenseClient) {
+    public SearchService(
+            JdbcClient jdbcClient,
+            TypesenseClient typesenseClient,
+            RoleMembershipAuthorizer roleMembershipAuthorizer) {
         this.jdbcClient = jdbcClient;
         this.typesenseClient = typesenseClient;
+        this.roleMembershipAuthorizer = roleMembershipAuthorizer;
     }
 
     @Transactional(readOnly = true)
@@ -59,7 +66,10 @@ public class SearchService {
         if (principal == null) {
             throw ApiException.unauthorized("Требуется авторизация для поиска");
         }
-        if (!principal.effectivePermissions().contains("*.*")) {
+        boolean hasLegacyWildcard = principal.effectivePermissions().contains("*.*");
+        boolean hasAdministratorRole = !hasLegacyWildcard
+                && roleMembershipAuthorizer.hasActiveRole(principal.userId(), ADMINISTRATOR_ROLE);
+        if (!hasLegacyWildcard && !hasAdministratorRole) {
             throw ApiException.forbidden(
                     "Глобальный поиск доступен только администраторам до внедрения scope-фильтрации");
         }

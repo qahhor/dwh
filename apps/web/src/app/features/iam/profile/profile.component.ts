@@ -358,6 +358,7 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
       flex-direction: column;
       gap: 16px;
       max-width: 1400px;
+      min-width: 0;
     }
 
     .page-header {
@@ -403,7 +404,7 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
       flex-shrink: 0;
     }
 
-    .user-details { flex: 1; }
+    .user-details { flex: 1; min-width: 0; }
 
     .user-title-row {
       display: flex;
@@ -423,7 +424,7 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
 
     .user-info-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
       gap: 10px;
       font-size: 13px;
     }
@@ -433,7 +434,7 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
 
     .sections-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
       gap: 16px;
     }
 
@@ -443,7 +444,31 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
 
     @media (max-width: 1024px) {
       .sections-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .section-card { min-width: 0; }
+    .info-value { overflow-wrap: anywhere; }
+
+    @media (max-width: 640px) {
+      .card { padding: 14px; }
+      .user-card { align-items: flex-start; gap: 12px; }
+      .user-avatar-large {
+        width: 48px;
+        height: 48px;
+        flex-basis: 48px;
+        font-size: 20px;
+      }
+      .user-title-row { flex-wrap: wrap; }
+      .section-header {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .sessions-header-actions {
+        width: 100%;
+        flex-wrap: wrap;
       }
     }
 
@@ -500,6 +525,7 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
       display: flex;
       flex-direction: column;
       gap: 4px;
+      min-width: 0;
     }
 
     .form-label {
@@ -525,6 +551,8 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
       color: var(--text-main);
       font-size: 13px;
       outline: none;
+      min-width: 0;
+      max-width: 100%;
     }
     .form-input:focus { border-color: var(--primary); }
 

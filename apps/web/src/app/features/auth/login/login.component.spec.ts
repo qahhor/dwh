@@ -51,6 +51,19 @@ describe('LoginComponent', () => {
     expect(main.querySelector('h1')?.textContent).toContain('Корпоративный вход');
   });
 
+  it('renders the product name outside the fixed-size brand mark', () => {
+    const fixture = TestBed.createComponent(LoginComponent);
+    fixture.detectChanges();
+
+    const lockup = fixture.nativeElement.querySelector('.brand-lockup') as HTMLElement;
+    const mark = lockup?.querySelector('.brand-mark') as HTMLElement;
+    const name = lockup?.querySelector('.brand-name') as HTMLElement;
+
+    expect(lockup.getAttribute('aria-label')).toBe('SmartupCMS');
+    expect(mark.textContent?.trim()).toBe('S');
+    expect(name.textContent?.trim()).toBe('SmartupCMS');
+  });
+
   it('renders password recovery as a real button', () => {
     const fixture = TestBed.createComponent(LoginComponent);
     fixture.detectChanges();

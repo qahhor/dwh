@@ -610,9 +610,13 @@ interface ModuleGroup {
       background: transparent;
       color: var(--text-muted);
       cursor: pointer;
-      padding: 2px;
+      width: 28px;
+      height: 28px;
+      padding: 0;
       border-radius: 3px;
-      display: flex;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
     .mini-btn .material-symbols-outlined { font-size: 14px; }
     .mini-btn:hover { color: var(--text-main); background-color: var(--bg-surface); }
@@ -760,7 +764,10 @@ interface ModuleGroup {
       color: var(--primary);
       font-size: 11px;
       cursor: pointer;
-      padding: 0;
+      min-height: 28px;
+      padding: 0 4px;
+      display: inline-flex;
+      align-items: center;
     }
     .text-link:hover { text-decoration: underline; }
     .link-sep { color: var(--text-light); }
@@ -775,6 +782,7 @@ interface ModuleGroup {
       border: 1px solid var(--border-color);
       background: var(--bg-hover);
       padding: 4px 10px;
+      min-height: 28px;
       border-radius: 20px;
       font-size: 11px;
       font-weight: 500;
@@ -836,7 +844,10 @@ interface ModuleGroup {
       color: var(--primary);
       font-size: 11px;
       cursor: pointer;
-      padding: 0;
+      min-height: 28px;
+      padding: 0 4px;
+      display: inline-flex;
+      align-items: center;
     }
     .batch-btn:hover { text-decoration: underline; }
     .batch-btn:disabled { opacity: 0.5; cursor: not-allowed; }

@@ -478,6 +478,7 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
     }
 
     .lang-btn {
+      min-height: 28px;
       padding: 4px 8px;
       border: none;
       background: var(--bg-surface);
@@ -646,7 +647,7 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
 
       .page-content {
         padding: 12px;
-        overflow-x: auto;
+        overflow-x: hidden;
       }
     }
 

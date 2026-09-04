@@ -69,6 +69,7 @@ import { A11yModule } from '@angular/cdk/a11y';
       box-shadow: var(--shadow-overlay);
       border: 1px solid var(--border-color);
       width: 100%;
+      min-width: 0;
       max-height: 90vh;
       display: flex;
       flex-direction: column;
@@ -112,7 +113,9 @@ import { A11yModule } from '@angular/cdk/a11y';
     .modal-body {
       padding: 18px;
       overflow-y: auto;
+      overflow-x: hidden;
       flex: 1;
+      min-width: 0;
     }
 
     .modal-footer {

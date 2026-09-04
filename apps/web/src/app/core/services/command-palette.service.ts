@@ -24,6 +24,6 @@ export class CommandPaletteService {
   }
 
   search(query: string, entityType: string = 'ALL', limit: number = 10): Observable<SearchResult> {
-    return this.api.get<SearchResult>('/search', { q: query, entity_type: entityType, limit });
+    return this.api.get<SearchResult>('/search', { q: query, entity: entityType, limit });
   }
 }

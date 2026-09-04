@@ -16,7 +16,10 @@ import { ApiService } from '../../../core/services/api.service';
     <main class="login-wrapper">
       <div class="login-card">
         <div class="login-header">
-          <div class="brand-badge">SmartupCMS</div>
+          <div class="brand-lockup" aria-label="SmartupCMS">
+            <span class="brand-mark" aria-hidden="true">S</span>
+            <span class="brand-name" aria-hidden="true">SmartupCMS</span>
+          </div>
           <h1 class="login-title">Корпоративный вход</h1>
           <p class="login-subtitle">Платформа управления данными и задачами</p>
         </div>
@@ -259,18 +262,32 @@ import { ApiService } from '../../../core/services/api.service';
       margin-bottom: 24px;
     }
 
-    .brand-badge {
+    .brand-lockup {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .brand-mark {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       width: 44px;
       height: 44px;
+      flex: 0 0 44px;
       border-radius: var(--radius-md);
       background-color: var(--primary);
       color: #ffffff;
       font-weight: 700;
       font-size: 16px;
-      margin-bottom: 12px;
+    }
+
+    .brand-name {
+      color: var(--text-main);
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.2px;
     }
 
     .login-title {

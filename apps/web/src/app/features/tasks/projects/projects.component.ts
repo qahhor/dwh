@@ -598,8 +598,11 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
       background: transparent;
       cursor: pointer;
       font: inherit;
-      padding: 0;
+      min-height: 28px;
+      padding: 0 2px;
       text-align: left;
+      display: inline-flex;
+      align-items: center;
     }
     .project-name { font-weight: 600; color: var(--text-main); }
     .project-name:hover,
@@ -655,6 +658,7 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
       align-items: center;
       gap: 4px;
       padding: 3px 8px;
+      min-height: 28px;
       border-radius: var(--radius-xs);
       border: 1px solid var(--border-color);
       background-color: var(--bg-hover);
