@@ -1758,7 +1758,7 @@ import { KeysetPage } from '../../core/models/common.models';
     .cdk-drag-preview {
       box-sizing: border-box;
       border-radius: var(--radius-sm);
-      box-shadow: var(--shadow-lg);
+      box-shadow: var(--shadow-overlay);
       background-color: var(--bg-surface);
       border: 1px solid var(--primary);
       padding: 10px;
@@ -2181,7 +2181,7 @@ import { KeysetPage } from '../../core/models/common.models';
       color: var(--text-muted);
       margin-top: 6px;
     }
-    .custom-fields-empty-tip .tip-icon { font-size: 18px; color: var(--color-primary, #6366f1); flex-shrink: 0; }
+    .custom-fields-empty-tip .tip-icon { font-size: 18px; color: var(--primary); flex-shrink: 0; }
     .custom-fields-empty-tip .tip-text { line-height: 1.4; }
 
     /* Dictionaries Settings Modal */

@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "targets": {
+    "/settings": {
+      "targetKind": "existing-ui",
+      "projectId": "a091fa4d-f3ca-46d4-8546-f7a663421ce6",
+      "baselineDraftId": "1874830f-dfbc-43cd-8939-e78e0143ae09",
+      "activeDraftId": "1874830f-dfbc-43cd-8939-e78e0143ae09",
+      "designSystemPath": ".superdesign/design-system.md",
+      "referenceIds": [
+        "apps-web-src-favicon.svg"
+      ],
+      "brandAssets": {
+        "logo": {
+          "assetKey": "apps-web-src-favicon.svg",
+          "url": "https://vgbujcuwptvheqijyjbe.supabase.co/storage/v1/object/public/hmac-uploads/projects/a091fa4d-f3ca-46d4-8546-f7a663421ce6/brand-assets/apps-web-src-favicon.svg/favicon.svg",
+          "sourcePath": "apps/web/src/favicon.svg"
+        }
+      },
+      "contextFiles": [
+        ".superdesign/design-system.md",
+        "apps/web/src/styles.css",
+        "apps/web/src/app/layout/app-shell/app-shell.component.ts",
+        "apps/web/src/app/features/settings/settings.component.ts",
+        "apps/web/src/app/shared/ui/ui-button.component.ts",
+        "apps/web/src/app/shared/ui/ui-modal.component.ts"
+      ],
+      "fingerprints": {
+        ".superdesign/design-system.md": "072d760a8dbb9ff8cb1bf36d35ed6f1307310774af3ac139bbc4ed11f1554b71",
+        "apps/web/src/styles.css": "39f3b8d778dd06dd5a6cb91a1e6fe1219b0908ea11a1bbecb45839f61cf941aa",
+        "apps/web/src/app/layout/app-shell/app-shell.component.ts": "aaf1387ba3d0f02ce041b0b18d86268000cdec783cdde88e8654ab83b0e3610a",
+        "apps/web/src/app/features/settings/settings.component.ts": "6fd583d42311b151e808bd2f628fbd9ca4409984116b79a866c582f9fcb7678b",
+        "apps/web/src/app/shared/ui/ui-button.component.ts": "4b7684bc92f5c9586fa993f2b7695fd587cef1f3d6193295a15f0199d89ea723",
+        "apps/web/src/app/shared/ui/ui-modal.component.ts": "ec1224b7ee0044d4beab6c55135c0b28a19ec1a36ac1a2a36a2b34fc3e9c30cf"
+      },
+      "components": [
+        {
+          "name": "AppShell",
+          "id": "9e1cfe41-90ff-4e6f-aff9-75a2d4892aee",
+          "sourcePath": "apps/web/src/app/layout/app-shell/app-shell.component.ts",
+          "logoAssetKey": "apps-web-src-favicon.svg"
+        }
+      ],
+      "drafts": {
+        "1874830f-dfbc-43cd-8939-e78e0143ae09": {
+          "title": "Настройки — SmartupCMS",
+          "visualDirection": "approved systemic light-theme repair preserving the existing SmartupCMS design",
+          "currentVersion": 2
+        }
+      },
+      "updatedAt": "2026-09-04T08:25:39.9800093+05:00"
+    }
+  }
+}

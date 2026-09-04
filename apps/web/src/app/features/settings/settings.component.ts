@@ -475,22 +475,22 @@ import { UiModalComponent } from '../../shared/ui/ui-modal.component';
     .view-title {
       font-size: 24px;
       font-weight: 700;
-      color: var(--text-primary, #f1f5f9);
+      color: var(--text-main);
       margin: 0;
     }
 
     .view-subtitle {
       font-size: 13px;
-      color: #94a3b8;
+      color: var(--text-light);
     }
 
     .icon-refresh-btn {
       width: 36px;
       height: 36px;
       border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(255, 255, 255, 0.04);
-      color: #94a3b8;
+      border: 1px solid var(--border-color);
+      background: var(--bg-surface);
+      color: var(--text-light);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -499,14 +499,14 @@ import { UiModalComponent } from '../../shared/ui/ui-modal.component';
     }
 
     .icon-refresh-btn:hover {
-      background: rgba(255, 255, 255, 0.08);
-      color: var(--text-primary, #f1f5f9);
+      background: var(--bg-hover);
+      color: var(--text-main);
     }
 
     /* Tabs */
     .tabs-nav-bar {
       display: flex;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      border-bottom: 1px solid var(--border-color);
     }
 
     .tab-buttons {
@@ -521,7 +521,7 @@ import { UiModalComponent } from '../../shared/ui/ui-modal.component';
       padding: 10px 16px;
       border: none;
       background: transparent;
-      color: #94a3b8;
+      color: var(--text-light);
       font-size: 14px;
       font-weight: 500;
       cursor: pointer;
@@ -534,14 +534,14 @@ import { UiModalComponent } from '../../shared/ui/ui-modal.component';
     }
 
     .nav-tab-btn.active {
-      color: var(--color-primary, #818cf8);
-      border-bottom-color: var(--color-primary, #818cf8);
+      color: var(--primary-text);
+      border-bottom-color: var(--primary);
     }
 
     /* Settings Card */
     .settings-card {
-      background: var(--bg-card, #1e293b);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
       border-radius: 12px;
       padding: 24px;
       display: flex;
@@ -553,7 +553,7 @@ import { UiModalComponent } from '../../shared/ui/ui-modal.component';
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      border-bottom: 1px solid var(--border-subtle);
       padding-bottom: 16px;
     }
 
@@ -565,19 +565,19 @@ import { UiModalComponent } from '../../shared/ui/ui-modal.component';
 
     .card-icon {
       font-size: 28px;
-      color: var(--color-primary, #818cf8);
+      color: var(--primary-text);
     }
 
     .card-title {
       font-size: 16px;
       font-weight: 600;
-      color: var(--text-primary, #f1f5f9);
+      color: var(--text-main);
       margin: 0;
     }
 
     .card-desc {
       font-size: 13px;
-      color: #94a3b8;
+      color: var(--text-light);
       margin: 2px 0 0 0;
     }
 
@@ -612,32 +612,32 @@ import { UiModalComponent } from '../../shared/ui/ui-modal.component';
     .form-label {
       font-size: 13px;
       font-weight: 500;
-      color: #cbd5e1;
+      color: var(--text-main);
     }
 
     .form-input, .form-select {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
       border-radius: 8px;
       padding: 9px 12px;
-      color: var(--text-primary, #f1f5f9);
+      color: var(--text-main);
       font-size: 13px;
       outline: none;
       transition: border-color 0.15s ease;
     }
 
     .form-input:focus, .form-select:focus {
-      border-color: var(--color-primary, #818cf8);
+      border-color: var(--primary);
     }
 
     .form-select option {
-      background: #1e293b;
-      color: #f1f5f9;
+      background: var(--bg-surface);
+      color: var(--text-main);
     }
 
     .hint-text {
       font-size: 11px;
-      color: #64748b;
+      color: var(--text-light);
     }
 
     /* Toggle Switch */
@@ -646,8 +646,8 @@ import { UiModalComponent } from '../../shared/ui/ui-modal.component';
       align-items: center;
       justify-content: space-between;
       padding: 14px 16px;
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: var(--bg-hover);
+      border: 1px solid var(--border-subtle);
       border-radius: 8px;
     }
 
@@ -660,12 +660,12 @@ import { UiModalComponent } from '../../shared/ui/ui-modal.component';
     .toggle-title {
       font-size: 14px;
       font-weight: 500;
-      color: var(--text-primary, #f1f5f9);
+      color: var(--text-main);
     }
 
     .toggle-desc {
       font-size: 12px;
-      color: #94a3b8;
+      color: var(--text-light);
     }
 
     .switch-toggle {
@@ -688,7 +688,7 @@ import { UiModalComponent } from '../../shared/ui/ui-modal.component';
       left: 0;
       right: 0;
       bottom: 0;
-      background-color: rgba(255, 255, 255, 0.15);
+      background-color: var(--bg-active);
       transition: .2s;
       border-radius: 24px;
     }
@@ -700,13 +700,13 @@ import { UiModalComponent } from '../../shared/ui/ui-modal.component';
       width: 18px;
       left: 3px;
       bottom: 3px;
-      background-color: white;
+      background-color: var(--text-inverse);
       transition: .2s;
       border-radius: 50%;
     }
 
     input:checked + .toggle-slider {
-      background-color: var(--color-primary, #6366f1);
+      background-color: var(--primary);
     }
 
     input:checked + .toggle-slider:before {
@@ -717,7 +717,7 @@ import { UiModalComponent } from '../../shared/ui/ui-modal.component';
       display: flex;
       justify-content: flex-end;
       padding-top: 12px;
-      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      border-top: 1px solid var(--border-subtle);
     }
 
   `]

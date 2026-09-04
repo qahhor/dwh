@@ -210,7 +210,7 @@ export interface SelectOption {
       background-color: var(--bg-surface);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-md);
-      box-shadow: var(--shadow-lg);
+      box-shadow: var(--shadow-overlay);
       z-index: 9999;
       display: flex;
       flex-direction: column;

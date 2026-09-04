@@ -249,13 +249,13 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
     .view-title {
       font-size: 24px;
       font-weight: 700;
-      color: var(--text-primary, #ffffff);
+      color: var(--text-main);
       margin: 0 0 4px 0;
     }
 
     .view-subtitle {
       font-size: 14px;
-      color: var(--text-secondary, #94a3b8);
+      color: var(--text-light);
     }
 
     .header-actions {
@@ -267,10 +267,10 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
     .icon-refresh-btn {
       width: 36px;
       height: 36px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
       border-radius: 8px;
-      color: var(--text-secondary, #94a3b8);
+      color: var(--text-light);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -279,18 +279,18 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
     }
 
     .icon-refresh-btn:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: #ffffff;
+      background: var(--bg-hover);
+      color: var(--text-main);
     }
 
     .filter-tabs {
       display: flex;
       gap: 8px;
       margin-bottom: 20px;
-      background: rgba(255, 255, 255, 0.03);
+      background: var(--bg-hover);
       padding: 4px;
       border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border-subtle);
       width: fit-content;
     }
 
@@ -299,7 +299,7 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
       border-radius: 8px;
       border: none;
       background: transparent;
-      color: var(--text-secondary, #94a3b8);
+      color: var(--text-light);
       font-size: 13px;
       font-weight: 500;
       cursor: pointer;
@@ -307,14 +307,14 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
     }
 
     .tab-btn.active {
-      background: var(--primary, #3b82f6);
-      color: #ffffff;
+      background: var(--primary);
+      color: var(--text-inverse);
     }
 
     .card {
-      background: var(--bg-card, #1e293b);
+      background: var(--bg-surface);
       border-radius: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border-color);
       overflow: hidden;
     }
 
@@ -329,28 +329,28 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 
     .data-table th {
       padding: 14px 16px;
-      background: rgba(0, 0, 0, 0.2);
+      background: var(--bg-hover);
       font-size: 12px;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: var(--text-secondary, #94a3b8);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-color);
     }
 
     .data-table td {
       padding: 14px 16px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      border-bottom: 1px solid var(--border-subtle);
       font-size: 14px;
-      color: var(--text-primary, #ffffff);
+      color: var(--text-main);
     }
 
     .data-table tr:hover td {
-      background: rgba(255, 255, 255, 0.02);
+      background: var(--bg-hover);
     }
 
     .code-cell {
-      color: #38bdf8;
+      color: var(--primary-text);
       font-size: 13px;
     }
 
@@ -363,17 +363,17 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
       letter-spacing: 0.04em;
     }
 
-    .entity-badge.user { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
-    .entity-badge.project { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
-    .entity-badge.task { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
+    .entity-badge.user { background: var(--primary-subtle); color: var(--primary-text); }
+    .entity-badge.project { background: var(--info-bg); color: var(--info); }
+    .entity-badge.task { background: var(--success-bg); color: var(--success); }
 
     .type-badge {
       display: inline-block;
       padding: 2px 8px;
       border-radius: 4px;
-      background: rgba(255, 255, 255, 0.06);
+      background: var(--bg-hover);
       font-size: 12px;
-      color: #cbd5e1;
+      color: var(--text-muted);
     }
 
     .status-indicator {
@@ -384,32 +384,32 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
     }
 
     .status-indicator.active {
-      color: #f59e0b;
+      color: var(--warning);
       font-weight: 600;
     }
 
     .action-btn {
       background: transparent;
       border: none;
-      color: var(--text-secondary, #94a3b8);
+      color: var(--text-light);
       cursor: pointer;
       padding: 4px;
       border-radius: 6px;
       transition: all 0.2s;
     }
 
-    .action-btn:hover { color: #ffffff; background: rgba(255, 255, 255, 0.1); }
-    .action-btn.danger:hover { color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+    .action-btn:hover { color: var(--text-main); background: var(--bg-hover); }
+    .action-btn.danger:hover { color: var(--danger); background: var(--danger-bg); }
 
     .text-right { text-align: right; }
-    .text-muted { color: #64748b; }
+    .text-muted { color: var(--text-light); }
     .font-mono { font-family: monospace; }
     .font-medium { font-weight: 500; }
 
     .empty-state {
       padding: 40px 20px;
       text-align: center;
-      color: #64748b;
+      color: var(--text-light);
     }
 
     .empty-icon {
@@ -441,17 +441,17 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
     .form-label {
       font-size: 13px;
       font-weight: 500;
-      color: #cbd5e1;
+      color: var(--text-main);
     }
 
-    .req { color: #ef4444; }
+    .req { color: var(--danger); }
 
     .form-input, .form-select {
-      background: rgba(0, 0, 0, 0.2);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
       border-radius: 8px;
       padding: 10px 12px;
-      color: #ffffff;
+      color: var(--text-main);
       font-size: 14px;
       transition: border-color 0.2s;
     }
@@ -463,18 +463,18 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
     }
 
     .form-hint {
-      color: var(--text-secondary, #94a3b8);
+      color: var(--text-light);
       font-size: 12px;
     }
 
     .form-error {
       margin: 0;
-      color: var(--danger, #ef4444);
+      color: var(--danger);
       font-size: 13px;
     }
 
     .form-input:focus, .form-select:focus {
-      border-color: var(--primary, #3b82f6);
+      border-color: var(--primary);
     }
 
     .checkbox-group {
@@ -486,7 +486,7 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
       align-items: center;
       gap: 8px;
       font-size: 14px;
-      color: #cbd5e1;
+      color: var(--text-main);
       cursor: pointer;
     }
 
@@ -496,7 +496,7 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
       gap: 12px;
       margin-top: 16px;
       padding-top: 16px;
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      border-top: 1px solid var(--border-color);
     }
     .delete-confirmation { display: flex; flex-direction: column; gap: 8px; }
     .delete-confirmation p { margin: 0; }

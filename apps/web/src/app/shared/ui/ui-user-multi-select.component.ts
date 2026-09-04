@@ -163,7 +163,7 @@ import { User } from '../../core/models/auth.models';
       background-color: var(--bg-surface);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-sm);
-      box-shadow: var(--shadow-lg);
+      box-shadow: var(--shadow-overlay);
       z-index: 1050;
       display: flex;
       flex-direction: column;

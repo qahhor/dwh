@@ -487,13 +487,13 @@ export interface AuditStats {
     .view-title {
       font-size: 24px;
       font-weight: 700;
-      color: var(--text-primary, #f1f5f9);
+      color: var(--text-main);
       margin: 0;
     }
 
     .view-subtitle {
       font-size: 13px;
-      color: #94a3b8;
+      color: var(--text-light);
     }
 
     /* Stats Grid */
@@ -516,8 +516,8 @@ export interface AuditStats {
     }
 
     .stat-card {
-      background: var(--bg-card, #1e293b);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
       border-radius: 12px;
       padding: 16px;
       display: flex;
@@ -534,10 +534,10 @@ export interface AuditStats {
       justify-content: center;
     }
 
-    .stat-icon-wrapper.blue { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
-    .stat-icon-wrapper.indigo { background: rgba(99, 102, 241, 0.15); color: #818cf8; }
-    .stat-icon-wrapper.amber { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
-    .stat-icon-wrapper.red { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+    .stat-icon-wrapper.blue { background: var(--info-bg); color: var(--info); }
+    .stat-icon-wrapper.indigo { background: var(--primary-subtle); color: var(--primary-text); }
+    .stat-icon-wrapper.amber { background: var(--warning-bg); color: var(--warning); }
+    .stat-icon-wrapper.red { background: var(--danger-bg); color: var(--danger); }
 
     .stat-info {
       display: flex;
@@ -548,18 +548,18 @@ export interface AuditStats {
     .stat-value {
       font-size: 20px;
       font-weight: 700;
-      color: var(--text-primary, #f1f5f9);
+      color: var(--text-main);
     }
 
     .stat-label {
       font-size: 12px;
-      color: #94a3b8;
+      color: var(--text-light);
     }
 
     /* Tabs */
     .tabs-nav-bar {
       display: flex;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      border-bottom: 1px solid var(--border-color);
     }
 
     .tab-buttons {
@@ -574,7 +574,7 @@ export interface AuditStats {
       padding: 10px 16px;
       border: none;
       background: transparent;
-      color: #94a3b8;
+      color: var(--text-light);
       font-size: 14px;
       font-weight: 500;
       cursor: pointer;
@@ -587,8 +587,8 @@ export interface AuditStats {
     }
 
     .nav-tab-btn.active {
-      color: var(--color-primary, #818cf8);
-      border-bottom-color: var(--color-primary, #818cf8);
+      color: var(--primary-text);
+      border-bottom-color: var(--primary);
     }
 
     .tab-counter {
@@ -596,12 +596,12 @@ export interface AuditStats {
       border-radius: 10px;
       font-size: 11px;
       font-weight: 600;
-      background: rgba(255, 255, 255, 0.06);
+      background: var(--bg-hover);
     }
 
     .nav-tab-btn.active .tab-counter {
-      background: rgba(99, 102, 241, 0.15);
-      color: #818cf8;
+      background: var(--primary-subtle);
+      color: var(--primary-text);
     }
 
     /* Filter Toolbar */
@@ -622,39 +622,39 @@ export interface AuditStats {
     }
 
     .filter-select {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
       border-radius: 8px;
       padding: 7px 12px;
-      color: var(--text-primary, #f1f5f9);
+      color: var(--text-main);
       font-size: 13px;
       outline: none;
     }
 
     .filter-select option {
-      background: #1e293b;
-      color: #f1f5f9;
+      background: var(--bg-surface);
+      color: var(--text-main);
     }
 
     .search-box {
       display: flex;
       align-items: center;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
       border-radius: 8px;
       padding: 0 10px;
     }
 
     .search-icon {
       font-size: 18px;
-      color: #94a3b8;
+      color: var(--text-light);
     }
 
     .search-input {
       background: transparent;
       border: none;
       outline: none;
-      color: var(--text-primary, #f1f5f9);
+      color: var(--text-main);
       padding: 7px 8px;
       font-size: 13px;
     }
@@ -663,9 +663,9 @@ export interface AuditStats {
       width: 36px;
       height: 36px;
       border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(255, 255, 255, 0.04);
-      color: #94a3b8;
+      border: 1px solid var(--border-color);
+      background: var(--bg-surface);
+      color: var(--text-light);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -674,14 +674,14 @@ export interface AuditStats {
     }
 
     .icon-refresh-btn:hover {
-      background: rgba(255, 255, 255, 0.08);
-      color: var(--text-primary, #f1f5f9);
+      background: var(--bg-hover);
+      color: var(--text-main);
     }
 
     /* Table */
     .table-container {
-      background: var(--bg-card, #1e293b);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
       border-radius: 12px;
       overflow-x: auto;
     }
@@ -695,31 +695,31 @@ export interface AuditStats {
 
     .data-table th {
       padding: 12px 16px;
-      background: rgba(255, 255, 255, 0.02);
-      color: #94a3b8;
+      background: var(--bg-hover);
+      color: var(--text-muted);
       font-weight: 600;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      border-bottom: 1px solid var(--border-color);
       white-space: nowrap;
     }
 
     .data-table td {
       padding: 12px 16px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-      color: var(--text-primary, #f1f5f9);
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-main);
       vertical-align: middle;
     }
 
     .table-tag {
       padding: 2px 6px;
       border-radius: 4px;
-      background: rgba(255, 255, 255, 0.05);
-      color: #cbd5e1;
+      background: var(--bg-hover);
+      color: var(--text-muted);
       font-size: 12px;
     }
 
     .pk-pill {
       font-size: 12px;
-      color: #94a3b8;
+      color: var(--text-light);
     }
 
     .event-badge {
@@ -730,9 +730,9 @@ export interface AuditStats {
       text-transform: uppercase;
     }
 
-    .event-badge.insert { background: rgba(52, 211, 153, 0.15); color: #34d399; }
-    .event-badge.update { background: rgba(96, 165, 250, 0.15); color: #60a5fa; }
-    .event-badge.delete { background: rgba(248, 113, 113, 0.15); color: #f87171; }
+    .event-badge.insert { background: var(--success-bg); color: var(--success); }
+    .event-badge.update { background: var(--info-bg); color: var(--info); }
+    .event-badge.delete { background: var(--danger-bg); color: var(--danger); }
 
     .sec-event-badge {
       display: inline-flex;
@@ -748,10 +748,10 @@ export interface AuditStats {
       font-size: 14px;
     }
 
-    .sec-event-badge.success { background: rgba(52, 211, 153, 0.15); color: #34d399; }
-    .sec-event-badge.warning { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
-    .sec-event-badge.danger { background: rgba(248, 113, 113, 0.15); color: #f87171; }
-    .sec-event-badge.info { background: rgba(99, 102, 241, 0.15); color: #818cf8; }
+    .sec-event-badge.success { background: var(--success-bg); color: var(--success); }
+    .sec-event-badge.warning { background: var(--warning-bg); color: var(--warning); }
+    .sec-event-badge.danger { background: var(--danger-bg); color: var(--danger); }
+    .sec-event-badge.info { background: var(--info-bg); color: var(--info); }
 
     .user-cell {
       display: flex;
@@ -760,7 +760,7 @@ export interface AuditStats {
 
     .user-name {
       font-weight: 500;
-      color: var(--text-primary, #f1f5f9);
+      color: var(--text-main);
     }
 
     .channel-pill {
@@ -768,7 +768,7 @@ export interface AuditStats {
       align-items: center;
       gap: 4px;
       font-size: 11px;
-      color: #94a3b8;
+      color: var(--text-light);
     }
 
     .channel-pill .material-symbols-outlined {
@@ -776,15 +776,15 @@ export interface AuditStats {
     }
 
     .channel-pill.api-pill {
-      color: #38bdf8;
+      color: var(--info);
     }
 
     .ip-pill {
       font-size: 12px;
       padding: 2px 6px;
       border-radius: 4px;
-      background: rgba(255, 255, 255, 0.04);
-      color: #cbd5e1;
+      background: var(--bg-hover);
+      color: var(--text-muted);
     }
 
     .ua-cell {
@@ -800,8 +800,8 @@ export interface AuditStats {
       height: 28px;
       border-radius: 4px;
       border: none;
-      background: rgba(255, 255, 255, 0.04);
-      color: #94a3b8;
+      background: var(--bg-hover);
+      color: var(--text-light);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -809,8 +809,8 @@ export interface AuditStats {
     }
 
     .diff-btn:hover {
-      background: rgba(99, 102, 241, 0.15);
-      color: #818cf8;
+      background: var(--primary-subtle);
+      color: var(--primary-text);
     }
 
     .diff-btn .material-symbols-outlined {
@@ -831,19 +831,19 @@ export interface AuditStats {
 
     .empty-icon {
       font-size: 48px;
-      color: #475569;
+      color: var(--text-light);
     }
 
     .empty-state-box h3 {
       font-size: 16px;
       font-weight: 600;
-      color: var(--text-primary, #f1f5f9);
+      color: var(--text-main);
       margin: 0;
     }
 
     .empty-state-box p {
       font-size: 13px;
-      color: #64748b;
+      color: var(--text-light);
       margin: 0;
     }
 
@@ -852,7 +852,7 @@ export interface AuditStats {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: 10px 16px;
-      background: rgba(255, 255, 255, 0.03);
+      background: var(--bg-hover);
       padding: 12px 16px;
       border-radius: 8px;
       margin-bottom: 16px;
@@ -870,23 +870,23 @@ export interface AuditStats {
 
     .meta-label {
       font-size: 12px;
-      color: #64748b;
+      color: var(--text-light);
     }
 
     .meta-val {
       font-size: 13px;
-      color: var(--text-primary, #f1f5f9);
+      color: var(--text-main);
     }
 
     .diff-section-title {
       font-size: 13px;
       font-weight: 600;
-      color: #94a3b8;
+      color: var(--text-muted);
       margin-bottom: 8px;
     }
 
     .diff-table-box {
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border-color);
       border-radius: 8px;
       overflow: hidden;
     }
@@ -899,32 +899,32 @@ export interface AuditStats {
 
     .diff-table th {
       padding: 8px 12px;
-      background: rgba(255, 255, 255, 0.03);
-      color: #94a3b8;
+      background: var(--bg-hover);
+      color: var(--text-muted);
       font-weight: 600;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      border-bottom: 1px solid var(--border-color);
       text-align: left;
     }
 
     .diff-table td {
       padding: 8px 12px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      border-bottom: 1px solid var(--border-subtle);
       vertical-align: top;
     }
 
     .field-name {
-      color: #818cf8;
+      color: var(--primary-text);
       font-weight: 500;
     }
 
     .diff-cell.old-cell {
-      background: rgba(239, 68, 68, 0.05);
-      color: #f87171;
+      background: var(--danger-bg);
+      color: var(--danger);
     }
 
     .diff-cell.new-cell {
-      background: rgba(52, 211, 153, 0.05);
-      color: #34d399;
+      background: var(--success-bg);
+      color: var(--success);
     }
 
     .diff-val {
@@ -937,17 +937,17 @@ export interface AuditStats {
     .no-diff-msg {
       padding: 24px;
       text-align: center;
-      color: #64748b;
+      color: var(--text-light);
       font-size: 13px;
     }
 
     .json-details-viewer {
-      background: rgba(0, 0, 0, 0.3);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: var(--bg-hover);
+      border: 1px solid var(--border-color);
       border-radius: 8px;
       padding: 12px;
       font-size: 12px;
-      color: #cbd5e1;
+      color: var(--text-main);
       overflow-x: auto;
       max-height: 250px;
     }

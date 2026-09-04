@@ -364,7 +364,7 @@ export interface StorageStats {
     .view-title {
       font-size: 24px;
       font-weight: 700;
-      color: var(--text-primary, #f1f5f9);
+      color: var(--text-main);
       margin: 0;
     }
 
@@ -373,8 +373,8 @@ export interface StorageStats {
       border-radius: 12px;
       font-size: 12px;
       font-weight: 600;
-      background: rgba(99, 102, 241, 0.15);
-      color: var(--color-primary, #818cf8);
+      background: var(--primary-subtle);
+      color: var(--primary-text);
     }
 
     /* Storage Metrics Cards */
@@ -391,8 +391,8 @@ export interface StorageStats {
     }
 
     .metric-card {
-      background: var(--bg-card, #1e293b);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
       border-radius: 12px;
       padding: 16px 20px;
       display: flex;
@@ -414,13 +414,13 @@ export interface StorageStats {
 
     .card-icon {
       font-size: 20px;
-      color: var(--color-primary, #818cf8);
+      color: var(--primary-text);
     }
 
     .card-title {
       font-size: 14px;
       font-weight: 600;
-      color: var(--text-primary, #f1f5f9);
+      color: var(--text-main);
     }
 
     .percent-badge {
@@ -428,16 +428,16 @@ export interface StorageStats {
       font-weight: 700;
       padding: 2px 8px;
       border-radius: 6px;
-      background: rgba(99, 102, 241, 0.15);
-      color: #818cf8;
+      background: var(--primary-subtle);
+      color: var(--primary-text);
     }
 
-    .percent-badge.warning { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
-    .percent-badge.danger { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+    .percent-badge.warning { background: var(--warning-bg); color: var(--warning); }
+    .percent-badge.danger { background: var(--danger-bg); color: var(--danger); }
 
     .user-badge {
-      background: rgba(14, 165, 233, 0.15);
-      color: #38bdf8;
+      background: var(--info-bg);
+      color: var(--info);
     }
 
     .metric-body {
@@ -455,44 +455,44 @@ export interface StorageStats {
     .used-val {
       font-size: 20px;
       font-weight: 700;
-      color: var(--text-primary, #f1f5f9);
+      color: var(--text-main);
     }
 
     .sep-val {
       font-size: 12px;
-      color: #64748b;
+      color: var(--text-light);
     }
 
     .quota-val {
       font-size: 14px;
       font-weight: 600;
-      color: #94a3b8;
+      color: var(--text-muted);
     }
 
     .progress-bar-track {
       height: 8px;
-      background: rgba(255, 255, 255, 0.08);
+      background: var(--bg-active);
       border-radius: 4px;
       overflow: hidden;
     }
 
     .progress-bar-fill {
       height: 100%;
-      background: linear-gradient(90deg, #6366f1, #818cf8);
+      background: linear-gradient(90deg, var(--primary), var(--primary-hover));
       border-radius: 4px;
       transition: width 0.3s ease;
     }
 
     .progress-bar-fill.user-fill {
-      background: linear-gradient(90deg, #0ea5e9, #38bdf8);
+      background: var(--info);
     }
 
     .progress-bar-fill.warning-fill {
-      background: linear-gradient(90deg, #f59e0b, #fbbf24);
+      background: var(--warning);
     }
 
     .progress-bar-fill.danger-fill {
-      background: linear-gradient(90deg, #ef4444, #f87171);
+      background: var(--danger);
     }
 
     .metric-footer {
@@ -500,7 +500,7 @@ export interface StorageStats {
       align-items: center;
       justify-content: space-between;
       font-size: 12px;
-      color: #94a3b8;
+      color: var(--text-light);
     }
 
     /* Filter Toolbar */
@@ -521,7 +521,7 @@ export interface StorageStats {
 
     .scope-tabs {
       display: flex;
-      background: rgba(255, 255, 255, 0.05);
+      background: var(--bg-hover);
       border-radius: 8px;
       padding: 3px;
       gap: 2px;
@@ -535,7 +535,7 @@ export interface StorageStats {
       border-radius: 6px;
       border: none;
       background: transparent;
-      color: #94a3b8;
+      color: var(--text-light);
       font-size: 13px;
       font-weight: 500;
       cursor: pointer;
@@ -547,16 +547,16 @@ export interface StorageStats {
     }
 
     .tab-btn.active {
-      background: var(--bg-card, #1e293b);
-      color: var(--text-primary, #f1f5f9);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      background: var(--bg-surface);
+      color: var(--text-main);
+      box-shadow: var(--shadow-sm);
     }
 
     .search-box {
       display: flex;
       align-items: center;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
       border-radius: 8px;
       padding: 0 10px;
       min-width: 260px;
@@ -564,14 +564,14 @@ export interface StorageStats {
 
     .search-icon {
       font-size: 18px;
-      color: #94a3b8;
+      color: var(--text-light);
     }
 
     .search-input {
       background: transparent;
       border: none;
       outline: none;
-      color: var(--text-primary, #f1f5f9);
+      color: var(--text-main);
       padding: 7px 8px;
       font-size: 13px;
       width: 100%;
@@ -580,7 +580,7 @@ export interface StorageStats {
     .clear-btn {
       border: none;
       background: transparent;
-      color: #94a3b8;
+      color: var(--text-light);
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -594,9 +594,9 @@ export interface StorageStats {
       width: 34px;
       height: 34px;
       border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(255, 255, 255, 0.04);
-      color: #94a3b8;
+      border: 1px solid var(--border-color);
+      background: var(--bg-surface);
+      color: var(--text-light);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -605,14 +605,14 @@ export interface StorageStats {
     }
 
     .icon-refresh-btn:hover {
-      background: rgba(255, 255, 255, 0.08);
-      color: var(--text-primary, #f1f5f9);
+      background: var(--bg-hover);
+      color: var(--text-main);
     }
 
     /* Table */
     .table-container {
-      background: var(--bg-card, #1e293b);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
       border-radius: 12px;
       overflow-x: auto;
     }
@@ -626,22 +626,22 @@ export interface StorageStats {
 
     .data-table th {
       padding: 12px 16px;
-      background: rgba(255, 255, 255, 0.02);
-      color: #94a3b8;
+      background: var(--bg-hover);
+      color: var(--text-muted);
       font-weight: 600;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      border-bottom: 1px solid var(--border-color);
       white-space: nowrap;
     }
 
     .data-table td {
       padding: 12px 16px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-      color: var(--text-primary, #f1f5f9);
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-main);
       vertical-align: middle;
     }
 
     .data-table tr:hover td {
-      background: rgba(255, 255, 255, 0.02);
+      background: var(--bg-hover);
     }
 
     .file-icon-wrapper {
@@ -653,12 +653,12 @@ export interface StorageStats {
       justify-content: center;
     }
 
-    .file-icon-wrapper.image { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
-    .file-icon-wrapper.pdf { background: rgba(248, 113, 113, 0.15); color: #f87171; }
-    .file-icon-wrapper.doc { background: rgba(96, 165, 250, 0.15); color: #60a5fa; }
-    .file-icon-wrapper.sheet { background: rgba(52, 211, 153, 0.15); color: #34d399; }
-    .file-icon-wrapper.archive { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
-    .file-icon-wrapper.other { background: rgba(148, 163, 184, 0.15); color: #94a3b8; }
+    .file-icon-wrapper.image { background: var(--info-bg); color: var(--info); }
+    .file-icon-wrapper.pdf { background: var(--danger-bg); color: var(--danger); }
+    .file-icon-wrapper.doc { background: var(--info-bg); color: var(--info); }
+    .file-icon-wrapper.sheet { background: var(--success-bg); color: var(--success); }
+    .file-icon-wrapper.archive { background: var(--warning-bg); color: var(--warning); }
+    .file-icon-wrapper.other { background: var(--bg-hover); color: var(--text-light); }
 
     .file-name-cell {
       width: 100%;
@@ -675,25 +675,25 @@ export interface StorageStats {
 
     .primary-name {
       font-weight: 500;
-      color: var(--text-primary, #f1f5f9);
+      color: var(--text-main);
     }
 
     .file-name-cell:hover .primary-name {
-      color: var(--color-primary, #818cf8);
+      color: var(--primary-text);
       text-decoration: underline;
     }
 
     .size-pill {
       font-size: 12px;
-      color: #94a3b8;
+      color: var(--text-light);
     }
 
     .mime-badge {
       font-size: 11px;
       padding: 2px 6px;
       border-radius: 4px;
-      background: rgba(255, 255, 255, 0.05);
-      color: #94a3b8;
+      background: var(--bg-hover);
+      color: var(--text-muted);
     }
 
     .creator-cell {
@@ -703,12 +703,12 @@ export interface StorageStats {
 
     .creator-name {
       font-size: 13px;
-      color: var(--text-primary, #f1f5f9);
+      color: var(--text-main);
     }
 
     .date-cell {
       font-size: 12px;
-      color: #94a3b8;
+      color: var(--text-light);
     }
 
     .row-actions {
@@ -724,7 +724,7 @@ export interface StorageStats {
       border-radius: 4px;
       border: none;
       background: transparent;
-      color: #94a3b8;
+      color: var(--text-light);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -737,13 +737,13 @@ export interface StorageStats {
     }
 
     .action-btn.download-btn:hover {
-      background: rgba(99, 102, 241, 0.15);
-      color: #818cf8;
+      background: var(--primary-subtle);
+      color: var(--primary-text);
     }
 
     .action-btn.delete-btn:hover {
-      background: rgba(239, 68, 68, 0.15);
-      color: #ef4444;
+      background: var(--danger-bg);
+      color: var(--danger);
     }
 
     .empty-state-cell {
@@ -760,19 +760,19 @@ export interface StorageStats {
 
     .empty-icon {
       font-size: 48px;
-      color: #475569;
+      color: var(--text-light);
     }
 
     .empty-state-box h3 {
       font-size: 16px;
       font-weight: 600;
-      color: var(--text-primary, #f1f5f9);
+      color: var(--text-main);
       margin: 0;
     }
 
     .empty-state-box p {
       font-size: 13px;
-      color: #64748b;
+      color: var(--text-light);
       margin: 0;
     }
 
