@@ -102,10 +102,11 @@ repositories/adapters — I/O. Детали приведены в
 
 ## 6. Последняя подтверждённая проверка
 
-Опубликованный `main`/`origin/main` перед текущим локальным patch указывает на
-`5eba93f58e7613a8dce040a83c55fdb9d76b98e4`. Для него remote CI run
-`33909868657` завершился ошибкой только в browser E2E; backend, frontend,
-release-config и security jobs зелёные.
+Опубликованный `main`/`origin/main` указывает на immutable commit
+`6606a7a723a3bbbb67d26135aad2ef150990bdbb`. Remote CI
+[run `33915401176`](https://github.com/qahhor/dwh/actions/runs/33915401176)
+завершён `success`: backend, frontend, release-config, security и clean-deploy
+browser E2E jobs зелёные.
 
 `57efcd77` закрывает локальную реализацию `P0-14`:
 
@@ -127,7 +128,7 @@ release-config и security jobs зелёные.
 были зелёными. Артефакт run `33909868657` выявил второй дефект: все
 неаутентифицированные запросы делили строгий IP bucket, поэтому параллельные
 browser contexts за одним CI/corporate NAT получали `429` при загрузке публичных
-i18n-словарей и показывали raw translation keys на форме входа. Текущий patch
+i18n-словарей и показывали raw translation keys на форме входа. Commit `6606a7a`
 выделяет `GET /api/v1/i18n/languages` и locale dictionaries в независимый
 настраиваемый `public-read` bucket; новый regression test сначала красный
 (`404` ожидался, получен `429`), после исправления зелёный 5/5. Полный Maven
@@ -135,7 +136,7 @@ suite с PostgreSQL/MinIO Testcontainers: 264 теста, 0 failures/errors/skip
 Angular: 31 файлов / 107 тестов, typecheck/build/i18n audit green; пересобранный
 Docker runtime: Playwright 24/24 green.
 
-Текущий patch также реализует локальную часть `P0-15`: fail-closed managed
+Commit `6606a7a` также реализует локально проверяемую часть `P0-15`: fail-closed managed
 preflight/host contracts, digest-only deployment evidence, 100-user/20-upload/
 4h k6 profiles, runtime storage/scanner latency metrics, failure drills,
 encrypted object backup, combined isolated restore и published-release
@@ -152,7 +153,8 @@ Production readiness остаётся условной, пока не закры
 - изолированный DB-plus-objects restore drill с проверкой checksums и RPO/RTO;
 - installation-specific domain, Cloudflare/origin policy либо альтернативный
   self-hosted edge, provider region и rollback/go-no-go owner;
-- CI/release evidence, связанное с immutable remote commit и image digests.
+- опубликованный stable release со связанными SBOM/provenance/signatures и
+  пятью image digests.
 
 Для выполнения target-only managed gate отсутствуют: Hetzner staging host,
 production/staging hostname, Cloudflare zone/token, отдельные application и
