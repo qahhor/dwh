@@ -80,7 +80,8 @@
           "builder": "@angular/build:unit-test",
           "options": {
             "runner": "vitest",
-            "watch": false
+            "watch": false,
+            "setupFiles": ["src/testing/setup.ts"]
           }
         }
       }

@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
@@ -9,6 +9,7 @@ import { UiFileUploadComponent } from '../../shared/ui/ui-file-upload.component'
 import { UiModalComponent } from '../../shared/ui/ui-modal.component';
 import { UiPaginationComponent } from '../../shared/ui/ui-pagination.component';
 import { TaskFile } from '../../core/models/task.models';
+import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
 
 export interface FileDetail {
   id: string;
@@ -39,6 +40,7 @@ export interface StorageStats {
   selector: 'app-files',
   standalone: true,
   imports: [
+    TranslatePipe,
     CommonModule,
     FormsModule,
     UiButtonComponent,
@@ -51,12 +53,12 @@ export interface StorageStats {
       <!-- Page Header -->
       <div class="view-header">
         <div class="header-left">
-          <h1 class="view-title">Файловое хранилище</h1>
+          <h1 class="view-title">{{ 'files.faylovoe_hranilische' | t }}</h1>
           <span class="count-badge">{{ files().length }}</span>
         </div>
         <div class="header-right">
           <ui-button variant="primary" icon="cloud_upload" (onClick)="isUploadModalOpen.set(true)">
-            Загрузить файл
+            {{ 'files.zagruzit_fayl' | t }}
           </ui-button>
         </div>
       </div>
@@ -68,7 +70,7 @@ export interface StorageStats {
           <div class="metric-header">
             <div class="metric-title-group">
               <span class="material-symbols-outlined card-icon" aria-hidden="true">corporate_fare</span>
-              <span class="card-title">Дисковое пространство компании</span>
+              <span class="card-title">{{ 'files.diskovoe_prostranstvo_kompanii' | t }}</span>
             </div>
             <span class="percent-badge" [class.danger]="getCompanyPercent(s) >= 90" [class.warning]="getCompanyPercent(s) >= 75 && getCompanyPercent(s) < 90">
               {{ getCompanyPercent(s) }}%
@@ -78,14 +80,14 @@ export interface StorageStats {
           <div class="metric-body">
             <div class="metric-values">
               <span class="used-val">{{ formatBytes(s.companyUsedBytes) }}</span>
-              <span class="sep-val">из</span>
+              <span class="sep-val">{{ 'files.iz' | t }}</span>
               <span class="quota-val">{{ formatBytes(s.companyQuotaBytes) }}</span>
             </div>
 
             <div
               class="progress-bar-track"
               role="progressbar"
-              aria-label="Использование хранилища компании"
+              [attr.aria-label]="'files.ispolzovanie_hranilischa_kompanii' | t"
               aria-valuemin="0"
               aria-valuemax="100"
               [attr.aria-valuenow]="getCompanyPercent(s)"
@@ -99,8 +101,8 @@ export interface StorageStats {
             </div>
 
             <div class="metric-footer">
-              <span>Свободно: {{ formatBytes(s.companyAvailableBytes) }}</span>
-              <span>Всего файлов: {{ s.totalFilesCount }}</span>
+              <span>{{ 'files.available_space' | t:{size: formatBytes(s.companyAvailableBytes)} }}</span>
+              <span>{{ 'files.total_files_count' | t:{count: s.totalFilesCount} }}</span>
             </div>
           </div>
         </div>
@@ -110,7 +112,7 @@ export interface StorageStats {
           <div class="metric-header">
             <div class="metric-title-group">
               <span class="material-symbols-outlined card-icon" aria-hidden="true">person</span>
-              <span class="card-title">Моя персональная квота</span>
+              <span class="card-title">{{ 'files.moya_personalnaya_kvota' | t }}</span>
             </div>
             <span class="percent-badge user-badge" [class.danger]="getUserPercent(s) >= 90" [class.warning]="getUserPercent(s) >= 75 && getUserPercent(s) < 90">
               {{ getUserPercent(s) }}%
@@ -120,14 +122,14 @@ export interface StorageStats {
           <div class="metric-body">
             <div class="metric-values">
               <span class="used-val">{{ formatBytes(s.userUsedBytes) }}</span>
-              <span class="sep-val">из</span>
+              <span class="sep-val">{{ 'files.iz' | t }}</span>
               <span class="quota-val">{{ formatBytes(s.userQuotaBytes) }}</span>
             </div>
 
             <div
               class="progress-bar-track"
               role="progressbar"
-              aria-label="Использование персональной квоты"
+              [attr.aria-label]="'files.ispolzovanie_personalnoy_kvoty' | t"
               aria-valuemin="0"
               aria-valuemax="100"
               [attr.aria-valuenow]="getUserPercent(s)"
@@ -141,8 +143,8 @@ export interface StorageStats {
             </div>
 
             <div class="metric-footer">
-              <span>Свободно: {{ formatBytes(s.userAvailableBytes) }}</span>
-              <span>Моих файлов: {{ s.userFilesCount }}</span>
+              <span>{{ 'files.available_space' | t:{size: formatBytes(s.userAvailableBytes)} }}</span>
+              <span>{{ 'files.my_files_count' | t:{count: s.userFilesCount} }}</span>
             </div>
           </div>
         </div>
@@ -152,7 +154,7 @@ export interface StorageStats {
       <div class="filter-toolbar">
         <div class="toolbar-left">
           <!-- Scope Tabs -->
-          <div class="scope-tabs" role="group" aria-label="Область файлов">
+          <div class="scope-tabs" role="group" [attr.aria-label]="'files.oblast_faylov' | t">
             <button
               type="button"
               class="tab-btn"
@@ -161,7 +163,7 @@ export interface StorageStats {
               (click)="setScope('all')"
             >
               <span class="material-symbols-outlined" aria-hidden="true">folder_shared</span>
-              Все файлы компании
+              {{ 'files.vse_fayly_kompanii' | t }}
             </button>
             <button
               type="button"
@@ -171,48 +173,48 @@ export interface StorageStats {
               (click)="setScope('mine')"
             >
               <span class="material-symbols-outlined" aria-hidden="true">person</span>
-              Мои файлы
+              {{ 'files.moi_fayly' | t }}
             </button>
           </div>
 
           <!-- Search Input -->
           <div class="search-box">
             <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
-            <label class="sr-only" for="file-search">Поиск файлов</label>
+            <label class="sr-only" for="file-search">{{ 'files.poisk_faylov' | t }}</label>
             <input
               id="file-search"
               name="fileSearch"
               type="text"
               class="search-input"
-              placeholder="Поиск файлов по имени..."
+              [placeholder]="'files.poisk_faylov_po_imeni' | t"
               [(ngModel)]="searchQuery"
               (keyup.enter)="loadFiles()"
             />
-            <button type="button" class="clear-btn" aria-label="Очистить поиск файлов" *ngIf="searchQuery" (click)="searchQuery = ''; loadFiles()">
+            <button type="button" class="clear-btn" [attr.aria-label]="'files.ochistit_poisk_faylov' | t" *ngIf="searchQuery" (click)="searchQuery = ''; loadFiles()">
               <span class="material-symbols-outlined" aria-hidden="true">close</span>
             </button>
           </div>
         </div>
 
         <div class="toolbar-right">
-          <button type="button" class="icon-refresh-btn" aria-label="Обновить список файлов" (click)="refreshAll()" title="Обновить список">
+          <button type="button" class="icon-refresh-btn" [attr.aria-label]="'files.obnovit_spisok_faylov' | t" (click)="refreshAll()" [title]="'announcements.obnovit_spisok' | t">
             <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
           </button>
         </div>
       </div>
 
       <!-- Files Table -->
-      <div class="table-container" role="region" aria-label="Таблица файлов" tabindex="0" [attr.aria-busy]="isLoading()">
-        <table class="data-table" aria-label="Список файлов">
+      <div class="table-container" role="region" [attr.aria-label]="'files.tablica_faylov' | t" tabindex="0" [attr.aria-busy]="isLoading()">
+        <table class="data-table" [attr.aria-label]="'files.spisok_faylov' | t">
           <thead>
             <tr>
               <th style="width: 48px;"></th>
-              <th>Имя файла</th>
-              <th>Размер</th>
-              <th>Тип MIME</th>
-              <th>Загрузил</th>
-              <th>Дата загрузки</th>
-              <th style="width: 100px; text-align: right;">Действия</th>
+              <th>{{ 'files.imya_fayla' | t }}</th>
+              <th>{{ 'files.razmer' | t }}</th>
+              <th>{{ 'files.tip_mime' | t }}</th>
+              <th>{{ 'files.zagruzil' | t }}</th>
+              <th>{{ 'files.data_zagruzki' | t }}</th>
+              <th style="width: 100px; text-align: right;">{{ 'common.actions' | t }}</th>
             </tr>
           </thead>
           <tbody>
@@ -226,7 +228,7 @@ export interface StorageStats {
 
               <!-- File Name -->
               <td>
-                <button type="button" class="file-name-cell" (click)="downloadFile(file)" [attr.aria-label]="'Скачать файл ' + file.originalName" title="Скачать файл">
+                <button type="button" class="file-name-cell" (click)="downloadFile(file)" [attr.aria-label]="'files.download_named' | t:{name: file.originalName}" [title]="'files.skachat_fayl' | t">
                   <span class="primary-name">{{ file.originalName }}</span>
                   <span class="sha-sub text-muted text-xs font-mono">{{ file.sha256.substring(0, 12) }}...</span>
                 </button>
@@ -259,16 +261,16 @@ export interface StorageStats {
               <!-- Actions -->
               <td style="text-align: right;">
                 <div class="row-actions">
-                  <button type="button" class="action-btn download-btn" [attr.aria-label]="'Скачать файл ' + file.originalName" (click)="downloadFile(file)" title="Скачать">
+                  <button type="button" class="action-btn download-btn" [attr.aria-label]="'files.download_named' | t:{name: file.originalName}" (click)="downloadFile(file)" [title]="'files.skachat' | t">
                     <span class="material-symbols-outlined" aria-hidden="true">download</span>
                   </button>
                   <button
                     *ngIf="canDeleteFile(file)"
                     type="button"
                     class="action-btn delete-btn"
-                    [attr.aria-label]="'Удалить файл ' + file.originalName"
+                    [attr.aria-label]="'files.delete_named' | t:{name: file.originalName}"
                     (click)="confirmDeleteFile(file)"
-                    title="Удалить"
+                    [title]="'common.delete' | t"
                   >
                     <span class="material-symbols-outlined" aria-hidden="true">delete</span>
                   </button>
@@ -281,8 +283,8 @@ export interface StorageStats {
               <td colspan="7" class="empty-state-cell">
                 <div class="empty-state-box">
                   <span class="material-symbols-outlined empty-icon" aria-hidden="true">folder_open</span>
-                  <h3>Файлы не найдены</h3>
-                  <p>Загрузите первый файл с помощью кнопки «Загрузить файл»</p>
+                  <h3>{{ 'files.fayly_ne_naydeny' | t }}</h3>
+                  <p>{{ 'files.zagruzite_pervyy_fayl_s_pomoschyu_knopki_zagruzi' | t }}</p>
                 </div>
               </td>
             </tr>
@@ -303,7 +305,7 @@ export interface StorageStats {
       <!-- Upload Modal -->
       <ui-modal
         [isOpen]="isUploadModalOpen()"
-        title="Загрузка файлов в хранилище"
+        [title]="'files.zagruzka_faylov_v_hranilische' | t"
         size="md"
         (close)="isUploadModalOpen.set(false)"
       >
@@ -317,24 +319,24 @@ export interface StorageStats {
           ></ui-file-upload>
         </div>
         <div footer class="modal-footer-actions">
-          <ui-button variant="secondary" (onClick)="closeUploadModal()">Закрыть</ui-button>
+          <ui-button variant="secondary" (onClick)="closeUploadModal()">{{ 'audit.zakryt' | t }}</ui-button>
         </div>
       </ui-modal>
 
       <!-- Confirm Delete Modal -->
       <ui-modal
         [isOpen]="fileToDelete !== null"
-        title="Подтверждение удаления"
+        [title]="'files.podtverzhdenie_udaleniya' | t"
         size="sm"
         (close)="fileToDelete = null"
       >
         <div body *ngIf="fileToDelete">
-          <p>Вы действительно хотите удалить файл <strong>{{ fileToDelete.originalName }}</strong>?</p>
-          <p class="text-muted text-xs">Занятый объем ({{ formatBytes(fileToDelete.sizeBytes) }}) будет освобожден в вашей квоте.</p>
+          <p>{{ 'files.vy_deystvitelno_hotite_udalit_fayl' | t }} <strong>{{ fileToDelete.originalName }}</strong>?</p>
+          <p class="text-muted text-xs">{{ 'files.quota_will_be_released' | t:{size: formatBytes(fileToDelete.sizeBytes)} }}</p>
         </div>
         <div footer class="modal-footer-actions">
-          <ui-button variant="secondary" (onClick)="fileToDelete = null">Отмена</ui-button>
-          <ui-button variant="danger" (onClick)="executeDeleteFile()">Удалить</ui-button>
+          <ui-button variant="secondary" (onClick)="fileToDelete = null">{{ 'common.cancel' | t }}</ui-button>
+          <ui-button variant="danger" (onClick)="executeDeleteFile()">{{ 'common.delete' | t }}</ui-button>
         </div>
       </ui-modal>
     </div>
@@ -785,6 +787,7 @@ export interface StorageStats {
   `]
 })
 export class FilesComponent implements OnInit {
+  private readonly uiI18n = inject(I18nService);
   readonly files = signal<FileDetail[]>([]);
   readonly stats = signal<StorageStats | null>(null);
   readonly isLoading = signal<boolean>(false);
@@ -877,12 +880,12 @@ export class FilesComponent implements OnInit {
     const f = this.fileToDelete;
     this.api.delete(`/files/${f.id}`).subscribe({
       next: () => {
-        this.toast.success(`Файл «${f.originalName}» удален`);
+        this.toast.success(this.uiI18n.translate('files.deleted_named', { name: f.originalName }));
         this.fileToDelete = null;
         this.refreshAll();
       },
       error: err => {
-        this.toast.error(err.error?.message || 'Не удалось удалить файл');
+        this.toast.error(err.error?.message || this.uiI18n.translate('files.ne_udalos_udalit_fayl'));
       }
     });
   }

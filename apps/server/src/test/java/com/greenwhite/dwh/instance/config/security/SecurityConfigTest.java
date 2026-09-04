@@ -44,7 +44,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @WebMvcTest(controllers = {SecurityTestController.class,
         com.greenwhite.dwh.instance.kauth.controller.KauthPasswordController.class,
-        com.greenwhite.dwh.instance.kauth.controller.OAuth2AuthController.class})
+        com.greenwhite.dwh.instance.kauth.controller.OAuth2AuthController.class,
+        com.greenwhite.dwh.instance.md.controller.MdI18nController.class,
+        com.greenwhite.dwh.instance.md.controller.MdI18nAdminController.class})
 @Import({SecurityConfig.class, ProblemDetailAuthHandlers.class,
         KauthAuthenticationFilter.class, RateLimitFilter.class, RateLimitService.class,
         com.greenwhite.dwh.instance.config.idempotency.IdempotencyFilter.class,
@@ -71,6 +73,8 @@ class SecurityConfigTest {
     com.greenwhite.dwh.instance.config.idempotency.IdempotencyService idempotencyService;
     @MockitoBean
     com.greenwhite.dwh.instance.kauth.service.OAuth2AuthService oauth2AuthService;
+    @MockitoBean
+    com.greenwhite.dwh.instance.md.service.MdI18nService i18nService;
     @Test
     @DisplayName("FR-SEC-1: мутирующий запрос с cookie-сессией без CSRF-токена -> 403 csrf_token_invalid")
     void mutatingWithSessionCookieWithoutCsrf_returns403() throws Exception {
@@ -153,6 +157,33 @@ class SecurityConfigTest {
         int status = mvc.perform(post("/api/v1/auth/login"))
                 .andReturn().getResponse().getStatus();
         org.assertj.core.api.Assertions.assertThat(status).isNotIn(401, 403);
+    }
+
+    @Test
+    @DisplayName("Список языков и словарь доступны странице входа без сессии")
+    void localizationReadsArePublic() throws Exception {
+        when(i18nService.listLanguages(true)).thenReturn(java.util.List.of(
+                new com.greenwhite.dwh.instance.md.i18n.I18nModels.LanguageSummary(
+                        "ru", "Русский", true, true, 1, 70, 70, 100)));
+        when(i18nService.effectiveDictionary("ru")).thenReturn(Map.of("auth.login", "Вход в систему"));
+
+        mvc.perform(get("/api/v1/i18n/languages"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].code").value("ru"));
+        mvc.perform(get("/api/v1/i18n/ru"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$['auth.login']").value("Вход в систему"));
+    }
+
+    @Test
+    @DisplayName("Административный API локализации не становится публичным")
+    void localizationAdminApiRequiresAuthentication() throws Exception {
+        mvc.perform(get("/api/v1/i18n/admin"))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(post("/api/v1/i18n/admin/languages")
+                        .contentType("application/json")
+                        .content("{\"code\":\"fr\",\"name\":\"Français\"}"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

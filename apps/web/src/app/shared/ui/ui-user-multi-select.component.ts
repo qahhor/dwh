@@ -2,11 +2,13 @@ import { Component, Input, Output, EventEmitter, signal, ElementRef, HostListene
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { User } from '../../core/models/auth.models';
+import { TranslatePipe } from '../../core/services/i18n.service';
 
 @Component({
   selector: 'ui-user-multi-select',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [
+    TranslatePipe,CommonModule, FormsModule],
   template: `
     <div class="user-multi-select-container">
       <!-- Selected Users Tag List -->
@@ -14,7 +16,7 @@ import { User } from '../../core/models/auth.models';
         <div *ngFor="let u of getSelectedUsers()" class="user-tag">
           <span class="user-avatar-mini">{{ getInitials(u.name) }}</span>
           <span class="user-name">{{ u.name }}</span>
-          <button type="button" class="tag-remove-btn" (click)="removeUser(u.id)" [attr.aria-label]="'Удалить ' + u.name" title="Удалить">
+          <button type="button" class="tag-remove-btn" (click)="removeUser(u.id)" [attr.aria-label]="'ui.user_multi_select.remove_user' | t:{name: u.name}" [title]="'common.delete' | t">
             <span class="material-symbols-outlined" aria-hidden="true">close</span>
           </button>
         </div>
@@ -23,14 +25,14 @@ import { User } from '../../core/models/auth.models';
           #trigger
           type="button"
           class="add-user-btn"
-          [attr.aria-label]="ariaLabel"
+          [attr.aria-label]="ariaLabel || ('ui.user_multi_select.vybrat_polzovateley' | t)"
           aria-haspopup="listbox"
           [attr.aria-expanded]="isOpen()"
           [attr.aria-controls]="listboxId"
           (click)="toggleDropdown($event)"
         >
           <span class="material-symbols-outlined ico" aria-hidden="true">person_add</span>
-          <span>{{ selectedUserIds.length === 0 ? placeholder : '+ Добавить' }}</span>
+          <span>{{ selectedUserIds.length === 0 ? (placeholder || ('ui.user_multi_select.dobavit_nablyudateley' | t)) : ('ui.user_multi_select.add_more' | t) }}</span>
         </button>
       </div>
 
@@ -42,17 +44,17 @@ import { User } from '../../core/models/auth.models';
             #searchInput
             type="text"
             class="search-input"
-            [placeholder]="searchPlaceholder"
-            aria-label="Поиск сотрудников"
+            [placeholder]="searchPlaceholder || ('tasks.poisk_sotrudnika' | t)"
+            [attr.aria-label]="'ui.user_multi_select.poisk_sotrudnikov' | t"
             [(ngModel)]="searchQuery"
             (click)="$event.stopPropagation()"
           />
-          <button *ngIf="searchQuery" type="button" class="clear-btn" aria-label="Очистить поиск" (click)="searchQuery = ''">
+          <button *ngIf="searchQuery" type="button" class="clear-btn" [attr.aria-label]="'ui.searchable_select.ochistit_poisk' | t" (click)="searchQuery = ''">
             <span class="material-symbols-outlined" aria-hidden="true">close</span>
           </button>
         </div>
 
-        <div class="users-options-list" [id]="listboxId" role="listbox" aria-label="Пользователи" aria-multiselectable="true">
+        <div class="users-options-list" [id]="listboxId" role="listbox" [attr.aria-label]="'nav.users' | t" aria-multiselectable="true">
           <button
             *ngFor="let u of filteredUsers()"
             type="button"
@@ -74,7 +76,7 @@ import { User } from '../../core/models/auth.models';
           </button>
 
           <div *ngIf="filteredUsers().length === 0" class="no-options">
-            Сотрудники не найдены
+            {{ 'ui.user_multi_select.sotrudniki_ne_naydeny' | t }}
           </div>
         </div>
       </div>
@@ -240,9 +242,9 @@ export class UiUserMultiSelectComponent {
 
   @Input() users: User[] = [];
   @Input() selectedUserIds: number[] = [];
-  @Input() placeholder = 'Добавить наблюдателей...';
-  @Input() searchPlaceholder = 'Поиск сотрудника...';
-  @Input() ariaLabel = 'Выбрать пользователей';
+  @Input() placeholder = '';
+  @Input() searchPlaceholder = '';
+  @Input() ariaLabel = '';
   @Output() selectedUserIdsChange = new EventEmitter<number[]>();
 
   isOpen = signal<boolean>(false);

@@ -5,6 +5,7 @@ import { ApiService } from './api.service';
 import { PermissionService } from './permission.service';
 import { ToastService } from './toast.service';
 import { User, LoginResponse, MeResponse } from '../models/auth.models';
+import { I18nService } from './i18n.service';
 
 @Injectable({
   providedIn: 'root'
@@ -18,7 +19,8 @@ export class AuthService {
     private api: ApiService,
     private permissionService: PermissionService,
     private toast: ToastService,
-    private router: Router
+    private router: Router,
+    private i18n: I18nService
   ) {}
 
   checkSession(): Observable<MeResponse | null> {
@@ -26,6 +28,7 @@ export class AuthService {
     return this.api.get<MeResponse>('/auth/me').pipe(
       tap(res => {
         this.currentUser.set(res.user);
+        this.i18n.useAuthenticatedPreference(res.user.language);
         this.permissionService.setPermissions(res.permissions, res.permissionsVersion);
         this.isLoading.set(false);
       }),
@@ -43,6 +46,7 @@ export class AuthService {
       tap(res => {
         if (res.step === 'success' && res.user) {
           this.currentUser.set(res.user);
+          this.i18n.useAuthenticatedPreference(res.user.language);
           if (!res.user.forcePasswordChange) {
             this.refreshMe().subscribe();
             this.toast.success(`Добро пожаловать, ${res.user.name}!`);
@@ -58,6 +62,7 @@ export class AuthService {
       tap(res => {
         if (res.step === 'success' && res.user) {
           this.currentUser.set(res.user);
+          this.i18n.useAuthenticatedPreference(res.user.language);
           if (!res.user.forcePasswordChange) {
             this.refreshMe().subscribe();
             this.toast.success(`Вход успешно подтвержден!`);
@@ -72,6 +77,7 @@ export class AuthService {
     return this.api.get<MeResponse>('/auth/me').pipe(
       tap(res => {
         this.currentUser.set(res.user);
+        this.i18n.useAuthenticatedPreference(res.user.language);
         this.permissionService.setPermissions(res.permissions, res.permissionsVersion);
       })
     );

@@ -10,6 +10,7 @@ import { NotificationService } from '../../core/services/notification.service';
 import { PermissionService } from '../../core/services/permission.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { AppShellComponent } from './app-shell.component';
+import { translateTest } from '../../../testing/i18n-test.stub';
 
 describe('AppShellComponent', () => {
   const authService = {
@@ -26,13 +27,16 @@ describe('AppShellComponent', () => {
   };
   const i18nService = {
     currentLang: signal('ru'),
+    isLoading: signal(false),
     languages: signal([
       { code: 'ru', name: 'Русский' },
       { code: 'uz', name: "O‘zbekcha" },
-      { code: 'en', name: 'English' }
+      { code: 'en', name: 'English' },
+      { code: 'de', name: 'Deutsch' },
+      { code: 'tr', name: 'Türkçe' }
     ]),
-    setLanguage: vi.fn(),
-    translate: (key: string) => key
+    setLanguage: vi.fn(() => of(undefined)),
+    translate: translateTest
   };
   const notificationService = {
     unreadCount: signal(3),
@@ -99,9 +103,10 @@ describe('AppShellComponent', () => {
     const fixture = TestBed.createComponent(AppShellComponent);
     fixture.detectChanges();
 
-    const languageButtons = Array.from(fixture.nativeElement.querySelectorAll('.lang-btn')) as HTMLButtonElement[];
-    expect(languageButtons.every(button => button.type === 'button')).toBe(true);
-    expect(fixture.nativeElement.querySelector('.lang-btn[aria-pressed="true"]')?.textContent).toContain('RU');
+    const selector = fixture.nativeElement.querySelector('#app-language-selector') as HTMLSelectElement;
+    expect(selector.getAttribute('aria-label')).toBe('Язык интерфейса');
+    expect(Array.from(selector.options).map(option => option.value))
+      .toEqual(['ru', 'uz', 'en', 'de', 'tr']);
     expect(fixture.nativeElement.querySelector('.notif-btn .sr-only')?.textContent).toContain('3');
   });
 });

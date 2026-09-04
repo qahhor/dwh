@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, OnDestroy, ViewChild, effect, signal } from '@angular/core';
+import { Component, ElementRef, HostListener, OnDestroy, ViewChild, effect, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { A11yModule } from '@angular/cdk/a11y';
@@ -6,11 +6,13 @@ import { Router } from '@angular/router';
 import { CommandPaletteService } from '../../core/services/command-palette.service';
 import { SearchHit } from '../../core/models/search.models';
 import { Subject, catchError, debounceTime, of, switchMap } from 'rxjs';
+import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
 
 @Component({
   selector: 'app-command-palette',
   standalone: true,
-  imports: [CommonModule, FormsModule, A11yModule],
+  imports: [
+    TranslatePipe,CommonModule, FormsModule, A11yModule],
   template: `
     <div *ngIf="paletteService.isOpen()" class="palette-backdrop" (click)="onBackdropClick($event)">
       <div
@@ -21,10 +23,10 @@ import { Subject, catchError, debounceTime, of, switchMap } from 'rxjs';
         cdkTrapFocus
         [cdkTrapFocusAutoCapture]="true"
       >
-        <h2 class="sr-only" [id]="titleId">Глобальный поиск</h2>
+        <h2 class="sr-only" [id]="titleId">{{ 'layout.command_palette.globalnyy_poisk' | t }}</h2>
         <div class="palette-search-box">
           <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
-          <label class="sr-only" [for]="inputId">Поиск задач, проектов и пользователей</label>
+          <label class="sr-only" [for]="inputId">{{ 'layout.command_palette.poisk_zadach_proektov_i_polzovateley' | t }}</label>
           <input
             #searchInput
             [id]="inputId"
@@ -35,7 +37,7 @@ import { Subject, catchError, debounceTime, of, switchMap } from 'rxjs';
             [attr.aria-expanded]="results().length > 0"
             [attr.aria-controls]="listboxId"
             [attr.aria-activedescendant]="results().length > 0 ? optionId(selectedIndex) : null"
-            placeholder="Поиск задач, проектов, пользователей... (Esc для закрытия)"
+            [placeholder]="'layout.command_palette.poisk_zadach_proektov_polzovateley_esc_dlya_zakr' | t"
             [(ngModel)]="searchQuery"
             (ngModelChange)="onSearchChange($event)"
             autofocus
@@ -45,23 +47,23 @@ import { Subject, catchError, debounceTime, of, switchMap } from 'rxjs';
 
         <div class="palette-results">
           <div *ngIf="isLoading()" class="palette-loading" role="status" aria-live="polite">
-            Поиск...
+            {{ 'layout.app_shell.poisk' | t }}
           </div>
 
           <div *ngIf="!isLoading() && errorMessage()" class="palette-error" role="alert">
             <span>{{ errorMessage() }}</span>
-            <button type="button" class="palette-retry" (click)="retrySearch()">Повторить</button>
+            <button type="button" class="palette-retry" (click)="retrySearch()">{{ 'announcements.povtorit' | t }}</button>
           </div>
 
           <div *ngIf="!isLoading() && !errorMessage() && results().length === 0 && searchQuery.length >= 2" class="palette-empty" role="status">
-            Ничего не найдено по запросу «{{ searchQuery }}»
+            {{ 'layout.command_palette.nothing_found_for' | t:{query: searchQuery} }}
           </div>
 
           <div *ngIf="!isLoading() && searchQuery.length < 2" class="palette-hint">
-            Введите минимум 2 символа для мгновенного поиска...
+            {{ 'layout.command_palette.vvedite_minimum_2_simvola_dlya_mgnovennogo_poisk' | t }}
           </div>
 
-          <div class="results-list" *ngIf="results().length > 0" role="listbox" [id]="listboxId" aria-label="Результаты поиска">
+          <div class="results-list" *ngIf="results().length > 0" role="listbox" [id]="listboxId" [attr.aria-label]="'layout.command_palette.rezultaty_poiska' | t">
             <button
               *ngFor="let hit of results(); let idx = index"
               type="button"
@@ -277,6 +279,7 @@ import { Subject, catchError, debounceTime, of, switchMap } from 'rxjs';
   `]
 })
 export class CommandPaletteComponent implements OnDestroy {
+  private readonly uiI18n = inject(I18nService);
   private static nextId = 0;
 
   searchQuery = '';
@@ -414,9 +417,9 @@ export class CommandPaletteComponent implements OnDestroy {
 
   getEntityBadge(type: string): string {
     switch (type) {
-      case 'TASK': return 'Задача';
-      case 'PROJECT': return 'Проект';
-      case 'USER': return 'Сотрудник';
+      case 'TASK': return this.uiI18n.translate('tasks.zadacha');
+      case 'PROJECT': return this.uiI18n.translate('projects.proekt');
+      case 'USER': return this.uiI18n.translate('analytics.sotrudnik');
       default: return type;
     }
   }
@@ -426,6 +429,6 @@ export class CommandPaletteComponent implements OnDestroy {
       const detail = (error as { detail?: unknown }).detail;
       if (typeof detail === 'string' && detail.trim()) return detail;
     }
-    return 'Не удалось выполнить поиск. Проверьте соединение и повторите попытку.';
+    return this.uiI18n.translate('layout.command_palette.ne_udalos_vypolnit_poisk_proverte_soedinenie_i_p');
   }
 }

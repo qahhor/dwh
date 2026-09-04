@@ -1,6 +1,7 @@
 import { Component, Input, Output, EventEmitter, ElementRef, HostListener, ViewChild, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { TranslatePipe } from '../../core/services/i18n.service';
 
 export interface SelectOption {
   id: any;
@@ -13,7 +14,8 @@ export interface SelectOption {
 @Component({
   selector: 'ui-searchable-select',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [
+    TranslatePipe,CommonModule, FormsModule],
   template: `
     <div class="searchable-select-container" [class.disabled]="disabled">
       <!-- Select Button / Trigger -->
@@ -25,7 +27,7 @@ export interface SelectOption {
           [class.is-open]="isOpen()"
           [class.has-value]="selectedOption() !== null"
           [disabled]="disabled"
-          [attr.aria-label]="ariaLabel"
+          [attr.aria-label]="ariaLabel || ('ui.searchable_select.vybor_znacheniya' | t)"
           [attr.aria-expanded]="isOpen()"
           aria-haspopup="listbox"
           [attr.aria-controls]="listboxId"
@@ -36,7 +38,7 @@ export interface SelectOption {
               {{ selectedOption()?.icon }}
             </span>
             <span class="trigger-label">
-              {{ selectedOption() ? selectedOption()?.label : placeholder }}
+              {{ selectedOption() ? selectedOption()?.label : (placeholder || ('ui.searchable_select.vyberite_iz_spiska' | t)) }}
             </span>
             <span *ngIf="selectedOption()?.subLabel" class="trigger-sublabel text-muted">
               {{ selectedOption()?.subLabel }}
@@ -51,8 +53,8 @@ export interface SelectOption {
           *ngIf="allowClear && selectedOption() !== null && !disabled"
           type="button"
           class="clear-btn"
-          aria-label="Очистить выбор"
-          title="Очистить выбор"
+          [attr.aria-label]="'ui.searchable_select.ochistit_vybor' | t"
+          [title]="'ui.searchable_select.ochistit_vybor' | t"
           (click)="clearSelection($event)"
         >
           <span class="material-symbols-outlined" aria-hidden="true">close</span>
@@ -68,18 +70,18 @@ export interface SelectOption {
             #searchInput
             type="text"
             class="search-input"
-            [placeholder]="searchPlaceholder"
-            aria-label="Поиск по вариантам"
+            [placeholder]="searchPlaceholder || ('layout.app_shell.poisk' | t)"
+            [attr.aria-label]="'ui.searchable_select.poisk_po_variantam' | t"
             [(ngModel)]="searchQuery"
             (click)="$event.stopPropagation()"
           />
-          <button *ngIf="searchQuery" type="button" class="mini-clear-btn" aria-label="Очистить поиск" (click)="searchQuery = ''">
+          <button *ngIf="searchQuery" type="button" class="mini-clear-btn" [attr.aria-label]="'ui.searchable_select.ochistit_poisk' | t" (click)="searchQuery = ''">
             <span class="material-symbols-outlined" aria-hidden="true">close</span>
           </button>
         </div>
 
         <!-- Options List -->
-        <div class="options-list" [id]="listboxId" role="listbox" [attr.aria-label]="ariaLabel">
+        <div class="options-list" [id]="listboxId" role="listbox" [attr.aria-label]="ariaLabel || ('ui.searchable_select.vybor_znacheniya' | t)">
           <!-- Clear / None Option -->
           <button
             *ngIf="allowClear"
@@ -90,7 +92,7 @@ export interface SelectOption {
             [attr.aria-selected]="selectedId === null || selectedId === undefined"
             (click)="selectOption(null)"
           >
-            <span class="option-label text-muted">{{ emptyLabel }}</span>
+            <span class="option-label text-muted">{{ emptyLabel || ('ui.searchable_select.ne_vybrano_snyat_vybor' | t) }}</span>
           </button>
 
           <!-- Filtered Options -->
@@ -118,7 +120,7 @@ export interface SelectOption {
 
           <!-- Empty Result Hint -->
           <div *ngIf="filteredOptions().length === 0" class="no-results-hint">
-            Ничего не найдено
+            {{ 'ui.searchable_select.nichego_ne_naydeno' | t }}
           </div>
         </div>
       </div>
@@ -332,12 +334,12 @@ export class UiSearchableSelectComponent {
 
   @Input() options: SelectOption[] = [];
   @Input() selectedId: any = null;
-  @Input() placeholder: string = 'Выберите из списка...';
-  @Input() searchPlaceholder: string = 'Поиск...';
-  @Input() emptyLabel: string = 'Не выбрано / Снять выбор';
+  @Input() placeholder = '';
+  @Input() searchPlaceholder = '';
+  @Input() emptyLabel = '';
   @Input() allowClear: boolean = true;
   @Input() disabled: boolean = false;
-  @Input() ariaLabel: string = 'Выбор значения';
+  @Input() ariaLabel = '';
 
   @Output() selectedIdChange = new EventEmitter<any>();
 

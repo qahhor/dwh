@@ -79,6 +79,8 @@ Web verification:
 ```bash
 cd apps/web
 npm ci
+npm run i18n:sync-ru
+npm run i18n:audit
 npm test
 npm run typecheck
 npm run build

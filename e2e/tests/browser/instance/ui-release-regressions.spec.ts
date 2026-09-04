@@ -39,7 +39,7 @@ test('administrator global search uses the server contract and leaves loading st
   await page.getByRole('combobox', { name: 'Поиск задач, проектов и пользователей' }).fill('admin');
 
   expect((await searchResponse).ok()).toBe(true);
-  await expect(page.getByText('Поиск...', { exact: true })).toBeHidden();
+  await expect(page.locator('.palette-loading')).toBeHidden();
   await expect(page.locator('.palette-error')).toHaveCount(0);
 });
 

@@ -243,6 +243,18 @@ public class MdUserRepository {
                 .update();
     }
 
+    public void updateLanguage(Long userId, String language, Long modifiedBy) {
+        jdbcClient.sql("""
+                update md_users
+                set language = :language, modified_at = now(), modified_by = :modifiedBy
+                where id = :userId
+                """)
+                .param("userId", userId)
+                .param("language", language)
+                .param("modifiedBy", modifiedBy)
+                .update();
+    }
+
     public void update(Long userId, UserUpdateData data, Long modifiedBy) {
         String attributesJson = data.attributes() != null ? toJson(data.attributes()) : null;
 

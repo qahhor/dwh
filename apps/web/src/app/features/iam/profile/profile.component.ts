@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
@@ -8,16 +8,18 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/models/auth.models';
+import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
 
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, FormsModule, UiButtonComponent, UiBadgeComponent, UiModalComponent],
+  imports: [
+    TranslatePipe,CommonModule, FormsModule, UiButtonComponent, UiBadgeComponent, UiModalComponent],
   template: `
     <div class="profile-container">
       <div class="view-header">
         <div class="header-left">
-          <h1 class="view-title">Мой профиль</h1>
+          <h1 class="view-title">{{ 'nav.profile' | t }}</h1>
           <span class="count-badge">Security & Settings</span>
         </div>
       </div>
@@ -31,15 +33,15 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
           <div class="user-title-row">
             <h3 class="user-fullname">{{ user.name }}</h3>
             <ui-badge [variant]="user.state === 'A' ? 'active' : 'passive'" [dot]="true">
-              {{ user.state === 'A' ? 'Активен' : 'Заблокирован' }}
+              {{ (user.state === 'A' ? 'common.active_masculine' : 'common.blocked_masculine') | t }}
             </ui-badge>
             <ui-badge *ngIf="user.is2faEnabled" variant="active">
-              <span class="material-symbols-outlined badge-icon" aria-hidden="true">verified_user</span> 2FA Включена
+              <span class="material-symbols-outlined badge-icon" aria-hidden="true">verified_user</span> {{ 'iam.2fa_vklyuchena' | t }}
             </ui-badge>
           </div>
           <div class="user-info-grid">
             <div class="info-item">
-              <span class="info-label">Логин:</span>
+              <span class="info-label">{{ 'iam.login' | t }}</span>
               <span class="info-value font-mono">&#64;{{ user.login }}</span>
             </div>
             <div class="info-item">
@@ -47,11 +49,11 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
               <span class="info-value font-mono">{{ user.email }}</span>
             </div>
             <div class="info-item" *ngIf="user.phone">
-              <span class="info-label">Телефон:</span>
+              <span class="info-label">{{ 'iam.telefon' | t }}</span>
               <span class="info-value font-mono">{{ user.phone }}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">Язык / Зона:</span>
+              <span class="info-label">{{ 'iam.yazyk_zona' | t }}</span>
               <span class="info-value">{{ user.language || 'ru' }} ({{ user.timezone || 'Asia/Tashkent' }})</span>
             </div>
           </div>
@@ -65,13 +67,13 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
           <div class="section-header">
             <div class="section-title-box">
               <span class="material-symbols-outlined section-icon" aria-hidden="true">lock_reset</span>
-              <h4 class="section-title">Смена пароля</h4>
+              <h4 class="section-title">{{ 'iam.smena_parolya' | t }}</h4>
             </div>
           </div>
 
           <form class="password-form" (submit)="submitChangePassword($event)">
             <div class="form-group">
-              <label class="form-label" for="profile-current-password">Текущий пароль <span class="req">*</span></label>
+              <label class="form-label" for="profile-current-password">{{ 'iam.tekuschiy_parol' | t }} <span class="req">*</span></label>
               <input
                 id="profile-current-password"
                 type="password"
@@ -81,14 +83,14 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
                 name="oldPassword"
                 [attr.aria-invalid]="isPasswordSubmitted && !passwordForm.oldPassword"
                 [attr.aria-describedby]="isPasswordSubmitted && !passwordForm.oldPassword ? 'profile-current-password-error' : null"
-                placeholder="Введите текущий пароль"
+                [placeholder]="'iam.vvedite_tekuschiy_parol' | t"
                 required
               />
-              <span id="profile-current-password-error" class="field-error" *ngIf="isPasswordSubmitted && !passwordForm.oldPassword">Введите текущий пароль</span>
+              <span id="profile-current-password-error" class="field-error" *ngIf="isPasswordSubmitted && !passwordForm.oldPassword">{{ 'iam.vvedite_tekuschiy_parol' | t }}</span>
             </div>
 
             <div class="form-group">
-              <label class="form-label" for="profile-new-password">Новый пароль <span class="req">*</span></label>
+              <label class="form-label" for="profile-new-password">{{ 'auth.novyy_parol' | t }} <span class="req">*</span></label>
               <div class="password-input-box">
                 <input
                   id="profile-new-password"
@@ -100,19 +102,19 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
                   name="newPassword"
                   [attr.aria-invalid]="isPasswordSubmitted && passwordForm.newPassword.length < 10"
                   [attr.aria-describedby]="isPasswordSubmitted && passwordForm.newPassword.length < 10 ? 'profile-new-password-hint profile-new-password-error' : 'profile-new-password-hint'"
-                  placeholder="Минимум 10 символов"
+                  [placeholder]="'iam.minimum_10_simvolov' | t"
                   required
                 />
-                <button type="button" class="pwd-toggle-btn" [attr.aria-label]="showNewPassword() ? 'Скрыть новый пароль' : 'Показать новый пароль'" [attr.aria-pressed]="showNewPassword()" (click)="showNewPassword.update(v => !v)">
+                <button type="button" class="pwd-toggle-btn" [attr.aria-label]="(showNewPassword() ? 'iam.hide_new_password' : 'iam.show_new_password') | t" [attr.aria-pressed]="showNewPassword()" (click)="showNewPassword.update(v => !v)">
                   <span class="material-symbols-outlined" aria-hidden="true">{{ showNewPassword() ? 'visibility_off' : 'visibility' }}</span>
                 </button>
               </div>
-              <span id="profile-new-password-hint" class="field-hint">Минимум 10 символов, не из черного списка и не совпадает с логином</span>
-              <span id="profile-new-password-error" class="field-error" *ngIf="isPasswordSubmitted && passwordForm.newPassword.length < 10">Пароль должен содержать не менее 10 символов</span>
+              <span id="profile-new-password-hint" class="field-hint">{{ 'iam.minimum_10_simvolov_ne_iz_chernogo_spiska_i_ne_s' | t }}</span>
+              <span id="profile-new-password-error" class="field-error" *ngIf="isPasswordSubmitted && passwordForm.newPassword.length < 10">{{ 'iam.parol_dolzhen_soderzhat_ne_menee_10_simvolov' | t }}</span>
             </div>
 
             <div class="form-group">
-              <label class="form-label" for="profile-confirm-password">Подтверждение нового пароля <span class="req">*</span></label>
+              <label class="form-label" for="profile-confirm-password">{{ 'iam.podtverzhdenie_novogo_parolya' | t }} <span class="req">*</span></label>
               <input
                 id="profile-confirm-password"
                 type="password"
@@ -122,17 +124,17 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
                 name="confirmPassword"
                 [attr.aria-invalid]="isPasswordSubmitted && (!passwordForm.confirmPassword || passwordForm.newPassword !== passwordForm.confirmPassword)"
                 [attr.aria-describedby]="isPasswordSubmitted && (!passwordForm.confirmPassword || passwordForm.newPassword !== passwordForm.confirmPassword) ? 'profile-confirm-password-error' : null"
-                placeholder="Повторите новый пароль"
+                [placeholder]="'auth.povtorite_novyy_parol' | t"
                 required
               />
               <span id="profile-confirm-password-error" class="field-error" *ngIf="isPasswordSubmitted && (!passwordForm.confirmPassword || passwordForm.newPassword !== passwordForm.confirmPassword)">
-                {{ !passwordForm.confirmPassword ? 'Подтвердите новый пароль' : 'Пароли не совпадают' }}
+                {{ (!passwordForm.confirmPassword ? 'iam.confirm_new_password' : 'iam.passwords_do_not_match') | t }}
               </span>
             </div>
 
             <div class="form-actions">
               <ui-button variant="primary" size="md" [loading]="isChangingPassword()" type="submit">
-                Обновить пароль
+                {{ 'iam.obnovit_parol' | t }}
               </ui-button>
             </div>
           </form>
@@ -143,7 +145,7 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
           <div class="section-header">
             <div class="section-title-box">
               <span class="material-symbols-outlined section-icon" aria-hidden="true">security</span>
-              <h4 class="section-title">Безопасность и 2FA</h4>
+              <h4 class="section-title">{{ 'iam.bezopasnost_i_2fa' | t }}</h4>
             </div>
           </div>
 
@@ -154,12 +156,12 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
               </span>
               <div class="twofa-status-text">
                 <div class="twofa-status-title">
-                  {{ authService.currentUser()?.is2faEnabled ? 'Двухфакторная защита активна' : '2FA защита не включена' }}
+                  {{ (authService.currentUser()?.is2faEnabled ? 'iam.two_factor_active' : 'iam.two_factor_disabled') | t }}
                 </div>
                 <div class="twofa-status-desc">
                   {{ authService.currentUser()?.is2faEnabled
-                    ? 'При входе с новых устройств запрашивается 6-значный OTP код подтверждения.'
-                    : 'Обратитесь к администратору для включения обязательной 2FA аутентификации.' }}
+                    ? ('iam.two_factor_active_description' | t)
+                    : ('iam.two_factor_disabled_description' | t) }}
                 </div>
               </div>
             </div>
@@ -167,11 +169,11 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
             <div class="security-tips">
               <div class="tip-item">
                 <span class="material-symbols-outlined tip-icon" aria-hidden="true">check_circle</span>
-                <span>Защита от подбора паролей: 5 неверных попыток блокируют вход на 10 минут.</span>
+                <span>{{ 'iam.zaschita_ot_podbora_paroley_5_nevernyh_popytok_b' | t }}</span>
               </div>
               <div class="tip-item">
                 <span class="material-symbols-outlined tip-icon" aria-hidden="true">check_circle</span>
-                <span>Сессии автоматически закрываются при бездействии более 12 часов.</span>
+                <span>{{ 'iam.sessii_avtomaticheski_zakryvayutsya_pri_bezdeyst' | t }}</span>
               </div>
             </div>
           </div>
@@ -182,7 +184,7 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
           <div class="section-header">
             <div class="section-title-box">
               <span class="material-symbols-outlined section-icon" aria-hidden="true">devices</span>
-              <h4 class="section-title">Активные сессии</h4>
+              <h4 class="section-title">{{ 'iam.aktivnye_sessii' | t }}</h4>
               <span class="badge-count">{{ sessions().length }}</span>
             </div>
             <div class="sessions-header-actions">
@@ -191,40 +193,40 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
                 variant="danger"
                 size="sm"
                 icon="logout"
-                title="Завершить все остальные сессии кроме текущей"
+                [title]="'iam.zavershit_vse_ostalnye_sessii_krome_tekuschey' | t"
                 (onClick)="requestTerminateOtherSessions()"
               >
-                Завершить другие сессии
+                {{ 'iam.zavershit_drugie_sessii' | t }}
               </ui-button>
               <ui-button variant="secondary" size="sm" icon="refresh" (onClick)="loadSessions()">
-                Обновить
+                {{ 'common.refresh' | t }}
               </ui-button>
             </div>
           </div>
 
-          <div class="table-wrapper" role="region" aria-label="Таблица активных сессий" tabindex="0">
-            <table class="data-table" aria-label="Активные сессии">
+          <div class="table-wrapper" role="region" [attr.aria-label]="'iam.tablica_aktivnyh_sessiy' | t" tabindex="0">
+            <table class="data-table" [attr.aria-label]="'iam.aktivnye_sessii' | t">
               <thead>
                 <tr>
-                  <th>IP Адрес</th>
-                  <th>Устройство / Браузер</th>
-                  <th>Создана</th>
-                  <th>Последняя активность</th>
-                  <th class="text-right">Действие</th>
+                  <th>{{ 'iam.ip_adres' | t }}</th>
+                  <th>{{ 'iam.ustroystvo_brauzer' | t }}</th>
+                  <th>{{ 'iam.sozdana' | t }}</th>
+                  <th>{{ 'iam.poslednyaya_aktivnost' | t }}</th>
+                  <th class="text-right">{{ 'audit.deystvie' | t }}</th>
                 </tr>
               </thead>
               <tbody>
                 <tr *ngFor="let s of sessions()">
                   <td class="tabular-nums font-mono">{{ s.ip }}</td>
-                  <td>{{ s.deviceInfo || s.userAgent || 'Неизвестное устройство' }}</td>
+                  <td>{{ s.deviceInfo || s.userAgent || ('iam.unknown_device' | t) }}</td>
                   <td class="tabular-nums text-muted">{{ s.createdAt | date:'dd.MM.yyyy HH:mm' }}</td>
                   <td class="tabular-nums font-medium">{{ s.lastSeenAt | date:'dd.MM.yyyy HH:mm:ss' }}</td>
                   <td class="text-right">
-                    <ui-button variant="danger" size="sm" [ariaLabel]="'Завершить сессию с IP ' + s.ip" (onClick)="requestTerminateSession(s)">Завершить</ui-button>
+                    <ui-button variant="danger" size="sm" [ariaLabel]="'iam.terminate_session_ip' | t:{ip: s.ip}" (onClick)="requestTerminateSession(s)">{{ 'iam.zavershit' | t }}</ui-button>
                   </td>
                 </tr>
                 <tr *ngIf="sessions().length === 0">
-                  <td colspan="5" class="empty-cell">Нет активных сессий</td>
+                  <td colspan="5" class="empty-cell">{{ 'iam.net_aktivnyh_sessiy' | t }}</td>
                 </tr>
               </tbody>
             </table>
@@ -236,21 +238,21 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
           <div class="section-header">
             <div class="section-title-box">
               <span class="material-symbols-outlined section-icon" aria-hidden="true">key</span>
-              <h4 class="section-title">API Токены доступа (Bearer Tokens)</h4>
+              <h4 class="section-title">{{ 'iam.api_tokeny_dostupa_bearer_tokens' | t }}</h4>
               <span class="badge-count">{{ tokens().length }}</span>
             </div>
-            <ui-button variant="primary" size="sm" icon="add" (onClick)="openCreateTokenModal()">Выпустить токен</ui-button>
+            <ui-button variant="primary" size="sm" icon="add" (onClick)="openCreateTokenModal()">{{ 'iam.vypustit_token' | t }}</ui-button>
           </div>
 
-          <div class="table-wrapper" role="region" aria-label="Таблица API-токенов" tabindex="0">
-            <table class="data-table" aria-label="API-токены">
+          <div class="table-wrapper" role="region" [attr.aria-label]="'iam.tablica_api_tokenov' | t" tabindex="0">
+            <table class="data-table" [attr.aria-label]="'nav.tokens' | t">
               <thead>
                 <tr>
-                  <th>Название токена</th>
-                  <th>Префикс токена</th>
-                  <th>Создан</th>
-                  <th>Срок действия</th>
-                  <th class="text-right">Действие</th>
+                  <th>{{ 'iam.nazvanie_tokena' | t }}</th>
+                  <th>{{ 'iam.prefiks_tokena' | t }}</th>
+                  <th>{{ 'iam.sozdan' | t }}</th>
+                  <th>{{ 'iam.srok_deystviya' | t }}</th>
+                  <th class="text-right">{{ 'audit.deystvie' | t }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -258,13 +260,13 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
                   <td class="font-medium">{{ t.name }}</td>
                   <td class="tabular-nums font-mono token-prefix-cell">{{ t.tokenPrefix }}...</td>
                   <td class="tabular-nums text-muted">{{ t.createdAt | date:'dd.MM.yyyy' }}</td>
-                  <td class="tabular-nums">{{ t.expiresAt ? (t.expiresAt | date:'dd.MM.yyyy') : 'Бессрочно' }}</td>
+                  <td class="tabular-nums">{{ t.expiresAt ? (t.expiresAt | date:'dd.MM.yyyy') : ('common.never_expires' | t) }}</td>
                   <td class="text-right">
-                    <ui-button variant="danger" size="sm" icon="delete" [ariaLabel]="'Отозвать API-токен ' + t.name" (onClick)="requestRevokeToken(t)">Отозвать</ui-button>
+                    <ui-button variant="danger" size="sm" icon="delete" [ariaLabel]="'iam.revoke_api_token_named' | t:{name: t.name}" (onClick)="requestRevokeToken(t)">{{ 'iam.otozvat' | t }}</ui-button>
                   </td>
                 </tr>
                 <tr *ngIf="tokens().length === 0">
-                  <td colspan="5" class="empty-cell">Нет созданных API токенов</td>
+                  <td colspan="5" class="empty-cell">{{ 'iam.net_sozdannyh_api_tokenov' | t }}</td>
                 </tr>
               </tbody>
             </table>
@@ -276,30 +278,30 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
     <!-- Create Token Modal -->
     <ui-modal
       [isOpen]="isCreateTokenModalOpen()"
-      title="Выпуск нового API Токена"
+      [title]="'iam.vypusk_novogo_api_tokena' | t"
       size="sm"
       (close)="isCreateTokenModalOpen.set(false)"
     >
       <div body class="token-form">
         <div class="form-group">
-          <label class="form-label" for="profile-token-name">Название токена <span class="req">*</span></label>
+          <label class="form-label" for="profile-token-name">{{ 'iam.nazvanie_tokena' | t }} <span class="req">*</span></label>
           <input id="profile-token-name" name="profileTokenName" type="text" class="form-input" required
             [attr.aria-invalid]="isTokenSubmitted && !newTokenName.trim()"
             [attr.aria-describedby]="isTokenSubmitted && !newTokenName.trim() ? 'profile-token-name-error' : null"
-            [(ngModel)]="newTokenName" placeholder="Например: CI/CD Deployer / Kafka Sync" />
-          <span id="profile-token-name-error" class="field-error" *ngIf="isTokenSubmitted && !newTokenName.trim()">Введите название API-токена</span>
+            [(ngModel)]="newTokenName" [placeholder]="'iam.naprimer_ci_cd_deployer_kafka_sync' | t" />
+          <span id="profile-token-name-error" class="field-error" *ngIf="isTokenSubmitted && !newTokenName.trim()">{{ 'iam.vvedite_nazvanie_api_tokena' | t }}</span>
         </div>
       </div>
       <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="isCreateTokenModalOpen.set(false)">Отмена</ui-button>
-        <ui-button variant="primary" size="md" (onClick)="createTokenSubmit()">Сгенерировать</ui-button>
+        <ui-button variant="secondary" size="md" (onClick)="isCreateTokenModalOpen.set(false)">{{ 'common.cancel' | t }}</ui-button>
+        <ui-button variant="primary" size="md" (onClick)="createTokenSubmit()">{{ 'iam.sgenerirovat' | t }}</ui-button>
       </div>
     </ui-modal>
 
     <!-- Token Secret Reveal Modal -->
     <ui-modal
       [isOpen]="isTokenSecretModalOpen()"
-      title="API Токен успешно создан"
+      [title]="'iam.api_token_uspeshno_sozdan' | t"
       size="md"
       [hasFooter]="false"
       (close)="isTokenSecretModalOpen.set(false)"
@@ -307,48 +309,48 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
       <div body class="secret-reveal-body">
         <div class="warning-box">
           <span class="material-symbols-outlined" aria-hidden="true">warning</span>
-          <p>Скопируйте и сохраните токен сейчас. В целях безопасности он больше никогда не будет показан!</p>
+          <p>{{ 'iam.skopiruyte_i_sohranite_token_seychas_v_celyah_be' | t }}</p>
         </div>
         <div class="token-secret-box">
           <code>{{ createdTokenSecret }}</code>
-          <ui-button variant="secondary" size="sm" icon="content_copy" (onClick)="copySecret()">Скопировать</ui-button>
+          <ui-button variant="secondary" size="sm" icon="content_copy" (onClick)="copySecret()">{{ 'iam.skopirovat' | t }}</ui-button>
         </div>
-        <ui-button variant="primary" size="md" class="mt-4" (onClick)="isTokenSecretModalOpen.set(false)">Я сохранил токен</ui-button>
+        <ui-button variant="primary" size="md" class="mt-4" (onClick)="isTokenSecretModalOpen.set(false)">{{ 'iam.ya_sohranil_token' | t }}</ui-button>
       </div>
     </ui-modal>
 
     <!-- Session Termination Confirmation -->
     <ui-modal
       [isOpen]="sessionToTerminate !== null"
-      title="Завершение сессии"
+      [title]="'iam.zavershenie_sessii' | t"
       size="sm"
       (close)="sessionToTerminate = null"
     >
       <div body class="confirmation-body" *ngIf="sessionToTerminate as target">
-        <p *ngIf="target === 'others'">Завершить все остальные активные сессии, кроме текущей?</p>
-        <p *ngIf="target !== 'others'">Завершить сессию с IP <strong>{{ target.ip }}</strong>?</p>
-        <span class="confirmation-hint">На завершённых устройствах потребуется выполнить вход заново.</span>
+        <p *ngIf="target === 'others'">{{ 'iam.zavershit_vse_ostalnye_aktivnye_sessii_krome_tek' | t }}</p>
+        <p *ngIf="target !== 'others'">{{ 'iam.zavershit_sessiyu_s_ip' | t }} <strong>{{ target.ip }}</strong>?</p>
+        <span class="confirmation-hint">{{ 'iam.na_zavershennyh_ustroystvah_potrebuetsya_vypolni' | t }}</span>
       </div>
       <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="sessionToTerminate = null">Отмена</ui-button>
-        <ui-button variant="danger" size="md" (onClick)="confirmTerminateSession()">Завершить</ui-button>
+        <ui-button variant="secondary" size="md" (onClick)="sessionToTerminate = null">{{ 'common.cancel' | t }}</ui-button>
+        <ui-button variant="danger" size="md" (onClick)="confirmTerminateSession()">{{ 'iam.zavershit' | t }}</ui-button>
       </div>
     </ui-modal>
 
     <!-- Token Revocation Confirmation -->
     <ui-modal
       [isOpen]="tokenToRevoke !== null"
-      title="Отзыв API-токена"
+      [title]="'iam.otzyv_api_tokena' | t"
       size="sm"
       (close)="tokenToRevoke = null"
     >
       <div body class="confirmation-body" *ngIf="tokenToRevoke as token">
-        <p>Отозвать API-токен <strong>{{ token.name }}</strong>?</p>
-        <span class="confirmation-hint">Интеграции с этим токеном немедленно потеряют доступ. Действие необратимо.</span>
+        <p>{{ 'iam.otozvat_api_token' | t }} <strong>{{ token.name }}</strong>?</p>
+        <span class="confirmation-hint">{{ 'iam.integracii_s_etim_tokenom_nemedlenno_poteryayut_' | t }}</span>
       </div>
       <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="tokenToRevoke = null">Отмена</ui-button>
-        <ui-button variant="danger" size="md" (onClick)="confirmRevokeToken()">Отозвать</ui-button>
+        <ui-button variant="secondary" size="md" (onClick)="tokenToRevoke = null">{{ 'common.cancel' | t }}</ui-button>
+        <ui-button variant="danger" size="md" (onClick)="confirmRevokeToken()">{{ 'iam.otozvat' | t }}</ui-button>
       </div>
     </ui-modal>
   `,
@@ -712,6 +714,7 @@ import { UserSession, ApiToken, CreatedTokenResponse } from '../../../core/model
   `]
 })
 export class ProfileComponent implements OnInit {
+  private readonly uiI18n = inject(I18nService);
   readonly sessions = signal<UserSession[]>([]);
   readonly tokens = signal<ApiToken[]>([]);
 
@@ -766,11 +769,11 @@ export class ProfileComponent implements OnInit {
       this.api.delete('/iam/profile/sessions/others').subscribe({
         next: () => {
           this.sessionToTerminate = null;
-          this.toast.success('Все остальные сессии успешно завершены');
+          this.toast.success(this.uiI18n.translate('iam.vse_ostalnye_sessii_uspeshno_zaversheny'));
           this.loadSessions();
         },
         error: (err: any) => {
-          this.toast.error(err?.error?.detail || 'Ошибка при завершении сессий');
+          this.toast.error(err?.error?.detail || this.uiI18n.translate('iam.oshibka_pri_zavershenii_sessiy'));
         }
       });
       return;
@@ -779,11 +782,11 @@ export class ProfileComponent implements OnInit {
     this.api.delete(`/iam/profile/sessions/${target.id}`).subscribe({
       next: () => {
         this.sessionToTerminate = null;
-        this.toast.success('Сессия успешно завершена');
+        this.toast.success(this.uiI18n.translate('iam.sessiya_uspeshno_zavershena'));
         this.loadSessions();
       },
       error: (err: any) => {
-        this.toast.error(err?.error?.detail || 'Ошибка при завершении сессии');
+        this.toast.error(err?.error?.detail || this.uiI18n.translate('iam.oshibka_pri_zavershenii_sessii'));
       }
     });
   }
@@ -793,17 +796,17 @@ export class ProfileComponent implements OnInit {
     this.isPasswordSubmitted = true;
 
     if (!this.passwordForm.oldPassword || !this.passwordForm.newPassword || !this.passwordForm.confirmPassword) {
-      this.toast.warning('Заполните все поля смены пароля');
+      this.toast.warning(this.uiI18n.translate('iam.zapolnite_vse_polya_smeny_parolya'));
       return;
     }
 
     if (this.passwordForm.newPassword.length < 10) {
-      this.toast.warning('Новый пароль должен содержать минимум 10 символов');
+      this.toast.warning(this.uiI18n.translate('iam.novyy_parol_dolzhen_soderzhat_minimum_10_simvolo'));
       return;
     }
 
     if (this.passwordForm.newPassword !== this.passwordForm.confirmPassword) {
-      this.toast.warning('Новый пароль и подтверждение не совпадают');
+      this.toast.warning(this.uiI18n.translate('iam.novyy_parol_i_podtverzhdenie_ne_sovpadayut'));
       return;
     }
 
@@ -814,13 +817,13 @@ export class ProfileComponent implements OnInit {
     }).subscribe({
       next: () => {
         this.isChangingPassword.set(false);
-        this.toast.success('Пароль успешно изменён');
+        this.toast.success(this.uiI18n.translate('iam.parol_uspeshno_izmenen'));
         this.passwordForm = { oldPassword: '', newPassword: '', confirmPassword: '' };
         this.isPasswordSubmitted = false;
       },
       error: (err: any) => {
         this.isChangingPassword.set(false);
-        this.toast.error(err?.error?.detail || 'Ошибка при смене пароля');
+        this.toast.error(err?.error?.detail || this.uiI18n.translate('iam.oshibka_pri_smene_parolya'));
       }
     });
   }
@@ -840,7 +843,7 @@ export class ProfileComponent implements OnInit {
   createTokenSubmit() {
     this.isTokenSubmitted = true;
     if (!this.newTokenName.trim()) {
-      this.toast.warning('Введите название API токена');
+      this.toast.warning(this.uiI18n.translate('iam.vvedite_nazvanie_api_tokena.bfec35d'));
       return;
     }
 
@@ -853,7 +856,7 @@ export class ProfileComponent implements OnInit {
         this.loadTokens();
       },
       error: (err: any) => {
-        this.toast.error(err?.error?.detail || 'Ошибка при создании API токена');
+        this.toast.error(err?.error?.detail || this.uiI18n.translate('iam.oshibka_pri_sozdanii_api_tokena'));
       }
     });
   }
@@ -868,17 +871,17 @@ export class ProfileComponent implements OnInit {
     this.api.delete(`/iam/profile/tokens/${token.id}`).subscribe({
       next: () => {
         this.tokenToRevoke = null;
-        this.toast.success('Токен успешно отозван');
+        this.toast.success(this.uiI18n.translate('iam.token_uspeshno_otozvan'));
         this.loadTokens();
       },
       error: (err: any) => {
-        this.toast.error(err?.error?.detail || 'Ошибка при отзыве токена');
+        this.toast.error(err?.error?.detail || this.uiI18n.translate('iam.oshibka_pri_otzyve_tokena'));
       }
     });
   }
 
   copySecret() {
     navigator.clipboard.writeText(this.createdTokenSecret);
-    this.toast.success('Токен скопирован в буфер обмена');
+    this.toast.success(this.uiI18n.translate('iam.token_skopirovan_v_bufer_obmena'));
   }
 }

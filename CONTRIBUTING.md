@@ -49,6 +49,8 @@ mvn -B verify
 ```bash
 cd apps/web
 npm ci
+npm run i18n:sync-ru
+npm run i18n:audit
 npm test
 npm run typecheck
 npm run build
@@ -63,6 +65,8 @@ the authoritative gate.
 - Enforce permissions on the server; hiding a UI action is not authorization.
 - Preserve module boundaries checked by ArchUnit.
 - Use structured errors and do not place credentials or personal data in logs.
+- Keep static UI copy behind localization keys. Russian is the canonical
+  source; synchronize the packaged web fallback and run the localization audit.
 - Keep database migrations forward-only and compatible with the previous
   release during the expand phase. Never silently rewrite an applied migration.
 - Add tests for changed invariants, authorization rules, failure behavior, and

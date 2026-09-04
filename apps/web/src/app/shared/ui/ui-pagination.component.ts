@@ -1,17 +1,19 @@
 import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { TranslatePipe } from '../../core/services/i18n.service';
 
 @Component({
   selector: 'ui-pagination',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [
+    TranslatePipe,CommonModule, FormsModule],
   template: `
-    <nav class="pagination-bar" *ngIf="totalItems > 0" aria-label="Пагинация">
+    <nav class="pagination-bar" *ngIf="totalItems > 0" [attr.aria-label]="'ui.pagination.paginaciya' | t">
       <!-- Left: Item Range & Total Counter -->
       <div class="pagination-info" role="status" aria-live="polite" aria-atomic="true">
         <span class="range-text">
-          Показано <strong class="highlight font-mono">{{ startItem }}–{{ endItem }}</strong> из <strong class="highlight font-mono">{{ totalItems }}</strong>
+          {{ 'ui.pagination.pokazano' | t }} <strong class="highlight font-mono">{{ startItem }}–{{ endItem }}</strong> {{ 'files.iz' | t }} <strong class="highlight font-mono">{{ totalItems }}</strong>
         </span>
       </div>
 
@@ -19,7 +21,7 @@ import { FormsModule } from '@angular/forms';
       <div class="pagination-controls">
         <!-- Page Size Selector -->
         <div class="page-size-picker" *ngIf="showPageSize">
-          <label class="size-label" [for]="pageSizeSelectId">Строк:</label>
+          <label class="size-label" [for]="pageSizeSelectId">{{ 'ui.pagination.strok' | t }}</label>
           <select
             [id]="pageSizeSelectId"
             class="size-select"
@@ -36,8 +38,8 @@ import { FormsModule } from '@angular/forms';
           <button
             type="button"
             class="nav-btn"
-            aria-label="Первая страница"
-            title="Первая страница"
+            [attr.aria-label]="'ui.pagination.pervaya_stranica' | t"
+            [title]="'ui.pagination.pervaya_stranica' | t"
             [disabled]="currentPage === 1"
             (click)="goToPage(1)"
           >
@@ -48,8 +50,8 @@ import { FormsModule } from '@angular/forms';
           <button
             type="button"
             class="nav-btn"
-            aria-label="Предыдущая страница"
-            title="Предыдущая страница"
+            [attr.aria-label]="'ui.pagination.predyduschaya_stranica' | t"
+            [title]="'ui.pagination.predyduschaya_stranica' | t"
             [disabled]="currentPage === 1"
             (click)="goToPage(currentPage - 1)"
           >
@@ -65,7 +67,7 @@ import { FormsModule } from '@angular/forms';
                 type="button"
                 class="page-btn font-mono"
                 [class.active]="p === currentPage"
-                [attr.aria-label]="'Страница ' + p"
+                [attr.aria-label]="'ui.pagination.page_number' | t:{page: p}"
                 [attr.aria-current]="p === currentPage ? 'page' : null"
                 (click)="goToPage(p)"
               >
@@ -78,8 +80,8 @@ import { FormsModule } from '@angular/forms';
           <button
             type="button"
             class="nav-btn"
-            aria-label="Следующая страница"
-            title="Следующая страница"
+            [attr.aria-label]="'ui.pagination.sleduyuschaya_stranica' | t"
+            [title]="'ui.pagination.sleduyuschaya_stranica' | t"
             [disabled]="currentPage >= totalPages"
             (click)="goToPage(currentPage + 1)"
           >
@@ -90,8 +92,8 @@ import { FormsModule } from '@angular/forms';
           <button
             type="button"
             class="nav-btn"
-            aria-label="Последняя страница"
-            title="Последняя страница"
+            [attr.aria-label]="'ui.pagination.poslednyaya_stranica' | t"
+            [title]="'ui.pagination.poslednyaya_stranica' | t"
             [disabled]="currentPage >= totalPages"
             (click)="goToPage(totalPages)"
           >

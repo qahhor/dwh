@@ -1,10 +1,12 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { TranslatePipe } from '../../core/services/i18n.service';
 
 @Component({
   selector: 'ui-button',
   standalone: true,
-  imports: [CommonModule],
+  imports: [
+    TranslatePipe,CommonModule],
   template: `
     <button
       [type]="type"
@@ -16,7 +18,7 @@ import { CommonModule } from '@angular/common';
       (click)="onClick.emit($event)"
     >
       <span *ngIf="loading" class="spinner" aria-hidden="true"></span>
-      <span *ngIf="loading" class="sr-only">Выполняется…</span>
+      <span *ngIf="loading" class="sr-only">{{ 'ui.button.vypolnyaetsya' | t }}</span>
       <span *ngIf="icon && !loading" class="material-symbols-outlined icon" aria-hidden="true">{{ icon }}</span>
       <ng-content></ng-content>
     </button>

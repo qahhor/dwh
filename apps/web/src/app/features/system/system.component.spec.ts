@@ -22,8 +22,12 @@ describe('SystemComponent', () => {
     backup: {
       status: 'SUCCESS',
       completedAt: '2026-09-02T09:00:00Z',
-      failureCode: null
-    }
+      failureCode: null,
+      freshness: 'CURRENT',
+      ageSeconds: 3_600,
+      maxAgeSeconds: 86_400
+    },
+    checkedAt: '2026-09-04T10:15:30Z'
   };
 
   async function createFixture(getResult = of(systemInfo)) {
@@ -45,8 +49,10 @@ describe('SystemComponent', () => {
     };
     const { fixture, api } = await createFixture(of(responseWithPrivateFields));
 
-    expect(api.get).toHaveBeenCalledWith('/system/info');
+    expect(api.get).toHaveBeenCalledWith('/system/info', undefined, { notifyError: false });
     expect(fixture.nativeElement.querySelector('section[aria-labelledby="system-title"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="overall-status"]')?.textContent).toContain('Требует внимания');
+    expect(fixture.nativeElement.textContent).toContain('Проверено');
     expect(fixture.nativeElement.querySelector('dl[aria-label="Состояние компонентов"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('[data-status="UP"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('[data-status="DEGRADED"]')).not.toBeNull();
@@ -56,20 +62,30 @@ describe('SystemComponent', () => {
   });
 
   it.each([
-    ['NEVER', 'Резервная копия ещё не создавалась'],
-    ['FAILED', 'Последняя резервная копия завершилась ошибкой'],
-    ['SUCCESS', 'Последняя резервная копия создана']
-  ] as const)('explains backup status %s', async (status, expectedText) => {
+    ['NEVER', 'NOT_APPLICABLE', 'Резервная копия ещё не создавалась', 'attention'],
+    ['FAILED', 'NOT_APPLICABLE', 'Последняя резервная копия завершилась ошибкой', 'critical'],
+    ['SUCCESS', 'CURRENT', 'Резервная копия актуальна', 'healthy'],
+    ['SUCCESS', 'STALE', 'Резервная копия устарела', 'critical'],
+    ['SUCCESS', 'NOT_CONFIGURED', 'Порог актуальности резервной копии не настроен', 'attention']
+  ] as const)('explains backup status %s with freshness %s', async (status, freshness, expectedText, expectedSeverity) => {
     const { fixture } = await createFixture(of({
       ...systemInfo,
       backup: {
+        ...systemInfo.backup,
         status,
+        freshness,
         completedAt: status === 'NEVER' ? null : systemInfo.backup.completedAt,
-        failureCode: status === 'FAILED' ? 'UPLOAD_FAILED' : null
+        failureCode: status === 'FAILED' ? 'UPLOAD_FAILED' : null,
+        ageSeconds: status === 'SUCCESS' ? systemInfo.backup.ageSeconds : null
       }
     }));
 
-    expect(fixture.nativeElement.querySelector('[data-testid="backup-status"]')?.textContent).toContain(expectedText);
+    const backupPanel = fixture.nativeElement.querySelector('[data-testid="backup-status"]');
+    expect(backupPanel?.textContent).toContain(expectedText);
+    expect(backupPanel?.getAttribute('data-severity')).toBe(expectedSeverity);
+    if (status === 'SUCCESS' && freshness !== 'NOT_CONFIGURED') {
+      expect(backupPanel?.textContent).toContain('Допустимый возраст: 1 д.');
+    }
     expect(fixture.nativeElement.textContent).toContain('резервное копирование, восстановление и обновление выполняются через CLI');
     expect(fixture.nativeElement.querySelector('[data-action="backup"]')).toBeNull();
     expect(fixture.nativeElement.querySelector('[data-action="restore"]')).toBeNull();
@@ -85,5 +101,51 @@ describe('SystemComponent', () => {
     const failed = await createFixture(throwError(() => ({ status: 503 })));
     expect(failed.fixture.nativeElement.querySelector('[role="alert"]')?.textContent).toContain('Не удалось загрузить состояние системы');
     expect(failed.fixture.nativeElement.querySelector('button[aria-label="Повторить загрузку состояния системы"]')).not.toBeNull();
+  });
+
+  it('keeps the last successful snapshot and marks it stale after refresh failure', async () => {
+    const { fixture, api } = await createFixture();
+    api.get.mockReturnValueOnce(throwError(() => ({ status: 503 })));
+
+    fixture.componentInstance.loadSystemInfo();
+    fixture.detectChanges();
+
+    const stale = fixture.nativeElement.querySelector('[data-testid="stale-status"]');
+    expect(stale?.textContent).toContain('Не удалось обновить состояние');
+    expect(stale?.textContent).toContain('Показаны данные от');
+    expect(fixture.nativeElement.textContent).toContain('Acme Distribution');
+  });
+
+  it('reports a healthy installation only when components and backup are healthy', async () => {
+    const { fixture } = await createFixture(of({
+      ...systemInfo,
+      components: {
+        database: { status: 'UP' },
+        storage: { status: 'UP' },
+        typesense: { status: 'DISABLED' }
+      }
+    }));
+
+    const overall = fixture.nativeElement.querySelector('[data-testid="overall-status"]');
+    expect(overall?.getAttribute('data-status')).toBe('healthy');
+    expect(overall?.textContent).toContain('Система работает');
+  });
+
+  it('requires a current backup before reporting the installation as healthy', async () => {
+    const { fixture } = await createFixture(of({
+      ...systemInfo,
+      components: {
+        database: { status: 'UP' },
+        storage: { status: 'UP' },
+        typesense: { status: 'DISABLED' }
+      },
+      backup: {
+        ...systemInfo.backup,
+        freshness: 'STALE'
+      }
+    }));
+
+    const overall = fixture.nativeElement.querySelector('[data-testid="overall-status"]');
+    expect(overall?.getAttribute('data-status')).toBe('attention');
   });
 });

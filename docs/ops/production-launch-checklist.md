@@ -76,6 +76,9 @@ owner. A commercial SLA cannot override a failed safety gate.
 
 ## Operations
 
+- [ ] `DWH_BACKUP_MAX_AGE` contains the approved non-zero recovery-point age;
+      the System page reports a current backup after a verified run and becomes
+      stale when a controlled test exceeds the threshold.
 - [ ] Health, latency/error, capacity, certificate, backup age/failure, database,
       object storage, and delivery dead-letter alerts reach the on-call owner.
 - [ ] Logs are retained, access-controlled, time-synchronized, searchable by

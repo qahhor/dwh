@@ -4,7 +4,9 @@ import com.greenwhite.dwh.instance.common.provider.ProviderRegistry;
 import com.greenwhite.dwh.instance.config.bootstrap.InstanceBootstrapProperties;
 import com.greenwhite.dwh.instance.search.typesense.TypesenseProperties;
 import com.greenwhite.dwh.spi.common.ProviderHealth;
+import jakarta.annotation.PreDestroy;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
@@ -14,8 +16,14 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 @Service
 public class SystemInfoService {
@@ -30,6 +38,9 @@ public class SystemInfoService {
     private final InstanceBootstrapProperties bootstrap;
     private final HttpClient httpClient;
     private final String appVersion;
+    private final Duration healthTimeout;
+    private final BackupFreshnessEvaluator backupFreshnessEvaluator;
+    private final ExecutorService healthExecutor;
 
     public SystemInfoService(
             JdbcClient jdbc,
@@ -37,7 +48,9 @@ public class SystemInfoService {
             BackupStatusReader backupStatusReader,
             TypesenseProperties typesense,
             InstanceBootstrapProperties bootstrap,
-            ObjectProvider<BuildProperties> buildProperties) {
+            ObjectProvider<BuildProperties> buildProperties,
+            @Value("${dwh.system.health-timeout:2s}") Duration healthTimeout,
+            @Value("${dwh.backup.max-age:0s}") Duration backupMaxAge) {
         this.jdbc = jdbc;
         this.providers = providers;
         this.backupStatusReader = backupStatusReader;
@@ -46,29 +59,66 @@ public class SystemInfoService {
         this.httpClient = HttpClient.newBuilder().connectTimeout(COMPONENT_TIMEOUT).build();
         BuildProperties build = buildProperties.getIfAvailable();
         this.appVersion = build != null && hasText(build.getVersion()) ? build.getVersion() : UNKNOWN;
+        this.healthTimeout = healthTimeout == null || healthTimeout.isZero() || healthTimeout.isNegative()
+                ? COMPONENT_TIMEOUT
+                : healthTimeout;
+        this.backupFreshnessEvaluator = new BackupFreshnessEvaluator(backupMaxAge);
+        this.healthExecutor = Executors.newVirtualThreadPerTaskExecutor();
     }
 
     public SystemInfoResponse getInfo() {
-        Map<String, SystemInfoResponse.Component> components = new LinkedHashMap<>();
-        components.put("database", new SystemInfoResponse.Component(databaseStatus()));
+        CompletableFuture<SystemInfoResponse.Component> database = probe(
+                () -> new SystemInfoResponse.Component(databaseStatus()),
+                new SystemInfoResponse.Component("DOWN"));
+        CompletableFuture<SystemInfoResponse.Component> typesenseHealth = probe(
+                () -> new SystemInfoResponse.Component(typesenseStatus()),
+                new SystemInfoResponse.Component("DEGRADED"));
 
         String storageProvider = UNKNOWN;
+        CompletableFuture<SystemInfoResponse.Component> storageHealth;
         try {
             var storage = providers.getActiveStorageProvider();
             storageProvider = storage.getProviderCode();
-            components.put("storage", component(storage.checkHealth()));
+            storageHealth = probe(
+                    () -> component(storage.checkHealth()),
+                    new SystemInfoResponse.Component("DEGRADED"));
         } catch (Exception ignored) {
-            components.put("storage", new SystemInfoResponse.Component("DOWN"));
+            storageHealth = CompletableFuture.completedFuture(new SystemInfoResponse.Component("DOWN"));
         }
-        components.put("typesense", new SystemInfoResponse.Component(typesenseStatus()));
+
+        SystemInfoResponse.Organization organizationFallback = configuredOrganization();
+        CompletableFuture<String> schemaVersion = probe(this::schemaVersion, UNKNOWN);
+        CompletableFuture<SystemInfoResponse.Organization> organization = probe(this::organization, organizationFallback);
+        BackupStatus unavailableBackup = backupFreshnessEvaluator.evaluate(
+                new BackupStatus("UNKNOWN", null, "STATUS_UNAVAILABLE"));
+        CompletableFuture<BackupStatus> backup = probe(
+                () -> backupFreshnessEvaluator.evaluate(backupStatusReader.read()),
+                unavailableBackup);
+
+        Map<String, SystemInfoResponse.Component> components = new LinkedHashMap<>();
+        components.put("database", database.join());
+        components.put("storage", storageHealth.join());
+        components.put("typesense", typesenseHealth.join());
 
         return new SystemInfoResponse(
                 appVersion,
-                schemaVersion(),
-                organization(),
+                schemaVersion.join(),
+                organization.join(),
                 storageProvider,
                 components,
-                backupStatusReader.read());
+                backup.join(),
+                Instant.now());
+    }
+
+    @PreDestroy
+    void close() {
+        healthExecutor.shutdownNow();
+    }
+
+    private <T> CompletableFuture<T> probe(Supplier<T> supplier, T fallback) {
+        return CompletableFuture.supplyAsync(supplier, healthExecutor)
+                .completeOnTimeout(fallback, healthTimeout.toMillis(), TimeUnit.MILLISECONDS)
+                .exceptionally(ignored -> fallback);
     }
 
     private String databaseStatus() {

@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
@@ -7,11 +7,13 @@ import { PermissionService } from '../../../core/services/permission.service';
 import { CustomField } from '../../../core/models/custom-field.models';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
+import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
 
 @Component({
   selector: 'app-custom-fields',
   standalone: true,
   imports: [
+    TranslatePipe,
     CommonModule,
     FormsModule,
     UiButtonComponent,
@@ -22,13 +24,13 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
       <!-- Header -->
       <div class="view-header">
         <div class="header-left">
-          <h1 class="view-title">Динамические атрибуты</h1>
+          <h1 class="view-title">{{ 'iam.dinamicheskie_atributy' | t }}</h1>
           <span class="count-badge">{{ filteredFields.length }}</span>
         </div>
         <div class="header-right">
-          <button type="button" class="btn btn-secondary" (click)="loadFields()" aria-label="Обновить поля" title="Обновить">
+          <button type="button" class="btn btn-secondary" (click)="loadFields()" [attr.aria-label]="'iam.obnovit_polya' | t" [title]="'common.refresh' | t">
             <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
-            <span>Обновить</span>
+            <span>{{ 'common.refresh' | t }}</span>
           </button>
           <ui-button
             *ngIf="canManage()"
@@ -36,14 +38,14 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
             icon="add"
             (onClick)="openCreateModal()"
           >
-            Добавить поле
+            {{ 'iam.dobavit_pole' | t }}
           </ui-button>
         </div>
       </div>
 
       <!-- Entity Type Filter Tabs -->
       <div class="toolbar">
-        <div class="status-tabs" role="group" aria-label="Фильтр по типу сущности">
+        <div class="status-tabs" role="group" [attr.aria-label]="'iam.filtr_po_tipu_suschnosti' | t">
           <button
             *ngFor="let ent of ['ALL', 'USER', 'PROJECT', 'TASK']"
             type="button"
@@ -59,17 +61,17 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 
       <!-- Grid / Table -->
       <div class="card table-card">
-        <div class="table-wrapper" role="region" aria-label="Таблица динамических атрибутов" tabindex="0">
-          <table class="data-table" aria-label="Динамические атрибуты">
+        <div class="table-wrapper" role="region" [attr.aria-label]="'iam.tablica_dinamicheskih_atributov' | t" tabindex="0">
+          <table class="data-table" [attr.aria-label]="'iam.dinamicheskie_atributy' | t">
             <thead>
               <tr>
-                <th>Код поля</th>
-                <th>Название</th>
-                <th>Сущность</th>
-                <th>Тип данных</th>
-                <th>Обязательное</th>
-                <th>Значение по умолчанию</th>
-                <th *ngIf="canManage()" class="text-right">Действия</th>
+                <th>{{ 'iam.kod_polya' | t }}</th>
+                <th>{{ 'iam.nazvanie' | t }}</th>
+                <th>{{ 'iam.suschnost' | t }}</th>
+                <th>{{ 'iam.tip_dannyh' | t }}</th>
+                <th>{{ 'iam.obyazatelnoe' | t }}</th>
+                <th>{{ 'iam.znachenie_po_umolchaniyu' | t }}</th>
+                <th *ngIf="canManage()" class="text-right">{{ 'common.actions' | t }}</th>
               </tr>
             </thead>
             <tbody>
@@ -86,15 +88,15 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
                 </td>
                 <td>
                   <span class="status-indicator" [class.active]="f.isRequired">
-                    {{ f.isRequired ? 'Да' : 'Нет' }}
+                    {{ (f.isRequired ? 'common.yes' : 'common.no') | t }}
                   </span>
                 </td>
                 <td class="text-muted">{{ f.defaultValue || '—' }}</td>
                 <td *ngIf="canManage()" class="text-right">
-                  <button type="button" class="action-btn" (click)="openEditModal(f)" [attr.aria-label]="'Редактировать ' + f.name" title="Редактировать">
+                  <button type="button" class="action-btn" (click)="openEditModal(f)" [attr.aria-label]="'iam.edit_named' | t:{name: f.name}" [title]="'common.edit' | t">
                     <span class="material-symbols-outlined" aria-hidden="true">edit</span>
                   </button>
-                  <button type="button" class="action-btn danger" (click)="requestDeleteField(f)" [attr.aria-label]="'Удалить ' + f.name" title="Удалить">
+                  <button type="button" class="action-btn danger" (click)="requestDeleteField(f)" [attr.aria-label]="'iam.delete_named' | t:{name: f.name}" [title]="'common.delete' | t">
                     <span class="material-symbols-outlined" aria-hidden="true">delete</span>
                   </button>
                 </td>
@@ -104,7 +106,7 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
                 <td [attr.colspan]="canManage() ? 7 : 6" class="empty-row">
                   <div class="empty-state">
                     <span class="material-symbols-outlined empty-icon" aria-hidden="true">tune</span>
-                    <p>Динамические поля не найдены</p>
+                    <p>{{ 'iam.dinamicheskie_polya_ne_naydeny' | t }}</p>
                   </div>
                 </td>
               </tr>
@@ -117,23 +119,23 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
       <ui-modal
         *ngIf="showModal"
         [isOpen]="showModal"
-        [title]="editingField ? 'Редактирование поля' : 'Новое динамическое поле'"
+        [title]="(editingField ? 'iam.edit_field' : 'iam.new_custom_field') | t"
         [hasFooter]="false"
         (close)="closeModal()"
       >
         <form class="modal-form" (ngSubmit)="saveField()">
           <div class="form-group" *ngIf="!editingField">
-            <label class="form-label" for="custom-field-entity">Целевая сущность <span class="req" aria-hidden="true">*</span></label>
+            <label class="form-label" for="custom-field-entity">{{ 'iam.celevaya_suschnost' | t }} <span class="req" aria-hidden="true">*</span></label>
             <select id="custom-field-entity" name="entityType" class="form-select" [(ngModel)]="formData.entityType" required>
-              <option value="USER">Пользователь (USER)</option>
-              <option value="PROJECT">Проект (PROJECT)</option>
-              <option value="TASK">Задача (TASK)</option>
+              <option value="USER">{{ 'iam.polzovatel_user' | t }}</option>
+              <option value="PROJECT">{{ 'iam.proekt_project' | t }}</option>
+              <option value="TASK">{{ 'iam.zadacha_task' | t }}</option>
             </select>
           </div>
 
           <div class="form-row">
             <div class="form-group flex-1">
-              <label class="form-label" for="custom-field-code">Код поля (slug) <span class="req" aria-hidden="true">*</span></label>
+              <label class="form-label" for="custom-field-code">{{ 'iam.kod_polya_slug' | t }} <span class="req" aria-hidden="true">*</span></label>
               <input
                 id="custom-field-code"
                 name="code"
@@ -141,20 +143,20 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
                 class="form-input font-mono"
                 [(ngModel)]="formData.code"
                 [disabled]="!!editingField"
-                placeholder="например: inn, budget"
+                [placeholder]="'iam.naprimer_inn_budget' | t"
                 required
               />
             </div>
 
             <div class="form-group flex-1">
-              <label class="form-label" for="custom-field-name">Название поля <span class="req" aria-hidden="true">*</span></label>
+              <label class="form-label" for="custom-field-name">{{ 'iam.nazvanie_polya' | t }} <span class="req" aria-hidden="true">*</span></label>
               <input
                 id="custom-field-name"
                 name="name"
                 type="text"
                 class="form-input"
                 [(ngModel)]="formData.name"
-                placeholder="например: ИНН, Бюджет проекта"
+                [placeholder]="'iam.naprimer_inn_byudzhet_proekta' | t"
                 required
               />
             </div>
@@ -162,72 +164,72 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 
           <div class="form-row" *ngIf="!editingField">
             <div class="form-group flex-1">
-              <label class="form-label" for="custom-field-type">Тип данных <span class="req" aria-hidden="true">*</span></label>
+              <label class="form-label" for="custom-field-type">{{ 'iam.tip_dannyh' | t }} <span class="req" aria-hidden="true">*</span></label>
               <select id="custom-field-type" name="fieldType" class="form-select" [(ngModel)]="formData.fieldType" required>
-                <option value="string">Текст (string)</option>
-                <option value="number">Число (number)</option>
-                <option value="boolean">Логический переключатель (boolean)</option>
-                <option value="date">Дата (date)</option>
-                <option value="select">Выпадающий список (select)</option>
+                <option value="string">{{ 'iam.tekst_string' | t }}</option>
+                <option value="number">{{ 'iam.chislo_number' | t }}</option>
+                <option value="boolean">{{ 'iam.logicheskiy_pereklyuchatel_boolean' | t }}</option>
+                <option value="date">{{ 'iam.data_date' | t }}</option>
+                <option value="select">{{ 'iam.vypadayuschiy_spisok_select' | t }}</option>
               </select>
             </div>
 
             <div class="form-group flex-1">
-              <label class="form-label" for="custom-field-default">Значение по умолчанию</label>
+              <label class="form-label" for="custom-field-default">{{ 'iam.znachenie_po_umolchaniyu' | t }}</label>
               <input
                 id="custom-field-default"
                 name="defaultValue"
                 type="text"
                 class="form-input"
                 [(ngModel)]="formData.defaultValue"
-                placeholder="Не обязательно"
+                [placeholder]="'iam.ne_obyazatelno' | t"
               />
             </div>
           </div>
 
           <div class="form-group" *ngIf="formData.fieldType === 'select'">
-            <label class="form-label" for="custom-field-options">Варианты списка <span class="req" aria-hidden="true">*</span></label>
+            <label class="form-label" for="custom-field-options">{{ 'iam.varianty_spiska' | t }} <span class="req" aria-hidden="true">*</span></label>
             <textarea
               id="custom-field-options"
               name="optionsText"
               class="form-input options-input"
               [(ngModel)]="formData.optionsText"
               rows="4"
-              placeholder="По одному варианту в строке"
+              [placeholder]="'iam.po_odnomu_variantu_v_stroke' | t"
               required
             ></textarea>
-            <span class="form-hint">По одному варианту в строке. Для отдельного кода используйте формат: код | подпись.</span>
+            <span class="form-hint">{{ 'iam.po_odnomu_variantu_v_stroke_dlya_otdelnogo_koda_' | t }}</span>
           </div>
 
           <div class="form-group checkbox-group">
             <label class="checkbox-label" for="custom-field-required">
               <input id="custom-field-required" name="isRequired" type="checkbox" [(ngModel)]="formData.isRequired" />
-              <span>Обязательное для заполнения</span>
+              <span>{{ 'iam.obyazatelnoe_dlya_zapolneniya' | t }}</span>
             </label>
           </div>
 
           <p *ngIf="formError" class="form-error" role="alert">{{ formError }}</p>
 
           <div class="modal-actions">
-            <ui-button type="button" variant="secondary" (onClick)="closeModal()">Отмена</ui-button>
-            <ui-button type="submit" variant="primary" [loading]="saving">Сохранить</ui-button>
+            <ui-button type="button" variant="secondary" (onClick)="closeModal()">{{ 'common.cancel' | t }}</ui-button>
+            <ui-button type="submit" variant="primary" [loading]="saving">{{ 'common.save' | t }}</ui-button>
           </div>
         </form>
       </ui-modal>
 
       <ui-modal
         [isOpen]="fieldToDelete !== null"
-        title="Удаление динамического поля"
+        [title]="'iam.udalenie_dinamicheskogo_polya' | t"
         size="sm"
         (close)="fieldToDelete = null"
       >
         <div body class="delete-confirmation" *ngIf="fieldToDelete as field">
-          <p>Удалить динамическое поле <strong>«{{ field.name }}»</strong> ({{ field.code }})?</p>
-          <span>Сохранённые значения этого атрибута могут стать недоступны.</span>
+          <p>{{ 'iam.udalit_dinamicheskoe_pole' | t }} <strong>«{{ field.name }}»</strong> ({{ field.code }})?</p>
+          <span>{{ 'iam.sohranennye_znacheniya_etogo_atributa_mogut_stat' | t }}</span>
         </div>
         <div footer>
-          <ui-button type="button" variant="secondary" (onClick)="fieldToDelete = null">Отмена</ui-button>
-          <ui-button type="button" variant="danger" (onClick)="confirmDeleteField()">Удалить</ui-button>
+          <ui-button type="button" variant="secondary" (onClick)="fieldToDelete = null">{{ 'common.cancel' | t }}</ui-button>
+          <ui-button type="button" variant="danger" (onClick)="confirmDeleteField()">{{ 'common.delete' | t }}</ui-button>
         </div>
       </ui-modal>
     </div>
@@ -518,6 +520,7 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
   `]
 })
 export class CustomFieldsComponent implements OnInit {
+  private readonly uiI18n = inject(I18nService);
   fields: CustomField[] = [];
   filteredFields: CustomField[] = [];
   selectedEntity: string = 'ALL';
@@ -561,7 +564,7 @@ export class CustomFieldsComponent implements OnInit {
         this.fields = data;
         this.applyFilter();
       },
-      error: err => this.toast.error('Ошибка загрузки динамических полей')
+      error: err => this.toast.error(this.uiI18n.translate('iam.oshibka_zagruzki_dinamicheskih_poley'))
     });
   }
 
@@ -580,21 +583,21 @@ export class CustomFieldsComponent implements OnInit {
 
   getEntityLabel(ent: string): string {
     switch (ent) {
-      case 'ALL': return 'Все сущности';
-      case 'USER': return 'Пользователи';
-      case 'PROJECT': return 'Проекты';
-      case 'TASK': return 'Задачи';
+      case 'ALL': return this.uiI18n.translate('iam.vse_suschnosti');
+      case 'USER': return this.uiI18n.translate('nav.users');
+      case 'PROJECT': return this.uiI18n.translate('nav.projects');
+      case 'TASK': return this.uiI18n.translate('nav.tasks');
       default: return ent;
     }
   }
 
   getTypeName(type: string): string {
     switch (type) {
-      case 'string': return 'Текст';
-      case 'number': return 'Число';
-      case 'boolean': return 'Да / Нет';
-      case 'date': return 'Дата';
-      case 'select': return 'Список';
+      case 'string': return this.uiI18n.translate('iam.tekst');
+      case 'number': return this.uiI18n.translate('iam.chislo');
+      case 'boolean': return this.uiI18n.translate('iam.da_net');
+      case 'date': return this.uiI18n.translate('iam.data');
+      case 'select': return this.uiI18n.translate('projects.spisok');
       default: return type;
     }
   }
@@ -633,14 +636,14 @@ export class CustomFieldsComponent implements OnInit {
 
   saveField() {
     if (!this.formData.name || !this.formData.code) {
-      this.formError = 'Заполните обязательные поля';
-      this.toast.error('Заполните обязательные поля');
+      this.formError = this.uiI18n.translate('iam.zapolnite_obyazatelnye_polya');
+      this.toast.error(this.uiI18n.translate('iam.zapolnite_obyazatelnye_polya'));
       return;
     }
 
     const options = this.parseOptionsText(this.formData.optionsText);
     if (this.formData.fieldType === 'select' && options.length === 0) {
-      this.formError = 'Добавьте хотя бы один вариант списка';
+      this.formError = this.uiI18n.translate('iam.dobavte_hotya_by_odin_variant_spiska');
       return;
     }
 
@@ -656,13 +659,13 @@ export class CustomFieldsComponent implements OnInit {
       }).subscribe({
         next: () => {
           this.saving = false;
-          this.toast.success('Поле успешно обновлено');
+          this.toast.success(this.uiI18n.translate('iam.pole_uspeshno_obnovleno'));
           this.closeModal();
           this.loadFields();
         },
         error: () => {
           this.saving = false;
-          this.toast.error('Ошибка сохранения поля');
+          this.toast.error(this.uiI18n.translate('iam.oshibka_sohraneniya_polya'));
         }
       });
     } else {
@@ -678,13 +681,13 @@ export class CustomFieldsComponent implements OnInit {
       }).subscribe({
         next: () => {
           this.saving = false;
-          this.toast.success('Поле успешно создано');
+          this.toast.success(this.uiI18n.translate('iam.pole_uspeshno_sozdano'));
           this.closeModal();
           this.loadFields();
         },
         error: () => {
           this.saving = false;
-          this.toast.error('Ошибка создания поля');
+          this.toast.error(this.uiI18n.translate('iam.oshibka_sozdaniya_polya'));
         }
       });
     }
@@ -700,10 +703,10 @@ export class CustomFieldsComponent implements OnInit {
     this.api.delete(`/custom-fields/${field.id}`).subscribe({
       next: () => {
         this.fieldToDelete = null;
-        this.toast.success('Поле удалено');
+        this.toast.success(this.uiI18n.translate('iam.pole_udaleno'));
         this.loadFields();
       },
-      error: () => this.toast.error('Ошибка удаления поля')
+      error: () => this.toast.error(this.uiI18n.translate('iam.oshibka_udaleniya_polya'))
     });
   }
 

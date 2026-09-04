@@ -8,7 +8,9 @@
     "build": "ng build --configuration production",
     "watch": "ng build --watch --configuration development",
     "test": "ng test --watch=false",
-    "typecheck": "tsc --noEmit -p tsconfig.app.json"
+    "typecheck": "tsc --noEmit -p tsconfig.app.json",
+    "i18n:audit": "node scripts/localization-audit.mjs",
+    "i18n:sync-ru": "node scripts/sync-packaged-russian.mjs"
   },
   "engines": {
     "node": "24.15.0"

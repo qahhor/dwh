@@ -1,6 +1,8 @@
 package com.greenwhite.dwh.instance.md;
 
 import com.greenwhite.dwh.instance.audit.service.AuditLogService;
+import com.greenwhite.dwh.instance.md.repository.MdUserRepository;
+import com.greenwhite.dwh.instance.md.service.MdI18nService;
 import com.greenwhite.dwh.instance.md.repository.MdSettingRepository;
 import com.greenwhite.dwh.instance.md.service.MdSettingService;
 import org.junit.jupiter.api.DisplayName;
@@ -15,8 +17,11 @@ import static org.mockito.Mockito.*;
 class MdSettingServiceTest {
 
     private final MdSettingRepository repository = Mockito.mock(MdSettingRepository.class);
+    private final MdUserRepository userRepository = Mockito.mock(MdUserRepository.class);
+    private final MdI18nService i18nService = Mockito.mock(MdI18nService.class);
     private final AuditLogService auditLogService = Mockito.mock(AuditLogService.class);
-    private final MdSettingService service = new MdSettingService(repository, auditLogService);
+    private final MdSettingService service = new MdSettingService(
+            repository, userRepository, i18nService, auditLogService);
 
     @Test
     @DisplayName("Системные настройки должны возвращать дефолтные значения при пустой базе")
@@ -70,5 +75,36 @@ class MdSettingServiceTest {
                 eq(Map.of("key", "system.company_name", "value", "Old Company Name")),
                 eq(Map.of("key", "system.company_name", "value", "New Company Name"))
         );
+    }
+
+    @Test
+    @DisplayName("Язык пользователя должен сохраняться и в настройках, и в каноническом профиле")
+    void shouldSynchronizeLanguageWithCanonicalUserProfile() {
+        when(i18nService.requireActiveLanguageCode("DE")).thenReturn("de");
+
+        service.updateUserSettings(10L, Map.of(
+                "user.language", "DE",
+                "ui.theme", "light"
+        ));
+
+        verify(repository).setUserSetting(10L, "user.language", "de");
+        verify(repository).setUserSetting(10L, "ui.theme", "light");
+        verify(userRepository).updateLanguage(10L, "de", 10L);
+    }
+
+    @Test
+    @DisplayName("Некорректный язык должен отклоняться до записи любых настроек")
+    void shouldRejectInvalidLanguageBeforeWritingSettings() {
+        var error = new IllegalArgumentException("inactive language");
+        when(i18nService.requireActiveLanguageCode("xx")).thenThrow(error);
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+                service.updateUserSettings(10L, Map.of(
+                        "ui.theme", "light",
+                        "user.language", "xx"
+                )))
+                .isSameAs(error);
+
+        verifyNoInteractions(repository, userRepository);
     }
 }

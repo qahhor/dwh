@@ -1,12 +1,15 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Observable, concatMap, finalize, from, switchMap, toArray } from 'rxjs';
+import { TranslationDictionary, TranslationEditor } from '../../core/models/i18n.models';
 import { ApiService } from '../../core/services/api.service';
 import { ToastService } from '../../core/services/toast.service';
-import { I18nService, Language, TranslatePipe } from '../../core/services/i18n.service';
+import { I18nService, TranslatePipe } from '../../core/services/i18n.service';
 import { PermissionService } from '../../core/services/permission.service';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 import { UiModalComponent } from '../../shared/ui/ui-modal.component';
+import { LanguageEditorComponent } from './language-editor.component';
 
 @Component({
   selector: 'app-settings',
@@ -16,7 +19,8 @@ import { UiModalComponent } from '../../shared/ui/ui-modal.component';
     FormsModule,
     TranslatePipe,
     UiButtonComponent,
-    UiModalComponent
+    UiModalComponent,
+    LanguageEditorComponent
   ],
   template: `
     <div class="settings-page">
@@ -36,7 +40,7 @@ import { UiModalComponent } from '../../shared/ui/ui-modal.component';
 
       <!-- Tabs Navigation -->
       <div class="toolbar">
-        <div class="status-tabs" role="tablist" aria-label="Разделы настроек">
+        <div class="status-tabs" role="tablist" [attr.aria-label]="'settings.razdely_nastroek' | t">
           <button
             *ngIf="canManageSystemSettings()"
             id="settings-general-tab"
@@ -108,7 +112,7 @@ import { UiModalComponent } from '../../shared/ui/ui-modal.component';
             (click)="activeTab = 'languages'"
           >
             <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">language</span>
-            <span>Языки и Локализация</span>
+            <span>{{ 'settings.yazyki_i_lokalizaciya' | t }}</span>
           </button>
 
         </div>
@@ -123,8 +127,8 @@ import { UiModalComponent } from '../../shared/ui/ui-modal.component';
             <div class="card-title-group">
               <span class="material-symbols-outlined card-icon" aria-hidden="true">corporate_fare</span>
               <div>
-                <h3 class="card-title">Конфигурация компании</h3>
-                <p class="card-desc">Глобальные параметры для всех сотрудников организации</p>
+                <h3 class="card-title">{{ 'settings.konfiguraciya_kompanii' | t }}</h3>
+                <p class="card-desc">{{ 'settings.globalnye_parametry_dlya_vseh_sotrudnikov_organi' | t }}</p>
               </div>
             </div>
           </div>
@@ -137,23 +141,23 @@ import { UiModalComponent } from '../../shared/ui/ui-modal.component';
                 name="settingsCompanyName"
                 type="text"
                 class="form-input"
-                [(ngModel)]="systemSettings['system.company_name']"
+                [(ngModel)]="systemSettings()['system.company_name']"
                 placeholder="SmartupCMS"
               />
             </div>
 
             <div class="form-group">
               <label class="form-label" for="settings-default-language">{{ 'settings.default_language' | t }}</label>
-              <select id="settings-default-language" name="settingsDefaultLanguage" class="form-select" [(ngModel)]="systemSettings['system.default_language']">
-                <option value="ru">Русский (RU) 🇷🇺</option>
-                <option value="uz">O'zbekcha (UZ) 🇺🇿</option>
-                <option value="en">English (EN) 🇬🇧</option>
+              <select id="settings-default-language" name="settingsDefaultLanguage" class="form-select" [(ngModel)]="systemSettings()['system.default_language']">
+                <option *ngFor="let lang of i18n.languages()" [value]="lang.code">
+                  {{ lang.name }} ({{ lang.code.toUpperCase() }})
+                </option>
               </select>
             </div>
 
             <div class="form-group">
               <label class="form-label" for="settings-default-timezone">{{ 'settings.default_timezone' | t }}</label>
-              <select id="settings-default-timezone" name="settingsDefaultTimezone" class="form-select" [(ngModel)]="systemSettings['system.default_timezone']">
+              <select id="settings-default-timezone" name="settingsDefaultTimezone" class="form-select" [(ngModel)]="systemSettings()['system.default_timezone']">
                 <option value="Asia/Tashkent">Asia/Tashkent (UTC+5)</option>
                 <option value="Asia/Almaty">Asia/Almaty (UTC+5)</option>
                 <option value="Europe/Moscow">Europe/Moscow (UTC+3)</option>
@@ -163,7 +167,7 @@ import { UiModalComponent } from '../../shared/ui/ui-modal.component';
 
             <div class="form-group">
               <label class="form-label" for="settings-date-format">{{ 'settings.date_format' | t }}</label>
-              <select id="settings-date-format" name="settingsDateFormat" class="form-select" [(ngModel)]="systemSettings['system.date_format']">
+              <select id="settings-date-format" name="settingsDateFormat" class="form-select" [(ngModel)]="systemSettings()['system.date_format']">
                 <option value="dd.MM.yyyy HH:mm">29.08.2026 14:30 (dd.MM.yyyy HH:mm)</option>
                 <option value="yyyy-MM-dd HH:mm">2026-08-29 14:30 (yyyy-MM-dd HH:mm)</option>
                 <option value="MM/dd/yyyy hh:mm a">08/29/2026 02:30 PM (MM/dd/yyyy)</option>
@@ -188,8 +192,8 @@ import { UiModalComponent } from '../../shared/ui/ui-modal.component';
             <div class="card-title-group">
               <span class="material-symbols-outlined card-icon" aria-hidden="true">lock</span>
               <div>
-                <h3 class="card-title">Политики безопасности и авторизации</h3>
-                <p class="card-desc">Требования к паролям, 2FA и веб-сессиям</p>
+                <h3 class="card-title">{{ 'settings.politiki_bezopasnosti_i_avtorizacii' | t }}</h3>
+                <p class="card-desc">{{ 'settings.trebovaniya_k_parolyam_2fa_i_veb_sessiyam' | t }}</p>
               </div>
             </div>
           </div>
@@ -205,9 +209,9 @@ import { UiModalComponent } from '../../shared/ui/ui-modal.component';
                 max="32"
                 class="form-input"
                 aria-describedby="settings-password-length-hint"
-                [(ngModel)]="systemSettings['security.min_password_length']"
+                [(ngModel)]="systemSettings()['security.min_password_length']"
               />
-              <span id="settings-password-length-hint" class="hint-text">Рекомендуется не менее 10 символов</span>
+              <span id="settings-password-length-hint" class="hint-text">{{ 'settings.rekomenduetsya_ne_menee_10_simvolov' | t }}</span>
             </div>
 
             <div class="form-group">
@@ -220,16 +224,16 @@ import { UiModalComponent } from '../../shared/ui/ui-modal.component';
                 max="8760"
                 class="form-input"
                 aria-describedby="settings-session-lifetime-hint"
-                [(ngModel)]="systemSettings['security.session_lifetime_hours']"
+                [(ngModel)]="systemSettings()['security.session_lifetime_hours']"
               />
-              <span id="settings-session-lifetime-hint" class="hint-text">По умолчанию: 720 часов (30 дней)</span>
+              <span id="settings-session-lifetime-hint" class="hint-text">{{ 'settings.po_umolchaniyu_720_chasov_30_dney' | t }}</span>
             </div>
 
             <div class="form-group full-width">
               <div class="toggle-row">
                 <div class="toggle-info">
                   <span id="settings-require-2fa-label" class="toggle-title">{{ 'settings.require_2fa' | t }}</span>
-                  <span class="toggle-desc">Принудительно требовать двухфакторную аутентификацию (OTP) для всех аккаунтов</span>
+                  <span class="toggle-desc">{{ 'settings.prinuditelno_trebovat_dvuhfaktornuyu_autentifika' | t }}</span>
                 </div>
                 <label class="switch-toggle">
                   <input
@@ -237,7 +241,7 @@ import { UiModalComponent } from '../../shared/ui/ui-modal.component';
                     name="settingsRequire2fa"
                     type="checkbox"
                     aria-labelledby="settings-require-2fa-label"
-                    [checked]="systemSettings['security.require_2fa'] === 'true'"
+                    [checked]="systemSettings()['security.require_2fa'] === 'true'"
                     (change)="toggleRequire2fa($event)"
                   />
                   <span class="toggle-slider" aria-hidden="true"></span>
@@ -263,8 +267,8 @@ import { UiModalComponent } from '../../shared/ui/ui-modal.component';
             <div class="card-title-group">
               <span class="material-symbols-outlined card-icon" aria-hidden="true">folder_shared</span>
               <div>
-                <h3 class="card-title">Параметры хранилища и квоты</h3>
-                <p class="card-desc">Лимиты дискового пространства для новых сотрудников</p>
+                <h3 class="card-title">{{ 'settings.parametry_hranilischa_i_kvoty' | t }}</h3>
+                <p class="card-desc">{{ 'settings.limity_diskovogo_prostranstva_dlya_novyh_sotrudn' | t }}</p>
               </div>
             </div>
           </div>
@@ -280,9 +284,9 @@ import { UiModalComponent } from '../../shared/ui/ui-modal.component';
                 max="102400"
                 class="form-input"
                 aria-describedby="settings-user-quota-hint"
-                [(ngModel)]="systemSettings['storage.default_user_quota_mb']"
+                [(ngModel)]="systemSettings()['storage.default_user_quota_mb']"
               />
-              <span id="settings-user-quota-hint" class="hint-text">1024 MB = 1 GB на каждого сотрудника</span>
+              <span id="settings-user-quota-hint" class="hint-text">{{ 'settings.1024_mb_1_gb_na_kazhdogo_sotrudnika' | t }}</span>
             </div>
           </div>
 
@@ -303,28 +307,28 @@ import { UiModalComponent } from '../../shared/ui/ui-modal.component';
             <div class="card-title-group">
               <span class="material-symbols-outlined card-icon" aria-hidden="true">palette</span>
               <div>
-                <h3 class="card-title">Персональные предпочтения</h3>
-                <p class="card-desc">Настройки внешнего вида и языка для вашей учётной записи</p>
+                <h3 class="card-title">{{ 'settings.personalnye_predpochteniya' | t }}</h3>
+                <p class="card-desc">{{ 'settings.nastroyki_vneshnego_vida_i_yazyka_dlya_vashey_uc' | t }}</p>
               </div>
             </div>
           </div>
 
           <div class="form-grid">
             <div class="form-group">
-              <label class="form-label" for="settings-interface-language">Язык интерфейса</label>
+              <label class="form-label" for="settings-interface-language">{{ 'settings.yazyk_interfeysa' | t }}</label>
               <select id="settings-interface-language" name="settingsInterfaceLanguage" class="form-select" [ngModel]="i18n.currentLang()" (ngModelChange)="changePersonalLang($event)">
-                <option value="ru">Русский (RU) 🇷🇺</option>
-                <option value="uz">O'zbekcha (UZ) 🇺🇿</option>
-                <option value="en">English (EN) 🇬🇧</option>
+                <option *ngFor="let lang of i18n.languages()" [value]="lang.code">
+                  {{ lang.name }} ({{ lang.code.toUpperCase() }})
+                </option>
               </select>
             </div>
 
             <div class="form-group">
               <label class="form-label" for="settings-theme">{{ 'settings.theme' | t }}</label>
-              <select id="settings-theme" name="settingsTheme" class="form-select" [(ngModel)]="userSettings['user.theme']">
-                <option value="dark">Тёмная (Dark Premium) 🌙</option>
-                <option value="light">Светлая (Light Clean) ☀️</option>
-                <option value="system">Системная тема 💻</option>
+              <select id="settings-theme" name="settingsTheme" class="form-select" [(ngModel)]="userSettings()['user.theme']">
+                <option value="dark">{{ 'settings.temnaya_dark_premium' | t }}</option>
+                <option value="light">{{ 'settings.svetlaya_light_clean' | t }}</option>
+                <option value="system">{{ 'settings.sistemnaya_tema' | t }}</option>
               </select>
             </div>
 
@@ -332,7 +336,7 @@ import { UiModalComponent } from '../../shared/ui/ui-modal.component';
               <div class="toggle-row">
                 <div class="toggle-info">
                   <span id="settings-notification-sound-label" class="toggle-title">{{ 'settings.notifications_sound' | t }}</span>
-                  <span class="toggle-desc">Воспроизводить звуковой сигнал при получении нового уведомления</span>
+                  <span class="toggle-desc">{{ 'settings.vosproizvodit_zvukovoy_signal_pri_poluchenii_nov' | t }}</span>
                 </div>
                 <label class="switch-toggle">
                   <input
@@ -340,7 +344,7 @@ import { UiModalComponent } from '../../shared/ui/ui-modal.component';
                     name="settingsNotificationSound"
                     type="checkbox"
                     aria-labelledby="settings-notification-sound-label"
-                    [checked]="userSettings['user.notifications_sound'] !== 'false'"
+                    [checked]="userSettings()['user.notifications_sound'] !== 'false'"
                     (change)="toggleSound($event)"
                   />
                   <span class="toggle-slider" aria-hidden="true"></span>
@@ -361,18 +365,41 @@ import { UiModalComponent } from '../../shared/ui/ui-modal.component';
       <!-- TAB 6: LANGUAGES & TRANSLATIONS -->
       <!-- =================================================================== -->
       <div id="settings-languages-panel" class="tab-content" role="tabpanel" aria-labelledby="settings-languages-tab" *ngIf="activeTab === 'languages' && canManageSystemSettings()">
-        <div class="settings-card">
+        <app-language-editor
+          *ngIf="editingLanguageCode() as code"
+          [languageCode]="code"
+          (closed)="editingLanguageCode.set(null)"
+          (saved)="onLanguageSaved()"
+        />
+
+        <div class="settings-card" *ngIf="!editingLanguageCode()">
+          <div class="legacy-import" *ngIf="legacyLanguageCount() > 0" role="status">
+            <div>
+              <strong>{{ 'settings.legacy_packages_found' | t:{count: legacyLanguageCount()} }}</strong>
+              <span>{{ 'settings.perenesite_ih_v_obschee_servernoe_hranilische_ch' | t }}</span>
+            </div>
+            <button
+              id="migrate-legacy-languages"
+              type="button"
+              class="btn btn-secondary"
+              *ngIf="canUpdateSystemSettings()"
+              [disabled]="isMigratingLegacyLanguages()"
+              (click)="migrateLegacyLanguages()"
+            >
+              {{ (isMigratingLegacyLanguages() ? 'settings.migrating' : 'settings.migrate') | t }}
+            </button>
+          </div>
           <div class="card-header-bar">
             <div class="card-title-group">
               <span class="material-symbols-outlined card-icon" aria-hidden="true">translate</span>
               <div>
-                <h3 class="card-title">Управление языковыми пакетами и локализацией</h3>
-                <p class="card-desc">Динамическое добавление новых языков и импорт/экспорт JSON-словарей</p>
+                <h3 class="card-title">{{ 'settings.upravlenie_yazykovymi_paketami_i_lokalizaciey' | t }}</h3>
+                <p class="card-desc">{{ 'settings.dinamicheskoe_dobavlenie_novyh_yazykov_i_import_' | t }}</p>
               </div>
             </div>
-            <button type="button" class="btn btn-primary" (click)="openAddLangModal()">
+            <button type="button" class="btn btn-primary" *ngIf="canUpdateSystemSettings()" (click)="openAddLangModal()">
               <span class="material-symbols-outlined" aria-hidden="true">add</span>
-              <span>Добавить язык</span>
+              <span>{{ 'settings.dobavit_yazyk' | t }}</span>
             </button>
           </div>
 
@@ -381,11 +408,12 @@ import { UiModalComponent } from '../../shared/ui/ui-modal.component';
               <table>
                 <thead>
                   <tr>
-                    <th>Код</th>
-                    <th>Название языка</th>
-                    <th>Тип</th>
-                    <th>Статус</th>
-                    <th style="text-align: right;">Действия</th>
+                    <th>{{ 'settings.kod' | t }}</th>
+                    <th>{{ 'settings.nazvanie_yazyka' | t }}</th>
+                    <th>{{ 'settings.tip' | t }}</th>
+                    <th>{{ 'settings.gotovnost' | t }}</th>
+                    <th>{{ 'common.status' | t }}</th>
+                    <th style="text-align: right;">{{ 'common.actions' | t }}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -393,22 +421,32 @@ import { UiModalComponent } from '../../shared/ui/ui-modal.component';
                     <td><span class="badge badge-neutral mono">{{ lang.code.toUpperCase() }}</span></td>
                     <td class="font-medium">{{ lang.name }}</td>
                     <td>
-                      <span class="badge" [class.badge-active]="!lang.isCustom" [class.badge-info]="lang.isCustom">
-                        {{ lang.isCustom ? 'Пользовательский' : 'Встроенный' }}
+                      <span class="badge" [class.badge-active]="lang.builtin" [class.badge-info]="!lang.builtin">
+                        {{ (lang.builtin ? 'settings.builtin' : 'settings.custom') | t }}
                       </span>
                     </td>
                     <td>
-                      <span class="badge badge-active" *ngIf="i18n.currentLang() === lang.code">Текущий активный</span>
-                      <span class="badge badge-neutral" *ngIf="i18n.currentLang() !== lang.code">Доступен</span>
+                      <div class="language-coverage" [attr.aria-label]="'settings.coverage_percent' | t:{coverage: lang.coverage}">
+                        <span class="coverage-track"><span [style.width.%]="lang.coverage"></span></span>
+                        <span>{{ lang.translated }}/{{ lang.total }} · {{ lang.coverage }}%</span>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="badge badge-active" *ngIf="i18n.currentLang() === lang.code">{{ 'settings.tekuschiy_aktivnyy' | t }}</span>
+                      <span class="badge badge-neutral" *ngIf="i18n.currentLang() !== lang.code">{{ 'settings.dostupen' | t }}</span>
                     </td>
                     <td style="text-align: right;">
                       <div class="table-actions-right">
-                        <button type="button" class="btn btn-secondary btn-sm" (click)="exportLangJson(lang.code)" title="Экспортировать JSON">
+                        <button type="button" class="btn btn-secondary btn-sm" [attr.data-testid]="'edit-language-' + lang.code" (click)="openLanguageEditor(lang.code)">
+                          <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+                          <span>{{ 'common.edit' | t }}</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" (click)="exportLangJson(lang.code)" [title]="'settings.eksportirovat_json' | t">
                           <span class="material-symbols-outlined" aria-hidden="true">download</span>
                           <span>JSON</span>
                         </button>
-                        <button type="button" class="btn btn-primary btn-sm" *ngIf="i18n.currentLang() !== lang.code" (click)="i18n.setLanguage(lang.code)">
-                          <span>Активировать</span>
+                        <button type="button" class="btn btn-primary btn-sm" [attr.data-testid]="'switch-language-' + lang.code" *ngIf="i18n.currentLang() !== lang.code" (click)="switchLanguage(lang.code)">
+                          <span>{{ 'settings.pereklyuchitsya' | t }}</span>
                         </button>
                       </div>
                     </td>
@@ -425,27 +463,27 @@ import { UiModalComponent } from '../../shared/ui/ui-modal.component';
     <!-- Modal: Add New Custom Language -->
     <ui-modal
       *ngIf="isAddLangModalOpen()"
-      title="Добавление нового языка"
-      ariaLabel="Добавление нового языка"
+      [title]="'settings.dobavlenie_novogo_yazyka' | t"
+      [ariaLabel]="'settings.dobavlenie_novogo_yazyka' | t"
       (close)="isAddLangModalOpen.set(false)"
     >
       <div class="form-grid">
         <div class="form-group">
-          <label class="form-label" for="new-lang-code">Код языка (ISO 639-1)</label>
+          <label class="form-label" for="new-lang-code">{{ 'settings.kod_yazyka_iso_639_1' | t }}</label>
           <input id="new-lang-code" type="text" class="form-input" [(ngModel)]="newLangCode" placeholder="kk, ky, tg, de, tr" maxlength="10">
         </div>
         <div class="form-group">
-          <label class="form-label" for="new-lang-name">Название языка</label>
-          <input id="new-lang-name" type="text" class="form-input" [(ngModel)]="newLangName" placeholder="Қазақша, Deutsch, etc.">
+          <label class="form-label" for="new-lang-name">{{ 'settings.nazvanie_yazyka' | t }}</label>
+          <input id="new-lang-name" type="text" class="form-input" [(ngModel)]="newLangName" [placeholder]="'settings.aza_sha_deutsch_etc' | t">
         </div>
         <div class="form-group full-width">
-          <label class="form-label" for="new-lang-json">JSON словарь переводов (опционально)</label>
-          <textarea id="new-lang-json" class="form-input mono" rows="6" [(ngModel)]="newLangJson" placeholder='{ "nav.tasks": "Тапсырмалар", "common.save": "Сақтау" }'></textarea>
+          <label class="form-label" for="new-lang-json">{{ 'settings.json_slovar_perevodov_opcionalno' | t }}</label>
+          <textarea id="new-lang-json" class="form-input mono" rows="6" [(ngModel)]="newLangJson" [placeholder]="'settings.translation_json_example' | t"></textarea>
         </div>
       </div>
       <div modal-footer class="modal-footer-btns">
-        <button type="button" class="btn btn-secondary" (click)="isAddLangModalOpen.set(false)">Отмена</button>
-        <button type="button" class="btn btn-primary" (click)="saveNewLanguage()" [disabled]="!newLangCode || !newLangName">Сохранить язык</button>
+        <button type="button" class="btn btn-secondary" (click)="isAddLangModalOpen.set(false)">{{ 'common.cancel' | t }}</button>
+        <button type="button" class="btn btn-primary" (click)="saveNewLanguage()" [disabled]="!newLangCode || !newLangName">{{ 'settings.sohranit_yazyk' | t }}</button>
       </div>
     </ui-modal>
 
@@ -720,17 +758,63 @@ import { UiModalComponent } from '../../shared/ui/ui-modal.component';
       border-top: 1px solid var(--border-subtle);
     }
 
+    .language-coverage {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 112px;
+      color: var(--text-light);
+      font-size: 11px;
+    }
+
+    .coverage-track {
+      display: block;
+      width: 100%;
+      height: 5px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: var(--bg-active);
+    }
+
+    .coverage-track > span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--primary);
+    }
+    .legacy-import {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin: 16px 20px 0;
+      padding: 12px 14px;
+      border: 1px solid var(--warning, #d59b00);
+      border-radius: 9px;
+      color: var(--text-main);
+      background: var(--warning-soft, #fff8e1);
+    }
+    .legacy-import > div { display: grid; gap: 3px; }
+    .legacy-import span { color: var(--text-light); font-size: 12px; }
+    @media (max-width: 680px) {
+      .legacy-import { align-items: stretch; flex-direction: column; }
+    }
+
   `]
 })
 export class SettingsComponent implements OnInit {
+  private readonly uiI18n = inject(I18nService);
   activeTab: 'general' | 'security' | 'storage' | 'preferences' | 'languages' = 'general';
 
-  systemSettings: Record<string, string> = {};
-  userSettings: Record<string, string> = {};
+  readonly systemSettings = signal<Record<string, string>>({});
+  readonly userSettings = signal<Record<string, string>>({});
   readonly isSaving = signal<boolean>(false);
 
   // Languages Management
   readonly isAddLangModalOpen = signal<boolean>(false);
+  readonly editingLanguageCode = signal<string | null>(null);
+  readonly legacyLanguageCount = signal(0);
+  readonly isMigratingLegacyLanguages = signal(false);
   newLangCode = '';
   newLangName = '';
   newLangJson = '';
@@ -746,6 +830,7 @@ export class SettingsComponent implements OnInit {
     if (!this.canManageSystemSettings()) {
       this.activeTab = 'preferences';
     }
+    this.legacyLanguageCount.set(Object.keys(this.readLegacyLanguages()).length);
     this.loadAllSettings();
   }
 
@@ -756,22 +841,27 @@ export class SettingsComponent implements OnInit {
            this.permService.hasPermission('settings', 'update');
   }
 
+  canUpdateSystemSettings(): boolean {
+    return this.permService.hasPermission('platform.settings', 'update') ||
+           this.permService.hasPermission('settings', 'update');
+  }
+
   loadAllSettings() {
     if (this.canManageSystemSettings()) {
       this.api.get<Record<string, string>>('/settings/system').subscribe({
-        next: res => this.systemSettings = { ...res }
+        next: res => this.systemSettings.set({ ...res })
       });
 
     }
 
     this.api.get<Record<string, string>>('/settings/user').subscribe({
-      next: res => this.userSettings = { ...res }
+      next: res => this.userSettings.set({ ...res })
     });
   }
 
   saveSystemSettings() {
     this.isSaving.set(true);
-    this.api.patch('/settings/system', this.systemSettings).subscribe({
+    this.api.patch('/settings/system', this.systemSettings()).subscribe({
       next: () => {
         this.isSaving.set(false);
         this.toast.success(this.i18n.translate('common.saved'));
@@ -782,7 +872,7 @@ export class SettingsComponent implements OnInit {
 
   saveUserSettings() {
     this.isSaving.set(true);
-    this.api.patch('/settings/user', this.userSettings).subscribe({
+    this.api.patch('/settings/user', this.userSettings()).subscribe({
       next: () => {
         this.isSaving.set(false);
         this.toast.success(this.i18n.translate('common.saved'));
@@ -792,16 +882,23 @@ export class SettingsComponent implements OnInit {
   }
 
   changePersonalLang(lang: string) {
-    this.i18n.setLanguage(lang);
-    this.userSettings['user.language'] = lang;
+    this.i18n.setLanguage(lang).subscribe({
+      next: () => this.userSettings.update(settings => ({ ...settings, 'user.language': lang }))
+    });
   }
 
   toggleRequire2fa(event: any) {
-    this.systemSettings['security.require_2fa'] = event.target.checked ? 'true' : 'false';
+    this.systemSettings.update(settings => ({
+      ...settings,
+      'security.require_2fa': event.target.checked ? 'true' : 'false'
+    }));
   }
 
   toggleSound(event: any) {
-    this.userSettings['user.notifications_sound'] = event.target.checked ? 'true' : 'false';
+    this.userSettings.update(settings => ({
+      ...settings,
+      'user.notifications_sound': event.target.checked ? 'true' : 'false'
+    }));
   }
 
   // Language management methods
@@ -812,6 +909,45 @@ export class SettingsComponent implements OnInit {
     this.isAddLangModalOpen.set(true);
   }
 
+  openLanguageEditor(code: string) {
+    this.editingLanguageCode.set(code);
+  }
+
+  onLanguageSaved() {
+    this.i18n.refreshLanguages().subscribe();
+  }
+
+  migrateLegacyLanguages(): void {
+    const legacyLanguages = this.readLegacyLanguages();
+    const entries = Object.entries(legacyLanguages);
+    if (entries.length === 0 || !this.canUpdateSystemSettings()) return;
+    if (!window.confirm(
+      this.uiI18n.translate('settings.confirm_legacy_migration', { count: entries.length })
+    )) return;
+
+    this.isMigratingLegacyLanguages.set(true);
+    this.api.get<TranslationEditor>('/i18n/admin/languages/ru/translations').pipe(
+      switchMap(russianEditor => {
+        const knownKeys = new Set(russianEditor.entries.map(entry => entry.key));
+        return from(entries).pipe(
+          concatMap(([code, legacy]) => this.migrateLegacyLanguage(code, legacy, knownKeys)),
+          toArray()
+        );
+      }),
+      switchMap(() => this.i18n.refreshLanguages()),
+      finalize(() => this.isMigratingLegacyLanguages.set(false))
+    ).subscribe({
+      next: () => {
+        localStorage.removeItem('dwh_custom_languages');
+        this.legacyLanguageCount.set(0);
+        this.toast.success(this.uiI18n.translate('settings.lokalnye_yazykovye_pakety_pereneseny_v_servernoe'));
+      },
+      error: () => this.toast.error(
+        this.uiI18n.translate('settings.ne_udalos_perenesti_yazykovye_pakety_lokalnaya_k')
+      )
+    });
+  }
+
   saveNewLanguage() {
     if (!this.newLangCode || !this.newLangName) return;
 
@@ -820,26 +956,100 @@ export class SettingsComponent implements OnInit {
       try {
         dict = JSON.parse(this.newLangJson);
       } catch (e) {
-        this.toast.error('Неверный формат JSON словаря');
+        this.toast.error(this.uiI18n.translate('settings.nevernyy_format_json_slovarya'));
         return;
       }
     }
 
-    this.i18n.registerLanguage(this.newLangCode, this.newLangName, dict);
-    this.isAddLangModalOpen.set(false);
-    this.toast.success(`Язык ${this.newLangName} успешно добавлен в систему!`);
+    const name = this.newLangName;
+    this.i18n.registerLanguage(this.newLangCode, name, dict).subscribe({
+      next: () => {
+        this.isAddLangModalOpen.set(false);
+        this.toast.success(this.uiI18n.translate('settings.language_added', { name }));
+      }
+    });
+  }
+
+  switchLanguage(lang: string) {
+    this.i18n.setLanguage(lang).subscribe();
   }
 
   exportLangJson(langCode: string) {
-    const json = this.i18n.exportDictionary(langCode);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `dwh-translations-${langCode}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    this.toast.info(`Словарь ${langCode.toUpperCase()} экспортирован в JSON`);
+    this.api.get<Record<string, string>>(`/i18n/${langCode}`).subscribe(dictionary => {
+      const blob = new Blob([JSON.stringify(dictionary, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `smartupcms-translations-${langCode}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      this.toast.info(this.uiI18n.translate('settings.dictionary_exported', {
+        code: langCode.toUpperCase()
+      }));
+    });
   }
 
+  private migrateLegacyLanguage(
+    code: string,
+    legacy: LegacyLanguage,
+    knownKeys: Set<string>
+  ): Observable<unknown> {
+    const translations = this.filterKnownTranslations(legacy.dict, knownKeys);
+    const existing = this.i18n.languages().some(language => language.code === code);
+    if (!existing) {
+      return this.i18n.registerLanguage(code, legacy.name, translations);
+    }
+
+    return this.api.get<TranslationEditor>(`/i18n/admin/languages/${code}/translations`).pipe(
+      switchMap(editor => {
+        const merged: TranslationDictionary = {};
+        for (const entry of editor.entries) {
+          if (entry.overrideValue) merged[entry.key] = entry.overrideValue;
+        }
+        Object.assign(merged, translations);
+        return this.api.put(`/i18n/admin/languages/${code}/translations`, {
+          expectedRevision: editor.language.revision,
+          translations: merged
+        });
+      })
+    );
+  }
+
+  private filterKnownTranslations(
+    dictionary: TranslationDictionary,
+    knownKeys: Set<string>
+  ): TranslationDictionary {
+    return Object.fromEntries(Object.entries(dictionary).filter(([key, value]) =>
+      knownKeys.has(key) && typeof value === 'string' && value.trim().length > 0 && value.length <= 4000
+    ));
+  }
+
+  private readLegacyLanguages(): Record<string, LegacyLanguage> {
+    try {
+      const parsed: unknown = JSON.parse(localStorage.getItem('dwh_custom_languages') ?? '{}');
+      if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') return {};
+      const result: Record<string, LegacyLanguage> = {};
+      for (const [rawCode, rawEntry] of Object.entries(parsed)) {
+        const code = rawCode.trim().toLowerCase();
+        if (!/^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/.test(code)
+            || !rawEntry || Array.isArray(rawEntry) || typeof rawEntry !== 'object') continue;
+        const entry = rawEntry as { name?: unknown; dict?: unknown };
+        if (typeof entry.name !== 'string' || !entry.name.trim()
+            || !entry.dict || Array.isArray(entry.dict) || typeof entry.dict !== 'object') continue;
+        const dict = Object.fromEntries(Object.entries(entry.dict).filter((pair): pair is [string, string] =>
+          typeof pair[1] === 'string'
+        ));
+        result[code] = { name: entry.name.trim(), dict };
+      }
+      return result;
+    } catch {
+      return {};
+    }
+  }
+
+}
+
+interface LegacyLanguage {
+  name: string;
+  dict: TranslationDictionary;
 }

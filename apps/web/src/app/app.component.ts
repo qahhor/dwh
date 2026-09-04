@@ -2,15 +2,17 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthService } from './core/services/auth.service';
+import { TranslatePipe } from './core/services/i18n.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [
+    TranslatePipe,CommonModule, RouterModule],
   template: `
     <div *ngIf="authService.isLoading()" class="app-loader">
       <div class="loader-spinner"></div>
-      <div class="loader-text">Инициализация SmartupCMS…</div>
+      <div class="loader-text">{{ 'app.inicializaciya_smartupcms' | t }}</div>
     </div>
 
     <router-outlet *ngIf="!authService.isLoading()"></router-outlet>

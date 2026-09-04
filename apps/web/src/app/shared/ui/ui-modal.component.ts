@@ -10,11 +10,12 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { A11yModule } from '@angular/cdk/a11y';
+import { TranslatePipe } from '../../core/services/i18n.service';
 
 @Component({
   selector: 'ui-modal',
   standalone: true,
-  imports: [CommonModule, A11yModule],
+  imports: [CommonModule, A11yModule, TranslatePipe],
   template: `
     <div *ngIf="isOpen" class="modal-backdrop" (click)="onBackdropClick($event)">
       <div
@@ -32,7 +33,7 @@ import { A11yModule } from '@angular/cdk/a11y';
             type="button"
             class="modal-close"
             (click)="close.emit()"
-            [attr.aria-label]="'Закрыть диалог «' + title + '»'"
+            [attr.aria-label]="'ui.modal.close_named_dialog' | t:{title: title}"
           >
             <span class="material-symbols-outlined" aria-hidden="true">close</span>
           </button>

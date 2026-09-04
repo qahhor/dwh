@@ -6,6 +6,7 @@ import { ToastService } from '../../core/services/toast.service';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 import { UiModalComponent } from '../../shared/ui/ui-modal.component';
 import { UiPaginationComponent } from '../../shared/ui/ui-pagination.component';
+import { TranslatePipe } from '../../core/services/i18n.service';
 
 export interface AuditRecord {
   id: number;
@@ -46,6 +47,7 @@ export interface AuditStats {
   selector: 'app-audit',
   standalone: true,
   imports: [
+    TranslatePipe,
     CommonModule,
     FormsModule,
     UiButtonComponent,
@@ -57,13 +59,13 @@ export interface AuditStats {
       <!-- Page Header -->
       <div class="view-header">
         <div class="header-left">
-          <h1 class="view-title">Аудит и безопасность</h1>
+          <h1 class="view-title">{{ 'nav.audit' | t }}</h1>
           <span class="count-badge">WORM Log</span>
         </div>
         <div class="header-right">
-          <button type="button" class="btn btn-secondary" aria-label="Обновить журнал аудита" (click)="refreshAll()" title="Обновить журнал">
+          <button type="button" class="btn btn-secondary" [attr.aria-label]="'audit.obnovit_zhurnal_audita' | t" (click)="refreshAll()" [title]="'audit.obnovit_zhurnal' | t">
             <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
-            <span>Обновить</span>
+            <span>{{ 'common.refresh' | t }}</span>
           </button>
         </div>
       </div>
@@ -72,34 +74,34 @@ export interface AuditStats {
       <div class="tiles" *ngIf="stats() as s">
         <div class="tile">
           <div class="tile-header">
-            <span class="tile-label">Всего записей аудита</span>
+            <span class="tile-label">{{ 'audit.vsego_zapisey_audita' | t }}</span>
             <span class="material-symbols-outlined" style="color: var(--primary);">history</span>
           </div>
           <div class="tile-value">{{ s.totalAuditLogs }}</div>
-          <div class="tile-meta" style="color: var(--text-muted); font-size: 11px;">Неизменяемый журнал</div>
+          <div class="tile-meta" style="color: var(--text-muted); font-size: 11px;">{{ 'audit.neizmenyaemyy_zhurnal' | t }}</div>
         </div>
 
         <div class="tile">
           <div class="tile-header">
-            <span class="tile-label">Событий безопасности</span>
+            <span class="tile-label">{{ 'audit.sobytiy_bezopasnosti' | t }}</span>
             <span class="material-symbols-outlined" style="color: var(--info);">security</span>
           </div>
           <div class="tile-value">{{ s.totalSecurityEvents }}</div>
-          <div class="tile-meta" style="color: var(--text-muted); font-size: 11px;">Все типы событий</div>
+          <div class="tile-meta" style="color: var(--text-muted); font-size: 11px;">{{ 'audit.vse_tipy_sobytiy' | t }}</div>
         </div>
 
         <div class="tile">
           <div class="tile-header">
-            <span class="tile-label">Событий за 24 часа</span>
+            <span class="tile-label">{{ 'audit.sobytiy_za_24_chasa' | t }}</span>
             <span class="material-symbols-outlined" style="color: var(--warning);">schedule</span>
           </div>
           <div class="tile-value">{{ s.securityEventsLast24h }}</div>
-          <div class="tile-meta" style="color: var(--text-muted); font-size: 11px;">Суточная активность</div>
+          <div class="tile-meta" style="color: var(--text-muted); font-size: 11px;">{{ 'audit.sutochnaya_aktivnost' | t }}</div>
         </div>
 
         <div class="tile" [class.tile-alarm]="s.failedLoginsLast24h > 0">
           <div class="tile-header">
-            <span class="tile-label">Неудачных входов / блокировок</span>
+            <span class="tile-label">{{ 'audit.neudachnyh_vhodov_blokirovok' | t }}</span>
             <span class="material-symbols-outlined" [style.color]="s.failedLoginsLast24h > 0 ? 'var(--danger)' : 'var(--success)'">
               {{ s.failedLoginsLast24h > 0 ? 'gpp_bad' : 'verified_user' }}
             </span>
@@ -108,14 +110,14 @@ export interface AuditStats {
             {{ s.failedLoginsLast24h }}
           </div>
           <div class="tile-meta" [style.color]="s.failedLoginsLast24h > 0 ? 'var(--danger)' : 'var(--success)'" style="font-size: 11px; font-weight: 600;">
-            {{ s.failedLoginsLast24h > 0 ? 'Требует внимания' : 'Аномалий не обнаружено' }}
+            {{ (s.failedLoginsLast24h > 0 ? 'audit.trebuet_vnimaniya' : 'audit.anomaliy_ne_obnaruzheno') | t }}
           </div>
         </div>
       </div>
 
       <!-- Tabs Navigation -->
       <div class="toolbar">
-        <div class="status-tabs" role="tablist" aria-label="Разделы аудита">
+        <div class="status-tabs" role="tablist" [attr.aria-label]="'audit.razdely_audita' | t">
           <button
             id="audit-log-tab"
             type="button"
@@ -127,7 +129,7 @@ export interface AuditStats {
             (click)="setTab('audit')"
           >
             <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">database</span>
-            <span>Журнал изменений данных ({{ auditLogs().length }})</span>
+            <span>{{ 'audit.change_log_count' | t:{count: auditLogs().length} }}</span>
           </button>
           <button
             id="security-events-tab"
@@ -140,7 +142,7 @@ export interface AuditStats {
             (click)="setTab('security')"
           >
             <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">shield</span>
-            <span>События безопасности ({{ securityEvents().length }})</span>
+            <span>{{ 'audit.security_events_count' | t:{count: securityEvents().length} }}</span>
           </button>
         </div>
       </div>
@@ -152,38 +154,38 @@ export interface AuditStats {
         <!-- Filter Toolbar -->
         <div class="filter-toolbar">
           <div class="filter-group">
-            <label class="sr-only" for="audit-table-filter">Фильтр журнала по таблице</label>
+            <label class="sr-only" for="audit-table-filter">{{ 'audit.filtr_zhurnala_po_tablice' | t }}</label>
             <select id="audit-table-filter" name="auditTableFilter" class="filter-select" [(ngModel)]="tableFilter" (change)="loadAuditLogs()">
-              <option value="">Все таблицы</option>
-              <option value="md_users">Пользователи (md_users)</option>
-              <option value="ms_tasks">Задачи (ms_tasks)</option>
-              <option value="ms_projects">Проекты (ms_projects)</option>
-              <option value="md_roles">Роли и права (md_roles)</option>
-              <option value="md_custom_fields">Динамические поля (md_custom_fields)</option>
+              <option value="">{{ 'audit.vse_tablicy' | t }}</option>
+              <option value="md_users">{{ 'audit.polzovateli_md_users' | t }}</option>
+              <option value="ms_tasks">{{ 'audit.zadachi_ms_tasks' | t }}</option>
+              <option value="ms_projects">{{ 'audit.proekty_ms_projects' | t }}</option>
+              <option value="md_roles">{{ 'audit.roli_i_prava_md_roles' | t }}</option>
+              <option value="md_custom_fields">{{ 'audit.dinamicheskie_polya_md_custom_fields' | t }}</option>
             </select>
 
-            <label class="sr-only" for="audit-event-filter">Фильтр журнала по действию</label>
+            <label class="sr-only" for="audit-event-filter">{{ 'audit.filtr_zhurnala_po_deystviyu' | t }}</label>
             <select id="audit-event-filter" name="auditEventFilter" class="filter-select" [(ngModel)]="eventFilter" (change)="loadAuditLogs()">
-              <option value="">Все действия</option>
-              <option value="I">Создание (INSERT)</option>
-              <option value="U">Изменение (UPDATE)</option>
-              <option value="D">Удаление (DELETE)</option>
+              <option value="">{{ 'audit.vse_deystviya' | t }}</option>
+              <option value="I">{{ 'audit.sozdanie_insert' | t }}</option>
+              <option value="U">{{ 'audit.izmenenie_update' | t }}</option>
+              <option value="D">{{ 'audit.udalenie_delete' | t }}</option>
             </select>
           </div>
         </div>
 
         <!-- Audit Table -->
-        <div class="table-container" role="region" aria-label="Таблица журнала изменений" tabindex="0" [attr.aria-busy]="isLoading()">
-          <table class="data-table" aria-label="Журнал изменений данных">
+        <div class="table-container" role="region" [attr.aria-label]="'audit.tablica_zhurnala_izmeneniy' | t" tabindex="0" [attr.aria-busy]="isLoading()">
+          <table class="data-table" [attr.aria-label]="'audit.zhurnal_izmeneniy_dannyh' | t">
             <thead>
               <tr>
                 <th style="width: 70px;">ID</th>
-                <th>Таблица</th>
+                <th>{{ 'audit.tablica' | t }}</th>
                 <th>PK</th>
-                <th>Действие</th>
-                <th>Кто изменил</th>
-                <th>Канал</th>
-                <th>Дата и время</th>
+                <th>{{ 'audit.deystvie' | t }}</th>
+                <th>{{ 'audit.kto_izmenil' | t }}</th>
+                <th>{{ 'audit.kanal' | t }}</th>
+                <th>{{ 'audit.data_i_vremya' | t }}</th>
                 <th style="width: 80px; text-align: right;">Diff</th>
               </tr>
             </thead>
@@ -206,7 +208,7 @@ export interface AuditStats {
                     <span class="user-name">{{ item.changedByName }}</span>
                     <span class="user-sub text-muted text-xs">&#64;{{ item.changedByLogin }}</span>
                   </div>
-                  <span *ngIf="!item.changedByName" class="text-muted">Система</span>
+                  <span *ngIf="!item.changedByName" class="text-muted">{{ 'audit.sistema' | t }}</span>
                 </td>
                 <td>
                   <span class="channel-pill" [class.api-pill]="item.isApi">
@@ -218,7 +220,7 @@ export interface AuditStats {
                   <span class="date-cell tabular-nums">{{ item.changedAt | date:'dd.MM.yyyy HH:mm:ss' }}</span>
                 </td>
                 <td style="text-align: right;">
-                  <button type="button" class="diff-btn" [attr.aria-label]="'Просмотреть изменение #' + item.id" title="Просмотр изменений" (click)="selectAuditRecord(item)">
+                  <button type="button" class="diff-btn" [attr.aria-label]="'audit.view_change_number' | t:{id: item.id}" [title]="'audit.prosmotr_izmeneniy' | t" (click)="selectAuditRecord(item)">
                     <span class="material-symbols-outlined" aria-hidden="true">difference</span>
                   </button>
                 </td>
@@ -228,8 +230,8 @@ export interface AuditStats {
                 <td colspan="8" class="empty-state-cell">
                   <div class="empty-state-box">
                     <span class="material-symbols-outlined empty-icon" aria-hidden="true">history_toggle_off</span>
-                    <h3>Записей аудита не найдено</h3>
-                    <p>Попробуйте сбросить выбранные фильтры</p>
+                    <h3>{{ 'audit.zapisey_audita_ne_naydeno' | t }}</h3>
+                    <p>{{ 'audit.poprobuyte_sbrosit_vybrannye_filtry' | t }}</p>
                   </div>
                 </td>
               </tr>
@@ -254,26 +256,26 @@ export interface AuditStats {
         <!-- Filter Toolbar -->
         <div class="filter-toolbar">
           <div class="filter-group">
-            <label class="sr-only" for="security-event-filter">Фильтр событий безопасности</label>
+            <label class="sr-only" for="security-event-filter">{{ 'audit.filtr_sobytiy_bezopasnosti' | t }}</label>
             <select id="security-event-filter" name="securityEventFilter" class="filter-select" [(ngModel)]="secEventTypeFilter" (change)="loadSecurityEvents()">
-              <option value="">Все события</option>
-              <option value="LOGIN_SUCCESS">Успешный вход (LOGIN_SUCCESS)</option>
-              <option value="LOGIN_FAILED">Ошибка входа (LOGIN_FAILED)</option>
-              <option value="LOGIN_LOCKED">Блокировка brute-force (LOGIN_LOCKED)</option>
+              <option value="">{{ 'audit.vse_sobytiya' | t }}</option>
+              <option value="LOGIN_SUCCESS">{{ 'audit.uspeshnyy_vhod_login_success' | t }}</option>
+              <option value="LOGIN_FAILED">{{ 'audit.oshibka_vhoda_login_failed' | t }}</option>
+              <option value="LOGIN_LOCKED">{{ 'audit.blokirovka_brute_force_login_locked' | t }}</option>
               <option value="IP_RATE_LIMITED">Rate Limit IP (IP_RATE_LIMITED)</option>
-              <option value="PASSWORD_CHANGED">Смена пароля (PASSWORD_CHANGED)</option>
-              <option value="API_TOKEN_CREATED">Выпуск API токена</option>
+              <option value="PASSWORD_CHANGED">{{ 'audit.smena_parolya_password_changed' | t }}</option>
+              <option value="API_TOKEN_CREATED">{{ 'audit.vypusk_api_tokena' | t }}</option>
             </select>
 
             <div class="search-box">
               <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
-              <label class="sr-only" for="security-ip-search">Поиск событий по IP-адресу</label>
+              <label class="sr-only" for="security-ip-search">{{ 'audit.poisk_sobytiy_po_ip_adresu' | t }}</label>
               <input
                 id="security-ip-search"
                 name="securityIpSearch"
                 type="text"
                 class="search-input"
-                placeholder="Поиск по IP..."
+                [placeholder]="'audit.poisk_po_ip' | t"
                 [(ngModel)]="secIpFilter"
                 (keyup.enter)="loadSecurityEvents()"
               />
@@ -282,17 +284,17 @@ export interface AuditStats {
         </div>
 
         <!-- Security Events Table -->
-        <div class="table-container" role="region" aria-label="Таблица событий безопасности" tabindex="0" [attr.aria-busy]="isLoading()">
-          <table class="data-table" aria-label="События безопасности">
+        <div class="table-container" role="region" [attr.aria-label]="'audit.tablica_sobytiy_bezopasnosti' | t" tabindex="0" [attr.aria-busy]="isLoading()">
+          <table class="data-table" [attr.aria-label]="'audit.sobytiya_bezopasnosti' | t">
             <thead>
               <tr>
                 <th style="width: 70px;">ID</th>
-                <th>Событие</th>
-                <th>Пользователь</th>
-                <th>IP-адрес</th>
-                <th>User-Agent / Устройство</th>
-                <th>Дата и время</th>
-                <th style="width: 80px; text-align: right;">Детали</th>
+                <th>{{ 'audit.sobytie' | t }}</th>
+                <th>{{ 'audit.polzovatel' | t }}</th>
+                <th>{{ 'audit.ip_adres' | t }}</th>
+                <th>{{ 'audit.user_agent_ustroystvo' | t }}</th>
+                <th>{{ 'audit.data_i_vremya' | t }}</th>
+                <th style="width: 80px; text-align: right;">{{ 'audit.detali' | t }}</th>
               </tr>
             </thead>
             <tbody>
@@ -309,7 +311,7 @@ export interface AuditStats {
                     <span class="user-name">{{ item.userName }}</span>
                     <span class="user-sub text-muted text-xs">&#64;{{ item.userLogin }}</span>
                   </div>
-                  <span *ngIf="!item.userName" class="text-muted">{{ item.details['login'] || 'Гость' }}</span>
+                  <span *ngIf="!item.userName" class="text-muted">{{ item.details['login'] || ('common.guest' | t) }}</span>
                 </td>
                 <td>
                   <span class="ip-pill font-mono">{{ item.ip }}</span>
@@ -323,7 +325,7 @@ export interface AuditStats {
                   <span class="date-cell tabular-nums">{{ item.createdAt | date:'dd.MM.yyyy HH:mm:ss' }}</span>
                 </td>
                 <td style="text-align: right;">
-                  <button type="button" class="diff-btn" [attr.aria-label]="'Просмотреть событие безопасности #' + item.id" title="Просмотр деталей" (click)="selectSecurityEvent(item)">
+                  <button type="button" class="diff-btn" [attr.aria-label]="'audit.view_security_event_number' | t:{id: item.id}" [title]="'audit.prosmotr_detaley' | t" (click)="selectSecurityEvent(item)">
                     <span class="material-symbols-outlined" aria-hidden="true">info</span>
                   </button>
                 </td>
@@ -333,8 +335,8 @@ export interface AuditStats {
                 <td colspan="7" class="empty-state-cell">
                   <div class="empty-state-box">
                     <span class="material-symbols-outlined empty-icon" aria-hidden="true">verified_user</span>
-                    <h3>Событий безопасности не найдено</h3>
-                    <p>Все подозрительные события и входы фиксируются здесь</p>
+                    <h3>{{ 'audit.sobytiy_bezopasnosti_ne_naydeno' | t }}</h3>
+                    <p>{{ 'audit.vse_podozritelnye_sobytiya_i_vhody_fiksiruyutsya' | t }}</p>
                   </div>
                 </td>
               </tr>
@@ -357,14 +359,14 @@ export interface AuditStats {
       <!-- =================================================================== -->
       <ui-modal
         [isOpen]="selectedAudit !== null"
-        title="Детали изменения записи (Visual Diff)"
+        [title]="'audit.detali_izmeneniya_zapisi_visual_diff' | t"
         size="lg"
         (close)="selectedAudit = null"
       >
         <div body *ngIf="selectedAudit as audit" class="diff-modal-body">
           <div class="diff-meta-grid">
             <div class="meta-item">
-              <span class="meta-label">Таблица:</span>
+              <span class="meta-label">{{ 'audit.tablica.6f39b76' | t }}</span>
               <span class="meta-val font-mono">{{ audit.tableName }}</span>
             </div>
             <div class="meta-item">
@@ -372,28 +374,28 @@ export interface AuditStats {
               <span class="meta-val font-mono">{{ audit.rowPk }}</span>
             </div>
             <div class="meta-item">
-              <span class="meta-label">Действие:</span>
+              <span class="meta-label">{{ 'audit.deystvie.7b79e9f' | t }}</span>
               <span class="event-badge" [ngClass]="getEventBadgeClass(audit.event)">{{ getEventName(audit.event) }}</span>
             </div>
             <div class="meta-item">
-              <span class="meta-label">Автор:</span>
-              <span class="meta-val">{{ audit.changedByName ? audit.changedByName + ' (@' + audit.changedByLogin + ')' : 'Система' }}</span>
+              <span class="meta-label">{{ 'audit.avtor' | t }}</span>
+              <span class="meta-val">{{ audit.changedByName ? audit.changedByName + ' (@' + audit.changedByLogin + ')' : ('common.system' | t) }}</span>
             </div>
             <div class="meta-item">
-              <span class="meta-label">Дата:</span>
+              <span class="meta-label">{{ 'audit.data' | t }}</span>
               <span class="meta-val">{{ audit.changedAt | date:'dd.MM.yyyy HH:mm:ss' }}</span>
             </div>
           </div>
 
           <!-- Diff Table -->
-          <div class="diff-section-title">Сравнение полей (Diff):</div>
-          <div class="diff-table-box" role="region" aria-label="Сравнение изменённых полей" tabindex="0" *ngIf="getDiffKeys(audit).length > 0; else noDiff">
-            <table class="diff-table" aria-label="Сравнение значений до и после изменения">
+          <div class="diff-section-title">{{ 'audit.sravnenie_poley_diff' | t }}</div>
+          <div class="diff-table-box" role="region" [attr.aria-label]="'audit.sravnenie_izmenennyh_poley' | t" tabindex="0" *ngIf="getDiffKeys(audit).length > 0; else noDiff">
+            <table class="diff-table" [attr.aria-label]="'audit.sravnenie_znacheniy_do_i_posle_izmeneniya' | t">
               <thead>
                 <tr>
-                  <th style="width: 25%;">Поле</th>
-                  <th style="width: 37.5%;">Предыдущее значение</th>
-                  <th style="width: 37.5%;">Новое значение</th>
+                  <th style="width: 25%;">{{ 'audit.pole' | t }}</th>
+                  <th style="width: 37.5%;">{{ 'audit.predyduschee_znachenie' | t }}</th>
+                  <th style="width: 37.5%;">{{ 'audit.novoe_znachenie' | t }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -410,11 +412,11 @@ export interface AuditStats {
             </table>
           </div>
           <ng-template #noDiff>
-            <div class="no-diff-msg">Нет подробных данных diff для этой операции</div>
+            <div class="no-diff-msg">{{ 'audit.net_podrobnyh_dannyh_diff_dlya_etoy_operacii' | t }}</div>
           </ng-template>
         </div>
         <div footer class="modal-footer-actions">
-          <ui-button variant="secondary" (onClick)="selectedAudit = null">Закрыть</ui-button>
+          <ui-button variant="secondary" (onClick)="selectedAudit = null">{{ 'audit.zakryt' | t }}</ui-button>
         </div>
       </ui-modal>
 
@@ -423,14 +425,14 @@ export interface AuditStats {
       <!-- =================================================================== -->
       <ui-modal
         [isOpen]="selectedSecEvent !== null"
-        title="Событие безопасности"
+        [title]="'audit.sobytie_bezopasnosti' | t"
         size="md"
         (close)="selectedSecEvent = null"
       >
         <div body *ngIf="selectedSecEvent as ev" class="sec-modal-body">
           <div class="diff-meta-grid">
             <div class="meta-item">
-              <span class="meta-label">Тип события:</span>
+              <span class="meta-label">{{ 'audit.tip_sobytiya' | t }}</span>
               <span class="sec-event-badge" [ngClass]="getSecurityEventBadgeClass(ev.eventType)">
                 {{ ev.eventType }}
               </span>
@@ -440,11 +442,11 @@ export interface AuditStats {
               <span class="meta-val font-mono">{{ ev.ip }}</span>
             </div>
             <div class="meta-item">
-              <span class="meta-label">Пользователь:</span>
+              <span class="meta-label">{{ 'audit.polzovatel.a7d134d' | t }}</span>
               <span class="meta-val">{{ ev.userName ? ev.userName + ' (@' + ev.userLogin + ')' : (ev.details['login'] || '—') }}</span>
             </div>
             <div class="meta-item">
-              <span class="meta-label">Дата:</span>
+              <span class="meta-label">{{ 'audit.data' | t }}</span>
               <span class="meta-val">{{ ev.createdAt | date:'dd.MM.yyyy HH:mm:ss' }}</span>
             </div>
             <div class="meta-item full-width" *ngIf="ev.userAgent">
@@ -453,11 +455,11 @@ export interface AuditStats {
             </div>
           </div>
 
-          <div class="diff-section-title">Параметры события (JSON):</div>
+          <div class="diff-section-title">{{ 'audit.parametry_sobytiya_json' | t }}</div>
           <pre class="json-details-viewer">{{ ev.details | json }}</pre>
         </div>
         <div footer class="modal-footer-actions">
-          <ui-button variant="secondary" (onClick)="selectedSecEvent = null">Закрыть</ui-button>
+          <ui-button variant="secondary" (onClick)="selectedSecEvent = null">{{ 'audit.zakryt' | t }}</ui-button>
         </div>
       </ui-modal>
     </div>

@@ -30,7 +30,14 @@ class SystemInfoControllerTest {
                         "database", new SystemInfoResponse.Component("UP"),
                         "storage", new SystemInfoResponse.Component("UP"),
                         "typesense", new SystemInfoResponse.Component("DISABLED")),
-                new BackupStatus("SUCCESS", Instant.parse("2026-09-02T03:00:00Z"), null)));
+                new BackupStatus(
+                        "SUCCESS",
+                        Instant.parse("2026-09-02T03:00:00Z"),
+                        null,
+                        "CURRENT",
+                        3_600L,
+                        86_400L),
+                Instant.parse("2026-09-04T10:15:30Z")));
         MockMvc mvc = MockMvcBuilders.standaloneSetup(new SystemInfoController(service)).build();
 
         String body = mvc.perform(get("/api/v1/system/info"))
@@ -43,6 +50,10 @@ class SystemInfoControllerTest {
                 .andExpect(jsonPath("$.storageProvider").value("local_disk"))
                 .andExpect(jsonPath("$.components.database.status").value("UP"))
                 .andExpect(jsonPath("$.backup.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.backup.freshness").value("CURRENT"))
+                .andExpect(jsonPath("$.backup.ageSeconds").value(3_600))
+                .andExpect(jsonPath("$.backup.maxAgeSeconds").value(86_400))
+                .andExpect(jsonPath("$.checkedAt").value("2026-09-04T10:15:30Z"))
                 .andReturn().getResponse().getContentAsString();
 
         assertThat(body).doesNotContain(

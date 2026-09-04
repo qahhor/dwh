@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 import { UiBadgeComponent } from '../../shared/ui/ui-badge.component';
+import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
 
 export interface AnalyticsSummary {
   totalTasks: number;
@@ -43,26 +44,27 @@ export interface UserWorkload {
 @Component({
   selector: 'app-analytics',
   standalone: true,
-  imports: [CommonModule, FormsModule, UiBadgeComponent],
+  imports: [
+    TranslatePipe,CommonModule, FormsModule, UiBadgeComponent],
   template: `
     <div class="analytics-container">
       <!-- Header -->
       <div class="view-header">
         <div class="header-left">
-          <h1 class="view-title">Аналитика и дашборды</h1>
+          <h1 class="view-title">{{ 'analytics.analitika_i_dashbordy' | t }}</h1>
           <span class="count-badge">PostgreSQL 18 Analytics</span>
         </div>
 
         <div class="header-right">
           <!-- Time Range Selector -->
-          <div class="status-tabs" role="group" aria-label="Период аналитики">
+          <div class="status-tabs" role="group" [attr.aria-label]="'analytics.period_analitiki' | t">
             <button
               type="button"
               class="status-tab"
               [class.active]="selectedRange === '7d'"
               (click)="setRange('7d')"
             >
-              7 дней
+              {{ 'analytics.7_dney' | t }}
             </button>
             <button
               type="button"
@@ -70,7 +72,7 @@ export interface UserWorkload {
               [class.active]="selectedRange === '30d'"
               (click)="setRange('30d')"
             >
-              30 дней
+              {{ 'analytics.30_dney' | t }}
             </button>
             <button
               type="button"
@@ -78,7 +80,7 @@ export interface UserWorkload {
               [class.active]="selectedRange === '90d'"
               (click)="setRange('90d')"
             >
-              90 дней
+              {{ 'analytics.90_dney' | t }}
             </button>
           </div>
 
@@ -86,10 +88,10 @@ export interface UserWorkload {
             type="button"
             class="btn btn-secondary"
             (click)="exportReport()"
-            title="Экспорт списка задач в Excel"
+            [title]="'analytics.eksport_spiska_zadach_v_excel' | t"
           >
             <span class="material-symbols-outlined" aria-hidden="true">download</span>
-            <span>Экспорт</span>
+            <span>{{ 'analytics.eksport' | t }}</span>
           </button>
 
           <button
@@ -99,7 +101,7 @@ export interface UserWorkload {
             [disabled]="loading()"
           >
             <span class="material-symbols-outlined" [class.spin]="loading()" aria-hidden="true">refresh</span>
-            <span>Обновить</span>
+            <span>{{ 'common.refresh' | t }}</span>
           </button>
         </div>
       </div>
@@ -115,35 +117,35 @@ export interface UserWorkload {
         <!-- 1. Всего задач -->
         <div class="tile">
           <div class="tile-header">
-            <span class="tile-label">Всего задач</span>
+            <span class="tile-label">{{ 'analytics.vsego_zadach' | t }}</span>
             <span class="material-symbols-outlined tile-ico" style="color: var(--primary);">task_alt</span>
           </div>
           <div class="tile-value">{{ summary()?.totalTasks || 0 }}</div>
           <div class="tile-meta">
-            <span class="text-success" style="font-weight: 600;">{{ summary()?.activeTasks || 0 }} активных</span>
+            <span class="text-success" style="font-weight: 600;">{{ 'analytics.active_count' | t:{count: summary()?.activeTasks || 0} }}</span>
             <span class="meta-dot">·</span>
-            <span class="text-muted">{{ summary()?.completedTasks || 0 }} завершено</span>
+            <span class="text-muted">{{ 'analytics.completed_count' | t:{count: summary()?.completedTasks || 0} }}</span>
           </div>
         </div>
 
         <!-- 2. Эффективность закрытия -->
         <div class="tile">
           <div class="tile-header">
-            <span class="tile-label">Эффективность закрытия</span>
+            <span class="tile-label">{{ 'analytics.effektivnost_zakrytiya' | t }}</span>
             <span class="material-symbols-outlined tile-ico" style="color: var(--success);">trending_up</span>
           </div>
           <div class="tile-value">{{ summary()?.completionRatePercent || 0 }}%</div>
           <div class="tile-meta">
-            <span class="text-success" style="font-weight: 600;">+{{ summary()?.completedLast7d || 0 }} за 7 дней</span>
+            <span class="text-success" style="font-weight: 600;">{{ 'analytics.completed_last_7d' | t:{count: summary()?.completedLast7d || 0} }}</span>
             <span class="meta-dot">·</span>
-            <span class="text-muted">{{ summary()?.createdLast7d || 0 }} создано</span>
+            <span class="text-muted">{{ 'analytics.created_count' | t:{count: summary()?.createdLast7d || 0} }}</span>
           </div>
         </div>
 
         <!-- 3. Просроченные задачи -->
         <div class="tile" [class.tile-alarm]="(summary()?.overdueTasks || 0) > 0">
           <div class="tile-header">
-            <span class="tile-label">Просрочено дедлайнов</span>
+            <span class="tile-label">{{ 'analytics.prosrocheno_dedlaynov' | t }}</span>
             <span class="material-symbols-outlined tile-ico" [style.color]="(summary()?.overdueTasks || 0) > 0 ? 'var(--danger)' : 'var(--text-light)'">
               {{ (summary()?.overdueTasks || 0) > 0 ? 'warning' : 'verified' }}
             </span>
@@ -152,20 +154,20 @@ export interface UserWorkload {
             {{ summary()?.overdueTasks || 0 }}
           </div>
           <div class="tile-meta">
-            <span *ngIf="(summary()?.overdueTasks || 0) > 0" class="text-danger" style="font-weight: 600;">Требуют внимания</span>
-            <span *ngIf="(summary()?.overdueTasks || 0) === 0" class="text-success" style="font-weight: 600;">Все задачи в графике</span>
+            <span *ngIf="(summary()?.overdueTasks || 0) > 0" class="text-danger" style="font-weight: 600;">{{ 'analytics.trebuyut_vnimaniya' | t }}</span>
+            <span *ngIf="(summary()?.overdueTasks || 0) === 0" class="text-success" style="font-weight: 600;">{{ 'analytics.vse_zadachi_v_grafike' | t }}</span>
           </div>
         </div>
 
         <!-- 4. Активность проектов -->
         <div class="tile">
           <div class="tile-header">
-            <span class="tile-label">Проекты и ресурсы</span>
+            <span class="tile-label">{{ 'analytics.proekty_i_resursy' | t }}</span>
             <span class="material-symbols-outlined tile-ico" style="color: var(--warning);">folder_special</span>
           </div>
           <div class="tile-value">{{ summary()?.activeProjectsCount || 0 }}</div>
           <div class="tile-meta">
-            <span class="text-muted">{{ summary()?.activeUsersCount || 0 }} активных пользователей</span>
+            <span class="text-muted">{{ 'analytics.active_users_count' | t:{count: summary()?.activeUsersCount || 0} }}</span>
           </div>
         </div>
       </div>
@@ -176,17 +178,17 @@ export interface UserWorkload {
         <div class="analytics-card chart-card">
           <div class="card-header-row">
             <div>
-              <h2 class="card-title">Динамика потока задач</h2>
-              <p class="card-subtitle">Созданные vs Завершенные задачи по дням ({{ selectedRange }})</p>
+              <h2 class="card-title">{{ 'analytics.dinamika_potoka_zadach' | t }}</h2>
+              <p class="card-subtitle">{{ 'analytics.created_vs_completed_range' | t:{range: selectedRange} }}</p>
             </div>
             <div class="chart-legend">
               <div class="legend-item">
                 <span class="legend-dot" style="background-color: var(--primary);"></span>
-                <span>Создано</span>
+                <span>{{ 'common.created_at' | t }}</span>
               </div>
               <div class="legend-item">
                 <span class="legend-dot" style="background-color: var(--success);"></span>
-                <span>Завершено</span>
+                <span>{{ 'analytics.zaversheno' | t }}</span>
               </div>
             </div>
           </div>
@@ -241,7 +243,7 @@ export interface UserWorkload {
 
           <div *ngIf="trends().length === 0 && !loading()" class="empty-chart">
             <span class="material-symbols-outlined" style="font-size: 32px; color: var(--text-light);">show_chart</span>
-            <p>Нет данных за выбранный период</p>
+            <p>{{ 'analytics.net_dannyh_za_vybrannyy_period' | t }}</p>
           </div>
         </div>
 
@@ -249,8 +251,8 @@ export interface UserWorkload {
         <div class="analytics-card">
           <div class="card-header-row">
             <div>
-              <h2 class="card-title">Прогресс по проектам</h2>
-              <p class="card-subtitle">Статусы и процент выполнения</p>
+              <h2 class="card-title">{{ 'analytics.progress_po_proektam' | t }}</h2>
+              <p class="card-subtitle">{{ 'analytics.statusy_i_procent_vypolneniya' | t }}</p>
             </div>
           </div>
 
@@ -274,7 +276,7 @@ export interface UserWorkload {
 
           <div *ngIf="projects().length === 0 && !loading()" class="empty-chart">
             <span class="material-symbols-outlined" style="font-size: 32px; color: var(--text-light);">folder_open</span>
-            <p>Активные проекты не найдены</p>
+            <p>{{ 'analytics.aktivnye_proekty_ne_naydeny' | t }}</p>
           </div>
         </div>
       </div>
@@ -283,8 +285,8 @@ export interface UserWorkload {
       <div class="table-card" style="margin-top: 20px;">
         <div class="card-header-row" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color);">
           <div>
-            <h2 class="card-title">Утилизация и загрузка команды</h2>
-            <p class="card-subtitle">Распределение активных и выполненных задач по исполнителям</p>
+            <h2 class="card-title">{{ 'analytics.utilizaciya_i_zagruzka_komandy' | t }}</h2>
+            <p class="card-subtitle">{{ 'analytics.raspredelenie_aktivnyh_i_vypolnennyh_zadach_po_i' | t }}</p>
           </div>
         </div>
 
@@ -292,11 +294,11 @@ export interface UserWorkload {
           <table>
             <thead>
               <tr>
-                <th style="width: 240px;">Сотрудник</th>
-                <th>Логин</th>
-                <th>Назначено задач</th>
-                <th>Завершено</th>
-                <th>Эффективность</th>
+                <th style="width: 240px;">{{ 'analytics.sotrudnik' | t }}</th>
+                <th>{{ 'analytics.login' | t }}</th>
+                <th>{{ 'analytics.naznacheno_zadach' | t }}</th>
+                <th>{{ 'analytics.zaversheno' | t }}</th>
+                <th>{{ 'analytics.effektivnost' | t }}</th>
               </tr>
             </thead>
             <tbody>
@@ -320,7 +322,7 @@ export interface UserWorkload {
               </tr>
               <tr *ngIf="workload().length === 0 && !loading()">
                 <td colspan="5" class="empty">
-                  <span>Данные по загрузке сотрудников отсутствуют.</span>
+                  <span>{{ 'analytics.dannye_po_zagruzke_sotrudnikov_otsutstvuyut' | t }}</span>
                 </td>
               </tr>
             </tbody>
@@ -726,6 +728,7 @@ export interface UserWorkload {
   `]
 })
 export class AnalyticsComponent implements OnInit {
+  private readonly uiI18n = inject(I18nService);
   private http = inject(HttpClient);
 
   summary = signal<AnalyticsSummary | null>(null);
@@ -824,7 +827,7 @@ export class AnalyticsComponent implements OnInit {
         this.loadWorkload()
       ]);
     } catch (e: any) {
-      this.error.set(e?.error?.detail || 'Не удалось загрузить данные аналитики');
+      this.error.set(e?.error?.detail || this.uiI18n.translate('analytics.ne_udalos_zagruzit_dannye_analitiki'));
     } finally {
       this.loading.set(false);
     }

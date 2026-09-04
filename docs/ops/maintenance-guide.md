@@ -40,6 +40,12 @@ was written, the configured local/S3 target accepted the artifact, and sanitized
 status was updated. A zero-byte file, log message, or stale status is not backup
 evidence.
 
+The System page compares the successful backup timestamp with
+`DWH_BACKUP_MAX_AGE`. `CURRENT` means the measured age is within that configured
+threshold; `STALE` means it has been exceeded. `NOT_CONFIGURED` is an explicit
+policy gap, not a healthy result. The threshold does not replace a restore drill
+or prove that uploaded objects are recoverable.
+
 The database backup does not include uploaded objects. Operate and test the
 independent `server-data` or S3 bucket recovery policy.
 

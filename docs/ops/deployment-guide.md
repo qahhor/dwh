@@ -70,6 +70,13 @@ S3-compatible application variables and verify upload, download, delete, and
 recovery against the selected provider. Smartup-managed deployments use
 Cloudflare R2.
 
+Set `DWH_BACKUP_MAX_AGE` to the installation's approved maximum recovery-point
+age using a Spring duration such as `26h`. The default `0s` deliberately means
+"not configured": the System page reports the policy gap and never treats a
+successful backup as current. This threshold is independent of
+`BACKUP_INTERVAL_SECONDS`; choose both values so normal scheduling completes
+before the approved maximum age.
+
 Every upload is checked against executable signatures and strict MIME magic
 bytes before storage. Production Compose starts the official multi-architecture
 ClamAV image pinned by version and digest, persists signatures in `clamav-data`,

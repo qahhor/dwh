@@ -110,6 +110,13 @@ dwh:
   backup:
     # Status is written atomically by the local backup command/sidecar.
     status-file: ${DWH_BACKUP_STATUS_FILE:/var/lib/smartupcms/backup/status.json}
+    # Zero keeps the policy explicitly unconfigured and prevents a successful
+    # backup from being reported as current without an approved RPO.
+    max-age: ${DWH_BACKUP_MAX_AGE:0s}
+  system:
+    # Manual status checks return a partial safe snapshot instead of waiting on
+    # a degraded external provider's longer transport timeout.
+    health-timeout: ${DWH_SYSTEM_HEALTH_TIMEOUT:2s}
   files:
     scanner:
       required: ${DWH_FILE_SCANNER_REQUIRED:false}

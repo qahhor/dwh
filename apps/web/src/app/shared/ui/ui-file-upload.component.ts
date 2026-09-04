@@ -1,13 +1,15 @@
-import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
+import { Component, EventEmitter, Input, Output, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpEventType } from '@angular/common/http';
 import { TaskFile } from '../../core/models/task.models';
 import { ToastService } from '../../core/services/toast.service';
+import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
 
 @Component({
   selector: 'ui-file-upload',
   standalone: true,
-  imports: [CommonModule],
+  imports: [
+    TranslatePipe,CommonModule],
   template: `
     <div class="file-upload-wrapper">
       <!-- Drag & Drop Upload Zone -->
@@ -30,8 +32,8 @@ import { ToastService } from '../../core/services/toast.service';
         <div class="drop-content">
           <span class="material-symbols-outlined drop-icon" aria-hidden="true">cloud_upload</span>
           <div class="drop-text">
-            <span class="primary-text">Перетащите файлы сюда или <strong>нажмите для выбора</strong></span>
-            <span class="sub-text">До 50 МБ на файл (PDF, PNG, JPG, DOCX, ZIP и др.)</span>
+            <span class="primary-text">{{ 'ui.file_upload.peretaschite_fayly_syuda_ili' | t }} <strong>{{ 'ui.file_upload.nazhmite_dlya_vybora' | t }}</strong></span>
+            <span class="sub-text">{{ 'ui.file_upload.do_50_mb_na_fayl_pdf_png_jpg_docx_zip_i_dr' | t }}</span>
           </div>
         </div>
       </label>
@@ -41,7 +43,7 @@ import { ToastService } from '../../core/services/toast.service';
         *ngIf="isUploading()"
         class="upload-progress-bar"
         role="progressbar"
-        aria-label="Загрузка файлов"
+        [attr.aria-label]="'ui.file_upload.zagruzka_faylov' | t"
         aria-valuemin="0"
         aria-valuemax="100"
         [attr.aria-valuenow]="uploadProgress()"
@@ -50,21 +52,21 @@ import { ToastService } from '../../core/services/toast.service';
         <div class="progress-track">
           <div class="progress-fill" [style.width.%]="uploadProgress()"></div>
         </div>
-        <span class="progress-label">Загрузка... {{ uploadProgress() }}%</span>
+        <span class="progress-label">{{ 'ui.file_upload.upload_progress' | t:{progress: uploadProgress()} }}</span>
       </div>
 
       <!-- File Attachment List -->
-      <div class="attachments-list" *ngIf="files && files.length > 0" role="list" aria-label="Прикреплённые файлы">
+      <div class="attachments-list" *ngIf="files && files.length > 0" role="list" [attr.aria-label]="'ui.file_upload.prikreplennye_fayly' | t">
         <div *ngFor="let file of files" class="file-card" role="listitem">
           <div class="file-type-icon" [ngClass]="getFileCategory(file.mimeType, file.fileName)">
             <span class="material-symbols-outlined" aria-hidden="true">{{ getFileIcon(file.mimeType, file.fileName) }}</span>
           </div>
-          <button type="button" class="file-info" (click)="downloadFile(file)" [attr.aria-label]="'Скачать ' + file.fileName" title="Скачать файл">
+          <button type="button" class="file-info" (click)="downloadFile(file)" [attr.aria-label]="'ui.file_upload.download_named' | t:{name: file.fileName}" [title]="'files.skachat_fayl' | t">
             <span class="file-name">{{ file.fileName }}</span>
             <span class="file-size">{{ formatBytes(file.sizeBytes) }}</span>
           </button>
           <div class="file-actions">
-            <button type="button" class="action-btn download" (click)="downloadFile(file)" [attr.aria-label]="'Скачать ' + file.fileName" title="Скачать">
+            <button type="button" class="action-btn download" (click)="downloadFile(file)" [attr.aria-label]="'ui.file_upload.download_named' | t:{name: file.fileName}" [title]="'files.skachat' | t">
               <span class="material-symbols-outlined" aria-hidden="true">download</span>
             </button>
             <button
@@ -72,8 +74,8 @@ import { ToastService } from '../../core/services/toast.service';
               type="button"
               class="action-btn delete"
               (click)="removeFile(file, $event)"
-              [attr.aria-label]="'Удалить ' + file.fileName"
-              title="Удалить вложение"
+              [attr.aria-label]="'ui.file_upload.delete_named' | t:{name: file.fileName}"
+              [title]="'ui.file_upload.udalit_vlozhenie' | t"
             >
               <span class="material-symbols-outlined" aria-hidden="true">delete</span>
             </button>
@@ -83,7 +85,7 @@ import { ToastService } from '../../core/services/toast.service';
 
       <div *ngIf="(!files || files.length === 0) && !canUpload" class="empty-files">
         <span class="material-symbols-outlined empty-icon" aria-hidden="true">attach_file</span>
-        <span>Нет прикрепленных файлов</span>
+        <span>{{ 'ui.file_upload.net_prikreplennyh_faylov' | t }}</span>
       </div>
     </div>
   `,
@@ -287,6 +289,7 @@ import { ToastService } from '../../core/services/toast.service';
   `]
 })
 export class UiFileUploadComponent {
+  private readonly uiI18n = inject(I18nService);
   private static nextId = 0;
 
   @Input() files: TaskFile[] = [];
@@ -369,13 +372,13 @@ export class UiFileUploadComponent {
             createdAt: body.createdAt || new Date().toISOString()
           };
           this.fileAttached.emit(taskFile);
-          this.toast.success(`Файл ${taskFile.fileName} успешно загружен`);
+          this.toast.success(this.uiI18n.translate('ui.file_upload.uploaded_named', { name: taskFile.fileName }));
         }
       },
       error: (err) => {
         this.isUploading.set(false);
-        const msg = err.error?.detail || err.error?.message || 'Ошибка загрузки файла';
-        this.toast.error(msg, 'Загрузка не удалась');
+        const msg = err.error?.detail || err.error?.message || this.uiI18n.translate('ui.file_upload.oshibka_zagruzki_fayla');
+        this.toast.error(msg, this.uiI18n.translate('ui.file_upload.zagruzka_ne_udalas'));
       }
     });
   }

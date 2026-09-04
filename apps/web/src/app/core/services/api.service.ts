@@ -4,6 +4,11 @@ import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { ProblemDetail } from '../models/common.models';
 import { ToastService } from './toast.service';
+import { I18nService } from './i18n.service';
+
+export interface ApiRequestOptions {
+  notifyError?: boolean;
+}
 
 @Injectable({
   providedIn: 'root'
@@ -13,10 +18,11 @@ export class ApiService {
 
   constructor(
     private http: HttpClient,
-    private toast: ToastService
+    private toast: ToastService,
+    private i18n: I18nService
   ) {}
 
-  get<T>(path: string, params?: Record<string, any>): Observable<T> {
+  get<T>(path: string, params?: Record<string, any>, options: ApiRequestOptions = {}): Observable<T> {
     let httpParams = new HttpParams();
     if (params) {
       Object.keys(params).forEach(key => {
@@ -30,7 +36,7 @@ export class ApiService {
       params: httpParams,
       withCredentials: true
     }).pipe(
-      catchError(err => this.handleError(err))
+      catchError(err => this.handleError(err, options))
     );
   }
 
@@ -66,12 +72,18 @@ export class ApiService {
     );
   }
 
-  private handleError(error: HttpErrorResponse): Observable<never> {
+  private handleError(error: HttpErrorResponse, options: ApiRequestOptions = {}): Observable<never> {
     let problem: ProblemDetail;
 
     if (error.error && typeof error.error === 'object') {
       const p = error.error as any;
       let detail = p.detail || p.message;
+      const errorCode = String(p.code || 'API_ERROR').toLowerCase();
+      const errorKey = `error.${errorCode}`;
+      const localizedDetail = this.i18n.translate(errorKey);
+      if (localizedDetail !== errorKey) {
+        detail = localizedDetail;
+      }
       if (Array.isArray(p.invalid_params) && p.invalid_params.length > 0) {
         const fieldMsgs = p.invalid_params.map((ip: any) => `${ip.name}: ${ip.reason || ip.code}`).join('; ');
         detail = detail ? `${detail} (${fieldMsgs})` : fieldMsgs;
@@ -94,7 +106,7 @@ export class ApiService {
 
     // Don't toast 401 on initial /auth/me verification or normal 404 search
     const isAuthCheck = error.status === 401 && error.url?.includes('/auth/me');
-    if (!isAuthCheck) {
+    if (!isAuthCheck && options.notifyError !== false) {
       this.toast.error(problem.detail || problem.title);
     }
 

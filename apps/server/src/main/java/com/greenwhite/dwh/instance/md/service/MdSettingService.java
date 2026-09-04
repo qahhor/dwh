@@ -2,6 +2,7 @@ package com.greenwhite.dwh.instance.md.service;
 
 import com.greenwhite.dwh.instance.audit.service.AuditLogService;
 import com.greenwhite.dwh.instance.md.repository.MdSettingRepository;
+import com.greenwhite.dwh.instance.md.repository.MdUserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,10 +26,17 @@ public class MdSettingService {
     );
 
     private final MdSettingRepository settingRepository;
+    private final MdUserRepository userRepository;
+    private final MdI18nService i18nService;
     private final AuditLogService auditLogService;
 
-    public MdSettingService(MdSettingRepository settingRepository, AuditLogService auditLogService) {
+    public MdSettingService(MdSettingRepository settingRepository,
+                            MdUserRepository userRepository,
+                            MdI18nService i18nService,
+                            AuditLogService auditLogService) {
         this.settingRepository = settingRepository;
+        this.userRepository = userRepository;
+        this.i18nService = i18nService;
         this.auditLogService = auditLogService;
     }
 
@@ -77,14 +85,26 @@ public class MdSettingService {
     @Transactional
     public void updateUserSettings(Long userId, Map<String, String> settings) {
         if (userId != null && settings != null) {
-            settings.forEach((k, v) -> settingRepository.setUserSetting(userId, k, v));
+            Map<String, String> normalized = new HashMap<>(settings);
+            String language = null;
+            if (normalized.containsKey("user.language")) {
+                language = i18nService.requireActiveLanguageCode(normalized.get("user.language"));
+                normalized.put("user.language", language);
+            }
+
+            normalized.forEach((k, v) -> settingRepository.setUserSetting(userId, k, v));
+            if (language != null) {
+                // /auth/me reads md_users.language. Keep it synchronized in this transaction
+                // so the selected language survives refreshes and new sessions.
+                userRepository.updateLanguage(userId, language, userId);
+            }
         }
     }
 
     @Transactional
     public void updateUserSetting(Long userId, String key, String value) {
         if (userId != null && key != null) {
-            settingRepository.setUserSetting(userId, key, value);
+            updateUserSettings(userId, Map.of(key, value));
         }
     }
 }

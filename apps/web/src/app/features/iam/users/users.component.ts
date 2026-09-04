@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed, HostListener, ElementRef, ViewChild } from '@angular/core';
+import { Component, OnInit, signal, computed, HostListener, ElementRef, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
@@ -13,6 +13,7 @@ import { User } from '../../../core/models/auth.models';
 import { Role } from '../../../core/models/rbac.models';
 import { CustomField } from '../../../core/models/custom-field.models';
 import { KeysetPage } from '../../../core/models/common.models';
+import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 
 type SortColumn = 'id' | 'name' | 'login' | 'createdAt';
 type SortDirection = 'asc' | 'desc';
@@ -21,6 +22,7 @@ type SortDirection = 'asc' | 'desc';
   selector: 'app-users',
   standalone: true,
   imports: [
+    TranslatePipe,
     CommonModule,
     FormsModule,
     UiButtonComponent,
@@ -35,7 +37,7 @@ type SortDirection = 'asc' | 'desc';
       <!-- Minimal Header -->
       <div class="view-header">
         <div class="header-left">
-          <h1 class="view-title">Пользователи</h1>
+          <h1 class="view-title">{{ 'nav.users' | t }}</h1>
           <span class="count-badge">{{ users().length }}</span>
         </div>
         <div class="header-right">
@@ -43,10 +45,10 @@ type SortDirection = 'asc' | 'desc';
             variant="secondary"
             size="md"
             icon="file_download"
-            title="Экспорт в CSV"
+            [title]="'iam.eksport_v_csv' | t"
             (onClick)="exportToCsv()"
           >
-            Экспорт
+            {{ 'analytics.eksport' | t }}
           </ui-button>
           <ui-button
             *ngIf="canCreateUser()"
@@ -55,7 +57,7 @@ type SortDirection = 'asc' | 'desc';
             icon="add"
             (onClick)="openCreateModal()"
           >
-            Новый пользователь
+            {{ 'iam.novyy_polzovatel' | t }}
           </ui-button>
         </div>
       </div>
@@ -64,24 +66,24 @@ type SortDirection = 'asc' | 'desc';
       <div class="toolbar">
         <div class="search-field">
           <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
-          <label class="sr-only" for="user-search">Поиск пользователей</label>
+          <label class="sr-only" for="user-search">{{ 'iam.poisk_polzovateley' | t }}</label>
           <input
             id="user-search"
             name="userSearch"
             type="text"
             class="search-input"
-            placeholder="Поиск по имени, логину, email..."
+            [placeholder]="'iam.poisk_po_imeni_loginu_email' | t"
             [(ngModel)]="searchQuery"
             (input)="onSearchInput()"
           />
-          <button *ngIf="searchQuery" type="button" class="btn-icon" style="position: absolute; right: 6px;" aria-label="Очистить поиск пользователей" (click)="clearSearch()">
+          <button *ngIf="searchQuery" type="button" class="btn-icon" style="position: absolute; right: 6px;" [attr.aria-label]="'iam.ochistit_poisk_polzovateley' | t" (click)="clearSearch()">
             <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">close</span>
           </button>
         </div>
 
         <div class="toolbar-controls">
           <!-- Segmented Status Switcher -->
-          <div class="status-tabs" role="group" aria-label="Фильтр пользователей по статусу">
+          <div class="status-tabs" role="group" [attr.aria-label]="'iam.filtr_polzovateley_po_statusu' | t">
             <button
               type="button"
               class="status-tab"
@@ -89,7 +91,7 @@ type SortDirection = 'asc' | 'desc';
               [attr.aria-pressed]="selectedState === ''"
               (click)="setStateFilter('')"
             >
-              Все
+              {{ 'common.all' | t }}
             </button>
             <button
               type="button"
@@ -99,7 +101,7 @@ type SortDirection = 'asc' | 'desc';
               (click)="setStateFilter('A')"
             >
               <span class="status-tab-dot" style="background-color: var(--success);" aria-hidden="true"></span>
-              Активные
+              {{ 'iam.aktivnye' | t }}
             </button>
             <button
               type="button"
@@ -109,7 +111,7 @@ type SortDirection = 'asc' | 'desc';
               (click)="setStateFilter('P')"
             >
               <span class="status-tab-dot" style="background-color: var(--danger);" aria-hidden="true"></span>
-              Заблокированные
+              {{ 'iam.zablokirovannye' | t }}
             </button>
           </div>
 
@@ -127,34 +129,34 @@ type SortDirection = 'asc' | 'desc';
               (click)="toggleFilterMenu($event)"
             >
               <span class="material-symbols-outlined icon" aria-hidden="true">tune</span>
-              <span>Фильтры</span>
+              <span>{{ 'iam.filtry' | t }}</span>
               <span class="filter-dot" *ngIf="hasExtraFilters()"></span>
             </button>
 
             <!-- Filter Dropdown Panel -->
-            <div id="user-extra-filters" class="filter-dropdown" role="dialog" aria-label="Дополнительные фильтры пользователей" *ngIf="isFilterMenuOpen()" (click)="$event.stopPropagation()">
+            <div id="user-extra-filters" class="filter-dropdown" role="dialog" [attr.aria-label]="'iam.dopolnitelnye_filtry_polzovateley' | t" *ngIf="isFilterMenuOpen()" (click)="$event.stopPropagation()">
               <div class="filter-dropdown-header">
-                <span class="dropdown-title">Дополнительные фильтры</span>
+                <span class="dropdown-title">{{ 'iam.dopolnitelnye_filtry' | t }}</span>
                 <button type="button" class="reset-link" *ngIf="hasExtraFilters()" (click)="resetExtraFilters()">
-                  Сбросить
+                  {{ 'iam.sbrosit' | t }}
                 </button>
               </div>
 
               <div class="filter-dropdown-body">
                 <div class="filter-group">
-                  <label class="filter-caption" for="user-role-filter">Роль пользователя</label>
+                  <label class="filter-caption" for="user-role-filter">{{ 'iam.rol_polzovatelya' | t }}</label>
                   <select id="user-role-filter" name="userRoleFilter" class="filter-select" [(ngModel)]="selectedRoleId" (change)="loadUsers(true)">
-                    <option [ngValue]="null">Все роли</option>
+                    <option [ngValue]="null">{{ 'iam.vse_roli' | t }}</option>
                     <option *ngFor="let r of roles()" [ngValue]="r.id">{{ r.name }}</option>
                   </select>
                 </div>
 
                 <div class="filter-group">
-                  <label class="filter-caption" for="user-2fa-filter">Двухфакторная защита (2FA)</label>
+                  <label class="filter-caption" for="user-2fa-filter">{{ 'iam.dvuhfaktornaya_zaschita_2fa' | t }}</label>
                   <select id="user-2fa-filter" name="user2faFilter" class="filter-select" [(ngModel)]="selected2fa" (change)="loadUsers(true)">
-                    <option [ngValue]="null">Любой статус 2FA</option>
-                    <option [ngValue]="true">Только с 2FA</option>
-                    <option [ngValue]="false">Без 2FA</option>
+                    <option [ngValue]="null">{{ 'iam.lyuboy_status_2fa' | t }}</option>
+                    <option [ngValue]="true">{{ 'iam.tolko_s_2fa' | t }}</option>
+                    <option [ngValue]="false">{{ 'iam.bez_2fa' | t }}</option>
                   </select>
                 </div>
               </div>
@@ -165,35 +167,35 @@ type SortDirection = 'asc' | 'desc';
             variant="ghost"
             size="sm"
             icon="refresh"
-            ariaLabel="Обновить список пользователей"
+            [ariaLabel]="'iam.obnovit_spisok_polzovateley' | t"
             [loading]="isLoading()"
-            title="Обновить"
+            [title]="'common.refresh' | t"
             (onClick)="loadUsers(true)"
           ></ui-button>
         </div>
       </div>
 
       <!-- Minimal Data Table -->
-      <div class="table-container" role="region" aria-label="Таблица пользователей" tabindex="0">
-        <table class="clean-table" aria-label="Список пользователей">
+      <div class="table-container" role="region" [attr.aria-label]="'iam.tablica_polzovateley' | t" tabindex="0">
+        <table class="clean-table" [attr.aria-label]="'iam.spisok_polzovateley' | t">
           <thead>
             <tr>
               <th class="th-sort">
                 <button type="button" class="sort-button" (click)="changeSort('name')" [attr.aria-pressed]="sortColumn === 'name'">
-                  Пользователь
+                  {{ 'audit.polzovatel' | t }}
                   <span class="material-symbols-outlined sort-ico" aria-hidden="true" *ngIf="sortColumn === 'name'">
                     {{ sortDirection === 'asc' ? 'north' : 'south' }}
                   </span>
                 </button>
               </th>
-              <th>Контакты</th>
-              <th>Роли</th>
-              <th>Руководитель</th>
+              <th>{{ 'iam.kontakty' | t }}</th>
+              <th>{{ 'iam.roli' | t }}</th>
+              <th>{{ 'iam.rukovoditel' | t }}</th>
               <th class="text-center" style="width: 70px;">2FA</th>
-              <th style="width: 110px;">Статус</th>
+              <th style="width: 110px;">{{ 'common.status' | t }}</th>
               <th class="th-sort text-right" style="width: 110px;">
                 <button type="button" class="sort-button align-right" (click)="changeSort('createdAt')" [attr.aria-pressed]="sortColumn === 'createdAt'">
-                  Создан
+                  {{ 'iam.sozdan' | t }}
                   <span class="material-symbols-outlined sort-ico" aria-hidden="true" *ngIf="sortColumn === 'createdAt'">
                     {{ sortDirection === 'asc' ? 'north' : 'south' }}
                   </span>
@@ -205,7 +207,7 @@ type SortDirection = 'asc' | 'desc';
           <tbody>
             <tr *ngFor="let u of paginatedUsers()" class="table-row">
               <td>
-                <button type="button" class="user-identity" (click)="openViewModal(u)" [attr.aria-label]="'Открыть профиль пользователя ' + u.name">
+                <button type="button" class="user-identity" (click)="openViewModal(u)" [attr.aria-label]="'iam.open_user_profile_named' | t:{name: u.name}">
                   <div class="avatar" [style.background-color]="getAvatarBgColor(u.name)">
                     {{ getUserInitial(u) }}
                   </div>
@@ -237,8 +239,8 @@ type SortDirection = 'asc' | 'desc';
                 <span
                   class="material-symbols-outlined twofa-dot"
                   [class.active]="u.is2faEnabled"
-                  [title]="u.is2faEnabled ? '2FA включена' : '2FA выключена'"
-                  [attr.aria-label]="u.is2faEnabled ? '2FA включена' : '2FA выключена'"
+                  [title]="(u.is2faEnabled ? 'iam.two_factor_enabled' : 'iam.two_factor_disabled_short') | t"
+                  [attr.aria-label]="(u.is2faEnabled ? 'iam.two_factor_enabled' : 'iam.two_factor_disabled_short') | t"
                 >
                   {{ u.is2faEnabled ? 'check_circle' : 'remove' }}
                 </span>
@@ -246,7 +248,7 @@ type SortDirection = 'asc' | 'desc';
               <td>
                 <span class="status-indicator" [class.active]="u.state === 'A'">
                   <span class="dot"></span>
-                  {{ u.state === 'A' ? 'Активен' : 'Отключен' }}
+                  {{ (u.state === 'A' ? 'common.active_masculine' : 'common.disabled_masculine') | t }}
                 </span>
               </td>
               <td class="text-right text-muted font-mono text-xs">{{ u.createdAt | date:'dd.MM.yyyy' }}</td>
@@ -255,8 +257,8 @@ type SortDirection = 'asc' | 'desc';
                   variant="ghost"
                   size="sm"
                   icon="visibility"
-                  [ariaLabel]="'Просмотреть пользователя ' + u.name"
-                  title="Просмотр"
+                  [ariaLabel]="'iam.view_user_named' | t:{name: u.name}"
+                  [title]="'iam.prosmotr' | t"
                   (onClick)="openViewModal(u)"
                 ></ui-button>
                 <ui-button
@@ -264,8 +266,8 @@ type SortDirection = 'asc' | 'desc';
                   variant="ghost"
                   size="sm"
                   icon="edit"
-                  [ariaLabel]="'Редактировать пользователя ' + u.name"
-                  title="Редактировать"
+                  [ariaLabel]="'iam.edit_user_named' | t:{name: u.name}"
+                  [title]="'common.edit' | t"
                   (onClick)="openEditModal(u)"
                 ></ui-button>
                 <ui-button
@@ -273,8 +275,8 @@ type SortDirection = 'asc' | 'desc';
                   variant="ghost"
                   size="sm"
                   icon="lock"
-                  [ariaLabel]="'Заблокировать пользователя ' + u.name"
-                  title="Заблокировать"
+                  [ariaLabel]="'iam.block_user_named' | t:{name: u.name}"
+                  [title]="'common.block' | t"
                   (onClick)="toggleUserState(u, 'block')"
                 ></ui-button>
                 <ui-button
@@ -282,8 +284,8 @@ type SortDirection = 'asc' | 'desc';
                   variant="ghost"
                   size="sm"
                   icon="lock_open"
-                  [ariaLabel]="'Разблокировать пользователя ' + u.name"
-                  title="Разблокировать"
+                  [ariaLabel]="'iam.unblock_user_named' | t:{name: u.name}"
+                  [title]="'common.unblock' | t"
                   (onClick)="toggleUserState(u, 'unblock')"
                 ></ui-button>
                 <ui-button
@@ -291,8 +293,8 @@ type SortDirection = 'asc' | 'desc';
                   variant="ghost"
                   size="sm"
                   icon="delete"
-                  [ariaLabel]="'Удалить пользователя ' + u.name"
-                  title="Удалить"
+                  [ariaLabel]="'iam.delete_user_named' | t:{name: u.name}"
+                  [title]="'common.delete' | t"
                   (onClick)="openDeleteConfirmModal(u)"
                 ></ui-button>
               </td>
@@ -301,7 +303,7 @@ type SortDirection = 'asc' | 'desc';
             <tr *ngIf="users().length === 0 && !isLoading()">
               <td colspan="8" class="empty-state">
                 <span class="material-symbols-outlined empty-ico" aria-hidden="true">search_off</span>
-                <p class="empty-text">Пользователи не найдены</p>
+                <p class="empty-text">{{ 'iam.polzovateli_ne_naydeny' | t }}</p>
               </td>
             </tr>
           </tbody>
@@ -324,28 +326,28 @@ type SortDirection = 'asc' | 'desc';
     <!-- ========================================================================= -->
     <ui-modal
       [isOpen]="isCreateModalOpen()"
-      title="Создать пользователя"
+      [title]="'iam.sozdat_polzovatelya' | t"
       size="md"
       (close)="isCreateModalOpen.set(false)"
     >
       <div body class="clean-modal-body">
         <div class="form-grid">
           <div class="form-group span-2">
-            <label class="clean-label" for="user-create-name">ФИО <span class="req">*</span></label>
+            <label class="clean-label" for="user-create-name">{{ 'iam.fio' | t }} <span class="req">*</span></label>
             <input id="user-create-name" name="userCreateName" type="text" class="clean-input" required
               [attr.aria-invalid]="isCreateSubmitted && !createForm.name.trim()"
               [attr.aria-describedby]="isCreateSubmitted && !createForm.name.trim() ? 'user-create-name-error' : null"
-              [(ngModel)]="createForm.name" placeholder="Иванов Иван Иванович" />
-            <span id="user-create-name-error" class="field-error" *ngIf="isCreateSubmitted && !createForm.name.trim()">Укажите ФИО пользователя</span>
+              [(ngModel)]="createForm.name" [placeholder]="'iam.ivanov_ivan_ivanovich' | t" />
+            <span id="user-create-name-error" class="field-error" *ngIf="isCreateSubmitted && !createForm.name.trim()">{{ 'iam.ukazhite_fio_polzovatelya' | t }}</span>
           </div>
 
           <div class="form-group">
-            <label class="clean-label" for="user-create-login">Логин <span class="req">*</span></label>
+            <label class="clean-label" for="user-create-login">{{ 'analytics.login' | t }} <span class="req">*</span></label>
             <input id="user-create-login" name="userCreateLogin" type="text" class="clean-input font-mono" required autocomplete="username"
               [attr.aria-invalid]="isCreateSubmitted && !createForm.login.trim()"
               [attr.aria-describedby]="isCreateSubmitted && !createForm.login.trim() ? 'user-create-login-error' : null"
               [(ngModel)]="createForm.login" placeholder="ivanov" />
-            <span id="user-create-login-error" class="field-error" *ngIf="isCreateSubmitted && !createForm.login.trim()">Укажите логин</span>
+            <span id="user-create-login-error" class="field-error" *ngIf="isCreateSubmitted && !createForm.login.trim()">{{ 'iam.ukazhite_login' | t }}</span>
           </div>
 
           <div class="form-group">
@@ -354,24 +356,24 @@ type SortDirection = 'asc' | 'desc';
               [attr.aria-invalid]="isCreateSubmitted && !createForm.email.trim()"
               [attr.aria-describedby]="isCreateSubmitted && !createForm.email.trim() ? 'user-create-email-error' : null"
               [(ngModel)]="createForm.email" placeholder="ivanov@company.local" />
-            <span id="user-create-email-error" class="field-error" *ngIf="isCreateSubmitted && !createForm.email.trim()">Укажите email</span>
+            <span id="user-create-email-error" class="field-error" *ngIf="isCreateSubmitted && !createForm.email.trim()">{{ 'iam.ukazhite_email' | t }}</span>
           </div>
 
           <div class="form-group">
-            <label class="clean-label" for="user-create-phone">Телефон</label>
+            <label class="clean-label" for="user-create-phone">{{ 'iam.telefon.822f9fd' | t }}</label>
             <input id="user-create-phone" name="userCreatePhone" type="tel" class="clean-input font-mono" autocomplete="tel" [(ngModel)]="createForm.phone" placeholder="+998901234567" />
           </div>
 
           <div class="form-group">
-            <label class="clean-label" for="user-create-manager">Руководитель</label>
+            <label class="clean-label" for="user-create-manager">{{ 'iam.rukovoditel' | t }}</label>
             <select id="user-create-manager" name="userCreateManager" class="clean-input" [(ngModel)]="createForm.managerId">
-              <option [ngValue]="null">Без руководителя</option>
+              <option [ngValue]="null">{{ 'iam.bez_rukovoditelya' | t }}</option>
               <option *ngFor="let u of users()" [ngValue]="u.id">{{ u.name }} (&#64;{{ u.login }})</option>
             </select>
           </div>
 
           <div class="form-group span-2">
-            <label class="clean-label" for="user-create-password">Временный пароль <span class="req">*</span></label>
+            <label class="clean-label" for="user-create-password">{{ 'iam.vremennyy_parol' | t }} <span class="req">*</span></label>
             <div class="pwd-wrapper">
               <input
                 id="user-create-password"
@@ -384,27 +386,27 @@ type SortDirection = 'asc' | 'desc';
                 [attr.aria-invalid]="isCreateSubmitted && createForm.password.length < 10"
                 [attr.aria-describedby]="isCreateSubmitted && createForm.password.length < 10 ? 'user-create-password-error user-create-password-hint' : 'user-create-password-hint'"
                 [(ngModel)]="createForm.password"
-                placeholder="Минимум 10 символов"
+                [placeholder]="'iam.minimum_10_simvolov' | t"
               />
-              <button type="button" class="pwd-btn" [attr.aria-label]="showPassword() ? 'Скрыть пароль' : 'Показать пароль'" [attr.aria-pressed]="showPassword()" (click)="showPassword.update(v => !v)">
+              <button type="button" class="pwd-btn" [attr.aria-label]="(showPassword() ? 'iam.hide_password' : 'iam.show_password') | t" [attr.aria-pressed]="showPassword()" (click)="showPassword.update(v => !v)">
                 <span class="material-symbols-outlined" aria-hidden="true">{{ showPassword() ? 'visibility_off' : 'visibility' }}</span>
               </button>
             </div>
-            <span id="user-create-password-hint" class="clean-hint">Не менее 10 символов, без совпадений с логином</span>
-            <span id="user-create-password-error" class="field-error" *ngIf="isCreateSubmitted && createForm.password.length < 10">Пароль должен содержать не менее 10 символов</span>
+            <span id="user-create-password-hint" class="clean-hint">{{ 'iam.ne_menee_10_simvolov_bez_sovpadeniy_s_loginom' | t }}</span>
+            <span id="user-create-password-error" class="field-error" *ngIf="isCreateSubmitted && createForm.password.length < 10">{{ 'iam.parol_dolzhen_soderzhat_ne_menee_10_simvolov' | t }}</span>
           </div>
 
           <div class="form-group">
-            <label class="clean-label" for="user-create-language">Язык</label>
+            <label class="clean-label" for="user-create-language">{{ 'iam.yazyk' | t }}</label>
             <select id="user-create-language" name="userCreateLanguage" class="clean-input" [(ngModel)]="createForm.language">
-              <option value="ru">Русский (ru)</option>
-              <option value="uz">O'zbekcha (uz)</option>
-              <option value="en">English (en)</option>
+              <option *ngFor="let lang of i18n.languages()" [value]="lang.code">
+                {{ lang.name }} ({{ lang.code }})
+              </option>
             </select>
           </div>
 
           <div class="form-group">
-            <label class="clean-label" for="user-create-timezone">Часовой пояс</label>
+            <label class="clean-label" for="user-create-timezone">{{ 'iam.chasovoy_poyas' | t }}</label>
             <select id="user-create-timezone" name="userCreateTimezone" class="clean-input" [(ngModel)]="createForm.timezone">
               <option value="Asia/Tashkent">Asia/Tashkent (UTC+5)</option>
               <option value="Europe/Moscow">Europe/Moscow (UTC+3)</option>
@@ -417,13 +419,13 @@ type SortDirection = 'asc' | 'desc';
           <div class="form-group span-2">
             <label class="clean-checkbox">
               <input name="userCreate2fa" type="checkbox" [(ngModel)]="createForm.is2faEnabled" />
-              <span>Включить двухфакторную защиту (2FA OTP)</span>
+              <span>{{ 'iam.vklyuchit_dvuhfaktornuyu_zaschitu_2fa_otp' | t }}</span>
             </label>
           </div>
 
           <!-- Roles -->
           <div class="form-group span-2" *ngIf="roles().length > 0">
-            <span class="clean-label">Роли доступа (RBAC)</span>
+            <span class="clean-label">{{ 'iam.roli_dostupa_rbac' | t }}</span>
             <div class="roles-chips">
               <label
                 *ngFor="let role of roles()"
@@ -442,7 +444,7 @@ type SortDirection = 'asc' | 'desc';
 
           <!-- Custom Fields -->
           <div class="form-group span-2" *ngIf="customFields().length > 0">
-            <span class="clean-label">Дополнительные поля</span>
+            <span class="clean-label">{{ 'iam.dopolnitelnye_polya' | t }}</span>
             <ui-custom-fields
               [fields]="customFields()"
               [(values)]="createForm.attributes"
@@ -451,8 +453,8 @@ type SortDirection = 'asc' | 'desc';
         </div>
       </div>
       <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="isCreateModalOpen.set(false)">Отмена</ui-button>
-        <ui-button variant="primary" size="md" [loading]="isSubmitting()" (onClick)="submitCreateUser()">Создать</ui-button>
+        <ui-button variant="secondary" size="md" (onClick)="isCreateModalOpen.set(false)">{{ 'common.cancel' | t }}</ui-button>
+        <ui-button variant="primary" size="md" [loading]="isSubmitting()" (onClick)="submitCreateUser()">{{ 'common.create' | t }}</ui-button>
       </div>
     </ui-modal>
 
@@ -461,40 +463,40 @@ type SortDirection = 'asc' | 'desc';
     <!-- ========================================================================= -->
     <ui-modal
       [isOpen]="isEditModalOpen()"
-      title="Редактировать пользователя"
+      [title]="'iam.redaktirovat_polzovatelya' | t"
       size="md"
       (close)="isEditModalOpen.set(false)"
     >
       <div body class="clean-modal-body" *ngIf="editingUser as u">
         <div class="form-grid">
           <div class="form-group span-2">
-            <label class="clean-label" for="user-edit-name">ФИО <span class="req">*</span></label>
+            <label class="clean-label" for="user-edit-name">{{ 'iam.fio' | t }} <span class="req">*</span></label>
             <input id="user-edit-name" name="userEditName" type="text" class="clean-input" required
               [attr.aria-invalid]="isEditSubmitted && !editForm.name.trim()"
               [attr.aria-describedby]="isEditSubmitted && !editForm.name.trim() ? 'user-edit-name-error' : null"
-              [(ngModel)]="editForm.name" placeholder="Иванов Иван Иванович" />
-            <span id="user-edit-name-error" class="field-error" *ngIf="isEditSubmitted && !editForm.name.trim()">Укажите ФИО пользователя</span>
+              [(ngModel)]="editForm.name" [placeholder]="'iam.ivanov_ivan_ivanovich' | t" />
+            <span id="user-edit-name-error" class="field-error" *ngIf="isEditSubmitted && !editForm.name.trim()">{{ 'iam.ukazhite_fio_polzovatelya' | t }}</span>
           </div>
 
           <div class="form-group">
-            <label class="clean-label" for="user-edit-login">Логин (чтение)</label>
+            <label class="clean-label" for="user-edit-login">{{ 'iam.login_chtenie' | t }}</label>
             <input id="user-edit-login" type="text" class="clean-input font-mono disabled" [value]="u.login" disabled />
           </div>
 
           <div class="form-group">
-            <label class="clean-label" for="user-edit-email">Email (чтение)</label>
+            <label class="clean-label" for="user-edit-email">{{ 'iam.email_chtenie' | t }}</label>
             <input id="user-edit-email" type="email" class="clean-input font-mono disabled" [value]="u.email" disabled />
           </div>
 
           <div class="form-group">
-            <label class="clean-label" for="user-edit-phone">Телефон</label>
+            <label class="clean-label" for="user-edit-phone">{{ 'iam.telefon.822f9fd' | t }}</label>
             <input id="user-edit-phone" name="userEditPhone" type="tel" class="clean-input font-mono" autocomplete="tel" [(ngModel)]="editForm.phone" placeholder="+998901234567" />
           </div>
 
           <div class="form-group">
-            <label class="clean-label" for="user-edit-manager">Руководитель</label>
+            <label class="clean-label" for="user-edit-manager">{{ 'iam.rukovoditel' | t }}</label>
             <select id="user-edit-manager" name="userEditManager" class="clean-input" [(ngModel)]="editForm.managerId">
-              <option [ngValue]="null">Без руководителя</option>
+              <option [ngValue]="null">{{ 'iam.bez_rukovoditelya' | t }}</option>
               <option *ngFor="let m of getAvailableManagers(u.id)" [ngValue]="m.id">
                 {{ m.name }} (&#64;{{ m.login }})
               </option>
@@ -502,16 +504,16 @@ type SortDirection = 'asc' | 'desc';
           </div>
 
           <div class="form-group">
-            <label class="clean-label" for="user-edit-language">Язык</label>
+            <label class="clean-label" for="user-edit-language">{{ 'iam.yazyk' | t }}</label>
             <select id="user-edit-language" name="userEditLanguage" class="clean-input" [(ngModel)]="editForm.language">
-              <option value="ru">Русский (ru)</option>
-              <option value="uz">O'zbekcha (uz)</option>
-              <option value="en">English (en)</option>
+              <option *ngFor="let lang of i18n.languages()" [value]="lang.code">
+                {{ lang.name }} ({{ lang.code }})
+              </option>
             </select>
           </div>
 
           <div class="form-group">
-            <label class="clean-label" for="user-edit-timezone">Часовой пояс</label>
+            <label class="clean-label" for="user-edit-timezone">{{ 'iam.chasovoy_poyas' | t }}</label>
             <select id="user-edit-timezone" name="userEditTimezone" class="clean-input" [(ngModel)]="editForm.timezone">
               <option value="Asia/Tashkent">Asia/Tashkent (UTC+5)</option>
               <option value="Europe/Moscow">Europe/Moscow (UTC+3)</option>
@@ -524,13 +526,13 @@ type SortDirection = 'asc' | 'desc';
           <div class="form-group span-2">
             <label class="clean-checkbox">
               <input name="userEdit2fa" type="checkbox" [(ngModel)]="editForm.is2faEnabled" />
-              <span>Включить двухфакторную защиту (2FA OTP)</span>
+              <span>{{ 'iam.vklyuchit_dvuhfaktornuyu_zaschitu_2fa_otp' | t }}</span>
             </label>
           </div>
 
           <!-- Roles -->
           <div class="form-group span-2" *ngIf="roles().length > 0">
-            <span class="clean-label">Роли доступа (RBAC)</span>
+            <span class="clean-label">{{ 'iam.roli_dostupa_rbac' | t }}</span>
             <div class="roles-chips">
               <label
                 *ngFor="let role of roles()"
@@ -545,14 +547,14 @@ type SortDirection = 'asc' | 'desc';
                   [disabled]="u.login === 'admin' && role.pcode === 'admin'"
                 />
                 <span>{{ role.name }}</span>
-                <span *ngIf="u.login === 'admin' && role.pcode === 'admin'" class="material-symbols-outlined lock-ico" title="Защищено">lock</span>
+                <span *ngIf="u.login === 'admin' && role.pcode === 'admin'" class="material-symbols-outlined lock-ico" [title]="'iam.zaschischeno' | t">lock</span>
               </label>
             </div>
           </div>
 
           <!-- Custom Fields -->
           <div class="form-group span-2" *ngIf="customFields().length > 0">
-            <span class="clean-label">Дополнительные поля</span>
+            <span class="clean-label">{{ 'iam.dopolnitelnye_polya' | t }}</span>
             <ui-custom-fields
               [fields]="customFields()"
               [(values)]="editForm.attributes"
@@ -561,8 +563,8 @@ type SortDirection = 'asc' | 'desc';
         </div>
       </div>
       <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="isEditModalOpen.set(false)">Отмена</ui-button>
-        <ui-button variant="primary" size="md" [loading]="isSubmitting()" (onClick)="submitEditUser()">Сохранить</ui-button>
+        <ui-button variant="secondary" size="md" (onClick)="isEditModalOpen.set(false)">{{ 'common.cancel' | t }}</ui-button>
+        <ui-button variant="primary" size="md" [loading]="isSubmitting()" (onClick)="submitEditUser()">{{ 'common.save' | t }}</ui-button>
       </div>
     </ui-modal>
 
@@ -571,7 +573,7 @@ type SortDirection = 'asc' | 'desc';
     <!-- ========================================================================= -->
     <ui-modal
       [isOpen]="isViewModalOpen()"
-      title="Профиль пользователя"
+      [title]="'iam.profil_polzovatelya' | t"
       size="sm"
       (close)="isViewModalOpen.set(false)"
     >
@@ -592,34 +594,34 @@ type SortDirection = 'asc' | 'desc';
             <span class="val font-mono">{{ u.email }}</span>
           </div>
           <div class="info-row">
-            <span class="lbl">Телефон</span>
+            <span class="lbl">{{ 'iam.telefon.822f9fd' | t }}</span>
             <span class="val font-mono">{{ u.phone || '—' }}</span>
           </div>
           <div class="info-row">
-            <span class="lbl">Руководитель</span>
+            <span class="lbl">{{ 'iam.rukovoditel' | t }}</span>
             <span class="val">{{ getManagerName(u) || '—' }}</span>
           </div>
           <div class="info-row">
-            <span class="lbl">Роли</span>
+            <span class="lbl">{{ 'iam.roli' | t }}</span>
             <span class="val">{{ getUserRoleNames(u).join(', ') || '—' }}</span>
           </div>
           <div class="info-row">
-            <span class="lbl">2FA Защита</span>
-            <span class="val">{{ u.is2faEnabled ? 'Включена' : 'Отключена' }}</span>
+            <span class="lbl">{{ 'iam.2fa_zaschita' | t }}</span>
+            <span class="val">{{ (u.is2faEnabled ? 'common.enabled_feminine' : 'common.disabled_feminine') | t }}</span>
           </div>
           <div class="info-row">
-            <span class="lbl">Статус</span>
-            <span class="val">{{ u.state === 'A' ? 'Активен' : 'Заблокирован' }}</span>
+            <span class="lbl">{{ 'common.status' | t }}</span>
+            <span class="val">{{ (u.state === 'A' ? 'common.active_masculine' : 'common.blocked_masculine') | t }}</span>
           </div>
           <div class="info-row">
-            <span class="lbl">Создан</span>
+            <span class="lbl">{{ 'iam.sozdan' | t }}</span>
             <span class="val font-mono">{{ u.createdAt | date:'dd.MM.yyyy' }}</span>
           </div>
         </div>
       </div>
       <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="isViewModalOpen.set(false)">Закрыть</ui-button>
-        <ui-button *ngIf="canUpdateUser()" variant="primary" size="md" (onClick)="openEditFromView()">Редактировать</ui-button>
+        <ui-button variant="secondary" size="md" (onClick)="isViewModalOpen.set(false)">{{ 'audit.zakryt' | t }}</ui-button>
+        <ui-button *ngIf="canUpdateUser()" variant="primary" size="md" (onClick)="openEditFromView()">{{ 'common.edit' | t }}</ui-button>
       </div>
     </ui-modal>
 
@@ -628,19 +630,19 @@ type SortDirection = 'asc' | 'desc';
     <!-- ========================================================================= -->
     <ui-modal
       [isOpen]="isDeleteModalOpen()"
-      title="Удаление пользователя"
+      [title]="'iam.udalenie_polzovatelya' | t"
       size="sm"
       (close)="isDeleteModalOpen.set(false)"
     >
       <div body class="delete-body" *ngIf="deletingUser as u">
         <p class="delete-msg">
-          Вы уверены, что хотите удалить и анонимизировать пользователя <strong>{{ u.name }}</strong> (&#64;{{ u.login }})?
+          {{ 'iam.vy_uvereny_chto_hotite_udalit_i_anonimizirovat_p' | t }} <strong>{{ u.name }}</strong> (&#64;{{ u.login }})?
         </p>
-        <span class="delete-sub">Персональные данные будут стёрты, а активные сессии закрыты.</span>
+        <span class="delete-sub">{{ 'iam.personalnye_dannye_budut_sterty_a_aktivnye_sessi' | t }}</span>
       </div>
       <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="isDeleteModalOpen.set(false)">Отмена</ui-button>
-        <ui-button variant="danger" size="md" [loading]="isSubmitting()" (onClick)="confirmDeleteUser()">Удалить</ui-button>
+        <ui-button variant="secondary" size="md" (onClick)="isDeleteModalOpen.set(false)">{{ 'common.cancel' | t }}</ui-button>
+        <ui-button variant="danger" size="md" [loading]="isSubmitting()" (onClick)="confirmDeleteUser()">{{ 'common.delete' | t }}</ui-button>
       </div>
     </ui-modal>
   `,
@@ -1151,6 +1153,7 @@ type SortDirection = 'asc' | 'desc';
   `]
 })
 export class UsersComponent implements OnInit {
+  private readonly uiI18n = inject(I18nService);
   readonly users = signal<User[]>([]);
   readonly roles = signal<Role[]>([]);
   readonly customFields = signal<CustomField[]>([]);
@@ -1217,7 +1220,8 @@ export class UsersComponent implements OnInit {
     public permService: PermissionService,
     private api: ApiService,
     private toast: ToastService,
-    private elementRef: ElementRef
+    private elementRef: ElementRef,
+    public i18n: I18nService
   ) {}
 
   @ViewChild('filterTrigger') private filterTrigger?: ElementRef<HTMLButtonElement>;
@@ -1460,12 +1464,12 @@ export class UsersComponent implements OnInit {
   submitCreateUser() {
     this.isCreateSubmitted = true;
     if (!this.createForm.name || !this.createForm.login || !this.createForm.email || !this.createForm.password) {
-      this.toast.warning('Заполните обязательные поля');
+      this.toast.warning(this.uiI18n.translate('iam.zapolnite_obyazatelnye_polya'));
       return;
     }
 
     if (this.createForm.password.length < 10) {
-      this.toast.warning('Пароль должен содержать минимум 10 символов');
+      this.toast.warning(this.uiI18n.translate('iam.parol_dolzhen_soderzhat_minimum_10_simvolov'));
       return;
     }
 
@@ -1474,7 +1478,7 @@ export class UsersComponent implements OnInit {
       next: () => {
         this.isSubmitting.set(false);
         this.isCreateModalOpen.set(false);
-        this.toast.success('Пользователь успешно создан');
+        this.toast.success(this.uiI18n.translate('iam.polzovatel_uspeshno_sozdan'));
         this.loadUsers(true);
       },
       error: () => {
@@ -1516,7 +1520,7 @@ export class UsersComponent implements OnInit {
     if (!this.editingUser) return;
     this.isEditSubmitted = true;
     if (!this.editForm.name) {
-      this.toast.warning('Имя пользователя обязательно');
+      this.toast.warning(this.uiI18n.translate('iam.imya_polzovatelya_obyazatelno'));
       return;
     }
 
@@ -1525,7 +1529,7 @@ export class UsersComponent implements OnInit {
       next: () => {
         this.isSubmitting.set(false);
         this.isEditModalOpen.set(false);
-        this.toast.success('Данные сохранены');
+        this.toast.success(this.uiI18n.translate('iam.dannye_sohraneny'));
         this.loadUsers(true);
       },
       error: () => {
@@ -1547,7 +1551,7 @@ export class UsersComponent implements OnInit {
       next: () => {
         this.isSubmitting.set(false);
         this.isDeleteModalOpen.set(false);
-        this.toast.success('Пользователь успешно удалён');
+        this.toast.success(this.uiI18n.translate('iam.polzovatel_uspeshno_udalen'));
         this.loadUsers(true);
       },
       error: () => {
@@ -1559,7 +1563,7 @@ export class UsersComponent implements OnInit {
   toggleUserState(user: User, action: 'block' | 'unblock') {
     this.api.post(`/iam/users/${user.id}/${action}`).subscribe({
       next: () => {
-        this.toast.success(action === 'block' ? 'Пользователь заблокирован' : 'Пользователь разблокирован');
+        this.toast.success(action === 'block' ? this.uiI18n.translate('iam.polzovatel_zablokirovan') : this.uiI18n.translate('iam.polzovatel_razblokirovan'));
         this.loadUsers(true);
       }
     });
@@ -1568,19 +1572,19 @@ export class UsersComponent implements OnInit {
   exportToCsv() {
     const list = this.sortedUsers();
     if (list.length === 0) {
-      this.toast.info('Нет данных для экспорта');
+      this.toast.info(this.uiI18n.translate('iam.net_dannyh_dlya_eksporta'));
       return;
     }
 
-    const headers = ['ID', 'Имя', 'Логин', 'Email', 'Телефон', 'Статус', '2FA', 'Язык', 'Часовой пояс', 'Создан'];
+    const headers = ['ID', this.uiI18n.translate('iam.imya'), this.uiI18n.translate('analytics.login'), 'Email', this.uiI18n.translate('iam.telefon.822f9fd'), this.uiI18n.translate('common.status'), '2FA', this.uiI18n.translate('iam.yazyk'), this.uiI18n.translate('iam.chasovoy_poyas'), this.uiI18n.translate('iam.sozdan')];
     const rows = list.map(u => [
       u.id,
       `"${(u.name || '').replace(/"/g, '""')}"`,
       `"${u.login}"`,
       `"${u.email}"`,
       `"${u.phone || ''}"`,
-      u.state === 'A' ? 'Активен' : 'Заблокирован',
-      u.is2faEnabled ? 'Да' : 'Нет',
+      u.state === 'A' ? this.uiI18n.translate('common.active') : this.uiI18n.translate('common.passive'),
+      u.is2faEnabled ? this.uiI18n.translate('iam.da') : this.uiI18n.translate('iam.net'),
       u.language || 'ru',
       u.timezone || 'Asia/Tashkent',
       u.createdAt
@@ -1595,6 +1599,6 @@ export class UsersComponent implements OnInit {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    this.toast.success('Экспорт выполнен');
+    this.toast.success(this.uiI18n.translate('iam.eksport_vypolnen'));
   }
 }

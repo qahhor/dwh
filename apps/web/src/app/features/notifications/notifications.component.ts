@@ -1,20 +1,22 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NotificationService } from '../../core/services/notification.service';
 import { ToastService } from '../../core/services/toast.service';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 import { UiPaginationComponent } from '../../shared/ui/ui-pagination.component';
 import { NotificationItem } from '../../core/models/notification.models';
+import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
 
 @Component({
   selector: 'app-notifications',
   standalone: true,
-  imports: [CommonModule, UiButtonComponent, UiPaginationComponent],
+  imports: [
+    TranslatePipe,CommonModule, UiButtonComponent, UiPaginationComponent],
   template: `
     <div class="notifications-container">
       <div class="view-header">
         <div class="header-left">
-          <h1 class="view-title">Центр уведомлений</h1>
+          <h1 class="view-title">{{ 'notifications.centr_uvedomleniy' | t }}</h1>
           <span class="count-badge">{{ items().length }}</span>
         </div>
         <div class="header-right">
@@ -24,13 +26,13 @@ import { NotificationItem } from '../../core/models/notification.models';
             [disabled]="notifService.unreadCount() === 0"
             (onClick)="markAllAsRead()"
           >
-            Прочитать все
+            {{ 'notifications.prochitat_vse' | t }}
           </ui-button>
         </div>
       </div>
 
       <div class="card notif-card">
-        <div class="notif-list" role="region" aria-label="Список уведомлений">
+        <div class="notif-list" role="region" [attr.aria-label]="'notifications.spisok_uvedomleniy' | t">
           <article
             *ngFor="let n of paginatedItems()"
             class="notif-item"
@@ -53,7 +55,7 @@ import { NotificationItem } from '../../core/models/notification.models';
               <button
                 type="button"
                 class="mark-read-btn"
-                [attr.aria-label]="'Отметить уведомление «' + n.title + '» как прочитанное'"
+                [attr.aria-label]="'notifications.mark_named_read' | t:{title: n.title}"
                 (click)="markAsRead(n)"
               >
                 <span class="material-symbols-outlined" aria-hidden="true">done</span>
@@ -62,7 +64,7 @@ import { NotificationItem } from '../../core/models/notification.models';
           </article>
 
           <div *ngIf="items().length === 0" class="empty-notif">
-            У вас нет уведомлений
+            {{ 'notifications.u_vas_net_uvedomleniy' | t }}
           </div>
         </div>
 
@@ -221,6 +223,7 @@ import { NotificationItem } from '../../core/models/notification.models';
   `]
 })
 export class NotificationsComponent implements OnInit {
+  private readonly uiI18n = inject(I18nService);
   readonly items = signal<NotificationItem[]>([]);
   currentPage = 1;
   pageSize = 10;
@@ -249,7 +252,7 @@ export class NotificationsComponent implements OnInit {
 
   markAllAsRead() {
     this.notifService.markAllAsRead().subscribe(() => {
-      this.toast.success('Все уведомления прочитаны');
+      this.toast.success(this.uiI18n.translate('notifications.vse_uvedomleniya_prochitany'));
       this.loadNotifications();
     });
   }

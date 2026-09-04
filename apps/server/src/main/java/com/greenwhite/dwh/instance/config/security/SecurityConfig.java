@@ -9,6 +9,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -65,6 +66,8 @@ public class SecurityConfig {
                         // ASYNC/ERROR are continuations of an already-authorized request. Re-authorizing
                         // them after an SSE/client disconnect can only produce a second, committed response.
                         .dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/i18n/languages").permitAll()
+                        .requestMatchers(SecurityConfig::isPublicI18nDictionaryRead).permitAll()
                         .requestMatchers(PUBLIC_PATHS).permitAll()
                         // Actuator живёт на отдельном management-порту, наружу не публикуется
                         .requestMatchers("/actuator/**").permitAll()
@@ -123,6 +126,12 @@ public class SecurityConfig {
             return true;
         }
         return !hasSessionCookie(request);
+    }
+
+    private static boolean isPublicI18nDictionaryRead(HttpServletRequest request) {
+        return "GET".equals(request.getMethod())
+                && request.getRequestURI().matches(
+                        "^/api/v1/i18n/[a-zA-Z]{2,3}(?:-[a-zA-Z0-9]{2,8})*$");
     }
 
     private static boolean hasSessionCookie(HttpServletRequest request) {

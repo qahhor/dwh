@@ -5,7 +5,10 @@ import { ApiService } from '../../../core/services/api.service';
 import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { User } from '../../../core/models/auth.models';
+import { I18nService } from '../../../core/services/i18n.service';
+import { signal } from '@angular/core';
 import { UsersComponent } from './users.component';
+import { translateTest } from '../../../../testing/i18n-test.stub';
 
 describe('UsersComponent UI contracts', () => {
   async function createFixture() {
@@ -21,6 +24,17 @@ describe('UsersComponent UI contracts', () => {
             post: vi.fn(() => of({})),
             patch: vi.fn(() => of({})),
             delete: vi.fn(() => of({}))
+          }
+        },
+        {
+          provide: I18nService,
+          useValue: {
+            languages: signal([
+              { code: 'ru', name: 'Русский', active: true },
+              { code: 'de', name: 'Deutsch', active: true },
+              { code: 'tr', name: 'Türkçe', active: true }
+            ]),
+            translate: translateTest
           }
         },
         {
@@ -86,5 +100,7 @@ describe('UsersComponent UI contracts', () => {
     expect(name.getAttribute('aria-describedby')).toBe('user-create-name-error');
     expect(password.required).toBe(true);
     expect(fixture.nativeElement.querySelector('button[aria-label="Показать пароль"]')).not.toBeNull();
+    const language = fixture.nativeElement.querySelector('#user-create-language') as HTMLSelectElement;
+    expect(Array.from(language.options).map(option => option.value)).toEqual(['ru', 'de', 'tr']);
   });
 });

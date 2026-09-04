@@ -1,58 +1,60 @@
-import { Component, Input, Output, EventEmitter, signal, ViewChild, ElementRef } from '@angular/core';
+import { Component, Input, Output, EventEmitter, signal, ViewChild, ElementRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { replaceMarkdownLinksWithSafeAnchors } from './markdown-link-sanitizer';
+import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
 
 @Component({
   selector: 'ui-markdown-editor',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [
+    TranslatePipe,CommonModule, FormsModule],
   template: `
     <div class="md-editor-container" [class.focused]="isFocused">
       <!-- Toolbar -->
-      <div class="md-toolbar" role="toolbar" aria-label="Форматирование Markdown">
+      <div class="md-toolbar" role="toolbar" [attr.aria-label]="'ui.markdown_editor.formatirovanie_markdown' | t">
         <div class="toolbar-actions">
-          <button type="button" class="tool-btn" (click)="insertFormat('bold')" aria-label="Жирный" title="Жирный (Ctrl+B)">
+          <button type="button" class="tool-btn" (click)="insertFormat('bold')" [attr.aria-label]="'ui.markdown_editor.zhirnyy' | t" [title]="'ui.markdown_editor.zhirnyy_ctrl_b' | t">
             <span class="material-symbols-outlined" aria-hidden="true">format_bold</span>
           </button>
-          <button type="button" class="tool-btn" (click)="insertFormat('italic')" aria-label="Курсив" title="Курсив (Ctrl+I)">
+          <button type="button" class="tool-btn" (click)="insertFormat('italic')" [attr.aria-label]="'ui.markdown_editor.kursiv' | t" [title]="'ui.markdown_editor.kursiv_ctrl_i' | t">
             <span class="material-symbols-outlined" aria-hidden="true">format_italic</span>
           </button>
-          <button type="button" class="tool-btn" (click)="insertFormat('strike')" aria-label="Зачёркнутый" title="Зачеркнутый">
+          <button type="button" class="tool-btn" (click)="insertFormat('strike')" [attr.aria-label]="'ui.markdown_editor.zacherknutyy' | t" [title]="'ui.markdown_editor.zacherknutyy.681ea7a' | t">
             <span class="material-symbols-outlined" aria-hidden="true">format_strikethrough</span>
           </button>
           <span class="tool-sep" role="separator" aria-orientation="vertical"></span>
 
-          <button type="button" class="tool-btn" (click)="insertFormat('h2')" aria-label="Заголовок" title="Заголовок">
+          <button type="button" class="tool-btn" (click)="insertFormat('h2')" [attr.aria-label]="'ui.markdown_editor.zagolovok' | t" [title]="'ui.markdown_editor.zagolovok' | t">
             <span class="material-symbols-outlined" aria-hidden="true">title</span>
           </button>
-          <button type="button" class="tool-btn" (click)="insertFormat('bullet-list')" aria-label="Маркированный список" title="Маркированный список">
+          <button type="button" class="tool-btn" (click)="insertFormat('bullet-list')" [attr.aria-label]="'ui.markdown_editor.markirovannyy_spisok' | t" [title]="'ui.markdown_editor.markirovannyy_spisok' | t">
             <span class="material-symbols-outlined" aria-hidden="true">format_list_bulleted</span>
           </button>
-          <button type="button" class="tool-btn" (click)="insertFormat('num-list')" aria-label="Нумерованный список" title="Нумерованный список">
+          <button type="button" class="tool-btn" (click)="insertFormat('num-list')" [attr.aria-label]="'ui.markdown_editor.numerovannyy_spisok' | t" [title]="'ui.markdown_editor.numerovannyy_spisok' | t">
             <span class="material-symbols-outlined" aria-hidden="true">format_list_numbered</span>
           </button>
-          <button type="button" class="tool-btn" (click)="insertFormat('task-list')" aria-label="Чек-лист задач" title="Чек-лист задач">
+          <button type="button" class="tool-btn" (click)="insertFormat('task-list')" [attr.aria-label]="'ui.markdown_editor.chek_list_zadach' | t" [title]="'ui.markdown_editor.chek_list_zadach' | t">
             <span class="material-symbols-outlined" aria-hidden="true">checklist</span>
           </button>
           <span class="tool-sep" role="separator" aria-orientation="vertical"></span>
 
-          <button type="button" class="tool-btn" (click)="insertFormat('code')" aria-label="Код" title="Код">
+          <button type="button" class="tool-btn" (click)="insertFormat('code')" [attr.aria-label]="'settings.kod' | t" [title]="'settings.kod' | t">
             <span class="material-symbols-outlined" aria-hidden="true">code</span>
           </button>
-          <button type="button" class="tool-btn" (click)="insertFormat('quote')" aria-label="Цитата" title="Цитата">
+          <button type="button" class="tool-btn" (click)="insertFormat('quote')" [attr.aria-label]="'ui.markdown_editor.citata' | t" [title]="'ui.markdown_editor.citata' | t">
             <span class="material-symbols-outlined" aria-hidden="true">format_quote</span>
           </button>
-          <button type="button" class="tool-btn" (click)="insertFormat('link')" aria-label="Ссылка" title="Ссылка">
+          <button type="button" class="tool-btn" (click)="insertFormat('link')" [attr.aria-label]="'ui.markdown_editor.ssylka' | t" [title]="'ui.markdown_editor.ssylka' | t">
             <span class="material-symbols-outlined" aria-hidden="true">link</span>
           </button>
-          <button type="button" class="tool-btn" (click)="insertFormat('table')" aria-label="Таблица" title="Таблица">
+          <button type="button" class="tool-btn" (click)="insertFormat('table')" [attr.aria-label]="'audit.tablica' | t" [title]="'audit.tablica' | t">
             <span class="material-symbols-outlined" aria-hidden="true">table</span>
           </button>
         </div>
 
         <!-- Mode Toggle Tabs -->
-        <div class="mode-tabs" role="tablist" aria-label="Режим Markdown">
+        <div class="mode-tabs" role="tablist" [attr.aria-label]="'ui.markdown_editor.rezhim_markdown' | t">
           <button
             type="button"
             class="mode-btn"
@@ -64,7 +66,7 @@ import { replaceMarkdownLinksWithSafeAnchors } from './markdown-link-sanitizer';
             (click)="mode = 'edit'"
           >
             <span class="material-symbols-outlined ico" aria-hidden="true">edit_note</span>
-            <span>Редактор</span>
+            <span>{{ 'ui.markdown_editor.redaktor' | t }}</span>
           </button>
           <button
             type="button"
@@ -77,7 +79,7 @@ import { replaceMarkdownLinksWithSafeAnchors } from './markdown-link-sanitizer';
             (click)="mode = 'preview'"
           >
             <span class="material-symbols-outlined ico" aria-hidden="true">visibility</span>
-            <span>Предпросмотр</span>
+            <span>{{ 'ui.markdown_editor.predprosmotr' | t }}</span>
           </button>
         </div>
       </div>
@@ -86,13 +88,13 @@ import { replaceMarkdownLinksWithSafeAnchors } from './markdown-link-sanitizer';
       <div class="md-body">
         <!-- Textarea Mode -->
         <div *ngIf="mode === 'edit'" class="editor-pane" role="tabpanel" [id]="editPanelId" [attr.aria-labelledby]="editTabId">
-          <label class="sr-only" [for]="textareaId">{{ ariaLabel }}</label>
+          <label class="sr-only" [for]="textareaId">{{ ariaLabel || ('ui.markdown_editor.tekst_v_formate_markdown' | t) }}</label>
           <textarea
             #textareaRef
             [id]="textareaId"
             class="md-textarea"
             [rows]="rows"
-            [placeholder]="placeholder"
+            [placeholder]="placeholder || ('ui.markdown_editor.napishite_tekst_zadachi_podderzhivaetsya_markdow' | t)"
             [ngModel]="value"
             (ngModelChange)="onTextChange($event)"
             (focus)="isFocused = true"
@@ -310,12 +312,13 @@ import { replaceMarkdownLinksWithSafeAnchors } from './markdown-link-sanitizer';
   `]
 })
 export class UiMarkdownEditorComponent {
+  private readonly uiI18n = inject(I18nService);
   private static nextId = 0;
 
   @Input() value = '';
-  @Input() placeholder = 'Напишите текст задачи (поддерживается Markdown)...';
+  @Input() placeholder = '';
   @Input() rows = 4;
-  @Input() ariaLabel = 'Текст в формате Markdown';
+  @Input() ariaLabel = '';
   @Output() valueChange = new EventEmitter<string>();
 
   @ViewChild('textareaRef') textareaRef?: ElementRef<HTMLTextAreaElement>;
@@ -347,7 +350,7 @@ export class UiMarkdownEditorComponent {
   insertFormat(type: string) {
     const el = this.textareaRef?.nativeElement;
     if (!el) {
-      if (type === 'bold') this.onTextChange((this.value || '') + '**жирный текст**');
+      if (type === 'bold') this.onTextChange((this.value || '') + this.uiI18n.translate('ui.markdown_editor.zhirnyy_tekst'));
       return;
     }
 
@@ -361,31 +364,31 @@ export class UiMarkdownEditorComponent {
 
     switch (type) {
       case 'bold':
-        replacement = `**${selected || 'жирный текст'}**`;
+        replacement = `**${selected || this.uiI18n.translate('ui.markdown_editor.zhirnyy_tekst.4df48c2')}**`;
         cursorOffset = selected ? replacement.length : 2;
         break;
       case 'italic':
-        replacement = `*${selected || 'курсив'}*`;
+        replacement = `*${selected || this.uiI18n.translate('ui.markdown_editor.kursiv.64bef33')}*`;
         cursorOffset = selected ? replacement.length : 1;
         break;
       case 'strike':
-        replacement = `~~${selected || 'зачеркнутый текст'}~~`;
+        replacement = `~~${selected || this.uiI18n.translate('ui.markdown_editor.zacherknutyy_tekst')}~~`;
         cursorOffset = selected ? replacement.length : 2;
         break;
       case 'h2':
-        replacement = `\n## ${selected || 'Заголовок'}\n`;
+        replacement = `\n## ${selected || this.uiI18n.translate('ui.markdown_editor.zagolovok')}\n`;
         cursorOffset = replacement.length;
         break;
       case 'bullet-list':
-        replacement = `\n- ${selected || 'Элемент списка'}\n- Второй элемент\n`;
+        replacement = `\n- ${selected || this.uiI18n.translate('ui.markdown_editor.element_spiska')}\n- ${this.uiI18n.translate('ui.markdown_editor.vtoroy_element')}\n`;
         cursorOffset = replacement.length;
         break;
       case 'num-list':
-        replacement = `\n1. ${selected || 'Первый пункт'}\n2. Второй пункт\n`;
+        replacement = `\n1. ${selected || this.uiI18n.translate('ui.markdown_editor.pervyy_punkt')}\n2. ${this.uiI18n.translate('ui.markdown_editor.vtoroy_punkt')}\n`;
         cursorOffset = replacement.length;
         break;
       case 'task-list':
-        replacement = `\n- [ ] ${selected || 'Подзадача или пункт чек-листа'}\n- [x] Выполненный пункт\n`;
+        replacement = `\n- [ ] ${selected || this.uiI18n.translate('ui.markdown_editor.podzadacha_ili_punkt_chek_lista')}\n- [x] ${this.uiI18n.translate('ui.markdown_editor.vypolnennyy_punkt')}\n`;
         cursorOffset = replacement.length;
         break;
       case 'code':
@@ -397,15 +400,15 @@ export class UiMarkdownEditorComponent {
         cursorOffset = replacement.length;
         break;
       case 'quote':
-        replacement = `\n> ${selected || 'Цитата или важное примечание'}\n`;
+        replacement = `\n> ${selected || this.uiI18n.translate('ui.markdown_editor.citata_ili_vazhnoe_primechanie')}\n`;
         cursorOffset = replacement.length;
         break;
       case 'link':
-        replacement = `[${selected || 'Текст ссылки'}](https://)`;
+        replacement = `[${selected || this.uiI18n.translate('ui.markdown_editor.tekst_ssylki')}](https://)`;
         cursorOffset = replacement.length - 1;
         break;
       case 'table':
-        replacement = `\n| Параметр | Значение |\n| --- | --- |\n| Статус | Одобрено |\n`;
+        replacement = this.uiI18n.translate('ui.markdown_editor.parametr_znachenie_status_odobreno');
         cursorOffset = replacement.length;
         break;
       default:
@@ -423,7 +426,9 @@ export class UiMarkdownEditorComponent {
 
   renderMarkdown(text: string): string {
     if (!text || !text.trim()) {
-      return '<span class="md-empty-preview">Предпросмотр пуст</span>';
+      return `<span class="md-empty-preview">${this.escapeHtml(
+        this.uiI18n.translate('ui.markdown_editor.empty_preview')
+      )}</span>`;
     }
 
     let html = this.escapeHtml(text);

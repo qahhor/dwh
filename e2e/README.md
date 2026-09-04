@@ -33,6 +33,8 @@ checks use the same UI variable; a non-default management endpoint can be set wi
 - Local System status and announcement draft → publish → archive lifecycle;
 - Keyboard focus, narrow viewport overflow and critical/serious axe checks on
   the local administration screens;
+- Central translation editing, immediate repaint, Russian per-key fallback and
+  persistence in a second authenticated browser session;
 - browser console and uncaught page-error checks after authentication.
 
 Tests use accessible roles and labels. Trace, video and HTML reports are disabled so

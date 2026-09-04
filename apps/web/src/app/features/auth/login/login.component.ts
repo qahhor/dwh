@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -7,11 +7,13 @@ import { ToastService } from '../../../core/services/toast.service';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { ApiService } from '../../../core/services/api.service';
+import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule, UiButtonComponent, UiModalComponent],
+  imports: [
+    TranslatePipe,CommonModule, FormsModule, UiButtonComponent, UiModalComponent],
   template: `
     <main class="login-wrapper">
       <div class="login-card">
@@ -20,14 +22,14 @@ import { ApiService } from '../../../core/services/api.service';
             <span class="brand-mark" aria-hidden="true">S</span>
             <span class="brand-name" aria-hidden="true">SmartupCMS</span>
           </div>
-          <h1 class="login-title">Корпоративный вход</h1>
-          <p class="login-subtitle">Платформа управления данными и задачами</p>
+          <h1 class="login-title">{{ 'auth.korporativnyy_vhod' | t }}</h1>
+          <p class="login-subtitle">{{ 'auth.platforma_upravleniya_dannymi_i_zadachami' | t }}</p>
         </div>
 
         <!-- Step 1: Login & Password Form -->
         <form *ngIf="step() === 'credentials'" (ngSubmit)="onLoginSubmit()" class="login-form">
           <div class="form-group">
-            <label class="form-label" for="login">Логин или Email</label>
+            <label class="form-label" for="login">{{ 'auth.username' | t }}</label>
             <input
               id="login"
               type="text"
@@ -46,8 +48,8 @@ import { ApiService } from '../../../core/services/api.service';
 
           <div class="form-group">
             <div class="password-label-row">
-              <label class="form-label" for="password">Пароль</label>
-              <button type="button" class="forgot-link" (click)="openResetModal()">Забыли пароль?</button>
+              <label class="form-label" for="password">{{ 'auth.password' | t }}</label>
+              <button type="button" class="forgot-link" (click)="openResetModal()">{{ 'auth.zabyli_parol' | t }}</button>
             </div>
             <input
               id="password"
@@ -75,7 +77,7 @@ import { ApiService } from '../../../core/services/api.service';
             [fullWidth]="true"
             class="submit-btn"
           >
-            Войти в систему
+            {{ 'auth.voyti_v_sistemu' | t }}
           </ui-button>
 
         </form>
@@ -85,13 +87,13 @@ import { ApiService } from '../../../core/services/api.service';
           <div class="otp-banner">
             <span class="material-symbols-outlined">shield_person</span>
             <div>
-              <strong>Двухфакторная аутентификация</strong>
-              <p id="otp-hint">Введите 6-значный код подтверждения, отправленный в ваш Telegram</p>
+              <strong>{{ 'auth.otp_title' | t }}</strong>
+              <p id="otp-hint">{{ 'auth.vvedite_6_znachnyy_kod_podtverzhdeniya_otpravlen' | t }}</p>
             </div>
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="otp-code">Код подтверждения (OTP)</label>
+            <label class="form-label" for="otp-code">{{ 'auth.kod_podtverzhdeniya_otp' | t }}</label>
             <input
               id="otp-code"
               type="text"
@@ -123,7 +125,7 @@ import { ApiService } from '../../../core/services/api.service';
               [fullWidth]="true"
               class="submit-btn"
             >
-              Подтвердить вход
+              {{ 'auth.podtverdit_vhod' | t }}
             </ui-button>
 
             <ui-button
@@ -132,7 +134,7 @@ import { ApiService } from '../../../core/services/api.service';
               size="md"
               (onClick)="step.set('credentials')"
             >
-              Вернуться назад
+              {{ 'auth.vernutsya_nazad' | t }}
             </ui-button>
           </div>
         </form>
@@ -142,13 +144,13 @@ import { ApiService } from '../../../core/services/api.service';
           <div class="otp-banner" style="background-color: var(--warning-bg); color: var(--warning);">
             <span class="material-symbols-outlined">lock_reset</span>
             <div>
-              <strong>Смена временного пароля</strong>
-              <p style="font-size: 11px; margin-top: 2px;">Установите постоянный пароль (от 10 символов) для завершения входа.</p>
+              <strong>{{ 'auth.smena_vremennogo_parolya' | t }}</strong>
+              <p style="font-size: 11px; margin-top: 2px;">{{ 'auth.ustanovite_postoyannyy_parol_ot_10_simvolov_dlya' | t }}</p>
             </div>
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="new-password">Новый пароль</label>
+            <label class="form-label" for="new-password">{{ 'auth.novyy_parol' | t }}</label>
             <input
               id="new-password"
               type="password"
@@ -164,7 +166,7 @@ import { ApiService } from '../../../core/services/api.service';
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="confirm-new-password">Повторите новый пароль</label>
+            <label class="form-label" for="confirm-new-password">{{ 'auth.povtorite_novyy_parol' | t }}</label>
             <input
               id="confirm-new-password"
               type="password"
@@ -189,7 +191,7 @@ import { ApiService } from '../../../core/services/api.service';
               [fullWidth]="true"
               class="submit-btn"
             >
-              Сменить пароль и войти
+              {{ 'auth.smenit_parol_i_voyti' | t }}
             </ui-button>
 
             <ui-button
@@ -198,7 +200,7 @@ import { ApiService } from '../../../core/services/api.service';
               size="md"
               (onClick)="step.set('credentials')"
             >
-              Отмена
+              {{ 'common.cancel' | t }}
             </ui-button>
           </div>
         </form>
@@ -208,12 +210,12 @@ import { ApiService } from '../../../core/services/api.service';
     <!-- Password Reset Modal -->
     <ui-modal
       [isOpen]="isResetModalOpen()"
-      title="Восстановление пароля"
+      [title]="'auth.vosstanovlenie_parolya' | t"
       size="sm"
       (close)="isResetModalOpen.set(false)"
     >
       <div body class="reset-body">
-        <p id="reset-hint" class="reset-hint">Введите email вашей учётной записи. Мы отправим код для сброса пароля.</p>
+        <p id="reset-hint" class="reset-hint">{{ 'auth.vvedite_email_vashey_uchetnoy_zapisi_my_otpravim' | t }}</p>
         <div class="form-group">
           <label class="form-label" for="reset-email">Email</label>
           <input
@@ -231,8 +233,8 @@ import { ApiService } from '../../../core/services/api.service';
         <p *ngIf="resetError()" class="form-error" role="alert">{{ resetError() }}</p>
       </div>
       <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="isResetModalOpen.set(false)">Отмена</ui-button>
-        <ui-button variant="primary" size="md" [loading]="isResetLoading()" (onClick)="sendResetRequest()">Отправить код</ui-button>
+        <ui-button variant="secondary" size="md" (onClick)="isResetModalOpen.set(false)">{{ 'common.cancel' | t }}</ui-button>
+        <ui-button variant="primary" size="md" [loading]="isResetLoading()" (onClick)="sendResetRequest()">{{ 'auth.otpravit_kod' | t }}</ui-button>
       </div>
     </ui-modal>
   `,
@@ -401,6 +403,7 @@ import { ApiService } from '../../../core/services/api.service';
   `]
 })
 export class LoginComponent {
+  private readonly uiI18n = inject(I18nService);
   login = '';
   password = '';
   otpCode = '';
@@ -444,7 +447,7 @@ export class LoginComponent {
       },
       error: err => {
         this.isLoading.set(false);
-        this.formError.set(this.errorMessage(err, 'Не удалось выполнить вход. Проверьте данные и повторите попытку.'));
+        this.formError.set(this.errorMessage(err, this.uiI18n.translate('auth.ne_udalos_vypolnit_vhod_proverte_dannye_i_povtor')));
       }
     });
   }
@@ -466,7 +469,7 @@ export class LoginComponent {
       },
       error: err => {
         this.isLoading.set(false);
-        this.formError.set(this.errorMessage(err, 'Код не подтверждён. Проверьте код и повторите попытку.'));
+        this.formError.set(this.errorMessage(err, this.uiI18n.translate('auth.kod_ne_podtverzhden_proverte_kod_i_povtorite_pop')));
       }
     });
   }
@@ -474,11 +477,11 @@ export class LoginComponent {
   onChangePasswordSubmit() {
     if (!this.newPassword || !this.confirmNewPassword) return;
     if (this.newPassword.length < 10) {
-      this.formError.set('Длина нового пароля должна быть не менее 10 символов');
+      this.formError.set(this.uiI18n.translate('auth.dlina_novogo_parolya_dolzhna_byt_ne_menee_10_sim'));
       return;
     }
     if (this.newPassword !== this.confirmNewPassword) {
-      this.formError.set('Введенные пароли не совпадают');
+      this.formError.set(this.uiI18n.translate('auth.vvedennye_paroli_ne_sovpadayut'));
       return;
     }
 
@@ -490,7 +493,7 @@ export class LoginComponent {
     }).subscribe({
       next: () => {
         this.isLoading.set(false);
-        this.toast.success('Пароль успешно изменен! Добро пожаловать.');
+        this.toast.success(this.uiI18n.translate('auth.parol_uspeshno_izmenen_dobro_pozhalovat'));
         this.authService.refreshMe().subscribe({
           next: () => this.router.navigate(['/tasks']),
           error: () => this.router.navigate(['/tasks'])
@@ -498,7 +501,7 @@ export class LoginComponent {
       },
       error: err => {
         this.isLoading.set(false);
-        this.formError.set(this.errorMessage(err, 'Не удалось изменить пароль. Проверьте сложность пароля.'));
+        this.formError.set(this.errorMessage(err, this.uiI18n.translate('auth.ne_udalos_izmenit_parol_proverte_slozhnost_parol')));
       }
     });
   }
@@ -517,11 +520,11 @@ export class LoginComponent {
       next: () => {
         this.isResetLoading.set(false);
         this.isResetModalOpen.set(false);
-        this.toast.success('Инструкция по сбросу пароля отправлена на указанный email');
+        this.toast.success(this.uiI18n.translate('auth.instrukciya_po_sbrosu_parolya_otpravlena_na_ukaz'));
       },
       error: err => {
         this.isResetLoading.set(false);
-        this.resetError.set(this.errorMessage(err, 'Не удалось отправить инструкцию. Повторите попытку позже.'));
+        this.resetError.set(this.errorMessage(err, this.uiI18n.translate('auth.ne_udalos_otpravit_instrukciyu_povtorite_popytku')));
       }
     });
   }

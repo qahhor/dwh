@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
@@ -19,11 +19,13 @@ import { Task, Project, TaskStatus, TaskType, TaskComment, TaskMember, TaskDetai
 import { CustomField } from '../../core/models/custom-field.models';
 import { User } from '../../core/models/auth.models';
 import { KeysetPage } from '../../core/models/common.models';
+import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
 
 @Component({
   selector: 'app-tasks',
   standalone: true,
   imports: [
+    TranslatePipe,
     CommonModule,
     FormsModule,
     DragDropModule,
@@ -44,21 +46,21 @@ import { KeysetPage } from '../../core/models/common.models';
       <!-- Header -->
       <div class="view-header">
         <div class="header-left">
-          <h1 class="view-title">Задачи</h1>
+          <h1 class="view-title">{{ 'nav.tasks' | t }}</h1>
           <span class="count-badge">{{ tasks().length }}</span>
 
           <!-- View Mode Switcher: Table / Kanban -->
-          <div class="status-tabs" role="group" aria-label="Режим отображения задач">
+          <div class="status-tabs" role="group" [attr.aria-label]="'tasks.rezhim_otobrazheniya_zadach' | t">
             <button
               type="button"
               class="status-tab"
               [class.active]="viewMode === 'table'"
               [attr.aria-pressed]="viewMode === 'table'"
               (click)="viewMode = 'table'"
-              title="Табличный вид"
+              [title]="'tasks.tablichnyy_vid' | t"
             >
               <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">table_rows</span>
-              <span>Список</span>
+              <span>{{ 'projects.spisok' | t }}</span>
             </button>
             <button
               type="button"
@@ -66,10 +68,10 @@ import { KeysetPage } from '../../core/models/common.models';
               [class.active]="viewMode === 'kanban'"
               [attr.aria-pressed]="viewMode === 'kanban'"
               (click)="viewMode = 'kanban'"
-              title="Канбан-доска"
+              [title]="'tasks.kanban_doska' | t"
             >
               <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">view_kanban</span>
-              <span>Канбан</span>
+              <span>{{ 'tasks.kanban' | t }}</span>
             </button>
           </div>
         </div>
@@ -79,11 +81,11 @@ import { KeysetPage } from '../../core/models/common.models';
           <button
             type="button"
             class="btn btn-secondary"
-            title="Управление статусами и типами задач"
+            [title]="'tasks.upravlenie_statusami_i_tipami_zadach' | t"
             (click)="openSettingsModal()"
           >
             <span class="material-symbols-outlined" aria-hidden="true">tune</span>
-            <span>Справочники</span>
+            <span>{{ 'tasks.spravochniki' | t }}</span>
           </button>
 
           <!-- Export Dropdown -->
@@ -91,11 +93,11 @@ import { KeysetPage } from '../../core/models/common.models';
             <button
               type="button"
               class="btn btn-secondary"
-              title="Экспорт списка задач"
+              [title]="'tasks.eksport_spiska_zadach' | t"
               (click)="showExportMenu = !showExportMenu"
             >
               <span class="material-symbols-outlined" aria-hidden="true">download</span>
-              <span>Экспорт</span>
+              <span>{{ 'analytics.eksport' | t }}</span>
               <span class="material-symbols-outlined" style="font-size: 16px;">arrow_drop_down</span>
             </button>
             <div class="export-popover" *ngIf="showExportMenu" style="position: absolute; top: 100%; right: 0; margin-top: 4px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); box-shadow: var(--shadow-md); z-index: 100; min-width: 160px; overflow: hidden; display: flex; flex-direction: column;">
@@ -118,7 +120,7 @@ import { KeysetPage } from '../../core/models/common.models';
             icon="add"
             (onClick)="openCreateTaskModal()"
           >
-            Новая задача
+            {{ 'task.new' | t }}
           </ui-button>
         </div>
       </div>
@@ -127,34 +129,34 @@ import { KeysetPage } from '../../core/models/common.models';
       <div class="toolbar">
         <div class="search-field">
           <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
-          <label class="sr-only" for="task-search">Поиск задач</label>
+          <label class="sr-only" for="task-search">{{ 'tasks.poisk_zadach' | t }}</label>
           <input
             id="task-search"
             name="taskSearch"
             type="text"
             class="search-input"
-            placeholder="Поиск по названию или описанию..."
+            [placeholder]="'projects.poisk_po_nazvaniyu_ili_opisaniyu' | t"
             [(ngModel)]="searchQuery"
             (keyup.enter)="loadTasks(true)"
           />
-          <button *ngIf="searchQuery" type="button" class="clear-btn" aria-label="Очистить поиск задач" (click)="clearSearch()">
+          <button *ngIf="searchQuery" type="button" class="clear-btn" [attr.aria-label]="'tasks.ochistit_poisk_zadach' | t" (click)="clearSearch()">
             <span class="material-symbols-outlined" aria-hidden="true">close</span>
           </button>
         </div>
 
         <div class="toolbar-controls">
           <!-- Status Filter Tabs (Default: 'active' which excludes done & cancelled) -->
-          <div class="status-tabs" *ngIf="viewMode === 'table'" role="group" aria-label="Фильтр по статусу">
+          <div class="status-tabs" *ngIf="viewMode === 'table'" role="group" [attr.aria-label]="'tasks.filtr_po_statusu' | t">
             <button
               type="button"
               class="status-tab"
               [class.active]="statusFilterMode === 'active'"
               [attr.aria-pressed]="statusFilterMode === 'active'"
               (click)="setStatusFilterMode('active')"
-              title="Только активные задачи (без выполненных и отмененных)"
+              [title]="'tasks.tolko_aktivnye_zadachi_bez_vypolnennyh_i_otmenen' | t"
             >
               <span class="status-tab-dot active-dot" aria-hidden="true"></span>
-              Активные
+              {{ 'iam.aktivnye' | t }}
             </button>
             <button
               type="button"
@@ -162,9 +164,9 @@ import { KeysetPage } from '../../core/models/common.models';
               [class.active]="statusFilterMode === 'all'"
               [attr.aria-pressed]="statusFilterMode === 'all'"
               (click)="setStatusFilterMode('all')"
-              title="Все задачи, включая завершенные"
+              [title]="'tasks.vse_zadachi_vklyuchaya_zavershennye' | t"
             >
-              Все
+              {{ 'common.all' | t }}
             </button>
             <button
               *ngFor="let s of statuses()"
@@ -180,7 +182,7 @@ import { KeysetPage } from '../../core/models/common.models';
           </div>
 
           <!-- Project Filter -->
-          <label class="sr-only" for="task-project-filter">Фильтр по проекту</label>
+          <label class="sr-only" for="task-project-filter">{{ 'tasks.filtr_po_proektu' | t }}</label>
           <select
             id="task-project-filter"
             name="taskProjectFilter"
@@ -188,12 +190,12 @@ import { KeysetPage } from '../../core/models/common.models';
             [(ngModel)]="selectedProjectId"
             (change)="loadTasks(true)"
           >
-            <option [ngValue]="null">Все проекты</option>
+            <option [ngValue]="null">{{ 'tasks.vse_proekty' | t }}</option>
             <option *ngFor="let p of projects()" [ngValue]="p.id">{{ p.name }}</option>
           </select>
 
           <!-- Priority Filter -->
-          <label class="sr-only" for="task-priority-filter">Фильтр по приоритету</label>
+          <label class="sr-only" for="task-priority-filter">{{ 'tasks.filtr_po_prioritetu' | t }}</label>
           <select
             id="task-priority-filter"
             name="taskPriorityFilter"
@@ -201,20 +203,20 @@ import { KeysetPage } from '../../core/models/common.models';
             [(ngModel)]="selectedPriority"
             (change)="loadTasks(true)"
           >
-            <option value="">Все приоритеты</option>
-            <option value="critical">Критический</option>
-            <option value="high">Высокий</option>
-            <option value="medium">Средний</option>
-            <option value="low">Низкий</option>
+            <option value="">{{ 'tasks.vse_prioritety' | t }}</option>
+            <option value="critical">{{ 'tasks.kriticheskiy' | t }}</option>
+            <option value="high">{{ 'task.priority.high' | t }}</option>
+            <option value="medium">{{ 'tasks.sredniy' | t }}</option>
+            <option value="low">{{ 'task.priority.low' | t }}</option>
           </select>
 
           <button
             *ngIf="hasActiveFilters()"
             type="button"
             class="reset-filters-btn"
-            aria-label="Сбросить все фильтры"
+            [attr.aria-label]="'tasks.sbrosit_vse_filtry' | t"
             (click)="resetFilters()"
-            title="Сбросить все фильтры"
+            [title]="'tasks.sbrosit_vse_filtry' | t"
           >
             <span class="material-symbols-outlined" aria-hidden="true">filter_alt_off</span>
           </button>
@@ -225,18 +227,18 @@ import { KeysetPage } from '../../core/models/common.models';
       <!-- VIEW 1: TABLE / LIST VIEW (Default View)                                -->
       <!-- ======================================================================= -->
       <div class="table-card" *ngIf="viewMode === 'table'">
-        <div class="table-wrapper" role="region" aria-label="Таблица задач" tabindex="0">
-          <table class="data-table" aria-label="Список задач">
+        <div class="table-wrapper" role="region" [attr.aria-label]="'tasks.tablica_zadach' | t" tabindex="0">
+          <table class="data-table" [attr.aria-label]="'tasks.spisok_zadach' | t">
             <thead>
               <tr>
                 <th style="width: 60px;">ID</th>
-                <th style="width: 120px;">Тип</th>
-                <th>Задача</th>
-                <th>Проект</th>
-                <th>Приоритет</th>
-                <th>Статус</th>
-                <th>Срок</th>
-                <th class="text-right" style="width: 110px;">Действия</th>
+                <th style="width: 120px;">{{ 'settings.tip' | t }}</th>
+                <th>{{ 'tasks.zadacha' | t }}</th>
+                <th>{{ 'projects.proekt' | t }}</th>
+                <th>{{ 'common.priority' | t }}</th>
+                <th>{{ 'common.status' | t }}</th>
+                <th>{{ 'tasks.srok' | t }}</th>
+                <th class="text-right" style="width: 110px;">{{ 'common.actions' | t }}</th>
               </tr>
             </thead>
             <tbody>
@@ -245,7 +247,7 @@ import { KeysetPage } from '../../core/models/common.models';
                 class="task-row"
                 role="button"
                 tabindex="0"
-                [attr.aria-label]="'Открыть задачу #' + t.id + ': ' + t.title"
+                [attr.aria-label]="'tasks.open_task_named' | t:{id: t.id, title: t.title}"
                 [class.row-overdue]="isOverdue(t.endTime, t.statusId)"
                 (click)="openTaskDetails(t)"
                 (keydown.enter)="openTaskDetails(t)"
@@ -266,10 +268,10 @@ import { KeysetPage } from '../../core/models/common.models';
                       {{ t.title }}
                     </span>
                     <span *ngIf="isOverdue(t.endTime, t.statusId)" class="overdue-tag">
-                      Просрочено
+                      {{ 'tasks.prosrocheno' | t }}
                     </span>
-                    <span *ngIf="t.parentTaskId" class="parent-chip font-mono" title="Родительская задача">
-                      ↳ подзадача #{{ t.parentTaskId }}
+                    <span *ngIf="t.parentTaskId" class="parent-chip font-mono" [title]="'task.parent' | t">
+                      {{ 'tasks.subtask_number' | t:{id: t.parentTaskId} }}
                     </span>
                   </div>
                 </td>
@@ -294,8 +296,8 @@ import { KeysetPage } from '../../core/models/common.models';
                       [ngModel]="t.statusId"
                       (ngModelChange)="updateStatus(t.id, $event)"
                       [disabled]="!canUpdateTask()"
-                      [attr.aria-label]="'Статус задачи #' + t.id"
-                      title="Нажмите для смены статуса"
+                      [attr.aria-label]="'tasks.task_status_aria' | t:{id: t.id}"
+                      [title]="'tasks.nazhmite_dlya_smeny_statusa' | t"
                     >
                       <option *ngFor="let s of statuses()" [ngValue]="s.id">{{ s.name }}</option>
                     </select>
@@ -306,7 +308,7 @@ import { KeysetPage } from '../../core/models/common.models';
                     *ngIf="t.endTime"
                     class="deadline-pill"
                     [class.overdue]="isOverdue(t.endTime, t.statusId)"
-                    [title]="'Срок: ' + (t.endTime | date:'dd.MM.yyyy HH:mm')"
+                    [title]="'tasks.deadline_value' | t:{date: (t.endTime | date:'dd.MM.yyyy HH:mm') || ''}"
                   >
                     <span class="material-symbols-outlined ico" aria-hidden="true">
                       {{ isOverdue(t.endTime, t.statusId) ? 'warning' : 'event' }}
@@ -321,8 +323,8 @@ import { KeysetPage } from '../../core/models/common.models';
                       *ngIf="canUpdateTask()"
                       type="button"
                       class="icon-ghost-btn"
-                      [attr.aria-label]="'Редактировать задачу #' + t.id"
-                      title="Редактировать задачу"
+                      [attr.aria-label]="'tasks.edit_task_number' | t:{id: t.id}"
+                      [title]="'tasks.redaktirovat_zadachu' | t"
                       (click)="openEditModal(t)"
                     >
                       <span class="material-symbols-outlined" aria-hidden="true">edit</span>
@@ -330,8 +332,8 @@ import { KeysetPage } from '../../core/models/common.models';
                     <button
                       type="button"
                       class="icon-ghost-btn"
-                      [attr.aria-label]="'Просмотреть задачу #' + t.id"
-                      title="Просмотреть детали"
+                      [attr.aria-label]="'tasks.view_task_number' | t:{id: t.id}"
+                      [title]="'tasks.prosmotret_detali' | t"
                       (click)="openTaskDetails(t)"
                     >
                       <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
@@ -342,7 +344,7 @@ import { KeysetPage } from '../../core/models/common.models';
               <tr *ngIf="tasks().length === 0 && !isLoading()">
                 <td colspan="8" class="empty-state-cell">
                   <span class="material-symbols-outlined icon" aria-hidden="true">task</span>
-                  <p>Задачи не найдены</p>
+                  <p>{{ 'tasks.zadachi_ne_naydeny' | t }}</p>
                 </td>
               </tr>
             </tbody>
@@ -363,7 +365,7 @@ import { KeysetPage } from '../../core/models/common.models';
       <!-- ======================================================================= -->
       <!-- VIEW 2: KANBAN BOARD WITH DRAG & DROP                                  -->
       <!-- ======================================================================= -->
-      <div class="kanban-board" cdkDropListGroup *ngIf="viewMode === 'kanban'" role="region" aria-label="Канбан-доска задач">
+      <div class="kanban-board" cdkDropListGroup *ngIf="viewMode === 'kanban'" role="region" [attr.aria-label]="'tasks.kanban_doska_zadach' | t">
         <div
           *ngFor="let status of statuses()"
           class="kanban-column"
@@ -398,7 +400,7 @@ import { KeysetPage } from '../../core/models/common.models';
               class="kanban-card"
               role="button"
               tabindex="0"
-              [attr.aria-label]="'Открыть задачу #' + task.id + ': ' + task.title"
+              [attr.aria-label]="'tasks.open_task_named' | t:{id: task.id, title: task.title}"
               [class.card-overdue]="isOverdue(task.endTime, task.statusId)"
               (click)="openTaskDetails(task)"
               (keydown.enter)="openTaskDetails(task)"
@@ -407,7 +409,7 @@ import { KeysetPage } from '../../core/models/common.models';
               <!-- Card Top -->
               <div class="card-top-row">
                 <div class="card-type-group">
-                  <span class="material-symbols-outlined drag-grip-icon" cdkDragHandle title="Перетащить карточку">
+                  <span class="material-symbols-outlined drag-grip-icon" cdkDragHandle [title]="'tasks.peretaschit_kartochku' | t">
                     drag_indicator
                   </span>
                   <span class="task-type-badge-mini" [style.color]="getTypeColor(task)">
@@ -448,15 +450,15 @@ import { KeysetPage } from '../../core/models/common.models';
                   </span>
                   {{ task.endTime | date:'dd.MM' }}
                 </span>
-                <span *ngIf="!task.endTime" class="text-muted text-xs">Без срока</span>
+                <span *ngIf="!task.endTime" class="text-muted text-xs">{{ 'tasks.bez_sroka' | t }}</span>
 
                 <!-- Quick Move Buttons -->
                 <div class="kanban-move-actions" *ngIf="canUpdateTask()">
                   <button
                     type="button"
                     class="move-btn"
-                    [attr.aria-label]="'Переместить задачу #' + task.id + ' назад'"
-                    title="Переместить назад"
+                    [attr.aria-label]="'tasks.move_task_back' | t:{id: task.id}"
+                    [title]="'tasks.peremestit_nazad' | t"
                     [disabled]="isFirstStatus(status.id)"
                     (click)="moveTaskStatus(task, -1)"
                   >
@@ -465,8 +467,8 @@ import { KeysetPage } from '../../core/models/common.models';
                   <button
                     type="button"
                     class="move-btn"
-                    [attr.aria-label]="'Переместить задачу #' + task.id + ' вперёд'"
-                    title="Переместить вперед"
+                    [attr.aria-label]="'tasks.move_task_forward' | t:{id: task.id}"
+                    [title]="'tasks.peremestit_vpered' | t"
                     [disabled]="isLastStatus(status.id)"
                     (click)="moveTaskStatus(task, 1)"
                   >
@@ -477,7 +479,7 @@ import { KeysetPage } from '../../core/models/common.models';
             </div>
 
             <div *ngIf="getTasksByStatus(status.id).length === 0" class="kanban-empty-col">
-              Перетащите задачу сюда
+              {{ 'tasks.peretaschite_zadachu_syuda' | t }}
             </div>
           </div>
         </div>
@@ -489,14 +491,14 @@ import { KeysetPage } from '../../core/models/common.models';
     <!-- ======================================================================= -->
     <ui-modal
       [isOpen]="selectedTask() !== null"
-      [title]="'Задача #' + selectedTask()?.id"
+      [title]="'tasks.task_number' | t:{id: selectedTask()?.id || ''}"
       size="lg"
       (close)="selectedTask.set(null)"
     >
       <div body class="task-details-view" *ngIf="selectedTask() as t">
         <!-- Ancestor Breadcrumbs Trail -->
         <div class="ancestor-trail" *ngIf="taskAncestors().length > 0">
-          <span class="trail-label">Иерархия:</span>
+          <span class="trail-label">{{ 'tasks.ierarhiya' | t }}</span>
           <ng-container *ngFor="let anc of taskAncestors()">
             <button type="button" class="anc-link" (click)="openTaskDetails(anc)">
               #{{ anc.id }} {{ anc.title }}
@@ -509,7 +511,7 @@ import { KeysetPage } from '../../core/models/common.models';
         <!-- Overdue Notice Banner -->
         <div class="overdue-banner" *ngIf="isOverdue(t.endTime, t.statusId)">
           <span class="material-symbols-outlined">error</span>
-          <span>Внимание: Срок сдачи этой задачи истёк {{ t.endTime | date:'dd.MM.yyyy HH:mm' }}</span>
+          <span>{{ 'tasks.deadline_expired_at' | t:{date: (t.endTime | date:'dd.MM.yyyy HH:mm') || ''} }}</span>
         </div>
 
         <div class="details-2col-layout">
@@ -521,19 +523,19 @@ import { KeysetPage } from '../../core/models/common.models';
 
             <!-- Description (Rich Markdown View) -->
             <div class="detail-section">
-              <h4 class="section-label">Описание задачи</h4>
+              <h4 class="section-label">{{ 'tasks.opisanie_zadachi' | t }}</h4>
               <div class="description-card" *ngIf="t.descriptionMarkdown">
                 <ui-markdown-view [content]="t.descriptionMarkdown"></ui-markdown-view>
               </div>
               <div class="description-card empty-desc text-muted" *ngIf="!t.descriptionMarkdown">
-                Описание отсутствует. Нажмите «Редактировать», чтобы добавить детали.
+                {{ 'tasks.opisanie_otsutstvuet_nazhmite_redaktirovat_chtob' | t }}
               </div>
             </div>
 
             <!-- Subtasks Section -->
             <div class="detail-section">
               <div class="section-header-between">
-                <h4 class="section-label">Подзадачи ({{ taskSubtasks().length }})</h4>
+                <h4 class="section-label">{{ 'tasks.subtasks_count' | t:{count: taskSubtasks().length} }}</h4>
                 <button
                   *ngIf="canCreateTask()"
                   type="button"
@@ -541,7 +543,7 @@ import { KeysetPage } from '../../core/models/common.models';
                   (click)="openAddSubtaskModal(t)"
                 >
                   <span class="material-symbols-outlined">add</span>
-                  Добавить подзадачу
+                  {{ 'tasks.dobavit_podzadachu' | t }}
                 </button>
               </div>
 
@@ -550,7 +552,7 @@ import { KeysetPage } from '../../core/models/common.models';
                   type="button"
                   *ngFor="let sub of taskSubtasks()"
                   class="subtask-row"
-                  [attr.aria-label]="'Открыть подзадачу #' + sub.id + ': ' + sub.title"
+                  [attr.aria-label]="'tasks.open_subtask_named' | t:{id: sub.id, title: sub.title}"
                   [class.row-overdue]="isOverdue(sub.endTime, sub.statusId)"
                   (click)="openTaskDetails(sub)"
                 >
@@ -568,13 +570,13 @@ import { KeysetPage } from '../../core/models/common.models';
                 </button>
               </div>
               <div *ngIf="taskSubtasks().length === 0" class="no-subtasks-hint text-muted">
-                У этой задачи пока нет подзадач.
+                {{ 'tasks.u_etoy_zadachi_poka_net_podzadach' | t }}
               </div>
             </div>
 
             <!-- Attachments & Files Section -->
             <div class="detail-section files-section">
-              <h4 class="section-label">Вложения и файлы ({{ taskFiles().length }})</h4>
+              <h4 class="section-label">{{ 'tasks.attachments_count' | t:{count: taskFiles().length} }}</h4>
               <ui-file-upload
                 [files]="taskFiles()"
                 [canUpload]="canUpdateTask()"
@@ -587,7 +589,7 @@ import { KeysetPage } from '../../core/models/common.models';
 
             <!-- Comments Feed -->
             <div class="detail-section comments-section">
-              <h4 class="section-label">Комментарии ({{ comments().length }})</h4>
+              <h4 class="section-label">{{ 'tasks.comments_count' | t:{count: comments().length} }}</h4>
 
               <div class="comments-feed">
                 <div *ngFor="let c of comments()" class="comment-card">
@@ -603,7 +605,7 @@ import { KeysetPage } from '../../core/models/common.models';
                   </div>
                 </div>
                 <div *ngIf="comments().length === 0" class="no-comments-hint text-muted">
-                  Комментариев пока нет.
+                  {{ 'tasks.kommentariev_poka_net' | t }}
                 </div>
               </div>
 
@@ -611,12 +613,12 @@ import { KeysetPage } from '../../core/models/common.models';
                 <textarea
                   class="comment-textarea"
                   rows="2"
-                  placeholder="Написать комментарий к задаче... (Ctrl + Enter для отправки)"
+                  [placeholder]="'tasks.napisat_kommentariy_k_zadache_ctrl_enter_dlya_ot' | t"
                   [(ngModel)]="newCommentText"
                   (keydown.ctrl.enter)="submitComment()"
                 ></textarea>
                 <ui-button variant="primary" size="sm" icon="send" (onClick)="submitComment()">
-                  Отправить
+                  {{ 'tasks.otpravit' | t }}
                 </ui-button>
               </div>
             </div>
@@ -626,7 +628,7 @@ import { KeysetPage } from '../../core/models/common.models';
           <div class="details-side-col">
             <div class="side-card">
               <div class="side-prop-row">
-                <span class="prop-k">Статус</span>
+                <span class="prop-k">{{ 'common.status' | t }}</span>
                 <div class="prop-v">
                   <select
                     class="clean-select status-select"
@@ -641,7 +643,7 @@ import { KeysetPage } from '../../core/models/common.models';
               </div>
 
               <div class="side-prop-row">
-                <span class="prop-k">Тип задачи</span>
+                <span class="prop-k">{{ 'tasks.tip_zadachi' | t }}</span>
                 <div class="prop-v">
                   <span class="task-type-badge" [style.color]="getTypeColor(t)" [style.background-color]="getTypeBg(t)">
                     <span class="material-symbols-outlined type-icon">{{ getTypeIcon(t) }}</span>
@@ -651,7 +653,7 @@ import { KeysetPage } from '../../core/models/common.models';
               </div>
 
               <div class="side-prop-row">
-                <span class="prop-k">Приоритет</span>
+                <span class="prop-k">{{ 'common.priority' | t }}</span>
                 <div class="prop-v">
                   <span class="priority-pill" [attr.data-priority]="t.priority">
                     {{ getPriorityLabel(t.priority) }}
@@ -660,36 +662,36 @@ import { KeysetPage } from '../../core/models/common.models';
               </div>
 
               <div class="side-prop-row">
-                <span class="prop-k">Проект</span>
-                <div class="prop-v">{{ getProjectName(t.projectId) || 'Без проекта' }}</div>
+                <span class="prop-k">{{ 'projects.proekt' | t }}</span>
+                <div class="prop-v">{{ getProjectName(t.projectId) || ('tasks.without_project' | t) }}</div>
               </div>
 
               <div class="side-prop-row" *ngIf="t.parentTaskId">
-                <span class="prop-k">Родитель</span>
+                <span class="prop-k">{{ 'tasks.roditel' | t }}</span>
                 <div class="prop-v font-mono text-xs">#{{ t.parentTaskId }}</div>
               </div>
 
               <div class="side-prop-row">
-                <span class="prop-k">Дедлайн</span>
+                <span class="prop-k">{{ 'tasks.dedlayn' | t }}</span>
                 <div class="prop-v" [class.text-danger]="isOverdue(t.endTime, t.statusId)">
-                  {{ t.endTime ? (t.endTime | date:'dd.MM.yyyy HH:mm') : 'Не установлен' }}
+                  {{ t.endTime ? (t.endTime | date:'dd.MM.yyyy HH:mm') : ('common.not_set' | t) }}
                 </div>
               </div>
 
               <div class="side-prop-row" *ngIf="t.beginTime">
-                <span class="prop-k">Дата начала</span>
+                <span class="prop-k">{{ 'tasks.data_nachala' | t }}</span>
                 <div class="prop-v">{{ t.beginTime | date:'dd.MM.yyyy HH:mm' }}</div>
               </div>
 
               <div class="side-prop-row">
-                <span class="prop-k">Создана</span>
+                <span class="prop-k">{{ 'iam.sozdana' | t }}</span>
                 <div class="prop-v text-muted">{{ t.createdAt | date:'dd.MM.yyyy HH:mm' }}</div>
               </div>
             </div>
 
             <!-- Members Card -->
             <div class="side-card" *ngIf="taskMembers().length > 0">
-              <h5 class="side-card-title">Участники</h5>
+              <h5 class="side-card-title">{{ 'tasks.uchastniki' | t }}</h5>
               <div class="members-stack">
                 <div *ngFor="let m of taskMembers()" class="member-stack-item">
                   <span class="member-role-badge" [attr.data-role]="m.involveKind || m.involvementKind">
@@ -703,7 +705,7 @@ import { KeysetPage } from '../../core/models/common.models';
 
             <!-- Custom Attributes Card -->
             <div class="side-card" *ngIf="hasAttributes(t.attributes)">
-              <h5 class="side-card-title">Доп. поля</h5>
+              <h5 class="side-card-title">{{ 'tasks.dop_polya' | t }}</h5>
               <div class="attributes-stack">
                 <div *ngFor="let item of formatAttributes(t.attributes)" class="attr-stack-item">
                   <span class="attr-k">{{ item.key }}:</span>
@@ -719,13 +721,13 @@ import { KeysetPage } from '../../core/models/common.models';
               (click)="openEditModal(t)"
             >
               <span class="material-symbols-outlined">edit</span>
-              Редактировать задачу
+              {{ 'tasks.redaktirovat_zadachu' | t }}
             </button>
           </div>
         </div>
       </div>
       <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="selectedTask.set(null)">Закрыть</ui-button>
+        <ui-button variant="secondary" size="md" (onClick)="selectedTask.set(null)">{{ 'audit.zakryt' | t }}</ui-button>
       </div>
     </ui-modal>
 
@@ -734,7 +736,7 @@ import { KeysetPage } from '../../core/models/common.models';
     <!-- ======================================================================= -->
     <ui-modal
       [isOpen]="isCreateModalOpen()"
-      [title]="createForm.parentTaskId ? 'Создание подзадачи к #' + createForm.parentTaskId : 'Создание новой задачи'"
+      [title]="createForm.parentTaskId ? ('tasks.create_subtask_for' | t:{id: createForm.parentTaskId}) : ('tasks.create_new_task' | t)"
       size="lg"
       (close)="isCreateModalOpen.set(false)"
     >
@@ -742,8 +744,8 @@ import { KeysetPage } from '../../core/models/common.models';
         <!-- Title Input (Required) -->
         <div class="form-group">
           <div class="label-row">
-            <label class="clean-label" for="task-create-title">Название задачи</label>
-            <span class="req-tag">Обязательное поле</span>
+            <label class="clean-label" for="task-create-title">{{ 'task.title' | t }}</label>
+            <span class="req-tag">{{ 'projects.obyazatelnoe_pole' | t }}</span>
           </div>
           <input
             id="task-create-title"
@@ -755,19 +757,19 @@ import { KeysetPage } from '../../core/models/common.models';
             [attr.aria-describedby]="isCreateSubmitted && !createForm.title.trim() ? 'task-create-title-error' : null"
             [class.input-error]="isCreateSubmitted && !createForm.title.trim()"
             [(ngModel)]="createForm.title"
-            placeholder="Краткая и ясная формулировка задачи..."
+            [placeholder]="'tasks.kratkaya_i_yasnaya_formulirovka_zadachi' | t"
           />
           <span id="task-create-title-error" class="error-msg" *ngIf="isCreateSubmitted && !createForm.title.trim()">
-            Пожалуйста, укажите название задачи
+            {{ 'tasks.pozhaluysta_ukazhite_nazvanie_zadachi' | t }}
           </span>
         </div>
 
         <!-- Visual Type Selector Chips -->
         <div class="form-group">
           <div class="label-row">
-            <span class="clean-label">Тип задачи</span>
+            <span class="clean-label">{{ 'tasks.tip_zadachi' | t }}</span>
           </div>
-          <div class="type-chips-selector" role="group" aria-label="Тип задачи">
+          <div class="type-chips-selector" role="group" [attr.aria-label]="'tasks.tip_zadachi' | t">
             <button
               *ngFor="let ty of taskTypes()"
               type="button"
@@ -786,9 +788,9 @@ import { KeysetPage } from '../../core/models/common.models';
         <!-- Visual Priority Selector Pills -->
         <div class="form-group">
           <div class="label-row">
-            <span class="clean-label">Приоритет</span>
+            <span class="clean-label">{{ 'common.priority' | t }}</span>
           </div>
-          <div class="priority-chips-selector" role="group" aria-label="Приоритет задачи">
+          <div class="priority-chips-selector" role="group" [attr.aria-label]="'tasks.prioritet_zadachi' | t">
             <button
               type="button"
               class="prio-chip-btn prio-low"
@@ -796,7 +798,7 @@ import { KeysetPage } from '../../core/models/common.models';
               [attr.aria-pressed]="createForm.priority === 'low'"
               (click)="createForm.priority = 'low'"
             >
-              Низкий
+              {{ 'task.priority.low' | t }}
             </button>
             <button
               type="button"
@@ -805,7 +807,7 @@ import { KeysetPage } from '../../core/models/common.models';
               [attr.aria-pressed]="createForm.priority === 'medium'"
               (click)="createForm.priority = 'medium'"
             >
-              Средний
+              {{ 'tasks.sredniy' | t }}
             </button>
             <button
               type="button"
@@ -814,7 +816,7 @@ import { KeysetPage } from '../../core/models/common.models';
               [attr.aria-pressed]="createForm.priority === 'high'"
               (click)="createForm.priority = 'high'"
             >
-              Высокий
+              {{ 'task.priority.high' | t }}
             </button>
             <button
               type="button"
@@ -823,7 +825,7 @@ import { KeysetPage } from '../../core/models/common.models';
               [attr.aria-pressed]="createForm.priority === 'critical'"
               (click)="createForm.priority = 'critical'"
             >
-              Критический
+              {{ 'tasks.kriticheskiy' | t }}
             </button>
           </div>
         </div>
@@ -832,10 +834,10 @@ import { KeysetPage } from '../../core/models/common.models';
           <!-- Project Selector -->
           <div class="form-group">
             <div class="label-row">
-              <label class="clean-label" for="task-create-project">Проект</label>
+              <label class="clean-label" for="task-create-project">{{ 'projects.proekt' | t }}</label>
             </div>
             <select id="task-create-project" name="taskCreateProject" class="clean-input" [(ngModel)]="createForm.projectId">
-              <option [ngValue]="null">Без проекта</option>
+              <option [ngValue]="null">{{ 'tasks.bez_proekta' | t }}</option>
               <option *ngFor="let p of projects()" [ngValue]="p.id">{{ p.name }}</option>
             </select>
           </div>
@@ -843,16 +845,16 @@ import { KeysetPage } from '../../core/models/common.models';
           <!-- Parent Task (Searchable Select) -->
           <div class="form-group">
             <div class="label-row">
-              <span class="clean-label">Родительская задача</span>
+              <span class="clean-label">{{ 'task.parent' | t }}</span>
             </div>
             <ui-searchable-select
               [options]="taskSelectOptions()"
               [selectedId]="createForm.parentTaskId"
-              ariaLabel="Родительская задача"
+              [ariaLabel]="'task.parent' | t"
               (selectedIdChange)="createForm.parentTaskId = $event"
-              placeholder="Без родителя (корневая задача)"
-              searchPlaceholder="Поиск задачи по ID или названию..."
-              emptyLabel="Без родителя (корневая задача)"
+              [placeholder]="'tasks.bez_roditelya_kornevaya_zadacha' | t"
+              [searchPlaceholder]="'tasks.poisk_zadachi_po_id_ili_nazvaniyu' | t"
+              [emptyLabel]="'tasks.without_parent' | t"
             ></ui-searchable-select>
           </div>
         </div>
@@ -861,23 +863,23 @@ import { KeysetPage } from '../../core/models/common.models';
           <!-- Responsible User (Searchable Select) -->
           <div class="form-group">
             <div class="label-row">
-              <span class="clean-label">Ответственный сотрудник (I-T1)</span>
+              <span class="clean-label">{{ 'tasks.otvetstvennyy_sotrudnik_i_t1' | t }}</span>
             </div>
             <ui-searchable-select
               [options]="userSelectOptions()"
               [selectedId]="createForm.responsibleUserId"
-              ariaLabel="Ответственный сотрудник"
+              [ariaLabel]="'tasks.otvetstvennyy_sotrudnik' | t"
               (selectedIdChange)="createForm.responsibleUserId = $event"
-              placeholder="Выберите ответственного..."
-              searchPlaceholder="Поиск сотрудника по имени или логину..."
-              emptyLabel="Не назначен"
+              [placeholder]="'tasks.vyberite_otvetstvennogo' | t"
+              [searchPlaceholder]="'tasks.poisk_sotrudnika_po_imeni_ili_loginu' | t"
+              [emptyLabel]="'common.not_assigned' | t"
             ></ui-searchable-select>
           </div>
 
           <!-- Deadlines: End Date / Deadline -->
           <div class="form-group">
             <div class="label-row">
-              <label class="clean-label" for="task-create-deadline">Срок сдачи (Дедлайн)</label>
+              <label class="clean-label" for="task-create-deadline">{{ 'tasks.srok_sdachi_dedlayn' | t }}</label>
             </div>
             <input id="task-create-deadline" name="taskCreateDeadline" type="datetime-local" class="clean-input font-mono" [(ngModel)]="createForm.endTime" />
           </div>
@@ -886,28 +888,28 @@ import { KeysetPage } from '../../core/models/common.models';
         <!-- Observers Searchable Multi-Select Tags Input -->
         <div class="form-group">
           <div class="label-row">
-            <span class="clean-label">Наблюдатели (получают уведомления)</span>
+            <span class="clean-label">{{ 'tasks.nablyudateli_poluchayut_uvedomleniya' | t }}</span>
           </div>
           <ui-user-multi-select
             [users]="usersList()"
             [selectedUserIds]="createForm.observerUserIds"
-            ariaLabel="Наблюдатели"
+            [ariaLabel]="'tasks.nablyudateli' | t"
             (selectedUserIdsChange)="createForm.observerUserIds = $event"
-            placeholder="Нажмите для добавления наблюдателей..."
-            searchPlaceholder="Поиск сотрудника..."
+            [placeholder]="'tasks.nazhmite_dlya_dobavleniya_nablyudateley' | t"
+            [searchPlaceholder]="'tasks.poisk_sotrudnika' | t"
           ></ui-user-multi-select>
         </div>
 
         <!-- RichText Markdown Editor for Description -->
         <div class="form-group">
           <div class="label-row">
-            <span class="clean-label">Подробное описание (Markdown RichText)</span>
+            <span class="clean-label">{{ 'tasks.podrobnoe_opisanie_markdown_richtext' | t }}</span>
           </div>
           <ui-markdown-editor
             [value]="createForm.descriptionMarkdown"
-            ariaLabel="Подробное описание задачи"
+            [ariaLabel]="'tasks.podrobnoe_opisanie_zadachi' | t"
             (valueChange)="createForm.descriptionMarkdown = $event"
-            placeholder="Контекст, критерии готовности, задачи, ссылки (поддерживается разметка Markdown)..."
+            [placeholder]="'tasks.kontekst_kriterii_gotovnosti_zadachi_ssylki_podd' | t"
             [rows]="4"
           ></ui-markdown-editor>
         </div>
@@ -915,8 +917,8 @@ import { KeysetPage } from '../../core/models/common.models';
         <!-- Custom Dynamic Fields -->
         <div class="custom-fields-section" *ngIf="taskCustomFields().length > 0">
           <h4 class="custom-fields-title">
-            <span>🧩 Дополнительные настраиваемые поля</span>
-            <span class="custom-fields-subhint">(настраиваются в меню «Настраиваемые поля»)</span>
+            <span>{{ 'tasks.dopolnitelnye_nastraivaemye_polya' | t }}</span>
+            <span class="custom-fields-subhint">{{ 'tasks.nastraivayutsya_v_menyu_nastraivaemye_polya' | t }}</span>
           </h4>
           <ui-custom-fields
             [fields]="taskCustomFields()"
@@ -926,12 +928,12 @@ import { KeysetPage } from '../../core/models/common.models';
 
         <div class="custom-fields-empty-tip" *ngIf="taskCustomFields().length === 0">
           <span class="material-symbols-outlined tip-icon" aria-hidden="true">extension</span>
-          <span class="tip-text">Нужны специфические поля (Бюджет, Номер договора, ИНН)? Создайте их в меню <strong>Настраиваемые поля</strong>.</span>
+          <span class="tip-text">{{ 'tasks.nuzhny_specificheskie_polya_byudzhet_nomer_dogov' | t }} <strong>{{ 'tasks.nastraivaemye_polya' | t }}</strong>.</span>
         </div>
       </div>
       <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="isCreateModalOpen.set(false)">Отмена</ui-button>
-        <ui-button variant="primary" size="md" [loading]="isSubmitting()" (onClick)="submitCreateTask()">Создать задачу</ui-button>
+        <ui-button variant="secondary" size="md" (onClick)="isCreateModalOpen.set(false)">{{ 'common.cancel' | t }}</ui-button>
+        <ui-button variant="primary" size="md" [loading]="isSubmitting()" (onClick)="submitCreateTask()">{{ 'tasks.sozdat_zadachu' | t }}</ui-button>
       </div>
     </ui-modal>
 
@@ -940,7 +942,7 @@ import { KeysetPage } from '../../core/models/common.models';
     <!-- ======================================================================= -->
     <ui-modal
       [isOpen]="isEditModalOpen()"
-      title="Редактирование задачи"
+      [title]="'tasks.redaktirovanie_zadachi' | t"
       size="lg"
       (close)="isEditModalOpen.set(false)"
     >
@@ -948,8 +950,8 @@ import { KeysetPage } from '../../core/models/common.models';
         <!-- Title Input (Required) -->
         <div class="form-group">
           <div class="label-row">
-            <label class="clean-label" for="task-edit-title">Название задачи</label>
-            <span class="req-tag">Обязательное поле</span>
+            <label class="clean-label" for="task-edit-title">{{ 'task.title' | t }}</label>
+            <span class="req-tag">{{ 'projects.obyazatelnoe_pole' | t }}</span>
           </div>
           <input
             id="task-edit-title"
@@ -963,16 +965,16 @@ import { KeysetPage } from '../../core/models/common.models';
             [(ngModel)]="editForm.title"
           />
           <span id="task-edit-title-error" class="error-msg" *ngIf="isEditSubmitted && !editForm.title.trim()">
-            Название задачи не может быть пустым
+            {{ 'tasks.nazvanie_zadachi_ne_mozhet_byt_pustym' | t }}
           </span>
         </div>
 
         <!-- Visual Type Selector Chips -->
         <div class="form-group">
           <div class="label-row">
-            <span class="clean-label">Тип задачи</span>
+            <span class="clean-label">{{ 'tasks.tip_zadachi' | t }}</span>
           </div>
-          <div class="type-chips-selector" role="group" aria-label="Тип задачи">
+          <div class="type-chips-selector" role="group" [attr.aria-label]="'tasks.tip_zadachi' | t">
             <button
               *ngFor="let ty of taskTypes()"
               type="button"
@@ -991,9 +993,9 @@ import { KeysetPage } from '../../core/models/common.models';
         <!-- Visual Priority Selector Pills -->
         <div class="form-group">
           <div class="label-row">
-            <span class="clean-label">Приоритет</span>
+            <span class="clean-label">{{ 'common.priority' | t }}</span>
           </div>
-          <div class="priority-chips-selector" role="group" aria-label="Приоритет задачи">
+          <div class="priority-chips-selector" role="group" [attr.aria-label]="'tasks.prioritet_zadachi' | t">
             <button
               type="button"
               class="prio-chip-btn prio-low"
@@ -1001,7 +1003,7 @@ import { KeysetPage } from '../../core/models/common.models';
               [attr.aria-pressed]="editForm.priority === 'low'"
               (click)="editForm.priority = 'low'"
             >
-              Низкий
+              {{ 'task.priority.low' | t }}
             </button>
             <button
               type="button"
@@ -1010,7 +1012,7 @@ import { KeysetPage } from '../../core/models/common.models';
               [attr.aria-pressed]="editForm.priority === 'medium'"
               (click)="editForm.priority = 'medium'"
             >
-              Средний
+              {{ 'tasks.sredniy' | t }}
             </button>
             <button
               type="button"
@@ -1019,7 +1021,7 @@ import { KeysetPage } from '../../core/models/common.models';
               [attr.aria-pressed]="editForm.priority === 'high'"
               (click)="editForm.priority = 'high'"
             >
-              Высокий
+              {{ 'task.priority.high' | t }}
             </button>
             <button
               type="button"
@@ -1028,7 +1030,7 @@ import { KeysetPage } from '../../core/models/common.models';
               [attr.aria-pressed]="editForm.priority === 'critical'"
               (click)="editForm.priority = 'critical'"
             >
-              Критический
+              {{ 'tasks.kriticheskiy' | t }}
             </button>
           </div>
         </div>
@@ -1037,10 +1039,10 @@ import { KeysetPage } from '../../core/models/common.models';
           <!-- Project Selector -->
           <div class="form-group">
             <div class="label-row">
-              <label class="clean-label" for="task-edit-project">Проект</label>
+              <label class="clean-label" for="task-edit-project">{{ 'projects.proekt' | t }}</label>
             </div>
             <select id="task-edit-project" name="taskEditProject" class="clean-input" [(ngModel)]="editForm.projectId">
-              <option [ngValue]="null">Без проекта</option>
+              <option [ngValue]="null">{{ 'tasks.bez_proekta' | t }}</option>
               <option *ngFor="let p of projects()" [ngValue]="p.id">{{ p.name }}</option>
             </select>
           </div>
@@ -1048,16 +1050,16 @@ import { KeysetPage } from '../../core/models/common.models';
           <!-- Parent Task (Searchable Select) -->
           <div class="form-group">
             <div class="label-row">
-              <span class="clean-label">Родительская задача</span>
+              <span class="clean-label">{{ 'task.parent' | t }}</span>
             </div>
             <ui-searchable-select
               [options]="getAvailableParentTaskOptions(task.id)"
               [selectedId]="editForm.parentTaskId"
-              ariaLabel="Родительская задача"
+              [ariaLabel]="'task.parent' | t"
               (selectedIdChange)="editForm.parentTaskId = $event"
-              placeholder="Без родителя (корневая задача)"
-              searchPlaceholder="Поиск задачи по ID или названию..."
-              emptyLabel="Без родителя (корневая задача)"
+              [placeholder]="'tasks.bez_roditelya_kornevaya_zadacha' | t"
+              [searchPlaceholder]="'tasks.poisk_zadachi_po_id_ili_nazvaniyu' | t"
+              [emptyLabel]="'tasks.without_parent' | t"
             ></ui-searchable-select>
           </div>
         </div>
@@ -1066,23 +1068,23 @@ import { KeysetPage } from '../../core/models/common.models';
           <!-- Responsible User (Searchable Select) -->
           <div class="form-group">
             <div class="label-row">
-              <span class="clean-label">Ответственный сотрудник (I-T1)</span>
+              <span class="clean-label">{{ 'tasks.otvetstvennyy_sotrudnik_i_t1' | t }}</span>
             </div>
             <ui-searchable-select
               [options]="userSelectOptions()"
               [selectedId]="editForm.responsibleUserId"
-              ariaLabel="Ответственный сотрудник"
+              [ariaLabel]="'tasks.otvetstvennyy_sotrudnik' | t"
               (selectedIdChange)="editForm.responsibleUserId = $event"
-              placeholder="Выберите ответственного..."
-              searchPlaceholder="Поиск сотрудника по имени или логину..."
-              emptyLabel="Не назначен"
+              [placeholder]="'tasks.vyberite_otvetstvennogo' | t"
+              [searchPlaceholder]="'tasks.poisk_sotrudnika_po_imeni_ili_loginu' | t"
+              [emptyLabel]="'common.not_assigned' | t"
             ></ui-searchable-select>
           </div>
 
           <!-- Deadlines: End Date / Deadline -->
           <div class="form-group">
             <div class="label-row">
-              <label class="clean-label" for="task-edit-deadline">Срок сдачи (Дедлайн)</label>
+              <label class="clean-label" for="task-edit-deadline">{{ 'tasks.srok_sdachi_dedlayn' | t }}</label>
             </div>
             <input id="task-edit-deadline" name="taskEditDeadline" type="datetime-local" class="clean-input font-mono" [(ngModel)]="editForm.endTime" />
           </div>
@@ -1091,26 +1093,26 @@ import { KeysetPage } from '../../core/models/common.models';
         <!-- Observers Searchable Multi-Select Tags Input -->
         <div class="form-group">
           <div class="label-row">
-            <span class="clean-label">Наблюдатели (получают уведомления)</span>
+            <span class="clean-label">{{ 'tasks.nablyudateli_poluchayut_uvedomleniya' | t }}</span>
           </div>
           <ui-user-multi-select
             [users]="usersList()"
             [selectedUserIds]="editForm.observerUserIds"
-            ariaLabel="Наблюдатели"
+            [ariaLabel]="'tasks.nablyudateli' | t"
             (selectedUserIdsChange)="editForm.observerUserIds = $event"
-            placeholder="Нажмите для добавления наблюдателей..."
-            searchPlaceholder="Поиск сотрудника..."
+            [placeholder]="'tasks.nazhmite_dlya_dobavleniya_nablyudateley' | t"
+            [searchPlaceholder]="'tasks.poisk_sotrudnika' | t"
           ></ui-user-multi-select>
         </div>
 
         <!-- RichText Markdown Editor for Description -->
         <div class="form-group">
           <div class="label-row">
-            <span class="clean-label">Подробное описание (Markdown RichText)</span>
+            <span class="clean-label">{{ 'tasks.podrobnoe_opisanie_markdown_richtext' | t }}</span>
           </div>
           <ui-markdown-editor
             [value]="editForm.descriptionMarkdown"
-            ariaLabel="Подробное описание задачи"
+            [ariaLabel]="'tasks.podrobnoe_opisanie_zadachi' | t"
             (valueChange)="editForm.descriptionMarkdown = $event"
             [rows]="4"
           ></ui-markdown-editor>
@@ -1118,7 +1120,7 @@ import { KeysetPage } from '../../core/models/common.models';
 
         <!-- Custom Dynamic Fields -->
         <div class="custom-fields-section" *ngIf="taskCustomFields().length > 0">
-          <h4 class="custom-fields-title">Дополнительные настраиваемые поля</h4>
+          <h4 class="custom-fields-title">{{ 'tasks.dopolnitelnye_nastraivaemye_polya.615ccfa' | t }}</h4>
           <ui-custom-fields
             [fields]="taskCustomFields()"
             [(values)]="editForm.attributes"
@@ -1126,8 +1128,8 @@ import { KeysetPage } from '../../core/models/common.models';
         </div>
       </div>
       <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="isEditModalOpen.set(false)">Отмена</ui-button>
-        <ui-button variant="primary" size="md" [loading]="isSubmitting()" (onClick)="submitEditTask()">Сохранить изменения</ui-button>
+        <ui-button variant="secondary" size="md" (onClick)="isEditModalOpen.set(false)">{{ 'common.cancel' | t }}</ui-button>
+        <ui-button variant="primary" size="md" [loading]="isSubmitting()" (onClick)="submitEditTask()">{{ 'tasks.sohranit_izmeneniya' | t }}</ui-button>
       </div>
     </ui-modal>
 
@@ -1136,13 +1138,13 @@ import { KeysetPage } from '../../core/models/common.models';
     <!-- ======================================================================= -->
     <ui-modal
       [isOpen]="isSettingsModalOpen()"
-      title="Настройка справочников задач"
+      [title]="'tasks.nastroyka_spravochnikov_zadach' | t"
       size="md"
       (close)="isSettingsModalOpen.set(false)"
     >
       <div body class="settings-modal-content">
         <!-- Settings Tabs -->
-        <div class="settings-tabs" role="tablist" aria-label="Справочники задач">
+        <div class="settings-tabs" role="tablist" [attr.aria-label]="'tasks.spravochniki_zadach' | t">
           <button
             id="task-types-tab"
             type="button"
@@ -1153,7 +1155,7 @@ import { KeysetPage } from '../../core/models/common.models';
             aria-controls="task-types-panel"
             (click)="settingsTab = 'types'"
           >
-            Типы задач ({{ taskTypes().length }})
+            {{ 'tasks.task_types_count' | t:{count: taskTypes().length} }}
           </button>
           <button
             id="task-statuses-tab"
@@ -1165,7 +1167,7 @@ import { KeysetPage } from '../../core/models/common.models';
             aria-controls="task-statuses-panel"
             (click)="settingsTab = 'statuses'"
           >
-            Статусы задач ({{ statuses().length }})
+            {{ 'tasks.task_statuses_count' | t:{count: statuses().length} }}
           </button>
         </div>
 
@@ -1182,22 +1184,22 @@ import { KeysetPage } from '../../core/models/common.models';
               class="dict-row"
             >
               <div class="dict-item-info">
-                <span cdkDragHandle class="material-symbols-outlined drag-grip-icon" aria-hidden="true" title="Перетащите для изменения порядка">
+                <span cdkDragHandle class="material-symbols-outlined drag-grip-icon" aria-hidden="true" [title]="'tasks.peretaschite_dlya_izmeneniya_poryadka' | t">
                   drag_indicator
                 </span>
                 <span class="material-symbols-outlined dict-ico" aria-hidden="true" [style.color]="ty.color">{{ ty.icon }}</span>
                 <span class="dict-name">{{ ty.name }}</span>
                 <span class="font-mono text-muted text-xs">({{ ty.code }})</span>
-                <span *ngIf="ty.isSystem" class="sys-badge">Системный</span>
+                <span *ngIf="ty.isSystem" class="sys-badge">{{ 'tasks.sistemnyy' | t }}</span>
               </div>
               <div class="dict-actions" *ngIf="!ty.isSystem">
-                <button type="button" class="mini-move-btn" [disabled]="typeIndex === 0" [attr.aria-label]="'Поднять тип задачи ' + ty.name" (click)="moveDictionaryType(typeIndex, -1)">
+                <button type="button" class="mini-move-btn" [disabled]="typeIndex === 0" [attr.aria-label]="'tasks.raise_task_type' | t:{name: ty.name}" (click)="moveDictionaryType(typeIndex, -1)">
                   <span class="material-symbols-outlined" aria-hidden="true">arrow_upward</span>
                 </button>
-                <button type="button" class="mini-move-btn" [disabled]="typeIndex === taskTypes().length - 1" [attr.aria-label]="'Опустить тип задачи ' + ty.name" (click)="moveDictionaryType(typeIndex, 1)">
+                <button type="button" class="mini-move-btn" [disabled]="typeIndex === taskTypes().length - 1" [attr.aria-label]="'tasks.lower_task_type' | t:{name: ty.name}" (click)="moveDictionaryType(typeIndex, 1)">
                   <span class="material-symbols-outlined" aria-hidden="true">arrow_downward</span>
                 </button>
-                <button type="button" class="mini-del-btn" title="Удалить" [attr.aria-label]="'Удалить тип задачи ' + ty.name" (click)="requestDeleteDictionaryItem('type', ty.id, ty.name)">
+                <button type="button" class="mini-del-btn" [title]="'common.delete' | t" [attr.aria-label]="'tasks.delete_task_type' | t:{name: ty.name}" (click)="requestDeleteDictionaryItem('type', ty.id, ty.name)">
                   <span class="material-symbols-outlined" aria-hidden="true">delete</span>
                 </button>
               </div>
@@ -1206,24 +1208,24 @@ import { KeysetPage } from '../../core/models/common.models';
 
           <!-- Add New Type Form -->
           <div class="add-dict-box">
-            <h5 class="add-dict-title">Добавить новый тип задачи</h5>
+            <h5 class="add-dict-title">{{ 'tasks.dobavit_novyy_tip_zadachi' | t }}</h5>
             <div class="form-grid-3">
               <div class="dict-form-field">
-                <label class="clean-label" for="task-type-code">Код типа</label>
-                <input id="task-type-code" name="taskTypeCode" type="text" class="clean-input" placeholder="Например: doc" [(ngModel)]="newTypeForm.code" />
+                <label class="clean-label" for="task-type-code">{{ 'tasks.kod_tipa' | t }}</label>
+                <input id="task-type-code" name="taskTypeCode" type="text" class="clean-input" [placeholder]="'tasks.naprimer_doc' | t" [(ngModel)]="newTypeForm.code" />
               </div>
               <div class="dict-form-field">
-                <label class="clean-label" for="task-type-name">Название типа</label>
-                <input id="task-type-name" name="taskTypeName" type="text" class="clean-input" placeholder="Например: Документ" [(ngModel)]="newTypeForm.name" />
+                <label class="clean-label" for="task-type-name">{{ 'tasks.nazvanie_tipa' | t }}</label>
+                <input id="task-type-name" name="taskTypeName" type="text" class="clean-input" [placeholder]="'tasks.naprimer_dokument' | t" [(ngModel)]="newTypeForm.name" />
               </div>
               <div class="color-picker-row">
-                <label class="clean-label" for="task-type-color">Цвет типа</label>
-                <input id="task-type-color" name="taskTypeColor" type="color" class="clean-input color-picker" [(ngModel)]="newTypeForm.color" title="Выбрать цвет" />
+                <label class="clean-label" for="task-type-color">{{ 'tasks.cvet_tipa' | t }}</label>
+                <input id="task-type-color" name="taskTypeColor" type="color" class="clean-input color-picker" [(ngModel)]="newTypeForm.color" [title]="'tasks.vybrat_cvet' | t" />
               </div>
             </div>
             <div class="add-dict-actions">
               <ui-button variant="secondary" size="sm" icon="add" (onClick)="submitCreateType()">
-                Добавить тип
+                {{ 'tasks.dobavit_tip' | t }}
               </ui-button>
             </div>
           </div>
@@ -1242,22 +1244,22 @@ import { KeysetPage } from '../../core/models/common.models';
               class="dict-row"
             >
               <div class="dict-item-info">
-                <span cdkDragHandle class="material-symbols-outlined drag-grip-icon" aria-hidden="true" title="Перетащите для изменения порядка">
+                <span cdkDragHandle class="material-symbols-outlined drag-grip-icon" aria-hidden="true" [title]="'tasks.peretaschite_dlya_izmeneniya_poryadka' | t">
                   drag_indicator
                 </span>
                 <span class="status-dot" [style.background-color]="s.color"></span>
                 <span class="dict-name">{{ s.name }}</span>
-                <span *ngIf="s.isTerminal" class="term-badge">Завершающий</span>
-                <span *ngIf="s.pcode" class="sys-badge">Базовый</span>
+                <span *ngIf="s.isTerminal" class="term-badge">{{ 'tasks.zavershayuschiy' | t }}</span>
+                <span *ngIf="s.pcode" class="sys-badge">{{ 'tasks.bazovyy' | t }}</span>
               </div>
               <div class="dict-actions" *ngIf="!s.pcode">
-                <button type="button" class="mini-move-btn" [disabled]="statusIndex === 0" [attr.aria-label]="'Поднять статус ' + s.name" (click)="moveDictionaryStatus(statusIndex, -1)">
+                <button type="button" class="mini-move-btn" [disabled]="statusIndex === 0" [attr.aria-label]="'tasks.raise_status' | t:{name: s.name}" (click)="moveDictionaryStatus(statusIndex, -1)">
                   <span class="material-symbols-outlined" aria-hidden="true">arrow_upward</span>
                 </button>
-                <button type="button" class="mini-move-btn" [disabled]="statusIndex === statuses().length - 1" [attr.aria-label]="'Опустить статус ' + s.name" (click)="moveDictionaryStatus(statusIndex, 1)">
+                <button type="button" class="mini-move-btn" [disabled]="statusIndex === statuses().length - 1" [attr.aria-label]="'tasks.lower_status' | t:{name: s.name}" (click)="moveDictionaryStatus(statusIndex, 1)">
                   <span class="material-symbols-outlined" aria-hidden="true">arrow_downward</span>
                 </button>
-                <button type="button" class="mini-del-btn" title="Удалить" [attr.aria-label]="'Удалить статус ' + s.name" (click)="requestDeleteDictionaryItem('status', s.id, s.name)">
+                <button type="button" class="mini-del-btn" [title]="'common.delete' | t" [attr.aria-label]="'tasks.delete_status' | t:{name: s.name}" (click)="requestDeleteDictionaryItem('status', s.id, s.name)">
                   <span class="material-symbols-outlined" aria-hidden="true">delete</span>
                 </button>
               </div>
@@ -1266,47 +1268,47 @@ import { KeysetPage } from '../../core/models/common.models';
 
           <!-- Add New Status Form -->
           <div class="add-dict-box">
-            <h5 class="add-dict-title">Добавить новый статус</h5>
+            <h5 class="add-dict-title">{{ 'tasks.dobavit_novyy_status' | t }}</h5>
             <div class="form-grid-3">
               <div class="dict-form-field">
-                <label class="clean-label" for="task-status-name">Название статуса</label>
-                <input id="task-status-name" name="taskStatusName" type="text" class="clean-input" placeholder="Название статуса..." [(ngModel)]="newStatusForm.name" />
+                <label class="clean-label" for="task-status-name">{{ 'tasks.nazvanie_statusa.44a913b' | t }}</label>
+                <input id="task-status-name" name="taskStatusName" type="text" class="clean-input" [placeholder]="'tasks.nazvanie_statusa' | t" [(ngModel)]="newStatusForm.name" />
               </div>
               <div class="color-picker-row">
-                <label class="clean-label" for="task-status-color">Цвет статуса</label>
-                <input id="task-status-color" name="taskStatusColor" type="color" class="clean-input color-picker" [(ngModel)]="newStatusForm.color" title="Выбрать цвет" />
+                <label class="clean-label" for="task-status-color">{{ 'tasks.cvet_statusa' | t }}</label>
+                <input id="task-status-color" name="taskStatusColor" type="color" class="clean-input color-picker" [(ngModel)]="newStatusForm.color" [title]="'tasks.vybrat_cvet' | t" />
               </div>
               <label class="terminal-toggle-label">
                 <input name="taskStatusTerminal" type="checkbox" [(ngModel)]="newStatusForm.isTerminal" />
-                <span>Завершающий</span>
+                <span>{{ 'tasks.zavershayuschiy' | t }}</span>
               </label>
             </div>
             <div class="add-dict-actions">
               <ui-button variant="secondary" size="sm" icon="add" (onClick)="submitCreateStatus()">
-                Добавить статус
+                {{ 'tasks.dobavit_status' | t }}
               </ui-button>
             </div>
           </div>
         </div>
       </div>
       <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="isSettingsModalOpen.set(false)">Закрыть</ui-button>
+        <ui-button variant="secondary" size="md" (onClick)="isSettingsModalOpen.set(false)">{{ 'audit.zakryt' | t }}</ui-button>
       </div>
     </ui-modal>
 
     <ui-modal
       [isOpen]="dictionaryDeleteTarget !== null"
-      title="Удаление элемента справочника"
+      [title]="'tasks.udalenie_elementa_spravochnika' | t"
       size="sm"
       (close)="dictionaryDeleteTarget = null"
     >
       <div body class="dictionary-delete-body" *ngIf="dictionaryDeleteTarget as target">
-        <p>Удалить {{ target.kind === 'type' ? 'тип задачи' : 'статус' }} <strong>«{{ target.name }}»</strong>?</p>
-        <span>Удаление будет отклонено, если элемент уже используется задачами.</span>
+        <p>{{ 'tasks.delete_dictionary_confirm' | t:{kind: ((target.kind === 'type' ? 'tasks.task_type_accusative' : 'tasks.status_accusative') | t), name: target.name} }}</p>
+        <span>{{ 'tasks.udalenie_budet_otkloneno_esli_element_uzhe_ispol' | t }}</span>
       </div>
       <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="dictionaryDeleteTarget = null">Отмена</ui-button>
-        <ui-button variant="danger" size="md" (onClick)="confirmDeleteDictionaryItem()">Удалить</ui-button>
+        <ui-button variant="secondary" size="md" (onClick)="dictionaryDeleteTarget = null">{{ 'common.cancel' | t }}</ui-button>
+        <ui-button variant="danger" size="md" (onClick)="confirmDeleteDictionaryItem()">{{ 'common.delete' | t }}</ui-button>
       </div>
     </ui-modal>
   `,
@@ -2318,6 +2320,7 @@ import { KeysetPage } from '../../core/models/common.models';
   `]
 })
 export class TasksComponent implements OnInit {
+  private readonly uiI18n = inject(I18nService);
   readonly tasks = signal<Task[]>([]);
   readonly projects = signal<Project[]>([]);
   readonly statuses = signal<TaskStatus[]>([]);
@@ -2663,10 +2666,10 @@ export class TasksComponent implements OnInit {
     this.api.post(`/tasks/${task.id}/status`, { statusId: targetStatusId }).subscribe({
       next: () => {
         const sName = this.getStatusName(targetStatusId);
-        this.toast.success(`Задача #${task.id} перенесена в «${sName}»`);
+        this.toast.success(this.uiI18n.translate('tasks.task_moved_to_status', { id: task.id, status: sName }));
       },
       error: err => {
-        this.toast.error(err.error?.message || 'Не удалось изменить статус задачи');
+        this.toast.error(err.error?.message || this.uiI18n.translate('tasks.ne_udalos_izmenit_status_zadachi'));
         this.loadTasks(true);
       }
     });
@@ -2710,16 +2713,16 @@ export class TasksComponent implements OnInit {
   private persistStatusOrder(list: TaskStatus[]) {
     const orderedIds = list.map(status => status.id);
     this.api.post('/tasks/statuses/reorder', orderedIds).subscribe({
-      next: () => this.toast.success('Порядок статусов сохранен'),
-      error: err => this.toast.error(err.error?.message || 'Ошибка изменения порядка')
+      next: () => this.toast.success(this.uiI18n.translate('tasks.poryadok_statusov_sohranen')),
+      error: err => this.toast.error(err.error?.message || this.uiI18n.translate('tasks.oshibka_izmeneniya_poryadka'))
     });
   }
 
   private persistTypeOrder(list: TaskType[]) {
     const orderedIds = list.map(t => t.id);
     this.api.post('/tasks/types/reorder', orderedIds).subscribe({
-      next: () => this.toast.success('Порядок типов задач сохранен'),
-      error: err => this.toast.error(err.error?.message || 'Ошибка изменения порядка')
+      next: () => this.toast.success(this.uiI18n.translate('tasks.poryadok_tipov_zadach_sohranen')),
+      error: err => this.toast.error(err.error?.message || this.uiI18n.translate('tasks.oshibka_izmeneniya_poryadka'))
     });
   }
 
@@ -2750,10 +2753,10 @@ export class TasksComponent implements OnInit {
     this.api.post(`/tasks/${t.id}/files`, { fileId: file.fileId }).subscribe({
       next: () => {
         this.taskFiles.update(list => [...list, file]);
-        this.toast.success(`Файл «${file.fileName}» прикреплен к задаче`);
+        this.toast.success(this.uiI18n.translate('tasks.file_attached', { name: file.fileName }));
       },
       error: err => {
-        this.toast.error(err.error?.message || 'Не удалось прикрепить файл');
+        this.toast.error(err.error?.message || this.uiI18n.translate('tasks.ne_udalos_prikrepit_fayl'));
       }
     });
   }
@@ -2764,10 +2767,10 @@ export class TasksComponent implements OnInit {
     this.api.delete(`/tasks/${t.id}/files/${file.fileId}`).subscribe({
       next: () => {
         this.taskFiles.update(list => list.filter(f => f.fileId !== file.fileId));
-        this.toast.success(`Файл «${file.fileName}» удален`);
+        this.toast.success(this.uiI18n.translate('tasks.file_removed', { name: file.fileName }));
       },
       error: err => {
-        this.toast.error(err.error?.message || 'Не удалось удалить файл');
+        this.toast.error(err.error?.message || this.uiI18n.translate('files.ne_udalos_udalit_fayl'));
       }
     });
   }
@@ -2788,10 +2791,10 @@ export class TasksComponent implements OnInit {
       next: () => {
         this.newCommentText = '';
         this.loadComments(task.id);
-        this.toast.success('Комментарий добавлен');
+        this.toast.success(this.uiI18n.translate('tasks.kommentariy_dobavlen'));
       },
       error: err => {
-        this.toast.error(err.error?.message || 'Не удалось отправить комментарий');
+        this.toast.error(err.error?.message || this.uiI18n.translate('tasks.ne_udalos_otpravit_kommentariy'));
       }
     });
   }
@@ -2799,14 +2802,14 @@ export class TasksComponent implements OnInit {
   updateStatus(taskId: number, newStatusId: number) {
     this.api.post(`/tasks/${taskId}/status`, { statusId: newStatusId }).subscribe({
       next: () => {
-        this.toast.success('Статус задачи обновлен');
+        this.toast.success(this.uiI18n.translate('tasks.status_zadachi_obnovlen'));
         this.tasks.update(list => list.map(t => t.id === taskId ? { ...t, statusId: newStatusId } : t));
         if (this.selectedTask()?.id === taskId) {
           this.selectedTask.update(t => t ? { ...t, statusId: newStatusId } : null);
         }
       },
       error: err => {
-        this.toast.error(err.error?.message || 'Не удалось изменить статус');
+        this.toast.error(err.error?.message || this.uiI18n.translate('tasks.ne_udalos_izmenit_status'));
       }
     });
   }
@@ -2853,7 +2856,7 @@ export class TasksComponent implements OnInit {
   submitCreateTask() {
     this.isCreateSubmitted = true;
     if (!this.createForm.title.trim()) {
-      this.toast.warning('Укажите название задачи');
+      this.toast.warning(this.uiI18n.translate('tasks.ukazhite_nazvanie_zadachi'));
       return;
     }
 
@@ -2877,7 +2880,7 @@ export class TasksComponent implements OnInit {
       next: () => {
         this.isSubmitting.set(false);
         this.isCreateModalOpen.set(false);
-        this.toast.success('Задача успешно создана');
+        this.toast.success(this.uiI18n.translate('tasks.zadacha_uspeshno_sozdana'));
         this.loadTasks(true);
         if (this.selectedTask() && this.createForm.parentTaskId === this.selectedTask()?.id) {
           this.loadTaskFullDetails(this.selectedTask()!.id);
@@ -2885,7 +2888,7 @@ export class TasksComponent implements OnInit {
       },
       error: err => {
         this.isSubmitting.set(false);
-        this.toast.error(err.error?.message || 'Ошибка при сохранении задачи');
+        this.toast.error(err.error?.message || this.uiI18n.translate('tasks.oshibka_pri_sohranenii_zadachi'));
       }
     });
   }
@@ -2943,7 +2946,7 @@ export class TasksComponent implements OnInit {
     if (!this.editingTask) return;
     this.isEditSubmitted = true;
     if (!this.editForm.title.trim()) {
-      this.toast.warning('Название задачи обязательно');
+      this.toast.warning(this.uiI18n.translate('tasks.nazvanie_zadachi_obyazatelno'));
       return;
     }
 
@@ -2967,7 +2970,7 @@ export class TasksComponent implements OnInit {
       next: () => {
         this.isSubmitting.set(false);
         this.isEditModalOpen.set(false);
-        this.toast.success('Задача успешно обновлена');
+        this.toast.success(this.uiI18n.translate('tasks.zadacha_uspeshno_obnovlena'));
         this.loadTasks(true);
         if (this.selectedTask()?.id === this.editingTask?.id) {
           this.loadTaskFullDetails(this.editingTask!.id);
@@ -2975,7 +2978,7 @@ export class TasksComponent implements OnInit {
       },
       error: err => {
         this.isSubmitting.set(false);
-        this.toast.error(err.error?.message || 'Ошибка при обновлении задачи');
+        this.toast.error(err.error?.message || this.uiI18n.translate('tasks.oshibka_pri_obnovlenii_zadachi'));
       }
     });
   }
@@ -2991,7 +2994,7 @@ export class TasksComponent implements OnInit {
 
   submitCreateType() {
     if (!this.newTypeForm.code.trim() || !this.newTypeForm.name.trim()) {
-      this.toast.warning('Укажите код и название типа');
+      this.toast.warning(this.uiI18n.translate('tasks.ukazhite_kod_i_nazvanie_tipa'));
       return;
     }
 
@@ -3003,17 +3006,17 @@ export class TasksComponent implements OnInit {
       orderNo: (this.taskTypes().length + 1) * 10
     }).subscribe({
       next: () => {
-        this.toast.success('Тип задачи добавлен');
+        this.toast.success(this.uiI18n.translate('tasks.tip_zadachi_dobavlen'));
         this.newTypeForm = { code: '', name: '', icon: 'task_alt', color: '#6366f1' };
         this.loadTypes();
       },
-      error: err => this.toast.error(err.error?.message || 'Ошибка добавления типа')
+      error: err => this.toast.error(err.error?.message || this.uiI18n.translate('tasks.oshibka_dobavleniya_tipa'))
     });
   }
 
   submitCreateStatus() {
     if (!this.newStatusForm.name.trim()) {
-      this.toast.warning('Укажите название статуса');
+      this.toast.warning(this.uiI18n.translate('tasks.ukazhite_nazvanie_statusa'));
       return;
     }
 
@@ -3024,11 +3027,11 @@ export class TasksComponent implements OnInit {
       isTerminal: this.newStatusForm.isTerminal
     }).subscribe({
       next: () => {
-        this.toast.success('Статус задачи добавлен');
+        this.toast.success(this.uiI18n.translate('tasks.status_zadachi_dobavlen'));
         this.newStatusForm = { name: '', color: '#3b82f6', isTerminal: false };
         this.loadStatuses();
       },
-      error: err => this.toast.error(err.error?.message || 'Ошибка добавления статуса')
+      error: err => this.toast.error(err.error?.message || this.uiI18n.translate('tasks.oshibka_dobavleniya_statusa'))
     });
   }
 
@@ -3044,16 +3047,16 @@ export class TasksComponent implements OnInit {
       next: () => {
         this.dictionaryDeleteTarget = null;
         if (target.kind === 'type') {
-          this.toast.success('Тип задачи удален');
+          this.toast.success(this.uiI18n.translate('tasks.tip_zadachi_udalen'));
           this.loadTypes();
         } else {
-          this.toast.success('Статус удален');
+          this.toast.success(this.uiI18n.translate('tasks.status_udalen'));
           this.loadStatuses();
         }
       },
       error: err => this.toast.error(err.error?.message || (target.kind === 'type'
-        ? 'Ошибка удаления типа'
-        : 'Нельзя удалить статус, привязанный к задачам'))
+        ? this.uiI18n.translate('tasks.oshibka_udaleniya_tipa')
+        : this.uiI18n.translate('tasks.nelzya_udalit_status_privyazannyy_k_zadacham')))
     });
   }
 
@@ -3067,7 +3070,7 @@ export class TasksComponent implements OnInit {
 
   getTypeLabel(task: Task): string {
     const obj = this.getTypeObj(task);
-    return obj ? obj.name : 'Задача';
+    return obj ? obj.name : this.uiI18n.translate('tasks.zadacha');
   }
 
   getTypeIcon(task: Task): string {
@@ -3093,9 +3096,9 @@ export class TasksComponent implements OnInit {
   }
 
   getStatusName(statusId: number | null | undefined): string {
-    if (!statusId) return 'Новая';
+    if (!statusId) return this.uiI18n.translate('tasks.novaya');
     const s = this.statuses().find(x => x.id === statusId);
-    return s ? s.name : 'В работе';
+    return s ? s.name : this.uiI18n.translate('tasks.v_rabote');
   }
 
   getStatusColor(statusId: number | null | undefined): string {
@@ -3108,14 +3111,14 @@ export class TasksComponent implements OnInit {
     switch (priority) {
       case 'critical':
       case 'urgent':
-        return 'Критический';
+        return this.uiI18n.translate('tasks.kriticheskiy');
       case 'high':
-        return 'Высокий';
+        return this.uiI18n.translate('task.priority.high');
       case 'medium':
       case 'normal':
-        return 'Средний';
+        return this.uiI18n.translate('tasks.sredniy');
       default:
-        return 'Низкий';
+        return this.uiI18n.translate('task.priority.low');
     }
   }
 
@@ -3128,11 +3131,11 @@ export class TasksComponent implements OnInit {
 
   getInvolveKindLabel(kind: string | undefined): string {
     switch (kind) {
-      case 'R': return 'Ответственный';
-      case 'E': return 'Исполнитель';
-      case 'O': return 'Наблюдатель';
-      case 'A': return 'Автор';
-      default: return 'Участник';
+      case 'R': return this.uiI18n.translate('task.responsible');
+      case 'E': return this.uiI18n.translate('tasks.ispolnitel');
+      case 'O': return this.uiI18n.translate('tasks.nablyudatel');
+      case 'A': return this.uiI18n.translate('tasks.avtor');
+      default: return this.uiI18n.translate('tasks.uchastnik');
     }
   }
 

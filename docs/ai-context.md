@@ -60,6 +60,7 @@ per-installation: примерно 100 установок, 500 зарегист�
 | Файлы | `local_disk` или S3-compatible provider через SPI |
 | Поставка | Docker Compose; отдельный one-shot `migrate`; production backup и ClamAV |
 | Проверки | Maven, Angular/Vitest, Playwright, PowerShell architecture/docs/release gates |
+| Локализация | Центральный PostgreSQL registry/overrides, восемь packaged-языков, русский per-key fallback |
 
 Browser обращается только к server API. Авторизация всегда выполняется на
 сервере; Typesense не принимает решений о доступе. Контроллеры валидируют и
@@ -131,6 +132,33 @@ Trivy. Поэтому `1b24d3f` не является release-ready baseline.
 закрытым до push и полного green run. При следующей сессии сначала проверить
 `HEAD`, `git status` и применимые gates; не включать в работу unrelated dirty
 UI/E2E changes и локальные audit drafts без отдельного решения пользователя.
+
+Текущий незакоммиченный localization patch добавляет Flyway `V022`, публичные
+словари и защищённый admin API, редактор переводов, динамический выбор языка,
+атомарную синхронизацию предпочтения с `md_users.language` и миграцию legacy
+browser-пакетов. Вся
+статическая Angular-копия сведена в русский каталог; неполные целевые каталоги
+явно показывают coverage и используют русский fallback. На текущем patch
+локально подтверждены: localization audit `976/987`, Angular 30 файлов / 87
+тестов, frontend typecheck и production build (initial bundle 476.53 kB), E2E
+typecheck, полный instance E2E 18/18 и Maven 229 тестов без
+failures/errors/skipped. Чистые Testcontainers-БД успешно применяют 22 Flyway
+миграции до `V022`; локальные Docker server/web пересобраны и healthy. E2E
+возвращает исходные переводы и язык администратора (`ru`). Remote CI и commit
+для этого patch ещё не подтверждены.
+
+Текущий незакоммиченный patch страницы «Состояние» добавляет серверную отметку
+`checkedAt`, параллельные проверки компонентов с настраиваемым пределом
+`DWH_SYSTEM_HEALTH_TIMEOUT`, агрегированный статус установки, явную индикацию
+устаревшего snapshot после ошибки обновления и семантически разные состояния
+backup. Backup freshness оценивается относительно явно заданного
+`DWH_BACKUP_MAX_AGE`; `0s` означает неподтверждённую политику и не даёт
+зелёного статуса, превышение порога возвращает `STALE`. После объединения с
+localization patch локально подтверждены: localization audit 997 используемых
+ключей / 1010 русских ключей, Angular 30 файлов / 93 теста, frontend и E2E
+typecheck, Maven 231 тест без failures/errors/skipped, production release-config
+gate, system E2E 4/4 и полный instance E2E 20/20 на пересобранном healthy
+Docker-стеке. Remote CI и immutable commit не подтверждены.
 
 ## 7. Открытые release gates
 

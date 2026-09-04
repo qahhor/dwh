@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { A11yModule } from '@angular/cdk/a11y';
@@ -7,6 +7,7 @@ import { PermissionService } from '../../core/services/permission.service';
 import { ToastService } from '../../core/services/toast.service';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 import { UiModalComponent } from '../../shared/ui/ui-modal.component';
+import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
 
 export type AnnouncementState = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
 export type AnnouncementBannerType = 'INFO' | 'WARNING' | 'CRITICAL';
@@ -46,65 +47,66 @@ interface ApiProblem {
 @Component({
   selector: 'app-announcements',
   standalone: true,
-  imports: [CommonModule, FormsModule, A11yModule, UiButtonComponent, UiModalComponent],
+  imports: [
+    TranslatePipe,CommonModule, FormsModule, A11yModule, UiButtonComponent, UiModalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="announcements-page" aria-labelledby="announcements-title">
       <header class="view-header">
         <div>
-          <p class="eyebrow">Локальные сообщения</p>
-          <h1 id="announcements-title">Объявления</h1>
-          <p class="subtitle">Публикуйте важные сообщения пользователям этой установки SmartupCMS.</p>
+          <p class="eyebrow">{{ 'announcements.lokalnye_soobscheniya' | t }}</p>
+          <h1 id="announcements-title">{{ 'announcements.obyavleniya' | t }}</h1>
+          <p class="subtitle">{{ 'announcements.publikuyte_vazhnye_soobscheniya_polzovatelyam_et' | t }}</p>
         </div>
         <div class="header-actions">
           <ui-button
             variant="secondary"
             icon="refresh"
             [loading]="isLoading()"
-            ariaLabel="Обновить список объявлений"
+            [ariaLabel]="'announcements.obnovit_spisok_obyavleniy' | t"
             (onClick)="loadAnnouncements()"
-          >Обновить</ui-button>
+          >{{ 'common.refresh' | t }}</ui-button>
           <ui-button
             *ngIf="canCreate()"
             icon="add"
-            ariaLabel="Создать объявление"
+            [ariaLabel]="'announcements.sozdat_obyavlenie' | t"
             (onClick)="openCreate()"
-          >Создать</ui-button>
+          >{{ 'common.create' | t }}</ui-button>
         </div>
       </header>
 
       <div *ngIf="operationError()" class="inline-alert" role="alert">
         <span class="material-symbols-outlined" aria-hidden="true">sync_problem</span>
         <div>
-          <strong>Изменения не сохранены</strong>
+          <strong>{{ 'announcements.izmeneniya_ne_sohraneny' | t }}</strong>
           <p>{{ operationError() }}</p>
         </div>
-        <ui-button variant="secondary" size="sm" ariaLabel="Обновить список объявлений" (onClick)="refreshAfterConflict()">
-          Обновить список
+        <ui-button variant="secondary" size="sm" [ariaLabel]="'announcements.obnovit_spisok_obyavleniy' | t" (onClick)="refreshAfterConflict()">
+          {{ 'announcements.obnovit_spisok' | t }}
         </ui-button>
       </div>
 
       <div *ngIf="isLoading() && announcements().length === 0" class="state-panel" aria-busy="true" aria-live="polite">
         <span class="spinner" aria-hidden="true"></span>
-        <span>Загружаем объявления…</span>
+        <span>{{ 'announcements.zagruzhaem_obyavleniya' | t }}</span>
       </div>
 
       <div *ngIf="loadError() && !isLoading()" class="state-panel error-state" role="alert" data-testid="announcements-load-error">
         <span class="material-symbols-outlined" aria-hidden="true">cloud_off</span>
         <div>
-          <h2>Не удалось загрузить объявления</h2>
-          <p>Проверьте соединение с сервером и повторите запрос.</p>
+          <h2>{{ 'announcements.ne_udalos_zagruzit_obyavleniya' | t }}</h2>
+          <p>{{ 'announcements.proverte_soedinenie_s_serverom_i_povtorite_zapro' | t }}</p>
         </div>
-        <ui-button variant="secondary" ariaLabel="Повторить загрузку объявлений" (onClick)="loadAnnouncements()">Повторить</ui-button>
+        <ui-button variant="secondary" [ariaLabel]="'announcements.povtorit_zagruzku_obyavleniy' | t" (onClick)="loadAnnouncements()">{{ 'announcements.povtorit' | t }}</ui-button>
       </div>
 
       <div *ngIf="!isLoading() && !loadError() && announcements().length === 0" class="state-panel empty-state" data-testid="announcements-empty">
         <span class="material-symbols-outlined" aria-hidden="true">campaign</span>
         <div>
-          <h2>Объявлений пока нет</h2>
-          <p>Создайте черновик, проверьте текст и опубликуйте его для пользователей.</p>
+          <h2>{{ 'announcements.obyavleniy_poka_net' | t }}</h2>
+          <p>{{ 'announcements.sozdayte_chernovik_proverte_tekst_i_opublikuyte_' | t }}</p>
         </div>
-        <ui-button *ngIf="canCreate()" variant="secondary" icon="add" (onClick)="openCreate()">Создать черновик</ui-button>
+        <ui-button *ngIf="canCreate()" variant="secondary" icon="add" (onClick)="openCreate()">{{ 'announcements.sozdat_chernovik' | t }}</ui-button>
       </div>
 
       <div *ngIf="announcements().length > 0" class="announcement-list" aria-live="polite">
@@ -118,11 +120,11 @@ interface ApiProblem {
                   <span class="type-label">{{ bannerLabel(item.bannerType) }}</span>
                   <span>№{{ item.id }}</span>
                 </div>
-                <h2>{{ localizedValue(item.titleJson) || 'Без заголовка' }}</h2>
+                <h2>{{ localizedValue(item.titleJson) || ('announcements.without_title' | t) }}</h2>
               </div>
               <time [attr.datetime]="item.modifiedAt">{{ item.modifiedAt | date:'dd.MM.yyyy, HH:mm' }}</time>
             </div>
-            <p class="announcement-body">{{ localizedValue(item.bodyJson) || 'Текст не заполнен' }}</p>
+            <p class="announcement-body">{{ localizedValue(item.bodyJson) || ('announcements.empty_body' | t) }}</p>
             <div class="card-actions">
               <button
                 *ngIf="item.state === 'DRAFT' && canUpdate()"
@@ -131,7 +133,7 @@ interface ApiProblem {
                 (click)="openEdit(item)"
               >
                 <span class="material-symbols-outlined" aria-hidden="true">edit</span>
-                Редактировать
+                {{ 'common.edit' | t }}
               </button>
               <button
                 *ngIf="item.state === 'DRAFT' && canPublish()"
@@ -142,10 +144,10 @@ interface ApiProblem {
                 (click)="requestConfirmation('publish', item)"
               >
                 <span class="material-symbols-outlined" aria-hidden="true">publish</span>
-                Опубликовать
+                {{ 'announcements.opublikovat' | t }}
               </button>
               <span *ngIf="item.state === 'DRAFT' && !hasPublishableContent(item)" class="invalid-hint" [id]="'invalid-draft-' + item.id">
-                Заполните RU-заголовок и текст
+                {{ 'announcements.zapolnite_ru_zagolovok_i_tekst' | t }}
               </span>
               <button
                 *ngIf="item.state === 'PUBLISHED' && canArchive()"
@@ -154,7 +156,7 @@ interface ApiProblem {
                 (click)="requestConfirmation('archive', item)"
               >
                 <span class="material-symbols-outlined" aria-hidden="true">archive</span>
-                Архивировать
+                {{ 'announcements.arhivirovat' | t }}
               </button>
             </div>
           </div>
@@ -163,14 +165,14 @@ interface ApiProblem {
 
       <ui-modal
         [isOpen]="isEditorOpen()"
-        [title]="editingId === null ? 'Новое объявление' : 'Редактирование объявления'"
+        [title]="(editingId === null ? 'announcements.new_announcement' : 'announcements.edit_announcement') | t"
         size="lg"
         [hasFooter]="false"
         (close)="closeEditor()"
       >
         <form body id="announcement-editor" class="editor-form" (ngSubmit)="saveDraft()" novalidate>
           <div class="field-group">
-            <label for="announcement-title-ru">Заголовок (RU) <span aria-hidden="true">*</span></label>
+            <label for="announcement-title-ru">{{ 'announcements.zagolovok_ru' | t }} <span aria-hidden="true">*</span></label>
             <input
               id="announcement-title-ru"
               name="announcementTitleRu"
@@ -182,10 +184,10 @@ interface ApiProblem {
               [attr.aria-invalid]="titleRu.trim().length === 0"
               aria-describedby="announcement-title-hint"
             />
-            <span id="announcement-title-hint" class="field-hint">Коротко опишите главное сообщение.</span>
+            <span id="announcement-title-hint" class="field-hint">{{ 'announcements.korotko_opishite_glavnoe_soobschenie' | t }}</span>
           </div>
           <div class="field-group">
-            <label for="announcement-body-ru">Текст объявления (RU) <span aria-hidden="true">*</span></label>
+            <label for="announcement-body-ru">{{ 'announcements.tekst_obyavleniya_ru' | t }} <span aria-hidden="true">*</span></label>
             <textarea
               id="announcement-body-ru"
               name="announcementBodyRu"
@@ -196,25 +198,25 @@ interface ApiProblem {
               [attr.aria-invalid]="bodyRu.trim().length === 0"
               aria-describedby="announcement-body-hint"
             ></textarea>
-            <span id="announcement-body-hint" class="field-hint">До 10 000 символов. Текст увидят все пользователи установки.</span>
+            <span id="announcement-body-hint" class="field-hint">{{ 'announcements.do_10_000_simvolov_tekst_uvidyat_vse_polzovateli' | t }}</span>
           </div>
           <div class="field-group">
-            <label for="announcement-banner-type">Уровень сообщения</label>
+            <label for="announcement-banner-type">{{ 'announcements.uroven_soobscheniya' | t }}</label>
             <select id="announcement-banner-type" name="announcementBannerType" [(ngModel)]="bannerType">
-              <option value="INFO">Информация</option>
-              <option value="WARNING">Предупреждение</option>
-              <option value="CRITICAL">Критическое</option>
+              <option value="INFO">{{ 'announcements.informaciya' | t }}</option>
+              <option value="WARNING">{{ 'announcements.preduprezhdenie' | t }}</option>
+              <option value="CRITICAL">{{ 'announcements.kriticheskoe' | t }}</option>
             </select>
           </div>
           <div class="form-actions">
-            <ui-button variant="secondary" (onClick)="closeEditor()">Отмена</ui-button>
+            <ui-button variant="secondary" (onClick)="closeEditor()">{{ 'common.cancel' | t }}</ui-button>
             <button
               type="submit"
               class="primary-button"
               data-testid="save-draft"
               [disabled]="!isDraftValid() || isSaving()"
               [attr.aria-busy]="isSaving()"
-            >{{ isSaving() ? 'Сохранение…' : 'Сохранить черновик' }}</button>
+            >{{ (isSaving() ? 'common.saving' : 'announcements.save_draft') | t }}</button>
           </div>
         </form>
       </ui-modal>
@@ -227,16 +229,16 @@ interface ApiProblem {
         (close)="confirmation.set(null)"
       >
         <div body *ngIf="confirmation() as pending" class="confirmation-copy">
-          <p *ngIf="pending.action === 'publish'">После публикации объявление увидят пользователи. Редактирование станет недоступно.</p>
-          <p *ngIf="pending.action === 'archive'">Объявление исчезнет у пользователей и останется в локальном архиве.</p>
+          <p *ngIf="pending.action === 'publish'">{{ 'announcements.posle_publikacii_obyavlenie_uvidyat_polzovateli_' | t }}</p>
+          <p *ngIf="pending.action === 'archive'">{{ 'announcements.obyavlenie_ischeznet_u_polzovateley_i_ostanetsya' | t }}</p>
         </div>
         <div footer class="modal-actions">
-          <ui-button variant="secondary" [disabled]="isSaving()" (onClick)="confirmation.set(null)">Отмена</ui-button>
+          <ui-button variant="secondary" [disabled]="isSaving()" (onClick)="confirmation.set(null)">{{ 'common.cancel' | t }}</ui-button>
           <ui-button
             [variant]="confirmation()?.action === 'archive' ? 'danger' : 'primary'"
             [loading]="isSaving()"
             (onClick)="executeConfirmedAction()"
-          >Подтвердить</ui-button>
+          >{{ 'auth.verify' | t }}</ui-button>
         </div>
       </ui-modal>
     </section>
@@ -301,6 +303,7 @@ interface ApiProblem {
   `]
 })
 export class AnnouncementsComponent implements OnInit {
+  private readonly uiI18n = inject(I18nService);
   readonly announcements = signal<AnnouncementAdminRecord[]>([]);
   readonly isLoading = signal(true);
   readonly loadError = signal(false);
@@ -414,7 +417,7 @@ export class AnnouncementsComponent implements OnInit {
         this.upsert(saved);
         this.isSaving.set(false);
         this.isEditorOpen.set(false);
-        this.toast.success(this.editingId === null ? 'Черновик создан' : 'Черновик сохранён');
+        this.toast.success(this.editingId === null ? this.uiI18n.translate('announcements.chernovik_sozdan') : this.uiI18n.translate('announcements.chernovik_sohranen'));
       },
       error: (problem: ApiProblem) => {
         this.isSaving.set(false);
@@ -433,8 +436,8 @@ export class AnnouncementsComponent implements OnInit {
 
   confirmationTitle(): string {
     return this.confirmation()?.action === 'archive'
-      ? 'Архивировать объявление?'
-      : 'Опубликовать объявление?';
+      ? this.uiI18n.translate('announcements.arhivirovat_obyavlenie')
+      : this.uiI18n.translate('announcements.opublikovat_obyavlenie');
   }
 
   executeConfirmedAction(): void {
@@ -449,7 +452,7 @@ export class AnnouncementsComponent implements OnInit {
         this.upsert(saved);
         this.isSaving.set(false);
         this.confirmation.set(null);
-        this.toast.success(pending.action === 'publish' ? 'Объявление опубликовано' : 'Объявление архивировано');
+        this.toast.success(pending.action === 'publish' ? this.uiI18n.translate('announcements.obyavlenie_opublikovano') : this.uiI18n.translate('announcements.obyavlenie_arhivirovano'));
       },
       error: (problem: ApiProblem) => {
         this.isSaving.set(false);
@@ -474,11 +477,11 @@ export class AnnouncementsComponent implements OnInit {
   }
 
   stateLabel(state: AnnouncementState): string {
-    return ({ DRAFT: 'Черновик', PUBLISHED: 'Опубликовано', ARCHIVED: 'Архив' } as const)[state];
+    return ({ DRAFT: this.uiI18n.translate('announcements.chernovik'), PUBLISHED: this.uiI18n.translate('announcements.opublikovano'), ARCHIVED: this.uiI18n.translate('projects.arhiv') } as const)[state];
   }
 
   bannerLabel(type: AnnouncementBannerType): string {
-    return ({ INFO: 'Информация', WARNING: 'Предупреждение', CRITICAL: 'Критическое' } as const)[type];
+    return ({ INFO: this.uiI18n.translate('announcements.informaciya'), WARNING: this.uiI18n.translate('announcements.preduprezhdenie'), CRITICAL: this.uiI18n.translate('announcements.kriticheskoe') } as const)[type];
   }
 
   trackById(_index: number, item: AnnouncementAdminRecord): number {
@@ -495,9 +498,9 @@ export class AnnouncementsComponent implements OnInit {
 
   private handleMutationError(problem: ApiProblem): void {
     if (problem?.status === 409 || problem?.code === 'CONFLICT') {
-      this.operationError.set('Это объявление уже изменено другим пользователем. Обновите список и повторите действие.');
+      this.operationError.set(this.uiI18n.translate('announcements.eto_obyavlenie_uzhe_izmeneno_drugim_polzovatelem'));
       return;
     }
-    this.operationError.set(problem?.detail || 'Не удалось сохранить изменение. Повторите попытку.');
+    this.operationError.set(problem?.detail || this.uiI18n.translate('announcements.ne_udalos_sohranit_izmenenie_povtorite_popytku'));
   }
 }

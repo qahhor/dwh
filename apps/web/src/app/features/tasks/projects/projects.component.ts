@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
@@ -9,32 +9,34 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { UiPaginationComponent } from '../../../shared/ui/ui-pagination.component';
 import { Project, ProjectTaskStats } from '../../../core/models/task.models';
+import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
 
 @Component({
   selector: 'app-projects',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, UiButtonComponent, UiModalComponent, UiPaginationComponent],
+  imports: [
+    TranslatePipe,CommonModule, FormsModule, RouterModule, UiButtonComponent, UiModalComponent, UiPaginationComponent],
 
   template: `
     <div class="projects-page">
       <!-- Header -->
       <div class="view-header">
         <div class="header-left">
-          <h1 class="view-title">Проекты</h1>
+          <h1 class="view-title">{{ 'nav.projects' | t }}</h1>
           <span class="count-badge">{{ filteredProjects().length }}</span>
 
           <!-- View Mode Switcher -->
-          <div class="status-tabs" role="group" aria-label="Режим отображения проектов">
+          <div class="status-tabs" role="group" [attr.aria-label]="'projects.rezhim_otobrazheniya_proektov' | t">
             <button
               type="button"
               class="status-tab"
               [class.active]="viewMode === 'list'"
               [attr.aria-pressed]="viewMode === 'list'"
               (click)="viewMode = 'list'"
-              title="Список / Таблица"
+              [title]="'projects.spisok_tablica' | t"
             >
               <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">table_rows</span>
-              <span>Список</span>
+              <span>{{ 'projects.spisok' | t }}</span>
             </button>
             <button
               type="button"
@@ -42,10 +44,10 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
               [class.active]="viewMode === 'cards'"
               [attr.aria-pressed]="viewMode === 'cards'"
               (click)="viewMode = 'cards'"
-              title="Карточки"
+              [title]="'projects.kartochki' | t"
             >
               <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">grid_view</span>
-              <span>Карточки</span>
+              <span>{{ 'projects.kartochki' | t }}</span>
             </button>
           </div>
         </div>
@@ -58,7 +60,7 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
             icon="add"
             (onClick)="openCreateModal()"
           >
-            Новый проект
+            {{ 'projects.novyy_proekt' | t }}
           </ui-button>
         </div>
       </div>
@@ -67,21 +69,21 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
       <div class="toolbar">
         <div class="search-field">
           <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
-          <label class="sr-only" for="project-search">Поиск проектов</label>
+          <label class="sr-only" for="project-search">{{ 'projects.poisk_proektov' | t }}</label>
           <input
             id="project-search"
             name="projectSearch"
             type="text"
             class="search-input"
-            placeholder="Поиск по названию или описанию..."
+            [placeholder]="'projects.poisk_po_nazvaniyu_ili_opisaniyu' | t"
             [(ngModel)]="searchQuery"
           />
-          <button *ngIf="searchQuery" type="button" class="btn-icon" style="position: absolute; right: 6px;" aria-label="Очистить поиск проектов" (click)="searchQuery = ''">
+          <button *ngIf="searchQuery" type="button" class="btn-icon" style="position: absolute; right: 6px;" [attr.aria-label]="'projects.ochistit_poisk_proektov' | t" (click)="searchQuery = ''">
             <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">close</span>
           </button>
         </div>
 
-        <div class="status-tabs" role="group" aria-label="Фильтр проектов по статусу">
+        <div class="status-tabs" role="group" [attr.aria-label]="'projects.filtr_proektov_po_statusu' | t">
           <button
             type="button"
             class="status-tab"
@@ -89,7 +91,7 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
             [attr.aria-pressed]="selectedState === 'all'"
             (click)="selectedState = 'all'"
           >
-            Все
+            {{ 'common.all' | t }}
           </button>
           <button
             type="button"
@@ -99,7 +101,7 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
             (click)="selectedState = 'A'"
           >
             <span class="status-tab-dot" style="background-color: var(--success);" aria-hidden="true"></span>
-            Активные
+            {{ 'iam.aktivnye' | t }}
           </button>
           <button
             type="button"
@@ -109,7 +111,7 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
             (click)="selectedState = 'P'"
           >
             <span class="status-tab-dot" style="background-color: var(--text-light);" aria-hidden="true"></span>
-            Архив
+            {{ 'projects.arhiv' | t }}
           </button>
         </div>
       </div>
@@ -118,16 +120,16 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
       <!-- VIEW 1: TABLE / LIST VIEW (Default)                                     -->
       <!-- ======================================================================= -->
       <div class="table-card" *ngIf="viewMode === 'list'">
-        <div class="table-wrapper" role="region" aria-label="Таблица проектов" tabindex="0">
-          <table class="data-table" aria-label="Список проектов">
+        <div class="table-wrapper" role="region" [attr.aria-label]="'projects.tablica_proektov' | t" tabindex="0">
+          <table class="data-table" [attr.aria-label]="'projects.spisok_proektov' | t">
             <thead>
               <tr>
                 <th style="width: 60px;">ID</th>
-                <th>Проект</th>
-                <th style="width: 110px;">Статус</th>
-                <th style="width: 220px;">Прогресс задач</th>
-                <th style="width: 120px;">Создан</th>
-                <th class="text-right" style="width: 140px;">Действия</th>
+                <th>{{ 'projects.proekt' | t }}</th>
+                <th style="width: 110px;">{{ 'common.status' | t }}</th>
+                <th style="width: 220px;">{{ 'projects.progress_zadach' | t }}</th>
+                <th style="width: 120px;">{{ 'iam.sozdan' | t }}</th>
+                <th class="text-right" style="width: 140px;">{{ 'common.actions' | t }}</th>
               </tr>
             </thead>
             <tbody>
@@ -147,14 +149,14 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
                 <td>
                   <span class="status-pill" [class.active]="p.state === 'A'">
                     <span class="status-dot" [class.active]="p.state === 'A'"></span>
-                    {{ p.state === 'A' ? 'Активен' : 'Архив' }}
+                    {{ (p.state === 'A' ? 'common.active_masculine' : 'common.archive') | t }}
                   </span>
                 </td>
                 <td>
                   <div class="progress-cell">
                     <div class="progress-labels">
                       <span class="progress-count tabular-nums">
-                        {{ getProjectDoneCount(p.id) }} / {{ getProjectTotalCount(p.id) }} готово
+                        {{ 'projects.done_ratio' | t:{done: getProjectDoneCount(p.id), total: getProjectTotalCount(p.id)} }}
                       </span>
                       <span class="progress-percent tabular-nums">
                         {{ getProjectPercent(p.id) }}%
@@ -163,7 +165,7 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
                     <div
                       class="progress-bar-bg"
                       role="progressbar"
-                      [attr.aria-label]="'Прогресс проекта ' + p.name"
+                      [attr.aria-label]="'projects.progress_named' | t:{name: p.name}"
                       aria-valuemin="0"
                       aria-valuemax="100"
                       [attr.aria-valuenow]="getProjectPercent(p.id)"
@@ -186,19 +188,19 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
                     <button
                       type="button"
                       class="action-link-btn"
-                      [attr.aria-label]="'Открыть задачи проекта ' + p.name"
-                      title="Перейти к задачам проекта"
+                      [attr.aria-label]="'projects.open_tasks_named' | t:{name: p.name}"
+                      [title]="'projects.pereyti_k_zadacham_proekta' | t"
                       (click)="viewProjectTasks(p)"
                     >
                       <span class="material-symbols-outlined" aria-hidden="true">task_alt</span>
-                      Задачи
+                      {{ 'nav.tasks' | t }}
                     </button>
                     <button
                       *ngIf="canUpdateProject()"
                       type="button"
                       class="icon-ghost-btn"
-                      [attr.aria-label]="'Редактировать проект ' + p.name"
-                      title="Редактировать проект"
+                      [attr.aria-label]="'projects.edit_named' | t:{name: p.name}"
+                      [title]="'projects.redaktirovat_proekt' | t"
                       (click)="openEditModal(p)"
                     >
                       <span class="material-symbols-outlined" aria-hidden="true">edit</span>
@@ -210,7 +212,7 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
               <tr *ngIf="filteredProjects().length === 0 && !isLoading()">
                 <td colspan="6" class="empty-state-cell">
                   <span class="material-symbols-outlined empty-icon" aria-hidden="true">folder_off</span>
-                  <p>Проекты не найдены</p>
+                  <p>{{ 'projects.proekty_ne_naydeny' | t }}</p>
                 </td>
               </tr>
             </tbody>
@@ -242,14 +244,14 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
               <div class="card-top-right">
                 <span class="status-pill" [class.active]="p.state === 'A'">
                   <span class="status-dot" [class.active]="p.state === 'A'"></span>
-                  {{ p.state === 'A' ? 'Активен' : 'Архив' }}
+                  {{ (p.state === 'A' ? 'common.active_masculine' : 'common.archive') | t }}
                 </span>
                 <button
                   *ngIf="canUpdateProject()"
                   type="button"
                   class="edit-btn"
-                  [attr.aria-label]="'Редактировать проект ' + p.name"
-                  title="Редактировать проект"
+                  [attr.aria-label]="'projects.edit_named' | t:{name: p.name}"
+                  [title]="'projects.redaktirovat_proekt' | t"
                   (click)="openEditModal(p)"
                 >
                   <span class="material-symbols-outlined" aria-hidden="true">edit</span>
@@ -263,13 +265,13 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
                   {{ p.name }}
                 </button>
               </h3>
-              <p class="project-desc">{{ p.description || 'Описание проекта отсутствует' }}</p>
+              <p class="project-desc">{{ p.description || ('projects.description_missing' | t) }}</p>
             </div>
 
             <div class="card-progress">
               <div class="progress-labels">
                 <span class="progress-count tabular-nums">
-                  {{ getProjectDoneCount(p.id) }} / {{ getProjectTotalCount(p.id) }} выполнено
+                  {{ 'projects.completed_ratio' | t:{done: getProjectDoneCount(p.id), total: getProjectTotalCount(p.id)} }}
                 </span>
                 <span class="progress-percent tabular-nums">
                   {{ getProjectPercent(p.id) }}%
@@ -278,7 +280,7 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
               <div
                 class="progress-bar-bg"
                 role="progressbar"
-                [attr.aria-label]="'Прогресс проекта ' + p.name"
+                [attr.aria-label]="'projects.progress_named' | t:{name: p.name}"
                 aria-valuemin="0"
                 aria-valuemax="100"
                 [attr.aria-valuenow]="getProjectPercent(p.id)"
@@ -292,16 +294,16 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
             </div>
 
             <div class="card-foot">
-              <span class="foot-date tabular-nums">Создан: {{ p.createdAt | date:'dd.MM.yyyy' }}</span>
+              <span class="foot-date tabular-nums">{{ 'projects.created_at' | t:{date: (p.createdAt | date:'dd.MM.yyyy') || ''} }}</span>
               <button type="button" class="view-tasks-link" (click)="viewProjectTasks(p)">
-                Задачи ({{ getProjectTotalCount(p.id) }}) →
+                {{ 'projects.tasks_count_arrow' | t:{count: getProjectTotalCount(p.id)} }}
               </button>
             </div>
           </div>
 
           <div *ngIf="filteredProjects().length === 0 && !isLoading()" class="empty-projects-cell">
             <span class="material-symbols-outlined empty-icon" aria-hidden="true">folder_off</span>
-            <p>Проекты не найдены</p>
+            <p>{{ 'projects.proekty_ne_naydeny' | t }}</p>
           </div>
         </div>
 
@@ -321,15 +323,15 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
     <!-- ======================================================================= -->
     <ui-modal
       [isOpen]="isCreateModalOpen()"
-      title="Создание нового проекта"
+      [title]="'projects.sozdanie_novogo_proekta' | t"
       size="sm"
       (close)="isCreateModalOpen.set(false)"
     >
       <div body class="modal-form">
         <div class="form-group">
           <div class="label-row">
-            <label class="clean-label" for="project-create-name">Название проекта</label>
-            <span class="req-tag">Обязательное поле</span>
+            <label class="clean-label" for="project-create-name">{{ 'projects.nazvanie_proekta' | t }}</label>
+            <span class="req-tag">{{ 'projects.obyazatelnoe_pole' | t }}</span>
           </div>
           <input
             id="project-create-name"
@@ -341,15 +343,15 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
             [attr.aria-describedby]="isCreateSubmitted && !createForm.name.trim() ? 'project-create-name-error' : null"
             [class.input-error]="isCreateSubmitted && !createForm.name.trim()"
             [(ngModel)]="createForm.name"
-            placeholder="Например: Внедрение DWH & CDC"
+            [placeholder]="'projects.naprimer_vnedrenie_dwh_cdc' | t"
           />
           <span id="project-create-name-error" class="error-msg" *ngIf="isCreateSubmitted && !createForm.name.trim()">
-            Пожалуйста, укажите название проекта
+            {{ 'projects.pozhaluysta_ukazhite_nazvanie_proekta' | t }}
           </span>
         </div>
         <div class="form-group">
           <div class="label-row">
-            <label class="clean-label" for="project-create-description">Описание проекта</label>
+            <label class="clean-label" for="project-create-description">{{ 'projects.opisanie_proekta' | t }}</label>
           </div>
           <textarea
             id="project-create-description"
@@ -357,13 +359,13 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
             class="clean-input clean-textarea"
             rows="3"
             [(ngModel)]="createForm.description"
-            placeholder="Цели, границы и контекст проекта..."
+            [placeholder]="'projects.celi_granicy_i_kontekst_proekta' | t"
           ></textarea>
         </div>
       </div>
       <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="isCreateModalOpen.set(false)">Отмена</ui-button>
-        <ui-button variant="primary" size="md" [loading]="isSubmitting()" (onClick)="submitCreateProject()">Создать проект</ui-button>
+        <ui-button variant="secondary" size="md" (onClick)="isCreateModalOpen.set(false)">{{ 'common.cancel' | t }}</ui-button>
+        <ui-button variant="primary" size="md" [loading]="isSubmitting()" (onClick)="submitCreateProject()">{{ 'projects.sozdat_proekt' | t }}</ui-button>
       </div>
     </ui-modal>
 
@@ -372,15 +374,15 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
     <!-- ======================================================================= -->
     <ui-modal
       [isOpen]="isEditModalOpen()"
-      title="Редактирование проекта"
+      [title]="'projects.redaktirovanie_proekta' | t"
       size="sm"
       (close)="isEditModalOpen.set(false)"
     >
       <div body class="modal-form" *ngIf="editingProject as p">
         <div class="form-group">
           <div class="label-row">
-            <label class="clean-label" for="project-edit-name">Название проекта</label>
-            <span class="req-tag">Обязательное поле</span>
+            <label class="clean-label" for="project-edit-name">{{ 'projects.nazvanie_proekta' | t }}</label>
+            <span class="req-tag">{{ 'projects.obyazatelnoe_pole' | t }}</span>
           </div>
           <input
             id="project-edit-name"
@@ -394,28 +396,28 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
             [(ngModel)]="editForm.name"
           />
           <span id="project-edit-name-error" class="error-msg" *ngIf="isEditSubmitted && !editForm.name.trim()">
-            Название проекта не может быть пустым
+            {{ 'projects.nazvanie_proekta_ne_mozhet_byt_pustym' | t }}
           </span>
         </div>
         <div class="form-group">
           <div class="label-row">
-            <label class="clean-label" for="project-edit-state">Статус активности</label>
+            <label class="clean-label" for="project-edit-state">{{ 'iam.status_aktivnosti' | t }}</label>
           </div>
           <select id="project-edit-state" name="projectEditState" class="clean-input" [(ngModel)]="editForm.state">
-            <option value="A">Активен (A)</option>
-            <option value="P">В архиве (P)</option>
+            <option value="A">{{ 'projects.aktiven_a' | t }}</option>
+            <option value="P">{{ 'projects.v_arhive_p' | t }}</option>
           </select>
         </div>
         <div class="form-group">
           <div class="label-row">
-            <label class="clean-label" for="project-edit-description">Описание</label>
+            <label class="clean-label" for="project-edit-description">{{ 'projects.opisanie' | t }}</label>
           </div>
           <textarea id="project-edit-description" name="projectEditDescription" class="clean-input clean-textarea" rows="3" [(ngModel)]="editForm.description"></textarea>
         </div>
       </div>
       <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="isEditModalOpen.set(false)">Отмена</ui-button>
-        <ui-button variant="primary" size="md" [loading]="isSubmitting()" (onClick)="submitEditProject()">Сохранить</ui-button>
+        <ui-button variant="secondary" size="md" (onClick)="isEditModalOpen.set(false)">{{ 'common.cancel' | t }}</ui-button>
+        <ui-button variant="primary" size="md" [loading]="isSubmitting()" (onClick)="submitEditProject()">{{ 'common.save' | t }}</ui-button>
       </div>
     </ui-modal>
   `,
@@ -815,6 +817,7 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
   `]
 })
 export class ProjectsComponent implements OnInit {
+  private readonly uiI18n = inject(I18nService);
   readonly projects = signal<Project[]>([]);
   readonly projectStats = signal<Record<number, ProjectTaskStats>>({});
   readonly isLoading = signal<boolean>(false);
@@ -932,7 +935,7 @@ export class ProjectsComponent implements OnInit {
   submitCreateProject() {
     this.isCreateSubmitted = true;
     if (!this.createForm.name.trim()) {
-      this.toast.warning('Введите название проекта');
+      this.toast.warning(this.uiI18n.translate('projects.vvedite_nazvanie_proekta'));
       return;
     }
 
@@ -944,7 +947,7 @@ export class ProjectsComponent implements OnInit {
       next: created => {
         this.isSubmitting.set(false);
         this.isCreateModalOpen.set(false);
-        this.toast.success('Проект успешно создан');
+        this.toast.success(this.uiI18n.translate('projects.proekt_uspeshno_sozdan'));
         // Creation must leave the user looking at the new record, even when the
         // current filters or pagination would otherwise hide it.
         this.searchQuery = '';
@@ -954,7 +957,7 @@ export class ProjectsComponent implements OnInit {
       },
       error: err => {
         this.isSubmitting.set(false);
-        this.toast.error(err.error?.message || 'Ошибка при сохранении проекта');
+        this.toast.error(err.error?.message || this.uiI18n.translate('projects.oshibka_pri_sohranenii_proekta'));
       }
     });
   }
@@ -974,7 +977,7 @@ export class ProjectsComponent implements OnInit {
     if (!this.editingProject) return;
     this.isEditSubmitted = true;
     if (!this.editForm.name.trim()) {
-      this.toast.warning('Название проекта обязательно');
+      this.toast.warning(this.uiI18n.translate('projects.nazvanie_proekta_obyazatelno'));
       return;
     }
 
@@ -987,13 +990,13 @@ export class ProjectsComponent implements OnInit {
       next: () => {
         this.isSubmitting.set(false);
         this.isEditModalOpen.set(false);
-        this.toast.success('Проект обновлен');
+        this.toast.success(this.uiI18n.translate('projects.proekt_obnovlen'));
         this.loadProjects();
         this.loadStats();
       },
       error: err => {
         this.isSubmitting.set(false);
-        this.toast.error(err.error?.message || 'Ошибка при обновлении проекта');
+        this.toast.error(err.error?.message || this.uiI18n.translate('projects.oshibka_pri_obnovlenii_proekta'));
       }
     });
   }

@@ -50,9 +50,17 @@ Historical, fully superseded decisions are retained for traceability only:
 - [Database migration guidelines](guidelines/database-migrations.md)
 - [Module development guide](guidelines/module-development-guide.md)
 - [Testing strategy](guidelines/testing-strategy.md)
+- [Centralized localization design](superpowers/specs/2026-09-04-centralized-localization-design.md)
 
 Engineering guidance explains how to implement the current requirements and
 decisions. It does not redefine either of them.
+
+For UI copy, add a stable domain key to
+`apps/server/src/main/resources/i18n/ru.json`, reference it through `t` or
+`I18nService.translate`, run `npm run i18n:sync-ru`, then run
+`npm run i18n:audit`. Non-Russian catalogs may be incomplete; missing values
+must resolve per key through the effective Russian dictionary and are exposed
+as coverage in Settings.
 
 ## Authority tier 4 — operations and security
 

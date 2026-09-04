@@ -2,17 +2,19 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CustomField } from '../../core/models/custom-field.models';
+import { TranslatePipe } from '../../core/services/i18n.service';
 
 @Component({
   selector: 'ui-custom-fields',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [
+    TranslatePipe,CommonModule, FormsModule],
   template: `
     <div class="custom-fields-grid" *ngIf="fields && fields.length > 0">
       <div class="field-item" *ngFor="let f of fields">
         <div class="field-header">
           <label class="field-label" [for]="controlId(f)">{{ f.name }}</label>
-          <span *ngIf="f.isRequired" class="req-tag">Обязательно</span>
+          <span *ngIf="f.isRequired" class="req-tag">{{ 'ui.custom_fields.obyazatelno' | t }}</span>
         </div>
 
         <!-- String Input -->
@@ -24,7 +26,7 @@ import { CustomField } from '../../core/models/custom-field.models';
           class="form-control"
           [ngModel]="values[f.code]"
           (ngModelChange)="onValueChange(f.code, $event)"
-          [placeholder]="f.defaultValue || 'Текстовое значение...'"
+          [placeholder]="f.defaultValue || ('ui.custom_fields.text_value_placeholder' | t)"
           [required]="f.isRequired"
           [attr.aria-required]="f.isRequired"
         />
@@ -67,7 +69,7 @@ import { CustomField } from '../../core/models/custom-field.models';
           [required]="f.isRequired"
           [attr.aria-required]="f.isRequired"
         >
-          <option [ngValue]="null">Выберите значение</option>
+          <option [ngValue]="null">{{ 'ui.custom_fields.vyberite_znachenie' | t }}</option>
           <option *ngFor="let option of getSelectOptions(f)" [ngValue]="option.value">{{ option.label }}</option>
         </select>
 
@@ -82,7 +84,7 @@ import { CustomField } from '../../core/models/custom-field.models';
             [required]="f.isRequired"
             [attr.aria-required]="f.isRequired"
           />
-          <span>Включено</span>
+          <span>{{ 'ui.custom_fields.vklyucheno' | t }}</span>
         </label>
       </div>
     </div>

@@ -1,11 +1,13 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ToastService, ToastMessage } from '../../core/services/toast.service';
+import { TranslatePipe } from '../../core/services/i18n.service';
 
 @Component({
   selector: 'ui-toast-container',
   standalone: true,
-  imports: [CommonModule],
+  imports: [
+    TranslatePipe,CommonModule],
   template: `
     <div class="toast-container" *ngIf="toastService.toasts().length > 0">
       <div
@@ -21,7 +23,7 @@ import { ToastService, ToastMessage } from '../../core/services/toast.service';
           <div *ngIf="toast.title" class="toast-title">{{ toast.title }}</div>
           <div class="toast-message">{{ toast.message }}</div>
         </div>
-        <button type="button" class="toast-close" aria-label="Закрыть уведомление" (click)="toastService.dismiss(toast.id)">
+        <button type="button" class="toast-close" [attr.aria-label]="'ui.toast.zakryt_uvedomlenie' | t" (click)="toastService.dismiss(toast.id)">
           <span class="material-symbols-outlined" aria-hidden="true">close</span>
         </button>
       </div>
