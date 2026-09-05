@@ -7,6 +7,7 @@ import com.greenwhite.dwh.instance.common.error.ApiException;
 import com.greenwhite.dwh.instance.md.service.MdCustomFieldService;
 import com.greenwhite.dwh.instance.md.service.MdScopeService;
 import com.greenwhite.dwh.instance.mf.service.MfFileService;
+import com.greenwhite.dwh.instance.ms.task.MsTaskPatch;
 import com.greenwhite.dwh.instance.ms.task.event.MsTaskEvents;
 import com.greenwhite.dwh.instance.ms.task.pref.MsTaskPref;
 import com.greenwhite.dwh.instance.ms.task.repository.MsProjectRepository;
@@ -20,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -246,6 +248,63 @@ public class MsTaskService {
         return KeysetPage.of(resultItems, nextCursor, hasMore, resultItems.size());
     }
 
+
+    @Transactional
+    public void updateTask(Long taskId, MsTaskPatch requested, Long currentUserId) {
+        var existing = getTaskById(taskId, currentUserId);
+
+        if (requested.projectIdPresent() && requested.projectId() != null) {
+            projectRepository.findById(requested.projectId())
+                    .orElseThrow(() -> ApiException.notFound(
+                            ErrorCode.PROJECT_NOT_FOUND, "Проект не найден"));
+        }
+
+        if (requested.parentTaskIdPresent() && requested.parentTaskId() != null) {
+            getTaskById(requested.parentTaskId(), currentUserId);
+            if (requested.parentTaskId().equals(taskId)
+                    || taskRepository.isDescendantOf(requested.parentTaskId(), taskId)) {
+                throw ApiException.conflict(ErrorCode.TASK_PARENT_CYCLE,
+                        "Нельзя установить дочернюю задачу в качестве родительской (цикл)");
+            }
+        }
+
+        if (requested.attributesPresent() && requested.attributes() != null) {
+            customFieldService.validateAttributes("TASK", requested.attributes());
+        }
+        if (requested.responsibleUserIdPresent()) {
+            validateParticipant(currentUserId, requested.responsibleUserId());
+        }
+        if (requested.executorUserIdsPresent() && requested.executorUserIds() != null) {
+            validateParticipants(currentUserId, requested.executorUserIds());
+        }
+        if (requested.observerUserIdsPresent() && requested.observerUserIds() != null) {
+            validateParticipants(currentUserId, requested.observerUserIds());
+        }
+
+        MsTaskPatch rowPatch = rowPatch(requested);
+        validateDeadline(existing, rowPatch);
+        List<MsTaskMemberRepository.TaskMemberRecord> oldMembers = memberRepository.getTaskMembers(taskId);
+
+        taskRepository.patch(taskId, rowPatch, currentUserId);
+        if (requested.responsibleUserIdPresent()) {
+            replaceResponsible(taskId, requested.responsibleUserId());
+        }
+        if (requested.executorUserIdsPresent() && requested.executorUserIds() != null) {
+            replaceMembers(taskId, MsTaskPref.INVOLVE_EXECUTOR, requested.executorUserIds());
+        }
+        if (requested.observerUserIdsPresent() && requested.observerUserIds() != null) {
+            replaceMembers(taskId, MsTaskPref.INVOLVE_OBSERVER, requested.observerUserIds());
+        }
+
+        if (requested.responsibleUserIdPresent() && requested.responsibleUserId() != null) {
+            String taskTitle = rowPatch.titlePresent() ? rowPatch.title() : existing.title();
+            eventPublisher.publishEvent(new MsTaskEvents.TaskAssigned(
+                    taskId, taskTitle, List.of(requested.responsibleUserId()), currentUserId));
+        }
+
+        typesenseIndexer.indexTask(taskId);
+        logTaskPatch(taskId, existing, oldMembers, requested, rowPatch);
+    }
 
     @Transactional
     public void updateTask(Long taskId, Long projectId, String title, String descriptionMarkdown, String priority,
@@ -552,6 +611,151 @@ public class MsTaskService {
             case "medium", "normal" -> "medium";
             default -> "medium";
         };
+    }
+
+    private MsTaskPatch rowPatch(MsTaskPatch requested) {
+        if (requested.titlePresent() && requested.title() != null && requested.title().isBlank()) {
+            throw ApiException.badRequest(ErrorCode.VALIDATION_FAILED,
+                    "Заголовок задачи не может быть пустым");
+        }
+
+        boolean titlePresent = requested.titlePresent() && requested.title() != null;
+        boolean descriptionPresent = requested.descriptionMarkdownPresent()
+                && requested.descriptionMarkdown() != null;
+        boolean priorityPresent = requested.priorityPresent() && requested.priority() != null;
+        boolean attributesPresent = requested.attributesPresent() && requested.attributes() != null;
+        return new MsTaskPatch(
+                requested.projectIdPresent(), requested.projectId(),
+                titlePresent, requested.title(),
+                descriptionPresent, requested.descriptionMarkdown(),
+                requested.parentTaskIdPresent(), requested.parentTaskId(),
+                priorityPresent,
+                priorityPresent ? normalizePriority(requested.priority()) : requested.priority(),
+                requested.responsibleUserIdPresent(), requested.responsibleUserId(),
+                requested.executorUserIdsPresent(), requested.executorUserIds(),
+                requested.observerUserIdsPresent(), requested.observerUserIds(),
+                attributesPresent, requested.attributes(),
+                requested.beginTimePresent(), requested.beginTime(),
+                requested.endTimePresent(), requested.endTime());
+    }
+
+    private void validateDeadline(MsTaskRepository.TaskRecord existing, MsTaskPatch patch) {
+        Instant begin = patch.beginTimePresent() ? patch.beginTime() : existing.beginTime();
+        Instant end = patch.endTimePresent() ? patch.endTime() : existing.endTime();
+        if (begin != null && end != null && begin.isAfter(end)) {
+            throw ApiException.badRequest(ErrorCode.VALIDATION_FAILED,
+                    "Дата начала задачи не может быть позже срока окончания");
+        }
+    }
+
+    private void replaceResponsible(Long taskId, Long responsibleUserId) {
+        memberRepository.removeMembersByKind(taskId, MsTaskPref.INVOLVE_RESPONSIBLE);
+        if (responsibleUserId != null) {
+            memberRepository.addOrUpdateMember(
+                    taskId, responsibleUserId, MsTaskPref.INVOLVE_RESPONSIBLE, false);
+        }
+    }
+
+    private void replaceMembers(Long taskId, String involveKind, List<Long> userIds) {
+        memberRepository.removeMembersByKind(taskId, involveKind);
+        userIds.stream().filter(java.util.Objects::nonNull).distinct().forEach(userId ->
+                memberRepository.addOrUpdateMember(taskId, userId, involveKind, false));
+    }
+
+    private void logTaskPatch(
+            Long taskId,
+            MsTaskRepository.TaskRecord existing,
+            List<MsTaskMemberRepository.TaskMemberRecord> oldMembers,
+            MsTaskPatch requested,
+            MsTaskPatch rowPatch) {
+        List<String> changedColumns = new ArrayList<>();
+        Map<String, Object> oldRow = new LinkedHashMap<>();
+        Map<String, Object> newRow = new LinkedHashMap<>();
+
+        if (rowPatch.titlePresent()) {
+            addAuditChange(changedColumns, oldRow, newRow,
+                    "title", existing.title(), rowPatch.title());
+        }
+        if (rowPatch.descriptionMarkdownPresent()) {
+            addAuditChange(changedColumns, oldRow, newRow,
+                    "description_markdown", existing.descriptionMarkdown(), rowPatch.descriptionMarkdown());
+        }
+        if (rowPatch.priorityPresent()) {
+            addAuditChange(changedColumns, oldRow, newRow,
+                    "priority", existing.priority(), rowPatch.priority());
+        }
+        if (rowPatch.projectIdPresent()) {
+            addAuditChange(changedColumns, oldRow, newRow,
+                    "project_id", existing.projectId(), rowPatch.projectId());
+        }
+        if (rowPatch.parentTaskIdPresent()) {
+            addAuditChange(changedColumns, oldRow, newRow,
+                    "parent_task_id", existing.parentTaskId(), rowPatch.parentTaskId());
+        }
+        if (rowPatch.attributesPresent()) {
+            addAuditChange(changedColumns, oldRow, newRow,
+                    "attributes", existing.attributes(), rowPatch.attributes());
+        }
+        if (rowPatch.beginTimePresent()) {
+            addAuditChange(changedColumns, oldRow, newRow,
+                    "begin_time", auditTime(existing.beginTime()), auditTime(rowPatch.beginTime()));
+        }
+        if (rowPatch.endTimePresent()) {
+            addAuditChange(changedColumns, oldRow, newRow,
+                    "end_time", auditTime(existing.endTime()), auditTime(rowPatch.endTime()));
+        }
+        if (requested.responsibleUserIdPresent()) {
+            addAuditChange(changedColumns, oldRow, newRow,
+                    "responsible_user_id",
+                    memberIds(oldMembers, MsTaskPref.INVOLVE_RESPONSIBLE).stream().findFirst().orElse(null),
+                    requested.responsibleUserId());
+        }
+        if (requested.executorUserIdsPresent() && requested.executorUserIds() != null) {
+            addAuditChange(changedColumns, oldRow, newRow,
+                    "executor_user_ids",
+                    memberIds(oldMembers, MsTaskPref.INVOLVE_EXECUTOR),
+                    normalizedIds(requested.executorUserIds()));
+        }
+        if (requested.observerUserIdsPresent() && requested.observerUserIds() != null) {
+            addAuditChange(changedColumns, oldRow, newRow,
+                    "observer_user_ids",
+                    memberIds(oldMembers, MsTaskPref.INVOLVE_OBSERVER),
+                    normalizedIds(requested.observerUserIds()));
+        }
+
+        if (!changedColumns.isEmpty()) {
+            auditLogService.logChange("ms_tasks", String.valueOf(taskId), "U",
+                    changedColumns, oldRow, newRow);
+        }
+    }
+
+    private static void addAuditChange(
+            List<String> columns,
+            Map<String, Object> oldRow,
+            Map<String, Object> newRow,
+            String column,
+            Object oldValue,
+            Object newValue) {
+        columns.add(column);
+        oldRow.put(column, oldValue);
+        newRow.put(column, newValue);
+    }
+
+    private static List<Long> memberIds(
+            List<MsTaskMemberRepository.TaskMemberRecord> members, String involveKind) {
+        return members.stream()
+                .filter(member -> involveKind.equals(member.involveKind()))
+                .map(MsTaskMemberRepository.TaskMemberRecord::userId)
+                .distinct()
+                .toList();
+    }
+
+    private static List<Long> normalizedIds(List<Long> userIds) {
+        return userIds.stream().filter(java.util.Objects::nonNull).distinct().toList();
+    }
+
+    private static String auditTime(Instant time) {
+        return time != null ? time.toString() : null;
     }
 
     private void validateParticipants(Long actorId, List<Long> userIds) {

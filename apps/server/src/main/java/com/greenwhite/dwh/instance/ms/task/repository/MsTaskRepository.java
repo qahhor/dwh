@@ -1,6 +1,7 @@
 package com.greenwhite.dwh.instance.ms.task.repository;
 
 import com.greenwhite.dwh.instance.common.security.ScopeFilter;
+import com.greenwhite.dwh.instance.ms.task.MsTaskPatch;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -133,7 +134,7 @@ public class MsTaskRepository {
                     begin_time = coalesce(:beginTime, begin_time),
                     end_time = coalesce(:endTime, end_time),
                     resolved_time = coalesce(:resolvedTime, resolved_time),
-                    attributes = case when :attributes is not null then cast(:attributes as jsonb) else attributes end,
+                    attributes = case when cast(:attributes as text) is not null then cast(:attributes as jsonb) else attributes end,
                     modified_at = now(),
                     modified_by = :modifiedBy
                 where id = :id
@@ -148,6 +149,44 @@ public class MsTaskRepository {
                 .param("beginTime", data.beginTime() != null ? java.sql.Timestamp.from(data.beginTime()) : null)
                 .param("endTime", data.endTime() != null ? java.sql.Timestamp.from(data.endTime()) : null)
                 .param("resolvedTime", data.resolvedTime() != null ? java.sql.Timestamp.from(data.resolvedTime()) : null)
+                .param("attributes", attrsJson)
+                .param("modifiedBy", modifiedBy)
+                .update();
+    }
+
+    public void patch(Long id, MsTaskPatch patch, Long modifiedBy) {
+        String attrsJson = patch.attributes() != null ? toJson(patch.attributes()) : null;
+
+        jdbcClient.sql("""
+                update ms_tasks
+                set title = case when :titlePresent then :title else title end,
+                    description_markdown = case when :descriptionPresent then :descriptionMarkdown else description_markdown end,
+                    priority = case when :priorityPresent then :priority else priority end,
+                    project_id = case when :projectPresent then :projectId else project_id end,
+                    parent_task_id = case when :parentPresent then :parentTaskId else parent_task_id end,
+                    begin_time = case when :beginPresent then :beginTime else begin_time end,
+                    end_time = case when :endPresent then :endTime else end_time end,
+                    attributes = case when :attributesPresent then cast(:attributes as jsonb) else attributes end,
+                    modified_at = now(),
+                    modified_by = :modifiedBy
+                where id = :id
+                """)
+                .param("id", id)
+                .param("titlePresent", patch.titlePresent())
+                .param("title", patch.title())
+                .param("descriptionPresent", patch.descriptionMarkdownPresent())
+                .param("descriptionMarkdown", patch.descriptionMarkdown())
+                .param("priorityPresent", patch.priorityPresent())
+                .param("priority", patch.priority())
+                .param("projectPresent", patch.projectIdPresent())
+                .param("projectId", patch.projectId())
+                .param("parentPresent", patch.parentTaskIdPresent())
+                .param("parentTaskId", patch.parentTaskId())
+                .param("beginPresent", patch.beginTimePresent())
+                .param("beginTime", patch.beginTime() != null ? java.sql.Timestamp.from(patch.beginTime()) : null)
+                .param("endPresent", patch.endTimePresent())
+                .param("endTime", patch.endTime() != null ? java.sql.Timestamp.from(patch.endTime()) : null)
+                .param("attributesPresent", patch.attributesPresent())
                 .param("attributes", attrsJson)
                 .param("modifiedBy", modifiedBy)
                 .update();

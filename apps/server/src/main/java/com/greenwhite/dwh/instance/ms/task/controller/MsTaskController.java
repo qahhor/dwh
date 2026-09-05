@@ -1,6 +1,7 @@
 package com.greenwhite.dwh.instance.ms.task.controller;
 
 import com.greenwhite.dwh.core.pagination.KeysetPage;
+import com.greenwhite.dwh.instance.ms.task.MsTaskPatch;
 import com.greenwhite.dwh.instance.common.security.SecurityContext;
 import com.greenwhite.dwh.instance.common.annotation.RequiresPermission;
 import com.greenwhite.dwh.instance.ms.task.pref.MsTaskPref;
@@ -209,30 +210,7 @@ public class MsTaskController {
     public ResponseEntity<Void> updateTask(@PathVariable("id") Long id, @RequestBody UpdateTaskDto body) {
         Long currentUserId = SecurityContext.getCurrentUserId();
 
-        taskService.updateTask(
-                id,
-                body.projectId(),
-                body.title(),
-                body.descriptionMarkdown(),
-                body.priority(),
-                body.parentTaskId(),
-                body.attributes(),
-                body.beginTime(),
-                body.endTime(),
-                currentUserId
-        );
-
-        if (body.responsibleUserId() != null) {
-            taskService.setResponsible(id, body.responsibleUserId(), currentUserId);
-        }
-
-        if (body.executorUserIds() != null) {
-            taskService.setExecutors(id, body.executorUserIds(), currentUserId);
-        }
-
-        if (body.observerUserIds() != null) {
-            taskService.setObservers(id, body.observerUserIds(), currentUserId);
-        }
+        taskService.updateTask(id, body.toPatch(), currentUserId);
 
         return ResponseEntity.noContent().build();
     }
@@ -259,19 +237,102 @@ public class MsTaskController {
             Instant endTime
     ) {}
 
-    public record UpdateTaskDto(
-            Long projectId,
-            String title,
-            String descriptionMarkdown,
-            Long parentTaskId,
-            String priority,
-            Long responsibleUserId,
-            List<Long> executorUserIds,
-            List<Long> observerUserIds,
-            Map<String, Object> attributes,
-            Instant beginTime,
-            Instant endTime
-    ) {}
+    public static final class UpdateTaskDto {
+        private boolean projectIdPresent;
+        private Long projectId;
+        private boolean titlePresent;
+        private String title;
+        private boolean descriptionMarkdownPresent;
+        private String descriptionMarkdown;
+        private boolean parentTaskIdPresent;
+        private Long parentTaskId;
+        private boolean priorityPresent;
+        private String priority;
+        private boolean responsibleUserIdPresent;
+        private Long responsibleUserId;
+        private boolean executorUserIdsPresent;
+        private List<Long> executorUserIds;
+        private boolean observerUserIdsPresent;
+        private List<Long> observerUserIds;
+        private boolean attributesPresent;
+        private Map<String, Object> attributes;
+        private boolean beginTimePresent;
+        private Instant beginTime;
+        private boolean endTimePresent;
+        private Instant endTime;
+
+        public UpdateTaskDto() {}
+
+        public void setProjectId(Long projectId) {
+            this.projectIdPresent = true;
+            this.projectId = projectId;
+        }
+
+        public void setTitle(String title) {
+            this.titlePresent = true;
+            this.title = title;
+        }
+
+        public void setDescriptionMarkdown(String descriptionMarkdown) {
+            this.descriptionMarkdownPresent = true;
+            this.descriptionMarkdown = descriptionMarkdown;
+        }
+
+        public void setParentTaskId(Long parentTaskId) {
+            this.parentTaskIdPresent = true;
+            this.parentTaskId = parentTaskId;
+        }
+
+        public void setPriority(String priority) {
+            this.priorityPresent = true;
+            this.priority = priority;
+        }
+
+        public void setResponsibleUserId(Long responsibleUserId) {
+            this.responsibleUserIdPresent = true;
+            this.responsibleUserId = responsibleUserId;
+        }
+
+        public void setExecutorUserIds(List<Long> executorUserIds) {
+            this.executorUserIdsPresent = true;
+            this.executorUserIds = executorUserIds;
+        }
+
+        public void setObserverUserIds(List<Long> observerUserIds) {
+            this.observerUserIdsPresent = true;
+            this.observerUserIds = observerUserIds;
+        }
+
+        public void setAttributes(Map<String, Object> attributes) {
+            this.attributesPresent = true;
+            this.attributes = attributes;
+        }
+
+        public void setBeginTime(Instant beginTime) {
+            this.beginTimePresent = true;
+            this.beginTime = beginTime;
+        }
+
+        public void setEndTime(Instant endTime) {
+            this.endTimePresent = true;
+            this.endTime = endTime;
+        }
+
+        MsTaskPatch toPatch() {
+            return new MsTaskPatch(
+                    projectIdPresent, projectId,
+                    titlePresent, title,
+                    descriptionMarkdownPresent, descriptionMarkdown,
+                    parentTaskIdPresent, parentTaskId,
+                    priorityPresent, priority,
+                    responsibleUserIdPresent, responsibleUserId,
+                    executorUserIdsPresent, executorUserIds,
+                    observerUserIdsPresent, observerUserIds,
+                    attributesPresent, attributes,
+                    beginTimePresent, beginTime,
+                    endTimePresent, endTime);
+        }
+    }
 
     public record ChangeStatusDto(
             Long statusId

@@ -34,7 +34,8 @@ class MsTaskCommentServiceTest {
         UUID fileId = UUID.fromString("6db360cf-26ba-4729-b8c9-f5adcf2df74c");
         MsTaskRepository.TaskRecord task = task(42L);
         MsTaskCommentRepository.CommentRecord comment = new MsTaskCommentRepository.CommentRecord(
-                7L, 42L, 10L, "Комментарий", List.of(fileId), Instant.parse("2026-09-04T10:15:30Z"));
+                7L, 42L, 10L, "Комментарий", List.of(fileId), Instant.parse("2026-09-04T10:15:30Z"),
+                "Автор", "author");
         when(taskService.getTaskById(42L, 10L)).thenReturn(task);
         when(commentRepository.create(42L, 10L, "Комментарий", List.of(fileId))).thenReturn(comment);
         when(taskService.getTaskMembers(42L)).thenReturn(List.of());
