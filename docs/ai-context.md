@@ -102,14 +102,66 @@ repositories/adapters — I/O. Детали приведены в
 
 ## 6. Последняя подтверждённая проверка
 
-Последний полностью зелёный опубликованный code-bearing baseline — immutable
+### Текущая локальная работа — 2026-09-05
+
+Начата последовательная реализация [release-hardening плана](superpowers/plans/2026-09-05-release-hardening.md).
+Разработка I-01 начиналась в `codex/release-hardening` от
+`710efeb55c03c2d444cfc8fd22dcefa01635e99c`. По прямому указанию пользователя
+работа перенесена в `main`; дальнейшую подготовку релиза вести в основной
+ветке. Перед публикацией remote был проверен: новых upstream-коммитов нет,
+из удалённых веток существует только `main`.
+
+Первый пакет I-01 реализован локально: `ReportController` передаёт actor в оба
+формата; `ReportService` требует actor до вывода байтов и использует один SQL
+query с `MdScopeService.filterForTasks`. CSV нейтрализует опасные начальные
+символы во всех четырёх редактируемых колонках; XML сохраняет типизированные
+строки. UI-контракт, область ALL, пустая выгрузка и права не изменены.
+
+Проверка TDD на реальном PostgreSQL: до исправления — 26 scope/null-actor
+assertion failures; отдельный CSV red — 22 failures; после исправления — 69
+новых export cases проходят. Полный нативный Maven `verify` (Java 25.0.2,
+Maven 3.9.16, Testcontainers с Docker Desktop) завершился успешно: сервер
+334 tests, 0 failures/errors/skipped. Public-docs, unified-boundary, hygiene
+и whitespace gates зелёные; независимый read-only security review не нашёл
+конкретных обходов или регрессий. Graphify обновлён AST-only; его dirty outputs
+не готовы для публикации из этой рабочей копии.
+
+Команды, ограничения и локальные log paths — в
+[плане I-01](superpowers/plans/2026-09-05-task-export-security.md).
+Перед публикацией на `main` повторно прошли: backend 334/334, frontend 107/107,
+typecheck/build, i18n audit 1009/1022, все семь configuration/docs gates,
+fail-closed deploy test, E2E config/typecheck/artifact-security и Chromium
+24/24 на отдельном чистом Compose-стеке. Тестовые volumes удалены; рабочая
+локальная установка этими тестами не затрагивалась.
+
+Два препятствия release gate устранены минимально: `.gitleaksignore` теперь
+содержит точный исторический путь одного Testcontainers fixture (207 commits,
+0 findings); E2E локализации ожидает успешный PATCH языка до навигации и
+завершения cleanup, чтобы не оставлять немецкий язык следующим сценариям.
+Код пользовательской локализации и таймауты не изменены. Кэшированный web
+image пересобран без кэша для обновления curl/libcurl до `8.22.0-r0`; candidate
+server/web images прошли Trivy HIGH/CRITICAL gate с `--ignore-unfixed`.
+
+Подтверждённый remote baseline до этой публикации — `710efeb`, CI
+[33919965919](https://github.com/qahhor/dwh/actions/runs/33919965919) — success.
+Результат push/CI/deploy текущего коммита проверять отдельно по Git и runtime,
+не выводить его из pre-publication evidence. Цель текущего deploy-запроса —
+существующая локальная установка `http://localhost:4200`; production-конфигурация
+`.env.production` отсутствует. Spreadsheet applications не запускались;
+полная релизная готовность не заявлена. Следующий пакет — I-04: перепроверить границу
+идемпотентности, составить детальный план, затем исключить кэширование секретов
+и проверить допустимые повторы/восстановление. Остальные пакеты не реализованы.
+
+### Историческое опубликованное evidence
+
+По сохранённому handoff полностью зелёный опубликованный code-bearing baseline — immutable
 commit `bd99b4f5f1a59532c7b8d5f320c3d214fd09e003`. Remote CI
 [run `33919377814`](https://github.com/qahhor/dwh/actions/runs/33919377814)
 завершён `success`: backend, frontend, release-config, security и clean-deploy
 browser E2E jobs зелёные.
 
-`main`/`origin/main` указывает на docs-only commit
-`03956fd3e42a76297e029c139981c4de2c0425b5`. Его remote CI
+Исторический docs-only commit
+`03956fd3e42a76297e029c139981c4de2c0425b5` имел remote CI
 [run `33916140833`](https://github.com/qahhor/dwh/actions/runs/33916140833)
 не является зелёным: backend, frontend, release-config и security прошли, но
 E2E завершился 23/24 из-за воспроизведённого `429` на audit-странице. Причина —

@@ -17,6 +17,19 @@ test('translation override repaints live, persists across sessions, and keeps Ru
     return page.locator('[data-translation-key="common.save"] input');
   };
 
+  const persistLanguageChange = async (language: string, action: () => Promise<unknown>) => {
+    // The UI activates the dictionary before the preference PATCH completes.
+    // Navigation or context teardown must not cancel persistence (including cleanup).
+    const persisted = page.waitForResponse(response =>
+      response.request().method() === 'PATCH'
+      && response.url().endsWith('/api/v1/settings/user')
+      && response.request().postDataJSON()?.['user.language'] === language
+    );
+    await action();
+    expect((await persisted).ok()).toBe(true);
+    await expect(page.locator('html')).toHaveAttribute('lang', language);
+  };
+
   try {
     const translation = await openGermanEditor();
     originalGerman = await translation.inputValue();
@@ -26,8 +39,7 @@ test('translation override repaints live, persists across sessions, and keeps Ru
     overrideSaved = true;
 
     await page.getByTestId('language-editor-close').click();
-    await page.getByTestId('switch-language-de').click();
-    await expect(page.locator('html')).toHaveAttribute('lang', 'de');
+    await persistLanguageChange('de', () => page.getByTestId('switch-language-de').click());
 
     await page.goto('/settings');
     await expect(page.getByRole('button', { name: marker, exact: true })).toBeVisible();
@@ -53,7 +65,7 @@ test('translation override repaints live, persists across sessions, and keeps Ru
       await page.getByTestId('language-editor-save').click();
       await expect(page.getByText('Переводы успешно сохранены')).toBeVisible();
     }
-    await page.locator('#app-language-selector').selectOption(originalLanguage || 'ru');
-    await expect(page.locator('html')).toHaveAttribute('lang', originalLanguage || 'ru');
+    await persistLanguageChange(originalLanguage || 'ru',
+      () => page.locator('#app-language-selector').selectOption(originalLanguage || 'ru'));
   }
 });

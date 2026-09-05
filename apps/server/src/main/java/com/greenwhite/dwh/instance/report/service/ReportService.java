@@ -1,5 +1,7 @@
 package com.greenwhite.dwh.instance.report.service;
 
+import com.greenwhite.dwh.instance.common.error.ApiException;
+import com.greenwhite.dwh.instance.md.service.MdScopeService;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,55 +22,43 @@ public class ReportService {
             .withZone(ZoneId.of("UTC"));
 
     private final JdbcClient jdbcClient;
+    private final MdScopeService scopeService;
 
-    public ReportService(JdbcClient jdbcClient) {
+    public ReportService(JdbcClient jdbcClient, MdScopeService scopeService) {
         this.jdbcClient = jdbcClient;
+        this.scopeService = scopeService;
     }
 
-    public void exportTasksCsv(OutputStream outputStream) throws IOException {
+    public void exportTasksCsv(OutputStream outputStream, Long currentUserId) throws IOException {
+        var query = scopedTasksQuery(currentUserId);
         // UTF-8 BOM so Microsoft Excel automatically recognizes Russian UTF-8
         outputStream.write(new byte[]{(byte) 0xEF, (byte) 0xBB, (byte) 0xBF});
 
         PrintWriter writer = new PrintWriter(new OutputStreamWriter(outputStream, StandardCharsets.UTF_8));
         writer.println("ID;Заголовок;Проект;Приоритет;Статус;Срок;Дата создания;Автор");
 
-        jdbcClient.sql("""
-                select
-                    t.id,
-                    t.title,
-                    coalesce(p.name, '—') as project_name,
-                    t.priority,
-                    coalesce(s.name, 'Новая') as status_name,
-                    t.end_time,
-                    t.created_at,
-                    coalesce(u.name, '—') as reporter_name
-                from ms_tasks t
-                left join ms_task_projects p on p.id = t.project_id
-                left join ms_task_statuses s on s.id = t.status_id
-                left join md_users u on u.id = t.reporter_id
-                order by t.id desc
-                """)
-                .query((rs) -> {
-                    long id = rs.getLong("id");
-                    String title = escapeCsv(rs.getString("title"));
-                    String project = escapeCsv(rs.getString("project_name"));
-                    String priority = mapPriority(rs.getString("priority"));
-                    String status = escapeCsv(rs.getString("status_name"));
-                    var endTime = rs.getTimestamp("end_time");
-                    var createdAt = rs.getTimestamp("created_at");
-                    String reporter = escapeCsv(rs.getString("reporter_name"));
+        query.query(rs -> {
+            long id = rs.getLong("id");
+            String title = escapeCsv(rs.getString("title"));
+            String project = escapeCsv(rs.getString("project_name"));
+            String priority = mapPriority(rs.getString("priority"));
+            String status = escapeCsv(rs.getString("status_name"));
+            var endTime = rs.getTimestamp("end_time");
+            var createdAt = rs.getTimestamp("created_at");
+            String reporter = escapeCsv(rs.getString("reporter_name"));
 
-                    String endTimeStr = endTime != null ? DATE_FMT.format(endTime.toInstant()) : "—";
-                    String createdStr = createdAt != null ? DATE_FMT.format(createdAt.toInstant()) : "—";
+            String endTimeStr = endTime != null ? DATE_FMT.format(endTime.toInstant()) : "—";
+            String createdStr = createdAt != null ? DATE_FMT.format(createdAt.toInstant()) : "—";
 
-                    writer.printf("%d;%s;%s;%s;%s;%s;%s;%s%n",
-                            id, title, project, priority, status, endTimeStr, createdStr, reporter);
-                });
+            writer.printf("%d;%s;%s;%s;%s;%s;%s;%s%n",
+                    id, title, project, priority, status, endTimeStr, createdStr, reporter);
+        });
 
         writer.flush();
     }
 
-    public void exportTasksExcelXml(OutputStream outputStream) throws IOException {
+    public void exportTasksExcelXml(OutputStream outputStream, Long currentUserId) throws IOException {
+        var query = scopedTasksQuery(currentUserId);
         PrintWriter writer = new PrintWriter(new OutputStreamWriter(outputStream, StandardCharsets.UTF_8));
 
         writer.println("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
@@ -111,7 +101,44 @@ public class ReportService {
         writer.println("    <Cell><Data ss:Type=\"String\">Автор</Data></Cell>");
         writer.println("   </Row>");
 
-        jdbcClient.sql("""
+        query.query(rs -> {
+            long id = rs.getLong("id");
+            String title = escapeXml(rs.getString("title"));
+            String project = escapeXml(rs.getString("project_name"));
+            String priority = mapPriority(rs.getString("priority"));
+            String status = escapeXml(rs.getString("status_name"));
+            var endTime = rs.getTimestamp("end_time");
+            var createdAt = rs.getTimestamp("created_at");
+            String reporter = escapeXml(rs.getString("reporter_name"));
+
+            String endTimeStr = endTime != null ? DATE_FMT.format(endTime.toInstant()) : "—";
+            String createdStr = createdAt != null ? DATE_FMT.format(createdAt.toInstant()) : "—";
+
+            writer.println("   <Row ss:StyleID=\"Row\">");
+            writer.printf("    <Cell><Data ss:Type=\"Number\">%d</Data></Cell>%n", id);
+            writer.printf("    <Cell><Data ss:Type=\"String\">%s</Data></Cell>%n", title);
+            writer.printf("    <Cell><Data ss:Type=\"String\">%s</Data></Cell>%n", project);
+            writer.printf("    <Cell><Data ss:Type=\"String\">%s</Data></Cell>%n", priority);
+            writer.printf("    <Cell><Data ss:Type=\"String\">%s</Data></Cell>%n", status);
+            writer.printf("    <Cell><Data ss:Type=\"String\">%s</Data></Cell>%n", endTimeStr);
+            writer.printf("    <Cell><Data ss:Type=\"String\">%s</Data></Cell>%n", createdStr);
+            writer.printf("    <Cell><Data ss:Type=\"String\">%s</Data></Cell>%n", reporter);
+            writer.println("   </Row>");
+        });
+
+        writer.println("  </Table>");
+        writer.println(" </Worksheet>");
+        writer.println("</Workbook>");
+        writer.flush();
+    }
+
+    private JdbcClient.StatementSpec scopedTasksQuery(Long currentUserId) {
+        // Scope helpers allow null for internal system readers; a user export must fail closed.
+        if (currentUserId == null) {
+            throw ApiException.unauthorized("Требуется авторизация для экспорта задач");
+        }
+        var scope = scopeService.filterForTasks(currentUserId);
+        var query = jdbcClient.sql("""
                 select
                     t.id,
                     t.title,
@@ -125,45 +152,38 @@ public class ReportService {
                 left join ms_task_projects p on p.id = t.project_id
                 left join ms_task_statuses s on s.id = t.status_id
                 left join md_users u on u.id = t.reporter_id
-                order by t.id desc
-                """)
-                .query((rs) -> {
-                    long id = rs.getLong("id");
-                    String title = escapeXml(rs.getString("title"));
-                    String project = escapeXml(rs.getString("project_name"));
-                    String priority = mapPriority(rs.getString("priority"));
-                    String status = escapeXml(rs.getString("status_name"));
-                    var endTime = rs.getTimestamp("end_time");
-                    var createdAt = rs.getTimestamp("created_at");
-                    String reporter = escapeXml(rs.getString("reporter_name"));
-
-                    String endTimeStr = endTime != null ? DATE_FMT.format(endTime.toInstant()) : "—";
-                    String createdStr = createdAt != null ? DATE_FMT.format(createdAt.toInstant()) : "—";
-
-                    writer.println("   <Row ss:StyleID=\"Row\">");
-                    writer.printf("    <Cell><Data ss:Type=\"Number\">%d</Data></Cell>%n", id);
-                    writer.printf("    <Cell><Data ss:Type=\"String\">%s</Data></Cell>%n", title);
-                    writer.printf("    <Cell><Data ss:Type=\"String\">%s</Data></Cell>%n", project);
-                    writer.printf("    <Cell><Data ss:Type=\"String\">%s</Data></Cell>%n", priority);
-                    writer.printf("    <Cell><Data ss:Type=\"String\">%s</Data></Cell>%n", status);
-                    writer.printf("    <Cell><Data ss:Type=\"String\">%s</Data></Cell>%n", endTimeStr);
-                    writer.printf("    <Cell><Data ss:Type=\"String\">%s</Data></Cell>%n", createdStr);
-                    writer.printf("    <Cell><Data ss:Type=\"String\">%s</Data></Cell>%n", reporter);
-                    writer.println("   </Row>");
-                });
-
-        writer.println("  </Table>");
-        writer.println(" </Worksheet>");
-        writer.println("</Workbook>");
-        writer.flush();
+                where 1=1
+                """ + scope.sql() + " order by t.id desc");
+        return scope.bindsUserId() ? query.param("scopeUserId", scope.userId()) : query;
     }
 
     private String escapeCsv(String value) {
         if (value == null) return "";
-        if (value.contains(";") || value.contains("\"") || value.contains("\n") || value.contains("\r")) {
+        boolean unsafePrefix = hasSpreadsheetPrefix(value);
+        if (unsafePrefix) value = "'" + value;
+        if (unsafePrefix || value.contains(";") || value.contains("\"") || value.contains("\n") || value.contains("\r")) {
             return "\"" + value.replace("\"", "\"\"") + "\"";
         }
         return value;
+    }
+
+    private boolean hasSpreadsheetPrefix(String value) {
+        // Inspect prefixes that importers may trim, but preserve the original text verbatim.
+        // This protects initial CSV export, not later save/re-import transformations by spreadsheet clients.
+        for (int offset = 0; offset < value.length();) {
+            int ch = value.codePointAt(offset);
+            if (ch == '=' || ch == '+' || ch == '-' || ch == '@'
+                    || ch == '＝' || ch == '＋' || ch == '－' || ch == '＠'
+                    || ch == '\t' || ch == '\r' || ch == '\n') {
+                return true;
+            }
+            if (!Character.isWhitespace(ch) && !Character.isSpaceChar(ch)
+                    && !Character.isISOControl(ch) && Character.getType(ch) != Character.FORMAT) {
+                return false;
+            }
+            offset += Character.charCount(ch);
+        }
+        return false;
     }
 
     private String escapeXml(String value) {

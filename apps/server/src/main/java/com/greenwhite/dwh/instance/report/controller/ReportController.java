@@ -1,6 +1,7 @@
 package com.greenwhite.dwh.instance.report.controller;
 
 import com.greenwhite.dwh.instance.common.annotation.RequiresPermission;
+import com.greenwhite.dwh.instance.common.security.SecurityContext;
 import com.greenwhite.dwh.instance.report.service.ReportService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,11 +30,11 @@ public class ReportController {
         if ("xlsx".equalsIgnoreCase(format) || "excel".equalsIgnoreCase(format)) {
             response.setContentType("application/vnd.ms-excel; charset=UTF-8");
             response.setHeader("Content-Disposition", "attachment; filename=\"tasks-export.xls\"");
-            reportService.exportTasksExcelXml(response.getOutputStream());
+            reportService.exportTasksExcelXml(response.getOutputStream(), SecurityContext.getCurrentUserId());
         } else {
             response.setContentType("text/csv; charset=UTF-8");
             response.setHeader("Content-Disposition", "attachment; filename=\"tasks-export.csv\"");
-            reportService.exportTasksCsv(response.getOutputStream());
+            reportService.exportTasksCsv(response.getOutputStream(), SecurityContext.getCurrentUserId());
         }
     }
 }
