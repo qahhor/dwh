@@ -114,17 +114,20 @@ repositories/adapters — I/O. Детали приведены в
 клавиатуры не открывают detail, а статусный native select использует
 семантический цвет текста в обеих темах. Права и server row scope не расширены.
 
-Финальное дерево приложения `c4d33d4` проверено: Angular 32 файла / 157 тестов,
-app typecheck и production build прошли, i18n audit — 1 019 ссылок / 1 039
+Финальное дерево приложения `fb59a2c` проверено: Angular 32 файла / 161 тест,
+app typecheck и production build прошли, i18n audit — 1 018 ссылок / 1 039
 ключей; Maven reactor — server 340/340 и библиотеки 5/5. Browser E2E собран из
-чистого `git archive c4d33d4` в отдельном Compose-проекте
+чистого `git archive fb59a2c` в отдельном Compose-проекте
 `smartupcms-tasksq-ecb2e05e`, доступном только через loopback origin
 `http://localhost:14200`; persistent `localhost:4200` не затрагивался. Пустая
-candidate DB получила все 24 миграции, после чего 31/31 Playwright-сценариев
-прошли за 2,1 минуты: прежние 24 и семь новых Tasks regressions для
+candidate DB первоначально получила все 24 миграции; финальная пересборка
+сохранила её синтетические данные и не потребовала новых миграций.
+Повторно прошли 31/31 Playwright-сценариев за 2,1 минуты: прежние 24 и семь
+новых Tasks regressions для
 date/observer/comment/keyboard/dirty-cancel, 125 cursor rows, error/retry,
 stale search, first-empty create, kanban/mobile и literal light/dark
-status-select colors. E2E
+status-select colors. Сценарии 125 строк, ошибок и гонок используют
+контролируемые HTTP-ответы, а не нагрузку на БД. E2E
 config 3/3, typecheck и artifact-secret gate также прошли; после suite все
 четыре candidate-сервиса healthy и `/healthz` возвращает 200.
 
@@ -136,13 +139,27 @@ desktop 1280×720 и mobile 390×844 без горизонтального overf
 Active/All/status в kanban, полную export-scope/filter подсказку и
 native status-select в light/dark с RGB `15 23 42` / `255 255 255` и
 `241 245 249` / `19 27 46`. Финальная console не содержала warnings/errors;
-профиль и `localhost:4200` не затрагивались. Скриншоты хранятся только во
-внешней папке `screenshots`. Два мелких наблюдения оставлены на final
-review: несогласованные подписи пустых dynamic fields и краткое
-одновременное отображение `Ничего не найдено` и `Загрузка…` в
-remote selectors. Финальный whole-change review ещё не завершён; candidate
-оставлен запущенным. Graphify обновлён AST-only, но generated output
-остаётся локально dirty и не предназначен для task commit.
+пользовательский Chrome и установка `localhost:4200` не затрагивались.
+Скриншоты хранятся только во внешней папке `screenshots`.
+
+Финальное whole-change review завершено. Единственный финальный fix batch
+`fb59a2c` исправил совместимость общего компонента пагинации: только Tasks
+передаёт `cursorItemsArePageLength=true`, Audit/Security Events сохраняют
+известный total и ограниченные размером страницы диапазоны. Одновременно
+унифицирована подпись пустых dynamic fields и убрано ложное empty-состояние
+remote selectors во время загрузки/ошибки. Scoped re-review подтвердило все
+три исправления без новых Critical/Important или отложенных замечаний.
+После reload финальной сборки IAB подтвердил подпись «Динамические поля»,
+keyboard edit, сохранённого наблюдателя и очищенный срок, а также диапазоны
+Audit `1–20 → 21–40 → 41–60` из 116, Security Events `1–20 → 21–40` из 153
+(только синтетические candidate totals); console чистая. Все пять задач плана
+завершены, candidate оставлен запущенным. Изменения сохранены локальными
+коммитами в `main`; push, внешняя CI и deploy этого пакета не выполнялись.
+Graphify повторно обновлён AST-only, но generated output остаётся dirty и не
+предназначен для task commit. Обновление завершено с предупреждением о
+версиях Graphify skill/package 0.9.13/0.9.51, без upgrade.
+
+### Ранее выполненный пакет I-01
 
 Начата последовательная реализация [release-hardening плана](superpowers/plans/2026-09-05-release-hardening.md).
 Разработка I-01 начиналась в `codex/release-hardening` от
@@ -185,7 +202,7 @@ server/web images прошли Trivy HIGH/CRITICAL gate с `--ignore-unfixed`.
 Подтверждённый remote baseline до этой публикации — `710efeb`, CI
 [33919965919](https://github.com/qahhor/dwh/actions/runs/33919965919) — success.
 Результат push/CI/deploy текущего коммита проверять отдельно по Git и runtime,
-не выводить его из pre-publication evidence. Цель текущего deploy-запроса —
+не выводить его из pre-publication evidence. Цель прежнего deploy-запроса —
 существующая локальная установка `http://localhost:4200`; production-конфигурация
 `.env.production` отсутствует. Spreadsheet applications не запускались;
 полная релизная готовность не заявлена. Следующий пакет — I-04: перепроверить границу

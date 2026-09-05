@@ -150,7 +150,7 @@ Verified 2026-09-05: commits `0a5c1dd`, `c4d33d4`; initial behavioral RED 11 exp
 - [x] Build candidate server/web images and start separate Compose project/ports/volumes using existing safe isolated workflow. Verify test target configuration before running mutations. Run full Maven verify, frontend tests/typecheck/build/i18n and the isolated E2E suite.
 - [x] Inspect rendered desktop/mobile candidate in the available browser tool, screenshot key fixed states and read console. Store screenshots outside committed source. Do not switch the user's installation to candidate images without a deploy request.
 - [x] Run `graphify update .` AST-only and leave generated dirty output uncommitted. Update context and plan with actual counts, runtime location and unresolved limitations. Commit only test/docs changes as `test(tasks): cover task quality regressions`.
-- [ ] Final whole-change review; address substantive findings through one reviewed fix batch. Deliver implementation status, commands/results, browser evidence and remaining risks. Do not claim production release readiness or push/deploy.
+- [x] Final whole-change review; address substantive findings through one reviewed fix batch. Deliver implementation status, commands/results, browser evidence and remaining risks. Do not claim production release readiness or push/deploy.
 
 Automated Task 5 evidence, 2026-09-05: clean archive `c4d33d4` ran as
 Compose project `smartupcms-tasksq-ecb2e05e` on loopback ports 14200/15435/18118
@@ -166,9 +166,10 @@ timed out on a self-removing Settings language button; request tracing showed
 the dictionary GET completed but the Playwright action never settled. Driving
 the persistent header language selector exercised the same real preference
 PATCH and left all persistence/cleanup assertions intact; the isolated rerun
-and full suite passed. Root's final-tree application checks remain 157/157
+and full suite passed. Root's pre-final-review application checks were 157/157
 frontend tests, app typecheck/build, i18n 1,019/1,039 and Maven server 340/340
-plus libraries 5/5. Candidate `/healthz` returned 200 and all four services
+plus libraries 5/5; final-tree evidence below supersedes these counts. Candidate
+`/healthz` returned 200 and all four services
 remained healthy after E2E. Review-strengthened coverage derives the configured
 admin login, captures and reasserts the selected observer display identity on
 every reopen, verifies comment display name plus login, compares retry method/
@@ -185,7 +186,89 @@ foreground/background `rgb(15, 23, 42)` / `rgb(255, 255, 255)` and dark
 warnings/errors.
 Five viewed screenshots are stored only under the external `screenshots`
 directory; viewport and light theme were restored, and the user's Chrome/
-`localhost:4200` remained untouched. Two minor observations are deferred to
-the final review: inconsistent empty dynamic-field copy and remote selectors
-briefly showing both empty and loading hints. Final whole-change review remains
-pending; this is not production deployment or readiness evidence.
+`localhost:4200` remained untouched. The two minor observations (inconsistent
+empty dynamic-field copy and simultaneous remote loading/empty hints) were
+subsequently fixed in the final review batch below.
+
+### Final acceptance — 2026-09-05
+
+All five implementation tasks and all fourteen accepted finding IDs are
+complete. The whole-change review of `0802ac8..a583411` found one Important
+shared-pagination compatibility regression and the two recorded Minor UI
+issues. A single fix batch, `fb59a2cc0dcd66ee870671162216e0b076acc37c`,
+addressed all three:
+
+- `UiPaginationComponent.cursorItemsArePageLength` defaults to `false`;
+  only Tasks opts into unknown-total/current-page-length semantics. Audit
+  and Security Events retain server total/range display. Rendered tests
+  verify known-total pages `1–20`, `21–40`, `41–41` of 41, Tasks pages
+  `1–50`, `51–100`, `101–125` without an invented total, and Previous from
+  an empty later page.
+- Empty create-task guidance reuses `nav.custom_fields` («Динамические поля»),
+  without changing packaged dictionaries.
+- Both remote selectors suppress empty-result hints while loading or failed;
+  successful remote empty results and default local empty states still render.
+
+Fix-batch TDD: four intended RED failures / 56 passes, then focused GREEN
+60/60. The independent scoped re-review confirmed all findings addressed,
+no new Critical/Important breakage and no residual or parked findings.
+
+Root independently verified the final application tree:
+
+| Gate | Result |
+|---|---|
+| Native Maven `-pl apps/server -am verify` | Server 340/340 + libraries 5/5, no failures/errors/skips; completed 23:28:25 UTC+5 |
+| Angular `ng test --watch=false` | 32 files, 161/161 tests |
+| App typecheck and localization audit | Passed; 1,018 referenced keys / 1,039 Russian catalog keys |
+| Clean-archive candidate server/web build | Passed for `fb59a2c`; production Angular bundle generated |
+| Full isolated Playwright `--project=instance` | 31/31 across nine files, 2.1 minutes; 24 existing + seven Tasks cases |
+| E2E config / typecheck / artifact-security | 3/3 / passed / passed |
+| Public documentation / repository hygiene / unified boundary | Passed; documentation contract covers 19 required files and 103 Markdown files |
+| Candidate health | Four healthy services; `/healthz` HTTP 200 |
+| AST graph refresh | `graphify update .` passed; generated files remain uncommitted |
+
+The final runtime was rebuilt from `git archive fb59a2c`, using the same
+separate Compose project and synthetic volumes; no new migration or customer
+data mutation was required. Candidate URL: `http://localhost:14200/tasks`.
+Final Playwright result: external `playwright-final/.last-run.json`, status
+`passed`, `failedTests: []`.
+
+Root reloaded the final build in IAB and verified the corrected create guidance,
+keyboard edit, the retained synthetic task's observer and its cleared deadline.
+Live Audit showed `1–20 → 21–40 → 41–60` of 116, and Security Events
+`1–20 → 21–40` of 153. These are candidate totals only. The console contained
+no warnings/errors; page identity, meaningful content and absence of a framework
+overlay were checked. Viewed final-build screenshots are stored at external
+`screenshots/tasks-create-light-desktop-final.png` and
+`screenshots/tasks-edit-light-desktop-final.png`.
+
+Scope of evidence: Chromium/IAB, desktop 1280×720 and mobile 390×844,
+light/dark themes. The 125-row, failure and race browser cases use controlled
+transport fixtures, not a database load test. Maven emitted existing JNA/CDS
+and expected negative-path warnings. Graphify reported an installed-skill/
+package version mismatch (0.9.13/0.9.51) but completed its AST update; no tool
+upgrade was made. This work is local acceptance, not production readiness,
+external CI verification, push or deployment to `localhost:4200`.
+
+The environment policy rejected the scoped archive-and-cleanup command before
+execution. The 23 plan-local scratch files remain ignored under
+`.superpowers/sdd/2026-09-05-tasks-quality/`; no archive was created and no
+files were removed. This is housekeeping only, not an open product finding.
+The durable decisions are retained below. Unrelated local audit drafts,
+`output/` and Graphify files are preserved.
+
+### Rulings retained from the implementation ledger
+
+1. Work directly on `main`: explicit user instruction overrides the worktree
+   default. If interpreted incorrectly, local commits must be moved; no data
+   recovery is involved.
+2. Keep scoped local commits without push/deploy: reviewable snapshots are
+   needed, but this implementation request does not authorize publication.
+   If a single commit is preferred, the local sequence can be squashed later.
+3. Preserve the current UI structure and visual baseline rather than redesign:
+   the approved task corrects quality defects. A different visual preference
+   would require small, reversible UI edits.
+4. Omit unchanged scoped assignments from PATCH rather than relax server
+   validation: this follows presence-aware PATCH and selected-identity
+   preservation. If wrong, the title-only/clear regressions expose the error;
+   actual assignment replacements remain strictly scope-validated.
