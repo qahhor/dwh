@@ -1,6 +1,7 @@
 package com.greenwhite.dwh.instance.ms.task.service;
 
 import com.greenwhite.dwh.core.error.ErrorCode;
+import com.greenwhite.dwh.core.error.FieldErrorItem;
 import com.greenwhite.dwh.instance.audit.service.AuditLogService;
 import com.greenwhite.dwh.instance.common.error.ApiException;
 import com.greenwhite.dwh.instance.md.service.MdCustomFieldService;
@@ -34,17 +35,19 @@ public class MsProjectService {
     public MsProjectRepository.ProjectRecord createProject(
             String name, String description, String state, Map<String, Object> attributes, Long createdBy) {
 
+        String normalizedName = validateAndNormalizeName(name, true);
+        validateState(state);
         if (attributes != null) {
             customFieldService.validateAttributes("PROJECT", attributes);
         }
 
-        var project = projectRepository.create(name, description, state, attributes, createdBy);
+        var project = projectRepository.create(normalizedName, description, state, attributes, createdBy);
         typesenseIndexer.indexProject(project.id());
 
         auditLogService.logChange("ms_task_projects", String.valueOf(project.id()), "I",
                 List.of("name", "state"),
                 null,
-                Map.of("name", name, "state", project.state()));
+                Map.of("name", normalizedName, "state", project.state()));
 
         return project;
     }
@@ -64,17 +67,39 @@ public class MsProjectService {
     @Transactional
     public void updateProject(Long id, String name, String description, String state, Map<String, Object> attributes) {
         var before = getProjectById(id);
+        String normalizedName = validateAndNormalizeName(name, false);
+        validateState(state);
         if (attributes != null) {
             customFieldService.validateAttributes("PROJECT", attributes);
         }
-        projectRepository.update(id, name, description, state, attributes);
+        projectRepository.update(
+                id,
+                normalizedName,
+                description,
+                state,
+                attributes != null ? attributes : before.attributes());
         typesenseIndexer.indexProject(id);
 
         auditLogService.logChange("ms_task_projects", String.valueOf(id), "U",
                 List.of("name", "description", "state"),
                 Map.of("name", before.name(), "state", before.state()),
-                Map.of("name", name != null ? name : before.name(),
+                Map.of("name", normalizedName != null ? normalizedName : before.name(),
                         "state", state != null ? state : before.state()));
+    }
+
+    private String validateAndNormalizeName(String name, boolean required) {
+        if ((required && name == null) || (name != null && name.isBlank())) {
+            throw ApiException.validation("Название проекта обязательно", List.of(
+                    new FieldErrorItem("name", "required", "Название проекта обязательно")));
+        }
+        return name != null ? name.trim() : null;
+    }
+
+    private void validateState(String state) {
+        if (state != null && !state.equals("A") && !state.equals("P")) {
+            throw ApiException.validation("Недопустимый статус проекта", List.of(
+                    new FieldErrorItem("state", "invalid", "Допустимые значения: A, P")));
+        }
     }
 
 
