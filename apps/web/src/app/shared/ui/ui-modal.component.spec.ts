@@ -41,4 +41,23 @@ describe('UiModalComponent', () => {
     fixture.detectChanges();
     expect(document.body.classList.contains('modal-open')).toBe(false);
   });
+
+  it('lets only the topmost open dialog handle Escape', async () => {
+    await TestBed.configureTestingModule({ imports: [UiModalComponent] }).compileComponents();
+    const lower = TestBed.createComponent(UiModalComponent);
+    const upper = TestBed.createComponent(UiModalComponent);
+    lower.componentRef.setInput('isOpen', true);
+    upper.componentRef.setInput('isOpen', true);
+    let lowerCloses = 0;
+    let upperCloses = 0;
+    lower.componentInstance.close.subscribe(() => lowerCloses++);
+    upper.componentInstance.close.subscribe(() => upperCloses++);
+    lower.detectChanges();
+    upper.detectChanges();
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+
+    expect(lowerCloses).toBe(0);
+    expect(upperCloses).toBe(1);
+  });
 });

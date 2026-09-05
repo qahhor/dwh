@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
@@ -20,6 +20,8 @@ import { CustomField } from '../../core/models/custom-field.models';
 import { User } from '../../core/models/auth.models';
 import { KeysetPage } from '../../core/models/common.models';
 import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
+import { Subscription } from 'rxjs';
+import { toLocalDateTime, toTaskInstant } from './task-form-value';
 
 @Component({
   selector: 'app-tasks',
@@ -223,6 +225,14 @@ import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
         </div>
       </div>
 
+      <div class="request-state request-loading" *ngIf="isLoading()" role="status">
+        {{ 'common.loading' | t }}
+      </div>
+      <div class="request-state request-error" *ngIf="listLoadError()" role="alert">
+        <span>{{ (tasks().length ? 'tasks.list_load_error_stale' : 'tasks.list_load_error') | t }}</span>
+        <ui-button variant="secondary" size="sm" (onClick)="retryTaskList()">{{ 'audit.retry' | t }}</ui-button>
+      </div>
+
       <!-- ======================================================================= -->
       <!-- VIEW 1: TABLE / LIST VIEW (Default View)                                -->
       <!-- ======================================================================= -->
@@ -341,7 +351,7 @@ import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
                   </div>
                 </td>
               </tr>
-              <tr *ngIf="tasks().length === 0 && !isLoading()">
+              <tr *ngIf="tasks().length === 0 && !isLoading() && !listLoadError()">
                 <td colspan="8" class="empty-state-cell">
                   <span class="material-symbols-outlined icon" aria-hidden="true">task</span>
                   <p>{{ 'tasks.zadachi_ne_naydeny' | t }}</p>
@@ -493,9 +503,16 @@ import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
       [isOpen]="selectedTask() !== null"
       [title]="'tasks.task_number' | t:{id: selectedTask()?.id || ''}"
       size="lg"
-      (close)="selectedTask.set(null)"
+      (close)="closeTaskDetails()"
     >
-      <div body class="task-details-view" *ngIf="selectedTask() as t">
+      <div body class="request-state request-loading" *ngIf="detailLoading()" role="status">
+        {{ 'tasks.detail_loading' | t }}
+      </div>
+      <div body class="request-state request-error" *ngIf="detailLoadError()" role="alert">
+        <span>{{ 'tasks.detail_load_error' | t }}</span>
+        <ui-button variant="secondary" size="sm" (onClick)="retryTaskDetails()">{{ 'audit.retry' | t }}</ui-button>
+      </div>
+      <div body class="task-details-view" *ngIf="!detailLoading() && !detailLoadError() && selectedTask() as t">
         <!-- Ancestor Breadcrumbs Trail -->
         <div class="ancestor-trail" *ngIf="taskAncestors().length > 0">
           <span class="trail-label">{{ 'tasks.ierarhiya' | t }}</span>
@@ -591,12 +608,20 @@ import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
             <div class="detail-section comments-section">
               <h4 class="section-label">{{ 'tasks.comments_count' | t:{count: comments().length} }}</h4>
 
-              <div class="comments-feed">
+              <div class="request-state request-loading" *ngIf="commentsLoading()" role="status">
+                {{ 'tasks.comments_loading' | t }}
+              </div>
+              <div class="request-state request-error" *ngIf="commentsLoadError()" role="alert">
+                <span>{{ 'tasks.comments_load_error' | t }}</span>
+                <ui-button variant="secondary" size="sm" (onClick)="retryComments()">{{ 'audit.retry' | t }}</ui-button>
+              </div>
+
+              <div class="comments-feed" *ngIf="!commentsLoading() && !commentsLoadError()">
                 <div *ngFor="let c of comments()" class="comment-card">
                   <div class="comment-top">
                     <div class="comment-author-badge">
-                      <span class="avatar-mini">{{ getInitials(c.userName) }}</span>
-                      <span class="comment-author">{{ c.userName }} <span class="text-muted">&#64;{{ c.userLogin }}</span></span>
+                      <span class="avatar-mini">{{ getInitials(c.userName || undefined) }}</span>
+                      <span class="comment-author">{{ c.userName || ('tasks.removed_comment_author' | t) }} <span *ngIf="c.userLogin" class="text-muted">&#64;{{ c.userLogin }}</span></span>
                     </div>
                     <span class="comment-time tabular-nums">{{ c.createdAt | date:'dd.MM.yyyy HH:mm' }}</span>
                   </div>
@@ -609,15 +634,16 @@ import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
                 </div>
               </div>
 
-              <div class="add-comment-box">
+              <div class="add-comment-box" *ngIf="canCommentTask()">
                 <textarea
                   class="comment-textarea"
                   rows="2"
                   [placeholder]="'tasks.napisat_kommentariy_k_zadache_ctrl_enter_dlya_ot' | t"
-                  [(ngModel)]="newCommentText"
+                  [(ngModel)]="commentDraft"
+                  [disabled]="isCommentSubmitting()"
                   (keydown.ctrl.enter)="submitComment()"
                 ></textarea>
-                <ui-button variant="primary" size="sm" icon="send" (onClick)="submitComment()">
+                <ui-button variant="primary" size="sm" icon="send" [loading]="isCommentSubmitting()" (onClick)="submitComment()">
                   {{ 'tasks.otpravit' | t }}
                 </ui-button>
               </div>
@@ -727,7 +753,7 @@ import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
         </div>
       </div>
       <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="selectedTask.set(null)">{{ 'audit.zakryt' | t }}</ui-button>
+        <ui-button variant="secondary" size="md" (onClick)="closeTaskDetails()">{{ 'audit.zakryt' | t }}</ui-button>
       </div>
     </ui-modal>
 
@@ -944,8 +970,16 @@ import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
       [isOpen]="isEditModalOpen()"
       [title]="'tasks.redaktirovanie_zadachi' | t"
       size="lg"
-      (close)="isEditModalOpen.set(false)"
+      [dismissible]="!isSubmitting()"
+      (close)="requestCloseEdit()"
     >
+      <div body class="request-state request-loading" *ngIf="editLoading()" role="status">
+        {{ 'tasks.edit_loading' | t }}
+      </div>
+      <div body class="request-state request-error" *ngIf="editLoadError()" role="alert">
+        <span>{{ 'tasks.edit_load_error' | t }}</span>
+        <ui-button variant="secondary" size="sm" (onClick)="retryEditLoad()">{{ 'audit.retry' | t }}</ui-button>
+      </div>
       <div body class="modal-form" *ngIf="editingTask as task">
         <!-- Title Input (Required) -->
         <div class="form-group">
@@ -1128,8 +1162,23 @@ import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
         </div>
       </div>
       <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="isEditModalOpen.set(false)">{{ 'common.cancel' | t }}</ui-button>
-        <ui-button variant="primary" size="md" [loading]="isSubmitting()" (onClick)="submitEditTask()">{{ 'tasks.sohranit_izmeneniya' | t }}</ui-button>
+        <ui-button variant="secondary" size="md" [disabled]="isSubmitting()" (onClick)="requestCloseEdit()">{{ editLoadError() ? ('audit.zakryt' | t) : ('common.cancel' | t) }}</ui-button>
+        <ui-button *ngIf="editingTask" variant="primary" size="md" [loading]="isSubmitting()" (onClick)="submitEditTask()">{{ 'tasks.sohranit_izmeneniya' | t }}</ui-button>
+      </div>
+    </ui-modal>
+
+    <ui-modal
+      [isOpen]="isEditDiscardConfirmationOpen()"
+      [title]="'tasks.discard_edit_title' | t"
+      size="sm"
+      (close)="isEditDiscardConfirmationOpen.set(false)"
+    >
+      <div body class="dictionary-delete-body">
+        <p>{{ 'tasks.discard_edit_message' | t }}</p>
+      </div>
+      <div footer>
+        <ui-button variant="secondary" size="md" (onClick)="isEditDiscardConfirmationOpen.set(false)">{{ 'common.cancel' | t }}</ui-button>
+        <ui-button variant="danger" size="md" (onClick)="confirmDiscardEdit()">{{ 'tasks.discard_edit_action' | t }}</ui-button>
       </div>
     </ui-modal>
 
@@ -2310,6 +2359,21 @@ import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
     .dictionary-delete-body p { margin: 0; }
     .dictionary-delete-body span { color: var(--text-muted); font-size: 12px; }
 
+    .request-state {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 48px;
+      padding: 10px 14px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      background: var(--bg-surface);
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+    .request-error { color: var(--danger); }
+
     .status-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
     .font-mono { font-family: monospace; }
     .text-right { text-align: right; }
@@ -2319,7 +2383,7 @@ import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
     .tabular-nums { font-variant-numeric: tabular-nums; }
   `]
 })
-export class TasksComponent implements OnInit {
+export class TasksComponent implements OnInit, OnDestroy {
   private readonly uiI18n = inject(I18nService);
   readonly tasks = signal<Task[]>([]);
   readonly projects = signal<Project[]>([]);
@@ -2335,11 +2399,34 @@ export class TasksComponent implements OnInit {
   readonly taskFiles = signal<TaskFile[]>([]);
   readonly comments = signal<TaskComment[]>([]);
 
-
   readonly isLoading = signal<boolean>(false);
+  readonly listLoadError = signal<boolean>(false);
+  readonly detailLoading = signal<boolean>(false);
+  readonly detailLoadError = signal<boolean>(false);
+  readonly commentsLoading = signal<boolean>(false);
+  readonly commentsLoadError = signal<boolean>(false);
+  readonly editLoading = signal<boolean>(false);
+  readonly editLoadError = signal<boolean>(false);
+  readonly isCommentSubmitting = signal<boolean>(false);
   readonly isSubmitting = signal<boolean>(false);
   readonly hasMore = signal<boolean>(false);
   nextCursor: string | null = null;
+
+  private destroyed = false;
+  private listRequestId = 0;
+  private detailRequestId = 0;
+  private detailContextId = 0;
+  private commentsRequestId = 0;
+  private editRequestId = 0;
+  private commentPostRequestId = 0;
+  private listRequest?: Subscription;
+  private detailRequest?: Subscription;
+  private commentsRequest?: Subscription;
+  private editRequest?: Subscription;
+  private editSaveRequest?: Subscription;
+  private commentPostRequest?: Subscription;
+  private routeSubscription?: Subscription;
+  private lastListReset = true;
 
   // View Mode: 'table' (List / Table) is now default as requested
   viewMode: 'table' | 'kanban' = 'table';
@@ -2353,7 +2440,7 @@ export class TasksComponent implements OnInit {
   statusFilterMode: 'active' | 'all' | number = 'active';
 
 
-  newCommentText = '';
+  private readonly commentDrafts = new Map<number, string>();
   draggedTask: Task | null = null;
 
   showExportMenu = false;
@@ -2389,8 +2476,12 @@ export class TasksComponent implements OnInit {
 
   // Edit Modal
   readonly isEditModalOpen = signal<boolean>(false);
+  readonly isEditDiscardConfirmationOpen = signal<boolean>(false);
   isEditSubmitted = false;
   editingTask: Task | null = null;
+  private editTargetId: number | null = null;
+  private editReturnTask: Task | null = null;
+  private editFormBaseline = '';
   editForm = {
     title: '',
     taskType: 'task',
@@ -2413,7 +2504,7 @@ export class TasksComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.route.queryParams.subscribe(params => {
+    this.routeSubscription = this.route.queryParams.subscribe(params => {
       if (params['project_id']) {
         this.selectedProjectId = Number(params['project_id']);
       }
@@ -2425,6 +2516,32 @@ export class TasksComponent implements OnInit {
     this.loadUsers();
     this.loadTaskCustomFields();
     this.loadTasks(true);
+  }
+
+  ngOnDestroy() {
+    this.destroyed = true;
+    this.listRequestId++;
+    this.detailRequestId++;
+    this.commentsRequestId++;
+    this.editRequestId++;
+    this.commentPostRequestId++;
+    this.routeSubscription?.unsubscribe();
+    this.listRequest?.unsubscribe();
+    this.detailRequest?.unsubscribe();
+    this.commentsRequest?.unsubscribe();
+    this.editRequest?.unsubscribe();
+    this.editSaveRequest?.unsubscribe();
+    this.commentPostRequest?.unsubscribe();
+  }
+
+  get commentDraft(): string {
+    const taskId = this.selectedTask()?.id;
+    return taskId == null ? '' : this.commentDrafts.get(taskId) || '';
+  }
+
+  set commentDraft(value: string) {
+    const taskId = this.selectedTask()?.id;
+    if (taskId != null) this.commentDrafts.set(taskId, value);
   }
 
   // Active users only for selectors
@@ -2502,6 +2619,7 @@ export class TasksComponent implements OnInit {
   }
 
   loadTasks(reset: boolean = false) {
+    this.lastListReset = reset;
     if (reset) {
       this.nextCursor = null;
     }
@@ -2517,8 +2635,11 @@ export class TasksComponent implements OnInit {
       statusIdParam = this.statusFilterMode;
     }
 
+    const requestId = ++this.listRequestId;
+    this.listRequest?.unsubscribe();
     this.isLoading.set(true);
-    this.api.get<KeysetPage<Task>>('/tasks', {
+    this.listLoadError.set(false);
+    this.listRequest = this.api.get<KeysetPage<Task>>('/tasks', {
       limit: 50,
       cursor: this.nextCursor || undefined,
       search: this.searchQuery || undefined,
@@ -2528,6 +2649,7 @@ export class TasksComponent implements OnInit {
       hide_terminal: hideTerminalParam
     }).subscribe({
       next: res => {
+        if (this.destroyed || requestId !== this.listRequestId) return;
         this.isLoading.set(false);
         if (reset) {
           this.tasks.set(res.items || []);
@@ -2538,9 +2660,15 @@ export class TasksComponent implements OnInit {
         this.hasMore.set(res.hasMore);
       },
       error: () => {
+        if (this.destroyed || requestId !== this.listRequestId) return;
         this.isLoading.set(false);
+        this.listLoadError.set(true);
       }
     });
+  }
+
+  retryTaskList() {
+    this.loadTasks(this.lastListReset);
   }
 
   paginatedTasks(): Task[] {
@@ -2727,35 +2855,85 @@ export class TasksComponent implements OnInit {
   }
 
   openTaskDetails(task: Task) {
+    if (this.isEditModalOpen()) return;
+    this.cancelDetailRequests();
+    this.detailContextId++;
     this.selectedTask.set(task);
+    this.taskMembers.set([]);
+    this.taskSubtasks.set([]);
+    this.taskAncestors.set([]);
+    this.taskFiles.set([]);
+    this.comments.set([]);
     this.loadTaskFullDetails(task.id);
     this.loadComments(task.id);
   }
 
   loadTaskFullDetails(taskId: number) {
-    this.api.get<TaskDetailResponse>(`/tasks/${taskId}`).subscribe({
+    const requestId = ++this.detailRequestId;
+    this.detailRequest?.unsubscribe();
+    this.detailLoading.set(true);
+    this.detailLoadError.set(false);
+    this.detailRequest = this.api.get<TaskDetailResponse>(`/tasks/${taskId}`).subscribe({
       next: res => {
-        if (res) {
+        if (this.destroyed || requestId !== this.detailRequestId || this.selectedTask()?.id !== taskId) return;
+        this.detailLoading.set(false);
+        if (res?.task?.id === taskId) {
           this.selectedTask.set(res.task);
           this.taskMembers.set(res.members || []);
           this.taskSubtasks.set(res.subtasks || []);
           this.taskAncestors.set(res.ancestors || []);
           this.taskFiles.set(res.files || []);
+        } else {
+          this.detailLoadError.set(true);
         }
       },
-      error: () => {}
+      error: () => {
+        if (this.destroyed || requestId !== this.detailRequestId || this.selectedTask()?.id !== taskId) return;
+        this.detailLoading.set(false);
+        this.detailLoadError.set(true);
+      }
     });
+  }
+
+  retryTaskDetails() {
+    const taskId = this.selectedTask()?.id;
+    if (taskId != null) this.loadTaskFullDetails(taskId);
+  }
+
+  closeTaskDetails() {
+    this.cancelDetailRequests();
+    this.detailContextId++;
+    this.selectedTask.set(null);
+    this.taskMembers.set([]);
+    this.taskSubtasks.set([]);
+    this.taskAncestors.set([]);
+    this.taskFiles.set([]);
+    this.comments.set([]);
+    this.detailLoading.set(false);
+    this.detailLoadError.set(false);
+    this.commentsLoading.set(false);
+    this.commentsLoadError.set(false);
+  }
+
+  private cancelDetailRequests() {
+    this.detailRequestId++;
+    this.commentsRequestId++;
+    this.detailRequest?.unsubscribe();
+    this.commentsRequest?.unsubscribe();
   }
 
   onTaskFileAttached(file: TaskFile) {
     const t = this.selectedTask();
     if (!t) return;
+    const detailContextId = this.detailContextId;
     this.api.post(`/tasks/${t.id}/files`, { fileId: file.fileId }).subscribe({
       next: () => {
+        if (this.destroyed || detailContextId !== this.detailContextId || this.selectedTask()?.id !== t.id) return;
         this.taskFiles.update(list => [...list, file]);
         this.toast.success(this.uiI18n.translate('tasks.file_attached', { name: file.fileName }));
       },
       error: err => {
+        if (this.destroyed || detailContextId !== this.detailContextId || this.selectedTask()?.id !== t.id) return;
         this.toast.error(err.error?.message || this.uiI18n.translate('tasks.ne_udalos_prikrepit_fayl'));
       }
     });
@@ -2764,12 +2942,15 @@ export class TasksComponent implements OnInit {
   onTaskFileRemoved(file: TaskFile) {
     const t = this.selectedTask();
     if (!t) return;
+    const detailContextId = this.detailContextId;
     this.api.delete(`/tasks/${t.id}/files/${file.fileId}`).subscribe({
       next: () => {
+        if (this.destroyed || detailContextId !== this.detailContextId || this.selectedTask()?.id !== t.id) return;
         this.taskFiles.update(list => list.filter(f => f.fileId !== file.fileId));
         this.toast.success(this.uiI18n.translate('tasks.file_removed', { name: file.fileName }));
       },
       error: err => {
+        if (this.destroyed || detailContextId !== this.detailContextId || this.selectedTask()?.id !== t.id) return;
         this.toast.error(err.error?.message || this.uiI18n.translate('files.ne_udalos_udalit_fayl'));
       }
     });
@@ -2777,23 +2958,51 @@ export class TasksComponent implements OnInit {
 
 
   loadComments(taskId: number) {
-    this.api.get<TaskComment[]>(`/tasks/${taskId}/comments`).subscribe({
-      next: res => this.comments.set(res || []),
-      error: () => {}
+    const requestId = ++this.commentsRequestId;
+    this.commentsRequest?.unsubscribe();
+    this.commentsLoading.set(true);
+    this.commentsLoadError.set(false);
+    this.commentsRequest = this.api.get<TaskComment[]>(`/tasks/${taskId}/comments`).subscribe({
+      next: res => {
+        if (this.destroyed || requestId !== this.commentsRequestId || this.selectedTask()?.id !== taskId) return;
+        this.commentsLoading.set(false);
+        this.comments.set((res || []).filter(comment => comment.taskId === taskId));
+      },
+      error: () => {
+        if (this.destroyed || requestId !== this.commentsRequestId || this.selectedTask()?.id !== taskId) return;
+        this.commentsLoading.set(false);
+        this.commentsLoadError.set(true);
+      }
     });
+  }
+
+  retryComments() {
+    const taskId = this.selectedTask()?.id;
+    if (taskId != null) this.loadComments(taskId);
+  }
+
+  canCommentTask(): boolean {
+    return this.permService.canCreate('tasks.comments');
   }
 
   submitComment() {
     const task = this.selectedTask();
-    if (!task || !this.newCommentText.trim()) return;
+    const text = this.commentDraft.trim();
+    if (!task || !text || !this.canCommentTask() || this.isCommentSubmitting()) return;
 
-    this.api.post(`/tasks/${task.id}/comments`, { textMarkdown: this.newCommentText.trim() }).subscribe({
+    const requestId = ++this.commentPostRequestId;
+    this.isCommentSubmitting.set(true);
+    this.commentPostRequest = this.api.post(`/tasks/${task.id}/comments`, { textMarkdown: text }).subscribe({
       next: () => {
-        this.newCommentText = '';
-        this.loadComments(task.id);
+        if (this.destroyed || requestId !== this.commentPostRequestId) return;
+        this.isCommentSubmitting.set(false);
+        this.commentDrafts.delete(task.id);
+        if (this.selectedTask()?.id === task.id) this.loadComments(task.id);
         this.toast.success(this.uiI18n.translate('tasks.kommentariy_dobavlen'));
       },
       error: err => {
+        if (this.destroyed || requestId !== this.commentPostRequestId) return;
+        this.isCommentSubmitting.set(false);
         this.toast.error(err.error?.message || this.uiI18n.translate('tasks.ne_udalos_otpravit_kommentariy'));
       }
     });
@@ -2870,8 +3079,8 @@ export class TasksComponent implements OnInit {
       responsibleUserId: this.createForm.responsibleUserId ? Number(this.createForm.responsibleUserId) : null,
       parentTaskId: this.createForm.parentTaskId ? Number(this.createForm.parentTaskId) : null,
       observerUserIds: this.createForm.observerUserIds,
-      beginTime: this.createForm.beginTime ? new Date(this.createForm.beginTime).toISOString() : null,
-      endTime: this.createForm.endTime ? new Date(this.createForm.endTime).toISOString() : null,
+      beginTime: toTaskInstant(this.createForm.beginTime),
+      endTime: toTaskInstant(this.createForm.endTime),
       attributes: attrs
     };
 
@@ -2897,53 +3106,105 @@ export class TasksComponent implements OnInit {
   // Task Editing
   // =========================================================================
   openEditModal(task: Task) {
+    if (this.isSubmitting() || this.isEditModalOpen()) return;
     this.isEditSubmitted = false;
-    this.editingTask = task;
+    this.isEditDiscardConfirmationOpen.set(false);
+    this.editReturnTask = this.selectedTask()?.id === task.id ? this.selectedTask() : null;
+    if (this.editReturnTask) this.closeTaskDetails();
+    this.editTargetId = task.id;
+    this.editingTask = null;
+    this.editFormBaseline = '';
+    this.isEditModalOpen.set(true);
+    this.loadEditDetails(task.id);
+  }
 
-    this.api.get<TaskDetailResponse>(`/tasks/${task.id}`).subscribe({
+  private loadEditDetails(taskId: number) {
+    const requestId = ++this.editRequestId;
+    this.editRequest?.unsubscribe();
+    this.editLoading.set(true);
+    this.editLoadError.set(false);
+    this.editingTask = null;
+
+    this.editRequest = this.api.get<TaskDetailResponse>(`/tasks/${taskId}`).subscribe({
       next: res => {
-        const obsIds = (res?.members || [])
+        if (this.destroyed || requestId !== this.editRequestId || this.editTargetId !== taskId || !this.isEditModalOpen()) return;
+        if (!res?.task || res.task.id !== taskId || !Array.isArray(res.members)) {
+          this.editLoading.set(false);
+          this.editLoadError.set(true);
+          return;
+        }
+        const freshTask = res.task;
+        const obsIds = res.members
           .filter(m => (m.involveKind || m.involvementKind) === 'O')
           .map(m => m.userId);
 
-        const respMember = (res?.members || []).find(m => (m.involveKind || m.involvementKind) === 'R');
+        const respMember = res.members.find(m => (m.involveKind || m.involvementKind) === 'R');
 
+        this.editingTask = freshTask;
         this.editForm = {
-          title: task.title,
-          taskType: (task.attributes && task.attributes['task_type']) || 'task',
-          descriptionMarkdown: task.descriptionMarkdown || '',
-          projectId: task.projectId || null,
-          priority: task.priority || 'medium',
+          title: freshTask.title,
+          taskType: (freshTask.attributes && freshTask.attributes['task_type']) || 'task',
+          descriptionMarkdown: freshTask.descriptionMarkdown || '',
+          projectId: freshTask.projectId ?? null,
+          priority: freshTask.priority || 'medium',
           responsibleUserId: respMember ? respMember.userId : null,
-          parentTaskId: task.parentTaskId || null,
+          parentTaskId: freshTask.parentTaskId ?? null,
           observerUserIds: obsIds,
-          beginTime: task.beginTime ? task.beginTime.substring(0, 16) : '',
-          endTime: task.endTime ? task.endTime.substring(0, 16) : '',
-          attributes: { ...(task.attributes || {}) }
+          beginTime: toLocalDateTime(freshTask.beginTime),
+          endTime: toLocalDateTime(freshTask.endTime),
+          attributes: { ...(freshTask.attributes || {}) }
         };
-        this.isEditModalOpen.set(true);
+        this.editFormBaseline = this.serializeEditForm();
+        this.editLoading.set(false);
       },
       error: () => {
-        this.editForm = {
-          title: task.title,
-          taskType: (task.attributes && task.attributes['task_type']) || 'task',
-          descriptionMarkdown: task.descriptionMarkdown || '',
-          projectId: task.projectId || null,
-          priority: task.priority || 'medium',
-          responsibleUserId: null,
-          parentTaskId: task.parentTaskId || null,
-          observerUserIds: [],
-          beginTime: task.beginTime ? task.beginTime.substring(0, 16) : '',
-          endTime: task.endTime ? task.endTime.substring(0, 16) : '',
-          attributes: { ...(task.attributes || {}) }
-        };
-        this.isEditModalOpen.set(true);
+        if (this.destroyed || requestId !== this.editRequestId || this.editTargetId !== taskId || !this.isEditModalOpen()) return;
+        this.editLoading.set(false);
+        this.editLoadError.set(true);
       }
     });
   }
 
+  retryEditLoad() {
+    if (this.editTargetId != null && !this.isSubmitting()) this.loadEditDetails(this.editTargetId);
+  }
+
+  requestCloseEdit() {
+    if (this.isSubmitting()) return;
+    if (this.editingTask && this.editFormBaseline !== this.serializeEditForm()) {
+      this.isEditDiscardConfirmationOpen.set(true);
+      return;
+    }
+    this.closeEditModal(true);
+  }
+
+  confirmDiscardEdit() {
+    if (this.isSubmitting()) return;
+    this.isEditDiscardConfirmationOpen.set(false);
+    this.closeEditModal(true);
+  }
+
+  private closeEditModal(returnToDetails: boolean) {
+    const returnTask = returnToDetails ? this.editReturnTask : null;
+    this.editRequestId++;
+    this.editRequest?.unsubscribe();
+    this.isEditModalOpen.set(false);
+    this.isEditDiscardConfirmationOpen.set(false);
+    this.editLoading.set(false);
+    this.editLoadError.set(false);
+    this.editingTask = null;
+    this.editTargetId = null;
+    this.editReturnTask = null;
+    this.editFormBaseline = '';
+    if (returnTask) this.openTaskDetails(returnTask);
+  }
+
+  private serializeEditForm(): string {
+    return JSON.stringify(this.editForm);
+  }
+
   submitEditTask() {
-    if (!this.editingTask) return;
+    if (!this.editingTask || this.isSubmitting() || this.editLoading() || this.editLoadError()) return;
     this.isEditSubmitted = true;
     if (!this.editForm.title.trim()) {
       this.toast.warning(this.uiI18n.translate('tasks.nazvanie_zadachi_obyazatelno'));
@@ -2960,23 +3221,25 @@ export class TasksComponent implements OnInit {
       responsibleUserId: this.editForm.responsibleUserId ? Number(this.editForm.responsibleUserId) : null,
       parentTaskId: this.editForm.parentTaskId ? Number(this.editForm.parentTaskId) : null,
       observerUserIds: this.editForm.observerUserIds,
-      beginTime: this.editForm.beginTime ? new Date(this.editForm.beginTime).toISOString() : null,
-      endTime: this.editForm.endTime ? new Date(this.editForm.endTime).toISOString() : null,
+      beginTime: toTaskInstant(this.editForm.beginTime, this.editingTask.beginTime),
+      endTime: toTaskInstant(this.editForm.endTime, this.editingTask.endTime),
       attributes: attrs
     };
 
+    const editedTask = this.editingTask;
+    const returnTask = this.editReturnTask;
     this.isSubmitting.set(true);
-    this.api.patch(`/tasks/${this.editingTask.id}`, payload).subscribe({
+    this.editSaveRequest = this.api.patch(`/tasks/${editedTask.id}`, payload).subscribe({
       next: () => {
+        if (this.destroyed || this.editingTask?.id !== editedTask.id) return;
         this.isSubmitting.set(false);
-        this.isEditModalOpen.set(false);
+        this.closeEditModal(false);
         this.toast.success(this.uiI18n.translate('tasks.zadacha_uspeshno_obnovlena'));
         this.loadTasks(true);
-        if (this.selectedTask()?.id === this.editingTask?.id) {
-          this.loadTaskFullDetails(this.editingTask!.id);
-        }
+        if (returnTask) this.openTaskDetails({ ...returnTask, id: editedTask.id });
       },
       error: err => {
+        if (this.destroyed || this.editingTask?.id !== editedTask.id) return;
         this.isSubmitting.set(false);
         this.toast.error(err.error?.message || this.uiI18n.translate('tasks.oshibka_pri_obnovlenii_zadachi'));
       }

@@ -84,8 +84,8 @@ export interface TaskComment {
   id: number;
   taskId: number;
   userId: number;
-  userName: string;
-  userLogin: string;
+  userName: string | null;
+  userLogin: string | null;
   commentMarkdown?: string;
   textMarkdown?: string;
   createdAt: string;

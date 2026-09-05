@@ -135,7 +135,7 @@ import { TranslatePipe } from '../../core/services/i18n.service';
 })
 export class UiModalComponent implements OnChanges, OnDestroy {
   private static nextId = 0;
-  private static openModalCount = 0;
+  private static readonly openModals: UiModalComponent[] = [];
 
   readonly titleId = `ui-modal-title-${UiModalComponent.nextId++}`;
   private bodyLocked = false;
@@ -150,7 +150,7 @@ export class UiModalComponent implements OnChanges, OnDestroy {
 
   @HostListener('document:keydown.escape')
   onEscape() {
-    if (this.isOpen && this.dismissible) {
+    if (this.isOpen && this.dismissible && UiModalComponent.openModals.at(-1) === this) {
       this.close.emit();
     }
   }
@@ -175,8 +175,12 @@ export class UiModalComponent implements OnChanges, OnDestroy {
     if (shouldLock === this.bodyLocked) return;
 
     this.bodyLocked = shouldLock;
-    UiModalComponent.openModalCount += shouldLock ? 1 : -1;
-    UiModalComponent.openModalCount = Math.max(0, UiModalComponent.openModalCount);
-    document.body.classList.toggle('modal-open', UiModalComponent.openModalCount > 0);
+    const existingIndex = UiModalComponent.openModals.indexOf(this);
+    if (shouldLock && existingIndex === -1) {
+      UiModalComponent.openModals.push(this);
+    } else if (!shouldLock && existingIndex !== -1) {
+      UiModalComponent.openModals.splice(existingIndex, 1);
+    }
+    document.body.classList.toggle('modal-open', UiModalComponent.openModals.length > 0);
   }
 }
