@@ -1,34 +1,56 @@
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
-import { of } from 'rxjs';
+import { Observable, Subject, of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
+import { Project, ProjectTaskStats } from '../../../core/models/task.models';
 import { ApiService } from '../../../core/services/api.service';
 import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { ProjectsComponent } from './projects.component';
 
+interface ApiDouble {
+  get: ReturnType<typeof vi.fn>;
+  post: ReturnType<typeof vi.fn>;
+  patch: ReturnType<typeof vi.fn>;
+}
+
+const emptyApi = (): ApiDouble => ({
+  get: vi.fn(() => of([])),
+  post: vi.fn(() => of({})),
+  patch: vi.fn(() => of({}))
+});
+
 describe('ProjectsComponent UI contracts', () => {
-  async function createFixture(api: Record<string, unknown> = {
-    get: vi.fn(() => of([])),
-    post: vi.fn(() => of({})),
-    patch: vi.fn(() => of({}))
-  }) {
+  async function createFixture(options: {
+    api?: ApiDouble;
+    permissions?: string[];
+  } = {}) {
+    const api = options.api ?? emptyApi();
+    const router = { navigate: vi.fn() };
     await TestBed.configureTestingModule({
       imports: [ProjectsComponent],
       providers: [
         { provide: ApiService, useValue: api },
-        { provide: PermissionService, useValue: { canCreate: () => true, canUpdate: () => true } },
+        PermissionService,
         { provide: ToastService, useValue: { success: vi.fn(), warning: vi.fn(), error: vi.fn() } },
-        { provide: Router, useValue: { navigate: vi.fn() } }
+        { provide: Router, useValue: router }
       ]
     }).compileComponents();
+    TestBed.inject(PermissionService).setPermissions(options.permissions ?? ['*.*']);
     const fixture = TestBed.createComponent(ProjectsComponent);
     fixture.detectChanges();
-    return fixture;
+    return { fixture, api, router };
   }
 
+  const project = (id: number, state: 'A' | 'P' = 'A'): Project => ({
+    id,
+    name: `Project ${id}`,
+    state,
+    createdAt: '2026-09-06T00:00:00Z'
+  });
+
   it('labels filters and keeps the projects table inside a named scroll region', async () => {
-    const fixture = await createFixture();
+    const { fixture } = await createFixture();
 
     const search = fixture.nativeElement.querySelector('#project-search') as HTMLInputElement;
     const region = fixture.nativeElement.querySelector('.table-wrapper[role="region"]') as HTMLElement;
@@ -40,7 +62,7 @@ describe('ProjectsComponent UI contracts', () => {
   });
 
   it('connects project modal labels, required state and validation message', async () => {
-    const fixture = await createFixture();
+    const { fixture } = await createFixture();
     fixture.componentInstance.openCreateModal();
     fixture.componentInstance.isCreateSubmitted = true;
     fixture.detectChanges();
@@ -53,6 +75,268 @@ describe('ProjectsComponent UI contracts', () => {
     expect(name.getAttribute('aria-invalid')).toBe('true');
     expect(name.getAttribute('aria-describedby')).toBe(error.id);
     expect(fixture.nativeElement.querySelector('#project-create-description')).not.toBeNull();
+  });
+
+  it('resets pagination when search and status filters change or search is cleared', async () => {
+    const rows = Array.from({ length: 21 }, (_, index) => project(index + 1, index === 20 ? 'P' : 'A'));
+    const api = emptyApi();
+    api.get.mockImplementation((url: string) => of(url.endsWith('/stats') ? [] : rows));
+    const { fixture } = await createFixture({ api });
+    const component = fixture.componentInstance;
+    const search = fixture.nativeElement.querySelector('#project-search') as HTMLInputElement;
+
+    component.currentPage = 2;
+    search.value = 'Project 21';
+    search.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(component.currentPage).toBe(1);
+    expect(fixture.nativeElement.querySelector('.project-row')?.textContent).toContain('Project 21');
+
+    component.currentPage = 2;
+    (fixture.nativeElement.querySelector('.project-search-clear') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(component.currentPage).toBe(1);
+
+    const statusButtons = Array.from(
+      fixture.nativeElement.querySelectorAll('[data-testid="project-state-filter"]') as NodeListOf<HTMLButtonElement>
+    );
+    for (const [label, visibleProject] of [
+      ['Архив', 'Project 21'],
+      ['Активные', 'Project 1'],
+      ['Все', 'Project 1']
+    ] as const) {
+      component.currentPage = 2;
+      statusButtons.find(button => button.textContent?.includes(label))?.click();
+      fixture.detectChanges();
+      expect(component.currentPage).toBe(1);
+      expect(fixture.nativeElement.querySelector('.project-row')?.textContent).toContain(visibleProject);
+    }
+  });
+
+  it('clamps the page to filtered results after successful reloads', async () => {
+    const api = emptyApi();
+    const responses: Project[][] = [
+      Array.from({ length: 25 }, (_, index) => project(index + 1)),
+      Array.from({ length: 15 }, (_, index) => project(index + 1)),
+      Array.from({ length: 21 }, (_, index) => project(index + 1, index === 20 ? 'P' : 'A')),
+      []
+    ];
+    api.get.mockImplementation((url: string) => of(url.endsWith('/stats') ? [] : responses.shift() ?? []));
+    const { fixture } = await createFixture({ api });
+    const component = fixture.componentInstance;
+
+    component.currentPage = 3;
+    component.loadProjects();
+    expect(component.currentPage).toBe(2);
+
+    component.selectedState = 'A';
+    component.currentPage = 1;
+    component.loadProjects(21);
+    expect(component.currentPage).toBe(1);
+
+    component.currentPage = 3;
+    component.loadProjects();
+    expect(component.currentPage).toBe(1);
+  });
+
+  it('shows recoverable list loading and error states without empty results in list and cards', async () => {
+    const first = new Subject<Project[]>();
+    const retry = new Subject<Project[]>();
+    const listReads = [first, retry];
+    const api = emptyApi();
+    api.get.mockImplementation((url: string): Observable<Project[] | ProjectTaskStats[]> =>
+      url.endsWith('/stats') ? of([]) : (listReads.shift() ?? of([]))
+    );
+    const { fixture } = await createFixture({ api });
+
+    expect(fixture.nativeElement.querySelector('[data-testid="projects-list-loading"][role="status"]')).not.toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('Проекты не найдены');
+    expect(fixture.nativeElement.querySelector('ui-pagination')).toBeNull();
+    expect(api.get).toHaveBeenCalledWith('/tasks/projects', undefined, { notifyError: false });
+
+    fixture.componentInstance.viewMode = 'cards';
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).not.toContain('Проекты не найдены');
+    expect(fixture.nativeElement.querySelector('.project-card')).toBeNull();
+
+    first.error({ status: 503, title: 'Unavailable', code: 'API_ERROR', detail: 'Unavailable' });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-testid="projects-list-error"][role="alert"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('ui-pagination')).toBeNull();
+
+    const retryButton = fixture.nativeElement.querySelector('.projects-list-retry') as HTMLButtonElement;
+    expect(retryButton.textContent).toContain('Повторить загрузку проектов');
+    retryButton.click();
+    fixture.detectChanges();
+    retry.next([project(1)]);
+    retry.complete();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[data-testid="projects-list-error"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.project-card')?.textContent).toContain('Project 1');
+  });
+
+  it('renders task statistics only for real successful rows and recovers independently', async () => {
+    const pending = new Subject<ProjectTaskStats[]>();
+    const retry = new Subject<ProjectTaskStats[]>();
+    const explicitZero = new Subject<ProjectTaskStats[]>();
+    const missing = new Subject<ProjectTaskStats[]>();
+    const statsReads = [pending, retry, explicitZero, missing];
+    const api = emptyApi();
+    api.get.mockImplementation((url: string) => url.endsWith('/stats') ? (statsReads.shift() ?? of([])) : of([project(1)]));
+    const { fixture } = await createFixture({ api });
+    const component = fixture.componentInstance;
+
+    expect(fixture.nativeElement.querySelector('[data-testid="projects-stats-loading"][role="status"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[role="progressbar"]')).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('0 / 0');
+    expect(api.get).toHaveBeenCalledWith('/tasks/projects/stats', undefined, { notifyError: false });
+
+    component.viewMode = 'cards';
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.project-card')?.textContent).toContain('Project 1');
+    expect(fixture.nativeElement.querySelector('[role="progressbar"]')).toBeNull();
+
+    pending.error({ status: 503, title: 'Unavailable', code: 'API_ERROR', detail: 'Unavailable' });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-testid="projects-stats-error"][role="alert"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[role="progressbar"]')).toBeNull();
+
+    (fixture.nativeElement.querySelector('.projects-stats-retry') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    retry.next([{ projectId: 1, totalTasks: 4, activeTasks: 2, doneTasks: 2 }]);
+    retry.complete();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="progressbar"]')?.getAttribute('aria-valuenow')).toBe('50');
+    expect(fixture.nativeElement.textContent).toContain('2 / 4');
+
+    component.loadStats();
+    explicitZero.next([{ projectId: 1, totalTasks: 0, activeTasks: 0, doneTasks: 0 }]);
+    explicitZero.complete();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="progressbar"]')?.getAttribute('aria-valuenow')).toBe('0');
+    expect(fixture.nativeElement.textContent).toContain('0 / 0');
+
+    component.loadStats();
+    missing.next([]);
+    missing.complete();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="progressbar"]')).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Статистика недоступна');
+  });
+
+  it('keeps project-view-only users on plain project data without task statistics or drilldowns', async () => {
+    const api = emptyApi();
+    api.get.mockImplementation((url: string) => of(url.endsWith('/stats') ? [] : [project(1)]));
+    const { fixture, router } = await createFixture({ api, permissions: ['tasks.projects.view'] });
+
+    expect(fixture.nativeElement.querySelector('.project-name')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.project-name-text')?.textContent).toContain('Project 1');
+    expect(fixture.nativeElement.querySelector('[role="progressbar"]')).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('Задачи (');
+    expect(fixture.nativeElement.querySelector('[data-testid="projects-stats-permission"][role="status"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.projects-stats-retry')).toBeNull();
+    expect(api.get.mock.calls.filter(([url]) => String(url).endsWith('/stats'))).toHaveLength(0);
+
+    fixture.componentInstance.viewMode = 'cards';
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.project-title-btn')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.project-name-text')?.textContent).toContain('Project 1');
+    expect(fixture.nativeElement.querySelector('.view-tasks-link')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.card-progress')).toBeNull();
+
+    fixture.componentInstance.viewProjectTasks(project(1));
+    expect(router.navigate).not.toHaveBeenCalled();
+  });
+
+  it('does not let task create or update permissions grant project actions', async () => {
+    const api = emptyApi();
+    api.get.mockImplementation((url: string) => of(url.endsWith('/stats') ? [] : [project(1)]));
+    const { fixture } = await createFixture({
+      api,
+      permissions: ['tasks.projects.view', 'tasks.items.create', 'tasks.items.update']
+    });
+    const component = fixture.componentInstance;
+
+    expect(component.canCreateProject()).toBe(false);
+    expect(component.canUpdateProject()).toBe(false);
+    component.openCreateModal();
+    component.createForm = { name: 'Disallowed', description: '' };
+    component.submitCreateProject();
+    component.openEditModal(project(1));
+    component.editingProject = project(1);
+    component.editForm = { name: 'Disallowed edit', description: '', state: 'A' };
+    component.submitEditProject();
+
+    expect(component.isCreateModalOpen()).toBe(false);
+    expect(component.isEditModalOpen()).toBe(false);
+    expect(api.post).not.toHaveBeenCalled();
+    expect(api.patch).not.toHaveBeenCalled();
+  });
+
+  it('retains project create and update actions for scoped users and wildcard administrators', async () => {
+    const api = emptyApi();
+    api.get.mockImplementation((url: string) => of(url.endsWith('/stats') ? [] : [project(1)]));
+    api.post.mockReturnValue(of(project(2)));
+    const { fixture } = await createFixture({
+      api,
+      permissions: ['tasks.projects.view', 'tasks.projects.create', 'tasks.projects.update', 'tasks.items.view']
+    });
+    expect(fixture.componentInstance.canCreateProject()).toBe(true);
+    expect(fixture.componentInstance.canUpdateProject()).toBe(true);
+    expect(fixture.nativeElement.querySelector('ui-button')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.icon-ghost-btn')).not.toBeNull();
+
+    fixture.componentInstance.openCreateModal();
+    fixture.componentInstance.createForm = { name: 'Created', description: '' };
+    fixture.componentInstance.submitCreateProject();
+    expect(api.post).toHaveBeenCalledTimes(1);
+
+    fixture.componentInstance.openEditModal(project(1));
+    fixture.componentInstance.editForm.name = 'Updated';
+    fixture.componentInstance.submitEditProject();
+    expect(api.patch).toHaveBeenCalledTimes(1);
+
+    TestBed.inject(PermissionService).setPermissions(['*.*']);
+    fixture.detectChanges();
+    expect(fixture.componentInstance.canCreateProject()).toBe(true);
+    expect(fixture.componentInstance.canUpdateProject()).toBe(true);
+  });
+
+  it('cancels replaced reads and ignores list or statistics responses after destroy', async () => {
+    const firstList = new Subject<Project[]>();
+    const latestList = new Subject<Project[]>();
+    const afterDestroyList = new Subject<Project[]>();
+    const firstStats = new Subject<ProjectTaskStats[]>();
+    const latestStats = new Subject<ProjectTaskStats[]>();
+    const afterDestroyStats = new Subject<ProjectTaskStats[]>();
+    const listReads = [firstList, latestList, afterDestroyList];
+    const statsReads = [firstStats, latestStats, afterDestroyStats];
+    const api = emptyApi();
+    api.get.mockImplementation((url: string) => url.endsWith('/stats') ? statsReads.shift()! : listReads.shift()!);
+    const { fixture } = await createFixture({ api });
+    const component = fixture.componentInstance;
+
+    component.loadProjects();
+    component.loadStats();
+    latestList.next([project(2)]);
+    latestStats.next([{ projectId: 2, totalTasks: 5, activeTasks: 1, doneTasks: 4 }]);
+    firstList.next([project(1)]);
+    firstStats.next([{ projectId: 1, totalTasks: 99, activeTasks: 99, doneTasks: 99 }]);
+
+    expect(component.projects().map(row => row.id)).toEqual([2]);
+    expect(component.projectStats()[2]?.totalTasks).toBe(5);
+    expect(component.projectStats()[1]).toBeUndefined();
+
+    component.loadProjects();
+    component.loadStats();
+    fixture.destroy();
+    afterDestroyList.next([project(3)]);
+    afterDestroyStats.next([{ projectId: 3, totalTasks: 3, activeTasks: 3, doneTasks: 0 }]);
+
+    expect(component.projects().map(row => row.id)).toEqual([]);
+    expect(component.projectStats()).toEqual({});
   });
 
   it('reveals a newly created project even when it belongs on a later page', async () => {
@@ -69,15 +353,13 @@ describe('ProjectsComponent UI contracts', () => {
       createdAt: '2026-08-30T00:00:00Z'
     };
     let wasCreated = false;
-    const api = {
-      get: vi.fn((url: string) => of(url.endsWith('/stats') ? [] : wasCreated ? [...existing, created] : existing)),
-      post: vi.fn(() => {
-        wasCreated = true;
-        return of(created);
-      }),
-      patch: vi.fn(() => of({}))
-    };
-    const fixture = await createFixture(api);
+    const api = emptyApi();
+    api.get.mockImplementation((url: string) => of(url.endsWith('/stats') ? [] : wasCreated ? [...existing, created] : existing));
+    api.post.mockImplementation(() => {
+      wasCreated = true;
+      return of(created);
+    });
+    const { fixture } = await createFixture({ api });
     const component = fixture.componentInstance;
     component.searchQuery = 'old filter';
     component.selectedState = 'P';
@@ -89,6 +371,6 @@ describe('ProjectsComponent UI contracts', () => {
     expect(component.searchQuery).toBe('');
     expect(component.selectedState).toBe('all');
     expect(component.currentPage).toBe(2);
-    expect(component.paginatedProjects().map(project => project.id)).toContain(created.id);
+    expect(component.paginatedProjects().map(row => row.id)).toContain(created.id);
   });
 });

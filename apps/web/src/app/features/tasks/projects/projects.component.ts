@@ -1,7 +1,8 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { ApiService } from '../../../core/services/api.service';
 import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
@@ -23,7 +24,7 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
       <div class="view-header">
         <div class="header-left">
           <h1 class="view-title">{{ 'nav.projects' | t }}</h1>
-          <span class="count-badge">{{ filteredProjects().length }}</span>
+          <span *ngIf="isListReady()" class="count-badge">{{ filteredProjects().length }}</span>
 
           <!-- View Mode Switcher -->
           <div class="status-tabs" role="group" [attr.aria-label]="'projects.rezhim_otobrazheniya_proektov' | t">
@@ -76,9 +77,10 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
             type="text"
             class="search-input"
             [placeholder]="'projects.poisk_po_nazvaniyu_ili_opisaniyu' | t"
-            [(ngModel)]="searchQuery"
+            [ngModel]="searchQuery"
+            (ngModelChange)="setSearchQuery($event)"
           />
-          <button *ngIf="searchQuery" type="button" class="btn-icon" style="position: absolute; right: 6px;" [attr.aria-label]="'projects.ochistit_poisk_proektov' | t" (click)="searchQuery = ''">
+          <button *ngIf="searchQuery" type="button" class="btn-icon project-search-clear" style="position: absolute; right: 6px;" [attr.aria-label]="'projects.ochistit_poisk_proektov' | t" (click)="clearSearch()">
             <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">close</span>
           </button>
         </div>
@@ -87,18 +89,20 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
           <button
             type="button"
             class="status-tab"
+            data-testid="project-state-filter"
             [class.active]="selectedState === 'all'"
             [attr.aria-pressed]="selectedState === 'all'"
-            (click)="selectedState = 'all'"
+            (click)="setSelectedState('all')"
           >
             {{ 'common.all' | t }}
           </button>
           <button
             type="button"
             class="status-tab"
+            data-testid="project-state-filter"
             [class.active]="selectedState === 'A'"
             [attr.aria-pressed]="selectedState === 'A'"
-            (click)="selectedState = 'A'"
+            (click)="setSelectedState('A')"
           >
             <span class="status-tab-dot" style="background-color: var(--success);" aria-hidden="true"></span>
             {{ 'iam.aktivnye' | t }}
@@ -106,9 +110,10 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
           <button
             type="button"
             class="status-tab"
+            data-testid="project-state-filter"
             [class.active]="selectedState === 'P'"
             [attr.aria-pressed]="selectedState === 'P'"
-            (click)="selectedState = 'P'"
+            (click)="setSelectedState('P')"
           >
             <span class="status-tab-dot" style="background-color: var(--text-light);" aria-hidden="true"></span>
             {{ 'projects.arhiv' | t }}
@@ -116,10 +121,58 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
         </div>
       </div>
 
+      <div
+        *ngIf="isLoading()"
+        class="request-state"
+        data-testid="projects-list-loading"
+        role="status"
+        aria-live="polite"
+      >
+        {{ 'projects.loading_projects' | t }}
+      </div>
+      <div *ngIf="listLoadError()" class="request-state request-error" data-testid="projects-list-error" role="alert">
+        <span>{{ 'projects.load_projects_error' | t }}</span>
+        <button type="button" class="request-retry projects-list-retry" (click)="loadProjects()">
+          {{ 'projects.retry_projects' | t }}
+        </button>
+      </div>
+
+      <div
+        *ngIf="!canViewTasks()"
+        class="stats-state"
+        data-testid="projects-stats-permission"
+        role="status"
+      >
+        {{ 'projects.stats_permission' | t }}
+      </div>
+      <div
+        *ngIf="canViewTasks() && statsLoading()"
+        class="stats-state"
+        data-testid="projects-stats-loading"
+        role="status"
+        aria-live="polite"
+      >
+        {{ 'projects.loading_stats' | t }}
+      </div>
+      <div
+        *ngIf="canViewTasks() && statsLoadError()"
+        class="stats-state request-error"
+        data-testid="projects-stats-error"
+        role="alert"
+      >
+        <span>{{ 'projects.load_stats_error' | t }}</span>
+        <button type="button" class="request-retry projects-stats-retry" (click)="loadStats()">
+          {{ 'projects.retry_stats' | t }}
+        </button>
+      </div>
+      <div *ngIf="canViewTasks() && statsLoaded()" class="stats-state" data-testid="projects-stats-scope" role="status">
+        {{ 'projects.stats_scope' | t }}
+      </div>
+
       <!-- ======================================================================= -->
       <!-- VIEW 1: TABLE / LIST VIEW (Default)                                     -->
       <!-- ======================================================================= -->
-      <div class="table-card" *ngIf="viewMode === 'list'">
+      <div class="table-card" *ngIf="viewMode === 'list' && isListReady()">
         <div class="table-wrapper" role="region" [attr.aria-label]="'projects.tablica_proektov' | t" tabindex="0">
           <table class="data-table" [attr.aria-label]="'projects.spisok_proektov' | t">
             <thead>
@@ -127,7 +180,7 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
                 <th style="width: 60px;">ID</th>
                 <th>{{ 'projects.proekt' | t }}</th>
                 <th style="width: 110px;">{{ 'common.status' | t }}</th>
-                <th style="width: 220px;">{{ 'projects.progress_zadach' | t }}</th>
+                <th *ngIf="canViewTasks()" style="width: 220px;">{{ 'projects.progress_zadach' | t }}</th>
                 <th style="width: 120px;">{{ 'iam.sozdan' | t }}</th>
                 <th class="text-right" style="width: 140px;">{{ 'common.actions' | t }}</th>
               </tr>
@@ -139,9 +192,10 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
                   <div class="project-title-cell">
                     <span class="material-symbols-outlined folder-icon" aria-hidden="true">folder</span>
                     <div class="project-info-group">
-                      <button type="button" class="project-name" (click)="viewProjectTasks(p)">
+                      <button *ngIf="canViewTasks(); else plainProjectName" type="button" class="project-name" (click)="viewProjectTasks(p)">
                         {{ p.name }}
                       </button>
+                      <ng-template #plainProjectName><span class="project-name-text">{{ p.name }}</span></ng-template>
                       <span *ngIf="p.description" class="project-desc-line">{{ p.description }}</span>
                     </div>
                   </div>
@@ -152,8 +206,8 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
                     {{ (p.state === 'A' ? 'common.active_masculine' : 'common.archive') | t }}
                   </span>
                 </td>
-                <td>
-                  <div class="progress-cell">
+                <td *ngIf="canViewTasks()">
+                  <div *ngIf="hasProjectStats(p.id); else unknownTableStats" class="progress-cell">
                     <div class="progress-labels">
                       <span class="progress-count tabular-nums">
                         {{ 'projects.done_ratio' | t:{done: getProjectDoneCount(p.id), total: getProjectTotalCount(p.id)} }}
@@ -177,6 +231,7 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
                       ></div>
                     </div>
                   </div>
+                  <ng-template #unknownTableStats><span class="stats-unknown">{{ 'projects.stats_unknown' | t }}</span></ng-template>
                 </td>
                 <td>
                   <span class="tabular-nums text-muted text-xs">
@@ -186,6 +241,7 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
                 <td class="text-right">
                   <div class="row-action-btns">
                     <button
+                      *ngIf="canViewTasks()"
                       type="button"
                       class="action-link-btn"
                       [attr.aria-label]="'projects.open_tasks_named' | t:{name: p.name}"
@@ -209,8 +265,8 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
                 </td>
               </tr>
 
-              <tr *ngIf="filteredProjects().length === 0 && !isLoading()">
-                <td colspan="6" class="empty-state-cell">
+              <tr *ngIf="filteredProjects().length === 0">
+                <td [attr.colspan]="canViewTasks() ? 6 : 5" class="empty-state-cell">
                   <span class="material-symbols-outlined empty-icon" aria-hidden="true">folder_off</span>
                   <p>{{ 'projects.proekty_ne_naydeny' | t }}</p>
                 </td>
@@ -223,15 +279,15 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
           [totalItems]="filteredProjects().length"
           [currentPage]="currentPage"
           [pageSize]="pageSize"
-          (pageChange)="currentPage = $event"
-          (pageSizeChange)="pageSize = $event; currentPage = 1"
+          (pageChange)="setPage($event)"
+          (pageSizeChange)="setPageSize($event)"
         ></ui-pagination>
       </div>
 
       <!-- ======================================================================= -->
       <!-- VIEW 2: CARDS GRID VIEW                                                 -->
       <!-- ======================================================================= -->
-      <div class="cards-view-wrapper" *ngIf="viewMode === 'cards'">
+      <div class="cards-view-wrapper" *ngIf="viewMode === 'cards' && isListReady()">
         <div class="projects-grid">
           <div
             *ngFor="let p of paginatedProjects()"
@@ -261,14 +317,15 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
 
             <div class="card-content">
               <h3 class="project-title">
-                <button type="button" class="project-title-btn" (click)="viewProjectTasks(p)">
+                <button *ngIf="canViewTasks(); else plainCardProjectName" type="button" class="project-title-btn" (click)="viewProjectTasks(p)">
                   {{ p.name }}
                 </button>
+                <ng-template #plainCardProjectName><span class="project-name-text">{{ p.name }}</span></ng-template>
               </h3>
               <p class="project-desc">{{ p.description || ('projects.description_missing' | t) }}</p>
             </div>
 
-            <div class="card-progress">
+            <div *ngIf="canViewTasks() && hasProjectStats(p.id)" class="card-progress">
               <div class="progress-labels">
                 <span class="progress-count tabular-nums">
                   {{ 'projects.completed_ratio' | t:{done: getProjectDoneCount(p.id), total: getProjectTotalCount(p.id)} }}
@@ -295,13 +352,14 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
 
             <div class="card-foot">
               <span class="foot-date tabular-nums">{{ 'projects.created_at' | t:{date: (p.createdAt | date:'dd.MM.yyyy') || ''} }}</span>
-              <button type="button" class="view-tasks-link" (click)="viewProjectTasks(p)">
+              <button *ngIf="canViewTasks() && hasProjectStats(p.id)" type="button" class="view-tasks-link" (click)="viewProjectTasks(p)">
                 {{ 'projects.tasks_count_arrow' | t:{count: getProjectTotalCount(p.id)} }}
               </button>
+              <span *ngIf="canViewTasks() && !hasProjectStats(p.id)" class="stats-unknown">{{ 'projects.stats_unknown' | t }}</span>
             </div>
           </div>
 
-          <div *ngIf="filteredProjects().length === 0 && !isLoading()" class="empty-projects-cell">
+          <div *ngIf="filteredProjects().length === 0" class="empty-projects-cell">
             <span class="material-symbols-outlined empty-icon" aria-hidden="true">folder_off</span>
             <p>{{ 'projects.proekty_ne_naydeny' | t }}</p>
           </div>
@@ -311,8 +369,8 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
           [totalItems]="filteredProjects().length"
           [currentPage]="currentPage"
           [pageSize]="pageSize"
-          (pageChange)="currentPage = $event"
-          (pageSizeChange)="pageSize = $event; currentPage = 1"
+          (pageChange)="setPage($event)"
+          (pageSizeChange)="setPageSize($event)"
         ></ui-pagination>
       </div>
     </div>
@@ -498,6 +556,36 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
       border-radius: var(--radius-md);
       padding: 8px 12px;
     }
+    .request-state,
+    .stats-state {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 40px;
+      padding: 9px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      background-color: var(--bg-surface);
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+    .request-error {
+      border-color: var(--danger);
+      background-color: var(--danger-bg);
+      color: var(--danger);
+    }
+    .request-retry {
+      min-height: 28px;
+      padding: 3px 9px;
+      border: 1px solid currentColor;
+      border-radius: var(--radius-xs);
+      background-color: transparent;
+      color: inherit;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 600;
+    }
     .search-box {
       display: flex;
       align-items: center;
@@ -606,7 +694,8 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
       display: inline-flex;
       align-items: center;
     }
-    .project-name { font-weight: 600; color: var(--text-main); }
+    .project-name,
+    .project-name-text { font-weight: 600; color: var(--text-main); }
     .project-name:hover,
     .project-title-btn:hover,
     .view-tasks-link:hover { text-decoration: underline; }
@@ -653,6 +742,7 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
       transition: width 0.3s ease;
     }
     .progress-bar-fill.complete { background-color: var(--success); }
+    .stats-unknown { color: var(--text-muted); font-size: 11px; }
 
     .row-action-btns { display: inline-flex; align-items: center; gap: 6px; }
     .action-link-btn {
@@ -816,16 +906,25 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
     .text-xs { font-size: 11px; }
   `]
 })
-export class ProjectsComponent implements OnInit {
+export class ProjectsComponent implements OnInit, OnDestroy {
   private readonly uiI18n = inject(I18nService);
+  private listRequest?: Subscription;
+  private statsRequest?: Subscription;
+  private destroyed = false;
+
   readonly projects = signal<Project[]>([]);
   readonly projectStats = signal<Record<number, ProjectTaskStats>>({});
   readonly isLoading = signal<boolean>(false);
+  readonly listLoadError = signal<boolean>(false);
+  readonly listLoaded = signal<boolean>(false);
+  readonly statsLoading = signal<boolean>(false);
+  readonly statsLoadError = signal<boolean>(false);
+  readonly statsLoaded = signal<boolean>(false);
   readonly isSubmitting = signal<boolean>(false);
 
   viewMode: 'list' | 'cards' = 'list';
   searchQuery = '';
-  selectedState = 'all';
+  selectedState: 'all' | 'A' | 'P' = 'all';
   currentPage = 1;
   pageSize = 10;
 
@@ -852,45 +951,121 @@ export class ProjectsComponent implements OnInit {
     this.loadStats();
   }
 
+  ngOnDestroy() {
+    this.destroyed = true;
+    this.listRequest?.unsubscribe();
+    this.statsRequest?.unsubscribe();
+  }
+
   canCreateProject(): boolean {
-    return this.permService.canCreate('tasks.projects') || this.permService.canCreate('tasks');
+    return this.permService.canCreate('tasks.projects');
   }
 
   canUpdateProject(): boolean {
-    return this.permService.canUpdate('tasks.projects') || this.permService.canUpdate('tasks');
+    return this.permService.canUpdate('tasks.projects');
+  }
+
+  canViewTasks(): boolean {
+    return this.permService.canView('tasks.items');
   }
 
   loadProjects(focusProjectId?: number) {
+    if (this.destroyed) return;
+
+    this.listRequest?.unsubscribe();
     this.isLoading.set(true);
-    this.api.get<Project[]>('/tasks/projects').subscribe({
+    this.listLoadError.set(false);
+    this.listLoaded.set(false);
+    this.projects.set([]);
+    this.listRequest = this.api.get<Project[]>('/tasks/projects', undefined, { notifyError: false }).subscribe({
       next: res => {
+        if (this.destroyed) return;
         this.isLoading.set(false);
         const projects = res || [];
         this.projects.set(projects);
+        this.listLoaded.set(true);
+
+        const filteredProjects = this.filteredProjects();
         if (focusProjectId !== undefined) {
-          const projectIndex = projects.findIndex(project => project.id === focusProjectId);
+          const projectIndex = filteredProjects.findIndex(project => project.id === focusProjectId);
           if (projectIndex >= 0) {
             this.currentPage = Math.floor(projectIndex / this.pageSize) + 1;
+            return;
           }
         }
+
+        this.clampCurrentPage();
       },
       error: () => {
+        if (this.destroyed) return;
         this.isLoading.set(false);
+        this.listLoadError.set(true);
       }
     });
   }
 
   loadStats() {
-    this.api.get<ProjectTaskStats[]>('/tasks/projects/stats').subscribe({
+    this.statsRequest?.unsubscribe();
+    this.projectStats.set({});
+    this.statsLoading.set(false);
+    this.statsLoadError.set(false);
+    this.statsLoaded.set(false);
+
+    if (this.destroyed || !this.canViewTasks()) return;
+
+    this.statsLoading.set(true);
+    this.statsRequest = this.api.get<ProjectTaskStats[]>('/tasks/projects/stats', undefined, { notifyError: false }).subscribe({
       next: res => {
+        if (this.destroyed) return;
         const map: Record<number, ProjectTaskStats> = {};
         for (const s of res || []) {
           map[s.projectId] = s;
         }
         this.projectStats.set(map);
+        this.statsLoading.set(false);
+        this.statsLoaded.set(true);
       },
-      error: () => {}
+      error: () => {
+        if (this.destroyed) return;
+        this.statsLoading.set(false);
+        this.statsLoadError.set(true);
+      }
     });
+  }
+
+  setSearchQuery(value: string) {
+    this.searchQuery = value;
+    this.currentPage = 1;
+  }
+
+  clearSearch() {
+    this.searchQuery = '';
+    this.currentPage = 1;
+  }
+
+  setSelectedState(state: 'all' | 'A' | 'P') {
+    this.selectedState = state;
+    this.currentPage = 1;
+  }
+
+  setPage(page: number) {
+    if (!this.isListReady()) return;
+    this.currentPage = page;
+  }
+
+  setPageSize(pageSize: number) {
+    if (!this.isListReady()) return;
+    this.pageSize = pageSize;
+    this.currentPage = 1;
+  }
+
+  isListReady(): boolean {
+    return this.listLoaded() && !this.isLoading() && !this.listLoadError();
+  }
+
+  private clampCurrentPage() {
+    const lastPage = Math.max(1, Math.ceil(this.filteredProjects().length / this.pageSize));
+    this.currentPage = Math.min(this.currentPage, lastPage);
   }
 
   filteredProjects(): Project[] {
@@ -911,28 +1086,39 @@ export class ProjectsComponent implements OnInit {
   }
 
 
+  hasProjectStats(projectId: number): boolean {
+    return this.canViewTasks()
+      && this.statsLoaded()
+      && !this.statsLoading()
+      && !this.statsLoadError()
+      && this.projectStats()[projectId] !== undefined;
+  }
+
   getProjectTotalCount(projectId: number): number {
-    return this.projectStats()[projectId]?.totalTasks || 0;
+    return this.projectStats()[projectId]?.totalTasks ?? 0;
   }
 
   getProjectDoneCount(projectId: number): number {
-    return this.projectStats()[projectId]?.doneTasks || 0;
+    return this.projectStats()[projectId]?.doneTasks ?? 0;
   }
 
   getProjectPercent(projectId: number): number {
-    const total = this.getProjectTotalCount(projectId);
+    const stats = this.projectStats()[projectId];
+    if (!stats) return 0;
+    const total = stats.totalTasks;
     if (total === 0) return 0;
-    const done = this.getProjectDoneCount(projectId);
-    return Math.round((done / total) * 100);
+    return Math.round((stats.doneTasks / total) * 100);
   }
 
   openCreateModal() {
+    if (!this.canCreateProject()) return;
     this.isCreateSubmitted = false;
     this.createForm = { name: '', description: '' };
     this.isCreateModalOpen.set(true);
   }
 
   submitCreateProject() {
+    if (!this.canCreateProject()) return;
     this.isCreateSubmitted = true;
     if (!this.createForm.name.trim()) {
       this.toast.warning(this.uiI18n.translate('projects.vvedite_nazvanie_proekta'));
@@ -963,6 +1149,7 @@ export class ProjectsComponent implements OnInit {
   }
 
   openEditModal(p: Project) {
+    if (!this.canUpdateProject()) return;
     this.isEditSubmitted = false;
     this.editingProject = p;
     this.editForm = {
@@ -974,7 +1161,7 @@ export class ProjectsComponent implements OnInit {
   }
 
   submitEditProject() {
-    if (!this.editingProject) return;
+    if (!this.canUpdateProject() || !this.editingProject) return;
     this.isEditSubmitted = true;
     if (!this.editForm.name.trim()) {
       this.toast.warning(this.uiI18n.translate('projects.nazvanie_proekta_obyazatelno'));
@@ -1002,6 +1189,7 @@ export class ProjectsComponent implements OnInit {
   }
 
   viewProjectTasks(project: Project) {
+    if (!this.canViewTasks()) return;
     this.router.navigate(['/tasks'], { queryParams: { project_id: project.id } });
   }
 }
