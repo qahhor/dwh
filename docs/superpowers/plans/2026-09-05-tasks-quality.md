@@ -148,15 +148,18 @@ Verified 2026-09-05: commits `0a5c1dd`, `c4d33d4`; initial behavioral RED 11 exp
 
 - [x] Add browser tests for date round-trip and clear/reopen, preserved observers, named author, keyboard edit, dirty cancel, visible kanban filters, error/retry and mobile 390px overflow. Use real server writes only in isolated runtime; controlled transport mocks for failure/race/125-task cases. Existing happy-path project→task→comment continues to pass.
 - [x] Build candidate server/web images and start separate Compose project/ports/volumes using existing safe isolated workflow. Verify test target configuration before running mutations. Run full Maven verify, frontend tests/typecheck/build/i18n and the isolated E2E suite.
-- [ ] Inspect rendered desktop/mobile candidate in the available browser tool, screenshot key fixed states and read console. Store screenshots outside committed source. Do not switch the user's installation to candidate images without a deploy request.
+- [x] Inspect rendered desktop/mobile candidate in the available browser tool, screenshot key fixed states and read console. Store screenshots outside committed source. Do not switch the user's installation to candidate images without a deploy request.
 - [x] Run `graphify update .` AST-only and leave generated dirty output uncommitted. Update context and plan with actual counts, runtime location and unresolved limitations. Commit only test/docs changes as `test(tasks): cover task quality regressions`.
 - [ ] Final whole-change review; address substantive findings through one reviewed fix batch. Deliver implementation status, commands/results, browser evidence and remaining risks. Do not claim production release readiness or push/deploy.
 
 Automated Task 5 evidence, 2026-09-05: clean archive `c4d33d4` ran as
 Compose project `smartupcms-tasksq-ecb2e05e` on loopback ports 14200/15435/18118
 with unique server/web image tags and empty migrated volumes. E2E config 3/3,
-E2E typecheck and artifact-security passed; all 30 browser scenarios (24
-existing + 6 new Tasks cases) passed in 2.3 minutes. The existing task vertical
+E2E typecheck and artifact-security passed; after the Task 5 scoped test review,
+all 31 browser scenarios (24 existing + 7 new Tasks cases) passed in 2.1
+minutes. The additional case verifies that the header create action remains
+unambiguous when the first task-list response is empty while its POST still
+uses the isolated real server. The existing task vertical
 slice first reproduced its obsolete description-label failure, then passed
 with exact label `Описание`. A pre-existing localization fixture initially
 timed out on a self-removing Settings language button; request tracing showed
@@ -166,7 +169,23 @@ PATCH and left all persistence/cleanup assertions intact; the isolated rerun
 and full suite passed. Root's final-tree application checks remain 157/157
 frontend tests, app typecheck/build, i18n 1,019/1,039 and Maven server 340/340
 plus libraries 5/5. Candidate `/healthz` returned 200 and all four services
-remained healthy after E2E. External runtime and test artifacts are under
+remained healthy after E2E. Review-strengthened coverage derives the configured
+admin login, captures and reasserts the selected observer display identity on
+every reopen, verifies comment display name plus login, compares retry method/
+path/query exactly, and waits for the held stale route to finish before checking
+both current-row presence and stale-row absence. External runtime and test artifacts are under
 `C:/Temp/smartupcms-tasks-quality-ecb2e05e0db34d62acd838c8702b5cc6`.
-Live IAB visual evidence and final whole-change review remain pending; this is
-not production deployment or readiness evidence.
+Live IAB verified 1280×720 light desktop plus 390×844 light list/kanban/edit
+and dark desktop. Mobile list and kanban measured document client/scroll width
+390/390; the editor measured 357/357 inside its 358 px container. Active/All
+and status controls, full export-scope/filter clarification, correct title and
+candidate URL were visible. The native status select computed light
+foreground/background `rgb(15, 23, 42)` / `rgb(255, 255, 255)` and dark
+`rgb(241, 245, 249)` / `rgb(19, 27, 46)`. The final console contained no
+warnings/errors.
+Five viewed screenshots are stored only under the external `screenshots`
+directory; viewport and light theme were restored, and the user's Chrome/
+`localhost:4200` remained untouched. Two minor observations are deferred to
+the final review: inconsistent empty dynamic-field copy and remote selectors
+briefly showing both empty and loading hints. Final whole-change review remains
+pending; this is not production deployment or readiness evidence.

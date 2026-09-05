@@ -2,6 +2,9 @@ import { expect, test, type Locator, type Page, type Route } from '@playwright/t
 
 import { loginToInstance } from '../../../support/auth.js';
 import { collectPageErrors, uniqueRunName } from '../../../support/diagnostics.js';
+import { loadE2eEnv } from '../../../support/env.mjs';
+
+const environment = loadE2eEnv();
 
 const LIGHT_STATUS_COLORS = {
   backgroundColor: 'rgb(255, 255, 255)',
@@ -58,15 +61,26 @@ async function expectStatusColors(select: Locator, expected: StatusColors): Prom
   })).toEqual(expected);
 }
 
+async function expectSelectedObserver(dialog: Locator, expectedName: string): Promise<void> {
+  const selectedObservers = dialog.locator('.user-tag .user-name');
+  await expect(selectedObservers).toHaveCount(1);
+  await expect(selectedObservers).toHaveText(expectedName);
+}
+
 async function createTaskThroughUi(
   page: Page,
   title: string,
-  options: { deadline?: string; observeAsLogin?: string } = {},
-): Promise<void> {
+  options: { deadline?: string; observeAsLogin?: string; expectEmptyState?: boolean } = {},
+): Promise<string> {
   await page.goto('/tasks');
-  await page.getByRole('button', { name: 'Новая задача' }).click();
+  if (options.expectEmptyState) {
+    await expect(page.locator('.empty-state-cell').getByRole('button', { name: 'Новая задача' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Новая задача' })).toHaveCount(2);
+  }
+  await page.locator('.view-header').getByRole('button', { name: 'Новая задача' }).click();
   const dialog = page.getByRole('dialog', { name: 'Создание новой задачи' });
   await dialog.getByLabel('Название задачи').fill(title);
+  let selectedObserverName = '';
 
   if (options.deadline) {
     await dialog.locator('#task-create-deadline').fill(options.deadline);
@@ -76,6 +90,8 @@ async function createTaskThroughUi(
     await dialog.getByRole('button', { name: 'Наблюдатели' }).click();
     const observer = dialog.getByRole('option').filter({ hasText: `@${options.observeAsLogin}` });
     await expect(observer).toBeVisible();
+    selectedObserverName = (await observer.locator('.u-name').innerText()).trim();
+    expect(selectedObserverName).not.toBe('');
     await observer.click();
     await dialog.getByLabel('Название задачи').click();
   }
@@ -86,6 +102,7 @@ async function createTaskThroughUi(
   await dialog.getByRole('button', { name: 'Создать задачу' }).click();
   expect((await response).ok()).toBe(true);
   await expect(taskOpenButton(page, title)).toBeVisible();
+  return selectedObserverName;
 }
 
 function taskOpenButton(page: Page, title: string): Locator {
@@ -112,9 +129,9 @@ test('task edit round-trips and clears a local deadline while retaining observer
 
   await loginToInstance(page);
   const assertNoPageErrors = collectPageErrors(page);
-  await createTaskThroughUi(page, originalTitle, {
+  const selectedObserverName = await createTaskThroughUi(page, originalTitle, {
     deadline: '2026-09-05T17:00',
-    observeAsLogin: 'tasksq_admin',
+    observeAsLogin: environment.instance.login,
   });
 
   const row = taskOpenButton(page, originalTitle).locator('xpath=ancestor::tr');
@@ -123,7 +140,7 @@ test('task edit round-trips and clears a local deadline while retaining observer
   await expect(editDialog).toBeVisible();
   await expect(page.getByRole('dialog')).toHaveCount(1);
   await expect(editDialog.locator('#task-edit-deadline')).toHaveValue('2026-09-05T17:00');
-  await expect(editDialog.locator('.user-tag')).toHaveCount(1);
+  await expectSelectedObserver(editDialog, selectedObserverName);
 
   const titleInput = editDialog.getByLabel('Название задачи');
   await titleInput.fill(editedTitle);
@@ -144,7 +161,7 @@ test('task edit round-trips and clears a local deadline while retaining observer
   const editedRow = taskOpenButton(page, editedTitle).locator('xpath=ancestor::tr');
   await editedRow.getByRole('button', { name: /Редактировать задачу #\d+/u }).click();
   await expect(editDialog.locator('#task-edit-deadline')).toHaveValue('2026-09-05T17:00');
-  await expect(editDialog.locator('.user-tag')).toHaveCount(1);
+  await expectSelectedObserver(editDialog, selectedObserverName);
 
   await editDialog.locator('#task-edit-deadline').fill('');
   const clearPatch = page.waitForResponse(candidate =>
@@ -157,7 +174,7 @@ test('task edit round-trips and clears a local deadline while retaining observer
   await taskOpenButton(page, editedTitle).locator('xpath=ancestor::tr')
     .getByRole('button', { name: /Редактировать задачу #\d+/u }).click();
   await expect(editDialog.locator('#task-edit-deadline')).toHaveValue('');
-  await expect(editDialog.locator('.user-tag')).toHaveCount(1);
+  await expectSelectedObserver(editDialog, selectedObserverName);
   await editDialog.getByRole('button', { name: 'Отмена' }).click();
 
   await taskOpenButton(page, editedTitle).click();
@@ -170,7 +187,8 @@ test('task edit round-trips and clears a local deadline while retaining observer
   expect((await commentResponse).ok()).toBe(true);
   const commentCard = detailDialog.locator('.comment-card').filter({ hasText: comment });
   await expect(commentCard).toBeVisible();
-  await expect(commentCard.locator('.comment-author')).toContainText('@tasksq_admin');
+  await expect(commentCard.locator('.comment-author')).toContainText(selectedObserverName);
+  await expect(commentCard.locator('.comment-author')).toContainText(`@${environment.instance.login}`);
   assertNoPageErrors();
 });
 
@@ -226,9 +244,11 @@ test('task list exposes a retry after an HTTP error and recovers the failed requ
   await page.goto('/files');
   const assertNoPageErrors = collectPageErrors(page, [/503 \(Service Unavailable\)/u]);
   let attempts = 0;
+  const requests: Array<{ method: string; path: string; query: string }> = [];
 
-  await routeTaskList(page, async (route) => {
+  await routeTaskList(page, async (route, url) => {
     attempts++;
+    requests.push({ method: route.request().method(), path: url.pathname, query: url.search });
     if (attempts === 1) {
       await route.fulfill({ status: 503, contentType: 'application/json', json: { message: 'controlled failure' } });
       return;
@@ -245,6 +265,7 @@ test('task list exposes a retry after an HTTP error and recovers the failed requ
   await alert.getByRole('button', { name: 'Повторить' }).click();
   await expect(taskOpenButton(page, 'Recovered task')).toBeVisible();
   expect(attempts).toBe(2);
+  expect(requests[1]).toEqual(requests[0]);
   assertNoPageErrors();
 });
 
@@ -255,16 +276,23 @@ test('a late search response cannot replace the current task query', async ({ pa
   const oldGate = new Promise<void>(resolve => { releaseOld = resolve; });
   let markOldStarted: (() => void) | undefined;
   const oldStarted = new Promise<void>(resolve => { markOldStarted = resolve; });
+  let markOldCompleted: ((result: { error: unknown | null }) => void) | undefined;
+  const oldCompleted = new Promise<{ error: unknown | null }>(resolve => { markOldCompleted = resolve; });
 
   await routeTaskList(page, async (route, url) => {
     const search = url.searchParams.get('search');
     if (search === 'old') {
       markOldStarted?.();
       await oldGate;
-      await route.fulfill({
-        contentType: 'application/json',
-        json: { items: [taskFixture(801, 'Old stale task')], nextCursor: null, hasMore: false },
-      }).catch(() => undefined);
+      try {
+        await route.fulfill({
+          contentType: 'application/json',
+          json: { items: [taskFixture(801, 'Old stale task')], nextCursor: null, hasMore: false },
+        });
+        markOldCompleted?.({ error: null });
+      } catch (error) {
+        markOldCompleted?.({ error });
+      }
       return;
     }
     await route.fulfill({
@@ -284,8 +312,33 @@ test('a late search response cannot replace the current task query', async ({ pa
   await search.fill('new');
   await expect(taskOpenButton(page, 'Current query task')).toBeVisible();
   releaseOld?.();
-  await page.waitForTimeout(100);
+  const oldResult = await oldCompleted;
+  if (oldResult.error) throw oldResult.error;
+  await expect(taskOpenButton(page, 'Current query task')).toBeVisible();
   await expect(taskOpenButton(page, 'Old stale task')).toHaveCount(0);
+});
+
+test('task creation uses the unambiguous header action when the first list is empty', async ({ page }) => {
+  const title = uniqueRunName('E2E empty list create');
+  await loginToInstance(page);
+  await page.goto('/files');
+  let taskListRequests = 0;
+
+  await routeTaskList(page, async (route) => {
+    taskListRequests++;
+    if (taskListRequests === 1) {
+      await route.fulfill({
+        contentType: 'application/json',
+        json: { items: [], nextCursor: null, hasMore: false },
+      });
+      return;
+    }
+    await route.continue();
+  });
+
+  await createTaskThroughUi(page, title, { expectEmptyState: true });
+  expect(taskListRequests).toBeGreaterThanOrEqual(2);
+  await expect(taskOpenButton(page, title)).toBeVisible();
 });
 
 test('kanban keeps visible filters and the 390px page contains horizontal overflow locally', async ({ page }) => {

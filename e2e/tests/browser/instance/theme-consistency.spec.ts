@@ -79,7 +79,7 @@ test('light theme keeps every content surface and form control light', async ({ 
   });
 
   await page.goto('/tasks');
-  await page.getByRole('button', { name: 'Новая задача' }).click();
+  await page.locator('.view-header').getByRole('button', { name: 'Новая задача' }).click();
   await expectColors(page.locator('.custom-fields-empty-tip .tip-icon'), {
     color: LIGHT.primary,
   });

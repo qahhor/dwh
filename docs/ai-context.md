@@ -120,20 +120,29 @@ app typecheck и production build прошли, i18n audit — 1 019 ссыло�
 чистого `git archive c4d33d4` в отдельном Compose-проекте
 `smartupcms-tasksq-ecb2e05e`, доступном только через loopback origin
 `http://localhost:14200`; persistent `localhost:4200` не затрагивался. Пустая
-candidate DB получила все 24 миграции, после чего 30/30 Playwright-сценариев
-прошли за 2,3 минуты: прежние 24 и шесть новых Tasks regressions для
+candidate DB получила все 24 миграции, после чего 31/31 Playwright-сценариев
+прошли за 2,1 минуты: прежние 24 и семь новых Tasks regressions для
 date/observer/comment/keyboard/dirty-cancel, 125 cursor rows, error/retry,
-stale search, kanban/mobile и literal light/dark status-select colors. E2E
+stale search, first-empty create, kanban/mobile и literal light/dark
+status-select colors. E2E
 config 3/3, typecheck и artifact-secret gate также прошли; после suite все
 четыре candidate-сервиса healthy и `/healthz` возвращает 200.
 
 Артефакты isolated runtime и Playwright находятся вне репозитория в
 `C:/Temp/smartupcms-tasks-quality-ecb2e05e0db34d62acd838c8702b5cc6`.
 Это локальная acceptance-проверка, не deploy, нагрузочный тест или
-доказательство production readiness. Live IAB desktop/mobile проверка и
-финальный whole-change review ещё не завершены; candidate оставлен запущенным
-для этой проверки. Graphify обновлён AST-only, но generated output остаётся
-локально dirty и не предназначен для task commit.
+доказательство production readiness. Live IAB на candidate подтвердил
+desktop 1280×720 и mobile 390×844 без горизонтального overflow, видимые
+Active/All/status в kanban, полную export-scope/filter подсказку и
+native status-select в light/dark с RGB `15 23 42` / `255 255 255` и
+`241 245 249` / `19 27 46`. Финальная console не содержала warnings/errors;
+профиль и `localhost:4200` не затрагивались. Скриншоты хранятся только во
+внешней папке `screenshots`. Два мелких наблюдения оставлены на final
+review: несогласованные подписи пустых dynamic fields и краткое
+одновременное отображение `Ничего не найдено` и `Загрузка…` в
+remote selectors. Финальный whole-change review ещё не завершён; candidate
+оставлен запущенным. Graphify обновлён AST-only, но generated output
+остаётся локально dirty и не предназначен для task commit.
 
 Начата последовательная реализация [release-hardening плана](superpowers/plans/2026-09-05-release-hardening.md).
 Разработка I-01 начиналась в `codex/release-hardening` от
