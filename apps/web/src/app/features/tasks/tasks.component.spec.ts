@@ -430,6 +430,51 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     expect(component.isEditDiscardConfirmationOpen()).toBe(false);
   });
 
+  it('makes every edit control inert while its PATCH snapshot is pending', async () => {
+    const patch = new Subject<unknown>();
+    const { fixture, component } = await createControlledFixture({
+      get: path => path === '/tasks/19' ? of({ task: task(19), members: [] }) : of(path === '/tasks'
+        ? { items: [], nextCursor: null, hasMore: false }
+        : path === '/iam/users' ? { items: [], nextCursor: null, hasMore: false } : []),
+      patch: path => path === '/tasks/19' ? patch : of({})
+    });
+    component.taskTypes.set([{ id: 1, code: 'task', name: 'Task', icon: 'task', color: '#000', orderNo: 1, isSystem: true }]);
+    component.openEditModal(task(19));
+    component.editForm.title = 'Submitted snapshot';
+    component.submitEditTask();
+    fixture.detectChanges();
+
+    const form = fixture.nativeElement.querySelector('fieldset.task-edit-form') as HTMLFieldSetElement | null;
+    expect(form).not.toBeNull();
+    expect(form?.disabled).toBe(true);
+    const controls = Array.from(form?.querySelectorAll('input, select, textarea, button') || []) as HTMLElement[];
+    expect(controls.length).toBeGreaterThan(5);
+    expect(controls.every(control => control.matches(':disabled'))).toBe(true);
+  });
+
+  it('locks create controls, dismissal and duplicate POSTs while creation is pending', async () => {
+    const post = new Subject<unknown>();
+    const { fixture, component, api } = await createControlledFixture({
+      post: path => path === '/tasks' ? post : of({})
+    });
+    component.taskTypes.set([{ id: 1, code: 'task', name: 'Task', icon: 'task', color: '#000', orderNo: 1, isSystem: true }]);
+    component.openCreateTaskModal();
+    component.createForm.title = 'New task';
+    component.submitCreateTask();
+    component.submitCreateTask();
+    component.requestCloseCreate();
+    fixture.detectChanges();
+
+    expect(api.post.mock.calls.filter(([path]) => path === '/tasks')).toHaveLength(1);
+    expect(component.isCreateModalOpen()).toBe(true);
+    const form = fixture.nativeElement.querySelector('fieldset.task-create-form') as HTMLFieldSetElement | null;
+    expect(form).not.toBeNull();
+    expect(form?.disabled).toBe(true);
+    const controls = Array.from(form?.querySelectorAll('input, select, textarea, button') || []) as HTMLElement[];
+    expect(controls.length).toBeGreaterThan(5);
+    expect(controls.every(control => control.matches(':disabled'))).toBe(true);
+  });
+
   it('preserves stale list rows and exposes retry after a replacement load fails', async () => {
     const failedLoad = new Subject<unknown>();
     const listLoads = [

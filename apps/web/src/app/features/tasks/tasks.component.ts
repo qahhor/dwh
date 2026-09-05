@@ -764,9 +764,10 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
       [isOpen]="isCreateModalOpen()"
       [title]="createForm.parentTaskId ? ('tasks.create_subtask_for' | t:{id: createForm.parentTaskId}) : ('tasks.create_new_task' | t)"
       size="lg"
-      (close)="isCreateModalOpen.set(false)"
+      [dismissible]="!isSubmitting()"
+      (close)="requestCloseCreate()"
     >
-      <div body class="modal-form">
+      <fieldset body class="modal-form modal-form-fieldset task-create-form" [disabled]="isSubmitting()">
         <!-- Title Input (Required) -->
         <div class="form-group">
           <div class="label-row">
@@ -956,9 +957,9 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
           <span class="material-symbols-outlined tip-icon" aria-hidden="true">extension</span>
           <span class="tip-text">{{ 'tasks.nuzhny_specificheskie_polya_byudzhet_nomer_dogov' | t }} <strong>{{ 'tasks.nastraivaemye_polya' | t }}</strong>.</span>
         </div>
-      </div>
+      </fieldset>
       <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="isCreateModalOpen.set(false)">{{ 'common.cancel' | t }}</ui-button>
+        <ui-button variant="secondary" size="md" [disabled]="isSubmitting()" (onClick)="requestCloseCreate()">{{ 'common.cancel' | t }}</ui-button>
         <ui-button variant="primary" size="md" [loading]="isSubmitting()" (onClick)="submitCreateTask()">{{ 'tasks.sozdat_zadachu' | t }}</ui-button>
       </div>
     </ui-modal>
@@ -980,7 +981,7 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
         <span>{{ 'tasks.edit_load_error' | t }}</span>
         <ui-button variant="secondary" size="sm" (onClick)="retryEditLoad()">{{ 'audit.retry' | t }}</ui-button>
       </div>
-      <div body class="modal-form" *ngIf="editingTask as task">
+      <fieldset body class="modal-form modal-form-fieldset task-edit-form" [disabled]="isSubmitting()" *ngIf="editingTask as task">
         <!-- Title Input (Required) -->
         <div class="form-group">
           <div class="label-row">
@@ -1160,7 +1161,7 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
             [(values)]="editForm.attributes"
           ></ui-custom-fields>
         </div>
-      </div>
+      </fieldset>
       <div footer>
         <ui-button variant="secondary" size="md" [disabled]="isSubmitting()" (onClick)="requestCloseEdit()">{{ editLoadError() ? ('audit.zakryt' | t) : ('common.cancel' | t) }}</ui-button>
         <ui-button *ngIf="editingTask" variant="primary" size="md" [loading]="isSubmitting()" (onClick)="submitEditTask()">{{ 'tasks.sohranit_izmeneniya' | t }}</ui-button>
@@ -2122,6 +2123,7 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
 
     /* Modal Form Styling */
     .modal-form { display: flex; flex-direction: column; gap: 12px; }
+    .modal-form-fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
     .form-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
     .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
@@ -3062,7 +3064,13 @@ export class TasksComponent implements OnInit, OnDestroy {
     this.isCreateModalOpen.set(true);
   }
 
+  requestCloseCreate() {
+    if (this.isSubmitting()) return;
+    this.isCreateModalOpen.set(false);
+  }
+
   submitCreateTask() {
+    if (this.isSubmitting()) return;
     this.isCreateSubmitted = true;
     if (!this.createForm.title.trim()) {
       this.toast.warning(this.uiI18n.translate('tasks.ukazhite_nazvanie_zadachi'));
