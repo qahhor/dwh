@@ -77,7 +77,7 @@ public class MsProjectService {
                 normalizedName,
                 description,
                 state,
-                attributes != null ? attributes : before.attributes());
+                attributes);
         typesenseIndexer.indexProject(id);
 
         auditLogService.logChange("ms_task_projects", String.valueOf(id), "U",

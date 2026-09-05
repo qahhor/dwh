@@ -38,8 +38,13 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -61,6 +66,9 @@ class MsProjectWriteIntegrationTest {
             .withDatabaseName("project_write_test").withUsername("test_user").withPassword("test_pass");
 
     private static final AtomicInteger SEQUENCE = new AtomicInteger();
+    private static final Map<String, Object> FIXTURE_ATTRIBUTES = Map.of(
+            "fixture", "kept",
+            "rank", 1);
 
     static JdbcClient jdbc;
     static DriverManagerDataSource dataSource;
@@ -68,7 +76,9 @@ class MsProjectWriteIntegrationTest {
     static MsProjectRepository projects;
     static MsProjectService projectService;
     static TypesenseIndexer typesenseIndexer;
-    static TransactionTemplate rollbackTransaction;
+    static AuditLogService auditLogService;
+    static DataSourceTransactionManager transactions;
+    static TransactionTemplate transactionTemplate;
     static MockMvc mvc;
 
     @BeforeAll
@@ -82,16 +92,16 @@ class MsProjectWriteIntegrationTest {
         projects = new MsProjectRepository(jdbc, objectMapper);
         typesenseIndexer = mock(TypesenseIndexer.class);
 
-        var audit = new AuditLogService(
+        auditLogService = new AuditLogService(
                 new AuditLogRepository(jdbc, objectMapper), null, new AuditDataRedactor());
         var serviceTarget = new MsProjectService(
                 projects,
                 mock(MdCustomFieldService.class),
                 typesenseIndexer,
-                audit);
-        var transactions = new DataSourceTransactionManager(dataSource);
+                auditLogService);
+        transactions = new DataSourceTransactionManager(dataSource);
         projectService = transactional(serviceTarget, transactions, MsProjectService.class);
-        rollbackTransaction = new TransactionTemplate(transactions);
+        transactionTemplate = new TransactionTemplate(transactions);
 
         mvc = MockMvcBuilders.standaloneSetup(new MsProjectController(projectService))
                 .addInterceptors(new RequiresPermissionInterceptor())
@@ -185,7 +195,7 @@ class MsProjectWriteIntegrationTest {
         long projectsBefore = projectCount();
         long auditBefore = projectAuditCount();
 
-        Throwable failure = rollbackTransaction.execute(status -> {
+        Throwable failure = transactionTemplate.execute(status -> {
             status.setRollbackOnly();
             try {
                 projectService.createProject(invalidName, "must not persist", null, null, null);
@@ -251,26 +261,77 @@ class MsProjectWriteIntegrationTest {
     void patchLeavesOmittedAndNullFieldsUnchangedButClearsExplicitEmptyDescription() throws Exception {
         Long actor = user("Sparse-patch actor");
         Long projectId = project(actor, "Sparse patch", "Original description", "P");
-        String originalName = projects.findById(projectId).orElseThrow().name();
+        var before = projects.findById(projectId).orElseThrow();
+        assertThat(before.attributes()).isEqualTo(FIXTURE_ATTRIBUTES);
         signIn(actor, Set.of("*.*"));
 
         mvc.perform(patch("/api/v1/tasks/projects/{id}", projectId)
                         .contentType("application/json")
                         .content("{}"))
                 .andExpect(status().isNoContent());
-        assertProjectValues(projectId, originalName, "Original description", "P");
+        assertThat(projects.findById(projectId).orElseThrow()).isEqualTo(before);
 
         mvc.perform(patch("/api/v1/tasks/projects/{id}", projectId)
                         .contentType("application/json")
                         .content("{\"name\":null,\"description\":null,\"state\":null}"))
                 .andExpect(status().isNoContent());
-        assertProjectValues(projectId, originalName, "Original description", "P");
+        assertThat(projects.findById(projectId).orElseThrow()).isEqualTo(before);
 
         mvc.perform(patch("/api/v1/tasks/projects/{id}", projectId)
                         .contentType("application/json")
                         .content("{\"description\":\"\"}"))
                 .andExpect(status().isNoContent());
-        assertProjectValues(projectId, originalName, "", "P");
+        assertThat(projects.findById(projectId).orElseThrow()).isEqualTo(
+                new MsProjectRepository.ProjectRecord(
+                        before.id(), before.name(), "", before.state(), before.attributes(),
+                        before.createdAt(), before.createdBy()));
+    }
+
+    @Test
+    void overlappingNameOnlyUpdateKeepsNewlyCommittedAttributes() throws Exception {
+        Long actor = user("Overlapping-update actor");
+        Long projectId = project(
+                actor,
+                "Concurrent project",
+                "Original description",
+                "A",
+                Map.of("owner", "original"));
+        var readComplete = new CountDownLatch(1);
+        var continueUpdate = new CountDownLatch(1);
+        var pausingProjects = new PausingProjectRepository(
+                jdbc, objectMapper, readComplete, continueUpdate);
+        var localIndexer = mock(TypesenseIndexer.class);
+        var serviceTarget = new MsProjectService(
+                pausingProjects,
+                mock(MdCustomFieldService.class),
+                localIndexer,
+                auditLogService);
+        var overlappingService = transactional(serviceTarget, transactions, MsProjectService.class);
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+
+        try {
+            var nameUpdate = executor.submit(() -> overlappingService.updateProject(
+                    projectId, "  Concurrent rename  ", null, null, null));
+            assertThat(readComplete.await(10, TimeUnit.SECONDS)).isTrue();
+
+            projectService.updateProject(
+                    projectId, null, null, null, Map.of("owner", "concurrent"));
+            continueUpdate.countDown();
+            nameUpdate.get(10, TimeUnit.SECONDS);
+        } finally {
+            continueUpdate.countDown();
+            executor.shutdownNow();
+            assertThat(executor.awaitTermination(10, TimeUnit.SECONDS)).isTrue();
+        }
+
+        var after = projects.findById(projectId).orElseThrow();
+        assertThat(after.name()).isEqualTo("Concurrent rename");
+        assertThat(after.description()).isEqualTo("Original description");
+        assertThat(after.state()).isEqualTo("A");
+        assertThat(after.attributes()).isEqualTo(Map.of("owner", "concurrent"));
+        assertThat(auditCount(projectId)).isEqualTo(2);
+        verify(typesenseIndexer).indexProject(projectId);
+        verify(localIndexer).indexProject(projectId);
     }
 
     @Test
@@ -338,14 +399,20 @@ class MsProjectWriteIntegrationTest {
     }
 
     private static Long project(Long actor, String name, String description, String state) {
+        return project(actor, name, description, state, FIXTURE_ATTRIBUTES);
+    }
+
+    private static Long project(
+            Long actor, String name, String description, String state, Map<String, Object> attributes) {
         return jdbc.sql("""
                 insert into ms_task_projects (name, description, state, attributes, created_by)
-                values (:name, :description, :state, '{}', :actor)
+                values (:name, :description, :state, cast(:attributes as jsonb), :actor)
                 returning id
                 """)
                 .param("name", unique(name))
                 .param("description", description)
                 .param("state", state)
+                .param("attributes", toJson(attributes))
                 .param("actor", actor)
                 .query(Long.class)
                 .single();
@@ -363,6 +430,14 @@ class MsProjectWriteIntegrationTest {
         return objectMapper.writeValueAsString(body);
     }
 
+    private static String toJson(Map<String, Object> attributes) {
+        try {
+            return objectMapper.writeValueAsString(attributes);
+        } catch (Exception exception) {
+            throw new IllegalArgumentException("Test attributes must be JSON serializable", exception);
+        }
+    }
+
     private static String unique(String prefix) {
         return prefix + " " + SEQUENCE.incrementAndGet();
     }
@@ -371,13 +446,6 @@ class MsProjectWriteIntegrationTest {
             Long projectId, MsProjectRepository.ProjectRecord before, long auditBefore) {
         assertThat(projects.findById(projectId).orElseThrow()).isEqualTo(before);
         assertThat(auditCount(projectId)).isEqualTo(auditBefore);
-    }
-
-    private static void assertProjectValues(Long projectId, String name, String description, String state) {
-        var project = projects.findById(projectId).orElseThrow();
-        assertThat(project.name()).isEqualTo(name);
-        assertThat(project.description()).isEqualTo(description);
-        assertThat(project.state()).isEqualTo(state);
     }
 
     private static long projectCount() {
@@ -411,5 +479,36 @@ class MsProjectWriteIntegrationTest {
                 .param("rowPk", String.valueOf(projectId))
                 .query(String.class)
                 .single();
+    }
+
+    private static final class PausingProjectRepository extends MsProjectRepository {
+
+        private final CountDownLatch readComplete;
+        private final CountDownLatch continueUpdate;
+
+        private PausingProjectRepository(
+                JdbcClient jdbcClient,
+                ObjectMapper mapper,
+                CountDownLatch readComplete,
+                CountDownLatch continueUpdate) {
+            super(jdbcClient, mapper);
+            this.readComplete = readComplete;
+            this.continueUpdate = continueUpdate;
+        }
+
+        @Override
+        public Optional<ProjectRecord> findById(Long id) {
+            Optional<ProjectRecord> project = super.findById(id);
+            readComplete.countDown();
+            try {
+                if (!continueUpdate.await(10, TimeUnit.SECONDS)) {
+                    throw new IllegalStateException("Timed out waiting for the overlapping update");
+                }
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("Interrupted while waiting for the overlapping update", exception);
+            }
+            return project;
+        }
     }
 }

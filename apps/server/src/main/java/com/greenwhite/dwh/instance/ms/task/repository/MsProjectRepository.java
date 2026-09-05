@@ -75,7 +75,7 @@ public class MsProjectRepository {
                 set name = coalesce(:name, name),
                     description = coalesce(:description, description),
                     state = coalesce(:state, state),
-                    attributes = case when :attributes is not null then cast(:attributes as jsonb) else attributes end
+                    attributes = coalesce(cast(:attributes as jsonb), attributes)
                 where id = :id
                 """)
                 .param("id", id)
