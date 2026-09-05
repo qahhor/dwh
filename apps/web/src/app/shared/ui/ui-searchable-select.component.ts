@@ -120,7 +120,7 @@ export interface SelectOption {
           </button>
 
           <!-- Empty Result Hint -->
-          <div *ngIf="filteredOptions().length === 0" class="no-results-hint">
+          <div *ngIf="filteredOptions().length === 0 && (!remoteSearch || (!loading && !loadError))" class="no-results-hint">
             {{ 'ui.searchable_select.nichego_ne_naydeno' | t }}
           </div>
         </div>

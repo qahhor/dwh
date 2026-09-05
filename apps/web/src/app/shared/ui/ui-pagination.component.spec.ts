@@ -36,6 +36,24 @@ describe('UiPaginationComponent', () => {
     expect(range.textContent).toContain('1–10');
   });
 
+  it('renders bounded ranges and the known total for cursor consumers by default', async () => {
+    await TestBed.configureTestingModule({ imports: [UiPaginationComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(UiPaginationComponent);
+    fixture.componentRef.setInput('totalItems', 41);
+    fixture.componentRef.setInput('pageSize', 20);
+    fixture.componentRef.setInput('cursorMode', true);
+
+    for (const [currentPage, expectedRange] of [[1, '1–20'], [2, '21–40'], [3, '41–41']] as const) {
+      fixture.componentRef.setInput('currentPage', currentPage);
+      fixture.componentRef.setInput('hasNextPage', currentPage < 3);
+      fixture.detectChanges();
+
+      const status = fixture.nativeElement.querySelector('[role="status"]') as HTMLElement;
+      expect(status.textContent).toContain(expectedRange);
+      expect(status.textContent).toContain('из 41');
+    }
+  });
+
   it('uses sequential previous and next controls in cursor mode', async () => {
     await TestBed.configureTestingModule({ imports: [UiPaginationComponent] }).compileComponents();
     const fixture = TestBed.createComponent(UiPaginationComponent);
@@ -60,6 +78,7 @@ describe('UiPaginationComponent', () => {
     fixture.componentRef.setInput('currentPage', 3);
     fixture.componentRef.setInput('pageSize', 50);
     fixture.componentRef.setInput('cursorMode', true);
+    fixture.componentRef.setInput('cursorItemsArePageLength', true);
     fixture.componentRef.setInput('hasNextPage', false);
     fixture.detectChanges();
 

@@ -14,7 +14,7 @@ import { TranslatePipe } from '../../core/services/i18n.service';
       <div class="pagination-info" *ngIf="totalItems > 0" role="status" aria-live="polite" aria-atomic="true">
         <span class="range-text">
           {{ 'ui.pagination.pokazano' | t }} <strong class="highlight font-mono">{{ startItem }}–{{ endItem }}</strong>
-          <ng-container *ngIf="!cursorMode"> {{ 'files.iz' | t }} <strong class="highlight font-mono">{{ totalItems }}</strong></ng-container>
+          <ng-container *ngIf="!cursorMode || !cursorItemsArePageLength"> {{ 'files.iz' | t }} <strong class="highlight font-mono">{{ totalItems }}</strong></ng-container>
         </span>
       </div>
 
@@ -268,6 +268,7 @@ export class UiPaginationComponent implements OnChanges {
   @Input() pageSizeOptions: number[] = [10, 25, 50, 100];
   @Input() showPageSize: boolean = true;
   @Input() cursorMode: boolean = false;
+  @Input() cursorItemsArePageLength: boolean = false;
   @Input() hasNextPage: boolean = false;
   @Input() disabled: boolean = false;
 
@@ -297,7 +298,9 @@ export class UiPaginationComponent implements OnChanges {
       this.currentPage = Math.max(1, this.currentPage);
       this.totalPages = this.currentPage + (this.hasNextPage ? 1 : 0);
       this.startItem = (this.currentPage - 1) * this.pageSize + 1;
-      this.endItem = this.startItem + this.totalItems - 1;
+      this.endItem = this.cursorItemsArePageLength
+        ? this.startItem + this.totalItems - 1
+        : Math.min(this.currentPage * this.pageSize, this.totalItems);
       this.visiblePages = [];
       return;
     }

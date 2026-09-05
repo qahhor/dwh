@@ -76,4 +76,31 @@ describe('UiSearchableSelectComponent', () => {
     expect(listbox.contains(retry)).toBe(false);
     expect(listbox.contains(more)).toBe(false);
   });
+
+  it('shows an empty hint only after a successful empty remote lookup or for local empty options', async () => {
+    await TestBed.configureTestingModule({ imports: [UiSearchableSelectComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(UiSearchableSelectComponent);
+    fixture.componentRef.setInput('remoteSearch', true);
+    fixture.componentRef.setInput('loading', true);
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('.select-trigger') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.remote-loading')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.no-results-hint')).toBeNull();
+
+    fixture.componentRef.setInput('loading', false);
+    fixture.componentRef.setInput('loadError', true);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.remote-error')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.no-results-hint')).toBeNull();
+
+    fixture.componentRef.setInput('loadError', false);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.no-results-hint')).not.toBeNull();
+
+    fixture.componentRef.setInput('remoteSearch', false);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.no-results-hint')).not.toBeNull();
+  });
 });

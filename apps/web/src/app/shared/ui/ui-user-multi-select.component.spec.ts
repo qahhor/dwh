@@ -89,4 +89,31 @@ describe('UiUserMultiSelectComponent', () => {
     expect(listbox.contains(status)).toBe(false);
     expect(listbox.contains(more)).toBe(false);
   });
+
+  it('shows an empty hint only after a successful empty remote lookup or for local empty users', async () => {
+    await TestBed.configureTestingModule({ imports: [UiUserMultiSelectComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(UiUserMultiSelectComponent);
+    fixture.componentRef.setInput('remoteSearch', true);
+    fixture.componentRef.setInput('loading', true);
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('.add-user-btn') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.remote-loading')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.no-options')).toBeNull();
+
+    fixture.componentRef.setInput('loading', false);
+    fixture.componentRef.setInput('loadError', true);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.remote-error')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.no-options')).toBeNull();
+
+    fixture.componentRef.setInput('loadError', false);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.no-options')).not.toBeNull();
+
+    fixture.componentRef.setInput('remoteSearch', false);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.no-options')).not.toBeNull();
+  });
 });

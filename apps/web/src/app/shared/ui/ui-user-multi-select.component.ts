@@ -76,7 +76,7 @@ import { TranslatePipe } from '../../core/services/i18n.service';
             <span class="material-symbols-outlined check-ico" *ngIf="isSelected(u.id)" aria-hidden="true">check</span>
           </button>
 
-          <div *ngIf="filteredUsers().length === 0" class="no-options">
+          <div *ngIf="filteredUsers().length === 0 && (!remoteSearch || (!loading && !loadError))" class="no-options">
             {{ 'ui.user_multi_select.sotrudniki_ne_naydeny' | t }}
           </div>
         </div>

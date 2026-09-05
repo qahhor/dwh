@@ -516,6 +516,7 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
         [pageSize]="pageSize"
         [showPageSize]="false"
         [cursorMode]="true"
+        [cursorItemsArePageLength]="true"
         [hasNextPage]="hasMore()"
         [disabled]="isLoading() || listLoadError()"
         (pageChange)="goToTaskPage($event)"
@@ -1005,7 +1006,7 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
 
         <div class="custom-fields-empty-tip" *ngIf="taskCustomFields().length === 0">
           <span class="material-symbols-outlined tip-icon" aria-hidden="true">extension</span>
-          <span class="tip-text">{{ 'tasks.nuzhny_specificheskie_polya_byudzhet_nomer_dogov' | t }} <strong>{{ 'tasks.nastraivaemye_polya' | t }}</strong>.</span>
+          <span class="tip-text">{{ 'tasks.nuzhny_specificheskie_polya_byudzhet_nomer_dogov' | t }} <strong>{{ 'nav.custom_fields' | t }}</strong>.</span>
         </div>
       </fieldset>
       <div footer>

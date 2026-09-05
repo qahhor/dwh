@@ -154,6 +154,17 @@ describe('TasksComponent UI contracts', () => {
     expect(fixture.nativeElement.querySelector(`label[for="${description.id}"]`)?.textContent).toBe('Описание');
   });
 
+  it('uses the dynamic-fields navigation name in empty create-task guidance', async () => {
+    const fixture = await createFixture();
+    fixture.componentInstance.openCreateTaskModal();
+    fixture.componentInstance.taskCustomFields.set([]);
+    fixture.detectChanges();
+
+    const tip = fixture.nativeElement.querySelector('.custom-fields-empty-tip') as HTMLElement;
+    expect(tip.textContent).toContain('Динамические поля');
+    expect(tip.textContent).not.toContain('Настраиваемые поля');
+  });
+
   it('connects create-task labels, required state and shared field names', async () => {
     const fixture = await createFixture();
     fixture.componentInstance.openCreateTaskModal();
@@ -782,12 +793,14 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     });
 
     const seen = [...component.tasks().map(item => item.id)];
+    const loadedRanges = [(fixture.nativeElement.querySelector('ui-pagination [role="status"]') as HTMLElement).textContent?.trim()];
     for (let expectedPage = 2; expectedPage <= 3; expectedPage++) {
       const next = fixture.nativeElement.querySelector('button[aria-label="Следующая страница"]') as HTMLButtonElement;
       expect(next.disabled).toBe(false);
       next.click();
       fixture.detectChanges();
       seen.push(...component.tasks().map(item => item.id));
+      loadedRanges.push((fixture.nativeElement.querySelector('ui-pagination [role="status"]') as HTMLElement).textContent?.trim());
       expect(component.currentPage).toBe(expectedPage);
     }
 
@@ -795,6 +808,7 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     expect(seen).toEqual(Array.from({ length: 125 }, (_, index) => index + 1));
     expect(new Set(seen).size).toBe(125);
     expect(fixture.nativeElement.textContent).toContain('#125');
+    expect(loadedRanges).toEqual(['Показано 1–50', 'Показано 51–100', 'Показано 101–125']);
     expect(fixture.nativeElement.querySelector('ui-pagination [role="status"]').textContent).not.toContain('из 25');
   });
 
