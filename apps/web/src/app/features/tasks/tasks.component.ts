@@ -82,7 +82,7 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
           <!-- Dictionary Settings Button -->
           <button
             type="button"
-            class="btn btn-secondary"
+            class="btn btn-secondary compact-secondary-action"
             [title]="'tasks.upravlenie_statusami_i_tipami_zadach' | t"
             (click)="openSettingsModal()"
           >
@@ -94,15 +94,17 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
           <div class="export-dropdown-container" style="position: relative; display: inline-block;">
             <button
               type="button"
-              class="btn btn-secondary"
-              [title]="'tasks.eksport_spiska_zadach' | t"
+              class="btn btn-secondary compact-secondary-action"
+              [title]="'tasks.export_all_accessible' | t"
               (click)="showExportMenu = !showExportMenu"
             >
               <span class="material-symbols-outlined" aria-hidden="true">download</span>
               <span>{{ 'analytics.eksport' | t }}</span>
               <span class="material-symbols-outlined" style="font-size: 16px;">arrow_drop_down</span>
             </button>
-            <div class="export-popover" *ngIf="showExportMenu" style="position: absolute; top: 100%; right: 0; margin-top: 4px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); box-shadow: var(--shadow-md); z-index: 100; min-width: 160px; overflow: hidden; display: flex; flex-direction: column;">
+            <div class="export-popover" *ngIf="showExportMenu">
+              <strong class="export-scope-title">{{ 'tasks.export_all_accessible' | t }}</strong>
+              <span class="export-scope-note">{{ 'tasks.export_filters_not_applied' | t }}</span>
               <button type="button" class="export-item-btn" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 12px; background: none; border: none; width: 100%; text-align: left; cursor: pointer; color: var(--text-main);" (click)="exportTasks('xlsx')">
                 <span class="material-symbols-outlined" style="color: var(--success); font-size: 18px;">table_view</span>
                 <span>Excel (.xlsx)</span>
@@ -139,7 +141,8 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
             class="search-input"
             [placeholder]="'projects.poisk_po_nazvaniyu_ili_opisaniyu' | t"
             [(ngModel)]="searchQuery"
-            (keyup.enter)="loadTasks(true)"
+            (ngModelChange)="onTaskSearchChange($event)"
+            (keydown.enter)="applyTaskSearchImmediately(); $event.preventDefault()"
           />
           <button *ngIf="searchQuery" type="button" class="clear-btn" [attr.aria-label]="'tasks.ochistit_poisk_zadach' | t" (click)="clearSearch()">
             <span class="material-symbols-outlined" aria-hidden="true">close</span>
@@ -255,13 +258,8 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
               <tr
                 *ngFor="let t of paginatedTasks()"
                 class="task-row"
-                role="button"
-                tabindex="0"
-                [attr.aria-label]="'tasks.open_task_named' | t:{id: t.id, title: t.title}"
                 [class.row-overdue]="isOverdue(t.endTime, t.statusId)"
-                (click)="openTaskDetails(t)"
-                (keydown.enter)="openTaskDetails(t)"
-                (keydown.space)="$event.preventDefault(); openTaskDetails(t)"
+                (click)="onTaskContainerClick($event, t)"
               >
                 <td class="tabular-nums font-mono" [class.text-danger]="isOverdue(t.endTime, t.statusId)" [class.text-muted]="!isOverdue(t.endTime, t.statusId)">
                   #{{ t.id }}
@@ -274,9 +272,15 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
                 </td>
                 <td>
                   <div class="task-title-cell">
-                    <span class="task-title" [class.title-overdue]="isOverdue(t.endTime, t.statusId)">
+                    <button
+                      type="button"
+                      class="task-title task-title-open"
+                      [class.title-overdue]="isOverdue(t.endTime, t.statusId)"
+                      [attr.aria-label]="'tasks.open_task_named' | t:{id: t.id, title: t.title}"
+                      (click)="openTaskDetails(t)"
+                    >
                       {{ t.title }}
-                    </span>
+                    </button>
                     <span *ngIf="isOverdue(t.endTime, t.statusId)" class="overdue-tag">
                       {{ 'tasks.prosrocheno' | t }}
                     </span>
@@ -297,12 +301,12 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
                     {{ getPriorityLabel(t.priority) }}
                   </span>
                 </td>
-                <td (click)="$event.stopPropagation()">
+                <td>
                   <!-- Quick Status Changer Dropdown -->
-                  <div class="inline-status-wrapper">
+                  <div class="inline-status-wrapper table-status">
+                    <span class="status-dot" [style.background-color]="getStatusColor(t.statusId)" aria-hidden="true"></span>
                     <select
                       class="inline-status-select"
-                      [style.color]="getStatusColor(t.statusId)"
                       [ngModel]="t.statusId"
                       (ngModelChange)="updateStatus(t.id, $event)"
                       [disabled]="!canUpdateTask()"
@@ -327,7 +331,7 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
                   </span>
                   <span *ngIf="!t.endTime" class="text-muted">—</span>
                 </td>
-                <td class="text-right actions-cell" (click)="$event.stopPropagation()">
+                <td class="text-right actions-cell">
                   <div class="row-action-btns">
                     <button
                       *ngIf="canUpdateTask()"
@@ -355,6 +359,12 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
                 <td colspan="8" class="empty-state-cell">
                   <span class="material-symbols-outlined icon" aria-hidden="true">task</span>
                   <p>{{ 'tasks.zadachi_ne_naydeny' | t }}</p>
+                  <ui-button *ngIf="hasActiveFilters()" variant="secondary" size="sm" (onClick)="resetFilters()">
+                    {{ 'tasks.sbrosit_vse_filtry' | t }}
+                  </ui-button>
+                  <ui-button *ngIf="!hasActiveFilters() && canCreateTask()" variant="primary" size="sm" icon="add" (onClick)="openCreateTaskModal()">
+                    {{ 'task.new' | t }}
+                  </ui-button>
                 </td>
               </tr>
             </tbody>
@@ -368,6 +378,15 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
       <!-- VIEW 2: KANBAN BOARD WITH DRAG & DROP                                  -->
       <!-- ======================================================================= -->
       <div class="kanban-board" cdkDropListGroup *ngIf="viewMode === 'kanban'" role="region" [attr.aria-label]="'tasks.kanban_doska_zadach' | t">
+        <div class="kanban-empty-recovery" *ngIf="tasks().length === 0 && !isLoading() && !listLoadError()">
+          <span>{{ 'tasks.zadachi_ne_naydeny' | t }}</span>
+          <ui-button *ngIf="hasActiveFilters()" variant="secondary" size="sm" (onClick)="resetFilters()">
+            {{ 'tasks.sbrosit_vse_filtry' | t }}
+          </ui-button>
+          <ui-button *ngIf="!hasActiveFilters() && canCreateTask()" variant="primary" size="sm" icon="add" (onClick)="openCreateTaskModal()">
+            {{ 'task.new' | t }}
+          </ui-button>
+        </div>
         <div
           *ngFor="let status of statuses()"
           class="kanban-column"
@@ -388,6 +407,7 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
           <!-- Drop List Zone for CDK Drag & Drop -->
           <div
             cdkDropList
+            [cdkDropListDisabled]="!canUpdateTask()"
             [cdkDropListData]="getTasksByStatus(status.id)"
             [id]="'col-' + status.id"
             class="column-tasks-dropzone"
@@ -396,22 +416,19 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
             <div
               *ngFor="let task of getTasksByStatus(status.id)"
               cdkDrag
+              [cdkDragDisabled]="!canUpdateTask()"
               [cdkDragData]="task"
-              draggable="true"
+              [attr.draggable]="canUpdateTask() ? 'true' : null"
               (dragstart)="onHtml5DragStart($event, task)"
               class="kanban-card"
-              role="button"
-              tabindex="0"
-              [attr.aria-label]="'tasks.open_task_named' | t:{id: task.id, title: task.title}"
+              [class.can-drag]="canUpdateTask()"
               [class.card-overdue]="isOverdue(task.endTime, task.statusId)"
-              (click)="openTaskDetails(task)"
-              (keydown.enter)="openTaskDetails(task)"
-              (keydown.space)="$event.preventDefault(); openTaskDetails(task)"
+              (click)="onTaskContainerClick($event, task)"
             >
               <!-- Card Top -->
               <div class="card-top-row">
                 <div class="card-type-group">
-                  <span class="material-symbols-outlined drag-grip-icon" cdkDragHandle [title]="'tasks.peretaschit_kartochku' | t">
+                  <span *ngIf="canUpdateTask()" class="material-symbols-outlined drag-grip-icon" cdkDragHandle [title]="'tasks.peretaschit_kartochku' | t">
                     drag_indicator
                   </span>
                   <span class="task-type-badge-mini" [style.color]="getTypeColor(task)">
@@ -425,9 +442,15 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
               </div>
 
               <!-- Card Title -->
-              <h4 class="card-title" [class.title-overdue]="isOverdue(task.endTime, task.statusId)">
+              <button
+                type="button"
+                class="card-title kanban-title-open"
+                [class.title-overdue]="isOverdue(task.endTime, task.statusId)"
+                [attr.aria-label]="'tasks.open_task_named' | t:{id: task.id, title: task.title}"
+                (click)="openTaskDetails(task)"
+              >
                 {{ task.title }}
-              </h4>
+              </button>
 
               <!-- Card Meta -->
               <div class="card-meta" *ngIf="task.projectId || task.parentTaskId">
@@ -582,7 +605,8 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
                   </span>
                   <span class="font-mono text-muted text-xs">#{{ sub.id }}</span>
                   <span class="subtask-title">{{ sub.title }}</span>
-                  <span class="inline-status-badge" [style.color]="getStatusColor(sub.statusId)">
+                  <span class="inline-status-badge status-label">
+                    <span class="status-dot" [style.background-color]="getStatusColor(sub.statusId)" aria-hidden="true"></span>
                     {{ getStatusName(sub.statusId) }}
                   </span>
                   <span class="priority-pill" [attr.data-priority]="sub.priority">
@@ -641,6 +665,7 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
               <div class="add-comment-box" *ngIf="canCommentTask()">
                 <textarea
                   class="comment-textarea"
+                  [attr.aria-label]="'tasks.comment_task_aria' | t:{id: t.id}"
                   rows="2"
                   [placeholder]="'tasks.napisat_kommentariy_k_zadache_ctrl_enter_dlya_ot' | t"
                   [(ngModel)]="commentDraft"
@@ -660,12 +685,13 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
               <div class="side-prop-row">
                 <span class="prop-k">{{ 'common.status' | t }}</span>
                 <div class="prop-v">
+                  <span class="status-dot" [style.background-color]="getStatusColor(t.statusId)" aria-hidden="true"></span>
                   <select
                     class="clean-select status-select"
-                    [style.color]="getStatusColor(t.statusId)"
                     [ngModel]="t.statusId"
                     (ngModelChange)="updateStatus(t.id, $event)"
                     [disabled]="!canUpdateTask()"
+                    [attr.aria-label]="'tasks.task_status_aria' | t:{id: t.id}"
                   >
                     <option *ngFor="let s of statuses()" [ngValue]="s.id">{{ s.name }}</option>
                   </select>
@@ -735,7 +761,7 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
 
             <!-- Custom Attributes Card -->
             <div class="side-card" *ngIf="hasAttributes(t.attributes)">
-              <h5 class="side-card-title">{{ 'tasks.dop_polya' | t }}</h5>
+              <h5 class="side-card-title">{{ 'nav.custom_fields' | t }}</h5>
               <div class="attributes-stack">
                 <div *ngFor="let item of formatAttributes(t.attributes)" class="attr-stack-item">
                   <span class="attr-k">{{ item.key }}:</span>
@@ -901,12 +927,12 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
           <!-- Responsible User (Searchable Select) -->
           <div class="form-group">
             <div class="label-row">
-              <span class="clean-label">{{ 'tasks.otvetstvennyy_sotrudnik_i_t1' | t }}</span>
+              <span class="clean-label">{{ 'task.responsible' | t }}</span>
             </div>
             <ui-searchable-select
               [options]="responsibleUserOptions()"
               [selectedId]="createForm.responsibleUserId"
-              [ariaLabel]="'tasks.otvetstvennyy_sotrudnik' | t"
+              [ariaLabel]="'task.responsible' | t"
               (selectedIdChange)="createForm.responsibleUserId = $event"
               [placeholder]="'tasks.vyberite_otvetstvennogo' | t"
               [searchPlaceholder]="'tasks.poisk_sotrudnika_po_imeni_ili_loginu' | t"
@@ -955,11 +981,11 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
         <!-- RichText Markdown Editor for Description -->
         <div class="form-group">
           <div class="label-row">
-            <span class="clean-label">{{ 'tasks.podrobnoe_opisanie_markdown_richtext' | t }}</span>
+            <span class="clean-label">{{ 'projects.opisanie' | t }}</span>
           </div>
           <ui-markdown-editor
             [value]="createForm.descriptionMarkdown"
-            [ariaLabel]="'tasks.podrobnoe_opisanie_zadachi' | t"
+            [ariaLabel]="'projects.opisanie' | t"
             (valueChange)="createForm.descriptionMarkdown = $event"
             [placeholder]="'tasks.kontekst_kriterii_gotovnosti_zadachi_ssylki_podd' | t"
             [rows]="4"
@@ -969,8 +995,7 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
         <!-- Custom Dynamic Fields -->
         <div class="custom-fields-section" *ngIf="taskCustomFields().length > 0">
           <h4 class="custom-fields-title">
-            <span>{{ 'tasks.dopolnitelnye_nastraivaemye_polya' | t }}</span>
-            <span class="custom-fields-subhint">{{ 'tasks.nastraivayutsya_v_menyu_nastraivaemye_polya' | t }}</span>
+            <span>{{ 'nav.custom_fields' | t }}</span>
           </h4>
           <ui-custom-fields
             [fields]="taskCustomFields()"
@@ -1135,12 +1160,12 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
           <!-- Responsible User (Searchable Select) -->
           <div class="form-group">
             <div class="label-row">
-              <span class="clean-label">{{ 'tasks.otvetstvennyy_sotrudnik_i_t1' | t }}</span>
+              <span class="clean-label">{{ 'task.responsible' | t }}</span>
             </div>
             <ui-searchable-select
               [options]="responsibleUserOptions()"
               [selectedId]="editForm.responsibleUserId"
-              [ariaLabel]="'tasks.otvetstvennyy_sotrudnik' | t"
+              [ariaLabel]="'task.responsible' | t"
               (selectedIdChange)="editForm.responsibleUserId = $event"
               [placeholder]="'tasks.vyberite_otvetstvennogo' | t"
               [searchPlaceholder]="'tasks.poisk_sotrudnika_po_imeni_ili_loginu' | t"
@@ -1189,11 +1214,11 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
         <!-- RichText Markdown Editor for Description -->
         <div class="form-group">
           <div class="label-row">
-            <span class="clean-label">{{ 'tasks.podrobnoe_opisanie_markdown_richtext' | t }}</span>
+            <span class="clean-label">{{ 'projects.opisanie' | t }}</span>
           </div>
           <ui-markdown-editor
             [value]="editForm.descriptionMarkdown"
-            [ariaLabel]="'tasks.podrobnoe_opisanie_zadachi' | t"
+            [ariaLabel]="'projects.opisanie' | t"
             (valueChange)="editForm.descriptionMarkdown = $event"
             [rows]="4"
           ></ui-markdown-editor>
@@ -1201,7 +1226,7 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
 
         <!-- Custom Dynamic Fields -->
         <div class="custom-fields-section" *ngIf="taskCustomFields().length > 0">
-          <h4 class="custom-fields-title">{{ 'tasks.dopolnitelnye_nastraivaemye_polya.615ccfa' | t }}</h4>
+          <h4 class="custom-fields-title">{{ 'nav.custom_fields' | t }}</h4>
           <ui-custom-fields
             [fields]="taskCustomFields()"
             [(values)]="editForm.attributes"
@@ -1473,6 +1498,24 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
 
     .header-right { display: flex; align-items: center; gap: 8px; }
 
+    .export-popover {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 4px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-md);
+      z-index: 100;
+      min-width: 230px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .export-scope-title { padding: 10px 12px 2px; color: var(--text-main); font-size: 12px; }
+    .export-scope-note { padding: 0 12px 8px; color: var(--text-muted); font-size: 11px; line-height: 1.35; }
+
     .settings-btn {
       display: inline-flex;
       align-items: center;
@@ -1562,6 +1605,7 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
       align-items: center;
       gap: 4px;
       transition: all 0.1s ease;
+      white-space: nowrap;
     }
     .status-tab:hover { color: var(--text-main); }
     .status-tab.active {
@@ -1587,6 +1631,7 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
       color: var(--text-main);
       font-size: 12px;
       outline: none;
+      white-space: nowrap;
     }
     .clean-select:focus { border-color: var(--primary); }
 
@@ -1678,6 +1723,18 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
       flex-wrap: wrap;
     }
     .task-title { font-weight: 500; }
+    .task-title-open,
+    .kanban-title-open {
+      border: 0;
+      padding: 0;
+      background: transparent;
+      color: var(--text-main);
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+    .task-title-open:hover,
+    .kanban-title-open:hover { color: var(--primary); text-decoration: underline; }
     .parent-chip {
       font-size: 10px;
       background-color: var(--bg-hover);
@@ -1710,7 +1767,7 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
     .priority-pill[data-priority="low"] { background-color: var(--bg-hover); color: var(--text-light); }
 
     /* Inline Status Select */
-    .inline-status-wrapper { display: inline-block; }
+    .inline-status-wrapper { display: inline-flex; align-items: center; gap: 5px; }
     .inline-status-select {
       height: 26px;
       padding: 1px 6px;
@@ -1837,12 +1894,13 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
       display: flex;
       flex-direction: column;
       gap: 8px;
-      cursor: grab;
+      cursor: default;
       transition: all 0.12s ease;
       box-shadow: var(--shadow-sm);
       user-select: none;
     }
-    .kanban-card:active { cursor: grabbing; }
+    .kanban-card.can-drag { cursor: grab; }
+    .kanban-card.can-drag:active { cursor: grabbing; }
     .kanban-card:hover {
       border-color: var(--primary);
       transform: translateY(-1px);
@@ -2050,6 +2108,7 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
     .subtask-row:hover { border-color: var(--primary); }
     .subtask-title { flex: 1; font-weight: 500; }
     .inline-status-badge { font-size: 11px; font-weight: 500; }
+    .status-label { display: inline-flex; align-items: center; gap: 4px; color: var(--text-main); }
     .no-subtasks-hint { font-size: 12px; font-style: italic; padding: 4px 0; }
 
     .comments-section { border-top: 1px solid var(--border-color); padding-top: 12px; }
@@ -2174,6 +2233,7 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
     .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
     @media (max-width: 640px) {
+      .tasks-page { gap: 10px; }
       .view-header {
         align-items: flex-start;
         flex-direction: column;
@@ -2181,7 +2241,12 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
       .header-right {
         width: 100%;
         flex-wrap: wrap;
+        gap: 6px;
       }
+      .header-right > ui-button { order: -1; }
+      .compact-secondary-action { padding-inline: 7px; }
+      .compact-secondary-action > span:not(.material-symbols-outlined) { display: none; }
+      .toolbar { padding: 7px; gap: 8px; }
       .toolbar { align-items: stretch; }
       .search-field,
       .toolbar-controls { width: 100%; }
@@ -2194,6 +2259,18 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
       .form-group { min-width: 0; }
       .form-grid-2,
       .form-grid-3 { grid-template-columns: minmax(0, 1fr); }
+    }
+    .kanban-empty-recovery {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 12px;
+      color: var(--text-muted);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
     }
     .form-group { display: flex; flex-direction: column; gap: 4px; }
     .label-row { display: flex; align-items: center; justify-content: space-between; }
@@ -2495,6 +2572,7 @@ export class TasksComponent implements OnInit, OnDestroy {
   private parentSearchTimer?: ReturnType<typeof setTimeout>;
   private responsibleSearchTimer?: ReturnType<typeof setTimeout>;
   private observerSearchTimer?: ReturnType<typeof setTimeout>;
+  private taskSearchTimer?: ReturnType<typeof setTimeout>;
   private parentLookupQuery = '';
   private responsibleLookupQuery = '';
   private observerLookupQuery = '';
@@ -2611,6 +2689,7 @@ export class TasksComponent implements OnInit, OnDestroy {
     clearTimeout(this.parentSearchTimer);
     clearTimeout(this.responsibleSearchTimer);
     clearTimeout(this.observerSearchTimer);
+    clearTimeout(this.taskSearchTimer);
     this.routeSubscription?.unsubscribe();
     this.listRequest?.unsubscribe();
     this.detailRequest?.unsubscribe();
@@ -2866,9 +2945,29 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
 
   loadTasks(reset: boolean = false) {
+    clearTimeout(this.taskSearchTimer);
     const page = reset ? 1 : this.currentPage;
     const cursor = reset ? null : (this.taskPageCursors[page - 1] ?? null);
     this.requestTaskPage(page, cursor, reset);
+  }
+
+  onTaskSearchChange(query: string) {
+    this.searchQuery = query;
+    clearTimeout(this.taskSearchTimer);
+    this.cancelListRequestForFilterChange();
+    this.taskSearchTimer = setTimeout(() => this.loadTasks(true), 350);
+  }
+
+  applyTaskSearchImmediately() {
+    clearTimeout(this.taskSearchTimer);
+    this.loadTasks(true);
+  }
+
+  private cancelListRequestForFilterChange() {
+    this.listRequestId++;
+    this.listRequest?.unsubscribe();
+    this.isLoading.set(true);
+    this.listLoadError.set(false);
   }
 
   private requestTaskPage(targetPage: number, cursor: string | null, reset: boolean) {
@@ -2946,6 +3045,8 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
 
   clearSearch() {
+    clearTimeout(this.taskSearchTimer);
+    this.cancelListRequestForFilterChange();
     this.searchQuery = '';
     this.loadTasks(true);
   }
@@ -2956,6 +3057,8 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
 
   resetFilters() {
+    clearTimeout(this.taskSearchTimer);
+    this.cancelListRequestForFilterChange();
     this.searchQuery = '';
     this.selectedPriority = '';
     this.selectedProjectId = null;
@@ -2978,6 +3081,7 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
 
   moveTaskStatus(task: Task, direction: -1 | 1) {
+    if (!this.canUpdateTask()) return;
     const list = this.statuses();
     const currentIndex = list.findIndex(s => s.id === task.statusId);
     if (currentIndex === -1) return;
@@ -2993,6 +3097,7 @@ export class TasksComponent implements OnInit, OnDestroy {
   // Drag & Drop: Angular CDK Handler
   // =========================================================================
   onTaskDrop(event: CdkDragDrop<Task[]>, targetStatusId: number) {
+    if (!this.canUpdateTask()) return;
     const task = event.item.data as Task;
     if (!task) return;
 
@@ -3007,6 +3112,10 @@ export class TasksComponent implements OnInit, OnDestroy {
   // Drag & Drop: HTML5 Native Fallback Handlers
   // =========================================================================
   onHtml5DragStart(event: DragEvent, task: Task) {
+    if (!this.canUpdateTask()) {
+      event.preventDefault();
+      return;
+    }
     this.draggedTask = task;
     if (event.dataTransfer) {
       event.dataTransfer.setData('text/plain', String(task.id));
@@ -3015,6 +3124,7 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
 
   onHtml5DragOver(event: DragEvent) {
+    if (!this.canUpdateTask()) return;
     event.preventDefault();
     if (event.dataTransfer) {
       event.dataTransfer.dropEffect = 'move';
@@ -3026,6 +3136,7 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
 
   onHtml5DragLeave(event: DragEvent) {
+    if (!this.canUpdateTask()) return;
     const col = (event.currentTarget as HTMLElement);
     if (col) {
       col.classList.remove('drag-over');
@@ -3033,6 +3144,7 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
 
   onHtml5Drop(event: DragEvent, targetStatusId: number) {
+    if (!this.canUpdateTask()) return;
     event.preventDefault();
     const col = (event.currentTarget as HTMLElement);
     if (col) {
@@ -3129,6 +3241,12 @@ export class TasksComponent implements OnInit, OnDestroy {
     this.comments.set([]);
     this.loadTaskFullDetails(task.id);
     this.loadComments(task.id);
+  }
+
+  onTaskContainerClick(event: MouseEvent, task: Task) {
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('button, select, input, textarea, a, [role="button"], [role="option"]')) return;
+    this.openTaskDetails(task);
   }
 
   loadTaskFullDetails(taskId: number) {

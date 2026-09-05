@@ -54,9 +54,92 @@ describe('TasksComponent UI contracts', () => {
     expect(fixture.nativeElement.querySelector('[role="group"][aria-label="Режим отображения задач"]')).not.toBeNull();
     expect(region.tabIndex).toBe(0);
     expect(region.querySelector('table')?.getAttribute('aria-label')).toBe('Список задач');
-    expect(row.getAttribute('role')).toBe('button');
-    expect(row.tabIndex).toBe(0);
+    expect(row.getAttribute('role')).toBeNull();
+    expect(row.getAttribute('tabindex')).toBeNull();
+    const open = row.querySelector('.task-title-open') as HTMLButtonElement;
+    expect(open.tagName).toBe('BUTTON');
+    expect(open.type).toBe('button');
+    expect(open.getAttribute('aria-label')).toBe('Открыть задачу #42: Проверить отчёт');
     expect(fixture.nativeElement.querySelector('button[aria-label="Редактировать задачу #42"]')).not.toBeNull();
+  });
+
+  it('keeps nested table and kanban keyboard controls from opening task details', async () => {
+    const fixture = await createFixture();
+    const component = fixture.componentInstance;
+    const rowTask: Task = {
+      id: 42, title: 'Проверить отчёт', statusId: 1, priority: 'high', attributes: {}, createdAt: '2026-08-30T00:00:00Z'
+    };
+    component.statuses.set([
+      { id: 1, name: 'Новая', color: '#ff0000', orderNo: 1, isTerminal: false },
+      { id: 2, name: 'Готово', color: '#00ff00', orderNo: 2, isTerminal: true }
+    ]);
+    component.tasks.set([rowTask]);
+    fixture.detectChanges();
+
+    const status = fixture.nativeElement.querySelector('select[aria-label="Статус задачи #42"]') as HTMLSelectElement;
+    status.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    expect(component.selectedTask()).toBeNull();
+    const edit = fixture.nativeElement.querySelector('button[aria-label="Редактировать задачу #42"]') as HTMLButtonElement;
+    edit.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    expect(component.selectedTask()).toBeNull();
+    edit.click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('[role="dialog"]')).toHaveLength(1);
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')?.textContent).toContain('Редактирование задачи');
+    component.requestCloseEdit();
+
+    const kanbanToggle = Array.from(fixture.nativeElement.querySelectorAll('.header-left .status-tab') as NodeListOf<HTMLButtonElement>)
+      .find(button => button.textContent?.includes('Канбан'))!;
+    kanbanToggle.click();
+    fixture.detectChanges();
+    const move = fixture.nativeElement.querySelector('button[aria-label="Переместить задачу #42 вперёд"]') as HTMLButtonElement;
+    move.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+    expect(component.selectedTask()).toBeNull();
+  });
+
+  it('shows readable status text separately from custom color indicators', async () => {
+    const fixture = await createFixture();
+    const component = fixture.componentInstance;
+    component.statuses.set([{ id: 1, name: 'Новая', color: '#ff0000', orderNo: 1, isTerminal: false }]);
+    component.tasks.set([{ id: 42, title: 'Задача', statusId: 1, priority: 'medium', attributes: {}, createdAt: '2026-08-30T00:00:00Z' }]);
+    fixture.detectChanges();
+
+    const status = fixture.nativeElement.querySelector('.table-status') as HTMLElement;
+    expect(status.textContent).toContain('Новая');
+    expect(status.style.color).toBe('');
+    expect((status.querySelector('.status-dot') as HTMLElement).style.backgroundColor).toBe('rgb(255, 0, 0)');
+  });
+
+  it('explains that export includes every accessible task and ignores filters', async () => {
+    const fixture = await createFixture();
+    fixture.componentInstance.showExportMenu = true;
+    fixture.detectChanges();
+    const menu = fixture.nativeElement.querySelector('.export-popover') as HTMLElement;
+    expect(menu.textContent).toContain('Экспорт всех доступных задач');
+    expect(menu.textContent).toContain('Текущие фильтры не применяются');
+  });
+
+  it('uses concise business labels in create-task fields', async () => {
+    const fixture = await createFixture();
+    fixture.componentInstance.openCreateTaskModal();
+    fixture.componentInstance.taskCustomFields.set([{
+      id: 1,
+      entityType: 'TASK',
+      code: 'cost',
+      name: 'Cost',
+      fieldType: 'string',
+      isRequired: false,
+      orderNo: 1,
+      createdAt: '2026-09-05T00:00:00Z'
+    }]);
+    fixture.detectChanges();
+    const labels = Array.from(fixture.nativeElement.querySelectorAll('.clean-label, .custom-fields-title')).map((node: any) => node.textContent.trim());
+    expect(labels).toContain('Ответственный');
+    expect(labels).toContain('Описание');
+    expect(labels).toContain('Динамические поля');
+    expect(fixture.nativeElement.querySelector('ui-searchable-select button[aria-label="Ответственный"]')).not.toBeNull();
+    const description = fixture.nativeElement.querySelector('ui-markdown-editor textarea') as HTMLTextAreaElement;
+    expect(fixture.nativeElement.querySelector(`label[for="${description.id}"]`)?.textContent).toBe('Описание');
   });
 
   it('connects create-task labels, required state and shared field names', async () => {
@@ -151,6 +234,7 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     post?: (path: string, body?: unknown) => Observable<unknown>;
     patch?: (path: string, body?: unknown) => Observable<unknown>;
     canComment?: boolean;
+    canUpdate?: boolean;
   } = {}) {
     const api: ControlledApi = {
       get: vi.fn((path: string, params?: Record<string, unknown>) => options.get?.(path, params) ?? of(path === '/tasks'
@@ -164,7 +248,7 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     };
     const permissions = {
       canCreate: vi.fn((form: string) => form === 'tasks.comments' ? options.canComment !== false : true),
-      canUpdate: vi.fn(() => true),
+      canUpdate: vi.fn(() => options.canUpdate !== false),
       canDelete: vi.fn(() => true),
       hasPermission: vi.fn((form: string, action: string) => form === 'tasks.comments' && action === 'create'
         ? options.canComment !== false
@@ -413,6 +497,137 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     expect(component.selectedTask()?.id).toBe(16);
   });
 
+  it('closes an open selector on Escape without dismissing its editor', async () => {
+    const { fixture, component } = await createControlledFixture({
+      get: path => path === '/tasks/61'
+        ? of({ task: task(61, 'Fresh'), members: [] })
+        : of(path === '/tasks' ? { items: [], nextCursor: null, hasMore: false } : path === '/iam/users'
+          ? { items: [], nextCursor: null, hasMore: false }
+          : [])
+    });
+    component.openEditModal(task(61));
+    fixture.detectChanges();
+    const selector = fixture.nativeElement.querySelector('ui-searchable-select button[aria-label="Ответственный"]') as HTMLButtonElement;
+    selector.click();
+    fixture.detectChanges();
+    expect(selector.getAttribute('aria-expanded')).toBe('true');
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+
+    expect(selector.getAttribute('aria-expanded')).toBe('false');
+    expect(component.isEditModalOpen()).toBe(true);
+    expect(fixture.nativeElement.querySelectorAll('[role="dialog"]')).toHaveLength(1);
+  });
+
+  it('gives detail status and comment controls accessible names', async () => {
+    const { fixture, component } = await createControlledFixture();
+    component.statuses.set([{ id: 1, name: 'Новая', color: '#ff0000', orderNo: 1, isTerminal: false }]);
+    component.selectedTask.set(task(62));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.status-select')?.getAttribute('aria-label')).toBe('Статус задачи #62');
+    expect(fixture.nativeElement.querySelector('.comment-textarea')?.getAttribute('aria-label')).toBe('Комментарий к задаче #62');
+  });
+
+  it('debounces top-level search for 350 ms and Enter suppresses the delayed duplicate', async () => {
+    vi.useFakeTimers();
+    const { fixture, api } = await createControlledFixture();
+    const initialCalls = api.get.mock.calls.filter(([path]) => path === '/tasks').length;
+    const input = fixture.nativeElement.querySelector('#task-search') as HTMLInputElement;
+    input.value = 'alpha';
+    input.dispatchEvent(new Event('input'));
+    await vi.advanceTimersByTimeAsync(349);
+    expect(api.get.mock.calls.filter(([path]) => path === '/tasks')).toHaveLength(initialCalls);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(api.get.mock.calls.filter(([path, params]) => path === '/tasks' && params.search === 'alpha')).toHaveLength(1);
+
+    input.value = 'beta';
+    input.dispatchEvent(new Event('input'));
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    expect(api.get.mock.calls.filter(([path, params]) => path === '/tasks' && params.search === 'beta')).toHaveLength(1);
+    await vi.advanceTimersByTimeAsync(350);
+    expect(api.get.mock.calls.filter(([path, params]) => path === '/tasks' && params.search === 'beta')).toHaveLength(1);
+  });
+
+  it('cancels the old list immediately during search debounce and clearing loads the unfiltered page', async () => {
+    vi.useFakeTimers();
+    const initial = new Subject<unknown>();
+    const { fixture, component, api } = await createControlledFixture({
+      get: (path, params) => path === '/tasks' && !params?.['search'] ? initial : of(path === '/tasks'
+        ? { items: [task(70, 'Filtered')], nextCursor: null, hasMore: false }
+        : [])
+    });
+    const input = fixture.nativeElement.querySelector('#task-search') as HTMLInputElement;
+    input.value = 'current';
+    input.dispatchEvent(new Event('input'));
+    initial.next({ items: [task(69, 'Old answer')], nextCursor: null, hasMore: false });
+    expect(component.tasks()).toEqual([]);
+
+    await vi.advanceTimersByTimeAsync(350);
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('button[aria-label="Очистить поиск задач"]') as HTMLButtonElement).click();
+    expect(api.get.mock.calls.filter(([path, params]) => path === '/tasks' && params.search === undefined).length).toBeGreaterThan(1);
+  });
+
+  it('blocks prior cursor retry during debounce and a filter change cancels the delayed duplicate', async () => {
+    vi.useFakeTimers();
+    const { fixture, component, api } = await createControlledFixture({
+      get: (path, params) => path === '/tasks' && params?.['cursor'] === 'c50'
+        ? throwError(() => ({ status: 503 }))
+        : of(path === '/tasks' ? { items: [task(1)], nextCursor: 'c50', hasMore: true } : [])
+    });
+    (fixture.nativeElement.querySelector('button[aria-label="Следующая страница"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const callsAfterFailure = api.get.mock.calls.length;
+    const input = fixture.nativeElement.querySelector('#task-search') as HTMLInputElement;
+    input.value = 'pending';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('button[aria-label="Следующая страница"]')?.disabled).toBe(true);
+    expect(fixture.nativeElement.querySelector('.request-error')).toBeNull();
+    component.retryTaskList();
+    expect(api.get.mock.calls).toHaveLength(callsAfterFailure);
+
+    component.setStatusFilterMode('all');
+    const appliedCalls = api.get.mock.calls.filter(([path, params]) => path === '/tasks' && params.search === 'pending');
+    expect(appliedCalls).toHaveLength(1);
+    await vi.advanceTimersByTimeAsync(350);
+    expect(api.get.mock.calls.filter(([path, params]) => path === '/tasks' && params.search === 'pending')).toHaveLength(1);
+  });
+
+  it('offers recovery for filtered and first empty states', async () => {
+    const { fixture, component } = await createControlledFixture();
+    component.searchQuery = 'missing';
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.empty-state-cell button')?.textContent).toContain('Сбросить все фильтры');
+    const kanbanToggle = Array.from(fixture.nativeElement.querySelectorAll('.header-left .status-tab') as NodeListOf<HTMLButtonElement>)
+      .find(button => button.textContent?.includes('Канбан'))!;
+    kanbanToggle.click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.kanban-board')?.innerHTML).toContain('Сбросить все фильтры');
+    component.resetFilters();
+    component.viewMode = 'table';
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.empty-state-cell')?.textContent).toContain('Новая задача');
+  });
+
+  it('removes task drag affordances and handlers without update permission', async () => {
+    const { fixture, component } = await createControlledFixture({ canUpdate: false });
+    component.viewMode = 'kanban';
+    component.statuses.set([{ id: 1, name: 'Новая', orderNo: 1, isTerminal: false }]);
+    component.tasks.set([task(71)]);
+    fixture.detectChanges();
+
+    const card = fixture.nativeElement.querySelector('.kanban-card') as HTMLElement;
+    expect(card.getAttribute('draggable')).not.toBe('true');
+    expect(card.querySelector('.drag-grip-icon')).toBeNull();
+    expect(card.querySelector('.kanban-move-actions')).toBeNull();
+    card.dispatchEvent(new Event('dragstart', { bubbles: true, cancelable: true }));
+    expect(component.draggedTask).toBeNull();
+  });
+
   it('keeps a busy edit open and sends only one PATCH request', async () => {
     const patch = new Subject<unknown>();
     const { component, api } = await createControlledFixture({
@@ -652,7 +867,7 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     component.openCreateTaskModal();
     fixture.detectChanges();
 
-    const responsible = fixture.nativeElement.querySelector('ui-searchable-select button[aria-label="Ответственный сотрудник"]') as HTMLButtonElement;
+    const responsible = fixture.nativeElement.querySelector('ui-searchable-select button[aria-label="Ответственный"]') as HTMLButtonElement;
     responsible.click();
     fixture.detectChanges();
     const responsibleHost = responsible.closest('ui-searchable-select')!;
@@ -746,7 +961,7 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     component.openEditModal(task(40));
     fixture.detectChanges();
 
-    const responsible = fixture.nativeElement.querySelector('ui-searchable-select button[aria-label="Ответственный сотрудник"]') as HTMLButtonElement;
+    const responsible = fixture.nativeElement.querySelector('ui-searchable-select button[aria-label="Ответственный"]') as HTMLButtonElement;
     responsible.click();
     await vi.advanceTimersByTimeAsync(300);
     fixture.detectChanges();
@@ -774,7 +989,7 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     });
     component.openCreateTaskModal();
     fixture.detectChanges();
-    const responsible = fixture.nativeElement.querySelector('ui-searchable-select button[aria-label="Ответственный сотрудник"]') as HTMLButtonElement;
+    const responsible = fixture.nativeElement.querySelector('ui-searchable-select button[aria-label="Ответственный"]') as HTMLButtonElement;
     responsible.click();
     await vi.advanceTimersByTimeAsync(300);
     fixture.detectChanges();
@@ -893,7 +1108,7 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     });
     component.openCreateTaskModal();
     fixture.detectChanges();
-    const responsible = fixture.nativeElement.querySelector('ui-searchable-select button[aria-label="Ответственный сотрудник"]') as HTMLButtonElement;
+    const responsible = fixture.nativeElement.querySelector('ui-searchable-select button[aria-label="Ответственный"]') as HTMLButtonElement;
     responsible.click();
     await vi.advanceTimersByTimeAsync(300);
     fixture.detectChanges();
@@ -930,7 +1145,7 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     component.openEditModal(task(60));
     fixture.detectChanges();
 
-    const responsible = fixture.nativeElement.querySelector('ui-searchable-select button[aria-label="Ответственный сотрудник"]') as HTMLButtonElement;
+    const responsible = fixture.nativeElement.querySelector('ui-searchable-select button[aria-label="Ответственный"]') as HTMLButtonElement;
     expect(responsible.textContent).toContain('Fresh Name');
     expect(responsible.textContent).not.toContain('Old Name');
   });

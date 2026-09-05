@@ -3,6 +3,7 @@ import {
   Input,
   Output,
   EventEmitter,
+  ElementRef,
   HostListener,
   OnChanges,
   OnDestroy,
@@ -148,8 +149,11 @@ export class UiModalComponent implements OnChanges, OnDestroy {
 
   @Output() close = new EventEmitter<void>();
 
-  @HostListener('document:keydown.escape')
-  onEscape() {
+  constructor(private readonly host: ElementRef<HTMLElement>) {}
+
+  @HostListener('document:keydown.escape', ['$event'])
+  onEscape(event: Event) {
+    if (event.defaultPrevented || this.host.nativeElement.querySelector('[aria-expanded="true"]')) return;
     if (this.isOpen && this.dismissible && UiModalComponent.openModals.at(-1) === this) {
       this.close.emit();
     }

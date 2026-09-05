@@ -379,9 +379,11 @@ export class UiSearchableSelectComponent {
     }
   }
 
-  @HostListener('document:keydown.escape')
-  onEscape() {
+  @HostListener('document:keydown.escape', ['$event'])
+  onEscape(event: Event) {
     if (!this.isOpen()) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
     this.closeAndFocusTrigger();
   }
 
