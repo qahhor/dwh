@@ -88,11 +88,12 @@ public class MsProjectService {
     }
 
     private String validateAndNormalizeName(String name, boolean required) {
-        if ((required && name == null) || (name != null && name.isBlank())) {
+        String normalizedName = name != null ? name.trim() : null;
+        if ((required && normalizedName == null) || (normalizedName != null && normalizedName.isBlank())) {
             throw ApiException.validation("Название проекта обязательно", List.of(
                     new FieldErrorItem("name", "required", "Название проекта обязательно")));
         }
-        return name != null ? name.trim() : null;
+        return normalizedName;
     }
 
     private void validateState(String state) {

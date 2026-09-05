@@ -120,7 +120,7 @@ class MsProjectWriteIntegrationTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"", "   ", "\t\n"})
+    @ValueSource(strings = {"", "   ", "\t\n", "\b"})
     void rejectsBlankPatchNameBeforeAnyMutation(String invalidName) throws Exception {
         Long actor = user("Blank-name actor");
         Long projectId = project(actor, "Original name", "Original description", "A");
