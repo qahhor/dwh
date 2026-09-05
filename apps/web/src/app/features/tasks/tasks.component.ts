@@ -1776,6 +1776,7 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
       border-radius: 10px;
       border: 1px solid var(--border-color);
       background-color: var(--bg-surface);
+      color: var(--text-main);
       cursor: pointer;
       outline: none;
     }

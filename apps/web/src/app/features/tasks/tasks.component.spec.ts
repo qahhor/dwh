@@ -110,6 +110,18 @@ describe('TasksComponent UI contracts', () => {
     expect((status.querySelector('.status-dot') as HTMLElement).style.backgroundColor).toBe('rgb(255, 0, 0)');
   });
 
+  it('uses the semantic text color on the table status select', async () => {
+    const fixture = await createFixture();
+    const component = fixture.componentInstance;
+    component.statuses.set([{ id: 1, name: 'Новая', color: '#ff0000', orderNo: 1, isTerminal: false }]);
+    component.tasks.set([{ id: 42, title: 'Задача', statusId: 1, priority: 'medium', attributes: {}, createdAt: '2026-08-30T00:00:00Z' }]);
+    fixture.detectChanges();
+
+    const select = fixture.nativeElement.querySelector('.inline-status-select') as HTMLSelectElement;
+    (select.closest('td') as HTMLTableCellElement).style.color = 'rgb(255, 0, 0)';
+    expect(getComputedStyle(select).color).toBe('var(--text-main)');
+  });
+
   it('explains that export includes every accessible task and ignores filters', async () => {
     const fixture = await createFixture();
     fixture.componentInstance.showExportMenu = true;
