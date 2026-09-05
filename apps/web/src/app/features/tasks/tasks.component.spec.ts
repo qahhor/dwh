@@ -791,4 +791,147 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     fixture.detectChanges();
     expect(component.responsibleUsers().map(user => user.id)).toEqual([501]);
   });
+
+  it('keeps the committed page stable across rapid visible Next clicks and retries the failed cursor', async () => {
+    const firstNext = new Subject<unknown>();
+    const retryNext = new Subject<unknown>();
+    const requested: Array<Record<string, unknown> | undefined> = [];
+    let cursorCalls = 0;
+    const { fixture, component } = await createControlledFixture({
+      get: (path, params) => {
+        if (path !== '/tasks') return of([]);
+        requested.push(params);
+        if (!params?.['cursor']) return of({ items: [task(1)], nextCursor: 'c50', hasMore: true, totalReturned: 1 });
+        cursorCalls++;
+        return cursorCalls === 1 ? firstNext : retryNext;
+      }
+    });
+
+    let next = fixture.nativeElement.querySelector('button[aria-label="Следующая страница"]') as HTMLButtonElement;
+    next.click();
+    fixture.detectChanges();
+    next = fixture.nativeElement.querySelector('button[aria-label="Следующая страница"]') as HTMLButtonElement;
+    expect(next.disabled).toBe(true);
+    next.click();
+    expect(cursorCalls).toBe(1);
+    expect(component.currentPage).toBe(1);
+    expect(component.tasks().map(item => item.id)).toEqual([1]);
+
+    firstNext.error({ status: 503 });
+    fixture.detectChanges();
+    expect(component.currentPage).toBe(1);
+    expect(component.tasks().map(item => item.id)).toEqual([1]);
+    const retry = Array.from(fixture.nativeElement.querySelectorAll('.request-error button') as NodeListOf<HTMLButtonElement>)
+      .find(button => button.textContent?.includes('Повторить'))!;
+    retry.click();
+    retryNext.next({ items: [task(51)], nextCursor: null, hasMore: false, totalReturned: 1 });
+    fixture.detectChanges();
+
+    expect(requested.filter(params => params?.['cursor'] === 'c50')).toHaveLength(2);
+    expect(component.currentPage).toBe(2);
+    expect(component.tasks().map(item => item.id)).toEqual([51]);
+  });
+
+  it('keeps Previous available after an empty server page', async () => {
+    const { fixture, component } = await createControlledFixture({
+      get: (path, params) => path === '/tasks'
+        ? of(params?.['cursor'] === 'c50'
+          ? { items: [], nextCursor: null, hasMore: false, totalReturned: 0 }
+          : { items: [task(1)], nextCursor: 'c50', hasMore: true, totalReturned: 1 })
+        : of([])
+    });
+
+    (fixture.nativeElement.querySelector('button[aria-label="Следующая страница"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(component.currentPage).toBe(2);
+    expect(component.tasks()).toEqual([]);
+    const previous = fixture.nativeElement.querySelector('button[aria-label="Предыдущая страница"]') as HTMLButtonElement;
+    expect(previous).not.toBeNull();
+    expect(previous.disabled).toBe(false);
+  });
+
+  it('keeps Previous available after the last active item on a later page becomes terminal', async () => {
+    const statuses: TaskStatus[] = [
+      { id: 1, name: 'Active', isTerminal: false, orderNo: 1 },
+      { id: 2, name: 'Done', isTerminal: true, orderNo: 2 }
+    ];
+    const { fixture, component } = await createControlledFixture({
+      get: (path, params) => path === '/tasks/statuses'
+        ? of(statuses)
+        : path === '/tasks'
+          ? of(params?.['cursor'] === 'c50'
+            ? { items: [task(51)], nextCursor: null, hasMore: false, totalReturned: 1 }
+            : { items: [task(1)], nextCursor: 'c50', hasMore: true, totalReturned: 1 })
+          : of([])
+    });
+    (fixture.nativeElement.querySelector('button[aria-label="Следующая страница"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    component.updateStatus(51, 2);
+    fixture.detectChanges();
+
+    expect(component.currentPage).toBe(2);
+    expect(component.tasks()).toEqual([]);
+    expect(fixture.nativeElement.querySelector('button[aria-label="Предыдущая страница"]')).not.toBeNull();
+  });
+
+  it('invalidates selector paging while a new query is debouncing and ignores the old cursor response', async () => {
+    vi.useFakeTimers();
+    const oldMore = new Subject<unknown>();
+    const newQuery = new Subject<unknown>();
+    const user = (id: number, name: string): User => ({
+      id, name, login: `user${id}`, email: `u${id}@example.com`, state: 'A', language: 'ru', timezone: 'Asia/Tashkent',
+      attributes: {}, is2faEnabled: false, forcePasswordChange: false, createdAt: '2026-09-05T00:00:00Z', modifiedAt: '2026-09-05T00:00:00Z'
+    });
+    const { fixture, component, api } = await createControlledFixture({
+      get: (path, params) => {
+        if (path !== '/iam/users') return of(path === '/tasks' ? { items: [], nextCursor: null, hasMore: false, totalReturned: 0 } : []);
+        if (params?.['search'] === 'new') return newQuery;
+        if (params?.['cursor'] === 'u50') return oldMore;
+        return of({ items: [user(1, 'Initial')], nextCursor: 'u50', hasMore: true, totalReturned: 1 });
+      }
+    });
+    component.openCreateTaskModal();
+    fixture.detectChanges();
+    const responsible = fixture.nativeElement.querySelector('ui-searchable-select button[aria-label="Ответственный сотрудник"]') as HTMLButtonElement;
+    responsible.click();
+    await vi.advanceTimersByTimeAsync(300);
+    fixture.detectChanges();
+    const host = responsible.closest('ui-searchable-select')!;
+    (host.querySelector('button.remote-load-more') as HTMLButtonElement).click();
+
+    const input = host.querySelector('.search-input') as HTMLInputElement;
+    input.value = 'new';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(component.responsibleLookupLoading()).toBe(true);
+    expect(host.querySelector('button.remote-load-more')).toBeNull();
+    component.loadMoreResponsibleUsers();
+    expect(api.get.mock.calls.some(([path, params]) => path === '/iam/users' && params.search === 'new' && params.cursor === 'u50')).toBe(false);
+
+    oldMore.next({ items: [user(2, 'Old late')], nextCursor: 'u100', hasMore: true, totalReturned: 1 });
+    expect(component.responsibleLookupHasMore()).toBe(false);
+    await vi.advanceTimersByTimeAsync(300);
+    newQuery.next({ items: [user(501, 'New result')], nextCursor: null, hasMore: false, totalReturned: 1 });
+    fixture.detectChanges();
+    expect(component.responsibleUsers().map(item => item.id)).toEqual([501]);
+  });
+
+  it('lets fresh detail identity replace an older retained label for the same selected user', async () => {
+    const detailResponses = [
+      of({ task: task(60), members: [{ taskId: 60, userId: 501, involveKind: 'R', userName: 'Old Name', userLogin: 'old501' }] }),
+      of({ task: task(60), members: [{ taskId: 60, userId: 501, involveKind: 'R', userName: 'Fresh Name', userLogin: 'fresh501' }] })
+    ];
+    const { fixture, component } = await createControlledFixture({
+      get: path => path === '/tasks/60' ? detailResponses.shift()! : of(path === '/tasks' ? { items: [], nextCursor: null, hasMore: false, totalReturned: 0 } : [])
+    });
+    component.openEditModal(task(60));
+    component.requestCloseEdit();
+    component.openEditModal(task(60));
+    fixture.detectChanges();
+
+    const responsible = fixture.nativeElement.querySelector('ui-searchable-select button[aria-label="Ответственный сотрудник"]') as HTMLButtonElement;
+    expect(responsible.textContent).toContain('Fresh Name');
+    expect(responsible.textContent).not.toContain('Old Name');
+  });
 });

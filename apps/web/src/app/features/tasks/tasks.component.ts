@@ -494,6 +494,7 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
         [showPageSize]="false"
         [cursorMode]="true"
         [hasNextPage]="hasMore()"
+        [disabled]="isLoading() || listLoadError()"
         (pageChange)="goToTaskPage($event)"
       ></ui-pagination>
     </div>
@@ -2503,6 +2504,7 @@ export class TasksComponent implements OnInit, OnDestroy {
   private parentLastReset = true;
   private responsibleLastReset = true;
   private observerLastReset = true;
+  private lastListAttempt: { page: number; cursor: string | null; reset: boolean } | null = null;
   private readonly retainedParentOptions = new Map<number, SelectOption>();
   private readonly retainedUsers = new Map<number, User>();
 
@@ -2677,7 +2679,9 @@ export class TasksComponent implements OnInit, OnDestroy {
     clearTimeout(this.parentSearchTimer);
     this.parentLookupRequestId++;
     this.parentLookupRequest?.unsubscribe();
-    this.parentLookupLoading.set(false);
+    this.parentLookupCursor = null;
+    this.parentLookupHasMore.set(false);
+    this.parentLookupLoading.set(true);
     this.parentLookupError.set(false);
     this.parentSearchTimer = setTimeout(() => this.loadParentTasks(true), 300);
   }
@@ -2695,7 +2699,9 @@ export class TasksComponent implements OnInit, OnDestroy {
     clearTimeout(this.responsibleSearchTimer);
     this.responsibleLookupRequestId++;
     this.responsibleLookupRequest?.unsubscribe();
-    this.responsibleLookupLoading.set(false);
+    this.responsibleLookupCursor = null;
+    this.responsibleLookupHasMore.set(false);
+    this.responsibleLookupLoading.set(true);
     this.responsibleLookupError.set(false);
     this.responsibleSearchTimer = setTimeout(() => this.loadResponsibleUsers(true), 300);
   }
@@ -2713,7 +2719,9 @@ export class TasksComponent implements OnInit, OnDestroy {
     clearTimeout(this.observerSearchTimer);
     this.observerLookupRequestId++;
     this.observerLookupRequest?.unsubscribe();
-    this.observerLookupLoading.set(false);
+    this.observerLookupCursor = null;
+    this.observerLookupHasMore.set(false);
+    this.observerLookupLoading.set(true);
     this.observerLookupError.set(false);
     this.observerSearchTimer = setTimeout(() => this.loadObserverUsers(true), 300);
   }
@@ -2828,7 +2836,7 @@ export class TasksComponent implements OnInit, OnDestroy {
     incoming.forEach(user => this.retainedUsers.set(user.id, user));
     const selected = selectedIds.map(id => this.retainedUsers.get(id)).filter((user): user is User => !!user);
     const merged = new Map<number, User>();
-    [...selected, ...existing, ...incoming].forEach(user => merged.set(user.id, user));
+    [...existing, ...incoming, ...selected].forEach(user => merged.set(user.id, user));
     return [...merged.values()];
   }
 
@@ -2858,11 +2866,13 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
 
   loadTasks(reset: boolean = false) {
-    if (reset) {
-      this.nextCursor = null;
-      this.currentPage = 1;
-      this.taskPageCursors = [null];
-    }
+    const page = reset ? 1 : this.currentPage;
+    const cursor = reset ? null : (this.taskPageCursors[page - 1] ?? null);
+    this.requestTaskPage(page, cursor, reset);
+  }
+
+  private requestTaskPage(targetPage: number, cursor: string | null, reset: boolean) {
+    this.lastListAttempt = { page: targetPage, cursor, reset };
 
     let statusIdParam: number | undefined = undefined;
     let hideTerminalParam: boolean | undefined = undefined;
@@ -2881,7 +2891,7 @@ export class TasksComponent implements OnInit, OnDestroy {
     this.listLoadError.set(false);
     this.listRequest = this.api.get<KeysetPage<Task>>('/tasks', {
       limit: 50,
-      cursor: this.taskPageCursors[this.currentPage - 1] || undefined,
+      cursor: cursor || undefined,
       search: this.searchQuery || undefined,
       priority: this.selectedPriority || undefined,
       project_id: this.selectedProjectId || undefined,
@@ -2891,6 +2901,9 @@ export class TasksComponent implements OnInit, OnDestroy {
       next: res => {
         if (this.destroyed || requestId !== this.listRequestId) return;
         this.isLoading.set(false);
+        if (reset) this.taskPageCursors = [null];
+        this.taskPageCursors[targetPage - 1] = cursor;
+        this.currentPage = targetPage;
         this.tasks.set(res.items || []);
         this.nextCursor = res.nextCursor;
         this.hasMore.set(res.hasMore);
@@ -2904,19 +2917,23 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
 
   retryTaskList() {
-    this.loadTasks(false);
+    const attempt = this.lastListAttempt;
+    if (!attempt || this.isLoading()) return;
+    this.requestTaskPage(attempt.page, attempt.cursor, attempt.reset);
   }
 
   goToTaskPage(page: number) {
-    if (page === this.currentPage || page < 1 || Math.abs(page - this.currentPage) !== 1) return;
+    if (this.isLoading() || this.listLoadError() || page === this.currentPage || page < 1 || Math.abs(page - this.currentPage) !== 1) return;
+    let cursor: string | null;
     if (page > this.currentPage) {
       if (!this.hasMore() || !this.nextCursor) return;
-      this.taskPageCursors[page - 1] = this.nextCursor;
+      cursor = this.nextCursor;
     } else if (this.taskPageCursors[page - 1] === undefined) {
       return;
+    } else {
+      cursor = this.taskPageCursors[page - 1];
     }
-    this.currentPage = page;
-    this.loadTasks(false);
+    this.requestTaskPage(page, cursor, false);
   }
 
   paginatedTasks(): Task[] {

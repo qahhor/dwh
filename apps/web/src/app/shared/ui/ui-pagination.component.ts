@@ -9,9 +9,9 @@ import { TranslatePipe } from '../../core/services/i18n.service';
   imports: [
     TranslatePipe,CommonModule, FormsModule],
   template: `
-    <nav class="pagination-bar" *ngIf="totalItems > 0" [attr.aria-label]="'ui.pagination.paginaciya' | t">
+    <nav class="pagination-bar" *ngIf="totalItems > 0 || (cursorMode && (currentPage > 1 || hasNextPage))" [attr.aria-label]="'ui.pagination.paginaciya' | t">
       <!-- Left: Item Range & Total Counter -->
-      <div class="pagination-info" role="status" aria-live="polite" aria-atomic="true">
+      <div class="pagination-info" *ngIf="totalItems > 0" role="status" aria-live="polite" aria-atomic="true">
         <span class="range-text">
           {{ 'ui.pagination.pokazano' | t }} <strong class="highlight font-mono">{{ startItem }}–{{ endItem }}</strong>
           <ng-container *ngIf="!cursorMode"> {{ 'files.iz' | t }} <strong class="highlight font-mono">{{ totalItems }}</strong></ng-container>
@@ -26,6 +26,7 @@ import { TranslatePipe } from '../../core/services/i18n.service';
           <select
             [id]="pageSizeSelectId"
             class="size-select"
+            [disabled]="disabled"
             [ngModel]="pageSize"
             (ngModelChange)="onPageSizeChange($event)"
           >
@@ -42,7 +43,7 @@ import { TranslatePipe } from '../../core/services/i18n.service';
             class="nav-btn"
             [attr.aria-label]="'ui.pagination.pervaya_stranica' | t"
             [title]="'ui.pagination.pervaya_stranica' | t"
-            [disabled]="currentPage === 1"
+            [disabled]="disabled || currentPage === 1"
             (click)="goToPage(1)"
           >
             <span class="material-symbols-outlined icon" aria-hidden="true">first_page</span>
@@ -54,7 +55,7 @@ import { TranslatePipe } from '../../core/services/i18n.service';
             class="nav-btn"
             [attr.aria-label]="'ui.pagination.predyduschaya_stranica' | t"
             [title]="'ui.pagination.predyduschaya_stranica' | t"
-            [disabled]="currentPage === 1"
+            [disabled]="disabled || currentPage === 1"
             (click)="goToPage(currentPage - 1)"
           >
             <span class="material-symbols-outlined icon" aria-hidden="true">chevron_left</span>
@@ -71,6 +72,7 @@ import { TranslatePipe } from '../../core/services/i18n.service';
                 [class.active]="p === currentPage"
                 [attr.aria-label]="'ui.pagination.page_number' | t:{page: p}"
                 [attr.aria-current]="p === currentPage ? 'page' : null"
+                [disabled]="disabled"
                 (click)="goToPage(p)"
               >
                 {{ p }}
@@ -93,7 +95,7 @@ import { TranslatePipe } from '../../core/services/i18n.service';
             class="nav-btn"
             [attr.aria-label]="'ui.pagination.sleduyuschaya_stranica' | t"
             [title]="'ui.pagination.sleduyuschaya_stranica' | t"
-            [disabled]="cursorMode ? !hasNextPage : currentPage >= totalPages"
+            [disabled]="disabled || (cursorMode ? !hasNextPage : currentPage >= totalPages)"
             (click)="goToPage(currentPage + 1)"
           >
             <span class="material-symbols-outlined icon" aria-hidden="true">chevron_right</span>
@@ -106,7 +108,7 @@ import { TranslatePipe } from '../../core/services/i18n.service';
             class="nav-btn"
             [attr.aria-label]="'ui.pagination.poslednyaya_stranica' | t"
             [title]="'ui.pagination.poslednyaya_stranica' | t"
-            [disabled]="currentPage >= totalPages"
+            [disabled]="disabled || currentPage >= totalPages"
             (click)="goToPage(totalPages)"
           >
             <span class="material-symbols-outlined icon" aria-hidden="true">last_page</span>
@@ -267,6 +269,7 @@ export class UiPaginationComponent implements OnChanges {
   @Input() showPageSize: boolean = true;
   @Input() cursorMode: boolean = false;
   @Input() hasNextPage: boolean = false;
+  @Input() disabled: boolean = false;
 
   @Output() pageChange = new EventEmitter<number>();
   @Output() pageSizeChange = new EventEmitter<number>();
@@ -342,11 +345,16 @@ export class UiPaginationComponent implements OnChanges {
   }
 
   goToPage(page: number) {
+    if (this.disabled) return;
     const isCursorStep = this.cursorMode && (
       page === this.currentPage - 1 || (page === this.currentPage + 1 && this.hasNextPage)
     );
     const isNumberedPage = !this.cursorMode && page >= 1 && page <= this.totalPages;
     if (page >= 1 && page !== this.currentPage && (isCursorStep || isNumberedPage)) {
+      if (this.cursorMode) {
+        this.pageChange.emit(page);
+        return;
+      }
       this.currentPage = page;
       this.calculatePagination();
       this.pageChange.emit(this.currentPage);

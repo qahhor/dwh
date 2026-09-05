@@ -68,9 +68,24 @@ describe('UiPaginationComponent', () => {
     const previous = fixture.nativeElement.querySelector('button[aria-label="Предыдущая страница"]') as HTMLButtonElement;
     previous.click();
 
-    expect(fixture.componentInstance.currentPage).toBe(2);
+    expect(fixture.componentInstance.currentPage).toBe(3);
     expect(emitted).toEqual([2]);
     expect(fixture.nativeElement.querySelector('[role="status"]').textContent).toContain('101–125');
     expect(fixture.nativeElement.querySelector('[role="status"]').textContent).not.toContain('из 25');
+  });
+
+  it('keeps cursor navigation visible for an empty later page', async () => {
+    await TestBed.configureTestingModule({ imports: [UiPaginationComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(UiPaginationComponent);
+    fixture.componentRef.setInput('totalItems', 0);
+    fixture.componentRef.setInput('currentPage', 2);
+    fixture.componentRef.setInput('pageSize', 50);
+    fixture.componentRef.setInput('cursorMode', true);
+    fixture.componentRef.setInput('hasNextPage', false);
+    fixture.detectChanges();
+
+    const previous = fixture.nativeElement.querySelector('button[aria-label="Предыдущая страница"]') as HTMLButtonElement;
+    expect(previous).not.toBeNull();
+    expect(previous.disabled).toBe(false);
   });
 });
