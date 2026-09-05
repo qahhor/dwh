@@ -39,7 +39,7 @@ test('translation override repaints live, persists across sessions, and keeps Ru
     overrideSaved = true;
 
     await page.getByTestId('language-editor-close').click();
-    await persistLanguageChange('de', () => page.getByTestId('switch-language-de').click());
+    await persistLanguageChange('de', () => languageSelector.selectOption('de'));
 
     await page.goto('/settings');
     await expect(page.getByRole('button', { name: marker, exact: true })).toBeVisible();

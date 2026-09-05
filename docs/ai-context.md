@@ -104,6 +104,37 @@ repositories/adapters — I/O. Детали приведены в
 
 ### Текущая локальная работа — 2026-09-05
 
+Локально реализованы четырнадцать принятых исправлений качества Tasks по
+[плану Tasks Quality](superpowers/plans/2026-09-05-tasks-quality.md): PATCH
+различает отсутствие и явный `null`, изменения задачи и участников атомарны,
+комментарии содержат отображаемого автора, а UI защищает fresh edit/detail,
+точность времени, pending-формы и dirty-dismissal. Список задач и селекторы
+используют независимую bounded cursor-pagination; Active/All/status доступны в
+таблице и kanban. Поиск владеет debounce/cancellation, вложенные действия
+клавиатуры не открывают detail, а статусный native select использует
+семантический цвет текста в обеих темах. Права и server row scope не расширены.
+
+Финальное дерево приложения `c4d33d4` проверено: Angular 32 файла / 157 тестов,
+app typecheck и production build прошли, i18n audit — 1 019 ссылок / 1 039
+ключей; Maven reactor — server 340/340 и библиотеки 5/5. Browser E2E собран из
+чистого `git archive c4d33d4` в отдельном Compose-проекте
+`smartupcms-tasksq-ecb2e05e`, доступном только через loopback origin
+`http://localhost:14200`; persistent `localhost:4200` не затрагивался. Пустая
+candidate DB получила все 24 миграции, после чего 30/30 Playwright-сценариев
+прошли за 2,3 минуты: прежние 24 и шесть новых Tasks regressions для
+date/observer/comment/keyboard/dirty-cancel, 125 cursor rows, error/retry,
+stale search, kanban/mobile и literal light/dark status-select colors. E2E
+config 3/3, typecheck и artifact-secret gate также прошли; после suite все
+четыре candidate-сервиса healthy и `/healthz` возвращает 200.
+
+Артефакты isolated runtime и Playwright находятся вне репозитория в
+`C:/Temp/smartupcms-tasks-quality-ecb2e05e0db34d62acd838c8702b5cc6`.
+Это локальная acceptance-проверка, не deploy, нагрузочный тест или
+доказательство production readiness. Live IAB desktop/mobile проверка и
+финальный whole-change review ещё не завершены; candidate оставлен запущенным
+для этой проверки. Graphify обновлён AST-only, но generated output остаётся
+локально dirty и не предназначен для task commit.
+
 Начата последовательная реализация [release-hardening плана](superpowers/plans/2026-09-05-release-hardening.md).
 Разработка I-01 начиналась в `codex/release-hardening` от
 `710efeb55c03c2d444cfc8fd22dcefa01635e99c`. По прямому указанию пользователя

@@ -28,7 +28,7 @@ test('project to task to comment works through the visible UI', async ({ page })
   await page.getByRole('button', { name: 'Новая задача' }).click();
   await page.getByLabel('Название задачи').fill(taskName);
   await page.getByRole('button', { name: 'Высокий' }).click();
-  await page.getByLabel('Подробное описание задачи').fill('Created by the browser E2E suite.');
+  await page.getByLabel('Описание', { exact: true }).fill('Created by the browser E2E suite.');
   const taskResponse = page.waitForResponse(response =>
     response.request().method() === 'POST' && response.url().endsWith('/api/v1/tasks')
   );

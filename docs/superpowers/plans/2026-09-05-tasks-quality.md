@@ -48,7 +48,7 @@ Use concrete new test classes in the focused command as each is added. Before fi
 
 **Interfaces:** Existing `PATCH /api/v1/tasks/{id}` (and items alias) JSON field names remain unchanged. Missing field leaves value unchanged; explicit null clears `projectId`, `parentTaskId`, `responsibleUserId`, `beginTime`, `endTime`. `observerUserIds: []` clears observers; omitted observer list leaves them unchanged. Invalid non-null values still fail server validation. A single application-service transaction owns the whole update including member changes and audit. Comment list/create responses retain existing fields and add nullable `userName` / `userLogin`; avoid exposing extra IAM/PII data.
 
-- [ ] Write HTTP/real-PostgreSQL tests that distinguish missing versus null and assert persisted values, rollback on invalid participant, scope rejection, and comment author display fields. The independent expectations include:
+- [x] Write HTTP/real-PostgreSQL tests that distinguish missing versus null and assert persisted values, rollback on invalid participant, scope rejection, and comment author display fields. The independent expectations include:
 
 ```java
 // On an existing task with project, parent, owner and deadline:
@@ -60,10 +60,12 @@ assertThat(reloaded.endTime()).isNull();
 // invalid participant + valid title in the same PATCH must leave the old title/members intact.
 ```
 
-- [ ] Run the focused tests, confirm failures are caused by coalesce/null gating or missing author fields rather than test setup.
-- [ ] Implement presence-aware decoding using existing Jackson support and typed validation; pass explicit field-presence information to a transactional service. SQL must distinguish missing from explicit clear without changing legacy callers' semantics. Validate task, project/parent and participants before writes; never weaken row scope. For authors, join only display identity, with null-safe handling for removed identity; ensure create and list have consistent response shape.
-- [ ] Run focused green tests plus the existing task/scope/comment tests. Review for partial commits, accidental scope bypass, serialization compatibility, and duplicate audit events.
-- [ ] Stage exact server files and commit `fix(tasks): preserve patch semantics and comment authors`; write report with test commands and RED/GREEN output.
+- [x] Run the focused tests, confirm failures are caused by coalesce/null gating or missing author fields rather than test setup.
+- [x] Implement presence-aware decoding using existing Jackson support and typed validation; pass explicit field-presence information to a transactional service. SQL must distinguish missing from explicit clear without changing legacy callers' semantics. Validate task, project/parent and participants before writes; never weaken row scope. For authors, join only display identity, with null-safe handling for removed identity; ensure create and list have consistent response shape.
+- [x] Run focused green tests plus the existing task/scope/comment tests. Review for partial commits, accidental scope bypass, serialization compatibility, and duplicate audit events.
+- [x] Stage exact server files and commit `fix(tasks): preserve patch semantics and comment authors`; write report with test commands and RED/GREEN output.
+
+Verified 2026-09-05: commit `482e2f0`; semantic RED 3 expected failures, focused GREEN 12/12, neighboring task/scope/comment 37/37, full reactor verification (server 340/340 plus libraries 5/5). Independent task-scoped review approved without findings. No live database changes.
 
 ### Task 2: Make editing and detail state safe
 
@@ -73,7 +75,7 @@ assertThat(reloaded.endTime()).isNull();
 
 **Interfaces:** Consume Task 1 PATCH wire semantics and author fields. Existing task property names remain unchanged. Shared pure helpers should expose `toLocalDateTime(iso: string | null | undefined): string` and `toTaskInstant(value: string, original?: string | null): string | null`. They convert browser-local time and preserve the exact original instant when its visible value is unchanged. Request cancellation/identity must protect list/detail/edit/comments and component destruction. Do not add polling or a new state library.
 
-- [ ] Add real-component tests for edit GET failure (no save-ready form), fresh response used instead of stale row, out-of-order detail/comments, closing during load, comment draft separation, repeated submit, dirty dismissal. Add date round-trip tests with fixed UTC+5 expectations and unchanged seconds/milliseconds:
+- [x] Add real-component tests for edit GET failure (no save-ready form), fresh response used instead of stale row, out-of-order detail/comments, closing during load, comment draft separation, repeated submit, dirty dismissal. Add date round-trip tests with fixed UTC+5 expectations and unchanged seconds/milliseconds:
 
 ```typescript
 expect(toLocalDateTime('2026-09-05T12:00:37.123Z')).toBe('2026-09-05T17:00'); // Asia/Tashkent test environment
@@ -81,10 +83,12 @@ expect(toTaskInstant('2026-09-05T17:00', '2026-09-05T12:00:37.123Z')).toBe('2026
 expect(toTaskInstant('', '2026-09-05T12:00:00Z')).toBeNull();
 ```
 
-- [ ] Run RED before changing implementation. Use controlled Observable responses at the HTTP boundary, not a mocked Tasks component. Cross-timezone helper checks must not depend on the host's accidental zone.
-- [ ] Implement explicit loading/error/retry states for list/detail/edit and auxiliary detail reads. Preserve or label stale list data; never show false empty results after an error. Prefer cancellation plus current request identity. Editing uses `res.task` and `res.members`; failure cannot fabricate empty members. Dates show browser zone; unchanged values preserve original precision. Associate comments with the selected task and prevent duplicate posting. Gate comment creation by the existing `tasks.comments` permission.
-- [ ] Add dirty confirmation through the existing modal/confirmation pattern; unchanged form closes directly. During saving prevent duplicate requests and ambiguous dismissal. Moving detail → edit must leave one active modal and preserve a clear return path. Keep labels and field errors intact.
-- [ ] Run all affected focused tests, typecheck and i18n sync/audit; commit exact files as `fix(tasks): guard editing and asynchronous detail state` and write report.
+- [x] Run RED before changing implementation. Use controlled Observable responses at the HTTP boundary, not a mocked Tasks component. Cross-timezone helper checks must not depend on the host's accidental zone.
+- [x] Implement explicit loading/error/retry states for list/detail/edit and auxiliary detail reads. Preserve or label stale list data; never show false empty results after an error. Prefer cancellation plus current request identity. Editing uses `res.task` and `res.members`; failure cannot fabricate empty members. Dates show browser zone; unchanged values preserve original precision. Associate comments with the selected task and prevent duplicate posting. Gate comment creation by the existing `tasks.comments` permission.
+- [x] Add dirty confirmation through the existing modal/confirmation pattern; unchanged form closes directly. During saving prevent duplicate requests and ambiguous dismissal. Moving detail → edit must leave one active modal and preserve a clear return path. Keep labels and field errors intact.
+- [x] Run all affected focused tests, typecheck and i18n sync/audit; commit exact files as `fix(tasks): guard editing and asynchronous detail state` and write report.
+
+Verified 2026-09-05: commits `5427c71`, `72f72c8`; focused 30/30 and full frontend 127/127 before review, then additional pending-write RED 2 expected failures and Tasks GREEN 28/28 after the reviewed fix. Typecheck and i18n passed. Independent review found pending-write input loss; disabled create/edit fieldsets and duplicate-create guards closed it, and scoped re-review approved. Selector-only Escape remains explicitly assigned to Task 4.
 
 ### Task 3: Correct task navigation, kanban filters and selectors
 
@@ -94,7 +98,7 @@ expect(toTaskInstant('', '2026-09-05T12:00:00Z')).toBeNull();
 
 **Interfaces:** Use existing `GET /tasks` keyset response `{items,nextCursor,hasMore}` and existing scoped IAM list contract, respecting action permissions. Task list cursor state is independent from parent selector state and user selector state. Do not increase a fixed limit or load the whole DB. Shared selectors may add opt-in `remoteSearch`, `loading`, `loadError`, `hasMore` inputs and `searchChange`, `loadMore`, `retry` outputs; defaults preserve current behavior. Retain selected labels when a query page is replaced.
 
-- [ ] Write tests for a 125-task fixture split into server pages; navigation reaches all IDs without duplicates and never implies loaded count is total. Filter changes reset page/cursor; old answers cannot replace a new query. Test same task set across table and kanban for active/all filters. Test selectable user beyond the first 100 and a parent outside current list filter/page.
+- [x] Write tests for a 125-task fixture split into server pages; navigation reaches all IDs without duplicates and never implies loaded count is total. Filter changes reset page/cursor; old answers cannot replace a new query. Test same task set across table and kanban for active/all filters. Test selectable user beyond the first 100 and a parent outside current list filter/page.
 
 ```typescript
 // Distinct backend fixtures: first page ids 1..50 + hasMore, then 51..100, then 101..125.
@@ -103,10 +107,13 @@ expect(toTaskInstant('', '2026-09-05T12:00:00Z')).toBeNull();
 // Remote selector search returns a user id 501 absent from its initial response.
 ```
 
-- [ ] Run RED; confirm truncation/hidden-filter/local-selector behavior fails the assertions.
-- [ ] Implement real cursor navigation with known previous cursors (or explicit load-more of bounded pages) and honest loaded-result copy. If using `ui-pagination.cursorMode`, fix `goToPage` and count rendering so next is controlled by `hasNextPage`, not local totalPages; regression-test other consumers. Keep the active/all filter visible in both views. Status changes must maintain current filtering and not retain terminal tasks under active mode.
-- [ ] Add independent paginated remote search to parent and user/observer selectors with explicit loading/error/retry and debouncing/cancellation. Preserve selected identity labels from fresh detail members; don't silently drop IDs outside loaded search results. Do not grant IAM permission or add a broad unauthorised endpoint to make a selector work.
-- [ ] Run affected component tests and full shared-control tests, typecheck/i18n; commit `fix(tasks): paginate results and assignment lookups` and write report.
+- [x] Run RED; confirm truncation/hidden-filter/local-selector behavior fails the assertions.
+- [x] Implement real cursor navigation with known previous cursors (or explicit load-more of bounded pages) and honest loaded-result copy. If using `ui-pagination.cursorMode`, fix `goToPage` and count rendering so next is controlled by `hasNextPage`, not local totalPages; regression-test other consumers. Keep the active/all filter visible in both views. Status changes must maintain current filtering and not retain terminal tasks under active mode.
+- [x] Add independent paginated remote search to parent and user/observer selectors with explicit loading/error/retry and debouncing/cancellation. Preserve selected identity labels from fresh detail members; don't silently drop IDs outside loaded search results. Do not grant IAM permission or add a broad unauthorised endpoint to make a selector work.
+- [x] Preserve the fresh parent/responsible/observer baseline independently of lookup results. Omit unchanged scoped assignment fields from PATCH (observer comparison is set-based); still send explicit null/[] when cleared. Regression-test title-only edits with selected identities absent from the allowed lookup, avoiding unnecessary scope revalidation/assignment notifications. Keep backend validation unchanged for actual assignment replacements.
+- [x] Run affected component tests and full shared-control tests, typecheck/i18n; commit `fix(tasks): paginate results and assignment lookups` and write report.
+
+Verified 2026-09-05: commits `81e0e45`, `b96f2c3`; initial focused45/shared26/full139 tests passed. Independent review identified rapid-page/debounce races, empty-page navigation and stale labels; fix-round RED6 expected failures followed by focused38/shared27/full145 passing, typecheck/i18n pass. Scoped re-review approved all four findings without new breakage. Backend authorization and API remain unchanged.
 
 ### Task 4: Complete keyboard, contrast, search and compact UI repairs
 
@@ -116,7 +123,7 @@ expect(toTaskInstant('', '2026-09-05T12:00:00Z')).toBeNull();
 
 **Interfaces:** Consume Task 2 request guards and Task 3 cursor reset/search behavior. Search should apply after 350ms debounce and immediately on Enter; avoid a second duplicate request after Enter. Keep current filter choice across view changes. Export endpoint remains format-only and actor-scoped, with explicit UI copy that it exports all accessible tasks.
 
-- [ ] Add tests that Enter/Space on a nested edit/status control cannot open task detail, one dialog is active, details comment/status have accessible names, export scope is explicit, and typing/clearing search results is deterministic. Preserve a named native button for opening each task so existing E2E can use it.
+- [x] Add tests that Enter/Space on a nested edit/status/kanban-move control cannot open task detail, one dialog is active, Escape closes an open selector without dismissing its editor, details comment/status have accessible names, export scope is explicit, and typing/clearing search results is deterministic. Preserve a named native button for opening each task so existing E2E can use it.
 
 ```typescript
 // dispatch bubbling KeyboardEvent('keydown', {key:'Enter', bubbles:true}) at edit button
@@ -124,10 +131,12 @@ expect(toTaskInstant('', '2026-09-05T12:00:00Z')).toBeNull();
 // For search: advance 349ms => no new HTTP request; 1ms more => current query request.
 ```
 
-- [ ] Run RED before changing the DOM/handlers.
-- [ ] Restore table row semantics; put an accessible native task-open button in title cell. Remove conflicting row keydown handlers, preserve pointer convenience only with a safe interactive-child check if retained. Prevent drag affordances without update permission. Use readable semantic status text and separate colored dot/border for all repeated status appearances. Do not change custom status colors in the database.
-- [ ] Improve filtered/first-empty recovery actions using existing buttons. Label export «Экспорт всех доступных задач» with filters-not-applied clarification. Replace technical form labels with «Ответственный», «Описание» and consistent «Динамические поля». At mobile width prioritize New Task, compact secondary actions and spacing, and keep short filter labels unwrapped. Keep form fields light and table scroll local.
-- [ ] Run focused tests and full frontend tests/typecheck/build/i18n, commit exact files `fix(tasks): polish accessible task interactions`; write report.
+- [x] Run RED before changing the DOM/handlers.
+- [x] Restore table row semantics; put an accessible native task-open button in title cell. Remove conflicting row keydown handlers, preserve pointer convenience only with a safe interactive-child check if retained. Prevent drag affordances without update permission. Use readable semantic status text and separate colored dot/border for all repeated status appearances. Do not change custom status colors in the database.
+- [x] Improve filtered/first-empty recovery actions using existing buttons. Label export «Экспорт всех доступных задач» with filters-not-applied clarification. Replace technical form labels with «Ответственный», «Описание» and consistent «Динамические поля». At mobile width prioritize New Task, compact secondary actions and spacing, and keep short filter labels unwrapped. Keep form fields light and table scroll local.
+- [x] Run focused tests and full frontend tests/typecheck/build/i18n, commit exact files `fix(tasks): polish accessible task interactions`; write report.
+
+Verified 2026-09-05: commits `0a5c1dd`, `c4d33d4`; initial behavioral RED 11 expected failures, focused GREEN 54/54. Review found missing semantic text color on the native status select; direct-control RED 1 failure and GREEN 45/45 closed it. Scoped re-review approved with no new breakage. Controller reran the final tree: frontend 157/157 (32 files), app typecheck and production build exit 0, i18n 1019 referenced / 1039 catalog keys. Full backend verify also passed: server 340/340 plus libraries 5/5. Live browser acceptance remains Task 5.
 
 ### Task 5: Isolated browser regression coverage and final evidence
 
@@ -137,8 +146,27 @@ expect(toTaskInstant('', '2026-09-05T12:00:00Z')).toBeNull();
 
 **Interfaces:** Existing login and isolated Compose browser harness; never run mutating test journeys against the user's `localhost:4200` persistent database. Browser fixtures for HTTP error/race/large data may use Playwright routing inside test code. Never weaken production auth or ship test-only app endpoints.
 
-- [ ] Add browser tests for date round-trip and clear/reopen, preserved observers, named author, keyboard edit, dirty cancel, visible kanban filters, error/retry and mobile 390px overflow. Use real server writes only in isolated runtime; controlled transport mocks for failure/race/125-task cases. Existing happy-path project→task→comment continues to pass.
-- [ ] Build candidate server/web images and start separate Compose project/ports/volumes using existing safe isolated workflow. Verify test target configuration before running mutations. Run full Maven verify, frontend tests/typecheck/build/i18n and the isolated E2E suite.
+- [x] Add browser tests for date round-trip and clear/reopen, preserved observers, named author, keyboard edit, dirty cancel, visible kanban filters, error/retry and mobile 390px overflow. Use real server writes only in isolated runtime; controlled transport mocks for failure/race/125-task cases. Existing happy-path project→task→comment continues to pass.
+- [x] Build candidate server/web images and start separate Compose project/ports/volumes using existing safe isolated workflow. Verify test target configuration before running mutations. Run full Maven verify, frontend tests/typecheck/build/i18n and the isolated E2E suite.
 - [ ] Inspect rendered desktop/mobile candidate in the available browser tool, screenshot key fixed states and read console. Store screenshots outside committed source. Do not switch the user's installation to candidate images without a deploy request.
-- [ ] Run `graphify update .` AST-only and leave generated dirty output uncommitted. Update context and plan with actual counts, runtime location and unresolved limitations. Commit only test/docs changes as `test(tasks): cover task quality regressions`.
+- [x] Run `graphify update .` AST-only and leave generated dirty output uncommitted. Update context and plan with actual counts, runtime location and unresolved limitations. Commit only test/docs changes as `test(tasks): cover task quality regressions`.
 - [ ] Final whole-change review; address substantive findings through one reviewed fix batch. Deliver implementation status, commands/results, browser evidence and remaining risks. Do not claim production release readiness or push/deploy.
+
+Automated Task 5 evidence, 2026-09-05: clean archive `c4d33d4` ran as
+Compose project `smartupcms-tasksq-ecb2e05e` on loopback ports 14200/15435/18118
+with unique server/web image tags and empty migrated volumes. E2E config 3/3,
+E2E typecheck and artifact-security passed; all 30 browser scenarios (24
+existing + 6 new Tasks cases) passed in 2.3 minutes. The existing task vertical
+slice first reproduced its obsolete description-label failure, then passed
+with exact label `Описание`. A pre-existing localization fixture initially
+timed out on a self-removing Settings language button; request tracing showed
+the dictionary GET completed but the Playwright action never settled. Driving
+the persistent header language selector exercised the same real preference
+PATCH and left all persistence/cleanup assertions intact; the isolated rerun
+and full suite passed. Root's final-tree application checks remain 157/157
+frontend tests, app typecheck/build, i18n 1,019/1,039 and Maven server 340/340
+plus libraries 5/5. Candidate `/healthz` returned 200 and all four services
+remained healthy after E2E. External runtime and test artifacts are under
+`C:/Temp/smartupcms-tasks-quality-ecb2e05e0db34d62acd838c8702b5cc6`.
+Live IAB visual evidence and final whole-change review remain pending; this is
+not production deployment or readiness evidence.
