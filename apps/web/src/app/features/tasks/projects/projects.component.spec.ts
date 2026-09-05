@@ -80,6 +80,91 @@ describe('ProjectsComponent UI contracts', () => {
     expect(fixture.nativeElement.querySelector('#project-create-description')).not.toBeNull();
   });
 
+  it('keeps an entered create draft visible when Cancel or Escape requests dismissal', async () => {
+    const { fixture } = await createFixture();
+    const host = fixture.nativeElement as HTMLElement;
+
+    (host.querySelector('.header-right ui-button button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const name = host.querySelector('#project-create-name') as HTMLInputElement;
+    name.value = 'Unsaved project';
+    name.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    const createButtons = host.querySelectorAll('.modal-backdrop .modal-footer button');
+    (createButtons[0] as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(host.querySelectorAll('.modal-backdrop')).toHaveLength(2);
+    expect((host.querySelector('#project-create-name') as HTMLInputElement).value).toBe('Unsaved project');
+
+    const confirmation = host.querySelectorAll('.modal-backdrop')[1] as HTMLElement;
+    (confirmation.querySelector('.modal-footer button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(host.querySelectorAll('.modal-backdrop')).toHaveLength(1);
+    expect((host.querySelector('#project-create-name') as HTMLInputElement).value).toBe('Unsaved project');
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    fixture.detectChanges();
+    expect(host.querySelectorAll('.modal-backdrop')).toHaveLength(2);
+    expect((host.querySelector('#project-create-name') as HTMLInputElement).value).toBe('Unsaved project');
+  });
+
+  it('renders fresh project detail instead of the list row when Edit is clicked', async () => {
+    const summary = { ...project(5), name: 'List name', description: 'Версия из списка' };
+    const freshDetail = new Subject<Project>();
+    const api = emptyApi();
+    api.get.mockImplementation((url: string) => {
+      if (url === '/tasks/projects') return of([summary]);
+      if (url === '/tasks/projects/5') return freshDetail;
+      return of([]);
+    });
+    const { fixture } = await createFixture({ api });
+    const host = fixture.nativeElement as HTMLElement;
+
+    (host.querySelector('.icon-ghost-btn') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(host.querySelector('[data-testid="project-edit-loading"][role="status"]')).not.toBeNull();
+    expect(host.querySelector('#project-edit-name')).toBeNull();
+
+    freshDetail.next({ ...project(5), name: 'Fresh name', description: 'Актуальное описание с сервера' });
+    freshDetail.complete();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect((host.querySelector('#project-edit-name') as HTMLInputElement).value).toBe('Fresh name');
+    expect((host.querySelector('#project-edit-description') as HTMLTextAreaElement).value)
+      .toBe('Актуальное описание с сервера');
+  });
+
+  it('issues one create request and locks every dismissal path when Save is activated twice while pending', async () => {
+    const pendingSave = new Subject<Project>();
+    const api = emptyApi();
+    api.post.mockReturnValue(pendingSave);
+    const { fixture } = await createFixture({ api });
+    const host = fixture.nativeElement as HTMLElement;
+
+    (host.querySelector('.header-right ui-button button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const name = host.querySelector('#project-create-name') as HTMLInputElement;
+    name.value = 'Pending project';
+    name.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    const footerButtons = host.querySelectorAll('.modal-backdrop .modal-footer button');
+    const save = footerButtons[1] as HTMLButtonElement;
+    save.click();
+    save.click();
+    fixture.detectChanges();
+
+    expect(api.post).toHaveBeenCalledTimes(1);
+    expect((host.querySelector('fieldset.project-create-form') as HTMLFieldSetElement).disabled).toBe(true);
+    expect((host.querySelectorAll('.modal-backdrop .modal-footer button')[0] as HTMLButtonElement).disabled).toBe(true);
+    expect((host.querySelectorAll('.modal-backdrop .modal-footer button')[1] as HTMLButtonElement).disabled).toBe(true);
+    expect(host.querySelector('.modal-backdrop .modal-close')).toBeNull();
+  });
+
   it('guards create drafts for Cancel and modal dismissal while pristine drafts close directly', async () => {
     const { fixture, api } = await createFixture();
     const component = fixture.componentInstance;
