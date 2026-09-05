@@ -102,7 +102,86 @@ repositories/adapters — I/O. Детали приведены в
 
 ## 6. Последняя подтверждённая проверка
 
-### Текущая локальная работа — Projects, 2026-09-06
+### Текущая локальная работа — Projects editor, 2026-09-06
+
+По запросу пользователя локальная установка `http://localhost:4200` обновлена
+из чистого `git archive 41ec91d`: matching server/web images, 24 проверенные
+миграции, schema 024 без новых миграций, оба сервиса healthy и `/healthz` 200.
+PostgreSQL и Typesense не пересоздавались; именованные data volumes сохранены.
+Предыдущие server/web images сохранены локальными тегами `before-41ec91d`.
+Это обновление локальной dev-установки, не production deploy или release gate.
+
+Затем по [плану Projects editor](superpowers/plans/2026-09-06-projects-editor-quality.md)
+реализованы `b321599` и `8912e00`: защита create/edit-черновиков подтверждением,
+fresh GET перед редактированием с retry, блокировка полей и закрытия во время
+сохранения, защита повторной отправки и устаревших callbacks. PATCH содержит
+только изменённые поля, пустое описание передаётся как `''`, сохранение без
+изменений не делает запрос. Ошибка сохраняет черновик и доступна inline;
+владельцем общего toast остаётся ApiService. Это не optimistic locking.
+
+Frontend принят независимым task review без замечаний: Projects 21/21,
+полный Angular 32 файла / 179 тестов, typecheck/build и i18n audit 1036/1059.
+Поведенческий RED дополнительно воспроизведён на чистом `41ec91d`: три
+скомпилированных DOM-теста завершились assertion failures, без test errors.
+На отдельном Docker candidate `smartupcms-projectsq-20260906` (`14200`) с
+синтетическими данными и чистыми image inputs `b321599` прошли Playwright
+31/31, config 3/3, E2E typecheck и artifact-secret gate. Новый candidate
+первоначально получил все 24 миграции на пустой БД.
+
+Отдельный frontend fixture `14201`, без upstream или credentials, проверен
+в light/dark на 1280×720 и 390×844: dirty Cancel/Escape, сохранение черновика,
+pending create/edit, recoverable detail/save errors, retry, sparse PATCH и
+очистка описания. Mobile document 390/390, console после финального reload
+без warnings/errors. Это не проверка реальных серверных ролей или
+аутентифицированной страницы Projects на `4200`. Артефакты вне Git:
+`C:/Temp/smartupcms-projects-editor-qa-20260906/`.
+
+Серверный пакет `0e5803f`, `9aa23e1`, `54b6159` добавляет проверку имени после
+нормализации и статуса A/P до записи, индексирования и аудита. Контракт ошибок
+сохранён: HTTP 422 / `validation_failed`. PATCH без attributes больше не
+вызывает PostgreSQL 500: SQL использует typed JSONB coalesce и сохраняет
+текущее значение строки атомарно, не service snapshot. Это не optimistic
+locking и не защита от двух одновременных изменений одного поля.
+
+На реальном PostgreSQL: initial RED 17 тестов / 15 ожидаемых failures;
+дополнительный overlap RED — 1 ожидаемый failure; normalized-name RED —
+4 случая / 1 failure для `\b`. Итоговый focused GREEN 19/19; полный Maven
+reactor 364/364 (server 359, libraries 5), без failures/errors/skips.
+Независимый task review, whole-change review и scoped re-review единственной
+финальной fix wave закрыты без открытых Critical/Important. Прежний шум
+Java/JNA/Testcontainers остаётся non-blocking minor, upgrade не выполнялся.
+
+Дополнительный внешний Playwright-сценарий на Docker `b321599` воспроизвёл
+реальный сбой: name-only PATCH возвращал 500 вместо 204. На `9aa23e1` тот же
+тест прошёл: create → fresh edit → dirty Cancel с сохранением черновика →
+sparse PATCH → повторное открытие → очистка описания → подтверждение из GET.
+Full E2E `9aa23e1` также прошёл 31/31. Сценарий пока хранится только во
+внешней QA-папке; в постоянную CI suite он не добавлен.
+
+Финальная combined acceptance чистого `54b6159` завершена: 31/31 E2E за
+2,3 минуты и внешний editor-сценарий 1/1. Первый запуск внешнего сценария
+остановился на ошибке Playwright/CDP при чтении тела успешного POST201;
+созданная строка была видна. Тест теперь берёт ID из URL наблюдаемого fresh
+GET, сохраняя проверки статусов, payload и round-trip; повторный запуск
+успешен. Этот сбой тестового транспорта не скрыт и не выдан за дефект UI.
+
+`4200` затем обновлён теми же протестированными images `54b6159` без rebuild
+из dirty checkout. Server/web и data services healthy, `/healthz`200;
+публичные новые ru-ключи совпадают с source. Проверены неизменность environment,
+mounts и времени старта PostgreSQL/Typesense; их контейнеры не пересоздавались.
+24 миграции проверены, schema024, новых миграций не требуется. Rollback images
+сохранены как `smartupcms/server:local-41ec91d` и `smartupcms/web:local-41ec91d`.
+IAB после reload4200 показывает рабочий login без console warnings/errors;
+пользовательский Chrome и данные установки не использовались для мутационных
+тестов. Внешний candidate14200 и fixture14201 оставлены для продолжения QA.
+Graphify обновлён AST-only, generated outputs не опубликованы. Docs105/19,
+repository-hygiene, architecture-boundary и whitespace gates проходят.
+
+Следующий отдельный пакет — правдивые подписи закрытых задач и
+размеры/доступность действий, плюс постоянные браузерные регрессии Projects.
+Push не выполнялся.
+
+### Предыдущий локальный пакет — Projects list, 2026-09-06
 
 По подтверждённому пользователем [первому пакету Projects](superpowers/plans/2026-09-06-projects-list-quality.md)
 реализован локальный commit `9ad7997`: фильтры сбрасывают страницу, reload
