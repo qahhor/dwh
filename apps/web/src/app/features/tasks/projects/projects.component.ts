@@ -383,9 +383,10 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
       [isOpen]="isCreateModalOpen()"
       [title]="'projects.sozdanie_novogo_proekta' | t"
       size="sm"
-      (close)="isCreateModalOpen.set(false)"
+      [dismissible]="!isSubmitting()"
+      (close)="requestCloseCreate()"
     >
-      <div body class="modal-form">
+      <fieldset body class="modal-form modal-form-fieldset project-create-form" [disabled]="isSubmitting()">
         <div class="form-group">
           <div class="label-row">
             <label class="clean-label" for="project-create-name">{{ 'projects.nazvanie_proekta' | t }}</label>
@@ -420,10 +421,26 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
             [placeholder]="'projects.celi_granicy_i_kontekst_proekta' | t"
           ></textarea>
         </div>
-      </div>
+        <div *ngIf="createSaveError()" class="request-state request-error" data-testid="project-create-save-error" role="alert">
+          {{ createSaveError() }}
+        </div>
+      </fieldset>
       <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="isCreateModalOpen.set(false)">{{ 'common.cancel' | t }}</ui-button>
+        <ui-button variant="secondary" size="md" [disabled]="isSubmitting()" (onClick)="requestCloseCreate()">{{ 'common.cancel' | t }}</ui-button>
         <ui-button variant="primary" size="md" [loading]="isSubmitting()" (onClick)="submitCreateProject()">{{ 'projects.sozdat_proekt' | t }}</ui-button>
+      </div>
+    </ui-modal>
+
+    <ui-modal
+      [isOpen]="isCreateDiscardConfirmationOpen()"
+      [title]="'projects.discard_create_title' | t"
+      size="sm"
+      (close)="isCreateDiscardConfirmationOpen.set(false)"
+    >
+      <div body><p>{{ 'projects.discard_create_message' | t }}</p></div>
+      <div footer>
+        <ui-button variant="secondary" size="md" (onClick)="isCreateDiscardConfirmationOpen.set(false)">{{ 'common.cancel' | t }}</ui-button>
+        <ui-button variant="danger" size="md" (onClick)="confirmDiscardCreate()">{{ 'projects.discard_create_action' | t }}</ui-button>
       </div>
     </ui-modal>
 
@@ -434,9 +451,17 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
       [isOpen]="isEditModalOpen()"
       [title]="'projects.redaktirovanie_proekta' | t"
       size="sm"
-      (close)="isEditModalOpen.set(false)"
+      [dismissible]="!isSubmitting()"
+      (close)="requestCloseEdit()"
     >
-      <div body class="modal-form" *ngIf="editingProject as p">
+      <div body class="request-state" data-testid="project-edit-loading" *ngIf="editLoading()" role="status">
+        {{ 'projects.edit_loading' | t }}
+      </div>
+      <div body class="request-state request-error" data-testid="project-edit-load-error" *ngIf="editLoadError()" role="alert">
+        <span>{{ 'projects.edit_load_error' | t }}</span>
+        <ui-button class="project-edit-retry" variant="secondary" size="sm" (onClick)="retryEditLoad()">{{ 'projects.retry_edit_load' | t }}</ui-button>
+      </div>
+      <fieldset body class="modal-form modal-form-fieldset project-edit-form" [disabled]="isSubmitting()" *ngIf="editingProject as p">
         <div class="form-group">
           <div class="label-row">
             <label class="clean-label" for="project-edit-name">{{ 'projects.nazvanie_proekta' | t }}</label>
@@ -472,10 +497,26 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
           </div>
           <textarea id="project-edit-description" name="projectEditDescription" class="clean-input clean-textarea" rows="3" [(ngModel)]="editForm.description"></textarea>
         </div>
-      </div>
+        <div *ngIf="editSaveError()" class="request-state request-error" data-testid="project-edit-save-error" role="alert">
+          {{ editSaveError() }}
+        </div>
+      </fieldset>
       <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="isEditModalOpen.set(false)">{{ 'common.cancel' | t }}</ui-button>
-        <ui-button variant="primary" size="md" [loading]="isSubmitting()" (onClick)="submitEditProject()">{{ 'common.save' | t }}</ui-button>
+        <ui-button variant="secondary" size="md" [disabled]="isSubmitting()" (onClick)="requestCloseEdit()">{{ 'common.cancel' | t }}</ui-button>
+        <ui-button *ngIf="editingProject" variant="primary" size="md" [loading]="isSubmitting()" (onClick)="submitEditProject()">{{ 'common.save' | t }}</ui-button>
+      </div>
+    </ui-modal>
+
+    <ui-modal
+      [isOpen]="isEditDiscardConfirmationOpen()"
+      [title]="'projects.discard_edit_title' | t"
+      size="sm"
+      (close)="isEditDiscardConfirmationOpen.set(false)"
+    >
+      <div body><p>{{ 'projects.discard_edit_message' | t }}</p></div>
+      <div footer>
+        <ui-button variant="secondary" size="md" (onClick)="isEditDiscardConfirmationOpen.set(false)">{{ 'common.cancel' | t }}</ui-button>
+        <ui-button variant="danger" size="md" (onClick)="confirmDiscardEdit()">{{ 'projects.discard_edit_action' | t }}</ui-button>
       </div>
     </ui-modal>
   `,
@@ -896,6 +937,7 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
     .clean-input:focus { border-color: var(--primary); }
     .clean-input.input-error { border-color: var(--danger); background-color: var(--danger-bg); }
     .error-msg { font-size: 11px; color: var(--danger); margin-top: 2px; }
+    .modal-form-fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
 
     .clean-textarea { height: auto; padding: 6px 8px; resize: vertical; font-family: inherit; }
 
@@ -910,6 +952,12 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   private readonly uiI18n = inject(I18nService);
   private listRequest?: Subscription;
   private statsRequest?: Subscription;
+  private editDetailRequest?: Subscription;
+  private createSaveRequest?: Subscription;
+  private editSaveRequest?: Subscription;
+  private editDetailRequestId = 0;
+  private createSaveRequestId = 0;
+  private editSaveRequestId = 0;
   private destroyed = false;
 
   readonly projects = signal<Project[]>([]);
@@ -921,6 +969,10 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   readonly statsLoadError = signal<boolean>(false);
   readonly statsLoaded = signal<boolean>(false);
   readonly isSubmitting = signal<boolean>(false);
+  readonly editLoading = signal<boolean>(false);
+  readonly editLoadError = signal<boolean>(false);
+  readonly createSaveError = signal<string | null>(null);
+  readonly editSaveError = signal<string | null>(null);
 
   viewMode: 'list' | 'cards' = 'list';
   searchQuery = '';
@@ -934,10 +986,15 @@ export class ProjectsComponent implements OnInit, OnDestroy {
 
   readonly isCreateModalOpen = signal<boolean>(false);
   readonly isEditModalOpen = signal<boolean>(false);
+  readonly isCreateDiscardConfirmationOpen = signal<boolean>(false);
+  readonly isEditDiscardConfirmationOpen = signal<boolean>(false);
 
   createForm = { name: '', description: '' };
   editForm = { name: '', description: '', state: 'A' };
   editingProject: Project | null = null;
+  private createFormBaseline = { name: '', description: '' };
+  private editFormBaseline: { name: string; description: string; state: 'A' | 'P' } | null = null;
+  private editTargetId: number | null = null;
 
   constructor(
     public permService: PermissionService,
@@ -955,6 +1012,12 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     this.destroyed = true;
     this.listRequest?.unsubscribe();
     this.statsRequest?.unsubscribe();
+    this.editDetailRequestId++;
+    this.createSaveRequestId++;
+    this.editSaveRequestId++;
+    this.editDetailRequest?.unsubscribe();
+    this.createSaveRequest?.unsubscribe();
+    this.editSaveRequest?.unsubscribe();
   }
 
   canCreateProject(): boolean {
@@ -1111,28 +1174,74 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   }
 
   openCreateModal() {
-    if (!this.canCreateProject()) return;
+    if (
+      this.destroyed
+      || !this.canCreateProject()
+      || this.isSubmitting()
+      || this.isCreateModalOpen()
+      || this.isEditModalOpen()
+      || this.isCreateDiscardConfirmationOpen()
+      || this.isEditDiscardConfirmationOpen()
+    ) return;
     this.isCreateSubmitted = false;
     this.createForm = { name: '', description: '' };
+    this.createFormBaseline = { ...this.createForm };
+    this.createSaveError.set(null);
+    this.isCreateDiscardConfirmationOpen.set(false);
     this.isCreateModalOpen.set(true);
   }
 
+  requestCloseCreate() {
+    if (this.destroyed || this.isSubmitting() || !this.isCreateModalOpen()) return;
+    if (this.isCreateDraftDirty()) {
+      this.isCreateDiscardConfirmationOpen.set(true);
+      return;
+    }
+    this.closeCreateModal();
+  }
+
+  confirmDiscardCreate() {
+    if (
+      this.destroyed
+      || this.isSubmitting()
+      || !this.isCreateModalOpen()
+      || !this.isCreateDiscardConfirmationOpen()
+    ) return;
+    this.closeCreateModal();
+  }
+
   submitCreateProject() {
-    if (!this.canCreateProject()) return;
+    if (
+      this.destroyed
+      || !this.canCreateProject()
+      || !this.isCreateModalOpen()
+      || this.isEditModalOpen()
+      || this.isCreateDiscardConfirmationOpen()
+      || this.isEditDiscardConfirmationOpen()
+      || this.isSubmitting()
+    ) return;
     this.isCreateSubmitted = true;
     if (!this.createForm.name.trim()) {
       this.toast.warning(this.uiI18n.translate('projects.vvedite_nazvanie_proekta'));
       return;
     }
 
+    const requestId = ++this.createSaveRequestId;
+    this.createSaveError.set(null);
     this.isSubmitting.set(true);
-    this.api.post<Project>('/tasks/projects', {
+    this.createSaveRequest = this.api.post<Project>('/tasks/projects', {
       name: this.createForm.name.trim(),
       description: this.createForm.description.trim()
     }).subscribe({
       next: created => {
+        if (
+          this.destroyed
+          || requestId !== this.createSaveRequestId
+          || !this.isCreateModalOpen()
+          || this.isEditModalOpen()
+        ) return;
         this.isSubmitting.set(false);
-        this.isCreateModalOpen.set(false);
+        this.closeCreateModal();
         this.toast.success(this.uiI18n.translate('projects.proekt_uspeshno_sozdan'));
         // Creation must leave the user looking at the new record, even when the
         // current filters or pagination would otherwise hide it.
@@ -1142,50 +1251,214 @@ export class ProjectsComponent implements OnInit, OnDestroy {
         this.loadStats();
       },
       error: err => {
+        if (
+          this.destroyed
+          || requestId !== this.createSaveRequestId
+          || !this.isCreateModalOpen()
+          || this.isEditModalOpen()
+        ) return;
         this.isSubmitting.set(false);
-        this.toast.error(err.error?.message || this.uiI18n.translate('projects.oshibka_pri_sohranenii_proekta'));
+        this.createSaveError.set(err?.detail || this.uiI18n.translate('projects.create_save_error'));
       }
     });
   }
 
   openEditModal(p: Project) {
-    if (!this.canUpdateProject()) return;
+    if (
+      this.destroyed
+      || !this.canUpdateProject()
+      || this.isSubmitting()
+      || this.isCreateModalOpen()
+      || this.isEditModalOpen()
+      || this.isCreateDiscardConfirmationOpen()
+      || this.isEditDiscardConfirmationOpen()
+    ) return;
     this.isEditSubmitted = false;
-    this.editingProject = p;
-    this.editForm = {
-      name: p.name,
-      description: p.description || '',
-      state: p.state
-    };
+    this.editTargetId = p.id;
+    this.editingProject = null;
+    this.editFormBaseline = null;
+    this.editSaveError.set(null);
+    this.isEditDiscardConfirmationOpen.set(false);
     this.isEditModalOpen.set(true);
+    this.loadEditDetails(p.id);
+  }
+
+  retryEditLoad() {
+    if (
+      this.destroyed
+      || this.isSubmitting()
+      || this.editLoading()
+      || !this.isEditModalOpen()
+      || this.isCreateModalOpen()
+      || this.isCreateDiscardConfirmationOpen()
+      || this.isEditDiscardConfirmationOpen()
+      || this.editTargetId == null
+    ) return;
+    this.loadEditDetails(this.editTargetId);
+  }
+
+  requestCloseEdit() {
+    if (this.destroyed || this.isSubmitting() || !this.isEditModalOpen()) return;
+    if (this.isEditDraftDirty()) {
+      this.isEditDiscardConfirmationOpen.set(true);
+      return;
+    }
+    this.closeEditModal();
+  }
+
+  confirmDiscardEdit() {
+    if (
+      this.destroyed
+      || this.isSubmitting()
+      || !this.isEditModalOpen()
+      || !this.isEditDiscardConfirmationOpen()
+    ) return;
+    this.closeEditModal();
   }
 
   submitEditProject() {
-    if (!this.canUpdateProject() || !this.editingProject) return;
+    if (
+      this.destroyed
+      || !this.canUpdateProject()
+      || !this.isEditModalOpen()
+      || this.isCreateModalOpen()
+      || this.isCreateDiscardConfirmationOpen()
+      || this.isEditDiscardConfirmationOpen()
+      || !this.editingProject
+      || !this.editFormBaseline
+      || this.editLoading()
+      || this.editLoadError()
+      || this.isSubmitting()
+    ) return;
     this.isEditSubmitted = true;
     if (!this.editForm.name.trim()) {
       this.toast.warning(this.uiI18n.translate('projects.nazvanie_proekta_obyazatelno'));
       return;
     }
 
+    const payload: Record<string, unknown> = {};
+    const name = this.editForm.name.trim();
+    const description = this.editForm.description.trim();
+    if (name !== this.editFormBaseline.name) payload['name'] = name;
+    if (description !== this.editFormBaseline.description) payload['description'] = description;
+    if (this.editForm.state !== this.editFormBaseline.state) payload['state'] = this.editForm.state;
+    if (Object.keys(payload).length === 0) {
+      this.closeEditModal();
+      return;
+    }
+
+    const editedProjectId = this.editingProject.id;
+    const requestId = ++this.editSaveRequestId;
+    this.editSaveError.set(null);
     this.isSubmitting.set(true);
-    this.api.patch(`/tasks/projects/${this.editingProject.id}`, {
-      name: this.editForm.name.trim(),
-      description: this.editForm.description.trim(),
-      state: this.editForm.state
-    }).subscribe({
+    this.editSaveRequest = this.api.patch<void>(`/tasks/projects/${editedProjectId}`, payload).subscribe({
       next: () => {
+        if (
+          this.destroyed
+          || requestId !== this.editSaveRequestId
+          || !this.isEditModalOpen()
+          || this.editingProject?.id !== editedProjectId
+        ) return;
         this.isSubmitting.set(false);
-        this.isEditModalOpen.set(false);
+        this.closeEditModal();
         this.toast.success(this.uiI18n.translate('projects.proekt_obnovlen'));
         this.loadProjects();
         this.loadStats();
       },
       error: err => {
+        if (
+          this.destroyed
+          || requestId !== this.editSaveRequestId
+          || !this.isEditModalOpen()
+          || this.editingProject?.id !== editedProjectId
+        ) return;
         this.isSubmitting.set(false);
-        this.toast.error(err.error?.message || this.uiI18n.translate('projects.oshibka_pri_obnovlenii_proekta'));
+        this.editSaveError.set(err?.detail || this.uiI18n.translate('projects.edit_save_error'));
       }
     });
+  }
+
+  private loadEditDetails(projectId: number) {
+    const requestId = ++this.editDetailRequestId;
+    this.editDetailRequest?.unsubscribe();
+    this.editLoading.set(true);
+    this.editLoadError.set(false);
+    this.editSaveError.set(null);
+    this.editingProject = null;
+    this.editFormBaseline = null;
+
+    this.editDetailRequest = this.api.get<Project>(`/tasks/projects/${projectId}`, undefined, { notifyError: false }).subscribe({
+      next: project => {
+        if (
+          this.destroyed
+          || requestId !== this.editDetailRequestId
+          || !this.isEditModalOpen()
+          || this.isCreateModalOpen()
+          || this.editTargetId !== projectId
+        ) return;
+        this.editLoading.set(false);
+        if (!project || project.id !== projectId) {
+          this.editLoadError.set(true);
+          return;
+        }
+        const normalized = {
+          name: project.name.trim(),
+          description: (project.description || '').trim(),
+          state: project.state
+        };
+        this.editingProject = project;
+        this.editForm = { ...normalized };
+        this.editFormBaseline = { ...normalized };
+      },
+      error: () => {
+        if (
+          this.destroyed
+          || requestId !== this.editDetailRequestId
+          || !this.isEditModalOpen()
+          || this.editTargetId !== projectId
+        ) return;
+        this.editLoading.set(false);
+        this.editLoadError.set(true);
+      }
+    });
+  }
+
+  private isCreateDraftDirty(): boolean {
+    return this.createForm.name !== this.createFormBaseline.name
+      || this.createForm.description !== this.createFormBaseline.description;
+  }
+
+  private isEditDraftDirty(): boolean {
+    return !!this.editFormBaseline && (
+      this.editForm.name !== this.editFormBaseline.name
+      || this.editForm.description !== this.editFormBaseline.description
+      || this.editForm.state !== this.editFormBaseline.state
+    );
+  }
+
+  private closeCreateModal() {
+    this.createSaveRequestId++;
+    this.createSaveRequest?.unsubscribe();
+    this.isCreateModalOpen.set(false);
+    this.isCreateDiscardConfirmationOpen.set(false);
+    this.createSaveError.set(null);
+    this.createForm = { name: '', description: '' };
+    this.createFormBaseline = { ...this.createForm };
+  }
+
+  private closeEditModal() {
+    this.editDetailRequestId++;
+    this.editSaveRequestId++;
+    this.editDetailRequest?.unsubscribe();
+    this.editSaveRequest?.unsubscribe();
+    this.isEditModalOpen.set(false);
+    this.isEditDiscardConfirmationOpen.set(false);
+    this.editLoading.set(false);
+    this.editLoadError.set(false);
+    this.editSaveError.set(null);
+    this.editingProject = null;
+    this.editTargetId = null;
+    this.editFormBaseline = null;
   }
 
   viewProjectTasks(project: Project) {

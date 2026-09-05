@@ -1,3 +1,4 @@
+import { By } from '@angular/platform-browser';
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { Observable, Subject, of } from 'rxjs';
@@ -6,6 +7,7 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
 import { ApiService } from '../../../core/services/api.service';
 import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { ProjectsComponent } from './projects.component';
 
 interface ApiDouble {
@@ -27,19 +29,20 @@ describe('ProjectsComponent UI contracts', () => {
   } = {}) {
     const api = options.api ?? emptyApi();
     const router = { navigate: vi.fn() };
+    const toast = { success: vi.fn(), warning: vi.fn(), error: vi.fn() };
     await TestBed.configureTestingModule({
       imports: [ProjectsComponent],
       providers: [
         { provide: ApiService, useValue: api },
         PermissionService,
-        { provide: ToastService, useValue: { success: vi.fn(), warning: vi.fn(), error: vi.fn() } },
+        { provide: ToastService, useValue: toast },
         { provide: Router, useValue: router }
       ]
     }).compileComponents();
     TestBed.inject(PermissionService).setPermissions(options.permissions ?? ['*.*']);
     const fixture = TestBed.createComponent(ProjectsComponent);
     fixture.detectChanges();
-    return { fixture, api, router };
+    return { fixture, api, router, toast };
   }
 
   const project = (id: number, state: 'A' | 'P' = 'A'): Project => ({
@@ -75,6 +78,237 @@ describe('ProjectsComponent UI contracts', () => {
     expect(name.getAttribute('aria-invalid')).toBe('true');
     expect(name.getAttribute('aria-describedby')).toBe(error.id);
     expect(fixture.nativeElement.querySelector('#project-create-description')).not.toBeNull();
+  });
+
+  it('guards create drafts for Cancel and modal dismissal while pristine drafts close directly', async () => {
+    const { fixture, api } = await createFixture();
+    const component = fixture.componentInstance;
+
+    component.openCreateModal();
+    component.requestCloseCreate();
+    expect(component.isCreateModalOpen()).toBe(false);
+
+    component.openCreateModal();
+    component.createForm.name = 'Unsaved project';
+    component.requestCloseCreate();
+    expect(component.isCreateModalOpen()).toBe(true);
+    expect(component.isCreateDiscardConfirmationOpen()).toBe(true);
+    component.submitCreateProject();
+    expect(api.post).not.toHaveBeenCalled();
+
+    component.isCreateDiscardConfirmationOpen.set(false);
+    expect(component.createForm.name).toBe('Unsaved project');
+    const createModal = fixture.debugElement.queryAll(By.directive(UiModalComponent))[0]
+      .componentInstance as UiModalComponent;
+    createModal.close.emit();
+    expect(component.isCreateModalOpen()).toBe(true);
+    expect(component.isCreateDiscardConfirmationOpen()).toBe(true);
+
+    component.confirmDiscardCreate();
+    expect(component.isCreateModalOpen()).toBe(false);
+    expect(component.isCreateDiscardConfirmationOpen()).toBe(false);
+  });
+
+  it('prevents duplicate create submits and preserves a failed draft with one inline normalized error', async () => {
+    const firstSave = new Subject<Project>();
+    const retrySave = new Subject<Project>();
+    const saves = [firstSave, retrySave];
+    const api = emptyApi();
+    api.post.mockImplementation(() => saves.shift()!);
+    const { fixture, toast } = await createFixture({ api });
+    const component = fixture.componentInstance;
+    component.openCreateModal();
+    component.createForm = { name: '  New project  ', description: '  Draft description  ' };
+
+    component.submitCreateProject();
+    component.submitCreateProject();
+    fixture.detectChanges();
+
+    expect(api.post).toHaveBeenCalledTimes(1);
+    expect(api.post).toHaveBeenCalledWith('/tasks/projects', {
+      name: 'New project',
+      description: 'Draft description'
+    });
+    expect(fixture.nativeElement.querySelector('.project-create-form')?.disabled).toBe(true);
+    expect(fixture.debugElement.queryAll(By.directive(UiModalComponent))[0].componentInstance.dismissible).toBe(false);
+    component.requestCloseCreate();
+    expect(component.isCreateModalOpen()).toBe(true);
+
+    firstSave.error({ status: 422, title: 'Invalid', code: 'VALIDATION_ERROR', detail: 'Normalized create detail' });
+    fixture.detectChanges();
+    expect(component.createForm.name).toBe('  New project  ');
+    expect(component.isSubmitting()).toBe(false);
+    expect(fixture.nativeElement.querySelector('[data-testid="project-create-save-error"][role="alert"]')?.textContent)
+      .toContain('Normalized create detail');
+    expect(toast.error).not.toHaveBeenCalled();
+
+    component.submitCreateProject();
+    expect(api.post).toHaveBeenCalledTimes(2);
+    retrySave.next(project(10));
+    retrySave.complete();
+    expect(component.isCreateModalOpen()).toBe(false);
+  });
+
+  it('loads a fresh project before editing and exposes mismatch, error and retry states', async () => {
+    const mismatch = new Subject<Project>();
+    const failed = new Subject<Project>();
+    const fresh = new Subject<Project>();
+    const detailReads = [mismatch, failed, fresh];
+    const api = emptyApi();
+    api.get.mockImplementation((url: string) => {
+      if (url === '/tasks/projects/7') return detailReads.shift()!;
+      return of([]);
+    });
+    const { fixture } = await createFixture({ api });
+    const component = fixture.componentInstance;
+
+    component.openEditModal(project(7));
+    fixture.detectChanges();
+    expect(api.get).toHaveBeenCalledWith('/tasks/projects/7', undefined, { notifyError: false });
+    expect(component.editLoading()).toBe(true);
+    expect(component.editingProject).toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="project-edit-loading"][role="status"]')).not.toBeNull();
+
+    mismatch.next({ ...project(8), name: 'Wrong project' });
+    mismatch.complete();
+    fixture.detectChanges();
+    expect(component.editLoadError()).toBe(true);
+    expect(component.editingProject).toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="project-edit-load-error"][role="alert"]')).not.toBeNull();
+
+    component.retryEditLoad();
+    failed.error({ status: 503, title: 'Unavailable', code: 'API_ERROR', detail: 'Unavailable' });
+    fixture.detectChanges();
+    expect(component.editLoadError()).toBe(true);
+
+    (fixture.nativeElement.querySelector('.project-edit-retry button') as HTMLButtonElement).click();
+    fresh.next({ ...project(7), name: ' Current ', description: ' Current description ' });
+    fresh.complete();
+    fixture.detectChanges();
+    expect(component.editLoading()).toBe(false);
+    expect(component.editLoadError()).toBe(false);
+    expect(component.editForm).toEqual({ name: 'Current', description: 'Current description', state: 'A' });
+    expect(fixture.nativeElement.querySelector('.project-edit-form')).not.toBeNull();
+  });
+
+  it('cancels obsolete edit detail reads on close and prevents another modal from resetting a live draft', async () => {
+    const oldDetail = new Subject<Project>();
+    const currentDetail = new Subject<Project>();
+    const api = emptyApi();
+    api.get.mockImplementation((url: string) => {
+      if (url === '/tasks/projects/1') return oldDetail;
+      if (url === '/tasks/projects/2') return currentDetail;
+      return of([]);
+    });
+    const { fixture } = await createFixture({ api });
+    const component = fixture.componentInstance;
+
+    component.openEditModal(project(1));
+    component.requestCloseEdit();
+    component.openEditModal(project(2));
+    oldDetail.next({ ...project(1), name: 'Obsolete' });
+    currentDetail.next({ ...project(2), name: 'Current' });
+    expect(component.editingProject?.id).toBe(2);
+    expect(component.editForm.name).toBe('Current');
+
+    component.editForm.name = 'Live draft';
+    component.openEditModal(project(1));
+    component.openCreateModal();
+    expect(component.editingProject?.id).toBe(2);
+    expect(component.editForm.name).toBe('Live draft');
+    expect(component.isCreateModalOpen()).toBe(false);
+  });
+
+  it('guards whitespace-only edit draft changes and discards only after confirmation', async () => {
+    const api = emptyApi();
+    api.get.mockImplementation((url: string) => url === '/tasks/projects/1'
+      ? of({ ...project(1), name: 'Current', description: 'Description' })
+      : of([]));
+    const { fixture } = await createFixture({ api });
+    const component = fixture.componentInstance;
+    component.openEditModal(project(1));
+    component.editForm.name = 'Current ';
+
+    component.requestCloseEdit();
+    expect(component.isEditModalOpen()).toBe(true);
+    expect(component.isEditDiscardConfirmationOpen()).toBe(true);
+    component.submitEditProject();
+    expect(api.patch).not.toHaveBeenCalled();
+    expect(component.isEditModalOpen()).toBe(true);
+    component.isEditDiscardConfirmationOpen.set(false);
+    expect(component.editForm.name).toBe('Current ');
+
+    component.requestCloseEdit();
+    component.confirmDiscardEdit();
+    expect(component.isEditModalOpen()).toBe(false);
+    expect(component.isEditDiscardConfirmationOpen()).toBe(false);
+  });
+
+  it('sends only changed normalized fields and closes a no-change edit without PATCH or success toast', async () => {
+    const api = emptyApi();
+    api.get.mockImplementation((url: string) => /^\/tasks\/projects\/\d+$/.test(url)
+      ? of({ ...project(Number(url.split('/').at(-1))), name: 'Current', description: 'Current description' })
+      : of([]));
+    const { fixture, toast } = await createFixture({ api });
+    const component = fixture.componentInstance;
+
+    component.openEditModal(project(1));
+    component.editForm.name = ' Renamed ';
+    component.submitEditProject();
+    expect(api.patch).toHaveBeenLastCalledWith('/tasks/projects/1', { name: 'Renamed' });
+
+    component.openEditModal(project(2));
+    component.editForm.description = '   ';
+    component.submitEditProject();
+    expect(api.patch).toHaveBeenLastCalledWith('/tasks/projects/2', { description: '' });
+
+    component.openEditModal(project(3));
+    const patchCount = api.patch.mock.calls.length;
+    const successCount = toast.success.mock.calls.length;
+    component.submitEditProject();
+    expect(api.patch).toHaveBeenCalledTimes(patchCount);
+    expect(toast.success).toHaveBeenCalledTimes(successCount);
+    expect(component.isEditModalOpen()).toBe(false);
+  });
+
+  it('prevents duplicate edit saves, keeps a failed draft retryable and ignores mutation callbacks after destroy', async () => {
+    const pendingPatch = new Subject<void>();
+    const api = emptyApi();
+    api.get.mockImplementation((url: string) => url === '/tasks/projects/1'
+      ? of({ ...project(1), name: 'Current', description: 'Description' })
+      : of([]));
+    api.patch.mockReturnValue(pendingPatch);
+    const { fixture, toast } = await createFixture({ api });
+    const component = fixture.componentInstance;
+    component.openEditModal(project(1));
+    component.editForm.name = 'Changed';
+
+    component.submitEditProject();
+    component.submitEditProject();
+    fixture.detectChanges();
+    expect(api.patch).toHaveBeenCalledTimes(1);
+    expect(fixture.nativeElement.querySelector('.project-edit-form')?.disabled).toBe(true);
+    component.requestCloseEdit();
+    component.confirmDiscardEdit();
+    expect(component.isEditModalOpen()).toBe(true);
+
+    pendingPatch.error({ status: 409, title: 'Conflict', code: 'CONFLICT', detail: 'Normalized edit detail' });
+    fixture.detectChanges();
+    expect(component.editForm.name).toBe('Changed');
+    expect(fixture.nativeElement.querySelector('[data-testid="project-edit-save-error"][role="alert"]')?.textContent)
+      .toContain('Normalized edit detail');
+    expect(toast.error).not.toHaveBeenCalled();
+
+    const lateCreate = new Subject<Project>();
+    api.post.mockReturnValue(lateCreate);
+    component.requestCloseEdit();
+    component.confirmDiscardEdit();
+    component.openCreateModal();
+    component.createForm.name = 'Late';
+    component.submitCreateProject();
+    fixture.destroy();
+    lateCreate.next(project(99));
+    expect(toast.success).not.toHaveBeenCalled();
   });
 
   it('resets pagination when search and status filters change or search is cleared', async () => {
@@ -277,7 +511,10 @@ describe('ProjectsComponent UI contracts', () => {
 
   it('retains project create and update actions for scoped users and wildcard administrators', async () => {
     const api = emptyApi();
-    api.get.mockImplementation((url: string) => of(url.endsWith('/stats') ? [] : [project(1)]));
+    api.get.mockImplementation((url: string) => {
+      if (url === '/tasks/projects/1') return of(project(1));
+      return of(url.endsWith('/stats') ? [] : [project(1)]);
+    });
     api.post.mockReturnValue(of(project(2)));
     const { fixture } = await createFixture({
       api,
