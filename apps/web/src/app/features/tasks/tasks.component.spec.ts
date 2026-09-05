@@ -1,11 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute } from '@angular/router';
-import { Observable, Subject, of } from 'rxjs';
-import { describe, expect, it, vi } from 'vitest';
+import { Observable, Subject, of, throwError } from 'rxjs';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiService } from '../../core/services/api.service';
 import { PermissionService } from '../../core/services/permission.service';
 import { ToastService } from '../../core/services/toast.service';
-import { Task } from '../../core/models/task.models';
+import { Task, TaskStatus } from '../../core/models/task.models';
+import { User } from '../../core/models/auth.models';
 import { TasksComponent } from './tasks.component';
 
 describe('TasksComponent UI contracts', () => {
@@ -128,6 +129,7 @@ describe('TasksComponent UI contracts', () => {
 });
 
 describe('TasksComponent asynchronous detail and editing state', () => {
+  afterEach(() => vi.useRealTimers());
   interface ControlledApi {
     get: ReturnType<typeof vi.fn>;
     post: ReturnType<typeof vi.fn>;
@@ -145,19 +147,19 @@ describe('TasksComponent asynchronous detail and editing state', () => {
   });
 
   async function createControlledFixture(options: {
-    get?: (path: string) => Observable<unknown>;
-    post?: (path: string) => Observable<unknown>;
-    patch?: (path: string) => Observable<unknown>;
+    get?: (path: string, params?: Record<string, unknown>) => Observable<unknown>;
+    post?: (path: string, body?: unknown) => Observable<unknown>;
+    patch?: (path: string, body?: unknown) => Observable<unknown>;
     canComment?: boolean;
   } = {}) {
     const api: ControlledApi = {
-      get: vi.fn((path: string) => options.get?.(path) ?? of(path === '/tasks'
+      get: vi.fn((path: string, params?: Record<string, unknown>) => options.get?.(path, params) ?? of(path === '/tasks'
         ? { items: [], nextCursor: null, hasMore: false }
         : path === '/iam/users'
           ? { items: [], nextCursor: null, hasMore: false }
           : [])),
-      post: vi.fn((path: string) => options.post?.(path) ?? of({})),
-      patch: vi.fn((path: string) => options.patch?.(path) ?? of({})),
+      post: vi.fn((path: string, body?: unknown) => options.post?.(path, body) ?? of({})),
+      patch: vi.fn((path: string, body?: unknown) => options.patch?.(path, body) ?? of({})),
       delete: vi.fn(() => of({}))
     };
     const permissions = {
@@ -533,5 +535,260 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     edit.next({ task: task(18, 'Late edit'), members: [] });
 
     expect(component.editingTask).toBeNull();
+  });
+
+  it('navigates all 125 server-paged task IDs without duplicates through the visible cursor controls', async () => {
+    const page = (start: number, end: number, nextCursor: string | null) => ({
+      items: Array.from({ length: end - start + 1 }, (_, index) => task(start + index)),
+      nextCursor,
+      hasMore: nextCursor !== null,
+      totalReturned: end - start + 1
+    });
+    const requestedCursors: Array<string | undefined> = [];
+    const { fixture, component } = await createControlledFixture({
+      get: (path, params) => {
+        if (path !== '/tasks') return of(path === '/iam/users' ? { items: [], nextCursor: null, hasMore: false, totalReturned: 0 } : []);
+        const cursor = params?.['cursor'] as string | undefined;
+        requestedCursors.push(cursor);
+        return of(cursor === 'c100' ? page(101, 125, null) : cursor === 'c50' ? page(51, 100, 'c100') : page(1, 50, 'c50'));
+      }
+    });
+
+    const seen = [...component.tasks().map(item => item.id)];
+    for (let expectedPage = 2; expectedPage <= 3; expectedPage++) {
+      const next = fixture.nativeElement.querySelector('button[aria-label="Следующая страница"]') as HTMLButtonElement;
+      expect(next.disabled).toBe(false);
+      next.click();
+      fixture.detectChanges();
+      seen.push(...component.tasks().map(item => item.id));
+      expect(component.currentPage).toBe(expectedPage);
+    }
+
+    expect(requestedCursors).toEqual([undefined, 'c50', 'c100']);
+    expect(seen).toEqual(Array.from({ length: 125 }, (_, index) => index + 1));
+    expect(new Set(seen).size).toBe(125);
+    expect(fixture.nativeElement.textContent).toContain('#125');
+    expect(fixture.nativeElement.querySelector('ui-pagination [role="status"]').textContent).not.toContain('из 25');
+  });
+
+  it('resets cursor history on a filter change and ignores the old page response', async () => {
+    const oldPage = new Subject<unknown>();
+    const filteredPage = new Subject<unknown>();
+    let calls = 0;
+    const paramsSeen: Array<Record<string, unknown> | undefined> = [];
+    const { component } = await createControlledFixture({
+      get: (path, params) => {
+        if (path !== '/tasks') return of(path === '/iam/users' ? { items: [], nextCursor: null, hasMore: false, totalReturned: 0 } : []);
+        paramsSeen.push(params);
+        calls++;
+        if (calls === 1) return of({ items: [task(1)], nextCursor: 'next', hasMore: true, totalReturned: 1 });
+        return calls === 2 ? oldPage : filteredPage;
+      }
+    });
+
+    component.goToTaskPage(2);
+    component.setStatusFilterMode('all');
+    filteredPage.next({ items: [task(700, 'Filtered first')], nextCursor: null, hasMore: false, totalReturned: 1 });
+    oldPage.next({ items: [task(51, 'Old answer')], nextCursor: null, hasMore: false, totalReturned: 1 });
+
+    expect(paramsSeen[1]?.['cursor']).toBe('next');
+    expect(paramsSeen[2]?.['cursor']).toBeUndefined();
+    expect(paramsSeen[2]?.['hide_terminal']).toBe(false);
+    expect(component.currentPage).toBe(1);
+    expect(component.tasks().map(item => item.id)).toEqual([700]);
+  });
+
+  it('keeps active and all filters visible and equivalent in table and kanban, including after a terminal move', async () => {
+    const statuses: TaskStatus[] = [
+      { id: 1, name: 'Active', isTerminal: false, orderNo: 1 },
+      { id: 2, name: 'Done', isTerminal: true, orderNo: 2 }
+    ];
+    const active = task(1, 'Active task');
+    const done = { ...task(2, 'Done task'), statusId: 2 };
+    const { fixture, component } = await createControlledFixture({
+      get: (path, params) => path === '/tasks/statuses'
+        ? of(statuses)
+        : path === '/tasks'
+          ? of({ items: params?.['hide_terminal'] === false ? [active, done] : [active], nextCursor: null, hasMore: false, totalReturned: params?.['hide_terminal'] === false ? 2 : 1 })
+          : of(path === '/iam/users' ? { items: [], nextCursor: null, hasMore: false, totalReturned: 0 } : [])
+    });
+
+    expect(component.tasks().map(item => item.id)).toEqual([1]);
+    const allButton = Array.from(fixture.nativeElement.querySelectorAll('.toolbar .status-tab') as NodeListOf<HTMLButtonElement>)
+      .find(button => button.textContent?.trim() === 'Все')!;
+    allButton.click();
+    fixture.detectChanges();
+    expect(component.tasks().map(item => item.id)).toEqual([1, 2]);
+
+    component.viewMode = 'kanban';
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.toolbar [role="group"][aria-label="Фильтр по статусу"]')).not.toBeNull();
+    const activeButton = Array.from(fixture.nativeElement.querySelectorAll('.toolbar .status-tab') as NodeListOf<HTMLButtonElement>)
+      .find(button => button.textContent?.trim() === 'Активные')!;
+    activeButton.click();
+    fixture.detectChanges();
+    expect(component.tasks().map(item => item.id)).toEqual([1]);
+
+    component.updateStatus(1, 2);
+    expect(component.tasks()).toEqual([]);
+  });
+
+  it('selects independently searched user 501 and a parent outside the current task page', async () => {
+    vi.useFakeTimers();
+    const user501: User = {
+      id: 501, name: 'Remote User', login: 'user501', email: 'u501@example.com', state: 'A', language: 'ru', timezone: 'Asia/Tashkent',
+      attributes: {}, is2faEnabled: false, forcePasswordChange: false, createdAt: '2026-09-05T00:00:00Z', modifiedAt: '2026-09-05T00:00:00Z'
+    };
+    const user502: User = { ...user501, id: 502, name: 'Remote Observer', login: 'user502', email: 'u502@example.com' };
+    const parent = task(999, 'Outside filtered page');
+    const { fixture, component, api } = await createControlledFixture({
+      get: (path, params) => {
+        if (path === '/iam/users') return of({ items: params?.['search'] === 'user501' ? [user501] : params?.['search'] === 'user502' ? [user502] : [], nextCursor: null, hasMore: false, totalReturned: params?.['search'] ? 1 : 0 });
+        if (path === '/tasks' && params?.['search'] === 'Outside') return of({ items: [parent], nextCursor: null, hasMore: false, totalReturned: 1 });
+        if (path === '/tasks') return of({ items: [task(1)], nextCursor: null, hasMore: false, totalReturned: 1 });
+        return of([]);
+      }
+    });
+    component.openCreateTaskModal();
+    fixture.detectChanges();
+
+    const responsible = fixture.nativeElement.querySelector('ui-searchable-select button[aria-label="Ответственный сотрудник"]') as HTMLButtonElement;
+    responsible.click();
+    fixture.detectChanges();
+    const responsibleHost = responsible.closest('ui-searchable-select')!;
+    const userSearch = responsibleHost.querySelector('.search-input') as HTMLInputElement;
+    userSearch.value = 'user501';
+    userSearch.dispatchEvent(new Event('input'));
+    await vi.advanceTimersByTimeAsync(300);
+    fixture.detectChanges();
+    (Array.from(responsibleHost.querySelectorAll('button.option-item')) as HTMLButtonElement[])
+      .find(button => button.textContent?.includes('Remote User'))!.click();
+
+    const parentTrigger = fixture.nativeElement.querySelector('ui-searchable-select button[aria-label="Родительская задача"]') as HTMLButtonElement;
+    parentTrigger.click();
+    fixture.detectChanges();
+    const parentHost = parentTrigger.closest('ui-searchable-select')!;
+    const parentSearch = parentHost.querySelector('.search-input') as HTMLInputElement;
+    parentSearch.value = 'Outside';
+    parentSearch.dispatchEvent(new Event('input'));
+    await vi.advanceTimersByTimeAsync(300);
+    fixture.detectChanges();
+    (Array.from(parentHost.querySelectorAll('button.option-item')) as HTMLButtonElement[])
+      .find(button => button.textContent?.includes('Outside filtered page'))!.click();
+
+    const observerTrigger = fixture.nativeElement.querySelector('ui-user-multi-select button[aria-label="Наблюдатели"]') as HTMLButtonElement;
+    observerTrigger.click();
+    fixture.detectChanges();
+    const observerHost = observerTrigger.closest('ui-user-multi-select')!;
+    const observerSearch = observerHost.querySelector('.search-input') as HTMLInputElement;
+    observerSearch.value = 'user502';
+    observerSearch.dispatchEvent(new Event('input'));
+    await vi.advanceTimersByTimeAsync(300);
+    fixture.detectChanges();
+    (Array.from(observerHost.querySelectorAll('button.user-option')) as HTMLButtonElement[])
+      .find(button => button.textContent?.includes('Remote Observer'))!.click();
+
+    expect(component.createForm.responsibleUserId).toBe(501);
+    expect(component.createForm.parentTaskId).toBe(999);
+    expect(component.createForm.observerUserIds).toEqual([502]);
+    expect(api.get.mock.calls.some(([path, params]) => path === '/iam/users' && params.search === 'user501')).toBe(true);
+    expect(api.get.mock.calls.some(([path, params]) => path === '/tasks' && params.search === 'Outside' && params.project_id === undefined && params.hide_terminal === undefined)).toBe(true);
+    expect(component.responsibleUsers().map(user => user.id)).toEqual([501]);
+    expect(component.observerUsers().map(user => user.id)).toEqual([502]);
+    vi.useRealTimers();
+  });
+
+  it('omits unchanged scoped assignments from edit PATCH while preserving explicit clears', async () => {
+    const fresh = { ...task(30), parentTaskId: 999 };
+    const members = [
+      { taskId: 30, userId: 501, involveKind: 'R', userName: 'Remote Owner', userLogin: 'owner501' },
+      { taskId: 30, userId: 502, involveKind: 'O', userName: 'Remote Observer', userLogin: 'observer502' }
+    ];
+    const { component, api } = await createControlledFixture({
+      get: path => path === '/tasks/30'
+        ? of({ task: fresh, members, ancestors: [task(999, 'Remote Parent')] })
+        : of(path === '/tasks' ? { items: [], nextCursor: null, hasMore: false, totalReturned: 0 } : path === '/iam/users' ? { items: [], nextCursor: null, hasMore: false, totalReturned: 0 } : []),
+      patch: () => of({})
+    });
+
+    component.openEditModal(task(30));
+    component.editForm.title = 'Title only';
+    component.submitEditTask();
+    const titleOnly = api.patch.mock.calls[0][1] as Record<string, unknown>;
+    expect(titleOnly).not.toHaveProperty('parentTaskId');
+    expect(titleOnly).not.toHaveProperty('responsibleUserId');
+    expect(titleOnly).not.toHaveProperty('observerUserIds');
+
+    component.openEditModal(task(30));
+    component.editForm.parentTaskId = null;
+    component.editForm.responsibleUserId = null;
+    component.editForm.observerUserIds = [];
+    component.submitEditTask();
+    const cleared = api.patch.mock.calls[1][1] as Record<string, unknown>;
+    expect(cleared['parentTaskId']).toBeNull();
+    expect(cleared['responsibleUserId']).toBeNull();
+    expect(cleared['observerUserIds']).toEqual([]);
+  });
+
+  it('keeps selected member labels and IDs when the scoped IAM lookup is denied', async () => {
+    vi.useFakeTimers();
+    const members = [
+      { taskId: 40, userId: 501, involveKind: 'R', userName: 'Scoped Owner', userLogin: 'owner501' },
+      { taskId: 40, userId: 502, involveKind: 'O', userName: 'Scoped Observer', userLogin: 'observer502' }
+    ];
+    const { fixture, component } = await createControlledFixture({
+      get: path => path === '/tasks/40'
+        ? of({ task: task(40), members })
+        : path === '/iam/users'
+          ? throwError(() => ({ status: 403 }))
+          : of(path === '/tasks' ? { items: [], nextCursor: null, hasMore: false, totalReturned: 0 } : [])
+    });
+    component.openEditModal(task(40));
+    fixture.detectChanges();
+
+    const responsible = fixture.nativeElement.querySelector('ui-searchable-select button[aria-label="Ответственный сотрудник"]') as HTMLButtonElement;
+    responsible.click();
+    await vi.advanceTimersByTimeAsync(300);
+    fixture.detectChanges();
+
+    expect(component.editForm.responsibleUserId).toBe(501);
+    expect(component.editForm.observerUserIds).toEqual([502]);
+    expect(responsible.textContent).toContain('Scoped Owner');
+    expect(fixture.nativeElement.querySelector('button[aria-label="Удалить Scoped Observer"]')).not.toBeNull();
+    expect(responsible.closest('ui-searchable-select')?.querySelector('[role="alert"], .remote-retry')).not.toBeNull();
+    expect(component.responsibleUsers().map(user => user.id)).toEqual([501]);
+  });
+
+  it('cancels an in-flight selector lookup as soon as a new query is typed', async () => {
+    vi.useFakeTimers();
+    const first = new Subject<unknown>();
+    const second = new Subject<unknown>();
+    const remoteUser = (id: number, name: string): User => ({
+      id, name, login: `user${id}`, email: `u${id}@example.com`, state: 'A', language: 'ru', timezone: 'Asia/Tashkent',
+      attributes: {}, is2faEnabled: false, forcePasswordChange: false, createdAt: '2026-09-05T00:00:00Z', modifiedAt: '2026-09-05T00:00:00Z'
+    });
+    const { fixture, component } = await createControlledFixture({
+      get: (path, params) => path === '/iam/users'
+        ? (params?.['search'] === 'new' ? second : first)
+        : of(path === '/tasks' ? { items: [], nextCursor: null, hasMore: false, totalReturned: 0 } : [])
+    });
+    component.openCreateTaskModal();
+    fixture.detectChanges();
+    const responsible = fixture.nativeElement.querySelector('ui-searchable-select button[aria-label="Ответственный сотрудник"]') as HTMLButtonElement;
+    responsible.click();
+    await vi.advanceTimersByTimeAsync(300);
+    fixture.detectChanges();
+
+    const input = responsible.closest('ui-searchable-select')!.querySelector('.search-input') as HTMLInputElement;
+    input.value = 'new';
+    input.dispatchEvent(new Event('input'));
+    first.next({ items: [remoteUser(10, 'Stale user')], nextCursor: null, hasMore: false, totalReturned: 1 });
+    fixture.detectChanges();
+    expect(component.responsibleUsers()).toEqual([]);
+
+    await vi.advanceTimersByTimeAsync(300);
+    second.next({ items: [remoteUser(501, 'Current user')], nextCursor: null, hasMore: false, totalReturned: 1 });
+    fixture.detectChanges();
+    expect(component.responsibleUsers().map(user => user.id)).toEqual([501]);
   });
 });

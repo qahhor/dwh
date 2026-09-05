@@ -52,4 +52,25 @@ describe('UiPaginationComponent', () => {
     expect((fixture.nativeElement.querySelector('button[aria-label="Предыдущая страница"]') as HTMLButtonElement).disabled).toBe(false);
     expect((fixture.nativeElement.querySelector('button[aria-label="Следующая страница"]') as HTMLButtonElement).disabled).toBe(false);
   });
+
+  it('does not clamp cursor pages to a local item count or present it as a total', async () => {
+    await TestBed.configureTestingModule({ imports: [UiPaginationComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(UiPaginationComponent);
+    fixture.componentRef.setInput('totalItems', 25);
+    fixture.componentRef.setInput('currentPage', 3);
+    fixture.componentRef.setInput('pageSize', 50);
+    fixture.componentRef.setInput('cursorMode', true);
+    fixture.componentRef.setInput('hasNextPage', false);
+    fixture.detectChanges();
+
+    const emitted: number[] = [];
+    fixture.componentInstance.pageChange.subscribe(page => emitted.push(page));
+    const previous = fixture.nativeElement.querySelector('button[aria-label="Предыдущая страница"]') as HTMLButtonElement;
+    previous.click();
+
+    expect(fixture.componentInstance.currentPage).toBe(2);
+    expect(emitted).toEqual([2]);
+    expect(fixture.nativeElement.querySelector('[role="status"]').textContent).toContain('101–125');
+    expect(fixture.nativeElement.querySelector('[role="status"]').textContent).not.toContain('из 25');
+  });
 });

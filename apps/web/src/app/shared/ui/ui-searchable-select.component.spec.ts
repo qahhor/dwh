@@ -37,4 +37,43 @@ describe('UiSearchableSelectComponent', () => {
     expect(trigger.getAttribute('aria-expanded')).toBe('false');
     expect(document.activeElement).toBe(trigger);
   });
+
+  it('emits remote searches and keeps retry and load-more actions outside the listbox', async () => {
+    await TestBed.configureTestingModule({ imports: [UiSearchableSelectComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(UiSearchableSelectComponent);
+    fixture.componentRef.setInput('remoteSearch', true);
+    fixture.componentRef.setInput('loadError', true);
+    fixture.componentRef.setInput('hasMore', true);
+    const searches: string[] = [];
+    let retries = 0;
+    let loadMore = 0;
+    const remote = fixture.componentInstance;
+    remote.searchChange.subscribe(query => searches.push(query));
+    remote.retry.subscribe(() => retries++);
+    remote.loadMore.subscribe(() => loadMore++);
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('.select-trigger') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(searches).toEqual(['']);
+    const input = fixture.nativeElement.querySelector('.search-input') as HTMLInputElement;
+    input.value = '501';
+    input.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const listbox = fixture.nativeElement.querySelector('[role="listbox"]') as HTMLElement;
+    const retry = fixture.nativeElement.querySelector('button.remote-retry') as HTMLButtonElement;
+    retry.click();
+    fixture.componentRef.setInput('loadError', false);
+    fixture.detectChanges();
+    const more = fixture.nativeElement.querySelector('button.remote-load-more') as HTMLButtonElement;
+    more.click();
+
+    expect(searches.at(-1)).toBe('501');
+    expect(retries).toBe(1);
+    expect(loadMore).toBe(1);
+    expect(listbox.contains(retry)).toBe(false);
+    expect(listbox.contains(more)).toBe(false);
+  });
 });

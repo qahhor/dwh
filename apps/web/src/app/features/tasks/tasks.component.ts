@@ -49,7 +49,7 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
       <div class="view-header">
         <div class="header-left">
           <h1 class="view-title">{{ 'nav.tasks' | t }}</h1>
-          <span class="count-badge">{{ tasks().length }}</span>
+          <span class="count-badge">{{ 'tasks.loaded_count' | t:{count: tasks().length} }}</span>
 
           <!-- View Mode Switcher: Table / Kanban -->
           <div class="status-tabs" role="group" [attr.aria-label]="'tasks.rezhim_otobrazheniya_zadach' | t">
@@ -148,7 +148,7 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
 
         <div class="toolbar-controls">
           <!-- Status Filter Tabs (Default: 'active' which excludes done & cancelled) -->
-          <div class="status-tabs" *ngIf="viewMode === 'table'" role="group" [attr.aria-label]="'tasks.filtr_po_statusu' | t">
+          <div class="status-tabs" role="group" [attr.aria-label]="'tasks.filtr_po_statusu' | t">
             <button
               type="button"
               class="status-tab"
@@ -361,14 +361,6 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
           </table>
         </div>
 
-        <!-- Pagination Bar -->
-        <ui-pagination
-          [totalItems]="tasks().length"
-          [currentPage]="currentPage"
-          [pageSize]="pageSize"
-          (pageChange)="currentPage = $event"
-          (pageSizeChange)="pageSize = $event; currentPage = 1"
-        ></ui-pagination>
       </div>
 
 
@@ -494,6 +486,16 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
           </div>
         </div>
       </div>
+
+      <ui-pagination
+        [totalItems]="tasks().length"
+        [currentPage]="currentPage"
+        [pageSize]="pageSize"
+        [showPageSize]="false"
+        [cursorMode]="true"
+        [hasNextPage]="hasMore()"
+        (pageChange)="goToTaskPage($event)"
+      ></ui-pagination>
     </div>
 
     <!-- ======================================================================= -->
@@ -508,6 +510,7 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
       <div body class="request-state request-loading" *ngIf="detailLoading()" role="status">
         {{ 'tasks.detail_loading' | t }}
       </div>
+
       <div body class="request-state request-error" *ngIf="detailLoadError()" role="alert">
         <span>{{ 'tasks.detail_load_error' | t }}</span>
         <ui-button variant="secondary" size="sm" (onClick)="retryTaskDetails()">{{ 'audit.retry' | t }}</ui-button>
@@ -875,13 +878,20 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
               <span class="clean-label">{{ 'task.parent' | t }}</span>
             </div>
             <ui-searchable-select
-              [options]="taskSelectOptions()"
+              [options]="parentTaskOptions()"
               [selectedId]="createForm.parentTaskId"
               [ariaLabel]="'task.parent' | t"
               (selectedIdChange)="createForm.parentTaskId = $event"
               [placeholder]="'tasks.bez_roditelya_kornevaya_zadacha' | t"
               [searchPlaceholder]="'tasks.poisk_zadachi_po_id_ili_nazvaniyu' | t"
               [emptyLabel]="'tasks.without_parent' | t"
+              [remoteSearch]="true"
+              [loading]="parentLookupLoading()"
+              [loadError]="parentLookupError()"
+              [hasMore]="parentLookupHasMore()"
+              (searchChange)="onParentSearch($event)"
+              (loadMore)="loadMoreParents()"
+              (retry)="retryParentLookup()"
             ></ui-searchable-select>
           </div>
         </div>
@@ -893,13 +903,20 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
               <span class="clean-label">{{ 'tasks.otvetstvennyy_sotrudnik_i_t1' | t }}</span>
             </div>
             <ui-searchable-select
-              [options]="userSelectOptions()"
+              [options]="responsibleUserOptions()"
               [selectedId]="createForm.responsibleUserId"
               [ariaLabel]="'tasks.otvetstvennyy_sotrudnik' | t"
               (selectedIdChange)="createForm.responsibleUserId = $event"
               [placeholder]="'tasks.vyberite_otvetstvennogo' | t"
               [searchPlaceholder]="'tasks.poisk_sotrudnika_po_imeni_ili_loginu' | t"
               [emptyLabel]="'common.not_assigned' | t"
+              [remoteSearch]="true"
+              [loading]="responsibleLookupLoading()"
+              [loadError]="responsibleLookupError()"
+              [hasMore]="responsibleLookupHasMore()"
+              (searchChange)="onResponsibleSearch($event)"
+              (loadMore)="loadMoreResponsibleUsers()"
+              (retry)="retryResponsibleLookup()"
             ></ui-searchable-select>
           </div>
 
@@ -918,12 +935,19 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
             <span class="clean-label">{{ 'tasks.nablyudateli_poluchayut_uvedomleniya' | t }}</span>
           </div>
           <ui-user-multi-select
-            [users]="usersList()"
+            [users]="observerUsers()"
             [selectedUserIds]="createForm.observerUserIds"
             [ariaLabel]="'tasks.nablyudateli' | t"
             (selectedUserIdsChange)="createForm.observerUserIds = $event"
             [placeholder]="'tasks.nazhmite_dlya_dobavleniya_nablyudateley' | t"
             [searchPlaceholder]="'tasks.poisk_sotrudnika' | t"
+            [remoteSearch]="true"
+            [loading]="observerLookupLoading()"
+            [loadError]="observerLookupError()"
+            [hasMore]="observerLookupHasMore()"
+            (searchChange)="onObserverSearch($event)"
+            (loadMore)="loadMoreObservers()"
+            (retry)="retryObserverLookup()"
           ></ui-user-multi-select>
         </div>
 
@@ -1095,6 +1119,13 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
               [placeholder]="'tasks.bez_roditelya_kornevaya_zadacha' | t"
               [searchPlaceholder]="'tasks.poisk_zadachi_po_id_ili_nazvaniyu' | t"
               [emptyLabel]="'tasks.without_parent' | t"
+              [remoteSearch]="true"
+              [loading]="parentLookupLoading()"
+              [loadError]="parentLookupError()"
+              [hasMore]="parentLookupHasMore()"
+              (searchChange)="onParentSearch($event)"
+              (loadMore)="loadMoreParents()"
+              (retry)="retryParentLookup()"
             ></ui-searchable-select>
           </div>
         </div>
@@ -1106,13 +1137,20 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
               <span class="clean-label">{{ 'tasks.otvetstvennyy_sotrudnik_i_t1' | t }}</span>
             </div>
             <ui-searchable-select
-              [options]="userSelectOptions()"
+              [options]="responsibleUserOptions()"
               [selectedId]="editForm.responsibleUserId"
               [ariaLabel]="'tasks.otvetstvennyy_sotrudnik' | t"
               (selectedIdChange)="editForm.responsibleUserId = $event"
               [placeholder]="'tasks.vyberite_otvetstvennogo' | t"
               [searchPlaceholder]="'tasks.poisk_sotrudnika_po_imeni_ili_loginu' | t"
               [emptyLabel]="'common.not_assigned' | t"
+              [remoteSearch]="true"
+              [loading]="responsibleLookupLoading()"
+              [loadError]="responsibleLookupError()"
+              [hasMore]="responsibleLookupHasMore()"
+              (searchChange)="onResponsibleSearch($event)"
+              (loadMore)="loadMoreResponsibleUsers()"
+              (retry)="retryResponsibleLookup()"
             ></ui-searchable-select>
           </div>
 
@@ -1131,12 +1169,19 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
             <span class="clean-label">{{ 'tasks.nablyudateli_poluchayut_uvedomleniya' | t }}</span>
           </div>
           <ui-user-multi-select
-            [users]="usersList()"
+            [users]="observerUsers()"
             [selectedUserIds]="editForm.observerUserIds"
             [ariaLabel]="'tasks.nablyudateli' | t"
             (selectedUserIdsChange)="editForm.observerUserIds = $event"
             [placeholder]="'tasks.nazhmite_dlya_dobavleniya_nablyudateley' | t"
             [searchPlaceholder]="'tasks.poisk_sotrudnika' | t"
+            [remoteSearch]="true"
+            [loading]="observerLookupLoading()"
+            [loadError]="observerLookupError()"
+            [hasMore]="observerLookupHasMore()"
+            (searchChange)="onObserverSearch($event)"
+            (loadMore)="loadMoreObservers()"
+            (retry)="retryObserverLookup()"
           ></ui-user-multi-select>
         </div>
 
@@ -2391,7 +2436,18 @@ export class TasksComponent implements OnInit, OnDestroy {
   readonly projects = signal<Project[]>([]);
   readonly statuses = signal<TaskStatus[]>([]);
   readonly taskTypes = signal<TaskType[]>([]);
-  readonly usersList = signal<User[]>([]);
+  readonly parentTaskOptions = signal<SelectOption[]>([]);
+  readonly responsibleUsers = signal<User[]>([]);
+  readonly observerUsers = signal<User[]>([]);
+  readonly parentLookupLoading = signal(false);
+  readonly parentLookupError = signal(false);
+  readonly parentLookupHasMore = signal(false);
+  readonly responsibleLookupLoading = signal(false);
+  readonly responsibleLookupError = signal(false);
+  readonly responsibleLookupHasMore = signal(false);
+  readonly observerLookupLoading = signal(false);
+  readonly observerLookupError = signal(false);
+  readonly observerLookupHasMore = signal(false);
   readonly taskCustomFields = signal<CustomField[]>([]);
 
   readonly selectedTask = signal<Task | null>(null);
@@ -2428,7 +2484,27 @@ export class TasksComponent implements OnInit, OnDestroy {
   private editSaveRequest?: Subscription;
   private commentPostRequest?: Subscription;
   private routeSubscription?: Subscription;
-  private lastListReset = true;
+  private taskPageCursors: Array<string | null> = [null];
+  private parentLookupRequest?: Subscription;
+  private responsibleLookupRequest?: Subscription;
+  private observerLookupRequest?: Subscription;
+  private parentLookupRequestId = 0;
+  private responsibleLookupRequestId = 0;
+  private observerLookupRequestId = 0;
+  private parentSearchTimer?: ReturnType<typeof setTimeout>;
+  private responsibleSearchTimer?: ReturnType<typeof setTimeout>;
+  private observerSearchTimer?: ReturnType<typeof setTimeout>;
+  private parentLookupQuery = '';
+  private responsibleLookupQuery = '';
+  private observerLookupQuery = '';
+  private parentLookupCursor: string | null = null;
+  private responsibleLookupCursor: string | null = null;
+  private observerLookupCursor: string | null = null;
+  private parentLastReset = true;
+  private responsibleLastReset = true;
+  private observerLastReset = true;
+  private readonly retainedParentOptions = new Map<number, SelectOption>();
+  private readonly retainedUsers = new Map<number, User>();
 
   // View Mode: 'table' (List / Table) is now default as requested
   viewMode: 'table' | 'kanban' = 'table';
@@ -2436,7 +2512,7 @@ export class TasksComponent implements OnInit, OnDestroy {
   selectedPriority = '';
   selectedProjectId: number | null = null;
   currentPage = 1;
-  pageSize = 10;
+  readonly pageSize = 50;
 
   // Status Filter Mode: 'active' (default excludes done & cancelled), 'all', or number (specific status ID)
   statusFilterMode: 'active' | 'all' | number = 'active';
@@ -2484,6 +2560,7 @@ export class TasksComponent implements OnInit, OnDestroy {
   private editTargetId: number | null = null;
   private editReturnTask: Task | null = null;
   private editFormBaseline = '';
+  private editAssignmentBaseline: { parentTaskId: number | null; responsibleUserId: number | null; observerUserIds: number[] } | null = null;
   editForm = {
     title: '',
     taskType: 'task',
@@ -2515,7 +2592,6 @@ export class TasksComponent implements OnInit, OnDestroy {
     this.loadStatuses();
     this.loadTypes();
     this.loadProjects();
-    this.loadUsers();
     this.loadTaskCustomFields();
     this.loadTasks(true);
   }
@@ -2527,6 +2603,12 @@ export class TasksComponent implements OnInit, OnDestroy {
     this.commentsRequestId++;
     this.editRequestId++;
     this.commentPostRequestId++;
+    this.parentLookupRequestId++;
+    this.responsibleLookupRequestId++;
+    this.observerLookupRequestId++;
+    clearTimeout(this.parentSearchTimer);
+    clearTimeout(this.responsibleSearchTimer);
+    clearTimeout(this.observerSearchTimer);
     this.routeSubscription?.unsubscribe();
     this.listRequest?.unsubscribe();
     this.detailRequest?.unsubscribe();
@@ -2534,6 +2616,9 @@ export class TasksComponent implements OnInit, OnDestroy {
     this.editRequest?.unsubscribe();
     this.editSaveRequest?.unsubscribe();
     this.commentPostRequest?.unsubscribe();
+    this.parentLookupRequest?.unsubscribe();
+    this.responsibleLookupRequest?.unsubscribe();
+    this.observerLookupRequest?.unsubscribe();
   }
 
   get commentDraft(): string {
@@ -2546,35 +2631,16 @@ export class TasksComponent implements OnInit, OnDestroy {
     if (taskId != null) this.commentDrafts.set(taskId, value);
   }
 
-  // Active users only for selectors
-  activeUsers(): User[] {
-    return this.usersList().filter(u => u.state !== 'P' && !u.name.toLowerCase().includes('deleted user'));
-  }
-
-  userSelectOptions(): SelectOption[] {
-    return this.activeUsers().map(u => ({
-      id: u.id,
-      label: u.name,
-      subLabel: `@${u.login}`
-    }));
-  }
-
-  taskSelectOptions(): SelectOption[] {
-    return this.tasks().map(t => ({
-      id: t.id,
-      label: `#${t.id} ${t.title}`,
-      icon: 'task_alt'
+  responsibleUserOptions(): SelectOption[] {
+    return this.responsibleUsers().map(user => ({
+      id: user.id,
+      label: user.name,
+      subLabel: `@${user.login}`
     }));
   }
 
   getAvailableParentTaskOptions(currentTaskId: number): SelectOption[] {
-    return this.tasks()
-      .filter(t => t.id !== currentTaskId)
-      .map(t => ({
-        id: t.id,
-        label: `#${t.id} ${t.title}`,
-        icon: 'task_alt'
-      }));
+    return this.parentTaskOptions().filter(option => Number(option.id) !== currentTaskId);
   }
 
   canCreateTask(): boolean {
@@ -2606,10 +2672,181 @@ export class TasksComponent implements OnInit, OnDestroy {
     });
   }
 
-  loadUsers() {
-    this.api.get<KeysetPage<User>>('/iam/users', { limit: 100 }).subscribe({
-      next: res => this.usersList.set(res?.items || []),
-      error: () => {}
+  onParentSearch(query: string) {
+    this.parentLookupQuery = query.trim();
+    clearTimeout(this.parentSearchTimer);
+    this.parentLookupRequestId++;
+    this.parentLookupRequest?.unsubscribe();
+    this.parentLookupLoading.set(false);
+    this.parentLookupError.set(false);
+    this.parentSearchTimer = setTimeout(() => this.loadParentTasks(true), 300);
+  }
+
+  loadMoreParents() {
+    if (this.parentLookupCursor && !this.parentLookupLoading()) this.loadParentTasks(false);
+  }
+
+  retryParentLookup() {
+    this.loadParentTasks(this.parentLastReset);
+  }
+
+  onResponsibleSearch(query: string) {
+    this.responsibleLookupQuery = query.trim();
+    clearTimeout(this.responsibleSearchTimer);
+    this.responsibleLookupRequestId++;
+    this.responsibleLookupRequest?.unsubscribe();
+    this.responsibleLookupLoading.set(false);
+    this.responsibleLookupError.set(false);
+    this.responsibleSearchTimer = setTimeout(() => this.loadResponsibleUsers(true), 300);
+  }
+
+  loadMoreResponsibleUsers() {
+    if (this.responsibleLookupCursor && !this.responsibleLookupLoading()) this.loadResponsibleUsers(false);
+  }
+
+  retryResponsibleLookup() {
+    this.loadResponsibleUsers(this.responsibleLastReset);
+  }
+
+  onObserverSearch(query: string) {
+    this.observerLookupQuery = query.trim();
+    clearTimeout(this.observerSearchTimer);
+    this.observerLookupRequestId++;
+    this.observerLookupRequest?.unsubscribe();
+    this.observerLookupLoading.set(false);
+    this.observerLookupError.set(false);
+    this.observerSearchTimer = setTimeout(() => this.loadObserverUsers(true), 300);
+  }
+
+  loadMoreObservers() {
+    if (this.observerLookupCursor && !this.observerLookupLoading()) this.loadObserverUsers(false);
+  }
+
+  retryObserverLookup() {
+    this.loadObserverUsers(this.observerLastReset);
+  }
+
+  private loadParentTasks(reset: boolean) {
+    this.parentLastReset = reset;
+    if (reset) this.parentLookupCursor = null;
+    const requestId = ++this.parentLookupRequestId;
+    this.parentLookupRequest?.unsubscribe();
+    this.parentLookupLoading.set(true);
+    this.parentLookupError.set(false);
+    this.parentLookupRequest = this.api.get<KeysetPage<Task>>('/tasks', {
+      limit: 50,
+      cursor: this.parentLookupCursor || undefined,
+      search: this.parentLookupQuery || undefined
+    }).subscribe({
+      next: page => {
+        if (this.destroyed || requestId !== this.parentLookupRequestId) return;
+        const incoming = (page.items || []).map(item => {
+          const option = { id: item.id, label: `#${item.id} ${item.title}`, icon: 'task_alt' };
+          this.retainedParentOptions.set(item.id, option);
+          return option;
+        });
+        const selectedId = this.isEditModalOpen() ? this.editForm.parentTaskId : this.createForm.parentTaskId;
+        const retained = selectedId == null ? [] : [this.retainedParentOptions.get(selectedId)].filter((item): item is SelectOption => !!item);
+        this.parentTaskOptions.set(this.mergeOptions(reset ? retained : this.parentTaskOptions(), incoming));
+        this.parentLookupCursor = page.nextCursor;
+        this.parentLookupHasMore.set(page.hasMore);
+        this.parentLookupLoading.set(false);
+      },
+      error: () => {
+        if (this.destroyed || requestId !== this.parentLookupRequestId) return;
+        this.parentLookupLoading.set(false);
+        this.parentLookupError.set(true);
+      }
+    });
+  }
+
+  private loadResponsibleUsers(reset: boolean) {
+    this.responsibleLastReset = reset;
+    if (reset) this.responsibleLookupCursor = null;
+    const requestId = ++this.responsibleLookupRequestId;
+    this.responsibleLookupRequest?.unsubscribe();
+    this.responsibleLookupLoading.set(true);
+    this.responsibleLookupError.set(false);
+    this.responsibleLookupRequest = this.api.get<KeysetPage<User>>('/iam/users', {
+      limit: 50,
+      cursor: this.responsibleLookupCursor || undefined,
+      search: this.responsibleLookupQuery || undefined,
+      state: 'A'
+    }).subscribe({
+      next: page => {
+        if (this.destroyed || requestId !== this.responsibleLookupRequestId) return;
+        const selectedId = this.isEditModalOpen() ? this.editForm.responsibleUserId : this.createForm.responsibleUserId;
+        this.responsibleUsers.set(this.mergeUserResults(reset ? [] : this.responsibleUsers(), page.items || [], selectedId == null ? [] : [selectedId]));
+        this.responsibleLookupCursor = page.nextCursor;
+        this.responsibleLookupHasMore.set(page.hasMore);
+        this.responsibleLookupLoading.set(false);
+      },
+      error: () => {
+        if (this.destroyed || requestId !== this.responsibleLookupRequestId) return;
+        this.responsibleLookupLoading.set(false);
+        this.responsibleLookupError.set(true);
+      }
+    });
+  }
+
+  private loadObserverUsers(reset: boolean) {
+    this.observerLastReset = reset;
+    if (reset) this.observerLookupCursor = null;
+    const requestId = ++this.observerLookupRequestId;
+    this.observerLookupRequest?.unsubscribe();
+    this.observerLookupLoading.set(true);
+    this.observerLookupError.set(false);
+    this.observerLookupRequest = this.api.get<KeysetPage<User>>('/iam/users', {
+      limit: 50,
+      cursor: this.observerLookupCursor || undefined,
+      search: this.observerLookupQuery || undefined,
+      state: 'A'
+    }).subscribe({
+      next: page => {
+        if (this.destroyed || requestId !== this.observerLookupRequestId) return;
+        const selectedIds = this.isEditModalOpen() ? this.editForm.observerUserIds : this.createForm.observerUserIds;
+        this.observerUsers.set(this.mergeUserResults(reset ? [] : this.observerUsers(), page.items || [], selectedIds));
+        this.observerLookupCursor = page.nextCursor;
+        this.observerLookupHasMore.set(page.hasMore);
+        this.observerLookupLoading.set(false);
+      },
+      error: () => {
+        if (this.destroyed || requestId !== this.observerLookupRequestId) return;
+        this.observerLookupLoading.set(false);
+        this.observerLookupError.set(true);
+      }
+    });
+  }
+
+  private mergeOptions(existing: SelectOption[], incoming: SelectOption[]): SelectOption[] {
+    const merged = new Map<string, SelectOption>();
+    [...existing, ...incoming].forEach(option => merged.set(String(option.id), option));
+    return [...merged.values()];
+  }
+
+  private mergeUserResults(existing: User[], incoming: User[], selectedIds: number[]): User[] {
+    incoming.forEach(user => this.retainedUsers.set(user.id, user));
+    const selected = selectedIds.map(id => this.retainedUsers.get(id)).filter((user): user is User => !!user);
+    const merged = new Map<number, User>();
+    [...selected, ...existing, ...incoming].forEach(user => merged.set(user.id, user));
+    return [...merged.values()];
+  }
+
+  private retainTaskMember(member: TaskMember) {
+    const existing = this.retainedUsers.get(member.userId);
+    this.retainedUsers.set(member.userId, {
+      id: member.userId,
+      name: member.userName,
+      login: member.userLogin,
+      email: member.userEmail || existing?.email || '',
+      state: 'A',
+      language: existing?.language || 'ru',
+      timezone: existing?.timezone || 'UTC',
+      attributes: existing?.attributes || {},
+      is2faEnabled: existing?.is2faEnabled || false,
+      forcePasswordChange: existing?.forcePasswordChange || false,
+      createdAt: existing?.createdAt || '',
+      modifiedAt: existing?.modifiedAt || ''
     });
   }
 
@@ -2621,9 +2858,10 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
 
   loadTasks(reset: boolean = false) {
-    this.lastListReset = reset;
     if (reset) {
       this.nextCursor = null;
+      this.currentPage = 1;
+      this.taskPageCursors = [null];
     }
 
     let statusIdParam: number | undefined = undefined;
@@ -2643,7 +2881,7 @@ export class TasksComponent implements OnInit, OnDestroy {
     this.listLoadError.set(false);
     this.listRequest = this.api.get<KeysetPage<Task>>('/tasks', {
       limit: 50,
-      cursor: this.nextCursor || undefined,
+      cursor: this.taskPageCursors[this.currentPage - 1] || undefined,
       search: this.searchQuery || undefined,
       priority: this.selectedPriority || undefined,
       project_id: this.selectedProjectId || undefined,
@@ -2653,11 +2891,7 @@ export class TasksComponent implements OnInit, OnDestroy {
       next: res => {
         if (this.destroyed || requestId !== this.listRequestId) return;
         this.isLoading.set(false);
-        if (reset) {
-          this.tasks.set(res.items || []);
-        } else {
-          this.tasks.update(cur => [...cur, ...(res.items || [])]);
-        }
+        this.tasks.set(res.items || []);
         this.nextCursor = res.nextCursor;
         this.hasMore.set(res.hasMore);
       },
@@ -2670,13 +2904,23 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
 
   retryTaskList() {
-    this.loadTasks(this.lastListReset);
+    this.loadTasks(false);
+  }
+
+  goToTaskPage(page: number) {
+    if (page === this.currentPage || page < 1 || Math.abs(page - this.currentPage) !== 1) return;
+    if (page > this.currentPage) {
+      if (!this.hasMore() || !this.nextCursor) return;
+      this.taskPageCursors[page - 1] = this.nextCursor;
+    } else if (this.taskPageCursors[page - 1] === undefined) {
+      return;
+    }
+    this.currentPage = page;
+    this.loadTasks(false);
   }
 
   paginatedTasks(): Task[] {
-    const list = this.tasks();
-    const start = (this.currentPage - 1) * this.pageSize;
-    return list.slice(start, start + this.pageSize);
+    return this.tasks();
   }
 
 
@@ -2787,7 +3031,7 @@ export class TasksComponent implements OnInit, OnDestroy {
 
   private executeStatusChange(task: Task, targetStatusId: number) {
     // Optimistic UI update
-    this.tasks.update(list => list.map(t => t.id === task.id ? { ...t, statusId: targetStatusId } : t));
+    this.applyStatusToVisibleTasks(task.id, targetStatusId);
     if (this.selectedTask()?.id === task.id) {
       this.selectedTask.update(t => t ? { ...t, statusId: targetStatusId } : null);
     }
@@ -3014,7 +3258,7 @@ export class TasksComponent implements OnInit, OnDestroy {
     this.api.post(`/tasks/${taskId}/status`, { statusId: newStatusId }).subscribe({
       next: () => {
         this.toast.success(this.uiI18n.translate('tasks.status_zadachi_obnovlen'));
-        this.tasks.update(list => list.map(t => t.id === taskId ? { ...t, statusId: newStatusId } : t));
+        this.applyStatusToVisibleTasks(taskId, newStatusId);
         if (this.selectedTask()?.id === taskId) {
           this.selectedTask.update(t => t ? { ...t, statusId: newStatusId } : null);
         }
@@ -3061,6 +3305,9 @@ export class TasksComponent implements OnInit, OnDestroy {
       endTime: '',
       attributes: {}
     };
+    const parentOption = { id: parentTask.id, label: `#${parentTask.id} ${parentTask.title}`, icon: 'task_alt' };
+    this.retainedParentOptions.set(parentTask.id, parentOption);
+    this.parentTaskOptions.set(this.mergeOptions(this.parentTaskOptions(), [parentOption]));
     this.isCreateModalOpen.set(true);
   }
 
@@ -3122,6 +3369,7 @@ export class TasksComponent implements OnInit, OnDestroy {
     this.editTargetId = task.id;
     this.editingTask = null;
     this.editFormBaseline = '';
+    this.editAssignmentBaseline = null;
     this.isEditModalOpen.set(true);
     this.loadEditDetails(task.id);
   }
@@ -3147,6 +3395,13 @@ export class TasksComponent implements OnInit, OnDestroy {
           .map(m => m.userId);
 
         const respMember = res.members.find(m => (m.involveKind || m.involvementKind) === 'R');
+        res.members.forEach(member => this.retainTaskMember(member));
+        const parent = (res.ancestors || []).find(ancestor => ancestor.id === freshTask.parentTaskId);
+        if (parent) {
+          const option = { id: parent.id, label: `#${parent.id} ${parent.title}`, icon: 'task_alt' };
+          this.retainedParentOptions.set(parent.id, option);
+          this.parentTaskOptions.set(this.mergeOptions(this.parentTaskOptions(), [option]));
+        }
 
         this.editingTask = freshTask;
         this.editForm = {
@@ -3163,6 +3418,13 @@ export class TasksComponent implements OnInit, OnDestroy {
           attributes: { ...(freshTask.attributes || {}) }
         };
         this.editFormBaseline = this.serializeEditForm();
+        this.editAssignmentBaseline = {
+          parentTaskId: this.editForm.parentTaskId,
+          responsibleUserId: this.editForm.responsibleUserId,
+          observerUserIds: [...this.editForm.observerUserIds]
+        };
+        this.responsibleUsers.set(this.mergeUserResults(this.responsibleUsers(), [], this.editForm.responsibleUserId == null ? [] : [this.editForm.responsibleUserId]));
+        this.observerUsers.set(this.mergeUserResults(this.observerUsers(), [], this.editForm.observerUserIds));
         this.editLoading.set(false);
       },
       error: () => {
@@ -3171,6 +3433,16 @@ export class TasksComponent implements OnInit, OnDestroy {
         this.editLoadError.set(true);
       }
     });
+  }
+
+  private applyStatusToVisibleTasks(taskId: number, statusId: number) {
+    const targetStatus = this.statuses().find(status => status.id === statusId);
+    const leavesCurrentFilter =
+      (this.statusFilterMode === 'active' && targetStatus?.isTerminal === true) ||
+      (typeof this.statusFilterMode === 'number' && this.statusFilterMode !== statusId);
+    this.tasks.update(list => leavesCurrentFilter
+      ? list.filter(task => task.id !== taskId)
+      : list.map(task => task.id === taskId ? { ...task, statusId } : task));
   }
 
   retryEditLoad() {
@@ -3204,11 +3476,18 @@ export class TasksComponent implements OnInit, OnDestroy {
     this.editTargetId = null;
     this.editReturnTask = null;
     this.editFormBaseline = '';
+    this.editAssignmentBaseline = null;
     if (returnTask) this.openTaskDetails(returnTask);
   }
 
   private serializeEditForm(): string {
     return JSON.stringify(this.editForm);
+  }
+
+  private sameIdSet(left: number[], right: number[]): boolean {
+    if (left.length !== right.length) return false;
+    const rightIds = new Set(right);
+    return left.every(id => rightIds.has(id));
   }
 
   submitEditTask() {
@@ -3221,18 +3500,29 @@ export class TasksComponent implements OnInit, OnDestroy {
 
     const attrs = { ...this.editForm.attributes, task_type: this.editForm.taskType };
 
-    const payload = {
+    const payload: Record<string, unknown> = {
       title: this.editForm.title.trim(),
       descriptionMarkdown: this.editForm.descriptionMarkdown?.trim() || '',
       projectId: this.editForm.projectId ? Number(this.editForm.projectId) : null,
       priority: this.editForm.priority || 'medium',
-      responsibleUserId: this.editForm.responsibleUserId ? Number(this.editForm.responsibleUserId) : null,
-      parentTaskId: this.editForm.parentTaskId ? Number(this.editForm.parentTaskId) : null,
-      observerUserIds: this.editForm.observerUserIds,
       beginTime: toTaskInstant(this.editForm.beginTime, this.editingTask.beginTime),
       endTime: toTaskInstant(this.editForm.endTime, this.editingTask.endTime),
       attributes: attrs
     };
+    const currentAssignments = {
+      parentTaskId: this.editForm.parentTaskId == null ? null : Number(this.editForm.parentTaskId),
+      responsibleUserId: this.editForm.responsibleUserId == null ? null : Number(this.editForm.responsibleUserId),
+      observerUserIds: [...this.editForm.observerUserIds]
+    };
+    if (!this.editAssignmentBaseline || currentAssignments.parentTaskId !== this.editAssignmentBaseline.parentTaskId) {
+      payload['parentTaskId'] = currentAssignments.parentTaskId;
+    }
+    if (!this.editAssignmentBaseline || currentAssignments.responsibleUserId !== this.editAssignmentBaseline.responsibleUserId) {
+      payload['responsibleUserId'] = currentAssignments.responsibleUserId;
+    }
+    if (!this.editAssignmentBaseline || !this.sameIdSet(currentAssignments.observerUserIds, this.editAssignmentBaseline.observerUserIds)) {
+      payload['observerUserIds'] = currentAssignments.observerUserIds;
+    }
 
     const editedTask = this.editingTask;
     const returnTask = this.editReturnTask;

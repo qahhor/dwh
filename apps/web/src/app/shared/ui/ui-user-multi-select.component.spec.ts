@@ -54,4 +54,39 @@ describe('UiUserMultiSelectComponent', () => {
     expect(trigger.getAttribute('aria-expanded')).toBe('false');
     expect(document.activeElement).toBe(trigger);
   });
+
+  it('emits remote searches and exposes non-option loading and paging controls', async () => {
+    await TestBed.configureTestingModule({ imports: [UiUserMultiSelectComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(UiUserMultiSelectComponent);
+    fixture.componentRef.setInput('remoteSearch', true);
+    fixture.componentRef.setInput('loading', true);
+    fixture.componentRef.setInput('hasMore', true);
+    const searches: string[] = [];
+    let loadMore = 0;
+    const remote = fixture.componentInstance;
+    remote.searchChange.subscribe(query => searches.push(query));
+    remote.loadMore.subscribe(() => loadMore++);
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('.add-user-btn') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(searches).toEqual(['']);
+    const input = fixture.nativeElement.querySelector('.search-input') as HTMLInputElement;
+    input.value = 'user501';
+    input.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const listbox = fixture.nativeElement.querySelector('[role="listbox"]') as HTMLElement;
+    const status = fixture.nativeElement.querySelector('.remote-loading[role="status"]') as HTMLElement;
+    fixture.componentRef.setInput('loading', false);
+    fixture.detectChanges();
+    const more = fixture.nativeElement.querySelector('button.remote-load-more') as HTMLButtonElement;
+    more.click();
+
+    expect(searches.at(-1)).toBe('user501');
+    expect(loadMore).toBe(1);
+    expect(listbox.contains(status)).toBe(false);
+    expect(listbox.contains(more)).toBe(false);
+  });
 });

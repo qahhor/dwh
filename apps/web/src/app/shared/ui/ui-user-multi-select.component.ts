@@ -47,9 +47,10 @@ import { TranslatePipe } from '../../core/services/i18n.service';
             [placeholder]="searchPlaceholder || ('tasks.poisk_sotrudnika' | t)"
             [attr.aria-label]="'ui.user_multi_select.poisk_sotrudnikov' | t"
             [(ngModel)]="searchQuery"
+            (ngModelChange)="onSearchChange($event)"
             (click)="$event.stopPropagation()"
           />
-          <button *ngIf="searchQuery" type="button" class="clear-btn" [attr.aria-label]="'ui.searchable_select.ochistit_poisk' | t" (click)="searchQuery = ''">
+          <button *ngIf="searchQuery" type="button" class="clear-btn" [attr.aria-label]="'ui.searchable_select.ochistit_poisk' | t" (click)="clearSearch()">
             <span class="material-symbols-outlined" aria-hidden="true">close</span>
           </button>
         </div>
@@ -78,6 +79,14 @@ import { TranslatePipe } from '../../core/services/i18n.service';
           <div *ngIf="filteredUsers().length === 0" class="no-options">
             {{ 'ui.user_multi_select.sotrudniki_ne_naydeny' | t }}
           </div>
+        </div>
+        <div *ngIf="remoteSearch" class="remote-state">
+          <div *ngIf="loading" class="remote-loading" role="status">{{ 'common.loading' | t }}</div>
+          <div *ngIf="loadError && !loading" class="remote-error" role="alert">
+            <span>{{ 'ui.remote_lookup.failed' | t }}</span>
+            <button type="button" class="remote-retry" (click)="retry.emit()">{{ 'audit.retry' | t }}</button>
+          </div>
+          <button *ngIf="hasMore && !loading && !loadError" type="button" class="remote-load-more" (click)="loadMore.emit()">{{ 'common.load_more' | t }}</button>
         </div>
       </div>
     </div>
@@ -234,6 +243,10 @@ import { TranslatePipe } from '../../core/services/i18n.service';
 
     .check-ico { font-size: 16px; color: var(--primary); }
     .no-options { padding: 12px; text-align: center; color: var(--text-muted); font-size: 12px; }
+    .remote-state { padding: 6px 8px; border-top: 1px solid var(--border-color); text-align: center; }
+    .remote-loading { color: var(--text-muted); font-size: 12px; }
+    .remote-error { display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--danger); font-size: 12px; }
+    .remote-retry, .remote-load-more { border: 0; background: transparent; color: var(--primary); cursor: pointer; font: inherit; font-size: 12px; }
     .text-muted { color: var(--text-muted); }
   `]
 })
@@ -245,7 +258,14 @@ export class UiUserMultiSelectComponent {
   @Input() placeholder = '';
   @Input() searchPlaceholder = '';
   @Input() ariaLabel = '';
+  @Input() remoteSearch = false;
+  @Input() loading = false;
+  @Input() loadError = false;
+  @Input() hasMore = false;
   @Output() selectedUserIdsChange = new EventEmitter<number[]>();
+  @Output() searchChange = new EventEmitter<string>();
+  @Output() loadMore = new EventEmitter<void>();
+  @Output() retry = new EventEmitter<void>();
 
   isOpen = signal<boolean>(false);
   readonly listboxId = `ui-user-multi-select-${UiUserMultiSelectComponent.nextId++}`;
@@ -271,6 +291,10 @@ export class UiUserMultiSelectComponent {
   toggleDropdown(event: MouseEvent) {
     event.stopPropagation();
     this.isOpen.update(v => !v);
+    if (this.isOpen()) {
+      this.searchQuery = '';
+      if (this.remoteSearch) this.searchChange.emit('');
+    }
   }
 
   getSelectedUsers(): User[] {
@@ -282,12 +306,21 @@ export class UiUserMultiSelectComponent {
     // Only active users
     const activeUsers = this.users.filter(u => u.state !== 'P' && !u.name.toLowerCase().includes('deleted user'));
     const q = this.searchQuery.trim().toLowerCase();
-    if (!q) return activeUsers;
+    if (!q || this.remoteSearch) return activeUsers;
 
     return activeUsers.filter(u =>
       u.name.toLowerCase().includes(q) ||
       u.login.toLowerCase().includes(q)
     );
+  }
+
+  onSearchChange(query: string) {
+    if (this.remoteSearch) this.searchChange.emit(query);
+  }
+
+  clearSearch() {
+    this.searchQuery = '';
+    if (this.remoteSearch) this.searchChange.emit('');
   }
 
   isSelected(userId: number): boolean {

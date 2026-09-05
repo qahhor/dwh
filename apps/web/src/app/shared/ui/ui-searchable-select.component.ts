@@ -73,9 +73,10 @@ export interface SelectOption {
             [placeholder]="searchPlaceholder || ('layout.app_shell.poisk' | t)"
             [attr.aria-label]="'ui.searchable_select.poisk_po_variantam' | t"
             [(ngModel)]="searchQuery"
+            (ngModelChange)="onSearchChange($event)"
             (click)="$event.stopPropagation()"
           />
-          <button *ngIf="searchQuery" type="button" class="mini-clear-btn" [attr.aria-label]="'ui.searchable_select.ochistit_poisk' | t" (click)="searchQuery = ''">
+          <button *ngIf="searchQuery" type="button" class="mini-clear-btn" [attr.aria-label]="'ui.searchable_select.ochistit_poisk' | t" (click)="clearSearch()">
             <span class="material-symbols-outlined" aria-hidden="true">close</span>
           </button>
         </div>
@@ -122,6 +123,14 @@ export interface SelectOption {
           <div *ngIf="filteredOptions().length === 0" class="no-results-hint">
             {{ 'ui.searchable_select.nichego_ne_naydeno' | t }}
           </div>
+        </div>
+        <div *ngIf="remoteSearch" class="remote-state">
+          <div *ngIf="loading" class="remote-loading" role="status">{{ 'common.loading' | t }}</div>
+          <div *ngIf="loadError && !loading" class="remote-error" role="alert">
+            <span>{{ 'ui.remote_lookup.failed' | t }}</span>
+            <button type="button" class="remote-retry" (click)="retry.emit()">{{ 'audit.retry' | t }}</button>
+          </div>
+          <button *ngIf="hasMore && !loading && !loadError" type="button" class="remote-load-more" (click)="loadMore.emit()">{{ 'common.load_more' | t }}</button>
         </div>
       </div>
     </div>
@@ -326,6 +335,11 @@ export interface SelectOption {
       font-size: 12px;
     }
 
+    .remote-state { padding: 6px 8px; border-top: 1px solid var(--border-color); text-align: center; }
+    .remote-loading { color: var(--text-muted); font-size: 12px; }
+    .remote-error { display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--danger); font-size: 12px; }
+    .remote-retry, .remote-load-more { border: 0; background: transparent; color: var(--primary); cursor: pointer; font: inherit; font-size: 12px; }
+
     .text-muted { color: var(--text-muted); }
   `]
 })
@@ -340,8 +354,15 @@ export class UiSearchableSelectComponent {
   @Input() allowClear: boolean = true;
   @Input() disabled: boolean = false;
   @Input() ariaLabel = '';
+  @Input() remoteSearch = false;
+  @Input() loading = false;
+  @Input() loadError = false;
+  @Input() hasMore = false;
 
   @Output() selectedIdChange = new EventEmitter<any>();
+  @Output() searchChange = new EventEmitter<string>();
+  @Output() loadMore = new EventEmitter<void>();
+  @Output() retry = new EventEmitter<void>();
 
   readonly isOpen = signal<boolean>(false);
   readonly listboxId = `ui-searchable-select-${UiSearchableSelectComponent.nextId++}`;
@@ -369,6 +390,7 @@ export class UiSearchableSelectComponent {
     this.isOpen.update(v => !v);
     if (this.isOpen()) {
       this.searchQuery = '';
+      if (this.remoteSearch) this.searchChange.emit('');
     }
   }
 
@@ -378,6 +400,7 @@ export class UiSearchableSelectComponent {
   }
 
   filteredOptions(): SelectOption[] {
+    if (this.remoteSearch) return this.options;
     if (!this.searchQuery.trim()) {
       return this.options;
     }
@@ -386,6 +409,15 @@ export class UiSearchableSelectComponent {
       o.label.toLowerCase().includes(q) ||
       (o.subLabel && o.subLabel.toLowerCase().includes(q))
     );
+  }
+
+  onSearchChange(query: string) {
+    if (this.remoteSearch) this.searchChange.emit(query);
+  }
+
+  clearSearch() {
+    this.searchQuery = '';
+    if (this.remoteSearch) this.searchChange.emit('');
   }
 
   selectOption(id: any) {

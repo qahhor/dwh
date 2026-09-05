@@ -13,7 +13,8 @@ import { TranslatePipe } from '../../core/services/i18n.service';
       <!-- Left: Item Range & Total Counter -->
       <div class="pagination-info" role="status" aria-live="polite" aria-atomic="true">
         <span class="range-text">
-          {{ 'ui.pagination.pokazano' | t }} <strong class="highlight font-mono">{{ startItem }}–{{ endItem }}</strong> {{ 'files.iz' | t }} <strong class="highlight font-mono">{{ totalItems }}</strong>
+          {{ 'ui.pagination.pokazano' | t }} <strong class="highlight font-mono">{{ startItem }}–{{ endItem }}</strong>
+          <ng-container *ngIf="!cursorMode"> {{ 'files.iz' | t }} <strong class="highlight font-mono">{{ totalItems }}</strong></ng-container>
         </span>
       </div>
 
@@ -289,6 +290,15 @@ export class UiPaginationComponent implements OnChanges {
       return;
     }
 
+    if (this.cursorMode) {
+      this.currentPage = Math.max(1, this.currentPage);
+      this.totalPages = this.currentPage + (this.hasNextPage ? 1 : 0);
+      this.startItem = (this.currentPage - 1) * this.pageSize + 1;
+      this.endItem = this.startItem + this.totalItems - 1;
+      this.visiblePages = [];
+      return;
+    }
+
     this.totalPages = Math.max(1, Math.ceil(this.totalItems / this.pageSize));
 
     if (this.currentPage > this.totalPages) {
@@ -332,7 +342,11 @@ export class UiPaginationComponent implements OnChanges {
   }
 
   goToPage(page: number) {
-    if (page >= 1 && page <= this.totalPages && page !== this.currentPage) {
+    const isCursorStep = this.cursorMode && (
+      page === this.currentPage - 1 || (page === this.currentPage + 1 && this.hasNextPage)
+    );
+    const isNumberedPage = !this.cursorMode && page >= 1 && page <= this.totalPages;
+    if (page >= 1 && page !== this.currentPage && (isCursorStep || isNumberedPage)) {
       this.currentPage = page;
       this.calculatePagination();
       this.pageChange.emit(this.currentPage);
