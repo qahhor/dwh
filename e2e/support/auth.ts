@@ -16,8 +16,8 @@ async function submitInstanceCredentials(page: Page, passwordValue: string): Pro
   await page.goto('/login');
   await page.getByLabel('Логин или Email').fill(environment.instance.login);
   const password = page.getByLabel('Пароль', { exact: true });
-  await fillSecret(password, passwordValue);
   try {
+    await fillSecret(password, passwordValue);
     await page.getByRole('button', { name: 'Войти в систему' }).click();
     await Promise.race([
       page.waitForURL(/\/tasks(?:\?.*)?$/u),
@@ -32,15 +32,14 @@ async function submitInstanceCredentials(page: Page, passwordValue: string): Pro
 async function completeMandatoryPasswordChange(page: Page): Promise<void> {
   const newPassword = page.getByLabel('Новый пароль', { exact: true });
   const confirmation = page.getByLabel('Повторите новый пароль', { exact: true });
-  await fillSecret(newPassword, rotatedInstancePassword);
-  await fillSecret(confirmation, rotatedInstancePassword);
   try {
+    await fillSecret(newPassword, rotatedInstancePassword);
+    await fillSecret(confirmation, rotatedInstancePassword);
     await page.getByRole('button', { name: 'Сменить пароль', exact: true }).click();
     await expect(page.getByText('Пароль изменён. Войдите снова с новым паролем.', { exact: true })).toBeVisible();
     await expect(page.getByLabel('Пароль', { exact: true })).toBeVisible();
   } finally {
-    await clearSecret(newPassword);
-    await clearSecret(confirmation);
+    await Promise.all([clearSecret(newPassword), clearSecret(confirmation)]);
   }
   activeInstancePassword = rotatedInstancePassword;
   await submitInstanceCredentials(page, activeInstancePassword);

@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -7,10 +7,13 @@ import { fileURLToPath } from 'node:url';
 const e2eDirectory = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const artifactsDirectory = resolve(e2eDirectory, 'artifact-security-results');
 const playwrightCli = resolve(e2eDirectory, 'node_modules', '@playwright', 'test', 'cli.js');
-const sentinels = [
-  `e2e-password-sentinel-${randomBytes(24).toString('hex')}`,
-  `e2e-token-sentinel-${randomBytes(24).toString('hex')}`,
-];
+const passwordSentinel = `e2e-password-sentinel-${randomBytes(24).toString('hex')}`;
+const tokenSentinel = `e2e-token-sentinel-${randomBytes(24).toString('hex')}`;
+const rotatedPasswordSentinel = `E2e!${createHash('sha256')
+  .update(passwordSentinel)
+  .digest('base64url')
+  .slice(0, 24)}`;
+const sentinels = [passwordSentinel, tokenSentinel, rotatedPasswordSentinel];
 const unexpectedReportDirectories = [
   resolve(e2eDirectory, 'playwright-report'),
   resolve(e2eDirectory, 'blob-report'),

@@ -84,8 +84,8 @@ async function submitCredentials(page: Page, login: string, passwordValue: strin
   await page.goto('/login');
   await page.getByLabel('Логин или Email').fill(login);
   const password = page.getByLabel('Пароль', { exact: true });
-  await fillSecret(password, passwordValue);
   try {
+    await fillSecret(password, passwordValue);
     await page.getByRole('button', { name: 'Войти в систему' }).click();
     await expect.poll(async () => {
       if (/\/tasks(?:\?.*)?$/u.test(page.url())) return 'tasks';
@@ -173,22 +173,27 @@ async function loginSyntheticUser(page: Page, login: string, password: string): 
   await expect(page.getByRole('navigation', { name: 'Основная навигация' })).toBeVisible();
 }
 
+function profilePasswordFields(page: Page): readonly [Locator, Locator, Locator] {
+  return [
+    page.locator('#profile-current-password'),
+    page.locator('#profile-new-password'),
+    page.locator('#profile-confirm-password'),
+  ] as const;
+}
+
 async function fillProfilePasswordForm(
-  page: Page,
+  fields: readonly [Locator, Locator, Locator],
   currentValue: string,
   newValue: string,
-): Promise<readonly [Locator, Locator, Locator]> {
-  const current = page.locator('#profile-current-password');
-  const next = page.locator('#profile-new-password');
-  const confirmation = page.locator('#profile-confirm-password');
+): Promise<void> {
+  const [current, next, confirmation] = fields;
   await fillSecret(current, currentValue);
   await fillSecret(next, newValue);
   await fillSecret(confirmation, newValue);
-  return [current, next, confirmation] as const;
 }
 
 async function clearPasswordFields(fields: readonly Locator[]): Promise<void> {
-  for (const field of fields) await clearSecret(field);
+  await Promise.all(fields.map(field => clearSecret(field)));
 }
 
 async function screenshotClearedLogin(page: Page, testInfo: TestInfo, name: string): Promise<void> {
@@ -208,9 +213,9 @@ test.describe.serial('authentication generation password-change acceptance', () 
     if (initialOutcome === 'mandatory-change') {
       const next = page.getByLabel('Новый пароль', { exact: true });
       const confirmation = page.getByLabel('Повторите новый пароль', { exact: true });
-      await fillSecret(next, rotatedInstancePassword);
-      await fillSecret(confirmation, rotatedInstancePassword);
       try {
+        await fillSecret(next, rotatedInstancePassword);
+        await fillSecret(confirmation, rotatedInstancePassword);
         await page.getByRole('button', { name: 'Сменить пароль', exact: true }).click();
         await expect(page.getByText(
           'Пароль изменён. Войдите снова с новым паролем.',
@@ -329,8 +334,9 @@ test.describe.serial('authentication generation password-change acceptance', () 
       await expect(subjectPage.getByRole('heading', { name: 'Мой профиль' })).toBeVisible();
       await expectNoFrameworkOverlay(subjectPage);
 
-      let fields = await fillProfilePasswordForm(subjectPage, wrongCurrentPassword, nextPassword);
+      const fields = profilePasswordFields(subjectPage);
       try {
+        await fillProfilePasswordForm(fields, wrongCurrentPassword, nextPassword);
         const wrongCurrentResponse = subjectPage.waitForResponse(response =>
           response.request().method() === 'POST'
             && response.url().endsWith('/api/v1/iam/users/me/password'),
@@ -344,8 +350,8 @@ test.describe.serial('authentication generation password-change acceptance', () 
         await clearPasswordFields(fields);
       }
 
-      fields = await fillProfilePasswordForm(subjectPage, subject.password, policyRejectedPassword);
       try {
+        await fillProfilePasswordForm(fields, subject.password, policyRejectedPassword);
         const policyResponse = subjectPage.waitForResponse(response =>
           response.request().method() === 'POST'
             && response.url().endsWith('/api/v1/iam/users/me/password'),
@@ -359,8 +365,8 @@ test.describe.serial('authentication generation password-change acceptance', () 
         await clearPasswordFields(fields);
       }
 
-      fields = await fillProfilePasswordForm(subjectPage, subject.password, nextPassword);
       try {
+        await fillProfilePasswordForm(fields, subject.password, nextPassword);
         const successResponse = subjectPage.waitForResponse(response =>
           response.request().method() === 'POST'
             && response.url().endsWith('/api/v1/iam/users/me/password'),

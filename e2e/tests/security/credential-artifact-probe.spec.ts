@@ -12,15 +12,25 @@ test('production failure surface retains neither credentials nor generated token
     body: `
       <label>Логин или Email <input aria-label="Логин или Email"></label>
       <label>Пароль <input type="password" aria-label="Пароль"></label>
-      <button type="button" onclick="location.assign('/tasks')">Войти в систему</button>
+      <button type="button" onclick="document.body.innerHTML = \`
+        <h1>Смена временного пароля</h1>
+        <label>Новый пароль <input type='password' aria-label='Новый пароль'></label>
+        <label>Повторите новый пароль <textarea aria-label='Повторите новый пароль'></textarea></label>
+        <button type='button'>Сменить пароль</button>
+      \`">Войти в систему</button>
     `,
   }));
-  await page.route('http://artifact-security.invalid/tasks', (route) => route.fulfill({
-    contentType: 'text/html; charset=utf-8',
-    body: '<nav aria-label="Основная навигация">Synthetic authenticated shell</nav>',
-  }));
 
-  await loginToInstance(page);
+  const firstPassword = page.getByLabel('Новый пароль', { exact: true });
+  let partialFillFailure: unknown;
+  try {
+    await loginToInstance(page);
+  } catch (error) {
+    partialFillFailure = error;
+  }
+  expect(partialFillFailure).toBeInstanceOf(Error);
+  expect((partialFillFailure as Error).message).toContain('Secret target must be an input element');
+  expect(await firstPassword.evaluate(element => (element as HTMLInputElement).value.length === 0)).toBe(true);
 
   await page.setContent(`
     <div role="status">
