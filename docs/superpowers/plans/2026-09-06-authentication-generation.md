@@ -221,7 +221,7 @@ git add -- apps/server/src/main/java/com/greenwhite/dwh/instance/md/repository/M
 - Create: `e2e/tests/browser/instance/password-change.spec.ts`.
 - Modify only if necessary for secret-safe synthetic-user setup/relogin: existing `e2e/support` auth/API helpers. No production test hooks.
 - Modify: `docs/ai-context.md`, `docs/ops/rollback.md`, `docs/superpowers/specs/2026-09-06-authentication-generation-design.md` (status/evidence, not expanded requirements).
-- Create: `docs/superpowers/reports/2026-09-06-authentication-generation-acceptance.md` (point-by-point verified matrix and bounded limitations, no raw secrets or audit draft citations).
+- Record the point-by-point acceptance matrix in the task's internal implementer report; keep screenshots and any browser artifacts outside the repository. Do not add a standalone committed QA report.
 
 **Interfaces:**
 
@@ -274,7 +274,7 @@ expect((await oldSessionContext.get('/api/v1/auth/me')).status()).toBe(401);
 
 - [ ] **Step 4: Publish only local truthful handoff documentation, commit scoped files, and request final review.**
 
-  The acceptance report maps spec sections 1–12 and each section-11 row to implementation/test evidence and an honest status. Record migration number, exact tested commit/tree identity, runtime environment, counts, known unrelated failures/warnings, desktop/mobile screenshots' external paths, no push/deploy/live4200 changes, and remaining H01/OTP/non-goals. No local audit drafts become requirements or evidence. Update design status to reflect actual accepted scope only.
+  The internal implementer report maps spec sections 1–12 and each section-11 row to implementation/test evidence and an honest status. Record migration number, exact tested commit/tree identity, runtime environment, counts, known unrelated failures/warnings, desktop/mobile screenshots' external paths, no push/deploy/live4200 changes, and remaining H01/OTP/non-goals. Keep browser artifacts outside the repository; no standalone committed QA report is requested. No local audit drafts become requirements or evidence. Update design status to reflect actual accepted scope only.
 
   Add rollback guidance explicitly: drain old writers before activating this version; after generations have advanced, application-only rollback to an old writer is not validated; use a tested compatible forward fix or separately authorized restore. Do not instruct automatic global logout or destructive reset. Handoff `docs/ai-context.md` leads with this current package's verified result without overwriting historical evidence.
 
