@@ -80,7 +80,7 @@ class MsAnnouncementServiceIntegrationTest {
                 77L,
                 false,
                 Set.of("*.*"),
-                1L));
+                1L, false, 0, null));
     }
 
     @AfterEach

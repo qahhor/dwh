@@ -49,14 +49,14 @@ public class KauthChannelController {
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "manage_channels")
     public ResponseEntity<Map<String, String>> bindChannel(@Valid @RequestBody BindChannelDto body) {
         String verifyToken = channelService.bindChannel(
-                SecurityContext.getCurrentUserId(), body.channel(), body.address());
+                SecurityContext.getPrincipal(), body.channel(), body.address());
         return ResponseEntity.ok(Map.of("verifyToken", verifyToken));
     }
 
     @PostMapping("/confirm")
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "manage_channels")
     public ResponseEntity<Void> confirmChannel(@Valid @RequestBody ConfirmChannelDto body) {
-        channelService.confirmChannel(SecurityContext.getCurrentUserId(), body.verifyToken(), body.code());
+        channelService.confirmChannel(SecurityContext.getPrincipal(), body.verifyToken(), body.code());
         return ResponseEntity.noContent().build();
     }
 

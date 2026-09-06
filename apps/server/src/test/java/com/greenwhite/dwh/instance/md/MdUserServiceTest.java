@@ -51,7 +51,7 @@ class MdUserServiceTest {
         var adminUser = new MdUserRepository.UserRecord(
                 1L, "System Admin", "admin", "admin@company.com", "+998901234567",
                 "$argon2id$...", "A", null, "ru", "UTC", null, Map.of(), false, false,
-                Instant.now(), Instant.now(), Instant.now(), 1L, 1L
+                Instant.now(), Instant.now(), Instant.now(), 1L, 1L, 0
         );
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(adminUser));
@@ -67,7 +67,7 @@ class MdUserServiceTest {
         var adminUser = new MdUserRepository.UserRecord(
                 1L, "System Admin", "admin", "admin@company.com", "+998901234567",
                 "$argon2id$...", "A", null, "ru", "UTC", null, Map.of(), false, false,
-                Instant.now(), Instant.now(), Instant.now(), 1L, 1L
+                Instant.now(), Instant.now(), Instant.now(), 1L, 1L, 0
         );
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(adminUser));
@@ -125,13 +125,13 @@ class MdUserServiceTest {
         var user = new MdUserRepository.UserRecord(
                 2L, "Normal User", "user2", "user2@company.com", null,
                 "$argon2id$hashed", "A", null, "ru", "UTC", null, Map.of(), false, false,
-                Instant.now(), Instant.now(), Instant.now(), 1L, 1L
+                Instant.now(), Instant.now(), Instant.now(), 1L, 1L, 0
         );
 
         when(userRepository.findById(2L)).thenReturn(Optional.of(user));
         when(passwordHasher.verifyPassword("WrongOldPassword!", "$argon2id$hashed")).thenReturn(false);
 
-        assertThatThrownBy(() -> userService.changePassword(2L, "WrongOldPassword!", "NewValidPassword2026!"))
+        assertThatThrownBy(() -> userService.changePassword(2L, 0, "WrongOldPassword!", "NewValidPassword2026!"))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("Неверный текущий пароль");
 
@@ -143,7 +143,7 @@ class MdUserServiceTest {
         var user = new MdUserRepository.UserRecord(
                 2L, "Normal User", "user2", "user2@company.com", null,
                 "$argon2id$hashed", "A", null, "ru", "UTC", null, Map.of(), false, false,
-                Instant.now(), Instant.now(), Instant.now(), 1L, 1L
+                Instant.now(), Instant.now(), Instant.now(), 1L, 1L, 0
         );
 
         when(userRepository.findById(2L)).thenReturn(Optional.of(user));

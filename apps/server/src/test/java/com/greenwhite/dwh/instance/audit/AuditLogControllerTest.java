@@ -100,7 +100,7 @@ class AuditLogControllerTest {
 
     private static SecurityContext.KauthPrincipal principal(Set<String> permissions) {
         return new SecurityContext.KauthPrincipal(
-                10L, "auditor", "auditor@example.invalid", 20L, false, permissions, 1L
+                10L, "auditor", "auditor@example.invalid", 20L, false, permissions, 1L, false, 0, null
         );
     }
 }

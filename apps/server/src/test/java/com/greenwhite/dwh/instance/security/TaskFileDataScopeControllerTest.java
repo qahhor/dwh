@@ -163,7 +163,7 @@ class TaskFileDataScopeControllerTest {
 
     private static SecurityContext.KauthPrincipal principal(Set<String> permissions) {
         return new SecurityContext.KauthPrincipal(
-                10L, "scoped", "scoped@example.invalid", 20L, false, permissions, 1L);
+                10L, "scoped", "scoped@example.invalid", 20L, false, permissions, 1L, false, 0, null);
     }
 
     private static MsTaskRepository.TaskRecord task(Long id) {

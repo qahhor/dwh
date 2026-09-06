@@ -6,6 +6,7 @@ import com.greenwhite.dwh.instance.common.error.ApiException;
 import com.greenwhite.dwh.instance.kauth.pref.KauthPref;
 import com.greenwhite.dwh.instance.kauth.repository.KauthChannelRepository;
 import com.greenwhite.dwh.instance.kauth.repository.KauthOtpCodeRepository;
+import com.greenwhite.dwh.instance.common.security.SecurityContext.KauthPrincipal;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,16 +47,19 @@ public class KauthChannelService {
     private final KauthOtpCodeRepository otpCodeRepository;
     private final KauthOtpSender otpSender;
     private final AuditLogService auditLogService;
+    private final KauthCredentialGuard credentialGuard;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public KauthChannelService(KauthChannelRepository channelRepository,
                                KauthOtpCodeRepository otpCodeRepository,
                                KauthOtpSender otpSender,
-                               AuditLogService auditLogService) {
+                               AuditLogService auditLogService,
+                               KauthCredentialGuard credentialGuard) {
         this.channelRepository = channelRepository;
         this.otpCodeRepository = otpCodeRepository;
         this.otpSender = otpSender;
         this.auditLogService = auditLogService;
+        this.credentialGuard = credentialGuard;
     }
 
     @Transactional(readOnly = true)
@@ -69,7 +73,9 @@ public class KauthChannelService {
      * @return токен, с которым надо прийти в {@link #confirmChannel}
      */
     @Transactional
-    public String bindChannel(Long userId, String channel, String address) {
+    public String bindChannel(KauthPrincipal principal, String channel, String address) {
+        credentialGuard.requireCurrent(principal);
+        Long userId = principal.userId();
         String normalized = normalizeChannel(channel);
         if (address == null || address.isBlank()) {
             throw ApiException.badRequest(ErrorCode.VALIDATION_FAILED, "Адрес канала не может быть пустым");
@@ -79,7 +85,7 @@ public class KauthChannelService {
 
         String verifyToken = randomToken();
         String code = String.format("%06d", secureRandom.nextInt(1_000_000));
-        otpCodeRepository.create(userId, normalized,
+        otpCodeRepository.create(userId, principal.authenticationVersion(), normalized,
                 KauthPasswordHasher.sha256(code), KauthPasswordHasher.sha256(verifyToken),
                 "channel_verify", Instant.now().plusSeconds(VERIFICATION_TTL_MINUTES * 60L));
 
@@ -96,12 +102,14 @@ public class KauthChannelService {
 
     /** Подтверждение владения адресом. Пока не подтверждён — код входа туда не уйдёт. */
     @Transactional
-    public void confirmChannel(Long userId, String verifyToken, String code) {
+    public void confirmChannel(KauthPrincipal principal, String verifyToken, String code) {
+        credentialGuard.requireCurrent(principal);
+        Long userId = principal.userId();
         var otp = otpCodeRepository.findActiveByTokenHash(
                         KauthPasswordHasher.sha256(verifyToken), "channel_verify")
                 .orElseThrow(() -> ApiException.badRequest(ErrorCode.OTP_INVALID, "Некорректный токен подтверждения"));
 
-        if (!otp.userId().equals(userId)) {
+        if (!otp.userId().equals(userId) || otp.authenticationVersion() != principal.authenticationVersion()) {
             throw ApiException.badRequest(ErrorCode.OTP_INVALID, "Некорректный токен подтверждения");
         }
         if (otp.expiresAt().isBefore(Instant.now())) {
@@ -115,7 +123,9 @@ public class KauthChannelService {
             throw ApiException.badRequest(ErrorCode.OTP_INVALID, "Неверный код подтверждения");
         }
 
-        otpCodeRepository.markAsUsed(otp.id());
+        if (!otpCodeRepository.consume(otp.id(), userId, principal.authenticationVersion(), "channel_verify")) {
+            throw ApiException.badRequest(ErrorCode.OTP_INVALID, "Некорректный токен подтверждения");
+        }
         var channel = channelRepository.findByUserIdAndChannel(userId, otp.channel())
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Канал не найден"));
         channelRepository.bindOrUpdate(userId, channel.channel(), channel.address(), true);

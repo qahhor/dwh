@@ -423,7 +423,7 @@ class MsProjectWriteIntegrationTest {
                 .param("id", userId).query(String.class).single();
         SecurityContext.setPrincipal(new SecurityContext.KauthPrincipal(
                 userId, login, login + "@example.invalid", 1000L,
-                false, permissions, 1L, false));
+                false, permissions, 1L, false, 0, null));
     }
 
     private static String json(Map<String, ?> body) throws Exception {

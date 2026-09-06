@@ -1,6 +1,7 @@
 package com.greenwhite.dwh.instance.kauth.service;
 
 import com.greenwhite.dwh.instance.kauth.repository.KauthApiTokenRepository;
+import com.greenwhite.dwh.instance.common.security.SecurityContext.KauthPrincipal;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,14 +15,17 @@ import java.util.Optional;
 public class KauthApiTokenService {
 
     private final KauthApiTokenRepository apiTokenRepository;
+    private final KauthCredentialGuard credentialGuard;
     private final SecureRandom secureRandom = new SecureRandom();
 
-    public KauthApiTokenService(KauthApiTokenRepository apiTokenRepository) {
+    public KauthApiTokenService(KauthApiTokenRepository apiTokenRepository, KauthCredentialGuard credentialGuard) {
         this.apiTokenRepository = apiTokenRepository;
+        this.credentialGuard = credentialGuard;
     }
 
     @Transactional
-    public CreatedTokenResult createToken(Long userId, String name, Instant expiresAt) {
+    public CreatedTokenResult createToken(KauthPrincipal principal, String name, Instant expiresAt) {
+        credentialGuard.requireCurrent(principal);
         byte[] randomBytes = new byte[32];
         secureRandom.nextBytes(randomBytes);
         String rawToken = "dwh_" + Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
@@ -29,7 +33,7 @@ public class KauthApiTokenService {
         String tokenPrefix = rawToken.substring(0, Math.min(12, rawToken.length()));
         String tokenHash = KauthPasswordHasher.sha256(rawToken);
 
-        var record = apiTokenRepository.create(userId, name, tokenPrefix, tokenHash, expiresAt);
+        var record = apiTokenRepository.create(principal.userId(), principal.authenticationVersion(), name, tokenPrefix, tokenHash, expiresAt);
         return new CreatedTokenResult(record, rawToken);
     }
 

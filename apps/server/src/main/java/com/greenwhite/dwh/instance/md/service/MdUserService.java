@@ -217,8 +217,12 @@ public class MdUserService {
 
 
     @Transactional
-    public void changePassword(Long userId, String oldPassword, String newPassword) {
+    public void changePassword(Long userId, long authenticatedVersion, String oldPassword, String newPassword) {
         var user = getUserById(userId);
+
+        if (!MdPref.STATE_ACTIVE.equals(user.state()) || user.authenticationVersion() != authenticatedVersion) {
+            throw ApiException.invalidCredentials();
+        }
 
         if (user.passwordHash() != null && !passwordHasher.verifyPassword(oldPassword, user.passwordHash())) {
             throw ApiException.badRequest(ErrorCode.INVALID_CREDENTIALS, "Неверный текущий пароль");
@@ -227,7 +231,10 @@ public class MdUserService {
         passwordValidator.validate(newPassword, user.login());
 
         String newHash = passwordHasher.hashPassword(newPassword);
-        userRepository.updatePassword(userId, newHash);
+        if (!userRepository.compareAndSetPassword(userId, authenticatedVersion, user.passwordHash(), newHash)) {
+            throw ApiException.invalidCredentials();
+        }
+        sessionInvalidator.invalidateAllAccess(userId);
 
         auditLogService.logSecurityEvent("PASSWORD_CHANGED", userId, null, null, Map.of("login", user.login()));
     }

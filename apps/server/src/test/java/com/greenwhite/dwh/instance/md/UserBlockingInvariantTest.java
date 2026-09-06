@@ -62,7 +62,8 @@ class UserBlockingInvariantTest {
 
         new KauthUserSessionInvalidator(
                 new KauthSessionRepository(jdbc),
-                new KauthApiTokenRepository(jdbc))
+                new KauthApiTokenRepository(jdbc),
+                new com.greenwhite.dwh.instance.md.repository.MdUserRepository(jdbc, new tools.jackson.databind.ObjectMapper()))
                 .invalidateAllAccess(userId);
 
         Long openSessions = jdbc.sql(

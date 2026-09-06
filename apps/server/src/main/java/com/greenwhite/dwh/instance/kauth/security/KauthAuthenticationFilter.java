@@ -62,12 +62,12 @@ public class KauthAuthenticationFilter extends OncePerRequestFilter {
                     var token = tokenOpt.get();
                     try {
                         var user = userService.getUserById(token.userId());
-                        if (MdPref.STATE_ACTIVE.equals(user.state())) {
+                        if (MdPref.STATE_ACTIVE.equals(user.state()) && user.authenticationVersion() == token.authenticationVersion()) {
                             apiTokenService.recordTokenUsage(token.id());
                             Set<String> permissions = permissionService.getEffectivePermissions(user.id());
                             long version = permissionService.getPermissionVersion(user.id());
                             authenticate(new SecurityContext.KauthPrincipal(
-                                    user.id(), user.login(), user.email(), null, true, permissions, version, user.forcePasswordChange()
+                                    user.id(), user.login(), user.email(), null, true, permissions, version, user.forcePasswordChange(), token.authenticationVersion(), token.id()
                             ));
                         }
                     } catch (Exception ignored) {}
@@ -83,12 +83,12 @@ public class KauthAuthenticationFilter extends OncePerRequestFilter {
                         var session = sessionOpt.get();
                         try {
                             var user = userService.getUserById(session.userId());
-                            if (MdPref.STATE_ACTIVE.equals(user.state())) {
+                            if (MdPref.STATE_ACTIVE.equals(user.state()) && user.authenticationVersion() == session.authenticationVersion()) {
                                 sessionService.updateLastSeen(session.id());
                                 Set<String> permissions = permissionService.getEffectivePermissions(user.id());
                                 long version = permissionService.getPermissionVersion(user.id());
                                 authenticate(new SecurityContext.KauthPrincipal(
-                                        user.id(), user.login(), user.email(), session.id(), false, permissions, version, user.forcePasswordChange()
+                                        user.id(), user.login(), user.email(), session.id(), false, permissions, version, user.forcePasswordChange(), session.authenticationVersion(), null
                                 ));
                             }
                         } catch (Exception ignored) {}

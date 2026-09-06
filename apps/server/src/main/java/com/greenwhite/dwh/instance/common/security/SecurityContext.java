@@ -44,10 +44,8 @@ public final class SecurityContext {
             boolean isApi,
             Set<String> effectivePermissions,
             long permissionVersion,
-            boolean forcePasswordChange
-    ) {
-        public KauthPrincipal(Long userId, String login, String email, Long sessionId, boolean isApi, Set<String> effectivePermissions, long permissionVersion) {
-            this(userId, login, email, sessionId, isApi, effectivePermissions, permissionVersion, false);
-        }
-    }
+            boolean forcePasswordChange,
+            @com.fasterxml.jackson.annotation.JsonIgnore long authenticationVersion,
+            @com.fasterxml.jackson.annotation.JsonIgnore Long apiTokenId
+    ) {}
 }

@@ -34,7 +34,7 @@ public class MdUserRepository {
                         :forcePasswordChange, now(), now(), :createdBy, :createdBy)
                 returning id, name, login, email, phone, password_hash, state, manager_id, language, timezone,
                           avatar_file_id, attributes::text as attributes_str, is_2fa_enabled, force_password_change,
-                          password_changed_at, created_at, modified_at, created_by, modified_by
+                          password_changed_at, created_at, modified_at, created_by, modified_by, auth_version
                 """)
                 .param("name", data.name())
                 .param("login", data.login().toLowerCase().trim())
@@ -58,7 +58,7 @@ public class MdUserRepository {
         return jdbcClient.sql("""
                 select id, name, login, email, phone, password_hash, state, manager_id, language, timezone,
                        avatar_file_id, attributes::text as attributes_str, is_2fa_enabled, force_password_change,
-                       password_changed_at, created_at, modified_at, created_by, modified_by
+                       password_changed_at, created_at, modified_at, created_by, modified_by, auth_version
                 from md_users
                 where id = :id
                 """)
@@ -72,7 +72,7 @@ public class MdUserRepository {
         return jdbcClient.sql("""
                 select id, name, login, email, phone, password_hash, state, manager_id, language, timezone,
                        avatar_file_id, attributes::text as attributes_str, is_2fa_enabled, force_password_change,
-                       password_changed_at, created_at, modified_at, created_by, modified_by
+                       password_changed_at, created_at, modified_at, created_by, modified_by, auth_version
                 from md_users
                 where login = :ident or email = :ident
                 """)
@@ -89,7 +89,7 @@ public class MdUserRepository {
         return jdbcClient.sql("""
                 select id, name, login, email, phone, password_hash, state, manager_id, language, timezone,
                        avatar_file_id, attributes::text as attributes_str, is_2fa_enabled, force_password_change,
-                       password_changed_at, created_at, modified_at, created_by, modified_by
+                       password_changed_at, created_at, modified_at, created_by, modified_by, auth_version
                 from md_users
                 where email = :email
                 """)
@@ -156,7 +156,7 @@ public class MdUserRepository {
         StringBuilder sql = new StringBuilder("""
                 select id, name, login, email, phone, password_hash, state, manager_id, language, timezone,
                        avatar_file_id, attributes::text as attributes_str, is_2fa_enabled, force_password_change,
-                       password_changed_at, created_at, modified_at, created_by, modified_by
+                       password_changed_at, created_at, modified_at, created_by, modified_by, auth_version
                 from md_users
                 where 1=1
                 """);
@@ -218,6 +218,29 @@ public class MdUserRepository {
         return listUsers(limit, afterId, search, state, null, null, null);
     }
 
+
+    public boolean compareAndSetPassword(Long userId, long expectedAuthVersion,
+                                         String expectedPasswordHash, String newPasswordHash) {
+        return jdbcClient.sql("""
+                update md_users
+                set password_hash = :newPasswordHash, password_changed_at = now(),
+                    force_password_change = false, modified_at = now()
+                where id = :userId and state = 'A' and auth_version = :expectedAuthVersion
+                  and password_hash is not distinct from :expectedPasswordHash
+                """)
+                .param("userId", userId)
+                .param("expectedAuthVersion", expectedAuthVersion)
+                .param("expectedPasswordHash", expectedPasswordHash)
+                .param("newPasswordHash", newPasswordHash)
+                .update() == 1;
+    }
+
+    /** The global access invalidator owns the sole increment; overflow must fail the transaction. */
+    public void incrementAuthenticationVersion(Long userId) {
+        int changed = jdbcClient.sql("update md_users set auth_version = auth_version + 1 where id = :userId")
+                .param("userId", userId).update();
+        if (changed != 1) throw com.greenwhite.dwh.instance.common.error.ApiException.invalidCredentials();
+    }
 
     public void updatePassword(Long userId, String newPasswordHash) {
         jdbcClient.sql("""
@@ -308,7 +331,8 @@ public class MdUserRepository {
                 rs.getTimestamp("created_at").toInstant(),
                 rs.getTimestamp("modified_at").toInstant(),
                 rs.getObject("created_by") != null ? rs.getLong("created_by") : null,
-                rs.getObject("modified_by") != null ? rs.getLong("modified_by") : null
+                rs.getObject("modified_by") != null ? rs.getLong("modified_by") : null,
+                rs.getLong("auth_version")
         );
     }
 
@@ -362,7 +386,8 @@ public class MdUserRepository {
             Instant createdAt,
             Instant modifiedAt,
             Long createdBy,
-            Long modifiedBy
+            Long modifiedBy,
+            @com.fasterxml.jackson.annotation.JsonIgnore long authenticationVersion
     ) {}
 
     public record UserCreateData(

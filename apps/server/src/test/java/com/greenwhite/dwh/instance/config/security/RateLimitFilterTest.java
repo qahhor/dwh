@@ -178,11 +178,11 @@ class RateLimitFilterTest {
         when(sessionService.getActiveSession(rawSession)).thenReturn(Optional.of(
                 new KauthSessionRepository.SessionRecord(
                         userId, userId, "hash", "127.0.0.1", "ua", null,
-                        Instant.now(), Instant.now(), null)));
+                        Instant.now(), Instant.now(), null, 0)));
         when(userService.getUserById(userId)).thenReturn(new MdUserRepository.UserRecord(
                 userId, "U" + userId, "u" + userId, "u" + userId + "@x", null, "hash",
                 MdPref.STATE_ACTIVE, null, "ru", "UTC", null, Map.of(),
-                false, false, null, Instant.now(), Instant.now(), null, null));
+                false, false, null, Instant.now(), Instant.now(), null, null, 0));
         when(permissionService.getEffectivePermissions(userId)).thenReturn(Set.of("*.*"));
         when(permissionService.getPermissionVersion(userId)).thenReturn(1L);
     }

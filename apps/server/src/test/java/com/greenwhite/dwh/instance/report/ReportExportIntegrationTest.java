@@ -356,6 +356,6 @@ class ReportExportIntegrationTest {
 
     private static void signIn(Long userId, Set<String> permissions, boolean forcePasswordChange) {
         SecurityContext.setPrincipal(new SecurityContext.KauthPrincipal(
-                userId, "viewer", "viewer@example.invalid", 20L, false, permissions, 1L, forcePasswordChange));
+                userId, "viewer", "viewer@example.invalid", 20L, false, permissions, 1L, forcePasswordChange, 0, null));
     }
 }

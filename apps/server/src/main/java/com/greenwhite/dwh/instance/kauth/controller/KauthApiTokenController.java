@@ -44,7 +44,7 @@ public class KauthApiTokenController {
             throw ApiException.unauthorized("Пользователь не авторизован");
         }
 
-        var result = apiTokenService.createToken(userId, body.name(), body.expiresAt());
+        var result = apiTokenService.createToken(SecurityContext.getPrincipal(), body.name(), body.expiresAt());
         return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }
 

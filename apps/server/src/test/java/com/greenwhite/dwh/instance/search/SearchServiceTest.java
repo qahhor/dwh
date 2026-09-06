@@ -99,7 +99,7 @@ class SearchServiceTest {
                 100L,
                 false,
                 permissions,
-                1L
+                1L, false, 0, null
         );
     }
 }

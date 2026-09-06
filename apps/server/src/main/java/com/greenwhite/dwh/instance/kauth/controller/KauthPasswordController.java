@@ -44,7 +44,9 @@ public class KauthPasswordController {
 
     @PostMapping("/password")
     public ResponseEntity<Void> changeMyPassword(@Valid @RequestBody ChangePasswordDto body) {
-        userService.changePassword(SecurityContext.getCurrentUserId(), body.oldPassword(), body.newPassword());
+        var principal = SecurityContext.getPrincipal();
+        if (principal == null) throw com.greenwhite.dwh.instance.common.error.ApiException.invalidCredentials();
+        userService.changePassword(principal.userId(), principal.authenticationVersion(), body.oldPassword(), body.newPassword());
         return ResponseEntity.noContent().build();
     }
 

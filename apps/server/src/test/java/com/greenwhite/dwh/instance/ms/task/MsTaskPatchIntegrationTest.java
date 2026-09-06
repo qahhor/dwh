@@ -442,6 +442,6 @@ class MsTaskPatchIntegrationTest {
     private static void signIn(Long userId) {
         SecurityContext.setPrincipal(new SecurityContext.KauthPrincipal(
                 userId, login(userId), login(userId) + "@example.invalid", 1000L,
-                false, Set.of("*.*"), 1L, false));
+                false, Set.of("*.*"), 1L, false, 0, null));
     }
 }

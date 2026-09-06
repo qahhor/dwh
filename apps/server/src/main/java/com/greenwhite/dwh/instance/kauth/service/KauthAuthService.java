@@ -109,7 +109,7 @@ public class KauthAuthService {
             String otpToken = generateSecureToken();
             String otpCode = String.format("%06d", secureRandom.nextInt(1000000));
 
-            otpCodeRepository.create(user.id(), channel.channel(),
+            otpCodeRepository.create(user.id(), user.authenticationVersion(), channel.channel(),
                     KauthPasswordHasher.sha256(otpCode), KauthPasswordHasher.sha256(otpToken),
                     "login", Instant.now().plusSeconds(300));
 
@@ -127,7 +127,7 @@ public class KauthAuthService {
         String sessionToken = generateSecureToken();
         String sessionTokenHash = KauthPasswordHasher.sha256(sessionToken);
         var session = sessionRepository.create(
-                user.id(), sessionTokenHash, ip, userAgent, deviceInfo
+                user.id(), user.authenticationVersion(), sessionTokenHash, ip, userAgent, deviceInfo
         );
 
         return LoginResult.success(sessionToken, user, session);
@@ -158,16 +158,24 @@ public class KauthAuthService {
             throw ApiException.badRequest(ErrorCode.OTP_INVALID, "Неверный код подтверждения");
         }
 
-        otpCodeRepository.markAsUsed(otp.id());
-
         var user = userRepository.findById(userId)
-                .orElseThrow(ApiException::invalidCredentials);
+                .orElseThrow(() -> ApiException.badRequest(ErrorCode.OTP_INVALID, "Некорректный OTP токен"));
+        if (!MdPref.STATE_ACTIVE.equals(user.state()) || user.authenticationVersion() != otp.authenticationVersion()
+                || !otpCodeRepository.consume(otp.id(), userId, otp.authenticationVersion(), "login")) {
+            throw ApiException.badRequest(ErrorCode.OTP_INVALID, "Некорректный OTP токен");
+        }
 
         String sessionToken = generateSecureToken();
         String sessionTokenHash = KauthPasswordHasher.sha256(sessionToken);
-        var session = sessionRepository.create(
-                user.id(), sessionTokenHash, ip, userAgent, deviceInfo
-        );
+        KauthSessionRepository.SessionRecord session;
+        try {
+            session = sessionRepository.create(user.id(), otp.authenticationVersion(), sessionTokenHash, ip, userAgent, deviceInfo);
+        } catch (ApiException e) {
+            if (e.getErrorCode() == ErrorCode.INVALID_CREDENTIALS) {
+                throw ApiException.badRequest(ErrorCode.OTP_INVALID, "Некорректный OTP токен");
+            }
+            throw e;
+        }
 
         return LoginResult.success(sessionToken, user, session);
     }

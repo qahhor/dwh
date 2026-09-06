@@ -98,7 +98,9 @@ class KauthOtpLoginIntegrationTest {
                 List.of(storageStub()), List.of(mailStub()), List.of(smsStub()), List.of(messenger),
                 "local", "console_mail", "console_sms", "telegram");
         var sender = new KauthOtpSender(registry);
-        channelService = new KauthChannelService(channelRepository, otpCodeRepository, sender, auditLogService);
+        channelService = new KauthChannelService(channelRepository, otpCodeRepository, sender, auditLogService,
+                new com.greenwhite.dwh.instance.kauth.service.KauthCredentialGuard(new KauthSessionRepository(jdbc),
+                        new com.greenwhite.dwh.instance.kauth.repository.KauthApiTokenRepository(jdbc)));
 
         authService = new KauthAuthService(
                 userRepository,
@@ -198,12 +200,12 @@ class KauthOtpLoginIntegrationTest {
         Long userId = createUser("otp_bind");
         messenger.sent.clear();
 
-        String verifyToken = channelService.bindChannel(userId, "telegram", "chat-bind");
+        String verifyToken = channelService.bindChannel(principal(userId), "telegram", "chat-bind");
         assertThat(channelRepository.findByUserIdAndChannel(userId, "telegram").orElseThrow().isVerified())
                 .as("до подтверждения канал не считается своим").isFalse();
 
         String code = extractCode(messenger.sent.getFirst().textMarkdown());
-        channelService.confirmChannel(userId, verifyToken, code);
+        channelService.confirmChannel(principal(userId), verifyToken, code);
 
         assertThat(channelRepository.findByUserIdAndChannel(userId, "telegram").orElseThrow().isVerified()).isTrue();
     }
@@ -213,12 +215,17 @@ class KauthOtpLoginIntegrationTest {
     void wrongConfirmationCodeKeepsChannelUnverified() {
         Long userId = createUser("otp_bind_wrong");
         messenger.sent.clear();
-        String verifyToken = channelService.bindChannel(userId, "telegram", "chat-bind-wrong");
+        String verifyToken = channelService.bindChannel(principal(userId), "telegram", "chat-bind-wrong");
 
-        assertThatThrownBy(() -> channelService.confirmChannel(userId, verifyToken, "000000"))
+        assertThatThrownBy(() -> channelService.confirmChannel(principal(userId), verifyToken, "000000"))
                 .isInstanceOf(ApiException.class);
 
         assertThat(channelRepository.findByUserIdAndChannel(userId, "telegram").orElseThrow().isVerified()).isFalse();
+    }
+
+    private static com.greenwhite.dwh.instance.common.security.SecurityContext.KauthPrincipal principal(Long userId) {
+        var session = new KauthSessionRepository(jdbc).create(userId, 0, java.util.UUID.randomUUID().toString(), "127.0.0.1", "test", "test");
+        return new com.greenwhite.dwh.instance.common.security.SecurityContext.KauthPrincipal(userId, "test", "test", session.id(), false, java.util.Set.of(), 1, false, 0, null);
     }
 
     // ------------------------------------------------------------- вспомогательное
