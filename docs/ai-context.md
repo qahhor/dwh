@@ -102,7 +102,74 @@ repositories/adapters — I/O. Детали приведены в
 
 ## 6. Последняя подтверждённая проверка
 
-### Текущая локальная работа — Projects editor, 2026-09-06
+### Текущая локальная работа — Projects interaction и E2E, 2026-09-06
+
+По подтверждённому пользователем [плану трёх follow-up задач](superpowers/plans/2026-09-06-projects-interaction-e2e-quality.md)
+реализованы правдивые подписи закрытых задач, native form/keyboard interaction
+и постоянные браузерные регрессии Projects. Source commits: `96ac5d5`,
+`adcb531`, `e3e0627`; E2E commits — `b958a58`, `4a5f764`.
+
+`doneTasks` по-прежнему считает конечные статусы, включая отмену. UI теперь
+пишет «закрыто», объясняет состав показателя и использует соответствующие
+accessible names в списке и карточках. Расчёты, DTO, права и data scope не
+изменены. Шесть новых семантических RU-ключей синхронизированы с packaged
+fallback, без старых completed-only переводов.
+
+Создание и редактирование используют настоящие формы и внешние native submit
+кнопки: Enter в имени отправляет один запрос, Enter в textarea остаётся
+переносом строки. Локальные edit targets увеличены до 28×28 px; видимые A/P
+убраны, значения состояния сохранены. `UiModal` потребляет обработанный
+Escape до синхронного close callback: causal unit RED подтвердил защиту от
+закрытия нового или второго stacked dialog тем же событием.
+
+Постоянный `e2e/tests/browser/instance/projects-quality.spec.ts` покрывает
+реальное создание/изменение, sparse PATCH, сохранение/очистку описания,
+dirty Cancel/Escape, Tab/focus, контролируемые 503 и реальный retry. Отдельный
+read-only HTTP fixture проверяет фильтры, pagination/search reset, неизвестную
+статистику, list/cards, hitboxes и mobile 390×844; это не DB/load acceptance.
+Два первоначальных browser failures оказались гонками теста: требовалось
+дождаться скрытия первого confirmation и начального захвата фокуса новым
+диалогом перед следующим Escape/Tab. Ожидания явных UI-состояний устранили
+гонки без задержек, force-click или дополнительных изменений приложения.
+
+Подтверждено на чистом application archive `e3e0627`: Angular 189/189,
+Maven 364/364 (server359 + libraries5), app/E2E typecheck, i18n audit
+1034 referenced / 1065 RU keys, E2E config3/3 и artifact-security gate.
+Первый browser run с E2E commit `b958a58` прошёл 37/37 за 2,5 минуты
+на изолированном `localhost:14200`, но это не финальная приёмка:
+последний run с `4a5f764` завершился 36/37 за 2,7 минуты — существующая
+проверка mobile overflow упала на `/analytics`. Все шесть Projects cases прошли.
+Desktop1366×900/mobile390×844 Projects screenshots
+проверены: содержимое, подписи, фильтр, 28px actions, отсутствие page overflow
+и browser console/page errors. Артефакты вне Git:
+`C:/Temp/smartupcms-projects-interaction-qa-20260906/`.
+
+Task review потребовал сузить console allow-list ожидаемого 503; `4a5f764`
+использует точное сообщение Chromium и проверяет полный набор 503 responses
+по method/path. Scoped review принят, affected cases2/2 и gates прошли.
+Финальный whole-change review не нашёл дефектов реализации, но оставил
+приёмку незавершённой из-за последнего 36/37 результата.
+
+Read-only сравнение двух web images на одинаковых изолированных backend/data
+воспроизвело один и тот же дефект Analytics: старый `54b6159` на временном
+14202 и новый `e3e0627` на14200 после загрузки всех четырёх Analytics GET
+имеют `.page-content` clientWidth390/scrollWidth499 и grid366/487.
+Source Analytics/styles/layout не менялся в этом пакете. Probe2/2 подтвердил
+существующее переполнение, а не исправление; ранний зелёный smoke не является
+доказательством корректности полностью загруженного экрана. Evidence —
+`analytics-baseline-results` и `accepted-final-browser-results` во внешней
+QA-папке. Временный сравнительный web container14202 удалён после проверки;
+images и изолированные data volumes сохранены.
+
+Нужно отдельное решение пользователя о расширении scope на мобильную
+«Аналитику». До него `4200` остаётся на `54b6159`; promotion и новая read-only
+entry проверка не выполнены. Precheck: 48 environment keys совпадают,
+PostgreSQL/Typesense и mounts неизменны, migration read24/024/0 failures;
+rollback `local-54b6159` images сохранены. Изменения остаются локально в main,
+push не выполнялся. Прежние Maven/JNA и Graphify version/label warnings не
+выдаются за исправленные дефекты. Не отмечать весь пакет принятой поставкой.
+
+### Предыдущий локальный пакет — Projects editor, 2026-09-06
 
 По запросу пользователя локальная установка `http://localhost:4200` обновлена
 из чистого `git archive 41ec91d`: matching server/web images, 24 проверенные
@@ -177,8 +244,8 @@ IAB после reload4200 показывает рабочий login без conso
 Graphify обновлён AST-only, generated outputs не опубликованы. Docs105/19,
 repository-hygiene, architecture-boundary и whitespace gates проходят.
 
-Следующий отдельный пакет — правдивые подписи закрытых задач и
-размеры/доступность действий, плюс постоянные браузерные регрессии Projects.
+Предложенные после этого пакета подписи закрытых задач, размеры/доступность
+действий и постоянные браузерные регрессии описаны в текущем разделе выше.
 Push не выполнялся.
 
 ### Предыдущий локальный пакет — Projects list, 2026-09-06
