@@ -163,8 +163,10 @@ describe('ProjectsComponent UI contracts', () => {
     expect(host.querySelectorAll('.modal-backdrop')).toHaveLength(1);
     expect((host.querySelector('#project-create-name') as HTMLInputElement).value).toBe('Unsaved project');
 
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    const escape = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+    document.dispatchEvent(escape);
     fixture.detectChanges();
+    expect(escape.defaultPrevented).toBe(true);
     expect(host.querySelectorAll('.modal-backdrop')).toHaveLength(2);
     expect((host.querySelector('#project-create-name') as HTMLInputElement).value).toBe('Unsaved project');
   });

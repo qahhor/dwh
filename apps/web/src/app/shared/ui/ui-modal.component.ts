@@ -155,6 +155,7 @@ export class UiModalComponent implements OnChanges, OnDestroy {
   onEscape(event: Event) {
     if (event.defaultPrevented || this.host.nativeElement.querySelector('[aria-expanded="true"]')) return;
     if (this.isOpen && this.dismissible && UiModalComponent.openModals.at(-1) === this) {
+      event.preventDefault();
       this.close.emit();
     }
   }
