@@ -1,10 +1,42 @@
-import { expect, test, type Locator, type Page, type Request, type Route } from '@playwright/test';
+import {
+  expect,
+  test,
+  type Locator,
+  type Page,
+  type Request,
+  type Response,
+  type Route,
+} from '@playwright/test';
 
 import { loginToInstance } from '../../../support/auth.js';
 import { collectPageErrors, uniqueRunName } from '../../../support/diagnostics.js';
 
 const PROJECTS_PATH = '/api/v1/tasks/projects';
-const EXPECTED_HTTP_503_CONSOLE = /503 \(Service Unavailable\)/u;
+const EXPECTED_HTTP_503_CONSOLE = /^Failed to load resource: the server responded with a status of 503 \(Service Unavailable\)$/u;
+
+type ExpectedProject503 = {
+  method: 'POST' | 'PATCH';
+  path: string;
+};
+
+function collectExpectedProject503(page: Page): (expected: ExpectedProject503) => void {
+  const responses: Array<{ method: string; path: string }> = [];
+  const onResponse = (response: Response): void => {
+    if (response.status() !== 503) return;
+    responses.push({
+      method: response.request().method(),
+      path: new URL(response.url()).pathname,
+    });
+  };
+  page.on('response', onResponse);
+  const assertNoPageErrors = collectPageErrors(page, [EXPECTED_HTTP_503_CONSOLE]);
+
+  return (expected: ExpectedProject503): void => {
+    page.off('response', onResponse);
+    expect.soft(responses, 'all HTTP 503 responses belong to the controlled project fixture').toEqual([expected]);
+    assertNoPageErrors();
+  };
+}
 
 function projectFixture(id: number, name: string, state: 'A' | 'P', description: string) {
   return {
@@ -198,7 +230,7 @@ test('controlled HTTP 503 create retry preserves the draft and reaches the real 
   const retriedDescription = 'Create draft survives a controlled save failure';
 
   await loginToInstance(page);
-  const assertNoPageErrors = collectPageErrors(page, [EXPECTED_HTTP_503_CONSOLE]);
+  const assertExpectedProject503 = collectExpectedProject503(page);
   await page.goto('/tasks/projects');
   const mutations = observeProjectMutations(page);
   const opener = page.getByRole('button', { name: 'Новый проект', exact: true });
@@ -243,7 +275,7 @@ test('controlled HTTP 503 create retry preserves the draft and reaches the real 
   expect((await retryResponse).status()).toBe(201);
   expect(mutations.filter(request => request.method() === 'POST')).toHaveLength(2);
   await expect(page.getByRole('button', { name: retriedName, exact: true })).toBeVisible();
-  assertNoPageErrors();
+  assertExpectedProject503({ method: 'POST', path: PROJECTS_PATH });
 });
 
 test('dirty edit Cancel and Escape preserve or discard the draft and return focus', async ({ page }) => {
@@ -284,7 +316,7 @@ test('controlled HTTP 503 edit retry preserves the draft and reaches the real se
   const description = 'Edit failure seed description';
 
   await loginToInstance(page);
-  const assertNoPageErrors = collectPageErrors(page, [EXPECTED_HTTP_503_CONSOLE]);
+  const assertExpectedProject503 = collectExpectedProject503(page);
   await page.goto('/tasks/projects');
   await createProjectWithButton(page, originalName, description);
   const mutations = observeProjectMutations(page);
@@ -331,7 +363,7 @@ test('controlled HTTP 503 edit retry preserves the draft and reaches the real se
   expect(response.request().postDataJSON()).toEqual({ name: retriedName });
   expect(mutations.filter(request => request.method() === 'PATCH')).toHaveLength(2);
   await expect(page.getByRole('button', { name: retriedName, exact: true })).toBeVisible();
-  assertNoPageErrors();
+  assertExpectedProject503({ method: 'PATCH', path: detailPath });
 });
 
 test('controlled project fixtures keep filter, copy, hitbox, card, and mobile contracts', async ({ page }) => {
