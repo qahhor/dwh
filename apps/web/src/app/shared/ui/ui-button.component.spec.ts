@@ -3,6 +3,26 @@ import { describe, expect, it } from 'vitest';
 import { UiButtonComponent } from './ui-button.component';
 
 describe('UiButtonComponent', () => {
+  it('defaults the native button to an unassociated non-submit action', async () => {
+    await TestBed.configureTestingModule({ imports: [UiButtonComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(UiButtonComponent);
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    expect(button.type).toBe('button');
+    expect(button.getAttribute('form')).toBeNull();
+  });
+
+  it('associates the native button with a supplied external form', async () => {
+    await TestBed.configureTestingModule({ imports: [UiButtonComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(UiButtonComponent);
+    fixture.componentInstance.form = 'external-form';
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    expect(button.getAttribute('form')).toBe('external-form');
+  });
+
   it('exposes loading and full-width state on the native button', async () => {
     await TestBed.configureTestingModule({ imports: [UiButtonComponent] }).compileComponents();
     const fixture = TestBed.createComponent(UiButtonComponent);

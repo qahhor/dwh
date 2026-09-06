@@ -203,7 +203,7 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
                 <td>
                   <span class="status-pill" [class.active]="p.state === 'A'">
                     <span class="status-dot" [class.active]="p.state === 'A'"></span>
-                    {{ (p.state === 'A' ? 'common.active_masculine' : 'common.archive') | t }}
+                    {{ (p.state === 'A' ? 'projects.state_active' : 'projects.state_archived') | t }}
                   </span>
                 </td>
                 <td *ngIf="canViewTasks()">
@@ -300,7 +300,7 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
               <div class="card-top-right">
                 <span class="status-pill" [class.active]="p.state === 'A'">
                   <span class="status-dot" [class.active]="p.state === 'A'"></span>
-                  {{ (p.state === 'A' ? 'common.active_masculine' : 'common.archive') | t }}
+                  {{ (p.state === 'A' ? 'projects.state_active' : 'projects.state_archived') | t }}
                 </span>
                 <button
                   *ngIf="canUpdateProject()"
@@ -386,48 +386,50 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
       [dismissible]="!isSubmitting()"
       (close)="requestCloseCreate()"
     >
-      <fieldset body class="modal-form modal-form-fieldset project-create-form" [disabled]="isSubmitting()">
-        <div class="form-group">
-          <div class="label-row">
-            <label class="clean-label" for="project-create-name">{{ 'projects.nazvanie_proekta' | t }}</label>
-            <span class="req-tag">{{ 'projects.obyazatelnoe_pole' | t }}</span>
+      <form body id="project-create-form" (ngSubmit)="submitCreateProject()">
+        <fieldset class="modal-form modal-form-fieldset project-create-form" [disabled]="isSubmitting()">
+          <div class="form-group">
+            <div class="label-row">
+              <label class="clean-label" for="project-create-name">{{ 'projects.nazvanie_proekta' | t }}</label>
+              <span class="req-tag">{{ 'projects.obyazatelnoe_pole' | t }}</span>
+            </div>
+            <input
+              id="project-create-name"
+              name="projectCreateName"
+              type="text"
+              class="clean-input"
+              required
+              [attr.aria-invalid]="isCreateSubmitted && !createForm.name.trim()"
+              [attr.aria-describedby]="isCreateSubmitted && !createForm.name.trim() ? 'project-create-name-error' : null"
+              [class.input-error]="isCreateSubmitted && !createForm.name.trim()"
+              [(ngModel)]="createForm.name"
+              [placeholder]="'projects.naprimer_vnedrenie_dwh_cdc' | t"
+            />
+            <span id="project-create-name-error" class="error-msg" *ngIf="isCreateSubmitted && !createForm.name.trim()">
+              {{ 'projects.pozhaluysta_ukazhite_nazvanie_proekta' | t }}
+            </span>
           </div>
-          <input
-            id="project-create-name"
-            name="projectCreateName"
-            type="text"
-            class="clean-input"
-            required
-            [attr.aria-invalid]="isCreateSubmitted && !createForm.name.trim()"
-            [attr.aria-describedby]="isCreateSubmitted && !createForm.name.trim() ? 'project-create-name-error' : null"
-            [class.input-error]="isCreateSubmitted && !createForm.name.trim()"
-            [(ngModel)]="createForm.name"
-            [placeholder]="'projects.naprimer_vnedrenie_dwh_cdc' | t"
-          />
-          <span id="project-create-name-error" class="error-msg" *ngIf="isCreateSubmitted && !createForm.name.trim()">
-            {{ 'projects.pozhaluysta_ukazhite_nazvanie_proekta' | t }}
-          </span>
-        </div>
-        <div class="form-group">
-          <div class="label-row">
-            <label class="clean-label" for="project-create-description">{{ 'projects.opisanie_proekta' | t }}</label>
+          <div class="form-group">
+            <div class="label-row">
+              <label class="clean-label" for="project-create-description">{{ 'projects.opisanie_proekta' | t }}</label>
+            </div>
+            <textarea
+              id="project-create-description"
+              name="projectCreateDescription"
+              class="clean-input clean-textarea"
+              rows="3"
+              [(ngModel)]="createForm.description"
+              [placeholder]="'projects.celi_granicy_i_kontekst_proekta' | t"
+            ></textarea>
           </div>
-          <textarea
-            id="project-create-description"
-            name="projectCreateDescription"
-            class="clean-input clean-textarea"
-            rows="3"
-            [(ngModel)]="createForm.description"
-            [placeholder]="'projects.celi_granicy_i_kontekst_proekta' | t"
-          ></textarea>
-        </div>
-        <div *ngIf="createSaveError()" class="request-state request-error" data-testid="project-create-save-error" role="alert">
-          {{ createSaveError() }}
-        </div>
-      </fieldset>
+          <div *ngIf="createSaveError()" class="request-state request-error" data-testid="project-create-save-error" role="alert">
+            {{ createSaveError() }}
+          </div>
+        </fieldset>
+      </form>
       <div footer>
         <ui-button variant="secondary" size="md" [disabled]="isSubmitting()" (onClick)="requestCloseCreate()">{{ 'common.cancel' | t }}</ui-button>
-        <ui-button variant="primary" size="md" [loading]="isSubmitting()" (onClick)="submitCreateProject()">{{ 'projects.sozdat_proekt' | t }}</ui-button>
+        <ui-button type="submit" form="project-create-form" variant="primary" size="md" [loading]="isSubmitting()">{{ 'projects.sozdat_proekt' | t }}</ui-button>
       </div>
     </ui-modal>
 
@@ -461,49 +463,51 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
         <span>{{ 'projects.edit_load_error' | t }}</span>
         <ui-button class="project-edit-retry" variant="secondary" size="sm" (onClick)="retryEditLoad()">{{ 'projects.retry_edit_load' | t }}</ui-button>
       </div>
-      <fieldset body class="modal-form modal-form-fieldset project-edit-form" [disabled]="isSubmitting()" *ngIf="editingProject as p">
-        <div class="form-group">
-          <div class="label-row">
-            <label class="clean-label" for="project-edit-name">{{ 'projects.nazvanie_proekta' | t }}</label>
-            <span class="req-tag">{{ 'projects.obyazatelnoe_pole' | t }}</span>
+      <form body id="project-edit-form" (ngSubmit)="submitEditProject()" *ngIf="editingProject as p">
+        <fieldset class="modal-form modal-form-fieldset project-edit-form" [disabled]="isSubmitting()">
+          <div class="form-group">
+            <div class="label-row">
+              <label class="clean-label" for="project-edit-name">{{ 'projects.nazvanie_proekta' | t }}</label>
+              <span class="req-tag">{{ 'projects.obyazatelnoe_pole' | t }}</span>
+            </div>
+            <input
+              id="project-edit-name"
+              name="projectEditName"
+              type="text"
+              class="clean-input"
+              required
+              [attr.aria-invalid]="isEditSubmitted && !editForm.name.trim()"
+              [attr.aria-describedby]="isEditSubmitted && !editForm.name.trim() ? 'project-edit-name-error' : null"
+              [class.input-error]="isEditSubmitted && !editForm.name.trim()"
+              [(ngModel)]="editForm.name"
+            />
+            <span id="project-edit-name-error" class="error-msg" *ngIf="isEditSubmitted && !editForm.name.trim()">
+              {{ 'projects.nazvanie_proekta_ne_mozhet_byt_pustym' | t }}
+            </span>
           </div>
-          <input
-            id="project-edit-name"
-            name="projectEditName"
-            type="text"
-            class="clean-input"
-            required
-            [attr.aria-invalid]="isEditSubmitted && !editForm.name.trim()"
-            [attr.aria-describedby]="isEditSubmitted && !editForm.name.trim() ? 'project-edit-name-error' : null"
-            [class.input-error]="isEditSubmitted && !editForm.name.trim()"
-            [(ngModel)]="editForm.name"
-          />
-          <span id="project-edit-name-error" class="error-msg" *ngIf="isEditSubmitted && !editForm.name.trim()">
-            {{ 'projects.nazvanie_proekta_ne_mozhet_byt_pustym' | t }}
-          </span>
-        </div>
-        <div class="form-group">
-          <div class="label-row">
-            <label class="clean-label" for="project-edit-state">{{ 'iam.status_aktivnosti' | t }}</label>
+          <div class="form-group">
+            <div class="label-row">
+              <label class="clean-label" for="project-edit-state">{{ 'iam.status_aktivnosti' | t }}</label>
+            </div>
+            <select id="project-edit-state" name="projectEditState" class="clean-input" [(ngModel)]="editForm.state">
+              <option value="A">{{ 'projects.state_active' | t }}</option>
+              <option value="P">{{ 'projects.state_archived' | t }}</option>
+            </select>
           </div>
-          <select id="project-edit-state" name="projectEditState" class="clean-input" [(ngModel)]="editForm.state">
-            <option value="A">{{ 'projects.aktiven_a' | t }}</option>
-            <option value="P">{{ 'projects.v_arhive_p' | t }}</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <div class="label-row">
-            <label class="clean-label" for="project-edit-description">{{ 'projects.opisanie' | t }}</label>
+          <div class="form-group">
+            <div class="label-row">
+              <label class="clean-label" for="project-edit-description">{{ 'projects.opisanie' | t }}</label>
+            </div>
+            <textarea id="project-edit-description" name="projectEditDescription" class="clean-input clean-textarea" rows="3" [(ngModel)]="editForm.description"></textarea>
           </div>
-          <textarea id="project-edit-description" name="projectEditDescription" class="clean-input clean-textarea" rows="3" [(ngModel)]="editForm.description"></textarea>
-        </div>
-        <div *ngIf="editSaveError()" class="request-state request-error" data-testid="project-edit-save-error" role="alert">
-          {{ editSaveError() }}
-        </div>
-      </fieldset>
+          <div *ngIf="editSaveError()" class="request-state request-error" data-testid="project-edit-save-error" role="alert">
+            {{ editSaveError() }}
+          </div>
+        </fieldset>
+      </form>
       <div footer>
         <ui-button variant="secondary" size="md" [disabled]="isSubmitting()" (onClick)="requestCloseEdit()">{{ 'common.cancel' | t }}</ui-button>
-        <ui-button *ngIf="editingProject" variant="primary" size="md" [loading]="isSubmitting()" (onClick)="submitEditProject()">{{ 'common.save' | t }}</ui-button>
+        <ui-button *ngIf="editingProject" type="submit" form="project-edit-form" variant="primary" size="md" [loading]="isSubmitting()">{{ 'common.save' | t }}</ui-button>
       </div>
     </ui-modal>
 
@@ -804,6 +808,8 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
     .action-link-btn .material-symbols-outlined { font-size: 14px; }
 
     .icon-ghost-btn {
+      min-width: 28px;
+      min-height: 28px;
       border: none;
       background: transparent;
       color: var(--text-muted);
@@ -813,6 +819,7 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
       display: inline-flex;
       align-items: center;
       justify-content: center;
+      flex-shrink: 0;
     }
     .icon-ghost-btn:hover { color: var(--text-main); background-color: var(--bg-hover); }
     .icon-ghost-btn .material-symbols-outlined { font-size: 16px; }
@@ -866,6 +873,8 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
     .card-top-right { display: flex; align-items: center; gap: 6px; }
 
     .edit-btn {
+      min-width: 28px;
+      min-height: 28px;
       border: none;
       background: transparent;
       color: var(--text-muted);
@@ -873,6 +882,9 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
       padding: 3px;
       border-radius: 4px;
       display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
     }
     .edit-btn:hover { color: var(--text-main); background-color: var(--bg-hover); }
     .edit-btn .material-symbols-outlined { font-size: 15px; }

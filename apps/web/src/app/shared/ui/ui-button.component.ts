@@ -10,6 +10,7 @@ import { TranslatePipe } from '../../core/services/i18n.service';
   template: `
     <button
       [type]="type"
+      [attr.form]="form || null"
       [disabled]="disabled || loading"
       [class]="'btn btn-' + variant + ' btn-' + size"
       [class.btn-full-width]="fullWidth"
@@ -141,6 +142,7 @@ export class UiButtonComponent {
   @Input() variant: 'primary' | 'secondary' | 'danger' | 'ghost' = 'primary';
   @Input() size: 'sm' | 'md' | 'lg' = 'md';
   @Input() type: 'button' | 'submit' | 'reset' = 'button';
+  @Input() form?: string;
   @Input() disabled: boolean = false;
   @Input() loading: boolean = false;
   @Input() icon?: string;

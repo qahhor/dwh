@@ -80,6 +80,65 @@ describe('ProjectsComponent UI contracts', () => {
     expect(fixture.nativeElement.querySelector('#project-create-description')).not.toBeNull();
   });
 
+  it('renders plain project state copy while retaining A and P option values', async () => {
+    const api = emptyApi();
+    api.get.mockImplementation((url: string) => {
+      if (url === '/tasks/projects') return of([project(1), project(2, 'P')]);
+      if (url === '/tasks/projects/1') return of(project(1));
+      return of([]);
+    });
+    const { fixture } = await createFixture({ api });
+    const host = fixture.nativeElement as HTMLElement;
+
+    expect(Array.from(host.querySelectorAll('.status-pill')).map(node => node.textContent?.trim()))
+      .toEqual(['Активен', 'В архиве']);
+
+    fixture.componentInstance.viewMode = 'cards';
+    fixture.detectChanges();
+    expect(Array.from(host.querySelectorAll('.status-pill')).map(node => node.textContent?.trim()))
+      .toEqual(['Активен', 'В архиве']);
+
+    fixture.componentInstance.openEditModal(project(1));
+    fixture.detectChanges();
+    const options = Array.from(host.querySelectorAll('#project-edit-state option')) as HTMLOptionElement[];
+    expect(options.map(option => ({ value: option.value, label: option.textContent?.trim() }))).toEqual([
+      { value: 'A', label: 'Активен' },
+      { value: 'P', label: 'В архиве' }
+    ]);
+  });
+
+  it('submits entered create values through the native form only once while pending', async () => {
+    const pendingSave = new Subject<Project>();
+    const api = emptyApi();
+    api.post.mockReturnValue(pendingSave);
+    const { fixture } = await createFixture({ api });
+    const host = fixture.nativeElement as HTMLElement;
+
+    fixture.componentInstance.openCreateModal();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const name = host.querySelector('#project-create-name') as HTMLInputElement;
+    const description = host.querySelector('#project-create-description') as HTMLTextAreaElement;
+    name.value = '  Native create  ';
+    name.dispatchEvent(new Event('input'));
+    description.value = '  Submitted from the form  ';
+    description.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    const form = host.querySelector('#project-create-form') as HTMLFormElement;
+    expect(form).not.toBeNull();
+    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+
+    expect(api.post).toHaveBeenCalledTimes(1);
+    expect(api.post).toHaveBeenCalledWith('/tasks/projects', {
+      name: 'Native create',
+      description: 'Submitted from the form'
+    });
+  });
+
   it('keeps an entered create draft visible when Cancel or Escape requests dismissal', async () => {
     const { fixture } = await createFixture();
     const host = fixture.nativeElement as HTMLElement;
@@ -136,6 +195,36 @@ describe('ProjectsComponent UI contracts', () => {
     expect((host.querySelector('#project-edit-name') as HTMLInputElement).value).toBe('Fresh name');
     expect((host.querySelector('#project-edit-description') as HTMLTextAreaElement).value)
       .toBe('Актуальное описание с сервера');
+  });
+
+  it('submits one sparse edit PATCH through the native form while pending', async () => {
+    const pendingPatch = new Subject<void>();
+    const api = emptyApi();
+    api.get.mockImplementation((url: string) => url === '/tasks/projects/3'
+      ? of({ ...project(3), name: 'Current', description: 'Current description' })
+      : of([]));
+    api.patch.mockReturnValue(pendingPatch);
+    const { fixture } = await createFixture({ api });
+    const host = fixture.nativeElement as HTMLElement;
+
+    fixture.componentInstance.openEditModal(project(3));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const name = host.querySelector('#project-edit-name') as HTMLInputElement;
+    name.value = '  Native rename  ';
+    name.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(fixture.componentInstance.editForm.name).toBe('  Native rename  ');
+
+    const form = host.querySelector('#project-edit-form') as HTMLFormElement;
+    expect(form).not.toBeNull();
+    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+
+    expect(api.patch).toHaveBeenCalledTimes(1);
+    expect(api.patch).toHaveBeenCalledWith('/tasks/projects/3', { name: 'Native rename' });
   });
 
   it('issues one create request and locks every dismissal path when Save is activated twice while pending', async () => {

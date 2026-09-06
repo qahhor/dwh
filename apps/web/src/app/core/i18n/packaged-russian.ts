@@ -555,6 +555,8 @@ export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(
   "projects.nazvanie_proekta_ne_mozhet_byt_pustym": "Название проекта не может быть пустым",
   "projects.aktiven_a": "Активен (A)",
   "projects.v_arhive_p": "В архиве (P)",
+  "projects.state_active": "Активен",
+  "projects.state_archived": "В архиве",
   "projects.opisanie": "Описание",
   "tasks.rezhim_otobrazheniya_zadach": "Режим отображения задач",
   "tasks.loaded_count": "Загружено: {count}",
