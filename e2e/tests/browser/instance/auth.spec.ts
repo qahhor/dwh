@@ -5,6 +5,7 @@ import { join } from 'node:path';
 
 import { loginToInstance } from '../../../support/auth.js';
 import { collectPageErrors } from '../../../support/diagnostics.js';
+import { expectNoSeriousAccessibilityViolations } from '../../../support/accessibility.js';
 import { clearSecret, fillSecret } from '../../../support/secret.js';
 
 test('protected route redirects to the accessible login form', async ({ page }) => {
@@ -13,7 +14,7 @@ test('protected route redirects to the accessible login form', async ({ page }) 
   await expect(page).toHaveURL(/\/login$/u);
   await expect(page.getByRole('heading', { name: 'Корпоративный вход' })).toBeVisible();
   await expect(page.getByLabel('Логин или Email')).toBeVisible();
-  await expect(page.getByLabel('Пароль')).toBeVisible();
+  await expect(page.getByLabel('Пароль', { exact: true })).toBeVisible();
 });
 
 test('login page publishes a reachable browser icon', async ({ page, request }) => {
@@ -27,14 +28,32 @@ test('login page publishes a reachable browser icon', async ({ page, request }) 
   expect((await iconResponse.body()).byteLength).toBeGreaterThan(0);
 });
 
+test('login applies the saved dark theme with accessible mobile controls', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('dwh_theme', 'dark'));
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/login');
+  await expect(page.getByRole('heading', { name: 'Корпоративный вход' })).toBeVisible();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await expectNoSeriousAccessibilityViolations(page);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
 test('invalid credentials keep the user on login and show an alert', async ({ page }) => {
   await page.goto('/login');
   await page.getByLabel('Логин или Email').fill(`invalid-${Date.now()}`);
-  await page.getByLabel('Пароль').fill('Invalid-only-for-E2E-1');
-  await page.getByRole('button', { name: 'Войти в систему' }).click();
+  await page.getByLabel('Пароль', { exact: true }).fill('Invalid-only-for-E2E-1');
+  await page.getByLabel('Пароль', { exact: true }).dispatchEvent('keyup', { key: 'A', modifierCapsLock: true });
+  await expect(page.getByRole('status')).toContainText('Caps Lock');
+  const submit = page.getByRole('button', { name: 'Войти в систему' });
+  const bounds = await submit.boundingBox();
+  if (!bounds) throw new Error('Login submit button has no visible bounds');
+  // Blurring the password must not move the lower edge away before pointerup.
+  await submit.click({ position: { x: bounds.width / 2, y: bounds.height - 4 }, delay: 100 });
 
   await expect(page).toHaveURL(/\/login$/u);
   await expect(page.locator('#login-error')).toContainText(/Неверный|ошиб|заблокирован/u);
+  await expect(page.getByRole('alert')).toHaveCount(1);
+  await expect(page.getByLabel('Пароль', { exact: true })).toBeFocused();
 });
 
 test('admin can navigate principal areas without browser errors and can log out', async ({ page }) => {

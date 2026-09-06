@@ -47,7 +47,7 @@ export class AuthService {
   }
 
   login(login: string, password: string, deviceInfo?: string): Observable<LoginResponse> {
-    return this.api.post<LoginResponse>('/auth/login', { login, password, deviceInfo }).pipe(
+    return this.api.post<LoginResponse>('/auth/login', { login, password, deviceInfo }, { notifyError: false }).pipe(
       tap(res => {
         if (res.step === 'success' && res.user) {
           this.currentUser.set(res.user);
@@ -63,7 +63,7 @@ export class AuthService {
   }
 
   verifyOtp(otpToken: string, code: string, deviceInfo?: string): Observable<LoginResponse> {
-    return this.api.post<LoginResponse>('/auth/otp', { otpToken, code, deviceInfo }).pipe(
+    return this.api.post<LoginResponse>('/auth/otp', { otpToken, code, deviceInfo }, { notifyError: false }).pipe(
       tap(res => {
         if (res.step === 'success' && res.user) {
           this.currentUser.set(res.user);

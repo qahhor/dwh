@@ -80,7 +80,7 @@ async function expectLoginSurface(page: Page): Promise<void> {
   await expectNoFrameworkOverlay(page);
 }
 
-async function submitCredentials(page: Page, login: string, passwordValue: string): Promise<LoginOutcome> {
+async function submitCredentials(page: Page, login: string, passwordValue: string, expectedAlert?: RegExp): Promise<LoginOutcome> {
   await page.goto('/login');
   await page.getByLabel('Логин или Email').fill(login);
   const password = page.getByLabel('Пароль', { exact: true });
@@ -95,6 +95,8 @@ async function submitCredentials(page: Page, login: string, passwordValue: strin
       if (await page.getByRole('alert').first().isVisible().catch(() => false)) return 'alert';
       return 'pending';
     }).not.toBe('pending');
+    // Secret cleanup is an input edit, which clears stale inline feedback.
+    if (expectedAlert) await expect(page.getByRole('alert').first()).toContainText(expectedAlert);
   } finally {
     await clearSecret(password);
   }
@@ -400,8 +402,7 @@ test.describe.serial('authentication generation password-change acceptance', () 
       await unaffectedPage.goto('/tasks');
       await expect(unaffectedPage.getByRole('heading', { name: 'Задачи', exact: true })).toBeVisible();
 
-      expect(await submitCredentials(subjectPage, subject.login, subject.password)).toBe('alert');
-      await expect(subjectPage.getByRole('alert').first()).toContainText(/Неверн/u);
+      expect(await submitCredentials(subjectPage, subject.login, subject.password, /Неверн/u)).toBe('alert');
       expect(await submitCredentials(subjectPage, subject.login, nextPassword)).toBe('tasks');
       await expect(subjectPage.getByRole('navigation', { name: 'Основная навигация' })).toBeVisible();
 
