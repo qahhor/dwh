@@ -496,6 +496,30 @@ describe('ProjectsComponent UI contracts', () => {
     expect(fixture.nativeElement.querySelector('.project-card')?.textContent).toContain('Project 1');
   });
 
+  it('describes terminal project tasks as closed in list and card progress', async () => {
+    const api = emptyApi();
+    api.get.mockImplementation((url: string) => of(url.endsWith('/stats')
+      ? [{ projectId: 1, totalTasks: 4, activeTasks: 2, doneTasks: 2 }]
+      : [project(1)]));
+    const { fixture } = await createFixture({ api });
+    const host = fixture.nativeElement as HTMLElement;
+
+    expect(host.querySelector('.progress-count')?.textContent?.trim()).toBe('2 / 4 закрыто');
+    expect(host.querySelector('[role="progressbar"]')?.getAttribute('aria-valuenow')).toBe('50');
+    expect(host.querySelector('[role="progressbar"]')?.getAttribute('aria-label'))
+      .toBe('Доля закрытых задач проекта Project 1');
+    expect(host.querySelector('[data-testid="projects-stats-scope"]')?.textContent)
+      .toContain('конечных статусах, включая выполненные и отменённые');
+
+    fixture.componentInstance.viewMode = 'cards';
+    fixture.detectChanges();
+
+    expect(host.querySelector('.progress-count')?.textContent?.trim()).toBe('2 / 4 закрыто');
+    expect(host.querySelector('[role="progressbar"]')?.getAttribute('aria-valuenow')).toBe('50');
+    expect(host.querySelector('[role="progressbar"]')?.getAttribute('aria-label'))
+      .toBe('Доля закрытых задач проекта Project 1');
+  });
+
   it('renders task statistics only for real successful rows and recovers independently', async () => {
     const pending = new Subject<ProjectTaskStats[]>();
     const retry = new Subject<ProjectTaskStats[]>();

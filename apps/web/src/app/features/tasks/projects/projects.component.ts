@@ -166,7 +166,7 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
         </button>
       </div>
       <div *ngIf="canViewTasks() && statsLoaded()" class="stats-state" data-testid="projects-stats-scope" role="status">
-        {{ 'projects.stats_scope' | t }}
+        {{ 'projects.closed_stats_scope' | t }}
       </div>
 
       <!-- ======================================================================= -->
@@ -180,7 +180,7 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
                 <th style="width: 60px;">ID</th>
                 <th>{{ 'projects.proekt' | t }}</th>
                 <th style="width: 110px;">{{ 'common.status' | t }}</th>
-                <th *ngIf="canViewTasks()" style="width: 220px;">{{ 'projects.progress_zadach' | t }}</th>
+                <th *ngIf="canViewTasks()" style="width: 220px;">{{ 'projects.closed_tasks' | t }}</th>
                 <th style="width: 120px;">{{ 'iam.sozdan' | t }}</th>
                 <th class="text-right" style="width: 140px;">{{ 'common.actions' | t }}</th>
               </tr>
@@ -210,7 +210,7 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
                   <div *ngIf="hasProjectStats(p.id); else unknownTableStats" class="progress-cell">
                     <div class="progress-labels">
                       <span class="progress-count tabular-nums">
-                        {{ 'projects.done_ratio' | t:{done: getProjectDoneCount(p.id), total: getProjectTotalCount(p.id)} }}
+                        {{ 'projects.closed_ratio' | t:{done: getProjectDoneCount(p.id), total: getProjectTotalCount(p.id)} }}
                       </span>
                       <span class="progress-percent tabular-nums">
                         {{ getProjectPercent(p.id) }}%
@@ -219,7 +219,7 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
                     <div
                       class="progress-bar-bg"
                       role="progressbar"
-                      [attr.aria-label]="'projects.progress_named' | t:{name: p.name}"
+                      [attr.aria-label]="'projects.closed_progress_named' | t:{name: p.name}"
                       aria-valuemin="0"
                       aria-valuemax="100"
                       [attr.aria-valuenow]="getProjectPercent(p.id)"
@@ -328,7 +328,7 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
             <div *ngIf="canViewTasks() && hasProjectStats(p.id)" class="card-progress">
               <div class="progress-labels">
                 <span class="progress-count tabular-nums">
-                  {{ 'projects.completed_ratio' | t:{done: getProjectDoneCount(p.id), total: getProjectTotalCount(p.id)} }}
+                  {{ 'projects.closed_ratio' | t:{done: getProjectDoneCount(p.id), total: getProjectTotalCount(p.id)} }}
                 </span>
                 <span class="progress-percent tabular-nums">
                   {{ getProjectPercent(p.id) }}%
@@ -337,7 +337,7 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
               <div
                 class="progress-bar-bg"
                 role="progressbar"
-                [attr.aria-label]="'projects.progress_named' | t:{name: p.name}"
+                [attr.aria-label]="'projects.closed_progress_named' | t:{name: p.name}"
                 aria-valuemin="0"
                 aria-valuemax="100"
                 [attr.aria-valuenow]="getProjectPercent(p.id)"
