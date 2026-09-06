@@ -102,6 +102,41 @@ repositories/adapters — I/O. Детали приведены в
 
 ## 6. Последняя подтверждённая проверка
 
+### Текущая локальная работа — Authentication generation, 2026-09-06
+
+Реализован согласованный механизм монотонной версии доступа из
+[дизайна authentication generation](superpowers/specs/2026-09-06-authentication-generation-design.md):
+смена пароля, блокировка/разблокировка и анонимизация увеличивают версию,
+а cookie-сессии, API-токены и login/channel OTP принимаются только при
+совпадении сохранённой версии с активным пользователем. Публичные password DTO
+и JSON-проекции внутреннюю версию не раскрывают. Миграция
+`V025__authentication_generation.sql` проверена на upgrade/repeat/readiness.
+
+UI после успешной обязательной или профильной смены очищает локального
+пользователя, permissions и секретные поля, отбрасывает запоздалые `/auth/me`,
+показывает одно сообщение на глобальном toast-host и возвращает на `/login` с
+обязательным явным повторным вводом credentials. Ошибка сохраняет форму для
+исправления. Постоянный Playwright regression проверяет два старых session
+cookie, два API-токена, другого пользователя, негативные 401/422 и повторный
+вход на реальном server/PostgreSQL.
+
+Backend-пакет `0be3963..f57eb6c` и независимый Maven verify дали 437/437.
+Финальный frontend: Angular 196/196, app/E2E typecheck, i18n audit
+1031 referenced / 1067 RU keys, production build, E2E config 3/3 и
+artifact-security — PASS. На свежем изолированном candidate с PostgreSQL 18,
+явной миграцией до 025 и loopback-only web `127.0.0.1:14204` оба auth browser
+case прошли 2/2; desktop 1366×900 и mobile 390×844 визуально проверены без
+старых error-toasts, runtime overlay или page overflow на auth surface.
+
+Последний полный instance run завершился 37/39: оба authentication case
+прошли, но остались несвязанные mobile overflow `/analytics` и timeout старого
+task-create browser case; отдельный повтор прежнего task-flow прошёл 1/1.
+Артефакты находятся вне Git в
+`C:/Temp/smartupcms-auth-generation-qa-20260906/`. Candidate сохранён для
+review; `localhost:4200`, production, push и deploy не изменялись. Rollout
+требует drain старых writers; после продвижения версий app-only rollback на
+старый writer не валидирован. Reset H01 и оставшийся OTP scope не закрыты.
+
 ### Текущая локальная работа — Projects interaction и E2E, 2026-09-06
 
 По подтверждённому пользователем [плану трёх follow-up задач](superpowers/plans/2026-09-06-projects-interaction-e2e-quality.md)

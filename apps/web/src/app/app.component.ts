@@ -3,12 +3,13 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthService } from './core/services/auth.service';
 import { TranslatePipe } from './core/services/i18n.service';
+import { UiToastContainerComponent } from './shared/ui/ui-toast.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
   imports: [
-    TranslatePipe,CommonModule, RouterModule],
+    TranslatePipe,CommonModule, RouterModule, UiToastContainerComponent],
   template: `
     <div *ngIf="authService.isLoading()" class="app-loader">
       <div class="loader-spinner"></div>
@@ -16,6 +17,7 @@ import { TranslatePipe } from './core/services/i18n.service';
     </div>
 
     <router-outlet *ngIf="!authService.isLoading()"></router-outlet>
+    <ui-toast-container></ui-toast-container>
   `,
   styles: [`
     .app-loader {

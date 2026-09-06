@@ -34,7 +34,7 @@ test('invalid credentials keep the user on login and show an alert', async ({ pa
   await page.getByRole('button', { name: 'Войти в систему' }).click();
 
   await expect(page).toHaveURL(/\/login$/u);
-  await expect(page.getByRole('alert')).toContainText(/Неверный|ошиб|заблокирован/u);
+  await expect(page.locator('#login-error')).toContainText(/Неверный|ошиб|заблокирован/u);
 });
 
 test('admin can navigate principal areas without browser errors and can log out', async ({ page }) => {
@@ -127,6 +127,13 @@ test('administrator can create and remove a user and upload and delete a file', 
   const createdUser = await createResponse;
   expect(createdUser.ok()).toBe(true);
   expect(new URL(createdUser.url()).origin).toBe(origin);
+  const refreshedUsers = page.waitForResponse(response =>
+    response.request().method() === 'GET'
+      && response.url().includes('/api/v1/iam/users?')
+      && response.url().includes(`search=${encodeURIComponent(login)}`)
+  );
+  await page.getByLabel('Поиск пользователей').fill(login);
+  expect((await refreshedUsers).ok()).toBe(true);
   await expect(page.getByRole('button', { name: `Открыть профиль пользователя ${userName}` })).toBeVisible();
 
   await page.getByRole('button', { name: `Удалить пользователя ${userName}` }).click();

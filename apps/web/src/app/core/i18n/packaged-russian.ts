@@ -222,6 +222,8 @@ export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(
   "auth.novyy_parol": "Новый пароль",
   "auth.povtorite_novyy_parol": "Повторите новый пароль",
   "auth.smenit_parol_i_voyti": "Сменить пароль и войти",
+  "auth.change_password": "Сменить пароль",
+  "auth.password_changed_sign_in_again": "Пароль изменён. Войдите снова с новым паролем.",
   "auth.vvedite_email_vashey_uchetnoy_zapisi_my_otpravim": "Введите email вашей учётной записи. Мы отправим код для сброса пароля.",
   "auth.otpravit_kod": "Отправить код",
   "files.ispolzovanie_hranilischa_kompanii": "Использование хранилища компании",

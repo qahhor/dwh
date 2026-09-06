@@ -1,7 +1,6 @@
 import { Component, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
@@ -191,7 +190,7 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
               [fullWidth]="true"
               class="submit-btn"
             >
-              {{ 'auth.smenit_parol_i_voyti' | t }}
+              {{ 'auth.change_password' | t }}
             </ui-button>
 
             <ui-button
@@ -423,8 +422,7 @@ export class LoginComponent {
   constructor(
     private authService: AuthService,
     private api: ApiService,
-    private toast: ToastService,
-    private router: Router
+    private toast: ToastService
   ) {}
 
   onLoginSubmit() {
@@ -493,11 +491,14 @@ export class LoginComponent {
     }).subscribe({
       next: () => {
         this.isLoading.set(false);
-        this.toast.success(this.uiI18n.translate('auth.parol_uspeshno_izmenen_dobro_pozhalovat'));
-        this.authService.refreshMe().subscribe({
-          next: () => this.router.navigate(['/tasks']),
-          error: () => this.router.navigate(['/tasks'])
-        });
+        this.password = '';
+        this.tempOldPassword = '';
+        this.newPassword = '';
+        this.confirmNewPassword = '';
+        this.otpToken = '';
+        this.otpCode = '';
+        this.step.set('credentials');
+        this.authService.onPasswordChanged();
       },
       error: err => {
         this.isLoading.set(false);

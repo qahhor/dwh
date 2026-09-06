@@ -2,7 +2,7 @@
 
 **Дата:** 2026-09-06
 
-**Статус:** подробный дизайн согласован пользователем 2026-09-06; разрешены последовательная реализация и проверка каждого пункта. Это не свидетельство завершения реализации.
+**Статус:** согласованная реализация завершена локально 2026-09-06; backend и focused auth acceptance прошли, независимый финальный review ожидается. Это не production deploy и не свидетельство полного закрытия FR-AUTH-04.
 
 **Область:** серверный контур смены пароля, выдачи и отзыва доступа. Это проект изменения, не свидетельство исправления или production readiness.
 
@@ -343,7 +343,18 @@ gates, изолированный browser E2E и независимый code rev
 - PostgreSQL regression tests, существующий OTP integration test и HTTP tests;
 - постоянный password-change browser regression и проверенный handoff.
 
-Подробный пошаговый implementation plan создаётся **после проверки этого
-документа пользователем**. В нём должны быть точные signatures, файлы,
-самостоятельные RED/GREEN шаги, migration acceptance и критерии review.
-До этого gate новый authentication код и миграция не пишутся.
+Реализация выполнена по проверенному
+[пошаговому plan](../plans/2026-09-06-authentication-generation.md). Migration
+025, versioned writers/readers, PostgreSQL concurrency/HTTP regressions и
+финальный Maven verify прошли 437/437. Angular прошёл 196/196; app/E2E
+typecheck, i18n audit, production build, E2E config и artifact-security также
+зелёные. На свежем изолированном candidate оба реальных auth browser case
+прошли 2/2, включая bootstrap/profile explicit re-login, отказ двух старых
+сессий и двух API-токенов и сохранение доступа другого пользователя.
+
+Последний полный instance run дал 37/39: auth cases прошли; вне этого дизайна
+остались известный mobile overflow `/analytics` и timeout старого task-create
+case (соседний task-flow прошёл отдельный повтор 1/1). Candidate и очищенные
+desktop/mobile auth screenshots сохранены вне Git для независимого review.
+`localhost:4200`, production, push и deploy не изменялись. Незавершённые H01 и
+указанный в разделе 1 расширенный OTP scope остаются отдельной работой.

@@ -817,13 +817,12 @@ export class ProfileComponent implements OnInit {
     }).subscribe({
       next: () => {
         this.isChangingPassword.set(false);
-        this.toast.success(this.uiI18n.translate('iam.parol_uspeshno_izmenen'));
         this.passwordForm = { oldPassword: '', newPassword: '', confirmPassword: '' };
         this.isPasswordSubmitted = false;
+        this.authService.onPasswordChanged();
       },
-      error: (err: any) => {
+      error: () => {
         this.isChangingPassword.set(false);
-        this.toast.error(err?.error?.detail || this.uiI18n.translate('iam.oshibka_pri_smene_parolya'));
       }
     });
   }

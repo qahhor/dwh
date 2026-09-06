@@ -9,7 +9,6 @@ import { I18nService, TranslatePipe, Language } from '../../core/services/i18n.s
 import { NotificationService } from '../../core/services/notification.service';
 import { CommandPaletteService } from '../../core/services/command-palette.service';
 import { CommandPaletteComponent } from '../command-palette/command-palette.component';
-import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
 
 @Component({
   selector: 'app-shell',
@@ -18,8 +17,7 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
     CommonModule,
     RouterModule,
     TranslatePipe,
-    CommandPaletteComponent,
-    UiToastContainerComponent
+    CommandPaletteComponent
   ],
   template: `
     <a class="skip-link" href="#main-content">{{ 'layout.app_shell.pereyti_k_osnovnomu_soderzhimomu' | t }}</a>
@@ -201,7 +199,6 @@ import { UiToastContainerComponent } from '../../shared/ui/ui-toast.component';
     <app-command-palette></app-command-palette>
 
     <!-- Global Toast Container -->
-    <ui-toast-container></ui-toast-container>
   `,
   styles: [`
     .skip-link {

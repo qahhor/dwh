@@ -22,7 +22,7 @@ async function submitInstanceCredentials(page: Page, passwordValue: string): Pro
     await Promise.race([
       page.waitForURL(/\/tasks(?:\?.*)?$/u),
       page.getByText('Смена временного пароля', { exact: true }).waitFor(),
-      page.getByRole('alert').waitFor(),
+      page.locator('#login-error').waitFor(),
     ]);
   } finally {
     await clearSecret(password);
@@ -35,13 +35,15 @@ async function completeMandatoryPasswordChange(page: Page): Promise<void> {
   await fillSecret(newPassword, rotatedInstancePassword);
   await fillSecret(confirmation, rotatedInstancePassword);
   try {
-    await page.getByRole('button', { name: 'Сменить пароль и войти' }).click();
-    await expect(page).toHaveURL(/\/tasks(?:\?.*)?$/u);
+    await page.getByRole('button', { name: 'Сменить пароль', exact: true }).click();
+    await expect(page.getByText('Пароль изменён. Войдите снова с новым паролем.', { exact: true })).toBeVisible();
+    await expect(page.getByLabel('Пароль', { exact: true })).toBeVisible();
   } finally {
     await clearSecret(newPassword);
     await clearSecret(confirmation);
   }
   activeInstancePassword = rotatedInstancePassword;
+  await submitInstanceCredentials(page, activeInstancePassword);
 }
 
 export async function loginToInstance(page: Page): Promise<void> {
@@ -49,7 +51,7 @@ export async function loginToInstance(page: Page): Promise<void> {
 
   if (await page.getByText('Смена временного пароля', { exact: true }).isVisible().catch(() => false)) {
     await completeMandatoryPasswordChange(page);
-  } else if (await page.getByRole('alert').isVisible().catch(() => false)
+  } else if (await page.locator('#login-error').isVisible().catch(() => false)
     && activeInstancePassword !== rotatedInstancePassword) {
     activeInstancePassword = rotatedInstancePassword;
     await submitInstanceCredentials(page, activeInstancePassword);

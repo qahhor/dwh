@@ -2,7 +2,7 @@
 
 **Version:** 2.0
 
-**Updated:** 2026-09-02
+**Updated:** 2026-09-06
 
 Choose image rollback only when the previous server is compatible with the
 current database schema. If compatibility is unknown or data is damaged, use
@@ -15,7 +15,8 @@ destructive SQL during an incident.
 |---|---|
 | New web image fails; API and data are healthy | roll back `web` image only |
 | New server fails; migration did not run | roll back `server` and `web` images |
-| Migration completed; previous server passes its schema gate | roll back images and verify |
+| Migration completed; previous server has verified schema, writer and security/data-semantics compatibility | roll back images and verify |
+| Authentication generations have advanced and old-writer compatibility is unverified | keep old writers stopped; use a tested compatible forward fix or an authorized restore |
 | Previous server rejects the schema | restore the pre-migration backup |
 | Data is corrupted or unauthorized writes occurred | contain incident, then restore verified data and objects |
 | Only search index is damaged | rebuild derived index; do not roll back authoritative data |
@@ -38,6 +39,15 @@ Store evidence outside ephemeral containers. Do not include `.env.production`,
 cookies, tokens, personal data, or object contents.
 
 ## Image rollback
+
+For releases that activate authentication generations, drain and stop every old
+server writer before starting the new version. The additive schema alone does
+not make mixed old/new writers safe: an old writer neither checks nor advances
+the generation. After any user's generation has advanced, application-only
+rollback to an old writer is not validated. Keep traffic closed and use a
+tested compatible forward fix or a separately authorized restore. Do not turn
+this limitation into an automatic global logout or destructive credential
+reset.
 
 Set `APP_VERSION` in `.env.production` to the exact previous verified tag, then:
 

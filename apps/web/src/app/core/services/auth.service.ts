@@ -1,6 +1,6 @@
 import { Injectable, signal, computed } from '@angular/core';
 import { Router } from '@angular/router';
-import { Observable, tap, catchError, of } from 'rxjs';
+import { Observable, tap, catchError, filter, map, of } from 'rxjs';
 import { ApiService } from './api.service';
 import { PermissionService } from './permission.service';
 import { ToastService } from './toast.service';
@@ -11,6 +11,7 @@ import { I18nService } from './i18n.service';
   providedIn: 'root'
 })
 export class AuthService {
+  private sessionGeneration = 0;
   readonly currentUser = signal<User | null>(null);
   readonly isLoading = signal<boolean>(true);
   readonly isAuthenticated = computed(() => this.currentUser() !== null);
@@ -24,15 +25,19 @@ export class AuthService {
   ) {}
 
   checkSession(): Observable<MeResponse | null> {
+    const generation = this.sessionGeneration;
     this.isLoading.set(true);
     return this.api.get<MeResponse>('/auth/me').pipe(
+      map(res => generation === this.sessionGeneration ? res : null),
       tap(res => {
+        if (!res) return;
         this.currentUser.set(res.user);
         this.i18n.useAuthenticatedPreference(res.user.language);
         this.permissionService.setPermissions(res.permissions, res.permissionsVersion);
         this.isLoading.set(false);
       }),
       catchError(() => {
+        if (generation !== this.sessionGeneration) return of(null);
         this.currentUser.set(null);
         this.permissionService.clear();
         this.isLoading.set(false);
@@ -74,13 +79,25 @@ export class AuthService {
   }
 
   refreshMe(): Observable<MeResponse> {
+    const generation = this.sessionGeneration;
     return this.api.get<MeResponse>('/auth/me').pipe(
+      filter(() => generation === this.sessionGeneration),
       tap(res => {
         this.currentUser.set(res.user);
         this.i18n.useAuthenticatedPreference(res.user.language);
         this.permissionService.setPermissions(res.permissions, res.permissionsVersion);
       })
     );
+  }
+
+  onPasswordChanged(): void {
+    this.sessionGeneration++;
+    this.currentUser.set(null);
+    this.permissionService.clear();
+    this.isLoading.set(false);
+    for (const notification of this.toast.toasts()) this.toast.dismiss(notification.id);
+    this.toast.success(this.i18n.translate('auth.password_changed_sign_in_again'));
+    this.router.navigate(['/login'], { replaceUrl: true });
   }
 
   logout(): void {
