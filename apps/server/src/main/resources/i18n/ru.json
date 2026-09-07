@@ -682,6 +682,7 @@
   "layout.command_palette.poisk_zadach_proektov_polzovateley_esc_dlya_zakr": "Поиск задач, проектов, пользователей... (Esc для закрытия)",
   "layout.command_palette.rezultaty_poiska": "Результаты поиска",
   "layout.command_palette.globalnyy_poisk": "Глобальный поиск",
+  "layout.command_palette.close_search": "Закрыть поиск",
   "layout.command_palette.poisk_zadach_proektov_i_polzovateley": "Поиск задач, проектов и пользователей",
   "layout.command_palette.vvedite_minimum_2_simvola_dlya_mgnovennogo_poisk": "Введите минимум 2 символа для мгновенного поиска...",
   "ui.button.vypolnyaetsya": "Выполняется…",

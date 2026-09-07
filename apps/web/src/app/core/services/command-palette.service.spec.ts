@@ -16,6 +16,6 @@ describe('CommandPaletteService', () => {
       q: 'report',
       entity: 'TASK',
       limit: 25
-    });
+    }, { notifyError: false });
   });
 });

@@ -1,11 +1,12 @@
-import { Component, ElementRef, HostListener, OnDestroy, ViewChild, effect, signal, inject } from '@angular/core';
+import { Component, DestroyRef, ElementRef, HostListener, OnDestroy, ViewChild, effect, signal, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { A11yModule } from '@angular/cdk/a11y';
 import { Router } from '@angular/router';
 import { CommandPaletteService } from '../../core/services/command-palette.service';
 import { SearchHit } from '../../core/models/search.models';
-import { Subject, catchError, debounceTime, of, switchMap } from 'rxjs';
+import { EMPTY, Subject, catchError, of, switchMap, timer } from 'rxjs';
 import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
 
 @Component({
@@ -35,14 +36,16 @@ import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
             role="combobox"
             aria-autocomplete="list"
             [attr.aria-expanded]="results().length > 0"
-            [attr.aria-controls]="listboxId"
+            [attr.aria-controls]="results().length > 0 ? listboxId : null"
             [attr.aria-activedescendant]="results().length > 0 ? optionId(selectedIndex) : null"
             [placeholder]="'layout.command_palette.poisk_zadach_proektov_polzovateley_esc_dlya_zakr' | t"
             [(ngModel)]="searchQuery"
             (ngModelChange)="onSearchChange($event)"
-            autofocus
           />
           <kbd class="esc-badge" aria-hidden="true">ESC</kbd>
+          <button type="button" class="palette-close" [attr.aria-label]="'layout.command_palette.close_search' | t" (click)="paletteService.close()">
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
+          </button>
         </div>
 
         <div class="palette-results">
@@ -55,11 +58,11 @@ import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
             <button type="button" class="palette-retry" (click)="retrySearch()">{{ 'announcements.povtorit' | t }}</button>
           </div>
 
-          <div *ngIf="!isLoading() && !errorMessage() && results().length === 0 && searchQuery.length >= 2" class="palette-empty" role="status">
+          <div *ngIf="!isLoading() && !errorMessage() && results().length === 0 && searchQuery.trim().length >= 2" class="palette-empty" role="status">
             {{ 'layout.command_palette.nothing_found_for' | t:{query: searchQuery} }}
           </div>
 
-          <div *ngIf="!isLoading() && searchQuery.length < 2" class="palette-hint">
+          <div *ngIf="!isLoading() && searchQuery.trim().length < 2" class="palette-hint">
             {{ 'layout.command_palette.vvedite_minimum_2_simvola_dlya_mgnovennogo_poisk' | t }}
           </div>
 
@@ -132,12 +135,15 @@ import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
     }
 
     .search-icon {
+      position: static;
+      flex-shrink: 0;
       color: var(--text-muted);
       font-size: 22px;
     }
 
     .palette-input {
       flex: 1;
+      min-width: 0;
       border: none;
       background: transparent;
       font-size: 15px;
@@ -166,6 +172,24 @@ import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
       text-align: center;
       color: var(--text-muted);
       font-size: 13px;
+    }
+
+    .palette-close {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      flex-shrink: 0;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      background: var(--bg-surface);
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+    .palette-close:hover { background: var(--bg-hover); color: var(--text-main); }
+    .palette-close:focus-visible, .palette-retry:focus-visible, .result-item:focus-visible {
+      outline: 2px solid var(--focus-ring, var(--primary));
+      outline-offset: -2px;
     }
 
     .palette-error {
@@ -275,11 +299,16 @@ import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
       .palette-backdrop { padding: 10vh 12px 12px; }
       .palette-dialog { max-height: 75vh; }
       .result-badge { display: none; }
+      .esc-badge { display: none; }
+      .palette-search-box { padding: 8px; gap: 8px; }
+      .palette-input { font-size: 16px; }
+      .palette-close { width: 44px; height: 44px; }
     }
   `]
 })
 export class CommandPaletteComponent implements OnDestroy {
   private readonly uiI18n = inject(I18nService);
+  private readonly destroyRef = inject(DestroyRef);
   private static nextId = 0;
 
   searchQuery = '';
@@ -287,7 +316,7 @@ export class CommandPaletteComponent implements OnDestroy {
   readonly isLoading = signal<boolean>(false);
   readonly results = signal<SearchHit[]>([]);
   readonly errorMessage = signal<string>('');
-  private searchSubject = new Subject<string>();
+  private readonly searchSubject = new Subject<string | null>();
   private readonly componentId = CommandPaletteComponent.nextId++;
   readonly titleId = `command-palette-title-${this.componentId}`;
   readonly inputId = `command-palette-input-${this.componentId}`;
@@ -304,31 +333,32 @@ export class CommandPaletteComponent implements OnDestroy {
     effect(() => {
       const isOpen = this.paletteService.isOpen();
       if (isOpen && !this.wasOpen) {
+        this.resetSearch();
         this.previouslyFocusedElement = document.activeElement instanceof HTMLElement
           ? document.activeElement
           : null;
         document.body.classList.add('palette-open');
-        queueMicrotask(() => this.searchInput?.nativeElement.focus());
+        queueMicrotask(() => {
+          if (!this.destroyRef.destroyed && this.paletteService.isOpen()) this.searchInput?.nativeElement.focus();
+        });
       } else if (!isOpen && this.wasOpen) {
+        this.resetSearch();
         document.body.classList.remove('palette-open');
         const focusTarget = this.previouslyFocusedElement;
-        queueMicrotask(() => focusTarget?.focus());
+        queueMicrotask(() => {
+          if (!this.destroyRef.destroyed && !this.paletteService.isOpen() && focusTarget?.isConnected) focusTarget.focus();
+        });
         this.previouslyFocusedElement = null;
       }
       this.wasOpen = isOpen;
     });
 
     this.searchSubject.pipe(
-      debounceTime(120),
       switchMap(query => {
-        if (!query || query.trim().length < 2) {
-          this.isLoading.set(false);
-          this.errorMessage.set('');
-          return of({ query, totalHits: 0, hits: [] });
-        }
-        this.isLoading.set(true);
-        this.errorMessage.set('');
-        return this.paletteService.search(query.trim()).pipe(
+        if (query === null || query.length < 2) return EMPTY;
+        // A new input cancels both the debounce timer and an older HTTP request.
+        return timer(120).pipe(
+          switchMap(() => this.paletteService.search(query)),
           catchError(error => {
             this.results.set([]);
             this.isLoading.set(false);
@@ -336,9 +366,10 @@ export class CommandPaletteComponent implements OnDestroy {
             return of(null);
           })
         );
-      })
+      }),
+      takeUntilDestroyed(this.destroyRef)
     ).subscribe(res => {
-      if (!res) return;
+      if (!res || !this.paletteService.isOpen()) return;
       this.results.set(res.hits || []);
       this.selectedIndex = 0;
       this.isLoading.set(false);
@@ -346,21 +377,22 @@ export class CommandPaletteComponent implements OnDestroy {
   }
 
   ngOnDestroy() {
+    this.paletteService.close();
     this.searchSubject.complete();
     document.body.classList.remove('palette-open');
   }
 
   @HostListener('document:keydown', ['$event'])
   handleKeyboard(event: KeyboardEvent) {
-    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+    if (event.defaultPrevented || event.isComposing) return;
+    if ((event.ctrlKey || event.metaKey) && !event.altKey && (event.code === 'KeyK' || event.key.toLowerCase() === 'k')) {
       event.preventDefault();
-      this.paletteService.toggle();
-      this.searchQuery = '';
-      this.results.set([]);
-      this.selectedIndex = 0;
+      if (!event.repeat) this.paletteService.toggle();
     } else if (event.key === 'Escape' && this.paletteService.isOpen()) {
+      event.preventDefault();
+      event.stopPropagation();
       this.paletteService.close();
-    } else if (this.paletteService.isOpen() && this.results().length > 0) {
+    } else if (this.paletteService.isOpen() && event.target === this.searchInput?.nativeElement && this.results().length > 0) {
       if (event.key === 'ArrowDown') {
         event.preventDefault();
         this.selectedIndex = (this.selectedIndex + 1) % this.results().length;
@@ -378,11 +410,21 @@ export class CommandPaletteComponent implements OnDestroy {
   }
 
   onSearchChange(query: string) {
-    this.searchSubject.next(query);
+    const normalized = query.trim();
+    this.results.set([]);
+    this.selectedIndex = 0;
+    this.errorMessage.set('');
+    this.isLoading.set(normalized.length >= 2);
+    this.searchSubject.next(normalized);
   }
 
   retrySearch() {
-    this.searchSubject.next(this.searchQuery);
+    this.onSearchChange(this.searchQuery);
+  }
+
+  private resetSearch(): void {
+    this.searchQuery = '';
+    this.onSearchChange('');
   }
 
   optionId(index: number): string {
