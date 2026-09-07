@@ -83,6 +83,7 @@ An omitted `limit` on the normal GET endpoint resolves to the saved global limit
 **Files:**
 - Create under the search package: `service/SearchGenerationService.java`, `SearchJobService.java`, `SearchJobWorker.java`, `SearchReconciliationService.java`, `SearchStoragePreflight.java`, `SearchMetrics.java`; `repository/SearchJobRepository.java`, `SearchGenerationRepository.java`; `typesense/TypesenseDocumentStream.java`.
 - Modify the existing `SearchDeliveryWorker`, `SearchWorkerCoordinator`, `SearchProjectionReader`, delivery/state repositories, collection schema, `TypesenseClient`, management DTO/controller and status service.
+- Modify `SearchService` and `config/security/RateLimitFilter.java` narrowly to record the required query/fallback and search429 metrics on their real execution paths; preserve access, rate and error behavior and extend their focused tests plus dependent MVC fixture wiring where injection changes require it.
 - Create tests under the search test package: `SearchJobIntegrationTest.java`, `SearchRebuildIntegrationTest.java`, `SearchRollbackIntegrationTest.java`, `SearchReconciliationTest.java`, `SearchImportHttpTest.java`, `SearchMetricsTest.java`.
 
 **Interfaces:**
