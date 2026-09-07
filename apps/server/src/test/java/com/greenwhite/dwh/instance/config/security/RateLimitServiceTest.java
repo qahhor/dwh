@@ -25,7 +25,7 @@ class RateLimitServiceTest {
     }
 
     @Test
-    void alternatingRateAndCapacityDoesNotGrantTokensToExhaustedBucket() {
+    void alternatingRateOnlyReplacementDoesNotGrantTokensToExhaustedBucket() {
         var time = new MutableTimeMeter();
         var service = new RateLimitService(time);
 
@@ -33,9 +33,25 @@ class RateLimitServiceTest {
             assertThat(service.tryConsume("user:42:search", 120, 20).isConsumed()).isTrue();
         }
         for (int replacement = 0; replacement < 10; replacement++) {
-            assertThat(service.tryConsume("user:42:search", 119, 19).isConsumed()).isFalse();
+            assertThat(service.tryConsume("user:42:search", 119, 20).isConsumed()).isFalse();
             assertThat(service.tryConsume("user:42:search", 120, 20).isConsumed()).isFalse();
         }
+    }
+
+    @Test
+    void rateOnlyReplacementAppliesNewRefillRate() {
+        var time = new MutableTimeMeter();
+        var service = new RateLimitService(time);
+
+        for (int request = 0; request < 20; request++) {
+            assertThat(service.tryConsume("user:42:search", 120, 20).isConsumed()).isTrue();
+        }
+        assertThat(service.tryConsume("user:42:search", 119, 20).isConsumed()).isFalse();
+
+        time.advance(Duration.ofMillis(500));
+        assertThat(service.tryConsume("user:42:search", 119, 20).isConsumed()).isFalse();
+        time.advance(Duration.ofMillis(5));
+        assertThat(service.tryConsume("user:42:search", 119, 20).isConsumed()).isTrue();
     }
 
     @Test
