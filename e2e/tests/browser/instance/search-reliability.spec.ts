@@ -90,7 +90,7 @@ test('real indexed task/project/user hits open fresh exact records, survive relo
     const hit = palette.getByRole('option').filter({ hasText: `${marker} ${record.name}` });
     await expect(hit).toHaveCount(1);
     await expect(palette.locator('.palette-degraded')).toHaveCount(0);
-    const freshName = `${marker} refreshed ${record.name}`;
+    let freshName = `${marker} refreshed ${record.name}`;
     await api(page, 'PATCH', record.endpoint, 204, { [record.field]: freshName });
     const detailResponse = page.waitForResponse(response => response.request().method() === 'GET'
       && new URL(response.url()).pathname === `/api/v1${record.endpoint}`);
@@ -99,6 +99,32 @@ test('real indexed task/project/user hits open fresh exact records, survive relo
     await expect(page).toHaveURL(new RegExp(`${record.route}$`, 'u'));
     const detail = page.locator(`[data-record-id="${record.id}"]`);
     await expect(detail).toContainText(freshName);
+    if (record.category === 'USER') {
+      for (const exit of ['cancel', 'escape', 'save'] as const) {
+        const profile = page.getByRole('dialog', { name: 'Профиль пользователя', exact: true });
+        await profile.getByRole('button', { name: 'Редактировать', exact: true }).click();
+        const editor = page.getByRole('dialog', { name: 'Редактировать пользователя', exact: true });
+        await expect(editor).toBeVisible();
+        const editedName = `${freshName} edited`;
+        await editor.locator('#user-edit-name').fill(editedName);
+        const refreshed = page.waitForResponse(response => response.request().method() === 'GET'
+          && new URL(response.url()).pathname === `/api/v1${record.endpoint}`);
+        if (exit === 'escape') await page.keyboard.press('Escape');
+        else if (exit === 'cancel') await editor.getByRole('button', { name: 'Отмена', exact: true }).click();
+        else {
+          const saved = page.waitForResponse(response => response.request().method() === 'PATCH'
+            && new URL(response.url()).pathname === `/api/v1${record.endpoint}`);
+          await editor.getByRole('button', { name: 'Сохранить', exact: true }).click();
+          expect((await saved).status()).toBe(204);
+          freshName = editedName;
+        }
+        expect((await refreshed).status()).toBe(200);
+        await expect(editor).toHaveCount(0);
+        await expect(profile).toBeVisible();
+        await expect(page).toHaveURL(new RegExp(`${record.route}$`, 'u'));
+        await expect(detail.locator('.name')).toHaveText(freshName);
+      }
+    }
     if (record.category === 'PROJECT') await expect(page.locator('.project-edit-form')).toHaveCount(0);
     await page.reload();
     await expect(page).toHaveURL(new RegExp(`${record.route}$`, 'u'));

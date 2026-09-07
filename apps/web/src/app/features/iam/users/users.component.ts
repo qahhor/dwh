@@ -468,7 +468,7 @@ type SortDirection = 'asc' | 'desc';
       [isOpen]="isEditModalOpen()"
       [title]="'iam.redaktirovat_polzovatelya' | t"
       size="md"
-      (close)="isEditModalOpen.set(false)"
+      (close)="closeEditModal()"
     >
       <div body class="clean-modal-body" *ngIf="editingUser as u">
         <div class="form-grid">
@@ -566,7 +566,7 @@ type SortDirection = 'asc' | 'desc';
         </div>
       </div>
       <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="isEditModalOpen.set(false)">{{ 'common.cancel' | t }}</ui-button>
+        <ui-button variant="secondary" size="md" (onClick)="closeEditModal()">{{ 'common.cancel' | t }}</ui-button>
         <ui-button variant="primary" size="md" [loading]="isSubmitting()" (onClick)="submitEditUser()">{{ 'common.save' | t }}</ui-button>
       </div>
     </ui-modal>
@@ -1479,8 +1479,22 @@ export class UsersComponent implements OnInit, OnDestroy {
   }
 
   openViewModal(user: User) {
+    const routeId = this.routeRecordId();
+    if (routeId !== null) {
+      if (!safeNumericRecordId(user.id)) return;
+      if (String(user.id) === routeId) this.loadRecordView(routeId);
+      else this.recordRouter?.navigate(['/iam/users', String(user.id)], { queryParamsHandling: 'preserve' });
+      return;
+    }
     this.viewingUser = user;
     this.isViewModalOpen.set(true);
+  }
+
+  closeEditModal() {
+    this.isEditModalOpen.set(false);
+    this.editingUser = null;
+    const routeId = this.routeRecordId();
+    if (routeId !== null) this.loadRecordView(routeId);
   }
 
   openEditFromView() {
@@ -1594,7 +1608,7 @@ export class UsersComponent implements OnInit, OnDestroy {
     this.api.patch(`/iam/users/${this.editingUser.id}`, this.editForm).subscribe({
       next: () => {
         this.isSubmitting.set(false);
-        this.isEditModalOpen.set(false);
+        this.closeEditModal();
         this.toast.success(this.uiI18n.translate('iam.dannye_sohraneny'));
         this.loadUsers(true);
       },
