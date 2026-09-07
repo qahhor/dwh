@@ -60,6 +60,13 @@ class SecurityConfigTest {
     @Autowired
     MockMvc mvc;
 
+    @MockitoBean com.greenwhite.dwh.instance.search.repository.SearchSettingsRepository searchSettings;
+    @Autowired SearchPolicyProvider searchPolicyProvider;
+    @org.junit.jupiter.api.BeforeEach void initializeSearchPolicy() {
+        searchPolicyProvider.publishCommitted(new com.greenwhite.dwh.instance.search.dto.SearchManagementDtos.SettingsSnapshot(
+                1, com.greenwhite.dwh.instance.search.service.SearchQueryPolicy.defaults()));
+    }
+
     @MockitoBean
     KauthSessionService sessionService;
     @MockitoBean

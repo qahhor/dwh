@@ -3,14 +3,37 @@ package com.greenwhite.dwh.instance.search.repository;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+import com.greenwhite.dwh.instance.search.dto.SearchManagementDtos;
+import com.greenwhite.dwh.instance.search.dto.SearchManagementDtos.*;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.List;
+import java.time.Instant;
 
 @Repository
 public class SearchIndexStateRepository {
     private final JdbcClient jdbc;
     public SearchIndexStateRepository(JdbcClient jdbc) { this.jdbc = jdbc; }
+
+    public SearchExecutionSnapshot executionSnapshot() {
+        return jdbc.sql("""
+                select s.active_generation_id,s.version,s.initialized,g.state,g.task_collection,
+                    g.project_collection,g.user_collection,g.schema_profile,
+                    p.version as settings_version,p.configuration::text
+                from search_index_state s cross join search_settings p
+                left join search_generations g on g.id=s.active_generation_id where s.id=1 and p.id=1
+                """).query((rs, row) -> {
+                    UUID id = rs.getObject("active_generation_id", UUID.class);
+                    IndexSnapshot index = new IndexSnapshot(id, rs.getLong("version"), id == null ? Map.of() : Map.of(
+                            "TASK",rs.getString("task_collection"),"PROJECT",rs.getString("project_collection"),
+                            "USER",rs.getString("user_collection")),rs.getString("schema_profile"),
+                            rs.getBoolean("initialized"),"LEGACY".equals(rs.getString("state")));
+                    long version = rs.getLong("settings_version");
+                    return new SearchExecutionSnapshot(index, new SettingsSnapshot(version,
+                            SearchManagementDtos.decodeStored(rs.getString("configuration"), version)));
+                }).single();
+    }
 
     public IndexSnapshot snapshot() {
         return jdbc.sql("""
@@ -24,6 +47,28 @@ public class SearchIndexStateRepository {
                             "USER", rs.getString("user_collection")), rs.getString("schema_profile"),
                             rs.getBoolean("initialized"), "LEGACY".equals(rs.getString("state")));
                 }).single();
+    }
+
+    public List<ObservedGeneration> observations() {
+        return jdbc.sql("""
+                select g.*,coalesce(s.active_generation_id=g.id,false) as active,
+                    (select count(*) from search_projection_versions v left join search_generation_delivery d
+                     on d.generation_id=g.id and d.entity_type=v.entity_type and d.entity_id=v.entity_id
+                     where v.revision>coalesce(d.delivered_revision,0)) as pending,
+                    (select count(*) from search_generation_delivery d join search_projection_versions v
+                     on v.entity_type=d.entity_type and v.entity_id=d.entity_id
+                     where d.generation_id=g.id and d.error_code is not null and v.revision>d.delivered_revision) as failed,
+                    (select min(v.changed_at) from search_projection_versions v left join search_generation_delivery d
+                     on d.generation_id=g.id and d.entity_type=v.entity_type and d.entity_id=v.entity_id
+                     where v.revision>coalesce(d.delivered_revision,0)) as oldest_pending
+                from search_generations g cross join search_index_state s where s.id=1 order by g.created_at,g.id
+                """).query((rs,row) -> new ObservedGeneration(rs.getObject("id",UUID.class),rs.getString("state"),
+                        rs.getString("schema_profile"),rs.getBoolean("active"),
+                        Map.of("TASK",rs.getString("task_collection"),"PROJECT",rs.getString("project_collection"),
+                                "USER",rs.getString("user_collection")),rs.getTimestamp("created_at").toInstant(),
+                        rs.getTimestamp("verified_at") == null ? null : rs.getTimestamp("verified_at").toInstant(),
+                        rs.getLong("pending"),rs.getLong("failed"),rs.getTimestamp("oldest_pending") == null ? null :
+                        rs.getTimestamp("oldest_pending").toInstant())).list();
     }
 
     /** Called once at application lifecycle start, never as timeout-based recovery. Single-process topology only. */
@@ -132,5 +177,10 @@ public class SearchIndexStateRepository {
     public record Generation(UUID id, String state, Map<String,String> collections, String schemaProfile,
                              String discoveryEntity, long discoveryAfterId, long version) {
         public Generation { collections = Map.copyOf(collections); }
+    }
+    public record ObservedGeneration(UUID id, String state, String schemaProfile, boolean active,
+                                     Map<String,String> collections, Instant createdAt, Instant verifiedAt,
+                                     long pending, long failed, Instant oldestPending) {
+        public ObservedGeneration { collections = Map.copyOf(collections); }
     }
 }

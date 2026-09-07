@@ -158,8 +158,9 @@ class SearchFallbackIntegrationTest {
                         new com.greenwhite.dwh.instance.search.SearchOwnerRateLimits() {
                             @Override public int userPerMinute() { return 600; }
                             @Override public int tokenPerMinute() { return 300; }
-                        }),
-                new com.greenwhite.dwh.instance.search.repository.SearchIndexStateRepository(jdbc));
+                        }, new com.greenwhite.dwh.instance.search.repository.SearchSettingsRepository(jdbc)),
+                new com.greenwhite.dwh.instance.search.service.SearchExecutionSnapshotReader(
+                new com.greenwhite.dwh.instance.search.repository.SearchIndexStateRepository(jdbc)));
 
         var result = service.search("budget-token", "ALL", 4);
 

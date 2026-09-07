@@ -199,6 +199,7 @@ class AuthenticationGenerationHttpTest {
     @Import({SecurityConfig.class,WebMvcConfig.class,ProblemDetailAuthHandlers.class,
             KauthAuthenticationFilter.class,RequiresPermissionInterceptor.class,RateLimitFilter.class,RateLimitService.class,
             SearchPolicyProvider.class,
+            com.greenwhite.dwh.instance.search.repository.SearchSettingsRepository.class,
             IdempotencyFilter.class,IdempotencyService.class,IdempotencyRepository.class,GlobalExceptionHandler.class,
             KauthAuthController.class,KauthPasswordController.class,KauthApiTokenController.class,KauthChannelController.class})
     static class HttpConfiguration {}

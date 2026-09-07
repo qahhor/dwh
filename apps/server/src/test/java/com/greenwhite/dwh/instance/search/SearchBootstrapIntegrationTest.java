@@ -85,7 +85,8 @@ class SearchBootstrapIntegrationTest extends SearchDeliveryTestSupport {
                             new com.greenwhite.dwh.instance.search.SearchOwnerRateLimits() {
                                 @Override public int userPerMinute() { return 600; }
                                 @Override public int tokenPerMinute() { return 300; }
-                            }), state);
+                            }, new com.greenwhite.dwh.instance.search.repository.SearchSettingsRepository(jdbc)),
+                    new com.greenwhite.dwh.instance.search.service.SearchExecutionSnapshotReader(state));
             var fallback = service.search("nothing", "ALL", 10);
             assertThat(fallback.source()).isEqualTo("POSTGRES");
             assertThat(fallback.degraded()).isTrue();

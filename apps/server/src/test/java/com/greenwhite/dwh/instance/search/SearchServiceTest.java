@@ -47,13 +47,16 @@ class SearchServiceTest {
     private final RoleMembershipAuthorizer roleMembershipAuthorizer = mock(RoleMembershipAuthorizer.class);
     private final SearchIndexStateRepository indexState = mock(SearchIndexStateRepository.class);
     private final SearchService service = new SearchService(typesenseClient, fallbackRepository,
-            new SearchAccessPolicy(roleMembershipAuthorizer), new SearchResultBudget(), defaultProvider(), indexState);
+            new SearchAccessPolicy(roleMembershipAuthorizer), new SearchResultBudget(), defaultProvider(),
+            new com.greenwhite.dwh.instance.search.service.SearchExecutionSnapshotReader(indexState));
 
     @BeforeEach
     void authenticateWithLegacyWildcard() {
         SecurityContext.setPrincipal(principalWithPermissions(Set.of("*.*")));
-        when(indexState.snapshot()).thenReturn(new IndexSnapshot(java.util.UUID.randomUUID(), 1,
-                Map.of("TASK", "tasks", "PROJECT", "projects", "USER", "users"), "MIXED", true, false));
+        when(indexState.executionSnapshot()).thenReturn(new com.greenwhite.dwh.instance.search.dto.SearchManagementDtos.SearchExecutionSnapshot(
+                new IndexSnapshot(java.util.UUID.randomUUID(), 1,
+                Map.of("TASK", "tasks", "PROJECT", "projects", "USER", "users"), "MIXED", true, false),
+                new com.greenwhite.dwh.instance.search.dto.SearchManagementDtos.SettingsSnapshot(1,SearchQueryPolicy.defaults())));
     }
 
     @AfterEach
@@ -64,7 +67,7 @@ class SearchServiceTest {
     @Test
     void indexStateReadFailureStillUsesStructuredPostgresFallback() {
         when(typesenseClient.isEnabled()).thenReturn(true);
-        when(indexState.snapshot()).thenThrow(new org.springframework.dao.DataAccessResourceFailureException("state unavailable"));
+        when(indexState.executionSnapshot()).thenThrow(new org.springframework.dao.DataAccessResourceFailureException("state unavailable"));
         when(fallbackRepository.search("Kafka", "ALL", 10)).thenReturn(fallback());
         assertThat(service.search("Kafka", "ALL", 10).degraded()).isTrue();
     }
@@ -110,17 +113,13 @@ class SearchServiceTest {
         SearchQueryPolicy oneResult = new SearchQueryPolicy(
                 1, 120, 20, "MIXED", SearchQueryPolicy.defaults().fields());
         var reads = new java.util.concurrent.atomic.AtomicInteger();
-        var provider = new SearchPolicyProvider(new SearchOwnerRateLimits() {
-            @Override public int userPerMinute() { return 600; }
-            @Override public int tokenPerMinute() { return 300; }
-        }) {
-            @Override
-            public SearchQueryPolicy current() {
-                return reads.getAndIncrement() == 0 ? twoResults : oneResult;
-            }
-        };
+        var index = indexState.executionSnapshot().index();
+        when(indexState.executionSnapshot()).thenAnswer(invocation -> new com.greenwhite.dwh.instance.search.dto.SearchManagementDtos.SearchExecutionSnapshot(
+                index, new com.greenwhite.dwh.instance.search.dto.SearchManagementDtos.SettingsSnapshot(1,
+                reads.getAndIncrement() == 0 ? twoResults : oneResult)));
         var dynamic = new SearchService(typesenseClient, fallbackRepository,
-                new SearchAccessPolicy(roleMembershipAuthorizer), new SearchResultBudget(), provider, indexState);
+                new SearchAccessPolicy(roleMembershipAuthorizer), new SearchResultBudget(), defaultProvider(),
+                new com.greenwhite.dwh.instance.search.service.SearchExecutionSnapshotReader(indexState));
         when(typesenseClient.isEnabled()).thenReturn(true);
         when(typesenseClient.multiSearch(eq("first"), eq("TASK"), eq(2), anyMap(), eq(twoResults)))
                 .thenReturn(List.of(group("TASK", 0)));
@@ -309,10 +308,12 @@ class SearchServiceTest {
     }
 
     private static SearchPolicyProvider defaultProvider() {
-        return new SearchPolicyProvider(new SearchOwnerRateLimits() {
+        var provider = new SearchPolicyProvider(new SearchOwnerRateLimits() {
             @Override public int userPerMinute() { return 600; }
             @Override public int tokenPerMinute() { return 300; }
-        });
+        }, mock(com.greenwhite.dwh.instance.search.repository.SearchSettingsRepository.class));
+        provider.publishCommitted(new com.greenwhite.dwh.instance.search.dto.SearchManagementDtos.SettingsSnapshot(1,SearchQueryPolicy.defaults()));
+        return provider;
     }
 
     private static final class SearchServiceWithSeams extends SearchService {

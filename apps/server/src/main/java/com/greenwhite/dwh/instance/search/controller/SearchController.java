@@ -24,8 +24,13 @@ public class SearchController {
     public ResponseEntity<SearchService.SearchResult> search(
             @RequestParam("q") String query,
             @RequestParam(name = "entity", required = false) String entityType,
-            @RequestParam(name = "limit", defaultValue = "10") int limit) {
+            @RequestParam(name = "limit", required = false) Integer limit,
+            jakarta.servlet.http.HttpServletRequest request) {
 
+        if (limit == null && request.getParameter("limit") != null) {
+            // Preserve the service's authorization-before-validation order for an empty integer.
+            limit = 0;
+        }
         return ResponseEntity.ok(searchService.search(query, entityType, limit));
     }
 }

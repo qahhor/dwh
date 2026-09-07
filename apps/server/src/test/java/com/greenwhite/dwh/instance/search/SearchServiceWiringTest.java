@@ -22,6 +22,9 @@ class SearchServiceWiringTest {
             context.registerBean(TypesenseClient.class, () -> mock(TypesenseClient.class));
             context.registerBean(SearchFallbackRepository.class, () -> mock(SearchFallbackRepository.class));
             context.registerBean(SearchIndexStateRepository.class, () -> mock(SearchIndexStateRepository.class));
+            context.registerBean(com.greenwhite.dwh.instance.search.repository.SearchSettingsRepository.class,
+                    () -> mock(com.greenwhite.dwh.instance.search.repository.SearchSettingsRepository.class));
+            context.registerBean(com.greenwhite.dwh.instance.search.service.SearchExecutionSnapshotReader.class);
             context.registerBean(SearchAccessPolicy.class, () -> mock(SearchAccessPolicy.class));
             context.registerBean(SearchResultBudget.class, SearchResultBudget::new);
             context.registerBean(SearchOwnerRateLimits.class, () -> new SearchOwnerRateLimits() {

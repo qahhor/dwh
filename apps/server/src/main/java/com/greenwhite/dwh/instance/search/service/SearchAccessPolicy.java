@@ -30,4 +30,16 @@ public class SearchAccessPolicy {
                     "Глобальный поиск доступен только администраторам до внедрения scope-фильтрации");
         }
     }
+
+    public void requireSettingsRead() {
+        requireSearchAccess();
+        if (!SecurityContext.hasPermission("platform.settings", "view"))
+            throw ApiException.permissionDenied("platform.settings", "view");
+    }
+
+    public void requireSettingsUpdate() {
+        requireSearchAccess();
+        if (!SecurityContext.hasPermission("platform.settings", "update"))
+            throw ApiException.permissionDenied("platform.settings", "update");
+    }
 }

@@ -6,6 +6,7 @@ import com.greenwhite.dwh.instance.search.repository.SearchFallbackRepository;
 import com.greenwhite.dwh.instance.search.repository.SearchFallbackRepository.FallbackSearch;
 import com.greenwhite.dwh.instance.search.repository.SearchIndexStateRepository;
 import com.greenwhite.dwh.instance.search.repository.SearchIndexStateRepository.IndexSnapshot;
+import com.greenwhite.dwh.instance.search.dto.SearchManagementDtos.*;
 import com.greenwhite.dwh.instance.search.typesense.TypesenseClient;
 import com.greenwhite.dwh.instance.search.typesense.TypesenseClient.CollectionSearch;
 import com.greenwhite.dwh.instance.search.typesense.TypesenseException;
@@ -26,42 +27,70 @@ public class SearchService {
     private final SearchFallbackRepository fallbackRepository;
     private final SearchAccessPolicy accessPolicy;
     private final SearchResultBudget resultBudget;
-    private final Supplier<SearchQueryPolicy> queryPolicy;
-    private final Supplier<IndexSnapshot> indexSnapshot;
+    private final Supplier<SearchExecutionSnapshot> executionSnapshot;
+    private final Supplier<SettingsSnapshot> fallbackPolicy;
 
     @Autowired
     public SearchService(TypesenseClient typesenseClient, SearchFallbackRepository fallbackRepository,
                          SearchAccessPolicy accessPolicy, SearchResultBudget resultBudget,
-                         SearchPolicyProvider policyProvider,
-                         SearchIndexStateRepository state) {
+                         SearchPolicyProvider policyProvider, SearchExecutionSnapshotReader snapshotReader) {
         this(typesenseClient, fallbackRepository, accessPolicy, resultBudget,
-                policyProvider::current, state::snapshot);
+                snapshotReader::read, policyProvider::snapshot);
     }
 
     /** Policy/snapshot boundary shared with the later saved-settings provider. */
     protected SearchService(TypesenseClient typesenseClient, SearchFallbackRepository fallbackRepository,
                             SearchAccessPolicy accessPolicy, SearchResultBudget resultBudget,
                             SearchQueryPolicy queryPolicy, Supplier<IndexSnapshot> indexSnapshot) {
-        this(typesenseClient, fallbackRepository, accessPolicy, resultBudget, () -> queryPolicy, indexSnapshot);
+        this(typesenseClient, fallbackRepository, accessPolicy, resultBudget,
+                () -> new SearchExecutionSnapshot(indexSnapshot.get(), new SettingsSnapshot(1, queryPolicy)),
+                () -> new SettingsSnapshot(1, queryPolicy));
     }
 
     private SearchService(TypesenseClient typesenseClient, SearchFallbackRepository fallbackRepository,
                           SearchAccessPolicy accessPolicy, SearchResultBudget resultBudget,
-                          Supplier<SearchQueryPolicy> queryPolicy, Supplier<IndexSnapshot> indexSnapshot) {
+                          Supplier<SearchExecutionSnapshot> executionSnapshot, Supplier<SettingsSnapshot> fallbackPolicy) {
         this.typesenseClient = typesenseClient;
         this.fallbackRepository = fallbackRepository;
         this.accessPolicy = accessPolicy;
         this.resultBudget = resultBudget;
-        this.queryPolicy = queryPolicy;
-        this.indexSnapshot = indexSnapshot;
+        this.executionSnapshot = executionSnapshot;
+        this.fallbackPolicy = fallbackPolicy;
     }
 
     public SearchResult search(String query, String entityType, int limit) {
+        return search(query, entityType, Integer.valueOf(limit));
+    }
+
+    public SearchResult search(String query, String entityType, Integer limit) {
         accessPolicy.requireSearchAccess();
         String cleanQuery = normalizeQuery(query);
         String cleanEntityType = normalizeEntityType(entityType);
-        SearchQueryPolicy currentPolicy = queryPolicy.get();
-        int effectiveLimit = effectiveLimit(limit, currentPolicy);
+        validateLimit(limit);
+        SearchExecutionSnapshot snapshot = readSnapshot();
+        return execute(cleanQuery, cleanEntityType, limit, snapshot.index(), snapshot.settings().policy());
+    }
+
+    public PreviewResult preview(PreviewRequest request) {
+        accessPolicy.requireSearchAccess();
+        if (request.policy() != null) accessPolicy.requireSettingsRead();
+        String query = normalizeQuery(request.q());
+        String entity = normalizeEntityType(request.entity());
+        SearchExecutionSnapshot snapshot = readSnapshot();
+        SearchQueryPolicy policy = request.policy() == null ? snapshot.settings().policy() : request.policy();
+        return new PreviewResult(execute(query, entity, null, snapshot.index(), policy), snapshot.index().schemaProfile());
+    }
+
+    private SearchExecutionSnapshot readSnapshot() {
+        try { return executionSnapshot.get(); }
+        catch (org.springframework.dao.DataAccessException unavailable) {
+            return new SearchExecutionSnapshot(new IndexSnapshot(null, 0, Map.of(), null, false, false), fallbackPolicy.get());
+        }
+    }
+
+    private SearchResult execute(String cleanQuery, String cleanEntityType, Integer limit,
+                                 IndexSnapshot snapshot, SearchQueryPolicy currentPolicy) {
+        int effectiveLimit = limit == null ? currentPolicy.globalLimit() : effectiveLimit(limit, currentPolicy);
 
         Long exactId = exactId(cleanQuery);
         if (exactId != null) {
@@ -75,7 +104,6 @@ public class SearchService {
 
         if (typesenseClient.isEnabled()) {
             try {
-                IndexSnapshot snapshot = indexSnapshot.get();
                 if (!snapshot.initialized() || !hasCollections(cleanEntityType, snapshot.collections())) {
                     throw TypesenseException.uninitialized();
                 }
@@ -114,10 +142,14 @@ public class SearchService {
     }
 
     private static int effectiveLimit(int requestedLimit, SearchQueryPolicy queryPolicy) {
-        if (requestedLimit < 1 || requestedLimit > 50) {
+        validateLimit(requestedLimit);
+        return Math.min(requestedLimit, queryPolicy.globalLimit());
+    }
+
+    private static void validateLimit(Integer requestedLimit) {
+        if (requestedLimit != null && (requestedLimit < 1 || requestedLimit > 50)) {
             throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "Лимит поиска должен быть от 1 до 50");
         }
-        return Math.min(requestedLimit, queryPolicy.globalLimit());
     }
 
     private static String normalizeQuery(String query) {

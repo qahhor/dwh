@@ -84,7 +84,14 @@ public class RateLimitFilter extends OncePerRequestFilter {
         if (isInteractiveSearch(request)) {
             if (principal != null) {
                 key = key + ":search";
-                searchBudget = searchPolicyProvider.effectiveBudget(limit);
+                try {
+                    searchBudget = searchPolicyProvider.effectiveBudget(limit);
+                } catch (com.greenwhite.dwh.instance.common.error.ApiException unavailable) {
+                    if (unavailable.getErrorCode() != ErrorCode.SERVICE_UNAVAILABLE) throw unavailable;
+                    problemWriter.writeProblem(response, ErrorCode.SERVICE_UNAVAILABLE,
+                            "Search configuration is unavailable", request.getRequestURI());
+                    return;
+                }
                 limit = searchBudget.perMinute();
             }
         } else {
