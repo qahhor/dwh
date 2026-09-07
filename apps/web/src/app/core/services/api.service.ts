@@ -56,11 +56,11 @@ export class ApiService {
     );
   }
 
-  put<T>(path: string, body?: any): Observable<T> {
+  put<T>(path: string, body?: any, options: ApiRequestOptions = {}): Observable<T> {
     return this.http.put<T>(`${this.baseUrl}${path}`, body || {}, {
       withCredentials: true
     }).pipe(
-      catchError(err => this.handleError(err))
+      catchError(err => this.handleError(err, options))
     );
   }
 

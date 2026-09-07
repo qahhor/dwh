@@ -1,10 +1,11 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { of, Subject } from 'rxjs';
+import { Observable, of, Subject } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { ApiService } from '../../core/services/api.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { PermissionService } from '../../core/services/permission.service';
+import { SearchManagementService } from '../../core/services/search-management.service';
 import { ToastService } from '../../core/services/toast.service';
 import { SettingsComponent } from './settings.component';
 import { translateTest } from '../../../testing/i18n-test.stub';
@@ -13,12 +14,18 @@ describe('SettingsComponent UI contracts', () => {
   async function createFixture(api: object = {
     get: vi.fn(() => of({})),
     patch: vi.fn(() => of({}))
+  }, hasPermission: (form: string, action: string) => boolean = () => true,
+  searchManagement: object = {
+    status: vi.fn(() => of({})),
+    settings: vi.fn(() => of({})),
+    jobs: vi.fn(() => of({ items: [], hasMore: false }))
   }) {
     await TestBed.configureTestingModule({
       imports: [SettingsComponent],
       providers: [
         { provide: ApiService, useValue: api },
-        { provide: PermissionService, useValue: { hasPermission: () => true } },
+        { provide: PermissionService, useValue: { hasPermission } },
+        { provide: SearchManagementService, useValue: searchManagement },
         { provide: ToastService, useValue: { success: vi.fn(), error: vi.fn(), info: vi.fn() } },
         {
           provide: I18nService,
@@ -76,6 +83,30 @@ describe('SettingsComponent UI contracts', () => {
     expect(fixture.nativeElement.querySelector('label[for="settings-default-language"]')).not.toBeNull();
     const language = fixture.nativeElement.querySelector('#settings-default-language') as HTMLSelectElement;
     expect(Array.from(language.options).map(option => option.value)).toEqual(['ru', 'de', 'tr']);
+  });
+
+  it('shows the search tab from search permission and destroys its child on a structural tab switch', async () => {
+    let statusUnsubscribed = 0;
+    const searchManagement = {
+      status: vi.fn(() => new Observable(() => () => statusUnsubscribed++)),
+      jobs: vi.fn(() => of({ items: [], hasMore: false })),
+      settings: vi.fn(() => of({}))
+    };
+    const fixture = await createFixture(undefined, (form, action) =>
+      form === 'platform.search' && action === 'view', searchManagement);
+
+    const searchTab = fixture.nativeElement.querySelector('#settings-search-tab') as HTMLButtonElement;
+    expect(searchTab).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('#settings-general-tab')).toBeNull();
+    searchTab.click();
+    fixture.detectChanges();
+    expect(searchManagement.status).toHaveBeenCalledTimes(1);
+    expect(fixture.nativeElement.querySelector('#settings-search-panel app-search-settings')).not.toBeNull();
+
+    (fixture.nativeElement.querySelector('#settings-preferences-tab') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#settings-search-panel')).toBeNull();
+    expect(statusUnsubscribed).toBe(1);
   });
 
   it('names security values and switches', async () => {

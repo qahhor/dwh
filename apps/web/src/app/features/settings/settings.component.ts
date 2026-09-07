@@ -10,6 +10,7 @@ import { PermissionService } from '../../core/services/permission.service';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 import { UiModalComponent } from '../../shared/ui/ui-modal.component';
 import { LanguageEditorComponent } from './language-editor.component';
+import { SearchSettingsComponent } from './search/search-settings.component';
 
 @Component({
   selector: 'app-settings',
@@ -20,7 +21,8 @@ import { LanguageEditorComponent } from './language-editor.component';
     TranslatePipe,
     UiButtonComponent,
     UiModalComponent,
-    LanguageEditorComponent
+    LanguageEditorComponent,
+    SearchSettingsComponent
   ],
   template: `
     <div class="settings-page">
@@ -115,7 +117,26 @@ import { LanguageEditorComponent } from './language-editor.component';
             <span>{{ 'settings.yazyki_i_lokalizaciya' | t }}</span>
           </button>
 
+          <button
+            *ngIf="canViewSearchSettings()"
+            id="settings-search-tab"
+            type="button"
+            role="tab"
+            class="status-tab"
+            [class.active]="activeTab === 'search'"
+            [attr.aria-selected]="activeTab === 'search'"
+            aria-controls="settings-search-panel"
+            (click)="activeTab = 'search'"
+          >
+            <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">manage_search</span>
+            <span>{{ 'settings.search.tab' | t }}</span>
+          </button>
+
         </div>
+      </div>
+
+      <div id="settings-search-panel" class="tab-content" role="tabpanel" aria-labelledby="settings-search-tab" *ngIf="activeTab === 'search' && canViewSearchSettings()">
+        <app-search-settings />
       </div>
 
       <!-- =================================================================== -->
@@ -804,7 +825,7 @@ import { LanguageEditorComponent } from './language-editor.component';
 })
 export class SettingsComponent implements OnInit {
   private readonly uiI18n = inject(I18nService);
-  activeTab: 'general' | 'security' | 'storage' | 'preferences' | 'languages' = 'general';
+  activeTab: 'general' | 'security' | 'storage' | 'preferences' | 'languages' | 'search' = 'general';
 
   readonly systemSettings = signal<Record<string, string>>({});
   readonly userSettings = signal<Record<string, string>>({});
@@ -844,6 +865,10 @@ export class SettingsComponent implements OnInit {
   canUpdateSystemSettings(): boolean {
     return this.permService.hasPermission('platform.settings', 'update') ||
            this.permService.hasPermission('settings', 'update');
+  }
+
+  canViewSearchSettings(): boolean {
+    return this.permService.hasPermission('platform.search', 'view');
   }
 
   loadAllSettings() {

@@ -9,6 +9,22 @@ import { ApiService } from './api.service';
 import { ToastService } from './toast.service';
 
 describe('ApiService localized Problem Details', () => {
+  it('lets PUT callers own a conflict locally without losing its status or detail', () => {
+    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+    let failure: unknown;
+
+    TestBed.inject(ApiService).put('/search/settings', { version: 7 }, { notifyError: false })
+      .subscribe({ error: error => failure = error });
+
+    const http = TestBed.inject(HttpTestingController);
+    http.expectOne(req => req.method === 'PUT' && req.url === '/api/v1/search/settings')
+      .flush({ code: 'CONFLICT', detail: 'Настройки уже изменены' }, { status: 409, statusText: 'Conflict' });
+
+    expect(failure).toMatchObject({ status: 409, code: 'CONFLICT', detail: 'Настройки уже изменены' });
+    expect(TestBed.inject(ToastService).toasts()).toEqual([]);
+    http.verify();
+  });
+
   it.each([['12', 12], ['0', 0], ['-1', undefined], ['1.2', undefined], ['NaN', undefined], ['99999999999999999999', undefined], [null, undefined]])
     ('preserves only valid optional retry seconds from HTTP header %s', (header, expected) => {
       TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
