@@ -17,17 +17,17 @@ public class MsProjectService {
 
     private final MsProjectRepository projectRepository;
     private final MdCustomFieldService customFieldService;
-    private final com.greenwhite.dwh.instance.search.typesense.TypesenseIndexer typesenseIndexer;
+    private final com.greenwhite.dwh.instance.search.SearchChangePublisher searchChangePublisher;
     private final AuditLogService auditLogService;
 
     public MsProjectService(
             MsProjectRepository projectRepository,
             MdCustomFieldService customFieldService,
-            com.greenwhite.dwh.instance.search.typesense.TypesenseIndexer typesenseIndexer,
+            com.greenwhite.dwh.instance.search.SearchChangePublisher searchChangePublisher,
             AuditLogService auditLogService) {
         this.projectRepository = projectRepository;
         this.customFieldService = customFieldService;
-        this.typesenseIndexer = typesenseIndexer;
+        this.searchChangePublisher = searchChangePublisher;
         this.auditLogService = auditLogService;
     }
 
@@ -42,7 +42,7 @@ public class MsProjectService {
         }
 
         var project = projectRepository.create(normalizedName, description, state, attributes, createdBy);
-        typesenseIndexer.indexProject(project.id());
+        searchChangePublisher.projectChanged(project.id());
 
         auditLogService.logChange("ms_task_projects", String.valueOf(project.id()), "I",
                 List.of("name", "state"),
@@ -78,7 +78,7 @@ public class MsProjectService {
                 description,
                 state,
                 attributes);
-        typesenseIndexer.indexProject(id);
+        searchChangePublisher.projectChanged(id);
 
         auditLogService.logChange("ms_task_projects", String.valueOf(id), "U",
                 List.of("name", "description", "state"),

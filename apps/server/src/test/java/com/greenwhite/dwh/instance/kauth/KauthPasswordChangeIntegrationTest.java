@@ -29,7 +29,7 @@ import com.greenwhite.dwh.instance.md.service.MdScopeService;
 import com.greenwhite.dwh.instance.md.service.MdUserService;
 import com.greenwhite.dwh.instance.md.service.PasswordValidator;
 import com.greenwhite.dwh.instance.md.service.UserSessionInvalidator;
-import com.greenwhite.dwh.instance.search.typesense.TypesenseIndexer;
+import com.greenwhite.dwh.instance.search.SearchChangePublisher;
 import jakarta.servlet.http.Cookie;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterAll;
@@ -225,7 +225,7 @@ class KauthPasswordChangeIntegrationTest {
         var scopes = new MdScopeService(new MdScopeRepository(jdbc), new MdOrgUnitRepository(jdbc), permissions, audit);
         testContext.registerBean(MdUserService.class, () -> new MdUserService(
                 users, new MdRoleRepository(jdbc), new MdCustomFieldService(new MdCustomFieldRepository(jdbc, mapper), audit),
-                hasher, new PasswordValidator(), credentialInvalidator, mock(TypesenseIndexer.class), audit, scopes));
+                hasher, new PasswordValidator(), credentialInvalidator, mock(SearchChangePublisher.class), audit, scopes));
         testContext.refresh();
         return testContext;
     }

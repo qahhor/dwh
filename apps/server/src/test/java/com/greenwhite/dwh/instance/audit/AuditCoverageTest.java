@@ -44,7 +44,7 @@ class AuditCoverageTest {
             "KauthSessionService",    // вход и выход пишутся в security_events, а не в audit_log
             "KauthApiTokenService",   // выдача и отзыв токена — тоже security_events
             "SearchService",          // индексация, производная от уже пожурналированных данных
-            "TypesenseIndexer",       // то же самое
+            "SearchChangePublisher",  // производные ревизии; бизнес-мутацию журналирует владелец
             "MsNotificationService"   // доставка оповещений, а не изменение данных
     );
 

@@ -23,7 +23,7 @@ public class MdUserService {
     private final PasswordHasher passwordHasher;
     private final PasswordValidator passwordValidator;
     private final UserSessionInvalidator sessionInvalidator;
-    private final com.greenwhite.dwh.instance.search.typesense.TypesenseIndexer typesenseIndexer;
+    private final com.greenwhite.dwh.instance.search.SearchChangePublisher searchChangePublisher;
     private final com.greenwhite.dwh.instance.audit.service.AuditLogService auditLogService;
     private final MdScopeService scopeService;
 
@@ -34,7 +34,7 @@ public class MdUserService {
             PasswordHasher passwordHasher,
             PasswordValidator passwordValidator,
             UserSessionInvalidator sessionInvalidator,
-            com.greenwhite.dwh.instance.search.typesense.TypesenseIndexer typesenseIndexer,
+            com.greenwhite.dwh.instance.search.SearchChangePublisher searchChangePublisher,
             com.greenwhite.dwh.instance.audit.service.AuditLogService auditLogService,
             MdScopeService scopeService) {
         this.sessionInvalidator = sessionInvalidator;
@@ -44,7 +44,7 @@ public class MdUserService {
         this.customFieldService = customFieldService;
         this.passwordHasher = passwordHasher;
         this.passwordValidator = passwordValidator;
-        this.typesenseIndexer = typesenseIndexer;
+        this.searchChangePublisher = searchChangePublisher;
         this.auditLogService = auditLogService;
     }
 
@@ -95,7 +95,7 @@ public class MdUserService {
 
         scopeService.recalculateFor(user.id());
 
-        typesenseIndexer.indexUser(user.id());
+        searchChangePublisher.changed("USER", user.id());
 
         auditLogService.logChange("md_users", String.valueOf(user.id()), "I",
                 List.of("name", "login", "email", "phone"),
@@ -207,7 +207,7 @@ public class MdUserService {
             scopeService.recalculateFor(userId);
         }
 
-        typesenseIndexer.indexUser(userId);
+        searchChangePublisher.changed("USER", userId);
 
         auditLogService.logChange("md_users", String.valueOf(userId), "U",
                 List.of("name", "phone", "language", "timezone"),
@@ -257,7 +257,7 @@ public class MdUserService {
             sessionInvalidator.invalidateAllAccess(targetUserId);
         }
 
-        typesenseIndexer.indexUser(targetUserId);
+        searchChangePublisher.changed("USER", targetUserId);
 
         auditLogService.logChange("md_users", String.valueOf(targetUserId), "U",
                 List.of("state"),
@@ -280,7 +280,7 @@ public class MdUserService {
         // Закрытие всех сессий и отзыв токенов
         sessionInvalidator.invalidateAllAccess(targetUserId);
 
-        typesenseIndexer.deleteUser(targetUserId);
+        searchChangePublisher.changed("USER", targetUserId);
 
         auditLogService.logChange("md_users", String.valueOf(targetUserId), "D",
                 List.of("state", "name", "email", "phone"),

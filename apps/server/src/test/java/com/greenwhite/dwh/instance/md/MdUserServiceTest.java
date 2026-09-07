@@ -27,8 +27,8 @@ class MdUserServiceTest {
     private final MdCustomFieldService customFieldService = Mockito.mock(MdCustomFieldService.class);
     private final PasswordHasher passwordHasher = Mockito.mock(PasswordHasher.class);
     private final UserSessionInvalidator sessionInvalidator = Mockito.mock(UserSessionInvalidator.class);
-    private final com.greenwhite.dwh.instance.search.typesense.TypesenseIndexer typesenseIndexer =
-            Mockito.mock(com.greenwhite.dwh.instance.search.typesense.TypesenseIndexer.class);
+    private final com.greenwhite.dwh.instance.search.SearchChangePublisher searchChangePublisher =
+            Mockito.mock(com.greenwhite.dwh.instance.search.SearchChangePublisher.class);
     private final com.greenwhite.dwh.instance.audit.service.AuditLogService auditLogService =
             Mockito.mock(com.greenwhite.dwh.instance.audit.service.AuditLogService.class);
 
@@ -40,7 +40,7 @@ class MdUserServiceTest {
 
     private final MdUserService userService = new MdUserService(
             userRepository, roleRepository, customFieldService, passwordHasher,
-            passwordValidator, sessionInvalidator, typesenseIndexer, auditLogService, scopeService
+            passwordValidator, sessionInvalidator, searchChangePublisher, auditLogService, scopeService
     );
 
 

@@ -8,7 +8,7 @@ import com.greenwhite.dwh.instance.kauth.repository.*;
 import com.greenwhite.dwh.instance.kauth.service.*;
 import com.greenwhite.dwh.instance.md.repository.*;
 import com.greenwhite.dwh.instance.md.service.*;
-import com.greenwhite.dwh.instance.search.typesense.TypesenseIndexer;
+import com.greenwhite.dwh.instance.search.SearchChangePublisher;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -83,7 +83,7 @@ final class AuthenticationGenerationFixture implements AutoCloseable {
         context.registerBean(KauthUserSessionInvalidator.class,() -> new KauthUserSessionInvalidator(sessions,tokens,users));
         context.registerBean(MdUserService.class,() -> new MdUserService(users,new MdRoleRepository(jdbc),
                 new MdCustomFieldService(new MdCustomFieldRepository(jdbc,mapper),audit),hasher,new PasswordValidator(),
-                context.getBean(UserSessionInvalidator.class),mock(TypesenseIndexer.class),audit,scopes));
+                context.getBean(UserSessionInvalidator.class),mock(SearchChangePublisher.class),audit,scopes));
         var guard=new KauthCredentialGuard(sessions,tokens);
         context.registerBean(KauthApiTokenService.class,() -> new KauthApiTokenService(tokens,guard));
         context.registerBean(KauthChannelService.class,() -> new KauthChannelService(channels,otps,sender,audit,guard));

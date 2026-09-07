@@ -11,6 +11,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.HttpClientErrorException;
 
 import java.time.Duration;
 import java.util.LinkedHashMap;
@@ -61,68 +62,13 @@ public class TypesenseClient {
                     .body(String.class);
             return response != null && response.contains("ok");
         } catch (Exception e) {
-            log.debug("Typesense недоступен: {}", e.getMessage());
+            log.debug("Typesense health check unavailable");
             return false;
         }
     }
 
-    public void initCollections() {
-        if (!properties.enabled()) return;
-        try {
-            ensureCollection(COL_TASKS, List.of(
-                    Map.of("name", "id", "type", "string"),
-                    Map.of("name", "task_id", "type", "int64"),
-                    Map.of("name", "title", "type", "string", "enable_phonetic", true),
-                    Map.of("name", "description_markdown", "type", "string", "optional", true),
-                    Map.of("name", "status_name", "type", "string", "optional", true),
-                    Map.of("name", "priority", "type", "string", "optional", true),
-                    Map.of("name", "project_id", "type", "int64", "optional", true),
-                    Map.of("name", "project_name", "type", "string", "optional", true)
-            ));
-
-            ensureCollection(COL_PROJECTS, List.of(
-                    Map.of("name", "id", "type", "string"),
-                    Map.of("name", "project_id", "type", "int64"),
-                    Map.of("name", "name", "type", "string", "enable_phonetic", true),
-                    Map.of("name", "description", "type", "string", "optional", true),
-                    Map.of("name", "state", "type", "string", "optional", true)
-            ));
-
-            ensureCollection(COL_USERS, List.of(
-                    Map.of("name", "id", "type", "string"),
-                    Map.of("name", "user_id", "type", "int64"),
-                    Map.of("name", "name", "type", "string", "enable_phonetic", true),
-                    Map.of("name", "login", "type", "string"),
-                    Map.of("name", "email", "type", "string"),
-                    Map.of("name", "phone", "type", "string", "optional", true),
-                    Map.of("name", "state", "type", "string", "optional", true)
-            ));
-            log.info("Typesense: Схемы коллекций успешно проверены и инициализированы.");
-        } catch (Exception e) {
-            log.warn("Typesense: Ошибка при инициализации коллекций: {}", e.getMessage());
-        }
-    }
-
-    private void ensureCollection(String name, List<Map<String, Object>> fields) {
-        try {
-            restClient.get().uri("/collections/{name}", name).retrieve().toBodilessEntity();
-        } catch (Exception notFound) {
-            Map<String, Object> schema = Map.of(
-                    "name", name,
-                    "fields", fields,
-                    "enable_nested_fields", true
-            );
-            restClient.post()
-                    .uri("/collections")
-                    .body(schema)
-                    .retrieve()
-                    .toBodilessEntity();
-            log.info("Typesense: Создана новая коллекция '{}'", name);
-        }
-    }
-
     public void upsertDocument(String collection, Map<String, Object> document) {
-        if (!properties.enabled()) return;
+        if (!properties.enabled()) throw TypesenseException.uninitialized();
         try {
             restClient.post()
                     .uri("/collections/{collection}/documents?action=upsert", collection)
@@ -130,19 +76,44 @@ public class TypesenseClient {
                     .retrieve()
                     .toBodilessEntity();
         } catch (Exception e) {
-            log.warn("Typesense: Ошибка индексации документа в '{}': {}", collection, e.getMessage());
+            throw TypesenseException.unavailable();
         }
     }
 
     public void deleteDocument(String collection, String documentId) {
-        if (!properties.enabled()) return;
+        if (!properties.enabled()) throw TypesenseException.uninitialized();
         try {
             restClient.delete()
                     .uri("/collections/{collection}/documents/{id}", collection, documentId)
                     .retrieve()
                     .toBodilessEntity();
+        } catch (HttpClientErrorException.NotFound missing) {
+            // A document 404 is idempotent success only while its collection still exists.
+            if (!collectionExists(collection)) throw TypesenseException.uninitialized();
         } catch (Exception e) {
-            log.debug("Typesense: Ошибка удаления документа '{}' из '{}': {}", documentId, collection, e.getMessage());
+            throw TypesenseException.unavailable();
+        }
+    }
+
+    public boolean collectionExists(String name) {
+        if (!properties.enabled()) throw TypesenseException.uninitialized();
+        try {
+            restClient.get().uri("/collections/{name}", name).retrieve().toBodilessEntity();
+            return true;
+        } catch (HttpClientErrorException.NotFound missing) {
+            return false;
+        } catch (Exception failure) {
+            throw TypesenseException.unavailable();
+        }
+    }
+
+    public void ensureCollection(String name, String entityType) {
+        if (collectionExists(name)) return;
+        try {
+            restClient.post().uri("/collections").body(SearchCollectionSchema.mixed(name, entityType))
+                    .retrieve().toBodilessEntity();
+        } catch (Exception failure) {
+            throw TypesenseException.unavailable();
         }
     }
 

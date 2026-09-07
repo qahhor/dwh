@@ -37,7 +37,7 @@ public class MsTaskService {
     private final MdScopeService scopeService;
     private final MfFileService fileService;
     private final ApplicationEventPublisher eventPublisher;
-    private final com.greenwhite.dwh.instance.search.typesense.TypesenseIndexer typesenseIndexer;
+    private final com.greenwhite.dwh.instance.search.SearchChangePublisher searchChangePublisher;
     private final com.greenwhite.dwh.instance.audit.service.AuditLogService auditLogService;
 
 
@@ -52,7 +52,7 @@ public class MsTaskService {
             MdScopeService scopeService,
             MfFileService fileService,
             ApplicationEventPublisher eventPublisher,
-            com.greenwhite.dwh.instance.search.typesense.TypesenseIndexer typesenseIndexer,
+            com.greenwhite.dwh.instance.search.SearchChangePublisher searchChangePublisher,
             com.greenwhite.dwh.instance.audit.service.AuditLogService auditLogService) {
         this.taskRepository = taskRepository;
         this.statusRepository = statusRepository;
@@ -63,7 +63,7 @@ public class MsTaskService {
         this.scopeService = scopeService;
         this.fileService = fileService;
         this.eventPublisher = eventPublisher;
-        this.typesenseIndexer = typesenseIndexer;
+        this.searchChangePublisher = searchChangePublisher;
         this.auditLogService = auditLogService;
     }
 
@@ -102,6 +102,7 @@ public class MsTaskService {
 
         String safePriority = normalizePriority(priority);
 
+        searchChangePublisher.lockStatusMembership(defaultStatus.id());
         var task = taskRepository.create(new MsTaskRepository.TaskCreateData(
                 projectId, parentTaskId, title, descriptionMarkdown,
                 defaultStatus.id(), safePriority, reporterId, attributes, beginTime, endTime
@@ -146,7 +147,7 @@ public class MsTaskService {
                     task.id(), task.title(), assigned, reporterId));
         }
 
-        typesenseIndexer.indexTask(task.id());
+        searchChangePublisher.changed("TASK", task.id());
 
         auditLogService.logChange("ms_tasks", String.valueOf(task.id()), "I",
                 List.of("title", "project_id", "priority", "status_id"),
@@ -302,7 +303,7 @@ public class MsTaskService {
                     taskId, taskTitle, List.of(requested.responsibleUserId()), currentUserId));
         }
 
-        typesenseIndexer.indexTask(taskId);
+        searchChangePublisher.changed("TASK", taskId);
         logTaskPatch(taskId, existing, oldMembers, requested, rowPatch);
     }
 
@@ -338,7 +339,7 @@ public class MsTaskService {
         ), currentUserId);
 
 
-        typesenseIndexer.indexTask(taskId);
+        searchChangePublisher.changed("TASK", taskId);
 
         auditLogService.logChange("ms_tasks", String.valueOf(taskId), "U",
                 List.of("title", "priority", "project_id"),
@@ -356,6 +357,7 @@ public class MsTaskService {
     @Transactional
     public void changeStatus(Long taskId, Long newStatusId, Long currentUserId) {
         var existing = getTaskById(taskId, currentUserId);
+        searchChangePublisher.lockStatusMembership(newStatusId);
         var newStatus = statusRepository.findById(newStatusId)
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Статус не найден"));
 
@@ -367,7 +369,7 @@ public class MsTaskService {
                 taskId, task.title(), newStatus.name(), newStatus.isTerminal(),
                 memberUserIds(taskId), currentUserId));
 
-        typesenseIndexer.indexTask(taskId);
+        searchChangePublisher.changed("TASK", taskId);
 
         auditLogService.logChange("ms_tasks", String.valueOf(taskId), "U",
                 List.of("status_id"),
@@ -535,6 +537,7 @@ public class MsTaskService {
         statusRepository.findById(id)
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Статус не найден"));
         statusRepository.update(id, name, color, orderNo, isTerminal);
+        if (name != null) searchChangePublisher.statusChanged(id);
     }
 
     @Transactional

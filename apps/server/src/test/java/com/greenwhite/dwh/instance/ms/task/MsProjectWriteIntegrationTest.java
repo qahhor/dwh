@@ -15,7 +15,7 @@ import com.greenwhite.dwh.instance.ms.task.controller.MsProjectController;
 import com.greenwhite.dwh.instance.ms.task.pref.MsTaskPref;
 import com.greenwhite.dwh.instance.ms.task.repository.MsProjectRepository;
 import com.greenwhite.dwh.instance.ms.task.service.MsProjectService;
-import com.greenwhite.dwh.instance.search.typesense.TypesenseIndexer;
+import com.greenwhite.dwh.instance.search.SearchChangePublisher;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -75,7 +75,7 @@ class MsProjectWriteIntegrationTest {
     static ObjectMapper objectMapper;
     static MsProjectRepository projects;
     static MsProjectService projectService;
-    static TypesenseIndexer typesenseIndexer;
+    static SearchChangePublisher searchChangePublisher;
     static AuditLogService auditLogService;
     static DataSourceTransactionManager transactions;
     static TransactionTemplate transactionTemplate;
@@ -90,14 +90,14 @@ class MsProjectWriteIntegrationTest {
         jdbc = JdbcClient.create(dataSource);
         objectMapper = new ObjectMapper();
         projects = new MsProjectRepository(jdbc, objectMapper);
-        typesenseIndexer = mock(TypesenseIndexer.class);
+        searchChangePublisher = mock(SearchChangePublisher.class);
 
         auditLogService = new AuditLogService(
                 new AuditLogRepository(jdbc, objectMapper), null, new AuditDataRedactor());
         var serviceTarget = new MsProjectService(
                 projects,
                 mock(MdCustomFieldService.class),
-                typesenseIndexer,
+                searchChangePublisher,
                 auditLogService);
         transactions = new DataSourceTransactionManager(dataSource);
         projectService = transactional(serviceTarget, transactions, MsProjectService.class);
@@ -111,7 +111,7 @@ class MsProjectWriteIntegrationTest {
 
     @BeforeEach
     void clearIndexerCalls() {
-        clearInvocations(typesenseIndexer);
+        clearInvocations(searchChangePublisher);
     }
 
     @AfterEach
@@ -139,7 +139,7 @@ class MsProjectWriteIntegrationTest {
                 .andExpect(jsonPath("$.errors[0].code").value("required"));
 
         assertUnchanged(projectId, before, auditBefore);
-        verifyNoInteractions(typesenseIndexer);
+        verifyNoInteractions(searchChangePublisher);
     }
 
     @ParameterizedTest
@@ -162,7 +162,7 @@ class MsProjectWriteIntegrationTest {
                 .andExpect(jsonPath("$.errors[0].code").value("invalid"));
 
         assertUnchanged(projectId, before, auditBefore);
-        verifyNoInteractions(typesenseIndexer);
+        verifyNoInteractions(searchChangePublisher);
     }
 
     @Test
@@ -185,7 +185,7 @@ class MsProjectWriteIntegrationTest {
 
         assertThat(projectCount()).isEqualTo(projectsBefore);
         assertThat(projectAuditCount()).isEqualTo(auditBefore);
-        verifyNoInteractions(typesenseIndexer);
+        verifyNoInteractions(searchChangePublisher);
     }
 
     @ParameterizedTest
@@ -212,7 +212,7 @@ class MsProjectWriteIntegrationTest {
                 new FieldErrorItem("name", "required", "Название проекта обязательно"));
         assertThat(projectCount()).isEqualTo(projectsBefore);
         assertThat(projectAuditCount()).isEqualTo(auditBefore);
-        verifyNoInteractions(typesenseIndexer);
+        verifyNoInteractions(searchChangePublisher);
     }
 
     @Test
@@ -237,7 +237,7 @@ class MsProjectWriteIntegrationTest {
         assertThat(created.state()).isEqualTo("A");
         assertThat(auditNewValue(projectId, "name")).isEqualTo(normalizedName);
         assertThat(auditNewValue(projectId, "state")).isEqualTo("A");
-        verify(typesenseIndexer).indexProject(projectId);
+        verify(searchChangePublisher).projectChanged(projectId);
     }
 
     @Test
@@ -254,7 +254,7 @@ class MsProjectWriteIntegrationTest {
 
         assertThat(projects.findById(projectId).orElseThrow().name()).isEqualTo(normalizedName);
         assertThat(auditNewValue(projectId, "name")).isEqualTo(normalizedName);
-        verify(typesenseIndexer).indexProject(projectId);
+        verify(searchChangePublisher).projectChanged(projectId);
     }
 
     @Test
@@ -300,7 +300,7 @@ class MsProjectWriteIntegrationTest {
         var continueUpdate = new CountDownLatch(1);
         var pausingProjects = new PausingProjectRepository(
                 jdbc, objectMapper, readComplete, continueUpdate);
-        var localIndexer = mock(TypesenseIndexer.class);
+        var localIndexer = mock(SearchChangePublisher.class);
         var serviceTarget = new MsProjectService(
                 pausingProjects,
                 mock(MdCustomFieldService.class),
@@ -330,8 +330,8 @@ class MsProjectWriteIntegrationTest {
         assertThat(after.state()).isEqualTo("A");
         assertThat(after.attributes()).isEqualTo(Map.of("owner", "concurrent"));
         assertThat(auditCount(projectId)).isEqualTo(2);
-        verify(typesenseIndexer).indexProject(projectId);
-        verify(localIndexer).indexProject(projectId);
+        verify(searchChangePublisher).projectChanged(projectId);
+        verify(localIndexer).projectChanged(projectId);
     }
 
     @Test
@@ -349,7 +349,7 @@ class MsProjectWriteIntegrationTest {
 
         assertThat(projectCount()).isEqualTo(projectsBefore);
         assertThat(projectAuditCount()).isEqualTo(auditBefore);
-        verifyNoInteractions(typesenseIndexer);
+        verifyNoInteractions(searchChangePublisher);
     }
 
     @Test
@@ -368,7 +368,7 @@ class MsProjectWriteIntegrationTest {
                 .andExpect(jsonPath("$.code").value("permission_denied"));
 
         assertUnchanged(projectId, before, auditBefore);
-        verifyNoInteractions(typesenseIndexer);
+        verifyNoInteractions(searchChangePublisher);
     }
 
     private static <T> T transactional(T target, DataSourceTransactionManager transactions, Class<T> type) {

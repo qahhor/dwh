@@ -33,6 +33,7 @@ class TypesenseClientHttpTest {
     private HttpServer server;
     private final List<CapturedRequest> requests = Collections.synchronizedList(new ArrayList<>());
     private final AtomicReference<Response> configuredResponse = new AtomicReference<>();
+    private java.util.function.Function<CapturedRequest,Response> responseByRequest;
 
     @BeforeEach
     void startServer() throws IOException {
@@ -45,6 +46,45 @@ class TypesenseClientHttpTest {
     @AfterEach
     void stopServer() {
         server.stop(0);
+    }
+
+    @Test
+    void missingDocumentDeleteSucceedsOnlyAfterConfirmingItsCollection() {
+        responseByRequest = request -> new Response(request.method().equals("DELETE") ? 404 : 200, "{}");
+        client().deleteDocument("tasks", "7");
+        assertThat(requests).extracting(CapturedRequest::method).containsExactly("DELETE", "GET");
+        assertThat(requests).extracting(CapturedRequest::path).containsExactly(
+                "/collections/tasks/documents/7", "/collections/tasks");
+    }
+
+    @Test
+    void collectionAuthorizationFailureDoesNotAttemptToCreateAReplacement() {
+        configuredResponse.set(new Response(401, "secret-downstream-body"));
+        assertThatThrownBy(() -> client().ensureCollection("generated_tasks", "TASK"))
+                .isInstanceOf(TypesenseException.class).hasMessageNotContaining("secret-downstream-body");
+        assertThat(requests).extracting(CapturedRequest::method).containsExactly("GET");
+    }
+
+    @Test
+    void failedCollectionCreationIsNotReportedAsInitializationSuccess() {
+        responseByRequest = request -> new Response(request.method().equals("GET") ? 404 : 503, "secret-downstream-body");
+        assertThatThrownBy(() -> client().ensureCollection("generated_tasks", "TASK"))
+                .isInstanceOf(TypesenseException.class).hasMessageNotContaining("secret-downstream-body");
+        assertThat(requests).extracting(CapturedRequest::method).containsExactly("GET", "POST");
+    }
+
+    @Test
+    void failedUpsertIsReportedSoDeliveryCanRetry() {
+        configuredResponse.set(new Response(503, "secret-downstream-body"));
+        assertThatThrownBy(() -> client().upsertDocument("tasks", Map.of("id", "7", "title", "Task")))
+                .isInstanceOf(TypesenseException.class).hasMessageNotContaining("secret-downstream-body");
+    }
+
+    @Test
+    void missingCollectionDeleteIsNotAcknowledged() {
+        configuredResponse.set(new Response(404, "secret-downstream-body"));
+        assertThatThrownBy(() -> client().deleteDocument("tasks", "7"))
+                .isInstanceOf(TypesenseException.class).hasMessageNotContaining("secret-downstream-body");
     }
 
     @Test
@@ -175,8 +215,9 @@ class TypesenseClientHttpTest {
 
     private void respond(HttpExchange exchange) throws IOException {
         String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
-        requests.add(new CapturedRequest(exchange.getRequestMethod(), exchange.getRequestURI().getPath(), body));
-        Response configured = configuredResponse.get();
+        CapturedRequest request = new CapturedRequest(exchange.getRequestMethod(), exchange.getRequestURI().getPath(), body);
+        requests.add(request);
+        Response configured = responseByRequest == null ? configuredResponse.get() : responseByRequest.apply(request);
         byte[] response = configured.body() == null ? new byte[0] : configured.body().getBytes(StandardCharsets.UTF_8);
         if (configured.body() != null) exchange.getResponseHeaders().set("Content-Type", "application/json");
         exchange.sendResponseHeaders(configured.status(), configured.body() == null ? -1 : response.length);

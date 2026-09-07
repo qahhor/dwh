@@ -4,6 +4,8 @@ import com.greenwhite.dwh.core.error.ErrorCode;
 import com.greenwhite.dwh.instance.common.error.ApiException;
 import com.greenwhite.dwh.instance.search.repository.SearchFallbackRepository;
 import com.greenwhite.dwh.instance.search.repository.SearchFallbackRepository.FallbackSearch;
+import com.greenwhite.dwh.instance.search.repository.SearchIndexStateRepository;
+import com.greenwhite.dwh.instance.search.repository.SearchIndexStateRepository.IndexSnapshot;
 import com.greenwhite.dwh.instance.search.typesense.TypesenseClient;
 import com.greenwhite.dwh.instance.search.typesense.TypesenseClient.CollectionSearch;
 import com.greenwhite.dwh.instance.search.typesense.TypesenseException;
@@ -12,10 +14,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Supplier;
 
 @Service
 public class SearchService {
@@ -25,25 +27,26 @@ public class SearchService {
     private final SearchAccessPolicy accessPolicy;
     private final SearchResultBudget resultBudget;
     private final SearchQueryPolicy queryPolicy;
-    private final Map<String, String> collections;
+    private final Supplier<IndexSnapshot> indexSnapshot;
 
     @Autowired
     public SearchService(TypesenseClient typesenseClient, SearchFallbackRepository fallbackRepository,
-                         SearchAccessPolicy accessPolicy, SearchResultBudget resultBudget) {
+                         SearchAccessPolicy accessPolicy, SearchResultBudget resultBudget,
+                         SearchIndexStateRepository state) {
         this(typesenseClient, fallbackRepository, accessPolicy, resultBudget,
-                SearchQueryPolicy.defaults(), legacyCollections());
+                SearchQueryPolicy.defaults(), state::snapshot);
     }
 
-    /** Production seam for Task 3 durable collection resolution and the later saved-policy provider. */
+    /** Policy/snapshot boundary shared with the later saved-settings provider. */
     protected SearchService(TypesenseClient typesenseClient, SearchFallbackRepository fallbackRepository,
                             SearchAccessPolicy accessPolicy, SearchResultBudget resultBudget,
-                            SearchQueryPolicy queryPolicy, Map<String, String> collections) {
+                            SearchQueryPolicy queryPolicy, Supplier<IndexSnapshot> indexSnapshot) {
         this.typesenseClient = typesenseClient;
         this.fallbackRepository = fallbackRepository;
         this.accessPolicy = accessPolicy;
         this.resultBudget = resultBudget;
         this.queryPolicy = queryPolicy;
-        this.collections = Map.copyOf(collections);
+        this.indexSnapshot = indexSnapshot;
     }
 
     public SearchResult search(String query, String entityType, int limit) {
@@ -62,15 +65,19 @@ public class SearchService {
             }
         }
 
-        if (typesenseClient.isEnabled() && hasCollections(cleanEntityType)) {
+        if (typesenseClient.isEnabled()) {
             try {
+                IndexSnapshot snapshot = indexSnapshot.get();
+                if (!snapshot.initialized() || !hasCollections(cleanEntityType, snapshot.collections())) {
+                    throw TypesenseException.uninitialized();
+                }
                 List<CollectionSearch> groups = typesenseClient.multiSearch(
-                        cleanQuery, cleanEntityType, effectiveLimit, collections, queryPolicy);
+                        cleanQuery, cleanEntityType, effectiveLimit, snapshot.collections(), queryPolicy);
                 List<SearchHit> hits = resultBudget.allocate(groups, effectiveLimit);
                 long found = sumFound(groups);
                 return new SearchResult(cleanQuery, hits.size(), hits, found,
                         found > hits.size(), "TYPESENSE", false);
-            } catch (TypesenseException unavailableOrInvalid) {
+            } catch (TypesenseException | org.springframework.dao.DataAccessException unavailableOrInvalid) {
                 log.warn("Typesense search failed; using PostgreSQL fallback");
             }
         }
@@ -138,7 +145,7 @@ public class SearchService {
         }
     }
 
-    private boolean hasCollections(String entityType) {
+    private boolean hasCollections(String entityType, Map<String,String> collections) {
         List<String> needed = entityType.equals("ALL") ? List.of("TASK", "PROJECT", "USER") : List.of(entityType);
         return needed.stream().allMatch(type -> collections.containsKey(type) && !collections.get(type).isBlank());
     }
@@ -155,14 +162,6 @@ public class SearchService {
 
     private static ApiException unavailable() {
         return new ApiException(ErrorCode.SERVICE_UNAVAILABLE, "Поиск временно недоступен");
-    }
-
-    private static Map<String, String> legacyCollections() {
-        Map<String, String> values = new LinkedHashMap<>();
-        values.put("TASK", TypesenseClient.COL_TASKS);
-        values.put("PROJECT", TypesenseClient.COL_PROJECTS);
-        values.put("USER", TypesenseClient.COL_USERS);
-        return values;
     }
 
     public record SearchHit(String entityType, String id, String title, String description, String targetUrl) {}

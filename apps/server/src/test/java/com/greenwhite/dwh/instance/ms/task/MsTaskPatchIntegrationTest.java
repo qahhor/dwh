@@ -109,7 +109,7 @@ class MsTaskPatchIntegrationTest {
                 scopes,
                 mock(MfFileService.class),
                 mock(ApplicationEventPublisher.class),
-                mock(com.greenwhite.dwh.instance.search.typesense.TypesenseIndexer.class),
+                mock(com.greenwhite.dwh.instance.search.SearchChangePublisher.class),
                 audit);
         MsTaskService taskService = transactional(taskServiceTarget, transactions, MsTaskService.class);
 

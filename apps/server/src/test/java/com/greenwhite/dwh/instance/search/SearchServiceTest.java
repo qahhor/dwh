@@ -5,6 +5,8 @@ import com.greenwhite.dwh.instance.common.error.ApiException;
 import com.greenwhite.dwh.instance.common.security.RoleMembershipAuthorizer;
 import com.greenwhite.dwh.instance.common.security.SecurityContext;
 import com.greenwhite.dwh.instance.search.repository.SearchFallbackRepository;
+import com.greenwhite.dwh.instance.search.repository.SearchIndexStateRepository;
+import com.greenwhite.dwh.instance.search.repository.SearchIndexStateRepository.IndexSnapshot;
 import com.greenwhite.dwh.instance.search.repository.SearchFallbackRepository.FallbackGroup;
 import com.greenwhite.dwh.instance.search.repository.SearchFallbackRepository.FallbackHit;
 import com.greenwhite.dwh.instance.search.repository.SearchFallbackRepository.FallbackSearch;
@@ -42,17 +44,28 @@ class SearchServiceTest {
     private final TypesenseClient typesenseClient = mock(TypesenseClient.class);
     private final SearchFallbackRepository fallbackRepository = mock(SearchFallbackRepository.class);
     private final RoleMembershipAuthorizer roleMembershipAuthorizer = mock(RoleMembershipAuthorizer.class);
+    private final SearchIndexStateRepository indexState = mock(SearchIndexStateRepository.class);
     private final SearchService service = new SearchService(typesenseClient, fallbackRepository,
-            new SearchAccessPolicy(roleMembershipAuthorizer), new SearchResultBudget());
+            new SearchAccessPolicy(roleMembershipAuthorizer), new SearchResultBudget(), indexState);
 
     @BeforeEach
     void authenticateWithLegacyWildcard() {
         SecurityContext.setPrincipal(principalWithPermissions(Set.of("*.*")));
+        when(indexState.snapshot()).thenReturn(new IndexSnapshot(java.util.UUID.randomUUID(), 1,
+                Map.of("TASK", "tasks", "PROJECT", "projects", "USER", "users"), "MIXED", true, false));
     }
 
     @AfterEach
     void clearSecurityContext() {
         SecurityContext.clear();
+    }
+
+    @Test
+    void indexStateReadFailureStillUsesStructuredPostgresFallback() {
+        when(typesenseClient.isEnabled()).thenReturn(true);
+        when(indexState.snapshot()).thenThrow(new org.springframework.dao.DataAccessResourceFailureException("state unavailable"));
+        when(fallbackRepository.search("Kafka", "ALL", 10)).thenReturn(fallback());
+        assertThat(service.search("Kafka", "ALL", 10).degraded()).isTrue();
     }
 
     @Test
@@ -266,7 +279,8 @@ class SearchServiceTest {
         private SearchServiceWithSeams(TypesenseClient typesenseClient, SearchFallbackRepository fallbackRepository,
                                        SearchAccessPolicy accessPolicy, SearchResultBudget resultBudget,
                                        SearchQueryPolicy queryPolicy, Map<String, String> collections) {
-            super(typesenseClient, fallbackRepository, accessPolicy, resultBudget, queryPolicy, collections);
+            super(typesenseClient, fallbackRepository, accessPolicy, resultBudget, queryPolicy,
+                    () -> new IndexSnapshot(java.util.UUID.randomUUID(), 1, collections, "MIXED", !collections.isEmpty(), false));
         }
     }
 }

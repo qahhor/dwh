@@ -32,14 +32,14 @@ class MsTaskServiceTest {
 
     private final org.springframework.context.ApplicationEventPublisher eventPublisher =
             Mockito.mock(org.springframework.context.ApplicationEventPublisher.class);
-    private final com.greenwhite.dwh.instance.search.typesense.TypesenseIndexer typesenseIndexer =
-            Mockito.mock(com.greenwhite.dwh.instance.search.typesense.TypesenseIndexer.class);
+    private final com.greenwhite.dwh.instance.search.SearchChangePublisher searchChangePublisher =
+            Mockito.mock(com.greenwhite.dwh.instance.search.SearchChangePublisher.class);
     private final com.greenwhite.dwh.instance.audit.service.AuditLogService auditLogService =
             Mockito.mock(com.greenwhite.dwh.instance.audit.service.AuditLogService.class);
 
     private final MsTaskService service = new MsTaskService(
             taskRepository, statusRepository, typeRepository, memberRepository, projectRepository, customFieldService,
-            scopeService, fileService, eventPublisher, typesenseIndexer, auditLogService
+            scopeService, fileService, eventPublisher, searchChangePublisher, auditLogService
     );
 
 

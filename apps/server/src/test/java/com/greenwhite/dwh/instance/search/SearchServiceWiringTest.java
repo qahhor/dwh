@@ -1,6 +1,7 @@
 package com.greenwhite.dwh.instance.search;
 
 import com.greenwhite.dwh.instance.search.repository.SearchFallbackRepository;
+import com.greenwhite.dwh.instance.search.repository.SearchIndexStateRepository;
 import com.greenwhite.dwh.instance.search.service.SearchAccessPolicy;
 import com.greenwhite.dwh.instance.search.service.SearchResultBudget;
 import com.greenwhite.dwh.instance.search.service.SearchService;
@@ -19,6 +20,7 @@ class SearchServiceWiringTest {
         try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext()) {
             context.registerBean(TypesenseClient.class, () -> mock(TypesenseClient.class));
             context.registerBean(SearchFallbackRepository.class, () -> mock(SearchFallbackRepository.class));
+            context.registerBean(SearchIndexStateRepository.class, () -> mock(SearchIndexStateRepository.class));
             context.registerBean(SearchAccessPolicy.class, () -> mock(SearchAccessPolicy.class));
             context.registerBean(SearchResultBudget.class, SearchResultBudget::new);
             context.registerBean(SearchService.class);
