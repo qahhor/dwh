@@ -26,21 +26,28 @@ public class SearchService {
     private final SearchFallbackRepository fallbackRepository;
     private final SearchAccessPolicy accessPolicy;
     private final SearchResultBudget resultBudget;
-    private final SearchQueryPolicy queryPolicy;
+    private final Supplier<SearchQueryPolicy> queryPolicy;
     private final Supplier<IndexSnapshot> indexSnapshot;
 
     @Autowired
     public SearchService(TypesenseClient typesenseClient, SearchFallbackRepository fallbackRepository,
                          SearchAccessPolicy accessPolicy, SearchResultBudget resultBudget,
+                         SearchPolicyProvider policyProvider,
                          SearchIndexStateRepository state) {
         this(typesenseClient, fallbackRepository, accessPolicy, resultBudget,
-                SearchQueryPolicy.defaults(), state::snapshot);
+                policyProvider::current, state::snapshot);
     }
 
     /** Policy/snapshot boundary shared with the later saved-settings provider. */
     protected SearchService(TypesenseClient typesenseClient, SearchFallbackRepository fallbackRepository,
                             SearchAccessPolicy accessPolicy, SearchResultBudget resultBudget,
                             SearchQueryPolicy queryPolicy, Supplier<IndexSnapshot> indexSnapshot) {
+        this(typesenseClient, fallbackRepository, accessPolicy, resultBudget, () -> queryPolicy, indexSnapshot);
+    }
+
+    private SearchService(TypesenseClient typesenseClient, SearchFallbackRepository fallbackRepository,
+                          SearchAccessPolicy accessPolicy, SearchResultBudget resultBudget,
+                          Supplier<SearchQueryPolicy> queryPolicy, Supplier<IndexSnapshot> indexSnapshot) {
         this.typesenseClient = typesenseClient;
         this.fallbackRepository = fallbackRepository;
         this.accessPolicy = accessPolicy;
@@ -53,7 +60,8 @@ public class SearchService {
         accessPolicy.requireSearchAccess();
         String cleanQuery = normalizeQuery(query);
         String cleanEntityType = normalizeEntityType(entityType);
-        int effectiveLimit = effectiveLimit(limit);
+        SearchQueryPolicy currentPolicy = queryPolicy.get();
+        int effectiveLimit = effectiveLimit(limit, currentPolicy);
 
         Long exactId = exactId(cleanQuery);
         if (exactId != null) {
@@ -72,7 +80,7 @@ public class SearchService {
                     throw TypesenseException.uninitialized();
                 }
                 List<CollectionSearch> groups = typesenseClient.multiSearch(
-                        cleanQuery, cleanEntityType, effectiveLimit, snapshot.collections(), queryPolicy);
+                        cleanQuery, cleanEntityType, effectiveLimit, snapshot.collections(), currentPolicy);
                 List<SearchHit> hits = resultBudget.allocate(groups, effectiveLimit);
                 long found = sumFound(groups);
                 return new SearchResult(cleanQuery, hits.size(), hits, found,
@@ -105,7 +113,7 @@ public class SearchService {
         return new SearchResult(query, hits.size(), hits, foundHits, hasMore, "POSTGRES", degraded);
     }
 
-    private int effectiveLimit(int requestedLimit) {
+    private static int effectiveLimit(int requestedLimit, SearchQueryPolicy queryPolicy) {
         if (requestedLimit < 1 || requestedLimit > 50) {
             throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "Лимит поиска должен быть от 1 до 50");
         }

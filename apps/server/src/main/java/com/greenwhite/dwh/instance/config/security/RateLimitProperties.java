@@ -1,5 +1,6 @@
 package com.greenwhite.dwh.instance.config.security;
 
+import com.greenwhite.dwh.instance.search.SearchOwnerRateLimits;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.List;
@@ -17,7 +18,7 @@ public record RateLimitProperties(
         int tokenPerMinute,
         int expensivePerMinute,
         List<String> expensivePaths
-) {
+) implements SearchOwnerRateLimits {
     public RateLimitProperties {
         if (ipPerMinute <= 0) ipPerMinute = 60;
         if (publicReadPerMinute <= 0) publicReadPerMinute = 600;

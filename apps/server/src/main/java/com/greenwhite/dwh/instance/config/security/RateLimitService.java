@@ -2,8 +2,11 @@ package com.greenwhite.dwh.instance.config.security;
 
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
+import io.github.bucket4j.BucketConfiguration;
 import io.github.bucket4j.ConsumptionProbe;
 import io.github.bucket4j.Refill;
+import io.github.bucket4j.TimeMeter;
+import io.github.bucket4j.TokensInheritanceStrategy;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -24,13 +27,33 @@ public class RateLimitService {
     private static final long STALE_AFTER_MS = Duration.ofMinutes(10).toMillis();
 
     private final Map<String, Entry> buckets = new ConcurrentHashMap<>();
+    private final TimeMeter timeMeter;
+
+    public RateLimitService() {
+        this(TimeMeter.SYSTEM_NANOTIME);
+    }
+
+    RateLimitService(TimeMeter timeMeter) {
+        this.timeMeter = timeMeter;
+    }
 
     /** Пытается списать 1 токен; возвращает probe с остатком и временем до пополнения. */
     public ConsumptionProbe tryConsume(String key, int limitPerMinute) {
-        Entry entry = buckets.computeIfAbsent(key, k -> new Entry(newBucket(limitPerMinute)));
+        return tryConsume(key, limitPerMinute, limitPerMinute);
+    }
+
+    public ConsumptionProbe tryConsume(String key, int limitPerMinute, int capacity) {
+        Budget budget = new Budget(limitPerMinute, capacity);
+        Entry entry = buckets.computeIfAbsent(key, k -> new Entry(newBucket(budget), budget));
         entry.lastAccessMs.set(System.currentTimeMillis());
         maybeCleanup();
-        return entry.bucket.tryConsumeAndReturnRemaining(1);
+        synchronized (entry) {
+            if (!budget.equals(entry.budget)) {
+                entry.bucket.replaceConfiguration(configuration(budget), TokensInheritanceStrategy.AS_IS);
+                entry.budget = budget;
+            }
+            return entry.bucket.tryConsumeAndReturnRemaining(1);
+        }
     }
 
     /**
@@ -47,10 +70,20 @@ public class RateLimitService {
         return prev != nowMin && entry.lastLoggedMinute.compareAndSet(prev, nowMin);
     }
 
-    private static Bucket newBucket(int limitPerMinute) {
-        Bandwidth limit = Bandwidth.classic(limitPerMinute,
-                Refill.greedy(limitPerMinute, Duration.ofMinutes(1)));
-        return Bucket.builder().addLimit(limit).build();
+    private Bucket newBucket(Budget budget) {
+        return Bucket.builder()
+                .withCustomTimePrecision(timeMeter)
+                .addLimit(bandwidth(budget))
+                .build();
+    }
+
+    private static BucketConfiguration configuration(Budget budget) {
+        return BucketConfiguration.builder().addLimit(bandwidth(budget)).build();
+    }
+
+    private static Bandwidth bandwidth(Budget budget) {
+        return Bandwidth.classic(budget.capacity,
+                Refill.greedy(budget.perMinute, Duration.ofMinutes(1)));
     }
 
     private void maybeCleanup() {
@@ -61,9 +94,23 @@ public class RateLimitService {
         buckets.entrySet().removeIf(e -> e.getValue().lastAccessMs.get() < staleBefore);
     }
 
-    private record Entry(Bucket bucket, AtomicLong lastAccessMs, AtomicLong lastLoggedMinute) {
-        Entry(Bucket bucket) {
-            this(bucket, new AtomicLong(System.currentTimeMillis()), new AtomicLong(-1));
+    private static final class Entry {
+        private final Bucket bucket;
+        private final AtomicLong lastAccessMs = new AtomicLong(System.currentTimeMillis());
+        private final AtomicLong lastLoggedMinute = new AtomicLong(-1);
+        private Budget budget;
+
+        private Entry(Bucket bucket, Budget budget) {
+            this.bucket = bucket;
+            this.budget = budget;
+        }
+    }
+
+    private record Budget(int perMinute, int capacity) {
+        private Budget {
+            if (perMinute < 1 || capacity < 1) {
+                throw new IllegalArgumentException("Rate and capacity must be positive");
+            }
         }
     }
 }

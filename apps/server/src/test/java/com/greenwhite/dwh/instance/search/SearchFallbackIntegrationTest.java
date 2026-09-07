@@ -154,6 +154,11 @@ class SearchFallbackIntegrationTest {
                 999L, "admin", "admin@example.invalid", 1L, false, Set.of("*.*"), 1, false, 0, null));
         SearchService service = new SearchService(typesense, repository,
                 new SearchAccessPolicy(mock(RoleMembershipAuthorizer.class)), new SearchResultBudget(),
+                new com.greenwhite.dwh.instance.search.service.SearchPolicyProvider(
+                        new com.greenwhite.dwh.instance.search.SearchOwnerRateLimits() {
+                            @Override public int userPerMinute() { return 600; }
+                            @Override public int tokenPerMinute() { return 300; }
+                        }),
                 new com.greenwhite.dwh.instance.search.repository.SearchIndexStateRepository(jdbc));
 
         var result = service.search("budget-token", "ALL", 4);

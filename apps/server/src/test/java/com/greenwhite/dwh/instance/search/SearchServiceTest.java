@@ -11,6 +11,7 @@ import com.greenwhite.dwh.instance.search.repository.SearchFallbackRepository.Fa
 import com.greenwhite.dwh.instance.search.repository.SearchFallbackRepository.FallbackHit;
 import com.greenwhite.dwh.instance.search.repository.SearchFallbackRepository.FallbackSearch;
 import com.greenwhite.dwh.instance.search.service.SearchAccessPolicy;
+import com.greenwhite.dwh.instance.search.service.SearchPolicyProvider;
 import com.greenwhite.dwh.instance.search.service.SearchQueryPolicy;
 import com.greenwhite.dwh.instance.search.service.SearchResultBudget;
 import com.greenwhite.dwh.instance.search.service.SearchService;
@@ -46,7 +47,7 @@ class SearchServiceTest {
     private final RoleMembershipAuthorizer roleMembershipAuthorizer = mock(RoleMembershipAuthorizer.class);
     private final SearchIndexStateRepository indexState = mock(SearchIndexStateRepository.class);
     private final SearchService service = new SearchService(typesenseClient, fallbackRepository,
-            new SearchAccessPolicy(roleMembershipAuthorizer), new SearchResultBudget(), indexState);
+            new SearchAccessPolicy(roleMembershipAuthorizer), new SearchResultBudget(), defaultProvider(), indexState);
 
     @BeforeEach
     void authenticateWithLegacyWildcard() {
@@ -100,6 +101,38 @@ class SearchServiceTest {
         assertThat(result.source()).isEqualTo("TYPESENSE");
         verify(typesenseClient).multiSearch(eq("none"), eq("TASK"), eq(10), anyMap(), any());
         verifyNoInteractions(fallbackRepository);
+    }
+
+    @Test
+    void productionServiceReadsCurrentPolicyForEachRequest() {
+        SearchQueryPolicy twoResults = new SearchQueryPolicy(
+                2, 120, 20, "MIXED", SearchQueryPolicy.defaults().fields());
+        SearchQueryPolicy oneResult = new SearchQueryPolicy(
+                1, 120, 20, "MIXED", SearchQueryPolicy.defaults().fields());
+        var reads = new java.util.concurrent.atomic.AtomicInteger();
+        var provider = new SearchPolicyProvider(new SearchOwnerRateLimits() {
+            @Override public int userPerMinute() { return 600; }
+            @Override public int tokenPerMinute() { return 300; }
+        }) {
+            @Override
+            public SearchQueryPolicy current() {
+                return reads.getAndIncrement() == 0 ? twoResults : oneResult;
+            }
+        };
+        var dynamic = new SearchService(typesenseClient, fallbackRepository,
+                new SearchAccessPolicy(roleMembershipAuthorizer), new SearchResultBudget(), provider, indexState);
+        when(typesenseClient.isEnabled()).thenReturn(true);
+        when(typesenseClient.multiSearch(eq("first"), eq("TASK"), eq(2), anyMap(), eq(twoResults)))
+                .thenReturn(List.of(group("TASK", 0)));
+        when(typesenseClient.multiSearch(eq("second"), eq("TASK"), eq(1), anyMap(), eq(oneResult)))
+                .thenReturn(List.of(group("TASK", 0)));
+
+        dynamic.search("first", "TASK", 10);
+        dynamic.search("second", "TASK", 10);
+
+        verify(typesenseClient).multiSearch(eq("first"), eq("TASK"), eq(2), anyMap(), eq(twoResults));
+        verify(typesenseClient).multiSearch(eq("second"), eq("TASK"), eq(1), anyMap(), eq(oneResult));
+        assertThat(reads).hasValue(2);
     }
 
     @Test
@@ -273,6 +306,13 @@ class SearchServiceTest {
         return new SecurityContext.KauthPrincipal(
                 42L, "tester", "tester@example.com", 100L, false, permissions,
                 1L, false, 0, null);
+    }
+
+    private static SearchPolicyProvider defaultProvider() {
+        return new SearchPolicyProvider(new SearchOwnerRateLimits() {
+            @Override public int userPerMinute() { return 600; }
+            @Override public int tokenPerMinute() { return 300; }
+        });
     }
 
     private static final class SearchServiceWithSeams extends SearchService {

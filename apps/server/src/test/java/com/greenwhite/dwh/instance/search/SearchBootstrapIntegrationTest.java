@@ -80,7 +80,12 @@ class SearchBootstrapIntegrationTest extends SearchDeliveryTestSupport {
                 false,java.util.Set.of("*.*"),1L,false,0,null));
         try {
             var service = new SearchService(client, new SearchFallbackRepository(jdbc),
-                    new SearchAccessPolicy(mock(RoleMembershipAuthorizer.class)),new SearchResultBudget(),state);
+                    new SearchAccessPolicy(mock(RoleMembershipAuthorizer.class)),new SearchResultBudget(),
+                    new com.greenwhite.dwh.instance.search.service.SearchPolicyProvider(
+                            new com.greenwhite.dwh.instance.search.SearchOwnerRateLimits() {
+                                @Override public int userPerMinute() { return 600; }
+                                @Override public int tokenPerMinute() { return 300; }
+                            }), state);
             var fallback = service.search("nothing", "ALL", 10);
             assertThat(fallback.source()).isEqualTo("POSTGRES");
             assertThat(fallback.degraded()).isTrue();

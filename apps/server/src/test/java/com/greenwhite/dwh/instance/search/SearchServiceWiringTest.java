@@ -3,6 +3,7 @@ package com.greenwhite.dwh.instance.search;
 import com.greenwhite.dwh.instance.search.repository.SearchFallbackRepository;
 import com.greenwhite.dwh.instance.search.repository.SearchIndexStateRepository;
 import com.greenwhite.dwh.instance.search.service.SearchAccessPolicy;
+import com.greenwhite.dwh.instance.search.service.SearchPolicyProvider;
 import com.greenwhite.dwh.instance.search.service.SearchResultBudget;
 import com.greenwhite.dwh.instance.search.service.SearchService;
 import com.greenwhite.dwh.instance.search.typesense.TypesenseClient;
@@ -23,6 +24,11 @@ class SearchServiceWiringTest {
             context.registerBean(SearchIndexStateRepository.class, () -> mock(SearchIndexStateRepository.class));
             context.registerBean(SearchAccessPolicy.class, () -> mock(SearchAccessPolicy.class));
             context.registerBean(SearchResultBudget.class, SearchResultBudget::new);
+            context.registerBean(SearchOwnerRateLimits.class, () -> new SearchOwnerRateLimits() {
+                @Override public int userPerMinute() { return 600; }
+                @Override public int tokenPerMinute() { return 300; }
+            });
+            context.registerBean(SearchPolicyProvider.class);
             context.registerBean(SearchService.class);
 
             context.refresh();

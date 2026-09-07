@@ -9,6 +9,7 @@ import com.greenwhite.dwh.instance.md.pref.MdPref;
 import com.greenwhite.dwh.instance.md.repository.MdUserRepository;
 import com.greenwhite.dwh.instance.md.service.MdPermissionService;
 import com.greenwhite.dwh.instance.md.service.MdUserService;
+import com.greenwhite.dwh.instance.search.service.SearchPolicyProvider;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -48,7 +49,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         com.greenwhite.dwh.instance.md.controller.MdI18nController.class,
         com.greenwhite.dwh.instance.md.controller.MdI18nAdminController.class})
 @Import({SecurityConfig.class, ProblemDetailAuthHandlers.class,
-        KauthAuthenticationFilter.class, RateLimitFilter.class, RateLimitService.class,
+        KauthAuthenticationFilter.class, RateLimitFilter.class, RateLimitService.class, SearchPolicyProvider.class,
         com.greenwhite.dwh.instance.config.idempotency.IdempotencyFilter.class,
         SecurityTestController.class,
         com.greenwhite.dwh.instance.kauth.controller.KauthPasswordController.class})

@@ -3,6 +3,8 @@ package com.greenwhite.dwh.instance.config.security;
 import com.greenwhite.dwh.core.error.ErrorCode;
 import com.greenwhite.dwh.instance.audit.service.AuditLogService;
 import com.greenwhite.dwh.instance.common.security.SecurityContext;
+import com.greenwhite.dwh.instance.search.service.SearchPolicyProvider;
+import com.greenwhite.dwh.instance.search.service.SearchRateBudget;
 import io.github.bucket4j.ConsumptionProbe;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -32,16 +34,19 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     private final RateLimitProperties props;
     private final RateLimitService rateLimitService;
+    private final SearchPolicyProvider searchPolicyProvider;
     private final AuditLogService auditLogService;
     private final ProblemDetailAuthHandlers problemWriter;
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
     public RateLimitFilter(RateLimitProperties props,
                            RateLimitService rateLimitService,
+                           SearchPolicyProvider searchPolicyProvider,
                            AuditLogService auditLogService,
                            ProblemDetailAuthHandlers problemWriter) {
         this.props = props;
         this.rateLimitService = rateLimitService;
+        this.searchPolicyProvider = searchPolicyProvider;
         this.auditLogService = auditLogService;
         this.problemWriter = problemWriter;
     }
@@ -75,19 +80,30 @@ public class RateLimitFilter extends OncePerRequestFilter {
             limit = props.userPerMinute();
         }
 
-        String expensivePathFamily = findExpensivePathFamily(request.getRequestURI());
-        if (expensivePathFamily != null) {
-            key = key + ":exp:" + expensivePathFamily;
-            limit = Math.min(limit, props.expensivePerMinute());
+        SearchRateBudget searchBudget = null;
+        if (isInteractiveSearch(request)) {
+            if (principal != null) {
+                key = key + ":search";
+                searchBudget = searchPolicyProvider.effectiveBudget(limit);
+                limit = searchBudget.perMinute();
+            }
+        } else {
+            String expensivePathFamily = findExpensivePathFamily(request.getRequestURI());
+            if (expensivePathFamily != null) {
+                key = key + ":exp:" + expensivePathFamily;
+                limit = Math.min(limit, props.expensivePerMinute());
+            }
         }
 
-        ConsumptionProbe probe = rateLimitService.tryConsume(key, limit);
+        ConsumptionProbe probe = searchBudget == null
+                ? rateLimitService.tryConsume(key, limit)
+                : rateLimitService.tryConsume(key, searchBudget.perMinute(), searchBudget.capacity());
         if (probe.isConsumed()) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        long retryAfterSec = Math.max(1, probe.getNanosToWaitForRefill() / 1_000_000_000L);
+        long retryAfterSec = Math.max(1, Math.ceilDiv(probe.getNanosToWaitForRefill(), 1_000_000_000L));
         if (rateLimitService.shouldLogRejection(key)) {
             auditLogService.logSecurityEvent(EVENT_RATE_LIMIT_EXCEEDED,
                     principal != null ? principal.userId() : null,
@@ -108,6 +124,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
             }
         }
         return null;
+    }
+
+    private static boolean isInteractiveSearch(HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        return ("GET".equalsIgnoreCase(request.getMethod()) && "/api/v1/search".equals(uri))
+                || ("POST".equalsIgnoreCase(request.getMethod()) && "/api/v1/search/preview".equals(uri));
     }
 
     private boolean isPublicI18nRead(HttpServletRequest request) {

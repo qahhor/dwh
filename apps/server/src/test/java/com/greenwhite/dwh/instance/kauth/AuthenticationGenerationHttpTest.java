@@ -8,6 +8,7 @@ import com.greenwhite.dwh.instance.config.security.*;
 import com.greenwhite.dwh.instance.kauth.controller.*;
 import com.greenwhite.dwh.instance.kauth.pref.KauthPref;
 import com.greenwhite.dwh.instance.kauth.security.*;
+import com.greenwhite.dwh.instance.search.service.SearchPolicyProvider;
 import jakarta.servlet.http.Cookie;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.*;
@@ -197,6 +198,7 @@ class AuthenticationGenerationHttpTest {
     @Configuration(proxyBeanMethods=false) @EnableWebMvc @EnableTransactionManagement
     @Import({SecurityConfig.class,WebMvcConfig.class,ProblemDetailAuthHandlers.class,
             KauthAuthenticationFilter.class,RequiresPermissionInterceptor.class,RateLimitFilter.class,RateLimitService.class,
+            SearchPolicyProvider.class,
             IdempotencyFilter.class,IdempotencyService.class,IdempotencyRepository.class,GlobalExceptionHandler.class,
             KauthAuthController.class,KauthPasswordController.class,KauthApiTokenController.class,KauthChannelController.class})
     static class HttpConfiguration {}

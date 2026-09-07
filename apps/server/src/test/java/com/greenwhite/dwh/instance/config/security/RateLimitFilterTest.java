@@ -1,6 +1,7 @@
 package com.greenwhite.dwh.instance.config.security;
 
 import com.greenwhite.dwh.instance.audit.service.AuditLogService;
+import com.greenwhite.dwh.instance.kauth.repository.KauthApiTokenRepository;
 import com.greenwhite.dwh.instance.kauth.repository.KauthSessionRepository;
 import com.greenwhite.dwh.instance.kauth.security.KauthAuthenticationFilter;
 import com.greenwhite.dwh.instance.kauth.service.KauthApiTokenService;
@@ -9,11 +10,15 @@ import com.greenwhite.dwh.instance.md.pref.MdPref;
 import com.greenwhite.dwh.instance.md.repository.MdUserRepository;
 import com.greenwhite.dwh.instance.md.service.MdPermissionService;
 import com.greenwhite.dwh.instance.md.service.MdUserService;
+import com.greenwhite.dwh.instance.search.service.SearchPolicyProvider;
+import io.github.bucket4j.TimeMeter;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -23,7 +28,10 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -43,13 +51,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @WebMvcTest(controllers = SecurityTestController.class)
 @Import({SecurityConfig.class, ProblemDetailAuthHandlers.class,
-        KauthAuthenticationFilter.class, RateLimitFilter.class, RateLimitService.class,
+        KauthAuthenticationFilter.class, RateLimitFilter.class, SearchPolicyProvider.class,
+        RateLimitFilterTest.FixedClockRateLimitConfiguration.class,
         com.greenwhite.dwh.instance.config.idempotency.IdempotencyFilter.class,
         SecurityTestController.class})
 @TestPropertySource(properties = {
         "dwh.rate-limit.ip-per-minute=2",
         "dwh.rate-limit.public-read-per-minute=4",
-        "dwh.rate-limit.user-per-minute=3",
+        "dwh.rate-limit.user-per-minute=30",
+        "dwh.rate-limit.token-per-minute=5",
         "dwh.rate-limit.expensive-per-minute=1"
 })
 class RateLimitFilterTest {
@@ -69,6 +79,10 @@ class RateLimitFilterTest {
     AuditLogService auditLogService;
     @MockitoBean
     com.greenwhite.dwh.instance.config.idempotency.IdempotencyService idempotencyService;
+    @Autowired
+    MutableTimeMeter timeMeter;
+    @Autowired
+    SearchPolicyProvider searchPolicyProvider;
 
 
     @Test
@@ -91,7 +105,7 @@ class RateLimitFilterTest {
     void userLimitTracksAuthenticatedUser() throws Exception {
         mockAuthenticatedUser(7L, "session-7");
 
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 30; i++) {
             mvc.perform(get("/api/v1/security-test")
                             .with(r -> { r.setRemoteAddr("10.9.9.2"); return r; })
                             .cookie(new Cookie("DWH_SESSION", "session-7")))
@@ -108,14 +122,15 @@ class RateLimitFilterTest {
     }
 
     @Test
-    @DisplayName("Дорогой путь (/api/v1/search/**) ограничен строже обычного")
-    void expensivePathUsesStricterLimit() throws Exception {
+    @DisplayName("Search management path остаётся в строгом expensive bucket")
+    void searchManagementPathUsesExpensiveLimit() throws Exception {
         mockAuthenticatedUser(8L, "session-8");
 
-        mvc.perform(get("/api/v1/search").param("q", "x")
+        mvc.perform(get("/api/v1/search/rebuild")
                         .with(r -> { r.setRemoteAddr("10.9.9.3"); return r; })
-                        .cookie(new Cookie("DWH_SESSION", "session-8")));
-        mvc.perform(get("/api/v1/search").param("q", "x")
+                        .cookie(new Cookie("DWH_SESSION", "session-8")))
+                .andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/search/rebuild")
                         .with(r -> { r.setRemoteAddr("10.9.9.3"); return r; })
                         .cookie(new Cookie("DWH_SESSION", "session-8")))
                 .andExpect(status().isTooManyRequests());
@@ -143,15 +158,125 @@ class RateLimitFilterTest {
     void expensivePathFamiliesUseIndependentBuckets() throws Exception {
         mockAuthenticatedUser(9L, "session-9");
 
-        mvc.perform(get("/api/v1/search").param("q", "admin")
+        mvc.perform(get("/api/v1/audit/logs")
                         .cookie(new Cookie("DWH_SESSION", "session-9")))
                 .andExpect(status().isNotFound());
         mvc.perform(get("/api/v1/audit/logs")
                         .cookie(new Cookie("DWH_SESSION", "session-9")))
-                .andExpect(status().isNotFound());
-        mvc.perform(get("/api/v1/search").param("q", "admin")
-                        .cookie(new Cookie("DWH_SESSION", "session-9")))
                 .andExpect(status().isTooManyRequests());
+
+        for (int request = 0; request < 20; request++) {
+            mvc.perform(get("/api/v1/search").param("q", "private-query-value")
+                            .cookie(new Cookie("DWH_SESSION", "session-9")))
+                    .andExpect(status().isNotFound());
+        }
+        mvc.perform(get("/api/v1/search").param("q", "private-query-value")
+                        .cookie(new Cookie("DWH_SESSION", "session-9")))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(header().string("Retry-After", matchesPattern("[1-9][0-9]*")));
+    }
+
+    @Test
+    @DisplayName("Interactive search bucket разделён по владельцу и не пишет query в security log")
+    void searchBurstIsOwnerScopedAndSecurityLogOmitsQuery() throws Exception {
+        mockAuthenticatedApiUser(11L, 111L, "api-11");
+        mockAuthenticatedApiUser(12L, 112L, "api-12");
+
+        for (int request = 0; request < 5; request++) {
+            mvc.perform(post("/api/v1/search/preview").param("q", "sensitive-search-text")
+                            .header("Authorization", "Bearer api-11"))
+                    .andExpect(status().isNotFound());
+        }
+        mvc.perform(post("/api/v1/search/preview").param("q", "sensitive-search-text")
+                        .header("Authorization", "Bearer api-11"))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(header().string("Retry-After", matchesPattern("[1-9][0-9]*")));
+        mvc.perform(post("/api/v1/search/preview").param("q", "different-sensitive-text")
+                        .header("Authorization", "Bearer api-11"))
+                .andExpect(status().isTooManyRequests());
+        mvc.perform(post("/api/v1/search/preview").param("q", "sensitive-search-text")
+                        .header("Authorization", "Bearer api-12"))
+                .andExpect(status().isNotFound());
+
+        var details = org.mockito.ArgumentCaptor.<Map<String, Object>>captor();
+        verify(auditLogService).logSecurityEvent(
+                eq(RateLimitFilter.EVENT_RATE_LIMIT_EXCEEDED), eq(11L), anyString(), any(), details.capture());
+        assertThat(details.getValue().toString()).doesNotContain("sensitive-search-text");
+        assertThat(details.getValue().toString()).doesNotContain("different-sensitive-text");
+    }
+
+    @Test
+    @DisplayName("Только GET получает interactive search budget")
+    void postSearchRemainsInExpensiveBucket() throws Exception {
+        mockAuthenticatedApiUser(16L, 116L, "api-16");
+
+        mvc.perform(post("/api/v1/search").param("q", "admin")
+                        .header("Authorization", "Bearer api-16"))
+                .andExpect(status().isNotFound());
+        mvc.perform(post("/api/v1/search").param("q", "admin")
+                        .header("Authorization", "Bearer api-16"))
+                .andExpect(status().isTooManyRequests());
+    }
+
+    @Test
+    @DisplayName("GET preview остаётся в expensive bucket")
+    void getPreviewRemainsInExpensiveBucket() throws Exception {
+        mockAuthenticatedApiUser(17L, 117L, "api-17");
+
+        mvc.perform(get("/api/v1/search/preview").param("q", "admin")
+                        .header("Authorization", "Bearer api-17"))
+                .andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/search/preview").param("q", "admin")
+                        .header("Authorization", "Bearer api-17"))
+                .andExpect(status().isTooManyRequests());
+    }
+
+    @Test
+    @DisplayName("API owner cap ограничивает search rate и capacity")
+    void apiOwnerLimitCapsSearchRateAndCapacity() throws Exception {
+        mockAuthenticatedApiUser(13L, 113L, "api-13");
+        var exposedBudgets = searchPolicyProvider.effectiveBudgets();
+        assertThat(exposedBudgets.user().perMinute()).isEqualTo(30);
+        assertThat(exposedBudgets.user().capacity()).isEqualTo(20);
+        assertThat(exposedBudgets.api().perMinute()).isEqualTo(5);
+        assertThat(exposedBudgets.api().capacity()).isEqualTo(5);
+
+        for (int request = 0; request < 5; request++) {
+            mvc.perform(get("/api/v1/search").param("q", "admin")
+                            .header("Authorization", "Bearer api-13"))
+                    .andExpect(status().isNotFound());
+        }
+        mvc.perform(get("/api/v1/search").param("q", "admin")
+                        .header("Authorization", "Bearer api-13"))
+                .andExpect(status().isTooManyRequests());
+    }
+
+    @Test
+    @DisplayName("Неаутентифицированный search сохраняет IP policy")
+    void unauthenticatedSearchRetainsIpPolicy() throws Exception {
+        for (int request = 0; request < 2; request++) {
+            mvc.perform(get("/api/v1/search").param("q", "admin")
+                            .with(r -> { r.setRemoteAddr("10.9.9.14"); return r; }))
+                    .andExpect(status().isUnauthorized());
+        }
+        mvc.perform(get("/api/v1/search").param("q", "admin")
+                        .with(r -> { r.setRemoteAddr("10.9.9.14"); return r; }))
+                .andExpect(status().isTooManyRequests());
+    }
+
+    @Test
+    @DisplayName("Retry-After округляется вверх до полной секунды")
+    void retryAfterRoundsUp() throws Exception {
+        mockAuthenticatedUser(15L, "session-15");
+
+        mvc.perform(get("/api/v1/audit/logs")
+                        .cookie(new Cookie("DWH_SESSION", "session-15")))
+                .andExpect(status().isNotFound());
+        timeMeter.advanceNanos(1);
+        mvc.perform(get("/api/v1/audit/logs")
+                        .cookie(new Cookie("DWH_SESSION", "session-15")))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(header().string("Retry-After", "60"));
     }
 
     @Test
@@ -185,5 +310,49 @@ class RateLimitFilterTest {
                 false, false, null, Instant.now(), Instant.now(), null, null, 0));
         when(permissionService.getEffectivePermissions(userId)).thenReturn(Set.of("*.*"));
         when(permissionService.getPermissionVersion(userId)).thenReturn(1L);
+    }
+
+    private void mockAuthenticatedApiUser(long userId, long tokenId, String rawToken) {
+        when(apiTokenService.validateToken(rawToken)).thenReturn(Optional.of(
+                new KauthApiTokenRepository.ApiTokenRecord(
+                        tokenId, userId, "test", "dwh_test", "hash", null,
+                        Instant.now(), null, null, 0)));
+        when(userService.getUserById(userId)).thenReturn(new MdUserRepository.UserRecord(
+                userId, "U" + userId, "u" + userId, "u" + userId + "@x", null, "hash",
+                MdPref.STATE_ACTIVE, null, "ru", "UTC", null, Map.of(),
+                false, false, null, Instant.now(), Instant.now(), null, null, 0));
+        when(permissionService.getEffectivePermissions(userId)).thenReturn(Set.of("*.*"));
+        when(permissionService.getPermissionVersion(userId)).thenReturn(1L);
+    }
+
+    @TestConfiguration(proxyBeanMethods = false)
+    static class FixedClockRateLimitConfiguration {
+        @Bean
+        MutableTimeMeter mutableTimeMeter() {
+            return new MutableTimeMeter();
+        }
+
+        @Bean
+        RateLimitService rateLimitService(MutableTimeMeter timeMeter) {
+            return new RateLimitService(timeMeter);
+        }
+    }
+
+    static final class MutableTimeMeter implements TimeMeter {
+        private final AtomicLong currentNanos = new AtomicLong();
+
+        @Override
+        public long currentTimeNanos() {
+            return currentNanos.get();
+        }
+
+        @Override
+        public boolean isWallClockBased() {
+            return false;
+        }
+
+        void advanceNanos(long nanos) {
+            currentNanos.addAndGet(nanos);
+        }
     }
 }
