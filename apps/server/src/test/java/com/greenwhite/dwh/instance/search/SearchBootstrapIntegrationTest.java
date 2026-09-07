@@ -41,10 +41,16 @@ class SearchBootstrapIntegrationTest extends SearchDeliveryTestSupport {
         var projection = reader.read("USER",id).orElseThrow();
         client.upsertDocument("users",projection.document());
         delivery.acknowledge(claim,projection.fingerprint());
+        var receipt=jobRepository.insert(new com.greenwhite.dwh.instance.search.dto.SearchManagementDtos.StartJobRequest(java.util.UUID.randomUUID(),"REBUILD",null),generation,null);
+        jobRepository.claim(owner);
+        jobRepository.checkpoint(receipt.id(),owner,"ACTIVATING",1,0,null);
+        var frozen=generationRepository.find(generation).orElseThrow();
+        try (var proof=reconciliation.begin(frozen.delivery(1))) {
+        while (!proof.advance()) { /* bounded fixture units */ }
         var changed = new CountDownLatch(1);
         var commit = new CountDownLatch(1);
         var activating = new CountDownLatch(1);
-        var pid = new java.util.concurrent.atomic.AtomicInteger();
+        int pid=proof.transaction(connection -> connection.sql("select pg_backend_pid()").query(Integer.class).single());
         try (var executor = Executors.newFixedThreadPool(2)) {
             var publishing = executor.submit(() -> tx.executeWithoutResult(status -> {
                 users.updateUser(id,"After activation",null,null,null,null,null,null,null,null,id);
@@ -53,15 +59,14 @@ class SearchBootstrapIntegrationTest extends SearchDeliveryTestSupport {
             Future<Boolean> activation = null;
             try {
                 assertThat(changed.await(10,TimeUnit.SECONDS)).isTrue();
-                activation = executor.submit(() -> tx.execute(status -> {
-                    pid.set(jdbc.sql("select pg_backend_pid()").query(Integer.class).single());
-                    activating.countDown(); return state.activateInitial(generation,1,owner);
-                }));
+                activation = executor.submit(() -> {
+                    activating.countDown(); return generationService.finish(proof,frozen,jobRepository.find(receipt.id()).orElseThrow(),owner,1);
+                });
                 assertThat(activating.await(10,TimeUnit.SECONDS)).isTrue();
                 long deadline = System.nanoTime()+TimeUnit.SECONDS.toNanos(8);
                 boolean blocked = false;
                 while (!activation.isDone() && System.nanoTime()<deadline) {
-                    blocked = jdbc.sql("select cardinality(pg_blocking_pids(:pid))>0").param("pid",pid.get()).query(Boolean.class).single();
+                    blocked = jdbc.sql("select cardinality(pg_blocking_pids(:pid))>0").param("pid",pid).query(Boolean.class).single();
                     if (blocked) break;
                 }
                 assertThat(blocked).isTrue();
@@ -70,7 +75,9 @@ class SearchBootstrapIntegrationTest extends SearchDeliveryTestSupport {
             publishing.get(10,TimeUnit.SECONDS);
             assertThat(activation.get(10,TimeUnit.SECONDS)).isFalse();
         }
-        worker.runOnce();
+        }
+        jobRepository.checkpoint(receipt.id(),owner,"RUNNING",1,0,null);
+        for (int i=0;i<40 && !state.snapshot().initialized();i++) runCycle();
         assertThat(state.snapshot().initialized()).isTrue();
         assertThat(documents.get("users/"+id)).containsEntry("name","After activation");
     }
@@ -106,19 +113,20 @@ class SearchBootstrapIntegrationTest extends SearchDeliveryTestSupport {
     @Test void startupOutageRecoversAndMissingCollectionsUseOneGeneratedInitialGeneration() {
         long id = user("Recovery");
         failures.set(1);
-        worker.runOnce();
+        try { runCycle(); } catch (com.greenwhite.dwh.instance.search.typesense.TypesenseException expected) { /* startup retries next cycle */ }
         assertThat(state.snapshot().initialized()).isFalse();
-        for (int i = 0; i < 12 && !state.snapshot().initialized(); i++) worker.runOnce();
+        for (int i = 0; i < 40 && !state.snapshot().initialized(); i++) runCycle();
         assertThat(state.snapshot().initialized()).isTrue();
         assertThat(state.snapshot().legacy()).isFalse();
-        assertThat(state.snapshot().collections().values()).allMatch(name -> name.startsWith("search_"));
+        assertThat(state.snapshot().collections().values()).allMatch(name -> name.startsWith("cms_"));
+        assertThat(jdbc.sql("select count(*) from search_jobs where action='REBUILD' and state='SUCCEEDED'").query(Long.class).single()).isOne();
         assertThat(schemas).hasSize(3);
         assertThat(documents.get(state.snapshot().collections().get("USER") + "/" + id)).containsEntry("name", "Recovery");
     }
 
     @Test void allExistingCollectionsAreRegisteredAsLegacyWithoutBeingRecreatedOrVerified() {
         collections.addAll(List.of("tasks", "projects", "users"));
-        worker.runOnce();
+        runCycle();
         assertThat(state.snapshot().initialized()).isTrue();
         assertThat(state.snapshot().legacy()).isTrue();
         assertThat(state.snapshot().collections()).isEqualTo(Map.of("TASK", "tasks", "PROJECT", "projects", "USER", "users"));
@@ -129,9 +137,9 @@ class SearchBootstrapIntegrationTest extends SearchDeliveryTestSupport {
 
     @Test void partialLegacySetIsPreservedWhileTheNewGenerationBuilds() {
         collections.add("tasks");
-        worker.runOnce();
+        runCycle();
         assertThat(state.snapshot().initialized()).isFalse();
-        for (int i = 0; i < 12 && !state.snapshot().initialized(); i++) worker.runOnce();
+        for (int i = 0; i < 40 && !state.snapshot().initialized(); i++) runCycle();
         assertThat(collections).contains("tasks").hasSize(4);
         assertThat(state.snapshot().collections().values()).doesNotContain("tasks");
     }
@@ -144,7 +152,7 @@ class SearchBootstrapIntegrationTest extends SearchDeliveryTestSupport {
                 """).update();
         long first = jdbc.sql("select min(id) from md_users").query(Long.class).single();
         tx.executeWithoutResult(status -> { publisher.changed("USER", first); publisher.changed("USER", first); });
-        for (int i = 0; i < 3; i++) worker.runOnce();
+        for (int i = 0; i < 3; i++) runCycle();
         assertThat(jdbc.sql("select count(*) from search_projection_versions where entity_type='USER'").query(Long.class).single()).isEqualTo(100);
         assertThat(jdbc.sql("select revision from search_projection_versions where entity_type='USER' and entity_id=:id")
                 .param("id", first).query(Long.class).single()).isEqualTo(2);
@@ -152,7 +160,7 @@ class SearchBootstrapIntegrationTest extends SearchDeliveryTestSupport {
         long cursor = jdbc.sql("select discovery_after_id from search_generations").query(Long.class).single();
         assertThat(cursor).isGreaterThan(first);
         recreateWorker();
-        for (int i = 0; i < 8 && !state.snapshot().initialized(); i++) worker.runOnce();
+        for (int i = 0; i < 40 && !state.snapshot().initialized(); i++) runCycle();
         assertThat(state.snapshot().generationId()).isEqualTo(generation);
         assertThat(documents).hasSize(205);
         assertThat(schemas).hasSize(3);
@@ -160,7 +168,7 @@ class SearchBootstrapIntegrationTest extends SearchDeliveryTestSupport {
 
     @Test @SuppressWarnings("unchecked")
     void mixedSchemasPreserveDefaultTokenizerAndIncludeDeliveryMetadata() {
-        worker.runOnce();
+        runCycle();
         assertThat(schemas).hasSize(3);
         for (var schema : schemas) {
             List<Map<String,Object>> fields = (List<Map<String,Object>>) schema.get("fields");
@@ -219,6 +227,11 @@ class SearchBootstrapIntegrationTest extends SearchDeliveryTestSupport {
     static class BootstrapConfiguration {
         @Bean DataSourceTransactionManager transactionManager() { return manager; }
         @Bean SearchDeliveryWorker searchWorker() { return lifecycleWorker; }
+        @Bean com.greenwhite.dwh.instance.search.service.SearchJobWorker searchJobWorker() {
+            var f=lifecycleFixture;
+            return new com.greenwhite.dwh.instance.search.service.SearchJobWorker(f.client,lifecycleWorker,f.state,f.jobRepository,
+                    f.generationRepository,f.generationService,f.jobService,f.reconciliation,f.storage);
+        }
         @Bean InstanceBootstrap instanceBootstrap() {
             return new InstanceBootstrap(jdbc, new KauthPasswordHasher(), new MdPermissionService(new MdPermissionRepository(jdbc)),
                     new InstanceBootstrapProperties("search-test", "Search test", "S", "bootstrap-admin",

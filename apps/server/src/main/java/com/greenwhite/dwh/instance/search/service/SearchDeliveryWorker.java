@@ -14,6 +14,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import java.time.Clock;
 import java.time.Duration;
 import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.DoubleSupplier;
 
@@ -28,8 +29,14 @@ public class SearchDeliveryWorker {
     private final Clock clock;
     private final DoubleSupplier jitter;
     private UUID owner;
+    private SearchMetrics metrics=SearchMetrics.unmetered();
 
     @Autowired
+    public SearchDeliveryWorker(TypesenseClient client,SearchProjectionReader reader,SearchDeliveryRepository delivery,
+            SearchIndexStateRepository state,Optional<SearchMetrics> metrics) {
+        this(client,reader,delivery,state);this.metrics=metrics.orElseGet(SearchMetrics::unmetered);
+    }
+
     public SearchDeliveryWorker(TypesenseClient client, SearchProjectionReader reader,
             SearchDeliveryRepository delivery, SearchIndexStateRepository state) {
         this(client, reader, delivery, state, Clock.systemUTC(), () -> ThreadLocalRandom.current().nextDouble());
@@ -45,6 +52,11 @@ public class SearchDeliveryWorker {
         this.jitter = jitter;
     }
 
+    public SearchDeliveryWorker(TypesenseClient client,SearchProjectionReader reader,SearchDeliveryRepository delivery,
+            SearchIndexStateRepository state,Clock clock,DoubleSupplier jitter,SearchMetrics metrics) {
+        this(client,reader,delivery,state,clock,jitter);this.metrics=metrics;
+    }
+
     public synchronized void startLifecycle(UUID owner) {
         if (this.owner != null) throw new IllegalStateException("Worker lifecycle already started");
         state.recoverOwnership(owner);
@@ -58,49 +70,58 @@ public class SearchDeliveryWorker {
         if (owner == null || !client.isEnabled()) return;
         delivery.releaseUnfinishedCycle(owner);
         var generation = state.deliveryGeneration(owner);
-        try {
-            if (generation.isEmpty()) {
-                boolean tasksExist = client.collectionExists(TypesenseClient.COL_TASKS);
-                boolean projectsExist = client.collectionExists(TypesenseClient.COL_PROJECTS);
-                boolean usersExist = client.collectionExists(TypesenseClient.COL_USERS);
-                state.registerInitial(tasksExist && projectsExist && usersExist, owner);
-                generation = state.deliveryGeneration(owner);
-            }
-            if (generation.isEmpty()) return;
-            var initial = generation.get();
-            if (initial.state().equals("BUILDING") && initial.discoveryEntity().equals("TASK") && initial.discoveryAfterId() == 0) {
-                for (String type : java.util.List.of("TASK", "PROJECT", "USER")) {
-                    client.ensureCollection(initial.collections().get(type), type);
-                }
-            }
-            state.discoverPage(initial, owner, 100);
-        } catch (TypesenseException unavailable) {
-            log.warn("Search background initialization will retry after dependency failure");
-            return;
-        }
-        var target = generation.get();
+        if (generation.isEmpty()) return;
+        state.discoverPage(generation.get(), owner, 100);
+        runGeneration(generation.get());
+    }
+
+    /** Candidate delivery uses the same bounded claims and writer as active delivery. */
+    public synchronized void runGeneration(SearchIndexStateRepository.Generation target) {
+        if (owner==null || Thread.currentThread().isInterrupted()) return;
+        if (TransactionSynchronizationManager.isActualTransactionActive())
+            throw new IllegalTransactionStateException("Search delivery cannot run in a business transaction");
         var claims = delivery.claim(target.id(), owner, clock.instant(), 100);
         try {
+            Map<String,List<PendingDocument>> batches=new LinkedHashMap<>();
             for (var claim : claims) {
                 if (Thread.currentThread().isInterrupted()) break;
+                if (claim.attempts()>0) metrics.retry();
                 try {
                     var projection = reader.read(claim.entityType(), claim.entityId());
                     if (projection.isEmpty() || projection.get().revision() != claim.revision()) continue;
                     var value = projection.get();
                     String collection = target.collections().get(claim.entityType());
-                    if (value.document() == null) client.deleteDocument(collection, Long.toString(value.entityId()));
-                    else client.upsertDocument(collection, value.document());
-                    delivery.acknowledge(claim, value.fingerprint());
+                    if (value.document() == null) {
+                        client.deleteDocument(collection, Long.toString(value.entityId()));
+                        delivery.acknowledge(claim, value.fingerprint());
+                    } else batches.computeIfAbsent(collection,key -> new ArrayList<>()).add(new PendingDocument(claim,value));
                 } catch (RuntimeException failure) {
                     // Persist only a fixed code. Source content and downstream error bodies never become logs.
-                    delivery.failed(claim, clock.instant().plus(retryDelay(claim.attempts() + 1)));
+                    delivery.failed(claim, clock.instant().plus(retryDelay(claim.attempts() + 1)),
+                            failure instanceof SearchProjectionReader.DocumentTooLargeException ? "DOCUMENT_TOO_LARGE" : "DELIVERY_FAILED");
+                }
+            }
+            for (var batch:batches.entrySet()) {
+                if (Thread.currentThread().isInterrupted()) break;
+                try {
+                    var acks=client.importDocuments(batch.getKey(),batch.getValue().stream().map(value -> value.projection().document()).toList());
+                    for (int i=0;i<batch.getValue().size();i++) {
+                        var value=batch.getValue().get(i);
+                        if (acks.get(i).success()) delivery.acknowledge(value.claim(),value.projection().fingerprint());
+                        else delivery.failed(value.claim(),clock.instant().plus(retryDelay(value.claim().attempts()+1)),acks.get(i).errorCode());
+                    }
+                } catch (RuntimeException failure) {
+                    for (var value:batch.getValue()) delivery.failed(value.claim(),clock.instant().plus(retryDelay(value.claim().attempts()+1)));
                 }
             }
         } finally {
             for (var claim : claims) delivery.release(claim);
+            var observation=delivery.observation(target.id());
+            metrics.queue(target.id().equals(state.snapshot().generationId()),observation.pending(),observation.lagSeconds());
         }
-        if (target.state().equals("BUILDING")) state.activateInitial(target.id(), target.version(), owner);
     }
+
+    private record PendingDocument(SearchDeliveryRepository.Claim claim,SearchProjectionReader.Projection projection) {}
 
     private Duration retryDelay(int attempt) {
         long seconds = Math.min(300, 1L << Math.min(30, Math.max(0, attempt - 1)));

@@ -38,6 +38,12 @@ import static org.mockito.Mockito.*;
 
 @Testcontainers
 class SearchRevisionIntegrationTest {
+    @Test void oversizedProjectionFailsBeforeMaterializingAndCannotBecomeATombstone() {
+        long id=create("large projection");
+        jdbc.sql("update ms_tasks set description_markdown=repeat('x',1048576) where id=:id").param("id",id).update();
+        var reader=new SearchProjectionReader(jdbc,new ObjectMapper());
+        assertThatThrownBy(() -> reader.read("TASK",id)).hasMessage("DOCUMENT_TOO_LARGE");
+    }
     @Container static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:18-alpine")
             .withDatabaseName("search_revisions").withUsername("test_user").withPassword("test_pass");
     static JdbcClient jdbc;

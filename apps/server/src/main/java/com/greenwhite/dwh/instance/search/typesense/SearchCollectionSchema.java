@@ -9,6 +9,11 @@ public final class SearchCollectionSchema {
     private SearchCollectionSchema() {}
 
     public static Map<String,Object> mixed(String collection, String entityType) {
+        return forProfile(collection, entityType, "MIXED");
+    }
+
+    public static Map<String,Object> forProfile(String collection, String entityType, String profile) {
+        if (!List.of("MIXED", "RU").contains(profile)) throw new IllegalArgumentException("Unknown schema profile");
         List<Map<String,Object>> fields = new ArrayList<>();
         switch (entityType) {
             case "TASK" -> {
@@ -38,6 +43,20 @@ public final class SearchCollectionSchema {
         }
         fields.add(Map.of("name", "_projection_revision", "type", "int64", "index", false, "sort", false));
         fields.add(Map.of("name", "_projection_fingerprint", "type", "string", "index", false));
+        if ("RU".equals(profile)) {
+            List<String> naturalLanguage = switch (entityType) {
+                case "TASK" -> List.of("title", "description_markdown", "status_name", "project_name");
+                case "PROJECT" -> List.of("name", "description");
+                default -> List.of("name");
+            };
+            fields.replaceAll(field -> {
+                if (!naturalLanguage.contains(field.get("name"))) return field;
+                var localized = new java.util.LinkedHashMap<String,Object>(field);
+                localized.put("locale", "ru");
+                localized.put("stem", true);
+                return Map.copyOf(localized);
+            });
+        }
         return Map.of("name", collection, "fields", List.copyOf(fields));
     }
 

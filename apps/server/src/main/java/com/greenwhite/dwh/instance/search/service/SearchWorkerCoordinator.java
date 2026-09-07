@@ -16,11 +16,12 @@ import java.util.concurrent.*;
 public class SearchWorkerCoordinator {
     private static final Logger log = LoggerFactory.getLogger(SearchWorkerCoordinator.class);
     private final SearchDeliveryWorker worker;
+    private final SearchJobWorker jobs;
     private final UUID owner = UUID.randomUUID();
     private ScheduledExecutorService executor;
     private boolean started;
 
-    public SearchWorkerCoordinator(SearchDeliveryWorker worker) { this.worker = worker; }
+    public SearchWorkerCoordinator(SearchDeliveryWorker worker,SearchJobWorker jobs) { this.worker = worker;this.jobs=jobs; }
 
     /** Ready is after every ApplicationRunner, including the committed first-admin bootstrap. */
     @EventListener(ApplicationReadyEvent.class)
@@ -33,8 +34,9 @@ public class SearchWorkerCoordinator {
         });
         executor.scheduleWithFixedDelay(() -> {
             try {
-                if (!started) { worker.startLifecycle(owner); started = true; }
+                if (!started) { worker.startLifecycle(owner);jobs.startLifecycle(owner); started = true; }
                 worker.runOnce();
+                jobs.runOnce();
             } catch (RuntimeException failure) {
                 log.warn("Search background cycle failed; durable work remains pending");
             }
@@ -50,5 +52,6 @@ public class SearchWorkerCoordinator {
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
         }
+        jobs.close();
     }
 }

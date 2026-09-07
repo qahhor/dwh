@@ -35,6 +35,12 @@ public class TypesenseClient {
     private final RestClient restClient;
     private final TypesenseSearchMapper searchMapper;
     private final ObjectMapper objectMapper;
+    private com.greenwhite.dwh.instance.search.service.SearchMetrics metrics=com.greenwhite.dwh.instance.search.service.SearchMetrics.unmetered();
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public TypesenseClient(TypesenseProperties properties,ObjectMapper mapper,java.util.Optional<com.greenwhite.dwh.instance.search.service.SearchMetrics> metrics) {
+        this(properties,mapper);this.metrics=metrics.orElseGet(com.greenwhite.dwh.instance.search.service.SearchMetrics::unmetered);
+    }
 
     public TypesenseClient(TypesenseProperties properties, ObjectMapper objectMapper) {
         this.properties = properties;
@@ -95,8 +101,7 @@ public class TypesenseClient {
         try {
             var schema = metadata("/collections/{collection}", collection);
             Long count = nonnegativeInteger(schema.path("num_documents"), false);
-            // RU comparison uses the shared profile-aware schema builder in the generation-management task.
-            Boolean matches = "MIXED".equals(registeredProfile) ? matchesMixedSchema(schema, collection, entityType) : null;
+            Boolean matches = matchesSchema(schema, collection, entityType, registeredProfile);
             return new CollectionMetadata(count, null, matches,
                     count == null ? "COLLECTION_METADATA_UNAVAILABLE" : null);
         } catch (HttpClientErrorException.NotFound missing) {
@@ -108,6 +113,115 @@ public class TypesenseClient {
 
     public TransportBudgets transportBudgets() { return new TransportBudgets(CONNECT_TIMEOUT_MS, READ_TIMEOUT_MS); }
 
+    public record ImportAck(String id, boolean success, String errorCode) {}
+
+    public TypesenseDocumentStream openDocumentMetadata(String collection) {
+        if (!isEnabled()) throw TypesenseException.uninitialized();
+        try {
+            return restClient.get().uri("/collections/{collection}/documents/export", collection)
+                    .exchange((request, response) -> {
+                        if (!response.getStatusCode().is2xxSuccessful()) {
+                            response.getBody().close(); response.close();
+                            throw TypesenseException.unavailable();
+                        }
+                        try { return new TypesenseDocumentStream(response, objectMapper); }
+                        catch (Exception failure) { response.close();throw failure; }
+                    }, false);
+        } catch (Exception failure) { throw TypesenseException.unavailable(); }
+    }
+    public void forEachDocumentMetadata(String collection,
+            java.util.function.Consumer<TypesenseDocumentStream.DocumentMetadata> consumer) {
+        try (var stream = openDocumentMetadata(collection)) {
+            while (!stream.exhausted()) stream.readPage(100, 1_048_576).forEach(consumer);
+        }
+    }
+
+    public List<ImportAck> importDocuments(String collection, List<Map<String,Object>> documents) {
+        if (!isEnabled()) throw TypesenseException.uninitialized();
+        var result = new java.util.ArrayList<ImportAck>();
+        var batch = new java.io.ByteArrayOutputStream();
+        var ids = new java.util.ArrayList<String>();
+        for (var document : documents) {
+            if (Thread.currentThread().isInterrupted()) throw TypesenseException.unavailable();
+            Object rawId = document.get("id");
+            if (!(rawId instanceof String id) || id.isBlank()) throw TypesenseException.invalidResponse();
+            var encoded = new LimitedOutput(1_048_575);
+            try { objectMapper.writeValue(encoded, document); }
+            catch (RuntimeException failure) {
+                if (!encoded.exceeded) throw TypesenseException.invalidResponse();
+            }
+            if (encoded.exceeded) {
+                if (!ids.isEmpty()) { result.addAll(sendImport(collection, batch.toByteArray(), ids)); batch.reset(); ids.clear(); }
+                result.add(new ImportAck(id, false, "DOCUMENT_TOO_LARGE"));
+                metrics.imported(false,1);
+                continue;
+            }
+            byte[] line = encoded.bytes.toByteArray();
+            if (ids.size() == 100 || batch.size() + line.length + 1 > 1_048_576) {
+                result.addAll(sendImport(collection, batch.toByteArray(), ids)); batch.reset(); ids.clear();
+            }
+            batch.writeBytes(line); batch.write('\n'); ids.add(id);
+        }
+        if (!ids.isEmpty()) result.addAll(sendImport(collection, batch.toByteArray(), ids));
+        return List.copyOf(result);
+    }
+
+    private List<ImportAck> sendImport(String collection, byte[] body, List<String> ids) {
+        try {
+            if (Thread.currentThread().isInterrupted()) throw TypesenseException.unavailable();
+            var result=restClient.post().uri("/collections/{collection}/documents/import?action=upsert", collection)
+                    .contentType(MediaType.parseMediaType("text/plain; charset=UTF-8")).body(body)
+                    .exchange((request, response) -> {
+                        if (!response.getStatusCode().is2xxSuccessful()) throw TypesenseException.unavailable();
+                        var input = new java.io.BufferedInputStream(response.getBody());
+                        var acknowledgements = new java.util.ArrayList<ImportAck>();
+                        long deadline=System.nanoTime()+java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(READ_TIMEOUT_MS);
+                        for (String id : ids) {
+                            String line = boundedLine(input,deadline);
+                            if (line == null) throw TypesenseException.invalidResponse();
+                            var ack = objectMapper.readTree(line);
+                            if (ack == null || !ack.isObject() || !ack.path("success").isBoolean()) throw TypesenseException.invalidResponse();
+                            boolean success = ack.path("success").asBoolean();
+                            acknowledgements.add(new ImportAck(id, success, success ? null : "IMPORT_REJECTED"));
+                        }
+                        if (boundedLine(input,deadline) != null) throw TypesenseException.invalidResponse();
+                        return List.copyOf(acknowledgements);
+                    });
+            long succeeded=result.stream().filter(ImportAck::success).count();
+            metrics.imported(true,succeeded);metrics.imported(false,result.size()-succeeded);
+            return result;
+        } catch (TypesenseException safe) { metrics.imported(false,ids.size());throw safe; }
+        catch (Exception failure) { metrics.imported(false,ids.size());throw TypesenseException.invalidResponse(); }
+    }
+
+    static String boundedLine(java.io.InputStream input,long deadline) throws java.io.IOException {
+        var bytes = new java.io.ByteArrayOutputStream();
+        for (;;) {
+            if (Thread.currentThread().isInterrupted() || System.nanoTime()>=deadline) throw TypesenseException.unavailable();
+            int value=input.read();
+            if (value==-1) break;
+            if (value == '\n') return bytes.toString(java.nio.charset.StandardCharsets.UTF_8);
+            if (bytes.size() == 1_048_576) throw TypesenseException.invalidResponse();
+            bytes.write(value);
+        }
+        return bytes.size() == 0 ? null : bytes.toString(java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    private static final class LimitedOutput extends java.io.OutputStream {
+        private final java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream();
+        private final int limit;
+        private boolean exceeded;
+        private LimitedOutput(int limit) { this.limit = limit; }
+        @Override public void write(int value) throws java.io.IOException {
+            if (bytes.size() >= limit) { exceeded = true; throw new java.io.IOException("Document size limit"); }
+            bytes.write(value);
+        }
+        @Override public void write(byte[] values, int offset, int length) throws java.io.IOException {
+            if (length > limit - bytes.size()) { exceeded = true; throw new java.io.IOException("Document size limit"); }
+            bytes.write(values, offset, length);
+        }
+    }
+
     private tools.jackson.databind.JsonNode metadata(String uri, Object... variables) {
         String body = restClient.get().uri(uri, variables).retrieve().body(String.class);
         var value = objectMapper.readTree(body);
@@ -115,13 +229,13 @@ public class TypesenseClient {
         return value;
     }
 
-    private boolean matchesMixedSchema(tools.jackson.databind.JsonNode actual, String collection, String entityType) {
+    private boolean matchesSchema(tools.jackson.databind.JsonNode actual, String collection, String entityType, String profile) {
         for (String property : List.of("token_separators", "symbols_to_index")) {
             if (actual.has(property) && (!actual.get(property).isArray() || !actual.get(property).isEmpty())) return false;
         }
         if (actual.has("default_sorting_field") && (!actual.get("default_sorting_field").isString()
                 || !actual.get("default_sorting_field").asString().isEmpty())) return false;
-        var expected = objectMapper.valueToTree(SearchCollectionSchema.mixed(collection, entityType)).path("fields");
+        var expected = objectMapper.valueToTree(SearchCollectionSchema.forProfile(collection, entityType, profile)).path("fields");
         if (!actual.path("fields").isArray()) return false;
         Map<String, tools.jackson.databind.JsonNode> fields = new LinkedHashMap<>();
         for (var field : actual.path("fields")) {
@@ -139,7 +253,10 @@ public class TypesenseClient {
                 if (observed.has(property) && (!observed.get(property).isBoolean() || observed.get(property).asBoolean() != wanted)) return false;
                 if (!observed.has(property) && wanted != defaultValue) return false;
             }
-            if (observed.has("locale") && (!observed.get("locale").isString() || !observed.get("locale").asString().isEmpty())) return false;
+            String wantedLocale = field.has("locale") ? field.get("locale").asString() : "";
+            if (observed.has("locale") && (!observed.get("locale").isString()
+                    || !observed.get("locale").asString().equals(wantedLocale))) return false;
+            if (!observed.has("locale") && !wantedLocale.isEmpty()) return false;
         }
         return true;
     }
@@ -201,14 +318,19 @@ public class TypesenseClient {
     }
 
     public void ensureCollection(String name, String entityType) {
+        ensureCollection(name, entityType, "MIXED");
+    }
+
+    public void ensureCollection(String name, String entityType, String profile) {
         if (collectionExists(name)) return;
         try {
-            restClient.post().uri("/collections").body(SearchCollectionSchema.mixed(name, entityType))
+            restClient.post().uri("/collections").body(SearchCollectionSchema.forProfile(name, entityType, profile))
                     .retrieve().toBodilessEntity();
         } catch (Exception failure) {
             throw TypesenseException.unavailable();
         }
     }
+
 
     public List<CollectionSearch> multiSearch(
             String query,

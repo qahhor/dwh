@@ -19,9 +19,12 @@ public class SearchStatusService {
     private final SearchIndexStateRepository repository;
     private final SearchPolicyProvider policies;
     private final TypesenseClient client;
+    private final com.greenwhite.dwh.instance.search.repository.SearchJobRepository jobs;
     public SearchStatusService(SearchAccessPolicy access, SearchIndexStateRepository repository,
-                               SearchPolicyProvider policies, TypesenseClient client) {
+                               SearchPolicyProvider policies, TypesenseClient client,
+                               com.greenwhite.dwh.instance.search.repository.SearchJobRepository jobs) {
         this.access=access; this.repository=repository; this.policies=policies; this.client=client;
+        this.jobs=jobs;
     }
     public Status current() {
         access.requireSearchAccess();
@@ -33,6 +36,7 @@ public class SearchStatusService {
         catch (ApiException unavailable) { /* No valid settings have been observed yet. */ }
         var dependency = client.observeDependency();
         var generations = new ArrayList<GenerationStatus>();
+        var rollbackTargets=new ArrayList<RollbackTarget>();
         boolean mismatch = index.legacy();
         Instant reconciled = null;
         for (var generation : observations) {
@@ -61,6 +65,8 @@ public class SearchStatusService {
                 mismatch |= Boolean.FALSE.equals(schemaMatches);
             }
             Long lag = generation.oldestPending()==null ? 0L : Math.max(0,Duration.between(generation.oldestPending(),Instant.now()).getSeconds());
+            if (generation.state().equals("RETAINED") && generation.schemaVersion()==1 && Boolean.TRUE.equals(schemaMatches))
+                rollbackTargets.add(new RollbackTarget(generation.id(),generation.schemaProfile(),generation.verifiedAt()));
             generations.add(new GenerationStatus(generation.id(),generation.state(),generation.active(),generation.schemaProfile(),
                     documents,new EntityDocumentCounts(taskDocuments,projectDocuments,userDocuments),null,
                     schemaMatches,errorCode,generation.pending(),generation.failed(),lag,generation.createdAt()));
@@ -69,11 +75,15 @@ public class SearchStatusService {
         var transport=client.transportBudgets();
         return new Status(dependency,index.initialized(),index.schemaProfile(),policy==null ? null : policy.schemaProfile(),
                 rebuild,policies.degraded(),reconciled,List.copyOf(generations),
-                new Budgets(transport.connectTimeoutMs(),transport.readTimeoutMs(),2000,rate));
+                new Budgets(transport.connectTimeoutMs(),transport.readTimeoutMs(),2000,rate),
+                jobs.page(20,null,null),List.copyOf(rollbackTargets));
     }
     public record Status(DependencyMetadata dependency, boolean initialized, String activeProfile, String configuredProfile,
                          Boolean rebuildRequired, boolean settingsDegraded, Instant lastSuccessfulReconciliation,
-                         List<GenerationStatus> generations, Budgets budgets) {}
+                         List<GenerationStatus> generations, Budgets budgets,
+                         List<com.greenwhite.dwh.instance.search.dto.SearchManagementDtos.JobStatus> jobs,List<RollbackTarget> rollbackTargets) {}
+    /** A retained supported schema is eligible for catch-up and fresh verification, not an already-authorized cutover. */
+    public record RollbackTarget(UUID id,String schemaProfile,Instant lastVerifiedAt) {}
     public record GenerationStatus(UUID id, String state, boolean active, String registeredProfile, Long documentCount,
                                    EntityDocumentCounts entityDocumentCounts, Long storageBytes, Boolean schemaMatches,
                                    String errorCode, long pendingDeliveries, long failedDeliveries,

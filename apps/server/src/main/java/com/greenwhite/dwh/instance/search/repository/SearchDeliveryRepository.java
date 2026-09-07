@@ -62,10 +62,16 @@ public class SearchDeliveryRepository {
 
     @Transactional
     public void failed(Claim claim, Instant retryAt) {
+        failed(claim,retryAt,"DELIVERY_FAILED");
+    }
+
+    @Transactional
+    public void failed(Claim claim,Instant retryAt,String code) {
+        String safeCode=java.util.Set.of("DOCUMENT_TOO_LARGE","IMPORT_REJECTED").contains(code) ? code : "DELIVERY_FAILED";
         updateClaim("""
                 update search_generation_delivery set attempts=attempts+1,next_attempt_at=:retry,
-                    owner_token=null,error_code='DELIVERY_FAILED'
-                """, claim).param("retry", Timestamp.from(retryAt)).update();
+                    owner_token=null,error_code=:error
+                """, claim).param("retry", Timestamp.from(retryAt)).param("error",safeCode).update();
     }
 
     @Transactional
@@ -83,4 +89,14 @@ public class SearchDeliveryRepository {
     }
 
     public record Claim(UUID generationId, String entityType, long entityId, long revision, int attempts, UUID owner) {}
+
+    public QueueObservation observation(UUID generation) {
+        return jdbc.sql("""
+                select count(*) as pending,coalesce(extract(epoch from clock_timestamp()-min(v.changed_at))::bigint,0) as lag
+                from search_projection_versions v left join search_generation_delivery d
+                on d.generation_id=:generation and d.entity_type=v.entity_type and d.entity_id=v.entity_id
+                where v.revision>coalesce(d.delivered_revision,0)
+                """).param("generation",generation).query((rs,row) -> new QueueObservation(rs.getLong("pending"),rs.getLong("lag"))).single();
+    }
+    public record QueueObservation(long pending,long lagSeconds) {}
 }

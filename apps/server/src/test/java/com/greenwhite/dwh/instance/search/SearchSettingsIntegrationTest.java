@@ -303,6 +303,7 @@ class SearchSettingsIntegrationTest extends SearchSettingsIntegrationTestSupport
 
 @org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc(print=org.springframework.boot.webmvc.test.autoconfigure.MockMvcPrint.NONE)
 @WebMvcTest(controllers = SearchController.class, properties = {
+        "logging.level.org.springframework.boot.security.autoconfigure=ERROR",
         "dwh.typesense.enabled=false", "dwh.typesense.url=http://127.0.0.1:1",
         "dwh.rate-limit.expensive-per-minute=600",
         "spring.datasource.url=jdbc:postgresql://127.0.0.1:1/unused", "server.port=0", "management.server.port=0"})
@@ -411,7 +412,7 @@ abstract class SearchSettingsIntegrationTestSupport {
     @Configuration(proxyBeanMethods=false)
     @EnableTransactionManagement
     @ComponentScan(basePackages="com.greenwhite.dwh.instance.search", useDefaultFilters=false,
-            includeFilters=@ComponentScan.Filter(type=FilterType.REGEX, pattern=".*(SearchController|SearchManagementController|SearchSettingsService|SearchStatusService|SearchExecutionSnapshotReader|SearchSettingsRepository|SearchPolicyProvider|SearchService|SearchAccessPolicy|SearchResultBudget|SearchIndexStateRepository|SearchFallbackRepository|TypesenseClient)$"))
+            includeFilters=@ComponentScan.Filter(type=FilterType.REGEX, pattern=".*(SearchGenerationService|SearchGenerationRepository|SearchStoragePreflight|SearchProjectionReader|SearchJobService|SearchJobRepository|SearchController|SearchManagementController|SearchSettingsService|SearchStatusService|SearchExecutionSnapshotReader|SearchSettingsRepository|SearchPolicyProvider|SearchService|SearchAccessPolicy|SearchResultBudget|SearchIndexStateRepository|SearchFallbackRepository|TypesenseClient)$"))
     @Import({AuditLogService.class, AuditLogRepository.class, AuditDataRedactor.class, LegacyController.class})
     static class Fixture {
         @Bean DataSource dataSource() {

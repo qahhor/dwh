@@ -50,12 +50,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * + событие rate_limit_exceeded в security-журнале (ровно одно на окно, анти-флуд).
  */
 @WebMvcTest(controllers = SecurityTestController.class)
+@org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc(print=org.springframework.boot.webmvc.test.autoconfigure.MockMvcPrint.NONE)
 @Import({SecurityConfig.class, ProblemDetailAuthHandlers.class,
         KauthAuthenticationFilter.class, RateLimitFilter.class, SearchPolicyProvider.class,
         RateLimitFilterTest.FixedClockRateLimitConfiguration.class,
         com.greenwhite.dwh.instance.config.idempotency.IdempotencyFilter.class,
         SecurityTestController.class})
 @TestPropertySource(properties = {
+        "logging.level.org.springframework.boot.security.autoconfigure=ERROR",
         "dwh.rate-limit.ip-per-minute=2",
         "dwh.rate-limit.public-read-per-minute=4",
         "dwh.rate-limit.user-per-minute=30",
@@ -66,6 +68,7 @@ class RateLimitFilterTest {
 
     @Autowired
     MockMvc mvc;
+    @Autowired io.micrometer.core.instrument.simple.SimpleMeterRegistry searchMetricRegistry;
 
     @MockitoBean com.greenwhite.dwh.instance.search.repository.SearchSettingsRepository searchSettings;
     @org.junit.jupiter.api.BeforeEach void initializeSearchPolicy() {
@@ -185,6 +188,7 @@ class RateLimitFilterTest {
     @Test
     @DisplayName("Interactive search bucket разделён по владельцу и не пишет query в security log")
     void searchBurstIsOwnerScopedAndSecurityLogOmitsQuery() throws Exception {
+        searchMetricRegistry.clear();
         mockAuthenticatedApiUser(11L, 111L, "api-11");
         mockAuthenticatedApiUser(12L, 112L, "api-12");
 
@@ -209,6 +213,9 @@ class RateLimitFilterTest {
                 eq(RateLimitFilter.EVENT_RATE_LIMIT_EXCEEDED), eq(11L), anyString(), any(), details.capture());
         assertThat(details.getValue().toString()).doesNotContain("sensitive-search-text");
         assertThat(details.getValue().toString()).doesNotContain("different-sensitive-text");
+        assertThat(searchMetricRegistry.find("dwh.search.rate.rejections").counter()).isNotNull();
+        assertThat(searchMetricRegistry.find("dwh.search.rate.rejections").counter().count()).isEqualTo(2);
+        assertThat(searchMetricRegistry.getMeters()).allSatisfy(meter -> assertThat(meter.getId().getTags()).isEmpty());
     }
 
     @Test
@@ -333,6 +340,10 @@ class RateLimitFilterTest {
 
     @TestConfiguration(proxyBeanMethods = false)
     static class FixedClockRateLimitConfiguration {
+        @Bean io.micrometer.core.instrument.simple.SimpleMeterRegistry searchMetricRegistry() { return new io.micrometer.core.instrument.simple.SimpleMeterRegistry(); }
+        @Bean com.greenwhite.dwh.instance.search.service.SearchMetrics searchMetrics(io.micrometer.core.instrument.simple.SimpleMeterRegistry registry) {
+            return new com.greenwhite.dwh.instance.search.service.SearchMetrics(registry);
+        }
         @Bean
         MutableTimeMeter mutableTimeMeter() {
             return new MutableTimeMeter();

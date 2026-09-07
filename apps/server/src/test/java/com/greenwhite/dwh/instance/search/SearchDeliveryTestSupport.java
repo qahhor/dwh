@@ -14,6 +14,7 @@ import com.greenwhite.dwh.instance.ms.task.repository.*;
 import com.greenwhite.dwh.instance.ms.task.service.MsTaskService;
 import com.greenwhite.dwh.instance.search.repository.*;
 import com.greenwhite.dwh.instance.search.service.SearchDeliveryWorker;
+import com.greenwhite.dwh.instance.search.service.*;
 import com.greenwhite.dwh.instance.search.typesense.*;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
@@ -51,6 +52,8 @@ abstract class SearchDeliveryTestSupport {
     static TransactionTemplate tx;
     final ObjectMapper mapper = new ObjectMapper();
     final MutableClock clock = new MutableClock();
+    final io.micrometer.core.instrument.simple.SimpleMeterRegistry metricRegistry=new io.micrometer.core.instrument.simple.SimpleMeterRegistry();
+    final SearchMetrics metrics=new SearchMetrics(metricRegistry);
     final Map<String,Map<String,Object>> documents = new ConcurrentHashMap<>();
     final Set<String> collections = ConcurrentHashMap.newKeySet();
     final List<Map<String,Object>> schemas = new CopyOnWriteArrayList<>();
@@ -58,6 +61,8 @@ abstract class SearchDeliveryTestSupport {
     final List<List<String>> searchCollections = new CopyOnWriteArrayList<>();
     final AtomicInteger failures = new AtomicInteger();
     final AtomicInteger requests = new AtomicInteger();
+    final Set<String> rejectedImportIds=ConcurrentHashMap.newKeySet();
+    volatile String diskMetrics="{\"system_disk_total_bytes\":\"1073741824\",\"system_disk_used_bytes\":\"1024\"}";
     volatile Consumer<HttpExchange> beforeWrite = exchange -> {};
     volatile Consumer<HttpExchange> beforeRequest = exchange -> {};
     HttpServer http;
@@ -68,6 +73,13 @@ abstract class SearchDeliveryTestSupport {
     SearchDeliveryRepository delivery;
     SearchIndexStateRepository state;
     SearchDeliveryWorker worker;
+    SearchJobWorker jobWorker;
+    SearchJobService jobService;
+    SearchJobRepository jobRepository;
+    SearchGenerationRepository generationRepository;
+    SearchGenerationService generationService;
+    SearchReconciliationService reconciliation;
+    SearchStoragePreflight storage;
     MsTaskService tasks;
     MdUserService users;
     UUID owner;
@@ -106,20 +118,35 @@ abstract class SearchDeliveryTestSupport {
         http.createContext("/", this::respond);
         http.start();
         client = new TypesenseClient(new TypesenseProperties("http://127.0.0.1:" + http.getAddress().getPort(),
-                "test-key", true, false), mapper);
+                "test-key", true, false), mapper,Optional.of(metrics));
         recreateWorker();
     }
 
     @AfterEach void stopHttp() {
+        if (jobWorker!=null) jobWorker.close();
         http.stop(0);
         httpThreads.shutdownNow();
+        metricRegistry.close();
     }
 
     void recreateWorker() {
+        if (jobWorker!=null) jobWorker.close();
         owner = UUID.randomUUID();
-        worker = new SearchDeliveryWorker(client, reader, delivery, state, clock, () -> 0.5);
+        worker = new SearchDeliveryWorker(client, reader, delivery, state, clock, () -> 0.5,metrics);
         worker.startLifecycle(owner);
+        jobRepository=SearchRevisionIntegrationTest.proxied(new SearchJobRepository(jdbc,mapper),manager);
+        generationRepository=new SearchGenerationRepository(jdbc);
+        generationService=new SearchGenerationService(generationRepository,new SearchSettingsRepository(jdbc),4);
+        storage=new SearchStoragePreflight(client,reader);
+        reconciliation=new SearchReconciliationService(database,reader,client);
+        jobService=SearchRevisionIntegrationTest.proxied(new SearchJobService(
+                new SearchAccessPolicy(mock(com.greenwhite.dwh.instance.common.security.RoleMembershipAuthorizer.class)),
+                jobRepository,state,generationService,storage,manager,Optional.of(metrics)),manager);
+        jobWorker=new SearchJobWorker(client,worker,state,jobRepository,generationRepository,generationService,jobService,reconciliation,storage,Optional.of(metrics));
+        jobWorker.startLifecycle(owner);
     }
+
+    void runCycle() { worker.runOnce();jobWorker.runOnce(); }
 
     UUID activeGeneration() {
         collections.addAll(List.of("tasks", "projects", "users"));
@@ -155,6 +182,9 @@ abstract class SearchDeliveryTestSupport {
         String method = exchange.getRequestMethod();
         String path = exchange.getRequestURI().getPath();
         if (failures.getAndUpdate(n -> Math.max(0, n - 1)) > 0) { respond(exchange, 503, "unavailable"); return; }
+        if (path.equals("/health")) { respond(exchange,200,"{\"ok\":true}"); return; }
+        if (path.equals("/debug")) { respond(exchange,200,"{\"version\":\"27.1\"}"); return; }
+        if (path.equals("/metrics.json")) { respond(exchange,200,diskMetrics); return; }
         if (path.equals("/multi_search")) {
             var searches = mapper.readTree(exchange.getRequestBody()).path("searches");
             List<String> names = new ArrayList<>();
@@ -171,10 +201,32 @@ abstract class SearchDeliveryTestSupport {
         }
         String[] parts = path.split("/");
         if (parts.length < 3 || !collections.contains(parts[2])) { respond(exchange, 404, "missing"); return; }
-        if (parts.length == 3) { respond(exchange, 200, "{}"); return; }
+        if (parts.length == 3) {
+            String type=parts[2].endsWith("tasks") ? "TASK" : parts[2].endsWith("projects") ? "PROJECT" : "USER";
+            var schema=new LinkedHashMap<String,Object>(schemas.stream().filter(value -> parts[2].equals(value.get("name"))).findFirst()
+                    .orElseGet(() -> SearchCollectionSchema.mixed(parts[2],type)));
+            schema.put("num_documents",documents.keySet().stream().filter(key -> key.startsWith(parts[2]+"/")).count());
+            respond(exchange,200,mapper.writeValueAsString(schema)); return;
+        }
+        if (path.endsWith("/documents/export") && method.equals("GET")) {
+            StringBuilder output=new StringBuilder();
+            documents.entrySet().stream().filter(entry -> entry.getKey().startsWith(parts[2]+"/"))
+                    .sorted(Map.Entry.comparingByKey()).forEach(entry -> output.append(mapper.writeValueAsString(entry.getValue())).append('\n'));
+            respond(exchange,200,output.toString()); return;
+        }
         beforeWrite.accept(exchange);
         writes.add(method + " " + path);
-        if (method.equals("POST")) {
+        if (method.equals("POST") && path.endsWith("/documents/import")) {
+            String input=new String(exchange.getRequestBody().readAllBytes(),StandardCharsets.UTF_8);
+            StringBuilder output=new StringBuilder();
+            for (String line : input.lines().toList()) {
+                Map<String,Object> document=mapper.readValue(line,Map.class);
+                boolean accepted=!rejectedImportIds.contains(document.get("id").toString());
+                if (accepted) documents.put(parts[2]+"/"+document.get("id"),document);
+                output.append(accepted ? "{\"success\":true}\n" : "{\"success\":false,\"error\":\"private fixture rejection\"}\n");
+            }
+            respond(exchange,200,output.toString());
+        } else if (method.equals("POST")) {
             Map<String,Object> document = mapper.readValue(exchange.getRequestBody(), Map.class);
             documents.put(parts[2] + "/" + document.get("id"), document);
             respond(exchange, 201, "{}");

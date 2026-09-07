@@ -67,7 +67,7 @@ public class SearchIndexStateRepository {
                         Map.of("TASK",rs.getString("task_collection"),"PROJECT",rs.getString("project_collection"),
                                 "USER",rs.getString("user_collection")),rs.getTimestamp("created_at").toInstant(),
                         rs.getTimestamp("verified_at") == null ? null : rs.getTimestamp("verified_at").toInstant(),
-                        rs.getLong("pending"),rs.getLong("failed"),rs.getTimestamp("oldest_pending") == null ? null :
+                        rs.getInt("schema_version"),rs.getLong("pending"),rs.getLong("failed"),rs.getTimestamp("oldest_pending") == null ? null :
                         rs.getTimestamp("oldest_pending").toInstant())).list();
     }
 
@@ -78,12 +78,14 @@ public class SearchIndexStateRepository {
         jdbc.sql("update search_index_state set worker_owner=:owner,worker_started_at=clock_timestamp() where id=1")
                 .param("owner", owner).update();
         jdbc.sql("update search_generation_delivery set owner_token=null where owner_token is not null").update();
+        // Temporary verification state belongs to the old process; restart from a durable catch-up checkpoint.
+        jdbc.sql("update search_jobs set owner_token=null,state=case when state in ('VERIFYING','ACTIVATING') then 'RUNNING' else state end where state in ('QUEUED','RUNNING','VERIFYING','ACTIVATING')").update();
     }
 
     public Optional<Generation> deliveryGeneration(UUID owner) {
         return jdbc.sql("""
                 select g.*,s.version from search_index_state s join search_generations g
-                on g.id=s.active_generation_id or (s.active_generation_id is null and g.state='BUILDING')
+                on g.id=s.active_generation_id
                 where s.id=1 and s.worker_owner=:owner
                 order by g.created_at,g.id limit 1
                 """).param("owner", owner).query((rs, row) -> new Generation(rs.getObject("id", UUID.class),
@@ -94,26 +96,19 @@ public class SearchIndexStateRepository {
     }
 
     @Transactional
-    public void registerInitial(boolean legacy, UUID owner) {
+    public void registerLegacy(UUID owner) {
         if (!lockOwner(owner, "update")) return;
         if (snapshot().generationId() != null || jdbc.sql("select exists(select 1 from search_generations where state='BUILDING')")
                 .query(Boolean.class).single()) return;
         UUID id = UUID.randomUUID();
-        String prefix = "search_" + id.toString().replace("-", "") + "_";
         jdbc.sql("""
                 insert into search_generations(id,state,task_collection,project_collection,user_collection,
                     schema_version,schema_profile,settings_version,discovery_entity)
-                values (:id,:state,:tasks,:projects,:users,:schema,'MIXED',1,'TASK')
-                """).param("id", id).param("state", legacy ? "LEGACY" : "BUILDING")
-                .param("tasks", legacy ? "tasks" : prefix + "tasks")
-                .param("projects", legacy ? "projects" : prefix + "projects")
-                .param("users", legacy ? "users" : prefix + "users")
-                .param("schema", legacy ? 0 : 1).update();
-        if (legacy) {
-            // LEGACY remains explicitly unverified and requires a rebuild. Never reinterpret its schema.
-            jdbc.sql("update search_index_state set active_generation_id=:id,initialized=true,version=version+1 where id=1")
-                    .param("id", id).update();
-        }
+                values (:id,'LEGACY','tasks','projects','users',0,'MIXED',1,'TASK')
+                """).param("id", id).update();
+        // LEGACY remains explicitly unverified and requires a rebuild. Never reinterpret its schema.
+        jdbc.sql("update search_index_state set active_generation_id=:id,initialized=true,version=version+1 where id=1")
+                .param("id", id).update();
     }
 
     @Transactional
@@ -147,27 +142,14 @@ public class SearchIndexStateRepository {
                 .param("limit", Math.max(1, Math.min(100, pageSize))).param("generation", generation.id()).update();
     }
 
-    /** Minimal initial-build CAS. Administrative verification/activation belongs to the job lifecycle. */
-    @Transactional
-    public boolean activateInitial(UUID generation, long expectedVersion, UUID owner) {
-        if (!lockOwner(owner, "update")) return false;
-        int activated = jdbc.sql("""
-                update search_index_state set active_generation_id=:generation,initialized=true,version=version+1
-                where id=1 and version=:version and active_generation_id is null
-                  and exists(select 1 from search_generations where id=:generation and state='BUILDING' and discovery_entity='DONE')
-                  and not exists(
-                    select 1 from search_projection_versions v left join search_generation_delivery d
-                    on d.generation_id=:generation and d.entity_type=v.entity_type and d.entity_id=v.entity_id
-                    where v.revision>coalesce(d.delivered_revision,0)
-                  )
-                """).param("generation", generation).param("version", expectedVersion).update();
-        if (activated == 1) jdbc.sql("update search_generations set state='ACTIVE' where id=:id").param("id", generation).update();
-        return activated == 1;
-    }
-
     private boolean lockOwner(UUID owner, String mode) {
         return jdbc.sql("select coalesce(worker_owner=:owner,false) from search_index_state where id=1 for " + mode)
                 .param("owner", owner).query(Boolean.class).single();
+    }
+
+    public boolean owns(UUID owner) {
+        return jdbc.sql("select coalesce(worker_owner=:owner,false) from search_index_state where id=1")
+                .param("owner",owner).query(Boolean.class).single();
     }
 
     public record IndexSnapshot(UUID generationId, long version, Map<String,String> collections,
@@ -180,7 +162,7 @@ public class SearchIndexStateRepository {
     }
     public record ObservedGeneration(UUID id, String state, String schemaProfile, boolean active,
                                      Map<String,String> collections, Instant createdAt, Instant verifiedAt,
-                                     long pending, long failed, Instant oldestPending) {
+                                     int schemaVersion,long pending, long failed, Instant oldestPending) {
         public ObservedGeneration { collections = Map.copyOf(collections); }
     }
 }

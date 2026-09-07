@@ -7,6 +7,23 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.assertj.core.api.Assertions.assertThat;
 
 class SearchStatusTest extends SearchSettingsIntegrationTestSupport {
+    @Test void statusIncludesBoundedRecentJobsAndOnlyVerifiableRetainedRollbackTargets() throws Exception {
+        authenticate(Set.of("*.*"),false);
+        var target=java.util.UUID.randomUUID();
+        jdbc.sql("insert into search_generations(id,state,task_collection,project_collection,user_collection,schema_version,schema_profile,settings_version,discovery_entity,verified_at) values(:id,'RETAINED','ret_tasks','ret_projects','ret_users',1,'MIXED',1,'DONE',clock_timestamp())")
+                .param("id",target).update();
+        for (String type:java.util.List.of("tasks","projects","users")) {
+            var schema=(tools.jackson.databind.node.ObjectNode)mapper.readTree(responses.get("/collections/fixture_"+type));
+            schema.put("name","ret_"+type);responses.put("/collections/ret_"+type,mapper.writeValueAsString(schema));
+        }
+        jdbc.sql("insert into search_generations(id,state,task_collection,project_collection,user_collection,schema_version,schema_profile,settings_version) values(:id,'RETAINED','legacy_tasks','legacy_projects','legacy_users',0,'MIXED',1)")
+                .param("id",java.util.UUID.randomUUID()).update();
+        for (int i=0;i<22;i++) jdbc.sql("insert into search_jobs(id,request_id,action,generation_id,state) values(:id,:request,'CHECK',:target,'SUCCEEDED')")
+                .param("id",java.util.UUID.randomUUID()).param("request",java.util.UUID.randomUUID()).param("target",target).update();
+        mvc.perform(auth(get("/api/v1/search/status"))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobs.length()").value(20)).andExpect(jsonPath("$.rollbackTargets.length()").value(1))
+                .andExpect(jsonPath("$.rollbackTargets[0].id").value(target.toString()));
+    }
     @Test void generationCountsPreserveDistinctEntitiesAndValidZero() throws Exception {
         authenticate(Set.of("*.*"),false);
         distinctEntityCounts();
@@ -143,7 +160,7 @@ class SearchStatusTest extends SearchSettingsIntegrationTestSupport {
         jdbc.sql("update search_generations set schema_profile='RU'").update();
         mvc.perform(auth(get("/api/v1/search/status"))).andExpect(status().isOk())
                 .andExpect(jsonPath("$.generations[0].registeredProfile").value("RU"))
-                .andExpect(jsonPath("$.generations[0].schemaMatches").doesNotExist())
+                .andExpect(jsonPath("$.generations[0].schemaMatches").value(false))
                 .andExpect(jsonPath("$.lastSuccessfulReconciliation").doesNotExist());
     }
 }

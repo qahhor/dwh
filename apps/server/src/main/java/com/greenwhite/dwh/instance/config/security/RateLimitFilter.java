@@ -38,6 +38,15 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private final AuditLogService auditLogService;
     private final ProblemDetailAuthHandlers problemWriter;
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
+    private com.greenwhite.dwh.instance.search.service.SearchMetrics searchMetrics=com.greenwhite.dwh.instance.search.service.SearchMetrics.unmetered();
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public RateLimitFilter(RateLimitProperties props,RateLimitService service,SearchPolicyProvider policies,
+                           AuditLogService audit,ProblemDetailAuthHandlers problems,
+                           java.util.Optional<com.greenwhite.dwh.instance.search.service.SearchMetrics> metrics) {
+        this(props,service,policies,audit,problems);
+        searchMetrics=metrics.orElseGet(com.greenwhite.dwh.instance.search.service.SearchMetrics::unmetered);
+    }
 
     public RateLimitFilter(RateLimitProperties props,
                            RateLimitService rateLimitService,
@@ -111,6 +120,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
         }
 
         long retryAfterSec = Math.max(1, Math.ceilDiv(probe.getNanosToWaitForRefill(), 1_000_000_000L));
+        if (isInteractiveSearch(request)) searchMetrics.rejected();
         if (rateLimitService.shouldLogRejection(key)) {
             auditLogService.logSecurityEvent(EVENT_RATE_LIMIT_EXCEEDED,
                     principal != null ? principal.userId() : null,

@@ -29,8 +29,17 @@ public class SearchService {
     private final SearchResultBudget resultBudget;
     private final Supplier<SearchExecutionSnapshot> executionSnapshot;
     private final Supplier<SettingsSnapshot> fallbackPolicy;
+    private SearchMetrics metrics=SearchMetrics.unmetered();
 
     @Autowired
+    public SearchService(TypesenseClient typesenseClient, SearchFallbackRepository fallbackRepository,
+                         SearchAccessPolicy accessPolicy, SearchResultBudget resultBudget,
+                         SearchPolicyProvider policyProvider, SearchExecutionSnapshotReader snapshotReader,
+                         java.util.Optional<SearchMetrics> metrics) {
+        this(typesenseClient,fallbackRepository,accessPolicy,resultBudget,policyProvider,snapshotReader);
+        this.metrics=metrics.orElseGet(SearchMetrics::unmetered);
+    }
+
     public SearchService(TypesenseClient typesenseClient, SearchFallbackRepository fallbackRepository,
                          SearchAccessPolicy accessPolicy, SearchResultBudget resultBudget,
                          SearchPolicyProvider policyProvider, SearchExecutionSnapshotReader snapshotReader) {
@@ -63,22 +72,38 @@ public class SearchService {
     }
 
     public SearchResult search(String query, String entityType, Integer limit) {
+        long started=System.nanoTime();
+        SearchResult result=null;
+        try {
         accessPolicy.requireSearchAccess();
         String cleanQuery = normalizeQuery(query);
         String cleanEntityType = normalizeEntityType(entityType);
         validateLimit(limit);
         SearchExecutionSnapshot snapshot = readSnapshot();
-        return execute(cleanQuery, cleanEntityType, limit, snapshot.index(), snapshot.settings().policy());
+        result=execute(cleanQuery, cleanEntityType, limit, snapshot.index(), snapshot.settings().policy());
+        return result;
+        } finally {
+            metrics.query(entityType==null ? "ALL" : entityType.toUpperCase(Locale.ROOT),result==null ? null : result.source(),
+                    result==null,result!=null && result.degraded(),System.nanoTime()-started);
+        }
     }
 
     public PreviewResult preview(PreviewRequest request) {
+        long started=System.nanoTime();
+        SearchResult result=null;
+        try {
         accessPolicy.requireSearchAccess();
         if (request.policy() != null) accessPolicy.requireSettingsRead();
         String query = normalizeQuery(request.q());
         String entity = normalizeEntityType(request.entity());
         SearchExecutionSnapshot snapshot = readSnapshot();
         SearchQueryPolicy policy = request.policy() == null ? snapshot.settings().policy() : request.policy();
-        return new PreviewResult(execute(query, entity, null, snapshot.index(), policy), snapshot.index().schemaProfile());
+        result=execute(query, entity, null, snapshot.index(), policy);
+        return new PreviewResult(result, snapshot.index().schemaProfile());
+        } finally {
+            metrics.query(request==null || request.entity()==null ? "ALL" : request.entity().toUpperCase(Locale.ROOT),
+                    result==null ? null : result.source(),result==null,result!=null && result.degraded(),System.nanoTime()-started);
+        }
     }
 
     private SearchExecutionSnapshot readSnapshot() {
@@ -109,6 +134,7 @@ public class SearchService {
                 }
                 List<CollectionSearch> groups = typesenseClient.multiSearch(
                         cleanQuery, cleanEntityType, effectiveLimit, snapshot.collections(), currentPolicy);
+                groups.forEach(group -> metrics.engine(group.entityType(),group.searchTimeMs()));
                 List<SearchHit> hits = resultBudget.allocate(groups, effectiveLimit);
                 long found = sumFound(groups);
                 return new SearchResult(cleanQuery, hits.size(), hits, found,
