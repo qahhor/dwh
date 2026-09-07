@@ -279,6 +279,7 @@ assertThat(service.tryConsume("user:42:search", 119, 20).isConsumed()).isFalse()
 
 **Files:**
 - Modify `apps/web/src/app/core/models/search.models.ts`, `core/services/command-palette.service.ts`, `layout/command-palette/command-palette.component.ts`, `app.routes.ts` and their existing tests.
+- Modify `core/models/common.models.ts`, `core/services/api.service.ts` and `api.service.spec.ts` narrowly to preserve a validated optional `ProblemDetail.retryAfterSeconds` from the HTTP `Retry-After` header. The current error adapter discards all headers. Do not expose the complete response headers or bypass ApiService; add a real HttpTestingController regression proving the header reaches the palette's error contract, invalid/missing values remain safe, and local-error ownership emits no toast.
 - Modify `features/tasks/tasks.component.ts`, `features/tasks/projects/projects.component.ts`, `features/iam/users/users.component.ts` and tests for route-aware record loading; create `core/services/search-target.ts` and `search-target.spec.ts` for the typed mapping.
 - Extend authoritative `apps/server/src/main/resources/i18n/ru.json`, sync `apps/web/src/app/core/i18n/packaged-russian.ts` with task-only hunks.
 - Create `e2e/tests/browser/instance/search-reliability.spec.ts` using existing authenticated synthetic fixture helpers.

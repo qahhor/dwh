@@ -130,6 +130,7 @@ Rollback follows the same catch-up/reconcile/barrier/CAS for an existing RETAINE
 **Files:**
 - Create `apps/web/src/app/features/settings/search/search-settings.component.ts`, `.html`, `.scss`, `.spec.ts`.
 - Create `apps/web/src/app/core/models/search-management.models.ts`, `core/services/search-management.service.ts`, `.spec.ts`.
+- Modify `core/services/api.service.ts` and `.spec.ts` only to give `put` the existing optional `ApiRequestOptions` contract, defaulting to unchanged notification behavior. Save must use the shared client with local-error ownership; verify an HTTP409 preserves status/detail while producing no duplicate global toast. Reuse the predecessor's typed Retry-After error metadata for preview cooldown.
 - Modify `features/settings/settings.component.ts` and `.spec.ts` only for tab integration.
 - Extend RU source catalog and sync packaged fallback with task-only hunks.
 - Create `e2e/tests/browser/instance/search-management.spec.ts`.
