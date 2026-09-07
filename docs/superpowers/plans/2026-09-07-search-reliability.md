@@ -272,7 +272,7 @@ assertThat(service.tryConsume("user:42:search", 120, 20).isConsumed()).isFalse()
 assertThat(service.tryConsume("user:42:search", 119, 20).isConsumed()).isFalse();
 ```
 
-- [ ] Implement search path matching for GET search and preview only, separately from expensive management jobs. Clamp per-minute to existing user/token limits and capacity to the resulting rate. Use Bucket4j configuration replacement with no fresh token grant; preserve two-argument behavior on all other endpoints. Round Retry-After up, not down. Expose effective budget via the provider for Plan 2 status. Security log stays bounded and contains no query values.
+- [ ] Implement interactive path matching for `GET /api/v1/search` and `POST /api/v1/search/preview` only, separately from expensive management jobs; the preview method matches the companion controller contract. Add method-specific tests rejecting interactive classification for other methods at either path. Clamp per-minute to existing user/token limits and capacity to the resulting rate. Use Bucket4j configuration replacement with no fresh token grant; preserve two-argument behavior on all other endpoints. Round Retry-After up, not down. Expose effective budget via the provider for Plan 2 status. Security log stays bounded and contains no query values.
 - [ ] Run focused rate/filter/search tests and full Maven verify. Commit `fix(search): separate interactive query rate limits`.
 
 ### Task 5: Search metadata, safe direct-record navigation and UI regressions
