@@ -254,6 +254,8 @@ Acquire `search_index_state` singleton `FOR SHARE` before publishing and use det
 **Files:**
 - Modify `apps/server/src/main/java/com/greenwhite/dwh/instance/config/security/RateLimitFilter.java`, `RateLimitService.java`.
 - Create `apps/server/src/main/java/com/greenwhite/dwh/instance/search/service/SearchPolicyProvider.java` returning defaults now and persisted policy in Plan 2.
+- Create public `apps/server/src/main/java/com/greenwhite/dwh/instance/search/SearchOwnerRateLimits.java` with `userPerMinute()` and `tokenPerMinute()`; make existing `config/security/RateLimitProperties.java` implement it. Inject this interface into the provider without importing config classes into search or registering mutable copies of caps.
+- Create `search/service/SearchRateBudget.java` as the small immutable `(perMinute,capacity)` value. The provider exposes `effectiveBudget(int ownerPerMinute)` for the filter and `effectiveBudgets()` for status, deriving both user/API budgets from one `current()` policy read and the same injected owner-cap source. No new configuration properties are introduced.
 - Modify `SearchService.java` to consume that same provider, not separate defaults.
 - Extend `RateLimitFilterTest.java`; create `RateLimitServiceTest.java` under the matching test package.
 
