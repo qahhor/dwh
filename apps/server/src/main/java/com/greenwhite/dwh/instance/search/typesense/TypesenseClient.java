@@ -1,9 +1,10 @@
 package com.greenwhite.dwh.instance.search.typesense;
 
-import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 import com.greenwhite.dwh.instance.search.service.SearchService.SearchHit;
+import com.greenwhite.dwh.instance.search.service.FieldPolicy;
+import com.greenwhite.dwh.instance.search.service.SearchQueryPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -12,9 +13,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 import java.time.Duration;
-import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Component
 public class TypesenseClient {
@@ -27,11 +30,11 @@ public class TypesenseClient {
 
     private final TypesenseProperties properties;
     private final RestClient restClient;
-    private final ObjectMapper objectMapper;
+    private final TypesenseSearchMapper searchMapper;
 
     public TypesenseClient(TypesenseProperties properties, ObjectMapper objectMapper) {
         this.properties = properties;
-        this.objectMapper = objectMapper;
+        this.searchMapper = new TypesenseSearchMapper(objectMapper);
 
         var requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(Duration.ofMillis(1500));
@@ -143,90 +146,74 @@ public class TypesenseClient {
         }
     }
 
-    public List<SearchHit> search(String query, String entityType, int limit) {
-        List<SearchHit> results = new ArrayList<>();
-        if (!properties.enabled() || query == null || query.isBlank()) return results;
-
-        boolean searchAll = entityType == null || entityType.isBlank() || entityType.equalsIgnoreCase("ALL");
+    public List<CollectionSearch> multiSearch(
+            String query,
+            String entityType,
+            int limit,
+            Map<String, String> collections,
+            SearchQueryPolicy policy) {
+        if (!properties.enabled()) throw TypesenseException.uninitialized();
+        List<String> requestedTypes = requestedTypes(entityType);
+        List<Map<String, Object>> searches = requestedTypes.stream()
+                .map(type -> searchRequest(query, type, limit, collections, policy))
+                .toList();
 
         try {
-            // 1. Tasks
-            if (searchAll || entityType.equalsIgnoreCase("TASK")) {
-                var hits = searchCollection(COL_TASKS, query, "title,description_markdown,status_name,project_name", limit, doc -> {
-                    long id = doc.path("task_id").asLong(Long.parseLong(doc.path("id").asText("0")));
-                    String title = doc.path("title").asText();
-                    String status = doc.path("status_name").asText("Новая");
-                    String priority = doc.path("priority").asText("medium");
-                    String projectName = doc.path("project_name").asText("");
-                    String snippet = "Статус: " + status + " | Приоритет: " + priority;
-                    if (!projectName.isBlank()) {
-                        snippet += " | Проект: " + projectName;
-                    }
-                    return new SearchHit("TASK", String.valueOf(id), title, snippet, "/tasks/items/" + id);
-                });
-                results.addAll(hits);
-            }
-
-            // 2. Projects
-            if (searchAll || entityType.equalsIgnoreCase("PROJECT")) {
-                var hits = searchCollection(COL_PROJECTS, query, "name,description", limit, doc -> {
-                    long id = doc.path("project_id").asLong(Long.parseLong(doc.path("id").asText("0")));
-                    String name = doc.path("name").asText();
-                    String desc = doc.path("description").asText("");
-                    return new SearchHit("PROJECT", String.valueOf(id), name, desc, "/tasks/projects/" + id);
-                });
-                results.addAll(hits);
-            }
-
-            // 3. Users
-            if (searchAll || entityType.equalsIgnoreCase("USER")) {
-                var hits = searchCollection(COL_USERS, query, "name,login,email,phone", limit, doc -> {
-                    long id = doc.path("user_id").asLong(Long.parseLong(doc.path("id").asText("0")));
-                    String name = doc.path("name").asText();
-                    String email = doc.path("email").asText();
-                    String login = doc.path("login").asText();
-                    return new SearchHit("USER", String.valueOf(id), name, email + " (@" + login + ")", "/iam/users/" + id);
-                });
-                results.addAll(hits);
-            }
-        } catch (Exception e) {
-            log.warn("Typesense: Ошибка выполнения поиска, будет использован Fallback: {}", e.getMessage());
-            throw new RuntimeException("Typesense search failed", e);
-        }
-
-        return results;
-    }
-
-    private List<SearchHit> searchCollection(String collection, String query, String queryBy, int limit,
-                                             java.util.function.Function<JsonNode, SearchHit> mapper) {
-        List<SearchHit> hits = new ArrayList<>();
-        try {
-            var res = restClient.get()
-                    .uri(uriBuilder -> uriBuilder
-                            .path("/collections/{collection}/documents/search")
-                            .queryParam("q", query)
-                            .queryParam("query_by", queryBy)
-                            .queryParam("num_typos", 2)
-                            .queryParam("prefix", true)
-                            .queryParam("prioritize_exact_match", true)
-                            .queryParam("per_page", limit)
-                            .build(collection))
+            String body = restClient.post()
+                    .uri("/multi_search")
+                    .body(Map.of("searches", searches))
                     .retrieve()
                     .body(String.class);
-
-            if (res != null) {
-                JsonNode root = objectMapper.readTree(res);
-                JsonNode hitsNode = root.path("hits");
-                if (hitsNode.isArray()) {
-                    for (JsonNode hit : hitsNode) {
-                        JsonNode doc = hit.path("document");
-                        hits.add(mapper.apply(doc));
-                    }
-                }
-            }
-        } catch (Exception e) {
-            log.debug("Typesense: Ошибка поиска в коллекции '{}': {}", collection, e.getMessage());
+            return searchMapper.map(body, requestedTypes);
+        } catch (TypesenseException exception) {
+            throw exception;
+        } catch (Exception transportFailure) {
+            throw TypesenseException.unavailable();
         }
-        return hits;
+    }
+
+    private static List<String> requestedTypes(String entityType) {
+        String normalized = entityType == null ? "ALL" : entityType.toUpperCase(Locale.ROOT);
+        return switch (normalized) {
+            case "ALL" -> List.of("TASK", "PROJECT", "USER");
+            case "TASK", "PROJECT", "USER" -> List.of(normalized);
+            default -> throw TypesenseException.uninitialized();
+        };
+    }
+
+    private static Map<String, Object> searchRequest(
+            String query,
+            String entityType,
+            int limit,
+            Map<String, String> collections,
+            SearchQueryPolicy policy) {
+        String collection = collections.get(entityType);
+        List<FieldPolicy> fields = policy.fields().get(entityType);
+        if (collection == null || collection.isBlank() || fields == null || fields.isEmpty()) {
+            throw TypesenseException.uninitialized();
+        }
+        Map<String, Object> request = new LinkedHashMap<>();
+        request.put("collection", collection);
+        request.put("q", query);
+        request.put("query_by", join(fields, field -> field.field()));
+        request.put("query_by_weights", join(fields, field -> Integer.toString(field.weight())));
+        request.put("num_typos", join(fields, field -> Integer.toString(field.numTypos())));
+        request.put("prefix", join(fields, field -> Boolean.toString(field.prefix())));
+        request.put("prioritize_exact_match", true);
+        request.put("highlight_start_tag", "");
+        request.put("highlight_end_tag", "");
+        request.put("per_page", limit);
+        if (entityType.equals("PROJECT") || entityType.equals("USER")) request.put("filter_by", "state:=A");
+        return request;
+    }
+
+    private static String join(List<FieldPolicy> fields, java.util.function.Function<FieldPolicy, String> mapper) {
+        return fields.stream().map(mapper).collect(Collectors.joining(","));
+    }
+
+    public record CollectionSearch(String entityType, List<SearchHit> hits, long found, long searchTimeMs) {
+        public CollectionSearch {
+            hits = List.copyOf(hits);
+        }
     }
 }

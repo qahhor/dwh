@@ -2,162 +2,172 @@ package com.greenwhite.dwh.instance.search.service;
 
 import com.greenwhite.dwh.core.error.ErrorCode;
 import com.greenwhite.dwh.instance.common.error.ApiException;
-import com.greenwhite.dwh.instance.common.security.RoleMembershipAuthorizer;
-import com.greenwhite.dwh.instance.common.security.SecurityContext;
+import com.greenwhite.dwh.instance.search.repository.SearchFallbackRepository;
+import com.greenwhite.dwh.instance.search.repository.SearchFallbackRepository.FallbackSearch;
 import com.greenwhite.dwh.instance.search.typesense.TypesenseClient;
+import com.greenwhite.dwh.instance.search.typesense.TypesenseClient.CollectionSearch;
+import com.greenwhite.dwh.instance.search.typesense.TypesenseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 @Service
 public class SearchService {
-
     private static final Logger log = LoggerFactory.getLogger(SearchService.class);
-    private static final String ADMINISTRATOR_ROLE = "admin";
-
-    private final JdbcClient jdbcClient;
     private final TypesenseClient typesenseClient;
-    private final RoleMembershipAuthorizer roleMembershipAuthorizer;
+    private final SearchFallbackRepository fallbackRepository;
+    private final SearchAccessPolicy accessPolicy;
+    private final SearchResultBudget resultBudget;
+    private final SearchQueryPolicy queryPolicy;
+    private final Map<String, String> collections;
 
-    public SearchService(
-            JdbcClient jdbcClient,
-            TypesenseClient typesenseClient,
-            RoleMembershipAuthorizer roleMembershipAuthorizer) {
-        this.jdbcClient = jdbcClient;
-        this.typesenseClient = typesenseClient;
-        this.roleMembershipAuthorizer = roleMembershipAuthorizer;
+    @Autowired
+    public SearchService(TypesenseClient typesenseClient, SearchFallbackRepository fallbackRepository,
+                         SearchAccessPolicy accessPolicy, SearchResultBudget resultBudget) {
+        this(typesenseClient, fallbackRepository, accessPolicy, resultBudget,
+                SearchQueryPolicy.defaults(), legacyCollections());
     }
 
-    @Transactional(readOnly = true)
+    /** Production seam for Task 3 durable collection resolution and the later saved-policy provider. */
+    protected SearchService(TypesenseClient typesenseClient, SearchFallbackRepository fallbackRepository,
+                            SearchAccessPolicy accessPolicy, SearchResultBudget resultBudget,
+                            SearchQueryPolicy queryPolicy, Map<String, String> collections) {
+        this.typesenseClient = typesenseClient;
+        this.fallbackRepository = fallbackRepository;
+        this.accessPolicy = accessPolicy;
+        this.resultBudget = resultBudget;
+        this.queryPolicy = queryPolicy;
+        this.collections = Map.copyOf(collections);
+    }
+
     public SearchResult search(String query, String entityType, int limit) {
-        requireUnrestrictedSearchScope();
+        accessPolicy.requireSearchAccess();
+        String cleanQuery = normalizeQuery(query);
+        String cleanEntityType = normalizeEntityType(entityType);
+        int effectiveLimit = effectiveLimit(limit);
 
-        if (query == null || query.trim().length() < 2) {
-            throw ApiException.badRequest(ErrorCode.EMPTY_QUERY, "Поисковый запрос должен содержать минимум 2 символа");
-        }
-
-        String cleanQuery = query.trim();
-        int safeLimit = Math.clamp(limit, 1, 100);
-
-        // 1. Попытка высокоскоростного поиска через Typesense (Typo-tolerance, Soundex, Prefix, Highlighting)
-        if (typesenseClient.isEnabled()) {
+        Long exactId = exactId(cleanQuery);
+        if (exactId != null) {
             try {
-                List<SearchHit> typesenseHits = typesenseClient.search(cleanQuery, entityType, safeLimit);
-                if (typesenseHits != null) {
-                    return new SearchResult(cleanQuery, typesenseHits.size(), typesenseHits);
-                }
-            } catch (Exception e) {
-                log.warn("Поиск через Typesense завершился с ошибкой, активирован автоматический fallback на PostgreSQL: {}", e.getMessage());
+                return fallbackResult(cleanQuery, fallbackRepository.searchExact(exactId, cleanEntityType),
+                        effectiveLimit, false, true);
+            } catch (Exception exactFailure) {
+                throw unavailable();
             }
         }
 
-        // 2. Graceful Fallback на PostgreSQL SQL (ilike / trigram)
-        List<SearchHit> hits = fallbackPostgresSearch(cleanQuery, entityType, safeLimit);
-        return new SearchResult(cleanQuery, hits.size(), hits);
+        if (typesenseClient.isEnabled() && hasCollections(cleanEntityType)) {
+            try {
+                List<CollectionSearch> groups = typesenseClient.multiSearch(
+                        cleanQuery, cleanEntityType, effectiveLimit, collections, queryPolicy);
+                List<SearchHit> hits = resultBudget.allocate(groups, effectiveLimit);
+                long found = sumFound(groups);
+                return new SearchResult(cleanQuery, hits.size(), hits, found,
+                        found > hits.size(), "TYPESENSE", false);
+            } catch (TypesenseException unavailableOrInvalid) {
+                log.warn("Typesense search failed; using PostgreSQL fallback");
+            }
+        }
+
+        try {
+            return fallbackResult(cleanQuery, fallbackRepository.search(cleanQuery, cleanEntityType, effectiveLimit),
+                    effectiveLimit, true, false);
+        } catch (Exception fallbackFailure) {
+            throw unavailable();
+        }
     }
 
-    private void requireUnrestrictedSearchScope() {
-        var principal = SecurityContext.getPrincipal();
-        if (principal == null) {
-            throw ApiException.unauthorized("Требуется авторизация для поиска");
+    private SearchResult fallbackResult(String query, FallbackSearch fallback, int effectiveLimit,
+                                        boolean degraded, boolean countKnown) {
+        List<CollectionSearch> groups = fallback.groups().stream()
+                .map(group -> new CollectionSearch(group.entityType(), group.hits().stream()
+                        .map(hit -> new SearchHit(hit.entityType(), hit.id(), hit.title(), hit.description(), hit.targetUrl()))
+                        .toList(), group.hits().size(), 0))
+                .toList();
+        List<SearchHit> hits = resultBudget.allocate(groups, effectiveLimit);
+        int available = groups.stream().mapToInt(group -> group.hits().size()).sum();
+        boolean hasMore = fallback.groups().stream().anyMatch(group -> group.hasMore())
+                || available > hits.size();
+        Long foundHits = countKnown ? (long) available : null;
+        return new SearchResult(query, hits.size(), hits, foundHits, hasMore, "POSTGRES", degraded);
+    }
+
+    private int effectiveLimit(int requestedLimit) {
+        if (requestedLimit < 1 || requestedLimit > 50) {
+            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "Лимит поиска должен быть от 1 до 50");
         }
-        boolean hasLegacyWildcard = principal.effectivePermissions().contains("*.*");
-        boolean hasAdministratorRole = !hasLegacyWildcard
-                && roleMembershipAuthorizer.hasActiveRole(principal.userId(), ADMINISTRATOR_ROLE);
-        if (!hasLegacyWildcard && !hasAdministratorRole) {
-            throw ApiException.forbidden(
-                    "Глобальный поиск доступен только администраторам до внедрения scope-фильтрации");
+        return Math.min(requestedLimit, queryPolicy.globalLimit());
+    }
+
+    private static String normalizeQuery(String query) {
+        if (query == null) throw invalidQuery();
+        String clean = query.trim();
+        int length = clean.codePointCount(0, clean.length());
+        if (length < 2 || length > 200) throw invalidQuery();
+        return clean;
+    }
+
+    private static ApiException invalidQuery() {
+        return ApiException.badRequest(ErrorCode.EMPTY_QUERY,
+                "Поисковый запрос должен содержать от 2 до 200 символов");
+    }
+
+    private static String normalizeEntityType(String entityType) {
+        if (entityType == null) return "ALL";
+        String normalized = entityType.trim().toUpperCase(Locale.ROOT);
+        return switch (normalized) {
+            case "ALL", "TASK", "PROJECT", "USER" -> normalized;
+            default -> throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "Неизвестная категория поиска");
+        };
+    }
+
+    private static Long exactId(String query) {
+        if (!query.matches("#[0-9]+")) return null;
+        try {
+            long id = Long.parseLong(query.substring(1));
+            if (id <= 0) throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "ID должен быть положительным числом");
+            return id;
+        } catch (NumberFormatException overflow) {
+            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "Некорректный ID поиска");
         }
     }
 
-    private List<SearchHit> fallbackPostgresSearch(String cleanQuery, String entityType, int limit) {
-        List<SearchHit> hits = new ArrayList<>();
-        boolean searchAll = entityType == null || entityType.isBlank() || entityType.equalsIgnoreCase("ALL");
-
-        // 1. Search Users
-        if (searchAll || entityType.equalsIgnoreCase("USER")) {
-            var userHits = jdbcClient.sql("""
-                    select id, name, login, email, phone
-                    from md_users
-                    where state = 'A' and (name ilike :q or login ilike :q or email ilike :q)
-                    limit :limit
-                    """)
-                    .param("q", "%" + cleanQuery + "%")
-                    .param("limit", limit)
-                    .query((rs, rowNum) -> new SearchHit(
-                            "USER",
-                            String.valueOf(rs.getLong("id")),
-                            rs.getString("name"),
-                            rs.getString("email") + " (@" + rs.getString("login") + ")",
-                            "/iam/users/" + rs.getLong("id")
-                    ))
-                    .list();
-            hits.addAll(userHits);
-        }
-
-        // 2. Search Tasks
-        if (searchAll || entityType.equalsIgnoreCase("TASK")) {
-            var taskHits = jdbcClient.sql("""
-                    select t.id, t.title, t.priority, s.name as status_name
-                    from ms_tasks t
-                    left join ms_task_statuses s on s.id = t.status_id
-                    where t.title ilike :q or t.description_markdown ilike :q
-                    limit :limit
-                    """)
-                    .param("q", "%" + cleanQuery + "%")
-                    .param("limit", limit)
-                    .query((rs, rowNum) -> new SearchHit(
-                            "TASK",
-                            String.valueOf(rs.getLong("id")),
-                            rs.getString("title"),
-                            "Статус: " + (rs.getString("status_name") != null ? rs.getString("status_name") : "Новая")
-                                    + " | Приоритет: " + rs.getString("priority"),
-                            "/tasks/items/" + rs.getLong("id")
-                    ))
-                    .list();
-            hits.addAll(taskHits);
-        }
-
-        // 3. Search Projects
-        if (searchAll || entityType.equalsIgnoreCase("PROJECT")) {
-            var projectHits = jdbcClient.sql("""
-                    select id, name, description
-                    from ms_task_projects
-                    where state = 'A' and (name ilike :q or description ilike :q)
-                    limit :limit
-                    """)
-                    .param("q", "%" + cleanQuery + "%")
-                    .param("limit", limit)
-                    .query((rs, rowNum) -> new SearchHit(
-                            "PROJECT",
-                            String.valueOf(rs.getLong("id")),
-                            rs.getString("name"),
-                            rs.getString("description") != null ? rs.getString("description") : "",
-                            "/tasks/projects/" + rs.getLong("id")
-                    ))
-                    .list();
-            hits.addAll(projectHits);
-        }
-
-        return hits;
+    private boolean hasCollections(String entityType) {
+        List<String> needed = entityType.equals("ALL") ? List.of("TASK", "PROJECT", "USER") : List.of(entityType);
+        return needed.stream().allMatch(type -> collections.containsKey(type) && !collections.get(type).isBlank());
     }
 
-    public record SearchHit(
-            String entityType,
-            String id,
-            String title,
-            String description,
-            String targetUrl
-    ) {}
+    private static long sumFound(List<CollectionSearch> groups) {
+        long total = 0;
+        try {
+            for (CollectionSearch group : groups) total = Math.addExact(total, group.found());
+            return total;
+        } catch (ArithmeticException overflow) {
+            throw TypesenseException.invalidResponse();
+        }
+    }
 
-    public record SearchResult(
-            String query,
-            int totalHits,
-            List<SearchHit> hits
-    ) {}
+    private static ApiException unavailable() {
+        return new ApiException(ErrorCode.SERVICE_UNAVAILABLE, "Поиск временно недоступен");
+    }
+
+    private static Map<String, String> legacyCollections() {
+        Map<String, String> values = new LinkedHashMap<>();
+        values.put("TASK", TypesenseClient.COL_TASKS);
+        values.put("PROJECT", TypesenseClient.COL_PROJECTS);
+        values.put("USER", TypesenseClient.COL_USERS);
+        return values;
+    }
+
+    public record SearchHit(String entityType, String id, String title, String description, String targetUrl) {}
+    public record SearchResult(String query, int totalHits, List<SearchHit> hits, Long foundHits,
+                               boolean hasMore, String source, boolean degraded) {
+        public SearchResult { hits = List.copyOf(hits); }
+    }
 }
