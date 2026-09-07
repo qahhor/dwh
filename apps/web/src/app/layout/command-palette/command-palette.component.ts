@@ -5,7 +5,8 @@ import { FormsModule } from '@angular/forms';
 import { A11yModule } from '@angular/cdk/a11y';
 import { Router } from '@angular/router';
 import { CommandPaletteService } from '../../core/services/command-palette.service';
-import { SearchHit } from '../../core/models/search.models';
+import { SearchHit, SearchResult } from '../../core/models/search.models';
+import { searchTarget } from '../../core/services/search-target';
 import { EMPTY, Subject, catchError, of, switchMap, timer } from 'rxjs';
 import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
 
@@ -48,6 +49,15 @@ import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
           </button>
         </div>
 
+        <div class="palette-category">
+          <label for="search-category">{{ 'search.category' | t }}</label>
+          <select id="search-category" [(ngModel)]="entityType" (ngModelChange)="onSearchChange(searchQuery)">
+            <option value="ALL">{{ 'search.all' | t }}</option>
+            <option value="TASK">{{ 'nav.tasks' | t }}</option>
+            <option value="PROJECT">{{ 'nav.projects' | t }}</option>
+            <option value="USER">{{ 'nav.users' | t }}</option>
+          </select>
+        </div>
         <div class="palette-results">
           <div *ngIf="isLoading()" class="palette-loading" role="status" aria-live="polite">
             {{ 'layout.app_shell.poisk' | t }}
@@ -55,14 +65,20 @@ import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
 
           <div *ngIf="!isLoading() && errorMessage()" class="palette-error" role="alert">
             <span>{{ errorMessage() }}</span>
-            <button type="button" class="palette-retry" (click)="retrySearch()">{{ 'announcements.povtorit' | t }}</button>
+            <span *ngIf="retrySeconds() > 0">{{ 'search.retry_countdown' | t:{seconds: retrySeconds()} }}</span>
+            <button type="button" class="palette-retry" [disabled]="retrySeconds() > 0 || !validQuery(searchQuery)" (click)="retrySearch()">{{ 'announcements.povtorit' | t }}</button>
           </div>
 
-          <div *ngIf="!isLoading() && !errorMessage() && results().length === 0 && searchQuery.trim().length >= 2" class="palette-empty" role="status">
+          <div *ngIf="metadata()?.degraded" class="palette-degraded" role="status">{{ 'search.degraded' | t }}</div>
+          <div *ngIf="metadata() as meta" class="palette-count" role="status">
+            {{ (meta.foundHits === null ? 'search.returned' : 'search.returned_found') | t:{returned: results().length, found: meta.foundHits ?? 0} }}
+            <span *ngIf="meta.hasMore">{{ 'search.has_more' | t }}</span>
+          </div>
+          <div *ngIf="!isLoading() && !errorMessage() && metadata() && results().length === 0" class="palette-empty" role="status">
             {{ 'layout.command_palette.nothing_found_for' | t:{query: searchQuery} }}
           </div>
 
-          <div *ngIf="!isLoading() && searchQuery.trim().length < 2" class="palette-hint">
+          <div *ngIf="!isLoading() && queryLength(searchQuery) < 2" class="palette-hint">
             {{ 'layout.command_palette.vvedite_minimum_2_simvola_dlya_mgnovennogo_poisk' | t }}
           </div>
 
@@ -173,6 +189,11 @@ import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
       color: var(--text-muted);
       font-size: 13px;
     }
+    .palette-category { display: flex; align-items: center; gap: 12px; padding: 8px 16px; }
+    .palette-category select { min-width: 0; max-width: 100%; color: var(--text-main); background: var(--bg-surface); }
+    .palette-count, .palette-degraded { padding: 8px 12px; font-size: 12px; color: var(--text-muted); }
+    .palette-degraded { color: var(--warning); }
+    .palette-retry:disabled { opacity: .6; cursor: default; }
 
     .palette-close {
       display: grid;
@@ -312,6 +333,11 @@ export class CommandPaletteComponent implements OnDestroy {
   private static nextId = 0;
 
   searchQuery = '';
+  entityType = 'ALL';
+  readonly metadata = signal<SearchResult | null>(null);
+  readonly retrySeconds = signal(0);
+  private retryUntil = 0;
+  private cooldownTimer?: ReturnType<typeof setInterval>;
   selectedIndex = 0;
   readonly isLoading = signal<boolean>(false);
   readonly results = signal<SearchHit[]>([]);
@@ -355,14 +381,15 @@ export class CommandPaletteComponent implements OnDestroy {
 
     this.searchSubject.pipe(
       switchMap(query => {
-        if (query === null || query.length < 2) return EMPTY;
+        if (query === null || !this.validQuery(query) || this.retryUntil > Date.now()) return EMPTY;
         // A new input cancels both the debounce timer and an older HTTP request.
         return timer(120).pipe(
-          switchMap(() => this.paletteService.search(query)),
+          switchMap(() => this.paletteService.search(query, this.entityType)),
           catchError(error => {
             this.results.set([]);
             this.isLoading.set(false);
             this.errorMessage.set(this.getSearchErrorMessage(error));
+            if (error?.status === 429) this.startCooldown(error.retryAfterSeconds);
             return of(null);
           })
         );
@@ -371,12 +398,14 @@ export class CommandPaletteComponent implements OnDestroy {
     ).subscribe(res => {
       if (!res || !this.paletteService.isOpen()) return;
       this.results.set(res.hits || []);
+      this.metadata.set(res);
       this.selectedIndex = 0;
       this.isLoading.set(false);
     });
   }
 
   ngOnDestroy() {
+    clearInterval(this.cooldownTimer);
     this.paletteService.close();
     this.searchSubject.complete();
     document.body.classList.remove('palette-open');
@@ -412,13 +441,16 @@ export class CommandPaletteComponent implements OnDestroy {
   onSearchChange(query: string) {
     const normalized = query.trim();
     this.results.set([]);
+    this.metadata.set(null);
     this.selectedIndex = 0;
-    this.errorMessage.set('');
-    this.isLoading.set(normalized.length >= 2);
+    this.errorMessage.set(this.retryUntil > Date.now() ? this.uiI18n.translate('search.rate_limited') :
+      this.queryLength(normalized) > 200 ? this.uiI18n.translate('search.query_too_long') : '');
+    this.isLoading.set(this.validQuery(normalized) && this.retryUntil <= Date.now());
     this.searchSubject.next(normalized);
   }
 
   retrySearch() {
+    if (this.retryUntil > Date.now()) return;
     this.onSearchChange(this.searchQuery);
   }
 
@@ -432,14 +464,29 @@ export class CommandPaletteComponent implements OnDestroy {
   }
 
   navigateTo(hit: SearchHit) {
+    const target = searchTarget(hit);
+    if (!target) return;
     this.paletteService.close();
-    if (hit.entityType === 'TASK') {
-      this.router.navigate(['/tasks']);
-    } else if (hit.entityType === 'PROJECT') {
-      this.router.navigate(['/tasks/projects']);
-    } else if (hit.entityType === 'USER') {
-      this.router.navigate(['/iam/users']);
-    }
+    this.router.navigate(target);
+  }
+
+  queryLength(query: string): number { return Array.from(query.trim()).length; }
+
+  validQuery(query: string): boolean {
+    const length = this.queryLength(query);
+    return length >= 2 && length <= 200;
+  }
+
+  private startCooldown(seconds: unknown): void {
+    const bounded = typeof seconds === 'number' && Number.isSafeInteger(seconds) && seconds >= 0
+      ? Math.min(seconds, 300) : 1;
+    this.retryUntil = Date.now() + bounded * 1000;
+    this.retrySeconds.set(bounded);
+    clearInterval(this.cooldownTimer);
+    this.cooldownTimer = setInterval(() => {
+      this.retrySeconds.set(Math.max(0, Math.ceil((this.retryUntil - Date.now()) / 1000)));
+      if (this.retrySeconds() === 0) clearInterval(this.cooldownTimer);
+    }, 250);
   }
 
   onBackdropClick(event: MouseEvent) {
@@ -467,6 +514,7 @@ export class CommandPaletteComponent implements OnDestroy {
   }
 
   private getSearchErrorMessage(error: unknown): string {
+    if ((error as { status?: number })?.status === 429) return this.uiI18n.translate('search.rate_limited');
     if (error && typeof error === 'object') {
       const detail = (error as { detail?: unknown }).detail;
       if (typeof detail === 'string' && detail.trim()) return detail;

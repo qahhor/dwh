@@ -1,7 +1,9 @@
 import { Component, OnDestroy, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule, Router } from '@angular/router';
+import { RouterModule, Router, ActivatedRoute } from '@angular/router';
+import { canonicalRecordId, recordResponseMatches, safeNumericRecordId } from '../../../core/services/search-target';
+import { RecordNavigationDecision } from '../../../core/guards/record-navigation.guard';
 import { Subscription } from 'rxjs';
 import { ApiService } from '../../../core/services/api.service';
 import { PermissionService } from '../../../core/services/permission.service';
@@ -19,6 +21,22 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
     TranslatePipe,CommonModule, FormsModule, RouterModule, UiButtonComponent, UiModalComponent, UiPaginationComponent],
 
   template: `
+    <ui-modal *ngIf="routeRecordId() !== null" [isOpen]="true" [title]="'projects.proekt' | t" size="sm" (close)="closeRecordView()">
+      <div body>
+        <p *ngIf="recordLoading()" role="status">{{ 'search.record_loading' | t }}</p>
+        <div *ngIf="recordError()" role="alert">
+          <p>{{ (recordNotFound() ? 'search.record_not_found' : 'search.record_load_error') | t }}</p>
+          <ui-button *ngIf="!recordNotFound()" variant="secondary" (onClick)="loadRecordView(routeRecordId())">{{ 'audit.retry' | t }}</ui-button>
+        </div>
+        <div *ngIf="viewingProject() as project" [attr.data-record-id]="routeRecordId()">
+          <p>#{{ routeRecordId() }}</p>
+          <h3>{{ project.name }}</h3>
+          <p>{{ project.description }}</p>
+          <p>{{ (project.state === 'A' ? 'common.active_masculine' : 'common.blocked_masculine') | t }}</p>
+        </div>
+      </div>
+      <div footer><ui-button variant="secondary" (onClick)="closeRecordView()">{{ 'search.back_to_list' | t }}</ui-button></div>
+    </ui-modal>
     <div class="projects-page">
       <!-- Header -->
       <div class="view-header">
@@ -437,11 +455,11 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
       [isOpen]="isCreateDiscardConfirmationOpen()"
       [title]="'projects.discard_create_title' | t"
       size="sm"
-      (close)="isCreateDiscardConfirmationOpen.set(false)"
+      (close)="cancelNavigationDiscard('create')"
     >
       <div body><p>{{ 'projects.discard_create_message' | t }}</p></div>
       <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="isCreateDiscardConfirmationOpen.set(false)">{{ 'common.cancel' | t }}</ui-button>
+        <ui-button variant="secondary" size="md" (onClick)="cancelNavigationDiscard('create')">{{ 'common.cancel' | t }}</ui-button>
         <ui-button variant="danger" size="md" (onClick)="confirmDiscardCreate()">{{ 'projects.discard_create_action' | t }}</ui-button>
       </div>
     </ui-modal>
@@ -515,11 +533,11 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
       [isOpen]="isEditDiscardConfirmationOpen()"
       [title]="'projects.discard_edit_title' | t"
       size="sm"
-      (close)="isEditDiscardConfirmationOpen.set(false)"
+      (close)="cancelNavigationDiscard('edit')"
     >
       <div body><p>{{ 'projects.discard_edit_message' | t }}</p></div>
       <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="isEditDiscardConfirmationOpen.set(false)">{{ 'common.cancel' | t }}</ui-button>
+        <ui-button variant="secondary" size="md" (onClick)="cancelNavigationDiscard('edit')">{{ 'common.cancel' | t }}</ui-button>
         <ui-button variant="danger" size="md" (onClick)="confirmDiscardEdit()">{{ 'projects.discard_edit_action' | t }}</ui-button>
       </div>
     </ui-modal>
@@ -962,6 +980,16 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
 })
 export class ProjectsComponent implements OnInit, OnDestroy {
   private readonly uiI18n = inject(I18nService);
+  private readonly recordRoute = inject(ActivatedRoute, { optional: true });
+  private readonly navigationDecision = new RecordNavigationDecision();
+  private recordRouteSubscription?: Subscription;
+  private recordRequest?: Subscription;
+  private recordRequestId = 0;
+  readonly routeRecordId = signal<string | null>(null);
+  readonly viewingProject = signal<Project | null>(null);
+  readonly recordLoading = signal(false);
+  readonly recordError = signal(false);
+  readonly recordNotFound = signal(false);
   private listRequest?: Subscription;
   private statsRequest?: Subscription;
   private editDetailRequest?: Subscription;
@@ -1018,9 +1046,14 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.loadProjects();
     this.loadStats();
+    this.recordRouteSubscription = this.recordRoute?.paramMap?.subscribe(params => this.loadRecordView(params.get('id')));
   }
 
   ngOnDestroy() {
+    this.navigationDecision.settle(false);
+    this.recordRouteSubscription?.unsubscribe();
+    this.recordRequest?.unsubscribe();
+    this.recordRequestId++;
     this.destroyed = true;
     this.listRequest?.unsubscribe();
     this.statsRequest?.unsubscribe();
@@ -1220,6 +1253,7 @@ export class ProjectsComponent implements OnInit, OnDestroy {
       || !this.isCreateDiscardConfirmationOpen()
     ) return;
     this.closeCreateModal();
+    this.navigationDecision.settle(true);
   }
 
   submitCreateProject() {
@@ -1276,6 +1310,7 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   }
 
   openEditModal(p: Project) {
+    if (!safeNumericRecordId(p.id)) return;
     if (
       this.destroyed
       || !this.canUpdateProject()
@@ -1326,6 +1361,7 @@ export class ProjectsComponent implements OnInit, OnDestroy {
       || !this.isEditDiscardConfirmationOpen()
     ) return;
     this.closeEditModal();
+    this.navigationDecision.settle(true);
   }
 
   submitEditProject() {
@@ -1474,7 +1510,52 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   }
 
   viewProjectTasks(project: Project) {
-    if (!this.canViewTasks()) return;
+    if (!this.canViewTasks() || !safeNumericRecordId(project.id)) return;
     this.router.navigate(['/tasks'], { queryParams: { project_id: project.id } });
+  }
+
+  loadRecordView(id: string | null) {
+    const requestId = ++this.recordRequestId;
+    this.recordRequest?.unsubscribe();
+    this.routeRecordId.set(id);
+    this.viewingProject.set(null);
+    this.recordLoading.set(false);
+    this.recordError.set(false);
+    this.recordNotFound.set(false);
+    if (id === null) return;
+    if (!canonicalRecordId(id)) {
+      this.recordError.set(true); this.recordNotFound.set(true); return;
+    }
+    this.recordLoading.set(true);
+    this.recordRequest = this.api.get<Project>(`/tasks/projects/${id}`, undefined, { notifyError: false }).subscribe({
+      next: project => {
+        if (this.destroyed || requestId !== this.recordRequestId) return;
+        this.recordLoading.set(false);
+        if (recordResponseMatches(project?.id, id)) this.viewingProject.set(project);
+        else this.recordError.set(true);
+      },
+      error: error => {
+        if (this.destroyed || requestId !== this.recordRequestId) return;
+        this.recordLoading.set(false); this.recordError.set(true);
+        this.recordNotFound.set(error?.status === 404 || error?.status === 403);
+      }
+    });
+  }
+
+  closeRecordView() { this.router.navigate(['/tasks/projects'], { queryParamsHandling: 'preserve' }); }
+
+  cancelNavigationDiscard(kind: 'create' | 'edit') {
+    (kind === 'create' ? this.isCreateDiscardConfirmationOpen : this.isEditDiscardConfirmationOpen).set(false);
+    this.navigationDecision.settle(false);
+  }
+
+  canLeaveRecordPage() {
+    if (this.isSubmitting()) return false;
+    const dialog = this.isCreateModalOpen() && this.isCreateDraftDirty() ? this.isCreateDiscardConfirmationOpen :
+      this.isEditModalOpen() && this.isEditDraftDirty() ? this.isEditDiscardConfirmationOpen : null;
+    if (dialog) return this.navigationDecision.request(() => dialog.set(true), () => dialog.set(false));
+    if (this.isCreateModalOpen()) this.closeCreateModal();
+    if (this.isEditModalOpen()) this.closeEditModal();
+    return true;
   }
 }

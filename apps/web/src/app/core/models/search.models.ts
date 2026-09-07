@@ -9,5 +9,9 @@ export interface SearchHit {
 export interface SearchResult {
   query: string;
   totalHits: number;
+  foundHits: number | null;
+  hasMore: boolean;
+  source: 'TYPESENSE' | 'POSTGRES';
+  degraded: boolean;
   hits: SearchHit[];
 }

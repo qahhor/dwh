@@ -7,6 +7,8 @@ import { SearchResult } from '../../core/models/search.models';
 import { CommandPaletteService } from '../../core/services/command-palette.service';
 import { CommandPaletteComponent } from './command-palette.component';
 
+const metadata = { foundHits: 0, hasMore: false, source: 'TYPESENSE' as const, degraded: false };
+
 describe('CommandPaletteComponent', () => {
   async function createFixture(initiallyOpen = true) {
     const isOpen = signal(initiallyOpen);
@@ -15,7 +17,7 @@ describe('CommandPaletteComponent', () => {
       open: vi.fn(() => isOpen.set(true)),
       close: vi.fn(() => isOpen.set(false)),
       toggle: vi.fn(() => isOpen.update(value => !value)),
-      search: vi.fn((_query: string) => of<SearchResult>({ query: '', totalHits: 0, hits: [] }))
+      search: vi.fn((_query: string) => of<SearchResult>({ ...metadata, query: '', totalHits: 0, hits: [] }))
     };
     await TestBed.configureTestingModule({
       imports: [CommandPaletteComponent],
@@ -83,6 +85,7 @@ describe('CommandPaletteComponent', () => {
       service.search
         .mockReturnValueOnce(throwError(() => ({ detail: 'Поиск временно недоступен' })))
         .mockReturnValueOnce(of({
+          ...metadata,
           query: 'Тест',
           totalHits: 1,
           hits: [{
@@ -120,7 +123,7 @@ describe('CommandPaletteComponent', () => {
     vi.useFakeTimers();
     try {
       const { fixture, service } = await createFixture();
-      service.search.mockReturnValue(of({ query: 'old', totalHits: 1, hits: [{
+      service.search.mockReturnValue(of({ ...metadata, query: 'old', totalHits: 1, hits: [{
         entityType: 'USER', id: '7', title: 'Old result', description: '', targetUrl: '/iam/users/7'
       }] }));
       fixture.detectChanges();
@@ -177,7 +180,7 @@ describe('CommandPaletteComponent', () => {
       expect(pending.observed).toBe(false);
       service.open();
       fixture.detectChanges();
-      pending.next({ query: 'old', totalHits: 1, hits: [{
+      pending.next({ ...metadata, query: 'old', totalHits: 1, hits: [{
         entityType: 'USER', id: '7', title: 'Late result', description: '', targetUrl: '/iam/users/7'
       }] });
       fixture.detectChanges();
@@ -260,7 +263,7 @@ describe('CommandPaletteComponent', () => {
     expect(event.defaultPrevented).toBe(false);
     expect(TestBed.inject(Router).navigate).not.toHaveBeenCalled();
     option.click();
-    expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(['/iam/users']);
+    expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(['/iam/users', '7']);
   });
 
   it('supports the physical search shortcut on a non-Latin keyboard layout without repeating it', async () => {

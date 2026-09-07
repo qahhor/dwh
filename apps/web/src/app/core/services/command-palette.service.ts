@@ -23,7 +23,7 @@ export class CommandPaletteService {
     this.isOpen.update(v => !v);
   }
 
-  search(query: string, entityType: string = 'ALL', limit: number = 10): Observable<SearchResult> {
+  search(query: string, entityType: string = 'ALL', limit?: number): Observable<SearchResult> {
     return this.api.get<SearchResult>('/search', { q: query, entity: entityType, limit }, { notifyError: false });
   }
 }

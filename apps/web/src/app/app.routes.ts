@@ -2,6 +2,8 @@ import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { AppShellComponent } from './layout/app-shell/app-shell.component';
 import { permissionGuard } from './core/services/permission.service';
+import { projectRecordMatcher, taskRecordMatcher, userRecordMatcher } from './core/services/search-target';
+import { recordNavigationGuard } from './core/guards/record-navigation.guard';
 
 export const routes: Routes = [
   {
@@ -19,15 +21,17 @@ export const routes: Routes = [
         pathMatch: 'full'
       },
       {
-        path: 'tasks',
-        loadComponent: () => import('./features/tasks/tasks.component').then(m => m.TasksComponent)
-      },
-      {
-        path: 'tasks/projects',
+        matcher: projectRecordMatcher,
+        canDeactivate: [recordNavigationGuard],
         loadComponent: () => import('./features/tasks/projects/projects.component').then(m => m.ProjectsComponent)
       },
       {
-        path: 'iam/users',
+        matcher: taskRecordMatcher,
+        canDeactivate: [recordNavigationGuard],
+        loadComponent: () => import('./features/tasks/tasks.component').then(m => m.TasksComponent)
+      },
+      {
+        matcher: userRecordMatcher,
         loadComponent: () => import('./features/iam/users/users.component').then(m => m.UsersComponent)
       },
       {

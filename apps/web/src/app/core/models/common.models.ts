@@ -9,6 +9,7 @@ export interface ProblemDetail {
   type?: string;
   title: string;
   status: number;
+  retryAfterSeconds?: number;
   code: string;
   detail: string;
   instance?: string;

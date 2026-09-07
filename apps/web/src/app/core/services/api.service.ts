@@ -104,6 +104,11 @@ export class ApiService {
       };
     }
 
+    const retryAfter = error.headers?.get('Retry-After');
+    if (retryAfter != null && /^\d+$/.test(retryAfter) && Number.isSafeInteger(Number(retryAfter))) {
+      problem.retryAfterSeconds = Number(retryAfter);
+    }
+
     // Don't toast 401 on initial /auth/me verification or normal 404 search
     const isAuthCheck = error.status === 401 && error.url?.includes('/auth/me');
     if (!isAuthCheck && options.notifyError !== false) {

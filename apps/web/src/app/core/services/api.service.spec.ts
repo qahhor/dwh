@@ -1,4 +1,7 @@
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { TestBed } from '@angular/core/testing';
+import { CommandPaletteService } from './command-palette.service';
 import { firstValueFrom, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { I18nService } from './i18n.service';
@@ -6,6 +9,19 @@ import { ApiService } from './api.service';
 import { ToastService } from './toast.service';
 
 describe('ApiService localized Problem Details', () => {
+  it.each([['12', 12], ['0', 0], ['-1', undefined], ['1.2', undefined], ['NaN', undefined], ['99999999999999999999', undefined], [null, undefined]])
+    ('preserves only valid optional retry seconds from HTTP header %s', (header, expected) => {
+      TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+      let failure: any;
+      TestBed.inject(CommandPaletteService).search('test').subscribe({ error: error => failure = error });
+      const http = TestBed.inject(HttpTestingController);
+      http.expectOne(req => req.url === '/api/v1/search').flush({ code: 'RATE_LIMITED', detail: 'retry', retryAfterSeconds: 666 },
+        { status: 429, statusText: 'Too Many Requests', headers: header === null ? {} : { 'Retry-After': header } });
+      expect(failure.retryAfterSeconds).toBe(expected);
+      expect(failure.status).toBe(429);
+      expect(TestBed.inject(ToastService).toasts()).toEqual([]);
+      http.verify();
+    });
   function serviceFor(body: object, translations: Record<string, string> = {}) {
     const http = {
       get: vi.fn(() => throwError(() => new HttpErrorResponse({

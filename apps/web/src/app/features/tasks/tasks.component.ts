@@ -1,7 +1,9 @@
 import { Component, OnDestroy, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
+import { canonicalRecordId, recordResponseMatches, safeNumericRecordId } from '../../core/services/search-target';
+import { RecordNavigationDecision } from '../../core/guards/record-navigation.guard';
 import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { ApiService } from '../../core/services/api.service';
 import { PermissionService } from '../../core/services/permission.service';
@@ -527,8 +529,8 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
     <!-- Task Details Modal (Sleek Linear/Jira 2-Pane View)                     -->
     <!-- ======================================================================= -->
     <ui-modal
-      [isOpen]="selectedTask() !== null"
-      [title]="'tasks.task_number' | t:{id: selectedTask()?.id || ''}"
+      [isOpen]="(selectedTask() !== null || routeRecordId() !== null) && !isEditModalOpen()"
+      [title]="'tasks.task_number' | t:{id: detailRecordId() || ''}"
       size="lg"
       (close)="closeTaskDetails()"
     >
@@ -537,20 +539,22 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
       </div>
 
       <div body class="request-state request-error" *ngIf="detailLoadError()" role="alert">
-        <span>{{ 'tasks.detail_load_error' | t }}</span>
-        <ui-button variant="secondary" size="sm" (onClick)="retryTaskDetails()">{{ 'audit.retry' | t }}</ui-button>
+        <span>{{ (detailNotFound() ? 'search.record_not_found' : 'tasks.detail_load_error') | t }}</span>
+        <ui-button *ngIf="!detailNotFound()" variant="secondary" size="sm" (onClick)="retryTaskDetails()">{{ 'audit.retry' | t }}</ui-button>
+        <ui-button *ngIf="detailNotFound()" variant="secondary" size="sm" (onClick)="closeTaskDetails()">{{ 'search.back_to_list' | t }}</ui-button>
       </div>
-      <div body class="task-details-view" *ngIf="!detailLoading() && !detailLoadError() && selectedTask() as t">
+      <div body class="task-details-view" [attr.data-record-id]="detailRecordId()" *ngIf="!detailLoading() && !detailLoadError() && selectedTask() as t">
+        <p *ngIf="!safeRecordId(t.id)" role="status">{{ 'search.record_readonly_id' | t }}</p>
         <!-- Ancestor Breadcrumbs Trail -->
         <div class="ancestor-trail" *ngIf="taskAncestors().length > 0">
           <span class="trail-label">{{ 'tasks.ierarhiya' | t }}</span>
           <ng-container *ngFor="let anc of taskAncestors()">
-            <button type="button" class="anc-link" (click)="openTaskDetails(anc)">
+            <button type="button" class="anc-link" [disabled]="!safeRecordId(anc.id)" (click)="openTaskDetails(anc)">
               #{{ anc.id }} {{ anc.title }}
             </button>
             <span class="anc-sep" aria-hidden="true">›</span>
           </ng-container>
-          <span class="anc-current">#{{ t.id }} {{ t.title }}</span>
+          <span class="anc-current">#{{ detailRecordId() }} {{ t.title }}</span>
         </div>
 
         <!-- Overdue Notice Banner -->
@@ -582,7 +586,7 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
               <div class="section-header-between">
                 <h4 class="section-label">{{ 'tasks.subtasks_count' | t:{count: taskSubtasks().length} }}</h4>
                 <button
-                  *ngIf="canCreateTask()"
+                  *ngIf="canCreateTask() && safeRecordId(t.id)"
                   type="button"
                   class="add-subtask-btn"
                   (click)="openAddSubtaskModal(t)"
@@ -597,6 +601,7 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
                   type="button"
                   *ngFor="let sub of taskSubtasks()"
                   class="subtask-row"
+                  [disabled]="!safeRecordId(sub.id)"
                   [attr.aria-label]="'tasks.open_subtask_named' | t:{id: sub.id, title: sub.title}"
                   [class.row-overdue]="isOverdue(sub.endTime, sub.statusId)"
                   (click)="openTaskDetails(sub)"
@@ -625,8 +630,8 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
               <h4 class="section-label">{{ 'tasks.attachments_count' | t:{count: taskFiles().length} }}</h4>
               <ui-file-upload
                 [files]="taskFiles()"
-                [canUpload]="canUpdateTask()"
-                [canDelete]="canUpdateTask()"
+                [canUpload]="canUpdateTask() && safeRecordId(t.id)"
+                [canDelete]="canUpdateTask() && safeRecordId(t.id)"
                 (fileAttached)="onTaskFileAttached($event)"
                 (fileRemoved)="onTaskFileRemoved($event)"
               ></ui-file-upload>
@@ -691,7 +696,7 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
                     class="clean-select status-select"
                     [ngModel]="t.statusId"
                     (ngModelChange)="updateStatus(t.id, $event)"
-                    [disabled]="!canUpdateTask()"
+                    [disabled]="!canUpdateTask() || !safeRecordId(t.id)"
                     [attr.aria-label]="'tasks.task_status_aria' | t:{id: t.id}"
                   >
                     <option *ngFor="let s of statuses()" [ngValue]="s.id">{{ s.name }}</option>
@@ -772,7 +777,7 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
             </div>
 
             <button
-              *ngIf="canUpdateTask()"
+              *ngIf="canUpdateTask() && safeRecordId(t.id)"
               type="button"
               class="side-edit-btn"
               (click)="openEditModal(t)"
@@ -1244,13 +1249,13 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
       [isOpen]="isEditDiscardConfirmationOpen()"
       [title]="'tasks.discard_edit_title' | t"
       size="sm"
-      (close)="isEditDiscardConfirmationOpen.set(false)"
+      (close)="cancelDiscardEdit()"
     >
       <div body class="dictionary-delete-body">
         <p>{{ 'tasks.discard_edit_message' | t }}</p>
       </div>
       <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="isEditDiscardConfirmationOpen.set(false)">{{ 'common.cancel' | t }}</ui-button>
+        <ui-button variant="secondary" size="md" (onClick)="cancelDiscardEdit()">{{ 'common.cancel' | t }}</ui-button>
         <ui-button variant="danger" size="md" (onClick)="confirmDiscardEdit()">{{ 'tasks.discard_edit_action' | t }}</ui-button>
       </div>
     </ui-modal>
@@ -2512,6 +2517,13 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
 })
 export class TasksComponent implements OnInit, OnDestroy {
   private readonly uiI18n = inject(I18nService);
+  private readonly recordRouter = inject(Router, { optional: true });
+  readonly routeRecordId = signal<string | null>(null);
+  readonly detailNotFound = signal(false);
+  readonly safeRecordId = safeNumericRecordId;
+  private recordRouteSubscription?: Subscription;
+  private readonly navigationDecision = new RecordNavigationDecision();
+  private createFormBaseline = '';
   readonly tasks = signal<Task[]>([]);
   readonly projects = signal<Project[]>([]);
   readonly statuses = signal<TaskStatus[]>([]);
@@ -2676,9 +2688,23 @@ export class TasksComponent implements OnInit, OnDestroy {
     this.loadProjects();
     this.loadTaskCustomFields();
     this.loadTasks(true);
+    this.recordRouteSubscription = this.route.paramMap?.subscribe(params => {
+      this.clearTaskDetails();
+      const id = params.get('id');
+      this.routeRecordId.set(id);
+      if (id === null) return;
+      if (!canonicalRecordId(id)) {
+        this.detailNotFound.set(true);
+        this.detailLoadError.set(true);
+        return;
+      }
+      this.loadTaskFullDetails(id);
+      this.loadComments(id);
+    });
   }
 
   ngOnDestroy() {
+    this.navigationDecision.settle(false);
     this.destroyed = true;
     this.listRequestId++;
     this.detailRequestId++;
@@ -2693,6 +2719,7 @@ export class TasksComponent implements OnInit, OnDestroy {
     clearTimeout(this.observerSearchTimer);
     clearTimeout(this.taskSearchTimer);
     this.routeSubscription?.unsubscribe();
+    this.recordRouteSubscription?.unsubscribe();
     this.listRequest?.unsubscribe();
     this.detailRequest?.unsubscribe();
     this.commentsRequest?.unsubscribe();
@@ -3161,6 +3188,7 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
 
   private executeStatusChange(task: Task, targetStatusId: number) {
+    if (!safeNumericRecordId(task.id) || !safeNumericRecordId(targetStatusId)) return;
     // Optimistic UI update
     this.applyStatusToVisibleTasks(task.id, targetStatusId);
     if (this.selectedTask()?.id === task.id) {
@@ -3232,7 +3260,12 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
 
   openTaskDetails(task: Task) {
+    if (!safeNumericRecordId(task.id)) return;
     if (this.isEditModalOpen()) return;
+    if (this.routeRecordId() !== null && this.routeRecordId() !== String(task.id)) {
+      this.recordRouter?.navigate(['/tasks/items', String(task.id)], { queryParamsHandling: 'preserve' });
+      return;
+    }
     this.cancelDetailRequests();
     this.detailContextId++;
     this.selectedTask.set(task);
@@ -3251,16 +3284,21 @@ export class TasksComponent implements OnInit, OnDestroy {
     this.openTaskDetails(task);
   }
 
-  loadTaskFullDetails(taskId: number) {
+  detailRecordId(): string | null {
+    return this.routeRecordId() ?? (this.selectedTask() ? String(this.selectedTask()!.id) : null);
+  }
+
+  loadTaskFullDetails(taskId: number | string) {
     const requestId = ++this.detailRequestId;
     this.detailRequest?.unsubscribe();
     this.detailLoading.set(true);
     this.detailLoadError.set(false);
-    this.detailRequest = this.api.get<TaskDetailResponse>(`/tasks/${taskId}`).subscribe({
+    this.detailNotFound.set(false);
+    this.detailRequest = this.api.get<TaskDetailResponse>(`/tasks/${taskId}`, undefined, { notifyError: false }).subscribe({
       next: res => {
-        if (this.destroyed || requestId !== this.detailRequestId || this.selectedTask()?.id !== taskId) return;
+        if (this.destroyed || requestId !== this.detailRequestId || this.detailRecordId() !== String(taskId)) return;
         this.detailLoading.set(false);
-        if (res?.task?.id === taskId) {
+        if (recordResponseMatches(res?.task?.id, String(taskId))) {
           this.selectedTask.set(res.task);
           this.taskMembers.set(res.members || []);
           this.taskSubtasks.set(res.subtasks || []);
@@ -3270,20 +3308,29 @@ export class TasksComponent implements OnInit, OnDestroy {
           this.detailLoadError.set(true);
         }
       },
-      error: () => {
-        if (this.destroyed || requestId !== this.detailRequestId || this.selectedTask()?.id !== taskId) return;
+      error: error => {
+        if (this.destroyed || requestId !== this.detailRequestId || this.detailRecordId() !== String(taskId)) return;
         this.detailLoading.set(false);
         this.detailLoadError.set(true);
+        this.detailNotFound.set(error?.status === 404 || error?.status === 403);
       }
     });
   }
 
   retryTaskDetails() {
-    const taskId = this.selectedTask()?.id;
+    const taskId = this.detailRecordId();
     if (taskId != null) this.loadTaskFullDetails(taskId);
   }
 
-  closeTaskDetails() {
+  closeTaskDetails(returnToList = true) {
+    if (returnToList && this.routeRecordId() !== null) {
+      this.recordRouter?.navigate(['/tasks/items'], { queryParamsHandling: 'preserve' });
+      return;
+    }
+    this.clearTaskDetails();
+  }
+
+  private clearTaskDetails() {
     this.cancelDetailRequests();
     this.detailContextId++;
     this.selectedTask.set(null);
@@ -3294,6 +3341,7 @@ export class TasksComponent implements OnInit, OnDestroy {
     this.comments.set([]);
     this.detailLoading.set(false);
     this.detailLoadError.set(false);
+    this.detailNotFound.set(false);
     this.commentsLoading.set(false);
     this.commentsLoadError.set(false);
   }
@@ -3307,7 +3355,7 @@ export class TasksComponent implements OnInit, OnDestroy {
 
   onTaskFileAttached(file: TaskFile) {
     const t = this.selectedTask();
-    if (!t) return;
+    if (!t || !safeNumericRecordId(t.id)) return;
     const detailContextId = this.detailContextId;
     this.api.post(`/tasks/${t.id}/files`, { fileId: file.fileId }).subscribe({
       next: () => {
@@ -3324,7 +3372,7 @@ export class TasksComponent implements OnInit, OnDestroy {
 
   onTaskFileRemoved(file: TaskFile) {
     const t = this.selectedTask();
-    if (!t) return;
+    if (!t || !safeNumericRecordId(t.id)) return;
     const detailContextId = this.detailContextId;
     this.api.delete(`/tasks/${t.id}/files/${file.fileId}`).subscribe({
       next: () => {
@@ -3340,19 +3388,19 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
 
 
-  loadComments(taskId: number) {
+  loadComments(taskId: number | string) {
     const requestId = ++this.commentsRequestId;
     this.commentsRequest?.unsubscribe();
     this.commentsLoading.set(true);
     this.commentsLoadError.set(false);
-    this.commentsRequest = this.api.get<TaskComment[]>(`/tasks/${taskId}/comments`).subscribe({
+    this.commentsRequest = this.api.get<TaskComment[]>(`/tasks/${taskId}/comments`, undefined, { notifyError: false }).subscribe({
       next: res => {
-        if (this.destroyed || requestId !== this.commentsRequestId || this.selectedTask()?.id !== taskId) return;
+        if (this.destroyed || requestId !== this.commentsRequestId || this.detailRecordId() !== String(taskId)) return;
         this.commentsLoading.set(false);
-        this.comments.set((res || []).filter(comment => comment.taskId === taskId));
+        this.comments.set((res || []).filter(comment => recordResponseMatches(comment.taskId, String(taskId))));
       },
       error: () => {
-        if (this.destroyed || requestId !== this.commentsRequestId || this.selectedTask()?.id !== taskId) return;
+        if (this.destroyed || requestId !== this.commentsRequestId || this.detailRecordId() !== String(taskId)) return;
         this.commentsLoading.set(false);
         this.commentsLoadError.set(true);
       }
@@ -3360,18 +3408,19 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
 
   retryComments() {
-    const taskId = this.selectedTask()?.id;
+    const taskId = this.detailRecordId();
     if (taskId != null) this.loadComments(taskId);
   }
 
   canCommentTask(): boolean {
-    return this.permService.canCreate('tasks.comments');
+    return this.permService.canCreate('tasks.comments') &&
+      (this.routeRecordId() === null || safeNumericRecordId(this.selectedTask()?.id));
   }
 
   submitComment() {
     const task = this.selectedTask();
     const text = this.commentDraft.trim();
-    if (!task || !text || !this.canCommentTask() || this.isCommentSubmitting()) return;
+    if (!task || !safeNumericRecordId(task.id) || !text || !this.canCommentTask() || this.isCommentSubmitting()) return;
 
     const requestId = ++this.commentPostRequestId;
     this.isCommentSubmitting.set(true);
@@ -3392,6 +3441,7 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
 
   updateStatus(taskId: number, newStatusId: number) {
+    if (!safeNumericRecordId(taskId) || !safeNumericRecordId(newStatusId)) return;
     this.api.post(`/tasks/${taskId}/status`, { statusId: newStatusId }).subscribe({
       next: () => {
         this.toast.success(this.uiI18n.translate('tasks.status_zadachi_obnovlen'));
@@ -3424,10 +3474,12 @@ export class TasksComponent implements OnInit, OnDestroy {
       endTime: '',
       attributes: {}
     };
+    this.createFormBaseline = JSON.stringify(this.createForm);
     this.isCreateModalOpen.set(true);
   }
 
   openAddSubtaskModal(parentTask: Task) {
+    if (!safeNumericRecordId(parentTask.id)) return;
     this.isCreateSubmitted = false;
     this.createForm = {
       title: '',
@@ -3445,6 +3497,7 @@ export class TasksComponent implements OnInit, OnDestroy {
     const parentOption = { id: parentTask.id, label: `#${parentTask.id} ${parentTask.title}`, icon: 'task_alt' };
     this.retainedParentOptions.set(parentTask.id, parentOption);
     this.parentTaskOptions.set(this.mergeOptions(this.parentTaskOptions(), [parentOption]));
+    this.createFormBaseline = JSON.stringify(this.createForm);
     this.isCreateModalOpen.set(true);
   }
 
@@ -3498,11 +3551,12 @@ export class TasksComponent implements OnInit, OnDestroy {
   // Task Editing
   // =========================================================================
   openEditModal(task: Task) {
+    if (!safeNumericRecordId(task.id)) return;
     if (this.isSubmitting() || this.isEditModalOpen()) return;
     this.isEditSubmitted = false;
     this.isEditDiscardConfirmationOpen.set(false);
     this.editReturnTask = this.selectedTask()?.id === task.id ? this.selectedTask() : null;
-    if (this.editReturnTask) this.closeTaskDetails();
+    if (this.editReturnTask) this.closeTaskDetails(false);
     this.editTargetId = task.id;
     this.editingTask = null;
     this.editFormBaseline = '';
@@ -3597,8 +3651,33 @@ export class TasksComponent implements OnInit, OnDestroy {
 
   confirmDiscardEdit() {
     if (this.isSubmitting()) return;
+    if (this.navigationDecision.pending) {
+      this.isCreateModalOpen.set(false);
+      this.closeEditModal(false);
+      this.navigationDecision.settle(true);
+      return;
+    }
     this.isEditDiscardConfirmationOpen.set(false);
     this.closeEditModal(true);
+  }
+
+  cancelDiscardEdit() {
+    this.isEditDiscardConfirmationOpen.set(false);
+    this.navigationDecision.settle(false);
+  }
+
+  canLeaveRecordPage() {
+    if (this.isSubmitting() || this.isCommentSubmitting()) return false;
+    const dirtyEdit = this.isEditModalOpen() && this.editingTask && this.editFormBaseline !== this.serializeEditForm();
+    const dirtyCreate = this.isCreateModalOpen() && this.createFormBaseline !== JSON.stringify(this.createForm);
+    if (dirtyEdit || dirtyCreate || this.commentDraft.trim()) {
+      return this.navigationDecision.request(
+        () => this.isEditDiscardConfirmationOpen.set(true),
+        () => this.isEditDiscardConfirmationOpen.set(false));
+    }
+    if (this.isEditModalOpen()) this.closeEditModal(false);
+    this.isCreateModalOpen.set(false);
+    return true;
   }
 
   private closeEditModal(returnToDetails: boolean) {

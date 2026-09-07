@@ -1,4 +1,7 @@
-import { Component, OnInit, signal, computed, HostListener, ElementRef, ViewChild, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed, HostListener, ElementRef, ViewChild, inject } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { Subscription } from 'rxjs';
+import { canonicalRecordId, recordResponseMatches, safeNumericRecordId } from '../../../core/services/search-target';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
@@ -575,9 +578,16 @@ type SortDirection = 'asc' | 'desc';
       [isOpen]="isViewModalOpen()"
       [title]="'iam.profil_polzovatelya' | t"
       size="sm"
-      (close)="isViewModalOpen.set(false)"
+      (close)="closeRecordView()"
     >
-      <div body class="view-body" *ngIf="viewingUser as u">
+      <div body *ngIf="recordLoading()" role="status">{{ 'search.record_loading' | t }}</div>
+      <div body *ngIf="recordError()" role="alert">
+        <p>{{ (recordNotFound() ? 'search.record_not_found' : 'search.record_load_error') | t }}</p>
+        <ui-button *ngIf="!recordNotFound()" variant="secondary" (onClick)="loadRecordView(routeRecordId())">{{ 'audit.retry' | t }}</ui-button>
+      </div>
+      <div body class="view-body" [attr.data-record-id]="routeRecordId() || u.id" *ngIf="viewingUser as u">
+        <p *ngIf="routeRecordId()">#{{ routeRecordId() }}</p>
+        <p *ngIf="!safeRecordId(u.id)" role="status">{{ 'search.record_readonly_id' | t }}</p>
         <div class="view-header-card">
           <div class="avatar lg" [style.background-color]="getAvatarBgColor(u.name)">
             {{ getUserInitial(u) }}
@@ -620,8 +630,8 @@ type SortDirection = 'asc' | 'desc';
         </div>
       </div>
       <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="isViewModalOpen.set(false)">{{ 'audit.zakryt' | t }}</ui-button>
-        <ui-button *ngIf="canUpdateUser()" variant="primary" size="md" (onClick)="openEditFromView()">{{ 'common.edit' | t }}</ui-button>
+        <ui-button variant="secondary" size="md" (onClick)="closeRecordView()">{{ (routeRecordId() ? 'search.back_to_list' : 'audit.zakryt') | t }}</ui-button>
+        <ui-button *ngIf="canUpdateUser() && viewingUser && safeRecordId(viewingUser.id)" variant="primary" size="md" (onClick)="openEditFromView()">{{ 'common.edit' | t }}</ui-button>
       </div>
     </ui-modal>
 
@@ -1152,8 +1162,18 @@ type SortDirection = 'asc' | 'desc';
     .req { color: var(--danger); }
   `]
 })
-export class UsersComponent implements OnInit {
+export class UsersComponent implements OnInit, OnDestroy {
   private readonly uiI18n = inject(I18nService);
+  private readonly recordRoute = inject(ActivatedRoute, { optional: true });
+  private readonly recordRouter = inject(Router, { optional: true });
+  private recordRouteSubscription?: Subscription;
+  private recordRequest?: Subscription;
+  private recordRequestId = 0;
+  readonly routeRecordId = signal<string | null>(null);
+  readonly recordLoading = signal(false);
+  readonly recordError = signal(false);
+  readonly recordNotFound = signal(false);
+  readonly safeRecordId = safeNumericRecordId;
   readonly users = signal<User[]>([]);
   readonly roles = signal<Role[]>([]);
   readonly customFields = signal<CustomField[]>([]);
@@ -1241,6 +1261,7 @@ export class UsersComponent implements OnInit {
   }
 
   ngOnInit() {
+    this.recordRouteSubscription = this.recordRoute?.paramMap?.subscribe(params => this.loadRecordView(params.get('id')));
     this.loadRoles();
     this.loadUsers(true);
     this.loadCustomFields();
@@ -1413,13 +1434,57 @@ export class UsersComponent implements OnInit {
     return this.users().filter(u => u.id !== currentUserId && u.state === 'A');
   }
 
+  ngOnDestroy() {
+    this.recordRouteSubscription?.unsubscribe();
+    this.recordRequest?.unsubscribe();
+    this.recordRequestId++;
+    clearTimeout(this.searchDebounceTimer);
+  }
+
+  loadRecordView(id: string | null) {
+    const requestId = ++this.recordRequestId;
+    this.recordRequest?.unsubscribe();
+    this.routeRecordId.set(id);
+    this.viewingUser = null;
+    this.isViewModalOpen.set(id !== null);
+    this.recordLoading.set(false);
+    this.recordError.set(false);
+    this.recordNotFound.set(false);
+    if (id === null) return;
+    if (!canonicalRecordId(id)) {
+      this.recordError.set(true); this.recordNotFound.set(true); return;
+    }
+    this.recordLoading.set(true);
+    this.recordRequest = this.api.get<User>(`/iam/users/${id}`, undefined, { notifyError: false }).subscribe({
+      next: user => {
+        if (requestId !== this.recordRequestId) return;
+        this.recordLoading.set(false);
+        if (recordResponseMatches(user?.id, id)) this.viewingUser = user;
+        else this.recordError.set(true);
+      },
+      error: error => {
+        if (requestId !== this.recordRequestId) return;
+        this.recordLoading.set(false); this.recordError.set(true);
+        this.recordNotFound.set(error?.status === 404 || error?.status === 403);
+      }
+    });
+  }
+
+  closeRecordView() {
+    if (this.routeRecordId() !== null) {
+      this.recordRouter?.navigate(['/iam/users'], { queryParamsHandling: 'preserve' });
+      return;
+    }
+    this.isViewModalOpen.set(false);
+  }
+
   openViewModal(user: User) {
     this.viewingUser = user;
     this.isViewModalOpen.set(true);
   }
 
   openEditFromView() {
-    if (this.viewingUser) {
+    if (this.viewingUser && safeNumericRecordId(this.viewingUser.id) && this.canUpdateUser()) {
       const u = this.viewingUser;
       this.isViewModalOpen.set(false);
       this.openEditModal(u);
@@ -1488,6 +1553,7 @@ export class UsersComponent implements OnInit {
   }
 
   openEditModal(user: User) {
+    if (!safeNumericRecordId(user.id)) return;
     this.editingUser = user;
     this.editForm = {
       name: user.name,
