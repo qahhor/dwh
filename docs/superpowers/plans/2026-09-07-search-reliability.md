@@ -150,7 +150,7 @@ Collection names are generated and validated by Java, never accepted from a requ
 - Modify `apps/server/src/main/java/com/greenwhite/dwh/instance/search/typesense/TypesenseClient.java`.
 - Create `search/typesense/TypesenseException.java` and `search/typesense/TypesenseSearchMapper.java` under that Java instance package.
 - Modify `search/service/SearchService.java`, `search/controller/SearchController.java`.
-- Create `search/service/SearchAccessPolicy.java`, `SearchQueryPolicy.java`, `SearchResultBudget.java`, and `search/repository/SearchFallbackRepository.java`.
+- Create `search/service/SearchAccessPolicy.java`, `SearchQueryPolicy.java`, `FieldPolicy.java`, `SearchResultBudget.java`, and `search/repository/SearchFallbackRepository.java`.
 - Create tests in `apps/server/src/test/java/com/greenwhite/dwh/instance/search/`: `TypesenseClientHttpTest.java`, `SearchFallbackIntegrationTest.java`, `SearchQueryPolicyTest.java`, `SearchResultBudgetTest.java`; extend `SearchServiceTest.java`.
 
 **Interfaces:**
