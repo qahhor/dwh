@@ -40,7 +40,7 @@ Use the existing checkout and user's main/in-place preference. Stage task-only h
 
 **Files:**
 - Create under `apps/server/src/main/java/com/greenwhite/dwh/instance/search/`: `controller/SearchManagementController.java`; `service/SearchSettingsService.java`, `SearchStatusService.java`, `SearchExecutionSnapshotReader.java`; `repository/SearchSettingsRepository.java`; `dto/SearchManagementDtos.java`.
-- Modify `service/SearchPolicyProvider.java`, `SearchQueryPolicy.java`, `SearchService.java`, `SearchAccessPolicy.java`, `controller/SearchController.java`, `repository/SearchIndexStateRepository.java` and `typesense/TypesenseClient.java`.
+- Modify `service/SearchPolicyProvider.java`, `SearchQueryPolicy.java`, `FieldPolicy.java`, `SearchService.java`, `SearchAccessPolicy.java`, `controller/SearchController.java`, `repository/SearchIndexStateRepository.java` and `typesense/TypesenseClient.java`. The existing public `FieldPolicy` currently rejects zero weights; align that value contract with the approved zero-means-omit setting while preserving its exact field/typo bounds and consumer validation.
 - Create tests under `apps/server/src/test/java/com/greenwhite/dwh/instance/search/`: `SearchSettingsIntegrationTest.java`, `SearchManagementAuthorizationTest.java`, `SearchStatusTest.java`; extend HTTP/search/rate tests from package 1.
 
 **Interfaces:**
