@@ -69,6 +69,36 @@ const status: SearchManagementStatus = {
   rollbackTargets: []
 };
 
+// Hand-copied from the strict backend JSON contract. Intentionally does not
+// derive field names from the frontend model or production helpers.
+const canonicalBackendSettings = {
+  version: 7,
+  policy: {
+    globalLimit: 10,
+    requestsPerMinute: 120,
+    burst: 20,
+    schemaProfile: 'MIXED',
+    fields: {
+      TASK: [
+        { field: 'title', weight: 10, numTypos: 2, prefix: true },
+        { field: 'description_markdown', weight: 3, numTypos: 2, prefix: true },
+        { field: 'status_name', weight: 2, numTypos: 2, prefix: true },
+        { field: 'project_name', weight: 2, numTypos: 2, prefix: true }
+      ],
+      PROJECT: [
+        { field: 'name', weight: 10, numTypos: 2, prefix: true },
+        { field: 'description', weight: 3, numTypos: 2, prefix: true }
+      ],
+      USER: [
+        { field: 'name', weight: 10, numTypos: 2, prefix: true },
+        { field: 'login', weight: 8, numTypos: 0, prefix: true },
+        { field: 'email', weight: 6, numTypos: 0, prefix: true },
+        { field: 'phone', weight: 6, numTypos: 0, prefix: true }
+      ]
+    }
+  }
+} as unknown as SearchSettingsSnapshot;
+
 function clonePolicy(value: SearchQueryPolicy): SearchQueryPolicy {
   return structuredClone(value);
 }
@@ -133,6 +163,40 @@ describe('SearchSettingsComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('1500');
     expect(fixture.nativeElement.querySelector('[data-state="configuration-not-authorized"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('button[data-action="start-rebuild"]')).toBeNull();
+  });
+
+  it('lets a server-confirmed search administrator preview the current policy without reading configuration', async () => {
+    const { fixture, management } = await createFixture(['platform.search.view']);
+
+    const query = fixture.nativeElement.querySelector('#search-preview-query') as HTMLInputElement | null;
+    expect(query).not.toBeNull();
+    if (!query) return;
+    query.value = 'current policy';
+    query.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('button[data-action="preview-search-settings"]') as HTMLButtonElement).click();
+
+    expect(management['settings']).not.toHaveBeenCalled();
+    expect(management['preview']).toHaveBeenCalledWith({ q: 'current policy' });
+    expect(fixture.nativeElement.querySelector('button[data-action="save-search-settings"]')).toBeNull();
+  });
+
+  it('previews the readable unsaved policy but hides Save without update permission', async () => {
+    const { fixture, management } = await createFixture([
+      'platform.search.view', 'platform.settings.view'
+    ]);
+    setNumber(fixture, '#search-global-limit', '13');
+    const query = fixture.nativeElement.querySelector('#search-preview-query') as HTMLInputElement;
+    query.value = 'unsaved policy';
+    query.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('button[data-action="preview-search-settings"]') as HTMLButtonElement).click();
+
+    expect(management['preview']).toHaveBeenCalledWith(expect.objectContaining({
+      q: 'unsaved policy',
+      policy: expect.objectContaining({ globalLimit: 13 })
+    }));
+    expect(fixture.nativeElement.querySelector('button[data-action="save-search-settings"]')).toBeNull();
   });
 
   it('keeps maintenance authorization independent when configuration read fails and invents no baseline', async () => {
@@ -283,6 +347,66 @@ describe('SearchSettingsComponent', () => {
     expect(fixture.nativeElement.querySelector('[data-active-profile="MIXED"]')).not.toBeNull();
   });
 
+  it('gives a preview failure its own stable alert while a save alert remains visible', async () => {
+    const conflict: ProblemDetail = { title: 'Conflict', status: 409, code: 'CONFLICT', detail: 'Save conflict' };
+    const previewFailure: ProblemDetail = { title: 'Unavailable', status: 503, code: 'SERVICE_UNAVAILABLE', detail: 'Preview unavailable' };
+    const { fixture } = await createFixture([
+      'platform.search.view', 'platform.settings.view', 'platform.settings.update'
+    ], {
+      save: vi.fn(() => throwError(() => conflict)),
+      preview: vi.fn(() => throwError(() => previewFailure))
+    });
+    setNumber(fixture, '#search-global-limit', '14');
+    (fixture.nativeElement.querySelector('button[data-action="save-search-settings"]') as HTMLButtonElement).click();
+    const query = fixture.nativeElement.querySelector('#search-preview-query') as HTMLInputElement;
+    query.value = 'failing preview';
+    query.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('button[data-action="preview-search-settings"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[data-state="save-error"]').textContent).toContain('Save conflict');
+    const previewAlert = fixture.nativeElement.querySelector('[data-state="preview-error"]') as HTMLElement;
+    expect(previewAlert).not.toBeNull();
+    expect(previewAlert?.textContent).toContain('Preview unavailable');
+  });
+
+  it('emits the canonical numTypos field after editing a real typo control', async () => {
+    const pendingSave = new Subject<SearchSettingsSnapshot>();
+    const save = vi.fn((_request: SearchSettingsSnapshot) => pendingSave);
+    const { fixture, management } = await createFixture([
+      'platform.search.view', 'platform.settings.view', 'platform.settings.update'
+    ], {
+      settings: vi.fn(() => of(structuredClone(canonicalBackendSettings))),
+      save
+    });
+    const typoInputs = Array.from(fixture.nativeElement.querySelectorAll(
+      '.field-grid:not(.field-grid-head) label:nth-of-type(2) input'
+    )) as HTMLInputElement[];
+    const editedValues = [1, 2, 2, 2, 2, 2, 2, 0, 0, 0];
+    typoInputs.forEach((input, index) => {
+      input.value = String(editedValues[index]);
+      input.dispatchEvent(new Event('input'));
+    });
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('button[data-action="save-search-settings"]') as HTMLButtonElement).click();
+    const query = fixture.nativeElement.querySelector('#search-preview-query') as HTMLInputElement;
+    query.value = 'canonical payload';
+    query.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('button[data-action="preview-search-settings"]') as HTMLButtonElement).click();
+
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(management['preview']).toHaveBeenCalledTimes(1);
+    const savedField = save.mock.calls[0][0].policy.fields.TASK[0] as unknown as Record<string, unknown>;
+    const previewField = management['preview'].mock.calls[0][0].policy.fields.TASK[0] as unknown as Record<string, unknown>;
+    expect(savedField).toMatchObject({ field: 'title', weight: 10, numTypos: 1, prefix: true });
+    expect(savedField).not.toHaveProperty('typos');
+    expect(previewField).toMatchObject({ field: 'title', weight: 10, numTypos: 1, prefix: true });
+    expect(previewField).not.toHaveProperty('typos');
+  });
+
   it('confirms rebuild and reuses its request identity after an uncertain failure', async () => {
     const unavailable: ProblemDetail = { title: 'Unavailable', status: 503, code: 'SERVICE_UNAVAILABLE', detail: 'Ответ неизвестен' };
     const startJob = vi.fn()
@@ -371,6 +495,140 @@ describe('SearchSettingsComponent', () => {
     }
   });
 
+  it('blocks conflicting handlers after a job receipt while keeping its cancel action available', async () => {
+    vi.useFakeTimers();
+    try {
+      const poll = new Subject<any>();
+      const startJob = vi.fn(() => of({ id: 'job-1', state: 'QUEUED' as const }));
+      const save = vi.fn(() => new Subject<SearchSettingsSnapshot>());
+      const retry = vi.fn(() => of({ id: 'job-2', state: 'QUEUED' as const }));
+      const cancel = vi.fn(() => new Subject());
+      const { fixture } = await createFixture([
+        'platform.search.view', 'platform.settings.view', 'platform.settings.update'
+      ], { startJob, job: vi.fn(() => poll), save, retry, cancel });
+      setNumber(fixture, '#search-global-limit', '12');
+
+      (fixture.nativeElement.querySelector('button[data-action="start-check"]') as HTMLButtonElement).click();
+      fixture.detectChanges();
+
+      expect((fixture.nativeElement.querySelector('button[data-action="save-search-settings"]') as HTMLButtonElement).disabled).toBe(true);
+      expect((fixture.nativeElement.querySelector('button[data-action="start-check"]') as HTMLButtonElement).disabled).toBe(true);
+      expect((fixture.nativeElement.querySelector('button[data-action="start-rebuild"]') as HTMLButtonElement).disabled).toBe(true);
+      fixture.componentInstance.save();
+      fixture.componentInstance.requestMaintenance('CHECK');
+      fixture.componentInstance.confirmation.set({ action: 'REBUILD' });
+      fixture.componentInstance.confirmMaintenance();
+      fixture.componentInstance.retryJob({
+        id: 'failed-job', action: 'REBUILD', generationId: 'generation-2', state: 'FAILED',
+        processedCount: 0, failedCount: 1, createdAt: '', updatedAt: ''
+      });
+      expect(save).not.toHaveBeenCalled();
+      expect(startJob).toHaveBeenCalledTimes(1);
+      expect(retry).not.toHaveBeenCalled();
+
+      vi.advanceTimersByTime(0);
+      const running = {
+        id: 'job-1', action: 'CHECK' as const, generationId: 'generation-1', state: 'RUNNING' as const,
+        processedCount: 1, failedCount: 0, createdAt: '', updatedAt: ''
+      };
+      poll.next(running);
+      fixture.detectChanges();
+      const cancelButton = fixture.nativeElement.querySelector('.active-job button') as HTMLButtonElement;
+      expect(cancelButton).not.toBeNull();
+      expect(cancelButton.disabled).toBe(false);
+      fixture.componentInstance.cancelJob(running);
+      expect(cancel).toHaveBeenCalledWith('job-1');
+      fixture.destroy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('restores an active-operation gate from status, retains it across poll retry, and releases it at terminal state', async () => {
+    vi.useFakeTimers();
+    try {
+      const running = {
+        id: 'job-reentry', action: 'REBUILD' as const, generationId: 'generation-2', state: 'RUNNING' as const,
+        processedCount: 2, failedCount: 0, createdAt: '', updatedAt: ''
+      };
+      const reentryStatus = { ...structuredClone(status), jobs: [running] };
+      const statusCall = vi.fn()
+        .mockReturnValueOnce(of(reentryStatus))
+        .mockReturnValue(of(structuredClone(status)));
+      const jobsCall = vi.fn(() => of({ items: [running], hasMore: false }));
+      const firstPoll = new Subject<any>();
+      const resumedPoll = new Subject<any>();
+      const job = vi.fn()
+        .mockReturnValueOnce(firstPoll)
+        .mockReturnValueOnce(resumedPoll);
+      const startJob = vi.fn(() => of({ id: 'other-job', state: 'QUEUED' as const }));
+      const { fixture } = await createFixture([
+        'platform.search.view', 'platform.settings.view', 'platform.settings.update'
+      ], { status: statusCall, jobs: jobsCall, job, startJob });
+      setNumber(fixture, '#search-global-limit', '12');
+
+      expect((fixture.nativeElement.querySelector('button[data-action="save-search-settings"]') as HTMLButtonElement).disabled).toBe(true);
+      expect((fixture.nativeElement.querySelector('button[data-action="start-check"]') as HTMLButtonElement).disabled).toBe(true);
+      fixture.componentInstance.requestMaintenance('CHECK');
+      expect(startJob).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(0);
+      expect(job).toHaveBeenCalledTimes(1);
+
+      firstPoll.error({ title: 'Unavailable', status: 503, code: 'SERVICE_UNAVAILABLE', detail: 'Polling failed' });
+      fixture.detectChanges();
+      expect((fixture.nativeElement.querySelector('button[data-action="start-check"]') as HTMLButtonElement).disabled).toBe(true);
+      const resume = fixture.nativeElement.querySelector('button[data-action="resume-job-polling"]') as HTMLButtonElement;
+      expect(resume).not.toBeNull();
+      resume.click();
+      vi.advanceTimersByTime(0);
+      expect(job).toHaveBeenCalledTimes(2);
+
+      resumedPoll.next({ ...running, state: 'SUCCEEDED' as const, processedCount: 14, finishedAt: '' });
+      fixture.detectChanges();
+      expect(statusCall).toHaveBeenCalledTimes(2);
+      expect(jobsCall).toHaveBeenCalledTimes(2);
+      expect((fixture.nativeElement.querySelector('button[data-action="save-search-settings"]') as HTMLButtonElement).disabled).toBe(false);
+      expect((fixture.nativeElement.querySelector('button[data-action="start-check"]') as HTMLButtonElement).disabled).toBe(false);
+      fixture.destroy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('retries an uncertain cancel while the accepted job remains active', async () => {
+    vi.useFakeTimers();
+    try {
+      const running = {
+        id: 'job-cancel', action: 'REBUILD' as const, generationId: 'generation-2', state: 'RUNNING' as const,
+        processedCount: 2, failedCount: 0, createdAt: '', updatedAt: ''
+      };
+      const failure: ProblemDetail = { title: 'Unavailable', status: 503, code: 'SERVICE_UNAVAILABLE', detail: 'Cancel response unknown' };
+      const cancel = vi.fn()
+        .mockReturnValueOnce(throwError(() => failure))
+        .mockReturnValueOnce(new Subject());
+      const { fixture } = await createFixture([
+        'platform.search.view', 'platform.settings.update'
+      ], {
+        status: vi.fn(() => of({ ...structuredClone(status), jobs: [running] })),
+        job: vi.fn(() => new Subject()),
+        cancel
+      });
+
+      (fixture.nativeElement.querySelector('.active-job button') as HTMLButtonElement).click();
+      fixture.detectChanges();
+      const retry = fixture.nativeElement.querySelector('button[data-action="retry-uncertain-mutation"]') as HTMLButtonElement;
+      expect(retry).not.toBeNull();
+      retry.click();
+
+      expect(cancel).toHaveBeenCalledTimes(2);
+      expect(cancel).toHaveBeenNthCalledWith(1, 'job-cancel');
+      expect(cancel).toHaveBeenNthCalledWith(2, 'job-cancel');
+      fixture.destroy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('loads the next bounded history page with the opaque server cursor', async () => {
     const first = {
       id: 'job-1', action: 'CHECK' as const, generationId: 'generation-1', state: 'SUCCEEDED' as const,
@@ -390,6 +648,58 @@ describe('SearchSettingsComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('job-1');
     expect(fixture.nativeElement.textContent).toContain('job-2');
     expect(fixture.nativeElement.querySelector('button[data-action="load-more-search-jobs"]')).toBeNull();
+  });
+
+  it('renders and retries an initial history failure without claiming the history is empty', async () => {
+    const failure: ProblemDetail = { title: 'Unavailable', status: 503, code: 'SERVICE_UNAVAILABLE', detail: 'History unavailable' };
+    const recovered = {
+      id: 'job-recovered', action: 'CHECK' as const, generationId: 'generation-1', state: 'SUCCEEDED' as const,
+      processedCount: 14, failedCount: 0, createdAt: '2026-09-07T12:00:00Z', updatedAt: '2026-09-07T12:01:00Z'
+    };
+    const jobs = vi.fn()
+      .mockReturnValueOnce(throwError(() => failure))
+      .mockReturnValueOnce(of({ items: [recovered], hasMore: false }));
+    const { fixture } = await createFixture(['platform.search.view'], { jobs });
+
+    const error = fixture.nativeElement.querySelector('[data-state="search-history-error"]') as HTMLElement;
+    expect(error).not.toBeNull();
+    expect(error?.textContent).toContain('History unavailable');
+    expect(fixture.nativeElement.textContent).not.toContain('История заданий пуста');
+    (fixture.nativeElement.querySelector('button[data-action="retry-search-history"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(jobs).toHaveBeenCalledTimes(2);
+    expect(fixture.nativeElement.textContent).toContain('job-recovered');
+    expect(fixture.nativeElement.querySelector('[data-state="search-history-error"]')).toBeNull();
+  });
+
+  it('retries a failed next history page with the same cursor and retains loaded rows', async () => {
+    const failure: ProblemDetail = { title: 'Unavailable', status: 503, code: 'SERVICE_UNAVAILABLE', detail: 'Older history unavailable' };
+    const first = {
+      id: 'job-1', action: 'CHECK' as const, generationId: 'generation-1', state: 'SUCCEEDED' as const,
+      processedCount: 14, failedCount: 0, createdAt: '2026-09-07T12:00:00Z', updatedAt: '2026-09-07T12:01:00Z'
+    };
+    const second = { ...first, id: 'job-2', createdAt: '2026-09-06T12:00:00Z' };
+    const jobs = vi.fn()
+      .mockReturnValueOnce(of({ items: [first], nextCursor: 'opaque+/=', hasMore: true }))
+      .mockReturnValueOnce(throwError(() => failure))
+      .mockReturnValueOnce(of({ items: [second], hasMore: false }));
+    const { fixture } = await createFixture(['platform.search.view'], { jobs });
+
+    (fixture.nativeElement.querySelector('button[data-action="load-more-search-jobs"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const error = fixture.nativeElement.querySelector('[data-state="search-history-page-error"]') as HTMLElement;
+    expect(error).not.toBeNull();
+    expect(error?.textContent).toContain('Older history unavailable');
+    expect(fixture.nativeElement.textContent).toContain('job-1');
+    (fixture.nativeElement.querySelector('button[data-action="retry-search-history-page"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(jobs).toHaveBeenNthCalledWith(2, 20, 'opaque+/=');
+    expect(jobs).toHaveBeenNthCalledWith(3, 20, 'opaque+/=');
+    expect(fixture.nativeElement.textContent).toContain('job-1');
+    expect(fixture.nativeElement.textContent).toContain('job-2');
+    expect(fixture.nativeElement.querySelector('[data-state="search-history-page-error"]')).toBeNull();
   });
 
   it('stops an active job poll on destruction without asking the server to cancel work', async () => {

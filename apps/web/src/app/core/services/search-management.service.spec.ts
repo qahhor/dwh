@@ -63,7 +63,14 @@ describe('SearchManagementService', () => {
 
     const save = http.expectOne('/api/v1/search/settings');
     expect(save.request.method).toBe('PUT');
-    expect(save.request.body).toEqual({ version: 7, policy });
+    expect(save.request.body).toMatchObject({
+      version: 7,
+      policy: { globalLimit: 10, requestsPerMinute: 120, burst: 20, schemaProfile: 'MIXED' }
+    });
+    expect(save.request.body.policy.fields.TASK[0]).toEqual({
+      field: 'title', weight: 10, numTypos: 2, prefix: true
+    });
+    expect(save.request.body.policy.fields.TASK[0]).not.toHaveProperty('typos');
     save.flush({ version: 8, policy });
     const preview = http.expectOne('/api/v1/search/preview');
     expect(preview.request.method).toBe('POST');

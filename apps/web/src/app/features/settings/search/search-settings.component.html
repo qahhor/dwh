@@ -53,9 +53,9 @@
     <button type="button" class="btn btn-secondary" data-action="reload-search-settings" (click)="loadSettings()">{{ 'settings.search.reload' | t }}</button>
   </div>
 
-  <ng-container *ngIf="draft() as policy">
-    <section class="settings-block" aria-labelledby="search-relevance-title">
-      <header class="block-header"><div><h3 id="search-relevance-title">{{ 'settings.search.relevance.title' | t }}</h3><p>{{ 'settings.search.relevance.description' | t }}</p></div></header>
+  <section class="settings-block" *ngIf="draft() || statusAuthorized()" aria-labelledby="search-relevance-title">
+    <header class="block-header"><div><h3 id="search-relevance-title">{{ 'settings.search.relevance.title' | t }}</h3><p>{{ 'settings.search.relevance.description' | t }}</p></div></header>
+    <ng-container *ngIf="draft() as policy">
       <div class="form-grid">
         <label><span>{{ 'settings.search.global_limit' | t }}</span><input id="search-global-limit" name="searchGlobalLimit" type="number" min="1" max="50" step="1" inputmode="numeric" [ngModel]="policy.globalLimit" (ngModelChange)="updatePolicyNumber('globalLimit', $event)"><small>{{ 'settings.search.global_limit_hint' | t }}</small></label>
       </div>
@@ -73,23 +73,25 @@
           </div>
         </div>
       </div>
-      <div class="preview-panel">
-        <h4>{{ 'settings.search.preview.title' | t }}</h4><p>{{ 'settings.search.preview.description' | t }}</p>
-        <div class="preview-controls">
-          <label><span>{{ 'settings.search.preview.query' | t }}</span><input id="search-preview-query" name="searchPreviewQuery" type="search" [(ngModel)]="previewQuery" autocomplete="off"></label>
-          <label><span>{{ 'settings.search.preview.entity' | t }}</span><select id="search-preview-entity" name="searchPreviewEntity" [(ngModel)]="previewEntity"><option value="">{{ 'settings.search.preview.all_entities' | t }}</option><option *ngFor="let entity of entities" [value]="entity">{{ ('settings.search.entity.' + entity.toLowerCase()) | t }}</option></select></label>
-          <button type="button" class="btn btn-secondary" data-action="preview-search-settings" [disabled]="!previewQuery.trim() || policyErrors().length > 0 || previewCooldownSeconds() > 0" [attr.aria-busy]="previewPending()" (click)="preview()">{{ 'settings.search.preview.action' | t }}</button>
-        </div>
-        <p *ngIf="previewCooldownSeconds() > 0" role="status">{{ 'settings.search.preview.cooldown' | t:{seconds: previewCooldownSeconds()} }}</p>
-        <div *ngIf="previewError() as error" class="notice notice-error" role="alert">{{ error.detail }}</div>
-        <div *ngIf="previewResult() as preview" class="preview-results" aria-live="polite">
-          <p class="profile-label" [attr.data-active-profile]="preview.activeProfile">{{ 'settings.search.preview.active_profile' | t }}: <strong>{{ preview.activeProfile }}</strong></p>
-          <article class="preview-hit" *ngFor="let hit of preview.result.hits"><strong>{{ hit.title }}</strong><p>{{ hit.description }}</p><small>{{ hit.entityType }} · {{ hit.id }}</small></article>
-          <p *ngIf="preview.result.hits.length === 0">{{ 'settings.search.preview.empty' | t }}</p>
-        </div>
+    </ng-container>
+    <div class="preview-panel" *ngIf="statusAuthorized()">
+      <h4>{{ 'settings.search.preview.title' | t }}</h4><p>{{ 'settings.search.preview.description' | t }}</p>
+      <div class="preview-controls">
+        <label><span>{{ 'settings.search.preview.query' | t }}</span><input id="search-preview-query" name="searchPreviewQuery" type="search" [(ngModel)]="previewQuery" autocomplete="off"></label>
+        <label><span>{{ 'settings.search.preview.entity' | t }}</span><select id="search-preview-entity" name="searchPreviewEntity" [(ngModel)]="previewEntity"><option value="">{{ 'settings.search.preview.all_entities' | t }}</option><option *ngFor="let entity of entities" [value]="entity">{{ ('settings.search.entity.' + entity.toLowerCase()) | t }}</option></select></label>
+        <button type="button" class="btn btn-secondary" data-action="preview-search-settings" [disabled]="!previewQuery.trim() || (draft() !== null && policyErrors().length > 0) || previewCooldownSeconds() > 0" [attr.aria-busy]="previewPending()" (click)="preview()">{{ 'settings.search.preview.action' | t }}</button>
       </div>
-    </section>
+      <p *ngIf="previewCooldownSeconds() > 0" role="status">{{ 'settings.search.preview.cooldown' | t:{seconds: previewCooldownSeconds()} }}</p>
+      <div *ngIf="previewError() as error" class="notice notice-error" data-state="preview-error" role="alert">{{ error.detail }}</div>
+      <div *ngIf="previewResult() as preview" class="preview-results" aria-live="polite">
+        <p class="profile-label" [attr.data-active-profile]="preview.activeProfile">{{ 'settings.search.preview.active_profile' | t }}: <strong>{{ preview.activeProfile }}</strong></p>
+        <article class="preview-hit" *ngFor="let hit of preview.result.hits"><strong>{{ hit.title }}</strong><p>{{ hit.description }}</p><small>{{ hit.entityType }} · {{ hit.id }}</small></article>
+        <p *ngIf="preview.result.hits.length === 0">{{ 'settings.search.preview.empty' | t }}</p>
+      </div>
+    </div>
+  </section>
 
+  <ng-container *ngIf="draft() as policy">
     <section class="settings-block" aria-labelledby="search-language-title">
       <header class="block-header"><div><h3 id="search-language-title">{{ 'settings.search.language.title' | t }}</h3><p>{{ 'settings.search.language.description' | t }}</p></div></header>
       <label class="profile-choice"><span>{{ 'settings.search.language.profile' | t }}</span><select id="search-schema-profile" name="searchSchemaProfile" [ngModel]="policy.schemaProfile" (ngModelChange)="updateSchemaProfile($event)"><option value="MIXED">MIXED</option><option value="RU">RU</option></select></label>
@@ -107,7 +109,7 @@
       <div *ngIf="saveError() as error" class="notice notice-error" data-state="save-error" role="alert"><span>{{ error.detail }}</span><button *ngIf="error.status === 409" type="button" class="btn btn-secondary" data-action="reload-search-settings" (click)="loadSettings()">{{ 'settings.search.reload_server_version' | t }}</button></div>
       <div class="save-row">
         <span *ngIf="!dirty() && savedSettings()" data-state="policy-clean" role="status">{{ 'settings.search.saved' | t }} · v{{ savedSettings()!.version }}</span><span *ngIf="dirty()" data-state="policy-dirty" role="status">{{ 'settings.search.unsaved' | t }}</span>
-        <button type="button" class="btn btn-primary" data-action="save-search-settings" [disabled]="!canMaintain() || !canReadSettings() || !dirty() || savePending() || mutationPending()" [attr.aria-busy]="savePending()" (click)="save()">{{ 'common.save' | t }}</button>
+        <button *ngIf="canMaintain()" type="button" class="btn btn-primary" data-action="save-search-settings" [disabled]="!canReadSettings() || !dirty() || savePending() || mutationPending() || activeOperation()" [attr.aria-busy]="savePending()" (click)="save()">{{ 'common.save' | t }}</button>
       </div>
     </section>
   </ng-container>
@@ -117,22 +119,27 @@
     <div class="notice notice-warning" *ngIf="atCapacity()" data-state="generation-capacity" role="status">{{ 'settings.search.maintenance.capacity' | t }}</div>
     <p class="maintenance-note">{{ 'settings.search.maintenance.cancel_limit' | t }}</p>
     <div class="maintenance-actions" *ngIf="canMaintain()">
-      <button type="button" class="btn btn-secondary" data-action="start-check" [disabled]="mutationPending() || savePending()" (click)="requestMaintenance('CHECK')">{{ 'settings.search.maintenance.check' | t }}</button>
-      <button type="button" class="btn btn-primary" data-action="start-rebuild" [disabled]="mutationPending() || savePending() || atCapacity()" (click)="requestMaintenance('REBUILD')">{{ 'settings.search.maintenance.rebuild' | t }}</button>
-      <button type="button" class="btn btn-secondary" *ngFor="let target of current.rollbackTargets" [attr.data-generation-id]="target.id" [disabled]="mutationPending() || savePending()" (click)="requestMaintenance('ROLLBACK', target.id)">{{ 'settings.search.maintenance.rollback' | t }} · {{ target.schemaProfile }} · {{ target.id }}</button>
+      <button type="button" class="btn btn-secondary" data-action="start-check" [disabled]="mutationPending() || savePending() || activeOperation()" (click)="requestMaintenance('CHECK')">{{ 'settings.search.maintenance.check' | t }}</button>
+      <button type="button" class="btn btn-primary" data-action="start-rebuild" [disabled]="mutationPending() || savePending() || activeOperation() || atCapacity()" (click)="requestMaintenance('REBUILD')">{{ 'settings.search.maintenance.rebuild' | t }}</button>
+      <button type="button" class="btn btn-secondary" *ngFor="let target of current.rollbackTargets" [attr.data-generation-id]="target.id" [disabled]="mutationPending() || savePending() || activeOperation()" (click)="requestMaintenance('ROLLBACK', target.id)">{{ 'settings.search.maintenance.rollback' | t }} · {{ target.schemaProfile }} · {{ target.id }}</button>
     </div>
     <div *ngIf="mutationError() as error" class="notice notice-error" role="alert"><span>{{ error.detail }}</span><button *ngIf="uncertainMutation()" type="button" class="btn btn-secondary" data-action="retry-uncertain-mutation" (click)="retryUncertainMutation()">{{ 'common.retry' | t }}</button></div>
     <div *ngIf="activeJob() as job" class="active-job" [attr.aria-busy]="!isTerminal(job)" aria-live="polite">
       <strong>{{ job.action }} · {{ job.state }}</strong><span>{{ 'settings.search.jobs.processed' | t }}: {{ job.processedCount }}</span><span>{{ 'settings.search.jobs.failed' | t }}: {{ job.failedCount }}</span>
       <span *ngIf="job.verification">{{ 'settings.search.jobs.verification' | t }}: {{ job.verification.missing }}/{{ job.verification.extra }}/{{ job.verification.mismatched }}/{{ job.verification.pending }}</span><span *ngIf="job.errorCode" class="error-text">{{ jobErrorMessage(job.errorCode) }}</span>
-      <button *ngIf="canMaintain() && canCancel(job)" type="button" class="btn btn-secondary" [disabled]="mutationPending() || savePending()" (click)="cancelJob(job)">{{ 'common.cancel' | t }}</button><button *ngIf="canMaintain() && (job.state === 'FAILED' || job.state === 'CANCELLED')" type="button" class="btn btn-secondary" [disabled]="mutationPending() || savePending()" (click)="retryJob(job)">{{ 'common.retry' | t }}</button>
+      <button *ngIf="canMaintain() && canCancel(job)" type="button" class="btn btn-secondary" [disabled]="mutationPending() || savePending()" (click)="cancelJob(job)">{{ 'common.cancel' | t }}</button><button *ngIf="canMaintain() && (job.state === 'FAILED' || job.state === 'CANCELLED')" type="button" class="btn btn-secondary" [disabled]="mutationPending() || savePending() || activeOperation()" (click)="retryJob(job)">{{ 'common.retry' | t }}</button>
     </div>
     <div *ngIf="pollError() as error" class="notice notice-error" role="alert"><span>{{ error.detail }} · {{ activeJobId() }}</span><button type="button" class="btn btn-secondary" data-action="resume-job-polling" (click)="resumePolling()">{{ 'common.retry' | t }}</button></div>
+    <div *ngIf="historyError() as error" class="notice notice-error" [attr.data-state]="historyRetryNextPage() ? 'search-history-page-error' : 'search-history-error'" role="alert">
+      <span>{{ error.detail }}</span>
+      <button *ngIf="!historyRetryNextPage()" type="button" class="btn btn-secondary" data-action="retry-search-history" (click)="retryHistory()">{{ 'common.retry' | t }}</button>
+      <button *ngIf="historyRetryNextPage()" type="button" class="btn btn-secondary" data-action="retry-search-history-page" (click)="retryHistory()">{{ 'common.retry' | t }}</button>
+    </div>
     <div class="table-scroll" tabindex="0" [attr.aria-label]="'settings.search.jobs.scroll_label' | t" [attr.aria-busy]="historyLoading()">
       <table><thead><tr><th>{{ 'settings.search.jobs.id' | t }}</th><th>{{ 'settings.search.jobs.action' | t }}</th><th>{{ 'common.status' | t }}</th><th>{{ 'settings.search.jobs.generation' | t }}</th><th>{{ 'settings.search.jobs.processed' | t }}</th><th>{{ 'settings.search.jobs.failed' | t }}</th><th>{{ 'settings.search.jobs.created' | t }}</th><th>{{ 'common.actions' | t }}</th></tr></thead>
-        <tbody><tr *ngFor="let job of displayedJobs(); trackBy: trackJob"><td class="mono">{{ job.id }}</td><td>{{ job.action }}</td><td>{{ job.state }}<small *ngIf="job.errorCode" class="error-text" [attr.data-job-error]="job.id">{{ jobErrorMessage(job.errorCode) }}</small></td><td class="mono">{{ job.generationId }}</td><td>{{ job.processedCount }}</td><td>{{ job.failedCount }}</td><td>{{ job.createdAt | date:'short' }}</td><td><button *ngIf="canMaintain() && canCancel(job)" type="button" class="btn btn-secondary btn-sm" [disabled]="mutationPending() || savePending()" (click)="cancelJob(job)">{{ 'common.cancel' | t }}</button><button *ngIf="canMaintain() && (job.state === 'FAILED' || job.state === 'CANCELLED')" type="button" class="btn btn-secondary btn-sm" [disabled]="mutationPending() || savePending()" (click)="retryJob(job)">{{ 'common.retry' | t }}</button></td></tr><tr *ngIf="displayedJobs().length === 0"><td colspan="8">{{ 'settings.search.jobs.empty' | t }}</td></tr></tbody></table>
+        <tbody><tr *ngFor="let job of displayedJobs(); trackBy: trackJob"><td class="mono">{{ job.id }}</td><td>{{ job.action }}</td><td>{{ job.state }}<small *ngIf="job.errorCode" class="error-text" [attr.data-job-error]="job.id">{{ jobErrorMessage(job.errorCode) }}</small></td><td class="mono">{{ job.generationId }}</td><td>{{ job.processedCount }}</td><td>{{ job.failedCount }}</td><td>{{ job.createdAt | date:'short' }}</td><td><button *ngIf="canMaintain() && canCancel(job)" type="button" class="btn btn-secondary btn-sm" [disabled]="mutationPending() || savePending()" (click)="cancelJob(job)">{{ 'common.cancel' | t }}</button><button *ngIf="canMaintain() && (job.state === 'FAILED' || job.state === 'CANCELLED')" type="button" class="btn btn-secondary btn-sm" [disabled]="mutationPending() || savePending() || activeOperation()" (click)="retryJob(job)">{{ 'common.retry' | t }}</button></td></tr><tr *ngIf="displayedJobs().length === 0 && !historyError()"><td colspan="8">{{ 'settings.search.jobs.empty' | t }}</td></tr></tbody></table>
     </div>
-    <button *ngIf="historyHasMore()" type="button" class="btn btn-secondary load-more" data-action="load-more-search-jobs" [disabled]="historyLoading()" (click)="loadMoreHistory()">{{ 'settings.search.jobs.load_more' | t }}</button>
+    <button *ngIf="historyHasMore() && !historyError()" type="button" class="btn btn-secondary load-more" data-action="load-more-search-jobs" [disabled]="historyLoading()" (click)="loadMoreHistory()">{{ 'settings.search.jobs.load_more' | t }}</button>
   </section>
 
   <ui-modal *ngIf="confirmation() as dialog" [isOpen]="true" [dismissible]="!mutationPending()" [title]="(dialog.action === 'REBUILD' ? 'settings.search.confirm.rebuild_title' : 'settings.search.confirm.rollback_title') | t" (close)="confirmation.set(null)">

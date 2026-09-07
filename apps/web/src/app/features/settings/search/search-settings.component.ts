@@ -68,8 +68,10 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
   readonly uncertainMutation = signal<PendingMutation | null>(null);
   readonly activeJob = signal<SearchJobStatus | null>(null);
   readonly activeJobId = signal<string | null>(null);
+  readonly activeOperation = computed(() => this.activeJobId() !== null);
   readonly pollError = signal<ProblemDetail | null>(null);
   readonly confirmation = signal<MaintenanceConfirmation | null>(null);
+  readonly historyRetryNextPage = signal(false);
 
   previewQuery = '';
   previewEntity: SearchEntityType | '' = '';
@@ -130,7 +132,8 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
 
   canSave(): boolean {
     return this.canMaintain() && this.canReadSettings() && this.savedSettings() !== null
-      && this.dirty() && this.policyErrors().length === 0 && !this.savePending() && !this.mutationPending();
+      && this.dirty() && this.policyErrors().length === 0 && !this.savePending()
+      && !this.mutationPending() && !this.activeOperation();
   }
 
   fields(entity: SearchEntityType): SearchFieldPolicy[] {
@@ -152,6 +155,7 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
         this.status.set(value);
         this.statusAuthorized.set(true);
         this.statusLoading.set(false);
+        this.restoreActiveOperation(value);
       },
       error: error => {
         this.statusError.set(this.problem(error));
@@ -166,6 +170,7 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
     this.historyRequest?.unsubscribe();
     this.historyLoading.set(true);
     this.historyError.set(null);
+    this.historyRetryNextPage.set(false);
     this.historyRequest = this.management.jobs(20).subscribe({
       next: page => {
         this.history.set(page.items);
@@ -186,6 +191,7 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
     this.historyRequest?.unsubscribe();
     this.historyLoading.set(true);
     this.historyError.set(null);
+    this.historyRetryNextPage.set(true);
     this.historyRequest = this.management.jobs(20, cursor).subscribe({
       next: page => {
         const known = new Set(this.history().map(job => job.id));
@@ -193,12 +199,18 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
         this.historyCursor.set(page.nextCursor ?? null);
         this.historyHasMore.set(page.hasMore);
         this.historyLoading.set(false);
+        this.historyRetryNextPage.set(false);
       },
       error: error => {
         this.historyError.set(this.problem(error));
         this.historyLoading.set(false);
       }
     });
+  }
+
+  retryHistory(): void {
+    if (this.historyRetryNextPage()) this.loadMoreHistory();
+    else this.refreshHistory();
   }
 
   loadSettings(): void {
@@ -265,7 +277,8 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
   preview(): void {
     const policy = this.draft();
     const query = this.previewQuery.trim();
-    if (!policy || !query || this.policyErrors().length > 0 || this.previewCooldownSeconds() > 0) return;
+    if (!this.statusAuthorized() || !query || (policy !== null && this.policyErrors().length > 0)
+      || this.previewCooldownSeconds() > 0) return;
     this.previewRequest?.unsubscribe();
     this.previewPending.set(true);
     this.previewError.set(null);
@@ -273,7 +286,7 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
     this.previewRequest = this.management.preview({
       q: query,
       ...(this.previewEntity ? { entity: this.previewEntity } : {}),
-      policy: this.clonePolicy(policy)
+      ...(policy ? { policy: this.clonePolicy(policy) } : {})
     }).subscribe({
       next: result => {
         this.previewResult.set(result);
@@ -289,7 +302,7 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
   }
 
   requestMaintenance(action: SearchJobAction, generationId?: string): void {
-    if (!this.canMaintain() || this.mutationPending() || this.savePending()) return;
+    if (!this.canMaintain() || this.mutationPending() || this.savePending() || this.activeOperation()) return;
     if (action === 'REBUILD') {
       if (this.atCapacity()) return;
       this.confirmation.set({ action });
@@ -306,7 +319,7 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
   confirmMaintenance(): void {
     const confirmation = this.confirmation();
     this.confirmation.set(null);
-    if (!confirmation) return;
+    if (!confirmation || this.activeOperation()) return;
     this.executeMutation({
       kind: 'start',
       request: {
@@ -318,7 +331,8 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
   }
 
   retryJob(job: SearchJobStatus): void {
-    if (!this.canMaintain() || this.mutationPending() || this.savePending() || !['FAILED', 'CANCELLED'].includes(job.state)) return;
+    if (!this.canMaintain() || this.mutationPending() || this.savePending() || this.activeOperation()
+      || !['FAILED', 'CANCELLED'].includes(job.state)) return;
     this.executeMutation({ kind: 'retry', jobId: job.id, request: { requestId: this.newRequestId() } });
   }
 
@@ -329,7 +343,8 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
 
   retryUncertainMutation(): void {
     const pending = this.uncertainMutation();
-    if (pending && !this.mutationPending()) this.executeMutation(pending);
+    if (pending && !this.mutationPending() && (!this.activeOperation() || pending.kind === 'cancel'))
+      this.executeMutation(pending);
   }
 
   resumePolling(): void {
@@ -407,7 +422,7 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
   }
 
   private executeMutation(action: PendingMutation): void {
-    if (this.mutationPending() || this.savePending()) return;
+    if (this.mutationPending() || this.savePending() || (action.kind !== 'cancel' && this.activeOperation())) return;
     this.mutationPending.set(true);
     this.mutationError.set(null);
     this.uncertainMutation.set(null);
@@ -438,8 +453,10 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
   }
 
   private startPolling(jobId: string): void {
+    if (this.activeJobId() === jobId && this.pollRequest) return;
     this.pollRequest?.unsubscribe();
     this.pollRequest = undefined;
+    this.activeJobId.set(jobId);
     this.pollError.set(null);
     this.pollRequest = timer(0, 1500).pipe(exhaustMap(() => this.management.job(jobId))).subscribe({
       next: job => {
@@ -457,7 +474,16 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
   private finishPolling(): void {
     this.pollRequest?.unsubscribe();
     this.pollRequest = undefined;
+    this.activeJobId.set(null);
     this.refreshOperationalData();
+  }
+
+  private restoreActiveOperation(current: SearchManagementStatus): void {
+    const running = current.jobs.find(job => !this.isTerminal(job));
+    if (!running || (this.activeJobId() !== null && this.activeJobId() !== running.id)) return;
+    this.activeJob.set(running);
+    this.activeJobId.set(running.id);
+    if (!this.pollRequest) this.startPolling(running.id);
   }
 
   private startCooldown(seconds: number): void {

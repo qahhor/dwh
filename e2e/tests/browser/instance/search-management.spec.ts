@@ -191,7 +191,7 @@ test('[controlled HTTP] 503, 409 and late status preserve local errors and the u
   }));
   await page.locator('#search-preview-query').fill('controlled-preview');
   await page.locator('button[data-action="preview-search-settings"]').click();
-  await expect(page.getByRole('alert')).toContainText('Контролируемая недоступность preview');
+  await expect(page.locator('[data-state="preview-error"]')).toContainText('Контролируемая недоступность preview');
   await expect(page.locator('.toast-container')).toHaveCount(0);
   assertHealthy();
 });
