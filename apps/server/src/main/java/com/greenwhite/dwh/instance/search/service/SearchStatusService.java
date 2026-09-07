@@ -1,6 +1,8 @@
 package com.greenwhite.dwh.instance.search.service;
 
 import org.springframework.stereotype.Service;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.greenwhite.dwh.instance.common.error.ApiException;
 import com.greenwhite.dwh.instance.search.repository.SearchIndexStateRepository;
 import com.greenwhite.dwh.instance.search.typesense.TypesenseClient;
@@ -35,11 +37,17 @@ public class SearchStatusService {
         Instant reconciled = null;
         for (var generation : observations) {
             Long documents = dependency.healthy() ? 0L : null;
+            Long taskDocuments = null, projectDocuments = null, userDocuments = null;
             Boolean schemaMatches = dependency.healthy() ? Boolean.TRUE : null;
             String errorCode = dependency.healthy() ? null : "DEPENDENCY_UNAVAILABLE";
             for (var entry : generation.collections().entrySet()) {
                 if (!dependency.healthy()) break;
                 var collection = client.observeCollection(entry.getValue(),entry.getKey(),generation.schemaProfile());
+                switch (entry.getKey()) {
+                    case "TASK" -> taskDocuments=collection.documentCount();
+                    case "PROJECT" -> projectDocuments=collection.documentCount();
+                    case "USER" -> userDocuments=collection.documentCount();
+                }
                 if (errorCode == null || "COLLECTION_MISSING".equals(collection.errorCode())) errorCode=collection.errorCode();
                 if (documents != null) {
                     try { documents=collection.documentCount() == null ? null : Math.addExact(documents,collection.documentCount()); }
@@ -54,7 +62,8 @@ public class SearchStatusService {
             }
             Long lag = generation.oldestPending()==null ? 0L : Math.max(0,Duration.between(generation.oldestPending(),Instant.now()).getSeconds());
             generations.add(new GenerationStatus(generation.id(),generation.state(),generation.active(),generation.schemaProfile(),
-                    documents,null,schemaMatches,errorCode,generation.pending(),generation.failed(),lag,generation.createdAt()));
+                    documents,new EntityDocumentCounts(taskDocuments,projectDocuments,userDocuments),null,
+                    schemaMatches,errorCode,generation.pending(),generation.failed(),lag,generation.createdAt()));
         }
         Boolean rebuild = policy==null ? null : !index.initialized() || mismatch || !policy.schemaProfile().equals(index.schemaProfile());
         var transport=client.transportBudgets();
@@ -66,8 +75,12 @@ public class SearchStatusService {
                          Boolean rebuildRequired, boolean settingsDegraded, Instant lastSuccessfulReconciliation,
                          List<GenerationStatus> generations, Budgets budgets) {}
     public record GenerationStatus(UUID id, String state, boolean active, String registeredProfile, Long documentCount,
-                                   Long storageBytes, Boolean schemaMatches, String errorCode, long pendingDeliveries, long failedDeliveries,
+                                   EntityDocumentCounts entityDocumentCounts, Long storageBytes, Boolean schemaMatches,
+                                   String errorCode, long pendingDeliveries, long failedDeliveries,
                                    Long queueLagSeconds, Instant createdAt) {}
+    @JsonInclude(JsonInclude.Include.ALWAYS)
+    public record EntityDocumentCounts(@JsonProperty("TASK") Long task, @JsonProperty("PROJECT") Long project,
+                                       @JsonProperty("USER") Long user) {}
     public record Budgets(int connectTimeoutMs, int readTimeoutMs, int fallbackTimeoutMs,
                           SearchPolicyProvider.EffectiveBudgets searchRate) {}
 }

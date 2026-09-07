@@ -7,6 +7,43 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.assertj.core.api.Assertions.assertThat;
 
 class SearchStatusTest extends SearchSettingsIntegrationTestSupport {
+    @Test void generationCountsPreserveDistinctEntitiesAndValidZero() throws Exception {
+        authenticate(Set.of("*.*"),false);
+        distinctEntityCounts();
+        String json=mvc.perform(auth(get("/api/v1/search/status"))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.generations[0].documentCount").value(20))
+                .andExpect(jsonPath("$.generations[0].entityDocumentCounts.TASK").value(0))
+                .andExpect(jsonPath("$.generations[0].entityDocumentCounts.PROJECT").value(13))
+                .andExpect(jsonPath("$.generations[0].entityDocumentCounts.USER").value(7))
+                .andReturn().getResponse().getContentAsString();
+        assertThat(mapper.readTree(json).path("generations").get(0).path("entityDocumentCounts").propertyNames())
+                .containsExactlyInAnyOrder("TASK","PROJECT","USER");
+        assertThat(json).doesNotContain("fixture_tasks","fixture_projects","fixture_users");
+    }
+
+    @Test void unavailableCollectionKeepsOtherEntityCountsKnown() throws Exception {
+        authenticate(Set.of("*.*"),false);
+        distinctEntityCounts();
+        responseStatuses.put("/collections/fixture_projects",503);
+        String json=mvc.perform(auth(get("/api/v1/search/status"))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.generations[0].documentCount").doesNotExist())
+                .andExpect(jsonPath("$.generations[0].entityDocumentCounts.TASK").value(0))
+                .andExpect(jsonPath("$.generations[0].entityDocumentCounts.USER").value(7))
+                .andReturn().getResponse().getContentAsString();
+        var counts=mapper.readTree(json).path("generations").get(0).path("entityDocumentCounts");
+        assertThat(counts.has("PROJECT")).isTrue();
+        assertThat(counts.path("PROJECT").isNull()).isTrue();
+    }
+
+    private static void distinctEntityCounts() {
+        for (var entry:java.util.Map.of("fixture_tasks",0,"fixture_projects",13,"fixture_users",7).entrySet()) {
+            String path="/collections/"+entry.getKey();
+            var schema=(tools.jackson.databind.node.ObjectNode)mapper.readTree(responses.get(path));
+            schema.put("num_documents",entry.getValue());
+            responses.put(path,mapper.writeValueAsString(schema));
+        }
+    }
+
     @Test void statusSeparatesInstallationDiskFromGenerationCountsAndDoesNotMutateEngine() throws Exception {
         authenticate(Set.of("*.*"), false);
         mvc.perform(auth(get("/api/v1/search/status")))
@@ -30,6 +67,9 @@ class SearchStatusTest extends SearchSettingsIntegrationTestSupport {
                 .andExpect(jsonPath("$.generations[0].documentCount").doesNotExist())
                 .andReturn().getResponse().getContentAsString();
         assertThat(json).doesNotContain("private-downstream-marker", "fixture-key", "http://", "fixture_tasks");
+        var counts=mapper.readTree(json).path("generations").get(0).path("entityDocumentCounts");
+        assertThat(counts.propertyNames()).containsExactlyInAnyOrder("TASK","PROJECT","USER");
+        for (String entity:java.util.List.of("TASK","PROJECT","USER")) assertThat(counts.path(entity).isNull()).isTrue();
     }
 
     @Test void missingActiveCollectionRequiresRebuildWithoutPretendingItHasZeroDocuments() throws Exception {
