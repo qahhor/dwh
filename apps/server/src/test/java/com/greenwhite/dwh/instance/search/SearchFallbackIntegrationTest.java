@@ -12,21 +12,40 @@ import com.greenwhite.dwh.instance.search.service.SearchService.SearchHit;
 import com.greenwhite.dwh.instance.search.typesense.TypesenseClient;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.aop.support.AopUtils;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.jdbc.datasource.AbstractDataSource;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import javax.sql.DataSource;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Proxy;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -43,16 +62,28 @@ class SearchFallbackIntegrationTest {
     private static JdbcClient jdbc;
     private static DataSourceTransactionManager transactions;
     private static SearchFallbackRepository repository;
+    private static DataSource database;
+    private static ObservingDataSource observedDatabase;
+    private static SearchFallbackRepository proxiedRepository;
+    private static AnnotationConfigApplicationContext applicationContext;
     private TransactionStatus transaction;
 
     @BeforeAll
     static void setupDatabase() {
-        var dataSource = new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+        database = new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
         FlywayUtcConfiguration.configure(Flyway.configure())
-                .dataSource(dataSource).locations("classpath:db/migration").load().migrate();
-        jdbc = JdbcClient.create(dataSource);
-        transactions = new DataSourceTransactionManager(dataSource);
+                .dataSource(database).locations("classpath:db/migration").load().migrate();
+        jdbc = JdbcClient.create(database);
+        transactions = new DataSourceTransactionManager(database);
         repository = new SearchFallbackRepository(jdbc);
+        observedDatabase = new ObservingDataSource(database);
+        applicationContext = new AnnotationConfigApplicationContext(TransactionProxyConfiguration.class);
+        proxiedRepository = applicationContext.getBean(SearchFallbackRepository.class);
+    }
+
+    @AfterAll
+    static void closeApplicationContext() {
+        applicationContext.close();
     }
 
     @BeforeEach
@@ -166,6 +197,60 @@ class SearchFallbackIntegrationTest {
                 .extracting(SearchFallbackRepository.FallbackHit::id).containsExactly(Long.toString(byProject));
     }
 
+    @Test
+    void springProxyRunsFallbackInAReadOnlyPostgresTransaction() {
+        observedDatabase.clearObservation();
+
+        FallbackSearch result = proxiedRepository.search("read-only-probe", "TASK", 10);
+
+        assertThat(AopUtils.isAopProxy(proxiedRepository)).isTrue();
+        assertThat(result.groups()).singleElement().satisfies(group -> assertThat(group.hits()).isEmpty());
+        assertThat(observedDatabase.transactionReadOnly()).isEqualTo("on");
+    }
+
+    @Test
+    void springProxyCancelsBlockedFallbackWithinItsTwoSecondQueryBudget() throws Exception {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try (Connection blocker = database.getConnection(); Statement statement = blocker.createStatement()) {
+            blocker.setAutoCommit(false);
+            statement.execute("lock table ms_tasks in access exclusive mode");
+
+            var future = executor.submit(() -> {
+                long started = System.nanoTime();
+                try {
+                    proxiedRepository.search("lock-budget-probe", "TASK", 10);
+                    return new TimedFailure(null, elapsedMillis(started));
+                } catch (Throwable failure) {
+                    return new TimedFailure(failure, elapsedMillis(started));
+                }
+            });
+
+            TimedFailure failure;
+            try {
+                failure = future.get(6, TimeUnit.SECONDS);
+            } finally {
+                blocker.rollback();
+            }
+
+            assertThat(failure.failure()).isNotNull();
+            assertThat(rootCause(failure.failure())).isInstanceOfSatisfying(SQLException.class,
+                    sql -> assertThat(sql.getSQLState()).isEqualTo("57014"));
+            assertThat(failure.elapsedMillis()).isBetween(1_000L, 5_000L);
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    private static long elapsedMillis(long started) {
+        return TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started);
+    }
+
+    private static Throwable rootCause(Throwable failure) {
+        Throwable current = failure;
+        while (current.getCause() != null) current = current.getCause();
+        return current;
+    }
+
     private static long user(String name, String state, String phone) {
         int number = sequence.incrementAndGet();
         return jdbc.sql("""
@@ -195,4 +280,75 @@ class SearchFallbackIntegrationTest {
                 """).param("project", project).param("title", title).param("description", description)
                 .param("reporter", reporter).query(Long.class).single();
     }
+
+    @Configuration(proxyBeanMethods = false)
+    @EnableTransactionManagement
+    static class TransactionProxyConfiguration {
+        @Bean
+        DataSource dataSource() {
+            return observedDatabase;
+        }
+
+        @Bean
+        JdbcClient jdbcClient(DataSource dataSource) {
+            return JdbcClient.create(dataSource);
+        }
+
+        @Bean
+        PlatformTransactionManager transactionManager(DataSource dataSource) {
+            return new DataSourceTransactionManager(dataSource);
+        }
+
+        @Bean
+        SearchFallbackRepository searchFallbackRepository(JdbcClient jdbcClient) {
+            return new SearchFallbackRepository(jdbcClient);
+        }
+    }
+
+    private static final class ObservingDataSource extends AbstractDataSource {
+        private final DataSource delegate;
+        private final AtomicReference<String> transactionReadOnly = new AtomicReference<>();
+
+        private ObservingDataSource(DataSource delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public Connection getConnection() throws SQLException {
+            return observe(delegate.getConnection());
+        }
+
+        @Override
+        public Connection getConnection(String username, String password) throws SQLException {
+            return observe(delegate.getConnection(username, password));
+        }
+
+        String transactionReadOnly() {
+            return transactionReadOnly.get();
+        }
+
+        void clearObservation() {
+            transactionReadOnly.set(null);
+        }
+
+        private Connection observe(Connection connection) {
+            return (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(),
+                    new Class<?>[]{Connection.class}, (proxy, method, arguments) -> {
+                        if (method.getName().equals("prepareStatement") && transactionReadOnly.get() == null) {
+                            try (Statement statement = connection.createStatement();
+                                 ResultSet result = statement.executeQuery("show transaction_read_only")) {
+                                result.next();
+                                transactionReadOnly.compareAndSet(null, result.getString(1));
+                            }
+                        }
+                        try {
+                            return method.invoke(connection, arguments);
+                        } catch (InvocationTargetException failure) {
+                            throw failure.getCause();
+                        }
+                    });
+        }
+    }
+
+    private record TimedFailure(Throwable failure, long elapsedMillis) {}
 }

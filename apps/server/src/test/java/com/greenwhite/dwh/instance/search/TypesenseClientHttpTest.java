@@ -114,8 +114,41 @@ class TypesenseClientHttpTest {
                 org.junit.jupiter.params.provider.Arguments.of("invalid id", new Response(200,
                         "{\"results\":[{\"found\":1,\"search_time_ms\":1,\"hits\":[{\"document\":{\"id\":\"bad\",\"task_id\":\"bad\",\"title\":\"Task\"}}]}," + validProject + "," + validProject + "]}")),
                 org.junit.jupiter.params.provider.Arguments.of("missing document", new Response(200,
-                        "{\"results\":[{\"found\":1,\"search_time_ms\":1,\"hits\":[{}]}," + validProject + "," + validProject + "]}"))
+                        "{\"results\":[{\"found\":1,\"search_time_ms\":1,\"hits\":[{}]}," + validProject + "," + validProject + "]}")),
+                org.junit.jupiter.params.provider.Arguments.of("numeric highlight", new Response(200,
+                        threeResults(taskResultWithHighlight("\"highlight\":7"), validProject))),
+                org.junit.jupiter.params.provider.Arguments.of("string highlight", new Response(200,
+                        threeResults(taskResultWithHighlight("\"highlight\":\"invalid\""), validProject))),
+                org.junit.jupiter.params.provider.Arguments.of("non-array highlights", new Response(200,
+                        threeResults(taskResultWithHighlight("\"highlights\":{}"), validProject))),
+                org.junit.jupiter.params.provider.Arguments.of("non-text highlight snippet", new Response(200,
+                        threeResults(taskResultWithHighlight("\"highlight\":{\"title\":{\"snippet\":7}}"), validProject))),
+                org.junit.jupiter.params.provider.Arguments.of("non-text highlight value", new Response(200,
+                        threeResults(taskResultWithHighlight("\"highlight\":{\"title\":{\"value\":false}}"), validProject))),
+                org.junit.jupiter.params.provider.Arguments.of("non-text highlights snippet", new Response(200,
+                        threeResults(taskResultWithHighlight("\"highlights\":[{\"snippet\":7}]"), validProject))),
+                org.junit.jupiter.params.provider.Arguments.of("malformed secondary highlights", new Response(200,
+                        threeResults(taskResultWithHighlight(
+                                "\"highlight\":{\"title\":{\"snippet\":\"valid\"}},\"highlights\":{}"), validProject)))
         );
+    }
+
+    @ParameterizedTest(name = "valid empty highlight: {0}")
+    @MethodSource("emptyHighlights")
+    void absentNullOrEmptyHighlightDataUsesTheDocumentFallback(String ignoredName, String highlightFields) {
+        configuredResponse.set(new Response(200, "{\"results\":[" + taskResultWithHighlight(highlightFields) + "]}"));
+
+        SearchHit hit = client().multiSearch("task", "TASK", 10, collections(), SearchQueryPolicy.defaults())
+                .getFirst().hits().getFirst();
+
+        assertThat(hit.description()).isEqualTo("fallback description");
+    }
+
+    static Stream<org.junit.jupiter.params.provider.Arguments> emptyHighlights() {
+        return Stream.of(
+                org.junit.jupiter.params.provider.Arguments.of("absent", ""),
+                org.junit.jupiter.params.provider.Arguments.of("null", "\"highlight\":null,\"highlights\":null"),
+                org.junit.jupiter.params.provider.Arguments.of("empty", "\"highlight\":{},\"highlights\":[]"));
     }
 
     @Test
@@ -165,6 +198,17 @@ class TypesenseClientHttpTest {
                     {"document":{"id":"31","user_id":31,"name":"User 31","login":"user31","email":"user31@example.invalid","state":"A"}}]}
                 ]}
                 """;
+    }
+
+    private static String taskResultWithHighlight(String highlightFields) {
+        String suffix = highlightFields.isEmpty() ? "" : "," + highlightFields;
+        return "{\"found\":1,\"search_time_ms\":1,\"hits\":[{\"document\":{"
+                + "\"id\":\"11\",\"task_id\":11,\"title\":\"Task 11\","
+                + "\"description_markdown\":\"fallback description\"}" + suffix + "}]}";
+    }
+
+    private static String threeResults(String task, String empty) {
+        return "{\"results\":[" + task + "," + empty + "," + empty + "]}";
     }
 
     private static Map<String, String> collections() {

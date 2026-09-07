@@ -160,33 +160,45 @@ public final class TypesenseSearchMapper {
     }
 
     private static String snippet(JsonNode hit, String fallback) {
-        String highlighted = highlightedText(hit.get("highlight"));
-        if (highlighted == null) highlighted = highlightsArrayText(hit.get("highlights"));
+        String objectHighlight = highlightedText(hit.get("highlight"));
+        String arrayHighlight = highlightsArrayText(hit.get("highlights"));
+        String highlighted = objectHighlight == null ? arrayHighlight : objectHighlight;
         return boundedPlaintext(highlighted == null ? fallback : highlighted);
     }
 
     private static String highlightedText(JsonNode highlight) {
-        if (highlight == null || !highlight.isObject()) return null;
+        if (highlight == null || highlight.isNull()) return null;
+        if (!highlight.isObject()) throw TypesenseException.invalidResponse();
+        String firstText = null;
         var fields = highlight.properties().iterator();
         while (fields.hasNext()) {
             JsonNode value = fields.next().getValue();
-            if (value != null && value.isObject()) {
-                JsonNode snippet = value.get("snippet");
-                if (snippet != null && snippet.isTextual()) return snippet.textValue();
-                JsonNode matched = value.get("value");
-                if (matched != null && matched.isTextual()) return matched.textValue();
-            }
+            if (value == null || !value.isObject()) throw TypesenseException.invalidResponse();
+            String text = requiredHighlightText(value);
+            if (firstText == null) firstText = text;
         }
-        return null;
+        return firstText;
     }
 
     private static String highlightsArrayText(JsonNode highlights) {
-        if (highlights == null || !highlights.isArray()) return null;
+        if (highlights == null || highlights.isNull()) return null;
+        if (!highlights.isArray()) throw TypesenseException.invalidResponse();
+        String firstText = null;
         for (JsonNode value : highlights) {
-            JsonNode snippet = value.get("snippet");
-            if (snippet != null && snippet.isTextual()) return snippet.textValue();
+            if (value == null || !value.isObject()) throw TypesenseException.invalidResponse();
+            String text = requiredHighlightText(value);
+            if (firstText == null) firstText = text;
         }
-        return null;
+        return firstText;
+    }
+
+    private static String requiredHighlightText(JsonNode value) {
+        JsonNode snippet = value.get("snippet");
+        JsonNode matched = value.get("value");
+        if (snippet != null && !snippet.isTextual()) throw TypesenseException.invalidResponse();
+        if (matched != null && !matched.isTextual()) throw TypesenseException.invalidResponse();
+        if (snippet == null && matched == null) throw TypesenseException.invalidResponse();
+        return snippet == null ? matched.textValue() : snippet.textValue();
     }
 
     static String boundedPlaintext(String value) {
