@@ -153,7 +153,7 @@ export class UiModalComponent implements OnChanges, OnDestroy {
 
   @HostListener('document:keydown.escape', ['$event'])
   onEscape(event: Event) {
-    if (event.defaultPrevented || this.host.nativeElement.querySelector('[aria-expanded="true"]')) return;
+    if (event.defaultPrevented || this.host.nativeElement.querySelector('[aria-haspopup="listbox"][aria-expanded="true"]')) return;
     if (this.isOpen && this.dismissible && UiModalComponent.openModals.at(-1) === this) {
       event.preventDefault();
       this.close.emit();

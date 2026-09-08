@@ -1,11 +1,13 @@
 import { TestBed } from '@angular/core/testing';
-import { of } from 'rxjs';
+import { By } from '@angular/platform-browser';
+import { of, Subject } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { ApiService } from '../../../core/services/api.service';
 import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { Role } from '../../../core/models/rbac.models';
 import { RolesComponent } from './roles.component';
+import { RoleScopePanelComponent } from '../org-units/public-api';
 
 describe('RolesComponent UI contracts', () => {
   async function createFixture() {
@@ -84,4 +86,160 @@ describe('RolesComponent UI contracts', () => {
     expect(name.getAttribute('aria-invalid')).toBe('true');
     expect(name.getAttribute('aria-describedby')).toBe('role-create-name-error');
   });
+
+  it('waits for a dirty scope decision before selecting another role', async () => {
+    const fixture = await createFixture();
+    const api = TestBed.inject(ApiService) as unknown as { get: ReturnType<typeof vi.fn> };
+    const first = role(1, 'Первая');
+    const second = role(2, 'Вторая');
+    api.get.mockImplementation((path: string) => roleResponse(path, [first, second]));
+
+    fixture.componentInstance.selectRole(first);
+    fixture.detectChanges();
+    const panel = fixture.debugElement.query(By.directive(RoleScopePanelComponent)).componentInstance as RoleScopePanelComponent;
+    panel.selectRule('SELF');
+    fixture.componentInstance.selectRole(second);
+    fixture.detectChanges();
+    expect(fixture.componentInstance.selectedRole()?.id).toBe(first.id);
+    expect(panel.discard.open()).toBe(true);
+
+    panel.discard.cancel();
+    fixture.componentInstance.selectRole(second);
+    panel.discard.confirm();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.selectedRole()?.id).toBe(second.id);
+    expect(fixture.debugElement.query(By.directive(RoleScopePanelComponent)).componentInstance.roleId).toBe(second.id);
+  });
+
+  it('blocks destructive target changes during scope save without blocking the permission matrix save', async () => {
+    const fixture = await createFixture();
+    const api = TestBed.inject(ApiService) as unknown as {
+      get: ReturnType<typeof vi.fn>;
+      put: ReturnType<typeof vi.fn>;
+      delete: ReturnType<typeof vi.fn>;
+    };
+    const scopeWrite = new Subject<void>();
+    const first = role(1, 'Первая');
+    const second = role(2, 'Вторая');
+    api.get.mockImplementation((path: string) => roleResponse(path, [first, second]));
+    api.put.mockImplementation((path: string) => path.endsWith('/rule') ? scopeWrite.asObservable() : of({}));
+    api.delete.mockReturnValue(of({}));
+    fixture.componentInstance.selectRole(first);
+    fixture.detectChanges();
+    const panel = fixture.debugElement.query(By.directive(RoleScopePanelComponent)).componentInstance as RoleScopePanelComponent;
+    panel.selectRule('SELF');
+    panel.save();
+    panel.confirmSave();
+
+    fixture.componentInstance.selectRole(second);
+    fixture.componentInstance.openDeleteRoleModal(second);
+    fixture.detectChanges();
+    expect(fixture.componentInstance.selectedRole()?.id).toBe(first.id);
+    expect(fixture.componentInstance.isDeleteModalOpen()).toBe(false);
+
+    fixture.componentInstance.rolePermissions.set(new Set(['audit.log.view']));
+    fixture.componentInstance.savePermissions();
+    expect(api.put).toHaveBeenCalledWith('/rbac/roles/1/permissions', [{ formCode: 'audit.log', action: 'view' }]);
+
+    scopeWrite.error({ status: 409, detail: 'retry' });
+    expect(panel.pending).toBe(false);
+  });
+
+  it('retains a dirty selected role when another role is deleted', async () => {
+    const fixture = await createFixture();
+    const api = TestBed.inject(ApiService) as unknown as {
+      get: ReturnType<typeof vi.fn>;
+      delete: ReturnType<typeof vi.fn>;
+    };
+    const first = role(1, 'Первая');
+    const second = role(2, 'Вторая');
+    api.get.mockImplementation((path: string) => roleResponse(path, [first]));
+    api.delete.mockReturnValue(of({}));
+    fixture.componentInstance.selectRole(first);
+    fixture.detectChanges();
+    const panel = fixture.debugElement.query(By.directive(RoleScopePanelComponent)).componentInstance as RoleScopePanelComponent;
+    panel.selectRule('SELF');
+
+    fixture.componentInstance.openDeleteRoleModal(second);
+    fixture.componentInstance.confirmDeleteRole();
+    fixture.detectChanges();
+
+    expect(api.delete).toHaveBeenCalledWith('/rbac/roles/2');
+    expect(fixture.componentInstance.selectedRole()?.id).toBe(first.id);
+    expect(panel.hasUnsavedWork()).toBe(true);
+  });
+
+  it('freezes selected-role deletion and changes selection only after the guarded delete succeeds', async () => {
+    const fixture = await createFixture();
+    const api = TestBed.inject(ApiService) as unknown as {
+      get: ReturnType<typeof vi.fn>;
+      delete: ReturnType<typeof vi.fn>;
+    };
+    const deletion = new Subject<void>();
+    const first = role(1, 'Первая');
+    const second = role(2, 'Вторая');
+    api.get.mockImplementation((path: string) => roleResponse(path, [first, second]));
+    api.delete.mockReturnValue(deletion.asObservable());
+    fixture.componentInstance.selectRole(first);
+    fixture.detectChanges();
+    const panel = fixture.debugElement.query(By.directive(RoleScopePanelComponent)).componentInstance as RoleScopePanelComponent;
+    panel.selectRule('SELF');
+
+    fixture.componentInstance.openDeleteRoleModal(first);
+    fixture.componentInstance.openDeleteRoleModal(second);
+    fixture.componentInstance.confirmDeleteRole();
+    expect(fixture.componentInstance.deletingRole?.id).toBe(first.id);
+    expect(api.delete).not.toHaveBeenCalled();
+    expect(panel.discard.open()).toBe(true);
+
+    panel.discard.confirm();
+    expect(api.delete).toHaveBeenCalledWith('/rbac/roles/1');
+    expect(fixture.componentInstance.selectedRole()?.id).toBe(first.id);
+    api.get.mockImplementation((path: string) => roleResponse(path, [second]));
+    deletion.next();
+    deletion.complete();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.selectedRole()?.id).toBe(second.id);
+    expect(fixture.componentInstance.deletingRole).toBeNull();
+  });
+
+  it('does not apply a create-triggered leave callback after destruction', async () => {
+    const fixture = await createFixture();
+    const api = TestBed.inject(ApiService) as unknown as {
+      get: ReturnType<typeof vi.fn>;
+      post: ReturnType<typeof vi.fn>;
+    };
+    const created = new Subject<Role>();
+    const first = role(1, 'Первая');
+    const third = role(3, 'Третья');
+    api.get.mockImplementation((path: string) => roleResponse(path, [first, third]));
+    api.post.mockReturnValue(created.asObservable());
+    fixture.componentInstance.selectRole(first);
+    fixture.detectChanges();
+    const panel = fixture.debugElement.query(By.directive(RoleScopePanelComponent)).componentInstance as RoleScopePanelComponent;
+    panel.selectRule('SELF');
+    fixture.componentInstance.newRoleForm = { name: third.name, orderNo: 0 };
+    fixture.componentInstance.submitCreateRole();
+
+    created.next(third);
+    expect(fixture.componentInstance.selectedRole()?.id).toBe(first.id);
+    expect(panel.discard.open()).toBe(true);
+
+    fixture.destroy();
+    panel.discard.confirm();
+    expect(fixture.componentInstance.selectedRole()?.id).toBe(first.id);
+  });
+
+  function role(id: number, name: string): Role {
+    return { id, name, state: 'A', orderNo: 0, createdAt: '', modifiedAt: '' };
+  }
+
+  function roleResponse(path: string, roles: Role[]) {
+    if (path === '/rbac/roles') return of(roles);
+    if (path === '/rbac/forms') return of([]);
+    const rule = path.match(/^\/iam\/org-units\/roles\/(\d+)\/rule$/);
+    if (rule) return of({ roleId: Number(rule[1]), rule: 'ALL' });
+    if (/^\/rbac\/roles\/\d+\/permissions$/.test(path)) return of([]);
+    return of([]);
+  }
 });

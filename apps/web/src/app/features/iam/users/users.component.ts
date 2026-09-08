@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy, signal, computed, HostListener, ElementRef, ViewChild, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
 import { canonicalRecordId, recordResponseMatches, safeNumericRecordId } from '../../../core/services/search-target';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -17,6 +17,7 @@ import { Role } from '../../../core/models/rbac.models';
 import { CustomField } from '../../../core/models/custom-field.models';
 import { KeysetPage } from '../../../core/models/common.models';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
+import { UserOrgUnitsPanelComponent } from '../org-units/public-api';
 
 type SortColumn = 'id' | 'name' | 'login' | 'createdAt';
 type SortDirection = 'asc' | 'desc';
@@ -30,6 +31,7 @@ type SortDirection = 'asc' | 'desc';
     FormsModule,
     UiButtonComponent,
     UiModalComponent,
+    UserOrgUnitsPanelComponent,
     UiCustomFieldsComponent,
     UiPaginationComponent
   ],
@@ -577,7 +579,7 @@ type SortDirection = 'asc' | 'desc';
     <ui-modal
       [isOpen]="isViewModalOpen()"
       [title]="'iam.profil_polzovatelya' | t"
-      size="sm"
+      [size]="canViewOrgUnits() && viewingUser && safeRecordId(viewingUser.id) ? 'xl' : 'sm'"
       (close)="closeRecordView()"
     >
       <div body *ngIf="recordLoading()" role="status">{{ 'search.record_loading' | t }}</div>
@@ -628,6 +630,11 @@ type SortDirection = 'asc' | 'desc';
             <span class="val font-mono">{{ u.createdAt | date:'dd.MM.yyyy' }}</span>
           </div>
         </div>
+        <app-user-org-units-panel
+          *ngIf="isViewModalOpen() && canViewOrgUnits() && safeRecordId(u.id)"
+          [userId]="u.id"
+          (busyChange)="orgPanelBusy.set($event)"
+        ></app-user-org-units-panel>
       </div>
       <div footer>
         <ui-button variant="secondary" size="md" (onClick)="closeRecordView()">{{ (routeRecordId() ? 'search.back_to_list' : 'audit.zakryt') | t }}</ui-button>
@@ -1168,11 +1175,15 @@ export class UsersComponent implements OnInit, OnDestroy {
   private readonly recordRouter = inject(Router, { optional: true });
   private recordRouteSubscription?: Subscription;
   private recordRequest?: Subscription;
+  private panelLeaveSubscription?: Subscription;
   private recordRequestId = 0;
+  private destroyed = false;
+  private userOrgUnitsPanel?: UserOrgUnitsPanelComponent;
   readonly routeRecordId = signal<string | null>(null);
   readonly recordLoading = signal(false);
   readonly recordError = signal(false);
   readonly recordNotFound = signal(false);
+  readonly orgPanelBusy = signal(false);
   readonly safeRecordId = safeNumericRecordId;
   readonly users = signal<User[]>([]);
   readonly roles = signal<Role[]>([]);
@@ -1245,6 +1256,11 @@ export class UsersComponent implements OnInit, OnDestroy {
   ) {}
 
   @ViewChild('filterTrigger') private filterTrigger?: ElementRef<HTMLButtonElement>;
+  @ViewChild(UserOrgUnitsPanelComponent)
+  set orgUnitsPanel(panel: UserOrgUnitsPanelComponent | undefined) {
+    this.userOrgUnitsPanel = panel;
+    if (!panel) this.orgPanelBusy.set(false);
+  }
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
@@ -1285,6 +1301,14 @@ export class UsersComponent implements OnInit, OnDestroy {
 
   canUnblockUser(): boolean {
     return this.permService.hasPermission('iam.users', 'unblock') || this.permService.hasPermission('md_users', 'unblock');
+  }
+
+  canViewOrgUnits(): boolean {
+    return this.permService.hasPermission('iam.org_units', 'view');
+  }
+
+  canLeaveRecordPage(): boolean | Observable<boolean> {
+    return this.userOrgUnitsPanel?.canLeave() ?? true;
   }
 
   loadUsers(reset: boolean = false) {
@@ -1435,6 +1459,8 @@ export class UsersComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.destroyed = true;
+    this.panelLeaveSubscription?.unsubscribe();
     this.recordRouteSubscription?.unsubscribe();
     this.recordRequest?.unsubscribe();
     this.recordRequestId++;
@@ -1442,6 +1468,7 @@ export class UsersComponent implements OnInit, OnDestroy {
   }
 
   loadRecordView(id: string | null) {
+    if (this.destroyed) return;
     const requestId = ++this.recordRequestId;
     this.recordRequest?.unsubscribe();
     this.routeRecordId.set(id);
@@ -1471,26 +1498,31 @@ export class UsersComponent implements OnInit, OnDestroy {
   }
 
   closeRecordView() {
+    if (this.destroyed) return;
     if (this.routeRecordId() !== null) {
       this.recordRouter?.navigate(['/iam/users'], { queryParamsHandling: 'preserve' });
       return;
     }
-    this.isViewModalOpen.set(false);
+    this.afterOrgPanelLeave(() => this.isViewModalOpen.set(false));
   }
 
   openViewModal(user: User) {
+    if (this.destroyed) return;
     const routeId = this.routeRecordId();
     if (routeId !== null) {
       if (!safeNumericRecordId(user.id)) return;
-      if (String(user.id) === routeId) this.loadRecordView(routeId);
+      if (String(user.id) === routeId) this.afterOrgPanelLeave(() => this.loadRecordView(routeId));
       else this.recordRouter?.navigate(['/iam/users', String(user.id)], { queryParamsHandling: 'preserve' });
       return;
     }
-    this.viewingUser = user;
-    this.isViewModalOpen.set(true);
+    this.afterOrgPanelLeave(() => {
+      this.viewingUser = user;
+      this.isViewModalOpen.set(true);
+    });
   }
 
   closeEditModal() {
+    if (this.destroyed) return;
     this.isEditModalOpen.set(false);
     this.editingUser = null;
     const routeId = this.routeRecordId();
@@ -1500,9 +1532,25 @@ export class UsersComponent implements OnInit, OnDestroy {
   openEditFromView() {
     if (this.viewingUser && safeNumericRecordId(this.viewingUser.id) && this.canUpdateUser()) {
       const u = this.viewingUser;
-      this.isViewModalOpen.set(false);
-      this.openEditModal(u);
+      this.afterOrgPanelLeave(() => {
+        this.isViewModalOpen.set(false);
+        this.openEditModal(u);
+      });
     }
+  }
+
+  private afterOrgPanelLeave(action: () => void): void {
+    if (this.destroyed) return;
+    this.panelLeaveSubscription?.unsubscribe();
+    this.panelLeaveSubscription = undefined;
+    const decision = this.userOrgUnitsPanel?.canLeave() ?? true;
+    if (typeof decision === 'boolean') {
+      if (decision) action();
+      return;
+    }
+    this.panelLeaveSubscription = decision.subscribe(allow => {
+      if (allow && !this.destroyed) action();
+    });
   }
 
   openCreateModal() {
@@ -1607,6 +1655,7 @@ export class UsersComponent implements OnInit, OnDestroy {
     this.isSubmitting.set(true);
     this.api.patch(`/iam/users/${this.editingUser.id}`, this.editForm).subscribe({
       next: () => {
+        if (this.destroyed) return;
         this.isSubmitting.set(false);
         this.closeEditModal();
         this.toast.success(this.uiI18n.translate('iam.dannye_sohraneny'));

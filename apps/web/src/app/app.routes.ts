@@ -32,11 +32,19 @@ export const routes: Routes = [
       },
       {
         matcher: userRecordMatcher,
+        canDeactivate: [recordNavigationGuard],
         loadComponent: () => import('./features/iam/users/users.component').then(m => m.UsersComponent)
       },
       {
         path: 'iam/roles',
+        canDeactivate: [recordNavigationGuard],
         loadComponent: () => import('./features/iam/roles/roles.component').then(m => m.RolesComponent)
+      },
+      {
+        path: 'iam/org-units',
+        canActivate: [permissionGuard('iam.org_units', 'view')],
+        canDeactivate: [recordNavigationGuard],
+        loadComponent: () => import('./features/iam/org-units/org-units.component').then(m => m.OrgUnitsComponent)
       },
       {
         path: 'iam/custom-fields',

@@ -64,7 +64,7 @@ import { finalize } from 'rxjs';
           </a>
 
           <!-- Master Data & IAM -->
-          <div class="nav-section-title" *ngIf="(!isCollapsed() || isMobileMenuOpen()) && (canViewUsers() || canViewRoles() || canViewCustomFields())">{{ 'layout.app_shell.iam_nastroyki' | t }}</div>
+          <div class="nav-section-title" *ngIf="(!isCollapsed() || isMobileMenuOpen()) && (canViewUsers() || canViewRoles() || canViewOrgUnits() || canViewCustomFields())">{{ 'layout.app_shell.iam_nastroyki' | t }}</div>
           <a *ngIf="canViewUsers()" routerLink="/iam/users" routerLinkActive="active" [attr.aria-current]="isRouteActive('/iam/users') ? 'page' : null" class="nav-item" [title]="'nav.users' | t">
             <span class="material-symbols-outlined nav-icon" aria-hidden="true">people</span>
             <span class="nav-label" *ngIf="!isCollapsed() || isMobileMenuOpen()">{{ 'nav.users' | t }}</span>
@@ -72,6 +72,10 @@ import { finalize } from 'rxjs';
           <a *ngIf="canViewRoles()" routerLink="/iam/roles" routerLinkActive="active" [attr.aria-current]="isRouteActive('/iam/roles') ? 'page' : null" class="nav-item" [title]="'nav.roles' | t">
             <span class="material-symbols-outlined nav-icon" aria-hidden="true">security</span>
             <span class="nav-label" *ngIf="!isCollapsed() || isMobileMenuOpen()">{{ 'nav.roles' | t }}</span>
+          </a>
+          <a *ngIf="canViewOrgUnits()" routerLink="/iam/org-units" routerLinkActive="active" [attr.aria-current]="isRouteActive('/iam/org-units') ? 'page' : null" class="nav-item" [title]="'iam.org_units.title' | t">
+            <span class="material-symbols-outlined nav-icon" aria-hidden="true">account_tree</span>
+            <span class="nav-label" *ngIf="!isCollapsed() || isMobileMenuOpen()">{{ 'iam.org_units.title' | t }}</span>
           </a>
           <a *ngIf="canViewCustomFields()" routerLink="/iam/custom-fields" routerLinkActive="active" [attr.aria-current]="isRouteActive('/iam/custom-fields') ? 'page' : null" class="nav-item" [title]="'nav.custom_fields' | t">
             <span class="material-symbols-outlined nav-icon" aria-hidden="true">tune</span>
@@ -776,6 +780,10 @@ export class AppShellComponent implements OnDestroy {
 
   canViewRoles(): boolean {
     return this.permService.canView('rbac.roles') || this.permService.canView('iam.roles') || this.permService.canView('md_roles') || this.permService.canView('md.roles');
+  }
+
+  canViewOrgUnits(): boolean {
+    return this.permService.canView('iam.org_units');
   }
 
   canViewCustomFields(): boolean {

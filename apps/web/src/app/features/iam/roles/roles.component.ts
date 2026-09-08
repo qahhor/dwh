@@ -1,8 +1,8 @@
-import { Component, DestroyRef, OnInit, signal, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, ViewChild, signal, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subscription } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
 import { ApiService } from '../../../core/services/api.service';
 import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
@@ -10,6 +10,8 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { Role, FormTreeItem, PermissionPair } from '../../../core/models/rbac.models';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
+import { safeNumericRecordId } from '../../../core/services/search-target';
+import { RoleScopePanelComponent } from '../org-units/public-api';
 
 interface FormActionItem {
   action: string;
@@ -34,7 +36,7 @@ interface ModuleGroup {
   selector: 'app-roles',
   standalone: true,
   imports: [
-    TranslatePipe,CommonModule, FormsModule, UiButtonComponent, UiModalComponent],
+    TranslatePipe,CommonModule, FormsModule, UiButtonComponent, UiModalComponent, RoleScopePanelComponent],
   template: `
     <div class="roles-page">
       <!-- Top Page Header -->
@@ -86,7 +88,7 @@ interface ModuleGroup {
               class="role-select-btn"
               [attr.aria-label]="'iam.select_role_named' | t:{name: r.name}"
               [attr.aria-pressed]="selectedRole()?.id === r.id"
-              [disabled]="isSaving()"
+              [disabled]="isSaving() || scopePanelBusy() || isSubmittingRole()"
               (click)="selectRole(r)"
             >
               <span class="role-card-head">
@@ -118,6 +120,7 @@ interface ModuleGroup {
                   [attr.aria-label]="'iam.delete_role_named' | t:{name: r.name}"
                   [title]="'iam.udalit_rol' | t"
                   *ngIf="!r.pcode && canDeleteRole()"
+                  [disabled]="isSaving() || scopePanelBusy() || isSubmittingRole()"
                   (click)="openDeleteRoleModal(r)"
                 >
                   <span class="material-symbols-outlined" aria-hidden="true">delete</span>
@@ -348,6 +351,11 @@ interface ModuleGroup {
             <p>{{ 'iam.forms_not_found_for' | t:{query: matrixSearchQuery} }}</p>
           </div>
         </div>
+        <app-role-scope-panel
+          *ngIf="canViewOrgUnits() && safeRoleId(role.id)"
+          [roleId]="role.id"
+          (busyChange)="scopePanelBusy.set($event)"
+        ></app-role-scope-panel>
       </div>
     </div>
 
@@ -440,7 +448,8 @@ interface ModuleGroup {
       [isOpen]="isDeleteModalOpen()"
       [title]="'iam.udalenie_roli' | t"
       size="sm"
-      (close)="isDeleteModalOpen.set(false)"
+      [dismissible]="!isSubmittingRole()"
+      (close)="closeDeleteRoleModal()"
     >
       <div body class="modal-delete-body" *ngIf="deletingRole as r">
         <p class="delete-title">
@@ -449,7 +458,7 @@ interface ModuleGroup {
         <span class="delete-desc">{{ 'iam.vse_naznachennye_prava_etoy_roli_budut_udaleny_e' | t }}</span>
       </div>
       <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="isDeleteModalOpen.set(false)">{{ 'common.cancel' | t }}</ui-button>
+        <ui-button variant="secondary" size="md" [disabled]="isSubmittingRole()" (onClick)="closeDeleteRoleModal()">{{ 'common.cancel' | t }}</ui-button>
         <ui-button variant="danger" size="md" [loading]="isSubmittingRole()" (onClick)="confirmDeleteRole()">{{ 'common.delete' | t }}</ui-button>
       </div>
     </ui-modal>
@@ -993,7 +1002,10 @@ export class RolesComponent implements OnInit {
   private readonly uiI18n = inject(I18nService);
   private readonly destroyRef = inject(DestroyRef);
   private permissionsRequest?: Subscription;
+  private panelLeaveSubscription?: Subscription;
+  private roleScopePanel?: RoleScopePanelComponent;
   private readonly loadedPermissionsRoleId = signal<number | null>(null);
+  readonly safeRoleId = safeNumericRecordId;
   readonly roles = signal<Role[]>([]);
   readonly forms = signal<FormTreeItem[]>([]);
   readonly selectedRole = signal<Role | null>(null);
@@ -1003,6 +1015,7 @@ export class RolesComponent implements OnInit {
   readonly permissionsError = signal('');
   readonly isSaving = signal<boolean>(false);
   readonly isSubmittingRole = signal<boolean>(false);
+  readonly scopePanelBusy = signal(false);
 
   roleSearchQuery = '';
   matrixSearchQuery = '';
@@ -1035,7 +1048,15 @@ export class RolesComponent implements OnInit {
     public permService: PermissionService,
     private api: ApiService,
     private toast: ToastService
-  ) {}
+  ) {
+    this.destroyRef.onDestroy(() => this.panelLeaveSubscription?.unsubscribe());
+  }
+
+  @ViewChild(RoleScopePanelComponent)
+  set scopePanel(panel: RoleScopePanelComponent | undefined) {
+    this.roleScopePanel = panel;
+    if (!panel) this.scopePanelBusy.set(false);
+  }
 
   ngOnInit() {
     this.loadForms();
@@ -1057,6 +1078,15 @@ export class RolesComponent implements OnInit {
   canGrant(): boolean {
     return this.permService.hasPermission('rbac.roles', 'grant') ||
            this.permService.hasPermission('iam.roles', 'grant');
+  }
+
+  canViewOrgUnits(): boolean {
+    return this.permService.hasPermission('iam.org_units', 'view');
+  }
+
+  canLeaveRecordPage(): boolean | Observable<boolean> {
+    if (this.isSaving()) return false;
+    return this.roleScopePanel?.canLeave() ?? true;
   }
 
   canEditPermissions(): boolean {
@@ -1134,7 +1164,18 @@ export class RolesComponent implements OnInit {
   }
 
   selectRole(role: Role) {
-    if (this.isSaving() || this.destroyRef.destroyed) return;
+    if (this.isSaving() || this.isSubmittingRole() || this.destroyRef.destroyed) return;
+    const selected = this.selectedRole();
+    if (this.scopePanelBusy() && selected?.id !== role.id) return;
+    if (!selected || selected.id === role.id) {
+      this.activateRole(role);
+      return;
+    }
+    this.afterRoleScopeLeave(() => this.activateRole(role));
+  }
+
+  private activateRole(role: Role): void {
+    if (this.destroyRef.destroyed) return;
     this.permissionsRequest?.unsubscribe();
     this.selectedRole.set(role);
     this.rolePermissions.set(new Set());
@@ -1154,6 +1195,20 @@ export class RolesComponent implements OnInit {
         this.permissionsError.set(error.detail || error.title);
         this.isLoading.set(false);
       }
+    });
+  }
+
+  private afterRoleScopeLeave(action: () => void): void {
+    if (this.destroyRef.destroyed) return;
+    this.panelLeaveSubscription?.unsubscribe();
+    this.panelLeaveSubscription = undefined;
+    const decision = this.roleScopePanel?.canLeave() ?? true;
+    if (typeof decision === 'boolean') {
+      if (decision) action();
+      return;
+    }
+    this.panelLeaveSubscription = decision.subscribe(allow => {
+      if (allow && !this.destroyRef.destroyed) action();
     });
   }
 
@@ -1337,7 +1392,7 @@ export class RolesComponent implements OnInit {
     this.api.post<Role>('/rbac/roles', {
       name: this.newRoleForm.name.trim(),
       orderNo: this.newRoleForm.orderNo || 0
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: newRole => {
         this.isSubmittingRole.set(false);
         this.isCreateModalOpen.set(false);
@@ -1371,7 +1426,7 @@ export class RolesComponent implements OnInit {
     }
 
     this.isSubmittingRole.set(true);
-    this.api.patch(`/rbac/roles/${this.editingRole.id}`, this.editRoleForm).subscribe({
+    this.api.patch(`/rbac/roles/${this.editingRole.id}`, this.editRoleForm).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.isSubmittingRole.set(false);
         this.isEditModalOpen.set(false);
@@ -1385,20 +1440,44 @@ export class RolesComponent implements OnInit {
   }
 
   openDeleteRoleModal(role: Role) {
-    this.deletingRole = role;
+    if (this.isSaving() || this.scopePanelBusy() || this.isSubmittingRole() || this.isDeleteModalOpen() || !safeNumericRecordId(role.id)) return;
+    this.deletingRole = { ...role };
     this.isDeleteModalOpen.set(true);
   }
 
   confirmDeleteRole() {
-    if (!this.deletingRole) return;
+    const target = this.deletingRole;
+    if (!target || this.isSaving() || this.scopePanelBusy() || this.isSubmittingRole() || !safeNumericRecordId(target.id)) return;
+    if (this.selectedRole()?.id === target.id) {
+      this.afterRoleScopeLeave(() => this.deleteRole(target));
+      return;
+    }
+    this.deleteRole(target);
+  }
 
+  closeDeleteRoleModal(): void {
+    if (this.isSubmittingRole()) return;
+    this.isDeleteModalOpen.set(false);
+    this.deletingRole = null;
+  }
+
+  private deleteRole(target: Role): void {
+    if (this.destroyRef.destroyed || this.isSubmittingRole() || !this.isDeleteModalOpen()) return;
     this.isSubmittingRole.set(true);
-    this.api.delete(`/rbac/roles/${this.deletingRole.id}`).subscribe({
+    this.api.delete(`/rbac/roles/${target.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.isSubmittingRole.set(false);
         this.isDeleteModalOpen.set(false);
+        this.deletingRole = null;
         this.toast.success(this.uiI18n.translate('iam.rol_udalena'));
-        this.selectedRole.set(null);
+        if (this.selectedRole()?.id === target.id) {
+          this.permissionsRequest?.unsubscribe();
+          this.selectedRole.set(null);
+          this.rolePermissions.set(new Set());
+          this.loadedPermissionsRoleId.set(null);
+          this.permissionsError.set('');
+          this.isLoading.set(false);
+        }
         this.loadRoles();
       },
       error: () => {

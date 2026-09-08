@@ -1,6 +1,6 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthService } from '../../core/services/auth.service';
@@ -19,8 +19,8 @@ describe('AppShellComponent', () => {
     logout: vi.fn()
   };
   const permissionService = {
-    canView: vi.fn(() => true),
-    canUpdate: vi.fn(() => true)
+    canView: vi.fn((_form: string) => true),
+    canUpdate: vi.fn((_form: string) => true)
   };
   const themeService = {
     currentTheme: signal('light'),
@@ -111,5 +111,42 @@ describe('AppShellComponent', () => {
     expect(Array.from(selector.options).map(option => option.value))
       .toEqual(['ru', 'uz', 'en', 'de', 'tr']);
     expect(fixture.nativeElement.querySelector('.notif-btn .sr-only')?.textContent).toContain('3');
+  });
+
+  it('shows the organization link only for iam.org_units view and keeps its navigation semantics', () => {
+    permissionService.canView.mockReturnValue(false);
+    const fixture = TestBed.createComponent(AppShellComponent);
+    fixture.detectChanges();
+    expect(fixture.componentInstance.canViewOrgUnits()).toBe(false);
+    expect(fixture.nativeElement.querySelector('a[href="/iam/org-units"]')).toBeNull();
+
+    permissionService.canView.mockImplementation(form => form === 'iam.users');
+    fixture.detectChanges();
+    expect(fixture.componentInstance.canViewOrgUnits()).toBe(false);
+    expect(fixture.nativeElement.querySelector('a[href="/iam/org-units"]')).toBeNull();
+
+    fixture.destroy();
+    permissionService.canView.mockImplementation(form => form === 'iam.org_units');
+    vi.spyOn(TestBed.inject(Router), 'url', 'get').mockReturnValue('/iam/org-units');
+    const allowedFixture = TestBed.createComponent(AppShellComponent);
+    allowedFixture.detectChanges();
+    const link = allowedFixture.nativeElement.querySelector('a[href="/iam/org-units"]') as HTMLAnchorElement;
+    expect(allowedFixture.componentInstance.canViewOrgUnits()).toBe(true);
+    expect(link.title).toBe('Оргструктура');
+    expect(link.getAttribute('aria-current')).toBe('page');
+    expect(link.querySelector('.nav-label')?.textContent).toContain('Оргструктура');
+
+    allowedFixture.componentInstance.isCollapsed.set(true);
+    allowedFixture.detectChanges();
+    expect(link.querySelector('.nav-label')).toBeNull();
+
+    allowedFixture.componentInstance.isCollapsed.set(false);
+    allowedFixture.componentInstance.isMobileMenuOpen.set(true);
+    allowedFixture.detectChanges();
+    expect(allowedFixture.nativeElement.querySelector('a[href="/iam/org-units"] .nav-label')).not.toBeNull();
+    (allowedFixture.nativeElement.querySelector('a[href="/iam/org-units"]') as HTMLAnchorElement)
+      .dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    allowedFixture.detectChanges();
+    expect(allowedFixture.componentInstance.isMobileMenuOpen()).toBe(false);
   });
 });
