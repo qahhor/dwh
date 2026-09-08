@@ -118,22 +118,37 @@ repositories/adapters — I/O. Детали приведены в
 синтетическими пользователями и задачами подтвердил UI назначений, effective
 scope и реальные task list/detail правила UNITS/SUBTREE/SELF, прямой 403 к
 оргструктуре, занятое удаление 409, keyboard/discard, pending real write и
-контролируемый 503/retry. Функциональные пять сценариев прошли, но шестой
-выявил у общего primary button clean source недостаточный dark contrast:
-13px/500 white `rgb(255,255,255)` на cyan `rgb(56,189,248)` — 2.1423:1 при
-требовании 4.5:1 на обоих viewport. Light — 5.9336:1. Поэтому чистый source
-имеет 5/6 и не считается полностью прошедшим visual acceptance.
+контролируемый 503/retry. Первоначальные функциональные пять сценариев прошли,
+но шестой выявил у общего primary button clean source недостаточный dark
+contrast: 13px/500 white `rgb(255,255,255)` на cyan `rgb(56,189,248)` —
+2.1423:1 при требовании 4.5:1 на обоих viewport. Light — 5.9336:1. Этот
+исторический результат остаётся 5/6; первоначальная версия вызывала финальную
+browser-health проверку после ожидаемо падающей contrast-проверки, поэтому тот
+запуск сам по себе не доказывал отсутствие console/pageerror.
+
+Fix round 1 заменил постоянный порт теста на явно заданный проверяемый bare
+loopback origin с отдельным портом, запрещает missing/mismatch/remote/4200 до
+навигации и использует один origin для CSRF и дочерних browser contexts. Он
+также проверяет browser health до contrast-агрегации и перед итоговым response
+ledger явно ожидает успешные `GET 200` для `/custom-fields` и
+`/tasks/projects`. Первый свежий clean-запуск прошёл origin guard, затем worker
+завершился с Windows-кодом `3221226505` во время seed; неизменённый повтор прошёл
+6/7 за 18.9 s, с единственным ожидаемым contrast fail и подтверждённо чистыми
+console/pageerror. Причина worker exit не доказана, исправление продукта или ОС
+не заявляется.
 
 Отдельный candidate из того же `eefd8ae` плюс семь точных, отдельно
-hash-манифестированных ранее существовавших dirty UI-файлов прошёл тот же
-browser suite 6/6 и Angular 54 файла / 501 тест, typecheck и localization.
-Его dark primary contrast — 9.0701:1; production build вышел с кодом 0, но
-501.30 kB превысили budget 500 kB на 1.30 kB. Это evidence текущего
-preserved-workspace UI, а не clean feature HEAD; dirty UI-файлы не входят в
-пакет оргструктуры. Clean dark-contrast blocker сохраняется до публикации
-shared UI изменений. Task-view-only роль также воспроизводит два фоновых 403
-toast из unconditional `/custom-fields` и `/tasks/projects`; scope actor
-использует ровно три read permission и не получает organization/IAM assign.
+hash-манифестированных ранее существовавших dirty UI-файлов прошёл
+первоначальный browser suite 6/6 и свежий fix-round suite 7/7 за 21.2 s, а
+также Angular 54 файла / 501 тест, typecheck и localization. Его dark primary
+contrast — 9.0701:1; production build вышел с кодом 0, но 501.30 kB превысили
+budget 500 kB на 1.30 kB. Это evidence текущего preserved-workspace UI, а не
+clean feature HEAD; dirty UI-файлы не входят в пакет оргструктуры. Clean
+dark-contrast blocker сохраняется до публикации shared UI изменений.
+Task-view-only роль также воспроизводит два фоновых 403 toast из unconditional
+`/custom-fields` и `/tasks/projects`; scope actor использует ровно три read
+permission, не получает organization/IAM assign, а fresh suite теперь
+утверждает оба auxiliary `GET 200` до проверки полного page-response ledger.
 
 ### Публикация накопленных изменений — 2026-09-08
 

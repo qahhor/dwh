@@ -42,7 +42,6 @@ type Fixture = {
   tasks: Record<'actor' | 'peer' | 'child' | 'other', TaskRecord>;
 };
 
-const QA_ORIGIN = 'http://127.0.0.1:14208';
 const runPrefix = `org-e2e-${Date.now()}-${randomBytes(4).toString('hex')}`;
 const journeyCode = `${runPrefix}-journey`;
 const fixtureNames = {
@@ -59,17 +58,68 @@ const screenshotCases = [
   { width: 390, height: 844, theme: 'dark' },
 ] as const;
 
-let fixture: Fixture | undefined;
+test('candidate-origin guard accepts a separate loopback port and rejects unsafe configuration', () => {
+  expect(validatedCandidateOrigin('http://127.0.0.1:15208', 'http://127.0.0.1:15208')).toBe(
+    'http://127.0.0.1:15208',
+  );
+  expect(() => validatedCandidateOrigin(undefined, 'http://127.0.0.1:15208')).toThrow(
+    'requires an explicit isolated INSTANCE_BASE_URL',
+  );
+  expect(() => validatedCandidateOrigin(
+    'http://127.0.0.1:15208',
+    'http://127.0.0.1:15209',
+  )).toThrow('must match the Playwright instance project origin');
+  expect(() => validatedCandidateOrigin(
+    'https://qa.example.invalid:15208',
+    'https://qa.example.invalid:15208',
+  )).toThrow('requires a separate loopback QA origin');
+  expect(() => validatedCandidateOrigin('http://127.0.0.1:4200', 'http://127.0.0.1:4200')).toThrow(
+    'never port 4200',
+  );
+});
 
-test.beforeEach(async ({ baseURL }) => {
-  const configured = process.env.INSTANCE_BASE_URL;
-  if (!configured || !baseURL || new URL(configured).origin !== new URL(baseURL).origin) {
+let fixture: Fixture | undefined;
+let qaOrigin: string | undefined;
+
+function validatedCandidateOrigin(configured: string | undefined, baseURL: string | undefined): string {
+  if (!configured?.trim() || !baseURL?.trim()) {
     throw new Error('Organization structure E2E requires an explicit isolated INSTANCE_BASE_URL');
   }
-  const target = new URL(baseURL);
-  if (target.origin !== QA_ORIGIN || target.hostname !== '127.0.0.1' || target.port !== '14208') {
-    throw new Error('Organization structure E2E requires the dedicated 127.0.0.1:14208 candidate, never port 4200');
+  let candidate: URL;
+  let project: URL;
+  try {
+    candidate = new URL(configured);
+    project = new URL(baseURL);
+  } catch {
+    throw new Error('Organization structure E2E requires a valid absolute INSTANCE_BASE_URL');
   }
+  if (candidate.origin !== project.origin) {
+    throw new Error('Organization structure INSTANCE_BASE_URL must match the Playwright instance project origin');
+  }
+  if (!['127.0.0.1', 'localhost', '[::1]'].includes(candidate.hostname)) {
+    throw new Error('Organization structure E2E requires a separate loopback QA origin');
+  }
+  if (candidate.port === '4200') {
+    throw new Error('Organization structure E2E requires a separate loopback QA origin, never port 4200');
+  }
+  if (!candidate.port
+    || candidate.username
+    || candidate.password
+    || candidate.pathname !== '/'
+    || candidate.search
+    || candidate.hash) {
+    throw new Error('Organization structure E2E requires a bare credential-free loopback origin with an explicit port');
+  }
+  return candidate.origin;
+}
+
+function candidateOrigin(): string {
+  if (!qaOrigin) throw new Error('Organization structure candidate origin was not initialized');
+  return qaOrigin;
+}
+
+test.beforeEach(async ({ baseURL }) => {
+  qaOrigin = validatedCandidateOrigin(process.env.INSTANCE_BASE_URL, baseURL);
 });
 
 function currentFixture(): Fixture {
@@ -89,7 +139,7 @@ function browserHealth(page: Page, allowed: readonly RegExp[] = []): () => void 
 }
 
 async function csrfHeaders(context: BrowserContext): Promise<Record<string, string>> {
-  const csrf = (await context.cookies(QA_ORIGIN)).find(cookie => cookie.name === 'XSRF-TOKEN');
+  const csrf = (await context.cookies(candidateOrigin())).find(cookie => cookie.name === 'XSRF-TOKEN');
   if (!csrf?.value) throw new Error('Authenticated organization fixture has no CSRF cookie');
   return { 'X-XSRF-TOKEN': csrf.value };
 }
@@ -256,7 +306,7 @@ async function taskScopeSnapshot(
   assertPermissionDenial = false,
 ): Promise<void> {
   const seeded = currentFixture();
-  const context = await browser.newContext({ baseURL: QA_ORIGIN });
+  const context = await browser.newContext({ baseURL: candidateOrigin() });
   try {
     const page = await context.newPage();
     const pageFailures: Array<{ method: string; path: string; status: number }> = [];
@@ -270,7 +320,17 @@ async function taskScopeSnapshot(
     const assertHealthy = browserHealth(page, [
       /^error: Failed to load resource: the server responded with a status of 401/u,
     ]);
+    const dependencyPaths = ['/api/v1/custom-fields', '/api/v1/tasks/projects'] as const;
+    const dependencies = Promise.all(dependencyPaths.map(path => page.waitForResponse(value => (
+      value.request().method() === 'GET' && new URL(value.url()).pathname === path
+    ))));
     await loginSyntheticUser(page, seeded.actor.login, seeded.actorPassword);
+    const dependencyResponses = await dependencies;
+    expect(dependencyResponses.map(value => ({
+      method: value.request().method(),
+      path: new URL(value.url()).pathname,
+      status: value.status(),
+    }))).toEqual(dependencyPaths.map(path => ({ method: 'GET', path, status: 200 })));
     const response = await context.request.get(`/api/v1/tasks/items?limit=50&search=${encodeURIComponent(runPrefix)}`, {
       maxRedirects: 0,
       maxRetries: 0,
@@ -386,7 +446,7 @@ test.describe.serial('organization structure vertical acceptance', () => {
     await editor.getByRole('button', { name: 'Сохранить', exact: true }).click();
     const createdHttp = await createdResponse;
     expect(createdHttp.status()).toBe(201);
-    expect(new URL(createdHttp.url()).origin).toBe(QA_ORIGIN);
+    expect(new URL(createdHttp.url()).origin).toBe(candidateOrigin());
     const journeyUnit = await createdHttp.json() as OrgUnit;
     await expect(page.locator('button.select').filter({ hasText: journeyCode })).toBeVisible();
 
@@ -625,10 +685,10 @@ test.describe.serial('organization structure vertical acceptance', () => {
         fullPage: false,
       });
     }
+    assertHealthy();
     expect(
       contrastResults.every(result => result.reading.ratio >= 4.5),
       `normal-text primary-button contrast requires 4.5:1: ${JSON.stringify(contrastResults)}`,
     ).toBe(true);
-    assertHealthy();
   });
 });
