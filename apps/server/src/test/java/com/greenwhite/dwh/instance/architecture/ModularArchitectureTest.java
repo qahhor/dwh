@@ -4,6 +4,7 @@ import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
+import com.tngtech.archunit.lang.ArchRule;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -47,10 +48,44 @@ class ModularArchitectureTest {
     @Test
     @DisplayName("2. Контроллеры не должны напрямую обращаться к репозиториям (только через сервисный слой)")
     void controllersShouldNotAccessRepositoriesDirectly() {
-        noClasses()
+        controllerRepositoryAccessRule().check(importedClasses);
+    }
+
+    private static ArchRule controllerRepositoryAccessRule() {
+        // Spring's CSRF token contract is HTTP security, not application data access.
+        return noClasses()
                 .that().haveSimpleNameEndingWith("Controller")
-                .should().dependOnClassesThat().haveSimpleNameEndingWith("Repository")
-                .check(importedClasses);
+                .should().dependOnClassesThat(JavaClass.Predicates.simpleNameEndingWith("Repository")
+                        .and(com.tngtech.archunit.base.DescribedPredicate.not(JavaClass.Predicates.equivalentTo(
+                                org.springframework.security.web.csrf.CsrfTokenRepository.class))));
+    }
+
+    @Test
+    void controllerRepositoryRuleAllowsSpringCsrfCookieInterface() {
+        controllerRepositoryAccessRule().check(new ClassFileImporter().importClasses(CsrfCookieController.class));
+    }
+
+    @Test
+    void controllerRepositoryRuleStillRejectsApplicationDataAccess() {
+        assertRepositoryDependencyRejected(DataAccessController.class,
+                "com.greenwhite.dwh.instance.md.repository.MdUserRepository");
+    }
+
+    @Test
+    void controllerRepositoryRuleDoesNotExemptSameSimpleName() {
+        assertRepositoryDependencyRejected(SameNameController.class, CsrfTokenRepository.class.getName());
+    }
+
+    @Test
+    void controllerRepositoryRuleDoesNotExemptOtherSpringCsrfRepositories() {
+        assertRepositoryDependencyRejected(OtherSpringCsrfController.class,
+                "org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository");
+    }
+
+    private static void assertRepositoryDependencyRejected(Class<?> controller, String repositoryName) {
+        var result = controllerRepositoryAccessRule().evaluate(new ClassFileImporter().importClasses(controller));
+        assertThat(result.hasViolation()).isTrue();
+        assertThat(result.getFailureReport().getDetails()).anyMatch(detail -> detail.contains(repositoryName));
     }
 
     @Test
@@ -107,5 +142,35 @@ class ModularArchitectureTest {
                 .and().areNotInterfaces()
                 .should().beAnnotatedWith(Repository.class)
                 .check(importedClasses);
+    }
+
+    private static class CsrfCookieController {
+        private final org.springframework.security.web.csrf.CsrfTokenRepository cookies;
+        CsrfCookieController(org.springframework.security.web.csrf.CsrfTokenRepository cookies) {
+            this.cookies = cookies;
+        }
+    }
+
+    private static class DataAccessController {
+        private final com.greenwhite.dwh.instance.md.repository.MdUserRepository users;
+        DataAccessController(com.greenwhite.dwh.instance.md.repository.MdUserRepository users) {
+            this.users = users;
+        }
+    }
+
+    private interface CsrfTokenRepository {}
+
+    private static class SameNameController {
+        private final CsrfTokenRepository repository;
+        SameNameController(CsrfTokenRepository repository) {
+            this.repository = repository;
+        }
+    }
+
+    private static class OtherSpringCsrfController {
+        private final org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository repository;
+        OtherSpringCsrfController(org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository repository) {
+            this.repository = repository;
+        }
     }
 }

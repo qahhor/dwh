@@ -19,6 +19,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.mock.web.MockServletContext;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -132,6 +133,239 @@ class AuthenticationGenerationHttpTest {
         mvc.perform(get("/api/v1/auth/me").cookie(second.session)).andExpect(status().isOk());
         mvc.perform(get("/api/v1/auth/me").header("Authorization","Bearer "+token)).andExpect(status().isOk());
         assertThat(f.users.findById(id).orElseThrow().authenticationVersion()).isZero();
+    }
+
+    @ParameterizedTest @ValueSource(booleans = {false, true})
+    void completedLoginRenewsAnonymousCsrfAndSupportsImmediatePasswordChange(boolean forced) throws Exception {
+        Long id = f.user(forced, false);
+        Cookie anonymousCsrf = anonymousCsrf();
+        var response = mvc.perform(post("/api/v1/auth/login").cookie(anonymousCsrf)
+                        .contentType("application/json").content(loginBody(id, OLD_PASSWORD)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.step").value("success"))
+                .andReturn().getResponse();
+        var cookies = completedLoginCookies(response);
+        assertThat(cookies.csrf.getValue().equals(anonymousCsrf.getValue()))
+                .as("completed credential login renews the anonymous CSRF token").isFalse();
+        assertThat(csrfWrites(response)).isEqualTo(1);
+        assertThat(cookies.csrf.isHttpOnly()).isFalse();
+        assertThat(cookies.csrf.getPath()).isEqualTo("/");
+
+        // Browser uses the new cookie: an old extracted header must not authorize a mutation.
+        mvc.perform(post("/api/v1/auth/password").cookie(cookies.session, cookies.csrf)
+                        .header("X-XSRF-TOKEN", anonymousCsrf.getValue()).contentType("application/json")
+                        .content(passwordBody(OLD_PASSWORD, NEW_PASSWORD)))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("csrf_token_invalid"));
+        assertThat(f.users.findById(id).orElseThrow().authenticationVersion()).isZero();
+        mvc.perform(csrf(post("/api/v1/auth/password"), cookies).contentType("application/json")
+                        .content(passwordBody(OLD_PASSWORD, NEW_PASSWORD)))
+                .andExpect(status().isNoContent());
+        assertThat(f.users.findById(id).orElseThrow().authenticationVersion()).isEqualTo(1);
+    }
+
+    @Test void completedOtpRenewsCsrfButChallengeAndFailureDoNot() throws Exception {
+        Long id = f.user(false, true);
+        Cookie anonymousCsrf = anonymousCsrf();
+        var challenge = mvc.perform(post("/api/v1/auth/login").cookie(anonymousCsrf)
+                        .contentType("application/json").content(loginBody(id, OLD_PASSWORD)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.step").value("otp"))
+                .andReturn().getResponse();
+        assertThat(csrfWrites(challenge)).isZero();
+        assertThat(lastCookie(challenge, KauthPref.SESSION_COOKIE_NAME) == null).isTrue();
+        String otpToken = f.mapper.readTree(challenge.getContentAsString()).get("otp_token").asText();
+        String code = f.deliveredCodes.get(id);
+        String wrongCode = code.equals("000000") ? "000001" : "000000";
+        var failed = mvc.perform(post("/api/v1/auth/otp").cookie(anonymousCsrf)
+                        .contentType("application/json").content(otpBody(otpToken, wrongCode)))
+                .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("otp_invalid"))
+                .andReturn().getResponse();
+        assertThat(csrfWrites(failed)).isZero();
+        assertThat(lastCookie(failed, KauthPref.SESSION_COOKIE_NAME) == null).isTrue();
+
+        var success = mvc.perform(post("/api/v1/auth/otp").cookie(anonymousCsrf)
+                        .contentType("application/json").content(otpBody(otpToken, code)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.step").value("success"))
+                .andReturn().getResponse();
+        var cookies = completedLoginCookies(success);
+        assertThat(cookies.csrf.getValue().equals(anonymousCsrf.getValue()))
+                .as("completed OTP renews the anonymous CSRF token").isFalse();
+        mvc.perform(csrf(post("/api/v1/auth/logout"), cookies)).andExpect(status().isNoContent());
+        mvc.perform(get("/api/v1/auth/me").cookie(cookies.session)).andExpect(status().isUnauthorized());
+    }
+
+    @Test void failedCredentialsPreserveExistingSessionAndCsrf() throws Exception {
+        Long id = f.user(false, false);
+        var cookies = login(id, OLD_PASSWORD);
+        var failure = mvc.perform(csrf(post("/api/v1/auth/login"), cookies)
+                        .contentType("application/json").content(loginBody(id, OTHER_PASSWORD)))
+                .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("invalid_credentials"))
+                .andReturn().getResponse();
+        assertThat(csrfWrites(failure)).isZero();
+        assertThat(lastCookie(failure, KauthPref.SESSION_COOKIE_NAME) == null).isTrue();
+        mvc.perform(get("/api/v1/auth/me").cookie(cookies.session, cookies.csrf)).andExpect(status().isOk());
+    }
+
+    @Test void otpChallengeWithExistingSessionPreservesItsCsrfUntilCompletion() throws Exception {
+        Long existingId = f.user(false, false);
+        var existing = login(existingId, OLD_PASSWORD);
+        Long otpId = f.user(false, true);
+        var challenge = mvc.perform(csrf(post("/api/v1/auth/login"), existing)
+                        .contentType("application/json").content(loginBody(otpId, OLD_PASSWORD)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.step").value("otp"))
+                .andReturn().getResponse();
+        assertThat(csrfWrites(challenge)).isZero();
+        assertThat(lastCookie(challenge, KauthPref.SESSION_COOKIE_NAME) == null).isTrue();
+        mvc.perform(get("/api/v1/auth/me").cookie(existing.session, existing.csrf))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.user.id").value(existingId));
+    }
+
+    @Test void acceptedBearerPrecedesOtherUserCookieAndDoesNotReplaceCsrf() throws Exception {
+        Long apiId = f.user(false, false);
+        grantTokenPermission(apiId);
+        String apiToken = createApiToken(login(apiId, OLD_PASSWORD));
+        Long cookieId = f.user(false, false);
+        var cookies = login(cookieId, OLD_PASSWORD);
+        var read = mvc.perform(get("/api/v1/auth/me").header("Authorization", "Bearer " + apiToken)
+                        .cookie(cookies.session, cookies.csrf))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.user.id").value(apiId))
+                .andReturn();
+        assertThat(csrfWrites(read.getResponse())).isZero();
+        assertThat(read.getRequest().getSession(false) == null).isTrue();
+
+        var changed = mvc.perform(post("/api/v1/auth/password").header("Authorization", "Bearer " + apiToken)
+                        .cookie(cookies.session, cookies.csrf).contentType("application/json")
+                        .content(passwordBody(OLD_PASSWORD, NEW_PASSWORD)))
+                .andExpect(status().isNoContent()).andReturn().getResponse();
+        assertThat(csrfWrites(changed)).isZero();
+        assertThat(f.users.findById(apiId).orElseThrow().authenticationVersion()).isEqualTo(1);
+        assertThat(f.users.findById(cookieId).orElseThrow().authenticationVersion()).isZero();
+        mvc.perform(get("/api/v1/auth/me").cookie(cookies.session, cookies.csrf)).andExpect(status().isOk());
+    }
+
+    @ParameterizedTest
+    @CsvSource({"invalid,missing", "invalid,empty", "invalid,mismatched", "empty,missing", "empty,empty", "empty,mismatched"})
+    void bearerFallbackCsrfDenialDoesNotReachPasswordVerificationOrChangeAccess(String bearerKind, String csrfKind) throws Exception {
+        Long id = f.user(false, false);
+        grantTokenPermission(id);
+        var cookies = login(id, OLD_PASSWORD);
+        String apiToken = createApiToken(cookies);
+        var verifications = new java.util.concurrent.atomic.AtomicInteger();
+        f.hasher.afterVerified = verifications::incrementAndGet;
+        var request = post("/api/v1/auth/password")
+                .header("Authorization", bearerKind.equals("empty") ? "Bearer " : "Bearer invalid-token")
+                .cookie(cookies.session, cookies.csrf).contentType("application/json")
+                .content(passwordBody(OLD_PASSWORD, NEW_PASSWORD));
+        if (!csrfKind.equals("missing")) request.header("X-XSRF-TOKEN", csrfKind.equals("empty") ? "" : "wrong");
+        mvc.perform(request).andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("csrf_token_invalid"));
+        assertThat(verifications.get()).as("CSRF rejection occurs before password verification").isZero();
+        assertThat(f.users.findById(id).orElseThrow().authenticationVersion()).isZero();
+        assertThat(f.count("security_events", id, "event_type='PASSWORD_CHANGED'")).isZero();
+        mvc.perform(get("/api/v1/auth/me").cookie(cookies.session, cookies.csrf)).andExpect(status().isOk());
+        mvc.perform(get("/api/v1/auth/me").header("Authorization", "Bearer " + apiToken)).andExpect(status().isOk());
+    }
+
+    @ParameterizedTest @ValueSource(strings = {"Bearer ", "Bearer    ", "Bearer invalid-token"})
+    void rejectedBearerWithValidCookieAndCsrfStillAllowsRealPasswordChange(String authorization) throws Exception {
+        Long id = f.user(false, false);
+        var cookies = login(id, OLD_PASSWORD);
+        mvc.perform(csrf(post("/api/v1/auth/password"), cookies).header("Authorization", authorization)
+                        .contentType("application/json").content(passwordBody(OLD_PASSWORD, NEW_PASSWORD)))
+                .andExpect(status().isNoContent());
+        assertThat(f.users.findById(id).orElseThrow().authenticationVersion()).isEqualTo(1);
+    }
+
+    @ParameterizedTest @ValueSource(strings = {"Bearer ", "Bearer    "})
+    void emptyBearerWithoutCookieRemainsUnauthorized(String authorization) throws Exception {
+        mvc.perform(post("/api/v1/auth/password").header("Authorization", authorization)
+                        .contentType("application/json").content(passwordBody(OLD_PASSWORD, NEW_PASSWORD)))
+                .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("unauthorized"));
+    }
+
+    @ParameterizedTest @NullAndEmptySource @ValueSource(strings = {" ", "\t"})
+    void missingApiTokenInputsAreRejected(String rawToken) {
+        assertThat(f.api.validateToken(rawToken)).isEmpty();
+    }
+
+    @Test void successfulLogoutClearsCsrfAndNextAnonymousLoginGetsUsablePair() throws Exception {
+        Long id = f.user(false, false);
+        var cookies = login(id, OLD_PASSWORD);
+        var logout = mvc.perform(csrf(post("/api/v1/auth/logout"), cookies))
+                .andExpect(status().isNoContent()).andReturn().getResponse();
+        Cookie cleared = lastCookie(logout, "XSRF-TOKEN");
+        assertThat(cleared != null).isTrue();
+        assertThat(cleared.getMaxAge()).as("successful logout expires CSRF cookie").isZero();
+        assertThat(cleared.getValue().isEmpty()).isTrue();
+        assertThat(lastCookie(logout, KauthPref.SESSION_COOKIE_NAME).getMaxAge()).isZero();
+        mvc.perform(get("/api/v1/auth/me").cookie(cookies.session)).andExpect(status().isUnauthorized());
+
+        var relogin = mvc.perform(post("/api/v1/auth/login").contentType("application/json")
+                        .content(loginBody(id, OLD_PASSWORD)))
+                .andExpect(status().isOk()).andReturn().getResponse();
+        var fresh = completedLoginCookies(relogin);
+        mvc.perform(csrf(post("/api/v1/auth/logout"), fresh)).andExpect(status().isNoContent());
+    }
+
+    @Test void failedLogoutPreservesCsrfAndSessionForRetry() throws Exception {
+        Long id = f.user(false, false);
+        var cookies = login(id, OLD_PASSWORD);
+        f.sessions.failClose = true;
+        var failed = mvc.perform(csrf(post("/api/v1/auth/logout"), cookies))
+                .andExpect(status().isInternalServerError()).andReturn().getResponse();
+        assertThat(csrfWrites(failed)).isZero();
+        assertThat(lastCookie(failed, KauthPref.SESSION_COOKIE_NAME) == null).isTrue();
+        f.sessions.failClose = false;
+        mvc.perform(get("/api/v1/auth/me").cookie(cookies.session, cookies.csrf)).andExpect(status().isOk());
+        mvc.perform(csrf(post("/api/v1/auth/logout"), cookies)).andExpect(status().isNoContent());
+    }
+
+    @ParameterizedTest @CsvSource({"/api/v1/auth/password,false", "/api/v1/auth/password,true",
+            "/api/v1/iam/users/me/password,false", "/api/v1/iam/users/me/password,true"})
+    void passwordChangeAllowsExplicitReloginWithStaleSessionAndExistingCsrf(String path, boolean forced) throws Exception {
+        Long id = f.user(forced, false);
+        var cookies = login(id, OLD_PASSWORD);
+        mvc.perform(csrf(post(path), cookies).contentType("application/json")
+                        .content(passwordBody(OLD_PASSWORD, NEW_PASSWORD))).andExpect(status().isNoContent());
+        mvc.perform(get("/api/v1/auth/me").cookie(cookies.session, cookies.csrf)).andExpect(status().isUnauthorized());
+        var response = mvc.perform(csrf(post("/api/v1/auth/login"), cookies)
+                        .contentType("application/json").content(loginBody(id, NEW_PASSWORD)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.step").value("success"))
+                .andReturn().getResponse();
+        var fresh = completedLoginCookies(response);
+        assertThat(fresh.csrf.getValue().equals(cookies.csrf.getValue())).isFalse();
+        mvc.perform(get("/api/v1/auth/me").cookie(fresh.session, fresh.csrf))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.user.forcePasswordChange").value(false));
+        mvc.perform(csrf(post("/api/v1/auth/logout"), fresh)).andExpect(status().isNoContent());
+    }
+
+    private Cookie anonymousCsrf() throws Exception {
+        var response = mvc.perform(get("/api/v1/auth/me")).andExpect(status().isUnauthorized())
+                .andReturn().getResponse();
+        Cookie token = lastCookie(response, "XSRF-TOKEN");
+        assertThat(token != null).isTrue();
+        return token;
+    }
+
+    private static BrowserCookies completedLoginCookies(MockHttpServletResponse response) {
+        Cookie session = lastCookie(response, KauthPref.SESSION_COOKIE_NAME);
+        Cookie csrf = lastCookie(response, "XSRF-TOKEN");
+        assertThat(session != null).as("successful authentication issues session cookie").isTrue();
+        assertThat(csrf != null).as("successful authentication issues usable CSRF cookie").isTrue();
+        assertThat(csrf.getValue().isEmpty()).isFalse();
+        assertThat(lastCookie(response, "JSESSIONID") == null).isTrue();
+        return new BrowserCookies(session, csrf);
+    }
+
+    private static Cookie lastCookie(MockHttpServletResponse response, String name) {
+        Cookie found = null;
+        for (Cookie cookie : response.getCookies()) if (cookie.getName().equals(name)) found = cookie;
+        return found;
+    }
+
+    private static long csrfWrites(MockHttpServletResponse response) {
+        return response.getHeaders("Set-Cookie").stream().filter(value -> value.startsWith("XSRF-TOKEN=")).count();
+    }
+
+    private String otpBody(String token, String code) {
+        return f.mapper.writeValueAsString(Map.of("otpToken", token, "code", code, "deviceInfo", "test"));
     }
 
     @ParameterizedTest @ValueSource(booleans={false,true})

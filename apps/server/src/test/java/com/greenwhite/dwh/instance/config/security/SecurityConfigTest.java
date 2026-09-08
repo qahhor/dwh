@@ -13,12 +13,16 @@ import com.greenwhite.dwh.instance.search.service.SearchPolicyProvider;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.time.Instant;
 import java.util.Map;
@@ -26,7 +30,11 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -48,6 +56,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         com.greenwhite.dwh.instance.kauth.controller.OAuth2AuthController.class,
         com.greenwhite.dwh.instance.md.controller.MdI18nController.class,
         com.greenwhite.dwh.instance.md.controller.MdI18nAdminController.class})
+@org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc(
+        print = org.springframework.boot.webmvc.test.autoconfigure.MockMvcPrint.NONE)
 @Import({SecurityConfig.class, ProblemDetailAuthHandlers.class,
         KauthAuthenticationFilter.class, RateLimitFilter.class, RateLimitService.class, SearchPolicyProvider.class,
         com.greenwhite.dwh.instance.config.idempotency.IdempotencyFilter.class,
@@ -123,6 +133,160 @@ class SecurityConfigTest {
                         .header("X-XSRF-TOKEN", "test-csrf-token"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("ok"));
+    }
+
+    @Test
+    void authenticatedDictionaryReadDoesNotReplaceExistingCsrfCookie() throws Exception {
+        stubAuthenticatedUser(Set.of());
+        when(i18nService.effectiveDictionary("ru")).thenReturn(Map.of("auth.login", "Вход"));
+
+        var result = mvc.perform(get("/api/v1/i18n/ru")
+                        .cookie(new Cookie(SESSION_COOKIE, "raw-session"),
+                                new Cookie("XSRF-TOKEN", "existing-csrf")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$['auth.login']").value("Вход"))
+                .andReturn();
+
+        assertNoCsrfReplacementOrHttpSession(result);
+    }
+
+    @Test
+    void authenticatedPasswordMutationDoesNotReplaceExistingCsrfCookie() throws Exception {
+        stubAuthenticatedUser(Set.of());
+
+        var result = mvc.perform(passwordMutation()
+                        .cookie(new Cookie(SESSION_COOKIE, "raw-session"),
+                                new Cookie("XSRF-TOKEN", "existing-csrf"))
+                        .header("X-XSRF-TOKEN", "existing-csrf"))
+                .andExpect(status().isNoContent())
+                .andReturn();
+
+        assertNoCsrfReplacementOrHttpSession(result);
+    }
+
+    @ParameterizedTest(name = "cookie fallback with {0} Bearer and {1} CSRF header is denied")
+    @CsvSource({"invalid,missing", "invalid,empty", "invalid,mismatched",
+            "empty,missing", "empty,empty", "empty,mismatched"})
+    void bearerFallbackCannotBypassCookieCsrf(String bearerKind, String csrfKind) throws Exception {
+        stubAuthenticatedUser(Set.of());
+        when(apiTokenService.validateToken(anyString())).thenReturn(Optional.empty());
+        var request = passwordMutation()
+                .header("Authorization", bearerKind.equals("empty") ? "Bearer " : "Bearer invalid-token")
+                .cookie(new Cookie(SESSION_COOKIE, "raw-session"), new Cookie("XSRF-TOKEN", "existing-csrf"));
+        if (!csrfKind.equals("missing")) {
+            request.header("X-XSRF-TOKEN", csrfKind.equals("empty") ? "" : "mismatched-csrf");
+        }
+
+        mvc.perform(request)
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("csrf_token_invalid"));
+        verify(userService, never()).changePassword(anyLong(), anyLong(), anyString(), anyString());
+    }
+
+    @ParameterizedTest(name = "cookie fallback with {0} Bearer accepts the matching CSRF pair")
+    @ValueSource(strings = {"Bearer invalid-token", "Bearer "})
+    void bearerFallbackWithMatchingCsrfRemainsUsable(String authorization) throws Exception {
+        stubAuthenticatedUser(Set.of());
+        when(apiTokenService.validateToken(anyString())).thenReturn(Optional.empty());
+
+        mvc.perform(passwordMutation()
+                        .header("Authorization", authorization)
+                        .cookie(new Cookie(SESSION_COOKIE, "raw-session"), new Cookie("XSRF-TOKEN", "existing-csrf"))
+                        .header("X-XSRF-TOKEN", "existing-csrf"))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void validatedBearerTakesPrecedenceOverCookieWithoutCsrf() throws Exception {
+        // No usable cookie fixture: success must come from the accepted API token.
+        when(apiTokenService.validateToken("valid-api-token")).thenReturn(Optional.of(
+                new com.greenwhite.dwh.instance.kauth.repository.KauthApiTokenRepository.ApiTokenRecord(
+                        19L, 7L, "test", "prefix", "hash", null, Instant.now(), null, null, 0)));
+        when(userService.getUserById(7L)).thenReturn(activeUser());
+        when(permissionService.getEffectivePermissions(7L)).thenReturn(Set.of());
+        when(permissionService.getPermissionVersion(7L)).thenReturn(1L);
+
+        mvc.perform(passwordMutation()
+                        .header("Authorization", "Bearer valid-api-token")
+                        .cookie(new Cookie(SESSION_COOKIE, "stale-session")))
+                .andExpect(status().isNoContent());
+    }
+
+    @ParameterizedTest
+    @CsvSource({"absent,matching,204", "matching,mismatched,204", "empty,matching,403", "mismatched,matching,403"})
+    void plainCsrfParameterRemainsSupportedButNeverOverridesHeader(String headerKind, String parameterKind,
+                                                                int expectedStatus) throws Exception {
+        stubAuthenticatedUser(Set.of());
+        var request = passwordMutation()
+                .cookie(new Cookie(SESSION_COOKIE, "raw-session"), new Cookie("XSRF-TOKEN", "existing-csrf"))
+                .param("_csrf", parameterKind.equals("matching") ? "existing-csrf" : "mismatched-csrf");
+        if (!headerKind.equals("absent")) {
+            request.header("X-XSRF-TOKEN", switch (headerKind) {
+                case "empty" -> "";
+                case "matching" -> "existing-csrf";
+                default -> "mismatched-csrf";
+            });
+        }
+        mvc.perform(request).andExpect(status().is(expectedStatus));
+        if (expectedStatus == 403) {
+            verify(userService, never()).changePassword(anyLong(), anyLong(), anyString(), anyString());
+        }
+    }
+
+    @ParameterizedTest @ValueSource(strings = {"missing", "empty", "mismatched"})
+    void cookieAuthenticationRejectsInvalidCsrfWithoutBearer(String headerKind) throws Exception {
+        stubAuthenticatedUser(Set.of());
+        var request = passwordMutation()
+                .cookie(new Cookie(SESSION_COOKIE, "raw-session"), new Cookie("XSRF-TOKEN", "existing-csrf"));
+        if (!headerKind.equals("missing")) request.header("X-XSRF-TOKEN", headerKind.equals("empty") ? "" : "wrong");
+        mvc.perform(request).andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("csrf_token_invalid"));
+        verify(userService, never()).changePassword(anyLong(), anyLong(), anyString(), anyString());
+    }
+
+    @Test
+    void protectedMutationWithoutCredentialsRemainsUnauthorized() throws Exception {
+        mvc.perform(passwordMutation()).andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("unauthorized"));
+        verify(userService, never()).changePassword(anyLong(), anyLong(), anyString(), anyString());
+    }
+
+    @ParameterizedTest
+    @CsvSource({"inactive,false", "inactive,true", "stale-version,false", "stale-version,true"})
+    void rejectedApiPrincipalFallsBackToCookieAndStillRequiresCsrf(String rejection, boolean matchingCsrf) throws Exception {
+        stubAuthenticatedUser(Set.of());
+        when(apiTokenService.validateToken("rejected-api-token")).thenReturn(Optional.of(
+                new com.greenwhite.dwh.instance.kauth.repository.KauthApiTokenRepository.ApiTokenRecord(
+                        19L, 8L, "test", "prefix", "hash", null, Instant.now(), null, null, 0)));
+        when(userService.getUserById(8L)).thenReturn(new MdUserRepository.UserRecord(
+                8L, "API User", "api-user", "api@example.test", null, "hash",
+                rejection.equals("inactive") ? MdPref.STATE_PASSIVE : MdPref.STATE_ACTIVE,
+                null, "ru", "UTC", null, Map.of(), false, false, null,
+                Instant.now(), Instant.now(), null, null, rejection.equals("stale-version") ? 1 : 0));
+        var request = passwordMutation().header("Authorization", "Bearer rejected-api-token")
+                .cookie(new Cookie(SESSION_COOKIE, "raw-session"), new Cookie("XSRF-TOKEN", "existing-csrf"));
+        if (matchingCsrf) request.header("X-XSRF-TOKEN", "existing-csrf");
+        mvc.perform(request).andExpect(status().is(matchingCsrf ? 204 : 403));
+        if (matchingCsrf) {
+            verify(userService).changePassword(7L, 0, "OldPass-2026", "NewPass-2026!");
+        } else {
+            verify(userService, never()).changePassword(anyLong(), anyLong(), anyString(), anyString());
+        }
+    }
+
+    private static MockHttpServletRequestBuilder passwordMutation() {
+        return post("/api/v1/auth/password")
+                .contentType("application/json")
+                .content("{\"oldPassword\":\"OldPass-2026\",\"newPassword\":\"NewPass-2026!\"}");
+    }
+
+    private static void assertNoCsrfReplacementOrHttpSession(MvcResult result) {
+        // Count only; assertion output must never contain a generated cookie/token value.
+        long csrfWrites = result.getResponse().getHeaders("Set-Cookie").stream()
+                .filter(value -> value.startsWith("XSRF-TOKEN=")).count();
+        assertThat(csrfWrites).as("ordinary authenticated response CSRF cookie writes").isZero();
+        assertThat(result.getRequest().getSession(false) == null).as("no servlet session created").isTrue();
+        assertThat(result.getResponse().getCookie("JSESSIONID") == null).isTrue();
     }
 
     @Test

@@ -16,6 +16,7 @@ import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -28,14 +29,17 @@ public class KauthAuthController {
     private final KauthAuthService authService;
     private final KauthSessionService sessionService;
     private final MdUserService userService;
+    private final CsrfTokenRepository csrfTokenRepository;
 
     public KauthAuthController(
             KauthAuthService authService,
             KauthSessionService sessionService,
-            MdUserService userService) {
+            MdUserService userService,
+            CsrfTokenRepository csrfTokenRepository) {
         this.authService = authService;
         this.sessionService = sessionService;
         this.userService = userService;
+        this.csrfTokenRepository = csrfTokenRepository;
     }
 
     @PostMapping("/login")
@@ -99,6 +103,8 @@ public class KauthAuthController {
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
+        csrfTokenRepository.saveToken(null, request, response);
+
         return ResponseEntity.noContent().build();
     }
 
@@ -139,6 +145,8 @@ public class KauthAuthController {
                 .maxAge(60 * 60 * 24 * 7) // 7 days
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        // Renew only after completed credential/OTP authentication, including stale-cookie relogin.
+        csrfTokenRepository.saveToken(csrfTokenRepository.generateToken(request), request, response);
     }
 
 

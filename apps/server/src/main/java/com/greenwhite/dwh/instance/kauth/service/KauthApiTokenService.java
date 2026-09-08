@@ -39,6 +39,9 @@ public class KauthApiTokenService {
 
     @Transactional(readOnly = true)
     public Optional<KauthApiTokenRepository.ApiTokenRecord> validateToken(String rawToken) {
+        if (rawToken == null || rawToken.isBlank()) {
+            return Optional.empty();
+        }
         String tokenHash = KauthPasswordHasher.sha256(rawToken);
         return apiTokenRepository.findActiveByTokenHash(tokenHash);
     }

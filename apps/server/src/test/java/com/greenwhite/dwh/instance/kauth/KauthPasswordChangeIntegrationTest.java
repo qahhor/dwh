@@ -111,7 +111,8 @@ class KauthPasswordChangeIntegrationTest {
         mvc = MockMvcBuilders.standaloneSetup(
                         new KauthPasswordController(userService),
                         // Only /me is exercised here; login/OTP delivery has its own integration suite.
-                        new KauthAuthController(mock(KauthAuthService.class), sessionService, userService))
+                        new KauthAuthController(mock(KauthAuthService.class), sessionService, userService,
+                                org.springframework.security.web.csrf.CookieCsrfTokenRepository.withHttpOnlyFalse()))
                 .addFilters(new KauthAuthenticationFilter(sessionService, tokenService, userService, permissions))
                 .setControllerAdvice(new GlobalExceptionHandler()).build();
     }

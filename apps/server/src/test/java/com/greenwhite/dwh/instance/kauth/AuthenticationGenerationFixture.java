@@ -151,7 +151,12 @@ final class AuthenticationGenerationFixture implements AutoCloseable {
         volatile Consumer<SessionRecord> afterProof=ignored -> {};
         volatile Consumer<SessionRecord> afterHashProof=ignored -> {};
         volatile boolean failInsert;
+        volatile boolean failClose;
         HookedSessions(JdbcClient jdbc){super(jdbc);}
+        @Override public void close(Long id){
+            if(failClose)throw new IllegalStateException("synthetic session close failure");
+            super.close(id);
+        }
         @Override public SessionRecord create(Long id,long version,String hash,String ip,String ua,String device){
             if(failInsert)throw new IllegalStateException("synthetic session insert failure");
             var result=super.create(id,version,hash,ip,ua,device);afterInsert.accept(result);return result;

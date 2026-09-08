@@ -1,5 +1,6 @@
 package com.greenwhite.dwh.instance.config.security;
 
+import com.greenwhite.dwh.instance.common.security.SecurityContext;
 import com.greenwhite.dwh.instance.kauth.pref.KauthPref;
 import com.greenwhite.dwh.instance.kauth.security.KauthAuthenticationFilter;
 import jakarta.servlet.DispatcherType;
@@ -15,6 +16,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.session.NullAuthenticatedSessionStrategy;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.context.SecurityContextHolderFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
@@ -37,28 +39,36 @@ public class SecurityConfig {
     };
 
     @Bean
+    CookieCsrfTokenRepository csrfTokenRepository() {
+        CookieCsrfTokenRepository repository = CookieCsrfTokenRepository.withHttpOnlyFalse();
+        repository.setHeaderName("X-XSRF-TOKEN");
+        repository.setCookieName("XSRF-TOKEN");
+        repository.setCookiePath("/");
+        return repository;
+    }
+
+    @Bean
     SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             KauthAuthenticationFilter kauthAuthenticationFilter,
             RateLimitFilter rateLimitFilter,
             com.greenwhite.dwh.instance.config.idempotency.IdempotencyFilter idempotencyFilter,
+            CookieCsrfTokenRepository tokenRepository,
             ProblemDetailAuthHandlers problemHandlers) throws Exception {
 
         http
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .csrf(csrf -> {
-                    CookieCsrfTokenRepository tokenRepository = CookieCsrfTokenRepository.withHttpOnlyFalse();
-                    tokenRepository.setHeaderName("X-XSRF-TOKEN");
-                    tokenRepository.setCookieName("XSRF-TOKEN");
-                    tokenRepository.setCookiePath("/");
-
                     CsrfTokenRequestAttributeHandler requestHandler = new CsrfTokenRequestAttributeHandler();
                     requestHandler.setCsrfRequestAttributeName(null);
 
                     csrf.csrfTokenRepository(tokenRepository)
                             .csrfTokenRequestHandler(requestHandler)
+                            // Kauth revalidates credentials on every stateless request. Completed
+                            // login/OTP and logout own CSRF renewal/clearing in KauthAuthController.
+                            .sessionAuthenticationStrategy(new NullAuthenticatedSessionStrategy())
                             // FR-SEC-1: CSRF применяется к мутирующим запросам С cookie-аутентификацией.
-                            // Bearer-запросы и запросы без сессионной cookie вектору не подвержены.
+                            // Только принятый API-токен освобождает запрос с сессионной cookie.
                             .ignoringRequestMatchers(SecurityConfig::isCsrfExempt);
                 })
 
@@ -121,8 +131,8 @@ public class SecurityConfig {
     }
 
     private static boolean isCsrfExempt(HttpServletRequest request) {
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+        var principal = SecurityContext.getPrincipal();
+        if (principal != null && principal.isApi()) {
             return true;
         }
         return !hasSessionCookie(request);
