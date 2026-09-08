@@ -143,6 +143,8 @@ API methods return Observables: `list()`, `get(id)`, `create(body)`, `update(id,
 
 Existing server JSON omits nullable root `parentId` under global NON_NULL. Normalize omitted `parentId` to `null` at this feature's API boundary for list/get/create responses; do not change the existing wire response just to satisfy a TypeScript shape. Test both omitted and explicit-null root parents.
 
+Reuse the existing `safeNumericRecordId` boundary for editable IDs. Non-positive, fractional or unsafe JavaScript-number IDs must not become mutation targets or assignment payloads. Preserve readable context and show a localized unavailable/read-only state if a response cannot be edited without ID precision loss; do not introduce a bigint wire-format migration in this package.
+
 - [ ] Write API contract tests for exact paths/body and no implicit writes; pure tree tests for orderNo/id order, descendant exclusion and orphan safety. Prove tests fail before implementation, then add types/API/helpers.
 - [ ] First add HTTP-error RED for real ApiService PATCH/DELETE: default options emit one toast, `{notifyError:false}` emits none and propagates ProblemDetail. Extend those two methods to pass options to `handleError`; do not add a feature-specific HttpClient bypass.
 
@@ -183,6 +185,7 @@ expect(api.saveAssignments).not.toHaveBeenCalled(); // unchanged draft
 - [ ] Implement successful-read gate and explicit empty clear, view-only mode, inactive-node warning, read-only legacy context, isolated effective-scope refresh. A post-save read error cannot resubmit the completed PUT.
 - [ ] Write role panel RED: no PUT on initial ALL fallback; no save before GET; `iam.org_units.assign` independent from `rbac.roles.grant`; changed rule requires confirmation, includes previous/new label and widest-rule explanation.
 - [ ] Implement role panel against Task 3 API and typed ScopeRule options. Preserve existing matrix permissions and role selection lifecycle.
+- [ ] Test invalid/unsafe target IDs and unsafe assignment IDs: no GET for an invalid target and no mutation with imprecise IDs. Use the existing numeric-ID helper; preserve legacy context as read-only.
 - [ ] Write stale-target, destroy, pending/double-submit, 403/409/error/retry/dirty cancel tests for both panels and prove RED before minimal fixes. Run focused unit/typecheck/i18n gates and commit new panels.
 
 ## Task 5: Route, menu and host integration
@@ -204,6 +207,7 @@ expect(shell.canViewOrgUnits()).toBe(true);
 
 - [ ] Add one menu item to IAM with proper active/aria-current/collapsed/mobile behavior; add feature route without changing the global registry.
 - [ ] Embed panels for the selected existing user/role only with org view permission. Route navigation and host close/selection delegate to the panels; successful logout still bypasses draft prompts using existing record guard semantics.
+- [ ] Cover all role-selection mutations, including CRUD callbacks: deleting another role preserves the current selection/draft; deleting the selected role waits for its leave decision and freezes the delete target. Ignore late host callbacks after destruction and do not bypass the current permission-matrix pending lock.
 - [ ] Test panel destruction and late callbacks, existing role matrix saves, deep-linked user detail, mobile drawer and keyboard navigation. Run full Angular/typecheck/i18n/build.
 - [ ] Stage only task hunks in previously dirty shell files, clean host/routes files and tests. Review staged diff against preserved baseline; commit no unrelated prior UI edits.
 
@@ -237,4 +241,5 @@ Spec coverage: §1–2 map to all tasks; §3 to Tasks 2/3; §4–5 to Tasks 1/4/
 ## Execution log
 
 - Plan prepared after user requested implementation. Execution uses task-scoped implementers and independent reviews as required by the execution skill, with one implementer at a time. No production changes authorized.
-- Initial frontend baseline: 47 files / 394 tests passed. Task 1 implementation is `8e43e19`: focused server contracts 44/44; root Maven verify 728/728 (723 server), no failures/errors/skips, finished 2026-09-08 16:47:17 +05. Independent task review is pending; these results do not mark the whole package complete.
+- Initial frontend baseline: 47 files / 394 tests passed. Task 1 implementation is `8e43e19`: focused server contracts 44/44; root Maven verify 728/728 (723 server), no failures/errors/skips, finished 2026-09-08 16:47:17 +05. Independent task review accepted spec compliance and quality with no findings; these results do not mark the whole package complete.
+- Task 2 implementation is `f45f4ba`: final focused 29/29, expanded focused 66/66 and full root Maven verify 750/750 (745 server), zero failures/errors/skips, finished 2026-09-08 17:16:14 +05. Independent transaction/concurrency review accepted spec compliance and quality with no Critical/Important findings. Existing Testcontainers/JUnit deprecation and Spring test-context warning maintenance remains outside this package. UI and browser acceptance are still pending.
