@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, DestroyRef, HostListener, inject, OnInit, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, effect, HostListener, inject, OnInit, ViewChild } from '@angular/core';
 import { Observable, Subscription } from 'rxjs';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { PermissionService } from '../../../core/services/permission.service';
@@ -26,6 +26,7 @@ export class OrgUnitsComponent implements OnInit {
   private treeRequest?: Subscription;
   private detailRequest?: Subscription;
   private detailId: number | null = null;
+  private viewEpoch = 0;
   @ViewChild(OrgUnitEditorComponent) editor?: OrgUnitEditorComponent;
   units: OrgUnit[] = [];
   selected: OrgUnit | null = null;
@@ -44,12 +45,28 @@ export class OrgUnitsComponent implements OnInit {
   readonly discard = new OrgUnitDraft(() => this.editorOpen && !!this.editor?.dirty, () => this.pending, () => this.clearEditor());
 
   constructor() {
+    effect(() => { if (!this.can('view')) this.clearRevokedView(); });
     inject(DestroyRef).onDestroy(() => {
       this.discard.cancel(); this.treeRequest?.unsubscribe(); this.detailRequest?.unsubscribe(); this.subscriptions.unsubscribe();
     });
   }
   ngOnInit(): void { this.reload(); }
-  can(action: string): boolean { return this.permissions.hasPermission('iam.org_units', action); }
+  can(action: string): boolean {
+    return this.permissions.hasPermission('iam.org_units', 'view') && this.permissions.hasPermission('iam.org_units', action);
+  }
+  private clearRevokedView(): void {
+    this.viewEpoch++;
+    this.treeRequest?.unsubscribe(); this.discard.cancel(); this.clearEditor();
+    this.units = []; this.selected = null; this.loaded = false; this.loading = false;
+    this.treeError = null; this.savedRefreshFailed = false; this.deleteTarget = null; this.deleteError = null;
+    // An issued write remains pending until its HTTP result; revocation is not rollback.
+    this.changeDetector.markForCheck();
+  }
+  private currentView(epoch: number): boolean { return this.can('view') && epoch === this.viewEpoch; }
+  private finishMutation(epoch: number): boolean {
+    this.pending = false; this.changeDetector.markForCheck();
+    return this.currentView(epoch);
+  }
   get canCreate(): boolean { return this.can('create') && this.loaded && !this.loading && !this.treeError && (!this.units.length || !!this.selected && safeNumericRecordId(this.selected.id)); }
   get hasChildren(): boolean { return !!this.selected && this.units.some(unit => unit.parentId === this.selected!.id); }
   parentName(unit: OrgUnit): string {
@@ -59,18 +76,21 @@ export class OrgUnitsComponent implements OnInit {
   }
   reload(afterSave = false): void {
     if (!this.can('view') || this.pending || this.editorOpen || this.deleteTarget) return;
+    const epoch = this.viewEpoch;
     this.treeRequest?.unsubscribe(); this.loading = true; this.treeError = null; this.changeDetector.markForCheck();
     this.treeRequest = this.api.list().subscribe({
       next: units => {
+        if (!this.currentView(epoch)) return;
         const id = this.selected?.id;
         this.units = units; this.loaded = true; this.loading = false; this.savedRefreshFailed = false;
         this.selected = units.find(unit => unit.id === id) ?? units[0] ?? null;
         this.changeDetector.markForCheck();
       },
-      error: error => { this.loading = false; this.treeError = error; this.savedRefreshFailed = afterSave || this.savedRefreshFailed; this.changeDetector.markForCheck(); }
+      error: error => { if (this.currentView(epoch)) { this.loading = false; this.treeError = error; this.savedRefreshFailed = afterSave || this.savedRefreshFailed; this.changeDetector.markForCheck(); } }
     });
   }
   select(unit: OrgUnit): void {
+    if (!this.can('view')) return;
     this.discard.request(() => { this.clearEditor(); this.deleteTarget = null; this.selected = unit; });
   }
   create(): void {
@@ -88,17 +108,18 @@ export class OrgUnitsComponent implements OnInit {
   }
   loadDetail(): void {
     const id = this.detailId;
-    if (id === null || this.pending) return;
+    if (id === null || this.pending || !this.can('view')) return;
+    const epoch = this.viewEpoch;
     this.detailRequest?.unsubscribe(); this.detailLoading = true; this.detailError = null; this.changeDetector.markForCheck();
     this.detailRequest = this.api.get(id).subscribe({
       next: unit => {
-        if (this.detailId !== id || !this.editorOpen) return;
+        if (!this.currentView(epoch) || this.detailId !== id || !this.editorOpen) return;
         this.detailLoading = false;
         this.changeDetector.markForCheck();
         if (unit.id !== id || !safeNumericRecordId(unit.id)) { this.detailError = this.unavailable(); return; }
         this.editorInitial = { ...unit };
       },
-      error: error => { if (this.detailId === id) { this.detailLoading = false; this.detailError = error; this.changeDetector.markForCheck(); } }
+      error: error => { if (this.currentView(epoch) && this.detailId === id) { this.detailLoading = false; this.detailError = error; this.changeDetector.markForCheck(); } }
     });
   }
   closeEditor(): void { this.discard.request(() => this.clearEditor()); }
@@ -108,7 +129,7 @@ export class OrgUnitsComponent implements OnInit {
     this.changeDetector.markForCheck();
   }
   save(submission: OrgUnitSubmission): void {
-    if (this.pending || !this.editorOpen || !this.editorInitial) return;
+    if (!this.can('view') || this.pending || !this.editorOpen || !this.editorInitial) return;
     let request: Observable<unknown>;
     if (submission.mode === 'edit') {
       if (!this.can('update') || !('id' in this.editorInitial) || submission.id !== this.editorInitial.id || !safeNumericRecordId(submission.id)) return;
@@ -117,14 +138,15 @@ export class OrgUnitsComponent implements OnInit {
       if (!this.can('create') || 'id' in this.editorInitial || submission.body.parentId !== this.editorInitial.parentId) return;
       request = this.api.create(submission.body);
     }
+    const epoch = this.viewEpoch;
     this.pending = true; this.saveError = null; this.changeDetector.markForCheck();
     this.subscriptions.add(request.subscribe({
       next: value => {
-        this.pending = false;
+        if (!this.finishMutation(epoch)) return;
         if (submission.mode === 'create') this.selected = value as OrgUnit;
         this.clearEditor(); this.toast.success(this.i18n.translate('iam.org_units.saved')); this.reload(true);
       },
-      error: error => { this.pending = false; this.saveError = error; this.changeDetector.markForCheck(); }
+      error: error => { if (this.finishMutation(epoch)) this.saveError = error; }
     }));
   }
   requestDelete(): void {
@@ -135,10 +157,11 @@ export class OrgUnitsComponent implements OnInit {
   closeDelete(): void { if (!this.pending) { this.deleteTarget = null; this.deleteError = null; this.changeDetector.markForCheck(); } }
   confirmDelete(): void {
     if (!this.deleteTarget || this.pending || !this.can('delete') || !safeNumericRecordId(this.deleteTarget.id)) return;
+    const epoch = this.viewEpoch;
     this.pending = true; this.deleteError = null; this.changeDetector.markForCheck();
     this.subscriptions.add(this.api.remove(this.deleteTarget.id).subscribe({
-      next: () => { this.pending = false; this.deleteTarget = null; this.toast.success(this.i18n.translate('iam.org_units.deleted')); this.reload(true); },
-      error: error => { this.pending = false; this.deleteError = error; this.changeDetector.markForCheck(); }
+      next: () => { if (this.finishMutation(epoch)) { this.deleteTarget = null; this.toast.success(this.i18n.translate('iam.org_units.deleted')); this.reload(true); } },
+      error: error => { if (this.finishMutation(epoch)) this.deleteError = error; }
     }));
   }
   canLeaveRecordPage(): boolean | Observable<boolean> { return this.discard.canLeave(); }

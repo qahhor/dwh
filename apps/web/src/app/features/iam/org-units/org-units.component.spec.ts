@@ -143,4 +143,95 @@ describe('OrgUnitsComponent lifecycle', () => {
     expect(api.list).toHaveBeenCalledTimes(1); expect(page.editorOpen).toBe(false);
     expect(fixture.nativeElement.textContent).toContain('Нет права просмотра');
   });
+  it.each(['create', 'update'] as const)('clears the open %s editor and blocks immediate save when only view is revoked', action => {
+    const { fixture, page, api } = setup();
+    page.select(child); action === 'create' ? page.create() : page.edit(); fixture.detectChanges();
+    const editor = page.editor!; editor.draft.name = 'Unsaved'; editor.draft.code = 'NEW';
+    TestBed.inject(PermissionService).setPermissions([`iam.org_units.${action}`]);
+    // Entry points must deny immediately, before the permission effect renders.
+    editor.submit();
+    expect(api.create).not.toHaveBeenCalled(); expect(api.update).not.toHaveBeenCalled();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
+    expect(page.editorOpen).toBe(false); expect(page.editorInitial).toBeNull();
+    expect(page.editor).toBeUndefined();
+    expect(page.selected).toBeNull(); expect(page.units).toEqual([]);
+    page.create(); page.edit(); expect(page.editorOpen).toBe(false);
+  });
+  it('clears the deletion dialog and blocks confirmation while delete is retained without view', () => {
+    const { fixture, page, api } = setup(); page.select(child); page.requestDelete(); fixture.detectChanges();
+    expect(page.deleteTarget?.id).toBe(2);
+    TestBed.inject(PermissionService).setPermissions(['iam.org_units.delete']); page.confirmDelete();
+    expect(api.remove).not.toHaveBeenCalled(); fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull(); expect(page.deleteTarget).toBeNull();
+    page.requestDelete(); page.confirmDelete(); expect(api.remove).not.toHaveBeenCalled();
+  });
+  it('clears dirty editor and pending discard navigation when only view is revoked', () => {
+    const { fixture, page, api } = setup(); page.select(child); page.edit(); fixture.detectChanges();
+    page.editor!.draft.name = 'Unsaved';
+    const decision = vi.fn(); (page.canLeaveRecordPage() as Observable<boolean>).subscribe(decision); fixture.detectChanges();
+    expect(page.discard.open()).toBe(true);
+    TestBed.inject(PermissionService).setPermissions(['iam.org_units.create', 'iam.org_units.update', 'iam.org_units.delete']);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
+    expect(page.discard.open()).toBe(false); expect(page.editorInitial).toBeNull(); expect(decision).toHaveBeenCalledWith(false);
+    page.discard.confirm(); expect(page.canLeaveRecordPage()).toBe(true);
+    expect(api.create).not.toHaveBeenCalled(); expect(api.update).not.toHaveBeenCalled(); expect(api.remove).not.toHaveBeenCalled();
+  });
+  it('cancels stale detail completion after view revocation even with update retained', () => {
+    const { fixture, page, api } = setup(); const detail = new Subject<OrgUnit>(); api.get.mockReturnValueOnce(detail);
+    page.select(child); page.edit(); fixture.detectChanges();
+    TestBed.inject(PermissionService).setPermissions(['iam.org_units.update']);
+    detail.next({ ...child, name: 'Late private detail' }); fixture.detectChanges();
+    expect(detail.observed).toBe(false); expect(page.editorInitial).toBeNull(); expect(page.selected).toBeNull();
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('Late private detail');
+    page.loadDetail(); expect(api.get).toHaveBeenCalledTimes(1);
+  });
+  it('drops a stale tree response when view is revoked', () => {
+    const { fixture, page, api } = setup(); const tree = new Subject<OrgUnit[]>(); api.list.mockReturnValueOnce(tree); page.reload();
+    TestBed.inject(PermissionService).setPermissions(['iam.org_units.create']); tree.next([root]); fixture.detectChanges();
+    expect(tree.observed).toBe(false); expect(page.units).toEqual([]); expect(page.loaded).toBe(false);
+  });
+  it.each([
+    ['create', 'success'], ['create', 'error'], ['update', 'success'], ['update', 'error'], ['delete', 'success'], ['delete', 'error']
+  ] as const)('keeps the issued %s owned through revocation and ignores its late %s after view returns', (action, outcome) => {
+    const { fixture, page, api, toast } = setup();
+    const created = new Subject<OrgUnit>(); const changed = new Subject<undefined>();
+    page.select(child);
+    if (action === 'create') {
+      api.create.mockReturnValueOnce(created); page.create(); fixture.detectChanges();
+      page.editor!.draft.code = 'NEW'; page.editor!.draft.name = 'New'; page.editor!.submit();
+    } else if (action === 'update') {
+      api.update.mockReturnValueOnce(changed); page.edit(); fixture.detectChanges(); page.editor!.draft.name = 'New'; page.editor!.submit();
+    } else {
+      api.remove.mockReturnValueOnce(changed); page.requestDelete(); page.confirmDelete();
+    }
+    expect(page.pending).toBe(true);
+    TestBed.inject(PermissionService).setPermissions([`iam.org_units.${action}`]); fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
+    expect(page.pending).toBe(true); expect(action === 'create' ? created.observed : changed.observed).toBe(true);
+    expect(page.canLeaveRecordPage()).toBe(false);
+    TestBed.inject(PermissionService).setPermissions(['iam.org_units.*']); fixture.detectChanges();
+    if (outcome === 'error') (action === 'create' ? created : changed).error({ status: 409, detail: 'Late private failure' });
+    else if (action === 'create') created.next({ ...child, id: 3, name: 'Late private created' });
+    else changed.next(undefined);
+    fixture.detectChanges();
+    expect(page.pending).toBe(false); expect(page.selected).toBeNull(); expect(page.units).toEqual([]);
+    expect(page.saveError).toBeNull(); expect(page.deleteError).toBeNull(); expect(page.editorOpen).toBe(false);
+    expect(toast.success).not.toHaveBeenCalled(); expect(api.list).toHaveBeenCalledTimes(1);
+    expect(fixture.nativeElement.textContent).not.toContain('Late private');
+  });
+  it('preserves dirty and pending edit behavior when a permission update retains view', () => {
+    const { fixture, page, api } = setup(); page.select(child); page.edit(); fixture.detectChanges();
+    const editor = page.editor!; editor.draft.name = 'Unsaved';
+    TestBed.inject(PermissionService).setPermissions(['iam.org_units.view', 'iam.org_units.update']); fixture.detectChanges();
+    expect(page.editor).toBe(editor); expect(editor.dirty).toBe(true);
+    const write = new Subject<undefined>(); api.update.mockReturnValueOnce(write); editor.submit();
+    TestBed.inject(PermissionService).setPermissions(['iam.org_units.view', 'iam.org_units.update', 'iam.org_units.create']); fixture.detectChanges();
+    expect(page.pending).toBe(true); expect(page.editorOpen).toBe(true); expect(page.canLeaveRecordPage()).toBe(false);
+    write.error({ status: 409, detail: 'Current failure' }); fixture.detectChanges();
+    expect(page.pending).toBe(false); expect(page.editor).toBe(editor); expect(editor.draft.name).toBe('Unsaved');
+    expect(fixture.nativeElement.textContent).toContain('Current failure');
+  });
 });

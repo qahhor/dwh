@@ -37,6 +37,7 @@
     </div>
   }
 </section>
+@if (can('view')) {
 <ui-modal [isOpen]="editorOpen" [title]="'iam.org_units.editor_title' | t" [hasFooter]="false" [dismissible]="!pending" (close)="closeEditor()">
   @if (editorOpen) {
     @if (detailLoading) { <p role="status">{{ 'iam.org_units.loading' | t }}</p> }
@@ -61,3 +62,4 @@
     <ui-button variant="danger" (onClick)="discard.confirm()">{{ 'iam.org_units.discard' | t }}</ui-button>
   </div>
 </ui-modal>
+}
