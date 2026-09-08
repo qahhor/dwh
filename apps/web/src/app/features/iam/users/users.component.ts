@@ -1177,6 +1177,8 @@ export class UsersComponent implements OnInit, OnDestroy {
   private recordRequest?: Subscription;
   private panelLeaveSubscription?: Subscription;
   private recordRequestId = 0;
+  private editSessionId = 0;
+  private editSaveRequestId = 0;
   private destroyed = false;
   private userOrgUnitsPanel?: UserOrgUnitsPanelComponent;
   readonly routeRecordId = signal<string | null>(null);
@@ -1521,12 +1523,18 @@ export class UsersComponent implements OnInit, OnDestroy {
     });
   }
 
-  closeEditModal() {
+  closeEditModal(expectedSessionId?: number) {
     if (this.destroyed) return;
+    if (expectedSessionId !== undefined && expectedSessionId !== this.editSessionId) return;
+    const closedSessionId = ++this.editSessionId;
     this.isEditModalOpen.set(false);
     this.editingUser = null;
     const routeId = this.routeRecordId();
-    if (routeId !== null) this.loadRecordView(routeId);
+    if (routeId !== null) this.afterOrgPanelLeave(() => {
+      if (closedSessionId === this.editSessionId && routeId === this.routeRecordId()) {
+        this.loadRecordView(routeId);
+      }
+    });
   }
 
   openEditFromView() {
@@ -1616,6 +1624,7 @@ export class UsersComponent implements OnInit, OnDestroy {
 
   openEditModal(user: User) {
     if (!safeNumericRecordId(user.id)) return;
+    this.editSessionId++;
     this.editingUser = user;
     this.editForm = {
       name: user.name,
@@ -1652,17 +1661,23 @@ export class UsersComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const editSessionId = this.editSessionId;
+    const saveRequestId = ++this.editSaveRequestId;
     this.isSubmitting.set(true);
     this.api.patch(`/iam/users/${this.editingUser.id}`, this.editForm).subscribe({
       next: () => {
         if (this.destroyed) return;
-        this.isSubmitting.set(false);
-        this.closeEditModal();
+        if (saveRequestId === this.editSaveRequestId) {
+          this.isSubmitting.set(false);
+          this.closeEditModal(editSessionId);
+        }
         this.toast.success(this.uiI18n.translate('iam.dannye_sohraneny'));
         this.loadUsers(true);
       },
       error: () => {
-        this.isSubmitting.set(false);
+        if (!this.destroyed && saveRequestId === this.editSaveRequestId) {
+          this.isSubmitting.set(false);
+        }
       }
     });
   }

@@ -206,6 +206,96 @@ describe('UsersComponent UI contracts', () => {
     expect(panel.hasUnsavedWork()).toBe(true);
   });
 
+  it('guards a direct deep-link reload requested while the mounted organization panel is dirty', async () => {
+    const fixture = await createFixture();
+    const api = TestBed.inject(ApiService) as unknown as { get: ReturnType<typeof vi.fn> };
+    const first = user(7, 'Анна');
+    api.get.mockImplementation((path: string) => of(orgResponse(path, first)));
+    fixture.componentInstance.loadRecordView('7');
+    fixture.detectChanges();
+    const panel = fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent)).componentInstance as UserOrgUnitsPanelComponent;
+    (fixture.nativeElement.querySelector('[data-check="2"]') as HTMLInputElement).click();
+    const readsBeforeReload = api.get.mock.calls.filter(([path]) => path === '/iam/users/7').length;
+
+    fixture.componentInstance.closeEditModal();
+
+    expect(panel.discard.open()).toBe(true);
+    expect(panel.hasUnsavedWork()).toBe(true);
+    expect(fixture.componentInstance.viewingUser?.id).toBe(first.id);
+    expect(api.get.mock.calls.filter(([path]) => path === '/iam/users/7')).toHaveLength(readsBeforeReload);
+  });
+
+  it.each(['dirty', 'pending'] as const)(
+    'does not let a delayed profile save replace a newer %s organization panel after edit cancellation',
+    async panelState => {
+      const fixture = await createFixture();
+      const api = TestBed.inject(ApiService) as unknown as {
+        get: ReturnType<typeof vi.fn>;
+        patch: ReturnType<typeof vi.fn>;
+        put: ReturnType<typeof vi.fn>;
+      };
+      const profileSave = new Subject<void>();
+      const assignmentSave = new Subject<void>();
+      const first = user(7, 'Анна');
+      api.get.mockImplementation((path: string) => of(orgResponse(path, first)));
+      api.patch.mockReturnValue(profileSave.asObservable());
+      api.put.mockReturnValue(assignmentSave.asObservable());
+      fixture.componentInstance.loadRecordView('7');
+      fixture.detectChanges();
+
+      fixture.componentInstance.openEditFromView();
+      fixture.componentInstance.submitEditUser();
+      fixture.componentInstance.closeEditModal();
+      fixture.detectChanges();
+      const newerPanel = fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent)).componentInstance as UserOrgUnitsPanelComponent;
+      (fixture.nativeElement.querySelector('[data-check="2"]') as HTMLInputElement).click();
+      if (panelState === 'pending') newerPanel.save();
+      const readsBeforeProfileSettlement = api.get.mock.calls.filter(([path]) => path === '/iam/users/7').length;
+
+      profileSave.next();
+      profileSave.complete();
+      fixture.detectChanges();
+
+      expect(fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent)).componentInstance).toBe(newerPanel);
+      expect(fixture.componentInstance.viewingUser?.id).toBe(first.id);
+      expect(api.get.mock.calls.filter(([path]) => path === '/iam/users/7')).toHaveLength(readsBeforeProfileSettlement);
+      expect(newerPanel.pending).toBe(panelState === 'pending');
+      expect(newerPanel.hasUnsavedWork()).toBe(true);
+    }
+  );
+
+  it('keeps the shared submitting state owned by the newest edit save', async () => {
+    const fixture = await createFixture();
+    const api = TestBed.inject(ApiService) as unknown as {
+      get: ReturnType<typeof vi.fn>;
+      patch: ReturnType<typeof vi.fn>;
+    };
+    const firstSave = new Subject<void>();
+    const newerSave = new Subject<void>();
+    const first = user(7, 'Анна');
+    api.get.mockImplementation((path: string) => of(orgResponse(path, first)));
+    api.patch.mockReturnValueOnce(firstSave.asObservable()).mockReturnValueOnce(newerSave.asObservable());
+    fixture.componentInstance.loadRecordView('7');
+    fixture.detectChanges();
+
+    fixture.componentInstance.openEditFromView();
+    fixture.componentInstance.submitEditUser();
+    fixture.componentInstance.closeEditModal();
+    fixture.detectChanges();
+    fixture.componentInstance.openEditFromView();
+    fixture.componentInstance.submitEditUser();
+
+    firstSave.next();
+
+    expect(fixture.componentInstance.isSubmitting()).toBe(true);
+    expect(fixture.componentInstance.isEditModalOpen()).toBe(true);
+    expect(fixture.componentInstance.editingUser?.id).toBe(first.id);
+
+    newerSave.next();
+    expect(fixture.componentInstance.isSubmitting()).toBe(false);
+    expect(fixture.componentInstance.isEditModalOpen()).toBe(false);
+  });
+
   function user(id: number, name: string): User {
     return {
       id, name, login: name.toLowerCase(), email: `${name.toLowerCase()}@example.test`, state: 'A',
