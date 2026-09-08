@@ -197,6 +197,7 @@ expect(api.saveAssignments).not.toHaveBeenCalled(); // unchanged draft
 
 **Files:** modify `apps/web/src/app/app.routes.ts/.spec.ts`, `layout/app-shell/app-shell.component.ts/.spec.ts`, `features/iam/users/users.component.ts/.spec.ts`, `features/iam/roles/roles.component.ts/.spec.ts`.
 Also modify `apps/web/src/app/shared/ui/ui-modal.component.ts/.spec.ts` for the bounded expanded-tree Escape regression described below, preserving existing popup and nested-modal behavior.
+Update the existing `core/guards/record-navigation.guard.spec.ts` real-template fixture with the typed user-scope response now consumed by the embedded panel; the production guard contract remains unchanged.
 
 **Interfaces:**
 - Lazy route `/iam/org-units`: `permissionGuard('iam.org_units','view')`, `recordNavigationGuard`.
@@ -204,7 +205,7 @@ Also modify `apps/web/src/app/shared/ui/ui-modal.component.ts/.spec.ts` for the 
 - Attach `recordNavigationGuard` to the existing Users matcher and Roles route as well as the new organization route; methods alone do not register route protection. Preserve the guard's existing confirmed-logout/password-change bypass.
 - Existing task/project/user record matchers and existing route URLs remain unchanged.
 
-- [ ] Add RED route/menu test: view-only gets link and guarded page; absent view has neither link nor allowed navigation; changing another permission does not reveal it. Panel host selection must wait for a dirty decision and reject switching while pending.
+- [x] Add RED route/menu test: view-only gets link and guarded page; absent view has neither link nor allowed navigation; changing another permission does not reveal it. Panel host selection must wait for a dirty decision and reject switching while pending.
 
 ```ts
 expect(shell.canViewOrgUnits()).toBe(false);
@@ -212,12 +213,12 @@ permissions.setPermissions(['iam.org_units.view']);
 expect(shell.canViewOrgUnits()).toBe(true);
 ```
 
-- [ ] Add one menu item to IAM with proper active/aria-current/collapsed/mobile behavior; add feature route without changing the global registry.
-- [ ] Embed panels for the selected existing user/role only with org view permission. Route navigation and host close/selection delegate to the panels; successful logout still bypasses draft prompts using existing record guard semantics.
-- [ ] Cover all role-selection mutations, including CRUD callbacks: deleting another role preserves the current selection/draft; deleting the selected role waits for its leave decision and freezes the delete target. Ignore late host callbacks after destruction and do not bypass the current permission-matrix pending lock.
-- [ ] Test panel destruction and late callbacks, existing role matrix saves, deep-linked user detail, mobile drawer and keyboard navigation. Run full Angular/typecheck/i18n/build.
-- [ ] First reproduce Escape failing to reach user-card close/discard when its new organization tree has an expanded branch. The current UiModal guard suppresses Escape for every descendant `[aria-expanded="true"]`; narrow deferral to expanded popup controls (the existing shared selects identify themselves with `aria-haspopup="listbox"`), not ordinary disclosure buttons. Preserve defaultPrevented, topmost-modal ownership and popup-first Escape; test ordinary expanded disclosure, actual open select, nested discard and dirty user panel before accepting the correction.
-- [ ] Stage only task hunks in previously dirty shell files, clean host/routes files and tests. Review staged diff against preserved baseline; commit no unrelated prior UI edits.
+- [x] Add one menu item to IAM with proper active/aria-current/collapsed/mobile behavior; add feature route without changing the global registry.
+- [x] Embed panels for the selected existing user/role only with org view permission. Route navigation and host close/selection delegate to the panels; successful logout still bypasses draft prompts using existing record guard semantics.
+- [x] Cover all role-selection mutations, including CRUD callbacks: deleting another role preserves the current selection/draft; deleting the selected role waits for its leave decision and freezes the delete target. Ignore late host callbacks after destruction and do not bypass the current permission-matrix pending lock.
+- [x] Test panel destruction and late callbacks, existing role matrix saves, deep-linked user detail, mobile drawer and keyboard navigation. Run full Angular/typecheck/i18n/build.
+- [x] First reproduce Escape failing to reach user-card close/discard when its new organization tree has an expanded branch. The current UiModal guard suppresses Escape for every descendant `[aria-expanded="true"]`; narrow deferral to expanded popup controls (the existing shared selects identify themselves with `aria-haspopup="listbox"`), not ordinary disclosure buttons. Preserve defaultPrevented, topmost-modal ownership and popup-first Escape; test ordinary expanded disclosure, actual open select, nested discard and dirty user panel before accepting the correction.
+- [x] Stage only task hunks in previously dirty shell files, clean host/routes files and tests. Review staged diff against preserved baseline; commit no unrelated prior UI edits.
 
 ## Task 6: Browser acceptance and final handoff
 
@@ -247,6 +248,8 @@ await expect(page.getByRole('button', { name: /Тестовый отдел/ })).
 Spec coverage: §1–2 map to all tasks; §3 to Tasks 2/3; §4–5 to Tasks 1/4/5; §6–7 to Tasks 1/2; §8 to Tasks 3/4/5; §9–10 to Task 6 and scoped commit constraints. DTO names and shared TS types are defined above. Unknown business rules are not replaced with new defaults; existing ALL/widest/legacy semantics remain explicit. Code snippets show contract shape and test intent, not claims that unimplemented methods currently exist.
 
 ## Execution log
+
+- Task 5 implementation is `0cc4a53`: focused 37/37, expanded integration 76/76, full Angular 497/497, typecheck/i18n/build passed. Independent review found a delayed profile-PATCH reload could destroy a newer organization draft. Fix `eefd8ae` reproduced three panel-ownership failures and one shared-submit ownership failure, then passed Users 10/10, covering Users/navigation 31/31 and typecheck. Scoped re-review accepted the fix with no new findings. The working-tree build warned at 501.30 kB; the clean `eefd8ae` Docker web build is 495.70 kB with no budget warning. Clean native frontend and browser acceptance remain Task 6; these distinct source contexts are not interchangeable.
 
 - Plan prepared after user requested implementation. Execution uses task-scoped implementers and independent reviews as required by the execution skill, with one implementer at a time. No production changes authorized.
 - Initial frontend baseline: 47 files / 394 tests passed. Task 1 implementation is `8e43e19`: focused server contracts 44/44; root Maven verify 728/728 (723 server), no failures/errors/skips, finished 2026-09-08 16:47:17 +05. Independent task review accepted spec compliance and quality with no findings; these results do not mark the whole package complete.
