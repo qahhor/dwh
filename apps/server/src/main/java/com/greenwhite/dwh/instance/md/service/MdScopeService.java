@@ -4,6 +4,8 @@ import com.greenwhite.dwh.core.error.ErrorCode;
 import com.greenwhite.dwh.instance.audit.service.AuditLogService;
 import com.greenwhite.dwh.instance.common.error.ApiException;
 import com.greenwhite.dwh.instance.common.security.ScopeFilter;
+import com.greenwhite.dwh.instance.md.dto.MdOrgUnitDtos.RoleRule;
+import com.greenwhite.dwh.instance.md.dto.MdOrgUnitDtos.UserAssignments;
 import com.greenwhite.dwh.instance.md.repository.MdOrgUnitRepository;
 import com.greenwhite.dwh.instance.md.repository.MdScopeRepository;
 import org.springframework.stereotype.Service;
@@ -12,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * Скоуп данных: кто какие строки видит (ADR-0013).
@@ -54,6 +57,7 @@ public class MdScopeService {
 
     @Transactional
     public void setRoleRule(Long roleId, String rule) {
+        requireRole(roleId);
         String normalized = normalize(rule);
         String before = scopeRepository.getRoleRule(roleId);
 
@@ -73,11 +77,24 @@ public class MdScopeService {
         return scopeRepository.getRoleRule(roleId);
     }
 
+    @Transactional(readOnly = true)
+    public RoleRule getRoleScopeRule(Long roleId) {
+        requireRole(roleId);
+        return new RoleRule(roleId, scopeRepository.getRoleRule(roleId));
+    }
+
     // -------------------------------------------------- позиция пользователя
 
     @Transactional
     public void assignUserOrgUnits(Long userId, List<Long> orgUnitIds) {
-        List<Long> requested = orgUnitIds != null ? orgUnitIds : List.of();
+        requireUser(userId);
+        if (orgUnitIds == null) {
+            throw validation("Список подразделений обязателен; для снятия всех назначений передайте пустой массив");
+        }
+        for (Long unitId : orgUnitIds) {
+            requirePositiveId(unitId, "Идентификатор подразделения");
+        }
+        List<Long> requested = List.copyOf(new TreeSet<>(orgUnitIds));
         for (Long unitId : requested) {
             orgUnitRepository.findById(unitId).orElseThrow(() ->
                     ApiException.notFound(ErrorCode.NOT_FOUND, "Узел оргструктуры не найден: " + unitId));
@@ -122,7 +139,17 @@ public class MdScopeService {
 
     @Transactional(readOnly = true)
     public UserScope getUserScope(Long userId) {
+        requireUser(userId);
         return new UserScope(scopeRepository.getUserRule(userId), scopeRepository.getEffectiveScope(userId));
+    }
+
+    @Transactional(readOnly = true)
+    public UserAssignments getUserAssignments(Long userId) {
+        requireUser(userId);
+        return new UserAssignments(
+                userId,
+                scopeRepository.getUserOrgUnitIds(userId).stream().sorted().toList(),
+                scopeRepository.findUserOrgUnit(userId).orElse(null));
     }
 
     // ------------------------------------------------------- применение в SQL
@@ -196,6 +223,30 @@ public class MdScopeService {
                     "Неизвестное правило видимости: " + rule + ". Допустимо: " + VALID_RULES);
         }
         return normalized;
+    }
+
+    private void requireUser(Long userId) {
+        requirePositiveId(userId, "Идентификатор пользователя");
+        if (!scopeRepository.userExists(userId)) {
+            throw ApiException.notFound(ErrorCode.NOT_FOUND, "Пользователь не найден: " + userId);
+        }
+    }
+
+    private void requireRole(Long roleId) {
+        requirePositiveId(roleId, "Идентификатор роли");
+        if (!scopeRepository.roleExists(roleId)) {
+            throw ApiException.notFound(ErrorCode.NOT_FOUND, "Роль не найдена: " + roleId);
+        }
+    }
+
+    private static void requirePositiveId(Long id, String field) {
+        if (id == null || id <= 0) {
+            throw validation(field + " должен быть положительным числом");
+        }
+    }
+
+    private static ApiException validation(String message) {
+        return ApiException.badRequest(ErrorCode.VALIDATION_FAILED, message);
     }
 
     public record UserScope(String rule, Set<Long> visibleOrgUnitIds) {}

@@ -49,6 +49,13 @@ public class MdScopeRepository {
                 .orElse("ALL");
     }
 
+    public boolean roleExists(Long roleId) {
+        return jdbcClient.sql("select exists (select 1 from md_roles where id = :roleId)")
+                .param("roleId", roleId)
+                .query(Boolean.class)
+                .single();
+    }
+
     // ----------------------------------------------------------- пользователь
 
     public Set<Long> getUserOrgUnitIds(Long userId) {
