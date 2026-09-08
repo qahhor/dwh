@@ -109,6 +109,37 @@ describe('SettingsComponent UI contracts', () => {
     expect(statusUnsubscribed).toBe(1);
   });
 
+  it('centers only the latest locally focused settings tab and cancels pending work on teardown', async () => {
+    vi.useFakeTimers();
+    try {
+      const fixture = await createFixture();
+      const storage = fixture.nativeElement.querySelector('#settings-storage-tab') as HTMLButtonElement;
+      const languages = fixture.nativeElement.querySelector('#settings-languages-tab') as HTMLButtonElement;
+      const search = fixture.nativeElement.querySelector('#settings-search-tab') as HTMLButtonElement;
+      const storageScroll = vi.fn();
+      const languagesScroll = vi.fn();
+      const searchScroll = vi.fn();
+      storage.scrollIntoView = storageScroll;
+      languages.scrollIntoView = languagesScroll;
+      search.scrollIntoView = searchScroll;
+
+      storage.focus();
+      languages.focus();
+      vi.runOnlyPendingTimers();
+
+      expect(storageScroll).not.toHaveBeenCalled();
+      expect(languagesScroll).toHaveBeenCalledOnce();
+      expect(languagesScroll).toHaveBeenCalledWith({ behavior: 'instant', block: 'nearest', inline: 'center' });
+
+      search.focus();
+      fixture.destroy();
+      vi.runOnlyPendingTimers();
+      expect(searchScroll).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('names security values and switches', async () => {
     const fixture = await createFixture();
     fixture.componentInstance.activeTab = 'security';

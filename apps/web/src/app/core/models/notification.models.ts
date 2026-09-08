@@ -13,11 +13,8 @@ export interface NotificationItem {
 
 export interface Announcement {
   id: number;
-  titleJson: Record<string, string>;
-  bodyMarkdownJson: Record<string, string>;
-  severity: 'info' | 'warning' | 'critical';
-  beginsAt: string;
-  expiresAt: string;
-  isDismissible: boolean;
-  isReadByMe: boolean;
+  title: string;
+  body: string;
+  bannerType: 'INFO' | 'WARNING' | 'CRITICAL';
+  publishedAt: string;
 }

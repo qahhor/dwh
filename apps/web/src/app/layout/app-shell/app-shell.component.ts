@@ -1,4 +1,5 @@
-import { Component, OnInit, OnDestroy, signal, inject } from '@angular/core';
+import { Component, DestroyRef, OnDestroy, computed, effect, signal, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
@@ -9,6 +10,8 @@ import { I18nService, TranslatePipe, Language } from '../../core/services/i18n.s
 import { NotificationService } from '../../core/services/notification.service';
 import { CommandPaletteService } from '../../core/services/command-palette.service';
 import { CommandPaletteComponent } from '../command-palette/command-palette.component';
+import { ToastService } from '../../core/services/toast.service';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-shell',
@@ -128,7 +131,7 @@ import { CommandPaletteComponent } from '../command-palette/command-palette.comp
               <span class="material-symbols-outlined" aria-hidden="true">{{ isMobileMenuOpen() ? 'close' : 'menu' }}</span>
             </button>
 
-            <button type="button" class="palette-trigger" [attr.aria-label]="'layout.app_shell.otkryt_globalnyy_poisk' | t" (click)="paletteService.open()">
+            <button type="button" class="palette-trigger" [attr.aria-label]="'layout.app_shell.otkryt_globalnyy_poisk' | t" aria-haspopup="dialog" aria-keyshortcuts="Control+K Meta+K" [attr.aria-expanded]="paletteService.isOpen()" [disabled]="authService.isLoggingOut()" (click)="paletteService.open()">
               <span class="material-symbols-outlined" aria-hidden="true">search</span>
               <span class="trigger-text">{{ 'layout.app_shell.poisk' | t }}</span>
               <kbd class="shortcut-kbd">Ctrl K</kbd>
@@ -144,7 +147,8 @@ import { CommandPaletteComponent } from '../command-palette/command-palette.comp
                 class="lang-select"
                 [attr.aria-label]="'settings.yazyk_interfeysa' | t"
                 [value]="i18n.currentLang()"
-                [disabled]="i18n.isLoading()"
+                [disabled]="i18n.isLoading() || isChangingLanguage() || authService.isLoggingOut()"
+                [attr.aria-busy]="isChangingLanguage()"
                 (change)="changeLanguage($event)"
               >
                 <option *ngFor="let lang of i18n.languages()" [value]="lang.code">
@@ -154,36 +158,37 @@ import { CommandPaletteComponent } from '../command-palette/command-palette.comp
             </div>
 
             <!-- Theme Toggle -->
-            <button type="button" class="icon-btn" [attr.aria-label]="'layout.app_shell.pereklyuchit_temu' | t" [attr.aria-pressed]="themeService.currentTheme() === 'dark'" (click)="themeService.toggleTheme()" [title]="(themeService.currentTheme() === 'light' ? 'common.dark_theme' : 'common.light_theme') | t">
+            <button type="button" class="icon-btn" [attr.aria-label]="'layout.app_shell.pereklyuchit_temu' | t" [attr.aria-pressed]="themeService.currentTheme() === 'dark'" [disabled]="authService.isLoggingOut()" (click)="themeService.toggleTheme()" [title]="(themeService.currentTheme() === 'light' ? 'common.dark_theme' : 'common.light_theme') | t">
               <span class="material-symbols-outlined" aria-hidden="true">
                 {{ themeService.currentTheme() === 'light' ? 'dark_mode' : 'light_mode' }}
               </span>
             </button>
 
             <!-- Notification Bell -->
-            <button type="button" class="icon-btn notif-btn" routerLink="/notifications" [attr.aria-label]="'layout.app_shell.otkryt_uvedomleniya' | t" [title]="'nav.notifications' | t">
+            <button *ngIf="canReadNotifications()" type="button" class="icon-btn notif-btn" routerLink="/notifications" [attr.aria-label]="'layout.app_shell.otkryt_uvedomleniya' | t" [attr.aria-describedby]="notifService.unreadCount() > 0 ? 'header-unread-count' : null" [disabled]="authService.isLoggingOut()" [title]="'nav.notifications' | t">
               <span class="material-symbols-outlined" aria-hidden="true">notifications</span>
               <span class="bell-dot" *ngIf="notifService.unreadCount() > 0" aria-hidden="true"></span>
-              <span class="sr-only" *ngIf="notifService.unreadCount() > 0">{{ 'layout.app_shell.unread_notifications' | t:{count: notifService.unreadCount()} }}</span>
+              <span id="header-unread-count" class="sr-only" *ngIf="notifService.unreadCount() > 0">{{ 'layout.app_shell.unread_notifications' | t:{count: notifService.unreadCount()} }}</span>
             </button>
 
             <!-- Logout -->
-            <button type="button" class="icon-btn logout-btn" [attr.aria-label]="'layout.app_shell.vyyti_iz_sistemy' | t" (click)="onLogout()" [title]="'layout.app_shell.vyyti_iz_sistemy' | t">
-              <span class="material-symbols-outlined" aria-hidden="true">logout</span>
+            <button type="button" class="icon-btn logout-btn" [attr.aria-label]="'layout.app_shell.vyyti_iz_sistemy' | t" [disabled]="authService.isLoggingOut()" [attr.aria-busy]="authService.isLoggingOut()" (click)="onLogout()" [title]="'layout.app_shell.vyyti_iz_sistemy' | t">
+              <span class="material-symbols-outlined" aria-hidden="true">{{ authService.isLoggingOut() ? 'hourglass_top' : 'logout' }}</span>
             </button>
           </div>
         </header>
 
 
         <!-- Active Announcement Banner -->
-        <div *ngIf="notifService.activeAnnouncement()" class="announcement-banner" role="status">
+        <div *ngIf="canReadAnnouncements() && notifService.activeAnnouncement()" class="announcement-banner" role="status">
           <div class="announcement-content">
             <span class="material-symbols-outlined banner-icon" aria-hidden="true">campaign</span>
-            <span class="banner-text">
-              {{ getAnnouncementTitle() }}
-            </span>
+            <div class="banner-text">
+              <strong>{{ notifService.activeAnnouncement()?.title }}</strong>
+              <p class="banner-body">{{ notifService.activeAnnouncement()?.body }}</p>
+            </div>
           </div>
-          <button type="button" class="banner-close" [attr.aria-label]="'layout.app_shell.zakryt_obyavlenie' | t" (click)="dismissAnnouncement()">
+          <button type="button" class="banner-close" [disabled]="isDismissingAnnouncement() || authService.isLoggingOut()" [attr.aria-label]="'layout.app_shell.zakryt_obyavlenie' | t" (click)="dismissAnnouncement()">
             <span class="material-symbols-outlined" aria-hidden="true">close</span>
           </button>
         </div>
@@ -423,6 +428,7 @@ import { CommandPaletteComponent } from '../command-palette/command-palette.comp
       justify-content: space-between;
       padding: 0 18px;
       flex-shrink: 0;
+      gap: 12px;
     }
 
     .topbar-left {
@@ -444,8 +450,10 @@ import { CommandPaletteComponent } from '../command-palette/command-palette.comp
       font-size: 13px;
       font-family: inherit;
       width: 240px;
+      height: 34px;
+      flex-shrink: 0;
     }
-    .palette-trigger:hover {
+    .palette-trigger:hover:not(:disabled) {
       border-color: var(--primary);
       color: var(--text-main);
     }
@@ -470,25 +478,26 @@ import { CommandPaletteComponent } from '../command-palette/command-palette.comp
     }
 
     .lang-selector {
+      position: relative;
       display: flex;
       align-items: center;
-      gap: 2px;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      background: var(--bg-surface);
-      padding-left: 7px;
+      flex-shrink: 0;
     }
 
     .lang-icon {
+      position: absolute;
+      left: 8px;
+      pointer-events: none;
       color: var(--text-muted);
       font-size: 17px;
     }
 
     .lang-select {
-      min-height: 28px;
-      max-width: 150px;
-      padding: 4px 24px 4px 4px;
-      border: none;
+      height: 34px;
+      max-width: 174px;
+      padding: 4px 24px 4px 30px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
       background: var(--bg-surface);
       font-size: 11px;
       font-weight: 600;
@@ -508,10 +517,16 @@ import { CommandPaletteComponent } from '../command-palette/command-palette.comp
       justify-content: center;
       cursor: pointer;
       position: relative;
+      flex-shrink: 0;
     }
-    .icon-btn:hover {
+    .icon-btn:hover:not(:disabled) {
       background-color: var(--bg-hover);
       color: var(--text-main);
+    }
+
+    .icon-btn:disabled, .palette-trigger:disabled, .lang-select:disabled {
+      opacity: 0.6;
+      cursor: wait;
     }
 
     .palette-trigger:focus-visible,
@@ -533,6 +548,9 @@ import { CommandPaletteComponent } from '../command-palette/command-palette.comp
 
     /* Announcement Banner */
     .announcement-banner {
+      flex-shrink: 0;
+      max-height: 28vh;
+      overflow-y: auto;
       background-color: var(--info-bg);
       border-bottom: 1px solid var(--border-color);
       color: var(--info);
@@ -548,7 +566,11 @@ import { CommandPaletteComponent } from '../command-palette/command-palette.comp
       display: flex;
       align-items: center;
       gap: 8px;
+      min-width: 0;
     }
+
+    .banner-text { min-width: 0; overflow-wrap: anywhere; color: var(--text-main); }
+    .banner-body { margin: 4px 0 0; white-space: pre-wrap; font-weight: 400; }
 
     .banner-close {
       background: transparent;
@@ -558,6 +580,10 @@ import { CommandPaletteComponent } from '../command-palette/command-palette.comp
       display: flex;
       align-items: center;
     }
+
+    .banner-close { flex-shrink: 0; width: 44px; height: 44px; justify-content: center; }
+    .banner-close:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+    .banner-close:disabled { cursor: wait; opacity: 0.5; }
 
     .page-content {
       flex: 1;
@@ -597,7 +623,6 @@ import { CommandPaletteComponent } from '../command-palette/command-palette.comp
     @media (max-width: 767px) {
       .mobile-menu-btn {
         display: inline-flex;
-        margin-right: 6px;
       }
 
       .mobile-drawer-backdrop {
@@ -634,18 +659,24 @@ import { CommandPaletteComponent } from '../command-palette/command-palette.comp
       }
 
       .topbar {
-        padding-inline: 10px;
+        padding-inline: 8px;
+        gap: 4px;
       }
 
+      .topbar-left, .topbar-right { gap: 4px; }
+      .icon-btn { width: 44px; height: 44px; }
+      .lang-icon { display: none; }
+      .lang-select { width: 64px; height: 44px; padding: 4px 18px 4px 4px; font-size: 12px; }
+
       .trigger-text,
-      .shortcut-kbd,
-      .lang-selector {
+      .shortcut-kbd {
         display: none;
       }
 
       .palette-trigger {
-        width: 36px;
-        padding: 6px;
+        width: 44px;
+        height: 44px;
+        padding: 0;
         justify-content: center;
       }
 
@@ -657,10 +688,17 @@ import { CommandPaletteComponent } from '../command-palette/command-palette.comp
 
   `]
 })
-export class AppShellComponent implements OnInit, OnDestroy {
+export class AppShellComponent implements OnDestroy {
   private readonly uiI18n = inject(I18nService);
+  private readonly toast = inject(ToastService);
+  private readonly destroyRef = inject(DestroyRef);
   readonly isCollapsed = signal<boolean>(false);
   readonly isMobileMenuOpen = signal<boolean>(false);
+  readonly isChangingLanguage = signal(false);
+  readonly isDismissingAnnouncement = signal(false);
+  private readonly announcementRevision = signal(0);
+  readonly canReadNotifications = computed(() => this.canViewNotifications());
+  readonly canReadAnnouncements = computed(() => this.permService.canView('platform.announcements'));
 
   constructor(
     public authService: AuthService,
@@ -670,16 +708,38 @@ export class AppShellComponent implements OnInit, OnDestroy {
     public notifService: NotificationService,
     public paletteService: CommandPaletteService,
     private router: Router
-  ) {}
-
-  ngOnInit() {
-    this.notifService.fetchUnreadCount().subscribe();
-    this.notifService.fetchActiveAnnouncement().subscribe();
-    this.notifService.connectSse();
+  ) {
+    // Permissions arrive asynchronously after login. Start only the reads
+    // allowed by the server contract, and cancel them when access changes.
+    effect(onCleanup => {
+      if (!this.canReadNotifications()) {
+        this.notifService.unreadCount.set(0);
+        return;
+      }
+      const request = this.notifService.fetchUnreadCount().subscribe({ error: () => {} });
+      this.notifService.connectSse();
+      onCleanup(() => {
+        request.unsubscribe();
+        this.notifService.disconnectSse();
+        this.notifService.unreadCount.set(0);
+      });
+    });
+    effect(onCleanup => {
+      if (!this.canReadAnnouncements()) {
+        this.notifService.activeAnnouncement.set(null);
+        return;
+      }
+      this.announcementRevision();
+      const request = this.notifService.fetchActiveAnnouncement(this.i18n.currentLang()).subscribe({ error: () => {} });
+      onCleanup(() => {
+        request.unsubscribe();
+        this.notifService.activeAnnouncement.set(null);
+      });
+    });
   }
 
   ngOnDestroy() {
-    this.notifService.disconnectSse();
+    this.notifService.resetSession();
   }
 
   toggleSidebar() {
@@ -761,31 +821,40 @@ export class AppShellComponent implements OnInit, OnDestroy {
     return l as Language;
   }
 
-  getAnnouncementTitle(): string {
-    const a = this.notifService.activeAnnouncement();
-    if (!a) return '';
-    const lang = this.i18n.currentLang();
-    return a.titleJson?.[lang] || a.titleJson?.['ru'] || this.uiI18n.translate('layout.app_shell.vnimanie');
-  }
-
   dismissAnnouncement() {
+    if (this.isDismissingAnnouncement() || this.authService.isLoggingOut()) return;
     const a = this.notifService.activeAnnouncement();
     if (a && a.id) {
-      this.notifService.dismissAnnouncement(a.id).subscribe();
-    } else {
-      this.notifService.activeAnnouncement.set(null);
+      this.isDismissingAnnouncement.set(true);
+      this.notifService.dismissAnnouncement(a.id).pipe(
+        finalize(() => this.isDismissingAnnouncement.set(false))
+      ).subscribe({
+        next: () => this.announcementRevision.update(revision => revision + 1),
+        error: () => {} // ApiService owns the single error message; keep the banner for retry.
+      });
     }
   }
 
   changeLanguage(event: Event) {
     const select = event.target as HTMLSelectElement;
-    this.i18n.setLanguage(select.value).subscribe({
-      error: () => select.value = this.i18n.currentLang()
+    if (this.isChangingLanguage() || this.i18n.isLoading() || this.authService.isLoggingOut()) {
+      select.value = this.i18n.currentLang();
+      return;
+    }
+    if (select.value === this.i18n.currentLang()) return;
+    this.isChangingLanguage.set(true);
+    this.i18n.setLanguage(select.value).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => this.isChangingLanguage.set(false))
+    ).subscribe({
+      error: () => {
+        select.value = this.i18n.currentLang();
+        if (!this.destroyRef.destroyed) this.toast.error(this.uiI18n.translate('layout.app_shell.language_change_failed'));
+      }
     });
   }
 
   onLogout() {
-    this.notifService.disconnectSse();
     this.authService.logout();
   }
 }

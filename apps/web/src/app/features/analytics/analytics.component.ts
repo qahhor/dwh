@@ -1,7 +1,8 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import { Observable, Subscription, forkJoin } from 'rxjs';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 import { UiBadgeComponent } from '../../shared/ui/ui-badge.component';
 import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
@@ -62,6 +63,7 @@ export interface UserWorkload {
               type="button"
               class="status-tab"
               [class.active]="selectedRange === '7d'"
+              [attr.aria-pressed]="selectedRange === '7d'"
               (click)="setRange('7d')"
             >
               {{ 'analytics.7_dney' | t }}
@@ -70,6 +72,7 @@ export interface UserWorkload {
               type="button"
               class="status-tab"
               [class.active]="selectedRange === '30d'"
+              [attr.aria-pressed]="selectedRange === '30d'"
               (click)="setRange('30d')"
             >
               {{ 'analytics.30_dney' | t }}
@@ -78,6 +81,7 @@ export interface UserWorkload {
               type="button"
               class="status-tab"
               [class.active]="selectedRange === '90d'"
+              [attr.aria-pressed]="selectedRange === '90d'"
               (click)="setRange('90d')"
             >
               {{ 'analytics.90_dney' | t }}
@@ -175,11 +179,11 @@ export interface UserWorkload {
       <!-- Main Analytics Grid -->
       <div class="analytics-grid">
         <!-- Trend Chart Card -->
-        <div class="analytics-card chart-card">
+        <div class="analytics-card chart-card" [attr.aria-busy]="loading()">
           <div class="card-header-row">
             <div>
               <h2 class="card-title">{{ 'analytics.dinamika_potoka_zadach' | t }}</h2>
-              <p class="card-subtitle">{{ 'analytics.created_vs_completed_range' | t:{range: selectedRange} }}</p>
+              <p class="card-subtitle">{{ 'analytics.created_vs_completed_range' | t:{range: displayedRange} }}</p>
             </div>
             <div class="chart-legend">
               <div class="legend-item">
@@ -193,8 +197,11 @@ export interface UserWorkload {
             </div>
           </div>
 
+          <p *ngIf="loading()" class="card-subtitle" role="status">{{ 'common.loading' | t }}</p>
+
           <!-- SVG Area / Line Chart -->
-          <div class="svg-chart-container" *ngIf="trends().length > 0">
+          <div class="svg-chart-container" *ngIf="trends().length > 0"
+            role="region" tabindex="0" [attr.aria-label]="'analytics.dinamika_potoka_zadach' | t">
             <svg class="trend-svg" viewBox="0 0 700 240" preserveAspectRatio="none">
               <defs>
                 <linearGradient id="createdGrad" x1="0" y1="0" x2="0" y2="1">
@@ -241,7 +248,7 @@ export interface UserWorkload {
             </svg>
           </div>
 
-          <div *ngIf="trends().length === 0 && !loading()" class="empty-chart">
+          <div *ngIf="trends().length === 0 && !loading() && !error()" class="empty-chart">
             <span class="material-symbols-outlined" style="font-size: 32px; color: var(--text-light);">show_chart</span>
             <p>{{ 'analytics.net_dannyh_za_vybrannyy_period' | t }}</p>
           </div>
@@ -274,7 +281,7 @@ export interface UserWorkload {
             </div>
           </div>
 
-          <div *ngIf="projects().length === 0 && !loading()" class="empty-chart">
+          <div *ngIf="projects().length === 0 && !loading() && !error()" class="empty-chart">
             <span class="material-symbols-outlined" style="font-size: 32px; color: var(--text-light);">folder_open</span>
             <p>{{ 'analytics.aktivnye_proekty_ne_naydeny' | t }}</p>
           </div>
@@ -290,7 +297,7 @@ export interface UserWorkload {
           </div>
         </div>
 
-        <div class="table-scroll">
+        <div class="table-scroll" role="region" tabindex="0" [attr.aria-label]="'analytics.utilizaciya_i_zagruzka_komandy' | t">
           <table>
             <thead>
               <tr>
@@ -320,7 +327,7 @@ export interface UserWorkload {
                   </ui-badge>
                 </td>
               </tr>
-              <tr *ngIf="workload().length === 0 && !loading()">
+              <tr *ngIf="workload().length === 0 && !loading() && !error()">
                 <td colspan="5" class="empty">
                   <span>{{ 'analytics.dannye_po_zagruzke_sotrudnikov_otsutstvuyut' | t }}</span>
                 </td>
@@ -332,9 +339,15 @@ export interface UserWorkload {
     </div>
   `,
   styles: [`
+    :host {
+      display: block;
+      min-width: 0;
+    }
+
     .analytics-container {
       display: flex;
       flex-direction: column;
+      min-width: 0;
       gap: 0;
     }
 
@@ -350,6 +363,9 @@ export interface UserWorkload {
     .header-left {
       display: flex;
       align-items: center;
+      flex-wrap: wrap;
+      min-width: 0;
+      max-width: 100%;
       gap: 10px;
     }
 
@@ -358,6 +374,7 @@ export interface UserWorkload {
       font-weight: 700;
       color: var(--text-main);
       letter-spacing: -0.3px;
+      overflow-wrap: anywhere;
     }
 
     .count-badge {
@@ -456,14 +473,14 @@ export interface UserWorkload {
 
     .tiles {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 16px;
       margin-bottom: 20px;
     }
 
     @media (max-width: 1200px) {
       .tiles {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
     }
 
@@ -481,7 +498,7 @@ export interface UserWorkload {
         overflow-x: auto;
       }
       .tiles {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
       }
     }
 
@@ -537,6 +554,8 @@ export interface UserWorkload {
     .tile-meta {
       display: flex;
       align-items: center;
+      flex-wrap: wrap;
+      overflow-wrap: anywhere;
       gap: 6px;
       font-size: 11px;
       margin-top: 4px;
@@ -550,17 +569,18 @@ export interface UserWorkload {
 
     .analytics-grid {
       display: grid;
-      grid-template-columns: 1.5fr 1fr;
+      grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
       gap: 20px;
     }
 
     @media (max-width: 1024px) {
       .analytics-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
       }
     }
 
     .analytics-card {
+      min-width: 0;
       background-color: var(--bg-surface);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-lg);
@@ -575,7 +595,16 @@ export interface UserWorkload {
       display: flex;
       align-items: flex-start;
       justify-content: space-between;
+      flex-wrap: wrap;
       gap: 12px;
+    }
+
+    .card-header-row > div {
+      min-width: 0;
+    }
+
+    .card-title, .card-subtitle {
+      overflow-wrap: anywhere;
     }
 
     .card-title {
@@ -593,6 +622,7 @@ export interface UserWorkload {
     .chart-legend {
       display: flex;
       align-items: center;
+      flex-wrap: wrap;
       gap: 14px;
     }
     .legend-item {
@@ -606,19 +636,32 @@ export interface UserWorkload {
     .legend-dot {
       width: 8px;
       height: 8px;
+      flex-shrink: 0;
       border-radius: 50%;
     }
 
     .svg-chart-container {
       width: 100%;
-      height: 240px;
+      min-width: 0;
+      overflow-x: auto;
       position: relative;
     }
 
     .trend-svg {
+      display: block;
       width: 100%;
-      height: 100%;
-      overflow: visible;
+      min-width: 700px;
+      height: 240px;
+    }
+
+    .table-card {
+      min-width: 0;
+      max-width: 100%;
+    }
+
+    .svg-chart-container:focus-visible, .table-scroll:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: -2px;
     }
 
     .empty-chart {
@@ -651,19 +694,25 @@ export interface UserWorkload {
       display: flex;
       align-items: center;
       justify-content: space-between;
+      flex-wrap: wrap;
       gap: 10px;
     }
 
     .project-name-group {
       display: flex;
       align-items: center;
+      min-width: 0;
+      flex: 1 1 140px;
       gap: 6px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+    }
+
+    .project-name-group > .material-symbols-outlined {
+      flex-shrink: 0;
     }
 
     .project-name {
+      min-width: 0;
+      overflow-wrap: anywhere;
       font-size: 13px;
       font-weight: 600;
       color: var(--text-main);
@@ -727,9 +776,11 @@ export interface UserWorkload {
     }
   `]
 })
-export class AnalyticsComponent implements OnInit {
+export class AnalyticsComponent implements OnInit, OnDestroy {
   private readonly uiI18n = inject(I18nService);
   private http = inject(HttpClient);
+  private activeRequest?: Subscription;
+  private refreshRequired = true;
 
   summary = signal<AnalyticsSummary | null>(null);
   trends = signal<TrendDataPoint[]>([]);
@@ -739,6 +790,7 @@ export class AnalyticsComponent implements OnInit {
   loading = signal(false);
   error = signal('');
   selectedRange = '7d';
+  displayedRange = '7d';
 
   chartPoints = computed(() => {
     const list = this.trends();
@@ -798,12 +850,17 @@ export class AnalyticsComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    void this.loadAll();
+    this.loadAll();
+  }
+
+  ngOnDestroy(): void {
+    this.activeRequest?.unsubscribe();
   }
 
   setRange(range: string): void {
     this.selectedRange = range;
-    void this.loadTrends();
+    if (this.refreshRequired) this.loadAll();
+    else this.loadTrends();
   }
 
   exportReport(): void {
@@ -816,40 +873,44 @@ export class AnalyticsComponent implements OnInit {
     return index % Math.ceil(total / 6) === 0 || index === total - 1;
   }
 
-  async loadAll(): Promise<void> {
+  loadAll(): void {
+    const range = this.selectedRange;
+    // A failed or superseded refresh must be retried as a whole snapshot.
+    this.refreshRequired = true;
+    this.loadRequest(forkJoin({
+      summary: this.http.get<AnalyticsSummary>('/api/v1/analytics/summary'),
+      trends: this.http.get<TrendDataPoint[]>(`/api/v1/analytics/trends?range=${range}`),
+      projects: this.http.get<ProjectDistribution[]>('/api/v1/analytics/projects'),
+      workload: this.http.get<UserWorkload[]>('/api/v1/analytics/workload')
+    }), data => {
+      this.summary.set(data.summary);
+      this.trends.set(data.trends);
+      this.projects.set(data.projects);
+      this.workload.set(data.workload);
+      this.displayedRange = range;
+      this.refreshRequired = false;
+    });
+  }
+
+  private loadTrends(): void {
+    const range = this.selectedRange;
+    this.loadRequest(this.http.get<TrendDataPoint[]>(`/api/v1/analytics/trends?range=${range}`), data => {
+      this.trends.set(data);
+      this.displayedRange = range;
+    });
+  }
+
+  private loadRequest<T>(request: Observable<T>, apply: (data: T) => void): void {
+    this.activeRequest?.unsubscribe();
     this.loading.set(true);
     this.error.set('');
-    try {
-      await Promise.all([
-        this.loadSummary(),
-        this.loadTrends(),
-        this.loadProjects(),
-        this.loadWorkload()
-      ]);
-    } catch (e: any) {
-      this.error.set(e?.error?.detail || this.uiI18n.translate('analytics.ne_udalos_zagruzit_dannye_analitiki'));
-    } finally {
-      this.loading.set(false);
-    }
-  }
-
-  private async loadSummary(): Promise<void> {
-    const data = await this.http.get<AnalyticsSummary>('/api/v1/analytics/summary').toPromise();
-    if (data) this.summary.set(data);
-  }
-
-  private async loadTrends(): Promise<void> {
-    const data = await this.http.get<TrendDataPoint[]>(`/api/v1/analytics/trends?range=${this.selectedRange}`).toPromise();
-    if (data) this.trends.set(data);
-  }
-
-  private async loadProjects(): Promise<void> {
-    const data = await this.http.get<ProjectDistribution[]>('/api/v1/analytics/projects').toPromise();
-    if (data) this.projects.set(data);
-  }
-
-  private async loadWorkload(): Promise<void> {
-    const data = await this.http.get<UserWorkload[]>('/api/v1/analytics/workload').toPromise();
-    if (data) this.workload.set(data);
+    this.activeRequest = request.subscribe({
+      next: data => apply(data),
+      error: e => {
+        this.error.set(e?.error?.detail || this.uiI18n.translate('analytics.ne_udalos_zagruzit_dannye_analitiki'));
+        this.loading.set(false);
+      },
+      complete: () => this.loading.set(false)
+    });
   }
 }

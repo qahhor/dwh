@@ -1,5 +1,5 @@
 import { Injectable, signal } from '@angular/core';
-import { Observable, map, of, tap } from 'rxjs';
+import { Observable, Subject, map, of, startWith, switchMap, take, takeUntil, tap } from 'rxjs';
 import { ApiService } from './api.service';
 import { ToastService } from './toast.service';
 import { NotificationItem, Announcement } from '../models/notification.models';
@@ -30,6 +30,8 @@ export class NotificationService {
 
   private eventSource: EventSource | null = null;
   private isConnecting = false;
+  private readonly sessionEnded = new Subject<void>();
+  private readonly unreadChanged = new Subject<void>();
 
   constructor(
     private api: ApiService,
@@ -37,7 +39,12 @@ export class NotificationService {
   ) {}
 
   fetchUnreadCount(): Observable<{ unreadCount: number }> {
-    return this.api.get<BackendUnreadCount>('/notifications/unread-count').pipe(
+    return this.unreadChanged.pipe(
+      startWith(undefined),
+      // A snapshot taken before an acknowledged read or incoming SSE event is obsolete.
+      switchMap(() => this.api.get<BackendUnreadCount>('/notifications/unread-count')),
+      take(1),
+      takeUntil(this.sessionEnded),
       map(res => ({ unreadCount: res.unread_count })),
       tap(res => this.unreadCount.set(res.unreadCount))
     );
@@ -45,6 +52,7 @@ export class NotificationService {
 
   fetchNotifications(limit: number = 20, _cursor?: string): Observable<KeysetPage<NotificationItem>> {
     return this.api.get<BackendNotification[]>('/notifications/inbox', { limit }).pipe(
+      takeUntil(this.sessionEnded),
       map(records => {
         const items = records.map(record => ({
           id: record.id,
@@ -67,23 +75,23 @@ export class NotificationService {
   }
 
   markAsRead(id: number): Observable<void> {
-    return this.api.post<void>(`/notifications/inbox/${id}/read`);
+    return this.api.post<void>(`/notifications/inbox/${id}/read`).pipe(
+      takeUntil(this.sessionEnded),
+      tap(() => this.unreadChanged.next())
+    );
   }
 
   markAllAsRead(): Observable<void> {
     return this.api.post<void>('/notifications/inbox/read-all').pipe(
-      tap(() => this.unreadCount.set(0))
+      takeUntil(this.sessionEnded),
+      tap(() => this.unreadChanged.next())
     );
   }
 
-  fetchActiveAnnouncement(): Observable<Announcement | null> {
-    return this.api.get<Announcement[] | Announcement | null>('/announcements/active').pipe(
-      map(res => {
-        if (Array.isArray(res)) {
-          return res.length > 0 ? res[0] : null;
-        }
-        return res || null;
-      }),
+  fetchActiveAnnouncement(language = 'ru'): Observable<Announcement | null> {
+    return this.api.get<Announcement[]>('/announcements/active', { language }).pipe(
+      takeUntil(this.sessionEnded),
+      map(res => res[0] ?? null),
       tap(a => this.activeAnnouncement.set(a))
     );
   }
@@ -94,7 +102,10 @@ export class NotificationService {
       return of(undefined as unknown as void);
     }
     return this.api.post<void>(`/announcements/${id}/read`).pipe(
-      tap(() => this.activeAnnouncement.set(null))
+      takeUntil(this.sessionEnded),
+      tap(() => {
+        if (this.activeAnnouncement()?.id === id) this.activeAnnouncement.set(null);
+      })
     );
   }
 
@@ -108,17 +119,21 @@ export class NotificationService {
 
     try {
       this.isConnecting = true;
-      this.eventSource = new EventSource('/api/v1/events', { withCredentials: true });
+      const source = new EventSource('/api/v1/events', { withCredentials: true });
+      this.eventSource = source;
 
-      this.eventSource.onopen = () => {
+      source.onopen = () => {
+        if (this.eventSource !== source) return;
         this.isConnecting = false;
       };
 
       // Слушатель события 'notification'
-      this.eventSource.addEventListener('notification', (event: MessageEvent) => {
+      source.addEventListener('notification', (event: MessageEvent) => {
+        if (this.eventSource !== source) return;
         try {
           const data = JSON.parse(event.data);
           this.unreadCount.update(c => c + 1);
+          this.unreadChanged.next();
 
           const title = data.title || 'Новое уведомление';
           const body = data.body || '';
@@ -129,7 +144,8 @@ export class NotificationService {
       });
 
       // Слушатель события 'announcement'
-      this.eventSource.addEventListener('announcement', (event: MessageEvent) => {
+      source.addEventListener('announcement', (event: MessageEvent) => {
+        if (this.eventSource !== source) return;
         try {
           const data = JSON.parse(event.data);
           this.activeAnnouncement.set(data);
@@ -139,7 +155,8 @@ export class NotificationService {
         }
       });
 
-      this.eventSource.onerror = (err) => {
+      source.onerror = () => {
+        if (this.eventSource !== source) return;
         this.isConnecting = false;
         // EventSource автоматически выполняет реконнект в браузере
       };
@@ -158,5 +175,13 @@ export class NotificationService {
       this.eventSource = null;
       this.isConnecting = false;
     }
+  }
+
+  /** End the authenticated shell's notification lifecycle, including pending HTTP callbacks. */
+  resetSession(): void {
+    this.sessionEnded.next();
+    this.disconnectSse();
+    this.unreadCount.set(0);
+    this.activeAnnouncement.set(null);
   }
 }

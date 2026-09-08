@@ -1,6 +1,8 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, signal, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subscription } from 'rxjs';
 import { ApiService } from '../../../core/services/api.service';
 import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
@@ -84,6 +86,7 @@ interface ModuleGroup {
               class="role-select-btn"
               [attr.aria-label]="'iam.select_role_named' | t:{name: r.name}"
               [attr.aria-pressed]="selectedRole()?.id === r.id"
+              [disabled]="isSaving()"
               (click)="selectRole(r)"
             >
               <span class="role-card-head">
@@ -136,7 +139,7 @@ interface ModuleGroup {
       </div>
 
       <!-- Main Permission Matrix Section -->
-      <div class="matrix-card" *ngIf="selectedRole() as role">
+      <div class="matrix-card" *ngIf="selectedRole() as role" [attr.aria-busy]="isLoading() || isSaving()">
         <!-- Role Meta Header & Save Button -->
         <div class="matrix-header-bar">
           <div class="role-summary-box">
@@ -148,7 +151,7 @@ interface ModuleGroup {
               </span>
             </div>
 
-            <div class="role-meter-row">
+            <div class="role-meter-row" *ngIf="!isLoading() && !permissionsError()">
               <span class="meter-text">
                 {{ 'iam.permissions_ratio' | t:{active: activePermissionsCount(), total: totalActionsCount()} }}
                 ({{ permissionPercentage() }}%)
@@ -173,11 +176,18 @@ interface ModuleGroup {
               size="md"
               icon="save"
               [loading]="isSaving()"
+              [disabled]="!canEditPermissions()"
               (onClick)="savePermissions()"
             >
               {{ 'iam.sohranit_prava' | t }}
             </ui-button>
           </div>
+        </div>
+
+        <div *ngIf="isLoading()" class="matrix-load-status" role="status">{{ 'common.loading' | t }}</div>
+        <div *ngIf="permissionsError()" class="alert alert-error" role="alert">
+          <span>{{ permissionsError() }}</span>
+          <ui-button variant="secondary" size="sm" (onClick)="selectRole(role)">{{ 'common.refresh' | t }}</ui-button>
         </div>
 
         <!-- Superadmin Shield Banner -->
@@ -266,7 +276,7 @@ interface ModuleGroup {
                 <button
                   type="button"
                   class="batch-btn"
-                  [disabled]="role.pcode === 'admin'"
+                  [disabled]="!canEditPermissions()"
                   (click)="toggleAllModule(mod, true)"
                 >
                   {{ 'iam.vybrat_vse' | t }}
@@ -275,7 +285,7 @@ interface ModuleGroup {
                 <button
                   type="button"
                   class="batch-btn"
-                  [disabled]="role.pcode === 'admin'"
+                  [disabled]="!canEditPermissions()"
                   (click)="toggleAllModule(mod, false)"
                 >
                   {{ 'iam.snyat_vse' | t }}
@@ -300,9 +310,9 @@ interface ModuleGroup {
                         <span class="form-name-text">{{ f.formName }}</span>
                         <span class="form-code-text font-mono">{{ f.formCode }}</span>
                         <div class="form-quick-toggles" *ngIf="role.pcode !== 'admin'">
-                          <button type="button" class="mini-toggle-btn" (click)="toggleAllForm(f, true)">{{ 'iam.vse' | t }}</button>
+                          <button type="button" class="mini-toggle-btn" [disabled]="!canEditPermissions()" (click)="toggleAllForm(f, true)">{{ 'iam.vse' | t }}</button>
                           <span class="dot">•</span>
-                          <button type="button" class="mini-toggle-btn" (click)="toggleAllForm(f, false)">{{ 'iam.snyat' | t }}</button>
+                          <button type="button" class="mini-toggle-btn" [disabled]="!canEditPermissions()" (click)="toggleAllForm(f, false)">{{ 'iam.snyat' | t }}</button>
                         </div>
                       </div>
                     </td>
@@ -313,14 +323,14 @@ interface ModuleGroup {
                           *ngFor="let act of f.actions"
                           class="action-checkbox-card"
                           [class.checked]="hasPermission(f.formCode, act.action)"
-                          [class.readonly]="role.pcode === 'admin'"
+                          [class.readonly]="!canEditPermissions()"
                           [title]="f.formCode + '.' + act.action"
                         >
                           <input
                             type="checkbox"
                             class="chk-input"
                             [checked]="hasPermission(f.formCode, act.action)"
-                            [disabled]="role.pcode === 'admin'"
+                            [disabled]="!canEditPermissions()"
                             (change)="togglePermission(f.formCode, act.action, $event)"
                           />
                           <span class="chk-label">{{ act.actionName }}</span>
@@ -701,6 +711,8 @@ interface ModuleGroup {
 
     .matrix-actions-box { display: flex; align-items: center; }
 
+    .matrix-load-status { padding: 12px 18px; color: var(--text-muted); }
+
     .admin-notice {
       display: flex;
       align-items: center;
@@ -852,7 +864,10 @@ interface ModuleGroup {
       align-items: center;
     }
     .batch-btn:hover { text-decoration: underline; }
-    .batch-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .batch-btn:disabled, .mini-toggle-btn:disabled, .role-select-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
     .batch-divider { color: var(--text-light); font-size: 10px; }
 
     .mod-section-body {
@@ -976,12 +991,16 @@ interface ModuleGroup {
 })
 export class RolesComponent implements OnInit {
   private readonly uiI18n = inject(I18nService);
+  private readonly destroyRef = inject(DestroyRef);
+  private permissionsRequest?: Subscription;
+  private readonly loadedPermissionsRoleId = signal<number | null>(null);
   readonly roles = signal<Role[]>([]);
   readonly forms = signal<FormTreeItem[]>([]);
   readonly selectedRole = signal<Role | null>(null);
   readonly rolePermissions = signal<Set<string>>(new Set());
 
   readonly isLoading = signal<boolean>(false);
+  readonly permissionsError = signal('');
   readonly isSaving = signal<boolean>(false);
   readonly isSubmittingRole = signal<boolean>(false);
 
@@ -1037,12 +1056,17 @@ export class RolesComponent implements OnInit {
 
   canGrant(): boolean {
     return this.permService.hasPermission('rbac.roles', 'grant') ||
-           this.permService.hasPermission('iam.roles', 'grant') ||
-           this.permService.canUpdate('rbac.roles');
+           this.permService.hasPermission('iam.roles', 'grant');
+  }
+
+  canEditPermissions(): boolean {
+    const role = this.selectedRole();
+    return !!role && role.pcode !== 'admin' && this.canGrant() &&
+      this.loadedPermissionsRoleId() === role.id && !this.isLoading() && !this.isSaving();
   }
 
   loadRoles() {
-    this.api.get<Role[]>('/rbac/roles').subscribe({
+    this.api.get<Role[]>('/rbac/roles').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: res => {
         const list = res || [];
         this.roles.set(list);
@@ -1051,7 +1075,7 @@ export class RolesComponent implements OnInit {
         }
       },
       error: () => {
-        this.api.get<Role[]>('/iam/roles').subscribe({
+        this.api.get<Role[]>('/iam/roles').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: res => {
             const list = res || [];
             this.roles.set(list);
@@ -1065,7 +1089,7 @@ export class RolesComponent implements OnInit {
   }
 
   loadForms() {
-    this.api.get<FormTreeItem[]>('/rbac/forms').subscribe(res => {
+    this.api.get<FormTreeItem[]>('/rbac/forms').pipe(takeUntilDestroyed(this.destroyRef)).subscribe(res => {
       const items = res || [];
       this.forms.set(items);
       this.buildModuleGroups(items);
@@ -1110,9 +1134,26 @@ export class RolesComponent implements OnInit {
   }
 
   selectRole(role: Role) {
+    if (this.isSaving() || this.destroyRef.destroyed) return;
+    this.permissionsRequest?.unsubscribe();
     this.selectedRole.set(role);
-    this.api.get<string[]>(`/rbac/roles/${role.id}/permissions`).subscribe(res => {
-      this.rolePermissions.set(new Set(res || []));
+    this.rolePermissions.set(new Set());
+    this.loadedPermissionsRoleId.set(null);
+    this.permissionsError.set('');
+    this.isLoading.set(true);
+    this.permissionsRequest = this.api.get<string[]>(`/rbac/roles/${role.id}/permissions`, undefined, { notifyError: false })
+      .pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: res => {
+        if (this.selectedRole()?.id !== role.id) return;
+        this.rolePermissions.set(new Set(res || []));
+        this.loadedPermissionsRoleId.set(role.id);
+        this.isLoading.set(false);
+      },
+      error: error => {
+        if (this.selectedRole()?.id !== role.id) return;
+        this.permissionsError.set(error.detail || error.title);
+        this.isLoading.set(false);
+      }
     });
   }
 
@@ -1210,7 +1251,7 @@ export class RolesComponent implements OnInit {
   }
 
   togglePermission(formCode: string, action: string, event: Event) {
-    if (this.selectedRole()?.pcode === 'admin') return;
+    if (!this.canEditPermissions()) return;
 
     const checked = (event.target as HTMLInputElement).checked;
     const current = new Set(this.rolePermissions());
@@ -1225,7 +1266,7 @@ export class RolesComponent implements OnInit {
   }
 
   toggleAllForm(form: GroupedForm, grant: boolean) {
-    if (this.selectedRole()?.pcode === 'admin') return;
+    if (!this.canEditPermissions()) return;
 
     const current = new Set(this.rolePermissions());
     for (const act of form.actions) {
@@ -1240,7 +1281,7 @@ export class RolesComponent implements OnInit {
   }
 
   toggleAllModule(moduleGroup: ModuleGroup, grant: boolean) {
-    if (this.selectedRole()?.pcode === 'admin') return;
+    if (!this.canEditPermissions()) return;
 
     const current = new Set(this.rolePermissions());
     for (const f of moduleGroup.forms) {
@@ -1258,7 +1299,7 @@ export class RolesComponent implements OnInit {
 
   savePermissions() {
     const role = this.selectedRole();
-    if (!role) return;
+    if (!role || !this.canEditPermissions()) return;
 
     this.isSaving.set(true);
     const pairs: PermissionPair[] = Array.from(this.rolePermissions()).map(p => {
@@ -1268,7 +1309,7 @@ export class RolesComponent implements OnInit {
       return { formCode, action };
     });
 
-    this.api.put(`/rbac/roles/${role.id}/permissions`, pairs).subscribe({
+    this.api.put(`/rbac/roles/${role.id}/permissions`, pairs).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.isSaving.set(false);
         this.toast.success(this.uiI18n.translate('iam.matrica_prav_uspeshno_sohranena'));

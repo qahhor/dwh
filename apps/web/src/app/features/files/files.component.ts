@@ -1,7 +1,9 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { finalize, Subscription } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
+import { AuthService } from '../../core/services/auth.service';
 import { PermissionService } from '../../core/services/permission.service';
 import { ToastService } from '../../core/services/toast.service';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
@@ -188,9 +190,9 @@ export interface StorageStats {
               class="search-input"
               [placeholder]="'files.poisk_faylov_po_imeni' | t"
               [(ngModel)]="searchQuery"
-              (keyup.enter)="loadFiles()"
+              (keyup.enter)="searchFiles()"
             />
-            <button type="button" class="clear-btn" [attr.aria-label]="'files.ochistit_poisk_faylov' | t" *ngIf="searchQuery" (click)="searchQuery = ''; loadFiles()">
+            <button type="button" class="clear-btn" [attr.aria-label]="'files.ochistit_poisk_faylov' | t" *ngIf="searchQuery" (click)="searchQuery = ''; searchFiles()">
               <span class="material-symbols-outlined" aria-hidden="true">close</span>
             </button>
           </div>
@@ -268,6 +270,7 @@ export interface StorageStats {
                     *ngIf="canDeleteFile(file)"
                     type="button"
                     class="action-btn delete-btn"
+                    [disabled]="isDeleting()"
                     [attr.aria-label]="'files.delete_named' | t:{name: file.originalName}"
                     (click)="confirmDeleteFile(file)"
                     [title]="'common.delete' | t"
@@ -327,16 +330,17 @@ export interface StorageStats {
       <ui-modal
         [isOpen]="fileToDelete !== null"
         [title]="'files.podtverzhdenie_udaleniya' | t"
+        [dismissible]="!isDeleting()"
         size="sm"
-        (close)="fileToDelete = null"
+        (close)="cancelDeleteFile()"
       >
         <div body *ngIf="fileToDelete">
           <p>{{ 'files.vy_deystvitelno_hotite_udalit_fayl' | t }} <strong>{{ fileToDelete.originalName }}</strong>?</p>
           <p class="text-muted text-xs">{{ 'files.quota_will_be_released' | t:{size: formatBytes(fileToDelete.sizeBytes)} }}</p>
         </div>
         <div footer class="modal-footer-actions">
-          <ui-button variant="secondary" (onClick)="fileToDelete = null">{{ 'common.cancel' | t }}</ui-button>
-          <ui-button variant="danger" (onClick)="executeDeleteFile()">{{ 'common.delete' | t }}</ui-button>
+          <ui-button variant="secondary" [disabled]="isDeleting()" (onClick)="cancelDeleteFile()">{{ 'common.cancel' | t }}</ui-button>
+          <ui-button variant="danger" [loading]="isDeleting()" [disabled]="!fileToDelete || !canDeleteFile(fileToDelete)" (onClick)="executeDeleteFile()">{{ 'common.delete' | t }}</ui-button>
         </div>
       </ui-modal>
     </div>
@@ -786,13 +790,18 @@ export interface StorageStats {
     }
   `]
 })
-export class FilesComponent implements OnInit {
+export class FilesComponent implements OnInit, OnDestroy {
   private readonly uiI18n = inject(I18nService);
+  private readonly auth = inject(AuthService);
+  private listRequest?: Subscription;
+  private statsRequest?: Subscription;
+  private destroyed = false;
   readonly files = signal<FileDetail[]>([]);
   readonly stats = signal<StorageStats | null>(null);
   readonly isLoading = signal<boolean>(false);
   readonly isUploadModalOpen = signal<boolean>(false);
   readonly uploadedBatch = signal<TaskFile[]>([]);
+  readonly isDeleting = signal(false);
 
   scope: 'all' | 'mine' = 'all';
   searchQuery = '';
@@ -811,33 +820,50 @@ export class FilesComponent implements OnInit {
     this.refreshAll();
   }
 
+  ngOnDestroy() {
+    this.destroyed = true;
+    this.listRequest?.unsubscribe();
+    this.statsRequest?.unsubscribe();
+  }
+
   refreshAll() {
     this.loadStats();
     this.loadFiles();
   }
 
   loadStats() {
-    this.api.get<StorageStats>('/files/storage/stats').subscribe({
+    if (this.destroyed) return;
+    this.statsRequest?.unsubscribe();
+    this.statsRequest = this.api.get<StorageStats>('/files/storage/stats').subscribe({
       next: res => this.stats.set(res),
       error: () => {}
     });
   }
 
   loadFiles() {
+    if (this.destroyed) return;
+    this.listRequest?.unsubscribe();
     this.isLoading.set(true);
-    this.api.get<FileDetail[]>('/files', {
+    this.listRequest = this.api.get<FileDetail[]>('/files', {
       scope: this.scope,
       q: this.searchQuery,
       limit: 100
     }).subscribe({
       next: res => {
         this.files.set(res || []);
+        const lastPage = Math.max(1, Math.ceil(this.files().length / this.pageSize));
+        this.currentPage = Math.max(1, Math.min(this.currentPage, lastPage));
         this.isLoading.set(false);
       },
       error: () => {
         this.isLoading.set(false);
       }
     });
+  }
+
+  searchFiles() {
+    this.currentPage = 1;
+    this.loadFiles();
   }
 
   setScope(scope: 'all' | 'mine') {
@@ -867,26 +893,34 @@ export class FilesComponent implements OnInit {
   }
 
   canDeleteFile(file: FileDetail): boolean {
-    return this.permService.hasPermission('platform.files', 'delete') ||
-           this.permService.hasPermission('platform.files', 'manage_quotas');
+    return this.permService.hasPermission('platform.files', 'delete') &&
+      (this.permService.hasPermission('platform.files', 'manage_quotas') ||
+        (file.createdBy != null && file.createdBy === this.auth.currentUser()?.id));
   }
 
   confirmDeleteFile(file: FileDetail) {
+    if (this.isDeleting() || !this.canDeleteFile(file)) return;
     this.fileToDelete = file;
   }
 
+  cancelDeleteFile() {
+    if (!this.isDeleting()) this.fileToDelete = null;
+  }
+
   executeDeleteFile() {
-    if (!this.fileToDelete) return;
+    if (this.isDeleting() || !this.fileToDelete || !this.canDeleteFile(this.fileToDelete)) return;
     const f = this.fileToDelete;
-    this.api.delete(`/files/${f.id}`).subscribe({
+    this.isDeleting.set(true);
+    this.api.delete(`/files/${f.id}`).pipe(
+      finalize(() => this.isDeleting.set(false))
+    ).subscribe({
       next: () => {
         this.toast.success(this.uiI18n.translate('files.deleted_named', { name: f.originalName }));
         this.fileToDelete = null;
         this.refreshAll();
       },
-      error: err => {
-        this.toast.error(err.error?.message || this.uiI18n.translate('files.ne_udalos_udalit_fayl'));
-      }
+      // ApiService reports the error; retain the target so the user can retry.
+      error: () => {}
     });
   }
 

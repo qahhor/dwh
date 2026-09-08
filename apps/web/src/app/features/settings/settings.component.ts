@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Observable, concatMap, finalize, from, switchMap, toArray } from 'rxjs';
@@ -42,7 +42,7 @@ import { SearchSettingsComponent } from './search/search-settings.component';
 
       <!-- Tabs Navigation -->
       <div class="toolbar">
-        <div class="status-tabs" role="tablist" [attr.aria-label]="'settings.razdely_nastroek' | t">
+        <div class="status-tabs" role="tablist" [attr.aria-label]="'settings.razdely_nastroek' | t" (focusin)="onSettingsTabFocusIn($event)">
           <button
             *ngIf="canManageSystemSettings()"
             id="settings-general-tab"
@@ -515,8 +515,25 @@ import { SearchSettingsComponent } from './search/search-settings.component';
       flex-direction: column;
       gap: 20px;
       padding: 0;
+      width: 100%;
+      min-width: 0;
       max-width: 1000px;
       margin: 0 auto;
+    }
+
+    .toolbar {
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+    }
+
+    .status-tabs {
+      min-width: max-content;
+      flex: 0 0 max-content;
+      margin-inline: 8px;
     }
 
     .view-header {
@@ -823,8 +840,9 @@ import { SearchSettingsComponent } from './search/search-settings.component';
 
   `]
 })
-export class SettingsComponent implements OnInit {
+export class SettingsComponent implements OnInit, OnDestroy {
   private readonly uiI18n = inject(I18nService);
+  private pendingTabFocusScroll: ReturnType<typeof setTimeout> | null = null;
   activeTab: 'general' | 'security' | 'storage' | 'preferences' | 'languages' | 'search' = 'general';
 
   readonly systemSettings = signal<Record<string, string>>({});
@@ -853,6 +871,25 @@ export class SettingsComponent implements OnInit {
     }
     this.legacyLanguageCount.set(Object.keys(this.readLegacyLanguages()).length);
     this.loadAllSettings();
+  }
+
+  ngOnDestroy(): void {
+    if (this.pendingTabFocusScroll !== null) clearTimeout(this.pendingTabFocusScroll);
+    this.pendingTabFocusScroll = null;
+  }
+
+  onSettingsTabFocusIn(event: FocusEvent): void {
+    const tabList = event.currentTarget;
+    const target = event.target;
+    if (!(tabList instanceof HTMLElement) || !(target instanceof HTMLElement)
+      || !target.matches('.status-tab[role="tab"]') || !tabList.contains(target)) return;
+    if (this.pendingTabFocusScroll !== null) clearTimeout(this.pendingTabFocusScroll);
+    this.pendingTabFocusScroll = setTimeout(() => {
+      this.pendingTabFocusScroll = null;
+      if (!tabList.isConnected || !target.isConnected || !tabList.contains(target)
+        || document.activeElement !== target) return;
+      target.scrollIntoView({ behavior: 'instant', block: 'nearest', inline: 'center' });
+    }, 0);
   }
 
   canManageSystemSettings(): boolean {

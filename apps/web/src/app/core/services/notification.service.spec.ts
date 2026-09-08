@@ -51,7 +51,7 @@ describe('NotificationService API contract', () => {
     });
   });
 
-  it('uses the inbox mutation routes and updates unread state', async () => {
+  it('uses the inbox mutation routes without guessing the current unread count', async () => {
     const api = {
       get: vi.fn(),
       post: vi.fn(() => of(undefined)),
@@ -67,6 +67,6 @@ describe('NotificationService API contract', () => {
 
     expect(api.post).toHaveBeenNthCalledWith(1, '/notifications/inbox/9/read');
     expect(api.post).toHaveBeenNthCalledWith(2, '/notifications/inbox/read-all');
-    expect(service.unreadCount()).toBe(0);
+    expect(service.unreadCount()).toBe(2);
   });
 });

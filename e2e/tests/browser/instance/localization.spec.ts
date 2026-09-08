@@ -26,7 +26,13 @@ test('translation override repaints live, persists across sessions, and keeps Ru
       && response.request().postDataJSON()?.['user.language'] === language
     );
     await action();
-    expect((await persisted).ok()).toBe(true);
+    const response = await persisted;
+    const headers = await response.request().allHeaders();
+    const csrfCookies = (headers.cookie ?? '').split(';').map(cookie => cookie.trim())
+      .filter(cookie => cookie.startsWith('XSRF-TOKEN='));
+    const csrfMatches = csrfCookies.some(cookie => cookie.slice('XSRF-TOKEN='.length) === headers['x-xsrf-token']);
+    expect(response.status(), `language preference response; CSRF cookie count=${csrfCookies.length}, header matches cookie=${csrfMatches}`)
+      .toBe(204);
     await expect(page.locator('html')).toHaveAttribute('lang', language);
   };
 

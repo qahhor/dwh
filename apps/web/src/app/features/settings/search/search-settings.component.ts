@@ -458,7 +458,7 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
     this.pollRequest = undefined;
     this.activeJobId.set(jobId);
     this.pollError.set(null);
-    this.pollRequest = timer(0, 1500).pipe(exhaustMap(() => this.management.job(jobId))).subscribe({
+    this.pollRequest = timer(0, 10_000).pipe(exhaustMap(() => this.management.job(jobId))).subscribe({
       next: job => {
         this.activeJob.set(job);
         if (this.isTerminal(job)) this.finishPolling();

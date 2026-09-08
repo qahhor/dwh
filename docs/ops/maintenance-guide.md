@@ -109,6 +109,9 @@ an old age identity until every archive encrypted to it expires or is rekeyed.
 
 ## Database and storage maintenance
 
+For search settings, verification, rebuild, rollback, retained generations,
+capacity and recovery, follow [search and index maintenance](search-and-index-maintenance.md).
+
 - Daily: check health, backup age/status, delivery dead letters, and disk usage.
 - Weekly: review error trends, object-store failures, PostgreSQL volume growth,
   and Typesense health.

@@ -791,6 +791,7 @@ export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(
   "layout.app_shell.otkryt_menyu_navigacii": "Открыть меню навигации",
   "layout.app_shell.otkryt_globalnyy_poisk": "Открыть глобальный поиск",
   "layout.app_shell.pereklyuchit_temu": "Переключить тему",
+  "layout.app_shell.language_change_failed": "Не удалось изменить язык. Попробуйте ещё раз.",
   "layout.app_shell.otkryt_uvedomleniya": "Открыть уведомления",
   "layout.app_shell.vyyti_iz_sistemy": "Выйти из системы",
   "layout.app_shell.zakryt_obyavlenie": "Закрыть объявление",

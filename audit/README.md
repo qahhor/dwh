@@ -5,6 +5,11 @@ Use the [technical specification](../docs/technical-specification.md),
 [current decisions](../docs/README.md) and verified source/test evidence first.
 Newer local drafts are not automatically approved or ready for publication.
 
+On 2026-09-08, the user requested publication of all remaining local changes.
+The ten previously untracked audit drafts are retained as explicitly unverified
+historical material. Their publication does not validate their claims or make
+them requirements, current findings, or release evidence.
+
 ## Cleanup — 2026-09-08
 
 Removed the superseded 2026-09-03 master, architecture, DevOps, performance,

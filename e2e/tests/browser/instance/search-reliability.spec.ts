@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { expect, test, type Page, type Response } from '@playwright/test';
+import { expect, request, test, type Page, type Response } from '@playwright/test';
 import { loginToInstance } from '../../../support/auth.js';
 import { collectPageErrors, uniqueRunName } from '../../../support/diagnostics.js';
 import { expectNoSeriousAccessibilityViolations } from '../../../support/accessibility.js';
@@ -24,21 +24,56 @@ type SearchResponse = {
   hits: Array<{ id: string; entityType: Category; title: string }>;
 };
 
-async function csrfHeaders(page: Page): Promise<Record<string, string>> {
-  const cookie = (await page.context().cookies(page.url())).find(value => value.name === 'XSRF-TOKEN');
-  if (!cookie?.value) throw new Error('Authenticated fixture has no CSRF cookie');
-  return { 'X-XSRF-TOKEN': cookie.value };
-}
-
 async function api<T>(page: Page, method: 'GET' | 'POST' | 'PATCH', path: string, expected: number, data?: unknown): Promise<T> {
-  const response = await page.request.fetch(`/api/v1${path}`, {
-    method, ...(method === 'GET' ? {} : { headers: await csrfHeaders(page), data }),
-  });
+  if (method === 'GET') {
+    const response = await page.request.get(`/api/v1${path}`);
+    try {
+      if (response.status() !== expected) throw new Error(`Synthetic GET fixture returned HTTP ${response.status()}, expected ${expected}`);
+      return expected === 204 ? undefined as T : await response.json() as T;
+    } finally {
+      await response.dispose();
+    }
+  }
+
+  const configured = process.env.INSTANCE_BASE_URL;
+  if (!configured || new URL(page.url()).origin !== new URL(configured).origin) {
+    throw new Error(`Synthetic ${method} fixture rejected a non-fixture origin`);
+  }
+  const storageState = await page.context().storageState();
+  const token = storageState.cookies.find(cookie => cookie.name === 'XSRF-TOKEN')?.value;
+  if (!token) throw new Error('Authenticated fixture has no CSRF cookie');
+
+  let isolated;
+  let response;
   try {
+    try {
+      isolated = await request.newContext({
+        baseURL: new URL(configured).origin,
+        storageState,
+        timeout: 30_000,
+        maxRedirects: 0,
+      });
+      response = await isolated.fetch(`/api/v1${path}`, {
+        method,
+        headers: { 'X-XSRF-TOKEN': token },
+        data,
+        timeout: 30_000,
+        maxRedirects: 0,
+        maxRetries: 0,
+      });
+    } catch {
+      throw new Error(`Synthetic ${method} fixture transport failed`);
+    }
     if (response.status() !== expected) throw new Error(`Synthetic ${method} fixture returned HTTP ${response.status()}, expected ${expected}`);
-    return expected === 204 ? undefined as T : await response.json() as T;
+    if (expected === 204) return undefined as T;
+    try {
+      return await response.json() as T;
+    } catch {
+      throw new Error(`Synthetic ${method} fixture response decoding failed`);
+    }
   } finally {
-    await response.dispose();
+    await response?.dispose();
+    await isolated?.dispose();
   }
 }
 
@@ -54,7 +89,8 @@ async function indexed(page: Page, query: string, category: Category, id: string
 }
 
 async function openPalette(page: Page, query: string, category: Category | 'ALL') {
-  await page.keyboard.press('Control+k');
+  await expect(page.getByRole('button', { name: 'Открыть глобальный поиск' })).toBeVisible();
+  await page.keyboard.press('ControlOrMeta+k');
   const palette = page.getByRole('dialog', { name: 'Глобальный поиск', exact: true });
   await expect(palette).toBeVisible();
   await palette.getByLabel('Категория поиска').selectOption(category);

@@ -495,6 +495,32 @@ describe('SearchSettingsComponent', () => {
     }
   });
 
+  it('polls immediately and then only six times per sustained minute', async () => {
+    vi.useFakeTimers();
+    try {
+      const running = {
+        id: 'job-1', action: 'CHECK', generationId: 'generation-1', state: 'RUNNING' as const,
+        processedCount: 3, failedCount: 0, createdAt: '', updatedAt: '', finishedAt: null
+      };
+      const job = vi.fn(() => of(running));
+      const { fixture } = await createFixture([
+        'platform.search.view', 'platform.settings.update'
+      ], { job });
+
+      (fixture.nativeElement.querySelector('button[data-action="start-check"]') as HTMLButtonElement).click();
+      vi.advanceTimersByTime(59_999);
+
+      // Literal expectations intentionally pin the approved public cadence:
+      // one immediate request, then one at 10/20/30/40/50 seconds.
+      expect(job).toHaveBeenCalledTimes(6);
+      vi.advanceTimersByTime(1);
+      expect(job).toHaveBeenCalledTimes(7);
+      fixture.destroy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('blocks conflicting handlers after a job receipt while keeping its cancel action available', async () => {
     vi.useFakeTimers();
     try {

@@ -15,6 +15,7 @@ import { translateTest } from '../../../testing/i18n-test.stub';
 describe('AppShellComponent', () => {
   const authService = {
     currentUser: signal({ name: 'Иван Иванов', login: 'ivan' }),
+    isLoggingOut: signal(false),
     logout: vi.fn()
   };
   const permissionService = {
@@ -45,6 +46,7 @@ describe('AppShellComponent', () => {
     fetchActiveAnnouncement: vi.fn(() => of(null)),
     connectSse: vi.fn(),
     disconnectSse: vi.fn(),
+    resetSession: vi.fn(),
     dismissAnnouncement: vi.fn(() => of(undefined))
   };
   const paletteService = {
@@ -57,6 +59,7 @@ describe('AppShellComponent', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    notificationService.unreadCount.set(3);
     await TestBed.configureTestingModule({
       imports: [AppShellComponent],
       providers: [

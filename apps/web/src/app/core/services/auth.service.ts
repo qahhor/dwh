@@ -1,6 +1,6 @@
 import { Injectable, signal, computed } from '@angular/core';
 import { Router } from '@angular/router';
-import { Observable, tap, catchError, filter, map, of } from 'rxjs';
+import { Observable, tap, catchError, filter, finalize, map, of } from 'rxjs';
 import { ApiService } from './api.service';
 import { PermissionService } from './permission.service';
 import { ToastService } from './toast.service';
@@ -14,6 +14,7 @@ export class AuthService {
   private sessionGeneration = 0;
   readonly currentUser = signal<User | null>(null);
   readonly isLoading = signal<boolean>(true);
+  readonly isLoggingOut = signal(false);
   readonly isAuthenticated = computed(() => this.currentUser() !== null);
 
   constructor(
@@ -101,16 +102,25 @@ export class AuthService {
   }
 
   logout(): void {
-    this.api.post('/auth/logout').subscribe({
+    if (this.isLoggingOut()) return;
+    this.isLoading.set(false);
+    this.isLoggingOut.set(true);
+    this.api.post('/auth/logout').pipe(
+      finalize(() => this.isLoggingOut.set(false))
+    ).subscribe({
       next: () => {
+        // Invalidate reads from before and during logout only after success;
+        // a failed logout must still allow pending permission initialization.
+        this.sessionGeneration++;
         this.currentUser.set(null);
         this.permissionService.clear();
-        this.router.navigate(['/login']);
+        this.isLoading.set(false);
+        for (const notification of this.toast.toasts()) this.toast.dismiss(notification.id);
+        this.router.navigate(['/login'], { replaceUrl: true });
       },
       error: () => {
-        this.currentUser.set(null);
-        this.permissionService.clear();
-        this.router.navigate(['/login']);
+        // ApiService reports the failure. Do not claim that the server's
+        // HttpOnly session ended when it could still be valid; allow retry.
       }
     });
   }

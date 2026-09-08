@@ -1,4 +1,6 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, signal, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subscription, finalize } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { NotificationService } from '../../core/services/notification.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -23,7 +25,8 @@ import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
           <ui-button
             variant="secondary"
             icon="done_all"
-            [disabled]="notifService.unreadCount() === 0"
+            [disabled]="notifService.unreadCount() === 0 || pendingReads().size > 0"
+            [loading]="isMarkingAll()"
             (onClick)="markAllAsRead()"
           >
             {{ 'notifications.prochitat_vse' | t }}
@@ -55,6 +58,7 @@ import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
               <button
                 type="button"
                 class="mark-read-btn"
+                [disabled]="isMarkingAll() || pendingReads().has(n.id)"
                 [attr.aria-label]="'notifications.mark_named_read' | t:{title: n.title}"
                 (click)="markAsRead(n)"
               >
@@ -224,7 +228,12 @@ import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
 })
 export class NotificationsComponent implements OnInit {
   private readonly uiI18n = inject(I18nService);
+  private readonly destroyRef = inject(DestroyRef);
+  private listRequest?: Subscription;
+  private countRequest?: Subscription;
   readonly items = signal<NotificationItem[]>([]);
+  readonly isMarkingAll = signal(false);
+  readonly pendingReads = signal<ReadonlySet<number>>(new Set());
   currentPage = 1;
   pageSize = 10;
 
@@ -245,23 +254,46 @@ export class NotificationsComponent implements OnInit {
   }
 
   loadNotifications() {
-    this.notifService.fetchNotifications(50).subscribe(res => {
-      this.items.set(res.items || []);
+    this.listRequest?.unsubscribe();
+    this.listRequest = this.notifService.fetchNotifications(50).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: res => {
+        this.items.set(res.items || []);
+        this.currentPage = Math.min(this.currentPage, Math.max(1, Math.ceil(this.items().length / this.pageSize)));
+      },
+      error: () => {} // ApiService owns the error notification.
     });
   }
 
   markAllAsRead() {
-    this.notifService.markAllAsRead().subscribe(() => {
-      this.toast.success(this.uiI18n.translate('notifications.vse_uvedomleniya_prochitany'));
-      this.loadNotifications();
+    if (this.isMarkingAll() || this.pendingReads().size > 0 || this.notifService.unreadCount() === 0) return;
+    this.isMarkingAll.set(true);
+    this.notifService.markAllAsRead().pipe(takeUntilDestroyed(this.destroyRef),
+      finalize(() => this.isMarkingAll.set(false))).subscribe({
+      next: () => {
+        this.toast.success(this.uiI18n.translate('notifications.vse_uvedomleniya_prochitany'));
+        this.loadNotifications();
+        this.refreshUnreadCount();
+      },
+      error: () => {}
     });
   }
 
   markAsRead(item: NotificationItem) {
-    if (item.isRead) return;
-    this.notifService.markAsRead(item.id).subscribe(() => {
-      this.items.update(list => list.map(i => i.id === item.id ? { ...i, isRead: true } : i));
-      this.notifService.fetchUnreadCount().subscribe();
+    if (item.isRead || this.isMarkingAll() || this.pendingReads().has(item.id)) return;
+    this.pendingReads.update(ids => new Set([...ids, item.id]));
+    this.notifService.markAsRead(item.id).pipe(takeUntilDestroyed(this.destroyRef),
+      finalize(() => this.pendingReads.update(ids => new Set([...ids].filter(id => id !== item.id))))).subscribe({
+      next: () => {
+        this.items.update(list => list.map(i => i.id === item.id ? { ...i, isRead: true } : i));
+        this.refreshUnreadCount();
+      },
+      error: () => {}
     });
+  }
+
+  private refreshUnreadCount() {
+    this.countRequest?.unsubscribe();
+    this.countRequest = this.notifService.fetchUnreadCount().pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({ error: () => {} });
   }
 }

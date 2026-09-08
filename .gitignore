@@ -30,11 +30,28 @@ Thumbs.db
 secrets/
 .secrets/
 backups/
+*.dump
+*.dump.age
+*.sql.gz
+*.sql.age
 
 # --- Логи и временное ---
 *.log
 tmp/
 data/
+build/
+out/
+coverage/
+.cache/
+*.bak
+*.old
+*.swp
+*.swo
+*~
+
+# --- Local verification tools, reports, and agent scratch state ---
+/output/
+/.superpowers/
 
 # --- Local Git worktrees ---
 .worktrees/

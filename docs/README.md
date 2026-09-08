@@ -67,6 +67,7 @@ as coverage in Settings.
 - [Operations architecture](ops/architecture-overview.md)
 - [Production deployment](ops/deployment-guide.md)
 - [Maintenance, backup, and restore](ops/maintenance-guide.md)
+- [Search and index maintenance](ops/search-and-index-maintenance.md)
 - [Operations runbook](ops/operations-runbook.md)
 - [Production launch checklist](ops/production-launch-checklist.md)
 - [Smartup-managed infrastructure acceptance](ops/managed-infrastructure-acceptance.md)

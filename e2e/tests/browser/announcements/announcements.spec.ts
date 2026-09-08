@@ -49,6 +49,20 @@ test('administrator creates, publishes, and archives a local announcement', asyn
   expect((await publishResponse).ok()).toBe(true);
   await expect(card).toContainText('Опубликовано');
 
+  // Verify the actual reader contract, not just the administration projection.
+  await page.reload();
+  const banner = page.locator('.announcement-banner');
+  await expect(banner).toContainText(title);
+  await expect(banner).toContainText(body);
+  const readResponse = page.waitForResponse(response =>
+    response.request().method() === 'POST' && /\/api\/v1\/announcements\/\d+\/read$/u.test(response.url()));
+  await banner.getByRole('button', { name: 'Закрыть объявление', exact: true }).click();
+  expect((await readResponse).status()).toBe(204);
+  await expect(banner).toBeHidden();
+  await page.reload();
+  await expect(card).toContainText('Опубликовано');
+  await expect(banner).toBeHidden();
+
   await card.getByRole('button', { name: 'Архивировать' }).click();
   const archiveDialog = page.getByRole('dialog', { name: 'Архивировать объявление?' });
   const archiveResponse = page.waitForResponse(response =>
