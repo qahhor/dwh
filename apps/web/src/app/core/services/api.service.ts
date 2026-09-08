@@ -48,11 +48,11 @@ export class ApiService {
     );
   }
 
-  patch<T>(path: string, body?: any): Observable<T> {
+  patch<T>(path: string, body?: any, options: ApiRequestOptions = {}): Observable<T> {
     return this.http.patch<T>(`${this.baseUrl}${path}`, body || {}, {
       withCredentials: true
     }).pipe(
-      catchError(err => this.handleError(err))
+      catchError(err => this.handleError(err, options))
     );
   }
 
@@ -64,11 +64,11 @@ export class ApiService {
     );
   }
 
-  delete<T>(path: string): Observable<T> {
+  delete<T>(path: string, options: ApiRequestOptions = {}): Observable<T> {
     return this.http.delete<T>(`${this.baseUrl}${path}`, {
       withCredentials: true
     }).pipe(
-      catchError(err => this.handleError(err))
+      catchError(err => this.handleError(err, options))
     );
   }
 
