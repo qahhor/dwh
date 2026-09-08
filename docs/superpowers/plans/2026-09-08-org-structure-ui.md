@@ -168,11 +168,13 @@ if (draft.parentId !== original.parentId) patch.parentId = draft.parentId;
 ## Task 4: User assignments and role-scope panels
 
 **Files:** create `user-org-units-panel.component.ts/.html/.css/.spec.ts` and `role-scope-panel.component.ts/.html/.css/.spec.ts` plus `public-api.ts` under the feature directory; update scoped RU keys and packaged fallback.
+Extend the existing feature-local `org-unit-tree.component.ts/.html/.css/.spec.ts` with an opt-in native-checkbox mode, preserving the page's default single-selection behavior.
 
 **Interfaces:**
 - User panel input `userId: number`, role panel input `roleId: number`; each exposes `canLeave(): boolean | Observable<boolean>`, `hasUnsavedWork(): boolean`, and a `busyChange` output for host target controls if needed.
 - Only `public-api.ts` exports these two components; hosts do not import feature internals.
 - Each panel owns read state, original snapshot, local draft, mutation target, inline error, discard confirmation and subscriptions.
+- Reuse the same ordered, expandable tree for assignments: add `multiple: boolean = false`, `checkedIds: readonly number[] = []` inputs and `toggleUnit: EventEmitter<OrgUnit>` output. In multiple mode render labelled native checkboxes; the panel owns the checked set, validation and writes. The tree remains HTTP-free. Preserve expansion/accessibility and default `selectedId`/`selectUnit` behavior.
 
 - [ ] Write user panel RED with assigned IDs `[7]`, effective IDs `[7,8]`, legacy `9`: only 7 checked; legacy 9 read-only; save never copies 8/9 into the assignment set. Scope ALL/SELF with empty IDs shows semantic explanation, not denied state.
 
@@ -183,6 +185,7 @@ expect(api.saveAssignments).not.toHaveBeenCalled(); // unchanged draft
 ```
 
 - [ ] Implement successful-read gate and explicit empty clear, view-only mode, inactive-node warning, read-only legacy context, isolated effective-scope refresh. A post-save read error cannot resubmit the completed PUT.
+- [ ] Add tree regression tests for checkbox labels, checked/disabled state and one emitted toggle; rerun existing single-selection/expansion tests. Assignment and page views reuse this component, not a copied tree renderer.
 - [ ] Write role panel RED: no PUT on initial ALL fallback; no save before GET; `iam.org_units.assign` independent from `rbac.roles.grant`; changed rule requires confirmation, includes previous/new label and widest-rule explanation.
 - [ ] Implement role panel against Task 3 API and typed ScopeRule options. Preserve existing matrix permissions and role selection lifecycle.
 - [ ] Test invalid/unsafe target IDs and unsafe assignment IDs: no GET for an invalid target and no mutation with imprecise IDs. Use the existing numeric-ID helper; preserve legacy context as read-only.
@@ -191,6 +194,7 @@ expect(api.saveAssignments).not.toHaveBeenCalled(); // unchanged draft
 ## Task 5: Route, menu and host integration
 
 **Files:** modify `apps/web/src/app/app.routes.ts/.spec.ts`, `layout/app-shell/app-shell.component.ts/.spec.ts`, `features/iam/users/users.component.ts/.spec.ts`, `features/iam/roles/roles.component.ts/.spec.ts`.
+Also modify `apps/web/src/app/shared/ui/ui-modal.component.ts/.spec.ts` for the bounded expanded-tree Escape regression described below, preserving existing popup and nested-modal behavior.
 
 **Interfaces:**
 - Lazy route `/iam/org-units`: `permissionGuard('iam.org_units','view')`, `recordNavigationGuard`.
@@ -209,6 +213,7 @@ expect(shell.canViewOrgUnits()).toBe(true);
 - [ ] Embed panels for the selected existing user/role only with org view permission. Route navigation and host close/selection delegate to the panels; successful logout still bypasses draft prompts using existing record guard semantics.
 - [ ] Cover all role-selection mutations, including CRUD callbacks: deleting another role preserves the current selection/draft; deleting the selected role waits for its leave decision and freezes the delete target. Ignore late host callbacks after destruction and do not bypass the current permission-matrix pending lock.
 - [ ] Test panel destruction and late callbacks, existing role matrix saves, deep-linked user detail, mobile drawer and keyboard navigation. Run full Angular/typecheck/i18n/build.
+- [ ] First reproduce Escape failing to reach user-card close/discard when its new organization tree has an expanded branch. The current UiModal guard suppresses Escape for every descendant `[aria-expanded="true"]`; narrow deferral to expanded popup controls (the existing shared selects identify themselves with `aria-haspopup="listbox"`), not ordinary disclosure buttons. Preserve defaultPrevented, topmost-modal ownership and popup-first Escape; test ordinary expanded disclosure, actual open select, nested discard and dirty user panel before accepting the correction.
 - [ ] Stage only task hunks in previously dirty shell files, clean host/routes files and tests. Review staged diff against preserved baseline; commit no unrelated prior UI edits.
 
 ## Task 6: Browser acceptance and final handoff
@@ -225,7 +230,7 @@ await page.getByRole('button', { name: 'Добавить подразделен�
 await page.getByLabel('Код', { exact: true }).fill(`org-e2e-${Date.now()}`);
 await page.getByLabel('Название', { exact: true }).fill('Тестовый отдел');
 await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
-await expect(page.getByRole('button', { name: 'Выбрать подразделение Тестовый отдел', exact: true })).toBeVisible();
+await expect(page.getByRole('button', { name: /Тестовый отдел/ })).toBeVisible();
 ```
 
 - [ ] Extend to assign employee, set UNITS/SUBTREE/SELF and inspect effective result, check real task read scope with a synthetic restricted actor. Test server conflict on occupied deletion and direct permission denial; UI-only route mocks are labelled separately.
@@ -243,3 +248,4 @@ Spec coverage: §1–2 map to all tasks; §3 to Tasks 2/3; §4–5 to Tasks 1/4/
 - Plan prepared after user requested implementation. Execution uses task-scoped implementers and independent reviews as required by the execution skill, with one implementer at a time. No production changes authorized.
 - Initial frontend baseline: 47 files / 394 tests passed. Task 1 implementation is `8e43e19`: focused server contracts 44/44; root Maven verify 728/728 (723 server), no failures/errors/skips, finished 2026-09-08 16:47:17 +05. Independent task review accepted spec compliance and quality with no findings; these results do not mark the whole package complete.
 - Task 2 implementation is `f45f4ba`: final focused 29/29, expanded focused 66/66 and full root Maven verify 750/750 (745 server), zero failures/errors/skips, finished 2026-09-08 17:16:14 +05. Independent transaction/concurrency review accepted spec compliance and quality with no Critical/Important findings. Existing Testcontainers/JUnit deprecation and Spring test-context warning maintenance remains outside this package. UI and browser acceptance are still pending.
+- Task 3 implementation is `4dc7273`: focused 46/46; full Angular 52 files / 429 tests at 2026-09-08 12:42 UTC; typecheck/build/localization passed (1061 referenced keys / 1257 RU strings; a separate external-template scan found 49 feature keys with none missing). A final test-typing cleanup reran 13/13 shared ApiService tests; production source was unchanged. Independent task review is pending. The new route is not integrated yet, so the existing host build is not browser acceptance of the new page.
