@@ -10,6 +10,7 @@ import com.greenwhite.dwh.instance.md.repository.MdOrgUnitRepository;
 import com.greenwhite.dwh.instance.md.repository.MdScopeRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 
 import java.util.List;
 import java.util.Map;
@@ -55,8 +56,15 @@ public class MdScopeService {
 
     // ------------------------------------------------------- правило у роли
 
+    /** Acquire before source rows or per-user materializations are changed. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void acquireMutationLock() {
+        scopeRepository.lockScopeMutation();
+    }
+
     @Transactional
     public void setRoleRule(Long roleId, String rule) {
+        acquireMutationLock();
         requireRole(roleId);
         String normalized = normalize(rule);
         String before = scopeRepository.getRoleRule(roleId);
@@ -87,6 +95,7 @@ public class MdScopeService {
 
     @Transactional
     public void assignUserOrgUnits(Long userId, List<Long> orgUnitIds) {
+        acquireMutationLock();
         requireUser(userId);
         if (orgUnitIds == null) {
             throw validation("Список подразделений обязателен; для снятия всех назначений передайте пустой массив");
@@ -117,6 +126,7 @@ public class MdScopeService {
      */
     @Transactional
     public String recalculateFor(Long userId) {
+        acquireMutationLock();
         String rule = scopeRepository.recalculateEffectiveScope(userId);
         permissionService.recalculateEffectivePermissions(userId);
         return rule;
@@ -124,14 +134,22 @@ public class MdScopeService {
 
     @Transactional
     public void recalculateForRole(Long roleId) {
+        acquireMutationLock();
         for (Long userId : scopeRepository.getUserIdsByRole(roleId)) {
             recalculateFor(userId);
         }
     }
 
-    /** После изменения дерева пересчитываются все, кто стоит в узле или под ним. */
+    /** Users on either side of a tree mutation must be captured while holding the mutation lock. */
+    @Transactional(readOnly = true)
+    public List<Long> getUserIdsAffectedByUnit(Long orgUnitId) {
+        return scopeRepository.getUserIdsAffectedByUnit(orgUnitId);
+    }
+
+    /** Refresh users assigned inside the branch or on its ancestors. */
     @Transactional
     public void recalculateForUnitSubtree(Long orgUnitId) {
+        acquireMutationLock();
         for (Long userId : scopeRepository.getUserIdsAffectedByUnit(orgUnitId)) {
             recalculateFor(userId);
         }

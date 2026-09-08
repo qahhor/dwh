@@ -64,7 +64,7 @@ public class MdOrgUnitController {
     @PatchMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "update")
     public ResponseEntity<Void> update(@PathVariable("id") Long id, @RequestBody UpdateOrgUnitDto body) {
-        orgUnitService.update(id, body.parentId(), body.name(), body.kind(), body.state(), body.orderNo());
+        orgUnitService.update(id, body.parentIdPresent, body.parentId, body.name, body.kind, body.state, body.orderNo);
         return ResponseEntity.noContent().build();
     }
 
@@ -123,13 +123,24 @@ public class MdOrgUnitController {
             int orderNo
     ) {}
 
-    public record UpdateOrgUnitDto(
-            Long parentId,
-            String name,
-            String kind,
-            String state,
-            Integer orderNo
-    ) {}
+    public static class UpdateOrgUnitDto {
+        private boolean parentIdPresent;
+        private Long parentId;
+        private String name;
+        private String kind;
+        private String state;
+        private Integer orderNo;
+
+        public void setParentId(Long parentId) {
+            this.parentIdPresent = true;
+            this.parentId = parentId;
+        }
+
+        public void setName(String name) { this.name = name; }
+        public void setKind(String kind) { this.kind = kind; }
+        public void setState(String state) { this.state = state; }
+        public void setOrderNo(Integer orderNo) { this.orderNo = orderNo; }
+    }
 
     public record AssignUnitsDto(
             @NotNull List<@NotNull @Positive Long> orgUnitIds

@@ -45,6 +45,7 @@ public class MdRoleService {
 
     @Transactional
     public MdRoleRepository.RoleRecord createRole(String name, int orderNo) {
+        scopeRepository.lockScopeMutation();
         var role = roleRepository.create(name, null, "A", orderNo);
 
         // ADR-0013: правило видимости заводится сразу и явно. Роль без строки
@@ -68,6 +69,7 @@ public class MdRoleService {
 
     @Transactional
     public void updateRole(Long id, String name, String state, Integer orderNo) {
+        scopeRepository.lockScopeMutation();
         var role = getRoleById(id);
         if (role.pcode() != null && "admin".equals(role.pcode()) && "P".equalsIgnoreCase(state)) {
             throw ApiException.forbidden(ErrorCode.SUPERADMIN_IMMUTABLE, "Роль администратора не может быть переведена в пассивный статус");
@@ -80,8 +82,9 @@ public class MdRoleService {
         int newOrderNo = orderNo != null ? orderNo : role.orderNo();
         roleRepository.update(id, newName, newState, newOrderNo);
         if (state != null && !state.equals(role.state())) {
-            List<Long> userIds = roleRepository.getUserIdsByRole(id);
+            List<Long> userIds = scopeRepository.getUserIdsByRole(id);
             for (Long uid : userIds) {
+                scopeRepository.recalculateEffectiveScope(uid);
                 permissionService.recalculateEffectivePermissions(uid);
             }
         }
@@ -94,6 +97,7 @@ public class MdRoleService {
 
     @Transactional
     public void deleteRole(Long id) {
+        scopeRepository.lockScopeMutation();
         var role = getRoleById(id);
         if (role.pcode() != null) {
             throw ApiException.forbidden(ErrorCode.SUPERADMIN_IMMUTABLE, "Системные роли не могут быть удалены");

@@ -57,6 +57,7 @@ public class MdUserService {
             Map<String, Object> attributes, boolean is2faEnabled, boolean forcePasswordChange,
             List<Long> roleIds, Long createdBy) {
 
+        scopeService.acquireMutationLock();
         if (userRepository.existsByLogin(login)) {
             throw ApiException.conflict(ErrorCode.CODE_ALREADY_EXISTS, "Пользователь с таким логином уже существует");
         }
@@ -178,6 +179,9 @@ public class MdUserService {
                            Map<String, Object> attributes, Boolean is2faEnabled,
                            List<Long> roleIds, Long modifiedBy) {
 
+        if (roleIds != null) {
+            scopeService.acquireMutationLock();
+        }
         var existingUser = getUserById(userId);
 
         if (phone != null && !phone.isBlank() && !phone.equals(existingUser.phone())) {

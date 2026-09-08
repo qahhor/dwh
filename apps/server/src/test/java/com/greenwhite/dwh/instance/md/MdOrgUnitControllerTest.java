@@ -22,10 +22,35 @@ import static org.mockito.Mockito.when;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class MdOrgUnitControllerTest {
+
+    @Test
+    void nameOnlyPatchPreservesExistingParent() throws Exception {
+        var repository = mock(com.greenwhite.dwh.instance.md.repository.MdOrgUnitRepository.class);
+        var scope = mock(MdScopeService.class);
+        var audit = mock(com.greenwhite.dwh.instance.audit.service.AuditLogService.class);
+        when(repository.findById(3L)).thenReturn(java.util.Optional.of(
+                new com.greenwhite.dwh.instance.md.repository.MdOrgUnitRepository.OrgUnitRecord(
+                        3L, 2L, "CHILD", "Child", "department", "A", -10,
+                        java.time.Instant.EPOCH, java.time.Instant.EPOCH)));
+        when(repository.findById(2L)).thenReturn(java.util.Optional.of(
+                new com.greenwhite.dwh.instance.md.repository.MdOrgUnitRepository.OrgUnitRecord(
+                        2L, null, "ROOT", "Root", "company", "A", 0,
+                        java.time.Instant.EPOCH, java.time.Instant.EPOCH)));
+        var mvc = MockMvcBuilders.standaloneSetup(new MdOrgUnitController(
+                        new MdOrgUnitService(repository, scope, audit), scope))
+                .setControllerAdvice(new GlobalExceptionHandler()).build();
+
+        mvc.perform(patch("/api/v1/iam/org-units/3").contentType("application/json")
+                        .content("{\"name\":\"Renamed\"}"))
+                .andExpect(status().isNoContent());
+
+        org.mockito.Mockito.verify(repository).update(3L, 2L, "Renamed", "department", "A", -10);
+    }
 
     @AfterEach
     void clearSecurityContext() {
