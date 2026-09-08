@@ -102,6 +102,39 @@ repositories/adapters — I/O. Детали приведены в
 
 ## 6. Последняя подтверждённая проверка
 
+### Текущая локальная работа — оргструктура и data scope, 2026-09-08
+
+Локальный пакет оргструктуры реализован в последовательности `8e43e19`,
+`f45f4ba`, `4dc7273`, `ae220f9`, `bcd4bd2`, `3338f07`, `0cc4a53` и
+`eefd8ae`. Финальный backend gate на неизменённом backend прошёл 750/750;
+перед ним один полный запуск получил один JDBC `BindException` в test fixture,
+после чего неизменённые focused 6/6 и полный 750/750 прошли. Причина занятого
+адреса на уровне ОС не доказана, исправление кода или сети не заявляется.
+
+Чистый архив source commit
+`eefd8aebbf35864df5bae90a8803aebb2e759357` прошёл Angular 54 файла / 492
+теста, typecheck, localization audit 1064/1299 и production build 495.70 kB /
+131.98 kB без budget warning. Новый изолированный Playwright-сценарий с
+синтетическими пользователями и задачами подтвердил UI назначений, effective
+scope и реальные task list/detail правила UNITS/SUBTREE/SELF, прямой 403 к
+оргструктуре, занятое удаление 409, keyboard/discard, pending real write и
+контролируемый 503/retry. Функциональные пять сценариев прошли, но шестой
+выявил у общего primary button clean source недостаточный dark contrast:
+13px/500 white `rgb(255,255,255)` на cyan `rgb(56,189,248)` — 2.1423:1 при
+требовании 4.5:1 на обоих viewport. Light — 5.9336:1. Поэтому чистый source
+имеет 5/6 и не считается полностью прошедшим visual acceptance.
+
+Отдельный candidate из того же `eefd8ae` плюс семь точных, отдельно
+hash-манифестированных ранее существовавших dirty UI-файлов прошёл тот же
+browser suite 6/6 и Angular 54 файла / 501 тест, typecheck и localization.
+Его dark primary contrast — 9.0701:1; production build вышел с кодом 0, но
+501.30 kB превысили budget 500 kB на 1.30 kB. Это evidence текущего
+preserved-workspace UI, а не clean feature HEAD; dirty UI-файлы не входят в
+пакет оргструктуры. Clean dark-contrast blocker сохраняется до публикации
+shared UI изменений. Task-view-only роль также воспроизводит два фоновых 403
+toast из unconditional `/custom-fields` и `/tasks/projects`; scope actor
+использует ровно три read permission и не получает organization/IAM assign.
+
 ### Публикация накопленных изменений — 2026-09-08
 
 Пользователь разрешил сохранить и отправить все оставшиеся локальные изменения
