@@ -29,6 +29,7 @@ export class RoleScopePanelComponent implements OnChanges {
   private readonly writes = new Subscription();
   private readRequest?: Subscription;
   private activeTarget: number | null = null;
+  private deferredTarget: number | null = null;
   private viewEpoch = 0;
   private originalRule: ScopeRule | null = null;
 
@@ -61,8 +62,7 @@ export class RoleScopePanelComponent implements OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (!changes['roleId'] || changes['roleId'].currentValue === this.activeTarget) return;
-    const target = this.roleId;
-    this.discard.request(() => this.activateTarget(target));
+    this.activateTarget(this.roleId);
   }
 
   can(action: 'view' | 'assign'): boolean {
@@ -95,13 +95,14 @@ export class RoleScopePanelComponent implements OnChanges {
     this.writes.add(this.api.saveRoleRule(target, rule).subscribe({
       next: () => {
         this.setPending(false);
-        if (!this.currentView(epoch, target)) return;
+        if (!this.currentView(epoch, target)) { this.loadDeferredTarget(); return; }
         this.originalRule = rule; this.selectedRule.set(rule); this.loaded = true;
         this.toast.success(this.i18n.translate('iam.data_scope.saved')); this.reload(true);
       },
       error: error => {
         this.setPending(false);
         if (this.currentView(epoch, target)) this.saveError = error;
+        else this.loadDeferredTarget();
         this.changeDetector.markForCheck();
       }
     }));
@@ -143,7 +144,13 @@ export class RoleScopePanelComponent implements OnChanges {
   }
 
   private activateTarget(target: number): void {
-    this.viewEpoch++; this.readRequest?.unsubscribe(); this.resetProtectedState(); this.activeTarget = target;
+    this.viewEpoch++; this.readRequest?.unsubscribe(); this.discard.cancel(); this.resetProtectedState(); this.activeTarget = target;
+    if (this.pending) { this.deferredTarget = target; this.changeDetector.markForCheck(); return; }
+    this.deferredTarget = null; this.loadActiveTarget();
+  }
+  private loadActiveTarget(): void {
+    const target = this.activeTarget;
+    if (target === null) return;
     if (!this.can('view') || !safeNumericRecordId(target)) {
       if (this.can('view')) this.loadError = this.unavailable();
       this.changeDetector.markForCheck(); return;
@@ -151,7 +158,7 @@ export class RoleScopePanelComponent implements OnChanges {
     this.reload();
   }
   private clearRevokedView(): void {
-    this.viewEpoch++; this.readRequest?.unsubscribe(); this.readRequest = undefined; this.discard.cancel(); this.resetProtectedState();
+    this.viewEpoch++; this.deferredTarget = null; this.readRequest?.unsubscribe(); this.readRequest = undefined; this.discard.cancel(); this.resetProtectedState();
     this.changeDetector.markForCheck();
   }
   private resetProtectedState(): void {
@@ -163,7 +170,11 @@ export class RoleScopePanelComponent implements OnChanges {
     this.confirmationOpen = false; this.saveError = null; this.changeDetector.markForCheck();
   }
   private currentView(epoch: number, target: number): boolean {
-    return this.can('view') && epoch === this.viewEpoch && target === this.activeTarget;
+    return this.can('view') && epoch === this.viewEpoch && target === this.activeTarget && target === this.roleId;
+  }
+  private loadDeferredTarget(): void {
+    if (this.deferredTarget === null || this.deferredTarget !== this.activeTarget || this.deferredTarget !== this.roleId) return;
+    this.deferredTarget = null; this.loadActiveTarget();
   }
   private setPending(value: boolean): void {
     if (this.pending === value) return;

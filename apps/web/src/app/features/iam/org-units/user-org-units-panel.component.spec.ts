@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { Component, ViewChild } from '@angular/core';
 import { Observable, of, Subject, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { PermissionService } from '../../../core/services/permission.service';
@@ -13,13 +14,28 @@ const units: OrgUnit[] = [
   { id: 9, parentId: 7, code: 'LEGACY', name: 'Legacy branch', kind: 'branch', state: 'P', orderNo: 1, createdAt: '', modifiedAt: '' }
 ];
 
+@Component({
+  standalone: true,
+  imports: [UserOrgUnitsPanelComponent],
+  template: `<app-user-org-units-panel [userId]="selectedUserId" />`
+})
+class UserPanelHost {
+  selectedUserId = 42;
+  @ViewChild(UserOrgUnitsPanelComponent) panel!: UserOrgUnitsPanelComponent;
+  requestTarget(userId: number): void {
+    const decision = this.panel.canLeave();
+    if (typeof decision === 'boolean') { if (decision) this.selectedUserId = userId; }
+    else decision.subscribe(allow => { if (allow) this.selectedUserId = userId; });
+  }
+}
+
 describe('UserOrgUnitsPanelComponent', () => {
   function setup(options: { writable?: boolean; target?: number; assigned?: number[]; legacy?: number | null; visible?: number[]; rule?: 'ALL' | 'SUBTREE' | 'UNITS' | 'SELF' } = {}) {
     const api = {
       list: vi.fn(() => of(units)),
-      assignments: vi.fn(() => of({ userId: options.target ?? 42, orgUnitIds: options.assigned ?? [7], legacyOrgUnitId: options.legacy === undefined ? 9 : options.legacy })),
-      scope: vi.fn(() => of({ rule: options.rule ?? 'SUBTREE', visibleOrgUnitIds: options.visible ?? [7, 8] })),
-      saveAssignments: vi.fn(() => of(undefined))
+      assignments: vi.fn((_userId: number) => of({ userId: options.target ?? 42, orgUnitIds: options.assigned ?? [7], legacyOrgUnitId: options.legacy === undefined ? 9 : options.legacy })),
+      scope: vi.fn((_userId: number) => of({ rule: options.rule ?? 'SUBTREE', visibleOrgUnitIds: options.visible ?? [7, 8] })),
+      saveAssignments: vi.fn((_userId: number, _orgUnitIds: number[]) => of(undefined))
     };
     const toast = { success: vi.fn() };
     TestBed.configureTestingModule({ providers: [{ provide: OrgUnitsApiService, useValue: api }, { provide: ToastService, useValue: toast }] });
@@ -161,6 +177,60 @@ describe('UserOrgUnitsPanelComponent', () => {
     write.next(undefined); fixture.detectChanges();
     expect(panel.pending).toBe(false); expect(panel.units).toEqual([]); expect(panel.selectedOrgUnitIds()).toEqual([]);
     expect(toast.success).not.toHaveBeenCalled(); expect(api.scope).toHaveBeenCalledTimes(1);
+  });
+
+  it('queues a target changed during a write and never applies the old result under the new input', () => {
+    const { fixture, panel, api, toast } = setup(); panel.toggleAssignment(units[1]);
+    const write = new Subject<undefined>(); api.saveAssignments.mockReturnValueOnce(write); panel.save();
+    api.assignments.mockImplementation((userId: number) => of({ userId, orgUnitIds: userId === 43 ? [9] : [7], legacyOrgUnitId: null }));
+    api.scope.mockImplementation((userId: number) => of({ rule: 'UNITS', visibleOrgUnitIds: userId === 43 ? [9] : [7] }));
+    fixture.componentRef.setInput('userId', 43); fixture.detectChanges();
+    expect(panel.assignmentsLoaded).toBe(false); expect(panel.pending).toBe(true);
+
+    write.next(undefined); fixture.detectChanges();
+    expect(toast.success).not.toHaveBeenCalled(); expect(panel.selectedOrgUnitIds()).toEqual([9]);
+    expect(api.assignments.mock.calls.map(call => call[0])).toEqual([42, 43]);
+    expect(api.scope.mock.calls.map(call => call[0])).toEqual([42, 43]);
+  });
+
+  it('invalidates an old pending epoch even when the forced input changes away and back', () => {
+    const { fixture, panel, api, toast } = setup(); panel.toggleAssignment(units[1]);
+    const write = new Subject<undefined>(); api.saveAssignments.mockReturnValueOnce(write); panel.save();
+    api.assignments.mockImplementation((userId: number) => of({ userId, orgUnitIds: [7], legacyOrgUnitId: null }));
+    fixture.componentRef.setInput('userId', 43); fixture.detectChanges();
+    fixture.componentRef.setInput('userId', 42); fixture.detectChanges();
+    write.error({ status: 409, detail: 'Old target failure' }); fixture.detectChanges();
+    expect(toast.success).not.toHaveBeenCalled(); expect(panel.saveError).toBeNull(); expect(panel.selectedOrgUnitIds()).toEqual([7]);
+    expect(api.assignments.mock.calls.map(call => call[0])).toEqual([42, 42]);
+    expect(fixture.nativeElement.textContent).not.toContain('Old target failure');
+  });
+
+  it('fails closed on a forced dirty input replacement instead of retaining the old draft under the new target', () => {
+    const { fixture, panel, api } = setup(); panel.toggleAssignment(units[1]); fixture.detectChanges();
+    api.assignments.mockImplementation((userId: number) => of({ userId, orgUnitIds: userId === 43 ? [9] : [7], legacyOrgUnitId: null }));
+    fixture.componentRef.setInput('userId', 43); fixture.detectChanges();
+    expect(panel.discard.open()).toBe(false); expect(panel.selectedOrgUnitIds()).toEqual([9]);
+    expect((fixture.nativeElement.querySelector('input[data-check="7"]') as HTMLInputElement).checked).toBe(false);
+    expect((fixture.nativeElement.querySelector('input[data-check="9"]') as HTMLInputElement).checked).toBe(true);
+    expect(api.assignments.mock.calls.map(call => call[0])).toEqual([42, 43]);
+  });
+
+  it('lets a host cancel a dirty target change before committing the public input', () => {
+    const api = {
+      list: vi.fn(() => of(units)),
+      assignments: vi.fn((userId: number) => of({ userId, orgUnitIds: userId === 43 ? [9] : [7], legacyOrgUnitId: null })),
+      scope: vi.fn((userId: number) => of({ rule: 'UNITS' as const, visibleOrgUnitIds: userId === 43 ? [9] : [7] })),
+      saveAssignments: vi.fn((_userId: number, _ids: number[]) => of(undefined))
+    };
+    TestBed.configureTestingModule({ providers: [{ provide: OrgUnitsApiService, useValue: api }, { provide: ToastService, useValue: { success: vi.fn() } }] });
+    TestBed.inject(PermissionService).setPermissions(['iam.org_units.view', 'iam.org_units.assign']);
+    const fixture = TestBed.createComponent(UserPanelHost); fixture.detectChanges();
+    const host = fixture.componentInstance; host.panel.toggleAssignment(units[1]); host.requestTarget(43); fixture.detectChanges();
+    expect(host.selectedUserId).toBe(42); expect(host.panel.discard.open()).toBe(true);
+    host.panel.discard.cancel(); fixture.detectChanges();
+    expect(host.selectedUserId).toBe(42); expect(host.panel.selectedOrgUnitIds()).toEqual([7, 8]); expect(api.assignments).toHaveBeenCalledTimes(1);
+    host.requestTarget(43); host.panel.discard.confirm(); fixture.detectChanges();
+    expect(host.selectedUserId).toBe(43); expect(host.panel.selectedOrgUnitIds()).toEqual([9]);
   });
 
   it('marks a completed save clean before isolated effective-scope refresh failure', () => {

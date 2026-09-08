@@ -30,6 +30,7 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
   private assignmentsRequest?: Subscription;
   private scopeRequest?: Subscription;
   private activeTarget: number | null = null;
+  private deferredTarget: number | null = null;
   private viewEpoch = 0;
   private originalOrgUnitIds: readonly number[] = [];
 
@@ -64,8 +65,7 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (!changes['userId'] || changes['userId'].currentValue === this.activeTarget) return;
-    const target = this.userId;
-    this.discard.request(() => this.activateTarget(target));
+    this.activateTarget(this.userId);
   }
 
   can(action: 'view' | 'assign'): boolean {
@@ -98,13 +98,14 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
     this.writes.add(this.api.saveAssignments(target, ids).subscribe({
       next: () => {
         this.setPending(false);
-        if (!this.currentView(epoch, target)) return;
+        if (!this.currentView(epoch, target)) { this.loadDeferredTarget(); return; }
         this.originalOrgUnitIds = [...ids]; this.selectedOrgUnitIds.set([...ids]); this.assignmentsLoaded = true;
         this.toast.success(this.i18n.translate('iam.org_units.assignments_saved')); this.reloadScope(true);
       },
       error: error => {
         this.setPending(false);
         if (this.currentView(epoch, target)) this.saveError = error;
+        else this.loadDeferredTarget();
         this.changeDetector.markForCheck();
       }
     }));
@@ -190,7 +191,13 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
   }
 
   private activateTarget(target: number): void {
-    this.viewEpoch++; this.cancelReads(); this.resetProtectedState(); this.activeTarget = target;
+    this.viewEpoch++; this.cancelReads(); this.discard.cancel(); this.resetProtectedState(); this.activeTarget = target;
+    if (this.pending) { this.deferredTarget = target; this.changeDetector.markForCheck(); return; }
+    this.deferredTarget = null; this.loadActiveTarget();
+  }
+  private loadActiveTarget(): void {
+    const target = this.activeTarget;
+    if (target === null) return;
     if (!this.can('view') || !safeNumericRecordId(target)) {
       if (this.can('view')) this.assignmentsError = this.unavailable();
       this.changeDetector.markForCheck(); return;
@@ -198,7 +205,7 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
     this.reloadTree(); this.reloadAssignments(); this.reloadScope();
   }
   private clearRevokedView(): void {
-    this.viewEpoch++; this.cancelReads(); this.discard.cancel(); this.resetProtectedState(); this.changeDetector.markForCheck();
+    this.viewEpoch++; this.deferredTarget = null; this.cancelReads(); this.discard.cancel(); this.resetProtectedState(); this.changeDetector.markForCheck();
   }
   private resetProtectedState(): void {
     this.units = []; this.treeLoading = false; this.treeLoaded = false; this.treeError = null;
@@ -215,7 +222,11 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
     this.treeRequest = undefined; this.assignmentsRequest = undefined; this.scopeRequest = undefined;
   }
   private currentView(epoch: number, target: number): boolean {
-    return this.can('view') && epoch === this.viewEpoch && target === this.activeTarget;
+    return this.can('view') && epoch === this.viewEpoch && target === this.activeTarget && target === this.userId;
+  }
+  private loadDeferredTarget(): void {
+    if (this.deferredTarget === null || this.deferredTarget !== this.activeTarget || this.deferredTarget !== this.userId) return;
+    this.deferredTarget = null; this.loadActiveTarget();
   }
   private setPending(value: boolean): void {
     if (this.pending === value) return;

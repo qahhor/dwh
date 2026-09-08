@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { Component, ViewChild } from '@angular/core';
 import { Observable, of, Subject, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { PermissionService } from '../../../core/services/permission.service';
@@ -7,11 +8,26 @@ import { OrgUnitsApiService } from './org-units-api.service';
 import { RoleRuleSnapshot, ScopeRule } from './org-units.models';
 import { RoleScopePanelComponent } from './role-scope-panel.component';
 
+@Component({
+  standalone: true,
+  imports: [RoleScopePanelComponent],
+  template: `<app-role-scope-panel [roleId]="selectedRoleId" />`
+})
+class RolePanelHost {
+  selectedRoleId = 5;
+  @ViewChild(RoleScopePanelComponent) panel!: RoleScopePanelComponent;
+  requestTarget(roleId: number): void {
+    const decision = this.panel.canLeave();
+    if (typeof decision === 'boolean') { if (decision) this.selectedRoleId = roleId; }
+    else decision.subscribe(allow => { if (allow) this.selectedRoleId = roleId; });
+  }
+}
+
 describe('RoleScopePanelComponent', () => {
   function setup(options: { target?: number; rule?: ScopeRule; permissions?: string[] } = {}) {
     const api = {
-      roleRule: vi.fn(() => of({ roleId: options.target ?? 5, rule: options.rule ?? 'ALL' })),
-      saveRoleRule: vi.fn(() => of(undefined))
+      roleRule: vi.fn((_roleId: number) => of({ roleId: options.target ?? 5, rule: options.rule ?? 'ALL' })),
+      saveRoleRule: vi.fn((_roleId: number, _rule: ScopeRule) => of(undefined))
     };
     const toast = { success: vi.fn() };
     TestBed.configureTestingModule({ providers: [{ provide: OrgUnitsApiService, useValue: api }, { provide: ToastService, useValue: toast }] });
@@ -113,6 +129,54 @@ describe('RoleScopePanelComponent', () => {
     write.next(undefined); fixture.detectChanges();
     expect(panel.pending).toBe(false); expect(panel.loaded).toBe(false); expect(toast.success).not.toHaveBeenCalled();
     expect(api.roleRule).toHaveBeenCalledTimes(1);
+  });
+
+  it('queues a target changed during a write and never applies the old rule result under the new input', () => {
+    const { fixture, panel, api, toast } = setup({ rule: 'ALL' }); panel.selectRule('SELF'); panel.save();
+    const write = new Subject<undefined>(); api.saveRoleRule.mockReturnValueOnce(write); panel.confirmSave();
+    api.roleRule.mockImplementation((roleId: number) => of({ roleId, rule: roleId === 6 ? 'UNITS' : 'ALL' }));
+    fixture.componentRef.setInput('roleId', 6); fixture.detectChanges();
+    expect(panel.loaded).toBe(false); expect(panel.pending).toBe(true);
+
+    write.next(undefined); fixture.detectChanges();
+    expect(toast.success).not.toHaveBeenCalled(); expect(panel.selectedRule()).toBe('UNITS');
+    expect(api.roleRule.mock.calls.map(call => call[0])).toEqual([5, 6]);
+  });
+
+  it('invalidates an old pending epoch even when the forced input changes away and back', () => {
+    const { fixture, panel, api, toast } = setup({ rule: 'ALL' }); panel.selectRule('SELF'); panel.save();
+    const write = new Subject<undefined>(); api.saveRoleRule.mockReturnValueOnce(write); panel.confirmSave();
+    api.roleRule.mockImplementation((roleId: number) => of({ roleId, rule: 'ALL' as const }));
+    fixture.componentRef.setInput('roleId', 6); fixture.detectChanges();
+    fixture.componentRef.setInput('roleId', 5); fixture.detectChanges();
+    write.error({ status: 409, detail: 'Old target rule failure' }); fixture.detectChanges();
+    expect(toast.success).not.toHaveBeenCalled(); expect(panel.saveError).toBeNull(); expect(panel.selectedRule()).toBe('ALL');
+    expect(api.roleRule.mock.calls.map(call => call[0])).toEqual([5, 5]);
+    expect(fixture.nativeElement.textContent).not.toContain('Old target rule failure');
+  });
+
+  it('fails closed on a forced dirty input replacement instead of retaining the old rule draft', () => {
+    const { fixture, panel, api } = setup({ rule: 'ALL' }); panel.selectRule('SELF'); fixture.detectChanges();
+    api.roleRule.mockImplementation((roleId: number) => of({ roleId, rule: roleId === 6 ? 'UNITS' as const : 'ALL' as const }));
+    fixture.componentRef.setInput('roleId', 6); fixture.detectChanges();
+    expect(panel.discard.open()).toBe(false); expect(panel.selectedRule()).toBe('UNITS');
+    expect(api.roleRule.mock.calls.map(call => call[0])).toEqual([5, 6]);
+  });
+
+  it('lets a host cancel a dirty target change before committing the public input', () => {
+    const api = {
+      roleRule: vi.fn((roleId: number) => of({ roleId, rule: roleId === 6 ? 'UNITS' as const : 'ALL' as const })),
+      saveRoleRule: vi.fn((_roleId: number, _rule: ScopeRule) => of(undefined))
+    };
+    TestBed.configureTestingModule({ providers: [{ provide: OrgUnitsApiService, useValue: api }, { provide: ToastService, useValue: { success: vi.fn() } }] });
+    TestBed.inject(PermissionService).setPermissions(['iam.org_units.view', 'iam.org_units.assign']);
+    const fixture = TestBed.createComponent(RolePanelHost); fixture.detectChanges();
+    const host = fixture.componentInstance; host.panel.selectRule('SELF'); host.requestTarget(6); fixture.detectChanges();
+    expect(host.selectedRoleId).toBe(5); expect(host.panel.discard.open()).toBe(true);
+    host.panel.discard.cancel(); fixture.detectChanges();
+    expect(host.selectedRoleId).toBe(5); expect(host.panel.selectedRule()).toBe('SELF'); expect(api.roleRule).toHaveBeenCalledTimes(1);
+    host.requestTarget(6); host.panel.discard.confirm(); fixture.detectChanges();
+    expect(host.selectedRoleId).toBe(6); expect(host.panel.selectedRule()).toBe('UNITS');
   });
 
   it('marks a successful save clean before a failed refresh and does not resubmit it', () => {
