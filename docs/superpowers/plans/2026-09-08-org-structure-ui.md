@@ -57,7 +57,7 @@ Baseline source HEAD is design commit `8215558`; seven source files and six Grap
 - Produces `MdScopeService.getUserAssignments(Long): UserAssignments`, `getRoleScopeRule(Long): RoleRule`, repository `roleExists(Long): boolean`.
 - HTTP GET `/api/v1/iam/org-units/users/{userId}` and `/roles/{roleId}/rule`, both view-protected. Existing GET effective-scope validates user existence.
 
-- [ ] Write MockMvc tests using existing `RequiresPermissionInterceptor`, principal and `GlobalExceptionHandler` patterns; assert new paths deny anonymous/no-view and return DTOs without conflating sets. Use current service mocks; before new methods exist, first prove missing route fails expected HTTP status.
+- [x] Write MockMvc tests using existing `RequiresPermissionInterceptor`, principal and `GlobalExceptionHandler` patterns; assert new paths deny anonymous/no-view and return DTOs without conflating sets. Use current service mocks; before new methods exist, first prove missing route fails expected HTTP status.
 
 ```java
 mvc.perform(get("/api/v1/iam/org-units/users/42"))
@@ -66,8 +66,8 @@ mvc.perform(get("/api/v1/iam/org-units/users/42"))
     .andExpect(jsonPath("$.legacyOrgUnitId").value(9));
 ```
 
-- [ ] Run focused controller test, record actual RED assertions before adding the API.
-- [ ] Implement DTOs and guarded GETs; services validate positive IDs, reject nonexistent records with domain 404, return sorted explicit IDs and nullable legacy ID. `getRoleScopeRule` validates existence before repository's ALL fallback.
+- [x] Run focused controller test, record actual RED assertions before adding the API.
+- [x] Implement DTOs and guarded GETs; services validate positive IDs, reject nonexistent records with domain 404, return sorted explicit IDs and nullable legacy ID. `getRoleScopeRule` validates existence before repository's ALL fallback.
 
 ```java
 public UserAssignments getUserAssignments(Long userId) {
@@ -78,9 +78,9 @@ public UserAssignments getUserAssignments(Long userId) {
 }
 ```
 
-- [ ] Add service tests for unknown IDs, default existing role ALL, explicit assignment versus effective descendants, no write on GET; add PUT validation cases missing/null IDs, null element, zero/negative, duplicate, empty list. Service validation runs before repository replacement, and the DTO rejects an absent/null list rather than clearing it.
-- [ ] Run RED for those conditions, implement with domain validation and `List.copyOf(new TreeSet<>(requested))`, rerun focused tests and existing `MdScopeServiceIntegrationTest,MdAssignmentServiceIntegrationTest`.
-- [ ] Review exact diff and commit only backend task files with message `feat(iam): expose organization assignment and role scope reads`.
+- [x] Add service tests for unknown IDs, default existing role ALL, explicit assignment versus effective descendants, no write on GET; add PUT validation cases missing/null IDs, null element, zero/negative, duplicate, empty list. Service validation runs before repository replacement, and the DTO rejects an absent/null list rather than clearing it.
+- [x] Run RED for those conditions, implement with domain validation and `List.copyOf(new TreeSet<>(requested))`, rerun focused tests and existing `MdScopeServiceIntegrationTest,MdAssignmentServiceIntegrationTest`.
+- [x] Review exact diff and commit only backend task files with message `feat(iam): expose organization assignment and role scope reads`.
 
 ## Task 2: Atomic tree editing and complete scope recalculation
 
@@ -95,8 +95,8 @@ public UserAssignments getUserAssignments(Long userId) {
 - `MdScopeService.acquireMutationLock(): void` delegates within the caller's transaction. Acquire before relevant row changes in tree CRUD, assignment/rule PUT, user role replacement and role lifecycle. Avoid acquiring the lock only after taking per-user write locks.
 - `getUserIdsAffectedByUnit` returns users assigned to the union of the node's descendants and ancestors. An update captures affected IDs before and after, unions/sorts them and recalculates each once. Create captures the new node's ancestors; delete captures before removal.
 
-- [ ] Add HTTP RED: PATCH `{ "name": "Renamed" }` preserves parent; explicit parent change moves it; null parent on a non-root conflicts; invalid state/name/code/ID gives controlled failure.
-- [ ] Add PostgreSQL RED with real Spring transactional services or TransactionTemplate: managers on old and new parent roots using SUBTREE; move a child, assert old manager loses child, new manager gains it, both versions increment, unaffected sibling isn't changed. Include create-child and activate/deactivate cases.
+- [x] Add HTTP RED: PATCH `{ "name": "Renamed" }` preserves parent; explicit parent change moves it; null parent on a non-root conflicts; invalid state/name/code/ID gives controlled failure.
+- [x] Add PostgreSQL RED with real Spring transactional services or TransactionTemplate: managers on old and new parent roots using SUBTREE; move a child, assert old manager loses child, new manager gains it, both versions increment, unaffected sibling isn't changed. Include create-child and activate/deactivate cases.
 
 ```java
 assertThat(scopeService.getUserScope(oldManager).visibleOrgUnitIds()).contains(child);
@@ -105,11 +105,11 @@ assertThat(scopeService.getUserScope(oldManager).visibleOrgUnitIds()).doesNotCon
 assertThat(scopeService.getUserScope(newManager).visibleOrgUnitIds()).contains(child);
 ```
 
-- [ ] Run `-Dtest=MdOrgUnitControllerTest,MdOrgUnitWriteIntegrationTest`, record failed assertions.
-- [ ] Implement presence tracking, trim/nonblank/state validation, explicit parent/root checks and code conflict mapping. Update transaction/audit snapshots with the actual final parent, not absent input. Guard deletion of occupied nodes without cascade.
-- [ ] Implement the advisory lock and ancestor/descendant recalculation contract; acquire before writes at scope-affecting application entry points. Keep constructors compatible where possible. Role activation recalculates scope as well as permissions; do not broaden role grant rules.
-- [ ] Add concurrency test using two independent transactions, latches and bounded Futures: opposing moves A→B/B→A must yield one success and one conflict with an acyclic final tree. Add rollback-on-audit-failure assertion for data, scope and permission version. Test no arbitrary sleeps and no mock-only concurrency claim.
-- [ ] Run targeted PG/controller tests and full Maven verify. Review transaction ordering and 404/409/422 contracts, then commit the task-owned backend changes.
+- [x] Run `-Dtest=MdOrgUnitControllerTest,MdOrgUnitWriteIntegrationTest`, record failed assertions.
+- [x] Implement presence tracking, trim/nonblank/state validation, explicit parent/root checks and code conflict mapping. Update transaction/audit snapshots with the actual final parent, not absent input. Guard deletion of occupied nodes without cascade.
+- [x] Implement the advisory lock and ancestor/descendant recalculation contract; acquire before writes at scope-affecting application entry points. Keep constructors compatible where possible. Role activation recalculates scope as well as permissions; do not broaden role grant rules.
+- [x] Add concurrency test using two independent transactions, latches and bounded Futures: opposing moves A→B/B→A must yield one success and one conflict with an acyclic final tree. Add rollback-on-audit-failure assertion for data, scope and permission version. Test no arbitrary sleeps and no mock-only concurrency claim.
+- [x] Run targeted PG/controller tests and full Maven verify. Review transaction ordering and 404/409/422 contracts, then commit the task-owned backend changes.
 
 ## Task 3: Typed feature API, tree and editor page
 
@@ -145,16 +145,16 @@ Existing server JSON omits nullable root `parentId` under global NON_NULL. Norma
 
 Reuse the existing `safeNumericRecordId` boundary for editable IDs. Non-positive, fractional or unsafe JavaScript-number IDs must not become mutation targets or assignment payloads. Preserve readable context and show a localized unavailable/read-only state if a response cannot be edited without ID precision loss; do not introduce a bigint wire-format migration in this package.
 
-- [ ] Write API contract tests for exact paths/body and no implicit writes; pure tree tests for orderNo/id order, descendant exclusion and orphan safety. Prove tests fail before implementation, then add types/API/helpers.
-- [ ] First add HTTP-error RED for real ApiService PATCH/DELETE: default options emit one toast, `{notifyError:false}` emits none and propagates ProblemDetail. Extend those two methods to pass options to `handleError`; do not add a feature-specific HttpClient bypass.
+- [x] Write API contract tests for exact paths/body and no implicit writes; pure tree tests for orderNo/id order, descendant exclusion and orphan safety. Prove tests fail before implementation, then add types/API/helpers.
+- [x] First add HTTP-error RED for real ApiService PATCH/DELETE: default options emit one toast, `{notifyError:false}` emits none and propagates ProblemDetail. Extend those two methods to pass options to `handleError`; do not add a feature-specific HttpClient bypass.
 
 ```ts
 service.saveAssignments(42, []).subscribe();
 expect(api.put).toHaveBeenCalledWith('/iam/org-units/users/42', { orgUnitIds: [] }, { notifyError: false });
 ```
 
-- [ ] Add component RED cases: empty creates root; view-only has no write controls; name-only edit does not emit parentId; malformed parent is excluded; tree reload failure retains error/retry rather than empty; selected node survives successful refresh.
-- [ ] Implement tree as nested lists with explicit expand/select buttons. Editor uses native form, frozen target, pending lock, cancel/discard confirmation, field error association and stored original values. Page owns mutations and refresh status; no automatic retry after successful save + failed refresh.
+- [x] Add component RED cases: empty creates root; view-only has no write controls; name-only edit does not emit parentId; malformed parent is excluded; tree reload failure retains error/retry rather than empty; selected node survives successful refresh.
+- [x] Implement tree as nested lists with explicit expand/select buttons. Editor uses native form, frozen target, pending lock, cancel/discard confirmation, field error association and stored original values. Page owns mutations and refresh status; no automatic retry after successful save + failed refresh.
 
 ```ts
 const patch: OrgUnitPatch = {};
@@ -162,8 +162,8 @@ if (draft.name.trim() !== original.name) patch.name = draft.name.trim();
 if (draft.parentId !== original.parentId) patch.parentId = draft.parentId;
 ```
 
-- [ ] Add RED cases for stale detail GET, repeated submit, dirty close/route change and error preserving draft; implement cancellation with Subscription/DestroyRef and current target checks. Reuse `RecordNavigationDecision` for in-app navigation and native beforeunload warning for dirty/pending states.
-- [ ] Add semantic RU keys and run `node scripts/sync-packaged-russian.mjs`, `node scripts/localization-audit.mjs`, focused unit tests, typecheck/build. Keep small panels/template/style files; review and commit task-owned clean files only.
+- [x] Add RED cases for stale detail GET, repeated submit, dirty close/route change and error preserving draft; implement cancellation with Subscription/DestroyRef and current target checks. Reuse `RecordNavigationDecision` for in-app navigation and native beforeunload warning for dirty/pending states.
+- [x] Add semantic RU keys and run `node scripts/sync-packaged-russian.mjs`, `node scripts/localization-audit.mjs`, focused unit tests, typecheck/build. Keep small panels/template/style files; review and commit task-owned clean files only.
 
 ## Task 4: User assignments and role-scope panels
 
@@ -200,6 +200,7 @@ Also modify `apps/web/src/app/shared/ui/ui-modal.component.ts/.spec.ts` for the 
 **Interfaces:**
 - Lazy route `/iam/org-units`: `permissionGuard('iam.org_units','view')`, `recordNavigationGuard`.
 - Users/Roles implement `canLeaveRecordPage()` for the embedded panel and delegate before record selection/modal close. Current pending permission-matrix save still prevents role switching.
+- Attach `recordNavigationGuard` to the existing Users matcher and Roles route as well as the new organization route; methods alone do not register route protection. Preserve the guard's existing confirmed-logout/password-change bypass.
 - Existing task/project/user record matchers and existing route URLs remain unchanged.
 
 - [ ] Add RED route/menu test: view-only gets link and guarded page; absent view has neither link nor allowed navigation; changing another permission does not reveal it. Panel host selection must wait for a dirty decision and reject switching while pending.
@@ -251,3 +252,4 @@ Spec coverage: §1–2 map to all tasks; §3 to Tasks 2/3; §4–5 to Tasks 1/4/
 - Task 2 implementation is `f45f4ba`: final focused 29/29, expanded focused 66/66 and full root Maven verify 750/750 (745 server), zero failures/errors/skips, finished 2026-09-08 17:16:14 +05. Independent transaction/concurrency review accepted spec compliance and quality with no Critical/Important findings. Existing Testcontainers/JUnit deprecation and Spring test-context warning maintenance remains outside this package. UI and browser acceptance are still pending.
 - Task 3 implementation is `4dc7273`: focused 46/46; full Angular 52 files / 429 tests at 2026-09-08 12:42 UTC; typecheck/build/localization passed (1061 referenced keys / 1257 RU strings; a separate external-template scan found 49 feature keys with none missing). A final test-typing cleanup reran 13/13 shared ApiService tests; production source was unchanged. Independent review found one view-revocation lifecycle defect, fixed in `ae220f9` after 12 behavioral RED cases; final feature tests passed 46/46 across five files and typecheck passed at 13:06 UTC. Scoped re-review accepted the fix with no new Critical/Important findings. The new route is not integrated yet, so the existing host build is not browser acceptance of the new page.
 - Task 3 non-blocking review follow-ups for final triage: whitespace-only name edits enable a no-op Save; successful deletion followed by failed refresh retains a known-deleted selection; existing Graphify/Git warning noise remains explicitly documented. These do not represent a full browser or release acceptance claim.
+- Task 4 implementation is `bcd4bd2`: focused 39/39; full Angular 54 files / 477 tests; typecheck and localization passed (1063 referenced keys / 1299 RU strings; 58 feature TS/HTML keys, none missing). The change adds the two panels and opt-in tree checkbox mode. Independent task review is pending; host integration and browser acceptance remain open. Existing Graphify/Git warning noise is documented, not a claim of pristine output.
