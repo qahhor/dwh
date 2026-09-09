@@ -27,6 +27,15 @@ describe('OrgUnitEditorComponent', () => {
     expect(save).not.toHaveBeenCalled();
     expect(fixture.nativeElement.querySelector('fieldset')?.disabled).toBe(true);
   });
+  it('treats surrounding name whitespace as pristine and keeps Save disabled', () => {
+    const { editor, save, fixture } = setup();
+    editor.draft.name = '  Child  ';
+    fixture.detectChanges();
+    expect(editor.dirty).toBe(false);
+    expect((fixture.nativeElement.querySelector('button[type="submit"]') as HTMLButtonElement).disabled).toBe(true);
+    editor.submit();
+    expect(save).not.toHaveBeenCalled();
+  });
   it('excludes malformed parents and requires impact confirmation for state/move changes', () => {
     const { editor, save } = setup(child, [root, child, { ...root, id: 3, parentId: 90 }]);
     expect(editor.parents.map(u => u.id)).toEqual([1]);

@@ -77,6 +77,7 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
     return this.units.filter(unit => selected.has(unit.id) && unit.state === 'P');
   }
   get unresolvedAssignmentIds(): number[] {
+    if (!this.treeLoaded) return [];
     const known = new Set(this.units.map(unit => unit.id));
     return this.selectedOrgUnitIds().filter(id => !known.has(id));
   }

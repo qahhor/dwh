@@ -29,8 +29,8 @@ export class OrgUnitEditorComponent implements OnInit {
   }
   get editing(): boolean { return 'id' in this.original; }
   get dirty(): boolean {
-    return this.draft.name !== this.original.name || this.draft.kind !== this.original.kind || this.draft.orderNo !== this.original.orderNo
-      || this.draft.parentId !== this.original.parentId || (!this.editing && this.draft.code !== this.original.code)
+    return (this.draft.name || '').trim() !== (this.original.name || '').trim() || this.draft.kind !== this.original.kind || this.draft.orderNo !== this.original.orderNo
+      || this.draft.parentId !== this.original.parentId || (!this.editing && (this.draft.code || '').trim() !== (this.original.code || '').trim())
       || ('state' in this.original && this.draft.state !== this.original.state);
   }
   get parents(): OrgUnit[] { return this.editing ? parentCandidates(this.units, this.original as OrgUnit) : []; }

@@ -5,6 +5,8 @@ import { permissionGuard } from './core/services/permission.service';
 import { projectRecordMatcher, taskRecordMatcher, userRecordMatcher } from './core/services/search-target';
 import { recordNavigationGuard } from './core/guards/record-navigation.guard';
 
+import { moduleActiveGuard } from './core/guards/module-active.guard';
+
 export const routes: Routes = [
   {
     path: 'login',
@@ -84,6 +86,25 @@ export const routes: Routes = [
         path: 'announcements',
         canActivate: [permissionGuard('platform.announcements', 'update')],
         loadComponent: () => import('./features/announcements/announcements.component').then(m => m.AnnouncementsComponent)
+      },
+      {
+        path: 'notes',
+        canActivate: [moduleActiveGuard('notes'), permissionGuard('notes', 'view')],
+        loadComponent: () => import('./features/notes/notes.component').then(m => m.NotesComponent)
+      },
+      {
+        path: 'settings/modules',
+        canActivate: [permissionGuard('platform.modules', 'view')],
+        loadComponent: () => import('./features/settings/modules/modules.component').then(m => m.ModulesComponent)
+      },
+      {
+        path: 'settings/navigation',
+        canActivate: [permissionGuard('platform.navigation', 'view')],
+        loadComponent: () => import('./features/settings/navigation/navigation-settings.component').then(m => m.NavigationSettingsComponent)
+      },
+      {
+        path: 'embed/:code',
+        loadComponent: () => import('./features/reports/embedded-report.component').then(m => m.EmbeddedReportComponent)
       }
     ]
   },

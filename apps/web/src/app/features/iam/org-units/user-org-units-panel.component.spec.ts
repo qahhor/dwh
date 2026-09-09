@@ -158,6 +158,37 @@ describe('UserOrgUnitsPanelComponent', () => {
     expect(api.list).toHaveBeenCalledTimes(3); expect(api.assignments).toHaveBeenCalledTimes(1); expect(api.scope).toHaveBeenCalledTimes(1);
   });
 
+  it('does not report a valid assignment missing until a successful tree snapshot is authoritative', () => {
+    const tree = new Subject<OrgUnit[]>();
+    const api = {
+      list: vi.fn().mockReturnValueOnce(tree).mockReturnValueOnce(of(units)),
+      assignments: vi.fn(() => of({ userId: 42, orgUnitIds: [8], legacyOrgUnitId: null })),
+      scope: vi.fn(() => of({ rule: 'UNITS' as const, visibleOrgUnitIds: [8] })),
+      saveAssignments: vi.fn(() => of(undefined))
+    };
+    TestBed.configureTestingModule({ providers: [{ provide: OrgUnitsApiService, useValue: api }, { provide: ToastService, useValue: { success: vi.fn() } }] });
+    TestBed.inject(PermissionService).setPermissions(['iam.org_units.view', 'iam.org_units.assign']);
+    const fixture = TestBed.createComponent(UserOrgUnitsPanelComponent);
+    fixture.componentRef.setInput('userId', 42);
+    fixture.detectChanges();
+    const panel = fixture.componentInstance;
+
+    expect(panel.assignmentsLoaded).toBe(true);
+    expect(panel.treeLoaded).toBe(false);
+    expect(panel.unresolvedAssignmentIds).toEqual([]);
+    expect(fixture.nativeElement.textContent).not.toContain('отсутствуют в загруженном дереве');
+
+    tree.error({ status: 503, detail: 'Tree unavailable' });
+    fixture.detectChanges();
+    expect(panel.unresolvedAssignmentIds).toEqual([]);
+    expect(fixture.nativeElement.textContent).not.toContain('отсутствуют в загруженном дереве');
+
+    panel.reloadTree();
+    fixture.detectChanges();
+    expect(panel.treeLoaded).toBe(true);
+    expect(panel.unresolvedAssignmentIds).toEqual([]);
+  });
+
   it('clears protected data and discard decisions when view is revoked while assign remains', () => {
     const { fixture, panel, api } = setup(); panel.toggleAssignment(units[1]);
     const decision = vi.fn(); (panel.canLeave() as Observable<boolean>).subscribe(decision); fixture.detectChanges();

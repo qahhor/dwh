@@ -43,6 +43,11 @@ public class MdRoleService {
         return roleRepository.listRoles();
     }
 
+    @Transactional(readOnly = true)
+    public Map<Long, Integer> countUsersPerRole() {
+        return roleRepository.countUsersPerRole();
+    }
+
     @Transactional
     public MdRoleRepository.RoleRecord createRole(String name, int orderNo) {
         scopeRepository.lockScopeMutation();

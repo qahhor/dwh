@@ -158,9 +158,18 @@ export class OrgUnitsComponent implements OnInit {
   confirmDelete(): void {
     if (!this.deleteTarget || this.pending || !this.can('delete') || !safeNumericRecordId(this.deleteTarget.id)) return;
     const epoch = this.viewEpoch;
+    const targetId = this.deleteTarget.id;
     this.pending = true; this.deleteError = null; this.changeDetector.markForCheck();
-    this.subscriptions.add(this.api.remove(this.deleteTarget.id).subscribe({
-      next: () => { if (this.finishMutation(epoch)) { this.deleteTarget = null; this.toast.success(this.i18n.translate('iam.org_units.deleted')); this.reload(true); } },
+    this.subscriptions.add(this.api.remove(targetId).subscribe({
+      next: () => {
+        if (this.finishMutation(epoch)) {
+          if (this.selected?.id === targetId) this.selected = null;
+          this.units = this.units.filter(unit => unit.id !== targetId);
+          this.deleteTarget = null;
+          this.toast.success(this.i18n.translate('iam.org_units.deleted'));
+          this.reload(true);
+        }
+      },
       error: error => { if (this.finishMutation(epoch)) this.deleteError = error; }
     }));
   }

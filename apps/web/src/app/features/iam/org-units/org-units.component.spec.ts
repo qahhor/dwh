@@ -100,6 +100,24 @@ describe('OrgUnitsComponent lifecycle', () => {
     expect(api.remove).toHaveBeenCalledWith(2); expect(page.selected?.id).toBe(2);
     expect(fixture.nativeElement.textContent).toContain('Assigned employees');
   });
+  it('removes a successfully deleted target before a failed tree refresh', () => {
+    const { fixture, page, api, toast } = setup();
+    page.select(child);
+    page.requestDelete();
+    api.list.mockReturnValueOnce(throwError(() => ({ status: 503, detail: 'Refresh failed after delete' })));
+
+    page.confirmDelete();
+    fixture.detectChanges();
+
+    expect(api.remove).toHaveBeenCalledTimes(1);
+    expect(page.deleteTarget).toBeNull();
+    expect(page.selected).toBeNull();
+    expect(page.units.map(unit => unit.id)).toEqual([1]);
+    expect(page.treeError?.detail).toBe('Refresh failed after delete');
+    expect(fixture.nativeElement.querySelector('[data-action="retry-tree"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-action="edit"], [data-action="delete"]')).toBeNull();
+    expect(toast.success).toHaveBeenCalledTimes(1);
+  });
   it('recreates a clean editor when the target changes within one render cycle', () => {
     const { fixture, page, api } = setup(); page.select(child); page.edit(); fixture.detectChanges();
     page.select(root); page.edit(); fixture.detectChanges();

@@ -12,7 +12,7 @@ import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { UiCustomFieldsComponent } from '../../../shared/ui/ui-custom-fields.component';
 import { UiPaginationComponent } from '../../../shared/ui/ui-pagination.component';
-import { User } from '../../../core/models/auth.models';
+import { User, UserSecuritySummary } from '../../../core/models/auth.models';
 import { Role } from '../../../core/models/rbac.models';
 import { CustomField } from '../../../core/models/custom-field.models';
 import { KeysetPage } from '../../../core/models/common.models';
@@ -21,6 +21,14 @@ import { UserOrgUnitsPanelComponent } from '../org-units/public-api';
 
 type SortColumn = 'id' | 'name' | 'login' | 'createdAt';
 type SortDirection = 'asc' | 'desc';
+
+export interface SecurityConfirmConfig {
+  title: string;
+  message: string;
+  confirmBtnText: string;
+  confirmBtnVariant: 'primary' | 'secondary' | 'danger' | 'ghost';
+  action: () => void;
+}
 
 @Component({
   selector: 'app-users',
@@ -180,6 +188,41 @@ type SortDirection = 'asc' | 'desc';
         </div>
       </div>
 
+      <!-- Active Filters Bar -->
+      <div class="active-filters-bar" *ngIf="hasAnyActiveFilters()">
+        <span class="active-filters-label">{{ 'iam.filtry' | t }}:</span>
+
+        <!-- Status Filter Pill -->
+        <div *ngIf="selectedState" class="filter-pill">
+          <span>{{ 'iam.filtr_status' | t:{status: selectedState === 'A' ? ('iam.aktivnye' | t) : ('iam.zablokirovannye' | t)} }}</span>
+          <button type="button" class="clear-pill-btn" [attr.aria-label]="'iam.ochistit_filtr' | t" (click)="clearStateFilter()">
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
+          </button>
+        </div>
+
+        <!-- Role Filter Pill -->
+        <div *ngIf="selectedRoleId" class="filter-pill">
+          <span>{{ 'iam.filtr_po_roli' | t:{name: getSelectedRoleName()} }}</span>
+          <button type="button" class="clear-pill-btn" [attr.aria-label]="'iam.ochistit_filtr_roli' | t" (click)="clearRoleFilter()">
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
+          </button>
+        </div>
+
+        <!-- 2FA Filter Pill -->
+        <div *ngIf="selected2fa !== null" class="filter-pill">
+          <span>{{ 'iam.filtr_2fa' | t:{status: selected2fa ? ('iam.vklyuchena' | t) : ('iam.otklyuchena' | t)} }}</span>
+          <button type="button" class="clear-pill-btn" [attr.aria-label]="'iam.ochistit_filtr' | t" (click)="clear2faFilter()">
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
+          </button>
+        </div>
+
+        <!-- Reset All Button -->
+        <button type="button" class="reset-all-filters-btn" (click)="resetAllFilters()">
+          <span class="material-symbols-outlined" aria-hidden="true">filter_alt_off</span>
+          <span>{{ 'iam.sbrosit_vse_filtry' | t }}</span>
+        </button>
+      </div>
+
       <!-- Minimal Data Table -->
       <div class="table-container" role="region" [attr.aria-label]="'iam.tablica_polzovateley' | t" tabindex="0">
         <table class="clean-table" [attr.aria-label]="'iam.spisok_polzovateley' | t">
@@ -314,14 +357,34 @@ type SortDirection = 'asc' | 'desc';
           </tbody>
         </table>
 
-        <!-- Pagination -->
-        <ui-pagination
-          [totalItems]="sortedUsers().length"
-          [currentPage]="currentPage"
-          [pageSize]="pageSize"
-          (pageChange)="currentPage = $event"
-          (pageSizeChange)="pageSize = $event; currentPage = 1"
-        ></ui-pagination>
+        <!-- Table Footer / Keyset pagination & load more bar -->
+        <div class="table-footer-bar">
+          <div class="loaded-count-info">
+            <span>{{ 'iam.pokazano_polzovateley' | t:{count: users().length} }}</span>
+            <span *ngIf="hasMore()" class="has-more-badge">{{ 'iam.est_esche' | t }}</span>
+          </div>
+
+          <div class="load-more-wrap" *ngIf="hasMore()">
+            <ui-button
+              variant="secondary"
+              size="sm"
+              icon="arrow_downward"
+              [loading]="isLoadingMore()"
+              (onClick)="loadMore()"
+            >
+              {{ 'iam.zagruzit_esche' | t }}
+            </ui-button>
+          </div>
+
+          <!-- Pagination -->
+          <ui-pagination
+            [totalItems]="sortedUsers().length"
+            [currentPage]="currentPage"
+            [pageSize]="pageSize"
+            (pageChange)="currentPage = $event"
+            (pageSizeChange)="pageSize = $event; currentPage = 1"
+          ></ui-pagination>
+        </div>
       </div>
 
     </div>
@@ -393,11 +456,71 @@ type SortDirection = 'asc' | 'desc';
                 [(ngModel)]="createForm.password"
                 [placeholder]="'iam.minimum_10_simvolov' | t"
               />
-              <button type="button" class="pwd-btn" [attr.aria-label]="(showPassword() ? 'iam.hide_password' : 'iam.show_password') | t" [attr.aria-pressed]="showPassword()" (click)="showPassword.update(v => !v)">
-                <span class="material-symbols-outlined" aria-hidden="true">{{ showPassword() ? 'visibility_off' : 'visibility' }}</span>
-              </button>
+              <div class="pwd-actions">
+                <button
+                  type="button"
+                  class="pwd-btn"
+                  [attr.aria-label]="(showPassword() ? 'iam.hide_password' : 'iam.show_password') | t"
+                  [attr.aria-pressed]="showPassword()"
+                  [title]="(showPassword() ? 'iam.hide_password' : 'iam.show_password') | t"
+                  (click)="showPassword.update(v => !v)"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">{{ showPassword() ? 'visibility_off' : 'visibility' }}</span>
+                </button>
+                <button
+                  type="button"
+                  class="pwd-btn"
+                  [title]="'iam.sgenerirovat_parol' | t"
+                  [attr.aria-label]="'iam.sgenerirovat_parol' | t"
+                  (click)="generateSecurePassword()"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">auto_fix_high</span>
+                </button>
+                <button
+                  type="button"
+                  class="pwd-btn"
+                  *ngIf="createForm.password"
+                  [title]="'iam.skopirovat_parol' | t"
+                  [attr.aria-label]="'iam.skopirovat_parol' | t"
+                  (click)="copyGeneratedPassword()"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">content_copy</span>
+                </button>
+              </div>
             </div>
-            <span id="user-create-password-hint" class="clean-hint">{{ 'iam.ne_menee_10_simvolov_bez_sovpadeniy_s_loginom' | t }}</span>
+            <!-- Dynamic Password Strength Meter -->
+            <div class="pwd-strength-container" *ngIf="createForm.password">
+              <div class="pwd-meter-header">
+                <div class="pwd-meter-bars">
+                  <div class="pwd-bar" [class.filled]="passwordStrength().score >= 1" [style.background-color]="passwordStrength().score >= 1 ? passwordStrength().color : ''"></div>
+                  <div class="pwd-bar" [class.filled]="passwordStrength().score >= 2" [style.background-color]="passwordStrength().score >= 2 ? passwordStrength().color : ''"></div>
+                  <div class="pwd-bar" [class.filled]="passwordStrength().score >= 3" [style.background-color]="passwordStrength().score >= 3 ? passwordStrength().color : ''"></div>
+                  <div class="pwd-bar" [class.filled]="passwordStrength().score >= 4" [style.background-color]="passwordStrength().score >= 4 ? passwordStrength().color : ''"></div>
+                </div>
+                <span class="pwd-strength-label" [style.color]="passwordStrength().color">{{ passwordStrength().label }}</span>
+              </div>
+
+              <div class="pwd-checklist">
+                <div class="check-item" [class.valid]="hasMinLength()">
+                  <span class="material-symbols-outlined check-ico">{{ hasMinLength() ? 'check' : 'close' }}</span>
+                  <span>{{ 'iam.ne_menee_10_simvolov' | t }}</span>
+                </div>
+                <div class="check-item" [class.valid]="hasUpperAndLower()">
+                  <span class="material-symbols-outlined check-ico">{{ hasUpperAndLower() ? 'check' : 'close' }}</span>
+                  <span>{{ 'iam.zaglavnye_i_strochnye_bukvy' | t }}</span>
+                </div>
+                <div class="check-item" [class.valid]="hasDigitsOrSymbols()">
+                  <span class="material-symbols-outlined check-ico">{{ hasDigitsOrSymbols() ? 'check' : 'close' }}</span>
+                  <span>{{ 'iam.cifry_ili_specsimvoly' | t }}</span>
+                </div>
+                <div class="check-item" [class.valid]="doesNotContainLogin()">
+                  <span class="material-symbols-outlined check-ico">{{ doesNotContainLogin() ? 'check' : 'close' }}</span>
+                  <span>{{ 'iam.bez_sovpadeniy_s_loginom' | t }}</span>
+                </div>
+              </div>
+            </div>
+
+            <span id="user-create-password-hint" class="clean-hint" *ngIf="!createForm.password">{{ 'iam.ne_menee_10_simvolov_bez_sovpadeniy_s_loginom' | t }}</span>
             <span id="user-create-password-error" class="field-error" *ngIf="isCreateSubmitted && createForm.password.length < 10">{{ 'iam.parol_dolzhen_soderzhat_ne_menee_10_simvolov' | t }}</span>
           </div>
 
@@ -579,7 +702,7 @@ type SortDirection = 'asc' | 'desc';
     <ui-modal
       [isOpen]="isViewModalOpen()"
       [title]="'iam.profil_polzovatelya' | t"
-      [size]="canViewOrgUnits() && viewingUser && safeRecordId(viewingUser.id) ? 'xl' : 'sm'"
+      [size]="activeViewTab() === 'security' || (canViewOrgUnits() && viewingUser && safeRecordId(viewingUser.id)) ? 'xl' : 'sm'"
       (close)="closeRecordView()"
     >
       <div body *ngIf="recordLoading()" role="status">{{ 'search.record_loading' | t }}</div>
@@ -600,7 +723,46 @@ type SortDirection = 'asc' | 'desc';
           </div>
         </div>
 
-        <div class="info-list">
+        <!-- Segmented Tab Bar -->
+        <div class="modal-tab-bar" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            class="modal-tab-btn"
+            [class.active]="activeViewTab() === 'info'"
+            [attr.aria-selected]="activeViewTab() === 'info'"
+            (click)="switchViewTab('info', u.id)"
+          >
+            <span class="material-symbols-outlined tab-icon">badge</span>
+            {{ 'iam.osnovnoe' | t }}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            class="modal-tab-btn"
+            [class.active]="activeViewTab() === 'security'"
+            [attr.aria-selected]="activeViewTab() === 'security'"
+            (click)="switchViewTab('security', u.id)"
+          >
+            <span class="material-symbols-outlined tab-icon">shield</span>
+            {{ 'iam.bezopasnost_i_sessii' | t }}
+          </button>
+          <button
+            *ngIf="canViewOrgUnits() && safeRecordId(u.id)"
+            type="button"
+            role="tab"
+            class="modal-tab-btn"
+            [class.active]="activeViewTab() === 'orgUnits'"
+            [attr.aria-selected]="activeViewTab() === 'orgUnits'"
+            (click)="switchViewTab('orgUnits', u.id)"
+          >
+            <span class="material-symbols-outlined tab-icon">account_tree</span>
+            {{ 'iam.org_struktura' | t }}
+          </button>
+        </div>
+
+        <!-- Info Tab -->
+        <div class="info-list" *ngIf="activeViewTab() === 'info'">
           <div class="info-row">
             <span class="lbl">Email</span>
             <span class="val font-mono">{{ u.email }}</span>
@@ -630,11 +792,169 @@ type SortDirection = 'asc' | 'desc';
             <span class="val font-mono">{{ u.createdAt | date:'dd.MM.yyyy' }}</span>
           </div>
         </div>
-        <app-user-org-units-panel
-          *ngIf="isViewModalOpen() && canViewOrgUnits() && safeRecordId(u.id)"
-          [userId]="u.id"
-          (busyChange)="orgPanelBusy.set($event)"
-        ></app-user-org-units-panel>
+
+        <!-- Security & Sessions Tab -->
+        <div class="security-tab-content" *ngIf="activeViewTab() === 'security'">
+          <div *ngIf="isLoadingSecurity()" class="security-loading">
+            <span class="material-symbols-outlined spin-icon">sync</span>
+            <span>{{ 'common.loading' | t }}</span>
+          </div>
+
+          <div *ngIf="!isLoadingSecurity() && userSecurity() as sec" class="security-details">
+            <!-- Security Overview Cards -->
+            <div class="sec-metrics-grid">
+              <div class="sec-metric-card">
+                <span class="sec-metric-lbl">{{ 'iam.status_2fa' | t }}</span>
+                <span class="sec-metric-badge" [class.success]="sec.is2faEnabled" [class.muted]="!sec.is2faEnabled">
+                  <span class="material-symbols-outlined metric-icon">{{ sec.is2faEnabled ? 'lock' : 'lock_open' }}</span>
+                  {{ (sec.is2faEnabled ? 'iam.vklyuchena' : 'iam.otklyuchena') | t }}
+                </span>
+              </div>
+              <div class="sec-metric-card">
+                <span class="sec-metric-lbl">{{ 'iam.trebovanie_smeny_parolya' | t }}</span>
+                <span class="sec-metric-badge" [class.warning]="sec.forcePasswordChange" [class.success]="!sec.forcePasswordChange">
+                  <span class="material-symbols-outlined metric-icon">{{ sec.forcePasswordChange ? 'priority_high' : 'check' }}</span>
+                  {{ (sec.forcePasswordChange ? 'iam.trebuetsya' : 'iam.ne_trebuetsya') | t }}
+                </span>
+              </div>
+              <div class="sec-metric-card">
+                <span class="sec-metric-lbl">{{ 'iam.aktivnyh_sessiy' | t }}</span>
+                <span class="sec-metric-val">{{ sec.activeSessionsCount }}</span>
+              </div>
+              <div class="sec-metric-card">
+                <span class="sec-metric-lbl">{{ 'iam.versiya_bezopasnosti' | t }}</span>
+                <span class="sec-metric-val font-mono">v{{ sec.authVersion }}</span>
+              </div>
+            </div>
+
+            <!-- Quick Security Actions Toolbar -->
+            <div class="sec-actions-bar" *ngIf="canUpdateUser()">
+              <button
+                type="button"
+                class="sec-action-btn warning"
+                [disabled]="isSecurityActionPending() || sec.forcePasswordChange"
+                (click)="forcePasswordChange(u.id)"
+              >
+                <span class="material-symbols-outlined">password</span>
+                <span>{{ 'iam.potrebovat_smenu_parolya' | t }}</span>
+              </button>
+
+              <button
+                type="button"
+                class="sec-action-btn danger"
+                [disabled]="isSecurityActionPending() || !sec.is2faEnabled"
+                (click)="resetUser2fa(u.id)"
+              >
+                <span class="material-symbols-outlined">key_off</span>
+                <span>{{ 'iam.sbrosit_2fa' | t }}</span>
+              </button>
+
+              <button
+                type="button"
+                class="sec-action-btn secondary"
+                [disabled]="isSecurityActionPending() || sec.activeSessionsCount === 0"
+                (click)="terminateUserSessions(u.id)"
+              >
+                <span class="material-symbols-outlined">logout</span>
+                <span>{{ 'iam.zavershit_vse_sessii' | t }}</span>
+              </button>
+            </div>
+
+            <!-- Active Sessions List -->
+            <div class="sec-section">
+              <div class="sec-section-title">
+                <span class="material-symbols-outlined sec-title-icon">devices</span>
+                <h4>{{ 'iam.aktivnye_sessii' | t }}</h4>
+                <span class="count-pill">{{ sec.activeSessions.length }}</span>
+              </div>
+
+              <div *ngIf="sec.activeSessions.length === 0" class="sec-empty-state">
+                <p>{{ 'iam.net_aktivnyh_sessiy' | t }}</p>
+              </div>
+
+              <div *ngIf="sec.activeSessions.length > 0" class="sec-table-scroll">
+                <table class="clean-table compact">
+                  <thead>
+                    <tr>
+                      <th>IP</th>
+                      <th>{{ 'iam.ustroystvo_i_brauzer' | t }}</th>
+                      <th>{{ 'iam.sozdana' | t }}</th>
+                      <th>{{ 'iam.poslednyaya_aktivnost' | t }}</th>
+                      <th style="width: 50px;"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let s of sec.activeSessions">
+                      <td class="font-mono text-xs">{{ s.ip }}</td>
+                      <td class="text-xs text-truncate" [title]="s.userAgent">{{ s.userAgent || '—' }}</td>
+                      <td class="font-mono text-xs text-muted">{{ s.createdAt | date:'dd.MM.yyyy HH:mm' }}</td>
+                      <td class="font-mono text-xs text-muted">{{ s.lastSeenAt | date:'dd.MM.yyyy HH:mm' }}</td>
+                      <td class="text-right">
+                        <button
+                          type="button"
+                          class="btn-icon danger"
+                          [title]="'iam.zavershit_sessiyu' | t"
+                          [disabled]="isSecurityActionPending()"
+                          (click)="terminateSingleSession(s.id, u.id)"
+                        >
+                          <span class="material-symbols-outlined" style="font-size: 16px;">close</span>
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Recent Login Attempts History Section -->
+            <div class="sec-section">
+              <div class="sec-section-title">
+                <span class="material-symbols-outlined sec-title-icon">history</span>
+                <h4>{{ 'iam.istoriya_popytok_vhoda' | t }}</h4>
+                <span class="count-pill">{{ sec.recentLoginAttempts.length }}</span>
+              </div>
+
+              <div *ngIf="sec.recentLoginAttempts.length === 0" class="sec-empty-state">
+                <p>{{ 'iam.net_zapisan_popytok_vhoda' | t }}</p>
+              </div>
+
+              <div *ngIf="sec.recentLoginAttempts.length > 0" class="sec-table-scroll">
+                <table class="clean-table compact">
+                  <thead>
+                    <tr>
+                      <th>{{ 'iam.vremya' | t }}</th>
+                      <th>IP</th>
+                      <th>{{ 'common.status' | t }}</th>
+                      <th>{{ 'iam.prichina_otkaza' | t }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let att of sec.recentLoginAttempts">
+                      <td class="font-mono text-xs text-muted">{{ att.attemptAt | date:'dd.MM.yyyy HH:mm:ss' }}</td>
+                      <td class="font-mono text-xs">{{ att.ip }}</td>
+                      <td>
+                        <span class="status-indicator" [class.active]="att.isSuccess" [class.danger-dot]="!att.isSuccess">
+                          <span class="dot"></span>
+                          {{ (att.isSuccess ? 'iam.uspeshno' : 'iam.oshibka') | t }}
+                        </span>
+                      </td>
+                      <td class="text-xs text-muted">{{ att.failureReason || '—' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Org Units Tab (use [hidden] to keep directive in DOM for spec tests) -->
+        <div [hidden]="activeViewTab() !== 'orgUnits'">
+          <app-user-org-units-panel
+            *ngIf="isViewModalOpen() && canViewOrgUnits() && safeRecordId(u.id)"
+            [userId]="u.id"
+            (busyChange)="orgPanelBusy.set($event)"
+          ></app-user-org-units-panel>
+        </div>
       </div>
       <div footer>
         <ui-button variant="secondary" size="md" (onClick)="closeRecordView()">{{ (routeRecordId() ? 'search.back_to_list' : 'audit.zakryt') | t }}</ui-button>
@@ -660,6 +980,24 @@ type SortDirection = 'asc' | 'desc';
       <div footer>
         <ui-button variant="secondary" size="md" (onClick)="isDeleteModalOpen.set(false)">{{ 'common.cancel' | t }}</ui-button>
         <ui-button variant="danger" size="md" [loading]="isSubmitting()" (onClick)="confirmDeleteUser()">{{ 'common.delete' | t }}</ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- ========================================================================= -->
+    <!-- Security Action Confirmation Modal                                        -->
+    <!-- ========================================================================= -->
+    <ui-modal
+      [isOpen]="isSecConfirmModalOpen()"
+      [title]="secConfirmConfig?.title || ('iam.podtverzhdenie_deystviya' | t)"
+      size="sm"
+      (close)="isSecConfirmModalOpen.set(false)"
+    >
+      <div body class="delete-body" *ngIf="secConfirmConfig as cfg">
+        <p class="delete-msg">{{ cfg.message }}</p>
+      </div>
+      <div footer *ngIf="secConfirmConfig as cfg">
+        <ui-button variant="secondary" size="md" (onClick)="isSecConfirmModalOpen.set(false)">{{ 'common.cancel' | t }}</ui-button>
+        <ui-button [variant]="cfg.confirmBtnVariant" size="md" [loading]="isSecurityActionPending()" (onClick)="confirmSecurityAction()">{{ cfg.confirmBtnText }}</ui-button>
       </div>
     </ui-modal>
   `,
@@ -806,6 +1144,74 @@ type SortDirection = 'asc' | 'desc';
       height: 6px;
       border-radius: 50%;
       background-color: var(--primary);
+    }
+
+    .active-filters-bar {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 6px 12px;
+      background-color: var(--bg-hover);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+    }
+    .active-filters-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .filter-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-main);
+      background: var(--bg-surface);
+      padding: 3px 8px;
+      border-radius: 9999px;
+      border: 1px solid var(--border-color);
+    }
+    .clear-pill-btn {
+      background: none;
+      border: none;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-radius: 50%;
+      width: 16px;
+      height: 16px;
+      transition: color 0.15s ease, background-color 0.15s ease;
+    }
+    .clear-pill-btn .material-symbols-outlined { font-size: 13px; }
+    .clear-pill-btn:hover {
+      color: var(--danger);
+      background-color: rgba(239, 68, 68, 0.1);
+    }
+    .reset-all-filters-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-muted);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 3px 8px;
+      border-radius: var(--radius-sm);
+      transition: color 0.15s ease, background-color 0.15s ease;
+    }
+    .reset-all-filters-btn .material-symbols-outlined { font-size: 15px; }
+    .reset-all-filters-btn:hover {
+      color: var(--danger);
+      background-color: rgba(239, 68, 68, 0.08);
     }
 
     .filter-dropdown {
@@ -1005,12 +1411,48 @@ type SortDirection = 'asc' | 'desc';
     .empty-ico { font-size: 32px; color: var(--text-light); margin-bottom: 4px; }
     .empty-text { font-size: 13px; margin: 0; }
 
-    .load-more {
-      padding: 8px;
+    .table-footer-bar {
       display: flex;
-      justify-content: center;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 6px 12px;
       border-top: 1px solid var(--border-color);
       background-color: var(--bg-hover);
+    }
+    .loaded-count-info {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .has-more-badge {
+      background-color: rgba(99, 102, 241, 0.08);
+      color: var(--primary);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      border: 1px solid rgba(99, 102, 241, 0.2);
+    }
+    .load-more-wrap {
+      display: flex;
+      align-items: center;
+    }
+
+    /* Accessibility focus indicators */
+    .user-identity:focus-visible,
+    .sort-button:focus-visible,
+    .status-tab:focus-visible,
+    .filter-trigger-btn:focus-visible,
+    .clear-pill-btn:focus-visible,
+    .reset-all-filters-btn:focus-visible,
+    .sec-action-btn:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+      border-radius: var(--radius-sm);
     }
 
     /* Minimal Modals */
@@ -1073,16 +1515,36 @@ type SortDirection = 'asc' | 'desc';
       display: flex;
       align-items: center;
     }
-    .pwd-wrapper .clean-input { width: 100%; padding-right: 32px; }
-    .pwd-btn {
+    .pwd-wrapper .clean-input { width: 100%; padding-right: 90px; }
+    .pwd-actions {
       position: absolute;
       right: 4px;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+    .pwd-btn {
       background: transparent;
       border: none;
       color: var(--text-muted);
       cursor: pointer;
-      display: flex;
-      padding: 2px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px;
+      border-radius: var(--radius-sm);
+      transition: color 0.15s ease, background-color 0.15s ease;
+    }
+    .pwd-btn:hover {
+      color: var(--text-main);
+      background-color: var(--bg-hover);
+    }
+    .pwd-btn:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 1px;
+    }
+    .pwd-btn .material-symbols-outlined {
+      font-size: 18px;
     }
     .clean-hint { font-size: 10px; color: var(--text-muted); }
     .field-error { font-size: 10px; color: var(--danger); }
@@ -1167,6 +1629,278 @@ type SortDirection = 'asc' | 'desc';
     .font-mono { font-family: monospace; }
     .text-xs { font-size: 11px; }
     .req { color: var(--danger); }
+
+    /* Password Strength Meter */
+    .pwd-strength-container {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 4px;
+      padding: 8px 10px;
+      background-color: var(--bg-hover);
+      border-radius: var(--radius-sm);
+    }
+    .pwd-meter-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .pwd-meter-bars {
+      display: flex;
+      gap: 4px;
+      flex: 1;
+    }
+    .pwd-bar {
+      height: 4px;
+      flex: 1;
+      border-radius: 2px;
+      background-color: var(--border-color);
+      transition: background-color 0.2s ease;
+    }
+    .pwd-strength-label {
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .pwd-checklist {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 10px;
+      margin-top: 4px;
+    }
+    .check-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .check-item.valid {
+      color: var(--success);
+    }
+    .check-ico {
+      font-size: 13px;
+    }
+
+    /* Modal Tabs */
+    .modal-tab-bar {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 2px;
+    }
+    .modal-tab-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      margin-bottom: -1px;
+    }
+    .modal-tab-btn:hover {
+      color: var(--text-main);
+    }
+    .modal-tab-btn.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+      font-weight: 600;
+    }
+    .tab-icon {
+      font-size: 16px;
+    }
+
+    /* Security Tab Content */
+    .security-tab-content {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .security-loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 30px;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+    .spin-icon {
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+
+    .security-details {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .sec-metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    .sec-metric-card {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 10px;
+      background-color: var(--bg-hover);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+    }
+    .sec-metric-lbl {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .sec-metric-val {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+    .sec-metric-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: var(--radius-xs);
+      width: fit-content;
+    }
+    .sec-metric-badge.success {
+      background-color: rgba(16, 185, 129, 0.12);
+      color: var(--success);
+    }
+    .sec-metric-badge.warning {
+      background-color: rgba(245, 158, 11, 0.12);
+      color: var(--warning);
+    }
+    .sec-metric-badge.muted {
+      background-color: var(--bg-surface);
+      color: var(--text-muted);
+    }
+    .metric-icon {
+      font-size: 13px;
+    }
+
+    /* Security Actions Bar */
+    .sec-actions-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding: 10px;
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+    }
+    .sec-action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid var(--border-color);
+      background-color: var(--bg-surface);
+      color: var(--text-main);
+      transition: all 0.15s ease;
+    }
+    .sec-action-btn:hover:not(:disabled) {
+      background-color: var(--bg-hover);
+    }
+    .sec-action-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .sec-action-btn .material-symbols-outlined {
+      font-size: 16px;
+    }
+    .sec-action-btn.warning {
+      border-color: rgba(245, 158, 11, 0.3);
+      color: var(--warning);
+    }
+    .sec-action-btn.warning:hover:not(:disabled) {
+      background-color: rgba(245, 158, 11, 0.08);
+    }
+    .sec-action-btn.danger {
+      border-color: rgba(239, 68, 68, 0.3);
+      color: var(--danger);
+    }
+    .sec-action-btn.danger:hover:not(:disabled) {
+      background-color: rgba(239, 68, 68, 0.08);
+    }
+
+    /* Security Sub-sections */
+    .sec-section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .sec-section-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .sec-section-title h4 {
+      font-size: 13px;
+      font-weight: 600;
+      margin: 0;
+      color: var(--text-main);
+    }
+    .sec-title-icon {
+      font-size: 16px;
+      color: var(--text-muted);
+    }
+    .count-pill {
+      font-size: 10px;
+      background-color: var(--bg-hover);
+      color: var(--text-muted);
+      padding: 1px 6px;
+      border-radius: 10px;
+      font-weight: 500;
+    }
+    .sec-empty-state {
+      padding: 14px;
+      text-align: center;
+      background-color: var(--bg-hover);
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+    .sec-table-scroll {
+      max-height: 220px;
+      overflow-y: auto;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+    }
+    .clean-table.compact th,
+    .clean-table.compact td {
+      padding: 6px 10px;
+    }
+    .text-truncate {
+      max-width: 250px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .danger-dot .dot {
+      background-color: var(--danger) !important;
+    }
+    .btn-icon.danger:hover {
+      color: var(--danger);
+      background-color: rgba(239, 68, 68, 0.1);
+    }
   `]
 })
 export class UsersComponent implements OnInit, OnDestroy {
@@ -1174,6 +1908,7 @@ export class UsersComponent implements OnInit, OnDestroy {
   private readonly recordRoute = inject(ActivatedRoute, { optional: true });
   private readonly recordRouter = inject(Router, { optional: true });
   private recordRouteSubscription?: Subscription;
+  private queryParamSubscription?: Subscription;
   private recordRequest?: Subscription;
   private panelLeaveSubscription?: Subscription;
   private recordRequestId = 0;
@@ -1191,10 +1926,13 @@ export class UsersComponent implements OnInit, OnDestroy {
   readonly roles = signal<Role[]>([]);
   readonly customFields = signal<CustomField[]>([]);
   readonly isLoading = signal<boolean>(false);
+  readonly isLoadingMore = signal<boolean>(false);
   readonly isSubmitting = signal<boolean>(false);
   readonly hasMore = signal<boolean>(false);
   readonly showPassword = signal<boolean>(false);
   readonly isFilterMenuOpen = signal<boolean>(false);
+  readonly isSecConfirmModalOpen = signal<boolean>(false);
+  secConfirmConfig: SecurityConfirmConfig | null = null;
   isCreateSubmitted = false;
   isEditSubmitted = false;
   nextCursor: string | null = null;
@@ -1219,6 +1957,11 @@ export class UsersComponent implements OnInit, OnDestroy {
   readonly isEditModalOpen = signal<boolean>(false);
   readonly isViewModalOpen = signal<boolean>(false);
   readonly isDeleteModalOpen = signal<boolean>(false);
+
+  readonly activeViewTab = signal<'info' | 'security' | 'orgUnits'>('info');
+  readonly userSecurity = signal<UserSecuritySummary | null>(null);
+  readonly isLoadingSecurity = signal<boolean>(false);
+  readonly isSecurityActionPending = signal<boolean>(false);
 
   viewingUser: User | null = null;
   editingUser: User | null = null;
@@ -1280,6 +2023,12 @@ export class UsersComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.recordRouteSubscription = this.recordRoute?.paramMap?.subscribe(params => this.loadRecordView(params.get('id')));
+    this.queryParamSubscription = this.recordRoute?.queryParamMap?.subscribe(params => {
+      const roleParam = params.get('roleId');
+      if (roleParam && !isNaN(Number(roleParam))) {
+        this.selectedRoleId = Number(roleParam);
+      }
+    });
     this.loadRoles();
     this.loadUsers(true);
     this.loadCustomFields();
@@ -1306,7 +2055,9 @@ export class UsersComponent implements OnInit, OnDestroy {
   }
 
   canViewOrgUnits(): boolean {
-    return this.permService.hasPermission('iam.org_units', 'view');
+    return this.permService.hasPermission('iam.org_units', 'view') ||
+           this.permService.hasPermission('iam.org_units', 'assign') ||
+           this.orgPanelBusy();
   }
 
   canLeaveRecordPage(): boolean | Observable<boolean> {
@@ -1316,12 +2067,13 @@ export class UsersComponent implements OnInit, OnDestroy {
   loadUsers(reset: boolean = false) {
     if (reset) {
       this.nextCursor = null;
+      this.isLoading.set(true);
+    } else {
+      this.isLoadingMore.set(true);
     }
 
-    this.isLoading.set(true);
-
     const params: any = {
-      limit: 20,
+      limit: 50,
       cursor: this.nextCursor || undefined,
       search: this.searchQuery ? this.searchQuery.trim() : undefined,
       state: this.selectedState || undefined,
@@ -1332,6 +2084,7 @@ export class UsersComponent implements OnInit, OnDestroy {
     this.api.get<KeysetPage<User>>('/iam/users', params).subscribe({
       next: res => {
         this.isLoading.set(false);
+        this.isLoadingMore.set(false);
         if (reset) {
           this.users.set(res.items || []);
         } else {
@@ -1342,8 +2095,15 @@ export class UsersComponent implements OnInit, OnDestroy {
       },
       error: () => {
         this.isLoading.set(false);
+        this.isLoadingMore.set(false);
       }
     });
+  }
+
+  loadMore() {
+    if (this.hasMore() && !this.isLoading() && !this.isLoadingMore()) {
+      this.loadUsers(false);
+    }
   }
 
   loadRoles() {
@@ -1373,6 +2133,29 @@ export class UsersComponent implements OnInit, OnDestroy {
   resetExtraFilters() {
     this.selectedRoleId = null;
     this.selected2fa = null;
+    this.loadUsers(true);
+  }
+
+  clearStateFilter(): void {
+    this.selectedState = '';
+    this.loadUsers(true);
+  }
+
+  clear2faFilter(): void {
+    this.selected2fa = null;
+    this.loadUsers(true);
+  }
+
+  hasAnyActiveFilters(): boolean {
+    return !!(this.selectedRoleId !== null || this.selected2fa !== null || this.selectedState || this.searchQuery.trim());
+  }
+
+  resetAllFilters(): void {
+    this.selectedRoleId = null;
+    this.selected2fa = null;
+    this.selectedState = '';
+    this.searchQuery = '';
+    this.recordRouter?.navigate([], { relativeTo: this.recordRoute, queryParams: { roleId: null }, queryParamsHandling: 'merge' });
     this.loadUsers(true);
   }
 
@@ -1460,10 +2243,23 @@ export class UsersComponent implements OnInit, OnDestroy {
     return this.users().filter(u => u.id !== currentUserId && u.state === 'A');
   }
 
+  getSelectedRoleName(): string {
+    if (!this.selectedRoleId) return '';
+    const role = this.roles().find(r => r.id === this.selectedRoleId);
+    return role ? role.name : String(this.selectedRoleId);
+  }
+
+  clearRoleFilter(): void {
+    this.selectedRoleId = null;
+    this.recordRouter?.navigate([], { relativeTo: this.recordRoute, queryParams: { roleId: null }, queryParamsHandling: 'merge' });
+    this.loadUsers(true);
+  }
+
   ngOnDestroy() {
     this.destroyed = true;
     this.panelLeaveSubscription?.unsubscribe();
     this.recordRouteSubscription?.unsubscribe();
+    this.queryParamSubscription?.unsubscribe();
     this.recordRequest?.unsubscribe();
     this.recordRequestId++;
     clearTimeout(this.searchDebounceTimer);
@@ -1479,6 +2275,8 @@ export class UsersComponent implements OnInit, OnDestroy {
     this.recordLoading.set(false);
     this.recordError.set(false);
     this.recordNotFound.set(false);
+    this.activeViewTab.set('info');
+    this.userSecurity.set(null);
     if (id === null) return;
     if (!canonicalRecordId(id)) {
       this.recordError.set(true); this.recordNotFound.set(true); return;
@@ -1519,6 +2317,8 @@ export class UsersComponent implements OnInit, OnDestroy {
     }
     this.afterOrgPanelLeave(() => {
       this.viewingUser = user;
+      this.activeViewTab.set('info');
+      this.userSecurity.set(null);
       this.isViewModalOpen.set(true);
     });
   }
@@ -1744,5 +2544,217 @@ export class UsersComponent implements OnInit, OnDestroy {
     link.click();
     document.body.removeChild(link);
     this.toast.success(this.uiI18n.translate('iam.eksport_vypolnen'));
+  }
+
+  switchViewTab(tab: 'info' | 'security' | 'orgUnits', userId?: number) {
+    this.activeViewTab.set(tab);
+    if (tab === 'security' && userId && (!this.userSecurity() || this.userSecurity()?.userId !== userId)) {
+      this.loadUserSecurity(userId);
+    }
+  }
+
+  loadUserSecurity(userId: number) {
+    this.isLoadingSecurity.set(true);
+    this.api.get<UserSecuritySummary>(`/iam/users/${userId}/security`).subscribe({
+      next: (res) => {
+        this.userSecurity.set(res);
+        this.isLoadingSecurity.set(false);
+      },
+      error: () => {
+        this.isLoadingSecurity.set(false);
+      }
+    });
+  }
+
+  terminateUserSessions(userId: number) {
+    this.secConfirmConfig = {
+      title: this.uiI18n.translate('iam.zavershit_vse_sessii'),
+      message: this.uiI18n.translate('iam.podtverdit_zavershenie_vseh_sessiy'),
+      confirmBtnText: this.uiI18n.translate('iam.vypolnit'),
+      confirmBtnVariant: 'danger',
+      action: () => {
+        this.isSecurityActionPending.set(true);
+        this.api.delete(`/iam/users/${userId}/sessions`).subscribe({
+          next: () => {
+            this.isSecurityActionPending.set(false);
+            this.isSecConfirmModalOpen.set(false);
+            this.toast.success(this.uiI18n.translate('iam.vse_sessii_zaversheny'));
+            this.loadUserSecurity(userId);
+          },
+          error: () => this.isSecurityActionPending.set(false)
+        });
+      }
+    };
+    this.isSecConfirmModalOpen.set(true);
+  }
+
+  terminateSingleSession(sessionId: number, userId: number) {
+    this.isSecurityActionPending.set(true);
+    this.api.delete(`/iam/sessions/${sessionId}`).subscribe({
+      next: () => {
+        this.isSecurityActionPending.set(false);
+        this.toast.success(this.uiI18n.translate('iam.sessiya_zavershena'));
+        this.loadUserSecurity(userId);
+      },
+      error: () => this.isSecurityActionPending.set(false)
+    });
+  }
+
+  forcePasswordChange(userId: number) {
+    this.secConfirmConfig = {
+      title: this.uiI18n.translate('iam.trebovanie_smeny_parolya'),
+      message: this.uiI18n.translate('iam.podtverdit_trebovanie_smeny_parolya'),
+      confirmBtnText: this.uiI18n.translate('iam.vypolnit'),
+      confirmBtnVariant: 'primary',
+      action: () => {
+        this.isSecurityActionPending.set(true);
+        this.api.post(`/iam/users/${userId}/force-password-change`).subscribe({
+          next: () => {
+            this.isSecurityActionPending.set(false);
+            this.isSecConfirmModalOpen.set(false);
+            this.toast.success(this.uiI18n.translate('iam.smena_parolya_potrebovana'));
+            this.loadUserSecurity(userId);
+            this.loadUsers(true);
+          },
+          error: () => this.isSecurityActionPending.set(false)
+        });
+      }
+    };
+    this.isSecConfirmModalOpen.set(true);
+  }
+
+  resetUser2fa(userId: number) {
+    this.secConfirmConfig = {
+      title: this.uiI18n.translate('iam.sbrosit_2fa'),
+      message: this.uiI18n.translate('iam.podtverdit_sbros_2fa'),
+      confirmBtnText: this.uiI18n.translate('iam.vypolnit'),
+      confirmBtnVariant: 'danger',
+      action: () => {
+        this.isSecurityActionPending.set(true);
+        this.api.post(`/iam/users/${userId}/reset-2fa`).subscribe({
+          next: () => {
+            this.isSecurityActionPending.set(false);
+            this.isSecConfirmModalOpen.set(false);
+            this.toast.success(this.uiI18n.translate('iam.2fa_sbroshena'));
+            this.loadUserSecurity(userId);
+            this.loadUsers(true);
+          },
+          error: () => this.isSecurityActionPending.set(false)
+        });
+      }
+    };
+    this.isSecConfirmModalOpen.set(true);
+  }
+
+  confirmSecurityAction(): void {
+    if (this.secConfirmConfig?.action) {
+      this.secConfirmConfig.action();
+    }
+  }
+
+  generateSecurePassword(): string {
+    const uppers = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    const lowers = 'abcdefghijkmnpqrstuvwxyz';
+    const digits = '23456789';
+    const symbols = '!@#$%&*';
+    const allChars = uppers + lowers + digits + symbols;
+
+    const getRandom = (charset: string) => {
+      if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+        const array = new Uint32Array(1);
+        crypto.getRandomValues(array);
+        return charset[array[0] % charset.length];
+      }
+      return charset[Math.floor(Math.random() * charset.length)];
+    };
+
+    let generated = '';
+    const login = (this.createForm.login || '').trim().toLowerCase();
+
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const pwdChars: string[] = [
+        getRandom(uppers),
+        getRandom(uppers),
+        getRandom(lowers),
+        getRandom(lowers),
+        getRandom(digits),
+        getRandom(digits),
+        getRandom(symbols),
+        getRandom(symbols)
+      ];
+
+      while (pwdChars.length < 14) {
+        pwdChars.push(getRandom(allChars));
+      }
+
+      for (let i = pwdChars.length - 1; i > 0; i--) {
+        const j = typeof crypto !== 'undefined' && crypto.getRandomValues
+          ? (() => { const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0] % (i + 1); })()
+          : Math.floor(Math.random() * (i + 1));
+        [pwdChars[i], pwdChars[j]] = [pwdChars[j], pwdChars[i]];
+      }
+
+      const candidate = pwdChars.join('');
+      if (!login || login.length < 3 || !candidate.toLowerCase().includes(login)) {
+        generated = candidate;
+        break;
+      }
+    }
+
+    if (!generated) {
+      generated = 'K9#mX2$vL5@wP8';
+    }
+
+    this.createForm.password = generated;
+    return generated;
+  }
+
+  async copyGeneratedPassword(): Promise<void> {
+    if (!this.createForm.password) return;
+    try {
+      if (typeof navigator !== 'undefined' && navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(this.createForm.password);
+      }
+      this.toast.success(this.uiI18n.translate('iam.parol_skopirovan_v_bufer'));
+    } catch {
+      this.toast.info(this.createForm.password);
+    }
+  }
+
+  passwordStrength(): { score: number; label: string; color: string } {
+    const pwd = this.createForm.password || '';
+    const login = this.createForm.login || '';
+    let score = 0;
+    if (pwd.length >= 10) score++;
+    if (/[a-z\u0430-\u044F\u0451]/.test(pwd) && /[A-Z\u0410-\u042F\u0401]/.test(pwd)) score++;
+    if (/[0-9]/.test(pwd) && /[^a-zA-Z0-9\u0430-\u044F\u0410-\u042F\u0451\u0401]/.test(pwd)) score++;
+    else if (/[0-9]/.test(pwd) || /[^a-zA-Z0-9\u0430-\u044F\u0410-\u042F\u0451\u0401]/.test(pwd)) score += 0.5;
+    if (login && login.length >= 3 && !pwd.toLowerCase().includes(login.toLowerCase())) score += 0.5;
+
+    if (score < 1.5) return { score: 1, label: this.uiI18n.translate('iam.parol_slabyy'), color: 'var(--danger)' };
+    if (score < 2.5) return { score: 2, label: this.uiI18n.translate('iam.parol_sredniy'), color: 'var(--warning)' };
+    if (score < 3.5) return { score: 3, label: this.uiI18n.translate('iam.parol_horoshiy'), color: '#3b82f6' };
+    return { score: 4, label: this.uiI18n.translate('iam.parol_otlichnyy'), color: 'var(--success)' };
+  }
+
+  hasMinLength(): boolean {
+    return (this.createForm.password || '').length >= 10;
+  }
+
+  hasUpperAndLower(): boolean {
+    const pwd = this.createForm.password || '';
+    return /[a-z\u0430-\u044F\u0451]/.test(pwd) && /[A-Z\u0410-\u042F\u0401]/.test(pwd);
+  }
+
+  hasDigitsOrSymbols(): boolean {
+    const pwd = this.createForm.password || '';
+    return /[0-9]/.test(pwd) || /[^a-zA-Z0-9\u0430-\u044F\u0410-\u042F\u0451\u0401]/.test(pwd);
+  }
+
+  doesNotContainLogin(): boolean {
+    const pwd = (this.createForm.password || '').toLowerCase();
+    const login = (this.createForm.login || '').trim().toLowerCase();
+    if (!login || login.length < 3) return true;
+    return !pwd.includes(login);
   }
 }

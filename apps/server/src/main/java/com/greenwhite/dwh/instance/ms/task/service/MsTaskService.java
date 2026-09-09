@@ -221,6 +221,14 @@ public class MsTaskService {
     public KeysetPage<MsTaskRepository.TaskRecord> listTasks(
             int limit, String cursor, Long projectId, Long statusId, String priority, String search,
             Boolean hideTerminal, Long currentUserId) {
+        return listTasks(limit, cursor, projectId, statusId, priority, search, hideTerminal,
+                null, null, null, currentUserId);
+    }
+
+    @Transactional(readOnly = true)
+    public KeysetPage<MsTaskRepository.TaskRecord> listTasks(
+            int limit, String cursor, Long projectId, Long statusId, String priority, String search,
+            Boolean hideTerminal, Long assignedUserId, Long reporterId, Boolean overdue, Long currentUserId) {
 
         Long afterId = null;
         if (cursor != null && !cursor.isBlank()) {
@@ -235,7 +243,7 @@ public class MsTaskService {
         int fetchLimit = limit + 1;
         List<MsTaskRepository.TaskRecord> tasks = taskRepository.listTasks(
                 fetchLimit, afterId, projectId, statusId, priority, search, hideTerminal,
-                scopeService.filterForTasks(currentUserId));
+                assignedUserId, reporterId, overdue, scopeService.filterForTasks(currentUserId));
 
         boolean hasMore = tasks.size() > limit;
         List<MsTaskRepository.TaskRecord> resultItems = hasMore ? tasks.subList(0, limit) : tasks;

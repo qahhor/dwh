@@ -20,6 +20,7 @@ import { UiFileUploadComponent } from '../../shared/ui/ui-file-upload.component'
 import { Task, Project, TaskStatus, TaskType, TaskComment, TaskMember, TaskDetailResponse, TaskFile } from '../../core/models/task.models';
 import { CustomField } from '../../core/models/custom-field.models';
 import { User } from '../../core/models/auth.models';
+import { AuthService } from '../../core/services/auth.service';
 import { KeysetPage } from '../../core/models/common.models';
 import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
 import { Subscription } from 'rxjs';
@@ -133,22 +134,68 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
 
       <!-- Linear-Style Toolbar -->
       <div class="toolbar">
-        <div class="search-field">
-          <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
-          <label class="sr-only" for="task-search">{{ 'tasks.poisk_zadach' | t }}</label>
-          <input
-            id="task-search"
-            name="taskSearch"
-            type="text"
-            class="search-input"
-            [placeholder]="'projects.poisk_po_nazvaniyu_ili_opisaniyu' | t"
-            [(ngModel)]="searchQuery"
-            (ngModelChange)="onTaskSearchChange($event)"
-            (keydown.enter)="applyTaskSearchImmediately(); $event.preventDefault()"
-          />
-          <button *ngIf="searchQuery" type="button" class="clear-btn" [attr.aria-label]="'tasks.ochistit_poisk_zadach' | t" (click)="clearSearch()">
-            <span class="material-symbols-outlined" aria-hidden="true">close</span>
-          </button>
+        <div class="toolbar-left-row">
+          <!-- Smart View Presets -->
+          <div class="preset-filter-group" role="group" [attr.aria-label]="'tasks.filtr_po_statusu' | t">
+            <button
+              type="button"
+              class="preset-btn"
+              [class.active]="activePreset === 'all'"
+              [attr.aria-pressed]="activePreset === 'all'"
+              (click)="setPreset('all')"
+            >
+              <span class="material-symbols-outlined preset-icon" aria-hidden="true">dashboard</span>
+              <span>{{ 'tasks.filter_preset_all' | t }}</span>
+            </button>
+            <button
+              type="button"
+              class="preset-btn"
+              [class.active]="activePreset === 'my'"
+              [attr.aria-pressed]="activePreset === 'my'"
+              (click)="setPreset('my')"
+            >
+              <span class="material-symbols-outlined preset-icon" aria-hidden="true">person</span>
+              <span>{{ 'tasks.filter_preset_my' | t }}</span>
+            </button>
+            <button
+              type="button"
+              class="preset-btn"
+              [class.active]="activePreset === 'reported'"
+              [attr.aria-pressed]="activePreset === 'reported'"
+              (click)="setPreset('reported')"
+            >
+              <span class="material-symbols-outlined preset-icon" aria-hidden="true">assignment_ind</span>
+              <span>{{ 'tasks.filter_preset_reported' | t }}</span>
+            </button>
+            <button
+              type="button"
+              class="preset-btn preset-overdue"
+              [class.active]="activePreset === 'overdue'"
+              [attr.aria-pressed]="activePreset === 'overdue'"
+              (click)="setPreset('overdue')"
+            >
+              <span class="material-symbols-outlined preset-icon" aria-hidden="true">error</span>
+              <span>{{ 'tasks.filter_preset_overdue' | t }}</span>
+            </button>
+          </div>
+
+          <div class="search-field">
+            <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
+            <label class="sr-only" for="task-search">{{ 'tasks.poisk_zadach' | t }}</label>
+            <input
+              id="task-search"
+              name="taskSearch"
+              type="text"
+              class="search-input"
+              [placeholder]="'projects.poisk_po_nazvaniyu_ili_opisaniyu' | t"
+              [(ngModel)]="searchQuery"
+              (ngModelChange)="onTaskSearchChange($event)"
+              (keydown.enter)="applyTaskSearchImmediately(); $event.preventDefault()"
+            />
+            <button *ngIf="searchQuery" type="button" class="clear-btn" [attr.aria-label]="'tasks.ochistit_poisk_zadach' | t" (click)="clearSearch()">
+              <span class="material-symbols-outlined" aria-hidden="true">close</span>
+            </button>
+          </div>
         </div>
 
         <div class="toolbar-controls">
@@ -242,7 +289,7 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
       <!-- VIEW 1: TABLE / LIST VIEW (Default View)                                -->
       <!-- ======================================================================= -->
       <div class="table-card" *ngIf="viewMode === 'table'">
-        <div class="table-wrapper" role="region" [attr.aria-label]="'tasks.tablica_zadach' | t" tabindex="0">
+        <div class="table-wrapper" *ngIf="tasks().length > 0" role="region" [attr.aria-label]="'tasks.tablica_zadach' | t" tabindex="0">
           <table class="data-table" [attr.aria-label]="'tasks.spisok_zadach' | t">
             <thead>
               <tr>
@@ -299,9 +346,22 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
                   <span class="text-muted" *ngIf="!t.projectId">—</span>
                 </td>
                 <td>
-                  <span class="priority-pill" [attr.data-priority]="t.priority">
-                    {{ getPriorityLabel(t.priority) }}
-                  </span>
+                  <div class="inline-priority-wrapper" (click)="$event.stopPropagation()">
+                    <select
+                      class="inline-priority-select"
+                      [attr.data-priority]="t.priority"
+                      [ngModel]="t.priority"
+                      (ngModelChange)="updatePriority(t.id, $event)"
+                      [disabled]="!canUpdateTask()"
+                      [attr.aria-label]="'common.priority' | t"
+                      [title]="'common.priority' | t"
+                    >
+                      <option value="low">{{ 'task.priority.low' | t }}</option>
+                      <option value="medium">{{ 'tasks.sredniy' | t }}</option>
+                      <option value="high">{{ 'task.priority.high' | t }}</option>
+                      <option value="critical">{{ 'tasks.kriticheskiy' | t }}</option>
+                    </select>
+                  </div>
                 </td>
                 <td>
                   <!-- Quick Status Changer Dropdown -->
@@ -320,18 +380,22 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
                   </div>
                 </td>
                 <td>
-                  <span
-                    *ngIf="t.endTime"
-                    class="deadline-pill"
-                    [class.overdue]="isOverdue(t.endTime, t.statusId)"
-                    [title]="'tasks.deadline_value' | t:{date: (t.endTime | date:'dd.MM.yyyy HH:mm') || ''}"
-                  >
-                    <span class="material-symbols-outlined ico" aria-hidden="true">
-                      {{ isOverdue(t.endTime, t.statusId) ? 'warning' : 'event' }}
+                  <ng-container *ngIf="getDeadlineInfo(t.endTime, t.statusId) as dl">
+                    <span
+                      *ngIf="dl.state !== 'none'"
+                      class="deadline-pill"
+                      [class.overdue]="dl.state === 'overdue'"
+                      [class.deadline-today]="dl.state === 'today'"
+                      [class.deadline-tomorrow]="dl.state === 'tomorrow'"
+                      [title]="'tasks.deadline_value' | t:{date: (t.endTime | date:'dd.MM.yyyy HH:mm') || ''}"
+                    >
+                      <span class="material-symbols-outlined ico" aria-hidden="true">
+                        {{ dl.state === 'overdue' ? 'warning' : (dl.state === 'today' ? 'alarm' : 'event') }}
+                      </span>
+                      {{ dl.label }}
                     </span>
-                    {{ t.endTime | date:'dd.MM.yyyy' }}
-                  </span>
-                  <span *ngIf="!t.endTime" class="text-muted">—</span>
+                    <span *ngIf="dl.state === 'none'" class="text-muted">—</span>
+                  </ng-container>
                 </td>
                 <td class="text-right actions-cell">
                   <div class="row-action-btns">
@@ -357,22 +421,20 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
                   </div>
                 </td>
               </tr>
-              <tr *ngIf="tasks().length === 0 && !isLoading() && !listLoadError()">
-                <td colspan="8" class="empty-state-cell">
-                  <span class="material-symbols-outlined icon" aria-hidden="true">task</span>
-                  <p>{{ 'tasks.zadachi_ne_naydeny' | t }}</p>
-                  <ui-button *ngIf="hasActiveFilters()" variant="secondary" size="sm" (onClick)="resetFilters()">
-                    {{ 'tasks.sbrosit_vse_filtry' | t }}
-                  </ui-button>
-                  <ui-button *ngIf="!hasActiveFilters() && canCreateTask()" variant="primary" size="sm" icon="add" (onClick)="openCreateTaskModal()">
-                    {{ 'task.new' | t }}
-                  </ui-button>
-                </td>
-              </tr>
             </tbody>
           </table>
         </div>
 
+        <div *ngIf="tasks().length === 0 && !isLoading() && !listLoadError()" class="empty-state-cell">
+          <span class="material-symbols-outlined icon" aria-hidden="true">task</span>
+          <p>{{ 'tasks.zadachi_ne_naydeny' | t }}</p>
+          <ui-button *ngIf="hasActiveFilters()" variant="secondary" size="sm" (onClick)="resetFilters()">
+            {{ 'tasks.sbrosit_vse_filtry' | t }}
+          </ui-button>
+          <ui-button *ngIf="!hasActiveFilters() && canCreateTask()" variant="primary" size="sm" icon="add" (onClick)="openCreateTaskModal()">
+            {{ 'task.new' | t }}
+          </ui-button>
+        </div>
       </div>
 
 
@@ -467,17 +529,22 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
 
               <!-- Card Bottom Row -->
               <div class="card-bottom-row" (click)="$event.stopPropagation()">
-                <span
-                  *ngIf="task.endTime"
-                  class="deadline-pill"
-                  [class.overdue]="isOverdue(task.endTime, task.statusId)"
-                >
-                  <span class="material-symbols-outlined ico">
-                    {{ isOverdue(task.endTime, task.statusId) ? 'warning' : 'event' }}
+                <ng-container *ngIf="getDeadlineInfo(task.endTime, task.statusId) as dl">
+                  <span
+                    *ngIf="dl.state !== 'none'"
+                    class="deadline-pill"
+                    [class.overdue]="dl.state === 'overdue'"
+                    [class.deadline-today]="dl.state === 'today'"
+                    [class.deadline-tomorrow]="dl.state === 'tomorrow'"
+                    [title]="'tasks.deadline_value' | t:{date: (task.endTime | date:'dd.MM.yyyy HH:mm') || ''}"
+                  >
+                    <span class="material-symbols-outlined ico">
+                      {{ dl.state === 'overdue' ? 'warning' : (dl.state === 'today' ? 'alarm' : 'event') }}
+                    </span>
+                    {{ dl.label }}
                   </span>
-                  {{ task.endTime | date:'dd.MM' }}
-                </span>
-                <span *ngIf="!task.endTime" class="text-muted text-xs">{{ 'tasks.bez_sroka' | t }}</span>
+                  <span *ngIf="dl.state === 'none'" class="text-muted text-xs">{{ 'tasks.bez_sroka' | t }}</span>
+                </ng-container>
 
                 <!-- Quick Move Buttons -->
                 <div class="kanban-move-actions" *ngIf="canUpdateTask()">
@@ -1552,6 +1619,47 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
       border-radius: var(--radius-md);
       padding: 8px 12px;
     }
+    .toolbar-left-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .preset-filter-group {
+      display: flex;
+      background-color: var(--bg-hover);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 2px;
+      gap: 2px;
+    }
+    .preset-btn {
+      border: none;
+      background: transparent;
+      min-height: 28px;
+      padding: 3px 9px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-muted);
+      border-radius: var(--radius-xs);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.1s ease;
+      white-space: nowrap;
+    }
+    .preset-btn:hover { color: var(--text-main); }
+    .preset-btn.active {
+      background-color: var(--bg-surface);
+      color: var(--text-main);
+      box-shadow: var(--shadow-sm);
+      font-weight: 600;
+    }
+    .preset-btn .preset-icon { font-size: 15px; color: var(--text-muted); }
+    .preset-btn.active .preset-icon { color: var(--primary); }
+    .preset-btn.preset-overdue.active { color: var(--danger); }
+    .preset-btn.preset-overdue.active .preset-icon { color: var(--danger); }
     .search-field {
       display: flex;
       align-items: center;
@@ -1772,6 +1880,42 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
     .priority-pill[data-priority="medium"] { background-color: var(--bg-hover); color: var(--text-muted); }
     .priority-pill[data-priority="low"] { background-color: var(--bg-hover); color: var(--text-light); }
 
+    /* Inline Priority Select */
+    .inline-priority-wrapper { display: inline-flex; align-items: center; }
+    .inline-priority-select {
+      border: 1px solid transparent;
+      border-radius: 10px;
+      padding: 2px 6px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      background-color: var(--bg-hover);
+      color: var(--text-muted);
+      outline: none;
+      transition: all 0.12s ease;
+      font-family: inherit;
+    }
+    .inline-priority-select:hover:not(:disabled) { border-color: var(--border-color); }
+    .inline-priority-select[data-priority="low"] {
+      background-color: rgba(16, 185, 129, 0.12);
+      color: #10b981;
+    }
+    .inline-priority-select[data-priority="medium"],
+    .inline-priority-select[data-priority="normal"] {
+      background-color: rgba(59, 130, 246, 0.12);
+      color: #3b82f6;
+    }
+    .inline-priority-select[data-priority="high"] {
+      background-color: rgba(245, 158, 11, 0.15);
+      color: #d97706;
+    }
+    .inline-priority-select[data-priority="critical"],
+    .inline-priority-select[data-priority="urgent"] {
+      background-color: rgba(239, 68, 68, 0.15);
+      color: #ef4444;
+    }
+    .inline-priority-select:disabled { cursor: default; }
+
     /* Inline Status Select */
     .inline-status-wrapper { display: inline-flex; align-items: center; gap: 5px; }
     .inline-status-select {
@@ -1798,6 +1942,7 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
       padding: 1px 6px;
       border-radius: 4px;
       border: 1px solid var(--border-color);
+      white-space: nowrap;
     }
     .deadline-pill .ico { font-size: 13px; }
     .deadline-pill.overdue {
@@ -1805,6 +1950,17 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
       background-color: var(--danger-bg);
       border-color: rgba(239,68,68,0.3);
       font-weight: 600;
+    }
+    .deadline-pill.deadline-today {
+      background-color: rgba(245, 158, 11, 0.15);
+      border-color: rgba(245, 158, 11, 0.35);
+      color: #d97706;
+      font-weight: 600;
+    }
+    .deadline-pill.deadline-tomorrow {
+      background-color: rgba(59, 130, 246, 0.12);
+      border-color: rgba(59, 130, 246, 0.3);
+      color: #2563eb;
     }
 
     .row-action-btns { display: inline-flex; gap: 4px; }
@@ -2517,7 +2673,9 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
 })
 export class TasksComponent implements OnInit, OnDestroy {
   private readonly uiI18n = inject(I18nService);
+  private readonly authService = inject(AuthService, { optional: true });
   private readonly recordRouter = inject(Router, { optional: true });
+  activePreset: 'all' | 'my' | 'reported' | 'overdue' = 'all';
   readonly routeRecordId = signal<string | null>(null);
   readonly detailNotFound = signal(false);
   readonly safeRecordId = safeNumericRecordId;
@@ -3013,6 +3171,19 @@ export class TasksComponent implements OnInit, OnDestroy {
       statusIdParam = this.statusFilterMode;
     }
 
+    let assignedUserIdParam: number | undefined = undefined;
+    let reporterIdParam: number | undefined = undefined;
+    let overdueParam: boolean | undefined = undefined;
+
+    const currentUserId = this.authService?.currentUser()?.id;
+    if (this.activePreset === 'my' && currentUserId) {
+      assignedUserIdParam = currentUserId;
+    } else if (this.activePreset === 'reported' && currentUserId) {
+      reporterIdParam = currentUserId;
+    } else if (this.activePreset === 'overdue') {
+      overdueParam = true;
+    }
+
     const requestId = ++this.listRequestId;
     this.listRequest?.unsubscribe();
     this.isLoading.set(true);
@@ -3024,7 +3195,10 @@ export class TasksComponent implements OnInit, OnDestroy {
       priority: this.selectedPriority || undefined,
       project_id: this.selectedProjectId || undefined,
       status_id: statusIdParam,
-      hide_terminal: hideTerminalParam
+      hide_terminal: hideTerminalParam,
+      assigned_user_id: assignedUserIdParam,
+      reporter_id: reporterIdParam,
+      overdue: overdueParam
     }).subscribe({
       next: res => {
         if (this.destroyed || requestId !== this.listRequestId) return;
@@ -3068,9 +3242,8 @@ export class TasksComponent implements OnInit, OnDestroy {
     return this.tasks();
   }
 
-
   hasActiveFilters(): boolean {
-    return !!this.searchQuery || !!this.selectedPriority || this.selectedProjectId !== null || this.statusFilterMode !== 'active';
+    return !!this.searchQuery || !!this.selectedPriority || this.selectedProjectId !== null || this.statusFilterMode !== 'active' || this.activePreset !== 'all';
   }
 
   clearSearch() {
@@ -3078,6 +3251,28 @@ export class TasksComponent implements OnInit, OnDestroy {
     this.cancelListRequestForFilterChange();
     this.searchQuery = '';
     this.loadTasks(true);
+  }
+
+  setPreset(preset: 'all' | 'my' | 'reported' | 'overdue') {
+    if (this.activePreset === preset) return;
+    this.activePreset = preset;
+    this.loadTasks(true);
+  }
+
+  updatePriority(taskId: number, newPriority: string) {
+    if (!safeNumericRecordId(taskId) || !newPriority) return;
+    this.api.patch(`/tasks/${taskId}`, { priority: newPriority }).subscribe({
+      next: () => {
+        this.toast.success(this.uiI18n.translate('tasks.priority_updated'));
+        this.tasks.update(list => list.map(t => t.id === taskId ? { ...t, priority: newPriority } : t));
+        if (this.selectedTask()?.id === taskId) {
+          this.selectedTask.update(t => t ? { ...t, priority: newPriority } : null);
+        }
+      },
+      error: err => {
+        this.toast.error(err.error?.message || this.uiI18n.translate('tasks.ne_udalos_izmenit_prioritet'));
+      }
+    });
   }
 
   setStatusFilterMode(mode: 'active' | 'all' | number) {
@@ -3092,6 +3287,7 @@ export class TasksComponent implements OnInit, OnDestroy {
     this.selectedPriority = '';
     this.selectedProjectId = null;
     this.statusFilterMode = 'active';
+    this.activePreset = 'all';
     this.loadTasks(true);
   }
 
@@ -3906,6 +4102,67 @@ export class TasksComponent implements OnInit, OnDestroy {
     return new Date(endTime).getTime() < Date.now();
   }
 
+  getDeadlineInfo(endTime: string | null | undefined, statusId: number): {
+    state: 'none' | 'overdue' | 'today' | 'tomorrow' | 'upcoming';
+    label: string;
+    detail?: string;
+  } {
+    if (!endTime) return { state: 'none', label: '—' };
+    const s = this.statuses().find(x => x.id === statusId);
+    if (s && s.isTerminal) {
+      const d = new Date(endTime);
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      return { state: 'upcoming', label: `${day}.${month}.${d.getFullYear()}` };
+    }
+
+    const targetDate = new Date(endTime);
+    const now = new Date();
+    const diffMs = targetDate.getTime() - now.getTime();
+
+    if (diffMs < 0) {
+      const overdueDays = Math.max(1, Math.floor(Math.abs(diffMs) / (1000 * 60 * 60 * 24)));
+      const day = String(targetDate.getDate()).padStart(2, '0');
+      const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+      return {
+        state: 'overdue',
+        label: this.uiI18n.translate('tasks.deadline_overdue_days', { days: overdueDays }),
+        detail: `${day}.${month}.${targetDate.getFullYear()}`
+      };
+    }
+
+    const isToday = targetDate.getFullYear() === now.getFullYear() &&
+                    targetDate.getMonth() === now.getMonth() &&
+                    targetDate.getDate() === now.getDate();
+    if (isToday) {
+      const hours = String(targetDate.getHours()).padStart(2, '0');
+      const mins = String(targetDate.getMinutes()).padStart(2, '0');
+      return {
+        state: 'today',
+        label: `${this.uiI18n.translate('tasks.deadline_today')}, ${hours}:${mins}`
+      };
+    }
+
+    const tomorrow = new Date(now);
+    tomorrow.setDate(now.getDate() + 1);
+    const isTomorrow = targetDate.getFullYear() === tomorrow.getFullYear() &&
+                      targetDate.getMonth() === tomorrow.getMonth() &&
+                      targetDate.getDate() === tomorrow.getDate();
+    if (isTomorrow) {
+      return {
+        state: 'tomorrow',
+        label: this.uiI18n.translate('tasks.deadline_tomorrow')
+      };
+    }
+
+    const day = String(targetDate.getDate()).padStart(2, '0');
+    const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+    return {
+      state: 'upcoming',
+      label: `${day}.${month}.${targetDate.getFullYear()}`
+    };
+  }
+
   getInvolveKindLabel(kind: string | undefined): string {
     switch (kind) {
       case 'R': return this.uiI18n.translate('task.responsible');
@@ -3933,8 +4190,37 @@ export class TasksComponent implements OnInit, OnDestroy {
 
   formatAttributes(attrs: any): Array<{ key: string; value: string }> {
     if (!this.hasAttributes(attrs)) return [];
+    const fields = this.taskCustomFields();
     return Object.entries(attrs)
       .filter(([k]) => k !== 'task_type')
-      .map(([k, v]) => ({ key: k, value: String(v) }));
+      .map(([k, v]) => {
+        const field = fields.find(f => f.code === k);
+        const keyLabel = field ? field.name : k;
+        let valueStr = String(v ?? '');
+        if (field?.fieldType === 'boolean') {
+          valueStr = v === true || v === 'true'
+            ? this.uiI18n.translate('common.yes')
+            : this.uiI18n.translate('common.no');
+        } else if (field?.fieldType === 'user_ref') {
+          const user = this.responsibleUsers().find(u => u.id === Number(v))
+            || this.observerUsers().find(u => u.id === Number(v));
+          if (user) {
+            valueStr = user.name || user.login;
+          }
+        } else if (field?.fieldType === 'select' && field.optionsJson) {
+          try {
+            const opts = JSON.parse(field.optionsJson);
+            if (Array.isArray(opts)) {
+              const matched = opts.find(o => typeof o === 'object' && o !== null ? o.value === v : o === v);
+              if (matched && typeof matched === 'object' && matched.label) {
+                valueStr = matched.label;
+              }
+            }
+          } catch {
+            // ignore
+          }
+        }
+        return { key: keyLabel, value: valueStr };
+      });
   }
 }
