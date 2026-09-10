@@ -2256,9 +2256,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/analytics/analytics.component.ts": {
-    "mtime": 1788928740.6741724,
-    "seen": 1788928940.383789,
-    "ast_hash": "69c2a94edcbab36c11b5a10e98464681",
+    "mtime": 1789066758.4563875,
+    "seen": 1789066847.4461145,
+    "ast_hash": "48bb26691f322c4238ee5019e4d8f8ae",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/announcements/announcements.component.spec.ts": {
@@ -4737,6 +4737,36 @@
     "mtime": 1789066260.2367356,
     "seen": 1789066457.2646496,
     "ast_hash": "82a066c611d50cf8c1bc9d274a4bfc5d",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/analytics/analytics.models.ts": {
+    "mtime": 1789066568.148012,
+    "seen": 1789066847.4461145,
+    "ast_hash": "5bd92ef018ac35097203aac0be582985",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/analytics/components/analytics-metrics-tiles.component.ts": {
+    "mtime": 1789066580.8886461,
+    "seen": 1789066847.4461145,
+    "ast_hash": "848ca9359d4dd559a52a3606a3bb75c8",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/analytics/components/analytics-projects-card.component.ts": {
+    "mtime": 1789066606.873294,
+    "seen": 1789066847.4461145,
+    "ast_hash": "e8ef9f3da31104958c150e952ee6b899",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/analytics/components/analytics-trend-chart.component.ts": {
+    "mtime": 1789066597.0650647,
+    "seen": 1789066847.4461145,
+    "ast_hash": "a0c03a1979e90e987bb80411b20cec79",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/analytics/components/analytics-workload-table.component.ts": {
+    "mtime": 1789066635.512788,
+    "seen": 1789066847.4461145,
+    "ast_hash": "090c298a36c9b8aefb27b2d938f9289c",
     "semantic_hash": ""
   }
 }
