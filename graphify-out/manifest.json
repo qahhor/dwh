@@ -2436,9 +2436,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/layout/command-palette/command-palette.component.ts": {
-    "mtime": 1788929778.0316882,
-    "seen": 1788930288.8413327,
-    "ast_hash": "ea692b35834c5b5f90b3712bf0686834",
+    "mtime": 1789071307.8921244,
+    "seen": 1789071390.2857032,
+    "ast_hash": "eb101adff4d5223d177df6428cc19b02",
     "semantic_hash": ""
   },
   "apps/web/src/app/shared/ui/markdown-link-sanitizer.ts": {
@@ -4941,6 +4941,24 @@
     "mtime": 1789071056.2811105,
     "seen": 1789071188.1745644,
     "ast_hash": "1f8601beab1f7dd02632299ded6c68e6",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/layout/command-palette/command-palette.models.ts": {
+    "mtime": 1789071270.470397,
+    "seen": 1789071390.2857032,
+    "ast_hash": "6ad01bf1ddf7a77b52ed9a3a3c4c45b2",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/layout/command-palette/components/command-palette-footer.component.ts": {
+    "mtime": 1789071289.605872,
+    "seen": 1789071390.2857032,
+    "ast_hash": "b89668194205de24eee54740b805b470",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/layout/command-palette/components/command-palette-results.component.ts": {
+    "mtime": 1789071289.605872,
+    "seen": 1789071390.2857032,
+    "ast_hash": "cf5b5563e434e1b95b81dda852fbf76f",
     "semantic_hash": ""
   }
 }
