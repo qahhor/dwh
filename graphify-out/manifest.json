@@ -2376,9 +2376,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/settings/settings.component.ts": {
-    "mtime": 1789066366.1910346,
-    "seen": 1789066457.2646496,
-    "ast_hash": "a32bba22fdecce4f38594fc2d2c220d3",
+    "mtime": 1789073512.405785,
+    "seen": 1789073581.517605,
+    "ast_hash": "6aebc9808094c6585bb710ac59e9b2fd",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/system/system.component.spec.ts": {
@@ -4734,9 +4734,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/settings/settings.models.ts": {
-    "mtime": 1789066260.2367356,
-    "seen": 1789066457.2646496,
-    "ast_hash": "82a066c611d50cf8c1bc9d274a4bfc5d",
+    "mtime": 1789073512.405285,
+    "seen": 1789073581.517605,
+    "ast_hash": "5fdb097fc9e0bb4c101642f976b80baa",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/analytics/analytics.models.ts": {
@@ -5049,6 +5049,12 @@
     "mtime": 1789072859.2829545,
     "seen": 1789072932.626974,
     "ast_hash": "a8ff663354fd2ef2f59dbb35975e170a",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/settings/settings.component.html": {
+    "mtime": 1789073496.240317,
+    "seen": 1789073581.517605,
+    "ast_hash": "9b7fb67082d2574a97316c33f39526b1",
     "semantic_hash": ""
   }
 }

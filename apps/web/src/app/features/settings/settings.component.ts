@@ -12,7 +12,7 @@ import { ThemeService } from '../../core/services/theme.service';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 import { SearchSettingsComponent } from './search/search-settings.component';
 import { NavigationSettingsComponent } from './navigation/navigation-settings.component';
-import { SettingsTab, LegacyLanguage } from './settings.models';
+import { SettingsTab, LegacyLanguage, filterKnownTranslations, readLegacyLanguages } from './settings.models';
 import { SettingsGeneralPanelComponent } from './components/settings-general-panel.component';
 import { SettingsSecurityPanelComponent } from './components/settings-security-panel.component';
 import { SettingsStoragePanelComponent } from './components/settings-storage-panel.component';
@@ -35,332 +35,8 @@ import { SettingsLanguagesPanelComponent } from './components/settings-languages
     SettingsPreferencesPanelComponent,
     SettingsLanguagesPanelComponent
   ],
-  template: `
-    <div class="settings-page">
-      <!-- Page Header -->
-      <div class="view-header">
-        <div class="header-left">
-          <h1 class="view-title">{{ 'settings.title' | t }}</h1>
-          <p class="view-subtitle">{{ 'settings.sistemnye_nastroyki' | t }}</p>
-        </div>
-        <div class="header-right">
-          <ui-button
-            variant="secondary"
-            icon="refresh"
-            [loading]="isLoading()"
-            [ariaLabel]="'common.refresh' | t"
-            (onClick)="loadAllSettings()"
-          >
-            {{ 'common.refresh' | t }}
-          </ui-button>
-        </div>
-      </div>
-
-      <!-- Error Banner -->
-      <div *ngIf="loadError()" class="load-error-banner" role="alert">
-        <span class="material-symbols-outlined" aria-hidden="true">error</span>
-        <span class="load-error-text">{{ loadError() }}</span>
-        <button type="button" class="btn btn-secondary btn-sm" (click)="loadAllSettings()">
-          {{ 'common.retry' | t }}
-        </button>
-      </div>
-
-      <!-- Tabs Navigation -->
-      <div class="toolbar">
-        <div class="status-tabs" role="tablist" [attr.aria-label]="'settings.razdely_nastroek' | t" (focusin)="onSettingsTabFocusIn($event)">
-          <button
-            *ngIf="canManageSystemSettings()"
-            id="settings-general-tab"
-            type="button"
-            role="tab"
-            class="status-tab"
-            [class.active]="activeTab === 'general'"
-            [attr.aria-selected]="activeTab === 'general'"
-            aria-controls="settings-general-panel"
-            (click)="setTab('general')"
-            (keydown)="onTabKeydown($event, 'general')"
-          >
-            <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">tune</span>
-            <span>{{ 'settings.tab.general' | t }}</span>
-          </button>
-
-          <button
-            *ngIf="canManageSystemSettings()"
-            id="settings-security-tab"
-            type="button"
-            role="tab"
-            class="status-tab"
-            [class.active]="activeTab === 'security'"
-            [attr.aria-selected]="activeTab === 'security'"
-            aria-controls="settings-security-panel"
-            (click)="setTab('security')"
-            (keydown)="onTabKeydown($event, 'security')"
-          >
-            <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">security</span>
-            <span>{{ 'settings.tab.security' | t }}</span>
-          </button>
-
-          <button
-            *ngIf="canManageSystemSettings()"
-            id="settings-storage-tab"
-            type="button"
-            role="tab"
-            class="status-tab"
-            [class.active]="activeTab === 'storage'"
-            [attr.aria-selected]="activeTab === 'storage'"
-            aria-controls="settings-storage-panel"
-            (click)="setTab('storage')"
-            (keydown)="onTabKeydown($event, 'storage')"
-          >
-            <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">cloud</span>
-            <span>{{ 'settings.tab.storage' | t }}</span>
-          </button>
-
-          <button
-            id="settings-preferences-tab"
-            type="button"
-            role="tab"
-            class="status-tab"
-            [class.active]="activeTab === 'preferences'"
-            [attr.aria-selected]="activeTab === 'preferences'"
-            aria-controls="settings-preferences-panel"
-            (click)="setTab('preferences')"
-            (keydown)="onTabKeydown($event, 'preferences')"
-          >
-            <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">person</span>
-            <span>{{ 'settings.tab.preferences' | t }}</span>
-          </button>
-
-          <button
-            *ngIf="canManageSystemSettings()"
-            id="settings-languages-tab"
-            type="button"
-            role="tab"
-            class="status-tab"
-            [class.active]="activeTab === 'languages'"
-            [attr.aria-selected]="activeTab === 'languages'"
-            aria-controls="settings-languages-panel"
-            (click)="setTab('languages')"
-            (keydown)="onTabKeydown($event, 'languages')"
-          >
-            <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">language</span>
-            <span>{{ 'settings.yazyki_i_lokalizaciya' | t }}</span>
-          </button>
-
-          <button
-            *ngIf="canViewSearchSettings()"
-            id="settings-search-tab"
-            type="button"
-            role="tab"
-            class="status-tab"
-            [class.active]="activeTab === 'search'"
-            [attr.aria-selected]="activeTab === 'search'"
-            aria-controls="settings-search-panel"
-            (click)="setTab('search')"
-            (keydown)="onTabKeydown($event, 'search')"
-          >
-            <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">manage_search</span>
-            <span>{{ 'settings.search.tab' | t }}</span>
-          </button>
-
-          <button
-            *ngIf="canViewNavigationSettings()"
-            id="settings-navigation-tab"
-            type="button"
-            role="tab"
-            class="status-tab"
-            [class.active]="activeTab === 'navigation'"
-            [attr.aria-selected]="activeTab === 'navigation'"
-            aria-controls="settings-navigation-panel"
-            (click)="setTab('navigation')"
-            (keydown)="onTabKeydown($event, 'navigation')"
-          >
-            <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">menu_open</span>
-            <span>{{ 'settings.navigation.tab' | t }}</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- TAB: Search Settings -->
-      <div id="settings-search-panel" class="tab-content" role="tabpanel" aria-labelledby="settings-search-tab" *ngIf="activeTab === 'search' && canViewSearchSettings()">
-        <app-search-settings />
-      </div>
-
-      <!-- TAB: Navigation Settings -->
-      <div id="settings-navigation-panel" class="tab-content" role="tabpanel" aria-labelledby="settings-navigation-tab" *ngIf="activeTab === 'navigation' && canViewNavigationSettings()">
-        <app-navigation-settings />
-      </div>
-
-      <!-- TAB 1: General Settings -->
-      <div id="settings-general-panel" class="tab-content" role="tabpanel" aria-labelledby="settings-general-tab" *ngIf="activeTab === 'general' && canManageSystemSettings()">
-        <app-settings-general-panel
-          [systemSettings]="systemSettings()"
-          [canUpdateSystemSettings]="canUpdateSystemSettings()"
-          [isSaving]="isSaving()"
-          [languages]="i18n.languages()"
-          (save)="saveSystemSettings()"
-        />
-      </div>
-
-      <!-- TAB 2: Security Settings -->
-      <div id="settings-security-panel" class="tab-content" role="tabpanel" aria-labelledby="settings-security-tab" *ngIf="activeTab === 'security' && canManageSystemSettings()">
-        <app-settings-security-panel
-          [systemSettings]="systemSettings()"
-          [canUpdateSystemSettings]="canUpdateSystemSettings()"
-          [isSaving]="isSaving()"
-          (save)="saveSystemSettings()"
-          (toggleRequire2fa)="toggleRequire2fa($event)"
-        />
-      </div>
-
-      <!-- TAB 3: Storage Settings -->
-      <div id="settings-storage-panel" class="tab-content" role="tabpanel" aria-labelledby="settings-storage-tab" *ngIf="activeTab === 'storage' && canManageSystemSettings()">
-        <app-settings-storage-panel
-          [systemSettings]="systemSettings()"
-          [canUpdateSystemSettings]="canUpdateSystemSettings()"
-          [isSaving]="isSaving()"
-          (save)="saveSystemSettings()"
-        />
-      </div>
-
-      <!-- TAB 4: User Preferences -->
-      <div id="settings-preferences-panel" class="tab-content" role="tabpanel" aria-labelledby="settings-preferences-tab" *ngIf="activeTab === 'preferences'">
-        <app-settings-preferences-panel
-          [userSettings]="userSettings()"
-          [isSaving]="isSaving()"
-          [currentLang]="i18n.currentLang()"
-          [languages]="i18n.languages()"
-          [userThemePreference]="userThemePreference()"
-          (save)="saveUserSettings()"
-          (changeLanguage)="changePersonalLang($event)"
-          (themeChange)="onThemeChange($event)"
-          (toggleSound)="toggleSound($event)"
-        />
-      </div>
-
-      <!-- TAB 5: Languages & Translations -->
-      <div id="settings-languages-panel" class="tab-content" role="tabpanel" aria-labelledby="settings-languages-tab" *ngIf="activeTab === 'languages' && canManageSystemSettings()">
-        <app-settings-languages-panel
-          [canUpdateSystemSettings]="canUpdateSystemSettings()"
-          [editingLanguageCode]="editingLanguageCode()"
-          [legacyLanguageCount]="legacyLanguageCount()"
-          [isMigratingLegacyLanguages]="isMigratingLegacyLanguages()"
-          [languages]="i18n.languages()"
-          [currentLang]="i18n.currentLang()"
-          [isAddLangModalOpen]="isAddLangModalOpen()"
-          [isAddingLang]="isAddingLang()"
-          [newLangCode]="newLangCode"
-          [newLangName]="newLangName"
-          [newLangJson]="newLangJson"
-          (openLanguageEditor)="openLanguageEditor($event)"
-          (closeLanguageEditor)="editingLanguageCode.set(null)"
-          (languageSaved)="onLanguageSaved()"
-          (migrateLegacyLanguages)="migrateLegacyLanguages()"
-          (openAddLangModal)="openAddLangModal()"
-          (closeAddLangModal)="isAddLangModalOpen.set(false)"
-          (saveNewLanguage)="saveNewLanguage()"
-          (exportLangJson)="exportLangJson($event)"
-          (switchLanguage)="switchLanguage($event)"
-          (newLangCodeChange)="newLangCode = $event"
-          (newLangNameChange)="newLangName = $event"
-          (newLangJsonChange)="newLangJson = $event"
-        />
-      </div>
-    </div>
-  `,
-  styles: [`
-    .settings-page {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-      padding: 0;
-      width: 100%;
-      min-width: 0;
-      max-width: 1280px;
-      margin: 0 auto;
-    }
-
-    .toolbar {
-      width: 100%;
-      min-width: 0;
-      max-width: 100%;
-      flex-wrap: nowrap;
-      overflow-x: auto;
-      overscroll-behavior-x: contain;
-    }
-
-    .status-tabs {
-      min-width: max-content;
-      flex: 0 0 max-content;
-      margin-inline: 8px;
-    }
-
-    .view-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .header-left {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .view-title {
-      font-size: 24px;
-      font-weight: 700;
-      color: var(--text-main);
-      margin: 0;
-    }
-
-    .view-subtitle {
-      font-size: 13px;
-      color: var(--text-light);
-    }
-
-    .load-error-banner {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 16px;
-      border-radius: 8px;
-      background: var(--danger-bg);
-      color: var(--danger);
-      border: 1px solid var(--danger);
-    }
-
-    .load-error-text {
-      flex: 1;
-      font-size: 14px;
-    }
-
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 8px 14px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      border: 1px solid transparent;
-      transition: all 0.15s ease;
-    }
-    .btn-sm {
-      padding: 4px 8px;
-      font-size: 12px;
-      border-radius: 6px;
-    }
-    .btn-secondary {
-      background: var(--bg-surface);
-      border-color: var(--border-color);
-      color: var(--text-main);
-    }
-    .btn-secondary:hover {
-      background: var(--bg-hover);
-    }
-  `]
+  templateUrl: './settings.component.html',
+  styleUrl: './settings.component.css'
 })
 export class SettingsComponent implements OnInit, OnDestroy {
   private readonly uiI18n = inject(I18nService);
@@ -406,7 +82,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
     } else if (!this.canManageSystemSettings()) {
       this.activeTab = 'preferences';
     }
-    this.legacyLanguageCount.set(Object.keys(this.readLegacyLanguages()).length);
+    this.legacyLanguageCount.set(Object.keys(readLegacyLanguages()).length);
     this.loadAllSettings();
   }
 
@@ -599,7 +275,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
   }
 
   migrateLegacyLanguages(): void {
-    const legacyLanguages = this.readLegacyLanguages();
+    const legacyLanguages = readLegacyLanguages();
     const entries = Object.entries(legacyLanguages);
     if (entries.length === 0 || !this.canUpdateSystemSettings()) return;
     if (!window.confirm(
@@ -791,7 +467,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
     legacy: LegacyLanguage,
     knownKeys: Set<string>
   ): Observable<unknown> {
-    const translations = this.filterKnownTranslations(legacy.dict, knownKeys);
+    const translations = filterKnownTranslations(legacy.dict, knownKeys);
     const existing = this.i18n.languages().some(language => language.code === code);
     if (!existing) {
       return this.i18n.registerLanguage(code, legacy.name, translations);
@@ -812,35 +488,4 @@ export class SettingsComponent implements OnInit, OnDestroy {
     );
   }
 
-  private filterKnownTranslations(
-    dictionary: TranslationDictionary,
-    knownKeys: Set<string>
-  ): TranslationDictionary {
-    return Object.fromEntries(Object.entries(dictionary).filter(([key, value]) =>
-      knownKeys.has(key) && typeof value === 'string' && value.trim().length > 0 && value.length <= 4000
-    ));
-  }
-
-  private readLegacyLanguages(): Record<string, LegacyLanguage> {
-    try {
-      const parsed: unknown = JSON.parse(localStorage.getItem('dwh_custom_languages') ?? '{}');
-      if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') return {};
-      const result: Record<string, LegacyLanguage> = {};
-      for (const [rawCode, rawEntry] of Object.entries(parsed)) {
-        const code = rawCode.trim().toLowerCase();
-        if (!/^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/.test(code)
-            || !rawEntry || Array.isArray(rawEntry) || typeof rawEntry !== 'object') continue;
-        const entry = rawEntry as { name?: unknown; dict?: unknown };
-        if (typeof entry.name !== 'string' || !entry.name.trim()
-            || !entry.dict || Array.isArray(entry.dict) || typeof entry.dict !== 'object') continue;
-        const dict = Object.fromEntries(Object.entries(entry.dict).filter((pair): pair is [string, string] =>
-          typeof pair[1] === 'string'
-        ));
-        result[code] = { name: entry.name.trim(), dict };
-      }
-      return result;
-    } catch {
-      return {};
-    }
-  }
 }
