@@ -2376,9 +2376,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/settings/settings.component.ts": {
-    "mtime": 1788978232.2878528,
-    "seen": 1788978401.7634761,
-    "ast_hash": "5398b0c4cf53fa3801dedef935daaa37",
+    "mtime": 1789066366.1910346,
+    "seen": 1789066457.2646496,
+    "ast_hash": "a32bba22fdecce4f38594fc2d2c220d3",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/system/system.component.spec.ts": {
@@ -4701,6 +4701,42 @@
     "mtime": 1789065948.8568356,
     "seen": 1789066147.5816085,
     "ast_hash": "0f54c4e122870938a0acf1b3ff84231e",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/settings/components/settings-general-panel.component.ts": {
+    "mtime": 1789066276.5924206,
+    "seen": 1789066457.2646496,
+    "ast_hash": "7bcb353f17ff400fdc39e4e1829d7edd",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/settings/components/settings-languages-panel.component.ts": {
+    "mtime": 1789066320.1973188,
+    "seen": 1789066457.2646496,
+    "ast_hash": "c896bb0d156c6738be6ed3bfcc2bfaba",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/settings/components/settings-preferences-panel.component.ts": {
+    "mtime": 1789066305.6319644,
+    "seen": 1789066457.2646496,
+    "ast_hash": "49147a5a22062724d566c0392131ae12",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/settings/components/settings-security-panel.component.ts": {
+    "mtime": 1789066287.3248699,
+    "seen": 1789066457.2646496,
+    "ast_hash": "04a48b80d2f0814f15890be978eb052d",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/settings/components/settings-storage-panel.component.ts": {
+    "mtime": 1789066296.0253808,
+    "seen": 1789066457.2646496,
+    "ast_hash": "041f049c809b62118292a97106e5eb31",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/settings/settings.models.ts": {
+    "mtime": 1789066260.2367356,
+    "seen": 1789066457.2646496,
+    "ast_hash": "82a066c611d50cf8c1bc9d274a4bfc5d",
     "semantic_hash": ""
   }
 }
