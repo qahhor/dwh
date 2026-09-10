@@ -19,6 +19,7 @@ import { KeysetPage } from '../../../core/models/common.models';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { UserOrgUnitsPanelComponent } from '../org-units/public-api';
 import { UserFilterBarComponent } from './components/user-filter-bar.component';
+import { UserTableViewComponent } from './components/user-table-view.component';
 
 type SortColumn = 'id' | 'name' | 'login' | 'createdAt';
 type SortDirection = 'asc' | 'desc';
@@ -43,7 +44,8 @@ export interface SecurityConfirmConfig {
     UserOrgUnitsPanelComponent,
     UiCustomFieldsComponent,
     UiPaginationComponent,
-    UserFilterBarComponent
+    UserFilterBarComponent,
+    UserTableViewComponent
   ],
 
 
@@ -104,170 +106,35 @@ export interface SecurityConfirmConfig {
         (resetAllFilters)="resetAllFilters()"
       ></app-user-filter-bar>
 
-      <!-- Minimal Data Table -->
-      <div class="table-container" role="region" [attr.aria-label]="'iam.tablica_polzovateley' | t" tabindex="0">
-        <table class="clean-table" [attr.aria-label]="'iam.spisok_polzovateley' | t">
-          <thead>
-            <tr>
-              <th class="th-sort">
-                <button type="button" class="sort-button" (click)="changeSort('name')" [attr.aria-pressed]="sortColumn === 'name'">
-                  {{ 'audit.polzovatel' | t }}
-                  <span class="material-symbols-outlined sort-ico" aria-hidden="true" *ngIf="sortColumn === 'name'">
-                    {{ sortDirection === 'asc' ? 'north' : 'south' }}
-                  </span>
-                </button>
-              </th>
-              <th>{{ 'iam.kontakty' | t }}</th>
-              <th>{{ 'iam.roli' | t }}</th>
-              <th>{{ 'iam.rukovoditel' | t }}</th>
-              <th class="text-center" style="width: 70px;">2FA</th>
-              <th style="width: 110px;">{{ 'common.status' | t }}</th>
-              <th class="th-sort text-right" style="width: 110px;">
-                <button type="button" class="sort-button align-right" (click)="changeSort('createdAt')" [attr.aria-pressed]="sortColumn === 'createdAt'">
-                  {{ 'iam.sozdan' | t }}
-                  <span class="material-symbols-outlined sort-ico" aria-hidden="true" *ngIf="sortColumn === 'createdAt'">
-                    {{ sortDirection === 'asc' ? 'north' : 'south' }}
-                  </span>
-                </button>
-              </th>
-              <th class="text-right" style="width: 140px;"></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let u of paginatedUsers()" class="table-row">
-              <td>
-                <button type="button" class="user-identity" (click)="openViewModal(u)" [attr.aria-label]="'iam.open_user_profile_named' | t:{name: u.name}">
-                  <div class="avatar" [style.background-color]="getAvatarBgColor(u.name)">
-                    {{ getUserInitial(u) }}
-                  </div>
-                  <div class="identity-info">
-                    <span class="full-name">{{ u.name }}</span>
-                    <span class="login-handle font-mono">&#64;{{ u.login }}</span>
-                  </div>
-                </button>
-              </td>
-              <td>
-                <div class="contacts-cell">
-                  <span class="contact-email">{{ u.email }}</span>
-                  <span class="contact-phone font-mono" *ngIf="u.phone">{{ u.phone }}</span>
-                </div>
-              </td>
-              <td>
-                <div class="roles-wrap">
-                  <span *ngFor="let rName of getUserRoleNames(u)" class="role-pill">
-                    {{ rName }}
-                  </span>
-                  <span *ngIf="getUserRoleNames(u).length === 0" class="muted-dash">—</span>
-                </div>
-              </td>
-              <td>
-                <span class="manager-text" *ngIf="getManagerName(u) as mName">{{ mName }}</span>
-                <span class="muted-dash" *ngIf="!getManagerName(u)">—</span>
-              </td>
-              <td class="text-center">
-                <span
-                  class="material-symbols-outlined twofa-dot"
-                  [class.active]="u.is2faEnabled"
-                  [title]="(u.is2faEnabled ? 'iam.two_factor_enabled' : 'iam.two_factor_disabled_short') | t"
-                  [attr.aria-label]="(u.is2faEnabled ? 'iam.two_factor_enabled' : 'iam.two_factor_disabled_short') | t"
-                >
-                  {{ u.is2faEnabled ? 'check_circle' : 'remove' }}
-                </span>
-              </td>
-              <td>
-                <span class="status-indicator" [class.active]="u.state === 'A'">
-                  <span class="dot"></span>
-                  {{ (u.state === 'A' ? 'common.active_masculine' : 'common.disabled_masculine') | t }}
-                </span>
-              </td>
-              <td class="text-right text-muted font-mono text-xs">{{ u.createdAt | date:'dd.MM.yyyy' }}</td>
-              <td class="text-right row-actions">
-                <ui-button
-                  variant="ghost"
-                  size="sm"
-                  icon="visibility"
-                  [ariaLabel]="'iam.view_user_named' | t:{name: u.name}"
-                  [title]="'iam.prosmotr' | t"
-                  (onClick)="openViewModal(u)"
-                ></ui-button>
-                <ui-button
-                  *ngIf="canUpdateUser()"
-                  variant="ghost"
-                  size="sm"
-                  icon="edit"
-                  [ariaLabel]="'iam.edit_user_named' | t:{name: u.name}"
-                  [title]="'common.edit' | t"
-                  (onClick)="openEditModal(u)"
-                ></ui-button>
-                <ui-button
-                  *ngIf="u.state === 'A' && canBlockUser()"
-                  variant="ghost"
-                  size="sm"
-                  icon="lock"
-                  [ariaLabel]="'iam.block_user_named' | t:{name: u.name}"
-                  [title]="'common.block' | t"
-                  (onClick)="toggleUserState(u, 'block')"
-                ></ui-button>
-                <ui-button
-                  *ngIf="u.state === 'P' && canUnblockUser()"
-                  variant="ghost"
-                  size="sm"
-                  icon="lock_open"
-                  [ariaLabel]="'iam.unblock_user_named' | t:{name: u.name}"
-                  [title]="'common.unblock' | t"
-                  (onClick)="toggleUserState(u, 'unblock')"
-                ></ui-button>
-                <ui-button
-                  *ngIf="u.login !== 'admin' && canDeleteUser()"
-                  variant="ghost"
-                  size="sm"
-                  icon="delete"
-                  [ariaLabel]="'iam.delete_user_named' | t:{name: u.name}"
-                  [title]="'common.delete' | t"
-                  (onClick)="openDeleteConfirmModal(u)"
-                ></ui-button>
-              </td>
-            </tr>
-
-            <tr *ngIf="users().length === 0 && !isLoading()">
-              <td colspan="8" class="empty-state">
-                <span class="material-symbols-outlined empty-ico" aria-hidden="true">search_off</span>
-                <p class="empty-text">{{ 'iam.polzovateli_ne_naydeny' | t }}</p>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
-        <!-- Table Footer / Keyset pagination & load more bar -->
-        <div class="table-footer-bar">
-          <div class="loaded-count-info">
-            <span>{{ 'iam.pokazano_polzovateley' | t:{count: users().length} }}</span>
-            <span *ngIf="hasMore()" class="has-more-badge">{{ 'iam.est_esche' | t }}</span>
-          </div>
-
-          <div class="load-more-wrap" *ngIf="hasMore()">
-            <ui-button
-              variant="secondary"
-              size="sm"
-              icon="arrow_downward"
-              [loading]="isLoadingMore()"
-              (onClick)="loadMore()"
-            >
-              {{ 'iam.zagruzit_esche' | t }}
-            </ui-button>
-          </div>
-
-          <!-- Pagination -->
-          <ui-pagination
-            [totalItems]="sortedUsers().length"
-            [currentPage]="currentPage"
-            [pageSize]="pageSize"
-            (pageChange)="currentPage = $event"
-            (pageSizeChange)="pageSize = $event; currentPage = 1"
-          ></ui-pagination>
-        </div>
-      </div>
-
+      <!-- Minimal Data Table (Delegated Component) -->
+      <app-user-table-view
+        [users]="users()"
+        [paginatedUsers]="paginatedUsers()"
+        [totalItems]="sortedUsers().length"
+        [sortColumn]="sortColumn"
+        [sortDirection]="sortDirection"
+        [isLoading]="isLoading()"
+        [hasMore]="hasMore()"
+        [isLoadingMore]="isLoadingMore()"
+        [currentPage]="currentPage"
+        [pageSize]="pageSize"
+        [canUpdateUser]="canUpdateUser()"
+        [canBlockUser]="canBlockUser()"
+        [canUnblockUser]="canUnblockUser()"
+        [canDeleteUser]="canDeleteUser()"
+        [getUserInitial]="getUserInitialFn"
+        [getAvatarBgColor]="getAvatarBgColorFn"
+        [getUserRoleNames]="getUserRoleNamesFn"
+        [getManagerName]="getManagerNameFn"
+        (sortChange)="changeSort($event)"
+        (viewUser)="openViewModal($event)"
+        (editUser)="openEditModal($event)"
+        (toggleState)="toggleUserState($event.user, $event.action)"
+        (deleteUser)="openDeleteConfirmModal($event)"
+        (loadMore)="loadMore()"
+        (pageChange)="currentPage = $event"
+        (pageSizeChange)="pageSize = $event; currentPage = 1"
+      ></app-user-table-view>
     </div>
 
     <!-- ========================================================================= -->
@@ -1785,6 +1652,11 @@ export interface SecurityConfirmConfig {
   `]
 })
 export class UsersComponent implements OnInit, OnDestroy {
+  readonly getUserInitialFn = (u: User) => this.getUserInitial(u);
+  readonly getAvatarBgColorFn = (name: string) => this.getAvatarBgColor(name);
+  readonly getUserRoleNamesFn = (u: User) => this.getUserRoleNames(u);
+  readonly getManagerNameFn = (u: User) => this.getManagerName(u);
+
   private readonly uiI18n = inject(I18nService);
   private readonly recordRoute = inject(ActivatedRoute, { optional: true });
   private readonly recordRouter = inject(Router, { optional: true });
