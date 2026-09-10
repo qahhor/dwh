@@ -4554,9 +4554,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/tasks/components/task-kanban-view.component.ts": {
-    "mtime": 1789024702.4771888,
-    "seen": 1789024782.4328713,
-    "ast_hash": "9bec95662641ebb651088135a6f3a84b",
+    "mtime": 1789072546.1795857,
+    "seen": 1789072633.1079443,
+    "ast_hash": "57b78aee897783b4bad443cc7a3cbcc4",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/tasks/components/task-table-view.component.ts": {
@@ -4788,9 +4788,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/iam/profile/components/profile-tokens-card.component.ts": {
-    "mtime": 1789067152.9388666,
-    "seen": 1789067272.2996194,
-    "ast_hash": "8f67ddd3afb56892967dcb8ae44bcba9",
+    "mtime": 1789072546.1800861,
+    "seen": 1789072633.1079443,
+    "ast_hash": "bf23f8f1844c5b30079dba4647a57d81",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/iam/profile/components/user-profile-card.component.ts": {

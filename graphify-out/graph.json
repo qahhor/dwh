@@ -1678,7 +1678,7 @@
       "file_type": "code",
       "norm_label": "profiletokenscardcomponent",
       "source_file": "apps/web/src/app/features/iam/profile/components/profile-tokens-card.component.ts",
-      "source_location": "L482"
+      "source_location": "L192"
     },
     {
       "id": "apps_web_src_app_features_iam_profile_components_user_profile_card_component_userprofilecardcomponent",
@@ -8724,7 +8724,7 @@
       "file_type": "code",
       "norm_label": "taskkanbanviewcomponent",
       "source_file": "apps/web/src/app/features/tasks/components/task-kanban-view.component.ts",
-      "source_location": "L389"
+      "source_location": "L160"
     },
     {
       "id": "apps_server_src_main_java_com_greenwhite_dwh_instance_kauth_security_kauthsecuritycontext_kauthprincipal",
@@ -45549,7 +45549,7 @@
       "file_type": "code",
       "norm_label": ".gettasksbystatus()",
       "source_file": "apps/web/src/app/features/tasks/components/task-kanban-view.component.ts",
-      "source_location": "L416"
+      "source_location": "L187"
     },
     {
       "id": "apps_web_src_app_features_tasks_components_task_kanban_view_component_taskkanbanviewcomponent_isfirststatus",
@@ -45561,7 +45561,7 @@
       "file_type": "code",
       "norm_label": ".isfirststatus()",
       "source_file": "apps/web/src/app/features/tasks/components/task-kanban-view.component.ts",
-      "source_location": "L420"
+      "source_location": "L191"
     },
     {
       "id": "apps_web_src_app_features_tasks_components_task_kanban_view_component_taskkanbanviewcomponent_islaststatus",
@@ -45573,7 +45573,7 @@
       "file_type": "code",
       "norm_label": ".islaststatus()",
       "source_file": "apps/web/src/app/features/tasks/components/task-kanban-view.component.ts",
-      "source_location": "L424"
+      "source_location": "L195"
     },
     {
       "id": "apps_web_src_app_features_tasks_components_task_kanban_view_component_taskkanbanviewcomponent_movetaskstatus",
@@ -45585,7 +45585,7 @@
       "file_type": "code",
       "norm_label": ".movetaskstatus()",
       "source_file": "apps/web/src/app/features/tasks/components/task-kanban-view.component.ts",
-      "source_location": "L428"
+      "source_location": "L199"
     },
     {
       "id": "apps_web_src_app_features_tasks_components_task_kanban_view_component_taskkanbanviewcomponent_onhtml5dragend",
@@ -45597,7 +45597,7 @@
       "file_type": "code",
       "norm_label": ".onhtml5dragend()",
       "source_file": "apps/web/src/app/features/tasks/components/task-kanban-view.component.ts",
-      "source_location": "L460"
+      "source_location": "L231"
     },
     {
       "id": "apps_web_src_app_features_tasks_components_task_kanban_view_component_taskkanbanviewcomponent_onhtml5dragleave",
@@ -45609,7 +45609,7 @@
       "file_type": "code",
       "norm_label": ".onhtml5dragleave()",
       "source_file": "apps/web/src/app/features/tasks/components/task-kanban-view.component.ts",
-      "source_location": "L477"
+      "source_location": "L248"
     },
     {
       "id": "apps_web_src_app_features_tasks_components_task_kanban_view_component_taskkanbanviewcomponent_onhtml5dragover",
@@ -45621,7 +45621,7 @@
       "file_type": "code",
       "norm_label": ".onhtml5dragover()",
       "source_file": "apps/web/src/app/features/tasks/components/task-kanban-view.component.ts",
-      "source_location": "L465"
+      "source_location": "L236"
     },
     {
       "id": "apps_web_src_app_features_tasks_components_task_kanban_view_component_taskkanbanviewcomponent_onhtml5dragstart",
@@ -45633,7 +45633,7 @@
       "file_type": "code",
       "norm_label": ".onhtml5dragstart()",
       "source_file": "apps/web/src/app/features/tasks/components/task-kanban-view.component.ts",
-      "source_location": "L447"
+      "source_location": "L218"
     },
     {
       "id": "apps_web_src_app_features_tasks_components_task_kanban_view_component_taskkanbanviewcomponent_onhtml5drop",
@@ -45645,7 +45645,7 @@
       "file_type": "code",
       "norm_label": ".onhtml5drop()",
       "source_file": "apps/web/src/app/features/tasks/components/task-kanban-view.component.ts",
-      "source_location": "L485"
+      "source_location": "L256"
     },
     {
       "id": "apps_web_src_app_features_tasks_components_task_kanban_view_component_taskkanbanviewcomponent_ontaskcontainerclick",
@@ -45657,7 +45657,7 @@
       "file_type": "code",
       "norm_label": ".ontaskcontainerclick()",
       "source_file": "apps/web/src/app/features/tasks/components/task-kanban-view.component.ts",
-      "source_location": "L500"
+      "source_location": "L271"
     },
     {
       "id": "apps_web_src_app_features_tasks_components_task_kanban_view_component_taskkanbanviewcomponent_ontaskdrop",
@@ -45669,7 +45669,7 @@
       "file_type": "code",
       "norm_label": ".ontaskdrop()",
       "source_file": "apps/web/src/app/features/tasks/components/task-kanban-view.component.ts",
-      "source_location": "L440"
+      "source_location": "L211"
     },
     {
       "id": "apps_web_src_app_features_tasks_components_task_table_view_component_tasktableviewcomponent_ontaskcontainerclick",
@@ -153654,7 +153654,7 @@
       "confidence_score": 1.0,
       "context": "decorator",
       "source_file": "apps/web/src/app/features/iam/profile/components/profile-tokens-card.component.ts",
-      "source_location": "L495",
+      "source_location": "L205",
       "weight": 1.0
     },
     {
@@ -153666,7 +153666,7 @@
       "confidence_score": 1.0,
       "context": "decorator",
       "source_file": "apps/web/src/app/features/iam/profile/components/profile-tokens-card.component.ts",
-      "source_location": "L506",
+      "source_location": "L216",
       "weight": 1.0
     },
     {
@@ -154290,7 +154290,7 @@
       "confidence_score": 1.0,
       "context": "decorator",
       "source_file": "apps/web/src/app/features/tasks/components/task-kanban-view.component.ts",
-      "source_location": "L405",
+      "source_location": "L176",
       "weight": 1.0
     },
     {
@@ -154302,7 +154302,7 @@
       "confidence_score": 1.0,
       "context": "decorator",
       "source_file": "apps/web/src/app/features/tasks/components/task-kanban-view.component.ts",
-      "source_location": "L412",
+      "source_location": "L183",
       "weight": 1.0
     },
     {
@@ -164562,7 +164562,7 @@
       "confidence_score": 1.0,
       "context": "field",
       "source_file": "apps/web/src/app/features/iam/profile/components/profile-tokens-card.component.ts",
-      "source_location": "L483",
+      "source_location": "L193",
       "weight": 1.0
     },
     {
@@ -164574,7 +164574,7 @@
       "confidence_score": 1.0,
       "context": "field",
       "source_file": "apps/web/src/app/features/iam/profile/components/profile-tokens-card.component.ts",
-      "source_location": "L495",
+      "source_location": "L205",
       "weight": 1.0
     },
     {
@@ -165246,7 +165246,7 @@
       "confidence_score": 1.0,
       "context": "field",
       "source_file": "apps/web/src/app/features/tasks/components/task-kanban-view.component.ts",
-      "source_location": "L390",
+      "source_location": "L161",
       "weight": 1.0
     },
     {
@@ -165258,7 +165258,7 @@
       "confidence_score": 1.0,
       "context": "field",
       "source_file": "apps/web/src/app/features/tasks/components/task-kanban-view.component.ts",
-      "source_location": "L391",
+      "source_location": "L162",
       "weight": 1.0
     },
     {
@@ -165270,7 +165270,7 @@
       "confidence_score": 1.0,
       "context": "field",
       "source_file": "apps/web/src/app/features/tasks/components/task-kanban-view.component.ts",
-      "source_location": "L392",
+      "source_location": "L163",
       "weight": 1.0
     },
     {
@@ -165282,7 +165282,7 @@
       "confidence_score": 1.0,
       "context": "field",
       "source_file": "apps/web/src/app/features/tasks/components/task-kanban-view.component.ts",
-      "source_location": "L393",
+      "source_location": "L164",
       "weight": 1.0
     },
     {
@@ -169674,7 +169674,7 @@
       "confidence_score": 1.0,
       "context": "generic_arg",
       "source_file": "apps/web/src/app/features/tasks/components/task-kanban-view.component.ts",
-      "source_location": "L440",
+      "source_location": "L211",
       "weight": 1.0
     },
     {
@@ -228942,7 +228942,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "apps/web/src/app/features/tasks/components/task-kanban-view.component.ts",
-      "source_location": "L428",
+      "source_location": "L199",
       "weight": 1.0
     },
     {
@@ -228954,7 +228954,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "apps/web/src/app/features/tasks/components/task-kanban-view.component.ts",
-      "source_location": "L447",
+      "source_location": "L218",
       "weight": 1.0
     },
     {
@@ -228966,7 +228966,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "apps/web/src/app/features/tasks/components/task-kanban-view.component.ts",
-      "source_location": "L500",
+      "source_location": "L271",
       "weight": 1.0
     },
     {
@@ -234702,7 +234702,7 @@
       "confidence_score": 1.0,
       "context": "return_type",
       "source_file": "apps/web/src/app/features/tasks/components/task-kanban-view.component.ts",
-      "source_location": "L416",
+      "source_location": "L187",
       "weight": 1.0
     },
     {
@@ -246320,7 +246320,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/iam/profile/components/profile-tokens-card.component.ts",
-      "source_location": "L482",
+      "source_location": "L192",
       "weight": 1.0
     },
     {
@@ -247332,7 +247332,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/tasks/components/task-kanban-view.component.ts",
-      "source_location": "L389",
+      "source_location": "L160",
       "weight": 1.0
     },
     {
@@ -301128,7 +301128,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/tasks/components/task-kanban-view.component.ts",
-      "source_location": "L416",
+      "source_location": "L187",
       "weight": 1.0
     },
     {
@@ -301139,7 +301139,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/tasks/components/task-kanban-view.component.ts",
-      "source_location": "L420",
+      "source_location": "L191",
       "weight": 1.0
     },
     {
@@ -301150,7 +301150,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/tasks/components/task-kanban-view.component.ts",
-      "source_location": "L424",
+      "source_location": "L195",
       "weight": 1.0
     },
     {
@@ -301161,7 +301161,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/tasks/components/task-kanban-view.component.ts",
-      "source_location": "L428",
+      "source_location": "L199",
       "weight": 1.0
     },
     {
@@ -301172,7 +301172,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/tasks/components/task-kanban-view.component.ts",
-      "source_location": "L440",
+      "source_location": "L211",
       "weight": 1.0
     },
     {
@@ -301183,7 +301183,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/tasks/components/task-kanban-view.component.ts",
-      "source_location": "L447",
+      "source_location": "L218",
       "weight": 1.0
     },
     {
@@ -301194,7 +301194,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/tasks/components/task-kanban-view.component.ts",
-      "source_location": "L460",
+      "source_location": "L231",
       "weight": 1.0
     },
     {
@@ -301205,7 +301205,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/tasks/components/task-kanban-view.component.ts",
-      "source_location": "L465",
+      "source_location": "L236",
       "weight": 1.0
     },
     {
@@ -301216,7 +301216,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/tasks/components/task-kanban-view.component.ts",
-      "source_location": "L477",
+      "source_location": "L248",
       "weight": 1.0
     },
     {
@@ -301227,7 +301227,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/tasks/components/task-kanban-view.component.ts",
-      "source_location": "L485",
+      "source_location": "L256",
       "weight": 1.0
     },
     {
@@ -301238,7 +301238,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/tasks/components/task-kanban-view.component.ts",
-      "source_location": "L500",
+      "source_location": "L271",
       "weight": 1.0
     },
     {
@@ -339635,5 +339635,5 @@
       "source_file": ".github/workflows/ci.yml"
     }
   ],
-  "built_at_commit": "1658e67dbda0010f64639b25cd20131f5d1f933c"
+  "built_at_commit": "d0c2c29ffb140df5184368a9f4bbbb3d430e4d5c"
 }
