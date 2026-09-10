@@ -4632,9 +4632,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/layout/app-shell/components/app-sidebar.component.ts": {
-    "mtime": 1789070619.2346108,
-    "seen": 1789070725.5473433,
-    "ast_hash": "c3096d34302ea4e69c3498abbdc3d65f",
+    "mtime": 1789072978.3278546,
+    "seen": 1789073068.5755024,
+    "ast_hash": "8a51dbf5f40367d2331688ad3d9d7b75",
     "semantic_hash": ""
   },
   "apps/server/src/main/java/com/greenwhite/dwh/instance/config/cache/CacheConfig.java": {

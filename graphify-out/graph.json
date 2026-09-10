@@ -5760,7 +5760,7 @@
       "file_type": "code",
       "norm_label": "appsidebarcomponent",
       "source_file": "apps/web/src/app/layout/app-shell/components/app-sidebar.component.ts",
-      "source_location": "L524"
+      "source_location": "L155"
     },
     {
       "id": "apps_server_src_main_java_com_greenwhite_dwh_instance_ms_notify_sse_mssseregistry_mssseregistry",
@@ -36261,7 +36261,7 @@
       "file_type": "code",
       "norm_label": ".getuserinitial()",
       "source_file": "apps/web/src/app/layout/app-shell/components/app-sidebar.component.ts",
-      "source_location": "L565"
+      "source_location": "L196"
     },
     {
       "id": "e2e_support_env_loade2eenv",
@@ -154661,7 +154661,7 @@
       "confidence_score": 1.0,
       "context": "decorator",
       "source_file": "apps/web/src/app/layout/app-shell/components/app-sidebar.component.ts",
-      "source_location": "L526",
+      "source_location": "L157",
       "weight": 1.0
     },
     {
@@ -154673,7 +154673,7 @@
       "confidence_score": 1.0,
       "context": "decorator",
       "source_file": "apps/web/src/app/layout/app-shell/components/app-sidebar.component.ts",
-      "source_location": "L545",
+      "source_location": "L176",
       "weight": 1.0
     },
     {
@@ -154685,7 +154685,7 @@
       "confidence_score": 1.0,
       "context": "decorator",
       "source_file": "apps/web/src/app/layout/app-shell/components/app-sidebar.component.ts",
-      "source_location": "L563",
+      "source_location": "L194",
       "weight": 1.0
     },
     {
@@ -165653,7 +165653,7 @@
       "confidence_score": 1.0,
       "context": "field",
       "source_file": "apps/web/src/app/layout/app-shell/components/app-sidebar.component.ts",
-      "source_location": "L532",
+      "source_location": "L163",
       "weight": 1.0
     },
     {
@@ -248042,7 +248042,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/layout/app-shell/components/app-sidebar.component.ts",
-      "source_location": "L524",
+      "source_location": "L155",
       "weight": 1.0
     },
     {
@@ -304511,7 +304511,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/layout/app-shell/components/app-sidebar.component.ts",
-      "source_location": "L565",
+      "source_location": "L196",
       "weight": 1.0
     },
     {
@@ -340037,5 +340037,5 @@
       "source_file": ".github/workflows/ci.yml"
     }
   ],
-  "built_at_commit": "ddebf2839af476aaaac15da708ff514fc9c6652c"
+  "built_at_commit": "61a2134b9d5394943144b1e26b0b4ab2189076c0"
 }
