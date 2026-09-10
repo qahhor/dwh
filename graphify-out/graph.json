@@ -4213,7 +4213,7 @@
       "file_type": "code",
       "norm_label": "userdetailmodalcomponent",
       "source_file": "apps/web/src/app/features/iam/users/components/user-detail-modal.component.ts",
-      "source_location": "L615"
+      "source_location": "L330"
     },
     {
       "id": "apps_web_src_app_features_iam_users_components_user_edit_modal_component_usereditmodalcomponent",
@@ -30501,7 +30501,7 @@
       "file_type": "code",
       "norm_label": ".canleave()",
       "source_file": "apps/web/src/app/features/iam/users/components/user-detail-modal.component.ts",
-      "source_location": "L659"
+      "source_location": "L374"
     },
     {
       "id": "apps_web_src_app_shared_ui_ui_custom_fields_component_uicustomfieldscomponent_availableusers",
@@ -153929,7 +153929,7 @@
       "confidence_score": 1.0,
       "context": "decorator",
       "source_file": "apps/web/src/app/features/iam/users/components/user-detail-modal.component.ts",
-      "source_location": "L639",
+      "source_location": "L354",
       "weight": 1.0
     },
     {
@@ -153941,7 +153941,7 @@
       "confidence_score": 1.0,
       "context": "decorator",
       "source_file": "apps/web/src/app/features/iam/users/components/user-detail-modal.component.ts",
-      "source_location": "L655",
+      "source_location": "L370",
       "weight": 1.0
     },
     {
@@ -153953,7 +153953,7 @@
       "confidence_score": 1.0,
       "context": "decorator",
       "source_file": "apps/web/src/app/features/iam/users/components/user-detail-modal.component.ts",
-      "source_location": "L657",
+      "source_location": "L372",
       "weight": 1.0
     },
     {
@@ -164897,7 +164897,7 @@
       "confidence_score": 1.0,
       "context": "field",
       "source_file": "apps/web/src/app/features/iam/users/components/user-detail-modal.component.ts",
-      "source_location": "L617",
+      "source_location": "L332",
       "weight": 1.0
     },
     {
@@ -164909,7 +164909,7 @@
       "confidence_score": 1.0,
       "context": "field",
       "source_file": "apps/web/src/app/features/iam/users/components/user-detail-modal.component.ts",
-      "source_location": "L624",
+      "source_location": "L339",
       "weight": 1.0
     },
     {
@@ -164921,7 +164921,7 @@
       "confidence_score": 1.0,
       "context": "field",
       "source_file": "apps/web/src/app/features/iam/users/components/user-detail-modal.component.ts",
-      "source_location": "L657",
+      "source_location": "L372",
       "weight": 1.0
     },
     {
@@ -246942,7 +246942,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/iam/users/components/user-detail-modal.component.ts",
-      "source_location": "L615",
+      "source_location": "L330",
       "weight": 1.0
     },
     {
@@ -298659,7 +298659,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/iam/users/components/user-detail-modal.component.ts",
-      "source_location": "L659",
+      "source_location": "L374",
       "weight": 1.0
     },
     {
@@ -340037,5 +340037,5 @@
       "source_file": ".github/workflows/ci.yml"
     }
   ],
-  "built_at_commit": "ab73cbb627dd897792d380bc05a6cd0d6881115c"
+  "built_at_commit": "d4d186faf27a7b61b33c596a2caf5e8c5bdd947a"
 }

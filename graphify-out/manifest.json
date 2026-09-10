@@ -4614,9 +4614,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/iam/users/components/user-detail-modal.component.ts": {
-    "mtime": 1789027056.659827,
-    "seen": 1789027127.4020739,
-    "ast_hash": "73c86292873a7ca78a4ab5d342801753",
+    "mtime": 1789073291.317637,
+    "seen": 1789073360.034166,
+    "ast_hash": "4374eff7b58df3a71f7cf627c4d8f471",
     "semantic_hash": ""
   },
   "apps/web/src/app/layout/app-shell/components/app-header.component.ts": {
