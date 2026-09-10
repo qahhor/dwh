@@ -2364,9 +2364,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/notifications/notifications.component.ts": {
-    "mtime": 1788977362.048321,
-    "seen": 1788977606.7656481,
-    "ast_hash": "228ddd0df266fca26df4c8811a58c97c",
+    "mtime": 1789071739.9495375,
+    "seen": 1789071811.4287758,
+    "ast_hash": "4f735250e35f9ab8de180bd37058d91c",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/settings/settings.component.spec.ts": {
@@ -4983,6 +4983,30 @@
     "mtime": 1789071485.1063688,
     "seen": 1789071626.687944,
     "ast_hash": "38fd3c8fc5766d5c0e01e31a55ee36a9",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/notifications/components/notifications-header.component.ts": {
+    "mtime": 1789071708.8986213,
+    "seen": 1789071811.4287758,
+    "ast_hash": "4e11e89e7a484362551092de7004bcfa",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/notifications/components/notifications-list.component.ts": {
+    "mtime": 1789071708.8991213,
+    "seen": 1789071811.4287758,
+    "ast_hash": "a2abda6d3ceeaf1b2e26155cc8e37eab",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/notifications/components/notifications-tabs.component.ts": {
+    "mtime": 1789071708.8991213,
+    "seen": 1789071811.4287758,
+    "ast_hash": "bb66f8908aa7c30e79683b069b2a369b",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/notifications/notifications.models.ts": {
+    "mtime": 1789071739.9495375,
+    "seen": 1789071811.4287758,
+    "ast_hash": "d73a975e426440407aea229aaadb6eba",
     "semantic_hash": ""
   }
 }
