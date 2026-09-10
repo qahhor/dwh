@@ -2412,9 +2412,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/tasks/tasks.component.ts": {
-    "mtime": 1789014113.6182778,
-    "seen": 1789014191.8697891,
-    "ast_hash": "c6a83f6411c63fd1fa15352a28f12491",
+    "mtime": 1789024720.4514325,
+    "seen": 1789024782.4328713,
+    "ast_hash": "e67701aa209d12a5d7ebe9514998493d",
     "semantic_hash": ""
   },
   "apps/web/src/app/layout/app-shell/app-shell.component.spec.ts": {
@@ -4551,6 +4551,12 @@
     "mtime": 1789014081.6082137,
     "seen": 1789014191.8697891,
     "ast_hash": "2e2a37522bd4eef96e5fc51a6fda7dfe",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/tasks/components/task-kanban-view.component.ts": {
+    "mtime": 1789024702.4771888,
+    "seen": 1789024782.4328713,
+    "ast_hash": "9bec95662641ebb651088135a6f3a84b",
     "semantic_hash": ""
   }
 }
