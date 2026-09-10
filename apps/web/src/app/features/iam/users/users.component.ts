@@ -18,6 +18,7 @@ import { CustomField } from '../../../core/models/custom-field.models';
 import { KeysetPage } from '../../../core/models/common.models';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { UserOrgUnitsPanelComponent } from '../org-units/public-api';
+import { UserFilterBarComponent } from './components/user-filter-bar.component';
 
 type SortColumn = 'id' | 'name' | 'login' | 'createdAt';
 type SortDirection = 'asc' | 'desc';
@@ -41,7 +42,8 @@ export interface SecurityConfirmConfig {
     UiModalComponent,
     UserOrgUnitsPanelComponent,
     UiCustomFieldsComponent,
-    UiPaginationComponent
+    UiPaginationComponent,
+    UserFilterBarComponent
   ],
 
 
@@ -75,153 +77,32 @@ export interface SecurityConfirmConfig {
         </div>
       </div>
 
-      <!-- Compact Single-Line Toolbar -->
-      <div class="toolbar">
-        <div class="search-field">
-          <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
-          <label class="sr-only" for="user-search">{{ 'iam.poisk_polzovateley' | t }}</label>
-          <input
-            id="user-search"
-            name="userSearch"
-            type="text"
-            class="search-input"
-            [placeholder]="'iam.poisk_po_imeni_loginu_email' | t"
-            [(ngModel)]="searchQuery"
-            (input)="onSearchInput()"
-          />
-          <button *ngIf="searchQuery" type="button" class="btn-icon" style="position: absolute; right: 6px;" [attr.aria-label]="'iam.ochistit_poisk_polzovateley' | t" (click)="clearSearch()">
-            <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">close</span>
-          </button>
-        </div>
-
-        <div class="toolbar-controls">
-          <!-- Segmented Status Switcher -->
-          <div class="status-tabs" role="group" [attr.aria-label]="'iam.filtr_polzovateley_po_statusu' | t">
-            <button
-              type="button"
-              class="status-tab"
-              [class.active]="selectedState === ''"
-              [attr.aria-pressed]="selectedState === ''"
-              (click)="setStateFilter('')"
-            >
-              {{ 'common.all' | t }}
-            </button>
-            <button
-              type="button"
-              class="status-tab"
-              [class.active]="selectedState === 'A'"
-              [attr.aria-pressed]="selectedState === 'A'"
-              (click)="setStateFilter('A')"
-            >
-              <span class="status-tab-dot" style="background-color: var(--success);" aria-hidden="true"></span>
-              {{ 'iam.aktivnye' | t }}
-            </button>
-            <button
-              type="button"
-              class="status-tab"
-              [class.active]="selectedState === 'P'"
-              [attr.aria-pressed]="selectedState === 'P'"
-              (click)="setStateFilter('P')"
-            >
-              <span class="status-tab-dot" style="background-color: var(--danger);" aria-hidden="true"></span>
-              {{ 'iam.zablokirovannye' | t }}
-            </button>
-          </div>
-
-          <!-- Grouped Filter Popover Trigger -->
-          <div class="filter-popover-wrapper">
-            <button
-              #filterTrigger
-              type="button"
-              class="filter-trigger-btn"
-              aria-haspopup="dialog"
-              [attr.aria-expanded]="isFilterMenuOpen()"
-              aria-controls="user-extra-filters"
-              [class.has-filters]="hasExtraFilters()"
-              [class.open]="isFilterMenuOpen()"
-              (click)="toggleFilterMenu($event)"
-            >
-              <span class="material-symbols-outlined icon" aria-hidden="true">tune</span>
-              <span>{{ 'iam.filtry' | t }}</span>
-              <span class="filter-dot" *ngIf="hasExtraFilters()"></span>
-            </button>
-
-            <!-- Filter Dropdown Panel -->
-            <div id="user-extra-filters" class="filter-dropdown" role="dialog" [attr.aria-label]="'iam.dopolnitelnye_filtry_polzovateley' | t" *ngIf="isFilterMenuOpen()" (click)="$event.stopPropagation()">
-              <div class="filter-dropdown-header">
-                <span class="dropdown-title">{{ 'iam.dopolnitelnye_filtry' | t }}</span>
-                <button type="button" class="reset-link" *ngIf="hasExtraFilters()" (click)="resetExtraFilters()">
-                  {{ 'iam.sbrosit' | t }}
-                </button>
-              </div>
-
-              <div class="filter-dropdown-body">
-                <div class="filter-group">
-                  <label class="filter-caption" for="user-role-filter">{{ 'iam.rol_polzovatelya' | t }}</label>
-                  <select id="user-role-filter" name="userRoleFilter" class="filter-select" [(ngModel)]="selectedRoleId" (change)="loadUsers(true)">
-                    <option [ngValue]="null">{{ 'iam.vse_roli' | t }}</option>
-                    <option *ngFor="let r of roles()" [ngValue]="r.id">{{ r.name }}</option>
-                  </select>
-                </div>
-
-                <div class="filter-group">
-                  <label class="filter-caption" for="user-2fa-filter">{{ 'iam.dvuhfaktornaya_zaschita_2fa' | t }}</label>
-                  <select id="user-2fa-filter" name="user2faFilter" class="filter-select" [(ngModel)]="selected2fa" (change)="loadUsers(true)">
-                    <option [ngValue]="null">{{ 'iam.lyuboy_status_2fa' | t }}</option>
-                    <option [ngValue]="true">{{ 'iam.tolko_s_2fa' | t }}</option>
-                    <option [ngValue]="false">{{ 'iam.bez_2fa' | t }}</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <ui-button
-            variant="ghost"
-            size="sm"
-            icon="refresh"
-            [ariaLabel]="'iam.obnovit_spisok_polzovateley' | t"
-            [loading]="isLoading()"
-            [title]="'common.refresh' | t"
-            (onClick)="loadUsers(true)"
-          ></ui-button>
-        </div>
-      </div>
-
-      <!-- Active Filters Bar -->
-      <div class="active-filters-bar" *ngIf="hasAnyActiveFilters()">
-        <span class="active-filters-label">{{ 'iam.filtry' | t }}:</span>
-
-        <!-- Status Filter Pill -->
-        <div *ngIf="selectedState" class="filter-pill">
-          <span>{{ 'iam.filtr_status' | t:{status: selectedState === 'A' ? ('iam.aktivnye' | t) : ('iam.zablokirovannye' | t)} }}</span>
-          <button type="button" class="clear-pill-btn" [attr.aria-label]="'iam.ochistit_filtr' | t" (click)="clearStateFilter()">
-            <span class="material-symbols-outlined" aria-hidden="true">close</span>
-          </button>
-        </div>
-
-        <!-- Role Filter Pill -->
-        <div *ngIf="selectedRoleId" class="filter-pill">
-          <span>{{ 'iam.filtr_po_roli' | t:{name: getSelectedRoleName()} }}</span>
-          <button type="button" class="clear-pill-btn" [attr.aria-label]="'iam.ochistit_filtr_roli' | t" (click)="clearRoleFilter()">
-            <span class="material-symbols-outlined" aria-hidden="true">close</span>
-          </button>
-        </div>
-
-        <!-- 2FA Filter Pill -->
-        <div *ngIf="selected2fa !== null" class="filter-pill">
-          <span>{{ 'iam.filtr_2fa' | t:{status: selected2fa ? ('iam.vklyuchena' | t) : ('iam.otklyuchena' | t)} }}</span>
-          <button type="button" class="clear-pill-btn" [attr.aria-label]="'iam.ochistit_filtr' | t" (click)="clear2faFilter()">
-            <span class="material-symbols-outlined" aria-hidden="true">close</span>
-          </button>
-        </div>
-
-        <!-- Reset All Button -->
-        <button type="button" class="reset-all-filters-btn" (click)="resetAllFilters()">
-          <span class="material-symbols-outlined" aria-hidden="true">filter_alt_off</span>
-          <span>{{ 'iam.sbrosit_vse_filtry' | t }}</span>
-        </button>
-      </div>
+      <!-- Toolbar and Active Filters (Delegated Component) -->
+      <app-user-filter-bar
+        [searchQuery]="searchQuery"
+        [selectedState]="selectedState"
+        [isFilterMenuOpen]="isFilterMenuOpen()"
+        [hasExtraFilters]="hasExtraFilters()"
+        [roles]="roles()"
+        [selectedRoleId]="selectedRoleId"
+        [selected2fa]="selected2fa"
+        [isLoading]="isLoading()"
+        [hasAnyActiveFilters]="hasAnyActiveFilters()"
+        [selectedRoleName]="getSelectedRoleName()"
+        (searchQueryChange)="searchQuery = $event"
+        (searchInput)="onSearchInput()"
+        (clearSearch)="clearSearch()"
+        (stateFilterChange)="setStateFilter($event)"
+        (toggleFilterMenu)="toggleFilterMenu($event)"
+        (resetExtraFilters)="resetExtraFilters()"
+        (roleFilterChange)="selectedRoleId = $event; loadUsers(true)"
+        (twoFactorFilterChange)="selected2fa = $event; loadUsers(true)"
+        (refresh)="loadUsers(true)"
+        (clearStateFilter)="clearStateFilter()"
+        (clearRoleFilter)="clearRoleFilter()"
+        (clear2faFilter)="clear2faFilter()"
+        (resetAllFilters)="resetAllFilters()"
+      ></app-user-filter-bar>
 
       <!-- Minimal Data Table -->
       <div class="table-container" role="region" [attr.aria-label]="'iam.tablica_polzovateley' | t" tabindex="0">
