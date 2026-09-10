@@ -2328,9 +2328,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/iam/profile/profile.component.ts": {
-    "mtime": 1788979221.3482094,
-    "seen": 1788979374.4198554,
-    "ast_hash": "fb7b5c284c6433c900ad3ffa48e61d48",
+    "mtime": 1789067169.8208978,
+    "seen": 1789067272.2996194,
+    "ast_hash": "90fde8a3c01486b839fefc5fad16efe0",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/iam/roles/roles.component.spec.ts": {
@@ -4767,6 +4767,42 @@
     "mtime": 1789066635.512788,
     "seen": 1789066847.4461145,
     "ast_hash": "090c298a36c9b8aefb27b2d938f9289c",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/iam/profile/components/profile-password-card.component.ts": {
+    "mtime": 1789067124.8888795,
+    "seen": 1789067272.2996194,
+    "ast_hash": "4c571b8864d776a0eca5dc69a5cf78f2",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/iam/profile/components/profile-security-card.component.ts": {
+    "mtime": 1789067110.689087,
+    "seen": 1789067272.2996194,
+    "ast_hash": "61b71b92a5ebd152f0381afc8c0bd190",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/iam/profile/components/profile-sessions-card.component.ts": {
+    "mtime": 1789067136.555558,
+    "seen": 1789067272.2996194,
+    "ast_hash": "cae038ff270fa9a6ca7ed228d9eecfc9",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/iam/profile/components/profile-tokens-card.component.ts": {
+    "mtime": 1789067152.9388666,
+    "seen": 1789067272.2996194,
+    "ast_hash": "8f67ddd3afb56892967dcb8ae44bcba9",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/iam/profile/components/user-profile-card.component.ts": {
+    "mtime": 1789067102.4138436,
+    "seen": 1789067272.2996194,
+    "ast_hash": "95b066bef1c99ba7cf557245132fb62a",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/iam/profile/profile.models.ts": {
+    "mtime": 1789067194.759385,
+    "seen": 1789067272.2996194,
+    "ast_hash": "fcfd3293370b8174936d8bb7cf48139b",
     "semantic_hash": ""
   }
 }
