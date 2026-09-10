@@ -2352,9 +2352,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/iam/users/users.component.ts": {
-    "mtime": 1789027197.6936176,
-    "seen": 1789027258.223716,
-    "ast_hash": "0d15076e8aa3b2ce8b143f788950e31e",
+    "mtime": 1789074188.040744,
+    "seen": 1789074258.7548847,
+    "ast_hash": "c2aeae65af9bab3cfb7264d413524b24",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/notifications/notifications.component.spec.ts": {
@@ -5079,6 +5079,36 @@
     "mtime": 1789073839.9266171,
     "seen": 1789074006.1997821,
     "ast_hash": "b96e981b77e4dce79d36d8a28cd5302f",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/iam/users/services/user-filter.service.ts": {
+    "mtime": 1789074154.2178369,
+    "seen": 1789074258.7548847,
+    "ast_hash": "e02e78d086d55df13528c7cc20f815bc",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/iam/users/services/user-forms.service.ts": {
+    "mtime": 1789074146.371298,
+    "seen": 1789074258.7548847,
+    "ast_hash": "dc8d480e31cfe5e67df7f5922cddba91",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/iam/users/services/user-security.service.ts": {
+    "mtime": 1789074124.6326132,
+    "seen": 1789074258.7548847,
+    "ast_hash": "ad7651388d1b0af0b36315f2f598fbb9",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/iam/users/users.models.ts": {
+    "mtime": 1789074117.440742,
+    "seen": 1789074258.7548847,
+    "ast_hash": "c8f7bb33215c11c1fcf33914bf893533",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/iam/users/users.component.html": {
+    "mtime": 1789074062.0425959,
+    "seen": 1789074258.7553847,
+    "ast_hash": "9ab89e1a883a1b223092908937ddcad8",
     "semantic_hash": ""
   }
 }
