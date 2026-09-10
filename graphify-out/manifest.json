@@ -4632,9 +4632,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/layout/app-shell/components/app-sidebar.component.ts": {
-    "mtime": 1789049527.8448508,
-    "seen": 1789049663.3191304,
-    "ast_hash": "be7f82ffb1ecdf659f4a70bd30eccbd0",
+    "mtime": 1789070619.2346108,
+    "seen": 1789070725.5473433,
+    "ast_hash": "c3096d34302ea4e69c3498abbdc3d65f",
     "semantic_hash": ""
   },
   "apps/server/src/main/java/com/greenwhite/dwh/instance/config/cache/CacheConfig.java": {
@@ -4887,6 +4887,18 @@
     "mtime": 1789070317.58417,
     "seen": 1789070475.738375,
     "ast_hash": "5bf96d4a07d3a05ca30884841abd3c69",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/layout/app-shell/components/app-sidebar-flyout.component.ts": {
+    "mtime": 1789070634.7928157,
+    "seen": 1789070725.5473433,
+    "ast_hash": "8d08261f27daf85659e62c41b7f1b23a",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/layout/app-shell/components/app-sidebar-nav-sections.component.ts": {
+    "mtime": 1789070636.7000277,
+    "seen": 1789070725.5473433,
+    "ast_hash": "a008776917908eaac969867e0cd70042",
     "semantic_hash": ""
   }
 }
