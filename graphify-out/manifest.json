@@ -2316,9 +2316,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/iam/custom-fields/custom-fields.component.ts": {
-    "mtime": 1788978161.5115864,
-    "seen": 1788978401.7634761,
-    "ast_hash": "df97dbd48d8fb48cae8c3a925443b7e8",
+    "mtime": 1789070170.2949126,
+    "seen": 1789070236.0950074,
+    "ast_hash": "2e789c80a2e20e1a5a6b527c6c124436",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/iam/profile/profile.component.spec.ts": {
@@ -4833,6 +4833,30 @@
     "mtime": 1789069762.3018503,
     "seen": 1789069830.807785,
     "ast_hash": "1cb2e188e8926569b722d9510f3571eb",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/iam/custom-fields/components/custom-fields-modals.component.ts": {
+    "mtime": 1789070149.060009,
+    "seen": 1789070236.0950074,
+    "ast_hash": "faeee26ee2ed53c64df2fe8f4082ad1d",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/iam/custom-fields/components/custom-fields-table.component.ts": {
+    "mtime": 1789070132.5130408,
+    "seen": 1789070236.0950074,
+    "ast_hash": "e23e0978d2fc6e77f192181a26869b53",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/iam/custom-fields/components/custom-fields-toolbar.component.ts": {
+    "mtime": 1789070082.78669,
+    "seen": 1789070236.0950074,
+    "ast_hash": "5789b74fb8ed34da12d8dd8f41f3e8e5",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/iam/custom-fields/custom-fields.models.ts": {
+    "mtime": 1789070061.7292566,
+    "seen": 1789070236.0950074,
+    "ast_hash": "3103711467be6e8f7dda4e4ebf36c3ab",
     "semantic_hash": ""
   }
 }

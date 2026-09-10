@@ -1,16 +1,16 @@
 # Graph Report - dwh  (2026-09-11)
 
 ## Corpus Check
-- 786 files · ~530,771 words
+- 790 files · ~531,281 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 7456 nodes · 20957 edges · 385 communities (302 shown, 83 thin omitted)
-- Extraction: 88% EXTRACTED · 12% INFERRED · 0% AMBIGUOUS · INFERRED: 2498 edges (avg confidence: 0.81)
+- 7473 nodes · 20987 edges · 372 communities (294 shown, 78 thin omitted)
+- Extraction: 88% EXTRACTED · 12% INFERRED · 0% AMBIGUOUS · INFERRED: 2487 edges (avg confidence: 0.81)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `2d49323a`
+- Built from commit: `b6b94f1d`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -22,13 +22,13 @@
 - theme-consistency.spec.ts
 - S3StorageProperties
 - .login
-- MsProjectWriteIntegrationTest.java
-- ScopeFilter
+- RequiresPermissionInterceptor
+- MsTaskRepository
 - dependencies
 - ErrorCode
 - options
 - MdUserRepository
-- app-shell.component.ts
+- NotificationService
 - TasksComponent
 - UserOrgUnitsPanelComponent
 - .status
@@ -36,24 +36,24 @@
 - V001__init_schema.sql
 - 3. Findings по 11 направлениям
 - AuthenticationGenerationFixture
-- safeNumericRecordId
+- OrgUnitsComponent
 - MdCustomFieldRepository
-- org.junit.jupiter.api.DisplayName
+- MdScopeServiceIntegrationTest
 - SmartupCMS Unified Open Source — архитектурный дизайн
 - SmartupCMS unified release verification — 2026-09-02
 - SmartupCMS: UI/UX-аудит основного каркаса
-- jakarta.servlet.http.HttpServletResponse
+- MdUserController
 - Поток входа пользователя (Argon2id → OTP → kauth_sessions)
 - AuthenticationGenerationHttpTest
 - RB-04: Диагностика и устранение сбоев миграций Flyway
 - Состав экземпляра клиента
 - MsProjectWriteIntegrationTest
-- roles.component.ts
+- projects.component.ts
 - ADR-0002: Backend Stack Decision
 - Диагностика: медленная работа (пул, pg_stat_activity, диск)
 - e2e/package.json
-- MsTaskService
-- IdempotencyService
+- org.springframework.transaction.annotation.Transactional
+- HttpConfiguration
 - AuditLogServiceTest
 - RoleScopePanelComponent
 - MfFileRepository
@@ -62,8 +62,8 @@
 - QueryLanguageConverter
 - UiSearchableSelectComponent
 - SecurityConfigTest
-- SearchMetrics
-- LanguageEditorComponent
+- custom-fields.component.ts
+- I18nService
 - Control Plane
 - KauthSecurityContext
 - Contributor Covenant Code of Conduct
@@ -72,14 +72,14 @@
 - Отличия текущего контура от целевого (фаза P)
 - ReportService
 - AuditPartitionRepository
-- MsTaskPatchIntegrationTest
+- .patchLeavesOmittedFieldsUntouchedAndClearsExplicitNullableFields
 - LoginComponent
 - CustomFieldsComponent
-- MsAnnouncementRepository
+- MdRoleController
 - compilerOptions
-- .createTask
+- UiUserMultiSelectComponent
 - AppShellComponent
-- ProviderHealth
+- MessengerSendResult
 - search-management.models.ts
 - MdAssignmentServiceIntegrationTest
 - Instance per Client (Single-Tenant)
@@ -91,18 +91,19 @@
 - Ежеквартальный пересмотр доступа
 - MdI18nService
 - File Map
-- NavigationItemService
-- MsNotificationService
-- .runOnce
-- CommandPaletteComponent
+- .conflict
+- MsAnnouncementRepository
+- UpdateTaskDto
+- SearchProjectionReader
+- safeNumericRecordId
 - Module Prefix Catalog (md, kauth, ms, mf, audit, cp)
 - SearchJobService
 - Full Dev Compose Stack (SmartupCMS group)
-- AuditComponent
+- .get
 - SsoProviderRepository
 - Патчинг зависимостей и базовых образов
 - KauthOtpLoginIntegrationTest.java
-- .runCycle
+- MsTaskCommentController
 - org.springframework.jdbc.core.simple.JdbcClient
 - ui-* Wrapper Components (ui-grid, ui-dialog, ui-button)
 - B2B Version Pinning and Update Policy
@@ -110,8 +111,8 @@
 - SearchServiceTest
 - Migrations as Separate Batch Job + Schema Version Gate
 - SettingsComponent
-- SecurityConfig
-- .recreateWorker
+- NavSection
+- MdSettingController
 - ProjectsComponent
 - Global Constraints
 - UiFileUploadComponent
@@ -119,7 +120,7 @@
 - org.junit.jupiter.params.ParameterizedTest
 - Log Masking of PII and Secrets
 - Design Token Discipline (ui-* wrappers, no raw hex)
-- AnalyticsService
+- OrgUnitEditorComponent
 - devDependencies
 - InstanceApplication
 - 2. Решение
@@ -133,15 +134,15 @@
 - ResourceProfile.java
 - UsersComponent
 - development
-- RequiresPermission
+- MdOrgUnitController
 - Обслуживание партиций audit_log
 - Language
-- MutableTimeMeter
-- SearchRevisionIntegrationTest
+- org.springframework.context.annotation.Bean
+- ClamAvFileScannerTest.java
 - MdCustomFieldController
-- KauthSessionController
+- RequiresPermission
 - ToastService
-- .notFound
+- MsNoteService
 - 6. Последняя подтверждённая проверка
 - RolesComponent
 - Graphify Knowledge Graph Workflow (agent rules)
@@ -151,7 +152,7 @@
 - analytics.component.ts
 - InstanceBootstrap
 - FilesComponent
-- MdFormCatalogIntegrationTest
+- .syncFormCatalog
 - ISO 27001 Certification Deliberately Out of Scope
 - scripts
 - backup-loop.sh
@@ -161,9 +162,9 @@
 - options
 - web
 - Extractable components
-- GlobalExceptionHandler
+- jakarta.servlet.http.HttpServletRequest
 - app.routes.ts
-- SearchIndexStateRepository
+- SearchMetrics
 - web/package.json
 - org-structure.spec.ts
 - core-types
@@ -188,7 +189,7 @@
 - AuditLogService
 - env.d.mts
 - org.springframework.stereotype.Component
-- SearchJobResourceIntegrationTest
+- S3StorageConfiguration
 - Compact token summary
 - V014__audit_log_immutable.sql
 - Argon2idPasswordHasher
@@ -200,16 +201,16 @@
 - Global Constraints
 - Shared layouts
 - Application routes
-- .defaults
+- TypesenseClientHttpTest
 - Testing strategy audit — 2026-09-03
-- TypesenseSearchMapper
+- BootstrapConfiguration
 - Code quality and technical-debt audit — 2026-09-03
-- MfFileService
+- .send
 - test-v018-upgrade.ps1
 - verify-release.ps1
 - Documentation audit — 2026-09-03
 - bootstrap-role.sh
-- MailProvider
+- NotificationChannelTest.java
 - @angular/common
 - @angular/compiler
 - 4. Находки и минимальные исправления
@@ -226,7 +227,6 @@
 - Что ещё не автоматизировано (честный список)
 - Матрица решения GO/NO-GO
 - RELICENSE.md
-- .success
 - SearchService
 - SystemInfoService
 - R-01 — Восстановить зелёный remote CI baseline
@@ -241,19 +241,19 @@
 - R-09 — Обновить и классифицировать CI dependency toolchain
 - R-10 — Сделать one-server invariant проверяемым
 - Centralized Localization Design
-- StorageProvider
+- KwhWebhookServiceTest
 - ProviderRegistry
 - File map
 - common.js
-- tasks.component.ts
+- i18n.service.ts
 - 3. Детальные находки
 - SystemComponent
-- FileContentInspector
-- ModulesComponent
-- .activeGeneration
+- OrgUnitDraft
+- ModuleService
+- SearchDeliveryTestSupport
 - KwhSubscriptionController
 - 3. Критические недоработки (High)
-- org.springframework.transaction.annotation.Transactional
+- MsTaskStatusRepository
 - test-deploy-fail-closed.sh
 - End-to-End trace_id Propagation (MDC + SQL comment)
 - Virtual Threads for Blocking Background I/O
@@ -266,19 +266,19 @@
 - KauthPasswordChangeIntegrationTest
 - ai-context.md
 - MsProjectController
-- Override
+- ProviderHealth
 - @angular/cdk
 - @angular/forms
 - Версия доступа и конкурентная смена пароля
 - auth.ts
 - instance/password-change.spec.ts
-- MsTaskController
-- SearchReconciliationTest
+- org.springframework.http.ResponseEntity
+- CsrfTokenRepository
 - CacheConfig.java
 - Надёжный поиск и управление индексом SmartupCMS
 - @playwright/test
 - NotesComponent
-- KauthChannelController
+- .migrate
 - compilerOptions
 - tasks-quality.spec.ts
 - projects-quality.spec.ts
@@ -286,7 +286,6 @@
 - SmartupCMS: CTO-аудит и план подготовки релиза
 - Verification commands
 - org.testcontainers.junit.jupiter.Testcontainers
-- TranslationDictionary
 - MfFileController.java
 - KwhWebhookProperties
 - Architecture audit — SmartupCMS — 2026-09-05
@@ -296,13 +295,12 @@
 - Projects editor quality implementation plan
 - Execution and evidence
 - MutableClock
-- SearchQueryPolicy
+- SearchCollectionSchema
 - Projects Interaction and E2E Quality Implementation Plan
 - Prerequisites and task boundaries
 - invoke-managed-preflight.ps1
 - .getCurrentUserId
-- .conflict
-- analytics.component.spec.ts
+- AnalyticsComponent
 - Smartup-managed infrastructure acceptance
 - I-01 — Task export security implementation plan
 - env.mjs
@@ -313,7 +311,6 @@
 - translate-all-catalogs.py
 - Managed Infrastructure Release-Acceptance Plan
 - 00-implementation-tracker.md
-- SearchRebuildIntegrationTest
 - mvnw
 - Task and File Data-Scope Completion Plan
 - TestEventSource
@@ -321,37 +318,27 @@
 - Оргструктура и область видимости данных — дизайн первого UI-пакета
 - toLocalDateTime
 - .logChange
-- Security Policy
 - .badRequest
-- SmsMessage
+- MailProvider
 - run-capacity.ps1
 - A-01 — Restore documentation as release source of truth
 - test-managed-acceptance.ps1
 - S-03 — Eliminate stored XSS in markdown
 - ProblemDetailAuthHandlers
 - EmbeddedReportComponent
-- MsOutboxRepository
 - Authentication Generation Implementation Plan
-- SearchPolicyProvider
+- SearchIndexStateRepository
 - KwhOutboxRecord
-- jakarta.servlet.http.HttpServletRequest
+- RateLimitFilter
 - SmartupCMS documentation
-- org.springframework.context.event.EventListener
-- Fixture
+- javax.sql.DataSource
 - Projects list quality — Implementation Plan
 - ADR-0014: Единый open-source runtime SmartupCMS
-- LocalStorageProvider
 - PlatformMetrics
-- MdSettingService
-- MsAnnouncementServiceIntegrationTest
 - .setup
 - SpaCsrfTokenRequestHandler.java
-- AuditCoverageTest
-- AnnouncementState
-- .setup
-- KwhSubscriptionController.java
 - AppHeaderComponent
-- i18n.service.ts
+- org-units.component.ts
 - ApiTokenRecord
 
 ## God Nodes (most connected - your core abstractions)
@@ -360,10 +347,10 @@
 3. `AuditLogService` - 124 edges
 4. `ErrorCode` - 121 edges
 5. `ApiException` - 101 edges
-6. `ToastService` - 87 edges
-7. `I18nService` - 82 edges
-8. `UsersComponent` - 82 edges
-9. `TranslatePipe` - 80 edges
+6. `ToastService` - 86 edges
+7. `I18nService` - 84 edges
+8. `TranslatePipe` - 83 edges
+9. `UsersComponent` - 82 edges
 10. `AppShellComponent` - 77 edges
 
 ## Surprising Connections (you probably didn't know these)
@@ -375,8 +362,8 @@
   apps/server/src/main/java/com/greenwhite/dwh/instance/common/provider/ProviderRegistry.java → libs/provider-spi/src/main/java/com/greenwhite/dwh/spi/mail/MailProvider.java
 - `ProviderRegistry` --references--> `MessengerProvider`  [EXTRACTED]
   apps/server/src/main/java/com/greenwhite/dwh/instance/common/provider/ProviderRegistry.java → libs/provider-spi/src/main/java/com/greenwhite/dwh/spi/messenger/MessengerProvider.java
-- `ProviderRegistry` --references--> `StorageProvider`  [EXTRACTED]
-  apps/server/src/main/java/com/greenwhite/dwh/instance/common/provider/ProviderRegistry.java → libs/provider-spi/src/main/java/com/greenwhite/dwh/spi/storage/StorageProvider.java
+- `ProviderRegistry` --references--> `SmsProvider`  [EXTRACTED]
+  apps/server/src/main/java/com/greenwhite/dwh/instance/common/provider/ProviderRegistry.java → libs/provider-spi/src/main/java/com/greenwhite/dwh/spi/sms/SmsProvider.java
 
 ## Import Cycles
 - None detected.
@@ -387,43 +374,39 @@
 - **CI Enforcement Gates (arch, security, migrations, style)** — docs_guidelines_testing_strategy_archunit_rules, docs_adr_adr_0008_security_baseline_sca_sbom_ci, docs_adr_adr_0007_fleet_strategy_migration_linter, docs_adr_adr_0012_ui_foundation_design_tokens, docs_adr_adr_0008_security_baseline_safe_sql [INFERRED 0.85]
 - **CI Quality Gate: all jobs must be green to merge** — _github_workflows_ci_backend, _github_workflows_ci_frontend, _github_workflows_ci_security, _github_workflows_ci_merge_block_policy, contributing_ci_quality_gate, contributing_definition_of_done [INFERRED 0.85]
 
-## Communities (385 total, 83 thin omitted)
+## Communities (372 total, 78 thin omitted)
 
 ### Community 0 - "org.junit.jupiter.api.Test"
 Cohesion: 0.03
-Nodes (26): CsrfCookieController, CsrfTokenRepository, ModularArchitectureTest, OtherSpringCsrfController, SameNameController, GlobalExceptionHandlerTest, MockHttpServletResponse, BackupStatusReaderTest (+18 more)
+Nodes (29): UserCreateData, ModularArchitectureTest, OtherSpringCsrfController, AuditCoverageTest, GlobalExceptionHandlerTest, MockHttpServletResponse, BackupStatusReaderTest, ObjectMapper (+21 more)
 
 ### Community 1 - "TypesenseClient"
-Cohesion: 0.09
-Nodes (14): CollectionMetadata, DependencyMetadata, ImportAck, JsonNode, Override, LimitedOutput, TransportBudgets, TypesenseClient (+6 more)
+Cohesion: 0.07
+Nodes (16): CollectionMetadata, DependencyMetadata, ImportAck, JsonNode, org.springframework.beans.factory.annotation.Autowired, Override, LimitedOutput, TransportBudgets (+8 more)
 
 ### Community 2 - "FileScanner"
-Cohesion: 0.09
-Nodes (15): ClamAvFileScanner, Override, FileScannerStartupCheck, Override, ClamAvFileScannerTest, DataInputStream, io.micrometer.core.instrument.MeterRegistry, java.io.DataInputStream (+7 more)
+Cohesion: 0.18
+Nodes (7): ClamAvFileScanner, Override, FileScanner, ScanResult, Verdict, CLEAN, INFECTED
 
 ### Community 3 - "app-shell.component.spec.ts"
-Cohesion: 0.09
-Nodes (16): PACKAGED_RUSSIAN, CreateNavigationItemPayload, CustomNavigationItem, NavigationTargetType, UpdateNavigationItemPayload, NavigationService, Injectable, CYRILLIC_TO_LATIN_MAP (+8 more)
+Cohesion: 0.06
+Nodes (20): PACKAGED_RUSSIAN, CreateNavigationItemPayload, CustomNavigationItem, NavigationTargetType, UpdateNavigationItemPayload, NavigationService, Injectable, ThemeMode (+12 more)
 
 ### Community 4 - "theme-consistency.spec.ts"
 Cohesion: 0.22
 Nodes (5): ColorContract, CssColorProperty, DARK, LIGHT, ROUTE_SURFACES
 
-### Community 5 - "S3StorageProperties"
-Cohesion: 0.11
-Nodes (7): S3StorageConfiguration, S3StorageProperties, S3StorageProviderIntegrationTest, java.net.URI, org.springframework.boot.autoconfigure.condition.ConditionalOnProperty, org.springframework.boot.context.properties.EnableConfigurationProperties, software.amazon.awssdk.services.s3.S3Client
-
 ### Community 6 - ".login"
-Cohesion: 0.11
-Nodes (5): ChannelRecord, LoginResult, AuthUser, KauthPrincipal, KauthOtpLoginIntegrationTest
+Cohesion: 0.10
+Nodes (4): KauthPrincipal, LoginResult, KauthPrincipal, KauthOtpLoginIntegrationTest
 
-### Community 7 - "MsProjectWriteIntegrationTest.java"
-Cohesion: 0.06
-Nodes (28): ObjectMapper, MdCustomFieldService, org.springframework.beans.factory.annotation.Autowired, MsTaskPref, ResultSet, SuppressWarnings, MsProjectRepository, MsProjectService (+20 more)
+### Community 7 - "RequiresPermissionInterceptor"
+Cohesion: 0.19
+Nodes (10): Override, WebMvcConfig, RequiresPermissionInterceptor, DataSourceTransactionManager, DriverManagerDataSource, ObjectMapper, TransactionTemplate, org.springframework.web.servlet.config.annotation.InterceptorRegistry (+2 more)
 
-### Community 8 - "ScopeFilter"
-Cohesion: 0.11
-Nodes (6): ScopeFilter, FileDetailRecord, ProjectTaskStats, TaskRecord, ProjectTaskStats, TaskRecord
+### Community 8 - "MsTaskRepository"
+Cohesion: 0.08
+Nodes (15): ScopeFilter, FileDetailRecord, TaskDetailResponse, ResultSet, SuppressWarnings, MsTaskRepository, ProjectTaskStats, TaskCreateData (+7 more)
 
 ### Community 9 - "dependencies"
 Cohesion: 0.12
@@ -431,7 +414,7 @@ Nodes (17): @angular/animations, @angular/core, @angular/material, @angular/plat
 
 ### Community 10 - "ErrorCode"
 Cohesion: 0.04
-Nodes (70): ApiException, MdOrgUnitDtos, ModuleRegistryService, java.security.SecureRandom, ErrorCode, BAD_REQUEST, CODE_ALREADY_EXISTS, CONFLICT (+62 more)
+Nodes (70): ApiException, java.net.InetAddress, java.security.SecureRandom, java.util.Optional, java.util.regex.Pattern, ErrorCode, BAD_REQUEST, CODE_ALREADY_EXISTS (+62 more)
 
 ### Community 11 - "options"
 Cohesion: 0.15
@@ -439,27 +422,23 @@ Nodes (13): options, assets, browser, index, outputPath, polyfills, scripts, sty
 
 ### Community 12 - "MdUserRepository"
 Cohesion: 0.04
-Nodes (41): RoleMembershipAuthorizer, KauthPrincipal, KauthPref, KauthApiTokenRepository, KauthSessionRepository, KauthAuthenticationFilter, CreatedTokenResult, KauthApiTokenService (+33 more)
+Nodes (37): KauthApiTokenRepository, KauthSessionRepository, KauthAuthenticationFilter, KauthApiTokenService, KauthCredentialGuard, org.springframework.beans.factory.annotation.Autowired, KauthSessionService, Override (+29 more)
 
-### Community 13 - "app-shell.component.ts"
-Cohesion: 0.05
-Nodes (20): moduleActiveGuard(), KeysetPage, NotificationItem, Language, ModuleService, SYSTEM_MODULES, Injectable, NotificationService (+12 more)
-
-### Community 14 - "TasksComponent"
-Cohesion: 0.03
-Nodes (5): Task, TaskKanbanViewComponent, Input, Output, TasksComponent
+### Community 13 - "NotificationService"
+Cohesion: 0.11
+Nodes (8): KeysetPage, Announcement, NotificationItem, BackendNotification, BackendUnreadCount, NotificationService, Injectable, NotificationsComponent
 
 ### Community 16 - "UserOrgUnitsPanelComponent"
-Cohesion: 0.06
-Nodes (21): UserSecuritySummary, normalizedIds(), sameIds(), ViewChild, units, UserPanelHost, HostListener, Input (+13 more)
+Cohesion: 0.10
+Nodes (9): UserScope, normalizedIds(), sameIds(), ViewChild, UserPanelHost, HostListener, Input, Output (+1 more)
 
 ### Community 17 - ".status"
 Cohesion: 0.09
-Nodes (15): Status, SaveSettingsRequest, org.junit.jupiter.params.ParameterizedTest, org.junit.jupiter.params.provider.ValueSource, SearchJobIntegrationTest, ApplicationContext, SearchManagementAuthorizationTest, JsonNode (+7 more)
+Nodes (21): Status, FieldPolicy, org.junit.jupiter.params.ParameterizedTest, org.junit.jupiter.params.provider.ValueSource, SearchJobIntegrationTest, ApplicationContext, SearchManagementAuthorizationTest, SearchQueryPolicyTest (+13 more)
 
 ### Community 18 - "SecurityContext"
-Cohesion: 0.05
-Nodes (28): AuditLogController, AuditRecord, AuditStats, SecurityEventRecord, AuditPref, SecurityContext, OpenApiController, SystemInfoController (+20 more)
+Cohesion: 0.04
+Nodes (32): AnalyticsController, AnalyticsSummaryDto, ProjectDistributionDto, TrendDataPointDto, UserWorkloadDto, AnalyticsRepository, AnalyticsService, AuditLogController (+24 more)
 
 ### Community 19 - "V001__init_schema.sql"
 Cohesion: 0.07
@@ -473,17 +452,17 @@ Nodes (38): 1. Executive summary, 2. Architectural snapshot, 3.10. Evolvability,
 Cohesion: 0.16
 Nodes (12): Attempt, AuthenticationGenerationConcurrencyTest, Issuance, API_BEARER, API_COOKIE, LOGIN_OTP, PASSWORD_LOGIN, VERIFY_OTP (+4 more)
 
-### Community 22 - "safeNumericRecordId"
-Cohesion: 0.06
-Nodes (20): safeNumericRecordId(), OrgUnitEditorComponent, child, root, Input, Output, descendants(), order() (+12 more)
+### Community 22 - "OrgUnitsComponent"
+Cohesion: 0.17
+Nodes (3): OrgUnitsComponent, HostListener, ViewChild
 
 ### Community 23 - "MdCustomFieldRepository"
 Cohesion: 0.15
 Nodes (5): GetMapping, CustomFieldRecord, ResultSet, MdCustomFieldRepository, MdCustomFieldServiceTest
 
-### Community 24 - "org.junit.jupiter.api.DisplayName"
-Cohesion: 0.15
-Nodes (4): UserScope, MdScopeServiceIntegrationTest, org.junit.jupiter.api.DisplayName, ThrowingCallable
+### Community 24 - "MdScopeServiceIntegrationTest"
+Cohesion: 0.05
+Nodes (6): UserAssignments, UserScope, SuppressWarnings, MdOrgUnitWriteIntegrationTest, MdScopeServiceIntegrationTest, ThrowingCallable
 
 ### Community 25 - "SmartupCMS Unified Open Source — архитектурный дизайн"
 Cohesion: 0.05
@@ -497,9 +476,9 @@ Nodes (4): Known verification limitations, Remote state, Reproducible evidence, 
 Cohesion: 0.07
 Nodes (27): D-01: mobile empty state, W-01: skip-link, W-02 / W-03: mobile drawer — согласованный план, W-04: search category, Предложения к UI shell, 2026-09-08 — НЕ ПРИМЕНЕНО, 1. Executive summary, 2. Покрытие модулей, 3. Шаги и визуальные свидетельства (+19 more)
 
-### Community 28 - "jakarta.servlet.http.HttpServletResponse"
-Cohesion: 0.06
-Nodes (27): GetMapping, PostMapping, RequestMapping, RestController, KauthAuthController, LoginDto, MeResponse, OtpVerifyDto (+19 more)
+### Community 28 - "MdUserController"
+Cohesion: 0.09
+Nodes (15): PostMapping, LoginDto, OtpVerifyDto, PasswordResetConfirmDto, CreateUserDto, DeleteMapping, GetMapping, KeysetPage (+7 more)
 
 ### Community 30 - "AuthenticationGenerationHttpTest"
 Cohesion: 0.16
@@ -509,9 +488,9 @@ Nodes (11): AuthenticationGenerationHttpTest, BrowserCookies, Arguments, BeforeA
 Cohesion: 0.06
 Nodes (40): Онбординг: 2 часа до контекста, Маршруты чтения по ролям (Backend/Infra/Frontend), Самопроверка онбординга (7 вопросов), Именование группы и контейнеров Docker (PROJECT_NAME=SmartupCMS), Поток доставки уведомлений через ms_notification_outbox, Карта портов (8080 loopback, 9090 actuator, 5432 внутренний), Карта состояния: что где хранится и что переживает пересоздание, Поток исходящих вебхуков (kwh_outbox → X-Signature-SHA256) (+32 more)
 
-### Community 34 - "roles.component.ts"
-Cohesion: 0.11
-Nodes (19): FormTreeItem, PermissionPair, Role, RoleCardsBarComponent, Input, Output, RoleModalsComponent, Input (+11 more)
+### Community 34 - "projects.component.ts"
+Cohesion: 0.08
+Nodes (21): ProjectTaskStats, ProjectCardsViewComponent, Input, Output, ProjectFilterBarComponent, Input, Output, ProjectModalsComponent (+13 more)
 
 ### Community 35 - "ADR-0002: Backend Stack Decision"
 Cohesion: 0.15
@@ -521,25 +500,25 @@ Nodes (22): ADR-0002: Backend Stack Decision, Hybrid Java Core + Node.js Edge (r
 Cohesion: 0.09
 Nodes (21): @axe-core/playwright, devDependencies, @axe-core/playwright, @playwright/test, @types/node, typescript, engines, node (+13 more)
 
-### Community 38 - "MsTaskService"
-Cohesion: 0.06
-Nodes (25): AddCommentDto, GetMapping, PostMapping, RequestMapping, RestController, MsTaskCommentController, TaskCommented, MsTaskPatch (+17 more)
+### Community 38 - "org.springframework.transaction.annotation.Transactional"
+Cohesion: 0.07
+Nodes (12): MsTaskEvents, TaskAssigned, TaskCommented, TaskStatusChanged, MsTaskPatch, MsTaskMemberRepository, TaskMemberRecord, TaskRecord (+4 more)
 
-### Community 39 - "IdempotencyService"
-Cohesion: 0.10
-Nodes (14): Override, IdempotencyRecord, IdempotencyRepository, State, COMPLETED, PENDING, Claim, ClaimState (+6 more)
+### Community 39 - "HttpConfiguration"
+Cohesion: 0.09
+Nodes (17): IdempotencyFilter, Override, IdempotencyRecord, IdempotencyRepository, State, COMPLETED, PENDING, Claim (+9 more)
 
 ### Community 40 - "AuditLogServiceTest"
-Cohesion: 0.08
-Nodes (9): AuditStats, SecurityEventRecord, AuditRecord, AuditStats, SecurityEventRecord, AuditLogServiceTest, CredentialEnvelope, AuditRecord (+1 more)
+Cohesion: 0.06
+Nodes (14): AuditRecord, AuditStats, ResultSet, SuppressWarnings, SecurityEventRecord, AuditRecord, AuditStats, SecurityEventRecord (+6 more)
 
 ### Community 41 - "RoleScopePanelComponent"
-Cohesion: 0.10
-Nodes (8): isScopeRule(), RoleScopePanelComponent, RolePanelHost, ViewChild, HostListener, Input, Output, ViewChild
+Cohesion: 0.11
+Nodes (9): ScopeRule, isScopeRule(), RoleScopePanelComponent, ScopeRuleOption, RolePanelHost, ViewChild, HostListener, Input (+1 more)
 
 ### Community 42 - "MfFileRepository"
-Cohesion: 0.12
-Nodes (7): FileRecord, ResultSet, MfFileRepository, StorageStats, MfFileMetadataServiceTest, MfFileServiceTest, MfFileTransactionBoundaryTest
+Cohesion: 0.06
+Nodes (20): FileRecord, ResultSet, MfFileRepository, FileContentInspector, Inspection, DeletionResult, StorageStats, MfFileMetadataService (+12 more)
 
 ### Community 43 - "InstalledModuleView"
 Cohesion: 0.11
@@ -558,16 +537,16 @@ Cohesion: 0.14
 Nodes (5): HostListener, Input, Output, ViewChild, UiSearchableSelectComponent
 
 ### Community 47 - "SecurityConfigTest"
-Cohesion: 0.10
+Cohesion: 0.09
 Nodes (12): SessionRecord, KauthPrincipal, Override, org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc, RateLimitFilterTest, org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc, SecurityConfigTest, Cookie (+4 more)
 
-### Community 48 - "SearchMetrics"
-Cohesion: 0.17
-Nodes (5): SearchMetrics, org.springframework.beans.factory.annotation.Autowired, Test, SearchMetricsTest, io.micrometer.core.instrument.simple.SimpleMeterRegistry
+### Community 48 - "custom-fields.component.ts"
+Cohesion: 0.13
+Nodes (11): CustomFieldsModalsComponent, Input, Output, CustomFieldsTableComponent, Input, Output, CustomFieldsToolbarComponent, Input (+3 more)
 
-### Community 49 - "LanguageEditorComponent"
-Cohesion: 0.14
-Nodes (5): TranslationEntry, LanguageEditorComponent, HostListener, Input, Output
+### Community 49 - "I18nService"
+Cohesion: 0.04
+Nodes (30): LanguageInfo, TranslationDictionary, TranslationEditor, TranslationEntry, UpdateTranslationsRequest, I18nService, createService(), Injectable (+22 more)
 
 ### Community 50 - "Control Plane"
 Cohesion: 0.14
@@ -585,29 +564,37 @@ Nodes (13): ArchUnit Enforcement in CI, Module Dependency Rules (facade-only, no
 Cohesion: 0.13
 Nodes (14): 1. Objective, 2. Source of truth, 3.1. Delete, 3.2. Preserve, 3. Cleanup boundary, 4.1. Canonical technical specification, 4.2. Navigation and active documents, 4.3. ADR history (+6 more)
 
+### Community 56 - "ReportService"
+Cohesion: 0.21
+Nodes (5): ReportController, ReportRepository, TaskExportRow, org.springframework.beans.factory.annotation.Autowired, ReportService
+
 ### Community 57 - "AuditPartitionRepository"
 Cohesion: 0.15
 Nodes (5): AuditPartitionRepository, AuditPartitionWorker, AuditPartitionRepositoryIntegrationTest, AuditPartitionWorkerTest, java.time.YearMonth
 
-### Community 61 - "MsAnnouncementRepository"
-Cohesion: 0.17
-Nodes (4): AnnouncementRecord, SuppressWarnings, ManagedAnnouncementRecord, MsAnnouncementRepository
+### Community 61 - "MdRoleController"
+Cohesion: 0.13
+Nodes (12): CreateRoleDto, DeleteMapping, FormTreeItem, GetMapping, PatchMapping, PermissionPair, PostMapping, PutMapping (+4 more)
 
 ### Community 62 - "compilerOptions"
 Cohesion: 0.09
 Nodes (22): angularCompilerOptions, enableI18nLegacyMessageIdFormat, strictInjectionParameters, strictInputAccessModifiers, strictTemplates, compileOnSave, compilerOptions, esModuleInterop (+14 more)
 
-### Community 65 - "ProviderHealth"
-Cohesion: 0.11
-Nodes (11): ConsoleMessengerProvider, Override, Override, TelegramBotMessengerProvider, CapturingMessenger, Override, ProviderHealth, MessengerMessage (+3 more)
+### Community 63 - "UiUserMultiSelectComponent"
+Cohesion: 0.12
+Nodes (5): HostListener, Input, Output, ViewChild, UiUserMultiSelectComponent
+
+### Community 65 - "MessengerSendResult"
+Cohesion: 0.19
+Nodes (6): Override, TelegramBotMessengerProvider, CapturingMessenger, Override, MessengerSendResult, org.springframework.boot.autoconfigure.condition.ConditionalOnExpression
 
 ### Community 66 - "search-management.models.ts"
-Cohesion: 0.09
-Nodes (25): SearchDependencyStatus, SearchEffectiveBudgets, SearchEntityDocumentCounts, SearchGenerationStatus, SearchJobPage, SearchJobReceipt, SearchJobState, SearchManagementStatus (+17 more)
+Cohesion: 0.08
+Nodes (28): SearchDependencyStatus, SearchEffectiveBudgets, SearchEntityDocumentCounts, SearchGenerationStatus, SearchJobAction, SearchJobPage, SearchJobReceipt, SearchJobState (+20 more)
 
 ### Community 67 - "MdAssignmentServiceIntegrationTest"
-Cohesion: 0.09
-Nodes (5): EffectivePermissionItem, PermissionPair, RoleRecord, PermissionPair, MdAssignmentServiceIntegrationTest
+Cohesion: 0.10
+Nodes (6): EffectivePermissionItem, PermissionPair, RoleRecord, PermissionPair, PermissionPair, MdAssignmentServiceIntegrationTest
 
 ### Community 68 - "Instance per Client (Single-Tenant)"
 Cohesion: 0.15
@@ -619,7 +606,7 @@ Nodes (9): Materialized effective_permissions Table, has(userId, form, action) R
 
 ### Community 72 - "SearchFallbackRepository"
 Cohesion: 0.14
-Nodes (7): FallbackGroup, FallbackHit, FallbackSearch, SearchFallbackRepository, SearchFallbackIntegrationTest, TimedFailure, org.junit.jupiter.api.AfterAll
+Nodes (7): FallbackGroup, FallbackHit, FallbackSearch, SearchFallbackRepository, AnnotationConfigApplicationContext, SearchFallbackIntegrationTest, TimedFailure
 
 ### Community 73 - "UiMarkdownEditorComponent"
 Cohesion: 0.15
@@ -627,27 +614,27 @@ Nodes (8): isAllowedMarkdownHref(), replaceMarkdownLinksWithSafeAnchors(), Input
 
 ### Community 75 - "MdI18nService"
 Cohesion: 0.08
-Nodes (16): CreateLanguageRequest, I18nModels, LanguageRecord, LanguageSummary, TranslationEditor, TranslationEntry, TranslationOverride, UpdateTranslationsRequest (+8 more)
+Nodes (13): CreateLanguageRequest, I18nModels, LanguageRecord, LanguageSummary, TranslationEditor, TranslationEntry, TranslationOverride, UpdateTranslationsRequest (+5 more)
 
 ### Community 76 - "File Map"
 Cohesion: 0.18
 Nodes (10): File Map, Global Constraints, SmartupCMS Repository Cleanup and Documentation Refresh Implementation Plan, Task 1: Add fail-first repository hygiene and documentation contracts, Task 2: Remove approved obsolete and generated artifacts, Task 3: Record the unified runtime ADR and correct historical statuses, Task 4: Create the canonical Russian technical specification and documentation index, Task 5: Rewrite active engineering guidance and migration runbook (+2 more)
 
-### Community 77 - "NavigationItemService"
-Cohesion: 0.11
-Nodes (14): DeleteMapping, GetMapping, PostMapping, PutMapping, RequestMapping, RestController, NavigationItemController, NavigationItemRecord (+6 more)
+### Community 77 - ".conflict"
+Cohesion: 0.12
+Nodes (13): GetMapping, PostMapping, PutMapping, RequestMapping, RestController, NavigationItemController, NavigationItemRecord, NavigationItemRepository (+5 more)
 
-### Community 78 - "MsNotificationService"
-Cohesion: 0.11
-Nodes (6): MsNotificationRepository, NotificationRecord, MsNotificationService, MsNotificationCreatedEvent, TaskDeadlineCandidate, TaskDeadlineReminderWorker
+### Community 78 - "MsAnnouncementRepository"
+Cohesion: 0.06
+Nodes (13): MsNotifyPref, AnnouncementRecord, SuppressWarnings, MsAnnouncementRepository, MsNotificationRepository, NotificationRecord, ResultSet, SuppressWarnings (+5 more)
 
-### Community 80 - ".runOnce"
-Cohesion: 0.08
-Nodes (15): VerificationSummary, Generation, SearchJobWorker, Override, Proof, SearchReconciliationService, DocumentMetadata, Override (+7 more)
+### Community 80 - "SearchProjectionReader"
+Cohesion: 0.06
+Nodes (15): VerificationSummary, Generation, DocumentTooLargeException, Projection, SearchProjectionReader, Override, Override, Proof (+7 more)
 
-### Community 81 - "CommandPaletteComponent"
-Cohesion: 0.13
-Nodes (3): CommandPaletteComponent, HostListener, ViewChild
+### Community 81 - "safeNumericRecordId"
+Cohesion: 0.31
+Nodes (4): safeNumericRecordId(), normalizeUnit(), OrgUnitsApiService, Injectable
 
 ### Community 82 - "Module Prefix Catalog (md, kauth, ms, mf, audit, cp)"
 Cohesion: 0.22
@@ -655,31 +642,31 @@ Nodes (11): Inter-Module Coupling via Domain Events, Instance Module Map (platfo
 
 ### Community 83 - "SearchJobService"
 Cohesion: 0.05
-Nodes (22): GetMapping, PostMapping, PutMapping, RequestMapping, RestController, SearchManagementController, JsonNode, JobPage (+14 more)
+Nodes (28): GetMapping, PostMapping, PutMapping, RequestMapping, RestController, SearchManagementController, JsonNode, JobPage (+20 more)
 
 ### Community 84 - "Full Dev Compose Stack (SmartupCMS group)"
 Cohesion: 0.06
 Nodes (52): CI Job: backend (mvn verify + ArchUnit + SBOM), CI Job: frontend (ng build production), Red-Job-Blocks-Merge Policy (FR-SEC-4, FR-MOD-2), CI Job: security (gitleaks + trivy), ArchUnit Boundary Enforcement in CI, Event-Driven Cross-Module Coupling, Module Prefix Convention (md, kauth, ms, mf, audit, cp), Public Facade Isolation (package-private repositories) (+44 more)
 
-### Community 85 - "AuditComponent"
-Cohesion: 0.09
-Nodes (8): AuditComponent, AuditRecord, AuditLogsTableComponent, Input, Output, AuditModalsComponent, Input, Output
+### Community 85 - ".get"
+Cohesion: 0.07
+Nodes (17): AuditComponent, AuditPage, AuditRecord, AuditStats, SecurityEventRecord, AuditLogsTableComponent, Input, Output (+9 more)
 
 ### Community 86 - "SsoProviderRepository"
-Cohesion: 0.20
+Cohesion: 0.19
 Nodes (8): GetMapping, RequestMapping, RestController, OAuth2AuthController, SsoProviderRecord, SsoProviderRepository, OAuth2AuthService, SsoProviderPublicDto
 
 ### Community 88 - "KauthOtpLoginIntegrationTest.java"
-Cohesion: 0.13
-Nodes (14): KauthChannelRepository, KauthLoginAttemptRepository, LoginAttemptRecord, KauthOtpCodeRepository, KauthPasswordResetRepository, ResetRecord, KauthAuthService, KauthChannelService (+6 more)
+Cohesion: 0.09
+Nodes (19): RequestMapping, RestController, KauthAuthController, PasswordResetRequestDto, KauthChannelRepository, KauthLoginAttemptRepository, LoginAttemptRecord, KauthOtpCodeRepository (+11 more)
 
-### Community 89 - ".runCycle"
-Cohesion: 0.16
-Nodes (5): SuppressWarnings, SearchBootstrapIntegrationTest, BeforeEach, Test, SearchRollbackIntegrationTest
+### Community 89 - "MsTaskCommentController"
+Cohesion: 0.20
+Nodes (7): AddCommentDto, GetMapping, PostMapping, RequestMapping, RestController, MsTaskCommentController, CommentRecord
 
 ### Community 90 - "org.springframework.jdbc.core.simple.JdbcClient"
-Cohesion: 0.04
-Nodes (22): SuppressWarnings, ModuleRegistryRepository, ResultSet, SuppressWarnings, MsTaskRepository, TaskUpdateData, ReportRepository, TaskExportRow (+14 more)
+Cohesion: 0.05
+Nodes (22): MdI18nRepository, SuppressWarnings, ModuleRegistryRepository, ModuleRegistryService, MfFileService, org.springframework.beans.factory.annotation.Autowired, MsTaskPref, MsProjectRepository (+14 more)
 
 ### Community 91 - "ui-* Wrapper Components (ui-grid, ui-dialog, ui-button)"
 Cohesion: 0.25
@@ -694,40 +681,40 @@ Cohesion: 0.29
 Nodes (8): PostgreSQL 18, pgvector as Standard PostgreSQL Extension, CREATE INDEX CONCURRENTLY in Non-Transactional Migration, Flyway File Naming Convention (V{NNN}__, R__), Mandatory lock_timeout and statement_timeout in DDL Migrations, Safe Database Migration Guideline (Flyway + PostgreSQL 18), NOT VALID Foreign Key then VALIDATE CONSTRAINT Pattern, Testcontainers Integration Base (AbstractIntegrationTest)
 
 ### Community 94 - "SearchServiceTest"
-Cohesion: 0.12
-Nodes (9): SearchExecutionSnapshot, SettingsSnapshot, IndexSnapshot, org.junit.jupiter.api.BeforeEach, org.junit.jupiter.api.BeforeEach, KauthPrincipal, SearchQueryPolicy, SearchServiceTest (+1 more)
+Cohesion: 0.16
+Nodes (5): RoleMembershipAuthorizer, KauthPrincipal, SearchQueryPolicy, SearchServiceTest, SearchServiceWithSeams
 
 ### Community 95 - "Migrations as Separate Batch Job + Schema Version Gate"
 Cohesion: 0.25
 Nodes (8): Deployment Rings R0/R1/R2 with Nomad Canary, Expand/Contract Migration Rule, Migrations as Separate Batch Job + Schema Version Gate, Migration Linter for Destructive Operations, deploy/ Layout (nomad, consul, vault, spike), Safe Column Rename Algorithm (dual-write, backfill, drop), destructive: approved Marker and CI Block, Two-Phase Expand/Contract Migration Practice
 
-### Community 96 - "SettingsComponent"
-Cohesion: 0.07
-Nodes (3): SettingsComponent, HostListener, SettingsTab
+### Community 97 - "NavSection"
+Cohesion: 0.19
+Nodes (6): NavItem, NavSection, AppSidebarComponent, Input, Output, ViewChild
 
-### Community 97 - "SecurityConfig"
-Cohesion: 0.31
-Nodes (4): SecurityConfig, FilterRegistrationBean, org.springframework.boot.web.servlet.FilterRegistrationBean, org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
+### Community 98 - "MdSettingController"
+Cohesion: 0.21
+Nodes (5): GetMapping, PatchMapping, RequestMapping, RestController, MdSettingController
 
 ### Community 100 - "Global Constraints"
 Cohesion: 0.13
 Nodes (14): Global Constraints, SmartupCMS Unified Open Source Implementation Plan, Task 10: Publish Apache-2.0 governance surface, Task 11: Add signed multi-architecture release supply chain, Task 12: History audit, E2E and final clean deployment, Task 1: Executable unified-boundary contract, Task 2: Remove Control Plane runtime and build surface, Task 3: Replace heartbeat/license coupling with local system information (+6 more)
 
 ### Community 101 - "UiFileUploadComponent"
-Cohesion: 0.18
-Nodes (3): Input, Output, UiFileUploadComponent
+Cohesion: 0.17
+Nodes (4): TaskFile, Input, Output, UiFileUploadComponent
 
 ### Community 103 - "org.junit.jupiter.params.ParameterizedTest"
-Cohesion: 0.19
+Cohesion: 0.22
 Nodes (4): ReportExportIntegrationTest, org.junit.jupiter.params.ParameterizedTest, org.junit.jupiter.params.provider.ValueSource, org.springframework.mock.web.MockHttpServletResponse
 
 ### Community 104 - "Log Masking of PII and Secrets"
 Cohesion: 0.29
 Nodes (7): CSRF Double-Submit Token, PII Retention and Deletion by Anonymization, Rate Limiting with Bucket4j, Log Masking of PII and Secrets, Telemetry Discipline (structured JSON logs, low-cardinality labels), End-to-End trace_id Propagation (SPA to SQL comment), Security Tests (CSRF, rate limiting, log masking)
 
-### Community 106 - "AnalyticsService"
-Cohesion: 0.15
-Nodes (7): AnalyticsController, AnalyticsSummaryDto, ProjectDistributionDto, TrendDataPointDto, UserWorkloadDto, AnalyticsRepository, AnalyticsService
+### Community 106 - "OrgUnitEditorComponent"
+Cohesion: 0.22
+Nodes (3): OrgUnitEditorComponent, Input, Output
 
 ### Community 107 - "devDependencies"
 Cohesion: 0.15
@@ -765,61 +752,69 @@ Nodes (3): HostListener, ViewChild, UsersComponent
 Cohesion: 0.22
 Nodes (9): build, builder, configurations, defaultConfiguration, development, buildTarget, extractLicenses, optimization (+1 more)
 
-### Community 120 - "RequiresPermission"
-Cohesion: 0.05
-Nodes (34): RequiresPermission, DeleteMapping, AssignRolesDto, GrantDto, MdAssignmentController, ReplacePermissionsDto, MdI18nAdminController, AssignUnitsDto (+26 more)
+### Community 120 - "MdOrgUnitController"
+Cohesion: 0.07
+Nodes (15): AssignRolesDto, GrantDto, MdAssignmentController, ReplacePermissionsDto, AssignUnitsDto, CreateOrgUnitDto, UserAssignments, UserScope (+7 more)
 
 ### Community 122 - "Language"
 Cohesion: 0.29
 Nodes (5): fromCode(), Language, EN, RU, UZ
 
-### Community 123 - "MutableTimeMeter"
-Cohesion: 0.21
-Nodes (5): FixedClockRateLimitConfiguration, Override, SimpleMeterRegistry, MutableTimeMeter, org.springframework.boot.test.context.TestConfiguration
+### Community 123 - "org.springframework.context.annotation.Bean"
+Cohesion: 0.10
+Nodes (16): SecurityConfig, FixedClockRateLimitConfiguration, Override, SimpleMeterRegistry, MutableTimeMeter, DataSourceTransactionManager, TransactionProxyConfiguration, FilterRegistrationBean (+8 more)
+
+### Community 124 - "ClamAvFileScannerTest.java"
+Cohesion: 0.29
+Nodes (5): ClamAvFileScannerTest, DataInputStream, java.io.DataInputStream, java.net.ServerSocket, ServerSocket
 
 ### Community 126 - "MdCustomFieldController"
 Cohesion: 0.20
 Nodes (8): CreateCustomFieldDto, DeleteMapping, PatchMapping, PostMapping, RequestMapping, RestController, MdCustomFieldController, UpdateCustomFieldDto
 
-### Community 127 - "KauthSessionController"
-Cohesion: 0.14
-Nodes (8): ActiveSessionDto, DeleteMapping, GetMapping, PostMapping, RequestMapping, RestController, UserSecuritySummary, KauthSessionController
+### Community 127 - "RequiresPermission"
+Cohesion: 0.07
+Nodes (20): AuditStats, RequiresPermission, BindChannelDto, ConfirmChannelDto, KauthChannelController, ActiveSessionDto, DeleteMapping, GetMapping (+12 more)
 
 ### Community 128 - "ToastService"
-Cohesion: 0.03
-Nodes (46): AppComponent, LoginResponse, MeResponse, TranslationEditor, Announcement, ApiRequestOptions, ApiService, serviceFor() (+38 more)
+Cohesion: 0.04
+Nodes (42): AppComponent, LoginResponse, MeResponse, ApiRequestOptions, ApiService, serviceFor(), Injectable, AuthService (+34 more)
 
-### Community 129 - ".notFound"
-Cohesion: 0.21
-Nodes (5): SuppressWarnings, MsNoteRepository, NoteRecord, MsNoteService, NoteView
+### Community 129 - "MsNoteService"
+Cohesion: 0.14
+Nodes (12): CreateNoteRequest, PostMapping, PutMapping, RequestMapping, RestController, MsNoteController, UpdateNoteRequest, SuppressWarnings (+4 more)
 
 ### Community 130 - "6. Последняя подтверждённая проверка"
 Cohesion: 0.10
 Nodes (21): 1. Продукт и стратегия, 2. Нормативные источники, 3. Карта системы, 4. Deployment и provider policy, 5. Инварианты безопасности и данных, 6. Последняя подтверждённая проверка, 7. Открытые release gates, 8. Рабочий протокол для AI (+13 more)
+
+### Community 131 - "RolesComponent"
+Cohesion: 0.07
+Nodes (3): RolesComponent, ViewChild, ModuleGroup
 
 ### Community 133 - "angular.json"
 Cohesion: 0.29
 Nodes (6): cli, analytics, newProjectRoot, projects, $schema, version
 
 ### Community 134 - "profile.component.ts"
-Cohesion: 0.17
-Nodes (17): ApiToken, CreatedTokenResponse, UserSession, ProfilePasswordCardComponent, Input, Output, ProfileSecurityCardComponent, Input (+9 more)
+Cohesion: 0.10
+Nodes (20): ApiToken, CreatedTokenResponse, UserSession, ProfilePasswordCardComponent, Input, Output, ProfileSecurityCardComponent, Input (+12 more)
 
 ### Community 135 - "SearchSettingsComponent"
-Cohesion: 0.09
+Cohesion: 0.10
 Nodes (5): SearchEntityType, SearchFieldPolicy, SearchJobStatus, SearchQueryPolicy, SearchSettingsComponent
 
 ### Community 136 - "analytics.component.ts"
-Cohesion: 0.09
-Nodes (21): AnalyticsSummary, ChartPoint, ProjectDistribution, SortDirection, TrendDataPoint, UserWorkload, WorkloadSortColumn, YAxisTick (+13 more)
+Cohesion: 0.07
+Nodes (27): latestTrends, loadInitialSnapshot(), projects, renderResponses(), summary, takeSnapshotRequests(), trends, workload (+19 more)
 
 ### Community 137 - "InstanceBootstrap"
-Cohesion: 0.12
-Nodes (11): InstanceBootstrap, Override, InstanceBootstrapProperties, PasswordHasher, MigrationGateAndBootstrapTest, BootstrapConfiguration, Bean, Import (+3 more)
+Cohesion: 0.16
+Nodes (8): InstanceBootstrap, Override, InstanceBootstrapProperties, PasswordHasher, MigrationGateAndBootstrapTest, MethodOrderer.OrderAnnotation, org.junit.jupiter.api.Order, org.junit.jupiter.api.TestMethodOrder
 
-### Community 139 - "MdFormCatalogIntegrationTest"
-Cohesion: 0.08
-Nodes (7): FormMeta, MdFormCatalog, CatalogSyncResult, FormTreeItem, PermissionPair, MdFormCatalogIntegrationTest, MdFormCatalogTest
+### Community 139 - ".syncFormCatalog"
+Cohesion: 0.07
+Nodes (9): FormMeta, MdFormCatalog, CatalogSyncResult, FormTreeItem, HandlerMethod, RequiresPermissionInterceptorTest, SecuredController, MdFormCatalogTest (+1 more)
 
 ### Community 141 - "scripts"
 Cohesion: 0.22
@@ -849,17 +844,17 @@ Nodes (6): web, prefix, projectType, root, schematics, sourceRoot
 Cohesion: 0.15
 Nodes (12): AppShell, CommandPalette, Extractable components, UiBadge, UiButton, UiFileUpload, UiMarkdownEditor, UiModal (+4 more)
 
-### Community 150 - "GlobalExceptionHandler"
-Cohesion: 0.15
-Nodes (16): GlobalExceptionHandler, com.fasterxml.jackson.annotation.JsonInclude, ProblemDetailRecord, MethodArgumentTypeMismatchException, MissingServletRequestParameterException, org.springframework.dao.DataIntegrityViolationException, org.springframework.http.converter.HttpMessageNotReadableException, org.springframework.web.bind.annotation.ExceptionHandler (+8 more)
+### Community 150 - "jakarta.servlet.http.HttpServletRequest"
+Cohesion: 0.16
+Nodes (18): GlobalExceptionHandler, com.fasterxml.jackson.annotation.JsonInclude, jakarta.servlet.http.HttpServletRequest, FieldErrorItem, ProblemDetailRecord, MethodArgumentTypeMismatchException, MissingServletRequestParameterException, org.springframework.dao.DataIntegrityViolationException (+10 more)
 
 ### Community 151 - "app.routes.ts"
-Cohesion: 0.07
-Nodes (19): routes, authGuard(), RecordNavigationDecision, recordNavigationGuard(), RecordNavigationPage, SearchHit, SearchResult, CommandPaletteService (+11 more)
+Cohesion: 0.05
+Nodes (21): routes, authGuard(), RecordNavigationDecision, recordNavigationGuard(), RecordNavigationPage, SearchHit, SearchResult, CommandPaletteService (+13 more)
 
-### Community 152 - "SearchIndexStateRepository"
-Cohesion: 0.10
-Nodes (11): Claim, QueueObservation, SearchDeliveryRepository, ObservedGeneration, SearchIndexStateRepository, Claim, PendingDocument, SearchDeliveryWorker (+3 more)
+### Community 152 - "SearchMetrics"
+Cohesion: 0.08
+Nodes (13): Claim, QueueObservation, SearchDeliveryRepository, Claim, PendingDocument, SearchDeliveryWorker, SearchMetrics, AfterEach (+5 more)
 
 ### Community 153 - "web/package.json"
 Cohesion: 0.33
@@ -873,16 +868,12 @@ Nodes (22): api(), browserHealth(), candidateOrigin(), createOrgUnit(), createTa
 Cohesion: 0.33
 Nodes (5): Added, Changed, Changelog, Removed, [Unreleased]
 
-### Community 159 - "KwhOutboxRepository"
-Cohesion: 0.18
-Nodes (3): KwhOutboxRepository, KwhOutboxWorker, org.springframework.scheduling.annotation.Scheduled
-
 ### Community 160 - "Page dependency trees"
 Cohesion: 0.15
 Nodes (12): /analytics, /audit, /files, Global theme, /iam/custom-fields, /iam/profile, /iam/roles, /iam/users (+4 more)
 
 ### Community 161 - "MutableTimeMeter"
-Cohesion: 0.27
+Cohesion: 0.31
 Nodes (3): Override, MutableTimeMeter, RateLimitServiceTest
 
 ### Community 162 - "CTO audit evidence — 2026-09-03"
@@ -890,11 +881,11 @@ Cohesion: 0.25
 Nodes (7): CTO audit evidence — 2026-09-03, Security/supply-chain проверки, Критические точечные проверки, Проверки качества, Размер и структура кода, Репозиторий и система, Что не удалось подтвердить
 
 ### Community 163 - "KwhWebhookService"
-Cohesion: 0.15
-Nodes (7): GetMapping, ResultSet, KwhSubscriptionRepository, SubscriptionRecord, KwhWebhookService, SubscriptionView, KwhWebhookServiceTest
+Cohesion: 0.17
+Nodes (6): GetMapping, ResultSet, KwhSubscriptionRepository, SubscriptionRecord, KwhWebhookService, SubscriptionView
 
 ### Community 164 - "RateLimitService"
-Cohesion: 0.29
+Cohesion: 0.26
 Nodes (8): Budget, Entry, RateLimitService, io.github.bucket4j.Bandwidth, io.github.bucket4j.Bucket, io.github.bucket4j.BucketConfiguration, io.github.bucket4j.ConsumptionProbe, io.github.bucket4j.TimeMeter
 
 ### Community 166 - "CachedBodyHttpServletRequest"
@@ -926,16 +917,16 @@ Cohesion: 0.50
 Nodes (3): Coverage, Local run, SmartupCMS browser E2E
 
 ### Community 178 - "AuditLogService"
-Cohesion: 0.08
-Nodes (30): AuditLogRepository, AuditRecord, ResultSet, SuppressWarnings, AuditDataRedactor, AuditCursor, AuditLogService, RequestMapping (+22 more)
+Cohesion: 0.07
+Nodes (27): AuditLogRepository, AuditDataRedactor, AuditCursor, AuditLogService, RoleRule, MdOrgUnitRepository, FormTreeItem, MdPermissionRepository (+19 more)
 
 ### Community 182 - "org.springframework.stereotype.Component"
-Cohesion: 0.08
-Nodes (25): Override, MigrateModeRunner, IdempotencyFilter, TraceparentFilter, KauthSessionCleanupWorker, MdFormCatalogSynchronizer, MsSsePublisher, Override (+17 more)
+Cohesion: 0.09
+Nodes (22): Override, MigrateModeRunner, KauthSessionCleanupWorker, MdFormCatalogSynchronizer, FileScannerStartupCheck, Override, MsTaskNotificationListener, MsSsePublisher (+14 more)
 
-### Community 184 - "SearchJobResourceIntegrationTest"
-Cohesion: 0.27
-Nodes (4): AfterEach, BeforeEach, Test, SearchJobResourceIntegrationTest
+### Community 184 - "S3StorageConfiguration"
+Cohesion: 0.36
+Nodes (5): S3StorageConfiguration, S3StorageProviderIntegrationTest, org.springframework.boot.autoconfigure.condition.ConditionalOnProperty, org.springframework.boot.context.properties.EnableConfigurationProperties, software.amazon.awssdk.services.s3.S3Client
 
 ### Community 185 - "Compact token summary"
 Cohesion: 0.20
@@ -947,7 +938,7 @@ Nodes (3): audit_log_immutable(), audit_log_no_delete, audit_log_no_update
 
 ### Community 187 - "Argon2idPasswordHasher"
 Cohesion: 0.11
-Nodes (5): KauthPasswordHasherTest, de.mkammerer.argon2.Argon2, Argon2idPasswordHasher, TokenUtils, Argon2idPasswordHasherTest
+Nodes (6): Override, KauthPasswordHasherTest, de.mkammerer.argon2.Argon2, Argon2idPasswordHasher, TokenUtils, Argon2idPasswordHasherTest
 
 ### Community 188 - "SmartupCMS Theme Repair — Design QA"
 Cohesion: 0.29
@@ -969,25 +960,21 @@ Nodes (27): Acceptance / artifact safety, Correctness / integration, Proposed lo
 Cohesion: 0.33
 Nodes (5): Global Constraints, Task 1: Browser regression contract, Task 2: Semantic token repair, Task 3: Full validation and design QA, UI Theme Consistency Implementation Plan
 
-### Community 196 - ".defaults"
-Cohesion: 0.10
-Nodes (10): FieldPolicy, OwnerLimits, SearchPolicyProviderTest, SearchQueryPolicyTest, CapturedRequest, Arguments, JsonNode, Response (+2 more)
+### Community 196 - "TypesenseClientHttpTest"
+Cohesion: 0.17
+Nodes (4): Arguments, JsonNode, Response, TypesenseClientHttpTest
 
 ### Community 197 - "Testing strategy audit — 2026-09-03"
 Cohesion: 0.33
 Nodes (5): Current state, Findings, Release test pyramid, Test quality metrics, Testing strategy audit — 2026-09-03
 
-### Community 198 - "TypesenseSearchMapper"
-Cohesion: 0.29
-Nodes (3): SearchHit, TypesenseSearchMapper, tools.jackson.databind.JsonNode
+### Community 198 - "BootstrapConfiguration"
+Cohesion: 0.39
+Nodes (3): BootstrapConfiguration, Bean, Import
 
 ### Community 199 - "Code quality and technical-debt audit — 2026-09-03"
 Cohesion: 0.40
 Nodes (4): Code quality and technical-debt audit — 2026-09-03, Debt inventory and financial model, Debt repayment policy, Findings
-
-### Community 200 - "MfFileService"
-Cohesion: 0.10
-Nodes (8): DeletionResult, MfFileMetadataService, MfFileObjectLock, MfFileService, StorageStats, MfFileObjectLockTest, java.util.concurrent.locks.ReentrantLock, ReentrantLock
 
 ### Community 202 - "verify-release.ps1"
 Cohesion: 0.83
@@ -997,9 +984,9 @@ Nodes (3): Add-ContractError(), Assert-DoesNotMatch(), Assert-Matches()
 Cohesion: 0.40
 Nodes (4): Coverage map, Documentation audit — 2026-09-03, Findings, Required minimum additions
 
-### Community 205 - "MailProvider"
-Cohesion: 0.08
-Nodes (16): ConsoleMailProvider, Override, Override, SmtpMailProvider, MsOutboxWorker, Override, NotificationChannelTest, StubRealMailProvider (+8 more)
+### Community 205 - "NotificationChannelTest.java"
+Cohesion: 0.10
+Nodes (13): ConsoleMailProvider, Override, ConsoleMessengerProvider, Override, Override, SmtpMailProvider, Override, NotificationChannelTest (+5 more)
 
 ### Community 209 - "4. Находки и минимальные исправления"
 Cohesion: 0.08
@@ -1010,12 +997,12 @@ Cohesion: 0.13
 Nodes (12): appRoot, catalogRoot, catalogs, invalidValues, missing, nonTranslationIdentifiers, rawCopy, russianKeys (+4 more)
 
 ### Community 225 - "SearchService"
-Cohesion: 0.19
-Nodes (6): SearchResultBudget, SearchHit, SearchResult, SearchService, CollectionSearch, SearchResultBudgetTest
+Cohesion: 0.12
+Nodes (9): SearchResultBudget, SearchHit, SearchResult, SearchService, CollectionSearch, SearchHit, TypesenseSearchMapper, SearchResultBudgetTest (+1 more)
 
 ### Community 232 - "SystemInfoService"
-Cohesion: 0.07
-Nodes (16): DwhInfoContributor, Override, BackupFreshnessEvaluator, BackupStatus, BackupStatusDocument, BackupStatusReader, Component, Organization (+8 more)
+Cohesion: 0.06
+Nodes (17): DwhInfoContributor, Override, BackupFreshnessEvaluator, BackupStatus, BackupStatusDocument, BackupStatusReader, Component, Organization (+9 more)
 
 ### Community 234 - "R-01 — Восстановить зелёный remote CI baseline"
 Cohesion: 0.40
@@ -1038,8 +1025,8 @@ Cohesion: 0.40
 Nodes (4): R-05 — Доказать совместное восстановление DB и objects, Критерий закрытия, Минимальный план, Наблюдение и риск
 
 ### Community 239 - ".setPrincipal"
-Cohesion: 0.08
-Nodes (15): Override, WebMvcConfig, RequiresPermissionInterceptor, UserAssignments, UserAssignments, AuditLogControllerTest, KauthPrincipal, KauthPrincipal (+7 more)
+Cohesion: 0.17
+Nodes (5): UserAssignments, KauthPrincipal, MdOrgUnitControllerTest, KauthPrincipal, TaskFileDataScopeControllerTest
 
 ### Community 240 - "R-06 — Принять целевую Hetzner + Cloudflare + R2 установку"
 Cohesion: 0.40
@@ -1065,14 +1052,6 @@ Nodes (4): R-10 — Сделать one-server invariant проверяемым, 
 Cohesion: 0.13
 Nodes (14): API, Architecture, Caching and consistency, Centralized Localization Design, Frontend experience, Legacy browser data, `md_i18n_languages`, `md_i18n_translation_overrides` (+6 more)
 
-### Community 246 - "StorageProvider"
-Cohesion: 0.25
-Nodes (5): ProviderRegistryTest, FileDownloadStream, Override, StorageProvider, StoredFileMetadata
-
-### Community 247 - "ProviderRegistry"
-Cohesion: 0.15
-Nodes (3): NotificationChannelStartupCheck, ProviderRegistry, SmsProvider
-
 ### Community 249 - "File map"
 Cohesion: 0.14
 Nodes (13): Centralized Localization Implementation Plan, File map, Global Constraints, Task 10: Final verification and canonical documentation, Task 1: Persist the language registry and overrides, Task 2: Load and contract-test the eight bundled catalogs, Task 3: Implement merge, fallback, coverage, audit and cache behavior, Task 4: Expose safe public reads and protected admin writes (+5 more)
@@ -1081,40 +1060,40 @@ Nodes (13): Centralized Localization Implementation Plan, File map, Global Const
 Cohesion: 0.19
 Nodes (18): ACCEPTANCE_MAX_ERROR_RATE, ACCEPTANCE_MAX_P95_MS, ACCEPTANCE_MAX_P99_MS, authHeaders(), baseUrl, expectStatus(), jsonRequest(), required() (+10 more)
 
-### Community 251 - "tasks.component.ts"
+### Community 251 - "i18n.service.ts"
 Cohesion: 0.03
-Nodes (71): LoginAttemptRecord, User, CustomField, CustomFieldEntityType, CustomFieldType, Project, ProjectMember, ProjectTaskStats (+63 more)
+Nodes (97): LoginAttemptRecord, User, UserSecuritySummary, CustomField, CustomFieldEntityType, CustomFieldType, CreateLanguageRequest, FormTreeItem (+89 more)
 
 ### Community 252 - "3. Детальные находки"
 Cohesion: 0.09
 Nodes (21): 1. Executive summary, 2. Покрытие и фактические проверки, 3. Детальные находки, 4. Повторы и performance, 5. Design system gaps, 6. Scorecard и границы подтверждения, 7. Предлагаемый порядок исправлений, 8. Стратегические рекомендации и неизвестные (+13 more)
 
-### Community 254 - "FileContentInspector"
-Cohesion: 0.29
-Nodes (3): FileContentInspector, Inspection, FileContentInspectorTest
+### Community 255 - "ModuleService"
+Cohesion: 0.12
+Nodes (6): moduleActiveGuard(), InstalledModule, ModuleService, SYSTEM_MODULES, Injectable, ModulesComponent
 
-### Community 256 - ".activeGeneration"
-Cohesion: 0.30
-Nodes (4): StartJobRequest, BeforeEach, Test, SearchJobLifecycleIntegrationTest
+### Community 256 - "SearchDeliveryTestSupport"
+Cohesion: 0.06
+Nodes (22): StartJobRequest, SuppressWarnings, SearchBootstrapIntegrationTest, SearchDeliveryIntegrationTest, SimpleMeterRegistry, SearchDeliveryTestSupport, BeforeEach, Test (+14 more)
 
 ### Community 258 - "KwhSubscriptionController"
-Cohesion: 0.16
-Nodes (9): CreateSubscriptionDto, PatchMapping, PostMapping, RequestMapping, RestController, KwhSubscriptionController, UpdateSubscriptionDto, CreatedSubscription (+1 more)
+Cohesion: 0.13
+Nodes (10): CreateSubscriptionDto, PatchMapping, PostMapping, RequestMapping, RestController, KwhSubscriptionController, UpdateSubscriptionDto, KwhPref (+2 more)
 
 ### Community 259 - "3. Критические недоработки (High)"
 Cohesion: 0.06
 Nodes (35): 1.1. Охват и границы доказательств, 1.2. Выполненные проверки, 1.3. Требования и roadmap: выполнено / частично / отсутствует, 1.4. Приёмка релиза AC-01…AC-13, 1.5. End-to-end, временные границы и «тихие» дефекты, 1. Executive summary, 2. Блокеры релиза, 3. Критические недоработки (High) (+27 more)
 
-### Community 261 - "org.springframework.transaction.annotation.Transactional"
-Cohesion: 0.07
-Nodes (3): UserUpdateData, TypeRecord, org.springframework.transaction.annotation.Transactional
+### Community 261 - "MsTaskStatusRepository"
+Cohesion: 0.10
+Nodes (5): MsTaskStatusRepository, StatusRecord, MsTaskTypeRepository, TypeRecord, MsTaskStatusService
 
 ### Community 277 - "sync-packaged-russian.mjs"
 Cohesion: 0.40
 Nodes (4): catalog, catalogPath, outputPath, webRoot
 
 ### Community 278 - "org.junit.jupiter.api.AfterEach"
-Cohesion: 0.15
+Cohesion: 0.14
 Nodes (4): AfterEach, AfterEach, AfterEach, org.junit.jupiter.api.AfterEach
 
 ### Community 279 - "Security audit — SmartupCMS — 2026-09-05"
@@ -1122,20 +1101,20 @@ Cohesion: 0.22
 Nodes (9): S-01. Экспорт задач без области данных, S-02. Приложение работает с привилегированной DB-ролью, S-03. Trusted-proxy boundary и исчерпание bucket map, S-04. Generic idempotency сохраняет исходные секреты, S-05. Остаточная безопасность webhook, S-06. Supply-chain и тестовые пробелы, S-07. Full-history secret scan красный из-за пути test fixture, S-08. OWASP coverage и ISO/IEC 27001 (+1 more)
 
 ### Community 280 - "KauthPasswordChangeIntegrationTest"
-Cohesion: 0.21
-Nodes (4): Override, Credentials, KauthPasswordChangeIntegrationTest, org.junit.jupiter.params.provider.Arguments
+Cohesion: 0.07
+Nodes (8): ResultSet, SuppressWarnings, UserRecord, AuthUser, Credentials, KauthPasswordChangeIntegrationTest, org.junit.jupiter.api.AfterAll, org.junit.jupiter.params.provider.Arguments
 
 ### Community 281 - "ai-context.md"
 Cohesion: 0.10
 Nodes (14): Audit history, Cleanup — 2026-09-08, Access and settings, Capacity and cleanup policy, Reproducible synthetic measurement, Runtime topology and delivery, Search and index maintenance, Upgrade and bootstrap (+6 more)
 
 ### Community 282 - "MsProjectController"
-Cohesion: 0.10
-Nodes (13): AddMemberDto, CreateProjectDto, DeleteMapping, GetMapping, PatchMapping, PostMapping, RequestMapping, RestController (+5 more)
+Cohesion: 0.09
+Nodes (15): AddMemberDto, CreateProjectDto, DeleteMapping, GetMapping, PatchMapping, PostMapping, RequestMapping, RestController (+7 more)
 
-### Community 283 - "Override"
-Cohesion: 0.14
-Nodes (5): DummyMailProvider, DummyMessengerProvider, DummySmsProvider, DummyStorageProvider, Override
+### Community 283 - "ProviderHealth"
+Cohesion: 0.08
+Nodes (10): Override, LocalStorageProvider, DummyMailProvider, DummyMessengerProvider, DummySmsProvider, DummyStorageProvider, Override, ProviderRegistryTest (+2 more)
 
 ### Community 286 - "Версия доступа и конкурентная смена пароля"
 Cohesion: 0.12
@@ -1149,9 +1128,13 @@ Nodes (11): completeMandatoryPasswordChange(), environment, LoginOutcome, loginT
 Cohesion: 0.14
 Nodes (13): createApiToken(), createSyntheticUser(), csrfHeaders(), desktopViewport, environment, expectLoginSurface(), expectNoFrameworkOverlay(), fillProfilePasswordForm() (+5 more)
 
-### Community 289 - "MsTaskController"
-Cohesion: 0.06
-Nodes (19): AttachFileDto, ChangeStatusDto, CreateStatusDto, CreateTaskDto, CreateTypeDto, DeleteMapping, GetMapping, PatchMapping (+11 more)
+### Community 289 - "org.springframework.http.ResponseEntity"
+Cohesion: 0.11
+Nodes (18): MdI18nAdminController, AttachFileDto, ChangeStatusDto, CreateStatusDto, CreateTaskDto, CreateTypeDto, DeleteMapping, GetMapping (+10 more)
+
+### Community 290 - "CsrfTokenRepository"
+Cohesion: 0.60
+Nodes (3): CsrfCookieController, CsrfTokenRepository, SameNameController
 
 ### Community 291 - "CacheConfig.java"
 Cohesion: 0.36
@@ -1165,9 +1148,9 @@ Nodes (15): 1. Результат и границы, 2. Архитектура �
 Cohesion: 0.30
 Nodes (6): expectNoSeriousAccessibilityViolations(), collectPageErrors(), uniqueRunName(), Category, SearchResponse, @playwright/test
 
-### Community 295 - "KauthChannelController"
-Cohesion: 0.32
-Nodes (3): BindChannelDto, ConfirmChannelDto, KauthChannelController
+### Community 295 - ".migrate"
+Cohesion: 0.40
+Nodes (4): BeforeAll, DataSourceTransactionManager, DriverManagerDataSource, TransactionTemplate
 
 ### Community 296 - "compilerOptions"
 Cohesion: 0.14
@@ -1195,19 +1178,15 @@ Nodes (10): Final acceptance — 2026-09-05, Global Constraints, Rulings retaine
 
 ### Community 302 - "org.testcontainers.junit.jupiter.Testcontainers"
 Cohesion: 0.07
-Nodes (32): FlywayUtcConfiguration, SchemaVersionGate, AuditLogRepositoryPaginationIntegrationTest, IdempotencyFilterIntegrationTest, AuthenticationGenerationMigrationTest, PostgreSQLContainer, FlywayMigrationValidationTest, PostgreSQLContainer (+24 more)
-
-### Community 304 - "TranslationDictionary"
-Cohesion: 0.15
-Nodes (6): CreateLanguageRequest, LanguageInfo, TranslationDictionary, UpdateTranslationsRequest, CachedDictionary, LegacyLanguage
+Nodes (32): FlywayUtcConfiguration, AuditLogRepositoryPaginationIntegrationTest, IdempotencyFilterIntegrationTest, AuthenticationGenerationMigrationTest, PostgreSQLContainer, FlywayMigrationValidationTest, PostgreSQLContainer, SearchIndexManagementMigrationTest (+24 more)
 
 ### Community 305 - "MfFileController.java"
-Cohesion: 0.13
+Cohesion: 0.12
 Nodes (11): DeleteMapping, GetMapping, PostMapping, RequestMapping, RestController, StorageStats, MfFileController, MfPref (+3 more)
 
 ### Community 306 - "KwhWebhookProperties"
 Cohesion: 0.13
-Nodes (5): KwhWebhookProperties, HostResolver, WebhookTargetPolicy, FunctionalInterface, java.net.InetAddress
+Nodes (6): KwhWebhookProperties, HostResolver, WebhookTargetPolicy, KwhOutboxWorker, FunctionalInterface, org.springframework.web.client.RestClient
 
 ### Community 307 - "Architecture audit — SmartupCMS — 2026-09-05"
 Cohesion: 0.11
@@ -1233,9 +1212,9 @@ Nodes (9): Acceptance and handoff (controller), Decisions during implementation,
 Cohesion: 0.20
 Nodes (9): Execution and evidence, Global Constraints, Package acceptance and handoff, Reliable record search implementation plan, Task 1: Durable search schema and migration safety, Task 2: Strict multi-search, bounded SQL fallback and shared policy, Task 3: Atomic projection revisions and bounded durable delivery, Task 4: Dedicated search rate budget with safe live replacement (+1 more)
 
-### Community 314 - "SearchQueryPolicy"
-Cohesion: 0.13
-Nodes (4): FieldPolicy, SearchQueryPolicy, SearchCollectionSchema, BeforeEach
+### Community 314 - "SearchCollectionSchema"
+Cohesion: 0.21
+Nodes (4): SearchCollectionSchema, SuppressWarnings, CapturedRequest, com.sun.net.httpserver.HttpExchange
 
 ### Community 315 - "Projects Interaction and E2E Quality Implementation Plan"
 Cohesion: 0.22
@@ -1247,11 +1226,7 @@ Nodes (8): Global Constraints, Prerequisites and task boundaries, Search setting
 
 ### Community 318 - ".getCurrentUserId"
 Cohesion: 0.08
-Nodes (26): CreateTokenDto, DeleteMapping, GetMapping, PostMapping, RequestMapping, RestController, KauthApiTokenController, CreateNoteRequest (+18 more)
-
-### Community 320 - "analytics.component.spec.ts"
-Cohesion: 0.13
-Nodes (9): AnalyticsComponent, latestTrends, loadInitialSnapshot(), projects, renderResponses(), summary, takeSnapshotRequests(), trends (+1 more)
+Nodes (21): CreateTokenDto, DeleteMapping, GetMapping, PostMapping, RequestMapping, RestController, KauthApiTokenController, GetMapping (+13 more)
 
 ### Community 321 - "Smartup-managed infrastructure acceptance"
 Cohesion: 0.25
@@ -1293,10 +1268,6 @@ Nodes (6): Current status, Managed Infrastructure Release-Acceptance Plan, Task 
 Cohesion: 0.04
 Nodes (38): Release implementation tracker, D-01 — Make production topology executable, Minimal change, Problem and evidence, Verification, D-02 — Fail-closed deploy, rollback and full restore, Minimal change, Problem and evidence (+30 more)
 
-### Community 331 - "SearchRebuildIntegrationTest"
-Cohesion: 0.25
-Nodes (5): AfterEach, BeforeEach, Test, SearchRebuildIntegrationTest, org.testcontainers.containers.GenericContainer
-
 ### Community 332 - "mvnw"
 Cohesion: 0.38
 Nodes (8): mvnw script, clean(), die(), exec_maven(), hash_string(), set_java_home(), trim(), verbose()
@@ -1318,16 +1289,16 @@ Cohesion: 0.80
 Nodes (3): pad(), toLocalDateTime(), toTaskInstant()
 
 ### Community 341 - ".logChange"
-Cohesion: 0.05
-Nodes (6): ResultSet, SuppressWarnings, UserCreateData, UserRecord, TaskStatusChanged, HookedUsers
+Cohesion: 0.07
+Nodes (7): UserUpdateData, BeforeAll, DataSourceTransactionManager, DriverManagerDataSource, Test, TransactionTemplate, SearchRevisionIntegrationTest
 
-### Community 342 - "Security Policy"
-Cohesion: 0.40
-Nodes (5): Disclosure, Reporting a vulnerability, Security controls, Security Policy, Supported versions
+### Community 343 - ".badRequest"
+Cohesion: 0.10
+Nodes (10): MsAnnouncementAdminController, VersionRequest, AnnouncementDraftRequest, AnnouncementState, ARCHIVED, DRAFT, PUBLISHED, ManagedAnnouncementRecord (+2 more)
 
-### Community 344 - "SmsMessage"
-Cohesion: 0.21
-Nodes (4): ConsoleSmsProvider, Override, SmsMessage, SmsSendResult
+### Community 344 - "MailProvider"
+Cohesion: 0.08
+Nodes (11): ConsoleSmsProvider, Override, MsOutboxWorker, MailAttachment, MailMessage, MailProvider, MessengerMessage, MessengerProvider (+3 more)
 
 ### Community 347 - "A-01 — Restore documentation as release source of truth"
 Cohesion: 0.40
@@ -1341,37 +1312,29 @@ Nodes (4): Minimal change, Problem and evidence, S-03 — Eliminate stored XSS i
 Cohesion: 0.20
 Nodes (8): Logger, Override, ProblemDetailAuthHandlers, ProblemDetailAuthHandlersTest, org.springframework.security.access.AccessDeniedException, org.springframework.security.core.AuthenticationException, org.springframework.security.web.access.AccessDeniedHandler, org.springframework.security.web.AuthenticationEntryPoint
 
-### Community 359 - "MsOutboxRepository"
-Cohesion: 0.24
-Nodes (4): ResultSet, SuppressWarnings, MsOutboxRepository, OutboxRecord
-
 ### Community 360 - "Authentication Generation Implementation Plan"
 Cohesion: 0.25
 Nodes (7): Authentication Generation Implementation Plan, Coverage self-check, File structure and review boundaries, Global Constraints, Task 1: Versioned backend authentication and transactional regression suite, Task 2: Explicit re-login, permanent browser regression and final acceptance handoff, Workspace and verification
 
-### Community 361 - "SearchPolicyProvider"
-Cohesion: 0.09
-Nodes (20): org.springframework.beans.factory.annotation.Autowired, RateLimitProperties, SearchSettingsRepository, SearchOwnerRateLimits, SearchAccessPolicy, EffectiveBudgets, SearchPolicyProvider, SearchRateBudget (+12 more)
+### Community 361 - "SearchIndexStateRepository"
+Cohesion: 0.06
+Nodes (25): org.springframework.beans.factory.annotation.Autowired, RateLimitProperties, SearchExecutionSnapshot, SettingsSnapshot, IndexSnapshot, ObservedGeneration, SearchIndexStateRepository, SearchOwnerRateLimits (+17 more)
 
 ### Community 362 - "KwhOutboxRecord"
 Cohesion: 0.29
 Nodes (4): ResultSet, SuppressWarnings, KwhOutboxRecord, KwhOutboxWorkerSecurityTest
 
-### Community 363 - "jakarta.servlet.http.HttpServletRequest"
-Cohesion: 0.31
-Nodes (5): Override, RateLimitFilter, jakarta.servlet.FilterChain, jakarta.servlet.http.HttpServletRequest, org.springframework.util.AntPathMatcher
+### Community 363 - "RateLimitFilter"
+Cohesion: 0.16
+Nodes (9): Override, RateLimitFilter, TraceparentFilter, jakarta.servlet.FilterChain, Override, W3cTraceparentFilter, org.springframework.core.annotation.Order, org.springframework.util.AntPathMatcher (+1 more)
 
 ### Community 364 - "SmartupCMS documentation"
 Cohesion: 0.33
 Nodes (6): Authority tier 1 — requirements, Authority tier 2 — current decisions, Authority tier 3 — engineering guidance, Authority tier 4 — operations and security, Project entry points and historical material, SmartupCMS documentation
 
-### Community 365 - "org.springframework.context.event.EventListener"
-Cohesion: 0.29
-Nodes (4): MsTaskNotificationListener, MsTaskEvents, TaskAssigned, org.springframework.context.event.EventListener
-
-### Community 366 - "Fixture"
-Cohesion: 0.23
-Nodes (6): Fixture, Bean, Configuration, DataSourceTransactionManager, Import, ComponentScan
+### Community 366 - "javax.sql.DataSource"
+Cohesion: 0.10
+Nodes (15): SchemaVersionGate, SearchReconciliationService, Override, ObservingDataSource, Fixture, Bean, Configuration, DataSourceTransactionManager (+7 more)
 
 ### Community 367 - "Projects list quality — Implementation Plan"
 Cohesion: 0.33
@@ -1381,57 +1344,49 @@ Nodes (5): Controller acceptance (not another implementation task), Global Const
 Cohesion: 0.40
 Nodes (5): 1. Контекст, 2. Решение, 3. Последствия, 4. Трассируемость, ADR-0014: Единый open-source runtime SmartupCMS
 
-### Community 371 - "MdSettingService"
-Cohesion: 0.31
-Nodes (3): MdSettingRepository, MdSettingService, MdSettingServiceTest
+### Community 370 - "PlatformMetrics"
+Cohesion: 0.16
+Nodes (3): PlatformMetrics, io.micrometer.core.instrument.Counter, io.micrometer.core.instrument.MeterRegistry
 
 ### Community 374 - "SpaCsrfTokenRequestHandler.java"
 Cohesion: 0.43
 Nodes (5): Override, SpaCsrfTokenRequestHandler, org.springframework.security.web.csrf.CsrfToken, org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler, org.springframework.security.web.csrf.CsrfTokenRequestHandler
 
-### Community 376 - "AnnouncementState"
-Cohesion: 0.40
-Nodes (4): AnnouncementState, ARCHIVED, DRAFT, PUBLISHED
-
-### Community 378 - ".setup"
-Cohesion: 0.40
-Nodes (4): BeforeAll, DataSourceTransactionManager, DriverManagerDataSource, TransactionTemplate
-
 ### Community 381 - "AppHeaderComponent"
 Cohesion: 0.40
 Nodes (4): AppHeaderComponent, Input, Output, ViewChild
 
-### Community 383 - "i18n.service.ts"
-Cohesion: 0.04
-Nodes (57): FieldErrorItem, ProblemDetail, SearchJobAction, FALLBACK_LANGUAGE, LANGUAGE_LOCALES, LANGUAGE_NATIVE_NAMES, TECHNICAL_RUSSIAN_FALLBACK, TranslatePipe (+49 more)
+### Community 383 - "org-units.component.ts"
+Cohesion: 0.12
+Nodes (18): FieldErrorItem, ProblemDetail, OrgUnitSubmission, child, root, OrgUnitTreeComponent, Input, Output (+10 more)
 
 ### Community 385 - "ApiTokenRecord"
-Cohesion: 0.08
-Nodes (10): ApiTokenRecord, OtpRecord, UserSecuritySummary, HookedHasher, HookedOtps, HookedSessions, HookedTokens, KauthPrincipal (+2 more)
+Cohesion: 0.10
+Nodes (11): ApiTokenRecord, OtpRecord, CreatedTokenResult, HookedHasher, HookedOtps, HookedSessions, HookedTokens, HookedUsers (+3 more)
 
 ## Ambiguous Edges - Review These
 - `Full Dev Compose Stack (SmartupCMS group)` → `Typesense Search Env Config (no typesense service declared)`  [AMBIGUOUS]
   docker-compose.yml · relation: references
 
 ## Knowledge Gaps
-- **1081 isolated node(s):** `server`, `PENDING`, `COMPLETED`, `ACQUIRED`, `IN_PROGRESS` (+1076 more)
+- **1082 isolated node(s):** `server`, `PENDING`, `COMPLETED`, `ACQUIRED`, `IN_PROGRESS` (+1077 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **83 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **78 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **What is the exact relationship between `Full Dev Compose Stack (SmartupCMS group)` and `Typesense Search Env Config (no typesense service declared)`?**
   _Edge tagged AMBIGUOUS (relation: references) - confidence is low._
-- **Why does `RequiresPermission` connect `RequiresPermission` to `KwhSubscriptionController`, `MsProjectWriteIntegrationTest.java`, `ErrorCode`, `.status`, `SecurityContext`, `MdCustomFieldRepository`, `MsProjectController`, `jakarta.servlet.http.HttpServletResponse`, `MsTaskController`, `KwhWebhookService`, `MsTaskService`, `KauthChannelController`, `InstalledModuleView`, `org.testcontainers.junit.jupiter.Testcontainers`, `MfFileController.java`, `AuditLogService`, `org.springframework.stereotype.Component`, `ReportService`, `.getCurrentUserId`, `NavigationItemService`, `SearchJobService`, `SsoProviderRepository`, `org.springframework.jdbc.core.simple.JdbcClient`, `AnalyticsService`, `KwhSubscriptionController.java`, `MdCustomFieldController`, `KauthSessionController`?**
+- **Why does `RequiresPermission` connect `RequiresPermission` to `MsNoteService`, `KwhSubscriptionController`, `ErrorCode`, `.syncFormCatalog`, `.status`, `SecurityContext`, `MdCustomFieldRepository`, `MsProjectController`, `MdUserController`, `org.springframework.http.ResponseEntity`, `KwhWebhookService`, `org.springframework.transaction.annotation.Transactional`, `InstalledModuleView`, `org.testcontainers.junit.jupiter.Testcontainers`, `MfFileController.java`, `AuditLogService`, `org.springframework.stereotype.Component`, `ReportService`, `MdRoleController`, `.getCurrentUserId`, `.conflict`, `MsAnnouncementRepository`, `UpdateTaskDto`, `SearchJobService`, `SsoProviderRepository`, `.badRequest`, `MsTaskCommentController`, `org.springframework.jdbc.core.simple.JdbcClient`, `MdSettingController`, `MdOrgUnitController`, `MdCustomFieldController`?**
   _High betweenness centrality (0.027) - this node is a cross-community bridge._
-- **Why does `TypesenseSearchMapper` connect `TypesenseSearchMapper` to `SearchMetrics`, `TypesenseClient`, `org.springframework.jdbc.core.simple.JdbcClient`, `SearchService`?**
+- **Why does `TypesenseSearchMapper` connect `SearchService` to `TypesenseClient`, `org.springframework.jdbc.core.simple.JdbcClient`?**
   _High betweenness centrality (0.016) - this node is a cross-community bridge._
-- **Why does `ErrorCode` connect `ErrorCode` to `.notFound`, `.login`, `MsProjectWriteIntegrationTest.java`, `AuthenticationGenerationFixture`, `GlobalExceptionHandler`, `MsTaskService`, `IdempotencyService`, `org.testcontainers.junit.jupiter.Testcontainers`, `AuditLogService`, `KwhWebhookProperties`, `org.springframework.stereotype.Component`, `.conflict`, `MdI18nService`, `.badRequest`, `org.springframework.jdbc.core.simple.JdbcClient`, `SearchService`, `ProblemDetailAuthHandlers`, `jakarta.servlet.http.HttpServletRequest`, `StorageProvider`?**
+- **Why does `ErrorCode` connect `ErrorCode` to `MsNoteService`, `ProblemDetailAuthHandlers`, `.login`, `org.springframework.transaction.annotation.Transactional`, `HttpConfiguration`, `SearchFallbackRepository`, `RateLimitFilter`, `MdUserRepository`, `.conflict`, `org.testcontainers.junit.jupiter.Testcontainers`, `AuditLogService`, `SecurityContext`, `AuthenticationGenerationFixture`, `jakarta.servlet.http.HttpServletRequest`, `.badRequest`, `MailProvider`, `org.springframework.jdbc.core.simple.JdbcClient`?**
   _High betweenness centrality (0.012) - this node is a cross-community bridge._
 - **What connects `server`, `PENDING`, `COMPLETED` to the rest of the system?**
-  _1081 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _1082 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `org.junit.jupiter.api.Test` be split into smaller, more focused modules?**
-  _Cohesion score 0.030794430794430793 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.030485186775440102 - nodes in this community are weakly interconnected._
 - **Should `TypesenseClient` be split into smaller, more focused modules?**
-  _Cohesion score 0.08549019607843138 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07422559906487435 - nodes in this community are weakly interconnected._
