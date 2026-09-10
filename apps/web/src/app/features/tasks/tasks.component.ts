@@ -30,6 +30,7 @@ import { TaskKanbanViewComponent } from './components/task-kanban-view.component
 import { TaskTableViewComponent } from './components/task-table-view.component';
 import { TaskFilterBarComponent } from './components/task-filter-bar.component';
 import { TaskDetailModalComponent } from './components/task-detail-modal.component';
+import { TaskCreateModalComponent } from './components/task-create-modal.component';
 
 @Component({
   selector: 'app-tasks',
@@ -52,7 +53,8 @@ import { TaskDetailModalComponent } from './components/task-detail-modal.compone
     TaskKanbanViewComponent,
     TaskTableViewComponent,
     TaskFilterBarComponent,
-    TaskDetailModalComponent
+    TaskDetailModalComponent,
+    TaskCreateModalComponent
   ],
 
 
@@ -295,229 +297,38 @@ import { TaskDetailModalComponent } from './components/task-detail-modal.compone
     <!-- ======================================================================= -->
     <!-- Create Task Modal (With RichText MD Editor & User Multi-Select)         -->
     <!-- ======================================================================= -->
-    <ui-modal
+    <app-task-create-modal
       [isOpen]="isCreateModalOpen()"
-      [title]="createForm.parentTaskId ? ('tasks.create_subtask_for' | t:{id: createForm.parentTaskId}) : ('tasks.create_new_task' | t)"
-      size="lg"
-      [dismissible]="!isSubmitting()"
+      [createForm]="createForm"
+      [isSubmitting]="isSubmitting()"
+      [isCreateSubmitted]="isCreateSubmitted"
+      [taskTypes]="taskTypes()"
+      [projects]="projects()"
+      [parentTaskOptions]="parentTaskOptions()"
+      [parentLookupLoading]="parentLookupLoading()"
+      [parentLookupError]="parentLookupError()"
+      [parentLookupHasMore]="parentLookupHasMore()"
+      [responsibleUserOptions]="responsibleUserOptions()"
+      [responsibleLookupLoading]="responsibleLookupLoading()"
+      [responsibleLookupError]="responsibleLookupError()"
+      [responsibleLookupHasMore]="responsibleLookupHasMore()"
+      [observerUsers]="observerUsers()"
+      [observerLookupLoading]="observerLookupLoading()"
+      [observerLookupError]="observerLookupError()"
+      [observerLookupHasMore]="observerLookupHasMore()"
+      [taskCustomFields]="taskCustomFields()"
       (close)="requestCloseCreate()"
-    >
-      <fieldset body class="modal-form modal-form-fieldset task-create-form" [disabled]="isSubmitting()">
-        <!-- Title Input (Required) -->
-        <div class="form-group">
-          <div class="label-row">
-            <label class="clean-label" for="task-create-title">{{ 'task.title' | t }}</label>
-            <span class="req-tag">{{ 'projects.obyazatelnoe_pole' | t }}</span>
-          </div>
-          <input
-            id="task-create-title"
-            name="taskCreateTitle"
-            type="text"
-            class="clean-input title-input"
-            required
-            [attr.aria-invalid]="isCreateSubmitted && !createForm.title.trim()"
-            [attr.aria-describedby]="isCreateSubmitted && !createForm.title.trim() ? 'task-create-title-error' : null"
-            [class.input-error]="isCreateSubmitted && !createForm.title.trim()"
-            [(ngModel)]="createForm.title"
-            [placeholder]="'tasks.kratkaya_i_yasnaya_formulirovka_zadachi' | t"
-          />
-          <span id="task-create-title-error" class="error-msg" *ngIf="isCreateSubmitted && !createForm.title.trim()">
-            {{ 'tasks.pozhaluysta_ukazhite_nazvanie_zadachi' | t }}
-          </span>
-        </div>
-
-        <!-- Visual Type Selector Chips -->
-        <div class="form-group">
-          <div class="label-row">
-            <span class="clean-label">{{ 'tasks.tip_zadachi' | t }}</span>
-          </div>
-          <div class="type-chips-selector" role="group" [attr.aria-label]="'tasks.tip_zadachi' | t">
-            <button
-              *ngFor="let ty of taskTypes()"
-              type="button"
-              class="type-chip-btn"
-              [class.active]="createForm.taskType === ty.code"
-              [attr.aria-pressed]="createForm.taskType === ty.code"
-              (click)="createForm.taskType = ty.code"
-              [style.--chip-color]="ty.color"
-            >
-              <span class="material-symbols-outlined" aria-hidden="true">{{ ty.icon }}</span>
-              <span>{{ ty.name }}</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Visual Priority Selector Pills -->
-        <div class="form-group">
-          <div class="label-row">
-            <span class="clean-label">{{ 'common.priority' | t }}</span>
-          </div>
-          <div class="priority-chips-selector" role="group" [attr.aria-label]="'tasks.prioritet_zadachi' | t">
-            <button
-              type="button"
-              class="prio-chip-btn prio-low"
-              [class.active]="createForm.priority === 'low'"
-              [attr.aria-pressed]="createForm.priority === 'low'"
-              (click)="createForm.priority = 'low'"
-            >
-              {{ 'task.priority.low' | t }}
-            </button>
-            <button
-              type="button"
-              class="prio-chip-btn prio-medium"
-              [class.active]="createForm.priority === 'medium'"
-              [attr.aria-pressed]="createForm.priority === 'medium'"
-              (click)="createForm.priority = 'medium'"
-            >
-              {{ 'tasks.sredniy' | t }}
-            </button>
-            <button
-              type="button"
-              class="prio-chip-btn prio-high"
-              [class.active]="createForm.priority === 'high'"
-              [attr.aria-pressed]="createForm.priority === 'high'"
-              (click)="createForm.priority = 'high'"
-            >
-              {{ 'task.priority.high' | t }}
-            </button>
-            <button
-              type="button"
-              class="prio-chip-btn prio-critical"
-              [class.active]="createForm.priority === 'critical'"
-              [attr.aria-pressed]="createForm.priority === 'critical'"
-              (click)="createForm.priority = 'critical'"
-            >
-              {{ 'tasks.kriticheskiy' | t }}
-            </button>
-          </div>
-        </div>
-
-        <div class="form-grid-2">
-          <!-- Project Selector -->
-          <div class="form-group">
-            <div class="label-row">
-              <label class="clean-label" for="task-create-project">{{ 'projects.proekt' | t }}</label>
-            </div>
-            <select id="task-create-project" name="taskCreateProject" class="clean-input" [(ngModel)]="createForm.projectId">
-              <option [ngValue]="null">{{ 'tasks.bez_proekta' | t }}</option>
-              <option *ngFor="let p of projects()" [ngValue]="p.id">{{ p.name }}</option>
-            </select>
-          </div>
-
-          <!-- Parent Task (Searchable Select) -->
-          <div class="form-group">
-            <div class="label-row">
-              <span class="clean-label">{{ 'task.parent' | t }}</span>
-            </div>
-            <ui-searchable-select
-              [options]="parentTaskOptions()"
-              [selectedId]="createForm.parentTaskId"
-              [ariaLabel]="'task.parent' | t"
-              (selectedIdChange)="createForm.parentTaskId = $event"
-              [placeholder]="'tasks.bez_roditelya_kornevaya_zadacha' | t"
-              [searchPlaceholder]="'tasks.poisk_zadachi_po_id_ili_nazvaniyu' | t"
-              [emptyLabel]="'tasks.without_parent' | t"
-              [remoteSearch]="true"
-              [loading]="parentLookupLoading()"
-              [loadError]="parentLookupError()"
-              [hasMore]="parentLookupHasMore()"
-              (searchChange)="onParentSearch($event)"
-              (loadMore)="loadMoreParents()"
-              (retry)="retryParentLookup()"
-            ></ui-searchable-select>
-          </div>
-        </div>
-
-        <div class="form-grid-2">
-          <!-- Responsible User (Searchable Select) -->
-          <div class="form-group">
-            <div class="label-row">
-              <span class="clean-label">{{ 'task.responsible' | t }}</span>
-            </div>
-            <ui-searchable-select
-              [options]="responsibleUserOptions()"
-              [selectedId]="createForm.responsibleUserId"
-              [ariaLabel]="'task.responsible' | t"
-              (selectedIdChange)="createForm.responsibleUserId = $event"
-              [placeholder]="'tasks.vyberite_otvetstvennogo' | t"
-              [searchPlaceholder]="'tasks.poisk_sotrudnika_po_imeni_ili_loginu' | t"
-              [emptyLabel]="'common.not_assigned' | t"
-              [remoteSearch]="true"
-              [loading]="responsibleLookupLoading()"
-              [loadError]="responsibleLookupError()"
-              [hasMore]="responsibleLookupHasMore()"
-              (searchChange)="onResponsibleSearch($event)"
-              (loadMore)="loadMoreResponsibleUsers()"
-              (retry)="retryResponsibleLookup()"
-            ></ui-searchable-select>
-          </div>
-
-          <!-- Deadlines: End Date / Deadline -->
-          <div class="form-group">
-            <div class="label-row">
-              <label class="clean-label" for="task-create-deadline">{{ 'tasks.srok_sdachi_dedlayn' | t }}</label>
-            </div>
-            <input id="task-create-deadline" name="taskCreateDeadline" type="datetime-local" class="clean-input font-mono" [(ngModel)]="createForm.endTime" />
-          </div>
-        </div>
-
-        <!-- Observers Searchable Multi-Select Tags Input -->
-        <div class="form-group">
-          <div class="label-row">
-            <span class="clean-label">{{ 'tasks.nablyudateli_poluchayut_uvedomleniya' | t }}</span>
-          </div>
-          <ui-user-multi-select
-            [users]="observerUsers()"
-            [selectedUserIds]="createForm.observerUserIds"
-            [ariaLabel]="'tasks.nablyudateli' | t"
-            (selectedUserIdsChange)="createForm.observerUserIds = $event"
-            [placeholder]="'tasks.nazhmite_dlya_dobavleniya_nablyudateley' | t"
-            [searchPlaceholder]="'tasks.poisk_sotrudnika' | t"
-            [remoteSearch]="true"
-            [loading]="observerLookupLoading()"
-            [loadError]="observerLookupError()"
-            [hasMore]="observerLookupHasMore()"
-            (searchChange)="onObserverSearch($event)"
-            (loadMore)="loadMoreObservers()"
-            (retry)="retryObserverLookup()"
-          ></ui-user-multi-select>
-        </div>
-
-        <!-- RichText Markdown Editor for Description -->
-        <div class="form-group">
-          <div class="label-row">
-            <span class="clean-label">{{ 'projects.opisanie' | t }}</span>
-          </div>
-          <ui-markdown-editor
-            [value]="createForm.descriptionMarkdown"
-            [ariaLabel]="'projects.opisanie' | t"
-            (valueChange)="createForm.descriptionMarkdown = $event"
-            [placeholder]="'tasks.kontekst_kriterii_gotovnosti_zadachi_ssylki_podd' | t"
-            [rows]="4"
-          ></ui-markdown-editor>
-        </div>
-
-        <!-- Custom Dynamic Fields -->
-        <div class="custom-fields-section" *ngIf="taskCustomFields().length > 0">
-          <h4 class="custom-fields-title">
-            <span>{{ 'nav.custom_fields' | t }}</span>
-          </h4>
-          <ui-custom-fields
-            [fields]="taskCustomFields()"
-            [(values)]="createForm.attributes"
-          ></ui-custom-fields>
-        </div>
-
-        <div class="custom-fields-empty-tip" *ngIf="taskCustomFields().length === 0">
-          <span class="material-symbols-outlined tip-icon" aria-hidden="true">extension</span>
-          <span class="tip-text">{{ 'tasks.nuzhny_specificheskie_polya_byudzhet_nomer_dogov' | t }} <strong>{{ 'nav.custom_fields' | t }}</strong>.</span>
-        </div>
-      </fieldset>
-      <div footer>
-        <ui-button variant="secondary" size="md" [disabled]="isSubmitting()" (onClick)="requestCloseCreate()">{{ 'common.cancel' | t }}</ui-button>
-        <ui-button variant="primary" size="md" [loading]="isSubmitting()" (onClick)="submitCreateTask()">{{ 'tasks.sozdat_zadachu' | t }}</ui-button>
-      </div>
-    </ui-modal>
+      (submit)="submitCreateTask()"
+      (parentSearch)="onParentSearch($event)"
+      (parentLoadMore)="loadMoreParents()"
+      (parentRetry)="retryParentLookup()"
+      (responsibleSearch)="onResponsibleSearch($event)"
+      (responsibleLoadMore)="loadMoreResponsibleUsers()"
+      (responsibleRetry)="retryResponsibleLookup()"
+      (observerSearch)="onObserverSearch($event)"
+      (observerLoadMore)="loadMoreObservers()"
+      (observerRetry)="retryObserverLookup()"
+    ></app-task-create-modal>
 
     <!-- ======================================================================= -->
     <!-- Edit Task Modal (With RichText MD Editor & User Multi-Select)           -->
