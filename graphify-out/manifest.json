@@ -2412,9 +2412,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/tasks/tasks.component.ts": {
-    "mtime": 1789050178.0041397,
-    "seen": 1789050249.5871098,
-    "ast_hash": "2b3ed056d318bd33406150e102c38a82",
+    "mtime": 1789074682.683436,
+    "seen": 1789074773.380665,
+    "ast_hash": "e371dc3bfb3ae4330b22d3e376900c76",
     "semantic_hash": ""
   },
   "apps/web/src/app/layout/app-shell/app-shell.component.spec.ts": {
@@ -5109,6 +5109,54 @@
     "mtime": 1789074062.0425959,
     "seen": 1789074258.7553847,
     "ast_hash": "9ab89e1a883a1b223092908937ddcad8",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/tasks/services/task-details.service.ts": {
+    "mtime": 1789074456.929829,
+    "seen": 1789074773.380665,
+    "ast_hash": "1349e7396146438e905e380e69019f40",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/tasks/services/task-dictionaries.service.ts": {
+    "mtime": 1789074456.9378295,
+    "seen": 1789074773.380665,
+    "ast_hash": "2d0cb0682604b18cac652e8d9303461e",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/tasks/services/task-filter.service.ts": {
+    "mtime": 1789074487.3249319,
+    "seen": 1789074773.380665,
+    "ast_hash": "1a301b4c820fb9c9747ff961286aede7",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/tasks/services/task-forms.service.ts": {
+    "mtime": 1789074787.1032186,
+    "seen": 1789074811.6468878,
+    "ast_hash": "bc62d3609b6a2adc26cca033bf73c3aa",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/tasks/services/task-kanban.service.ts": {
+    "mtime": 1789074555.229813,
+    "seen": 1789074773.380665,
+    "ast_hash": "f614a77d39bbb39b5d55210761dfe528",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/tasks/services/task-lookups.service.ts": {
+    "mtime": 1789074494.7929535,
+    "seen": 1789074773.380665,
+    "ast_hash": "df5ed2f99c6d8a711bec41fbaf179a07",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/tasks/tasks.models.ts": {
+    "mtime": 1789074456.9228272,
+    "seen": 1789074773.380665,
+    "ast_hash": "52f3c057016307594b21fdb22bfcb075",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/tasks/tasks.component.html": {
+    "mtime": 1789074292.699078,
+    "seen": 1789074773.380665,
+    "ast_hash": "5066d7ecd143b8c033a21a2303a8c659",
     "semantic_hash": ""
   }
 }
