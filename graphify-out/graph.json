@@ -4070,7 +4070,7 @@
       "file_type": "code",
       "norm_label": "languageeditorcomponent",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L283"
+      "source_location": "L156"
     },
     {
       "id": "apps_server_src_main_java_com_greenwhite_dwh_instance_ms_notify_provider_consolemailprovider_consolemailprovider",
@@ -6241,7 +6241,7 @@
       "file_type": "code",
       "norm_label": "embeddedreportcomponent",
       "source_file": "apps/web/src/app/features/reports/embedded-report.component.ts",
-      "source_location": "L444"
+      "source_location": "L135"
     },
     {
       "id": "apps_server_src_main_java_com_greenwhite_dwh_instance_kauth_controller_kauthapitokencontroller_createtokendto",
@@ -9036,7 +9036,7 @@
       "file_type": "code",
       "norm_label": "notescomponent",
       "source_file": "apps/web/src/app/features/notes/notes.component.ts",
-      "source_location": "L407"
+      "source_location": "L192"
     },
     {
       "id": "apps_server_src_main_java_com_greenwhite_dwh_instance_kauth_service_kauthauthservice_loginresult",
@@ -16665,7 +16665,7 @@
       "file_type": "code",
       "norm_label": ".constructor()",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L320"
+      "source_location": "L193"
     },
     {
       "id": "apps_web_src_app_features_settings_modules_modules_component_spec_createfixture",
@@ -26253,7 +26253,7 @@
       "file_type": "code",
       "norm_label": ".applysavedmodel()",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L513"
+      "source_location": "L386"
     },
     {
       "id": "apps_web_src_app_features_settings_language_editor_component_languageeditorcomponent_beforeunload",
@@ -26265,7 +26265,7 @@
       "file_type": "code",
       "norm_label": ".beforeunload()",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L488"
+      "source_location": "L361"
     },
     {
       "id": "apps_web_src_app_features_settings_language_editor_component_languageeditorcomponent_buildoverrides",
@@ -26277,7 +26277,7 @@
       "file_type": "code",
       "norm_label": ".buildoverrides()",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L502"
+      "source_location": "L375"
     },
     {
       "id": "apps_web_src_app_features_settings_language_editor_component_languageeditorcomponent_cancelchanges",
@@ -26289,7 +26289,7 @@
       "file_type": "code",
       "norm_label": ".cancelchanges()",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L381"
+      "source_location": "L254"
     },
     {
       "id": "apps_web_src_app_features_settings_language_editor_component_languageeditorcomponent_canreset",
@@ -26301,7 +26301,7 @@
       "file_type": "code",
       "norm_label": ".canreset()",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L373"
+      "source_location": "L246"
     },
     {
       "id": "apps_web_src_app_features_settings_language_editor_component_languageeditorcomponent_exportdraft",
@@ -26313,7 +26313,7 @@
       "file_type": "code",
       "norm_label": ".exportdraft()",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L462"
+      "source_location": "L335"
     },
     {
       "id": "apps_web_src_app_features_settings_language_editor_component_languageeditorcomponent_inputid",
@@ -26325,7 +26325,7 @@
       "file_type": "code",
       "norm_label": ".inputid()",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L494"
+      "source_location": "L367"
     },
     {
       "id": "apps_web_src_app_features_settings_language_editor_component_languageeditorcomponent_istranslated",
@@ -26337,7 +26337,7 @@
       "file_type": "code",
       "norm_label": ".istranslated()",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L369"
+      "source_location": "L242"
     },
     {
       "id": "apps_web_src_app_features_settings_language_editor_component_languageeditorcomponent_load",
@@ -26349,7 +26349,7 @@
       "file_type": "code",
       "norm_label": ".load()",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L334"
+      "source_location": "L207"
     },
     {
       "id": "apps_web_src_app_features_settings_language_editor_component_languageeditorcomponent_ngoninit",
@@ -26361,7 +26361,7 @@
       "file_type": "code",
       "norm_label": ".ngoninit()",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L330"
+      "source_location": "L203"
     },
     {
       "id": "apps_web_src_app_features_settings_language_editor_component_languageeditorcomponent_requestclose",
@@ -26373,7 +26373,7 @@
       "file_type": "code",
       "norm_label": ".requestclose()",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L479"
+      "source_location": "L352"
     },
     {
       "id": "apps_web_src_app_features_settings_language_editor_component_languageeditorcomponent_resetdraft",
@@ -26385,7 +26385,7 @@
       "file_type": "code",
       "norm_label": ".resetdraft()",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L348"
+      "source_location": "L221"
     },
     {
       "id": "apps_web_src_app_features_settings_language_editor_component_languageeditorcomponent_resetvalue",
@@ -26397,7 +26397,7 @@
       "file_type": "code",
       "norm_label": ".resetvalue()",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L377"
+      "source_location": "L250"
     },
     {
       "id": "apps_web_src_app_features_settings_language_editor_component_languageeditorcomponent_save",
@@ -26409,7 +26409,7 @@
       "file_type": "code",
       "norm_label": ".save()",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L385"
+      "source_location": "L258"
     },
     {
       "id": "apps_web_src_app_features_settings_language_editor_component_languageeditorcomponent_setvalue",
@@ -26421,7 +26421,7 @@
       "file_type": "code",
       "norm_label": ".setvalue()",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L364"
+      "source_location": "L237"
     },
     {
       "id": "apps_web_src_app_features_settings_language_editor_component_languageeditorcomponent_trackbykey",
@@ -26433,7 +26433,7 @@
       "file_type": "code",
       "norm_label": ".trackbykey()",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L498"
+      "source_location": "L371"
     },
     {
       "id": "apps_web_src_app_features_settings_language_editor_component_languageeditorcomponent_valuefor",
@@ -26445,7 +26445,7 @@
       "file_type": "code",
       "norm_label": ".valuefor()",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L360"
+      "source_location": "L233"
     },
     {
       "id": "apps_web_src_app_features_settings_settings_component_settingscomponent_changepersonallang",
@@ -27945,7 +27945,7 @@
       "file_type": "code",
       "norm_label": ".importfile()",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L451"
+      "source_location": "L324"
     },
     {
       "id": "apps_web_src_app_features_settings_language_editor_component_languageeditorcomponent_importjson",
@@ -27957,7 +27957,7 @@
       "file_type": "code",
       "norm_label": ".importjson()",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L425"
+      "source_location": "L298"
     },
     {
       "id": "apps_web_src_app_features_settings_settings_component_settingscomponent_exportlangjson",
@@ -35781,7 +35781,7 @@
       "file_type": "code",
       "norm_label": ".loadreport()",
       "source_file": "apps/web/src/app/features/reports/embedded-report.component.ts",
-      "source_location": "L467"
+      "source_location": "L158"
     },
     {
       "id": "apps_web_src_app_features_reports_embedded_report_component_embeddedreportcomponent_ngoninit",
@@ -35793,7 +35793,7 @@
       "file_type": "code",
       "norm_label": ".ngoninit()",
       "source_file": "apps/web/src/app/features/reports/embedded-report.component.ts",
-      "source_location": "L458"
+      "source_location": "L149"
     },
     {
       "id": "apps_web_src_app_features_reports_embedded_report_component_embeddedreportcomponent_oniframeloaded",
@@ -35805,7 +35805,7 @@
       "file_type": "code",
       "norm_label": ".oniframeloaded()",
       "source_file": "apps/web/src/app/features/reports/embedded-report.component.ts",
-      "source_location": "L492"
+      "source_location": "L183"
     },
     {
       "id": "apps_web_src_app_features_reports_embedded_report_component_embeddedreportcomponent_openpopup",
@@ -35817,7 +35817,7 @@
       "file_type": "code",
       "norm_label": ".openpopup()",
       "source_file": "apps/web/src/app/features/reports/embedded-report.component.ts",
-      "source_location": "L510"
+      "source_location": "L201"
     },
     {
       "id": "apps_web_src_app_features_reports_embedded_report_component_embeddedreportcomponent_reloadiframe",
@@ -35829,7 +35829,7 @@
       "file_type": "code",
       "norm_label": ".reloadiframe()",
       "source_file": "apps/web/src/app/features/reports/embedded-report.component.ts",
-      "source_location": "L496"
+      "source_location": "L187"
     },
     {
       "id": "apps_web_src_app_features_reports_embedded_report_component_embeddedreportcomponent_togglefullscreen",
@@ -35841,7 +35841,7 @@
       "file_type": "code",
       "norm_label": ".togglefullscreen()",
       "source_file": "apps/web/src/app/features/reports/embedded-report.component.ts",
-      "source_location": "L506"
+      "source_location": "L197"
     },
     {
       "id": "apps_server_src_main_java_com_greenwhite_dwh_instance_common_error_apiexception_apiexception_unauthorized",
@@ -47109,7 +47109,7 @@
       "file_type": "code",
       "norm_label": ".clearsearch()",
       "source_file": "apps/web/src/app/features/notes/notes.component.ts",
-      "source_location": "L446"
+      "source_location": "L231"
     },
     {
       "id": "apps_web_src_app_features_notes_notes_component_notescomponent_closemodal",
@@ -47121,7 +47121,7 @@
       "file_type": "code",
       "norm_label": ".closemodal()",
       "source_file": "apps/web/src/app/features/notes/notes.component.ts",
-      "source_location": "L468"
+      "source_location": "L253"
     },
     {
       "id": "apps_web_src_app_features_notes_notes_component_notescomponent_deletenote",
@@ -47133,7 +47133,7 @@
       "file_type": "code",
       "norm_label": ".deletenote()",
       "source_file": "apps/web/src/app/features/notes/notes.component.ts",
-      "source_location": "L507"
+      "source_location": "L292"
     },
     {
       "id": "apps_web_src_app_features_notes_notes_component_notescomponent_loadnotes",
@@ -47145,7 +47145,7 @@
       "file_type": "code",
       "norm_label": ".loadnotes()",
       "source_file": "apps/web/src/app/features/notes/notes.component.ts",
-      "source_location": "L434"
+      "source_location": "L219"
     },
     {
       "id": "apps_web_src_app_features_notes_notes_component_notescomponent_ngoninit",
@@ -47157,7 +47157,7 @@
       "file_type": "code",
       "norm_label": ".ngoninit()",
       "source_file": "apps/web/src/app/features/notes/notes.component.ts",
-      "source_location": "L430"
+      "source_location": "L215"
     },
     {
       "id": "apps_web_src_app_features_notes_notes_component_notescomponent_onsearchchange",
@@ -47169,7 +47169,7 @@
       "file_type": "code",
       "norm_label": ".onsearchchange()",
       "source_file": "apps/web/src/app/features/notes/notes.component.ts",
-      "source_location": "L442"
+      "source_location": "L227"
     },
     {
       "id": "apps_web_src_app_features_notes_notes_component_notescomponent_opencreatemodal",
@@ -47181,7 +47181,7 @@
       "file_type": "code",
       "norm_label": ".opencreatemodal()",
       "source_file": "apps/web/src/app/features/notes/notes.component.ts",
-      "source_location": "L451"
+      "source_location": "L236"
     },
     {
       "id": "apps_web_src_app_features_notes_notes_component_notescomponent_openeditmodal",
@@ -47193,7 +47193,7 @@
       "file_type": "code",
       "norm_label": ".openeditmodal()",
       "source_file": "apps/web/src/app/features/notes/notes.component.ts",
-      "source_location": "L457"
+      "source_location": "L242"
     },
     {
       "id": "apps_web_src_app_features_notes_notes_component_notescomponent_savenote",
@@ -47205,7 +47205,7 @@
       "file_type": "code",
       "norm_label": ".savenote()",
       "source_file": "apps/web/src/app/features/notes/notes.component.ts",
-      "source_location": "L472"
+      "source_location": "L257"
     },
     {
       "id": "apps_web_src_app_features_notes_notes_component_notescomponent_togglepin",
@@ -47217,7 +47217,7 @@
       "file_type": "code",
       "norm_label": ".togglepin()",
       "source_file": "apps/web/src/app/features/notes/notes.component.ts",
-      "source_location": "L500"
+      "source_location": "L285"
     },
     {
       "id": "apps_server_src_main_java_com_greenwhite_dwh_instance_common_error_apiexception_apiexception_locked",
@@ -147030,7 +147030,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/notes/notes.component.ts",
-      "source_location": "L448",
+      "source_location": "L233",
       "weight": 1.0
     },
     {
@@ -147042,7 +147042,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/notes/notes.component.ts",
-      "source_location": "L512",
+      "source_location": "L297",
       "weight": 1.0
     },
     {
@@ -147054,7 +147054,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/notes/notes.component.ts",
-      "source_location": "L431",
+      "source_location": "L216",
       "weight": 1.0
     },
     {
@@ -147066,7 +147066,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/notes/notes.component.ts",
-      "source_location": "L443",
+      "source_location": "L228",
       "weight": 1.0
     },
     {
@@ -147078,7 +147078,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/notes/notes.component.ts",
-      "source_location": "L483",
+      "source_location": "L268",
       "weight": 1.0
     },
     {
@@ -147090,7 +147090,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/notes/notes.component.ts",
-      "source_location": "L484",
+      "source_location": "L269",
       "weight": 1.0
     },
     {
@@ -147102,7 +147102,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/notes/notes.component.ts",
-      "source_location": "L502",
+      "source_location": "L287",
       "weight": 1.0
     },
     {
@@ -147222,7 +147222,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/reports/embedded-report.component.ts",
-      "source_location": "L462",
+      "source_location": "L153",
       "weight": 1.0
     },
     {
@@ -147234,7 +147234,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L528",
+      "source_location": "L401",
       "weight": 1.0
     },
     {
@@ -147246,7 +147246,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L505",
+      "source_location": "L378",
       "weight": 1.0
     },
     {
@@ -147258,7 +147258,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L382",
+      "source_location": "L255",
       "weight": 1.0
     },
     {
@@ -147270,7 +147270,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L374",
+      "source_location": "L247",
       "weight": 1.0
     },
     {
@@ -147282,7 +147282,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L467",
+      "source_location": "L340",
       "weight": 1.0
     },
     {
@@ -147294,7 +147294,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L456",
+      "source_location": "L329",
       "weight": 1.0
     },
     {
@@ -147306,7 +147306,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L370",
+      "source_location": "L243",
       "weight": 1.0
     },
     {
@@ -147318,7 +147318,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L342",
+      "source_location": "L215",
       "weight": 1.0
     },
     {
@@ -147330,7 +147330,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L331",
+      "source_location": "L204",
       "weight": 1.0
     },
     {
@@ -147342,7 +147342,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L378",
+      "source_location": "L251",
       "weight": 1.0
     },
     {
@@ -147354,7 +147354,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L390",
+      "source_location": "L263",
       "weight": 1.0
     },
     {
@@ -147366,7 +147366,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L399",
+      "source_location": "L272",
       "weight": 1.0
     },
     {
@@ -147378,7 +147378,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L408",
+      "source_location": "L281",
       "weight": 1.0
     },
     {
@@ -154062,7 +154062,7 @@
       "confidence_score": 1.0,
       "context": "decorator",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L285",
+      "source_location": "L158",
       "weight": 1.0
     },
     {
@@ -154074,7 +154074,7 @@
       "confidence_score": 1.0,
       "context": "decorator",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L287",
+      "source_location": "L160",
       "weight": 1.0
     },
     {
@@ -154086,7 +154086,7 @@
       "confidence_score": 1.0,
       "context": "decorator",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L487",
+      "source_location": "L360",
       "weight": 1.0
     },
     {
@@ -228414,7 +228414,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L513",
+      "source_location": "L386",
       "weight": 1.0
     },
     {
@@ -228426,7 +228426,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L513",
+      "source_location": "L386",
       "weight": 1.0
     },
     {
@@ -228438,7 +228438,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L513",
+      "source_location": "L386",
       "weight": 1.0
     },
     {
@@ -228450,7 +228450,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L502",
+      "source_location": "L375",
       "weight": 1.0
     },
     {
@@ -228462,7 +228462,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L373",
+      "source_location": "L246",
       "weight": 1.0
     },
     {
@@ -228474,7 +228474,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L320",
+      "source_location": "L193",
       "weight": 1.0
     },
     {
@@ -228486,7 +228486,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L320",
+      "source_location": "L193",
       "weight": 1.0
     },
     {
@@ -228498,7 +228498,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L320",
+      "source_location": "L193",
       "weight": 1.0
     },
     {
@@ -228510,7 +228510,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L320",
+      "source_location": "L193",
       "weight": 1.0
     },
     {
@@ -228522,7 +228522,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L369",
+      "source_location": "L242",
       "weight": 1.0
     },
     {
@@ -228534,7 +228534,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L377",
+      "source_location": "L250",
       "weight": 1.0
     },
     {
@@ -228546,7 +228546,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L498",
+      "source_location": "L371",
       "weight": 1.0
     },
     {
@@ -234606,7 +234606,7 @@
       "confidence_score": 1.0,
       "context": "return_type",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L502",
+      "source_location": "L375",
       "weight": 1.0
     },
     {
@@ -246749,7 +246749,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/notes/notes.component.ts",
-      "source_location": "L407",
+      "source_location": "L192",
       "weight": 1.0
     },
     {
@@ -246859,7 +246859,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/reports/embedded-report.component.ts",
-      "source_location": "L444",
+      "source_location": "L135",
       "weight": 1.0
     },
     {
@@ -246936,7 +246936,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L283",
+      "source_location": "L156",
       "weight": 1.0
     },
     {
@@ -299093,7 +299093,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/notes/notes.component.ts",
-      "source_location": "L430",
+      "source_location": "L215",
       "weight": 1.0
     },
     {
@@ -299104,7 +299104,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/notes/notes.component.ts",
-      "source_location": "L434",
+      "source_location": "L219",
       "weight": 1.0
     },
     {
@@ -299115,7 +299115,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/notes/notes.component.ts",
-      "source_location": "L442",
+      "source_location": "L227",
       "weight": 1.0
     },
     {
@@ -299126,7 +299126,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/notes/notes.component.ts",
-      "source_location": "L446",
+      "source_location": "L231",
       "weight": 1.0
     },
     {
@@ -299137,7 +299137,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/notes/notes.component.ts",
-      "source_location": "L451",
+      "source_location": "L236",
       "weight": 1.0
     },
     {
@@ -299148,7 +299148,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/notes/notes.component.ts",
-      "source_location": "L457",
+      "source_location": "L242",
       "weight": 1.0
     },
     {
@@ -299159,7 +299159,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/notes/notes.component.ts",
-      "source_location": "L468",
+      "source_location": "L253",
       "weight": 1.0
     },
     {
@@ -299170,7 +299170,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/notes/notes.component.ts",
-      "source_location": "L472",
+      "source_location": "L257",
       "weight": 1.0
     },
     {
@@ -299181,7 +299181,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/notes/notes.component.ts",
-      "source_location": "L500",
+      "source_location": "L285",
       "weight": 1.0
     },
     {
@@ -299192,7 +299192,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/notes/notes.component.ts",
-      "source_location": "L507",
+      "source_location": "L292",
       "weight": 1.0
     },
     {
@@ -299335,7 +299335,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/reports/embedded-report.component.ts",
-      "source_location": "L458",
+      "source_location": "L149",
       "weight": 1.0
     },
     {
@@ -299346,7 +299346,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/reports/embedded-report.component.ts",
-      "source_location": "L467",
+      "source_location": "L158",
       "weight": 1.0
     },
     {
@@ -299357,7 +299357,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/reports/embedded-report.component.ts",
-      "source_location": "L492",
+      "source_location": "L183",
       "weight": 1.0
     },
     {
@@ -299368,7 +299368,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/reports/embedded-report.component.ts",
-      "source_location": "L496",
+      "source_location": "L187",
       "weight": 1.0
     },
     {
@@ -299379,7 +299379,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/reports/embedded-report.component.ts",
-      "source_location": "L506",
+      "source_location": "L197",
       "weight": 1.0
     },
     {
@@ -299390,7 +299390,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/reports/embedded-report.component.ts",
-      "source_location": "L510",
+      "source_location": "L201",
       "weight": 1.0
     },
     {
@@ -299445,7 +299445,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L320",
+      "source_location": "L193",
       "weight": 1.0
     },
     {
@@ -299456,7 +299456,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L330",
+      "source_location": "L203",
       "weight": 1.0
     },
     {
@@ -299467,7 +299467,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L334",
+      "source_location": "L207",
       "weight": 1.0
     },
     {
@@ -299478,7 +299478,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L348",
+      "source_location": "L221",
       "weight": 1.0
     },
     {
@@ -299489,7 +299489,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L360",
+      "source_location": "L233",
       "weight": 1.0
     },
     {
@@ -299500,7 +299500,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L364",
+      "source_location": "L237",
       "weight": 1.0
     },
     {
@@ -299511,7 +299511,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L369",
+      "source_location": "L242",
       "weight": 1.0
     },
     {
@@ -299522,7 +299522,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L373",
+      "source_location": "L246",
       "weight": 1.0
     },
     {
@@ -299533,7 +299533,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L377",
+      "source_location": "L250",
       "weight": 1.0
     },
     {
@@ -299544,7 +299544,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L381",
+      "source_location": "L254",
       "weight": 1.0
     },
     {
@@ -299555,7 +299555,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L385",
+      "source_location": "L258",
       "weight": 1.0
     },
     {
@@ -299566,7 +299566,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L425",
+      "source_location": "L298",
       "weight": 1.0
     },
     {
@@ -299577,7 +299577,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L451",
+      "source_location": "L324",
       "weight": 1.0
     },
     {
@@ -299588,7 +299588,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L462",
+      "source_location": "L335",
       "weight": 1.0
     },
     {
@@ -299599,7 +299599,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L479",
+      "source_location": "L352",
       "weight": 1.0
     },
     {
@@ -299610,7 +299610,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L488",
+      "source_location": "L361",
       "weight": 1.0
     },
     {
@@ -299621,7 +299621,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L494",
+      "source_location": "L367",
       "weight": 1.0
     },
     {
@@ -299632,7 +299632,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L498",
+      "source_location": "L371",
       "weight": 1.0
     },
     {
@@ -299643,7 +299643,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L502",
+      "source_location": "L375",
       "weight": 1.0
     },
     {
@@ -299654,7 +299654,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L513",
+      "source_location": "L386",
       "weight": 1.0
     },
     {
@@ -328007,7 +328007,7 @@
       "confidence_score": 0.8,
       "context": "call",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L326",
+      "source_location": "L199",
       "weight": 1.0
     },
     {
@@ -328019,7 +328019,7 @@
       "confidence_score": 0.8,
       "context": "call",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L441",
+      "source_location": "L314",
       "weight": 1.0
     },
     {
@@ -328031,7 +328031,7 @@
       "confidence_score": 0.8,
       "context": "call",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L446",
+      "source_location": "L319",
       "weight": 1.0
     },
     {
@@ -328043,7 +328043,7 @@
       "confidence_score": 0.8,
       "context": "call",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L337",
+      "source_location": "L210",
       "weight": 1.0
     },
     {
@@ -328055,7 +328055,7 @@
       "confidence_score": 0.8,
       "context": "call",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L392",
+      "source_location": "L265",
       "weight": 1.0
     },
     {
@@ -328067,7 +328067,7 @@
       "confidence_score": 0.8,
       "context": "call",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L402",
+      "source_location": "L275",
       "weight": 1.0
     },
     {
@@ -328079,7 +328079,7 @@
       "confidence_score": 0.8,
       "context": "call",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L409",
+      "source_location": "L282",
       "weight": 1.0
     },
     {
@@ -328091,7 +328091,7 @@
       "confidence_score": 0.8,
       "context": "call",
       "source_file": "apps/web/src/app/features/settings/language-editor.component.ts",
-      "source_location": "L411",
+      "source_location": "L284",
       "weight": 1.0
     },
     {
@@ -339635,5 +339635,5 @@
       "source_file": ".github/workflows/ci.yml"
     }
   ],
-  "built_at_commit": "d0c2c29ffb140df5184368a9f4bbbb3d430e4d5c"
+  "built_at_commit": "8a4c44677fec39bb872bc343f861a032b1cf5130"
 }
