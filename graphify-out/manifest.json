@@ -3774,9 +3774,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/settings/search/search-settings.component.ts": {
-    "mtime": 1788894838.4172611,
-    "seen": 1788923207.3421435,
-    "ast_hash": "c0083841973b770fe8ac020f1125bc3c",
+    "mtime": 1789072859.2829545,
+    "seen": 1789072932.626974,
+    "ast_hash": "2b15d5298822c69b02292bc9f63c7214",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/tasks/task-form-value.spec.ts": {
@@ -5043,6 +5043,12 @@
     "mtime": 1789072175.843429,
     "seen": 1789072280.8139725,
     "ast_hash": "42a9411c77dededd8bfdeccc76ebf406",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/settings/search/search-settings.models.ts": {
+    "mtime": 1789072859.2829545,
+    "seen": 1789072932.626974,
+    "ast_hash": "a8ff663354fd2ef2f59dbb35975e170a",
     "semantic_hash": ""
   }
 }
