@@ -9,14 +9,8 @@ import { ApiService } from '../../core/services/api.service';
 import { PermissionService } from '../../core/services/permission.service';
 import { ToastService } from '../../core/services/toast.service';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
-import { UiModalComponent } from '../../shared/ui/ui-modal.component';
-import { UiCustomFieldsComponent } from '../../shared/ui/ui-custom-fields.component';
-import { UiSearchableSelectComponent, SelectOption } from '../../shared/ui/ui-searchable-select.component';
-import { UiUserMultiSelectComponent } from '../../shared/ui/ui-user-multi-select.component';
-import { UiMarkdownEditorComponent } from '../../shared/ui/ui-markdown-editor.component';
-import { UiMarkdownViewComponent } from '../../shared/ui/ui-markdown-view.component';
+import { SelectOption } from '../../shared/ui/ui-searchable-select.component';
 import { UiPaginationComponent } from '../../shared/ui/ui-pagination.component';
-import { UiFileUploadComponent } from '../../shared/ui/ui-file-upload.component';
 import { Task, Project, TaskStatus, TaskType, TaskComment, TaskMember, TaskDetailResponse, TaskFile } from '../../core/models/task.models';
 import { CustomField } from '../../core/models/custom-field.models';
 import { User } from '../../core/models/auth.models';
@@ -31,6 +25,7 @@ import { TaskTableViewComponent } from './components/task-table-view.component';
 import { TaskFilterBarComponent } from './components/task-filter-bar.component';
 import { TaskDetailModalComponent } from './components/task-detail-modal.component';
 import { TaskCreateModalComponent } from './components/task-create-modal.component';
+import { TaskEditModalComponent } from './components/task-edit-modal.component';
 
 @Component({
   selector: 'app-tasks',
@@ -39,22 +34,15 @@ import { TaskCreateModalComponent } from './components/task-create-modal.compone
     TranslatePipe,
     CommonModule,
     FormsModule,
-    DragDropModule,
     UiButtonComponent,
-    UiModalComponent,
-    UiCustomFieldsComponent,
-    UiSearchableSelectComponent,
-    UiUserMultiSelectComponent,
-    UiMarkdownEditorComponent,
-    UiMarkdownViewComponent,
     UiPaginationComponent,
-    UiFileUploadComponent,
     TaskDictionariesModalComponent,
     TaskKanbanViewComponent,
     TaskTableViewComponent,
     TaskFilterBarComponent,
     TaskDetailModalComponent,
-    TaskCreateModalComponent
+    TaskCreateModalComponent,
+    TaskEditModalComponent
   ],
 
 
@@ -331,244 +319,48 @@ import { TaskCreateModalComponent } from './components/task-create-modal.compone
     ></app-task-create-modal>
 
     <!-- ======================================================================= -->
-    <!-- Edit Task Modal (With RichText MD Editor & User Multi-Select)           -->
+    <!-- Edit Task Modal (Delegated Component)                                   -->
     <!-- ======================================================================= -->
-    <ui-modal
+    <app-task-edit-modal
       [isOpen]="isEditModalOpen()"
-      [title]="'tasks.redaktirovanie_zadachi' | t"
-      size="lg"
-      [dismissible]="!isSubmitting()"
+      [editingTask]="editingTask"
+      [editForm]="editForm"
+      [editLoading]="editLoading()"
+      [editLoadError]="editLoadError()"
+      [isSubmitting]="isSubmitting()"
+      [isEditSubmitted]="isEditSubmitted"
+      [isEditDiscardConfirmationOpen]="isEditDiscardConfirmationOpen()"
+      [taskTypes]="taskTypes()"
+      [projects]="projects()"
+      [parentTaskOptions]="parentTaskOptions()"
+      [parentLookupLoading]="parentLookupLoading()"
+      [parentLookupError]="parentLookupError()"
+      [parentLookupHasMore]="parentLookupHasMore()"
+      [responsibleUserOptions]="responsibleUserOptions()"
+      [responsibleLookupLoading]="responsibleLookupLoading()"
+      [responsibleLookupError]="responsibleLookupError()"
+      [responsibleLookupHasMore]="responsibleLookupHasMore()"
+      [observerUsers]="observerUsers()"
+      [observerLookupLoading]="observerLookupLoading()"
+      [observerLookupError]="observerLookupError()"
+      [observerLookupHasMore]="observerLookupHasMore()"
+      [taskCustomFields]="taskCustomFields()"
+      [getAvailableParentTaskOptions]="getAvailableParentTaskOptionsFn"
       (close)="requestCloseEdit()"
-    >
-      <div body class="request-state request-loading" *ngIf="editLoading()" role="status">
-        {{ 'tasks.edit_loading' | t }}
-      </div>
-      <div body class="request-state request-error" *ngIf="editLoadError()" role="alert">
-        <span>{{ 'tasks.edit_load_error' | t }}</span>
-        <ui-button variant="secondary" size="sm" (onClick)="retryEditLoad()">{{ 'audit.retry' | t }}</ui-button>
-      </div>
-      <fieldset body class="modal-form modal-form-fieldset task-edit-form" [disabled]="isSubmitting()" *ngIf="editingTask as task">
-        <!-- Title Input (Required) -->
-        <div class="form-group">
-          <div class="label-row">
-            <label class="clean-label" for="task-edit-title">{{ 'task.title' | t }}</label>
-            <span class="req-tag">{{ 'projects.obyazatelnoe_pole' | t }}</span>
-          </div>
-          <input
-            id="task-edit-title"
-            name="taskEditTitle"
-            type="text"
-            class="clean-input title-input"
-            required
-            [attr.aria-invalid]="isEditSubmitted && !editForm.title.trim()"
-            [attr.aria-describedby]="isEditSubmitted && !editForm.title.trim() ? 'task-edit-title-error' : null"
-            [class.input-error]="isEditSubmitted && !editForm.title.trim()"
-            [(ngModel)]="editForm.title"
-          />
-          <span id="task-edit-title-error" class="error-msg" *ngIf="isEditSubmitted && !editForm.title.trim()">
-            {{ 'tasks.nazvanie_zadachi_ne_mozhet_byt_pustym' | t }}
-          </span>
-        </div>
-
-        <!-- Visual Type Selector Chips -->
-        <div class="form-group">
-          <div class="label-row">
-            <span class="clean-label">{{ 'tasks.tip_zadachi' | t }}</span>
-          </div>
-          <div class="type-chips-selector" role="group" [attr.aria-label]="'tasks.tip_zadachi' | t">
-            <button
-              *ngFor="let ty of taskTypes()"
-              type="button"
-              class="type-chip-btn"
-              [class.active]="editForm.taskType === ty.code"
-              [attr.aria-pressed]="editForm.taskType === ty.code"
-              (click)="editForm.taskType = ty.code"
-              [style.--chip-color]="ty.color"
-            >
-              <span class="material-symbols-outlined" aria-hidden="true">{{ ty.icon }}</span>
-              <span>{{ ty.name }}</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Visual Priority Selector Pills -->
-        <div class="form-group">
-          <div class="label-row">
-            <span class="clean-label">{{ 'common.priority' | t }}</span>
-          </div>
-          <div class="priority-chips-selector" role="group" [attr.aria-label]="'tasks.prioritet_zadachi' | t">
-            <button
-              type="button"
-              class="prio-chip-btn prio-low"
-              [class.active]="editForm.priority === 'low'"
-              [attr.aria-pressed]="editForm.priority === 'low'"
-              (click)="editForm.priority = 'low'"
-            >
-              {{ 'task.priority.low' | t }}
-            </button>
-            <button
-              type="button"
-              class="prio-chip-btn prio-medium"
-              [class.active]="editForm.priority === 'medium'"
-              [attr.aria-pressed]="editForm.priority === 'medium'"
-              (click)="editForm.priority = 'medium'"
-            >
-              {{ 'tasks.sredniy' | t }}
-            </button>
-            <button
-              type="button"
-              class="prio-chip-btn prio-high"
-              [class.active]="editForm.priority === 'high'"
-              [attr.aria-pressed]="editForm.priority === 'high'"
-              (click)="editForm.priority = 'high'"
-            >
-              {{ 'task.priority.high' | t }}
-            </button>
-            <button
-              type="button"
-              class="prio-chip-btn prio-critical"
-              [class.active]="editForm.priority === 'critical'"
-              [attr.aria-pressed]="editForm.priority === 'critical'"
-              (click)="editForm.priority = 'critical'"
-            >
-              {{ 'tasks.kriticheskiy' | t }}
-            </button>
-          </div>
-        </div>
-
-        <div class="form-grid-2">
-          <!-- Project Selector -->
-          <div class="form-group">
-            <div class="label-row">
-              <label class="clean-label" for="task-edit-project">{{ 'projects.proekt' | t }}</label>
-            </div>
-            <select id="task-edit-project" name="taskEditProject" class="clean-input" [(ngModel)]="editForm.projectId">
-              <option [ngValue]="null">{{ 'tasks.bez_proekta' | t }}</option>
-              <option *ngFor="let p of projects()" [ngValue]="p.id">{{ p.name }}</option>
-            </select>
-          </div>
-
-          <!-- Parent Task (Searchable Select) -->
-          <div class="form-group">
-            <div class="label-row">
-              <span class="clean-label">{{ 'task.parent' | t }}</span>
-            </div>
-            <ui-searchable-select
-              [options]="getAvailableParentTaskOptions(task.id)"
-              [selectedId]="editForm.parentTaskId"
-              [ariaLabel]="'task.parent' | t"
-              (selectedIdChange)="editForm.parentTaskId = $event"
-              [placeholder]="'tasks.bez_roditelya_kornevaya_zadacha' | t"
-              [searchPlaceholder]="'tasks.poisk_zadachi_po_id_ili_nazvaniyu' | t"
-              [emptyLabel]="'tasks.without_parent' | t"
-              [remoteSearch]="true"
-              [loading]="parentLookupLoading()"
-              [loadError]="parentLookupError()"
-              [hasMore]="parentLookupHasMore()"
-              (searchChange)="onParentSearch($event)"
-              (loadMore)="loadMoreParents()"
-              (retry)="retryParentLookup()"
-            ></ui-searchable-select>
-          </div>
-        </div>
-
-        <div class="form-grid-2">
-          <!-- Responsible User (Searchable Select) -->
-          <div class="form-group">
-            <div class="label-row">
-              <span class="clean-label">{{ 'task.responsible' | t }}</span>
-            </div>
-            <ui-searchable-select
-              [options]="responsibleUserOptions()"
-              [selectedId]="editForm.responsibleUserId"
-              [ariaLabel]="'task.responsible' | t"
-              (selectedIdChange)="editForm.responsibleUserId = $event"
-              [placeholder]="'tasks.vyberite_otvetstvennogo' | t"
-              [searchPlaceholder]="'tasks.poisk_sotrudnika_po_imeni_ili_loginu' | t"
-              [emptyLabel]="'common.not_assigned' | t"
-              [remoteSearch]="true"
-              [loading]="responsibleLookupLoading()"
-              [loadError]="responsibleLookupError()"
-              [hasMore]="responsibleLookupHasMore()"
-              (searchChange)="onResponsibleSearch($event)"
-              (loadMore)="loadMoreResponsibleUsers()"
-              (retry)="retryResponsibleLookup()"
-            ></ui-searchable-select>
-          </div>
-
-          <!-- Deadlines: End Date / Deadline -->
-          <div class="form-group">
-            <div class="label-row">
-              <label class="clean-label" for="task-edit-deadline">{{ 'tasks.srok_sdachi_dedlayn' | t }}</label>
-            </div>
-            <input id="task-edit-deadline" name="taskEditDeadline" type="datetime-local" class="clean-input font-mono" [(ngModel)]="editForm.endTime" />
-          </div>
-        </div>
-
-        <!-- Observers Searchable Multi-Select Tags Input -->
-        <div class="form-group">
-          <div class="label-row">
-            <span class="clean-label">{{ 'tasks.nablyudateli_poluchayut_uvedomleniya' | t }}</span>
-          </div>
-          <ui-user-multi-select
-            [users]="observerUsers()"
-            [selectedUserIds]="editForm.observerUserIds"
-            [ariaLabel]="'tasks.nablyudateli' | t"
-            (selectedUserIdsChange)="editForm.observerUserIds = $event"
-            [placeholder]="'tasks.nazhmite_dlya_dobavleniya_nablyudateley' | t"
-            [searchPlaceholder]="'tasks.poisk_sotrudnika' | t"
-            [remoteSearch]="true"
-            [loading]="observerLookupLoading()"
-            [loadError]="observerLookupError()"
-            [hasMore]="observerLookupHasMore()"
-            (searchChange)="onObserverSearch($event)"
-            (loadMore)="loadMoreObservers()"
-            (retry)="retryObserverLookup()"
-          ></ui-user-multi-select>
-        </div>
-
-        <!-- RichText Markdown Editor for Description -->
-        <div class="form-group">
-          <div class="label-row">
-            <span class="clean-label">{{ 'projects.opisanie' | t }}</span>
-          </div>
-          <ui-markdown-editor
-            [value]="editForm.descriptionMarkdown"
-            [ariaLabel]="'projects.opisanie' | t"
-            (valueChange)="editForm.descriptionMarkdown = $event"
-            [rows]="4"
-          ></ui-markdown-editor>
-        </div>
-
-        <!-- Custom Dynamic Fields -->
-        <div class="custom-fields-section" *ngIf="taskCustomFields().length > 0">
-          <h4 class="custom-fields-title">{{ 'nav.custom_fields' | t }}</h4>
-          <ui-custom-fields
-            [fields]="taskCustomFields()"
-            [(values)]="editForm.attributes"
-          ></ui-custom-fields>
-        </div>
-      </fieldset>
-      <div footer>
-        <ui-button variant="secondary" size="md" [disabled]="isSubmitting()" (onClick)="requestCloseEdit()">{{ editLoadError() ? ('audit.zakryt' | t) : ('common.cancel' | t) }}</ui-button>
-        <ui-button *ngIf="editingTask" variant="primary" size="md" [loading]="isSubmitting()" (onClick)="submitEditTask()">{{ 'tasks.sohranit_izmeneniya' | t }}</ui-button>
-      </div>
-    </ui-modal>
-
-    <ui-modal
-      [isOpen]="isEditDiscardConfirmationOpen()"
-      [title]="'tasks.discard_edit_title' | t"
-      size="sm"
-      (close)="cancelDiscardEdit()"
-    >
-      <div body class="dictionary-delete-body">
-        <p>{{ 'tasks.discard_edit_message' | t }}</p>
-      </div>
-      <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="cancelDiscardEdit()">{{ 'common.cancel' | t }}</ui-button>
-        <ui-button variant="danger" size="md" (onClick)="confirmDiscardEdit()">{{ 'tasks.discard_edit_action' | t }}</ui-button>
-      </div>
-    </ui-modal>
+      (submit)="submitEditTask()"
+      (retryEditLoad)="retryEditLoad()"
+      (cancelDiscard)="cancelDiscardEdit()"
+      (confirmDiscard)="confirmDiscardEdit()"
+      (parentSearch)="onParentSearch($event)"
+      (parentLoadMore)="loadMoreParents()"
+      (parentRetry)="retryParentLookup()"
+      (responsibleSearch)="onResponsibleSearch($event)"
+      (responsibleLoadMore)="loadMoreResponsibleUsers()"
+      (responsibleRetry)="retryResponsibleLookup()"
+      (observerSearch)="onObserverSearch($event)"
+      (observerLoadMore)="loadMoreObservers()"
+      (observerRetry)="retryObserverLookup()"
+    ></app-task-edit-modal>
 
     <!-- ======================================================================= -->
     <!-- Dictionaries Settings Modal (Delegated Component)                       -->
@@ -1996,6 +1788,8 @@ export class TasksComponent implements OnInit, OnDestroy {
       subLabel: `@${user.login}`
     }));
   }
+
+  readonly getAvailableParentTaskOptionsFn = (taskId: number) => this.getAvailableParentTaskOptions(taskId);
 
   getAvailableParentTaskOptions(currentTaskId: number): SelectOption[] {
     return this.parentTaskOptions().filter(option => Number(option.id) !== currentTaskId);
