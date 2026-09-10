@@ -1650,9 +1650,9 @@
     "semantic_hash": ""
   },
   "apps/server/src/main/java/com/greenwhite/dwh/instance/ms/task/service/MsTaskService.java": {
-    "mtime": 1788924685.9071362,
-    "seen": 1788925099.0751274,
-    "ast_hash": "771d0a4709412b93c138668309dc1ca4",
+    "mtime": 1789012802.4917412,
+    "seen": 1789012859.7479575,
+    "ast_hash": "c1c6e8cc567ec724284fded2a672f9eb",
     "semantic_hash": ""
   },
   "apps/server/src/main/java/com/greenwhite/dwh/instance/ms/task/worker/TaskDeadlineReminderWorker.java": {
@@ -2874,9 +2874,9 @@
     "semantic_hash": ""
   },
   "docs/ai-context.md": {
-    "mtime": 1788983181.0484183,
-    "seen": 1788983310.2359016,
-    "ast_hash": "7ae8bc206e82167a21999a29b0ea99a5",
+    "mtime": 1788984006.0592825,
+    "seen": 1789012859.7484574,
+    "ast_hash": "5f0bf0c63f41fd72ac5f42b2d7035cbd",
     "semantic_hash": ""
   },
   ".superdesign/resume.json": {
@@ -4539,6 +4539,12 @@
     "mtime": 1757337668.0,
     "seen": 1788983310.2359016,
     "ast_hash": "ab50dd89da7da2346b28003352eeeeeb",
+    "semantic_hash": ""
+  },
+  "apps/server/src/main/java/com/greenwhite/dwh/instance/ms/task/service/MsTaskStatusService.java": {
+    "mtime": 1789012573.6129868,
+    "seen": 1789012859.7479575,
+    "ast_hash": "45dea4a553d64ece3084f503be478a61",
     "semantic_hash": ""
   }
 }
