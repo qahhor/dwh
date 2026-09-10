@@ -4386,9 +4386,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/settings/modules/modules.component.ts": {
-    "mtime": 1788929784.7249434,
-    "seen": 1788930288.8413327,
-    "ast_hash": "1e73adec23b3f2b655364d93b687e984",
+    "mtime": 1789071549.3510826,
+    "seen": 1789071626.687944,
+    "ast_hash": "02e561e43f22e851460a0d27685431d3",
     "semantic_hash": ""
   },
   "scripts/dev/create-module.ps1": {
@@ -4959,6 +4959,30 @@
     "mtime": 1789071289.605872,
     "seen": 1789071390.2857032,
     "ast_hash": "cf5b5563e434e1b95b81dda852fbf76f",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/settings/modules/components/modules-stats.component.ts": {
+    "mtime": 1789071512.246928,
+    "seen": 1789071626.687944,
+    "ast_hash": "eaa64bcaff71eff6db06d7d57c1cb765",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/settings/modules/components/modules-table.component.ts": {
+    "mtime": 1789071512.2564397,
+    "seen": 1789071626.687944,
+    "ast_hash": "2c1014c9eb4a408e5153352b898a4b56",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/settings/modules/components/modules-toolbar.component.ts": {
+    "mtime": 1789071512.25594,
+    "seen": 1789071626.687944,
+    "ast_hash": "ee64e2c61cc2ee1e110a80a09179d17b",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/settings/modules/modules.models.ts": {
+    "mtime": 1789071485.1063688,
+    "seen": 1789071626.687944,
+    "ast_hash": "38fd3c8fc5766d5c0e01e31a55ee36a9",
     "semantic_hash": ""
   }
 }
