@@ -2280,9 +2280,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/audit/audit.component.ts": {
-    "mtime": 1788532565.5622292,
-    "seen": 1788856915.157246,
-    "ast_hash": "242a90285fd36097100cebd334fd3d62",
+    "mtime": 1789069730.4016674,
+    "seen": 1789069830.807785,
+    "ast_hash": "95b9a90198bb02fb905d9bdac9bca3d9",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/auth/login/login.component.spec.ts": {
@@ -4803,6 +4803,36 @@
     "mtime": 1789067194.759385,
     "seen": 1789067272.2996194,
     "ast_hash": "fcfd3293370b8174936d8bb7cf48139b",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/audit/audit.models.ts": {
+    "mtime": 1789069645.4317558,
+    "seen": 1789069830.807785,
+    "ast_hash": "74e3a74f5209e3db580b3716fcc2a6d7",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/audit/components/audit-logs-table.component.ts": {
+    "mtime": 1789069762.2833183,
+    "seen": 1789069830.807785,
+    "ast_hash": "29ff8e5d6483b979ab28e9951f7a12fc",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/audit/components/audit-modals.component.ts": {
+    "mtime": 1789069762.288818,
+    "seen": 1789069830.807785,
+    "ast_hash": "6828e9568bd5ccdac7871b8a98ef3696",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/audit/components/audit-security-table.component.ts": {
+    "mtime": 1789069762.2968383,
+    "seen": 1789069830.807785,
+    "ast_hash": "abd0ced51d0c6b8bec656a1bd39e6451",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/audit/components/audit-stats-tiles.component.ts": {
+    "mtime": 1789069762.3018503,
+    "seen": 1789069830.807785,
+    "ast_hash": "1cb2e188e8926569b722d9510f3571eb",
     "semantic_hash": ""
   }
 }
