@@ -714,9 +714,9 @@
     "semantic_hash": ""
   },
   "apps/server/pom.xml": {
-    "mtime": 1788411226.7667918,
-    "seen": 1788856915.156746,
-    "ast_hash": "32fdd7282f129e0c0ef12d9ab54f8b08",
+    "mtime": 1789049923.0999937,
+    "seen": 1789050169.3262749,
+    "ast_hash": "8222e8eaa9129788544c09af6bcd033a",
     "semantic_hash": ""
   },
   "apps/server/src/main/java/com/greenwhite/dwh/instance/InstanceApplication.java": {
@@ -1302,9 +1302,9 @@
     "semantic_hash": ""
   },
   "apps/server/src/main/java/com/greenwhite/dwh/instance/md/service/MdCustomFieldService.java": {
-    "mtime": 1788892417.461159,
-    "seen": 1788893849.1864727,
-    "ast_hash": "bbf3b2dc5f980865e9eedd7a575e2104",
+    "mtime": 1789050071.7622724,
+    "seen": 1789050169.3262749,
+    "ast_hash": "8f222aafb96c6d4b3c325a5bcf839678",
     "semantic_hash": ""
   },
   "apps/server/src/main/java/com/greenwhite/dwh/instance/md/service/MdFormCatalogSynchronizer.java": {
@@ -2412,9 +2412,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/tasks/tasks.component.ts": {
-    "mtime": 1789026206.7862017,
-    "seen": 1789026265.1643646,
-    "ast_hash": "4dc3cd8ea7f05f0fb93ba2597d4925cd",
+    "mtime": 1789050178.0041397,
+    "seen": 1789050249.5871098,
+    "ast_hash": "2b3ed056d318bd33406150e102c38a82",
     "semantic_hash": ""
   },
   "apps/web/src/app/layout/app-shell/app-shell.component.spec.ts": {
@@ -2754,9 +2754,9 @@
     "semantic_hash": ""
   },
   "apps/server/src/main/resources/application.yml": {
-    "mtime": 1788554256.050082,
-    "seen": 1788856915.157246,
-    "ast_hash": "3458fff5e2dc1f98f8b6c30ff4a84bd2",
+    "mtime": 1789050000.7177722,
+    "seen": 1789050169.3267744,
+    "ast_hash": "d7187bb3b06eb49db469b2e2f311c5e2",
     "semantic_hash": ""
   },
   "apps/web/src/index.html": {
@@ -4326,9 +4326,9 @@
     "semantic_hash": ""
   },
   "apps/server/src/main/java/com/greenwhite/dwh/instance/md/service/ModuleRegistryService.java": {
-    "mtime": 1788930164.204361,
-    "seen": 1788930288.8413327,
-    "ast_hash": "d9575e8574caa2f78948a6569e9ba7cc",
+    "mtime": 1789050020.9247198,
+    "seen": 1789050169.3262749,
+    "ast_hash": "8becf520bc6ef7b2ebea1640ae5dcf4f",
     "semantic_hash": ""
   },
   "apps/server/src/main/java/com/greenwhite/dwh/instance/ms/note/controller/MsNoteController.java": {
@@ -4470,9 +4470,9 @@
     "semantic_hash": ""
   },
   "apps/server/src/main/java/com/greenwhite/dwh/instance/md/service/NavigationItemService.java": {
-    "mtime": 1788950283.2580426,
-    "seen": 1788950411.2343955,
-    "ast_hash": "1a49df860bb608d383afa47383db0cf9",
+    "mtime": 1789050040.555378,
+    "seen": 1789050169.3262749,
+    "ast_hash": "287370ffdf405ffa63c85025534d36ed",
     "semantic_hash": ""
   },
   "apps/server/src/main/resources/db/migration/V032__custom_navigation_items.sql": {
@@ -4542,9 +4542,9 @@
     "semantic_hash": ""
   },
   "apps/server/src/main/java/com/greenwhite/dwh/instance/ms/task/service/MsTaskStatusService.java": {
-    "mtime": 1789012573.6129868,
-    "seen": 1789012859.7479575,
-    "ast_hash": "45dea4a553d64ece3084f503be478a61",
+    "mtime": 1789050011.9468348,
+    "seen": 1789050169.3262749,
+    "ast_hash": "891ffc5dcd313065074ab083e6b4d6b3",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/tasks/components/task-dictionaries-modal.component.ts": {
@@ -4635,6 +4635,18 @@
     "mtime": 1789049527.8448508,
     "seen": 1789049663.3191304,
     "ast_hash": "be7f82ffb1ecdf659f4a70bd30eccbd0",
+    "semantic_hash": ""
+  },
+  "apps/server/src/main/java/com/greenwhite/dwh/instance/config/cache/CacheConfig.java": {
+    "mtime": 1789049954.8748245,
+    "seen": 1789050169.3262749,
+    "ast_hash": "0e0d3d2a21b1bdd25ac6fb0aeabb4fe0",
+    "semantic_hash": ""
+  },
+  "apps/server/src/test/java/com/greenwhite/dwh/instance/config/cache/CacheConfigTest.java": {
+    "mtime": 1789050110.1303575,
+    "seen": 1789050169.3262749,
+    "ast_hash": "da0dfe1dc638dd23b8d317949fa381b2",
     "semantic_hash": ""
   }
 }

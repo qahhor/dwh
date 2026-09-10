@@ -15,6 +15,18 @@ spring:
   threads:
     virtual:
       enabled: true
+  cache:
+    type: caffeine
+    cache-names:
+      - taskStatuses
+      - taskTypes
+      - activeModules
+      - allModules
+      - moduleActive
+      - navigationItems
+      - customFields
+    caffeine:
+      spec: maximumSize=500,expireAfterWrite=10m
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/dwh_instance}
     username: ${DB_USER:postgres}

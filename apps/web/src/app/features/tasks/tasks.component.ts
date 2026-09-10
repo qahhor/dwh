@@ -1983,17 +1983,6 @@ export class TasksComponent implements OnInit, OnDestroy {
     const now = new Date();
     const diffMs = targetDate.getTime() - now.getTime();
 
-    if (diffMs < 0) {
-      const overdueDays = Math.max(1, Math.floor(Math.abs(diffMs) / (1000 * 60 * 60 * 24)));
-      const day = String(targetDate.getDate()).padStart(2, '0');
-      const month = String(targetDate.getMonth() + 1).padStart(2, '0');
-      return {
-        state: 'overdue',
-        label: this.uiI18n.translate('tasks.deadline_overdue_days', { days: overdueDays }),
-        detail: `${day}.${month}.${targetDate.getFullYear()}`
-      };
-    }
-
     const isToday = targetDate.getFullYear() === now.getFullYear() &&
                     targetDate.getMonth() === now.getMonth() &&
                     targetDate.getDate() === now.getDate();
@@ -2003,6 +1992,17 @@ export class TasksComponent implements OnInit, OnDestroy {
       return {
         state: 'today',
         label: `${this.uiI18n.translate('tasks.deadline_today')}, ${hours}:${mins}`
+      };
+    }
+
+    if (diffMs < 0) {
+      const overdueDays = Math.max(1, Math.floor(Math.abs(diffMs) / (1000 * 60 * 60 * 24)));
+      const day = String(targetDate.getDate()).padStart(2, '0');
+      const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+      return {
+        state: 'overdue',
+        label: this.uiI18n.translate('tasks.deadline_overdue_days', { days: overdueDays }),
+        detail: `${day}.${month}.${targetDate.getFullYear()}`
       };
     }
 

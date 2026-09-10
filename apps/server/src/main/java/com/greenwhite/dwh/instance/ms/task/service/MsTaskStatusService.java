@@ -5,6 +5,8 @@ import com.greenwhite.dwh.instance.common.error.ApiException;
 import com.greenwhite.dwh.instance.ms.task.repository.MsTaskStatusRepository;
 import com.greenwhite.dwh.instance.ms.task.repository.MsTaskTypeRepository;
 import com.greenwhite.dwh.instance.search.SearchChangePublisher;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,12 +35,14 @@ public class MsTaskStatusService {
     // Dynamic Statuses
     // =========================================================================
     @Transactional
+    @Cacheable(value = "taskStatuses", key = "'all'")
     public List<MsTaskStatusRepository.StatusRecord> listStatuses() {
         statusRepository.initDefaultStatusesIfEmpty();
         return statusRepository.listStatuses();
     }
 
     @Transactional
+    @CacheEvict(value = "taskStatuses", allEntries = true)
     public MsTaskStatusRepository.StatusRecord createStatus(String pcode, String name, String color, int orderNo, boolean isTerminal) {
         if (name == null || name.isBlank()) {
             throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "Название статуса обязательно");
@@ -47,6 +51,7 @@ public class MsTaskStatusService {
     }
 
     @Transactional
+    @CacheEvict(value = "taskStatuses", allEntries = true)
     public void updateStatusRecord(Long id, String name, String color, Integer orderNo, Boolean isTerminal) {
         statusRepository.findById(id)
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Статус не найден"));
@@ -55,6 +60,7 @@ public class MsTaskStatusService {
     }
 
     @Transactional
+    @CacheEvict(value = "taskStatuses", allEntries = true)
     public void deleteStatus(Long id) {
         var status = statusRepository.findById(id)
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Статус не найден"));
@@ -68,6 +74,7 @@ public class MsTaskStatusService {
     }
 
     @Transactional
+    @CacheEvict(value = "taskStatuses", allEntries = true)
     public void reorderStatuses(List<Long> orderedIds) {
         statusRepository.reorder(orderedIds);
     }
@@ -76,12 +83,14 @@ public class MsTaskStatusService {
     // Dynamic Types
     // =========================================================================
     @Transactional
+    @Cacheable(value = "taskTypes", key = "'all'")
     public List<MsTaskTypeRepository.TypeRecord> listTypes() {
         typeRepository.initDefaultTypesIfEmpty();
         return typeRepository.listTypes();
     }
 
     @Transactional
+    @CacheEvict(value = "taskTypes", allEntries = true)
     public MsTaskTypeRepository.TypeRecord createType(String code, String name, String icon, String color, int orderNo) {
         if (code == null || code.isBlank() || name == null || name.isBlank()) {
             throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "Код и название типа обязательны");
@@ -94,6 +103,7 @@ public class MsTaskStatusService {
     }
 
     @Transactional
+    @CacheEvict(value = "taskTypes", allEntries = true)
     public void updateType(Long id, String name, String icon, String color, Integer orderNo) {
         typeRepository.findById(id)
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Тип задачи не найден"));
@@ -101,6 +111,7 @@ public class MsTaskStatusService {
     }
 
     @Transactional
+    @CacheEvict(value = "taskTypes", allEntries = true)
     public void deleteType(Long id) {
         var type = typeRepository.findById(id)
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Тип задачи не найден"));
@@ -111,6 +122,7 @@ public class MsTaskStatusService {
     }
 
     @Transactional
+    @CacheEvict(value = "taskTypes", allEntries = true)
     public void reorderTypes(List<Long> orderedIds) {
         typeRepository.reorder(orderedIds);
     }
