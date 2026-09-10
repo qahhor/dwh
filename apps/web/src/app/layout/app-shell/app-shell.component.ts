@@ -19,7 +19,17 @@ import { NavigationService } from '../../core/services/navigation.service';
 import { finalize } from 'rxjs';
 
 export type { NavItem, NavSection } from './app-shell.models';
-import type { NavItem, NavSection } from './app-shell.models';
+import {
+  NavItem,
+  NavSection,
+  buildNavSections,
+  loadCollapsedSections,
+  loadCollapsedState,
+  COLLAPSED_STATE_KEY,
+  COLLAPSED_SECTIONS_KEY,
+  SECTION_ICON_MAP
+} from './app-shell.models';
+import { AppShellFlyoutService } from './services/app-shell-flyout.service';
 @Component({
   selector: 'app-shell',
   standalone: true,
@@ -31,125 +41,8 @@ import type { NavItem, NavSection } from './app-shell.models';
     AppHeaderComponent,
     AppSidebarComponent
   ],
-  template: `
-    <a class="skip-link" href="#main-content" (click)="skipToContent($event)">{{ 'layout.app_shell.pereyti_k_osnovnomu_soderzhimomu' | t }}</a>
-    <div class="app-layout">
-      <!-- Sidebar (Delegated Component) -->
-      <app-sidebar
-        [sidebarId]="sidebarId"
-        [isMobile]="isMobile()"
-        [isMobileMenuOpen]="isMobileMenuOpen()"
-        [isCollapsed]="isCollapsed()"
-        [navSections]="navSections()"
-        [isFlyoutVisible]="isFlyoutVisible()"
-        [hoveredFlyoutSection]="hoveredFlyoutSection()"
-        [flyoutAnchorTop]="flyoutAnchorTop()"
-        [isProfileFlyoutVisible]="isProfileFlyoutVisible()"
-        [currentUser]="authService.currentUser()"
-        [isSectionActive]="isSectionActiveFn"
-        [isRouteActive]="isRouteActiveFn"
-        [getSectionIcon]="getSectionIconFn"
-        [getSectionBadge]="getSectionBadgeFn"
-        [hasVisibleItems]="hasVisibleItemsFn"
-        [isSectionExpanded]="isSectionExpandedFn"
-        [isSubmenuExpanded]="isSubmenuExpandedFn"
-        (toggleSidebar)="toggleSidebar()"
-        (closeMobileMenu)="closeMobileMenu($event)"
-        (onNavClick)="onNavClick()"
-        (toggleSection)="toggleSection($event.id, $event.event)"
-        (toggleSubmenu)="toggleSubmenu($event.id, $event.event)"
-        (categoryClick)="onCategoryClick($event.section, $event.event)"
-        (categoryMouseEnter)="onCategoryMouseEnter($event.section, $event.event)"
-        (categoryMouseLeave)="onCategoryMouseLeave()"
-        (profileMouseEnter)="onProfileMouseEnter($event)"
-        (profileMouseLeave)="onProfileMouseLeave()"
-        (flyoutMouseEnter)="onFlyoutMouseEnter()"
-        (flyoutMouseLeave)="onFlyoutMouseLeave()"
-        (flyoutItemClick)="onFlyoutItemClick()"
-        (profileFlyoutMouseEnter)="onProfileFlyoutMouseEnter()"
-        (profileFlyoutMouseLeave)="onProfileFlyoutMouseLeave()"
-        (profileFlyoutClick)="onProfileFlyoutClick()"
-        (logout)="onLogout()"
-      ></app-sidebar>
-
-      <!-- Main Container -->
-      <div class="main-wrapper" [attr.inert]="isMobile() && isMobileMenuOpen() ? true : null">
-        <!-- Top Navigation (Delegated Component) -->
-        <app-header
-          [isMobile]="isMobile()"
-          [isMobileMenuOpen]="isMobileMenuOpen()"
-          [sidebarId]="sidebarId"
-          [isChangingLanguage]="isChangingLanguage()"
-          [isDismissingAnnouncement]="isDismissingAnnouncement()"
-          [canReadNotifications]="canReadNotifications()"
-          [canReadAnnouncements]="canReadAnnouncements()"
-          (toggleMobileMenu)="toggleMobileMenu()"
-          (changeLanguage)="changeLanguage($event)"
-          (dismissAnnouncement)="dismissAnnouncement()"
-          (logout)="onLogout()"
-        ></app-header>
-
-        <!-- Page View Outlet -->
-        <main id="main-content" #mainContent class="page-content" tabindex="-1">
-          <router-outlet></router-outlet>
-        </main>
-      </div>
-    </div>
-
-    <!-- Command Palette Modal -->
-    <app-command-palette></app-command-palette>
-
-    <!-- Global Toast Container -->
-  `,
-  styles: [`
-    .skip-link {
-      position: fixed;
-      top: 8px;
-      left: 8px;
-      z-index: 3000;
-      transform: translateY(-160%);
-      padding: 8px 12px;
-      border-radius: var(--radius-sm);
-      background: var(--bg-surface);
-      color: var(--text-main);
-      box-shadow: var(--shadow-overlay);
-    }
-
-    .skip-link:focus {
-      transform: translateY(0);
-    }
-
-    .app-layout {
-      display: flex;
-      height: 100vh;
-      width: 100vw;
-      overflow: hidden;
-    }
-
-    /* Main Wrapper */
-    .main-wrapper {
-      flex: 1;
-      min-width: 0;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      background-color: var(--bg-app);
-    }
-
-    .page-content {
-      flex: 1;
-      min-width: 0;
-      overflow-y: auto;
-      padding: 20px;
-    }
-
-    @media (max-width: 767px) {
-      .page-content {
-        padding: 12px;
-        overflow-x: hidden;
-      }
-    }
-  `]
+  templateUrl: './app-shell.component.html',
+  styleUrl: './app-shell.component.css'
 })
 export class AppShellComponent implements OnDestroy {
   @ViewChild('mainContent') mainContent?: ElementRef<HTMLElement>;
@@ -179,19 +72,18 @@ export class AppShellComponent implements OnDestroy {
   private readonly destroyRef = inject(DestroyRef);
   private readonly breakpointObserver = inject(BreakpointObserver, { optional: true });
 
-  private readonly COLLAPSED_STATE_KEY = 'smartup_nav_sidebar_collapsed';
-  readonly isCollapsed = signal<boolean>(this.loadCollapsedState());
+  private readonly COLLAPSED_STATE_KEY = COLLAPSED_STATE_KEY;
+  readonly isCollapsed = signal<boolean>(loadCollapsedState());
+
+  private readonly flyout = inject(AppShellFlyoutService);
 
   // Collapsed rail flyout popover
-  readonly hoveredFlyoutSection = signal<NavSection | null>(null);
-  readonly hoveredFlyoutItem = signal<NavItem | null>(null);
-  readonly flyoutAnchorTop = signal<number>(0);
-  readonly isFlyoutVisible = signal<boolean>(false);
-  readonly isProfileFlyoutVisible = signal<boolean>(false);
-  private flyoutOpenTimer: any = null;
-  private flyoutCloseTimer: any = null;
-  private profileFlyoutCloseTimer: any = null;
-  private hoverTimeout: any = null;
+  readonly hoveredFlyoutSection = this.flyout.hoveredFlyoutSection;
+  readonly hoveredFlyoutItem = this.flyout.hoveredFlyoutItem;
+  readonly flyoutAnchorTop = this.flyout.flyoutAnchorTop;
+  readonly isFlyoutVisible = this.flyout.isFlyoutVisible;
+  readonly isProfileFlyoutVisible = this.flyout.isProfileFlyoutVisible;
+
   readonly isMobile = signal<boolean>(false);
   readonly isMobileMenuOpen = signal<boolean>(false);
   readonly isChangingLanguage = signal(false);
@@ -200,116 +92,32 @@ export class AppShellComponent implements OnDestroy {
   readonly canReadNotifications = computed(() => this.canViewNotifications());
   readonly canReadAnnouncements = computed(() => this.permService.canView('platform.announcements'));
 
-  private readonly COLLAPSED_SECTIONS_KEY = 'smartup_nav_collapsed_sections';
-  readonly collapsedSections = signal<Set<string>>(this.loadCollapsedSections());
+  private readonly COLLAPSED_SECTIONS_KEY = COLLAPSED_SECTIONS_KEY;
+  readonly collapsedSections = signal<Set<string>>(loadCollapsedSections());
   readonly expandedSubmenus = signal<Set<string>>(new Set<string>());
 
-  readonly navSections = computed<NavSection[]>(() => {
-    const customItems: NavItem[] = this.moduleService.getActiveCustomModules().map(mod => ({
-      id: `module-${mod.code}`,
-      route: mod.route!,
-      label: mod.name,
-      icon: mod.icon || 'extension',
-      permission: () => true
-    }));
-
-    const workspaceItems: NavItem[] = [
-      { id: 'tasks', route: '/tasks', labelKey: 'nav.tasks', icon: 'task_alt', permission: () => this.canViewTasks(), exact: true },
-      { id: 'projects', route: '/tasks/projects', labelKey: 'nav.projects', icon: 'folder', permission: () => this.canViewProjects() }
-    ];
-
-    if (this.moduleService.isModuleActive('notes')) {
-      workspaceItems.push({
-        id: 'notes',
-        route: '/notes',
-        labelKey: 'nav.notes',
-        icon: 'description',
-        permission: () => this.canViewNotes()
-      });
-    }
-
-    workspaceItems.push(
-      { id: 'files', route: '/files', labelKey: 'layout.app_shell.fayly', titleKey: 'files.faylovoe_hranilische', icon: 'folder_open', permission: () => this.canViewFiles() },
-      { id: 'analytics', route: '/analytics', labelKey: 'layout.app_shell.analitika', titleKey: 'analytics.analitika_i_dashbordy', icon: 'insights', permission: () => this.canViewAnalytics() },
-      { id: 'notifications', route: '/notifications', labelKey: 'nav.notifications', icon: 'notifications', permission: () => this.canViewNotifications(), badge: () => this.notifService.unreadCount() }
-    );
-
-    const sections: NavSection[] = [
-      {
-        id: 'workspace',
-        titleKey: 'nav.section.workspace',
-        items: workspaceItems
-      }
-    ];
-
-    if (customItems.length > 0) {
-      sections.push({
-        id: 'custom-modules',
-        titleKey: 'modules.title',
-        items: customItems
-      });
-    }
-
-    sections.push(
-      {
-        id: 'iam',
-        titleKey: 'nav.section.iam',
-        items: [
-          { id: 'users', route: '/iam/users', labelKey: 'nav.users', icon: 'people', permission: () => this.canViewUsers() },
-          { id: 'roles', route: '/iam/roles', labelKey: 'nav.roles', icon: 'security', permission: () => this.canViewRoles() },
-          { id: 'org-units', route: '/iam/org-units', labelKey: 'iam.org_units.title', titleKey: 'iam.org_units.title', icon: 'account_tree', permission: () => this.canViewOrgUnits() },
-          { id: 'custom-fields', route: '/iam/custom-fields', labelKey: 'nav.custom_fields', icon: 'tune', permission: () => this.canViewCustomFields() }
-        ]
-      },
-      {
-        id: 'administration',
-        titleKey: 'nav.section.administration',
-        items: [
-          { id: 'announcements', route: '/announcements', labelKey: 'announcements.obyavleniya', titleKey: 'layout.app_shell.upravlenie_obyavleniyami', icon: 'campaign', permission: () => this.canViewAnnouncements() },
-          { id: 'modules', route: '/settings/modules', labelKey: 'nav.modules', icon: 'extension', permission: () => this.canViewModules() },
-          { id: 'navigation-settings', route: '/settings/navigation', labelKey: 'nav.navigation_settings', icon: 'menu_open', permission: () => this.canViewNavigationSettings() },
-          { id: 'audit', route: '/audit', labelKey: 'nav.audit', titleKey: 'layout.app_shell.audit', icon: 'history', permission: () => this.canViewAudit() },
-          { id: 'system', route: '/system', labelKey: 'layout.app_shell.sostoyanie', titleKey: 'system.sostoyanie_sistemy', icon: 'monitor_heart', permission: () => this.canViewSystem() },
-          { id: 'settings', route: '/settings', labelKey: 'nav.settings', titleKey: 'layout.app_shell.nastroyki', icon: 'settings', permission: () => this.canViewSettings() }
-        ]
-      }
-    );
-
-    const customNavItems = this.navService.activeItems();
-    if (customNavItems.length > 0) {
-      const customReportItems: NavItem[] = [];
-
-      for (const ci of customNavItems) {
-        const navItem: NavItem = {
-          id: `custom-nav-${ci.code}`,
-          route: ci.targetType === 'EMBEDDED_IFRAME' ? `/embed/${ci.code}` : (ci.targetType === 'INTERNAL_ROUTE' ? ci.url : undefined),
-          targetUrl: ci.targetType === 'EXTERNAL_LINK' ? ci.url : undefined,
-          external: ci.targetType === 'EXTERNAL_LINK',
-          openInIframe: ci.targetType === 'EMBEDDED_IFRAME',
-          label: ci.title,
-          icon: ci.icon || 'analytics',
-          permission: () => true
-        };
-
-        const targetSection = sections.find(s => s.id === ci.sectionId);
-        if (targetSection) {
-          targetSection.items.push(navItem);
-        } else {
-          customReportItems.push(navItem);
-        }
-      }
-
-      if (customReportItems.length > 0) {
-        sections.splice(1, 0, {
-          id: 'custom-reports',
-          titleKey: 'nav.section.reports_and_services',
-          items: customReportItems
-        });
-      }
-    }
-
-    return sections;
-  });
+  readonly navSections = computed<NavSection[]>(() => buildNavSections({
+    activeCustomModules: this.moduleService.getActiveCustomModules(),
+    customNavItems: this.navService.activeItems(),
+    isNotesActive: this.moduleService.isModuleActive('notes'),
+    canViewTasks: () => this.canViewTasks(),
+    canViewProjects: () => this.canViewProjects(),
+    canViewNotes: () => this.canViewNotes(),
+    canViewFiles: () => this.canViewFiles(),
+    canViewAnalytics: () => this.canViewAnalytics(),
+    canViewNotifications: () => this.canViewNotifications(),
+    canViewUsers: () => this.canViewUsers(),
+    canViewRoles: () => this.canViewRoles(),
+    canViewOrgUnits: () => this.canViewOrgUnits(),
+    canViewCustomFields: () => this.canViewCustomFields(),
+    canViewAnnouncements: () => this.canViewAnnouncements(),
+    canViewModules: () => this.canViewModules(),
+    canViewNavigationSettings: () => this.canViewNavigationSettings(),
+    canViewAudit: () => this.canViewAudit(),
+    canViewSystem: () => this.canViewSystem(),
+    canViewSettings: () => this.canViewSettings(),
+    unreadCount: () => this.notifService.unreadCount()
+  }));
 
   constructor(
     public authService: AuthService,
@@ -413,22 +221,6 @@ export class AppShellComponent implements OnDestroy {
     return section.items.some(item => item.permission());
   }
 
-  private loadCollapsedSections(): Set<string> {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const stored = localStorage.getItem(this.COLLAPSED_SECTIONS_KEY);
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed)) {
-            return new Set<string>(parsed);
-          }
-        }
-      }
-    } catch {
-      // Ignore storage errors in test or restricted environments
-    }
-    return new Set<string>();
-  }
 
   isSectionExpanded(sectionId: string): boolean {
     return !this.collapsedSections().has(sectionId);
@@ -487,87 +279,34 @@ export class AppShellComponent implements OnDestroy {
     });
   }
 
-  private loadCollapsedState(): boolean {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        return localStorage.getItem(this.COLLAPSED_STATE_KEY) === 'true';
-      }
-    } catch {
-      // Ignore in tests or restricted environments
-    }
-    return false;
-  }
 
   onItemMouseEnter(section: NavSection, item: NavItem, event: MouseEvent) {
-    if (!this.isCollapsed() || this.isMobile()) {
-      return;
-    }
-    if (this.flyoutCloseTimer) {
-      clearTimeout(this.flyoutCloseTimer);
-      this.flyoutCloseTimer = null;
-    }
-    const target = (event.currentTarget || event.target) as HTMLElement;
-    const rect = target.getBoundingClientRect();
-    const top = Math.max(8, Math.min(rect.top - 4, (typeof window !== 'undefined' ? window.innerHeight : 800) - 340));
-
-    this.flyoutOpenTimer = setTimeout(() => {
-      this.closeProfileFlyout();
-      this.hoveredFlyoutSection.set(section);
-      this.hoveredFlyoutItem.set(item);
-      this.flyoutAnchorTop.set(top);
-      this.isFlyoutVisible.set(true);
-    }, 80);
+    this.flyout.onItemMouseEnter(section, item, event, this.isCollapsed(), this.isMobile());
   }
 
   onItemMouseLeave() {
-    if (this.flyoutOpenTimer) {
-      clearTimeout(this.flyoutOpenTimer);
-      this.flyoutOpenTimer = null;
-    }
-    this.flyoutCloseTimer = setTimeout(() => {
-      this.closeFlyout();
-    }, 180);
+    this.flyout.onItemMouseLeave();
   }
 
   onFlyoutMouseEnter() {
-    if (this.flyoutCloseTimer) {
-      clearTimeout(this.flyoutCloseTimer);
-      this.flyoutCloseTimer = null;
-    }
+    this.flyout.onFlyoutMouseEnter();
   }
 
   onFlyoutMouseLeave() {
-    this.flyoutCloseTimer = setTimeout(() => {
-      this.closeFlyout();
-    }, 150);
+    this.flyout.onFlyoutMouseLeave();
   }
 
   closeFlyout() {
-    if (this.flyoutOpenTimer) {
-      clearTimeout(this.flyoutOpenTimer);
-      this.flyoutOpenTimer = null;
-    }
-    if (this.flyoutCloseTimer) {
-      clearTimeout(this.flyoutCloseTimer);
-      this.flyoutCloseTimer = null;
-    }
-    this.isFlyoutVisible.set(false);
-    this.hoveredFlyoutSection.set(null);
-    this.hoveredFlyoutItem.set(null);
+    this.flyout.closeFlyout();
   }
 
   onFlyoutItemClick() {
-    this.closeFlyout();
-    this.onNavClick();
+    this.flyout.onFlyoutItemClick(() => this.onNavClick());
   }
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
-    const target = event.target as HTMLElement;
-    if (!target.closest('.rail-flyout-popover') && !target.closest('.rail-category-btn') && !target.closest('.user-profile-btn')) {
-      this.closeFlyout();
-      this.closeProfileFlyout();
-    }
+    this.flyout.onDocumentClick(event);
   }
 
   @HostListener('window:keydown.escape')
@@ -578,125 +317,49 @@ export class AppShellComponent implements OnDestroy {
   }
 
   onProfileMouseEnter(event: MouseEvent) {
-    if (!this.isCollapsed() || this.isMobile()) return;
-    this.closeFlyout();
-    this.isProfileFlyoutVisible.set(true);
+    this.flyout.onProfileMouseEnter(event, this.isCollapsed(), this.isMobile());
   }
 
   onProfileMouseLeave() {
-    this.profileFlyoutCloseTimer = setTimeout(() => {
-      this.closeProfileFlyout();
-    }, 180);
+    this.flyout.onProfileMouseLeave();
   }
 
   onProfileFlyoutMouseEnter() {
-    if (this.profileFlyoutCloseTimer) {
-      clearTimeout(this.profileFlyoutCloseTimer);
-      this.profileFlyoutCloseTimer = null;
-    }
+    this.flyout.onProfileFlyoutMouseEnter();
   }
 
   onProfileFlyoutMouseLeave() {
-    this.profileFlyoutCloseTimer = setTimeout(() => {
-      this.closeProfileFlyout();
-    }, 150);
+    this.flyout.onProfileFlyoutMouseLeave();
   }
 
   closeProfileFlyout() {
-    if (this.profileFlyoutCloseTimer) {
-      clearTimeout(this.profileFlyoutCloseTimer);
-      this.profileFlyoutCloseTimer = null;
-    }
-    this.isProfileFlyoutVisible.set(false);
+    this.flyout.closeProfileFlyout();
   }
 
   onProfileFlyoutClick() {
-    this.closeProfileFlyout();
-    this.onNavClick();
+    this.flyout.onProfileFlyoutClick(() => this.onNavClick());
   }
 
   onCategoryMouseEnter(section: NavSection, event: MouseEvent) {
-    if (!this.isCollapsed() || this.isMobile()) return;
-    if (this.flyoutOpenTimer) {
-      clearTimeout(this.flyoutOpenTimer);
-      this.flyoutOpenTimer = null;
-    }
-    if (this.flyoutCloseTimer) {
-      clearTimeout(this.flyoutCloseTimer);
-      this.flyoutCloseTimer = null;
-    }
-    const target = (event.currentTarget || event.target) as HTMLElement;
-    const rect = target.getBoundingClientRect();
-    const top = Math.max(8, Math.min(rect.top, (typeof window !== 'undefined' ? window.innerHeight : 800) - 340));
-
-    this.flyoutOpenTimer = setTimeout(() => {
-      this.closeProfileFlyout();
-      this.hoveredFlyoutSection.set(section);
-      this.flyoutAnchorTop.set(top);
-      this.isFlyoutVisible.set(true);
-    }, 60);
+    this.flyout.onCategoryMouseEnter(section, event, this.isCollapsed(), this.isMobile());
   }
 
   onCategoryMouseLeave() {
-    if (this.flyoutOpenTimer) {
-      clearTimeout(this.flyoutOpenTimer);
-      this.flyoutOpenTimer = null;
-    }
-    this.flyoutCloseTimer = setTimeout(() => {
-      this.closeFlyout();
-    }, 180);
+    this.flyout.onCategoryMouseLeave();
   }
 
   onCategoryClick(section: NavSection, event: MouseEvent) {
-    event.stopPropagation();
-    if (this.isFlyoutVisible() && this.hoveredFlyoutSection()?.id === section.id) {
-      this.closeFlyout();
-    } else {
-      if (this.flyoutOpenTimer) {
-        clearTimeout(this.flyoutOpenTimer);
-        this.flyoutOpenTimer = null;
-      }
-      if (this.flyoutCloseTimer) {
-        clearTimeout(this.flyoutCloseTimer);
-        this.flyoutCloseTimer = null;
-      }
-      const target = (event.currentTarget || event.target) as HTMLElement;
-      const rect = target.getBoundingClientRect();
-      const top = Math.max(8, Math.min(rect.top, (typeof window !== 'undefined' ? window.innerHeight : 800) - 340));
-      this.closeProfileFlyout();
-      this.hoveredFlyoutSection.set(section);
-      this.flyoutAnchorTop.set(top);
-      this.isFlyoutVisible.set(true);
-    }
+    this.flyout.onCategoryClick(section, event);
   }
 
   getSectionBadge(section: NavSection): number {
-    return section.items.reduce((sum, item) => {
-      const b = item.badge ? item.badge() : 0;
-      return sum + (typeof b === 'number' ? b : 0);
-    }, 0);
+    return section.items.reduce((sum, item) => sum + (item.badge?.() || 0), 0);
   }
 
   getSectionIcon(sectionId?: string): string {
-    switch (sectionId) {
-      case 'workspace': return 'space_dashboard';
-      case 'iam': return 'manage_accounts';
-      case 'administration': return 'tune';
-      case 'custom-modules': return 'extension';
-      case 'custom-reports': return 'analytics';
-      default: return 'folder';
-    }
+    return (sectionId && SECTION_ICON_MAP[sectionId]) || 'folder';
   }
 
-  private saveCollapsedState(collapsed: boolean): void {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        localStorage.setItem(this.COLLAPSED_STATE_KEY, String(collapsed));
-      }
-    } catch {
-      // Ignore
-    }
-  }
 
   toggleSidebar() {
     this.isCollapsed.update(v => {
@@ -760,73 +423,22 @@ export class AppShellComponent implements OnDestroy {
     return exact ? this.router.url === route : this.router.url.startsWith(route);
   }
 
-  canViewTasks(): boolean {
-    return this.permService.canView('tasks.items') || this.permService.canView('tasks');
-  }
-
-  canViewProjects(): boolean {
-    return this.permService.canView('tasks.projects') || this.permService.canView('projects');
-  }
-
-  canViewAnalytics(): boolean {
-    return this.permService.canView('analytics.dashboard') || this.permService.canView('analytics');
-  }
-
-  canViewUsers(): boolean {
-    return this.permService.canView('iam.users') || this.permService.canView('md_users');
-  }
-
-  canViewRoles(): boolean {
-    return this.permService.canView('rbac.roles') || this.permService.canView('iam.roles') || this.permService.canView('md_roles') || this.permService.canView('md.roles');
-  }
-
-  canViewOrgUnits(): boolean {
-    return this.permService.canView('iam.org_units');
-  }
-
-  canViewCustomFields(): boolean {
-    return this.permService.canView('md.custom_fields') || this.permService.canView('system.custom_fields') || this.permService.canView('md_custom_fields');
-  }
-
-  canViewFiles(): boolean {
-    return this.permService.canView('platform.files') || this.permService.canView('files');
-  }
-
-  canViewNotifications(): boolean {
-    return this.permService.canView('notify.inbox') || this.permService.canView('notifications');
-  }
-
-  canViewAnnouncements(): boolean {
-    return this.permService.canUpdate('platform.announcements');
-  }
-
-  canViewAudit(): boolean {
-    return this.permService.canView('audit.log') ||
-           this.permService.canView('audit.logs') ||
-           this.permService.canView('audit');
-  }
-
-  canViewSettings(): boolean {
-    return this.permService.canView('platform.settings') ||
-           this.permService.canView('settings') ||
-           true; // Базовые личные настройки (язык, тема, пароль) доступны всем аутентифицированным пользователям
-  }
-
-  canViewSystem(): boolean {
-    return this.permService.canView('platform.settings');
-  }
-
-  canViewNotes(): boolean {
-    return this.permService.canView('notes') && this.moduleService.isModuleActive('notes');
-  }
-
-  canViewModules(): boolean {
-    return this.permService.canView('platform.modules');
-  }
-
-  canViewNavigationSettings(): boolean {
-    return this.permService.canView('platform.navigation');
-  }
+  canViewTasks = () => this.permService.canView('tasks.items') || this.permService.canView('tasks');
+  canViewProjects = () => this.permService.canView('tasks.projects') || this.permService.canView('projects');
+  canViewAnalytics = () => this.permService.canView('analytics.dashboard') || this.permService.canView('analytics');
+  canViewUsers = () => this.permService.canView('iam.users') || this.permService.canView('md_users');
+  canViewRoles = () => this.permService.canView('rbac.roles') || this.permService.canView('iam.roles') || this.permService.canView('md_roles') || this.permService.canView('md.roles');
+  canViewOrgUnits = () => this.permService.canView('iam.org_units');
+  canViewCustomFields = () => this.permService.canView('md.custom_fields') || this.permService.canView('system.custom_fields') || this.permService.canView('md_custom_fields');
+  canViewFiles = () => this.permService.canView('platform.files') || this.permService.canView('files');
+  canViewNotifications = () => this.permService.canView('notify.inbox') || this.permService.canView('notifications');
+  canViewAnnouncements = () => this.permService.canUpdate('platform.announcements');
+  canViewAudit = () => this.permService.canView('audit.log') || this.permService.canView('audit.logs') || this.permService.canView('audit');
+  canViewSettings = () => true;
+  canViewSystem = () => this.permService.canView('platform.settings');
+  canViewNotes = () => this.permService.canView('notes') && this.moduleService.isModuleActive('notes');
+  canViewModules = () => this.permService.canView('platform.modules');
+  canViewNavigationSettings = () => this.permService.canView('platform.navigation');
 
 
 

@@ -2424,9 +2424,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/layout/app-shell/app-shell.component.ts": {
-    "mtime": 1789049607.0135665,
-    "seen": 1789049663.3191304,
-    "ast_hash": "0786fa3785dc0c691b76b0103aa6d46d",
+    "mtime": 1789073933.8122673,
+    "seen": 1789074006.1997821,
+    "ast_hash": "3264432b288257b33a95ab787e545a47",
     "semantic_hash": ""
   },
   "apps/web/src/app/layout/command-palette/command-palette.component.spec.ts": {
@@ -4626,9 +4626,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/layout/app-shell/app-shell.models.ts": {
-    "mtime": 1789049499.0350022,
-    "seen": 1789049663.3191304,
-    "ast_hash": "b0de2318eb075cc00196c51e8e6ef99a",
+    "mtime": 1789073908.2539704,
+    "seen": 1789074006.1997821,
+    "ast_hash": "8b390f81f6586cb0b24075a3bf13f716",
     "semantic_hash": ""
   },
   "apps/web/src/app/layout/app-shell/components/app-sidebar.component.ts": {
@@ -5067,6 +5067,18 @@
     "mtime": 1789073639.203283,
     "seen": 1789073798.0180008,
     "ast_hash": "0b2197ac04ff167ee60e62e2e319e4a6",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/layout/app-shell/services/app-shell-flyout.service.ts": {
+    "mtime": 1789073868.4961295,
+    "seen": 1789074006.1997821,
+    "ast_hash": "3b44fb843fe982d909c019cb41e7519f",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/layout/app-shell/app-shell.component.html": {
+    "mtime": 1789073839.9266171,
+    "seen": 1789074006.1997821,
+    "ast_hash": "b96e981b77e4dce79d36d8a28cd5302f",
     "semantic_hash": ""
   }
 }
