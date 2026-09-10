@@ -21,6 +21,7 @@ import { UserOrgUnitsPanelComponent } from '../org-units/public-api';
 import { UserFilterBarComponent } from './components/user-filter-bar.component';
 import { UserTableViewComponent } from './components/user-table-view.component';
 import { UserCreateModalComponent } from './components/user-create-modal.component';
+import { UserEditModalComponent } from './components/user-edit-modal.component';
 
 type SortColumn = 'id' | 'name' | 'login' | 'createdAt';
 type SortDirection = 'asc' | 'desc';
@@ -47,7 +48,8 @@ export interface SecurityConfirmConfig {
     UiPaginationComponent,
     UserFilterBarComponent,
     UserTableViewComponent,
-    UserCreateModalComponent
+    UserCreateModalComponent,
+    UserEditModalComponent
   ],
 
 
@@ -164,115 +166,22 @@ export interface SecurityConfirmConfig {
       (toggleRole)="toggleRoleInCreate($event)"
     ></app-user-create-modal>
 
-    <!-- ========================================================================= -->
-    <!-- Edit User Modal                                                           -->
-    <!-- ========================================================================= -->
-    <ui-modal
+    <!-- Edit User Modal (Delegated Component) -->
+    <app-user-edit-modal
       [isOpen]="isEditModalOpen()"
-      [title]="'iam.redaktirovat_polzovatelya' | t"
-      size="md"
+      [isSubmitting]="isSubmitting()"
+      [isEditSubmitted]="isEditSubmitted"
+      [editingUser]="editingUser"
+      [editForm]="editForm"
+      [roles]="roles()"
+      [languages]="i18n.languages()"
+      [customFields]="customFields()"
+      [getAvailableManagers]="getAvailableManagersFn"
+      [isRoleSelected]="isRoleSelectedInEditFn"
       (close)="closeEditModal()"
-    >
-      <div body class="clean-modal-body" *ngIf="editingUser as u">
-        <div class="form-grid">
-          <div class="form-group span-2">
-            <label class="clean-label" for="user-edit-name">{{ 'iam.fio' | t }} <span class="req">*</span></label>
-            <input id="user-edit-name" name="userEditName" type="text" class="clean-input" required
-              [attr.aria-invalid]="isEditSubmitted && !editForm.name.trim()"
-              [attr.aria-describedby]="isEditSubmitted && !editForm.name.trim() ? 'user-edit-name-error' : null"
-              [(ngModel)]="editForm.name" [placeholder]="'iam.ivanov_ivan_ivanovich' | t" />
-            <span id="user-edit-name-error" class="field-error" *ngIf="isEditSubmitted && !editForm.name.trim()">{{ 'iam.ukazhite_fio_polzovatelya' | t }}</span>
-          </div>
-
-          <div class="form-group">
-            <label class="clean-label" for="user-edit-login">{{ 'iam.login_chtenie' | t }}</label>
-            <input id="user-edit-login" type="text" class="clean-input font-mono disabled" [value]="u.login" disabled />
-          </div>
-
-          <div class="form-group">
-            <label class="clean-label" for="user-edit-email">{{ 'iam.email_chtenie' | t }}</label>
-            <input id="user-edit-email" type="email" class="clean-input font-mono disabled" [value]="u.email" disabled />
-          </div>
-
-          <div class="form-group">
-            <label class="clean-label" for="user-edit-phone">{{ 'iam.telefon.822f9fd' | t }}</label>
-            <input id="user-edit-phone" name="userEditPhone" type="tel" class="clean-input font-mono" autocomplete="tel" [(ngModel)]="editForm.phone" placeholder="+998901234567" />
-          </div>
-
-          <div class="form-group">
-            <label class="clean-label" for="user-edit-manager">{{ 'iam.rukovoditel' | t }}</label>
-            <select id="user-edit-manager" name="userEditManager" class="clean-input" [(ngModel)]="editForm.managerId">
-              <option [ngValue]="null">{{ 'iam.bez_rukovoditelya' | t }}</option>
-              <option *ngFor="let m of getAvailableManagers(u.id)" [ngValue]="m.id">
-                {{ m.name }} (&#64;{{ m.login }})
-              </option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label class="clean-label" for="user-edit-language">{{ 'iam.yazyk' | t }}</label>
-            <select id="user-edit-language" name="userEditLanguage" class="clean-input" [(ngModel)]="editForm.language">
-              <option *ngFor="let lang of i18n.languages()" [value]="lang.code">
-                {{ lang.name }} ({{ lang.code }})
-              </option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label class="clean-label" for="user-edit-timezone">{{ 'iam.chasovoy_poyas' | t }}</label>
-            <select id="user-edit-timezone" name="userEditTimezone" class="clean-input" [(ngModel)]="editForm.timezone">
-              <option value="Asia/Tashkent">Asia/Tashkent (UTC+5)</option>
-              <option value="Europe/Moscow">Europe/Moscow (UTC+3)</option>
-              <option value="UTC">UTC (UTC+0)</option>
-              <option value="Asia/Almaty">Asia/Almaty (UTC+5)</option>
-              <option value="Asia/Dubai">Asia/Dubai (UTC+4)</option>
-            </select>
-          </div>
-
-          <div class="form-group span-2">
-            <label class="clean-checkbox">
-              <input name="userEdit2fa" type="checkbox" [(ngModel)]="editForm.is2faEnabled" />
-              <span>{{ 'iam.vklyuchit_dvuhfaktornuyu_zaschitu_2fa_otp' | t }}</span>
-            </label>
-          </div>
-
-          <!-- Roles -->
-          <div class="form-group span-2" *ngIf="roles().length > 0">
-            <span class="clean-label">{{ 'iam.roli_dostupa_rbac' | t }}</span>
-            <div class="roles-chips">
-              <label
-                *ngFor="let role of roles()"
-                class="role-chip"
-                [class.selected]="isRoleSelectedInEdit(role.id)"
-                [class.locked]="u.login === 'admin' && role.pcode === 'admin'"
-              >
-                <input
-                  type="checkbox"
-                  [checked]="isRoleSelectedInEdit(role.id)"
-                  (change)="toggleRoleInEdit(role.id)"
-                  [disabled]="u.login === 'admin' && role.pcode === 'admin'"
-                />
-                <span>{{ role.name }}</span>
-                <span *ngIf="u.login === 'admin' && role.pcode === 'admin'" class="material-symbols-outlined lock-ico" [title]="'iam.zaschischeno' | t">lock</span>
-              </label>
-            </div>
-          </div>
-
-          <!-- Custom Fields -->
-          <div class="form-group span-2" *ngIf="customFields().length > 0">
-            <span class="clean-label">{{ 'iam.dopolnitelnye_polya' | t }}</span>
-            <ui-custom-fields
-              [fields]="customFields()"
-              [(values)]="editForm.attributes"
-            ></ui-custom-fields>
-          </div>
-        </div>
-      </div>
-      <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="closeEditModal()">{{ 'common.cancel' | t }}</ui-button>
-        <ui-button variant="primary" size="md" [loading]="isSubmitting()" (onClick)="submitEditUser()">{{ 'common.save' | t }}</ui-button>
-      </div>
-    </ui-modal>
+      (submit)="submitEditUser()"
+      (toggleRole)="toggleRoleInEdit($event)"
+    ></app-user-edit-modal>
 
     <!-- ========================================================================= -->
     <!-- View User Modal (Clean Info Modal)                                        -->
@@ -1482,6 +1391,8 @@ export interface SecurityConfirmConfig {
   `]
 })
 export class UsersComponent implements OnInit, OnDestroy {
+  readonly getAvailableManagersFn = (userId: number) => this.getAvailableManagers(userId);
+  readonly isRoleSelectedInEditFn = (roleId: number) => this.isRoleSelectedInEdit(roleId);
   readonly isRoleSelectedInCreateFn = (roleId: number) => this.isRoleSelectedInCreate(roleId);
   readonly getUserInitialFn = (u: User) => this.getUserInitial(u);
   readonly getAvatarBgColorFn = (name: string) => this.getAvatarBgColor(name);
