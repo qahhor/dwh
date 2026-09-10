@@ -25,6 +25,7 @@ import { KeysetPage } from '../../core/models/common.models';
 import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
 import { Subscription } from 'rxjs';
 import { toLocalDateTime, toTaskInstant } from './task-form-value';
+import { TaskDictionariesModalComponent } from './components/task-dictionaries-modal.component';
 
 @Component({
   selector: 'app-tasks',
@@ -42,7 +43,8 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
     UiMarkdownEditorComponent,
     UiMarkdownViewComponent,
     UiPaginationComponent,
-    UiFileUploadComponent
+    UiFileUploadComponent,
+    TaskDictionariesModalComponent
   ],
 
 
@@ -1328,183 +1330,19 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
     </ui-modal>
 
     <!-- ======================================================================= -->
-    <!-- Dictionaries Settings Modal (With CDK Drag & Drop Reordering)           -->
+    <!-- Dictionaries Settings Modal (Delegated Component)                       -->
     <!-- ======================================================================= -->
-    <ui-modal
+    <app-task-dictionaries-modal
       [isOpen]="isSettingsModalOpen()"
-      [title]="'tasks.nastroyka_spravochnikov_zadach' | t"
-      size="md"
+      [taskTypes]="taskTypes()"
+      [statuses]="statuses()"
       (close)="isSettingsModalOpen.set(false)"
-    >
-      <div body class="settings-modal-content">
-        <!-- Settings Tabs -->
-        <div class="settings-tabs" role="tablist" [attr.aria-label]="'tasks.spravochniki_zadach' | t">
-          <button
-            id="task-types-tab"
-            type="button"
-            role="tab"
-            class="tab-btn"
-            [class.active]="settingsTab === 'types'"
-            [attr.aria-selected]="settingsTab === 'types'"
-            aria-controls="task-types-panel"
-            (click)="settingsTab = 'types'"
-          >
-            {{ 'tasks.task_types_count' | t:{count: taskTypes().length} }}
-          </button>
-          <button
-            id="task-statuses-tab"
-            type="button"
-            role="tab"
-            class="tab-btn"
-            [class.active]="settingsTab === 'statuses'"
-            [attr.aria-selected]="settingsTab === 'statuses'"
-            aria-controls="task-statuses-panel"
-            (click)="settingsTab = 'statuses'"
-          >
-            {{ 'tasks.task_statuses_count' | t:{count: statuses().length} }}
-          </button>
-        </div>
-
-        <!-- TAB 1: Task Types (Drag & Drop Reordering) -->
-        <div id="task-types-panel" class="tab-pane" role="tabpanel" aria-labelledby="task-types-tab" *ngIf="settingsTab === 'types'">
-          <div
-            cdkDropList
-            class="dict-list"
-            (cdkDropListDropped)="onTypeDrop($event)"
-          >
-            <div
-              *ngFor="let ty of taskTypes(); let typeIndex = index"
-              cdkDrag
-              class="dict-row"
-            >
-              <div class="dict-item-info">
-                <span cdkDragHandle class="material-symbols-outlined drag-grip-icon" aria-hidden="true" [title]="'tasks.peretaschite_dlya_izmeneniya_poryadka' | t">
-                  drag_indicator
-                </span>
-                <span class="material-symbols-outlined dict-ico" aria-hidden="true" [style.color]="ty.color">{{ ty.icon }}</span>
-                <span class="dict-name">{{ ty.name }}</span>
-                <span class="font-mono text-muted text-xs">({{ ty.code }})</span>
-                <span *ngIf="ty.isSystem" class="sys-badge">{{ 'tasks.sistemnyy' | t }}</span>
-              </div>
-              <div class="dict-actions" *ngIf="!ty.isSystem">
-                <button type="button" class="mini-move-btn" [disabled]="typeIndex === 0" [attr.aria-label]="'tasks.raise_task_type' | t:{name: ty.name}" (click)="moveDictionaryType(typeIndex, -1)">
-                  <span class="material-symbols-outlined" aria-hidden="true">arrow_upward</span>
-                </button>
-                <button type="button" class="mini-move-btn" [disabled]="typeIndex === taskTypes().length - 1" [attr.aria-label]="'tasks.lower_task_type' | t:{name: ty.name}" (click)="moveDictionaryType(typeIndex, 1)">
-                  <span class="material-symbols-outlined" aria-hidden="true">arrow_downward</span>
-                </button>
-                <button type="button" class="mini-del-btn" [title]="'common.delete' | t" [attr.aria-label]="'tasks.delete_task_type' | t:{name: ty.name}" (click)="requestDeleteDictionaryItem('type', ty.id, ty.name)">
-                  <span class="material-symbols-outlined" aria-hidden="true">delete</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Add New Type Form -->
-          <div class="add-dict-box">
-            <h5 class="add-dict-title">{{ 'tasks.dobavit_novyy_tip_zadachi' | t }}</h5>
-            <div class="form-grid-3">
-              <div class="dict-form-field">
-                <label class="clean-label" for="task-type-code">{{ 'tasks.kod_tipa' | t }}</label>
-                <input id="task-type-code" name="taskTypeCode" type="text" class="clean-input" [placeholder]="'tasks.naprimer_doc' | t" [(ngModel)]="newTypeForm.code" />
-              </div>
-              <div class="dict-form-field">
-                <label class="clean-label" for="task-type-name">{{ 'tasks.nazvanie_tipa' | t }}</label>
-                <input id="task-type-name" name="taskTypeName" type="text" class="clean-input" [placeholder]="'tasks.naprimer_dokument' | t" [(ngModel)]="newTypeForm.name" />
-              </div>
-              <div class="color-picker-row">
-                <label class="clean-label" for="task-type-color">{{ 'tasks.cvet_tipa' | t }}</label>
-                <input id="task-type-color" name="taskTypeColor" type="color" class="clean-input color-picker" [(ngModel)]="newTypeForm.color" [title]="'tasks.vybrat_cvet' | t" />
-              </div>
-            </div>
-            <div class="add-dict-actions">
-              <ui-button variant="secondary" size="sm" icon="add" (onClick)="submitCreateType()">
-                {{ 'tasks.dobavit_tip' | t }}
-              </ui-button>
-            </div>
-          </div>
-        </div>
-
-        <!-- TAB 2: Task Statuses (Drag & Drop Reordering) -->
-        <div id="task-statuses-panel" class="tab-pane" role="tabpanel" aria-labelledby="task-statuses-tab" *ngIf="settingsTab === 'statuses'">
-          <div
-            cdkDropList
-            class="dict-list"
-            (cdkDropListDropped)="onStatusDrop($event)"
-          >
-            <div
-              *ngFor="let s of statuses(); let statusIndex = index"
-              cdkDrag
-              class="dict-row"
-            >
-              <div class="dict-item-info">
-                <span cdkDragHandle class="material-symbols-outlined drag-grip-icon" aria-hidden="true" [title]="'tasks.peretaschite_dlya_izmeneniya_poryadka' | t">
-                  drag_indicator
-                </span>
-                <span class="status-dot" [style.background-color]="s.color"></span>
-                <span class="dict-name">{{ s.name }}</span>
-                <span *ngIf="s.isTerminal" class="term-badge">{{ 'tasks.zavershayuschiy' | t }}</span>
-                <span *ngIf="s.pcode" class="sys-badge">{{ 'tasks.bazovyy' | t }}</span>
-              </div>
-              <div class="dict-actions" *ngIf="!s.pcode">
-                <button type="button" class="mini-move-btn" [disabled]="statusIndex === 0" [attr.aria-label]="'tasks.raise_status' | t:{name: s.name}" (click)="moveDictionaryStatus(statusIndex, -1)">
-                  <span class="material-symbols-outlined" aria-hidden="true">arrow_upward</span>
-                </button>
-                <button type="button" class="mini-move-btn" [disabled]="statusIndex === statuses().length - 1" [attr.aria-label]="'tasks.lower_status' | t:{name: s.name}" (click)="moveDictionaryStatus(statusIndex, 1)">
-                  <span class="material-symbols-outlined" aria-hidden="true">arrow_downward</span>
-                </button>
-                <button type="button" class="mini-del-btn" [title]="'common.delete' | t" [attr.aria-label]="'tasks.delete_status' | t:{name: s.name}" (click)="requestDeleteDictionaryItem('status', s.id, s.name)">
-                  <span class="material-symbols-outlined" aria-hidden="true">delete</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Add New Status Form -->
-          <div class="add-dict-box">
-            <h5 class="add-dict-title">{{ 'tasks.dobavit_novyy_status' | t }}</h5>
-            <div class="form-grid-3">
-              <div class="dict-form-field">
-                <label class="clean-label" for="task-status-name">{{ 'tasks.nazvanie_statusa.44a913b' | t }}</label>
-                <input id="task-status-name" name="taskStatusName" type="text" class="clean-input" [placeholder]="'tasks.nazvanie_statusa' | t" [(ngModel)]="newStatusForm.name" />
-              </div>
-              <div class="color-picker-row">
-                <label class="clean-label" for="task-status-color">{{ 'tasks.cvet_statusa' | t }}</label>
-                <input id="task-status-color" name="taskStatusColor" type="color" class="clean-input color-picker" [(ngModel)]="newStatusForm.color" [title]="'tasks.vybrat_cvet' | t" />
-              </div>
-              <label class="terminal-toggle-label">
-                <input name="taskStatusTerminal" type="checkbox" [(ngModel)]="newStatusForm.isTerminal" />
-                <span>{{ 'tasks.zavershayuschiy' | t }}</span>
-              </label>
-            </div>
-            <div class="add-dict-actions">
-              <ui-button variant="secondary" size="sm" icon="add" (onClick)="submitCreateStatus()">
-                {{ 'tasks.dobavit_status' | t }}
-              </ui-button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="isSettingsModalOpen.set(false)">{{ 'audit.zakryt' | t }}</ui-button>
-      </div>
-    </ui-modal>
-
-    <ui-modal
-      [isOpen]="dictionaryDeleteTarget !== null"
-      [title]="'tasks.udalenie_elementa_spravochnika' | t"
-      size="sm"
-      (close)="dictionaryDeleteTarget = null"
-    >
-      <div body class="dictionary-delete-body" *ngIf="dictionaryDeleteTarget as target">
-        <p>{{ 'tasks.delete_dictionary_confirm' | t:{kind: ((target.kind === 'type' ? 'tasks.task_type_accusative' : 'tasks.status_accusative') | t), name: target.name} }}</p>
-        <span>{{ 'tasks.udalenie_budet_otkloneno_esli_element_uzhe_ispol' | t }}</span>
-      </div>
-      <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="dictionaryDeleteTarget = null">{{ 'common.cancel' | t }}</ui-button>
-        <ui-button variant="danger" size="md" (onClick)="confirmDeleteDictionaryItem()">{{ 'common.delete' | t }}</ui-button>
-      </div>
-    </ui-modal>
+      (createType)="handleCreateType($event)"
+      (createStatus)="handleCreateStatus($event)"
+      (deleteItem)="handleDeleteDictionaryItem($event)"
+      (reorderTypes)="handleReorderTypes($event)"
+      (reorderStatuses)="handleReorderStatuses($event)"
+    ></app-task-dictionaries-modal>
   `,
   styles: [`
     .tasks-page {
@@ -3959,66 +3797,48 @@ export class TasksComponent implements OnInit, OnDestroy {
   // =========================================================================
   // Dictionaries Management
   // =========================================================================
+  // =========================================================================
+  // Dictionaries Management (Delegated to TaskDictionariesModalComponent)
+  // =========================================================================
   openSettingsModal() {
-    this.newTypeForm = { code: '', name: '', icon: 'task_alt', color: '#6366f1' };
-    this.newStatusForm = { name: '', color: '#3b82f6', isTerminal: false };
     this.isSettingsModalOpen.set(true);
   }
 
-  submitCreateType() {
-    if (!this.newTypeForm.code.trim() || !this.newTypeForm.name.trim()) {
-      this.toast.warning(this.uiI18n.translate('tasks.ukazhite_kod_i_nazvanie_tipa'));
-      return;
-    }
-
+  handleCreateType(event: { code: string; name: string; icon: string; color: string }) {
     this.api.post('/tasks/types', {
-      code: this.newTypeForm.code.trim(),
-      name: this.newTypeForm.name.trim(),
-      icon: this.newTypeForm.icon.trim() || 'task_alt',
-      color: this.newTypeForm.color,
+      code: event.code,
+      name: event.name,
+      icon: event.icon,
+      color: event.color,
       orderNo: (this.taskTypes().length + 1) * 10
     }).subscribe({
       next: () => {
         this.toast.success(this.uiI18n.translate('tasks.tip_zadachi_dobavlen'));
-        this.newTypeForm = { code: '', name: '', icon: 'task_alt', color: '#6366f1' };
         this.loadTypes();
       },
       error: err => this.toast.error(err.error?.message || this.uiI18n.translate('tasks.oshibka_dobavleniya_tipa'))
     });
   }
 
-  submitCreateStatus() {
-    if (!this.newStatusForm.name.trim()) {
-      this.toast.warning(this.uiI18n.translate('tasks.ukazhite_nazvanie_statusa'));
-      return;
-    }
-
+  handleCreateStatus(event: { name: string; color: string; isTerminal: boolean }) {
     this.api.post('/tasks/statuses', {
-      name: this.newStatusForm.name.trim(),
-      color: this.newStatusForm.color,
+      name: event.name,
+      color: event.color,
       orderNo: (this.statuses().length + 1) * 10,
-      isTerminal: this.newStatusForm.isTerminal
+      isTerminal: event.isTerminal
     }).subscribe({
       next: () => {
         this.toast.success(this.uiI18n.translate('tasks.status_zadachi_dobavlen'));
-        this.newStatusForm = { name: '', color: '#3b82f6', isTerminal: false };
         this.loadStatuses();
       },
       error: err => this.toast.error(err.error?.message || this.uiI18n.translate('tasks.oshibka_dobavleniya_statusa'))
     });
   }
 
-  requestDeleteDictionaryItem(kind: 'type' | 'status', id: number, name: string) {
-    this.dictionaryDeleteTarget = { kind, id, name };
-  }
-
-  confirmDeleteDictionaryItem() {
-    if (!this.dictionaryDeleteTarget) return;
-    const target = this.dictionaryDeleteTarget;
+  handleDeleteDictionaryItem(target: { kind: 'type' | 'status'; id: number; name: string }) {
     const endpoint = target.kind === 'type' ? `/tasks/types/${target.id}` : `/tasks/statuses/${target.id}`;
     this.api.delete(endpoint).subscribe({
       next: () => {
-        this.dictionaryDeleteTarget = null;
         if (target.kind === 'type') {
           this.toast.success(this.uiI18n.translate('tasks.tip_zadachi_udalen'));
           this.loadTypes();
@@ -4031,6 +3851,16 @@ export class TasksComponent implements OnInit, OnDestroy {
         ? this.uiI18n.translate('tasks.oshibka_udaleniya_tipa')
         : this.uiI18n.translate('tasks.nelzya_udalit_status_privyazannyy_k_zadacham')))
     });
+  }
+
+  handleReorderTypes(list: TaskType[]) {
+    this.taskTypes.set(list);
+    this.persistTypeOrder(list);
+  }
+
+  handleReorderStatuses(list: TaskStatus[]) {
+    this.statuses.set(list);
+    this.persistStatusOrder(list);
   }
 
   // =========================================================================

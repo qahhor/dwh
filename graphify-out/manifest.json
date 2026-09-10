@@ -2412,9 +2412,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/tasks/tasks.component.ts": {
-    "mtime": 1788924924.825865,
-    "seen": 1788925099.0751274,
-    "ast_hash": "aa65b14232032e46df88650f17973789",
+    "mtime": 1789014113.6182778,
+    "seen": 1789014191.8697891,
+    "ast_hash": "c6a83f6411c63fd1fa15352a28f12491",
     "semantic_hash": ""
   },
   "apps/web/src/app/layout/app-shell/app-shell.component.spec.ts": {
@@ -4545,6 +4545,12 @@
     "mtime": 1789012573.6129868,
     "seen": 1789012859.7479575,
     "ast_hash": "45dea4a553d64ece3084f503be478a61",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/tasks/components/task-dictionaries-modal.component.ts": {
+    "mtime": 1789014081.6082137,
+    "seen": 1789014191.8697891,
+    "ast_hash": "2e2a37522bd4eef96e5fc51a6fda7dfe",
     "semantic_hash": ""
   }
 }
