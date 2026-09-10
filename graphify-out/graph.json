@@ -6878,7 +6878,7 @@
       "file_type": "code",
       "norm_label": "taskdetailmodalcomponent",
       "source_file": "apps/web/src/app/features/tasks/components/task-detail-modal.component.ts",
-      "source_location": "L543"
+      "source_location": "L295"
     },
     {
       "id": "apps_web_src_app_features_tasks_components_task_dictionaries_modal_component_taskdictionariesmodalcomponent",
@@ -23313,7 +23313,7 @@
       "file_type": "code",
       "norm_label": ".getinvolvekindlabel()",
       "source_file": "apps/web/src/app/features/tasks/components/task-detail-modal.component.ts",
-      "source_location": "L594"
+      "source_location": "L346"
     },
     {
       "id": "apps_server_src_main_java_com_greenwhite_dwh_instance_kwh_service_kwhwebhookproperties_kwhwebhookproperties_getallowedhosts",
@@ -39873,7 +39873,7 @@
       "file_type": "code",
       "norm_label": ".constructor()",
       "source_file": "apps/web/src/app/features/tasks/components/task-detail-modal.component.ts",
-      "source_location": "L592"
+      "source_location": "L344"
     },
     {
       "id": "apps_web_src_app_features_tasks_components_task_detail_modal_component_taskdetailmodalcomponent_formatattributes",
@@ -39885,7 +39885,7 @@
       "file_type": "code",
       "norm_label": ".formatattributes()",
       "source_file": "apps/web/src/app/features/tasks/components/task-detail-modal.component.ts",
-      "source_location": "L619"
+      "source_location": "L371"
     },
     {
       "id": "apps_web_src_app_features_tasks_components_task_detail_modal_component_taskdetailmodalcomponent_getinitials",
@@ -39897,7 +39897,7 @@
       "file_type": "code",
       "norm_label": ".getinitials()",
       "source_file": "apps/web/src/app/features/tasks/components/task-detail-modal.component.ts",
-      "source_location": "L604"
+      "source_location": "L356"
     },
     {
       "id": "apps_web_src_app_features_tasks_components_task_detail_modal_component_taskdetailmodalcomponent_hasattributes",
@@ -39909,7 +39909,7 @@
       "file_type": "code",
       "norm_label": ".hasattributes()",
       "source_file": "apps/web/src/app/features/tasks/components/task-detail-modal.component.ts",
-      "source_location": "L613"
+      "source_location": "L365"
     },
     {
       "id": "apps_web_src_app_features_tasks_components_task_dictionaries_modal_component_taskdictionariesmodalcomponent_confirmdelete",
@@ -148577,7 +148577,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/tasks/components/task-detail-modal.component.ts",
-      "source_location": "L620",
+      "source_location": "L372",
       "weight": 1.0
     },
     {
@@ -154325,7 +154325,7 @@
       "confidence_score": 1.0,
       "context": "decorator",
       "source_file": "apps/web/src/app/features/tasks/components/task-detail-modal.component.ts",
-      "source_location": "L578",
+      "source_location": "L330",
       "weight": 1.0
     },
     {
@@ -154337,7 +154337,7 @@
       "confidence_score": 1.0,
       "context": "decorator",
       "source_file": "apps/web/src/app/features/tasks/components/task-detail-modal.component.ts",
-      "source_location": "L590",
+      "source_location": "L342",
       "weight": 1.0
     },
     {
@@ -165161,7 +165161,7 @@
       "confidence_score": 1.0,
       "context": "field",
       "source_file": "apps/web/src/app/features/tasks/components/task-detail-modal.component.ts",
-      "source_location": "L547",
+      "source_location": "L299",
       "weight": 1.0
     },
     {
@@ -165173,7 +165173,7 @@
       "confidence_score": 1.0,
       "context": "field",
       "source_file": "apps/web/src/app/features/tasks/components/task-detail-modal.component.ts",
-      "source_location": "L555",
+      "source_location": "L307",
       "weight": 1.0
     },
     {
@@ -165185,7 +165185,7 @@
       "confidence_score": 1.0,
       "context": "field",
       "source_file": "apps/web/src/app/features/tasks/components/task-detail-modal.component.ts",
-      "source_location": "L556",
+      "source_location": "L308",
       "weight": 1.0
     },
     {
@@ -165197,7 +165197,7 @@
       "confidence_score": 1.0,
       "context": "field",
       "source_file": "apps/web/src/app/features/tasks/components/task-detail-modal.component.ts",
-      "source_location": "L559",
+      "source_location": "L311",
       "weight": 1.0
     },
     {
@@ -165209,7 +165209,7 @@
       "confidence_score": 1.0,
       "context": "field",
       "source_file": "apps/web/src/app/features/tasks/components/task-detail-modal.component.ts",
-      "source_location": "L560",
+      "source_location": "L312",
       "weight": 1.0
     },
     {
@@ -165221,7 +165221,7 @@
       "confidence_score": 1.0,
       "context": "field",
       "source_file": "apps/web/src/app/features/tasks/components/task-detail-modal.component.ts",
-      "source_location": "L561",
+      "source_location": "L313",
       "weight": 1.0
     },
     {
@@ -165233,7 +165233,7 @@
       "confidence_score": 1.0,
       "context": "field",
       "source_file": "apps/web/src/app/features/tasks/components/task-detail-modal.component.ts",
-      "source_location": "L562",
+      "source_location": "L314",
       "weight": 1.0
     },
     {
@@ -165245,7 +165245,7 @@
       "confidence_score": 1.0,
       "context": "field",
       "source_file": "apps/web/src/app/features/tasks/components/task-detail-modal.component.ts",
-      "source_location": "L563",
+      "source_location": "L315",
       "weight": 1.0
     },
     {
@@ -229277,7 +229277,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "apps/web/src/app/features/tasks/components/task-detail-modal.component.ts",
-      "source_location": "L592",
+      "source_location": "L344",
       "weight": 1.0
     },
     {
@@ -247690,7 +247690,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/tasks/components/task-detail-modal.component.ts",
-      "source_location": "L543",
+      "source_location": "L295",
       "weight": 1.0
     },
     {
@@ -301376,7 +301376,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/tasks/components/task-detail-modal.component.ts",
-      "source_location": "L592",
+      "source_location": "L344",
       "weight": 1.0
     },
     {
@@ -301387,7 +301387,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/tasks/components/task-detail-modal.component.ts",
-      "source_location": "L594",
+      "source_location": "L346",
       "weight": 1.0
     },
     {
@@ -301398,7 +301398,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/tasks/components/task-detail-modal.component.ts",
-      "source_location": "L604",
+      "source_location": "L356",
       "weight": 1.0
     },
     {
@@ -301409,7 +301409,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/tasks/components/task-detail-modal.component.ts",
-      "source_location": "L613",
+      "source_location": "L365",
       "weight": 1.0
     },
     {
@@ -301420,7 +301420,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/tasks/components/task-detail-modal.component.ts",
-      "source_location": "L619",
+      "source_location": "L371",
       "weight": 1.0
     },
     {
@@ -328865,7 +328865,7 @@
       "confidence_score": 0.8,
       "context": "call",
       "source_file": "apps/web/src/app/features/tasks/components/task-detail-modal.component.ts",
-      "source_location": "L630",
+      "source_location": "L382",
       "weight": 1.0
     },
     {
@@ -328877,7 +328877,7 @@
       "confidence_score": 0.8,
       "context": "call",
       "source_file": "apps/web/src/app/features/tasks/components/task-detail-modal.component.ts",
-      "source_location": "L596",
+      "source_location": "L348",
       "weight": 1.0
     },
     {
@@ -340037,5 +340037,5 @@
       "source_file": ".github/workflows/ci.yml"
     }
   ],
-  "built_at_commit": "61a2134b9d5394943144b1e26b0b4ab2189076c0"
+  "built_at_commit": "f1752f00a1fa0473f42aeda77805073a1614b7d7"
 }

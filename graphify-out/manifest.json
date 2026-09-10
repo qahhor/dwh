@@ -4572,9 +4572,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/tasks/components/task-detail-modal.component.ts": {
-    "mtime": 1789025716.2355425,
-    "seen": 1789025779.7351465,
-    "ast_hash": "697f8436c41b4bc44088b7e0bc7b74eb",
+    "mtime": 1789073095.502303,
+    "seen": 1789073170.2584217,
+    "ast_hash": "fc924aacec36908b62bd6c611580b9e1",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/tasks/components/task-create-modal.component.ts": {
