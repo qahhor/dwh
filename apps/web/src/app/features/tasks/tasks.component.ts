@@ -27,6 +27,7 @@ import { Subscription } from 'rxjs';
 import { toLocalDateTime, toTaskInstant } from './task-form-value';
 import { TaskDictionariesModalComponent } from './components/task-dictionaries-modal.component';
 import { TaskKanbanViewComponent } from './components/task-kanban-view.component';
+import { TaskTableViewComponent } from './components/task-table-view.component';
 
 @Component({
   selector: 'app-tasks',
@@ -46,7 +47,8 @@ import { TaskKanbanViewComponent } from './components/task-kanban-view.component
     UiPaginationComponent,
     UiFileUploadComponent,
     TaskDictionariesModalComponent,
-    TaskKanbanViewComponent
+    TaskKanbanViewComponent,
+    TaskTableViewComponent
   ],
 
 
@@ -292,154 +294,33 @@ import { TaskKanbanViewComponent } from './components/task-kanban-view.component
       <!-- ======================================================================= -->
       <!-- VIEW 1: TABLE / LIST VIEW (Default View)                                -->
       <!-- ======================================================================= -->
-      <div class="table-card" *ngIf="viewMode === 'table'">
-        <div class="table-wrapper" *ngIf="tasks().length > 0" role="region" [attr.aria-label]="'tasks.tablica_zadach' | t" tabindex="0">
-          <table class="data-table" [attr.aria-label]="'tasks.spisok_zadach' | t">
-            <thead>
-              <tr>
-                <th style="width: 60px;">ID</th>
-                <th style="width: 120px;">{{ 'settings.tip' | t }}</th>
-                <th>{{ 'tasks.zadacha' | t }}</th>
-                <th>{{ 'projects.proekt' | t }}</th>
-                <th>{{ 'common.priority' | t }}</th>
-                <th>{{ 'common.status' | t }}</th>
-                <th>{{ 'tasks.srok' | t }}</th>
-                <th class="text-right" style="width: 110px;">{{ 'common.actions' | t }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                *ngFor="let t of paginatedTasks()"
-                class="task-row"
-                [class.row-overdue]="isOverdue(t.endTime, t.statusId)"
-                (click)="onTaskContainerClick($event, t)"
-              >
-                <td class="tabular-nums font-mono" [class.text-danger]="isOverdue(t.endTime, t.statusId)" [class.text-muted]="!isOverdue(t.endTime, t.statusId)">
-                  #{{ t.id }}
-                </td>
-                <td>
-                  <span class="task-type-badge" [style.color]="getTypeColor(t)" [style.background-color]="getTypeBg(t)">
-                    <span class="material-symbols-outlined type-icon" aria-hidden="true">{{ getTypeIcon(t) }}</span>
-                    {{ getTypeLabel(t) }}
-                  </span>
-                </td>
-                <td>
-                  <div class="task-title-cell">
-                    <button
-                      type="button"
-                      class="task-title task-title-open"
-                      [class.title-overdue]="isOverdue(t.endTime, t.statusId)"
-                      [attr.aria-label]="'tasks.open_task_named' | t:{id: t.id, title: t.title}"
-                      (click)="openTaskDetails(t)"
-                    >
-                      {{ t.title }}
-                    </button>
-                    <span *ngIf="isOverdue(t.endTime, t.statusId)" class="overdue-tag">
-                      {{ 'tasks.prosrocheno' | t }}
-                    </span>
-                    <span *ngIf="t.parentTaskId" class="parent-chip font-mono" [title]="'task.parent' | t">
-                      {{ 'tasks.subtask_number' | t:{id: t.parentTaskId} }}
-                    </span>
-                  </div>
-                </td>
-                <td>
-                  <span class="project-tag" *ngIf="getProjectName(t.projectId) as pName">
-                    <span class="material-symbols-outlined folder-ico">folder</span>
-                    {{ pName }}
-                  </span>
-                  <span class="text-muted" *ngIf="!t.projectId">—</span>
-                </td>
-                <td>
-                  <div class="inline-priority-wrapper" (click)="$event.stopPropagation()">
-                    <select
-                      class="inline-priority-select"
-                      [attr.data-priority]="t.priority"
-                      [ngModel]="t.priority"
-                      (ngModelChange)="updatePriority(t.id, $event)"
-                      [disabled]="!canUpdateTask()"
-                      [attr.aria-label]="'common.priority' | t"
-                      [title]="'common.priority' | t"
-                    >
-                      <option value="low">{{ 'task.priority.low' | t }}</option>
-                      <option value="medium">{{ 'tasks.sredniy' | t }}</option>
-                      <option value="high">{{ 'task.priority.high' | t }}</option>
-                      <option value="critical">{{ 'tasks.kriticheskiy' | t }}</option>
-                    </select>
-                  </div>
-                </td>
-                <td>
-                  <!-- Quick Status Changer Dropdown -->
-                  <div class="inline-status-wrapper table-status">
-                    <span class="status-dot" [style.background-color]="getStatusColor(t.statusId)" aria-hidden="true"></span>
-                    <select
-                      class="inline-status-select"
-                      [ngModel]="t.statusId"
-                      (ngModelChange)="updateStatus(t.id, $event)"
-                      [disabled]="!canUpdateTask()"
-                      [attr.aria-label]="'tasks.task_status_aria' | t:{id: t.id}"
-                      [title]="'tasks.nazhmite_dlya_smeny_statusa' | t"
-                    >
-                      <option *ngFor="let s of statuses()" [ngValue]="s.id">{{ s.name }}</option>
-                    </select>
-                  </div>
-                </td>
-                <td>
-                  <ng-container *ngIf="getDeadlineInfo(t.endTime, t.statusId) as dl">
-                    <span
-                      *ngIf="dl.state !== 'none'"
-                      class="deadline-pill"
-                      [class.overdue]="dl.state === 'overdue'"
-                      [class.deadline-today]="dl.state === 'today'"
-                      [class.deadline-tomorrow]="dl.state === 'tomorrow'"
-                      [title]="'tasks.deadline_value' | t:{date: (t.endTime | date:'dd.MM.yyyy HH:mm') || ''}"
-                    >
-                      <span class="material-symbols-outlined ico" aria-hidden="true">
-                        {{ dl.state === 'overdue' ? 'warning' : (dl.state === 'today' ? 'alarm' : 'event') }}
-                      </span>
-                      {{ dl.label }}
-                    </span>
-                    <span *ngIf="dl.state === 'none'" class="text-muted">—</span>
-                  </ng-container>
-                </td>
-                <td class="text-right actions-cell">
-                  <div class="row-action-btns">
-                    <button
-                      *ngIf="canUpdateTask()"
-                      type="button"
-                      class="icon-ghost-btn"
-                      [attr.aria-label]="'tasks.edit_task_number' | t:{id: t.id}"
-                      [title]="'tasks.redaktirovat_zadachu' | t"
-                      (click)="openEditModal(t)"
-                    >
-                      <span class="material-symbols-outlined" aria-hidden="true">edit</span>
-                    </button>
-                    <button
-                      type="button"
-                      class="icon-ghost-btn"
-                      [attr.aria-label]="'tasks.view_task_number' | t:{id: t.id}"
-                      [title]="'tasks.prosmotret_detali' | t"
-                      (click)="openTaskDetails(t)"
-                    >
-                      <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div *ngIf="tasks().length === 0 && !isLoading() && !listLoadError()" class="empty-state-cell">
-          <span class="material-symbols-outlined icon" aria-hidden="true">task</span>
-          <p>{{ 'tasks.zadachi_ne_naydeny' | t }}</p>
-          <ui-button *ngIf="hasActiveFilters()" variant="secondary" size="sm" (onClick)="resetFilters()">
-            {{ 'tasks.sbrosit_vse_filtry' | t }}
-          </ui-button>
-          <ui-button *ngIf="!hasActiveFilters() && canCreateTask()" variant="primary" size="sm" icon="add" (onClick)="openCreateTaskModal()">
-            {{ 'task.new' | t }}
-          </ui-button>
-        </div>
-      </div>
+      <app-task-table-view
+        *ngIf="viewMode === 'table'"
+        [tasks]="tasks()"
+        [paginatedTasks]="paginatedTasks()"
+        [statuses]="statuses()"
+        [projects]="projects()"
+        [taskTypes]="taskTypes()"
+        [canCreateTask]="canCreateTask()"
+        [canUpdateTask]="canUpdateTask()"
+        [hasActiveFilters]="hasActiveFilters()"
+        [isLoading]="isLoading()"
+        [listLoadError]="listLoadError()"
+        [isOverdue]="isOverdueFn"
+        [getTypeColor]="getTypeColorFn"
+        [getTypeBg]="getTypeBgFn"
+        [getTypeIcon]="getTypeIconFn"
+        [getTypeLabel]="getTypeLabelFn"
+        [getProjectName]="getProjectNameFn"
+        [getStatusColor]="getStatusColorFn"
+        [getDeadlineInfo]="getDeadlineInfoFn"
+        (openTaskDetails)="openTaskDetails($event)"
+        (openEditModal)="openEditModal($event)"
+        (updatePriority)="updatePriority($event.taskId, $event.priority)"
+        (updateStatus)="updateStatus($event.taskId, $event.statusId)"
+        (resetFilters)="resetFilters()"
+        (createTask)="openCreateTaskModal()"
+      ></app-task-table-view>
 
 
       <!-- ======================================================================= -->
@@ -2506,6 +2387,9 @@ export class TasksComponent implements OnInit, OnDestroy {
   readonly getTypeIconFn = (task: Task) => this.getTypeIcon(task);
   readonly getProjectNameFn = (projectId: number | null | undefined) => this.getProjectName(projectId);
   readonly isOverdueFn = (endTime: string | null | undefined, statusId: number) => this.isOverdue(endTime, statusId);
+  readonly getTypeLabelFn = (task: Task) => this.getTypeLabel(task);
+  readonly getTypeBgFn = (task: Task) => this.getTypeBg(task);
+  readonly getStatusColorFn = (statusId: number | null | undefined) => this.getStatusColor(statusId);
 
   showExportMenu = false;
 
