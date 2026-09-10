@@ -2268,9 +2268,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/announcements/announcements.component.ts": {
-    "mtime": 1788977776.8466654,
-    "seen": 1788977956.7677221,
-    "ast_hash": "616a5702bc424642d1cdf5f76c944d41",
+    "mtime": 1789071106.1969056,
+    "seen": 1789071188.1745644,
+    "ast_hash": "84595cea79587ef296837273bb960b91",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/audit/audit.component.spec.ts": {
@@ -4917,6 +4917,30 @@
     "mtime": 1789070834.867063,
     "seen": 1789070948.4828393,
     "ast_hash": "baf70e5d5058afa444bdadd670620477",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/announcements/announcements.models.ts": {
+    "mtime": 1789071040.330461,
+    "seen": 1789071188.1745644,
+    "ast_hash": "1beb8b31ba5d24c3177ec5bd59945215",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/announcements/components/announcements-list.component.ts": {
+    "mtime": 1789071067.8243592,
+    "seen": 1789071188.1745644,
+    "ast_hash": "29ecc430f615808ddd120298b40a1045",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/announcements/components/announcements-modals.component.ts": {
+    "mtime": 1789071079.6813178,
+    "seen": 1789071188.1745644,
+    "ast_hash": "af953b85425f3e434436dab18b1128b9",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/announcements/components/announcements-toolbar.component.ts": {
+    "mtime": 1789071056.2811105,
+    "seen": 1789071188.1745644,
+    "ast_hash": "1f8601beab1f7dd02632299ded6c68e6",
     "semantic_hash": ""
   }
 }
