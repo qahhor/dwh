@@ -2400,9 +2400,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/tasks/projects/projects.component.ts": {
-    "mtime": 1788893406.9277873,
-    "seen": 1788893849.1869724,
-    "ast_hash": "317e0705d1ab6a95a35e42a635e0806c",
+    "mtime": 1789066068.9748354,
+    "seen": 1789066147.5816085,
+    "ast_hash": "f2828da7396fc3311e873f3271ecebd2",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/tasks/tasks.component.spec.ts": {
@@ -4671,6 +4671,36 @@
     "mtime": 1789058015.007868,
     "seen": 1789058164.9149315,
     "ast_hash": "baf3760ef33e53829ff270cda32eb859",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/tasks/projects/components/project-cards-view.component.ts": {
+    "mtime": 1789066016.7358296,
+    "seen": 1789066147.5816085,
+    "ast_hash": "bd6b40f0d31883e11d04c232d2714ed9",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/tasks/projects/components/project-filter-bar.component.ts": {
+    "mtime": 1789065991.9979124,
+    "seen": 1789066147.5816085,
+    "ast_hash": "1a4ab8687e4b13235de47b1de7167595",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/tasks/projects/components/project-modals.component.ts": {
+    "mtime": 1789065982.0363977,
+    "seen": 1789066147.5816085,
+    "ast_hash": "f557fe5b006b26afec613a34ac9cd771",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/tasks/projects/components/project-table-view.component.ts": {
+    "mtime": 1789066005.328233,
+    "seen": 1789066147.5816085,
+    "ast_hash": "c02c82db3967b014447155ab2b56192c",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/tasks/projects/projects.models.ts": {
+    "mtime": 1789065948.8568356,
+    "seen": 1789066147.5816085,
+    "ast_hash": "0f54c4e122870938a0acf1b3ff84231e",
     "semantic_hash": ""
   }
 }

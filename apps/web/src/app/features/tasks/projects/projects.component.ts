@@ -9,51 +9,30 @@ import { ApiService } from '../../../core/services/api.service';
 import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
-import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
-import { UiPaginationComponent } from '../../../shared/ui/ui-pagination.component';
 import { Project, ProjectTaskStats } from '../../../core/models/task.models';
-import { UiCustomFieldsComponent } from '../../../shared/ui/ui-custom-fields.component';
 import { CustomField } from '../../../core/models/custom-field.models';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
+import { ProjectCreateForm, ProjectEditForm, ProjectViewState, ProjectStateFilter } from './projects.models';
+import { ProjectFilterBarComponent } from './components/project-filter-bar.component';
+import { ProjectTableViewComponent } from './components/project-table-view.component';
+import { ProjectCardsViewComponent } from './components/project-cards-view.component';
+import { ProjectModalsComponent } from './components/project-modals.component';
 
 @Component({
   selector: 'app-projects',
   standalone: true,
   imports: [
-    TranslatePipe,
     CommonModule,
     FormsModule,
     RouterModule,
+    TranslatePipe,
     UiButtonComponent,
-    UiModalComponent,
-    UiPaginationComponent,
-    UiCustomFieldsComponent
+    ProjectFilterBarComponent,
+    ProjectTableViewComponent,
+    ProjectCardsViewComponent,
+    ProjectModalsComponent
   ],
-
   template: `
-    <ui-modal *ngIf="routeRecordId() !== null" [isOpen]="true" [title]="'projects.proekt' | t" size="sm" (close)="closeRecordView()">
-      <div body>
-        <p *ngIf="recordLoading()" role="status">{{ 'search.record_loading' | t }}</p>
-        <div *ngIf="recordError()" role="alert">
-          <p>{{ (recordNotFound() ? 'search.record_not_found' : 'search.record_load_error') | t }}</p>
-          <ui-button *ngIf="!recordNotFound()" variant="secondary" (onClick)="loadRecordView(routeRecordId())">{{ 'audit.retry' | t }}</ui-button>
-        </div>
-        <div *ngIf="viewingProject() as project" [attr.data-record-id]="routeRecordId()">
-          <p>#{{ routeRecordId() }}</p>
-          <h3>{{ project.name }}</h3>
-          <p>{{ project.description }}</p>
-          <p>{{ (project.state === 'A' ? 'common.active_masculine' : 'common.blocked_masculine') | t }}</p>
-          <div class="attributes-stack" *ngIf="hasAttributes(project.attributes)">
-            <h4>{{ 'projects.custom_fields' | t }}</h4>
-            <div *ngFor="let item of formatAttributes(project.attributes)" class="attr-stack-item">
-              <span class="attr-k">{{ item.key }}:</span>
-              <span class="attr-v">{{ item.value }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div footer><ui-button variant="secondary" (onClick)="closeRecordView()">{{ 'search.back_to_list' | t }}</ui-button></div>
-    </ui-modal>
     <div class="projects-page">
       <!-- Header -->
       <div class="view-header">
@@ -101,60 +80,14 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
         </div>
       </div>
 
-      <!-- Toolbar -->
-      <div class="toolbar">
-        <div class="search-field">
-          <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
-          <label class="sr-only" for="project-search">{{ 'projects.poisk_proektov' | t }}</label>
-          <input
-            id="project-search"
-            name="projectSearch"
-            type="text"
-            class="search-input"
-            [placeholder]="'projects.poisk_po_nazvaniyu_ili_opisaniyu' | t"
-            [ngModel]="searchQuery"
-            (ngModelChange)="setSearchQuery($event)"
-          />
-          <button *ngIf="searchQuery" type="button" class="btn-icon project-search-clear" style="position: absolute; right: 6px;" [attr.aria-label]="'projects.ochistit_poisk_proektov' | t" (click)="clearSearch()">
-            <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">close</span>
-          </button>
-        </div>
-
-        <div class="status-tabs" role="group" [attr.aria-label]="'projects.filtr_proektov_po_statusu' | t">
-          <button
-            type="button"
-            class="status-tab"
-            data-testid="project-state-filter"
-            [class.active]="selectedState === 'all'"
-            [attr.aria-pressed]="selectedState === 'all'"
-            (click)="setSelectedState('all')"
-          >
-            {{ 'common.all' | t }}
-          </button>
-          <button
-            type="button"
-            class="status-tab"
-            data-testid="project-state-filter"
-            [class.active]="selectedState === 'A'"
-            [attr.aria-pressed]="selectedState === 'A'"
-            (click)="setSelectedState('A')"
-          >
-            <span class="status-tab-dot" style="background-color: var(--success);" aria-hidden="true"></span>
-            {{ 'iam.aktivnye' | t }}
-          </button>
-          <button
-            type="button"
-            class="status-tab"
-            data-testid="project-state-filter"
-            [class.active]="selectedState === 'P'"
-            [attr.aria-pressed]="selectedState === 'P'"
-            (click)="setSelectedState('P')"
-          >
-            <span class="status-tab-dot" style="background-color: var(--text-light);" aria-hidden="true"></span>
-            {{ 'projects.arhiv' | t }}
-          </button>
-        </div>
-      </div>
+      <!-- Toolbar / Filter Bar -->
+      <app-project-filter-bar
+        [searchQuery]="searchQuery"
+        [selectedState]="selectedState"
+        (searchChange)="setSearchQuery($event)"
+        (clearSearch)="clearSearch()"
+        (stateChange)="setSelectedState($event)"
+      ></app-project-filter-bar>
 
       <div
         *ngIf="isLoading()"
@@ -204,374 +137,82 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
         {{ 'projects.closed_stats_scope' | t }}
       </div>
 
-      <!-- ======================================================================= -->
-      <!-- VIEW 1: TABLE / LIST VIEW (Default)                                     -->
-      <!-- ======================================================================= -->
-      <div class="table-card" *ngIf="viewMode === 'list' && isListReady()">
-        <div class="table-wrapper" role="region" [attr.aria-label]="'projects.tablica_proektov' | t" tabindex="0">
-          <table class="data-table" [attr.aria-label]="'projects.spisok_proektov' | t">
-            <thead>
-              <tr>
-                <th style="width: 60px;">ID</th>
-                <th>{{ 'projects.proekt' | t }}</th>
-                <th style="width: 110px;">{{ 'common.status' | t }}</th>
-                <th *ngIf="canViewTasks()" style="width: 220px;">{{ 'projects.closed_tasks' | t }}</th>
-                <th style="width: 120px;">{{ 'iam.sozdan' | t }}</th>
-                <th class="text-right" style="width: 140px;">{{ 'common.actions' | t }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let p of paginatedProjects()" class="project-row">
-                <td class="tabular-nums font-mono text-muted">#{{ p.id }}</td>
-                <td>
-                  <div class="project-title-cell">
-                    <span class="material-symbols-outlined folder-icon" aria-hidden="true">folder</span>
-                    <div class="project-info-group">
-                      <button *ngIf="canViewTasks(); else plainProjectName" type="button" class="project-name" (click)="viewProjectTasks(p)">
-                        {{ p.name }}
-                      </button>
-                      <ng-template #plainProjectName><span class="project-name-text">{{ p.name }}</span></ng-template>
-                      <span *ngIf="p.description" class="project-desc-line">{{ p.description }}</span>
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  <span class="status-pill" [class.active]="p.state === 'A'">
-                    <span class="status-dot" [class.active]="p.state === 'A'"></span>
-                    {{ (p.state === 'A' ? 'projects.state_active' : 'projects.state_archived') | t }}
-                  </span>
-                </td>
-                <td *ngIf="canViewTasks()">
-                  <div *ngIf="hasProjectStats(p.id); else unknownTableStats" class="progress-cell">
-                    <div class="progress-labels">
-                      <span class="progress-count tabular-nums">
-                        {{ 'projects.closed_ratio' | t:{done: getProjectDoneCount(p.id), total: getProjectTotalCount(p.id)} }}
-                      </span>
-                      <span class="progress-percent tabular-nums">
-                        {{ getProjectPercent(p.id) }}%
-                      </span>
-                    </div>
-                    <div
-                      class="progress-bar-bg"
-                      role="progressbar"
-                      [attr.aria-label]="'projects.closed_progress_named' | t:{name: p.name}"
-                      aria-valuemin="0"
-                      aria-valuemax="100"
-                      [attr.aria-valuenow]="getProjectPercent(p.id)"
-                    >
-                      <div
-                        class="progress-bar-fill"
-                        [style.width.%]="getProjectPercent(p.id)"
-                        [class.complete]="getProjectPercent(p.id) === 100 && getProjectTotalCount(p.id) > 0"
-                      ></div>
-                    </div>
-                  </div>
-                  <ng-template #unknownTableStats><span class="stats-unknown">{{ 'projects.stats_unknown' | t }}</span></ng-template>
-                </td>
-                <td>
-                  <span class="tabular-nums text-muted text-xs">
-                    {{ p.createdAt | date:'dd.MM.yyyy' }}
-                  </span>
-                </td>
-                <td class="text-right">
-                  <div class="row-action-btns">
-                    <button
-                      *ngIf="canViewTasks()"
-                      type="button"
-                      class="action-link-btn"
-                      [attr.aria-label]="'projects.open_tasks_named' | t:{name: p.name}"
-                      [title]="'projects.pereyti_k_zadacham_proekta' | t"
-                      (click)="viewProjectTasks(p)"
-                    >
-                      <span class="material-symbols-outlined" aria-hidden="true">task_alt</span>
-                      {{ 'nav.tasks' | t }}
-                    </button>
-                    <button
-                      *ngIf="canUpdateProject()"
-                      type="button"
-                      class="icon-ghost-btn"
-                      [attr.aria-label]="'projects.edit_named' | t:{name: p.name}"
-                      [title]="'projects.redaktirovat_proekt' | t"
-                      (click)="openEditModal(p)"
-                    >
-                      <span class="material-symbols-outlined" aria-hidden="true">edit</span>
-                    </button>
-                  </div>
-                </td>
-              </tr>
+      <!-- VIEW 1: TABLE / LIST VIEW -->
+      <app-project-table-view
+        *ngIf="viewMode === 'list' && isListReady()"
+        [paginatedProjects]="paginatedProjects()"
+        [totalCount]="filteredProjects().length"
+        [currentPage]="currentPage"
+        [pageSize]="pageSize"
+        [canViewTasks]="canViewTasks()"
+        [canUpdateProject]="canUpdateProject()"
+        [projectStats]="projectStats()"
+        [statsLoading]="statsLoading()"
+        [statsLoadError]="statsLoadError()"
+        [statsLoaded]="statsLoaded()"
+        (viewTasks)="viewProjectTasks($event)"
+        (editProject)="openEditModal($event)"
+        (pageChange)="setPage($event)"
+        (pageSizeChange)="setPageSize($event)"
+      ></app-project-table-view>
 
-              <tr *ngIf="filteredProjects().length === 0">
-                <td [attr.colspan]="canViewTasks() ? 6 : 5" class="empty-state-cell">
-                  <span class="material-symbols-outlined empty-icon" aria-hidden="true">folder_off</span>
-                  <p>{{ 'projects.proekty_ne_naydeny' | t }}</p>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <ui-pagination
-          [totalItems]="filteredProjects().length"
-          [currentPage]="currentPage"
-          [pageSize]="pageSize"
-          (pageChange)="setPage($event)"
-          (pageSizeChange)="setPageSize($event)"
-        ></ui-pagination>
-      </div>
-
-      <!-- ======================================================================= -->
-      <!-- VIEW 2: CARDS GRID VIEW                                                 -->
-      <!-- ======================================================================= -->
-      <div class="cards-view-wrapper" *ngIf="viewMode === 'cards' && isListReady()">
-        <div class="projects-grid">
-          <div
-            *ngFor="let p of paginatedProjects()"
-            class="project-card"
-          >
-            <div class="card-top">
-              <div class="project-icon-box">
-                <span class="material-symbols-outlined" aria-hidden="true">folder</span>
-              </div>
-              <div class="card-top-right">
-                <span class="status-pill" [class.active]="p.state === 'A'">
-                  <span class="status-dot" [class.active]="p.state === 'A'"></span>
-                  {{ (p.state === 'A' ? 'projects.state_active' : 'projects.state_archived') | t }}
-                </span>
-                <button
-                  *ngIf="canUpdateProject()"
-                  type="button"
-                  class="edit-btn"
-                  [attr.aria-label]="'projects.edit_named' | t:{name: p.name}"
-                  [title]="'projects.redaktirovat_proekt' | t"
-                  (click)="openEditModal(p)"
-                >
-                  <span class="material-symbols-outlined" aria-hidden="true">edit</span>
-                </button>
-              </div>
-            </div>
-
-            <div class="card-content">
-              <h3 class="project-title">
-                <button *ngIf="canViewTasks(); else plainCardProjectName" type="button" class="project-title-btn" (click)="viewProjectTasks(p)">
-                  {{ p.name }}
-                </button>
-                <ng-template #plainCardProjectName><span class="project-name-text">{{ p.name }}</span></ng-template>
-              </h3>
-              <p class="project-desc">{{ p.description || ('projects.description_missing' | t) }}</p>
-            </div>
-
-            <div *ngIf="canViewTasks() && hasProjectStats(p.id)" class="card-progress">
-              <div class="progress-labels">
-                <span class="progress-count tabular-nums">
-                  {{ 'projects.closed_ratio' | t:{done: getProjectDoneCount(p.id), total: getProjectTotalCount(p.id)} }}
-                </span>
-                <span class="progress-percent tabular-nums">
-                  {{ getProjectPercent(p.id) }}%
-                </span>
-              </div>
-              <div
-                class="progress-bar-bg"
-                role="progressbar"
-                [attr.aria-label]="'projects.closed_progress_named' | t:{name: p.name}"
-                aria-valuemin="0"
-                aria-valuemax="100"
-                [attr.aria-valuenow]="getProjectPercent(p.id)"
-              >
-                <div
-                  class="progress-bar-fill"
-                  [style.width.%]="getProjectPercent(p.id)"
-                  [class.complete]="getProjectPercent(p.id) === 100 && getProjectTotalCount(p.id) > 0"
-                ></div>
-              </div>
-            </div>
-
-            <div class="card-foot">
-              <span class="foot-date tabular-nums">{{ 'projects.created_at' | t:{date: (p.createdAt | date:'dd.MM.yyyy') || ''} }}</span>
-              <button *ngIf="canViewTasks() && hasProjectStats(p.id)" type="button" class="view-tasks-link" (click)="viewProjectTasks(p)">
-                {{ 'projects.tasks_count_arrow' | t:{count: getProjectTotalCount(p.id)} }}
-              </button>
-              <span *ngIf="canViewTasks() && !hasProjectStats(p.id)" class="stats-unknown">{{ 'projects.stats_unknown' | t }}</span>
-            </div>
-          </div>
-
-          <div *ngIf="filteredProjects().length === 0" class="empty-projects-cell">
-            <span class="material-symbols-outlined empty-icon" aria-hidden="true">folder_off</span>
-            <p>{{ 'projects.proekty_ne_naydeny' | t }}</p>
-          </div>
-        </div>
-
-        <ui-pagination
-          [totalItems]="filteredProjects().length"
-          [currentPage]="currentPage"
-          [pageSize]="pageSize"
-          (pageChange)="setPage($event)"
-          (pageSizeChange)="setPageSize($event)"
-        ></ui-pagination>
-      </div>
+      <!-- VIEW 2: CARDS GRID VIEW -->
+      <app-project-cards-view
+        *ngIf="viewMode === 'cards' && isListReady()"
+        [paginatedProjects]="paginatedProjects()"
+        [totalCount]="filteredProjects().length"
+        [currentPage]="currentPage"
+        [pageSize]="pageSize"
+        [canViewTasks]="canViewTasks()"
+        [canUpdateProject]="canUpdateProject()"
+        [projectStats]="projectStats()"
+        [statsLoading]="statsLoading()"
+        [statsLoadError]="statsLoadError()"
+        [statsLoaded]="statsLoaded()"
+        (viewTasks)="viewProjectTasks($event)"
+        (editProject)="openEditModal($event)"
+        (pageChange)="setPage($event)"
+        (pageSizeChange)="setPageSize($event)"
+      ></app-project-cards-view>
     </div>
 
+    <!-- Modals -->
+    <app-project-modals
+      [routeRecordId]="routeRecordId()"
+      [viewingProject]="viewingProject()"
+      [recordLoading]="recordLoading()"
+      [recordError]="recordError()"
+      [recordNotFound]="recordNotFound()"
+      (closeRecordView)="closeRecordView()"
+      (loadRecordView)="loadRecordView($event)"
 
-    <!-- ======================================================================= -->
-    <!-- Create Project Modal                                                    -->
-    <!-- ======================================================================= -->
-    <ui-modal
-      [isOpen]="isCreateModalOpen()"
-      [title]="'projects.sozdanie_novogo_proekta' | t"
-      size="sm"
-      [dismissible]="!isSubmitting()"
-      (close)="requestCloseCreate()"
-    >
-      <form body id="project-create-form" (ngSubmit)="submitCreateProject()">
-        <fieldset class="modal-form modal-form-fieldset project-create-form" [disabled]="isSubmitting()">
-          <div class="form-group">
-            <div class="label-row">
-              <label class="clean-label" for="project-create-name">{{ 'projects.nazvanie_proekta' | t }}</label>
-              <span class="req-tag">{{ 'projects.obyazatelnoe_pole' | t }}</span>
-            </div>
-            <input
-              id="project-create-name"
-              name="projectCreateName"
-              type="text"
-              class="clean-input"
-              required
-              [attr.aria-invalid]="isCreateSubmitted && !createForm.name.trim()"
-              [attr.aria-describedby]="isCreateSubmitted && !createForm.name.trim() ? 'project-create-name-error' : null"
-              [class.input-error]="isCreateSubmitted && !createForm.name.trim()"
-              [(ngModel)]="createForm.name"
-              [placeholder]="'projects.naprimer_vnedrenie_dwh_cdc' | t"
-            />
-            <span id="project-create-name-error" class="error-msg" *ngIf="isCreateSubmitted && !createForm.name.trim()">
-              {{ 'projects.pozhaluysta_ukazhite_nazvanie_proekta' | t }}
-            </span>
-          </div>
-          <div class="form-group">
-            <div class="label-row">
-              <label class="clean-label" for="project-create-description">{{ 'projects.opisanie_proekta' | t }}</label>
-            </div>
-            <textarea
-              id="project-create-description"
-              name="projectCreateDescription"
-              class="clean-input clean-textarea"
-              rows="3"
-              [(ngModel)]="createForm.description"
-              [placeholder]="'projects.celi_granicy_i_kontekst_proekta' | t"
-            ></textarea>
-          </div>
-          <div class="form-group" *ngIf="projectCustomFields().length > 0">
-            <ui-custom-fields
-              [fields]="projectCustomFields()"
-              [values]="createForm.attributes || {}"
-              (valuesChange)="createForm.attributes = $event"
-            ></ui-custom-fields>
-          </div>
-          <div *ngIf="createSaveError()" class="request-state request-error" data-testid="project-create-save-error" role="alert">
-            {{ createSaveError() }}
-          </div>
-        </fieldset>
-      </form>
-      <div footer>
-        <ui-button variant="secondary" size="md" [disabled]="isSubmitting()" (onClick)="requestCloseCreate()">{{ 'common.cancel' | t }}</ui-button>
-        <ui-button type="submit" form="project-create-form" variant="primary" size="md" [loading]="isSubmitting()">{{ 'projects.sozdat_proekt' | t }}</ui-button>
-      </div>
-    </ui-modal>
+      [isCreateModalOpen]="isCreateModalOpen()"
+      [isCreateSubmitted]="isCreateSubmitted"
+      [isCreateDiscardConfirmationOpen]="isCreateDiscardConfirmationOpen()"
+      [createSaveError]="createSaveError()"
+      [createForm]="createForm"
+      (requestCloseCreate)="requestCloseCreate()"
+      (confirmDiscardCreate)="confirmDiscardCreate()"
+      (submitCreateProject)="submitCreateProject()"
 
-    <ui-modal
-      [isOpen]="isCreateDiscardConfirmationOpen()"
-      [title]="'projects.discard_create_title' | t"
-      size="sm"
-      (close)="cancelNavigationDiscard('create')"
-    >
-      <div body><p>{{ 'projects.discard_create_message' | t }}</p></div>
-      <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="cancelNavigationDiscard('create')">{{ 'common.cancel' | t }}</ui-button>
-        <ui-button variant="danger" size="md" (onClick)="confirmDiscardCreate()">{{ 'projects.discard_create_action' | t }}</ui-button>
-      </div>
-    </ui-modal>
+      [isEditModalOpen]="isEditModalOpen()"
+      [isEditSubmitted]="isEditSubmitted"
+      [isEditDiscardConfirmationOpen]="isEditDiscardConfirmationOpen()"
+      [editLoading]="editLoading()"
+      [editLoadError]="editLoadError()"
+      [editSaveError]="editSaveError()"
+      [editingProject]="editingProject"
+      [editForm]="editForm"
+      (requestCloseEdit)="requestCloseEdit()"
+      (confirmDiscardEdit)="confirmDiscardEdit()"
+      (submitEditProject)="submitEditProject()"
+      (retryEditLoad)="retryEditLoad()"
 
-    <!-- ======================================================================= -->
-    <!-- Edit Project Modal                                                      -->
-    <!-- ======================================================================= -->
-    <ui-modal
-      [isOpen]="isEditModalOpen()"
-      [title]="'projects.redaktirovanie_proekta' | t"
-      size="sm"
-      [dismissible]="!isSubmitting()"
-      (close)="requestCloseEdit()"
-    >
-      <div body class="request-state" data-testid="project-edit-loading" *ngIf="editLoading()" role="status">
-        {{ 'projects.edit_loading' | t }}
-      </div>
-      <div body class="request-state request-error" data-testid="project-edit-load-error" *ngIf="editLoadError()" role="alert">
-        <span>{{ 'projects.edit_load_error' | t }}</span>
-        <ui-button class="project-edit-retry" variant="secondary" size="sm" (onClick)="retryEditLoad()">{{ 'projects.retry_edit_load' | t }}</ui-button>
-      </div>
-      <form body id="project-edit-form" (ngSubmit)="submitEditProject()" *ngIf="editingProject as p">
-        <fieldset class="modal-form modal-form-fieldset project-edit-form" [disabled]="isSubmitting()">
-          <div class="form-group">
-            <div class="label-row">
-              <label class="clean-label" for="project-edit-name">{{ 'projects.nazvanie_proekta' | t }}</label>
-              <span class="req-tag">{{ 'projects.obyazatelnoe_pole' | t }}</span>
-            </div>
-            <input
-              id="project-edit-name"
-              name="projectEditName"
-              type="text"
-              class="clean-input"
-              required
-              [attr.aria-invalid]="isEditSubmitted && !editForm.name.trim()"
-              [attr.aria-describedby]="isEditSubmitted && !editForm.name.trim() ? 'project-edit-name-error' : null"
-              [class.input-error]="isEditSubmitted && !editForm.name.trim()"
-              [(ngModel)]="editForm.name"
-            />
-            <span id="project-edit-name-error" class="error-msg" *ngIf="isEditSubmitted && !editForm.name.trim()">
-              {{ 'projects.nazvanie_proekta_ne_mozhet_byt_pustym' | t }}
-            </span>
-          </div>
-          <div class="form-group">
-            <div class="label-row">
-              <label class="clean-label" for="project-edit-state">{{ 'iam.status_aktivnosti' | t }}</label>
-            </div>
-            <select id="project-edit-state" name="projectEditState" class="clean-input" [(ngModel)]="editForm.state">
-              <option value="A">{{ 'projects.state_active' | t }}</option>
-              <option value="P">{{ 'projects.state_archived' | t }}</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <div class="label-row">
-              <label class="clean-label" for="project-edit-description">{{ 'projects.opisanie' | t }}</label>
-            </div>
-            <textarea id="project-edit-description" name="projectEditDescription" class="clean-input clean-textarea" rows="3" [(ngModel)]="editForm.description"></textarea>
-          </div>
-          <div class="form-group" *ngIf="projectCustomFields().length > 0">
-            <ui-custom-fields
-              [fields]="projectCustomFields()"
-              [values]="editForm.attributes || {}"
-              (valuesChange)="editForm.attributes = $event"
-            ></ui-custom-fields>
-          </div>
-          <div *ngIf="editSaveError()" class="request-state request-error" data-testid="project-edit-save-error" role="alert">
-            {{ editSaveError() }}
-          </div>
-        </fieldset>
-      </form>
-      <div footer>
-        <ui-button variant="secondary" size="md" [disabled]="isSubmitting()" (onClick)="requestCloseEdit()">{{ 'common.cancel' | t }}</ui-button>
-        <ui-button *ngIf="editingProject" type="submit" form="project-edit-form" variant="primary" size="md" [loading]="isSubmitting()">{{ 'common.save' | t }}</ui-button>
-      </div>
-    </ui-modal>
+      (cancelNavigationDiscard)="cancelNavigationDiscard($event)"
 
-    <ui-modal
-      [isOpen]="isEditDiscardConfirmationOpen()"
-      [title]="'projects.discard_edit_title' | t"
-      size="sm"
-      (close)="cancelNavigationDiscard('edit')"
-    >
-      <div body><p>{{ 'projects.discard_edit_message' | t }}</p></div>
-      <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="cancelNavigationDiscard('edit')">{{ 'common.cancel' | t }}</ui-button>
-        <ui-button variant="danger" size="md" (onClick)="confirmDiscardEdit()">{{ 'projects.discard_edit_action' | t }}</ui-button>
-      </div>
-    </ui-modal>
+      [isSubmitting]="isSubmitting()"
+      [projectCustomFields]="projectCustomFields()"
+    ></app-project-modals>
   `,
   styles: [`
     .projects-page {
@@ -596,7 +237,7 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
       color: var(--text-main);
       margin: 0;
     }
-    .proj-count {
+    .count-badge {
       font-size: 12px;
       color: var(--text-muted);
       background-color: var(--bg-hover);
@@ -606,50 +247,38 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
       border: 1px solid var(--border-color);
     }
 
-    /* View Switcher */
-    .view-switcher {
-      display: flex;
+    .header-right { display: flex; align-items: center; gap: 8px; }
+
+    .status-tabs {
+      display: inline-flex;
+      align-items: center;
       background-color: var(--bg-hover);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-sm);
       padding: 2px;
       gap: 2px;
     }
-    .view-btn {
-      border: none;
-      background: transparent;
-      padding: 3px 8px;
-      font-size: 11px;
-      font-weight: 500;
-      color: var(--text-muted);
-      border-radius: var(--radius-xs);
-      cursor: pointer;
+    .status-tab {
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: 6px;
+      padding: 4px 10px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 500;
+      border-radius: var(--radius-xs);
+      cursor: pointer;
       transition: all 0.1s ease;
     }
-    .view-btn .material-symbols-outlined { font-size: 15px; }
-    .view-btn.active {
+    .status-tab:hover { color: var(--text-main); }
+    .status-tab.active {
       background-color: var(--bg-surface);
       color: var(--text-main);
       box-shadow: var(--shadow-sm);
     }
 
-    .header-right { display: flex; align-items: center; gap: 8px; }
-
-    /* Toolbar */
-    .toolbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
-      background-color: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      padding: 8px 12px;
-    }
     .request-state,
     .stats-state {
       display: flex;
@@ -680,338 +309,6 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
       font: inherit;
       font-weight: 600;
     }
-    .search-box {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      background-color: var(--bg-hover);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      padding: 4px 8px;
-      width: 280px;
-      max-width: 100%;
-    }
-    .search-box .icon { font-size: 16px; color: var(--text-muted); }
-    .search-input {
-      border: none;
-      background: transparent;
-      outline: none;
-      font-size: 12px;
-      color: var(--text-main);
-      width: 100%;
-    }
-    .clear-btn {
-      border: none;
-      background: transparent;
-      color: var(--text-muted);
-      cursor: pointer;
-      display: flex;
-      padding: 0;
-    }
-    .clear-btn .material-symbols-outlined { font-size: 14px; }
-
-    .segmented-control {
-      display: flex;
-      background-color: var(--bg-hover);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      padding: 2px;
-      gap: 2px;
-    }
-    .segment-btn {
-      border: none;
-      background: transparent;
-      padding: 3px 10px;
-      font-size: 11px;
-      font-weight: 500;
-      color: var(--text-muted);
-      border-radius: var(--radius-xs);
-      cursor: pointer;
-      transition: all 0.1s ease;
-    }
-    .segment-btn.active {
-      background-color: var(--bg-surface);
-      color: var(--text-main);
-      box-shadow: var(--shadow-sm);
-    }
-
-    /* Table Styles */
-    .table-card {
-      background-color: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      overflow: hidden;
-    }
-    .table-wrapper { overflow-x: auto; }
-    .data-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-    }
-    .data-table th {
-      text-align: left;
-      padding: 8px 12px;
-      background-color: var(--bg-hover);
-      border-bottom: 1px solid var(--border-color);
-      color: var(--text-muted);
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-    }
-    .data-table td {
-      padding: 10px 12px;
-      border-bottom: 1px solid var(--border-color);
-      color: var(--text-main);
-    }
-    .project-row { transition: background 0.1s ease; }
-    .project-row:hover { background-color: var(--bg-hover); }
-    .project-row:last-child td { border-bottom: none; }
-
-    .project-title-cell {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .folder-icon { font-size: 20px; color: var(--warning); flex-shrink: 0; }
-    .project-info-group { display: flex; flex-direction: column; gap: 2px; }
-    .project-name,
-    .project-title-btn,
-    .view-tasks-link {
-      border: 0;
-      background: transparent;
-      cursor: pointer;
-      font: inherit;
-      min-height: 28px;
-      padding: 0 2px;
-      text-align: left;
-      display: inline-flex;
-      align-items: center;
-    }
-    .project-name,
-    .project-name-text { font-weight: 600; color: var(--text-main); }
-    .project-name:hover,
-    .project-title-btn:hover,
-    .view-tasks-link:hover { text-decoration: underline; }
-    .project-desc-line {
-      font-size: 11px;
-      color: var(--text-muted);
-      max-width: 400px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .status-pill {
-      font-size: 11px;
-      font-weight: 500;
-      padding: 2px 7px;
-      border-radius: 10px;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      background-color: var(--bg-hover);
-      color: var(--text-muted);
-    }
-    .status-pill.active { background-color: rgba(16,185,129,0.1); color: var(--success); }
-    .status-dot { width: 5px; height: 5px; border-radius: 50%; background-color: var(--text-muted); }
-    .status-dot.active { background-color: var(--success); }
-
-    /* Progress Cell */
-    .progress-cell { display: flex; flex-direction: column; gap: 4px; }
-    .progress-labels { display: flex; justify-content: space-between; font-size: 11px; }
-    .progress-count { color: var(--text-muted); font-size: 10px; }
-    .progress-percent { font-weight: 600; color: var(--text-main); font-size: 10px; }
-    .progress-bar-bg {
-      height: 5px;
-      background-color: var(--bg-hover);
-      border-radius: 3px;
-      overflow: hidden;
-      border: 1px solid var(--border-color);
-    }
-    .progress-bar-fill {
-      height: 100%;
-      background-color: var(--primary);
-      border-radius: 2px;
-      transition: width 0.3s ease;
-    }
-    .progress-bar-fill.complete { background-color: var(--success); }
-    .stats-unknown { color: var(--text-muted); font-size: 11px; }
-
-    .row-action-btns { display: inline-flex; align-items: center; gap: 6px; }
-    .action-link-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 3px 8px;
-      min-height: 28px;
-      border-radius: var(--radius-xs);
-      border: 1px solid var(--border-color);
-      background-color: var(--bg-hover);
-      color: var(--text-main);
-      font-size: 11px;
-      font-weight: 500;
-      cursor: pointer;
-    }
-    .action-link-btn:hover { border-color: var(--primary); color: var(--primary); }
-    .action-link-btn .material-symbols-outlined { font-size: 14px; }
-
-    .icon-ghost-btn {
-      min-width: 28px;
-      min-height: 28px;
-      border: none;
-      background: transparent;
-      color: var(--text-muted);
-      cursor: pointer;
-      padding: 4px;
-      border-radius: 4px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-    .icon-ghost-btn:hover { color: var(--text-main); background-color: var(--bg-hover); }
-    .icon-ghost-btn .material-symbols-outlined { font-size: 16px; }
-
-    .empty-state-cell {
-      padding: 40px;
-      text-align: center;
-      color: var(--text-muted);
-    }
-    .empty-icon { font-size: 36px; color: var(--text-light); margin-bottom: 6px; }
-
-    /* Grid */
-    .projects-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 16px;
-    }
-
-    .project-card {
-      background-color: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      transition: all 0.12s ease;
-    }
-    .project-card:hover {
-      border-color: var(--primary);
-      transform: translateY(-1px);
-      box-shadow: var(--shadow-sm);
-    }
-
-    .card-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .project-icon-box {
-      width: 32px;
-      height: 32px;
-      border-radius: var(--radius-sm);
-      background-color: rgba(245, 158, 11, 0.12);
-      color: var(--warning);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .project-icon-box .material-symbols-outlined { font-size: 18px; }
-    .card-top-right { display: flex; align-items: center; gap: 6px; }
-
-    .edit-btn {
-      min-width: 28px;
-      min-height: 28px;
-      border: none;
-      background: transparent;
-      color: var(--text-muted);
-      cursor: pointer;
-      padding: 3px;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-    .edit-btn:hover { color: var(--text-main); background-color: var(--bg-hover); }
-    .edit-btn .material-symbols-outlined { font-size: 15px; }
-
-    .card-content { display: flex; flex-direction: column; gap: 4px; }
-    .project-title { font-size: 14px; font-weight: 600; margin: 0; color: var(--text-main); }
-    .project-desc {
-      font-size: 12px;
-      color: var(--text-muted);
-      margin: 0;
-      line-height: 1.4;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-
-    .card-progress { display: flex; flex-direction: column; gap: 4px; padding-top: 4px; }
-
-    .card-foot {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding-top: 8px;
-      border-top: 1px solid var(--border-color);
-      font-size: 11px;
-    }
-    .foot-date { color: var(--text-muted); }
-    .project-title-btn { color: inherit; font-weight: inherit; }
-    .view-tasks-link { color: var(--primary); font-weight: 500; }
-
-    .empty-projects-cell {
-      grid-column: 1 / -1;
-      padding: 40px;
-      text-align: center;
-      color: var(--text-muted);
-    }
-
-    /* Modal Form */
-    .modal-form { display: flex; flex-direction: column; gap: 12px; }
-    .form-group { display: flex; flex-direction: column; gap: 4px; }
-    .label-row { display: flex; align-items: center; justify-content: space-between; }
-    .clean-label { font-size: 11px; font-weight: 500; color: var(--text-muted); }
-    .req-tag {
-      font-size: 10px;
-      font-weight: 500;
-      color: var(--danger);
-      background-color: var(--danger-bg);
-      padding: 1px 5px;
-      border-radius: 4px;
-    }
-    .clean-input {
-      height: 32px;
-      padding: 4px 8px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--border-color);
-      background-color: var(--bg-surface);
-      color: var(--text-main);
-      font-size: 13px;
-      outline: none;
-    }
-    .clean-input:focus { border-color: var(--primary); }
-    .clean-input.input-error { border-color: var(--danger); background-color: var(--danger-bg); }
-    .error-msg { font-size: 11px; color: var(--danger); margin-top: 2px; }
-    .modal-form-fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
-
-
-    .clean-textarea { height: auto; padding: 6px 8px; resize: vertical; font-family: inherit; }
-
-    .tabular-nums { font-variant-numeric: tabular-nums; }
-    .font-mono { font-family: monospace; }
-    .text-right { text-align: right; }
-    .text-muted { color: var(--text-muted); }
-    .text-xs { font-size: 11px; }
-    .attributes-stack { display: flex; flex-direction: column; gap: 4px; margin-top: 12px; }
-    .attr-stack-item { display: flex; gap: 8px; font-size: 13px; }
-    .attr-k { color: var(--text-muted); font-weight: 500; }
-    .attr-v { color: var(--text-main); }
   `]
 })
 export class ProjectsComponent implements OnInit, OnDestroy {
@@ -1050,9 +347,9 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   readonly createSaveError = signal<string | null>(null);
   readonly editSaveError = signal<string | null>(null);
 
-  viewMode: 'list' | 'cards' = 'list';
+  viewMode: ProjectViewState = 'list';
   searchQuery = '';
-  selectedState: 'all' | 'A' | 'P' = 'all';
+  selectedState: ProjectStateFilter = 'all';
   currentPage = 1;
   pageSize = 10;
 
@@ -1065,11 +362,11 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   readonly isEditDiscardConfirmationOpen = signal<boolean>(false);
 
   readonly projectCustomFields = signal<CustomField[]>([]);
-  createForm: { name: string; description: string; attributes?: Record<string, any> } = { name: '', description: '', attributes: {} };
-  editForm: { name: string; description: string; state: 'A' | 'P'; attributes?: Record<string, any> } = { name: '', description: '', state: 'A', attributes: {} };
+  createForm: ProjectCreateForm = { name: '', description: '', attributes: {} };
+  editForm: ProjectEditForm = { name: '', description: '', state: 'A', attributes: {} };
   editingProject: Project | null = null;
-  private createFormBaseline: { name: string; description: string; attributes?: Record<string, any> } = { name: '', description: '', attributes: {} };
-  private editFormBaseline: { name: string; description: string; state: 'A' | 'P'; attributes?: Record<string, any> } | null = null;
+  private createFormBaseline: ProjectCreateForm = { name: '', description: '', attributes: {} };
+  private editFormBaseline: ProjectEditForm | null = null;
   private editTargetId: number | null = null;
 
   constructor(
@@ -1188,7 +485,7 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     this.currentPage = 1;
   }
 
-  setSelectedState(state: 'all' | 'A' | 'P') {
+  setSelectedState(state: ProjectStateFilter) {
     this.selectedState = state;
     this.currentPage = 1;
   }
@@ -1229,7 +526,6 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     const start = (this.currentPage - 1) * this.pageSize;
     return list.slice(start, start + this.pageSize);
   }
-
 
   hasProjectStats(projectId: number): boolean {
     return this.canViewTasks()
@@ -1330,8 +626,6 @@ export class ProjectsComponent implements OnInit, OnDestroy {
         this.isSubmitting.set(false);
         this.closeCreateModal();
         this.toast.success(this.uiI18n.translate('projects.proekt_uspeshno_sozdan'));
-        // Creation must leave the user looking at the new record, even when the
-        // current filters or pagination would otherwise hide it.
         this.searchQuery = '';
         this.selectedState = 'all';
         this.loadProjects(created.id);
@@ -1493,7 +787,7 @@ export class ProjectsComponent implements OnInit, OnDestroy {
           this.editLoadError.set(true);
           return;
         }
-        const normalized: { name: string; description: string; state: 'A' | 'P'; attributes?: Record<string, any> } = {
+        const normalized: ProjectEditForm = {
           name: project.name.trim(),
           description: (project.description || '').trim(),
           state: project.state
