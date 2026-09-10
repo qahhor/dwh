@@ -2280,9 +2280,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/audit/audit.component.ts": {
-    "mtime": 1789069730.4016674,
-    "seen": 1789069830.807785,
-    "ast_hash": "95b9a90198bb02fb905d9bdac9bca3d9",
+    "mtime": 1789072335.2002327,
+    "seen": 1789072491.7920086,
+    "ast_hash": "12c0c67025d1a736c20500d0eef14d99",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/auth/login/login.component.spec.ts": {
@@ -4824,9 +4824,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/audit/components/audit-security-table.component.ts": {
-    "mtime": 1789069762.2968383,
-    "seen": 1789069830.807785,
-    "ast_hash": "abd0ced51d0c6b8bec656a1bd39e6451",
+    "mtime": 1789072335.2012355,
+    "seen": 1789072491.7920086,
+    "ast_hash": "68992ff8473edc8a53355b137e5a653b",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/audit/components/audit-stats-tiles.component.ts": {

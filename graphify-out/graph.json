@@ -10609,7 +10609,7 @@
       "file_type": "code",
       "norm_label": "auditcomponent",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L273"
+      "source_location": "L156"
     },
     {
       "id": "apps_web_src_app_features_audit_audit_models_auditrecord",
@@ -10674,7 +10674,7 @@
       "file_type": "code",
       "norm_label": "auditsecuritytablecomponent",
       "source_file": "apps/web/src/app/features/audit/components/audit-security-table.component.ts",
-      "source_location": "L461"
+      "source_location": "L162"
     },
     {
       "id": "apps_server_src_main_java_com_greenwhite_dwh_instance_md_repository_mduserrepository_userrecord",
@@ -16401,7 +16401,7 @@
       "file_type": "code",
       "norm_label": ".constructor()",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L313"
+      "source_location": "L196"
     },
     {
       "id": "apps_web_src_app_features_audit_audit_component_spec_createfixture",
@@ -53313,7 +53313,7 @@
       "file_type": "code",
       "norm_label": ".endofutcday()",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L487"
+      "source_location": "L370"
     },
     {
       "id": "apps_web_src_app_features_audit_audit_component_auditcomponent_getdiffkeys",
@@ -53325,7 +53325,7 @@
       "file_type": "code",
       "norm_label": ".getdiffkeys()",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L499"
+      "source_location": "L382"
     },
     {
       "id": "apps_web_src_app_features_audit_audit_component_auditcomponent_loadauditlogs",
@@ -53337,7 +53337,7 @@
       "file_type": "code",
       "norm_label": ".loadauditlogs()",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L351"
+      "source_location": "L234"
     },
     {
       "id": "apps_web_src_app_features_audit_audit_component_auditcomponent_loadsecurityevents",
@@ -53349,7 +53349,7 @@
       "file_type": "code",
       "norm_label": ".loadsecurityevents()",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L381"
+      "source_location": "L264"
     },
     {
       "id": "apps_web_src_app_features_audit_audit_component_auditcomponent_loadstats",
@@ -53361,7 +53361,7 @@
       "file_type": "code",
       "norm_label": ".loadstats()",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L340"
+      "source_location": "L223"
     },
     {
       "id": "apps_web_src_app_features_audit_audit_component_auditcomponent_ngoninit",
@@ -53373,7 +53373,7 @@
       "file_type": "code",
       "norm_label": ".ngoninit()",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L318"
+      "source_location": "L201"
     },
     {
       "id": "apps_web_src_app_features_audit_audit_component_auditcomponent_onauditpagechange",
@@ -53385,7 +53385,7 @@
       "file_type": "code",
       "norm_label": ".onauditpagechange()",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L437"
+      "source_location": "L320"
     },
     {
       "id": "apps_web_src_app_features_audit_audit_component_auditcomponent_onauditpagesizechange",
@@ -53397,7 +53397,7 @@
       "file_type": "code",
       "norm_label": ".onauditpagesizechange()",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L448"
+      "source_location": "L331"
     },
     {
       "id": "apps_web_src_app_features_audit_audit_component_auditcomponent_onsecuritypagechange",
@@ -53409,7 +53409,7 @@
       "file_type": "code",
       "norm_label": ".onsecuritypagechange()",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L453"
+      "source_location": "L336"
     },
     {
       "id": "apps_web_src_app_features_audit_audit_component_auditcomponent_onsecuritypagesizechange",
@@ -53421,7 +53421,7 @@
       "file_type": "code",
       "norm_label": ".onsecuritypagesizechange()",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L464"
+      "source_location": "L347"
     },
     {
       "id": "apps_web_src_app_features_audit_audit_component_auditcomponent_paginatedauditlogs",
@@ -53433,7 +53433,7 @@
       "file_type": "code",
       "norm_label": ".paginatedauditlogs()",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L429"
+      "source_location": "L312"
     },
     {
       "id": "apps_web_src_app_features_audit_audit_component_auditcomponent_paginatedsecurityevents",
@@ -53445,7 +53445,7 @@
       "file_type": "code",
       "norm_label": ".paginatedsecurityevents()",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L433"
+      "source_location": "L316"
     },
     {
       "id": "apps_web_src_app_features_audit_audit_component_auditcomponent_refreshall",
@@ -53457,7 +53457,7 @@
       "file_type": "code",
       "norm_label": ".refreshall()",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L322"
+      "source_location": "L205"
     },
     {
       "id": "apps_web_src_app_features_audit_audit_component_auditcomponent_resetauditfilters",
@@ -53469,7 +53469,7 @@
       "file_type": "code",
       "norm_label": ".resetauditfilters()",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L410"
+      "source_location": "L293"
     },
     {
       "id": "apps_web_src_app_features_audit_audit_component_auditcomponent_resetauditpagination",
@@ -53481,7 +53481,7 @@
       "file_type": "code",
       "norm_label": ".resetauditpagination()",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L469"
+      "source_location": "L352"
     },
     {
       "id": "apps_web_src_app_features_audit_audit_component_auditcomponent_resetsecurityfilters",
@@ -53493,7 +53493,7 @@
       "file_type": "code",
       "norm_label": ".resetsecurityfilters()",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L420"
+      "source_location": "L303"
     },
     {
       "id": "apps_web_src_app_features_audit_audit_component_auditcomponent_resetsecuritypagination",
@@ -53505,7 +53505,7 @@
       "file_type": "code",
       "norm_label": ".resetsecuritypagination()",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L476"
+      "source_location": "L359"
     },
     {
       "id": "apps_web_src_app_features_audit_audit_component_auditcomponent_selectauditrecord",
@@ -53517,7 +53517,7 @@
       "file_type": "code",
       "norm_label": ".selectauditrecord()",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L491"
+      "source_location": "L374"
     },
     {
       "id": "apps_web_src_app_features_audit_audit_component_auditcomponent_selectsecurityevent",
@@ -53529,7 +53529,7 @@
       "file_type": "code",
       "norm_label": ".selectsecurityevent()",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L495"
+      "source_location": "L378"
     },
     {
       "id": "apps_web_src_app_features_audit_audit_component_auditcomponent_settab",
@@ -53541,7 +53541,7 @@
       "file_type": "code",
       "norm_label": ".settab()",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L331"
+      "source_location": "L214"
     },
     {
       "id": "apps_web_src_app_features_audit_audit_component_auditcomponent_startofutcday",
@@ -53553,7 +53553,7 @@
       "file_type": "code",
       "norm_label": ".startofutcday()",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L483"
+      "source_location": "L366"
     },
     {
       "id": "apps_web_src_app_features_audit_components_audit_logs_table_component_auditlogstablecomponent_geteventbadgeclass",
@@ -53649,7 +53649,7 @@
       "file_type": "code",
       "norm_label": ".formatuseragent()",
       "source_file": "apps/web/src/app/features/audit/components/audit-security-table.component.ts",
-      "source_location": "L505"
+      "source_location": "L206"
     },
     {
       "id": "apps_web_src_app_features_audit_components_audit_security_table_component_auditsecuritytablecomponent_getsecurityeventbadgeclass",
@@ -53661,7 +53661,7 @@
       "file_type": "code",
       "norm_label": ".getsecurityeventbadgeclass()",
       "source_file": "apps/web/src/app/features/audit/components/audit-security-table.component.ts",
-      "source_location": "L489"
+      "source_location": "L190"
     },
     {
       "id": "apps_web_src_app_features_audit_components_audit_security_table_component_auditsecuritytablecomponent_getsecurityeventicon",
@@ -53673,7 +53673,7 @@
       "file_type": "code",
       "norm_label": ".getsecurityeventicon()",
       "source_file": "apps/web/src/app/features/audit/components/audit-security-table.component.ts",
-      "source_location": "L496"
+      "source_location": "L197"
     },
     {
       "id": "apps_server_src_main_java_com_greenwhite_dwh_instance_md_repository_mduserrepository_mduserrepository_findbyid",
@@ -143598,7 +143598,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L352",
+      "source_location": "L235",
       "weight": 1.0
     },
     {
@@ -143610,7 +143610,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L361",
+      "source_location": "L244",
       "weight": 1.0
     },
     {
@@ -143622,7 +143622,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L362",
+      "source_location": "L245",
       "weight": 1.0
     },
     {
@@ -143634,7 +143634,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L382",
+      "source_location": "L265",
       "weight": 1.0
     },
     {
@@ -143646,7 +143646,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L390",
+      "source_location": "L273",
       "weight": 1.0
     },
     {
@@ -143658,7 +143658,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L391",
+      "source_location": "L274",
       "weight": 1.0
     },
     {
@@ -143670,7 +143670,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L319",
+      "source_location": "L202",
       "weight": 1.0
     },
     {
@@ -143682,7 +143682,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L445",
+      "source_location": "L328",
       "weight": 1.0
     },
     {
@@ -143694,7 +143694,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L450",
+      "source_location": "L333",
       "weight": 1.0
     },
     {
@@ -143706,7 +143706,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L461",
+      "source_location": "L344",
       "weight": 1.0
     },
     {
@@ -143718,7 +143718,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L466",
+      "source_location": "L349",
       "weight": 1.0
     },
     {
@@ -143730,7 +143730,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L323",
+      "source_location": "L206",
       "weight": 1.0
     },
     {
@@ -143742,7 +143742,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L325",
+      "source_location": "L208",
       "weight": 1.0
     },
     {
@@ -143754,7 +143754,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L327",
+      "source_location": "L210",
       "weight": 1.0
     },
     {
@@ -143766,7 +143766,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L417",
+      "source_location": "L300",
       "weight": 1.0
     },
     {
@@ -143778,7 +143778,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L426",
+      "source_location": "L309",
       "weight": 1.0
     },
     {
@@ -143790,7 +143790,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L334",
+      "source_location": "L217",
       "weight": 1.0
     },
     {
@@ -143802,7 +143802,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L336",
+      "source_location": "L219",
       "weight": 1.0
     },
     {
@@ -153186,7 +153186,7 @@
       "confidence_score": 1.0,
       "context": "decorator",
       "source_file": "apps/web/src/app/features/audit/components/audit-security-table.component.ts",
-      "source_location": "L474",
+      "source_location": "L175",
       "weight": 1.0
     },
     {
@@ -153198,7 +153198,7 @@
       "confidence_score": 1.0,
       "context": "decorator",
       "source_file": "apps/web/src/app/features/audit/components/audit-security-table.component.ts",
-      "source_location": "L487",
+      "source_location": "L188",
       "weight": 1.0
     },
     {
@@ -164106,7 +164106,7 @@
       "confidence_score": 1.0,
       "context": "field",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L299",
+      "source_location": "L182",
       "weight": 1.0
     },
     {
@@ -164118,7 +164118,7 @@
       "confidence_score": 1.0,
       "context": "field",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L311",
+      "source_location": "L194",
       "weight": 1.0
     },
     {
@@ -164166,7 +164166,7 @@
       "confidence_score": 1.0,
       "context": "field",
       "source_file": "apps/web/src/app/features/audit/components/audit-security-table.component.ts",
-      "source_location": "L462",
+      "source_location": "L163",
       "weight": 1.0
     },
     {
@@ -227550,7 +227550,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L313",
+      "source_location": "L196",
       "weight": 1.0
     },
     {
@@ -227562,7 +227562,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L313",
+      "source_location": "L196",
       "weight": 1.0
     },
     {
@@ -227574,7 +227574,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L499",
+      "source_location": "L382",
       "weight": 1.0
     },
     {
@@ -227586,7 +227586,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L491",
+      "source_location": "L374",
       "weight": 1.0
     },
     {
@@ -227598,7 +227598,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L495",
+      "source_location": "L378",
       "weight": 1.0
     },
     {
@@ -234414,7 +234414,7 @@
       "confidence_score": 1.0,
       "context": "return_type",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L429",
+      "source_location": "L312",
       "weight": 1.0
     },
     {
@@ -234426,7 +234426,7 @@
       "confidence_score": 1.0,
       "context": "return_type",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L433",
+      "source_location": "L316",
       "weight": 1.0
     },
     {
@@ -245462,7 +245462,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L273",
+      "source_location": "L156",
       "weight": 1.0
     },
     {
@@ -245550,7 +245550,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/audit/components/audit-security-table.component.ts",
-      "source_location": "L461",
+      "source_location": "L162",
       "weight": 1.0
     },
     {
@@ -295111,7 +295111,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L313",
+      "source_location": "L196",
       "weight": 1.0
     },
     {
@@ -295122,7 +295122,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L318",
+      "source_location": "L201",
       "weight": 1.0
     },
     {
@@ -295133,7 +295133,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L322",
+      "source_location": "L205",
       "weight": 1.0
     },
     {
@@ -295144,7 +295144,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L331",
+      "source_location": "L214",
       "weight": 1.0
     },
     {
@@ -295155,7 +295155,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L340",
+      "source_location": "L223",
       "weight": 1.0
     },
     {
@@ -295166,7 +295166,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L351",
+      "source_location": "L234",
       "weight": 1.0
     },
     {
@@ -295177,7 +295177,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L381",
+      "source_location": "L264",
       "weight": 1.0
     },
     {
@@ -295188,7 +295188,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L410",
+      "source_location": "L293",
       "weight": 1.0
     },
     {
@@ -295199,7 +295199,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L420",
+      "source_location": "L303",
       "weight": 1.0
     },
     {
@@ -295210,7 +295210,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L429",
+      "source_location": "L312",
       "weight": 1.0
     },
     {
@@ -295221,7 +295221,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L433",
+      "source_location": "L316",
       "weight": 1.0
     },
     {
@@ -295232,7 +295232,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L437",
+      "source_location": "L320",
       "weight": 1.0
     },
     {
@@ -295243,7 +295243,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L448",
+      "source_location": "L331",
       "weight": 1.0
     },
     {
@@ -295254,7 +295254,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L453",
+      "source_location": "L336",
       "weight": 1.0
     },
     {
@@ -295265,7 +295265,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L464",
+      "source_location": "L347",
       "weight": 1.0
     },
     {
@@ -295276,7 +295276,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L469",
+      "source_location": "L352",
       "weight": 1.0
     },
     {
@@ -295287,7 +295287,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L476",
+      "source_location": "L359",
       "weight": 1.0
     },
     {
@@ -295298,7 +295298,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L483",
+      "source_location": "L366",
       "weight": 1.0
     },
     {
@@ -295309,7 +295309,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L487",
+      "source_location": "L370",
       "weight": 1.0
     },
     {
@@ -295320,7 +295320,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L491",
+      "source_location": "L374",
       "weight": 1.0
     },
     {
@@ -295331,7 +295331,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L495",
+      "source_location": "L378",
       "weight": 1.0
     },
     {
@@ -295342,7 +295342,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L499",
+      "source_location": "L382",
       "weight": 1.0
     },
     {
@@ -295430,7 +295430,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/audit/components/audit-security-table.component.ts",
-      "source_location": "L489",
+      "source_location": "L190",
       "weight": 1.0
     },
     {
@@ -295441,7 +295441,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/audit/components/audit-security-table.component.ts",
-      "source_location": "L496",
+      "source_location": "L197",
       "weight": 1.0
     },
     {
@@ -295452,7 +295452,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/audit/components/audit-security-table.component.ts",
-      "source_location": "L505",
+      "source_location": "L206",
       "weight": 1.0
     },
     {
@@ -327023,7 +327023,7 @@
       "confidence_score": 0.8,
       "context": "call",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L356",
+      "source_location": "L239",
       "weight": 1.0
     },
     {
@@ -327035,7 +327035,7 @@
       "confidence_score": 0.8,
       "context": "call",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L386",
+      "source_location": "L269",
       "weight": 1.0
     },
     {
@@ -327047,7 +327047,7 @@
       "confidence_score": 0.8,
       "context": "call",
       "source_file": "apps/web/src/app/features/audit/audit.component.ts",
-      "source_location": "L342",
+      "source_location": "L225",
       "weight": 1.0
     },
     {
@@ -339635,5 +339635,5 @@
       "source_file": ".github/workflows/ci.yml"
     }
   ],
-  "built_at_commit": "cc9ed33cb084a2b8ad388f2be73cfa851b41a550"
+  "built_at_commit": "1658e67dbda0010f64639b25cd20131f5d1f933c"
 }
