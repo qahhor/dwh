@@ -4518,9 +4518,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/settings/navigation/navigation-settings.component.ts": {
-    "mtime": 1788961664.8370945,
-    "seen": 1788961796.522466,
-    "ast_hash": "e3bbf33beaa5550b894e9c2ce6999083",
+    "mtime": 1789070869.0244782,
+    "seen": 1789070948.4828393,
+    "ast_hash": "0a0579ef84778ee01286320a08c63b49",
     "semantic_hash": ""
   },
   "apps/web/src/app/core/utils/transliteration.ts": {
@@ -4899,6 +4899,24 @@
     "mtime": 1789070636.7000277,
     "seen": 1789070725.5473433,
     "ast_hash": "a008776917908eaac969867e0cd70042",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/settings/navigation/components/navigation-settings-modal.component.ts": {
+    "mtime": 1789070883.738238,
+    "seen": 1789070948.4828393,
+    "ast_hash": "4ce3cd5db192cd7f6aa4c44a282bcde7",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/settings/navigation/components/navigation-settings-stats.component.ts": {
+    "mtime": 1789070817.9611864,
+    "seen": 1789070948.4828393,
+    "ast_hash": "2c7b6c07f5045775da675e1245b4965a",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/settings/navigation/components/navigation-settings-table.component.ts": {
+    "mtime": 1789070834.867063,
+    "seen": 1789070948.4828393,
+    "ast_hash": "baf70e5d5058afa444bdadd670620477",
     "semantic_hash": ""
   }
 }
