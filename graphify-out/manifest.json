@@ -2340,9 +2340,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/iam/roles/roles.component.ts": {
-    "mtime": 1789058100.3239584,
-    "seen": 1789058164.9149315,
-    "ast_hash": "f59988d4e8efa1ee4e48d66bac571d3e",
+    "mtime": 1789073728.9474773,
+    "seen": 1789073798.0180008,
+    "ast_hash": "4ab417bbf6f0443bb993d5887697990f",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/iam/users/users.component.spec.ts": {
@@ -4668,9 +4668,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/iam/roles/roles.models.ts": {
-    "mtime": 1789058015.007868,
-    "seen": 1789058164.9149315,
-    "ast_hash": "baf3760ef33e53829ff270cda32eb859",
+    "mtime": 1789073719.752574,
+    "seen": 1789073798.0180008,
+    "ast_hash": "8634c703361ecfd174ad63a625933fc1",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/tasks/projects/components/project-cards-view.component.ts": {
@@ -5055,6 +5055,18 @@
     "mtime": 1789073496.240317,
     "seen": 1789073581.517605,
     "ast_hash": "9b7fb67082d2574a97316c33f39526b1",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/iam/roles/services/role-forms.service.ts": {
+    "mtime": 1789073666.3760018,
+    "seen": 1789073798.0180008,
+    "ast_hash": "92e25f4f1ef16a9d5abbf1439101202a",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/iam/roles/roles.component.html": {
+    "mtime": 1789073639.203283,
+    "seen": 1789073798.0180008,
+    "ast_hash": "0b2197ac04ff167ee60e62e2e319e4a6",
     "semantic_hash": ""
   }
 }

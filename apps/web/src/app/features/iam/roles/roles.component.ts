@@ -15,7 +15,23 @@ import { RoleScopePanelComponent } from '../org-units/public-api';
 import { RoleModalsComponent } from './components/role-modals.component';
 import { RoleCardsBarComponent } from './components/role-cards-bar.component';
 import { RolePermissionsMatrixComponent } from './components/role-permissions-matrix.component';
-import { GroupedForm, ModuleGroup } from './roles.models';
+import {
+  GroupedForm,
+  ModuleGroup,
+  MODULE_ICON_MAP,
+  MODULE_NAME_KEY_MAP,
+  buildModuleGroups,
+  arePermissionsDirty,
+  countDirtyPermissions,
+  toggleFormPermissionSet,
+  toggleModulePermissionSet,
+  toggleReadOnlyModulePermissionSet,
+  toggleAllPermissionsSet,
+  toggleReadOnlyAllPermissionsSet,
+  filterRoles,
+  filterModuleGroups
+} from './roles.models';
+import { RoleFormsService } from './services/role-forms.service';
 
 
 @Component({
@@ -23,175 +39,8 @@ import { GroupedForm, ModuleGroup } from './roles.models';
   standalone: true,
   imports: [
     TranslatePipe, CommonModule, FormsModule, UiButtonComponent, RoleScopePanelComponent, RoleModalsComponent, RoleCardsBarComponent, RolePermissionsMatrixComponent],
-  template: `
-    <div class="roles-page">
-      <!-- Top Page Header -->
-      <div class="view-header">
-        <div class="header-left">
-          <h1 class="view-title">{{ 'iam.roli_i_matrica_prav' | t }}</h1>
-          <span class="count-badge">{{ roles().length }}</span>
-        </div>
-        <div class="header-right">
-          <ui-button
-            *ngIf="canCreateRole()"
-            variant="primary"
-            size="md"
-            icon="add"
-            (onClick)="openCreateModal()"
-          >
-            {{ 'iam.novaya_rol' | t }}
-          </ui-button>
-        </div>
-      </div>
-
-      <!-- Roles Horizontal Bar -->
-      <app-role-cards-bar
-        [roles]="filteredRoles()"
-        [selectedRole]="selectedRole()"
-        [roleUserCounts]="roleUserCounts()"
-        [searchQuery]="roleSearchQuery"
-        (searchQueryChange)="roleSearchQuery = $event"
-        [isSaving]="isSaving()"
-        [scopePanelBusy]="scopePanelBusy()"
-        [isSubmittingRole]="isSubmittingRole()"
-        [canCreateRole]="canCreateRole()"
-        [canUpdateRole]="canUpdateRole()"
-        [canDeleteRole]="canDeleteRole()"
-        (selectRole)="selectRole($event)"
-        (navigateToUsers)="navigateToUsersWithRole($event.role, $event.event)"
-        (openEdit)="openEditRoleModal($event)"
-        (openDelete)="openDeleteRoleModal($event)"
-        (openCreate)="openCreateModal()"
-      ></app-role-cards-bar>
-
-      <!-- Main Permission Matrix Section -->
-      <div class="matrix-card" *ngIf="selectedRole() as role" [attr.aria-busy]="isLoading() || isSaving()">
-        <app-role-permissions-matrix
-          [role]="role"
-          [isLoading]="isLoading()"
-          [isSaving]="isSaving()"
-          [permissionsError]="permissionsError()"
-          [activePermissionsCount]="activePermissionsCount()"
-          [totalActionsCount]="totalActionsCount()"
-          [permissionPercentage]="permissionPercentage()"
-          [isPermissionsDirty]="isPermissionsDirty()"
-          [dirtyPermissionsCount]="dirtyPermissionsCount()"
-          [canGrant]="canGrant()"
-          [canEditPermissions]="canEditPermissions()"
-          [matrixSearchQuery]="matrixSearchQuery"
-          [matchingFormsCount]="matchingFormsCount()"
-          [formsCount]="forms().length"
-          [selectedModuleTab]="selectedModuleTab"
-          [moduleGroups]="moduleGroups"
-          [visibleModuleGroups]="visibleModuleGroups()"
-          [hasPermission]="hasPermissionFn"
-          [isPermissionDirty]="isPermissionDirtyFn"
-          [getModuleIcon]="getModuleIconFn"
-          [getModuleActionsCount]="getModuleActionsCountFn"
-          (resetChanges)="resetMatrixChanges()"
-          (savePermissions)="savePermissions()"
-          (refreshRole)="selectRole($event)"
-          (matrixSearchQueryChange)="matrixSearchQuery = $event"
-          (selectedModuleTabChange)="selectedModuleTab = $event"
-          (setAllModulesExpanded)="setAllModulesExpanded($event)"
-          (toggleAllPermissions)="toggleAllPermissions($event)"
-          (toggleReadOnlyAllPermissions)="toggleReadOnlyAllPermissions()"
-          (toggleModuleExpand)="toggleModuleExpand($event)"
-          (toggleReadOnlyModule)="toggleReadOnlyModule($event)"
-          (toggleAllModule)="toggleAllModule($event.mod, $event.select)"
-          (toggleAllForm)="toggleAllForm($event.form, $event.select)"
-          (togglePermission)="togglePermission($event.formCode, $event.action, $event.event)"
-        ></app-role-permissions-matrix>
-        <app-role-scope-panel
-          *ngIf="canViewOrgUnits() && safeRoleId(role.id)"
-          [roleId]="role.id"
-          (busyChange)="scopePanelBusy.set($event)"
-        ></app-role-scope-panel>
-      </div>
-    </div>
-
-    <!-- Modals (Create, Edit, Delete, Discard) -->
-    <app-role-modals
-      [isCreateModalOpen]="isCreateModalOpen()"
-      [isCreateSubmitted]="isCreateSubmitted"
-      [newRoleForm]="newRoleForm"
-      [isEditModalOpen]="isEditModalOpen()"
-      [isEditSubmitted]="isEditSubmitted"
-      [editingRole]="editingRole"
-      [editRoleForm]="editRoleForm"
-      [isDeleteModalOpen]="isDeleteModalOpen()"
-      [deletingRole]="deletingRole"
-      [isDiscardPermissionsModalOpen]="isDiscardPermissionsModalOpen()"
-      [selectedRole]="selectedRole()"
-      [dirtyPermissionsCount]="dirtyPermissionsCount()"
-      [isSubmittingRole]="isSubmittingRole()"
-      [isSaving]="isSaving()"
-      (closeCreate)="isCreateModalOpen.set(false)"
-      (submitCreate)="submitCreateRole()"
-      (closeEdit)="isEditModalOpen.set(false)"
-      (submitEdit)="submitEditRole()"
-      (closeDelete)="closeDeleteRoleModal()"
-      (confirmDelete)="confirmDeleteRole()"
-      (closeDiscard)="closeDiscardModal()"
-      (confirmDiscardAndSwitch)="confirmDiscardAndSwitch()"
-      (saveAndSwitch)="saveAndSwitch()"
-    ></app-role-modals>
-  `,
-  styles: [`
-    .roles-page {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      width: 100%;
-    }
-
-    /* Page Header */
-    .page-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .page-title {
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--text-main);
-      margin: 0;
-    }
-    .role-badge {
-      font-size: 12px;
-      color: var(--text-muted);
-      background-color: var(--bg-hover);
-      padding: 2px 8px;
-      border-radius: 12px;
-      font-weight: 500;
-      border: 1px solid var(--border-color);
-    }
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    /* Main Matrix Card */
-    .matrix-card {
-      background-color: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      display: flex;
-      flex-direction: column;
-    }
-
-
-    .req { color: var(--danger); }
-    .font-mono { font-family: monospace; }
-  `]
+  templateUrl: './roles.component.html',
+  styleUrl: './roles.component.css'
 })
 export class RolesComponent implements OnInit {
   readonly hasPermissionFn = (formCode: string, action: string) => this.hasPermission(formCode, action);
@@ -213,33 +62,20 @@ export class RolesComponent implements OnInit {
   readonly rolePermissions = signal<Set<string>>(new Set());
   readonly originalRolePermissions = signal<Set<string>>(new Set());
 
-  readonly isPermissionsDirty = computed<boolean>(() => {
-    const orig = this.originalRolePermissions();
-    const curr = this.rolePermissions();
-    if (orig.size !== curr.size) return true;
-    for (const p of curr) {
-      if (!orig.has(p)) return true;
-    }
-    return false;
-  });
+  readonly isPermissionsDirty = computed<boolean>(() =>
+    arePermissionsDirty(this.originalRolePermissions(), this.rolePermissions())
+  );
 
-  readonly dirtyPermissionsCount = computed<number>(() => {
-    const orig = this.originalRolePermissions();
-    const curr = this.rolePermissions();
-    let diff = 0;
-    for (const p of curr) {
-      if (!orig.has(p)) diff++;
-    }
-    for (const p of orig) {
-      if (!curr.has(p)) diff++;
-    }
-    return diff;
-  });
+  readonly dirtyPermissionsCount = computed<number>(() =>
+    countDirtyPermissions(this.originalRolePermissions(), this.rolePermissions())
+  );
+
+  private readonly roleForms = inject(RoleFormsService);
 
   readonly isLoading = signal<boolean>(false);
   readonly permissionsError = signal('');
   readonly isSaving = signal<boolean>(false);
-  readonly isSubmittingRole = signal<boolean>(false);
+  readonly isSubmittingRole = this.roleForms.isSubmittingRole;
   readonly scopePanelBusy = signal(false);
   readonly roleUserCounts = signal<Record<number, number>>({});
 
@@ -249,28 +85,30 @@ export class RolesComponent implements OnInit {
 
   moduleGroups: ModuleGroup[] = [];
 
-  // Modals
-  readonly isCreateModalOpen = signal<boolean>(false);
-  readonly isEditModalOpen = signal<boolean>(false);
-  readonly isDeleteModalOpen = signal<boolean>(false);
+  // Modals & Form State
+  readonly isCreateModalOpen = this.roleForms.isCreateModalOpen;
+  readonly isEditModalOpen = this.roleForms.isEditModalOpen;
+  readonly isDeleteModalOpen = this.roleForms.isDeleteModalOpen;
   readonly isDiscardPermissionsModalOpen = signal<boolean>(false);
   pendingRoleToSelect: Role | null = null;
-  isCreateSubmitted = false;
-  isEditSubmitted = false;
 
-  editingRole: Role | null = null;
-  deletingRole: Role | null = null;
+  get isCreateSubmitted() { return this.roleForms.isCreateSubmitted; }
+  set isCreateSubmitted(v: boolean) { this.roleForms.isCreateSubmitted = v; }
 
-  newRoleForm = {
-    name: '',
-    orderNo: 0
-  };
+  get isEditSubmitted() { return this.roleForms.isEditSubmitted; }
+  set isEditSubmitted(v: boolean) { this.roleForms.isEditSubmitted = v; }
 
-  editRoleForm = {
-    name: '',
-    state: 'A',
-    orderNo: 0
-  };
+  get newRoleForm() { return this.roleForms.newRoleForm; }
+  set newRoleForm(v: any) { this.roleForms.newRoleForm = v; }
+
+  get editRoleForm() { return this.roleForms.editRoleForm; }
+  set editRoleForm(v: any) { this.roleForms.editRoleForm = v; }
+
+  get editingRole() { return this.roleForms.editingRole; }
+  set editingRole(v: Role | null) { this.roleForms.editingRole = v; }
+
+  get deletingRole() { return this.roleForms.deletingRole; }
+  set deletingRole(v: Role | null) { this.roleForms.deletingRole = v; }
 
   constructor(
     public permService: PermissionService,
@@ -365,40 +203,7 @@ export class RolesComponent implements OnInit {
   }
 
   buildModuleGroups(items: FormTreeItem[]) {
-    const groupedMap = new Map<string, Map<string, GroupedForm>>();
-
-    for (const item of items) {
-      if (!groupedMap.has(item.module)) {
-        groupedMap.set(item.module, new Map());
-      }
-      const moduleMap = groupedMap.get(item.module)!;
-
-      if (!moduleMap.has(item.formCode)) {
-        moduleMap.set(item.formCode, {
-          module: item.module,
-          formCode: item.formCode,
-          formName: item.formName,
-          actions: []
-        });
-      }
-
-      moduleMap.get(item.formCode)!.actions.push({
-        action: item.action,
-        actionName: item.actionName
-      });
-    }
-
-    const groups: ModuleGroup[] = [];
-    groupedMap.forEach((formMap, modCode) => {
-      groups.push({
-        moduleCode: modCode,
-        moduleName: this.getModuleDisplayName(modCode),
-        forms: Array.from(formMap.values()),
-        isExpanded: true
-      });
-    });
-
-    this.moduleGroups = groups;
+    this.moduleGroups = buildModuleGroups(items, mod => this.getModuleDisplayName(mod));
   }
 
   selectRole(role: Role) {
@@ -506,33 +311,11 @@ export class RolesComponent implements OnInit {
   }
 
   filteredRoles(): Role[] {
-    const q = this.roleSearchQuery.trim().toLowerCase();
-    if (!q) return this.roles();
-    return this.roles().filter(r =>
-      r.name.toLowerCase().includes(q) || (r.pcode && r.pcode.toLowerCase().includes(q))
-    );
+    return filterRoles(this.roles(), this.roleSearchQuery);
   }
 
   visibleModuleGroups(): ModuleGroup[] {
-    const q = this.matrixSearchQuery.trim().toLowerCase();
-    const activeTab = this.selectedModuleTab;
-
-    return this.moduleGroups
-      .filter(mod => activeTab === 'all' || mod.moduleCode === activeTab)
-      .map(mod => {
-        if (!q) return mod;
-        const matchingForms = mod.forms.filter(f =>
-          f.formName.toLowerCase().includes(q) ||
-          f.formCode.toLowerCase().includes(q) ||
-          f.actions.some(a => a.actionName.toLowerCase().includes(q) || a.action.toLowerCase().includes(q))
-        );
-        return {
-          ...mod,
-          isExpanded: true,
-          forms: matchingForms
-        };
-      })
-      .filter(mod => mod.forms.length > 0);
+    return filterModuleGroups(this.moduleGroups, this.matrixSearchQuery, this.selectedModuleTab);
   }
 
   matchingFormsCount(): number {
@@ -544,9 +327,7 @@ export class RolesComponent implements OnInit {
   }
 
   setAllModulesExpanded(expanded: boolean) {
-    for (const mod of this.moduleGroups) {
-      mod.isExpanded = expanded;
-    }
+    this.moduleGroups.forEach(mod => mod.isExpanded = expanded);
   }
 
   toggleModuleExpand(mod: ModuleGroup) {
@@ -554,31 +335,12 @@ export class RolesComponent implements OnInit {
   }
 
   getModuleDisplayName(mod: string): string {
-    const map: Record<string, string> = {
-      'md': this.uiI18n.translate('iam.polzovateli_i_bezopasnost_iam'),
-      'iam': this.uiI18n.translate('iam.uchetnye_zapisi_i_profil_iam'),
-      'ms.task': this.uiI18n.translate('iam.upravlenie_zadachami_task'),
-      'ms.notify': this.uiI18n.translate('iam.opovescheniya_i_sobytiya_notif'),
-      'platform': this.uiI18n.translate('iam.sistemnaya_platforma_platform'),
-      'audit': this.uiI18n.translate('iam.zhurnal_audita_audit'),
-      'mf': this.uiI18n.translate('iam.faylovoe_hranilische_file'),
-      'kwh': this.uiI18n.translate('iam.hranilische_dannyh_dwh')
-    };
-    return map[mod] || this.uiI18n.translate('iam.module_named', { name: mod.toUpperCase() });
+    const key = MODULE_NAME_KEY_MAP[mod];
+    return key ? this.uiI18n.translate(key) : this.uiI18n.translate('iam.module_named', { name: mod.toUpperCase() });
   }
 
   getModuleIcon(mod: string): string {
-    const map: Record<string, string> = {
-      'md': 'admin_panel_settings',
-      'iam': 'security',
-      'ms.task': 'task_alt',
-      'ms.notify': 'notifications',
-      'platform': 'hub',
-      'audit': 'history',
-      'mf': 'folder_open',
-      'kwh': 'database'
-    };
-    return map[mod] || 'folder';
+    return MODULE_ICON_MAP[mod] || 'folder';
   }
 
   totalActionsCount(): number {
@@ -586,21 +348,16 @@ export class RolesComponent implements OnInit {
   }
 
   activePermissionsCount(): number {
-    if (this.selectedRole()?.pcode === 'admin') {
-      return this.totalActionsCount();
-    }
-    return this.rolePermissions().size;
+    return this.selectedRole()?.pcode === 'admin' ? this.totalActionsCount() : this.rolePermissions().size;
   }
 
   permissionPercentage(): number {
     const total = this.totalActionsCount();
-    if (total === 0) return 0;
-    return Math.round((this.activePermissionsCount() / total) * 100);
+    return total === 0 ? 0 : Math.round((this.activePermissionsCount() / total) * 100);
   }
 
   hasPermission(formCode: string, action: string): boolean {
-    if (this.selectedRole()?.pcode === 'admin') return true;
-    return this.rolePermissions().has(`${formCode}.${action}`);
+    return this.selectedRole()?.pcode === 'admin' || this.rolePermissions().has(`${formCode}.${action}`);
   }
 
   togglePermission(formCode: string, action: string, event: Event) {
@@ -620,51 +377,17 @@ export class RolesComponent implements OnInit {
 
   toggleAllForm(form: GroupedForm, grant: boolean) {
     if (!this.canEditPermissions()) return;
-
-    const current = new Set(this.rolePermissions());
-    for (const act of form.actions) {
-      const key = `${form.formCode}.${act.action}`;
-      if (grant) {
-        current.add(key);
-      } else {
-        current.delete(key);
-      }
-    }
-    this.rolePermissions.set(current);
+    this.rolePermissions.set(toggleFormPermissionSet(this.rolePermissions(), form, grant));
   }
 
   toggleAllModule(moduleGroup: ModuleGroup, grant: boolean) {
     if (!this.canEditPermissions()) return;
-
-    const current = new Set(this.rolePermissions());
-    for (const f of moduleGroup.forms) {
-      for (const act of f.actions) {
-        const key = `${f.formCode}.${act.action}`;
-        if (grant) {
-          current.add(key);
-        } else {
-          current.delete(key);
-        }
-      }
-    }
-    this.rolePermissions.set(current);
+    this.rolePermissions.set(toggleModulePermissionSet(this.rolePermissions(), moduleGroup, grant));
   }
 
   toggleReadOnlyModule(moduleGroup: ModuleGroup) {
     if (!this.canEditPermissions()) return;
-
-    const current = new Set(this.rolePermissions());
-    for (const f of moduleGroup.forms) {
-      for (const act of f.actions) {
-        const key = `${f.formCode}.${act.action}`;
-        if (act.action === 'view') {
-          current.add(key);
-        } else {
-          current.delete(key);
-        }
-      }
-    }
-    this.rolePermissions.set(current);
+    this.rolePermissions.set(toggleReadOnlyModulePermissionSet(this.rolePermissions(), moduleGroup));
   }
 
   isPermissionDirty(formCode: string, action: string): boolean {
@@ -680,38 +403,12 @@ export class RolesComponent implements OnInit {
 
   toggleAllPermissions(grant: boolean): void {
     if (!this.canEditPermissions()) return;
-    const current = new Set(this.rolePermissions());
-    for (const group of this.moduleGroups) {
-      for (const f of group.forms) {
-        for (const act of f.actions) {
-          const key = `${f.formCode}.${act.action}`;
-          if (grant) {
-            current.add(key);
-          } else {
-            current.delete(key);
-          }
-        }
-      }
-    }
-    this.rolePermissions.set(current);
+    this.rolePermissions.set(toggleAllPermissionsSet(this.rolePermissions(), this.moduleGroups, grant));
   }
 
   toggleReadOnlyAllPermissions(): void {
     if (!this.canEditPermissions()) return;
-    const current = new Set(this.rolePermissions());
-    for (const group of this.moduleGroups) {
-      for (const f of group.forms) {
-        for (const act of f.actions) {
-          const key = `${f.formCode}.${act.action}`;
-          if (act.action === 'view') {
-            current.add(key);
-          } else {
-            current.delete(key);
-          }
-        }
-      }
-    }
-    this.rolePermissions.set(current);
+    this.rolePermissions.set(toggleReadOnlyAllPermissionsSet(this.rolePermissions(), this.moduleGroups));
   }
 
   navigateToUsersWithRole(role: Role, event: Event): void {
@@ -744,73 +441,32 @@ export class RolesComponent implements OnInit {
   }
 
   openCreateModal() {
-    this.newRoleForm = { name: '', orderNo: 0 };
-    this.isCreateSubmitted = false;
-    this.isCreateModalOpen.set(true);
+    this.roleForms.openCreateModal();
   }
 
   submitCreateRole() {
-    this.isCreateSubmitted = true;
-    if (!this.newRoleForm.name.trim()) {
-      this.toast.warning(this.uiI18n.translate('iam.vvedite_nazvanie_roli'));
-      return;
-    }
-
-    this.isSubmittingRole.set(true);
-    this.api.post<Role>('/rbac/roles', {
-      name: this.newRoleForm.name.trim(),
-      orderNo: this.newRoleForm.orderNo || 0
-    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: newRole => {
-        this.isSubmittingRole.set(false);
-        this.isCreateModalOpen.set(false);
-        this.toast.success(this.uiI18n.translate('iam.rol_uspeshno_sozdana'));
-        this.loadRoles();
-        this.selectRole(newRole);
-      },
-      error: () => {
-        this.isSubmittingRole.set(false);
-      }
+    this.roleForms.submitCreateRole(newRole => {
+      this.loadRoles();
+      this.selectRole(newRole);
     });
   }
 
   openEditRoleModal(role: Role) {
-    this.editingRole = role;
-    this.editRoleForm = {
-      name: role.name,
-      state: role.state,
-      orderNo: role.orderNo
-    };
-    this.isEditSubmitted = false;
-    this.isEditModalOpen.set(true);
+    this.roleForms.openEditRoleModal(role);
   }
 
   submitEditRole() {
-    if (!this.editingRole) return;
-    this.isEditSubmitted = true;
-    if (!this.editRoleForm.name.trim()) {
-      this.toast.warning(this.uiI18n.translate('iam.nazvanie_roli_obyazatelno'));
-      return;
-    }
-
-    this.isSubmittingRole.set(true);
-    this.api.patch(`/rbac/roles/${this.editingRole.id}`, this.editRoleForm).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: () => {
-        this.isSubmittingRole.set(false);
-        this.isEditModalOpen.set(false);
-        this.toast.success(this.uiI18n.translate('iam.dannye_roli_obnovleny'));
-        this.loadRoles();
-      },
-      error: () => {
-        this.isSubmittingRole.set(false);
-      }
+    this.roleForms.submitEditRole(() => {
+      this.loadRoles();
     });
   }
 
   openDeleteRoleModal(role: Role) {
-    if (this.isSaving() || this.scopePanelBusy() || this.isSubmittingRole() || this.isDeleteModalOpen() || !safeNumericRecordId(role.id)) return;
-    this.deletingRole = { ...role };
-    this.isDeleteModalOpen.set(true);
+    this.roleForms.openDeleteRoleModal(role, this.isSaving(), this.scopePanelBusy());
+  }
+
+  closeDeleteRoleModal(): void {
+    this.roleForms.closeDeleteRoleModal();
   }
 
   confirmDeleteRole() {
@@ -823,34 +479,18 @@ export class RolesComponent implements OnInit {
     this.deleteRole(target);
   }
 
-  closeDeleteRoleModal(): void {
-    if (this.isSubmittingRole()) return;
-    this.isDeleteModalOpen.set(false);
-    this.deletingRole = null;
-  }
-
   private deleteRole(target: Role): void {
     if (this.destroyRef.destroyed || this.isSubmittingRole() || !this.isDeleteModalOpen()) return;
-    this.isSubmittingRole.set(true);
-    this.api.delete(`/rbac/roles/${target.id}`).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: () => {
-        this.isSubmittingRole.set(false);
-        this.isDeleteModalOpen.set(false);
-        this.deletingRole = null;
-        this.toast.success(this.uiI18n.translate('iam.rol_udalena'));
-        if (this.selectedRole()?.id === target.id) {
-          this.permissionsRequest?.unsubscribe();
-          this.selectedRole.set(null);
-          this.rolePermissions.set(new Set());
-          this.loadedPermissionsRoleId.set(null);
-          this.permissionsError.set('');
-          this.isLoading.set(false);
-        }
-        this.loadRoles();
-      },
-      error: () => {
-        this.isSubmittingRole.set(false);
+    this.roleForms.deleteRole(target, () => {
+      if (this.selectedRole()?.id === target.id) {
+        this.permissionsRequest?.unsubscribe();
+        this.selectedRole.set(null);
+        this.rolePermissions.set(new Set());
+        this.loadedPermissionsRoleId.set(null);
+        this.permissionsError.set('');
+        this.isLoading.set(false);
       }
+      this.loadRoles();
     });
   }
 }
