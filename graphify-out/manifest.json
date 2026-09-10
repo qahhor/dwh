@@ -2400,9 +2400,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/tasks/projects/projects.component.ts": {
-    "mtime": 1789066068.9748354,
-    "seen": 1789066147.5816085,
-    "ast_hash": "f2828da7396fc3311e873f3271ecebd2",
+    "mtime": 1789072198.786044,
+    "seen": 1789072280.813473,
+    "ast_hash": "8594ea240ba1ecacf52fd193071f6044",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/tasks/tasks.component.spec.ts": {
@@ -5031,6 +5031,18 @@
     "mtime": 1789071943.0455952,
     "seen": 1789072048.351057,
     "ast_hash": "752f5043f9514d88232189fc51586287",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/tasks/projects/services/project-forms.service.ts": {
+    "mtime": 1789072195.4023495,
+    "seen": 1789072280.8139725,
+    "ast_hash": "36d56a6cc50be0ae94997404c18de320",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/tasks/projects/projects.component.html": {
+    "mtime": 1789072175.843429,
+    "seen": 1789072280.8139725,
+    "ast_hash": "42a9411c77dededd8bfdeccc76ebf406",
     "semantic_hash": ""
   }
 }
