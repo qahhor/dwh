@@ -10427,7 +10427,7 @@
       "file_type": "code",
       "norm_label": "commandpalettecomponent",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L410"
+      "source_location": "L151"
     },
     {
       "id": "apps_server_src_main_java_com_greenwhite_dwh_instance_common_security_scopefilter_scopefilter",
@@ -52629,7 +52629,7 @@
       "file_type": "code",
       "norm_label": ".applysuggestion()",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L567"
+      "source_location": "L308"
     },
     {
       "id": "apps_web_src_app_layout_command_palette_command_palette_component_commandpalettecomponent_clearquery",
@@ -52641,7 +52641,7 @@
       "file_type": "code",
       "norm_label": ".clearquery()",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L561"
+      "source_location": "L302"
     },
     {
       "id": "apps_web_src_app_layout_command_palette_command_palette_component_commandpalettecomponent_clearrecentsearches",
@@ -52653,7 +52653,7 @@
       "file_type": "code",
       "norm_label": ".clearrecentsearches()",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L628"
+      "source_location": "L369"
     },
     {
       "id": "apps_web_src_app_layout_command_palette_command_palette_component_commandpalettecomponent_constructor",
@@ -52665,7 +52665,7 @@
       "file_type": "code",
       "norm_label": ".constructor()",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L450"
+      "source_location": "L191"
     },
     {
       "id": "apps_web_src_app_layout_command_palette_command_palette_component_commandpalettecomponent_getsearcherrormessage",
@@ -52677,7 +52677,7 @@
       "file_type": "code",
       "norm_label": ".getsearcherrormessage()",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L662"
+      "source_location": "L403"
     },
     {
       "id": "apps_web_src_app_layout_command_palette_command_palette_component_commandpalettecomponent_handlekeyboard",
@@ -52689,7 +52689,7 @@
       "file_type": "code",
       "norm_label": ".handlekeyboard()",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L519"
+      "source_location": "L260"
     },
     {
       "id": "apps_web_src_app_layout_command_palette_command_palette_component_commandpalettecomponent_loadrecentsearches",
@@ -52701,7 +52701,7 @@
       "file_type": "code",
       "norm_label": ".loadrecentsearches()",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L603"
+      "source_location": "L344"
     },
     {
       "id": "apps_web_src_app_layout_command_palette_command_palette_component_commandpalettecomponent_navigateto",
@@ -52713,7 +52713,7 @@
       "file_type": "code",
       "norm_label": ".navigateto()",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L587"
+      "source_location": "L328"
     },
     {
       "id": "apps_web_src_app_layout_command_palette_command_palette_component_commandpalettecomponent_ngondestroy",
@@ -52725,7 +52725,7 @@
       "file_type": "code",
       "norm_label": ".ngondestroy()",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L511"
+      "source_location": "L252"
     },
     {
       "id": "apps_web_src_app_layout_command_palette_command_palette_component_commandpalettecomponent_onbackdropclick",
@@ -52737,7 +52737,7 @@
       "file_type": "code",
       "norm_label": ".onbackdropclick()",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L656"
+      "source_location": "L397"
     },
     {
       "id": "apps_web_src_app_layout_command_palette_command_palette_component_commandpalettecomponent_onsearchchange",
@@ -52749,7 +52749,7 @@
       "file_type": "code",
       "norm_label": ".onsearchchange()",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L545"
+      "source_location": "L286"
     },
     {
       "id": "apps_web_src_app_layout_command_palette_command_palette_component_commandpalettecomponent_optionid",
@@ -52761,7 +52761,7 @@
       "file_type": "code",
       "norm_label": ".optionid()",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L583"
+      "source_location": "L324"
     },
     {
       "id": "apps_web_src_app_layout_command_palette_command_palette_component_commandpalettecomponent_querylength",
@@ -52773,7 +52773,7 @@
       "file_type": "code",
       "norm_label": ".querylength()",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L637"
+      "source_location": "L378"
     },
     {
       "id": "apps_web_src_app_layout_command_palette_command_palette_component_commandpalettecomponent_resetsearch",
@@ -52785,7 +52785,7 @@
       "file_type": "code",
       "norm_label": ".resetsearch()",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L578"
+      "source_location": "L319"
     },
     {
       "id": "apps_web_src_app_layout_command_palette_command_palette_component_commandpalettecomponent_retrysearch",
@@ -52797,7 +52797,7 @@
       "file_type": "code",
       "norm_label": ".retrysearch()",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L573"
+      "source_location": "L314"
     },
     {
       "id": "apps_web_src_app_layout_command_palette_command_palette_component_commandpalettecomponent_saverecentsearch",
@@ -52809,7 +52809,7 @@
       "file_type": "code",
       "norm_label": ".saverecentsearch()",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L617"
+      "source_location": "L358"
     },
     {
       "id": "apps_web_src_app_layout_command_palette_command_palette_component_commandpalettecomponent_selectrecent",
@@ -52821,7 +52821,7 @@
       "file_type": "code",
       "norm_label": ".selectrecent()",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L597"
+      "source_location": "L338"
     },
     {
       "id": "apps_web_src_app_layout_command_palette_command_palette_component_commandpalettecomponent_setcategory",
@@ -52833,7 +52833,7 @@
       "file_type": "code",
       "norm_label": ".setcategory()",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L556"
+      "source_location": "L297"
     },
     {
       "id": "apps_web_src_app_layout_command_palette_command_palette_component_commandpalettecomponent_startcooldown",
@@ -52845,7 +52845,7 @@
       "file_type": "code",
       "norm_label": ".startcooldown()",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L644"
+      "source_location": "L385"
     },
     {
       "id": "apps_web_src_app_layout_command_palette_command_palette_component_commandpalettecomponent_validquery",
@@ -52857,7 +52857,7 @@
       "file_type": "code",
       "norm_label": ".validquery()",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L639"
+      "source_location": "L380"
     },
     {
       "id": "apps_server_src_main_java_com_greenwhite_dwh_instance_common_security_scopefilter_scopefilter_byorgunit",
@@ -150953,7 +150953,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L569",
+      "source_location": "L310",
       "weight": 1.0
     },
     {
@@ -150965,7 +150965,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L563",
+      "source_location": "L304",
       "weight": 1.0
     },
     {
@@ -150977,7 +150977,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L454",
+      "source_location": "L195",
       "weight": 1.0
     },
     {
@@ -150989,7 +150989,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L459",
+      "source_location": "L200",
       "weight": 1.0
     },
     {
@@ -151001,7 +151001,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L482",
+      "source_location": "L223",
       "weight": 1.0
     },
     {
@@ -151013,7 +151013,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L489",
+      "source_location": "L230",
       "weight": 1.0
     },
     {
@@ -151025,7 +151025,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L490",
+      "source_location": "L231",
       "weight": 1.0
     },
     {
@@ -151037,7 +151037,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L539",
+      "source_location": "L280",
       "weight": 1.0
     },
     {
@@ -151049,7 +151049,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L588",
+      "source_location": "L329",
       "weight": 1.0
     },
     {
@@ -151061,7 +151061,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L591",
+      "source_location": "L332",
       "weight": 1.0
     },
     {
@@ -151073,7 +151073,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L551",
+      "source_location": "L292",
       "weight": 1.0
     },
     {
@@ -151085,7 +151085,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L552",
+      "source_location": "L293",
       "weight": 1.0
     },
     {
@@ -151097,7 +151097,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L580",
+      "source_location": "L321",
       "weight": 1.0
     },
     {
@@ -151109,7 +151109,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L575",
+      "source_location": "L316",
       "weight": 1.0
     },
     {
@@ -151121,7 +151121,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L599",
+      "source_location": "L340",
       "weight": 1.0
     },
     {
@@ -151133,7 +151133,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L558",
+      "source_location": "L299",
       "weight": 1.0
     },
     {
@@ -151145,7 +151145,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L640",
+      "source_location": "L381",
       "weight": 1.0
     },
     {
@@ -154745,7 +154745,7 @@
       "confidence_score": 1.0,
       "context": "decorator",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L448",
+      "source_location": "L189",
       "weight": 1.0
     },
     {
@@ -154757,7 +154757,7 @@
       "confidence_score": 1.0,
       "context": "decorator",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L518",
+      "source_location": "L259",
       "weight": 1.0
     },
     {
@@ -229889,7 +229889,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L450",
+      "source_location": "L191",
       "weight": 1.0
     },
     {
@@ -229901,7 +229901,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L587",
+      "source_location": "L328",
       "weight": 1.0
     },
     {
@@ -248130,7 +248130,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L410",
+      "source_location": "L151",
       "weight": 1.0
     },
     {
@@ -304566,7 +304566,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L450",
+      "source_location": "L191",
       "weight": 1.0
     },
     {
@@ -304577,7 +304577,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L511",
+      "source_location": "L252",
       "weight": 1.0
     },
     {
@@ -304588,7 +304588,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L519",
+      "source_location": "L260",
       "weight": 1.0
     },
     {
@@ -304599,7 +304599,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L545",
+      "source_location": "L286",
       "weight": 1.0
     },
     {
@@ -304610,7 +304610,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L556",
+      "source_location": "L297",
       "weight": 1.0
     },
     {
@@ -304621,7 +304621,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L561",
+      "source_location": "L302",
       "weight": 1.0
     },
     {
@@ -304632,7 +304632,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L567",
+      "source_location": "L308",
       "weight": 1.0
     },
     {
@@ -304643,7 +304643,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L573",
+      "source_location": "L314",
       "weight": 1.0
     },
     {
@@ -304654,7 +304654,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L578",
+      "source_location": "L319",
       "weight": 1.0
     },
     {
@@ -304665,7 +304665,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L583",
+      "source_location": "L324",
       "weight": 1.0
     },
     {
@@ -304676,7 +304676,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L587",
+      "source_location": "L328",
       "weight": 1.0
     },
     {
@@ -304687,7 +304687,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L597",
+      "source_location": "L338",
       "weight": 1.0
     },
     {
@@ -304698,7 +304698,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L603",
+      "source_location": "L344",
       "weight": 1.0
     },
     {
@@ -304709,7 +304709,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L617",
+      "source_location": "L358",
       "weight": 1.0
     },
     {
@@ -304720,7 +304720,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L628",
+      "source_location": "L369",
       "weight": 1.0
     },
     {
@@ -304731,7 +304731,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L637",
+      "source_location": "L378",
       "weight": 1.0
     },
     {
@@ -304742,7 +304742,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L639",
+      "source_location": "L380",
       "weight": 1.0
     },
     {
@@ -304753,7 +304753,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L644",
+      "source_location": "L385",
       "weight": 1.0
     },
     {
@@ -304764,7 +304764,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L656",
+      "source_location": "L397",
       "weight": 1.0
     },
     {
@@ -304775,7 +304775,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L662",
+      "source_location": "L403",
       "weight": 1.0
     },
     {
@@ -329933,7 +329933,7 @@
       "confidence_score": 0.8,
       "context": "call",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L485",
+      "source_location": "L226",
       "weight": 1.0
     },
     {
@@ -329945,7 +329945,7 @@
       "confidence_score": 0.8,
       "context": "call",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L523",
+      "source_location": "L264",
       "weight": 1.0
     },
     {
@@ -329957,7 +329957,7 @@
       "confidence_score": 0.8,
       "context": "call",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L527",
+      "source_location": "L268",
       "weight": 1.0
     },
     {
@@ -329969,7 +329969,7 @@
       "confidence_score": 0.8,
       "context": "call",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L593",
+      "source_location": "L334",
       "weight": 1.0
     },
     {
@@ -329981,7 +329981,7 @@
       "confidence_score": 0.8,
       "context": "call",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L513",
+      "source_location": "L254",
       "weight": 1.0
     },
     {
@@ -329993,7 +329993,7 @@
       "confidence_score": 0.8,
       "context": "call",
       "source_file": "apps/web/src/app/layout/command-palette/command-palette.component.ts",
-      "source_location": "L658",
+      "source_location": "L399",
       "weight": 1.0
     },
     {
@@ -340037,5 +340037,5 @@
       "source_file": ".github/workflows/ci.yml"
     }
   ],
-  "built_at_commit": "d4d186faf27a7b61b33c596a2caf5e8c5bdd947a"
+  "built_at_commit": "796153fa81df820668269b3ceab22e728a89b117"
 }

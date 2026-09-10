@@ -2436,9 +2436,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/layout/command-palette/command-palette.component.ts": {
-    "mtime": 1789071307.8921244,
-    "seen": 1789071390.2857032,
-    "ast_hash": "eb101adff4d5223d177df6428cc19b02",
+    "mtime": 1789073388.3921833,
+    "seen": 1789073454.2888467,
+    "ast_hash": "15825ef5a81848863b8e4e1d7aebfa5b",
     "semantic_hash": ""
   },
   "apps/web/src/app/shared/ui/markdown-link-sanitizer.ts": {
