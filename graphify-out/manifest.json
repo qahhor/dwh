@@ -2292,9 +2292,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/auth/login/login.component.ts": {
-    "mtime": 1788952302.960307,
-    "seen": 1788955180.4117928,
-    "ast_hash": "8c2c399ca72b1e2808e3fb22789b86c3",
+    "mtime": 1789071972.57865,
+    "seen": 1789072048.351057,
+    "ast_hash": "bf11c61855335c2ac2b1d7f99bcebdaf",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/files/files.component.spec.ts": {
@@ -5007,6 +5007,30 @@
     "mtime": 1789071739.9495375,
     "seen": 1789071811.4287758,
     "ast_hash": "d73a975e426440407aea229aaadb6eba",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/auth/login/components/login-header.component.ts": {
+    "mtime": 1789071943.0455952,
+    "seen": 1789072048.351057,
+    "ast_hash": "5d431e6861967d1d41ea48be2567b1cb",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/auth/login/components/login-reset-modal.component.ts": {
+    "mtime": 1789071943.0455952,
+    "seen": 1789072048.351057,
+    "ast_hash": "597c3fd18e76cc460581a2085188c0da",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/auth/login/components/login-top-bar.component.ts": {
+    "mtime": 1789071943.0455952,
+    "seen": 1789072048.351057,
+    "ast_hash": "b740a47dd407f36881b24e387f4bf356",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/auth/login/login.models.ts": {
+    "mtime": 1789071943.0455952,
+    "seen": 1789072048.351057,
+    "ast_hash": "752f5043f9514d88232189fc51586287",
     "semantic_hash": ""
   }
 }
