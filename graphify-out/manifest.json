@@ -4662,9 +4662,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/iam/roles/components/role-permissions-matrix.component.ts": {
-    "mtime": 1789058050.6885798,
-    "seen": 1789058164.9149315,
-    "ast_hash": "55c2d26556e152faa6b83c1e60d3f6db",
+    "mtime": 1789073196.6805804,
+    "seen": 1789073261.9263709,
+    "ast_hash": "1d7c5938c800667d4c1b67c3983fa006",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/iam/roles/roles.models.ts": {

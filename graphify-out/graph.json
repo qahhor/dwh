@@ -4135,7 +4135,7 @@
       "file_type": "code",
       "norm_label": "rolepermissionsmatrixcomponent",
       "source_file": "apps/web/src/app/features/iam/roles/components/role-permissions-matrix.component.ts",
-      "source_location": "L599"
+      "source_location": "L258"
     },
     {
       "id": "apps_web_src_app_features_iam_roles_roles_models_formactionitem",
@@ -153869,7 +153869,7 @@
       "confidence_score": 1.0,
       "context": "decorator",
       "source_file": "apps/web/src/app/features/iam/roles/components/role-permissions-matrix.component.ts",
-      "source_location": "L621",
+      "source_location": "L280",
       "weight": 1.0
     },
     {
@@ -153881,7 +153881,7 @@
       "confidence_score": 1.0,
       "context": "decorator",
       "source_file": "apps/web/src/app/features/iam/roles/components/role-permissions-matrix.component.ts",
-      "source_location": "L635",
+      "source_location": "L294",
       "weight": 1.0
     },
     {
@@ -164801,7 +164801,7 @@
       "confidence_score": 1.0,
       "context": "field",
       "source_file": "apps/web/src/app/features/iam/roles/components/role-permissions-matrix.component.ts",
-      "source_location": "L600",
+      "source_location": "L259",
       "weight": 1.0
     },
     {
@@ -164813,7 +164813,7 @@
       "confidence_score": 1.0,
       "context": "field",
       "source_file": "apps/web/src/app/features/iam/roles/components/role-permissions-matrix.component.ts",
-      "source_location": "L615",
+      "source_location": "L274",
       "weight": 1.0
     },
     {
@@ -246766,7 +246766,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "apps/web/src/app/features/iam/roles/components/role-permissions-matrix.component.ts",
-      "source_location": "L599",
+      "source_location": "L258",
       "weight": 1.0
     },
     {
@@ -340037,5 +340037,5 @@
       "source_file": ".github/workflows/ci.yml"
     }
   ],
-  "built_at_commit": "f1752f00a1fa0473f42aeda77805073a1614b7d7"
+  "built_at_commit": "ab73cbb627dd897792d380bc05a6cd0d6881115c"
 }
