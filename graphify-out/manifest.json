@@ -2352,9 +2352,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/iam/users/users.component.ts": {
-    "mtime": 1789026796.2728128,
-    "seen": 1789026859.659325,
-    "ast_hash": "8baad028e4591fefff411c3ce93a88fc",
+    "mtime": 1789027074.3906212,
+    "seen": 1789027127.4020739,
+    "ast_hash": "9ff2f26c9d8a80ce4f2b6208c39bad59",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/notifications/notifications.component.spec.ts": {
@@ -4611,6 +4611,12 @@
     "mtime": 1789026782.728403,
     "seen": 1789026859.659325,
     "ast_hash": "7bf16253af310305eee48ad254b0bc73",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/iam/users/components/user-detail-modal.component.ts": {
+    "mtime": 1789027056.659827,
+    "seen": 1789027127.4020739,
+    "ast_hash": "73c86292873a7ca78a4ab5d342801753",
     "semantic_hash": ""
   }
 }
