@@ -2304,9 +2304,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/files/files.component.ts": {
-    "mtime": 1788751608.8300097,
-    "seen": 1788856915.157246,
-    "ast_hash": "c3a910fefb19c5bc234940018eaa3547",
+    "mtime": 1789070401.5741968,
+    "seen": 1789070475.738375,
+    "ast_hash": "d964d72c38ac7670200ddf401b201bd6",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/iam/custom-fields/custom-fields.component.spec.ts": {
@@ -4857,6 +4857,36 @@
     "mtime": 1789070061.7292566,
     "seen": 1789070236.0950074,
     "ast_hash": "3103711467be6e8f7dda4e4ebf36c3ab",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/files/components/files-metrics-cards.component.ts": {
+    "mtime": 1789070345.306944,
+    "seen": 1789070475.738375,
+    "ast_hash": "7db8a79d84e084a41b735a06706fd635",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/files/components/files-modals.component.ts": {
+    "mtime": 1789070388.339204,
+    "seen": 1789070475.738375,
+    "ast_hash": "2f683610b19e3954106991212a60f24d",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/files/components/files-table.component.ts": {
+    "mtime": 1789070373.5373945,
+    "seen": 1789070475.738375,
+    "ast_hash": "6f521ed69d251923f67060077d43f798",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/files/components/files-toolbar.component.ts": {
+    "mtime": 1789070357.2996507,
+    "seen": 1789070475.738375,
+    "ast_hash": "102082b84e5a491f7e6d9afce2900d91",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/files/files.models.ts": {
+    "mtime": 1789070317.58417,
+    "seen": 1789070475.738375,
+    "ast_hash": "5bf96d4a07d3a05ca30884841abd3c69",
     "semantic_hash": ""
   }
 }
