@@ -2424,9 +2424,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/layout/app-shell/app-shell.component.ts": {
-    "mtime": 1788983727.0398507,
-    "seen": 1788983839.6423163,
-    "ast_hash": "2e43f228c6d7e3dfefd1d5f1b6eb11d3",
+    "mtime": 1789049317.4143376,
+    "seen": 1789049372.8212905,
+    "ast_hash": "464b6c49772d989abe0b9e635e99a572",
     "semantic_hash": ""
   },
   "apps/web/src/app/layout/command-palette/command-palette.component.spec.ts": {
@@ -4617,6 +4617,12 @@
     "mtime": 1789027056.659827,
     "seen": 1789027127.4020739,
     "ast_hash": "73c86292873a7ca78a4ab5d342801753",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/layout/app-shell/components/app-header.component.ts": {
+    "mtime": 1789049214.139547,
+    "seen": 1789049372.8212905,
+    "ast_hash": "07387e374770e0e4a226ec25cb77ccfd",
     "semantic_hash": ""
   }
 }
