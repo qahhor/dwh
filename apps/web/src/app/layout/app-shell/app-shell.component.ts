@@ -12,33 +12,14 @@ import { NotificationService } from '../../core/services/notification.service';
 import { CommandPaletteService } from '../../core/services/command-palette.service';
 import { CommandPaletteComponent } from '../command-palette/command-palette.component';
 import { AppHeaderComponent } from './components/app-header.component';
+import { AppSidebarComponent } from './components/app-sidebar.component';
 import { ToastService } from '../../core/services/toast.service';
 import { ModuleService } from '../../core/services/module.service';
 import { NavigationService } from '../../core/services/navigation.service';
 import { finalize } from 'rxjs';
 
-export interface NavItem {
-  id: string;
-  route?: string;
-  labelKey?: string;
-  label?: string;
-  titleKey?: string;
-  icon: string;
-  permission: () => boolean;
-  exact?: boolean;
-  badge?: () => number;
-  children?: NavItem[];
-  external?: boolean;
-  targetUrl?: string;
-  openInIframe?: boolean;
-}
-
-export interface NavSection {
-  id: string;
-  titleKey: string;
-  items: NavItem[];
-}
-
+export type { NavItem, NavSection } from './app-shell.models';
+import type { NavItem, NavSection } from './app-shell.models';
 @Component({
   selector: 'app-shell',
   standalone: true,
@@ -47,304 +28,49 @@ export interface NavSection {
     RouterModule,
     TranslatePipe,
     CommandPaletteComponent,
-    AppHeaderComponent
+    AppHeaderComponent,
+    AppSidebarComponent
   ],
   template: `
     <a class="skip-link" href="#main-content" (click)="skipToContent($event)">{{ 'layout.app_shell.pereyti_k_osnovnomu_soderzhimomu' | t }}</a>
     <div class="app-layout">
-      <!-- Mobile Drawer Backdrop -->
-      <div *ngIf="isMobile() && isMobileMenuOpen()" class="mobile-drawer-backdrop" (click)="closeMobileMenu(true)" aria-hidden="true"></div>
-
-      <!-- Sidebar Slot (preserves flex-layout width during floating hover) -->
-      <div class="sidebar-slot" [class.collapsed]="isCollapsed()">
-        <!-- Sidebar -->
-        <aside
-          #sidebarElement
-          [id]="sidebarId"
-          class="sidebar"
-          [class.collapsed]="isCollapsed()"
-          [class.mobile-open]="isMobile() && isMobileMenuOpen()"
-          [attr.role]="isMobile() && isMobileMenuOpen() ? 'dialog' : null"
-          [attr.aria-modal]="isMobile() && isMobileMenuOpen() ? 'true' : null"
-          [attr.aria-hidden]="isMobile() && !isMobileMenuOpen() ? 'true' : null"
-          [attr.inert]="isMobile() && !isMobileMenuOpen() ? true : null"
-        >
-          <div class="sidebar-header">
-            <div class="brand-logo" *ngIf="!isCollapsed() || isMobileMenuOpen()">
-              <span class="brand-icon">S</span>
-              <span class="brand-name">SmartupCMS</span>
-            </div>
-            <div class="brand-mark-collapsed" *ngIf="isCollapsed() && !isMobileMenuOpen()" [title]="'SmartupCMS'">
-              <span class="brand-icon">S</span>
-            </div>
-            <button
-              *ngIf="!isMobile()"
-              type="button"
-              class="toggle-btn"
-              [class.pinned]="!isCollapsed()"
-              (click)="toggleSidebar()"
-              [attr.aria-label]="(isCollapsed() ? 'layout.app_shell.expand_navigation' : 'layout.app_shell.collapse_navigation') | t"
-              [attr.aria-expanded]="!isCollapsed()"
-              [title]="(isCollapsed() ? 'layout.app_shell.expand_navigation' : 'layout.app_shell.collapse_navigation') | t"
-            >
-              <span class="material-symbols-outlined" aria-hidden="true">{{ isCollapsed() ? 'chevron_right' : 'chevron_left' }}</span>
-            </button>
-            <button
-              *ngIf="isMobile() && isMobileMenuOpen()"
-              #mobileDrawerClose
-              type="button"
-              class="mobile-drawer-close"
-              [attr.aria-label]="'common.close' | t"
-              (click)="closeMobileMenu(true)"
-            >
-              <span class="material-symbols-outlined" aria-hidden="true">close</span>
-            </button>
-          </div>
-
-          <nav class="sidebar-nav" [attr.aria-label]="'layout.app_shell.osnovnaya_navigaciya' | t" (click)="onNavClick()">
-            <!-- Collapsed Mode: Categories Rail (Main Categories of the Menu) -->
-            <div *ngIf="isCollapsed() && !isMobileMenuOpen()" class="rail-category-list">
-              <ng-container *ngFor="let section of navSections()">
-                <button
-                  *ngIf="hasVisibleItems(section)"
-                  type="button"
-                  class="rail-category-btn"
-                  [class.active]="isSectionActive(section)"
-                  [class.open]="isFlyoutVisible() && hoveredFlyoutSection()?.id === section.id"
-                  [attr.aria-label]="section.titleKey | t"
-                  [attr.title]="section.titleKey | t"
-                  (click)="onCategoryClick(section, $event)"
-                  (mouseenter)="onCategoryMouseEnter(section, $event)"
-                  (mouseleave)="onCategoryMouseLeave()"
-                >
-                  <span class="material-symbols-outlined rail-category-icon" aria-hidden="true">{{ getSectionIcon(section.id) }}</span>
-                  <span class="rail-category-active-bar" *ngIf="isSectionActive(section)" aria-hidden="true"></span>
-                  <span class="rail-category-badge" *ngIf="getSectionBadge(section) > 0">{{ getSectionBadge(section) }}</span>
-                  <div class="nav-tooltip" role="tooltip">
-                    <span>{{ section.titleKey | t }}</span>
-                  </div>
-                </button>
-              </ng-container>
-            </div>
-
-            <!-- Expanded Mode / Mobile Drawer: Full Sections Hierarchy -->
-            <ng-container *ngIf="!isCollapsed() || isMobileMenuOpen()">
-              <ng-container *ngFor="let section of navSections(); let first = first">
-                <button
-                  type="button"
-                  class="nav-section-header"
-                  *ngIf="hasVisibleItems(section)"
-                  (click)="toggleSection(section.id, $event)"
-                  [attr.aria-expanded]="isSectionExpanded(section.id)"
-                  [attr.aria-controls]="'section-content-' + section.id"
-                  [attr.aria-label]="(isSectionExpanded(section.id) ? 'layout.app_shell.collapse_section' : 'layout.app_shell.expand_section') | t"
-                >
-                  <span class="nav-section-title">{{ section.titleKey | t }}</span>
-                  <span class="section-active-dot" *ngIf="!isSectionExpanded(section.id) && isSectionActive(section)" [attr.title]="'common.active' | t"></span>
-                  <span class="material-symbols-outlined section-chevron" [class.rotated]="!isSectionExpanded(section.id)" aria-hidden="true">expand_more</span>
-                </button>
-                <div
-                  [id]="'section-content-' + section.id"
-                  class="nav-section-content"
-                  [class.collapsed]="!isSectionExpanded(section.id)"
-                >
-                  <ng-container *ngFor="let item of section.items">
-                    <!-- Internal link item -->
-                    <a
-                      *ngIf="item.permission() && !item.children?.length && !item.external"
-                      [routerLink]="item.route"
-                      routerLinkActive="active"
-                      [routerLinkActiveOptions]="{ exact: !!item.exact }"
-                      [attr.aria-current]="item.route && isRouteActive(item.route, !!item.exact) ? 'page' : null"
-                      class="nav-item"
-                      [title]="item.label ? item.label : ((item.titleKey || item.labelKey!) | t)"
-                    >
-                      <span class="material-symbols-outlined nav-icon" aria-hidden="true">{{ item.icon }}</span>
-                      <span class="nav-label">{{ item.label ? item.label : (item.labelKey! | t) }}</span>
-                      <span class="unread-chip" *ngIf="item.badge && item.badge() > 0">
-                        {{ item.badge() }}
-                      </span>
-                    </a>
-
-                    <!-- External link item -->
-                    <a
-                      *ngIf="item.permission() && !item.children?.length && item.external"
-                      [href]="item.targetUrl"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="nav-item"
-                      [title]="item.label ? item.label : ((item.titleKey || item.labelKey!) | t)"
-                    >
-                      <span class="material-symbols-outlined nav-icon" aria-hidden="true">{{ item.icon }}</span>
-                      <span class="nav-label">{{ item.label ? item.label : (item.labelKey! | t) }}</span>
-                      <span class="material-symbols-outlined sub-icon" style="margin-left: auto; font-size: 14px; opacity: 0.7;" aria-hidden="true">open_in_new</span>
-                    </a>
-
-                    <!-- Submenu parent -->
-                    <div *ngIf="item.permission() && item.children?.length" class="nav-parent-group">
-                      <button
-                        type="button"
-                        class="nav-item nav-parent-btn"
-                        (click)="toggleSubmenu(item.id, $event)"
-                        [attr.aria-expanded]="isSubmenuExpanded(item.id)"
-                        [title]="item.label ? item.label : ((item.titleKey || item.labelKey!) | t)"
-                      >
-                        <span class="material-symbols-outlined nav-icon" aria-hidden="true">{{ item.icon }}</span>
-                        <span class="nav-label">{{ item.label ? item.label : (item.labelKey! | t) }}</span>
-                        <span class="material-symbols-outlined submenu-chevron" [class.rotated]="!isSubmenuExpanded(item.id)" aria-hidden="true">expand_more</span>
-                      </button>
-
-                      <div class="nav-submenu" *ngIf="isSubmenuExpanded(item.id)">
-                        <ng-container *ngFor="let child of item.children">
-                          <a
-                            *ngIf="child.permission()"
-                            [routerLink]="child.route"
-                            routerLinkActive="active"
-                            [routerLinkActiveOptions]="{ exact: !!child.exact }"
-                            [attr.aria-current]="child.route && isRouteActive(child.route, !!child.exact) ? 'page' : null"
-                            class="nav-item nav-subitem"
-                            [title]="child.label ? child.label : ((child.titleKey || child.labelKey!) | t)"
-                          >
-                            <span class="material-symbols-outlined nav-icon sub-icon" aria-hidden="true">{{ child.icon }}</span>
-                            <span class="nav-label">{{ child.label ? child.label : (child.labelKey! | t) }}</span>
-                          </a>
-                        </ng-container>
-                      </div>
-                    </div>
-                  </ng-container>
-                </div>
-              </ng-container>
-            </ng-container>
-          </nav>
-
-          <div class="sidebar-footer">
-            <a
-              routerLink="/iam/profile"
-              routerLinkActive="active"
-              [attr.aria-current]="isRouteActive('/iam/profile') ? 'page' : null"
-              class="user-profile-btn"
-              [title]="'nav.profile' | t"
-              (mouseenter)="onProfileMouseEnter($event)"
-              (mouseleave)="onProfileMouseLeave()"
-              (click)="onNavClick()"
-            >
-              <div class="avatar-circle">
-                {{ getUserInitial() }}
-              </div>
-              <div class="user-meta" *ngIf="!isCollapsed() || isMobileMenuOpen()">
-                <div class="user-name">{{ authService.currentUser()?.name }}</div>
-                <div class="user-role">&#64;{{ authService.currentUser()?.login }}</div>
-              </div>
-              <div class="nav-tooltip" *ngIf="isCollapsed() && !isMobile()" role="tooltip">
-                <span>{{ authService.currentUser()?.name || ('nav.profile' | t) }}</span>
-              </div>
-            </a>
-          </div>
-        </aside>
-
-        <!-- Collapsed Rail Flyout Popover (Opens next to hovered/clicked category) -->
-        <div
-          *ngIf="isCollapsed() && !isMobile() && isFlyoutVisible() && hoveredFlyoutSection() as section"
-          class="rail-flyout-popover"
-          [style.top.px]="flyoutAnchorTop()"
-          (mouseenter)="onFlyoutMouseEnter()"
-          (mouseleave)="onFlyoutMouseLeave()"
-          role="menu"
-          [attr.aria-label]="section.titleKey | t"
-        >
-          <div class="flyout-header">
-            <span class="flyout-section-title">{{ section.titleKey | t }}</span>
-          </div>
-          <div class="flyout-body">
-            <ng-container *ngFor="let item of section.items">
-              <!-- Internal link item -->
-              <a
-                *ngIf="item.permission() && !item.children?.length && !item.external"
-                [routerLink]="item.route"
-                routerLinkActive="active"
-                [routerLinkActiveOptions]="{ exact: !!item.exact }"
-                class="flyout-item"
-                (click)="onFlyoutItemClick()"
-                role="menuitem"
-              >
-                <span class="material-symbols-outlined flyout-icon" aria-hidden="true">{{ item.icon }}</span>
-                <span class="flyout-label">{{ item.label ? item.label : ((item.titleKey || item.labelKey!) | t) }}</span>
-                <span class="unread-chip flyout-chip" *ngIf="item.badge && item.badge() > 0">
-                  {{ item.badge() }}
-                </span>
-              </a>
-
-              <!-- External link item -->
-              <a
-                *ngIf="item.permission() && !item.children?.length && item.external"
-                [href]="item.targetUrl"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="flyout-item"
-                (click)="onFlyoutItemClick()"
-                role="menuitem"
-              >
-                <span class="material-symbols-outlined flyout-icon" aria-hidden="true">{{ item.icon }}</span>
-                <span class="flyout-label">{{ item.label ? item.label : ((item.titleKey || item.labelKey!) | t) }}</span>
-                <span class="material-symbols-outlined flyout-ext-icon" aria-hidden="true">open_in_new</span>
-              </a>
-
-              <!-- Submenu group item -->
-              <div *ngIf="item.permission() && item.children?.length" class="flyout-parent-group">
-                <div class="flyout-item flyout-parent-header">
-                  <span class="material-symbols-outlined flyout-icon" aria-hidden="true">{{ item.icon }}</span>
-                  <span class="flyout-label">{{ item.label ? item.label : ((item.titleKey || item.labelKey!) | t) }}</span>
-                </div>
-                <div class="flyout-subitems">
-                  <ng-container *ngFor="let child of item.children">
-                    <a
-                      *ngIf="child.permission()"
-                      [routerLink]="child.route"
-                      routerLinkActive="active"
-                      [routerLinkActiveOptions]="{ exact: !!child.exact }"
-                      class="flyout-item flyout-subitem"
-                      (click)="onFlyoutItemClick()"
-                      role="menuitem"
-                    >
-                      <span class="material-symbols-outlined flyout-icon sub-icon" aria-hidden="true">{{ child.icon }}</span>
-                      <span class="flyout-label">{{ child.label ? child.label : (child.labelKey! | t) }}</span>
-                    </a>
-                  </ng-container>
-                </div>
-              </div>
-            </ng-container>
-          </div>
-        </div>
-
-        <!-- Collapsed Rail Profile Popover -->
-        <div
-          *ngIf="isCollapsed() && !isMobile() && isProfileFlyoutVisible()"
-          class="rail-flyout-popover profile-flyout"
-          [style.bottom.px]="12"
-          (mouseenter)="onProfileFlyoutMouseEnter()"
-          (mouseleave)="onProfileFlyoutMouseLeave()"
-          role="menu"
-        >
-          <div class="flyout-header profile-flyout-header">
-            <div class="flyout-user-name">{{ authService.currentUser()?.name }}</div>
-            <div class="flyout-user-role font-mono">&#64;{{ authService.currentUser()?.login }}</div>
-          </div>
-          <div class="flyout-body">
-            <a routerLink="/iam/profile" class="flyout-item" (click)="onProfileFlyoutClick()" role="menuitem">
-              <span class="material-symbols-outlined flyout-icon">account_circle</span>
-              <span class="flyout-label">{{ 'nav.profile' | t }}</span>
-            </a>
-            <a routerLink="/settings" class="flyout-item" (click)="onProfileFlyoutClick()" role="menuitem">
-              <span class="material-symbols-outlined flyout-icon">settings</span>
-              <span class="flyout-label">{{ 'nav.settings' | t }}</span>
-            </a>
-            <button type="button" class="flyout-item flyout-btn text-danger" (click)="onLogout()" role="menuitem">
-              <span class="material-symbols-outlined flyout-icon">logout</span>
-              <span class="flyout-label">{{ 'layout.app_shell.vyyti_iz_sistemy' | t }}</span>
-            </button>
-          </div>
-        </div>
-      </div>
+      <!-- Sidebar (Delegated Component) -->
+      <app-sidebar
+        [sidebarId]="sidebarId"
+        [isMobile]="isMobile()"
+        [isMobileMenuOpen]="isMobileMenuOpen()"
+        [isCollapsed]="isCollapsed()"
+        [navSections]="navSections()"
+        [isFlyoutVisible]="isFlyoutVisible()"
+        [hoveredFlyoutSection]="hoveredFlyoutSection()"
+        [flyoutAnchorTop]="flyoutAnchorTop()"
+        [isProfileFlyoutVisible]="isProfileFlyoutVisible()"
+        [currentUser]="authService.currentUser()"
+        [isSectionActive]="isSectionActiveFn"
+        [isRouteActive]="isRouteActiveFn"
+        [getSectionIcon]="getSectionIconFn"
+        [getSectionBadge]="getSectionBadgeFn"
+        [hasVisibleItems]="hasVisibleItemsFn"
+        [isSectionExpanded]="isSectionExpandedFn"
+        [isSubmenuExpanded]="isSubmenuExpandedFn"
+        (toggleSidebar)="toggleSidebar()"
+        (closeMobileMenu)="closeMobileMenu($event)"
+        (onNavClick)="onNavClick()"
+        (toggleSection)="toggleSection($event.id, $event.event)"
+        (toggleSubmenu)="toggleSubmenu($event.id, $event.event)"
+        (categoryClick)="onCategoryClick($event.section, $event.event)"
+        (categoryMouseEnter)="onCategoryMouseEnter($event.section, $event.event)"
+        (categoryMouseLeave)="onCategoryMouseLeave()"
+        (profileMouseEnter)="onProfileMouseEnter($event)"
+        (profileMouseLeave)="onProfileMouseLeave()"
+        (flyoutMouseEnter)="onFlyoutMouseEnter()"
+        (flyoutMouseLeave)="onFlyoutMouseLeave()"
+        (flyoutItemClick)="onFlyoutItemClick()"
+        (profileFlyoutMouseEnter)="onProfileFlyoutMouseEnter()"
+        (profileFlyoutMouseLeave)="onProfileFlyoutMouseLeave()"
+        (profileFlyoutClick)="onProfileFlyoutClick()"
+        (logout)="onLogout()"
+      ></app-sidebar>
 
       <!-- Main Container -->
       <div class="main-wrapper" [attr.inert]="isMobile() && isMobileMenuOpen() ? true : null">
@@ -389,259 +115,6 @@ export interface NavSection {
       box-shadow: var(--shadow-overlay);
     }
 
-    /* Collapsed Rail Categories */
-    .brand-mark-collapsed {
-      width: 44px;
-      height: 44px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .rail-category-list {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 0;
-      width: 100%;
-    }
-
-    .rail-category-btn {
-      position: relative;
-      width: 44px;
-      height: 44px;
-      border-radius: 10px;
-      background: transparent;
-      border: none;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #94a3b8;
-      cursor: pointer;
-      transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
-    }
-
-    .rail-category-btn:hover,
-    .rail-category-btn.open {
-      background-color: var(--bg-sidebar-hover, rgba(255, 255, 255, 0.08));
-      color: #ffffff;
-    }
-
-    .rail-category-btn.active {
-      background-color: rgba(2, 132, 199, 0.18);
-      color: #38bdf8;
-    }
-
-    .rail-category-btn.active .rail-category-icon {
-      color: #38bdf8;
-    }
-
-    .rail-category-icon {
-      font-size: 22px;
-      line-height: 1;
-    }
-
-    .rail-category-active-bar {
-      position: absolute;
-      left: 0;
-      top: 10px;
-      bottom: 10px;
-      width: 3px;
-      border-radius: 0 3px 3px 0;
-      background-color: var(--primary, #0284c7);
-    }
-
-    .rail-category-badge {
-      position: absolute;
-      top: 4px;
-      right: 4px;
-      min-width: 16px;
-      height: 16px;
-      padding: 0 4px;
-      border-radius: 8px;
-      background-color: var(--danger, #ef4444);
-      color: #ffffff;
-      font-size: 10px;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      line-height: 1;
-    }
-
-    /* Rail Flyout Popover (Floating card matching user screenshot) */
-    .rail-flyout-popover {
-      position: fixed;
-      left: 64px;
-      width: 240px;
-      max-height: calc(100vh - 32px);
-      background-color: #0f172a;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 10px;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
-      z-index: 1250;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      padding: 8px;
-      animation: flyout-appear 0.14s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    .rail-flyout-popover.profile-flyout {
-      width: 220px;
-    }
-
-    @keyframes flyout-appear {
-      from {
-        opacity: 0;
-        transform: translateX(-6px);
-      }
-      to {
-        opacity: 1;
-        transform: translateX(0);
-      }
-    }
-
-    .flyout-header {
-      padding: 6px 10px 8px 10px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      margin-bottom: 4px;
-    }
-
-    .flyout-section-title {
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
-      color: #94a3b8;
-    }
-
-    .profile-flyout-header {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .flyout-user-name {
-      font-size: 13px;
-      font-weight: 600;
-      color: #f8fafc;
-    }
-
-    .flyout-user-role {
-      font-size: 11px;
-      color: #94a3b8;
-    }
-
-    .flyout-body {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .flyout-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 8px 12px;
-      border-radius: 6px;
-      color: #cbd5e1;
-      text-decoration: none;
-      font-size: 13px;
-      font-weight: 500;
-      transition: all 0.12s ease;
-      cursor: pointer;
-    }
-
-    .flyout-btn {
-      width: 100%;
-      background: transparent;
-      border: none;
-      font-family: inherit;
-      text-align: left;
-    }
-
-    .flyout-item:hover,
-    .flyout-item.highlighted {
-      background-color: rgba(255, 255, 255, 0.08);
-      color: #ffffff;
-    }
-
-    .flyout-item.active {
-      background-color: #0284c7 !important;
-      color: #ffffff !important;
-      font-weight: 600;
-    }
-
-    .flyout-item.active .flyout-icon {
-      color: #ffffff !important;
-      opacity: 1;
-    }
-
-    .flyout-icon {
-      font-size: 18px;
-      color: #94a3b8;
-      opacity: 0.9;
-      flex-shrink: 0;
-    }
-
-    .flyout-label {
-      flex: 1;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .flyout-chip {
-      margin-left: auto;
-      font-size: 11px;
-    }
-
-    .flyout-ext-icon {
-      font-size: 14px;
-      margin-left: auto;
-      opacity: 0.7;
-    }
-
-    .flyout-parent-group {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .flyout-parent-header {
-      font-weight: 600;
-      color: #94a3b8;
-      pointer-events: none;
-    }
-
-    .flyout-subitems {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      padding-left: 12px;
-    }
-
-    .flyout-subitem {
-      font-size: 12px;
-      padding: 6px 10px;
-    }
-
-    .text-danger {
-      color: #f87171 !important;
-    }
-    .text-danger:hover {
-      background-color: rgba(239, 68, 68, 0.15) !important;
-      color: #fca5a5 !important;
-    }
-
-    .sidebar-slot:has(.rail-flyout-popover) .nav-tooltip {
-      opacity: 0 !important;
-      visibility: hidden !important;
-      pointer-events: none !important;
-    }
-
     .skip-link:focus {
       transform: translateY(0);
     }
@@ -651,377 +124,6 @@ export interface NavSection {
       height: 100vh;
       width: 100vw;
       overflow: hidden;
-    }
-
-    /* Sidebar Layout Slot: reserves space in document flow so page never jumps on hover-expand */
-    .sidebar-slot {
-      width: 220px;
-      height: 100%;
-      flex-shrink: 0;
-      position: relative;
-      transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .sidebar-slot.collapsed {
-      width: 60px;
-    }
-
-    /* Sidebar */
-    .sidebar {
-      position: absolute;
-      top: 0;
-      left: 0;
-      bottom: 0;
-      width: 220px;
-      height: 100%;
-      background-color: var(--bg-sidebar);
-      color: #94a3b8;
-      display: flex;
-      flex-direction: column;
-      border-right: 1px solid rgba(255, 255, 255, 0.06);
-      transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease, border-color 0.2s ease;
-      z-index: 100;
-    }
-
-    .sidebar.collapsed {
-      width: 60px;
-    }
-
-
-    .sidebar-header {
-      height: 52px;
-      padding: 0 14px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    }
-
-    .brand-logo {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .brand-icon {
-      width: 26px;
-      height: 26px;
-      background-color: var(--primary);
-      color: #ffffff;
-      border-radius: var(--radius-sm);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 14px;
-    }
-
-    .brand-name {
-      font-size: 14px;
-      font-weight: 600;
-      color: #f8fafc;
-    }
-
-    .toggle-btn,
-    .mobile-drawer-close {
-      background: transparent;
-      border: none;
-      color: #64748b;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 4px;
-      border-radius: var(--radius-sm);
-    }
-    .toggle-btn:hover,
-    .mobile-drawer-close:hover {
-      background-color: var(--bg-sidebar-hover);
-      color: #ffffff;
-    }
-
-    .sidebar-divider {
-      height: 1px;
-      margin: 8px 6px;
-      background: rgba(255, 255, 255, 0.08);
-    }
-
-    .sidebar-nav {
-      flex: 1;
-      padding: 10px 8px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .nav-section-header {
-      width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: transparent;
-      border: none;
-      padding: 8px 6px 4px 6px;
-      cursor: pointer;
-      text-align: left;
-      border-radius: var(--radius-sm);
-      transition: background-color 0.15s ease;
-      color: inherit;
-    }
-
-    .nav-section-header:hover {
-      background-color: var(--bg-sidebar-hover);
-    }
-
-    .nav-section-header:focus-visible {
-      outline: 2px solid var(--primary);
-      outline-offset: 1px;
-    }
-
-    .nav-section-title {
-      font-size: 10px;
-      text-transform: uppercase;
-      font-weight: 600;
-      letter-spacing: 0.5px;
-      color: #94a3b8;
-      padding: 0 4px;
-      flex: 1;
-    }
-
-    .section-chevron {
-      font-size: 16px;
-      color: #64748b;
-      transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .section-chevron.rotated {
-      transform: rotate(-90deg);
-    }
-
-    .section-active-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background-color: var(--primary);
-      margin-right: 6px;
-      flex-shrink: 0;
-    }
-
-    .nav-section-content {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      transition: max-height 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
-      max-height: 1200px;
-      opacity: 1;
-      overflow: hidden;
-    }
-
-    .nav-section-content.collapsed {
-      max-height: 0;
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .nav-parent-group {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .nav-parent-btn {
-      width: 100%;
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      font-family: inherit;
-      text-align: left;
-    }
-
-    .submenu-chevron {
-      font-size: 16px;
-      margin-left: auto;
-      color: #64748b;
-      transition: transform 0.2s ease;
-    }
-
-    .submenu-chevron.rotated {
-      transform: rotate(-90deg);
-    }
-
-    .nav-submenu {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      padding-left: 12px;
-      margin-left: 14px;
-      border-left: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .nav-subitem {
-      font-size: 12px;
-      padding: 6px 8px;
-    }
-
-    .sub-icon {
-      font-size: 16px;
-    }
-
-    .nav-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 8px 10px;
-      border-radius: var(--radius-sm);
-      color: #94a3b8;
-      text-decoration: none;
-      font-size: 13px;
-      font-weight: 500;
-      transition: all 0.15s ease;
-      position: relative;
-      border-left: 3px solid transparent;
-    }
-
-    .nav-item:hover {
-      background-color: var(--bg-sidebar-hover);
-      color: #f1f5f9;
-    }
-
-    .nav-item.active {
-      background-color: var(--bg-sidebar-active);
-      border-left-color: var(--primary);
-      color: #ffffff;
-      font-weight: 600;
-    }
-
-    .sidebar.collapsed:not(.hover-expanded) .nav-item {
-      justify-content: center;
-      padding: 8px 0;
-      border-left: none;
-    }
-
-    .toggle-btn.pinned {
-      color: var(--primary);
-    }
-
-    .collapsed-badge-dot {
-      position: absolute;
-      top: 7px;
-      right: 14px;
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background-color: var(--primary);
-      box-shadow: 0 0 0 2px var(--bg-sidebar);
-    }
-
-    .nav-tooltip {
-      position: absolute;
-      left: 64px;
-      top: 50%;
-      transform: translateY(-50%) translateX(-4px);
-      background: #1e293b;
-      color: #f8fafc;
-      padding: 5px 10px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 500;
-      white-space: nowrap;
-      pointer-events: none;
-      opacity: 0;
-      visibility: hidden;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s;
-      z-index: 1200;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .nav-tooltip-badge {
-      background: var(--primary);
-      color: #ffffff;
-      font-size: 10px;
-      font-weight: 700;
-      padding: 1px 5px;
-      border-radius: 9999px;
-    }
-
-    .nav-item:hover .nav-tooltip,
-    .nav-item:focus-visible .nav-tooltip,
-    .user-profile-btn:hover .nav-tooltip {
-      opacity: 1;
-      visibility: visible;
-      transform: translateY(-50%) translateX(0);
-    }
-
-    .nav-icon {
-      font-size: 18px;
-    }
-
-    .unread-chip {
-      margin-left: auto;
-      background-color: var(--primary);
-      color: #ffffff;
-      font-size: 10px;
-      font-weight: 600;
-      padding: 1px 6px;
-      border-radius: 9999px;
-    }
-
-    .sidebar-footer {
-      padding: 10px 8px;
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
-    }
-
-    .user-profile-btn {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 6px 8px;
-      border-radius: var(--radius-sm);
-      text-decoration: none;
-      color: #f1f5f9;
-      transition: background-color 0.1s ease;
-    }
-    .user-profile-btn:hover, .user-profile-btn.active {
-      background-color: var(--bg-sidebar-hover);
-    }
-
-    .avatar-circle {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      background-color: var(--primary);
-      color: #ffffff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 600;
-      font-size: 12px;
-      flex-shrink: 0;
-    }
-
-    .user-meta {
-      overflow: hidden;
-    }
-
-    .user-name {
-      font-size: 12px;
-      font-weight: 600;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .user-role {
-      font-size: 11px;
-      color: #94a3b8;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
 
     /* Main Wrapper */
@@ -1034,7 +136,6 @@ export interface NavSection {
       background-color: var(--bg-app);
     }
 
-
     .page-content {
       flex: 1;
       min-width: 0;
@@ -1042,79 +143,12 @@ export interface NavSection {
       padding: 20px;
     }
 
-    /* Mobile Drawer */
-    .mobile-menu-btn {
-      display: none;
-    }
-
-    .mobile-drawer-backdrop {
-      display: none;
-    }
-
-    @media (max-width: 1023px) {
-      .sidebar-slot {
-        width: 60px;
-      }
-
-      .sidebar.collapsed:not(.hover-expanded) .brand-logo,
-      .sidebar.collapsed:not(.hover-expanded) .nav-label,
-      .sidebar.collapsed:not(.hover-expanded) .nav-section-title,
-      .sidebar.collapsed:not(.hover-expanded) .user-meta,
-      .sidebar.collapsed:not(.hover-expanded) .unread-chip {
-        display: none;
-      }
-
-    }
-
     @media (max-width: 767px) {
-      .sidebar-slot {
-        width: 0 !important;
-      }
-
-      .mobile-menu-btn {
-        display: inline-flex;
-      }
-
-      .mobile-drawer-backdrop {
-        display: block;
-        position: fixed;
-        inset: 0;
-        background: rgba(15, 23, 42, 0.6);
-        backdrop-filter: blur(3px);
-        z-index: 1100;
-        animation: fadeIn 0.15s ease-out;
-      }
-
-      .sidebar {
-        position: fixed;
-        left: -260px;
-        top: 0;
-        bottom: 0;
-        width: 250px !important;
-        z-index: 1200;
-        box-shadow: var(--shadow-overlay);
-        transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-
-      .sidebar.mobile-open {
-        left: 0;
-      }
-
-      .sidebar.mobile-open .brand-logo,
-      .sidebar.mobile-open .nav-label,
-      .sidebar.mobile-open .nav-section-title,
-      .sidebar.mobile-open .user-meta,
-      .sidebar.mobile-open .unread-chip {
-        display: flex !important;
-      }
-
-
       .page-content {
         padding: 12px;
         overflow-x: hidden;
       }
     }
-
   `]
 })
 export class AppShellComponent implements OnDestroy {
@@ -1123,8 +157,21 @@ export class AppShellComponent implements OnDestroy {
   get mobileMenuBtn(): ElementRef<HTMLButtonElement> | undefined {
     return this.appHeader?.mobileMenuBtn;
   }
-  @ViewChild('sidebarElement') sidebarElement?: ElementRef<HTMLElement>;
-  @ViewChild('mobileDrawerClose') mobileDrawerClose?: ElementRef<HTMLButtonElement>;
+  @ViewChild(AppSidebarComponent) appSidebar?: AppSidebarComponent;
+  get sidebarElement(): ElementRef<HTMLElement> | undefined {
+    return this.appSidebar?.sidebarElement;
+  }
+  get mobileDrawerClose(): ElementRef<HTMLButtonElement> | undefined {
+    return this.appSidebar?.mobileDrawerClose;
+  }
+
+  readonly isSectionActiveFn = (section: NavSection) => this.isSectionActive(section);
+  readonly isRouteActiveFn = (route: string, exact: boolean = false) => this.isRouteActive(route, exact);
+  readonly getSectionIconFn = (id: string) => this.getSectionIcon(id);
+  readonly getSectionBadgeFn = (section: NavSection) => this.getSectionBadge(section);
+  readonly hasVisibleItemsFn = (section: NavSection) => this.hasVisibleItems(section);
+  readonly isSectionExpandedFn = (id: string) => this.isSectionExpanded(id);
+  readonly isSubmenuExpandedFn = (id: string) => this.isSubmenuExpanded(id);
 
   readonly sidebarId = 'app-sidebar';
   private readonly uiI18n = inject(I18nService);
