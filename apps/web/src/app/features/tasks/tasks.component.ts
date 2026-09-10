@@ -28,6 +28,7 @@ import { toLocalDateTime, toTaskInstant } from './task-form-value';
 import { TaskDictionariesModalComponent } from './components/task-dictionaries-modal.component';
 import { TaskKanbanViewComponent } from './components/task-kanban-view.component';
 import { TaskTableViewComponent } from './components/task-table-view.component';
+import { TaskFilterBarComponent } from './components/task-filter-bar.component';
 
 @Component({
   selector: 'app-tasks',
@@ -48,7 +49,8 @@ import { TaskTableViewComponent } from './components/task-table-view.component';
     UiFileUploadComponent,
     TaskDictionariesModalComponent,
     TaskKanbanViewComponent,
-    TaskTableViewComponent
+    TaskTableViewComponent,
+    TaskFilterBarComponent
   ],
 
 
@@ -139,149 +141,24 @@ import { TaskTableViewComponent } from './components/task-table-view.component';
       </div>
 
       <!-- Linear-Style Toolbar -->
-      <div class="toolbar">
-        <div class="toolbar-left-row">
-          <!-- Smart View Presets -->
-          <div class="preset-filter-group" role="group" [attr.aria-label]="'tasks.filtr_po_statusu' | t">
-            <button
-              type="button"
-              class="preset-btn"
-              [class.active]="activePreset === 'all'"
-              [attr.aria-pressed]="activePreset === 'all'"
-              (click)="setPreset('all')"
-            >
-              <span class="material-symbols-outlined preset-icon" aria-hidden="true">dashboard</span>
-              <span>{{ 'tasks.filter_preset_all' | t }}</span>
-            </button>
-            <button
-              type="button"
-              class="preset-btn"
-              [class.active]="activePreset === 'my'"
-              [attr.aria-pressed]="activePreset === 'my'"
-              (click)="setPreset('my')"
-            >
-              <span class="material-symbols-outlined preset-icon" aria-hidden="true">person</span>
-              <span>{{ 'tasks.filter_preset_my' | t }}</span>
-            </button>
-            <button
-              type="button"
-              class="preset-btn"
-              [class.active]="activePreset === 'reported'"
-              [attr.aria-pressed]="activePreset === 'reported'"
-              (click)="setPreset('reported')"
-            >
-              <span class="material-symbols-outlined preset-icon" aria-hidden="true">assignment_ind</span>
-              <span>{{ 'tasks.filter_preset_reported' | t }}</span>
-            </button>
-            <button
-              type="button"
-              class="preset-btn preset-overdue"
-              [class.active]="activePreset === 'overdue'"
-              [attr.aria-pressed]="activePreset === 'overdue'"
-              (click)="setPreset('overdue')"
-            >
-              <span class="material-symbols-outlined preset-icon" aria-hidden="true">error</span>
-              <span>{{ 'tasks.filter_preset_overdue' | t }}</span>
-            </button>
-          </div>
-
-          <div class="search-field">
-            <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
-            <label class="sr-only" for="task-search">{{ 'tasks.poisk_zadach' | t }}</label>
-            <input
-              id="task-search"
-              name="taskSearch"
-              type="text"
-              class="search-input"
-              [placeholder]="'projects.poisk_po_nazvaniyu_ili_opisaniyu' | t"
-              [(ngModel)]="searchQuery"
-              (ngModelChange)="onTaskSearchChange($event)"
-              (keydown.enter)="applyTaskSearchImmediately(); $event.preventDefault()"
-            />
-            <button *ngIf="searchQuery" type="button" class="clear-btn" [attr.aria-label]="'tasks.ochistit_poisk_zadach' | t" (click)="clearSearch()">
-              <span class="material-symbols-outlined" aria-hidden="true">close</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="toolbar-controls">
-          <!-- Status Filter Tabs (Default: 'active' which excludes done & cancelled) -->
-          <div class="status-tabs" role="group" [attr.aria-label]="'tasks.filtr_po_statusu' | t">
-            <button
-              type="button"
-              class="status-tab"
-              [class.active]="statusFilterMode === 'active'"
-              [attr.aria-pressed]="statusFilterMode === 'active'"
-              (click)="setStatusFilterMode('active')"
-              [title]="'tasks.tolko_aktivnye_zadachi_bez_vypolnennyh_i_otmenen' | t"
-            >
-              <span class="status-tab-dot active-dot" aria-hidden="true"></span>
-              {{ 'iam.aktivnye' | t }}
-            </button>
-            <button
-              type="button"
-              class="status-tab"
-              [class.active]="statusFilterMode === 'all'"
-              [attr.aria-pressed]="statusFilterMode === 'all'"
-              (click)="setStatusFilterMode('all')"
-              [title]="'tasks.vse_zadachi_vklyuchaya_zavershennye' | t"
-            >
-              {{ 'common.all' | t }}
-            </button>
-            <button
-              *ngFor="let s of statuses()"
-              type="button"
-              class="status-tab"
-              [class.active]="statusFilterMode === s.id"
-              [attr.aria-pressed]="statusFilterMode === s.id"
-              (click)="setStatusFilterMode(s.id)"
-            >
-              <span class="status-tab-dot" [style.background-color]="s.color || 'var(--primary)'" aria-hidden="true"></span>
-              {{ s.name }}
-            </button>
-          </div>
-
-          <!-- Project Filter -->
-          <label class="sr-only" for="task-project-filter">{{ 'tasks.filtr_po_proektu' | t }}</label>
-          <select
-            id="task-project-filter"
-            name="taskProjectFilter"
-            class="clean-select"
-            [(ngModel)]="selectedProjectId"
-            (change)="loadTasks(true)"
-          >
-            <option [ngValue]="null">{{ 'tasks.vse_proekty' | t }}</option>
-            <option *ngFor="let p of projects()" [ngValue]="p.id">{{ p.name }}</option>
-          </select>
-
-          <!-- Priority Filter -->
-          <label class="sr-only" for="task-priority-filter">{{ 'tasks.filtr_po_prioritetu' | t }}</label>
-          <select
-            id="task-priority-filter"
-            name="taskPriorityFilter"
-            class="clean-select"
-            [(ngModel)]="selectedPriority"
-            (change)="loadTasks(true)"
-          >
-            <option value="">{{ 'tasks.vse_prioritety' | t }}</option>
-            <option value="critical">{{ 'tasks.kriticheskiy' | t }}</option>
-            <option value="high">{{ 'task.priority.high' | t }}</option>
-            <option value="medium">{{ 'tasks.sredniy' | t }}</option>
-            <option value="low">{{ 'task.priority.low' | t }}</option>
-          </select>
-
-          <button
-            *ngIf="hasActiveFilters()"
-            type="button"
-            class="reset-filters-btn"
-            [attr.aria-label]="'tasks.sbrosit_vse_filtry' | t"
-            (click)="resetFilters()"
-            [title]="'tasks.sbrosit_vse_filtry' | t"
-          >
-            <span class="material-symbols-outlined" aria-hidden="true">filter_alt_off</span>
-          </button>
-        </div>
-      </div>
+      <app-task-filter-bar
+        [activePreset]="activePreset"
+        [searchQuery]="searchQuery"
+        [statusFilterMode]="statusFilterMode"
+        [statuses]="statuses()"
+        [selectedProjectId]="selectedProjectId"
+        [projects]="projects()"
+        [selectedPriority]="selectedPriority"
+        [hasActiveFilters]="hasActiveFilters()"
+        (activePresetChange)="setPreset($event)"
+        (searchQueryChange)="onTaskSearchChange($event)"
+        (searchApply)="applyTaskSearchImmediately()"
+        (searchClear)="clearSearch()"
+        (statusFilterModeChange)="setStatusFilterMode($event)"
+        (selectedProjectIdChange)="onProjectFilterChange($event)"
+        (selectedPriorityChange)="onPriorityFilterChange($event)"
+        (resetFilters)="resetFilters()"
+      ></app-task-filter-bar>
 
       <div class="request-state request-loading" *ngIf="isLoading()" role="status">
         {{ 'common.loading' | t }}
@@ -2895,6 +2772,16 @@ export class TasksComponent implements OnInit, OnDestroy {
 
   setStatusFilterMode(mode: 'active' | 'all' | number) {
     this.statusFilterMode = mode;
+    this.loadTasks(true);
+  }
+
+  onProjectFilterChange(projectId: number | null) {
+    this.selectedProjectId = projectId;
+    this.loadTasks(true);
+  }
+
+  onPriorityFilterChange(priority: string) {
+    this.selectedPriority = priority;
     this.loadTasks(true);
   }
 

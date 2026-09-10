@@ -2412,9 +2412,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/tasks/tasks.component.ts": {
-    "mtime": 1789024882.8436904,
-    "seen": 1789024938.5857284,
-    "ast_hash": "7052cb3ae0a33cf19f53e1966f6b59c4",
+    "mtime": 1789025027.4723208,
+    "seen": 1789025091.540201,
+    "ast_hash": "f21de6aa5e1faf86538a75ef37bd1ac5",
     "semantic_hash": ""
   },
   "apps/web/src/app/layout/app-shell/app-shell.component.spec.ts": {
@@ -4563,6 +4563,12 @@
     "mtime": 1789024856.190522,
     "seen": 1789024938.5857284,
     "ast_hash": "792ba60099e62ec08de47d24e5edefda",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/tasks/components/task-filter-bar.component.ts": {
+    "mtime": 1789024996.4410195,
+    "seen": 1789025091.540201,
+    "ast_hash": "c6e4a90803465a0a01c433b812646fe6",
     "semantic_hash": ""
   }
 }
