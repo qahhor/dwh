@@ -22,10 +22,10 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
       *ngIf="showModal"
       [isOpen]="showModal"
       [title]="(editingField ? 'iam.edit_field' : 'iam.new_custom_field') | t"
-      [hasFooter]="false"
+      [hasFooter]="true"
       (close)="closeModal.emit()"
     >
-      <form class="modal-form" (ngSubmit)="saveField.emit()">
+      <form id="customFieldForm" body class="modal-form" (ngSubmit)="saveField.emit()">
         <!-- Entity Target (only in creation) -->
         <div class="form-group" *ngIf="!editingField">
           <label class="form-label" for="custom-field-entity">
@@ -54,6 +54,10 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
               (input)="codeInput.emit($event)"
               [disabled]="!!editingField"
               [placeholder]="'iam.naprimer_inn_budget' | t"
+              maxlength="64"
+              autocomplete="off"
+              [attr.aria-invalid]="!!formError"
+              [attr.aria-describedby]="formError ? 'custom-field-form-error' : null"
               required
             />
             <span class="form-hint" *ngIf="!editingField">{{ 'iam.kod_polya_help' | t }}</span>
@@ -71,6 +75,9 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
               class="form-input"
               [(ngModel)]="formData.name"
               [placeholder]="'iam.naprimer_inn_byudzhet_proekta' | t"
+              maxlength="100"
+              [attr.aria-invalid]="!!formError"
+              [attr.aria-describedby]="formError ? 'custom-field-form-error' : null"
               required
             />
           </div>
@@ -103,6 +110,7 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
               class="form-input"
               [(ngModel)]="formData.defaultValue"
               [placeholder]="'iam.ne_obyazatelno' | t"
+              maxlength="255"
             />
           </div>
 
@@ -117,6 +125,8 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
               class="form-input font-mono"
               [(ngModel)]="formData.orderNo"
               [placeholder]="'iam.poryadok_sortirovki_hint' | t"
+              min="0"
+              max="99999"
             />
           </div>
         </div>
@@ -133,6 +143,8 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
             [(ngModel)]="formData.optionsText"
             rows="4"
             [placeholder]="'iam.po_odnomu_variantu_v_stroke' | t"
+            [attr.aria-invalid]="!!formError"
+            [attr.aria-describedby]="formError ? 'custom-field-form-error' : null"
             required
           ></textarea>
           <span class="form-hint">{{ 'iam.po_odnomu_variantu_v_stroke_dlya_otdelnogo_koda_' | t }}</span>
@@ -146,13 +158,13 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
           </label>
         </div>
 
-        <p *ngIf="formError" class="form-error" role="alert">{{ formError }}</p>
-
-        <div class="modal-actions">
-          <ui-button type="button" variant="secondary" (onClick)="closeModal.emit()">{{ 'common.cancel' | t }}</ui-button>
-          <ui-button type="submit" variant="primary" [loading]="saving">{{ 'common.save' | t }}</ui-button>
-        </div>
+        <p *ngIf="formError" id="custom-field-form-error" class="form-error" role="alert">{{ formError }}</p>
       </form>
+
+      <div footer class="modal-footer-actions">
+        <ui-button type="button" variant="secondary" (onClick)="closeModal.emit()">{{ 'common.cancel' | t }}</ui-button>
+        <ui-button type="submit" form="customFieldForm" variant="primary" [loading]="saving" (onClick)="saveField.emit()">{{ 'common.save' | t }}</ui-button>
+      </div>
     </ui-modal>
 
     <!-- Delete Confirmation Modal -->
@@ -251,6 +263,10 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
       margin: 0;
       color: var(--danger, #dc2626);
       font-size: 13px;
+      padding: 8px 12px;
+      background: var(--danger-subtle, rgba(239, 68, 68, 0.1));
+      border-radius: 6px;
+      border: 1px solid var(--danger-border, rgba(239, 68, 68, 0.2));
     }
 
     .checkbox-group {
@@ -266,13 +282,11 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
       cursor: pointer;
     }
 
-    .modal-actions {
+    .modal-footer-actions {
       display: flex;
       justify-content: flex-end;
       gap: 12px;
-      margin-top: 16px;
-      padding-top: 16px;
-      border-top: 1px solid var(--border-color);
+      width: 100%;
     }
 
     .delete-confirmation {

@@ -2310,15 +2310,15 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/iam/custom-fields/custom-fields.component.spec.ts": {
-    "mtime": 1788978190.319014,
-    "seen": 1788978401.7634761,
-    "ast_hash": "a572adbc49d498bddc13981f18bff871",
+    "mtime": 1789103284.4049492,
+    "seen": 1789103386.2364104,
+    "ast_hash": "e665f6123af702ccb34f8dc05a229a52",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/iam/custom-fields/custom-fields.component.ts": {
-    "mtime": 1789070170.2949126,
-    "seen": 1789070236.0950074,
-    "ast_hash": "2e789c80a2e20e1a5a6b527c6c124436",
+    "mtime": 1789103312.1163578,
+    "seen": 1789103386.2364104,
+    "ast_hash": "4095a3388dee7d07ab27165498475758",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/iam/profile/profile.component.spec.ts": {
@@ -3144,9 +3144,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/core/i18n/packaged-russian.ts": {
-    "mtime": 1788979232.9571493,
-    "seen": 1788979374.4198554,
-    "ast_hash": "1c8a907cbb63767ef793fb3e8287b3b2",
+    "mtime": 1789103101.1314907,
+    "seen": 1789103386.2364104,
+    "ast_hash": "8bc3a6b3ae8cd6e34cf2994bba4c0f78",
     "semantic_hash": ""
   },
   "apps/web/src/app/core/models/i18n.models.ts": {
@@ -4338,9 +4338,9 @@
     "semantic_hash": ""
   },
   "apps/server/src/main/java/com/greenwhite/dwh/instance/ms/note/repository/MsNoteRepository.java": {
-    "mtime": 1788889624.1923985,
-    "seen": 1788890247.0013318,
-    "ast_hash": "7c334b18cb6d593880d9bf140f1e07ab",
+    "mtime": 1789102485.167065,
+    "seen": 1789102773.5170565,
+    "ast_hash": "a4f9f90e8a999366d07662c648cefb4f",
     "semantic_hash": ""
   },
   "apps/server/src/main/java/com/greenwhite/dwh/instance/ms/note/service/MsNoteService.java": {
@@ -4368,15 +4368,15 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/notes/notes.component.spec.ts": {
-    "mtime": 1788890089.012109,
-    "seen": 1788890247.001829,
-    "ast_hash": "640f344062c78c21946f51ae1def4d33",
+    "mtime": 1789102559.3601503,
+    "seen": 1789102773.517556,
+    "ast_hash": "3936c1caae3b69d6ceb28ac1bc1e19e6",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/notes/notes.component.ts": {
-    "mtime": 1789072675.299943,
-    "seen": 1789072754.5252218,
-    "ast_hash": "322e5d3bfda38518e0c8c175f920ac73",
+    "mtime": 1789102663.3332398,
+    "seen": 1789102773.517556,
+    "ast_hash": "98c692a28149060c81e723f064d059cd",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/settings/modules/modules.component.spec.ts": {
@@ -4836,15 +4836,15 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/iam/custom-fields/components/custom-fields-modals.component.ts": {
-    "mtime": 1789070149.060009,
-    "seen": 1789070236.0950074,
-    "ast_hash": "faeee26ee2ed53c64df2fe8f4082ad1d",
+    "mtime": 1789102965.2013907,
+    "seen": 1789103386.2364104,
+    "ast_hash": "ad3797e3d81019207c221094dc7c4304",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/iam/custom-fields/components/custom-fields-table.component.ts": {
-    "mtime": 1789070132.5130408,
-    "seen": 1789070236.0950074,
-    "ast_hash": "e23e0978d2fc6e77f192181a26869b53",
+    "mtime": 1789103195.134769,
+    "seen": 1789103386.2364104,
+    "ast_hash": "7505a1a8ed25e88801b18abb4dac8acc",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/iam/custom-fields/components/custom-fields-toolbar.component.ts": {
@@ -5157,6 +5157,12 @@
     "mtime": 1789074292.699078,
     "seen": 1789074773.380665,
     "ast_hash": "5066d7ecd143b8c033a21a2303a8c659",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/iam/custom-fields/services/custom-fields-form.service.ts": {
+    "mtime": 1789102888.8625011,
+    "seen": 1789103386.2364104,
+    "ast_hash": "548ff3581ad2ad16f8abeb53af07e1e2",
     "semantic_hash": ""
   }
 }

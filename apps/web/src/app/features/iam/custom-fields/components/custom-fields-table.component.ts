@@ -18,20 +18,50 @@ import { TranslatePipe, I18nService } from '../../../../core/services/i18n.servi
         <table class="data-table" [attr.aria-label]="'iam.dinamicheskie_atributy' | t">
           <thead>
             <tr>
-              <th class="col-order">#</th>
-              <th>{{ 'iam.kod_polya' | t }}</th>
-              <th>{{ 'iam.nazvanie' | t }}</th>
-              <th>{{ 'iam.suschnost' | t }}</th>
-              <th>{{ 'iam.tip_dannyh' | t }}</th>
-              <th>{{ 'iam.obyazatelnoe' | t }}</th>
+              <th class="col-order sortable" (click)="onSort('orderNo')" [attr.aria-sort]="getAriaSort('orderNo')">
+                <span class="th-content">
+                  #
+                  <span class="material-symbols-outlined sort-icon" aria-hidden="true">{{ getSortIcon('orderNo') }}</span>
+                </span>
+              </th>
+              <th class="sortable" (click)="onSort('code')" [attr.aria-sort]="getAriaSort('code')">
+                <span class="th-content">
+                  {{ 'iam.kod_polya' | t }}
+                  <span class="material-symbols-outlined sort-icon" aria-hidden="true">{{ getSortIcon('code') }}</span>
+                </span>
+              </th>
+              <th class="sortable" (click)="onSort('name')" [attr.aria-sort]="getAriaSort('name')">
+                <span class="th-content">
+                  {{ 'iam.nazvanie' | t }}
+                  <span class="material-symbols-outlined sort-icon" aria-hidden="true">{{ getSortIcon('name') }}</span>
+                </span>
+              </th>
+              <th class="sortable" (click)="onSort('entityType')" [attr.aria-sort]="getAriaSort('entityType')">
+                <span class="th-content">
+                  {{ 'iam.suschnost' | t }}
+                  <span class="material-symbols-outlined sort-icon" aria-hidden="true">{{ getSortIcon('entityType') }}</span>
+                </span>
+              </th>
+              <th class="sortable" (click)="onSort('fieldType')" [attr.aria-sort]="getAriaSort('fieldType')">
+                <span class="th-content">
+                  {{ 'iam.tip_dannyh' | t }}
+                  <span class="material-symbols-outlined sort-icon" aria-hidden="true">{{ getSortIcon('fieldType') }}</span>
+                </span>
+              </th>
+              <th class="sortable" (click)="onSort('isRequired')" [attr.aria-sort]="getAriaSort('isRequired')">
+                <span class="th-content">
+                  {{ 'iam.obyazatelnoe' | t }}
+                  <span class="material-symbols-outlined sort-icon" aria-hidden="true">{{ getSortIcon('isRequired') }}</span>
+                </span>
+              </th>
               <th>{{ 'iam.znachenie_po_umolchaniyu' | t }}</th>
-              <th *ngIf="canManage" class="text-right">{{ 'common.actions' | t }}</th>
+              <th *ngIf="canManage || canEdit || canDelete" class="text-right">{{ 'common.actions' | t }}</th>
             </tr>
           </thead>
           <tbody>
             <!-- Loading Skeleton / Spinner State -->
             <tr *ngIf="isLoading" class="loading-row">
-              <td [attr.colspan]="canManage ? 8 : 7" class="loading-cell">
+              <td [attr.colspan]="(canManage || canEdit || canDelete) ? 8 : 7" class="loading-cell">
                 <div class="loading-state">
                   <span class="material-symbols-outlined spin-icon" aria-hidden="true">progress_activity</span>
                   <span>{{ 'iam.zagruzka_poley' | t }}</span>
@@ -41,7 +71,7 @@ import { TranslatePipe, I18nService } from '../../../../core/services/i18n.servi
 
             <!-- Data Rows -->
             <ng-container *ngIf="!isLoading">
-              <tr *ngFor="let f of fields">
+              <tr *ngFor="let f of fields; trackBy: trackById">
                 <td class="col-order order-cell font-mono">{{ f.orderNo || 0 }}</td>
                 <td class="code-cell font-mono">
                   <div class="code-badge-wrap">
@@ -61,7 +91,7 @@ import { TranslatePipe, I18nService } from '../../../../core/services/i18n.servi
                 <td>
                   <span class="entity-badge" [ngClass]="getEntityBadgeClass(f.entityType)">
                     <span class="material-symbols-outlined entity-icon" aria-hidden="true">{{ getEntityIcon(f.entityType) }}</span>
-                    <span>{{ f.entityType }}</span>
+                    <span>{{ getEntityLabel(f.entityType) }}</span>
                   </span>
                 </td>
                 <td>
@@ -79,8 +109,9 @@ import { TranslatePipe, I18nService } from '../../../../core/services/i18n.servi
                   </span>
                 </td>
                 <td class="text-muted">{{ f.defaultValue || '—' }}</td>
-                <td *ngIf="canManage" class="text-right">
+                <td *ngIf="canManage || canEdit || canDelete" class="text-right">
                   <button
+                    *ngIf="canEdit || canManage"
                     type="button"
                     class="action-btn"
                     (click)="editField.emit(f)"
@@ -90,6 +121,7 @@ import { TranslatePipe, I18nService } from '../../../../core/services/i18n.servi
                     <span class="material-symbols-outlined" aria-hidden="true">edit</span>
                   </button>
                   <button
+                    *ngIf="canDelete || canManage"
                     type="button"
                     class="action-btn danger"
                     (click)="deleteField.emit(f)"
@@ -103,7 +135,7 @@ import { TranslatePipe, I18nService } from '../../../../core/services/i18n.servi
 
               <!-- Empty State -->
               <tr *ngIf="fields.length === 0">
-                <td [attr.colspan]="canManage ? 8 : 7" class="empty-row">
+                <td [attr.colspan]="(canManage || canEdit || canDelete) ? 8 : 7" class="empty-row">
                   <div class="empty-state" *ngIf="searchQuery">
                     <span class="material-symbols-outlined empty-icon" aria-hidden="true">search_off</span>
                     <p>{{ 'iam.nichego_ne_naydeno_po_zaprosu' | t }}: «<strong>{{ searchQuery }}</strong>»</p>
@@ -163,8 +195,35 @@ import { TranslatePipe, I18nService } from '../../../../core/services/i18n.servi
       white-space: nowrap;
     }
 
+    .data-table th.sortable {
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.15s;
+    }
+
+    .data-table th.sortable:hover {
+      background: var(--border-color);
+      color: var(--text-main);
+    }
+
+    .th-content {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .sort-icon {
+      font-size: 16px;
+      color: var(--text-light);
+      opacity: 0.6;
+    }
+
+    th.sortable:hover .sort-icon {
+      opacity: 1;
+    }
+
     .col-order {
-      width: 50px;
+      width: 60px;
       text-align: center;
     }
 
@@ -373,13 +432,47 @@ export class CustomFieldsTableComponent {
   @Input() fields: CustomField[] = [];
   @Input() isLoading = false;
   @Input() canManage = false;
+  @Input() canEdit = false;
+  @Input() canDelete = false;
   @Input() searchQuery = '';
+  @Input() sortColumn: string = 'orderNo';
+  @Input() sortDirection: 'asc' | 'desc' = 'asc';
 
   @Output() copyCode = new EventEmitter<string>();
   @Output() editField = new EventEmitter<CustomField>();
   @Output() deleteField = new EventEmitter<CustomField>();
   @Output() clearSearch = new EventEmitter<void>();
   @Output() createField = new EventEmitter<void>();
+  @Output() sortChange = new EventEmitter<string>();
+
+  trackById(_index: number, item: CustomField): number | string {
+    return item.id ?? item.code;
+  }
+
+  onSort(column: string) {
+    this.sortChange.emit(column);
+  }
+
+  getSortIcon(col: string): string {
+    if (this.sortColumn !== col) return 'unfold_more';
+    return this.sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward';
+  }
+
+  getAriaSort(col: string): 'ascending' | 'descending' | 'none' {
+    if (this.sortColumn !== col) return 'none';
+    return this.sortDirection === 'asc' ? 'ascending' : 'descending';
+  }
+
+  getEntityLabel(ent: string): string {
+    switch ((ent || '').toUpperCase()) {
+      case 'USER': return this.uiI18n.translate('nav.users');
+      case 'PROJECT': return this.uiI18n.translate('nav.projects');
+      case 'TASK': return this.uiI18n.translate('nav.tasks');
+      case 'NOTE': return this.uiI18n.translate('iam.zametka_note');
+      case 'ORGANIZATION_UNIT': return this.uiI18n.translate('nav.org_units') || ent;
+      default: return ent;
+    }
+  }
 
   getEntityIcon(ent: string): string {
     switch (ent.toUpperCase()) {
