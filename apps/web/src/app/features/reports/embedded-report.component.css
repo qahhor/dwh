@@ -147,7 +147,7 @@
 
     .action-btn.primary {
       background-color: var(--primary);
-      color: #ffffff;
+      color: var(--on-primary);
       border-color: var(--primary);
     }
 

@@ -1,38 +1,152 @@
+/* ============================================================
+   Layer 1 — primitive scales.
+   These are the colours the application already used; they are
+   only made explicit here as full ramps, so a neighbouring step
+   is available when a semantic token needs one (e.g. contrast).
+   No value below is new and no existing value changed.
+
+   Ramp structure (12 steps + semantic layer on top) follows
+   @greenwhite/ui-kit; the hues stay this product's own.
+   ============================================================ */
+:root {
+  --color-white: #ffffff;
+
+  /* Neutral — surfaces, borders, text */
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a;
+  --color-slate-950: #020617;
+
+  /* Brand */
+  --color-sky-50: #f0f9ff;
+  --color-sky-100: #e0f2fe;
+  --color-sky-200: #bae6fd;
+  --color-sky-300: #7dd3fc;
+  --color-sky-400: #38bdf8;
+  --color-sky-500: #0ea5e9;
+  --color-sky-600: #0284c7;
+  --color-sky-700: #0369a1;
+  --color-sky-800: #075985;
+  --color-sky-900: #0c4a6e;
+  --color-sky-950: #082f49;
+
+  /* Success */
+  --color-green-50: #f0fdf4;
+  --color-green-100: #dcfce7;
+  --color-green-200: #bbf7d0;
+  --color-green-300: #86efac;
+  --color-green-400: #4ade80;
+  --color-green-500: #22c55e;
+  --color-green-600: #16a34a;
+  --color-green-700: #15803d;
+  --color-green-800: #166534;
+  --color-green-900: #14532d;
+  --color-green-950: #052e16;
+
+  /* Danger */
+  --color-red-50: #fef2f2;
+  --color-red-100: #fee2e2;
+  --color-red-200: #fecaca;
+  --color-red-300: #fca5a5;
+  --color-red-400: #f87171;
+  --color-red-500: #ef4444;
+  --color-red-600: #dc2626;
+  --color-red-700: #b91c1c;
+  --color-red-800: #991b1b;
+  --color-red-900: #7f1d1d;
+  --color-red-950: #450a0a;
+
+  /* Warning */
+  --color-amber-50: #fffbeb;
+  --color-amber-100: #fef3c7;
+  --color-amber-200: #fde68a;
+  --color-amber-300: #fcd34d;
+  --color-amber-400: #fbbf24;
+  --color-amber-500: #f59e0b;
+  --color-amber-600: #d97706;
+  --color-amber-700: #b45309;
+  --color-amber-800: #92400e;
+  --color-amber-900: #78350f;
+  --color-amber-950: #451a03;
+
+  /* Info */
+  --color-blue-50: #eff6ff;
+  --color-blue-100: #dbeafe;
+  --color-blue-200: #bfdbfe;
+  --color-blue-300: #93c5fd;
+  --color-blue-400: #60a5fa;
+  --color-blue-500: #3b82f6;
+  --color-blue-600: #2563eb;
+  --color-blue-700: #1d4ed8;
+  --color-blue-800: #1e40af;
+  --color-blue-900: #1e3a8a;
+  --color-blue-950: #172554;
+
+  /* Dark-theme surface ramp — this product's own, ordered by lightness */
+  --color-navy-950: #090d16;
+  --color-navy-900: #0b1120;
+  --color-navy-800: #131b2e;
+  --color-navy-700: #172033;
+  --color-navy-600: #192238;
+  --color-navy-500: #1c263d;
+  --color-navy-400: #23304d;
+  --color-navy-300: #253352;
+}
+
+/* ============================================================
+   Layer 2 — semantic tokens. Components reference only these.
+   ============================================================ */
 :root {
   /* Colors - Light Theme (Default) */
-  --bg-app: #f8fafc;
-  --bg-surface: #ffffff;
-  --bg-sidebar: #0f172a;
-  --bg-sidebar-hover: #1e293b;
-  --bg-sidebar-active: #334155;
-  --bg-hover: #f1f5f9;
-  --bg-active: #e2e8f0;
+  --bg-app: var(--color-slate-50);
+  --bg-surface: var(--color-white);
+  --bg-sidebar: var(--color-slate-900);
+  --bg-sidebar-hover: var(--color-slate-800);
+  --bg-sidebar-active: var(--color-slate-700);
+  --bg-hover: var(--color-slate-100);
+  --bg-active: var(--color-slate-200);
 
-  --border-color: #e2e8f0;
-  --border-subtle: #f1f5f9;
+  --border-color: var(--color-slate-200);
+  --border-subtle: var(--color-slate-100);
 
-  --text-main: #0f172a;
-  --text-muted: #334155;
-  --text-light: #475569;
-  --text-inverse: #ffffff;
+  --text-main: var(--color-slate-900);
+  --text-muted: var(--color-slate-700);
+  --text-light: var(--color-slate-600);
+  --text-inverse: var(--color-white);
 
   /* Smartup Brand Accent */
-  --primary: #0369a1;
-  --primary-hover: #075985;
-  --primary-subtle: #e0f2fe;
-  --primary-text: #0369a1;
-  --on-primary: #ffffff;
+  --primary: var(--color-sky-700);
+  --primary-hover: var(--color-sky-800);
+  --primary-subtle: var(--color-sky-100);
+  --primary-text: var(--color-sky-700);
+  --on-primary: var(--color-white);
 
-  /* Semantics */
-  --success: #166534;
-  --success-bg: #dcfce7;
-  --warning: #92400e;
-  --warning-bg: #fef3c7;
-  --danger: #991b1b;
-  --danger-hover: #b91c1c;
-  --danger-bg: #fee2e2;
-  --info: #1d4ed8;
-  --info-bg: #dbeafe;
+  /* Semantics.
+     `--x` is the solid fill; `--x-text` is the readable ink used on
+     `--x-bg`; `--on-x` is the ink used on the solid `--x` fill. They
+     differ per theme, which is what keeps contrast above 4.5:1. */
+  --success: var(--color-green-800);
+  --success-bg: var(--color-green-100);
+  --success-text: var(--color-green-800);
+  --on-success: var(--color-white);
+  --warning: var(--color-amber-800);
+  --warning-bg: var(--color-amber-100);
+  --warning-text: var(--color-amber-800);
+  --on-warning: var(--color-white);
+  --danger: var(--color-red-800);
+  --danger-hover: var(--color-red-700);
+  --danger-bg: var(--color-red-100);
+  --danger-text: var(--color-red-800);
+  --on-danger: var(--color-white);
+  --info: var(--color-blue-700);
+  --info-bg: var(--color-blue-100);
 
   /* Metrics & Layout */
   --control-height: 34px;
@@ -45,8 +159,8 @@
   --space-2: 8px;
   --space-3: 12px;
   --space-4: 16px;
-  --sidebar-text: #94a3b8;
-  --sidebar-text-strong: #f8fafc;
+  --sidebar-text: var(--color-slate-400);
+  --sidebar-text-strong: var(--color-slate-50);
   --sidebar-border: rgba(255, 255, 255, 0.08);
   --radius-xs: 3px;
   --radius-sm: 4px;
@@ -55,44 +169,51 @@
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
   --shadow-overlay: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --focus-ring: #0369a1;
+  --focus-ring: var(--color-sky-700);
 
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 [data-theme="dark"] {
-  --bg-app: #090d16;
-  --bg-surface: #131b2e;
-  --bg-sidebar: #0b1120;
-  --bg-sidebar-hover: #192238;
-  --bg-sidebar-active: #23304d;
-  --bg-hover: #1c263d;
-  --bg-active: #253352;
+  --bg-app: var(--color-navy-950);
+  --bg-surface: var(--color-navy-800);
+  --bg-sidebar: var(--color-navy-900);
+  --bg-sidebar-hover: var(--color-navy-600);
+  --bg-sidebar-active: var(--color-navy-400);
+  --bg-hover: var(--color-navy-500);
+  --bg-active: var(--color-navy-300);
 
-  --border-color: #1e293b;
-  --border-subtle: #172033;
+  --border-color: var(--color-slate-800);
+  --border-subtle: var(--color-navy-700);
 
-  --text-main: #f1f5f9;
-  --text-muted: #94a3b8;
-  --text-light: #64748b;
-  --text-inverse: #ffffff;
+  --text-main: var(--color-slate-100);
+  --text-muted: var(--color-slate-400);
+  --text-light: var(--color-slate-500);
+  --text-inverse: var(--color-white);
 
-  --primary: #38bdf8;
-  --primary-hover: #0ea5e9;
-  --primary-subtle: #082f49;
-  --primary-text: #7dd3fc;
-  --on-primary: #090d16;
+  --primary: var(--color-sky-400);
+  --primary-hover: var(--color-sky-500);
+  --primary-subtle: var(--color-sky-950);
+  --primary-text: var(--color-sky-300);
+  --on-primary: var(--color-navy-950);
 
-  --success: #22c55e;
-  --success-bg: #052e16;
-  --warning: #f59e0b;
-  --warning-bg: #451a03;
-  --danger: #ef4444;
-  --danger-hover: #f87171;
-  --danger-bg: #450a0a;
-  --info: #3b82f6;
-  --info-bg: #172554;
-  --focus-ring: #7dd3fc;
+  --success: var(--color-green-500);
+  --success-bg: var(--color-green-950);
+  --success-text: var(--color-green-500);
+  --on-success: var(--color-navy-950);
+  --warning: var(--color-amber-500);
+  --warning-bg: var(--color-amber-950);
+  --warning-text: var(--color-amber-500);
+  --on-warning: var(--color-navy-950);
+  --danger: var(--color-red-500);
+  --danger-hover: var(--color-red-400);
+  --danger-bg: var(--color-red-950);
+  /* red-500 on red-950 is 4.29:1 — one step lighter clears AA */
+  --danger-text: var(--color-red-400);
+  --on-danger: var(--color-navy-950);
+  --info: var(--color-blue-500);
+  --info-bg: var(--color-blue-950);
+  --focus-ring: var(--color-sky-300);
 }
 
 * {
@@ -169,7 +290,7 @@ body.modal-open {
   border-radius: var(--radius-sm);
   border: 1px solid transparent;
   background-color: var(--primary);
-  color: #ffffff;
+  color: var(--on-primary);
   font-size: 13px;
   font-weight: 500;
   font-family: inherit;
@@ -201,7 +322,7 @@ body.modal-open {
 
 .btn-danger {
   background-color: var(--danger);
-  color: #ffffff;
+  color: var(--on-danger);
 }
 .btn-danger:hover:not(:disabled) {
   background-color: var(--danger-hover);
@@ -253,17 +374,17 @@ body.modal-open {
 
 .badge-success {
   background-color: var(--success-bg);
-  color: var(--success);
+  color: var(--success-text);
 }
 
 .badge-danger {
   background-color: var(--danger-bg);
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .badge-warning {
   background-color: var(--warning-bg);
-  color: var(--warning);
+  color: var(--warning-text);
 }
 
 .badge-info, .badge-primary {
@@ -576,13 +697,13 @@ td.empty {
 
 .alert-error {
   background-color: var(--danger-bg);
-  color: var(--danger);
+  color: var(--danger-text);
   border: 1px solid rgba(220, 38, 38, 0.2);
 }
 
 .alert-success {
   background-color: var(--success-bg);
-  color: var(--success);
+  color: var(--success-text);
   border: 1px solid rgba(22, 163, 74, 0.2);
 }
 

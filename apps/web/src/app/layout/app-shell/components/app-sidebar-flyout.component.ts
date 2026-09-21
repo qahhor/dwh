@@ -247,7 +247,7 @@ import { NavSection } from '../app-shell.models';
       margin-left: auto;
       font-size: 11px;
       background-color: var(--primary);
-      color: #ffffff;
+      color: var(--on-primary);
       font-weight: 700;
       padding: 1px 6px;
       border-radius: 8px;

@@ -229,7 +229,7 @@ import { TranslatePipe } from '../../core/services/i18n.service';
     }
     .page-btn.active {
       background-color: var(--primary);
-      color: #ffffff;
+      color: var(--on-primary);
       border-color: var(--primary);
       font-weight: 600;
     }
@@ -247,7 +247,7 @@ import { TranslatePipe } from '../../core/services/i18n.service';
       padding: 0 6px;
       border-radius: var(--radius-xs);
       background-color: var(--primary);
-      color: #ffffff;
+      color: var(--on-primary);
       display: inline-flex;
       align-items: center;
       justify-content: center;

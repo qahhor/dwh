@@ -211,7 +211,7 @@ import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
     .mode-btn .ico { font-size: 14px; }
     .mode-btn.active {
       background-color: var(--primary);
-      color: #fff;
+      color: var(--on-primary);
     }
 
     .md-body {

@@ -188,7 +188,7 @@ import { NavSection } from '../app-shell.models';
 
     .nav-item.active {
       background-color: var(--primary);
-      color: #ffffff;
+      color: var(--on-primary);
       font-weight: 600;
     }
 
@@ -210,7 +210,7 @@ import { NavSection } from '../app-shell.models';
 
     .unread-chip {
       background-color: var(--primary);
-      color: #ffffff;
+      color: var(--on-primary);
       font-size: 10px;
       font-weight: 700;
       padding: 1px 6px;

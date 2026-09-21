@@ -38,7 +38,7 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
       flex: 0 0 44px;
       border-radius: var(--radius-md);
       background-color: var(--primary);
-      color: #ffffff;
+      color: var(--on-primary);
       font-weight: 700;
       font-size: 16px;
     }
