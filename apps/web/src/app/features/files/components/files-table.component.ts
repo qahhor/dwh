@@ -165,11 +165,11 @@ import { TranslatePipe } from '../../../core/services/i18n.service';
       font-size: 18px;
     }
 
-    .file-icon-wrapper.image { background: var(--success-bg); color: var(--success); }
-    .file-icon-wrapper.pdf { background: var(--danger-bg); color: var(--danger); }
-    .file-icon-wrapper.doc { background: var(--info-bg); color: var(--info); }
-    .file-icon-wrapper.sheet { background: var(--success-bg); color: var(--success); }
-    .file-icon-wrapper.archive { background: var(--warning-bg); color: var(--warning); }
+    .file-icon-wrapper.image { background: var(--success-bg); color: var(--success-text); }
+    .file-icon-wrapper.pdf { background: var(--danger-bg); color: var(--danger-text); }
+    .file-icon-wrapper.doc { background: var(--info-bg); color: var(--info-text); }
+    .file-icon-wrapper.sheet { background: var(--success-bg); color: var(--success-text); }
+    .file-icon-wrapper.archive { background: var(--warning-bg); color: var(--warning-text); }
     .file-icon-wrapper.other { background: var(--bg-hover); color: var(--text-muted); }
 
     .file-name-cell {
@@ -261,7 +261,7 @@ import { TranslatePipe } from '../../../core/services/i18n.service';
 
     .action-btn.delete-btn:hover {
       background: var(--danger-bg);
-      color: var(--danger);
+      color: var(--danger-text);
     }
 
     .empty-state-cell {

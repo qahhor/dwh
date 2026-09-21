@@ -212,7 +212,7 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
     .req-tag {
       font-size: 10px;
       font-weight: 500;
-      color: var(--danger);
+      color: var(--danger-text);
       background-color: var(--danger-bg);
       padding: 1px 5px;
       border-radius: 4px;
@@ -249,7 +249,7 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
     .request-error {
       border-color: var(--danger);
       background-color: var(--danger-bg);
-      color: var(--danger);
+      color: var(--danger-text);
     }
     .attributes-stack { display: flex; flex-direction: column; gap: 4px; margin-top: 12px; }
     .attr-stack-item { display: flex; gap: 8px; font-size: 13px; }

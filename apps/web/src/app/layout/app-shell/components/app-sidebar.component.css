@@ -62,7 +62,7 @@
       bottom: 10px;
       width: 3px;
       border-radius: 0 3px 3px 0;
-      background-color: #38bdf8;
+      background-color: var(--primary);
     }
 
     .rail-category-badge {
@@ -73,8 +73,8 @@
       height: 16px;
       padding: 0 4px;
       border-radius: 8px;
-      background-color: #ef4444;
-      color: #ffffff;
+      background-color: var(--danger);
+      color: var(--on-danger);
       font-size: 10px;
       font-weight: 700;
       display: flex;

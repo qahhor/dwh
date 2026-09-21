@@ -211,7 +211,7 @@ import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.m
     .overdue-tag {
       font-size: 9px;
       font-weight: 600;
-      color: var(--danger);
+      color: var(--danger-text);
       background-color: var(--danger-bg);
       padding: 1px 5px;
       border-radius: 3px;
@@ -338,7 +338,7 @@ import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.m
     }
     .deadline-pill .ico { font-size: 13px; }
     .deadline-pill.overdue {
-      color: var(--danger);
+      color: var(--danger-text);
       background-color: var(--danger-bg);
       border-color: rgba(239,68,68,0.3);
       font-weight: 600;

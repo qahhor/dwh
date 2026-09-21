@@ -184,7 +184,7 @@ import { AnnouncementAdminRecord, AnnouncementBannerType, Confirmation } from '.
     .field-hint { color: var(--text-muted); font-size: 11px; }
     .form-actions, .modal-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
     .form-actions { margin: 4px -18px -18px; padding: 12px 18px; border-top: 1px solid var(--border-color); }
-    .primary-button { height: 34px; padding: 6px 14px; border: 0; border-radius: var(--radius-sm); background: var(--primary); color: var(--text-inverse, #ffffff); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .primary-button { height: 34px; padding: 6px 14px; border: 0; border-radius: var(--radius-sm); background: var(--primary); color: var(--on-primary); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
     .primary-button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid var(--focus-ring, var(--primary)); outline-offset: 2px; }
     .primary-button:disabled { cursor: not-allowed; opacity: .5; }
     .confirmation-copy { color: var(--text-muted); font-size: 13px; line-height: 1.5; }

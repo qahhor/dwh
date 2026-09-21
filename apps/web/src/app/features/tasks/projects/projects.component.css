@@ -79,7 +79,7 @@
 .request-error {
   border-color: var(--danger);
   background-color: var(--danger-bg);
-  color: var(--danger);
+  color: var(--danger-text);
 }
 .request-retry {
   min-height: 28px;

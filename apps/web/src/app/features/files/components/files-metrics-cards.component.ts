@@ -156,12 +156,12 @@ import { TranslatePipe } from '../../../core/services/i18n.service';
       color: var(--primary-text);
     }
 
-    .percent-badge.warning { background: var(--warning-bg); color: var(--warning); }
-    .percent-badge.danger { background: var(--danger-bg); color: var(--danger); }
+    .percent-badge.warning { background: var(--warning-bg); color: var(--warning-text); }
+    .percent-badge.danger { background: var(--danger-bg); color: var(--danger-text); }
 
     .user-badge {
       background: var(--info-bg);
-      color: var(--info);
+      color: var(--info-text);
     }
 
     .metric-body {

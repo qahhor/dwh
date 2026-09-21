@@ -65,7 +65,7 @@
       font-weight: 600;
     }
     .import-action, .secondary-action { color: var(--text-main); background: var(--bg-surface); border: 1px solid var(--border-color); }
-    .primary-action { color: var(--text-inverse); background: var(--primary); }
+    .primary-action { color: var(--on-primary); background: var(--primary); }
     .import-action input { position: absolute; width: 1px; height: 1px; opacity: 0; }
     .primary-action:disabled, .secondary-action:disabled { cursor: not-allowed; opacity: .5; }
     .translation-table { overflow: auto; border: 1px solid var(--border-color); border-radius: 10px; }

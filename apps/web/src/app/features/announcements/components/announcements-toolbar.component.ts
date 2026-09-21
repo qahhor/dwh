@@ -136,7 +136,7 @@ import { TranslatePipe } from '../../../core/services/i18n.service';
 
     .status-tab.active .tab-count {
       background: var(--primary);
-      color: #ffffff;
+      color: var(--on-primary);
     }
 
     .search-box {

@@ -144,9 +144,11 @@
   --danger-hover: var(--color-red-700);
   --danger-bg: var(--color-red-100);
   --danger-text: var(--color-red-800);
+  --danger-border: var(--color-red-200);
   --on-danger: var(--color-white);
   --info: var(--color-blue-700);
   --info-bg: var(--color-blue-100);
+  --info-text: var(--color-blue-700);
 
   /* Metrics & Layout */
   --control-height: 34px;
@@ -187,8 +189,8 @@
   --border-subtle: var(--color-navy-700);
 
   --text-main: var(--color-slate-100);
-  --text-muted: var(--color-slate-400);
-  --text-light: var(--color-slate-500);
+  --text-muted: var(--color-slate-300);
+  --text-light: var(--color-slate-400);
   --text-inverse: var(--color-white);
 
   --primary: var(--color-sky-400);
@@ -210,9 +212,12 @@
   --danger-bg: var(--color-red-950);
   /* red-500 on red-950 is 4.29:1 — one step lighter clears AA */
   --danger-text: var(--color-red-400);
+  --danger-border: var(--color-red-900);
   --on-danger: var(--color-navy-950);
   --info: var(--color-blue-500);
   --info-bg: var(--color-blue-950);
+  /* blue-500 on blue-950 is 4.00:1 — one step lighter clears AA */
+  --info-text: var(--color-blue-400);
   --focus-ring: var(--color-sky-300);
 }
 

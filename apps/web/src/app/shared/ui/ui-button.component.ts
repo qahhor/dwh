@@ -93,7 +93,7 @@ import { TranslatePipe } from '../../core/services/i18n.service';
 
     .btn-danger {
       background-color: var(--danger);
-      color: var(--text-inverse);
+      color: var(--on-danger);
     }
     .btn-danger:hover:not(:disabled) {
       background-color: var(--danger-hover, #b91c1c);

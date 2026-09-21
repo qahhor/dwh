@@ -331,8 +331,8 @@ import { TranslatePipe, I18nService } from '../../../../core/services/i18n.servi
     }
 
     .action-icon-btn.danger:hover {
-      color: #ef4444;
-      background: #fee2e2;
+      color: var(--danger-text);
+      background: var(--danger-bg);
     }
 
     .action-icon-btn .material-symbols-outlined {

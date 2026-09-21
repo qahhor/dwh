@@ -269,7 +269,7 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
 
     .chip-btn.active {
       background: var(--primary);
-      color: #fff;
+      color: var(--on-primary);
       border-color: var(--primary);
     }
 

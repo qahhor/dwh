@@ -251,7 +251,7 @@ export interface EventTypeRow {
     .btn-secondary:hover { background: var(--border-color); }
     .btn-primary {
       background: var(--primary);
-      color: #fff;
+      color: var(--on-primary);
     }
     .btn-primary:hover { opacity: 0.9; }
     .btn:disabled { opacity: 0.5; cursor: not-allowed; }

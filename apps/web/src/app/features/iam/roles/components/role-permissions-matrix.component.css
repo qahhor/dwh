@@ -159,7 +159,7 @@
     }
     .mod-pill-btn:hover { color: var(--text-main); border-color: var(--text-muted); }
     .mod-pill-btn.active {
-      color: #ffffff;
+      color: var(--on-primary);
       background-color: var(--primary);
       border-color: var(--primary);
     }

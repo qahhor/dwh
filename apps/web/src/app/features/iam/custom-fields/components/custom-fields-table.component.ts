@@ -308,9 +308,9 @@ import { TranslatePipe, I18nService } from '../../../../core/services/i18n.servi
     }
 
     .entity-badge.user { background: var(--primary-subtle, #e0f2fe); color: var(--primary, #0284c7); }
-    .entity-badge.project { background: var(--info-bg, #e0e7ff); color: var(--info, #4f46e5); }
-    .entity-badge.task { background: var(--success-bg, #dcfce7); color: var(--success, #16a34a); }
-    .entity-badge.note { background: var(--warning-bg, #fef3c7); color: var(--warning, #d97706); }
+    .entity-badge.project { background: var(--info-bg, #e0e7ff); color: var(--info-text); }
+    .entity-badge.task { background: var(--success-bg, #dcfce7); color: var(--success-text); }
+    .entity-badge.note { background: var(--warning-bg, #fef3c7); color: var(--warning-text); }
     .entity-badge.custom-entity { background: var(--bg-hover); color: var(--text-main); border: 1px solid var(--border-color); }
 
     .type-badge {
@@ -345,7 +345,7 @@ import { TranslatePipe, I18nService } from '../../../../core/services/i18n.servi
 
     .status-indicator.active {
       background: var(--success-bg, #dcfce7);
-      color: var(--success, #16a34a);
+      color: var(--success-text);
     }
 
     .status-icon {
@@ -374,7 +374,7 @@ import { TranslatePipe, I18nService } from '../../../../core/services/i18n.servi
 
     .action-btn.danger:hover {
       background: var(--danger-bg, #fee2e2);
-      color: var(--danger, #dc2626);
+      color: var(--danger-text);
     }
 
     .loading-cell {

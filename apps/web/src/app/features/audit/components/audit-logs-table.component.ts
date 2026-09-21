@@ -254,7 +254,7 @@ import { AuditRecord } from '../audit.models';
       border-radius: 8px;
       font-size: 13px;
       background: var(--danger-bg);
-      color: var(--danger);
+      color: var(--danger-text);
       border: 1px solid var(--danger);
       margin-top: 4px;
     }
@@ -341,17 +341,17 @@ import { AuditRecord } from '../audit.models';
 
     .event-badge.insert {
       background: var(--success-bg);
-      color: var(--success);
+      color: var(--success-text);
     }
 
     .event-badge.update {
       background: var(--info-bg);
-      color: var(--info);
+      color: var(--info-text);
     }
 
     .event-badge.delete {
       background: var(--danger-bg);
-      color: var(--danger);
+      color: var(--danger-text);
     }
 
     .user-cell {

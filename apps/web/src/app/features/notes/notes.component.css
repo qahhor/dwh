@@ -180,7 +180,7 @@
     }
     .tab-btn.active {
       background: var(--primary, #3b82f6);
-      color: #ffffff;
+      color: var(--on-primary);
       border-color: var(--primary, #3b82f6);
     }
 

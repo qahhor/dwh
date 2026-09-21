@@ -262,7 +262,7 @@ import { LanguageEditorComponent } from '../language-editor.component';
     }
     .badge-active {
       background-color: var(--success-bg);
-      color: var(--success);
+      color: var(--success-text);
     }
     .badge-neutral {
       background-color: var(--bg-active);
@@ -360,7 +360,7 @@ import { LanguageEditorComponent } from '../language-editor.component';
     }
     .btn-primary {
       background: var(--primary);
-      color: var(--text-inverse);
+      color: var(--on-primary);
     }
     .btn-primary:hover {
       background: var(--primary-hover);
