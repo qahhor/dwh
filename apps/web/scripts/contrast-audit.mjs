@@ -68,7 +68,8 @@ async function readTokens() {
  * Returns null when the result cannot be decided statically.
  */
 function resolveColour(value, tokens, seen = new Set()) {
-  const trimmed = value.trim();
+  // `!important` changes precedence, not the colour.
+  const trimmed = value.replace(/!important\s*$/i, '').trim();
   const reference = /^var\(\s*(--[a-z0-9-]+)\s*(?:,\s*([^)]*))?\)$/i.exec(trimmed);
   if (reference) {
     const [, name, fallback] = reference;

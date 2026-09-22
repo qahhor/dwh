@@ -127,7 +127,7 @@ import { NavSection } from '../app-shell.models';
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.8px;
-      color: #94a3b8;
+      color: var(--sidebar-text);
       flex: 1;
     }
 
@@ -142,7 +142,7 @@ import { NavSection } from '../app-shell.models';
 
     .section-chevron {
       font-size: 16px;
-      color: #94a3b8;
+      color: var(--sidebar-text);
       transition: transform 0.2s ease;
       line-height: 1;
     }
@@ -183,7 +183,7 @@ import { NavSection } from '../app-shell.models';
 
     .nav-item:hover {
       background-color: var(--bg-sidebar-hover);
-      color: #ffffff;
+      color: var(--sidebar-text-strong);
     }
 
     .nav-item.active {

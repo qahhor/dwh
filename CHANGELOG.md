@@ -46,6 +46,11 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   from 2.14:1 to 9.07:1. Destructive buttons (3.76:1) and danger badges and
   alerts (4.29:1) were below WCAG AA in dark theme and now pass at 5.16:1 and
   5.84:1.
+- The collapsed sidebar's flyout panel ignored the theme: it painted the
+  light-theme sidebar colour in both, so in dark theme it did not match the
+  sidebar it belongs to. Its active entry also failed WCAG AA at 4.10:1 in
+  both themes, and now passes at 5.67:1. The sidebar chrome reads a named set
+  of tokens for its permanently dark surface instead of 27 literals.
 - Invisible and unreadable text in dark theme caused by colour properties
   pointing at design tokens that were never defined, so their `var()` fallback
   painted the same light-theme colour in both themes. Notes measured 1.04:1,

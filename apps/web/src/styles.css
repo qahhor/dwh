@@ -161,8 +161,16 @@
   --space-2: 8px;
   --space-3: 12px;
   --space-4: 16px;
+  /* The sidebar is a dark surface in both themes, so it carries its own small
+     set of inks rather than reusing the page tokens, which invert. */
   --sidebar-text: var(--color-slate-400);
+  --sidebar-text-item: var(--color-slate-300);
   --sidebar-text-strong: var(--color-slate-50);
+  --sidebar-accent: var(--color-sky-400);
+  /* Solid accent fill; white text clears AA on sky-700 but not on sky-600. */
+  --sidebar-accent-fill: var(--color-sky-700);
+  --sidebar-danger: var(--color-red-400);
+  --sidebar-danger-hover: var(--color-red-300);
   --sidebar-border: rgba(255, 255, 255, 0.08);
   --radius-xs: 3px;
   --radius-sm: 4px;
