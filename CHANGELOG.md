@@ -19,6 +19,9 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   contribution guide now runs on every change, and the generated Russian
   fallback dictionary is regenerated and compared, so it can no longer drift
   from the canonical catalog unnoticed.
+- Theme changes propagate to the application's other open tabs over a
+  same-origin broadcast channel, so a window left open no longer keeps the
+  previous theme until it is reloaded.
 - Local, audited announcement authoring and lifecycle management.
 - Read-only system status API and administration screen.
 - S3-compatible object storage for AWS S3, Cloudflare R2, MinIO, and compatible
