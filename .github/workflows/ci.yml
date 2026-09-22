@@ -56,6 +56,17 @@ jobs:
         working-directory: apps/web
         run: npm run contrast:audit
 
+      - name: Validate localization contract
+        working-directory: apps/web
+        run: |
+          npm run i18n:sync-ru
+          if ! git diff --quiet -- src/app/core/i18n/packaged-russian.ts; then
+            echo "::error::packaged-russian.ts is out of sync with ru.json. Run 'npm run i18n:sync-ru' and commit the result."
+            git --no-pager diff -- src/app/core/i18n/packaged-russian.ts | head -40
+            exit 1
+          fi
+          npm run i18n:audit
+
       - name: Test, typecheck & build web application
         working-directory: apps/web
         run: |

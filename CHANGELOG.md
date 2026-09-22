@@ -15,6 +15,10 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `npm run contrast:audit` gate, enforced in CI. It discovers every rule that
   sets both a background and a text colour, resolves both through the design
   tokens in each theme, and fails below the WCAG AA minimum.
+- CI enforcement of the localization contract: the audit documented in the
+  contribution guide now runs on every change, and the generated Russian
+  fallback dictionary is regenerated and compared, so it can no longer drift
+  from the canonical catalog unnoticed.
 - Local, audited announcement authoring and lifecycle management.
 - Read-only system status API and administration screen.
 - S3-compatible object storage for AWS S3, Cloudflare R2, MinIO, and compatible
