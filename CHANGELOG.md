@@ -15,6 +15,9 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `npm run contrast:audit` gate, enforced in CI. It discovers every rule that
   sets both a background and a text colour, resolves both through the design
   tokens in each theme, and fails below the WCAG AA minimum.
+- CI enforcement of the design token contract: a colour property must name a
+  token, so a theme can move it. The four files where a colour is data rather
+  than styling are listed as exceptions with their reason.
 - CI enforcement of the localization contract: the audit documented in the
   contribution guide now runs on every change, and the generated Russian
   fallback dictionary is regenerated and compared, so it can no longer drift
@@ -46,6 +49,9 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   from 2.14:1 to 9.07:1. Destructive buttons (3.76:1) and danger badges and
   alerts (4.29:1) were below WCAG AA in dark theme and now pass at 5.16:1 and
   5.84:1.
+- Category accents for marking what a record is rather than how it is doing:
+  navigation entry types and the note icon now read `--accent-violet-*` and
+  `--accent-indigo-*` instead of fixed hues that ignored the theme.
 - The application fetched Inter and Material Symbols from a third-party CDN,
   so in a closed network every icon rendered as its own name in text and the
   interface was visibly broken, while each page load disclosed the viewer's

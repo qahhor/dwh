@@ -60,7 +60,7 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
 
     .stat-value.stat-active { color: var(--success-text); }
     .stat-value.stat-embedded { color: var(--info-text); }
-    .stat-value.stat-external { color: #7c3aed; }
+    .stat-value.stat-external { color: var(--accent-violet-text); }
 
     .stat-label {
       font-size: 12px;

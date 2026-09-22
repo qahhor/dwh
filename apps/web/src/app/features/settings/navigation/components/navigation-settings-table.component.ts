@@ -261,8 +261,8 @@ import { TranslatePipe, I18nService } from '../../../../core/services/i18n.servi
     }
 
     .badge-type.embedded_iframe { background: var(--info-bg); color: var(--info-text); }
-    .badge-type.external_link { background: #ede9fe; color: #6d28d9; }
-    .badge-type.internal_route { background: #e0e7ff; color: #4338ca; }
+    .badge-type.external_link { background: var(--accent-violet-bg); color: var(--accent-violet-text); }
+    .badge-type.internal_route { background: var(--accent-indigo-bg); color: var(--accent-indigo-text); }
 
     .badge-section {
       background: var(--bg-hover);
@@ -299,7 +299,7 @@ import { TranslatePipe, I18nService } from '../../../../core/services/i18n.servi
     .status-toggle-btn.active {
       background: var(--success-bg);
       color: var(--success-text);
-      border-color: #a7f3d0;
+      border-color: var(--success-border);
     }
 
     .actions-cell {

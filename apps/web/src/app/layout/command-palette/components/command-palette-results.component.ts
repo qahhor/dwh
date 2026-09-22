@@ -261,7 +261,7 @@ import { I18nService, TranslatePipe } from '../../../core/services/i18n.service'
     .icon-user { background-color: var(--info-bg); color: var(--info-text); }
     .icon-task { background-color: var(--success-bg); color: var(--success-text); }
     .icon-project { background-color: var(--warning-bg); color: var(--warning-text); }
-    .icon-note { background-color: rgba(168, 85, 247, 0.12); color: #a855f7; }
+    .icon-note { background-color: var(--accent-violet-bg); color: var(--accent-violet-text); }
 
     .result-info {
       flex: 1;

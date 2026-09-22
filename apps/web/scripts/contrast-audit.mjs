@@ -20,6 +20,22 @@ const THEMES = ['light', 'dark'];
 
 const NAMED = { white: '#ffffff', black: '#000000' };
 
+/**
+ * Colour properties must name a token, not a literal, so a theme can move
+ * them (ADR-0012). These files are the agreed exceptions, each because the
+ * value is not styling:
+ */
+const LITERAL_ALLOWED = new Map([
+  ['src/app/features/iam/users/users.models.ts',
+   'the avatar palette is a value in the model, picked per user'],
+  ['src/app/features/tasks/components/task-dictionaries-modal.component.ts',
+   'the default colour of a task type or status the operator creates'],
+  ['src/app/features/tasks/services/task-dictionaries.service.ts',
+   'the default colour of a task type or status the operator creates'],
+  ['src/app/features/notes/notes.component.css',
+   'the note card palette the author picks from, each class named for its colour'],
+]);
+
 function expandHex(value) {
   const hex = value.trim().toLowerCase();
   if (/^#[0-9a-f]{6}$/.test(hex)) return hex;
@@ -114,6 +130,8 @@ function lineAt(source, offset) {
   return source.slice(0, offset).split('\n').length;
 }
 
+const COLOUR_PROPERTY = /^(background-color|background|border-color|border-top-color|border-right-color|border-bottom-color|border-left-color|color|outline-color|fill|stroke)$/;
+
 function largeText(pairs) {
   const size = parseFloat(pairs.find(([property]) => property === 'font-size')?.[1] ?? '');
   const weightRaw = pairs.find(([property]) => property === 'font-weight')?.[1] ?? '';
@@ -125,10 +143,26 @@ function largeText(pairs) {
 const tokens = await readTokens();
 const failures = [];
 const undefinedTokens = [];
+const literals = [];
 let checked = 0;
 
 for (const file of await sourceFiles(srcRoot)) {
   const source = await readFile(file, 'utf8');
+  const relative = path.relative(webRoot, file);
+
+  if (!LITERAL_ALLOWED.has(relative)) {
+    for (const { body, offset } of ruleBlocks(source)) {
+      for (const [property, value, at] of declarations(body)) {
+        if (!COLOUR_PROPERTY.test(property)) continue;
+        // A literal inside a var() fallback is reported as an undefined token instead.
+        const outside = value.replace(/var\([^)]*\)/g, m => ' '.repeat(m.length));
+        for (const literal of outside.matchAll(/#[0-9a-fA-F]{3,8}/g)) {
+          literals.push(`${relative}:${lineAt(source, offset + at)} ${property}: ${literal[0]} is a literal; name a token so the theme can move it`);
+        }
+      }
+    }
+  }
+
   for (const { body, offset } of ruleBlocks(source)) {
     const pairs = declarations(body);
     const background = pairs.find(([property]) => property === 'background-color' || property === 'background');
@@ -186,8 +220,20 @@ if (failures.length) {
   );
 }
 
-if (failures.length || undefinedTokens.length) {
+if (literals.length) {
+  process.stderr.write(
+    `Colour properties written as a literal instead of a token:\n${literals.join('\n')}\n\n` +
+    'If the value is data rather than styling, add the file to LITERAL_ALLOWED ' +
+    'in this script with the reason.\n\n'
+  );
+}
+
+if (failures.length || undefinedTokens.length || literals.length) {
   process.exit(1);
 }
 
-process.stdout.write(`Contrast audit passed: ${checked} colour pairs at or above WCAG AA in light and dark themes.\n`);
+process.stdout.write(
+  `Design token audit passed: ${checked} colour pairs at or above WCAG AA in ` +
+  `light and dark themes, every colour property naming a token outside the ` +
+  `${LITERAL_ALLOWED.size} files where the value is data.\n`
+);

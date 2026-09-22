@@ -206,7 +206,7 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
       padding: 10px 12px;
       border-radius: var(--radius-sm);
       background: var(--info-bg);
-      border: 1px solid #bfdbfe;
+      border: 1px solid var(--info-border);
       color: var(--info-text);
       font-size: 12px;
       line-height: 1.4;

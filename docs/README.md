@@ -26,13 +26,9 @@ Current ADRs that are not superseded:
 - [ADR-0005 — AI/ML readiness](adr/ADR-0005-ai-ml-readiness.md)
 - [ADR-0012 — UI foundation](adr/ADR-0012-ui-foundation.md)
 - [ADR-0013 — data scope](adr/ADR-0013-data-scope.md)
-
-One decision is recorded but not yet accepted, and therefore governs nothing
-until it is:
-
 - [ADR-0015 — UI kit transfer policy](adr/ADR-0015-ui-kit-transfer-policy.md)
-  — proposes vendoring a subset of the shared component library instead of
-  depending on it, and amends ADR-0012 for that subset only.
+  — vendors a subset of the shared component library instead of depending on
+  it, and amends ADR-0012 for that subset only.
 
 The following ADRs remain current only outside the areas explicitly replaced
 by ADR-0014:

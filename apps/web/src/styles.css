@@ -89,6 +89,34 @@
   --color-blue-900: #1e3a8a;
   --color-blue-950: #172554;
 
+  /* Category hues. Not statuses: they mark what a thing is, not how it is
+     doing, so they sit outside the success/warning/danger/info set. The ramp
+     structure follows @greenwhite/ui-kit, which carries indigo and violet as
+     first-class scales; the values stay this product's own. */
+  --color-violet-50: #f5f3ff;
+  --color-violet-100: #ede9fe;
+  --color-violet-200: #ddd6fe;
+  --color-violet-300: #c4b5fd;
+  --color-violet-400: #a78bfa;
+  --color-violet-500: #8b5cf6;
+  --color-violet-600: #7c3aed;
+  --color-violet-700: #6d28d9;
+  --color-violet-800: #5b21b6;
+  --color-violet-900: #4c1d95;
+  --color-violet-950: #2e1065;
+
+  --color-indigo-50: #eef2ff;
+  --color-indigo-100: #e0e7ff;
+  --color-indigo-200: #c7d2fe;
+  --color-indigo-300: #a5b4fc;
+  --color-indigo-400: #818cf8;
+  --color-indigo-500: #6366f1;
+  --color-indigo-600: #4f46e5;
+  --color-indigo-700: #4338ca;
+  --color-indigo-800: #3730a3;
+  --color-indigo-900: #312e81;
+  --color-indigo-950: #1e1b4b;
+
   /* Dark-theme surface ramp — this product's own, ordered by lightness */
   --color-navy-950: #090d16;
   --color-navy-900: #0b1120;
@@ -135,6 +163,7 @@
   --success: var(--color-green-800);
   --success-bg: var(--color-green-100);
   --success-text: var(--color-green-800);
+  --success-border: var(--color-green-200);
   --on-success: var(--color-white);
   --warning: var(--color-amber-800);
   --warning-bg: var(--color-amber-100);
@@ -149,6 +178,13 @@
   --info: var(--color-blue-700);
   --info-bg: var(--color-blue-100);
   --info-text: var(--color-blue-700);
+  --info-border: var(--color-blue-200);
+
+  /* Category accents, for marking a kind rather than a state. */
+  --accent-violet-text: var(--color-violet-700);
+  --accent-violet-bg: var(--color-violet-100);
+  --accent-indigo-text: var(--color-indigo-700);
+  --accent-indigo-bg: var(--color-indigo-100);
 
   /* Metrics & Layout */
   --control-height: 34px;
@@ -210,6 +246,7 @@
   --success: var(--color-green-500);
   --success-bg: var(--color-green-950);
   --success-text: var(--color-green-500);
+  --success-border: var(--color-green-900);
   --on-success: var(--color-navy-950);
   --warning: var(--color-amber-500);
   --warning-bg: var(--color-amber-950);
@@ -224,8 +261,15 @@
   --on-danger: var(--color-navy-950);
   --info: var(--color-blue-500);
   --info-bg: var(--color-blue-950);
+  --info-border: var(--color-blue-900);
   /* blue-500 on blue-950 is 4.00:1 — one step lighter clears AA */
   --info-text: var(--color-blue-400);
+
+  --accent-violet-text: var(--color-violet-400);
+  --accent-violet-bg: var(--color-violet-950);
+  --accent-indigo-text: var(--color-indigo-400);
+  --accent-indigo-bg: var(--color-indigo-950);
+
   --focus-ring: var(--color-sky-300);
 }
 
