@@ -19,16 +19,16 @@
     .view-title {
       font-size: 1.5rem;
       font-weight: 700;
-      color: var(--text-primary, #1e293b);
+      color: var(--text-main);
       margin: 0;
     }
     .count-badge {
-      background: var(--bg-surface-secondary, #f1f5f9);
+      background: var(--bg-hover);
       padding: 2px 10px;
       border-radius: 9999px;
       font-size: 0.875rem;
       font-weight: 600;
-      color: var(--text-secondary, #64748b);
+      color: var(--text-muted);
     }
     .header-right {
       display: flex;
@@ -45,7 +45,7 @@
       position: absolute;
       left: 10px;
       font-size: 18px;
-      color: var(--text-secondary, #64748b);
+      color: var(--text-muted);
     }
     .search-input {
       padding: 8px 30px 8px 34px;
@@ -105,7 +105,7 @@
     .note-title {
       font-weight: 600;
       font-size: 1.05rem;
-      color: var(--text-primary, #1e293b);
+      color: var(--text-main);
     }
     .card-actions {
       display: flex;
@@ -117,14 +117,14 @@
       padding: 4px;
       border-radius: 6px;
       cursor: pointer;
-      color: var(--text-secondary, #64748b);
+      color: var(--text-muted);
       display: flex;
       align-items: center;
       justify-content: center;
     }
     .icon-btn:hover {
       background: var(--bg-hover, #f1f5f9);
-      color: var(--text-primary, #0f172a);
+      color: var(--text-main);
     }
     .icon-btn.pinned {
       color: #3b82f6;
@@ -137,7 +137,7 @@
     }
     .note-content {
       font-size: 0.9rem;
-      color: var(--text-secondary, #475569);
+      color: var(--text-muted);
       margin: 0;
       white-space: pre-wrap;
       max-height: 160px;
@@ -170,13 +170,13 @@
       border-radius: 6px;
       border: 1px solid var(--border-color, #e2e8f0);
       background: var(--bg-surface, #ffffff);
-      color: var(--text-secondary, #64748b);
+      color: var(--text-muted);
       cursor: pointer;
       transition: all 0.15s ease;
     }
     .tab-btn:hover {
       background: var(--bg-hover, #f1f5f9);
-      color: var(--text-primary, #0f172a);
+      color: var(--text-main);
     }
     .tab-btn.active {
       background: var(--primary, #3b82f6);
@@ -196,7 +196,7 @@
     }
     .empty-icon {
       font-size: 48px;
-      color: var(--text-secondary, #94a3b8);
+      color: var(--text-muted);
     }
     .modal-form {
       display: flex;
@@ -216,7 +216,7 @@
     .form-label {
       font-size: 0.875rem;
       font-weight: 500;
-      color: var(--text-primary, #334155);
+      color: var(--text-main);
     }
     .form-control {
       padding: 8px 12px;
@@ -224,7 +224,7 @@
       border: 1px solid var(--border-color, #cbd5e1);
       font-size: 0.875rem;
       background: var(--bg-surface, #ffffff);
-      color: var(--text-primary, #0f172a);
+      color: var(--text-main);
       transition: border-color 0.15s ease;
     }
     .form-control.has-error {
@@ -244,7 +244,7 @@
       gap: 8px;
       font-size: 0.875rem;
       cursor: pointer;
-      color: var(--text-primary, #334155);
+      color: var(--text-main);
     }
     .custom-fields-section {
       display: flex;
@@ -256,7 +256,7 @@
     .custom-fields-title {
       font-size: 0.8125rem;
       font-weight: 600;
-      color: var(--text-secondary, #64748b);
+      color: var(--text-muted);
       margin: 0;
       text-transform: uppercase;
       letter-spacing: 0.05em;
@@ -269,6 +269,6 @@
     .delete-dialog-text {
       margin: 0;
       font-size: 0.9375rem;
-      color: var(--text-primary, #334155);
+      color: var(--text-main);
       line-height: 1.5;
     }

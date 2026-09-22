@@ -20,7 +20,7 @@ import { TranslatePipe } from '../../../core/services/i18n.service';
     .palette-footer {
       padding: 9px 18px;
       border-top: 1px solid var(--border-color);
-      background: var(--bg-surface-alt, var(--bg-page));
+      background: var(--bg-app);
       display: flex;
       align-items: center;
       justify-content: flex-end;

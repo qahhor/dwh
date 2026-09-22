@@ -173,7 +173,7 @@ export type { InstalledModule, ModuleFilterTab };
       letter-spacing: 0.05em;
     }
     .cli-command-box {
-      background: var(--bg-surface-alt, var(--bg-hover));
+      background: var(--bg-hover);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-sm);
       padding: 10px 14px;

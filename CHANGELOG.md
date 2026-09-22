@@ -46,6 +46,11 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   from 2.14:1 to 9.07:1. Destructive buttons (3.76:1) and danger badges and
   alerts (4.29:1) were below WCAG AA in dark theme and now pass at 5.16:1 and
   5.84:1.
+- Invisible and unreadable text in dark theme caused by colour properties
+  pointing at design tokens that were never defined, so their `var()` fallback
+  painted the same light-theme colour in both themes. Notes measured 1.04:1,
+  and twelve invented token names across nine files now point at the tokens
+  they were synonyms for.
 - Every remaining colour pair below WCAG AA, found by the new audit: danger and
   info text on their subtle backgrounds (4.29:1 and 4.00:1) now use dedicated
   `--danger-text` and `--info-text` inks; the dark tertiary text tier

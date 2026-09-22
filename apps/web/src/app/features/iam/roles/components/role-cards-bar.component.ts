@@ -168,7 +168,7 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
     .role-card-btn:hover { border-color: var(--primary-light); background-color: var(--bg-hover); }
     .role-card-btn.active {
       border-color: var(--primary);
-      background-color: var(--primary-50);
+      background-color: var(--primary-subtle);
       box-shadow: 0 0 0 1px var(--primary);
     }
     .role-select-btn {
@@ -207,7 +207,7 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
     }
     .role-custom-tag {
       font-size: 9px;
-      background-color: var(--primary-50);
+      background-color: var(--primary-subtle);
       color: var(--primary);
       padding: 2px 5px;
       border-radius: 4px;
@@ -270,7 +270,7 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
       cursor: pointer;
     }
     .mini-btn:hover { background-color: var(--bg-hover); color: var(--text-main); }
-    .mini-btn.delete:hover { background-color: var(--danger-50); color: var(--danger); }
+    .mini-btn.delete:hover { background-color: var(--danger-bg); color: var(--danger-text); }
     .mini-btn span { font-size: 14px; }
 
     .add-role-dashed-btn {
@@ -292,7 +292,7 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
     .add-role-dashed-btn:hover {
       border-color: var(--primary);
       color: var(--primary);
-      background-color: var(--primary-50);
+      background-color: var(--primary-subtle);
     }
     .add-role-dashed-btn span.material-symbols-outlined { font-size: 20px; }
 

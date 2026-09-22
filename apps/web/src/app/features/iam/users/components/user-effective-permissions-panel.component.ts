@@ -281,7 +281,7 @@ export interface GroupedPermissionModule {
     .banner-lbl {
       font-weight: 600;
       font-size: 0.82rem;
-      color: var(--text-secondary, #64748b);
+      color: var(--text-muted);
     }
     .roles-chips {
       display: flex;
@@ -317,7 +317,7 @@ export interface GroupedPermissionModule {
     }
     .stat-lbl {
       font-size: 0.75rem;
-      color: var(--text-secondary, #64748b);
+      color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.03em;
     }
@@ -362,7 +362,7 @@ export interface GroupedPermissionModule {
       border: 1px solid var(--border-color);
       border-radius: var(--radius-sm, 6px);
       background: var(--bg-surface);
-      color: var(--text-primary);
+      color: var(--text-main);
       font-size: 0.82rem;
       min-width: 180px;
     }
@@ -412,7 +412,7 @@ export interface GroupedPermissionModule {
       border: 1px solid var(--border-color);
       border-radius: var(--radius-sm, 6px);
       background: var(--bg-surface);
-      color: var(--text-primary);
+      color: var(--text-main);
       font-size: 0.82rem;
     }
     .search-input:focus {
@@ -434,11 +434,11 @@ export interface GroupedPermissionModule {
       background: transparent;
       font-size: 0.78rem;
       font-weight: 500;
-      color: var(--text-secondary, #64748b);
+      color: var(--text-muted);
       cursor: pointer;
       transition: all 0.15s ease;
     }
-    .pill-btn:hover { color: var(--text-primary); }
+    .pill-btn:hover { color: var(--text-main); }
     .pill-btn.active {
       background: var(--bg-surface);
       color: var(--primary, #0284c7);
@@ -500,7 +500,7 @@ export interface GroupedPermissionModule {
     .form-name {
       font-size: 0.82rem;
       font-weight: 500;
-      color: var(--text-primary);
+      color: var(--text-main);
     }
     .form-code {
       color: var(--text-muted);

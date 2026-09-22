@@ -385,7 +385,7 @@ import {
     .clean-table th {
       background: var(--bg-hover, rgba(0, 0, 0, 0.02));
       font-weight: 600;
-      color: var(--text-secondary, #64748b);
+      color: var(--text-muted);
       font-size: 0.78rem;
       text-transform: uppercase;
       letter-spacing: 0.03em;
@@ -419,7 +419,7 @@ import {
       padding: 2px 6px;
       background: rgba(0, 0, 0, 0.05);
       border-radius: 4px;
-      color: var(--text-secondary);
+      color: var(--text-muted);
     }
 
     .status-badge {
@@ -455,7 +455,7 @@ import {
       border: none;
       padding: 4px;
       cursor: pointer;
-      color: var(--text-secondary);
+      color: var(--text-muted);
       border-radius: 4px;
       display: inline-flex;
       align-items: center;
@@ -463,7 +463,7 @@ import {
     }
     .btn-icon:hover {
       background: var(--bg-hover, rgba(0, 0, 0, 0.05));
-      color: var(--text-primary);
+      color: var(--text-main);
     }
     .btn-icon.danger:hover {
       color: var(--danger, #ef4444);
@@ -483,7 +483,7 @@ import {
     .form-lbl {
       font-size: 0.82rem;
       font-weight: 600;
-      color: var(--text-secondary, #475569);
+      color: var(--text-muted);
     }
     .form-input {
       height: 36px;
@@ -491,7 +491,7 @@ import {
       border: 1px solid var(--border-color);
       border-radius: var(--radius-sm, 6px);
       background: var(--bg-surface);
-      color: var(--text-primary);
+      color: var(--text-main);
       font-size: 0.85rem;
     }
     .form-input:focus {

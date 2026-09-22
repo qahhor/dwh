@@ -102,7 +102,7 @@ import { InstalledModule } from '../modules.models';
     }
     .data-table th {
       padding: 12px 16px;
-      background: var(--bg-surface-alt, var(--bg-hover));
+      background: var(--bg-hover);
       color: var(--text-muted);
       font-weight: 600;
       font-size: 11px;

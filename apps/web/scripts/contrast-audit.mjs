@@ -44,7 +44,7 @@ function contrast(foreground, background) {
 
 function declarations(block) {
   return [...block.matchAll(/(?:^|[;{\s])(--[a-z0-9-]+|[a-z-]+)\s*:\s*([^;}]+)/gi)]
-    .map(match => [match[1].trim().toLowerCase(), match[2].trim()]);
+    .map(match => [match[1].trim().toLowerCase(), match[2].trim(), match.index ?? 0]);
 }
 
 /** Token tables per theme: `:root` declarations, then `[data-theme="dark"]` overrides. */
@@ -62,17 +62,28 @@ async function readTokens() {
   return { light: base, dark: { ...base, ...dark } };
 }
 
-/** Resolve a CSS value to an opaque hex, following `var()` chains; null when undecidable. */
+/**
+ * Resolve a CSS value to an opaque hex the way a browser would, following
+ * `var()` chains and falling back to the literal when the token is undefined.
+ * Returns null when the result cannot be decided statically.
+ */
 function resolveColour(value, tokens, seen = new Set()) {
   const trimmed = value.trim();
-  const reference = /^var\(\s*(--[a-z0-9-]+)\s*(?:,[^)]*)?\)$/i.exec(trimmed);
+  const reference = /^var\(\s*(--[a-z0-9-]+)\s*(?:,\s*([^)]*))?\)$/i.exec(trimmed);
   if (reference) {
-    const name = reference[1];
-    if (seen.has(name) || !(name in tokens)) return null;
+    const [, name, fallback] = reference;
+    if (seen.has(name)) return null;
     seen.add(name);
+    // An undefined token paints its fallback, so that is what must be measured.
+    if (!(name in tokens)) return fallback ? resolveColour(fallback, tokens, seen) : null;
     return resolveColour(tokens[name], tokens, seen);
   }
   return expandHex(trimmed);
+}
+
+/** Every `--token` a value refers to, so undefined ones can be reported. */
+function referencedTokens(value) {
+  return [...value.matchAll(/var\(\s*(--[a-z0-9-]+)/gi)].map(match => match[1]);
 }
 
 async function sourceFiles(directory) {
@@ -93,8 +104,13 @@ function withoutComments(source) {
 function ruleBlocks(source) {
   return [...withoutComments(source).matchAll(/\{([^{}]*)\}/g)].map(match => ({
     body: match[1],
-    line: source.slice(0, match.index).split('\n').length,
+    // Offset of the body, so a finding can name the declaration's own line.
+    offset: (match.index ?? 0) + 1,
   }));
+}
+
+function lineAt(source, offset) {
+  return source.slice(0, offset).split('\n').length;
 }
 
 function largeText(pairs) {
@@ -107,15 +123,26 @@ function largeText(pairs) {
 
 const tokens = await readTokens();
 const failures = [];
+const undefinedTokens = [];
 let checked = 0;
 
 for (const file of await sourceFiles(srcRoot)) {
   const source = await readFile(file, 'utf8');
-  for (const { body, line } of ruleBlocks(source)) {
+  for (const { body, offset } of ruleBlocks(source)) {
     const pairs = declarations(body);
     const background = pairs.find(([property]) => property === 'background-color' || property === 'background');
     const foreground = pairs.find(([property]) => property === 'color');
     if (!background || !foreground) continue;
+
+    for (const [property, value, at] of [background, foreground]) {
+      for (const name of referencedTokens(value)) {
+        if (!(name in tokens.light) && !(name in tokens.dark)) {
+          undefinedTokens.push(`${path.relative(webRoot, file)}:${lineAt(source, offset + at)} ${property}: ${name} is not defined, so its fallback paints in both themes`);
+        }
+      }
+    }
+
+    const line = lineAt(source, offset + foreground[2]);
 
     const threshold = largeText(pairs) ? AA_LARGE : AA_NORMAL;
     for (const theme of THEMES) {
@@ -142,12 +169,23 @@ if (!checked) {
   process.exit(1);
 }
 
+if (undefinedTokens.length) {
+  process.stderr.write(
+    `Colour properties referencing an undefined design token:\n${[...new Set(undefinedTokens)].join('\n')}\n\n` +
+    'Point these at a token defined in styles.css. A `var()` fallback is not a theme: ' +
+    'it paints the same colour in light and dark.\n\n'
+  );
+}
+
 if (failures.length) {
   process.stderr.write(
     `Colour pairs below WCAG AA contrast:\n${failures.join('\n')}\n\n` +
     'Use the per-theme ink token for the fill (--on-primary, --on-danger, ...) ' +
     'or a lighter scale step for text on a subtle background.\n'
   );
+}
+
+if (failures.length || undefinedTokens.length) {
   process.exit(1);
 }
 

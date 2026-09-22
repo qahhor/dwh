@@ -172,7 +172,7 @@ import { NavSection } from '../app-shell.models';
       gap: 10px;
       padding: 7px 10px;
       border-radius: var(--radius-sm);
-      color: var(--text-sidebar);
+      color: var(--sidebar-text);
       text-decoration: none;
       font-size: 13px;
       font-weight: 500;

@@ -133,7 +133,7 @@
       align-items: center;
       gap: 8px;
       padding: 10px 18px;
-      background: var(--bg-surface-alt, rgba(0, 0, 0, 0.02));
+      background: var(--bg-hover);
       border-bottom: 1px solid var(--border-color);
       overflow-x: auto;
       scrollbar-width: none;

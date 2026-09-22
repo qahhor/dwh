@@ -175,7 +175,7 @@ import { I18nService, TranslatePipe } from '../../../core/services/i18n.service'
       padding: 5px 12px;
       border-radius: 8px;
       font-size: 12px;
-      background: var(--bg-surface-alt, var(--bg-page));
+      background: var(--bg-app);
       border: 1px solid var(--border-color);
       color: var(--text-main);
       cursor: pointer;
