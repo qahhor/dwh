@@ -205,9 +205,9 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
       gap: 8px;
       padding: 10px 12px;
       border-radius: var(--radius-sm);
-      background: #eff6ff;
+      background: var(--info-bg);
       border: 1px solid #bfdbfe;
-      color: #1e40af;
+      color: var(--info-text);
       font-size: 12px;
       line-height: 1.4;
     }
@@ -215,7 +215,7 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
     .hint-icon {
       font-size: 18px;
       flex-shrink: 0;
-      color: #3b82f6;
+      color: var(--info-text);
     }
 
     .icon-selector-row {

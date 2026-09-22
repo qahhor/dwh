@@ -207,7 +207,7 @@
     .priority-pill[data-priority="urgent"] { background-color: var(--danger-bg); color: var(--danger-text); }
     .priority-pill[data-priority="high"] { background-color: var(--warning-bg); color: var(--warning-text); }
     .priority-pill[data-priority="medium"],
-    .priority-pill[data-priority="normal"] { background-color: rgba(59, 130, 246, 0.1); color: #2563eb; }
+    .priority-pill[data-priority="normal"] { background-color: rgba(59, 130, 246, 0.1); color: var(--info-text); }
     .priority-pill[data-priority="low"] { background-color: var(--bg-hover); color: var(--text-muted); }
     .deadline-pill {
       display: inline-flex;
@@ -221,7 +221,7 @@
     }
     .deadline-pill.overdue { background-color: var(--danger-bg); color: var(--danger-text); font-weight: 500; }
     .deadline-pill.deadline-today { background-color: var(--warning-bg); color: var(--warning-text); font-weight: 500; }
-    .deadline-pill.deadline-tomorrow { background-color: rgba(59,130,246,0.1); color: #2563eb; font-weight: 500; }
+    .deadline-pill.deadline-tomorrow { background-color: rgba(59,130,246,0.1); color: var(--info-text); font-weight: 500; }
     .deadline-pill .ico { font-size: 13px; }
     .font-mono { font-family: ui-monospace, monospace; }
     .text-muted { color: var(--text-muted); }

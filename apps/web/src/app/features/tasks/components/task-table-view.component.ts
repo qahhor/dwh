@@ -283,21 +283,21 @@ import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.m
     .inline-priority-select:hover:not(:disabled) { border-color: var(--border-color); }
     .inline-priority-select[data-priority="low"] {
       background-color: rgba(16, 185, 129, 0.12);
-      color: #10b981;
+      color: var(--success-text);
     }
     .inline-priority-select[data-priority="medium"],
     .inline-priority-select[data-priority="normal"] {
       background-color: rgba(59, 130, 246, 0.12);
-      color: #3b82f6;
+      color: var(--info-text);
     }
     .inline-priority-select[data-priority="high"] {
       background-color: rgba(245, 158, 11, 0.15);
-      color: #d97706;
+      color: var(--warning-text);
     }
     .inline-priority-select[data-priority="critical"],
     .inline-priority-select[data-priority="urgent"] {
       background-color: rgba(239, 68, 68, 0.15);
-      color: #ef4444;
+      color: var(--danger-text);
     }
     .inline-priority-select:disabled { cursor: default; }
 
@@ -346,13 +346,13 @@ import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.m
     .deadline-pill.deadline-today {
       background-color: rgba(245, 158, 11, 0.15);
       border-color: rgba(245, 158, 11, 0.35);
-      color: #d97706;
+      color: var(--warning-text);
       font-weight: 600;
     }
     .deadline-pill.deadline-tomorrow {
       background-color: rgba(59, 130, 246, 0.12);
       border-color: rgba(59, 130, 246, 0.3);
-      color: #2563eb;
+      color: var(--info-text);
     }
 
     .row-action-btns { display: inline-flex; gap: 4px; }

@@ -94,13 +94,13 @@
       background: var(--bg-surface);
     }
     .target-value input:focus { border-color: var(--primary); outline: 2px solid color-mix(in srgb, var(--primary) 18%, transparent); }
-    .translation-status { color: var(--warning-text, #8a5b00); font-size: 11px; font-weight: 700; }
-    .translation-status.ready { color: var(--success-text, #087443); }
+    .translation-status { color: var(--warning-text); font-size: 11px; font-weight: 700; }
+    .translation-status.ready { color: var(--success-text); }
     .editor-actions { position: sticky; bottom: 0; padding: 12px; margin: 0 -8px -8px; border: 1px solid var(--border-color); border-radius: 9px; background: var(--bg-surface); box-shadow: var(--shadow-md); }
     .editor-actions > div { gap: 8px; }
     .dirty-count { color: var(--text-light); font-size: 12px; }
     .editor-loading, .empty-filter { padding: 32px; color: var(--text-light); text-align: center; }
-    .editor-error, .save-error { padding: 10px 12px; border: 1px solid var(--danger); border-radius: 8px; color: var(--danger-text, #a61b1b); background: var(--danger-bg); }
+    .editor-error, .save-error { padding: 10px 12px; border: 1px solid var(--danger); border-radius: 8px; color: var(--danger-text); background: var(--danger-bg); }
     .editor-error { display: flex; justify-content: space-between; gap: 12px; }
     .text-action { color: inherit; background: transparent; text-decoration: underline; }
     .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }

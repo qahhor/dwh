@@ -307,10 +307,10 @@ import { TranslatePipe, I18nService } from '../../../../core/services/i18n.servi
       font-size: 15px;
     }
 
-    .entity-badge.user { background: var(--primary-subtle, #e0f2fe); color: var(--primary, #0284c7); }
-    .entity-badge.project { background: var(--info-bg, #e0e7ff); color: var(--info-text); }
-    .entity-badge.task { background: var(--success-bg, #dcfce7); color: var(--success-text); }
-    .entity-badge.note { background: var(--warning-bg, #fef3c7); color: var(--warning-text); }
+    .entity-badge.user { background: var(--primary-subtle); color: var(--primary); }
+    .entity-badge.project { background: var(--info-bg); color: var(--info-text); }
+    .entity-badge.task { background: var(--success-bg); color: var(--success-text); }
+    .entity-badge.note { background: var(--warning-bg); color: var(--warning-text); }
     .entity-badge.custom-entity { background: var(--bg-hover); color: var(--text-main); border: 1px solid var(--border-color); }
 
     .type-badge {
@@ -344,7 +344,7 @@ import { TranslatePipe, I18nService } from '../../../../core/services/i18n.servi
     }
 
     .status-indicator.active {
-      background: var(--success-bg, #dcfce7);
+      background: var(--success-bg);
       color: var(--success-text);
     }
 
@@ -373,7 +373,7 @@ import { TranslatePipe, I18nService } from '../../../../core/services/i18n.servi
     }
 
     .action-btn.danger:hover {
-      background: var(--danger-bg, #fee2e2);
+      background: var(--danger-bg);
       color: var(--danger-text);
     }
 

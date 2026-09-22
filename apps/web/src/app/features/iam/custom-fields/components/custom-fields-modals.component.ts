@@ -256,7 +256,7 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
     }
 
     .readonly-hint {
-      color: var(--warning, #d97706);
+      color: var(--warning);
     }
 
     .form-error {
@@ -266,7 +266,7 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
       padding: 8px 12px;
       background: var(--danger-bg);
       border-radius: 6px;
-      border: 1px solid var(--danger-border, rgba(239, 68, 68, 0.2));
+      border: 1px solid var(--danger-border);
     }
 
     .checkbox-group {

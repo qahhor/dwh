@@ -259,7 +259,7 @@ export interface EventTypeRow {
       width: 14px;
       height: 14px;
       border: 2px solid rgba(255,255,255,0.3);
-      border-top-color: #fff;
+      border-top-color: var(--text-inverse);
       border-radius: 50%;
       animation: spin 0.6s linear infinite;
     }

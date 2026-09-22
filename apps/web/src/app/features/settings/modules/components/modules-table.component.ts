@@ -169,7 +169,7 @@ import { InstalledModule } from '../modules.models';
     }
     .badge-active {
       background: rgba(16, 185, 129, 0.12);
-      color: #059669;
+      color: var(--success-text);
     }
     .badge-inactive {
       background: var(--bg-hover);

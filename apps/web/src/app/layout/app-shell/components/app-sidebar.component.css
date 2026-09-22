@@ -37,7 +37,7 @@
 
     .rail-category-btn:hover,
     .rail-category-btn.open {
-      background-color: var(--bg-sidebar-hover, rgba(255, 255, 255, 0.08));
+      background-color: var(--bg-sidebar-hover);
       color: var(--sidebar-text-strong);
     }
 

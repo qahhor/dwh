@@ -112,7 +112,7 @@ import { I18nService, TranslatePipe } from '../../../core/services/i18n.service'
       color: var(--text-muted);
       letter-spacing: 0.02em;
     }
-    .palette-degraded { color: var(--warning, #d97706); }
+    .palette-degraded { color: var(--warning); }
     .palette-retry:disabled { opacity: .6; cursor: default; }
 
     .palette-hint .hint-text {
@@ -183,8 +183,8 @@ import { I18nService, TranslatePipe } from '../../../core/services/i18n.service'
     }
     .recent-chip:hover {
       background: var(--bg-hover);
-      border-color: var(--primary, #0284c7);
-      color: var(--primary, #0284c7);
+      border-color: var(--primary);
+      color: var(--primary);
     }
     .recent-chip .chip-icon {
       font-size: 14px;
@@ -196,7 +196,7 @@ import { I18nService, TranslatePipe } from '../../../core/services/i18n.service'
       flex-direction: column;
       align-items: center;
       gap: 10px;
-      color: var(--danger, #ef4444);
+      color: var(--danger);
     }
 
     .palette-retry {
@@ -258,9 +258,9 @@ import { I18nService, TranslatePipe } from '../../../core/services/i18n.service'
       font-size: 19px;
     }
 
-    .icon-user { background-color: var(--info-bg, rgba(14, 165, 233, 0.12)); color: var(--info, #0ea5e9); }
-    .icon-task { background-color: var(--success-bg, rgba(34, 197, 94, 0.12)); color: var(--success, #22c55e); }
-    .icon-project { background-color: var(--warning-bg, rgba(245, 158, 11, 0.12)); color: var(--warning, #f59e0b); }
+    .icon-user { background-color: var(--info-bg); color: var(--info-text); }
+    .icon-task { background-color: var(--success-bg); color: var(--success-text); }
+    .icon-project { background-color: var(--warning-bg); color: var(--warning-text); }
     .icon-note { background-color: rgba(168, 85, 247, 0.12); color: #a855f7; }
 
     .result-info {

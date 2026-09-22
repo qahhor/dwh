@@ -46,6 +46,10 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   from 2.14:1 to 9.07:1. Destructive buttons (3.76:1) and danger badges and
   alerts (4.29:1) were below WCAG AA in dark theme and now pass at 5.16:1 and
   5.84:1.
+- Status colours across features painted fixed hues that ignored the theme:
+  success, warning, danger and info were written as literals, and 83 `var()`
+  fallbacks masked their own tokens. Colour properties now read the semantic
+  tokens, leaving only data, the note card palette and category hues literal.
 - The collapsed sidebar's flyout panel ignored the theme: it painted the
   light-theme sidebar colour in both, so in dark theme it did not match the
   sidebar it belongs to. Its active entry also failed WCAG AA at 4.10:1 in

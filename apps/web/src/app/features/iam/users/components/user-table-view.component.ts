@@ -252,7 +252,7 @@ export type SortDirection = 'asc' | 'desc';
       width: 28px;
       height: 28px;
       border-radius: 50%;
-      color: #fff;
+      color: var(--text-inverse);
       font-size: 11px;
       font-weight: 600;
       display: flex;

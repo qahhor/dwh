@@ -8,7 +8,7 @@ h5 { font-size: 13px; }
 .heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .heading > div { display: grid; gap: 4px; }
 .help { color: var(--text-muted); font-size: 13px; line-height: 1.5; }
-.warning { color: var(--warning, #a16207); padding: 8px 10px; border: 1px solid currentColor; border-radius: var(--radius-sm); }
+.warning { color: var(--warning); padding: 8px 10px; border: 1px solid currentColor; border-radius: var(--radius-sm); }
 .legacy { display: grid; gap: 4px; padding-top: 12px; border-top: 1px solid var(--border-color); }
 .actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
 dl { display: grid; grid-template-columns: minmax(120px, max-content) 1fr; gap: 8px 12px; margin: 0; }

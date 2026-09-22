@@ -120,7 +120,7 @@ import { TranslatePipe, I18nService } from '../../../../core/services/i18n.servi
     }
 
     .tab-btn.active .tab-count {
-      background: var(--primary-subtle, rgba(59, 130, 246, 0.15));
+      background: var(--primary-subtle);
       color: var(--primary);
     }
 

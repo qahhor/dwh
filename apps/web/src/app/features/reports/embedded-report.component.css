@@ -42,7 +42,7 @@
       width: 36px;
       height: 36px;
       border-radius: var(--radius-sm);
-      background-color: #f1f5f9;
+      background-color: var(--bg-hover);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -99,16 +99,16 @@
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background-color: #cbd5e1;
+      background-color: var(--border-color);
     }
 
     .status-indicator.ready .status-dot {
-      background-color: #10b981;
+      background-color: var(--success);
       box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
     }
 
     .status-indicator.loading .status-dot {
-      background-color: #f59e0b;
+      background-color: var(--warning);
       animation: pulse 1s infinite;
     }
 
@@ -163,7 +163,7 @@
     .report-viewport {
       flex: 1;
       position: relative;
-      background-color: #ffffff;
+      background-color: var(--bg-surface);
       display: flex;
       flex-direction: column;
     }
@@ -244,7 +244,7 @@
 
     .tip-icon {
       font-size: 16px;
-      color: #eab308;
+      color: var(--warning-text);
       flex-shrink: 0;
     }
 
