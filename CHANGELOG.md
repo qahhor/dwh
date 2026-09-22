@@ -46,6 +46,11 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   from 2.14:1 to 9.07:1. Destructive buttons (3.76:1) and danger badges and
   alerts (4.29:1) were below WCAG AA in dark theme and now pass at 5.16:1 and
   5.84:1.
+- The application fetched Inter and Material Symbols from a third-party CDN,
+  so in a closed network every icon rendered as its own name in text and the
+  interface was visibly broken, while each page load disclosed the viewer's
+  address to that third party. Both fonts now ship with the build and are
+  served from the application's own origin.
 - Status colours across features painted fixed hues that ignored the theme:
   success, warning, danger and info were written as literals, and 83 `var()`
   fallbacks masked their own tokens. Colour properties now read the semantic
