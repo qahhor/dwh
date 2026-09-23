@@ -243,8 +243,13 @@ async function loginSyntheticUser(page: Page, login: string, passwordValue: stri
   }
 }
 
+/** A unit's row in the organization tree (a WAI-ARIA treegrid); the row shows "code · name". */
+function orgUnitRow(page: Page, text: string) {
+  return page.getByRole('treegrid', { name: 'Дерево подразделений', exact: true }).getByRole('row').filter({ hasText: text });
+}
+
 async function selectOrgUnit(page: Page, name: string): Promise<void> {
-  const unit = page.locator('button.select').filter({ hasText: name });
+  const unit = orgUnitRow(page, name);
   await expect(unit).toBeVisible();
   await unit.click();
 }
@@ -453,7 +458,7 @@ test.describe.serial('organization structure vertical acceptance', () => {
     expect(createdHttp.status()).toBe(201);
     expect(new URL(createdHttp.url()).origin).toBe(candidateOrigin());
     const journeyUnit = await createdHttp.json() as OrgUnit;
-    await expect(page.locator('button.select').filter({ hasText: journeyCode })).toBeVisible();
+    await expect(orgUnitRow(page, journeyCode)).toBeVisible();
 
     const root = journeyUnit;
     const primary = await createOrgUnit(page, root.id, 'primary', fixtureNames.primary, 'branch', 10);
@@ -478,14 +483,15 @@ test.describe.serial('organization structure vertical acceptance', () => {
 
     const actorPanel = await openActorPanel(page, actorFixture.user.id);
     const assignmentsCard = actorPanel.getByRole('region', { name: 'Назначенные подразделения', exact: true });
-    const primaryAssignment = assignmentsCard.getByRole('checkbox', { name: new RegExp(fixtureNames.primary, 'u') });
-    await expect(primaryAssignment).not.toBeChecked();
+    // A multi-select treegrid: the row is the control and aria-selected says whether it is assigned.
+    const primaryAssignment = assignmentsCard.getByRole('row').filter({ hasText: fixtureNames.primary });
+    await expect(primaryAssignment).toHaveAttribute('aria-selected', 'false');
     await primaryAssignment.click();
     const assignmentResponse = page.waitForResponse(response => response.request().method() === 'PUT'
       && new URL(response.url()).pathname === `/api/v1/iam/org-units/users/${actorFixture.user.id}`);
     await assignmentsCard.getByRole('button', { name: 'Сохранить', exact: true }).click();
     expect((await assignmentResponse).status()).toBe(204);
-    await expect(primaryAssignment).toBeChecked();
+    await expect(primaryAssignment).toHaveAttribute('aria-selected', 'true');
 
     await setRoleRuleFromUi(page, role, 'UNITS');
     await expectEffectiveScope(page, actorFixture.user.id, 'Только свои подразделения', [fixtureNames.primary], [fixtureNames.child, fixtureNames.other]);
@@ -564,7 +570,7 @@ test.describe.serial('organization structure vertical acceptance', () => {
     release();
     expect((await response).status()).toBe(201);
     await page.unroute('**/api/v1/iam/org-units');
-    await expect(page.locator('button.select').filter({ hasText: pendingName })).toBeVisible();
+    await expect(orgUnitRow(page, pendingName)).toBeVisible();
     assertHealthy();
   });
 
@@ -602,7 +608,7 @@ test.describe.serial('organization structure vertical acceptance', () => {
     await confirmation.getByRole('button', { name: 'Удалить', exact: true }).click();
     expect((await response).status()).toBe(409);
     await expect(confirmation.getByRole('alert')).toBeVisible();
-    await expect(page.locator('button.select').filter({ hasText: seeded.other.name })).toHaveAttribute('aria-current', 'true');
+    await expect(orgUnitRow(page, seeded.other.name)).toHaveAttribute('aria-selected', 'true');
     expect(conflicts.map(value => ({ method: value.request().method(), path: new URL(value.url()).pathname }))).toEqual([
       { method: 'DELETE', path: `/api/v1/iam/org-units/${seeded.other.id}` },
     ]);
@@ -636,7 +642,7 @@ test.describe.serial('organization structure vertical acceptance', () => {
       && response.status() === 200);
     await page.getByRole('button', { name: 'Повторить загрузку', exact: true }).click();
     expect((await recovery).status()).toBe(200);
-    await expect(page.locator('button.select').filter({ hasText: currentFixture().primary.name })).toBeVisible();
+    await expect(orgUnitRow(page, currentFixture().primary.name)).toBeVisible();
     assertHealthy();
   });
 
