@@ -48,6 +48,24 @@ const screens: Screen[] = [
     },
   },
   {
+    name: 'user list',
+    path: '/iam/users',
+    open: async page => {
+      await expect(page.getByRole('table', { name: 'Список пользователей' })).toBeVisible();
+      await expect(page.getByText('Сотрудник 80', { exact: true }).first()).toBeVisible();
+    },
+  },
+  {
+    name: 'user edit form with the manager picker open',
+    path: '/iam/users',
+    open: async page => {
+      await page.getByRole('button', { name: 'Редактировать пользователя Сотрудник 2', exact: true }).click();
+      await page.getByRole('dialog').getByRole('button', { name: 'Руководитель', exact: true }).click();
+      await expect(page.getByRole('listbox', { name: 'Руководитель' })).toBeVisible();
+      await expect(page.getByRole('option', { name: /Сотрудник 3/ })).toBeVisible();
+    },
+  },
+  {
     name: 'user card division assignments',
     path: '/iam/users',
     open: async page => {

@@ -1927,5 +1927,10 @@
   "iam.ukazhite_nazvanie_polya": "Укажите название поля",
   "iam.ukazhite_kod_polya": "Укажите код поля",
   "iam.kod_polya_rezervirovan": "Этот код поля зарезервирован системой",
-  "ui.table.povtorit": "Повторить"
+  "ui.table.povtorit": "Повторить",
+  "iam.users.loading": "Загрузка пользователей…",
+  "iam.users.load_error": "Не удалось загрузить пользователей.",
+  "iam.users.export_failed": "Не удалось выгрузить пользователей. Попробуйте ещё раз.",
+  "iam.users.export_truncated": "Выгружены первые {count} пользователей. Уточните фильтры, чтобы выгрузить остальных.",
+  "iam.users.exporting": "Выгрузка…"
 }

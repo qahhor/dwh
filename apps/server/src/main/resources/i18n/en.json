@@ -1750,5 +1750,10 @@
   "iam.ukazhite_nazvanie_polya": "Enter the field name",
   "iam.ukazhite_kod_polya": "Enter the field code",
   "iam.kod_polya_rezervirovan": "This field code is reserved by the system",
-  "ui.table.povtorit": "Retry"
+  "ui.table.povtorit": "Retry",
+  "iam.users.loading": "Loading users…",
+  "iam.users.load_error": "Could not load users.",
+  "iam.users.export_failed": "Could not export users. Please try again.",
+  "iam.users.export_truncated": "Exported the first {count} users. Narrow the filters to export the rest.",
+  "iam.users.exporting": "Exporting…"
 }

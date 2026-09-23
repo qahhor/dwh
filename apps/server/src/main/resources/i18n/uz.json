@@ -1673,5 +1673,10 @@
   "ui.tree.razvernut_vse": "Hammasini ochish",
   "ui.tree.svernut_vse": "Hammasini yopish",
   "iam.org_units.search": "Kod yoki nom bo'yicha qidirish",
-  "ui.table.povtorit": "Qayta urinish"
+  "ui.table.povtorit": "Qayta urinish",
+  "iam.users.loading": "Foydalanuvchilar yuklanmoqda…",
+  "iam.users.load_error": "Foydalanuvchilarni yuklab bo'lmadi.",
+  "iam.users.export_failed": "Foydalanuvchilarni eksport qilib bo'lmadi. Qayta urinib ko'ring.",
+  "iam.users.export_truncated": "Dastlabki {count} foydalanuvchi eksport qilindi. Qolganlarini eksport qilish uchun filtrlarni aniqlashtiring.",
+  "iam.users.exporting": "Eksport qilinmoqda…"
 }

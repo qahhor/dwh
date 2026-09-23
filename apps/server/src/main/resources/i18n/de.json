@@ -1673,5 +1673,10 @@
   "ui.tree.razvernut_vse": "Alle aufklappen",
   "ui.tree.svernut_vse": "Alle zuklappen",
   "iam.org_units.search": "Nach Code oder Name suchen",
-  "ui.table.povtorit": "Erneut versuchen"
+  "ui.table.povtorit": "Erneut versuchen",
+  "iam.users.loading": "Benutzer werden geladen…",
+  "iam.users.load_error": "Benutzer konnten nicht geladen werden.",
+  "iam.users.export_failed": "Benutzer konnten nicht exportiert werden. Bitte erneut versuchen.",
+  "iam.users.export_truncated": "Die ersten {count} Benutzer wurden exportiert. Grenzen Sie die Filter ein, um die übrigen zu exportieren.",
+  "iam.users.exporting": "Export läuft…"
 }

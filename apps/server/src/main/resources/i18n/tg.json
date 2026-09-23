@@ -1673,5 +1673,10 @@
   "ui.tree.razvernut_vse": "Ҳамаро кушодан",
   "ui.tree.svernut_vse": "Ҳамаро пӯшидан",
   "iam.org_units.search": "Ҷустуҷӯ аз рӯи рамз ё ном",
-  "ui.table.povtorit": "Такрор кардан"
+  "ui.table.povtorit": "Такрор кардан",
+  "iam.users.loading": "Боркунии корбарон…",
+  "iam.users.load_error": "Корбаронро бор кардан муяссар нашуд.",
+  "iam.users.export_failed": "Содироти корбарон муяссар нашуд. Бори дигар кӯшиш кунед.",
+  "iam.users.export_truncated": "{count} корбари аввал содир шуданд. Барои содироти боқимонда филтрҳоро дақиқ кунед.",
+  "iam.users.exporting": "Содирот…"
 }

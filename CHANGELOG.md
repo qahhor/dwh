@@ -86,6 +86,16 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - The language list in Settings renders through the vendored table
   foundation instead of a hand-written table, the first screen to do so.
+- The user list pages through the server a page at a time on the shared
+  server table, with a retry on failure and loading announced to screen
+  readers. It replaces a list that loaded 50 users with "load more", then
+  sorted and paged only the rows loaded so far, so its sorting, page count
+  and header counter described the loaded rows rather than the users. Column
+  sorting is gone until the server can sort; blocking, editing or deleting a
+  user keeps the page on screen instead of jumping back to the first.
+- Exporting users to CSV exports every user the filters match, page by page
+  up to 10,000 rows, and says so when the limit cuts the export short. It
+  used to export only the rows loaded on screen.
 
 - Unified the product as one SmartupCMS installation for one organization and
   many users.

@@ -74,8 +74,10 @@ describe('UsersComponent UI contracts', () => {
 
     expect(fixture.nativeElement.querySelector(`label[for="${search.id}"]`)).not.toBeNull();
     expect(fixture.nativeElement.querySelector('[role="group"][aria-label="Фильтр пользователей по статусу"]')).not.toBeNull();
-    expect(region.tabIndex).toBe(0);
-    expect(region.querySelector('table')?.getAttribute('aria-label')).toBe('Список пользователей');
+    expect(region.getAttribute('aria-label')).toBe('Таблица пользователей');
+    expect(region.querySelector('[role="table"]')?.getAttribute('aria-label')).toBe('Список пользователей');
+    // The server orders the list, so no header pretends to sort it.
+    expect(region.querySelector('[aria-sort]')).toBeNull();
     expect(identity.tagName).toBe('BUTTON');
     expect(fixture.nativeElement.querySelector('button[aria-label="Редактировать пользователя Анна Иванова"]')).not.toBeNull();
   });
@@ -424,47 +426,96 @@ describe('UsersComponent UI contracts', () => {
     expect(fixture.componentInstance.userSecurity()?.recentLoginAttempts.length).toBe(1);
   });
 
-  it('loadMore appends users using nextCursor and updates hasMore flag', async () => {
-    const fixture = await createFixture();
-    const api = TestBed.inject(ApiService) as unknown as {
-      get: ReturnType<typeof vi.fn>;
-    };
-
-    const user1 = user(1, 'Пользователь 1');
-    const user2 = user(2, 'Пользователь 2');
-
-    api.get.mockReturnValueOnce(of({ items: [user1], nextCursor: 'cursor_abc', hasMore: true }));
-    fixture.componentInstance.loadUsers(true);
-
-    expect(fixture.componentInstance.users().length).toBe(1);
-    expect(fixture.componentInstance.hasMore()).toBe(true);
-
-    api.get.mockReturnValueOnce(of({ items: [user2], nextCursor: null, hasMore: false }));
-    fixture.componentInstance.loadMore();
-
-    expect(api.get).toHaveBeenCalledWith('/iam/users', expect.objectContaining({ cursor: 'cursor_abc', limit: 50 }));
-    expect(fixture.componentInstance.users().length).toBe(2);
-    expect(fixture.componentInstance.hasMore()).toBe(false);
-  });
-
-  it('never appends a pending page of the old filter to the new result', async () => {
+  it('pages forward with the cursor the server returned and back without asking for a new one', async () => {
     const fixture = await createFixture();
     const api = TestBed.inject(ApiService) as unknown as { get: ReturnType<typeof vi.fn> };
-    const pendingMore = new Subject<unknown>();
+
+    api.get.mockReturnValueOnce(of({ items: [user(1, 'Пользователь 1')], nextCursor: 'cursor_abc', hasMore: true }));
+    fixture.componentInstance.loadUsers(true);
+    expect(api.get).toHaveBeenLastCalledWith('/iam/users', expect.objectContaining({ limit: 20, cursor: undefined }));
+    expect(fixture.componentInstance.userPager.canGoForward()).toBe(true);
+
+    api.get.mockReturnValueOnce(of({ items: [user(2, 'Пользователь 2')], nextCursor: null, hasMore: false }));
+    fixture.componentInstance.userPager.next();
+    expect(api.get).toHaveBeenLastCalledWith('/iam/users', expect.objectContaining({ cursor: 'cursor_abc', limit: 20 }));
+    expect(fixture.componentInstance.users().map(item => item.id)).toEqual([2]);
+    expect(fixture.componentInstance.userPager.page()).toBe(2);
+    expect(fixture.componentInstance.userPager.canGoForward()).toBe(false);
+
+    api.get.mockReturnValueOnce(of({ items: [user(1, 'Пользователь 1')], nextCursor: 'cursor_abc', hasMore: true }));
+    fixture.componentInstance.userPager.previous();
+    expect(api.get).toHaveBeenLastCalledWith('/iam/users', expect.objectContaining({ cursor: undefined }));
+    expect(fixture.componentInstance.userPager.page()).toBe(1);
+  });
+
+  it('never lets a pending page of the old filter replace the new result', async () => {
+    const fixture = await createFixture();
+    const api = TestBed.inject(ApiService) as unknown as { get: ReturnType<typeof vi.fn> };
+    const pendingNext = new Subject<unknown>();
     const pendingFilter = new Subject<unknown>();
 
     api.get.mockReturnValueOnce(of({ items: [user(1, 'Первый')], nextCursor: 'c2', hasMore: true }));
     fixture.componentInstance.loadUsers(true);
-    api.get.mockReturnValueOnce(pendingMore.asObservable());
-    fixture.componentInstance.loadMore();
+    api.get.mockReturnValueOnce(pendingNext.asObservable());
+    fixture.componentInstance.userPager.next();
     api.get.mockReturnValueOnce(pendingFilter.asObservable());
     fixture.componentInstance.selectedState = 'P';
     fixture.componentInstance.loadUsers(true);
 
     pendingFilter.next({ items: [user(9, 'Заблокированный')], nextCursor: null, hasMore: false }); pendingFilter.complete();
-    pendingMore.next({ items: [user(2, 'Второй')], nextCursor: null, hasMore: false }); pendingMore.complete();
+    pendingNext.next({ items: [user(2, 'Второй')], nextCursor: null, hasMore: false }); pendingNext.complete();
 
     expect(fixture.componentInstance.users().map(item => item.id)).toEqual([9]);
+    expect(fixture.componentInstance.userPager.page()).toBe(1);
+  });
+
+  it('keeps the page on screen after blocking a user, and steps back when its last row is gone', async () => {
+    const fixture = await createFixture();
+    const api = TestBed.inject(ApiService) as unknown as { get: ReturnType<typeof vi.fn>; post: ReturnType<typeof vi.fn> };
+    api.get.mockReturnValueOnce(of({ items: [user(1, 'Первый')], nextCursor: 'c2', hasMore: true }));
+    fixture.componentInstance.loadUsers(true);
+    api.get.mockReturnValueOnce(of({ items: [user(2, 'Второй')], nextCursor: null, hasMore: false }));
+    fixture.componentInstance.userPager.next();
+
+    api.get.mockReturnValueOnce(of({ items: [{ ...user(2, 'Второй'), state: 'P' }], nextCursor: null, hasMore: false }));
+    fixture.componentInstance.toggleUserState(user(2, 'Второй'), 'block');
+    expect(api.get).toHaveBeenLastCalledWith('/iam/users', expect.objectContaining({ cursor: 'c2' }));
+    expect(fixture.componentInstance.userPager.page()).toBe(2);
+
+    // With a state filter the blocked user leaves the page, which is now empty.
+    api.get.mockReturnValueOnce(of({ items: [], nextCursor: null, hasMore: false }));
+    api.get.mockReturnValueOnce(of({ items: [user(1, 'Первый')], nextCursor: 'c2', hasMore: true }));
+    fixture.componentInstance.toggleUserState(user(2, 'Второй'), 'block');
+    expect(fixture.componentInstance.userPager.page()).toBe(1);
+    expect(fixture.componentInstance.users().map(item => item.id)).toEqual([1]);
+  });
+
+  it('exports every user the filters match, not only the page on screen', async () => {
+    const fixture = await createFixture();
+    const api = TestBed.inject(ApiService) as unknown as { get: ReturnType<typeof vi.fn> };
+    const toast = TestBed.inject(ToastService) as unknown as { success: ReturnType<typeof vi.fn>; warning: ReturnType<typeof vi.fn> };
+    const createObjectURL = vi.fn(() => 'blob:users');
+    Object.assign(URL, { createObjectURL, revokeObjectURL: vi.fn() });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+    fixture.componentInstance.selectedState = 'A';
+    api.get
+      .mockReturnValueOnce(of({ items: [user(1, 'Первый')], nextCursor: 'c1', hasMore: true }))
+      .mockReturnValueOnce(of({ items: [user(2, 'Второй')], nextCursor: null, hasMore: false }));
+    fixture.componentInstance.exportToCsv();
+
+    expect(api.get).toHaveBeenNthCalledWith(api.get.mock.calls.length - 1, '/iam/users',
+      expect.objectContaining({ limit: 200, cursor: undefined, state: 'A' }), { notifyError: false });
+    expect(api.get).toHaveBeenLastCalledWith('/iam/users',
+      expect.objectContaining({ limit: 200, cursor: 'c1', state: 'A' }), { notifyError: false });
+    const blob = (createObjectURL.mock.calls[0] as unknown as [Blob])[0];
+    const csv = await blob.text();
+    expect(csv).toContain('Первый');
+    expect(csv).toContain('Второй');
+    expect(toast.success).toHaveBeenCalled();
+    expect(toast.warning).not.toHaveBeenCalled();
+    expect(fixture.componentInstance.isExporting()).toBe(false);
+    click.mockRestore();
   });
 
   it('shows the answer to the latest search even when an earlier one answers last', async () => {

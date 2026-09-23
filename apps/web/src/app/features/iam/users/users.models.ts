@@ -3,9 +3,6 @@ import { Role } from '../../../core/models/rbac.models';
 import { ToastService } from '../../../core/services/toast.service';
 import { I18nService } from '../../../core/services/i18n.service';
 
-export type SortColumn = 'id' | 'name' | 'login' | 'createdAt';
-export type SortDirection = 'asc' | 'desc';
-
 export interface SecurityConfirmConfig {
   title: string;
   message: string;

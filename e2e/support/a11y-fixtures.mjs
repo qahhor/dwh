@@ -13,6 +13,8 @@ function user(id) {
   return {
     id, name: `Сотрудник ${id}`, login: `user${id}`, email: `user${id}@example.test`, state: id % 7 === 0 ? 'P' : 'A',
     language: 'ru', timezone: 'Asia/Tashkent', attributes: {}, is2faEnabled: id % 3 === 0, forcePasswordChange: false,
+    // Every tenth reports to someone far down the list, whose name the screen must look up.
+    managerId: id === 1 ? undefined : id % 10 === 0 ? 80 : 1 + (id % 5),
     createdAt: at(1), modifiedAt: at(2),
   };
 }
@@ -75,8 +77,10 @@ export const fixtures = {
   '/iam/org-units': orgUnits(),
   '/iam/org-units/users/1': { userId: 1, orgUnitIds: [2, 5], legacyOrgUnitId: null },
   '/iam/org-units/users/1/scope': { rule: 'UNITS', visibleOrgUnitIds: [2, 5] },
-  '/iam/users': page(range(1, 50).map(user), 'u2', 60),
-  '/iam/users#u2': page(range(51, 60).map(user), null, 60),
+  // Like the real endpoint, the user list counts only the page it returns.
+  '/iam/users': page(range(1, 50).map(user), 'u2'),
+  '/iam/users#u2': page(range(51, 60).map(user), null),
+  '/iam/users/80': { ...user(80), managerId: 1 },
   '/rbac/roles': [],
   '/custom-fields': [],
   '/audit/stats': { totalAuditLogs: 30, totalSecurityEvents: 12, securityEventsLast24h: 3, failedLoginsLast24h: 1 },

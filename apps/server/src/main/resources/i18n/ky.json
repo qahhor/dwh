@@ -1673,5 +1673,10 @@
   "ui.tree.razvernut_vse": "Баарын ачуу",
   "ui.tree.svernut_vse": "Баарын жыйноо",
   "iam.org_units.search": "Код же аталыш боюнча издөө",
-  "ui.table.povtorit": "Кайталоо"
+  "ui.table.povtorit": "Кайталоо",
+  "iam.users.loading": "Колдонуучулар жүктөлүүдө…",
+  "iam.users.load_error": "Колдонуучуларды жүктөө мүмкүн болгон жок.",
+  "iam.users.export_failed": "Колдонуучуларды экспорттоо мүмкүн болгон жок. Кайра аракет кылыңыз.",
+  "iam.users.export_truncated": "Алгачкы {count} колдонуучу экспорттолду. Калгандарын экспорттоо үчүн чыпкаларды тактаңыз.",
+  "iam.users.exporting": "Экспорттоо…"
 }

@@ -3,7 +3,6 @@
       <div class="view-header">
         <div class="header-left">
           <h1 class="view-title">{{ 'nav.users' | t }}</h1>
-          <span class="count-badge">{{ users().length }}</span>
         </div>
         <div class="header-right">
           <ui-button
@@ -11,9 +10,10 @@
             size="md"
             icon="file_download"
             [title]="'iam.eksport_v_csv' | t"
+            [loading]="isExporting()"
             (onClick)="exportToCsv()"
           >
-            {{ 'analytics.eksport' | t }}
+            {{ (isExporting() ? 'iam.users.exporting' : 'analytics.eksport') | t }}
           </ui-button>
           <ui-button
             *ngIf="canCreateUser()"
@@ -56,16 +56,7 @@
 
       <!-- Minimal Data Table (Delegated Component) -->
       <app-user-table-view
-        [users]="users()"
-        [paginatedUsers]="paginatedUsers()"
-        [totalItems]="sortedUsers().length"
-        [sortColumn]="sortColumn"
-        [sortDirection]="sortDirection"
-        [isLoading]="isLoading()"
-        [hasMore]="hasMore()"
-        [isLoadingMore]="isLoadingMore()"
-        [currentPage]="currentPage"
-        [pageSize]="pageSize"
+        [pager]="userPager"
         [canUpdateUser]="canUpdateUser()"
         [canBlockUser]="canBlockUser()"
         [canUnblockUser]="canUnblockUser()"
@@ -74,14 +65,10 @@
         [getAvatarBgColor]="getAvatarBgColorFn"
         [getUserRoleNames]="getUserRoleNamesFn"
         [getManagerName]="getManagerNameFn"
-        (sortChange)="changeSort($event)"
         (viewUser)="openViewModal($event)"
         (editUser)="openEditModal($event)"
         (toggleState)="toggleUserState($event.user, $event.action)"
         (deleteUser)="openDeleteConfirmModal($event)"
-        (loadMore)="loadMore()"
-        (pageChange)="currentPage = $event"
-        (pageSizeChange)="pageSize = $event; currentPage = 1"
       ></app-user-table-view>
     </div>
 

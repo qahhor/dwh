@@ -15,11 +15,12 @@ let respond: (cursor: string | null) => Observable<KeysetResponse<Row>> = () => 
   imports: [UiServerTableComponent],
   template: `
     <ui-server-table [pager]="pager" [config]="config" loadingLabel="Loading rows" errorLabel="Rows failed" errorId="rows-error"
-      [emptyTemplate]="empty" />
+      [emptyTemplate]="empty" [countsPage]="countsPage" />
     <ng-template #empty><p class="custom-empty">No rows for these filters</p></ng-template>`,
 })
 class HostComponent {
   readonly pager = new KeysetPager<Row>(cursor => respond(cursor), { pageSize: 2 });
+  countsPage = false;
   readonly config: TableConfig<Row> = {
     trackBy: (_index, row) => row.id,
     ariaLabel: 'Rows',
@@ -94,5 +95,24 @@ describe('ui-server-table', () => {
     const select = el(fixture).querySelector('select') as HTMLSelectElement;
     expect([...select.options].map(option => option.textContent?.trim())).toEqual(['2', '10', '25', '50', '100']);
     expect(select.selectedOptions[0]?.textContent?.trim()).toBe('2');
+  });
+
+  it('shows the range on screen without a false total when the server counts only the page', async () => {
+    // As the user list answers: totalEstimated is the length of the page returned.
+    respond = cursor => cursor === null
+      ? of({ items: [{ id: 1 }, { id: 2 }], nextCursor: 'c2', hasMore: true, totalEstimated: 2 })
+      : of({ items: [{ id: 3 }], nextCursor: null, hasMore: false, totalEstimated: 1 });
+    await TestBed.configureTestingModule({ imports: [HostComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(HostComponent);
+    fixture.componentInstance.countsPage = true;
+    fixture.detectChanges();
+    fixture.componentInstance.pager.first();
+    fixture.detectChanges();
+    fixture.componentInstance.pager.next();
+    fixture.detectChanges();
+    const info = el(fixture).querySelector('.pagination-info')?.textContent?.replace(/\s+/g, ' ').trim();
+    expect(info).toContain('3–3');
+    expect(info).not.toMatch(/ 1$/);
+    expect(el(fixture).querySelector('.pagination-info strong:nth-of-type(2)')).toBeNull();
   });
 });

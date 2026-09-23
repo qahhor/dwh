@@ -44,7 +44,8 @@ import { UiPaginationComponent } from './ui-pagination.component';
       [smtColumnResizeEnabled]="false"
       (smtRowClick)="rowClick.emit($event)" />
     <ui-pagination
-      [totalItems]="pager().total()"
+      [totalItems]="countsPage() ? pager().items().length : pager().total()"
+      [cursorItemsArePageLength]="countsPage()"
       [pageSize]="pager().pageSize()"
       [pageSizeOptions]="pageSizeOptions()"
       [currentPage]="pager().page()"
@@ -72,6 +73,12 @@ export class UiServerTableComponent<T> {
   readonly errorLabel = input.required<string>();
   readonly errorId = input<string>('');
   readonly emptyTemplate = input<TemplateRef<unknown> | null>(null);
+  /**
+   * True when the endpoint's `totalEstimated` counts only the rows of the page
+   * it returned, not the whole result: the footer then shows the range on
+   * screen without claiming a total ("21–40", not "21–40 of 20").
+   */
+  readonly countsPage = input(false);
   readonly rowClick = output<T>();
 
   /** The current size is always offered; otherwise the size picker shows blank. */
