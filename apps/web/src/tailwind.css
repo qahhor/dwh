@@ -5,11 +5,11 @@
    application's own styles are not written against it; pulling it in would
    restyle every existing screen.
 
-   The theme block below is the whole point of the arrangement: Tailwind
-   emits `var(--color-*)` in its utilities, so pointing those variables at
-   this application's semantic tokens makes the vendored components follow
-   the theme without a single edit to their source. That keeps them
-   re-syncable with upstream, as ADR-0015 rule 2 requires. */
+   The theme block below is the whole point of the arrangement: it maps
+   each colour utility the vendored components use onto this application's
+   semantic tokens, so they follow the theme through one table instead of
+   through edits scattered across their templates. The components are ours
+   to change (ADR-0015 rule 2); the bridge is where their colour is decided. */
 
 @layer theme, base, components, utilities;
 
@@ -43,8 +43,8 @@
      is a decision, not an omission: add an accent pair before using them.
 
      Every pair listed is one the vendored code uses; the design token audit
-     fails on any it cannot resolve, so a re-sync that brings a new colour
-     is caught rather than rendered colourless. */
+     fails on any it cannot resolve, so a newly ported component that brings
+     a new colour is caught rather than rendered colourless. */
   --color-*: initial;
   --font-*: initial;
 

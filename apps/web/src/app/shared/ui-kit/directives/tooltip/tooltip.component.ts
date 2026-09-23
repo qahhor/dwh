@@ -1,6 +1,6 @@
 /* Vendored from @greenwhite/ui-kit (MIT) at commit 6472beb, path directives/tooltip/tooltip.component.ts.
- * Per ADR-0015: behaviour changes belong upstream; only compatibility
- * edits are made here and each is marked. See NOTICE. */
+ * Per ADR-0015 this copy is ours to change; the commit above is only the
+ * base for comparing later work in the kit. See NOTICE. */
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 
 export type TTooltipTheme = 'light' | 'dark';

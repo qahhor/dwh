@@ -1,6 +1,6 @@
 /* Vendored from @greenwhite/ui-kit (MIT) at commit 6472beb, path utils/biruni-number.ts.
- * Per ADR-0015: behaviour changes belong upstream; only compatibility
- * edits are made here and each is marked. See NOTICE. */
+ * Per ADR-0015 this copy is ours to change; the commit above is only the
+ * base for comparing later work in the kit. See NOTICE. */
 import BigNumber from 'bignumber.js';
 
 export const SMT_BIRUNI_NUMBER_REGEXP = /^-?[0-9 ]*[.]?[0-9 ]*$/;

@@ -1,6 +1,6 @@
 /* Vendored from @greenwhite/ui-kit (MIT) at commit 6472beb, path directives/tooltip/tooltip.directive.ts.
- * Per ADR-0015: behaviour changes belong upstream; only compatibility
- * edits are made here and each is marked. See NOTICE. */
+ * Per ADR-0015 this copy is ours to change; the commit above is only the
+ * base for comparing later work in the kit. See NOTICE. */
 import { booleanAttribute, DestroyRef, Directive, ElementRef, inject, input, NgZone, OnDestroy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ConnectedPosition, Overlay, OverlayPositionBuilder, OverlayRef } from '@angular/cdk/overlay';

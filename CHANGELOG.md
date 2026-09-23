@@ -26,8 +26,8 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   utilities. Every colour utility the kit uses must map through the
   `@theme` bridge to a token both themes define, the bridge must be
   inlined, and a background and a text utility used together must meet
-  WCAG AA in both themes. A re-sync that brings a new colour fails the
-  gate instead of rendering colourless.
+  WCAG AA in both themes. A newly ported component that brings a new
+  colour fails the gate instead of rendering colourless.
 - Theme changes propagate to the application's other open tabs over a
   same-origin broadcast channel, so a window left open no longer keeps the
   previous theme until it is reloaded.

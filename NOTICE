@@ -18,8 +18,9 @@ Material Symbols Outlined
   apps/web/src/assets/fonts/material-symbols-outlined.woff2
 
 This product vendors a subset of @greenwhite/ui-kit, under the terms of its
-MIT licence, rather than depending on the published package. The files carry
-a header naming the upstream path and the commit they came from:
+MIT licence, rather than depending on the published package. The copy is
+maintained and changed here. Each file carries a header naming the path and
+the commit it came from:
 
 @greenwhite/ui-kit — table foundation
   Copyright (c) Smartup

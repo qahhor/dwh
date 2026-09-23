@@ -1,6 +1,6 @@
 /* Vendored from @greenwhite/ui-kit (MIT) at commit 6472beb, path components/table/column-resize.directive.ts.
- * Per ADR-0015: behaviour changes belong upstream; only compatibility
- * edits are made here and each is marked. See NOTICE. */
+ * Per ADR-0015 this copy is ours to change; the commit above is only the
+ * base for comparing later work in the kit. See NOTICE. */
 import {
   booleanAttribute,
   Directive,
@@ -404,7 +404,7 @@ export class ColumnResizeDirective implements OnInit, OnDestroy {
   private shouldShowPassiveResizeLine(): boolean {
     // Compatibility: guard matchMedia itself, not only window. It is absent in
     // jsdom and in some embedded webviews, where the unguarded call throws.
-    // Browser behaviour is unchanged. Worth taking upstream.
+    // Browser behaviour is unchanged.
     return (
       typeof window !== 'undefined' &&
       typeof window.matchMedia === 'function' &&
