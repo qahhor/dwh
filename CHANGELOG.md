@@ -84,6 +84,10 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- The local Compose stack passes `DWH_RATE_LIMIT_USER_PER_MINUTE` to the
+  server (default 600, as before). CI raises it for its disposable E2E stack,
+  where one administrator runs the whole browser suite and used to exhaust
+  the per-user budget part-way.
 - The language list in Settings renders through the vendored table
   foundation instead of a hand-written table, the first screen to do so.
 - The user list pages through the server a page at a time on the shared
