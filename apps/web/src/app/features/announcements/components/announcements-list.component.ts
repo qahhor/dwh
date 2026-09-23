@@ -90,9 +90,9 @@ import { AnnouncementAdminRecord, AnnouncementBannerType, AnnouncementState } fr
     .announcement-list { display: flex; flex-direction: column; gap: 10px; }
     .announcement-card { position: relative; display: flex; overflow: hidden; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-lg); transition: border-color 0.15s ease, box-shadow 0.15s ease; }
     .announcement-card:hover { border-color: rgba(99, 102, 241, 0.3); }
-    .card-marker { flex: 0 0 4px; background: var(--info, #3b82f6); }
-    .marker-warning { background: var(--warning, #f59e0b); }
-    .marker-critical { background: var(--danger, #ef4444); }
+    .card-marker { flex: 0 0 4px; background: var(--info); }
+    .marker-warning { background: var(--warning); }
+    .marker-critical { background: var(--danger); }
     .card-main { flex: 1; min-width: 0; padding: 16px 18px; }
     .card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
     .card-heading h2 { margin: 7px 0 0; color: var(--text-main); font-size: 16px; }
@@ -101,16 +101,16 @@ import { AnnouncementAdminRecord, AnnouncementBannerType, AnnouncementState } fr
     .card-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; color: var(--text-muted); font-size: 11px; }
 
     .state-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-weight: 600; font-size: 11px; }
-    .state-draft { color: var(--warning, #d97706); background: var(--warning-bg, rgba(245, 158, 11, 0.12)); }
-    .state-published { color: var(--success, #10b981); background: var(--success-bg, rgba(16, 185, 129, 0.12)); }
+    .state-draft { color: var(--warning); background: var(--warning-bg); }
+    .state-published { color: var(--success); background: var(--success-bg); }
     .state-archived { color: var(--text-muted); background: var(--bg-hover); }
 
     .type-badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
-    .type-info { color: var(--info, #2563eb); background: rgba(37, 99, 235, 0.1); }
-    .type-warning { color: var(--warning, #d97706); background: rgba(217, 119, 6, 0.12); }
-    .type-critical { color: var(--danger, #dc2626); background: rgba(220, 38, 38, 0.12); }
+    .type-info { color: var(--info); background: rgba(37, 99, 235, 0.1); }
+    .type-warning { color: var(--warning); background: rgba(217, 119, 6, 0.12); }
+    .type-critical { color: var(--danger); background: rgba(220, 38, 38, 0.12); }
 
-    .active-badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; color: #059669; background: rgba(16, 185, 129, 0.15); }
+    .active-badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; color: var(--success-text); background: rgba(16, 185, 129, 0.15); }
     .id-tag { font-size: 11px; color: var(--text-muted); }
     .badge-icon { font-size: 14px; }
 

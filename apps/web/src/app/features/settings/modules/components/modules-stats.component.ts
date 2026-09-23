@@ -85,7 +85,7 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
     }
     .stat-icon-wrapper.info {
       background: rgba(59, 130, 246, 0.1);
-      color: #3b82f6;
+      color: var(--info-text);
     }
     .stat-icon-wrapper.neutral {
       background: var(--bg-hover);

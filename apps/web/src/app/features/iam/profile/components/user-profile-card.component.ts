@@ -72,7 +72,7 @@ import { User } from '../profile.models';
       height: 64px;
       border-radius: 50%;
       background-color: var(--primary);
-      color: #ffffff;
+      color: var(--on-primary);
       font-size: 26px;
       font-weight: 700;
       display: flex;

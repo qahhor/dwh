@@ -130,7 +130,7 @@ import { TranslatePipe } from '../../../core/services/i18n.service';
 
     .tab-btn.active {
       background: var(--primary);
-      color: #fff;
+      color: var(--on-primary);
     }
 
     .search-box {

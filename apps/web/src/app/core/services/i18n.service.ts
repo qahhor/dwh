@@ -64,7 +64,12 @@ const TECHNICAL_RUSSIAN_FALLBACK: TranslationDictionary = {
   'auth.login': 'Вход в систему',
   'auth.login_btn': 'Войти',
   'auth.username': 'Логин или Email',
-  'auth.password': 'Пароль'
+  'auth.password': 'Пароль',
+  // Shown precisely when the catalogue could not be fetched, so they must not depend on it.
+  'common.connection_error': 'Ошибка соединения',
+  'common.server_unavailable': 'Сервер недоступен или отсутствует соединение с сетью',
+  'common.request_failed': 'Не удалось выполнить запрос',
+  'common.language_packs_failed': 'Не удалось загрузить языковые пакеты'
 };
 
 function offlineRussianFallback(): TranslationDictionary {
@@ -349,7 +354,7 @@ export class I18nService {
     } catch {
       this.languages.set([FALLBACK_LANGUAGE]);
       this.activate(RUSSIAN, this.offlineFallback);
-      this.loadError.set('Не удалось загрузить языковые пакеты');
+      this.loadError.set(this.translate('common.language_packs_failed'));
     } finally {
       this.isLoading.set(false);
     }

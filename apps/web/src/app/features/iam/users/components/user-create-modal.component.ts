@@ -4,8 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '../../../../core/services/i18n.service';
 import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
 import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
+import { UiSearchableSelectComponent, SelectOption } from '../../../../shared/ui/ui-searchable-select.component';
 import { UiCustomFieldsComponent } from '../../../../shared/ui/ui-custom-fields.component';
-import { User } from '../../../../core/models/auth.models';
 import { Role } from '../../../../core/models/rbac.models';
 import { CustomField } from '../../../../core/models/custom-field.models';
 
@@ -18,6 +18,7 @@ import { CustomField } from '../../../../core/models/custom-field.models';
     TranslatePipe,
     UiModalComponent,
     UiButtonComponent,
+    UiSearchableSelectComponent,
     UiCustomFieldsComponent
   ],
   template: `
@@ -99,11 +100,24 @@ import { CustomField } from '../../../../core/models/custom-field.models';
           </div>
 
           <div class="form-group">
-            <label class="clean-label" for="user-create-manager">{{ 'iam.rukovoditel' | t }}</label>
-            <select id="user-create-manager" name="userCreateManager" class="clean-input" [(ngModel)]="createForm.managerId">
-              <option [ngValue]="null">{{ 'iam.bez_rukovoditelya' | t }}</option>
-              <option *ngFor="let u of users" [ngValue]="u.id">{{ u.name }} (&#64;{{ u.login }})</option>
-            </select>
+            <span class="clean-label">{{ 'iam.rukovoditel' | t }}</span>
+            <!-- Searches the server: a manager is rarely among the rows loaded on the list. -->
+            <ui-searchable-select
+              [options]="managerOptions"
+              [selectedId]="createForm.managerId"
+              [ariaLabel]="'iam.rukovoditel' | t"
+              (selectedIdChange)="createForm.managerId = $event"
+              [placeholder]="'iam.bez_rukovoditelya' | t"
+              [searchPlaceholder]="'tasks.poisk_sotrudnika_po_imeni_ili_loginu' | t"
+              [emptyLabel]="'iam.bez_rukovoditelya' | t"
+              [remoteSearch]="true"
+              [loading]="managerLookupLoading"
+              [loadError]="managerLookupError"
+              [hasMore]="managerLookupHasMore"
+              (searchChange)="managerSearch.emit($event)"
+              (loadMore)="managerLoadMore.emit()"
+              (retry)="managerRetry.emit()"
+            ></ui-searchable-select>
           </div>
 
           <div class="form-group span-2">
@@ -431,7 +445,10 @@ export class UserCreateModalComponent {
   @Input() isSubmitting = false;
   @Input() isCreateSubmitted = false;
   @Input() createForm: any = {};
-  @Input() users: User[] = [];
+  @Input() managerOptions: SelectOption[] = [];
+  @Input() managerLookupLoading = false;
+  @Input() managerLookupError = false;
+  @Input() managerLookupHasMore = false;
   @Input() roles: Role[] = [];
   @Input() languages: Array<{ code: string, name: string }> = [];
   @Input() customFields: CustomField[] = [];
@@ -449,4 +466,7 @@ export class UserCreateModalComponent {
   @Output() generatePassword = new EventEmitter<void>();
   @Output() copyPassword = new EventEmitter<void>();
   @Output() toggleRole = new EventEmitter<number>();
+  @Output() managerSearch = new EventEmitter<string>();
+  @Output() managerLoadMore = new EventEmitter<void>();
+  @Output() managerRetry = new EventEmitter<void>();
 }

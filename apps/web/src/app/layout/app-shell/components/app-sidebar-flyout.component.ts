@@ -126,7 +126,7 @@ import { NavSection } from '../app-shell.models';
       left: 64px;
       width: 240px;
       max-height: calc(100vh - 32px);
-      background-color: #0f172a;
+      background-color: var(--bg-sidebar);
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 10px;
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
@@ -164,7 +164,7 @@ import { NavSection } from '../app-shell.models';
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.6px;
-      color: #94a3b8;
+      color: var(--sidebar-text);
     }
 
     .profile-flyout-header {
@@ -176,12 +176,12 @@ import { NavSection } from '../app-shell.models';
     .flyout-user-name {
       font-size: 13px;
       font-weight: 600;
-      color: #f8fafc;
+      color: var(--sidebar-text-strong);
     }
 
     .flyout-user-role {
       font-size: 11px;
-      color: #94a3b8;
+      color: var(--sidebar-text);
     }
 
     .flyout-body {
@@ -196,7 +196,7 @@ import { NavSection } from '../app-shell.models';
       gap: 10px;
       padding: 8px 12px;
       border-radius: 6px;
-      color: #cbd5e1;
+      color: var(--sidebar-text-item);
       text-decoration: none;
       font-size: 13px;
       font-weight: 500;
@@ -215,23 +215,23 @@ import { NavSection } from '../app-shell.models';
     .flyout-item:hover,
     .flyout-item.highlighted {
       background-color: rgba(255, 255, 255, 0.08);
-      color: #ffffff;
+      color: var(--sidebar-text-strong);
     }
 
     .flyout-item.active {
-      background-color: #0284c7 !important;
-      color: #ffffff !important;
+      background-color: var(--sidebar-accent-fill) !important;
+      color: var(--sidebar-text-strong) !important;
       font-weight: 600;
     }
 
     .flyout-item.active .flyout-icon {
-      color: #ffffff !important;
+      color: var(--sidebar-text-strong) !important;
       opacity: 1;
     }
 
     .flyout-icon {
       font-size: 18px;
-      color: #94a3b8;
+      color: var(--sidebar-text);
       opacity: 0.9;
       flex-shrink: 0;
     }
@@ -247,7 +247,7 @@ import { NavSection } from '../app-shell.models';
       margin-left: auto;
       font-size: 11px;
       background-color: var(--primary);
-      color: #ffffff;
+      color: var(--on-primary);
       font-weight: 700;
       padding: 1px 6px;
       border-radius: 8px;
@@ -267,7 +267,7 @@ import { NavSection } from '../app-shell.models';
 
     .flyout-parent-header {
       font-weight: 600;
-      color: #94a3b8;
+      color: var(--sidebar-text);
       pointer-events: none;
     }
 
@@ -284,11 +284,11 @@ import { NavSection } from '../app-shell.models';
     }
 
     .text-danger {
-      color: #f87171 !important;
+      color: var(--sidebar-danger) !important;
     }
     .text-danger:hover {
       background-color: rgba(239, 68, 68, 0.15) !important;
-      color: #fca5a5 !important;
+      color: var(--sidebar-danger-hover) !important;
     }
 
     .font-mono {

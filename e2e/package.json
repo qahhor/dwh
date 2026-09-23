@@ -11,7 +11,8 @@
     "test:artifact-security": "node scripts/verify-artifact-security.mjs",
     "test:config": "node --test tests/config/*.test.mjs",
     "test:instance": "playwright test --project=instance",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:a11y": "playwright test -c playwright.a11y.config.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

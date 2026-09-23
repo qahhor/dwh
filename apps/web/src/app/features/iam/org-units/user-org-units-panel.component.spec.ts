@@ -48,8 +48,12 @@ describe('UserOrgUnitsPanelComponent', () => {
   it('keeps assigned, effective and legacy organization IDs separate and never writes an unchanged draft', () => {
     const { fixture, panel, api } = setup();
     expect(panel.selectedOrgUnitIds()).toEqual([7]);
-    expect((fixture.nativeElement.querySelector('input[data-check="7"]') as HTMLInputElement)?.checked).toBe(true);
-    expect((fixture.nativeElement.querySelector('input[data-check="8"]') as HTMLInputElement)?.checked).toBe(false);
+    expect((fixture.nativeElement.querySelector('input[data-smt-check="7"]') as HTMLInputElement)?.checked).toBe(true);
+    expect((fixture.nativeElement.querySelector('input[data-smt-check="8"]') as HTMLInputElement)?.checked).toBe(false);
+    // The row itself states the choice to assistive technology.
+    const grid = fixture.nativeElement.querySelector('[role="treegrid"][aria-multiselectable="true"]') as HTMLElement;
+    expect(grid.querySelector('[data-smt-row-id="7"]')?.getAttribute('aria-selected')).toBe('true');
+    expect(grid.querySelector('[data-smt-row-id="8"]')?.getAttribute('aria-selected')).toBe('false');
     expect(fixture.nativeElement.textContent).toContain('Legacy branch');
     expect(fixture.nativeElement.textContent).toContain('Active child');
     panel.save();
@@ -78,7 +82,7 @@ describe('UserOrgUnitsPanelComponent', () => {
   it('renders a successful snapshot read-only without assign permission', () => {
     const { fixture, panel, api } = setup({ writable: false });
     expect(panel.selectedOrgUnitIds()).toEqual([7]);
-    expect((fixture.nativeElement.querySelector('input[data-check="7"]') as HTMLInputElement)?.disabled).toBe(true);
+    expect((fixture.nativeElement.querySelector('input[data-smt-check="7"]') as HTMLInputElement)?.disabled).toBe(true);
     expect(fixture.nativeElement.querySelector('[data-action="save-assignments"]')).toBeNull();
     panel.toggleAssignment(units[1]); panel.save();
     expect(api.saveAssignments).not.toHaveBeenCalled();
@@ -241,8 +245,8 @@ describe('UserOrgUnitsPanelComponent', () => {
     api.assignments.mockImplementation((userId: number) => of({ userId, orgUnitIds: userId === 43 ? [9] : [7], legacyOrgUnitId: null }));
     fixture.componentRef.setInput('userId', 43); fixture.detectChanges();
     expect(panel.discard.open()).toBe(false); expect(panel.selectedOrgUnitIds()).toEqual([9]);
-    expect((fixture.nativeElement.querySelector('input[data-check="7"]') as HTMLInputElement).checked).toBe(false);
-    expect((fixture.nativeElement.querySelector('input[data-check="9"]') as HTMLInputElement).checked).toBe(true);
+    expect((fixture.nativeElement.querySelector('input[data-smt-check="7"]') as HTMLInputElement).checked).toBe(false);
+    expect((fixture.nativeElement.querySelector('input[data-smt-check="9"]') as HTMLInputElement).checked).toBe(true);
     expect(api.assignments.mock.calls.map(call => call[0])).toEqual([42, 43]);
   });
 

@@ -12,6 +12,6 @@ fieldset { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; }
 .option span, .option small { display: block; }
 .option small { margin-top: 4px; color: var(--text-muted); line-height: 1.4; }
 fieldset:disabled .option { cursor: default; opacity: .75; }
-.warning { padding: 8px 10px; color: var(--warning, #a16207); border: 1px solid currentColor; border-radius: var(--radius-sm); }
+.warning { padding: 8px 10px; color: var(--warning); border: 1px solid currentColor; border-radius: var(--radius-sm); }
 .actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
 @media (max-width: 640px) { .heading { align-items: stretch; flex-direction: column; } }

@@ -328,8 +328,8 @@ import { PasswordForm, PasswordStrength } from '../profile.models';
     .strength-value { font-weight: 600; }
 
     .strength-weak { color: var(--danger); }
-    .strength-medium { color: var(--warning, #f59e0b); }
-    .strength-good { color: #3b82f6; }
+    .strength-medium { color: var(--warning); }
+    .strength-good { color: var(--info-text); }
     .strength-strong { color: var(--success); }
 
     .strength-bar-track {
@@ -345,8 +345,8 @@ import { PasswordForm, PasswordStrength } from '../profile.models';
       transition: width 0.25s ease, background-color 0.25s ease;
     }
     .strength-bar-fill.strength-weak { background-color: var(--danger); }
-    .strength-bar-fill.strength-medium { background-color: var(--warning, #f59e0b); }
-    .strength-bar-fill.strength-good { background-color: #3b82f6; }
+    .strength-bar-fill.strength-medium { background-color: var(--warning); }
+    .strength-bar-fill.strength-good { background-color: var(--info); }
     .strength-bar-fill.strength-strong { background-color: var(--success); }
 
     .strength-checklist {

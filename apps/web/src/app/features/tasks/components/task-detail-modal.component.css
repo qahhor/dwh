@@ -30,7 +30,7 @@
       background-color: var(--danger-bg);
       border: 1px solid rgba(239, 68, 68, 0.3);
       border-radius: var(--radius-sm);
-      color: var(--danger);
+      color: var(--danger-text);
       font-size: 12px;
       font-weight: 500;
     }
@@ -117,7 +117,7 @@
       height: 18px;
       border-radius: 50%;
       background-color: var(--primary);
-      color: #fff;
+      color: var(--on-primary);
       font-size: 9px;
       font-weight: 600;
       display: flex;
@@ -186,8 +186,8 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-    .avatar-executor { background-color: #3b82f6; }
-    .avatar-observer { background-color: #64748b; }
+    .avatar-executor { background-color: var(--info); }
+    .avatar-observer { background-color: var(--text-light); }
     .member-observer { opacity: 0.85; }
     .member-author-group {
       border-top: 1px dashed var(--border-color);
@@ -216,8 +216,8 @@
       background-color: rgba(99,102,241,0.15);
       color: var(--primary);
     }
-    .member-role-badge[data-role="R"] { background-color: var(--warning-bg); color: var(--warning); }
-    .member-role-badge[data-role="O"] { background-color: rgba(14,165,233,0.15); color: #0284c7; }
+    .member-role-badge[data-role="R"] { background-color: var(--warning-bg); color: var(--warning-text); }
+    .member-role-badge[data-role="O"] { background-color: rgba(14,165,233,0.15); color: var(--info-text); }
     .member-role-badge[data-role="A"] { background-color: rgba(16,185,129,0.15); color: var(--success); }
     .attributes-stack { display: flex; flex-direction: column; gap: 4px; }
     .attr-stack-item { display: flex; justify-content: space-between; font-size: 11px; }
@@ -279,7 +279,7 @@
       border-radius: 10px;
       display: inline-block;
     }
-    .priority-pill[data-priority="critical"] { background-color: var(--danger-bg); color: var(--danger); }
-    .priority-pill[data-priority="high"] { background-color: var(--warning-bg); color: var(--warning); }
+    .priority-pill[data-priority="critical"] { background-color: var(--danger-bg); color: var(--danger-text); }
+    .priority-pill[data-priority="high"] { background-color: var(--warning-bg); color: var(--warning-text); }
     .priority-pill[data-priority="medium"] { background-color: var(--bg-hover); color: var(--text-muted); }
     .priority-pill[data-priority="low"] { background-color: var(--bg-hover); color: var(--text-light); }

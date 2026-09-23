@@ -1,0 +1,115 @@
+:host ::ng-deep {
+  .smt-grid-line {
+    display: grid;
+    align-items: stretch;
+  }
+
+  .cdk-drag-preview {
+    box-sizing: border-box;
+    border-radius: 4px;
+    box-shadow: 0 5px 14px rgba(15, 23, 42, 0.18);
+    background: #fff;
+  }
+
+  .cdk-drag-placeholder {
+    opacity: 0.35;
+  }
+
+  .cdk-drop-list-dragging .smt-data-row:not(.cdk-drag-placeholder) {
+    transition: transform 180ms ease;
+  }
+
+  .smt-data-row.cdk-drag-dragging {
+    cursor: grabbing !important;
+  }
+
+  .smt-grid-checkbox-cell {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    background-color: inherit;
+  }
+
+  .smt-grid-header .smt-grid-checkbox-cell {
+    z-index: 12;
+    background-color: var(--color-gray-50);
+  }
+
+  .smt-virtual-col-spacer {
+    padding: 0;
+    pointer-events: none;
+  }
+
+  .smt-data-row {
+    &:nth-child(odd of .smt-data-row) {
+      background-color: var(--color-base-white);
+
+      & + .smt-detail-row {
+        background-color: var(--color-base-white);
+      }
+    }
+
+    &:nth-child(even of .smt-data-row) {
+      background-color: var(--color-gray-50);
+
+      & + .smt-detail-row {
+        background-color: var(--color-gray-50);
+      }
+    }
+
+    /* Hovering the data row also tints the open actions strip (they're one unit). */
+    &:hover {
+      background-color: var(--color-gray-100) !important;
+
+      & + .smt-detail-row {
+        background-color: var(--color-gray-100) !important;
+      }
+    }
+  }
+
+  .smt-detail-row {
+    display: grid;
+    grid-template-rows: 1fr;
+    overflow: hidden;
+    contain: layout paint;
+    animation: smt-detail-grid-open 200ms ease-out;
+    /* No :hover here — hovering actions alone must not change background. */
+
+    .smt-detail-content {
+      min-height: 0;
+      contain: layout paint;
+    }
+
+    &.smt-closing {
+      /* Height is driven in px (locked → 0) so controls can unmount without reflow jank. */
+      animation: none;
+      grid-template-rows: none;
+      box-sizing: border-box;
+      transition: height 120ms ease-in;
+      pointer-events: none;
+    }
+  }
+
+  .smt-grid-empty-cell {
+    padding: 0 !important;
+  }
+}
+
+@keyframes smt-detail-grid-open {
+  from {
+    grid-template-rows: 0fr;
+  }
+  to {
+    grid-template-rows: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host ::ng-deep .smt-detail-row {
+    animation-duration: 1ms;
+  }
+
+  :host ::ng-deep .smt-detail-row.smt-closing {
+    transition-duration: 1ms;
+  }
+}

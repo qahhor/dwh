@@ -339,7 +339,7 @@ import {
       background: rgba(239, 68, 68, 0.1);
       border: 1px solid rgba(239, 68, 68, 0.3);
       border-radius: var(--radius-sm, 6px);
-      color: var(--danger, #ef4444);
+      color: var(--danger);
     }
 
     .empty-card {
@@ -383,9 +383,9 @@ import {
       border-bottom: 1px solid var(--border-color);
     }
     .clean-table th {
-      background: var(--bg-hover, rgba(0, 0, 0, 0.02));
+      background: var(--bg-hover);
       font-weight: 600;
-      color: var(--text-secondary, #64748b);
+      color: var(--text-muted);
       font-size: 0.78rem;
       text-transform: uppercase;
       letter-spacing: 0.03em;
@@ -405,7 +405,7 @@ import {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      color: var(--primary, #0284c7);
+      color: var(--primary);
     }
 
     .events-wrap {
@@ -419,7 +419,7 @@ import {
       padding: 2px 6px;
       background: rgba(0, 0, 0, 0.05);
       border-radius: 4px;
-      color: var(--text-secondary);
+      color: var(--text-muted);
     }
 
     .status-badge {
@@ -433,11 +433,11 @@ import {
     }
     .status-badge.active {
       background: rgba(34, 197, 94, 0.12);
-      color: #16a34a;
+      color: var(--success-text);
     }
     .status-badge.paused {
       background: rgba(245, 158, 11, 0.12);
-      color: #d97706;
+      color: var(--warning-text);
     }
     .status-dot {
       width: 6px;
@@ -455,18 +455,18 @@ import {
       border: none;
       padding: 4px;
       cursor: pointer;
-      color: var(--text-secondary);
+      color: var(--text-muted);
       border-radius: 4px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
     }
     .btn-icon:hover {
-      background: var(--bg-hover, rgba(0, 0, 0, 0.05));
-      color: var(--text-primary);
+      background: var(--bg-hover);
+      color: var(--text-main);
     }
     .btn-icon.danger:hover {
-      color: var(--danger, #ef4444);
+      color: var(--danger);
       background: rgba(239, 68, 68, 0.1);
     }
 
@@ -483,7 +483,7 @@ import {
     .form-lbl {
       font-size: 0.82rem;
       font-weight: 600;
-      color: var(--text-secondary, #475569);
+      color: var(--text-muted);
     }
     .form-input {
       height: 36px;
@@ -491,7 +491,7 @@ import {
       border: 1px solid var(--border-color);
       border-radius: var(--radius-sm, 6px);
       background: var(--bg-surface);
-      color: var(--text-primary);
+      color: var(--text-main);
       font-size: 0.85rem;
     }
     .form-input:focus {
@@ -521,7 +521,7 @@ import {
       padding: 8px;
       border: 1px solid var(--border-color);
       border-radius: var(--radius-sm, 6px);
-      background: var(--bg-hover, rgba(0, 0, 0, 0.01));
+      background: var(--bg-hover);
     }
     .event-checkbox-label {
       display: flex;
@@ -549,12 +549,12 @@ import {
       background: rgba(245, 158, 11, 0.1);
       border: 1px solid rgba(245, 158, 11, 0.3);
       border-radius: var(--radius-sm, 6px);
-      color: #b45309;
+      color: var(--warning-text);
       font-size: 0.84rem;
     }
     .callout-icon {
       font-size: 24px;
-      color: #f59e0b;
+      color: var(--warning-text);
     }
 
     .secret-field-box {
@@ -570,13 +570,13 @@ import {
     .secret-input {
       flex: 1;
       font-weight: 600;
-      color: #1e293b;
+      color: var(--text-main);
       background: rgba(0, 0, 0, 0.03);
     }
     .hmac-info-box {
       margin-top: 12px;
       padding: 8px 12px;
-      background: var(--bg-hover, rgba(0, 0, 0, 0.02));
+      background: var(--bg-hover);
       border-radius: var(--radius-sm, 6px);
       border: 1px solid var(--border-color);
     }

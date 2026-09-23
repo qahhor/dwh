@@ -12,7 +12,7 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
     <div class="view-header">
       <div class="header-left">
         <h1 class="view-title">{{ 'notifications.centr_uvedomleniy' | t }}</h1>
-        <span class="count-badge" [attr.aria-label]="'notifications.spisok_uvedomleniy' | t">
+        <span class="count-badge">
           {{ totalCount() }}
         </span>
       </div>

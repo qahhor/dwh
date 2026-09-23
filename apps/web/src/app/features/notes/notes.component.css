@@ -19,16 +19,16 @@
     .view-title {
       font-size: 1.5rem;
       font-weight: 700;
-      color: var(--text-primary, #1e293b);
+      color: var(--text-main);
       margin: 0;
     }
     .count-badge {
-      background: var(--bg-surface-secondary, #f1f5f9);
+      background: var(--bg-hover);
       padding: 2px 10px;
       border-radius: 9999px;
       font-size: 0.875rem;
       font-weight: 600;
-      color: var(--text-secondary, #64748b);
+      color: var(--text-muted);
     }
     .header-right {
       display: flex;
@@ -45,13 +45,13 @@
       position: absolute;
       left: 10px;
       font-size: 18px;
-      color: var(--text-secondary, #64748b);
+      color: var(--text-muted);
     }
     .search-input {
       padding: 8px 30px 8px 34px;
       border-radius: 8px;
-      border: 1px solid var(--border-color, #e2e8f0);
-      background: var(--bg-surface, #ffffff);
+      border: 1px solid var(--border-color);
+      background: var(--bg-surface);
       font-size: 0.875rem;
       width: 220px;
     }
@@ -60,14 +60,14 @@
       right: 8px;
       background: none;
       border: none;
-      color: var(--text-muted, #94a3b8);
+      color: var(--text-muted);
       cursor: pointer;
       display: flex;
       align-items: center;
       padding: 0;
     }
     .search-clear-btn:hover {
-      color: var(--text-main, #0f172a);
+      color: var(--text-main);
     }
     .search-clear-btn .material-symbols-outlined {
       font-size: 18px;
@@ -78,10 +78,10 @@
       gap: 16px;
     }
     .note-card {
-      border: 1px solid var(--border-color, #e2e8f0);
+      border: 1px solid var(--border-color);
       border-radius: 12px;
       padding: 16px;
-      background: var(--bg-surface, #ffffff);
+      background: var(--bg-surface);
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -93,7 +93,7 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.08);
     }
     .note-card.is-pinned {
-      border-color: #3b82f6;
+      border-color: var(--info-text);
       box-shadow: 0 0 0 1px #3b82f6;
     }
     .card-header {
@@ -105,7 +105,7 @@
     .note-title {
       font-weight: 600;
       font-size: 1.05rem;
-      color: var(--text-primary, #1e293b);
+      color: var(--text-main);
     }
     .card-actions {
       display: flex;
@@ -117,27 +117,27 @@
       padding: 4px;
       border-radius: 6px;
       cursor: pointer;
-      color: var(--text-secondary, #64748b);
+      color: var(--text-muted);
       display: flex;
       align-items: center;
       justify-content: center;
     }
     .icon-btn:hover {
-      background: var(--bg-hover, #f1f5f9);
-      color: var(--text-primary, #0f172a);
+      background: var(--bg-hover);
+      color: var(--text-main);
     }
     .icon-btn.pinned {
-      color: #3b82f6;
+      color: var(--info-text);
     }
     .text-danger:hover {
-      color: #ef4444;
+      color: var(--danger-text);
     }
     .card-body {
       flex: 1;
     }
     .note-content {
       font-size: 0.9rem;
-      color: var(--text-secondary, #475569);
+      color: var(--text-muted);
       margin: 0;
       white-space: pre-wrap;
       max-height: 160px;
@@ -145,12 +145,12 @@
     }
     .card-footer {
       font-size: 0.75rem;
-      color: var(--text-muted, #94a3b8);
-      border-top: 1px solid var(--border-color, #f1f5f9);
+      color: var(--text-muted);
+      border-top: 1px solid var(--border-color);
       padding-top: 8px;
     }
     /* Color tags */
-    .color-default { border-top: 4px solid var(--border-color, #cbd5e1); }
+    .color-default { border-top: 4px solid var(--border-color); }
     .color-blue { border-top: 4px solid #3b82f6; }
     .color-green { border-top: 4px solid #10b981; }
     .color-yellow { border-top: 4px solid #f59e0b; }
@@ -168,26 +168,26 @@
       font-size: 0.875rem;
       font-weight: 500;
       border-radius: 6px;
-      border: 1px solid var(--border-color, #e2e8f0);
-      background: var(--bg-surface, #ffffff);
-      color: var(--text-secondary, #64748b);
+      border: 1px solid var(--border-color);
+      background: var(--bg-surface);
+      color: var(--text-muted);
       cursor: pointer;
       transition: all 0.15s ease;
     }
     .tab-btn:hover {
-      background: var(--bg-hover, #f1f5f9);
-      color: var(--text-primary, #0f172a);
+      background: var(--bg-hover);
+      color: var(--text-main);
     }
     .tab-btn.active {
-      background: var(--primary, #3b82f6);
-      color: #ffffff;
-      border-color: var(--primary, #3b82f6);
+      background: var(--primary);
+      color: var(--on-primary);
+      border-color: var(--primary);
     }
 
     .empty-state {
       text-align: center;
       padding: 48px;
-      border: 2px dashed var(--border-color, #e2e8f0);
+      border: 2px dashed var(--border-color);
       border-radius: 12px;
       display: flex;
       flex-direction: column;
@@ -196,7 +196,7 @@
     }
     .empty-icon {
       font-size: 48px;
-      color: var(--text-secondary, #94a3b8);
+      color: var(--text-muted);
     }
     .modal-form {
       display: flex;
@@ -216,23 +216,23 @@
     .form-label {
       font-size: 0.875rem;
       font-weight: 500;
-      color: var(--text-primary, #334155);
+      color: var(--text-main);
     }
     .form-control {
       padding: 8px 12px;
       border-radius: 8px;
-      border: 1px solid var(--border-color, #cbd5e1);
+      border: 1px solid var(--border-color);
       font-size: 0.875rem;
-      background: var(--bg-surface, #ffffff);
-      color: var(--text-primary, #0f172a);
+      background: var(--bg-surface);
+      color: var(--text-main);
       transition: border-color 0.15s ease;
     }
     .form-control.has-error {
-      border-color: var(--danger, #ef4444);
+      border-color: var(--danger);
     }
     .field-error {
       font-size: 0.75rem;
-      color: var(--danger, #ef4444);
+      color: var(--danger);
       margin-top: 2px;
     }
     .checkbox-group {
@@ -244,19 +244,19 @@
       gap: 8px;
       font-size: 0.875rem;
       cursor: pointer;
-      color: var(--text-primary, #334155);
+      color: var(--text-main);
     }
     .custom-fields-section {
       display: flex;
       flex-direction: column;
       gap: 8px;
       padding-top: 12px;
-      border-top: 1px solid var(--border-color, #e2e8f0);
+      border-top: 1px solid var(--border-color);
     }
     .custom-fields-title {
       font-size: 0.8125rem;
       font-weight: 600;
-      color: var(--text-secondary, #64748b);
+      color: var(--text-muted);
       margin: 0;
       text-transform: uppercase;
       letter-spacing: 0.05em;
@@ -269,6 +269,6 @@
     .delete-dialog-text {
       margin: 0;
       font-size: 0.9375rem;
-      color: var(--text-primary, #334155);
+      color: var(--text-main);
       line-height: 1.5;
     }

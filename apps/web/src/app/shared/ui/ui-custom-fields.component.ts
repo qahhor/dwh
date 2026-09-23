@@ -141,7 +141,7 @@ export interface UserLookupItem {
     .req-tag {
       font-size: 9px;
       font-weight: 500;
-      color: var(--danger);
+      color: var(--danger-text);
       background-color: var(--danger-bg);
       padding: 1px 4px;
       border-radius: 3px;

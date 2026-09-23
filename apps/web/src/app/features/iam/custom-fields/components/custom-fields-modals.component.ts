@@ -220,7 +220,7 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
       color: var(--text-main);
     }
 
-    .req { color: var(--danger, #dc2626); }
+    .req { color: var(--danger-text); }
 
     .form-input, .form-select {
       background: var(--bg-surface);
@@ -256,17 +256,17 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
     }
 
     .readonly-hint {
-      color: var(--warning, #d97706);
+      color: var(--warning);
     }
 
     .form-error {
       margin: 0;
-      color: var(--danger, #dc2626);
+      color: var(--danger-text);
       font-size: 13px;
       padding: 8px 12px;
-      background: var(--danger-subtle, rgba(239, 68, 68, 0.1));
+      background: var(--danger-bg);
       border-radius: 6px;
-      border: 1px solid var(--danger-border, rgba(239, 68, 68, 0.2));
+      border: 1px solid var(--danger-border);
     }
 
     .checkbox-group {

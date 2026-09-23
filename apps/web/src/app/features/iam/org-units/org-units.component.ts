@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, DestroyRef, effect, HostListener, inject, OnInit, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, computed, DestroyRef, effect, HostListener, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { Observable, Subscription } from 'rxjs';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { PermissionService } from '../../../core/services/permission.service';
@@ -8,12 +8,13 @@ import { ProblemDetail } from '../../../core/models/common.models';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { OrgUnitsApiService } from './org-units-api.service';
-import { OrgUnitTreeComponent } from './org-unit-tree.component';
-import { orgUnitKindKeys } from './org-unit-tree';
+import { OrgUnitTreeRows, orgUnitKindKeys, orgUnitSearchText, orgUnitTreeColumns } from './org-unit-tree';
+import { SMTTreeTableComponent } from '../../../shared/ui-kit/components/tree-table/tree-table.component';
+import { TreeRow } from '../../../shared/ui-kit/components/tree-table/tree.utils';
 import { OrgUnitDraft } from './org-unit-draft';
 import { OrgUnit, OrgUnitCreate } from './org-units.models';
 import { OrgUnitEditorComponent, OrgUnitSubmission } from './org-unit-editor.component';
-@Component({ selector: 'app-org-units', standalone: true, imports: [TranslatePipe, UiButtonComponent, UiModalComponent, OrgUnitTreeComponent, OrgUnitEditorComponent], templateUrl: './org-units.component.html', styleUrl: './org-units.component.css' })
+@Component({ selector: 'app-org-units', standalone: true, imports: [TranslatePipe, UiButtonComponent, UiModalComponent, SMTTreeTableComponent, OrgUnitEditorComponent], templateUrl: './org-units.component.html', styleUrl: './org-units.component.css' })
 export class OrgUnitsComponent implements OnInit {
   readonly permissions = inject(PermissionService);
   readonly kindKeys = orgUnitKindKeys;
@@ -42,6 +43,11 @@ export class OrgUnitsComponent implements OnInit {
   savedRefreshFailed = false;
   deleteTarget: OrgUnit | null = null;
   deleteError: ProblemDetail | null = null;
+  readonly search = signal('');
+  private readonly treeRowCache = new OrgUnitTreeRows();
+  get treeRows(): TreeRow<OrgUnit>[] { return this.treeRowCache.of(this.units); }
+  readonly searchText = orgUnitSearchText(key => this.i18n.translate(key));
+  readonly treeColumns = computed(() => orgUnitTreeColumns(key => this.i18n.translate(key)));
   readonly discard = new OrgUnitDraft(() => this.editorOpen && !!this.editor?.dirty, () => this.pending, () => this.clearEditor());
 
   constructor() {

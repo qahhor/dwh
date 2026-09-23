@@ -132,7 +132,7 @@
 
 .otp-banner {
   background-color: var(--info-bg);
-  color: var(--info);
+  color: var(--info-text);
   padding: 10px 12px;
   border-radius: var(--radius-sm);
   display: flex;

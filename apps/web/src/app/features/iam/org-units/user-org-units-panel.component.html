@@ -22,8 +22,13 @@
         @if (unresolvedAssignmentIds.length) {
           <p class="warning" role="status">{{ 'iam.org_units.unknown_assignment_warning' | t:{ids: unresolvedAssignmentIds.join(', ')} }}</p>
         }
-        <app-org-unit-tree [units]="units" [multiple]="true" [checkedIds]="selectedOrgUnitIds()"
-          [disabled]="pending || !can('assign')" (toggleUnit)="toggleAssignment($event)" />
+        @if (units.length) {
+          <input class="search" type="search" [value]="search()" (input)="search.set($any($event.target).value)"
+            [placeholder]="'iam.org_units.search' | t" [attr.aria-label]="'iam.org_units.search' | t">
+          <smt-tree-table [smtRows]="treeRows" [smtColumns]="treeColumns()" [smtAriaLabel]="'iam.org_units.assignments_title' | t"
+            smtSelectionMode="multiple" [smtCheckedIds]="checkedRowIds()" [smtSearch]="search()" [smtSearchText]="searchText"
+            [smtDisabled]="pending || !can('assign')" (smtToggle)="toggleAssignment($event.data)" />
+        }
         @if (!units.length && treeLoaded) { <p>{{ 'iam.org_units.empty' | t }}</p> }
         <div class="legacy">
           <h5>{{ 'iam.org_units.legacy_title' | t }}</h5>

@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ProblemDetail } from '../../../core/models/common.models';
+import { KeysetPager } from '../../../shared/paging/keyset-pager';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
@@ -150,7 +151,7 @@ function emptyForm(): SourceCreateForm {
             </table>
           </div>
         </div>
-        @if (hasMore() && nextCursor() !== null) {
+        @if (canLoadMore()) {
           <div class="upl-more">
             <ui-button
               variant="secondary"
@@ -430,12 +431,18 @@ export class SourcesListComponent implements OnInit {
   private readonly i18n = inject(I18nService);
   private readonly router = inject(Router);
 
-  readonly items = signal<UplSourceItem[]>([]);
-  readonly isLoading = signal(true);
-  readonly isLoadingMore = signal(false);
-  readonly loadError = signal(false);
-  readonly nextCursor = signal<string | null>(null);
-  readonly hasMore = signal(false);
+  /* A reload while "load more" is pending cancels it, so the old page is
+     never appended to the refreshed list. */
+  readonly pager = new KeysetPager<UplSourceItem>((cursor, limit) => this.api.listSources(limit, cursor), {
+    pageSize: PAGE_SIZE,
+    destroyRef: inject(DestroyRef),
+    onError: failure => { if (failure === 'more') this.toast.error(this.i18n.translate('upl.list.load_error')); }
+  });
+  readonly items = this.pager.items;
+  readonly isLoading = this.pager.loading;
+  readonly isLoadingMore = this.pager.loadingMore;
+  readonly loadError = this.pager.failed;
+  readonly canLoadMore = this.pager.canGoForward;
   readonly isCreateOpen = signal(false);
   readonly isSaving = signal(false);
   /** Значение — ключ i18n либо готовый текст сервера; в шаблоне всё равно идёт через `| t`. */
@@ -459,42 +466,11 @@ export class SourcesListComponent implements OnInit {
   }
 
   load(): void {
-    this.isLoading.set(true);
-    this.loadError.set(false);
-    this.items.set([]);
-    this.nextCursor.set(null);
-    this.hasMore.set(false);
-    this.api.listSources(PAGE_SIZE).subscribe({
-      next: page => {
-        this.items.set(page?.items ?? []);
-        this.nextCursor.set(page?.nextCursor ?? null);
-        this.hasMore.set(page?.hasMore === true);
-        this.isLoading.set(false);
-      },
-      error: () => {
-        this.loadError.set(true);
-        this.isLoading.set(false);
-      }
-    });
+    this.pager.first();
   }
 
   loadMore(): void {
-    if (this.isLoadingMore() || !this.hasMore() || this.nextCursor() === null) {
-      return;
-    }
-    this.isLoadingMore.set(true);
-    this.api.listSources(PAGE_SIZE, this.nextCursor()).subscribe({
-      next: page => {
-        this.items.update(current => [...current, ...(page?.items ?? [])]);
-        this.nextCursor.set(page?.nextCursor ?? null);
-        this.hasMore.set(page?.hasMore === true);
-        this.isLoadingMore.set(false);
-      },
-      error: () => {
-        this.isLoadingMore.set(false);
-        this.toast.error(this.i18n.translate('upl.list.load_error'));
-      }
-    });
+    this.pager.loadMore();
   }
 
   openCreate(): void {

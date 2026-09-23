@@ -1,4 +1,5 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
+import { I18nService } from './i18n.service';
 
 export interface ToastMessage {
   id: string;
@@ -13,6 +14,7 @@ export interface ToastMessage {
 })
 export class ToastService {
   readonly toasts = signal<ToastMessage[]>([]);
+  private readonly i18n = inject(I18nService);
 
   show(type: ToastMessage['type'], message: string, title?: string, durationMs: number = 4000) {
     const id = Math.random().toString(36).substring(2, 9);
@@ -32,7 +34,7 @@ export class ToastService {
   }
 
   error(message: string, title?: string) {
-    this.show('error', message, title || 'Ошибка', 6000);
+    this.show('error', message, title || this.i18n.translate('common.error'), 6000);
   }
 
   warning(message: string, title?: string) {

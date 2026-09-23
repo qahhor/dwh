@@ -274,14 +274,14 @@ export interface GroupedPermissionModule {
       gap: 8px;
       flex-wrap: wrap;
       padding: 8px 12px;
-      background: var(--bg-hover, rgba(0, 0, 0, 0.03));
+      background: var(--bg-hover);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-sm, 6px);
     }
     .banner-lbl {
       font-weight: 600;
       font-size: 0.82rem;
-      color: var(--text-secondary, #64748b);
+      color: var(--text-muted);
     }
     .roles-chips {
       display: flex;
@@ -294,7 +294,7 @@ export interface GroupedPermissionModule {
       gap: 4px;
       padding: 2px 8px;
       background: rgba(59, 130, 246, 0.1);
-      color: #2563eb;
+      color: var(--info-text);
       border-radius: 9999px;
       font-size: 0.78rem;
       font-weight: 500;
@@ -317,7 +317,7 @@ export interface GroupedPermissionModule {
     }
     .stat-lbl {
       font-size: 0.75rem;
-      color: var(--text-secondary, #64748b);
+      color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.03em;
     }
@@ -326,13 +326,13 @@ export interface GroupedPermissionModule {
       font-weight: 700;
       font-family: var(--font-mono, monospace);
     }
-    .stat-val.primary { color: var(--primary, #0284c7); }
-    .stat-val.role { color: #3b82f6; }
-    .stat-val.personal { color: #f59e0b; }
+    .stat-val.primary { color: var(--primary); }
+    .stat-val.role { color: var(--info-text); }
+    .stat-val.personal { color: var(--warning-text); }
 
     .add-grant-card {
       background: var(--bg-surface);
-      border: 1px dashed var(--primary, #0284c7);
+      border: 1px dashed var(--primary);
       border-radius: var(--radius-md, 8px);
       padding: 12px 14px;
       display: flex;
@@ -343,7 +343,7 @@ export interface GroupedPermissionModule {
       display: flex;
       align-items: center;
       gap: 6px;
-      color: var(--primary, #0284c7);
+      color: var(--primary);
     }
     .add-grant-header h4 {
       margin: 0;
@@ -362,7 +362,7 @@ export interface GroupedPermissionModule {
       border: 1px solid var(--border-color);
       border-radius: var(--radius-sm, 6px);
       background: var(--bg-surface);
-      color: var(--text-primary);
+      color: var(--text-main);
       font-size: 0.82rem;
       min-width: 180px;
     }
@@ -380,9 +380,9 @@ export interface GroupedPermissionModule {
       border: 1px solid rgba(245, 158, 11, 0.3);
       border-radius: var(--radius-sm, 6px);
       font-size: 0.82rem;
-      color: #b45309;
+      color: var(--warning-text);
     }
-    .warning-icon { font-size: 18px; color: #f59e0b; }
+    .warning-icon { font-size: 18px; color: var(--warning-text); }
 
     .perms-toolbar {
       display: flex;
@@ -412,7 +412,7 @@ export interface GroupedPermissionModule {
       border: 1px solid var(--border-color);
       border-radius: var(--radius-sm, 6px);
       background: var(--bg-surface);
-      color: var(--text-primary);
+      color: var(--text-main);
       font-size: 0.82rem;
     }
     .search-input:focus {
@@ -423,7 +423,7 @@ export interface GroupedPermissionModule {
     .source-pills {
       display: flex;
       gap: 4px;
-      background: var(--bg-hover, rgba(0, 0, 0, 0.04));
+      background: var(--bg-hover);
       padding: 3px;
       border-radius: var(--radius-sm, 6px);
     }
@@ -434,14 +434,14 @@ export interface GroupedPermissionModule {
       background: transparent;
       font-size: 0.78rem;
       font-weight: 500;
-      color: var(--text-secondary, #64748b);
+      color: var(--text-muted);
       cursor: pointer;
       transition: all 0.15s ease;
     }
-    .pill-btn:hover { color: var(--text-primary); }
+    .pill-btn:hover { color: var(--text-main); }
     .pill-btn.active {
       background: var(--bg-surface);
-      color: var(--primary, #0284c7);
+      color: var(--primary);
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
     }
 
@@ -461,7 +461,7 @@ export interface GroupedPermissionModule {
       align-items: center;
       gap: 8px;
       padding: 8px 14px;
-      background: var(--bg-hover, rgba(0, 0, 0, 0.02));
+      background: var(--bg-hover);
       border-bottom: 1px solid var(--border-color);
       font-weight: 600;
       font-size: 0.82rem;
@@ -500,7 +500,7 @@ export interface GroupedPermissionModule {
     .form-name {
       font-size: 0.82rem;
       font-weight: 500;
-      color: var(--text-primary);
+      color: var(--text-main);
     }
     .form-code {
       color: var(--text-muted);
@@ -517,7 +517,7 @@ export interface GroupedPermissionModule {
       align-items: center;
       gap: 4px;
       padding: 2px 8px;
-      background: var(--bg-hover, rgba(0, 0, 0, 0.04));
+      background: var(--bg-hover);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-sm, 6px);
       font-size: 0.78rem;
@@ -536,11 +536,11 @@ export interface GroupedPermissionModule {
     }
     .source-badge.role {
       background: rgba(59, 130, 246, 0.15);
-      color: #1d4ed8;
+      color: var(--info-text);
     }
     .source-badge.personal {
       background: rgba(245, 158, 11, 0.2);
-      color: #b45309;
+      color: var(--warning-text);
     }
 
     .remove-grant-btn {
@@ -549,7 +549,7 @@ export interface GroupedPermissionModule {
       justify-content: center;
       background: transparent;
       border: none;
-      color: var(--danger, #ef4444);
+      color: var(--danger);
       cursor: pointer;
       padding: 1px;
       border-radius: 2px;

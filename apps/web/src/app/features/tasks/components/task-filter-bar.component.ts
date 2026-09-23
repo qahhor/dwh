@@ -328,7 +328,7 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
       border-radius: 50%;
     }
     .status-tab-dot.active-dot {
-      background-color: #10b981;
+      background-color: var(--success);
     }
 
     .clean-select {

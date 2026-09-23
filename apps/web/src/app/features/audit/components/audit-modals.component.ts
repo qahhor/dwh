@@ -184,17 +184,17 @@ import { AuditRecord, SecurityEventRecord } from '../audit.models';
 
     .event-badge.insert {
       background: var(--success-bg);
-      color: var(--success);
+      color: var(--success-text);
     }
 
     .event-badge.update {
       background: var(--info-bg);
-      color: var(--info);
+      color: var(--info-text);
     }
 
     .event-badge.delete {
       background: var(--danger-bg);
-      color: var(--danger);
+      color: var(--danger-text);
     }
 
     .sec-event-badge {
@@ -211,22 +211,22 @@ import { AuditRecord, SecurityEventRecord } from '../audit.models';
 
     .sec-event-badge.success {
       background: var(--success-bg);
-      color: var(--success);
+      color: var(--success-text);
     }
 
     .sec-event-badge.danger {
       background: var(--danger-bg);
-      color: var(--danger);
+      color: var(--danger-text);
     }
 
     .sec-event-badge.warning {
       background: var(--warning-bg);
-      color: var(--warning);
+      color: var(--warning-text);
     }
 
     .sec-event-badge.info {
       background: var(--info-bg);
-      color: var(--info);
+      color: var(--info-text);
     }
 
     .diff-section-title {
@@ -276,12 +276,12 @@ import { AuditRecord, SecurityEventRecord } from '../audit.models';
 
     .diff-cell.old-cell {
       background: var(--danger-bg);
-      color: var(--danger);
+      color: var(--danger-text);
     }
 
     .diff-cell.new-cell {
       background: var(--success-bg);
-      color: var(--success);
+      color: var(--success-text);
     }
 
     .diff-val {

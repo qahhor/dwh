@@ -80,7 +80,7 @@ import { NotificationFilterTab } from '../notifications.models';
     }
     .tab-badge-unread {
       background-color: var(--primary);
-      color: #ffffff;
+      color: var(--on-primary);
     }
     .tab-btn.active .tab-badge:not(.tab-badge-unread) {
       background-color: rgba(99, 102, 241, 0.2);

@@ -367,7 +367,7 @@ import { User } from '../../../core/models/auth.models';
       font-weight: 600;
       box-shadow: var(--shadow-sm);
     }
-    .prio-chip-btn.prio-low.active { color: #10b981; }
+    .prio-chip-btn.prio-low.active { color: var(--success-text); }
     .prio-chip-btn.prio-medium.active { color: var(--text-main); }
     .prio-chip-btn.prio-high.active { color: var(--warning); }
     .prio-chip-btn.prio-critical.active { color: var(--danger); }

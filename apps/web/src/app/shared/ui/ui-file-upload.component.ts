@@ -205,10 +205,10 @@ import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
     }
 
     .file-type-icon.image { background: var(--primary-subtle); color: var(--primary); }
-    .file-type-icon.pdf { background: var(--danger-bg); color: var(--danger); }
-    .file-type-icon.doc { background: var(--info-bg); color: var(--info); }
-    .file-type-icon.sheet { background: var(--success-bg); color: var(--success); }
-    .file-type-icon.archive { background: var(--warning-bg); color: var(--warning); }
+    .file-type-icon.pdf { background: var(--danger-bg); color: var(--danger-text); }
+    .file-type-icon.doc { background: var(--info-bg); color: var(--info-text); }
+    .file-type-icon.sheet { background: var(--success-bg); color: var(--success-text); }
+    .file-type-icon.archive { background: var(--warning-bg); color: var(--warning-text); }
     .file-type-icon.other { background: var(--bg-hover); color: var(--text-muted); }
 
     .file-info {
@@ -271,7 +271,7 @@ import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
 
     .action-btn.delete:hover {
       background: var(--danger-bg);
-      color: var(--danger);
+      color: var(--danger-text);
     }
 
     .empty-files {

@@ -123,8 +123,8 @@ import { NotificationFilterTab, resolveNotificationIcon } from '../notifications
       align-items: center;
       gap: 12px;
       padding: 16px 20px;
-      background-color: var(--danger-subtle, rgba(239, 68, 68, 0.08));
-      color: var(--danger, #ef4444);
+      background-color: var(--danger-bg);
+      color: var(--danger-text);
       border-bottom: 1px solid var(--border-color);
     }
     .error-icon {

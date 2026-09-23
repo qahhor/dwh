@@ -11,6 +11,7 @@
     "playwright*.config.ts",
     "support/**/*.ts",
     "tests/browser/**/*.ts",
+    "tests/a11y/**/*.ts",
     "tests/security/**/*.ts"
   ]
 }

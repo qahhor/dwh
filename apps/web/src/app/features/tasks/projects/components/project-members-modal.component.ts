@@ -418,7 +418,7 @@ import { ProjectMember } from '../projects.models';
       height: 26px;
       border-radius: 50%;
       background-color: var(--primary);
-      color: #ffffff;
+      color: var(--on-primary);
       display: inline-flex;
       align-items: center;
       justify-content: center;

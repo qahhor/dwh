@@ -33,22 +33,22 @@ import { CommonModule } from '@angular/common';
 
     .badge-active, .badge-success {
       background-color: var(--success-bg);
-      color: var(--success);
+      color: var(--success-text);
     }
 
     .badge-passive, .badge-danger {
       background-color: var(--danger-bg);
-      color: var(--danger);
+      color: var(--danger-text);
     }
 
     .badge-warning, .badge-high, .badge-urgent {
       background-color: var(--warning-bg);
-      color: var(--warning);
+      color: var(--warning-text);
     }
 
     .badge-info, .badge-normal {
       background-color: var(--info-bg);
-      color: var(--info);
+      color: var(--info-text);
     }
 
     .badge-neutral, .badge-low {
