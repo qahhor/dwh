@@ -1672,5 +1672,6 @@
   "ui.table.nichego_ne_naydeno": "Hech narsa topilmadi",
   "ui.tree.razvernut_vse": "Hammasini ochish",
   "ui.tree.svernut_vse": "Hammasini yopish",
-  "iam.org_units.search": "Kod yoki nom bo'yicha qidirish"
+  "iam.org_units.search": "Kod yoki nom bo'yicha qidirish",
+  "ui.table.povtorit": "Qayta urinish"
 }

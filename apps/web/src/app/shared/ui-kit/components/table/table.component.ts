@@ -185,11 +185,21 @@ export class SMTTableComponent<T> {
 
   detailRowTemplate = contentChild<TemplateRef<{ $implicit: T }>>('smtDetailRow');
 
+  /** Replaces the generic "nothing found" state, e.g. with advice to clear filters. */
+  emptyTemplate = input<TemplateRef<unknown> | null>(null, { alias: 'smtEmptyTemplate' });
+
   protected showScrollToTop = signal(false);
 
   protected showHorizontalScrollLeft = signal(false);
 
   protected showHorizontalScrollRight = signal(false);
+
+  /**
+   * A container that scrolls sideways must be reachable by keyboard, or its
+   * hidden columns are out of reach without a pointer. It becomes a named Tab
+   * stop only while it actually overflows, so a table that fits adds none.
+   */
+  protected scrollsSideways = computed(() => this.showHorizontalScrollLeft() || this.showHorizontalScrollRight());
 
   /** Pixel height lock while collapsing the detail row (null when not closing). */
   protected detailCloseHeightPx = signal<number | null>(null);

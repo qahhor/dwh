@@ -1672,5 +1672,6 @@
   "ui.table.nichego_ne_naydeno": "Эч нерсе табылган жок",
   "ui.tree.razvernut_vse": "Баарын ачуу",
   "ui.tree.svernut_vse": "Баарын жыйноо",
-  "iam.org_units.search": "Код же аталыш боюнча издөө"
+  "iam.org_units.search": "Код же аталыш боюнча издөө",
+  "ui.table.povtorit": "Кайталоо"
 }

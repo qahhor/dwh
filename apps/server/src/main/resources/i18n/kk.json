@@ -1672,5 +1672,6 @@
   "ui.table.nichego_ne_naydeno": "Ештеңе табылмады",
   "ui.tree.razvernut_vse": "Барлығын ашу",
   "ui.tree.svernut_vse": "Барлығын жию",
-  "iam.org_units.search": "Код немесе атау бойынша іздеу"
+  "iam.org_units.search": "Код немесе атау бойынша іздеу",
+  "ui.table.povtorit": "Қайталау"
 }

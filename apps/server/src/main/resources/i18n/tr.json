@@ -1672,5 +1672,6 @@
   "ui.table.nichego_ne_naydeno": "Hiçbir şey bulunamadı",
   "ui.tree.razvernut_vse": "Tümünü genişlet",
   "ui.tree.svernut_vse": "Tümünü daralt",
-  "iam.org_units.search": "Koda veya ada göre ara"
+  "iam.org_units.search": "Koda veya ada göre ara",
+  "ui.table.povtorit": "Tekrar dene"
 }

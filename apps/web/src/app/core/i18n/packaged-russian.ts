@@ -1928,5 +1928,6 @@ export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(
   "announcements.announcement": "Объявление",
   "iam.ukazhite_nazvanie_polya": "Укажите название поля",
   "iam.ukazhite_kod_polya": "Укажите код поля",
-  "iam.kod_polya_rezervirovan": "Этот код поля зарезервирован системой"
+  "iam.kod_polya_rezervirovan": "Этот код поля зарезервирован системой",
+  "ui.table.povtorit": "Повторить"
 });

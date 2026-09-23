@@ -88,13 +88,7 @@ export * from './audit.models';
       <!-- TAB 1: AUDIT LOGS -->
       <app-audit-logs-table
         *ngIf="activeTab === 'audit'"
-        [auditLogs]="auditLogs()"
-        [auditTotal]="auditTotal()"
-        [auditHasMore]="auditHasMore()"
-        [auditPageSize]="auditPageSize"
-        [auditCurrentPage]="auditCurrentPage"
-        [isLoading]="auditPager.loading()"
-        [auditError]="auditError()"
+        [pager]="auditPager"
         [tableFilter]="tableFilter"
         [eventFilter]="eventFilter"
         [rowPkFilter]="rowPkFilter"
@@ -109,10 +103,7 @@ export * from './audit.models';
         (auditToFilterChange)="auditToFilter = $event"
         (applyFilters)="loadAuditLogs(true)"
         (resetFilters)="resetAuditFilters()"
-        (retryLoad)="auditPager.retry()"
         (selectRecord)="selectAuditRecord($event)"
-        (pageChange)="onAuditPageChange($event)"
-        (pageSizeChange)="onAuditPageSizeChange($event)"
       ></app-audit-logs-table>
 
       <!-- TAB 2: SECURITY EVENTS -->

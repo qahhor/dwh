@@ -46,10 +46,10 @@ describe('AuditComponent UI contracts', () => {
     expect(fixture.nativeElement.querySelector('#audit-log-tab[aria-selected="true"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('label[for="audit-table-filter"]')).not.toBeNull();
     const region = fixture.nativeElement.querySelector('#audit-log-panel .table-container[role="region"]') as HTMLElement;
-    expect(region.tabIndex).toBe(0);
-    expect(region.querySelector('table')?.getAttribute('aria-label')).toBe('Журнал изменений данных');
+    expect(region.querySelector('[role="table"]')?.getAttribute('aria-label')).toBe('Журнал изменений данных');
+    expect(region.querySelectorAll('[role="rowgroup"] > [role="row"]')).toHaveLength(1);
+    // Details open from an explicit button, not from a click anywhere on the row.
     expect(fixture.nativeElement.querySelector('button[aria-label="Просмотреть изменение #11"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('tr.clickable-row')).toBeNull();
   });
 
   it('labels security filters and details actions', async () => {

@@ -1749,5 +1749,6 @@
   "announcements.announcement": "Announcement",
   "iam.ukazhite_nazvanie_polya": "Enter the field name",
   "iam.ukazhite_kod_polya": "Enter the field code",
-  "iam.kod_polya_rezervirovan": "This field code is reserved by the system"
+  "iam.kod_polya_rezervirovan": "This field code is reserved by the system",
+  "ui.table.povtorit": "Retry"
 }

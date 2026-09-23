@@ -44,6 +44,13 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   referenced keys in all. Cyrillic outside the catalog fails it, except in
   two named files where it is data (language endonyms, the offline
   dictionary).
+- `ui-server-table`: a table over a keyset API, composed of the vendored
+  table, the application's pagination and the shared pager. Loading is
+  announced and shown as skeleton rows, a failure keeps the rows on screen
+  with a retry of exactly the failed request, and a screen supplies its own
+  empty state. The audit change log is the first screen on it.
+- A vendored table that overflows sideways becomes a named, focusable
+  region, so its hidden columns can be scrolled to without a pointer.
 - The design token audit also fails on arbitrary Tailwind colours
   (`text-[#…]`, `bg-(--x,#…)`) and on colour literals in kit templates,
   which bypass the bridge and ignore the theme.
@@ -70,6 +77,10 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   default.
 
 ### Fixed
+
+- The audit list's rows-per-page picker showed blank: the list pages by 20,
+  which was not among the offered sizes. The current size is now always one
+  of the options.
 
 - The users list could mix results: a "load more" still in flight when a
   filter changed appended users from the old filter to the new list (a

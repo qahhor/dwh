@@ -1672,5 +1672,6 @@
   "ui.table.nichego_ne_naydeno": "Nichts gefunden",
   "ui.tree.razvernut_vse": "Alle aufklappen",
   "ui.tree.svernut_vse": "Alle zuklappen",
-  "iam.org_units.search": "Nach Code oder Name suchen"
+  "iam.org_units.search": "Nach Code oder Name suchen",
+  "ui.table.povtorit": "Erneut versuchen"
 }
