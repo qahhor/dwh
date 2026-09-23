@@ -1,4 +1,4 @@
-import { expect, test, type Page, type Response } from '@playwright/test';
+import { expect, test, type Page, type Request, type Response } from '@playwright/test';
 import { AxeBuilder } from '@axe-core/playwright';
 import { loginToInstance } from '../../../support/auth.js';
 import { collectPageErrors } from '../../../support/diagnostics.js';
@@ -111,6 +111,29 @@ async function cleanupApi<T>(page: Page, method: 'GET' | 'PUT', path: string, da
   throw new Error(`Cleanup ${method} ${path} exhausted its bounded rate-limit retries`);
 }
 
+/**
+ * Bodies of the real search responses, read by Playwright's own HTTP client as
+ * each request passes through `keepSearchBodies`. In CI the browser dropped
+ * these bodies before `response.json()` could read them ("No data found for
+ * resource"), even for fulfilled routes, while the screen itself had them.
+ */
+const searchBodies = new WeakMap<Request, string>();
+
+async function keepSearchBodies(page: Page): Promise<void> {
+  await page.route('**/api/v1/search/**', async route => {
+    const fetched = await route.fetch();
+    const body = await fetched.text();
+    searchBodies.set(route.request(), body);
+    await route.fulfill({ response: fetched, body });
+  });
+}
+
+async function bodyOf<T>(response: Response): Promise<T> {
+  const body = searchBodies.get(response.request());
+  if (body === undefined) throw new Error(`No kept body for ${response.request().method()} ${new URL(response.url()).pathname}`);
+  return JSON.parse(body) as T;
+}
+
 const TERMINAL = /^(SUCCEEDED|FAILED|CANCELLED)$/u;
 /** A response whose body the browser no longer holds: DevTools cannot hand it to the test. */
 const BODY_UNAVAILABLE = /No data found for resource with given identifier|Response body is not available/u;
@@ -123,7 +146,7 @@ async function terminalJobFromUi(page: Page, id: string, action: Job['action']):
     if (response.request().method() !== 'GET'
       || new URL(response.url()).pathname !== `/api/v1/search/jobs/${id}`
       || response.status() !== 200) return;
-    void response.json().then(value => latest = value as Job).catch(error => {
+    void bodyOf<Job>(response).then(value => latest = value).catch(error => {
       // Chromium can drop a response body before the test reads it. That poll
       // is not a result, so it is remembered rather than failing the job.
       if (BODY_UNAVAILABLE.test(String(error))) unreadablePoll = true;
@@ -403,16 +426,14 @@ test('real search management save/preview/check/rebuild exposes the current acti
   test.setTimeout(240_000);
   await loginToInstance(page);
   const assertHealthy = collectPageErrors(page);
-  // In CI the browser dropped the bodies of these real responses before the
-  // test could read them, while the screen itself had them. Passing each one
-  // through a route keeps its body with Playwright; the request still reaches
-  // the real server as the page sent it, cookies and CSRF header included.
-  await page.route('**/api/v1/search/**', async route => route.fulfill({ response: await route.fetch() }));
+  // Each request still reaches the real server as the page sent it, cookies
+  // and CSRF header included; only its body is read outside the browser.
+  await keepSearchBodies(page);
   const opened = await openSearchSettings(page);
   expect(opened.settings.status()).toBe(200);
   expect(opened.status.status()).toBe(200);
-  const original = await opened.settings.json() as Settings;
-  const initialStatus = await opened.status.json() as Status;
+  const original = await bodyOf<Settings>(opened.settings);
+  const initialStatus = await bodyOf<Status>(opened.status);
   expect(initialStatus.generations.length).toBeLessThan(4);
   let currentVersion = original.version;
   let primaryFailure: unknown;
@@ -426,7 +447,7 @@ test('real search management save/preview/check/rebuild exposes the current acti
     await page.locator('button[data-action="save-search-settings"]').click();
     const saved = await savedResponse;
     expect(saved.status()).toBe(200);
-    currentVersion = ((await saved.json()) as Settings).version;
+    currentVersion = (await bodyOf<Settings>(saved)).version;
     await expect(page.locator('[data-state="policy-clean"]')).toBeVisible();
 
     const unsavedPreviewLimit = changedLimit === 50 ? 49 : changedLimit + 1;
@@ -446,14 +467,14 @@ test('real search management save/preview/check/rebuild exposes the current acti
     await page.locator('button[data-action="save-search-settings"]').click();
     const restored = await restoredResponse;
     expect(restored.status()).toBe(200);
-    currentVersion = ((await restored.json()) as Settings).version;
+    currentVersion = (await bodyOf<Settings>(restored)).version;
 
     const checkResponse = page.waitForResponse(response => response.request().method() === 'POST'
       && new URL(response.url()).pathname === '/api/v1/search/jobs');
     await page.locator('button[data-action="start-check"]').click();
     const checkReceipt = await checkResponse;
     expect(checkReceipt.status()).toBe(202);
-    const checkId = ((await checkReceipt.json()) as { id: string }).id;
+    const checkId = (await bodyOf<{ id: string }>(checkReceipt)).id;
     const checkRefresh = page.waitForResponse(response => response.request().method() === 'GET'
       && new URL(response.url()).pathname === '/api/v1/search/status');
     await terminalJobFromUi(page, checkId, 'CHECK');
@@ -470,13 +491,13 @@ test('real search management save/preview/check/rebuild exposes the current acti
     await page.locator('button[data-action="confirm-search-maintenance"]').click();
     const rebuildReceipt = await rebuildResponse;
     expect(rebuildReceipt.status()).toBe(202);
-    const rebuildId = ((await rebuildReceipt.json()) as { id: string }).id;
+    const rebuildId = (await bodyOf<{ id: string }>(rebuildReceipt)).id;
     const finalStatusResponse = page.waitForResponse(response => response.request().method() === 'GET'
       && new URL(response.url()).pathname === '/api/v1/search/status');
     const rebuilt = await terminalJobFromUi(page, rebuildId, 'REBUILD');
     const finalStatusHttp = await finalStatusResponse;
     expect(finalStatusHttp.status()).toBe(200);
-    const finalStatus = await finalStatusHttp.json() as Status;
+    const finalStatus = await bodyOf<Status>(finalStatusHttp);
     expect(finalStatus.dependency).toMatchObject({ enabled: true, healthy: true });
     expect(finalStatus.initialized).toBe(true);
     expect(finalStatus.generations.find(generation => generation.active)?.id).toBe(rebuilt.generationId);
