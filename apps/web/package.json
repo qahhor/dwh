@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
     "i18n:audit": "node scripts/localization-audit.mjs",
     "contrast:audit": "node scripts/contrast-audit.mjs",
-    "i18n:sync-ru": "node scripts/sync-packaged-russian.mjs"
+    "i18n:sync-ru": "node scripts/sync-packaged-russian.mjs",
+    "aria:audit": "node scripts/aria-audit.mjs"
   },
   "engines": {
     "node": "24.15.0"

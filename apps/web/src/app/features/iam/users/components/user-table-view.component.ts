@@ -79,7 +79,9 @@ export type SortDirection = 'asc' | 'desc';
               <span class="muted-dash" *ngIf="!getManagerName(u)">—</span>
             </td>
             <td class="text-center">
+              <!-- role="img": the name is announced and the icon's ligature text ("check_circle") is not. -->
               <span
+                role="img"
                 class="material-symbols-outlined twofa-dot"
                 [class.active]="u.is2faEnabled"
                 [title]="(u.is2faEnabled ? 'iam.two_factor_enabled' : 'iam.two_factor_disabled_short') | t"

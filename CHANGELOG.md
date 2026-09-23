@@ -51,6 +51,12 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   by new tests written before the change: the typing pause, the latest
   search winning, load more, selected entries kept across searches, retry
   of the failed request, and cancellation when the screen goes away.
+- An accessibility gate in the CI frontend job: axe checks the rebuilt
+  screens against WCAG 2.1 A and AA in both themes, on the production build
+  with a mocked API, so it needs no backend. A static ARIA audit
+  (`npm run aria:audit`) fails any template that names an element whose
+  role takes no name, on every screen, including those the gate does not
+  open.
 - The localization audit reads every source file, not only component
   classes: external templates and services are checked too, 273 more
   referenced keys in all. Cyrillic outside the catalog fails it, except in
@@ -89,6 +95,13 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   default.
 
 ### Fixed
+
+- Screen readers dropped several names because they sat on elements that
+  cannot be named: the pagination's current page, the language coverage
+  figures and the two-factor status in the user list, which read the icon's
+  ligature ("check_circle") instead. The names are now real text or carry a
+  role that takes a name; redundant labels on count badges are removed and
+  the search settings' scroll areas are named regions.
 
 - In the tree table, two arrow presses in quick succession moved one row:
   focus follows after a render, so the second press still reached the row

@@ -64,6 +64,10 @@ jobs:
             exit 1
           fi
 
+      - name: Validate that named elements have a role that takes a name
+        working-directory: apps/web
+        run: npm run aria:audit
+
       - name: Validate localization contract
         working-directory: apps/web
         run: |
@@ -81,6 +85,24 @@ jobs:
           npm test
           npm run typecheck
           npm run build
+
+      # Axe (WCAG 2.1 A/AA) on the rebuilt screens in both themes, against the
+      # production build with a mocked API: no backend, database or Docker.
+      - name: Check accessibility of key screens
+        working-directory: e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          npm run test:a11y
+
+      - name: Upload accessibility failure screenshots
+        if: failure()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: a11y-failure-artifacts
+          path: e2e/test-results/a11y
+          if-no-files-found: ignore
+          retention-days: 7
 
   release-config:
     name: release config (Compose + NGINX + fail-closed deploy)

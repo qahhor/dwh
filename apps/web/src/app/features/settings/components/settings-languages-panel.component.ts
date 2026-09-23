@@ -74,8 +74,9 @@ import { LanguageEditorComponent } from '../language-editor.component';
       </ng-template>
 
       <ng-template #coverageCell let-lang>
-        <div class="language-coverage" [attr.aria-label]="'settings.coverage_percent' | t:{coverage: lang.coverage}">
-          <span class="coverage-track"><span [style.width.%]="lang.coverage"></span></span>
+        <!-- The column header names the cell and the text states the figures; the bar repeats them. -->
+        <div class="language-coverage">
+          <span class="coverage-track" aria-hidden="true"><span [style.width.%]="lang.coverage"></span></span>
           <span>{{ lang.translated }}/{{ lang.total }} · {{ lang.coverage }}%</span>
         </div>
       </ng-template>

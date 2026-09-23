@@ -80,13 +80,14 @@ import { TranslatePipe } from '../../core/services/i18n.service';
             </ng-container>
           </div>
 
+          <!-- aria-label is ignored on a span without a role, so the name is real text. -->
           <span
             *ngIf="cursorMode"
             class="current-page-indicator font-mono"
             aria-current="page"
-            [attr.aria-label]="'ui.pagination.page_number' | t:{page: currentPage}"
           >
-            {{ currentPage }}
+            <span aria-hidden="true">{{ currentPage }}</span>
+            <span class="sr-only">{{ 'ui.pagination.page_number' | t:{page: currentPage} }}</span>
           </span>
 
           <!-- Next Page -->
