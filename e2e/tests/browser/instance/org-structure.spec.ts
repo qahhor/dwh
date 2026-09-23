@@ -259,10 +259,13 @@ async function openActorPanel(page: Page, actorId: number) {
   const profile = page.getByRole('dialog', { name: 'Профиль пользователя', exact: true });
   await expect(profile).toBeVisible();
   const orgTab = profile.getByRole('tab', { name: 'Оргструктура' });
-  if (await orgTab.isVisible()) {
+  const panel = profile.getByRole('region', { name: 'Подразделения и область данных', exact: true });
+  // The tabs render once the user record has loaded: wait for the tab (or a
+  // panel already open) instead of sampling visibility before they exist.
+  await expect(orgTab.or(panel).first()).toBeVisible();
+  if (await orgTab.isVisible() && await orgTab.getAttribute('aria-selected') !== 'true') {
     await orgTab.click();
   }
-  const panel = profile.getByRole('region', { name: 'Подразделения и область данных', exact: true });
   await expect(panel).toBeVisible();
   await expect(panel.getByRole('heading', { name: 'Фактическая область данных', exact: true })).toBeVisible();
   return panel;
