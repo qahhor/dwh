@@ -403,6 +403,11 @@ test('real search management save/preview/check/rebuild exposes the current acti
   test.setTimeout(240_000);
   await loginToInstance(page);
   const assertHealthy = collectPageErrors(page);
+  // In CI the browser dropped the bodies of these real responses before the
+  // test could read them, while the screen itself had them. Passing each one
+  // through a route keeps its body with Playwright; the request still reaches
+  // the real server as the page sent it, cookies and CSRF header included.
+  await page.route('**/api/v1/search/**', async route => route.fulfill({ response: await route.fetch() }));
   const opened = await openSearchSettings(page);
   expect(opened.settings.status()).toBe(200);
   expect(opened.status.status()).toBe(200);
