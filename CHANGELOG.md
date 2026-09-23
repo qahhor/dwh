@@ -39,6 +39,12 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   arrow keys to move and to open or close a branch, Home and End, Enter or
   Space to select, and level, position and expanded state announced for
   each row. Expand all and Collapse all act on the whole tree.
+- A user's division assignments are chosen in the same tree table as the
+  organizational structure screen, with search and expand or collapse all.
+  The tree follows the multi-select treegrid pattern: rows announce whether
+  they are checked, Space or Enter toggles one, and the checkboxes are a
+  pointer affordance rather than extra Tab stops. The old nested-list tree
+  component is removed.
 - The localization audit reads every source file, not only component
   classes: external templates and services are checked too, 273 more
   referenced keys in all. Cyrillic outside the catalog fails it, except in
@@ -77,6 +83,11 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   default.
 
 ### Fixed
+
+- In the tree table, two arrow presses in quick succession moved one row:
+  focus follows after a render, so the second press still reached the row
+  just left. Movement now starts from the row the tree last moved to, and a
+  row focused another way (a click, a screen reader) becomes that row.
 
 - The audit list's rows-per-page picker showed blank: the list pages by 20,
   which was not among the offered sizes. The current size is now always one

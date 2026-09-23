@@ -109,10 +109,10 @@ describe('UsersComponent UI contracts', () => {
     fixture.componentInstance.openViewModal(first);
     fixture.detectChanges();
     const panel = fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent)).componentInstance as UserOrgUnitsPanelComponent;
-    (fixture.nativeElement.querySelector('[data-check="2"]') as HTMLInputElement).click();
+    (fixture.nativeElement.querySelector('[data-smt-check="2"]') as HTMLInputElement).click();
     fixture.detectChanges();
     expect(panel.hasUnsavedWork()).toBe(true);
-    expect(fixture.nativeElement.querySelector('.expand[aria-expanded="true"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[role="treegrid"] [role="row"][aria-expanded="true"]')).not.toBeNull();
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
     fixture.detectChanges();
@@ -148,7 +148,7 @@ describe('UsersComponent UI contracts', () => {
     fixture.componentInstance.openViewModal(first);
     fixture.detectChanges();
     const panel = fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent)).componentInstance as UserOrgUnitsPanelComponent;
-    (fixture.nativeElement.querySelector('[data-check="2"]') as HTMLInputElement).click();
+    (fixture.nativeElement.querySelector('[data-smt-check="2"]') as HTMLInputElement).click();
     panel.save();
     fixture.componentInstance.openViewModal(second);
     fixture.detectChanges();
@@ -183,7 +183,7 @@ describe('UsersComponent UI contracts', () => {
       fixture.componentInstance.openViewModal(first);
       fixture.detectChanges();
       const panel = fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent)).componentInstance as UserOrgUnitsPanelComponent;
-      (fixture.nativeElement.querySelector('[data-check="2"]') as HTMLInputElement).click();
+      (fixture.nativeElement.querySelector('[data-smt-check="2"]') as HTMLInputElement).click();
       fixture.componentInstance.openViewModal(second);
       expect(panel.discard.open()).toBe(true);
       panel.discard.cancel();
@@ -199,7 +199,7 @@ describe('UsersComponent UI contracts', () => {
       expect(write.observed).toBe(true);
       expect(fixture.componentInstance.orgPanelBusy()).toBe(true);
       expect(panel.discard.open()).toBe(false);
-      expect(fixture.nativeElement.querySelector('app-user-org-units-panel input[data-check]')).toBeNull();
+      expect(fixture.nativeElement.querySelector('app-user-org-units-panel input[data-smt-check]')).toBeNull();
       expect(fixture.nativeElement.querySelectorAll('[role="dialog"]')).toHaveLength(1);
       expect(fixture.nativeElement.textContent).not.toContain('Компания');
       expect(fixture.componentInstance.canLeaveRecordPage()).toBe(false);
@@ -263,7 +263,7 @@ describe('UsersComponent UI contracts', () => {
     fixture.componentInstance.loadRecordView('7');
     fixture.detectChanges();
     const panel = fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent)).componentInstance as UserOrgUnitsPanelComponent;
-    (fixture.nativeElement.querySelector('[data-check="2"]') as HTMLInputElement).click();
+    (fixture.nativeElement.querySelector('[data-smt-check="2"]') as HTMLInputElement).click();
     const readsBeforeReload = api.get.mock.calls.filter(([path]) => path === '/iam/users/7').length;
 
     fixture.componentInstance.openViewModal(first);
@@ -283,7 +283,7 @@ describe('UsersComponent UI contracts', () => {
     fixture.componentInstance.loadRecordView('7');
     fixture.detectChanges();
     const panel = fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent)).componentInstance as UserOrgUnitsPanelComponent;
-    (fixture.nativeElement.querySelector('[data-check="2"]') as HTMLInputElement).click();
+    (fixture.nativeElement.querySelector('[data-smt-check="2"]') as HTMLInputElement).click();
     const readsBeforeReload = api.get.mock.calls.filter(([path]) => path === '/iam/users/7').length;
 
     fixture.componentInstance.closeEditModal();
@@ -317,7 +317,7 @@ describe('UsersComponent UI contracts', () => {
       fixture.componentInstance.closeEditModal();
       fixture.detectChanges();
       const newerPanel = fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent)).componentInstance as UserOrgUnitsPanelComponent;
-      (fixture.nativeElement.querySelector('[data-check="2"]') as HTMLInputElement).click();
+      (fixture.nativeElement.querySelector('[data-smt-check="2"]') as HTMLInputElement).click();
       if (panelState === 'pending') newerPanel.save();
       const readsBeforeProfileSettlement = api.get.mock.calls.filter(([path]) => path === '/iam/users/7').length;
 

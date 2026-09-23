@@ -37,7 +37,7 @@ export interface TreeTableColumns<T> {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [SMTTableComponent, NgTemplateOutlet],
-  host: { class: 'flex flex-col gap-2 min-w-0' },
+  host: { class: 'flex flex-col gap-2 min-w-0', '(focusin)': 'onFocusIn($event)' },
   template: `
     @if (showExpandControls()) {
       <div class="flex flex-wrap items-center justify-end gap-2">
@@ -59,6 +59,21 @@ export interface TreeTableColumns<T> {
 
     <ng-template #treeCell let-row>
       <div class="flex min-w-0 items-center gap-1" [style.padding-inline-start.px]="row.level * indentPx()">
+        @if (multiple()) {
+          <!-- Mirrors the row's aria-selected for sighted users; the row is the control.
+               The native toggle is cancelled so the box shows smtCheckedIds, never
+               a state the owner has not accepted. -->
+          <input
+            type="checkbox"
+            tabindex="-1"
+            aria-hidden="true"
+            class="m-0 h-[18px] w-[18px] shrink-0 cursor-pointer"
+            style="accent-color: var(--primary)"
+            [attr.data-smt-check]="row.id"
+            [checked]="isChecked(row)"
+            [disabled]="disabled()"
+            (click)="$event.preventDefault(); $event.stopPropagation(); choose(row)" />
+        }
         @if (row.hasChildren) {
           <!-- A pointer affordance only: the row's aria-expanded states it and
                the arrow keys operate it, so it is not a second Tab stop. -->
@@ -105,8 +120,18 @@ export class SMTTreeTableComponent<T> {
   readonly disabled = input(false, { alias: 'smtDisabled' });
   readonly showExpandControls = input(true, { alias: 'smtShowExpandControls' });
   readonly indentPx = input(20, { alias: 'smtIndentPx' });
+  /**
+   * `single`: choosing a row selects it (`smtSelect`). `multiple`: choosing a
+   * row toggles it (`smtToggle`), and `smtCheckedIds` says which are checked.
+   */
+  readonly selectionMode = input<'single' | 'multiple'>('single', { alias: 'smtSelectionMode' });
+  readonly checkedIds = input<readonly string[]>([], { alias: 'smtCheckedIds' });
 
   readonly select = output<TreeRow<T>>({ alias: 'smtSelect' });
+  readonly toggleCheck = output<TreeRow<T>>({ alias: 'smtToggle' });
+
+  protected readonly multiple = computed(() => this.selectionMode() === 'multiple');
+  private readonly checked = computed(() => new Set(this.checkedIds()));
 
   protected readonly toolbarButton =
     'inline-flex min-h-[32px] items-center rounded border border-gray-300 bg-white px-3 text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60';
@@ -158,6 +183,8 @@ export class SMTTreeTableComponent<T> {
     const { columns, columnsOrder, treeColumn } = this.columns();
     const positions = this.positions();
     const selectedId = this.selectedId();
+    const multiple = this.multiple();
+    const checked = this.checked();
     const focusableId = this.focusableId();
     const open = this.openRows();
     return {
@@ -169,6 +196,7 @@ export class SMTTreeTableComponent<T> {
       },
       layout: 'fit',
       ariaRole: 'treegrid',
+      ariaMultiselectable: multiple,
       ariaLabel: this.ariaLabel(),
       rowAria: row => ({
         id: row.id,
@@ -176,7 +204,7 @@ export class SMTTreeTableComponent<T> {
         expanded: row.hasChildren ? open.has(row.id) : null,
         setSize: positions.get(row.id)?.setSize ?? 1,
         posInSet: positions.get(row.id)?.posInSet ?? 1,
-        selected: row.id === selectedId,
+        selected: multiple ? checked.has(row.id) : row.id === selectedId,
         tabindex: row.id === focusableId ? 0 : -1,
       }),
     };
@@ -203,14 +231,31 @@ export class SMTTreeTableComponent<T> {
     if (root !== null) this.activeId.set(root);
   }
 
-  protected choose(row: TreeRow<T>): void {
-    this.activeId.set(row.id);
-    if (!this.disabled()) this.select.emit(row);
+  protected isChecked(row: TreeRow<T>): boolean {
+    return this.checked().has(row.id);
   }
 
-  protected onKeydown({ row, event }: TableRowKeydownEvent<TreeRow<T>>): void {
+  protected choose(row: TreeRow<T>): void {
+    this.activeId.set(row.id);
+    if (this.disabled()) return;
+    if (this.multiple()) this.toggleCheck.emit(row);
+    else this.select.emit(row);
+  }
+
+  /** Focus can reach a row without our keys (a click, a screen reader); it then becomes the active row. */
+  protected onFocusIn(event: FocusEvent): void {
+    const id = (event.target as HTMLElement | null)?.closest<HTMLElement>('[data-smt-row-id]')?.dataset['smtRowId'];
+    if (id !== undefined && id !== this.activeId()) this.activeId.set(id);
+  }
+
+  protected onKeydown({ row: focused, event }: TableRowKeydownEvent<TreeRow<T>>): void {
     const rows = this.displayRows();
-    const index = rows.findIndex(item => item.id === row.id);
+    // Move from the row the grid last moved to, not from the element that has
+    // focus: focus follows after the next render, so a quick second key press
+    // still lands on the previous row and would otherwise repeat the same step.
+    const activeIndex = rows.findIndex(item => item.id === this.activeId());
+    const index = activeIndex >= 0 ? activeIndex : rows.findIndex(item => item.id === focused.id);
+    const row = rows[index] ?? focused;
     let target: TreeRow<T> | undefined;
 
     switch (event.key) {

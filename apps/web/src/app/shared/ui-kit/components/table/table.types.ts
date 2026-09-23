@@ -90,6 +90,8 @@ export interface TableConfig<T> {
   ariaLabel?: string;
   /** ARIA pattern the rows follow. `treegrid` makes rows focusable and carries `rowAria`. */
   ariaRole?: 'table' | 'treegrid';
+  /** A treegrid whose rows can be selected several at a time; `rowAria.selected` then means "checked". */
+  ariaMultiselectable?: boolean;
   /** Per-row ARIA state for the `treegrid` pattern. */
   rowAria?: (row: T) => TableRowAria | null | undefined;
 }

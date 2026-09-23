@@ -24,6 +24,7 @@
         [attr.role]="tableRole()"
         [attr.aria-label]="config().ariaLabel || null"
         [attr.aria-rowcount]="ariaRowCount()"
+        [attr.aria-multiselectable]="tableRole() === 'treegrid' && config().ariaMultiselectable ? 'true' : null"
         [attr.aria-busy]="isLoading() || null">
         @if (!config().hideHeader) {
           <div

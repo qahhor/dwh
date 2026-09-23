@@ -53,6 +53,8 @@ const shown = (fixture: ComponentFixture<HostComponent>) => bodyRows(fixture).ma
 const row = (fixture: ComponentFixture<HostComponent>, id: string) => bodyRows(fixture).find(item => item.dataset['smtRowId'] === id)!;
 
 async function press(fixture: ComponentFixture<HostComponent>, id: string, key: string) {
+  // A key goes to the focused element, so the row has focus when it is pressed.
+  row(fixture, id).focus();
   row(fixture, id).dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
   await settle(fixture);
 }
@@ -106,6 +108,15 @@ describe('smt-tree-table', () => {
     expect(document.activeElement).toBe(row(fixture, '1'));
   });
 
+  it('does not lose a key pressed before focus has followed the previous one', async () => {
+    const fixture = await render();
+    // Two presses on the same element, before any render moves focus.
+    row(fixture, '1').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
+    row(fixture, '1').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
+    await settle(fixture);
+    expect(document.activeElement).toBe(row(fixture, '3'));
+  });
+
   it('chooses a row with Enter, Space or a click, and marks it selected', async () => {
     const fixture = await render();
     await press(fixture, '1', 'Enter');
@@ -144,4 +155,54 @@ describe('smt-tree-table', () => {
     await settle(fixture);
     expect(shown(fixture)).toEqual(['1', '2', '3', '4', '5']);
   });
+
+  it('in multiple mode checks rows with Space, Enter or a click and says so with aria-selected', async () => {
+    await TestBed.configureTestingModule({ imports: [MultiHostComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(MultiHostComponent);
+    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    const root = fixture.nativeElement as HTMLElement;
+    const grid = root.querySelector('[role="treegrid"]')!;
+    expect(grid.getAttribute('aria-multiselectable')).toBe('true');
+    const rowOf = (id: string) => [...root.querySelectorAll<HTMLElement>('[role="rowgroup"] > [role="row"]')].find(row => row.dataset['smtRowId'] === id)!;
+    const box = (id: string) => root.querySelector<HTMLInputElement>(`input[data-smt-check="${id}"]`)!;
+
+    expect(rowOf('3').getAttribute('aria-selected')).toBe('true');
+    expect(box('3').checked).toBe(true);
+    expect(box('3').tabIndex).toBe(-1);
+
+    rowOf('4').dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true }));
+    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    expect(fixture.componentInstance.checked()).toEqual(['3', '4']);
+    expect(rowOf('4').getAttribute('aria-selected')).toBe('true');
+
+    box('3').click();
+    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    expect(fixture.componentInstance.checked()).toEqual(['4']);
+    expect(box('3').checked).toBe(false);
+
+    fixture.componentInstance.locked.set(true);
+    fixture.detectChanges();
+    rowOf('5').click();
+    expect(fixture.componentInstance.checked()).toEqual(['4']);
+    expect(box('5').disabled).toBe(true);
+  });
 });
+
+@Component({
+  standalone: true,
+  imports: [SMTTreeTableComponent],
+  template: `<smt-tree-table [smtRows]="rows" [smtColumns]="columns" smtAriaLabel="Divisions" smtSelectionMode="multiple"
+    [smtCheckedIds]="checked()" [smtDisabled]="locked()" (smtToggle)="toggle($event.id)" />`,
+})
+class MultiHostComponent {
+  readonly rows: TreeRow<Unit>[] = flattenTree(tree, { id: unit => unit.id, children: unit => unit.children, data: unit => unit });
+  readonly columns: TreeTableColumns<Unit> = {
+    treeColumn: 'name', columnsOrder: ['name'],
+    columns: { name: { header: { type: 'primitive', value: 'Name' }, content: { type: 'primitive', value: row => row.data.name } } },
+  };
+  readonly checked = signal<string[]>(['3']);
+  readonly locked = signal(false);
+  toggle(id: string): void {
+    this.checked.update(ids => ids.includes(id) ? ids.filter(item => item !== id) : [...ids, id].sort());
+  }
+}
