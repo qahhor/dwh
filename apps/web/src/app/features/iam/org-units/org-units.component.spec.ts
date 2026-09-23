@@ -38,6 +38,8 @@ describe('OrgUnitsComponent lifecycle', () => {
 
     rows()[2].click(); fixture.detectChanges();
     expect(page.selected?.id).toBe(3);
+    // A key reaches the focused row, as it does in the browser.
+    rows()[1].focus();
     rows()[1].dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); fixture.detectChanges();
     expect(page.selected?.id).toBe(2);
   });
