@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ApiService } from '../../core/services/api.service';
 import { ToastService } from '../../core/services/toast.service';
 import { TranslatePipe } from '../../core/services/i18n.service';
-import { KeysetPager } from '../../shared/data/keyset-pager';
+import { KeysetPager } from '../../shared/paging/keyset-pager';
 
 import {
   AuditRecord,

@@ -1,0 +1,104 @@
+import { Observable, of, Subject, throwError } from 'rxjs';
+import { describe, expect, it, vi } from 'vitest';
+import { KeysetPager, KeysetResponse } from './keyset-pager';
+
+const page = (items: number[], nextCursor: string | null, totalEstimated = 30): KeysetResponse<number> =>
+  ({ items, nextCursor, hasMore: nextCursor !== null, totalEstimated });
+
+/** Three pages: null -> [1,2] -> 'c2' -> [3,4] -> 'c3' -> [5]. */
+function server() {
+  const pages: Record<string, KeysetResponse<number>> = {
+    first: page([1, 2], 'c2'), c2: page([3, 4], 'c3'), c3: page([5], null),
+  };
+  return vi.fn((cursor: string | null) => of(pages[cursor ?? 'first']));
+}
+
+describe('KeysetPager', () => {
+  it('walks forward with the returned cursors and back with the remembered ones', () => {
+    const fetch = server();
+    const pager = new KeysetPager<number>(fetch, { pageSize: 2 });
+    pager.first();
+    expect([pager.page(), [...pager.items()], pager.canGoBack(), pager.canGoForward()]).toEqual([1, [1, 2], false, true]);
+
+    pager.next();
+    pager.next();
+    expect([pager.page(), [...pager.items()], pager.canGoForward()]).toEqual([3, [5], false]);
+    pager.next(); // nothing beyond the last page
+    expect(fetch).toHaveBeenCalledTimes(3);
+
+    pager.previous();
+    expect([pager.page(), [...pager.items()]]).toEqual([2, [3, 4]]);
+    expect(fetch).toHaveBeenLastCalledWith('c2', 2);
+    pager.previous();
+    expect(fetch).toHaveBeenLastCalledWith(null, 2);
+    expect(pager.total()).toBe(30);
+  });
+
+  it('lets only the latest request land', () => {
+    const slow = new Subject<KeysetResponse<number>>();
+    const fast = new Subject<KeysetResponse<number>>();
+    const responses = [slow, fast];
+    const pager = new KeysetPager<number>(() => responses.shift()!.asObservable());
+
+    pager.first(); // e.g. old filter
+    pager.first(); // new filter, issued before the first answered
+    fast.next(page([9], null));
+    slow.next(page([1], null)); // the stale answer arrives last
+
+    expect([...pager.items()]).toEqual([9]);
+    expect(pager.loading()).toBe(false);
+  });
+
+  it('keeps the page, its rows and its cursors when a request fails, and retries exactly that request', () => {
+    let failNext = false;
+    const pages = server();
+    const fetch = vi.fn((cursor: string | null): Observable<KeysetResponse<number>> =>
+      failNext ? throwError(() => new Error('offline')) : pages(cursor));
+    const pager = new KeysetPager<number>(fetch);
+    pager.first();
+
+    failNext = true;
+    pager.next();
+    expect([pager.page(), [...pager.items()], pager.failed(), pager.loading()]).toEqual([1, [1, 2], true, false]);
+
+    failNext = false;
+    pager.retry();
+    expect(fetch).toHaveBeenLastCalledWith('c2', 20);
+    expect([pager.page(), [...pager.items()], pager.failed()]).toEqual([2, [3, 4], false]);
+  });
+
+  it('reloads the page on screen and restarts from page one on a new page size', () => {
+    const fetch = server();
+    const pager = new KeysetPager<number>(fetch);
+    pager.first();
+    pager.next();
+    pager.reload();
+    expect(fetch).toHaveBeenLastCalledWith('c2', 20);
+    expect(pager.page()).toBe(2);
+
+    pager.setPageSize(50);
+    expect(fetch).toHaveBeenLastCalledWith(null, 50);
+    expect(pager.page()).toBe(1);
+    pager.setPageSize(0);
+    expect(pager.pageSize()).toBe(50);
+  });
+
+  it('forgets forward cursors once an earlier page is fetched again', () => {
+    const fetch = server();
+    const pager = new KeysetPager<number>(fetch);
+    pager.first();
+    pager.next();
+    pager.next();
+    pager.first();
+    pager.goTo(3); // only neighbours are reachable
+    expect(pager.page()).toBe(1);
+    pager.goTo(2);
+    expect(fetch).toHaveBeenLastCalledWith('c2', 20);
+  });
+
+  it('treats an empty or missing body as an empty last page', () => {
+    const pager = new KeysetPager<number>(() => of(null));
+    pager.first();
+    expect([[...pager.items()], pager.canGoForward(), pager.total(), pager.failed()]).toEqual([[], false, 0, false]);
+  });
+});
