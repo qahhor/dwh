@@ -1678,5 +1678,7 @@
   "iam.users.load_error": "Пайдаланушыларды жүктеу мүмкін болмады.",
   "iam.users.export_failed": "Пайдаланушыларды экспорттау мүмкін болмады. Қайталап көріңіз.",
   "iam.users.export_truncated": "Алғашқы {count} пайдаланушы экспортталды. Қалғандарын экспорттау үшін сүзгілерді нақтылаңыз.",
-  "iam.users.exporting": "Экспорттау…"
+  "iam.users.exporting": "Экспорттау…",
+  "common.requirement_met": "Орындалды",
+  "common.requirement_not_met": "Орындалмады"
 }

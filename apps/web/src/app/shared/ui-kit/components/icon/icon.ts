@@ -26,7 +26,7 @@ const SYMBOL: Readonly<Record<string, string>> = {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { role: 'img', 'aria-hidden': 'true', '[style.font-size]': 'sizePx()' },
-  template: `<span class="material-symbols-outlined" [style.font-size]="sizePx()">{{ symbol() }}</span>`,
+  template: `<span class="material-symbols-outlined" [style.font-size]="sizePx()" aria-hidden="true">{{ symbol() }}</span>`,
 })
 export class SMTIconComponent {
   readonly key = input.required<string>();

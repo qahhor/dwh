@@ -1678,5 +1678,7 @@
   "iam.users.load_error": "Foydalanuvchilarni yuklab bo'lmadi.",
   "iam.users.export_failed": "Foydalanuvchilarni eksport qilib bo'lmadi. Qayta urinib ko'ring.",
   "iam.users.export_truncated": "Dastlabki {count} foydalanuvchi eksport qilindi. Qolganlarini eksport qilish uchun filtrlarni aniqlashtiring.",
-  "iam.users.exporting": "Eksport qilinmoqda…"
+  "iam.users.exporting": "Eksport qilinmoqda…",
+  "common.requirement_met": "Bajarildi",
+  "common.requirement_not_met": "Bajarilmadi"
 }

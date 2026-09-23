@@ -1755,5 +1755,7 @@
   "iam.users.load_error": "Could not load users.",
   "iam.users.export_failed": "Could not export users. Please try again.",
   "iam.users.export_truncated": "Exported the first {count} users. Narrow the filters to export the rest.",
-  "iam.users.exporting": "Exporting…"
+  "iam.users.exporting": "Exporting…",
+  "common.requirement_met": "Met",
+  "common.requirement_not_met": "Not met"
 }

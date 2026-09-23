@@ -1678,5 +1678,7 @@
   "iam.users.load_error": "Benutzer konnten nicht geladen werden.",
   "iam.users.export_failed": "Benutzer konnten nicht exportiert werden. Bitte erneut versuchen.",
   "iam.users.export_truncated": "Die ersten {count} Benutzer wurden exportiert. Grenzen Sie die Filter ein, um die übrigen zu exportieren.",
-  "iam.users.exporting": "Export läuft…"
+  "iam.users.exporting": "Export läuft…",
+  "common.requirement_met": "Erfüllt",
+  "common.requirement_not_met": "Nicht erfüllt"
 }

@@ -40,7 +40,7 @@ import { UserWorkload, WorkloadSortColumn, SortDirection } from '../analytics.mo
             (click)="searchUserQuery.set('')"
             [attr.aria-label]="'common.clear' | t"
           >
-            <span class="material-symbols-outlined" style="font-size: 14px;">close</span>
+            <span class="material-symbols-outlined" style="font-size: 14px;" aria-hidden="true">close</span>
           </button>
         </div>
       </div>
@@ -49,42 +49,42 @@ import { UserWorkload, WorkloadSortColumn, SortDirection } from '../analytics.mo
         <table>
           <thead>
             <tr>
-              <th style="width: 240px;" class="th-sort">
+              <th style="width: 240px;" class="th-sort" [attr.aria-sort]="workloadSortColumn() === 'name' ? (workloadSortDir() === 'asc' ? 'ascending' : 'descending') : null">
                 <button type="button" class="sort-button" (click)="changeWorkloadSort('name')" [attr.aria-pressed]="workloadSortColumn() === 'name'">
                   {{ 'analytics.sotrudnik' | t }}
-                  <span class="material-symbols-outlined sort-ico" *ngIf="workloadSortColumn() === 'name'">
+                  <span class="material-symbols-outlined sort-ico" *ngIf="workloadSortColumn() === 'name'" aria-hidden="true">
                     {{ workloadSortDir() === 'asc' ? 'north' : 'south' }}
                   </span>
                 </button>
               </th>
-              <th class="th-sort">
+              <th class="th-sort" [attr.aria-sort]="workloadSortColumn() === 'login' ? (workloadSortDir() === 'asc' ? 'ascending' : 'descending') : null">
                 <button type="button" class="sort-button" (click)="changeWorkloadSort('login')" [attr.aria-pressed]="workloadSortColumn() === 'login'">
                   {{ 'analytics.login' | t }}
-                  <span class="material-symbols-outlined sort-ico" *ngIf="workloadSortColumn() === 'login'">
+                  <span class="material-symbols-outlined sort-ico" *ngIf="workloadSortColumn() === 'login'" aria-hidden="true">
                     {{ workloadSortDir() === 'asc' ? 'north' : 'south' }}
                   </span>
                 </button>
               </th>
-              <th class="th-sort">
+              <th class="th-sort" [attr.aria-sort]="workloadSortColumn() === 'assigned' ? (workloadSortDir() === 'asc' ? 'ascending' : 'descending') : null">
                 <button type="button" class="sort-button" (click)="changeWorkloadSort('assigned')" [attr.aria-pressed]="workloadSortColumn() === 'assigned'">
                   {{ 'analytics.naznacheno_zadach' | t }}
-                  <span class="material-symbols-outlined sort-ico" *ngIf="workloadSortColumn() === 'assigned'">
+                  <span class="material-symbols-outlined sort-ico" *ngIf="workloadSortColumn() === 'assigned'" aria-hidden="true">
                     {{ workloadSortDir() === 'asc' ? 'north' : 'south' }}
                   </span>
                 </button>
               </th>
-              <th class="th-sort">
+              <th class="th-sort" [attr.aria-sort]="workloadSortColumn() === 'completed' ? (workloadSortDir() === 'asc' ? 'ascending' : 'descending') : null">
                 <button type="button" class="sort-button" (click)="changeWorkloadSort('completed')" [attr.aria-pressed]="workloadSortColumn() === 'completed'">
                   {{ 'analytics.zaversheno' | t }}
-                  <span class="material-symbols-outlined sort-ico" *ngIf="workloadSortColumn() === 'completed'">
+                  <span class="material-symbols-outlined sort-ico" *ngIf="workloadSortColumn() === 'completed'" aria-hidden="true">
                     {{ workloadSortDir() === 'asc' ? 'north' : 'south' }}
                   </span>
                 </button>
               </th>
-              <th class="th-sort">
+              <th class="th-sort" [attr.aria-sort]="workloadSortColumn() === 'efficiency' ? (workloadSortDir() === 'asc' ? 'ascending' : 'descending') : null">
                 <button type="button" class="sort-button" (click)="changeWorkloadSort('efficiency')" [attr.aria-pressed]="workloadSortColumn() === 'efficiency'">
                   {{ 'analytics.effektivnost' | t }}
-                  <span class="material-symbols-outlined sort-ico" *ngIf="workloadSortColumn() === 'efficiency'">
+                  <span class="material-symbols-outlined sort-ico" *ngIf="workloadSortColumn() === 'efficiency'" aria-hidden="true">
                     {{ workloadSortDir() === 'asc' ? 'north' : 'south' }}
                   </span>
                 </button>

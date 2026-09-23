@@ -2004,5 +2004,7 @@ export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(
   "iam.users.load_error": "Не удалось загрузить пользователей.",
   "iam.users.export_failed": "Не удалось выгрузить пользователей. Попробуйте ещё раз.",
   "iam.users.export_truncated": "Выгружены первые {count} пользователей. Уточните фильтры, чтобы выгрузить остальных.",
-  "iam.users.exporting": "Выгрузка…"
+  "iam.users.exporting": "Выгрузка…",
+  "common.requirement_met": "Выполнено",
+  "common.requirement_not_met": "Не выполнено"
 });

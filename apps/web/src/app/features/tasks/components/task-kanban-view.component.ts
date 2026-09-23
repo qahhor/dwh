@@ -68,11 +68,11 @@ import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.m
             <!-- Card Top -->
             <div class="card-top-row">
               <div class="card-type-group">
-                <span *ngIf="canUpdateTask" class="material-symbols-outlined drag-grip-icon" cdkDragHandle [title]="'tasks.peretaschit_kartochku' | t">
+                <span *ngIf="canUpdateTask" class="material-symbols-outlined drag-grip-icon" cdkDragHandle [title]="'tasks.peretaschit_kartochku' | t" aria-hidden="true">
                   drag_indicator
                 </span>
                 <span class="task-type-badge-mini" [style.color]="getTypeColor(task)">
-                  <span class="material-symbols-outlined mini-ico">{{ getTypeIcon(task) }}</span>
+                  <span class="material-symbols-outlined mini-ico" role="img" [attr.aria-label]="getTypeLabel(task)">{{ getTypeIcon(task) }}</span>
                   <span class="task-id font-mono">#{{ task.id }}</span>
                 </span>
               </div>
@@ -95,7 +95,7 @@ import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.m
             <!-- Card Meta -->
             <div class="card-meta" *ngIf="task.projectId || task.parentTaskId">
               <span class="project-tag-mini" *ngIf="getProjectName(task.projectId) as pName">
-                <span class="material-symbols-outlined folder-ico">folder</span>
+                <span class="material-symbols-outlined folder-ico" aria-hidden="true">folder</span>
                 {{ pName }}
               </span>
               <span *ngIf="task.parentTaskId" class="parent-chip font-mono">
@@ -114,7 +114,7 @@ import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.m
                   [class.deadline-tomorrow]="dl.state === 'tomorrow'"
                   [title]="'tasks.deadline_value' | t:{date: (task.endTime | date:'dd.MM.yyyy HH:mm') || ''}"
                 >
-                  <span class="material-symbols-outlined ico">
+                  <span class="material-symbols-outlined ico" aria-hidden="true">
                     {{ dl.state === 'overdue' ? 'warning' : (dl.state === 'today' ? 'alarm' : 'event') }}
                   </span>
                   {{ dl.label }}
@@ -172,6 +172,7 @@ export class TaskKanbanViewComponent {
   @Input() getPriorityLabel!: (priority: string) => string;
   @Input() getTypeColor!: (task: Task) => string;
   @Input() getTypeIcon!: (task: Task) => string;
+  @Input() getTypeLabel!: (task: Task) => string;
   @Input() getProjectName!: (projectId: number | null | undefined) => string | null;
   @Input() isOverdue!: (endTime: string | null | undefined, statusId: number) => boolean;
 

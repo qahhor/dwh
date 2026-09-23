@@ -77,7 +77,7 @@ import { InstalledModule } from '../modules.models';
                   <span class="toggle-slider"></span>
                 </label>
                 <span class="system-locked-hint" *ngIf="mod.isSystem" [title]="'modules.system_cannot_disable' | t">
-                  <span class="material-symbols-outlined lock-icon">lock</span>
+                  <span class="material-symbols-outlined lock-icon" aria-hidden="true">lock</span>
                 </span>
               </div>
             </td>

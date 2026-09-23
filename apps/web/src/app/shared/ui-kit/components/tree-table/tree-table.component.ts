@@ -84,7 +84,7 @@ export interface TreeTableColumns<T> {
             class="inline-flex h-[24px] w-[24px] shrink-0 cursor-pointer items-center justify-center rounded border-0 bg-transparent p-0 text-gray-600 hover:bg-gray-100"
             [disabled]="searching()"
             (click)="$event.stopPropagation(); toggle(row)">
-            <span class="material-symbols-outlined" style="font-size: 18px">{{ isExpanded(row) ? 'expand_more' : 'chevron_right' }}</span>
+            <span class="material-symbols-outlined" style="font-size: 18px" aria-hidden="true">{{ isExpanded(row) ? 'expand_more' : 'chevron_right' }}</span>
           </button>
         } @else {
           <span class="inline-block h-[24px] w-[24px] shrink-0" aria-hidden="true"></span>

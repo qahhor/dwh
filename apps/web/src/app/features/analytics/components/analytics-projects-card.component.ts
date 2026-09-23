@@ -37,7 +37,7 @@ import { ProjectDistribution } from '../analytics.models';
             (click)="searchProjectQuery.set('')"
             [attr.aria-label]="'common.clear' | t"
           >
-            <span class="material-symbols-outlined" style="font-size: 14px;">close</span>
+            <span class="material-symbols-outlined" style="font-size: 14px;" aria-hidden="true">close</span>
           </button>
         </div>
       </div>
@@ -46,7 +46,7 @@ import { ProjectDistribution } from '../analytics.models';
         <div *ngFor="let p of filteredProjects()" class="project-item clickable" (click)="projectClick.emit(p.projectId)" [title]="'projects.open_project' | t">
           <div class="project-info-row">
             <div class="project-name-group">
-              <span class="material-symbols-outlined" style="font-size: 18px;" [style.color]="getProgressColor(p.progressPercent)">folder</span>
+              <span class="material-symbols-outlined" style="font-size: 18px;" [style.color]="getProgressColor(p.progressPercent)" aria-hidden="true">folder</span>
               <span class="project-name">{{ p.projectName }}</span>
             </div>
             <div class="project-stats">
@@ -61,7 +61,7 @@ import { ProjectDistribution } from '../analytics.models';
       </div>
 
       <div *ngIf="filteredProjects().length === 0 && !loading && !error" class="empty-chart">
-        <span class="material-symbols-outlined" style="font-size: 32px; color: var(--text-light);">folder_open</span>
+        <span class="material-symbols-outlined" style="font-size: 32px; color: var(--text-light);" aria-hidden="true">folder_open</span>
         <p>{{ 'analytics.aktivnye_proekty_ne_naydeny' | t }}</p>
       </div>
     </div>

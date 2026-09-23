@@ -67,7 +67,7 @@ import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.m
               </td>
               <td>
                 <span class="project-tag" *ngIf="getProjectName(t.projectId) as pName">
-                  <span class="material-symbols-outlined folder-ico">folder</span>
+                  <span class="material-symbols-outlined folder-ico" aria-hidden="true">folder</span>
                   {{ pName }}
                 </span>
                 <span class="text-muted" *ngIf="!t.projectId">—</span>

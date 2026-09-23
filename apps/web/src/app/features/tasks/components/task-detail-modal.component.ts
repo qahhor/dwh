@@ -56,7 +56,7 @@ import { groupMembersByRole, GroupedTaskMembers } from '../tasks.models';
 
         <!-- Overdue Notice Banner -->
         <div class="overdue-banner" *ngIf="isOverdue(t.endTime, t.statusId)">
-          <span class="material-symbols-outlined">error</span>
+          <span class="material-symbols-outlined" aria-hidden="true">error</span>
           <span>{{ 'tasks.deadline_expired_at' | t:{date: (t.endTime | date:'dd.MM.yyyy HH:mm') || ''} }}</span>
         </div>
 
@@ -88,7 +88,7 @@ import { groupMembersByRole, GroupedTaskMembers } from '../tasks.models';
                   class="add-subtask-btn"
                   (click)="openAddSubtask.emit(t)"
                 >
-                  <span class="material-symbols-outlined">add</span>
+                  <span class="material-symbols-outlined" aria-hidden="true">add</span>
                   {{ 'tasks.dobavit_podzadachu' | t }}
                 </button>
               </div>
@@ -104,7 +104,7 @@ import { groupMembersByRole, GroupedTaskMembers } from '../tasks.models';
                   (click)="openTaskDetails.emit(sub)"
                 >
                   <span class="subtask-type" [style.color]="getTypeColor(sub)">
-                    <span class="material-symbols-outlined type-icon">{{ getTypeIcon(sub) }}</span>
+                    <span class="material-symbols-outlined type-icon" role="img" [attr.aria-label]="getTypeLabel(sub)">{{ getTypeIcon(sub) }}</span>
                   </span>
                   <span class="font-mono text-muted text-xs">#{{ sub.id }}</span>
                   <span class="subtask-title">{{ sub.title }}</span>
@@ -205,7 +205,7 @@ import { groupMembersByRole, GroupedTaskMembers } from '../tasks.models';
                 <span class="prop-k">{{ 'tasks.tip_zadachi' | t }}</span>
                 <div class="prop-v">
                   <span class="task-type-badge" [style.color]="getTypeColor(t)" [style.background-color]="getTypeBg(t)">
-                    <span class="material-symbols-outlined type-icon">{{ getTypeIcon(t) }}</span>
+                    <span class="material-symbols-outlined type-icon" aria-hidden="true">{{ getTypeIcon(t) }}</span>
                     {{ getTypeLabel(t) }}
                   </span>
                 </div>
@@ -255,7 +255,7 @@ import { groupMembersByRole, GroupedTaskMembers } from '../tasks.models';
               <!-- Responsible (R) -->
               <div class="member-role-group" *ngIf="groupedMembers.responsible as resp">
                 <div class="member-role-title">
-                  <span class="member-role-icon material-symbols-outlined">person</span>
+                  <span class="member-role-icon material-symbols-outlined" aria-hidden="true">person</span>
                   <span>{{ 'task.responsible' | t }}</span>
                 </div>
                 <div class="member-stack-item member-highlighted">
@@ -270,7 +270,7 @@ import { groupMembersByRole, GroupedTaskMembers } from '../tasks.models';
               <!-- Executors (E) -->
               <div class="member-role-group" *ngIf="groupedMembers.executors.length > 0">
                 <div class="member-role-title">
-                  <span class="member-role-icon material-symbols-outlined">group</span>
+                  <span class="member-role-icon material-symbols-outlined" aria-hidden="true">group</span>
                   <span>{{ 'tasks.soispolniteli' | t }} ({{ groupedMembers.executors.length }})</span>
                 </div>
                 <div class="members-stack">
@@ -287,7 +287,7 @@ import { groupMembersByRole, GroupedTaskMembers } from '../tasks.models';
               <!-- Observers (O) -->
               <div class="member-role-group" *ngIf="groupedMembers.observers.length > 0">
                 <div class="member-role-title">
-                  <span class="member-role-icon material-symbols-outlined">visibility</span>
+                  <span class="member-role-icon material-symbols-outlined" aria-hidden="true">visibility</span>
                   <span>{{ 'tasks.nablyudateli' | t }} ({{ groupedMembers.observers.length }})</span>
                 </div>
                 <div class="members-stack">
@@ -304,7 +304,7 @@ import { groupMembersByRole, GroupedTaskMembers } from '../tasks.models';
               <!-- Author (A) -->
               <div class="member-role-group member-author-group" *ngIf="groupedMembers.author as auth">
                 <div class="member-role-title">
-                  <span class="member-role-icon material-symbols-outlined">edit_note</span>
+                  <span class="member-role-icon material-symbols-outlined" aria-hidden="true">edit_note</span>
                   <span>{{ 'tasks.avtor' | t }}</span>
                 </div>
                 <div class="member-stack-item member-author">
@@ -316,7 +316,7 @@ import { groupMembersByRole, GroupedTaskMembers } from '../tasks.models';
               <!-- Others (if any) -->
               <div class="member-role-group" *ngIf="groupedMembers.others.length > 0">
                 <div class="member-role-title">
-                  <span class="member-role-icon material-symbols-outlined">person_outline</span>
+                  <span class="member-role-icon material-symbols-outlined" aria-hidden="true">person_outline</span>
                   <span>{{ 'tasks.uchastnik' | t }}</span>
                 </div>
                 <div class="members-stack">
@@ -345,7 +345,7 @@ import { groupMembersByRole, GroupedTaskMembers } from '../tasks.models';
               class="side-edit-btn"
               (click)="openEditModal.emit(t)"
             >
-              <span class="material-symbols-outlined">edit</span>
+              <span class="material-symbols-outlined" aria-hidden="true">edit</span>
               {{ 'tasks.redaktirovat_zadachu' | t }}
             </button>
           </div>

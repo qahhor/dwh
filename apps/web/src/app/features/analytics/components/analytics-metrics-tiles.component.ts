@@ -16,7 +16,7 @@ import { AnalyticsSummary } from '../analytics.models';
       <div class="tile">
         <div class="tile-header">
           <span class="tile-label">{{ 'analytics.vsego_zadach' | t }}</span>
-          <span class="material-symbols-outlined tile-ico" style="color: var(--primary);">task_alt</span>
+          <span class="material-symbols-outlined tile-ico" style="color: var(--primary);" aria-hidden="true">task_alt</span>
         </div>
         <div class="tile-value">{{ summary?.totalTasks || 0 }}</div>
         <div class="tile-meta">
@@ -30,7 +30,7 @@ import { AnalyticsSummary } from '../analytics.models';
       <div class="tile">
         <div class="tile-header">
           <span class="tile-label">{{ 'analytics.effektivnost_zakrytiya' | t }}</span>
-          <span class="material-symbols-outlined tile-ico" style="color: var(--success);">trending_up</span>
+          <span class="material-symbols-outlined tile-ico" style="color: var(--success);" aria-hidden="true">trending_up</span>
         </div>
         <div class="tile-value">{{ summary?.completionRatePercent || 0 }}%</div>
         <div class="tile-meta">
@@ -44,7 +44,7 @@ import { AnalyticsSummary } from '../analytics.models';
       <div class="tile" [class.tile-alarm]="(summary?.overdueTasks || 0) > 0">
         <div class="tile-header">
           <span class="tile-label">{{ 'analytics.prosrocheno_dedlaynov' | t }}</span>
-          <span class="material-symbols-outlined tile-ico" [style.color]="(summary?.overdueTasks || 0) > 0 ? 'var(--danger)' : 'var(--text-light)'">
+          <span class="material-symbols-outlined tile-ico" [style.color]="(summary?.overdueTasks || 0) > 0 ? 'var(--danger)' : 'var(--text-light)'" aria-hidden="true">
             {{ (summary?.overdueTasks || 0) > 0 ? 'warning' : 'verified' }}
           </span>
         </div>
@@ -61,7 +61,7 @@ import { AnalyticsSummary } from '../analytics.models';
       <div class="tile">
         <div class="tile-header">
           <span class="tile-label">{{ 'analytics.proekty_i_resursy' | t }}</span>
-          <span class="material-symbols-outlined tile-ico" style="color: var(--warning);">folder_special</span>
+          <span class="material-symbols-outlined tile-ico" style="color: var(--warning);" aria-hidden="true">folder_special</span>
         </div>
         <div class="tile-value">{{ summary?.activeProjectsCount || 0 }}</div>
         <div class="tile-meta">

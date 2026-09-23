@@ -1678,5 +1678,7 @@
   "iam.users.load_error": "Корбаронро бор кардан муяссар нашуд.",
   "iam.users.export_failed": "Содироти корбарон муяссар нашуд. Бори дигар кӯшиш кунед.",
   "iam.users.export_truncated": "{count} корбари аввал содир шуданд. Барои содироти боқимонда филтрҳоро дақиқ кунед.",
-  "iam.users.exporting": "Содирот…"
+  "iam.users.exporting": "Содирот…",
+  "common.requirement_met": "Иҷро шуд",
+  "common.requirement_not_met": "Иҷро нашуд"
 }

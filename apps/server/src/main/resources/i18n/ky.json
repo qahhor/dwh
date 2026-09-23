@@ -1678,5 +1678,7 @@
   "iam.users.load_error": "Колдонуучуларды жүктөө мүмкүн болгон жок.",
   "iam.users.export_failed": "Колдонуучуларды экспорттоо мүмкүн болгон жок. Кайра аракет кылыңыз.",
   "iam.users.export_truncated": "Алгачкы {count} колдонуучу экспорттолду. Калгандарын экспорттоо үчүн чыпкаларды тактаңыз.",
-  "iam.users.exporting": "Экспорттоо…"
+  "iam.users.exporting": "Экспорттоо…",
+  "common.requirement_met": "Аткарылды",
+  "common.requirement_not_met": "Аткарылган жок"
 }

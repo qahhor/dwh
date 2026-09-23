@@ -137,7 +137,7 @@ import { CustomField } from '../../../../core/models/custom-field.models';
                   [disabled]="u.login === 'admin' && role.pcode === 'admin'"
                 />
                 <span>{{ role.name }}</span>
-                <span *ngIf="u.login === 'admin' && role.pcode === 'admin'" class="material-symbols-outlined lock-ico" [title]="'iam.zaschischeno' | t">lock</span>
+                <span *ngIf="u.login === 'admin' && role.pcode === 'admin'" class="material-symbols-outlined lock-ico" role="img" [title]="'iam.zaschischeno' | t" [attr.aria-label]="'iam.zaschischeno' | t">lock</span>
               </label>
             </div>
           </div>

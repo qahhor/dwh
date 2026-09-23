@@ -106,6 +106,14 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Screen readers read icon glyphs aloud as English words, for example
+  "account_tree Оргструктура" for a profile tab, across 74 icons in 22
+  templates. Decorative icons are now hidden from assistive technology.
+  Icons that carry meaning say it instead: whether each password requirement
+  is met, the task type on kanban cards and subtasks, the protected admin
+  role, and the sort direction of the analytics workload table (as
+  `aria-sort` on its header). `npm run aria:audit` now fails on an icon that
+  is neither hidden nor named.
 - The user list named a manager only when the manager happened to be among
   the loaded rows, and showed `ID: #42` otherwise. The manager's record is
   now looked up once and remembered for the screen's lifetime.

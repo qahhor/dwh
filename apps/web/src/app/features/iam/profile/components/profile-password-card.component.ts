@@ -104,16 +104,19 @@ import { PasswordForm, PasswordStrength } from '../profile.models';
             </div>
             <div class="strength-checklist">
               <div class="check-item" [class.valid]="hasMinLength">
-                <span class="material-symbols-outlined check-icon">{{ hasMinLength ? 'check_circle' : 'radio_button_unchecked' }}</span>
+                <span class="material-symbols-outlined check-icon" aria-hidden="true">{{ hasMinLength ? 'check_circle' : 'radio_button_unchecked' }}</span>
                 <span>{{ 'iam.trebovanie_dlina' | t }}</span>
+                  <span class="sr-only">{{ (hasMinLength ? 'common.requirement_met' : 'common.requirement_not_met') | t }}</span>
               </div>
               <div class="check-item" [class.valid]="hasLettersAndNumbers">
-                <span class="material-symbols-outlined check-icon">{{ hasLettersAndNumbers ? 'check_circle' : 'radio_button_unchecked' }}</span>
+                <span class="material-symbols-outlined check-icon" aria-hidden="true">{{ hasLettersAndNumbers ? 'check_circle' : 'radio_button_unchecked' }}</span>
                 <span>{{ 'iam.trebovanie_bukvy_i_cifry' | t }}</span>
+                  <span class="sr-only">{{ (hasLettersAndNumbers ? 'common.requirement_met' : 'common.requirement_not_met') | t }}</span>
               </div>
               <div class="check-item" [class.valid]="hasMixedCase">
-                <span class="material-symbols-outlined check-icon">{{ hasMixedCase ? 'check_circle' : 'radio_button_unchecked' }}</span>
+                <span class="material-symbols-outlined check-icon" aria-hidden="true">{{ hasMixedCase ? 'check_circle' : 'radio_button_unchecked' }}</span>
                 <span>{{ 'iam.trebovanie_raznyy_registr' | t }}</span>
+                  <span class="sr-only">{{ (hasMixedCase ? 'common.requirement_met' : 'common.requirement_not_met') | t }}</span>
               </div>
             </div>
           </div>
@@ -147,11 +150,11 @@ import { PasswordForm, PasswordStrength } from '../profile.models';
           </div>
           <div class="password-match-hint" *ngIf="passwordForm.confirmPassword && passwordForm.newPassword">
             <span class="match-badge match-ok" *ngIf="passwordsMatch">
-              <span class="material-symbols-outlined match-icon">check</span>
+              <span class="material-symbols-outlined match-icon" aria-hidden="true">check</span>
               {{ 'iam.paroli_sovpadayut' | t }}
             </span>
             <span class="match-badge match-error" *ngIf="!passwordsMatch">
-              <span class="material-symbols-outlined match-icon">close</span>
+              <span class="material-symbols-outlined match-icon" aria-hidden="true">close</span>
               {{ 'iam.paroli_ne_sovpadayut' | t }}
             </span>
           </div>
