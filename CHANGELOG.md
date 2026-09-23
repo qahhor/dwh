@@ -240,4 +240,11 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Control Plane, fleet management, heartbeat, enrollment, and license gates.
 
+### Security
+
+- Pinned ClamAV to `clamav/clamav-debian:1.5.4` (Debian 13.7) by digest.
+  The previous pin, 1.5.3 on Debian 13.6, carried 44 HIGH/CRITICAL fixable
+  vulnerabilities (perl-base, openssl, util-linux, pcre2, sqlite and others),
+  which failed the runtime image gate and with it the end-to-end job.
+
 [Unreleased]: https://github.com/qahhor/dwh/commits/main
