@@ -111,22 +111,42 @@ async function cleanupApi<T>(page: Page, method: 'GET' | 'PUT', path: string, da
   throw new Error(`Cleanup ${method} ${path} exhausted its bounded rate-limit retries`);
 }
 
+const TERMINAL = /^(SUCCEEDED|FAILED|CANCELLED)$/u;
+/** A response whose body the browser no longer holds: DevTools cannot hand it to the test. */
+const BODY_UNAVAILABLE = /No data found for resource with given identifier|Response body is not available/u;
+
 async function terminalJobFromUi(page: Page, id: string, action: Job['action']): Promise<Job> {
   let latest: Job | undefined;
   let responseError: unknown;
+  let unreadablePoll = false;
   const observe = (response: Response) => {
     if (response.request().method() !== 'GET'
       || new URL(response.url()).pathname !== `/api/v1/search/jobs/${id}`
       || response.status() !== 200) return;
-    void response.json().then(value => latest = value as Job).catch(error => responseError = error);
+    void response.json().then(value => latest = value as Job).catch(error => {
+      // Chromium can drop a response body before the test reads it. That poll
+      // is not a result, so it is remembered rather than failing the job.
+      if (BODY_UNAVAILABLE.test(String(error))) unreadablePoll = true;
+      else responseError = error;
+    });
   };
   page.on('response', observe);
   try {
-    await expect.poll(() => {
+    await expect.poll(async () => {
       if (responseError) throw responseError;
+      if (latest && TERMINAL.test(latest.state)) return latest.state;
+      // The UI already shows the job finished, but the poll that told it could
+      // not be read: ask the server once for the same record.
+      // allTextContents does not wait, so the poll keeps its own pace.
+      const [shownText = ''] = await page.locator('.active-job strong').allTextContents();
+      const shown = shownText.trim().split(' · ');
+      if (unreadablePoll && shown[0] === action && TERMINAL.test(shown[1] ?? '')) {
+        latest = await cleanupApi<Job>(page, 'GET', `/search/jobs/${id}`);
+        return latest.state;
+      }
       return latest?.state ?? 'NOT_OBSERVED';
     }, { message: 'terminal state observed from the real UI poll stream', intervals: [250], timeout: 120_000 })
-      .toMatch(/^(SUCCEEDED|FAILED|CANCELLED)$/u);
+      .toMatch(TERMINAL);
   } finally {
     page.off('response', observe);
   }
