@@ -48,7 +48,7 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   table, the application's pagination and the shared pager. Loading is
   announced and shown as skeleton rows, a failure keeps the rows on screen
   with a retry of exactly the failed request, and a screen supplies its own
-  empty state. The audit change log is the first screen on it.
+  empty state. Both audit lists, the change log and security events, use it.
 - A vendored table that overflows sideways becomes a named, focusable
   region, so its hidden columns can be scrolled to without a pointer.
 - The design token audit also fails on arbitrary Tailwind colours

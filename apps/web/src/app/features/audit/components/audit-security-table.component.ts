@@ -1,9 +1,11 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, computed, EventEmitter, inject, Input, Output, Signal, TemplateRef, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
-import { UiPaginationComponent } from '../../../shared/ui/ui-pagination.component';
-import { TranslatePipe } from '../../../core/services/i18n.service';
+import { UiServerTableComponent } from '../../../shared/ui/ui-server-table.component';
+import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
+import { KeysetPager } from '../../../shared/paging/keyset-pager';
+import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
 import { SecurityEventRecord } from '../audit.models';
 
 @Component({
@@ -14,7 +16,7 @@ import { SecurityEventRecord } from '../audit.models';
     FormsModule,
     TranslatePipe,
     UiButtonComponent,
-    UiPaginationComponent
+    UiServerTableComponent
   ],
   template: `
     <div id="security-events-panel" class="tab-content" role="tabpanel" aria-labelledby="security-events-tab">
@@ -73,100 +75,53 @@ import { SecurityEventRecord } from '../audit.models';
         </div>
       </div>
 
-      <div id="security-load-error" class="inline-feedback" role="alert" *ngIf="securityError">
-        <span class="material-symbols-outlined" aria-hidden="true">error</span>
-        <span>{{ 'audit.load_security_error' | t }}</span>
-        <ui-button variant="secondary" size="sm" icon="refresh" (onClick)="retryLoad.emit()">
-          {{ 'audit.retry' | t }}
-        </ui-button>
+      <div class="table-container" role="region" [attr.aria-label]="'audit.tablica_sobytiy_bezopasnosti' | t" [attr.aria-busy]="pager.loading()">
+        <ui-server-table
+          [pager]="pager"
+          [config]="tableConfig()"
+          [loadingLabel]="'audit.loading_security' | t"
+          [errorLabel]="'audit.load_security_error' | t"
+          errorId="security-load-error"
+          [emptyTemplate]="emptyState()" />
       </div>
 
-      <!-- Security Events Table -->
-      <div class="table-container" role="region" [attr.aria-label]="'audit.tablica_sobytiy_bezopasnosti' | t" tabindex="0" [attr.aria-busy]="isLoading">
-        <table class="data-table" [attr.aria-label]="'audit.sobytiya_bezopasnosti' | t">
-          <thead>
-            <tr>
-              <th style="width: 70px;">ID</th>
-              <th>{{ 'audit.sobytie' | t }}</th>
-              <th>{{ 'audit.polzovatel' | t }}</th>
-              <th>{{ 'audit.ip_adres' | t }}</th>
-              <th>{{ 'audit.user_agent_ustroystvo' | t }}</th>
-              <th>{{ 'audit.data_i_vremya' | t }}</th>
-              <th style="width: 80px; text-align: right;">{{ 'audit.detali' | t }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngIf="isLoading && securityEvents.length === 0">
-              <td colspan="7" class="loading-state-cell" role="status">{{ 'audit.loading_security' | t }}</td>
-            </tr>
-            <tr *ngFor="let item of securityEvents">
-              <td class="tabular-nums font-mono text-muted">#{{ item.id }}</td>
-              <td>
-                <span class="sec-event-badge" [ngClass]="getSecurityEventBadgeClass(item.eventType)">
-                  <span class="material-symbols-outlined" aria-hidden="true">{{ getSecurityEventIcon(item.eventType) }}</span>
-                  {{ item.eventType }}
-                </span>
-              </td>
-              <td>
-                <div class="user-cell" *ngIf="item.userName">
-                  <span class="user-name">{{ item.userName }}</span>
-                  <span class="user-sub text-muted text-xs">&#64;{{ item.userLogin }}</span>
-                </div>
-                <span *ngIf="!item.userName" class="text-muted">{{ item.details['login'] || ('common.guest' | t) }}</span>
-              </td>
-              <td>
-                <span class="ip-pill font-mono">{{ item.ip }}</span>
-              </td>
-              <td>
-                <span class="ua-cell text-muted text-xs" [title]="item.userAgent || ''">
-                  {{ formatUserAgent(item.userAgent) }}
-                </span>
-              </td>
-              <td>
-                <span class="date-cell tabular-nums">{{ item.createdAt | date:'dd.MM.yyyy HH:mm:ss' }}</span>
-              </td>
-              <td style="text-align: right;">
-                <button type="button" class="diff-btn" [attr.aria-label]="'audit.view_security_event_number' | t:{id: item.id}" [title]="'audit.prosmotr_detaley' | t" (click)="selectEvent.emit(item)">
-                  <span class="material-symbols-outlined" aria-hidden="true">info</span>
-                </button>
-              </td>
-            </tr>
-
-            <tr *ngIf="securityEvents.length === 0 && !isLoading && !securityError">
-              <td colspan="7" class="empty-state-cell">
-                <div class="empty-state-box">
-                  <span class="material-symbols-outlined empty-icon" aria-hidden="true">verified_user</span>
-                  <h3>{{ 'audit.sobytiy_bezopasnosti_ne_naydeno' | t }}</h3>
-                  <p>{{ 'audit.vse_podozritelnye_sobytiya_i_vhody_fiksiruyutsya' | t }}</p>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <ui-pagination
-        *ngIf="securityTotal > 0"
-        [totalItems]="securityTotal"
-        [pageSize]="secPageSize"
-        [currentPage]="secCurrentPage"
-        [cursorMode]="true"
-        [hasNextPage]="securityHasMore"
-        (pageChange)="pageChange.emit($event)"
-        (pageSizeChange)="pageSizeChange.emit($event)"
-      ></ui-pagination>
+      <ng-template #idCell let-item><span class="tabular-nums font-mono text-muted">#{{ item.id }}</span></ng-template>
+      <ng-template #eventCell let-item>
+        <span class="sec-event-badge" [ngClass]="getSecurityEventBadgeClass(item.eventType)">
+          <span class="material-symbols-outlined" aria-hidden="true">{{ getSecurityEventIcon(item.eventType) }}</span>
+          {{ item.eventType }}
+        </span>
+      </ng-template>
+      <ng-template #userCell let-item>
+        <div class="user-cell" *ngIf="item.userName">
+          <span class="user-name">{{ item.userName }}</span>
+          <span class="user-sub text-muted text-xs">&#64;{{ item.userLogin }}</span>
+        </div>
+        <span *ngIf="!item.userName" class="text-muted">{{ item.details['login'] || ('common.guest' | t) }}</span>
+      </ng-template>
+      <ng-template #ipCell let-item><span class="ip-pill font-mono">{{ item.ip }}</span></ng-template>
+      <ng-template #agentCell let-item>
+        <span class="ua-cell text-muted text-xs" [title]="item.userAgent || ''">{{ formatUserAgent(item.userAgent) }}</span>
+      </ng-template>
+      <ng-template #dateCell let-item><span class="date-cell tabular-nums">{{ item.createdAt | date:'dd.MM.yyyy HH:mm:ss' }}</span></ng-template>
+      <ng-template #detailsCell let-item>
+        <button type="button" class="diff-btn" [attr.aria-label]="'audit.view_security_event_number' | t:{id: item.id}" [title]="'audit.prosmotr_detaley' | t" (click)="selectEvent.emit(item)">
+          <span class="material-symbols-outlined" aria-hidden="true">info</span>
+        </button>
+      </ng-template>
+      <ng-template #emptyStateTpl>
+        <div class="empty-state-box">
+          <span class="material-symbols-outlined empty-icon" aria-hidden="true">verified_user</span>
+          <h3>{{ 'audit.sobytiy_bezopasnosti_ne_naydeno' | t }}</h3>
+          <p>{{ 'audit.vse_podozritelnye_sobytiya_i_vhody_fiksiruyutsya' | t }}</p>
+        </div>
+      </ng-template>
     </div>
   `,
   styleUrl: './audit-security-table.component.css'
 })
 export class AuditSecurityTableComponent {
-  @Input() securityEvents: SecurityEventRecord[] = [];
-  @Input() securityTotal = 0;
-  @Input() securityHasMore = false;
-  @Input() secPageSize = 20;
-  @Input() secCurrentPage = 1;
-  @Input() isLoading = false;
-  @Input() securityError = false;
+  @Input({ required: true }) pager!: KeysetPager<SecurityEventRecord>;
 
   @Input() secEventTypeFilter = '';
   @Input() secIpFilter = '';
@@ -182,10 +137,39 @@ export class AuditSecurityTableComponent {
 
   @Output() applyFilters = new EventEmitter<void>();
   @Output() resetFilters = new EventEmitter<void>();
-  @Output() retryLoad = new EventEmitter<void>();
   @Output() selectEvent = new EventEmitter<SecurityEventRecord>();
-  @Output() pageChange = new EventEmitter<number>();
-  @Output() pageSizeChange = new EventEmitter<number>();
+
+  private readonly i18n = inject(I18nService);
+  private readonly idCell = viewChild.required<TemplateRef<unknown>>('idCell');
+  private readonly eventCell = viewChild.required<TemplateRef<unknown>>('eventCell');
+  private readonly userCell = viewChild.required<TemplateRef<unknown>>('userCell');
+  private readonly ipCell = viewChild.required<TemplateRef<unknown>>('ipCell');
+  private readonly agentCell = viewChild.required<TemplateRef<unknown>>('agentCell');
+  private readonly dateCell = viewChild.required<TemplateRef<unknown>>('dateCell');
+  private readonly detailsCell = viewChild.required<TemplateRef<unknown>>('detailsCell');
+  readonly emptyState = viewChild.required<TemplateRef<unknown>>('emptyStateTpl');
+
+  readonly tableConfig = computed<TableConfig<SecurityEventRecord>>(() => {
+    const header = (value: string) => ({ type: 'primitive' as const, value });
+    const cell = (template: Signal<TemplateRef<unknown>>) => ({ type: 'templateRef' as const, value: template });
+    // Every row is its own grid, so tracks are fixed or shares of the width, never content-sized.
+    const share = 'max(140px, calc((100% - 680px) / 2))';
+    return {
+      trackBy: (_index, item) => item.id,
+      layout: 'fit',
+      ariaLabel: this.i18n.translate('audit.sobytiya_bezopasnosti'),
+      columnsOrder: ['id', 'event', 'user', 'ip', 'agent', 'date', 'details'],
+      columns: {
+        id: { header: header('ID'), content: cell(this.idCell), width: '90px' },
+        event: { header: header(this.i18n.translate('audit.sobytie')), content: cell(this.eventCell), width: '190px' },
+        user: { header: header(this.i18n.translate('audit.polzovatel')), content: cell(this.userCell), width: share },
+        ip: { header: header(this.i18n.translate('audit.ip_adres')), content: cell(this.ipCell), width: '140px' },
+        agent: { header: header(this.i18n.translate('audit.user_agent_ustroystvo')), content: cell(this.agentCell), width: share },
+        date: { header: header(this.i18n.translate('audit.data_i_vremya')), content: cell(this.dateCell), width: '160px' },
+        details: { header: header(this.i18n.translate('audit.detali')), content: cell(this.detailsCell), width: '100px', align: 'right' },
+      },
+    };
+  });
 
   getSecurityEventBadgeClass(type: string): string {
     if (type.includes('SUCCESS')) return 'success';

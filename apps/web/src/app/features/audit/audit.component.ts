@@ -109,13 +109,7 @@ export * from './audit.models';
       <!-- TAB 2: SECURITY EVENTS -->
       <app-audit-security-table
         *ngIf="activeTab === 'security'"
-        [securityEvents]="securityEvents()"
-        [securityTotal]="securityTotal()"
-        [securityHasMore]="securityHasMore()"
-        [secPageSize]="secPageSize"
-        [secCurrentPage]="secCurrentPage"
-        [isLoading]="securityPager.loading()"
-        [securityError]="securityError()"
+        [pager]="securityPager"
         [secEventTypeFilter]="secEventTypeFilter"
         [secIpFilter]="secIpFilter"
         [securityUserFilter]="securityUserFilter"
@@ -128,10 +122,7 @@ export * from './audit.models';
         (securityToFilterChange)="securityToFilter = $event"
         (applyFilters)="loadSecurityEvents(true)"
         (resetFilters)="resetSecurityFilters()"
-        (retryLoad)="securityPager.retry()"
         (selectEvent)="selectSecurityEvent($event)"
-        (pageChange)="onSecurityPageChange($event)"
-        (pageSizeChange)="onSecurityPageSizeChange($event)"
       ></app-audit-security-table>
 
       <!-- MODALS -->
