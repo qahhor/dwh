@@ -21,11 +21,13 @@ interface Attempt {
 
 export type KeysetFailure = 'page' | 'more';
 
-export interface KeysetPagerOptions {
+export interface KeysetPagerOptions<T = unknown> {
   pageSize?: number;
   destroyRef?: DestroyRef;
   /** Called when a request fails, after `failed` or `loadMoreFailed` is set. */
   onError?: (failure: KeysetFailure) => void;
+  /** Called with each page that lands, for screens that merge rows into their own list. */
+  onLoaded?: (rows: T[], append: boolean) => void;
 }
 
 /**
@@ -72,7 +74,7 @@ export class KeysetPager<T> {
   /** `null` cancels whatever is in flight without asking for anything new. */
   private readonly requests = new Subject<Attempt | null>();
 
-  constructor(fetch: KeysetFetch<T>, options: KeysetPagerOptions = {}) {
+  constructor(fetch: KeysetFetch<T>, options: KeysetPagerOptions<T> = {}) {
     if (options.pageSize) this.pageSize.set(options.pageSize);
     const subscription = this.requests
       .pipe(
@@ -105,8 +107,16 @@ export class KeysetPager<T> {
         this.nextCursor.set(response.nextCursor ?? null);
         this.hasMore.set(Boolean(response.hasMore));
         this.total.set(response.totalEstimated ?? 0);
+        options.onLoaded?.(rows, attempt.append);
       });
     options.destroyRef?.onDestroy(() => subscription.unsubscribe());
+  }
+
+  /** Drop the answer in flight and stop loading, as when the screen goes away. */
+  cancel(): void {
+    this.requests.next(null);
+    this.loading.set(false);
+    this.loadingMore.set(false);
   }
 
   /** Back to page one, as after a filter change. */
@@ -128,11 +138,14 @@ export class KeysetPager<T> {
 
   /**
    * The results are about to change (the user is still typing a search):
-   * drop the answer in flight and show the list as busy until the next
-   * request is made.
+   * drop the answer in flight, forget the old query's next cursor, and show
+   * the list as busy until the next request is made.
    */
   invalidate(): void {
     this.requests.next(null);
+    // The cursor belongs to the old query; continuing it would mix results.
+    this.nextCursor.set(null);
+    this.hasMore.set(false);
     this.loadingMore.set(false);
     this.failed.set(false);
     this.loading.set(true);

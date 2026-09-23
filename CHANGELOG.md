@@ -45,6 +45,12 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   they are checked, Space or Enter toggles one, and the checkboxes are a
   pointer affordance rather than extra Tab stops. The old nested-list tree
   component is removed.
+- The task form's four lookups (parent task, responsible, executors,
+  observers) share one searchable lookup built on the keyset pager instead
+  of four copies of the same request bookkeeping. Their behaviour is pinned
+  by new tests written before the change: the typing pause, the latest
+  search winning, load more, selected entries kept across searches, retry
+  of the failed request, and cancellation when the screen goes away.
 - The localization audit reads every source file, not only component
   classes: external templates and services are checked too, 273 more
   referenced keys in all. Cyrillic outside the catalog fails it, except in

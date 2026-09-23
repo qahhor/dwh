@@ -152,4 +152,12 @@ describe('KeysetPager', () => {
     pending.next(page([1], null));
     expect([[...pager.items()], pager.loading()]).toEqual([[], true]);
   });
+
+  it('forgets the old query\'s next page on invalidate', () => {
+    const pager = new KeysetPager<number>(server());
+    pager.first();
+    expect(pager.canGoForward()).toBe(true);
+    pager.invalidate();
+    expect([pager.canGoForward(), pager.hasMore()]).toEqual([false, false]);
+  });
 });

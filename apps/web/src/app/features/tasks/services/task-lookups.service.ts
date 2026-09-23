@@ -1,11 +1,71 @@
-import { Injectable, inject, signal } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { Observable } from 'rxjs';
 import { ApiService } from '../../../core/services/api.service';
 import { Task, TaskMember } from '../../../core/models/task.models';
 import { User } from '../../../core/models/auth.models';
 import { KeysetPage } from '../../../core/models/common.models';
 import { SelectOption } from '../../../shared/ui/ui-searchable-select.component';
+import { KeysetPager } from '../../../shared/paging/keyset-pager';
 import { mergeOptions, mergeUserResults } from '../tasks.models';
+
+const SEARCH_DELAY_MS = 300;
+const LOOKUP_PAGE_SIZE = 50;
+
+/**
+ * One searchable, growing lookup list over a keyset endpoint. The pager
+ * cancels a superseded request and appends "load more" pages; the channel
+ * adds the typing pause and remembers who is selected, so the owner can keep
+ * selected entries in the list whatever the search returns.
+ */
+class LookupChannel<T, S> {
+  private query = '';
+  private timer?: ReturnType<typeof setTimeout>;
+  private selected: () => S;
+  private readonly pager: KeysetPager<T>;
+
+  readonly loading: ReturnType<typeof computed<boolean>>;
+  readonly error: ReturnType<typeof computed<boolean>>;
+  readonly hasMore: ReturnType<typeof computed<boolean>>;
+
+  constructor(
+    fetch: (query: string, cursor: string | null) => Observable<KeysetPage<T>>,
+    apply: (rows: T[], append: boolean, selected: S) => void,
+    noSelection: S
+  ) {
+    this.selected = () => noSelection;
+    this.pager = new KeysetPager<T>(cursor => fetch(this.query, cursor), {
+      pageSize: LOOKUP_PAGE_SIZE,
+      onLoaded: (rows, append) => apply(rows, append, this.selected()),
+    });
+    this.loading = computed(() => this.pager.loading() || this.pager.loadingMore());
+    this.error = computed(() => this.pager.failed() || this.pager.loadMoreFailed());
+    this.hasMore = this.pager.canGoForward;
+  }
+
+  search(query: string, selected: () => S): void {
+    this.query = query.trim();
+    this.selected = selected;
+    clearTimeout(this.timer);
+    this.pager.invalidate();
+    this.timer = setTimeout(() => this.pager.first(), SEARCH_DELAY_MS);
+  }
+
+  load(reset: boolean, selected: () => S): void {
+    this.selected = selected;
+    if (reset) this.pager.first();
+    else this.pager.loadMore();
+  }
+
+  retry(selected: () => S): void {
+    this.selected = selected;
+    this.pager.retry();
+  }
+
+  cancel(): void {
+    clearTimeout(this.timer);
+    this.pager.cancel();
+  }
+}
 
 @Injectable({
   providedIn: 'root'
@@ -17,52 +77,6 @@ export class TaskLookupsService {
   readonly responsibleUsers = signal<User[]>([]);
   readonly executorUsers = signal<User[]>([]);
   readonly observerUsers = signal<User[]>([]);
-
-  readonly parentLookupLoading = signal(false);
-  readonly parentLookupError = signal(false);
-  readonly parentLookupHasMore = signal(false);
-
-  readonly responsibleLookupLoading = signal(false);
-  readonly responsibleLookupError = signal(false);
-  readonly responsibleLookupHasMore = signal(false);
-
-  readonly executorLookupLoading = signal(false);
-  readonly executorLookupError = signal(false);
-  readonly executorLookupHasMore = signal(false);
-
-  readonly observerLookupLoading = signal(false);
-  readonly observerLookupError = signal(false);
-  readonly observerLookupHasMore = signal(false);
-
-  private parentLookupRequest?: Subscription;
-  private responsibleLookupRequest?: Subscription;
-  private executorLookupRequest?: Subscription;
-  private observerLookupRequest?: Subscription;
-
-  private parentLookupRequestId = 0;
-  private responsibleLookupRequestId = 0;
-  private executorLookupRequestId = 0;
-  private observerLookupRequestId = 0;
-
-  private parentSearchTimer?: ReturnType<typeof setTimeout>;
-  private responsibleSearchTimer?: ReturnType<typeof setTimeout>;
-  private executorSearchTimer?: ReturnType<typeof setTimeout>;
-  private observerSearchTimer?: ReturnType<typeof setTimeout>;
-
-  private parentLookupQuery = '';
-  private responsibleLookupQuery = '';
-  private executorLookupQuery = '';
-  private observerLookupQuery = '';
-
-  private parentLookupCursor: string | null = null;
-  private responsibleLookupCursor: string | null = null;
-  private executorLookupCursor: string | null = null;
-  private observerLookupCursor: string | null = null;
-
-  private parentLastReset = true;
-  private responsibleLastReset = true;
-  private executorLastReset = true;
-  private observerLastReset = true;
 
   readonly retainedParentOptions = new Map<number, SelectOption>();
   readonly retainedUsers = new Map<number, User>();
@@ -110,246 +124,66 @@ export class TaskLookupsService {
     this.observerUsers.set(mergeUserResults(this.observerUsers(), [], observerIds, this.retainedUsers));
   }
 
-  onParentSearch(query: string, getSelectedParentId: () => number | null): void {
-    this.parentLookupQuery = query.trim();
-    clearTimeout(this.parentSearchTimer);
-    this.parentLookupRequestId++;
-    this.parentLookupRequest?.unsubscribe();
-    this.parentLookupCursor = null;
-    this.parentLookupHasMore.set(false);
-    this.parentLookupLoading.set(true);
-    this.parentLookupError.set(false);
-    this.parentSearchTimer = setTimeout(() => this.loadParentTasks(true, getSelectedParentId), 300);
+  private readonly parents = new LookupChannel<Task, number | null>(
+    (search, cursor) => this.api.get<KeysetPage<Task>>('/tasks', { limit: LOOKUP_PAGE_SIZE, cursor: cursor ?? undefined, search: search || undefined }),
+    (items, append, selectedId) => {
+      const incoming = items.map(item => {
+        const option = { id: item.id, label: `#${item.id} ${item.title}`, icon: 'task_alt' };
+        this.retainedParentOptions.set(item.id, option);
+        return option;
+      });
+      const retained = selectedId == null ? [] : [this.retainedParentOptions.get(selectedId)].filter((item): item is SelectOption => !!item);
+      this.parentTaskOptions.set(mergeOptions(append ? this.parentTaskOptions() : retained, incoming));
+    },
+    null
+  );
+  private readonly responsible = this.userChannel<number | null>(this.responsibleUsers, id => (id == null ? [] : [id]), null);
+  private readonly executors = this.userChannel<number[]>(this.executorUsers, ids => ids, []);
+  private readonly observers = this.userChannel<number[]>(this.observerUsers, ids => ids, []);
+
+  readonly parentLookupLoading = this.parents.loading;
+  readonly parentLookupError = this.parents.error;
+  readonly parentLookupHasMore = this.parents.hasMore;
+  readonly responsibleLookupLoading = this.responsible.loading;
+  readonly responsibleLookupError = this.responsible.error;
+  readonly responsibleLookupHasMore = this.responsible.hasMore;
+  readonly executorLookupLoading = this.executors.loading;
+  readonly executorLookupError = this.executors.error;
+  readonly executorLookupHasMore = this.executors.hasMore;
+  readonly observerLookupLoading = this.observers.loading;
+  readonly observerLookupError = this.observers.error;
+  readonly observerLookupHasMore = this.observers.hasMore;
+
+  /** Active users, with the selected ones always kept in the list. */
+  private userChannel<S>(list: ReturnType<typeof signal<User[]>>, selectedIds: (selected: S) => number[], none: S) {
+    return new LookupChannel<User, S>(
+      (search, cursor) => this.api.get<KeysetPage<User>>('/iam/users', { limit: LOOKUP_PAGE_SIZE, cursor: cursor ?? undefined, search: search || undefined, state: 'A' }),
+      (items, append, selected) => list.set(mergeUserResults(append ? list() : [], items, selectedIds(selected), this.retainedUsers)),
+      none
+    );
   }
 
-  loadMoreParents(getSelectedParentId: () => number | null): void {
-    if (this.parentLookupCursor && !this.parentLookupLoading()) {
-      this.loadParentTasks(false, getSelectedParentId);
-    }
-  }
+  onParentSearch(query: string, getSelectedParentId: () => number | null): void { this.parents.search(query, getSelectedParentId); }
+  loadMoreParents(getSelectedParentId: () => number | null): void { this.parents.load(false, getSelectedParentId); }
+  retryParentLookup(getSelectedParentId: () => number | null): void { this.parents.retry(getSelectedParentId); }
+  loadParentTasks(reset: boolean, getSelectedParentId: () => number | null): void { this.parents.load(reset, getSelectedParentId); }
 
-  retryParentLookup(getSelectedParentId: () => number | null): void {
-    this.loadParentTasks(this.parentLastReset, getSelectedParentId);
-  }
+  onResponsibleSearch(query: string, getSelectedUserId: () => number | null): void { this.responsible.search(query, getSelectedUserId); }
+  loadMoreResponsibleUsers(getSelectedUserId: () => number | null): void { this.responsible.load(false, getSelectedUserId); }
+  retryResponsibleLookup(getSelectedUserId: () => number | null): void { this.responsible.retry(getSelectedUserId); }
+  loadResponsibleUsers(reset: boolean, getSelectedUserId: () => number | null): void { this.responsible.load(reset, getSelectedUserId); }
 
-  loadParentTasks(reset: boolean, getSelectedParentId: () => number | null): void {
-    this.parentLastReset = reset;
-    if (reset) this.parentLookupCursor = null;
-    const requestId = ++this.parentLookupRequestId;
-    this.parentLookupRequest?.unsubscribe();
-    this.parentLookupLoading.set(true);
-    this.parentLookupError.set(false);
+  onExecutorSearch(query: string, getSelectedExecutorIds: () => number[]): void { this.executors.search(query, getSelectedExecutorIds); }
+  loadMoreExecutors(getSelectedExecutorIds: () => number[]): void { this.executors.load(false, getSelectedExecutorIds); }
+  retryExecutorLookup(getSelectedExecutorIds: () => number[]): void { this.executors.retry(getSelectedExecutorIds); }
+  loadExecutorUsers(reset: boolean, getSelectedExecutorIds: () => number[]): void { this.executors.load(reset, getSelectedExecutorIds); }
 
-    this.parentLookupRequest = this.api.get<KeysetPage<Task>>('/tasks', {
-      limit: 50,
-      cursor: this.parentLookupCursor || undefined,
-      search: this.parentLookupQuery || undefined
-    }).subscribe({
-      next: page => {
-        if (requestId !== this.parentLookupRequestId) return;
-        const incoming = (page.items || []).map(item => {
-          const option = { id: item.id, label: `#${item.id} ${item.title}`, icon: 'task_alt' };
-          this.retainedParentOptions.set(item.id, option);
-          return option;
-        });
-        const selectedId = getSelectedParentId();
-        const retained = selectedId == null ? [] : [this.retainedParentOptions.get(selectedId)].filter((item): item is SelectOption => !!item);
-        this.parentTaskOptions.set(mergeOptions(reset ? retained : this.parentTaskOptions(), incoming));
-        this.parentLookupCursor = page.nextCursor;
-        this.parentLookupHasMore.set(page.hasMore);
-        this.parentLookupLoading.set(false);
-      },
-      error: () => {
-        if (requestId !== this.parentLookupRequestId) return;
-        this.parentLookupLoading.set(false);
-        this.parentLookupError.set(true);
-      }
-    });
-  }
-
-  onResponsibleSearch(query: string, getSelectedUserId: () => number | null): void {
-    this.responsibleLookupQuery = query.trim();
-    clearTimeout(this.responsibleSearchTimer);
-    this.responsibleLookupRequestId++;
-    this.responsibleLookupRequest?.unsubscribe();
-    this.responsibleLookupCursor = null;
-    this.responsibleLookupHasMore.set(false);
-    this.responsibleLookupLoading.set(true);
-    this.responsibleLookupError.set(false);
-    this.responsibleSearchTimer = setTimeout(() => this.loadResponsibleUsers(true, getSelectedUserId), 300);
-  }
-
-  loadMoreResponsibleUsers(getSelectedUserId: () => number | null): void {
-    if (this.responsibleLookupCursor && !this.responsibleLookupLoading()) {
-      this.loadResponsibleUsers(false, getSelectedUserId);
-    }
-  }
-
-  retryResponsibleLookup(getSelectedUserId: () => number | null): void {
-    this.loadResponsibleUsers(this.responsibleLastReset, getSelectedUserId);
-  }
-
-  loadResponsibleUsers(reset: boolean, getSelectedUserId: () => number | null): void {
-    this.responsibleLastReset = reset;
-    if (reset) this.responsibleLookupCursor = null;
-    const requestId = ++this.responsibleLookupRequestId;
-    this.responsibleLookupRequest?.unsubscribe();
-    this.responsibleLookupLoading.set(true);
-    this.responsibleLookupError.set(false);
-
-    this.responsibleLookupRequest = this.api.get<KeysetPage<User>>('/iam/users', {
-      limit: 50,
-      cursor: this.responsibleLookupCursor || undefined,
-      search: this.responsibleLookupQuery || undefined,
-      state: 'A'
-    }).subscribe({
-      next: page => {
-        if (requestId !== this.responsibleLookupRequestId) return;
-        const selectedId = getSelectedUserId();
-        this.responsibleUsers.set(mergeUserResults(
-          reset ? [] : this.responsibleUsers(),
-          page.items || [],
-          selectedId == null ? [] : [selectedId],
-          this.retainedUsers
-        ));
-        this.responsibleLookupCursor = page.nextCursor;
-        this.responsibleLookupHasMore.set(page.hasMore);
-        this.responsibleLookupLoading.set(false);
-      },
-      error: () => {
-        if (requestId !== this.responsibleLookupRequestId) return;
-        this.responsibleLookupLoading.set(false);
-        this.responsibleLookupError.set(true);
-      }
-    });
-  }
-
-  onExecutorSearch(query: string, getSelectedExecutorIds: () => number[]): void {
-    this.executorLookupQuery = query.trim();
-    clearTimeout(this.executorSearchTimer);
-    this.executorLookupRequestId++;
-    this.executorLookupRequest?.unsubscribe();
-    this.executorLookupCursor = null;
-    this.executorLookupHasMore.set(false);
-    this.executorLookupLoading.set(true);
-    this.executorLookupError.set(false);
-    this.executorSearchTimer = setTimeout(() => this.loadExecutorUsers(true, getSelectedExecutorIds), 300);
-  }
-
-  loadMoreExecutors(getSelectedExecutorIds: () => number[]): void {
-    if (this.executorLookupCursor && !this.executorLookupLoading()) {
-      this.loadExecutorUsers(false, getSelectedExecutorIds);
-    }
-  }
-
-  retryExecutorLookup(getSelectedExecutorIds: () => number[]): void {
-    this.loadExecutorUsers(this.executorLastReset, getSelectedExecutorIds);
-  }
-
-  loadExecutorUsers(reset: boolean, getSelectedExecutorIds: () => number[]): void {
-    this.executorLastReset = reset;
-    if (reset) this.executorLookupCursor = null;
-    const requestId = ++this.executorLookupRequestId;
-    this.executorLookupRequest?.unsubscribe();
-    this.executorLookupLoading.set(true);
-    this.executorLookupError.set(false);
-
-    this.executorLookupRequest = this.api.get<KeysetPage<User>>('/iam/users', {
-      limit: 50,
-      cursor: this.executorLookupCursor || undefined,
-      search: this.executorLookupQuery || undefined,
-      state: 'A'
-    }).subscribe({
-      next: page => {
-        if (requestId !== this.executorLookupRequestId) return;
-        const selectedIds = getSelectedExecutorIds();
-        this.executorUsers.set(mergeUserResults(
-          reset ? [] : this.executorUsers(),
-          page.items || [],
-          selectedIds,
-          this.retainedUsers
-        ));
-        this.executorLookupCursor = page.nextCursor;
-        this.executorLookupHasMore.set(page.hasMore);
-        this.executorLookupLoading.set(false);
-      },
-      error: () => {
-        if (requestId !== this.executorLookupRequestId) return;
-        this.executorLookupLoading.set(false);
-        this.executorLookupError.set(true);
-      }
-    });
-  }
-
-  onObserverSearch(query: string, getSelectedObserverIds: () => number[]): void {
-    this.observerLookupQuery = query.trim();
-    clearTimeout(this.observerSearchTimer);
-    this.observerLookupRequestId++;
-    this.observerLookupRequest?.unsubscribe();
-    this.observerLookupCursor = null;
-    this.observerLookupHasMore.set(false);
-    this.observerLookupLoading.set(true);
-    this.observerLookupError.set(false);
-    this.observerSearchTimer = setTimeout(() => this.loadObserverUsers(true, getSelectedObserverIds), 300);
-  }
-
-  loadMoreObservers(getSelectedObserverIds: () => number[]): void {
-    if (this.observerLookupCursor && !this.observerLookupLoading()) {
-      this.loadObserverUsers(false, getSelectedObserverIds);
-    }
-  }
-
-  retryObserverLookup(getSelectedObserverIds: () => number[]): void {
-    this.loadObserverUsers(this.observerLastReset, getSelectedObserverIds);
-  }
-
-  loadObserverUsers(reset: boolean, getSelectedObserverIds: () => number[]): void {
-    this.observerLastReset = reset;
-    if (reset) this.observerLookupCursor = null;
-    const requestId = ++this.observerLookupRequestId;
-    this.observerLookupRequest?.unsubscribe();
-    this.observerLookupLoading.set(true);
-    this.observerLookupError.set(false);
-
-    this.observerLookupRequest = this.api.get<KeysetPage<User>>('/iam/users', {
-      limit: 50,
-      cursor: this.observerLookupCursor || undefined,
-      search: this.observerLookupQuery || undefined,
-      state: 'A'
-    }).subscribe({
-      next: page => {
-        if (requestId !== this.observerLookupRequestId) return;
-        const selectedIds = getSelectedObserverIds();
-        this.observerUsers.set(mergeUserResults(
-          reset ? [] : this.observerUsers(),
-          page.items || [],
-          selectedIds,
-          this.retainedUsers
-        ));
-        this.observerLookupCursor = page.nextCursor;
-        this.observerLookupHasMore.set(page.hasMore);
-        this.observerLookupLoading.set(false);
-      },
-      error: () => {
-        if (requestId !== this.observerLookupRequestId) return;
-        this.observerLookupLoading.set(false);
-        this.observerLookupError.set(true);
-      }
-    });
-  }
+  onObserverSearch(query: string, getSelectedObserverIds: () => number[]): void { this.observers.search(query, getSelectedObserverIds); }
+  loadMoreObservers(getSelectedObserverIds: () => number[]): void { this.observers.load(false, getSelectedObserverIds); }
+  retryObserverLookup(getSelectedObserverIds: () => number[]): void { this.observers.retry(getSelectedObserverIds); }
+  loadObserverUsers(reset: boolean, getSelectedObserverIds: () => number[]): void { this.observers.load(reset, getSelectedObserverIds); }
 
   cleanup(): void {
-    this.parentLookupRequestId++;
-    this.responsibleLookupRequestId++;
-    this.executorLookupRequestId++;
-    this.observerLookupRequestId++;
-    clearTimeout(this.parentSearchTimer);
-    clearTimeout(this.responsibleSearchTimer);
-    clearTimeout(this.executorSearchTimer);
-    clearTimeout(this.observerSearchTimer);
-    this.parentLookupRequest?.unsubscribe();
-    this.responsibleLookupRequest?.unsubscribe();
-    this.executorLookupRequest?.unsubscribe();
-    this.observerLookupRequest?.unsubscribe();
+    for (const channel of [this.parents, this.responsible, this.executors, this.observers]) channel.cancel();
   }
 }
