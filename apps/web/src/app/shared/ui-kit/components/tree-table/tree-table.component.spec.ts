@@ -145,6 +145,22 @@ describe('smt-tree-table', () => {
     expect(shown(fixture)).toEqual(['1', '2', '5']);
   });
 
+  it('leaves the user\'s own tree alone when Right is pressed on a match during a search', async () => {
+    const fixture = await render();
+    await press(fixture, '2', 'ArrowLeft');
+    fixture.componentInstance.search.set('north');
+    await settle(fixture);
+    expect(shown(fixture)).toEqual(['1', '2']);
+
+    await press(fixture, '2', 'ArrowRight');
+    expect(shown(fixture)).toEqual(['1', '2']);
+
+    fixture.componentInstance.search.set('');
+    await settle(fixture);
+    // North is still the branch the user closed before searching.
+    expect(shown(fixture)).toEqual(['1', '2', '5']);
+  });
+
   it('expands and collapses everything from the toolbar', async () => {
     const fixture = await render();
     const [expandAll, collapseAll] = [...(fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>(':scope smt-tree-table > div button')];

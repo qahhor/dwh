@@ -51,6 +51,7 @@ x-server-environment: &server-environment
   DWH_TYPESENSE_URL: http://typesense:8108
   DWH_TYPESENSE_API_KEY: ${TYPESENSE_API_KEY:-smartupcms_typesense_local_dev}
   DWH_TYPESENSE_ENABLED: ${DWH_TYPESENSE_ENABLED:-true}
+  DWH_RATE_LIMIT_USER_PER_MINUTE: ${DWH_RATE_LIMIT_USER_PER_MINUTE:-600}
   MANAGEMENT_PORT: 9090
   TZ: UTC
 

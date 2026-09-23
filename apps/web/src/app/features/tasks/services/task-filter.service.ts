@@ -59,7 +59,7 @@ export class TaskFilterService {
     onReload();
   }
 
-  buildListParams(cursor: string | null): Record<string, unknown> {
+  buildListParams(cursor: string | null, limit: number = this.pageSize): Record<string, unknown> {
     let statusIdParam: number | undefined = undefined;
     let hideTerminalParam: boolean | undefined = undefined;
 
@@ -93,7 +93,7 @@ export class TaskFilterService {
     }
 
     return {
-      limit: 50,
+      limit,
       cursor: cursor || undefined,
       search: this.searchQuery || undefined,
       priority: this.selectedPriority || undefined,

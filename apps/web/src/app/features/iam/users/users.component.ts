@@ -107,8 +107,6 @@ export class UsersComponent implements OnInit, OnDestroy {
     onLoaded: rows => {
       this.directory.remember(rows);
       this.directory.resolve(rows.map(user => user.managerId));
-      // The last row of the last page was deleted or filtered away: show the page before it.
-      if (rows.length === 0 && this.userPager.page() > 1) this.userPager.previous();
     }
   });
   readonly users = this.userPager.items;
@@ -301,6 +299,9 @@ export class UsersComponent implements OnInit, OnDestroy {
   setStateFilter(state: string) { this.filterService.setStateFilter(state, () => this.loadUsers(true)); }
   onSearchInput() {
     clearTimeout(this.searchDebounceTimer);
+    // The search text has already changed: an answer or a next page of the
+    // old query must not land (or page) under it while the user types.
+    this.userPager.invalidate();
     this.searchDebounceTimer = setTimeout(() => this.loadUsers(true), 250);
   }
   clearSearch() { this.searchQuery = ''; this.loadUsers(true); }

@@ -17,6 +17,8 @@ interface Attempt {
   readonly cursor: string | null;
   /** Add to the rows on screen ("load more") instead of replacing them. */
   readonly append: boolean;
+  /** The page on screen asked for again (reload), rather than a page moved to. */
+  readonly revisit?: boolean;
 }
 
 export type KeysetFailure = 'page' | 'more';
@@ -65,8 +67,14 @@ export class KeysetPager<T> {
   readonly loadMoreFailed = signal(false);
 
   private readonly nextCursor = signal<string | null>(null);
-  readonly canGoBack = computed(() => this.page() > 1);
-  readonly canGoForward = computed(() => this.hasMore() && this.nextCursor() !== null);
+  /*
+   * Neither direction is open while the last request has failed: after a
+   * failed filter or page-size change the cursors still belong to the old
+   * query, and continuing them would page the new filters from an old
+   * position. The way on is retry(), or a new first().
+   */
+  readonly canGoBack = computed(() => this.page() > 1 && !this.failed());
+  readonly canGoForward = computed(() => this.hasMore() && this.nextCursor() !== null && !this.failed());
 
   /** `cursors[i]` fetched page `i + 1`; the first page's cursor is null. */
   private cursors: (string | null)[] = [null];
@@ -108,6 +116,10 @@ export class KeysetPager<T> {
         this.hasMore.set(Boolean(response.hasMore));
         this.total.set(response.totalEstimated ?? 0);
         options.onLoaded?.(rows, attempt.append);
+        // A page that emptied since it was shown (its last row deleted or
+        // filtered away) steps back to the page before it. A page moved to
+        // that arrives empty stays, so Back is the user's choice.
+        if (attempt.revisit && rows.length === 0 && attempt.page > 1) this.previous();
       });
     options.destroyRef?.onDestroy(() => subscription.unsubscribe());
   }
@@ -127,7 +139,7 @@ export class KeysetPager<T> {
   /** The page on screen again, with the current filters. */
   reload(): void {
     const page = this.page();
-    this.request({ page, cursor: this.cursors[page - 1] ?? null, append: false });
+    this.request({ page, cursor: this.cursors[page - 1] ?? null, append: false, revisit: true });
   }
 
   /** The next page added below the rows on screen. Ignored while anything is loading. */
@@ -162,8 +174,8 @@ export class KeysetPager<T> {
   }
 
   previous(): void {
+    if (!this.canGoBack()) return;
     const page = this.page();
-    if (page <= 1) return;
     this.request({ page: page - 1, cursor: this.cursors[page - 2] ?? null, append: false });
   }
 

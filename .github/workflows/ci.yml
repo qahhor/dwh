@@ -177,6 +177,12 @@ jobs:
         run: docker compose run --rm migrate
 
       - name: Start stack and wait for health
+        # One administrator drives the whole serial suite, about a test a
+        # second, so the default budget of 600 requests a minute per user runs
+        # out part-way and later specs get 429 from ordinary reads. This stack
+        # is disposable; the stricter budgets for search and audit paths stay.
+        env:
+          DWH_RATE_LIMIT_USER_PER_MINUTE: '6000'
         run: docker compose up -d --remove-orphans --wait --wait-timeout 180
 
       - name: Smoke public endpoints
@@ -196,7 +202,11 @@ jobs:
           npm run test:config
           npm run typecheck
           npm run test:artifact-security
-          npm test
+          # The suite runs on the stack's second origin (4201, published by
+          # docker-compose.yml): specs that create synthetic fixtures refuse
+          # the default installation's 4200, and this stack is disposable —
+          # its volumes are removed when the job ends.
+          INSTANCE_BASE_URL=http://localhost:4201 npm test
 
       - name: Upload E2E failure artifacts
         if: failure()

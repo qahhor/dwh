@@ -97,9 +97,17 @@ describe('UserDirectoryService', () => {
   it('shows the current manager once their record arrives, when the screen had not loaded them', () => {
     service.openManagerPicker(11);
     expect(calls[0].path).toBe('/iam/users/11');
-    expect(service.managerOptions(5, 11)).toEqual([]);
+    expect(service.managerOptions(5, 11).map(option => option.label)).toEqual(['ID: #11']);
     reply(calls[0], user(11, 'Far away manager'));
     expect(service.managerOptions(5, 11).map(option => option.label)).toEqual(['Far away manager']);
+  });
+
+  it('shows a manager the server will not return by id, never as "no manager"', () => {
+    service.openManagerPicker(42);
+    fail(calls[0]);
+    const [option] = service.managerOptions(5, 42);
+    expect(option).toEqual({ id: 42, label: 'ID: #42' });
+    expect(service.managerOptions(5, 42)[0]).toBe(option);
   });
 
   it('hands the picker the same option objects between checks, so its list keeps focus', () => {

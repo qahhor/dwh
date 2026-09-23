@@ -120,6 +120,15 @@ import { AuditRecord } from '../audit.models';
     </div>
   `,
   styles: [`
+    /* The card that holds the table, its pagination and any load error. */
+    .table-container {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 12px;
+      min-width: 0;
+    }
+
     :host {
       display: block;
       min-width: 0;

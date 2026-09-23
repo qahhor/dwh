@@ -39,7 +39,7 @@ Assert-Matches $composeSource '/web:\$\{APP_VERSION' 'Production must use the ve
 Assert-Matches $composeSource '/backup:\$\{APP_VERSION' 'Production must use the versioned SmartupCMS backup image.'
 Assert-Matches $composeSource '/postgres:\$\{APP_VERSION' 'Production must use the versioned SmartupCMS PostgreSQL image.'
 Assert-Matches $composeSource '/typesense:\$\{APP_VERSION' 'Production must use the versioned SmartupCMS Typesense image.'
-Assert-Matches $composeSource 'clamav/clamav-debian:1\.5\.3@sha256:[a-f0-9]{64}' 'Production must pin the official ClamAV image by version and digest.'
+Assert-Matches $composeSource 'clamav/clamav-debian:1\.5\.4@sha256:[a-f0-9]{64}' 'Production must pin the official ClamAV image by version and digest.'
 Assert-DoesNotMatch $composeSource 'control-plane|web-cp|db-cp|migrate-cp|smartupcms/instance' 'Retired Control Plane topology remains in production Compose.'
 Assert-Matches $composeSource 'internal:\s*true' 'The database network must be internal.'
 Assert-Matches $composeSource 'backup-status:/var/lib/smartupcms/backup:ro' 'The server must receive backup status read-only.'
