@@ -188,9 +188,9 @@ export function doesNotContainLogin(password?: string, login?: string): boolean 
 }
 
 export function calculatePasswordStrength(
-  password?: string,
-  login?: string,
-  uiI18n?: I18nService
+  password: string | undefined,
+  login: string | undefined,
+  uiI18n: I18nService
 ): { score: number; label: string; color: string } {
   const pwd = password || '';
   const normalizedLogin = login || '';
@@ -201,12 +201,10 @@ export function calculatePasswordStrength(
   else if (/[0-9]/.test(pwd) || /[^a-zA-Z0-9\u0430-\u044F\u0410-\u042F\u0451\u0401]/.test(pwd)) score += 0.5;
   if (normalizedLogin && normalizedLogin.length >= 3 && !pwd.toLowerCase().includes(normalizedLogin.toLowerCase())) score += 0.5;
 
-  const translate = (key: string, fallback: string) => uiI18n ? uiI18n.translate(key) : fallback;
-
-  if (score < 1.5) return { score: 1, label: translate('iam.parol_slabyy', 'Слабый'), color: 'var(--danger)' };
-  if (score < 2.5) return { score: 2, label: translate('iam.parol_sredniy', 'Средний'), color: 'var(--warning)' };
-  if (score < 3.5) return { score: 3, label: translate('iam.parol_horoshiy', 'Хороший'), color: '#3b82f6' };
-  return { score: 4, label: translate('iam.parol_otlichnyy', 'Отличный'), color: 'var(--success)' };
+  if (score < 1.5) return { score: 1, label: uiI18n.translate('iam.parol_slabyy'), color: 'var(--danger)' };
+  if (score < 2.5) return { score: 2, label: uiI18n.translate('iam.parol_sredniy'), color: 'var(--warning)' };
+  if (score < 3.5) return { score: 3, label: uiI18n.translate('iam.parol_horoshiy'), color: 'var(--info)' };
+  return { score: 4, label: uiI18n.translate('iam.parol_otlichnyy'), color: 'var(--success)' };
 }
 
 export function exportUsersToCsv(users: User[], uiI18n: I18nService, toast: ToastService): void {

@@ -1913,5 +1913,18 @@
   "ui.table.vybrat_stroku": "Выбрать строку",
   "ui.table.nichego_ne_naydeno": "Ничего не найдено",
   "ui.tree.razvernut_vse": "Развернуть все",
-  "ui.tree.svernut_vse": "Свернуть все"
+  "ui.tree.svernut_vse": "Свернуть все",
+  "common.operation_failed": "Произошла ошибка при выполнении операции",
+  "common.connection_error": "Ошибка соединения",
+  "common.server_unavailable": "Сервер недоступен или отсутствует соединение с сетью",
+  "common.request_failed": "Не удалось выполнить запрос",
+  "common.language_packs_failed": "Не удалось загрузить языковые пакеты",
+  "auth.welcome_name": "Добро пожаловать, {name}!",
+  "auth.login_confirmed": "Вход успешно подтвержден!",
+  "notifications.new_notification": "Новое уведомление",
+  "announcements.system_announcement": "Системное объявление",
+  "announcements.announcement": "Объявление",
+  "iam.ukazhite_nazvanie_polya": "Укажите название поля",
+  "iam.ukazhite_kod_polya": "Укажите код поля",
+  "iam.kod_polya_rezervirovan": "Этот код поля зарезервирован системой"
 }

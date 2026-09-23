@@ -39,8 +39,11 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   arrow keys to move and to open or close a branch, Home and End, Enter or
   Space to select, and level, position and expanded state announced for
   each row. Expand all and Collapse all act on the whole tree.
-- The localization audit also reads external component templates, which
-  it had skipped: 183 more referenced keys are now checked.
+- The localization audit reads every source file, not only component
+  classes: external templates and services are checked too, 273 more
+  referenced keys in all. Cyrillic outside the catalog fails it, except in
+  two named files where it is data (language endonyms, the offline
+  dictionary).
 - The design token audit also fails on arbitrary Tailwind colours
   (`text-[#…]`, `bg-(--x,#…)`) and on colour literals in kit templates,
   which bypass the bridge and ignore the theme.
@@ -67,6 +70,21 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   default.
 
 ### Fixed
+
+- Creating a custom field without a name or code showed a raw key such as
+  `iam.ukazhite_nazvanie_polya` instead of the validation message; the three
+  missing keys are in every catalog.
+- Connection and request errors, the sign-in welcome and confirmation
+  toasts, notification and announcement titles, the default error title and
+  the language-pack failure were fixed Russian strings in code, shown in
+  Russian whatever the user's language. They are catalog keys now; the
+  connection messages are also in the offline dictionary, since they appear
+  exactly when the catalog cannot be fetched.
+- Table, tree and organizational-structure strings added earlier existed
+  only in Russian and English and fell back to Russian elsewhere; they are
+  in all eight catalogs.
+- The "good" password strength colour was a fixed blue; it follows the
+  theme's info token.
 
 - Vendored components rendered without any padding or margins: the
   application's global reset was unlayered and outranked every layered

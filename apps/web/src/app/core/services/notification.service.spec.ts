@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { ApiService } from './api.service';
 import { NotificationService } from './notification.service';
 import { ToastService } from './toast.service';
+import { I18nService } from './i18n.service';
 
 describe('NotificationService API contract', () => {
   it('maps the backend inbox and unread-count contracts to the UI model', async () => {
@@ -25,6 +26,7 @@ describe('NotificationService API contract', () => {
     const service = new NotificationService(
       api as unknown as ApiService,
       {} as ToastService,
+      { translate: (key: string) => key } as unknown as I18nService,
     );
 
     const count = await firstValueFrom(service.fetchUnreadCount());
@@ -59,6 +61,7 @@ describe('NotificationService API contract', () => {
     const service = new NotificationService(
       api as unknown as ApiService,
       {} as ToastService,
+      { translate: (key: string) => key } as unknown as I18nService,
     );
     service.unreadCount.set(2);
 

@@ -2,6 +2,7 @@ import { Injectable, signal } from '@angular/core';
 import { Observable, Subject, map, of, startWith, switchMap, take, takeUntil, tap } from 'rxjs';
 import { ApiService } from './api.service';
 import { ToastService } from './toast.service';
+import { I18nService } from './i18n.service';
 import { NotificationItem, Announcement, NotificationPrefItem } from '../models/notification.models';
 import { KeysetPage } from '../models/common.models';
 
@@ -35,7 +36,8 @@ export class NotificationService {
 
   constructor(
     private api: ApiService,
-    private toast: ToastService
+    private toast: ToastService,
+    private i18n: I18nService
   ) {}
 
   fetchUnreadCount(): Observable<{ unreadCount: number }> {
@@ -147,7 +149,7 @@ export class NotificationService {
           this.unreadCount.update(c => c + 1);
           this.unreadChanged.next();
 
-          const title = data.title || 'Новое уведомление';
+          const title = data.title || this.i18n.translate('notifications.new_notification');
           const body = data.body || '';
           this.toast.info(body ? `${body}` : title, title);
         } catch (err) {
@@ -161,7 +163,7 @@ export class NotificationService {
         try {
           const data = JSON.parse(event.data);
           this.activeAnnouncement.set(data);
-          this.toast.warning(data.title || 'Системное объявление', 'Объявление');
+          this.toast.warning(data.title || this.i18n.translate('announcements.system_announcement'), this.i18n.translate('announcements.announcement'));
         } catch (err) {
           console.debug('SSE: Error parsing announcement event', err);
         }

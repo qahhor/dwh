@@ -1736,5 +1736,18 @@
   "ui.table.vybrat_stroku": "Select row",
   "ui.table.nichego_ne_naydeno": "Nothing found",
   "ui.tree.razvernut_vse": "Expand all",
-  "ui.tree.svernut_vse": "Collapse all"
+  "ui.tree.svernut_vse": "Collapse all",
+  "common.operation_failed": "The operation failed",
+  "common.connection_error": "Connection error",
+  "common.server_unavailable": "The server is unavailable or there is no network connection",
+  "common.request_failed": "The request could not be completed",
+  "common.language_packs_failed": "Language packs could not be loaded",
+  "auth.welcome_name": "Welcome, {name}!",
+  "auth.login_confirmed": "Sign-in confirmed!",
+  "notifications.new_notification": "New notification",
+  "announcements.system_announcement": "System announcement",
+  "announcements.announcement": "Announcement",
+  "iam.ukazhite_nazvanie_polya": "Enter the field name",
+  "iam.ukazhite_kod_polya": "Enter the field code",
+  "iam.kod_polya_rezervirovan": "This field code is reserved by the system"
 }
