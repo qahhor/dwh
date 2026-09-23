@@ -196,7 +196,11 @@ jobs:
           npm run test:config
           npm run typecheck
           npm run test:artifact-security
-          npm test
+          # The suite runs on the stack's second origin (4201, published by
+          # docker-compose.yml): specs that create synthetic fixtures refuse
+          # the default installation's 4200, and this stack is disposable —
+          # its volumes are removed when the job ends.
+          INSTANCE_BASE_URL=http://localhost:4201 npm test
 
       - name: Upload E2E failure artifacts
         if: failure()
