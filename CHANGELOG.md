@@ -106,6 +106,13 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- A server table whose first page failed showed the error and, beneath it,
+  the empty state ("no audit records found"), claiming a result the server
+  never returned. It now shows only the error and its retry.
+- The audit change log and security events lost their card surface when they
+  moved onto the server table, so the table sat on the page background in
+  both themes. The card is back, holding the table, its pagination and any
+  load error.
 - The user list named a manager only when the manager happened to be among
   the loaded rows, and showed `ID: #42` otherwise. The manager's record is
   now looked up once and remembered for the screen's lifetime.
