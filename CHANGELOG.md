@@ -33,6 +33,14 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   columnheader and cell roles, an accessible name, a row count that stays
   correct under virtualization, and `aria-sort` on sortable columns, which
   are reachable by Tab and sort with Enter or Space.
+- The organizational structure screen shows divisions as a tree table with
+  kind and state columns and a search that keeps every match inside its
+  parent divisions. It follows the WAI-ARIA treegrid pattern: one Tab stop,
+  arrow keys to move and to open or close a branch, Home and End, Enter or
+  Space to select, and level, position and expanded state announced for
+  each row. Expand all and Collapse all act on the whole tree.
+- The localization audit also reads external component templates, which
+  it had skipped: 183 more referenced keys are now checked.
 - The design token audit also fails on arbitrary Tailwind colours
   (`text-[#…]`, `bg-(--x,#…)`) and on colour literals in kit templates,
   which bypass the bridge and ignore the theme.

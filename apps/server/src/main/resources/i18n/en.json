@@ -1373,6 +1373,7 @@
   "search.record_readonly_id": "This entry is viewable only: its ID does not support fine editing in the current interface.",
   "iam.org_units.title": "Organizational structure",
   "iam.org_units.tree": "Division tree",
+  "iam.org_units.search": "Search by code or name",
   "iam.org_units.details": "Department information",
   "iam.org_units.code": "Code",
   "iam.org_units.name": "Name",
@@ -1730,5 +1731,10 @@
   "iam.skryt_tekuschiy_parol": "Hide current password",
   "iam.pokazat_podtverzhdenie_parolya": "Show password confirmation",
   "iam.skryt_podtverzhdenie_parolya": "Hide password confirmation",
-  "iam.paroli_ne_sovpadayut": "Passwords don't match"
+  "iam.paroli_ne_sovpadayut": "Passwords don't match",
+  "ui.table.vybrat_vse": "Select all",
+  "ui.table.vybrat_stroku": "Select row",
+  "ui.table.nichego_ne_naydeno": "Nothing found",
+  "ui.tree.razvernut_vse": "Expand all",
+  "ui.tree.svernut_vse": "Collapse all"
 }

@@ -10,6 +10,7 @@ import { I18nService } from '../../../core/services/i18n.service';
 export interface SMTTableMessages {
   readonly table: { readonly noResults: string };
   readonly dataTable: { readonly selectAll: string; readonly selectRow: string };
+  readonly tree: { readonly expandAll: string; readonly collapseAll: string };
 }
 
 @Injectable({ providedIn: 'root' })
@@ -21,6 +22,10 @@ export class SMTI18nService {
     dataTable: {
       selectAll: this.i18n.translate('ui.table.vybrat_vse'),
       selectRow: this.i18n.translate('ui.table.vybrat_stroku'),
+    },
+    tree: {
+      expandAll: this.i18n.translate('ui.tree.razvernut_vse'),
+      collapseAll: this.i18n.translate('ui.tree.svernut_vse'),
     },
   }));
 }

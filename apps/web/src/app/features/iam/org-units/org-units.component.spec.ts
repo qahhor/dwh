@@ -25,6 +25,35 @@ describe('OrgUnitsComponent lifecycle', () => {
     expect(page.editorInitial).toMatchObject({ parentId: null });
     expect(api.create).not.toHaveBeenCalled(); expect(api.update).not.toHaveBeenCalled();
   });
+  it('shows the structure as a treegrid and selects a row by click or keyboard', async () => {
+    const other: OrgUnit = { ...root, id: 3, parentId: 1, code: 'SALES', name: 'Sales', kind: 'department' };
+    const { fixture, page } = setup([root, child, other]);
+    await fixture.whenStable(); fixture.detectChanges();
+    const grid = fixture.nativeElement.querySelector('[role="treegrid"]') as HTMLElement;
+    expect(grid.getAttribute('aria-label')).toBe('Дерево подразделений');
+    const rows = () => [...grid.querySelectorAll<HTMLElement>('[role="rowgroup"] > [role="row"]')];
+    expect(rows().map(row => row.dataset['smtRowId'])).toEqual(['1', '2', '3']);
+    expect(rows()[0].getAttribute('aria-selected')).toBe('true');
+    expect(rows()[1].getAttribute('aria-level')).toBe('2');
+
+    rows()[2].click(); fixture.detectChanges();
+    expect(page.selected?.id).toBe(3);
+    rows()[1].dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); fixture.detectChanges();
+    expect(page.selected?.id).toBe(2);
+  });
+  it('search narrows the tree to matches and their ancestors', async () => {
+    const other: OrgUnit = { ...root, id: 3, parentId: 1, code: 'SALES', name: 'Sales', kind: 'department' };
+    const { fixture, page } = setup([root, child, other]);
+    page.search.set('sales'); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    const ids = [...fixture.nativeElement.querySelectorAll('[role="treegrid"] [role="rowgroup"] > [role="row"]')].map((row: HTMLElement) => row.dataset['smtRowId']);
+    expect(ids).toEqual(['1', '3']);
+  });
+  it('ignores row choice while a write is pending', async () => {
+    const { fixture, page } = setup();
+    page.pending = true; fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    (fixture.nativeElement.querySelectorAll('[role="treegrid"] [role="rowgroup"] > [role="row"]')[1] as HTMLElement).click();
+    expect(page.selected?.id).toBe(1);
+  });
   it('view-only renders readable selected details without write controls', () => {
     const { fixture, page } = setup([root], false);
     page.select(root); fixture.detectChanges();

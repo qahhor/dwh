@@ -1375,6 +1375,7 @@ export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(
   "search.record_readonly_id": "Эта запись доступна только для просмотра: её идентификатор не поддерживает точное редактирование в текущем интерфейсе.",
   "iam.org_units.title": "Оргструктура",
   "iam.org_units.tree": "Дерево подразделений",
+  "iam.org_units.search": "Поиск по коду или названию",
   "iam.org_units.details": "Сведения о подразделении",
   "iam.org_units.code": "Код",
   "iam.org_units.name": "Название",
@@ -1912,5 +1913,7 @@ export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(
   "iam.paroli_ne_sovpadayut": "Пароли не совпадают",
   "ui.table.vybrat_vse": "Выбрать все",
   "ui.table.vybrat_stroku": "Выбрать строку",
-  "ui.table.nichego_ne_naydeno": "Ничего не найдено"
+  "ui.table.nichego_ne_naydeno": "Ничего не найдено",
+  "ui.tree.razvernut_vse": "Развернуть все",
+  "ui.tree.svernut_vse": "Свернуть все"
 });

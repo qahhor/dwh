@@ -398,6 +398,7 @@ export class SettingsLanguagesPanelComponent {
     const share = 'max(120px, calc((100% - 528px) / 3))';
     return {
       trackBy: (_: number, lang: LanguageInfo) => lang.code,
+      layout: 'fit',
       ariaLabel: this.i18n.translate('settings.upravlenie_yazykovymi_paketami_i_lokalizaciey'),
       columnsOrder: ['code', 'name', 'type', 'coverage', 'status', 'actions'],
       columns: {

@@ -534,10 +534,13 @@ export class SMTTableComponent<T> {
   });
 
   /** Biruni: width locked to sizing basis (viewport − 5); non-Biruni grows with content. */
-  protected tableSurfaceClass = computed(() => (this.biruniGridLayout() ? '' : 'min-w-full w-max'));
+  protected tableSurfaceClass = computed(() => {
+    if (this.biruniGridLayout()) return '';
+    return this.config().layout === 'fit' ? 'w-full' : 'min-w-full w-max';
+  });
 
   protected tableRefClass = computed(() =>
-    this.biruniGridLayout() ? 'w-full smt-grid-table' : 'min-w-full w-max smt-grid-table'
+    this.biruniGridLayout() || this.config().layout === 'fit' ? 'w-full smt-grid-table' : 'min-w-full w-max smt-grid-table'
   );
 
   protected visibleTabs = computed(() => this.tabs().filter(tab => tab.id?.trim().length > 0));

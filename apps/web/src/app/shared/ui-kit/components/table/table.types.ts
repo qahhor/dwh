@@ -80,6 +80,12 @@ export interface TableConfig<T> {
   columns: Record<string, ColumnInfo<T>>;
   columnsOrder: string[];
   rowClass?: (row: T) => TableRowClass | null | undefined;
+  /**
+   * `content` (default) grows the table to its content and scrolls sideways;
+   * `fit` holds it to the container, so percentage tracks resolve against the
+   * container instead of against content widths.
+   */
+  layout?: 'content' | 'fit';
   /** Accessible name. Without one a screen reader announces an unnamed table. */
   ariaLabel?: string;
   /** ARIA pattern the rows follow. `treegrid` makes rows focusable and carries `rowAria`. */

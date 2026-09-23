@@ -13,7 +13,9 @@ async function filesUnder(directory) {
   for (const entry of await readdir(directory, { withFileTypes: true })) {
     const absolute = path.join(directory, entry.name);
     if (entry.isDirectory()) result.push(...await filesUnder(absolute));
-    else if (entry.name.endsWith('.component.ts')) result.push(absolute);
+    // External templates hold keys too; without them a screen written with
+    // templateUrl was never checked.
+    else if (entry.name.endsWith('.component.ts') || entry.name.endsWith('.component.html')) result.push(absolute);
   }
   return result;
 }
@@ -42,7 +44,11 @@ for (const file of await filesUnder(appRoot)) {
   const source = withoutComments(await readFile(file, 'utf8'));
   for (const match of source.matchAll(/['"]([a-z][a-z0-9_.-]+)['"]\s*\|\s*t\b/g)) usedKeys.add(match[1]);
   for (const match of source.matchAll(/\.translate\(\s*['"]([a-z][a-z0-9_.-]+)['"]/g)) usedKeys.add(match[1]);
-  for (const line of source.split(/\r?\n/).filter(candidate => candidate.includes('| t'))) {
+  // In an .html template a quoted dotted string on the same line is usually a
+  // binding expression (`[checked]="field.prefix"`), not a key, so only the
+  // exact forms above apply there.
+  const lines = file.endsWith('.html') ? [] : source.split(/\r?\n/);
+  for (const line of lines.filter(candidate => candidate.includes('| t'))) {
     for (const match of line.matchAll(/['"]([a-z][a-z0-9_-]*(?:\.[a-z0-9_.-]+)+)['"]/g)) {
       usedKeys.add(match[1]);
     }

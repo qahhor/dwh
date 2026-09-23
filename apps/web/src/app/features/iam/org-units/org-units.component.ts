@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, DestroyRef, effect, HostListener, inject, OnInit, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, computed, DestroyRef, effect, HostListener, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { Observable, Subscription } from 'rxjs';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { PermissionService } from '../../../core/services/permission.service';
@@ -8,12 +8,13 @@ import { ProblemDetail } from '../../../core/models/common.models';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { OrgUnitsApiService } from './org-units-api.service';
-import { OrgUnitTreeComponent } from './org-unit-tree.component';
-import { orgUnitKindKeys } from './org-unit-tree';
+import { orderedTree, orgUnitKindKeys } from './org-unit-tree';
+import { SMTTreeTableComponent, TreeTableColumns } from '../../../shared/ui-kit/components/tree-table/tree-table.component';
+import { flattenTree, TreeRow } from '../../../shared/ui-kit/components/tree-table/tree.utils';
 import { OrgUnitDraft } from './org-unit-draft';
 import { OrgUnit, OrgUnitCreate } from './org-units.models';
 import { OrgUnitEditorComponent, OrgUnitSubmission } from './org-unit-editor.component';
-@Component({ selector: 'app-org-units', standalone: true, imports: [TranslatePipe, UiButtonComponent, UiModalComponent, OrgUnitTreeComponent, OrgUnitEditorComponent], templateUrl: './org-units.component.html', styleUrl: './org-units.component.css' })
+@Component({ selector: 'app-org-units', standalone: true, imports: [TranslatePipe, UiButtonComponent, UiModalComponent, SMTTreeTableComponent, OrgUnitEditorComponent], templateUrl: './org-units.component.html', styleUrl: './org-units.component.css' })
 export class OrgUnitsComponent implements OnInit {
   readonly permissions = inject(PermissionService);
   readonly kindKeys = orgUnitKindKeys;
@@ -42,6 +43,33 @@ export class OrgUnitsComponent implements OnInit {
   savedRefreshFailed = false;
   deleteTarget: OrgUnit | null = null;
   deleteError: ProblemDetail | null = null;
+  readonly search = signal('');
+  private treeSource: OrgUnit[] | null = null;
+  private treeCache: TreeRow<OrgUnit>[] = [];
+  /** Rebuilt only when the unit list is replaced, not on every change detection pass. */
+  get treeRows(): TreeRow<OrgUnit>[] {
+    if (this.treeSource !== this.units) {
+      this.treeSource = this.units;
+      this.treeCache = flattenTree(orderedTree(this.units), { id: node => node.unit.id, children: node => node.children, data: node => node.unit });
+    }
+    return this.treeCache;
+  }
+  kindLabel(kind: string): string { return this.kindKeys[kind] ? this.i18n.translate(this.kindKeys[kind]) : kind; }
+  stateLabel(unit: OrgUnit): string { return this.i18n.translate(unit.state === 'A' ? 'iam.org_units.active' : 'iam.org_units.passive'); }
+  readonly searchText = (row: TreeRow<OrgUnit>) => `${row.data.code} ${row.data.name} ${this.kindLabel(row.data.kind)}`;
+  readonly treeColumns = computed<TreeTableColumns<OrgUnit>>(() => {
+    const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
+    return {
+      treeColumn: 'name',
+      columnsOrder: ['name', 'kind', 'state'],
+      columns: {
+        // Rows are separate grids, so tracks are fixed or a share of the width, never content-sized.
+        name: { header: header('iam.org_units.name'), width: 'max(200px, calc(100% - 300px))', content: { type: 'primitive', value: row => `${row.data.code} · ${row.data.name}` } },
+        kind: { header: header('iam.org_units.kind'), width: '150px', content: { type: 'primitive', value: row => this.kindLabel(row.data.kind) } },
+        state: { header: header('iam.org_units.state'), width: '150px', content: { type: 'primitive', value: row => this.stateLabel(row.data) } },
+      },
+    };
+  });
   readonly discard = new OrgUnitDraft(() => this.editorOpen && !!this.editor?.dirty, () => this.pending, () => this.clearEditor());
 
   constructor() {
