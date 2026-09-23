@@ -485,6 +485,29 @@ describe('UsersComponent UI contracts', () => {
     expect(fixture.componentInstance.users().map(item => item.id)).toEqual([3]);
   });
 
+  it('names a manager who is not on the loaded page and offers managers from a server search', async () => {
+    const fixture = await createFixture();
+    const api = TestBed.inject(ApiService) as unknown as { get: ReturnType<typeof vi.fn> };
+    const report = { ...user(5, 'Подчинённый'), managerId: 42 };
+
+    api.get.mockImplementation((path: string) => of(
+      path === '/iam/users' ? { items: [report], nextCursor: null, hasMore: false }
+        : path === '/iam/users/42' ? { ...user(42, 'Дальний руководитель') }
+          : []
+    ));
+    fixture.componentInstance.loadUsers(true);
+    fixture.detectChanges();
+
+    expect(api.get).toHaveBeenCalledWith('/iam/users/42', undefined, { notifyError: false });
+    expect(fixture.nativeElement.textContent).toContain('Дальний руководитель');
+
+    fixture.componentInstance.openEditModal(report);
+    fixture.detectChanges();
+    const picker = fixture.nativeElement.querySelector('app-user-edit-modal ui-searchable-select button[aria-haspopup="listbox"]') as HTMLButtonElement;
+    expect(picker.textContent).toContain('Дальний руководитель');
+    expect(fixture.nativeElement.querySelector('#user-edit-manager')).toBeNull();
+  });
+
   it('generateSecurePassword generates a 14-char password meeting all complexity rules', async () => {
     const fixture = await createFixture();
     fixture.componentInstance.createForm.login = 'testuser';

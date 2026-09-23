@@ -42,6 +42,7 @@ import {
 import { UserSecurityService } from './services/user-security.service';
 import { UserFormsService } from './services/user-forms.service';
 import { UserFilterService } from './services/user-filter.service';
+import { UserDirectoryService } from './services/user-directory.service';
 
 export type { SecurityConfirmConfig };
 
@@ -59,17 +60,17 @@ export type { SecurityConfirmConfig };
     UserEditModalComponent,
     UserDetailModalComponent
   ],
+  providers: [UserDirectoryService],
   templateUrl: './users.component.html',
   styleUrl: './users.component.css'
 })
 export class UsersComponent implements OnInit, OnDestroy {
-  readonly getAvailableManagersFn = (userId: number) => this.getAvailableManagers(userId);
   readonly isRoleSelectedInEditFn = (roleId: number) => this.isRoleSelectedInEdit(roleId);
   readonly isRoleSelectedInCreateFn = (roleId: number) => this.isRoleSelectedInCreate(roleId);
   readonly getUserInitialFn = (u: User) => getUserInitial(u);
   readonly getAvatarBgColorFn = (name: string) => getAvatarBgColor(name);
   readonly getUserRoleNamesFn = (u: User) => getUserRoleNames(u, this.roles());
-  readonly getManagerNameFn = (u: User) => getManagerName(u, this.users());
+  readonly getManagerNameFn = (u: User) => getManagerName(u, id => this.directory.nameOf(id));
 
   private readonly uiI18n = inject(I18nService);
   private readonly recordRoute = inject(ActivatedRoute, { optional: true });
@@ -77,6 +78,7 @@ export class UsersComponent implements OnInit, OnDestroy {
   public readonly secService = inject(UserSecurityService);
   public readonly formsService = inject(UserFormsService);
   public readonly filterService = inject(UserFilterService);
+  public readonly directory = inject(UserDirectoryService);
 
   private recordRouteSubscription?: Subscription;
   private queryParamSubscription?: Subscription;
@@ -103,7 +105,14 @@ export class UsersComponent implements OnInit, OnDestroy {
     state: this.selectedState || undefined,
     role_id: this.selectedRoleId || undefined,
     is_2fa_enabled: this.selected2fa !== null ? this.selected2fa : undefined
-  }), { pageSize: 50, destroyRef: inject(DestroyRef) });
+  }), {
+    pageSize: 50,
+    destroyRef: inject(DestroyRef),
+    onLoaded: rows => {
+      this.directory.remember(rows);
+      this.directory.resolve(rows.map(user => user.managerId));
+    }
+  });
   readonly users = this.userPager.items;
   readonly roles = signal<Role[]>([]);
   readonly customFields = signal<CustomField[]>([]);
@@ -209,6 +218,7 @@ export class UsersComponent implements OnInit, OnDestroy {
     this.recordRequest?.unsubscribe();
     this.recordRequestId++;
     clearTimeout(this.searchDebounceTimer);
+    this.directory.cancel();
   }
 
   // Permissions
@@ -307,9 +317,8 @@ export class UsersComponent implements OnInit, OnDestroy {
   // User display helpers
   getUserInitial(user: User) { return getUserInitial(user); }
   getAvatarBgColor(name: string) { return getAvatarBgColor(name); }
-  getManagerName(user: User) { return getManagerName(user, this.users()); }
+  getManagerName(user: User) { return getManagerName(user, id => this.directory.nameOf(id)); }
   getUserRoleNames(user: User) { return getUserRoleNames(user, this.roles()); }
-  getAvailableManagers(currentUserId: number) { return this.users().filter(u => u.id !== currentUserId && u.state === 'A'); }
 
   // Modals & Record View
   loadRecordView(id: string | null) {
@@ -333,7 +342,10 @@ export class UsersComponent implements OnInit, OnDestroy {
       next: user => {
         if (requestId !== this.recordRequestId) return;
         this.recordLoading.set(false);
-        if (recordResponseMatches(user?.id, id)) this.viewingUser = user;
+        if (recordResponseMatches(user?.id, id)) {
+          this.viewingUser = user;
+          this.directory.resolve([user.managerId]);
+        }
         else this.recordError.set(true);
       },
       error: error => {
@@ -380,12 +392,18 @@ export class UsersComponent implements OnInit, OnDestroy {
     }
   }
 
-  openCreateModal() { this.formsService.openCreateModal(this.roles()); }
+  openCreateModal() {
+    this.directory.openManagerPicker(null);
+    this.formsService.openCreateModal(this.roles());
+  }
   isRoleSelectedInCreate(roleId: number) { return this.formsService.isRoleSelectedInCreate(roleId); }
   toggleRoleInCreate(roleId: number) { this.formsService.toggleRoleInCreate(roleId); }
   submitCreateUser() { this.formsService.submitCreateUser(() => this.loadUsers(true)); }
 
-  openEditModal(user: User) { this.formsService.openEditModal(user); }
+  openEditModal(user: User) {
+    this.directory.openManagerPicker(user.managerId ?? null);
+    this.formsService.openEditModal(user);
+  }
   isRoleSelectedInEdit(roleId: number) { return this.formsService.isRoleSelectedInEdit(roleId); }
   toggleRoleInEdit(roleId: number) { this.formsService.toggleRoleInEdit(roleId); }
   submitEditUser() {

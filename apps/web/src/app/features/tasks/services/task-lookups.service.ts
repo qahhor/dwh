@@ -1,71 +1,11 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Injectable, inject, signal } from '@angular/core';
 import { ApiService } from '../../../core/services/api.service';
 import { Task, TaskMember } from '../../../core/models/task.models';
 import { User } from '../../../core/models/auth.models';
 import { KeysetPage } from '../../../core/models/common.models';
 import { SelectOption } from '../../../shared/ui/ui-searchable-select.component';
-import { KeysetPager } from '../../../shared/paging/keyset-pager';
+import { LookupChannel } from '../../../shared/paging/lookup-channel';
 import { mergeOptions, mergeUserResults } from '../tasks.models';
-
-const SEARCH_DELAY_MS = 300;
-const LOOKUP_PAGE_SIZE = 50;
-
-/**
- * One searchable, growing lookup list over a keyset endpoint. The pager
- * cancels a superseded request and appends "load more" pages; the channel
- * adds the typing pause and remembers who is selected, so the owner can keep
- * selected entries in the list whatever the search returns.
- */
-class LookupChannel<T, S> {
-  private query = '';
-  private timer?: ReturnType<typeof setTimeout>;
-  private selected: () => S;
-  private readonly pager: KeysetPager<T>;
-
-  readonly loading: ReturnType<typeof computed<boolean>>;
-  readonly error: ReturnType<typeof computed<boolean>>;
-  readonly hasMore: ReturnType<typeof computed<boolean>>;
-
-  constructor(
-    fetch: (query: string, cursor: string | null) => Observable<KeysetPage<T>>,
-    apply: (rows: T[], append: boolean, selected: S) => void,
-    noSelection: S
-  ) {
-    this.selected = () => noSelection;
-    this.pager = new KeysetPager<T>(cursor => fetch(this.query, cursor), {
-      pageSize: LOOKUP_PAGE_SIZE,
-      onLoaded: (rows, append) => apply(rows, append, this.selected()),
-    });
-    this.loading = computed(() => this.pager.loading() || this.pager.loadingMore());
-    this.error = computed(() => this.pager.failed() || this.pager.loadMoreFailed());
-    this.hasMore = this.pager.canGoForward;
-  }
-
-  search(query: string, selected: () => S): void {
-    this.query = query.trim();
-    this.selected = selected;
-    clearTimeout(this.timer);
-    this.pager.invalidate();
-    this.timer = setTimeout(() => this.pager.first(), SEARCH_DELAY_MS);
-  }
-
-  load(reset: boolean, selected: () => S): void {
-    this.selected = selected;
-    if (reset) this.pager.first();
-    else this.pager.loadMore();
-  }
-
-  retry(selected: () => S): void {
-    this.selected = selected;
-    this.pager.retry();
-  }
-
-  cancel(): void {
-    clearTimeout(this.timer);
-    this.pager.cancel();
-  }
-}
 
 @Injectable({
   providedIn: 'root'
@@ -125,7 +65,7 @@ export class TaskLookupsService {
   }
 
   private readonly parents = new LookupChannel<Task, number | null>(
-    (search, cursor) => this.api.get<KeysetPage<Task>>('/tasks', { limit: LOOKUP_PAGE_SIZE, cursor: cursor ?? undefined, search: search || undefined }),
+    (search, cursor, limit) => this.api.get<KeysetPage<Task>>('/tasks', { limit, cursor: cursor ?? undefined, search: search || undefined }),
     (items, append, selectedId) => {
       const incoming = items.map(item => {
         const option = { id: item.id, label: `#${item.id} ${item.title}`, icon: 'task_alt' };
@@ -157,7 +97,7 @@ export class TaskLookupsService {
   /** Active users, with the selected ones always kept in the list. */
   private userChannel<S>(list: ReturnType<typeof signal<User[]>>, selectedIds: (selected: S) => number[], none: S) {
     return new LookupChannel<User, S>(
-      (search, cursor) => this.api.get<KeysetPage<User>>('/iam/users', { limit: LOOKUP_PAGE_SIZE, cursor: cursor ?? undefined, search: search || undefined, state: 'A' }),
+      (search, cursor, limit) => this.api.get<KeysetPage<User>>('/iam/users', { limit, cursor: cursor ?? undefined, search: search || undefined, state: 'A' }),
       (items, append, selected) => list.set(mergeUserResults(append ? list() : [], items, selectedIds(selected), this.retainedUsers)),
       none
     );

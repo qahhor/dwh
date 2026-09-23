@@ -96,6 +96,14 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The user list named a manager only when the manager happened to be among
+  the loaded rows, and showed `ID: #42` otherwise. The manager's record is
+  now looked up once and remembered for the screen's lifetime.
+- The manager picker in the create and edit user forms offered only the users
+  loaded on the list, so in a larger organisation most managers could not be
+  chosen. It now searches active users on the server, pages with "load more",
+  and keeps the current manager selected even when the search does not return
+  them.
 - Screen readers dropped several names because they sat on elements that
   cannot be named: the pagination's current page, the language coverage
   figures and the two-factor status in the user list, which read the icon's

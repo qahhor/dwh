@@ -81,10 +81,10 @@ export function getAvatarBgColor(name: string): string {
   return colors[Math.abs(hash) % colors.length];
 }
 
-export function getManagerName(user: User, allUsers: User[]): string | null {
+/** The manager's name, or their id while the name is unknown. */
+export function getManagerName(user: User, nameOf: (id: number) => string | null): string | null {
   if (!user.managerId) return null;
-  const m = allUsers.find(u => u.id === user.managerId);
-  return m ? m.name : `ID: #${user.managerId}`;
+  return nameOf(user.managerId) ?? `ID: #${user.managerId}`;
 }
 
 export function getUserRoleNames(user: User, allRoles: Role[]): string[] {
