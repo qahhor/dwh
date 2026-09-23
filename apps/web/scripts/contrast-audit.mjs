@@ -6,6 +6,11 @@
 // is written. Values that cannot be resolved to an opaque colour (gradients,
 // `transparent`, alpha, `currentColor`, inherited backgrounds) are skipped —
 // their effective contrast depends on what renders behind them.
+//
+// The vendored UI kit styles with Tailwind utilities, not CSS rules, so the
+// same guarantees are checked through the `@theme` bridge in tailwind.css:
+// every colour utility the kit uses must map to a token that both themes
+// define, and a background and a text utility used together must meet AA.
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
@@ -13,6 +18,7 @@ import process from 'node:process';
 const webRoot = process.cwd();
 const srcRoot = path.join(webRoot, 'src');
 const tokenFile = path.join(srcRoot, 'styles.css');
+const bridgeFile = path.join(srcRoot, 'tailwind.css');
 
 const AA_NORMAL = 4.5;
 const AA_LARGE = 3.0;
@@ -228,12 +234,148 @@ if (literals.length) {
   );
 }
 
-if (failures.length || undefinedTokens.length || literals.length) {
+// --- Tailwind bridge -------------------------------------------------------
+
+/** Utility prefix to the theme namespace Tailwind resolves it from. */
+const UTILITY_NAMESPACE = {
+  bg: 'background-color',
+  text: 'text-color',
+  border: 'border-color',
+  ring: 'ring-color',
+};
+// A colour name is a hue and a scale step, or white/black. Anything else
+// (`text-sm`, `border-2`, `bg-transparent`) is not a palette colour.
+const COLOUR_NAME = '(?:white|black|[a-z]+(?:-[a-z]+)*-(?:25|50|[1-9]00|950))';
+// Every Tailwind utility that takes a palette colour, so a role the bridge
+// does not map yet (`divide-`, `outline-`, ...) is reported rather than missed.
+const COLOUR_UTILITY = new RegExp(
+  `(?<![\\w-])((?:[a-z-]+:)*)(bg|text|border(?:-[trblxyse])?|ring(?:-offset)?|divide|outline|fill|stroke|placeholder|from|via|to|shadow|accent|caret|decoration)-(${COLOUR_NAME})(/\\d+)?(?![\\w-])`,
+  'g',
+);
+
+async function readBridge() {
+  const css = withoutComments(await readFile(bridgeFile, 'utf8'));
+  const theme = /@theme(\s+inline)?\s*\{([^}]*)\}/.exec(css);
+  if (!theme) throw new Error(`No @theme block found in ${path.relative(webRoot, bridgeFile)}`);
+  const mapping = new Map();
+  for (const [name, value] of declarations(theme[2])) {
+    const match = /^--(background-color|text-color|border-color|ring-color)-(.+)$/.exec(name);
+    if (match) mapping.set(`${match[1]}:${match[2]}`, value);
+  }
+  const sources = [...css.matchAll(/@source\s+['"]([^'"]+)['"]/g)]
+    .map(match => path.join(srcRoot, match[1].split('*')[0]));
+  return { inline: Boolean(theme[1]), mapping, sources };
+}
+
+async function templateFiles(directory) {
+  const found = [];
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const absolute = path.join(directory, entry.name);
+    if (entry.isDirectory()) found.push(...await templateFiles(absolute));
+    else if (/\.(html|ts)$/.test(entry.name) && !entry.name.endsWith('.spec.ts')) found.push(absolute);
+  }
+  return found;
+}
+
+const bridge = await readBridge();
+const bridgeProblems = [];
+const bridgeFailures = [];
+let bridgeChecked = 0;
+
+if (!bridge.inline) {
+  bridgeProblems.push(
+    `${path.relative(webRoot, bridgeFile)}: the bridge must be \`@theme inline\`. A plain \`@theme\` ` +
+    'declares its variables in `@layer theme`, where an unlayered token of the same name ' +
+    '(--color-white) overrides it and the utility stops following the theme.'
+  );
+}
+if (!bridge.sources.length) {
+  bridgeProblems.push(`${path.relative(webRoot, bridgeFile)}: no @source, so no vendored template is checked`);
+}
+
+for (const [key, value] of bridge.mapping) {
+  const colour = THEMES.map(theme => resolveColour(value, tokens[theme]));
+  if (colour.some(hex => !hex)) {
+    bridgeProblems.push(`${path.relative(webRoot, bridgeFile)} --${key.replace(':', '-')}: ${value} does not resolve to a colour in both themes`);
+  }
+}
+
+for (const root of bridge.sources) {
+  for (const file of await templateFiles(root)) {
+    const relative = path.relative(webRoot, file);
+    const lines = (await readFile(file, 'utf8')).split('\n');
+    lines.forEach((text, index) => {
+      const used = [];
+      for (const [, variants, prefix, name, alpha] of text.matchAll(COLOUR_UTILITY)) {
+        const utility = `${variants}${prefix}-${name}${alpha ?? ''}`;
+        const namespace = UTILITY_NAMESPACE[prefix];
+        if (!namespace) {
+          bridgeProblems.push(`${relative}:${index + 1} ${utility}: the bridge maps no \`${prefix}-\` colours, so this renders uncoloured`);
+          continue;
+        }
+        const value = bridge.mapping.get(`${namespace}:${name}`);
+        if (!value) {
+          bridgeProblems.push(`${relative}:${index + 1} ${utility}: --${namespace}-${name} is not in the bridge, so this renders uncoloured`);
+          continue;
+        }
+        used.push({ utility, variants, prefix, value, alpha });
+      }
+
+      // Opacity makes the result depend on what renders behind it, the same
+      // reason the rule audit skips alpha.
+      if (/(?<![\w-])opacity-(?!100\b)\d+/.test(text)) return;
+      const opaque = used.filter(entry => !entry.alpha);
+      for (const background of opaque.filter(entry => entry.prefix === 'bg')) {
+        // A `hover:` background is read against the `hover:` text if there is
+        // one, and against the resting text otherwise.
+        const texts = opaque.filter(entry => entry.prefix === 'text' && entry.variants === background.variants);
+        const inks = texts.length ? texts : opaque.filter(entry => entry.prefix === 'text' && entry.variants === '');
+        for (const ink of inks) {
+          for (const theme of THEMES) {
+            const bg = resolveColour(background.value, tokens[theme]);
+            const fg = resolveColour(ink.value, tokens[theme]);
+            if (!bg || !fg) continue;
+            bridgeChecked += 1;
+            const ratio = contrast(fg, bg);
+            if (ratio < AA_NORMAL) {
+              bridgeFailures.push(
+                `${relative}:${index + 1} [${theme}] ${ink.utility} on ${background.utility} = ` +
+                `${fg} on ${bg} = ${ratio.toFixed(2)}:1, below ${AA_NORMAL.toFixed(1)}:1`
+              );
+            }
+          }
+        }
+      }
+    });
+  }
+}
+
+if (!bridgeChecked && !bridgeProblems.length) {
+  bridgeProblems.push('The bridge audit found no background and text utilities used together; the scan is broken.');
+}
+
+if (bridgeProblems.length) {
+  process.stderr.write(
+    `Tailwind bridge problems:\n${[...new Set(bridgeProblems)].join('\n')}\n\n` +
+    'Map the colour in the @theme block of tailwind.css to a token from styles.css, ' +
+    'under the namespace of the utility that uses it.\n\n'
+  );
+}
+
+if (bridgeFailures.length) {
+  process.stderr.write(
+    `Tailwind colour pairs below WCAG AA contrast:\n${[...new Set(bridgeFailures)].join('\n')}\n\n` +
+    'Change the mapping in tailwind.css, not the vendored template.\n\n'
+  );
+}
+
+if (failures.length || undefinedTokens.length || literals.length || bridgeProblems.length || bridgeFailures.length) {
   process.exit(1);
 }
 
 process.stdout.write(
   `Design token audit passed: ${checked} colour pairs at or above WCAG AA in ` +
   `light and dark themes, every colour property naming a token outside the ` +
-  `${LITERAL_ALLOWED.size} files where the value is data.\n`
+  `${LITERAL_ALLOWED.size} files where the value is data; ${bridge.mapping.size} bridged ` +
+  `Tailwind colours resolving in both themes, ${bridgeChecked} utility pairs at or above AA.\n`
 );

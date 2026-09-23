@@ -18,53 +18,153 @@
 
 @source './app/shared/ui-kit/**/*.{html,ts}';
 
-@theme {
-  /* Drop Tailwind's default palette, spacing and font scales: this layer
-     exists only to serve the vendored subset, and an unused default costs
-     a CSS variable in every build. */
+@theme inline {
+  /* `inline` is load-bearing. Without it Tailwind declares `--color-white`
+     and friends as variables inside `@layer theme`, and this application's
+     own unlayered `--color-white: #ffffff` wins the cascade, so `bg-white`
+     painted white in dark theme. Inlined, each utility carries the token
+     reference directly and no variable exists to collide.
+
+     Mapping is by role, through Tailwind's per-utility namespaces: the same
+     `error-950` is a background in one utility and never a text colour, so
+     a single `--color-*` could not express it. The kit ships a manual light
+     and dark scheme for each badge colour; here both schemes resolve to the
+     same theme-aware tokens, because the theme already does that job.
+
+     Rule, status and accent hues: background 50-300 subtle, 400-600 solid,
+     700-800 pressed, 900-950 subtle again (the kit's dark scheme); text any
+     step readable ink; border 50-300 and 800+ quiet, 400-700 solid. Neutral
+     hues map onto surfaces and text tiers, with gray-900 as the inverted
+     surface a tooltip uses. The kit's dark badge fills (gray-modern-700/800,
+     gray-blue-950) are subtle surfaces here, as every other dark scheme is:
+     inverting them put light ink on a light fill in dark theme.
+
+     Pink and orange have no accent in this product and render neutral. That
+     is a decision, not an omission: add an accent pair before using them.
+
+     Every pair listed is one the vendored code uses; the design token audit
+     fails on any it cannot resolve, so a re-sync that brings a new colour
+     is caught rather than rendered colourless. */
   --color-*: initial;
   --font-*: initial;
 
-  /* Surfaces. A vendored component saying `bg-white` means "the surface",
-     which in dark theme is not white. */
-  --color-white: var(--bg-surface);
-  --color-black: var(--text-main);
+  /* bg-* */
+  --background-color-blue-50: var(--info-bg);
+  --background-color-blue-500: var(--info);
+  --background-color-blue-950: var(--info-bg);
+  --background-color-blue-light-50: var(--primary-subtle);
+  --background-color-blue-light-500: var(--primary);
+  --background-color-brand-50: var(--primary-subtle);
+  --background-color-brand-500: var(--primary);
+  --background-color-brand-600: var(--primary);
+  --background-color-brand-700: var(--primary-hover);
+  --background-color-brand-950: var(--primary-subtle);
+  --background-color-error-50: var(--danger-bg);
+  --background-color-error-500: var(--danger);
+  --background-color-error-950: var(--danger-bg);
+  --background-color-gray-300: var(--bg-active);
+  --background-color-gray-50: var(--bg-app);
+  --background-color-gray-500: var(--text-light);
+  --background-color-gray-900: var(--text-main);
+  --background-color-gray-blue-50: var(--bg-app);
+  --background-color-gray-blue-500: var(--text-light);
+  --background-color-gray-blue-950: var(--bg-hover);
+  --background-color-gray-modern-700: var(--bg-active);
+  --background-color-gray-modern-800: var(--bg-hover);
+  --background-color-indigo-50: var(--accent-indigo-bg);
+  --background-color-indigo-500: var(--accent-indigo-text);
+  --background-color-indigo-950: var(--accent-indigo-bg);
+  --background-color-orange-50: var(--bg-app);
+  --background-color-orange-500: var(--text-light);
+  --background-color-orange-950: var(--bg-hover);
+  --background-color-pink-50: var(--bg-app);
+  --background-color-pink-500: var(--text-light);
+  --background-color-pink-950: var(--bg-hover);
+  --background-color-purple-50: var(--accent-violet-bg);
+  --background-color-purple-500: var(--accent-violet-text);
+  --background-color-purple-950: var(--accent-violet-bg);
+  --background-color-success-50: var(--success-bg);
+  --background-color-success-500: var(--success);
+  --background-color-success-600: var(--success);
+  --background-color-success-700: var(--success);
+  --background-color-success-950: var(--success-bg);
+  --background-color-warning-50: var(--warning-bg);
+  --background-color-warning-500: var(--warning);
+  --background-color-warning-950: var(--warning-bg);
+  --background-color-white: var(--bg-surface);
 
-  /* Neutrals carry structure: borders, muted text, subtle fills. */
-  --color-gray-25: var(--bg-app);
-  --color-gray-50: var(--bg-app);
-  --color-gray-100: var(--bg-hover);
-  --color-gray-200: var(--border-color);
-  --color-gray-300: var(--border-color);
-  --color-gray-400: var(--text-light);
-  --color-gray-500: var(--text-light);
-  --color-gray-600: var(--text-muted);
-  --color-gray-700: var(--text-muted);
-  --color-gray-800: var(--text-main);
-  --color-gray-900: var(--text-main);
-  --color-gray-950: var(--text-main);
+  /* text-* */
+  --text-color-blue-300: var(--info-text);
+  --text-color-blue-700: var(--info-text);
+  --text-color-blue-light-700: var(--primary-text);
+  --text-color-brand-300: var(--primary-text);
+  --text-color-brand-400: var(--primary-text);
+  --text-color-brand-700: var(--primary-text);
+  --text-color-error-300: var(--danger-text);
+  --text-color-error-700: var(--danger-text);
+  --text-color-gray-300: var(--text-light);
+  --text-color-gray-400: var(--text-light);
+  --text-color-gray-500: var(--text-light);
+  --text-color-gray-600: var(--text-muted);
+  --text-color-gray-700: var(--text-muted);
+  --text-color-gray-900: var(--text-main);
+  --text-color-gray-blue-300: var(--text-light);
+  --text-color-gray-blue-700: var(--text-muted);
+  --text-color-indigo-300: var(--accent-indigo-text);
+  --text-color-indigo-700: var(--accent-indigo-text);
+  --text-color-orange-300: var(--text-light);
+  --text-color-orange-700: var(--text-muted);
+  --text-color-pink-300: var(--text-light);
+  --text-color-pink-700: var(--text-muted);
+  --text-color-purple-300: var(--accent-violet-text);
+  --text-color-purple-700: var(--accent-violet-text);
+  --text-color-success-300: var(--success-text);
+  --text-color-success-700: var(--success-text);
+  --text-color-warning-300: var(--warning-text);
+  --text-color-warning-700: var(--warning-text);
+  --text-color-white: var(--on-primary);
 
-  /* Brand maps onto the accent. */
-  --color-brand-25: var(--primary-subtle);
-  --color-brand-50: var(--primary-subtle);
-  --color-brand-100: var(--primary-subtle);
-  --color-brand-200: var(--primary-subtle);
-  --color-brand-500: var(--primary);
-  --color-brand-600: var(--primary);
-  --color-brand-700: var(--primary-text);
-  --color-brand-800: var(--primary-hover);
-  --color-brand-950: var(--primary-subtle);
+  /* border-* */
+  --border-color-brand-500: var(--primary);
+  --border-color-brand-600: var(--primary);
+  --border-color-brand-700: var(--primary);
+  --border-color-error-300: var(--danger-border);
+  --border-color-error-500: var(--danger);
+  --border-color-gray-200: var(--border-color);
+  --border-color-gray-300: var(--border-color);
+  --border-color-gray-900: var(--text-main);
+  --border-color-success-500: var(--success);
+  --border-color-success-600: var(--success);
+  --border-color-success-700: var(--success);
+  --border-color-white: var(--bg-surface);
 
-  --color-error-50: var(--danger-bg);
-  --color-error-500: var(--danger);
-  --color-error-600: var(--danger);
-  --color-error-700: var(--danger-text);
-
-  --color-success-50: var(--success-bg);
-  --color-success-500: var(--success);
-  --color-success-700: var(--success-text);
-
-  --color-warning-50: var(--warning-bg);
-  --color-warning-500: var(--warning);
-  --color-warning-700: var(--warning-text);
+  /* ring-* */
+  --ring-color-blue-200: var(--info-border);
+  --ring-color-blue-800: var(--info-border);
+  --ring-color-blue-light-200: var(--primary-border);
+  --ring-color-brand-200: var(--primary-border);
+  --ring-color-brand-500: var(--primary);
+  --ring-color-brand-800: var(--primary-border);
+  --ring-color-error-200: var(--danger-border);
+  --ring-color-error-500: var(--danger);
+  --ring-color-error-800: var(--danger-border);
+  --ring-color-gray-200: var(--border-color);
+  --ring-color-gray-300: var(--border-color);
+  --ring-color-gray-600: var(--text-light);
+  --ring-color-gray-700: var(--text-light);
+  --ring-color-gray-blue-200: var(--border-color);
+  --ring-color-gray-blue-800: var(--text-main);
+  --ring-color-indigo-200: var(--border-color);
+  --ring-color-indigo-800: var(--border-color);
+  --ring-color-orange-200: var(--border-color);
+  --ring-color-orange-800: var(--text-main);
+  --ring-color-pink-200: var(--border-color);
+  --ring-color-pink-800: var(--text-main);
+  --ring-color-purple-200: var(--border-color);
+  --ring-color-purple-800: var(--border-color);
+  --ring-color-success-200: var(--success-border);
+  --ring-color-success-500: var(--success);
+  --ring-color-success-800: var(--success-border);
+  --ring-color-warning-200: var(--warning-border);
+  --ring-color-warning-800: var(--warning-border);
 }

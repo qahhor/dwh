@@ -154,6 +154,7 @@
   --primary-hover: var(--color-sky-800);
   --primary-subtle: var(--color-sky-100);
   --primary-text: var(--color-sky-700);
+  --primary-border: var(--color-sky-200);
   --on-primary: var(--color-white);
 
   /* Semantics.
@@ -168,6 +169,7 @@
   --warning: var(--color-amber-800);
   --warning-bg: var(--color-amber-100);
   --warning-text: var(--color-amber-800);
+  --warning-border: var(--color-amber-200);
   --on-warning: var(--color-white);
   --danger: var(--color-red-800);
   --danger-hover: var(--color-red-700);
@@ -241,6 +243,7 @@
   --primary-hover: var(--color-sky-500);
   --primary-subtle: var(--color-sky-950);
   --primary-text: var(--color-sky-300);
+  --primary-border: var(--color-sky-900);
   --on-primary: var(--color-navy-950);
 
   --success: var(--color-green-500);
@@ -251,6 +254,7 @@
   --warning: var(--color-amber-500);
   --warning-bg: var(--color-amber-950);
   --warning-text: var(--color-amber-500);
+  --warning-border: var(--color-amber-900);
   --on-warning: var(--color-navy-950);
   --danger: var(--color-red-500);
   --danger-hover: var(--color-red-400);
