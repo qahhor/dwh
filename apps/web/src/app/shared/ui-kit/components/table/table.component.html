@@ -1,0 +1,274 @@
+<div class="relative w-full h-full min-h-0 flex flex-col">
+  <!-- Compatibility: the tab bar is not vendored; see table.component.ts. -->
+
+  <div
+    #scrollContainer
+    class="smt-table-scroll flex-1 min-h-0 w-full overflow-x-auto overflow-y-auto bg-transparent border border-gray-200 rounded"
+    [style.max-height]="maxHeight()">
+    <div
+      #tableSurface
+      [class]="tableSurfaceClass() + ' min-h-full bg-white'"
+      [class.border-b-0]="isEmptyData()"
+      [class.rounded]="!hasTabs()"
+      [class.rounded-b]="hasTabs()"
+      [class.flex]="isEmptyData()"
+      [class.flex-col]="isEmptyData()"
+      [style.width.px]="biruniGridLayout() ? biruniGridWidthPx() : null"
+      [style.min-width.px]="biruniGridLayout() ? biruniGridWidthPx() : null">
+      <div #tableRef [class]="tableRefClass()">
+        @if (!config().hideHeader) {
+          <div
+            class="smt-grid-header smt-grid-line sticky top-0 z-10 w-full bg-gray-50 border-b border-gray-200"
+            [style.grid-template-columns]="gridTemplateColumns()">
+            @if (showCheckboxInDedicatedColumn()) {
+              <div class="smt-grid-checkbox-cell text-start p-0 relative overflow-hidden">
+                <smt-cell-header
+                  (smtCheckboxClick)="onHeaderCheckboxToggle($event)"
+                  [smtSelectedType]="selectionType()"
+                  [smtHasSelection]="true"
+                  [smtData]="checkboxHeaderContent"
+                  [smtHasSorting]="false" />
+              </div>
+            }
+            @if (virtualLeftSpacerPx() > 0) {
+              <div class="smt-virtual-col-spacer" aria-hidden="true"></div>
+            }
+            @for (col of visibleColumnsView(); track col.key) {
+              <div
+                [attr.data-smt-col-key]="col.key"
+                class="text-start p-0 relative overflow-visible"
+                [smtColumnResize]="columnResizeEnabled()"
+                [smtColumnResizeMin]="columnResizeMinPx()"
+                [smtColumnResizeMax]="columnResizeMaxPx()"
+                [smtColumnResizeContainerWidth]="columnResizeBasisWidth()"
+                [smtColumnResizeHandleWidth]="10"
+                [smtColumnResizePreventOverflow]="!biruniGridLayout()"
+                [smtColumnResizeLive]="true"
+                (resizeChange)="onColumnResizePreview(col.key, $event)"
+                (resizeEnd)="onColumnResizeEnd(col.key, $event)">
+                <smt-cell-header
+                  (smtCheckboxClick)="onHeaderCheckboxToggle($event)"
+                  [smtSelectedType]="selectionType()"
+                  [smtHasSelection]="col.hasInlineSelection"
+                  [smtAlign]="col.align"
+                  [smtData]="col.header"
+                  [smtHasSorting]="col.hasSorting"
+                  [smtSort]="col.sortedBy"
+                  (smtSortChange)="onSortingChange(col.sortKey, $event, col.key)"></smt-cell-header>
+              </div>
+            }
+            @if (virtualRightSpacerPx() > 0) {
+              <div class="smt-virtual-col-spacer" aria-hidden="true"></div>
+            }
+            @if (biruniShowsFillerColumn()) {
+              <div class="smt-grid-empty-cell p-0" aria-hidden="true"></div>
+            }
+          </div>
+        }
+
+        @if (!isEmptyData()) {
+          <div
+            cdkDropList
+            [cdkDropListData]="visualData()"
+            [cdkDropListDisabled]="!canUseRowDnd()"
+            (cdkDropListDropped)="onRowDrop($event)"
+            class="smt-grid-body">
+            @if (virtualTopSpacerPx() > 0) {
+              <div class="smt-virtual-spacer" aria-hidden="true" [style.height.px]="virtualTopSpacerPx()"></div>
+            }
+            @for (row of virtualRows(); track trackByRow($index + virtualRange().start, row)) {
+              @if (canUseRowDnd()) {
+                <div
+                  cdkDrag
+                  [cdkDragDisabled]="row === 2"
+                  [cdkDragData]="row"
+                  class="smt-data-row smt-grid-line w-full border-b border-gray-200"
+                  [ngClass]="resolveRowClass(row)"
+                  [class.cursor-pointer]="row === 2"
+                  [class.cursor-grab]="row !== 2"
+                  [class.smt-expanded]="expandedRow() === row"
+                  [class.border-b-0]="showDetailForRow(row)"
+                  [style.background-color]="
+                    selectedSet().has(row) ? 'var(--smt-table-row-selected-bg, rgba(99, 102, 241, 0.05))' : null
+                  "
+                  (click)="emitRowClick(row)"
+                  (dblclick)="emitRowDblClick(row)"
+                  [style.height]="config().rowHeight"
+                  [style.grid-template-columns]="gridTemplateColumns()">
+                  <ng-container *ngTemplateOutlet="rowCells; context: { $implicit: row }" />
+                </div>
+              } @else {
+                <div
+                  class="smt-data-row smt-grid-line w-full cursor-pointer border-b border-gray-200"
+                  [ngClass]="resolveRowClass(row)"
+                  [class.smt-expanded]="expandedRow() === row"
+                  [class.border-b-0]="showDetailForRow(row)"
+                  [style.background-color]="
+                    selectedSet().has(row) ? 'var(--smt-table-row-selected-bg, rgba(99, 102, 241, 0.05))' : null
+                  "
+                  (click)="emitRowClick(row)"
+                  (dblclick)="emitRowDblClick(row)"
+                  [style.height]="config().rowHeight"
+                  [style.grid-template-columns]="gridTemplateColumns()">
+                  <ng-container *ngTemplateOutlet="rowCells; context: { $implicit: row }" />
+                </div>
+              }
+
+              @if (showDetailForRow(row)) {
+                <div
+                  class="smt-detail-row border-b border-gray-200"
+                  [class.smt-closing]="detailClosing()"
+                  [style.height.px]="detailCloseHeightPx()"
+                  (animationend)="onDetailAnimationEnd(row, $event)"
+                  (transitionend)="onDetailCloseTransitionEnd(row, $event)">
+                  <div class="smt-detail-content overflow-hidden">
+                    <div
+                      class="smt-detail-inner pb-2 pe-3"
+                      [class.ps-12]="config().hasMultipleSelection"
+                      [class.ps-3]="!config().hasMultipleSelection"
+                      (click)="$event.stopPropagation()">
+                      @if (showDetailContent()) {
+                        <ng-container
+                          *ngTemplateOutlet="detailRowTemplate()!; context: { $implicit: row }"></ng-container>
+                      }
+                    </div>
+                  </div>
+                </div>
+              }
+            }
+            @if (virtualBottomSpacerPx() > 0) {
+              <div class="smt-virtual-spacer" aria-hidden="true" [style.height.px]="virtualBottomSpacerPx()"></div>
+            }
+          </div>
+        }
+      </div>
+
+      @if (isEmptyData()) {
+        <div class="flex min-h-48 flex-1 flex-col items-center justify-center gap-4 bg-white py-16">
+          <smt-icon [key]="'empty-state'" [width]="186" [height]="148" />
+          <p class="text-(--smt-text-secondary,#9ca3af) text-[12px] font-medium">
+            {{ i18n.messages().table.noResults }}
+          </p>
+        </div>
+      }
+    </div>
+  </div>
+
+  @if (showScrollToTop()) {
+    <div class="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex justify-center">
+      <button
+        type="button"
+        class="pointer-events-auto opacity-50 transition-all flex items-center justify-center rounded-t bg-gray-300 w-25 h-6 text-white hover:opacity-100 hover:text-gray-500"
+        (click)="scrollContainerToTop(scrollContainer)">
+        <smt-icon key="chevron-up" [fontSize]="20" />
+      </button>
+    </div>
+  }
+
+  @if (showHorizontalScrollLeft()) {
+    <div class="pointer-events-none absolute top-1/2 left-0 z-10 -translate-y-1/2">
+      <div
+        class="pointer-events-auto opacity-50 flex h-15 w-7 cursor-pointer items-center justify-center pe-2 rounded-r-full text-white bg-gray-300 transition-all hover:bg-gray-300 hover:opacity-100 hover:text-gray-500"
+        (mouseenter)="startHorizontalAutoScroll('left')"
+        (mouseleave)="stopHorizontalAutoScroll()">
+        <smt-icon key="left-arrow" [fontSize]="13" />
+      </div>
+    </div>
+  }
+
+  @if (showHorizontalScrollRight()) {
+    <div class="pointer-events-none absolute right-0 z-10 top-1/2 flex justify-end -translate-y-1/2">
+      <div
+        class="pointer-events-auto opacity-50 flex h-15 w-7 cursor-pointer items-center justify-center ps-2 rounded-l-full bg-gray-300 text-white transition-all hover:bg-gray-300 hover:opacity-100"
+        (mouseenter)="startHorizontalAutoScroll('right')"
+        (mouseleave)="stopHorizontalAutoScroll()">
+        <smt-icon key="right-arrow" [fontSize]="13" />
+      </div>
+    </div>
+  }
+</div>
+
+<ng-template #rowCells let-row>
+  @if (showCheckboxInDedicatedColumn()) {
+    <div class="smt-grid-checkbox-cell text-start p-0 overflow-hidden" (click)="$event.stopPropagation()">
+      <div class="flex h-full w-full items-center justify-center">
+        @if (isLoading()) {
+          <ng-container *smtSkeleton="true; width: '16px'; height: '16px'; radius: '4px'">
+            <smt-cell-content
+              [smtData]="checkboxCellContent"
+              [smtRow]="row"
+              [smtHasSelection]="true"
+              [smtIsSelected]="selectedSet().has(row)"
+              (smtIsSelectedChange)="toggleSelection(row)" />
+          </ng-container>
+        } @else {
+          <smt-cell-content
+            [smtData]="checkboxCellContent"
+            [smtRow]="row"
+            [smtHasSelection]="true"
+            [smtIsSelected]="selectedSet().has(row)"
+            (smtIsSelectedChange)="toggleSelection(row)" />
+        }
+      </div>
+    </div>
+  }
+  @if (virtualLeftSpacerPx() > 0) {
+    <div class="smt-virtual-col-spacer" aria-hidden="true"></div>
+  }
+  @for (col of visibleColumnsView(); track col.key) {
+    <div [attr.data-smt-col-key]="col.key" class="text-start p-0 overflow-hidden">
+      <div
+        class="flex min-h-9 min-w-0 items-center gap-3 h-full px-4 py-1"
+        [class.justify-center]="col.align === 'center'"
+        [class.justify-end]="col.align === 'right'">
+        @if (col.index === 0 && canUseRowDnd() && row !== 2) {
+          <smt-icon
+            key="menu-01"
+            [fontSize]="16"
+            class="shrink-0 text-gray-400 cursor-grab active:cursor-grabbing"
+            aria-hidden="true" />
+        }
+        @if (isLoading()) {
+          <div *smtSkeleton="true; width: '80%'; height: '1rem'; radius: '0.25rem'" class="w-full min-w-0">
+            <ng-container *ngTemplateOutlet="cellBody; context: { $implicit: row, col: col }" />
+          </div>
+        } @else {
+          <div class="w-full min-w-0">
+            <ng-container *ngTemplateOutlet="cellBody; context: { $implicit: row, col: col }" />
+          </div>
+        }
+      </div>
+    </div>
+  }
+  @if (virtualRightSpacerPx() > 0) {
+    <div class="smt-virtual-col-spacer" aria-hidden="true"></div>
+  }
+  @if (biruniShowsFillerColumn()) {
+    <div class="smt-grid-empty-cell p-0" aria-hidden="true"></div>
+  }
+</ng-template>
+
+<ng-template #cellBody let-row let-col="col">
+  @if (col.usesCellComponent) {
+    <smt-cell-content
+      [smtData]="col.content"
+      [smtRow]="row"
+      [smtAlign]="col.align"
+      [smtHasSelection]="col.hasInlineSelection"
+      [smtIsSelected]="selectedSet().has(row)"
+      (smtIsSelectedChange)="toggleSelection(row)" />
+  } @else if (col.content.type === 'html') {
+    <span
+      class="block min-w-0 break-all whitespace-normal text-md text-gray-700"
+      [class.text-end]="col.align === 'right'"
+      [class.text-center]="col.align === 'center'"
+      [innerHTML]="col.content.value(row)"></span>
+  } @else {
+    <span
+      class="block min-w-0 break-all whitespace-normal text-md text-gray-700"
+      [class.text-end]="col.align === 'right'"
+      [class.text-center]="col.align === 'center'"
+      >{{ col.content.value(row) }}</span
+    >
+  }
+</ng-template>

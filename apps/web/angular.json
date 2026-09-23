@@ -26,6 +26,7 @@
             ],
             "styles": [
               "src/fonts.css",
+              "src/tailwind.css",
               "src/styles.css"
             ],
             "scripts": []

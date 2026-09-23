@@ -16,3 +16,12 @@ Material Symbols Outlined
   Copyright Google LLC
   Apache License, Version 2.0 — https://www.apache.org/licenses/LICENSE-2.0
   apps/web/src/assets/fonts/material-symbols-outlined.woff2
+
+This product vendors a subset of @greenwhite/ui-kit, under the terms of its
+MIT licence, rather than depending on the published package. The files carry
+a header naming the upstream path and the commit they came from:
+
+@greenwhite/ui-kit — table foundation
+  Copyright (c) Smartup
+  MIT Licence
+  Vendored from commit 6472beb into apps/web/src/app/shared/ui-kit

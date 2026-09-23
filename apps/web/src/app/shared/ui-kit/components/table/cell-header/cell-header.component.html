@@ -1,0 +1,54 @@
+@if (hasSelection()) {
+  <label
+    (click)="$event.stopPropagation()"
+    smt-checkbox
+    smtSize="md"
+    smtHideLabel
+    [smtAriaLabel]="i18n.messages().dataTable.selectAll"
+    [smtIsHalfChecked]="selectedType() === 'partial-selected'"
+    [checked]="selectedType() === 'all-selected'"
+    (smtCheckedChange)="checkboxClick.emit($event)"></label>
+}
+
+@if (!selectionOnly()) {
+  <div class="flex min-w-0 items-center gap-1">
+    <div
+      #headerText
+      class="min-w-0 truncate text-md font-medium text-gray-900"
+      [smtTooltip]="tooltipText()"
+      [smtTooltipDisabled]="!tooltipText() || !isHeaderOverflowing()"
+      (mouseenter)="updateTooltipOverflow()">
+      @if (data(); as data) {
+        @if (data.type === 'primitive' && data; as data) {
+          <span class="block truncate">{{ data.value }}</span>
+        }
+
+        @if (data.type === 'date' && data; as data) {
+          <span class="block truncate">{{ data.value | date: data.format || 'd MMM y' }}</span>
+        }
+
+        @if (data.type === 'date-time' && data; as data) {
+          <span class="block truncate">{{ data.value | date: data.format || 'd MMM y, H:mm a' }}</span>
+        }
+
+        @if (data.type === 'html' && data; as data) {
+          <span class="block truncate" [innerHTML]="data.value"></span>
+        }
+
+        @if (data.type === 'templateRef' && data; as data) {
+          <ng-template [ngTemplateOutlet]="data.value()"></ng-template>
+        }
+
+        @if (data.type === 'component' && data; as data) {
+          <ng-container [ngComponentOutlet]="data.value.component" [ngComponentOutletInputs]="data.value.inputs" />
+        }
+      }
+    </div>
+
+    @if (hasSorting()) {
+      <div class="shrink-0">
+        <smt-sort-icon [smtSort]="sort()"></smt-sort-icon>
+      </div>
+    }
+  </div>
+}

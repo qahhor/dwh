@@ -1,0 +1,70 @@
+/* Tailwind, as a build-time layer for the vendored ui-kit subset only.
+   ADR-0015 permits this here and nowhere else.
+
+   Preflight is deliberately not imported. It is a global reset, and this
+   application's own styles are not written against it; pulling it in would
+   restyle every existing screen.
+
+   The theme block below is the whole point of the arrangement: Tailwind
+   emits `var(--color-*)` in its utilities, so pointing those variables at
+   this application's semantic tokens makes the vendored components follow
+   the theme without a single edit to their source. That keeps them
+   re-syncable with upstream, as ADR-0015 rule 2 requires. */
+
+@layer theme, base, components, utilities;
+
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+@source './app/shared/ui-kit/**/*.{html,ts}';
+
+@theme {
+  /* Drop Tailwind's default palette, spacing and font scales: this layer
+     exists only to serve the vendored subset, and an unused default costs
+     a CSS variable in every build. */
+  --color-*: initial;
+  --font-*: initial;
+
+  /* Surfaces. A vendored component saying `bg-white` means "the surface",
+     which in dark theme is not white. */
+  --color-white: var(--bg-surface);
+  --color-black: var(--text-main);
+
+  /* Neutrals carry structure: borders, muted text, subtle fills. */
+  --color-gray-25: var(--bg-app);
+  --color-gray-50: var(--bg-app);
+  --color-gray-100: var(--bg-hover);
+  --color-gray-200: var(--border-color);
+  --color-gray-300: var(--border-color);
+  --color-gray-400: var(--text-light);
+  --color-gray-500: var(--text-light);
+  --color-gray-600: var(--text-muted);
+  --color-gray-700: var(--text-muted);
+  --color-gray-800: var(--text-main);
+  --color-gray-900: var(--text-main);
+  --color-gray-950: var(--text-main);
+
+  /* Brand maps onto the accent. */
+  --color-brand-25: var(--primary-subtle);
+  --color-brand-50: var(--primary-subtle);
+  --color-brand-100: var(--primary-subtle);
+  --color-brand-200: var(--primary-subtle);
+  --color-brand-500: var(--primary);
+  --color-brand-600: var(--primary);
+  --color-brand-700: var(--primary-text);
+  --color-brand-800: var(--primary-hover);
+  --color-brand-950: var(--primary-subtle);
+
+  --color-error-50: var(--danger-bg);
+  --color-error-500: var(--danger);
+  --color-error-600: var(--danger);
+  --color-error-700: var(--danger-text);
+
+  --color-success-50: var(--success-bg);
+  --color-success-500: var(--success);
+  --color-success-700: var(--success-text);
+
+  --color-warning-50: var(--warning-bg);
+  --color-warning-500: var(--warning);
+  --color-warning-700: var(--warning-text);
+}

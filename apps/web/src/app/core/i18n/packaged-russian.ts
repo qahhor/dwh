@@ -1909,5 +1909,8 @@ export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(
   "iam.skryt_tekuschiy_parol": "Скрыть текущий пароль",
   "iam.pokazat_podtverzhdenie_parolya": "Показать подтверждение пароля",
   "iam.skryt_podtverzhdenie_parolya": "Скрыть подтверждение пароля",
-  "iam.paroli_ne_sovpadayut": "Пароли не совпадают"
+  "iam.paroli_ne_sovpadayut": "Пароли не совпадают",
+  "ui.table.vybrat_vse": "Выбрать все",
+  "ui.table.vybrat_stroku": "Выбрать строку",
+  "ui.table.nichego_ne_naydeno": "Ничего не найдено"
 });
