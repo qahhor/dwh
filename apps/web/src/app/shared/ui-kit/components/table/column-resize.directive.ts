@@ -402,6 +402,14 @@ export class ColumnResizeDirective implements OnInit, OnDestroy {
   }
 
   private shouldShowPassiveResizeLine(): boolean {
-    return typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches && this.smtColumnResize();
+    // Compatibility: guard matchMedia itself, not only window. It is absent in
+    // jsdom and in some embedded webviews, where the unguarded call throws.
+    // Browser behaviour is unchanged. Worth taking upstream.
+    return (
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(pointer: coarse)').matches &&
+      this.smtColumnResize()
+    );
   }
 }

@@ -34,6 +34,9 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- The language list in Settings renders through the vendored table
+  foundation instead of a hand-written table, the first screen to do so.
+
 - Unified the product as one SmartupCMS installation for one organization and
   many users.
 - Renamed runtime applications to `server` and `web` and consolidated the
