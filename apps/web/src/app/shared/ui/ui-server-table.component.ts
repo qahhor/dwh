@@ -17,7 +17,8 @@ import { UiPaginationComponent } from './ui-pagination.component';
  * - an empty result shows the screen's own empty state, but a failed first
  *   page shows only the error: "nothing found" would claim a result the
  *   server never gave;
- * - paging controls are disabled while a page is loading.
+ * - paging controls are disabled while a page is loading, and after a failed
+ *   request until it is retried (its cursors may belong to an old query).
  */
 @Component({
   selector: 'ui-server-table',
@@ -54,7 +55,7 @@ import { UiPaginationComponent } from './ui-pagination.component';
         [currentPage]="pager().page()"
         [cursorMode]="true"
         [hasNextPage]="pager().canGoForward()"
-        [disabled]="pager().loading()"
+        [disabled]="pager().loading() || pager().failed()"
         (pageChange)="pager().goTo($event)"
         (pageSizeChange)="pager().setPageSize($event)" />
     }

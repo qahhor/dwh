@@ -106,6 +106,23 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- After a failed filter or page-size change, the list's Next and Back still
+  worked and paged the new filters from a cursor of the old query, showing
+  rows from a different result as the next page. Paging now waits for the
+  retry, on every server-paged list.
+- Typing in the user search left Next usable for the 250 ms pause, paging
+  the new search text from the old query; the old query is now dropped as
+  soon as the text changes.
+- A manager the viewer cannot see (outside their scope, or deleted) showed
+  as "no manager" in the edit form while one was set. It shows by id, and
+  can be cleared deliberately.
+- A page emptied by deleting its last row stays on screen as an empty page
+  only on the users list; every server-paged list now steps back to the
+  page before it. A page moved to that arrives empty still stays.
+- Pressing Right on a search match in the organizational tree silently
+  changed which branches the user had opened.
+- The generic "operation failed" message showed its catalog key when the
+  language packs could not be loaded.
 - A server table whose first page failed showed the error and, beneath it,
   the empty state ("no audit records found"), claiming a result the server
   never returned. It now shows only the error and its retry.

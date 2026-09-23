@@ -265,7 +265,9 @@ export class SMTTreeTableComponent<T> {
       case 'End': target = rows[rows.length - 1]; break;
       case 'ArrowRight':
         if (!row.hasChildren) break;
-        if (!this.isExpanded(row)) this.setExpanded(row, true);
+        // While searching, the result decides what is open (as for the toggle
+        // button); expanding here would silently rewrite the user's own tree.
+        if (!this.isExpanded(row)) { if (!this.searching()) this.setExpanded(row, true); }
         else if (rows[index + 1]?.parentId === row.id) target = rows[index + 1];
         break;
       case 'ArrowLeft':

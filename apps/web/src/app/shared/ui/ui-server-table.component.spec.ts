@@ -69,6 +69,10 @@ describe('ui-server-table', () => {
     const alert = el(fixture).querySelector('#rows-error[role="alert"]')!;
     expect(alert.textContent).toContain('Rows failed');
     expect(rowText(fixture)).toEqual(['#1', '#2']);
+    // Until the retry, no paging control may continue from a cursor of the failed attempt.
+    for (const name of ['Следующая страница', 'Предыдущая страница']) {
+      expect((el(fixture).querySelector(`button[aria-label="${name}"]`) as HTMLButtonElement | null)?.disabled ?? true).toBe(true);
+    }
 
     fail = false;
     (alert.querySelector('button') as HTMLButtonElement).click();

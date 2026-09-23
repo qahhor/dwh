@@ -88,8 +88,9 @@ export class TasksComponent implements OnInit, OnDestroy {
      moves the page only when it arrives and retries exactly the failed one;
      the filters are read when each request is made. */
   readonly taskPager = new KeysetPager<Task>(
-    cursor => this.api.get<KeysetPage<Task>>('/tasks', this.filterService.buildListParams(cursor)),
-    { pageSize: 50, destroyRef: inject(DestroyRef) }
+    (cursor, limit) => this.api.get<KeysetPage<Task>>('/tasks', this.filterService.buildListParams(cursor, limit)),
+    // One page size: the pager's, which is also the limit each request sends.
+    { pageSize: this.filterService.pageSize, destroyRef: inject(DestroyRef) }
   );
   /** Writable: kanban and inline edits update rows in place. */
   readonly tasks = this.taskPager.items;
@@ -114,7 +115,7 @@ export class TasksComponent implements OnInit, OnDestroy {
   get statusFilterMode() { return this.filterService.statusFilterMode; }
   set statusFilterMode(v) { this.filterService.statusFilterMode = v; }
   get currentPage() { return this.taskPager.page(); }
-  get pageSize() { return this.filterService.pageSize; }
+  get pageSize() { return this.taskPager.pageSize(); }
   get showExportMenu() { return this.filterService.showExportMenu; }
   set showExportMenu(v) { this.filterService.showExportMenu = v; }
 

@@ -1,4 +1,5 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { DestroyRef, Injectable, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ApiService } from '../../../../core/services/api.service';
 import { User } from '../../../../core/models/auth.models';
 import { KeysetPage } from '../../../../core/models/common.models';
@@ -17,6 +18,7 @@ import { LookupChannel } from '../../../../shared/paging/lookup-channel';
 @Injectable()
 export class UserDirectoryService {
   private readonly api = inject(ApiService);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly known = signal<ReadonlyMap<number, User>>(new Map());
   /** Ids the server would not return (deleted, or outside the viewer's scope). */
   private readonly unavailable = new Set<number>();
@@ -62,7 +64,8 @@ export class UserDirectoryService {
     for (const id of ids) {
       if (id == null || this.known().has(id) || this.requested.has(id) || this.unavailable.has(id)) continue;
       this.requested.add(id);
-      this.api.get<User>(`/iam/users/${id}`, undefined, { notifyError: false }).subscribe({
+      // Bound to the screen: a lookup still in flight when it closes is dropped.
+      this.api.get<User>(`/iam/users/${id}`, undefined, { notifyError: false }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: user => {
           this.requested.delete(id);
           if (user?.id === id) this.remember([user]);
@@ -80,11 +83,15 @@ export class UserDirectoryService {
    * Options for the manager picker of `userId` (null when creating a user).
    * The current manager stays first, whatever the search returned, so the
    * picker can show who is selected; its name arrives through `resolve`.
+   * Until then, or when the server will not return that user, the manager
+   * shows by id: the picker must never read "no manager" while one is set.
    */
   managerOptions(userId: number | null, selectedId: number | null): SelectOption[] {
-    return this.withSelected(this.managers(), selectedId)
+    const options = this.withSelected(this.managers(), selectedId)
       .filter(user => user.id !== userId)
       .map(user => this.option(user));
+    if (selectedId != null && !this.known().has(selectedId)) options.unshift(this.unnamedOption(selectedId));
+    return options;
   }
 
   /** Starts a picker from the current selection alone, before the first search lands. */
@@ -108,6 +115,15 @@ export class UserDirectoryService {
     if (cached && cached.label === user.name && cached.subLabel === `@${user.login}`) return cached;
     const option = { id: user.id, label: user.name, subLabel: `@${user.login}` };
     this.options.set(user.id, option);
+    return option;
+  }
+
+  private unnamedOption(id: number): SelectOption {
+    const label = `ID: #${id}`;
+    const cached = this.options.get(id);
+    if (cached && cached.label === label) return cached;
+    const option = { id, label };
+    this.options.set(id, option);
     return option;
   }
 
