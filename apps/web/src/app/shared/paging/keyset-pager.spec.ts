@@ -101,4 +101,55 @@ describe('KeysetPager', () => {
     pager.first();
     expect([[...pager.items()], pager.canGoForward(), pager.total(), pager.failed()]).toEqual([[], false, 0, false]);
   });
+
+  it('grows the list with loadMore and stops at the last page', () => {
+    const fetch = server();
+    const pager = new KeysetPager<number>(fetch);
+    pager.first();
+    pager.loadMore();
+    expect([[...pager.items()], pager.page(), pager.canGoForward()]).toEqual([[1, 2, 3, 4], 1, true]);
+    pager.loadMore();
+    pager.loadMore();
+    expect([...pager.items()]).toEqual([1, 2, 3, 4, 5]);
+    expect(fetch).toHaveBeenCalledTimes(3);
+  });
+
+  it('never appends rows for an old filter to a new one', () => {
+    const answers: Subject<KeysetResponse<number>>[] = [];
+    const pager = new KeysetPager<number>(() => { const answer = new Subject<KeysetResponse<number>>(); answers.push(answer); return answer; });
+    pager.first();
+    answers[0].next(page([1, 2], 'c2'));
+    pager.loadMore();           // pending
+    expect(pager.loadingMore()).toBe(true);
+    pager.first();              // the filter changes meanwhile
+    answers[2].next(page([7], null));
+    answers[1].next(page([3, 4], null)); // the old "load more" answers late
+
+    expect([...pager.items()]).toEqual([7]);
+    expect([pager.loading(), pager.loadingMore()]).toEqual([false, false]);
+  });
+
+  it('keeps shown rows when load more fails, reports it apart from page failures, and retries it', () => {
+    let fail = false;
+    const pages = server();
+    const onError = vi.fn();
+    const pager = new KeysetPager<number>(cursor => (fail ? throwError(() => new Error('x')) : pages(cursor)), { onError });
+    pager.first();
+    fail = true;
+    pager.loadMore();
+    expect([[...pager.items()], pager.loadMoreFailed(), pager.failed()]).toEqual([[1, 2], true, false]);
+    expect(onError).toHaveBeenCalledWith('more');
+    fail = false;
+    pager.retry();
+    expect([[...pager.items()], pager.loadMoreFailed()]).toEqual([[1, 2, 3, 4], false]);
+  });
+
+  it('drops the answer in flight on invalidate and stays busy until the next request', () => {
+    const pending = new Subject<KeysetResponse<number>>();
+    const pager = new KeysetPager<number>(() => pending);
+    pager.first();
+    pager.invalidate();
+    pending.next(page([1], null));
+    expect([[...pager.items()], pager.loading()]).toEqual([[], true]);
+  });
 });

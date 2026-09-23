@@ -438,7 +438,6 @@ describe('UsersComponent UI contracts', () => {
 
     expect(fixture.componentInstance.users().length).toBe(1);
     expect(fixture.componentInstance.hasMore()).toBe(true);
-    expect(fixture.componentInstance.nextCursor).toBe('cursor_abc');
 
     api.get.mockReturnValueOnce(of({ items: [user2], nextCursor: null, hasMore: false }));
     fixture.componentInstance.loadMore();
@@ -446,6 +445,44 @@ describe('UsersComponent UI contracts', () => {
     expect(api.get).toHaveBeenCalledWith('/iam/users', expect.objectContaining({ cursor: 'cursor_abc', limit: 50 }));
     expect(fixture.componentInstance.users().length).toBe(2);
     expect(fixture.componentInstance.hasMore()).toBe(false);
+  });
+
+  it('never appends a pending page of the old filter to the new result', async () => {
+    const fixture = await createFixture();
+    const api = TestBed.inject(ApiService) as unknown as { get: ReturnType<typeof vi.fn> };
+    const pendingMore = new Subject<unknown>();
+    const pendingFilter = new Subject<unknown>();
+
+    api.get.mockReturnValueOnce(of({ items: [user(1, 'Первый')], nextCursor: 'c2', hasMore: true }));
+    fixture.componentInstance.loadUsers(true);
+    api.get.mockReturnValueOnce(pendingMore.asObservable());
+    fixture.componentInstance.loadMore();
+    api.get.mockReturnValueOnce(pendingFilter.asObservable());
+    fixture.componentInstance.selectedState = 'P';
+    fixture.componentInstance.loadUsers(true);
+
+    pendingFilter.next({ items: [user(9, 'Заблокированный')], nextCursor: null, hasMore: false }); pendingFilter.complete();
+    pendingMore.next({ items: [user(2, 'Второй')], nextCursor: null, hasMore: false }); pendingMore.complete();
+
+    expect(fixture.componentInstance.users().map(item => item.id)).toEqual([9]);
+  });
+
+  it('shows the answer to the latest search even when an earlier one answers last', async () => {
+    const fixture = await createFixture();
+    const api = TestBed.inject(ApiService) as unknown as { get: ReturnType<typeof vi.fn> };
+    const early = new Subject<unknown>();
+    const late = new Subject<unknown>();
+    fixture.componentInstance.searchQuery = 'ab';
+    api.get.mockReturnValueOnce(early.asObservable());
+    fixture.componentInstance.loadUsers(true);
+    fixture.componentInstance.searchQuery = 'abc';
+    api.get.mockReturnValueOnce(late.asObservable());
+    fixture.componentInstance.loadUsers(true);
+
+    late.next({ items: [user(3, 'abc')], nextCursor: null, hasMore: false }); late.complete();
+    early.next({ items: [user(4, 'ab')], nextCursor: null, hasMore: false }); early.complete();
+
+    expect(fixture.componentInstance.users().map(item => item.id)).toEqual([3]);
   });
 
   it('generateSecurePassword generates a 14-char password meeting all complexity rules', async () => {

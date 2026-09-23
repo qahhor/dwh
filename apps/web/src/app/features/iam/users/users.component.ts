@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, signal, HostListener, ElementRef, ViewChild, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, HostListener, ElementRef, ViewChild, inject, DestroyRef } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Observable, Subscription } from 'rxjs';
 import { canonicalRecordId, recordResponseMatches, safeNumericRecordId } from '../../../core/services/search-target';
@@ -12,6 +12,7 @@ import { User, UserSecuritySummary } from '../../../core/models/auth.models';
 import { Role } from '../../../core/models/rbac.models';
 import { CustomField } from '../../../core/models/custom-field.models';
 import { KeysetPage } from '../../../core/models/common.models';
+import { KeysetPager } from '../../../shared/paging/keyset-pager';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { UserOrgUnitsPanelComponent } from '../org-units/public-api';
 import { UserFilterBarComponent } from './components/user-filter-bar.component';
@@ -92,12 +93,23 @@ export class UsersComponent implements OnInit, OnDestroy {
   readonly orgPanelBusy = signal(false);
   readonly safeRecordId = safeNumericRecordId;
 
-  readonly users = signal<User[]>([]);
+  /* The list grows with "load more". The pager cancels a superseded request,
+     so a slower answer to an earlier search or filter can neither replace
+     the newer result nor be appended to it. */
+  readonly userPager = new KeysetPager<User>((cursor, limit) => this.api.get<KeysetPage<User>>('/iam/users', {
+    limit,
+    cursor: cursor ?? undefined,
+    search: this.searchQuery ? this.searchQuery.trim() : undefined,
+    state: this.selectedState || undefined,
+    role_id: this.selectedRoleId || undefined,
+    is_2fa_enabled: this.selected2fa !== null ? this.selected2fa : undefined
+  }), { pageSize: 50, destroyRef: inject(DestroyRef) });
+  readonly users = this.userPager.items;
   readonly roles = signal<Role[]>([]);
   readonly customFields = signal<CustomField[]>([]);
-  readonly isLoading = signal<boolean>(false);
-  readonly isLoadingMore = signal<boolean>(false);
-  readonly hasMore = signal<boolean>(false);
+  readonly isLoading = this.userPager.loading;
+  readonly isLoadingMore = this.userPager.loadingMore;
+  readonly hasMore = this.userPager.canGoForward;
 
   // Delegated signals and getters
   get isSubmitting() { return this.formsService.isSubmitting; }
@@ -141,7 +153,6 @@ export class UsersComponent implements OnInit, OnDestroy {
   get sortDirection() { return this.filterService.sortDirection; }
   set sortDirection(v: SortDirection) { this.filterService.sortDirection = v; }
 
-  nextCursor: string | null = null;
   readonly isViewModalOpen = signal<boolean>(false);
   readonly isDeleteModalOpen = signal<boolean>(false);
   readonly activeViewTab = signal<'info' | 'security' | 'orgUnits' | 'permissions'>('info');
@@ -237,45 +248,12 @@ export class UsersComponent implements OnInit, OnDestroy {
   }
 
   loadUsers(reset: boolean = false) {
-    if (reset) {
-      this.nextCursor = null;
-      this.isLoading.set(true);
-    } else {
-      this.isLoadingMore.set(true);
-    }
-
-    const params: any = {
-      limit: 50,
-      cursor: this.nextCursor || undefined,
-      search: this.searchQuery ? this.searchQuery.trim() : undefined,
-      state: this.selectedState || undefined,
-      role_id: this.selectedRoleId || undefined,
-      is_2fa_enabled: this.selected2fa !== null ? this.selected2fa : undefined
-    };
-
-    this.api.get<KeysetPage<User>>('/iam/users', params).subscribe({
-      next: res => {
-        this.isLoading.set(false);
-        this.isLoadingMore.set(false);
-        if (reset) {
-          this.users.set(res.items || []);
-        } else {
-          this.users.update(cur => [...cur, ...(res.items || [])]);
-        }
-        this.nextCursor = res.nextCursor;
-        this.hasMore.set(res.hasMore);
-      },
-      error: () => {
-        this.isLoading.set(false);
-        this.isLoadingMore.set(false);
-      }
-    });
+    if (reset) this.userPager.first();
+    else this.userPager.loadMore();
   }
 
   loadMore() {
-    if (this.hasMore() && !this.isLoading() && !this.isLoadingMore()) {
-      this.loadUsers(false);
-    }
+    this.userPager.loadMore();
   }
 
   loadRoles() {

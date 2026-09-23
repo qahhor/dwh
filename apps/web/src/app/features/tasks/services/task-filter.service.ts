@@ -13,13 +13,10 @@ export class TaskFilterService {
   selectedPriority = '';
   selectedProjectId: number | null = null;
   statusFilterMode: 'active' | 'all' | number = 'active';
-  currentPage = 1;
   readonly pageSize = 50;
   showExportMenu = false;
 
-  taskPageCursors: Array<string | null> = [null];
   taskSearchTimer?: ReturnType<typeof setTimeout>;
-  lastListAttempt: { page: number; cursor: string | null; reset: boolean } | null = null;
 
   hasActiveFilters(): boolean {
     return !!this.searchQuery || !!this.selectedPriority || this.selectedProjectId !== null || this.statusFilterMode !== 'active' || this.activePreset !== 'all';

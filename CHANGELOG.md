@@ -71,6 +71,13 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The users list could mix results: a "load more" still in flight when a
+  filter changed appended users from the old filter to the new list (a
+  blocked-users view showed active users), and a slower answer to an
+  earlier search replaced the answer to the latest one. The UPL sources
+  list appended a stale page after a refresh the same way. Both lists, and
+  the task list, now page through the shared keyset pager.
+
 - The audit screen could show results for a filter the user had already
   replaced: a slower response to an earlier request overwrote the newer
   one. After a failed "next page" it showed the new page number over the
