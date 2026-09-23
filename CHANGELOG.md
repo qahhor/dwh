@@ -71,6 +71,13 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The audit screen could show results for a filter the user had already
+  replaced: a slower response to an earlier request overwrote the newer
+  one. After a failed "next page" it showed the new page number over the
+  old rows. Both lists now page through a shared keyset pager that cancels
+  superseded requests, moves the page only when its data arrives, and
+  retries exactly the request that failed.
+
 - Creating a custom field without a name or code showed a raw key such as
   `iam.ukazhite_nazvanie_polya` instead of the validation message; the three
   missing keys are in every catalog.
