@@ -39,8 +39,12 @@ import { SMTI18nService } from '../../../i18n';
   templateUrl: './cell-header.component.html',
   host: {
     class:
-      'flex h-full items-center select-none min-w-0 overflow-hidden [&.has-sorting]:cursor-pointer [&.has-sorting]:hover:bg-[rgba(0,0,0,0.02)]',
+      'flex h-full items-center select-none min-w-0 overflow-hidden [&.has-sorting]:cursor-pointer [&.has-sorting]:hover:bg-gray-100 focus-visible:-outline-offset-2!',
     '[class.has-sorting]': `hasSorting()`,
+    // A sortable header is a control: reachable by Tab and operable by Enter
+    // and Space, not only by a pointer. `aria-sort` sits on the columnheader.
+    '[attr.role]': `hasSorting() ? 'button' : null`,
+    '[attr.tabindex]': `hasSorting() ? 0 : null`,
     // Regular header cells keep min-h-9; checkbox-only column must not — it stacks with the cell wrapper.
     '[class.min-h-9]': '!selectionOnly()',
     // Dedicated checkbox column: same padding as body checkbox cells (Biruni ~9px).
@@ -104,6 +108,7 @@ export class SMTCellHeaderComponent implements OnInit, OnDestroy {
       if (!textElement) return;
 
       this.updateTooltipOverflow();
+      if (typeof ResizeObserver === 'undefined') return;
       this.resizeObserver = new ResizeObserver(() => this.updateTooltipOverflow());
       this.resizeObserver.observe(textElement);
     });
@@ -111,9 +116,17 @@ export class SMTCellHeaderComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     if (this.hasSorting()) {
-      this.clickListenerDispose = this.renderer.listen(this.hostElement.nativeElement, 'click', () =>
-        this.changeSorting()
-      );
+      const host = this.hostElement.nativeElement;
+      const disposeClick = this.renderer.listen(host, 'click', () => this.changeSorting());
+      const disposeKey = this.renderer.listen(host, 'keydown', (event: KeyboardEvent) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        this.changeSorting();
+      });
+      this.clickListenerDispose = () => {
+        disposeClick();
+        disposeKey();
+      };
     }
   }
 

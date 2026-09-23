@@ -131,12 +131,13 @@ export class SMTSkeletonDirective implements OnDestroy {
     this.destroySkeletonElement();
   }
 
+  /* Surface tokens, not the kit's fixed greys: they already differ per theme,
+     so the kit's separate dark palette is not needed and a theme switch
+     repaints a running skeleton without recreating it. */
   private skeletonColors(): { base: string; shimmer: string } {
-    if (this.resolvedAppearance() === 'dark') {
-      return { base: '#252e40', shimmer: '#343e52' };
-    }
-    const v = this.smtSkeletonVariant();
-    return v === 'light' ? { base: '#E4E7EC', shimmer: '#F2F4F7' } : { base: '#D0D5DD', shimmer: '#E4E7EC' };
+    return this.smtSkeletonVariant() === 'light'
+      ? { base: 'var(--bg-hover)', shimmer: 'var(--bg-app)' }
+      : { base: 'var(--bg-active)', shimmer: 'var(--bg-hover)' };
   }
 
   private showSkeleton(): void {

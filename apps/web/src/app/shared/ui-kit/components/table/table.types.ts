@@ -80,6 +80,31 @@ export interface TableConfig<T> {
   columns: Record<string, ColumnInfo<T>>;
   columnsOrder: string[];
   rowClass?: (row: T) => TableRowClass | null | undefined;
+  /** Accessible name. Without one a screen reader announces an unnamed table. */
+  ariaLabel?: string;
+  /** ARIA pattern the rows follow. `treegrid` makes rows focusable and carries `rowAria`. */
+  ariaRole?: 'table' | 'treegrid';
+  /** Per-row ARIA state for the `treegrid` pattern. */
+  rowAria?: (row: T) => TableRowAria | null | undefined;
+}
+
+/** Row state a `treegrid` exposes to assistive technology (WAI-ARIA APG treegrid). */
+export interface TableRowAria {
+  /** Stable key, rendered as `data-smt-row-id` so keyboard focus can find the row again. */
+  id: string;
+  level: number;
+  /** `null` for a leaf, which has no expanded state. */
+  expanded: boolean | null;
+  setSize: number;
+  posInSet: number;
+  selected?: boolean;
+  /** Roving tabindex: exactly one row is 0, every other row is -1. */
+  tabindex: 0 | -1;
+}
+
+export interface TableRowKeydownEvent<T> {
+  row: T;
+  event: KeyboardEvent;
 }
 
 export interface TableTabItem {

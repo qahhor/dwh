@@ -242,7 +242,8 @@ import { LanguageEditorComponent } from '../language-editor.component';
     .font-medium { font-weight: 500; }
     .mono { font-family: monospace; }
     .table-actions-right {
-      display: inline-flex;
+      display: flex;
+      flex-wrap: wrap;
       align-items: center;
       justify-content: flex-end;
       gap: 6px;
@@ -390,16 +391,22 @@ export class SettingsLanguagesPanelComponent {
    */
   protected readonly tableConfig = computed<TableConfig<LanguageInfo>>(() => {
     const header = (text: string) => ({ type: 'primitive' as const, value: text });
+    // Every row is its own grid, so a content-sized track (max-content, fr)
+    // would size differently per row and misalign the columns. The code and
+    // status and actions tracks are fixed; the three text columns share the
+    // rest. The action buttons wrap rather than clip when their labels are long.
+    const share = 'max(120px, calc((100% - 528px) / 3))';
     return {
       trackBy: (_: number, lang: LanguageInfo) => lang.code,
+      ariaLabel: this.i18n.translate('settings.upravlenie_yazykovymi_paketami_i_lokalizaciey'),
       columnsOrder: ['code', 'name', 'type', 'coverage', 'status', 'actions'],
       columns: {
-        code: { header: header(this.i18n.translate('settings.kod')), content: { type: 'templateRef', value: this.codeCell } },
-        name: { header: header(this.i18n.translate('settings.nazvanie_yazyka')), content: { type: 'primitive', value: lang => lang.name } },
-        type: { header: header(this.i18n.translate('settings.tip')), content: { type: 'templateRef', value: this.typeCell } },
-        coverage: { header: header(this.i18n.translate('settings.gotovnost')), content: { type: 'templateRef', value: this.coverageCell } },
-        status: { header: header(this.i18n.translate('common.status')), content: { type: 'templateRef', value: this.statusCell } },
-        actions: { header: header(this.i18n.translate('common.actions')), content: { type: 'templateRef', value: this.actionsCell }, align: 'right' },
+        code: { header: header(this.i18n.translate('settings.kod')), content: { type: 'templateRef', value: this.codeCell }, width: '88px' },
+        name: { header: header(this.i18n.translate('settings.nazvanie_yazyka')), content: { type: 'primitive', value: lang => lang.name }, width: share },
+        type: { header: header(this.i18n.translate('settings.tip')), content: { type: 'templateRef', value: this.typeCell }, width: share },
+        coverage: { header: header(this.i18n.translate('settings.gotovnost')), content: { type: 'templateRef', value: this.coverageCell }, width: share },
+        status: { header: header(this.i18n.translate('common.status')), content: { type: 'templateRef', value: this.statusCell }, width: '160px' },
+        actions: { header: header(this.i18n.translate('common.actions')), content: { type: 'templateRef', value: this.actionsCell }, align: 'right', width: '280px' },
       },
     };
   });

@@ -28,7 +28,9 @@ import {
   OrderBy,
   TableColumnResizeEvent,
   TableConfig,
+  TableRowAria,
   TableRowClass,
+  TableRowKeydownEvent,
   TableRowReorderEvent,
   TableTabChangeEvent,
   TableTabItem,
@@ -158,6 +160,9 @@ export class SMTTableComponent<T> {
 
   rowClick = output<T>({ alias: 'smtRowClick' });
 
+  /** Keyboard input on a focusable (`treegrid`) row; the owner decides what a key does. */
+  rowKeydown = output<TableRowKeydownEvent<T>>({ alias: 'smtRowKeydown' });
+
   rowDblClick = output<T>({ alias: 'smtRowDblClick' });
 
   detailClosed = output<T>({ alias: 'smtDetailClosed' });
@@ -226,6 +231,35 @@ export class SMTTableComponent<T> {
   });
 
   isEmptyData = computed(() => !this.isLoading() && this.data().length === 0);
+
+  /* Table semantics. The grid is drawn with divs, so without these roles a
+     screen reader meets a stack of unrelated blocks instead of a table: no
+     header association, no row count, no sort state. */
+  protected tableRole = computed(() => this.config().ariaRole ?? 'table');
+
+  protected cellRole = computed(() => (this.tableRole() === 'treegrid' ? 'gridcell' : 'cell'));
+
+  private headerRowCount = computed(() => (this.config().hideHeader ? 0 : 1));
+
+  /** Counts every row, not only the rendered window, so virtualization is invisible to the reader. */
+  protected ariaRowCount = computed(() => this.headerRowCount() + this.tableData().length);
+
+  /** 1-based position among all rows, header included. */
+  protected ariaRowIndex(windowIndex: number): number {
+    return this.headerRowCount() + this.virtualRange().start + windowIndex + 1;
+  }
+
+  protected ariaSort(sortedBy: OrderBy | undefined, hasSorting: boolean): string | null {
+    if (!hasSorting) return null;
+    if (sortedBy === OrderBy.Asc) return 'ascending';
+    if (sortedBy === OrderBy.Desc) return 'descending';
+    return 'none';
+  }
+
+  protected rowAria(row: unknown): TableRowAria | null {
+    if (row === 2 || this.tableRole() !== 'treegrid') return null;
+    return this.config().rowAria?.(row as T) ?? null;
+  }
 
   /** Placeholder rows only when loading an empty table (no previous data to skeletonize). */
   skeletons = computed(() => {
@@ -591,6 +625,9 @@ export class SMTTableComponent<T> {
 
       this.syncHorizontalScrollPosition(container, true);
 
+      // Absent in jsdom and some embedded webviews; sizing then stays at its first measurement.
+      if (typeof ResizeObserver === 'undefined') return;
+
       this.ngZone.runOutsideAngular(() => {
         const observer = new ResizeObserver(() => {
           this.updateResizeContainerWidth();
@@ -759,19 +796,27 @@ export class SMTTableComponent<T> {
     this.rowClick.emit(row as T);
   }
 
+  emitRowKeydown(row: unknown, event: KeyboardEvent): void {
+    if (this.isLoading() || typeof row === 'number') return;
+    // Keys pressed inside a cell's own control belong to that control.
+    if (event.target !== event.currentTarget) return;
+    this.rowKeydown.emit({ row: row as T, event });
+  }
+
   emitRowDblClick(row: unknown): void {
     if (this.isLoading() || typeof row === 'number') return;
     this.rowDblClick.emit(row as T);
   }
 
   onSortingChange(key: string, sortBy: OrderBy | undefined, column: keyof TableConfig<T>['columns']) {
-    const other = Object.keys(this.config().columns).filter(res => res !== column);
+    // A new object, not a mutation: setting the same reference is not a change
+    // to a signal, so `aria-sort` and every other reader of the column kept
+    // the old state. It also leaves the owner's config object untouched.
     const config = this.config();
-    other.forEach(column => {
-      config.columns[column]['sortedBy'] = undefined;
-    });
-    config.columns[column]['sortedBy'] = sortBy;
-    this.config.set(config);
+    const columns = Object.fromEntries(
+      Object.entries(config.columns).map(([name, info]) => [name, { ...info, sortedBy: name === column ? sortBy : undefined }])
+    );
+    this.config.set({ ...config, columns });
     this.sortChange.emit(sortBy ? { column: key, sortBy } : undefined);
   }
 

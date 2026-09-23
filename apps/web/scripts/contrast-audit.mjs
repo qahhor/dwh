@@ -253,6 +253,12 @@ const COLOUR_UTILITY = new RegExp(
   'g',
 );
 
+// An arbitrary value (`text-[#9ca3af]`, `bg-(--x,#fff)`, `hover:bg-[rgba(...)]`)
+// names its colour inline, so it bypasses the bridge and ignores the theme.
+const ARBITRARY_COLOUR = /(?<![\w-])(?:[^\s'"`]*:)?(?:bg|text|border(?:-[trblxyse])?|ring(?:-offset)?|divide|outline|fill|stroke|placeholder|from|via|to|accent|caret|decoration)-[\[(][^\])\s]*(?:#[0-9a-f]{3,8}|rgba?\(|hsla?\(|oklch\(|--)[^\])\s]*[\])]/gi;
+// A colour literal anywhere else in a kit template, such as a style binding.
+const TEMPLATE_LITERAL = /(?<![\w&])#(?:[0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{3})\b|\b(?:rgba?|hsla?)\(\s*\d[^)]*\)/gi;
+
 async function readBridge() {
   const css = withoutComments(await readFile(bridgeFile, 'utf8'));
   const theme = /@theme(\s+inline)?\s*\{([^}]*)\}/.exec(css);
@@ -305,6 +311,15 @@ for (const root of bridge.sources) {
     const relative = path.relative(webRoot, file);
     const lines = (await readFile(file, 'utf8')).split('\n');
     lines.forEach((text, index) => {
+      const arbitrary = [...text.matchAll(ARBITRARY_COLOUR)].map(match => match[0]);
+      for (const utility of arbitrary) {
+        bridgeProblems.push(`${relative}:${index + 1} ${utility}: an arbitrary colour bypasses the bridge and ignores the theme; use a bridged utility`);
+      }
+      const rest = arbitrary.reduce((line, utility) => line.replace(utility, ''), text);
+      for (const literal of rest.matchAll(TEMPLATE_LITERAL)) {
+        bridgeProblems.push(`${relative}:${index + 1} ${literal[0]}: a colour literal in a kit template ignores the theme; name a token from styles.css`);
+      }
+
       const used = [];
       for (const [, variants, prefix, name, alpha] of text.matchAll(COLOUR_UTILITY)) {
         const utility = `${variants}${prefix}-${name}${alpha ?? ''}`;

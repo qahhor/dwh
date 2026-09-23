@@ -277,10 +277,16 @@
   --focus-ring: var(--color-sky-300);
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+/* The reset sits in the `base` layer that tailwind.css declares. Unlayered,
+   it outranked every layered Tailwind utility, so the vendored components
+   lost all their padding and margins. This application's own styles are
+   unlayered and still override it exactly as before. */
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
 }
 
 html, body {

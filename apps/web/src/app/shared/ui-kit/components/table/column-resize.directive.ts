@@ -21,8 +21,10 @@ interface ResizeSession {
   maxPx: number;
 }
 
-const RESIZE_LINE_ACTIVE_COLOR = '#d0d5dd';
-const RESIZE_LINE_PASSIVE_COLOR = 'rgba(208, 213, 221, 0.42)';
+// Theme tokens: the kit's fixed grey vanished against the dark surface. The
+// line being dragged takes the accent so the column under the pointer is clear.
+const RESIZE_LINE_ACTIVE_COLOR = 'var(--primary)';
+const RESIZE_LINE_PASSIVE_COLOR = 'var(--border-color)';
 const RESIZE_LINE_WIDTH_PX = 1;
 
 @Directive({

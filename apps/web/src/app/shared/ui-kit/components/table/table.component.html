@@ -15,13 +15,21 @@
       [class.flex-col]="isEmptyData()"
       [style.width.px]="biruniGridLayout() ? biruniGridWidthPx() : null"
       [style.min-width.px]="biruniGridLayout() ? biruniGridWidthPx() : null">
-      <div #tableRef [class]="tableRefClass()">
+      <div
+        #tableRef
+        [class]="tableRefClass()"
+        [attr.role]="tableRole()"
+        [attr.aria-label]="config().ariaLabel || null"
+        [attr.aria-rowcount]="ariaRowCount()"
+        [attr.aria-busy]="isLoading() || null">
         @if (!config().hideHeader) {
           <div
             class="smt-grid-header smt-grid-line sticky top-0 z-10 w-full bg-gray-50 border-b border-gray-200"
+            role="row"
+            aria-rowindex="1"
             [style.grid-template-columns]="gridTemplateColumns()">
             @if (showCheckboxInDedicatedColumn()) {
-              <div class="smt-grid-checkbox-cell text-start p-0 relative overflow-hidden">
+              <div class="smt-grid-checkbox-cell text-start p-0 relative overflow-hidden" role="columnheader">
                 <smt-cell-header
                   (smtCheckboxClick)="onHeaderCheckboxToggle($event)"
                   [smtSelectedType]="selectionType()"
@@ -37,6 +45,8 @@
               <div
                 [attr.data-smt-col-key]="col.key"
                 class="text-start p-0 relative overflow-visible"
+                role="columnheader"
+                [attr.aria-sort]="ariaSort(col.sortedBy, col.hasSorting)"
                 [smtColumnResize]="columnResizeEnabled()"
                 [smtColumnResizeMin]="columnResizeMinPx()"
                 [smtColumnResizeMax]="columnResizeMaxPx()"
@@ -72,25 +82,35 @@
             [cdkDropListData]="visualData()"
             [cdkDropListDisabled]="!canUseRowDnd()"
             (cdkDropListDropped)="onRowDrop($event)"
-            class="smt-grid-body">
+            class="smt-grid-body"
+            role="rowgroup">
             @if (virtualTopSpacerPx() > 0) {
               <div class="smt-virtual-spacer" aria-hidden="true" [style.height.px]="virtualTopSpacerPx()"></div>
             }
-            @for (row of virtualRows(); track trackByRow($index + virtualRange().start, row)) {
+            @for (row of virtualRows(); track trackByRow($index + virtualRange().start, row); let windowIndex = $index) {
+              @let aria = rowAria(row);
               @if (canUseRowDnd()) {
                 <div
                   cdkDrag
                   [cdkDragDisabled]="row === 2"
                   [cdkDragData]="row"
-                  class="smt-data-row smt-grid-line w-full border-b border-gray-200"
+                  class="smt-data-row smt-grid-line w-full border-b border-gray-200 focus-visible:-outline-offset-2!"
                   [ngClass]="resolveRowClass(row)"
                   [class.cursor-pointer]="row === 2"
                   [class.cursor-grab]="row !== 2"
                   [class.smt-expanded]="expandedRow() === row"
                   [class.border-b-0]="showDetailForRow(row)"
-                  [style.background-color]="
-                    selectedSet().has(row) ? 'var(--smt-table-row-selected-bg, rgba(99, 102, 241, 0.05))' : null
-                  "
+                  [style.background-color]="selectedSet().has(row) || aria?.selected ? 'var(--primary-subtle)' : null"
+                  role="row"
+                  [attr.aria-rowindex]="ariaRowIndex(windowIndex)"
+                  [attr.aria-level]="aria?.level ?? null"
+                  [attr.aria-expanded]="aria?.expanded ?? null"
+                  [attr.aria-setsize]="aria?.setSize ?? null"
+                  [attr.aria-posinset]="aria?.posInSet ?? null"
+                  [attr.aria-selected]="aria ? !!aria.selected : null"
+                  [attr.tabindex]="aria?.tabindex ?? null"
+                  [attr.data-smt-row-id]="aria?.id ?? null"
+                  (keydown)="emitRowKeydown(row, $event)"
                   (click)="emitRowClick(row)"
                   (dblclick)="emitRowDblClick(row)"
                   [style.height]="config().rowHeight"
@@ -99,13 +119,21 @@
                 </div>
               } @else {
                 <div
-                  class="smt-data-row smt-grid-line w-full cursor-pointer border-b border-gray-200"
+                  class="smt-data-row smt-grid-line w-full cursor-pointer border-b border-gray-200 focus-visible:-outline-offset-2!"
                   [ngClass]="resolveRowClass(row)"
                   [class.smt-expanded]="expandedRow() === row"
                   [class.border-b-0]="showDetailForRow(row)"
-                  [style.background-color]="
-                    selectedSet().has(row) ? 'var(--smt-table-row-selected-bg, rgba(99, 102, 241, 0.05))' : null
-                  "
+                  [style.background-color]="selectedSet().has(row) || aria?.selected ? 'var(--primary-subtle)' : null"
+                  role="row"
+                  [attr.aria-rowindex]="ariaRowIndex(windowIndex)"
+                  [attr.aria-level]="aria?.level ?? null"
+                  [attr.aria-expanded]="aria?.expanded ?? null"
+                  [attr.aria-setsize]="aria?.setSize ?? null"
+                  [attr.aria-posinset]="aria?.posInSet ?? null"
+                  [attr.aria-selected]="aria ? !!aria.selected : null"
+                  [attr.tabindex]="aria?.tabindex ?? null"
+                  [attr.data-smt-row-id]="aria?.id ?? null"
+                  (keydown)="emitRowKeydown(row, $event)"
                   (click)="emitRowClick(row)"
                   (dblclick)="emitRowDblClick(row)"
                   [style.height]="config().rowHeight"
@@ -116,12 +144,13 @@
 
               @if (showDetailForRow(row)) {
                 <div
+                  role="row"
                   class="smt-detail-row border-b border-gray-200"
                   [class.smt-closing]="detailClosing()"
                   [style.height.px]="detailCloseHeightPx()"
                   (animationend)="onDetailAnimationEnd(row, $event)"
                   (transitionend)="onDetailCloseTransitionEnd(row, $event)">
-                  <div class="smt-detail-content overflow-hidden">
+                  <div class="smt-detail-content overflow-hidden" [attr.role]="cellRole()">
                     <div
                       class="smt-detail-inner pb-2 pe-3"
                       [class.ps-12]="config().hasMultipleSelection"
@@ -146,7 +175,7 @@
       @if (isEmptyData()) {
         <div class="flex min-h-48 flex-1 flex-col items-center justify-center gap-4 bg-white py-16">
           <smt-icon [key]="'empty-state'" [width]="186" [height]="148" />
-          <p class="text-(--smt-text-secondary,#9ca3af) text-[12px] font-medium">
+          <p class="text-gray-600 text-[12px] font-medium">
             {{ i18n.messages().table.noResults }}
           </p>
         </div>
@@ -190,7 +219,10 @@
 
 <ng-template #rowCells let-row>
   @if (showCheckboxInDedicatedColumn()) {
-    <div class="smt-grid-checkbox-cell text-start p-0 overflow-hidden" (click)="$event.stopPropagation()">
+    <div
+      class="smt-grid-checkbox-cell text-start p-0 overflow-hidden"
+      [attr.role]="cellRole()"
+      (click)="$event.stopPropagation()">
       <div class="flex h-full w-full items-center justify-center">
         @if (isLoading()) {
           <ng-container *smtSkeleton="true; width: '16px'; height: '16px'; radius: '4px'">
@@ -216,7 +248,7 @@
     <div class="smt-virtual-col-spacer" aria-hidden="true"></div>
   }
   @for (col of visibleColumnsView(); track col.key) {
-    <div [attr.data-smt-col-key]="col.key" class="text-start p-0 overflow-hidden">
+    <div [attr.data-smt-col-key]="col.key" class="text-start p-0 overflow-hidden" [attr.role]="cellRole()">
       <div
         class="flex min-h-9 min-w-0 items-center gap-3 h-full px-4 py-1"
         [class.justify-center]="col.align === 'center'"

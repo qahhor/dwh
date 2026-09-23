@@ -64,6 +64,7 @@
   --background-color-error-950: var(--danger-bg);
   --background-color-gray-300: var(--bg-active);
   --background-color-gray-50: var(--bg-app);
+  --background-color-gray-100: var(--bg-hover);
   --background-color-gray-500: var(--text-light);
   --background-color-gray-900: var(--text-main);
   --background-color-gray-blue-50: var(--bg-app);
@@ -99,6 +100,7 @@
   --text-color-blue-light-700: var(--primary-text);
   --text-color-brand-300: var(--primary-text);
   --text-color-brand-400: var(--primary-text);
+  --text-color-brand-600: var(--primary-text);
   --text-color-brand-700: var(--primary-text);
   --text-color-error-300: var(--danger-text);
   --text-color-error-700: var(--danger-text);

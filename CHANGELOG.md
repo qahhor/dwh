@@ -28,6 +28,14 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   inlined, and a background and a text utility used together must meet
   WCAG AA in both themes. A newly ported component that brings a new
   colour fails the gate instead of rendering colourless.
+- The vendored table is announced as a table. It was drawn with bare divs,
+  so a screen reader met unrelated blocks; it now carries table, row,
+  columnheader and cell roles, an accessible name, a row count that stays
+  correct under virtualization, and `aria-sort` on sortable columns, which
+  are reachable by Tab and sort with Enter or Space.
+- The design token audit also fails on arbitrary Tailwind colours
+  (`text-[#…]`, `bg-(--x,#…)`) and on colour literals in kit templates,
+  which bypass the bridge and ignore the theme.
 - Theme changes propagate to the application's other open tabs over a
   same-origin broadcast channel, so a window left open no longer keeps the
   previous theme until it is reloaded.
@@ -51,6 +59,18 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   default.
 
 ### Fixed
+
+- Vendored components rendered without any padding or margins: the
+  application's global reset was unlayered and outranked every layered
+  Tailwind utility. The reset now sits in the `base` layer; the
+  application's own styles override it as before.
+- The table's sort indicator never showed a direction, and `aria-sort` kept
+  its old value after sorting, because the column config was mutated in
+  place. The indicator is a direction glyph and the config is replaced.
+- The table skeleton and column-resize line used fixed greys that vanished
+  on the dark surface; they follow the theme tokens.
+- The language list's action buttons were clipped; columns now have fixed
+  tracks and the buttons wrap.
 
 - The Settings language list rendered as a white panel in dark theme. The
   Tailwind bridge declared `--color-white` as a layered theme variable, which

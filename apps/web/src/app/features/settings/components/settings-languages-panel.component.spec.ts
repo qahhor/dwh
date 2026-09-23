@@ -27,6 +27,10 @@ describe('SettingsLanguagesPanelComponent on the vendored table', () => {
 
     expect(el.querySelector('smt-table')).not.toBeNull();
     expect(el.querySelector('table')).toBeNull();
+    // Drawn with divs, still announced as a named table with one row per language plus the header.
+    const table = el.querySelector('[role="table"]')!;
+    expect(table.getAttribute('aria-label')).toBeTruthy();
+    expect(table.getAttribute('aria-rowcount')).toBe('4');
     for (const code of ['ru', 'en', 'kk']) {
       expect(el.querySelector(`[data-testid="edit-language-${code}"]`)).not.toBeNull();
     }
