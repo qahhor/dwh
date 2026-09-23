@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, DestroyRef, effect, EventEmitter, HostListener, inject, Input, OnChanges, Output, signal, SimpleChanges } from '@angular/core';
+import { ChangeDetectorRef, Component, computed, DestroyRef, effect, EventEmitter, HostListener, inject, Input, OnChanges, Output, signal, SimpleChanges } from '@angular/core';
 import { Observable, Subscription } from 'rxjs';
 import { ProblemDetail } from '../../../core/models/common.models';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
@@ -8,13 +8,15 @@ import { ToastService } from '../../../core/services/toast.service';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { OrgUnitDraft } from './org-unit-draft';
-import { OrgUnitTreeComponent } from './org-unit-tree.component';
+import { SMTTreeTableComponent } from '../../../shared/ui-kit/components/tree-table/tree-table.component';
+import { TreeRow } from '../../../shared/ui-kit/components/tree-table/tree.utils';
+import { OrgUnitTreeRows, orgUnitSearchText, orgUnitTreeColumns } from './org-unit-tree';
 import { OrgUnitsApiService } from './org-units-api.service';
 import { OrgUnit, UserScope } from './org-units.models';
 
 @Component({
   selector: 'app-user-org-units-panel', standalone: true,
-  imports: [TranslatePipe, UiButtonComponent, UiModalComponent, OrgUnitTreeComponent],
+  imports: [TranslatePipe, UiButtonComponent, UiModalComponent, SMTTreeTableComponent],
   templateUrl: './user-org-units-panel.component.html', styleUrl: './user-org-units-panel.component.css'
 })
 export class UserOrgUnitsPanelComponent implements OnChanges {
@@ -35,6 +37,13 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
   private originalOrgUnitIds: readonly number[] = [];
 
   readonly selectedOrgUnitIds = signal<readonly number[]>([]);
+  /** The tree table identifies rows by string id. */
+  readonly checkedRowIds = computed(() => this.selectedOrgUnitIds().map(String));
+  readonly search = signal('');
+  private readonly treeRowCache = new OrgUnitTreeRows();
+  get treeRows(): TreeRow<OrgUnit>[] { return this.treeRowCache.of(this.units); }
+  readonly searchText = orgUnitSearchText(key => this.i18n.translate(key));
+  readonly treeColumns = computed(() => orgUnitTreeColumns(key => this.i18n.translate(key)));
   units: OrgUnit[] = [];
   legacyOrgUnitId: number | null = null;
   effectiveScope: UserScope | null = null;

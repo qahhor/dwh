@@ -25,6 +25,17 @@ The base URL can be overridden with `INSTANCE_BASE_URL`. The launcher's readines
 checks use the same UI variable; a non-default management endpoint can be set with
 `INSTANCE_HEALTH_URL`.
 
+## Accessibility gate
+
+`npm run test:a11y` checks the screens built on the shared table, tree and
+server table (languages, organizational structure, both audit lists, a
+user's division assignments, the task list with a lookup open) against
+WCAG 2.1 A and AA with axe, in light and dark themes. It needs no stack: it
+serves the production build from `apps/web/dist/web/browser` (run
+`npm run build` in `apps/web` first) with the API mocked by
+`support/a11y-fixtures.mjs`, so it runs in the CI frontend job. Set
+`PLAYWRIGHT_CHROMIUM_EXECUTABLE` to use a preinstalled Chromium.
+
 ## Coverage
 
 - Protected-route redirect, invalid login, admin navigation and logout;

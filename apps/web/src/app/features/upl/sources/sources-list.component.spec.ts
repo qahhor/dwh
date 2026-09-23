@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { Router, provideRouter } from '@angular/router';
-import { NEVER, Observable, of, throwError } from 'rxjs';
+import { NEVER, Observable, of, Subject, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { KeysetPage, ProblemDetail } from '../../../core/models/common.models';
 import { PermissionService } from '../../../core/services/permission.service';
@@ -127,6 +127,22 @@ describe('SourcesListComponent', () => {
     expect(api.listSources).toHaveBeenLastCalledWith(50, 'cursor-1');
     expect(testId(fixture, 'upl-source-row')).toHaveLength(2);
     expect(testId(fixture, 'upl-more')).toHaveLength(0);
+  });
+
+  it('не дописывает к обновлённому списку страницу, запрошенную до обновления', async () => {
+    const pendingMore = new Subject<KeysetPage<UplSourceItem>>();
+    const reloaded = new Subject<KeysetPage<UplSourceItem>>();
+    const { fixture } = await createFixture({
+      pages: [of(page([firstItem], true, 'cursor-1')), pendingMore.asObservable(), reloaded.asObservable()]
+    });
+
+    fixture.componentInstance.loadMore();
+    fixture.componentInstance.load();
+    reloaded.next(page([secondItem])); reloaded.complete();
+    pendingMore.next(page([firstItem])); pendingMore.complete();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.items().map(item => item.id)).toEqual([5]);
   });
 
   it('при hasMore без курсора кнопку «Загрузить ещё» не показывает и страницу не повторяет', async () => {

@@ -1,8 +1,9 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ApiService } from '../../core/services/api.service';
 import { ToastService } from '../../core/services/toast.service';
 import { TranslatePipe } from '../../core/services/i18n.service';
+import { KeysetPager } from '../../shared/paging/keyset-pager';
 
 import {
   AuditRecord,
@@ -87,13 +88,7 @@ export * from './audit.models';
       <!-- TAB 1: AUDIT LOGS -->
       <app-audit-logs-table
         *ngIf="activeTab === 'audit'"
-        [auditLogs]="auditLogs()"
-        [auditTotal]="auditTotal()"
-        [auditHasMore]="auditHasMore()"
-        [auditPageSize]="auditPageSize"
-        [auditCurrentPage]="auditCurrentPage"
-        [isLoading]="isLoading()"
-        [auditError]="auditError()"
+        [pager]="auditPager"
         [tableFilter]="tableFilter"
         [eventFilter]="eventFilter"
         [rowPkFilter]="rowPkFilter"
@@ -108,22 +103,13 @@ export * from './audit.models';
         (auditToFilterChange)="auditToFilter = $event"
         (applyFilters)="loadAuditLogs(true)"
         (resetFilters)="resetAuditFilters()"
-        (retryLoad)="loadAuditLogs()"
         (selectRecord)="selectAuditRecord($event)"
-        (pageChange)="onAuditPageChange($event)"
-        (pageSizeChange)="onAuditPageSizeChange($event)"
       ></app-audit-logs-table>
 
       <!-- TAB 2: SECURITY EVENTS -->
       <app-audit-security-table
         *ngIf="activeTab === 'security'"
-        [securityEvents]="securityEvents()"
-        [securityTotal]="securityTotal()"
-        [securityHasMore]="securityHasMore()"
-        [secPageSize]="secPageSize"
-        [secCurrentPage]="secCurrentPage"
-        [isLoading]="isLoading()"
-        [securityError]="securityError()"
+        [pager]="securityPager"
         [secEventTypeFilter]="secEventTypeFilter"
         [secIpFilter]="secIpFilter"
         [securityUserFilter]="securityUserFilter"
@@ -136,10 +122,7 @@ export * from './audit.models';
         (securityToFilterChange)="securityToFilter = $event"
         (applyFilters)="loadSecurityEvents(true)"
         (resetFilters)="resetSecurityFilters()"
-        (retryLoad)="loadSecurityEvents()"
         (selectEvent)="selectSecurityEvent($event)"
-        (pageChange)="onSecurityPageChange($event)"
-        (pageSizeChange)="onSecurityPageSizeChange($event)"
       ></app-audit-security-table>
 
       <!-- MODALS -->
@@ -154,17 +137,8 @@ export * from './audit.models';
   styleUrl: './audit.component.css'
 })
 export class AuditComponent implements OnInit {
-  readonly auditLogs = signal<AuditRecord[]>([]);
-  readonly securityEvents = signal<SecurityEventRecord[]>([]);
-  readonly auditTotal = signal<number>(0);
-  readonly securityTotal = signal<number>(0);
-  readonly auditHasMore = signal<boolean>(false);
-  readonly securityHasMore = signal<boolean>(false);
   readonly stats = signal<AuditStats | null>(null);
-  readonly isLoading = signal<boolean>(false);
   readonly statsError = signal<boolean>(false);
-  readonly auditError = signal<boolean>(false);
-  readonly securityError = signal<boolean>(false);
 
   activeTab: 'audit' | 'security' = 'audit';
 
@@ -175,10 +149,6 @@ export class AuditComponent implements OnInit {
   auditUserFilter = '';
   auditFromFilter = '';
   auditToFilter = '';
-  auditCurrentPage = 1;
-  auditPageSize = 20;
-  private auditNextCursor: string | null = null;
-  private auditPageCursors: Array<string | null> = [null];
   selectedAudit: AuditRecord | null = null;
 
   // Security Events Filters & Pagination
@@ -187,11 +157,49 @@ export class AuditComponent implements OnInit {
   securityUserFilter = '';
   securityFromFilter = '';
   securityToFilter = '';
-  secCurrentPage = 1;
-  secPageSize = 20;
-  private securityNextCursor: string | null = null;
-  private securityPageCursors: Array<string | null> = [null];
   selectedSecEvent: SecurityEventRecord | null = null;
+
+  private readonly destroyRef = inject(DestroyRef);
+
+  /* Each list pages through its own keyset endpoint. The pager reads the
+     filters at request time, cancels a superseded request and moves the page
+     number only when that page arrives. */
+  readonly auditPager = new KeysetPager<AuditRecord>((cursor, limit) =>
+    this.api.get<AuditPage<AuditRecord>>('/audit/logs', {
+      table_name: this.tableFilter || undefined,
+      row_pk: this.rowPkFilter.trim() || undefined,
+      event: this.eventFilter || undefined,
+      user_id: this.auditUserFilter.trim() || undefined,
+      from: this.startOfUtcDay(this.auditFromFilter),
+      to: this.endOfUtcDay(this.auditToFilter),
+      limit,
+      cursor: cursor ?? undefined
+    }), { destroyRef: this.destroyRef });
+
+  readonly securityPager = new KeysetPager<SecurityEventRecord>((cursor, limit) =>
+    this.api.get<AuditPage<SecurityEventRecord>>('/audit/security-events', {
+      event_type: this.secEventTypeFilter || undefined,
+      user_id: this.securityUserFilter.trim() || undefined,
+      ip: this.secIpFilter || undefined,
+      from: this.startOfUtcDay(this.securityFromFilter),
+      to: this.endOfUtcDay(this.securityToFilter),
+      limit,
+      cursor: cursor ?? undefined
+    }), { destroyRef: this.destroyRef });
+
+  readonly auditLogs = computed(() => this.auditPager.items() as AuditRecord[]);
+  readonly auditTotal = this.auditPager.total;
+  readonly auditHasMore = this.auditPager.canGoForward;
+  readonly auditError = this.auditPager.failed;
+  get auditCurrentPage(): number { return this.auditPager.page(); }
+  get auditPageSize(): number { return this.auditPager.pageSize(); }
+
+  readonly securityEvents = computed(() => this.securityPager.items() as SecurityEventRecord[]);
+  readonly securityTotal = this.securityPager.total;
+  readonly securityHasMore = this.securityPager.canGoForward;
+  readonly securityError = this.securityPager.failed;
+  get secCurrentPage(): number { return this.securityPager.page(); }
+  get secPageSize(): number { return this.securityPager.pageSize(); }
 
   constructor(
     private api: ApiService,
@@ -232,62 +240,13 @@ export class AuditComponent implements OnInit {
   }
 
   loadAuditLogs(resetPagination = false) {
-    if (resetPagination) this.resetAuditPagination();
-    const cursor = this.auditPageCursors[this.auditCurrentPage - 1] ?? undefined;
-    this.auditError.set(false);
-    this.isLoading.set(true);
-    this.api.get<AuditPage<AuditRecord>>('/audit/logs', {
-      table_name: this.tableFilter || undefined,
-      row_pk: this.rowPkFilter.trim() || undefined,
-      event: this.eventFilter || undefined,
-      user_id: this.auditUserFilter.trim() || undefined,
-      from: this.startOfUtcDay(this.auditFromFilter),
-      to: this.endOfUtcDay(this.auditToFilter),
-      limit: this.auditPageSize,
-      cursor
-    }).subscribe({
-      next: res => {
-        this.auditLogs.set(res?.items || []);
-        this.auditTotal.set(res?.totalEstimated || 0);
-        this.auditNextCursor = res?.nextCursor || null;
-        this.auditHasMore.set(Boolean(res?.hasMore));
-        this.auditError.set(false);
-        this.isLoading.set(false);
-      },
-      error: () => {
-        this.auditError.set(true);
-        this.isLoading.set(false);
-      }
-    });
+    if (resetPagination) this.auditPager.first();
+    else this.auditPager.reload();
   }
 
   loadSecurityEvents(resetPagination = false) {
-    if (resetPagination) this.resetSecurityPagination();
-    const cursor = this.securityPageCursors[this.secCurrentPage - 1] ?? undefined;
-    this.securityError.set(false);
-    this.isLoading.set(true);
-    this.api.get<AuditPage<SecurityEventRecord>>('/audit/security-events', {
-      event_type: this.secEventTypeFilter || undefined,
-      user_id: this.securityUserFilter.trim() || undefined,
-      ip: this.secIpFilter || undefined,
-      from: this.startOfUtcDay(this.securityFromFilter),
-      to: this.endOfUtcDay(this.securityToFilter),
-      limit: this.secPageSize,
-      cursor
-    }).subscribe({
-      next: res => {
-        this.securityEvents.set(res?.items || []);
-        this.securityTotal.set(res?.totalEstimated || 0);
-        this.securityNextCursor = res?.nextCursor || null;
-        this.securityHasMore.set(Boolean(res?.hasMore));
-        this.securityError.set(false);
-        this.isLoading.set(false);
-      },
-      error: () => {
-        this.securityError.set(true);
-        this.isLoading.set(false);
-      }
-    });
+    if (resetPagination) this.securityPager.first();
+    else this.securityPager.reload();
   }
 
   resetAuditFilters() {
@@ -318,49 +277,19 @@ export class AuditComponent implements OnInit {
   }
 
   onAuditPageChange(page: number) {
-    if (page === this.auditCurrentPage + 1) {
-      if (!this.auditHasMore() || !this.auditNextCursor) return;
-      this.auditPageCursors[page - 1] = this.auditNextCursor;
-    } else if (page !== this.auditCurrentPage - 1 || page < 1) {
-      return;
-    }
-    this.auditCurrentPage = page;
-    this.loadAuditLogs();
+    this.auditPager.goTo(page);
   }
 
   onAuditPageSizeChange(pageSize: number) {
-    this.auditPageSize = pageSize;
-    this.loadAuditLogs(true);
+    this.auditPager.setPageSize(pageSize);
   }
 
   onSecurityPageChange(page: number) {
-    if (page === this.secCurrentPage + 1) {
-      if (!this.securityHasMore() || !this.securityNextCursor) return;
-      this.securityPageCursors[page - 1] = this.securityNextCursor;
-    } else if (page !== this.secCurrentPage - 1 || page < 1) {
-      return;
-    }
-    this.secCurrentPage = page;
-    this.loadSecurityEvents();
+    this.securityPager.goTo(page);
   }
 
   onSecurityPageSizeChange(pageSize: number) {
-    this.secPageSize = pageSize;
-    this.loadSecurityEvents(true);
-  }
-
-  private resetAuditPagination() {
-    this.auditCurrentPage = 1;
-    this.auditPageCursors = [null];
-    this.auditNextCursor = null;
-    this.auditHasMore.set(false);
-  }
-
-  private resetSecurityPagination() {
-    this.secCurrentPage = 1;
-    this.securityPageCursors = [null];
-    this.securityNextCursor = null;
-    this.securityHasMore.set(false);
+    this.securityPager.setPageSize(pageSize);
   }
 
   private startOfUtcDay(value: string): string | undefined {

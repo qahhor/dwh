@@ -1,0 +1,80 @@
+<div
+  (click)="toggle($event)"
+  [ngClass]="{
+    'cursor-not-allowed': isDisabled(),
+    'cursor-pointer': !isDisabled(),
+    'gap-2': size() === 'sm',
+    'gap-2.5': size() === 'md',
+    'gap-3': size() === 'lg',
+    'items-center': !hasHint(),
+    'items-start': hasHint(),
+  }"
+  class="flex">
+  <input
+    #inputElement
+    aria-hidden="true"
+    [checked]="checked()"
+    [disabled]="isDisabled()"
+    [id]="id()"
+    class="sr-only"
+    tabindex="-1"
+    type="checkbox" />
+  <span
+    (blur)="markTouched()"
+    (keydown)="handleKeydown($event)"
+    [attr.aria-checked]="isNamedCheckbox() ? ariaChecked() : null"
+    [attr.aria-describedby]="describedById()"
+    [attr.aria-disabled]="isNamedCheckbox() ? isDisabled() : null"
+    [attr.aria-invalid]="isNamedCheckbox() && hasError() ? 'true' : null"
+    [attr.aria-label]="hideLabel() ? resolvedAriaLabel() : null"
+    [attr.aria-labelledby]="labelledById()"
+    [attr.aria-required]="isNamedCheckbox() && required() ? 'true' : null"
+    [attr.role]="isNamedCheckbox() ? 'checkbox' : null"
+    [class]="controlClasses()"
+    [tabindex]="isNamedCheckbox() && !isDisabled() ? '0' : '-1'">
+    <smt-icon
+      key="checkbox-minus"
+      [fontSize]="size() === 'sm' ? '10px' : size() === 'lg' ? '14px' : '12px'"
+      [ngClass]="{
+        'opacity-0': !isHalfChecked(),
+        'opacity-100': isHalfChecked(),
+      }"
+      [class]="iconColorClasses()"
+      class="pointer-events-none col-start-1 row-start-1 transition-inherit-all" />
+    <smt-icon
+      key="checkbox-check"
+      [fontSize]="size() === 'sm' ? '10px' : size() === 'lg' ? '14px' : '12px'"
+      [ngClass]="{
+        'opacity-0': !checked() || isHalfChecked(),
+        'opacity-100': checked() && !isHalfChecked(),
+      }"
+      [class]="iconColorClasses()"
+      class="pointer-events-none absolute transition-inherit-all" />
+  </span>
+
+  @if (!hideLabel()) {
+    <div class="inline-flex flex-col select-none" [class.gap-0.5]="hasHint()">
+      <p
+        [id]="labelId"
+        class="font-medium text-gray-700"
+        [ngClass]="{
+          'text-sm': size() === 'sm' || size() === 'md',
+          'text-md': size() === 'lg',
+        }">
+        <ng-content></ng-content>
+      </p>
+      @if (hasHint()) {
+        <span
+          [id]="hintId"
+          class="cursor-default text-gray-600"
+          [ngClass]="{
+            'text-sm': size() === 'sm' || size() === 'md',
+            'text-md': size() === 'lg',
+          }"
+          (click)="$event.stopPropagation()">
+          {{ hint() }}
+        </span>
+      }
+    </div>
+  }
+</div>

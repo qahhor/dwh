@@ -141,7 +141,7 @@ import { AuditStats } from '../audit.models';
       border-radius: 8px;
       font-size: 13px;
       background: var(--danger-bg);
-      color: var(--danger);
+      color: var(--danger-text);
       border: 1px solid var(--danger);
       margin-top: 12px;
     }

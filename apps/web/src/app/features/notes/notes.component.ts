@@ -45,7 +45,7 @@ export interface Note {
       <div class="view-header">
         <div class="header-left">
           <h1 class="view-title">{{ 'notes.title' | t }}</h1>
-          <span class="count-badge" [attr.aria-label]="'notes.title' | t">{{ notes().length }}</span>
+          <span class="count-badge">{{ notes().length }}</span>
 
           <div class="tabs-bar" role="tablist" [attr.aria-label]="'notes.title' | t">
             <button

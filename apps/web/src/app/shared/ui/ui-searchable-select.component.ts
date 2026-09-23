@@ -224,7 +224,7 @@ export interface SelectOption {
       display: flex;
       border-radius: 3px;
     }
-    .clear-btn:hover { color: var(--danger); background-color: var(--danger-bg); }
+    .clear-btn:hover { color: var(--danger-text); background-color: var(--danger-bg); }
     .clear-btn .material-symbols-outlined { font-size: 14px; }
     .arrow-icon { font-size: 18px; color: var(--text-muted); }
     .select-trigger.has-value { padding-right: 50px; }

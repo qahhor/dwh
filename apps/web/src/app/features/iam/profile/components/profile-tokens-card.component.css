@@ -247,8 +247,8 @@
     }
 
     .warning-box {
-      background-color: var(--warning-bg, rgba(245, 158, 11, 0.1));
-      color: var(--warning, #f59e0b);
+      background-color: var(--warning-bg);
+      color: var(--warning);
       padding: 10px 12px;
       border-radius: var(--radius-sm);
       display: flex;

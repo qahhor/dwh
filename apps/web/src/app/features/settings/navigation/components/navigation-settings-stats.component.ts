@@ -58,9 +58,9 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
       line-height: 1.2;
     }
 
-    .stat-value.stat-active { color: #059669; }
-    .stat-value.stat-embedded { color: #2563eb; }
-    .stat-value.stat-external { color: #7c3aed; }
+    .stat-value.stat-active { color: var(--success-text); }
+    .stat-value.stat-embedded { color: var(--info-text); }
+    .stat-value.stat-external { color: var(--accent-violet-text); }
 
     .stat-label {
       font-size: 12px;

@@ -159,7 +159,7 @@
     }
     .mod-pill-btn:hover { color: var(--text-main); border-color: var(--text-muted); }
     .mod-pill-btn.active {
-      color: #ffffff;
+      color: var(--on-primary);
       background-color: var(--primary);
       border-color: var(--primary);
     }
@@ -300,11 +300,11 @@
       font-weight: 500;
     }
     .action-checkbox-card.dirty {
-      border-color: #f59e0b;
+      border-color: var(--warning-text);
       box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.4);
     }
     .dirty-indicator-dot {
-      color: #f59e0b;
+      color: var(--warning-text);
       font-weight: bold;
       font-size: 16px;
       line-height: 0;

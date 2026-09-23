@@ -1,0 +1,46 @@
+@if (hasSelection()) {
+  <label
+    (click)="$event.stopPropagation()"
+    smt-checkbox
+    smtSize="md"
+    smtHideLabel
+    [smtAriaLabel]="i18n.messages().dataTable.selectRow"
+    [checked]="isSelected()"
+    (checkedChange)="isSelectedChange.emit($event)"></label>
+}
+
+@if (!selectionOnly()) {
+  <div class="text-md text-gray-700 w-full min-w-0 break-all whitespace-normal">
+    @if (data(); as data) {
+      @if (data.type === 'primitive' && data; as data) {
+        <span class="block break-all whitespace-normal">{{ data.value | cb: row() }}</span>
+      }
+
+      @if (data.type === 'date' && data; as data) {
+        <span class="block break-all whitespace-normal">{{
+          data.value | cb: row() | date: data.format || 'd MMM y'
+        }}</span>
+      }
+
+      @if (data.type === 'date-time' && data; as data) {
+        <span class="block break-all whitespace-normal">{{
+          data.value | cb: row() | date: data.format || 'd MMM y, H:mm a'
+        }}</span>
+      }
+
+      @if (data.type === 'html' && data; as data) {
+        <span class="block break-all whitespace-normal" [innerHTML]="data.value | cb: row()"></span>
+      }
+
+      @if (data.type === 'templateRef' && data; as data) {
+        <ng-template [ngTemplateOutlet]="data.value()" [ngTemplateOutletContext]="{ $implicit: row() }"></ng-template>
+      }
+
+      @if (data.type === 'component' && data; as data) {
+        <ng-container
+          [ngComponentOutlet]="data.value.component"
+          [ngComponentOutletInputs]="data.value.inputs | cb: row()" />
+      }
+    }
+  </div>
+}

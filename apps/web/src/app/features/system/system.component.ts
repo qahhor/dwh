@@ -225,9 +225,9 @@ type OverallStatus = 'healthy' | 'attention' | 'unavailable';
     .component-row dd { margin: 0; }
     .status-pill { display: inline-flex; align-items: center; gap: 7px; padding: 4px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; }
     .status-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
-    .status-up { color: var(--success); background: var(--success-bg); }
-    .status-degraded { color: var(--warning); background: var(--warning-bg); }
-    .status-down { color: var(--danger); background: var(--danger-bg); }
+    .status-up { color: var(--success-text); background: var(--success-bg); }
+    .status-degraded { color: var(--warning-text); background: var(--warning-bg); }
+    .status-down { color: var(--danger-text); background: var(--danger-bg); }
     .status-disabled, .status-unknown { color: var(--text-muted); background: var(--bg-hover); }
     .backup-result { display: flex; align-items: flex-start; gap: 12px; padding: 14px; border: 1px solid var(--border-color); border-radius: var(--radius-md); }
     .backup-icon { color: var(--primary); }

@@ -284,7 +284,7 @@ import { CommandPaletteService } from '../../../core/services/command-palette.se
       overflow-y: auto;
       background-color: var(--info-bg);
       border-bottom: 1px solid var(--border-color);
-      color: var(--info);
+      color: var(--info-text);
       padding: 8px 18px;
       display: flex;
       align-items: center;

@@ -102,7 +102,7 @@ import { InstalledModule } from '../modules.models';
     }
     .data-table th {
       padding: 12px 16px;
-      background: var(--bg-surface-alt, var(--bg-hover));
+      background: var(--bg-hover);
       color: var(--text-muted);
       font-weight: 600;
       font-size: 11px;
@@ -169,7 +169,7 @@ import { InstalledModule } from '../modules.models';
     }
     .badge-active {
       background: rgba(16, 185, 129, 0.12);
-      color: #059669;
+      color: var(--success-text);
     }
     .badge-inactive {
       background: var(--bg-hover);

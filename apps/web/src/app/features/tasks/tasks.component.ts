@@ -1,8 +1,9 @@
-import { Component, OnDestroy, OnInit, signal, inject } from '@angular/core';
+import { Component, DestroyRef, OnDestroy, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { canonicalRecordId, safeNumericRecordId } from '../../core/services/search-target';
+import { KeysetPager } from '../../shared/paging/keyset-pager';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { ApiService } from '../../core/services/api.service';
 import { PermissionService } from '../../core/services/permission.service';
@@ -83,18 +84,21 @@ export class TasksComponent implements OnInit, OnDestroy {
   private recordRouteSubscription?: Subscription;
   private routeSubscription?: Subscription;
 
-  readonly tasks = signal<Task[]>([]);
+  /* Page-by-page over the keyset API. The pager cancels a superseded request,
+     moves the page only when it arrives and retries exactly the failed one;
+     the filters are read when each request is made. */
+  readonly taskPager = new KeysetPager<Task>(
+    cursor => this.api.get<KeysetPage<Task>>('/tasks', this.filterService.buildListParams(cursor)),
+    { pageSize: 50, destroyRef: inject(DestroyRef) }
+  );
+  /** Writable: kanban and inline edits update rows in place. */
+  readonly tasks = this.taskPager.items;
   readonly projects = signal<Project[]>([]);
   readonly taskCustomFields = signal<CustomField[]>([]);
 
-  readonly isLoading = signal<boolean>(false);
-  readonly listLoadError = signal<boolean>(false);
-  readonly hasMore = signal<boolean>(false);
-  nextCursor: string | null = null;
-
-  private destroyed = false;
-  private listRequestId = 0;
-  private listRequest?: Subscription;
+  readonly isLoading = this.taskPager.loading;
+  readonly listLoadError = this.taskPager.failed;
+  readonly hasMore = this.taskPager.canGoForward;
 
   // Filter delegates
   get activePreset() { return this.filterService.activePreset; }
@@ -109,8 +113,7 @@ export class TasksComponent implements OnInit, OnDestroy {
   set selectedProjectId(v) { this.filterService.selectedProjectId = v; }
   get statusFilterMode() { return this.filterService.statusFilterMode; }
   set statusFilterMode(v) { this.filterService.statusFilterMode = v; }
-  get currentPage() { return this.filterService.currentPage; }
-  set currentPage(v) { this.filterService.currentPage = v; }
+  get currentPage() { return this.taskPager.page(); }
   get pageSize() { return this.filterService.pageSize; }
   get showExportMenu() { return this.filterService.showExportMenu; }
   set showExportMenu(v) { this.filterService.showExportMenu = v; }
@@ -221,11 +224,8 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    this.destroyed = true;
-    this.listRequestId++;
     this.routeSubscription?.unsubscribe();
     this.recordRouteSubscription?.unsubscribe();
-    this.listRequest?.unsubscribe();
     this.filterService.cleanup();
     this.lookupsService.cleanup();
     this.detailsService.cleanup();
@@ -246,9 +246,8 @@ export class TasksComponent implements OnInit, OnDestroy {
 
   loadTasks(reset: boolean = false) {
     clearTimeout(this.filterService.taskSearchTimer);
-    const page = reset ? 1 : this.currentPage;
-    const cursor = reset ? null : (this.filterService.taskPageCursors[page - 1] ?? null);
-    this.requestTaskPage(page, cursor, reset);
+    if (reset) this.taskPager.first();
+    else this.taskPager.reload();
   }
 
   onTaskSearchChange(query: string) {
@@ -263,58 +262,19 @@ export class TasksComponent implements OnInit, OnDestroy {
     this.loadTasks(true);
   }
 
+  /** The answer in flight is for the old query: drop it and show the list as busy. */
   private cancelListRequestForFilterChange() {
-    this.listRequestId++;
-    this.listRequest?.unsubscribe();
-    this.isLoading.set(true);
-    this.listLoadError.set(false);
-  }
-
-  private requestTaskPage(targetPage: number, cursor: string | null, reset: boolean) {
-    this.filterService.lastListAttempt = { page: targetPage, cursor, reset };
-    const params = this.filterService.buildListParams(cursor);
-
-    const requestId = ++this.listRequestId;
-    this.listRequest?.unsubscribe();
-    this.isLoading.set(true);
-    this.listLoadError.set(false);
-    this.listRequest = this.api.get<KeysetPage<Task>>('/tasks', params).subscribe({
-      next: res => {
-        if (this.destroyed || requestId !== this.listRequestId) return;
-        this.isLoading.set(false);
-        if (reset) this.filterService.taskPageCursors = [null];
-        this.filterService.taskPageCursors[targetPage - 1] = cursor;
-        this.currentPage = targetPage;
-        this.tasks.set(res.items || []);
-        this.nextCursor = res.nextCursor;
-        this.hasMore.set(res.hasMore);
-      },
-      error: () => {
-        if (this.destroyed || requestId !== this.listRequestId) return;
-        this.isLoading.set(false);
-        this.listLoadError.set(true);
-      }
-    });
+    this.taskPager.invalidate();
   }
 
   retryTaskList() {
-    const attempt = this.filterService.lastListAttempt;
-    if (!attempt || this.isLoading()) return;
-    this.requestTaskPage(attempt.page, attempt.cursor, attempt.reset);
+    if (this.isLoading()) return;
+    this.taskPager.retry();
   }
 
   goToTaskPage(page: number) {
-    if (this.isLoading() || this.listLoadError() || page === this.currentPage || page < 1 || Math.abs(page - this.currentPage) !== 1) return;
-    let cursor: string | null;
-    if (page > this.currentPage) {
-      if (!this.hasMore() || !this.nextCursor) return;
-      cursor = this.nextCursor;
-    } else if (this.filterService.taskPageCursors[page - 1] === undefined) {
-      return;
-    } else {
-      cursor = this.filterService.taskPageCursors[page - 1];
-    }
-    this.requestTaskPage(page, cursor, false);
+    if (this.isLoading() || this.listLoadError()) return;
+    this.taskPager.goTo(page);
   }
 
   paginatedTasks(): Task[] { return this.tasks(); }

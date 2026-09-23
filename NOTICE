@@ -2,3 +2,27 @@ SmartupCMS
 Copyright 2026 Smartup
 
 This product includes software developed by Smartup.
+
+This product bundles the following third-party fonts, served from the
+application's own origin so that an installation works without outbound
+network access:
+
+Inter
+  Copyright (c) 2016 The Inter Project Authors
+  SIL Open Font License, Version 1.1 — https://openfontlicense.org
+  apps/web/src/assets/fonts/inter-*.woff2
+
+Material Symbols Outlined
+  Copyright Google LLC
+  Apache License, Version 2.0 — https://www.apache.org/licenses/LICENSE-2.0
+  apps/web/src/assets/fonts/material-symbols-outlined.woff2
+
+This product vendors a subset of @greenwhite/ui-kit, under the terms of its
+MIT licence, rather than depending on the published package. The copy is
+maintained and changed here. Each file carries a header naming the path and
+the commit it came from:
+
+@greenwhite/ui-kit — table foundation and tree utilities
+  Copyright (c) Smartup
+  MIT Licence
+  Vendored from commit 6472beb into apps/web/src/app/shared/ui-kit

@@ -40,8 +40,10 @@ import { ToastService } from '../../core/services/toast.service';
             </p>
           </div>
         </div>
-        <span class="coverage" *ngIf="editor() as model" [attr.aria-label]="'settings.translation_coverage' | t:{coverage: model.language.coverage}">
-          {{ model.language.coverage }}%
+        <!-- The full name is real text: aria-label is dropped on a span without a role. -->
+        <span class="coverage" *ngIf="editor() as model">
+          <span class="sr-only">{{ 'settings.translation_coverage' | t:{coverage: model.language.coverage} }}</span>
+          <span aria-hidden="true">{{ model.language.coverage }}%</span>
         </span>
       </header>
 

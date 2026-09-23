@@ -1,7 +1,10 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, TemplateRef, computed, inject, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { TranslatePipe } from '../../../core/services/i18n.service';
+import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
+import { LanguageInfo } from '../../../core/models/i18n.models';
+import { SMTTableComponent } from '../../../shared/ui-kit/components/table/table.component';
+import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { LanguageEditorComponent } from '../language-editor.component';
@@ -15,7 +18,8 @@ import { LanguageEditorComponent } from '../language-editor.component';
     TranslatePipe,
     UiButtonComponent,
     UiModalComponent,
-    LanguageEditorComponent
+    LanguageEditorComponent,
+    SMTTableComponent
   ],
   template: `
     <app-language-editor
@@ -57,58 +61,51 @@ import { LanguageEditorComponent } from '../language-editor.component';
         </button>
       </div>
 
-      <div class="table-card">
-        <div class="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>{{ 'settings.kod' | t }}</th>
-                <th>{{ 'settings.nazvanie_yazyka' | t }}</th>
-                <th>{{ 'settings.tip' | t }}</th>
-                <th>{{ 'settings.gotovnost' | t }}</th>
-                <th>{{ 'common.status' | t }}</th>
-                <th style="text-align: right;">{{ 'common.actions' | t }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let lang of languages">
-                <td><span class="badge badge-neutral mono">{{ lang.code.toUpperCase() }}</span></td>
-                <td class="font-medium">{{ lang.name }}</td>
-                <td>
-                  <span class="badge" [class.badge-active]="lang.builtin" [class.badge-info]="!lang.builtin">
-                    {{ (lang.builtin ? 'settings.builtin' : 'settings.custom') | t }}
-                  </span>
-                </td>
-                <td>
-                  <div class="language-coverage" [attr.aria-label]="'settings.coverage_percent' | t:{coverage: lang.coverage}">
-                    <span class="coverage-track"><span [style.width.%]="lang.coverage"></span></span>
-                    <span>{{ lang.translated }}/{{ lang.total }} · {{ lang.coverage }}%</span>
-                  </div>
-                </td>
-                <td>
-                  <span class="badge badge-active" *ngIf="currentLang === lang.code">{{ 'settings.tekuschiy_aktivnyy' | t }}</span>
-                  <span class="badge badge-neutral" *ngIf="currentLang !== lang.code">{{ 'settings.dostupen' | t }}</span>
-                </td>
-                <td style="text-align: right;">
-                  <div class="table-actions-right">
-                    <button type="button" class="btn btn-secondary btn-sm" [attr.data-testid]="'edit-language-' + lang.code" (click)="openLanguageEditor.emit(lang.code)">
-                      <span class="material-symbols-outlined" aria-hidden="true">edit</span>
-                      <span>{{ 'common.edit' | t }}</span>
-                    </button>
-                    <button type="button" class="btn btn-secondary btn-sm" (click)="exportLangJson.emit(lang.code)" [title]="'settings.eksportirovat_json' | t">
-                      <span class="material-symbols-outlined" aria-hidden="true">download</span>
-                      <span>JSON</span>
-                    </button>
-                    <button type="button" class="btn btn-primary btn-sm" [attr.data-testid]="'switch-language-' + lang.code" *ngIf="currentLang !== lang.code" (click)="switchLanguage.emit(lang.code)">
-                      <span>{{ 'settings.pereklyuchitsya' | t }}</span>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+      <smt-table class="languages-table" [smtData]="languages" [smtConfig]="tableConfig()" />
+
+      <ng-template #codeCell let-lang>
+        <span class="badge badge-neutral mono">{{ lang.code.toUpperCase() }}</span>
+      </ng-template>
+
+      <ng-template #typeCell let-lang>
+        <span class="badge" [class.badge-active]="lang.builtin" [class.badge-info]="!lang.builtin">
+          {{ (lang.builtin ? 'settings.builtin' : 'settings.custom') | t }}
+        </span>
+      </ng-template>
+
+      <ng-template #coverageCell let-lang>
+        <!-- The column header names the cell and the text states the figures; the bar repeats them. -->
+        <div class="language-coverage">
+          <span class="coverage-track" aria-hidden="true"><span [style.width.%]="lang.coverage"></span></span>
+          <span>{{ lang.translated }}/{{ lang.total }} · {{ lang.coverage }}%</span>
         </div>
-      </div>
+      </ng-template>
+
+      <ng-template #statusCell let-lang>
+        @if (currentLang === lang.code) {
+          <span class="badge badge-active">{{ 'settings.tekuschiy_aktivnyy' | t }}</span>
+        } @else {
+          <span class="badge badge-neutral">{{ 'settings.dostupen' | t }}</span>
+        }
+      </ng-template>
+
+      <ng-template #actionsCell let-lang>
+        <div class="table-actions-right">
+          <button type="button" class="btn btn-secondary btn-sm" [attr.data-testid]="'edit-language-' + lang.code" (click)="openLanguageEditor.emit(lang.code)">
+            <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+            <span>{{ 'common.edit' | t }}</span>
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" (click)="exportLangJson.emit(lang.code)" [title]="'settings.eksportirovat_json' | t">
+            <span class="material-symbols-outlined" aria-hidden="true">download</span>
+            <span>JSON</span>
+          </button>
+          @if (currentLang !== lang.code) {
+            <button type="button" class="btn btn-primary btn-sm" [attr.data-testid]="'switch-language-' + lang.code" (click)="switchLanguage.emit(lang.code)">
+              <span>{{ 'settings.pereklyuchitsya' | t }}</span>
+            </button>
+          }
+        </div>
+      </ng-template>
     </div>
 
     <!-- Modal: Add New Custom Language -->
@@ -246,7 +243,8 @@ import { LanguageEditorComponent } from '../language-editor.component';
     .font-medium { font-weight: 500; }
     .mono { font-family: monospace; }
     .table-actions-right {
-      display: inline-flex;
+      display: flex;
+      flex-wrap: wrap;
       align-items: center;
       justify-content: flex-end;
       gap: 6px;
@@ -262,7 +260,7 @@ import { LanguageEditorComponent } from '../language-editor.component';
     }
     .badge-active {
       background-color: var(--success-bg);
-      color: var(--success);
+      color: var(--success-text);
     }
     .badge-neutral {
       background-color: var(--bg-active);
@@ -360,7 +358,7 @@ import { LanguageEditorComponent } from '../language-editor.component';
     }
     .btn-primary {
       background: var(--primary);
-      color: var(--text-inverse);
+      color: var(--on-primary);
     }
     .btn-primary:hover {
       background: var(--primary-hover);
@@ -379,11 +377,47 @@ import { LanguageEditorComponent } from '../language-editor.component';
   `]
 })
 export class SettingsLanguagesPanelComponent {
+  private readonly i18n = inject(I18nService);
+
+  private readonly codeCell = viewChild.required<TemplateRef<unknown>>('codeCell');
+  private readonly typeCell = viewChild.required<TemplateRef<unknown>>('typeCell');
+  private readonly coverageCell = viewChild.required<TemplateRef<unknown>>('coverageCell');
+  private readonly statusCell = viewChild.required<TemplateRef<unknown>>('statusCell');
+  private readonly actionsCell = viewChild.required<TemplateRef<unknown>>('actionsCell');
+
+  /**
+   * Headers read the dictionary signal, so they follow a language switch.
+   * Each key is passed to translate() as a literal so the localization audit
+   * can see it; a helper taking the key as a variable would hide a typo.
+   */
+  protected readonly tableConfig = computed<TableConfig<LanguageInfo>>(() => {
+    const header = (text: string) => ({ type: 'primitive' as const, value: text });
+    // Every row is its own grid, so a content-sized track (max-content, fr)
+    // would size differently per row and misalign the columns. The code and
+    // status and actions tracks are fixed; the three text columns share the
+    // rest. The action buttons wrap rather than clip when their labels are long.
+    const share = 'max(120px, calc((100% - 528px) / 3))';
+    return {
+      trackBy: (_: number, lang: LanguageInfo) => lang.code,
+      layout: 'fit',
+      ariaLabel: this.i18n.translate('settings.upravlenie_yazykovymi_paketami_i_lokalizaciey'),
+      columnsOrder: ['code', 'name', 'type', 'coverage', 'status', 'actions'],
+      columns: {
+        code: { header: header(this.i18n.translate('settings.kod')), content: { type: 'templateRef', value: this.codeCell }, width: '88px' },
+        name: { header: header(this.i18n.translate('settings.nazvanie_yazyka')), content: { type: 'primitive', value: lang => lang.name }, width: share },
+        type: { header: header(this.i18n.translate('settings.tip')), content: { type: 'templateRef', value: this.typeCell }, width: share },
+        coverage: { header: header(this.i18n.translate('settings.gotovnost')), content: { type: 'templateRef', value: this.coverageCell }, width: share },
+        status: { header: header(this.i18n.translate('common.status')), content: { type: 'templateRef', value: this.statusCell }, width: '160px' },
+        actions: { header: header(this.i18n.translate('common.actions')), content: { type: 'templateRef', value: this.actionsCell }, align: 'right', width: '280px' },
+      },
+    };
+  });
+
   @Input() canUpdateSystemSettings = false;
   @Input() editingLanguageCode: string | null = null;
   @Input() legacyLanguageCount = 0;
   @Input() isMigratingLegacyLanguages = false;
-  @Input() languages: any[] = [];
+  @Input() languages: LanguageInfo[] = [];
   @Input() currentLang = '';
   @Input() isAddLangModalOpen = false;
   @Input() isAddingLang = false;

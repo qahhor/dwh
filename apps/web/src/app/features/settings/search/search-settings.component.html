@@ -27,7 +27,7 @@
         <div *ngIf="current.budgets.searchRate?.api as apiRate" [attr.data-effective-api]="apiRate.perMinute"><span>{{ 'settings.search.protection.effective_api' | t }}</span><strong>{{ apiRate.perMinute }}/min · burst {{ apiRate.capacity }}</strong></div>
       </div>
       <div class="notice notice-warning" *ngIf="rebuildRequired()" data-state="rebuild-required" role="status">{{ 'settings.search.rebuild_required' | t }}</div>
-      <div class="table-scroll" tabindex="0" [attr.aria-label]="'settings.search.generations.scroll_label' | t">
+      <div class="table-scroll" role="region" tabindex="0" [attr.aria-label]="'settings.search.generations.scroll_label' | t">
         <table>
           <thead><tr><th>{{ 'settings.search.generations.generation' | t }}</th><th>{{ 'common.status' | t }}</th><th>{{ 'settings.search.status.profile' | t }}</th><th>{{ 'settings.search.generations.documents' | t }}</th><th>{{ 'settings.search.generations.storage' | t }}</th><th>{{ 'settings.search.generations.queue' | t }}</th></tr></thead>
           <tbody>
@@ -62,7 +62,7 @@
       <div class="field-groups">
         <div class="field-group" *ngFor="let entity of displayedEntities">
           <h4>{{ ('settings.search.entity.' + entity.toLowerCase()) | t }}</h4>
-          <div class="field-grid-scroll" tabindex="0" [attr.aria-label]="'settings.search.fields.scroll_label' | t:{entity: entity}">
+          <div class="field-grid-scroll" role="region" tabindex="0" [attr.aria-label]="'settings.search.fields.scroll_label' | t:{entity: entity}">
             <div class="field-grid field-grid-head" aria-hidden="true"><span>{{ 'settings.search.fields.field' | t }}</span><span>{{ 'settings.search.fields.weight' | t }}</span><span>{{ 'settings.search.fields.typos' | t }}</span><span>{{ 'settings.search.fields.prefix' | t }}</span></div>
             <div class="field-grid" *ngFor="let field of fields(entity); let i = index; trackBy: trackField">
               <span class="field-name" [id]="'search-field-' + entity + '-' + i">{{ ('settings.search.field.' + field.field) | t }}</span>
@@ -135,7 +135,7 @@
       <button *ngIf="!historyRetryNextPage()" type="button" class="btn btn-secondary" data-action="retry-search-history" (click)="retryHistory()">{{ 'common.retry' | t }}</button>
       <button *ngIf="historyRetryNextPage()" type="button" class="btn btn-secondary" data-action="retry-search-history-page" (click)="retryHistory()">{{ 'common.retry' | t }}</button>
     </div>
-    <div class="table-scroll" tabindex="0" [attr.aria-label]="'settings.search.jobs.scroll_label' | t" [attr.aria-busy]="historyLoading()">
+    <div class="table-scroll" role="region" tabindex="0" [attr.aria-label]="'settings.search.jobs.scroll_label' | t" [attr.aria-busy]="historyLoading()">
       <table><thead><tr><th>{{ 'settings.search.jobs.id' | t }}</th><th>{{ 'settings.search.jobs.action' | t }}</th><th>{{ 'common.status' | t }}</th><th>{{ 'settings.search.jobs.generation' | t }}</th><th>{{ 'settings.search.jobs.processed' | t }}</th><th>{{ 'settings.search.jobs.failed' | t }}</th><th>{{ 'settings.search.jobs.created' | t }}</th><th>{{ 'common.actions' | t }}</th></tr></thead>
         <tbody><tr *ngFor="let job of displayedJobs(); trackBy: trackJob"><td class="mono">{{ job.id }}</td><td>{{ job.action }}</td><td>{{ job.state }}<small *ngIf="job.errorCode" class="error-text" [attr.data-job-error]="job.id">{{ jobErrorMessage(job.errorCode) }}</small></td><td class="mono">{{ job.generationId }}</td><td>{{ job.processedCount }}</td><td>{{ job.failedCount }}</td><td>{{ job.createdAt | date:'short' }}</td><td><button *ngIf="canMaintain() && canCancel(job)" type="button" class="btn btn-secondary btn-sm" [disabled]="mutationPending() || savePending()" (click)="cancelJob(job)">{{ 'common.cancel' | t }}</button><button *ngIf="canMaintain() && (job.state === 'FAILED' || job.state === 'CANCELLED')" type="button" class="btn btn-secondary btn-sm" [disabled]="mutationPending() || savePending() || activeOperation()" (click)="retryJob(job)">{{ 'common.retry' | t }}</button></td></tr><tr *ngIf="displayedJobs().length === 0 && !historyError()"><td colspan="8">{{ 'settings.search.jobs.empty' | t }}</td></tr></tbody></table>
     </div>

@@ -127,7 +127,7 @@ import { NavSection } from '../app-shell.models';
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.8px;
-      color: #94a3b8;
+      color: var(--sidebar-text);
       flex: 1;
     }
 
@@ -142,7 +142,7 @@ import { NavSection } from '../app-shell.models';
 
     .section-chevron {
       font-size: 16px;
-      color: #94a3b8;
+      color: var(--sidebar-text);
       transition: transform 0.2s ease;
       line-height: 1;
     }
@@ -172,7 +172,7 @@ import { NavSection } from '../app-shell.models';
       gap: 10px;
       padding: 7px 10px;
       border-radius: var(--radius-sm);
-      color: var(--text-sidebar);
+      color: var(--sidebar-text);
       text-decoration: none;
       font-size: 13px;
       font-weight: 500;
@@ -183,12 +183,12 @@ import { NavSection } from '../app-shell.models';
 
     .nav-item:hover {
       background-color: var(--bg-sidebar-hover);
-      color: #ffffff;
+      color: var(--sidebar-text-strong);
     }
 
     .nav-item.active {
       background-color: var(--primary);
-      color: #ffffff;
+      color: var(--on-primary);
       font-weight: 600;
     }
 
@@ -210,7 +210,7 @@ import { NavSection } from '../app-shell.models';
 
     .unread-chip {
       background-color: var(--primary);
-      color: #ffffff;
+      color: var(--on-primary);
       font-size: 10px;
       font-weight: 700;
       padding: 1px 6px;

@@ -1,0 +1,19 @@
+@if (hasDot()) {
+  <div [class]="dotClasses()"></div>
+}
+
+@if (leftIcon(); as icon) {
+  <!-- Icon with text on left -->
+  <smt-icon (click)="iconClicked.emit({ event: $event, side: 'left' })" [fontSize]="iconFontSize()" [key]="icon" />
+}
+
+@if (leftImgSrc(); as imgSrc) {
+  <img [ngSrc]="imgSrc" alt="avatar" class="w-4 h-4 rounded-full object-cover" height="16" width="16" />
+}
+
+{{ label() }}
+
+@if (rightIcon(); as icon) {
+  <!-- Icon with text on right -->
+  <smt-icon (click)="iconClicked.emit({ event: $event, side: 'right' })" [fontSize]="iconFontSize()" [key]="icon" />
+}

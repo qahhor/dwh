@@ -363,7 +363,7 @@ import { UserChannel } from '../profile.models';
     }
 
     .data-table th {
-      background-color: var(--bg-table-header, var(--bg-hover));
+      background-color: var(--bg-hover);
       color: var(--text-muted);
       font-weight: 600;
       padding: 10px 14px;

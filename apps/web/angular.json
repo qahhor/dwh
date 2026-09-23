@@ -16,13 +16,17 @@
             "outputPath": "dist/web",
             "index": "src/index.html",
             "browser": "src/main.ts",
-            "polyfills": ["zone.js"],
+            "polyfills": [
+              "zone.js"
+            ],
             "tsConfig": "tsconfig.app.json",
             "assets": [
               "src/favicon.svg",
               "src/assets"
             ],
             "styles": [
+              "src/fonts.css",
+              "src/tailwind.css",
               "src/styles.css"
             ],
             "scripts": []
@@ -48,8 +52,6 @@
                   "maximumWarning": "30kB",
                   "maximumError": "50kB"
                 }
-
-
               ],
               "outputHashing": "all"
             },
@@ -81,7 +83,9 @@
           "options": {
             "runner": "vitest",
             "watch": false,
-            "setupFiles": ["src/testing/setup.ts"]
+            "setupFiles": [
+              "src/testing/setup.ts"
+            ]
           }
         }
       }

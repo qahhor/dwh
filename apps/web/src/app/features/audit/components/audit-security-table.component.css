@@ -108,59 +108,6 @@
       border: 0;
     }
 
-    .inline-feedback {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 14px;
-      border-radius: 8px;
-      font-size: 13px;
-      background: var(--danger-bg);
-      color: var(--danger);
-      border: 1px solid var(--danger);
-      margin-top: 4px;
-    }
-
-    .table-container {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      overflow-x: auto;
-    }
-
-    .table-container:focus-visible {
-      outline: 2px solid var(--primary);
-      outline-offset: -2px;
-    }
-
-    .data-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-      text-align: left;
-    }
-
-    .data-table th {
-      padding: 12px 16px;
-      background: var(--bg-hover);
-      color: var(--text-muted);
-      font-weight: 600;
-      font-size: 12px;
-      border-bottom: 1px solid var(--border-color);
-      white-space: nowrap;
-    }
-
-    .data-table td {
-      padding: 12px 16px;
-      border-bottom: 1px solid var(--border-subtle);
-      color: var(--text-main);
-      vertical-align: middle;
-    }
-
-    .data-table tr:last-child td {
-      border-bottom: none;
-    }
-
     .tabular-nums {
       font-variant-numeric: tabular-nums;
     }
@@ -202,22 +149,22 @@
 
     .sec-event-badge.success {
       background: var(--success-bg);
-      color: var(--success);
+      color: var(--success-text);
     }
 
     .sec-event-badge.danger {
       background: var(--danger-bg);
-      color: var(--danger);
+      color: var(--danger-text);
     }
 
     .sec-event-badge.warning {
       background: var(--warning-bg);
-      color: var(--warning);
+      color: var(--warning-text);
     }
 
     .sec-event-badge.info {
       background: var(--info-bg);
-      color: var(--info);
+      color: var(--info-text);
     }
 
     .user-cell {
@@ -266,13 +213,10 @@
       font-size: 18px;
     }
 
-    .loading-state-cell, .empty-state-cell {
-      padding: 48px !important;
+    .empty-state-box {
+      padding: 16px;
       text-align: center;
       color: var(--text-light);
-    }
-
-    .empty-state-box {
       display: flex;
       flex-direction: column;
       align-items: center;

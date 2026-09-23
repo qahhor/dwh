@@ -113,19 +113,21 @@ export class ApiService {
         detail = detail ? `${detail} (${fieldMsgs})` : fieldMsgs;
       }
       problem = {
-        title: p.title || 'Ошибка',
+        title: p.title || this.i18n.translate('common.error'),
         status: error.status || 400,
         code: p.code || 'API_ERROR',
-        detail: detail || p.title || 'Произошла ошибка при выполнении операции',
+        detail: detail || p.title || this.i18n.translate('common.operation_failed'),
         errors: Array.isArray(p.errors) ? p.errors : undefined,
         invalid_params: p.invalid_params
       };
     } else {
       problem = {
-        title: 'Ошибка соединения',
+        title: this.i18n.translate('common.connection_error'),
         status: error.status || 500,
         code: 'NETWORK_ERROR',
-        detail: error.status === 0 ? 'Сервер недоступен или отсутствует соединение с сетью' : (error.message || 'Не удалось выполнить запрос')
+        detail: error.status === 0
+          ? this.i18n.translate('common.server_unavailable')
+          : (error.message || this.i18n.translate('common.request_failed'))
       };
     }
 

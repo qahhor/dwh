@@ -1,9 +1,11 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, computed, EventEmitter, inject, Input, Output, Signal, TemplateRef, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
-import { UiPaginationComponent } from '../../../shared/ui/ui-pagination.component';
-import { TranslatePipe } from '../../../core/services/i18n.service';
+import { UiServerTableComponent } from '../../../shared/ui/ui-server-table.component';
+import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
+import { KeysetPager } from '../../../shared/paging/keyset-pager';
+import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
 import { AuditRecord } from '../audit.models';
 
 @Component({
@@ -14,7 +16,7 @@ import { AuditRecord } from '../audit.models';
     FormsModule,
     TranslatePipe,
     UiButtonComponent,
-    UiPaginationComponent
+    UiServerTableComponent
   ],
   template: `
     <div id="audit-log-panel" class="tab-content" role="tabpanel" aria-labelledby="audit-log-tab">
@@ -72,92 +74,49 @@ import { AuditRecord } from '../audit.models';
         </div>
       </div>
 
-      <div id="audit-load-error" class="inline-feedback" role="alert" *ngIf="auditError">
-        <span class="material-symbols-outlined" aria-hidden="true">error</span>
-        <span>{{ 'audit.load_log_error' | t }}</span>
-        <ui-button variant="secondary" size="sm" icon="refresh" (onClick)="retryLoad.emit()">
-          {{ 'audit.retry' | t }}
-        </ui-button>
+      <!-- The region keeps the page's scroll landmark; the table inside names itself. -->
+      <div class="table-container" role="region" [attr.aria-label]="'audit.tablica_zhurnala_izmeneniy' | t" [attr.aria-busy]="pager.loading()">
+        <ui-server-table
+          [pager]="pager"
+          [config]="tableConfig()"
+          [loadingLabel]="'audit.loading_log' | t"
+          [errorLabel]="'audit.load_log_error' | t"
+          errorId="audit-load-error"
+          [emptyTemplate]="emptyState()" />
       </div>
 
-      <!-- Audit Table -->
-      <div class="table-container" role="region" [attr.aria-label]="'audit.tablica_zhurnala_izmeneniy' | t" tabindex="0" [attr.aria-busy]="isLoading">
-        <table class="data-table" [attr.aria-label]="'audit.zhurnal_izmeneniy_dannyh' | t">
-          <thead>
-            <tr>
-              <th style="width: 70px;">ID</th>
-              <th>{{ 'audit.tablica' | t }}</th>
-              <th>PK</th>
-              <th>{{ 'audit.deystvie' | t }}</th>
-              <th>{{ 'audit.kto_izmenil' | t }}</th>
-              <th>{{ 'audit.kanal' | t }}</th>
-              <th>{{ 'audit.data_i_vremya' | t }}</th>
-              <th style="width: 80px; text-align: right;">Diff</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngIf="isLoading && auditLogs.length === 0">
-              <td colspan="8" class="loading-state-cell" role="status">{{ 'audit.loading_log' | t }}</td>
-            </tr>
-            <tr *ngFor="let item of auditLogs">
-              <td class="tabular-nums font-mono text-muted">#{{ item.id }}</td>
-              <td>
-                <span class="table-tag font-mono">{{ item.tableName }}</span>
-              </td>
-              <td>
-                <span class="pk-pill font-mono">{{ item.rowPk }}</span>
-              </td>
-              <td>
-                <span class="event-badge" [ngClass]="getEventBadgeClass(item.event)">
-                  {{ getEventName(item.event) }}
-                </span>
-              </td>
-              <td>
-                <div class="user-cell" *ngIf="item.changedByName">
-                  <span class="user-name">{{ item.changedByName }}</span>
-                  <span class="user-sub text-muted text-xs">&#64;{{ item.changedByLogin }}</span>
-                </div>
-                <span *ngIf="!item.changedByName" class="text-muted">{{ 'audit.sistema' | t }}</span>
-              </td>
-              <td>
-                <span class="channel-pill" [class.api-pill]="item.isApi">
-                  <span class="material-symbols-outlined" aria-hidden="true">{{ item.isApi ? 'terminal' : 'web' }}</span>
-                  {{ item.isApi ? 'REST API' : 'Web UI' }}
-                </span>
-              </td>
-              <td>
-                <span class="date-cell tabular-nums">{{ item.changedAt | date:'dd.MM.yyyy HH:mm:ss' }}</span>
-              </td>
-              <td style="text-align: right;">
-                <button type="button" class="diff-btn" [attr.aria-label]="'audit.view_change_number' | t:{id: item.id}" [title]="'audit.prosmotr_izmeneniy' | t" (click)="selectRecord.emit(item)">
-                  <span class="material-symbols-outlined" aria-hidden="true">difference</span>
-                </button>
-              </td>
-            </tr>
-
-            <tr *ngIf="auditLogs.length === 0 && !isLoading && !auditError">
-              <td colspan="8" class="empty-state-cell">
-                <div class="empty-state-box">
-                  <span class="material-symbols-outlined empty-icon" aria-hidden="true">history_toggle_off</span>
-                  <h3>{{ 'audit.zapisey_audita_ne_naydeno' | t }}</h3>
-                  <p>{{ 'audit.poprobuyte_sbrosit_vybrannye_filtry' | t }}</p>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <ui-pagination
-        *ngIf="auditTotal > 0"
-        [totalItems]="auditTotal"
-        [pageSize]="auditPageSize"
-        [currentPage]="auditCurrentPage"
-        [cursorMode]="true"
-        [hasNextPage]="auditHasMore"
-        (pageChange)="pageChange.emit($event)"
-        (pageSizeChange)="pageSizeChange.emit($event)"
-      ></ui-pagination>
+      <ng-template #idCell let-item><span class="tabular-nums font-mono text-muted">#{{ item.id }}</span></ng-template>
+      <ng-template #tableCell let-item><span class="table-tag font-mono">{{ item.tableName }}</span></ng-template>
+      <ng-template #pkCell let-item><span class="pk-pill font-mono">{{ item.rowPk }}</span></ng-template>
+      <ng-template #eventCell let-item>
+        <span class="event-badge" [ngClass]="getEventBadgeClass(item.event)">{{ getEventName(item.event) }}</span>
+      </ng-template>
+      <ng-template #userCell let-item>
+        <div class="user-cell" *ngIf="item.changedByName">
+          <span class="user-name">{{ item.changedByName }}</span>
+          <span class="user-sub text-muted text-xs">&#64;{{ item.changedByLogin }}</span>
+        </div>
+        <span *ngIf="!item.changedByName" class="text-muted">{{ 'audit.sistema' | t }}</span>
+      </ng-template>
+      <ng-template #channelCell let-item>
+        <span class="channel-pill" [class.api-pill]="item.isApi">
+          <span class="material-symbols-outlined" aria-hidden="true">{{ item.isApi ? 'terminal' : 'web' }}</span>
+          {{ item.isApi ? 'REST API' : 'Web UI' }}
+        </span>
+      </ng-template>
+      <ng-template #dateCell let-item><span class="date-cell tabular-nums">{{ item.changedAt | date:'dd.MM.yyyy HH:mm:ss' }}</span></ng-template>
+      <ng-template #diffCell let-item>
+        <button type="button" class="diff-btn" [attr.aria-label]="'audit.view_change_number' | t:{id: item.id}" [title]="'audit.prosmotr_izmeneniy' | t" (click)="selectRecord.emit(item)">
+          <span class="material-symbols-outlined" aria-hidden="true">difference</span>
+        </button>
+      </ng-template>
+      <ng-template #emptyStateTpl>
+        <div class="empty-state-box">
+          <span class="material-symbols-outlined empty-icon" aria-hidden="true">history_toggle_off</span>
+          <h3>{{ 'audit.zapisey_audita_ne_naydeno' | t }}</h3>
+          <p>{{ 'audit.poprobuyte_sbrosit_vybrannye_filtry' | t }}</p>
+        </div>
+      </ng-template>
     </div>
   `,
   styles: [`
@@ -246,59 +205,6 @@ import { AuditRecord } from '../audit.models';
       border: 0;
     }
 
-    .inline-feedback {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 14px;
-      border-radius: 8px;
-      font-size: 13px;
-      background: var(--danger-bg);
-      color: var(--danger);
-      border: 1px solid var(--danger);
-      margin-top: 4px;
-    }
-
-    .table-container {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      overflow-x: auto;
-    }
-
-    .table-container:focus-visible {
-      outline: 2px solid var(--primary);
-      outline-offset: -2px;
-    }
-
-    .data-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-      text-align: left;
-    }
-
-    .data-table th {
-      padding: 12px 16px;
-      background: var(--bg-hover);
-      color: var(--text-muted);
-      font-weight: 600;
-      font-size: 12px;
-      border-bottom: 1px solid var(--border-color);
-      white-space: nowrap;
-    }
-
-    .data-table td {
-      padding: 12px 16px;
-      border-bottom: 1px solid var(--border-subtle);
-      color: var(--text-main);
-      vertical-align: middle;
-    }
-
-    .data-table tr:last-child td {
-      border-bottom: none;
-    }
-
     .tabular-nums {
       font-variant-numeric: tabular-nums;
     }
@@ -341,17 +247,17 @@ import { AuditRecord } from '../audit.models';
 
     .event-badge.insert {
       background: var(--success-bg);
-      color: var(--success);
+      color: var(--success-text);
     }
 
     .event-badge.update {
       background: var(--info-bg);
-      color: var(--info);
+      color: var(--info-text);
     }
 
     .event-badge.delete {
       background: var(--danger-bg);
-      color: var(--danger);
+      color: var(--danger-text);
     }
 
     .user-cell {
@@ -408,17 +314,14 @@ import { AuditRecord } from '../audit.models';
       font-size: 18px;
     }
 
-    .loading-state-cell, .empty-state-cell {
-      padding: 48px !important;
-      text-align: center;
-      color: var(--text-light);
-    }
-
     .empty-state-box {
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 8px;
+      padding: 16px;
+      text-align: center;
+      color: var(--text-light);
     }
 
     .empty-state-box .empty-icon {
@@ -441,13 +344,7 @@ import { AuditRecord } from '../audit.models';
   `]
 })
 export class AuditLogsTableComponent {
-  @Input() auditLogs: AuditRecord[] = [];
-  @Input() auditTotal = 0;
-  @Input() auditHasMore = false;
-  @Input() auditPageSize = 20;
-  @Input() auditCurrentPage = 1;
-  @Input() isLoading = false;
-  @Input() auditError = false;
+  @Input({ required: true }) pager!: KeysetPager<AuditRecord>;
 
   @Input() tableFilter = '';
   @Input() eventFilter = '';
@@ -465,10 +362,41 @@ export class AuditLogsTableComponent {
 
   @Output() applyFilters = new EventEmitter<void>();
   @Output() resetFilters = new EventEmitter<void>();
-  @Output() retryLoad = new EventEmitter<void>();
   @Output() selectRecord = new EventEmitter<AuditRecord>();
-  @Output() pageChange = new EventEmitter<number>();
-  @Output() pageSizeChange = new EventEmitter<number>();
+
+  private readonly i18n = inject(I18nService);
+  private readonly idCell = viewChild.required<TemplateRef<unknown>>('idCell');
+  private readonly tableCell = viewChild.required<TemplateRef<unknown>>('tableCell');
+  private readonly pkCell = viewChild.required<TemplateRef<unknown>>('pkCell');
+  private readonly eventCell = viewChild.required<TemplateRef<unknown>>('eventCell');
+  private readonly userCell = viewChild.required<TemplateRef<unknown>>('userCell');
+  private readonly channelCell = viewChild.required<TemplateRef<unknown>>('channelCell');
+  private readonly dateCell = viewChild.required<TemplateRef<unknown>>('dateCell');
+  private readonly diffCell = viewChild.required<TemplateRef<unknown>>('diffCell');
+  readonly emptyState = viewChild.required<TemplateRef<unknown>>('emptyStateTpl');
+
+  readonly tableConfig = computed<TableConfig<AuditRecord>>(() => {
+    const header = (value: string) => ({ type: 'primitive' as const, value });
+    const cell = (template: Signal<TemplateRef<unknown>>) => ({ type: 'templateRef' as const, value: template });
+    // Every row is its own grid, so tracks are fixed or shares of the width, never content-sized.
+    const share = 'max(140px, calc((100% - 700px) / 2))';
+    return {
+      trackBy: (_index, item) => item.id,
+      layout: 'fit',
+      ariaLabel: this.i18n.translate('audit.zhurnal_izmeneniy_dannyh'),
+      columnsOrder: ['id', 'table', 'pk', 'event', 'user', 'channel', 'date', 'diff'],
+      columns: {
+        id: { header: header('ID'), content: cell(this.idCell), width: '90px' },
+        table: { header: header(this.i18n.translate('audit.tablica')), content: cell(this.tableCell), width: share },
+        pk: { header: header('PK'), content: cell(this.pkCell), width: '110px' },
+        event: { header: header(this.i18n.translate('audit.deystvie')), content: cell(this.eventCell), width: '120px' },
+        user: { header: header(this.i18n.translate('audit.kto_izmenil')), content: cell(this.userCell), width: share },
+        channel: { header: header(this.i18n.translate('audit.kanal')), content: cell(this.channelCell), width: '120px' },
+        date: { header: header(this.i18n.translate('audit.data_i_vremya')), content: cell(this.dateCell), width: '170px' },
+        diff: { header: header('Diff'), content: cell(this.diffCell), width: '90px', align: 'right' },
+      },
+    };
+  });
 
   getEventName(event: string): string {
     switch (event) {
