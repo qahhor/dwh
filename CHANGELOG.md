@@ -145,6 +145,14 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Success, warning and info notifications are read by screen readers. They
+  sat in a polite live region created together with its text, which screen
+  readers often skip; they are now announced through a region that is in the
+  page from the start. Errors keep their alert role. A notification no
+  longer disappears while the pointer or keyboard focus is on it, the same
+  message shown again restarts the visible one instead of stacking a copy,
+  and at most five are on screen at once.
+
 - Tooltips reach keyboard and screen reader users. They appeared on mouse
   hover only; now they also show when the element takes keyboard focus,
   close on Escape without closing a dialog around them, stay while the

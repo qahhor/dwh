@@ -13,9 +13,15 @@ import { TranslatePipe } from '../../core/services/i18n.service';
       <div
         *ngFor="let toast of toastService.toasts()"
         [class]="'toast-item toast-' + toast.type"
-        [attr.role]="toast.type === 'error' ? 'alert' : 'status'"
-        [attr.aria-live]="toast.type === 'error' ? 'assertive' : 'polite'"
+        [attr.role]="toast.type === 'error' ? 'alert' : null"
+        (mouseenter)="toastService.pause(toast.id)"
+        (mouseleave)="toastService.resume(toast.id)"
+        (focusin)="toastService.pause(toast.id)"
+        (focusout)="toastService.resume(toast.id)"
       >
+        <!-- An error is announced by its role="alert". Other toasts are
+             announced by ToastService through LiveAnnouncerService, because a
+             polite live region inserted with its text is often not read. -->
         <span class="material-symbols-outlined toast-icon" aria-hidden="true">
           {{ getIcon(toast.type) }}
         </span>
