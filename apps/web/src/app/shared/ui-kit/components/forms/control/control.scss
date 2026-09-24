@@ -1,0 +1,44 @@
+/* Our styles for smt-control, from semantic tokens so both themes work.
+ * Global (ViewEncapsulation.None) so the invalid state reaches the
+ * projected field, which belongs to the parent's view. */
+
+.smt-control {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.smt-control__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.smt-control__required {
+  margin-left: 2px;
+  color: var(--danger-text);
+}
+
+.smt-control__field {
+  min-width: 0;
+}
+
+.smt-control__hint,
+.smt-control__error {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.smt-control__hint {
+  color: var(--text-muted);
+}
+
+.smt-control__error {
+  color: var(--danger-text);
+}
+
+.smt-control--invalid .smt-control__field :is(input, select, textarea, [role='combobox']) {
+  border-color: var(--danger);
+}

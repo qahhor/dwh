@@ -17,6 +17,12 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and follows both themes. The two remaining browser `confirm()` prompts in
   Settings (migrating legacy language packs, closing the translation editor
   with unsaved edits) now use it.
+- `smt-control`, one wrapper for a form field's label, hint and error. It
+  reads Angular Signal Forms fields, the default for new screens, as well as
+  legacy `ngModel` fields; names the field with its label, links the hint and
+  the error through `aria-describedby`, marks invalid and required fields for
+  assistive technology, and shows catalogue messages for the built-in rules
+  once the field is touched.
 - Explicit primitive colour scales (`--color-<hue>-<step>`) behind the existing
   semantic design tokens, so a neighbouring step is available where one is
   needed for contrast.
