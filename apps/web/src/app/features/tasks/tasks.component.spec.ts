@@ -213,7 +213,7 @@ describe('TasksComponent UI contracts', () => {
     expect(title.getAttribute('aria-describedby')).toBe(error.id);
     expect(fixture.nativeElement.querySelector('[role="group"][aria-label="Тип задачи"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('smt-select button[aria-label="Родительская задача"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('ui-user-multi-select button[aria-label="Наблюдатели"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('smt-multi-select button[aria-label="Наблюдатели"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('ui-markdown-editor textarea')?.getAttribute('id')).not.toBe('');
   });
 
@@ -1034,16 +1034,15 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     (Array.from(document.querySelectorAll('.smt-select__option')) as HTMLElement[])
       .find(button => button.textContent?.includes('Outside filtered page'))!.click();
 
-    const observerTrigger = fixture.nativeElement.querySelector('ui-user-multi-select button[aria-label="Наблюдатели"]') as HTMLButtonElement;
+    const observerTrigger = fixture.nativeElement.querySelector('smt-multi-select button[aria-label="Наблюдатели"]') as HTMLButtonElement;
     observerTrigger.click();
     fixture.detectChanges();
-    const observerHost = observerTrigger.closest('ui-user-multi-select')!;
-    const observerSearch = observerHost.querySelector('.search-input') as HTMLInputElement;
+    const observerSearch = document.querySelector('.smt-select__search-input') as HTMLInputElement;
     observerSearch.value = 'user502';
     observerSearch.dispatchEvent(new Event('input'));
     await vi.advanceTimersByTimeAsync(300);
     fixture.detectChanges();
-    (Array.from(observerHost.querySelectorAll('button.user-option')) as HTMLButtonElement[])
+    (Array.from(document.querySelectorAll('.smt-select__option')) as HTMLElement[])
       .find(button => button.textContent?.includes('Remote Observer'))!.click();
 
     expect(component.createForm.responsibleUserId).toBe(501);

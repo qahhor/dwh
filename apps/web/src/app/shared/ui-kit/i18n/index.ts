@@ -37,6 +37,9 @@ export interface SMTSelectMessages {
   readonly loadFailed: string;
   readonly retry: string;
   readonly loadMore: string;
+  readonly remove: (name: string) => string;
+  readonly add: string;
+  readonly addMore: string;
 }
 
 export interface SMTMessages {
@@ -83,6 +86,9 @@ export class SMTI18nService {
       loadFailed: this.i18n.translate('ui.remote_lookup.failed'),
       retry: this.i18n.translate('common.retry'),
       loadMore: this.i18n.translate('common.load_more'),
+      remove: name => this.i18n.translate('ui.user_multi_select.remove_user', { name }),
+      add: this.i18n.translate('ui.user_multi_select.vybrat_polzovateley'),
+      addMore: this.i18n.translate('ui.user_multi_select.add_more'),
     },
     date: {
       placeholder: this.i18n.translate('ui.date.placeholder'),

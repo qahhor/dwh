@@ -45,6 +45,11 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Escape to close, typing on the closed field to start a search. Its list
   opens in an overlay, so a dialog no longer cuts it off, and stays
   reachable for screen readers inside modal dialogs.
+- `smt-multi-select` for choosing several values: chosen values show as
+  chips with labelled remove buttons, the list stays open while Enter or a
+  click toggles options, and Backspace in an empty search removes the last
+  chip. It shares `smt-select`'s keyboard, overlay and screen reader
+  behaviour.
 - Explicit primitive colour scales (`--color-<hue>-<step>`) behind the existing
   semantic design tokens, so a neighbouring step is available where one is
   needed for contrast.
@@ -123,6 +128,7 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - The user's manager, a task's responsible person and a task's parent are
   chosen with `smt-select`; remote search, "Load more" and retry work as
   before.
+- A task's co-executors and observers are chosen with `smt-multi-select`.
 
 - Every date field uses the new date picker instead of the browser's own:
   the audit log and security event filters, the UPL upload period and
@@ -335,6 +341,7 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Removed
 
 - `ui-searchable-select`, replaced everywhere by `smt-select`.
+- `ui-user-multi-select`, replaced by `smt-multi-select`.
 - Control Plane, fleet management, heartbeat, enrollment, and license gates.
 
 ### Security

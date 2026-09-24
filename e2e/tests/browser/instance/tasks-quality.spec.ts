@@ -62,7 +62,7 @@ async function expectStatusColors(select: Locator, expected: StatusColors): Prom
 }
 
 async function expectSelectedObserver(dialog: Locator, expectedName: string): Promise<void> {
-  const selectedObservers = dialog.locator('.user-tag .user-name');
+  const selectedObservers = dialog.locator('.smt-multi-select__chip-label');
   await expect(selectedObservers).toHaveCount(1);
   await expect(selectedObservers).toHaveText(expectedName);
 }
@@ -118,10 +118,11 @@ async function createTaskThroughUi(
   }
 
   if (options.observeAsLogin) {
-    await dialog.getByRole('button', { name: 'Наблюдатели' }).click();
-    const observer = dialog.getByRole('option').filter({ hasText: `@${options.observeAsLogin}` });
+    await dialog.getByRole('combobox', { name: 'Наблюдатели' }).click();
+    // The list opens in an overlay outside the dialog's DOM, so it is found on the page.
+    const observer = page.getByRole('option').filter({ hasText: `@${options.observeAsLogin}` });
     await expect(observer).toBeVisible();
-    selectedObserverName = (await observer.locator('.u-name').innerText()).trim();
+    selectedObserverName = (await observer.locator('.smt-select__option-label').innerText()).trim();
     expect(selectedObserverName).not.toBe('');
     await observer.click();
     await dialog.getByLabel('Название задачи').click();

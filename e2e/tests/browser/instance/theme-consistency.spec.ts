@@ -88,8 +88,8 @@ test('light theme keeps every content surface and form control light', async ({ 
   await expectOverlayShadow(page.locator('.smt-select__popup'));
   await parentTaskSelect.click();
   await expect(page.locator('.smt-select__popup')).toBeHidden();
-  await page.getByRole('button', { name: 'Наблюдатели' }).click();
-  await expectOverlayShadow(page.locator('.dropdown-panel'));
+  await page.getByRole('combobox', { name: 'Наблюдатели' }).click();
+  await expectOverlayShadow(page.locator('.smt-select__popup'));
 
   await page.goto('/settings');
   await ensureTheme(page, 'light');

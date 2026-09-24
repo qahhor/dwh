@@ -1,12 +1,13 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { SMTMultiSelectComponent } from '../../../shared/ui-kit/components/forms/multi-select';
+import { UserOptionsPipe } from './user-options.pipe';
 import { SMTDatePickerComponent, SMTDatePickerValueAccessor } from '../../../shared/ui-kit/components/forms/date-picker';
 import { TranslatePipe } from '../../../core/services/i18n.service';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { SMTSelectComponent, SMTSelectOption } from '../../../shared/ui-kit/components/forms/select';
-import { UiUserMultiSelectComponent } from '../../../shared/ui/ui-user-multi-select.component';
 import { UiMarkdownEditorComponent } from '../../../shared/ui/ui-markdown-editor.component';
 import { UiCustomFieldsComponent } from '../../../shared/ui/ui-custom-fields.component';
 import { CustomField } from '../../../core/models/custom-field.models';
@@ -25,7 +26,8 @@ import { User } from '../../../core/models/auth.models';
     UiModalComponent,
     UiButtonComponent,
     SMTSelectComponent,
-    UiUserMultiSelectComponent,
+    SMTMultiSelectComponent,
+    UserOptionsPipe,
     UiMarkdownEditorComponent,
     UiCustomFieldsComponent
   ],
@@ -201,11 +203,12 @@ import { User } from '../../../core/models/auth.models';
           <div class="label-row">
             <span class="clean-label">{{ 'tasks.soispolniteli' | t }}</span>
           </div>
-          <ui-user-multi-select
-            [users]="executorUsers"
-            [selectedUserIds]="createForm.executorUserIds"
+          <smt-multi-select
+            [options]="executorUsers | userOptions"
+            [knownOptions]="executorUsers | userOptions: true"
+            [value]="createForm.executorUserIds"
             [ariaLabel]="'tasks.soispolniteli' | t"
-            (selectedUserIdsChange)="createForm.executorUserIds = $event"
+            (valueChange)="createForm.executorUserIds = [...$event]"
             [placeholder]="'tasks.nazhmite_dlya_dobavleniya_soispolniteley' | t"
             [searchPlaceholder]="'tasks.poisk_sotrudnika' | t"
             [remoteSearch]="true"
@@ -215,7 +218,7 @@ import { User } from '../../../core/models/auth.models';
             (searchChange)="executorSearch.emit($event)"
             (loadMore)="executorLoadMore.emit()"
             (retry)="executorRetry.emit()"
-          ></ui-user-multi-select>
+          ></smt-multi-select>
         </div>
 
         <!-- Observers Searchable Multi-Select Tags Input -->
@@ -223,11 +226,12 @@ import { User } from '../../../core/models/auth.models';
           <div class="label-row">
             <span class="clean-label">{{ 'tasks.nablyudateli_poluchayut_uvedomleniya' | t }}</span>
           </div>
-          <ui-user-multi-select
-            [users]="observerUsers"
-            [selectedUserIds]="createForm.observerUserIds"
+          <smt-multi-select
+            [options]="observerUsers | userOptions"
+            [knownOptions]="observerUsers | userOptions: true"
+            [value]="createForm.observerUserIds"
             [ariaLabel]="'tasks.nablyudateli' | t"
-            (selectedUserIdsChange)="createForm.observerUserIds = $event"
+            (valueChange)="createForm.observerUserIds = [...$event]"
             [placeholder]="'tasks.nazhmite_dlya_dobavleniya_nablyudateley' | t"
             [searchPlaceholder]="'tasks.poisk_sotrudnika' | t"
             [remoteSearch]="true"
@@ -237,7 +241,7 @@ import { User } from '../../../core/models/auth.models';
             (searchChange)="observerSearch.emit($event)"
             (loadMore)="observerLoadMore.emit()"
             (retry)="observerRetry.emit()"
-          ></ui-user-multi-select>
+          ></smt-multi-select>
         </div>
 
         <!-- RichText Markdown Editor for Description -->
