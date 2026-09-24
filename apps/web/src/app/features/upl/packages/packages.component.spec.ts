@@ -116,10 +116,18 @@ function selectSource(fixture: ComponentFixture<PackagesComponent>, index: numbe
   fixture.detectChanges();
 }
 
+/** The text field inside an smt-date-picker (or the element itself when it is one). */
+function dateField(fixture: ComponentFixture<PackagesComponent>, id: string): HTMLInputElement {
+  const host = testId(fixture, id)[0];
+  return (host.querySelector('input') ?? host) as HTMLInputElement;
+}
+
+/** Types a date the way a person does: text, then Enter to commit it. */
 function typeDate(fixture: ComponentFixture<PackagesComponent>, id: string, value: string): void {
-  const input = testId(fixture, id)[0] as HTMLInputElement;
+  const input = dateField(fixture, id);
   input.value = value;
   input.dispatchEvent(new Event('input'));
+  input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
   fixture.detectChanges();
 }
 
@@ -211,8 +219,8 @@ describe('PackagesComponent', () => {
 
     expect(submitButton(fixture).disabled).toBe(true);
     expect(isDisabled(testId(fixture, 'upl-pkg-source')[0])).toBe(true);
-    expect(isDisabled(testId(fixture, 'upl-pkg-period-from')[0])).toBe(true);
-    expect(isDisabled(testId(fixture, 'upl-pkg-period-to')[0])).toBe(true);
+    expect(isDisabled(dateField(fixture, 'upl-pkg-period-from'))).toBe(true);
+    expect(isDisabled(dateField(fixture, 'upl-pkg-period-to'))).toBe(true);
     expect(isDisabled(testId(fixture, 'upl-pkg-file')[0])).toBe(true);
   });
 

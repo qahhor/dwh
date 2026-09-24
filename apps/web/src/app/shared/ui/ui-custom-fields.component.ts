@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { CustomField } from '../../core/models/custom-field.models';
 import { TranslatePipe } from '../../core/services/i18n.service';
 import { ApiService } from '../../core/services/api.service';
+import { SMTDatePickerComponent, SMTDatePickerValueAccessor } from '../ui-kit/components/forms/date-picker';
 
 export interface UserLookupItem {
   id: number;
@@ -14,7 +15,7 @@ export interface UserLookupItem {
 @Component({
   selector: 'ui-custom-fields',
   standalone: true,
-  imports: [TranslatePipe, CommonModule, FormsModule],
+  imports: [TranslatePipe, CommonModule, FormsModule, SMTDatePickerComponent, SMTDatePickerValueAccessor],
   template: `
     <div class="custom-fields-grid" *ngIf="fields && fields.length > 0">
       <div class="field-item" *ngFor="let f of fields">
@@ -52,16 +53,13 @@ export interface UserLookupItem {
         />
 
         <!-- Date Input -->
-        <input
+        <smt-date-picker
           *ngIf="f.fieldType === 'date'"
-          [id]="controlId(f)"
+          [smtInputId]="controlId(f)"
           [name]="f.code"
-          type="date"
-          class="form-control"
           [ngModel]="values[f.code]"
-          (ngModelChange)="onValueChange(f.code, $event)"
+          (ngModelChange)="onValueChange(f.code, $event ?? '')"
           [required]="f.isRequired"
-          [attr.aria-required]="f.isRequired"
         />
 
         <!-- Select Input -->

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiServerTableComponent } from '../../../shared/ui/ui-server-table.component';
+import { SMTDatePickerComponent, SMTDatePickerValueAccessor } from '../../../shared/ui-kit/components/forms/date-picker';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { KeysetPager } from '../../../shared/paging/keyset-pager';
 import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
@@ -16,7 +17,9 @@ import { AuditRecord } from '../audit.models';
     FormsModule,
     TranslatePipe,
     UiButtonComponent,
-    UiServerTableComponent
+    UiServerTableComponent,
+    SMTDatePickerComponent,
+    SMTDatePickerValueAccessor
   ],
   template: `
     <div id="audit-log-panel" class="tab-content" role="tabpanel" aria-labelledby="audit-log-tab">
@@ -57,13 +60,13 @@ import { AuditRecord } from '../audit.models';
 
           <div class="compact-filter">
             <label for="audit-from-filter">{{ 'audit.date_from_utc' | t }}</label>
-            <input id="audit-from-filter" name="auditFromFilter" class="filter-input" type="date"
+            <smt-date-picker smtInputId="audit-from-filter" name="auditFromFilter"
               [ngModel]="auditFromFilter" (ngModelChange)="auditFromFilterChange.emit($event)" />
           </div>
 
           <div class="compact-filter">
             <label for="audit-to-filter">{{ 'audit.date_to_utc' | t }}</label>
-            <input id="audit-to-filter" name="auditToFilter" class="filter-input" type="date"
+            <smt-date-picker smtInputId="audit-to-filter" name="auditToFilter"
               [ngModel]="auditToFilter" (ngModelChange)="auditToFilterChange.emit($event)" />
           </div>
 

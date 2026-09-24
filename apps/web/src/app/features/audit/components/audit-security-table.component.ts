@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiServerTableComponent } from '../../../shared/ui/ui-server-table.component';
+import { SMTDatePickerComponent, SMTDatePickerValueAccessor } from '../../../shared/ui-kit/components/forms/date-picker';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { KeysetPager } from '../../../shared/paging/keyset-pager';
 import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
@@ -16,7 +17,9 @@ import { SecurityEventRecord } from '../audit.models';
     FormsModule,
     TranslatePipe,
     UiButtonComponent,
-    UiServerTableComponent
+    UiServerTableComponent,
+    SMTDatePickerComponent,
+    SMTDatePickerValueAccessor
   ],
   template: `
     <div id="security-events-panel" class="tab-content" role="tabpanel" aria-labelledby="security-events-tab">
@@ -58,13 +61,13 @@ import { SecurityEventRecord } from '../audit.models';
 
           <div class="compact-filter">
             <label for="security-from-filter">{{ 'audit.date_from_utc' | t }}</label>
-            <input id="security-from-filter" name="securityFromFilter" class="filter-input" type="date"
+            <smt-date-picker smtInputId="security-from-filter" name="securityFromFilter"
               [ngModel]="securityFromFilter" (ngModelChange)="securityFromFilterChange.emit($event)" />
           </div>
 
           <div class="compact-filter">
             <label for="security-to-filter">{{ 'audit.date_to_utc' | t }}</label>
-            <input id="security-to-filter" name="securityToFilter" class="filter-input" type="date"
+            <smt-date-picker smtInputId="security-to-filter" name="securityToFilter"
               [ngModel]="securityToFilter" (ngModelChange)="securityToFilterChange.emit($event)" />
           </div>
 

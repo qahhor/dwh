@@ -157,6 +157,25 @@ describe('SMTDatePickerComponent', () => {
     });
   });
 
+  it('commits a typed date when focus moves on inside the picker, so the time applies to it', async () => {
+    const { fixture, element, text, settle } = await render(SignalHost);
+    fixture.componentInstance.withTime.set(true);
+    fixture.componentInstance.model.set({ due: '2026-09-04T14:30' });
+    await settle();
+
+    text.value = '07.09.2026';
+    text.dispatchEvent(new Event('input'));
+    text.dispatchEvent(new FocusEvent('blur'));
+    await settle();
+    expect(fixture.componentInstance.model().due).toBe('2026-09-07T14:30');
+
+    const time = element.querySelector('.smt-date-picker__time') as HTMLInputElement;
+    time.value = '08:00';
+    time.dispatchEvent(new Event('change'));
+    await settle();
+    expect(fixture.componentInstance.model().due).toBe('2026-09-07T08:00');
+  });
+
   describe('bound with ngModel through the value accessor', () => {
     it('shows the model value and reports typed changes back', async () => {
       const { fixture, text, type } = await render(NgModelHost);

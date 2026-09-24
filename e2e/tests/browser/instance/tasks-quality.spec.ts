@@ -67,6 +67,37 @@ async function expectSelectedObserver(dialog: Locator, expectedName: string): Pr
   await expect(selectedObservers).toHaveText(expectedName);
 }
 
+/** The time field of the smt-date-picker whose text field has `fieldId`. */
+function deadlineTime(scope: Locator, fieldId: string): Locator {
+  return scope.locator(`smt-date-picker:has(#${fieldId}) input[type="time"]`);
+}
+
+/**
+ * Sets a deadline given as `YYYY-MM-DDTHH:mm` (or '' to clear) the way a
+ * person does in smt-date-picker: the date typed into its text field and
+ * committed by leaving it, then the time.
+ */
+async function fillDeadline(scope: Locator, fieldId: string, value: string): Promise<void> {
+  const [date, time] = value.split('T');
+  const field = scope.locator(`#${fieldId}`);
+  await field.fill(date ?? '');
+  await field.press('Tab');
+  if (time) await deadlineTime(scope, fieldId).fill(time);
+}
+
+/** The picker shows the date in the Russian format and the time separately. */
+async function expectDeadline(scope: Locator, fieldId: string, value: string): Promise<void> {
+  const field = scope.locator(`#${fieldId}`);
+  if (!value) {
+    await expect(field).toHaveValue('');
+    return;
+  }
+  const [date, time] = value.split('T');
+  const [year, month, day] = date.split('-');
+  await expect(field).toHaveValue(`${day}.${month}.${year}`);
+  await expect(deadlineTime(scope, fieldId)).toHaveValue(time ?? '');
+}
+
 async function createTaskThroughUi(
   page: Page,
   title: string,
@@ -83,7 +114,7 @@ async function createTaskThroughUi(
   let selectedObserverName = '';
 
   if (options.deadline) {
-    await dialog.locator('#task-create-deadline').fill(options.deadline);
+    await fillDeadline(dialog, 'task-create-deadline', options.deadline);
   }
 
   if (options.observeAsLogin) {
@@ -139,7 +170,7 @@ test('task edit round-trips and clears a local deadline while retaining observer
   const editDialog = page.getByRole('dialog', { name: 'Редактирование задачи' });
   await expect(editDialog).toBeVisible();
   await expect(page.getByRole('dialog')).toHaveCount(1);
-  await expect(editDialog.locator('#task-edit-deadline')).toHaveValue('2026-09-05T17:00');
+  await expectDeadline(editDialog, 'task-edit-deadline', '2026-09-05T17:00');
   await expectSelectedObserver(editDialog, selectedObserverName);
 
   const titleInput = editDialog.getByLabel('Название задачи');
@@ -160,10 +191,10 @@ test('task edit round-trips and clears a local deadline while retaining observer
 
   const editedRow = taskOpenButton(page, editedTitle).locator('xpath=ancestor::*[@role="row"][1]');
   await editedRow.getByRole('button', { name: /Редактировать задачу #\d+/u }).click();
-  await expect(editDialog.locator('#task-edit-deadline')).toHaveValue('2026-09-05T17:00');
+  await expectDeadline(editDialog, 'task-edit-deadline', '2026-09-05T17:00');
   await expectSelectedObserver(editDialog, selectedObserverName);
 
-  await editDialog.locator('#task-edit-deadline').fill('');
+  await fillDeadline(editDialog, 'task-edit-deadline', '');
   const clearPatch = page.waitForResponse(candidate =>
     candidate.request().method() === 'PATCH' && /\/api\/v1\/tasks\/\d+$/u.test(candidate.url())
   );
@@ -173,7 +204,7 @@ test('task edit round-trips and clears a local deadline while retaining observer
 
   await taskOpenButton(page, editedTitle).locator('xpath=ancestor::*[@role="row"][1]')
     .getByRole('button', { name: /Редактировать задачу #\d+/u }).click();
-  await expect(editDialog.locator('#task-edit-deadline')).toHaveValue('');
+  await expectDeadline(editDialog, 'task-edit-deadline', '');
   await expectSelectedObserver(editDialog, selectedObserverName);
   await editDialog.getByRole('button', { name: 'Отмена' }).click();
 
