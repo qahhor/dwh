@@ -13,39 +13,22 @@ import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { SMTDatePickerComponent, SMTDatePickerValueAccessor } from '../../../shared/ui-kit/components/forms/date-picker';
+import { SMTProgressStep, SMTProgressStepperComponent } from '../../../shared/ui-kit/components/progress-stepper';
 import {
-  UPL_DATA_TYPES,
-  UPL_ENCODINGS,
-  UPL_FILE_KINDS,
-  UPL_MATCH_BY,
   UplApiService,
-  UplColumn,
   UplFileKind,
   UplFormatDraftRequest,
   UplFormatVersion,
-  UplSheet,
   UplSource,
   UplUnit,
   UplVersionItem
 } from '../upl-api';
-import {
-  UPL_DATA_TYPE_KEY,
-  UPL_ENCODING_KEY,
-  UPL_FILE_KIND_KEY,
-  UPL_MATCH_BY_KEY,
-  UPL_VERSION_STATUS_KEY,
-  uplErrorKey,
-  uplProblemText
-} from '../upl-labels';
-import {
-  UplFieldError,
-  parseUplFieldErrors,
-  parseUplProblem,
-  uplCellError,
-  uplFieldErrorText,
-  uplSheetError,
-  uplSheetHasErrors
-} from './upl-format-errors';
+import { UPL_FILE_KIND_KEY, UPL_VERSION_STATUS_KEY, uplErrorKey, uplProblemText } from '../upl-labels';
+import { FormatFileStepComponent } from './format-file-step.component';
+import { FormatPublishStepComponent } from './format-publish-step.component';
+import { FormatSheetsStepComponent } from './format-sheets-step.component';
+import { UplFieldError, parseUplFieldErrors, parseUplProblem, uplFieldErrorText } from './upl-format-errors';
+import { UplFormatStep, emptyModel, trimToNull, uplErrorStep } from './upl-format-model';
 
 const TARGET_FIELD_PATTERN = /^[a-z][a-z0-9_]{0,62}$/;
 
@@ -64,27 +47,14 @@ const COLUMN_FIELD_LABEL_KEY: Record<string, string> = {
   filePosition: 'upl.format.col.file_position'
 };
 
-/** Пустая строка в необязательном поле означает «не заполнено», а не пустое значение. */
-function trimToNull(value: string | null | undefined): string | null {
-  const trimmed = (value ?? '').trim();
-  return trimmed.length === 0 ? null : trimmed;
-}
-
-function isFilled(value: string | number | null | undefined): boolean {
-  return value !== null && value !== undefined && value !== '';
-}
-
-function emptyModel(): UplFormatDraftRequest {
-  return { lockVersion: 0, fileKind: 'xlsx', encoding: null, delimiter: null, matchColumnsBy: 'header', sheets: [] };
-}
-
 @Component({
   selector: 'app-upl-format-editor',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule, FormsModule, RouterLink, TranslatePipe, UiButtonComponent, UiModalComponent, UiBadgeComponent,
-    SMTDatePickerComponent, SMTDatePickerValueAccessor,
+    SMTDatePickerComponent, SMTDatePickerValueAccessor, SMTProgressStepperComponent,
+    FormatFileStepComponent, FormatSheetsStepComponent, FormatPublishStepComponent,
   ],
   template: `
     <div class="upl-editor">
@@ -134,410 +104,53 @@ function emptyModel(): UplFormatDraftRequest {
           <div class="alert alert-error" role="alert" data-testid="upl-action-error">{{ problem }}</div>
         }
 
-        <section class="upl-block">
-          <h2 class="upl-block-title">{{ 'upl.format.file' | t }}</h2>
-          <div class="upl-row">
-            <div class="form-group">
-              <label class="form-label" for="upl-file-kind">{{ 'upl.format.field.file_kind' | t }}</label>
-              <select
-                id="upl-file-kind"
-                class="form-select"
-                data-testid="upl-file-kind"
-                [disabled]="!editable()"
-                [ngModel]="model.fileKind"
-                [ngModelOptions]="{ standalone: true }"
-                (ngModelChange)="onFileKindChange($event)"
-              >
-                @for (kind of fileKinds; track kind) {
-                  <option [value]="kind">{{ fileKindKey[kind] | t }}</option>
-                }
-              </select>
-            </div>
-            @if (model.fileKind === 'csv') {
-              <div class="form-group">
-                <label class="form-label" for="upl-encoding">{{ 'upl.format.field.encoding' | t }}</label>
-                <select
-                  id="upl-encoding"
-                  class="form-select"
-                  data-testid="upl-encoding"
-                  [disabled]="!editable()"
-                  [(ngModel)]="model.encoding"
-                  [ngModelOptions]="{ standalone: true }"
-                >
-                  @for (encoding of encodings; track encoding) {
-                    <option [value]="encoding">{{ encodingKey[encoding] | t }}</option>
-                  }
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label" for="upl-delimiter">{{ 'upl.format.field.delimiter' | t }}</label>
-                <input
-                  id="upl-delimiter"
-                  class="form-input upl-input-tiny"
-                  type="text"
-                  maxlength="1"
-                  [disabled]="!editable()"
-                  [(ngModel)]="model.delimiter"
-                  [ngModelOptions]="{ standalone: true }"
-                />
-              </div>
-            }
-            <div class="form-group">
-              <label class="form-label" for="upl-match-by">{{ 'upl.format.field.match_by' | t }}</label>
-              <select
-                id="upl-match-by"
-                class="form-select"
-                data-testid="upl-match-by"
-                [disabled]="!editable()"
-                [(ngModel)]="model.matchColumnsBy"
-                [ngModelOptions]="{ standalone: true }"
-              >
-                @for (match of matchBy; track match) {
-                  <option [value]="match">{{ matchByKey[match] | t }}</option>
-                }
-              </select>
-            </div>
+        <smt-progress-stepper
+          data-testid="upl-steps"
+          [smtLabel]="'upl.format.steps' | t"
+          [smtSteps]="steps()"
+          [(smtCurrent)]="step"
+        />
+
+        @if (errors().length > 0) {
+          <div class="alert alert-error" role="alert" data-testid="upl-errors-summary">
+            <p class="upl-errors-title">{{ 'upl.format.errors_title' | t }}</p>
+            <ul class="upl-errors-list">
+              @for (problem of errors(); track $index) {
+                <li>
+                  <button type="button" class="upl-error-item" (click)="focusError(problem)">
+                    @if (problem.sheet !== null) {
+                      <span class="upl-error-at">{{ errorAddress(problem) }}</span>
+                    }
+                    <span>{{ errorText(problem) }}</span>
+                  </button>
+                </li>
+              }
+            </ul>
           </div>
+        }
+
+        <section class="upl-block" id="upl-step-file" data-testid="upl-step-file" [hidden]="step() !== 'file'">
+          <app-upl-format-file-step [model]="model" [editable]="editable()" />
         </section>
 
-        <section class="upl-block">
-          <h2 class="upl-block-title">{{ 'upl.format.sheets' | t }}</h2>
-          <div class="upl-tabs" role="tablist">
-            @for (sheet of model.sheets; track $index) {
-              <span class="upl-tab" [class.upl-tab-active]="activeSheet() === $index">
-                <button type="button" class="upl-tab-button" data-testid="upl-sheet-tab" (click)="activeSheet.set($index)">
-                  <span>{{ sheet.sheetName || text('upl.format.sheet_n', { n: ($index + 1).toString() }) }}</span>
-                  @if (sheetHasErrors($index)) {
-                    <span class="upl-tab-dot" data-testid="upl-tab-error" aria-hidden="true"></span>
-                  }
-                </button>
-                @if (editable()) {
-                  <button
-                    type="button"
-                    class="upl-tab-remove"
-                    data-testid="upl-remove-sheet"
-                    [attr.aria-label]="'upl.format.remove_sheet' | t"
-                    (click)="sheetToRemove.set($index)"
-                  >×</button>
-                }
-              </span>
-            }
-            @if (editable()) {
-              <button type="button" class="upl-tab-add" data-testid="upl-add-sheet" (click)="addSheet()">
-                {{ 'upl.format.add_sheet' | t }}
-              </button>
-            }
-          </div>
+        <section class="upl-block" id="upl-step-sheets" data-testid="upl-step-sheets" [hidden]="step() !== 'sheets'">
+          <app-upl-format-sheets-step
+            [model]="model"
+            [editable]="editable()"
+            [units]="units()"
+            [(activeSheet)]="activeSheet"
+            [(errors)]="errors"
+          />
+        </section>
 
-          @if (errors().length > 0) {
-            <div class="alert alert-error" role="alert" data-testid="upl-errors-summary">
-              <p class="upl-errors-title">{{ 'upl.format.errors_title' | t }}</p>
-              <ul class="upl-errors-list">
-                @for (problem of errors(); track $index) {
-                  <li>
-                    <button type="button" class="upl-error-item" (click)="focusError(problem)">
-                      @if (problem.sheet !== null) {
-                        <span class="upl-error-at">{{ errorAddress(problem) }}</span>
-                      }
-                      <span>{{ errorText(problem) }}</span>
-                    </button>
-                  </li>
-                }
-              </ul>
-            </div>
-          }
-
-          @if (model.sheets.length === 0) {
-            <p class="upl-muted" data-testid="upl-no-sheets">{{ 'upl.format.no_sheets' | t }}</p>
-          } @else if (activeSheetModel(); as sheet) {
-            <div class="upl-row">
-              @if (model.fileKind !== 'csv') {
-                <div class="form-group">
-                  <label class="form-label" for="upl-sheet-name">{{ 'upl.format.field.sheet_name' | t }}</label>
-                  <input
-                    id="upl-sheet-name"
-                    class="form-input"
-                    type="text"
-                    data-testid="upl-sheet-name"
-                    [class.upl-cell-error]="sheetError(activeSheet(), 'sheetName')"
-                    [disabled]="!editable()"
-                    [(ngModel)]="sheet.sheetName"
-                    [ngModelOptions]="{ standalone: true }"
-                  />
-                  @if (sheetError(activeSheet(), 'sheetName'); as problem) {
-                    <span class="upl-field-error">{{ errorText(problem) }}</span>
-                  }
-                </div>
-              }
-              <div class="form-group">
-                <label class="form-label" for="upl-header-row">{{ 'upl.format.field.header_row' | t }}</label>
-                <input
-                  id="upl-header-row"
-                  class="form-input upl-input-small"
-                  type="number"
-                  min="1"
-                  [class.upl-cell-error]="sheetError(activeSheet(), 'headerRow')"
-                  [disabled]="!editable()"
-                  [(ngModel)]="sheet.headerRow"
-                  [ngModelOptions]="{ standalone: true }"
-                />
-                <span class="upl-hint">{{ 'upl.format.hint.header_row' | t }}</span>
-                @if (sheetError(activeSheet(), 'headerRow'); as problem) {
-                  <span class="upl-field-error">{{ errorText(problem) }}</span>
-                }
-              </div>
-              <div class="form-group">
-                <label class="form-label" for="upl-total-marker">{{ 'upl.format.field.total_row_marker' | t }}</label>
-                <input
-                  id="upl-total-marker"
-                  class="form-input"
-                  type="text"
-                  [class.upl-cell-error]="sheetError(activeSheet(), 'totalRowMarker')"
-                  [disabled]="!editable()"
-                  [(ngModel)]="sheet.totalRowMarker"
-                  [ngModelOptions]="{ standalone: true }"
-                />
-                <span class="upl-hint">{{ 'upl.format.hint.total_marker' | t }}</span>
-                @if (sheetError(activeSheet(), 'totalRowMarker'); as problem) {
-                  <span class="upl-field-error">{{ errorText(problem) }}</span>
-                }
-              </div>
-            </div>
-
-            <div class="table-card">
-              <div class="table-scroll">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>{{ 'upl.format.col.name_in_file' | t }}</th>
-                      <th>{{ 'upl.format.col.target_field' | t }}</th>
-                      <th>{{ 'upl.format.col.type' | t }}</th>
-                      <th>{{ 'upl.format.col.required' | t }}</th>
-                      <th>{{ 'upl.format.col.source_unit' | t }}</th>
-                      <th>{{ 'upl.format.col.base_unit' | t }}</th>
-                      <th>{{ 'upl.format.col.key_mask' | t }}</th>
-                      <th>{{ 'upl.format.col.key_pad' | t }}</th>
-                      <th>{{ 'upl.format.col.ref_book' | t }}</th>
-                      @if (model.matchColumnsBy === 'position') {
-                        <th>{{ 'upl.format.col.file_position' | t }}</th>
-                      }
-                      @if (editable()) {
-                        <th [attr.aria-label]="'upl.format.col.actions' | t"></th>
-                      }
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @for (column of sheet.columns; track $index) {
-                      <tr data-testid="upl-column-row">
-                        <td
-                          [class.upl-cell-error]="cellError(activeSheet(), $index, 'nameInFile')"
-                          [attr.title]="cellTitle(activeSheet(), $index, 'nameInFile')"
-                        >
-                          <input
-                            class="form-input"
-                            type="text"
-                            data-testid="upl-cell-name-in-file"
-                            [attr.aria-label]="'upl.format.col.name_in_file' | t"
-                            [disabled]="!editable()"
-                            [(ngModel)]="column.nameInFile"
-                            [ngModelOptions]="{ standalone: true }"
-                          />
-                        </td>
-                        <td
-                          [class.upl-cell-error]="cellError(activeSheet(), $index, 'targetField')"
-                          [attr.title]="cellTitle(activeSheet(), $index, 'targetField') ?? text('upl.format.hint.target_field')"
-                        >
-                          <input
-                            class="form-input"
-                            type="text"
-                            data-testid="upl-cell-target-field"
-                            [attr.aria-label]="'upl.format.col.target_field' | t"
-                            [disabled]="!editable()"
-                            [(ngModel)]="column.targetField"
-                            [ngModelOptions]="{ standalone: true }"
-                          />
-                        </td>
-                        <td
-                          [class.upl-cell-error]="cellError(activeSheet(), $index, 'dataType')"
-                          [attr.title]="cellTitle(activeSheet(), $index, 'dataType')"
-                        >
-                          <select
-                            class="form-select"
-                            data-testid="upl-cell-type"
-                            [attr.aria-label]="'upl.format.col.type' | t"
-                            [disabled]="!editable()"
-                            [(ngModel)]="column.dataType"
-                            [ngModelOptions]="{ standalone: true }"
-                            (ngModelChange)="onTypeChange(column)"
-                          >
-                            @for (type of dataTypes; track type) {
-                              <option [value]="type">{{ dataTypeKey[type] | t }}</option>
-                            }
-                          </select>
-                        </td>
-                        <td
-                          [class.upl-cell-error]="cellError(activeSheet(), $index, 'required')"
-                          [attr.title]="cellTitle(activeSheet(), $index, 'required')"
-                        >
-                          <input
-                            type="checkbox"
-                            data-testid="upl-cell-required"
-                            [attr.aria-label]="'upl.format.col.required' | t"
-                            [disabled]="!editable()"
-                            [(ngModel)]="column.required"
-                            [ngModelOptions]="{ standalone: true }"
-                          />
-                        </td>
-                        <td
-                          [class.upl-cell-error]="cellError(activeSheet(), $index, 'sourceUnit')"
-                          [attr.title]="cellTitle(activeSheet(), $index, 'sourceUnit')"
-                        >
-                          @if (isNumeric(column)) {
-                            <select
-                              class="form-select"
-                              data-testid="upl-cell-source-unit"
-                              [attr.aria-label]="'upl.format.col.source_unit' | t"
-                              [disabled]="!editable()"
-                              [(ngModel)]="column.sourceUnit"
-                              [ngModelOptions]="{ standalone: true }"
-                              (ngModelChange)="onUnitChange(column)"
-                            >
-                              <option [ngValue]="null">—</option>
-                              @for (unit of units(); track unit.code) {
-                                <option [ngValue]="unit.code">{{ unit.name }} ({{ unit.code }})</option>
-                              }
-                            </select>
-                          }
-                        </td>
-                        <td
-                          [class.upl-cell-error]="cellError(activeSheet(), $index, 'baseUnit')"
-                          [attr.title]="cellTitle(activeSheet(), $index, 'baseUnit')"
-                        >
-                          @if (isNumeric(column)) {
-                            <span data-testid="upl-cell-base-unit">{{ baseUnitLabel(column) }}</span>
-                          }
-                        </td>
-                        <td
-                          [class.upl-cell-error]="cellError(activeSheet(), $index, 'keyMask')"
-                          [attr.title]="cellTitle(activeSheet(), $index, 'keyMask') ?? text('upl.format.hint.key_mask')"
-                        >
-                          @if (column.dataType === 'object_key') {
-                            <input
-                              class="form-input"
-                              type="text"
-                              data-testid="upl-cell-key-mask"
-                              [attr.aria-label]="'upl.format.col.key_mask' | t"
-                              [disabled]="!editable()"
-                              [(ngModel)]="column.keyMask"
-                              [ngModelOptions]="{ standalone: true }"
-                            />
-                          }
-                        </td>
-                        <td
-                          [class.upl-cell-error]="cellError(activeSheet(), $index, 'keyPadLength') || cellError(activeSheet(), $index, 'keyPadMax')"
-                          [attr.title]="cellTitle(activeSheet(), $index, 'keyPadLength') ?? cellTitle(activeSheet(), $index, 'keyPadMax')"
-                        >
-                          @if (column.dataType === 'object_key') {
-                            <span class="upl-pad-pair">
-                              <input
-                                class="form-input upl-input-small"
-                                type="number"
-                                min="1"
-                                data-testid="upl-cell-key-pad-length"
-                                [attr.aria-label]="'upl.format.col.key_pad_length' | t"
-                                [disabled]="!editable()"
-                                [(ngModel)]="column.keyPadLength"
-                                [ngModelOptions]="{ standalone: true }"
-                              />
-                              <input
-                                class="form-input upl-input-small"
-                                type="number"
-                                min="1"
-                                data-testid="upl-cell-key-pad-max"
-                                [attr.aria-label]="'upl.format.col.key_pad_max' | t"
-                                [disabled]="!editable()"
-                                [(ngModel)]="column.keyPadMax"
-                                [ngModelOptions]="{ standalone: true }"
-                              />
-                            </span>
-                          }
-                        </td>
-                        <td
-                          [class.upl-cell-error]="cellError(activeSheet(), $index, 'refBookCode')"
-                          [attr.title]="cellTitle(activeSheet(), $index, 'refBookCode')"
-                        >
-                          @if (column.dataType === 'ref_code') {
-                            <input
-                              class="form-input"
-                              type="text"
-                              data-testid="upl-cell-ref-book"
-                              [attr.aria-label]="'upl.format.col.ref_book' | t"
-                              [disabled]="!editable()"
-                              [(ngModel)]="column.refBookCode"
-                              [ngModelOptions]="{ standalone: true }"
-                            />
-                          }
-                        </td>
-                        @if (model.matchColumnsBy === 'position') {
-                          <td
-                            [class.upl-cell-error]="cellError(activeSheet(), $index, 'filePosition')"
-                            [attr.title]="cellTitle(activeSheet(), $index, 'filePosition')"
-                          >
-                            <input
-                              class="form-input upl-input-small"
-                              type="number"
-                              min="1"
-                              data-testid="upl-cell-file-position"
-                              [attr.aria-label]="'upl.format.col.file_position' | t"
-                              [disabled]="!editable()"
-                              [(ngModel)]="column.filePosition"
-                              [ngModelOptions]="{ standalone: true }"
-                            />
-                          </td>
-                        }
-                        @if (editable()) {
-                          <td class="upl-row-actions">
-                            <ui-button
-                              variant="ghost"
-                              size="sm"
-                              icon="arrow_upward"
-                              data-testid="upl-column-up"
-                              [ariaLabel]="'upl.format.move_up' | t"
-                              [disabled]="$index === 0"
-                              (onClick)="moveColumn($index, -1)"
-                            ></ui-button>
-                            <ui-button
-                              variant="ghost"
-                              size="sm"
-                              icon="arrow_downward"
-                              data-testid="upl-column-down"
-                              [ariaLabel]="'upl.format.move_down' | t"
-                              [disabled]="$index === sheet.columns.length - 1"
-                              (onClick)="moveColumn($index, 1)"
-                            ></ui-button>
-                            <ui-button
-                              variant="ghost"
-                              size="sm"
-                              icon="close"
-                              data-testid="upl-column-remove"
-                              [ariaLabel]="'upl.format.remove_column' | t"
-                              (onClick)="removeColumn($index)"
-                            ></ui-button>
-                          </td>
-                        }
-                      </tr>
-                    }
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            @if (editable()) {
-              <ui-button variant="secondary" size="sm" data-testid="upl-add-column" (onClick)="addColumn()">
-                {{ 'upl.format.add_column' | t }}
-              </ui-button>
-            }
-          }
+        <section class="upl-block" id="upl-step-publish" data-testid="upl-step-publish" [hidden]="step() !== 'publish'">
+          <app-upl-format-publish-step
+            [version]="version()"
+            [model]="model"
+            [errorCount]="errors().length"
+            [dirty]="isDirty()"
+            [previousValidFrom]="previousValidFrom()"
+          />
         </section>
 
         @if (version()?.status === 'draft' && (canEdit() || canPublish())) {
@@ -564,20 +177,6 @@ function emptyModel(): UplFormatDraftRequest {
           </div>
         }
 
-        <ui-modal
-          [isOpen]="sheetToRemove() !== null"
-          [title]="'upl.format.remove_sheet' | t"
-          size="sm"
-          (close)="sheetToRemove.set(null)"
-        >
-          <p body>{{ text('upl.format.remove_sheet_confirm', { count: sheetToRemoveColumns().toString() }) }}</p>
-          <div footer class="upl-modal-actions">
-            <ui-button variant="secondary" (onClick)="sheetToRemove.set(null)">{{ 'upl.common.cancel' | t }}</ui-button>
-            <ui-button variant="danger" data-testid="upl-remove-sheet-confirm" (onClick)="confirmRemoveSheet()">
-              {{ 'upl.format.remove_sheet' | t }}
-            </ui-button>
-          </div>
-        </ui-modal>
 
         <ui-modal [isOpen]="isPublishOpen()" [title]="'upl.version.publish_title' | t" size="sm" (close)="closePublish()">
           <div body>
@@ -632,26 +231,13 @@ function emptyModel(): UplFormatDraftRequest {
     .upl-note { display: flex; gap: 0.5rem; color: var(--text-muted); margin: 0; }
     .upl-note a { color: var(--primary); }
     .upl-block { display: flex; flex-direction: column; gap: 0.75rem; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1rem; }
-    .upl-block-title { margin: 0; font-size: 1rem; color: var(--text-main); }
-    .upl-row { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-start; }
-    .upl-input-small { max-width: 7rem; }
-    .upl-input-tiny { max-width: 4rem; }
+    .upl-block[hidden] { display: none; }
     .upl-hint { color: var(--text-light); font-size: 0.75rem; }
     .upl-field-error { color: var(--danger); font-size: 0.75rem; }
-    .upl-tabs { display: flex; flex-wrap: wrap; gap: 0.25rem; border-bottom: 1px solid var(--border-color); }
-    .upl-tab { display: inline-flex; align-items: center; background: var(--bg-hover); border: 1px solid var(--border-color); border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
-    .upl-tab-active { background: var(--bg-active); border-color: var(--primary); }
-    .upl-tab-button { display: inline-flex; align-items: center; gap: 0.375rem; background: none; border: none; color: var(--text-main); padding: 0.375rem 0.625rem; cursor: pointer; }
-    .upl-tab-remove { background: none; border: none; color: var(--text-muted); padding: 0 0.5rem 0 0; cursor: pointer; }
-    .upl-tab-add { background: none; border: 1px dashed var(--border-color); border-radius: var(--radius-sm); color: var(--primary); padding: 0.375rem 0.625rem; cursor: pointer; }
-    .upl-tab-dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--danger); }
     .upl-errors-title { margin: 0 0 0.375rem; font-weight: 600; }
     .upl-errors-list { margin: 0; padding-left: 1rem; }
     .upl-error-item { display: inline-flex; gap: 0.375rem; padding: 0; background: none; border: none; color: inherit; text-align: left; cursor: pointer; }
     .upl-error-at { color: var(--text-muted); }
-    .upl-pad-pair { display: inline-flex; gap: 0.25rem; }
-    .upl-row-actions { display: flex; gap: 0.25rem; white-space: nowrap; }
-    .upl-cell-error { border: 1px solid var(--danger); background: var(--danger-bg); border-radius: var(--radius-sm); }
     .upl-actions { position: sticky; bottom: 0; display: flex; gap: 0.5rem; padding: 0.75rem 1rem; background: var(--bg-surface); border-top: 1px solid var(--border-color); border-radius: var(--radius-md) var(--radius-md) 0 0; }
     .upl-modal-actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
   `]
@@ -666,15 +252,6 @@ export class FormatEditorComponent implements RecordNavigationPage {
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly navigationDecision = new RecordNavigationDecision();
 
-  readonly fileKinds = UPL_FILE_KINDS;
-  readonly encodings = UPL_ENCODINGS;
-  readonly matchBy = UPL_MATCH_BY;
-  readonly dataTypes = UPL_DATA_TYPES;
-  readonly fileKindKey = UPL_FILE_KIND_KEY;
-  readonly encodingKey = UPL_ENCODING_KEY;
-  readonly matchByKey = UPL_MATCH_BY_KEY;
-  readonly dataTypeKey = UPL_DATA_TYPE_KEY;
-
   readonly source = signal<UplSource | null>(null);
   readonly version = signal<UplFormatVersion | null>(null);
   readonly versions = signal<UplVersionItem[]>([]);
@@ -683,6 +260,7 @@ export class FormatEditorComponent implements RecordNavigationPage {
   readonly loadError = signal(false);
   readonly notFound = signal(false);
   readonly activeSheet = signal(0);
+  readonly step = signal<UplFormatStep>('file');
   readonly errors = signal<UplFieldError[]>([]);
   readonly isSaving = signal(false);
   readonly isPublishing = signal(false);
@@ -691,7 +269,6 @@ export class FormatEditorComponent implements RecordNavigationPage {
   readonly isPublishOpen = signal(false);
   readonly validFrom = signal('');
   readonly publishDateError = signal<string | null>(null);
-  readonly sheetToRemove = signal<number | null>(null);
   readonly isLeaveOpen = signal(false);
 
   sourceId = '';
@@ -717,6 +294,43 @@ export class FormatEditorComponent implements RecordNavigationPage {
     if (published.length === 0) return null;
     return published.reduce((latest, item) => (item.version > latest.version ? item : latest)).validFrom;
   });
+
+  /** Шаги анкеты со статусом: «есть ошибки» — по адресам ошибок, «готово» — по заполненности. */
+  steps(): SMTProgressStep[] {
+    const errors = this.errors();
+    const fileErrors = errors.filter(item => uplErrorStep(item) === 'file').length;
+    const sheetErrors = errors.length - fileErrors;
+    const sheets = this.model.sheets;
+    const columns = sheets.reduce((total, sheet) => total + sheet.columns.length, 0);
+    const sheetsFilled = sheets.length > 0 && sheets.every(sheet => sheet.columns.length > 0);
+    const status = this.version()?.status;
+    const errorHint = (count: number) => this.text('upl.format.step.errors', { count: count.toString() });
+    return [
+      {
+        id: 'file',
+        label: this.text('upl.format.step.file'),
+        controls: 'upl-step-file',
+        status: fileErrors > 0 ? 'error' : 'complete',
+        hint: fileErrors > 0 ? errorHint(fileErrors) : this.text(UPL_FILE_KIND_KEY[this.model.fileKind ?? 'xlsx'])
+      },
+      {
+        id: 'sheets',
+        label: this.text('upl.format.step.sheets'),
+        controls: 'upl-step-sheets',
+        status: sheetErrors > 0 ? 'error' : sheetsFilled ? 'complete' : 'none',
+        hint: sheetErrors > 0
+          ? errorHint(sheetErrors)
+          : this.text('upl.format.step.sheets_hint', { sheets: sheets.length.toString(), columns: columns.toString() })
+      },
+      {
+        id: 'publish',
+        label: this.text('upl.format.step.publish'),
+        controls: 'upl-step-publish',
+        status: status === 'draft' || !status ? 'none' : 'complete',
+        hint: this.statusKey() ? this.text(this.statusKey()) : undefined
+      }
+    ];
+  }
 
   constructor() {
     this.route.paramMap.pipe(takeUntilDestroyed()).subscribe(params => {
@@ -749,6 +363,7 @@ export class FormatEditorComponent implements RecordNavigationPage {
         this.units.set(loaded.units ?? []);
         this.version.set(loaded.version);
         this.resetModel(loaded.version);
+        this.step.set(this.model.sheets.length > 0 ? 'sheets' : 'file');
         this.isLoading.set(false);
         this.cdr.markForCheck();
       },
@@ -807,36 +422,6 @@ export class FormatEditorComponent implements RecordNavigationPage {
     return this.editable() && JSON.stringify(this.buildRequest()) !== this.savedSnapshot;
   }
 
-  activeSheetModel(): UplSheet | null {
-    return this.model.sheets[this.activeSheet()] ?? null;
-  }
-
-  sheetToRemoveColumns(): number {
-    const index = this.sheetToRemove();
-    return index === null ? 0 : this.model.sheets[index]?.columns.length ?? 0;
-  }
-
-  isNumeric(column: UplColumn): boolean {
-    return column.dataType === 'integer' || column.dataType === 'number';
-  }
-
-  cellError(sheet: number, column: number, field: string): UplFieldError | null {
-    return uplCellError(this.errors(), sheet, column, field);
-  }
-
-  cellTitle(sheet: number, column: number, field: string): string | null {
-    const problem = this.cellError(sheet, column, field);
-    return problem === null ? null : this.errorText(problem);
-  }
-
-  sheetError(sheet: number, field: string): UplFieldError | null {
-    return uplSheetError(this.errors(), sheet, field);
-  }
-
-  sheetHasErrors(sheet: number): boolean {
-    return uplSheetHasErrors(this.errors(), sheet);
-  }
-
   /** Адрес ошибки в сводке: с именем поля, если оно известно по заголовку таблицы (М-21). */
   errorAddress(problem: UplFieldError): string {
     if (problem.sheet === null) return '';
@@ -854,113 +439,9 @@ export class FormatEditorComponent implements RecordNavigationPage {
     return uplFieldErrorText(problem, key => this.i18n.translate(key));
   }
 
-  /** «Имя (код)» из /upl/units; единица вне списка — только код. */
-  baseUnitLabel(column: UplColumn): string {
-    const code = column.baseUnit ?? '';
-    const unit = this.units().find(item => item.code === code);
-    return unit ? `${unit.name} (${unit.code})` : code;
-  }
-
+  /** Ошибка в сводке ведёт на свой шаг и, если она у листа, на его вкладку. */
   focusError(problem: UplFieldError): void {
-    if (problem.sheet !== null && problem.sheet < this.model.sheets.length) {
-      this.activeSheet.set(problem.sheet);
-    }
-  }
-
-  onFileKindChange(kind: UplFileKind): void {
-    this.model.fileKind = kind;
-    if (kind === 'csv') {
-      if (!isFilled(this.model.encoding)) this.model.encoding = 'utf-8';
-      if (!isFilled(this.model.delimiter)) this.model.delimiter = ';';
-    }
-  }
-
-  addSheet(): void {
-    this.model.sheets.push({ id: null, ordinal: null, sheetName: null, headerRow: 1, totalRowMarker: null, columns: [] });
-    this.activeSheet.set(this.model.sheets.length - 1);
-  }
-
-  confirmRemoveSheet(): void {
-    const index = this.sheetToRemove();
-    if (index === null) return;
-    this.model.sheets.splice(index, 1);
-    this.errors.set([]);
-    this.sheetToRemove.set(null);
-    if (this.activeSheet() >= this.model.sheets.length) {
-      this.activeSheet.set(Math.max(0, this.model.sheets.length - 1));
-    }
-  }
-
-  addColumn(): void {
-    const sheet = this.activeSheetModel();
-    if (!sheet) return;
-    sheet.columns.push({
-      id: null,
-      ordinal: null,
-      filePosition: null,
-      nameInFile: '',
-      targetField: '',
-      dataType: 'text',
-      required: false,
-      sourceUnit: null,
-      baseUnit: null,
-      keyMask: null,
-      keyPadLength: null,
-      keyPadMax: null,
-      refBookCode: null
-    });
-  }
-
-  moveColumn(index: number, shift: number): void {
-    const sheet = this.activeSheetModel();
-    if (!sheet) return;
-    const target = index + shift;
-    if (target < 0 || target >= sheet.columns.length) return;
-    const [column] = sheet.columns.splice(index, 1);
-    sheet.columns.splice(target, 0, column);
-    this.errors.set([]);
-  }
-
-  removeColumn(index: number): void {
-    const sheet = this.activeSheetModel();
-    if (!sheet) return;
-    sheet.columns.splice(index, 1);
-    this.errors.set([]);
-  }
-
-  /** Поля, которых у нового типа нет, очищаются — единственная молчаливая правка, и о ней говорим тостом. */
-  onTypeChange(column: UplColumn): void {
-    let cleared = false;
-    if (!this.isNumeric(column) && (isFilled(column.sourceUnit) || isFilled(column.baseUnit))) {
-      column.sourceUnit = null;
-      column.baseUnit = null;
-      cleared = true;
-    }
-    if (column.dataType !== 'object_key'
-      && (isFilled(column.keyMask) || isFilled(column.keyPadLength) || isFilled(column.keyPadMax))) {
-      column.keyMask = null;
-      column.keyPadLength = null;
-      column.keyPadMax = null;
-      cleared = true;
-    }
-    if (column.dataType !== 'ref_code' && isFilled(column.refBookCode)) {
-      column.refBookCode = null;
-      cleared = true;
-    }
-    this.errors.set([]);
-    if (cleared) {
-      this.toast.info(this.i18n.translate('upl.format.cleared'));
-    }
-  }
-
-  onUnitChange(column: UplColumn): void {
-    const unit = this.units().find(item => item.code === column.sourceUnit);
-    if (!unit) {
-      column.sourceUnit = null;
-      column.baseUnit = null;
-      return;
-    }
-    column.baseUnit = unit.baseUnitCode;
+    this.showError(problem);
   }
 
   revert(): void {
@@ -976,7 +457,7 @@ export class FormatEditorComponent implements RecordNavigationPage {
     const local = this.localErrors();
     if (local.length > 0) {
       this.errors.set(local);
-      this.activeSheet.set(local[0].sheet ?? this.activeSheet());
+      this.showError(local[0]);
       return;
     }
     this.isSaving.set(true);
@@ -1078,6 +559,13 @@ export class FormatEditorComponent implements RecordNavigationPage {
     return parseUplFieldErrors(found);
   }
 
+  private showError(problem: UplFieldError): void {
+    this.step.set(uplErrorStep(problem));
+    if (problem.sheet !== null && problem.sheet < this.model.sheets.length) {
+      this.activeSheet.set(problem.sheet);
+    }
+  }
+
   private showPublishDialog(): void {
     this.publishDateError.set(null);
     this.validFrom.set(this.today());
@@ -1111,9 +599,9 @@ export class FormatEditorComponent implements RecordNavigationPage {
       const parsed = parseUplProblem(problem);
       this.errors.set(parsed);
       this.isPublishOpen.set(false);
-      const addressed = parsed.find(item => item.sheet !== null);
-      if (addressed && addressed.sheet !== null) {
-        this.activeSheet.set(addressed.sheet);
+      const addressed = parsed.find(item => item.sheet !== null) ?? parsed[0];
+      if (addressed) {
+        this.showError(addressed);
       }
       return;
     }

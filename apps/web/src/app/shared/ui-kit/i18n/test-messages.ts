@@ -20,6 +20,7 @@ export const TEST_MESSAGES: SMTMessages = {
     rejectedType: name => `${name}: this file type is not accepted`,
     rejectedSize: (name, size) => `${name}: the file is larger than ${size}`,
   },
+  stepper: { complete: 'done', error: 'has errors' },
   select: {
     placeholder: 'Choose…',
     name: 'Choose a value',

@@ -1206,6 +1206,8 @@
   "ui.file_upload.queue": "Upload queue",
   "ui.dropzone.rejected_type": "{name}: this file type is not accepted",
   "ui.dropzone.rejected_size": "{name}: the file is larger than {size}",
+  "ui.stepper.complete": "done",
+  "ui.stepper.error": "has errors",
   "ui.modal.close_named_dialog": "Close the “{title}” dialog",
   "ui.modal.confirm_title": "Confirmation",
   "ui.control.required": "This field is required",

@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { Observable, of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
@@ -7,6 +8,7 @@ import { ToastService } from '../../../core/services/toast.service';
 import { PACKAGED_RUSSIAN } from '../../../core/i18n/packaged-russian';
 import { UplApiService, UplFormatDraftRequest, UplFormatVersion, UplSource, UplUnit, UplVersionItem } from '../upl-api';
 import { FormatEditorComponent } from './format-editor.component';
+import { FormatSheetsStepComponent } from './format-sheets-step.component';
 
 const SOURCE: UplSource = {
   id: 7,
@@ -151,6 +153,10 @@ function one(fixture: ComponentFixture<FormatEditorComponent>, testId: string): 
 
 function many(fixture: ComponentFixture<FormatEditorComponent>, testId: string): HTMLElement[] {
   return Array.from(fixture.nativeElement.querySelectorAll(`[data-testid="${testId}"]`));
+}
+
+function sheetsStep(fixture: ComponentFixture<FormatEditorComponent>): FormatSheetsStepComponent {
+  return fixture.debugElement.query(By.directive(FormatSheetsStepComponent)).componentInstance;
 }
 
 function click(element: HTMLElement | null): void {
@@ -381,7 +387,7 @@ describe('FormatEditorComponent', () => {
 
     const column = component.model.sheets[0].columns[0];
     column.dataType = 'text';
-    component.onTypeChange(column);
+    sheetsStep(fixture).onTypeChange(column);
     fixture.detectChanges();
 
     expect(one(fixture, 'upl-errors-summary')).toBeNull();
@@ -411,7 +417,7 @@ describe('FormatEditorComponent', () => {
     column.keyPadMax = null;
     column.refBookCode = null;
     column.dataType = 'text';
-    component.onTypeChange(column);
+    sheetsStep(fixture).onTypeChange(column);
     fixture.detectChanges();
 
     expect(one(fixture, 'upl-errors-summary')).toBeNull();
@@ -792,5 +798,104 @@ describe('FormatEditorComponent', () => {
     const summary = one(fixture, 'upl-errors-summary')!.textContent!;
     expect(summary).toContain(PACKAGED_RUSSIAN['upl.err.Size']);
     expect(summary).not.toContain('size must be');
+  });
+  describe('steps', () => {
+    const stepButton = (fixture: ComponentFixture<FormatEditorComponent>, id: string) =>
+      one(fixture, 'upl-steps')!.querySelector(`button[data-step="${id}"]`) as HTMLButtonElement;
+    const visibleSteps = (fixture: ComponentFixture<FormatEditorComponent>) =>
+      ['file', 'sheets', 'publish'].filter(id => !(one(fixture, `upl-step-${id}`) as HTMLElement).hidden);
+
+    it('opens a draft with sheets on its sheets and shows one step at a time, in any order', async () => {
+      const { fixture } = await createFixture();
+
+      expect(visibleSteps(fixture)).toEqual(['sheets']);
+      expect(stepButton(fixture, 'sheets').getAttribute('aria-current')).toBe('step');
+
+      click(stepButton(fixture, 'publish'));
+      fixture.detectChanges();
+      expect(visibleSteps(fixture)).toEqual(['publish']);
+
+      click(stepButton(fixture, 'file'));
+      fixture.detectChanges();
+      expect(visibleSteps(fixture)).toEqual(['file']);
+      expect(stepButton(fixture, 'file').getAttribute('aria-current')).toBe('step');
+      expect(stepButton(fixture, 'sheets').hasAttribute('aria-current')).toBe(false);
+    });
+
+    it('opens an empty draft on the file step', async () => {
+      const { fixture } = await createFixture({ version: { ...draftVersion(), sheets: [] } });
+
+      expect(visibleSteps(fixture)).toEqual(['file']);
+      expect(stepButton(fixture, 'sheets').textContent).not.toContain(PACKAGED_RUSSIAN['ui.stepper.complete']);
+    });
+
+    it('marks the step that holds errors and leads to it from the summary on any step', async () => {
+      const { fixture } = await createFixture();
+      addValidColumn(fixture, 'A', 'Поле 1');
+      click(stepButton(fixture, 'file'));
+      fixture.detectChanges();
+
+      click(one(fixture, 'upl-save'));
+      fixture.detectChanges();
+      expect(visibleSteps(fixture)).toEqual(['sheets']);
+      const sheets = stepButton(fixture, 'sheets');
+      expect(sheets.textContent).toContain(PACKAGED_RUSSIAN['ui.stepper.error']);
+      expect(sheets.textContent).toContain('Ошибок: 1');
+      expect(stepButton(fixture, 'file').textContent).toContain(PACKAGED_RUSSIAN['ui.stepper.complete']);
+
+      click(stepButton(fixture, 'publish'));
+      fixture.detectChanges();
+      expect(one(fixture, 'upl-errors-summary')).not.toBeNull();
+      expect(one(fixture, 'upl-review-state')!.textContent).toContain(PACKAGED_RUSSIAN['upl.format.review.draft_errors']);
+
+      click(one(fixture, 'upl-errors-summary')!.querySelector('button'));
+      fixture.detectChanges();
+      expect(visibleSteps(fixture)).toEqual(['sheets']);
+    });
+
+    it('sends a file level error to the file step', async () => {
+      const { fixture } = await createFixture({
+        saveError: {
+          status: 422,
+          code: 'validation_failed',
+          detail: 'UPL_FORMAT_INVALID',
+          errors: [{ field: 'delimiter', code: 'NotBlank', message: 'x' }]
+        }
+      });
+      addValidColumn(fixture);
+
+      click(one(fixture, 'upl-save'));
+      fixture.detectChanges();
+
+      expect(visibleSteps(fixture)).toEqual(['file']);
+      expect(stepButton(fixture, 'file').textContent).toContain(PACKAGED_RUSSIAN['ui.stepper.error']);
+    });
+
+    it('summarises the draft on the publish step, with its unsaved changes', async () => {
+      const { fixture } = await createFixture();
+      addValidColumn(fixture);
+      click(stepButton(fixture, 'publish'));
+      fixture.detectChanges();
+
+      expect(one(fixture, 'upl-review-sheets')!.textContent!.trim()).toBe('1');
+      expect(one(fixture, 'upl-review-columns')!.textContent!.trim()).toBe('3');
+      expect(one(fixture, 'upl-review-state')!.textContent).toContain(PACKAGED_RUSSIAN['upl.format.review.draft_ready']);
+      expect(one(fixture, 'upl-review-unsaved')).not.toBeNull();
+    });
+
+    it('walks a published version through the same steps, read only', async () => {
+      const published: UplFormatVersion = { ...draftVersion(), status: 'published', validFrom: '2026-01-01' };
+      const { fixture } = await createFixture({ version: published, source: { ...SOURCE, hasDraft: false } });
+
+      click(stepButton(fixture, 'file'));
+      fixture.detectChanges();
+      expect((one(fixture, 'upl-file-kind') as HTMLSelectElement).disabled).toBe(true);
+
+      click(stepButton(fixture, 'publish'));
+      fixture.detectChanges();
+      expect(stepButton(fixture, 'publish').textContent).toContain(PACKAGED_RUSSIAN['ui.stepper.complete']);
+      expect(one(fixture, 'upl-review')!.textContent).toContain('01.01.2026');
+      expect(one(fixture, 'upl-review-state')!.textContent).toContain(PACKAGED_RUSSIAN['upl.format.review.not_draft']);
+    });
   });
 });

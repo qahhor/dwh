@@ -1,0 +1,42 @@
+<!-- Our template, after the idea of the kit's smt-progress-stepper (smartup-ui-kit@6472beb). See the component header. -->
+<nav class="smt-stepper" [attr.aria-label]="label()">
+  <ol class="smt-stepper__list">
+    @for (step of steps(); track step.id; let index = $index) {
+      <li class="smt-stepper__item">
+        <button
+          type="button"
+          class="smt-stepper__step"
+          [class.smt-stepper__step--current]="step.id === current()"
+          [class.smt-stepper__step--complete]="step.status === 'complete'"
+          [class.smt-stepper__step--error]="step.status === 'error'"
+          [attr.aria-current]="step.id === current() ? 'step' : null"
+          [attr.aria-controls]="step.controls ?? null"
+          [attr.data-step]="step.id"
+          (click)="select(step)">
+          <span class="smt-stepper__marker" aria-hidden="true">
+            @switch (step.status) {
+              @case ('complete') {
+                <span class="material-symbols-outlined" aria-hidden="true">check</span>
+              }
+              @case ('error') {
+                <span class="material-symbols-outlined" aria-hidden="true">priority_high</span>
+              }
+              @default {
+                {{ index + 1 }}
+              }
+            }
+          </span>
+          <span class="smt-stepper__text">
+            <span class="smt-stepper__label">{{ step.label }}</span>
+            @if (step.hint) {
+              <span class="smt-stepper__hint">{{ step.hint }}</span>
+            }
+          </span>
+          @if (statusText(step); as status) {
+            <span class="sr-only">, {{ status }}</span>
+          }
+        </button>
+      </li>
+    }
+  </ol>
+</nav>
