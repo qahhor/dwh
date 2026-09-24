@@ -1269,6 +1269,7 @@
   "iam.show_password": "Сырсөздү көрсөтүү",
   "notifications.mark_named_read": "\"{title}\" эскертмени окулду деп белгилөө",
   "tasks.list_load_error": "Тапшырмалар жүктөлгөн жок.",
+  "tasks.list_loading": "Тапшырмалар жүктөлүүдө…",
   "tasks.list_load_error_stale": "Тапшырмалар жаңыртылган жок. Акыркы жеткиликтүү маалыматтар көрсөтүлөт.",
   "tasks.detail_loading": "Тапшырма чоо-жайы жүктөлүүдө...",
   "tasks.detail_load_error": "Тапшырма чоо-жайы жүктөлгөн жок.",
@@ -1678,5 +1679,7 @@
   "iam.users.load_error": "Колдонуучуларды жүктөө мүмкүн болгон жок.",
   "iam.users.export_failed": "Колдонуучуларды экспорттоо мүмкүн болгон жок. Кайра аракет кылыңыз.",
   "iam.users.export_truncated": "Алгачкы {count} колдонуучу экспорттолду. Калгандарын экспорттоо үчүн чыпкаларды тактаңыз.",
-  "iam.users.exporting": "Экспорттоо…"
+  "iam.users.exporting": "Экспорттоо…",
+  "common.requirement_met": "Аткарылды",
+  "common.requirement_not_met": "Аткарылган жок"
 }

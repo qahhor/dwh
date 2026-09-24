@@ -11,7 +11,7 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
     <div class="stats-grid">
       <div class="stat-card">
         <div class="stat-icon-wrapper primary">
-          <span class="material-symbols-outlined">extension</span>
+          <span class="material-symbols-outlined" aria-hidden="true">extension</span>
         </div>
         <div class="stat-content">
           <span class="stat-value">{{ totalCount() }}</span>
@@ -21,7 +21,7 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
 
       <div class="stat-card">
         <div class="stat-icon-wrapper success">
-          <span class="material-symbols-outlined">check_circle</span>
+          <span class="material-symbols-outlined" aria-hidden="true">check_circle</span>
         </div>
         <div class="stat-content">
           <span class="stat-value">{{ activeCount() }}</span>
@@ -31,7 +31,7 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
 
       <div class="stat-card">
         <div class="stat-icon-wrapper info">
-          <span class="material-symbols-outlined">verified_user</span>
+          <span class="material-symbols-outlined" aria-hidden="true">verified_user</span>
         </div>
         <div class="stat-content">
           <span class="stat-value">{{ systemCount() }}</span>
@@ -41,7 +41,7 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
 
       <div class="stat-card">
         <div class="stat-icon-wrapper neutral">
-          <span class="material-symbols-outlined">widgets</span>
+          <span class="material-symbols-outlined" aria-hidden="true">widgets</span>
         </div>
         <div class="stat-content">
           <span class="stat-value">{{ customCount() }}</span>

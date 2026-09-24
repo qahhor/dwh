@@ -1269,6 +1269,7 @@
   "iam.show_password": "Parolni ko'rsatish",
   "notifications.mark_named_read": "“{title}” bildirishnomasini o‘qilgan deb belgilang",
   "tasks.list_load_error": "Vazifalar yuklanmadi.",
+  "tasks.list_loading": "Vazifalar yuklanmoqda…",
   "tasks.list_load_error_stale": "Vazifalarni yangilab boʻlmadi. Eng so'nggi mavjud ma'lumotlar ko'rsatiladi.",
   "tasks.detail_loading": "Vazifa tafsilotlari yuklanmoqda...",
   "tasks.detail_load_error": "Vazifa tafsilotlari yuklanmadi.",
@@ -1678,5 +1679,7 @@
   "iam.users.load_error": "Foydalanuvchilarni yuklab bo'lmadi.",
   "iam.users.export_failed": "Foydalanuvchilarni eksport qilib bo'lmadi. Qayta urinib ko'ring.",
   "iam.users.export_truncated": "Dastlabki {count} foydalanuvchi eksport qilindi. Qolganlarini eksport qilish uchun filtrlarni aniqlashtiring.",
-  "iam.users.exporting": "Eksport qilinmoqda…"
+  "iam.users.exporting": "Eksport qilinmoqda…",
+  "common.requirement_met": "Bajarildi",
+  "common.requirement_not_met": "Bajarilmadi"
 }

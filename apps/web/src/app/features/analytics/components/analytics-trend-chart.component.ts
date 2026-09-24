@@ -124,7 +124,7 @@ import { TrendDataPoint, ChartPoint, YAxisTick } from '../analytics.models';
       </div>
 
       <div *ngIf="trends.length === 0 && !loading && !error" class="empty-chart">
-        <span class="material-symbols-outlined" style="font-size: 32px; color: var(--text-light);">show_chart</span>
+        <span class="material-symbols-outlined" style="font-size: 32px; color: var(--text-light);" aria-hidden="true">show_chart</span>
         <p>{{ 'analytics.net_dannyh_za_vybrannyy_period' | t }}</p>
       </div>
     </div>

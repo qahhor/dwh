@@ -47,20 +47,53 @@ describe('TasksComponent UI contracts', () => {
     fixture.detectChanges();
 
     const search = fixture.nativeElement.querySelector('#task-search') as HTMLInputElement;
-    const region = fixture.nativeElement.querySelector('.table-wrapper[role="region"]') as HTMLElement;
-    const row = fixture.nativeElement.querySelector('tr.task-row') as HTMLTableRowElement;
+    const region = fixture.nativeElement.querySelector('.table-card[role="region"]') as HTMLElement;
+    const row = region.querySelector('[role="rowgroup"] > [role="row"]') as HTMLElement;
 
     expect(fixture.nativeElement.querySelector(`label[for="${search.id}"]`)).not.toBeNull();
     expect(fixture.nativeElement.querySelector('[role="group"][aria-label="Режим отображения задач"]')).not.toBeNull();
-    expect(region.tabIndex).toBe(0);
-    expect(region.querySelector('table')?.getAttribute('aria-label')).toBe('Список задач');
-    expect(row.getAttribute('role')).toBeNull();
+    expect(region.getAttribute('aria-label')).toBe('Таблица задач');
+    expect(region.querySelector('[role="table"]')?.getAttribute('aria-label')).toBe('Список задач');
+    // A plain table row: the title button is the keyboard way in, the row is not a stop of its own.
     expect(row.getAttribute('tabindex')).toBeNull();
     const open = row.querySelector('.task-title-open') as HTMLButtonElement;
     expect(open.tagName).toBe('BUTTON');
     expect(open.type).toBe('button');
     expect(open.getAttribute('aria-label')).toBe('Открыть задачу #42: Проверить отчёт');
     expect(fixture.nativeElement.querySelector('button[aria-label="Редактировать задачу #42"]')).not.toBeNull();
+  });
+
+  it('opens a task from a click on its row, but not from the row\'s own controls', async () => {
+    const fixture = await createFixture();
+    const component = fixture.componentInstance;
+    component.statuses.set([{ id: 1, name: 'Новая', color: '#ff0000', orderNo: 1, isTerminal: false }]);
+    component.tasks.set([{ id: 42, title: 'Проверить отчёт', statusId: 1, priority: 'high', attributes: {}, createdAt: '2026-08-30T00:00:00Z' }]);
+    fixture.detectChanges();
+    const opened: number[] = [];
+    vi.spyOn(component, 'openTaskDetails').mockImplementation(task => { opened.push(task.id); });
+    const row = fixture.nativeElement.querySelector('[role="rowgroup"] > [role="row"]') as HTMLElement;
+
+    (row.querySelector('.inline-priority-select') as HTMLSelectElement).click();
+    (row.querySelector('.inline-status-select') as HTMLSelectElement).click();
+    expect(opened).toEqual([]);
+
+    (row.querySelector('.task-type-badge') as HTMLElement).click();
+    expect(opened).toEqual([42]);
+    (row.querySelector('.task-title-open') as HTMLButtonElement).click();
+    expect(opened).toEqual([42, 42]);
+  });
+
+  it('marks an overdue task on its row', async () => {
+    const fixture = await createFixture();
+    const component = fixture.componentInstance;
+    component.statuses.set([{ id: 1, name: 'Новая', color: '#ff0000', orderNo: 1, isTerminal: false }]);
+    component.tasks.set([
+      { id: 1, title: 'Просрочена', statusId: 1, priority: 'high', attributes: {}, createdAt: '2026-08-01T00:00:00Z', endTime: '2020-01-01T00:00:00Z' },
+      { id: 2, title: 'Без срока', statusId: 1, priority: 'high', attributes: {}, createdAt: '2026-08-01T00:00:00Z' },
+    ]);
+    fixture.detectChanges();
+    const rows = [...fixture.nativeElement.querySelectorAll('[role="rowgroup"] > [role="row"]')] as HTMLElement[];
+    expect(rows.map(row => row.classList.contains('task-row-overdue'))).toEqual([true, false]);
   });
 
   it('keeps nested table and kanban keyboard controls from opening task details', async () => {
@@ -118,7 +151,7 @@ describe('TasksComponent UI contracts', () => {
     fixture.detectChanges();
 
     const select = fixture.nativeElement.querySelector('.inline-status-select') as HTMLSelectElement;
-    (select.closest('td') as HTMLTableCellElement).style.color = 'rgb(255, 0, 0)';
+    (select.closest('[role="cell"]') as HTMLElement).style.color = 'rgb(255, 0, 0)';
     expect(getComputedStyle(select).color).toBe('var(--text-main)');
   });
 
@@ -716,7 +749,8 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     const { fixture } = await createControlledFixture();
     const empty = fixture.nativeElement.querySelector('.empty-state-cell') as HTMLElement;
     expect(empty).not.toBeNull();
-    expect(empty.closest('.table-wrapper')).toBeNull();
+    // Not a fake row: the recovery actions sit outside the table's rows.
+    expect(empty.closest('[role="rowgroup"]')).toBeNull();
     expect(empty.querySelector('button')?.textContent).toContain('Новая задача');
   });
 
@@ -1146,7 +1180,7 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     fixture.detectChanges();
     expect(component.currentPage).toBe(1);
     expect(component.tasks().map(item => item.id)).toEqual([1]);
-    const retry = Array.from(fixture.nativeElement.querySelectorAll('.request-error button') as NodeListOf<HTMLButtonElement>)
+    const retry = Array.from(fixture.nativeElement.querySelectorAll('#tasks-load-error button') as NodeListOf<HTMLButtonElement>)
       .find(button => button.textContent?.includes('Повторить'))!;
     retry.click();
     retryNext.next({ items: [task(51)], nextCursor: null, hasMore: false, totalReturned: 1 });

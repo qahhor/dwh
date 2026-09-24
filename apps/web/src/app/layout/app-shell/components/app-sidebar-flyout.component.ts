@@ -102,15 +102,15 @@ import { NavSection } from '../app-shell.models';
       </div>
       <div class="flyout-body">
         <a routerLink="/iam/profile" class="flyout-item" (click)="profileFlyoutClick.emit()" role="menuitem">
-          <span class="material-symbols-outlined flyout-icon">account_circle</span>
+          <span class="material-symbols-outlined flyout-icon" aria-hidden="true">account_circle</span>
           <span class="flyout-label">{{ 'nav.profile' | t }}</span>
         </a>
         <a routerLink="/settings" class="flyout-item" (click)="profileFlyoutClick.emit()" role="menuitem">
-          <span class="material-symbols-outlined flyout-icon">settings</span>
+          <span class="material-symbols-outlined flyout-icon" aria-hidden="true">settings</span>
           <span class="flyout-label">{{ 'nav.settings' | t }}</span>
         </a>
         <button type="button" class="flyout-item flyout-btn text-danger" (click)="logout.emit()" role="menuitem">
-          <span class="material-symbols-outlined flyout-icon">logout</span>
+          <span class="material-symbols-outlined flyout-icon" aria-hidden="true">logout</span>
           <span class="flyout-label">{{ 'layout.app_shell.vyyti_iz_sistemy' | t }}</span>
         </button>
       </div>

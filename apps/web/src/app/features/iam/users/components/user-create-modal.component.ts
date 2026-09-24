@@ -183,20 +183,24 @@ import { CustomField } from '../../../../core/models/custom-field.models';
 
               <div class="pwd-checklist">
                 <div class="check-item" [class.valid]="hasMinLength">
-                  <span class="material-symbols-outlined check-ico">{{ hasMinLength ? 'check' : 'close' }}</span>
+                  <span class="material-symbols-outlined check-ico" aria-hidden="true">{{ hasMinLength ? 'check' : 'close' }}</span>
                   <span>{{ 'iam.ne_menee_10_simvolov' | t }}</span>
+                  <span class="sr-only">{{ (hasMinLength ? 'common.requirement_met' : 'common.requirement_not_met') | t }}</span>
                 </div>
                 <div class="check-item" [class.valid]="hasUpperAndLower">
-                  <span class="material-symbols-outlined check-ico">{{ hasUpperAndLower ? 'check' : 'close' }}</span>
+                  <span class="material-symbols-outlined check-ico" aria-hidden="true">{{ hasUpperAndLower ? 'check' : 'close' }}</span>
                   <span>{{ 'iam.zaglavnye_i_strochnye_bukvy' | t }}</span>
+                  <span class="sr-only">{{ (hasUpperAndLower ? 'common.requirement_met' : 'common.requirement_not_met') | t }}</span>
                 </div>
                 <div class="check-item" [class.valid]="hasDigitsOrSymbols">
-                  <span class="material-symbols-outlined check-ico">{{ hasDigitsOrSymbols ? 'check' : 'close' }}</span>
+                  <span class="material-symbols-outlined check-ico" aria-hidden="true">{{ hasDigitsOrSymbols ? 'check' : 'close' }}</span>
                   <span>{{ 'iam.cifry_ili_specsimvoly' | t }}</span>
+                  <span class="sr-only">{{ (hasDigitsOrSymbols ? 'common.requirement_met' : 'common.requirement_not_met') | t }}</span>
                 </div>
                 <div class="check-item" [class.valid]="doesNotContainLogin">
-                  <span class="material-symbols-outlined check-ico">{{ doesNotContainLogin ? 'check' : 'close' }}</span>
+                  <span class="material-symbols-outlined check-ico" aria-hidden="true">{{ doesNotContainLogin ? 'check' : 'close' }}</span>
                   <span>{{ 'iam.bez_sovpadeniy_s_loginom' | t }}</span>
+                  <span class="sr-only">{{ (doesNotContainLogin ? 'common.requirement_met' : 'common.requirement_not_met') | t }}</span>
                 </div>
               </div>
             </div>

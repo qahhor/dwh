@@ -1269,6 +1269,7 @@
   "iam.show_password": "Passwort anzeigen",
   "notifications.mark_named_read": "Markieren Sie die Benachrichtigung „{title}“ als gelesen",
   "tasks.list_load_error": "Aufgaben konnten nicht geladen werden.",
+  "tasks.list_loading": "Aufgaben werden geladen…",
   "tasks.list_load_error_stale": "Aufgaben konnten nicht aktualisiert werden. Es werden die neuesten verfügbaren Daten angezeigt.",
   "tasks.detail_loading": "Aufgabendetails werden geladen...",
   "tasks.detail_load_error": "Aufgabendetails konnten nicht geladen werden.",
@@ -1678,5 +1679,7 @@
   "iam.users.load_error": "Benutzer konnten nicht geladen werden.",
   "iam.users.export_failed": "Benutzer konnten nicht exportiert werden. Bitte erneut versuchen.",
   "iam.users.export_truncated": "Die ersten {count} Benutzer wurden exportiert. Grenzen Sie die Filter ein, um die übrigen zu exportieren.",
-  "iam.users.exporting": "Export läuft…"
+  "iam.users.exporting": "Export läuft…",
+  "common.requirement_met": "Erfüllt",
+  "common.requirement_not_met": "Nicht erfüllt"
 }

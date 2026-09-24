@@ -98,7 +98,7 @@ export * from './analytics.models';
 
       <!-- Error Alert -->
       <div *ngIf="error()" class="alert alert-error" role="alert">
-        <span class="material-symbols-outlined">error</span>
+        <span class="material-symbols-outlined" aria-hidden="true">error</span>
         <span>{{ error() }}</span>
       </div>
 

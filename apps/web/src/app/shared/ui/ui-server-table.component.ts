@@ -14,8 +14,11 @@ import { UiPaginationComponent } from './ui-pagination.component';
  * - loading is announced to assistive technology and shown as skeleton rows;
  * - a failed request keeps the rows already on screen and offers a retry of
  *   exactly that request;
- * - an empty result shows the screen's own empty state;
- * - paging controls are disabled while a page is loading.
+ * - an empty result shows the screen's own empty state, but a failed first
+ *   page shows only the error: "nothing found" would claim a result the
+ *   server never gave;
+ * - paging controls are disabled while a page is loading, and after a failed
+ *   request until it is retried (its cursors may belong to an old query).
  */
 @Component({
   selector: 'ui-server-table',
@@ -35,25 +38,27 @@ import { UiPaginationComponent } from './ui-pagination.component';
     @if (pager().loading()) {
       <p class="sr-only" role="status" data-server-table-status>{{ loadingLabel() }}</p>
     }
-    <smt-table
-      [smtData]="pager().items()"
-      [smtConfig]="config()"
-      [smtIsLoading]="pager().loading()"
-      [smtSkeletonRowCount]="pager().pageSize()"
-      [smtEmptyTemplate]="emptyTemplate()"
-      [smtColumnResizeEnabled]="false"
-      (smtRowClick)="rowClick.emit($event)" />
-    <ui-pagination
-      [totalItems]="countsPage() ? pager().items().length : pager().total()"
-      [cursorItemsArePageLength]="countsPage()"
-      [pageSize]="pager().pageSize()"
-      [pageSizeOptions]="pageSizeOptions()"
-      [currentPage]="pager().page()"
-      [cursorMode]="true"
-      [hasNextPage]="pager().canGoForward()"
-      [disabled]="pager().loading()"
-      (pageChange)="pager().goTo($event)"
-      (pageSizeChange)="pager().setPageSize($event)" />
+    @if (!failedWithoutRows()) {
+      <smt-table
+        [smtData]="pager().items()"
+        [smtConfig]="config()"
+        [smtIsLoading]="pager().loading()"
+        [smtSkeletonRowCount]="pager().pageSize()"
+        [smtEmptyTemplate]="emptyTemplate()"
+        [smtColumnResizeEnabled]="false"
+        (smtRowClick)="rowClick.emit($event)" />
+      <ui-pagination
+        [totalItems]="countsPage() ? pager().items().length : pager().total()"
+        [cursorItemsArePageLength]="countsPage()"
+        [pageSize]="pager().pageSize()"
+        [pageSizeOptions]="pageSizeOptions()"
+        [currentPage]="pager().page()"
+        [cursorMode]="true"
+        [hasNextPage]="pager().canGoForward()"
+        [disabled]="pager().loading() || pager().failed()"
+        (pageChange)="pager().goTo($event)"
+        (pageSizeChange)="pager().setPageSize($event)" />
+    }
   `,
   styles: [`
     :host { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
@@ -80,6 +85,9 @@ export class UiServerTableComponent<T> {
    */
   readonly countsPage = input(false);
   readonly rowClick = output<T>();
+
+  /** The request failed and there is nothing earlier to keep on screen. */
+  protected readonly failedWithoutRows = computed(() => this.pager().failed() && this.pager().items().length === 0);
 
   /** The current size is always offered; otherwise the size picker shows blank. */
   protected readonly pageSizeOptions = computed(() =>

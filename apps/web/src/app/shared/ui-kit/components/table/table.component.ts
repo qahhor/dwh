@@ -804,8 +804,12 @@ export class SMTTableComponent<T> {
     });
   }
 
-  emitRowClick(row: unknown): void {
+  emitRowClick(row: unknown, event?: MouseEvent): void {
     if (this.isLoading() || typeof row === 'number') return;
+    // A click on a cell's own control (a select, a button, a link) belongs to
+    // that control, as keys already do: a row that opens a record must not
+    // open it when the user only changed a status inside it. Not in the source.
+    if (event && isInsideCellControl(event)) return;
     this.rowClick.emit(row as T);
   }
 
@@ -1203,4 +1207,16 @@ export class SMTTableComponent<T> {
     if (this.biruniGridLayout()) return String(width ?? '').trim();
     return width;
   }
+}
+
+const CELL_CONTROL = 'a[href], button, input, select, textarea, label, summary, [contenteditable]:not([contenteditable="false"]), '
+  + '[role="button"], [role="link"], [role="checkbox"], [role="switch"], [role="option"], [role="combobox"], [role="menuitem"]';
+
+/** True when the click started inside an interactive element of the row, not on the row itself. */
+function isInsideCellControl(event: MouseEvent): boolean {
+  const row = event.currentTarget;
+  const target = event.target;
+  if (!(row instanceof Element) || !(target instanceof Element)) return false;
+  const control = target.closest(CELL_CONTROL);
+  return !!control && control !== row && row.contains(control);
 }

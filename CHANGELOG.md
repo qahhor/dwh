@@ -84,8 +84,17 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- The local Compose stack passes `DWH_RATE_LIMIT_USER_PER_MINUTE` to the
+  server (default 600, as before). CI raises it for its disposable E2E stack,
+  where one administrator runs the whole browser suite and used to exhaust
+  the per-user budget part-way.
 - The language list in Settings renders through the vendored table
   foundation instead of a hand-written table, the first screen to do so.
+- The task list renders on the shared server table, like the user list and
+  the audit logs. A click anywhere on a row opens the task; its priority and
+  status selects still change the task in place. The page size can be
+  chosen, loading is announced to screen readers, and a failed page keeps
+  the rows already shown with a retry. The board view is unchanged.
 - The user list pages through the server a page at a time on the shared
   server table, with a retry on failure and loading announced to screen
   readers. It replaces a list that loaded 50 users with "load more", then
@@ -106,6 +115,42 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Table cells broke words at any letter where the column ended ("торго|вой"
+  across two lines), in every table on the shared foundation. A word is now
+  broken only when it alone does not fit the column.
+
+- Screen readers read icon glyphs aloud as English words, for example
+  "account_tree Оргструктура" for a profile tab, across 74 icons in 22
+  templates. Decorative icons are now hidden from assistive technology.
+  Icons that carry meaning say it instead: whether each password requirement
+  is met, the task type on kanban cards and subtasks, the protected admin
+  role, and the sort direction of the analytics workload table (as
+  `aria-sort` on its header). `npm run aria:audit` now fails on an icon that
+  is neither hidden nor named.
+- After a failed filter or page-size change, the list's Next and Back still
+  worked and paged the new filters from a cursor of the old query, showing
+  rows from a different result as the next page. Paging now waits for the
+  retry, on every server-paged list.
+- Typing in the user search left Next usable for the 250 ms pause, paging
+  the new search text from the old query; the old query is now dropped as
+  soon as the text changes.
+- A manager the viewer cannot see (outside their scope, or deleted) showed
+  as "no manager" in the edit form while one was set. It shows by id, and
+  can be cleared deliberately.
+- A page emptied by deleting its last row stays on screen as an empty page
+  only on the users list; every server-paged list now steps back to the
+  page before it. A page moved to that arrives empty still stays.
+- Pressing Right on a search match in the organizational tree silently
+  changed which branches the user had opened.
+- The generic "operation failed" message showed its catalog key when the
+  language packs could not be loaded.
+- A server table whose first page failed showed the error and, beneath it,
+  the empty state ("no audit records found"), claiming a result the server
+  never returned. It now shows only the error and its retry.
+- The audit change log and security events lost their card surface when they
+  moved onto the server table, so the table sat on the page background in
+  both themes. The card is back, holding the table, its pagination and any
+  load error.
 - The user list named a manager only when the manager happened to be among
   the loaded rows, and showed `ID: #42` otherwise. The manager's record is
   now looked up once and remembered for the screen's lifetime.
@@ -215,5 +260,12 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Removed
 
 - Control Plane, fleet management, heartbeat, enrollment, and license gates.
+
+### Security
+
+- Pinned ClamAV to `clamav/clamav-debian:1.5.4` (Debian 13.7) by digest.
+  The previous pin, 1.5.3 on Debian 13.6, carried 44 HIGH/CRITICAL fixable
+  vulnerabilities (perl-base, openssl, util-linux, pcre2, sqlite and others),
+  which failed the runtime image gate and with it the end-to-end job.
 
 [Unreleased]: https://github.com/qahhor/dwh/commits/main

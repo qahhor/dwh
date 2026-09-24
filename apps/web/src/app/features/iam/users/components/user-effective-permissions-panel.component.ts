@@ -221,7 +221,7 @@ export interface GroupedPermissionModule {
                       [attr.aria-label]="'iam.udalit_isklyuchenie' | t"
                       (click)="removePersonalGrant(form.formCode, act.action)"
                     >
-                      <span class="material-symbols-outlined" style="font-size: 14px;">close</span>
+                      <span class="material-symbols-outlined" style="font-size: 14px;" aria-hidden="true">close</span>
                     </button>
                   </div>
                 </div>

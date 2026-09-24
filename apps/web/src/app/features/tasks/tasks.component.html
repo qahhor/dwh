@@ -54,17 +54,17 @@
             >
               <span class="material-symbols-outlined" aria-hidden="true">download</span>
               <span>{{ 'analytics.eksport' | t }}</span>
-              <span class="material-symbols-outlined" style="font-size: 16px;">arrow_drop_down</span>
+              <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">arrow_drop_down</span>
             </button>
             <div class="export-popover" *ngIf="showExportMenu">
               <strong class="export-scope-title">{{ 'tasks.export_all_accessible' | t }}</strong>
               <span class="export-scope-note">{{ 'tasks.export_filters_not_applied' | t }}</span>
               <button type="button" class="export-item-btn" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 12px; background: none; border: none; width: 100%; text-align: left; cursor: pointer; color: var(--text-main);" (click)="exportTasks('xlsx')">
-                <span class="material-symbols-outlined" style="color: var(--success); font-size: 18px;">table_view</span>
+                <span class="material-symbols-outlined" style="color: var(--success); font-size: 18px;" aria-hidden="true">table_view</span>
                 <span>Excel (.xlsx)</span>
               </button>
               <button type="button" class="export-item-btn" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 12px; background: none; border: none; width: 100%; text-align: left; cursor: pointer; color: var(--text-main); border-top: 1px solid var(--border-subtle);" (click)="exportTasks('csv')">
-                <span class="material-symbols-outlined" style="color: var(--primary); font-size: 18px;">description</span>
+                <span class="material-symbols-outlined" style="color: var(--primary); font-size: 18px;" aria-hidden="true">description</span>
                 <span>CSV (UTF-8)</span>
               </button>
             </div>
@@ -103,10 +103,11 @@
         (resetFilters)="resetFilters()"
       ></app-task-filter-bar>
 
-      <div class="request-state request-loading" *ngIf="isLoading()" role="status">
+      <!-- The table view shows its own loading, error and paging (ui-server-table). -->
+      <div class="request-state request-loading" *ngIf="viewMode !== 'table' && isLoading()" role="status">
         {{ 'common.loading' | t }}
       </div>
-      <div class="request-state request-error" *ngIf="listLoadError()" role="alert">
+      <div class="request-state request-error" *ngIf="viewMode !== 'table' && listLoadError()" role="alert">
         <span>{{ (tasks().length ? 'tasks.list_load_error_stale' : 'tasks.list_load_error') | t }}</span>
         <ui-button variant="secondary" size="sm" (onClick)="retryTaskList()">{{ 'audit.retry' | t }}</ui-button>
       </div>
@@ -116,16 +117,13 @@
       <!-- ======================================================================= -->
       <app-task-table-view
         *ngIf="viewMode === 'table'"
-        [tasks]="tasks()"
-        [paginatedTasks]="paginatedTasks()"
+        [pager]="taskPager"
         [statuses]="statuses()"
         [projects]="projects()"
         [taskTypes]="taskTypes()"
         [canCreateTask]="canCreateTask()"
         [canUpdateTask]="canUpdateTask()"
         [hasActiveFilters]="hasActiveFilters()"
-        [isLoading]="isLoading()"
-        [listLoadError]="listLoadError()"
         [isOverdue]="isOverdueFn"
         [getTypeColor]="getTypeColorFn"
         [getTypeBg]="getTypeBgFn"
@@ -161,6 +159,7 @@
         [getPriorityLabel]="getPriorityLabelFn"
         [getTypeColor]="getTypeColorFn"
         [getTypeIcon]="getTypeIconFn"
+        [getTypeLabel]="getTypeLabelFn"
         [getProjectName]="getProjectNameFn"
         [isOverdue]="isOverdueFn"
         (openTaskDetails)="openTaskDetails($event)"
@@ -172,6 +171,7 @@
       ></app-task-kanban-view>
 
       <ui-pagination
+        *ngIf="viewMode !== 'table'"
         [totalItems]="tasks().length"
         [currentPage]="currentPage"
         [pageSize]="pageSize"

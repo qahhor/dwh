@@ -1346,6 +1346,7 @@
   "iam.show_password": "Show password",
   "notifications.mark_named_read": "Mark notification “{title}” as read",
   "tasks.list_load_error": "Failed to load tasks.",
+  "tasks.list_loading": "Loading tasks…",
   "tasks.list_load_error_stale": "Failed to update tasks. The latest available data is shown.",
   "tasks.detail_loading": "Loading task details...",
   "tasks.detail_load_error": "Failed to load task details.",
@@ -1755,5 +1756,7 @@
   "iam.users.load_error": "Could not load users.",
   "iam.users.export_failed": "Could not export users. Please try again.",
   "iam.users.export_truncated": "Exported the first {count} users. Narrow the filters to export the rest.",
-  "iam.users.exporting": "Exporting…"
+  "iam.users.exporting": "Exporting…",
+  "common.requirement_met": "Met",
+  "common.requirement_not_met": "Not met"
 }

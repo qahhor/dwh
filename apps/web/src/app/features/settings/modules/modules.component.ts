@@ -80,7 +80,7 @@ export type { InstalledModule, ModuleFilterTab };
       <!-- Developer Info / CLI Help Banner -->
       <div class="developer-info-card">
         <div class="dev-card-header">
-          <span class="material-symbols-outlined dev-icon">terminal</span>
+          <span class="material-symbols-outlined dev-icon" aria-hidden="true">terminal</span>
           <div>
             <h3 class="dev-card-title">{{ 'modules.cli_title' | t }}</h3>
             <p class="dev-card-desc">{{ 'modules.cli_desc' | t }}</p>

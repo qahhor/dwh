@@ -518,6 +518,30 @@ describe('UsersComponent UI contracts', () => {
     click.mockRestore();
   });
 
+  it('does not page the new search text from the old query while the user is still typing', async () => {
+    const fixture = await createFixture();
+    const api = TestBed.inject(ApiService) as unknown as { get: ReturnType<typeof vi.fn> };
+    api.get.mockReturnValueOnce(of({ items: [user(1, 'Первый')], nextCursor: 'old-cursor', hasMore: true }));
+    fixture.componentInstance.loadUsers(true);
+    expect(fixture.componentInstance.userPager.canGoForward()).toBe(true);
+
+    vi.useFakeTimers();
+    try {
+      fixture.componentInstance.searchQuery = 'ann';
+      fixture.componentInstance.onSearchInput();
+      const calls = api.get.mock.calls.length;
+      fixture.componentInstance.userPager.next();
+      expect(api.get).toHaveBeenCalledTimes(calls);
+
+      api.get.mockReturnValueOnce(of({ items: [user(4, 'Анна')], nextCursor: null, hasMore: false }));
+      vi.advanceTimersByTime(250);
+      expect(api.get).toHaveBeenLastCalledWith('/iam/users', expect.objectContaining({ search: 'ann', cursor: undefined }));
+      expect(fixture.componentInstance.users().map(item => item.id)).toEqual([4]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('shows the answer to the latest search even when an earlier one answers last', async () => {
     const fixture = await createFixture();
     const api = TestBed.inject(ApiService) as unknown as { get: ReturnType<typeof vi.fn> };

@@ -69,12 +69,34 @@ describe('ui-server-table', () => {
     const alert = el(fixture).querySelector('#rows-error[role="alert"]')!;
     expect(alert.textContent).toContain('Rows failed');
     expect(rowText(fixture)).toEqual(['#1', '#2']);
+    // Until the retry, no paging control may continue from a cursor of the failed attempt.
+    for (const name of ['Следующая страница', 'Предыдущая страница']) {
+      expect((el(fixture).querySelector(`button[aria-label="${name}"]`) as HTMLButtonElement | null)?.disabled ?? true).toBe(true);
+    }
 
     fail = false;
     (alert.querySelector('button') as HTMLButtonElement).click();
     fixture.detectChanges();
     expect(el(fixture).querySelector('#rows-error')).toBeNull();
     expect(rowText(fixture)).toEqual(['#3']);
+  });
+
+  it('does not claim an empty result when the first page failed', async () => {
+    let fail = true;
+    respond = () => fail ? throwError(() => new Error('403')) : of({ items: [{ id: 1 }], nextCursor: null });
+    const fixture = await render();
+    fixture.componentInstance.pager.first();
+    fixture.detectChanges();
+
+    expect(el(fixture).querySelector('#rows-error[role="alert"]')?.textContent).toContain('Rows failed');
+    expect(el(fixture).querySelector('.custom-empty')).toBeNull();
+    expect(el(fixture).querySelector('[role="table"]')).toBeNull();
+
+    fail = false;
+    (el(fixture).querySelector('#rows-error button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(el(fixture).querySelector('#rows-error')).toBeNull();
+    expect(rowText(fixture)).toEqual(['#1']);
   });
 
   it('shows the screen’s own empty state', async () => {

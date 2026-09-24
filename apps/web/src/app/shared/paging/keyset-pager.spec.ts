@@ -67,6 +67,55 @@ describe('KeysetPager', () => {
     expect([pager.page(), [...pager.items()], pager.failed()]).toEqual([2, [3, 4], false]);
   });
 
+  it('closes both directions after a failed filter change, so no old cursor pages the new query', () => {
+    let fail = false;
+    const pages = server();
+    const fetch = vi.fn((cursor: string | null): Observable<KeysetResponse<number>> =>
+      fail ? throwError(() => new Error('offline')) : pages(cursor));
+    const pager = new KeysetPager<number>(fetch, { pageSize: 2 });
+    pager.first();
+    pager.next();
+    expect([pager.page(), pager.canGoBack(), pager.canGoForward()]).toEqual([2, true, true]);
+
+    fail = true;
+    pager.first(); // the new filter's first page fails
+    expect([pager.page(), pager.failed(), pager.canGoBack(), pager.canGoForward()]).toEqual([2, true, false, false]);
+    const calls = fetch.mock.calls.length;
+    pager.next();
+    pager.previous();
+    expect(fetch).toHaveBeenCalledTimes(calls);
+
+    fail = false;
+    pager.retry();
+    expect([pager.page(), [...pager.items()], pager.canGoForward()]).toEqual([1, [1, 2], true]);
+  });
+
+  it('steps back when the page on screen comes back empty', () => {
+    let emptied = false;
+    const pages = server();
+    const fetch = vi.fn((cursor: string | null): Observable<KeysetResponse<number>> =>
+      emptied && cursor === 'c3' ? of(page([], null)) : pages(cursor));
+    const pager = new KeysetPager<number>(fetch, { pageSize: 2 });
+    pager.first();
+    pager.next();
+    pager.next();
+    expect([pager.page(), [...pager.items()]]).toEqual([3, [5]]);
+
+    emptied = true; // row 5 was deleted
+    pager.reload();
+    expect([pager.page(), [...pager.items()]]).toEqual([2, [3, 4]]);
+    expect(fetch).toHaveBeenLastCalledWith('c2', 2);
+  });
+
+  it('stays on a page moved to that arrives empty, leaving Back to the user', () => {
+    const fetch = vi.fn((cursor: string | null) => of(cursor ? page([], null) : page([1, 2], 'c2')));
+    const pager = new KeysetPager<number>(fetch, { pageSize: 2 });
+    pager.first();
+    pager.next();
+    expect([pager.page(), [...pager.items()], pager.canGoBack()]).toEqual([2, [], true]);
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
   it('reloads the page on screen and restarts from page one on a new page size', () => {
     const fetch = server();
     const pager = new KeysetPager<number>(fetch);

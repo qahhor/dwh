@@ -104,7 +104,11 @@ test('audit pagination is stable, secrets stay redacted, and filter reset drops 
   await page.goto('/audit');
   await expect(page.getByRole('heading', { level: 1, name: 'Аудит и безопасность' })).toBeVisible();
 
-  const firstIds = await page.locator('tbody tr td:first-child').allTextContents();
+  // Rows arrive after the shell renders; read them once the first page is on screen.
+  const changeLog = page.getByRole('table', { name: 'Журнал изменений данных' });
+  await expect(changeLog.getByRole('button', { name: 'Просмотреть изменение #103' })).toBeVisible();
+  const firstIds = await changeLog.getByRole('row').filter({ has: page.getByRole('cell') })
+    .evaluateAll(rows => rows.map(row => row.querySelector('[role="cell"]')?.textContent?.trim() ?? ''));
   expect(firstIds).toEqual(['#103', '#102']);
   expect(new Set(firstIds).size).toBe(firstIds.length);
 

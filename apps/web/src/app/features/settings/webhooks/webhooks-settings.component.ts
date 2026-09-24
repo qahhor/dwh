@@ -127,7 +127,7 @@ import {
                       [attr.aria-label]="(sub.state === 'A' ? 'settings.webhooks.paused' : 'settings.webhooks.active') | t"
                       (click)="toggleState(sub)"
                     >
-                      <span class="material-symbols-outlined" style="font-size: 18px;">
+                      <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">
                         {{ sub.state === 'A' ? 'pause_circle' : 'play_circle' }}
                       </span>
                     </button>
@@ -138,7 +138,7 @@ import {
                       [attr.aria-label]="'common.delete' | t"
                       (click)="confirmDelete(sub)"
                     >
-                      <span class="material-symbols-outlined" style="font-size: 18px;">delete</span>
+                      <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">delete</span>
                     </button>
                   </div>
                 </td>

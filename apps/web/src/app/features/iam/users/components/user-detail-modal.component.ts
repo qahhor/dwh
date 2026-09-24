@@ -63,7 +63,7 @@ export interface SecurityConfirmConfig {
             [attr.aria-selected]="activeViewTab === 'info'"
             (click)="switchTab.emit({ tab: 'info', userId: u.id })"
           >
-            <span class="material-symbols-outlined tab-icon">badge</span>
+            <span class="material-symbols-outlined tab-icon" aria-hidden="true">badge</span>
             {{ 'iam.osnovnoe' | t }}
           </button>
           <button
@@ -74,7 +74,7 @@ export interface SecurityConfirmConfig {
             [attr.aria-selected]="activeViewTab === 'security'"
             (click)="switchTab.emit({ tab: 'security', userId: u.id })"
           >
-            <span class="material-symbols-outlined tab-icon">shield</span>
+            <span class="material-symbols-outlined tab-icon" aria-hidden="true">shield</span>
             {{ 'iam.bezopasnost_i_sessii' | t }}
           </button>
           <button
@@ -86,7 +86,7 @@ export interface SecurityConfirmConfig {
             [attr.aria-selected]="activeViewTab === 'orgUnits'"
             (click)="switchTab.emit({ tab: 'orgUnits', userId: u.id })"
           >
-            <span class="material-symbols-outlined tab-icon">account_tree</span>
+            <span class="material-symbols-outlined tab-icon" aria-hidden="true">account_tree</span>
             {{ 'iam.org_struktura' | t }}
           </button>
           <button
@@ -98,7 +98,7 @@ export interface SecurityConfirmConfig {
             [attr.aria-selected]="activeViewTab === 'permissions'"
             (click)="switchTab.emit({ tab: 'permissions', userId: u.id })"
           >
-            <span class="material-symbols-outlined tab-icon">lock_person</span>
+            <span class="material-symbols-outlined tab-icon" aria-hidden="true">lock_person</span>
             {{ 'iam.effektivnye_prava' | t }}
           </button>
         </div>
@@ -138,7 +138,7 @@ export interface SecurityConfirmConfig {
         <!-- Security & Sessions Tab -->
         <div class="security-tab-content" *ngIf="activeViewTab === 'security'">
           <div *ngIf="isLoadingSecurity" class="security-loading">
-            <span class="material-symbols-outlined spin-icon">sync</span>
+            <span class="material-symbols-outlined spin-icon" aria-hidden="true">sync</span>
             <span>{{ 'common.loading' | t }}</span>
           </div>
 
@@ -148,14 +148,14 @@ export interface SecurityConfirmConfig {
               <div class="sec-metric-card">
                 <span class="sec-metric-lbl">{{ 'iam.status_2fa' | t }}</span>
                 <span class="sec-metric-badge" [class.success]="sec.is2faEnabled" [class.muted]="!sec.is2faEnabled">
-                  <span class="material-symbols-outlined metric-icon">{{ sec.is2faEnabled ? 'lock' : 'lock_open' }}</span>
+                  <span class="material-symbols-outlined metric-icon" aria-hidden="true">{{ sec.is2faEnabled ? 'lock' : 'lock_open' }}</span>
                   {{ (sec.is2faEnabled ? 'iam.vklyuchena' : 'iam.otklyuchena') | t }}
                 </span>
               </div>
               <div class="sec-metric-card">
                 <span class="sec-metric-lbl">{{ 'iam.trebovanie_smeny_parolya' | t }}</span>
                 <span class="sec-metric-badge" [class.warning]="sec.forcePasswordChange" [class.success]="!sec.forcePasswordChange">
-                  <span class="material-symbols-outlined metric-icon">{{ sec.forcePasswordChange ? 'priority_high' : 'check' }}</span>
+                  <span class="material-symbols-outlined metric-icon" aria-hidden="true">{{ sec.forcePasswordChange ? 'priority_high' : 'check' }}</span>
                   {{ (sec.forcePasswordChange ? 'iam.trebuetsya' : 'iam.ne_trebuetsya') | t }}
                 </span>
               </div>
@@ -177,7 +177,7 @@ export interface SecurityConfirmConfig {
                 [disabled]="isSecurityActionPending || sec.forcePasswordChange"
                 (click)="forcePasswordChange.emit(u.id)"
               >
-                <span class="material-symbols-outlined">password</span>
+                <span class="material-symbols-outlined" aria-hidden="true">password</span>
                 <span>{{ 'iam.potrebovat_smenu_parolya' | t }}</span>
               </button>
 
@@ -187,7 +187,7 @@ export interface SecurityConfirmConfig {
                 [disabled]="isSecurityActionPending || !sec.is2faEnabled"
                 (click)="reset2fa.emit(u.id)"
               >
-                <span class="material-symbols-outlined">key_off</span>
+                <span class="material-symbols-outlined" aria-hidden="true">key_off</span>
                 <span>{{ 'iam.sbrosit_2fa' | t }}</span>
               </button>
 
@@ -197,7 +197,7 @@ export interface SecurityConfirmConfig {
                 [disabled]="isSecurityActionPending || sec.activeSessionsCount === 0"
                 (click)="terminateAllSessions.emit(u.id)"
               >
-                <span class="material-symbols-outlined">logout</span>
+                <span class="material-symbols-outlined" aria-hidden="true">logout</span>
                 <span>{{ 'iam.zavershit_vse_sessii' | t }}</span>
               </button>
             </div>
@@ -205,7 +205,7 @@ export interface SecurityConfirmConfig {
             <!-- Active Sessions List -->
             <div class="sec-section">
               <div class="sec-section-title">
-                <span class="material-symbols-outlined sec-title-icon">devices</span>
+                <span class="material-symbols-outlined sec-title-icon" aria-hidden="true">devices</span>
                 <h4>{{ 'iam.aktivnye_sessii' | t }}</h4>
                 <span class="count-pill">{{ sec.activeSessions.length }}</span>
               </div>
@@ -239,7 +239,7 @@ export interface SecurityConfirmConfig {
                           [disabled]="isSecurityActionPending"
                           (click)="terminateSingleSession.emit({ sessionId: s.id, userId: u.id })"
                         >
-                          <span class="material-symbols-outlined" style="font-size: 16px;">close</span>
+                          <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">close</span>
                         </button>
                       </td>
                     </tr>
@@ -251,7 +251,7 @@ export interface SecurityConfirmConfig {
             <!-- Recent Login Attempts History Section -->
             <div class="sec-section">
               <div class="sec-section-title">
-                <span class="material-symbols-outlined sec-title-icon">history</span>
+                <span class="material-symbols-outlined sec-title-icon" aria-hidden="true">history</span>
                 <h4>{{ 'iam.istoriya_popytok_vhoda' | t }}</h4>
                 <span class="count-pill">{{ sec.recentLoginAttempts.length }}</span>
               </div>

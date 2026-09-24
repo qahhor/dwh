@@ -69,6 +69,7 @@ const TECHNICAL_RUSSIAN_FALLBACK: TranslationDictionary = {
   'common.connection_error': 'Ошибка соединения',
   'common.server_unavailable': 'Сервер недоступен или отсутствует соединение с сетью',
   'common.request_failed': 'Не удалось выполнить запрос',
+  'common.operation_failed': 'Произошла ошибка при выполнении операции',
   'common.language_packs_failed': 'Не удалось загрузить языковые пакеты'
 };
 
