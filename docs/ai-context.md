@@ -1,6 +1,6 @@
 # Контекст SmartupCMS для AI-ассистентов
 
-**Актуализировано:** 2026-09-19
+**Актуализировано:** 2026-09-24
 
 **Назначение:** краткий воспроизводимый handoff для следующей AI-сессии
 
@@ -108,6 +108,70 @@ repositories/adapters — I/O. Детали приведены в
 [production launch checklist](ops/production-launch-checklist.md).
 
 ## 6. Последняя подтверждённая проверка
+
+### Точка продолжения — 2026-09-24 (перенос UI-кита, волна 1: таблицы)
+
+Цель пользователя: перенести UI/UX `smartup-ui-kit` и `kernel` в dwh и сделать
+лучше источника. Правила — [ADR-0015](adr/ADR-0015-ui-kit-transfer-policy.md):
+копия кита в `apps/web/src/app/shared/ui-kit/` — код продукта; другие
+репозитории не меняются; каждое наше изменение приходит со своим тестом;
+бюджет начального бандла 500 kB.
+
+Слито в `main` (последний подтверждённый коммит `58c6a75`):
+
+- #4 — основа таблицы кита, `smt-tree-table` (treegrid), `KeysetPager`,
+  `ui-server-table`, пользователи на серверной таблице, axe-гейт `test:a11y`.
+- #5 — ClamAV `1.5.4` по digest (44 → 0 HIGH/CRITICAL), E2E на втором origin
+  `INSTANCE_BASE_URL=http://localhost:4201`, лимит `DWH_RATE_LIMIT_USER_PER_MINUTE`
+  6000 только для одноразового CI-стенда, чтение тел ответов search-management
+  через `route.fetch().text()`.
+- #6 — регрессии #4 (аудит, тема, оргструктура) и замечания ревью пейджера.
+- #7 — иконки-лигатуры скрыты от скринридеров, правило в `aria:audit`.
+- #8 — список задач на `ui-server-table`; клик по строке таблицы кита не
+  срабатывает на контролах ячейки; ячейки переносят текст по словам
+  (`overflow-wrap:anywhere` вместо `break-all`).
+- #9 — список проектов на таблице кита с сортировкой всего списка
+  (`features/tasks/projects/projects-order.ts`).
+
+Состояние на момент записи: CI `main` на `d3c9d08` зелёный полностью, включая
+E2E 54/54 — первый зелёный `main` в этой серии. CI для `58c6a75` (#9)
+выполнялся; результат проверить в Actions. Последняя локальная проверка #9:
+920 web-тестов, aria/i18n/contrast аудиты, typecheck app и e2e, `ng build`
+(initial 435.90 kB), `test:a11y` 20/20.
+
+Ловушки, найденные в этой серии:
+
+- Весь E2E-набор идёт последовательно под одним админом; без повышенного
+  лимита на пользователя поздние спеки получают 429 (исправлено только для CI).
+- В CI браузер терял тела ответов `/api/v1/search/**` («No data found for
+  resource»); `route.fulfill` не помогает, помогает чтение тела в обработчике
+  маршрута. Корневая причина не найдена, локально не воспроизводится.
+- Слияние PR в ветку другого PR кнопкой GitHub создаёт merge-коммит без
+  `Signed-off-by`, и DCO падает. Сливать последовательно в `main`.
+- GitHub удаляет ветку после слияния PR; следующую работу начинать от свежего
+  `origin/main`.
+- Нестабильный `org-structure.spec.ts:524` (GET списка после отложенного
+  создания висел >8 с) — один раз, причина не установлена.
+
+Локальная проверка без Docker и Java: Node 24, `npm test`/`typecheck`/`build`
+в `apps/web`; axe-гейт — `PLAYWRIGHT_CHROMIUM_EXECUTABLE=/opt/pw-browsers/chromium
+npx playwright test -c playwright.a11y.config.ts` в `e2e` (сервер с мок-API —
+`e2e/support/a11y-server.mjs`, фикстуры — `a11y-fixtures.mjs`). Полный
+браузерный набор доступен только в CI.
+
+Дальше по плану (ADR-0015, действие 3): рукописные таблицы, по одному экрану
+на PR — `files-table`, затем настройки (`modules-table`,
+`navigation-settings-table`, `webhooks-settings`, `search-settings`), IAM
+(`custom-fields-table`, `role-permissions-matrix`, `user-detail-modal`,
+карточки профиля), UPL (`packages`, `package-card`, `sources-list`,
+`source-card`, `format-editor`), `analytics-workload-table`, модалки
+(`project-members-modal`, `audit-modals`, `notification-preferences-modal`).
+Серверные списки идут через `ui-server-table`; списки, которые сервер отдаёт
+целиком, — через `smt-table` с честной сортировкой всего списка. Отложено:
+серверная сортировка/total и предел `limit` для `/iam/users` (backend),
+нестабильные тесты `org-structure:524` и 413-загрузки, дубли строк в
+lookup-каналах, адаптеры аудита только для спеки, обновление Graphify
+(`graphify` в окружении не установлен).
 
 ### Точка продолжения — 2026-09-18 (Release Hardening Roadmap I-01..I-10 Fully Completed)
 
