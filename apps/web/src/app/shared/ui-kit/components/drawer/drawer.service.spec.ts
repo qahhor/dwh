@@ -5,6 +5,7 @@
 import '@angular/compiler';
 import { Component, DestroyRef, inject } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { tickInZone } from '../../testing/zone-tick';
 import { provideLocationMocks } from '@angular/common/testing';
 import { Subject, firstValueFrom } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -199,7 +200,7 @@ describe('SMTDrawerService with CDK Overlay', () => {
     const service = setup();
 
     service.open(PackageDetails, { title: 'Package 42', data: { name: 'sales.xlsx' } });
-    TestBed.tick();
+    tickInZone();
 
     const dialog = document.querySelector('[role="dialog"]')!;
     expect(dialog.getAttribute('aria-modal')).toBe('true');
@@ -212,7 +213,7 @@ describe('SMTDrawerService with CDK Overlay', () => {
     const service = setup();
 
     service.open(PackageDetails, { ariaLabel: 'Package details', data: { name: 'x' } });
-    TestBed.tick();
+    tickInZone();
 
     const dialog = document.querySelector('[role="dialog"]')!;
     expect(dialog.getAttribute('aria-label')).toBe('Package details');
@@ -224,7 +225,7 @@ describe('SMTDrawerService with CDK Overlay', () => {
     const trigger = opener();
 
     const ref = service.open(PackageDetails, { title: 'Package', data: { name: 'x' } });
-    TestBed.tick();
+    tickInZone();
     const closed = firstValueFrom(ref.afterClosed());
     const escape = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
     document.querySelector('.smt-drawer__panel')!.dispatchEvent(escape);
@@ -239,7 +240,7 @@ describe('SMTDrawerService with CDK Overlay', () => {
     const service = setup();
 
     const ref = service.open<string>(PackageDetails, { title: 'Package', data: { name: 'sales.xlsx' } });
-    TestBed.tick();
+    tickInZone();
     const closed = firstValueFrom(ref.afterClosed());
     document.querySelector<HTMLButtonElement>('.pick')!.click();
 

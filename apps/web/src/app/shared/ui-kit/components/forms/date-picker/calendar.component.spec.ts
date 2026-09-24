@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import '@angular/compiler';
 import { TestBed } from '@angular/core/testing';
+import { tickInZone } from '../../../testing/zone-tick';
 import { afterEach, describe, expect, it } from 'vitest';
 import { SMTI18nService } from '../../../i18n';
 import { testI18n } from '../../../i18n/test-messages';
@@ -27,7 +28,7 @@ describe('SMTCalendarComponent', () => {
     const grid = element.querySelector('[role="grid"]') as HTMLTableElement;
     const key = (name: string, shiftKey = false) => {
       grid.dispatchEvent(new KeyboardEvent('keydown', { key: name, shiftKey, bubbles: true, cancelable: true }));
-      TestBed.tick();
+      tickInZone();
     };
     const focused = () => (document.activeElement as HTMLElement | null)?.getAttribute('data-date');
     return { fixture, element, grid, key, focused, picked };

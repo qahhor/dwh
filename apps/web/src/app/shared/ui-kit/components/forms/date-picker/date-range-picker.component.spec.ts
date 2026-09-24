@@ -2,6 +2,7 @@
 import '@angular/compiler';
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { tickInZone } from '../../../testing/zone-tick';
 import { FormsModule } from '@angular/forms';
 import { afterEach, describe, expect, it } from 'vitest';
 import { SMTI18nService } from '../../../i18n';
@@ -43,7 +44,7 @@ describe('SMTDateRangePickerComponent', () => {
     const fixture = TestBed.createComponent(host);
     document.body.appendChild(fixture.nativeElement);
     const settle = async () => {
-      TestBed.tick();
+      tickInZone();
       await fixture.whenStable();
       fixture.detectChanges();
     };
