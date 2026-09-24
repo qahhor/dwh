@@ -12,6 +12,7 @@ import { ToastService } from '../../../core/services/toast.service';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
+import { SMTDatePickerComponent, SMTDatePickerValueAccessor } from '../../../shared/ui-kit/components/forms/date-picker';
 import {
   UPL_DATA_TYPES,
   UPL_ENCODINGS,
@@ -81,7 +82,10 @@ function emptyModel(): UplFormatDraftRequest {
   selector: 'app-upl-format-editor',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, RouterLink, TranslatePipe, UiButtonComponent, UiModalComponent, UiBadgeComponent],
+  imports: [
+    CommonModule, FormsModule, RouterLink, TranslatePipe, UiButtonComponent, UiModalComponent, UiBadgeComponent,
+    SMTDatePickerComponent, SMTDatePickerValueAccessor,
+  ],
   template: `
     <div class="upl-editor">
       @if (isLoading()) {
@@ -579,14 +583,12 @@ function emptyModel(): UplFormatDraftRequest {
           <div body>
             <div class="form-group">
               <label class="form-label" for="upl-valid-from">{{ 'upl.version.valid_from' | t }}</label>
-              <input
-                id="upl-valid-from"
-                class="form-input"
-                type="date"
+              <smt-date-picker
+                smtInputId="upl-valid-from"
                 data-testid="upl-valid-from"
                 [ngModel]="validFrom()"
                 [ngModelOptions]="{ standalone: true }"
-                (ngModelChange)="validFrom.set($event)"
+                (ngModelChange)="validFrom.set($event ?? '')"
               />
               @if (previousValidFrom(); as previous) {
                 <span class="upl-hint">{{ text('upl.version.prev_valid_from', { date: previous }) }}</span>

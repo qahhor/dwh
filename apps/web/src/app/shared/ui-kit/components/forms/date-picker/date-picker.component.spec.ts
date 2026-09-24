@@ -2,6 +2,7 @@
 import '@angular/compiler';
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { tickInZone } from '../../../testing/zone-tick';
 import { FormsModule } from '@angular/forms';
 import { FormField, form, required } from '@angular/forms/signals';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -58,7 +59,7 @@ describe('SMTDatePickerComponent', () => {
       await settle();
     };
     const settle = async () => {
-      TestBed.tick();
+      tickInZone();
       await fixture.whenStable();
       fixture.detectChanges();
     };
@@ -155,6 +156,25 @@ describe('SMTDatePickerComponent', () => {
       await settle();
       expect(fixture.componentInstance.model().due).toBe('2026-09-05T09:15');
     });
+  });
+
+  it('commits a typed date when focus moves on inside the picker, so the time applies to it', async () => {
+    const { fixture, element, text, settle } = await render(SignalHost);
+    fixture.componentInstance.withTime.set(true);
+    fixture.componentInstance.model.set({ due: '2026-09-04T14:30' });
+    await settle();
+
+    text.value = '07.09.2026';
+    text.dispatchEvent(new Event('input'));
+    text.dispatchEvent(new FocusEvent('blur'));
+    await settle();
+    expect(fixture.componentInstance.model().due).toBe('2026-09-07T14:30');
+
+    const time = element.querySelector('.smt-date-picker__time') as HTMLInputElement;
+    time.value = '08:00';
+    time.dispatchEvent(new Event('change'));
+    await settle();
+    expect(fixture.componentInstance.model().due).toBe('2026-09-07T08:00');
   });
 
   describe('bound with ngModel through the value accessor', () => {

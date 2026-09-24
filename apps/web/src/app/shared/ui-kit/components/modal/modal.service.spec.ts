@@ -4,6 +4,7 @@
 // @vitest-environment jsdom
 import '@angular/compiler';
 import { TestBed } from '@angular/core/testing';
+import { tickInZone } from '../../testing/zone-tick';
 import { Subject, firstValueFrom } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SMTI18nService } from '../../i18n';
@@ -212,9 +213,9 @@ describe('SMTModalService with CDK Dialog', () => {
   }
 
   async function settle() {
-    TestBed.tick();
+    tickInZone();
     await new Promise(resolve => setTimeout(resolve));
-    TestBed.tick();
+    tickInZone();
   }
 
   it('renders an accessible alertdialog whose name and description are the visible texts', async () => {

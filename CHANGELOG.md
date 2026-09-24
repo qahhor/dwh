@@ -115,6 +115,13 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Every date field uses the new date picker instead of the browser's own:
+  the audit log and security event filters, the UPL upload period and
+  format validity date, date custom fields and the task deadline (date with
+  time). Dates are typed in the language's format and picked from the same
+  keyboard-operable calendar on every screen; the stored values are
+  unchanged.
+
 - The local Compose stack passes `DWH_RATE_LIMIT_USER_PER_MINUTE` to the
   server (default 600, as before). CI raises it for its disposable E2E stack,
   where one administrator runs the whole browser suite and used to exhaust

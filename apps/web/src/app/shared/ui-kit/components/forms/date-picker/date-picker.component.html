@@ -13,6 +13,7 @@
     [readOnly]="readonly()"
     [attr.aria-required]="required() ? 'true' : null"
     (input)="onInput($event)"
+    (blur)="commitText()"
     (keydown)="onTextKeydown($event)" />
   <button
     #toggle

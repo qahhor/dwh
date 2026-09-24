@@ -7,6 +7,7 @@ import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTDatePickerComponent, SMTDatePickerValueAccessor } from '../../../shared/ui-kit/components/forms/date-picker';
 import { UplSourceItem } from '../upl-api';
 import { PackageCardComponent } from './package-card.component';
 import { UplPackageItem, UplPackagesApiService } from './packages-api';
@@ -41,7 +42,10 @@ function emptyFormErrors(): UplPackageFormErrors {
   selector: 'app-upl-packages',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, TranslatePipe, UiBadgeComponent, UiButtonComponent, PackageCardComponent],
+  imports: [
+    CommonModule, FormsModule, TranslatePipe, UiBadgeComponent, UiButtonComponent, PackageCardComponent,
+    SMTDatePickerComponent, SMTDatePickerValueAccessor,
+  ],
   template: `
     @if (selected(); as current) {
       <app-upl-package-card
@@ -108,27 +112,25 @@ function emptyFormErrors(): UplPackageFormErrors {
 
               <div class="form-group">
                 <label class="form-label" for="upl-pkg-period-from-field">{{ 'upl.pkg.form.period_from' | t }}</label>
-                <input
-                  class="form-input"
-                  id="upl-pkg-period-from-field"
+                <smt-date-picker
+                  smtInputId="upl-pkg-period-from-field"
                   name="periodFrom"
-                  type="date"
                   data-testid="upl-pkg-period-from"
                   [disabled]="isSending()"
-                  [(ngModel)]="form.periodFrom"
+                  [ngModel]="form.periodFrom"
+                  (ngModelChange)="form.periodFrom = $event ?? ''"
                 />
               </div>
 
               <div class="form-group">
                 <label class="form-label" for="upl-pkg-period-to-field">{{ 'upl.pkg.form.period_to' | t }}</label>
-                <input
-                  class="form-input"
-                  id="upl-pkg-period-to-field"
+                <smt-date-picker
+                  smtInputId="upl-pkg-period-to-field"
                   name="periodTo"
-                  type="date"
                   data-testid="upl-pkg-period-to"
                   [disabled]="isSending()"
-                  [(ngModel)]="form.periodTo"
+                  [ngModel]="form.periodTo"
+                  (ngModelChange)="form.periodTo = $event ?? ''"
                 />
                 @if (formErrors().period.length > 0) {
                   <span class="upl-field-error" data-testid="upl-pkg-err-period">

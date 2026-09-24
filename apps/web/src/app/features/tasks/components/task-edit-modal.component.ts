@@ -1,6 +1,7 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { SMTDatePickerComponent, SMTDatePickerValueAccessor } from '../../../shared/ui-kit/components/forms/date-picker';
 import { TranslatePipe } from '../../../core/services/i18n.service';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
@@ -18,6 +19,8 @@ import { User } from '../../../core/models/auth.models';
   imports: [
     CommonModule,
     FormsModule,
+    SMTDatePickerComponent,
+    SMTDatePickerValueAccessor,
     TranslatePipe,
     UiModalComponent,
     UiButtonComponent,
@@ -195,7 +198,7 @@ import { User } from '../../../core/models/auth.models';
             <div class="label-row">
               <label class="clean-label" for="task-edit-deadline">{{ 'tasks.srok_sdachi_dedlayn' | t }}</label>
             </div>
-            <input id="task-edit-deadline" name="taskEditDeadline" type="datetime-local" class="clean-input font-mono" [(ngModel)]="editForm.endTime" />
+            <smt-date-picker smtInputId="task-edit-deadline" name="taskEditDeadline" smtWithTime [ngModel]="editForm.endTime" (ngModelChange)="editForm.endTime = $event ?? ''" />
           </div>
         </div>
 
