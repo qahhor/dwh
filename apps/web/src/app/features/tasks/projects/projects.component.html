@@ -115,11 +115,13 @@
     [statsLoading]="statsLoading()"
     [statsLoadError]="statsLoadError()"
     [statsLoaded]="statsLoaded()"
+    [sort]="projectSort"
     (viewTasks)="viewProjectTasks($event)"
     (editProject)="openEditModal($event)"
     (manageMembers)="openMembersModal($event)"
     (pageChange)="setPage($event)"
     (pageSizeChange)="setPageSize($event)"
+    (sortChange)="setSort($event)"
   ></app-project-table-view>
 
   <!-- VIEW 2: CARDS GRID VIEW -->

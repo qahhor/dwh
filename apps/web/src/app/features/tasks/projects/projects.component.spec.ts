@@ -58,12 +58,12 @@ describe('ProjectsComponent UI contracts', () => {
     const { fixture } = await createFixture();
 
     const search = fixture.nativeElement.querySelector('#project-search') as HTMLInputElement;
-    const region = fixture.nativeElement.querySelector('.table-wrapper[role="region"]') as HTMLElement;
+    const region = fixture.nativeElement.querySelector('.table-card[role="region"]') as HTMLElement;
 
     expect(fixture.nativeElement.querySelector(`label[for="${search.id}"]`)).not.toBeNull();
     expect(fixture.nativeElement.querySelector('[role="group"][aria-label="Режим отображения проектов"]')).not.toBeNull();
-    expect(region.tabIndex).toBe(0);
-    expect(region.querySelector('table')?.getAttribute('aria-label')).toBe('Список проектов');
+    expect(region.getAttribute('aria-label')).toBe('Таблица проектов');
+    expect(region.querySelector('[role="table"]')?.getAttribute('aria-label')).toBe('Список проектов');
   });
 
   it('connects project modal labels, required state and validation message', async () => {
@@ -487,6 +487,32 @@ describe('ProjectsComponent UI contracts', () => {
     fixture.destroy();
     lateCreate.next(project(99));
     expect(toast.success).not.toHaveBeenCalled();
+  });
+
+  it('sorts the whole filtered list from a column header and returns to the first page', async () => {
+    const rows = Array.from({ length: 21 }, (_, index) => project(index + 1));
+    const api = emptyApi();
+    api.get.mockImplementation((url: string) => of(url.endsWith('/stats') ? [] : rows));
+    const { fixture } = await createFixture({ api });
+    const component = fixture.componentInstance;
+    const firstRowId = () => fixture.nativeElement.querySelector('.project-row')?.textContent?.match(/#(\d+)/)?.[1];
+    const idHeader = () => [...fixture.nativeElement.querySelectorAll('[role="columnheader"]')]
+      .find(header => (header as HTMLElement).textContent?.trim().startsWith('ID')) as HTMLElement;
+    expect(firstRowId()).toBe('1');
+
+    component.currentPage = 2;
+    fixture.detectChanges();
+    const sortButton = idHeader().querySelector('button, [role="button"]') as HTMLElement ?? idHeader();
+    sortButton.click();
+    fixture.detectChanges();
+    sortButton.click();
+    fixture.detectChanges();
+
+    // Descending by id over all 21 projects: page 1 starts with the last one, not with the last of page 2.
+    expect(component.currentPage).toBe(1);
+    expect(component.projectSort).toEqual({ column: 'id', sortBy: 'DESC' });
+    expect(idHeader().getAttribute('aria-sort')).toBe('descending');
+    expect(firstRowId()).toBe('21');
   });
 
   it('resets pagination when search and status filters change or search is cleared', async () => {

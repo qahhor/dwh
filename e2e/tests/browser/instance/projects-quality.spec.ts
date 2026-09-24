@@ -51,7 +51,7 @@ function projectFixture(id: number, name: string, state: 'A' | 'P', description:
 }
 
 function projectRow(page: Page, name: string): Locator {
-  return page.locator('tr.project-row').filter({
+  return page.locator('[role="row"].project-row').filter({
     has: page.getByRole('button', { name, exact: true }),
   });
 }

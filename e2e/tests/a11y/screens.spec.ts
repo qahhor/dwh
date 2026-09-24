@@ -62,7 +62,8 @@ const screens: Screen[] = [
       await page.getByRole('button', { name: 'Редактировать пользователя Сотрудник 2', exact: true }).click();
       await page.getByRole('dialog').getByRole('button', { name: 'Руководитель', exact: true }).click();
       await expect(page.getByRole('listbox', { name: 'Руководитель' })).toBeVisible();
-      await expect(page.getByRole('option', { name: /Сотрудник 3/ })).toBeVisible();
+      // Not /Сотрудник 3/: once the manager search lands it also matches Сотрудник 30–39.
+      await expect(page.getByRole('option', { name: /Сотрудник 3 @user3$/ })).toBeVisible();
     },
   },
   {
@@ -81,6 +82,18 @@ const screens: Screen[] = [
       await expect(page.getByRole('table', { name: 'Список задач' })).toBeVisible();
       await page.getByRole('button', { name: 'Следующая страница' }).click();
       await expect(page.getByRole('button', { name: /^Открыть задачу #41: / })).toBeVisible();
+    },
+  },
+  {
+    name: 'project list sorted by name, descending',
+    path: '/tasks/projects',
+    open: async page => {
+      const table = page.getByRole('table', { name: 'Список проектов' });
+      await expect(table).toBeVisible();
+      const nameHeader = table.getByRole('columnheader', { name: /Проект/ });
+      await nameHeader.click();
+      await nameHeader.click();
+      await expect(nameHeader).toHaveAttribute('aria-sort', 'descending');
     },
   },
   {
