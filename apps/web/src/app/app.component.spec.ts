@@ -5,6 +5,7 @@ import { of } from 'rxjs';
 import { describe, expect, it } from 'vitest';
 import { AppComponent } from './app.component';
 import { AuthService } from './core/services/auth.service';
+import { ANNOUNCE_DELAY_MS } from './core/services/live-announcer.service';
 import { ToastService } from './core/services/toast.service';
 
 describe('Application notification host', () => {
@@ -22,7 +23,10 @@ describe('Application notification host', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelectorAll('ui-toast-container')).toHaveLength(1);
-    expect(fixture.nativeElement.querySelector('[role="status"]')?.textContent)
+    expect(fixture.nativeElement.querySelector('.toast-success')?.textContent)
       .toContain('Пароль изменён. Войдите снова с новым паролем.');
+    await new Promise(resolve => setTimeout(resolve, ANNOUNCE_DELAY_MS + 20));
+    expect(document.querySelector('.app-live-announcer[aria-live="polite"]')?.textContent)
+      .toBe('Пароль изменён. Войдите снова с новым паролем.');
   });
 });
