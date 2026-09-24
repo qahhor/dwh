@@ -14,6 +14,12 @@ export const TEST_MESSAGES: SMTMessages = {
     min: value => `Must be at least ${value}`,
     max: value => `Must be at most ${value}`,
   },
+  dropzone: {
+    drop: 'Drop files here or',
+    choose: 'click to choose',
+    rejectedType: name => `${name}: this file type is not accepted`,
+    rejectedSize: (name, size) => `${name}: the file is larger than ${size}`,
+  },
   select: {
     placeholder: 'Choose…',
     name: 'Choose a value',
@@ -26,6 +32,9 @@ export const TEST_MESSAGES: SMTMessages = {
     loadFailed: 'Could not load the options',
     retry: 'Retry',
     loadMore: 'Load more',
+    remove: name => `Remove ${name}`,
+    add: 'Choose',
+    addMore: '+ Add',
   },
   date: {
     placeholder: 'dd.mm.yyyy',

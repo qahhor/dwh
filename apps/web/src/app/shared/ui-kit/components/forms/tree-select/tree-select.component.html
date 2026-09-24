@@ -1,0 +1,110 @@
+<!-- Our template, after the idea of the kit's smt-tree-select (smartup-ui-kit@6472beb). See the component header. -->
+<div class="smt-select__control" cdkOverlayOrigin #origin="cdkOverlayOrigin">
+  <button
+    #trigger
+    type="button"
+    class="smt-select__trigger"
+    role="combobox"
+    aria-haspopup="tree"
+    [id]="fieldId()"
+    [disabled]="isDisabled()"
+    [attr.aria-expanded]="open()"
+    [attr.aria-controls]="open() ? treeId : null"
+    [attr.aria-label]="ariaLabel() || null"
+    [attr.aria-required]="required() ? 'true' : null"
+    [attr.aria-readonly]="readonly() ? 'true' : null"
+    [attr.aria-invalid]="invalid() ? 'true' : null"
+    [attr.aria-describedby]="describedBy() || null"
+    (click)="toggle()"
+    (keydown)="onTriggerKeydown($event)">
+    @if (selectedOption(); as selected) {
+      <span class="smt-select__value">{{ selected.label }}</span>
+      @if (selected.subLabel) {
+        <span class="smt-select__sub">{{ selected.subLabel }}</span>
+      }
+    } @else {
+      <span class="smt-select__placeholder">{{ placeholder() || i18n.messages().select.placeholder }}</span>
+    }
+    <span class="material-symbols-outlined smt-select__arrow" aria-hidden="true">{{ open() ? 'expand_less' : 'expand_more' }}</span>
+  </button>
+  @if (allowClear() && selectedOption() && !isDisabled() && !readonly()) {
+    <button type="button" class="smt-select__clear" [attr.aria-label]="i18n.messages().select.clear" (click)="clear($event)">
+      <span class="material-symbols-outlined" aria-hidden="true">close</span>
+    </button>
+  }
+</div>
+
+<ng-template
+  cdkConnectedOverlay
+  [cdkConnectedOverlayOrigin]="origin"
+  [cdkConnectedOverlayOpen]="open()"
+  [cdkConnectedOverlayPositions]="positions"
+  [cdkConnectedOverlayMinWidth]="origin.elementRef.nativeElement.offsetWidth || 260"
+  (overlayOutsideClick)="close(false)"
+  (detach)="close(false)"
+  (attach)="onAttached()">
+  <div class="smt-select__popup" [id]="treeId + '-popup'" (focusout)="onPopupFocusOut($event)">
+    <div class="smt-select__search">
+      <span class="material-symbols-outlined smt-select__search-icon" aria-hidden="true">search</span>
+      <input
+        #searchBox
+        type="text"
+        class="smt-select__search-input"
+        role="combobox"
+        aria-haspopup="tree"
+        aria-autocomplete="list"
+        aria-expanded="true"
+        autocomplete="off"
+        [attr.aria-controls]="treeId"
+        [attr.aria-activedescendant]="activeId()"
+        [attr.aria-label]="i18n.messages().select.search"
+        [placeholder]="searchPlaceholder() || i18n.messages().select.search"
+        [value]="query()"
+        (input)="onSearchInput($event)"
+        (keydown)="onSearchKeydown($event)" />
+      @if (query()) {
+        <button type="button" class="smt-select__mini" [attr.aria-label]="i18n.messages().select.clearSearch" (click)="clearSearch()">
+          <span class="material-symbols-outlined" aria-hidden="true">close</span>
+        </button>
+      }
+    </div>
+
+    <ul class="smt-select__list" role="tree" [id]="treeId" [attr.aria-label]="ariaLabel() || i18n.messages().select.name">
+      @for (row of rows(); track row.key) {
+        <li
+          class="smt-select__option smt-tree-select__node"
+          role="treeitem"
+          [id]="rowId(row.key)"
+          [style.--smt-tree-level]="row.level"
+          [class.smt-select__option--active]="activeKey() === row.key"
+          [class.smt-select__option--selected]="isSelected(row)"
+          [attr.aria-level]="row.level"
+          [attr.aria-setsize]="row.setSize"
+          [attr.aria-posinset]="row.posInSet"
+          [attr.aria-expanded]="row.hasChildren ? row.expanded : null"
+          [attr.aria-selected]="isSelected(row)"
+          [attr.aria-disabled]="row.option.disabled ? 'true' : null"
+          (mousedown)="$event.preventDefault()"
+          (mouseenter)="highlight(row)"
+          (click)="pick(row)">
+          <span
+            class="material-symbols-outlined smt-tree-select__twisty"
+            [class.smt-tree-select__twisty--leaf]="!row.hasChildren"
+            aria-hidden="true"
+            (click)="toggleNode(row, $event)">{{ row.expanded ? 'expand_more' : 'chevron_right' }}</span>
+          <span class="smt-select__option-label">{{ row.option.label }}</span>
+          @if (row.option.subLabel) {
+            <span class="smt-select__sub">{{ row.option.subLabel }}</span>
+          }
+          @if (isSelected(row)) {
+            <span class="material-symbols-outlined smt-select__check" aria-hidden="true">check</span>
+          }
+        </li>
+      }
+    </ul>
+
+    @if (rows().length === 0) {
+      <p class="smt-select__note" role="status">{{ i18n.messages().select.noResults }}</p>
+    }
+  </div>
+</ng-template>

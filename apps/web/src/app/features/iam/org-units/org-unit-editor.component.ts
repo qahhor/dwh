@@ -4,11 +4,12 @@ import { TranslatePipe } from '../../../core/services/i18n.service';
 import { safeNumericRecordId } from '../../../core/services/search-target';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
-import { orgUnitKindKeys, parentCandidates } from './org-unit-tree';
+import { orderedTree, orgUnitKindKeys, orgUnitTreeOptions, parentCandidates } from './org-unit-tree';
+import { SMTTreeOption, SMTTreeSelectComponent, SMTTreeSelectValueAccessor } from '../../../shared/ui-kit/components/forms/tree-select';
 import { OrgUnit, OrgUnitCreate, OrgUnitPatch } from './org-units.models';
 import { ProblemDetail } from '../../../core/models/common.models';
 export type OrgUnitSubmission = { mode: 'create'; body: OrgUnitCreate } | { mode: 'edit'; id: number; patch: OrgUnitPatch };
-@Component({ selector: 'app-org-unit-editor', standalone: true, imports: [FormsModule, TranslatePipe, UiButtonComponent, UiModalComponent], templateUrl: './org-unit-editor.component.html', styleUrl: './org-unit-editor.component.css' })
+@Component({ selector: 'app-org-unit-editor', standalone: true, imports: [FormsModule, TranslatePipe, UiButtonComponent, UiModalComponent, SMTTreeSelectComponent, SMTTreeSelectValueAccessor], templateUrl: './org-unit-editor.component.html', styleUrl: './org-unit-editor.component.css' })
 export class OrgUnitEditorComponent implements OnInit {
   @Input({ required: true }) initial!: OrgUnit | OrgUnitCreate;
   @Input() units: OrgUnit[] = [];
@@ -34,6 +35,15 @@ export class OrgUnitEditorComponent implements OnInit {
       || ('state' in this.original && this.draft.state !== this.original.state);
   }
   get parents(): OrgUnit[] { return this.editing ? parentCandidates(this.units, this.original as OrgUnit) : []; }
+  private parentTreeCache: { units: OrgUnit[]; original: OrgUnit | OrgUnitCreate; tree: SMTTreeOption<number>[] } | null = null;
+  /** The allowed parents as a tree, rebuilt only when the units or the edited unit change. */
+  get parentTree(): SMTTreeOption<number>[] {
+    const cache = this.parentTreeCache;
+    if (cache && cache.units === this.units && cache.original === this.original) return cache.tree;
+    const tree = orgUnitTreeOptions(orderedTree(this.parents));
+    this.parentTreeCache = { units: this.units, original: this.original, tree };
+    return tree;
+  }
   get valid(): boolean {
     return !!this.draft.name.trim() && !!this.draft.code.trim() && !!this.draft.kind.trim()
       && Number.isInteger(this.draft.orderNo) && this.draft.orderNo >= -2147483648 && this.draft.orderNo <= 2147483647

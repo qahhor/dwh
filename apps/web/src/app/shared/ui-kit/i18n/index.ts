@@ -37,10 +37,21 @@ export interface SMTSelectMessages {
   readonly loadFailed: string;
   readonly retry: string;
   readonly loadMore: string;
+  readonly remove: (name: string) => string;
+  readonly add: string;
+  readonly addMore: string;
+}
+
+export interface SMTDropzoneMessages {
+  readonly drop: string;
+  readonly choose: string;
+  readonly rejectedType: (name: string) => string;
+  readonly rejectedSize: (name: string, size: string) => string;
 }
 
 export interface SMTMessages {
   readonly control: SMTControlMessages;
+  readonly dropzone: SMTDropzoneMessages;
   readonly select: SMTSelectMessages;
   readonly date: SMTDateMessages;
   readonly common: { readonly close: string; readonly cancel: string };
@@ -71,6 +82,12 @@ export class SMTI18nService {
       min: value => this.i18n.translate('ui.control.min', { value }),
       max: value => this.i18n.translate('ui.control.max', { value }),
     },
+    dropzone: {
+      drop: this.i18n.translate('ui.file_upload.peretaschite_fayly_syuda_ili'),
+      choose: this.i18n.translate('ui.file_upload.nazhmite_dlya_vybora'),
+      rejectedType: name => this.i18n.translate('ui.dropzone.rejected_type', { name }),
+      rejectedSize: (name, size) => this.i18n.translate('ui.dropzone.rejected_size', { name, size }),
+    },
     select: {
       placeholder: this.i18n.translate('ui.searchable_select.vyberite_iz_spiska'),
       name: this.i18n.translate('ui.searchable_select.vybor_znacheniya'),
@@ -83,6 +100,9 @@ export class SMTI18nService {
       loadFailed: this.i18n.translate('ui.remote_lookup.failed'),
       retry: this.i18n.translate('common.retry'),
       loadMore: this.i18n.translate('common.load_more'),
+      remove: name => this.i18n.translate('ui.user_multi_select.remove_user', { name }),
+      add: this.i18n.translate('ui.user_multi_select.vybrat_polzovateley'),
+      addMore: this.i18n.translate('ui.user_multi_select.add_more'),
     },
     date: {
       placeholder: this.i18n.translate('ui.date.placeholder'),

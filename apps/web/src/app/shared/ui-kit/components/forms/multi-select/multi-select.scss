@@ -1,0 +1,117 @@
+/* Our styles for smt-multi-select, from semantic tokens. The popup reuses
+ * smt-select's styles (select.scss); these cover the chips and trigger. */
+
+.smt-multi-select {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.smt-multi-select__box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--control-height);
+  padding: 4px 6px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-surface);
+}
+
+/* Not display: contents, which drops the list role in some screen readers. */
+.smt-multi-select__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.smt-multi-select__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 2px 4px 2px 8px;
+  border: 1px solid var(--primary-border);
+  border-radius: 999px;
+  background-color: var(--primary-subtle);
+  color: var(--text-main);
+  font-size: 12px;
+}
+
+.smt-multi-select__chip-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.smt-multi-select__chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.smt-multi-select__chip-remove .material-symbols-outlined {
+  font-size: 14px;
+}
+
+.smt-multi-select__chip-remove:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-main);
+}
+
+.smt-multi-select__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.smt-multi-select__trigger:hover:not(:disabled),
+.smt-multi-select__trigger[aria-expanded='true'] {
+  border-color: var(--primary);
+  color: var(--primary-text);
+}
+
+.smt-multi-select__trigger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.smt-multi-select__add-icon {
+  font-size: 16px;
+}
+
+.smt-multi-select__box-icon {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  font-size: 18px;
+}
+
+.smt-select__option--selected .smt-multi-select__box-icon {
+  color: var(--primary-text);
+}
+
+.smt-multi-select__trigger:focus-visible,
+.smt-multi-select__chip-remove:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}

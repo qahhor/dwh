@@ -1,0 +1,19 @@
+/* Our styles for smt-tree-select. The trigger and popup reuse smt-select's
+ * styles (select.scss); these indent the nodes and draw the twisty. */
+
+.smt-tree-select__node {
+  padding-inline-start: calc(4px + (var(--smt-tree-level, 1) - 1) * 18px);
+}
+
+.smt-tree-select__twisty {
+  flex-shrink: 0;
+  width: 20px;
+  color: var(--text-muted);
+  font-size: 18px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.smt-tree-select__twisty--leaf {
+  visibility: hidden;
+}

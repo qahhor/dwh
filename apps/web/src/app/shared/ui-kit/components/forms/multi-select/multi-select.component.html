@@ -1,0 +1,118 @@
+<!-- Our template, after the idea of the kit's smt-multi-select (smartup-ui-kit@6472beb). See the component header. -->
+<div class="smt-multi-select__box" cdkOverlayOrigin #origin="cdkOverlayOrigin">
+  @if (chips().length) {
+    <ul class="smt-multi-select__chips" [attr.aria-label]="ariaLabel() || null">
+      @for (chip of chips(); track $index) {
+        <li class="smt-multi-select__chip">
+          <span class="smt-multi-select__chip-label">{{ chip.label }}</span>
+          @if (!isDisabled() && !readonly()) {
+            <button
+              type="button"
+              class="smt-multi-select__chip-remove"
+              [attr.aria-label]="i18n.messages().select.remove(chip.label)"
+              (click)="remove(chip.id)">
+              <span class="material-symbols-outlined" aria-hidden="true">close</span>
+            </button>
+          }
+        </li>
+      }
+    </ul>
+  }
+  <button
+    #trigger
+    type="button"
+    class="smt-multi-select__trigger"
+    role="combobox"
+    aria-haspopup="listbox"
+    [disabled]="isDisabled()"
+    [attr.aria-expanded]="open()"
+    [attr.aria-controls]="open() ? listboxId : null"
+    [attr.aria-label]="ariaLabel() || i18n.messages().select.add"
+    [attr.aria-required]="required() ? 'true' : null"
+    (click)="toggle()"
+    (keydown)="onTriggerKeydown($event)">
+    <span class="material-symbols-outlined smt-multi-select__add-icon" aria-hidden="true">add</span>
+    <span>{{ chips().length ? i18n.messages().select.addMore : placeholder() || i18n.messages().select.add }}</span>
+  </button>
+</div>
+
+<ng-template
+  cdkConnectedOverlay
+  [cdkConnectedOverlayOrigin]="origin"
+  [cdkConnectedOverlayOpen]="open()"
+  [cdkConnectedOverlayPositions]="positions"
+  [cdkConnectedOverlayMinWidth]="origin.elementRef.nativeElement.offsetWidth || 260"
+  (overlayOutsideClick)="close(false)"
+  (detach)="close(false)"
+  (attach)="onAttached()">
+  <div class="smt-select__popup" [id]="listboxId + '-popup'" (focusout)="onPopupFocusOut($event)">
+    <div class="smt-select__search">
+      <span class="material-symbols-outlined smt-select__search-icon" aria-hidden="true">search</span>
+      <input
+        #searchBox
+        type="text"
+        class="smt-select__search-input"
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded="true"
+        autocomplete="off"
+        [attr.aria-controls]="listboxId"
+        [attr.aria-activedescendant]="activeId()"
+        [attr.aria-label]="i18n.messages().select.search"
+        [placeholder]="searchPlaceholder() || i18n.messages().select.search"
+        [value]="query()"
+        (input)="onSearchInput($event)"
+        (keydown)="onSearchKeydown($event)" />
+      @if (query()) {
+        <button type="button" class="smt-select__mini" [attr.aria-label]="i18n.messages().select.clearSearch" (click)="clearSearch()">
+          <span class="material-symbols-outlined" aria-hidden="true">close</span>
+        </button>
+      }
+    </div>
+
+    <ul
+      class="smt-select__list"
+      role="listbox"
+      aria-multiselectable="true"
+      [id]="listboxId"
+      [attr.aria-label]="ariaLabel() || i18n.messages().select.name">
+      @for (option of visibleOptions(); track $index; let index = $index) {
+        <li
+          class="smt-select__option"
+          role="option"
+          [id]="optionId(index)"
+          [class.smt-select__option--active]="activeIndex() === index"
+          [class.smt-select__option--selected]="isSelected(option)"
+          [attr.aria-selected]="isSelected(option)"
+          [attr.aria-disabled]="option.disabled ? 'true' : null"
+          (mousedown)="$event.preventDefault()"
+          (mouseenter)="highlight(index)"
+          (click)="toggleOption(option)">
+          <span class="material-symbols-outlined smt-multi-select__box-icon" aria-hidden="true">
+            {{ isSelected(option) ? 'check_box' : 'check_box_outline_blank' }}
+          </span>
+          <span class="smt-select__option-label">{{ option.label }}</span>
+          @if (option.subLabel) {
+            <span class="smt-select__sub">{{ option.subLabel }}</span>
+          }
+        </li>
+      }
+    </ul>
+
+    @if (showEmpty()) {
+      <p class="smt-select__note" role="status">{{ i18n.messages().select.noResults }}</p>
+    }
+    @if (loading()) {
+      <p class="smt-select__note" role="status">{{ i18n.messages().select.loading }}</p>
+    }
+    @if (loadError() && !loading()) {
+      <div class="smt-select__error" role="alert">
+        <span>{{ i18n.messages().select.loadFailed }}</span>
+        <button type="button" class="smt-select__link" (click)="retry.emit()">{{ i18n.messages().select.retry }}</button>
+      </div>
+    }
+    @if (hasMore() && !loading() && !loadError()) {
+      <button type="button" class="smt-select__more" (click)="loadMore.emit()">{{ i18n.messages().select.loadMore }}</button>
+    }
+  </div>
+</ng-template>
