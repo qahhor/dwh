@@ -1,0 +1,78 @@
+<!-- Our template, after the idea of the kit's smt-date-range-picker (smartup-ui-kit@6472beb). See the component header. -->
+<div class="smt-date-range-picker__field" cdkOverlayOrigin #origin="cdkOverlayOrigin">
+  <button
+    #trigger
+    type="button"
+    class="form-input smt-date-range-picker__trigger"
+    [disabled]="isDisabled() || readonly()"
+    aria-haspopup="dialog"
+    [attr.aria-expanded]="open()"
+    [attr.aria-controls]="open() ? dialogId : null"
+    [attr.aria-label]="ariaLabel() ? ariaLabel() + ': ' + summary() : null"
+    (click)="toggle()">
+    <span class="material-symbols-outlined" aria-hidden="true">date_range</span>
+    <span class="smt-date-range-picker__summary">{{ summary() }}</span>
+  </button>
+  @if (hasValue() && !isDisabled() && !readonly()) {
+    <button
+      type="button"
+      class="smt-date-picker__toggle"
+      [attr.aria-label]="i18n.messages().date.clearPeriod"
+      (click)="clear()">
+      <span class="material-symbols-outlined" aria-hidden="true">close</span>
+    </button>
+  }
+</div>
+
+<ng-template
+  cdkConnectedOverlay
+  [cdkConnectedOverlayOrigin]="origin"
+  [cdkConnectedOverlayOpen]="open()"
+  [cdkConnectedOverlayPositions]="positions"
+  (overlayOutsideClick)="close(false)"
+  (detach)="close(false)"
+  (attach)="onAttached()">
+  <div
+    class="smt-date-popup smt-date-popup--range"
+    role="dialog"
+    aria-modal="true"
+    [id]="dialogId"
+    [attr.aria-label]="i18n.messages().date.rangeDialogLabel"
+    cdkTrapFocus
+    (keydown)="onDialogKeydown($event)">
+    <div class="smt-date-popup__presets" role="group" [attr.aria-labelledby]="presetsLabelId">
+      <p class="smt-date-popup__presets-title" [id]="presetsLabelId">{{ i18n.messages().date.presets }}</p>
+      @for (key of presets; track key) {
+        <button
+          type="button"
+          class="smt-date-popup__preset"
+          [attr.aria-pressed]="activePreset() === key"
+          (click)="applyPreset(key)">
+          {{ i18n.messages().date.preset[key] }}
+        </button>
+      }
+    </div>
+    <div class="smt-date-popup__main">
+      <smt-calendar
+        [rangeFrom]="draftFrom()"
+        [rangeTo]="draftTo()"
+        [min]="minDay()"
+        [max]="maxDay()"
+        [today]="today()"
+        [locale]="i18n.locale()"
+        (picked)="onPicked($event)" />
+      <div class="smt-date-popup__actions">
+        <button type="button" class="smt-date-popup__button" (click)="cancel()">
+          {{ i18n.messages().common.cancel }}
+        </button>
+        <button
+          type="button"
+          class="smt-date-popup__button smt-date-popup__button--primary"
+          [disabled]="!draftFrom()"
+          (click)="apply()">
+          {{ i18n.messages().date.apply }}
+        </button>
+      </div>
+    </div>
+  </div>
+</ng-template>

@@ -1,0 +1,56 @@
+<!-- Our template, after the idea of the kit's smt-calendar-view (smartup-ui-kit@6472beb). See the component header. -->
+<div class="smt-calendar__header">
+  <button
+    type="button"
+    class="smt-calendar__nav"
+    (click)="moveMonth(-1)"
+    [attr.aria-label]="i18n.messages().date.previousMonth">
+    <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+  </button>
+  <h2 class="smt-calendar__title" [id]="titleId" aria-live="polite">{{ title() }}</h2>
+  <button
+    type="button"
+    class="smt-calendar__nav"
+    (click)="moveMonth(1)"
+    [attr.aria-label]="i18n.messages().date.nextMonth">
+    <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+  </button>
+</div>
+
+<table class="smt-calendar__grid" role="grid" [attr.aria-labelledby]="titleId" (keydown)="onKeydown($event)">
+  <thead>
+    <tr>
+      @for (weekday of weekdays(); track $index) {
+        <th scope="col" [attr.abbr]="weekday.full">{{ weekday.label }}</th>
+      }
+    </tr>
+  </thead>
+  <tbody (mouseleave)="preview(null)">
+    @for (week of weeks(); track $index) {
+      <tr>
+        @for (cell of week; track cell.iso) {
+          @if (cell.inMonth) {
+            <td
+              class="smt-calendar__day"
+              [class.smt-calendar__day--selected]="isSelected(cell)"
+              [class.smt-calendar__day--in-range]="isInRange(cell)"
+              [class.smt-calendar__day--today]="cell.today"
+              [class.smt-calendar__day--disabled]="cell.disabled"
+              [attr.data-date]="cell.iso"
+              [attr.tabindex]="isActive(cell) ? 0 : -1"
+              [attr.aria-selected]="isSelected(cell)"
+              [attr.aria-disabled]="cell.disabled ? 'true' : null"
+              [attr.aria-current]="cell.today ? 'date' : null"
+              [attr.aria-label]="cell.label"
+              (click)="pick(cell)"
+              (mouseenter)="preview(cell)">
+              {{ cell.date.day }}
+            </td>
+          } @else {
+            <td class="smt-calendar__day smt-calendar__day--outside"></td>
+          }
+        }
+      </tr>
+    }
+  </tbody>
+</table>

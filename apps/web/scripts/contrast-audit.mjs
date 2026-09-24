@@ -114,7 +114,7 @@ async function sourceFiles(directory) {
   for (const entry of await readdir(directory, { withFileTypes: true })) {
     const absolute = path.join(directory, entry.name);
     if (entry.isDirectory()) found.push(...await sourceFiles(absolute));
-    else if (/\.(css|ts)$/.test(entry.name) && !entry.name.endsWith('.spec.ts')) found.push(absolute);
+    else if (/\.(s?css|ts)$/.test(entry.name) && !entry.name.endsWith('.spec.ts')) found.push(absolute);
   }
   return found;
 }

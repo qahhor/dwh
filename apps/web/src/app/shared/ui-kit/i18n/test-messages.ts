@@ -14,6 +14,29 @@ export const TEST_MESSAGES: SMTMessages = {
     min: value => `Must be at least ${value}`,
     max: value => `Must be at most ${value}`,
   },
+  date: {
+    placeholder: 'dd.mm.yyyy',
+    openCalendar: 'Open calendar',
+    dialogLabel: 'Choose a date',
+    rangeDialogLabel: 'Choose a period',
+    previousMonth: 'Previous month',
+    nextMonth: 'Next month',
+    time: 'Time',
+    invalid: format => `Enter a date as ${format}`,
+    apply: 'Apply',
+    anyPeriod: 'Any period',
+    clearPeriod: 'Clear the period',
+    presets: 'Quick picks',
+    preset: {
+      today: 'Today',
+      yesterday: 'Yesterday',
+      last7: 'Last 7 days',
+      last30: 'Last 30 days',
+      thisMonth: 'This month',
+      lastMonth: 'Last month',
+      thisYear: 'This year',
+    },
+  },
   common: { close: 'Close', cancel: 'Cancel' },
   table: { noResults: 'No results' },
   dataTable: { selectAll: 'Select all', selectRow: 'Select row' },
@@ -21,6 +44,7 @@ export const TEST_MESSAGES: SMTMessages = {
   modalConfirm: { title: 'Confirmation', yes: 'Yes', no: 'No' },
 };
 
-export function testI18n() {
-  return { messages: signal(TEST_MESSAGES) };
+/** Stub with the Russian day-first date pattern and the en-GB locale for readable, day-first labels. */
+export function testI18n(language = 'ru', locale = 'en-GB') {
+  return { messages: signal(TEST_MESSAGES), language: signal(language), locale: signal(locale) };
 }

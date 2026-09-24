@@ -1,0 +1,70 @@
+<!-- Our template, after the idea of the kit's smt-date-picker (smartup-ui-kit@6472beb). See the component header. -->
+<div class="smt-date-picker__field" cdkOverlayOrigin #origin="cdkOverlayOrigin">
+  <input
+    #textField
+    type="text"
+    class="form-input smt-date-picker__input"
+    inputmode="numeric"
+    autocomplete="off"
+    [id]="fieldId()"
+    [value]="text()"
+    [placeholder]="i18n.messages().date.placeholder"
+    [disabled]="isDisabled()"
+    [readOnly]="readonly()"
+    [attr.aria-required]="required() ? 'true' : null"
+    (input)="onInput($event)"
+    (keydown)="onTextKeydown($event)" />
+  <button
+    #toggle
+    type="button"
+    class="smt-date-picker__toggle"
+    [disabled]="isDisabled() || readonly()"
+    aria-haspopup="dialog"
+    [attr.aria-expanded]="open()"
+    [attr.aria-controls]="open() ? dialogId : null"
+    [attr.aria-label]="i18n.messages().date.openCalendar"
+    (click)="toggleCalendar()">
+    <span class="material-symbols-outlined" aria-hidden="true">calendar_month</span>
+  </button>
+  @if (withTime()) {
+    <input
+      type="time"
+      class="form-input smt-date-picker__time"
+      [value]="time()"
+      [disabled]="isDisabled() || !selectedDate()"
+      [readOnly]="readonly()"
+      [attr.aria-label]="i18n.messages().date.time"
+      (change)="onTimeChange($event)" />
+  }
+</div>
+
+@if (textInvalid()) {
+  <p class="smt-date-picker__hint" [id]="hintId">
+    {{ i18n.messages().date.invalid(i18n.messages().date.placeholder) }}
+  </p>
+}
+
+<ng-template
+  cdkConnectedOverlay
+  [cdkConnectedOverlayOrigin]="origin"
+  [cdkConnectedOverlayOpen]="open()"
+  [cdkConnectedOverlayPositions]="positions"
+  (overlayOutsideClick)="closeCalendar(false)"
+  (detach)="closeCalendar(false)"
+  (attach)="onAttached()">
+  <div
+    class="smt-date-popup"
+    role="dialog"
+    aria-modal="true"
+    [id]="dialogId"
+    [attr.aria-label]="i18n.messages().date.dialogLabel"
+    cdkTrapFocus
+    (keydown)="onDialogKeydown($event)">
+    <smt-calendar
+      [selected]="selectedDate()"
+      [min]="minDate()"
+      [max]="maxDate()"
+      [locale]="i18n.locale()"
+      (picked)="onPicked($event)" />
+  </div>
+</ng-template>
