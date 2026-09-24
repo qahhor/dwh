@@ -58,6 +58,14 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   is reachable and named for keyboard and screen reader users; files of the
   wrong type or over an optional size limit are listed in an alert instead
   of being dropped silently.
+- `smt-progress-stepper`, a navigation of steps in which the caller sets
+  each step's status (done, has errors) and people can move to any step in
+  any order; the current step is marked with `aria-current="step"` and the
+  status is part of each step's name. The UPL format editor now uses it:
+  File → Sheets and columns → Publication, one step at a time, with the
+  error summary on every step leading to the step and sheet that hold the
+  error, and a publication step that summarises what will be published.
+  A published version walks through the same steps read-only.
 - Explicit primitive colour scales (`--color-<hue>-<step>`) behind the existing
   semantic design tokens, so a neighbouring step is available where one is
   needed for contrast.

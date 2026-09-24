@@ -1,0 +1,107 @@
+/* Our styles for smt-progress-stepper, from semantic tokens so both themes work. */
+
+.smt-stepper-host {
+  display: block;
+  min-width: 0;
+}
+
+.smt-stepper__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.smt-stepper__item {
+  display: flex;
+  flex: 1 1 180px;
+  min-width: 0;
+}
+
+.smt-stepper__step {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: var(--control-touch-height);
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-bottom-width: 3px;
+  border-radius: var(--radius-md);
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+  text-align: start;
+  cursor: pointer;
+}
+
+.smt-stepper__step:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-main);
+}
+
+.smt-stepper__step:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.smt-stepper__step--current {
+  border-color: var(--primary);
+  background-color: var(--primary-subtle);
+  color: var(--text-main);
+}
+
+.smt-stepper__marker {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  background-color: var(--bg-hover);
+  color: var(--text-main);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.smt-stepper__marker .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.smt-stepper__step--complete .smt-stepper__marker {
+  border-color: var(--success);
+  background-color: var(--success);
+  color: var(--on-success);
+}
+
+.smt-stepper__step--error .smt-stepper__marker {
+  border-color: var(--danger);
+  background-color: var(--danger);
+  color: var(--on-danger);
+}
+
+.smt-stepper__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.smt-stepper__label {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.smt-stepper__hint {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.smt-stepper__step--error .smt-stepper__hint {
+  color: var(--danger-text);
+}
