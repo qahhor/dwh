@@ -90,6 +90,12 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the per-user budget part-way.
 - The language list in Settings renders through the vendored table
   foundation instead of a hand-written table, the first screen to do so.
+- The project list renders on the shared table foundation. Its ID, name,
+  status, closed-tasks and created columns sort the whole filtered list (all
+  projects are loaded at once), not just the page on screen: names compare
+  the way people read them ("сети 9" before "сети 10"), and projects whose
+  statistics are unknown stay last whichever way progress is sorted. Without
+  a chosen column the server's order is kept.
 - The task list renders on the shared server table, like the user list and
   the audit logs. A click anywhere on a row opens the task; its priority and
   status selects still change the task in place. The page size can be

@@ -89,7 +89,11 @@ export const fixtures = {
   '/audit/security-events': page(range(12, 1).map(securityEvent), null, 12),
   '/tasks': page(range(100, 51).map(task), 't2', 60),
   '/tasks#t2': page(range(50, 41).map(task), null, 60),
-  '/tasks/projects': [],
+  '/tasks/projects': range(1, 14).map(id => ({
+    id, name: `Выкладка в сети ${id}`, description: id % 2 ? `Регион ${id}: контроль полки и POSM` : undefined,
+    state: id % 5 ? 'A' : 'P', attributes: {}, createdAt: at(id), createdBy: 1,
+  })),
+  '/tasks/projects/stats': range(1, 12).map(id => ({ projectId: id, totalTasks: id + 2, activeTasks: 2, doneTasks: id })),
   '/tasks/statuses': [{ id: 1, name: 'Открыта', color: '#3b82f6', orderNo: 1, isFinal: false }],
   '/tasks/types': [],
 };

@@ -18,6 +18,7 @@ import { ProjectCardsViewComponent } from './components/project-cards-view.compo
 import { ProjectModalsComponent } from './components/project-modals.component';
 import { ProjectMembersModalComponent } from './components/project-members-modal.component';
 import { ProjectFormsService } from './services/project-forms.service';
+import { ProjectSort, sortProjects } from './projects-order';
 
 @Component({
   selector: 'app-projects',
@@ -83,6 +84,8 @@ export class ProjectsComponent implements OnInit, OnDestroy {
 
   viewMode: ProjectViewState = 'list';
   searchQuery = '';
+  /** The column order the user chose in the table; none keeps the server's order. */
+  projectSort: ProjectSort | undefined;
   selectedState: ProjectStateFilter = 'all';
   currentPage = 1;
   pageSize = 10;
@@ -242,6 +245,11 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     this.currentPage = 1;
   }
 
+  setSort(sort: ProjectSort | undefined) {
+    this.projectSort = sort;
+    this.currentPage = 1;
+  }
+
   setPage(page: number) {
     if (!this.isListReady()) return;
     this.currentPage = page;
@@ -266,11 +274,14 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     const q = this.searchQuery.trim().toLowerCase();
     const st = this.selectedState;
 
-    return this.projects().filter(p => {
+    const matching = this.projects().filter(p => {
       const matchSearch = !q || p.name.toLowerCase().includes(q) || (p.description && p.description.toLowerCase().includes(q));
       const matchState = st === 'all' || p.state === st;
       return matchSearch && matchState;
     });
+    // Progress sorts only on statistics the table actually shows.
+    const stats = this.statsLoaded() && !this.statsLoading() && !this.statsLoadError() ? this.projectStats() : {};
+    return sortProjects(matching, this.projectSort, stats, this.uiI18n.currentLang());
   }
 
   paginatedProjects(): Project[] {

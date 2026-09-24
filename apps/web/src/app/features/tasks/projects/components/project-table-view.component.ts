@@ -1,130 +1,35 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, computed, EventEmitter, inject, Input, Output, Signal, signal, TemplateRef, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { TranslatePipe } from '../../../../core/services/i18n.service';
+import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { UiPaginationComponent } from '../../../../shared/ui/ui-pagination.component';
+import { SMTTableComponent } from '../../../../shared/ui-kit/components/table/table.component';
+import { OrderBy, TableConfig } from '../../../../shared/ui-kit/components/table/table.types';
 import { Project, ProjectTaskStats } from '../../../../core/models/task.models';
+import { ProjectSort, ProjectSortColumn } from '../projects-order';
 
+/**
+ * The project list on the kit table. Every project is loaded at once, so the
+ * sortable columns order the whole filtered list (the page owns that order),
+ * not just the page on screen.
+ */
 @Component({
   selector: 'app-project-table-view',
   standalone: true,
   imports: [
     CommonModule,
     TranslatePipe,
-    UiPaginationComponent
+    UiPaginationComponent,
+    SMTTableComponent
   ],
   template: `
-    <div class="table-card">
-      <div class="table-wrapper" role="region" [attr.aria-label]="'projects.tablica_proektov' | t" tabindex="0">
-        <table class="data-table" [attr.aria-label]="'projects.spisok_proektov' | t">
-          <thead>
-            <tr>
-              <th style="width: 60px;">ID</th>
-              <th>{{ 'projects.proekt' | t }}</th>
-              <th style="width: 110px;">{{ 'common.status' | t }}</th>
-              <th *ngIf="canViewTasks" style="width: 220px;">{{ 'projects.closed_tasks' | t }}</th>
-              <th style="width: 120px;">{{ 'iam.sozdan' | t }}</th>
-              <th class="text-right" style="width: 140px;">{{ 'common.actions' | t }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let p of paginatedProjects" class="project-row">
-              <td class="tabular-nums font-mono text-muted">#{{ p.id }}</td>
-              <td>
-                <div class="project-title-cell">
-                  <span class="material-symbols-outlined folder-icon" aria-hidden="true">folder</span>
-                  <div class="project-info-group">
-                    <button *ngIf="canViewTasks; else plainProjectName" type="button" class="project-name" (click)="viewTasks.emit(p)">
-                      {{ p.name }}
-                    </button>
-                    <ng-template #plainProjectName><span class="project-name-text">{{ p.name }}</span></ng-template>
-                    <span *ngIf="p.description" class="project-desc-line">{{ p.description }}</span>
-                  </div>
-                </div>
-              </td>
-              <td>
-                <span class="status-pill" [class.active]="p.state === 'A'">
-                  <span class="status-dot" [class.active]="p.state === 'A'"></span>
-                  {{ (p.state === 'A' ? 'projects.state_active' : 'projects.state_archived') | t }}
-                </span>
-              </td>
-              <td *ngIf="canViewTasks">
-                <div *ngIf="hasProjectStats(p.id); else unknownTableStats" class="progress-cell">
-                  <div class="progress-labels">
-                    <span class="progress-count tabular-nums">
-                      {{ 'projects.closed_ratio' | t:{done: getProjectDoneCount(p.id), total: getProjectTotalCount(p.id)} }}
-                    </span>
-                    <span class="progress-percent tabular-nums">
-                      {{ getProjectPercent(p.id) }}%
-                    </span>
-                  </div>
-                  <div
-                    class="progress-bar-bg"
-                    role="progressbar"
-                    [attr.aria-label]="'projects.closed_progress_named' | t:{name: p.name}"
-                    aria-valuemin="0"
-                    aria-valuemax="100"
-                    [attr.aria-valuenow]="getProjectPercent(p.id)"
-                  >
-                    <div
-                      class="progress-bar-fill"
-                      [style.width.%]="getProjectPercent(p.id)"
-                      [class.complete]="getProjectPercent(p.id) === 100 && getProjectTotalCount(p.id) > 0"
-                    ></div>
-                  </div>
-                </div>
-                <ng-template #unknownTableStats><span class="stats-unknown">{{ 'projects.stats_unknown' | t }}</span></ng-template>
-              </td>
-              <td>
-                <span class="tabular-nums text-muted text-xs">
-                  {{ p.createdAt | date:'dd.MM.yyyy' }}
-                </span>
-              </td>
-              <td class="text-right">
-                <div class="row-action-btns">
-                  <button
-                    *ngIf="canViewTasks"
-                    type="button"
-                    class="action-link-btn"
-                    [attr.aria-label]="'projects.open_tasks_named' | t:{name: p.name}"
-                    [title]="'projects.pereyti_k_zadacham_proekta' | t"
-                    (click)="viewTasks.emit(p)"
-                  >
-                    <span class="material-symbols-outlined" aria-hidden="true">task_alt</span>
-                    {{ 'nav.tasks' | t }}
-                  </button>
-                  <button
-                    *ngIf="canUpdateProject"
-                    type="button"
-                    class="icon-ghost-btn"
-                    [attr.aria-label]="'projects.edit_named' | t:{name: p.name}"
-                    [title]="'projects.redaktirovat_proekt' | t"
-                    (click)="editProject.emit(p)"
-                  >
-                    <span class="material-symbols-outlined" aria-hidden="true">edit</span>
-                  </button>
-                  <button
-                    *ngIf="canUpdateProject"
-                    type="button"
-                    class="icon-ghost-btn members-btn"
-                    [attr.aria-label]="'projects.manage_members_named' | t:{name: p.name}"
-                    [title]="'projects.uchastniki_proekta' | t"
-                    (click)="manageMembers.emit(p)"
-                  >
-                    <span class="material-symbols-outlined" aria-hidden="true">group</span>
-                  </button>
-                </div>
-              </td>
-            </tr>
-
-            <tr *ngIf="totalCount === 0">
-              <td [attr.colspan]="canViewTasks ? 6 : 5" class="empty-state-cell">
-                <span class="material-symbols-outlined empty-icon" aria-hidden="true">folder_off</span>
-                <p>{{ 'projects.proekty_ne_naydeny' | t }}</p>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+    <div class="table-card" role="region" [attr.aria-label]="'projects.tablica_proektov' | t">
+      <smt-table
+        [smtData]="paginatedProjects"
+        [smtConfig]="tableConfig()"
+        [smtEmptyTemplate]="emptyState()"
+        [smtColumnResizeEnabled]="false"
+        [smtVirtualRows]="false"
+        (smtSortChange)="onSortChange($event)" />
 
       <ui-pagination
         [totalItems]="totalCount"
@@ -134,47 +39,113 @@ import { Project, ProjectTaskStats } from '../../../../core/models/task.models';
         (pageSizeChange)="pageSizeChange.emit($event)"
       ></ui-pagination>
     </div>
+
+    <ng-template #idCell let-p>
+      <span class="tabular-nums font-mono text-muted">#{{ p.id }}</span>
+    </ng-template>
+    <ng-template #nameCell let-p>
+      <div class="project-title-cell">
+        <span class="material-symbols-outlined folder-icon" aria-hidden="true">folder</span>
+        <div class="project-info-group">
+          @if (canViewTasks) {
+            <button type="button" class="project-name" (click)="viewTasks.emit(p)">{{ p.name }}</button>
+          } @else {
+            <span class="project-name-text">{{ p.name }}</span>
+          }
+          @if (p.description) { <span class="project-desc-line">{{ p.description }}</span> }
+        </div>
+      </div>
+    </ng-template>
+    <ng-template #stateCell let-p>
+      <span class="status-pill" [class.active]="p.state === 'A'">
+        <span class="status-dot" [class.active]="p.state === 'A'"></span>
+        {{ (p.state === 'A' ? 'projects.state_active' : 'projects.state_archived') | t }}
+      </span>
+    </ng-template>
+    <ng-template #progressCell let-p>
+      @if (hasProjectStats(p.id)) {
+        <div class="progress-cell">
+          <div class="progress-labels">
+            <span class="progress-count tabular-nums">
+              {{ 'projects.closed_ratio' | t:{done: getProjectDoneCount(p.id), total: getProjectTotalCount(p.id)} }}
+            </span>
+            <span class="progress-percent tabular-nums">{{ getProjectPercent(p.id) }}%</span>
+          </div>
+          <div
+            class="progress-bar-bg"
+            role="progressbar"
+            [attr.aria-label]="'projects.closed_progress_named' | t:{name: p.name}"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            [attr.aria-valuenow]="getProjectPercent(p.id)"
+          >
+            <div
+              class="progress-bar-fill"
+              [style.width.%]="getProjectPercent(p.id)"
+              [class.complete]="getProjectPercent(p.id) === 100 && getProjectTotalCount(p.id) > 0"
+            ></div>
+          </div>
+        </div>
+      } @else {
+        <span class="stats-unknown">{{ 'projects.stats_unknown' | t }}</span>
+      }
+    </ng-template>
+    <ng-template #createdCell let-p>
+      <span class="tabular-nums text-muted text-xs">{{ p.createdAt | date:'dd.MM.yyyy' }}</span>
+    </ng-template>
+    <ng-template #actionsCell let-p>
+      <div class="row-action-btns">
+        @if (canViewTasks) {
+          <button
+            type="button"
+            class="action-link-btn"
+            [attr.aria-label]="'projects.open_tasks_named' | t:{name: p.name}"
+            [title]="'projects.pereyti_k_zadacham_proekta' | t"
+            (click)="viewTasks.emit(p)"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">task_alt</span>
+            {{ 'nav.tasks' | t }}
+          </button>
+        }
+        @if (canUpdateProject) {
+          <button
+            type="button"
+            class="icon-ghost-btn"
+            [attr.aria-label]="'projects.edit_named' | t:{name: p.name}"
+            [title]="'projects.redaktirovat_proekt' | t"
+            (click)="editProject.emit(p)"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+          </button>
+          <button
+            type="button"
+            class="icon-ghost-btn members-btn"
+            [attr.aria-label]="'projects.manage_members_named' | t:{name: p.name}"
+            [title]="'projects.uchastniki_proekta' | t"
+            (click)="manageMembers.emit(p)"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">group</span>
+          </button>
+        }
+      </div>
+    </ng-template>
+    <ng-template #emptyStateTpl>
+      <div class="empty-state-cell">
+        <span class="material-symbols-outlined empty-icon" aria-hidden="true">folder_off</span>
+        <p>{{ 'projects.proekty_ne_naydeny' | t }}</p>
+      </div>
+    </ng-template>
   `,
   styles: [`
-    .table-card {
-      background-color: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      overflow: hidden;
-    }
-    .table-wrapper { overflow-x: auto; }
-    .data-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-    }
-    .data-table th {
-      text-align: left;
-      padding: 8px 12px;
-      background-color: var(--bg-hover);
-      border-bottom: 1px solid var(--border-color);
-      color: var(--text-muted);
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-    }
-    .data-table td {
-      padding: 10px 12px;
-      border-bottom: 1px solid var(--border-color);
-      color: var(--text-main);
-    }
-    .project-row { transition: background 0.1s ease; }
-    .project-row:hover { background-color: var(--bg-hover); }
-    .project-row:last-child td { border-bottom: none; }
-
+    :host { display: block; min-width: 0; }
+    .table-card { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
     .project-title-cell {
       display: flex;
       align-items: center;
       gap: 10px;
     }
     .folder-icon { font-size: 20px; color: var(--warning); flex-shrink: 0; }
-    .project-info-group { display: flex; flex-direction: column; gap: 2px; }
+    .project-info-group { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
     .project-name {
       border: 0;
       background: transparent;
@@ -193,7 +164,7 @@ import { Project, ProjectTaskStats } from '../../../../core/models/task.models';
     .project-desc-line {
       font-size: 11px;
       color: var(--text-muted);
-      max-width: 400px;
+      max-width: 100%;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -271,7 +242,7 @@ import { Project, ProjectTaskStats } from '../../../../core/models/task.models';
     .icon-ghost-btn .material-symbols-outlined { font-size: 16px; }
 
     .empty-state-cell {
-      padding: 40px;
+      padding: 24px;
       text-align: center;
       color: var(--text-muted);
     }
@@ -289,18 +260,64 @@ export class ProjectTableViewComponent {
   @Input() totalCount = 0;
   @Input() currentPage = 1;
   @Input() pageSize = 10;
-  @Input() canViewTasks = false;
+  @Input() set canViewTasks(value: boolean) { this.viewTasksAllowed.set(value); }
+  get canViewTasks(): boolean { return this.viewTasksAllowed(); }
   @Input() canUpdateProject = false;
   @Input() projectStats: Record<number, ProjectTaskStats> = {};
   @Input() statsLoading = false;
   @Input() statsLoadError = false;
   @Input() statsLoaded = false;
+  /** The order the page applies to the whole list; shown on the column headers. */
+  @Input() set sort(value: ProjectSort | undefined) { this.currentSort.set(value); }
 
   @Output() viewTasks = new EventEmitter<Project>();
   @Output() editProject = new EventEmitter<Project>();
   @Output() manageMembers = new EventEmitter<Project>();
   @Output() pageChange = new EventEmitter<number>();
   @Output() pageSizeChange = new EventEmitter<number>();
+  @Output() sortChange = new EventEmitter<ProjectSort | undefined>();
+
+  private readonly i18n = inject(I18nService);
+  private readonly viewTasksAllowed = signal(false);
+  private readonly currentSort = signal<ProjectSort | undefined>(undefined);
+  private readonly idCell = viewChild.required<TemplateRef<unknown>>('idCell');
+  private readonly nameCell = viewChild.required<TemplateRef<unknown>>('nameCell');
+  private readonly stateCell = viewChild.required<TemplateRef<unknown>>('stateCell');
+  private readonly progressCell = viewChild.required<TemplateRef<unknown>>('progressCell');
+  private readonly createdCell = viewChild.required<TemplateRef<unknown>>('createdCell');
+  private readonly actionsCell = viewChild.required<TemplateRef<unknown>>('actionsCell');
+  readonly emptyState = viewChild.required<TemplateRef<unknown>>('emptyStateTpl');
+
+  readonly tableConfig = computed<TableConfig<Project>>(() => {
+    const header = (value: string) => ({ type: 'primitive' as const, value });
+    const cell = (template: Signal<TemplateRef<unknown>>) => ({ type: 'templateRef' as const, value: template });
+    const sort = this.currentSort();
+    const sorted = (column: ProjectSortColumn) => ({ hasSorting: true, sortedBy: sort?.column === column ? sort.sortBy : undefined });
+    const withProgress = this.viewTasksAllowed();
+    // Every row is its own grid, so tracks are fixed or shares of the width, never content-sized.
+    const fixed = withProgress ? 710 : 490;
+    return {
+      trackBy: (_index, project) => project.id,
+      layout: 'fit',
+      ariaLabel: this.i18n.translate('projects.spisok_proektov'),
+      rowClass: () => 'project-row',
+      columnsOrder: withProgress
+        ? ['id', 'name', 'state', 'progress', 'created', 'actions']
+        : ['id', 'name', 'state', 'created', 'actions'],
+      columns: {
+        id: { header: header('ID'), content: cell(this.idCell), width: '70px', ...sorted('id') },
+        name: { header: header(this.i18n.translate('projects.proekt')), content: cell(this.nameCell), width: `max(220px, calc(100% - ${fixed}px))`, ...sorted('name') },
+        state: { header: header(this.i18n.translate('common.status')), content: cell(this.stateCell), width: '120px', ...sorted('state') },
+        progress: { header: header(this.i18n.translate('projects.closed_tasks')), content: cell(this.progressCell), width: '220px', ...sorted('progress') },
+        created: { header: header(this.i18n.translate('iam.sozdan')), content: cell(this.createdCell), width: '120px', ...sorted('created') },
+        actions: { header: header(this.i18n.translate('common.actions')), content: cell(this.actionsCell), width: '180px', align: 'right' },
+      },
+    };
+  });
+
+  onSortChange(event: { column: string; sortBy: OrderBy } | undefined): void {
+    this.sortChange.emit(event ? { column: event.column as ProjectSortColumn, sortBy: event.sortBy } : undefined);
+  }
 
   hasProjectStats(projectId: number): boolean {
     return this.canViewTasks
