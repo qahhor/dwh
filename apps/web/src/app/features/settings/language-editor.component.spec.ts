@@ -7,6 +7,7 @@ import { I18nService } from '../../core/services/i18n.service';
 import { PermissionService } from '../../core/services/permission.service';
 import { ToastService } from '../../core/services/toast.service';
 import { TranslationEditor } from '../../core/models/i18n.models';
+import { SMTModalService } from '../../shared/ui-kit/components/modal';
 import { LanguageEditorComponent } from './language-editor.component';
 import { translateTest } from '../../../testing/i18n-test.stub';
 
@@ -81,6 +82,35 @@ describe('LanguageEditorComponent', () => {
 
     expect(fixture.componentInstance.dirtyCount()).toBe(1);
     expect(fixture.nativeElement.textContent).toContain('Изменено: 1');
+  });
+
+  it('closes at once when nothing is edited, without asking', async () => {
+    const { fixture } = await createFixture();
+    const confirm = vi.spyOn(TestBed.inject(SMTModalService), 'confirm');
+    const closed = vi.fn();
+    fixture.componentInstance.closed.subscribe(closed);
+
+    fixture.componentInstance.requestClose();
+
+    expect(confirm).not.toHaveBeenCalled();
+    expect(closed).toHaveBeenCalledOnce();
+  });
+
+  it('asks before discarding edits and stays open when declined', async () => {
+    const { fixture } = await createFixture();
+    const confirm = vi.spyOn(TestBed.inject(SMTModalService), 'confirm')
+      .mockReturnValueOnce(of(false))
+      .mockReturnValueOnce(of(true));
+    const closed = vi.fn();
+    fixture.componentInstance.closed.subscribe(closed);
+    fixture.componentInstance.setValue('feature.empty', 'Keine Daten');
+
+    fixture.componentInstance.requestClose();
+    expect(confirm).toHaveBeenCalledWith(expect.objectContaining({ destructive: true }));
+    expect(closed).not.toHaveBeenCalled();
+
+    fixture.componentInstance.requestClose();
+    expect(closed).toHaveBeenCalledOnce();
   });
 
   it('saves one atomic override package and refreshes the active dictionary', async () => {

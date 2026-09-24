@@ -9,6 +9,30 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- One dialog service for the whole application, vendored from the UI kit:
+  `SMTModalService.open()` for any content and `confirm()` for a yes/no
+  question. The confirm dialog is announced as an alert dialog named by its
+  title and described by its message, starts focus on the declining button,
+  shows the message as text, marks destructive actions in the danger colour
+  and follows both themes. The two remaining browser `confirm()` prompts in
+  Settings (migrating legacy language packs, closing the translation editor
+  with unsaved edits) now use it.
+- `smt-control`, one wrapper for a form field's label, hint and error. It
+  reads Angular Signal Forms fields, the default for new screens, as well as
+  legacy `ngModel` fields; names the field with its label, links the hint and
+  the error through `aria-describedby`, marks invalid and required fields for
+  assistive technology, and shows catalogue messages for the built-in rules
+  once the field is touched.
+- A drawer service, vendored from the UI kit, for details that open beside a
+  list instead of leaving it. The drawer is a modal dialog named by its
+  title, keeps focus inside while open and returns it to the control that
+  opened it, closes on Escape and on navigation, spans the full width on
+  phones and skips its slide when the system asks for reduced motion.
+- Keyboard shortcuts for toolbar buttons, vendored from the UI kit:
+  `smtHotkey="save"` (Alt+S) or any combination such as `ctrl+enter`. A
+  shortcut matches the physical key, so it works on a Russian layout; it
+  never presses a button behind an open dialog; and the button announces its
+  shortcut to assistive technology through `aria-keyshortcuts`.
 - Explicit primitive colour scales (`--color-<hue>-<step>`) behind the existing
   semantic design tokens, so a neighbouring step is available where one is
   needed for contrast.
@@ -120,6 +144,16 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   default.
 
 ### Fixed
+
+- Tooltips reach keyboard and screen reader users. They appeared on mouse
+  hover only; now they also show when the element takes keyboard focus,
+  close on Escape without closing a dialog around them, stay while the
+  pointer moves onto them, and their text is announced as the element's
+  description unless it only repeats the element's own truncated text.
+
+- `npm run i18n:audit` passes on Windows. Its allow-list of files that may
+  hold Cyrillic text was compared with backslash paths there, so the
+  generated Russian catalog was reported as unlocalized copy.
 
 - Table cells broke words at any letter where the column ended ("торго|вой"
   across two lines), in every table on the shared foundation. A word is now

@@ -1,0 +1,147 @@
+/* Vendored from @greenwhite/ui-kit (MIT) at commit 6472beb, path components/drawer/drawer.component.scss.
+ * Per ADR-0015 this copy is ours to change. See NOTICE.
+ *
+ * The kit laid the panel out with Tailwind palette classes (`bg-white`,
+ * `text-gray-400`) and had no dark theme; these rules read our tokens.
+ * Global because CDK renders the drawer in the overlay container. */
+
+.smt-drawer-overlay-pane.cdk-overlay-pane {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  max-width: none !important;
+  max-height: none !important;
+  overflow: hidden;
+}
+
+.smt-drawer-backdrop.cdk-overlay-backdrop {
+  background: rgba(15, 23, 42, 0.6);
+  animation: smt-drawer-backdrop-enter 0.3s ease-out both;
+}
+
+.smt-drawer-backdrop--leaving.cdk-overlay-backdrop {
+  animation: smt-drawer-backdrop-leave 0.3s ease-in both;
+}
+
+@keyframes smt-drawer-backdrop-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes smt-drawer-backdrop-leave {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.smt-drawer-host {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.smt-drawer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: stretch;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: 20px;
+  overflow: hidden;
+}
+
+.smt-drawer__panel {
+  display: flex;
+  flex-direction: column;
+  max-width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+  box-shadow: var(--shadow-overlay);
+  outline: none;
+  will-change: transform;
+}
+
+.smt-drawer__header {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.smt-drawer__title {
+  margin: 0;
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-main);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.smt-drawer__close {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin-left: auto;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.smt-drawer__close:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-main);
+}
+
+.smt-drawer__close:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.smt-drawer__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+@media (max-width: 640px) {
+  .smt-drawer {
+    padding: 0;
+  }
+
+  .smt-drawer__panel {
+    width: 100% !important;
+    border-radius: 0;
+    border-width: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .smt-drawer-backdrop.cdk-overlay-backdrop,
+  .smt-drawer-backdrop--leaving.cdk-overlay-backdrop {
+    animation: none;
+  }
+}

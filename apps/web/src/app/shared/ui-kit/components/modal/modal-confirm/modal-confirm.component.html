@@ -1,0 +1,30 @@
+<!-- Vendored from @greenwhite/ui-kit (MIT) at commit 6472beb, path components/modal/modal-confirm/modal-confirm.component.html.
+     Per ADR-0015 this copy is ours to change. See NOTICE and the component header for what differs. -->
+<h2 class="smt-modal-confirm__title" [id]="titleId">{{ title() }}</h2>
+<p class="smt-modal-confirm__message" [id]="messageId">{{ message() }}</p>
+<div class="smt-modal-confirm__actions">
+  @if (hasCancel()) {
+    <button type="button" class="smt-modal-button smt-modal-button--secondary" (click)="cancel()">
+      {{ cancelLabel() }}
+    </button>
+  }
+  <button
+    type="button"
+    class="smt-modal-button smt-modal-button--secondary"
+    cdkFocusInitial
+    (click)="decline()">
+    {{ noLabel() }}
+  </button>
+  <button
+    type="button"
+    class="smt-modal-button"
+    [class.smt-modal-button--primary]="!destructive"
+    [class.smt-modal-button--danger]="destructive"
+    [disabled]="isConfirmDisabled()"
+    (click)="confirm()">
+    {{ yesLabel() }}
+    @if (isConfirmDisabled()) {
+      <span>({{ countdown() }})</span>
+    }
+  </button>
+</div>

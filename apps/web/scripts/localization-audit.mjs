@@ -62,8 +62,10 @@ for (const file of await filesUnder(appRoot)) {
       usedKeys.add(match[1]);
     }
   }
+  // The allow-list is written with '/', which path.relative only returns on POSIX.
+  const relative = path.relative(webRoot, file).split(path.sep).join('/');
   source.split(/\r?\n/).forEach((line, index) => {
-    if (cyrillic.test(line) && !CYRILLIC_ALLOWED.has(path.relative(webRoot, file))) rawCopy.push(`${path.relative(webRoot, file)}:${index + 1}: ${line.trim()}`);
+    if (cyrillic.test(line) && !CYRILLIC_ALLOWED.has(relative)) rawCopy.push(`${relative}:${index + 1}: ${line.trim()}`);
   });
 }
 

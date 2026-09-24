@@ -1,0 +1,21 @@
+<!-- Our template, after the idea of the kit's smt-control (smartup-ui-kit@6472beb). See the component header. -->
+@if (label()) {
+  <label class="smt-control__label" [id]="labelId" [attr.for]="fieldId()">
+    {{ label() }}
+    @if (isRequired()) {
+      <span class="smt-control__required" aria-hidden="true">*</span>
+    }
+  </label>
+}
+
+<div class="smt-control__field">
+  <ng-content />
+</div>
+
+@if (hint()) {
+  <p class="smt-control__hint" [id]="hintId">{{ hint() }}</p>
+}
+
+@if (showError() && errorMessage()) {
+  <p class="smt-control__error" [id]="errorId">{{ errorMessage() }}</p>
+}
