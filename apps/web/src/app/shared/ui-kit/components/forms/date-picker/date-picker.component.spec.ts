@@ -177,6 +177,19 @@ describe('SMTDatePickerComponent', () => {
     expect(fixture.componentInstance.model().due).toBe('2026-09-07T08:00');
   });
 
+  it('closes the calendar when its button is clicked again, instead of reopening', async () => {
+    const { toggle, settle } = await render(SignalHost);
+
+    toggle.click();
+    await settle();
+    expect(document.querySelector('[role="dialog"]')).not.toBeNull();
+    toggle.click();
+    await settle();
+
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+  });
+
   describe('bound with ngModel through the value accessor', () => {
     it('shows the model value and reports typed changes back', async () => {
       const { fixture, text, type } = await render(NgModelHost);

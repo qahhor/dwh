@@ -182,7 +182,7 @@ describe('TasksComponent UI contracts', () => {
     expect(labels).toContain('Ответственный');
     expect(labels).toContain('Описание');
     expect(labels).toContain('Динамические поля');
-    expect(fixture.nativeElement.querySelector('ui-searchable-select button[aria-label="Ответственный"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('smt-select button[aria-label="Ответственный"]')).not.toBeNull();
     const description = fixture.nativeElement.querySelector('ui-markdown-editor textarea') as HTMLTextAreaElement;
     expect(fixture.nativeElement.querySelector(`label[for="${description.id}"]`)?.textContent).toBe('Описание');
   });
@@ -212,7 +212,7 @@ describe('TasksComponent UI contracts', () => {
     expect(title.getAttribute('aria-invalid')).toBe('true');
     expect(title.getAttribute('aria-describedby')).toBe(error.id);
     expect(fixture.nativeElement.querySelector('[role="group"][aria-label="Тип задачи"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('ui-searchable-select button[aria-label="Родительская задача"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('smt-select button[aria-label="Родительская задача"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('ui-user-multi-select button[aria-label="Наблюдатели"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('ui-markdown-editor textarea')?.getAttribute('id')).not.toBe('');
   });
@@ -639,12 +639,13 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     });
     component.openEditModal(task(61));
     fixture.detectChanges();
-    const selector = fixture.nativeElement.querySelector('ui-searchable-select button[aria-label="Ответственный"]') as HTMLButtonElement;
+    const selector = fixture.nativeElement.querySelector('smt-select button[aria-label="Ответственный"]') as HTMLButtonElement;
     selector.click();
     fixture.detectChanges();
     expect(selector.getAttribute('aria-expanded')).toBe('true');
 
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    (document.querySelector('.smt-select__search-input') as HTMLInputElement)
+      .dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
     fixture.detectChanges();
 
     expect(selector.getAttribute('aria-expanded')).toBe('false');
@@ -1011,28 +1012,26 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     component.openCreateTaskModal();
     fixture.detectChanges();
 
-    const responsible = fixture.nativeElement.querySelector('ui-searchable-select button[aria-label="Ответственный"]') as HTMLButtonElement;
+    const responsible = fixture.nativeElement.querySelector('smt-select button[aria-label="Ответственный"]') as HTMLButtonElement;
     responsible.click();
     fixture.detectChanges();
-    const responsibleHost = responsible.closest('ui-searchable-select')!;
-    const userSearch = responsibleHost.querySelector('.search-input') as HTMLInputElement;
+    const userSearch = document.querySelector('.smt-select__search-input') as HTMLInputElement;
     userSearch.value = 'user501';
     userSearch.dispatchEvent(new Event('input'));
     await vi.advanceTimersByTimeAsync(300);
     fixture.detectChanges();
-    (Array.from(responsibleHost.querySelectorAll('button.option-item')) as HTMLButtonElement[])
+    (Array.from(document.querySelectorAll('.smt-select__option')) as HTMLElement[])
       .find(button => button.textContent?.includes('Remote User'))!.click();
 
-    const parentTrigger = fixture.nativeElement.querySelector('ui-searchable-select button[aria-label="Родительская задача"]') as HTMLButtonElement;
+    const parentTrigger = fixture.nativeElement.querySelector('smt-select button[aria-label="Родительская задача"]') as HTMLButtonElement;
     parentTrigger.click();
     fixture.detectChanges();
-    const parentHost = parentTrigger.closest('ui-searchable-select')!;
-    const parentSearch = parentHost.querySelector('.search-input') as HTMLInputElement;
+    const parentSearch = document.querySelector('.smt-select__search-input') as HTMLInputElement;
     parentSearch.value = 'Outside';
     parentSearch.dispatchEvent(new Event('input'));
     await vi.advanceTimersByTimeAsync(300);
     fixture.detectChanges();
-    (Array.from(parentHost.querySelectorAll('button.option-item')) as HTMLButtonElement[])
+    (Array.from(document.querySelectorAll('.smt-select__option')) as HTMLElement[])
       .find(button => button.textContent?.includes('Outside filtered page'))!.click();
 
     const observerTrigger = fixture.nativeElement.querySelector('ui-user-multi-select button[aria-label="Наблюдатели"]') as HTMLButtonElement;
@@ -1105,7 +1104,7 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     component.openEditModal(task(40));
     fixture.detectChanges();
 
-    const responsible = fixture.nativeElement.querySelector('ui-searchable-select button[aria-label="Ответственный"]') as HTMLButtonElement;
+    const responsible = fixture.nativeElement.querySelector('smt-select button[aria-label="Ответственный"]') as HTMLButtonElement;
     responsible.click();
     await vi.advanceTimersByTimeAsync(300);
     fixture.detectChanges();
@@ -1114,7 +1113,7 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     expect(component.editForm.observerUserIds).toEqual([502]);
     expect(responsible.textContent).toContain('Scoped Owner');
     expect(fixture.nativeElement.querySelector('button[aria-label="Удалить Scoped Observer"]')).not.toBeNull();
-    expect(responsible.closest('ui-searchable-select')?.querySelector('[role="alert"], .remote-retry')).not.toBeNull();
+    expect(document.querySelector('.smt-select__error[role="alert"]')).not.toBeNull();
     expect(component.responsibleUsers().map(user => user.id)).toEqual([501]);
   });
 
@@ -1133,12 +1132,12 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     });
     component.openCreateTaskModal();
     fixture.detectChanges();
-    const responsible = fixture.nativeElement.querySelector('ui-searchable-select button[aria-label="Ответственный"]') as HTMLButtonElement;
+    const responsible = fixture.nativeElement.querySelector('smt-select button[aria-label="Ответственный"]') as HTMLButtonElement;
     responsible.click();
     await vi.advanceTimersByTimeAsync(300);
     fixture.detectChanges();
 
-    const input = responsible.closest('ui-searchable-select')!.querySelector('.search-input') as HTMLInputElement;
+    const input = document.querySelector('.smt-select__search-input') as HTMLInputElement;
     input.value = 'new';
     input.dispatchEvent(new Event('input'));
     first.next({ items: [remoteUser(10, 'Stale user')], nextCursor: null, hasMore: false, totalReturned: 1 });
@@ -1252,19 +1251,18 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     });
     component.openCreateTaskModal();
     fixture.detectChanges();
-    const responsible = fixture.nativeElement.querySelector('ui-searchable-select button[aria-label="Ответственный"]') as HTMLButtonElement;
+    const responsible = fixture.nativeElement.querySelector('smt-select button[aria-label="Ответственный"]') as HTMLButtonElement;
     responsible.click();
     await vi.advanceTimersByTimeAsync(300);
     fixture.detectChanges();
-    const host = responsible.closest('ui-searchable-select')!;
-    (host.querySelector('button.remote-load-more') as HTMLButtonElement).click();
+    (document.querySelector('.smt-select__more') as HTMLButtonElement).click();
 
-    const input = host.querySelector('.search-input') as HTMLInputElement;
+    const input = document.querySelector('.smt-select__search-input') as HTMLInputElement;
     input.value = 'new';
     input.dispatchEvent(new Event('input'));
     fixture.detectChanges();
     expect(component.responsibleLookupLoading()).toBe(true);
-    expect(host.querySelector('button.remote-load-more')).toBeNull();
+    expect(document.querySelector('.smt-select__more')).toBeNull();
     component.loadMoreResponsibleUsers();
     expect(api.get.mock.calls.some(([path, params]) => path === '/iam/users' && params.search === 'new' && params.cursor === 'u50')).toBe(false);
 
@@ -1289,7 +1287,7 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     component.openEditModal(task(60));
     fixture.detectChanges();
 
-    const responsible = fixture.nativeElement.querySelector('ui-searchable-select button[aria-label="Ответственный"]') as HTMLButtonElement;
+    const responsible = fixture.nativeElement.querySelector('smt-select button[aria-label="Ответственный"]') as HTMLButtonElement;
     expect(responsible.textContent).toContain('Fresh Name');
     expect(responsible.textContent).not.toContain('Old Name');
   });

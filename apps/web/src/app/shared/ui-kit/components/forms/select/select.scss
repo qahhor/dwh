@@ -1,0 +1,237 @@
+/* Our styles for smt-select, from semantic tokens so both themes work.
+ * Global (ViewEncapsulation.None): the popup renders in the CDK overlay. */
+
+.smt-select {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.smt-select__control {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.smt-select__trigger {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: var(--control-height);
+  padding: 6px 36px 6px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+  font: inherit;
+  font-size: 13px;
+  text-align: start;
+  cursor: pointer;
+}
+
+.smt-select__trigger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.smt-select__trigger[aria-expanded='true'] {
+  border-color: var(--primary);
+}
+
+.smt-select__value,
+.smt-select__placeholder,
+.smt-select__option-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.smt-select__placeholder,
+.smt-select__sub {
+  color: var(--text-muted);
+}
+
+.smt-select__sub {
+  flex-shrink: 0;
+  font-size: 12px;
+}
+
+.smt-select__icon {
+  flex-shrink: 0;
+  font-size: 18px;
+}
+
+.smt-select__arrow {
+  position: absolute;
+  right: 10px;
+  color: var(--text-muted);
+  font-size: 20px;
+  pointer-events: none;
+}
+
+.smt-select__clear {
+  position: absolute;
+  right: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.smt-select__clear:hover,
+.smt-select__mini:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-main);
+}
+
+.smt-select__clear .material-symbols-outlined,
+.smt-select__mini .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.smt-select__trigger:focus-visible,
+.smt-select__clear:focus-visible,
+.smt-select__mini:focus-visible,
+.smt-select__link:focus-visible,
+.smt-select__more:focus-visible,
+.smt-select__search-input:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.smt-select__popup {
+  display: flex;
+  flex-direction: column;
+  max-height: min(360px, 60vh);
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+  box-shadow: var(--shadow-overlay);
+}
+
+.smt-select__search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.smt-select__search-icon {
+  color: var(--text-muted);
+  font-size: 18px;
+}
+
+.smt-select__search-input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 2px;
+  border: none;
+  background: transparent;
+  color: var(--text-main);
+  font: inherit;
+  font-size: 13px;
+}
+
+.smt-select__mini {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.smt-select__list {
+  flex: 1;
+  margin: 0;
+  padding: 4px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.smt-select__option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.smt-select__option--none {
+  color: var(--text-muted);
+}
+
+.smt-select__option--active {
+  background-color: var(--bg-hover);
+  color: var(--text-main);
+}
+
+.smt-select__option--selected {
+  font-weight: 600;
+}
+
+.smt-select__option[aria-disabled='true'] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.smt-select__check {
+  margin-left: auto;
+  color: var(--primary-text);
+  font-size: 18px;
+}
+
+.smt-select__note {
+  margin: 0;
+  padding: 8px 14px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.smt-select__error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 14px;
+  font-size: 12px;
+  color: var(--danger-text);
+}
+
+.smt-select__link,
+.smt-select__more {
+  border: none;
+  background: transparent;
+  color: var(--primary-text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.smt-select__more {
+  padding: 8px 14px;
+  border-top: 1px solid var(--border-color);
+  text-align: start;
+}

@@ -1,7 +1,7 @@
 import { Task, Project, TaskStatus, TaskType, TaskMember } from '../../core/models/task.models';
 import { CustomField } from '../../core/models/custom-field.models';
 import { User } from '../../core/models/auth.models';
-import { SelectOption } from '../../shared/ui/ui-searchable-select.component';
+import { SMTSelectOption } from '../../shared/ui-kit/components/forms/select';
 import { I18nService } from '../../core/services/i18n.service';
 
 export interface TaskDeadlineInfo {
@@ -287,8 +287,8 @@ export function sameIdSet(left: number[], right: number[]): boolean {
   return left.every(id => rightIds.has(id));
 }
 
-export function mergeOptions(existing: SelectOption[], incoming: SelectOption[]): SelectOption[] {
-  const merged = new Map<string, SelectOption>();
+export function mergeOptions(existing: SMTSelectOption[], incoming: SMTSelectOption[]): SMTSelectOption[] {
+  const merged = new Map<string, SMTSelectOption>();
   [...existing, ...incoming].forEach(option => merged.set(String(option.id), option));
   return [...merged.values()];
 }

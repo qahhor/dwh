@@ -9,7 +9,7 @@ import { ApiService } from '../../core/services/api.service';
 import { PermissionService } from '../../core/services/permission.service';
 import { ToastService } from '../../core/services/toast.service';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
-import { SelectOption } from '../../shared/ui/ui-searchable-select.component';
+import { SMTSelectOption } from '../../shared/ui-kit/components/forms/select';
 import { UiPaginationComponent } from '../../shared/ui/ui-pagination.component';
 import { Task, Project, TaskStatus, TaskType, TaskFile } from '../../core/models/task.models';
 import { CustomField } from '../../core/models/custom-field.models';
@@ -333,8 +333,8 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
 
   // Lookups methods
-  responsibleUserOptions(): SelectOption[] { return this.lookupsService.responsibleUserOptions(); }
-  getAvailableParentTaskOptions(taskId: number): SelectOption[] { return this.lookupsService.getAvailableParentTaskOptions(taskId); }
+  responsibleUserOptions(): SMTSelectOption[] { return this.lookupsService.responsibleUserOptions(); }
+  getAvailableParentTaskOptions(taskId: number): SMTSelectOption[] { return this.lookupsService.getAvailableParentTaskOptions(taskId); }
   private getSelectedParentId(): number | null { return this.isEditModalOpen() ? this.editForm.parentTaskId : this.createForm.parentTaskId; }
   private getSelectedUserId(): number | null { return this.isEditModalOpen() ? this.editForm.responsibleUserId : this.createForm.responsibleUserId; }
   private getSelectedExecutorIds(): number[] { return this.isEditModalOpen() ? this.editForm.executorUserIds : this.createForm.executorUserIds; }

@@ -83,11 +83,11 @@ test('light theme keeps every content surface and form control light', async ({ 
   await expectColors(page.locator('.custom-fields-empty-tip .tip-icon'), {
     color: LIGHT.primary,
   });
-  const parentTaskSelect = page.getByRole('button', { name: 'Родительская задача' });
+  const parentTaskSelect = page.getByRole('combobox', { name: 'Родительская задача' });
   await parentTaskSelect.click();
-  await expectOverlayShadow(page.locator('.dropdown-popover'));
+  await expectOverlayShadow(page.locator('.smt-select__popup'));
   await parentTaskSelect.click();
-  await expect(page.locator('.dropdown-popover')).toBeHidden();
+  await expect(page.locator('.smt-select__popup')).toBeHidden();
   await page.getByRole('button', { name: 'Наблюдатели' }).click();
   await expectOverlayShadow(page.locator('.dropdown-panel'));
 

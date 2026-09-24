@@ -5,7 +5,7 @@ import { SMTDatePickerComponent, SMTDatePickerValueAccessor } from '../../../sha
 import { TranslatePipe } from '../../../core/services/i18n.service';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
-import { UiSearchableSelectComponent, SelectOption } from '../../../shared/ui/ui-searchable-select.component';
+import { SMTSelectComponent, SMTSelectOption } from '../../../shared/ui-kit/components/forms/select';
 import { UiUserMultiSelectComponent } from '../../../shared/ui/ui-user-multi-select.component';
 import { UiMarkdownEditorComponent } from '../../../shared/ui/ui-markdown-editor.component';
 import { UiCustomFieldsComponent } from '../../../shared/ui/ui-custom-fields.component';
@@ -24,7 +24,7 @@ import { User } from '../../../core/models/auth.models';
     TranslatePipe,
     UiModalComponent,
     UiButtonComponent,
-    UiSearchableSelectComponent,
+    SMTSelectComponent,
     UiUserMultiSelectComponent,
     UiMarkdownEditorComponent,
     UiCustomFieldsComponent
@@ -144,11 +144,11 @@ import { User } from '../../../core/models/auth.models';
             <div class="label-row">
               <span class="clean-label">{{ 'task.parent' | t }}</span>
             </div>
-            <ui-searchable-select
+            <smt-select
               [options]="parentTaskOptions"
-              [selectedId]="createForm.parentTaskId"
+              [value]="createForm.parentTaskId"
               [ariaLabel]="'task.parent' | t"
-              (selectedIdChange)="createForm.parentTaskId = $event"
+              (valueChange)="createForm.parentTaskId = $event"
               [placeholder]="'tasks.bez_roditelya_kornevaya_zadacha' | t"
               [searchPlaceholder]="'tasks.poisk_zadachi_po_id_ili_nazvaniyu' | t"
               [emptyLabel]="'tasks.without_parent' | t"
@@ -159,7 +159,7 @@ import { User } from '../../../core/models/auth.models';
               (searchChange)="parentSearch.emit($event)"
               (loadMore)="parentLoadMore.emit()"
               (retry)="parentRetry.emit()"
-            ></ui-searchable-select>
+            ></smt-select>
           </div>
         </div>
 
@@ -169,11 +169,11 @@ import { User } from '../../../core/models/auth.models';
             <div class="label-row">
               <span class="clean-label">{{ 'task.responsible' | t }}</span>
             </div>
-            <ui-searchable-select
+            <smt-select
               [options]="responsibleUserOptions"
-              [selectedId]="createForm.responsibleUserId"
+              [value]="createForm.responsibleUserId"
               [ariaLabel]="'task.responsible' | t"
-              (selectedIdChange)="createForm.responsibleUserId = $event"
+              (valueChange)="createForm.responsibleUserId = $event"
               [placeholder]="'tasks.vyberite_otvetstvennogo' | t"
               [searchPlaceholder]="'tasks.poisk_sotrudnika_po_imeni_ili_loginu' | t"
               [emptyLabel]="'common.not_assigned' | t"
@@ -184,7 +184,7 @@ import { User } from '../../../core/models/auth.models';
               (searchChange)="responsibleSearch.emit($event)"
               (loadMore)="responsibleLoadMore.emit()"
               (retry)="responsibleRetry.emit()"
-            ></ui-searchable-select>
+            ></smt-select>
           </div>
 
           <!-- Deadlines: End Date / Deadline -->
@@ -408,11 +408,11 @@ export class TaskCreateModalComponent {
   @Input() isCreateSubmitted = false;
   @Input() taskTypes: TaskType[] = [];
   @Input() projects: Project[] = [];
-  @Input() parentTaskOptions: SelectOption[] = [];
+  @Input() parentTaskOptions: SMTSelectOption[] = [];
   @Input() parentLookupLoading = false;
   @Input() parentLookupError = false;
   @Input() parentLookupHasMore = false;
-  @Input() responsibleUserOptions: SelectOption[] = [];
+  @Input() responsibleUserOptions: SMTSelectOption[] = [];
   @Input() responsibleLookupLoading = false;
   @Input() responsibleLookupError = false;
   @Input() responsibleLookupHasMore = false;

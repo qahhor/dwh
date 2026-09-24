@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '../../../../core/services/i18n.service';
 import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
 import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
-import { UiSearchableSelectComponent, SelectOption } from '../../../../shared/ui/ui-searchable-select.component';
+import { SMTSelectComponent, SMTSelectOption } from '../../../../shared/ui-kit/components/forms/select';
 import { UiCustomFieldsComponent } from '../../../../shared/ui/ui-custom-fields.component';
 import { Role } from '../../../../core/models/rbac.models';
 import { CustomField } from '../../../../core/models/custom-field.models';
@@ -18,7 +18,7 @@ import { CustomField } from '../../../../core/models/custom-field.models';
     TranslatePipe,
     UiModalComponent,
     UiButtonComponent,
-    UiSearchableSelectComponent,
+    SMTSelectComponent,
     UiCustomFieldsComponent
   ],
   template: `
@@ -102,11 +102,11 @@ import { CustomField } from '../../../../core/models/custom-field.models';
           <div class="form-group">
             <span class="clean-label">{{ 'iam.rukovoditel' | t }}</span>
             <!-- Searches the server: a manager is rarely among the rows loaded on the list. -->
-            <ui-searchable-select
+            <smt-select
               [options]="managerOptions"
-              [selectedId]="createForm.managerId"
+              [value]="createForm.managerId"
               [ariaLabel]="'iam.rukovoditel' | t"
-              (selectedIdChange)="createForm.managerId = $event"
+              (valueChange)="createForm.managerId = $event"
               [placeholder]="'iam.bez_rukovoditelya' | t"
               [searchPlaceholder]="'tasks.poisk_sotrudnika_po_imeni_ili_loginu' | t"
               [emptyLabel]="'iam.bez_rukovoditelya' | t"
@@ -117,7 +117,7 @@ import { CustomField } from '../../../../core/models/custom-field.models';
               (searchChange)="managerSearch.emit($event)"
               (loadMore)="managerLoadMore.emit()"
               (retry)="managerRetry.emit()"
-            ></ui-searchable-select>
+            ></smt-select>
           </div>
 
           <div class="form-group span-2">
@@ -449,7 +449,7 @@ export class UserCreateModalComponent {
   @Input() isSubmitting = false;
   @Input() isCreateSubmitted = false;
   @Input() createForm: any = {};
-  @Input() managerOptions: SelectOption[] = [];
+  @Input() managerOptions: SMTSelectOption[] = [];
   @Input() managerLookupLoading = false;
   @Input() managerLookupError = false;
   @Input() managerLookupHasMore = false;

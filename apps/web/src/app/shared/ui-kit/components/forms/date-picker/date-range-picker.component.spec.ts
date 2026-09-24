@@ -139,6 +139,17 @@ describe('SMTDateRangePickerComponent', () => {
     expect(element.querySelector('[aria-label="Clear the period"]')).toBeNull();
   });
 
+  it('closes when the trigger is clicked again, instead of reopening', async () => {
+    const { trigger, open, settle } = await render(Host);
+
+    await open();
+    trigger.click();
+    await settle();
+
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
+    expect(trigger.getAttribute('aria-expanded')).toBe('false');
+  });
+
   it('works with ngModel through the value accessor', async () => {
     const { fixture, trigger, open, button, settle } = await render(NgModelHost);
 

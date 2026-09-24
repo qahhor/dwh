@@ -60,7 +60,7 @@ const screens: Screen[] = [
     path: '/iam/users',
     open: async page => {
       await page.getByRole('button', { name: 'Редактировать пользователя Сотрудник 2', exact: true }).click();
-      await page.getByRole('dialog').getByRole('button', { name: 'Руководитель', exact: true }).click();
+      await page.getByRole('dialog').getByRole('combobox', { name: 'Руководитель', exact: true }).click();
       await expect(page.getByRole('listbox', { name: 'Руководитель' })).toBeVisible();
       // Not /Сотрудник 3/: once the manager search lands it also matches Сотрудник 30–39.
       await expect(page.getByRole('option', { name: /Сотрудник 3 @user3$/ })).toBeVisible();
@@ -101,7 +101,7 @@ const screens: Screen[] = [
     path: '/tasks',
     open: async page => {
       await page.locator('ui-button').filter({ hasText: /Новая задача|Создать задачу/ }).first().locator('button').click();
-      await page.getByRole('button', { name: 'Ответственный' }).first().click();
+      await page.getByRole('combobox', { name: 'Ответственный' }).first().click();
       await expect(page.getByRole('listbox').first()).toBeVisible();
     },
   },

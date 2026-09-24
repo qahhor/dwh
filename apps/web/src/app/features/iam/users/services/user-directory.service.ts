@@ -3,7 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ApiService } from '../../../../core/services/api.service';
 import { User } from '../../../../core/models/auth.models';
 import { KeysetPage } from '../../../../core/models/common.models';
-import { SelectOption } from '../../../../shared/ui/ui-searchable-select.component';
+import { SMTSelectOption } from '../../../../shared/ui-kit/components/forms/select';
 import { LookupChannel } from '../../../../shared/paging/lookup-channel';
 
 /**
@@ -23,7 +23,7 @@ export class UserDirectoryService {
   /** Ids the server would not return (deleted, or outside the viewer's scope). */
   private readonly unavailable = new Set<number>();
   private readonly requested = new Set<number>();
-  private readonly options = new Map<number, SelectOption>();
+  private readonly options = new Map<number, SMTSelectOption>();
 
   /** Active users the manager search returned. */
   private readonly managers = signal<User[]>([]);
@@ -86,7 +86,7 @@ export class UserDirectoryService {
    * Until then, or when the server will not return that user, the manager
    * shows by id: the picker must never read "no manager" while one is set.
    */
-  managerOptions(userId: number | null, selectedId: number | null): SelectOption[] {
+  managerOptions(userId: number | null, selectedId: number | null): SMTSelectOption[] {
     const options = this.withSelected(this.managers(), selectedId)
       .filter(user => user.id !== userId)
       .map(user => this.option(user));
@@ -110,7 +110,7 @@ export class UserDirectoryService {
   }
 
   /** The same object for the same user, so the list does not re-render (and drop focus) on every check. */
-  private option(user: User): SelectOption {
+  private option(user: User): SMTSelectOption {
     const cached = this.options.get(user.id);
     if (cached && cached.label === user.name && cached.subLabel === `@${user.login}`) return cached;
     const option = { id: user.id, label: user.name, subLabel: `@${user.login}` };
@@ -118,7 +118,7 @@ export class UserDirectoryService {
     return option;
   }
 
-  private unnamedOption(id: number): SelectOption {
+  private unnamedOption(id: number): SMTSelectOption {
     const label = `ID: #${id}`;
     const cached = this.options.get(id);
     if (cached && cached.label === label) return cached;
