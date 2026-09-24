@@ -22,8 +22,8 @@ MIT licence, rather than depending on the published package. The copy is
 maintained and changed here. Each file carries a header naming the path and
 the commit it came from:
 
-@greenwhite/ui-kit — table foundation, tree utilities, modal service and
-confirm dialog
+@greenwhite/ui-kit — table foundation, tree utilities, modal service,
+confirm dialog and drawer service
   Copyright (c) Smartup
   MIT Licence
   Vendored from commit 6472beb into apps/web/src/app/shared/ui-kit

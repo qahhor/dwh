@@ -1,0 +1,28 @@
+<!-- Vendored from @greenwhite/ui-kit (MIT) at commit 6472beb, path components/drawer/drawer.component.html.
+     Per ADR-0015 this copy is ours to change. See NOTICE and the component header for what differs. -->
+<div class="smt-drawer" (click)="onHitboxClick()">
+  <div
+    #panel
+    class="smt-drawer__panel"
+    [class]="className()"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-labelledby]="title ? titleId : null"
+    [attr.aria-label]="title ? null : ariaLabel"
+    cdkTrapFocus
+    [cdkTrapFocusAutoCapture]="trapAutoCapture()"
+    [style.width]="panelWidth()"
+    (click)="$event.stopPropagation()">
+    <div class="smt-drawer__header">
+      @if (title) {
+        <h2 class="smt-drawer__title" [id]="titleId">{{ title }}</h2>
+      }
+      <button type="button" class="smt-drawer__close" (click)="close()" [attr.aria-label]="i18n.messages().common.close">
+        <span class="material-symbols-outlined" aria-hidden="true">close</span>
+      </button>
+    </div>
+    <div class="smt-drawer__body">
+      <ng-container #contentContainer></ng-container>
+    </div>
+  </div>
+</div>

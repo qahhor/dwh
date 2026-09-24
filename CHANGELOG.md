@@ -23,6 +23,11 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the error through `aria-describedby`, marks invalid and required fields for
   assistive technology, and shows catalogue messages for the built-in rules
   once the field is touched.
+- A drawer service, vendored from the UI kit, for details that open beside a
+  list instead of leaving it. The drawer is a modal dialog named by its
+  title, keeps focus inside while open and returns it to the control that
+  opened it, closes on Escape and on navigation, spans the full width on
+  phones and skips its slide when the system asks for reduced motion.
 - Explicit primitive colour scales (`--color-<hue>-<step>`) behind the existing
   semantic design tokens, so a neighbouring step is available where one is
   needed for contrast.
