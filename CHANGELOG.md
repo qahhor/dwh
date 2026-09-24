@@ -33,6 +33,13 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   shortcut matches the physical key, so it works on a Russian layout; it
   never presses a button behind an open dialog; and the button announces its
   shortcut to assistive technology through `aria-keyshortcuts`.
+- Date and period pickers. `smt-date-picker` takes a typed date in the
+  language's format or one picked from a calendar dialog, optionally with a
+  time; `smt-date-range-picker` offers quick periods (today, last 7 days,
+  this month…) and a range calendar that applies on confirmation. The
+  calendar is fully keyboard operable and names every day in full. Values
+  are ISO dates. Both bind to Signal Forms directly and to `ngModel` through
+  a value accessor.
 - Explicit primitive colour scales (`--color-<hue>-<step>`) behind the existing
   semantic design tokens, so a neighbouring step is available where one is
   needed for contrast.
@@ -144,6 +151,10 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   default.
 
 ### Fixed
+
+- The design token audit also checks `.scss` files. It had skipped them, so
+  the dragged table row kept a fixed white background in the dark theme;
+  that background now follows the theme.
 
 - Success, warning and info notifications are read by screen readers. They
   sat in a polite live region created together with its text, which screen
