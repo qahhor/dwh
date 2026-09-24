@@ -54,6 +54,10 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   list is a tree, with Right and Left to open, close and move between levels,
   every node announced with its level and position, and a search that keeps
   each match inside its parents.
+- `smt-dropzone`, a drop area that is a label for a real file input, so it
+  is reachable and named for keyboard and screen reader users; files of the
+  wrong type or over an optional size limit are listed in an alert instead
+  of being dropped silently.
 - Explicit primitive colour scales (`--color-<hue>-<step>`) behind the existing
   semantic design tokens, so a neighbouring step is available where one is
   needed for contrast.
@@ -135,6 +139,11 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - A task's co-executors and observers are chosen with `smt-multi-select`.
 - An organizational unit's parent is chosen from the structure as a tree
   instead of a flat list of every unit.
+- File uploads (the file store and task attachments) go one file at a time,
+  each with its own progress, cancel and retry. Several files no longer
+  share one progress bar or run into the server's concurrent upload limit,
+  and a failed file stays in the list with the server's message until it is
+  retried or dismissed.
 
 - Every date field uses the new date picker instead of the browser's own:
   the audit log and security event filters, the UPL upload period and

@@ -42,8 +42,16 @@ export interface SMTSelectMessages {
   readonly addMore: string;
 }
 
+export interface SMTDropzoneMessages {
+  readonly drop: string;
+  readonly choose: string;
+  readonly rejectedType: (name: string) => string;
+  readonly rejectedSize: (name: string, size: string) => string;
+}
+
 export interface SMTMessages {
   readonly control: SMTControlMessages;
+  readonly dropzone: SMTDropzoneMessages;
   readonly select: SMTSelectMessages;
   readonly date: SMTDateMessages;
   readonly common: { readonly close: string; readonly cancel: string };
@@ -73,6 +81,12 @@ export class SMTI18nService {
       maxLength: count => this.i18n.translate('ui.control.max_length', { count }),
       min: value => this.i18n.translate('ui.control.min', { value }),
       max: value => this.i18n.translate('ui.control.max', { value }),
+    },
+    dropzone: {
+      drop: this.i18n.translate('ui.file_upload.peretaschite_fayly_syuda_ili'),
+      choose: this.i18n.translate('ui.file_upload.nazhmite_dlya_vybora'),
+      rejectedType: name => this.i18n.translate('ui.dropzone.rejected_type', { name }),
+      rejectedSize: (name, size) => this.i18n.translate('ui.dropzone.rejected_size', { name, size }),
     },
     select: {
       placeholder: this.i18n.translate('ui.searchable_select.vyberite_iz_spiska'),

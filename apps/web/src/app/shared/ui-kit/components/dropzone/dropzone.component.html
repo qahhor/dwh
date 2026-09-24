@@ -1,0 +1,34 @@
+<!-- Our template, after the idea of the kit's smt-dropzone (smartup-ui-kit@6472beb). See the component header. -->
+<label
+  class="smt-dropzone"
+  [for]="inputId"
+  [class.smt-dropzone--dragging]="dragging()"
+  [class.smt-dropzone--disabled]="disabled()"
+  (dragover)="onDragOver($event)"
+  (dragleave)="onDragLeave($event)"
+  (drop)="onDrop($event)">
+  <input
+    class="smt-dropzone__input"
+    type="file"
+    [id]="inputId"
+    [accept]="accept()"
+    [multiple]="multiple()"
+    [disabled]="disabled()"
+    (change)="onChange($event)" />
+  <span class="material-symbols-outlined smt-dropzone__icon" aria-hidden="true">cloud_upload</span>
+  <span class="smt-dropzone__text">
+    <span class="smt-dropzone__prompt">
+      {{ i18n.messages().dropzone.drop }} <strong>{{ i18n.messages().dropzone.choose }}</strong>
+    </span>
+    @if (hint()) {
+      <span class="smt-dropzone__hint">{{ hint() }}</span>
+    }
+  </span>
+</label>
+@if (rejections().length) {
+  <ul class="smt-dropzone__rejections" role="alert">
+    @for (rejection of rejections(); track $index) {
+      <li>{{ rejectionText(rejection) }}</li>
+    }
+  </ul>
+}
