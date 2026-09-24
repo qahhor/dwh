@@ -1348,6 +1348,7 @@ export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(
   "iam.show_password": "Показать пароль",
   "notifications.mark_named_read": "Отметить уведомление «{title}» как прочитанное",
   "tasks.list_load_error": "Не удалось загрузить задачи.",
+  "tasks.list_loading": "Загрузка задач…",
   "tasks.list_load_error_stale": "Не удалось обновить задачи. Показаны последние доступные данные.",
   "tasks.detail_loading": "Загрузка деталей задачи…",
   "tasks.detail_load_error": "Не удалось загрузить детали задачи.",

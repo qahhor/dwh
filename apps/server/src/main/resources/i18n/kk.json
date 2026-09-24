@@ -1269,6 +1269,7 @@
   "iam.show_password": "Құпия сөзді көрсету",
   "notifications.mark_named_read": "«{title}» хабарландыруын оқылған деп белгілеңіз",
   "tasks.list_load_error": "Тапсырмалар жүктелмеді.",
+  "tasks.list_loading": "Тапсырмалар жүктелуде…",
   "tasks.list_load_error_stale": "Тапсырмалар жаңартылмады. Ең соңғы қолжетімді деректер көрсетіледі.",
   "tasks.detail_loading": "Тапсырма мәліметтері жүктелуде...",
   "tasks.detail_load_error": "Тапсырма мәліметтерін жүктеу сәтсіз аяқталды.",

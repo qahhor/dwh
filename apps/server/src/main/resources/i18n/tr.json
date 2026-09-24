@@ -1269,6 +1269,7 @@
   "iam.show_password": "Şifreyi göster",
   "notifications.mark_named_read": "“{title}” bildirimini okundu olarak işaretle",
   "tasks.list_load_error": "Görevler yüklenemedi.",
+  "tasks.list_loading": "Görevler yükleniyor…",
   "tasks.list_load_error_stale": "Görevler güncellenemedi. Mevcut en son veriler gösterilir.",
   "tasks.detail_loading": "Görev ayrıntıları yükleniyor...",
   "tasks.detail_load_error": "Görev ayrıntıları yüklenemedi.",

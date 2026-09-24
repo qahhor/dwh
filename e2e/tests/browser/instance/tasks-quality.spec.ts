@@ -134,7 +134,7 @@ test('task edit round-trips and clears a local deadline while retaining observer
     observeAsLogin: environment.instance.login,
   });
 
-  const row = taskOpenButton(page, originalTitle).locator('xpath=ancestor::tr');
+  const row = taskOpenButton(page, originalTitle).locator('xpath=ancestor::*[@role="row"][1]');
   await row.getByRole('button', { name: /Редактировать задачу #\d+/u }).press('Enter');
   const editDialog = page.getByRole('dialog', { name: 'Редактирование задачи' });
   await expect(editDialog).toBeVisible();
@@ -158,7 +158,7 @@ test('task edit round-trips and clears a local deadline while retaining observer
   expect((await titlePatch).ok()).toBe(true);
   await expect(taskOpenButton(page, editedTitle)).toBeVisible();
 
-  const editedRow = taskOpenButton(page, editedTitle).locator('xpath=ancestor::tr');
+  const editedRow = taskOpenButton(page, editedTitle).locator('xpath=ancestor::*[@role="row"][1]');
   await editedRow.getByRole('button', { name: /Редактировать задачу #\d+/u }).click();
   await expect(editDialog.locator('#task-edit-deadline')).toHaveValue('2026-09-05T17:00');
   await expectSelectedObserver(editDialog, selectedObserverName);
@@ -171,7 +171,7 @@ test('task edit round-trips and clears a local deadline while retaining observer
   expect((await clearPatch).ok()).toBe(true);
   await expect(taskOpenButton(page, editedTitle)).toBeVisible();
 
-  await taskOpenButton(page, editedTitle).locator('xpath=ancestor::tr')
+  await taskOpenButton(page, editedTitle).locator('xpath=ancestor::*[@role="row"][1]')
     .getByRole('button', { name: /Редактировать задачу #\d+/u }).click();
   await expect(editDialog.locator('#task-edit-deadline')).toHaveValue('');
   await expectSelectedObserver(editDialog, selectedObserverName);
@@ -362,7 +362,7 @@ test('the real task status select uses semantic text and surface colors in both 
   const title = uniqueRunName('E2E status color');
   await loginToInstance(page);
   await createTaskThroughUi(page, title);
-  const statusSelect = taskOpenButton(page, title).locator('xpath=ancestor::tr').locator('.inline-status-select');
+  const statusSelect = taskOpenButton(page, title).locator('xpath=ancestor::*[@role="row"][1]').locator('.inline-status-select');
 
   await ensureTheme(page, 'light');
   await expectStatusColors(statusSelect, LIGHT_STATUS_COLORS);

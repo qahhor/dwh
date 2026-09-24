@@ -278,7 +278,6 @@ export class TasksComponent implements OnInit, OnDestroy {
     this.taskPager.goTo(page);
   }
 
-  paginatedTasks(): Task[] { return this.tasks(); }
   hasActiveFilters(): boolean { return this.filterService.hasActiveFilters(); }
   clearSearch() { this.cancelListRequestForFilterChange(); this.filterService.clearSearch(() => this.loadTasks(true)); }
   setPreset(preset: 'all' | 'my' | 'executor' | 'observer' | 'reported' | 'overdue') { this.filterService.setPreset(preset, () => this.loadTasks(true)); }
