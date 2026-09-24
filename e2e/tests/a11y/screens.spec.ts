@@ -75,6 +75,15 @@ const screens: Screen[] = [
     },
   },
   {
+    name: 'task list, second page',
+    path: '/tasks',
+    open: async page => {
+      await expect(page.getByRole('table', { name: 'Список задач' })).toBeVisible();
+      await page.getByRole('button', { name: 'Следующая страница' }).click();
+      await expect(page.getByRole('button', { name: /^Открыть задачу #41: / })).toBeVisible();
+    },
+  },
+  {
     name: 'task list with the responsible lookup open',
     path: '/tasks',
     open: async page => {

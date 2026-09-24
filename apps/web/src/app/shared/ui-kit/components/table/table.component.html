@@ -115,7 +115,7 @@
                   [attr.tabindex]="aria?.tabindex ?? null"
                   [attr.data-smt-row-id]="aria?.id ?? null"
                   (keydown)="emitRowKeydown(row, $event)"
-                  (click)="emitRowClick(row)"
+                  (click)="emitRowClick(row, $event)"
                   (dblclick)="emitRowDblClick(row)"
                   [style.height]="config().rowHeight"
                   [style.grid-template-columns]="gridTemplateColumns()">
@@ -138,7 +138,7 @@
                   [attr.tabindex]="aria?.tabindex ?? null"
                   [attr.data-smt-row-id]="aria?.id ?? null"
                   (keydown)="emitRowKeydown(row, $event)"
-                  (click)="emitRowClick(row)"
+                  (click)="emitRowClick(row, $event)"
                   (dblclick)="emitRowDblClick(row)"
                   [style.height]="config().rowHeight"
                   [style.grid-template-columns]="gridTemplateColumns()">
@@ -301,13 +301,13 @@
       (smtIsSelectedChange)="toggleSelection(row)" />
   } @else if (col.content.type === 'html') {
     <span
-      class="block min-w-0 break-all whitespace-normal text-md text-gray-700"
+      class="block min-w-0 [overflow-wrap:anywhere] whitespace-normal text-md text-gray-700"
       [class.text-end]="col.align === 'right'"
       [class.text-center]="col.align === 'center'"
       [innerHTML]="col.content.value(row)"></span>
   } @else {
     <span
-      class="block min-w-0 break-all whitespace-normal text-md text-gray-700"
+      class="block min-w-0 [overflow-wrap:anywhere] whitespace-normal text-md text-gray-700"
       [class.text-end]="col.align === 'right'"
       [class.text-center]="col.align === 'center'"
       >{{ col.content.value(row) }}</span

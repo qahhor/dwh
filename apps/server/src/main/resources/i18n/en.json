@@ -1346,6 +1346,7 @@
   "iam.show_password": "Show password",
   "notifications.mark_named_read": "Mark notification “{title}” as read",
   "tasks.list_load_error": "Failed to load tasks.",
+  "tasks.list_loading": "Loading tasks…",
   "tasks.list_load_error_stale": "Failed to update tasks. The latest available data is shown.",
   "tasks.detail_loading": "Loading task details...",
   "tasks.detail_load_error": "Failed to load task details.",

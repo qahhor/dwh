@@ -90,6 +90,11 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the per-user budget part-way.
 - The language list in Settings renders through the vendored table
   foundation instead of a hand-written table, the first screen to do so.
+- The task list renders on the shared server table, like the user list and
+  the audit logs. A click anywhere on a row opens the task; its priority and
+  status selects still change the task in place. The page size can be
+  chosen, loading is announced to screen readers, and a failed page keeps
+  the rows already shown with a retry. The board view is unchanged.
 - The user list pages through the server a page at a time on the shared
   server table, with a retry on failure and loading announced to screen
   readers. It replaces a list that loaded 50 users with "load more", then
@@ -109,6 +114,10 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   default.
 
 ### Fixed
+
+- Table cells broke words at any letter where the column ended ("торго|вой"
+  across two lines), in every table on the shared foundation. A word is now
+  broken only when it alone does not fit the column.
 
 - Screen readers read icon glyphs aloud as English words, for example
   "account_tree Оргструктура" for a profile tab, across 74 icons in 22

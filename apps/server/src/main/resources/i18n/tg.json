@@ -1269,6 +1269,7 @@
   "iam.show_password": "Нишон додани парол",
   "notifications.mark_named_read": "Огоҳиномаи \"{title}\" -ро ҳамчун хондашуда қайд кунед",
   "tasks.list_load_error": "Бор кардани вазифаҳо ноком шуд.",
+  "tasks.list_loading": "Боркунии вазифаҳо…",
   "tasks.list_load_error_stale": "Навсозии вазифаҳо муяссар нашуд. Маълумоти охирини дастрас нишон дода мешавад.",
   "tasks.detail_loading": "Тафсилоти вазифа бор карда мешавад...",
   "tasks.detail_load_error": "Тафсилоти супоришро бор карда натавонист.",

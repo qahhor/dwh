@@ -1,5 +1,5 @@
 /* Not vendored: tests for the table semantics added here (ADR-0015 rule 2). */
-import { Component, signal } from '@angular/core';
+import { Component, signal, TemplateRef, viewChild } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { describe, expect, it } from 'vitest';
 import { SMTTableComponent } from './table.component';
@@ -83,6 +83,13 @@ describe('smt-table semantics', () => {
     expect(header.getAttribute('aria-sort')).toBe('descending');
   });
 
+  it('breaks cell text inside a word only when the word alone does not fit', async () => {
+    const { root } = await render();
+    // break-all cut every word at the column edge; overflow-wrap:anywhere keeps words whole where they fit.
+    expect(root.querySelector('.break-all')).toBeNull();
+    expect(root.querySelector('[role="rowgroup"] [role="cell"] .\\[overflow-wrap\\:anywhere\\]')).not.toBeNull();
+  });
+
   it('leaves plain tables without row focus or tree state', async () => {
     const { root } = await render();
     const row = root.querySelector('[role="rowgroup"] > [role="row"]')!;
@@ -113,5 +120,55 @@ describe('smt-table semantics', () => {
 
     second.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
     expect(fixture.componentInstance.keys.map(entry => [entry.row.id, entry.event.key])).toEqual([[2, 'ArrowDown']]);
+  });
+});
+
+@Component({
+  standalone: true,
+  imports: [SMTTableComponent],
+  template: `
+    <smt-table [smtData]="data" [smtConfig]="config" [smtVirtualRows]="false" (smtRowClick)="clicked.push($event.id)" />
+    <ng-template #controls let-row>
+      <span class="plain">{{ row.name }}</span>
+      <button type="button" class="open"><span class="icon">edit</span></button>
+      <select class="status"><option>A</option></select>
+    </ng-template>
+  `,
+})
+class ClickHostComponent {
+  readonly data = rows;
+  readonly clicked: number[] = [];
+  private readonly controls = viewChild.required<TemplateRef<unknown>>('controls');
+  readonly config: TableConfig<Row> = {
+    trackBy: (_index, row) => row.id,
+    columns: { name: { header: { type: 'primitive', value: 'Name' }, content: { type: 'templateRef', value: this.controls } } },
+    columnsOrder: ['name'],
+    ariaLabel: 'Branches',
+  };
+}
+
+describe('smt-table row clicks', () => {
+  async function renderClicks() {
+    await TestBed.configureTestingModule({ imports: [ClickHostComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(ClickHostComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const row = (fixture.nativeElement as HTMLElement).querySelector('[role="rowgroup"] > [role="row"]')!;
+    return { fixture, row };
+  }
+
+  it('reports a click on the row or its plain text', async () => {
+    const { fixture, row } = await renderClicks();
+    (row.querySelector('.plain') as HTMLElement).click();
+    (row as HTMLElement).click();
+    expect(fixture.componentInstance.clicked).toEqual([1, 1]);
+  });
+
+  it('leaves a click on a control inside a cell to that control', async () => {
+    const { fixture, row } = await renderClicks();
+    (row.querySelector('.open .icon') as HTMLElement).click();
+    (row.querySelector('.status') as HTMLElement).click();
+    expect(fixture.componentInstance.clicked).toEqual([]);
   });
 });
