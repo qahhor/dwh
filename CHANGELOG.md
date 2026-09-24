@@ -145,6 +145,12 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Tooltips reach keyboard and screen reader users. They appeared on mouse
+  hover only; now they also show when the element takes keyboard focus,
+  close on Escape without closing a dialog around them, stay while the
+  pointer moves onto them, and their text is announced as the element's
+  description unless it only repeats the element's own truncated text.
+
 - `npm run i18n:audit` passes on Windows. Its allow-list of files that may
   hold Cyrillic text was compared with backslash paths there, so the
   generated Russian catalog was reported as unlocalized copy.
