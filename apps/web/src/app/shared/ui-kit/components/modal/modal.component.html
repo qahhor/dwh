@@ -1,0 +1,26 @@
+<!-- Vendored from @greenwhite/ui-kit (MIT) at commit 6472beb, path components/modal/modal.component.html.
+     Per ADR-0015 this copy is ours to change. See NOTICE and the component header for what differs. -->
+@if (displayTitle() || displayShowCloseButton()) {
+  <div class="smt-modal__header">
+    @if (displayTitle()) {
+      <h2 class="smt-modal__title" [id]="titleId">{{ displayTitle() }}</h2>
+    }
+    @if (displayShowCloseButton()) {
+      <button
+        type="button"
+        class="smt-modal__close"
+        (click)="close()"
+        [attr.aria-label]="i18n.messages().common.close">
+        <span class="material-symbols-outlined" aria-hidden="true">close</span>
+      </button>
+    }
+  </div>
+}
+
+<div class="smt-modal__body" [ngClass]="bodyClass()">
+  @if (contentTemplate(); as template) {
+    <ng-container [ngTemplateOutlet]="template" [ngTemplateOutletContext]="templateContext" />
+  } @else {
+    <ng-content />
+  }
+</div>

@@ -10,6 +10,7 @@ import { I18nService, TranslatePipe } from '../../core/services/i18n.service';
 import { PermissionService } from '../../core/services/permission.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
+import { SMTModalService } from '../../shared/ui-kit/components/modal';
 import { SearchSettingsComponent } from './search/search-settings.component';
 import { NavigationSettingsComponent } from './navigation/navigation-settings.component';
 import { SettingsTab, LegacyLanguage, filterKnownTranslations, readLegacyLanguages } from './settings.models';
@@ -43,6 +44,7 @@ import { WebhooksSettingsComponent } from './webhooks/webhooks-settings.componen
 export class SettingsComponent implements OnInit, OnDestroy {
   private readonly uiI18n = inject(I18nService);
   private readonly themeService = inject(ThemeService);
+  private readonly modal = inject(SMTModalService);
   private readonly route = inject(ActivatedRoute, { optional: true });
   private readonly router = inject(Router, { optional: true });
   private pendingTabFocusScroll: ReturnType<typeof setTimeout> | null = null;
@@ -285,10 +287,14 @@ export class SettingsComponent implements OnInit, OnDestroy {
     const legacyLanguages = readLegacyLanguages();
     const entries = Object.entries(legacyLanguages);
     if (entries.length === 0 || !this.canUpdateSystemSettings()) return;
-    if (!window.confirm(
-      this.uiI18n.translate('settings.confirm_legacy_migration', { count: entries.length })
-    )) return;
+    this.modal.confirm({
+      message: this.uiI18n.translate('settings.confirm_legacy_migration', { count: entries.length }),
+    }).subscribe(confirmed => {
+      if (confirmed) this.runLegacyLanguageMigration(entries);
+    });
+  }
 
+  private runLegacyLanguageMigration(entries: [string, LegacyLanguage][]): void {
     this.isMigratingLegacyLanguages.set(true);
     this.api.get<TranslationEditor>('/i18n/admin/languages/ru/translations').pipe(
       switchMap(russianEditor => {

@@ -20,6 +20,7 @@ import { ApiService } from '../../core/services/api.service';
 import { I18nService, TranslatePipe } from '../../core/services/i18n.service';
 import { PermissionService } from '../../core/services/permission.service';
 import { ToastService } from '../../core/services/toast.service';
+import { SMTModalService } from '../../shared/ui-kit/components/modal';
 
 @Component({
   selector: 'app-language-editor',
@@ -157,6 +158,7 @@ import { ToastService } from '../../core/services/toast.service';
 })
 export class LanguageEditorComponent implements OnInit {
   private readonly uiI18n = inject(I18nService);
+  private readonly modal = inject(SMTModalService);
   @Input({ required: true }) languageCode = 'ru';
   @Output() readonly closed = new EventEmitter<void>();
   @Output() readonly saved = new EventEmitter<string>();
@@ -352,11 +354,16 @@ export class LanguageEditorComponent implements OnInit {
   }
 
   requestClose(): void {
-    if (this.dirtyCount() > 0
-        && !window.confirm(this.uiI18n.translate('settings.est_nesohranennye_perevody_zakryt_redaktor_bez_s'))) {
+    if (this.dirtyCount() === 0) {
+      this.closed.emit();
       return;
     }
-    this.closed.emit();
+    this.modal.confirm({
+      message: this.uiI18n.translate('settings.est_nesohranennye_perevody_zakryt_redaktor_bez_s'),
+      destructive: true,
+    }).subscribe(confirmed => {
+      if (confirmed) this.closed.emit();
+    });
   }
 
   @HostListener('window:beforeunload', ['$event'])

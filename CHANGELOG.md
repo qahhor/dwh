@@ -9,6 +9,14 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- One dialog service for the whole application, vendored from the UI kit:
+  `SMTModalService.open()` for any content and `confirm()` for a yes/no
+  question. The confirm dialog is announced as an alert dialog named by its
+  title and described by its message, starts focus on the declining button,
+  shows the message as text, marks destructive actions in the danger colour
+  and follows both themes. The two remaining browser `confirm()` prompts in
+  Settings (migrating legacy language packs, closing the translation editor
+  with unsaved edits) now use it.
 - Explicit primitive colour scales (`--color-<hue>-<step>`) behind the existing
   semantic design tokens, so a neighbouring step is available where one is
   needed for contrast.
@@ -120,6 +128,10 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   default.
 
 ### Fixed
+
+- `npm run i18n:audit` passes on Windows. Its allow-list of files that may
+  hold Cyrillic text was compared with backslash paths there, so the
+  generated Russian catalog was reported as unlocalized copy.
 
 - Table cells broke words at any letter where the column ended ("торго|вой"
   across two lines), in every table on the shared foundation. A word is now

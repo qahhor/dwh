@@ -1,0 +1,214 @@
+/* Vendored from @greenwhite/ui-kit (MIT) at commit 6472beb, path components/modal/modal.component.scss.
+ * Per ADR-0015 this copy is ours to change; the commit above is only the
+ * base for comparing later work in the kit. See NOTICE.
+ *
+ * The kit styled the panel with its Tailwind palette (`bg-white`,
+ * `text-gray-900`), which has no dark theme. These rules read our semantic
+ * tokens instead. They are global (the components use
+ * `ViewEncapsulation.None`) because CDK renders the panel and backdrop in
+ * the overlay container, outside any component host. */
+
+.smt-modal-backdrop {
+  background-color: rgba(15, 23, 42, 0.6);
+  animation: smt-modal-backdrop-enter 0.15s linear;
+}
+
+.smt-modal-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  outline: none;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+  box-shadow: var(--shadow-overlay);
+  animation: smt-modal-panel-enter 0.15s ease-out;
+}
+
+/* The CDK container fills the panel; without this the body cannot scroll. */
+.smt-modal-panel > .cdk-dialog-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
+  outline: none;
+}
+
+@keyframes smt-modal-backdrop-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* The kit scaled from 0.1; a smaller step reads as the same motion without
+   the jump. */
+@keyframes smt-modal-panel-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .smt-modal-backdrop,
+  .smt-modal-panel {
+    animation: none;
+  }
+}
+
+.smt-modal {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
+}
+
+.smt-modal__header {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.smt-modal__title {
+  margin: 0;
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-main);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.smt-modal__close {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.smt-modal__close:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-main);
+}
+
+.smt-modal__body {
+  flex: 1;
+  min-height: 0;
+  padding: 18px;
+  overflow-y: auto;
+}
+
+.smt-modal-confirm {
+  display: flex;
+  flex-direction: column;
+  padding: 20px 22px;
+}
+
+.smt-modal-confirm__title {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.smt-modal-confirm__message {
+  margin: 0 0 22px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.smt-modal-confirm__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.smt-modal-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 96px;
+  height: var(--control-height);
+  padding: 6px 14px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.smt-modal-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.smt-modal-button:focus-visible,
+.smt-modal__close:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.smt-modal-button--primary {
+  background-color: var(--primary);
+  color: var(--on-primary);
+}
+
+.smt-modal-button--primary:hover:not(:disabled) {
+  background-color: var(--primary-hover);
+}
+
+.smt-modal-button--danger {
+  background-color: var(--danger);
+  color: var(--on-danger);
+}
+
+.smt-modal-button--danger:hover:not(:disabled) {
+  background-color: var(--danger-hover);
+}
+
+.smt-modal-button--secondary {
+  border-color: var(--border-color);
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+}
+
+.smt-modal-button--secondary:hover:not(:disabled) {
+  background-color: var(--bg-hover);
+}
+
+@media (max-width: 480px) {
+  .smt-modal-confirm__actions {
+    flex-direction: column-reverse;
+  }
+
+  .smt-modal-button {
+    width: 100%;
+  }
+}

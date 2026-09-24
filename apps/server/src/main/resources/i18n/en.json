@@ -1200,6 +1200,7 @@
   "ui.file_upload.delete_named": "Remove {name}",
   "ui.file_upload.uploaded_named": "{name} file uploaded successfully",
   "ui.modal.close_named_dialog": "Close the “{title}” dialog",
+  "ui.modal.confirm_title": "Confirmation",
   "ui.pagination.page_number": "Page {page}",
   "ui.markdown_editor.vtoroy_element": "Second element",
   "ui.markdown_editor.vtoroy_punkt": "Second point",

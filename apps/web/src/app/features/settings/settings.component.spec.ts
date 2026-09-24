@@ -8,6 +8,7 @@ import { PermissionService } from '../../core/services/permission.service';
 import { SearchManagementService } from '../../core/services/search-management.service';
 import { ToastService } from '../../core/services/toast.service';
 import { ThemeService } from '../../core/services/theme.service';
+import { SMTModalService } from '../../shared/ui-kit/components/modal';
 import { SettingsComponent } from './settings.component';
 import { translateTest } from '../../../testing/i18n-test.stub';
 
@@ -204,11 +205,12 @@ describe('SettingsComponent UI contracts', () => {
       patch: vi.fn(() => of({})),
       put: vi.fn(() => of({}))
     };
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
     const fixture = await createFixture(api);
+    const confirm = vi.spyOn(TestBed.inject(SMTModalService), 'confirm').mockReturnValue(of(true));
 
     fixture.componentInstance.migrateLegacyLanguages();
 
+    expect(confirm).toHaveBeenCalledOnce();
     expect(api.put).toHaveBeenCalledWith('/i18n/admin/languages/de/translations', {
       expectedRevision: 7,
       translations: {
@@ -217,7 +219,20 @@ describe('SettingsComponent UI contracts', () => {
       }
     });
     expect(localStorage.getItem('dwh_custom_languages')).toBeNull();
-    confirm.mockRestore();
+  });
+
+  it('keeps legacy browser translations untouched when the migration is declined', async () => {
+    const legacy = JSON.stringify({ de: { name: 'Deutsch', dict: { 'common.save': 'Alt speichern' } } });
+    localStorage.setItem('dwh_custom_languages', legacy);
+    const api = { get: vi.fn(() => of({})), patch: vi.fn(() => of({})), put: vi.fn(() => of({})) };
+    const fixture = await createFixture(api);
+    vi.spyOn(TestBed.inject(SMTModalService), 'confirm').mockReturnValue(of(false));
+
+    fixture.componentInstance.migrateLegacyLanguages();
+
+    expect(api.put).not.toHaveBeenCalled();
+    expect(localStorage.getItem('dwh_custom_languages')).toBe(legacy);
+    localStorage.removeItem('dwh_custom_languages');
   });
   it('disables system inputs, displays readonly badge, and hides save button for view-only users', async () => {
     const hasPermission = (form: string, action: string) => {
