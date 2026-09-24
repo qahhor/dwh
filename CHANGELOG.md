@@ -28,6 +28,11 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   title, keeps focus inside while open and returns it to the control that
   opened it, closes on Escape and on navigation, spans the full width on
   phones and skips its slide when the system asks for reduced motion.
+- Keyboard shortcuts for toolbar buttons, vendored from the UI kit:
+  `smtHotkey="save"` (Alt+S) or any combination such as `ctrl+enter`. A
+  shortcut matches the physical key, so it works on a Russian layout; it
+  never presses a button behind an open dialog; and the button announces its
+  shortcut to assistive technology through `aria-keyshortcuts`.
 - Explicit primitive colour scales (`--color-<hue>-<step>`) behind the existing
   semantic design tokens, so a neighbouring step is available where one is
   needed for contrast.
