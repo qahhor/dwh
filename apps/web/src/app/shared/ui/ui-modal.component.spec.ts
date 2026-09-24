@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { describe, expect, it } from 'vitest';
 import { UiModalComponent } from './ui-modal.component';
-import { UiSearchableSelectComponent } from './ui-searchable-select.component';
+import { SMTSelectComponent } from '../ui-kit/components/forms/select';
 
 describe('UiModalComponent', () => {
   it('labels the dialog with its visible title', async () => {
@@ -63,10 +63,10 @@ describe('UiModalComponent', () => {
     expect(escape.defaultPrevented).toBe(true);
   });
 
-  it('lets an actual open searchable select consume Escape before its dialog', async () => {
-    await TestBed.configureTestingModule({ imports: [UiModalComponent, UiSearchableSelectComponent] }).compileComponents();
+  it('lets an actual open select consume Escape before its dialog', async () => {
+    await TestBed.configureTestingModule({ imports: [UiModalComponent, SMTSelectComponent] }).compileComponents();
     const fixture = TestBed.createComponent(UiModalComponent);
-    const select = TestBed.createComponent(UiSearchableSelectComponent);
+    const select = TestBed.createComponent(SMTSelectComponent);
     fixture.componentRef.setInput('isOpen', true);
     select.componentRef.setInput('options', [{ id: 1, label: 'Первый' }]);
     let closes = 0;
@@ -74,15 +74,20 @@ describe('UiModalComponent', () => {
     fixture.detectChanges();
     select.detectChanges();
     fixture.nativeElement.append(select.nativeElement);
-    select.componentInstance.toggleDropdown();
+    document.body.append(fixture.nativeElement);
+    select.componentInstance.openPopup();
     select.detectChanges();
 
-    const escape = new KeyboardEvent('keydown', { key: 'Escape', cancelable: true });
-    document.dispatchEvent(escape);
+    // The key reaches the select's search box, where focus is while it is open.
+    const escape = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+    (document.querySelector('.smt-select__search-input') as HTMLInputElement).dispatchEvent(escape);
+    select.detectChanges();
 
-    expect(select.componentInstance.isOpen()).toBe(false);
+    expect(select.componentInstance.open()).toBe(false);
     expect(closes).toBe(0);
     expect(escape.defaultPrevented).toBe(true);
+    fixture.nativeElement.remove();
+    document.querySelectorAll('.cdk-overlay-container').forEach(node => node.remove());
   });
 
   it('locks background scrolling only while open', async () => {

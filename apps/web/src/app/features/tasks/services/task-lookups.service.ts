@@ -3,7 +3,7 @@ import { ApiService } from '../../../core/services/api.service';
 import { Task, TaskMember } from '../../../core/models/task.models';
 import { User } from '../../../core/models/auth.models';
 import { KeysetPage } from '../../../core/models/common.models';
-import { SelectOption } from '../../../shared/ui/ui-searchable-select.component';
+import { SMTSelectOption } from '../../../shared/ui-kit/components/forms/select';
 import { LookupChannel } from '../../../shared/paging/lookup-channel';
 import { mergeOptions, mergeUserResults } from '../tasks.models';
 
@@ -13,15 +13,15 @@ import { mergeOptions, mergeUserResults } from '../tasks.models';
 export class TaskLookupsService {
   private readonly api = inject(ApiService);
 
-  readonly parentTaskOptions = signal<SelectOption[]>([]);
+  readonly parentTaskOptions = signal<SMTSelectOption[]>([]);
   readonly responsibleUsers = signal<User[]>([]);
   readonly executorUsers = signal<User[]>([]);
   readonly observerUsers = signal<User[]>([]);
 
-  readonly retainedParentOptions = new Map<number, SelectOption>();
+  readonly retainedParentOptions = new Map<number, SMTSelectOption>();
   readonly retainedUsers = new Map<number, User>();
 
-  responsibleUserOptions(): SelectOption[] {
+  responsibleUserOptions(): SMTSelectOption[] {
     return this.responsibleUsers().map(user => ({
       id: user.id,
       label: user.name,
@@ -29,7 +29,7 @@ export class TaskLookupsService {
     }));
   }
 
-  getAvailableParentTaskOptions(currentTaskId: number): SelectOption[] {
+  getAvailableParentTaskOptions(currentTaskId: number): SMTSelectOption[] {
     return this.parentTaskOptions().filter(option => Number(option.id) !== currentTaskId);
   }
 
@@ -72,7 +72,7 @@ export class TaskLookupsService {
         this.retainedParentOptions.set(item.id, option);
         return option;
       });
-      const retained = selectedId == null ? [] : [this.retainedParentOptions.get(selectedId)].filter((item): item is SelectOption => !!item);
+      const retained = selectedId == null ? [] : [this.retainedParentOptions.get(selectedId)].filter((item): item is SMTSelectOption => !!item);
       this.parentTaskOptions.set(mergeOptions(append ? this.parentTaskOptions() : retained, incoming));
     },
     null

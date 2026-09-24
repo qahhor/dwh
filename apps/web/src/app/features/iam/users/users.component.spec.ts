@@ -578,7 +578,7 @@ describe('UsersComponent UI contracts', () => {
 
     fixture.componentInstance.openEditModal(report);
     fixture.detectChanges();
-    const picker = fixture.nativeElement.querySelector('app-user-edit-modal ui-searchable-select button[aria-haspopup="listbox"]') as HTMLButtonElement;
+    const picker = fixture.nativeElement.querySelector('app-user-edit-modal smt-select button[aria-haspopup="listbox"]') as HTMLButtonElement;
     expect(picker.textContent).toContain('Дальний руководитель');
     expect(fixture.nativeElement.querySelector('#user-edit-manager')).toBeNull();
   });

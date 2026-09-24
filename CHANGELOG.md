@@ -40,6 +40,11 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   calendar is fully keyboard operable and names every day in full. Values
   are ISO dates. Both bind to Signal Forms directly and to `ngModel` through
   a value accessor.
+- `smt-select`, a searchable single-choice field built as an accessible
+  combobox: one tab stop, arrows to move through the options, Enter to pick,
+  Escape to close, typing on the closed field to start a search. Its list
+  opens in an overlay, so a dialog no longer cuts it off, and stays
+  reachable for screen readers inside modal dialogs.
 - Explicit primitive colour scales (`--color-<hue>-<step>`) behind the existing
   semantic design tokens, so a neighbouring step is available where one is
   needed for contrast.
@@ -114,6 +119,10 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Apache-2.0 community, governance, security, and contribution policies.
 
 ### Changed
+
+- The user's manager, a task's responsible person and a task's parent are
+  chosen with `smt-select`; remote search, "Load more" and retry work as
+  before.
 
 - Every date field uses the new date picker instead of the browser's own:
   the audit log and security event filters, the UPL upload period and
@@ -325,6 +334,7 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Removed
 
+- `ui-searchable-select`, replaced everywhere by `smt-select`.
 - Control Plane, fleet management, heartbeat, enrollment, and license gates.
 
 ### Security

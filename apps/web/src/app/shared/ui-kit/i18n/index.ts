@@ -25,8 +25,23 @@ export interface SMTDateMessages {
   readonly preset: Readonly<Record<DateRangePresetKey, string>>;
 }
 
+export interface SMTSelectMessages {
+  readonly placeholder: string;
+  readonly name: string;
+  readonly search: string;
+  readonly clearSearch: string;
+  readonly clear: string;
+  readonly none: string;
+  readonly noResults: string;
+  readonly loading: string;
+  readonly loadFailed: string;
+  readonly retry: string;
+  readonly loadMore: string;
+}
+
 export interface SMTMessages {
   readonly control: SMTControlMessages;
+  readonly select: SMTSelectMessages;
   readonly date: SMTDateMessages;
   readonly common: { readonly close: string; readonly cancel: string };
   readonly table: { readonly noResults: string };
@@ -55,6 +70,19 @@ export class SMTI18nService {
       maxLength: count => this.i18n.translate('ui.control.max_length', { count }),
       min: value => this.i18n.translate('ui.control.min', { value }),
       max: value => this.i18n.translate('ui.control.max', { value }),
+    },
+    select: {
+      placeholder: this.i18n.translate('ui.searchable_select.vyberite_iz_spiska'),
+      name: this.i18n.translate('ui.searchable_select.vybor_znacheniya'),
+      search: this.i18n.translate('ui.searchable_select.poisk_po_variantam'),
+      clearSearch: this.i18n.translate('ui.searchable_select.ochistit_poisk'),
+      clear: this.i18n.translate('ui.searchable_select.ochistit_vybor'),
+      none: this.i18n.translate('ui.searchable_select.ne_vybrano_snyat_vybor'),
+      noResults: this.i18n.translate('ui.searchable_select.nichego_ne_naydeno'),
+      loading: this.i18n.translate('common.loading'),
+      loadFailed: this.i18n.translate('ui.remote_lookup.failed'),
+      retry: this.i18n.translate('common.retry'),
+      loadMore: this.i18n.translate('common.load_more'),
     },
     date: {
       placeholder: this.i18n.translate('ui.date.placeholder'),
