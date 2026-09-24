@@ -2,6 +2,7 @@ import { OrgUnit } from './org-units.models';
 import { safeNumericRecordId } from '../../../core/services/search-target';
 import { TreeTableColumns } from '../../../shared/ui-kit/components/tree-table/tree-table.component';
 import { flattenTree, TreeRow } from '../../../shared/ui-kit/components/tree-table/tree.utils';
+import type { SMTTreeOption } from '../../../shared/ui-kit/components/forms/tree-select';
 export interface OrgUnitNode { unit: OrgUnit; children: OrgUnitNode[]; }
 export const orgUnitKindKeys: Readonly<Record<string, string>> = Object.assign(Object.create(null), {
   company: 'iam.org_units.kind_company', region: 'iam.org_units.kind_region',
@@ -25,6 +26,15 @@ export function orderedTree(units: readonly OrgUnit[]): OrgUnitNode[] {
   };
   const roots = sorted.filter(unit => unit.parentId === null || !ids.has(unit.parentId)).flatMap(visit);
   return [...roots, ...sorted.flatMap(visit)];
+}
+/** Units as tree-select options: the name, with the code beside it. */
+export function orgUnitTreeOptions(nodes: readonly OrgUnitNode[]): SMTTreeOption<number>[] {
+  return nodes.map(node => ({
+    id: node.unit.id,
+    label: node.unit.name,
+    subLabel: node.unit.code,
+    children: node.children.length ? orgUnitTreeOptions(node.children) : undefined,
+  }));
 }
 export function descendants(units: readonly OrgUnit[], id: number): Set<number> {
   const result = new Set<number>();

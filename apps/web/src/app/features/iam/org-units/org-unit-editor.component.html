@@ -20,10 +20,9 @@
     @if (fieldError('kind'); as message) { <small [id]="formId + '-kind-error'">{{ message }}</small> }
     @if (editing && original.parentId !== null) {
       <label [for]="formId + '-parent'">{{ 'iam.org_units.parent' | t }}</label>
-      <select [id]="formId + '-parent'" name="parentId" [(ngModel)]="draft.parentId"
-        [attr.aria-invalid]="fieldError('parentId') ? 'true' : null" [attr.aria-describedby]="fieldError('parentId') ? formId + '-parent-error' : null">
-        @for (unit of parents; track unit.id) { <option [ngValue]="unit.id">{{ unit.code }} · {{ unit.name }}</option> }
-      </select>
+      <smt-tree-select [smtTriggerId]="formId + '-parent'" name="parentId" [(ngModel)]="draft.parentId" [nodes]="parentTree"
+        [invalid]="!!fieldError('parentId')" [smtDescribedBy]="fieldError('parentId') ? formId + '-parent-error' : null" />
+
       @if (fieldError('parentId'); as message) { <small [id]="formId + '-parent-error'">{{ message }}</small> }
     } @else { <p>{{ (original.parentId === null ? 'iam.org_units.root' : 'iam.org_units.parent') | t }}{{ original.parentId === null ? '' : ': ' + original.parentId }}</p> }
     @if (editing) {

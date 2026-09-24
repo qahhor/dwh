@@ -1,8 +1,7 @@
-/* Our code: the thin ControlValueAccessor bridge from the forms decision
- * (variant A) for screens still on `ngModel` or reactive forms. It applies
- * only with those directives, so it never competes with `[formField]`. */
+/* Our code: the ngModel bridge for smt-multi-select (see ../picker-value-accessor.ts). */
 import { Directive, forwardRef, inject } from '@angular/core';
-import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
+import { NG_VALUE_ACCESSOR } from '@angular/forms';
+import { BridgedPicker, PickerValueAccessor } from '../picker-value-accessor';
 import { SMTMultiSelectComponent } from './multi-select.component';
 
 @Directive({
@@ -10,29 +9,8 @@ import { SMTMultiSelectComponent } from './multi-select.component';
   standalone: true,
   providers: [{ provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => SMTMultiSelectValueAccessor), multi: true }],
 })
-export class SMTMultiSelectValueAccessor implements ControlValueAccessor {
-  private readonly select = inject(SMTMultiSelectComponent);
+export class SMTMultiSelectValueAccessor extends PickerValueAccessor<readonly unknown[]> {
+  protected readonly picker = inject(SMTMultiSelectComponent) as unknown as BridgedPicker<readonly unknown[]>;
 
-  /** True while the form writes a value in, so that write is not reported back as a change. */
-  private writing = false;
-
-  writeValue(value: readonly unknown[] | null): void {
-    this.writing = true;
-    this.select.value.set(value ?? []);
-    this.writing = false;
-  }
-
-  registerOnChange(onChange: (value: readonly unknown[]) => void): void {
-    this.select.value.subscribe(value => {
-      if (!this.writing) onChange(value);
-    });
-  }
-
-  registerOnTouched(onTouched: () => void): void {
-    this.select.touch.subscribe(() => onTouched());
-  }
-
-  setDisabledState(disabled: boolean): void {
-    this.select.setDisabledFromForms(disabled);
-  }
+  protected override readonly empty: readonly unknown[] = [];
 }

@@ -50,6 +50,10 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   click toggles options, and Backspace in an empty search removes the last
   chip. It shares `smt-select`'s keyboard, overlay and screen reader
   behaviour.
+- `smt-tree-select` for picking one node of a hierarchy: a combobox whose
+  list is a tree, with Right and Left to open, close and move between levels,
+  every node announced with its level and position, and a search that keeps
+  each match inside its parents.
 - Explicit primitive colour scales (`--color-<hue>-<step>`) behind the existing
   semantic design tokens, so a neighbouring step is available where one is
   needed for contrast.
@@ -129,6 +133,8 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   chosen with `smt-select`; remote search, "Load more" and retry work as
   before.
 - A task's co-executors and observers are chosen with `smt-multi-select`.
+- An organizational unit's parent is chosen from the structure as a tree
+  instead of a flat list of every unit.
 
 - Every date field uses the new date picker instead of the browser's own:
   the audit log and security event filters, the UPL upload period and
@@ -173,6 +179,10 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   default.
 
 ### Fixed
+
+- Opening and at once closing a dialog with a date, select or tree field
+  bound through `ngModel` no longer throws NG0953: the fields ignore a form
+  that registers with them after they are gone.
 
 - The design token audit also checks `.scss` files. It had skipped them, so
   the dragged table row kept a fixed white background in the dark theme;
