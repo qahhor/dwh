@@ -30,25 +30,22 @@ import { LocalSort, LocalSortValue, sortRows } from './local-sort';
   styles: [`:host { display: block; min-width: 0; }`],
 })
 export class UiLocalTableComponent<T> {
+  private readonly i18n = inject(I18nService);
+
   readonly rows = input.required<readonly T[]>();
   readonly config = input.required<TableConfig<T>>();
+
   /** How each sortable column reads a row; a column without a reader does not sort. */
   readonly sortValues = input<Readonly<Record<string, (row: T) => LocalSortValue>>>({});
   readonly loading = input(false);
   readonly emptyTemplate = input<TemplateRef<unknown> | null>(null);
+
   readonly rowClick = output<T>();
 
-  private readonly i18n = inject(I18nService);
   protected readonly sort = signal<LocalSort | null>(null);
 
   protected readonly sortedRows = computed(() =>
     sortRows(this.rows(), this.sort(), this.sortValues(), this.locale()));
-
-  /** The reader's language for comparing text; a stand-in service without it falls back to Russian. */
-  private locale(): string {
-    const current = (this.i18n as Partial<I18nService>).currentLang;
-    return typeof current === 'function' ? current() : 'ru';
-  }
 
   /** The config with sorting offered where a reader exists and the current direction shown. */
   protected readonly shownConfig = computed<TableConfig<T>>(() => {
@@ -65,4 +62,10 @@ export class UiLocalTableComponent<T> {
     }));
     return { ...config, columns };
   });
+
+  /** The reader's language for comparing text; a stand-in service without it falls back to Russian. */
+  private locale(): string {
+    const current = (this.i18n as Partial<I18nService>).currentLang;
+    return typeof current === 'function' ? current() : 'ru';
+  }
 }

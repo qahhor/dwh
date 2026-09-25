@@ -93,20 +93,11 @@ export class UiBarChartComponent {
   readonly points = input.required<readonly BarChartPoint[]>();
   /** What the chart shows, for its accessible name and the table's caption. */
   readonly caption = input.required<string>();
+
   /** The header of the table's first column (the axis), e.g. "Day". */
   readonly axisLabel = input('');
 
-  readonly captionId = `bar-chart-caption-${nextChartId++}`;
-  readonly height = 180;
-  private readonly step = 20;
-  private readonly gap = 4;
-
   readonly width = computed(() => Math.max(1, this.points().length) * this.step);
-
-  private readonly max = computed(() => {
-    const totals = this.points().map(point => this.series().reduce((sum, s) => sum + (point.values[s.key] ?? 0), 0));
-    return niceMax(Math.max(0, ...totals));
-  });
 
   readonly ticks = computed(() => {
     const max = this.max();
@@ -127,6 +118,16 @@ export class UiBarChartComponent {
       return { index, x: index * this.step + this.gap / 2, w: this.step - this.gap, parts, title };
     });
   });
+
+  private readonly max = computed(() => {
+    const totals = this.points().map(point => this.series().reduce((sum, s) => sum + (point.values[s.key] ?? 0), 0));
+    return niceMax(Math.max(0, ...totals));
+  });
+
+  readonly captionId = `bar-chart-caption-${nextChartId++}`;
+  readonly height = 180;
+  private readonly step = 20;
+  private readonly gap = 4;
 }
 
 /** A round top for the scale (1, 2, 5, 10, 20, 50…), so gridlines fall on readable numbers. */

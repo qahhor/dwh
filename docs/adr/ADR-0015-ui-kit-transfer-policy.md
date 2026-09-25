@@ -438,3 +438,10 @@ ADR-0012 выбрал Angular Material + CDK и отклонил Tailwind как
        возврат на ту же страницу после входа). `idempotencyKeyInterceptor`:
        UUID в `Idempotency-Key` для изменений и два повтора под тем же ключом
        при 0/502/503/504; исключения повторяют ограничения `IdempotencyFilter`.
+38. [x] Инструменты (п. 30 роадмапа, 2026-09-25): правило кита
+       `order-angular-signals` (MIT) перенесено как `scripts/signal-order-audit.mjs`
+       на TypeScript API — ESLint в приложении нет; обычные поля сохраняют порядок
+       объявления (инициализаторы зависят друг от друга), нарушители — в
+       сокращающемся baseline. По идее kernel — `*.i18n.spec.ts` на фичу через
+       `src/testing/feature-i18n.ts`. По идее кита — таблица покрытия в сводке CI
+       с нижней планкой (`scripts/coverage-summary.mjs`).

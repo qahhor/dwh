@@ -149,22 +149,23 @@ let nextHistoryId = 0;
   `]
 })
 export class UiRecordHistoryComponent {
-  /** The kind of record, as the server names it: `tasks`, `projects`, `users`. */
-  readonly kind = input.required<string>();
-  readonly recordId = input.required<number | string>();
-
   private readonly api = inject(ApiService);
   private readonly i18n = inject(I18nService);
   private readonly destroyRef = inject(DestroyRef);
 
-  readonly headingId = `record-history-heading-${nextHistoryId}`;
-  readonly panelId = `record-history-panel-${nextHistoryId++}`;
+  /** The kind of record, as the server names it: `tasks`, `projects`, `users`. */
+  readonly kind = input.required<string>();
+  readonly recordId = input.required<number | string>();
+
   readonly open = signal(false);
   readonly entries = signal<HistoryEntry[]>([]);
   readonly loading = signal(false);
   readonly failed = signal(false);
   readonly loaded = signal(false);
   readonly nextCursor = signal<string | null>(null);
+
+  readonly headingId = `record-history-heading-${nextHistoryId}`;
+  readonly panelId = `record-history-panel-${nextHistoryId++}`;
   private request?: Subscription;
 
   constructor() {

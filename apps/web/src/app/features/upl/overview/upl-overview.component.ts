@@ -208,17 +208,15 @@ export class UplOverviewComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly i18n = inject(I18nService);
 
-  readonly periods = UPL_OVERVIEW_PERIODS;
-  readonly days = signal<UplOverviewPeriod>(30);
-  readonly data = signal<UplOverview | null>(null);
-  readonly loading = signal(false);
-  readonly failed = signal(false);
-  private request?: Subscription;
-
   private readonly sourceCell = viewChild.required<TemplateRef<unknown>>('sourceCell');
   private readonly stateCell = viewChild.required<TemplateRef<unknown>>('stateCell');
   private readonly lastCell = viewChild.required<TemplateRef<unknown>>('lastCell');
   private readonly dueCell = viewChild.required<TemplateRef<unknown>>('dueCell');
+
+  readonly days = signal<UplOverviewPeriod>(30);
+  readonly data = signal<UplOverview | null>(null);
+  readonly loading = signal(false);
+  readonly failed = signal(false);
 
   readonly chartSeries = computed<BarChartSeries[]>(() => [
     { key: 'applied', label: this.i18n.translate('upl.overview.totals.applied'), color: 'var(--success)' },
@@ -236,13 +234,6 @@ export class UplOverviewComponent implements OnInit {
   readonly freshnessRows = computed(() => [...(this.data()?.freshness ?? [])]
     .sort((a, b) => SEVERITY[a.state] - SEVERITY[b.state] || a.name.localeCompare(b.name)));
 
-  readonly freshnessSort = {
-    source: (f: UplSourceFreshness) => f.name,
-    state: (f: UplSourceFreshness) => SEVERITY[f.state],
-    last: (f: UplSourceFreshness) => f.lastPeriodTo,
-    due: (f: UplSourceFreshness) => f.dueBy
-  };
-
   readonly freshnessConfig = computed<TableConfig<UplSourceFreshness>>(() => {
     const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
     const cell = (template: Signal<TemplateRef<unknown>>) => ({ type: 'templateRef' as const, value: template });
@@ -259,6 +250,16 @@ export class UplOverviewComponent implements OnInit {
       columnsOrder: ['source', 'state', 'last', 'due']
     };
   });
+
+  readonly periods = UPL_OVERVIEW_PERIODS;
+  private request?: Subscription;
+
+  readonly freshnessSort = {
+    source: (f: UplSourceFreshness) => f.name,
+    state: (f: UplSourceFreshness) => SEVERITY[f.state],
+    last: (f: UplSourceFreshness) => f.lastPeriodTo,
+    due: (f: UplSourceFreshness) => f.dueBy
+  };
 
   ngOnInit(): void {
     this.load();

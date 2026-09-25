@@ -79,12 +79,22 @@ jobs:
           fi
           npm run i18n:audit
 
-      - name: Test, typecheck & build web application
+      - name: Validate Angular class member order
+        working-directory: apps/web
+        run: npm run signals:audit
+
+      - name: Test with coverage, typecheck & build web application
         working-directory: apps/web
         run: |
-          npm test
+          npm run test:coverage
           npm run typecheck
           npm run build
+
+      # The coverage table lands in the job summary of every pull request; the
+      # step fails when coverage drops under the floor in coverage-summary.mjs.
+      - name: Report web coverage
+        working-directory: apps/web
+        run: node scripts/coverage-summary.mjs >> "$GITHUB_STEP_SUMMARY"
 
       # Axe (WCAG 2.1 A/AA) on the rebuilt screens in both themes, against the
       # production build with a mocked API: no backend, database or Docker.

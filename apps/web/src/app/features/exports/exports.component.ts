@@ -109,12 +109,6 @@ export class ExportsComponent implements OnInit {
   private readonly i18n = inject(I18nService);
   private readonly destroyRef = inject(DestroyRef);
 
-  readonly items = signal<ExportItem[]>([]);
-  readonly loading = signal(true);
-  readonly failed = signal(false);
-  private poll?: Subscription;
-  private request?: Subscription;
-
   private readonly listCell = viewChild.required<TemplateRef<unknown>>('listCell');
   private readonly stateCell = viewChild.required<TemplateRef<unknown>>('stateCell');
   private readonly rowsCell = viewChild.required<TemplateRef<unknown>>('rowsCell');
@@ -122,14 +116,9 @@ export class ExportsComponent implements OnInit {
   private readonly expiresCell = viewChild.required<TemplateRef<unknown>>('expiresCell');
   private readonly fileCell = viewChild.required<TemplateRef<unknown>>('fileCell');
 
-  /** The journal holds a person's last exports whole, so a header click sorts them all. */
-  readonly sortValues = {
-    list: (e: ExportItem) => this.listTitle(e),
-    state: (e: ExportItem) => this.stateText(e),
-    rows: (e: ExportItem) => e.rowsCount,
-    created: (e: ExportItem) => new Date(e.createdAt),
-    expires: (e: ExportItem) => new Date(e.expiresAt)
-  };
+  readonly items = signal<ExportItem[]>([]);
+  readonly loading = signal(true);
+  readonly failed = signal(false);
 
   readonly config = computed<TableConfig<ExportItem>>(() => {
     const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
@@ -149,6 +138,18 @@ export class ExportsComponent implements OnInit {
       columnsOrder: ['list', 'state', 'rows', 'created', 'expires', 'file']
     };
   });
+
+  private poll?: Subscription;
+  private request?: Subscription;
+
+  /** The journal holds a person's last exports whole, so a header click sorts them all. */
+  readonly sortValues = {
+    list: (e: ExportItem) => this.listTitle(e),
+    state: (e: ExportItem) => this.stateText(e),
+    rows: (e: ExportItem) => e.rowsCount,
+    created: (e: ExportItem) => new Date(e.createdAt),
+    expires: (e: ExportItem) => new Date(e.expiresAt)
+  };
 
   ngOnInit(): void {
     this.load();
@@ -170,13 +171,6 @@ export class ExportsComponent implements OnInit {
     });
   }
 
-  /** Looks again soon while an export is unfinished; a finished journal is left alone. */
-  private schedule(items: ExportItem[]): void {
-    this.poll?.unsubscribe();
-    if (!items.some(e => e.state === 'queued' || e.state === 'running')) return;
-    this.poll = timer(POLL_MS).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.load());
-  }
-
   listTitle(e: ExportItem): string {
     const key = LIST_TITLES[e.list];
     return key ? this.i18n.translate(key) : e.list;
@@ -196,5 +190,12 @@ export class ExportsComponent implements OnInit {
 
   fileUrl(e: ExportItem): string {
     return this.exports.fileUrl(e.id);
+  }
+
+  /** Looks again soon while an export is unfinished; a finished journal is left alone. */
+  private schedule(items: ExportItem[]): void {
+    this.poll?.unsubscribe();
+    if (!items.some(e => e.state === 'queued' || e.state === 'running')) return;
+    this.poll = timer(POLL_MS).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.load());
   }
 }

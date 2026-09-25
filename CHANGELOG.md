@@ -9,6 +9,19 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Front-end tooling (roadmap item 30). `npm run signals:audit` checks the
+  member order of Angular classes (inject, inputs, outputs, models, queries,
+  signals, computed, effects, fields, constructor, methods; public before
+  private), ported from the kit's `order-angular-signals` rule to the
+  TypeScript API; `--fix <file>` reorders a file. The 84 classes that broke
+  the order are listed in a baseline that may only shrink. A feature can now
+  carry an `*.i18n.spec.ts` (`src/testing/feature-i18n.ts`): its keys are in
+  ru.json, in en.json where it ships English, keys built at run time are
+  declared, and none of its keys is dead — exports, notifications,
+  announcements and the data overview have one. CI runs the web tests with
+  coverage and puts the table in the job summary of every pull request,
+  failing below a floor just under today's figures. The web tests type-check
+  against Node types through `tsconfig.spec.json`.
 - HTTP interceptors (roadmap item 29). A 401 from the API while signed in
   signs the tab out once — not a toast per failed request — tells the other
   tabs, explains why and, after signing in again, returns to the same page;

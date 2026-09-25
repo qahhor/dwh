@@ -35,14 +35,15 @@ import { I18nService } from '../../core/services/i18n.service';
   `]
 })
 export class UiKpiCardComponent {
+  private readonly i18n = inject(I18nService);
+
   readonly label = input.required<string>();
   readonly value = input.required<number>();
+
   /** The same figure in the period before; none — no comparison. */
   readonly previous = input<number | null>(null);
   /** Which way is good for this figure. */
   readonly goodWhen = input<'up' | 'down' | 'neutral'>('up');
-
-  private readonly i18n = inject(I18nService);
 
   readonly shown = computed(() => this.number(this.value()));
 

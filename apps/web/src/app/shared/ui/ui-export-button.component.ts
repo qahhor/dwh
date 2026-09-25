@@ -35,16 +35,17 @@ import { UiButtonComponent } from './ui-button.component';
   `,
 })
 export class UiExportButtonComponent {
-  readonly meta = input<QueryListMeta | null>(null);
+  private readonly exports = inject(ExportsService);
+  private readonly i18n = inject(I18nService);
+  private readonly toast = inject(ToastService);
+
   readonly views = input.required<ListViewState>();
+
+  readonly meta = input<QueryListMeta | null>(null);
   /** The search box's text, when the screen has one. */
   readonly search = input<string | null>(null);
   /** List options the export keeps, e.g. the files list's scope. */
   readonly options = input<Record<string, string> | null>(null);
-
-  private readonly exports = inject(ExportsService);
-  private readonly i18n = inject(I18nService);
-  private readonly toast = inject(ToastService);
 
   readonly busy = signal(false);
 
