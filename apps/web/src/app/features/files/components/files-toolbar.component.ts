@@ -1,13 +1,15 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '../../../core/services/i18n.service';
+import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '../../../shared/ui-kit/components/forms/radio-group';
+import { I18nService } from '../../../core/services/i18n.service';
 
 @Component({
   selector: 'app-files-toolbar',
   standalone: true,
   imports: [
-    CommonModule,
+    SMTRadioGroupComponent, CommonModule,
     FormsModule,
     TranslatePipe
   ],
@@ -15,28 +17,13 @@ import { TranslatePipe } from '../../../core/services/i18n.service';
     <div class="filter-toolbar">
       <div class="toolbar-left">
         <!-- Scope Tabs -->
-        <div class="scope-tabs" role="group" [attr.aria-label]="'files.oblast_faylov' | t">
-          <button
-            type="button"
-            class="tab-btn"
-            [class.active]="scope === 'all'"
-            [attr.aria-pressed]="scope === 'all'"
-            (click)="scopeChange.emit('all')"
-          >
-            <span class="material-symbols-outlined" aria-hidden="true">folder_shared</span>
-            {{ 'files.vse_fayly_kompanii' | t }}
-          </button>
-          <button
-            type="button"
-            class="tab-btn"
-            [class.active]="scope === 'mine'"
-            [attr.aria-pressed]="scope === 'mine'"
-            (click)="scopeChange.emit('mine')"
-          >
-            <span class="material-symbols-outlined" aria-hidden="true">person</span>
-            {{ 'files.moi_fayly' | t }}
-          </button>
-        </div>
+        <smt-radio-group
+          smtAppearance="segmented"
+          class="scope-filter"
+          [options]="scopeOptions()"
+          [value]="scope"
+          [smtAriaLabel]="'files.oblast_faylov' | t"
+          (valueChange)="scopeChange.emit($event ?? scope)" />
 
         <!-- Search Input -->
         <div class="search-box">
@@ -93,45 +80,10 @@ import { TranslatePipe } from '../../../core/services/i18n.service';
       gap: 8px;
     }
 
-    .scope-tabs {
-      display: flex;
-      align-items: center;
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 3px;
-      gap: 2px;
-    }
 
-    .tab-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text-light);
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      transition: all 0.15s ease;
-      white-space: nowrap;
-    }
 
-    .tab-btn .material-symbols-outlined {
-      font-size: 16px;
-    }
 
-    .tab-btn:hover {
-      color: var(--text-main);
-      background: var(--bg-hover);
-    }
 
-    .tab-btn.active {
-      background: var(--primary);
-      color: var(--on-primary);
-    }
 
     .search-box {
       position: relative;
@@ -228,6 +180,9 @@ import { TranslatePipe } from '../../../core/services/i18n.service';
   `]
 })
 export class FilesToolbarComponent {
+  /** Texts of the radio options below; translated again when the language changes. */
+  private readonly optionText = inject(I18nService);
+
   @Input() scope: 'all' | 'mine' = 'all';
   @Input() searchQuery = '';
 
@@ -236,4 +191,13 @@ export class FilesToolbarComponent {
   @Output() search = new EventEmitter<void>();
   @Output() clear = new EventEmitter<void>();
   @Output() refresh = new EventEmitter<void>();
+
+  private readonly scopeMemo = optionsMemo<SMTRadioOption<'all' | 'mine'>[]>();
+
+  scopeOptions(): SMTRadioOption<'all' | 'mine'>[] {
+    return this.scopeMemo([this.optionText.currentLang()], () => [
+      { value: 'all', label: this.optionText.translate('files.vse_fayly_kompanii'), icon: 'folder_shared' },
+      { value: 'mine', label: this.optionText.translate('files.moi_fayly'), icon: 'person' },
+    ]);
+  }
 }

@@ -61,7 +61,7 @@ describe('ProjectsComponent UI contracts', () => {
     const region = fixture.nativeElement.querySelector('.table-card[role="region"]') as HTMLElement;
 
     expect(fixture.nativeElement.querySelector(`label[for="${search.id}"]`)).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('[role="group"][aria-label="Режим отображения проектов"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[role="radiogroup"][aria-label="Режим отображения проектов"]')).not.toBeNull();
     expect(region.getAttribute('aria-label')).toBe('Таблица проектов');
     expect(region.querySelector('[role="table"]')?.getAttribute('aria-label')).toBe('Список проектов');
   });
@@ -538,7 +538,7 @@ describe('ProjectsComponent UI contracts', () => {
     expect(component.currentPage).toBe(1);
 
     const statusButtons = Array.from(
-      fixture.nativeElement.querySelectorAll('[data-testid="project-state-filter"]') as NodeListOf<HTMLButtonElement>
+      fixture.nativeElement.querySelectorAll('.status-filter [role="radio"]') as NodeListOf<HTMLElement>
     );
     for (const [label, visibleProject] of [
       ['Архив', 'Project 21'],

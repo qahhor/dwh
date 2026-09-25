@@ -8,6 +8,7 @@ import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
 import { FormTreeItem } from '../../../../core/models/rbac.models';
 import { MODULE_ICON_MAP, MODULE_NAME_KEY_MAP } from '../../roles/roles.models';
 import { EffectivePermissionItem, PersonalGrant, EffectivePermissionsResponse, PersonalPermissionsResponse } from '../users.models';
+import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '../../../../shared/ui-kit/components/forms/radio-group';
 
 export interface GroupedPermissionAction {
   action: string;
@@ -30,7 +31,7 @@ export interface GroupedPermissionModule {
 @Component({
   selector: 'app-user-effective-permissions-panel',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslatePipe, UiButtonComponent],
+  imports: [SMTRadioGroupComponent, CommonModule, FormsModule, TranslatePipe, UiButtonComponent],
   template: `
     <div class="effective-perms-container">
       <!-- Loading State -->
@@ -157,32 +158,13 @@ export interface GroupedPermissionModule {
             />
           </div>
 
-          <div class="source-pills" role="group" [attr.aria-label]="'iam.istochnik_prava' | t">
-            <button
-              type="button"
-              class="pill-btn"
-              [class.active]="sourceFilter() === 'all'"
-              (click)="sourceFilter.set('all')"
-            >
-              {{ 'iam.vse_istochniki' | t }} ({{ effectiveItems().length }})
-            </button>
-            <button
-              type="button"
-              class="pill-btn"
-              [class.active]="sourceFilter() === 'role'"
-              (click)="sourceFilter.set('role')"
-            >
-              {{ 'iam.istochnik_rol' | t }} ({{ roleCount() }})
-            </button>
-            <button
-              type="button"
-              class="pill-btn"
-              [class.active]="sourceFilter() === 'personal'"
-              (click)="sourceFilter.set('personal')"
-            >
-              {{ 'iam.istochnik_personal' | t }} ({{ personalCount() }})
-            </button>
-          </div>
+          <smt-radio-group
+            smtAppearance="chips"
+            class="source-filter"
+            [options]="sourceOptions()"
+            [value]="sourceFilter()"
+            [smtAriaLabel]="'iam.istochnik_prava' | t"
+            (valueChange)="sourceFilter.set($event ?? 'all')" />
         </div>
 
         <!-- Empty State -->
@@ -420,30 +402,6 @@ export interface GroupedPermissionModule {
       border-color: var(--primary);
     }
 
-    .source-pills {
-      display: flex;
-      gap: 4px;
-      background: var(--bg-hover);
-      padding: 3px;
-      border-radius: var(--radius-sm, 6px);
-    }
-    .pill-btn {
-      padding: 4px 10px;
-      border: none;
-      border-radius: 4px;
-      background: transparent;
-      font-size: 0.78rem;
-      font-weight: 500;
-      color: var(--text-muted);
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }
-    .pill-btn:hover { color: var(--text-main); }
-    .pill-btn.active {
-      background: var(--bg-surface);
-      color: var(--primary);
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-    }
 
     .modules-accordion {
       display: flex;
@@ -561,6 +519,9 @@ export interface GroupedPermissionModule {
   `]
 })
 export class UserEffectivePermissionsPanelComponent implements OnInit, OnChanges {
+  /** Texts of the radio options below; translated again when the language changes. */
+  private readonly optionText = inject(I18nService);
+
   @Input({ required: true }) userId!: number;
   @Input() canAssign: boolean = false;
   @Input() userRoleNames: string[] = [];
@@ -766,5 +727,15 @@ export class UserEffectivePermissionsPanelComponent implements OnInit, OnChanges
       }
     });
   }
+
+  /** The sources as chips with how many rights come from each; the pills before announced no choice at all. */
+  readonly sourceOptions = computed<SMTRadioOption<'all' | 'role' | 'personal'>[]>(() => {
+    this.optionText.currentLang();
+    return [
+      { value: 'all', label: this.optionText.translate('iam.vse_istochniki'), count: this.effectiveItems().length },
+      { value: 'role', label: this.optionText.translate('iam.istochnik_rol'), count: this.roleCount() },
+      { value: 'personal', label: this.optionText.translate('iam.istochnik_personal'), count: this.personalCount() },
+    ];
+  });
 }
 

@@ -20,6 +20,7 @@ import {
   UplOverviewPeriod,
   UplSourceFreshness
 } from './overview-api';
+import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '../../../shared/ui-kit/components/forms/radio-group';
 
 /** How often an open, visible overview asks for fresh figures. */
 const REFRESH_MS = 5 * 60 * 1000;
@@ -47,7 +48,7 @@ const STATE_KEY: Record<UplFreshnessState, string> = {
   selector: 'app-upl-overview',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, RouterLink, TranslatePipe, UiBadgeComponent, UiButtonComponent, UiDashboardCardComponent, UiLocalTableComponent, UiKpiCardComponent, UiBarChartComponent],
+  imports: [SMTRadioGroupComponent, DatePipe, RouterLink, TranslatePipe, UiBadgeComponent, UiButtonComponent, UiDashboardCardComponent, UiLocalTableComponent, UiKpiCardComponent, UiBarChartComponent],
   template: `
     <section class="overview" aria-labelledby="overview-title">
       <header class="overview__head">
@@ -56,15 +57,14 @@ const STATE_KEY: Record<UplFreshnessState, string> = {
           <p class="overview__subtitle">{{ 'upl.overview.subtitle' | t }}</p>
         </div>
         <div class="overview__controls">
-          <div class="overview__periods" role="group" [attr.aria-label]="'upl.overview.period' | t">
-            @for (period of periods; track period) {
-              <button type="button" class="overview__period" data-testid="overview-period"
-                [class.overview__period--active]="days() === period" [attr.aria-pressed]="days() === period"
-                (click)="choose(period)">
-                {{ 'upl.overview.days' | t: { n: period } }}
-              </button>
-            }
-          </div>
+          <smt-radio-group
+            smtAppearance="segmented"
+            class="overview__period-picker"
+            data-testid="overview-periods"
+            [options]="periodOptions()"
+            [value]="days()"
+            [smtAriaLabel]="'upl.overview.period' | t"
+            (valueChange)="choose($event ?? days())" />
           <ui-button variant="secondary" size="sm" icon="refresh" data-testid="overview-refresh" (onClick)="load()">
             {{ 'common.refresh' | t }}
           </ui-button>
@@ -178,13 +178,6 @@ const STATE_KEY: Record<UplFreshnessState, string> = {
     .overview__title { margin: 0; font-size: 20px; font-weight: 700; color: var(--text-main); }
     .overview__subtitle { margin: 4px 0 0; font-size: 13px; color: var(--text-muted); }
     .overview__controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-    .overview__periods { display: inline-flex; border: 1px solid var(--border-color); border-radius: var(--radius-sm); overflow: hidden; }
-    .overview__period {
-      border: 0; background: var(--bg-surface); color: var(--text-main); padding: 6px 12px; font: inherit; font-size: 12px; cursor: pointer;
-    }
-    .overview__period + .overview__period { border-left: 1px solid var(--border-color); }
-    .overview__period--active { background: var(--primary); color: var(--on-primary); }
-    .overview__period:focus-visible { outline: 2px solid var(--focus-ring, var(--primary)); outline-offset: -2px; }
     .overview__stamp { margin: 0; font-size: 12px; color: var(--text-muted); }
     .overview__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px; }
     .overview__tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin: 0; }
@@ -204,6 +197,9 @@ const STATE_KEY: Record<UplFreshnessState, string> = {
   `]
 })
 export class UplOverviewComponent implements OnInit {
+  /** Texts of the radio options below; translated again when the language changes. */
+  private readonly optionText = inject(I18nService);
+
   private readonly api = inject(UplOverviewApi);
   private readonly destroyRef = inject(DestroyRef);
   private readonly i18n = inject(I18nService);
@@ -260,6 +256,8 @@ export class UplOverviewComponent implements OnInit {
     last: (f: UplSourceFreshness) => f.lastPeriodTo,
     due: (f: UplSourceFreshness) => f.dueBy
   };
+
+  private readonly periodMemo = optionsMemo<SMTRadioOption<UplOverviewPeriod>[]>();
 
   ngOnInit(): void {
     this.load();
@@ -330,5 +328,9 @@ export class UplOverviewComponent implements OnInit {
         this.failed.set(true);
       }
     });
+  }
+
+  periodOptions(): SMTRadioOption<UplOverviewPeriod>[] {
+    return this.periodMemo([this.optionText.currentLang()], () => this.periods.map(period => ({ value: period, label: this.optionText.translate('upl.overview.days', { n: period }) })));
   }
 }

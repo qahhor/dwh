@@ -19,6 +19,7 @@
       [class.smt-radio-group__item--checked]="selectedIndex() === index"
       [class]="option.tone ? 'smt-radio-group__item--tone-' + option.tone : ''"
       [style.--smt-radio-color]="option.color || null"
+      [attr.title]="option.title || null"
       [attr.aria-checked]="selectedIndex() === index ? 'true' : 'false'"
       [attr.aria-disabled]="itemDisabled(index) ? 'true' : null"
       [attr.aria-labelledby]="itemId(index) + '-label'"
@@ -31,9 +32,11 @@
       }
       @if (option.icon) {
         <span class="material-symbols-outlined smt-radio-group__icon" aria-hidden="true">{{ option.icon }}</span>
+      } @else if (option.color && !showDot()) {
+        <span class="smt-radio-group__swatch" aria-hidden="true"></span>
       }
       <span class="smt-radio-group__text">
-        <span class="smt-radio-group__label" [id]="itemId(index) + '-label'">{{ option.label }}</span>
+        <span class="smt-radio-group__label" [id]="itemId(index) + '-label'">{{ option.label }}@if (option.count !== undefined) {<span class="smt-radio-group__count"> {{ option.count }}</span>}</span>
         @if (option.hint) {
           <span class="smt-radio-group__hint" [id]="itemId(index) + '-hint'">{{ option.hint }}</span>
         }

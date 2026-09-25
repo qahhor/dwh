@@ -6,30 +6,13 @@
           <span class="count-badge">{{ 'tasks.loaded_count' | t:{count: tasks().length} }}</span>
 
           <!-- View Mode Switcher: Table / Kanban -->
-          <div class="status-tabs" role="group" [attr.aria-label]="'tasks.rezhim_otobrazheniya_zadach' | t">
-            <button
-              type="button"
-              class="status-tab"
-              [class.active]="viewMode === 'table'"
-              [attr.aria-pressed]="viewMode === 'table'"
-              (click)="viewMode = 'table'"
-              [title]="'tasks.tablichnyy_vid' | t"
-            >
-              <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">table_rows</span>
-              <span>{{ 'projects.spisok' | t }}</span>
-            </button>
-            <button
-              type="button"
-              class="status-tab"
-              [class.active]="viewMode === 'kanban'"
-              [attr.aria-pressed]="viewMode === 'kanban'"
-              (click)="viewMode = 'kanban'"
-              [title]="'tasks.kanban_doska' | t"
-            >
-              <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">view_kanban</span>
-              <span>{{ 'tasks.kanban' | t }}</span>
-            </button>
-          </div>
+          <smt-radio-group
+            smtAppearance="segmented"
+            class="view-switch"
+            [options]="viewOptions()"
+            [value]="viewMode"
+            [smtAriaLabel]="'tasks.rezhim_otobrazheniya_zadach' | t"
+            (valueChange)="viewMode = $event ?? viewMode" />
         </div>
 
         <div class="header-right">

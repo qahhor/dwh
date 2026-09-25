@@ -77,7 +77,7 @@ describe('UplOverviewComponent', () => {
       .mockReturnValueOnce(slow)
       .mockReturnValueOnce(of(overview(90, 40)));
     const { fixture, host } = await render(get);
-    const buttons = () => [...host.querySelectorAll<HTMLButtonElement>('[data-testid="overview-period"]')];
+    const buttons = () => [...host.querySelectorAll<HTMLElement>('[data-testid="overview-periods"] [role="radio"]')];
 
     buttons()[0].click();
     fixture.detectChanges();
@@ -87,7 +87,7 @@ describe('UplOverviewComponent', () => {
     fixture.detectChanges();
 
     expect(get.mock.calls.map(call => call[0])).toEqual([30, 7, 90]);
-    expect(buttons().map(button => button.getAttribute('aria-pressed'))).toEqual(['false', 'false', 'true']);
+    expect(buttons().map(button => button.getAttribute('aria-checked'))).toEqual(['false', 'false', 'true']);
     expect(host.querySelector('.kpi__value')?.textContent).toContain('40');
   });
 

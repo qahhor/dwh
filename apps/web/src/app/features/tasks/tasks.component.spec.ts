@@ -51,7 +51,7 @@ describe('TasksComponent UI contracts', () => {
     const row = region.querySelector('[role="rowgroup"] > [role="row"]') as HTMLElement;
 
     expect(fixture.nativeElement.querySelector(`label[for="${search.id}"]`)).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('[role="group"][aria-label="Режим отображения задач"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[role="radiogroup"][aria-label="Режим отображения задач"]')).not.toBeNull();
     expect(region.getAttribute('aria-label')).toBe('Таблица задач');
     expect(region.querySelector('[role="table"]')?.getAttribute('aria-label')).toBe('Список задач');
     // A plain table row: the title button is the keyboard way in, the row is not a stop of its own.
@@ -121,7 +121,7 @@ describe('TasksComponent UI contracts', () => {
     expect(fixture.nativeElement.querySelector('[role="dialog"]')?.textContent).toContain('Редактирование задачи');
     component.requestCloseEdit();
 
-    const kanbanToggle = Array.from(fixture.nativeElement.querySelectorAll('.header-left .status-tab') as NodeListOf<HTMLButtonElement>)
+    const kanbanToggle = Array.from(fixture.nativeElement.querySelectorAll('.header-left [role="radio"]') as NodeListOf<HTMLElement>)
       .find(button => button.textContent?.includes('Канбан'))!;
     kanbanToggle.click();
     fixture.detectChanges();
@@ -750,7 +750,7 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     component.searchQuery = 'missing';
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.empty-state-cell button')?.textContent).toContain('Сбросить все фильтры');
-    const kanbanToggle = Array.from(fixture.nativeElement.querySelectorAll('.header-left .status-tab') as NodeListOf<HTMLButtonElement>)
+    const kanbanToggle = Array.from(fixture.nativeElement.querySelectorAll('.header-left [role="radio"]') as NodeListOf<HTMLElement>)
       .find(button => button.textContent?.includes('Канбан'))!;
     kanbanToggle.click();
     fixture.detectChanges();
@@ -989,7 +989,7 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     });
 
     expect(component.tasks().map(item => item.id)).toEqual([1]);
-    const allButton = Array.from(fixture.nativeElement.querySelectorAll('.toolbar .status-tab') as NodeListOf<HTMLButtonElement>)
+    const allButton = Array.from(fixture.nativeElement.querySelectorAll('.toolbar .status-filter [role="radio"]') as NodeListOf<HTMLElement>)
       .find(button => button.textContent?.trim() === 'Все')!;
     allButton.click();
     fixture.detectChanges();
@@ -997,8 +997,8 @@ describe('TasksComponent asynchronous detail and editing state', () => {
 
     component.viewMode = 'kanban';
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.toolbar [role="group"][aria-label="Фильтр по статусу"]')).not.toBeNull();
-    const activeButton = Array.from(fixture.nativeElement.querySelectorAll('.toolbar .status-tab') as NodeListOf<HTMLButtonElement>)
+    expect(fixture.nativeElement.querySelector('.toolbar [role="radiogroup"][aria-label="Фильтр по статусу"]')).not.toBeNull();
+    const activeButton = Array.from(fixture.nativeElement.querySelectorAll('.toolbar .status-filter [role="radio"]') as NodeListOf<HTMLElement>)
       .find(button => button.textContent?.trim() === 'Активные')!;
     activeButton.click();
     fixture.detectChanges();

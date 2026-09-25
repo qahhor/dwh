@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Role } from '../../../../core/models/rbac.models';
@@ -6,11 +6,13 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
 import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
 import { GroupedForm, ModuleGroup } from '../roles.models';
 import { SMTAlertComponent } from '../../../../shared/ui-kit/components/alert';
+import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '../../../../shared/ui-kit/components/forms/radio-group';
+import { I18nService } from '../../../../core/services/i18n.service';
 
 @Component({
   selector: 'app-role-permissions-matrix',
   standalone: true,
-  imports: [SMTAlertComponent, CommonModule, FormsModule, TranslatePipe, UiButtonComponent],
+  imports: [SMTRadioGroupComponent, SMTAlertComponent, CommonModule, FormsModule, TranslatePipe, UiButtonComponent],
   template: `
     <!-- Role Meta Header & Save Button -->
     <div class="matrix-header-bar">
@@ -123,27 +125,13 @@ import { SMTAlertComponent } from '../../../../shared/ui-kit/components/alert';
       </div>
 
       <!-- Module Pill Selector -->
-      <div class="module-filter-pills" role="group" [attr.aria-label]="'iam.filtr_moduley_matricy_prav' | t">
-        <button
-          type="button"
-          class="mod-pill-btn"
-          [class.active]="selectedModuleTab === 'all'"
-          [attr.aria-pressed]="selectedModuleTab === 'all'"
-          (click)="selectedModuleTabChange.emit('all')"
-        >
-          {{ 'iam.all_sections_count' | t:{count: formsCount} }}
-        </button>
-        <button
-          *ngFor="let mod of moduleGroups"
-          type="button"
-          class="mod-pill-btn"
-          [class.active]="selectedModuleTab === mod.moduleCode"
-          [attr.aria-pressed]="selectedModuleTab === mod.moduleCode"
-          (click)="selectedModuleTabChange.emit(mod.moduleCode)"
-        >
-          {{ mod.moduleName }} ({{ getModuleActionsCount(mod) }})
-        </button>
-      </div>
+      <smt-radio-group
+        smtAppearance="chips"
+        class="module-filter"
+        [options]="moduleOptions()"
+        [value]="selectedModuleTab"
+        [smtAriaLabel]="'iam.filtr_moduley_matricy_prav' | t"
+        (valueChange)="selectedModuleTabChange.emit($event ?? selectedModuleTab)" />
     </div>
 
     <!-- Modules List -->
@@ -257,6 +245,9 @@ import { SMTAlertComponent } from '../../../../shared/ui-kit/components/alert';
   styleUrl: './role-permissions-matrix.component.css'
 })
 export class RolePermissionsMatrixComponent {
+  /** Texts of the radio options below; translated again when the language changes. */
+  private readonly optionText = inject(I18nService);
+
   @Input({ required: true }) role!: Role;
   @Input() isLoading = false;
   @Input() isSaving = false;
@@ -293,4 +284,14 @@ export class RolePermissionsMatrixComponent {
   @Output() toggleAllModule = new EventEmitter<{ mod: ModuleGroup; select: boolean }>();
   @Output() toggleAllForm = new EventEmitter<{ form: GroupedForm; select: boolean }>();
   @Output() togglePermission = new EventEmitter<{ formCode: string; action: string; event: Event }>();
+
+  private readonly moduleMemo = optionsMemo<SMTRadioOption<string>[]>();
+
+  /** "All sections" and each module as chips with its number of actions. */
+  moduleOptions(): SMTRadioOption<string>[] {
+    return this.moduleMemo([this.formsCount, this.moduleGroups, this.optionText.currentLang()], () => [
+      { value: 'all', label: this.optionText.translate('iam.all_sections_count', { count: this.formsCount }) },
+      ...this.moduleGroups.map(mod => ({ value: mod.moduleCode, label: mod.moduleName, count: this.getModuleActionsCount(mod) })),
+    ]);
+  }
 }

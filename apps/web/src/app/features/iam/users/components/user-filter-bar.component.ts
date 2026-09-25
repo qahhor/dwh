@@ -1,15 +1,17 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '../../../../core/services/i18n.service';
 import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
 import { Role } from '../../../../core/models/rbac.models';
+import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '../../../../shared/ui-kit/components/forms/radio-group';
+import { I18nService } from '../../../../core/services/i18n.service';
 
 @Component({
   selector: 'app-user-filter-bar',
   standalone: true,
   imports: [
-    CommonModule,
+    SMTRadioGroupComponent, CommonModule,
     FormsModule,
     TranslatePipe,
     UiButtonComponent
@@ -44,37 +46,13 @@ import { Role } from '../../../../core/models/rbac.models';
 
       <div class="toolbar-controls">
         <!-- Segmented Status Switcher -->
-        <div class="status-tabs" role="group" [attr.aria-label]="'iam.filtr_polzovateley_po_statusu' | t">
-          <button
-            type="button"
-            class="status-tab"
-            [class.active]="selectedState === ''"
-            [attr.aria-pressed]="selectedState === ''"
-            (click)="stateFilterChange.emit('')"
-          >
-            {{ 'common.all' | t }}
-          </button>
-          <button
-            type="button"
-            class="status-tab"
-            [class.active]="selectedState === 'A'"
-            [attr.aria-pressed]="selectedState === 'A'"
-            (click)="stateFilterChange.emit('A')"
-          >
-            <span class="status-tab-dot" style="background-color: var(--success);" aria-hidden="true"></span>
-            {{ 'iam.aktivnye' | t }}
-          </button>
-          <button
-            type="button"
-            class="status-tab"
-            [class.active]="selectedState === 'P'"
-            [attr.aria-pressed]="selectedState === 'P'"
-            (click)="stateFilterChange.emit('P')"
-          >
-            <span class="status-tab-dot" style="background-color: var(--danger);" aria-hidden="true"></span>
-            {{ 'iam.zablokirovannye' | t }}
-          </button>
-        </div>
+        <smt-radio-group
+          smtAppearance="segmented"
+          class="status-filter"
+          [options]="stateOptions()"
+          [value]="selectedState"
+          [smtAriaLabel]="'iam.filtr_polzovateley_po_statusu' | t"
+          (valueChange)="stateFilterChange.emit($event ?? selectedState)" />
 
         <!-- Grouped Filter Popover Trigger -->
         <div class="filter-popover-wrapper">
@@ -190,6 +168,13 @@ import { Role } from '../../../../core/models/rbac.models';
     </div>
   `,
   styles: [`
+    .filter-trigger-btn:focus-visible,
+    .clear-pill-btn:focus-visible,
+    .reset-all-filters-btn:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+      border-radius: var(--radius-sm);
+    }
     .toolbar {
       display: flex;
       align-items: center;
@@ -392,14 +377,6 @@ import { Role } from '../../../../core/models/rbac.models';
     }
 
     /* Accessibility focus indicators */
-    .status-tab:focus-visible,
-    .filter-trigger-btn:focus-visible,
-    .clear-pill-btn:focus-visible,
-    .reset-all-filters-btn:focus-visible {
-      outline: 2px solid var(--primary);
-      outline-offset: 2px;
-      border-radius: var(--radius-sm);
-    }
 
     @media (max-width: 640px) {
       .toolbar-controls {
@@ -407,14 +384,13 @@ import { Role } from '../../../../core/models/rbac.models';
         flex-wrap: wrap;
         min-width: 0;
       }
-      .status-tabs {
-        max-width: 100%;
-        overflow-x: auto;
-      }
     }
   `]
 })
 export class UserFilterBarComponent {
+  /** Texts of the radio options below; translated again when the language changes. */
+  private readonly optionText = inject(I18nService);
+
   @Input() searchQuery = '';
   @Input() selectedState = '';
   @Input() isFilterMenuOpen = false;
@@ -439,4 +415,14 @@ export class UserFilterBarComponent {
   @Output() clearRoleFilter = new EventEmitter<void>();
   @Output() clear2faFilter = new EventEmitter<void>();
   @Output() resetAllFilters = new EventEmitter<void>();
+
+  private readonly stateMemo = optionsMemo<SMTRadioOption<string>[]>();
+
+  stateOptions(): SMTRadioOption<string>[] {
+    return this.stateMemo([this.optionText.currentLang()], () => [
+      { value: '', label: this.optionText.translate('common.all') },
+      { value: 'A', label: this.optionText.translate('iam.aktivnye'), color: 'var(--success)' },
+      { value: 'P', label: this.optionText.translate('iam.zablokirovannye'), color: 'var(--danger)' },
+    ]);
+  }
 }

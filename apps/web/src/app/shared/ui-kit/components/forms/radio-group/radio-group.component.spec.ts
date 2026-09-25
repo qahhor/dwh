@@ -9,6 +9,7 @@ import { testI18n } from '../../../i18n/test-messages';
 import { tickInZone } from '../../../testing/zone-tick';
 import { SMTControlComponent } from '../control/control.component';
 import { SMTRadioGroupComponent, SMTRadioOption } from './radio-group.component';
+import { optionsMemo } from './radio-options';
 
 type Period = 'day' | 'week' | 'month' | 'year';
 
@@ -78,6 +79,31 @@ class LookHost {
     { value: 'high', label: 'High', tone: 'warning' },
   ];
 }
+
+@Component({
+  standalone: true,
+  imports: [SMTRadioGroupComponent],
+  template: `<smt-radio-group smtAppearance="chips" [(value)]="status" [options]="statuses" smtAriaLabel="Status" />`,
+})
+class CountHost {
+  status: string | number = 'active';
+  readonly statuses: SMTRadioOption<string | number>[] = [
+    { value: 'active', label: 'Active', title: 'Without the finished ones', count: 12 },
+    { value: 3, label: 'Review', color: '#7c3aed' },
+  ];
+}
+
+describe('optionsMemo', () => {
+  it('keeps the same list while its inputs stay the same', () => {
+    const memo = optionsMemo<string[]>();
+    let builds = 0;
+    const deps = ['ru', 1];
+    const first = memo(deps, () => { builds++; return ['a']; });
+    expect(memo(['ru', 1], () => { builds++; return ['b']; })).toBe(first);
+    expect(memo(['en', 1], () => { builds++; return ['c']; })).toEqual(['c']);
+    expect(builds).toBe(2);
+  });
+});
 
 describe('SMTRadioGroupComponent', () => {
   afterEach(() => TestBed.resetTestingModule());
@@ -182,5 +208,15 @@ describe('SMTRadioGroupComponent', () => {
     segmented.querySelectorAll<HTMLElement>('[role="radio"]')[0].click();
     await settle();
     expect(fixture.componentInstance.priority).toBe('low');
+  });
+
+  it('reads a count as part of the name, shows a title on hover and a colour mark without an icon', async () => {
+    const { element } = await render(CountHost);
+    const [active, review] = Array.from(element.querySelectorAll<HTMLElement>('[role="radio"]'));
+    const label = element.querySelector('#' + active.getAttribute('aria-labelledby')) as HTMLElement;
+    expect(label.textContent?.replace(/\s+/g, ' ').trim()).toBe('Active 12');
+    expect(active.getAttribute('title')).toBe('Without the finished ones');
+    expect(review.querySelector('.smt-radio-group__swatch')).not.toBeNull();
+    expect(review.style.getPropertyValue('--smt-radio-color')).toBe('#7c3aed');
   });
 });
