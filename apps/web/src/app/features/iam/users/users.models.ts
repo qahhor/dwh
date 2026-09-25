@@ -57,19 +57,6 @@ export function createDefaultUserEditForm(user: User): UserEditForm {
   };
 }
 
-export function getUserInitial(user: User): string {
-  return user.name ? user.name.trim().charAt(0).toUpperCase() : 'U';
-}
-
-export function getAvatarBgColor(name: string): string {
-  const colors = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#8b5cf6'];
-  let hash = 0;
-  for (let i = 0; i < (name || '').length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return colors[Math.abs(hash) % colors.length];
-}
-
 /** The manager's name, or their id while the name is unknown. */
 export function getManagerName(user: User, nameOf: (id: number) => string | null): string | null {
   if (!user.managerId) return null;

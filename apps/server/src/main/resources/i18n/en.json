@@ -1519,9 +1519,7 @@
   "iam.two_factor_disabled_short": "2FA disabled",
   "iam.view_user_named": "View user {name}",
   "iam.edit_user_named": "Edit user {name}",
-  "iam.block_user_named": "Block user {name}",
-  "iam.unblock_user_named": "Unblock user {name}",
-  "iam.delete_user_named": "Delete user {name}",
+  "iam.more_actions_named": "More actions: {name}",
   "iam.hide_password": "Hide password",
   "iam.show_password": "Show password",
   "notifications.mark_named_read": "Mark notification “{title}” as read",
@@ -1935,6 +1933,7 @@
   "ui.time.invalid": "Enter a time as hh:mm, such as 09:30",
   "ui.time.range": "Enter a time from {min} to {max}",
   "ui.textarea.counter": "{count} of {max} characters",
+  "ui.tag.remove": "Remove “{label}”",
   "common.operation_failed": "The operation failed",
   "common.connection_error": "Connection error",
   "common.server_unavailable": "The server is unavailable or there is no network connection",

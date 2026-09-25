@@ -9,6 +9,17 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Avatar, tags and menu button (roadmap item 33). `smt-avatar` shows a photo
+  or up to two initials on one of six token tones picked from the name —
+  decorative beside a written name, an image named by the person when alone —
+  and replaces eight hand-made avatars with their own colours (users list and
+  card, profile, sidebar, workload, task members and comments, project
+  members). `smt-tag` is a toned label with a named remove button;
+  `smt-tag-group` is a set of toggle tags, and the user dialogs pick roles
+  with it (the admin's own admin role shows locked, with the reason read out).
+  `smt-dropdown-button` is a menu button on the CDK menu (APG keyboard,
+  focus back to the trigger); the users list keeps view and edit on the row
+  and puts block, unblock and delete behind "More actions: <name>".
 - Data selects (roadmap item 32): `smt-data-select` and
   `smt-multi-data-select` feed themselves from a lookup source — the first
   page when opened, search after a pause, "load more", retry, and the name of

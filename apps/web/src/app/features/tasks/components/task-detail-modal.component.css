@@ -112,18 +112,6 @@
     }
     .comment-top { display: flex; justify-content: space-between; align-items: center; font-size: 11px; }
     .comment-author-badge { display: flex; align-items: center; gap: 5px; }
-    .avatar-mini {
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background-color: var(--primary);
-      color: var(--on-primary);
-      font-size: 9px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
     .comment-author { font-weight: 600; color: var(--text-main); }
     .comment-time { color: var(--text-muted); font-size: 10px; }
     .comment-text { font-size: 12px; color: var(--text-main); }
@@ -186,8 +174,6 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-    .avatar-executor { background-color: var(--info); }
-    .avatar-observer { background-color: var(--text-light); }
     .member-observer { opacity: 0.85; }
     .member-author-group {
       border-top: 1px dashed var(--border-color);

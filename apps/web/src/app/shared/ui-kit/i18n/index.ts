@@ -79,6 +79,7 @@ export interface SMTMessages {
   readonly date: SMTDateMessages;
   readonly time: SMTTimeMessages;
   readonly textarea: { readonly counter: (count: number, max: number) => string };
+  readonly tag: { readonly remove: (label: string) => string };
   readonly common: { readonly close: string; readonly cancel: string };
   readonly table: { readonly noResults: string };
   readonly dataTable: { readonly selectAll: string; readonly selectRow: string };
@@ -191,6 +192,9 @@ export class SMTI18nService {
     },
     textarea: {
       counter: (count, max) => this.i18n.translate('ui.textarea.counter', { count: String(count), max: String(max) }),
+    },
+    tag: {
+      remove: label => this.i18n.translate('ui.tag.remove', { label }),
     },
     modalConfirm: {
       title: this.i18n.translate('ui.modal.confirm_title'),

@@ -1261,10 +1261,7 @@
   "iam.two_factor_enabled": "2FA қосылған",
   "iam.two_factor_disabled_short": "2FA өшірілген",
   "iam.view_user_named": "Пайдаланушыны қарау {name}",
-  "iam.edit_user_named": "Пайдаланушыны өңдеу {name}",
-  "iam.block_user_named": "Пайдаланушыны бөгеу {name}",
-  "iam.unblock_user_named": "Пайдаланушы {name} бөгеуін алу",
-  "iam.delete_user_named": "Пайдаланушыны жою {name}",
+  "iam.edit_user_named": "Пайдаланушыны өңдеу {name}",
   "iam.hide_password": "Құпия сөзді жасыру",
   "iam.show_password": "Құпия сөзді көрсету",
   "notifications.mark_named_read": "«{title}» хабарландыруын оқылған деп белгілеңіз",

@@ -10,12 +10,13 @@ import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
 import { LoginAttemptRecord, User, UserSecuritySummary, UserSession } from '../../../../core/models/auth.models';
 import { UserOrgUnitsPanelComponent } from '../../org-units/public-api';
 import { UserEffectivePermissionsPanelComponent } from './user-effective-permissions-panel.component';
+import { SMTAvatarComponent } from '../../../../shared/ui-kit/components/avatar';
 
 @Component({
   selector: 'app-user-detail-modal',
   standalone: true,
   imports: [
-    CommonModule,
+    SMTAvatarComponent, CommonModule,
     TranslatePipe,
     UiModalComponent,
     UiButtonComponent,
@@ -41,9 +42,7 @@ import { UserEffectivePermissionsPanelComponent } from './user-effective-permiss
         <p *ngIf="routeRecordId">#{{ routeRecordId }}</p>
         <p *ngIf="!safeRecordId(u.id)" role="status">{{ 'search.record_readonly_id' | t }}</p>
         <div class="view-header-card">
-          <div class="avatar lg" [style.background-color]="getAvatarBgColor(u.name)">
-            {{ getUserInitial(u) }}
-          </div>
+          <smt-avatar [name]="u.name" smtSize="lg" />
           <div class="info">
             <h3 class="name">{{ u.name }}</h3>
             <span class="handle font-mono">&#64;{{ u.login }}</span>
@@ -312,8 +311,6 @@ export class UserDetailModalComponent {
   @Input() canViewAssignments = false;
   @Input() canAssignPermissions = false;
   @Input() safeRecordId!: (id: any) => boolean;
-  @Input() getUserInitial!: (u: User) => string;
-  @Input() getAvatarBgColor!: (name: string) => string;
   @Input() getUserRoleNames!: (u: User) => string[];
   @Input() getManagerName!: (u: User) => string | null;
 

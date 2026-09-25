@@ -6,12 +6,13 @@ import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
 import { UiLocalTableComponent } from '../../../shared/ui/ui-local-table.component';
 import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
 import { UserWorkload } from '../analytics.models';
+import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
 
 @Component({
   selector: 'app-analytics-workload-table',
   standalone: true,
   imports: [
-    CommonModule,
+    SMTAvatarComponent, CommonModule,
     FormsModule,
     TranslatePipe,
     UiBadgeComponent,
@@ -55,9 +56,7 @@ import { UserWorkload } from '../analytics.models';
 
     <ng-template #userCell let-u>
       <div class="user-cell">
-        <div class="user-avatar-sm" aria-hidden="true" [style.background-color]="getAvatarBgColor(u.userName)">
-          {{ getUserInitial(u.userName) }}
-        </div>
+        <smt-avatar [name]="u.userName" smtSize="sm" />
         <span class="user-name-text">{{ u.userName }}</span>
       </div>
     </ng-template>
@@ -175,18 +174,6 @@ import { UserWorkload } from '../analytics.models';
       gap: 8px;
     }
 
-    .user-avatar-sm {
-      width: 26px;
-      height: 26px;
-      border-radius: 50%;
-      background-color: var(--primary-subtle);
-      color: var(--primary-text);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 11px;
-      font-weight: 700;
-    }
 
     .user-name-text {
       font-weight: 600;
@@ -309,19 +296,5 @@ export class AnalyticsWorkloadTableComponent {
     return Math.min(100, Math.round(this.efficiencyOf(u) * 100));
   }
 
-  getAvatarBgColor(name: string): string {
-    const colors = [
-      '#4338ca', '#0369a1', '#047857', '#b45309',
-      '#6d28d9', '#be185d', '#0f766e', '#c2410c'
-    ];
-    let hash = 0;
-    for (let i = 0; i < (name || '').length; i++) {
-      hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return colors[Math.abs(hash) % colors.length];
-  }
 
-  getUserInitial(name: string): string {
-    return (name || '').trim().charAt(0).toUpperCase() || '?';
-  }
 }

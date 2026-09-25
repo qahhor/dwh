@@ -37,7 +37,8 @@ describe('UsersComponent UI contracts', () => {
               { code: 'de', name: 'Deutsch', active: true },
               { code: 'tr', name: 'Türkçe', active: true }
             ]),
-            translate: translateTest
+            translate: translateTest,
+            currentLang: signal('ru')
           }
         },
         { provide: ToastService, useValue: { success: vi.fn(), warning: vi.fn(), error: vi.fn() } }

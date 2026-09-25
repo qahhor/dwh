@@ -1261,10 +1261,7 @@
   "iam.two_factor_enabled": "2FA иштетилди",
   "iam.two_factor_disabled_short": "2FA өчүрүлгөн",
   "iam.view_user_named": "Колдонуучуну көрүү {name}",
-  "iam.edit_user_named": "Колдонуучуну түзөтүү {name}",
-  "iam.block_user_named": "Колдонуучуну бөгөттөө {name}",
-  "iam.unblock_user_named": "Колдонуучуну бөгөттөн чыгаруу {name}",
-  "iam.delete_user_named": "Колдонуучуну жок кылуу {name}",
+  "iam.edit_user_named": "Колдонуучуну түзөтүү {name}",
   "iam.hide_password": "Сырсөздү жашыруу",
   "iam.show_password": "Сырсөздү көрсөтүү",
   "notifications.mark_named_read": "\"{title}\" эскертмени окулду деп белгилөө",

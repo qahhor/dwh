@@ -1,0 +1,95 @@
+/* Our styles for smt-tag and smt-tag-group, from semantic tokens so both themes work. */
+
+.smt-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 24px;
+  padding: 2px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+}
+
+.smt-tag__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.smt-tag--primary { border-color: var(--primary-border); background-color: var(--primary-subtle); color: var(--primary-text); }
+.smt-tag--success { border-color: var(--success-border); background-color: var(--success-bg); color: var(--success-text); }
+.smt-tag--warning { border-color: var(--warning-border); background-color: var(--warning-bg); color: var(--warning-text); }
+.smt-tag--danger { border-color: var(--danger-border); background-color: var(--danger-bg); color: var(--danger-text); }
+.smt-tag--info { border-color: var(--info-border); background-color: var(--info-bg); color: var(--info-text); }
+
+.smt-tag__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-right: -6px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.smt-tag__remove .material-symbols-outlined,
+.smt-tag__check {
+  font-size: 14px;
+}
+
+.smt-tag__remove:hover:not(:disabled) {
+  background-color: var(--bg-hover);
+}
+
+.smt-tag__remove:focus-visible,
+.smt-tag--selectable:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.smt-tag-group {
+  display: block;
+  min-width: 0;
+}
+
+.smt-tag-group__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.smt-tag--selectable {
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.smt-tag--selectable:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--text-main);
+}
+
+.smt-tag--chosen {
+  border-color: var(--primary);
+  background-color: var(--primary-subtle);
+  color: var(--primary-text);
+  font-weight: 600;
+}
+
+.smt-tag--selectable:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

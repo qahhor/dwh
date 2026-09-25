@@ -26,8 +26,6 @@ import { UserDetailModalComponent } from './components/user-detail-modal.compone
 import {
   UserCreateForm,
   UserEditForm,
-  getUserInitial,
-  getAvatarBgColor,
   getManagerName,
   getUserRoleNames,
   generateSecurePassword,
@@ -67,10 +65,6 @@ const EXPORT_MAX_ROWS = 10_000;
   styleUrl: './users.component.css'
 })
 export class UsersComponent implements OnInit, OnDestroy {
-  readonly isRoleSelectedInEditFn = (roleId: number) => this.isRoleSelectedInEdit(roleId);
-  readonly isRoleSelectedInCreateFn = (roleId: number) => this.isRoleSelectedInCreate(roleId);
-  readonly getUserInitialFn = (u: User) => getUserInitial(u);
-  readonly getAvatarBgColorFn = (name: string) => getAvatarBgColor(name);
   readonly getUserRoleNamesFn = (u: User) => getUserRoleNames(u, this.roles());
   readonly getManagerNameFn = (u: User) => getManagerName(u, id => this.directory.nameOf(id));
 
@@ -308,8 +302,6 @@ export class UsersComponent implements OnInit, OnDestroy {
   }
 
   // User display helpers
-  getUserInitial(user: User) { return getUserInitial(user); }
-  getAvatarBgColor(name: string) { return getAvatarBgColor(name); }
   getManagerName(user: User) { return getManagerName(user, id => this.directory.nameOf(id)); }
   getUserRoleNames(user: User) { return getUserRoleNames(user, this.roles()); }
 
@@ -388,15 +380,11 @@ export class UsersComponent implements OnInit, OnDestroy {
   openCreateModal() {
     this.formsService.openCreateModal(this.roles());
   }
-  isRoleSelectedInCreate(roleId: number) { return this.formsService.isRoleSelectedInCreate(roleId); }
-  toggleRoleInCreate(roleId: number) { this.formsService.toggleRoleInCreate(roleId); }
   submitCreateUser() { this.formsService.submitCreateUser(() => this.loadUsers(true)); }
 
   openEditModal(user: User) {
     this.formsService.openEditModal(user);
   }
-  isRoleSelectedInEdit(roleId: number) { return this.formsService.isRoleSelectedInEdit(roleId); }
-  toggleRoleInEdit(roleId: number) { this.formsService.toggleRoleInEdit(roleId); }
   submitEditUser() {
     this.formsService.submitEditUser(
       () => this.destroyed,

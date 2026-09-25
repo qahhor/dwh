@@ -1,12 +1,13 @@
 import { Component, inject, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { TranslatePipe } from '../../../../core/services/i18n.service';
+import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { SMTControlComponent } from '../../../../shared/ui-kit/components/forms/control';
 import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
 import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
 import { SMTDataSelectComponent } from '../../../../shared/ui-kit/components/forms/data-select';
 import { LookupSources } from '../../../../shared/lookups/lookup-sources';
+import { SMTTagGroupComponent, SMTTagOption } from '../../../../shared/ui-kit/components/tag';
 import { UiCustomFieldsComponent } from '../../../../shared/ui/ui-custom-fields.component';
 import { Role } from '../../../../core/models/rbac.models';
 import { CustomField } from '../../../../core/models/custom-field.models';
@@ -22,6 +23,7 @@ import { CustomField } from '../../../../core/models/custom-field.models';
     UiModalComponent,
     UiButtonComponent,
     SMTDataSelectComponent,
+    SMTTagGroupComponent,
     UiCustomFieldsComponent
   ],
   template: `
@@ -201,23 +203,12 @@ import { CustomField } from '../../../../core/models/custom-field.models';
           </div>
 
           <!-- Roles -->
-          <div class="form-group span-2" *ngIf="roles.length > 0">
-            <span class="clean-label">{{ 'iam.roli_dostupa_rbac' | t }}</span>
-            <div class="roles-chips">
-              <label
-                *ngFor="let role of roles"
-                class="role-chip"
-                [class.selected]="isRoleSelected(role.id)"
-              >
-                <input
-                  type="checkbox"
-                  [checked]="isRoleSelected(role.id)"
-                  (change)="toggleRole.emit(role.id)"
-                />
-                <span>{{ role.name }}</span>
-              </label>
-            </div>
-          </div>
+          <smt-control class="form-group span-2" *ngIf="roles.length > 0" [smtLabel]="'iam.roli_dostupa_rbac' | t">
+            <smt-tag-group
+              [options]="roleOptions()"
+              [value]="createForm.roleIds || []"
+              (valueChange)="createForm.roleIds = $event" />
+          </smt-control>
 
           <!-- Custom Fields -->
           <div class="form-group span-2" *ngIf="customFields.length > 0">
@@ -375,27 +366,6 @@ import { CustomField } from '../../../../core/models/custom-field.models';
       font-size: 13px;
     }
 
-    .roles-chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-    .role-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 10px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--border-color);
-      background-color: var(--bg-surface);
-      font-size: 12px;
-      color: var(--text-main);
-      cursor: pointer;
-    }
-    .role-chip.selected {
-      border-color: var(--primary);
-      background-color: rgba(99,102,241,0.06);
-    }
 
     @media (max-width: 640px) {
       .modal-form,
@@ -406,8 +376,11 @@ import { CustomField } from '../../../../core/models/custom-field.models';
   `]
 })
 export class UserCreateModalComponent {
+  private readonly i18n = inject(I18nService);
+
   /** Active users for the manager picker; the field searches them itself. */
   readonly users = inject(LookupSources).activeUsers;
+  private roleOptionsCache: { roles: Role[]; lang: string; options: SMTTagOption<number>[] } | null = null;
   @Input() isOpen = false;
   @Input() isSubmitting = false;
   @Input() isCreateSubmitted = false;
@@ -421,12 +394,20 @@ export class UserCreateModalComponent {
   @Input() hasUpperAndLower = false;
   @Input() hasDigitsOrSymbols = false;
   @Input() doesNotContainLogin = false;
-  @Input() isRoleSelected!: (roleId: number) => boolean;
 
   @Output() close = new EventEmitter<void>();
   @Output() submit = new EventEmitter<void>();
   @Output() toggleShowPassword = new EventEmitter<void>();
   @Output() generatePassword = new EventEmitter<void>();
   @Output() copyPassword = new EventEmitter<void>();
-  @Output() toggleRole = new EventEmitter<number>();
+
+  /** The roles as tags. */
+  roleOptions(): SMTTagOption<number>[] {
+    const lang = this.i18n.currentLang();
+    const cached = this.roleOptionsCache;
+    if (cached && cached.roles === this.roles && cached.lang === lang) return cached.options;
+    const options = this.roles.map(role => ({ value: role.id, label: role.name }));
+    this.roleOptionsCache = { roles: this.roles, lang, options };
+    return options;
+  }
 }

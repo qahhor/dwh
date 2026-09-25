@@ -61,8 +61,6 @@
         [canBlockUser]="canBlockUser()"
         [canUnblockUser]="canUnblockUser()"
         [canDeleteUser]="canDeleteUser()"
-        [getUserInitial]="getUserInitialFn"
-        [getAvatarBgColor]="getAvatarBgColorFn"
         [getUserRoleNames]="getUserRoleNamesFn"
         [getManagerName]="getManagerNameFn"
         (viewUser)="openViewModal($event)"
@@ -87,13 +85,11 @@
       [hasUpperAndLower]="hasUpperAndLower()"
       [hasDigitsOrSymbols]="hasDigitsOrSymbols()"
       [doesNotContainLogin]="doesNotContainLogin()"
-      [isRoleSelected]="isRoleSelectedInCreateFn"
       (close)="isCreateModalOpen.set(false)"
       (submit)="submitCreateUser()"
       (toggleShowPassword)="showPassword.update(v => !v)"
       (generatePassword)="generateSecurePassword()"
       (copyPassword)="copyGeneratedPassword()"
-      (toggleRole)="toggleRoleInCreate($event)"
     ></app-user-create-modal>
 
     <!-- Edit User Modal (Delegated Component) -->
@@ -106,10 +102,8 @@
       [roles]="roles()"
       [languages]="i18n.languages()"
       [customFields]="customFields()"
-      [isRoleSelected]="isRoleSelectedInEditFn"
       (close)="closeEditModal()"
       (submit)="submitEditUser()"
-      (toggleRole)="toggleRoleInEdit($event)"
     ></app-user-edit-modal>
 
     <!-- User Detail, Delete and Security Modals (Delegated Component) -->
@@ -129,8 +123,6 @@
       [canViewAssignments]="canViewAssignments()"
       [canAssignPermissions]="canAssignPermissions()"
       [safeRecordId]="safeRecordId"
-      [getUserInitial]="getUserInitialFn"
-      [getAvatarBgColor]="getAvatarBgColorFn"
       [getUserRoleNames]="getUserRoleNamesFn"
       [getManagerName]="getManagerNameFn"
       [isSubmitting]="isSubmitting()"

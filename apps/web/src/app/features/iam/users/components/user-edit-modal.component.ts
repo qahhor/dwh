@@ -1,12 +1,13 @@
 import { Component, inject, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { TranslatePipe } from '../../../../core/services/i18n.service';
+import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { SMTControlComponent } from '../../../../shared/ui-kit/components/forms/control';
 import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
 import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
 import { SMTDataSelectComponent } from '../../../../shared/ui-kit/components/forms/data-select';
 import { LookupSources } from '../../../../shared/lookups/lookup-sources';
+import { SMTTagGroupComponent, SMTTagOption } from '../../../../shared/ui-kit/components/tag';
 import { UiCustomFieldsComponent } from '../../../../shared/ui/ui-custom-fields.component';
 import { User } from '../../../../core/models/auth.models';
 import { Role } from '../../../../core/models/rbac.models';
@@ -23,6 +24,7 @@ import { CustomField } from '../../../../core/models/custom-field.models';
     UiModalComponent,
     UiButtonComponent,
     SMTDataSelectComponent,
+    SMTTagGroupComponent,
     UiCustomFieldsComponent
   ],
   template: `
@@ -104,26 +106,12 @@ import { CustomField } from '../../../../core/models/custom-field.models';
           </div>
 
           <!-- Roles -->
-          <div class="form-group span-2" *ngIf="roles.length > 0">
-            <span class="clean-label">{{ 'iam.roli_dostupa_rbac' | t }}</span>
-            <div class="roles-chips">
-              <label
-                *ngFor="let role of roles"
-                class="role-chip"
-                [class.selected]="isRoleSelected(role.id)"
-                [class.locked]="u.login === 'admin' && role.pcode === 'admin'"
-              >
-                <input
-                  type="checkbox"
-                  [checked]="isRoleSelected(role.id)"
-                  (change)="toggleRole.emit(role.id)"
-                  [disabled]="u.login === 'admin' && role.pcode === 'admin'"
-                />
-                <span>{{ role.name }}</span>
-                <span *ngIf="u.login === 'admin' && role.pcode === 'admin'" class="material-symbols-outlined lock-ico" role="img" [title]="'iam.zaschischeno' | t" [attr.aria-label]="'iam.zaschischeno' | t">lock</span>
-              </label>
-            </div>
-          </div>
+          <smt-control class="form-group span-2" *ngIf="roles.length > 0" [smtLabel]="'iam.roli_dostupa_rbac' | t">
+            <smt-tag-group
+              [options]="roleOptions(u)"
+              [value]="editForm.roleIds || []"
+              (valueChange)="editForm.roleIds = $event" />
+          </smt-control>
 
           <!-- Custom Fields -->
           <div class="form-group span-2" *ngIf="customFields.length > 0">
@@ -193,28 +181,6 @@ import { CustomField } from '../../../../core/models/custom-field.models';
       cursor: pointer;
     }
 
-    .roles-chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-    .role-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 10px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--border-color);
-      background-color: var(--bg-surface);
-      font-size: 12px;
-      color: var(--text-main);
-      cursor: pointer;
-    }
-    .role-chip.selected {
-      border-color: var(--primary);
-      background-color: rgba(99,102,241,0.06);
-    }
-    .role-chip.locked { opacity: 0.8; cursor: not-allowed; }
     .lock-ico { font-size: 13px; color: var(--text-muted); }
 
     @media (max-width: 640px) {
@@ -226,8 +192,11 @@ import { CustomField } from '../../../../core/models/custom-field.models';
   `]
 })
 export class UserEditModalComponent {
+  private readonly i18n = inject(I18nService);
+
   /** Active users for the manager picker; the field searches them itself. */
   readonly users = inject(LookupSources).activeUsers;
+  private roleOptionsCache: { roles: Role[]; user: User | null; lang: string; options: SMTTagOption<number>[] } | null = null;
   /** A user cannot be their own manager. */
   readonly notThisUser = (candidate: User) => candidate.id === this.editingUser?.id;
   @Input() isOpen = false;
@@ -238,9 +207,20 @@ export class UserEditModalComponent {
   @Input() roles: Role[] = [];
   @Input() languages: Array<{ code: string, name: string }> = [];
   @Input() customFields: CustomField[] = [];
-  @Input() isRoleSelected!: (roleId: number) => boolean;
 
   @Output() close = new EventEmitter<void>();
   @Output() submit = new EventEmitter<void>();
-  @Output() toggleRole = new EventEmitter<number>();
+
+  /** The roles as tags; the built-in admin keeps its admin role, shown locked. */
+  roleOptions(user: User | null): SMTTagOption<number>[] {
+    const lang = this.i18n.currentLang();
+    const cached = this.roleOptionsCache;
+    if (cached && cached.roles === this.roles && cached.user === user && cached.lang === lang) return cached.options;
+    const locked = (role: Role) => user?.login === 'admin' && role.pcode === 'admin';
+    const options = this.roles.map(role => locked(role)
+      ? { value: role.id, label: role.name, disabled: true, icon: 'lock', note: this.i18n.translate('iam.zaschischeno') }
+      : { value: role.id, label: role.name });
+    this.roleOptionsCache = { roles: this.roles, user, lang, options };
+    return options;
+  }
 }

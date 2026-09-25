@@ -1261,10 +1261,7 @@
   "iam.two_factor_enabled": "2FA yoqilgan",
   "iam.two_factor_disabled_short": "2FA o'chirilgan",
   "iam.view_user_named": "Foydalanuvchini ko‘rish {name}",
-  "iam.edit_user_named": "Foydalanuvchini tahrirlash {name}",
-  "iam.block_user_named": "Foydalanuvchini bloklash {name}",
-  "iam.unblock_user_named": "{name} foydalanuvchini blokdan chiqarish",
-  "iam.delete_user_named": "Foydalanuvchini oʻchirish {name}",
+  "iam.edit_user_named": "Foydalanuvchini tahrirlash {name}",
   "iam.hide_password": "Parolni yashirish",
   "iam.show_password": "Parolni ko'rsatish",
   "notifications.mark_named_read": "“{title}” bildirishnomasini o‘qilgan deb belgilang",

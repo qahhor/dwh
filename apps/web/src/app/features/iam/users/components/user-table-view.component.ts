@@ -6,6 +6,10 @@ import { UiServerTableComponent } from '../../../../shared/ui/ui-server-table.co
 import { KeysetPager } from '../../../../shared/paging/keyset-pager';
 import { TableConfig } from '../../../../shared/ui-kit/components/table/table.types';
 import { User } from '../../../../core/models/auth.models';
+import { SMTAvatarComponent } from '../../../../shared/ui-kit/components/avatar';
+import { SMTDropdownButtonComponent, SMTMenuItem } from '../../../../shared/ui-kit/components/dropdown-button';
+
+type UserMenuAction = 'block' | 'unblock' | 'delete';
 
 /**
  * The user list, a page at a time from the server.
@@ -18,7 +22,7 @@ import { User } from '../../../../core/models/auth.models';
   selector: 'app-user-table-view',
   standalone: true,
   imports: [
-    CommonModule,
+    SMTDropdownButtonComponent, SMTAvatarComponent, CommonModule,
     TranslatePipe,
     UiButtonComponent,
     UiServerTableComponent
@@ -37,7 +41,7 @@ import { User } from '../../../../core/models/auth.models';
 
     <ng-template #identityCell let-u>
       <button type="button" class="user-identity" (click)="viewUser.emit(u)" [attr.aria-label]="'iam.open_user_profile_named' | t:{name: u.name}">
-        <span class="avatar" aria-hidden="true" [style.background-color]="getAvatarBgColor(u.name)">{{ getUserInitial(u) }}</span>
+        <smt-avatar [name]="u.name" smtSize="sm" />
         <span class="identity-info">
           <span class="full-name">{{ u.name }}</span>
           <span class="login-handle font-mono">&#64;{{ u.login }}</span>
@@ -84,14 +88,14 @@ import { User } from '../../../../core/models/auth.models';
         @if (canUpdateUser) {
           <ui-button variant="ghost" size="sm" icon="edit" [ariaLabel]="'iam.edit_user_named' | t:{name: u.name}" [title]="'common.edit' | t" (onClick)="editUser.emit(u)"></ui-button>
         }
-        @if (u.state === 'A' && canBlockUser) {
-          <ui-button variant="ghost" size="sm" icon="lock" [ariaLabel]="'iam.block_user_named' | t:{name: u.name}" [title]="'common.block' | t" (onClick)="toggleState.emit({ user: u, action: 'block' })"></ui-button>
-        }
-        @if (u.state === 'P' && canUnblockUser) {
-          <ui-button variant="ghost" size="sm" icon="lock_open" [ariaLabel]="'iam.unblock_user_named' | t:{name: u.name}" [title]="'common.unblock' | t" (onClick)="toggleState.emit({ user: u, action: 'unblock' })"></ui-button>
-        }
-        @if (u.login !== 'admin' && canDeleteUser) {
-          <ui-button variant="ghost" size="sm" icon="delete" [ariaLabel]="'iam.delete_user_named' | t:{name: u.name}" [title]="'common.delete' | t" (onClick)="deleteUser.emit(u)"></ui-button>
+        @if (moreActions(u); as actions) {
+          <smt-dropdown-button
+            smtIconOnly
+            icon="more_vert"
+            data-testid="user-more-actions"
+            [smtAriaLabel]="'iam.more_actions_named' | t:{name: u.name}"
+            [items]="actions"
+            (itemSelect)="runAction($event, u)" />
         }
       </div>
     </ng-template>
@@ -119,18 +123,6 @@ import { User } from '../../../../core/models/auth.models';
       font: inherit;
       padding: 0;
       text-align: left;
-    }
-    .avatar {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      color: var(--text-inverse);
-      font-size: 11px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
     }
     .identity-info {
       display: flex;
@@ -213,8 +205,6 @@ export class UserTableViewComponent {
   @Input() canUnblockUser = false;
   @Input() canDeleteUser = false;
 
-  @Input() getUserInitial!: (u: User) => string;
-  @Input() getAvatarBgColor!: (name: string) => string;
   @Input() getUserRoleNames!: (u: User) => string[];
   @Input() getManagerName!: (u: User) => string | null;
 
@@ -232,6 +222,8 @@ export class UserTableViewComponent {
   private readonly statusCell = viewChild.required<TemplateRef<unknown>>('statusCell');
   private readonly createdCell = viewChild.required<TemplateRef<unknown>>('createdCell');
   private readonly actionsCell = viewChild.required<TemplateRef<unknown>>('actionsCell');
+  /** Per user, the menu built for the rights and language it was built with, so an open menu is not rebuilt. */
+  private readonly actionMenus = new WeakMap<User, { key: string; items: SMTMenuItem<UserMenuAction>[] | null }>();
   readonly emptyState = viewChild.required<TemplateRef<unknown>>('emptyStateTpl');
 
   readonly tableConfig = computed<TableConfig<User>>(() => {
@@ -256,4 +248,27 @@ export class UserTableViewComponent {
       },
     };
   });
+
+  /** Block or unblock and delete, behind "more" so the row keeps two visible actions; null when none apply. */
+  moreActions(user: User): SMTMenuItem<UserMenuAction>[] | null {
+    const block = user.state === 'A' && this.canBlockUser;
+    const unblock = user.state === 'P' && this.canUnblockUser;
+    const remove = user.login !== 'admin' && this.canDeleteUser;
+    const key = [block, unblock, remove, this.i18n.currentLang()].join('|');
+    const cached = this.actionMenus.get(user);
+    if (cached?.key === key) return cached.items;
+    const items: SMTMenuItem<UserMenuAction>[] = [
+      ...(block ? [{ id: 'block' as const, label: this.i18n.translate('common.block'), icon: 'lock' }] : []),
+      ...(unblock ? [{ id: 'unblock' as const, label: this.i18n.translate('common.unblock'), icon: 'lock_open' }] : []),
+      ...(remove ? [{ id: 'delete' as const, label: this.i18n.translate('common.delete'), icon: 'delete', danger: true, separated: block || unblock }] : []),
+    ];
+    const result = items.length > 0 ? items : null;
+    this.actionMenus.set(user, { key, items: result });
+    return result;
+  }
+
+  runAction(action: UserMenuAction, user: User): void {
+    if (action === 'delete') this.deleteUser.emit(user);
+    else this.toggleState.emit({ user, action });
+  }
 }

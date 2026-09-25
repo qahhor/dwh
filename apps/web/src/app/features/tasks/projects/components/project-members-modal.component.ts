@@ -13,12 +13,13 @@ import { TableConfig } from '../../../../shared/ui-kit/components/table/table.ty
 import { Project } from '../../../../core/models/task.models';
 import { User } from '../../../../core/models/auth.models';
 import { ProjectMember } from '../projects.models';
+import { SMTAvatarComponent } from '../../../../shared/ui-kit/components/avatar';
 
 @Component({
   selector: 'app-project-members-modal',
   standalone: true,
   imports: [
-    CommonModule,
+    SMTAvatarComponent, CommonModule,
     FormsModule,
     TranslatePipe,
     UiModalComponent,
@@ -79,7 +80,7 @@ import { ProjectMember } from '../projects.models';
                   [disabled]="isUserAlreadyMember(u.id)"
                   (click)="selectUser(u)"
                 >
-                  <span class="user-avatar-mini">{{ getInitials(u.name) }}</span>
+                  <smt-avatar [name]="u.name" smtSize="sm" />
                   <div class="user-item-info">
                     <span class="user-item-name">{{ u.name }}</span>
                     <span class="user-item-email text-muted">&#64;{{ u.login }} &bull; {{ u.email }}</span>
@@ -145,7 +146,7 @@ import { ProjectMember } from '../projects.models';
 
     <ng-template #memberUserCell let-m>
       <div class="member-user-cell">
-        <span class="user-avatar-mini" aria-hidden="true">{{ getInitials(m.userName) }}</span>
+        <smt-avatar [name]="m.userName" smtSize="sm" />
         <span class="font-medium">{{ m.userName }}</span>
       </div>
     </ng-template>
@@ -356,19 +357,6 @@ import { ProjectMember } from '../projects.models';
       font-style: italic;
     }
 
-    .user-avatar-mini {
-      width: 26px;
-      height: 26px;
-      border-radius: 50%;
-      background-color: var(--primary);
-      color: var(--on-primary);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 11px;
-      font-weight: 600;
-      flex-shrink: 0;
-    }
 
     /* Table styles */
     .table-wrapper {
@@ -559,14 +547,6 @@ export class ProjectMembersModalComponent {
     return this.members.some(m => m.userId === userId);
   }
 
-  getInitials(name: string | undefined): string {
-    if (!name) return 'U';
-    const parts = name.trim().split(' ');
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[1][0]).toUpperCase();
-    }
-    return name.slice(0, 2).toUpperCase();
-  }
 
   submitAddMember(): void {
     if (!this.project || !this.selectedUser) return;

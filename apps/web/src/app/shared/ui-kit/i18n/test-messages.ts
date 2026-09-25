@@ -80,6 +80,7 @@ export const TEST_MESSAGES: SMTMessages = {
     range: (min, max) => `Enter a time from ${min} to ${max}`,
   },
   textarea: { counter: (count, max) => `${count} of ${max} characters` },
+  tag: { remove: label => `Remove ${label}` },
   common: { close: 'Close', cancel: 'Cancel' },
   table: { noResults: 'No results' },
   dataTable: { selectAll: 'Select all', selectRow: 'Select row' },

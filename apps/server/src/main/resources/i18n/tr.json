@@ -1261,10 +1261,7 @@
   "iam.two_factor_enabled": "2FA etkin",
   "iam.two_factor_disabled_short": "2FA devre dışı",
   "iam.view_user_named": "Kullanıcıyı görüntüle {name}",
-  "iam.edit_user_named": "Kullanıcıyı düzenle {name}",
-  "iam.block_user_named": "Kullanıcıyı engelle {name}",
-  "iam.unblock_user_named": "Kullanıcının engellemesini kaldır {name}",
-  "iam.delete_user_named": "Kullanıcıyı sil {name}",
+  "iam.edit_user_named": "Kullanıcıyı düzenle {name}",
   "iam.hide_password": "Şifreyi gizle",
   "iam.show_password": "Şifreyi göster",
   "notifications.mark_named_read": "“{title}” bildirimini okundu olarak işaretle",

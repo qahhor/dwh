@@ -52,18 +52,7 @@ export class UserFormsService {
     this.isCreateModalOpen.set(true);
   }
 
-  isRoleSelectedInCreate(roleId: number): boolean {
-    return (this.createForm.roleIds || []).includes(roleId);
-  }
 
-  toggleRoleInCreate(roleId: number): void {
-    const list = this.createForm.roleIds || [];
-    if (list.includes(roleId)) {
-      this.createForm.roleIds = list.filter(id => id !== roleId);
-    } else {
-      this.createForm.roleIds = [...list, roleId];
-    }
-  }
 
   submitCreateUser(onSuccess: () => void): void {
     this.isCreateSubmitted = true;
@@ -101,18 +90,7 @@ export class UserFormsService {
     return true;
   }
 
-  isRoleSelectedInEdit(roleId: number): boolean {
-    return (this.editForm.roleIds || []).includes(roleId);
-  }
 
-  toggleRoleInEdit(roleId: number): void {
-    const list = this.editForm.roleIds || [];
-    if (list.includes(roleId)) {
-      this.editForm.roleIds = list.filter(id => id !== roleId);
-    } else {
-      this.editForm.roleIds = [...list, roleId];
-    }
-  }
 
   submitEditUser(
     isDestroyed: () => boolean,

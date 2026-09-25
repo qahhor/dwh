@@ -11,12 +11,13 @@ import { CustomField } from '../../../core/models/custom-field.models';
 import { Task, Project, TaskStatus, TaskType, TaskMember, TaskComment, TaskFile } from '../../../core/models/task.models';
 import { safeNumericRecordId } from '../../../core/services/search-target';
 import { groupMembersByRole, GroupedTaskMembers } from '../tasks.models';
+import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
 
 @Component({
   selector: 'app-task-detail-modal',
   standalone: true,
   imports: [
-    CommonModule,
+    SMTAvatarComponent, CommonModule,
     FormsModule,
     TranslatePipe,
     UiModalComponent,
@@ -152,7 +153,7 @@ import { groupMembersByRole, GroupedTaskMembers } from '../tasks.models';
                 <div *ngFor="let c of comments" class="comment-card">
                   <div class="comment-top">
                     <div class="comment-author-badge">
-                      <span class="avatar-mini">{{ getInitials(c.userName || undefined) }}</span>
+                      <smt-avatar [name]="c.userName" smtSize="xs" />
                       <span class="comment-author">{{ c.userName || ('tasks.removed_comment_author' | t) }} <span *ngIf="c.userLogin" class="text-muted">&#64;{{ c.userLogin }}</span></span>
                     </div>
                     <span class="comment-time tabular-nums">{{ c.createdAt | date:'dd.MM.yyyy HH:mm' }}</span>
@@ -266,7 +267,7 @@ import { groupMembersByRole, GroupedTaskMembers } from '../tasks.models';
                   <span>{{ 'task.responsible' | t }}</span>
                 </div>
                 <div class="member-stack-item member-highlighted">
-                  <span class="avatar-mini">{{ getInitials(resp.userName) }}</span>
+                  <smt-avatar [name]="resp.userName" smtSize="sm" />
                   <div class="member-info">
                     <span class="member-name">{{ resp.userName }}</span>
                     <span class="member-login text-muted">&#64;{{ resp.userLogin }}</span>
@@ -282,7 +283,7 @@ import { groupMembersByRole, GroupedTaskMembers } from '../tasks.models';
                 </div>
                 <div class="members-stack">
                   <div *ngFor="let m of groupedMembers.executors" class="member-stack-item">
-                    <span class="avatar-mini avatar-executor">{{ getInitials(m.userName) }}</span>
+                    <smt-avatar [name]="m.userName" smtSize="sm" />
                     <div class="member-info">
                       <span class="member-name">{{ m.userName }}</span>
                       <span class="member-login text-muted">&#64;{{ m.userLogin }}</span>
@@ -299,7 +300,7 @@ import { groupMembersByRole, GroupedTaskMembers } from '../tasks.models';
                 </div>
                 <div class="members-stack">
                   <div *ngFor="let m of groupedMembers.observers" class="member-stack-item member-observer">
-                    <span class="avatar-mini avatar-observer">{{ getInitials(m.userName) }}</span>
+                    <smt-avatar [name]="m.userName" smtSize="sm" />
                     <div class="member-info">
                       <span class="member-name">{{ m.userName }}</span>
                       <span class="member-login text-muted">&#64;{{ m.userLogin }}</span>
@@ -431,14 +432,6 @@ export class TaskDetailModalComponent {
     }
   }
 
-  getInitials(name: string | undefined): string {
-    if (!name) return 'U';
-    const parts = name.trim().split(' ');
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[1][0]).toUpperCase();
-    }
-    return name.substring(0, 2).toUpperCase();
-  }
 
   hasAttributes(attrs: any): boolean {
     if (!attrs || typeof attrs !== 'object') return false;

@@ -1,0 +1,125 @@
+/* Our styles for smt-dropdown-button, from semantic tokens so both themes work.
+ * Global (ViewEncapsulation.None): the menu renders in the CDK overlay. */
+
+.smt-dropdown-button {
+  display: inline-flex;
+}
+
+.smt-dropdown-button__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--control-height);
+  padding: 6px 10px 6px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.smt-dropdown-button__trigger:hover:not(:disabled),
+.smt-dropdown-button__trigger[aria-expanded='true'] {
+  background-color: var(--bg-hover);
+}
+
+.smt-dropdown-button__trigger--primary {
+  border-color: var(--primary);
+  background-color: var(--primary);
+  color: var(--on-primary);
+}
+
+.smt-dropdown-button__trigger--primary:hover:not(:disabled),
+.smt-dropdown-button__trigger--primary[aria-expanded='true'] {
+  border-color: var(--primary-hover);
+  background-color: var(--primary-hover);
+}
+
+.smt-dropdown-button__trigger--icon {
+  justify-content: center;
+  width: 30px;
+  min-height: 30px;
+  padding: 0;
+  border-color: transparent;
+  background-color: transparent;
+  color: var(--text-muted);
+}
+
+.smt-dropdown-button__trigger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.smt-dropdown-button__trigger:focus-visible,
+.smt-dropdown-button__item:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.smt-dropdown-button__trigger .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.smt-dropdown-button__arrow {
+  color: var(--text-muted);
+}
+
+.smt-dropdown-button__trigger--primary .smt-dropdown-button__arrow {
+  color: inherit;
+}
+
+.smt-dropdown-button__menu {
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+  padding: 4px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+  box-shadow: var(--shadow-overlay);
+}
+
+.smt-dropdown-button__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-main);
+  font: inherit;
+  font-size: 13px;
+  text-align: start;
+  cursor: pointer;
+}
+
+.smt-dropdown-button__item .material-symbols-outlined {
+  color: var(--text-muted);
+  font-size: 18px;
+}
+
+.smt-dropdown-button__item:hover:not([aria-disabled='true']),
+.smt-dropdown-button__item:focus {
+  background-color: var(--bg-hover);
+}
+
+.smt-dropdown-button__item--danger,
+.smt-dropdown-button__item--danger .material-symbols-outlined {
+  color: var(--danger-text);
+}
+
+.smt-dropdown-button__item[aria-disabled='true'] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.smt-dropdown-button__separator {
+  height: 1px;
+  margin: 4px 6px;
+  background-color: var(--border-color);
+}

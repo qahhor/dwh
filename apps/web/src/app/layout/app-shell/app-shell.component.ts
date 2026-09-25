@@ -448,10 +448,6 @@ export class AppShellComponent implements OnDestroy {
 
 
 
-  getUserInitial(): string {
-    const user = this.authService.currentUser();
-    return user && user.name ? user.name.charAt(0).toUpperCase() : 'U';
-  }
 
   asLang(l: string): Language {
     return l as Language;
