@@ -1,7 +1,17 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, TemplateRef } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, linkedSignal, output, TemplateRef } from '@angular/core';
 import { TranslatePipe } from '../../core/services/i18n.service';
 import { SMTTableComponent } from '../ui-kit/components/table/table.component';
-import { TableConfig } from '../ui-kit/components/table/table.types';
+import { TableColumnResizeEvent, TableConfig, OrderBy } from '../ui-kit/components/table/table.types';
+import {
+  applyColumnState,
+  EMPTY_COLUMN_STATE,
+  isDefaultColumnState,
+  normalizeColumnState,
+  setColumnWidth,
+  TableColumnState,
+} from '../ui-kit/components/table/column-state';
+import { SMTColumnOption, SMTColumnSettingsComponent } from '../ui-kit/components/column-settings';
+import { TableColumnStateStore } from '../ui-kit/services/table-column-state.store';
 import { KeysetPager } from '../paging/keyset-pager';
 import { UiButtonComponent } from './ui-button.component';
 import { UiPaginationComponent } from './ui-pagination.component';
@@ -19,13 +29,21 @@ import { UiPaginationComponent } from './ui-pagination.component';
  *   server never gave;
  * - paging controls are disabled while a page is loading, and after a failed
  *   request until it is retried (its cursors may belong to an old query).
+ *
+ * With a `columnsId` the person can also show, hide, reorder and resize the
+ * columns; the choice is remembered per table under that id.
  */
 @Component({
   selector: 'ui-server-table',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTTableComponent, UiPaginationComponent, UiButtonComponent, TranslatePipe],
+  imports: [SMTTableComponent, UiPaginationComponent, UiButtonComponent, TranslatePipe, SMTColumnSettingsComponent],
   template: `
+    @if (columnsId()) {
+      <div class="server-table-tools">
+        <smt-column-settings [smtColumns]="columnOptions()" [smtState]="columnState()" (smtStateChange)="saveColumns($event)" />
+      </div>
+    }
     @if (pager().failed()) {
       <div class="inline-feedback" role="alert" [attr.id]="errorId() || null">
         <span class="material-symbols-outlined" aria-hidden="true">error</span>
@@ -41,11 +59,13 @@ import { UiPaginationComponent } from './ui-pagination.component';
     @if (!failedWithoutRows()) {
       <smt-table
         [smtData]="pager().items()"
-        [smtConfig]="config()"
+        [smtConfig]="shownConfig()"
         [smtIsLoading]="pager().loading()"
         [smtSkeletonRowCount]="pager().pageSize()"
         [smtEmptyTemplate]="emptyTemplate()"
-        [smtColumnResizeEnabled]="false"
+        [smtColumnResizeEnabled]="!!columnsId()"
+        (smtColumnResize)="onColumnResize($event)"
+        (smtSortChange)="sortChange.emit($event)"
         (smtRowClick)="rowClick.emit($event)" />
       <ui-pagination
         [totalItems]="countsPage() ? pager().items().length : pager().total()"
@@ -62,6 +82,7 @@ import { UiPaginationComponent } from './ui-pagination.component';
   `,
   styles: [`
     :host { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+    .server-table-tools { display: flex; justify-content: flex-end; }
     .inline-feedback {
       display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
       padding: 10px 14px; border-radius: var(--radius-md, 8px);
@@ -85,6 +106,50 @@ export class UiServerTableComponent<T> {
    */
   readonly countsPage = input(false);
   readonly rowClick = output<T>();
+  /** A sortable header was clicked; `undefined` when sorting was switched off. */
+  readonly sortChange = output<{ column: string; sortBy: OrderBy } | undefined>();
+  /** Storage id of the column choice, e.g. `upl.sources`; empty — the columns are fixed. */
+  readonly columnsId = input('');
+  /** Columns that cannot be hidden, such as the one that names the row. */
+  readonly lockedColumns = input<readonly string[]>([]);
+
+  private readonly columnStore = inject(TableColumnStateStore);
+
+  /** The stored choice for this table, reloaded when the id changes. */
+  protected readonly columnState = linkedSignal<TableColumnState>(() => {
+    const id = this.columnsId();
+    return (id && this.columnStore.load(id)) || EMPTY_COLUMN_STATE;
+  });
+
+  protected readonly shownConfig = computed(() =>
+    this.columnsId() ? applyColumnState(this.config(), this.columnState(), this.lockedColumns()) : this.config());
+
+  /** Labels for the settings panel, from each column's plain header; otherwise its key. */
+  protected readonly columnOptions = computed<SMTColumnOption[]>(() => {
+    const config = this.config();
+    return config.columnsOrder.map(key => {
+      const header = config.columns[key]?.header;
+      const label = header && header.type === 'primitive' && header.value != null ? String(header.value) : key;
+      return { key, label, locked: this.lockedColumns().includes(key) };
+    });
+  });
+
+  protected saveColumns(state: TableColumnState): void {
+    const keys = this.config().columnsOrder;
+    const normalized = normalizeColumnState(state, keys, this.lockedColumns());
+    this.columnState.set(normalized);
+    if (isDefaultColumnState(normalized, keys)) {
+      this.columnStore.clear(this.columnsId());
+    } else {
+      this.columnStore.save(this.columnsId(), normalized);
+    }
+  }
+
+  protected onColumnResize(event: TableColumnResizeEvent): void {
+    if (!this.columnsId()) return;
+    const current = normalizeColumnState(this.columnState(), this.config().columnsOrder, this.lockedColumns());
+    this.saveColumns(setColumnWidth(current, event.key, event.widthPx));
+  }
 
   /** The request failed and there is nothing earlier to keep on screen. */
   protected readonly failedWithoutRows = computed(() => this.pager().failed() && this.pager().items().length === 0);
