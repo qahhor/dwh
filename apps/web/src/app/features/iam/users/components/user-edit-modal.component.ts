@@ -6,7 +6,7 @@ import { SMTControlComponent } from '../../../../shared/ui-kit/components/forms/
 import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
 import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
 import { SMTDataSelectComponent } from '../../../../shared/ui-kit/components/forms/data-select';
-import { LookupSources } from '../../../../shared/lookups/lookup-sources';
+import { LookupSources, UserRef } from '../../../../shared/lookups/lookup-sources';
 import { SMTTagGroupComponent, SMTTagOption } from '../../../../shared/ui-kit/components/tag';
 import { UiCustomFieldsComponent } from '../../../../shared/ui/ui-custom-fields.component';
 import { User } from '../../../../core/models/auth.models';
@@ -198,7 +198,7 @@ export class UserEditModalComponent {
   readonly users = inject(LookupSources).activeUsers;
   private roleOptionsCache: { roles: Role[]; user: User | null; lang: string; options: SMTTagOption<number>[] } | null = null;
   /** A user cannot be their own manager. */
-  readonly notThisUser = (candidate: User) => candidate.id === this.editingUser?.id;
+  readonly notThisUser = (candidate: UserRef) => candidate.id === this.editingUser?.id;
   @Input() isOpen = false;
   @Input() isSubmitting = false;
   @Input() isEditSubmitted = false;

@@ -243,8 +243,7 @@ export function hasAttributes(attrs: any): boolean {
 export function formatAttributes(
   attrs: any,
   taskCustomFields: CustomField[],
-  responsibleUsers: User[],
-  observerUsers: User[],
+  nameOf: (userId: number) => string | null,
   uiI18n: I18nService
 ): Array<{ key: string; value: string }> {
   if (!hasAttributes(attrs)) return [];
@@ -259,10 +258,9 @@ export function formatAttributes(
           ? uiI18n.translate('common.yes')
           : uiI18n.translate('common.no');
       } else if (field?.fieldType === 'user_ref') {
-        const user = responsibleUsers.find(u => u.id === Number(v))
-          || observerUsers.find(u => u.id === Number(v));
-        if (user) {
-          valueStr = user.name || user.login;
+        const name = nameOf(Number(v));
+        if (name) {
+          valueStr = name;
         }
       } else if (field?.fieldType === 'select' && field.optionsJson) {
         try {
@@ -287,16 +285,4 @@ export function sameIdSet(left: number[], right: number[]): boolean {
   return left.every(id => rightIds.has(id));
 }
 
-export function mergeOptions(existing: SMTSelectOption[], incoming: SMTSelectOption[]): SMTSelectOption[] {
-  const merged = new Map<string, SMTSelectOption>();
-  [...existing, ...incoming].forEach(option => merged.set(String(option.id), option));
-  return [...merged.values()];
-}
 
-export function mergeUserResults(existing: User[], incoming: User[], selectedIds: number[], retainedUsers: Map<number, User>): User[] {
-  incoming.forEach(user => retainedUsers.set(user.id, user));
-  const selected = selectedIds.map(id => retainedUsers.get(id)).filter((user): user is User => !!user);
-  const merged = new Map<number, User>();
-  [...existing, ...incoming, ...selected].forEach(user => merged.set(user.id, user));
-  return [...merged.values()];
-}

@@ -104,6 +104,86 @@
   line-height: 1.4;
 }
 
+/* Chips: a row of pills; a chosen one is framed in its own colour. */
+.smt-radio-group--chips .smt-radio-group__list {
+  gap: 6px;
+}
+
+.smt-radio-group--chips .smt-radio-group__item {
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xs);
+  background-color: var(--bg-surface);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.smt-radio-group--chips .smt-radio-group__item:hover:not([aria-disabled='true']) {
+  border-color: var(--smt-radio-color, var(--primary));
+  color: var(--text-main);
+}
+
+.smt-radio-group--chips .smt-radio-group__item--checked {
+  border-color: var(--smt-radio-color, var(--primary));
+  background-color: var(--bg-hover);
+  color: var(--text-main);
+  font-weight: 600;
+  box-shadow: 0 0 0 1px var(--smt-radio-color, var(--primary));
+}
+
+/* Segmented: one bar of equal parts; the chosen part lifts. */
+.smt-radio-group--segmented .smt-radio-group__list {
+  flex-wrap: nowrap;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-hover);
+}
+
+.smt-radio-group--segmented .smt-radio-group__item {
+  flex: 1 1 0;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 4px 8px;
+  border-radius: var(--radius-xs);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.smt-radio-group--segmented .smt-radio-group__item:hover:not([aria-disabled='true']) {
+  color: var(--text-main);
+}
+
+.smt-radio-group--segmented .smt-radio-group__item--checked {
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+
+.smt-radio-group--segmented .smt-radio-group__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.smt-radio-group__item--checked.smt-radio-group__item--tone-success { color: var(--success-text); }
+.smt-radio-group__item--checked.smt-radio-group__item--tone-warning { color: var(--warning-text); }
+.smt-radio-group__item--checked.smt-radio-group__item--tone-danger { color: var(--danger-text); }
+
+.smt-radio-group__icon {
+  flex-shrink: 0;
+  color: var(--smt-radio-color, currentColor);
+  font-size: 16px;
+}
+
 .smt-radio-group--cards .smt-radio-group__label {
   font-weight: 600;
 }

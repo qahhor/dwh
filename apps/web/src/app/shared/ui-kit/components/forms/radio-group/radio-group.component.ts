@@ -39,7 +39,15 @@ export interface SMTRadioOption<T> {
   /** A line under the label, read as the item's description. */
   readonly hint?: string;
   readonly disabled?: boolean;
+  /** Material Symbols ligature before the label (chips and segmented look). */
+  readonly icon?: string;
+  /** The icon's and, in the chips look, the chosen frame's colour — data, such as a task type's colour. */
+  readonly color?: string;
+  /** How a chosen item's label reads in the segmented look, e.g. a priority. */
+  readonly tone?: 'success' | 'warning' | 'danger';
 }
+
+export type SMTRadioAppearance = 'plain' | 'cards' | 'chips' | 'segmented';
 
 let nextGroupId = 0;
 
@@ -52,9 +60,11 @@ let nextGroupId = 0;
   styleUrl: './radio-group.scss',
   host: {
     class: 'smt-radio-group',
-    '[class.smt-radio-group--horizontal]': "orientation() === 'horizontal'",
+    '[class.smt-radio-group--horizontal]': 'horizontal()',
     '[class.smt-radio-group--invalid]': 'hasError()',
     '[class.smt-radio-group--cards]': "appearance() === 'cards'",
+    '[class.smt-radio-group--chips]': "appearance() === 'chips'",
+    '[class.smt-radio-group--segmented]': "appearance() === 'segmented'",
   },
   hostDirectives: [...SMT_FORM_FIELD_REGISTRY_HOST_DIRECTIVES],
 })
@@ -66,8 +76,12 @@ export class SMTRadioGroupComponent<T> implements FormValueControl<T | null> {
 
   readonly orientation = input<'vertical' | 'horizontal'>('vertical', { alias: 'smtOrientation' });
 
-  /** `cards` frames each item, for a choice whose items carry a description worth reading. */
-  readonly appearance = input<'plain' | 'cards'>('plain', { alias: 'smtAppearance' });
+/**
+   * `cards` frames each item, for a choice whose items carry a description;
+   * `chips` is a row of pills with icons (a task type); `segmented` is one bar
+   * of equal parts (a priority, a filter). Chips and segmented are horizontal.
+   */
+  readonly appearance = input<SMTRadioAppearance>('plain', { alias: 'smtAppearance' });
 
   /** Names the group when no smt-control label does. */
   readonly ariaLabel = input('', { alias: 'smtAriaLabel' });
@@ -102,6 +116,11 @@ export class SMTRadioGroupComponent<T> implements FormValueControl<T | null> {
   private readonly formsDisabled = signal(false);
 
   readonly isDisabled = computed(() => this.disabled() || this.formsDisabled());
+
+  /** Chips and segmented bars always lie in a row. */
+  readonly horizontal = computed(() => this.orientation() === 'horizontal' || this.appearance() === 'chips' || this.appearance() === 'segmented');
+
+  readonly showDot = computed(() => this.appearance() === 'plain' || this.appearance() === 'cards');
 
   readonly selectedIndex = computed(() => {
     const value = this.value();

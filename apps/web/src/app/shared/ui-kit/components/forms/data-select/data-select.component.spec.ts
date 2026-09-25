@@ -95,6 +95,17 @@ class MultiHost {
   rows: Person[] = [];
 }
 
+@Component({
+  standalone: true,
+  imports: [SMTMultiDataSelectComponent, SMTMultiDataSelectValueAccessor, FormsModule],
+  template: `<smt-multi-data-select [(ngModel)]="members" name="members" [source]="source" [knownRows]="known" ariaLabel="Members" />`,
+})
+class KnownHost {
+  readonly source = new FakeSource();
+  members: number[] = [7, 2];
+  readonly known: Person[] = [HIDDEN, PEOPLE[1]];
+}
+
 describe('SMTDataSelectComponent', () => {
   beforeEach(() => vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] }));
 
@@ -204,5 +215,12 @@ describe('SMTDataSelectComponent', () => {
     await settle();
     expect(fixture.componentInstance.observers).toEqual([7, 1]);
     expect(fixture.componentInstance.rows.map(person => person.id)).toEqual([7, 1]);
+  });
+
+  it('names chosen records the caller already has without asking the source', async () => {
+    const { fixture, element } = await render(KnownHost);
+    expect(element.textContent).toContain('Kamola Yusupova');
+    expect(element.textContent).toContain('Dilnoza Rahimova');
+    expect(fixture.componentInstance.source.resolved).toEqual([]);
   });
 });

@@ -9,6 +9,15 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Task dialogs on the kit's pickers (roadmap item 35). Parent, responsible,
+  co-executors and observers are data selects over the shared users and tasks
+  sources; the people and parent a task's card already names are passed in
+  as known rows, so nobody is asked for by id. Twenty-four inputs and outputs
+  per dialog, the task lookup channels and the user options pipe are gone.
+  Type and priority are radio groups — chips with the type's coloured icon
+  and a segmented bar — instead of toggle buttons that announced "pressed"
+  for a single choice. A user-typed custom field on a task card now shows a
+  name, asked for once, instead of relying on whoever the pickers had loaded.
 - Sortable list, file card and image preview (roadmap item 34).
   `smt-sortable-list` orders rows by dragging the handle or with each row's
   up and down buttons; a button move keeps focus on the moved row and is

@@ -1,4 +1,4 @@
-import { Component, DestroyRef, OnDestroy, OnInit, signal, inject } from '@angular/core';
+import { Component, DestroyRef, OnDestroy, OnInit, effect, inject, signal, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -97,6 +97,17 @@ export class TasksComponent implements OnInit, OnDestroy {
   readonly projects = signal<Project[]>([]);
   readonly taskCustomFields = signal<CustomField[]>([]);
 
+  /** A user-typed custom field on the open card shows a name: unknown ones are asked for once. */
+  private readonly userFieldNames = effect(() => {
+    const attributes = this.selectedTask()?.attributes;
+    if (!attributes) return;
+    const ids = this.taskCustomFields()
+      .filter(field => field.fieldType === 'user_ref')
+      .map(field => Number(attributes[field.code]))
+      .filter(id => Number.isSafeInteger(id) && id > 0);
+    untracked(() => this.lookupsService.resolveUserNames(ids));
+  });
+
   readonly isLoading = this.taskPager.loading;
   readonly listLoadError = this.taskPager.failed;
   readonly hasMore = this.taskPager.canGoForward;
@@ -125,22 +136,6 @@ export class TasksComponent implements OnInit, OnDestroy {
   readonly isSettingsModalOpen = this.dictService.isSettingsModalOpen;
 
   // Delegated signals from Lookups Service
-  readonly parentTaskOptions = this.lookupsService.parentTaskOptions;
-  readonly responsibleUsers = this.lookupsService.responsibleUsers;
-  readonly executorUsers = this.lookupsService.executorUsers;
-  readonly observerUsers = this.lookupsService.observerUsers;
-  readonly parentLookupLoading = this.lookupsService.parentLookupLoading;
-  readonly parentLookupError = this.lookupsService.parentLookupError;
-  readonly parentLookupHasMore = this.lookupsService.parentLookupHasMore;
-  readonly responsibleLookupLoading = this.lookupsService.responsibleLookupLoading;
-  readonly responsibleLookupError = this.lookupsService.responsibleLookupError;
-  readonly responsibleLookupHasMore = this.lookupsService.responsibleLookupHasMore;
-  readonly executorLookupLoading = this.lookupsService.executorLookupLoading;
-  readonly executorLookupError = this.lookupsService.executorLookupError;
-  readonly executorLookupHasMore = this.lookupsService.executorLookupHasMore;
-  readonly observerLookupLoading = this.lookupsService.observerLookupLoading;
-  readonly observerLookupError = this.lookupsService.observerLookupError;
-  readonly observerLookupHasMore = this.lookupsService.observerLookupHasMore;
 
   // Delegated signals from Details Service
   readonly selectedTask = this.detailsService.selectedTask;
@@ -190,7 +185,6 @@ export class TasksComponent implements OnInit, OnDestroy {
   readonly getTypeBgFn = (t: Task) => this.getTypeBg(t);
   readonly getStatusColorFn = (id: number | null | undefined) => this.getStatusColor(id);
   readonly getStatusNameFn = (id: number | null | undefined) => this.getStatusName(id);
-  readonly getAvailableParentTaskOptionsFn = (taskId: number) => this.getAvailableParentTaskOptions(taskId);
 
   constructor(
     public permService: PermissionService,
@@ -228,7 +222,6 @@ export class TasksComponent implements OnInit, OnDestroy {
     this.routeSubscription?.unsubscribe();
     this.recordRouteSubscription?.unsubscribe();
     this.filterService.cleanup();
-    this.lookupsService.cleanup();
     this.detailsService.cleanup();
     this.formsService.cleanup();
   }
@@ -333,25 +326,6 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
 
   // Lookups methods
-  responsibleUserOptions(): SMTSelectOption[] { return this.lookupsService.responsibleUserOptions(); }
-  getAvailableParentTaskOptions(taskId: number): SMTSelectOption[] { return this.lookupsService.getAvailableParentTaskOptions(taskId); }
-  private getSelectedParentId(): number | null { return this.isEditModalOpen() ? this.editForm.parentTaskId : this.createForm.parentTaskId; }
-  private getSelectedUserId(): number | null { return this.isEditModalOpen() ? this.editForm.responsibleUserId : this.createForm.responsibleUserId; }
-  private getSelectedExecutorIds(): number[] { return this.isEditModalOpen() ? this.editForm.executorUserIds : this.createForm.executorUserIds; }
-  private getSelectedObserverIds(): number[] { return this.isEditModalOpen() ? this.editForm.observerUserIds : this.createForm.observerUserIds; }
-
-  onParentSearch(query: string) { this.lookupsService.onParentSearch(query, () => this.getSelectedParentId()); }
-  loadMoreParents() { this.lookupsService.loadMoreParents(() => this.getSelectedParentId()); }
-  retryParentLookup() { this.lookupsService.retryParentLookup(() => this.getSelectedParentId()); }
-  onResponsibleSearch(query: string) { this.lookupsService.onResponsibleSearch(query, () => this.getSelectedUserId()); }
-  loadMoreResponsibleUsers() { this.lookupsService.loadMoreResponsibleUsers(() => this.getSelectedUserId()); }
-  retryResponsibleLookup() { this.lookupsService.retryResponsibleLookup(() => this.getSelectedUserId()); }
-  onExecutorSearch(query: string) { this.lookupsService.onExecutorSearch(query, () => this.getSelectedExecutorIds()); }
-  loadMoreExecutors() { this.lookupsService.loadMoreExecutors(() => this.getSelectedExecutorIds()); }
-  retryExecutorLookup() { this.lookupsService.retryExecutorLookup(() => this.getSelectedExecutorIds()); }
-  onObserverSearch(query: string) { this.lookupsService.onObserverSearch(query, () => this.getSelectedObserverIds()); }
-  loadMoreObservers() { this.lookupsService.loadMoreObservers(() => this.getSelectedObserverIds()); }
-  retryObserverLookup() { this.lookupsService.retryObserverLookup(() => this.getSelectedObserverIds()); }
 
   // Details methods
   openTaskDetails(task: Task) {
@@ -397,15 +371,13 @@ export class TasksComponent implements OnInit, OnDestroy {
         return ret;
       },
       (m) => this.lookupsService.retainTaskMember(m),
-      (id, title) => this.lookupsService.retainParentOption(id, title),
-      (respId, execIds, obsIds) => this.lookupsService.syncSelectedUsers(respId, execIds, obsIds)
+      (id, title) => this.lookupsService.retainParentOption(id, title)
     );
   }
   retryEditLoad() {
     this.formsService.retryEditLoad(
       (m) => this.lookupsService.retainTaskMember(m),
-      (id, title) => this.lookupsService.retainParentOption(id, title),
-      (respId, execIds, obsIds) => this.lookupsService.syncSelectedUsers(respId, execIds, obsIds)
+      (id, title) => this.lookupsService.retainParentOption(id, title)
     );
   }
   requestCloseEdit() { this.formsService.requestCloseEdit((t) => this.openTaskDetails(t)); }
@@ -459,5 +431,5 @@ export class TasksComponent implements OnInit, OnDestroy {
   getInvolveKindLabel(kind: string | undefined) { return getInvolveKindLabel(kind, this.uiI18n); }
   getInitials(name: string | undefined) { return getInitials(name); }
   hasAttributes(attrs: any) { return hasAttributes(attrs); }
-  formatAttributes(attrs: any) { return formatAttributes(attrs, this.taskCustomFields(), this.responsibleUsers(), this.observerUsers(), this.uiI18n); }
+  formatAttributes(attrs: any) { return formatAttributes(attrs, this.taskCustomFields(), id => this.lookupsService.nameOf(id), this.uiI18n); }
 }

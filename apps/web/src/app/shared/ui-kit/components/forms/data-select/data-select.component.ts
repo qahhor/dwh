@@ -70,6 +70,9 @@ export class SMTDataSelectComponent<Row, K extends SMTLookupKey = number> implem
   /** Rows not offered, such as the record being edited as its own manager. */
   readonly exclude = input<(row: Row) => boolean>(() => false);
 
+  /** Rows already at hand, such as a task's members: chosen keys among them are named without a request. */
+  readonly knownRows = input<readonly Row[]>([]);
+
   readonly disabled = input(false, { transform: booleanAttribute });
 
   readonly readonly = input(false, { transform: booleanAttribute });
@@ -114,6 +117,11 @@ export class SMTDataSelectComponent<Row, K extends SMTLookupKey = number> implem
   readonly state = new LookupState<Row, K>(() => this.source());
 
   constructor() {
+    // Before the lookup of chosen keys below, so a known row is never asked for.
+    effect(() => {
+      const rows = this.knownRows();
+      untracked(() => this.state.remember(rows));
+    });
     effect(() => {
       const value = this.value();
       if (value !== null) untracked(() => this.state.resolve([value]));

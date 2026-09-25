@@ -144,8 +144,7 @@ export class TaskFormsService {
     task: Task,
     closeDetailsIfMatches: () => Task | null,
     onRetainMember: (m: TaskMember) => void,
-    onRetainParent: (id: number, title: string) => void,
-    onSyncUsers: (responsibleId: number | null, executorIds: number[], observerIds: number[]) => void
+    onRetainParent: (id: number, title: string) => void
   ): void {
     if (!safeNumericRecordId(task.id)) return;
     if (this.isSubmitting() || this.isEditModalOpen()) return;
@@ -157,14 +156,13 @@ export class TaskFormsService {
     this.editFormBaseline = '';
     this.editAssignmentBaseline = null;
     this.isEditModalOpen.set(true);
-    this.loadEditDetails(task.id, onRetainMember, onRetainParent, onSyncUsers);
+    this.loadEditDetails(task.id, onRetainMember, onRetainParent);
   }
 
   loadEditDetails(
     taskId: number,
     onRetainMember: (m: TaskMember) => void,
-    onRetainParent: (id: number, title: string) => void,
-    onSyncUsers: (responsibleId: number | null, executorIds: number[], observerIds: number[]) => void
+    onRetainParent: (id: number, title: string) => void
   ): void {
     const requestId = ++this.editRequestId;
     this.editRequest?.unsubscribe();
@@ -217,7 +215,6 @@ export class TaskFormsService {
           executorUserIds: [...this.editForm.executorUserIds],
           observerUserIds: [...this.editForm.observerUserIds]
         };
-        onSyncUsers(this.editForm.responsibleUserId, this.editForm.executorUserIds, this.editForm.observerUserIds);
         this.editLoading.set(false);
       },
       error: () => {
@@ -230,11 +227,10 @@ export class TaskFormsService {
 
   retryEditLoad(
     onRetainMember: (m: TaskMember) => void,
-    onRetainParent: (id: number, title: string) => void,
-    onSyncUsers: (responsibleId: number | null, executorIds: number[], observerIds: number[]) => void
+    onRetainParent: (id: number, title: string) => void
   ): void {
     if (this.editTargetId != null && !this.isSubmitting()) {
-      this.loadEditDetails(this.editTargetId, onRetainMember, onRetainParent, onSyncUsers);
+      this.loadEditDetails(this.editTargetId, onRetainMember, onRetainParent);
     }
   }
 
