@@ -454,3 +454,12 @@ ADR-0012 выбрал Angular Material + CDK и отклонил Tailwind как
        (`minTime`/`maxTime`), `id` попал бы и на хост (`smtFieldId`). Поправка к
        перенесённому checkbox: `touched` — вход, касание сообщается выходом
        `touch` (Angular 22 не читает `touchedChange`).
+40. [x] Data select (п. 32 роадмапа, 2026-09-25): вместо адаптера к `QueryService`
+       кита (контракт Biruni `p.column`/`p.sort`/`p.filter`) — источник
+       `SMTLookupSource` над нашими keyset-эндпоинтами и `LookupState` поверх
+       существующего `LookupChannel`; `smt-data-select`/`smt-multi-data-select`
+       оборачивают наши smt-select/smt-multi-select. Закрепление, футер
+       «добавить/открыть» и шаблоны строк кита не переносятся: колонки дают
+       `smtColumnHeaders`, создание — `smtAllowCreate` у smt-select. Следующий
+       кандидат на внедрение — модалки задач, после подстановки известных
+       строк (участники задачи), чтобы не спрашивать каждого по id.

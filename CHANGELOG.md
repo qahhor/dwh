@@ -9,6 +9,16 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Data selects (roadmap item 32): `smt-data-select` and
+  `smt-multi-data-select` feed themselves from a lookup source — the first
+  page when opened, search after a pause, "load more", retry, and the name of
+  a record chosen before any page arrived, asked once by id and shown as
+  "ID: #…" when the server will not return it. A source is written once per
+  reference list (`shared/lookups/lookup-sources.ts`, `restLookup` over any
+  keyset endpoint); screens bind `[source]` with Signal Forms, ngModel or
+  reactive forms. The manager picker of the user dialogs uses it: seven
+  inputs and outputs per dialog are gone, and its "Manager" label now names
+  the field.
 - Form fields from the kit, wave 6 (roadmap item 31), written as our code after
   the kit's ideas, on semantic tokens, for Signal Forms and — through value
   accessors — ngModel and reactive forms: `smt-textarea` grows with its text

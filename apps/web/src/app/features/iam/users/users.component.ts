@@ -202,7 +202,6 @@ export class UsersComponent implements OnInit, OnDestroy {
     this.recordRequestId++;
     clearTimeout(this.searchDebounceTimer);
     this.exportRequest?.unsubscribe();
-    this.directory.cancel();
   }
 
   // Permissions
@@ -387,7 +386,6 @@ export class UsersComponent implements OnInit, OnDestroy {
   }
 
   openCreateModal() {
-    this.directory.openManagerPicker(null);
     this.formsService.openCreateModal(this.roles());
   }
   isRoleSelectedInCreate(roleId: number) { return this.formsService.isRoleSelectedInCreate(roleId); }
@@ -395,7 +393,6 @@ export class UsersComponent implements OnInit, OnDestroy {
   submitCreateUser() { this.formsService.submitCreateUser(() => this.loadUsers(true)); }
 
   openEditModal(user: User) {
-    this.directory.openManagerPicker(user.managerId ?? null);
     this.formsService.openEditModal(user);
   }
   isRoleSelectedInEdit(roleId: number) { return this.formsService.isRoleSelectedInEdit(roleId); }

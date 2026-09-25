@@ -1,11 +1,12 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, inject, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '../../../../core/services/i18n.service';
 import { SMTControlComponent } from '../../../../shared/ui-kit/components/forms/control';
 import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
 import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
-import { SMTSelectComponent, SMTSelectOption } from '../../../../shared/ui-kit/components/forms/select';
+import { SMTDataSelectComponent } from '../../../../shared/ui-kit/components/forms/data-select';
+import { LookupSources } from '../../../../shared/lookups/lookup-sources';
 import { UiCustomFieldsComponent } from '../../../../shared/ui/ui-custom-fields.component';
 import { User } from '../../../../core/models/auth.models';
 import { Role } from '../../../../core/models/rbac.models';
@@ -21,7 +22,7 @@ import { CustomField } from '../../../../core/models/custom-field.models';
     TranslatePipe,
     UiModalComponent,
     UiButtonComponent,
-    SMTSelectComponent,
+    SMTDataSelectComponent,
     UiCustomFieldsComponent
   ],
   template: `
@@ -65,26 +66,17 @@ import { CustomField } from '../../../../core/models/custom-field.models';
             />
           </smt-control>
 
-          <div class="form-group">
-            <span class="clean-label">{{ 'iam.rukovoditel' | t }}</span>
+          <smt-control class="form-group" [smtLabel]="'iam.rukovoditel' | t">
             <!-- Searches the server: a manager is rarely among the rows loaded on the list. -->
-            <smt-select
-              [options]="managerOptions"
+            <smt-data-select
+              [source]="users"
+              [exclude]="notThisUser"
               [value]="editForm.managerId"
-              [ariaLabel]="'iam.rukovoditel' | t"
               (valueChange)="editForm.managerId = $event"
               [placeholder]="'iam.bez_rukovoditelya' | t"
               [searchPlaceholder]="'tasks.poisk_sotrudnika_po_imeni_ili_loginu' | t"
-              [emptyLabel]="'iam.bez_rukovoditelya' | t"
-              [remoteSearch]="true"
-              [loading]="managerLookupLoading"
-              [loadError]="managerLookupError"
-              [hasMore]="managerLookupHasMore"
-              (searchChange)="managerSearch.emit($event)"
-              (loadMore)="managerLoadMore.emit()"
-              (retry)="managerRetry.emit()"
-            ></smt-select>
-          </div>
+              [emptyLabel]="'iam.bez_rukovoditelya' | t" />
+          </smt-control>
 
           <smt-control class="form-group" [smtLabel]="'iam.yazyk' | t">
             <select id="user-edit-language" name="userEditLanguage" class="clean-input" [(ngModel)]="editForm.language">
@@ -234,6 +226,10 @@ import { CustomField } from '../../../../core/models/custom-field.models';
   `]
 })
 export class UserEditModalComponent {
+  /** Active users for the manager picker; the field searches them itself. */
+  readonly users = inject(LookupSources).activeUsers;
+  /** A user cannot be their own manager. */
+  readonly notThisUser = (candidate: User) => candidate.id === this.editingUser?.id;
   @Input() isOpen = false;
   @Input() isSubmitting = false;
   @Input() isEditSubmitted = false;
@@ -242,16 +238,9 @@ export class UserEditModalComponent {
   @Input() roles: Role[] = [];
   @Input() languages: Array<{ code: string, name: string }> = [];
   @Input() customFields: CustomField[] = [];
-  @Input() managerOptions: SMTSelectOption[] = [];
-  @Input() managerLookupLoading = false;
-  @Input() managerLookupError = false;
-  @Input() managerLookupHasMore = false;
   @Input() isRoleSelected!: (roleId: number) => boolean;
 
   @Output() close = new EventEmitter<void>();
   @Output() submit = new EventEmitter<void>();
   @Output() toggleRole = new EventEmitter<number>();
-  @Output() managerSearch = new EventEmitter<string>();
-  @Output() managerLoadMore = new EventEmitter<void>();
-  @Output() managerRetry = new EventEmitter<void>();
 }

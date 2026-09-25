@@ -32,7 +32,6 @@ src/app/features/iam/roles/roles.component.ts RolesComponent
 src/app/features/iam/users/components/user-detail-modal.component.ts UserDetailModalComponent
 src/app/features/iam/users/components/user-effective-permissions-panel.component.ts UserEffectivePermissionsPanelComponent
 src/app/features/iam/users/components/user-table-view.component.ts UserTableViewComponent
-src/app/features/iam/users/services/user-directory.service.ts UserDirectoryService
 src/app/features/iam/users/services/user-filter.service.ts UserFilterService
 src/app/features/iam/users/users.component.ts UsersComponent
 src/app/features/notes/notes.component.ts NotesComponent
