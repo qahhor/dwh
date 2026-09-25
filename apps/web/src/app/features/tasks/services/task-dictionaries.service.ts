@@ -1,5 +1,4 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { ApiService } from '../../../core/services/api.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { I18nService } from '../../../core/services/i18n.service';
@@ -114,37 +113,6 @@ export class TaskDictionariesService {
     this.persistStatusOrder(list);
   }
 
-  onStatusDrop(event: CdkDragDrop<TaskStatus[]>): void {
-    const list = [...this.statuses()];
-    moveItemInArray(list, event.previousIndex, event.currentIndex);
-    this.statuses.set(list);
-    this.persistStatusOrder(list);
-  }
-
-  onTypeDrop(event: CdkDragDrop<TaskType[]>): void {
-    const list = [...this.taskTypes()];
-    moveItemInArray(list, event.previousIndex, event.currentIndex);
-    this.taskTypes.set(list);
-    this.persistTypeOrder(list);
-  }
-
-  moveDictionaryStatus(index: number, delta: -1 | 1): void {
-    const list = [...this.statuses()];
-    const nextIndex = index + delta;
-    if (index < 0 || nextIndex < 0 || nextIndex >= list.length) return;
-    moveItemInArray(list, index, nextIndex);
-    this.statuses.set(list);
-    this.persistStatusOrder(list);
-  }
-
-  moveDictionaryType(index: number, delta: -1 | 1): void {
-    const list = [...this.taskTypes()];
-    const nextIndex = index + delta;
-    if (index < 0 || nextIndex < 0 || nextIndex >= list.length) return;
-    moveItemInArray(list, index, nextIndex);
-    this.taskTypes.set(list);
-    this.persistTypeOrder(list);
-  }
 
   private persistStatusOrder(list: TaskStatus[]): void {
     const orderedIds = list.map(status => status.id);

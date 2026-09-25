@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
+import { SMTSortableActionsDirective, SMTSortableItemDirective, SMTSortableListComponent } from '../../../shared/ui-kit/components/sortable-list';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
@@ -13,8 +13,7 @@ import { TaskStatus, TaskType } from '../../../core/models/task.models';
   imports: [
     CommonModule,
     FormsModule,
-    DragDropModule,
-    TranslatePipe,
+    SMTSortableListComponent, SMTSortableItemDirective, SMTSortableActionsDirective, TranslatePipe,
     UiModalComponent,
     UiButtonComponent
   ],
@@ -56,38 +55,26 @@ import { TaskStatus, TaskType } from '../../../core/models/task.models';
 
         <!-- TAB 1: Task Types (Drag & Drop Reordering) -->
         <div id="task-types-panel" class="tab-pane" role="tabpanel" aria-labelledby="task-types-tab" *ngIf="settingsTab === 'types'">
-          <div
-            cdkDropList
+          <smt-sortable-list
             class="dict-list"
-            (cdkDropListDropped)="onTypeDrop($event)"
-          >
-            <div
-              *ngFor="let ty of taskTypes; let typeIndex = index"
-              cdkDrag
-              class="dict-row"
-            >
+            [items]="taskTypes"
+            [trackBy]="byId"
+            [itemLabel]="nameOf"
+            (reorder)="reorderTypes.emit($event)">
+            <ng-template smtSortableItem let-ty>
               <div class="dict-item-info">
-                <span cdkDragHandle class="material-symbols-outlined drag-grip-icon" aria-hidden="true" [title]="'tasks.peretaschite_dlya_izmeneniya_poryadka' | t">
-                  drag_indicator
-                </span>
                 <span class="material-symbols-outlined dict-ico" aria-hidden="true" [style.color]="ty.color">{{ ty.icon }}</span>
                 <span class="dict-name">{{ ty.name }}</span>
                 <span class="font-mono text-muted text-xs">({{ ty.code }})</span>
                 <span *ngIf="ty.isSystem" class="sys-badge">{{ 'tasks.sistemnyy' | t }}</span>
               </div>
-              <div class="dict-actions" *ngIf="!ty.isSystem">
-                <button type="button" class="mini-move-btn" [disabled]="typeIndex === 0" [attr.aria-label]="'tasks.raise_task_type' | t:{name: ty.name}" (click)="moveType(typeIndex, -1)">
-                  <span class="material-symbols-outlined" aria-hidden="true">arrow_upward</span>
-                </button>
-                <button type="button" class="mini-move-btn" [disabled]="typeIndex === taskTypes.length - 1" [attr.aria-label]="'tasks.lower_task_type' | t:{name: ty.name}" (click)="moveType(typeIndex, 1)">
-                  <span class="material-symbols-outlined" aria-hidden="true">arrow_downward</span>
-                </button>
-                <button type="button" class="mini-del-btn" [title]="'common.delete' | t" [attr.aria-label]="'tasks.delete_task_type' | t:{name: ty.name}" (click)="requestDelete('type', ty.id, ty.name)">
-                  <span class="material-symbols-outlined" aria-hidden="true">delete</span>
-                </button>
-              </div>
-            </div>
-          </div>
+            </ng-template>
+            <ng-template smtSortableActions let-ty>
+              <button *ngIf="!ty.isSystem" type="button" class="mini-del-btn" [title]="'common.delete' | t" [attr.aria-label]="'tasks.delete_task_type' | t:{name: ty.name}" (click)="requestDelete('type', ty.id, ty.name)">
+                <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+              </button>
+            </ng-template>
+          </smt-sortable-list>
 
           <!-- Add New Type Form -->
           <div class="add-dict-box">
@@ -116,38 +103,26 @@ import { TaskStatus, TaskType } from '../../../core/models/task.models';
 
         <!-- TAB 2: Task Statuses (Drag & Drop Reordering) -->
         <div id="task-statuses-panel" class="tab-pane" role="tabpanel" aria-labelledby="task-statuses-tab" *ngIf="settingsTab === 'statuses'">
-          <div
-            cdkDropList
+          <smt-sortable-list
             class="dict-list"
-            (cdkDropListDropped)="onStatusDrop($event)"
-          >
-            <div
-              *ngFor="let s of statuses; let statusIndex = index"
-              cdkDrag
-              class="dict-row"
-            >
+            [items]="statuses"
+            [trackBy]="byId"
+            [itemLabel]="nameOf"
+            (reorder)="reorderStatuses.emit($event)">
+            <ng-template smtSortableItem let-s>
               <div class="dict-item-info">
-                <span cdkDragHandle class="material-symbols-outlined drag-grip-icon" aria-hidden="true" [title]="'tasks.peretaschite_dlya_izmeneniya_poryadka' | t">
-                  drag_indicator
-                </span>
                 <span class="status-dot" [style.background-color]="s.color"></span>
                 <span class="dict-name">{{ s.name }}</span>
                 <span *ngIf="s.isTerminal" class="term-badge">{{ 'tasks.zavershayuschiy' | t }}</span>
                 <span *ngIf="s.pcode" class="sys-badge">{{ 'tasks.bazovyy' | t }}</span>
               </div>
-              <div class="dict-actions" *ngIf="!s.pcode">
-                <button type="button" class="mini-move-btn" [disabled]="statusIndex === 0" [attr.aria-label]="'tasks.raise_status' | t:{name: s.name}" (click)="moveStatus(statusIndex, -1)">
-                  <span class="material-symbols-outlined" aria-hidden="true">arrow_upward</span>
-                </button>
-                <button type="button" class="mini-move-btn" [disabled]="statusIndex === statuses.length - 1" [attr.aria-label]="'tasks.lower_status' | t:{name: s.name}" (click)="moveStatus(statusIndex, 1)">
-                  <span class="material-symbols-outlined" aria-hidden="true">arrow_downward</span>
-                </button>
-                <button type="button" class="mini-del-btn" [title]="'common.delete' | t" [attr.aria-label]="'tasks.delete_status' | t:{name: s.name}" (click)="requestDelete('status', s.id, s.name)">
-                  <span class="material-symbols-outlined" aria-hidden="true">delete</span>
-                </button>
-              </div>
-            </div>
-          </div>
+            </ng-template>
+            <ng-template smtSortableActions let-s>
+              <button *ngIf="!s.pcode" type="button" class="mini-del-btn" [title]="'common.delete' | t" [attr.aria-label]="'tasks.delete_status' | t:{name: s.name}" (click)="requestDelete('status', s.id, s.name)">
+                <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+              </button>
+            </ng-template>
+          </smt-sortable-list>
 
           <!-- Add New Status Form -->
           <div class="add-dict-box">
@@ -218,19 +193,7 @@ import { TaskStatus, TaskType } from '../../../core/models/task.models';
       max-height: 220px;
       overflow-y: auto;
     }
-    .dict-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 6px 8px;
-      background-color: var(--bg-hover);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-xs);
-      font-size: 12px;
-      user-select: none;
-    }
     .dict-item-info { display: flex; align-items: center; gap: 6px; }
-    .dict-actions { display: flex; align-items: center; gap: 2px; }
     .dict-ico { font-size: 16px; }
     .dict-name { font-weight: 500; color: var(--text-main); }
     .sys-badge { font-size: 10px; background-color: rgba(99,102,241,0.1); color: var(--primary); padding: 1px 4px; border-radius: 3px; }
@@ -250,22 +213,6 @@ import { TaskStatus, TaskType } from '../../../core/models/task.models';
       display: flex;
     }
     .mini-del-btn .material-symbols-outlined { font-size: 16px; }
-    .mini-move-btn {
-      border: none;
-      background: transparent;
-      color: var(--text-muted);
-      cursor: pointer;
-      padding: 2px;
-      display: flex;
-    }
-    .mini-move-btn:disabled { opacity: 0.35; cursor: not-allowed; }
-    .mini-move-btn .material-symbols-outlined { font-size: 16px; }
-    .drag-grip-icon {
-      font-size: 16px;
-      color: var(--text-muted);
-      cursor: grab;
-      user-select: none;
-    }
     .add-dict-box {
       background-color: var(--bg-hover);
       border: 1px dashed var(--border-color);
@@ -325,33 +272,10 @@ export class TaskDictionariesModalComponent {
   newTypeForm = { code: '', name: '', icon: 'task_alt', color: '#6366f1' };
   newStatusForm = { name: '', color: '#3b82f6', isTerminal: false };
 
-  onTypeDrop(event: CdkDragDrop<TaskType[]>) {
-    const list = [...this.taskTypes];
-    moveItemInArray(list, event.previousIndex, event.currentIndex);
-    this.reorderTypes.emit(list);
-  }
+  /** Rows are kept by id, so a moved row keeps its focus. */
+  readonly byId = (item: { id: number }) => item.id;
 
-  moveType(index: number, delta: -1 | 1) {
-    const list = [...this.taskTypes];
-    const nextIndex = index + delta;
-    if (index < 0 || nextIndex < 0 || nextIndex >= list.length) return;
-    moveItemInArray(list, index, nextIndex);
-    this.reorderTypes.emit(list);
-  }
-
-  onStatusDrop(event: CdkDragDrop<TaskStatus[]>) {
-    const list = [...this.statuses];
-    moveItemInArray(list, event.previousIndex, event.currentIndex);
-    this.reorderStatuses.emit(list);
-  }
-
-  moveStatus(index: number, delta: -1 | 1) {
-    const list = [...this.statuses];
-    const nextIndex = index + delta;
-    if (index < 0 || nextIndex < 0 || nextIndex >= list.length) return;
-    moveItemInArray(list, index, nextIndex);
-    this.reorderStatuses.emit(list);
-  }
+  readonly nameOf = (item: { name: string }) => item.name;
 
   submitType() {
     if (!this.newTypeForm.code.trim() || !this.newTypeForm.name.trim()) return;

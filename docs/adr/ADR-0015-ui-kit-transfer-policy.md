@@ -469,3 +469,12 @@ ADR-0012 выбрал Angular Material + CDK и отклонил Tailwind как
        aria-pressed в именованной группе; меню и `smt-dropdown-button` — на
        `@angular/cdk/menu` (роль menu, клавиатура и фокус по APG) вместо
        кликабельных div кита. smt-control именует и `role="group"`.
+42. [x] Sortable и просмотр файлов (п. 34 роадмапа, 2026-09-25): свой код по идеям
+       кита. `smt-sortable-list` — CDK drag-drop плюс кнопки «вверх/вниз» с
+       объявлением и сохранением фокуса (в ките перетаскивание было единственным
+       способом). `smt-file-card` и `smt-file-preview` заменяют `smt-file-preview`
+       и `smt-preview` кита. Просмотр — только изображения в `<img>`: PDF, офисные
+       файлы и видео кита (OnlyOffice) не встраиваем — API отдаёт файлы как
+       attachment с `frame-ancestors 'none'`, и это защищает от исполнения
+       загруженного HTML/PDF внутри приложения. Встраивание документов — только
+       отдельным решением о безопасной отдаче (другой origin, sandbox).

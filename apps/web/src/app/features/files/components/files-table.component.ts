@@ -1,7 +1,8 @@
 import { Component, EventEmitter, Input, Output, Signal, TemplateRef, computed, inject, input, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FileDetail } from '../files.models';
-import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
+import { I18nService, LANGUAGE_LOCALES, TranslatePipe } from '../../../core/services/i18n.service';
+import { canPreview, fileKind, fileKindIcon, formatFileSize, SMTFileKind } from '../../../shared/ui-kit/components/file-preview';
 import { QueryListMeta } from '../../../core/models/query-meta.models';
 import { KeysetPager } from '../../../shared/paging/keyset-pager';
 import { ListViewState } from '../../../shared/list-views/list-views';
@@ -45,8 +46,8 @@ import { OrderBy, TableConfig } from '../../../shared/ui-kit/components/table/ta
 
     <ng-template #nameCell let-file>
       <div class="name-with-icon">
-        <div class="file-icon-wrapper" [ngClass]="getFileCategory(file.mimeType, file.originalName)">
-          <span class="material-symbols-outlined" aria-hidden="true">{{ getFileIcon(file.mimeType, file.originalName) }}</span>
+        <div class="file-icon-wrapper" [ngClass]="kindOf(file)">
+          <span class="material-symbols-outlined" aria-hidden="true">{{ iconOf(file) }}</span>
         </div>
         <button type="button" class="file-name-cell" (click)="download.emit(file)" [attr.aria-label]="'files.download_named' | t:{name: file.originalName}" [title]="'files.skachat_fayl' | t">
           <span class="primary-name">{{ file.originalName }}</span>
@@ -54,7 +55,7 @@ import { OrderBy, TableConfig } from '../../../shared/ui-kit/components/table/ta
         </button>
       </div>
     </ng-template>
-    <ng-template #sizeCell let-file><span class="size-pill font-mono">{{ formatBytes(file.sizeBytes) }}</span></ng-template>
+    <ng-template #sizeCell let-file><span class="size-pill font-mono">{{ sizeOf(file) }}</span></ng-template>
     <ng-template #mimeCell let-file><span class="mime-badge">{{ file.mimeType }}</span></ng-template>
     <ng-template #creatorCell let-file>
       @if (file.creatorName) {
@@ -69,6 +70,11 @@ import { OrderBy, TableConfig } from '../../../shared/ui-kit/components/table/ta
     <ng-template #dateCell let-file><span class="date-cell tabular-nums">{{ file.createdAt | date:'dd.MM.yyyy HH:mm' }}</span></ng-template>
     <ng-template #actionsCell let-file>
       <div class="row-actions">
+        @if (previewable(file)) {
+          <button type="button" class="action-btn" data-testid="file-preview" [attr.aria-label]="'ui.file.preview' | t:{name: file.originalName}" (click)="preview.emit(file)">
+            <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
+          </button>
+        }
         <button type="button" class="action-btn download-btn" [attr.aria-label]="'files.download_named' | t:{name: file.originalName}" (click)="download.emit(file)" [title]="'files.skachat' | t">
           <span class="material-symbols-outlined" aria-hidden="true">download</span>
         </button>
@@ -259,6 +265,8 @@ export class FilesTableComponent {
   @Input() canDeleteFn: (file: FileDetail) => boolean = () => false;
 
   @Output() download = new EventEmitter<FileDetail>();
+  /** An image asked to be shown in the preview. */
+  @Output() preview = new EventEmitter<FileDetail>();
   @Output() delete = new EventEmitter<FileDetail>();
   @Output() sortChange = new EventEmitter<{ column: string; sortBy: OrderBy } | undefined>();
 
@@ -306,35 +314,19 @@ export class FilesTableComponent {
     };
   });
 
-  getFileCategory(mimeType?: string, fileName?: string): string {
-    const mime = (mimeType || '').toLowerCase();
-    const name = (fileName || '').toLowerCase();
-
-    if (mime.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg)$/.test(name)) return 'image';
-    if (mime === 'application/pdf' || name.endsWith('.pdf')) return 'pdf';
-    if (/\.(docx?|odt|rtf|txt|md)$/.test(name)) return 'doc';
-    if (/\.(xlsx?|csv|ods)$/.test(name)) return 'sheet';
-    if (/\.(zip|tar|gz|rar|7z)$/.test(name)) return 'archive';
-    return 'other';
+  kindOf(file: FileDetail): SMTFileKind {
+    return fileKind(file.mimeType, file.originalName);
   }
 
-  getFileIcon(mimeType?: string, fileName?: string): string {
-    const cat = this.getFileCategory(mimeType, fileName);
-    switch (cat) {
-      case 'image': return 'image';
-      case 'pdf': return 'picture_as_pdf';
-      case 'doc': return 'description';
-      case 'sheet': return 'table_chart';
-      case 'archive': return 'folder_zip';
-      default: return 'attach_file';
-    }
+  iconOf(file: FileDetail): string {
+    return fileKindIcon(this.kindOf(file));
   }
 
-  formatBytes(bytes: number): string {
-    if (!bytes || bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  previewable(file: FileDetail): boolean {
+    return canPreview(file.mimeType, file.originalName);
+  }
+
+  sizeOf(file: FileDetail): string {
+    return formatFileSize(file.sizeBytes, LANGUAGE_LOCALES[this.i18n.currentLang()] ?? this.i18n.currentLang());
   }
 }
