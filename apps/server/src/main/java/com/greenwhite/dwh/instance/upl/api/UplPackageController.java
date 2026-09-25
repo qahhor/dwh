@@ -3,14 +3,18 @@ package com.greenwhite.dwh.instance.upl.api;
 import com.greenwhite.dwh.core.pagination.KeysetPage;
 import com.greenwhite.dwh.instance.common.annotation.RequiresPermission;
 import com.greenwhite.dwh.instance.common.security.SecurityContext;
+import com.greenwhite.dwh.instance.md.service.MdI18nService;
 import com.greenwhite.dwh.instance.upl.UplPref;
 import com.greenwhite.dwh.instance.upl.api.UplPackageDtos.PackageErrors;
 import com.greenwhite.dwh.instance.upl.api.UplPackageDtos.PackageItem;
 import com.greenwhite.dwh.instance.upl.upload.UplApplyService;
+import com.greenwhite.dwh.instance.upl.upload.UplErrorReportBuilder;
 import com.greenwhite.dwh.instance.upl.upload.UplPackageModel.PackageRow;
 import com.greenwhite.dwh.instance.upl.upload.UplPackageService;
 import com.greenwhite.dwh.instance.upl.upload.UplUploadService;
 import com.greenwhite.dwh.instance.upl.upload.UplUploadService.Upload;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +26,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /** API загрузок файлов: приём файла, список пакетов и ошибки пакета (контракт И5), применение пакета (И6). */
@@ -33,11 +39,16 @@ public class UplPackageController {
     private final UplUploadService uploads;
     private final UplPackageService packages;
     private final UplApplyService applies;
+    private final UplErrorReportBuilder reports;
+    private final MdI18nService i18n;
 
-    public UplPackageController(UplUploadService uploads, UplPackageService packages, UplApplyService applies) {
+    public UplPackageController(UplUploadService uploads, UplPackageService packages, UplApplyService applies,
+                                UplErrorReportBuilder reports, MdI18nService i18n) {
         this.uploads = uploads;
         this.packages = packages;
         this.applies = applies;
+        this.reports = reports;
+        this.i18n = i18n;
     }
 
     private static long userId() {
@@ -79,6 +90,33 @@ public class UplPackageController {
     @RequiresPermission(form = UplPref.FORM_PACKAGES, action = UplPref.ACTION_VIEW)
     public ResponseEntity<PackageErrors> errors(@PathVariable String id) {
         return ResponseEntity.ok(PackageErrors.of(packages.errors(id)));
+    }
+
+    /**
+     * Ошибки пакета файлом xlsx (роадмап п. 21): что загружено и чем кончилось, затем каждая сохранённая
+     * ошибка с адресом и словами, а не кодом, — на языке, который попросили (по умолчанию русский).
+     */
+    @GetMapping("/{id}/errors/file")
+    @RequiresPermission(form = UplPref.FORM_PACKAGES, action = UplPref.ACTION_VIEW)
+    public ResponseEntity<byte[]> errorsFile(@PathVariable String id, @RequestParam(required = false) String lang) {
+        PackageRow row = packages.get(id);
+        Map<String, String> dictionary = i18n.effectiveDictionary(lang);
+        UplErrorReportBuilder.ReportFile file = reports.build(row, packages.errors(id),
+                (key, params) -> fill(dictionary.getOrDefault(key, key), params));
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename(file.fileName(), StandardCharsets.UTF_8).build().toString())
+                .body(file.content());
+    }
+
+    /** Puts {@code {name}} parameters into a dictionary text, as the web client does. */
+    private static String fill(String template, Map<String, Object> params) {
+        String result = template;
+        for (var entry : params.entrySet()) {
+            result = result.replace("{" + entry.getKey() + "}", String.valueOf(entry.getValue()));
+        }
+        return result;
     }
 
     /** Применяет пакет «проверен»: 200 и пакет «применён» или «отклонён системой» с причиной сверки. */

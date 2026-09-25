@@ -149,6 +149,10 @@ describe('PackageCardComponent', () => {
     expect(counters).toContain('3');
     const tableRows = errorRows(fixture);
     expect(tableRows).toHaveLength(2);
+    // The same errors as a file the supplier fixes the data from, in the reader's language.
+    const file = testId(fixture, 'upl-pkg-errors-file')[0] as HTMLAnchorElement;
+    expect(file.getAttribute('href')).toBe('/api/v1/upl/packages/6f1b0d1e-0000-4000-8000-000000000001/errors/file?lang=ru');
+    expect(file.hasAttribute('download')).toBe(true);
     expect(tableRows[0].textContent).toContain('Sheet1');
     expect(tableRows[0].textContent).toContain('17');
     expect(tableRows[0].textContent).toContain('STIR');

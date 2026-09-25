@@ -39,6 +39,9 @@ public class UplTemplateBuilder {
 
     /** Rows below the header that get formats and input checks: far more than a real upload, still a small file. */
     static final int CHECKED_ROWS = 5000;
+    /** Who wrote the file, in its properties; UPL files the server writes all say the same. */
+    public static final String XLSX_APPLICATION = "SmartupCMS";
+    public static final String XLSX_APP_VERSION = "1.0";
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("dd.MM.yyyy");
     private static final String HEADER_FILL = "DCE6F2";
 
@@ -60,7 +63,7 @@ public class UplTemplateBuilder {
 
     private byte[] xlsx(Source source, FormatVersion version, BiFunction<String, Map<String, Object>, String> text) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try (Workbook workbook = new Workbook(out, "SmartupCMS", "1.0")) {
+        try (Workbook workbook = new Workbook(out, XLSX_APPLICATION, XLSX_APP_VERSION)) {
             instruction(workbook.newWorksheet(sheetName(text.apply("upl.template.instruction_sheet", Map.of()))),
                     source, version, text);
             for (Sheet sheet : sorted(version.sheets())) {

@@ -74,6 +74,9 @@ const NOT_FOUND = 'UPL_PKG_NOT_FOUND';
               <span class="upl-pkg-struct-row" data-testid="upl-pkg-struct-row">{{ codeText(row) }}</span>
             }
             <span class="upl-pkg-hint">{{ 'upl.pkg.card.rejected_hint' | t }}</span>
+            @if (structRows().length > 0) {
+              <a class="upl-pkg-errors-file" data-testid="upl-pkg-errors-file" [href]="errorsFileUrl()" download><span class="material-symbols-outlined" aria-hidden="true">download</span>{{ 'upl.errfile.download' | t }}</a>
+            }
           </div>
         } @else {
           <div class="upl-pkg-counters" data-testid="upl-pkg-counters">
@@ -116,6 +119,7 @@ const NOT_FOUND = 'UPL_PKG_NOT_FOUND';
                   {{ 'upl.pkg.errors.shown_first' | t: { shown: loaded.shown, n: loaded.total } }}
                 </p>
               }
+              <a class="upl-pkg-errors-file" data-testid="upl-pkg-errors-file" [href]="errorsFileUrl()" download><span class="material-symbols-outlined" aria-hidden="true">download</span>{{ 'upl.errfile.download' | t }}</a>
               <div class="table-card">
                 <div class="table-scroll">
                   <div data-testid="upl-pkg-errors-table">
@@ -193,6 +197,19 @@ const NOT_FOUND = 'UPL_PKG_NOT_FOUND';
       display: flex;
       flex-direction: column;
       gap: 0.375rem;
+    }
+
+    .upl-pkg-errors-file {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      align-self: flex-start;
+      font-size: 0.8125rem;
+      color: var(--primary-text, var(--primary));
+    }
+
+    .upl-pkg-errors-file .material-symbols-outlined {
+      font-size: 16px;
     }
 
     .upl-pkg-hint {
@@ -300,6 +317,11 @@ export class PackageCardComponent implements OnChanges {
       return;
     }
     this.reloadErrors();
+  }
+
+  /** Every stored error as an xlsx the supplier fixes the data from, in the reader's language. */
+  errorsFileUrl(): string {
+    return '/api/v1/upl/packages/' + encodeURIComponent(this.item.id) + '/errors/file?lang=' + encodeURIComponent(this.i18n.currentLang());
   }
 
   /** Строка шапки: источник · период · версия анкеты · кто загрузил · когда. */

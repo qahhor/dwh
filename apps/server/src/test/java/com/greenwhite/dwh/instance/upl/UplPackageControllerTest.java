@@ -133,6 +133,16 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
         var errors = sendGet(admin, BASE + "/" + read(list, "$.items[0].id") + "/errors", 200);
         assertThat((Integer) read(errors, "$.total")).isEqualTo(3);
         assertThat((Integer) read(errors, "$.shown")).isEqualTo(3);
+        var file = sendGet(admin, BASE + "/" + read(list, "$.items[0].id") + "/errors/file?lang=ru", 200);
+        assertThat(file.getContentType()).startsWith("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        assertThat(file.getHeader("Content-Disposition")).startsWith("attachment").contains("errors_");
+        try (var workbook = new org.dhatim.fastexcel.reader.ReadableWorkbook(new java.io.ByteArrayInputStream(file.getContentAsByteArray()))) {
+            List<String> texts = workbook.getFirstSheet().read().stream().map(row -> row.getCellText(4)).toList();
+            // Three cell errors in words, the same words the card shows.
+            assertThat(texts.stream().filter(t -> !t.isBlank()).count()).isGreaterThanOrEqualTo(4);
+            assertThat(texts).noneMatch(t -> t.startsWith("upl.err."));
+        }
+        sendGet(admin, BASE + "/" + java.util.UUID.randomUUID() + "/errors/file", 404);
         List<Map<String, Object>> items = read(errors, "$.items");
         assertThat(items).hasSize(3).allSatisfy(item -> {
             assertThat(item).containsEntry("code", UplXlsxParser.UPL_CELL_KEY_MASK);

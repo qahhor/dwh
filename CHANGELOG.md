@@ -9,6 +9,11 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- UPL errors file: an upload's errors can be downloaded as xlsx — what was
+  uploaded and what came of it, then every stored error with its sheet, row,
+  column, the value found and what is wrong in words (the card's words, in
+  the reader's language), with a filter and a fixed header. The upload card
+  links to it for checked uploads with errors and for rejected ones.
 - UPL file templates: every format version can be downloaded as the file a
   supplier fills in — an instruction sheet (what the file is for, how to fill
   it, each column with its type, whether it is required, its unit and key

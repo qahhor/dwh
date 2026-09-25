@@ -300,6 +300,18 @@ public class OpenApiController {
                                                 "404", Map.of("description", "LIST_VIEW_NOT_FOUND"))
                                 )
                         )),
+                        Map.entry("/api/v1/upl/packages/{id}/errors/file", Map.of(
+                                "get", Map.of(
+                                        "summary", "Errors of an upload as xlsx: summary, then every stored error with sheet, row, column, value and words",
+                                        "tags", List.of("UPL"),
+                                        "parameters", List.of(Map.of("name", "lang", "in", "query", "required", false,
+                                                "description", "Language of the texts; Russian by default", "schema", Map.of("type", "string"))),
+                                        "responses", Map.of(
+                                                "200", Map.of("description", "The errors file as an attachment"),
+                                                "404", Map.of("description", "UPL_PKG_NOT_FOUND")
+                                        )
+                                )
+                        )),
                         Map.entry("/api/v1/upl/sources/{id}/format-versions/{v}/template", Map.of(
                                 "get", Map.of(
                                         "summary", "The file a supplier fills in for a format version: instruction sheet, headers, notes and input checks (xlsx), or the header line (csv)",
