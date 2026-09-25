@@ -1,18 +1,37 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { Router, provideRouter } from '@angular/router';
-import { NEVER, Observable, of, Subject, throwError } from 'rxjs';
-import { describe, expect, it, vi } from 'vitest';
+import { NEVER, Observable, of, throwError } from 'rxjs';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { KeysetPage, ProblemDetail } from '../../../core/models/common.models';
+import { QueryListMeta } from '../../../core/models/query-meta.models';
 import { PermissionService } from '../../../core/services/permission.service';
+import { QueryMetaService } from '../../../core/services/query-meta.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { PACKAGED_RUSSIAN } from '../../../core/i18n/packaged-russian';
 import { UplApiService, UplSource, UplSourceItem } from '../upl-api';
 import { SourcesListComponent } from './sources-list.component';
 
-function page(items: UplSourceItem[], hasMore = false, nextCursor: string | null = null): KeysetPage<UplSourceItem> {
-  return { items, nextCursor, hasMore, totalReturned: items.length };
+function page(items: UplSourceItem[], hasMore = false, nextCursor: string | null = null, total = items.length): KeysetPage<UplSourceItem> {
+  return { items, nextCursor, hasMore, totalEstimated: total } as unknown as KeysetPage<UplSourceItem>;
 }
+
+/** What `query-meta/upl.sources` answers (ADR-0016). */
+const META: QueryListMeta = {
+  code: 'upl.sources',
+  defaultSort: 'code',
+  defaultLimit: 50,
+  maxLimit: 200,
+  maxConditions: 20,
+  maxInValues: 100,
+  fields: [
+    { key: 'code', labelKey: 'upl.list.col.code', type: 'text', ops: ['eq'], sortable: true, nullable: false, defaultVisible: true, enumValues: [], enumLabelPrefix: null },
+    { key: 'name', labelKey: 'upl.list.col.name', type: 'text', ops: ['eq'], sortable: true, nullable: false, defaultVisible: true, enumValues: [], enumLabelPrefix: null },
+    { key: 'periodicity', labelKey: 'upl.list.col.periodicity', type: 'enum', ops: ['in'], sortable: false, nullable: false, defaultVisible: true, enumValues: ['month', 'quarter', 'year', 'adhoc'], enumLabelPrefix: 'upl.periodicity.' },
+    { key: 'lastPublishedVersion', labelKey: 'upl.list.col.published_version', type: 'number', ops: ['gt'], sortable: false, nullable: true, defaultVisible: true, enumValues: [], enumLabelPrefix: null },
+    { key: 'hasDraft', labelKey: 'upl.list.col.draft', type: 'boolean', ops: ['eq'], sortable: false, nullable: false, defaultVisible: true, enumValues: [], enumLabelPrefix: null }
+  ]
+};
 
 const firstItem: UplSourceItem = {
   id: 1,
@@ -38,15 +57,19 @@ interface FixtureOptions {
   pages?: Array<Observable<KeysetPage<UplSourceItem>>>;
   createResult?: Observable<UplSource>;
   canCreate?: boolean;
+  meta?: Array<Observable<QueryListMeta>>;
 }
 
 async function createFixture(options: FixtureOptions = {}) {
   const pages = options.pages ?? [of(page([firstItem, secondItem]))];
+  const metas = options.meta ?? [of(META)];
   let call = 0;
+  let metaCall = 0;
   const api = {
-    listSources: vi.fn(() => pages[Math.min(call++, pages.length - 1)]),
+    listSources: vi.fn((..._args: unknown[]) => pages[Math.min(call++, pages.length - 1)]),
     createSource: vi.fn(() => options.createResult ?? of(createdSource))
   };
+  const queryMeta = { get: vi.fn(() => metas[Math.min(metaCall++, metas.length - 1)]) };
   const permissions = { hasPermission: vi.fn(() => options.canCreate !== false) };
   const toast = { success: vi.fn(), error: vi.fn() };
   await TestBed.configureTestingModule({
@@ -54,6 +77,7 @@ async function createFixture(options: FixtureOptions = {}) {
     providers: [
       provideRouter([]),
       { provide: UplApiService, useValue: api },
+      { provide: QueryMetaService, useValue: queryMeta },
       { provide: PermissionService, useValue: permissions },
       { provide: ToastService, useValue: toast }
     ]
@@ -61,7 +85,8 @@ async function createFixture(options: FixtureOptions = {}) {
   const fixture = TestBed.createComponent(SourcesListComponent);
   const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
   fixture.detectChanges();
-  return { fixture, api, permissions, toast, navigate };
+  fixture.detectChanges();
+  return { fixture, api, queryMeta, permissions, toast, navigate };
 }
 
 function testId(fixture: ComponentFixture<SourcesListComponent>, id: string): HTMLElement[] {
@@ -71,6 +96,10 @@ function testId(fixture: ComponentFixture<SourcesListComponent>, id: string): HT
 function click(fixture: ComponentFixture<SourcesListComponent>, id: string): void {
   fixture.debugElement.query(By.css(`[data-testid="${id}"]`)).triggerEventHandler('onClick', null);
   fixture.detectChanges();
+}
+
+function headers(fixture: ComponentFixture<SourcesListComponent>): HTMLElement[] {
+  return [...(fixture.nativeElement as HTMLElement).querySelectorAll('[role="columnheader"]')] as HTMLElement[];
 }
 
 async function openCreateForm(
@@ -85,14 +114,50 @@ async function openCreateForm(
 }
 
 describe('SourcesListComponent', () => {
-  it('показывает строки источников со ссылкой на карточку и бейджем черновика', async () => {
-    const { fixture } = await createFixture();
+  afterEach(() => localStorage.clear());
 
-    const rows = testId(fixture, 'upl-source-row');
-    expect(rows).toHaveLength(2);
-    expect(rows[0].querySelector('a')?.getAttribute('href')).toBe('/upl/sources/1');
-    expect(rows[0].querySelector('ui-badge')).toBeNull();
-    expect(rows[1].querySelector('ui-badge')).not.toBeNull();
+  it('строит колонки по метаданным списка и показывает строки со ссылкой на карточку и бейджем черновика', async () => {
+    const { fixture, queryMeta, api } = await createFixture();
+
+    expect(queryMeta.get).toHaveBeenCalledWith('upl.sources');
+    expect(api.listSources).toHaveBeenCalledWith(50, null, { sort: { field: 'code', descending: false } });
+    expect(headers(fixture).map(cell => cell.querySelector('span.truncate')?.textContent?.trim())).toEqual([
+      PACKAGED_RUSSIAN['upl.list.col.code'],
+      PACKAGED_RUSSIAN['upl.list.col.name'],
+      PACKAGED_RUSSIAN['upl.list.col.periodicity'],
+      PACKAGED_RUSSIAN['upl.list.col.published_version'],
+      PACKAGED_RUSSIAN['upl.list.col.draft']
+    ]);
+    expect(headers(fixture)[0].getAttribute('aria-sort')).toBe('ascending');
+    expect(testId(fixture, 'upl-source-row')).toHaveLength(2);
+    const links = [...fixture.nativeElement.querySelectorAll('a.upl-link')] as HTMLAnchorElement[];
+    expect(links.map(link => link.getAttribute('href'))).toEqual(['/upl/sources/1', '/upl/sources/5']);
+    expect(fixture.nativeElement.querySelectorAll('[role="rowgroup"] ui-badge')).toHaveLength(1);
+    expect(fixture.nativeElement.textContent).toContain(PACKAGED_RUSSIAN['upl.periodicity.quarter']);
+    expect(testId(fixture, 'upl-count')[0].textContent?.trim()).toBe('2');
+  });
+
+  it('сортирует весь список на сервере по клику на заголовок', async () => {
+    const { fixture, api } = await createFixture();
+
+    headers(fixture)[1].querySelector('smt-cell-header')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    fixture.detectChanges();
+
+    expect(api.listSources).toHaveBeenLastCalledWith(50, null, { sort: { field: 'name', descending: false } });
+    expect(headers(fixture)[1].getAttribute('aria-sort')).toBe('ascending');
+    expect(headers(fixture)[0].getAttribute('aria-sort')).toBe('none');
+  });
+
+  it('листает страницы курсором того же запроса', async () => {
+    const { fixture, api } = await createFixture({
+      pages: [of(page([firstItem], true, 'cursor-1', 2)), of(page([secondItem], false, null, 2))]
+    });
+
+    (fixture.nativeElement.querySelector('button[aria-label="Следующая страница"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(api.listSources).toHaveBeenLastCalledWith(50, 'cursor-1', { sort: { field: 'code', descending: false } });
+    expect(testId(fixture, 'upl-source-row').map(row => row.textContent)).toEqual(['brick.output']);
   });
 
   it('показывает пустое состояние, когда источников нет', async () => {
@@ -102,61 +167,57 @@ describe('SourcesListComponent', () => {
     expect(testId(fixture, 'upl-source-row')).toHaveLength(0);
   });
 
-  it('показывает ошибку загрузки, «Повторить» перезапрашивает список', async () => {
+  it('без метаданных показывает ошибку, «Повторить» запрашивает их и список', async () => {
+    const { fixture, api, queryMeta } = await createFixture({
+      meta: [throwError(() => ({ status: 503 })), of(META)]
+    });
+
+    expect(testId(fixture, 'upl-load-error')).toHaveLength(1);
+    expect(api.listSources).not.toHaveBeenCalled();
+
+    click(fixture, 'upl-retry');
+    fixture.detectChanges();
+
+    expect(queryMeta.get).toHaveBeenCalledTimes(2);
+    expect(testId(fixture, 'upl-load-error')).toHaveLength(0);
+    expect(testId(fixture, 'upl-source-row')).toHaveLength(2);
+  });
+
+  it('ошибку страницы показывает таблица с повтором именно этого запроса', async () => {
     const { fixture, api } = await createFixture({
       pages: [throwError(() => ({ status: 503 })), of(page([firstItem]))]
     });
 
-    expect(testId(fixture, 'upl-load-error')).toHaveLength(1);
-
-    click(fixture, 'upl-retry');
+    const alert = fixture.nativeElement.querySelector('ui-server-table [role="alert"]') as HTMLElement;
+    expect(alert.textContent).toContain(PACKAGED_RUSSIAN['upl.list.load_error']);
+    (alert.querySelector('button') as HTMLButtonElement).click();
+    fixture.detectChanges();
 
     expect(api.listSources).toHaveBeenCalledTimes(2);
     expect(testId(fixture, 'upl-source-row')).toHaveLength(1);
   });
 
-  it('догружает следующую страницу по курсору', async () => {
-    const { fixture, api } = await createFixture({
-      pages: [of(page([firstItem], true, 'cursor-1')), of(page([secondItem]))]
-    });
+  it('позволяет настроить колонки, кроме названия', async () => {
+    const { fixture } = await createFixture();
 
-    expect(testId(fixture, 'upl-more')).toHaveLength(1);
-
-    click(fixture, 'upl-more');
-
-    expect(api.listSources).toHaveBeenLastCalledWith(50, 'cursor-1');
-    expect(testId(fixture, 'upl-source-row')).toHaveLength(2);
-    expect(testId(fixture, 'upl-more')).toHaveLength(0);
-  });
-
-  it('не дописывает к обновлённому списку страницу, запрошенную до обновления', async () => {
-    const pendingMore = new Subject<KeysetPage<UplSourceItem>>();
-    const reloaded = new Subject<KeysetPage<UplSourceItem>>();
-    const { fixture } = await createFixture({
-      pages: [of(page([firstItem], true, 'cursor-1')), pendingMore.asObservable(), reloaded.asObservable()]
-    });
-
-    fixture.componentInstance.loadMore();
-    fixture.componentInstance.load();
-    reloaded.next(page([secondItem])); reloaded.complete();
-    pendingMore.next(page([firstItem])); pendingMore.complete();
+    (fixture.nativeElement.querySelector('.smt-columns__trigger') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const checks = [...document.querySelectorAll('[role="dialog"] input[type="checkbox"]')] as HTMLInputElement[];
+    expect(checks).toHaveLength(5);
+    expect(checks[1].disabled).toBe(true);
+    checks[3].click();
     fixture.detectChanges();
 
-    expect(fixture.componentInstance.items().map(item => item.id)).toEqual([5]);
+    expect(headers(fixture)).toHaveLength(4);
+    expect(JSON.parse(localStorage.getItem('dwh.table-columns.v1.upl.sources')!).hidden).toEqual(['lastPublishedVersion']);
   });
 
-  it('при hasMore без курсора кнопку «Загрузить ещё» не показывает и страницу не повторяет', async () => {
-    const { fixture, api } = await createFixture({
-      pages: [of(page([firstItem], true, null)), of(page([secondItem]))]
-    });
+  it('пока список грузится, сообщает об этом и не показывает пустое состояние', async () => {
+    const { fixture } = await createFixture({ pages: [NEVER] });
 
-    expect(testId(fixture, 'upl-more')).toHaveLength(0);
-
-    fixture.componentInstance.loadMore();
-    fixture.detectChanges();
-
-    expect(api.listSources).toHaveBeenCalledTimes(1);
-    expect(testId(fixture, 'upl-source-row')).toHaveLength(1);
+    expect(fixture.nativeElement.querySelector('[data-server-table-status]')).not.toBeNull();
+    expect(testId(fixture, 'upl-empty')).toHaveLength(0);
+    expect(testId(fixture, 'upl-source-row')).toHaveLength(0);
   });
 
   it('кнопку «Новый источник» показывает только при праве create', async () => {
@@ -246,13 +307,6 @@ describe('SourcesListComponent', () => {
     expect(testId(fixture, 'upl-create-error')).toHaveLength(1);
   });
 
-  it('пока список грузится, показывает пять строк-заглушек', async () => {
-    const { fixture } = await createFixture({ pages: [NEVER] });
-
-    expect(testId(fixture, 'upl-skeleton')).toHaveLength(5);
-    expect(testId(fixture, 'upl-empty')).toHaveLength(0);
-    expect(testId(fixture, 'upl-source-row')).toHaveLength(0);
-  });
 
   it('в пустом списке без права create нет кнопки «Новый источник»', async () => {
     const withoutRight = await createFixture({ pages: [of(page([]))], canCreate: false });
@@ -303,11 +357,4 @@ describe('SourcesListComponent', () => {
     expect(navigate).not.toHaveBeenCalled();
   });
 
-  it('не показывает ошибку загрузки вместе с таблицей', async () => {
-    const { fixture } = await createFixture();
-
-    expect(testId(fixture, 'upl-load-error')).toHaveLength(0);
-    expect(testId(fixture, 'upl-skeleton')).toHaveLength(0);
-    expect(testId(fixture, 'upl-source-row')).toHaveLength(2);
-  });
 });

@@ -21,6 +21,16 @@ export const TEST_MESSAGES: SMTMessages = {
     rejectedSize: (name, size) => `${name}: the file is larger than ${size}`,
   },
   stepper: { complete: 'done', error: 'has errors' },
+  columns: {
+    button: 'Columns',
+    title: 'Table columns',
+    locked: 'always shown',
+    reset: 'Reset',
+    resetDone: 'Columns reset',
+    moveUp: name => `Move ${name} up`,
+    moveDown: name => `Move ${name} down`,
+    moved: (name, position, total) => `${name}: place ${position} of ${total}`,
+  },
   select: {
     placeholder: 'Choose…',
     name: 'Choose a value',

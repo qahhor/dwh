@@ -9,6 +9,13 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Column settings for server tables: a "Columns" button opens a panel to
+  show or hide columns and move them up or down — by keyboard too, with each
+  new place announced — and a Reset; widths are set by dragging a header
+  edge. The choice is remembered per table in this browser, and a column
+  added later still appears. The UPL sources list is the first to offer it
+  and now builds its columns from the server's field registry, sorts the
+  whole list by a header click and pages instead of "Load more".
 - A server field registry for lists (ADR-0016). A module declares a list's
   fields once — type, label, whether it can be filtered, sorted or empty —
   and `GET /api/v1/query-meta/{list}` gives them to anyone who may see the

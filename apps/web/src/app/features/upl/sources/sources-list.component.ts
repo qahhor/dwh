@@ -1,8 +1,11 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, TemplateRef, computed, inject, signal, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ProblemDetail } from '../../../core/models/common.models';
+import { QueryListMeta, QuerySort } from '../../../core/models/query-meta.models';
+import { QueryMetaService, parseSort } from '../../../core/services/query-meta.service';
 import { KeysetPager } from '../../../shared/paging/keyset-pager';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { PermissionService } from '../../../core/services/permission.service';
@@ -10,6 +13,9 @@ import { ToastService } from '../../../core/services/toast.service';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
+import { UiServerTableComponent } from '../../../shared/ui/ui-server-table.component';
+import { registryTableConfig, sortFromHeader } from '../../../shared/ui/registry-table-config';
+import { OrderBy, TableConfig } from '../../../shared/ui-kit/components/table/table.types';
 import {
   UPL_PERIODICITIES,
   UPL_STRICTNESSES,
@@ -62,15 +68,16 @@ function emptyForm(): SourceCreateForm {
     TranslatePipe,
     UiButtonComponent,
     UiModalComponent,
-    UiBadgeComponent
+    UiBadgeComponent,
+    UiServerTableComponent
   ],
   template: `
     <div class="upl-page">
       <div class="toolbar upl-toolbar">
         <h1 class="upl-title">
           {{ 'upl.list.title' | t }}
-          @if (!isLoading() && !loadError()) {
-            <span class="upl-count">{{ items().length }}</span>
+          @if (meta() && !isLoading() && !loadError()) {
+            <span class="upl-count" data-testid="upl-count">{{ pager.total() }}</span>
           }
         </h1>
         @if (canCreate()) {
@@ -80,89 +87,46 @@ function emptyForm(): SourceCreateForm {
         }
       </div>
 
-      @if (loadError()) {
+      @if (metaError()) {
         <div class="alert alert-error upl-alert" role="alert" data-testid="upl-load-error">
           <span>{{ 'upl.list.load_error' | t }}</span>
           <ui-button variant="secondary" data-testid="upl-retry" (onClick)="load()">
             {{ 'upl.common.retry' | t }}
           </ui-button>
         </div>
-      } @else if (isLoading()) {
-        <div class="table-card">
-          <div class="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>{{ 'upl.list.col.code' | t }}</th>
-                  <th>{{ 'upl.list.col.name' | t }}</th>
-                  <th>{{ 'upl.list.col.periodicity' | t }}</th>
-                  <th>{{ 'upl.list.col.published_version' | t }}</th>
-                  <th>{{ 'upl.list.col.draft' | t }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (row of skeletonRows; track row) {
-                  <tr data-testid="upl-skeleton">
-                    <td colspan="5"><span class="upl-skeleton-bar"></span></td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        </div>
-      } @else if (items().length === 0) {
-        <div class="upl-empty" data-testid="upl-empty">
-          <span class="material-symbols-outlined upl-empty-icon" aria-hidden="true">table_view</span>
-          <p class="upl-empty-text">{{ 'upl.list.empty' | t }}</p>
-          @if (canCreate()) {
-            <ui-button variant="primary" data-testid="upl-empty-new" (onClick)="openCreate()">
-              {{ 'upl.list.new' | t }}
-            </ui-button>
-          }
-        </div>
+      } @else if (tableConfig(); as config) {
+        <ui-server-table
+          [pager]="pager"
+          [config]="config"
+          columnsId="upl.sources"
+          [lockedColumns]="['name']"
+          [loadingLabel]="'upl.common.loading' | t"
+          [errorLabel]="'upl.list.load_error' | t"
+          [emptyTemplate]="emptyState"
+          (sortChange)="onSort($event)" />
       } @else {
-        <div class="table-card">
-          <div class="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>{{ 'upl.list.col.code' | t }}</th>
-                  <th>{{ 'upl.list.col.name' | t }}</th>
-                  <th>{{ 'upl.list.col.periodicity' | t }}</th>
-                  <th>{{ 'upl.list.col.published_version' | t }}</th>
-                  <th>{{ 'upl.list.col.draft' | t }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (item of items(); track item.id) {
-                  <tr data-testid="upl-source-row">
-                    <td><code class="upl-code">{{ item.code }}</code></td>
-                    <td><a class="upl-link" [routerLink]="['/upl/sources', item.id]">{{ item.name }}</a></td>
-                    <td>{{ periodicityKey[item.periodicity] | t }}</td>
-                    <td>{{ item.lastPublishedVersion ?? '—' }}</td>
-                    <td>
-                      @if (item.hasDraft) {
-                        <ui-badge variant="info">{{ 'upl.list.has_draft' | t }}</ui-badge>
-                      }
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        </div>
-        @if (canLoadMore()) {
-          <div class="upl-more">
-            <ui-button
-              variant="secondary"
-              [loading]="isLoadingMore()"
-              data-testid="upl-more"
-              (onClick)="loadMore()"
-            >{{ 'upl.list.more' | t }}</ui-button>
-          </div>
-        }
+        <p class="upl-muted" role="status" data-testid="upl-meta-loading">{{ 'upl.common.loading' | t }}</p>
       }
     </div>
+
+    <ng-template #emptyState>
+      <div class="upl-empty" data-testid="upl-empty">
+        <span class="material-symbols-outlined upl-empty-icon" aria-hidden="true">table_view</span>
+        <p class="upl-empty-text">{{ 'upl.list.empty' | t }}</p>
+        @if (canCreate()) {
+          <ui-button variant="primary" data-testid="upl-empty-new" (onClick)="openCreate()">
+            {{ 'upl.list.new' | t }}
+          </ui-button>
+        }
+      </div>
+    </ng-template>
+    <ng-template #codeCell let-item><code class="upl-code" data-testid="upl-source-row">{{ item.code }}</code></ng-template>
+    <ng-template #nameCell let-item><a class="upl-link" [routerLink]="['/upl/sources', item.id]">{{ item.name }}</a></ng-template>
+    <ng-template #draftCell let-item>
+      @if (item.hasDraft) {
+        <ui-badge variant="info">{{ 'upl.list.has_draft' | t }}</ui-badge>
+      }
+    </ng-template>
 
     <ui-modal
       [isOpen]="isCreateOpen()"
@@ -358,19 +322,6 @@ function emptyForm(): SourceCreateForm {
       text-decoration: underline;
     }
 
-    .upl-skeleton-bar {
-      display: block;
-      height: 1rem;
-      border-radius: var(--radius-sm);
-      background: var(--bg-hover);
-      animation: upl-skeleton-pulse 1.2s ease-in-out infinite;
-    }
-
-    @keyframes upl-skeleton-pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
-    }
-
     .upl-empty {
       display: flex;
       flex-direction: column;
@@ -392,9 +343,8 @@ function emptyForm(): SourceCreateForm {
       color: var(--text-muted);
     }
 
-    .upl-more {
-      display: flex;
-      justify-content: center;
+    .upl-muted {
+      color: var(--text-muted);
     }
 
     .upl-form {
@@ -433,23 +383,47 @@ export class SourcesListComponent implements OnInit {
 
   /* A reload while "load more" is pending cancels it, so the old page is
      never appended to the refreshed list. */
-  readonly pager = new KeysetPager<UplSourceItem>((cursor, limit) => this.api.listSources(limit, cursor), {
-    pageSize: PAGE_SIZE,
-    destroyRef: inject(DestroyRef),
-    onError: failure => { if (failure === 'more') this.toast.error(this.i18n.translate('upl.list.load_error')); }
-  });
+  private readonly queryMeta = inject(QueryMetaService);
+  private readonly destroyRef = inject(DestroyRef);
+
+  /** The sort goes with every page, so a cursor always continues the query that issued it. */
+  readonly pager = new KeysetPager<UplSourceItem>(
+    (cursor, limit) => this.api.listSources(limit, cursor, { sort: this.sort() }),
+    { pageSize: PAGE_SIZE, destroyRef: this.destroyRef }
+  );
   readonly items = this.pager.items;
   readonly isLoading = this.pager.loading;
-  readonly isLoadingMore = this.pager.loadingMore;
   readonly loadError = this.pager.failed;
-  readonly canLoadMore = this.pager.canGoForward;
+  /** Field metadata of the list (`query-meta/upl.sources`): columns, headers, what sorts. */
+  readonly meta = signal<QueryListMeta | null>(null);
+  readonly metaError = signal(false);
+  readonly sort = signal<QuerySort | null>(null);
+
+  private readonly codeCell = viewChild.required<TemplateRef<unknown>>('codeCell');
+  private readonly nameCell = viewChild.required<TemplateRef<unknown>>('nameCell');
+  private readonly draftCell = viewChild.required<TemplateRef<unknown>>('draftCell');
+
+  readonly tableConfig = computed<TableConfig<UplSourceItem> | null>(() => {
+    const meta = this.meta();
+    if (!meta) return null;
+    return registryTableConfig<UplSourceItem>(meta, {
+      translate: key => this.i18n.translate(key),
+      trackBy: (_index, item) => item.id,
+      ariaLabel: this.i18n.translate('upl.list.title'),
+      sort: this.sort(),
+      cells: {
+        code: { type: 'templateRef', value: this.codeCell },
+        name: { type: 'templateRef', value: this.nameCell },
+        hasDraft: { type: 'templateRef', value: this.draftCell }
+      }
+    });
+  });
   readonly isCreateOpen = signal(false);
   readonly isSaving = signal(false);
   /** Значение — ключ i18n либо готовый текст сервера; в шаблоне всё равно идёт через `| t`. */
   readonly fieldErrors = signal<Record<string, string>>({});
   readonly createError = signal<string | null>(null);
 
-  readonly skeletonRows = [1, 2, 3, 4, 5];
   readonly periodicities = UPL_PERIODICITIES;
   readonly strictnesses = UPL_STRICTNESSES;
   readonly periodicityKey = UPL_PERIODICITY_KEY;
@@ -465,12 +439,29 @@ export class SourcesListComponent implements OnInit {
     return this.permissions.hasPermission('upl.sources', 'create');
   }
 
+  /** The list's metadata first, then its first page; a retry repeats whichever failed. */
   load(): void {
-    this.pager.first();
+    if (this.meta()) {
+      this.pager.first();
+      return;
+    }
+    this.metaError.set(false);
+    this.queryMeta.get('upl.sources').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: meta => {
+        this.sort.set(parseSort(meta.defaultSort));
+        this.meta.set(meta);
+        this.pager.first();
+      },
+      error: () => this.metaError.set(true)
+    });
   }
 
-  loadMore(): void {
-    this.pager.loadMore();
+  /** A header click sorts the whole list on the server; switching sorting off returns to the default order. */
+  onSort(event: { column: string; sortBy: OrderBy } | undefined): void {
+    const meta = this.meta();
+    if (!meta) return;
+    this.sort.set(sortFromHeader(event) ?? parseSort(meta.defaultSort));
+    this.pager.first();
   }
 
   openCreate(): void {

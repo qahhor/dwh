@@ -138,3 +138,75 @@ describe('ui-server-table', () => {
     expect(el(fixture).querySelector('.pagination-info strong:nth-of-type(2)')).toBeNull();
   });
 });
+
+@Component({
+  standalone: true,
+  imports: [UiServerTableComponent],
+  template: `
+    <ui-server-table [pager]="pager" [config]="config" loadingLabel="Loading" errorLabel="Failed"
+      columnsId="test.columns" [lockedColumns]="['id']" />`,
+})
+class ColumnsHostComponent {
+  readonly pager = new KeysetPager<Row>(() => of({ items: [{ id: 1 }], nextCursor: null }), { pageSize: 2 });
+  readonly config: TableConfig<Row> = {
+    trackBy: (_index, row) => row.id,
+    ariaLabel: 'Rows',
+    columns: {
+      id: { header: { type: 'primitive', value: 'ID' }, content: { type: 'primitive', value: row => `#${row.id}` } },
+      name: { header: { type: 'primitive', value: 'Name' }, content: { type: 'primitive', value: row => `n${row.id}` } },
+      note: { header: { type: 'primitive', value: 'Note' }, content: { type: 'primitive', value: () => 'x' } },
+    },
+    columnsOrder: ['id', 'name', 'note'],
+  };
+}
+
+describe('ui-server-table column settings', () => {
+  async function renderColumns(): Promise<ComponentFixture<ColumnsHostComponent>> {
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({ imports: [ColumnsHostComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(ColumnsHostComponent);
+    fixture.detectChanges();
+    fixture.componentInstance.pager.first();
+    fixture.detectChanges();
+    return fixture;
+  }
+  const headers = (fixture: ComponentFixture<ColumnsHostComponent>) =>
+    [...(fixture.nativeElement as HTMLElement).querySelectorAll('[role="columnheader"]')].map(cell => cell.textContent?.trim());
+
+  it('hides a column, remembers the choice for the table id and restores it', async () => {
+    localStorage.clear();
+    const fixture = await renderColumns();
+    expect(headers(fixture)).toEqual(['ID', 'Name', 'Note']);
+
+    (fixture.nativeElement.querySelector('.smt-columns__trigger') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const checks = [...document.querySelectorAll('[role="dialog"] input[type="checkbox"]')] as HTMLInputElement[];
+    expect(checks[0].disabled).toBe(true);
+    checks[1].click();
+    fixture.detectChanges();
+
+    expect(headers(fixture)).toEqual(['ID', 'Note']);
+    expect(JSON.parse(localStorage.getItem('dwh.table-columns.v1.test.columns')!).hidden).toEqual(['name']);
+
+    fixture.destroy();
+    const again = await renderColumns();
+    expect(headers(again)).toEqual(['ID', 'Note']);
+    localStorage.clear();
+  });
+
+  it('keeps a dragged width and forgets a choice reset to the defaults', async () => {
+    localStorage.clear();
+    const fixture = await renderColumns();
+    const table = fixture.debugElement.query(debug => debug.name === 'ui-server-table').componentInstance as UiServerTableComponent<Row>;
+
+    (table as unknown as { onColumnResize(event: { key: string; widthPx: number; widthPercent: string }): void })
+      .onColumnResize({ key: 'name', widthPx: 240, widthPercent: '30%' });
+    expect(JSON.parse(localStorage.getItem('dwh.table-columns.v1.test.columns')!).widths).toEqual({ name: '240px' });
+
+    (fixture.nativeElement.querySelector('.smt-columns__trigger') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    (document.querySelector('.smt-columns__reset') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(localStorage.getItem('dwh.table-columns.v1.test.columns')).toBeNull();
+  });
+});

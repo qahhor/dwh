@@ -49,10 +49,22 @@ export interface SMTDropzoneMessages {
   readonly rejectedSize: (name: string, size: string) => string;
 }
 
+export interface SMTColumnsMessages {
+  readonly button: string;
+  readonly title: string;
+  readonly locked: string;
+  readonly reset: string;
+  readonly resetDone: string;
+  readonly moveUp: (name: string) => string;
+  readonly moveDown: (name: string) => string;
+  readonly moved: (name: string, position: number, total: number) => string;
+}
+
 export interface SMTMessages {
   readonly control: SMTControlMessages;
   readonly dropzone: SMTDropzoneMessages;
   readonly stepper: { readonly complete: string; readonly error: string };
+  readonly columns: SMTColumnsMessages;
   readonly select: SMTSelectMessages;
   readonly date: SMTDateMessages;
   readonly common: { readonly close: string; readonly cancel: string };
@@ -92,6 +104,17 @@ export class SMTI18nService {
     stepper: {
       complete: this.i18n.translate('ui.stepper.complete'),
       error: this.i18n.translate('ui.stepper.error'),
+    },
+    columns: {
+      button: this.i18n.translate('ui.columns.button'),
+      title: this.i18n.translate('ui.columns.title'),
+      locked: this.i18n.translate('ui.columns.locked'),
+      reset: this.i18n.translate('ui.columns.reset'),
+      resetDone: this.i18n.translate('ui.columns.reset_done'),
+      moveUp: name => this.i18n.translate('ui.columns.move_up', { name }),
+      moveDown: name => this.i18n.translate('ui.columns.move_down', { name }),
+      moved: (name, position, total) =>
+        this.i18n.translate('ui.columns.moved', { name, position: String(position), total: String(total) }),
     },
     select: {
       placeholder: this.i18n.translate('ui.searchable_select.vyberite_iz_spiska'),
