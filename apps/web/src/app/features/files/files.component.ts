@@ -25,6 +25,7 @@ import { FilesModalsComponent } from './components/files-modals.component';
 import { SMTModalService } from '../../shared/ui-kit/components/modal';
 import { problemText } from '../../shared/ui/problem-text';
 import { SMTFilePreviewService } from '../../shared/ui-kit/components/file-preview';
+import { SMTAlertComponent } from '../../shared/ui-kit/components/alert';
 
 export type { FileDetail, StorageStats } from './files.models';
 
@@ -40,7 +41,7 @@ function formatBytes(bytes: number): string {
   selector: 'app-files',
   standalone: true,
   imports: [
-    CommonModule,
+    SMTAlertComponent, CommonModule,
     UiButtonComponent,
     TranslatePipe,
     FilesMetricsCardsComponent,
@@ -79,10 +80,10 @@ function formatBytes(bytes: number): string {
 
       <!-- Files Table & Pagination -->
       @if (metaError()) {
-        <div class="alert alert-error" role="alert" data-testid="files-meta-error">
+        <smt-alert smtTone="danger" data-testid="files-meta-error">
           <span>{{ 'files.list_load_error' | t }}</span>
           <ui-button variant="secondary" size="sm" (onClick)="loadFiles()">{{ 'common.retry' | t }}</ui-button>
-        </div>
+        </smt-alert>
       }
       <app-files-table
         [pager]="pager"

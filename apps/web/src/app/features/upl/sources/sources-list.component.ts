@@ -30,6 +30,7 @@ import {
 } from '../upl-api';
 import { parseUplProblem, uplFieldErrorText } from '../formats/upl-format-errors';
 import { UPL_PERIODICITY_KEY, UPL_STRICTNESS_KEY, uplProblemText } from '../upl-labels';
+import { SMTAlertComponent } from '../../../shared/ui-kit/components/alert';
 
 /** Модель окна «Новый источник»: обычный объект, чтобы работал `[(ngModel)]`. */
 interface SourceCreateForm {
@@ -65,7 +66,7 @@ function emptyForm(): SourceCreateForm {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    SMTControlComponent,
+    SMTAlertComponent, SMTControlComponent,
     CommonModule,
     FormsModule,
     RouterLink,
@@ -92,12 +93,12 @@ function emptyForm(): SourceCreateForm {
       </div>
 
       @if (metaError()) {
-        <div class="alert alert-error upl-alert" role="alert" data-testid="upl-load-error">
+        <smt-alert smtTone="danger" class="upl-alert" data-testid="upl-load-error">
           <span>{{ 'upl.list.load_error' | t }}</span>
           <ui-button variant="secondary" data-testid="upl-retry" (onClick)="load()">
             {{ 'upl.common.retry' | t }}
           </ui-button>
-        </div>
+        </smt-alert>
       } @else if (tableConfig(); as config) {
         <ui-server-table
           [pager]="pager"
@@ -143,9 +144,9 @@ function emptyForm(): SourceCreateForm {
     >
       <form body id="upl-source-create" class="upl-form" (ngSubmit)="submitCreate()" novalidate>
         @if (createError()) {
-          <div class="alert alert-error upl-alert" role="alert" data-testid="upl-create-error">
+          <smt-alert smtTone="danger" class="upl-alert" data-testid="upl-create-error">
             {{ createError()! | t }}
-          </div>
+          </smt-alert>
         }
 
         <smt-control class="form-group" [smtLabel]="'upl.source.field.code' | t" [smtHint]="'upl.source.hint.code' | t" [smtError]="fieldErrorText('code')">
