@@ -1,16 +1,31 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { featureI18nProblems } from './feature-i18n';
 
+const CATALOGS = path.resolve(process.cwd(), '..', 'server', 'src', 'main', 'resources', 'i18n');
+const catalog = (code: string) => JSON.parse(readFileSync(path.join(CATALOGS, `${code}.json`), 'utf8')) as Record<string, string>;
+/** The real catalogs plus a notes key no screen shows, as dead copy looks. */
+const withDeadNote = {
+  ru: { ...catalog('ru'), 'notes.no_screen_shows_it': 'Нигде не показано' },
+  en: { ...catalog('en'), 'notes.no_screen_shows_it': 'Shown nowhere' },
+};
+
 describe('featureI18nProblems', () => {
   it('reports an owned key nothing uses', () => {
-    // notes.subtitle stays in the catalogs although no screen shows it any more.
-    expect(featureI18nProblems({ dir: 'src/app/features/notes', owns: ['notes.'], english: true }))
-      .toContain("'notes.subtitle' is not used: remove it, or declare it as a run-time key");
+    expect(featureI18nProblems({ dir: 'src/app/features/notes', owns: ['notes.'], english: true, catalogs: withDeadNote }))
+      .toContain("'notes.no_screen_shows_it' is not used: remove it, or declare it as a run-time key");
+  });
+
+  it('finds no dead copy in the notes catalogs', () => {
+    expect(featureI18nProblems({ dir: 'src/app/features/notes', owns: ['notes.'], english: true })).toEqual([]);
   });
 
   it('accepts a key the feature builds at run time once it is declared', () => {
-    const problems = featureI18nProblems({ dir: 'src/app/features/notes', owns: ['notes.'], english: true, dynamic: ['notes.subtitle'] });
-    expect(problems.some(problem => problem.includes("'notes.subtitle'"))).toBe(false);
+    const problems = featureI18nProblems({
+      dir: 'src/app/features/notes', owns: ['notes.'], english: true, dynamic: ['notes.no_screen_shows_it'], catalogs: withDeadNote,
+    });
+    expect(problems.some(problem => problem.includes("'notes.no_screen_shows_it'"))).toBe(false);
   });
 
   it('reports owned keys without English where the feature ships it', () => {

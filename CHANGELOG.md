@@ -685,6 +685,13 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Removed
 
+- 102 localization keys nothing uses any more (784 entries across the eight
+  catalogs): old toasts and confirmations, retired navigation, notes and task
+  labels, superseded kit texts. A key counts as used when its text appears in
+  web or server code, or it falls under a prefix the code composes at run time
+  (`upl.err.` + code and the like). The feature i18n helper takes catalogs in
+  its own spec, which no longer depends on a dead key, and checks that the
+  notes catalogs hold no dead copy.
 - `ui-searchable-select`, replaced everywhere by `smt-select`.
 - `ui-user-multi-select`, replaced by `smt-multi-select`.
 - Control Plane, fleet management, heartbeat, enrollment, and license gates.
