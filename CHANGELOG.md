@@ -9,6 +9,14 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- A filter builder for server lists. "Filter" opens a side panel of
+  "field — condition — value" rows joined with "and"; the fields and the
+  conditions each offers come from the list's field registry, and the value
+  editor follows the field type (text, number, date picker, yes/no, a choice
+  or a set of choices). An incomplete row says what is missing and takes
+  focus instead of being applied. Active conditions show as chips above the
+  table, each removable on its own, and the filter is saved with a view. The
+  UPL sources list is the first to offer it.
 - Saved list views (ADR-0016). A person can save what a list shows —
   columns, their order and widths, the sort and, later, the filter — under a
   name, switch between views from a menu next to the column settings, update

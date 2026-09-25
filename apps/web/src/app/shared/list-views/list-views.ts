@@ -128,6 +128,12 @@ export class ListViewState {
     if (this.activeId() === null) this.options.columnsStore?.save(this.listCode, columns);
   }
 
+  /** New filter conditions from the builder or a removed chip; the list reloads from its first page. */
+  setFilter(conditions: QueryCondition[]): void {
+    this.filter.set(conditions);
+    this.options.onApply();
+  }
+
   setSort(sort: QuerySort | null): void {
     this.sort.set(sort ?? this.options.defaultSort());
   }
