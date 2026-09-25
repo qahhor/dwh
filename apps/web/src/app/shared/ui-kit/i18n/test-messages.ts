@@ -75,7 +75,7 @@ export const TEST_MESSAGES: SMTMessages = {
   table: { noResults: 'No results' },
   dataTable: { selectAll: 'Select all', selectRow: 'Select row' },
   tree: { expandAll: 'Expand all', collapseAll: 'Collapse all' },
-  modalConfirm: { title: 'Confirmation', yes: 'Yes', no: 'No' },
+  modalConfirm: { title: 'Confirmation', yes: 'Yes', no: 'No', failed: 'The action failed. Try again.' },
 };
 
 /** Stub with the Russian day-first date pattern and the en-GB locale for readable, day-first labels. */

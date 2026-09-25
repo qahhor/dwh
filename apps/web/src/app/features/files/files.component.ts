@@ -1,7 +1,7 @@
 import { Component, DestroyRef, OnDestroy, OnInit, signal, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
-import { finalize, Subscription } from 'rxjs';
+import { finalize, Observable, Subscription, tap, throwError } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { PermissionService } from '../../core/services/permission.service';
@@ -22,8 +22,18 @@ import { FilesMetricsCardsComponent } from './components/files-metrics-cards.com
 import { FilesToolbarComponent } from './components/files-toolbar.component';
 import { FilesTableComponent } from './components/files-table.component';
 import { FilesModalsComponent } from './components/files-modals.component';
+import { SMTModalService } from '../../shared/ui-kit/components/modal';
+import { problemText } from '../../shared/ui/problem-text';
 
 export type { FileDetail, StorageStats } from './files.models';
+
+function formatBytes(bytes: number): string {
+  if (!bytes || bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
 
 @Component({
   selector: 'app-files',
@@ -88,14 +98,9 @@ export type { FileDetail, StorageStats } from './files.models';
       <app-files-modals
         [isUploadModalOpen]="isUploadModalOpen()"
         [uploadedBatch]="uploadedBatch()"
-        [fileToDelete]="fileToDelete"
-        [isDeleting]="isDeleting()"
-        [canDeleteFn]="canDeleteFileBound"
         (closeUpload)="closeUploadModal()"
         (batchFileUploaded)="onBatchFileUploaded($event)"
         (batchFileRemoved)="onBatchFileRemoved($event)"
-        (cancelDelete)="cancelDeleteFile()"
-        (executeDelete)="executeDeleteFile()"
       ></app-files-modals>
     </div>
   `,
@@ -176,9 +181,9 @@ export class FilesComponent implements OnInit, OnDestroy {
   scope: 'all' | 'mine' = 'all';
   searchQuery = '';
 
-  fileToDelete: FileDetail | null = null;
-
   readonly canDeleteFileBound = (file: FileDetail) => this.canDeleteFile(file);
+
+  private readonly modal = inject(SMTModalService);
 
   constructor(
     private api: ApiService,
@@ -262,29 +267,36 @@ export class FilesComponent implements OnInit, OnDestroy {
         (file.createdBy != null && file.createdBy === this.auth.currentUser()?.id));
   }
 
+  /**
+   * Asks before deleting. The dialog stays open while the file is deleted and
+   * shows the server's reason if it fails, so the person can retry or keep it.
+   */
   confirmDeleteFile(file: FileDetail) {
     if (this.isDeleting() || !this.canDeleteFile(file)) return;
-    this.fileToDelete = file;
+    this.modal.confirm({
+      title: this.uiI18n.translate('files.podtverzhdenie_udaleniya'),
+      message: `${this.uiI18n.translate('files.delete_file_question', { name: file.originalName })}\n${this.uiI18n.translate('files.quota_will_be_released', { size: formatBytes(file.sizeBytes) })}`,
+      yesLabel: this.uiI18n.translate('common.delete'),
+      noLabel: this.uiI18n.translate('common.cancel'),
+      destructive: true,
+      action: () => this.deleteFile(file),
+      actionError: problemText
+    }).subscribe();
   }
 
-  cancelDeleteFile() {
-    if (!this.isDeleting()) this.fileToDelete = null;
-  }
-
-  executeDeleteFile() {
-    if (this.isDeleting() || !this.fileToDelete || !this.canDeleteFile(this.fileToDelete)) return;
-    const f = this.fileToDelete;
+  /** Rights are checked again at the moment of deleting: they may have changed while the dialog was open. */
+  private deleteFile(file: FileDetail): Observable<unknown> {
+    if (!this.canDeleteFile(file)) {
+      return throwError(() => ({ detail: this.uiI18n.translate('files.delete_not_allowed') }));
+    }
     this.isDeleting.set(true);
-    this.api.delete(`/files/${f.id}`).pipe(
-      finalize(() => this.isDeleting.set(false))
-    ).subscribe({
-      next: () => {
-        this.toast.success(this.uiI18n.translate('files.deleted_named', { name: f.originalName }));
-        this.fileToDelete = null;
+    return this.api.delete(`/files/${file.id}`, { notifyError: false }).pipe(
+      tap(() => {
+        this.toast.success(this.uiI18n.translate('files.deleted_named', { name: file.originalName }));
         this.refreshAll();
-      },
-      error: () => {}
-    });
+      }),
+      finalize(() => this.isDeleting.set(false))
+    );
   }
 
   onBatchFileUploaded(taskFile: TaskFile) {

@@ -72,7 +72,7 @@ export interface SMTMessages {
   readonly table: { readonly noResults: string };
   readonly dataTable: { readonly selectAll: string; readonly selectRow: string };
   readonly tree: { readonly expandAll: string; readonly collapseAll: string };
-  readonly modalConfirm: { readonly title: string; readonly yes: string; readonly no: string };
+  readonly modalConfirm: { readonly title: string; readonly yes: string; readonly no: string; readonly failed: string };
 }
 
 @Injectable({ providedIn: 'root' })
@@ -174,6 +174,7 @@ export class SMTI18nService {
       title: this.i18n.translate('ui.modal.confirm_title'),
       yes: this.i18n.translate('common.yes'),
       no: this.i18n.translate('common.no'),
+      failed: this.i18n.translate('ui.modal.confirm_failed'),
     },
   }));
 }

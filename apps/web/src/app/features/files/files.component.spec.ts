@@ -234,65 +234,71 @@ describe('FilesComponent request and deletion mechanics', () => {
     sorted.flush(keyset([file(3)]));
   });
 
-  it('sends one DELETE for repeated confirmation before the view has updated', async () => {
-    const { fixture, host } = await createFixture(undefined, [file(1)]);
+  /** Opens the delete question for the first file; the dialog lives in the overlay, outside the page. */
+  async function openDelete(fixture: { detectChanges(): void; whenStable(): Promise<unknown> }, host: HTMLElement): Promise<HTMLElement> {
     (host.querySelector('.delete-btn') as HTMLButtonElement).click();
     fixture.detectChanges();
-    const confirm = host.querySelector('.modal-footer .btn-danger') as HTMLButtonElement;
-    confirm.click();
-    confirm.click();
+    await fixture.whenStable();
+    return document.querySelector('.smt-modal-confirm') as HTMLElement;
+  }
+  const dialogButtons = () => [...document.querySelectorAll<HTMLButtonElement>('.smt-modal-confirm button')];
+  const yes = () => dialogButtons().at(-1)!;
+
+  afterEach(() => document.querySelectorAll('.cdk-overlay-container').forEach(node => node.remove()));
+
+  it('asks in an alert dialog and sends one DELETE however often Yes is pressed', async () => {
+    const { fixture, host } = await createFixture(undefined, [file(1)]);
+    const dialog = await openDelete(fixture, host);
+
+    const pane = dialog.closest('[role="alertdialog"]') as HTMLElement;
+    expect(document.getElementById(pane.getAttribute('aria-describedby')!)?.textContent).toContain('Удалить файл «report-1.pdf»?');
+    yes().click();
+    yes().click();
     const requests = http.match({ method: 'DELETE', url: '/api/v1/files/1' });
 
     expect(requests).toHaveLength(1);
     fixture.detectChanges();
-    expect(confirm.disabled).toBe(true);
-    expect(confirm.getAttribute('aria-busy')).toBe('true');
+    expect(yes().disabled).toBe(true);
+    expect(yes().getAttribute('aria-busy')).toBe('true');
     requests[0].flush({ detail: 'Retry later' }, { status: 503, statusText: 'Unavailable' });
   });
 
-  it.each(['cancel', 'escape', 'backdrop', 'target change'])(
-    'keeps the original deletion visible while pending after %s', async action => {
-      const { component, fixture, host } = await createFixture(undefined, [file(1), file(2)]);
-      (host.querySelector('.delete-btn') as HTMLButtonElement).click();
-      fixture.detectChanges();
-      (host.querySelector('.modal-footer .btn-danger') as HTMLButtonElement).click();
-      const request = http.expectOne({ method: 'DELETE', url: '/api/v1/files/1' });
-      fixture.detectChanges();
-      if (action === 'cancel') (host.querySelector('.modal-footer .btn-secondary') as HTMLButtonElement).click();
-      if (action === 'escape') document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
-      if (action === 'backdrop') (host.querySelector('.modal-backdrop') as HTMLElement).click();
-      if (action === 'target change') component.confirmDeleteFile(file(2));
-      fixture.detectChanges();
-
-      expect(component.fileToDelete?.id).toBe('1');
-      expect(host.querySelector('[role="dialog"] .modal-body strong')?.textContent).toBe('report-1.pdf');
-      expect(host.querySelector('.modal-close')).toBeNull();
-      request.flush({ detail: 'Retry later' }, { status: 503, statusText: 'Unavailable' });
-    }
-  );
-
-  it('shows one server error, preserves the target and permits a successful retry', async () => {
-    const { component, fixture, host, toast } = await createFixture(undefined, [file(1)]);
-    (host.querySelector('.delete-btn') as HTMLButtonElement).click();
+  it.each(['decline', 'escape', 'backdrop'])('keeps the dialog while the deletion runs after %s', async action => {
+    const { fixture, host } = await createFixture(undefined, [file(1), file(2)]);
+    const dialog = await openDelete(fixture, host);
+    yes().click();
+    const request = http.expectOne({ method: 'DELETE', url: '/api/v1/files/1' });
     fixture.detectChanges();
-    (host.querySelector('.modal-footer .btn-danger') as HTMLButtonElement).click();
+
+    if (action === 'decline') dialogButtons()[0].click();
+    if (action === 'escape') dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    if (action === 'backdrop') (document.querySelector('.smt-modal-backdrop') as HTMLElement).click();
+    fixture.detectChanges();
+
+    expect(document.querySelector('.smt-modal-confirm')).not.toBeNull();
+    request.flush({ detail: 'Retry later' }, { status: 503, statusText: 'Unavailable' });
+  });
+
+  it('shows the server reason in the dialog instead of a toast and deletes on retry', async () => {
+    const { fixture, host, toast } = await createFixture(undefined, [file(1)]);
+    await openDelete(fixture, host);
+    yes().click();
     http.expectOne({ method: 'DELETE', url: '/api/v1/files/1' })
       .flush({ detail: 'Deletion temporarily unavailable' }, { status: 503, statusText: 'Unavailable' });
-    fixture.detectChanges();
+    TestBed.tick(); // the dialog is attached to the application, not to this fixture
 
-    expect(toast.toasts().map(item => ({ type: item.type, message: item.message }))).toEqual([
-      { type: 'error', message: 'Deletion temporarily unavailable' }
-    ]);
-    expect(host.querySelector('.modal-body strong')?.textContent).toBe('report-1.pdf');
-    expect((host.querySelector('.modal-footer .btn-danger') as HTMLButtonElement).disabled).toBe(false);
-    (host.querySelector('.modal-footer .btn-danger') as HTMLButtonElement).click();
+    expect(document.querySelector('.smt-modal-confirm [role="alert"]')?.textContent?.trim()).toBe('Deletion temporarily unavailable');
+    expect(toast.toasts()).toEqual([]);
+    expect(yes().disabled).toBe(false);
+
+    yes().click();
     http.expectOne({ method: 'DELETE', url: '/api/v1/files/1' }).flush(null, { status: 204, statusText: 'No Content' });
     http.expectOne('/api/v1/files/storage/stats').flush({ ...stats, totalFilesCount: 0 });
     http.expectOne(request => request.url === '/api/v1/files').flush(keyset([]));
     fixture.detectChanges();
+    await fixture.whenStable();
 
-    expect(component.fileToDelete).toBeNull();
-    expect(host.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.querySelector('.smt-modal-confirm')).toBeNull();
     expect(host.querySelector('.primary-name')).toBeNull();
     expect(toast.toasts().filter(item => item.type === 'success')).toHaveLength(1);
   });
@@ -307,14 +313,14 @@ describe('FilesComponent request and deletion mechanics', () => {
     expect(Array.from(host.querySelectorAll('.delete-btn'), button => button.getAttribute('aria-label'))).toEqual(visible);
   });
 
-  it('does not dispatch a deletion if permission was revoked after confirmation opened', async () => {
-    const { component, fixture, host } = await createFixture(undefined, [file(1)]);
-    (host.querySelector('.delete-btn') as HTMLButtonElement).click();
-    fixture.detectChanges();
+  it('does not delete when the right was revoked while the question was open', async () => {
+    const { fixture, host } = await createFixture(undefined, [file(1)]);
+    await openDelete(fixture, host);
     TestBed.inject(PermissionService).setPermissions([]);
-    component.executeDeleteFile();
+    yes().click();
+    fixture.detectChanges();
 
     expect(http.match(request => request.method === 'DELETE')).toHaveLength(0);
-    expect(component.fileToDelete?.id).toBe('1');
+    expect(document.querySelector('.smt-modal-confirm [role="alert"]')?.textContent?.trim()).toBe('У вас больше нет права удалить этот файл.');
   });
 });

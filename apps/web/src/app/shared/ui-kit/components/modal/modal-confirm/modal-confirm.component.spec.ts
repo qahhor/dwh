@@ -5,6 +5,7 @@
 import '@angular/compiler';
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
 import { TestBed } from '@angular/core/testing';
+import { Subject, throwError } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SMTI18nService } from '../../../i18n';
 import { testI18n } from '../../../i18n/test-messages';
@@ -137,5 +138,57 @@ describe('SMTModalConfirmComponent', () => {
     component.confirm();
 
     expect(close).not.toHaveBeenCalled();
+  });
+
+  it('keeps the dialog open and busy while its action runs, then closes as confirmed', () => {
+    const work = new Subject<void>();
+    const { close, fixture, host } = render({ message: 'Delete the role?', destructive: true, action: () => work });
+    const buttons = () => [...host.querySelectorAll<HTMLButtonElement>('button')];
+
+    buttons()[1].click();
+    fixture.detectChanges();
+
+    expect(close).not.toHaveBeenCalled();
+    expect(buttons().every(button => button.disabled)).toBe(true);
+    expect(buttons()[1].getAttribute('aria-busy')).toBe('true');
+    expect(host.querySelector('.smt-modal-button__spinner')).not.toBeNull();
+    // Declining is locked while the work runs.
+    fixture.componentInstance.decline();
+    expect(close).not.toHaveBeenCalled();
+
+    work.complete();
+    expect(close).toHaveBeenCalledWith({ action: 'confirm' });
+  });
+
+  it('shows why the action failed and lets the person try again or decline', () => {
+    const action = vi.fn(() => throwError(() => new Error('409')));
+    const { close, fixture, host } = render({
+      message: 'Delete the role?',
+      action,
+      actionError: () => 'The role is still assigned.',
+    });
+    const yes = () => host.querySelectorAll<HTMLButtonElement>('button')[1];
+
+    yes().click();
+    fixture.detectChanges();
+
+    const alert = host.querySelector('[role="alert"]');
+    expect(alert?.textContent?.trim()).toBe('The role is still assigned.');
+    expect(close).not.toHaveBeenCalled();
+    expect(yes().disabled).toBe(false);
+
+    yes().click();
+    expect(action).toHaveBeenCalledTimes(2);
+    fixture.componentInstance.decline();
+    expect(close).toHaveBeenCalledWith({ action: 'decline' });
+  });
+
+  it('falls back to a generic failure message', () => {
+    const { fixture, host } = render({ message: 'Proceed?', action: () => throwError(() => 'x') });
+
+    host.querySelectorAll<HTMLButtonElement>('button')[1].click();
+    fixture.detectChanges();
+
+    expect(host.querySelector('[role="alert"]')?.textContent?.trim()).toBe('The action failed. Try again.');
   });
 });

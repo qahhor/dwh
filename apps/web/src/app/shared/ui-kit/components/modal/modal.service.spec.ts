@@ -250,4 +250,20 @@ describe('SMTModalService with CDK Dialog', () => {
     await expect(escaped).resolves.toBe(false);
     expect(escape.defaultPrevented).toBe(true);
   });
+
+  it('ignores Escape while a confirmed action runs and resolves true when it completes', async () => {
+    const service = setup();
+    const work = new Subject<void>();
+
+    const result = firstValueFrom(service.confirm({ message: 'Delete?', action: () => work }));
+    await settle();
+    Array.from(document.querySelectorAll<HTMLButtonElement>('.smt-modal-confirm button')).at(-1)!.click();
+    await settle();
+    document.querySelector('.smt-modal-confirm')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    await settle();
+    expect(document.querySelector('.smt-modal-confirm')).not.toBeNull();
+
+    work.complete();
+    await expect(result).resolves.toBe(true);
+  });
 });
