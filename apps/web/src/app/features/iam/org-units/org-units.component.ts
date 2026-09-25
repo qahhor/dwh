@@ -17,12 +17,17 @@ import { OrgUnitEditorComponent, OrgUnitSubmission } from './org-unit-editor.com
 @Component({ selector: 'app-org-units', standalone: true, imports: [TranslatePipe, UiButtonComponent, UiModalComponent, SMTTreeTableComponent, OrgUnitEditorComponent], templateUrl: './org-units.component.html', styleUrl: './org-units.component.css' })
 export class OrgUnitsComponent implements OnInit {
   readonly permissions = inject(PermissionService);
-  readonly kindKeys = orgUnitKindKeys;
-  readonly safeId = safeNumericRecordId;
   private readonly api = inject(OrgUnitsApiService);
   private readonly changeDetector = inject(ChangeDetectorRef);
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(I18nService);
+
+  readonly search = signal('');
+
+  readonly treeColumns = computed(() => orgUnitTreeColumns(key => this.i18n.translate(key)));
+
+  readonly kindKeys = orgUnitKindKeys;
+  readonly safeId = safeNumericRecordId;
   private readonly subscriptions = new Subscription();
   private treeRequest?: Subscription;
   private detailRequest?: Subscription;
@@ -43,11 +48,8 @@ export class OrgUnitsComponent implements OnInit {
   savedRefreshFailed = false;
   deleteTarget: OrgUnit | null = null;
   deleteError: ProblemDetail | null = null;
-  readonly search = signal('');
   private readonly treeRowCache = new OrgUnitTreeRows();
-  get treeRows(): TreeRow<OrgUnit>[] { return this.treeRowCache.of(this.units); }
   readonly searchText = orgUnitSearchText(key => this.i18n.translate(key));
-  readonly treeColumns = computed(() => orgUnitTreeColumns(key => this.i18n.translate(key)));
   readonly discard = new OrgUnitDraft(() => this.editorOpen && !!this.editor?.dirty, () => this.pending, () => this.clearEditor());
 
   constructor() {
@@ -56,22 +58,11 @@ export class OrgUnitsComponent implements OnInit {
       this.discard.cancel(); this.treeRequest?.unsubscribe(); this.detailRequest?.unsubscribe(); this.subscriptions.unsubscribe();
     });
   }
+
+  get treeRows(): TreeRow<OrgUnit>[] { return this.treeRowCache.of(this.units); }
   ngOnInit(): void { this.reload(); }
   can(action: string): boolean {
     return this.permissions.hasPermission('iam.org_units', 'view') && this.permissions.hasPermission('iam.org_units', action);
-  }
-  private clearRevokedView(): void {
-    this.viewEpoch++;
-    this.treeRequest?.unsubscribe(); this.discard.cancel(); this.clearEditor();
-    this.units = []; this.selected = null; this.loaded = false; this.loading = false;
-    this.treeError = null; this.savedRefreshFailed = false; this.deleteTarget = null; this.deleteError = null;
-    // An issued write remains pending until its HTTP result; revocation is not rollback.
-    this.changeDetector.markForCheck();
-  }
-  private currentView(epoch: number): boolean { return this.can('view') && epoch === this.viewEpoch; }
-  private finishMutation(epoch: number): boolean {
-    this.pending = false; this.changeDetector.markForCheck();
-    return this.currentView(epoch);
   }
   get canCreate(): boolean { return this.can('create') && this.loaded && !this.loading && !this.treeError && (!this.units.length || !!this.selected && safeNumericRecordId(this.selected.id)); }
   get hasChildren(): boolean { return !!this.selected && this.units.some(unit => unit.parentId === this.selected!.id); }
@@ -129,11 +120,6 @@ export class OrgUnitsComponent implements OnInit {
     });
   }
   closeEditor(): void { this.discard.request(() => this.clearEditor()); }
-  private clearEditor(): void {
-    this.detailRequest?.unsubscribe(); this.detailId = null; this.detailLoading = false; this.detailError = null;
-    this.editorOpen = false; this.editorInitial = null; this.saveError = null;
-    this.changeDetector.markForCheck();
-  }
   save(submission: OrgUnitSubmission): void {
     if (!this.can('view') || this.pending || !this.editorOpen || !this.editorInitial) return;
     let request: Observable<unknown>;
@@ -183,6 +169,24 @@ export class OrgUnitsComponent implements OnInit {
   @HostListener('window:beforeunload', ['$event'])
   beforeUnload(event: BeforeUnloadEvent): void {
     if (this.pending || (this.editorOpen && this.editor?.dirty)) { event.preventDefault(); event.returnValue = ''; }
+  }
+  private clearRevokedView(): void {
+    this.viewEpoch++;
+    this.treeRequest?.unsubscribe(); this.discard.cancel(); this.clearEditor();
+    this.units = []; this.selected = null; this.loaded = false; this.loading = false;
+    this.treeError = null; this.savedRefreshFailed = false; this.deleteTarget = null; this.deleteError = null;
+    // An issued write remains pending until its HTTP result; revocation is not rollback.
+    this.changeDetector.markForCheck();
+  }
+  private currentView(epoch: number): boolean { return this.can('view') && epoch === this.viewEpoch; }
+  private finishMutation(epoch: number): boolean {
+    this.pending = false; this.changeDetector.markForCheck();
+    return this.currentView(epoch);
+  }
+  private clearEditor(): void {
+    this.detailRequest?.unsubscribe(); this.detailId = null; this.detailLoading = false; this.detailError = null;
+    this.editorOpen = false; this.editorInitial = null; this.saveError = null;
+    this.changeDetector.markForCheck();
   }
   private unavailable(): ProblemDetail {
     return { status: 400, code: 'ORG_UNIT_UNSAFE_ID', title: this.i18n.translate('iam.org_units.unavailable'), detail: this.i18n.translate('iam.org_units.readonly_id') };

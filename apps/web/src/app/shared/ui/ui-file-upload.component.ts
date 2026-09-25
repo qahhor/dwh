@@ -183,6 +183,10 @@ export interface QueuedUpload {
 export class UiFileUploadComponent {
   private readonly preview = inject(SMTFilePreviewService);
   private readonly uiI18n = inject(I18nService);
+  private readonly destroyRef = inject(DestroyRef);
+
+  /** Files waiting, uploading or failed; a file leaves the queue once it is attached. */
+  readonly queue = signal<QueuedUpload[]>([]);
 
   @Input() files: TaskFile[] = [];
   @Input() canUpload = true;
@@ -191,12 +195,8 @@ export class UiFileUploadComponent {
 
   @Output() fileAttached = new EventEmitter<TaskFile>();
   @Output() fileRemoved = new EventEmitter<TaskFile>();
-
-  /** Files waiting, uploading or failed; a file leaves the queue once it is attached. */
-  readonly queue = signal<QueuedUpload[]>([]);
   private nextQueueId = 0;
   private current: Subscription | null = null;
-  private readonly destroyRef = inject(DestroyRef);
 
   constructor(
     private http: HttpClient,
@@ -228,6 +228,26 @@ export class UiFileUploadComponent {
 
   trackQueued(_: number, item: QueuedUpload) {
     return item.id;
+  }
+
+  downloadFile(file: TaskFile) {
+    window.open(`/api/v1/files/${file.fileId}/download`, '_blank', 'noopener,noreferrer');
+  }
+
+  removeFile(file: TaskFile) {
+    this.fileRemoved.emit(file);
+  }
+
+  /** Opens the attached images in the preview, starting at this one. */
+  previewFile(file: TaskFile) {
+    const previews = this.files.map(item => ({ name: item.fileName, mimeType: item.mimeType, url: `/api/v1/files/${item.fileId}/download`, item }));
+    const chosen = previews.find(preview => preview.item === file);
+    if (!chosen) return;
+    this.preview.open(previews, chosen, preview => this.downloadFile((preview as typeof chosen).item));
+  }
+
+  trackFile(_index: number, file: TaskFile): string {
+    return file.fileId;
   }
 
   /** Starts the next queued file when nothing is uploading. */
@@ -279,26 +299,6 @@ export class UiFileUploadComponent {
 
   private patch(id: number, changes: Partial<QueuedUpload>) {
     this.queue.update(queue => queue.map(entry => (entry.id === id ? { ...entry, ...changes } : entry)));
-  }
-
-  downloadFile(file: TaskFile) {
-    window.open(`/api/v1/files/${file.fileId}/download`, '_blank', 'noopener,noreferrer');
-  }
-
-  removeFile(file: TaskFile) {
-    this.fileRemoved.emit(file);
-  }
-
-  /** Opens the attached images in the preview, starting at this one. */
-  previewFile(file: TaskFile) {
-    const previews = this.files.map(item => ({ name: item.fileName, mimeType: item.mimeType, url: `/api/v1/files/${item.fileId}/download`, item }));
-    const chosen = previews.find(preview => preview.item === file);
-    if (!chosen) return;
-    this.preview.open(previews, chosen, preview => this.downloadFile((preview as typeof chosen).item));
-  }
-
-  trackFile(_index: number, file: TaskFile): string {
-    return file.fileId;
   }
 
 }

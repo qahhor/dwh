@@ -79,13 +79,10 @@ function sameId(a: unknown, b: unknown): boolean {
   },
 })
 export class SMTSelectComponent<T = unknown> implements FormValueControl<T | null> {
+  readonly i18n = inject(SMTI18nService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   private readonly injector = inject(Injector);
-
-  readonly i18n = inject(SMTI18nService);
-
-  readonly value = model<T | null>(null);
 
   readonly options = input<readonly SMTSelectOption<T>[]>([]);
 
@@ -119,14 +116,6 @@ export class SMTSelectComponent<T = unknown> implements FormValueControl<T | nul
 
   readonly hasMore = input(false, { transform: booleanAttribute });
 
-  readonly searchChange = output<string>();
-
-  readonly loadMore = output<void>();
-
-  readonly retry = output<void>();
-
-  readonly touch = output<void>();
-
   /**
    * Headers of the option columns: the popup becomes a small table, with
    * each option's `columns` under them. Screen readers hear every option as
@@ -137,14 +126,22 @@ export class SMTSelectComponent<T = unknown> implements FormValueControl<T | nul
   /** Offer "Create “typed text”" as the last option when nothing matches it exactly. */
   readonly allowCreate = input(false, { alias: 'smtAllowCreate', transform: booleanAttribute });
 
+  readonly searchChange = output<string>();
+
+  readonly loadMore = output<void>();
+
+  readonly retry = output<void>();
+
+  readonly touch = output<void>();
+
   /** The typed text, when the person chose to create a new record from it. */
   readonly create = output<string>();
 
-  readonly id = nextSelectId++;
+  readonly value = model<T | null>(null);
 
-  readonly listboxId = `smt-select-listbox-${this.id}`;
+  private readonly trigger = viewChild<ElementRef<HTMLElement>>('trigger');
 
-  readonly positions = POPUP_POSITIONS;
+  private readonly searchBox = viewChild<ElementRef<HTMLInputElement>>('searchBox');
 
   readonly open = signal(false);
 
@@ -158,10 +155,6 @@ export class SMTSelectComponent<T = unknown> implements FormValueControl<T | nul
 
   /** The chosen option, remembered so its label survives a remote search that no longer lists it. */
   private readonly rememberedOption = signal<SMTSelectOption<T> | null>(null);
-
-  private readonly trigger = viewChild<ElementRef<HTMLElement>>('trigger');
-
-  private readonly searchBox = viewChild<ElementRef<HTMLInputElement>>('searchBox');
 
   readonly isDisabled = computed(() => this.disabled() || this.disabledByForms());
 
@@ -213,7 +206,15 @@ export class SMTSelectComponent<T = unknown> implements FormValueControl<T | nul
     () => this.visibleOptions().length === 0 && !this.loading() && !this.loadError() && !this.showCreate()
   );
 
+  readonly id = nextSelectId++;
+
+  readonly listboxId = `smt-select-listbox-${this.id}`;
+
+  readonly positions = POPUP_POSITIONS;
+
   readonly none = NONE;
+
+  private ownedBy: Element | null = null;
 
   setDisabledFromForms(disabled: boolean): void {
     this.disabledByForms.set(disabled);
@@ -283,33 +284,6 @@ export class SMTSelectComponent<T = unknown> implements FormValueControl<T | nul
     this.releaseModalOwnership();
     if (restoreFocus) this.trigger()?.nativeElement.focus();
   }
-
-  /**
-   * Inside an aria-modal dialog, assistive technology treats everything
-   * outside the dialog as inert, and the popup lives in the overlay outside
-   * it. Listing the popup in the dialog's aria-owns keeps it reachable, as
-   * Angular Material does for its panels.
-   */
-  private claimModalOwnership(): void {
-    const modal = this.host.nativeElement.closest('[aria-modal="true"]');
-    if (!modal) return;
-    const popupId = `${this.listboxId}-popup`;
-    const owned = (modal.getAttribute('aria-owns') ?? '').split(/\s+/).filter(Boolean);
-    if (!owned.includes(popupId)) modal.setAttribute('aria-owns', [...owned, popupId].join(' '));
-    this.ownedBy = modal;
-  }
-
-  private releaseModalOwnership(): void {
-    const modal = this.ownedBy;
-    this.ownedBy = null;
-    if (!modal) return;
-    const popupId = `${this.listboxId}-popup`;
-    const owned = (modal.getAttribute('aria-owns') ?? '').split(/\s+/).filter(token => token && token !== popupId);
-    if (owned.length) modal.setAttribute('aria-owns', owned.join(' '));
-    else modal.removeAttribute('aria-owns');
-  }
-
-  private ownedBy: Element | null = null;
 
   onTriggerKeydown(event: KeyboardEvent): void {
     if (this.open()) return;
@@ -416,6 +390,31 @@ export class SMTSelectComponent<T = unknown> implements FormValueControl<T | nul
     if (next && (this.host.nativeElement.contains(next) || (event.currentTarget as Element).contains(next))) return;
     this.close(false);
     this.touch.emit();
+  }
+
+  /**
+   * Inside an aria-modal dialog, assistive technology treats everything
+   * outside the dialog as inert, and the popup lives in the overlay outside
+   * it. Listing the popup in the dialog's aria-owns keeps it reachable, as
+   * Angular Material does for its panels.
+   */
+  private claimModalOwnership(): void {
+    const modal = this.host.nativeElement.closest('[aria-modal="true"]');
+    if (!modal) return;
+    const popupId = `${this.listboxId}-popup`;
+    const owned = (modal.getAttribute('aria-owns') ?? '').split(/\s+/).filter(Boolean);
+    if (!owned.includes(popupId)) modal.setAttribute('aria-owns', [...owned, popupId].join(' '));
+    this.ownedBy = modal;
+  }
+
+  private releaseModalOwnership(): void {
+    const modal = this.ownedBy;
+    this.ownedBy = null;
+    if (!modal) return;
+    const popupId = `${this.listboxId}-popup`;
+    const owned = (modal.getAttribute('aria-owns') ?? '').split(/\s+/).filter(token => token && token !== popupId);
+    if (owned.length) modal.setAttribute('aria-owns', owned.join(' '));
+    else modal.removeAttribute('aria-owns');
   }
 
   private firstIndex(): number | null {

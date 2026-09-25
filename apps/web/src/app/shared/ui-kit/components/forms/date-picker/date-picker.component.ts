@@ -57,11 +57,8 @@ let nextPickerId = 0;
   },
 })
 export class SMTDatePickerComponent implements FormValueControl<string | null> {
-  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
-
   readonly i18n = inject(SMTI18nService);
-
-  readonly value = model<string | null>(null);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   readonly disabled = input(false, { transform: booleanAttribute });
 
@@ -89,22 +86,7 @@ export class SMTDatePickerComponent implements FormValueControl<string | null> {
   /** Emitted when focus leaves the picker, so forms mark it touched. */
   readonly touch = output<void>();
 
-  readonly id = nextPickerId++;
-
-  readonly dialogId = `smt-date-dialog-${this.id}`;
-
-  readonly hintId = `smt-date-hint-${this.id}`;
-
-  readonly open = signal(false);
-
-  /** What the person is typing, until it is committed. */
-  private readonly draft = signal<string | null>(null);
-
-  /** Set when the committed text is not a date; the value is left as it was. */
-  readonly textInvalid = signal(false);
-
-  /** Set by the legacy value accessor; `disabled` stays an input for Signal Forms. */
-  private readonly disabledByForms = signal(false);
+  readonly value = model<string | null>(null);
 
   private readonly calendar = viewChild(SMTCalendarComponent);
 
@@ -112,7 +94,16 @@ export class SMTDatePickerComponent implements FormValueControl<string | null> {
 
   private readonly toggleButton = viewChild<ElementRef<HTMLButtonElement>>('toggle');
 
-  readonly positions = DATE_POPUP_POSITIONS;
+  readonly open = signal(false);
+
+  /** Set when the committed text is not a date; the value is left as it was. */
+  readonly textInvalid = signal(false);
+
+  /** What the person is typing, until it is committed. */
+  private readonly draft = signal<string | null>(null);
+
+  /** Set by the legacy value accessor; `disabled` stays an input for Signal Forms. */
+  private readonly disabledByForms = signal(false);
 
   readonly isDisabled = computed(() => this.disabled() || this.disabledByForms());
 
@@ -132,6 +123,14 @@ export class SMTDatePickerComponent implements FormValueControl<string | null> {
   readonly showInvalid = computed(() => this.textInvalid() || (this.invalid() && this.touched()));
 
   readonly fieldId = computed(() => this.inputId() ?? `smt-date-input-${this.id}`);
+
+  readonly id = nextPickerId++;
+
+  readonly dialogId = `smt-date-dialog-${this.id}`;
+
+  readonly hintId = `smt-date-hint-${this.id}`;
+
+  readonly positions = DATE_POPUP_POSITIONS;
 
   constructor() {
     // Only our own tokens are touched: an smt-control around the picker also

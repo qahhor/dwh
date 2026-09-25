@@ -69,16 +69,10 @@ export class SMTColumnSettingsComponent {
 
   readonly state = model<TableColumnState>(EMPTY_COLUMN_STATE, { alias: 'smtState' });
 
-  readonly panelId = `smt-column-settings-${nextColumnSettingsId++}`;
-  readonly open = signal(false);
-  readonly announcement = signal('');
-
   private readonly trigger = viewChild.required<ElementRef<HTMLButtonElement>>('trigger');
 
-  readonly positions: ConnectedPosition[] = [
-    { originX: 'end', originY: 'bottom', overlayX: 'end', overlayY: 'top', offsetY: 4 },
-    { originX: 'end', originY: 'top', overlayX: 'end', overlayY: 'bottom', offsetY: -4 },
-  ];
+  readonly open = signal(false);
+  readonly announcement = signal('');
 
   readonly rows = computed<Row[]>(() => {
     const columns = this.columns();
@@ -89,6 +83,13 @@ export class SMTColumnSettingsComponent {
   });
 
   readonly visibleCount = computed(() => this.rows().filter(row => row.visible).length);
+
+  readonly panelId = `smt-column-settings-${nextColumnSettingsId++}`;
+
+  readonly positions: ConnectedPosition[] = [
+    { originX: 'end', originY: 'bottom', overlayX: 'end', overlayY: 'top', offsetY: 4 },
+    { originX: 'end', originY: 'top', overlayX: 'end', overlayY: 'bottom', offsetY: -4 },
+  ];
 
   toggle(): void {
     if (this.open()) {

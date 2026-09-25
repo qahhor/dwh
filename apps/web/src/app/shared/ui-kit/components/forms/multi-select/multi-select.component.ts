@@ -67,13 +67,10 @@ function key(id: unknown): string {
   },
 })
 export class SMTMultiSelectComponent<T = unknown> implements FormValueControl<readonly T[]> {
+  readonly i18n = inject(SMTI18nService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   private readonly injector = inject(Injector);
-
-  readonly i18n = inject(SMTI18nService);
-
-  readonly value = model<readonly T[]>([]);
 
   readonly options = input<readonly SMTSelectOption<T>[]>([]);
 
@@ -112,11 +109,11 @@ export class SMTMultiSelectComponent<T = unknown> implements FormValueControl<re
 
   readonly touch = output<void>();
 
-  readonly id = nextMultiId++;
+  readonly value = model<readonly T[]>([]);
 
-  readonly listboxId = `smt-multi-select-listbox-${this.id}`;
+  private readonly trigger = viewChild<ElementRef<HTMLElement>>('trigger');
 
-  readonly positions = POPUP_POSITIONS;
+  private readonly searchBox = viewChild<ElementRef<HTMLInputElement>>('searchBox');
 
   readonly open = signal(false);
 
@@ -129,15 +126,7 @@ export class SMTMultiSelectComponent<T = unknown> implements FormValueControl<re
   /** Every option seen, so a chip keeps its label when a remote search no longer lists it. */
   private readonly known = signal<ReadonlyMap<string, SMTSelectOption<T>>>(new Map());
 
-  private readonly trigger = viewChild<ElementRef<HTMLElement>>('trigger');
-
-  private readonly searchBox = viewChild<ElementRef<HTMLInputElement>>('searchBox');
-
-  private ownedBy: Element | null = null;
-
   readonly isDisabled = computed(() => this.disabled() || this.disabledByForms());
-
-  private readonly selectedKeys = computed(() => new Set((this.value() ?? []).map(key)));
 
   readonly chips = computed(() =>
     (this.value() ?? []).map(id => this.known().get(key(id)) ?? { id, label: `#${String(id)}` })
@@ -160,6 +149,16 @@ export class SMTMultiSelectComponent<T = unknown> implements FormValueControl<re
   readonly showEmpty = computed(
     () => this.visibleOptions().length === 0 && !this.loading() && !this.loadError()
   );
+
+  private readonly selectedKeys = computed(() => new Set((this.value() ?? []).map(key)));
+
+  readonly id = nextMultiId++;
+
+  readonly listboxId = `smt-multi-select-listbox-${this.id}`;
+
+  readonly positions = POPUP_POSITIONS;
+
+  private ownedBy: Element | null = null;
 
   constructor() {
     effect(() => {

@@ -52,7 +52,6 @@ export class SettingsComponent implements OnInit {
   private readonly modal = inject(SMTModalService);
   private readonly route = inject(ActivatedRoute, { optional: true });
   private readonly router = inject(Router, { optional: true });
-  activeTab: SettingsTab = 'general';
 
   readonly isLoading = signal<boolean>(false);
   readonly loadError = signal<string | null>(null);
@@ -66,9 +65,13 @@ export class SettingsComponent implements OnInit {
   readonly editingLanguageCode = signal<string | null>(null);
   readonly legacyLanguageCount = signal(0);
   readonly isMigratingLegacyLanguages = signal(false);
+
+  activeTab: SettingsTab = 'general';
   newLangCode = '';
   newLangName = '';
   newLangJson = '';
+
+  private readonly tabsMemo = optionsMemo<SMTTabItem<SettingsTab>[]>();
 
   constructor(
     private api: ApiService,
@@ -279,30 +282,6 @@ export class SettingsComponent implements OnInit {
     });
   }
 
-  private runLegacyLanguageMigration(entries: [string, LegacyLanguage][]): void {
-    this.isMigratingLegacyLanguages.set(true);
-    this.api.get<TranslationEditor>('/i18n/admin/languages/ru/translations').pipe(
-      switchMap(russianEditor => {
-        const knownKeys = new Set(russianEditor.entries.map(entry => entry.key));
-        return from(entries).pipe(
-          concatMap(([code, legacy]) => this.migrateLegacyLanguage(code, legacy, knownKeys)),
-          toArray()
-        );
-      }),
-      switchMap(() => this.i18n.refreshLanguages()),
-      finalize(() => this.isMigratingLegacyLanguages.set(false))
-    ).subscribe({
-      next: () => {
-        localStorage.removeItem('dwh_custom_languages');
-        this.legacyLanguageCount.set(0);
-        this.toast.success(this.uiI18n.translate('settings.lokalnye_yazykovye_pakety_pereneseny_v_servernoe'));
-      },
-      error: () => this.toast.error(
-        this.uiI18n.translate('settings.ne_udalos_perenesti_yazykovye_pakety_lokalnaya_k')
-      )
-    });
-  }
-
   isTabAvailable(tab: string): boolean {
     switch (tab) {
       case 'general':
@@ -431,6 +410,52 @@ export class SettingsComponent implements OnInit {
     });
   }
 
+  /** The sections the viewer may open; each tab names its panel. */
+  settingsTabs(): SMTTabItem<SettingsTab>[] {
+    const all: [SettingsTab, string, string][] = [
+      ['general', 'tune', 'settings.tab.general'],
+      ['security', 'security', 'settings.tab.security'],
+      ['storage', 'cloud', 'settings.tab.storage'],
+      ['preferences', 'person', 'settings.tab.preferences'],
+      ['languages', 'language', 'settings.yazyki_i_lokalizaciya'],
+      ['search', 'manage_search', 'settings.search.tab'],
+      ['navigation', 'menu_open', 'settings.navigation.tab'],
+      ['webhooks', 'webhook', 'settings.webhooks.tab'],
+    ];
+    const available = all.filter(([tab]) => this.isTabAvailable(tab));
+    return this.tabsMemo([this.tabText.currentLang(), available.map(([tab]) => tab).join()], () => available.map(([tab, icon, key]) => ({
+      value: tab,
+      label: this.tabText.translate(key),
+      icon,
+      id: `settings-${tab}-tab`,
+      panelId: `settings-${tab}-panel`,
+    })));
+  }
+
+  private runLegacyLanguageMigration(entries: [string, LegacyLanguage][]): void {
+    this.isMigratingLegacyLanguages.set(true);
+    this.api.get<TranslationEditor>('/i18n/admin/languages/ru/translations').pipe(
+      switchMap(russianEditor => {
+        const knownKeys = new Set(russianEditor.entries.map(entry => entry.key));
+        return from(entries).pipe(
+          concatMap(([code, legacy]) => this.migrateLegacyLanguage(code, legacy, knownKeys)),
+          toArray()
+        );
+      }),
+      switchMap(() => this.i18n.refreshLanguages()),
+      finalize(() => this.isMigratingLegacyLanguages.set(false))
+    ).subscribe({
+      next: () => {
+        localStorage.removeItem('dwh_custom_languages');
+        this.legacyLanguageCount.set(0);
+        this.toast.success(this.uiI18n.translate('settings.lokalnye_yazykovye_pakety_pereneseny_v_servernoe'));
+      },
+      error: () => this.toast.error(
+        this.uiI18n.translate('settings.ne_udalos_perenesti_yazykovye_pakety_lokalnaya_k')
+      )
+    });
+  }
+
   private migrateLegacyLanguage(
     code: string,
     legacy: LegacyLanguage,
@@ -455,30 +480,5 @@ export class SettingsComponent implements OnInit {
         });
       })
     );
-  }
-
-
-  private readonly tabsMemo = optionsMemo<SMTTabItem<SettingsTab>[]>();
-
-  /** The sections the viewer may open; each tab names its panel. */
-  settingsTabs(): SMTTabItem<SettingsTab>[] {
-    const all: [SettingsTab, string, string][] = [
-      ['general', 'tune', 'settings.tab.general'],
-      ['security', 'security', 'settings.tab.security'],
-      ['storage', 'cloud', 'settings.tab.storage'],
-      ['preferences', 'person', 'settings.tab.preferences'],
-      ['languages', 'language', 'settings.yazyki_i_lokalizaciya'],
-      ['search', 'manage_search', 'settings.search.tab'],
-      ['navigation', 'menu_open', 'settings.navigation.tab'],
-      ['webhooks', 'webhook', 'settings.webhooks.tab'],
-    ];
-    const available = all.filter(([tab]) => this.isTabAvailable(tab));
-    return this.tabsMemo([this.tabText.currentLang(), available.map(([tab]) => tab).join()], () => available.map(([tab, icon, key]) => ({
-      value: tab,
-      label: this.tabText.translate(key),
-      icon,
-      id: `settings-${tab}-tab`,
-      panelId: `settings-${tab}-panel`,
-    })));
   }
 }

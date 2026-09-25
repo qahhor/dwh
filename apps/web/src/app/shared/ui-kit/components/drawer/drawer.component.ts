@@ -49,11 +49,10 @@ let nextDrawerId = 0;
   },
 })
 export class SMTDrawerComponent {
+  readonly i18n = inject(SMTI18nService);
   private readonly drawerRef = inject(SMT_DRAWER_REF);
 
   private readonly config = inject<SMTDrawerConfig>(SMT_DRAWER_CONFIG);
-
-  readonly i18n = inject(SMTI18nService);
 
   className = input<string>('', { alias: 'smtContainerClass' });
 
@@ -65,14 +64,14 @@ export class SMTDrawerComponent {
 
   readonly trapAutoCapture = signal(false);
 
+  /** Panel width (inline style), from drawer config or default */
+  readonly panelWidth = computed(() => this.config.width ?? '90dvw');
+
   readonly titleId = `smt-drawer-title-${nextDrawerId++}`;
 
   readonly title = this.config.title ?? '';
 
   readonly ariaLabel = this.config.ariaLabel ?? null;
-
-  /** Panel width (inline style), from drawer config or default */
-  readonly panelWidth = computed(() => this.config.width ?? '90dvw');
 
   constructor() {
     const destroyRef = inject(DestroyRef);

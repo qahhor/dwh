@@ -205,8 +205,6 @@ export class AnalyticsComponent implements OnInit, OnDestroy {
   private readonly uiI18n = inject(I18nService);
   private http = inject(HttpClient);
   private router = inject(Router);
-  private activeRequest?: Subscription;
-  private refreshRequired = true;
 
   summary = signal<AnalyticsSummary | null>(null);
   trends = signal<TrendDataPoint[]>([]);
@@ -215,8 +213,13 @@ export class AnalyticsComponent implements OnInit, OnDestroy {
 
   loading = signal(false);
   error = signal('');
+
+  private activeRequest?: Subscription;
+  private refreshRequired = true;
   selectedRange = '7d';
   displayedRange = '7d';
+
+  private readonly rangeMemo = optionsMemo<SMTRadioOption<string>[]>();
 
   ngOnInit(): void {
     this.loadAll();
@@ -259,6 +262,15 @@ export class AnalyticsComponent implements OnInit, OnDestroy {
     });
   }
 
+  /** The periods as one segmented bar. */
+  rangeOptions(): SMTRadioOption<string>[] {
+    return this.rangeMemo([this.optionText.currentLang()], () => [
+      { value: '7d', label: this.optionText.translate('analytics.7_dney') },
+      { value: '30d', label: this.optionText.translate('analytics.30_dney') },
+      { value: '90d', label: this.optionText.translate('analytics.90_dney') },
+    ]);
+  }
+
   private loadTrends(): void {
     const range = this.selectedRange;
     this.loadRequest(this.http.get<TrendDataPoint[]>(`/api/v1/analytics/trends?range=${range}`), data => {
@@ -279,16 +291,5 @@ export class AnalyticsComponent implements OnInit, OnDestroy {
       },
       complete: () => this.loading.set(false)
     });
-  }
-
-  private readonly rangeMemo = optionsMemo<SMTRadioOption<string>[]>();
-
-  /** The periods as one segmented bar. */
-  rangeOptions(): SMTRadioOption<string>[] {
-    return this.rangeMemo([this.optionText.currentLang()], () => [
-      { value: '7d', label: this.optionText.translate('analytics.7_dney') },
-      { value: '30d', label: this.optionText.translate('analytics.30_dney') },
-      { value: '90d', label: this.optionText.translate('analytics.90_dney') },
-    ]);
   }
 }

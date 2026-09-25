@@ -277,33 +277,15 @@ import { UserSession } from '../profile.models';
   `]
 })
 export class ProfileSessionsCardComponent {
-  @Input() set sessions(sessions: UserSession[]) {
-    this.rows.set(sessions ?? []);
-  }
-  get sessions(): UserSession[] {
-    return this.rows();
-  }
-  @Input() isLoadingSessions = false;
-  @Input() isTerminatingSession = false;
-
-  @Output() loadSessions = new EventEmitter<void>();
-  @Output() terminateSession = new EventEmitter<UserSession>();
-  @Output() terminateOtherSessions = new EventEmitter<void>();
-
   private readonly i18n = inject(I18nService);
-  readonly rows = signal<UserSession[]>([]);
+
   private readonly ipCell = viewChild.required<TemplateRef<unknown>>('ipCell');
   private readonly deviceCell = viewChild.required<TemplateRef<unknown>>('deviceCell');
   private readonly createdCell = viewChild.required<TemplateRef<unknown>>('createdCell');
   private readonly seenCell = viewChild.required<TemplateRef<unknown>>('seenCell');
   private readonly actionCell = viewChild.required<TemplateRef<unknown>>('actionCell');
 
-  readonly sortValues = {
-    ip: (s: UserSession) => s.ip,
-    device: (s: UserSession) => s.deviceInfo || s.userAgent || '',
-    created: (s: UserSession) => new Date(s.createdAt),
-    seen: (s: UserSession) => (s.lastSeenAt ? new Date(s.lastSeenAt) : null)
-  };
+  readonly rows = signal<UserSession[]>([]);
 
   readonly config = computed<TableConfig<UserSession>>(() => {
     const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
@@ -323,4 +305,25 @@ export class ProfileSessionsCardComponent {
       columnsOrder: ['ip', 'device', 'created', 'seen', 'action']
     };
   });
+
+  @Input() isLoadingSessions = false;
+  @Input() isTerminatingSession = false;
+
+  @Output() loadSessions = new EventEmitter<void>();
+  @Output() terminateSession = new EventEmitter<UserSession>();
+  @Output() terminateOtherSessions = new EventEmitter<void>();
+
+  readonly sortValues = {
+    ip: (s: UserSession) => s.ip,
+    device: (s: UserSession) => s.deviceInfo || s.userAgent || '',
+    created: (s: UserSession) => new Date(s.createdAt),
+    seen: (s: UserSession) => (s.lastSeenAt ? new Date(s.lastSeenAt) : null)
+  };
+
+  @Input() set sessions(sessions: UserSession[]) {
+    this.rows.set(sessions ?? []);
+  }
+  get sessions(): UserSession[] {
+    return this.rows();
+  }
 }

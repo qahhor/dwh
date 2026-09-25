@@ -113,6 +113,7 @@ export class SMTTreeTableComponent<T> {
   readonly rows = input.required<TreeRow<T>[]>({ alias: 'smtRows' });
   readonly columns = input.required<TreeTableColumns<T>>({ alias: 'smtColumns' });
   readonly ariaLabel = input.required<string>({ alias: 'smtAriaLabel' });
+
   /** Case-insensitive substring search over `searchText`. Empty shows the tree as expanded by the user. */
   readonly search = input('', { alias: 'smtSearch' });
   readonly searchText = input<(row: TreeRow<T>) => string>(() => '', { alias: 'smtSearchText' });
@@ -130,20 +131,15 @@ export class SMTTreeTableComponent<T> {
   readonly select = output<TreeRow<T>>({ alias: 'smtSelect' });
   readonly toggleCheck = output<TreeRow<T>>({ alias: 'smtToggle' });
 
-  protected readonly multiple = computed(() => this.selectionMode() === 'multiple');
-  private readonly checked = computed(() => new Set(this.checkedIds()));
-
-  protected readonly toolbarButton =
-    'inline-flex min-h-[32px] items-center rounded border border-gray-300 bg-white px-3 text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60';
-
   private readonly treeCell = viewChild.required<TemplateRef<unknown>>('treeCell');
-  private readonly treeCellContent = computed(() => this.treeCell());
 
   /** Ids the user has collapsed. Tracking the collapsed set keeps new branches open by default. */
   private readonly collapsed = signal<ReadonlySet<string>>(new Set());
 
   /** Row holding the roving tabindex: the single Tab stop of the grid. */
   private readonly activeId = signal<string | null>(null);
+
+  protected readonly multiple = computed(() => this.selectionMode() === 'multiple');
 
   protected readonly searching = computed(() => this.search().trim().length > 0);
 
@@ -153,29 +149,10 @@ export class SMTTreeTableComponent<T> {
     return searchTreeRows(this.rows(), row => !!query && text(row).toLocaleLowerCase().includes(query));
   });
 
-  private readonly expanded = computed<ReadonlySet<string>>(() => {
-    const collapsed = this.collapsed();
-    return new Set(this.rows().filter(row => row.hasChildren && !collapsed.has(row.id)).map(row => row.id));
-  });
-
   /** While searching, every branch on the way to a match is open: the result is the path. */
   protected readonly displayRows = computed(() =>
     this.searching() ? this.searchResult().rows : visibleTreeRows(this.rows(), this.expanded())
   );
-
-  private readonly positions = computed(() => treePositions(this.displayRows()));
-
-  /** Rows whose children are on screen. While searching, a match need not show its children. */
-  private readonly openRows = computed<ReadonlySet<string>>(() =>
-    this.searching() ? new Set(this.displayRows().map(row => row.parentId).filter(id => id !== null)) : this.expanded()
-  );
-
-  /** The active row if it is still shown, otherwise the selected row, otherwise the first. */
-  private readonly focusableId = computed(() => {
-    const shown = new Set(this.displayRows().map(row => row.id));
-    for (const id of [this.activeId(), this.selectedId()]) if (id !== null && shown.has(id)) return id;
-    return this.displayRows()[0]?.id ?? null;
-  });
 
   protected readonly treeContent = computed(() => this.columns().columns[this.columns().treeColumn]?.content ?? null);
 
@@ -209,10 +186,30 @@ export class SMTTreeTableComponent<T> {
       }),
     };
   });
+  private readonly checked = computed(() => new Set(this.checkedIds()));
+  private readonly treeCellContent = computed(() => this.treeCell());
 
-  protected isExpanded(row: TreeRow<T>): boolean {
-    return this.openRows().has(row.id);
-  }
+  private readonly expanded = computed<ReadonlySet<string>>(() => {
+    const collapsed = this.collapsed();
+    return new Set(this.rows().filter(row => row.hasChildren && !collapsed.has(row.id)).map(row => row.id));
+  });
+
+  private readonly positions = computed(() => treePositions(this.displayRows()));
+
+  /** Rows whose children are on screen. While searching, a match need not show its children. */
+  private readonly openRows = computed<ReadonlySet<string>>(() =>
+    this.searching() ? new Set(this.displayRows().map(row => row.parentId).filter(id => id !== null)) : this.expanded()
+  );
+
+  /** The active row if it is still shown, otherwise the selected row, otherwise the first. */
+  private readonly focusableId = computed(() => {
+    const shown = new Set(this.displayRows().map(row => row.id));
+    for (const id of [this.activeId(), this.selectedId()]) if (id !== null && shown.has(id)) return id;
+    return this.displayRows()[0]?.id ?? null;
+  });
+
+  protected readonly toolbarButton =
+    'inline-flex min-h-[32px] items-center rounded border border-gray-300 bg-white px-3 text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60';
 
   toggle(row: TreeRow<T>): void {
     if (!row.hasChildren || this.searching()) return;
@@ -229,6 +226,10 @@ export class SMTTreeTableComponent<T> {
     const active = untracked(this.focusableId);
     const root = active === null ? null : this.rootOf(active);
     if (root !== null) this.activeId.set(root);
+  }
+
+  protected isExpanded(row: TreeRow<T>): boolean {
+    return this.openRows().has(row.id);
   }
 
   protected isChecked(row: TreeRow<T>): boolean {

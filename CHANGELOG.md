@@ -424,6 +424,11 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Every Angular class lists its members in the agreed order; the signal order
+  baseline is empty (82 classes before). `signal-order-audit --fix` reordered
+  them; two initializers that read a field now declared below were changed by
+  hand: the i18n service seeds its dictionaries from the offline catalog
+  directly, and smt-control sets its field id in the constructor.
 - The user's manager, a task's responsible person and a task's parent are
   chosen with `smt-select`; remote search, "Load more" and retry work as
   before.

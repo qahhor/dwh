@@ -428,23 +428,6 @@ export class SourceCardComponent {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
-  readonly periodicities = UPL_PERIODICITIES;
-  readonly strictnesses = UPL_STRICTNESSES;
-  readonly periodicityKey = UPL_PERIODICITY_KEY;
-  readonly strictnessKey = UPL_STRICTNESS_KEY;
-  readonly versionStatusKey = UPL_VERSION_STATUS_KEY;
-  readonly dash = '—';
-
-  readonly sourceId = signal<string | null>(null);
-  readonly source = signal<UplSource | null>(null);
-  /** The translated message for a field's error code, or nothing; smt-control links it to the field. */
-  fieldErrorText(key: string): string {
-    const code = this.fieldErrors()[key];
-    return code ? this.i18n.translate(code) : '';
-  }
-
-  readonly versions = signal<UplVersionItem[]>([]);
-
   private readonly versionCell = viewChild.required<TemplateRef<unknown>>('versionCell');
   private readonly versionStatusCell = viewChild.required<TemplateRef<unknown>>('versionStatusCell');
   private readonly validFromCell = viewChild.required<TemplateRef<unknown>>('validFromCell');
@@ -452,14 +435,26 @@ export class SourceCardComponent {
   private readonly publishedCell = viewChild.required<TemplateRef<unknown>>('publishedCell');
   private readonly templateCell = viewChild.required<TemplateRef<unknown>>('templateCell');
 
-  /** All versions of a source are loaded, so a header click sorts them all. */
-  readonly versionSortValues = {
-    version: (v: UplVersionItem) => v.version,
-    status: (v: UplVersionItem) => v.status,
-    validFrom: (v: UplVersionItem) => v.validFrom,
-    validTo: (v: UplVersionItem) => v.validTo,
-    published: (v: UplVersionItem) => v.publishedAt
-  };
+  readonly sourceId = signal<string | null>(null);
+  readonly source = signal<UplSource | null>(null);
+
+  readonly versions = signal<UplVersionItem[]>([]);
+
+  readonly isLoading = signal(true);
+  readonly loadError = signal(false);
+  readonly notFound = signal(false);
+
+  readonly isSaving = signal(false);
+  readonly fieldErrors = signal<Record<string, string>>({});
+  readonly saveError = signal<string | null>(null);
+  readonly conflict = signal(false);
+
+  readonly isDraftOpen = signal(false);
+  readonly draftMode = signal<DraftMode>('empty');
+  readonly copyFrom = signal<number | null>(null);
+  readonly isCreatingDraft = signal(false);
+  readonly draftError = signal<string | null>(null);
+  readonly draftExists = signal(false);
 
   readonly versionsConfig = computed<TableConfig<UplVersionItem>>(() => {
     const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
@@ -480,29 +475,6 @@ export class SourceCardComponent {
     };
   });
 
-  /** The supplier's file for a version, in the reader's language; the browser downloads it with the session cookie. */
-  templateUrl(version: number): string {
-    const id = encodeURIComponent(this.sourceId() ?? '');
-    const lang = encodeURIComponent(this.i18n.currentLang());
-    return `/api/v1/upl/sources/${id}/format-versions/${version}/template?lang=${lang}`;
-  }
-
-  readonly isLoading = signal(true);
-  readonly loadError = signal(false);
-  readonly notFound = signal(false);
-
-  readonly isSaving = signal(false);
-  readonly fieldErrors = signal<Record<string, string>>({});
-  readonly saveError = signal<string | null>(null);
-  readonly conflict = signal(false);
-
-  readonly isDraftOpen = signal(false);
-  readonly draftMode = signal<DraftMode>('empty');
-  readonly copyFrom = signal<number | null>(null);
-  readonly isCreatingDraft = signal(false);
-  readonly draftError = signal<string | null>(null);
-  readonly draftExists = signal(false);
-
   readonly canEdit = computed(() => this.permissions.hasPermission('upl.sources', 'edit'));
   readonly draftVersion = computed(() => this.versions().find(v => v.status === 'draft') ?? null);
   /** A copy is offered only when there is a version to copy. */
@@ -515,6 +487,22 @@ export class SourceCardComponent {
       .filter(v => v.status === 'published' || v.status === 'superseded')
       .sort((a, b) => b.version - a.version)
   );
+
+  readonly periodicities = UPL_PERIODICITIES;
+  readonly strictnesses = UPL_STRICTNESSES;
+  readonly periodicityKey = UPL_PERIODICITY_KEY;
+  readonly strictnessKey = UPL_STRICTNESS_KEY;
+  readonly versionStatusKey = UPL_VERSION_STATUS_KEY;
+  readonly dash = '—';
+
+  /** All versions of a source are loaded, so a header click sorts them all. */
+  readonly versionSortValues = {
+    version: (v: UplVersionItem) => v.version,
+    status: (v: UplVersionItem) => v.status,
+    validFrom: (v: UplVersionItem) => v.validFrom,
+    validTo: (v: UplVersionItem) => v.validTo,
+    published: (v: UplVersionItem) => v.publishedAt
+  };
 
   form: SourceForm = {
     name: '',
@@ -530,6 +518,19 @@ export class SourceCardComponent {
       this.sourceId.set(params.get('id'));
       this.reload();
     });
+  }
+
+  /** The translated message for a field's error code, or nothing; smt-control links it to the field. */
+  fieldErrorText(key: string): string {
+    const code = this.fieldErrors()[key];
+    return code ? this.i18n.translate(code) : '';
+  }
+
+  /** The supplier's file for a version, in the reader's language; the browser downloads it with the session cookie. */
+  templateUrl(version: number): string {
+    const id = encodeURIComponent(this.sourceId() ?? '');
+    const lang = encodeURIComponent(this.i18n.currentLang());
+    return `/api/v1/upl/sources/${id}/format-versions/${version}/template?lang=${lang}`;
   }
 
   reload(): void {

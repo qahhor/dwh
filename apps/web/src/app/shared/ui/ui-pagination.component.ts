@@ -320,6 +320,30 @@ export class UiPaginationComponent implements OnChanges {
     this.visiblePages = this.generatePageNumbers(this.currentPage, this.totalPages);
   }
 
+  goToPage(page: number) {
+    if (this.disabled) return;
+    const isCursorStep = this.cursorMode && (
+      page === this.currentPage - 1 || (page === this.currentPage + 1 && this.hasNextPage)
+    );
+    const isNumberedPage = !this.cursorMode && page >= 1 && page <= this.totalPages;
+    if (page >= 1 && page !== this.currentPage && (isCursorStep || isNumberedPage)) {
+      if (this.cursorMode) {
+        this.pageChange.emit(page);
+        return;
+      }
+      this.currentPage = page;
+      this.calculatePagination();
+      this.pageChange.emit(this.currentPage);
+    }
+  }
+
+  onPageSizeChange(newSize: number) {
+    this.pageSize = newSize;
+    this.currentPage = 1;
+    this.calculatePagination();
+    this.pageSizeChange.emit(this.pageSize);
+  }
+
   private generatePageNumbers(current: number, total: number): number[] {
     if (total <= 7) {
       return Array.from({ length: total }, (_, i) => i + 1);
@@ -346,29 +370,5 @@ export class UiPaginationComponent implements OnChanges {
     }
 
     return pages;
-  }
-
-  goToPage(page: number) {
-    if (this.disabled) return;
-    const isCursorStep = this.cursorMode && (
-      page === this.currentPage - 1 || (page === this.currentPage + 1 && this.hasNextPage)
-    );
-    const isNumberedPage = !this.cursorMode && page >= 1 && page <= this.totalPages;
-    if (page >= 1 && page !== this.currentPage && (isCursorStep || isNumberedPage)) {
-      if (this.cursorMode) {
-        this.pageChange.emit(page);
-        return;
-      }
-      this.currentPage = page;
-      this.calculatePagination();
-      this.pageChange.emit(this.currentPage);
-    }
-  }
-
-  onPageSizeChange(newSize: number) {
-    this.pageSize = newSize;
-    this.currentPage = 1;
-    this.calculatePagination();
-    this.pageSizeChange.emit(this.pageSize);
   }
 }

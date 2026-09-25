@@ -24,6 +24,9 @@ export class OrgUnitEditorComponent implements OnInit {
   readonly kinds = Object.keys(orgUnitKindKeys);
   original!: OrgUnit | OrgUnitCreate;
   attempted = false;
+  private parentTreeCache: { units: OrgUnit[]; original: OrgUnit | OrgUnitCreate; tree: SMTTreeOption<number>[] } | null = null;
+  impactOpen = false;
+
   ngOnInit(): void {
     this.original = { ...this.initial };
     this.draft = { ...this.original, state: 'state' in this.original ? this.original.state : 'A' };
@@ -35,7 +38,6 @@ export class OrgUnitEditorComponent implements OnInit {
       || ('state' in this.original && this.draft.state !== this.original.state);
   }
   get parents(): OrgUnit[] { return this.editing ? parentCandidates(this.units, this.original as OrgUnit) : []; }
-  private parentTreeCache: { units: OrgUnit[]; original: OrgUnit | OrgUnitCreate; tree: SMTTreeOption<number>[] } | null = null;
   /** The allowed parents as a tree, rebuilt only when the units or the edited unit change. */
   get parentTree(): SMTTreeOption<number>[] {
     const cache = this.parentTreeCache;
@@ -53,7 +55,6 @@ export class OrgUnitEditorComponent implements OnInit {
     return this.error?.invalid_params?.find(item => item.name === field)?.reason
       ?? this.error?.errors?.find(item => item.field === field)?.message ?? null;
   }
-  impactOpen = false;
   submit(): void {
     if (this.pending || this.impactOpen) return;
     this.attempted = true;

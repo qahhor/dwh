@@ -287,11 +287,8 @@ export class NotesComponent implements OnInit, OnDestroy {
   private destroyRef = inject(DestroyRef);
   private readonly uiI18n = inject(I18nService);
 
-  private readonly searchSubject = new Subject<string>();
-
   notes = signal<Note[]>([]);
   activeTab = signal<'all' | 'pinned'>('all');
-  searchQuery = '';
   isModalOpen = signal(false);
   editingNote = signal<Note | null>(null);
   deletingNote = signal<Note | null>(null);
@@ -299,14 +296,6 @@ export class NotesComponent implements OnInit, OnDestroy {
   isDeleting = signal(false);
   isSubmitted = signal(false);
   noteCustomFields = signal<CustomField[]>([]);
-
-  formData = {
-    title: '',
-    contentMd: '',
-    color: 'default',
-    isPinned: false,
-    attributes: {} as Record<string, any>
-  };
 
   canCreate = computed(() => this.perm.hasPermission('notes', 'create'));
   canEdit = computed(() => this.perm.hasPermission('notes', 'update'));
@@ -319,6 +308,19 @@ export class NotesComponent implements OnInit, OnDestroy {
     }
     return list;
   });
+
+  private readonly searchSubject = new Subject<string>();
+  searchQuery = '';
+
+  formData = {
+    title: '',
+    contentMd: '',
+    color: 'default',
+    isPinned: false,
+    attributes: {} as Record<string, any>
+  };
+
+  private readonly tabsMemo = optionsMemo<SMTTabItem<'all' | 'pinned'>[]>();
 
   ngOnInit(): void {
     this.loadNotes();
@@ -467,8 +469,6 @@ export class NotesComponent implements OnInit, OnDestroy {
       error: () => this.toast.error(this.uiI18n.translate('notes.delete_error'))
     });
   }
-
-  private readonly tabsMemo = optionsMemo<SMTTabItem<'all' | 'pinned'>[]>();
 
   noteTabs(): SMTTabItem<'all' | 'pinned'>[] {
     return this.tabsMemo([this.tabText.currentLang()], () => [

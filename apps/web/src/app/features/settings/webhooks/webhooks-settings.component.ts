@@ -564,8 +564,6 @@ export class WebhooksSettingsComponent implements OnInit {
   private readonly permService = inject(PermissionService);
   private readonly modal = inject(SMTModalService);
 
-  readonly subscriptions = signal<WebhookSubscription[]>([]);
-
   private readonly idCell = viewChild.required<TemplateRef<unknown>>('idCell');
   private readonly nameCell = viewChild.required<TemplateRef<unknown>>('nameCell');
   private readonly urlCell = viewChild.required<TemplateRef<unknown>>('urlCell');
@@ -573,13 +571,14 @@ export class WebhooksSettingsComponent implements OnInit {
   private readonly statusCell = viewChild.required<TemplateRef<unknown>>('statusCell');
   private readonly actionsCell = viewChild.required<TemplateRef<unknown>>('actionsCell');
 
-  /** Every subscription is loaded, so a header click sorts the whole list. */
-  readonly sortValues = {
-    id: (sub: WebhookSubscription) => sub.id,
-    name: (sub: WebhookSubscription) => sub.name,
-    url: (sub: WebhookSubscription) => sub.targetUrl,
-    status: (sub: WebhookSubscription) => (sub.state === 'A' ? 0 : 1)
-  };
+  readonly subscriptions = signal<WebhookSubscription[]>([]);
+  readonly isLoading = signal<boolean>(false);
+  readonly isSaving = signal<boolean>(false);
+  readonly loadError = signal<boolean>(false);
+
+  readonly isCreateModalOpen = signal<boolean>(false);
+  readonly createdSecretModalOpen = signal<boolean>(false);
+  readonly recentlyCreatedSubscription = signal<CreatedWebhookSubscription | null>(null);
 
   readonly tableConfig = computed<TableConfig<WebhookSubscription>>(() => {
     const i18n = this.uiI18n;
@@ -599,24 +598,24 @@ export class WebhooksSettingsComponent implements OnInit {
     }
     return { trackBy: (_index, sub) => sub.id, ariaLabel: i18n.translate('settings.webhooks.title'), layout: 'fit', columns, columnsOrder: order };
   });
-  readonly isLoading = signal<boolean>(false);
-  readonly isSaving = signal<boolean>(false);
-  readonly loadError = signal<boolean>(false);
 
-  readonly isCreateModalOpen = signal<boolean>(false);
-  readonly createdSecretModalOpen = signal<boolean>(false);
-  readonly recentlyCreatedSubscription = signal<CreatedWebhookSubscription | null>(null);
+  readonly canManageWebhooks = computed(() =>
+    this.permService.hasPermission('platform.webhooks', 'manage')
+  );
 
+  /** Every subscription is loaded, so a header click sorts the whole list. */
+  readonly sortValues = {
+    id: (sub: WebhookSubscription) => sub.id,
+    name: (sub: WebhookSubscription) => sub.name,
+    url: (sub: WebhookSubscription) => sub.targetUrl,
+    status: (sub: WebhookSubscription) => (sub.state === 'A' ? 0 : 1)
+  };
 
   createName = '';
   createTargetUrl = '';
   selectedEvents = new Set<string>(['*']);
 
   readonly availableEvents: WebhookEventOption[] = AVAILABLE_WEBHOOK_EVENTS;
-
-  readonly canManageWebhooks = computed(() =>
-    this.permService.hasPermission('platform.webhooks', 'manage')
-  );
 
   ngOnInit(): void {
     this.loadSubscriptions();

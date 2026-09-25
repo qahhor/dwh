@@ -154,11 +154,19 @@ export class FilesComponent implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly queryMeta = inject(QueryMetaService);
   private readonly destroyRef = inject(DestroyRef);
-  private statsRequest?: Subscription;
-  private destroyed = false;
+
+  private readonly modal = inject(SMTModalService);
+
   /** Field metadata of the list (`query-meta/mf.files`). */
   readonly meta = signal<QueryListMeta | null>(null);
   readonly metaError = signal(false);
+  readonly stats = signal<StorageStats | null>(null);
+  readonly isUploadModalOpen = signal<boolean>(false);
+  readonly uploadedBatch = signal<TaskFile[]>([]);
+  readonly isDeleting = signal(false);
+
+  private statsRequest?: Subscription;
+  private destroyed = false;
   readonly views = new ListViewState('mf.files', inject(ListViewsApi), {
     defaultSort: () => {
       const meta = this.meta();
@@ -178,31 +186,25 @@ export class FilesComponent implements OnInit, OnDestroy {
     { pageSize: 15, destroyRef: this.destroyRef }
   );
   readonly files = this.pager.items;
-  readonly stats = signal<StorageStats | null>(null);
   readonly isLoading = this.pager.loading;
-  readonly isUploadModalOpen = signal<boolean>(false);
-  readonly uploadedBatch = signal<TaskFile[]>([]);
-  readonly isDeleting = signal(false);
 
   scope: 'all' | 'mine' = 'all';
   private exportScope: { scope: string } = { scope: 'all' };
-
-  /** The scope as an export option; the same object while the scope stays, so the button is not re-rendered. */
-  exportOptions(): Record<string, string> {
-    if (this.exportScope.scope !== this.scope) this.exportScope = { scope: this.scope };
-    return this.exportScope;
-  }
   searchQuery = '';
 
   readonly canDeleteFileBound = (file: FileDetail) => this.canDeleteFile(file);
-
-  private readonly modal = inject(SMTModalService);
 
   constructor(
     private api: ApiService,
     private permService: PermissionService,
     private toast: ToastService
   ) {}
+
+  /** The scope as an export option; the same object while the scope stays, so the button is not re-rendered. */
+  exportOptions(): Record<string, string> {
+    if (this.exportScope.scope !== this.scope) this.exportScope = { scope: this.scope };
+    return this.exportScope;
+  }
 
   ngOnInit() {
     this.refreshAll();
@@ -304,21 +306,6 @@ export class FilesComponent implements OnInit, OnDestroy {
     }).subscribe();
   }
 
-  /** Rights are checked again at the moment of deleting: they may have changed while the dialog was open. */
-  private deleteFile(file: FileDetail): Observable<unknown> {
-    if (!this.canDeleteFile(file)) {
-      return throwError(() => ({ detail: this.uiI18n.translate('files.delete_not_allowed') }));
-    }
-    this.isDeleting.set(true);
-    return this.api.delete(`/files/${file.id}`, { notifyError: false }).pipe(
-      tap(() => {
-        this.toast.success(this.uiI18n.translate('files.deleted_named', { name: file.originalName }));
-        this.refreshAll();
-      }),
-      finalize(() => this.isDeleting.set(false))
-    );
-  }
-
   onBatchFileUploaded(taskFile: TaskFile) {
     this.uploadedBatch.update(list => [...list, taskFile]);
     this.refreshAll();
@@ -345,5 +332,20 @@ export class FilesComponent implements OnInit, OnDestroy {
     const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  }
+
+  /** Rights are checked again at the moment of deleting: they may have changed while the dialog was open. */
+  private deleteFile(file: FileDetail): Observable<unknown> {
+    if (!this.canDeleteFile(file)) {
+      return throwError(() => ({ detail: this.uiI18n.translate('files.delete_not_allowed') }));
+    }
+    this.isDeleting.set(true);
+    return this.api.delete(`/files/${file.id}`, { notifyError: false }).pipe(
+      tap(() => {
+        this.toast.success(this.uiI18n.translate('files.deleted_named', { name: file.originalName }));
+        this.refreshAll();
+      }),
+      finalize(() => this.isDeleting.set(false))
+    );
   }
 }

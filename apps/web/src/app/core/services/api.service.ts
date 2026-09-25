@@ -23,25 +23,6 @@ export class ApiService {
     private i18n: I18nService
   ) {}
 
-  private getXsrfToken(): string | null {
-    if (typeof document === 'undefined') return null;
-    const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]*)/);
-    return match ? decodeURIComponent(match[1]) : null;
-  }
-
-  private getHeaders(): HttpHeaders {
-    let headers = new HttpHeaders();
-    const lang = untracked(() => this.i18n?.currentLang ? this.i18n.currentLang() : null);
-    if (lang) {
-      headers = headers.set('Accept-Language', lang);
-    }
-    const xsrf = this.getXsrfToken();
-    if (xsrf) {
-      headers = headers.set('X-XSRF-TOKEN', xsrf);
-    }
-    return headers;
-  }
-
   get<T>(path: string, params?: Record<string, any>, options: ApiRequestOptions = {}): Observable<T> {
     let httpParams = new HttpParams();
     if (params) {
@@ -95,6 +76,25 @@ export class ApiService {
     }).pipe(
       catchError(err => this.handleError(err, options))
     );
+  }
+
+  private getXsrfToken(): string | null {
+    if (typeof document === 'undefined') return null;
+    const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]*)/);
+    return match ? decodeURIComponent(match[1]) : null;
+  }
+
+  private getHeaders(): HttpHeaders {
+    let headers = new HttpHeaders();
+    const lang = untracked(() => this.i18n?.currentLang ? this.i18n.currentLang() : null);
+    if (lang) {
+      headers = headers.set('Accept-Language', lang);
+    }
+    const xsrf = this.getXsrfToken();
+    if (xsrf) {
+      headers = headers.set('X-XSRF-TOKEN', xsrf);
+    }
+    return headers;
   }
 
   private handleError(error: HttpErrorResponse, options: ApiRequestOptions = {}): Observable<never> {

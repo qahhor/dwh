@@ -159,9 +159,6 @@ import { SMTModalService } from '../../shared/ui-kit/components/modal';
 export class LanguageEditorComponent implements OnInit {
   private readonly uiI18n = inject(I18nService);
   private readonly modal = inject(SMTModalService);
-  @Input({ required: true }) languageCode = 'ru';
-  @Output() readonly closed = new EventEmitter<void>();
-  @Output() readonly saved = new EventEmitter<string>();
 
   readonly editor = signal<TranslationEditor | null>(null);
   readonly isLoading = signal(false);
@@ -191,6 +188,10 @@ export class LanguageEditorComponent implements OnInit {
         || this.valueFor(entry.key).toLocaleLowerCase().includes(query);
     });
   });
+
+  @Input({ required: true }) languageCode = 'ru';
+  @Output() readonly closed = new EventEmitter<void>();
+  @Output() readonly saved = new EventEmitter<string>();
 
   readonly canEdit: boolean;
 

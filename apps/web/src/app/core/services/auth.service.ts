@@ -12,13 +12,15 @@ import { TabSyncService } from './tab-sync.service';
   providedIn: 'root'
 })
 export class AuthService {
-  private sessionGeneration = 0;
-  /** Where to go after the next sign-in: the page the session was lost on. */
-  private returnUrl: string | null = null;
   readonly currentUser = signal<User | null>(null);
   readonly isLoading = signal<boolean>(true);
   readonly isLoggingOut = signal(false);
+
   readonly isAuthenticated = computed(() => this.currentUser() !== null);
+
+  private sessionGeneration = 0;
+  /** Where to go after the next sign-in: the page the session was lost on. */
+  private returnUrl: string | null = null;
 
   constructor(
     private api: ApiService,

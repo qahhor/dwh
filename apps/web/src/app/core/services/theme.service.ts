@@ -14,10 +14,11 @@ function isThemePreference(value: unknown): value is ThemePreference {
   providedIn: 'root'
 })
 export class ThemeService {
+  private readonly destroyRef = inject(DestroyRef);
+
   readonly themePreference = signal<ThemePreference>(this.getInitialPreference());
   readonly currentTheme = signal<ThemeMode>(this.resolveEffectiveTheme(this.getInitialPreference()));
 
-  private readonly destroyRef = inject(DestroyRef);
   private readonly channel = this.openChannel();
 
   constructor() {

@@ -21,18 +21,19 @@ export class TaskFormsService {
   private readonly api = inject(ApiService);
   private readonly toast = inject(ToastService);
   private readonly uiI18n = inject(I18nService);
-  readonly navigationDecision = new RecordNavigationDecision();
 
   readonly isCreateModalOpen = signal<boolean>(false);
-  isCreateSubmitted = false;
-  createForm: TaskCreateFormValue = createDefaultTaskCreateForm();
-  createFormBaseline = '';
 
   readonly isEditModalOpen = signal<boolean>(false);
   readonly isEditDiscardConfirmationOpen = signal<boolean>(false);
   readonly editLoading = signal<boolean>(false);
   readonly editLoadError = signal<boolean>(false);
   readonly isSubmitting = signal<boolean>(false);
+
+  readonly navigationDecision = new RecordNavigationDecision();
+  isCreateSubmitted = false;
+  createForm: TaskCreateFormValue = createDefaultTaskCreateForm();
+  createFormBaseline = '';
 
   isEditSubmitted = false;
   editingTask: Task | null = null;

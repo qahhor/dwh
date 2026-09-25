@@ -522,10 +522,6 @@ export class UserEffectivePermissionsPanelComponent implements OnInit, OnChanges
   /** Texts of the radio options below; translated again when the language changes. */
   private readonly optionText = inject(I18nService);
 
-  @Input({ required: true }) userId!: number;
-  @Input() canAssign: boolean = false;
-  @Input() userRoleNames: string[] = [];
-
   private readonly api = inject(ApiService);
   private readonly toast = inject(ToastService);
   private readonly uiI18n = inject(I18nService);
@@ -624,6 +620,20 @@ export class UserEffectivePermissionsPanelComponent implements OnInit, OnChanges
     result.sort((a, b) => a.moduleName.localeCompare(b.moduleName));
     return result;
   });
+
+  /** The sources as chips with how many rights come from each; the pills before announced no choice at all. */
+  readonly sourceOptions = computed<SMTRadioOption<'all' | 'role' | 'personal'>[]>(() => {
+    this.optionText.currentLang();
+    return [
+      { value: 'all', label: this.optionText.translate('iam.vse_istochniki'), count: this.effectiveItems().length },
+      { value: 'role', label: this.optionText.translate('iam.istochnik_rol'), count: this.roleCount() },
+      { value: 'personal', label: this.optionText.translate('iam.istochnik_personal'), count: this.personalCount() },
+    ];
+  });
+
+  @Input({ required: true }) userId!: number;
+  @Input() canAssign: boolean = false;
+  @Input() userRoleNames: string[] = [];
 
   ngOnInit(): void {
     this.loadAll();
@@ -727,15 +737,5 @@ export class UserEffectivePermissionsPanelComponent implements OnInit, OnChanges
       }
     });
   }
-
-  /** The sources as chips with how many rights come from each; the pills before announced no choice at all. */
-  readonly sourceOptions = computed<SMTRadioOption<'all' | 'role' | 'personal'>[]>(() => {
-    this.optionText.currentLang();
-    return [
-      { value: 'all', label: this.optionText.translate('iam.vse_istochniki'), count: this.effectiveItems().length },
-      { value: 'role', label: this.optionText.translate('iam.istochnik_rol'), count: this.roleCount() },
-      { value: 'personal', label: this.optionText.translate('iam.istochnik_personal'), count: this.personalCount() },
-    ];
-  });
 }
 

@@ -129,12 +129,15 @@ import { UiPaginationComponent } from './ui-pagination.component';
   `],
 })
 export class UiServerTableComponent<T> {
+  private readonly columnStore = inject(TableColumnStateStore);
+
   readonly pager = input.required<KeysetPager<T>>();
   readonly config = input.required<TableConfig<T>>();
   /** Announced while a page loads, e.g. "Loading the change log". */
   readonly loadingLabel = input.required<string>();
   /** Shown with the retry button when a request fails. */
   readonly errorLabel = input.required<string>();
+
   readonly errorId = input<string>('');
   readonly emptyTemplate = input<TemplateRef<unknown> | null>(null);
   /**
@@ -143,9 +146,6 @@ export class UiServerTableComponent<T> {
    * screen without claiming a total ("21–40", not "21–40 of 20").
    */
   readonly countsPage = input(false);
-  readonly rowClick = output<T>();
-  /** A sortable header was clicked; `undefined` when sorting was switched off. */
-  readonly sortChange = output<{ column: string; sortBy: OrderBy } | undefined>();
   /** Storage id of the column choice, e.g. `upl.sources`; empty — the columns are fixed. */
   readonly columnsId = input('');
   /** Saved views of the list; when set, they own the column choice instead of `columnsId`. */
@@ -162,20 +162,13 @@ export class UiServerTableComponent<T> {
 
   /** Rows can be chosen for bulk actions. */
   readonly selectable = input(false);
+
+  readonly rowClick = output<T>();
+  /** A sortable header was clicked; `undefined` when sorting was switched off. */
+  readonly sortChange = output<{ column: string; sortBy: OrderBy } | undefined>();
+
   /** The chosen rows of the page on screen. */
   readonly selected = model<T[]>([]);
-
-  private readonly columnStore = inject(TableColumnStateStore);
-
-  constructor() {
-    // A new page of rows (paging, reload, a new filter) ends the old choice.
-    effect(() => {
-      this.pager().items();
-      untracked(() => {
-        if (this.selected().length > 0) this.selected.set([]);
-      });
-    });
-  }
 
   /** The stored choice for this table, reloaded when the id changes. */
   private readonly storedColumns = linkedSignal<TableColumnState>(() => {
@@ -185,8 +178,6 @@ export class UiServerTableComponent<T> {
 
   /** The choice on screen: the saved views' when the list has them, otherwise the one stored for this table. */
   protected readonly columnState = computed(() => this.views()?.columns() ?? this.storedColumns());
-
-  private readonly customizable = computed(() => Boolean(this.columnsId() || this.views()));
 
   protected readonly shownConfig = computed(() => {
     const config = this.customizable() ? applyColumnState(this.config(), this.columnState(), this.lockedColumns()) : this.config();
@@ -202,6 +193,25 @@ export class UiServerTableComponent<T> {
       return { key, label, locked: this.lockedColumns().includes(key) };
     });
   });
+
+  /** The request failed and there is nothing earlier to keep on screen. */
+  protected readonly failedWithoutRows = computed(() => this.pager().failed() && this.pager().items().length === 0);
+
+  /** The current size is always offered; otherwise the size picker shows blank. */
+  protected readonly pageSizeOptions = computed(() =>
+    [...new Set([10, 25, 50, 100, this.pager().pageSize()])].sort((a, b) => a - b));
+
+  private readonly customizable = computed(() => Boolean(this.columnsId() || this.views()));
+
+  constructor() {
+    // A new page of rows (paging, reload, a new filter) ends the old choice.
+    effect(() => {
+      this.pager().items();
+      untracked(() => {
+        if (this.selected().length > 0) this.selected.set([]);
+      });
+    });
+  }
 
   protected saveColumns(state: TableColumnState): void {
     const keys = this.config().columnsOrder;
@@ -224,11 +234,4 @@ export class UiServerTableComponent<T> {
     const current = normalizeColumnState(this.columnState(), this.config().columnsOrder, this.lockedColumns());
     this.saveColumns(setColumnWidth(current, event.key, event.widthPx));
   }
-
-  /** The request failed and there is nothing earlier to keep on screen. */
-  protected readonly failedWithoutRows = computed(() => this.pager().failed() && this.pager().items().length === 0);
-
-  /** The current size is always offered; otherwise the size picker shows blank. */
-  protected readonly pageSizeOptions = computed(() =>
-    [...new Set([10, 25, 50, 100, this.pager().pageSize()])].sort((a, b) => a - b));
 }

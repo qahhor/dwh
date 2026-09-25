@@ -132,17 +132,14 @@ const NAME_MAX = 80;
   `],
 })
 export class UiListViewsComponent {
-  private static nextId = 0;
-
-  readonly state = input.required<ListViewState>();
-
   private readonly i18n = inject(I18nService);
   private readonly toast = inject(ToastService);
   private readonly modal = inject(SMTModalService);
+
+  readonly state = input.required<ListViewState>();
+
   private readonly nameInput = viewChild<ElementRef<HTMLInputElement>>('nameInput');
 
-  readonly nameId = `ui-list-views-name-${UiListViewsComponent.nextId++}`;
-  readonly nameMax = NAME_MAX;
   readonly saveAsOpen = signal(false);
   readonly name = signal('');
   readonly makeDefault = signal(false);
@@ -150,6 +147,11 @@ export class UiListViewsComponent {
   readonly nameError = signal<string | null>(null);
 
   readonly activeName = computed(() => this.state().active()?.name ?? this.i18n.translate('ui.views.standard'));
+
+  private static nextId = 0;
+
+  readonly nameId = `ui-list-views-name-${UiListViewsComponent.nextId++}`;
+  readonly nameMax = NAME_MAX;
 
   openSaveAs(): void {
     this.name.set('');

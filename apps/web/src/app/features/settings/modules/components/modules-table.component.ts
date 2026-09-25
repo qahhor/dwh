@@ -174,28 +174,22 @@ import { InstalledModule } from '../modules.models';
   `]
 })
 export class ModulesTableComponent {
+  private readonly i18n = inject(I18nService);
+
   readonly modules = input.required<InstalledModule[]>();
   readonly isLoading = input.required<boolean>();
   readonly canManage = input.required<boolean>();
+
   readonly togglingCode = input<string | null>(null);
 
   readonly toggle = output<{ module: InstalledModule; enabled: boolean }>();
 
-  private readonly i18n = inject(I18nService);
   private readonly moduleCell = viewChild.required<TemplateRef<unknown>>('moduleCell');
   private readonly codeCell = viewChild.required<TemplateRef<unknown>>('codeCell');
   private readonly versionCell = viewChild.required<TemplateRef<unknown>>('versionCell');
   private readonly typeCell = viewChild.required<TemplateRef<unknown>>('typeCell');
   private readonly statusCell = viewChild.required<TemplateRef<unknown>>('statusCell');
   private readonly actionsCell = viewChild.required<TemplateRef<unknown>>('actionsCell');
-
-  readonly sortValues = {
-    module: (mod: InstalledModule) => mod.name,
-    code: (mod: InstalledModule) => mod.code,
-    version: (mod: InstalledModule) => mod.version,
-    type: (mod: InstalledModule) => (mod.isSystem ? 0 : 1),
-    status: (mod: InstalledModule) => (mod.isActive ? 0 : 1)
-  };
 
   readonly config = computed<TableConfig<InstalledModule>>(() => {
     const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
@@ -214,4 +208,12 @@ export class ModulesTableComponent {
     }
     return { trackBy: (_index, mod) => mod.code, ariaLabel: this.i18n.translate('modules.title'), layout: 'fit', columns, columnsOrder: order };
   });
+
+  readonly sortValues = {
+    module: (mod: InstalledModule) => mod.name,
+    code: (mod: InstalledModule) => mod.code,
+    version: (mod: InstalledModule) => mod.version,
+    type: (mod: InstalledModule) => (mod.isSystem ? 0 : 1),
+    status: (mod: InstalledModule) => (mod.isActive ? 0 : 1)
+  };
 }

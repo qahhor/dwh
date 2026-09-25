@@ -268,18 +268,9 @@ export * from './login.models';
 })
 export class LoginComponent {
   readonly i18n = inject(I18nService);
-  private readonly uiI18n = this.i18n;
   private readonly injector = inject(Injector);
   private readonly element = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly destroyRef = inject(DestroyRef);
-
-  login = '';
-  password = '';
-  otpCode = '';
-  otpToken = '';
-  newPassword = '';
-  confirmNewPassword = '';
-  tempOldPassword = '';
 
   readonly step = signal<LoginStep>('credentials');
   readonly passwordVisibility = signal<Record<PasswordField, boolean>>({
@@ -289,6 +280,16 @@ export class LoginComponent {
   readonly isLoading = signal<boolean>(false);
   readonly isResetModalOpen = signal<boolean>(false);
   readonly formError = signal<string>('');
+
+  private readonly uiI18n = this.i18n;
+
+  login = '';
+  password = '';
+  otpCode = '';
+  otpToken = '';
+  newPassword = '';
+  confirmNewPassword = '';
+  tempOldPassword = '';
 
   constructor(
     private authService: AuthService,
@@ -414,15 +415,6 @@ export class LoginComponent {
     this.isResetModalOpen.set(true);
   }
 
-  private errorMessage(error: unknown, fallback: string): string {
-    if (error && typeof error === 'object') {
-      const value = error as { detail?: unknown; message?: unknown };
-      if (typeof value.detail === 'string' && value.detail.trim()) return value.detail;
-      if (typeof value.message === 'string' && value.message.trim()) return value.message;
-    }
-    return fallback;
-  }
-
   togglePasswordVisibility(field: PasswordField): void {
     if (this.isLoading()) return;
     this.passwordVisibility.update(current => ({ ...current, [field]: !current[field] }));
@@ -449,6 +441,15 @@ export class LoginComponent {
     this.newPassword = '';
     this.confirmNewPassword = '';
     this.changeStep('credentials');
+  }
+
+  private errorMessage(error: unknown, fallback: string): string {
+    if (error && typeof error === 'object') {
+      const value = error as { detail?: unknown; message?: unknown };
+      if (typeof value.detail === 'string' && value.detail.trim()) return value.detail;
+      if (typeof value.message === 'string' && value.message.trim()) return value.message;
+    }
+    return fallback;
   }
 
   private changeStep(step: LoginStep): void {

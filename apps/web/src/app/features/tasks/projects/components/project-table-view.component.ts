@@ -256,37 +256,18 @@ import { ProjectSort, ProjectSortColumn } from '../projects-order';
   `]
 })
 export class ProjectTableViewComponent {
-  @Input() paginatedProjects: Project[] = [];
-  @Input() totalCount = 0;
-  @Input() currentPage = 1;
-  @Input() pageSize = 10;
-  @Input() set canViewTasks(value: boolean) { this.viewTasksAllowed.set(value); }
-  get canViewTasks(): boolean { return this.viewTasksAllowed(); }
-  @Input() canUpdateProject = false;
-  @Input() projectStats: Record<number, ProjectTaskStats> = {};
-  @Input() statsLoading = false;
-  @Input() statsLoadError = false;
-  @Input() statsLoaded = false;
-  /** The order the page applies to the whole list; shown on the column headers. */
-  @Input() set sort(value: ProjectSort | undefined) { this.currentSort.set(value); }
-
-  @Output() viewTasks = new EventEmitter<Project>();
-  @Output() editProject = new EventEmitter<Project>();
-  @Output() manageMembers = new EventEmitter<Project>();
-  @Output() pageChange = new EventEmitter<number>();
-  @Output() pageSizeChange = new EventEmitter<number>();
-  @Output() sortChange = new EventEmitter<ProjectSort | undefined>();
-
   private readonly i18n = inject(I18nService);
-  private readonly viewTasksAllowed = signal(false);
-  private readonly currentSort = signal<ProjectSort | undefined>(undefined);
+
+  readonly emptyState = viewChild.required<TemplateRef<unknown>>('emptyStateTpl');
   private readonly idCell = viewChild.required<TemplateRef<unknown>>('idCell');
   private readonly nameCell = viewChild.required<TemplateRef<unknown>>('nameCell');
   private readonly stateCell = viewChild.required<TemplateRef<unknown>>('stateCell');
   private readonly progressCell = viewChild.required<TemplateRef<unknown>>('progressCell');
   private readonly createdCell = viewChild.required<TemplateRef<unknown>>('createdCell');
   private readonly actionsCell = viewChild.required<TemplateRef<unknown>>('actionsCell');
-  readonly emptyState = viewChild.required<TemplateRef<unknown>>('emptyStateTpl');
+
+  private readonly viewTasksAllowed = signal(false);
+  private readonly currentSort = signal<ProjectSort | undefined>(undefined);
 
   readonly tableConfig = computed<TableConfig<Project>>(() => {
     const header = (value: string) => ({ type: 'primitive' as const, value });
@@ -314,6 +295,28 @@ export class ProjectTableViewComponent {
       },
     };
   });
+
+  @Input() paginatedProjects: Project[] = [];
+  @Input() totalCount = 0;
+  @Input() currentPage = 1;
+  @Input() pageSize = 10;
+  @Input() canUpdateProject = false;
+  @Input() projectStats: Record<number, ProjectTaskStats> = {};
+  @Input() statsLoading = false;
+  @Input() statsLoadError = false;
+  @Input() statsLoaded = false;
+
+  @Output() viewTasks = new EventEmitter<Project>();
+  @Output() editProject = new EventEmitter<Project>();
+  @Output() manageMembers = new EventEmitter<Project>();
+  @Output() pageChange = new EventEmitter<number>();
+  @Output() pageSizeChange = new EventEmitter<number>();
+  @Output() sortChange = new EventEmitter<ProjectSort | undefined>();
+
+  @Input() set canViewTasks(value: boolean) { this.viewTasksAllowed.set(value); }
+  get canViewTasks(): boolean { return this.viewTasksAllowed(); }
+  /** The order the page applies to the whole list; shown on the column headers. */
+  @Input() set sort(value: ProjectSort | undefined) { this.currentSort.set(value); }
 
   onSortChange(event: { column: string; sortBy: OrderBy } | undefined): void {
     this.sortChange.emit(event ? { column: event.column as ProjectSortColumn, sortBy: event.sortBy } : undefined);

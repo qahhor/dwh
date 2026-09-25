@@ -20,13 +20,23 @@ export interface ScopeRuleOption { value: ScopeRule; labelKey: string; descripti
   templateUrl: './role-scope-panel.component.html', styleUrl: './role-scope-panel.component.css'
 })
 export class RoleScopePanelComponent implements OnChanges {
-  @Input({ required: true }) roleId = 0;
-  @Output() busyChange = new EventEmitter<boolean>();
   readonly permissions = inject(PermissionService);
   private readonly api = inject(OrgUnitsApiService);
   private readonly changeDetector = inject(ChangeDetectorRef);
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(I18nService);
+
+  readonly selectedRule = signal<ScopeRule>('ALL');
+
+  /** The rules as radio items, translated; each description says what the rule lets the role see. */
+  readonly ruleOptions = computed<SMTRadioOption<ScopeRule>[]>(() => this.options.map(option => ({
+    value: option.value,
+    label: this.i18n.translate(option.labelKey),
+    hint: this.i18n.translate(option.descriptionKey)
+  })));
+
+  @Input({ required: true }) roleId = 0;
+  @Output() busyChange = new EventEmitter<boolean>();
   private readonly writes = new Subscription();
   private readRequest?: Subscription;
   private activeTarget: number | null = null;
@@ -40,17 +50,10 @@ export class RoleScopePanelComponent implements OnChanges {
     { value: 'UNITS', labelKey: 'iam.data_scope.rule_units', descriptionKey: 'iam.data_scope.rule_units_help' },
     { value: 'SELF', labelKey: 'iam.data_scope.rule_self', descriptionKey: 'iam.data_scope.rule_self_help' }
   ];
-  readonly selectedRule = signal<ScopeRule>('ALL');
   loaded = false;
   loading = false;
   pending = false;
   loadError: ProblemDetail | null = null;
-  /** The rules as radio items, translated; each description says what the rule lets the role see. */
-  readonly ruleOptions = computed<SMTRadioOption<ScopeRule>[]>(() => this.options.map(option => ({
-    value: option.value,
-    label: this.i18n.translate(option.labelKey),
-    hint: this.i18n.translate(option.descriptionKey)
-  })));
   saveError: ProblemDetail | null = null;
   savedRefreshFailed = false;
   confirmationOpen = false;

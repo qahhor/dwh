@@ -81,13 +81,10 @@ function matches<T>(option: SMTTreeOption<T>, query: string): boolean {
   },
 })
 export class SMTTreeSelectComponent<T = unknown> implements FormValueControl<T | null> {
+  readonly i18n = inject(SMTI18nService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   private readonly injector = inject(Injector);
-
-  readonly i18n = inject(SMTI18nService);
-
-  readonly value = model<T | null>(null);
 
   readonly nodes = input<readonly SMTTreeOption<T>[]>([]);
 
@@ -117,11 +114,11 @@ export class SMTTreeSelectComponent<T = unknown> implements FormValueControl<T |
 
   readonly touch = output<void>();
 
-  readonly id = nextTreeId++;
+  readonly value = model<T | null>(null);
 
-  readonly treeId = `smt-tree-select-tree-${this.id}`;
+  private readonly trigger = viewChild<ElementRef<HTMLElement>>('trigger');
 
-  readonly positions = POPUP_POSITIONS;
+  private readonly searchBox = viewChild<ElementRef<HTMLInputElement>>('searchBox');
 
   readonly open = signal(false);
 
@@ -135,30 +132,9 @@ export class SMTTreeSelectComponent<T = unknown> implements FormValueControl<T |
 
   private readonly disabledByForms = signal(false);
 
-  private readonly trigger = viewChild<ElementRef<HTMLElement>>('trigger');
-
-  private readonly searchBox = viewChild<ElementRef<HTMLInputElement>>('searchBox');
-
-  private ownedBy: Element | null = null;
-
   readonly isDisabled = computed(() => this.disabled() || this.disabledByForms());
 
   readonly fieldId = computed(() => this.triggerId() ?? `smt-tree-select-trigger-${this.id}`);
-
-  /** Every node by key, with its parent's key, for lookups and paths. */
-  private readonly index = computed(() => {
-    const byKey = new Map<string, { option: SMTTreeOption<T>; parentKey: string | null }>();
-    const walk = (options: readonly SMTTreeOption<T>[], parentKey: string | null) => {
-      for (const option of options) {
-        const key = keyOf(option.id);
-        if (byKey.has(key)) continue;
-        byKey.set(key, { option, parentKey });
-        walk(option.children ?? [], key);
-      }
-    };
-    walk(this.nodes(), null);
-    return byKey;
-  });
 
   readonly selectedOption = computed(() => {
     const value = this.value();
@@ -200,6 +176,29 @@ export class SMTTreeSelectComponent<T = unknown> implements FormValueControl<T |
     const key = this.activeKey();
     return key === null ? null : this.rowId(key);
   });
+
+  /** Every node by key, with its parent's key, for lookups and paths. */
+  private readonly index = computed(() => {
+    const byKey = new Map<string, { option: SMTTreeOption<T>; parentKey: string | null }>();
+    const walk = (options: readonly SMTTreeOption<T>[], parentKey: string | null) => {
+      for (const option of options) {
+        const key = keyOf(option.id);
+        if (byKey.has(key)) continue;
+        byKey.set(key, { option, parentKey });
+        walk(option.children ?? [], key);
+      }
+    };
+    walk(this.nodes(), null);
+    return byKey;
+  });
+
+  readonly id = nextTreeId++;
+
+  readonly treeId = `smt-tree-select-tree-${this.id}`;
+
+  readonly positions = POPUP_POSITIONS;
+
+  private ownedBy: Element | null = null;
 
   setDisabledFromForms(disabled: boolean): void {
     this.disabledByForms.set(disabled);

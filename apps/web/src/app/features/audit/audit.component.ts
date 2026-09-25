@@ -121,8 +121,14 @@ export class AuditComponent implements OnInit {
   /** Texts of the tabs below; translated again when the language changes. */
   private readonly tabText = inject(I18nService);
 
+  private readonly destroyRef = inject(DestroyRef);
+
   readonly stats = signal<AuditStats | null>(null);
   readonly statsError = signal<boolean>(false);
+
+  readonly auditLogs = computed(() => this.auditPager.items() as AuditRecord[]);
+
+  readonly securityEvents = computed(() => this.securityPager.items() as SecurityEventRecord[]);
 
   activeTab: 'audit' | 'security' = 'audit';
 
@@ -142,8 +148,6 @@ export class AuditComponent implements OnInit {
   securityFromFilter = '';
   securityToFilter = '';
   selectedSecEvent: SecurityEventRecord | null = null;
-
-  private readonly destroyRef = inject(DestroyRef);
 
   /* Each list pages through its own keyset endpoint. The pager reads the
      filters at request time, cancels a superseded request and moves the page
@@ -170,25 +174,24 @@ export class AuditComponent implements OnInit {
       limit,
       cursor: cursor ?? undefined
     }), { destroyRef: this.destroyRef });
-
-  readonly auditLogs = computed(() => this.auditPager.items() as AuditRecord[]);
   readonly auditTotal = this.auditPager.total;
   readonly auditHasMore = this.auditPager.canGoForward;
   readonly auditError = this.auditPager.failed;
-  get auditCurrentPage(): number { return this.auditPager.page(); }
-  get auditPageSize(): number { return this.auditPager.pageSize(); }
-
-  readonly securityEvents = computed(() => this.securityPager.items() as SecurityEventRecord[]);
   readonly securityTotal = this.securityPager.total;
   readonly securityHasMore = this.securityPager.canGoForward;
   readonly securityError = this.securityPager.failed;
-  get secCurrentPage(): number { return this.securityPager.page(); }
-  get secPageSize(): number { return this.securityPager.pageSize(); }
+
+  private readonly tabsMemo = optionsMemo<SMTTabItem<'audit' | 'security'>[]>();
 
   constructor(
     private api: ApiService,
     private toast: ToastService
   ) {}
+
+  get auditCurrentPage(): number { return this.auditPager.page(); }
+  get auditPageSize(): number { return this.auditPager.pageSize(); }
+  get secCurrentPage(): number { return this.securityPager.page(); }
+  get secPageSize(): number { return this.securityPager.pageSize(); }
 
   ngOnInit() {
     this.refreshAll();
@@ -276,14 +279,6 @@ export class AuditComponent implements OnInit {
     this.securityPager.setPageSize(pageSize);
   }
 
-  private startOfUtcDay(value: string): string | undefined {
-    return value ? `${value}T00:00:00.000Z` : undefined;
-  }
-
-  private endOfUtcDay(value: string): string | undefined {
-    return value ? `${value}T23:59:59.999Z` : undefined;
-  }
-
   selectAuditRecord(record: AuditRecord) {
     this.selectedAudit = record;
   }
@@ -298,12 +293,18 @@ export class AuditComponent implements OnInit {
     return Array.from(new Set([...oldKeys, ...newKeys, ...(record.changedColumns || [])]));
   }
 
-  private readonly tabsMemo = optionsMemo<SMTTabItem<'audit' | 'security'>[]>();
-
   auditTabs(): SMTTabItem<'audit' | 'security'>[] {
     return this.tabsMemo([this.tabText.currentLang(), this.auditTotal(), this.securityTotal()], () => [
       { value: 'audit', label: this.tabText.translate('audit.change_log_count', { count: this.auditTotal() }), icon: 'database', id: 'audit-log-tab' },
       { value: 'security', label: this.tabText.translate('audit.security_events_count', { count: this.securityTotal() }), icon: 'shield', id: 'security-events-tab' },
     ]);
+  }
+
+  private startOfUtcDay(value: string): string | undefined {
+    return value ? `${value}T00:00:00.000Z` : undefined;
+  }
+
+  private endOfUtcDay(value: string): string | undefined {
+    return value ? `${value}T23:59:59.999Z` : undefined;
   }
 }

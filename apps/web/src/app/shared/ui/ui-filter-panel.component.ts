@@ -198,15 +198,16 @@ export class UiFilterPanelComponent {
   private readonly i18n = inject(I18nService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
-  private readonly panelId = `ui-filter-panel-${nextPanelId++}`;
-
-  readonly fields = computed(() => filterableFields(this.data.meta));
   readonly rows = signal<FilterDraft[]>(this.data.conditions.map(fromCondition));
   /** Shown once "Apply" was pressed, then kept up to date as the rows change. */
   readonly errors = signal<(string | null)[]>([]);
-  private checked = false;
+
+  readonly fields = computed(() => filterableFields(this.data.meta));
 
   readonly canAdd = computed(() => this.rows().length < this.data.meta.maxConditions && this.fields().length > 0);
+
+  private readonly panelId = `ui-filter-panel-${nextPanelId++}`;
+  private checked = false;
 
   private readonly ranges = new WeakMap<FilterDraft, DateRange | null>();
 

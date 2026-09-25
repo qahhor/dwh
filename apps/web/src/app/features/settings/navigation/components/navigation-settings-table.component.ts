@@ -287,20 +287,6 @@ import { TableConfig } from '../../../../shared/ui-kit/components/table/table.ty
 export class NavigationSettingsTableComponent {
   private readonly uiI18n = inject(I18nService);
 
-  @Input() set items(items: CustomNavigationItem[]) {
-    this.rows.set(items ?? []);
-  }
-  @Input() isLoading = false;
-  @Input() searchQuery = '';
-
-  @Output() searchQueryChange = new EventEmitter<string>();
-  @Output() clearSearch = new EventEmitter<void>();
-  @Output() toggleItem = new EventEmitter<CustomNavigationItem>();
-  @Output() previewItem = new EventEmitter<CustomNavigationItem>();
-  @Output() editItem = new EventEmitter<CustomNavigationItem>();
-  @Output() deleteItem = new EventEmitter<CustomNavigationItem>();
-
-  readonly rows = signal<CustomNavigationItem[]>([]);
   private readonly iconCell = viewChild.required<TemplateRef<unknown>>('iconCell');
   private readonly titleCell = viewChild.required<TemplateRef<unknown>>('titleCell');
   private readonly typeCell = viewChild.required<TemplateRef<unknown>>('typeCell');
@@ -310,14 +296,7 @@ export class NavigationSettingsTableComponent {
   private readonly statusCell = viewChild.required<TemplateRef<unknown>>('statusCell');
   private readonly actionsCell = viewChild.required<TemplateRef<unknown>>('actionsCell');
 
-  readonly sortValues = {
-    title: (item: CustomNavigationItem) => item.title,
-    type: (item: CustomNavigationItem) => this.targetTypeLabel(item.targetType),
-    section: (item: CustomNavigationItem) => this.sectionLabel(item.sectionId),
-    target: (item: CustomNavigationItem) => item.url,
-    order: (item: CustomNavigationItem) => item.sortOrder,
-    status: (item: CustomNavigationItem) => (item.state === 'A' ? 0 : 1)
-  };
+  readonly rows = signal<CustomNavigationItem[]>([]);
 
   readonly config = computed<TableConfig<CustomNavigationItem>>(() => {
     const header = (key: string) => ({ type: 'primitive' as const, value: this.uiI18n.translate(key) });
@@ -339,6 +318,29 @@ export class NavigationSettingsTableComponent {
       columnsOrder: ['icon', 'title', 'type', 'section', 'target', 'order', 'status', 'actions']
     };
   });
+
+  @Input() isLoading = false;
+  @Input() searchQuery = '';
+
+  @Output() searchQueryChange = new EventEmitter<string>();
+  @Output() clearSearch = new EventEmitter<void>();
+  @Output() toggleItem = new EventEmitter<CustomNavigationItem>();
+  @Output() previewItem = new EventEmitter<CustomNavigationItem>();
+  @Output() editItem = new EventEmitter<CustomNavigationItem>();
+  @Output() deleteItem = new EventEmitter<CustomNavigationItem>();
+
+  readonly sortValues = {
+    title: (item: CustomNavigationItem) => item.title,
+    type: (item: CustomNavigationItem) => this.targetTypeLabel(item.targetType),
+    section: (item: CustomNavigationItem) => this.sectionLabel(item.sectionId),
+    target: (item: CustomNavigationItem) => item.url,
+    order: (item: CustomNavigationItem) => item.sortOrder,
+    status: (item: CustomNavigationItem) => (item.state === 'A' ? 0 : 1)
+  };
+
+  @Input() set items(items: CustomNavigationItem[]) {
+    this.rows.set(items ?? []);
+  }
 
   targetTypeLabel(type: NavigationTargetType): string {
     switch (type) {

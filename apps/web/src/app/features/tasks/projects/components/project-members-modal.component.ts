@@ -418,38 +418,13 @@ export class ProjectMembersModalComponent {
   private readonly api = inject(ApiService);
   private readonly i18n = inject(I18nService);
 
-  @Input() isOpen = false;
-  @Input() project: Project | null = null;
-  @Input() set members(members: ProjectMember[]) {
-    this.rows.set(members ?? []);
-  }
-  get members(): ProjectMember[] {
-    return this.rows();
-  }
-  @Input() isLoadingMembers = false;
-  @Input() isAddingMember = false;
-  /** The member whose removal is running, so only that row's button shows it. */
-  @Input() removingUserId: number | null = null;
-  @Input() set canUpdateProject(can: boolean) {
-    this.canUpdate.set(can);
-  }
-  get canUpdateProject(): boolean {
-    return this.canUpdate();
-  }
-
-  readonly rows = signal<ProjectMember[]>([]);
-  private readonly canUpdate = signal(false);
   private readonly userCell = viewChild.required<TemplateRef<unknown>>('memberUserCell');
   private readonly emailCell = viewChild.required<TemplateRef<unknown>>('memberEmailCell');
   private readonly accessCell = viewChild.required<TemplateRef<unknown>>('memberAccessCell');
   private readonly actionCell = viewChild.required<TemplateRef<unknown>>('memberActionCell');
 
-  /** Every member of the project is loaded, so a header click sorts them all. */
-  readonly sortValues = {
-    user: (m: ProjectMember) => m.userName,
-    email: (m: ProjectMember) => m.userEmail,
-    access: (m: ProjectMember) => this.accessLabel(m.accessKind)
-  };
+  readonly rows = signal<ProjectMember[]>([]);
+  private readonly canUpdate = signal(false);
 
   /** The remove column is there only for someone who may change the project. */
   readonly config = computed<TableConfig<ProjectMember>>(() => {
@@ -469,6 +444,20 @@ export class ProjectMembersModalComponent {
       columnsOrder: canUpdate ? ['user', 'email', 'access', 'action'] : ['user', 'email', 'access']
     };
   });
+
+  @Input() isOpen = false;
+  @Input() project: Project | null = null;
+  @Input() isLoadingMembers = false;
+  @Input() isAddingMember = false;
+  /** The member whose removal is running, so only that row's button shows it. */
+  @Input() removingUserId: number | null = null;
+
+  /** Every member of the project is loaded, so a header click sorts them all. */
+  readonly sortValues = {
+    user: (m: ProjectMember) => m.userName,
+    email: (m: ProjectMember) => m.userEmail,
+    access: (m: ProjectMember) => this.accessLabel(m.accessKind)
+  };
 
   @Output() close = new EventEmitter<void>();
   @Output() addMember = new EventEmitter<{ projectId: number; userId: number; accessKind: string }>();
@@ -509,6 +498,19 @@ export class ProjectMembersModalComponent {
     });
   }
 
+  @Input() set members(members: ProjectMember[]) {
+    this.rows.set(members ?? []);
+  }
+  get members(): ProjectMember[] {
+    return this.rows();
+  }
+  @Input() set canUpdateProject(can: boolean) {
+    this.canUpdate.set(can);
+  }
+  get canUpdateProject(): boolean {
+    return this.canUpdate();
+  }
+
   onSearchInput(query: string): void {
     if (this.selectedUser && query !== this.selectedUser.name) {
       this.selectedUser = null;
@@ -546,7 +548,6 @@ export class ProjectMembersModalComponent {
   isUserAlreadyMember(userId: number): boolean {
     return this.members.some(m => m.userId === userId);
   }
-
 
   submitAddMember(): void {
     if (!this.project || !this.selectedUser) return;

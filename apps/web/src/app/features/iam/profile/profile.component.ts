@@ -187,11 +187,9 @@ export * from './profile.models';
   `]
 })
 export class ProfileComponent implements OnInit {
+  public readonly permissionService = inject(PermissionService);
   private readonly uiI18n = inject(I18nService);
   private readonly modal = inject(SMTModalService);
-  public readonly permissionService = inject(PermissionService);
-
-  @ViewChild('channelsCard') channelsCard?: ProfileChannelsCardComponent;
 
   readonly sessions = signal<UserSession[]>([]);
   readonly tokens = signal<ApiToken[]>([]);
@@ -205,7 +203,6 @@ export class ProfileComponent implements OnInit {
   readonly isBindingChannel = signal<boolean>(false);
   readonly isConfirmingChannel = signal<boolean>(false);
   readonly copiedSecret = signal<boolean>(false);
-  readonly canManageChannels = computed(() => this.permissionService.hasPermission('iam.profile', 'manage_channels'));
 
   readonly isCreateTokenModalOpen = signal<boolean>(false);
   readonly isTokenSecretModalOpen = signal<boolean>(false);
@@ -214,6 +211,10 @@ export class ProfileComponent implements OnInit {
   readonly showNewPassword = signal<boolean>(false);
   readonly showConfirmPassword = signal<boolean>(false);
   readonly isChangingPassword = signal<boolean>(false);
+
+  readonly canManageChannels = computed(() => this.permissionService.hasPermission('iam.profile', 'manage_channels'));
+
+  @ViewChild('channelsCard') channelsCard?: ProfileChannelsCardComponent;
 
   isPasswordSubmitted = false;
   isTokenSubmitted = false;
@@ -234,6 +235,12 @@ export class ProfileComponent implements OnInit {
     newPassword: '',
     confirmPassword: ''
   };
+
+  constructor(
+    public authService: AuthService,
+    private api: ApiService,
+    private toast: ToastService
+  ) {}
 
   passwordStrength(): PasswordStrength {
     const pwd = this.passwordForm.newPassword;
@@ -284,12 +291,6 @@ export class ProfileComponent implements OnInit {
     const p2 = this.passwordForm.confirmPassword;
     return !!p1 && !!p2 && p1 === p2;
   }
-
-  constructor(
-    public authService: AuthService,
-    private api: ApiService,
-    private toast: ToastService
-  ) {}
 
   ngOnInit() {
     this.loadSessions();
@@ -356,26 +357,6 @@ export class ProfileComponent implements OnInit {
       },
       failure: t('iam.oshibka_otvyazki_kanala')
     });
-  }
-
-  /**
-   * Asks before a destructive profile action and runs it from the dialog:
-   * the dialog stays open while the request runs and shows the server's
-   * reason (or `failure`) if it fails, so the person can retry or keep things.
-   */
-  private askThenRun(ask: { title: string; message: string; yesLabel: string; request: () => Observable<unknown>; done: () => void; failure: string; busy?: (on: boolean) => void }): void {
-    this.modal.confirm({
-      title: ask.title,
-      message: ask.message,
-      yesLabel: ask.yesLabel,
-      noLabel: this.uiI18n.translate('common.cancel'),
-      destructive: true,
-      action: () => {
-        ask.busy?.(true);
-        return ask.request().pipe(tap(() => ask.done()), finalize(() => ask.busy?.(false)));
-      },
-      actionError: error => problemText(error) || ask.failure
-    }).subscribe();
   }
 
   loadSessions() {
@@ -538,5 +519,25 @@ export class ProfileComponent implements OnInit {
     this.copiedSecret.set(true);
     this.toast.success(this.uiI18n.translate('iam.token_skopirovan_v_bufer_obmena'));
     setTimeout(() => this.copiedSecret.set(false), 2000);
+  }
+
+  /**
+   * Asks before a destructive profile action and runs it from the dialog:
+   * the dialog stays open while the request runs and shows the server's
+   * reason (or `failure`) if it fails, so the person can retry or keep things.
+   */
+  private askThenRun(ask: { title: string; message: string; yesLabel: string; request: () => Observable<unknown>; done: () => void; failure: string; busy?: (on: boolean) => void }): void {
+    this.modal.confirm({
+      title: ask.title,
+      message: ask.message,
+      yesLabel: ask.yesLabel,
+      noLabel: this.uiI18n.translate('common.cancel'),
+      destructive: true,
+      action: () => {
+        ask.busy?.(true);
+        return ask.request().pipe(tap(() => ask.done()), finalize(() => ask.busy?.(false)));
+      },
+      actionError: error => problemText(error) || ask.failure
+    }).subscribe();
   }
 }

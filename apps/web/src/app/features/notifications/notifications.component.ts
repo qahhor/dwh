@@ -95,11 +95,11 @@ export { resolveNotificationIcon };
   `]
 })
 export class NotificationsComponent implements OnInit {
+  readonly notifService = inject(NotificationService);
   private readonly router = inject(Router, { optional: true });
   private readonly destroyRef = inject(DestroyRef);
   private readonly toast = inject(ToastService);
   private readonly uiI18n = inject(I18nService);
-  readonly notifService = inject(NotificationService);
 
   readonly items = signal<NotificationItem[]>([]);
   readonly isLoading = signal(false);
@@ -110,12 +110,6 @@ export class NotificationsComponent implements OnInit {
   readonly isPreferencesOpen = signal(false);
   readonly isSavingPreferences = signal(false);
   readonly preferences = signal<NotificationPrefItem[]>([]);
-
-  private listRequest?: Subscription;
-  private countRequest?: Subscription;
-
-  currentPage = 1;
-  pageSize = 10;
 
   readonly unreadItemsCount = computed(() => {
     return this.items().filter(item => !item.isRead).length;
@@ -128,6 +122,12 @@ export class NotificationsComponent implements OnInit {
     }
     return this.items();
   });
+
+  private listRequest?: Subscription;
+  private countRequest?: Subscription;
+
+  currentPage = 1;
+  pageSize = 10;
 
   paginatedItems(): NotificationItem[] {
     const list = this.filteredItems();
@@ -224,13 +224,6 @@ export class NotificationsComponent implements OnInit {
     return resolveNotificationIcon(item);
   }
 
-  private refreshUnreadCount(): void {
-    this.countRequest?.unsubscribe();
-    this.countRequest = this.notifService.fetchUnreadCount().pipe(
-      takeUntilDestroyed(this.destroyRef)
-    ).subscribe({ error: () => {} });
-  }
-
   openPreferencesModal(): void {
     this.notifService.fetchPreferences().pipe(
       takeUntilDestroyed(this.destroyRef)
@@ -260,5 +253,12 @@ export class NotificationsComponent implements OnInit {
         this.toast.error(this.uiI18n.translate('notifications.preferences_error'));
       }
     });
+  }
+
+  private refreshUnreadCount(): void {
+    this.countRequest?.unsubscribe();
+    this.countRequest = this.notifService.fetchUnreadCount().pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({ error: () => {} });
   }
 }

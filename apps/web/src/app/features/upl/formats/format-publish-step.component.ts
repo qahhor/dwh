@@ -71,8 +71,9 @@ import { UPL_FILE_KIND_KEY, UPL_VERSION_STATUS_KEY } from '../upl-labels';
 export class FormatPublishStepComponent {
   private readonly i18n = inject(I18nService);
 
-  readonly version = input<UplFormatVersion | null>(null);
   readonly model = input.required<UplFormatDraftRequest>();
+
+  readonly version = input<UplFormatVersion | null>(null);
   readonly errorCount = input(0);
   readonly dirty = input(false);
   readonly previousValidFrom = input<string | null>(null);

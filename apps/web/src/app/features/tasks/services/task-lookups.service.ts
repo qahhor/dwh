@@ -16,20 +16,20 @@ import { LookupSources, TaskRef, UserRef } from '../../../shared/lookups/lookup-
 export class TaskLookupsService {
   private readonly sources = inject(LookupSources);
 
-  readonly users = this.sources.activeUsers;
-
-  readonly tasks = this.sources.tasks;
-
   private readonly knownUsers = signal<ReadonlyMap<number, UserRef>>(new Map());
 
   private readonly knownParents = signal<ReadonlyMap<number, TaskRef>>(new Map());
 
-  /** Users whose names were asked for and are not (yet) known. */
-  private readonly requested = new Set<number>();
-
   readonly knownUserRows = computed(() => [...this.knownUsers().values()]);
 
   readonly knownParentRows = computed(() => [...this.knownParents().values()]);
+
+  readonly users = this.sources.activeUsers;
+
+  readonly tasks = this.sources.tasks;
+
+  /** Users whose names were asked for and are not (yet) known. */
+  private readonly requested = new Set<number>();
 
   /** A member of a task's card; a fresher card replaces an older name. */
   retainTaskMember(member: TaskMember): void {

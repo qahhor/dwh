@@ -383,6 +383,53 @@ import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.m
   `]
 })
 export class TaskTableViewComponent {
+  private readonly i18n = inject(I18nService);
+  private readonly api = inject(ApiService);
+  private readonly toast = inject(ToastService);
+
+  readonly emptyState = viewChild.required<TemplateRef<unknown>>('emptyStateTpl');
+  private readonly idCell = viewChild.required<TemplateRef<unknown>>('idCell');
+  private readonly typeCell = viewChild.required<TemplateRef<unknown>>('typeCell');
+  private readonly titleCell = viewChild.required<TemplateRef<unknown>>('titleCell');
+  private readonly projectCell = viewChild.required<TemplateRef<unknown>>('projectCell');
+  private readonly priorityCell = viewChild.required<TemplateRef<unknown>>('priorityCell');
+  private readonly statusCell = viewChild.required<TemplateRef<unknown>>('statusCell');
+  private readonly deadlineCell = viewChild.required<TemplateRef<unknown>>('deadlineCell');
+  private readonly actionsCell = viewChild.required<TemplateRef<unknown>>('actionsCell');
+
+  /** Rows chosen on the page on screen; the table clears them when the page changes. */
+  readonly selectedTasks = signal<Task[]>([]);
+  readonly bulkStatusId = signal('');
+  readonly bulkPriority = signal('');
+  readonly bulkBusy = signal(false);
+  readonly bulkAction = signal<'status' | 'priority' | null>(null);
+  /** Set when some tasks failed; the dialog names them. */
+  readonly bulkResult = signal<BulkResult | null>(null);
+
+  readonly tableConfig = computed<TableConfig<Task>>(() => {
+    const header = (value: string) => ({ type: 'primitive' as const, value });
+    const cell = (template: Signal<TemplateRef<unknown>>) => ({ type: 'templateRef' as const, value: template });
+    // Every row is its own grid, so tracks are fixed or shares of the width, never content-sized.
+    const rest = '(100% - 750px)';
+    return {
+      trackBy: (_index, task) => task.id,
+      layout: 'fit',
+      ariaLabel: this.i18n.translate('tasks.spisok_zadach'),
+      rowClass: task => this.isOverdue(task.endTime, task.statusId) ? 'task-row-overdue' : null,
+      columnsOrder: ['id', 'type', 'title', 'project', 'priority', 'status', 'deadline', 'actions'],
+      columns: {
+        id: { header: header('ID'), content: cell(this.idCell), width: '70px' },
+        type: { header: header(this.i18n.translate('settings.tip')), content: cell(this.typeCell), width: '120px' },
+        title: { header: header(this.i18n.translate('tasks.zadacha')), content: cell(this.titleCell), width: `max(220px, calc(${rest} * 0.6))` },
+        project: { header: header(this.i18n.translate('projects.proekt')), content: cell(this.projectCell), width: `max(140px, calc(${rest} * 0.4))` },
+        priority: { header: header(this.i18n.translate('common.priority')), content: cell(this.priorityCell), width: '130px' },
+        status: { header: header(this.i18n.translate('common.status')), content: cell(this.statusCell), width: '150px' },
+        deadline: { header: header(this.i18n.translate('tasks.srok')), content: cell(this.deadlineCell), width: '180px' },
+        actions: { header: header(this.i18n.translate('common.actions')), content: cell(this.actionsCell), width: '100px', align: 'right' },
+      },
+    };
+  });
+
   @Input({ required: true }) pager!: KeysetPager<Task>;
   @Input() statuses: TaskStatus[] = [];
   @Input() projects: Project[] = [];
@@ -406,19 +453,6 @@ export class TaskTableViewComponent {
   @Output() updateStatus = new EventEmitter<{ taskId: number; statusId: number }>();
   @Output() resetFilters = new EventEmitter<void>();
   @Output() createTask = new EventEmitter<void>();
-
-  private readonly i18n = inject(I18nService);
-  private readonly api = inject(ApiService);
-  private readonly toast = inject(ToastService);
-
-  /** Rows chosen on the page on screen; the table clears them when the page changes. */
-  readonly selectedTasks = signal<Task[]>([]);
-  readonly bulkStatusId = signal('');
-  readonly bulkPriority = signal('');
-  readonly bulkBusy = signal(false);
-  readonly bulkAction = signal<'status' | 'priority' | null>(null);
-  /** Set when some tasks failed; the dialog names them. */
-  readonly bulkResult = signal<BulkResult | null>(null);
   /** Titles of the tasks sent, so the result can name a task after the page reloads. */
   private bulkTitles = new Map<number, string>();
   readonly bulkItemLabel = (id: number) => {
@@ -454,37 +488,4 @@ export class TaskTableViewComponent {
         }
       });
   }
-  private readonly idCell = viewChild.required<TemplateRef<unknown>>('idCell');
-  private readonly typeCell = viewChild.required<TemplateRef<unknown>>('typeCell');
-  private readonly titleCell = viewChild.required<TemplateRef<unknown>>('titleCell');
-  private readonly projectCell = viewChild.required<TemplateRef<unknown>>('projectCell');
-  private readonly priorityCell = viewChild.required<TemplateRef<unknown>>('priorityCell');
-  private readonly statusCell = viewChild.required<TemplateRef<unknown>>('statusCell');
-  private readonly deadlineCell = viewChild.required<TemplateRef<unknown>>('deadlineCell');
-  private readonly actionsCell = viewChild.required<TemplateRef<unknown>>('actionsCell');
-  readonly emptyState = viewChild.required<TemplateRef<unknown>>('emptyStateTpl');
-
-  readonly tableConfig = computed<TableConfig<Task>>(() => {
-    const header = (value: string) => ({ type: 'primitive' as const, value });
-    const cell = (template: Signal<TemplateRef<unknown>>) => ({ type: 'templateRef' as const, value: template });
-    // Every row is its own grid, so tracks are fixed or shares of the width, never content-sized.
-    const rest = '(100% - 750px)';
-    return {
-      trackBy: (_index, task) => task.id,
-      layout: 'fit',
-      ariaLabel: this.i18n.translate('tasks.spisok_zadach'),
-      rowClass: task => this.isOverdue(task.endTime, task.statusId) ? 'task-row-overdue' : null,
-      columnsOrder: ['id', 'type', 'title', 'project', 'priority', 'status', 'deadline', 'actions'],
-      columns: {
-        id: { header: header('ID'), content: cell(this.idCell), width: '70px' },
-        type: { header: header(this.i18n.translate('settings.tip')), content: cell(this.typeCell), width: '120px' },
-        title: { header: header(this.i18n.translate('tasks.zadacha')), content: cell(this.titleCell), width: `max(220px, calc(${rest} * 0.6))` },
-        project: { header: header(this.i18n.translate('projects.proekt')), content: cell(this.projectCell), width: `max(140px, calc(${rest} * 0.4))` },
-        priority: { header: header(this.i18n.translate('common.priority')), content: cell(this.priorityCell), width: '130px' },
-        status: { header: header(this.i18n.translate('common.status')), content: cell(this.statusCell), width: '150px' },
-        deadline: { header: header(this.i18n.translate('tasks.srok')), content: cell(this.deadlineCell), width: '180px' },
-        actions: { header: header(this.i18n.translate('common.actions')), content: cell(this.actionsCell), width: '100px', align: 'right' },
-      },
-    };
-  });
 }
