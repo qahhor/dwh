@@ -123,7 +123,7 @@ describe('SourceCardComponent', () => {
     expect(api.listVersions).toHaveBeenCalledWith('7');
     const rows = fixture.nativeElement.querySelectorAll('[data-testid="upl-version-row"]');
     expect(rows.length).toBe(2);
-    const link = rows[0].querySelector('a') as HTMLAnchorElement;
+    const link = rows[0] as HTMLAnchorElement;
     expect(link.getAttribute('href')).toBe('/upl/sources/7/formats/1');
   });
 

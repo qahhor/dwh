@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal, Signal, TemplateRef, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -9,6 +9,8 @@ import { I18nService, TranslatePipe } from '../../../core/services/i18n.service'
 import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
+import { UiLocalTableComponent } from '../../../shared/ui/ui-local-table.component';
+import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import {
@@ -47,6 +49,7 @@ type DraftMode = 'empty' | 'copy';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    UiLocalTableComponent,
     CommonModule,
     FormsModule,
     RouterLink,
@@ -237,46 +240,28 @@ type DraftMode = 'empty' | 'copy';
         } @else {
           <div class="table-card">
             <div class="table-scroll">
-              <table>
-                <thead>
-                  <tr>
-                    <th>{{ 'upl.version.col.version' | t }}</th>
-                    <th>{{ 'upl.version.col.status' | t }}</th>
-                    <th>{{ 'upl.version.col.valid_from' | t }}</th>
-                    <th>{{ 'upl.version.col.valid_to' | t }}</th>
-                    <th>{{ 'upl.version.col.published' | t }}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (v of versions(); track v.version) {
-                    <tr data-testid="upl-version-row">
-                      <td>
-                        <a
-                          class="upl-crumb-link"
-                          [routerLink]="['/upl/sources', sourceId(), 'formats', v.version]"
-                        >{{ v.version }}</a>
-                      </td>
-                      <td>
-                        <ui-badge [variant]="statusVariant(v.status)">{{ versionStatusKey[v.status] | t }}</ui-badge>
-                      </td>
-                      <td>{{ v.validFrom ? (v.validFrom | date: 'dd.MM.yyyy') : dash }}</td>
-                      <td>{{ v.validTo ? (v.validTo | date: 'dd.MM.yyyy') : dash }}</td>
-                      <td>
-                        @if (v.publishedAt) {
-                          <span>{{ v.publishedBy }}</span>
-                          <span class="upl-muted">{{ v.publishedAt | date: 'dd.MM.yyyy HH:mm' }}</span>
-                        } @else {
-                          <span>{{ dash }}</span>
-                        }
-                      </td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
+              <ui-local-table [rows]="versions()" [config]="versionsConfig()" [sortValues]="versionSortValues" />
             </div>
           </div>
         }
       </section>
+
+      <ng-template #versionCell let-v>
+        <a class="upl-crumb-link" data-testid="upl-version-row" [routerLink]="['/upl/sources', sourceId(), 'formats', v.version]">{{ v.version }}</a>
+      </ng-template>
+      <ng-template #versionStatusCell let-v>
+        <ui-badge [variant]="statusVariant(v.status)">{{ statusKeyOf(v) | t }}</ui-badge>
+      </ng-template>
+      <ng-template #validFromCell let-v>{{ v.validFrom ? (v.validFrom | date: 'dd.MM.yyyy') : dash }}</ng-template>
+      <ng-template #validToCell let-v>{{ v.validTo ? (v.validTo | date: 'dd.MM.yyyy') : dash }}</ng-template>
+      <ng-template #publishedCell let-v>
+        @if (v.publishedAt) {
+          <span>{{ v.publishedBy }}</span>
+          <span class="upl-muted">{{ v.publishedAt | date: 'dd.MM.yyyy HH:mm' }}</span>
+        } @else {
+          <span>{{ dash }}</span>
+        }
+      </ng-template>
 
       <ui-modal
         [isOpen]="isDraftOpen()"
@@ -479,6 +464,39 @@ export class SourceCardComponent {
   readonly sourceId = signal<string | null>(null);
   readonly source = signal<UplSource | null>(null);
   readonly versions = signal<UplVersionItem[]>([]);
+
+  private readonly versionCell = viewChild.required<TemplateRef<unknown>>('versionCell');
+  private readonly versionStatusCell = viewChild.required<TemplateRef<unknown>>('versionStatusCell');
+  private readonly validFromCell = viewChild.required<TemplateRef<unknown>>('validFromCell');
+  private readonly validToCell = viewChild.required<TemplateRef<unknown>>('validToCell');
+  private readonly publishedCell = viewChild.required<TemplateRef<unknown>>('publishedCell');
+
+  /** All versions of a source are loaded, so a header click sorts them all. */
+  readonly versionSortValues = {
+    version: (v: UplVersionItem) => v.version,
+    status: (v: UplVersionItem) => v.status,
+    validFrom: (v: UplVersionItem) => v.validFrom,
+    validTo: (v: UplVersionItem) => v.validTo,
+    published: (v: UplVersionItem) => v.publishedAt
+  };
+
+  readonly versionsConfig = computed<TableConfig<UplVersionItem>>(() => {
+    const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
+    const cell = (template: Signal<TemplateRef<unknown>>) => ({ type: 'templateRef' as const, value: template });
+    return {
+      trackBy: (_index, v) => v.version,
+      ariaLabel: this.i18n.translate('upl.version.title'),
+      layout: 'fit',
+      columns: {
+        version: { header: header('upl.version.col.version'), content: cell(this.versionCell), width: '100px' },
+        status: { header: header('upl.version.col.status'), content: cell(this.versionStatusCell), width: '150px' },
+        validFrom: { header: header('upl.version.col.valid_from'), content: cell(this.validFromCell), width: '140px' },
+        validTo: { header: header('upl.version.col.valid_to'), content: cell(this.validToCell), width: '140px' },
+        published: { header: header('upl.version.col.published'), content: cell(this.publishedCell) }
+      },
+      columnsOrder: ['version', 'status', 'validFrom', 'validTo', 'published']
+    };
+  });
   readonly isLoading = signal(true);
   readonly loadError = signal(false);
   readonly notFound = signal(false);
@@ -548,6 +566,10 @@ export class SourceCardComponent {
 
   activeVersionLabel(source: UplSource): string {
     return this.i18n.translate('upl.card.active_version', { version: source.lastPublishedVersion ?? 0 });
+  }
+
+  statusKeyOf(version: UplVersionItem): string {
+    return this.versionStatusKey[version.status];
   }
 
   statusVariant(status: UplVersionStatus): 'success' | 'info' | 'neutral' {

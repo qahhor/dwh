@@ -1796,6 +1796,7 @@ export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(
   "upl.pkg.errors.col.sheet": "Лист",
   "upl.pkg.errors.col.value": "Значение",
   "upl.pkg.errors.col.what": "Что не так",
+  "upl.pkg.errors.title": "Ошибки в ячейках",
   "upl.pkg.errors.shown_first": "Показаны первые {shown} из {n}",
   "upl.pkg.form.file": "Файл (.xlsx)",
   "upl.pkg.form.period_from": "Период с",
