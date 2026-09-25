@@ -290,6 +290,24 @@ describe('FormatEditorComponent', () => {
     expect(toast.success).toHaveBeenCalled();
   });
 
+  it('takes header synonyms separated by semicolons and saves them with the column', async () => {
+    const { fixture, api } = await createFixture();
+    addValidColumn(fixture);
+    const rows = many(fixture, 'upl-column-row');
+    const input = rows[rows.length - 1].querySelector('[data-testid="upl-cell-header-synonyms"]') as HTMLInputElement;
+    expect(input.getAttribute('aria-label')).toBe('Также принимается заголовок');
+    input.value = 'Сумма, руб ;  ; Итого';
+    input.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    click(one(fixture, 'upl-save'));
+    fixture.detectChanges();
+
+    const body = api.saveDraft.mock.calls[0][2];
+    expect(body.sheets[0].columns[2].headerSynonyms).toEqual(['Сумма, руб', 'Итого']);
+    expect(input.value).toBe('Сумма, руб; Итого');
+  });
+
   it('moves a column down before saving', async () => {
     const { fixture, api } = await createFixture();
 
@@ -346,8 +364,8 @@ describe('FormatEditorComponent', () => {
 
     expect(one(fixture, 'upl-errors-summary')).not.toBeNull();
     expect(one(fixture, 'upl-tab-error')).not.toBeNull();
-    const cells = many(fixture, 'upl-column-row')[1].querySelectorAll('td');
-    expect(cells[4].classList.contains('upl-cell-error')).toBe(true);
+    const row = many(fixture, 'upl-column-row')[1];
+    expect(row.querySelector('[data-testid="upl-cell-source-unit"]')!.closest('td')!.classList.contains('upl-cell-error')).toBe(true);
   });
 
   it('drops the error summary when the addressed column is removed', async () => {
@@ -786,9 +804,9 @@ describe('FormatEditorComponent', () => {
 
     expect(api.saveDraft).not.toHaveBeenCalled();
     expect(one(fixture, 'upl-errors-summary')!.textContent).toContain(PACKAGED_RUSSIAN['upl.err.NotBlank']);
-    const cells = many(fixture, 'upl-column-row')[2].querySelectorAll('td');
-    expect(cells[0].classList.contains('upl-cell-error')).toBe(true);
-    expect(cells[1].classList.contains('upl-cell-error')).toBe(true);
+    const added = many(fixture, 'upl-column-row')[2];
+    expect(added.querySelector('[data-testid="upl-cell-name-in-file"]')!.closest('td')!.classList.contains('upl-cell-error')).toBe(true);
+    expect(added.querySelector('[data-testid="upl-cell-target-field"]')!.closest('td')!.classList.contains('upl-cell-error')).toBe(true);
   });
 
   it('rejects a target field that does not match the pattern before sending', async () => {

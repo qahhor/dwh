@@ -198,10 +198,12 @@ public class UplFormatRepository {
         jdbc.sql("""
                         insert into upl_format_columns (sheet_id, ordinal, file_position, name_in_file, target_field,
                                                         data_type, required, source_unit, base_unit,
-                                                        key_mask, key_pad_length, key_pad_max, ref_book_code)
+                                                        key_mask, key_pad_length, key_pad_max, ref_book_code,
+                                                        header_synonyms)
                         values (:sheetId, :ordinal, :filePosition, :nameInFile, :targetField,
                                 :dataType, :required, :sourceUnit, :baseUnit,
-                                :keyMask, :keyPadLength, :keyPadMax, :refBookCode)
+                                :keyMask, :keyPadLength, :keyPadMax, :refBookCode,
+                                :headerSynonyms)
                         """)
                 .param("sheetId", sheetId)
                 .param("ordinal", ordinal)
@@ -216,6 +218,7 @@ public class UplFormatRepository {
                 .param("keyPadLength", c.keyPadLength())
                 .param("keyPadMax", c.keyPadMax())
                 .param("refBookCode", c.refBookCode())
+                .param("headerSynonyms", c.headerSynonyms().toArray(new String[0]))
                 .update();
     }
 
@@ -223,7 +226,8 @@ public class UplFormatRepository {
         Map<Long, List<Column>> columnsBySheet = new HashMap<>();
         jdbc.sql("""
                         select id, sheet_id, ordinal, file_position, name_in_file, target_field, data_type, required,
-                               source_unit, base_unit, key_mask, key_pad_length, key_pad_max, ref_book_code
+                               source_unit, base_unit, key_mask, key_pad_length, key_pad_max, ref_book_code,
+                               header_synonyms
                         from upl_format_columns
                         where sheet_id in (select id from upl_format_sheets where source_id = :s and version = :v)
                         order by sheet_id, ordinal
@@ -311,7 +315,13 @@ public class UplFormatRepository {
                 rs.getString("key_mask"),
                 rs.getObject("key_pad_length", Integer.class),
                 rs.getObject("key_pad_max", Integer.class),
-                rs.getString("ref_book_code"));
+                rs.getString("ref_book_code"),
+                synonyms(rs.getArray("header_synonyms")));
+    }
+
+    private static List<String> synonyms(java.sql.Array array) throws SQLException {
+        if (array == null) return List.of();
+        return java.util.Arrays.asList((String[]) array.getArray());
     }
 
     private static Instant toInstant(Timestamp ts) {

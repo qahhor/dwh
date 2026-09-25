@@ -152,6 +152,28 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
     }
 
     @Test
+    @DisplayName("синонимы заголовка хранятся с колонкой; синоним, совпавший с чужим заголовком, — дубль")
+    void headerSynonymsAreStoredAndMustNotClash() {
+        long id = newSource();
+        int version = service.createDraft(id, null, userId).version();
+        Column amount = new Column(null, 0, null, "Сумма", "amount", DataType.NUMBER, false, null, null,
+                null, null, null, null, List.of("Сумма, руб", " Итого "));
+        Column name = col("Название", "org_name", DataType.TEXT, null, null, null, null, null, null);
+        replace(id, version, new DraftData(FileKind.XLSX, null, null, MatchBy.HEADER,
+                List.of(new Sheet(null, 0, "TEST лист", 1, null, List.of(name, amount)))));
+
+        Column stored = service.getVersion(id, version).sheets().getFirst().columns().get(1);
+        assertThat(stored.headerSynonyms()).containsExactly("Сумма, руб", " Итого ");
+
+        Column clash = new Column(null, 0, null, "Сумма", "amount", DataType.NUMBER, false, null, null,
+                null, null, null, null, List.of("название"));
+        replace(id, version, new DraftData(FileKind.XLSX, null, null, MatchBy.HEADER,
+                List.of(new Sheet(null, 0, "TEST лист", 1, null, List.of(name, clash)))));
+        assertThat(publishErrors(id, version)).contains(new FieldErrorItem("sheets[0].columns[1].headerSynonyms[0]",
+                "UPL_COLUMN_NAME_DUPLICATE", "UPL_COLUMN_NAME_DUPLICATE"));
+    }
+
+    @Test
     @DisplayName("AC-9: публикация собирает все нарушения анкеты, черновик остаётся черновиком")
     void publishCollectsAllViolations() {
         long xlsxId = newSource();

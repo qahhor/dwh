@@ -110,6 +110,9 @@ import { clearFieldsForType, emptyColumn, emptySheet, isNumericColumn } from './
             <thead>
               <tr>
                 <th>{{ 'upl.format.col.name_in_file' | t }}</th>
+                @if (model().matchColumnsBy !== 'position') {
+                  <th>{{ 'upl.format.col.header_synonyms' | t }}</th>
+                }
                 <th>{{ 'upl.format.col.target_field' | t }}</th>
                 <th>{{ 'upl.format.col.type' | t }}</th>
                 <th>{{ 'upl.format.col.required' | t }}</th>
@@ -143,6 +146,22 @@ import { clearFieldsForType, emptyColumn, emptySheet, isNumericColumn } from './
                       [ngModelOptions]="{ standalone: true }"
                     />
                   </td>
+                  @if (model().matchColumnsBy !== 'position') {
+                    <td
+                      [class.upl-cell-error]="synonymError(activeSheet(), $index)"
+                      [attr.title]="synonymError(activeSheet(), $index) ?? text('upl.format.hint.header_synonyms')"
+                    >
+                      <input
+                        class="form-input"
+                        type="text"
+                        data-testid="upl-cell-header-synonyms"
+                        [attr.aria-label]="'upl.format.col.header_synonyms' | t"
+                        [disabled]="!editable()"
+                        [value]="synonymsText(column)"
+                        (change)="setSynonyms(column, $any($event.target).value)"
+                      />
+                    </td>
+                  }
                   <td
                     [class.upl-cell-error]="cellError(activeSheet(), $index, 'targetField')"
                     [attr.title]="cellTitle(activeSheet(), $index, 'targetField') ?? text('upl.format.hint.target_field')"
@@ -374,6 +393,21 @@ export class FormatSheetsStepComponent {
   readonly dataTypes = UPL_DATA_TYPES;
   readonly dataTypeKey = UPL_DATA_TYPE_KEY;
 
+
+  /** Synonyms as the person types them: separated by semicolons, since a header may hold a comma. */
+  synonymsText(column: UplColumn): string {
+    return (column.headerSynonyms ?? []).join('; ');
+  }
+
+  setSynonyms(column: UplColumn, value: string): void {
+    column.headerSynonyms = value.split(';').map(name => name.trim()).filter(name => name.length > 0);
+  }
+
+  /** The first server problem with any of the column's synonyms, as words. */
+  synonymError(sheet: number, column: number): string | null {
+    const found = this.errors().find(error => error.sheet === sheet && error.column === column && error.field.startsWith('headerSynonyms'));
+    return found ? this.errorText(found) : null;
+  }
 
   text(key: string, params?: Record<string, string>): string {
     return this.i18n.translate(key, params);

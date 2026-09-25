@@ -135,6 +135,12 @@ public class UplFormatValidator {
         if (c.nameInFile() != null && !names.add(c.nameInFile().strip().toLowerCase(Locale.ROOT))) {
             add(errors, path + ".nameInFile", UPL_COLUMN_NAME_DUPLICATE);
         }
+        // A synonym names the same header space as the names: one header must lead to one column only.
+        for (int i = 0; i < c.headerSynonyms().size(); i++) {
+            if (!names.add(c.headerSynonyms().get(i).strip().toLowerCase(Locale.ROOT))) {
+                add(errors, path + ".headerSynonyms[" + i + "]", UPL_COLUMN_NAME_DUPLICATE);
+            }
+        }
         if (c.targetField() != null && !targets.add(c.targetField())) {
             add(errors, path + ".targetField", UPL_TARGET_FIELD_DUPLICATE);
         }

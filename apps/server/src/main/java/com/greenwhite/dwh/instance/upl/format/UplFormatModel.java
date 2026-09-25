@@ -107,9 +107,33 @@ public final class UplFormatModel {
                                 Integer lastPublishedVersion, boolean hasDraft) {
     }
 
+    /**
+     * @param headerSynonyms other headers the file may carry for this column (matched like {@code nameInFile})
+     */
     public record Column(Long id, int ordinal, Integer filePosition, String nameInFile, String targetField,
                          DataType dataType, boolean required, String sourceUnit, String baseUnit,
-                         String keyMask, Integer keyPadLength, Integer keyPadMax, String refBookCode) {
+                         String keyMask, Integer keyPadLength, Integer keyPadMax, String refBookCode,
+                         List<String> headerSynonyms) {
+
+        public Column {
+            headerSynonyms = headerSynonyms == null ? List.of() : List.copyOf(headerSynonyms);
+        }
+
+        /** A column without synonyms. */
+        public Column(Long id, int ordinal, Integer filePosition, String nameInFile, String targetField,
+                      DataType dataType, boolean required, String sourceUnit, String baseUnit,
+                      String keyMask, Integer keyPadLength, Integer keyPadMax, String refBookCode) {
+            this(id, ordinal, filePosition, nameInFile, targetField, dataType, required, sourceUnit, baseUnit,
+                    keyMask, keyPadLength, keyPadMax, refBookCode, List.of());
+        }
+
+        /** Every header this column accepts: its name first, then the synonyms. */
+        public List<String> acceptedHeaders() {
+            List<String> all = new java.util.ArrayList<>();
+            all.add(nameInFile);
+            all.addAll(headerSynonyms);
+            return all;
+        }
     }
 
     public record Sheet(Long id, int ordinal, String sheetName, int headerRow, String totalRowMarker,

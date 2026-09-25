@@ -97,7 +97,8 @@ public class UplTemplateBuilder {
                 text.apply("upl.format.col.required", Map.of()),
                 text.apply("upl.format.col.source_unit", Map.of()),
                 text.apply("upl.format.col.key_mask", Map.of()),
-                text.apply("upl.format.col.ref_book", Map.of())
+                text.apply("upl.format.col.ref_book", Map.of()),
+                text.apply("upl.format.col.header_synonyms", Map.of())
         };
         for (int c = 0; c < headers.length; c++) {
             ws.value(row, c, headers[c]);
@@ -113,10 +114,13 @@ public class UplTemplateBuilder {
                 ws.value(row, 4, column.sourceUnit());
                 ws.value(row, 5, column.keyMask());
                 ws.value(row, 6, column.refBookCode());
+                if (!column.headerSynonyms().isEmpty()) {
+                    ws.value(row, 7, String.join("; ", column.headerSynonyms()));
+                }
                 row++;
             }
         }
-        double[] widths = {22, 32, 18, 14, 16, 20, 20};
+        double[] widths = {22, 32, 18, 14, 16, 20, 20, 32};
         for (int c = 0; c < widths.length; c++) {
             ws.width(c, widths[c]);
         }

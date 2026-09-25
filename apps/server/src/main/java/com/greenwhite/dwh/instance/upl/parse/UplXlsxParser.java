@@ -172,8 +172,8 @@ public class UplXlsxParser {
         List<ColumnMatch> matched = new ArrayList<>();
         Set<String> known = new HashSet<>();
         for (Column column : ordered(spec.columns(), Column::ordinal)) {
-            known.add(normalized(column.nameInFile()));
-            int index = indexOfHeader(header, column.nameInFile());
+            column.acceptedHeaders().forEach(name -> known.add(normalized(name)));
+            int index = indexOfHeader(header, column.acceptedHeaders());
             if (index < 0) {
                 errors.add(structureError(spec, column.nameInFile(), UPL_STRUCT_COLUMN_MISSING));
                 continue;
@@ -208,10 +208,12 @@ public class UplXlsxParser {
         return matched;
     }
 
-    private int indexOfHeader(List<String> header, String nameInFile) {
-        String wanted = normalized(nameInFile);
+    /** The first header cell that carries the column's name or one of its synonyms. */
+    private int indexOfHeader(List<String> header, List<String> accepted) {
+        Set<String> wanted = new HashSet<>();
+        accepted.forEach(name -> wanted.add(normalized(name)));
         for (int index = 0; index < header.size(); index++) {
-            if (header.get(index) != null && normalized(header.get(index)).equals(wanted)) {
+            if (header.get(index) != null && wanted.contains(normalized(header.get(index)))) {
                 return index;
             }
         }
@@ -444,8 +446,9 @@ public class UplXlsxParser {
         return value.substring(0, UplLimits.MAX_VALUE_LENGTH);
     }
 
+    /** Headers compare without case, outer spaces and runs of inner spaces: "Сумма,  руб" is "сумма, руб". */
     private static String normalized(String text) {
-        return text.strip().toLowerCase(Locale.ROOT);
+        return text.strip().replaceAll("\\s+", " ").toLowerCase(Locale.ROOT);
     }
 
     private static MatchBy matchBy(FormatVersion format) {

@@ -9,6 +9,12 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- UPL header synonyms: a format column can accept other headers besides its
+  name ("Сумма, руб", "Итого") — up to ten, entered separated by semicolons
+  in the format editor. The parser finds the column by any of them and does
+  not call them unknown; a synonym that equals another column's header is
+  refused as a duplicate. Headers now also match across runs of spaces. The
+  template's instruction sheet lists the accepted headers.
 - Exports to Excel (ADR-0018): registry lists (UPL sources and uploads,
   files) have a To Excel button that queues the list exactly as on screen —
   filter, sort, search and the columns shown. A background job writes the

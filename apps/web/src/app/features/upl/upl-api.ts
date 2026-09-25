@@ -81,6 +81,8 @@ export interface UplColumn {
   keyPadLength: number | null;
   keyPadMax: number | null;
   refBookCode: string | null;
+  /** Other headers this column accepts in a file (matched like the name); only for columns matched by header. */
+  headerSynonyms?: string[];
 }
 
 export interface UplSheet {

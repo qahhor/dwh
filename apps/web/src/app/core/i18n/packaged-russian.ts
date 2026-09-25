@@ -1729,6 +1729,8 @@ export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(
   "upl.format.col.actions": "Действия со строкой",
   "upl.format.col.base_unit": "Базовая единица",
   "upl.format.col.file_position": "Позиция в файле",
+  "upl.format.col.header_synonyms": "Также принимается заголовок",
+  "upl.format.hint.header_synonyms": "Другие заголовки этой колонки в файлах поставщиков, через точку с запятой",
   "upl.format.col.key_mask": "Маска ключа",
   "upl.format.col.key_pad": "Дополнить нулями: до длины / не больше",
   "upl.format.col.key_pad_length": "Дополнить нулями до длины",
