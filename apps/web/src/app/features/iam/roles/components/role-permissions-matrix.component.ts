@@ -5,11 +5,12 @@ import { Role } from '../../../../core/models/rbac.models';
 import { TranslatePipe } from '../../../../core/services/i18n.service';
 import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
 import { GroupedForm, ModuleGroup } from '../roles.models';
+import { SMTAlertComponent } from '../../../../shared/ui-kit/components/alert';
 
 @Component({
   selector: 'app-role-permissions-matrix',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslatePipe, UiButtonComponent],
+  imports: [SMTAlertComponent, CommonModule, FormsModule, TranslatePipe, UiButtonComponent],
   template: `
     <!-- Role Meta Header & Save Button -->
     <div class="matrix-header-bar">
@@ -66,10 +67,10 @@ import { GroupedForm, ModuleGroup } from '../roles.models';
     </div>
 
     <div *ngIf="isLoading" class="matrix-load-status" role="status">{{ 'common.loading' | t }}</div>
-    <div *ngIf="permissionsError" class="alert alert-error" role="alert">
+    <smt-alert smtTone="danger" *ngIf="permissionsError">
       <span>{{ permissionsError }}</span>
       <ui-button variant="secondary" size="sm" (onClick)="refreshRole.emit(role)">{{ 'common.refresh' | t }}</ui-button>
-    </div>
+    </smt-alert>
 
     <!-- Superadmin Shield Banner -->
     <div *ngIf="role.pcode === 'admin'" class="admin-notice">

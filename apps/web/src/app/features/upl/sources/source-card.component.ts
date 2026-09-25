@@ -33,6 +33,7 @@ import {
   UPL_VERSION_STATUS_KEY,
   uplProblemText
 } from '../upl-labels';
+import { SMTAlertComponent } from '../../../shared/ui-kit/components/alert';
 
 /** Реквизиты источника в форме экрана: код не правится и здесь не хранится. */
 interface SourceForm {
@@ -51,7 +52,7 @@ type DraftMode = 'empty' | 'copy';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    SMTControlComponent,
+    SMTAlertComponent, SMTControlComponent,
     UiLocalTableComponent,
     CommonModule,
     FormsModule,
@@ -75,10 +76,10 @@ type DraftMode = 'empty' | 'copy';
         <a class="upl-crumb-link" routerLink="/upl/sources">{{ 'upl.card.back_to_list' | t }}</a>
       </div>
     } @else if (loadError()) {
-      <div class="alert alert-error" role="alert" data-testid="upl-load-error">
+      <smt-alert smtTone="danger" data-testid="upl-load-error">
         <span>{{ 'upl.err.LOAD_FAILED' | t }}</span>
         <ui-button variant="secondary" (onClick)="reload()">{{ 'upl.common.retry' | t }}</ui-button>
-      </div>
+      </smt-alert>
     } @else if (source(); as s) {
       <nav class="upl-crumbs" aria-label="breadcrumb">
         <a class="upl-crumb-link" routerLink="/upl/sources">{{ 'upl.list.title' | t }}</a>
@@ -101,15 +102,15 @@ type DraftMode = 'empty' | 'copy';
         <h2 class="upl-block-title">{{ 'upl.card.requisites' | t }}</h2>
 
         @if (conflict()) {
-          <div class="alert alert-error" role="alert" data-testid="upl-conflict">
+          <smt-alert smtTone="danger" data-testid="upl-conflict">
             <span>{{ 'upl.err.STALE_VERSION' | t }}</span>
             <ui-button variant="secondary" data-testid="upl-conflict-refresh" (onClick)="refreshAfterConflict()">
               {{ 'upl.common.refresh_discard' | t }}
             </ui-button>
-          </div>
+          </smt-alert>
         }
         @if (saveError(); as err) {
-          <div class="alert alert-error" role="alert" data-testid="upl-save-error">{{ err | t }}</div>
+          <smt-alert smtTone="danger" data-testid="upl-save-error">{{ err | t }}</smt-alert>
         }
 
         <div class="upl-form">
@@ -286,15 +287,15 @@ type DraftMode = 'empty' | 'copy';
           }
 
           @if (draftExists()) {
-            <div class="alert alert-error" role="alert">
+            <smt-alert smtTone="danger">
               <span>{{ 'upl.err.FND_VERSION_DRAFT_EXISTS' | t }}</span>
               <ui-button variant="secondary" data-testid="upl-open-existing-draft" (onClick)="openExistingDraft()">
                 {{ 'upl.version.open' | t }}
               </ui-button>
-            </div>
+            </smt-alert>
           }
           @if (draftError(); as err) {
-            <div class="alert alert-error" role="alert" data-testid="upl-draft-error">{{ err | t }}</div>
+            <smt-alert smtTone="danger" data-testid="upl-draft-error">{{ err | t }}</smt-alert>
           }
         </div>
 
