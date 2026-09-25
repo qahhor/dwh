@@ -130,7 +130,8 @@ export class LookupState<Row, K extends SMTLookupKey> {
     this.resolving = [];
   }
 
-  private remember(rows: readonly Row[]): void {
+  /** Rows the caller already has (a record's own members): named at once, without asking the source. */
+  remember(rows: readonly Row[]): void {
     if (rows.length === 0) return;
     const next = new Map(this.known());
     for (const row of rows) next.set(this.source().key(row), row);

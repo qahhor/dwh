@@ -213,7 +213,7 @@ describe('TasksComponent UI contracts', () => {
     expect(title.getAttribute('aria-required')).toBe('true');
     expect(title.getAttribute('aria-invalid')).toBe('true');
     expect(error?.textContent).toContain('Пожалуйста, укажите название задачи');
-    expect(fixture.nativeElement.querySelector('[role="group"][aria-label="Тип задачи"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[role="radiogroup"][aria-label="Тип задачи"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('smt-select button[aria-label="Родительская задача"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('smt-multi-select button[aria-label="Наблюдатели"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('ui-markdown-editor textarea')?.getAttribute('id')).not.toBe('');
@@ -1065,8 +1065,11 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     expect(component.createForm.observerUserIds).toEqual([502]);
     expect(api.get.mock.calls.some(([path, params]) => path === '/iam/users' && params.search === 'user501')).toBe(true);
     expect(api.get.mock.calls.some(([path, params]) => path === '/tasks' && params.search === 'Outside' && params.project_id === undefined && params.hide_terminal === undefined)).toBe(true);
-    expect(component.responsibleUsers().map(user => user.id)).toEqual([501]);
-    expect(component.observerUsers().map(user => user.id)).toEqual([502]);
+    fixture.detectChanges();
+    // The pickers name what was chosen, whatever their lists show now.
+    expect(responsible.textContent).toContain('Remote User');
+    expect(parentTrigger.textContent).toContain('Outside filtered page');
+    expect(fixture.nativeElement.querySelector('button[aria-label="Удалить Remote Observer"]')).not.toBeNull();
     vi.useRealTimers();
   });
 
@@ -1128,7 +1131,6 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     expect(responsible.textContent).toContain('Scoped Owner');
     expect(fixture.nativeElement.querySelector('button[aria-label="Удалить Scoped Observer"]')).not.toBeNull();
     expect(document.querySelector('.smt-select__error[role="alert"]')).not.toBeNull();
-    expect(component.responsibleUsers().map(user => user.id)).toEqual([501]);
   });
 
   it('cancels an in-flight selector lookup as soon as a new query is typed', async () => {
@@ -1156,12 +1158,12 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     input.dispatchEvent(new Event('input'));
     first.next({ items: [remoteUser(10, 'Stale user')], nextCursor: null, hasMore: false, totalReturned: 1 });
     fixture.detectChanges();
-    expect(component.responsibleUsers()).toEqual([]);
+    expect((Array.from(document.querySelectorAll('.smt-select__option')) as HTMLElement[]).map(option => option.textContent ?? '').some(label => label.includes('Stale user'))).toBe(false);
 
     await vi.advanceTimersByTimeAsync(300);
     second.next({ items: [remoteUser(501, 'Current user')], nextCursor: null, hasMore: false, totalReturned: 1 });
     fixture.detectChanges();
-    expect(component.responsibleUsers().map(user => user.id)).toEqual([501]);
+    expect((Array.from(document.querySelectorAll('.smt-select__option')) as HTMLElement[]).map(option => option.textContent ?? '').some(label => label.includes('Current user'))).toBe(true);
   });
 
   it('keeps the committed page stable across rapid visible Next clicks and retries the failed cursor', async () => {
@@ -1275,17 +1277,17 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     input.value = 'new';
     input.dispatchEvent(new Event('input'));
     fixture.detectChanges();
-    expect(component.responsibleLookupLoading()).toBe(true);
     expect(document.querySelector('.smt-select__more')).toBeNull();
-    component.loadMoreResponsibleUsers();
     expect(api.get.mock.calls.some(([path, params]) => path === '/iam/users' && params.search === 'new' && params.cursor === 'u50')).toBe(false);
 
     oldMore.next({ items: [user(2, 'Old late')], nextCursor: 'u100', hasMore: true, totalReturned: 1 });
-    expect(component.responsibleLookupHasMore()).toBe(false);
+    fixture.detectChanges();
+    expect(document.querySelector('.smt-select__more')).toBeNull();
+    expect((Array.from(document.querySelectorAll('.smt-select__option')) as HTMLElement[]).map(option => option.textContent ?? '').some(label => label.includes('Old late'))).toBe(false);
     await vi.advanceTimersByTimeAsync(300);
     newQuery.next({ items: [user(501, 'New result')], nextCursor: null, hasMore: false, totalReturned: 1 });
     fixture.detectChanges();
-    expect(component.responsibleUsers().map(item => item.id)).toEqual([501]);
+    expect((Array.from(document.querySelectorAll('.smt-select__option')) as HTMLElement[]).map(option => option.textContent ?? '').some(label => label.includes('New result'))).toBe(true);
   });
 
   it('lets fresh detail identity replace an older retained label for the same selected user', async () => {

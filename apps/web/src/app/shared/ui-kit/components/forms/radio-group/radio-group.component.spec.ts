@@ -58,6 +58,27 @@ class ObjectHost {
   readonly sameId = (a: { id: number } | null, b: { id: number } | null) => a?.id === b?.id;
 }
 
+@Component({
+  standalone: true,
+  imports: [SMTRadioGroupComponent],
+  template: `
+    <smt-radio-group smtAppearance="chips" [(value)]="type" [options]="types" smtAriaLabel="Type" />
+    <smt-radio-group smtAppearance="segmented" [(value)]="priority" [options]="priorities" smtAriaLabel="Priority" />
+  `,
+})
+class LookHost {
+  type = 'bug';
+  priority = 'high';
+  readonly types: SMTRadioOption<string>[] = [
+    { value: 'task', label: 'Task', icon: 'task_alt', color: '#2563eb' },
+    { value: 'bug', label: 'Bug', icon: 'bug_report', color: '#dc2626' },
+  ];
+  readonly priorities: SMTRadioOption<string>[] = [
+    { value: 'low', label: 'Low', tone: 'success' },
+    { value: 'high', label: 'High', tone: 'warning' },
+  ];
+}
+
 describe('SMTRadioGroupComponent', () => {
   afterEach(() => TestBed.resetTestingModule());
 
@@ -142,5 +163,24 @@ describe('SMTRadioGroupComponent', () => {
     radios()[0].click();
     await settle();
     expect(fixture.componentInstance.size).toEqual({ id: 1 });
+  });
+
+  it('draws chips with icons in the option colour and a segmented bar with toned choices, both in a row', async () => {
+    const { fixture, element, settle } = await render(LookHost);
+    const [chips, segmented] = Array.from(element.querySelectorAll('smt-radio-group')) as HTMLElement[];
+    expect(chips.classList).toContain('smt-radio-group--chips');
+    expect(chips.querySelector('[role="radiogroup"]')!.getAttribute('aria-orientation')).toBe('horizontal');
+    expect(chips.querySelector('.smt-radio-group__dot')).toBeNull();
+    const bug = chips.querySelectorAll<HTMLElement>('[role="radio"]')[1];
+    expect(bug.getAttribute('aria-checked')).toBe('true');
+    expect(bug.style.getPropertyValue('--smt-radio-color')).toBe('#dc2626');
+    expect(bug.querySelector('.smt-radio-group__icon')!.getAttribute('aria-hidden')).toBe('true');
+    const high = segmented.querySelectorAll<HTMLElement>('[role="radio"]')[1];
+    expect(segmented.classList).toContain('smt-radio-group--segmented');
+    expect(high.classList).toContain('smt-radio-group__item--tone-warning');
+    expect(high.classList).toContain('smt-radio-group__item--checked');
+    segmented.querySelectorAll<HTMLElement>('[role="radio"]')[0].click();
+    await settle();
+    expect(fixture.componentInstance.priority).toBe('low');
   });
 });

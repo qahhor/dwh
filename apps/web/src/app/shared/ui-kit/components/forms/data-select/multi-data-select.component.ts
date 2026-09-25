@@ -61,6 +61,9 @@ export class SMTMultiDataSelectComponent<Row, K extends SMTLookupKey = number> i
   /** Rows not offered in the list; chosen ones stay as chips. */
   readonly exclude = input<(row: Row) => boolean>(() => false);
 
+  /** Rows already at hand, such as a task's members: chosen keys among them are named without a request. */
+  readonly knownRows = input<readonly Row[]>([]);
+
   readonly disabled = input(false, { transform: booleanAttribute });
 
   readonly readonly = input(false, { transform: booleanAttribute });
@@ -96,6 +99,11 @@ export class SMTMultiDataSelectComponent<Row, K extends SMTLookupKey = number> i
   readonly state = new LookupState<Row, K>(() => this.source());
 
   constructor() {
+    // Before the lookup of chosen keys below, so a known row is never asked for.
+    effect(() => {
+      const rows = this.knownRows();
+      untracked(() => this.state.remember(rows));
+    });
     effect(() => {
       const keys = this.value() ?? [];
       if (keys.length > 0) untracked(() => this.state.resolve(keys));

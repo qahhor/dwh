@@ -1,20 +1,20 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, inject, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { SMTMultiSelectComponent } from '../../../shared/ui-kit/components/forms/multi-select';
-import { UserOptionsPipe } from './user-options.pipe';
+import { SMTDataSelectComponent, SMTMultiDataSelectComponent } from '../../../shared/ui-kit/components/forms/data-select';
+import { TaskLookupsService } from '../services/task-lookups.service';
+import { SMTRadioGroupComponent, SMTRadioOption } from '../../../shared/ui-kit/components/forms/radio-group';
 import { ProjectOptionsPipe } from './project-options.pipe';
 import { SMTDatePickerComponent, SMTDatePickerValueAccessor } from '../../../shared/ui-kit/components/forms/date-picker';
-import { TranslatePipe } from '../../../core/services/i18n.service';
+import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { SMTControlComponent } from '../../../shared/ui-kit/components/forms/control';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
-import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../../../shared/ui-kit/components/forms/select';
+import { SMTSelectComponent, SMTSelectValueAccessor } from '../../../shared/ui-kit/components/forms/select';
 import { UiMarkdownEditorComponent } from '../../../shared/ui/ui-markdown-editor.component';
 import { UiCustomFieldsComponent } from '../../../shared/ui/ui-custom-fields.component';
 import { CustomField } from '../../../core/models/custom-field.models';
 import { Project, TaskType } from '../../../core/models/task.models';
-import { User } from '../../../core/models/auth.models';
 
 @Component({
   selector: 'app-task-create-modal',
@@ -29,8 +29,9 @@ import { User } from '../../../core/models/auth.models';
     UiModalComponent,
     UiButtonComponent,
     SMTSelectComponent,
-    SMTMultiSelectComponent,
-    UserOptionsPipe,
+    SMTDataSelectComponent,
+    SMTRadioGroupComponent,
+    SMTMultiDataSelectComponent,
     ProjectOptionsPipe,
     SMTSelectValueAccessor,
     UiMarkdownEditorComponent,
@@ -63,20 +64,12 @@ import { User } from '../../../core/models/auth.models';
           <div class="label-row">
             <span class="clean-label">{{ 'tasks.tip_zadachi' | t }}</span>
           </div>
-          <div class="type-chips-selector" role="group" [attr.aria-label]="'tasks.tip_zadachi' | t">
-            <button
-              *ngFor="let ty of taskTypes"
-              type="button"
-              class="type-chip-btn"
-              [class.active]="createForm.taskType === ty.code"
-              [attr.aria-pressed]="createForm.taskType === ty.code"
-              (click)="createForm.taskType = ty.code"
-              [style.--chip-color]="ty.color"
-            >
-              <span class="material-symbols-outlined" aria-hidden="true">{{ ty.icon }}</span>
-              <span>{{ ty.name }}</span>
-            </button>
-          </div>
+          <smt-radio-group
+            smtAppearance="chips"
+            [options]="typeOptions()"
+            [value]="createForm.taskType"
+            [smtAriaLabel]="'tasks.tip_zadachi' | t"
+            (valueChange)="createForm.taskType = $event ?? createForm.taskType" />
         </div>
 
         <!-- Visual Priority Selector Pills -->
@@ -84,44 +77,12 @@ import { User } from '../../../core/models/auth.models';
           <div class="label-row">
             <span class="clean-label">{{ 'common.priority' | t }}</span>
           </div>
-          <div class="priority-chips-selector" role="group" [attr.aria-label]="'tasks.prioritet_zadachi' | t">
-            <button
-              type="button"
-              class="prio-chip-btn prio-low"
-              [class.active]="createForm.priority === 'low'"
-              [attr.aria-pressed]="createForm.priority === 'low'"
-              (click)="createForm.priority = 'low'"
-            >
-              {{ 'task.priority.low' | t }}
-            </button>
-            <button
-              type="button"
-              class="prio-chip-btn prio-medium"
-              [class.active]="createForm.priority === 'medium'"
-              [attr.aria-pressed]="createForm.priority === 'medium'"
-              (click)="createForm.priority = 'medium'"
-            >
-              {{ 'tasks.sredniy' | t }}
-            </button>
-            <button
-              type="button"
-              class="prio-chip-btn prio-high"
-              [class.active]="createForm.priority === 'high'"
-              [attr.aria-pressed]="createForm.priority === 'high'"
-              (click)="createForm.priority = 'high'"
-            >
-              {{ 'task.priority.high' | t }}
-            </button>
-            <button
-              type="button"
-              class="prio-chip-btn prio-critical"
-              [class.active]="createForm.priority === 'critical'"
-              [attr.aria-pressed]="createForm.priority === 'critical'"
-              (click)="createForm.priority = 'critical'"
-            >
-              {{ 'tasks.kriticheskiy' | t }}
-            </button>
-          </div>
+          <smt-radio-group
+            smtAppearance="segmented"
+            [options]="priorityOptions()"
+            [value]="createForm.priority"
+            [smtAriaLabel]="'tasks.prioritet_zadachi' | t"
+            (valueChange)="createForm.priority = $event ?? createForm.priority" />
         </div>
 
         <div class="form-grid-2">
@@ -143,22 +104,15 @@ import { User } from '../../../core/models/auth.models';
             <div class="label-row">
               <span class="clean-label">{{ 'task.parent' | t }}</span>
             </div>
-            <smt-select
-              [options]="parentTaskOptions"
+            <smt-data-select
+              [source]="lookups.tasks"
+              [knownRows]="lookups.knownParentRows()"
               [value]="createForm.parentTaskId"
               [ariaLabel]="'task.parent' | t"
               (valueChange)="createForm.parentTaskId = $event"
               [placeholder]="'tasks.bez_roditelya_kornevaya_zadacha' | t"
               [searchPlaceholder]="'tasks.poisk_zadachi_po_id_ili_nazvaniyu' | t"
-              [emptyLabel]="'tasks.without_parent' | t"
-              [remoteSearch]="true"
-              [loading]="parentLookupLoading"
-              [loadError]="parentLookupError"
-              [hasMore]="parentLookupHasMore"
-              (searchChange)="parentSearch.emit($event)"
-              (loadMore)="parentLoadMore.emit()"
-              (retry)="parentRetry.emit()"
-            ></smt-select>
+              [emptyLabel]="'tasks.without_parent' | t" />
           </div>
         </div>
 
@@ -168,22 +122,15 @@ import { User } from '../../../core/models/auth.models';
             <div class="label-row">
               <span class="clean-label">{{ 'task.responsible' | t }}</span>
             </div>
-            <smt-select
-              [options]="responsibleUserOptions"
+            <smt-data-select
+              [source]="lookups.users"
+              [knownRows]="lookups.knownUserRows()"
               [value]="createForm.responsibleUserId"
               [ariaLabel]="'task.responsible' | t"
               (valueChange)="createForm.responsibleUserId = $event"
               [placeholder]="'tasks.vyberite_otvetstvennogo' | t"
               [searchPlaceholder]="'tasks.poisk_sotrudnika_po_imeni_ili_loginu' | t"
-              [emptyLabel]="'common.not_assigned' | t"
-              [remoteSearch]="true"
-              [loading]="responsibleLookupLoading"
-              [loadError]="responsibleLookupError"
-              [hasMore]="responsibleLookupHasMore"
-              (searchChange)="responsibleSearch.emit($event)"
-              (loadMore)="responsibleLoadMore.emit()"
-              (retry)="responsibleRetry.emit()"
-            ></smt-select>
+              [emptyLabel]="'common.not_assigned' | t" />
           </div>
 
           <!-- Deadlines: End Date / Deadline -->
@@ -197,22 +144,14 @@ import { User } from '../../../core/models/auth.models';
           <div class="label-row">
             <span class="clean-label">{{ 'tasks.soispolniteli' | t }}</span>
           </div>
-          <smt-multi-select
-            [options]="executorUsers | userOptions"
-            [knownOptions]="executorUsers | userOptions: true"
+          <smt-multi-data-select
+            [source]="lookups.users"
+            [knownRows]="lookups.knownUserRows()"
             [value]="createForm.executorUserIds"
             [ariaLabel]="'tasks.soispolniteli' | t"
             (valueChange)="createForm.executorUserIds = [...$event]"
             [placeholder]="'tasks.nazhmite_dlya_dobavleniya_soispolniteley' | t"
-            [searchPlaceholder]="'tasks.poisk_sotrudnika' | t"
-            [remoteSearch]="true"
-            [loading]="executorLookupLoading"
-            [loadError]="executorLookupError"
-            [hasMore]="executorLookupHasMore"
-            (searchChange)="executorSearch.emit($event)"
-            (loadMore)="executorLoadMore.emit()"
-            (retry)="executorRetry.emit()"
-          ></smt-multi-select>
+            [searchPlaceholder]="'tasks.poisk_sotrudnika' | t" />
         </div>
 
         <!-- Observers Searchable Multi-Select Tags Input -->
@@ -220,22 +159,14 @@ import { User } from '../../../core/models/auth.models';
           <div class="label-row">
             <span class="clean-label">{{ 'tasks.nablyudateli_poluchayut_uvedomleniya' | t }}</span>
           </div>
-          <smt-multi-select
-            [options]="observerUsers | userOptions"
-            [knownOptions]="observerUsers | userOptions: true"
+          <smt-multi-data-select
+            [source]="lookups.users"
+            [knownRows]="lookups.knownUserRows()"
             [value]="createForm.observerUserIds"
             [ariaLabel]="'tasks.nablyudateli' | t"
             (valueChange)="createForm.observerUserIds = [...$event]"
             [placeholder]="'tasks.nazhmite_dlya_dobavleniya_nablyudateley' | t"
-            [searchPlaceholder]="'tasks.poisk_sotrudnika' | t"
-            [remoteSearch]="true"
-            [loading]="observerLookupLoading"
-            [loadError]="observerLookupError"
-            [hasMore]="observerLookupHasMore"
-            (searchChange)="observerSearch.emit($event)"
-            (loadMore)="observerLoadMore.emit()"
-            (retry)="observerRetry.emit()"
-          ></smt-multi-select>
+            [searchPlaceholder]="'tasks.poisk_sotrudnika' | t" />
         </div>
 
         <!-- RichText Markdown Editor for Description -->
@@ -305,74 +236,6 @@ import { User } from '../../../core/models/auth.models';
     .form-grid-2 > * { min-width: 0; max-width: 100%; }
     @media (max-width: 640px) { .form-grid-2 { grid-template-columns: minmax(0, 1fr); } }
 
-    .type-chips-selector {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      max-width: 100%;
-    }
-    .type-chip-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 4px 10px;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-xs);
-      background-color: var(--bg-surface);
-      color: var(--text-muted);
-      font-size: 12px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.12s ease;
-      max-width: 100%;
-    }
-    .type-chip-btn .material-symbols-outlined { font-size: 16px; color: var(--chip-color); }
-    .type-chip-btn:hover { border-color: var(--chip-color); color: var(--text-main); }
-    .type-chip-btn.active {
-      border-color: var(--chip-color);
-      background-color: var(--bg-hover);
-      color: var(--text-main);
-      font-weight: 600;
-      box-shadow: 0 0 0 1px var(--chip-color);
-    }
-
-    .priority-chips-selector {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      background-color: var(--bg-hover);
-      padding: 3px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--border-color);
-      max-width: 100%;
-      box-sizing: border-box;
-    }
-    .prio-chip-btn {
-      flex: 1 1 calc(25% - 6px);
-      min-width: 0;
-      border: none;
-      background: transparent;
-      padding: 4px 8px;
-      font-size: 11px;
-      font-weight: 500;
-      color: var(--text-muted);
-      border-radius: var(--radius-xs);
-      cursor: pointer;
-      transition: all 0.1s ease;
-      text-align: center;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      overflow: hidden;
-    }
-    .prio-chip-btn.active {
-      background-color: var(--bg-surface);
-      font-weight: 600;
-      box-shadow: var(--shadow-sm);
-    }
-    .prio-chip-btn.prio-low.active { color: var(--success-text); }
-    .prio-chip-btn.prio-medium.active { color: var(--text-main); }
-    .prio-chip-btn.prio-high.active { color: var(--warning); }
-    .prio-chip-btn.prio-critical.active { color: var(--danger); }
 
     .custom-fields-section {
       border-top: 1px dashed var(--border-color);
@@ -400,42 +263,41 @@ import { User } from '../../../core/models/auth.models';
   `]
 })
 export class TaskCreateModalComponent {
+  /** The pickers' sources and the people and parent the task's card already named. */
+  readonly lookups = inject(TaskLookupsService);
+  private readonly i18n = inject(I18nService);
+  private typeCache: { types: TaskType[]; options: SMTRadioOption<string>[] } | null = null;
+  private priorityCache: { lang: string; options: SMTRadioOption<string>[] } | null = null;
   @Input() isOpen = false;
   @Input() createForm: any = {};
   @Input() isSubmitting = false;
   @Input() isCreateSubmitted = false;
   @Input() taskTypes: TaskType[] = [];
   @Input() projects: Project[] = [];
-  @Input() parentTaskOptions: SMTSelectOption[] = [];
-  @Input() parentLookupLoading = false;
-  @Input() parentLookupError = false;
-  @Input() parentLookupHasMore = false;
-  @Input() responsibleUserOptions: SMTSelectOption[] = [];
-  @Input() responsibleLookupLoading = false;
-  @Input() responsibleLookupError = false;
-  @Input() responsibleLookupHasMore = false;
-  @Input() executorUsers: User[] = [];
-  @Input() executorLookupLoading = false;
-  @Input() executorLookupError = false;
-  @Input() executorLookupHasMore = false;
-  @Input() observerUsers: User[] = [];
-  @Input() observerLookupLoading = false;
-  @Input() observerLookupError = false;
-  @Input() observerLookupHasMore = false;
   @Input() taskCustomFields: CustomField[] = [];
 
   @Output() close = new EventEmitter<void>();
   @Output() submit = new EventEmitter<void>();
-  @Output() parentSearch = new EventEmitter<string>();
-  @Output() parentLoadMore = new EventEmitter<void>();
-  @Output() parentRetry = new EventEmitter<void>();
-  @Output() responsibleSearch = new EventEmitter<string>();
-  @Output() responsibleLoadMore = new EventEmitter<void>();
-  @Output() responsibleRetry = new EventEmitter<void>();
-  @Output() executorSearch = new EventEmitter<string>();
-  @Output() executorLoadMore = new EventEmitter<void>();
-  @Output() executorRetry = new EventEmitter<void>();
-  @Output() observerSearch = new EventEmitter<string>();
-  @Output() observerLoadMore = new EventEmitter<void>();
-  @Output() observerRetry = new EventEmitter<void>();
+
+  /** Task types as chips, each icon in the type's colour; the same array while the types stay the same. */
+  typeOptions(): SMTRadioOption<string>[] {
+    if (this.typeCache?.types !== this.taskTypes) {
+      this.typeCache = { types: this.taskTypes, options: this.taskTypes.map(type => ({ value: type.code, label: type.name, icon: type.icon, color: type.color })) };
+    }
+    return this.typeCache.options;
+  }
+
+  /** Priorities as one segmented bar; a chosen high or critical reads in its warning colour. */
+  priorityOptions(): SMTRadioOption<string>[] {
+    const lang = this.i18n.currentLang();
+    if (this.priorityCache?.lang !== lang) {
+      this.priorityCache = { lang, options: [
+        { value: 'low', label: this.i18n.translate('task.priority.low'), tone: 'success' },
+        { value: 'medium', label: this.i18n.translate('tasks.sredniy') },
+        { value: 'high', label: this.i18n.translate('task.priority.high'), tone: 'warning' },
+        { value: 'critical', label: this.i18n.translate('tasks.kriticheskiy'), tone: 'danger' },
+      ] };
+    }
+    return this.priorityCache.options;
+  }
 }

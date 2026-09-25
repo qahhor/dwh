@@ -4,7 +4,7 @@
   role="radiogroup"
   [id]="customId() || groupId"
   [attr.aria-label]="ariaLabel() || null"
-  [attr.aria-orientation]="orientation()"
+  [attr.aria-orientation]="horizontal() ? 'horizontal' : 'vertical'"
   [attr.aria-required]="required() ? 'true' : null"
   [attr.aria-invalid]="hasError() ? 'true' : null"
   [attr.aria-disabled]="isDisabled() ? 'true' : null"
@@ -17,6 +17,8 @@
       role="radio"
       [id]="itemId(index)"
       [class.smt-radio-group__item--checked]="selectedIndex() === index"
+      [class]="option.tone ? 'smt-radio-group__item--tone-' + option.tone : ''"
+      [style.--smt-radio-color]="option.color || null"
       [attr.aria-checked]="selectedIndex() === index ? 'true' : 'false'"
       [attr.aria-disabled]="itemDisabled(index) ? 'true' : null"
       [attr.aria-labelledby]="itemId(index) + '-label'"
@@ -24,7 +26,12 @@
       [tabindex]="tabStop() === index ? 0 : -1"
       (click)="choose(index)"
       (keydown)="onKeydown($event, index)">
-      <span class="smt-radio-group__dot" aria-hidden="true"></span>
+      @if (showDot()) {
+        <span class="smt-radio-group__dot" aria-hidden="true"></span>
+      }
+      @if (option.icon) {
+        <span class="material-symbols-outlined smt-radio-group__icon" aria-hidden="true">{{ option.icon }}</span>
+      }
       <span class="smt-radio-group__text">
         <span class="smt-radio-group__label" [id]="itemId(index) + '-label'">{{ option.label }}</span>
         @if (option.hint) {
