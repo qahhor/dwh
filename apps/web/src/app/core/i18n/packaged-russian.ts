@@ -1731,6 +1731,7 @@ export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(
   "upl.err.UPL_PKG_PERIOD_ORDER": "Начало периода позже конца",
   "upl.err.UPL_PKG_PERIOD_REQUIRED": "Укажите начало и конец периода",
   "upl.err.UPL_PKG_RAW_WRITE_FAILED": "Не удалось записать строки в базу. Загрузите файл заново",
+  "upl.err.UPL_PKG_APPLY_INTERRUPTED": "Применение пакета прервалось из-за сбоя. Загрузите файл заново",
   "upl.err.UPL_PKG_RECONCILIATION": "Сверка не сошлась: в файле {fileRows} строк, в базе {rawRows}. Загрузите файл заново",
   "upl.err.UPL_PKG_SOURCE_REQUIRED": "Выберите источник",
   "upl.err.UPL_PKG_STRUCTURE": "Файл не соответствует анкете. Расхождений: {count}",
