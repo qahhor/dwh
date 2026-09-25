@@ -12,6 +12,9 @@ import com.greenwhite.dwh.instance.upl.format.UplFormatModel.SourceData;
 import com.greenwhite.dwh.instance.upl.format.UplFormatModel.SourceSummary;
 import com.greenwhite.dwh.instance.upl.format.UplFormatModel.SourceType;
 import com.greenwhite.dwh.instance.upl.format.UplFormatModel.Strictness;
+import com.greenwhite.dwh.core.pagination.KeysetPage;
+import com.greenwhite.dwh.instance.common.query.QueryListRepository;
+import com.greenwhite.dwh.instance.common.query.QueryPlan;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -52,9 +55,11 @@ public class UplFormatRepository {
             """;
 
     private final JdbcClient jdbc;
+    private final QueryListRepository lists;
 
-    public UplFormatRepository(JdbcClient jdbc) {
+    public UplFormatRepository(JdbcClient jdbc, QueryListRepository lists) {
         this.jdbc = jdbc;
+        this.lists = lists;
     }
 
     public long insertSource(SourceData d, String actor) {
@@ -113,16 +118,9 @@ public class UplFormatRepository {
                 .update();
     }
 
-    public List<SourceSummary> listSources(String afterCode, int limit) {
-        return jdbc.sql(SUMMARY_SELECT + """
-                        where (:after::text is null or s.code > :after)
-                        order by s.code
-                        limit :limit
-                        """)
-                .param("after", afterCode)
-                .param("limit", limit)
-                .query(this::mapSummary)
-                .list();
+    /** Страница списка источников по плану реестра ({@link UplSourceQuery#LIST}). */
+    public KeysetPage<SourceSummary> pageSources(QueryPlan plan) {
+        return lists.page(plan, this::mapSummary);
     }
 
     public Optional<SourceSummary> findSummary(long id) {
@@ -130,12 +128,6 @@ public class UplFormatRepository {
                 .param("id", id)
                 .query(this::mapSummary)
                 .optional();
-    }
-
-    public long countSources() {
-        return jdbc.sql("select count(*) from upl_sources")
-                .query(Long.class)
-                .single();
     }
 
     public List<FormatVersion> listVersions(long sourceId) {

@@ -2,9 +2,9 @@ package com.greenwhite.dwh.instance.upl.format;
 
 import com.greenwhite.dwh.core.error.ErrorCode;
 import com.greenwhite.dwh.core.error.FieldErrorItem;
-import com.greenwhite.dwh.core.pagination.CursorUtils;
 import com.greenwhite.dwh.core.pagination.KeysetPage;
 import com.greenwhite.dwh.instance.common.error.ApiException;
+import com.greenwhite.dwh.instance.common.query.QueryCompiler;
 import com.greenwhite.dwh.instance.fnd.FndActor;
 import com.greenwhite.dwh.instance.fnd.FndActors;
 import com.greenwhite.dwh.instance.fnd.error.ConstraintViolationException;
@@ -44,13 +44,10 @@ public class UplSourceService {
     public static final String FND_VERSION_UNKNOWN = "FND_VERSION_UNKNOWN";
     public static final String FND_VERSION_DRAFT_EXISTS = "FND_VERSION_DRAFT_EXISTS";
     public static final String FND_VERSION_NOT_AFTER_PREVIOUS = "FND_VERSION_NOT_AFTER_PREVIOUS";
-    public static final String INVALID_LIMIT = "INVALID_LIMIT";
-    public static final String INVALID_CURSOR = "INVALID_CURSOR";
     public static final String VALID_FROM_REQUIRED = "VALID_FROM_REQUIRED";
 
     private static final String TABLE = UplPref.TABLE_FORMAT_VERSIONS;
     private static final String CODE_UNIQUE_INDEX = "upl_sources_code_uidx";
-    private static final int MAX_LIMIT = 200;
 
     private final UplFormatRepository repo;
     private final UplFormatValidator validator;
@@ -123,18 +120,13 @@ public class UplSourceService {
 
     @Transactional(readOnly = true)
     public KeysetPage<SourceSummary> listSources(int limit, String cursor) {
-        if (limit < 1 || limit > MAX_LIMIT) {
-            throw invalidField("limit", INVALID_LIMIT);
-        }
-        PageCursor decoded = decodeCursor(cursor);
-        List<SourceSummary> rows = repo.listSources(decoded == null ? null : decoded.lastCode(), limit + 1);
-        boolean hasMore = rows.size() > limit;
-        List<SourceSummary> page = rows.subList(0, Math.min(rows.size(), limit));
-        long total = decoded == null ? repo.countSources() : decoded.total();
-        String next = hasMore && !page.isEmpty()
-                ? CursorUtils.encode(page.getLast().code() + "|" + total)
-                : null;
-        return KeysetPage.of(List.copyOf(page), next, hasMore, total);
+        return listSources(limit, cursor, null, null);
+    }
+
+    /** Список по реестру: фильтр — DSL {@link QueryCompiler}, сортировка — ключ поля с минусом для убывания. */
+    @Transactional(readOnly = true)
+    public KeysetPage<SourceSummary> listSources(Integer limit, String cursor, String filter, String sort) {
+        return repo.pageSources(QueryCompiler.compile(UplSourceQuery.LIST, filter, sort, limit, cursor));
     }
 
     @Transactional(readOnly = true)
@@ -246,25 +238,6 @@ public class UplSourceService {
         columns.put("delimiter", delimiter);
         columns.put("match_columns_by", match.db());
         return columns;
-    }
-
-    private record PageCursor(String lastCode, long total) {
-    }
-
-    private static PageCursor decodeCursor(String cursor) {
-        if (cursor == null || cursor.isBlank()) {
-            return null;
-        }
-        String raw = CursorUtils.decode(cursor);
-        int bar = raw == null ? -1 : raw.lastIndexOf('|');
-        if (bar <= 0) {
-            throw invalidField("cursor", INVALID_CURSOR);
-        }
-        try {
-            return new PageCursor(raw.substring(0, bar), Long.parseLong(raw.substring(bar + 1)));
-        } catch (NumberFormatException e) {
-            throw invalidField("cursor", INVALID_CURSOR);
-        }
     }
 
     private static ApiException invalidField(String field, String code) {

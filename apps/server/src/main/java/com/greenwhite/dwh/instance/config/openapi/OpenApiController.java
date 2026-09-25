@@ -220,6 +220,42 @@ public class OpenApiController {
                                         )
                                 )
                         )),
+                        // Field registry (ADR-0016)
+                        Map.entry("/api/v1/query-meta/{code}", Map.of(
+                                "get", Map.of(
+                                        "summary", "Fields of a registry list: types, filter operations, sorting and page size",
+                                        "tags", List.of("Query"),
+                                        "parameters", List.of(
+                                                Map.of("name", "code", "in", "path", "required", true,
+                                                        "description", "List code, e.g. upl.sources", "schema", Map.of("type", "string"))
+                                        ),
+                                        "responses", Map.of(
+                                                "200", Map.of("description", "List metadata without SQL"),
+                                                "401", Map.of("description", "Not signed in"),
+                                                "404", Map.of("description", "QUERY_LIST_NOT_FOUND: unknown list or no right to view it")
+                                        )
+                                )
+                        )),
+                        Map.entry("/api/v1/upl/sources", Map.of(
+                                "get", Map.of(
+                                        "summary", "UPL sources through the field registry, keyset paginated",
+                                        "tags", List.of("UPL"),
+                                        "parameters", List.of(
+                                                Map.of("name", "limit", "in", "query", "required", false,
+                                                        "description", "Page size, 1 to 200", "schema", Map.of("type", "integer", "default", 50, "maximum", 200)),
+                                                Map.of("name", "cursor", "in", "query", "required", false,
+                                                        "description", "Opaque nextCursor of the same filter and sort", "schema", Map.of("type", "string")),
+                                                Map.of("name", "filter", "in", "query", "required", false,
+                                                        "description", "JSON array of {field, op, value} conditions joined with and (ADR-0016)", "schema", Map.of("type", "string")),
+                                                Map.of("name", "sort", "in", "query", "required", false,
+                                                        "description", "Sortable field key, minus for descending", "schema", Map.of("type", "string"))
+                                        ),
+                                        "responses", Map.of(
+                                                "200", Map.of("description", "KeysetPage of sources"),
+                                                "422", Map.of("description", "QUERY_INVALID, INVALID_LIMIT or INVALID_CURSOR with addressed errors")
+                                        )
+                                )
+                        )),
                         Map.entry("/api/v1/audit/stats", Map.of(
                                 "get", Map.of(
                                         "summary", "Get coalesced audit statistics (15-second snapshot cache with computedAt)",

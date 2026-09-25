@@ -52,9 +52,11 @@ public class UplSourceController {
 
     @GetMapping
     @RequiresPermission(form = UplPref.FORM_SOURCES, action = UplPref.ACTION_VIEW)
-    public ResponseEntity<KeysetPage<SourceItem>> list(@RequestParam(defaultValue = "50") int limit,
-                                                       @RequestParam(required = false) String cursor) {
-        KeysetPage<SourceSummary> page = service.listSources(limit, cursor);
+    public ResponseEntity<KeysetPage<SourceItem>> list(@RequestParam(required = false) Integer limit,
+                                                       @RequestParam(required = false) String cursor,
+                                                       @RequestParam(required = false) String filter,
+                                                       @RequestParam(required = false) String sort) {
+        KeysetPage<SourceSummary> page = service.listSources(limit, cursor, filter, sort);
         List<SourceItem> items = page.items().stream().map(SourceItem::of).toList();
         return ResponseEntity.ok(KeysetPage.of(items, page.nextCursor(), page.hasMore(), page.totalEstimated()));
     }

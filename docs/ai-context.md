@@ -159,6 +159,12 @@ npx playwright test -c playwright.a11y.config.ts` в `e2e` (сервер с мо
 `e2e/support/a11y-server.mjs`, фикстуры — `a11y-fixtures.mjs`). Полный
 браузерный набор доступен только в CI.
 
+Сервер локально (Windows, без Docker): распакованный Temurin JDK 25 в
+`JAVA_HOME`, затем `mvnw.cmd verify` — встроенный Postgres (zonky) не требует
+Docker. `TEMP`/`TMP` должны указывать на короткий путь: JDK создаёт
+unix-сокеты во временной папке, и путь длиннее ~100 символов даёт
+«Unable to establish loopback connection» при старте контекста.
+
 Дальше по плану (ADR-0015, действие 3): рукописные таблицы, по одному экрану
 на PR — `files-table`, затем настройки (`modules-table`,
 `navigation-settings-table`, `webhooks-settings`, `search-settings`), IAM
