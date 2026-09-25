@@ -12,6 +12,8 @@ import {
 } from '../ui-kit/components/table/column-state';
 import { SMTColumnOption, SMTColumnSettingsComponent } from '../ui-kit/components/column-settings';
 import { TableColumnStateStore } from '../ui-kit/services/table-column-state.store';
+import { ListViewState } from '../list-views/list-views';
+import { UiListViewsComponent } from './ui-list-views.component';
 import { KeysetPager } from '../paging/keyset-pager';
 import { UiButtonComponent } from './ui-button.component';
 import { UiPaginationComponent } from './ui-pagination.component';
@@ -31,16 +33,21 @@ import { UiPaginationComponent } from './ui-pagination.component';
  *   request until it is retried (its cursors may belong to an old query).
  *
  * With a `columnsId` the person can also show, hide, reorder and resize the
- * columns; the choice is remembered per table under that id.
+ * columns; the choice is remembered per table under that id. With `views`
+ * the columns belong to the list's saved views instead (ADR-0016), and the
+ * views menu sits next to the column settings.
  */
 @Component({
   selector: 'ui-server-table',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTTableComponent, UiPaginationComponent, UiButtonComponent, TranslatePipe, SMTColumnSettingsComponent],
+  imports: [SMTTableComponent, UiPaginationComponent, UiButtonComponent, TranslatePipe, SMTColumnSettingsComponent, UiListViewsComponent],
   template: `
-    @if (columnsId()) {
+    @if (columnsId() || views()) {
       <div class="server-table-tools">
+        @if (views(); as views) {
+          <ui-list-views [state]="views" />
+        }
         <smt-column-settings [smtColumns]="columnOptions()" [smtState]="columnState()" (smtStateChange)="saveColumns($event)" />
       </div>
     }
@@ -63,7 +70,7 @@ import { UiPaginationComponent } from './ui-pagination.component';
         [smtIsLoading]="pager().loading()"
         [smtSkeletonRowCount]="pager().pageSize()"
         [smtEmptyTemplate]="emptyTemplate()"
-        [smtColumnResizeEnabled]="!!columnsId()"
+        [smtColumnResizeEnabled]="!!columnsId() || !!views()"
         (smtColumnResize)="onColumnResize($event)"
         (smtSortChange)="sortChange.emit($event)"
         (smtRowClick)="rowClick.emit($event)" />
@@ -82,7 +89,7 @@ import { UiPaginationComponent } from './ui-pagination.component';
   `,
   styles: [`
     :host { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-    .server-table-tools { display: flex; justify-content: flex-end; }
+    .server-table-tools { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
     .inline-feedback {
       display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
       padding: 10px 14px; border-radius: var(--radius-md, 8px);
@@ -110,19 +117,26 @@ export class UiServerTableComponent<T> {
   readonly sortChange = output<{ column: string; sortBy: OrderBy } | undefined>();
   /** Storage id of the column choice, e.g. `upl.sources`; empty — the columns are fixed. */
   readonly columnsId = input('');
+  /** Saved views of the list; when set, they own the column choice instead of `columnsId`. */
+  readonly views = input<ListViewState | null>(null);
   /** Columns that cannot be hidden, such as the one that names the row. */
   readonly lockedColumns = input<readonly string[]>([]);
 
   private readonly columnStore = inject(TableColumnStateStore);
 
   /** The stored choice for this table, reloaded when the id changes. */
-  protected readonly columnState = linkedSignal<TableColumnState>(() => {
+  private readonly storedColumns = linkedSignal<TableColumnState>(() => {
     const id = this.columnsId();
     return (id && this.columnStore.load(id)) || EMPTY_COLUMN_STATE;
   });
 
+  /** The choice on screen: the saved views' when the list has them, otherwise the one stored for this table. */
+  protected readonly columnState = computed(() => this.views()?.columns() ?? this.storedColumns());
+
+  private readonly customizable = computed(() => Boolean(this.columnsId() || this.views()));
+
   protected readonly shownConfig = computed(() =>
-    this.columnsId() ? applyColumnState(this.config(), this.columnState(), this.lockedColumns()) : this.config());
+    this.customizable() ? applyColumnState(this.config(), this.columnState(), this.lockedColumns()) : this.config());
 
   /** Labels for the settings panel, from each column's plain header; otherwise its key. */
   protected readonly columnOptions = computed<SMTColumnOption[]>(() => {
@@ -137,7 +151,12 @@ export class UiServerTableComponent<T> {
   protected saveColumns(state: TableColumnState): void {
     const keys = this.config().columnsOrder;
     const normalized = normalizeColumnState(state, keys, this.lockedColumns());
-    this.columnState.set(normalized);
+    const views = this.views();
+    if (views) {
+      views.setColumns(normalized);
+      return;
+    }
+    this.storedColumns.set(normalized);
     if (isDefaultColumnState(normalized, keys)) {
       this.columnStore.clear(this.columnsId());
     } else {
@@ -146,7 +165,7 @@ export class UiServerTableComponent<T> {
   }
 
   protected onColumnResize(event: TableColumnResizeEvent): void {
-    if (!this.columnsId()) return;
+    if (!this.customizable()) return;
     const current = normalizeColumnState(this.columnState(), this.config().columnsOrder, this.lockedColumns());
     this.saveColumns(setColumnWidth(current, event.key, event.widthPx));
   }

@@ -11,6 +11,7 @@ import { ToastService } from '../../../core/services/toast.service';
 import { PACKAGED_RUSSIAN } from '../../../core/i18n/packaged-russian';
 import { UplApiService, UplSource, UplSourceItem } from '../upl-api';
 import { SourcesListComponent } from './sources-list.component';
+import { ListViewsApi, SavedListView } from '../../../shared/list-views/list-views';
 
 function page(items: UplSourceItem[], hasMore = false, nextCursor: string | null = null, total = items.length): KeysetPage<UplSourceItem> {
   return { items, nextCursor, hasMore, totalEstimated: total } as unknown as KeysetPage<UplSourceItem>;
@@ -58,6 +59,7 @@ interface FixtureOptions {
   createResult?: Observable<UplSource>;
   canCreate?: boolean;
   meta?: Array<Observable<QueryListMeta>>;
+  views?: Observable<SavedListView[]>;
 }
 
 async function createFixture(options: FixtureOptions = {}) {
@@ -70,6 +72,7 @@ async function createFixture(options: FixtureOptions = {}) {
     createSource: vi.fn(() => options.createResult ?? of(createdSource))
   };
   const queryMeta = { get: vi.fn(() => metas[Math.min(metaCall++, metas.length - 1)]) };
+  const listViews = { list: vi.fn(() => options.views ?? of([])), create: vi.fn(), update: vi.fn(), remove: vi.fn() };
   const permissions = { hasPermission: vi.fn(() => options.canCreate !== false) };
   const toast = { success: vi.fn(), error: vi.fn() };
   await TestBed.configureTestingModule({
@@ -78,6 +81,7 @@ async function createFixture(options: FixtureOptions = {}) {
       provideRouter([]),
       { provide: UplApiService, useValue: api },
       { provide: QueryMetaService, useValue: queryMeta },
+      { provide: ListViewsApi, useValue: listViews },
       { provide: PermissionService, useValue: permissions },
       { provide: ToastService, useValue: toast }
     ]
@@ -86,7 +90,7 @@ async function createFixture(options: FixtureOptions = {}) {
   const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
   fixture.detectChanges();
   fixture.detectChanges();
-  return { fixture, api, queryMeta, permissions, toast, navigate };
+  return { fixture, api, queryMeta, listViews, permissions, toast, navigate };
 }
 
 function testId(fixture: ComponentFixture<SourcesListComponent>, id: string): HTMLElement[] {
@@ -210,6 +214,33 @@ describe('SourcesListComponent', () => {
 
     expect(headers(fixture)).toHaveLength(4);
     expect(JSON.parse(localStorage.getItem('dwh.table-columns.v1.upl.sources')!).hidden).toEqual(['lastPublishedVersion']);
+  });
+
+  it('открывается представлением по умолчанию: его колонки и сортировка', async () => {
+    const byName: SavedListView = {
+      id: 3,
+      name: 'По названию',
+      state: { columns: { order: [], hidden: ['periodicity'], widths: {} }, sort: '-name', filter: [] },
+      isDefault: true,
+      lockVersion: 0,
+      modifiedAt: '2026-09-25T00:00:00Z'
+    };
+    const { fixture, api, listViews } = await createFixture({ views: of([byName]) });
+
+    expect(listViews.list).toHaveBeenCalledWith('upl.sources');
+    expect(api.listSources).toHaveBeenCalledTimes(1);
+    expect(api.listSources).toHaveBeenCalledWith(50, null, { sort: { field: 'name', descending: true } });
+    expect(headers(fixture)).toHaveLength(4);
+    expect(headers(fixture)[1].getAttribute('aria-sort')).toBe('descending');
+    expect(testId(fixture, 'views-trigger')[0].textContent).toContain('По названию');
+  });
+
+  it('без представлений открывается стандартным, даже если их не удалось загрузить', async () => {
+    const { fixture, api } = await createFixture({ views: throwError(() => ({ status: 503 })) });
+
+    expect(api.listSources).toHaveBeenCalledWith(50, null, { sort: { field: 'code', descending: false } });
+    expect(testId(fixture, 'views-trigger')[0].textContent).toContain(PACKAGED_RUSSIAN['ui.views.standard']);
+    expect(testId(fixture, 'upl-source-row')).toHaveLength(2);
   });
 
   it('пока список грузится, сообщает об этом и не показывает пустое состояние', async () => {
