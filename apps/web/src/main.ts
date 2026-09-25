@@ -6,6 +6,7 @@ import { AppComponent } from './app/app.component';
 import { routes } from './app/app.routes';
 import { I18nService } from './app/core/services/i18n.service';
 import { LanguageTabSync } from './app/core/services/language-tab-sync';
+import { IdleLockService } from './app/core/services/idle-lock.service';
 
 bootstrapApplication(AppComponent, {
   providers: [
@@ -15,6 +16,8 @@ bootstrapApplication(AppComponent, {
       withXsrfConfiguration({ cookieName: 'XSRF-TOKEN', headerName: 'X-XSRF-TOKEN' })
     ),
     provideAppInitializer(() => inject(I18nService).initialize()),
-    provideAppInitializer(() => inject(LanguageTabSync).start())
+    provideAppInitializer(() => inject(LanguageTabSync).start()),
+    // Created at start so it follows sign-in and sign-out by itself.
+    provideAppInitializer(() => void inject(IdleLockService))
   ]
 }).catch(err => console.error(err));

@@ -107,7 +107,8 @@ export class AuthService {
     this.router.navigate(['/login'], { replaceUrl: true });
   }
 
-  logout(): void {
+  /** Ends the session; `idle` — the idle lock closed it, and the sign-in page says so. */
+  logout(reason?: 'idle'): void {
     if (this.isLoggingOut()) return;
     this.isLoading.set(false);
     this.isLoggingOut.set(true);
@@ -119,6 +120,7 @@ export class AuthService {
         // a failed logout must still allow pending permission initialization.
         this.endSessionHere();
         this.tabs.publish({ kind: 'signed-out' });
+        if (reason === 'idle') this.toast.info(this.i18n.translate('auth.idle.signed_out'));
         this.router.navigate(['/login'], { replaceUrl: true });
       },
       error: () => {

@@ -11,7 +11,7 @@ export interface BarChartSeries {
 /** One bar: its axis label and the value of every series. */
 export interface BarChartPoint {
   label: string;
-  values: Record<string, number>;
+  values: Partial<Record<string, number>>;
 }
 
 let nextChartId = 0;

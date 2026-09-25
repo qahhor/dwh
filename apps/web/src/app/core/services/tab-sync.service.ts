@@ -5,7 +5,9 @@ import { Observable, Subject } from 'rxjs';
 export type TabSyncMessage =
   | { kind: 'signed-out' }
   | { kind: 'signed-in'; userId: number }
-  | { kind: 'language'; code: string };
+  | { kind: 'language'; code: string }
+  /** Somebody is working in that tab: an idle lock elsewhere waits (roadmap item 28). */
+  | { kind: 'activity' };
 
 const CHANNEL = 'dwh-session';
 
@@ -61,6 +63,7 @@ function isMessage(data: unknown): data is TabSyncMessage {
   const message = data as { kind?: unknown; userId?: unknown; code?: unknown };
   switch (message.kind) {
     case 'signed-out':
+    case 'activity':
       return true;
     case 'signed-in':
       return typeof message.userId === 'number';

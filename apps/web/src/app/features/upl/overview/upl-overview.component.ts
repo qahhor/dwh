@@ -91,26 +91,26 @@ const STATE_KEY: Record<UplFreshnessState, string> = {
               <ui-kpi-card
                 [label]="'upl.overview.totals.uploads' | t"
                 [value]="current.totals.uploads"
-                [previous]="current.previous?.uploads ?? null"
+                [previous]="current.previous.uploads"
                 goodWhen="neutral" />
               <ui-kpi-card
                 [label]="'upl.overview.totals.applied' | t"
                 [value]="current.totals.applied"
-                [previous]="current.previous?.applied ?? null" />
+                [previous]="current.previous.applied" />
               <ui-kpi-card
                 [label]="'upl.overview.totals.verified' | t"
                 [value]="current.totals.verified"
-                [previous]="current.previous?.verified ?? null"
+                [previous]="current.previous.verified"
                 goodWhen="down" />
               <ui-kpi-card
                 [label]="'upl.overview.totals.rejected' | t"
                 [value]="current.totals.rejected"
-                [previous]="current.previous?.rejected ?? null"
+                [previous]="current.previous.rejected"
                 goodWhen="down" />
               <ui-kpi-card
                 [label]="'upl.overview.totals.rows' | t"
                 [value]="current.totals.rowsApplied"
-                [previous]="current.previous?.rowsApplied ?? null" />
+                [previous]="current.previous.rowsApplied" />
             </div>
           }
         </ui-dashboard-card>

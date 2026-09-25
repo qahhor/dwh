@@ -64,6 +64,22 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
           <span id="settings-session-lifetime-hint" class="hint-text">{{ 'settings.po_umolchaniyu_720_chasov_30_dney' | t }}</span>
         </div>
 
+        <div class="form-group">
+          <label class="form-label" for="settings-idle-lock">{{ 'settings.idle_lock' | t }}</label>
+          <input
+            id="settings-idle-lock"
+            name="settingsIdleLock"
+            type="number"
+            min="0"
+            max="1440"
+            class="form-input"
+            [disabled]="!canUpdateSystemSettings || isSaving"
+            aria-describedby="settings-idle-lock-hint"
+            [(ngModel)]="systemSettings['security.idle_lock_minutes']"
+          />
+          <span id="settings-idle-lock-hint" class="hint-text">{{ 'settings.idle_lock_hint' | t }}</span>
+        </div>
+
         <div class="form-group full-width">
           <div class="toggle-row">
             <div class="toggle-info">

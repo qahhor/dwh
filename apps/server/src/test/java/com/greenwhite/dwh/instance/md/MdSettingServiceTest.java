@@ -93,6 +93,39 @@ class MdSettingServiceTest {
     }
 
     @Test
+    @DisplayName("Свои настройки — только user.* и ui.*: безопасность экземпляра пользователь не переопределит")
+    void personalSettingsCannotShadowInstanceOnes() {
+        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+                        service.updateUserSettings(10L, Map.of("security.idle_lock_minutes", "0")))
+                .isInstanceOf(com.greenwhite.dwh.instance.common.error.ApiException.class);
+        verifyNoInteractions(repository, userRepository);
+
+        when(repository.getAllInstanceSettings()).thenReturn(Map.of());
+        when(repository.getAllUserSettings(10L)).thenReturn(Map.of("security.idle_lock_minutes", "0", "ui.theme", "light"));
+        var effective = service.getEffectiveSettings(10L);
+        org.assertj.core.api.Assertions.assertThat(effective).containsEntry("security.idle_lock_minutes", "30")
+                .containsEntry("ui.theme", "light");
+        org.assertj.core.api.Assertions.assertThat(service.getUserSettings(10L))
+                .containsOnlyKeys("ui.theme");
+    }
+
+    @Test
+    @DisplayName("Блокировка по бездействию: от 0 до 1440 минут, иначе 422; испорченное значение — по умолчанию")
+    void idleLockMinutesAreBounded() {
+        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+                        service.updateInstanceSettings(Map.of("security.idle_lock_minutes", "2000")))
+                .isInstanceOf(com.greenwhite.dwh.instance.common.error.ApiException.class);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+                        service.updateInstanceSettings(Map.of("security.idle_lock_minutes", "soon")))
+                .isInstanceOf(com.greenwhite.dwh.instance.common.error.ApiException.class);
+
+        when(repository.getAllInstanceSettings()).thenReturn(Map.of("security.idle_lock_minutes", "15"));
+        org.assertj.core.api.Assertions.assertThat(service.idleLockMinutes()).isEqualTo(15);
+        when(repository.getAllInstanceSettings()).thenReturn(Map.of("security.idle_lock_minutes", "broken"));
+        org.assertj.core.api.Assertions.assertThat(service.idleLockMinutes()).isEqualTo(30);
+    }
+
+    @Test
     @DisplayName("Некорректный язык должен отклоняться до записи любых настроек")
     void shouldRejectInvalidLanguageBeforeWritingSettings() {
         var error = new IllegalArgumentException("inactive language");

@@ -1,3 +1,4 @@
+import { IdleLockDialogComponent } from './components/idle-lock-dialog.component';
 import { Component, DestroyRef, ElementRef, HostListener, OnDestroy, ViewChild, computed, effect, signal, inject } from '@angular/core';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -34,6 +35,7 @@ import { AppShellFlyoutService } from './services/app-shell-flyout.service';
   selector: 'app-shell',
   standalone: true,
   imports: [
+    IdleLockDialogComponent,
     CommonModule,
     RouterModule,
     TranslatePipe,

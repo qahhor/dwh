@@ -29,6 +29,13 @@ public class MdSettingController {
         return ResponseEntity.ok(settingService.getEffectiveSettings(userId));
     }
 
+    /** What a signed-in session needs to know about itself: when inactivity closes it (roadmap item 28). */
+    @GetMapping("/session")
+    @RequiresPermission(form = MdPref.FORM_PROFILE, action = "view")
+    public ResponseEntity<Map<String, Integer>> getSessionSettings() {
+        return ResponseEntity.ok(Map.of("idleLockMinutes", settingService.idleLockMinutes()));
+    }
+
     @GetMapping("/system")
     @RequiresPermission(form = MdPref.FORM_SETTINGS, action = "view")
     public ResponseEntity<Map<String, String>> getSystemSettings() {

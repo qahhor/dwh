@@ -9,6 +9,12 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Idle lock (roadmap item 28): after `security.idle_lock_minutes` (30 by
+  default, 0 — off, set in Settings → Security) without a click, key or scroll
+  in any tab, the session is closed on the server and the sign-in page says
+  why. A minute before, a dialog counts down and offers to keep working.
+  Activity in one tab keeps the others open. `GET /api/v1/settings/session`
+  returns the limit to a signed-in user.
 - Open tabs stay in step (roadmap item 27): signing out — or changing the
   password — in one tab signs out the others with a note why; signing in
   wakes the tabs still on the sign-in page; a language chosen in one tab
@@ -529,6 +535,11 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Control Plane, fleet management, heartbeat, enrollment, and license gates.
 
 ### Security
+
+- Personal settings are limited to `user.*` and `ui.*` keys: saving any other
+  key as a personal setting is rejected with 422 `SETTING_NOT_PERSONAL`, and a
+  stored personal value no longer shadows an instance setting, so nobody can
+  switch their own idle lock or other security settings off.
 
 - Pinned ClamAV to `clamav/clamav-debian:1.5.4` (Debian 13.7) by digest.
   The previous pin, 1.5.3 on Debian 13.6, carried 44 HIGH/CRITICAL fixable
