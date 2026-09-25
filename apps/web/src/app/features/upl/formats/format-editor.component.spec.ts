@@ -205,6 +205,30 @@ function twoSheetVersion(): UplFormatVersion {
 }
 
 describe('FormatEditorComponent', () => {
+  it('asks before removing a sheet, names the columns lost and keeps the sheet on No', async () => {
+    const { fixture } = await createFixture({ version: twoSheetVersion() });
+    const confirmDialog = async () => {
+      click(many(fixture, 'upl-remove-sheet')[1]);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      return document.querySelector('.smt-modal-confirm') as HTMLElement;
+    };
+
+    let dialog = await confirmDialog();
+    expect(dialog.textContent).toContain('Лист и его колонки будут удалены (2)');
+    dialog.querySelectorAll<HTMLButtonElement>('button')[0].click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(many(fixture, 'upl-sheet-tab').length).toBe(2);
+
+    dialog = await confirmDialog();
+    [...dialog.querySelectorAll<HTMLButtonElement>('button')].at(-1)!.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(many(fixture, 'upl-sheet-tab').length).toBe(1);
+    document.querySelectorAll('.cdk-overlay-container').forEach(node => node.remove());
+  });
+
   it('loads source, version, sheet tabs and columns', async () => {
     const { fixture } = await createFixture();
 

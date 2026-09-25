@@ -31,6 +31,16 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   error are linked to the field for screen readers (hints and UPL errors
   were not linked before), and a required field says so once it is left
   empty, not only after submitting.
+- Confirmations run their action: deleting a file, a user, a custom field,
+  a menu item, a webhook, a task type or status; removing a project member;
+  revoking a token, ending sessions, unbinding a channel; the user security
+  actions; publishing or archiving an announcement and removing a UPL sheet
+  now ask in one accessible alert dialog. It stays open and busy while the
+  request runs, cannot be dismissed meanwhile, and shows the server's reason
+  in the dialog (not as a toast) so the person can retry or decline. Rights
+  to delete a file are checked again when Yes is pressed. Discard-changes
+  prompts, role deletion and the data scope change keep their own dialogs:
+  they are part of the leave guards and nested decisions of those screens.
 - The file storage list pages through every file with a server cursor; it
   used to show at most the 100 newest and hide the rest. It runs on the field
   registry (`mf.files`): sorting of the whole list by name, size or date,

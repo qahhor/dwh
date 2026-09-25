@@ -877,9 +877,16 @@ describe('ProjectsComponent UI contracts', () => {
     expect(toast.success).toHaveBeenCalled();
 
     // 3. Remove member
-    component.onRemoveProjectMember({ projectId: 42, userId: 10 });
-    expect(api.delete).toHaveBeenCalledWith('/tasks/projects/42/members/10');
+    component.onRemoveProjectMember({ projectId: 42, userId: 10, userName: 'Иван' });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const dialog = document.querySelector('.smt-modal-confirm') as HTMLElement;
+    expect(dialog.textContent).toContain('Иван');
+    expect(api.delete).not.toHaveBeenCalled();
+    [...dialog.querySelectorAll<HTMLButtonElement>('button')].at(-1)!.click();
+    expect(api.delete).toHaveBeenCalledWith('/tasks/projects/42/members/10', { notifyError: false });
     expect(toast.success).toHaveBeenCalled();
+    document.querySelectorAll('.cdk-overlay-container').forEach(node => node.remove());
 
     // 4. Close modal
     component.closeMembersModal();

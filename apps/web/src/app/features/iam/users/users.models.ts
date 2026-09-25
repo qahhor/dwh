@@ -3,14 +3,6 @@ import { Role } from '../../../core/models/rbac.models';
 import { ToastService } from '../../../core/services/toast.service';
 import { I18nService } from '../../../core/services/i18n.service';
 
-export interface SecurityConfirmConfig {
-  title: string;
-  message: string;
-  confirmBtnText: string;
-  confirmBtnVariant: 'primary' | 'secondary' | 'danger' | 'ghost';
-  action: () => void;
-}
-
 export interface UserCreateForm {
   name: string;
   login: string;

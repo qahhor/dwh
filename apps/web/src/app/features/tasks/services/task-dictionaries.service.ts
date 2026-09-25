@@ -4,6 +4,9 @@ import { ApiService } from '../../../core/services/api.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { I18nService } from '../../../core/services/i18n.service';
 import { TaskStatus, TaskType } from '../../../core/models/task.models';
+import { tap } from 'rxjs';
+import { SMTModalService } from '../../../shared/ui-kit/components/modal';
+import { problemText } from '../../../shared/ui/problem-text';
 
 @Injectable({
   providedIn: 'root'
@@ -12,6 +15,7 @@ export class TaskDictionariesService {
   private readonly api = inject(ApiService);
   private readonly toast = inject(ToastService);
   private readonly uiI18n = inject(I18nService);
+  private readonly modal = inject(SMTModalService);
 
   readonly statuses = signal<TaskStatus[]>([]);
   readonly taskTypes = signal<TaskType[]>([]);
@@ -70,22 +74,34 @@ export class TaskDictionariesService {
     });
   }
 
+  /**
+   * Asks before deleting a type or status and deletes from the dialog; a
+   * refusal (the item is in use) is shown in the dialog, not as a toast.
+   */
   handleDeleteDictionaryItem(target: { kind: 'type' | 'status'; id: number; name: string }): void {
-    const endpoint = target.kind === 'type' ? `/tasks/types/${target.id}` : `/tasks/statuses/${target.id}`;
-    this.api.delete(endpoint).subscribe({
-      next: () => {
-        if (target.kind === 'type') {
-          this.toast.success(this.uiI18n.translate('tasks.tip_zadachi_udalen'));
-          this.loadTypes();
-        } else {
-          this.toast.success(this.uiI18n.translate('tasks.status_udalen'));
-          this.loadStatuses();
-        }
-      },
-      error: err => this.toast.error(err.error?.message || (target.kind === 'type'
-        ? this.uiI18n.translate('tasks.oshibka_udaleniya_tipa')
-        : this.uiI18n.translate('tasks.nelzya_udalit_status_privyazannyy_k_zadacham')))
-    });
+    const t = (key: string, params?: Record<string, string>) => this.uiI18n.translate(key, params);
+    const isType = target.kind === 'type';
+    const endpoint = isType ? `/tasks/types/${target.id}` : `/tasks/statuses/${target.id}`;
+    this.modal.confirm({
+      title: t('tasks.udalenie_elementa_spravochnika'),
+      message: `${t('tasks.delete_dictionary_confirm', { kind: t(isType ? 'tasks.task_type_accusative' : 'tasks.status_accusative'), name: target.name })}\n${t('tasks.udalenie_budet_otkloneno_esli_element_uzhe_ispol')}`,
+      yesLabel: t('common.delete'),
+      noLabel: t('common.cancel'),
+      destructive: true,
+      action: () => this.api.delete(endpoint, { notifyError: false }).pipe(
+        tap(() => {
+          if (isType) {
+            this.toast.success(t('tasks.tip_zadachi_udalen'));
+            this.loadTypes();
+          } else {
+            this.toast.success(t('tasks.status_udalen'));
+            this.loadStatuses();
+          }
+        })
+      ),
+      actionError: error => problemText(error)
+        || t(isType ? 'tasks.oshibka_udaleniya_tipa' : 'tasks.nelzya_udalit_status_privyazannyy_k_zadacham')
+    }).subscribe();
   }
 
   handleReorderTypes(list: TaskType[]): void {

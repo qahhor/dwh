@@ -160,7 +160,7 @@ import { ProjectMember } from '../projects.models';
           size="sm"
           icon="delete"
           [ariaLabel]="'projects.remove_member_named' | t:{name: m.userName}"
-          [loading]="isRemovingMember && memberToRemove?.userId === m.userId"
+          [loading]="removingUserId === m.userId"
           (onClick)="requestRemove(m)"
         >
           {{ 'common.delete' | t }}
@@ -168,34 +168,6 @@ import { ProjectMember } from '../projects.models';
       </div>
     </ng-template>
     <ng-template #emptyMembers><p class="empty-cell">{{ 'projects.net_uchastnikov_proekta' | t }}</p></ng-template>
-
-    <!-- Remove Member Confirmation Modal -->
-    <ui-modal
-      [isOpen]="memberToRemove !== null"
-      [title]="'projects.udalit_iz_proekta' | t"
-      size="sm"
-      (close)="memberToRemove = null"
-    >
-      <div body *ngIf="memberToRemove" class="remove-prompt-body">
-        <p class="remove-prompt-text">
-          {{ 'projects.vy_uvereny_chto_hotite_udalit_uchastnika' | t:{name: memberToRemove.userName} }}
-        </p>
-      </div>
-      <div footer class="modal-footer-actions">
-        <ui-button variant="secondary" size="md" (onClick)="memberToRemove = null">
-          {{ 'common.cancel' | t }}
-        </ui-button>
-        <ui-button
-          variant="danger"
-          size="md"
-          icon="delete"
-          [loading]="isRemovingMember"
-          (onClick)="confirmRemove()"
-        >
-          {{ 'projects.udalit_iz_proekta' | t }}
-        </ui-button>
-      </div>
-    </ui-modal>
   `,
   styles: [`
     .members-modal-body {
@@ -468,7 +440,8 @@ export class ProjectMembersModalComponent {
   }
   @Input() isLoadingMembers = false;
   @Input() isAddingMember = false;
-  @Input() isRemovingMember = false;
+  /** The member whose removal is running, so only that row's button shows it. */
+  @Input() removingUserId: number | null = null;
   @Input() set canUpdateProject(can: boolean) {
     this.canUpdate.set(can);
   }
@@ -511,14 +484,14 @@ export class ProjectMembersModalComponent {
 
   @Output() close = new EventEmitter<void>();
   @Output() addMember = new EventEmitter<{ projectId: number; userId: number; accessKind: string }>();
-  @Output() removeMember = new EventEmitter<{ projectId: number; userId: number }>();
+  /** Asks the page to remove a member; the page confirms it first. */
+  @Output() removeMember = new EventEmitter<{ projectId: number; userId: number; userName: string }>();
 
   userSearchQuery = '';
   foundUsers: User[] = [];
   selectedUser: User | null = null;
   selectedAccessKind = 'MEMBER';
   isUserDropdownOpen = false;
-  memberToRemove: ProjectMember | null = null;
 
   private searchSubject = new Subject<string>();
 
@@ -606,16 +579,6 @@ export class ProjectMembersModalComponent {
   }
 
   requestRemove(member: ProjectMember): void {
-    this.memberToRemove = member;
-  }
-
-  confirmRemove(): void {
-    if (!this.memberToRemove) return;
-    const target = this.memberToRemove;
-    this.memberToRemove = null;
-    this.removeMember.emit({
-      projectId: target.projectId,
-      userId: target.userId
-    });
+    this.removeMember.emit({ projectId: member.projectId, userId: member.userId, userName: member.userName });
   }
 }

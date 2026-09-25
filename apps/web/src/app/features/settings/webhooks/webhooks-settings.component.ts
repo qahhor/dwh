@@ -9,6 +9,9 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { UiLocalTableComponent } from '../../../shared/ui/ui-local-table.component';
 import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
+import { finalize, tap } from 'rxjs';
+import { SMTModalService } from '../../../shared/ui-kit/components/modal';
+import { problemText } from '../../../shared/ui/problem-text';
 import {
   WebhookSubscription,
   CreatedWebhookSubscription,
@@ -251,26 +254,6 @@ import {
         <div footer>
           <ui-button variant="primary" size="md" (onClick)="closeSecretModal()">
             {{ 'common.confirm' | t }}
-          </ui-button>
-        </div>
-      </ui-modal>
-
-      <!-- Delete Confirmation Modal -->
-      <ui-modal
-        [isOpen]="isDeleteModalOpen()"
-        [title]="'common.confirm' | t"
-        size="sm"
-        (close)="isDeleteModalOpen.set(false)"
-      >
-        <div body class="delete-body" *ngIf="deletingSubscription() as sub">
-          <p>{{ 'settings.webhooks.delete_confirm' | t:{name: sub.name} }}</p>
-        </div>
-        <div footer *ngIf="deletingSubscription() as sub">
-          <ui-button variant="secondary" size="md" (onClick)="isDeleteModalOpen.set(false)">
-            {{ 'common.cancel' | t }}
-          </ui-button>
-          <ui-button variant="danger" size="md" [loading]="isSaving()" (onClick)="doDelete(sub.id)">
-            {{ 'common.delete' | t }}
           </ui-button>
         </div>
       </ui-modal>
@@ -579,6 +562,7 @@ export class WebhooksSettingsComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly uiI18n = inject(I18nService);
   private readonly permService = inject(PermissionService);
+  private readonly modal = inject(SMTModalService);
 
   readonly subscriptions = signal<WebhookSubscription[]>([]);
 
@@ -623,8 +607,6 @@ export class WebhooksSettingsComponent implements OnInit {
   readonly createdSecretModalOpen = signal<boolean>(false);
   readonly recentlyCreatedSubscription = signal<CreatedWebhookSubscription | null>(null);
 
-  readonly isDeleteModalOpen = signal<boolean>(false);
-  readonly deletingSubscription = signal<WebhookSubscription | null>(null);
 
   createName = '';
   createTargetUrl = '';
@@ -744,25 +726,26 @@ export class WebhooksSettingsComponent implements OnInit {
     });
   }
 
+  /** Asks before deleting a subscription; the dialog stays open until the server answers. */
   confirmDelete(sub: WebhookSubscription): void {
-    this.deletingSubscription.set(sub);
-    this.isDeleteModalOpen.set(true);
-  }
-
-  doDelete(id: number): void {
-    this.isSaving.set(true);
-    this.api.delete<void>(`/webhooks/subscriptions/${id}`).subscribe({
-      next: () => {
-        this.isSaving.set(false);
-        this.isDeleteModalOpen.set(false);
-        this.deletingSubscription.set(null);
-        this.toast.success(this.uiI18n.translate('settings.webhooks.deleted_success'));
-        this.loadSubscriptions();
+    this.modal.confirm({
+      title: this.uiI18n.translate('common.confirm'),
+      message: this.uiI18n.translate('settings.webhooks.delete_confirm', { name: sub.name }),
+      yesLabel: this.uiI18n.translate('common.delete'),
+      noLabel: this.uiI18n.translate('common.cancel'),
+      destructive: true,
+      action: () => {
+        this.isSaving.set(true);
+        return this.api.delete<void>(`/webhooks/subscriptions/${sub.id}`, { notifyError: false }).pipe(
+          tap(() => {
+            this.toast.success(this.uiI18n.translate('settings.webhooks.deleted_success'));
+            this.loadSubscriptions();
+          }),
+          finalize(() => this.isSaving.set(false))
+        );
       },
-      error: () => {
-        this.isSaving.set(false);
-      }
-    });
+      actionError: problemText
+    }).subscribe();
   }
 }
 

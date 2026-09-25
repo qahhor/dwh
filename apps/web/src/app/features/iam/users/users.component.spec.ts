@@ -663,12 +663,17 @@ describe('UsersComponent UI contracts', () => {
     fixture.componentInstance.terminateUserSessions(42);
 
     expect(confirmSpy).not.toHaveBeenCalled();
-    expect(fixture.componentInstance.isSecConfirmModalOpen()).toBe(true);
-    expect(fixture.componentInstance.secConfirmConfig).not.toBeNull();
-    expect(fixture.componentInstance.secConfirmConfig?.confirmBtnVariant).toBe('danger');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const dialog = document.querySelector('.smt-modal-confirm') as HTMLElement;
+    expect(dialog.closest('[role="alertdialog"]')).not.toBeNull();
+    const yes = [...dialog.querySelectorAll<HTMLButtonElement>('button')].at(-1)!;
+    expect(yes.classList).toContain('smt-modal-button--danger');
+    expect(api.delete).not.toHaveBeenCalled();
 
-    fixture.componentInstance.confirmSecurityAction();
-    expect(api.delete).toHaveBeenCalledWith('/iam/users/42/sessions');
+    yes.click();
+    expect(api.delete).toHaveBeenCalledWith('/iam/users/42/sessions', { notifyError: false });
+    document.querySelectorAll('.cdk-overlay-container').forEach(node => node.remove());
 
     confirmSpy.mockRestore();
   });

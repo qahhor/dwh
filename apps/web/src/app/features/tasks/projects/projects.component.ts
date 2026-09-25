@@ -3,7 +3,9 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { canonicalRecordId, recordResponseMatches, safeNumericRecordId } from '../../../core/services/search-target';
-import { Subscription, Observable } from 'rxjs';
+import { Subscription, Observable, finalize, tap } from 'rxjs';
+import { SMTModalService } from '../../../shared/ui-kit/components/modal';
+import { problemText } from '../../../shared/ui/problem-text';
 import { ApiService } from '../../../core/services/api.service';
 import { PermissionService } from '../../../core/services/permission.service';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
@@ -61,7 +63,8 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   readonly projectMembers = signal<ProjectMember[]>([]);
   readonly isLoadingMembers = signal<boolean>(false);
   readonly isAddingMember = signal<boolean>(false);
-  readonly isRemovingMember = signal<boolean>(false);
+  readonly removingMemberId = signal<number | null>(null);
+  private readonly modal = inject(SMTModalService);
 
   readonly projects = signal<Project[]>([]);
   readonly projectStats = signal<Record<number, ProjectTaskStats>>({});
@@ -367,19 +370,27 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     });
   }
 
-  onRemoveProjectMember(event: { projectId: number; userId: number }): void {
-    this.isRemovingMember.set(true);
-    this.api.delete(`/tasks/projects/${event.projectId}/members/${event.userId}`).subscribe({
-      next: () => {
-        this.isRemovingMember.set(false);
-        this.toast.success(this.uiI18n.translate('projects.uchastnik_uspeshno_udalen'));
-        this.loadProjectMembers(event.projectId);
+  /** Asks before removing a member; the dialog stays open until the server answers. */
+  onRemoveProjectMember(event: { projectId: number; userId: number; userName: string }): void {
+    const t = (key: string, params?: Record<string, string>) => this.uiI18n.translate(key, params);
+    this.modal.confirm({
+      title: t('projects.udalit_iz_proekta'),
+      message: t('projects.vy_uvereny_chto_hotite_udalit_uchastnika', { name: event.userName }),
+      yesLabel: t('projects.udalit_iz_proekta'),
+      noLabel: t('common.cancel'),
+      destructive: true,
+      action: () => {
+        this.removingMemberId.set(event.userId);
+        return this.api.delete(`/tasks/projects/${event.projectId}/members/${event.userId}`, { notifyError: false }).pipe(
+          tap(() => {
+            this.toast.success(t('projects.uchastnik_uspeshno_udalen'));
+            this.loadProjectMembers(event.projectId);
+          }),
+          finalize(() => this.removingMemberId.set(null))
+        );
       },
-      error: (err: any) => {
-        this.isRemovingMember.set(false);
-        this.toast.error(err?.error?.detail || this.uiI18n.translate('projects.oshibka_udaleniya_uchastnika'));
-      }
-    });
+      actionError: error => problemText(error) || t('projects.oshibka_udaleniya_uchastnika')
+    }).subscribe();
   }
 
   loadProjectCustomFields() {

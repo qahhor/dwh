@@ -132,20 +132,6 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
         </ui-button>
       </div>
     </ui-modal>
-
-    <!-- Delete Confirmation Modal -->
-    <ui-modal
-      *ngIf="deleteTarget"
-      [isOpen]="deleteTarget !== null"
-      [title]="'nav.settings.delete_modal_title' | t"
-      (close)="cancelDelete.emit()"
-    >
-      <p *ngIf="deleteTarget as target">{{ 'nav.settings.delete_confirm' | t: { title: target.title } }}</p>
-      <div footer class="modal-footer-btns">
-        <ui-button variant="secondary" (onClick)="cancelDelete.emit()">{{ 'common.cancel' | t }}</ui-button>
-        <ui-button variant="danger" (onClick)="executeDelete.emit()">{{ 'common.delete' | t }}</ui-button>
-      </div>
-    </ui-modal>
   `,
   styles: [`
     :host {
@@ -288,7 +274,6 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
 export class NavigationSettingsModalComponent {
   @Input() isModalOpen = false;
   @Input() editingItem: CustomNavigationItem | null = null;
-  @Input() deleteTarget: CustomNavigationItem | null = null;
   @Input() isSubmitting = false;
   @Input() isFormValid = false;
 
@@ -313,6 +298,4 @@ export class NavigationSettingsModalComponent {
   @Output() urlBlur = new EventEmitter<void>();
   @Output() closeModal = new EventEmitter<void>();
   @Output() saveItem = new EventEmitter<void>();
-  @Output() cancelDelete = new EventEmitter<void>();
-  @Output() executeDelete = new EventEmitter<void>();
 }

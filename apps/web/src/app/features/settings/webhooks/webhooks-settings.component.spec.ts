@@ -153,16 +153,19 @@ describe('WebhooksSettingsComponent', () => {
   });
 
   it('should handle delete confirmation and deletion', async () => {
-    const { component, api, toast } = await createFixture();
+    const { fixture, component, api, toast } = await createFixture();
     const sub = component.subscriptions()[0];
 
     component.confirmDelete(sub);
-    expect(component.isDeleteModalOpen()).toBe(true);
-    expect(component.deletingSubscription()?.id).toBe(1);
+    await fixture.whenStable();
+    const dialog = document.querySelector('.smt-modal-confirm') as HTMLElement;
+    expect(dialog.textContent).toContain('ERP Integration');
+    expect(api.delete).not.toHaveBeenCalled();
 
-    component.doDelete(1);
-    expect(api.delete).toHaveBeenCalledWith('/webhooks/subscriptions/1');
+    [...dialog.querySelectorAll<HTMLButtonElement>('button')].at(-1)!.click();
+    expect(api.delete).toHaveBeenCalledWith('/webhooks/subscriptions/1', { notifyError: false });
     expect(toast.success).toHaveBeenCalled();
-    expect(component.isDeleteModalOpen()).toBe(false);
+    await fixture.whenStable();
+    expect(document.querySelector('.smt-modal-confirm')).toBeNull();
   });
 });

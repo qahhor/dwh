@@ -18,6 +18,8 @@ import {
 import { AnnouncementsToolbarComponent } from './components/announcements-toolbar.component';
 import { AnnouncementsListComponent } from './components/announcements-list.component';
 import { AnnouncementsModalsComponent } from './components/announcements-modals.component';
+import { EMPTY, catchError, finalize, tap } from 'rxjs';
+import { SMTModalService } from '../../shared/ui-kit/components/modal';
 
 export type {
   AnnouncementState,
@@ -148,11 +150,8 @@ export type {
         (draftBodiesChange)="draftBodies.set($event)"
         [bannerType]="bannerType()"
         (bannerTypeChange)="bannerType.set($event)"
-        [confirmation]="confirmation()"
         (closeEditor)="closeEditor()"
         (saveDraft)="saveDraft()"
-        (confirmAction)="executeConfirmedAction()"
-        (cancelConfirmation)="confirmation.set(null)"
       />
     </section>
   `,
@@ -194,7 +193,7 @@ export class AnnouncementsComponent implements OnInit {
   readonly operationError = signal<string | null>(null);
   readonly isSaving = signal(false);
   readonly isEditorOpen = signal(false);
-  readonly confirmation = signal<Confirmation | null>(null);
+  private readonly modal = inject(SMTModalService);
 
   readonly statusFilter = signal<'ALL' | 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'>('ALL');
   readonly searchQuery = signal('');
@@ -393,35 +392,43 @@ export class AnnouncementsComponent implements OnInit {
       return;
     }
     this.operationError.set(null);
-    this.confirmation.set({ action, announcement });
+    const t = (key: string) => this.uiI18n.translate(key);
+    const archive = action === 'archive';
+    const title = this.localizedValue(announcement.titleJson);
+    this.modal.confirm({
+      title: t(archive ? 'announcements.arhivirovat_obyavlenie' : 'announcements.opublikovat_obyavlenie'),
+      message: `«${title}»\n${t(archive ? 'announcements.obyavlenie_ischeznet_u_polzovateley_i_ostanetsya' : 'announcements.posle_publikacii_obyavlenie_uvidyat_polzovateli_')}`,
+      yesLabel: t('common.confirm'),
+      noLabel: t('common.cancel'),
+      destructive: archive,
+      action: () => this.runConfirmedAction({ action, announcement })
+    }).subscribe();
   }
 
-  executeConfirmedAction(): void {
-    const pending = this.confirmation();
-    if (!pending || this.isSaving()) {
-      return;
-    }
+  /**
+   * Publishes or archives from the dialog. A refusal closes the dialog and is
+   * shown on the page like any other save error, since a conflict needs the
+   * page's "refresh" and not another try.
+   */
+  private runConfirmedAction(pending: Confirmation) {
     this.isSaving.set(true);
     const path = `/announcements/${pending.announcement.id}/${pending.action}`;
-    this.api.post<AnnouncementAdminRecord>(path, { lockVersion: pending.announcement.lockVersion }).subscribe({
-      next: saved => {
+    return this.api.post<AnnouncementAdminRecord>(path, { lockVersion: pending.announcement.lockVersion }).pipe(
+      tap(saved => {
         this.upsert(saved);
-        this.isSaving.set(false);
-        this.confirmation.set(null);
         this.toast.success(pending.action === 'publish' ? this.uiI18n.translate('announcements.obyavlenie_opublikovano') : this.uiI18n.translate('announcements.obyavlenie_arhivirovano'));
-      },
-      error: (problem: ApiProblem) => {
-        this.isSaving.set(false);
-        this.confirmation.set(null);
+      }),
+      catchError((problem: ApiProblem) => {
         this.handleMutationError(problem);
-      }
-    });
+        return EMPTY;
+      }),
+      finalize(() => this.isSaving.set(false))
+    );
   }
 
   refreshAfterConflict(): void {
     this.operationError.set(null);
     this.isEditorOpen.set(false);
-    this.confirmation.set(null);
     this.loadAnnouncements();
   }
 

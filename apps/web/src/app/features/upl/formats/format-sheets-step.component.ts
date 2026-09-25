@@ -1,9 +1,9 @@
-import { Component, computed, inject, input, model, signal } from '@angular/core';
+import { Component, inject, input, model, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
-import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
+import { SMTModalService } from '../../../shared/ui-kit/components/modal';
 import { UPL_DATA_TYPES, UplColumn, UplFormatDraftRequest, UplSheet, UplUnit } from '../upl-api';
 import { UPL_DATA_TYPE_KEY } from '../upl-labels';
 import { UplFieldError, uplCellError, uplFieldErrorText, uplSheetError, uplSheetHasErrors } from './upl-format-errors';
@@ -17,7 +17,7 @@ import { clearFieldsForType, emptyColumn, emptySheet, isNumericColumn } from './
   selector: 'app-upl-format-sheets-step',
   standalone: true,
   // Не OnPush: вид файла и сопоставление колонок меняет соседний шаг «Файл» в той же изменяемой модели.
-  imports: [FormsModule, TranslatePipe, UiButtonComponent, UiModalComponent],
+  imports: [FormsModule, TranslatePipe, UiButtonComponent],
   template: `
     <h2 class="upl-block-title">{{ 'upl.format.sheets' | t }}</h2>
     <div class="upl-tabs" role="tablist">
@@ -35,7 +35,7 @@ import { clearFieldsForType, emptyColumn, emptySheet, isNumericColumn } from './
               class="upl-tab-remove"
               data-testid="upl-remove-sheet"
               [attr.aria-label]="'upl.format.remove_sheet' | t"
-              (click)="sheetToRemove.set($index)"
+              (click)="askRemoveSheet($index)"
             >×</button>
           }
         </span>
@@ -338,21 +338,6 @@ import { clearFieldsForType, emptyColumn, emptySheet, isNumericColumn } from './
         </ui-button>
       }
     }
-
-    <ui-modal
-      [isOpen]="sheetToRemove() !== null"
-      [title]="'upl.format.remove_sheet' | t"
-      size="sm"
-      (close)="sheetToRemove.set(null)"
-    >
-      <p body>{{ text('upl.format.remove_sheet_confirm', { count: sheetToRemoveColumns().toString() }) }}</p>
-      <div footer class="upl-modal-actions">
-        <ui-button variant="secondary" (onClick)="sheetToRemove.set(null)">{{ 'upl.common.cancel' | t }}</ui-button>
-        <ui-button variant="danger" data-testid="upl-remove-sheet-confirm" (onClick)="confirmRemoveSheet()">
-          {{ 'upl.format.remove_sheet' | t }}
-        </ui-button>
-      </div>
-    </ui-modal>
   `,
   styles: [`
     :host { display: flex; flex-direction: column; gap: 0.75rem; }
@@ -378,6 +363,7 @@ import { clearFieldsForType, emptyColumn, emptySheet, isNumericColumn } from './
 export class FormatSheetsStepComponent {
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(I18nService);
+  private readonly modal = inject(SMTModalService);
 
   readonly model = input.required<UplFormatDraftRequest>();
   readonly editable = input(false);
@@ -388,11 +374,6 @@ export class FormatSheetsStepComponent {
   readonly dataTypes = UPL_DATA_TYPES;
   readonly dataTypeKey = UPL_DATA_TYPE_KEY;
 
-  readonly sheetToRemove = signal<number | null>(null);
-  readonly sheetToRemoveColumns = computed(() => {
-    const index = this.sheetToRemove();
-    return index === null ? 0 : this.model().sheets[index]?.columns.length ?? 0;
-  });
 
   text(key: string, params?: Record<string, string>): string {
     return this.i18n.translate(key, params);
@@ -440,13 +421,25 @@ export class FormatSheetsStepComponent {
     this.activeSheet.set(this.model().sheets.length - 1);
   }
 
-  confirmRemoveSheet(): void {
-    const index = this.sheetToRemove();
-    if (index === null) return;
+  /** Removing a sheet drops its column mapping, so it is asked first, with the number of columns lost. */
+  askRemoveSheet(index: number): void {
+    const columns = this.model().sheets[index]?.columns.length ?? 0;
+    this.modal.confirm({
+      title: this.text('upl.format.remove_sheet'),
+      message: this.text('upl.format.remove_sheet_confirm', { count: columns.toString() }),
+      yesLabel: this.text('upl.format.remove_sheet'),
+      noLabel: this.text('upl.common.cancel'),
+      destructive: true
+    }).subscribe(confirmed => {
+      if (confirmed) this.confirmRemoveSheet(index);
+    });
+  }
+
+  confirmRemoveSheet(index: number): void {
     const sheets = this.model().sheets;
+    if (!sheets[index]) return;
     sheets.splice(index, 1);
     this.errors.set([]);
-    this.sheetToRemove.set(null);
     if (this.activeSheet() >= sheets.length) {
       this.activeSheet.set(Math.max(0, sheets.length - 1));
     }

@@ -81,26 +81,6 @@ import { UserSession } from '../profile.models';
       </div>
     </ng-template>
     <ng-template #emptySessions><p class="empty-cell">{{ 'iam.net_aktivnyh_sessiy' | t }}</p></ng-template>
-
-    <!-- Session Termination Confirmation Modal -->
-    <ui-modal
-      [isOpen]="sessionToTerminate !== null"
-      [title]="'iam.zavershenie_sessii' | t"
-      size="sm"
-      (close)="cancelTerminate.emit()"
-    >
-      <div body class="confirmation-body" *ngIf="sessionToTerminate as target">
-        <p *ngIf="target === 'others'">{{ 'iam.zavershit_vse_ostalnye_aktivnye_sessii_krome_tek' | t }}</p>
-        <p *ngIf="target !== 'others'">{{ 'iam.zavershit_sessiyu_s_ip' | t }} <strong>{{ target.ip }}</strong>?</p>
-        <span class="confirmation-hint">{{ 'iam.na_zavershennyh_ustroystvah_potrebuetsya_vypolni' | t }}</span>
-      </div>
-      <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="cancelTerminate.emit()">{{ 'common.cancel' | t }}</ui-button>
-        <ui-button variant="danger" size="md" [loading]="isTerminatingSession" (onClick)="confirmTerminate.emit()">
-          {{ 'iam.zavershit' | t }}
-        </ui-button>
-      </div>
-    </ui-modal>
   `,
   styles: [`
     :host {
@@ -307,13 +287,10 @@ export class ProfileSessionsCardComponent {
   }
   @Input() isLoadingSessions = false;
   @Input() isTerminatingSession = false;
-  @Input() sessionToTerminate: UserSession | 'others' | null = null;
 
   @Output() loadSessions = new EventEmitter<void>();
   @Output() terminateSession = new EventEmitter<UserSession>();
   @Output() terminateOtherSessions = new EventEmitter<void>();
-  @Output() confirmTerminate = new EventEmitter<void>();
-  @Output() cancelTerminate = new EventEmitter<void>();
 
   private readonly i18n = inject(I18nService);
   readonly rows = signal<UserSession[]>([]);

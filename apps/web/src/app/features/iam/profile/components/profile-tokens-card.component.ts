@@ -139,25 +139,6 @@ import { ApiToken, TokenExpirationOption } from '../profile.models';
         </ui-button>
       </div>
     </ui-modal>
-
-    <!-- Token Revocation Confirmation -->
-    <ui-modal
-      [isOpen]="tokenToRevoke !== null"
-      [title]="'iam.otzyv_api_tokena' | t"
-      size="sm"
-      (close)="cancelRevoke.emit()"
-    >
-      <div body class="confirmation-body" *ngIf="tokenToRevoke as token">
-        <p>{{ 'iam.otozvat_api_token' | t }} <strong>{{ token.name }}</strong>?</p>
-        <span class="confirmation-hint">{{ 'iam.integracii_s_etim_tokenom_nemedlenno_poteryayut_' | t }}</span>
-      </div>
-      <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="cancelRevoke.emit()">{{ 'common.cancel' | t }}</ui-button>
-        <ui-button variant="danger" size="md" [loading]="isRevokingToken" (onClick)="confirmRevoke.emit()">
-          {{ 'iam.otozvat' | t }}
-        </ui-button>
-      </div>
-    </ui-modal>
   `,
   styleUrl: './profile-tokens-card.component.css'
 })
@@ -203,7 +184,6 @@ export class ProfileTokensCardComponent {
   });
   @Input() isLoadingTokens = false;
   @Input() isCreatingToken = false;
-  @Input() isRevokingToken = false;
   @Input() isCreateTokenModalOpen = false;
   @Input() isTokenSecretModalOpen = false;
   @Input() isTokenSubmitted = false;
@@ -211,7 +191,6 @@ export class ProfileTokensCardComponent {
   @Input() selectedTokenExpiration = '90';
   @Input() createdTokenSecret = '';
   @Input() copiedSecret = false;
-  @Input() tokenToRevoke: ApiToken | null = null;
   @Input() tokenExpirationOptions: TokenExpirationOption[] = [];
 
   @Output() openCreateTokenModal = new EventEmitter<void>();
@@ -222,6 +201,4 @@ export class ProfileTokensCardComponent {
   @Output() closeSecretModal = new EventEmitter<void>();
   @Output() copySecret = new EventEmitter<void>();
   @Output() requestRevoke = new EventEmitter<ApiToken>();
-  @Output() confirmRevoke = new EventEmitter<void>();
-  @Output() cancelRevoke = new EventEmitter<void>();
 }

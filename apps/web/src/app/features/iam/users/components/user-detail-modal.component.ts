@@ -10,14 +10,6 @@ import { LoginAttemptRecord, User, UserSecuritySummary, UserSession } from '../.
 import { UserOrgUnitsPanelComponent } from '../../org-units/public-api';
 import { UserEffectivePermissionsPanelComponent } from './user-effective-permissions-panel.component';
 
-export interface SecurityConfirmConfig {
-  title: string;
-  message: string;
-  confirmBtnText: string;
-  confirmBtnVariant: 'primary' | 'secondary' | 'danger' | 'ghost';
-  action: () => void;
-}
-
 @Component({
   selector: 'app-user-detail-modal',
   standalone: true,
@@ -293,41 +285,6 @@ export interface SecurityConfirmConfig {
       </span>
     </ng-template>
     <ng-template #attemptReasonCell let-att><span class="text-xs text-muted">{{ att.failureReason || '—' }}</span></ng-template>
-
-    <!-- Delete Confirmation Modal -->
-    <ui-modal
-      [isOpen]="isDeleteModalOpen"
-      [title]="'iam.udalenie_polzovatelya' | t"
-      size="sm"
-      (close)="closeDeleteModal.emit()"
-    >
-      <div body class="delete-body" *ngIf="deletingUser as u">
-        <p class="delete-msg">
-          {{ 'iam.vy_uvereny_chto_hotite_udalit_i_anonimizirovat_p' | t }} <strong>{{ u.name }}</strong> (&#64;{{ u.login }})?
-        </p>
-        <span class="delete-sub">{{ 'iam.personalnye_dannye_budut_sterty_a_aktivnye_sessi' | t }}</span>
-      </div>
-      <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="closeDeleteModal.emit()">{{ 'common.cancel' | t }}</ui-button>
-        <ui-button variant="danger" size="md" [loading]="isSubmitting" (onClick)="confirmDelete.emit()">{{ 'common.delete' | t }}</ui-button>
-      </div>
-    </ui-modal>
-
-    <!-- Security Action Confirmation Modal -->
-    <ui-modal
-      [isOpen]="isSecConfirmModalOpen"
-      [title]="secConfirmConfig?.title || ('iam.podtverzhdenie_deystviya' | t)"
-      size="sm"
-      (close)="closeSecConfirmModal.emit()"
-    >
-      <div body class="delete-body" *ngIf="secConfirmConfig as cfg">
-        <p class="delete-msg">{{ cfg.message }}</p>
-      </div>
-      <div footer *ngIf="secConfirmConfig as cfg">
-        <ui-button variant="secondary" size="md" (onClick)="closeSecConfirmModal.emit()">{{ 'common.cancel' | t }}</ui-button>
-        <ui-button [variant]="cfg.confirmBtnVariant" size="md" [loading]="isSecurityActionPending" (onClick)="confirmSecurityAction.emit()">{{ cfg.confirmBtnText }}</ui-button>
-      </div>
-    </ui-modal>
   `,
   styleUrl: './user-detail-modal.component.css'
 })
@@ -357,12 +314,8 @@ export class UserDetailModalComponent {
   @Input() getUserRoleNames!: (u: User) => string[];
   @Input() getManagerName!: (u: User) => string | null;
 
-  @Input() isDeleteModalOpen = false;
-  @Input() deletingUser: User | null = null;
   @Input() isSubmitting = false;
 
-  @Input() isSecConfirmModalOpen = false;
-  @Input() secConfirmConfig: SecurityConfirmConfig | null = null;
 
   @Output() closeRecordView = new EventEmitter<void>();
   @Output() retryRecordView = new EventEmitter<string | null>();
@@ -374,11 +327,7 @@ export class UserDetailModalComponent {
   @Output() terminateSingleSession = new EventEmitter<{ sessionId: number, userId: number }>();
   @Output() orgPanelBusy = new EventEmitter<boolean>();
 
-  @Output() closeDeleteModal = new EventEmitter<void>();
-  @Output() confirmDelete = new EventEmitter<void>();
 
-  @Output() closeSecConfirmModal = new EventEmitter<void>();
-  @Output() confirmSecurityAction = new EventEmitter<void>();
 
   @ViewChild(UserOrgUnitsPanelComponent) orgUnitsPanel?: UserOrgUnitsPanelComponent;
 

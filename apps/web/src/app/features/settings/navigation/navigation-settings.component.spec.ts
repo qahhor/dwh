@@ -162,17 +162,22 @@ describe('NavigationSettingsComponent', () => {
     expect(navService.loadAllItems).toHaveBeenCalledTimes(2);
   });
 
-  it('opens delete confirmation and executes deletion', () => {
+  it('asks before deleting and deletes on Yes', async () => {
     const { fixture, navService, toast } = setup();
     fixture.detectChanges();
 
     fixture.componentInstance.confirmDelete(sampleItems[0]);
-    expect(fixture.componentInstance.deleteTarget()).toEqual(sampleItems[0]);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const dialog = document.querySelector('.smt-modal-confirm') as HTMLElement;
+    expect(dialog.closest('[role="alertdialog"]')).not.toBeNull();
+    expect(navService.deleteItem).not.toHaveBeenCalled();
 
-    fixture.componentInstance.executeDelete();
+    [...dialog.querySelectorAll<HTMLButtonElement>('button')].at(-1)!.click();
 
-    expect(navService.deleteItem).toHaveBeenCalledWith(1);
+    expect(navService.deleteItem).toHaveBeenCalledWith(1, { notifyError: false });
     expect(toast.success).toHaveBeenCalled();
-    expect(fixture.componentInstance.deleteTarget()).toBeNull();
+    await fixture.whenStable();
+    expect(document.querySelector('.smt-modal-confirm')).toBeNull();
   });
 });

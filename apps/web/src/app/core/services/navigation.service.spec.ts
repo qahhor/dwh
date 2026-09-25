@@ -126,8 +126,9 @@ describe('NavigationService', () => {
     api.delete.mockReturnValue(of(undefined));
     api.get.mockReturnValue(of([]));
 
-    await firstValueFrom(service.deleteItem(1));
+    await firstValueFrom(service.deleteItem(1, { notifyError: false }));
 
-    expect(api.delete).toHaveBeenCalledWith('/navigation/items/1');
+    // The caller decides who reports a failure: here the confirmation dialog does.
+    expect(api.delete).toHaveBeenCalledWith('/navigation/items/1', { notifyError: false });
   });
 });

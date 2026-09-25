@@ -240,7 +240,11 @@ describe('TasksComponent UI contracts', () => {
     const remove = fixture.nativeElement.querySelector('button[aria-label="Удалить тип задачи Проверка"]') as HTMLButtonElement;
     remove.click();
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('Удалить тип задачи «Проверка»?');
+    await fixture.whenStable();
+    const dialog = document.querySelector('.smt-modal-confirm') as HTMLElement;
+    expect(dialog.closest('[role="alertdialog"]')).not.toBeNull();
+    expect(dialog.textContent).toContain('Удалить тип задачи «Проверка»?');
+    document.querySelectorAll('.cdk-overlay-container').forEach(node => node.remove());
   });
 
   it('renders each subtask action as a native named button', async () => {

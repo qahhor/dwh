@@ -199,37 +199,6 @@ import { UserChannel } from '../profile.models';
         </ui-button>
       </div>
     </ui-modal>
-
-    <!-- Unbind Confirmation Modal -->
-    <ui-modal
-      [isOpen]="channelToUnbind !== null"
-      [title]="'iam.otvyazat_kanal' | t"
-      size="sm"
-      (close)="channelToUnbind = null"
-    >
-      <div body *ngIf="channelToUnbind" class="unbind-confirm-body">
-        <p class="confirm-prompt">
-          {{ 'iam.vy_uvereny_chto_hotite_otvyazat_kanal' | t:{channel: (getChannelLabelKey(channelToUnbind.channel) | t), address: channelToUnbind.address} }}
-        </p>
-        <p class="confirm-warning text-muted">
-          {{ 'iam.otvyazat_kanal_preduprezhdenie' | t }}
-        </p>
-      </div>
-      <div footer class="modal-actions">
-        <ui-button variant="secondary" size="md" (onClick)="channelToUnbind = null">
-          {{ 'common.cancel' | t }}
-        </ui-button>
-        <ui-button
-          variant="danger"
-          size="md"
-          icon="delete"
-          [loading]="isUnbindingChannel"
-          (onClick)="submitUnbind()"
-        >
-          {{ 'iam.otvyazat_kanal' | t }}
-        </ui-button>
-      </div>
-    </ui-modal>
   `,
   styles: [`
     :host {
@@ -470,12 +439,12 @@ export class ProfileChannelsCardComponent {
   @Input() isLoadingChannels = false;
   @Input() isBindingChannel = false;
   @Input() isConfirmingChannel = false;
-  @Input() isUnbindingChannel = false;
   @Input() canManageChannels = true;
 
   @Output() bindChannel = new EventEmitter<{ channel: string; address: string }>();
   @Output() confirmChannel = new EventEmitter<{ verifyToken: string; code: string }>();
-  @Output() unbindChannel = new EventEmitter<string>();
+  /** Asks the page to unbind a channel; the page confirms it first. */
+  @Output() unbindChannel = new EventEmitter<UserChannel>();
 
   isBindModalOpen = false;
   isConfirmModalOpen = false;
@@ -489,7 +458,6 @@ export class ProfileChannelsCardComponent {
   activeVerifyAddress = '';
   verificationCode = '';
 
-  channelToUnbind: UserChannel | null = null;
 
   private readonly i18n = inject(I18nService);
   readonly rows = signal<UserChannel[]>([]);
@@ -615,13 +583,6 @@ export class ProfileChannelsCardComponent {
   }
 
   requestUnbind(channel: UserChannel): void {
-    this.channelToUnbind = channel;
-  }
-
-  submitUnbind(): void {
-    if (!this.channelToUnbind) return;
-    const channelName = this.channelToUnbind.channel;
-    this.channelToUnbind = null;
-    this.unbindChannel.emit(channelName);
+    this.unbindChannel.emit(channel);
   }
 }

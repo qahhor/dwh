@@ -166,24 +166,6 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
         <ui-button type="submit" form="customFieldForm" variant="primary" [loading]="saving" (onClick)="saveField.emit()">{{ 'common.save' | t }}</ui-button>
       </div>
     </ui-modal>
-
-    <!-- Delete Confirmation Modal -->
-    <ui-modal
-      *ngIf="fieldToDelete !== null"
-      [isOpen]="fieldToDelete !== null"
-      [title]="'iam.udalenie_dinamicheskogo_polya' | t"
-      size="sm"
-      (close)="cancelDelete.emit()"
-    >
-      <div body class="delete-confirmation" *ngIf="fieldToDelete as field">
-        <p>{{ 'iam.udalit_dinamicheskoe_pole' | t }} <strong>«{{ field.name }}»</strong> ({{ field.code }})?</p>
-        <span>{{ 'iam.sohranennye_znacheniya_etogo_atributa_mogut_stat' | t }}</span>
-      </div>
-      <div footer>
-        <ui-button type="button" variant="secondary" (onClick)="cancelDelete.emit()">{{ 'common.cancel' | t }}</ui-button>
-        <ui-button type="button" variant="danger" [loading]="isDeleting" (onClick)="confirmDelete.emit()">{{ 'common.delete' | t }}</ui-button>
-      </div>
-    </ui-modal>
   `,
   styles: [`
     :host {
@@ -313,15 +295,11 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
 export class CustomFieldsModalsComponent {
   @Input() showModal = false;
   @Input() editingField: CustomField | null = null;
-  @Input() fieldToDelete: CustomField | null = null;
   @Input() formData!: CustomFieldFormData;
   @Input() formError = '';
   @Input() saving = false;
-  @Input() isDeleting = false;
 
   @Output() closeModal = new EventEmitter<void>();
   @Output() saveField = new EventEmitter<void>();
-  @Output() cancelDelete = new EventEmitter<void>();
-  @Output() confirmDelete = new EventEmitter<void>();
   @Output() codeInput = new EventEmitter<Event>();
 }

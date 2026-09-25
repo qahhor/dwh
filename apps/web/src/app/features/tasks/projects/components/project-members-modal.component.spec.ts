@@ -50,7 +50,7 @@ describe('ProjectMembersModalComponent', () => {
     fixture.destroy();
   });
 
-  it('names each remove button after its member and asks before removing', async () => {
+  it('names each remove button after its member and hands the removal to the page', async () => {
     const fixture = await createFixture(true);
     const buttons = [...table(document.body).querySelectorAll<HTMLButtonElement>('button')];
 
@@ -62,11 +62,7 @@ describe('ProjectMembersModalComponent', () => {
     const removed = vi.fn();
     fixture.componentInstance.removeMember.subscribe(removed);
     buttons[1].click();
-    expect(fixture.componentInstance.memberToRemove?.userId).toBe(2);
-    expect(removed).not.toHaveBeenCalled();
-
-    fixture.componentInstance.confirmRemove();
-    expect(removed).toHaveBeenCalledWith({ projectId: 7, userId: 2 });
+    expect(removed).toHaveBeenCalledWith({ projectId: 7, userId: 2, userName: 'Андрей Ким' });
     fixture.destroy();
   });
 
