@@ -9,6 +9,15 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Segmented filters (roadmap item 38). Eleven single-choice groups built from
+  toggle buttons — analytics and data overview periods, files scope, custom
+  field entities, role matrix modules, effective permission sources, user,
+  task and project status filters, task presets, and the task and project
+  view switches — are radio groups in the segmented or chips look: one tab
+  stop, arrows choose, and the choice is announced (the permission sources
+  announced none at all). Counts are read as part of each option's name.
+  Analytics gets its own "Retry" after a failed period instead of clicking the
+  chosen period again; a doubled icon left in its alert is removed.
 - Alert (roadmap item 37). `smt-alert` shows a message in a tone — danger,
   warning, success, info — with its icon, an optional title and close button,
   and a live role that follows the tone: danger is read at once, the others

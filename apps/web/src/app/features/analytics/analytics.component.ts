@@ -18,6 +18,7 @@ import { AnalyticsTrendChartComponent } from './components/analytics-trend-chart
 import { AnalyticsProjectsCardComponent } from './components/analytics-projects-card.component';
 import { AnalyticsWorkloadTableComponent } from './components/analytics-workload-table.component';
 import { SMTAlertComponent } from '../../shared/ui-kit/components/alert';
+import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '../../shared/ui-kit/components/forms/radio-group';
 
 export * from './analytics.models';
 
@@ -25,7 +26,7 @@ export * from './analytics.models';
   selector: 'app-analytics',
   standalone: true,
   imports: [
-    SMTAlertComponent, CommonModule,
+    SMTRadioGroupComponent, SMTAlertComponent, CommonModule,
     TranslatePipe,
     UiButtonComponent,
     AnalyticsMetricsTilesComponent,
@@ -44,35 +45,13 @@ export * from './analytics.models';
 
         <div class="header-right">
           <!-- Time Range Selector -->
-          <div class="status-tabs" role="group" [attr.aria-label]="'analytics.period_analitiki' | t">
-            <button
-              type="button"
-              class="status-tab"
-              [class.active]="selectedRange === '7d'"
-              [attr.aria-pressed]="selectedRange === '7d'"
-              (click)="setRange('7d')"
-            >
-              {{ 'analytics.7_dney' | t }}
-            </button>
-            <button
-              type="button"
-              class="status-tab"
-              [class.active]="selectedRange === '30d'"
-              [attr.aria-pressed]="selectedRange === '30d'"
-              (click)="setRange('30d')"
-            >
-              {{ 'analytics.30_dney' | t }}
-            </button>
-            <button
-              type="button"
-              class="status-tab"
-              [class.active]="selectedRange === '90d'"
-              [attr.aria-pressed]="selectedRange === '90d'"
-              (click)="setRange('90d')"
-            >
-              {{ 'analytics.90_dney' | t }}
-            </button>
-          </div>
+          <smt-radio-group
+            smtAppearance="segmented"
+            class="range-picker"
+            [options]="rangeOptions()"
+            [value]="selectedRange"
+            [smtAriaLabel]="'analytics.period_analitiki' | t"
+            (valueChange)="setRange($event ?? selectedRange)" />
 
           <ui-button
             variant="secondary"
@@ -99,8 +78,8 @@ export * from './analytics.models';
 
       <!-- Error Alert -->
       <smt-alert smtTone="danger" *ngIf="error()">
-        <span class="material-symbols-outlined" aria-hidden="true">error</span>
         <span>{{ error() }}</span>
+        <button type="button" class="alert-retry" data-testid="analytics-retry" (click)="setRange(selectedRange)">{{ 'common.retry' | t }}</button>
       </smt-alert>
 
       <!-- KPI Metrics Row -->
@@ -134,6 +113,8 @@ export * from './analytics.models';
     </div>
   `,
   styles: [`
+    .alert-retry { margin-left: 8px; padding: 0; border: none; background: transparent; color: inherit; font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; }
+    .alert-retry:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
     :host {
       display: block;
       min-width: 0;
@@ -188,43 +169,6 @@ export * from './analytics.models';
       gap: 10px;
     }
 
-    .status-tabs {
-      display: inline-flex;
-      align-items: center;
-      background-color: var(--bg-hover);
-      border-radius: var(--radius-sm);
-      padding: 2px;
-      gap: 2px;
-      border: 1px solid var(--border-color);
-    }
-
-    .status-tab {
-      height: 28px;
-      padding: 0 10px;
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--text-muted);
-      background: transparent;
-      border: none;
-      border-radius: var(--radius-xs);
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      transition: all 0.12s ease;
-      user-select: none;
-    }
-
-    .status-tab:hover:not(.active) {
-      color: var(--text-main);
-    }
-
-    .status-tab.active {
-      background-color: var(--bg-surface);
-      color: var(--text-main);
-      font-weight: 600;
-      box-shadow: var(--shadow-sm);
-    }
 
     .analytics-grid {
       display: grid;
@@ -247,7 +191,7 @@ export * from './analytics.models';
         width: 100%;
         flex-wrap: wrap;
       }
-      .status-tabs {
+      .range-picker {
         max-width: 100%;
         overflow-x: auto;
       }
@@ -255,6 +199,9 @@ export * from './analytics.models';
   `]
 })
 export class AnalyticsComponent implements OnInit, OnDestroy {
+  /** Texts of the radio options below; translated again when the language changes. */
+  private readonly optionText = inject(I18nService);
+
   private readonly uiI18n = inject(I18nService);
   private http = inject(HttpClient);
   private router = inject(Router);
@@ -332,5 +279,16 @@ export class AnalyticsComponent implements OnInit, OnDestroy {
       },
       complete: () => this.loading.set(false)
     });
+  }
+
+  private readonly rangeMemo = optionsMemo<SMTRadioOption<string>[]>();
+
+  /** The periods as one segmented bar. */
+  rangeOptions(): SMTRadioOption<string>[] {
+    return this.rangeMemo([this.optionText.currentLang()], () => [
+      { value: '7d', label: this.optionText.translate('analytics.7_dney') },
+      { value: '30d', label: this.optionText.translate('analytics.30_dney') },
+      { value: '90d', label: this.optionText.translate('analytics.90_dney') },
+    ]);
   }
 }

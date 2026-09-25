@@ -74,7 +74,7 @@ describe('UsersComponent UI contracts', () => {
     const identity = fixture.nativeElement.querySelector('.user-identity') as HTMLElement;
 
     expect(fixture.nativeElement.querySelector(`label[for="${search.id}"]`)).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('[role="group"][aria-label="Фильтр пользователей по статусу"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[role="radiogroup"][aria-label="Фильтр пользователей по статусу"]')).not.toBeNull();
     expect(region.getAttribute('aria-label')).toBe('Таблица пользователей');
     expect(region.querySelector('[role="table"]')?.getAttribute('aria-label')).toBe('Список пользователей');
     // The server orders the list, so no header pretends to sort it.

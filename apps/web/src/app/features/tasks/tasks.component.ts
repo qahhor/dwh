@@ -49,6 +49,7 @@ import { TaskDetailsService } from './services/task-details.service';
 import { TaskFormsService } from './services/task-forms.service';
 import { TaskKanbanService } from './services/task-kanban.service';
 import { TaskFilterService } from './services/task-filter.service';
+import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '../../shared/ui-kit/components/forms/radio-group';
 
 export type { TaskDeadlineInfo, TaskCreateFormValue, TaskEditFormValue };
 
@@ -56,7 +57,7 @@ export type { TaskDeadlineInfo, TaskCreateFormValue, TaskEditFormValue };
   selector: 'app-tasks',
   standalone: true,
   imports: [
-    TranslatePipe, CommonModule, FormsModule, UiButtonComponent, UiPaginationComponent,
+    SMTRadioGroupComponent, TranslatePipe, CommonModule, FormsModule, UiButtonComponent, UiPaginationComponent,
     TaskDictionariesModalComponent, TaskKanbanViewComponent, TaskTableViewComponent,
     TaskFilterBarComponent, TaskDetailModalComponent, TaskCreateModalComponent, TaskEditModalComponent
   ],
@@ -64,6 +65,9 @@ export type { TaskDeadlineInfo, TaskCreateFormValue, TaskEditFormValue };
   styleUrl: './tasks.component.css'
 })
 export class TasksComponent implements OnInit, OnDestroy {
+  /** Texts of the radio options below; translated again when the language changes. */
+  private readonly optionText = inject(I18nService);
+
   detailRecordId(): string | null {
     return this.routeRecordId() ?? (this.selectedTask() ? String(this.selectedTask()!.id) : null);
   }
@@ -432,4 +436,13 @@ export class TasksComponent implements OnInit, OnDestroy {
   getInitials(name: string | undefined) { return getInitials(name); }
   hasAttributes(attrs: any) { return hasAttributes(attrs); }
   formatAttributes(attrs: any) { return formatAttributes(attrs, this.taskCustomFields(), id => this.lookupsService.nameOf(id), this.uiI18n); }
+
+  private readonly viewMemo = optionsMemo<SMTRadioOption<'table' | 'kanban'>[]>();
+
+  viewOptions(): SMTRadioOption<'table' | 'kanban'>[] {
+    return this.viewMemo([this.optionText.currentLang()], () => [
+      { value: 'table', label: this.optionText.translate('projects.spisok'), icon: 'table_rows', title: this.optionText.translate('tasks.tablichnyy_vid') },
+      { value: 'kanban', label: this.optionText.translate('tasks.kanban'), icon: 'view_kanban', title: this.optionText.translate('tasks.kanban_doska') },
+    ]);
+  }
 }

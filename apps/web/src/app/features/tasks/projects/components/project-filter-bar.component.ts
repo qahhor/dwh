@@ -1,14 +1,16 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '../../../../core/services/i18n.service';
 import { ProjectStateFilter } from '../projects.models';
+import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '../../../../shared/ui-kit/components/forms/radio-group';
+import { I18nService } from '../../../../core/services/i18n.service';
 
 @Component({
   selector: 'app-project-filter-bar',
   standalone: true,
   imports: [
-    CommonModule,
+    SMTRadioGroupComponent, CommonModule,
     FormsModule,
     TranslatePipe
   ],
@@ -31,40 +33,13 @@ import { ProjectStateFilter } from '../projects.models';
         </button>
       </div>
 
-      <div class="status-tabs" role="group" [attr.aria-label]="'projects.filtr_proektov_po_statusu' | t">
-        <button
-          type="button"
-          class="status-tab"
-          data-testid="project-state-filter"
-          [class.active]="selectedState === 'all'"
-          [attr.aria-pressed]="selectedState === 'all'"
-          (click)="stateChange.emit('all')"
-        >
-          {{ 'common.all' | t }}
-        </button>
-        <button
-          type="button"
-          class="status-tab"
-          data-testid="project-state-filter"
-          [class.active]="selectedState === 'A'"
-          [attr.aria-pressed]="selectedState === 'A'"
-          (click)="stateChange.emit('A')"
-        >
-          <span class="status-tab-dot" style="background-color: var(--success);" aria-hidden="true"></span>
-          {{ 'iam.aktivnye' | t }}
-        </button>
-        <button
-          type="button"
-          class="status-tab"
-          data-testid="project-state-filter"
-          [class.active]="selectedState === 'P'"
-          [attr.aria-pressed]="selectedState === 'P'"
-          (click)="stateChange.emit('P')"
-        >
-          <span class="status-tab-dot" style="background-color: var(--text-light);" aria-hidden="true"></span>
-          {{ 'projects.arhiv' | t }}
-        </button>
-      </div>
+      <smt-radio-group
+        smtAppearance="segmented"
+        class="status-filter"
+        [options]="stateOptions()"
+        [value]="selectedState"
+        [smtAriaLabel]="'projects.filtr_proektov_po_statusu' | t"
+        (valueChange)="stateChange.emit($event ?? selectedState)" />
     </div>
   `,
   styles: [`
@@ -122,40 +97,6 @@ import { ProjectStateFilter } from '../projects.models';
       border-radius: 4px;
     }
     .btn-icon:hover { color: var(--text-main); background-color: var(--bg-hover); }
-    .status-tabs {
-      display: inline-flex;
-      align-items: center;
-      background-color: var(--bg-hover);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      padding: 2px;
-      gap: 2px;
-    }
-    .status-tab {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 10px;
-      border: none;
-      background: transparent;
-      color: var(--text-muted);
-      font-size: 12px;
-      font-weight: 500;
-      border-radius: var(--radius-xs);
-      cursor: pointer;
-      transition: all 0.1s ease;
-    }
-    .status-tab:hover { color: var(--text-main); }
-    .status-tab.active {
-      background-color: var(--bg-surface);
-      color: var(--text-main);
-      box-shadow: var(--shadow-sm);
-    }
-    .status-tab-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-    }
     .sr-only {
       position: absolute;
       width: 1px;
@@ -170,9 +111,22 @@ import { ProjectStateFilter } from '../projects.models';
   `]
 })
 export class ProjectFilterBarComponent {
+  /** Texts of the radio options below; translated again when the language changes. */
+  private readonly optionText = inject(I18nService);
+
   @Input() searchQuery = '';
   @Input() selectedState: ProjectStateFilter = 'all';
   @Output() searchChange = new EventEmitter<string>();
   @Output() clearSearch = new EventEmitter<void>();
   @Output() stateChange = new EventEmitter<ProjectStateFilter>();
+
+  private readonly stateMemo = optionsMemo<SMTRadioOption<ProjectStateFilter>[]>();
+
+  stateOptions(): SMTRadioOption<ProjectStateFilter>[] {
+    return this.stateMemo([this.optionText.currentLang()], () => [
+      { value: 'all', label: this.optionText.translate('common.all') },
+      { value: 'A', label: this.optionText.translate('iam.aktivnye'), color: 'var(--success)' },
+      { value: 'P', label: this.optionText.translate('projects.arhiv'), color: 'var(--text-light)' },
+    ]);
+  }
 }

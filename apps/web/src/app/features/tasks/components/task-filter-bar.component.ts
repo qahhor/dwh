@@ -1,10 +1,12 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '../../../core/services/i18n.service';
 import { Project, TaskStatus } from '../../../core/models/task.models';
 import { SMTSelectComponent } from '../../../shared/ui-kit/components/forms/select';
 import { ProjectOptionsPipe } from './project-options.pipe';
+import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '../../../shared/ui-kit/components/forms/radio-group';
+import { I18nService } from '../../../core/services/i18n.service';
 
 export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | 'overdue';
 
@@ -12,7 +14,7 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
   selector: 'app-task-filter-bar',
   standalone: true,
   imports: [
-    CommonModule,
+    SMTRadioGroupComponent, CommonModule,
     FormsModule,
     TranslatePipe,
     SMTSelectComponent,
@@ -22,68 +24,13 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
     <div class="toolbar">
       <div class="toolbar-left-row">
         <!-- Smart View Presets -->
-        <div class="preset-filter-group" role="group" [attr.aria-label]="'tasks.bystrye_filtry' | t">
-          <button
-            type="button"
-            class="preset-btn"
-            [class.active]="activePreset === 'all'"
-            [attr.aria-pressed]="activePreset === 'all'"
-            (click)="onPresetClick('all')"
-          >
-            <span class="material-symbols-outlined preset-icon" aria-hidden="true">dashboard</span>
-            <span>{{ 'tasks.filter_preset_all' | t }}</span>
-          </button>
-          <button
-            type="button"
-            class="preset-btn"
-            [class.active]="activePreset === 'my'"
-            [attr.aria-pressed]="activePreset === 'my'"
-            (click)="onPresetClick('my')"
-          >
-            <span class="material-symbols-outlined preset-icon" aria-hidden="true">person</span>
-            <span>{{ 'tasks.filter_preset_my' | t }}</span>
-          </button>
-          <button
-            type="button"
-            class="preset-btn"
-            [class.active]="activePreset === 'executor'"
-            [attr.aria-pressed]="activePreset === 'executor'"
-            (click)="onPresetClick('executor')"
-          >
-            <span class="material-symbols-outlined preset-icon" aria-hidden="true">group</span>
-            <span>{{ 'tasks.filter_preset_executor' | t }}</span>
-          </button>
-          <button
-            type="button"
-            class="preset-btn"
-            [class.active]="activePreset === 'observer'"
-            [attr.aria-pressed]="activePreset === 'observer'"
-            (click)="onPresetClick('observer')"
-          >
-            <span class="material-symbols-outlined preset-icon" aria-hidden="true">visibility</span>
-            <span>{{ 'tasks.filter_preset_observer' | t }}</span>
-          </button>
-          <button
-            type="button"
-            class="preset-btn"
-            [class.active]="activePreset === 'reported'"
-            [attr.aria-pressed]="activePreset === 'reported'"
-            (click)="onPresetClick('reported')"
-          >
-            <span class="material-symbols-outlined preset-icon" aria-hidden="true">assignment_ind</span>
-            <span>{{ 'tasks.filter_preset_reported' | t }}</span>
-          </button>
-          <button
-            type="button"
-            class="preset-btn preset-overdue"
-            [class.active]="activePreset === 'overdue'"
-            [attr.aria-pressed]="activePreset === 'overdue'"
-            (click)="onPresetClick('overdue')"
-          >
-            <span class="material-symbols-outlined preset-icon" aria-hidden="true">error</span>
-            <span>{{ 'tasks.filter_preset_overdue' | t }}</span>
-          </button>
-        </div>
+        <smt-radio-group
+          smtAppearance="chips"
+          class="preset-filter"
+          [options]="presetOptions()"
+          [value]="activePreset"
+          [smtAriaLabel]="'tasks.bystrye_filtry' | t"
+          (valueChange)="onPresetClick($event ?? activePreset)" />
 
         <div class="search-field">
           <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
@@ -112,40 +59,13 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
 
       <div class="toolbar-controls">
         <!-- Status Filter Tabs -->
-        <div class="status-tabs" role="group" [attr.aria-label]="'tasks.filtr_po_statusu' | t">
-          <button
-            type="button"
-            class="status-tab"
-            [class.active]="statusFilterMode === 'active'"
-            [attr.aria-pressed]="statusFilterMode === 'active'"
-            (click)="statusFilterModeChange.emit('active')"
-            [title]="'tasks.tolko_aktivnye_zadachi_bez_vypolnennyh_i_otmenen' | t"
-          >
-            <span class="status-tab-dot active-dot" aria-hidden="true"></span>
-            {{ 'iam.aktivnye' | t }}
-          </button>
-          <button
-            type="button"
-            class="status-tab"
-            [class.active]="statusFilterMode === 'all'"
-            [attr.aria-pressed]="statusFilterMode === 'all'"
-            (click)="statusFilterModeChange.emit('all')"
-            [title]="'tasks.vse_zadachi_vklyuchaya_zavershennye' | t"
-          >
-            {{ 'common.all' | t }}
-          </button>
-          <button
-            *ngFor="let s of statuses"
-            type="button"
-            class="status-tab"
-            [class.active]="statusFilterMode === s.id"
-            [attr.aria-pressed]="statusFilterMode === s.id"
-            (click)="statusFilterModeChange.emit(s.id)"
-          >
-            <span class="status-tab-dot" [style.background-color]="s.color || 'var(--primary)'" aria-hidden="true"></span>
-            {{ s.name }}
-          </button>
-        </div>
+        <smt-radio-group
+          smtAppearance="chips"
+          class="status-filter"
+          [options]="statusOptions()"
+          [value]="statusFilterMode"
+          [smtAriaLabel]="'tasks.filtr_po_statusu' | t"
+          (valueChange)="statusFilterModeChange.emit($event ?? statusFilterMode)" />
 
         <!-- Project Filter -->
         <label class="sr-only" for="task-project-filter">{{ 'tasks.filtr_po_proektu' | t }}</label>
@@ -216,44 +136,6 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
       max-width: 100%;
       min-width: 0;
     }
-    .preset-filter-group {
-      display: flex;
-      background-color: var(--bg-hover);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      padding: 2px;
-      gap: 2px;
-      max-width: 100%;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-    .preset-btn {
-      border: none;
-      background: transparent;
-      min-height: 28px;
-      padding: 3px 9px;
-      font-size: 11px;
-      font-weight: 500;
-      color: var(--text-muted);
-      border-radius: var(--radius-xs);
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      transition: all 0.1s ease;
-      white-space: nowrap;
-    }
-    .preset-btn:hover { color: var(--text-main); }
-    .preset-btn.active {
-      background-color: var(--bg-surface);
-      color: var(--text-main);
-      box-shadow: var(--shadow-sm);
-      font-weight: 600;
-    }
-    .preset-btn .preset-icon { font-size: 15px; color: var(--text-muted); }
-    .preset-btn.active .preset-icon { color: var(--primary); }
-    .preset-btn.preset-overdue.active { color: var(--danger); }
-    .preset-btn.preset-overdue.active .preset-icon { color: var(--danger); }
     .search-field {
       display: flex;
       align-items: center;
@@ -293,47 +175,6 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
       min-width: 0;
     }
 
-    .status-tabs {
-      display: flex;
-      background-color: var(--bg-hover);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      padding: 2px;
-      gap: 2px;
-      max-width: 100%;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-    .status-tab {
-      border: none;
-      background: transparent;
-      min-height: 28px;
-      padding: 3px 8px;
-      font-size: 11px;
-      font-weight: 500;
-      color: var(--text-muted);
-      border-radius: var(--radius-xs);
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      transition: all 0.1s ease;
-      white-space: nowrap;
-    }
-    .status-tab:hover { color: var(--text-main); }
-    .status-tab.active {
-      background-color: var(--bg-surface);
-      color: var(--text-main);
-      box-shadow: var(--shadow-sm);
-    }
-    .status-tab-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-    }
-    .status-tab-dot.active-dot {
-      background-color: var(--success);
-    }
 
     .clean-select {
       height: 30px;
@@ -367,6 +208,9 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
   `]
 })
 export class TaskFilterBarComponent {
+  /** Texts of the radio options below; translated again when the language changes. */
+  private readonly optionText = inject(I18nService);
+
   @Input() activePreset: TaskPreset = 'all';
   @Input() searchQuery = '';
   @Input() statusFilterMode: 'active' | 'all' | number = 'active';
@@ -385,7 +229,31 @@ export class TaskFilterBarComponent {
   @Output() selectedPriorityChange = new EventEmitter<string>();
   @Output() resetFilters = new EventEmitter<void>();
 
+  private readonly presetMemo = optionsMemo<SMTRadioOption<TaskPreset>[]>();
+
+  private readonly statusMemo = optionsMemo<SMTRadioOption<'active' | 'all' | number>[]>();
+
   onPresetClick(preset: TaskPreset) {
     this.activePresetChange.emit(preset);
+  }
+
+  presetOptions(): SMTRadioOption<TaskPreset>[] {
+    return this.presetMemo([this.optionText.currentLang()], () => [
+      { value: 'all', label: this.optionText.translate('tasks.filter_preset_all'), icon: 'dashboard' },
+      { value: 'my', label: this.optionText.translate('tasks.filter_preset_my'), icon: 'person' },
+      { value: 'executor', label: this.optionText.translate('tasks.filter_preset_executor'), icon: 'group' },
+      { value: 'observer', label: this.optionText.translate('tasks.filter_preset_observer'), icon: 'visibility' },
+      { value: 'reported', label: this.optionText.translate('tasks.filter_preset_reported'), icon: 'assignment_ind' },
+      { value: 'overdue', label: this.optionText.translate('tasks.filter_preset_overdue'), icon: 'error' },
+    ]);
+  }
+
+  /** Active, all, then each status with its colour mark. */
+  statusOptions(): SMTRadioOption<'active' | 'all' | number>[] {
+    return this.statusMemo([this.statuses, this.optionText.currentLang()], () => [
+      { value: 'active', label: this.optionText.translate('iam.aktivnye'), title: this.optionText.translate('tasks.tolko_aktivnye_zadachi_bez_vypolnennyh_i_otmenen') },
+      { value: 'all', label: this.optionText.translate('common.all'), title: this.optionText.translate('tasks.vse_zadachi_vklyuchaya_zavershennye') },
+      ...this.statuses.map(status => ({ value: status.id, label: status.name, color: status.color || undefined })),
+    ]);
   }
 }

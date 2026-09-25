@@ -32,35 +32,6 @@
 
 .header-right { display: flex; align-items: center; gap: 8px; }
 
-.status-tabs {
-  display: inline-flex;
-  align-items: center;
-  background-color: var(--bg-hover);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  padding: 2px;
-  gap: 2px;
-}
-.status-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
-  font-size: 12px;
-  font-weight: 500;
-  border-radius: var(--radius-xs);
-  cursor: pointer;
-  transition: all 0.1s ease;
-}
-.status-tab:hover { color: var(--text-main); }
-.status-tab.active {
-  background-color: var(--bg-surface);
-  color: var(--text-main);
-  box-shadow: var(--shadow-sm);
-}
 
 .request-state,
 .stats-state {
