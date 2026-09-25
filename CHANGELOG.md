@@ -691,6 +691,10 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Security
 
+- `qs` 6.15.3 → 6.16.0 in the web lockfile (moderate: array-limit bypass and a
+  denial of service through `isBuffer`). It came only through the Angular CLI
+  toolchain (MCP SDK → express), never into the bundle; `npm audit` is clean in
+  `apps/web` and `e2e`.
 - Personal settings are limited to `user.*` and `ui.*` keys: saving any other
   key as a personal setting is rejected with 422 `SETTING_NOT_PERSONAL`, and a
   stored personal value no longer shadows an instance setting, so nobody can
