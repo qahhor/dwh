@@ -9,6 +9,20 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Every feature checks its own localization keys. Fifteen new
+  `*.i18n.spec.ts` (analytics, audit, auth, files, iam, notes, reports,
+  settings, system, tasks, upl, the app shell, the command palette, shared UI
+  and core) join the four there were, so every catalog namespace has an owner
+  that fails on a key missing from ru.json, from en.json where the feature
+  ships English (upl stays Russian only), or used by nothing. Keys built at run
+  time come from the code that builds them: `QUERY_OPS` (`ui.filter.op.*`),
+  `SEARCH_ENTITIES` (`settings.search.entity.*`), `UPL_PACKAGE_CODES`; keys
+  the server names are read from its sources by `serverLiteralKeys` (list
+  column labels, the xlsx template and error file, task history) and
+  `serverCodeKeys` (`upl.err.*` and `error.*` from codes, enum constants and
+  validation annotations; search fields from `SearchQueryPolicy`).
+  `nav.upl_packages` and `nav.upl_sources` get their English, and the dead
+  `projects.uchastniki` goes from all eight catalogs.
 - Tabs (roadmap item 41). `smt-tab-bar` follows the WAI-ARIA tabs pattern:
   the chosen tab is the only tab stop, arrows choose (Home and End go to the
   ends), disabled tabs are skipped, a count is read as part of the tab's name,

@@ -2,10 +2,14 @@
 
 export type QueryFieldType = 'text' | 'number' | 'date' | 'instant' | 'boolean' | 'enum';
 
-export type QueryOp =
-  | 'eq' | 'ne' | 'in' | 'contains' | 'starts_with'
-  | 'gt' | 'gte' | 'lt' | 'lte' | 'between'
-  | 'empty' | 'not_empty';
+/** Every filter operation the server knows; `ui.filter.op.<op>` names each. */
+export const QUERY_OPS = [
+  'eq', 'ne', 'in', 'contains', 'starts_with',
+  'gt', 'gte', 'lt', 'lte', 'between',
+  'empty', 'not_empty',
+] as const;
+
+export type QueryOp = typeof QUERY_OPS[number];
 
 export interface QueryFieldMeta {
   key: string;

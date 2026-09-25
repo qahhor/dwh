@@ -1,6 +1,9 @@
 import { SearchResult } from './search.models';
 
-export type SearchEntityType = 'TASK' | 'PROJECT' | 'USER' | 'NOTE';
+/** Entities the search indexes; `settings.search.entity.<lower case>` names each. */
+export const SEARCH_ENTITIES = ['TASK', 'PROJECT', 'USER', 'NOTE'] as const;
+
+export type SearchEntityType = typeof SEARCH_ENTITIES[number];
 export type SearchSchemaProfile = 'MIXED' | 'RU';
 export type SearchJobAction = 'CHECK' | 'REBUILD' | 'ROLLBACK';
 export type SearchJobState = 'QUEUED' | 'RUNNING' | 'VERIFYING' | 'ACTIVATING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED';
