@@ -9,6 +9,18 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Sortable list, file card and image preview (roadmap item 34).
+  `smt-sortable-list` orders rows by dragging the handle or with each row's
+  up and down buttons; a button move keeps focus on the moved row and is
+  announced with its new place, and locked rows stay put. The task types and
+  statuses dialog uses it: system rows now move by keyboard as they did by
+  mouse, focus no longer jumps away after a move, and the dialog's copied
+  reorder code is gone. `smt-file-card` shows a file's kind, name, size in the
+  person's language and named download, preview and remove buttons; the
+  attachments field uses it. `smt-file-preview` shows images one at a time in
+  a dialog with previous, next, the arrow keys and download; the attachments
+  field and the files list open it for images. Other files are downloaded:
+  the API serves them as attachments and forbids framing on purpose.
 - Avatar, tags and menu button (roadmap item 33). `smt-avatar` shows a photo
   or up to two initials on one of six token tones picked from the name —
   decorative beside a written name, an image named by the person when alone —

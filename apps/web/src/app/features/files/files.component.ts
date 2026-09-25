@@ -24,6 +24,7 @@ import { FilesTableComponent } from './components/files-table.component';
 import { FilesModalsComponent } from './components/files-modals.component';
 import { SMTModalService } from '../../shared/ui-kit/components/modal';
 import { problemText } from '../../shared/ui/problem-text';
+import { SMTFilePreviewService } from '../../shared/ui-kit/components/file-preview';
 
 export type { FileDetail, StorageStats } from './files.models';
 
@@ -92,6 +93,7 @@ function formatBytes(bytes: number): string {
         [isDeleting]="isDeleting()"
         [canDeleteFn]="canDeleteFileBound"
         (download)="downloadFile($event)"
+        (preview)="previewFile($event)"
         (delete)="confirmDeleteFile($event)"
         (sortChange)="onSort($event)"
       ></app-files-table>
@@ -146,6 +148,7 @@ function formatBytes(bytes: number): string {
   `]
 })
 export class FilesComponent implements OnInit, OnDestroy {
+  private readonly preview = inject(SMTFilePreviewService);
   private readonly uiI18n = inject(I18nService);
   private readonly auth = inject(AuthService);
   private readonly queryMeta = inject(QueryMetaService);
@@ -264,6 +267,13 @@ export class FilesComponent implements OnInit, OnDestroy {
     if (!this.meta()) return;
     this.views.setSort(sortFromHeader(event));
     this.pager.first();
+  }
+
+  /** Shows the images of the page in the preview, starting at this one. */
+  previewFile(file: FileDetail) {
+    const previews = this.files().map(item => ({ name: item.originalName, mimeType: item.mimeType, url: `/api/v1/files/${item.id}/download`, item }));
+    const chosen = previews.find(preview => preview.item === file);
+    if (chosen) this.preview.open(previews, chosen, preview => this.downloadFile((preview as typeof chosen).item));
   }
 
   downloadFile(file: FileDetail) {

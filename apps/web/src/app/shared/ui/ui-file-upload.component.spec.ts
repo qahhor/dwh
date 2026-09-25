@@ -125,9 +125,9 @@ describe('UiFileUploadComponent', () => {
     }]);
     fixture.detectChanges();
 
-    const download = fixture.nativeElement.querySelector('button[aria-label="Скачать report.pdf"]') as HTMLButtonElement;
-    const remove = fixture.nativeElement.querySelector('button[aria-label="Удалить report.pdf"]') as HTMLButtonElement;
-    const fileNameAction = fixture.nativeElement.querySelector('.file-info') as HTMLElement;
+    const download = fixture.nativeElement.querySelector('button[aria-label="Скачать «report.pdf»"]') as HTMLButtonElement;
+    const remove = fixture.nativeElement.querySelector('button[aria-label="Удалить «report.pdf»"]') as HTMLButtonElement;
+    const fileNameAction = fixture.nativeElement.querySelector('.smt-file-card__name') as HTMLElement;
 
     expect(download.type).toBe('button');
     expect(remove.type).toBe('button');

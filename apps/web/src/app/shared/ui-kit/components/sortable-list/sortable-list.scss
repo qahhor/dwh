@@ -1,0 +1,100 @@
+/* Our styles for smt-sortable-list, from semantic tokens so both themes work.
+ * Global (ViewEncapsulation.None): CDK moves the dragged row's preview to the body. */
+
+.smt-sortable-list {
+  display: block;
+  min-width: 0;
+}
+
+.smt-sortable-list__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.smt-sortable-list__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+}
+
+.smt-sortable-list__handle {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  font-size: 20px;
+  cursor: grab;
+}
+
+.smt-sortable-list__row--locked .smt-sortable-list__handle {
+  visibility: hidden;
+}
+
+.smt-sortable-list__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.smt-sortable-list__actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 2px;
+}
+
+.smt-sortable-list__move {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.smt-sortable-list__move .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.smt-sortable-list__move:hover:not(:disabled) {
+  background-color: var(--bg-hover);
+  color: var(--text-main);
+}
+
+.smt-sortable-list__move:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.smt-sortable-list__move:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* CDK drag states. */
+.smt-sortable-list__row.cdk-drag-preview {
+  box-shadow: var(--shadow-overlay);
+}
+
+.smt-sortable-list__row.cdk-drag-placeholder {
+  opacity: 0.4;
+}
+
+.smt-sortable-list__rows.cdk-drop-list-dragging .smt-sortable-list__row:not(.cdk-drag-placeholder) {
+  transition: transform 0.2s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .smt-sortable-list__rows.cdk-drop-list-dragging .smt-sortable-list__row:not(.cdk-drag-placeholder) {
+    transition: none;
+  }
+}

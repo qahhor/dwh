@@ -80,6 +80,22 @@ export interface SMTMessages {
   readonly time: SMTTimeMessages;
   readonly textarea: { readonly counter: (count: number, max: number) => string };
   readonly tag: { readonly remove: (label: string) => string };
+  readonly sortable: {
+    readonly handle: string;
+    readonly moveUp: (label: string) => string;
+    readonly moveDown: (label: string) => string;
+    readonly moved: (label: string, position: number, total: number) => string;
+  };
+  readonly file: {
+    readonly download: (name: string) => string;
+    readonly preview: (name: string) => string;
+    readonly remove: (name: string) => string;
+    readonly position: (position: number, total: number) => string;
+    readonly previous: string;
+    readonly next: string;
+    readonly cannotShow: string;
+    readonly downloadInstead: string;
+  };
   readonly common: { readonly close: string; readonly cancel: string };
   readonly table: { readonly noResults: string };
   readonly dataTable: { readonly selectAll: string; readonly selectRow: string };
@@ -195,6 +211,23 @@ export class SMTI18nService {
     },
     tag: {
       remove: label => this.i18n.translate('ui.tag.remove', { label }),
+    },
+    sortable: {
+      handle: this.i18n.translate('ui.sortable.handle'),
+      moveUp: label => this.i18n.translate('ui.sortable.move_up', { label }),
+      moveDown: label => this.i18n.translate('ui.sortable.move_down', { label }),
+      moved: (label, position, total) =>
+        this.i18n.translate('ui.sortable.moved', { label, position: String(position), total: String(total) }),
+    },
+    file: {
+      download: name => this.i18n.translate('ui.file.download', { name }),
+      preview: name => this.i18n.translate('ui.file.preview', { name }),
+      remove: name => this.i18n.translate('ui.file.remove', { name }),
+      position: (position, total) => this.i18n.translate('ui.file.position', { position: String(position), total: String(total) }),
+      previous: this.i18n.translate('ui.file.previous'),
+      next: this.i18n.translate('ui.file.next'),
+      cannotShow: this.i18n.translate('ui.file.cannot_show'),
+      downloadInstead: this.i18n.translate('ui.file.download_instead'),
     },
     modalConfirm: {
       title: this.i18n.translate('ui.modal.confirm_title'),
