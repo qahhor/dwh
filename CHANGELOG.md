@@ -9,6 +9,13 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Lookups: a select can show its options as columns under a header row,
+  search the server, load more, and offer "Create “typed text”" as its last
+  option. Registry lists take a free-text `q` that matches any searchable
+  field (ADR-0016). The UPL upload form now searches sources by code or name
+  instead of downloading them all, shows code, periodicity and version beside
+  each, and can create a source from the typed name and come back with it
+  chosen.
 - A filter builder for server lists. "Filter" opens a side panel of
   "field — condition — value" rows joined with "and"; the fields and the
   conditions each offers come from the list's field registry, and the value

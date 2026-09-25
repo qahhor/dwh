@@ -40,7 +40,7 @@
   [cdkConnectedOverlayOrigin]="origin"
   [cdkConnectedOverlayOpen]="open()"
   [cdkConnectedOverlayPositions]="positions"
-  [cdkConnectedOverlayMinWidth]="origin.elementRef.nativeElement.offsetWidth || 240"
+  [cdkConnectedOverlayMinWidth]="(origin.elementRef.nativeElement.offsetWidth || 0) > popupMinWidth() ? origin.elementRef.nativeElement.offsetWidth : popupMinWidth()"
   (overlayOutsideClick)="close(false)"
   (detach)="close(false)"
   (attach)="onAttached()">
@@ -69,6 +69,14 @@
       }
     </div>
 
+    @if (hasColumns()) {
+      <div class="smt-select__columns" aria-hidden="true" [style.--smt-select-columns]="columnHeaders().length">
+        <span></span>
+        @for (header of columnHeaders(); track $index) {
+          <span class="smt-select__column-head">{{ header }}</span>
+        }
+      </div>
+    }
     <ul
       class="smt-select__list"
       role="listbox"
@@ -94,6 +102,9 @@
           [id]="optionId(index)"
           [class.smt-select__option--active]="activeIndex() === index"
           [class.smt-select__option--selected]="isSelected(option)"
+          [class.smt-select__option--columns]="hasColumns()"
+          [style.--smt-select-columns]="hasColumns() ? columnHeaders().length : null"
+          [attr.aria-label]="optionName(option)"
           [attr.aria-selected]="isSelected(option)"
           [attr.aria-disabled]="option.disabled ? 'true' : null"
           (mousedown)="$event.preventDefault()"
@@ -106,9 +117,28 @@
           @if (option.subLabel) {
             <span class="smt-select__sub">{{ option.subLabel }}</span>
           }
+          @if (hasColumns()) {
+            @for (header of columnHeaders(); track $index; let column = $index) {
+              <span class="smt-select__cell">{{ option.columns?.[column] ?? '' }}</span>
+            }
+          }
           @if (isSelected(option)) {
             <span class="material-symbols-outlined smt-select__check" aria-hidden="true">check</span>
           }
+        </li>
+      }
+      @if (showCreate()) {
+        <li
+          class="smt-select__option smt-select__option--create"
+          role="option"
+          aria-selected="false"
+          [id]="listboxId + '-create'"
+          [class.smt-select__option--active]="activeIndex() === createIndex()"
+          (mousedown)="$event.preventDefault()"
+          (mouseenter)="highlight(createIndex())"
+          (click)="pickCreate()">
+          <span class="material-symbols-outlined smt-select__icon" aria-hidden="true">add</span>
+          <span class="smt-select__option-label">{{ i18n.messages().select.create(query().trim()) }}</span>
         </li>
       }
     </ul>

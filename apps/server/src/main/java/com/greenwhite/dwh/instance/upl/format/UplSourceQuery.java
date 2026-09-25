@@ -32,8 +32,8 @@ public class UplSourceQuery {
             "upl_sources s",
             "s.id",
             List.of(
-                    QueryField.of("code", "upl.list.col.code", QueryFieldType.TEXT, "s.code").asSortable(),
-                    QueryField.of("name", "upl.list.col.name", QueryFieldType.TEXT, "s.name").asSortable(),
+                    QueryField.of("code", "upl.list.col.code", QueryFieldType.TEXT, "s.code").asSortable().asSearchable(),
+                    QueryField.of("name", "upl.list.col.name", QueryFieldType.TEXT, "s.name").asSortable().asSearchable(),
                     QueryField.enumeration("periodicity", "upl.list.col.periodicity", "s.periodicity",
                             Arrays.stream(Periodicity.values()).map(Periodicity::db).toList(), "upl.periodicity."),
                     QueryField.of("lastPublishedVersion", "upl.list.col.published_version", QueryFieldType.NUMBER,

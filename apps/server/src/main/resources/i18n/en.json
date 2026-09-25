@@ -1237,6 +1237,7 @@
   "ui.views.deleted": "View deleted",
   "ui.views.stale": "The view was changed elsewhere. Open it again and repeat your changes",
   "ui.views.save_error": "Could not save the view",
+  "ui.select.create": "Create “{text}”",
   "ui.filter.button": "Filter",
   "ui.filter.title": "Filter the list",
   "ui.filter.intro": "The list shows rows that match every condition.",

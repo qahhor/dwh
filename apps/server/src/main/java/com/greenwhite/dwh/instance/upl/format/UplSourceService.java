@@ -120,13 +120,14 @@ public class UplSourceService {
 
     @Transactional(readOnly = true)
     public KeysetPage<SourceSummary> listSources(int limit, String cursor) {
-        return listSources(limit, cursor, null, null);
+        return listSources(limit, cursor, null, null, null);
     }
 
     /** Список по реестру: фильтр — DSL {@link QueryCompiler}, сортировка — ключ поля с минусом для убывания. */
     @Transactional(readOnly = true)
-    public KeysetPage<SourceSummary> listSources(Integer limit, String cursor, String filter, String sort) {
-        return repo.pageSources(QueryCompiler.compile(UplSourceQuery.LIST, filter, sort, limit, cursor));
+    public KeysetPage<SourceSummary> listSources(Integer limit, String cursor, String filter, String sort,
+                                                 String search) {
+        return repo.pageSources(QueryCompiler.compile(UplSourceQuery.LIST, filter, sort, limit, cursor, search));
     }
 
     @Transactional(readOnly = true)

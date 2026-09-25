@@ -51,6 +51,14 @@ export class LookupChannel<T, S> {
     this.timer = setTimeout(() => this.pager.first(), this.searchDelayMs);
   }
 
+  /** Back to the unfiltered first page at once, dropping a search still waiting for its pause (the popup opened). */
+  reset(selected: () => S): void {
+    this.query = '';
+    this.selected = selected;
+    clearTimeout(this.timer);
+    this.pager.first();
+  }
+
   load(reset: boolean, selected: () => S): void {
     this.selected = selected;
     if (reset) this.pager.first();

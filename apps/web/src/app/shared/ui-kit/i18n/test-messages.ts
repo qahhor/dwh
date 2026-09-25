@@ -46,6 +46,7 @@ export const TEST_MESSAGES: SMTMessages = {
     remove: name => `Remove ${name}`,
     add: 'Choose',
     addMore: '+ Add',
+    create: text => `Create “${text}”`,
   },
   date: {
     placeholder: 'dd.mm.yyyy',

@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, TemplateRef, computed, inject, signal, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ProblemDetail } from '../../../core/models/common.models';
 import { QueryListMeta } from '../../../core/models/query-meta.models';
@@ -383,6 +383,9 @@ export class SourcesListComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(I18nService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  /** Where to go back after creating from another form's field; only known places, never a URL from the address bar. */
+  private returnTo: 'packages' | null = null;
 
   /* A reload while "load more" is pending cancels it, so the old page is
      never appended to the refreshed list. */
@@ -447,6 +450,13 @@ export class SourcesListComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
+    const params = this.route.snapshot.queryParamMap;
+    const name = params.get('create');
+    if (name !== null && this.canCreate()) {
+      this.returnTo = params.get('returnTo') === 'packages' ? 'packages' : null;
+      this.openCreate();
+      this.form.name = name.trim().slice(0, NAME_MAX_LENGTH);
+    }
   }
 
   canCreate(): boolean {
@@ -486,6 +496,7 @@ export class SourcesListComponent implements OnInit {
 
   closeCreate(): void {
     this.isCreateOpen.set(false);
+    this.returnTo = null;
   }
 
   submitCreate(): void {
@@ -516,7 +527,11 @@ export class SourcesListComponent implements OnInit {
         this.isSaving.set(false);
         this.isCreateOpen.set(false);
         this.toast.success(this.i18n.translate('upl.source.created'));
-        void this.router.navigate(['/upl/sources', created.id]);
+        if (this.returnTo === 'packages') {
+          void this.router.navigate(['/upl/packages'], { queryParams: { source: created.id } });
+        } else {
+          void this.router.navigate(['/upl/sources', created.id]);
+        }
       },
       error: (problem: ProblemDetail) => {
         this.isSaving.set(false);

@@ -1,9 +1,8 @@
 import { Injectable, inject } from '@angular/core';
-import { EMPTY, Observable } from 'rxjs';
-import { expand, reduce } from 'rxjs/operators';
+import { Observable } from 'rxjs';
 import { ApiService } from '../../../core/services/api.service';
 import { KeysetPage } from '../../../core/models/common.models';
-import { UplApiService, UplSourceItem } from '../upl-api';
+import { UplApiService, UplSource, UplSourceItem } from '../upl-api';
 
 export type UplPackageStatus = 'received' | 'verified' | 'rejected' | 'applied';
 
@@ -57,7 +56,6 @@ export interface UplPackageUpload {
 
 const PACKAGES = '/upl/packages';
 /** Источники для формы читаются порциями: список И3 отдаёт не больше 200 записей за раз. */
-const SOURCES_PAGE_SIZE = 200;
 
 @Injectable({ providedIn: 'root' })
 export class UplPackagesApiService {
@@ -87,11 +85,13 @@ export class UplPackagesApiService {
     return this.api.post<UplPackageItem>(`${PACKAGES}/${id}/apply`, null, { notifyError: false });
   }
 
-  /** Все источники одним массивом: форма выбирает из полного списка, а список сервера постраничный. */
-  allSources(): Observable<UplSourceItem[]> {
-    return this.upl.listSources(SOURCES_PAGE_SIZE).pipe(
-      expand(page => (page.hasMore === true ? this.upl.listSources(SOURCES_PAGE_SIZE, page.nextCursor) : EMPTY)),
-      reduce((all, page) => [...all, ...page.items], [] as UplSourceItem[])
-    );
+  /** Страница источников для поиска в форме: подстрока в коде или названии (`q`). */
+  searchSources(query: string, cursor: string | null, pageSize: number): Observable<KeysetPage<UplSourceItem>> {
+    return this.upl.listSources(pageSize, cursor, { search: query });
+  }
+
+  /** Один источник — чтобы показать выбранным тот, что создан из формы. */
+  source(id: string): Observable<UplSource> {
+    return this.upl.getSource(id);
   }
 }

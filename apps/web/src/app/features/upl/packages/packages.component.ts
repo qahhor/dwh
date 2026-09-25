@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, ElementRef, OnInit, ViewChild, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ProblemDetail } from '../../../core/models/common.models';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
@@ -8,7 +9,10 @@ import { ToastService } from '../../../core/services/toast.service';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { SMTDatePickerComponent, SMTDatePickerValueAccessor } from '../../../shared/ui-kit/components/forms/date-picker';
-import { UplSourceItem } from '../upl-api';
+import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../../../shared/ui-kit/components/forms/select';
+import { LookupChannel } from '../../../shared/paging/lookup-channel';
+import { UPL_PERIODICITY_KEY } from '../upl-labels';
+import { UplSource, UplSourceItem } from '../upl-api';
 import { PackageCardComponent } from './package-card.component';
 import { UplPackageItem, UplPackagesApiService } from './packages-api';
 import { UplPackageFormErrors, UplTranslate, mapUplUploadProblem } from './packages-errors';
@@ -44,7 +48,7 @@ function emptyFormErrors(): UplPackageFormErrors {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule, FormsModule, TranslatePipe, UiBadgeComponent, UiButtonComponent, PackageCardComponent,
-    SMTDatePickerComponent, SMTDatePickerValueAccessor,
+    SMTDatePickerComponent, SMTDatePickerValueAccessor, SMTSelectComponent, SMTSelectValueAccessor,
   ],
   template: `
     @if (selected(); as current) {
@@ -68,15 +72,6 @@ function emptyFormErrors(): UplPackageFormErrors {
           <form class="upl-pkg-form" data-testid="upl-pkg-form" (ngSubmit)="submit()" novalidate>
             <h2 class="upl-pkg-form-title">{{ 'upl.pkg.form.title' | t }}</h2>
 
-            @if (sourcesError()) {
-              <div class="alert alert-error upl-alert" role="alert" data-testid="upl-pkg-sources-error">
-                <span>{{ 'upl.pkg.load_error' | t }}</span>
-                <ui-button variant="secondary" data-testid="upl-pkg-sources-retry" (onClick)="loadSources()">
-                  {{ 'upl.common.retry' | t }}
-                </ui-button>
-              </div>
-            }
-
             @if (formErrors().form.length > 0) {
               <div class="alert alert-error upl-pkg-err-form" role="alert" data-testid="upl-pkg-err-form">
                 @for (message of formErrors().form; track $index) {
@@ -88,19 +83,28 @@ function emptyFormErrors(): UplPackageFormErrors {
             <div class="upl-pkg-fields">
               <div class="form-group">
                 <label class="form-label" for="upl-pkg-source-field">{{ 'upl.pkg.form.source' | t }}</label>
-                <select
-                  class="form-select"
-                  id="upl-pkg-source-field"
+                <!-- A lookup over the server list: search by code or name, columns, "create" from the typed text. -->
+                <smt-select
+                  smtTriggerId="upl-pkg-source-field"
                   name="sourceId"
                   data-testid="upl-pkg-source"
                   [disabled]="isSending()"
                   [(ngModel)]="form.sourceId"
-                >
-                  <option [ngValue]="null">{{ 'upl.pkg.form.source_placeholder' | t }}</option>
-                  @for (source of sources(); track source.id) {
-                    <option [ngValue]="source.id">{{ source.code }} — {{ source.name }}</option>
-                  }
-                </select>
+                  [options]="sourceOptions()"
+                  [placeholder]="'upl.pkg.form.source_placeholder' | t"
+                  [searchPlaceholder]="'upl.pkg.form.source_search' | t"
+                  [emptyLabel]="'upl.pkg.form.source_placeholder' | t"
+                  [remoteSearch]="true"
+                  [loading]="sourceLookup.loading()"
+                  [loadError]="sourceLookup.error()"
+                  [hasMore]="sourceLookup.hasMore()"
+                  [smtColumnHeaders]="sourceColumns()"
+                  [smtAllowCreate]="canCreateSource()"
+                  (searchChange)="searchSources($event)"
+                  (loadMore)="sourceLookup.load(false, selectedSource)"
+                  (retry)="sourceLookup.retry(selectedSource)"
+                  (create)="createSource($event)"
+                ></smt-select>
                 @if (formErrors().source.length > 0) {
                   <span class="upl-field-error" data-testid="upl-pkg-err-source">
                     @for (message of formErrors().source; track $index) {
@@ -402,8 +406,30 @@ export class PackagesComponent implements OnInit {
   readonly loadError = signal(false);
   readonly selected = signal<UplPackageItem | null>(null);
 
-  readonly sources = signal<UplSourceItem[]>([]);
-  readonly sourcesError = signal(false);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+
+  /** Options of the source lookup: the rows the last search returned, with the chosen one kept. */
+  readonly sourceOptions = signal<SMTSelectOption<number>[]>([]);
+  readonly sourceColumns = computed(() => [
+    this.i18n.translate('upl.list.col.code'),
+    this.i18n.translate('upl.list.col.periodicity'),
+    this.i18n.translate('upl.list.col.published_version')
+  ]);
+  readonly selectedSource = () => this.form.sourceId;
+  readonly sourceLookup = new LookupChannel<UplSourceItem, number | null>(
+    (query, cursor, pageSize) => this.api.searchSources(query, cursor, pageSize),
+    (rows, append, selected) => {
+      const found = rows.map(row => this.sourceOption(row));
+      this.sourceOptions.update(current => {
+        const next = append ? [...current, ...found] : found;
+        const chosen = current.find(option => option.id === selected);
+        return chosen && !next.some(option => option.id === selected) ? [chosen, ...next] : next;
+      });
+    },
+    null,
+    { pageSize: 20 }
+  );
   readonly isSending = signal(false);
   readonly formErrors = signal<UplPackageFormErrors>(emptyFormErrors());
 
@@ -417,8 +443,9 @@ export class PackagesComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
-    if (this.canUpload()) {
-      this.loadSources();
+    const created = this.route.snapshot.queryParamMap.get('source');
+    if (this.canUpload() && created && /^\d+$/.test(created)) {
+      this.api.source(created).subscribe({ next: source => this.chooseSource(source) });
     }
   }
 
@@ -448,16 +475,37 @@ export class PackagesComponent implements OnInit {
     return uplPackageRowsText(item);
   }
 
-  /** Источники формы: весь список одним запросом-цепочкой, без него выбрать нечего. */
-  loadSources(): void {
-    this.sourcesError.set(false);
-    this.api.allSources().subscribe({
-      next: list => this.sources.set(list ?? []),
-      error: () => {
-        this.sources.set([]);
-        this.sourcesError.set(true);
-      }
-    });
+  canCreateSource(): boolean {
+    return this.permissions.hasPermission('upl.sources', 'create');
+  }
+
+  /** An empty search (the popup just opened, or the text was cleared) shows the first page at once; typing waits for a pause. */
+  searchSources(query: string): void {
+    if (query.trim() === '') this.sourceLookup.reset(this.selectedSource);
+    else this.sourceLookup.search(query, this.selectedSource);
+  }
+
+  /** «Создать из поля»: карточка нового источника с набранным названием; после создания форма получит его выбранным. */
+  createSource(name: string): void {
+    void this.router.navigate(['/upl/sources'], { queryParams: { create: name, returnTo: 'packages' } });
+  }
+
+  private chooseSource(source: UplSource | UplSourceItem): void {
+    const option = this.sourceOption(source);
+    this.sourceOptions.update(current => [option, ...current.filter(item => item.id !== option.id)]);
+    this.form = { ...this.form, sourceId: source.id };
+  }
+
+  private sourceOption(source: UplSource | UplSourceItem): SMTSelectOption<number> {
+    return {
+      id: source.id,
+      label: source.name,
+      columns: [
+        source.code,
+        this.i18n.translate(UPL_PERIODICITY_KEY[source.periodicity]),
+        source.lastPublishedVersion === null || source.lastPublishedVersion === undefined ? '—' : String(source.lastPublishedVersion)
+      ]
+    };
   }
 
   load(): void {

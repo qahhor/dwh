@@ -45,6 +45,8 @@ export interface SMTSelectOption<T = unknown> {
   readonly icon?: string;
   readonly color?: string;
   readonly disabled?: boolean;
+  /** Further cells shown beside the label, in the order of `smtColumnHeaders` (a lookup). */
+  readonly columns?: readonly string[];
 }
 
 const POPUP_POSITIONS: ConnectedPosition[] = [
@@ -125,6 +127,19 @@ export class SMTSelectComponent<T = unknown> implements FormValueControl<T | nul
 
   readonly touch = output<void>();
 
+  /**
+   * Headers of the option columns: the popup becomes a small table, with
+   * each option's `columns` under them. Screen readers hear every option as
+   * "label, header: value" because a listbox cannot hold a header row.
+   */
+  readonly columnHeaders = input<readonly string[]>([], { alias: 'smtColumnHeaders' });
+
+  /** Offer "Create “typed text”" as the last option when nothing matches it exactly. */
+  readonly allowCreate = input(false, { alias: 'smtAllowCreate', transform: booleanAttribute });
+
+  /** The typed text, when the person chose to create a new record from it. */
+  readonly create = output<string>();
+
   readonly id = nextSelectId++;
 
   readonly listboxId = `smt-select-listbox-${this.id}`;
@@ -172,14 +187,30 @@ export class SMTSelectComponent<T = unknown> implements FormValueControl<T | nul
 
   readonly showNone = computed(() => this.allowClear() && !this.query().trim());
 
+  readonly showCreate = computed(() => {
+    const query = this.query().trim().toLowerCase();
+    if (!this.allowCreate() || !query || this.loading()) return false;
+    return !this.visibleOptions().some(option => option.label.trim().toLowerCase() === query);
+  });
+
+  /** The create row sits right after the options, so arrows and Enter reach it like any option. */
+  readonly createIndex = computed(() => this.visibleOptions().length);
+
+  readonly hasColumns = computed(() => this.columnHeaders().length > 0);
+
+  /** Wider popup for a lookup, so its columns have room. */
+  readonly popupMinWidth = computed(() => (this.hasColumns() ? 480 : 240));
+
   readonly activeId = computed(() => {
     const index = this.activeIndex();
     if (index === null) return null;
-    return index === NONE ? `${this.listboxId}-none` : `${this.listboxId}-opt-${index}`;
+    if (index === NONE) return `${this.listboxId}-none`;
+    if (this.showCreate() && index === this.createIndex()) return `${this.listboxId}-create`;
+    return `${this.listboxId}-opt-${index}`;
   });
 
   readonly showEmpty = computed(
-    () => this.visibleOptions().length === 0 && !this.loading() && !this.loadError()
+    () => this.visibleOptions().length === 0 && !this.loading() && !this.loadError() && !this.showCreate()
   );
 
   readonly none = NONE;
@@ -190,6 +221,23 @@ export class SMTSelectComponent<T = unknown> implements FormValueControl<T | nul
 
   optionId(index: number): string {
     return `${this.listboxId}-opt-${index}`;
+  }
+
+  /** "Label, header: value, …" for an option with columns; `null` keeps the visible text as its name. */
+  optionName(option: SMTSelectOption<T>): string | null {
+    const headers = this.columnHeaders();
+    if (!headers.length || !option.columns?.length) return null;
+    const cells = option.columns
+      .map((cell, index) => (cell ? `${headers[index] ?? ''}: ${cell}` : ''))
+      .filter(Boolean);
+    return [option.label, ...cells].join(', ');
+  }
+
+  pickCreate(): void {
+    const text = this.query().trim();
+    if (!text) return;
+    this.close(true);
+    this.create.emit(text);
   }
 
   isSelected(option: SMTSelectOption<T>): boolean {
@@ -312,6 +360,7 @@ export class SMTSelectComponent<T = unknown> implements FormValueControl<T | nul
         event.preventDefault();
         const index = this.activeIndex();
         if (index === NONE) this.pickNone();
+        else if (index !== null && this.showCreate() && index === this.createIndex()) this.pickCreate();
         else if (index !== null) {
           const option = this.visibleOptions()[index];
           if (option) this.pick(option);
@@ -371,11 +420,11 @@ export class SMTSelectComponent<T = unknown> implements FormValueControl<T | nul
 
   private firstIndex(): number | null {
     if (this.showNone()) return NONE;
-    return this.visibleOptions().length ? 0 : null;
+    return this.visibleOptions().length || this.showCreate() ? 0 : null;
   }
 
   private moveActive(delta: number): void {
-    const last = this.visibleOptions().length - 1;
+    const last = this.visibleOptions().length - 1 + (this.showCreate() ? 1 : 0);
     const first = this.showNone() ? NONE : 0;
     if (last < 0 && first === 0) return;
     const current = this.activeIndex() ?? first - Math.sign(delta);

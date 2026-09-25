@@ -40,6 +40,7 @@ export interface SMTSelectMessages {
   readonly remove: (name: string) => string;
   readonly add: string;
   readonly addMore: string;
+  readonly create: (text: string) => string;
 }
 
 export interface SMTDropzoneMessages {
@@ -131,6 +132,7 @@ export class SMTI18nService {
       remove: name => this.i18n.translate('ui.user_multi_select.remove_user', { name }),
       add: this.i18n.translate('ui.user_multi_select.vybrat_polzovateley'),
       addMore: this.i18n.translate('ui.user_multi_select.add_more'),
+      create: text => this.i18n.translate('ui.select.create', { text }),
     },
     date: {
       placeholder: this.i18n.translate('ui.date.placeholder'),

@@ -9,7 +9,7 @@ import java.util.Map;
  * Строится только {@link QueryCompiler}; SQL собирается из выражений реестра, значения идут параметрами.
  */
 public record QueryPlan(QueryList list, List<Condition> conditions, QueryField sort, boolean descending, int limit,
-                        QueryCursor cursor, String fingerprint) {
+                        QueryCursor cursor, String fingerprint, String search) {
 
     /** Условие фильтра; {@code values} уже приведены к типу поля. */
     public record Condition(QueryField field, QueryOp op, List<Object> values) {
@@ -59,6 +59,18 @@ public record QueryPlan(QueryList list, List<Condition> conditions, QueryField s
                 case STARTS_WITH -> params.put(p, escapeLike((String) values.getFirst()) + "%");
                 default -> params.put(p, values.getFirst());
             }
+        }
+        List<QueryField> searchable = list.fields().stream().filter(QueryField::searchable).toList();
+        if (search != null && !searchable.isEmpty()) {
+            sql.append(" and (");
+            for (int i = 0; i < searchable.size(); i++) {
+                if (i > 0) {
+                    sql.append(" or ");
+                }
+                sql.append(searchable.get(i).sql()).append(" ilike :q_search escape '\\'");
+            }
+            sql.append(')');
+            params.put("q_search", "%" + escapeLike(search) + "%");
         }
         return new SqlFragment(sql.toString(), params);
     }
