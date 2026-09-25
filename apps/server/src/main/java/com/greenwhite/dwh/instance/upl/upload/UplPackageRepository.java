@@ -101,6 +101,23 @@ public class UplPackageRepository {
                 .optional();
     }
 
+    /**
+     * Пакеты «проверен», получившие номер загрузки больше {@code staleMinutes} минут назад, — кандидаты
+     * в прерванные применения (статус загрузки проверяет вызывающий через основу). Строки блокируются;
+     * занятые другим воркером пропускаются.
+     */
+    public List<PackageRow> lockStaleApplies(int staleMinutes) {
+        return jdbc.sql(PACKAGE_SELECT + """
+                         where p.status = 'verified' and p.load_id is not null
+                           and p.modified_at < now() - make_interval(mins => :stale)
+                         order by p.id
+                           for update of p skip locked
+                        """)
+                .param("stale", staleMinutes)
+                .query(this::mapPackage)
+                .list();
+    }
+
     /** Страница списка по плану реестра ({@link UplPackageQuery#LIST}). */
     public KeysetPage<PackageRow> pagePackages(QueryPlan plan) {
         return lists.page(plan, this::mapPackage);

@@ -40,6 +40,8 @@ public class UplApplyService {
     public static final String UPL_PKG_RECONCILIATION = "UPL_PKG_RECONCILIATION";
     /** Строки пакета не записаны в raw. */
     public static final String UPL_PKG_RAW_WRITE_FAILED = "UPL_PKG_RAW_WRITE_FAILED";
+    /** Применение прервалось между шагами (падение процесса, сбой базы) — пакет закрыло задание восстановления. */
+    public static final String UPL_PKG_APPLY_INTERRUPTED = "UPL_PKG_APPLY_INTERRUPTED";
 
     private static final Logger log = LoggerFactory.getLogger(UplApplyService.class);
 

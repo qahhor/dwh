@@ -14,6 +14,7 @@ import com.greenwhite.dwh.instance.support.EmbeddedPostgresTest;
 import com.greenwhite.dwh.instance.upl.format.UplSourceService;
 import com.greenwhite.dwh.instance.upl.parse.UplParseJob;
 import com.greenwhite.dwh.instance.upl.parse.UplXlsxParser;
+import com.greenwhite.dwh.instance.upl.upload.UplApplyRecoveryJob;
 import com.greenwhite.dwh.instance.upl.upload.UplApplyService;
 import com.greenwhite.dwh.instance.upl.upload.UplPackageModel;
 import com.greenwhite.dwh.instance.upl.upload.UplPackageModel.NewPackage;
@@ -47,6 +48,8 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
 
     @Autowired
     private UplApplyService applies;
+    @Autowired
+    private UplApplyRecoveryJob recovery;
     @Autowired
     private UplPackageService packages;
     @Autowired
@@ -216,7 +219,65 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
                 load -> assertThat(load.status()).isEqualTo(FndLoad.FAILED));
     }
 
+    @Test
+    @DisplayName("P0: применение прервалось после выдачи номера загрузки — задание закрывает пакет и загрузку")
+    void interruptedApplyIsClosedByRecoveryJob() {
+        PackageRow stale = interruptedPackage();
+        PackageRow fresh = interruptedPackage();
+        tx.executeWithoutResult(status -> {
+            actors.apply(actors.system());
+            jdbc.sql("update upl_packages set modified_at = now() - interval '2 hours' where id = :id")
+                    .param("id", stale.id()).update();
+        });
+
+        tx.executeWithoutResult(status -> recovery.run(Map.of("staleMinutes", 60)));
+
+        PackageRow closed = packages.get(stale.publicId().toString());
+        assertThat(closed.status()).isEqualTo(UplPackageModel.REJECTED);
+        assertThat(closed.rejectCode()).isEqualTo(UplApplyService.UPL_PKG_APPLY_INTERRUPTED);
+        assertThat(loads.find(closed.loadId())).hasValueSatisfying(
+                load -> assertThat(load.status()).isEqualTo(FndLoad.FAILED));
+        assertThat(jdbc.sql("select count(*) from fnd_load_log where package_ref = :ref and event = 'failed'")
+                .param("ref", closed.publicId()).query(Long.class).single()).isEqualTo(1);
+        assertConflict(() -> applies.apply(closed.publicId().toString(), userId), UplApplyService.UPL_PKG_NOT_VERIFIED);
+
+        // Применение моложе порога может ещё идти — его задание не трогает
+        PackageRow running = packages.get(fresh.publicId().toString());
+        assertThat(running.status()).isEqualTo(UplPackageModel.VERIFIED);
+        assertThat(loads.find(running.loadId())).hasValueSatisfying(
+                load -> assertThat(load.status()).isEqualTo(FndLoad.PENDING));
+    }
+
+    @Test
+    @DisplayName("P0: задание восстановления стоит в расписании")
+    void recoveryJobIsScheduled() {
+        assertThat(jdbc.sql("select interval_sec from fnd_job_schedule where code = :code and enabled")
+                .param("code", UplApplyRecoveryJob.CODE).query(Integer.class).optional()).hasValue(900);
+    }
+
     // ---------- помощники ----------
+
+    /** Пакет, чьё применение оборвалось на записи raw: Error не ловится, третий шаг не наступает. */
+    private PackageRow interruptedPackage() {
+        PackageRow row = verifiedPackage(UplPackageTestData.workbook(7, 3));
+        FndRawWriter crashing = new FndRawWriter() {
+            @Override
+            public void write(long loadId, UUID sourceFileId, Iterable<FndRawRow> rows) {
+                throw new AssertionError("TEST: процесс упал");
+            }
+
+            @Override
+            public List<FndRawRow> read(long loadId) {
+                return raw.read(loadId);
+            }
+        };
+        assertThatThrownBy(() -> service(crashing).apply(row.publicId().toString(), userId))
+                .isInstanceOf(AssertionError.class);
+        PackageRow stuck = packages.get(row.publicId().toString());
+        assertThat(stuck.status()).isEqualTo(UplPackageModel.VERIFIED);
+        assertThat(stuck.loadId()).isNotNull();
+        return stuck;
+    }
 
     private PackageRow verifiedPackage(byte[] content) {
         PackageRow row = parsedPackage(content);

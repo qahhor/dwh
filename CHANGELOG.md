@@ -480,6 +480,16 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- An interrupted package apply no longer sticks (DWH P0). Applying is three
+  steps — take a load number, write raw into the DWH, close the package — and a
+  crash or database failure after the first left the package "verified" with a
+  load number and the load `pending` for good: applying again answered 409 and
+  the raw cleanup never saw it. The new `upl.apply_recovery` job (every 15
+  minutes, V121) closes an apply older than an hour whose load is still
+  pending: the load is failed, so its raw rows are cleaned, and the package is
+  "rejected by the system" with `UPL_PKG_APPLY_INTERRUPTED` ("upload the file
+  again"), as after a failed raw write — a load's package reference is unique,
+  so the same package cannot be applied twice.
 - The DWH database is backed up and restored (ADR-0001, P0). Every backup run
   now writes `smartupcms_dwh-<timestamp>.dump.age` next to the CMS archive of
   the same timestamp, each with its checksum and manifest, and fails the status
