@@ -73,6 +73,7 @@ export function buildNavSections(options: BuildNavSectionsOptions): NavSection[]
   }
 
   workspaceItems.push(
+    { id: 'upl-overview', route: '/upl/overview', labelKey: 'nav.upl_overview', icon: 'monitoring', permission: options.canViewPackages },
     { id: 'upl-sources', route: '/upl/sources', labelKey: 'nav.upl_sources', icon: 'table_view', permission: options.canViewSources },
     { id: 'upl-packages', route: '/upl/packages', labelKey: 'nav.upl_packages', icon: 'upload_file', permission: options.canViewPackages },
     { id: 'files', route: '/files', labelKey: 'layout.app_shell.fayly', titleKey: 'files.faylovoe_hranilische', icon: 'folder_open', permission: options.canViewFiles },

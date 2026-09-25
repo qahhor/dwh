@@ -384,6 +384,26 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
         assertThat((List<String>) read(refused, "$.errors[*].code")).containsExactly("QUERY_UNKNOWN_FIELD");
     }
 
+    @Test
+    @DisplayName("обзор данных: загрузки за период по статусам; период только из списка; право — просмотр загрузок")
+    void overviewCountsUploadsOfThePeriod() throws Exception {
+        Session admin = login(adminLogin);
+        var before = sendGet(admin, "/api/v1/upl/overview?days=7", 200);
+        int uploadsBefore = read(before, "$.totals.uploads");
+        int verifiedBefore = read(before, "$.totals.verified");
+        assertThat(upload(admin, String.valueOf(sourceId), PERIOD_FROM, PERIOD_TO, UplPackageTestData.workbook(2, 0))
+                .getStatus()).isEqualTo(202);
+        assertThat(jobs.runQueued()).isEqualTo(1);
+
+        var after = sendGet(login(analystLogin), "/api/v1/upl/overview?days=7", 200);
+        assertThat((Integer) read(after, "$.days")).isEqualTo(7);
+        assertThat((Integer) read(after, "$.totals.uploads")).isEqualTo(uploadsBefore + 1);
+        assertThat((Integer) read(after, "$.totals.verified")).isEqualTo(verifiedBefore + 1);
+        assertThat((String) read(after, "$.generatedAt")).isNotBlank();
+        sendGet(admin, "/api/v1/upl/overview?days=5", 422);
+        sendGet(login(strangerLogin), "/api/v1/upl/overview", 403);
+    }
+
     // ---------- помощники ----------
 
     private MockHttpServletResponse upload(Session session, String source, String from, String to, byte[] content)

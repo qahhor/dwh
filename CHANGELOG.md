@@ -9,6 +9,13 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Data overview (roadmap wave 5): a lazily loaded page, Data overview in the
+  menu, shows what came into the warehouse over 7, 30 or 90 days — uploads,
+  applied, waiting to be applied, rejected and the rows that reached the
+  warehouse (`GET /api/v1/upl/overview`). Each widget (`ui-dashboard-card`)
+  has its own loading, failure and empty state; the page says when the
+  figures were taken and refreshes by itself every five minutes while the
+  tab is visible. The start of the application does not grow with it.
 - UPL header synonyms: a format column can accept other headers besides its
   name ("Сумма, руб", "Итого") — up to ten, entered separated by semicolons
   in the format editor. The parser finds the column by any of them and does

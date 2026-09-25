@@ -1,6 +1,7 @@
 {
   "nav.tasks": "Tasks",
   "nav.projects": "Projects",
+  "nav.upl_overview": "Data overview",
   "nav.users": "Users",
   "nav.roles": "Roles and permissions",
   "nav.custom_fields": "Custom fields",
@@ -1307,6 +1308,8 @@
   "ui.modal.confirm_title": "Confirmation",
   "ui.modal.confirm_failed": "The action failed. Try again.",
   "ui.history.title": "Change history",
+  "ui.dashboard.load_error": "Could not load the widget data.",
+  "ui.dashboard.empty": "No data.",
   "nav.exports": "My exports",
   "exports.button": "To Excel",
   "exports.button_label": "Export the list to Excel",
