@@ -1,17 +1,13 @@
 package com.greenwhite.dwh.instance.fnd.jobs;
 
 import com.greenwhite.dwh.instance.fnd.FndPref;
-import com.greenwhite.dwh.instance.fnd.dwh.DwhUnavailableException;
+import com.greenwhite.dwh.instance.fnd.config.FndDwhMaintenance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
-import javax.sql.DataSource;
-import java.sql.Connection;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -35,9 +31,9 @@ public class FndXdbCheckJob implements FndJobHandler {
     private static final String LOCAL_IP = "127.0.0.1";
 
     private final JdbcClient oltp;
-    private final DataSource dwh;
+    private final FndDwhMaintenance dwh;
 
-    public FndXdbCheckJob(JdbcClient oltp, @Qualifier(FndPref.DWH) DataSource dwh) {
+    public FndXdbCheckJob(JdbcClient oltp, FndDwhMaintenance dwh) {
         this.oltp = oltp;
         this.dwh = dwh;
     }
@@ -51,21 +47,23 @@ public class FndXdbCheckJob implements FndJobHandler {
     public void run(Map<String, Object> args) {
         List<Long> loadIds = new ArrayList<>();
         List<UUID> fileIds = new ArrayList<>();
-        try (Connection connection = dwh.getConnection(); Statement statement = connection.createStatement()) {
-            try (ResultSet rs = statement.executeQuery("select distinct load_id from raw.rows")) {
-                while (rs.next()) {
-                    loadIds.add(rs.getLong(1));
+        // Оба прохода читают весь raw — предел обслуживания, а не обычный предел запроса
+        dwh.inTransaction(connection -> {
+            try (Statement statement = connection.createStatement()) {
+                try (ResultSet rs = statement.executeQuery("select distinct load_id from raw.rows")) {
+                    while (rs.next()) {
+                        loadIds.add(rs.getLong(1));
+                    }
+                }
+                try (ResultSet rs = statement.executeQuery(
+                        "select distinct source_file_id from raw.rows where source_file_id is not null")) {
+                    while (rs.next()) {
+                        fileIds.add(rs.getObject(1, UUID.class));
+                    }
                 }
             }
-            try (ResultSet rs = statement.executeQuery(
-                    "select distinct source_file_id from raw.rows where source_file_id is not null")) {
-                while (rs.next()) {
-                    fileIds.add(rs.getObject(1, UUID.class));
-                }
-            }
-        } catch (SQLException failure) {
-            throw new DwhUnavailableException(failure);
-        }
+            return null;
+        });
 
         Long systemUserId = systemUserId();
         int mismatches = 0;

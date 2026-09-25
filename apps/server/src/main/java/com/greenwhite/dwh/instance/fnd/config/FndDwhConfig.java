@@ -39,7 +39,22 @@ public class FndDwhConfig {
         long seconds = Math.max(1, (timeoutMs + 999) / 1000);
         ds.addDataSourceProperty("connectTimeout", String.valueOf(seconds));
         ds.addDataSourceProperty("loginTimeout", String.valueOf(seconds));
+        // P0 DWH: без предела один тяжёлый запрос или брошенная транзакция занимали соединение
+        // навсегда, а в пуле их четыре. Сервер обрывает запрос и простой в транзакции сам...
+        long statementMs = props.statementTimeout().toMillis();
+        ds.addDataSourceProperty("options", "-c statement_timeout=" + statementMs
+                + " -c idle_in_transaction_session_timeout=" + statementMs);
+        // ...а socketTimeout (в секундах) — последняя страховка от мёртвой сети: он длиннее любого
+        // серверного предела, включая задания обслуживания, и срабатывает, только если сервер молчит.
+        long longestMs = Math.max(statementMs, props.maintenanceStatementTimeout().toMillis());
+        ds.addDataSourceProperty("socketTimeout", String.valueOf((longestMs + 999) / 1000 + 60));
         return ds;
+    }
+
+    @Bean
+    public FndDwhMaintenance fndDwhMaintenance(@Qualifier(FndPref.DWH) DataSource dwhDataSource,
+                                               DwhDataSourceProperties props) {
+        return new FndDwhMaintenance(dwhDataSource, props.maintenanceStatementTimeout());
     }
 
     @Bean(name = "dwhJdbcClient", defaultCandidate = false)

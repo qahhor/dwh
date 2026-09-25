@@ -1,17 +1,12 @@
 package com.greenwhite.dwh.instance.fnd.jobs;
 
-import com.greenwhite.dwh.instance.fnd.FndPref;
-import com.greenwhite.dwh.instance.fnd.dwh.DwhUnavailableException;
+import com.greenwhite.dwh.instance.fnd.config.FndDwhMaintenance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
-import javax.sql.DataSource;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.util.List;
 
 /**
@@ -26,9 +21,9 @@ public class FndLoadCleanupJob implements FndJobHandler {
     private static final Logger log = LoggerFactory.getLogger(FndLoadCleanupJob.class);
 
     private final JdbcClient oltp;
-    private final DataSource dwh;
+    private final FndDwhMaintenance dwh;
 
-    public FndLoadCleanupJob(JdbcClient oltp, @Qualifier(FndPref.DWH) DataSource dwh) {
+    public FndLoadCleanupJob(JdbcClient oltp, FndDwhMaintenance dwh) {
         this.oltp = oltp;
         this.dwh = dwh;
     }
@@ -45,14 +40,14 @@ public class FndLoadCleanupJob implements FndJobHandler {
         if (failed.isEmpty()) {
             return;
         }
-        try (Connection connection = dwh.getConnection();
-             PreparedStatement statement = connection.prepareStatement(
-                     "delete from raw.rows where load_id = any (?)")) {
-            statement.setArray(1, connection.createArrayOf("bigint", failed.toArray(new Long[0])));
-            int removed = statement.executeUpdate();
-            log.info("load_cleanup loads={} rows_removed={}", failed.size(), removed);
-        } catch (SQLException failure) {
-            throw new DwhUnavailableException(failure);
-        }
+        // Удаление по всему raw может идти дольше обычного предела запроса — предел обслуживания
+        int removed = dwh.inTransaction(connection -> {
+            try (PreparedStatement statement = connection.prepareStatement(
+                    "delete from raw.rows where load_id = any (?)")) {
+                statement.setArray(1, connection.createArrayOf("bigint", failed.toArray(new Long[0])));
+                return statement.executeUpdate();
+            }
+        });
+        log.info("load_cleanup loads={} rows_removed={}", failed.size(), removed);
     }
 }
