@@ -308,9 +308,10 @@ export class PackageCardComponent implements OnChanges {
       this.item.sourceName,
       formatUplPeriod(this.item.periodFrom, this.item.periodTo),
       this.i18n.translate('upl.pkg.card.format_version', { v: this.item.formatVersion }),
-      this.i18n.translate('upl.pkg.card.uploaded_by', { who: this.item.uploadedBy }),
+      // Who uploaded comes only to those who may see people; without it the line skips the part.
+      this.item.uploadedBy ? this.i18n.translate('upl.pkg.card.uploaded_by', { who: this.item.uploadedBy }) : '',
       formatUplDateTime(this.item.uploadedAt)
-    ].join(' · ');
+    ].filter(Boolean).join(' · ');
   }
 
   /** Причина отклонения словами; кода отклонения нет — оставляем пусто. */

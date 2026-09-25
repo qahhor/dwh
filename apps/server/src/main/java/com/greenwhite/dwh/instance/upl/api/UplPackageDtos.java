@@ -2,7 +2,9 @@ package com.greenwhite.dwh.instance.upl.api;
 
 import com.greenwhite.dwh.instance.upl.upload.UplPackageModel.ErrorRow;
 import com.greenwhite.dwh.instance.upl.upload.UplPackageModel.ErrorsView;
+import com.greenwhite.dwh.instance.common.query.QueryField;
 import com.greenwhite.dwh.instance.upl.upload.UplPackageModel.PackageRow;
+import com.greenwhite.dwh.instance.upl.upload.UplPackageQuery;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -23,10 +25,13 @@ public final class UplPackageDtos {
                               Integer rowsTotal, Integer rowsAccepted, Integer rowsRejected, Integer errorsTotal,
                               String rejectCode, Map<String, Object> rejectParams, Long loadId, Integer rawRows) {
 
+        /** Who uploaded names a person; every response of a package follows the list's field right (ADR-0016, 2.9). */
+        private static final QueryField UPLOADER = UplPackageQuery.LIST.field("uploadedBy").orElseThrow();
+
         public static PackageItem of(PackageRow row) {
             return new PackageItem(row.publicId(), row.sourceId(), row.sourceCode(), row.sourceName(),
                     row.formatVersion(), row.periodFrom(), row.periodTo(), row.fileName(), row.fileSizeBytes(),
-                    row.uploadedBy(), row.uploadedAt(), row.status(),
+                    UPLOADER.visibleToViewer() ? row.uploadedBy() : null, row.uploadedAt(), row.status(),
                     row.rowsTotal(), row.rowsAccepted(), row.rowsRejected(), row.errorsTotal(),
                     row.rejectCode(), row.rejectParams(), row.loadId(), row.rawRows());
         }

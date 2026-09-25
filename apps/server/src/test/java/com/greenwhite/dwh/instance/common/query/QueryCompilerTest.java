@@ -2,12 +2,15 @@ package com.greenwhite.dwh.instance.common.query;
 
 import com.greenwhite.dwh.core.error.FieldErrorItem;
 import com.greenwhite.dwh.instance.common.error.ApiException;
+import com.greenwhite.dwh.instance.common.security.SecurityContext;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -189,6 +192,50 @@ class QueryCompilerTest {
         assertThatThrownBy(() -> QueryCompiler.compile(LIST, null, null, null, null, "x"))
                 .isInstanceOf(ApiException.class);
         assertThatThrownBy(() -> QueryField.of("n", "n", QueryFieldType.NUMBER, "t.n").asSearchable())
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @AfterEach
+    void signOut() {
+        SecurityContext.clear();
+    }
+
+    private static void signIn(String... permissions) {
+        SecurityContext.setPrincipal(new SecurityContext.KauthPrincipal(1L, "viewer", "viewer@test", 1L, false,
+                Set.of(permissions), 1L, false, 1L, null));
+    }
+
+    @Test
+    @DisplayName("права на поля: без права поле неотличимо от несуществующего в фильтре, сортировке и поиске, значение скрыто")
+    void fieldRightHidesTheField() {
+        QueryList list = new QueryList("test.rights", "test.form", "view", "t.id", "test_items t", "t.id",
+                List.of(QueryField.of("code", "c", QueryFieldType.TEXT, "t.code").asSortable().asSearchable(),
+                        QueryField.of("owner", "o", QueryFieldType.TEXT, "t.owner").asSortable().asSearchable()
+                                .requires("test.people", "view")),
+                "code");
+
+        signIn("test.form.view");
+        assertThat(list.viewerFields()).extracting(QueryField::key).containsExactly("code");
+        ApiException filter = catchThrowableOfType(ApiException.class,
+                () -> QueryCompiler.compile(list, "[{\"field\":\"owner\",\"op\":\"eq\",\"value\":\"x\"}]", null, null, null));
+        assertThat(filter.getFieldErrors()).extracting(FieldErrorItem::code).containsExactly(QueryCompiler.UNKNOWN_FIELD);
+        ApiException sort = catchThrowableOfType(ApiException.class,
+                () -> QueryCompiler.compile(list, null, "-owner", null, null));
+        assertThat(sort.getFieldErrors()).extracting(FieldErrorItem::code).containsExactly(QueryCompiler.SORT_INVALID);
+        QueryPlan plan = QueryCompiler.compile(list, null, null, null, null, "ann");
+        assertThat(plan.where().sql()).isEqualTo(" and (t.code ilike :q_search escape '\\')");
+        assertThat(plan.shows("owner")).isFalse();
+        assertThat(plan.shows("code")).isTrue();
+
+        signIn("test.form.view", "test.people.view");
+        QueryPlan full = QueryCompiler.compile(list, "[{\"field\":\"owner\",\"op\":\"eq\",\"value\":\"x\"}]", "-owner", null, null, "ann");
+        assertThat(full.shows("owner")).isTrue();
+        assertThat(full.where().sql()).contains("t.owner ilike :q_search");
+
+        assertThatThrownBy(() -> new QueryList("test.bad", "test.form", "view", "t.id", "test_items t", "t.id",
+                List.of(QueryField.of("owner", "o", QueryFieldType.TEXT, "t.owner").asSortable().requires("test.people", "view")),
+                "owner")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> QueryField.of("owner", "o", QueryFieldType.TEXT, "t.owner").requires("test.people", null))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 

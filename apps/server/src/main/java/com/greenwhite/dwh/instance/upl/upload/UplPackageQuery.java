@@ -42,8 +42,9 @@ public class UplPackageQuery {
                             .asNullable().asHidden(),
                     QueryField.of("formatVersion", "upl.pkg.col.format_version", QueryFieldType.NUMBER,
                             "p.format_version").asHidden(),
+                    // Who uploaded names a person: shown to those who may see the user directory (ADR-0016, 2.9).
                     QueryField.of("uploadedBy", "upl.pkg.col.uploaded_by", QueryFieldType.TEXT, "p.uploaded_by")
-                            .asHidden()),
+                            .asHidden().requires("iam.users", "view")),
             "uploadedAt",
             true,
             QueryList.DEFAULT_LIMIT,

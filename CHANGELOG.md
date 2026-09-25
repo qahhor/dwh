@@ -9,6 +9,11 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Field rights in the field registry (ADR-0016, 2.9): a list field can require
+  its own right. Without it the field is absent from query-meta, a filter,
+  sort or search on it is refused as for an unknown field, and its value is
+  left out of the response. Who uploaded a UPL package is the first such
+  field: it is shown to those who may see the user directory.
 - Record history (ADR-0017): the task card and the user card have a
   "Change history" section that shows who changed which field from what to
   what and when, newest first, from the audit log. It opens with the

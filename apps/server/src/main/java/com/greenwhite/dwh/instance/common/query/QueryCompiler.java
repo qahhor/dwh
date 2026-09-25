@@ -67,7 +67,7 @@ public final class QueryCompiler {
         boolean descending = list.defaultDescending();
         if (sort != null && !sort.isBlank()) {
             boolean minus = sort.startsWith("-");
-            Optional<QueryField> requested = list.field(minus ? sort.substring(1) : sort);
+            Optional<QueryField> requested = list.viewerField(minus ? sort.substring(1) : sort);
             if (requested.isEmpty() || !requested.get().sortable()) {
                 errors.add(new FieldErrorItem("sort", SORT_INVALID, "not a sortable field: " + sort));
             } else {
@@ -77,7 +77,7 @@ public final class QueryCompiler {
         }
         String term = search == null || search.isBlank() ? null : search.strip();
         if (term != null && (term.length() > MAX_SEARCH_CHARS
-                || list.fields().stream().noneMatch(QueryField::searchable))) {
+                || list.viewerFields().stream().noneMatch(QueryField::searchable))) {
             errors.add(new FieldErrorItem("q", SEARCH_INVALID, "search is too long or the list has no searchable field"));
         }
         if (!errors.isEmpty()) {
@@ -93,7 +93,9 @@ public final class QueryCompiler {
                         "cursor is malformed or belongs to another filter or sort")));
             }
         }
-        return new QueryPlan(list, conditions, sortField, descending, pageSize, decoded, fingerprint, term);
+        Set<String> hidden = list.fields().stream().filter(field -> !field.visibleToViewer())
+                .map(QueryField::key).collect(java.util.stream.Collectors.toUnmodifiableSet());
+        return new QueryPlan(list, conditions, sortField, descending, pageSize, decoded, fingerprint, term, hidden);
     }
 
     private static List<QueryPlan.Condition> parseFilter(QueryList list, String filter, List<FieldErrorItem> errors) {
@@ -133,7 +135,7 @@ public final class QueryCompiler {
             return Optional.empty();
         }
         String key = node.path("field").asString("");
-        Optional<QueryField> found = list.field(key);
+        Optional<QueryField> found = list.viewerField(key);
         if (found.isEmpty() || !found.get().filterable()) {
             errors.add(new FieldErrorItem(at + ".field", UNKNOWN_FIELD, "not a filterable field: " + key));
             return Optional.empty();

@@ -352,6 +352,28 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
                 .containsExactly("sourceCode", "periodTo", "errorsTotal", "formatVersion", "uploadedBy");
     }
 
+    @Test
+    @DisplayName("права на поля: без права на справочник пользователей не видно, кто загрузил, — ни колонки, ни фильтра, ни значения")
+    void uploaderFollowsTheFieldRight() throws Exception {
+        Session admin = login(adminLogin);
+        assertThat(upload(admin, String.valueOf(sourceId), PERIOD_FROM, PERIOD_TO, UplPackageTestData.workbook(2, 0))
+                .getStatus()).isEqualTo(202);
+        String uploader = read(sendGet(admin, BASE, 200), "$.items[0].uploadedBy");
+        assertThat(uploader).isNotBlank();
+
+        Session analyst = login(analystLogin);
+        var list = sendGet(analyst, BASE, 200);
+        assertThat((List<Object>) read(list, "$.items")).isNotEmpty();
+        assertThat((List<Object>) read(list, "$.items[?(@.uploadedBy)]")).isEmpty();
+        assertThat((List<String>) read(sendGet(analyst, "/api/v1/query-meta/upl.packages", 200), "$.fields[*].key"))
+                .doesNotContain("uploadedBy").contains("fileName");
+        String byUploader = java.net.URLEncoder.encode(
+                "[{\"field\":\"uploadedBy\",\"op\":\"eq\",\"value\":\"" + uploader + "\"}]",
+                java.nio.charset.StandardCharsets.UTF_8);
+        var refused = sendGetUri(analyst, BASE + "?filter=" + byUploader, 422);
+        assertThat((List<String>) read(refused, "$.errors[*].code")).containsExactly("QUERY_UNKNOWN_FIELD");
+    }
+
     // ---------- помощники ----------
 
     private MockHttpServletResponse upload(Session session, String source, String from, String to, byte[] content)

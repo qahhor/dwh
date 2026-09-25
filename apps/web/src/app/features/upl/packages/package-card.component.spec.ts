@@ -126,6 +126,15 @@ describe('PackageCardComponent', () => {
     expect(meta).toContain('загрузил Ivanov TEST');
   });
 
+  it('без права видеть людей сервер не отдаёт, кто загрузил: строка шапки обходится без этой части', async () => {
+    const { fixture } = await createFixture(item({ uploadedBy: undefined }));
+
+    const meta = testId(fixture, 'upl-pkg-card-meta')[0].textContent ?? '';
+    expect(meta).not.toContain('загрузил');
+    expect(meta).toContain('анкета, версия 2 · ');
+    expect(meta).not.toContain(' ·  · ');
+  });
+
   it('статус «проверен» с ошибками: три числа и таблица с адресом и русским текстом без кода', async () => {
     const rows = [
       cell(),

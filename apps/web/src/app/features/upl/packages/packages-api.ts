@@ -21,7 +21,8 @@ export interface UplPackageItem {
   periodTo: string;
   fileName: string;
   fileSizeBytes: number;
-  uploadedBy: string;
+  /** Absent when the viewer may not see who uploaded (a field right on the server, ADR-0016 2.9). */
+  uploadedBy?: string;
   uploadedAt: string;
   status: UplPackageStatus;
   rowsTotal: number | null;

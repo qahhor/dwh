@@ -3,13 +3,14 @@ package com.greenwhite.dwh.instance.common.query;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Проверенный запрос к списку: условия с типизированными значениями, сортировка, размер страницы и курсор.
  * Строится только {@link QueryCompiler}; SQL собирается из выражений реестра, значения идут параметрами.
  */
 public record QueryPlan(QueryList list, List<Condition> conditions, QueryField sort, boolean descending, int limit,
-                        QueryCursor cursor, String fingerprint, String search) {
+                        QueryCursor cursor, String fingerprint, String search, Set<String> hiddenFields) {
 
     /** Условие фильтра; {@code values} уже приведены к типу поля. */
     public record Condition(QueryField field, QueryOp op, List<Object> values) {
@@ -21,6 +22,15 @@ public record QueryPlan(QueryList list, List<Condition> conditions, QueryField s
 
     public QueryPlan {
         conditions = List.copyOf(conditions);
+        hiddenFields = Set.copyOf(hiddenFields);
+    }
+
+    /**
+     * Отдаёт ли список значение поля этому смотрящему. Модуль, собирая строку ответа, оставляет поле
+     * пустым, если нет (права на поля, ADR-0016, 2.9); пустое поле в JSON не пишется.
+     */
+    public boolean shows(String key) {
+        return !hiddenFields.contains(key);
     }
 
     /** Условия фильтра: пусто или {@code " and ..."}. */
@@ -60,7 +70,8 @@ public record QueryPlan(QueryList list, List<Condition> conditions, QueryField s
                 default -> params.put(p, values.getFirst());
             }
         }
-        List<QueryField> searchable = list.fields().stream().filter(QueryField::searchable).toList();
+        List<QueryField> searchable = list.fields().stream()
+                .filter(field -> field.searchable() && !hiddenFields.contains(field.key())).toList();
         if (search != null && !searchable.isEmpty()) {
             sql.append(" and (");
             for (int i = 0; i < searchable.size(); i++) {
