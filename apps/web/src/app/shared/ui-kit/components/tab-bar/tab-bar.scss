@@ -1,0 +1,99 @@
+/* Our styles for smt-tab-bar, from semantic tokens so both themes work. */
+
+.smt-tab-bar {
+  display: block;
+  min-width: 0;
+}
+
+.smt-tab-bar__list {
+  display: flex;
+  gap: 2px;
+  max-width: 100%;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border-color);
+  scrollbar-width: thin;
+}
+
+.smt-tab-bar__tab {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: -1px;
+  padding: 8px 12px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.smt-tab-bar__tab:hover:not(:disabled) {
+  color: var(--text-main);
+}
+
+.smt-tab-bar__tab--active {
+  border-bottom-color: var(--primary);
+  color: var(--primary-text);
+  font-weight: 600;
+}
+
+.smt-tab-bar__tab:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+  border-radius: var(--radius-sm);
+}
+
+.smt-tab-bar__tab:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.smt-tab-bar__icon {
+  font-size: 16px;
+}
+
+.smt-tab-bar__count {
+  min-width: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background-color: var(--bg-hover);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.smt-tab-bar__count--attention {
+  background-color: var(--danger-bg);
+  color: var(--danger-text);
+}
+
+/* A small bar inside a toolbar: `<smt-tab-bar class="smt-tab-bar--compact">`. */
+.smt-tab-bar--compact .smt-tab-bar__list {
+  border-bottom: none;
+}
+
+.smt-tab-bar--compact .smt-tab-bar__tab {
+  margin-bottom: 0;
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+.smt-tab-bar--compact .smt-tab-bar__icon {
+  font-size: 14px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .smt-tab-bar__tab {
+    transition: none;
+  }
+}

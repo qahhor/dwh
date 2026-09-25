@@ -16,6 +16,9 @@ import { AuditStatsTilesComponent } from './components/audit-stats-tiles.compone
 import { AuditLogsTableComponent } from './components/audit-logs-table.component';
 import { AuditSecurityTableComponent } from './components/audit-security-table.component';
 import { AuditModalsComponent } from './components/audit-modals.component';
+import { SMTTabBarComponent, SMTTabItem } from '../../shared/ui-kit/components/tab-bar';
+import { optionsMemo } from '../../shared/ui-kit/components/forms/radio-group';
+import { I18nService } from '../../core/services/i18n.service';
 
 export * from './audit.models';
 
@@ -23,7 +26,7 @@ export * from './audit.models';
   selector: 'app-audit',
   standalone: true,
   imports: [
-    CommonModule,
+    SMTTabBarComponent, CommonModule,
     TranslatePipe,
     AuditStatsTilesComponent,
     AuditLogsTableComponent,
@@ -55,34 +58,12 @@ export * from './audit.models';
 
       <!-- Tabs Navigation -->
       <div class="toolbar">
-        <div class="status-tabs" role="tablist" [attr.aria-label]="'audit.razdely_audita' | t">
-          <button
-            id="audit-log-tab"
-            type="button"
-            role="tab"
-            class="status-tab"
-            [class.active]="activeTab === 'audit'"
-            [attr.aria-selected]="activeTab === 'audit'"
-            aria-controls="audit-log-panel"
-            (click)="setTab('audit')"
-          >
-            <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">database</span>
-            <span>{{ 'audit.change_log_count' | t:{count: auditTotal()} }}</span>
-          </button>
-          <button
-            id="security-events-tab"
-            type="button"
-            role="tab"
-            class="status-tab"
-            [class.active]="activeTab === 'security'"
-            [attr.aria-selected]="activeTab === 'security'"
-            aria-controls="security-events-panel"
-            (click)="setTab('security')"
-          >
-            <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">shield</span>
-            <span>{{ 'audit.security_events_count' | t:{count: securityTotal()} }}</span>
-          </button>
-        </div>
+        <smt-tab-bar
+          class="audit-tabs"
+          [tabs]="auditTabs()"
+          [value]="activeTab"
+          [smtAriaLabel]="'audit.razdely_audita' | t"
+          (valueChange)="$event && setTab($event)" />
       </div>
 
       <!-- TAB 1: AUDIT LOGS -->
@@ -137,6 +118,9 @@ export * from './audit.models';
   styleUrl: './audit.component.css'
 })
 export class AuditComponent implements OnInit {
+  /** Texts of the tabs below; translated again when the language changes. */
+  private readonly tabText = inject(I18nService);
+
   readonly stats = signal<AuditStats | null>(null);
   readonly statsError = signal<boolean>(false);
 
@@ -312,5 +296,14 @@ export class AuditComponent implements OnInit {
     const oldKeys = Object.keys(record.oldRow || {});
     const newKeys = Object.keys(record.newRow || {});
     return Array.from(new Set([...oldKeys, ...newKeys, ...(record.changedColumns || [])]));
+  }
+
+  private readonly tabsMemo = optionsMemo<SMTTabItem<'audit' | 'security'>[]>();
+
+  auditTabs(): SMTTabItem<'audit' | 'security'>[] {
+    return this.tabsMemo([this.tabText.currentLang(), this.auditTotal(), this.securityTotal()], () => [
+      { value: 'audit', label: this.tabText.translate('audit.change_log_count', { count: this.auditTotal() }), icon: 'database', id: 'audit-log-tab' },
+      { value: 'security', label: this.tabText.translate('audit.security_events_count', { count: this.securityTotal() }), icon: 'shield', id: 'security-events-tab' },
+    ]);
   }
 }

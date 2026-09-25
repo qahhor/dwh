@@ -18,11 +18,6 @@
       overscroll-behavior-x: contain;
     }
 
-    .status-tabs {
-      min-width: max-content;
-      flex: 0 0 max-content;
-      margin-inline: 8px;
-    }
 
     .view-header {
       display: flex;

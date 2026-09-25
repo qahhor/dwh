@@ -11,12 +11,14 @@ import { LoginAttemptRecord, User, UserSecuritySummary, UserSession } from '../.
 import { UserOrgUnitsPanelComponent } from '../../org-units/public-api';
 import { UserEffectivePermissionsPanelComponent } from './user-effective-permissions-panel.component';
 import { SMTAvatarComponent } from '../../../../shared/ui-kit/components/avatar';
+import { SMTTabBarComponent, SMTTabItem } from '../../../../shared/ui-kit/components/tab-bar';
+import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-group';
 
 @Component({
   selector: 'app-user-detail-modal',
   standalone: true,
   imports: [
-    SMTAvatarComponent, CommonModule,
+    SMTTabBarComponent, SMTAvatarComponent, CommonModule,
     TranslatePipe,
     UiModalComponent,
     UiButtonComponent,
@@ -50,54 +52,12 @@ import { SMTAvatarComponent } from '../../../../shared/ui-kit/components/avatar'
         </div>
 
         <!-- Segmented Tab Bar -->
-        <div class="modal-tab-bar" role="tablist">
-          <button
-            type="button"
-            role="tab"
-            class="modal-tab-btn"
-            [class.active]="activeViewTab === 'info'"
-            [attr.aria-selected]="activeViewTab === 'info'"
-            (click)="switchTab.emit({ tab: 'info', userId: u.id })"
-          >
-            <span class="material-symbols-outlined tab-icon" aria-hidden="true">badge</span>
-            {{ 'iam.osnovnoe' | t }}
-          </button>
-          <button
-            type="button"
-            role="tab"
-            class="modal-tab-btn"
-            [class.active]="activeViewTab === 'security'"
-            [attr.aria-selected]="activeViewTab === 'security'"
-            (click)="switchTab.emit({ tab: 'security', userId: u.id })"
-          >
-            <span class="material-symbols-outlined tab-icon" aria-hidden="true">shield</span>
-            {{ 'iam.bezopasnost_i_sessii' | t }}
-          </button>
-          <button
-            *ngIf="canViewOrgUnits && safeRecordId(u.id)"
-            type="button"
-            role="tab"
-            class="modal-tab-btn"
-            [class.active]="activeViewTab === 'orgUnits'"
-            [attr.aria-selected]="activeViewTab === 'orgUnits'"
-            (click)="switchTab.emit({ tab: 'orgUnits', userId: u.id })"
-          >
-            <span class="material-symbols-outlined tab-icon" aria-hidden="true">account_tree</span>
-            {{ 'iam.org_struktura' | t }}
-          </button>
-          <button
-            *ngIf="canViewAssignments && safeRecordId(u.id)"
-            type="button"
-            role="tab"
-            class="modal-tab-btn"
-            [class.active]="activeViewTab === 'permissions'"
-            [attr.aria-selected]="activeViewTab === 'permissions'"
-            (click)="switchTab.emit({ tab: 'permissions', userId: u.id })"
-          >
-            <span class="material-symbols-outlined tab-icon" aria-hidden="true">lock_person</span>
-            {{ 'iam.effektivnye_prava' | t }}
-          </button>
-        </div>
+        <smt-tab-bar
+          class="modal-tab-bar"
+          [tabs]="viewTabs(u)"
+          [value]="activeViewTab"
+          [smtAriaLabel]="'iam.razdely_kartochki' | t"
+          (valueChange)="$event && switchTab.emit({ tab: $event, userId: u.id })" />
 
         <!-- Info Tab -->
         <div class="info-list" *ngIf="activeViewTab === 'info'">
@@ -291,6 +251,9 @@ import { SMTAvatarComponent } from '../../../../shared/ui-kit/components/avatar'
   styleUrl: './user-detail-modal.component.css'
 })
 export class UserDetailModalComponent {
+  /** Texts of the tabs below; translated again when the language changes. */
+  private readonly tabText = inject(I18nService);
+
   @Input() isOpen = false;
   @Input() viewingUser: User | null = null;
   @Input() routeRecordId: string | null = null;
@@ -408,5 +371,20 @@ export class UserDetailModalComponent {
 
   canLeave(): boolean | Observable<boolean> {
     return this.orgUnitsPanel?.canLeave() ?? true;
+  }
+
+  private readonly tabsMemo = optionsMemo<SMTTabItem<'info' | 'security' | 'orgUnits' | 'permissions'>[]>();
+
+  /** The card's sections; org units and effective rights only with the right to see them. */
+  viewTabs(user: User): SMTTabItem<'info' | 'security' | 'orgUnits' | 'permissions'>[] {
+    const withId = !!this.safeRecordId(user.id);
+    const orgUnits = this.canViewOrgUnits && withId;
+    const permissions = this.canViewAssignments && withId;
+    return this.tabsMemo([this.tabText.currentLang(), orgUnits, permissions], () => [
+      { value: 'info' as const, label: this.tabText.translate('iam.osnovnoe'), icon: 'badge' },
+      { value: 'security' as const, label: this.tabText.translate('iam.bezopasnost_i_sessii'), icon: 'shield' },
+      ...(orgUnits ? [{ value: 'orgUnits' as const, label: this.tabText.translate('iam.org_struktura'), icon: 'account_tree' }] : []),
+      ...(permissions ? [{ value: 'permissions' as const, label: this.tabText.translate('iam.effektivnye_prava'), icon: 'lock_person' }] : []),
+    ]);
   }
 }

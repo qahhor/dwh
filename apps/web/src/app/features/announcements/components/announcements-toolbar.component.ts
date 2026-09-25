@@ -1,60 +1,23 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslatePipe } from '../../../core/services/i18n.service';
+import { SMTTabBarComponent, SMTTabItem } from '../../../shared/ui-kit/components/tab-bar';
+import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group';
+import { I18nService } from '../../../core/services/i18n.service';
 
 @Component({
   selector: 'app-announcements-toolbar',
   standalone: true,
-  imports: [CommonModule, TranslatePipe],
+  imports: [SMTTabBarComponent, CommonModule, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="toolbar">
-      <div class="status-tabs" role="tablist" [attr.aria-label]="'announcements.vse_statusy' | t">
-        <button
-          type="button"
-          role="tab"
-          class="status-tab"
-          [class.active]="statusFilter() === 'ALL'"
-          [attr.aria-selected]="statusFilter() === 'ALL'"
-          (click)="filterChange.emit('ALL')"
-        >
-          <span>{{ 'announcements.vse_statusy' | t }}</span>
-          <span class="tab-count">{{ totalCount() }}</span>
-        </button>
-        <button
-          type="button"
-          role="tab"
-          class="status-tab"
-          [class.active]="statusFilter() === 'PUBLISHED'"
-          [attr.aria-selected]="statusFilter() === 'PUBLISHED'"
-          (click)="filterChange.emit('PUBLISHED')"
-        >
-          <span>{{ 'announcements.status_published' | t }}</span>
-          <span class="tab-count count-published">{{ publishedCount() }}</span>
-        </button>
-        <button
-          type="button"
-          role="tab"
-          class="status-tab"
-          [class.active]="statusFilter() === 'DRAFT'"
-          [attr.aria-selected]="statusFilter() === 'DRAFT'"
-          (click)="filterChange.emit('DRAFT')"
-        >
-          <span>{{ 'announcements.status_draft' | t }}</span>
-          <span class="tab-count count-draft">{{ draftCount() }}</span>
-        </button>
-        <button
-          type="button"
-          role="tab"
-          class="status-tab"
-          [class.active]="statusFilter() === 'ARCHIVED'"
-          [attr.aria-selected]="statusFilter() === 'ARCHIVED'"
-          (click)="filterChange.emit('ARCHIVED')"
-        >
-          <span>{{ 'announcements.status_archived' | t }}</span>
-          <span class="tab-count count-archived">{{ archivedCount() }}</span>
-        </button>
-      </div>
+      <smt-tab-bar
+        class="status-tab-bar"
+        [tabs]="statusTabs()"
+        [value]="statusFilter()"
+        [smtAriaLabel]="'announcements.vse_statusy' | t"
+        (valueChange)="$event && filterChange.emit($event)" />
 
       <div class="search-box">
         <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
@@ -89,55 +52,11 @@ import { TranslatePipe } from '../../../core/services/i18n.service';
       padding: 6px 0;
     }
 
-    .status-tabs {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 4px;
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-    }
 
-    .status-tab {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 5px 12px;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text-muted);
-      background: transparent;
-      border: 0;
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }
 
-    .status-tab:hover {
-      background: var(--bg-hover);
-      color: var(--text-main);
-    }
 
-    .status-tab.active {
-      background: var(--primary-subtle);
-      color: var(--primary);
-      font-weight: 600;
-    }
 
-    .tab-count {
-      font-size: 11px;
-      font-weight: 600;
-      padding: 1px 6px;
-      border-radius: 999px;
-      background: var(--bg-hover);
-      color: var(--text-muted);
-    }
 
-    .status-tab.active .tab-count {
-      background: var(--primary);
-      color: var(--on-primary);
-    }
 
     .search-box {
       position: relative;
@@ -203,6 +122,9 @@ import { TranslatePipe } from '../../../core/services/i18n.service';
   `]
 })
 export class AnnouncementsToolbarComponent {
+  /** Texts of the tabs below; translated again when the language changes. */
+  private readonly tabText = inject(I18nService);
+
   readonly totalCount = input.required<number>();
   readonly publishedCount = input.required<number>();
   readonly draftCount = input.required<number>();
@@ -214,8 +136,19 @@ export class AnnouncementsToolbarComponent {
   readonly searchChange = output<string>();
   readonly searchClear = output<void>();
 
+  private readonly tabsMemo = optionsMemo<SMTTabItem<'ALL' | 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'>[]>();
+
   onInput(event: Event): void {
     const input = event.target as HTMLInputElement;
     this.searchChange.emit(input.value);
+  }
+
+  statusTabs(): SMTTabItem<'ALL' | 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'>[] {
+    return this.tabsMemo([this.tabText.currentLang(), this.totalCount(), this.publishedCount(), this.draftCount(), this.archivedCount()], () => [
+      { value: 'ALL', label: this.tabText.translate('announcements.vse_statusy'), count: this.totalCount() },
+      { value: 'PUBLISHED', label: this.tabText.translate('announcements.status_published'), count: this.publishedCount() },
+      { value: 'DRAFT', label: this.tabText.translate('announcements.status_draft'), count: this.draftCount() },
+      { value: 'ARCHIVED', label: this.tabText.translate('announcements.status_archived'), count: this.archivedCount() },
+    ]);
   }
 }

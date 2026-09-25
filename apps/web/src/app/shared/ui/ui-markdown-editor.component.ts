@@ -3,12 +3,14 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { replaceMarkdownLinksWithSafeAnchors } from './markdown-link-sanitizer';
 import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
+import { SMTTabBarComponent, SMTTabItem } from '../ui-kit/components/tab-bar';
+import { optionsMemo } from '../ui-kit/components/forms/radio-group';
 
 @Component({
   selector: 'ui-markdown-editor',
   standalone: true,
   imports: [
-    TranslatePipe,CommonModule, FormsModule],
+    SMTTabBarComponent, TranslatePipe,CommonModule, FormsModule],
   template: `
     <div class="md-editor-container" [class.focused]="isFocused">
       <!-- Toolbar -->
@@ -54,34 +56,12 @@ import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
         </div>
 
         <!-- Mode Toggle Tabs -->
-        <div class="mode-tabs" role="tablist" [attr.aria-label]="'ui.markdown_editor.rezhim_markdown' | t">
-          <button
-            type="button"
-            class="mode-btn"
-            role="tab"
-            [id]="editTabId"
-            [class.active]="mode === 'edit'"
-            [attr.aria-selected]="mode === 'edit'"
-            [attr.aria-controls]="editPanelId"
-            (click)="mode = 'edit'"
-          >
-            <span class="material-symbols-outlined ico" aria-hidden="true">edit_note</span>
-            <span>{{ 'ui.markdown_editor.redaktor' | t }}</span>
-          </button>
-          <button
-            type="button"
-            class="mode-btn"
-            role="tab"
-            [id]="previewTabId"
-            [class.active]="mode === 'preview'"
-            [attr.aria-selected]="mode === 'preview'"
-            [attr.aria-controls]="previewPanelId"
-            (click)="mode = 'preview'"
-          >
-            <span class="material-symbols-outlined ico" aria-hidden="true">visibility</span>
-            <span>{{ 'ui.markdown_editor.predprosmotr' | t }}</span>
-          </button>
-        </div>
+        <smt-tab-bar
+          class="smt-tab-bar--compact"
+          [tabs]="modeTabs()"
+          [value]="mode"
+          [smtAriaLabel]="'ui.markdown_editor.rezhim_markdown' | t"
+          (valueChange)="mode = $event ?? mode" />
       </div>
 
       <!-- Editor Content -->
@@ -186,33 +166,6 @@ import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
       margin: 0 4px;
     }
 
-    .mode-tabs {
-      display: flex;
-      background-color: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-xs);
-      padding: 1px;
-      gap: 2px;
-    }
-    .mode-btn {
-      border: none;
-      background: transparent;
-      padding: 2px 8px;
-      font-size: 11px;
-      font-weight: 500;
-      color: var(--text-muted);
-      border-radius: 2px;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      transition: all 0.1s ease;
-    }
-    .mode-btn .ico { font-size: 14px; }
-    .mode-btn.active {
-      background-color: var(--primary);
-      color: var(--on-primary);
-    }
 
     .md-body {
       display: flex;
@@ -323,7 +276,11 @@ import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
   `]
 })
 export class UiMarkdownEditorComponent {
+  /** Texts of the tabs below; translated again when the language changes. */
+  private readonly tabText = inject(I18nService);
+
   private readonly uiI18n = inject(I18nService);
+
   private static nextId = 0;
 
   @Input() value = '';
@@ -342,6 +299,8 @@ export class UiMarkdownEditorComponent {
   readonly previewTabId = `ui-markdown-preview-tab-${this.componentId}`;
   readonly editPanelId = `ui-markdown-edit-panel-${this.componentId}`;
   readonly previewPanelId = `ui-markdown-preview-panel-${this.componentId}`;
+
+  private readonly tabsMemo = optionsMemo<SMTTabItem<'edit' | 'preview'>[]>();
 
   onTextChange(newVal: string) {
     this.value = newVal;
@@ -478,6 +437,13 @@ export class UiMarkdownEditorComponent {
     html = html.replace(/\n/g, '<br/>');
 
     return html;
+  }
+
+  modeTabs(): SMTTabItem<'edit' | 'preview'>[] {
+    return this.tabsMemo([this.tabText.currentLang()], () => [
+      { value: 'edit', label: this.tabText.translate('ui.markdown_editor.redaktor'), icon: 'edit_note', id: this.editTabId, panelId: this.editPanelId },
+      { value: 'preview', label: this.tabText.translate('ui.markdown_editor.predprosmotr'), icon: 'visibility', id: this.previewTabId, panelId: this.previewPanelId },
+    ]);
   }
 
   private escapeHtml(str: string): string {

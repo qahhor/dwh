@@ -23,39 +23,6 @@
 .view-header-card .name { font-size: 15px; font-weight: 600; margin: 0; overflow-wrap: anywhere; }
 .view-header-card .handle { font-size: 12px; color: var(--text-muted); overflow-wrap: anywhere; }
 
-/* Modal Tabs */
-.modal-tab-bar {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 4px;
-  border-bottom: 1px solid var(--border-color);
-  padding-bottom: 2px;
-  min-width: 0;
-  max-width: 100%;
-}
-    .modal-tab-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--text-muted);
-      background: transparent;
-      border: none;
-      border-bottom: 2px solid transparent;
-      cursor: pointer;
-      transition: all 0.15s ease;
-      margin-bottom: -1px;
-    }
-    .modal-tab-btn:hover { color: var(--text-main); }
-    .modal-tab-btn.active {
-      color: var(--primary);
-      border-bottom-color: var(--primary);
-      font-weight: 600;
-    }
-    .tab-icon { font-size: 16px; }
 
     .info-list {
       display: flex;
@@ -256,10 +223,6 @@
     }
 
     @media (max-width: 640px) {
-      .modal-tab-btn {
-        padding: 5px 8px;
-        font-size: 11px;
-      }
       .sec-metrics-grid {
         grid-template-columns: repeat(2, 1fr);
       }

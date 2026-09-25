@@ -9,6 +9,15 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Tabs (roadmap item 41). `smt-tab-bar` follows the WAI-ARIA tabs pattern:
+  the chosen tab is the only tab stop, arrows choose (Home and End go to the
+  ends), disabled tabs are skipped, a count is read as part of the tab's name,
+  and a focused tab in a scrolled bar comes to the middle; a compact look fits
+  a toolbar. It replaces the application's own tab bars in settings, audit,
+  notes, notifications, announcements (status filter and the languages of an
+  announcement), modules, task dictionaries, the user card and the Markdown
+  editor — several had no arrow keys, no single tab stop or no name. The user
+  card's tabs are named "User card sections".
 - Phone and colour fields (roadmap item 39). `smt-phone-input` pairs a
   native country list for the product's markets (and "other") with a
   telephone field that writes digits into the country's mask as they are
