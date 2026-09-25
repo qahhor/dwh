@@ -14,6 +14,7 @@ import {
 import { SMT_DRAWER_DATA, SMT_DRAWER_REF, SMTDrawerRef } from '../ui-kit/components/drawer';
 import { DateRange, SMTDatePickerComponent, SMTDateRangePickerComponent } from '../ui-kit/components/forms/date-picker';
 import { UiButtonComponent } from './ui-button.component';
+import { SMTInputComponent, SMTInputValue } from '../ui-kit/components/forms/input';
 
 export interface FilterPanelData {
   meta: QueryListMeta;
@@ -35,7 +36,7 @@ let nextPanelId = 0;
   selector: 'ui-filter-panel',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TranslatePipe, UiButtonComponent, SMTDatePickerComponent, SMTDateRangePickerComponent],
+  imports: [SMTInputComponent, TranslatePipe, UiButtonComponent, SMTDatePickerComponent, SMTDateRangePickerComponent],
   template: `
     <form class="filter-panel" (submit)="$event.preventDefault(); apply()" novalidate>
       <p class="filter-intro">{{ 'ui.filter.intro' | t }}</p>
@@ -113,9 +114,9 @@ let nextPanelId = 0;
                     @default {
                       <label class="filter-control">
                         <span class="filter-label">{{ (row.op === 'between' ? 'ui.filter.from' : 'ui.filter.value') | t }}</span>
-                        <input class="form-input" data-testid="filter-value" [attr.type]="field.type === 'number' && row.op !== 'in' ? 'number' : 'text'"
-                          [attr.inputmode]="field.type === 'number' ? 'decimal' : null" [value]="row.value"
-                          (input)="patch(i, { value: $any($event.target).value })" />
+                        <smt-input smtTestId="filter-value" [type]="field.type === 'number' && row.op !== 'in' ? 'number' : 'text'"
+                          [inputmode]="field.type === 'number' ? 'decimal' : null" [value]="row.value"
+                          (valueChange)="patch(i, { value: text($event) })" />
                         @if (row.op === 'in') {
                           <span class="filter-hint">{{ 'ui.filter.comma_hint' | t }}</span>
                         }
@@ -123,8 +124,8 @@ let nextPanelId = 0;
                       @if (row.op === 'between') {
                         <label class="filter-control">
                           <span class="filter-label">{{ 'ui.filter.to' | t }}</span>
-                          <input class="form-input" data-testid="filter-value-to" [attr.type]="field.type === 'number' ? 'number' : 'text'"
-                            [value]="row.valueTo" (input)="patch(i, { valueTo: $any($event.target).value })" />
+                          <smt-input smtTestId="filter-value-to" [type]="field.type === 'number' ? 'number' : 'text'"
+                            [value]="row.valueTo" (valueChange)="patch(i, { valueTo: text($event) })" />
                         </label>
                       }
                     }
@@ -279,6 +280,11 @@ export class UiFilterPanelComponent {
 
   setOp(index: number, op: QueryOp): void {
     this.update(index, row => ({ ...row, op, value: row.op === 'in' || op === 'in' ? '' : row.value, valueTo: '', values: [] }));
+  }
+
+  /** A draft keeps what was typed as text; a number field hands over a number or null. */
+  text(value: SMTInputValue): string {
+    return value === null ? '' : String(value);
   }
 
   patch(index: number, change: Partial<FilterDraft>): void {

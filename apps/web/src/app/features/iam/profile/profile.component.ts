@@ -60,9 +60,6 @@ export * from './profile.models';
         <!-- Change Password Card -->
         <app-profile-password-card
           [passwordForm]="passwordForm"
-          [showOldPassword]="showOldPassword()"
-          [showNewPassword]="showNewPassword()"
-          [showConfirmPassword]="showConfirmPassword()"
           [isPasswordSubmitted]="isPasswordSubmitted"
           [isChangingPassword]="isChangingPassword()"
           [passwordStrength]="passwordStrength()"
@@ -70,9 +67,6 @@ export * from './profile.models';
           [hasLettersAndNumbers]="hasLettersAndNumbers()"
           [hasMixedCase]="hasMixedCase()"
           [passwordsMatch]="passwordsMatch()"
-          (toggleOldPassword)="showOldPassword.update(v => !v)"
-          (toggleNewPassword)="showNewPassword.update(v => !v)"
-          (toggleConfirmPassword)="showConfirmPassword.update(v => !v)"
           (submitPassword)="submitChangePassword($event)"
         ></app-profile-password-card>
 
@@ -206,10 +200,6 @@ export class ProfileComponent implements OnInit {
 
   readonly isCreateTokenModalOpen = signal<boolean>(false);
   readonly isTokenSecretModalOpen = signal<boolean>(false);
-
-  readonly showOldPassword = signal<boolean>(false);
-  readonly showNewPassword = signal<boolean>(false);
-  readonly showConfirmPassword = signal<boolean>(false);
   readonly isChangingPassword = signal<boolean>(false);
 
   readonly canManageChannels = computed(() => this.permissionService.hasPermission('iam.profile', 'manage_channels'));

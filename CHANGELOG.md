@@ -9,6 +9,18 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Text field (roadmap item 42). `smt-input` covers text, email, url, tel,
+  search, password and number (a number model, null when empty): an optional
+  icon, a named clear button, a show/hide password button that says which
+  and controls the field, native events that bubble to the host, and an
+  ngModel bridge that reports every edit like a native field. `smtInvalid`
+  shows an error the screen decides at once; Signal Forms keeps `invalid`.
+  Fifty-eight hand-styled fields across login, profile, settings, webhooks,
+  custom fields, notes, UPL, modules, navigation, project members and the
+  list filters and views use it; the file picker stays native. The login and
+  profile password fields drop their own show/hide buttons (and eight keys
+  that named them) for the built-in one, and the modules search its own icon
+  and clear button.
 - Every feature checks its own localization keys. Fifteen new
   `*.i18n.spec.ts` (analytics, audit, auth, files, iam, notes, reports,
   settings, system, tasks, upl, the app shell, the command palette, shared UI

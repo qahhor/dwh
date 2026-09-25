@@ -82,7 +82,7 @@ describe('ProfileComponent UI contracts', () => {
     expect(current.required).toBe(true);
     expect(current.getAttribute('aria-invalid')).toBe('true');
     expect(current.getAttribute('aria-describedby')).toBe('profile-current-password-error');
-    expect(fixture.nativeElement.querySelector('button[aria-label="Показать новый пароль"]')).not.toBeNull();
+    expect(current.closest('smt-input')!.querySelector('button[aria-controls="profile-current-password"]')).not.toBeNull();
   });
 
   it('names channel, session and token table regions', async () => {
@@ -111,22 +111,18 @@ describe('ProfileComponent UI contracts', () => {
     expect(name.getAttribute('aria-describedby')).toBe('profile-token-name-error');
   });
 
-  it('toggles password visibility for current and confirm password fields', async () => {
+  it('lets each password field show and hide what was typed', async () => {
     const { fixture } = await createFixture();
-    const comp = fixture.componentInstance;
-
-    expect(comp.showOldPassword()).toBe(false);
-    expect(comp.showConfirmPassword()).toBe(false);
-
-    const oldToggle = fixture.nativeElement.querySelector('button[aria-label="Показать текущий пароль"]');
-    expect(oldToggle).not.toBeNull();
-    oldToggle.click();
-    expect(comp.showOldPassword()).toBe(true);
-
-    const confirmToggle = fixture.nativeElement.querySelector('button[aria-label="Показать подтверждение пароля"]');
-    expect(confirmToggle).not.toBeNull();
-    confirmToggle.click();
-    expect(comp.showConfirmPassword()).toBe(true);
+    for (const id of ['profile-current-password', 'profile-new-password', 'profile-confirm-password']) {
+      const field = fixture.nativeElement.querySelector(`#${id}`) as HTMLInputElement;
+      expect(field.type).toBe('password');
+      const toggle = field.closest('smt-input')!.querySelector('button') as HTMLButtonElement;
+      expect(toggle.getAttribute('aria-label')).toBe('Показать пароль');
+      toggle.click();
+      fixture.detectChanges();
+      expect(field.type).toBe('text');
+      expect(toggle.getAttribute('aria-label')).toBe('Скрыть пароль');
+    }
   });
 
   it('computes live password strength and matching feedback', async () => {

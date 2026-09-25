@@ -16,6 +16,7 @@ import { CustomField } from '../../core/models/custom-field.models';
 import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
 import { SMTTabBarComponent, SMTTabItem } from '../../shared/ui-kit/components/tab-bar';
 import { optionsMemo } from '../../shared/ui-kit/components/forms/radio-group';
+import { SMTInputComponent, SMTInputValueAccessor } from '../../shared/ui-kit/components/forms/input';
 
 export interface Note {
   id: number;
@@ -32,7 +33,7 @@ export interface Note {
 @Component({
   selector: 'app-notes',
   standalone: true,
-  imports: [
+  imports: [SMTInputComponent, SMTInputValueAccessor, 
     SMTTabBarComponent, CommonModule,
     FormsModule,
     UiButtonComponent,
@@ -174,20 +175,16 @@ export interface Note {
         <form ngNoForm (submit)="$event.preventDefault(); saveNote()" class="modal-form" novalidate id="noteForm">
           <div class="form-group">
             <label class="form-label" for="note-title-input">{{ 'notes.title_label' | t }} *</label>
-            <input
-              id="note-title-input"
+            <smt-input
+              smtFieldId="note-title-input"
               name="title"
-              type="text"
-              class="form-control"
-              [class.has-error]="isSubmitted() && !formData.title.trim()"
-              [attr.aria-invalid]="isSubmitted() && !formData.title.trim()"
-              [attr.aria-describedby]="isSubmitted() && !formData.title.trim() ? 'note-title-error' : null"
-              maxlength="255"
+              [smtInvalid]="isSubmitted() && !formData.title.trim()"
+              [smtDescribedBy]="isSubmitted() && !formData.title.trim() ? 'note-title-error' : null"
+              [maxLength]="255"
               [(ngModel)]="formData.title"
               [ngModelOptions]="{standalone: true}"
               [placeholder]="'notes.title_placeholder' | t"
-              required
-            />
+              required />
             <span id="note-title-error" class="field-error" *ngIf="isSubmitted() && !formData.title.trim()">
               {{ 'notes.title_required' | t }}
             </span>

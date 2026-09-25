@@ -80,6 +80,7 @@ export const TEST_MESSAGES: SMTMessages = {
     range: (min, max) => `Enter a time from ${min} to ${max}`,
   },
   textarea: { counter: (count, max) => `${count} of ${max} characters` },
+  input: { clear: 'Clear the field', showPassword: 'Show the password', hidePassword: 'Hide the password' },
   tag: { remove: label => `Remove ${label}` },
   phone: { country: 'Country code', other: 'Other', incomplete: 'The number is not complete' },
   color: {

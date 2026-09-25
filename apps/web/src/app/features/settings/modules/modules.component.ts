@@ -64,7 +64,6 @@ export type { InstalledModule, ModuleFilterTab };
         [systemCount]="systemCount()"
         [customCount]="customCount()"
         (searchChange)="searchQuery.set($event)"
-        (clearSearch)="clearSearch()"
         (filterTabChange)="filterTab.set($event)"
       />
 
@@ -297,10 +296,6 @@ export class ModulesComponent implements OnInit {
         this.toast.error(this.i18n.translate('modules.toggle_error'));
       }
     });
-  }
-
-  clearSearch(): void {
-    this.searchQuery.set('');
   }
 
   trackByModuleCode(_index: number, item: InstalledModule): string {

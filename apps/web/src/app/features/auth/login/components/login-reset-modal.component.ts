@@ -6,11 +6,12 @@ import { ToastService } from '../../../../core/services/toast.service';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
 import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
+import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
 
 @Component({
   selector: 'app-login-reset-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, UiModalComponent, UiButtonComponent, TranslatePipe],
+  imports: [SMTInputComponent, SMTInputValueAccessor, CommonModule, FormsModule, UiModalComponent, UiButtonComponent, TranslatePipe],
   template: `
     <ui-modal
       [isOpen]="isOpen"
@@ -22,17 +23,15 @@ import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
         <p id="reset-hint" class="reset-hint">{{ 'auth.vvedite_email_vashey_uchetnoy_zapisi_my_otpravim' | t }}</p>
         <div class="form-group">
           <label class="form-label" for="reset-email">Email</label>
-          <input
-            id="reset-email"
+          <smt-input
+            smtFieldId="reset-email"
             name="resetEmail"
             type="email"
-            class="form-input"
             [(ngModel)]="resetEmail"
             placeholder="user@company.com"
             autocomplete="email"
-            aria-describedby="reset-hint"
-            [attr.aria-invalid]="resetError() ? 'true' : null"
-          />
+            smtDescribedBy="reset-hint"
+            [smtInvalid]="resetError() ? 'true' : null" />
         </div>
         <p *ngIf="resetError()" class="form-error" role="alert">{{ resetError() }}</p>
       </div>

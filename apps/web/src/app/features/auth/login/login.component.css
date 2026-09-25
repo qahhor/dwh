@@ -82,47 +82,20 @@
   border-color: var(--danger);
 }
 
-.password-input {
-  position: relative;
-  display: flex;
-  min-width: 0;
-}
 
-.password-input .form-input {
-  width: 100%;
-  min-width: 0;
-  padding-right: 44px;
-}
 
-.password-toggle {
-  position: absolute;
-  inset: 0 0 0 auto;
-  width: 40px;
-  display: grid;
-  place-items: center;
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-}
 
-.password-toggle .material-symbols-outlined { font-size: 20px; }
-.password-toggle:hover:not(:disabled) { color: var(--text-main); }
-.password-toggle:focus-visible, .forgot-link:focus-visible {
+.forgot-link:focus-visible {
   outline: 2px solid var(--focus-ring, var(--primary));
   outline-offset: 2px;
 }
-.password-toggle:disabled, .forgot-link:disabled { opacity: 0.5; cursor: not-allowed; }
+.forgot-link:disabled { opacity: 0.5; cursor: not-allowed; }
 /* Keep pointer targets still when a password blur clears the hint. */
 .caps-lock-hint { min-height: 1.4em; color: var(--warning); font-size: 12px; line-height: 1.4; }
 
 @media (max-width: 480px) {
   .login-card { padding: 24px 20px; }
   .form-input { height: 44px; font-size: 16px; }
-  .password-toggle { width: 44px; }
-  .password-input .form-input { padding-right: 48px; }
 }
 
 .submit-btn {

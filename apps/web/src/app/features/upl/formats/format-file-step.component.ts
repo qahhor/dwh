@@ -4,13 +4,14 @@ import { TranslatePipe } from '../../../core/services/i18n.service';
 import { UPL_ENCODINGS, UPL_FILE_KINDS, UPL_MATCH_BY, UplFileKind, UplFormatDraftRequest } from '../upl-api';
 import { UPL_ENCODING_KEY, UPL_FILE_KIND_KEY, UPL_MATCH_BY_KEY } from '../upl-labels';
 import { isFilled } from './upl-format-model';
+import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
 
 /** Шаг «Файл» анкеты: вид файла, кодировка и разделитель CSV, сопоставление колонок. Правит модель на месте. */
 @Component({
   selector: 'app-upl-format-file-step',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, TranslatePipe],
+  imports: [SMTInputComponent, SMTInputValueAccessor, FormsModule, TranslatePipe],
   template: `
     <h2 class="upl-block-title">{{ 'upl.format.file' | t }}</h2>
     <div class="upl-row">
@@ -48,15 +49,13 @@ import { isFilled } from './upl-format-model';
         </div>
         <div class="form-group">
           <label class="form-label" for="upl-delimiter">{{ 'upl.format.field.delimiter' | t }}</label>
-          <input
-            id="upl-delimiter"
-            class="form-input upl-input-tiny"
-            type="text"
-            maxlength="1"
+          <smt-input
+            class="upl-input-tiny"
+            smtFieldId="upl-delimiter"
+            [maxLength]="1"
             [disabled]="!editable()"
             [(ngModel)]="model().delimiter"
-            [ngModelOptions]="{ standalone: true }"
-          />
+            [ngModelOptions]="{ standalone: true }" />
         </div>
       }
       <div class="form-group">

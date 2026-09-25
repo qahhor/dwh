@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '../../../core/services/i18n.service';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
 
 @Component({
   selector: 'app-settings-general-panel',
   standalone: true,
-  imports: [
+  imports: [SMTInputComponent, SMTInputValueAccessor, 
     CommonModule,
     FormsModule,
     TranslatePipe,
@@ -29,15 +30,12 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
       <div class="form-grid">
         <div class="form-group full-width">
           <label class="form-label" for="settings-company-name">{{ 'settings.company_name' | t }}</label>
-          <input
-            id="settings-company-name"
+          <smt-input
+            smtFieldId="settings-company-name"
             name="settingsCompanyName"
-            type="text"
-            class="form-input"
             [disabled]="!canUpdateSystemSettings || isSaving"
             [(ngModel)]="systemSettings['system.company_name']"
-            placeholder="SmartupCMS"
-          />
+            placeholder="SmartupCMS" />
         </div>
 
         <div class="form-group">

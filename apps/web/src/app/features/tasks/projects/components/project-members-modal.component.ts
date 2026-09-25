@@ -14,11 +14,12 @@ import { Project } from '../../../../core/models/task.models';
 import { User } from '../../../../core/models/auth.models';
 import { ProjectMember } from '../projects.models';
 import { SMTAvatarComponent } from '../../../../shared/ui-kit/components/avatar';
+import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
 
 @Component({
   selector: 'app-project-members-modal',
   standalone: true,
-  imports: [
+  imports: [SMTInputComponent, SMTInputValueAccessor, 
     SMTAvatarComponent, CommonModule,
     FormsModule,
     TranslatePipe,
@@ -50,15 +51,12 @@ import { SMTAvatarComponent } from '../../../../shared/ui-kit/components/avatar'
               </label>
               <div class="search-input-box">
                 <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
-                <input
-                  id="project-member-search"
-                  type="text"
-                  class="form-input"
+                <smt-input
+                  smtFieldId="project-member-search"
                   [placeholder]="selectedUser ? selectedUser.name : ('projects.poisk_polzovatelya' | t)"
                   [(ngModel)]="userSearchQuery"
                   (ngModelChange)="onSearchInput($event)"
-                  (focus)="isUserDropdownOpen = true"
-                />
+                  (focusin)="isUserDropdownOpen = true" />
                 <button
                   *ngIf="selectedUser"
                   type="button"

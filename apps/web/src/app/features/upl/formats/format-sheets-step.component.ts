@@ -8,6 +8,7 @@ import { UPL_DATA_TYPES, UplColumn, UplFormatDraftRequest, UplSheet, UplUnit } f
 import { UPL_DATA_TYPE_KEY } from '../upl-labels';
 import { UplFieldError, uplCellError, uplFieldErrorText, uplSheetError, uplSheetHasErrors } from './upl-format-errors';
 import { clearFieldsForType, emptyColumn, emptySheet, isNumericColumn } from './upl-format-model';
+import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
 
 /**
  * Шаг «Листы и колонки» анкеты: вкладки листов, параметры листа и таблица колонок.
@@ -17,7 +18,7 @@ import { clearFieldsForType, emptyColumn, emptySheet, isNumericColumn } from './
   selector: 'app-upl-format-sheets-step',
   standalone: true,
   // Не OnPush: вид файла и сопоставление колонок меняет соседний шаг «Файл» в той же изменяемой модели.
-  imports: [FormsModule, TranslatePipe, UiButtonComponent],
+  imports: [SMTInputComponent, SMTInputValueAccessor, FormsModule, TranslatePipe, UiButtonComponent],
   template: `
     <h2 class="upl-block-title">{{ 'upl.format.sheets' | t }}</h2>
     <div class="upl-tabs" role="tablist">
@@ -54,16 +55,13 @@ import { clearFieldsForType, emptyColumn, emptySheet, isNumericColumn } from './
         @if (model().fileKind !== 'csv') {
           <div class="form-group">
             <label class="form-label" for="upl-sheet-name">{{ 'upl.format.field.sheet_name' | t }}</label>
-            <input
-              id="upl-sheet-name"
-              class="form-input"
-              type="text"
-              data-testid="upl-sheet-name"
-              [class.upl-cell-error]="sheetError(activeSheet(), 'sheetName')"
+            <smt-input
+              smtFieldId="upl-sheet-name"
+              smtTestId="upl-sheet-name"
+              [smtInvalid]="sheetError(activeSheet(), 'sheetName')"
               [disabled]="!editable()"
               [(ngModel)]="sheet.sheetName"
-              [ngModelOptions]="{ standalone: true }"
-            />
+              [ngModelOptions]="{ standalone: true }" />
             @if (sheetError(activeSheet(), 'sheetName'); as problem) {
               <span class="upl-field-error">{{ errorText(problem) }}</span>
             }
@@ -71,16 +69,15 @@ import { clearFieldsForType, emptyColumn, emptySheet, isNumericColumn } from './
         }
         <div class="form-group">
           <label class="form-label" for="upl-header-row">{{ 'upl.format.field.header_row' | t }}</label>
-          <input
-            id="upl-header-row"
-            class="form-input upl-input-small"
+          <smt-input
+            class="upl-input-small"
+            smtFieldId="upl-header-row"
             type="number"
-            min="1"
-            [class.upl-cell-error]="sheetError(activeSheet(), 'headerRow')"
+            [smtMin]="1"
+            [smtInvalid]="sheetError(activeSheet(), 'headerRow')"
             [disabled]="!editable()"
             [(ngModel)]="sheet.headerRow"
-            [ngModelOptions]="{ standalone: true }"
-          />
+            [ngModelOptions]="{ standalone: true }" />
           <span class="upl-hint">{{ 'upl.format.hint.header_row' | t }}</span>
           @if (sheetError(activeSheet(), 'headerRow'); as problem) {
             <span class="upl-field-error">{{ errorText(problem) }}</span>
@@ -88,15 +85,12 @@ import { clearFieldsForType, emptyColumn, emptySheet, isNumericColumn } from './
         </div>
         <div class="form-group">
           <label class="form-label" for="upl-total-marker">{{ 'upl.format.field.total_row_marker' | t }}</label>
-          <input
-            id="upl-total-marker"
-            class="form-input"
-            type="text"
-            [class.upl-cell-error]="sheetError(activeSheet(), 'totalRowMarker')"
+          <smt-input
+            smtFieldId="upl-total-marker"
+            [smtInvalid]="sheetError(activeSheet(), 'totalRowMarker')"
             [disabled]="!editable()"
             [(ngModel)]="sheet.totalRowMarker"
-            [ngModelOptions]="{ standalone: true }"
-          />
+            [ngModelOptions]="{ standalone: true }" />
           <span class="upl-hint">{{ 'upl.format.hint.total_marker' | t }}</span>
           @if (sheetError(activeSheet(), 'totalRowMarker'); as problem) {
             <span class="upl-field-error">{{ errorText(problem) }}</span>
@@ -136,45 +130,36 @@ import { clearFieldsForType, emptyColumn, emptySheet, isNumericColumn } from './
                     [class.upl-cell-error]="cellError(activeSheet(), $index, 'nameInFile')"
                     [attr.title]="cellTitle(activeSheet(), $index, 'nameInFile')"
                   >
-                    <input
-                      class="form-input"
-                      type="text"
-                      data-testid="upl-cell-name-in-file"
-                      [attr.aria-label]="'upl.format.col.name_in_file' | t"
+                    <smt-input
+                      smtTestId="upl-cell-name-in-file"
+                      [smtAriaLabel]="'upl.format.col.name_in_file' | t"
                       [disabled]="!editable()"
                       [(ngModel)]="column.nameInFile"
-                      [ngModelOptions]="{ standalone: true }"
-                    />
+                      [ngModelOptions]="{ standalone: true }" />
                   </td>
                   @if (model().matchColumnsBy !== 'position') {
                     <td
                       [class.upl-cell-error]="synonymError(activeSheet(), $index)"
                       [attr.title]="synonymError(activeSheet(), $index) ?? text('upl.format.hint.header_synonyms')"
                     >
-                      <input
-                        class="form-input"
-                        type="text"
-                        data-testid="upl-cell-header-synonyms"
-                        [attr.aria-label]="'upl.format.col.header_synonyms' | t"
+                      <smt-input
+                        smtTestId="upl-cell-header-synonyms"
+                        [smtAriaLabel]="'upl.format.col.header_synonyms' | t"
                         [disabled]="!editable()"
                         [value]="synonymsText(column)"
-                        (change)="setSynonyms(column, $any($event.target).value)"
-                      />
+                        (change)="setSynonyms(column, $any($event.target).value)" />
                     </td>
                   }
                   <td
                     [class.upl-cell-error]="cellError(activeSheet(), $index, 'targetField')"
                     [attr.title]="cellTitle(activeSheet(), $index, 'targetField') ?? text('upl.format.hint.target_field')"
                   >
-                    <input
-                      class="form-input"
-                      type="text"
-                      data-testid="upl-cell-target-field"
-                      [attr.aria-label]="'upl.format.col.target_field' | t"
+                    <smt-input
+                      smtTestId="upl-cell-target-field"
+                      [smtAriaLabel]="'upl.format.col.target_field' | t"
                       [disabled]="!editable()"
                       [(ngModel)]="column.targetField"
-                      [ngModelOptions]="{ standalone: true }"
-                    />
+                      [ngModelOptions]="{ standalone: true }" />
                   </td>
                   <td
                     [class.upl-cell-error]="cellError(activeSheet(), $index, 'dataType')"
@@ -241,15 +226,12 @@ import { clearFieldsForType, emptyColumn, emptySheet, isNumericColumn } from './
                     [attr.title]="cellTitle(activeSheet(), $index, 'keyMask') ?? text('upl.format.hint.key_mask')"
                   >
                     @if (column.dataType === 'object_key') {
-                      <input
-                        class="form-input"
-                        type="text"
-                        data-testid="upl-cell-key-mask"
-                        [attr.aria-label]="'upl.format.col.key_mask' | t"
+                      <smt-input
+                        smtTestId="upl-cell-key-mask"
+                        [smtAriaLabel]="'upl.format.col.key_mask' | t"
                         [disabled]="!editable()"
                         [(ngModel)]="column.keyMask"
-                        [ngModelOptions]="{ standalone: true }"
-                      />
+                        [ngModelOptions]="{ standalone: true }" />
                     }
                   </td>
                   <td
@@ -258,26 +240,24 @@ import { clearFieldsForType, emptyColumn, emptySheet, isNumericColumn } from './
                   >
                     @if (column.dataType === 'object_key') {
                       <span class="upl-pad-pair">
-                        <input
-                          class="form-input upl-input-small"
+                        <smt-input
+                          class="upl-input-small"
                           type="number"
-                          min="1"
-                          data-testid="upl-cell-key-pad-length"
-                          [attr.aria-label]="'upl.format.col.key_pad_length' | t"
+                          [smtMin]="1"
+                          smtTestId="upl-cell-key-pad-length"
+                          [smtAriaLabel]="'upl.format.col.key_pad_length' | t"
                           [disabled]="!editable()"
                           [(ngModel)]="column.keyPadLength"
-                          [ngModelOptions]="{ standalone: true }"
-                        />
-                        <input
-                          class="form-input upl-input-small"
+                          [ngModelOptions]="{ standalone: true }" />
+                        <smt-input
+                          class="upl-input-small"
                           type="number"
-                          min="1"
-                          data-testid="upl-cell-key-pad-max"
-                          [attr.aria-label]="'upl.format.col.key_pad_max' | t"
+                          [smtMin]="1"
+                          smtTestId="upl-cell-key-pad-max"
+                          [smtAriaLabel]="'upl.format.col.key_pad_max' | t"
                           [disabled]="!editable()"
                           [(ngModel)]="column.keyPadMax"
-                          [ngModelOptions]="{ standalone: true }"
-                        />
+                          [ngModelOptions]="{ standalone: true }" />
                       </span>
                     }
                   </td>
@@ -286,15 +266,12 @@ import { clearFieldsForType, emptyColumn, emptySheet, isNumericColumn } from './
                     [attr.title]="cellTitle(activeSheet(), $index, 'refBookCode')"
                   >
                     @if (column.dataType === 'ref_code') {
-                      <input
-                        class="form-input"
-                        type="text"
-                        data-testid="upl-cell-ref-book"
-                        [attr.aria-label]="'upl.format.col.ref_book' | t"
+                      <smt-input
+                        smtTestId="upl-cell-ref-book"
+                        [smtAriaLabel]="'upl.format.col.ref_book' | t"
                         [disabled]="!editable()"
                         [(ngModel)]="column.refBookCode"
-                        [ngModelOptions]="{ standalone: true }"
-                      />
+                        [ngModelOptions]="{ standalone: true }" />
                     }
                   </td>
                   @if (model().matchColumnsBy === 'position') {
@@ -302,16 +279,15 @@ import { clearFieldsForType, emptyColumn, emptySheet, isNumericColumn } from './
                       [class.upl-cell-error]="cellError(activeSheet(), $index, 'filePosition')"
                       [attr.title]="cellTitle(activeSheet(), $index, 'filePosition')"
                     >
-                      <input
-                        class="form-input upl-input-small"
+                      <smt-input
+                        class="upl-input-small"
                         type="number"
-                        min="1"
-                        data-testid="upl-cell-file-position"
-                        [attr.aria-label]="'upl.format.col.file_position' | t"
+                        [smtMin]="1"
+                        smtTestId="upl-cell-file-position"
+                        [smtAriaLabel]="'upl.format.col.file_position' | t"
                         [disabled]="!editable()"
                         [(ngModel)]="column.filePosition"
-                        [ngModelOptions]="{ standalone: true }"
-                      />
+                        [ngModelOptions]="{ standalone: true }" />
                     </td>
                   }
                   @if (editable()) {

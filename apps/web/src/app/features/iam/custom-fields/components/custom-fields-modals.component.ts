@@ -5,11 +5,12 @@ import { CustomField, CustomFieldFormData } from '../custom-fields.models';
 import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
 import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
 import { TranslatePipe } from '../../../../core/services/i18n.service';
+import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
 
 @Component({
   selector: 'app-custom-fields-modals',
   standalone: true,
-  imports: [
+  imports: [SMTInputComponent, SMTInputValueAccessor, 
     CommonModule,
     FormsModule,
     UiModalComponent,
@@ -45,21 +46,20 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
             <label class="form-label" for="custom-field-code">
               {{ 'iam.kod_polya_slug' | t }} <span class="req" aria-hidden="true">*</span>
             </label>
-            <input
-              id="custom-field-code"
+            <!-- The native input event bubbles from the inner field; the page cleans the code from it. -->
+            <smt-input
+              class="font-mono"
+              smtFieldId="custom-field-code"
               name="code"
-              type="text"
-              class="form-input font-mono"
               [(ngModel)]="formData.code"
               (input)="codeInput.emit($event)"
               [disabled]="!!editingField"
               [placeholder]="'iam.naprimer_inn_budget' | t"
-              maxlength="64"
+              [maxLength]="64"
               autocomplete="off"
-              [attr.aria-invalid]="!!formError"
-              [attr.aria-describedby]="formError ? 'custom-field-form-error' : null"
-              required
-            />
+              [smtInvalid]="!!formError"
+              [smtDescribedBy]="formError ? 'custom-field-form-error' : null"
+              required />
             <span class="form-hint" *ngIf="!editingField">{{ 'iam.kod_polya_help' | t }}</span>
             <span class="form-hint readonly-hint" *ngIf="editingField">{{ 'iam.kod_polya_readonly' | t }}</span>
           </div>
@@ -68,18 +68,15 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
             <label class="form-label" for="custom-field-name">
               {{ 'iam.nazvanie_polya' | t }} <span class="req" aria-hidden="true">*</span>
             </label>
-            <input
-              id="custom-field-name"
+            <smt-input
+              smtFieldId="custom-field-name"
               name="name"
-              type="text"
-              class="form-input"
               [(ngModel)]="formData.name"
               [placeholder]="'iam.naprimer_inn_byudzhet_proekta' | t"
-              maxlength="100"
-              [attr.aria-invalid]="!!formError"
-              [attr.aria-describedby]="formError ? 'custom-field-form-error' : null"
-              required
-            />
+              [maxLength]="100"
+              [smtInvalid]="!!formError"
+              [smtDescribedBy]="formError ? 'custom-field-form-error' : null"
+              required />
           </div>
         </div>
 
@@ -103,31 +100,27 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
             <label class="form-label" for="custom-field-default">
               {{ 'iam.znachenie_po_umolchaniyu' | t }}
             </label>
-            <input
-              id="custom-field-default"
+            <smt-input
+              smtFieldId="custom-field-default"
               name="defaultValue"
-              type="text"
-              class="form-input"
               [(ngModel)]="formData.defaultValue"
               [placeholder]="'iam.ne_obyazatelno' | t"
-              maxlength="255"
-            />
+              [maxLength]="255" />
           </div>
 
           <div class="form-group order-input-group">
             <label class="form-label" for="custom-field-order">
               {{ 'iam.poryadok_sortirovki' | t }}
             </label>
-            <input
-              id="custom-field-order"
+            <smt-input
+              class="font-mono"
+              smtFieldId="custom-field-order"
               name="orderNo"
               type="number"
-              class="form-input font-mono"
               [(ngModel)]="formData.orderNo"
               [placeholder]="'iam.poryadok_sortirovki_hint' | t"
-              min="0"
-              max="99999"
-            />
+              [smtMin]="0"
+              [smtMax]="99999" />
           </div>
         </div>
 

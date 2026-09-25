@@ -5,11 +5,12 @@ import { CustomNavigationItem, NavigationTargetType } from '../../../../core/mod
 import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
 import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
 import { TranslatePipe } from '../../../../core/services/i18n.service';
+import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
 
 @Component({
   selector: 'app-navigation-settings-modal',
   standalone: true,
-  imports: [
+  imports: [SMTInputComponent, SMTInputValueAccessor, 
     CommonModule,
     FormsModule,
     UiModalComponent,
@@ -28,25 +29,19 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
         <div class="form-row">
           <div class="form-group flex-2">
             <label class="form-label" for="nav-title">{{ 'nav.settings.field_title' | t }} *</label>
-            <input
-              id="nav-title"
-              type="text"
-              class="form-input"
+            <smt-input
+              smtFieldId="nav-title"
               [ngModel]="formTitle"
               (ngModelChange)="formTitleChange.emit($event); titleChange.emit()"
-              [placeholder]="'nav.settings.title_placeholder' | t"
-            />
+              [placeholder]="'nav.settings.title_placeholder' | t" />
           </div>
           <div class="form-group flex-1">
             <label class="form-label" for="nav-code">{{ 'nav.settings.field_code' | t }} *</label>
-            <input
-              id="nav-code"
-              type="text"
-              class="form-input"
+            <smt-input
+              smtFieldId="nav-code"
               [ngModel]="formCode"
               (ngModelChange)="formCodeChange.emit($event)"
-              placeholder="superset-sales"
-            />
+              placeholder="superset-sales" />
           </div>
         </div>
 
@@ -70,13 +65,11 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
           </div>
           <div class="form-group flex-1">
             <label class="form-label" for="nav-order">{{ 'nav.settings.field_order' | t }}</label>
-            <input
-              id="nav-order"
+            <smt-input
+              smtFieldId="nav-order"
               type="number"
-              class="form-input"
               [ngModel]="formSortOrder"
-              (ngModelChange)="formSortOrderChange.emit($event)"
-            />
+              (ngModelChange)="formSortOrderChange.emit($event)" />
           </div>
         </div>
 
@@ -87,28 +80,23 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
 
         <div class="form-group">
           <label class="form-label" for="nav-url">{{ 'nav.settings.field_url' | t }} *</label>
-          <input
-            id="nav-url"
-            type="text"
-            class="form-input"
+          <smt-input
+            smtFieldId="nav-url"
             [ngModel]="formUrl"
             (ngModelChange)="formUrlChange.emit($event)"
-            (blur)="urlBlur.emit()"
-            placeholder="https://bi.company.uz/superset/dashboard/123/"
-          />
+            (touch)="urlBlur.emit()"
+            placeholder="https://bi.company.uz/superset/dashboard/123/" />
           <span class="form-hint">{{ 'nav.settings.url_hint' | t }}</span>
         </div>
 
         <div class="form-group">
           <label class="form-label">{{ 'nav.settings.field_icon' | t }}</label>
           <div class="icon-selector-row">
-            <input
-              type="text"
-              class="form-input icon-input"
+            <smt-input
+              class="icon-input"
               [ngModel]="formIcon"
               (ngModelChange)="formIconChange.emit($event)"
-              placeholder="analytics"
-            />
+              placeholder="analytics" />
             <span class="material-symbols-outlined icon-preview" aria-hidden="true">{{ formIcon || 'bar_chart' }}</span>
           </div>
           <div class="icon-quick-chips">

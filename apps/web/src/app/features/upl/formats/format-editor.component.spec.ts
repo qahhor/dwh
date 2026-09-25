@@ -297,7 +297,8 @@ describe('FormatEditorComponent', () => {
     const input = rows[rows.length - 1].querySelector('[data-testid="upl-cell-header-synonyms"]') as HTMLInputElement;
     expect(input.getAttribute('aria-label')).toBe('Также принимается заголовок');
     input.value = 'Сумма, руб ;  ; Итого';
-    input.dispatchEvent(new Event('change'));
+    // A browser's change event bubbles; smt-input hears it on the host.
+    input.dispatchEvent(new Event('change', { bubbles: true }));
     fixture.detectChanges();
 
     click(one(fixture, 'upl-save'));
@@ -710,7 +711,7 @@ describe('FormatEditorComponent', () => {
     fixture.detectChanges();
 
     expect(one(fixture, 'upl-errors-summary')!.querySelectorAll('li').length).toBe(3);
-    expect(fixture.nativeElement.querySelector('#upl-header-row').classList.contains('upl-cell-error')).toBe(true);
+    expect(fixture.nativeElement.querySelector('#upl-header-row').getAttribute('aria-invalid')).toBe('true');
     expect(many(fixture, 'upl-tab-error').length).toBe(1);
   });
 

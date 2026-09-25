@@ -4,11 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
 import { TranslatePipe } from '../../../../core/services/i18n.service';
 import { PasswordForm, PasswordStrength } from '../profile.models';
+import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
 
 @Component({
   selector: 'app-profile-password-card',
   standalone: true,
-  imports: [
+  imports: [SMTInputComponent, SMTInputValueAccessor, 
     CommonModule,
     FormsModule,
     TranslatePipe,
@@ -27,29 +28,17 @@ import { PasswordForm, PasswordStrength } from '../profile.models';
         <!-- Current Password -->
         <div class="form-group">
           <label class="form-label" for="profile-current-password">{{ 'iam.tekuschiy_parol' | t }} <span class="req">*</span></label>
-          <div class="password-input-box">
-            <input
-              id="profile-current-password"
-              [type]="showOldPassword ? 'text' : 'password'"
-              class="form-input font-mono"
-              autocomplete="current-password"
-              [(ngModel)]="passwordForm.oldPassword"
-              name="oldPassword"
-              [attr.aria-invalid]="isPasswordSubmitted && !passwordForm.oldPassword"
-              [attr.aria-describedby]="isPasswordSubmitted && !passwordForm.oldPassword ? 'profile-current-password-error' : null"
-              [placeholder]="'iam.vvedite_tekuschiy_parol' | t"
-              required
-            />
-            <button
-              type="button"
-              class="pwd-toggle-btn"
-              [attr.aria-label]="(showOldPassword ? 'iam.skryt_tekuschiy_parol' : 'iam.pokazat_tekuschiy_parol') | t"
-              [attr.aria-pressed]="showOldPassword"
-              (click)="toggleOldPassword.emit()"
-            >
-              <span class="material-symbols-outlined" aria-hidden="true">{{ showOldPassword ? 'visibility_off' : 'visibility' }}</span>
-            </button>
-          </div>
+          <smt-input
+            smtFieldId="profile-current-password"
+            type="password"
+            class="font-mono"
+            autocomplete="current-password"
+            [(ngModel)]="passwordForm.oldPassword"
+            name="oldPassword"
+            [smtInvalid]="isPasswordSubmitted && !passwordForm.oldPassword"
+            [smtDescribedBy]="isPasswordSubmitted && !passwordForm.oldPassword ? 'profile-current-password-error' : null"
+            [placeholder]="'iam.vvedite_tekuschiy_parol' | t"
+            required />
           <span id="profile-current-password-error" class="field-error" *ngIf="isPasswordSubmitted && !passwordForm.oldPassword">
             {{ 'iam.vvedite_tekuschiy_parol' | t }}
           </span>
@@ -58,30 +47,18 @@ import { PasswordForm, PasswordStrength } from '../profile.models';
         <!-- New Password -->
         <div class="form-group">
           <label class="form-label" for="profile-new-password">{{ 'auth.novyy_parol' | t }} <span class="req">*</span></label>
-          <div class="password-input-box">
-            <input
-              id="profile-new-password"
-              [type]="showNewPassword ? 'text' : 'password'"
-              class="form-input font-mono"
-              autocomplete="new-password"
-              minlength="10"
-              [(ngModel)]="passwordForm.newPassword"
-              name="newPassword"
-              [attr.aria-invalid]="isPasswordSubmitted && passwordForm.newPassword.length < 10"
-              [attr.aria-describedby]="isPasswordSubmitted && passwordForm.newPassword.length < 10 ? 'profile-new-password-hint profile-new-password-error' : 'profile-new-password-hint'"
-              [placeholder]="'iam.minimum_10_simvolov' | t"
-              required
-            />
-            <button
-              type="button"
-              class="pwd-toggle-btn"
-              [attr.aria-label]="(showNewPassword ? 'iam.hide_new_password' : 'iam.show_new_password') | t"
-              [attr.aria-pressed]="showNewPassword"
-              (click)="toggleNewPassword.emit()"
-            >
-              <span class="material-symbols-outlined" aria-hidden="true">{{ showNewPassword ? 'visibility_off' : 'visibility' }}</span>
-            </button>
-          </div>
+          <smt-input
+            smtFieldId="profile-new-password"
+            type="password"
+            class="font-mono"
+            autocomplete="new-password"
+            [minLength]="10"
+            [(ngModel)]="passwordForm.newPassword"
+            name="newPassword"
+            [smtInvalid]="isPasswordSubmitted && passwordForm.newPassword.length < 10"
+            [smtDescribedBy]="isPasswordSubmitted && passwordForm.newPassword.length < 10 ? 'profile-new-password-hint profile-new-password-error' : 'profile-new-password-hint'"
+            [placeholder]="'iam.minimum_10_simvolov' | t"
+            required />
           <span id="profile-new-password-hint" class="field-hint">{{ 'iam.minimum_10_simvolov_ne_iz_chernogo_spiska_i_ne_s' | t }}</span>
           <span id="profile-new-password-error" class="field-error" *ngIf="isPasswordSubmitted && passwordForm.newPassword.length < 10">
             {{ 'iam.parol_dolzhen_soderzhat_ne_menee_10_simvolov' | t }}
@@ -125,29 +102,17 @@ import { PasswordForm, PasswordStrength } from '../profile.models';
         <!-- Confirm Password -->
         <div class="form-group">
           <label class="form-label" for="profile-confirm-password">{{ 'iam.podtverzhdenie_novogo_parolya' | t }} <span class="req">*</span></label>
-          <div class="password-input-box">
-            <input
-              id="profile-confirm-password"
-              [type]="showConfirmPassword ? 'text' : 'password'"
-              class="form-input font-mono"
-              autocomplete="new-password"
-              [(ngModel)]="passwordForm.confirmPassword"
-              name="confirmPassword"
-              [attr.aria-invalid]="isPasswordSubmitted && (!passwordForm.confirmPassword || passwordForm.newPassword !== passwordForm.confirmPassword)"
-              [attr.aria-describedby]="isPasswordSubmitted && (!passwordForm.confirmPassword || passwordForm.newPassword !== passwordForm.confirmPassword) ? 'profile-confirm-password-error' : null"
-              [placeholder]="'auth.povtorite_novyy_parol' | t"
-              required
-            />
-            <button
-              type="button"
-              class="pwd-toggle-btn"
-              [attr.aria-label]="(showConfirmPassword ? 'iam.skryt_podtverzhdenie_parolya' : 'iam.pokazat_podtverzhdenie_parolya') | t"
-              [attr.aria-pressed]="showConfirmPassword"
-              (click)="toggleConfirmPassword.emit()"
-            >
-              <span class="material-symbols-outlined" aria-hidden="true">{{ showConfirmPassword ? 'visibility_off' : 'visibility' }}</span>
-            </button>
-          </div>
+          <smt-input
+            smtFieldId="profile-confirm-password"
+            type="password"
+            class="font-mono"
+            autocomplete="new-password"
+            [(ngModel)]="passwordForm.confirmPassword"
+            name="confirmPassword"
+            [smtInvalid]="isPasswordSubmitted && (!passwordForm.confirmPassword || passwordForm.newPassword !== passwordForm.confirmPassword)"
+            [smtDescribedBy]="isPasswordSubmitted && (!passwordForm.confirmPassword || passwordForm.newPassword !== passwordForm.confirmPassword) ? 'profile-confirm-password-error' : null"
+            [placeholder]="'auth.povtorite_novyy_parol' | t"
+            required />
           <div class="password-match-hint" *ngIf="passwordForm.confirmPassword && passwordForm.newPassword">
             <span class="match-badge match-ok" *ngIf="passwordsMatch">
               <span class="material-symbols-outlined match-icon" aria-hidden="true">check</span>
@@ -270,38 +235,9 @@ import { PasswordForm, PasswordStrength } from '../profile.models';
       font-family: monospace;
     }
 
-    .password-input-box {
-      position: relative;
-      display: flex;
-      align-items: center;
-      width: 100%;
-    }
 
-    .password-input-box .form-input {
-      padding-right: 36px;
-    }
 
-    .pwd-toggle-btn {
-      position: absolute;
-      right: 4px;
-      background: transparent;
-      border: none;
-      color: var(--text-muted);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 28px;
-      height: 28px;
-      border-radius: var(--radius-sm);
-      padding: 0;
-      transition: color 0.15s ease, background-color 0.15s ease;
-    }
 
-    .pwd-toggle-btn:hover {
-      color: var(--text-main);
-      background-color: var(--bg-hover);
-    }
 
     .form-actions {
       margin-top: 4px;
@@ -406,9 +342,6 @@ import { PasswordForm, PasswordStrength } from '../profile.models';
 })
 export class ProfilePasswordCardComponent {
   @Input() passwordForm!: PasswordForm;
-  @Input() showOldPassword = false;
-  @Input() showNewPassword = false;
-  @Input() showConfirmPassword = false;
   @Input() isPasswordSubmitted = false;
   @Input() isChangingPassword = false;
   @Input() passwordStrength: PasswordStrength = { score: 0, label: '', percent: 0, colorClass: '' };
@@ -416,10 +349,6 @@ export class ProfilePasswordCardComponent {
   @Input() hasLettersAndNumbers = false;
   @Input() hasMixedCase = false;
   @Input() passwordsMatch = false;
-
-  @Output() toggleOldPassword = new EventEmitter<void>();
-  @Output() toggleNewPassword = new EventEmitter<void>();
-  @Output() toggleConfirmPassword = new EventEmitter<void>();
   @Output() submitPassword = new EventEmitter<Event>();
 
   onSubmit(e: Event) {

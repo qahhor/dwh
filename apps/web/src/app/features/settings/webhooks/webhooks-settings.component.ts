@@ -19,11 +19,12 @@ import {
   AVAILABLE_WEBHOOK_EVENTS,
   WebhookEventOption
 } from './webhooks-settings.models';
+import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
 
 @Component({
   selector: 'app-webhooks-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslatePipe, UiButtonComponent, UiModalComponent, UiLocalTableComponent],
+  imports: [SMTInputComponent, SMTInputValueAccessor, CommonModule, FormsModule, TranslatePipe, UiButtonComponent, UiModalComponent, UiLocalTableComponent],
   template: `
     <div class="webhooks-container">
       <!-- Section Header -->
@@ -149,28 +150,24 @@ import {
         <div body class="create-form-body">
           <div class="form-row">
             <label for="webhook-name" class="form-lbl">{{ 'settings.webhooks.name' | t }} *</label>
-            <input
-              id="webhook-name"
-              type="text"
-              class="form-input"
+            <smt-input
+              smtFieldId="webhook-name"
               [placeholder]="'settings.webhooks.name_placeholder' | t"
               [(ngModel)]="createName"
-              maxlength="100"
-              required
-            />
+              [maxLength]="100"
+              required />
           </div>
 
           <div class="form-row">
             <label for="webhook-url" class="form-lbl">{{ 'settings.webhooks.target_url' | t }} *</label>
-            <input
-              id="webhook-url"
+            <smt-input
+              class="font-mono"
+              smtFieldId="webhook-url"
               type="url"
-              class="form-input font-mono"
               [placeholder]="'settings.webhooks.url_placeholder' | t"
               [(ngModel)]="createTargetUrl"
-              maxlength="500"
-              required
-            />
+              [maxLength]="500"
+              required />
           </div>
 
           <div class="form-row">
@@ -227,13 +224,11 @@ import {
           <div class="secret-field-box">
             <label class="form-lbl">{{ 'settings.webhooks.secret_modal_title' | t }}</label>
             <div class="secret-input-row">
-              <input
-                type="text"
-                class="form-input font-mono secret-input"
+              <smt-input
+                class="font-mono secret-input"
                 [value]="sub.secretToken"
                 readonly
-                aria-label="Secret token"
-              />
+                smtAriaLabel="Secret token" />
               <ui-button
                 variant="secondary"
                 size="sm"

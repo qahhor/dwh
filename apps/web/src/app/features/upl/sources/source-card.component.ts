@@ -34,6 +34,7 @@ import {
   uplProblemText
 } from '../upl-labels';
 import { SMTAlertComponent } from '../../../shared/ui-kit/components/alert';
+import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
 
 /** Реквизиты источника в форме экрана: код не правится и здесь не хранится. */
 interface SourceForm {
@@ -51,7 +52,7 @@ type DraftMode = 'empty' | 'copy';
   selector: 'app-upl-source-card',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
+  imports: [SMTInputComponent, SMTInputValueAccessor, 
     SMTAlertComponent, SMTControlComponent,
     UiLocalTableComponent,
     CommonModule,
@@ -120,39 +121,30 @@ type DraftMode = 'empty' | 'copy';
           </div>
 
           <smt-control class="form-group" [smtLabel]="'upl.source.field.name' | t" [smtError]="fieldErrorText('name')">
-            <input
-              id="upl-source-name"
-              class="form-input"
-              type="text"
-              maxlength="200"
-              data-testid="upl-field-name"
+            <smt-input
+              smtFieldId="upl-source-name"
+              [maxLength]="200"
+              smtTestId="upl-field-name"
               [disabled]="!canEdit()"
-              [(ngModel)]="form.name"
-            />
+              [(ngModel)]="form.name" />
           </smt-control>
 
           <smt-control class="form-group" [smtLabel]="'upl.source.field.owner_org' | t" [smtError]="fieldErrorText('ownerOrg')">
-            <input
-              id="upl-source-owner-org"
-              class="form-input"
-              type="text"
-              maxlength="200"
-              data-testid="upl-field-ownerOrg"
+            <smt-input
+              smtFieldId="upl-source-owner-org"
+              [maxLength]="200"
+              smtTestId="upl-field-ownerOrg"
               [disabled]="!canEdit()"
-              [(ngModel)]="form.ownerOrg"
-            />
+              [(ngModel)]="form.ownerOrg" />
           </smt-control>
 
           <smt-control class="form-group" [smtLabel]="'upl.source.field.owner_contact' | t" [smtError]="fieldErrorText('ownerContact')">
-            <input
-              id="upl-source-owner-contact"
-              class="form-input"
-              type="text"
-              maxlength="200"
-              data-testid="upl-field-ownerContact"
+            <smt-input
+              smtFieldId="upl-source-owner-contact"
+              [maxLength]="200"
+              smtTestId="upl-field-ownerContact"
               [disabled]="!canEdit()"
-              [(ngModel)]="form.ownerContact"
-            />
+              [(ngModel)]="form.ownerContact" />
           </smt-control>
 
           <smt-control class="form-group" [smtLabel]="'upl.source.field.periodicity' | t">
@@ -170,16 +162,14 @@ type DraftMode = 'empty' | 'copy';
           </smt-control>
 
           <smt-control class="form-group" [smtLabel]="'upl.source.field.sla_days' | t" [smtError]="fieldErrorText('slaDays')">
-            <input
-              id="upl-source-sla-days"
-              class="form-input"
+            <smt-input
+              smtFieldId="upl-source-sla-days"
               type="number"
-              min="0"
-              max="366"
-              data-testid="upl-field-slaDays"
+              [smtMin]="0"
+              [smtMax]="366"
+              smtTestId="upl-field-slaDays"
               [disabled]="!canEdit()"
-              [(ngModel)]="form.slaDays"
-            />
+              [(ngModel)]="form.slaDays" />
           </smt-control>
 
           <smt-control class="form-group" [smtLabel]="'upl.source.field.strictness' | t">

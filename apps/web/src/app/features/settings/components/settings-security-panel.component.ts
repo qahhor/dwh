@@ -4,11 +4,12 @@ import { SMTSwitchComponent } from '../../../shared/ui-kit/components/forms/swit
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
 
 @Component({
   selector: 'app-settings-security-panel',
   standalone: true,
-  imports: [
+  imports: [SMTInputComponent, SMTInputValueAccessor, 
     SMTSwitchComponent,
     CommonModule,
     FormsModule,
@@ -31,17 +32,15 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
       <div class="form-grid">
         <div class="form-group">
           <label class="form-label" for="settings-password-length">{{ 'settings.min_password_len' | t }}</label>
-          <input
-            id="settings-password-length"
+          <smt-input
+            smtFieldId="settings-password-length"
             name="settingsPasswordLength"
             type="number"
-            min="8"
-            max="64"
-            class="form-input"
+            [smtMin]="8"
+            [smtMax]="64"
             [disabled]="!canUpdateSystemSettings || isSaving"
-            aria-describedby="settings-password-length-hint"
-            [(ngModel)]="systemSettings['security.min_password_length']"
-          />
+            smtDescribedBy="settings-password-length-hint"
+            [(ngModel)]="systemSettings['security.min_password_length']" />
           <span id="settings-password-length-hint" class="hint-text">{{ 'settings.rekomenduetsya_ne_menee_10_simvolov' | t }}</span>
         </div>
 
@@ -52,33 +51,29 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
               {{ sessionBadge }}
             </span>
           </label>
-          <input
-            id="settings-session-lifetime"
+          <smt-input
+            smtFieldId="settings-session-lifetime"
             name="settingsSessionLifetime"
             type="number"
-            min="1"
-            max="8760"
-            class="form-input"
+            [smtMin]="1"
+            [smtMax]="8760"
             [disabled]="!canUpdateSystemSettings || isSaving"
-            aria-describedby="settings-session-lifetime-hint"
-            [(ngModel)]="systemSettings['security.session_lifetime_hours']"
-          />
+            smtDescribedBy="settings-session-lifetime-hint"
+            [(ngModel)]="systemSettings['security.session_lifetime_hours']" />
           <span id="settings-session-lifetime-hint" class="hint-text">{{ 'settings.po_umolchaniyu_720_chasov_30_dney' | t }}</span>
         </div>
 
         <div class="form-group">
           <label class="form-label" for="settings-idle-lock">{{ 'settings.idle_lock' | t }}</label>
-          <input
-            id="settings-idle-lock"
+          <smt-input
+            smtFieldId="settings-idle-lock"
             name="settingsIdleLock"
             type="number"
-            min="0"
-            max="1440"
-            class="form-input"
+            [smtMin]="0"
+            [smtMax]="1440"
             [disabled]="!canUpdateSystemSettings || isSaving"
-            aria-describedby="settings-idle-lock-hint"
-            [(ngModel)]="systemSettings['security.idle_lock_minutes']"
-          />
+            smtDescribedBy="settings-idle-lock-hint"
+            [(ngModel)]="systemSettings['security.idle_lock_minutes']" />
           <span id="settings-idle-lock-hint" class="hint-text">{{ 'settings.idle_lock_hint' | t }}</span>
         </div>
 

@@ -11,13 +11,14 @@ import { LoginStep, PasswordField } from './login.models';
 import { LoginTopBarComponent } from './components/login-top-bar.component';
 import { LoginHeaderComponent } from './components/login-header.component';
 import { LoginResetModalComponent } from './components/login-reset-modal.component';
+import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
 
 export * from './login.models';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [
+  imports: [SMTInputComponent, SMTInputValueAccessor, 
     TranslatePipe,
     CommonModule,
     FormsModule,
@@ -36,10 +37,8 @@ export * from './login.models';
         <form *ngIf="step() === 'credentials'" (ngSubmit)="onLoginSubmit()" class="login-form" [attr.aria-busy]="isLoading()">
           <div class="form-group">
             <label class="form-label" for="login">{{ 'auth.username' | t }}</label>
-            <input
-              id="login"
-              type="text"
-              class="form-input"
+            <smt-input
+              smtFieldId="login"
               [(ngModel)]="login"
               (ngModelChange)="formError.set('')"
               name="login"
@@ -48,42 +47,30 @@ export * from './login.models';
               autocapitalize="none"
               [spellcheck]="false"
               placeholder="user@company.com"
-              aria-required="true"
-              [attr.aria-invalid]="formError() ? 'true' : null"
-              [attr.aria-describedby]="formError() ? 'login-error' : null"
-              [disabled]="isLoading()"
-            />
+              [smtInvalid]="formError() ? 'true' : null"
+              [smtDescribedBy]="formError() ? 'login-error' : null"
+              [disabled]="isLoading()" />
           </div>
 
           <div class="form-group">
             <div class="password-label-row">
               <label class="form-label" for="password">{{ 'auth.password' | t }}</label>
             </div>
-            <div class="password-input">
-            <input
-              id="password"
-              [type]="passwordVisibility()['password'] ? 'text' : 'password'"
-              class="form-input"
+            <smt-input
+              smtFieldId="password"
+              type="password"
               [(ngModel)]="password"
               (ngModelChange)="formError.set('')"
               (keydown)="checkCapsLock($event, 'password')"
               (keyup)="checkCapsLock($event, 'password')"
-              (blur)="capsLockField.set(null)"
+              (touch)="capsLockField.set(null)"
               name="password"
               required
               autocomplete="current-password"
               [spellcheck]="false"
-              aria-required="true"
-              [attr.aria-invalid]="formError() ? 'true' : null"
-              [attr.aria-describedby]="passwordDescription('password')"
-              [disabled]="isLoading()"
-            />
-              <button type="button" class="password-toggle" aria-controls="password"
-                [attr.aria-label]="(passwordVisibility()['password'] ? 'auth.hide_password' : 'auth.show_password') | t"
-                [disabled]="isLoading()" (click)="togglePasswordVisibility('password')">
-                <span class="material-symbols-outlined" aria-hidden="true">{{ passwordVisibility()['password'] ? 'visibility_off' : 'visibility' }}</span>
-              </button>
-            </div>
+              [smtInvalid]="!!formError()"
+              [smtDescribedBy]="passwordDescription('password')"
+              [disabled]="isLoading()" />
             <p id="password-caps-lock" class="caps-lock-hint" role="status">{{ capsLockField() === 'password' ? ('auth.caps_lock_on' | t) : '' }}</p>
             <button type="button" class="forgot-link" [disabled]="isLoading()" (click)="openResetModal()">{{ 'auth.zabyli_parol' | t }}</button>
           </div>
@@ -115,23 +102,20 @@ export * from './login.models';
 
           <div class="form-group">
             <label class="form-label" for="otp-code">{{ 'auth.kod_podtverzhdeniya_otp' | t }}</label>
-            <input
-              id="otp-code"
-              type="text"
-              class="form-input otp-input tabular-nums"
+            <smt-input
+              class="otp-input tabular-nums"
+              smtFieldId="otp-code"
               [(ngModel)]="otpCode"
               (ngModelChange)="formError.set('')"
               name="otpCode"
               required
-              maxlength="6"
+              [maxLength]="6"
               inputmode="numeric"
               autocomplete="one-time-code"
-              pattern="[0-9]{6}"
-              aria-required="true"
-              [attr.aria-describedby]="formError() ? 'otp-hint otp-error' : 'otp-hint'"
-              [attr.aria-invalid]="formError() ? 'true' : null"
-              [disabled]="isLoading()"
-            />
+              smtPattern="[0-9]{6}"
+              [smtDescribedBy]="formError() ? 'otp-hint otp-error' : 'otp-hint'"
+              [smtInvalid]="formError() ? 'true' : null"
+              [disabled]="isLoading()" />
           </div>
 
           <p *ngIf="formError()" id="otp-error" class="form-error" role="alert">{{ formError() }}</p>
@@ -172,61 +156,43 @@ export * from './login.models';
 
           <div class="form-group">
             <label class="form-label" for="new-password">{{ 'auth.novyy_parol' | t }}</label>
-            <div class="password-input">
-            <input
-              id="new-password"
-              [type]="passwordVisibility()['new-password'] ? 'text' : 'password'"
-              class="form-input"
+            <smt-input
+              smtFieldId="new-password"
+              type="password"
               [(ngModel)]="newPassword"
               (ngModelChange)="formError.set('')"
               (keydown)="checkCapsLock($event, 'new-password')"
               (keyup)="checkCapsLock($event, 'new-password')"
-              (blur)="capsLockField.set(null)"
+              (touch)="capsLockField.set(null)"
               name="newPassword"
               required
-              minlength="10"
+              [minLength]="10"
               autocomplete="new-password"
               [spellcheck]="false"
-              [attr.aria-invalid]="formError() ? 'true' : null"
-              [attr.aria-describedby]="passwordDescription('new-password')"
-              [disabled]="isLoading()"
-            />
-              <button type="button" class="password-toggle" aria-controls="new-password"
-                [attr.aria-label]="(passwordVisibility()['new-password'] ? 'auth.hide_password' : 'auth.show_password') | t"
-                [disabled]="isLoading()" (click)="togglePasswordVisibility('new-password')">
-                <span class="material-symbols-outlined" aria-hidden="true">{{ passwordVisibility()['new-password'] ? 'visibility_off' : 'visibility' }}</span>
-              </button>
-            </div>
+              [smtInvalid]="!!formError()"
+              [smtDescribedBy]="passwordDescription('new-password')"
+              [disabled]="isLoading()" />
             <p id="new-password-caps-lock" class="caps-lock-hint" role="status">{{ capsLockField() === 'new-password' ? ('auth.caps_lock_on' | t) : '' }}</p>
           </div>
 
           <div class="form-group">
             <label class="form-label" for="confirm-new-password">{{ 'auth.povtorite_novyy_parol' | t }}</label>
-            <div class="password-input">
-            <input
-              id="confirm-new-password"
-              [type]="passwordVisibility()['confirm-new-password'] ? 'text' : 'password'"
-              class="form-input"
+            <smt-input
+              smtFieldId="confirm-new-password"
+              type="password"
               [(ngModel)]="confirmNewPassword"
               (ngModelChange)="formError.set('')"
               (keydown)="checkCapsLock($event, 'confirm-new-password')"
               (keyup)="checkCapsLock($event, 'confirm-new-password')"
-              (blur)="capsLockField.set(null)"
+              (touch)="capsLockField.set(null)"
               name="confirmNewPassword"
               required
-              minlength="10"
+              [minLength]="10"
               autocomplete="new-password"
               [spellcheck]="false"
-              [attr.aria-invalid]="formError() ? 'true' : null"
-              [attr.aria-describedby]="passwordDescription('confirm-new-password')"
-              [disabled]="isLoading()"
-            />
-              <button type="button" class="password-toggle" aria-controls="confirm-new-password"
-                [attr.aria-label]="(passwordVisibility()['confirm-new-password'] ? 'auth.hide_password' : 'auth.show_password') | t"
-                [disabled]="isLoading()" (click)="togglePasswordVisibility('confirm-new-password')">
-                <span class="material-symbols-outlined" aria-hidden="true">{{ passwordVisibility()['confirm-new-password'] ? 'visibility_off' : 'visibility' }}</span>
-              </button>
-            </div>
+              [smtInvalid]="!!formError()"
+              [smtDescribedBy]="passwordDescription('confirm-new-password')"
+              [disabled]="isLoading()" />
             <p id="confirm-new-password-caps-lock" class="caps-lock-hint" role="status">{{ capsLockField() === 'confirm-new-password' ? ('auth.caps_lock_on' | t) : '' }}</p>
           </div>
 
@@ -273,9 +239,6 @@ export class LoginComponent {
   private readonly destroyRef = inject(DestroyRef);
 
   readonly step = signal<LoginStep>('credentials');
-  readonly passwordVisibility = signal<Record<PasswordField, boolean>>({
-    password: false, 'new-password': false, 'confirm-new-password': false
-  });
   readonly capsLockField = signal<PasswordField | null>(null);
   readonly isLoading = signal<boolean>(false);
   readonly isResetModalOpen = signal<boolean>(false);
@@ -309,7 +272,7 @@ export class LoginComponent {
     }
 
     this.formError.set('');
-    this.maskPasswords();
+    this.capsLockField.set(null);
     this.isLoading.set(true);
     this.authService.login(this.login, this.password, navigator.userAgent)
       .pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
@@ -382,7 +345,7 @@ export class LoginComponent {
     }
 
     this.formError.set('');
-    this.maskPasswords();
+    this.capsLockField.set(null);
     this.isLoading.set(true);
     // A committed password change must clear global authentication even if
     // navigation destroys this view before the response arrives.
@@ -411,13 +374,8 @@ export class LoginComponent {
 
   openResetModal() {
     if (this.isLoading()) return;
-    this.maskPasswords();
+    this.capsLockField.set(null);
     this.isResetModalOpen.set(true);
-  }
-
-  togglePasswordVisibility(field: PasswordField): void {
-    if (this.isLoading()) return;
-    this.passwordVisibility.update(current => ({ ...current, [field]: !current[field] }));
   }
 
   checkCapsLock(event: KeyboardEvent, field: PasswordField): void {
@@ -454,14 +412,9 @@ export class LoginComponent {
 
   private changeStep(step: LoginStep): void {
     this.formError.set('');
-    this.maskPasswords();
+    this.capsLockField.set(null);
     this.step.set(step);
     this.focusInput(step === 'credentials' ? 'login' : step === 'otp' ? 'otp-code' : 'new-password');
-  }
-
-  private maskPasswords(): void {
-    this.passwordVisibility.set({ password: false, 'new-password': false, 'confirm-new-password': false });
-    this.capsLockField.set(null);
   }
 
   private focusInput(id: string): void {

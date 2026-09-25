@@ -80,6 +80,7 @@ export interface SMTMessages {
   readonly date: SMTDateMessages;
   readonly time: SMTTimeMessages;
   readonly textarea: { readonly counter: (count: number, max: number) => string };
+  readonly input: { readonly clear: string; readonly showPassword: string; readonly hidePassword: string };
   readonly tag: { readonly remove: (label: string) => string };
   readonly phone: { readonly country: string; readonly other: string; readonly incomplete: string };
   readonly color: {
@@ -219,6 +220,11 @@ export class SMTI18nService {
     },
     tag: {
       remove: label => this.i18n.translate('ui.tag.remove', { label }),
+    },
+    input: {
+      clear: this.i18n.translate('ui.input.clear'),
+      showPassword: this.i18n.translate('ui.input.show_password'),
+      hidePassword: this.i18n.translate('ui.input.hide_password'),
     },
     phone: {
       country: this.i18n.translate('ui.phone.country'),

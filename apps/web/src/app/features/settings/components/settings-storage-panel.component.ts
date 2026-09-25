@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
 
 @Component({
   selector: 'app-settings-storage-panel',
   standalone: true,
-  imports: [
+  imports: [SMTInputComponent, SMTInputValueAccessor, 
     CommonModule,
     FormsModule,
     TranslatePipe,
@@ -34,17 +35,15 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
               {{ quotaBadge }}
             </span>
           </label>
-          <input
-            id="settings-user-quota"
+          <smt-input
+            smtFieldId="settings-user-quota"
             name="settingsUserQuota"
             type="number"
-            min="100"
-            max="102400"
-            class="form-input"
+            [smtMin]="100"
+            [smtMax]="102400"
             [disabled]="!canUpdateSystemSettings || isSaving"
-            aria-describedby="settings-user-quota-hint"
-            [(ngModel)]="systemSettings['storage.default_user_quota_mb']"
-          />
+            smtDescribedBy="settings-user-quota-hint"
+            [(ngModel)]="systemSettings['storage.default_user_quota_mb']" />
           <span id="settings-user-quota-hint" class="hint-text">{{ 'settings.1024_mb_1_gb_na_kazhdogo_sotrudnika' | t }}</span>
         </div>
       </div>
