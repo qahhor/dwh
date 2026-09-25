@@ -86,6 +86,13 @@ public class UplPackageController {
         return ResponseEntity.ok(KeysetPage.of(items, page.nextCursor(), page.hasMore(), page.totalEstimated()));
     }
 
+    /** One upload, as the list shows it; the overview links straight to its card. */
+    @GetMapping("/{id}")
+    @RequiresPermission(form = UplPref.FORM_PACKAGES, action = UplPref.ACTION_VIEW)
+    public ResponseEntity<PackageItem> get(@PathVariable String id) {
+        return ResponseEntity.ok(PackageItem.of(packages.get(id)));
+    }
+
     @GetMapping("/{id}/errors")
     @RequiresPermission(form = UplPref.FORM_PACKAGES, action = UplPref.ACTION_VIEW)
     public ResponseEntity<PackageErrors> errors(@PathVariable String id) {

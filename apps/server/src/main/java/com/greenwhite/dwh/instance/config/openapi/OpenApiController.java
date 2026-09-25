@@ -328,6 +328,23 @@ public class OpenApiController {
                                         )
                                 )
                         )),
+                        Map.entry("/api/v1/upl/overview", Map.of(
+                                "get", Map.of(
+                                        "summary", "Data overview of 7, 30 or 90 days: uploads by status, freshness of every source, items needing attention",
+                                        "tags", List.of("UPL"),
+                                        "responses", Map.of(
+                                                "200", Map.of("description", "The overview"),
+                                                "422", Map.of("description", "UPL_OVERVIEW_PERIOD_INVALID")
+                                        )
+                                )
+                        )),
+                        Map.entry("/api/v1/upl/packages/{id}", Map.of(
+                                "get", Map.of(
+                                        "summary", "One upload, as the list shows it",
+                                        "tags", List.of("UPL"),
+                                        "responses", Map.of("200", Map.of("description", "The upload"), "404", Map.of("description", "UPL_PKG_NOT_FOUND"))
+                                )
+                        )),
                         Map.entry("/api/v1/upl/packages/{id}/errors/file", Map.of(
                                 "get", Map.of(
                                         "summary", "Errors of an upload as xlsx: summary, then every stored error with sheet, row, column, value and words",

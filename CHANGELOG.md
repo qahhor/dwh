@@ -9,6 +9,14 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Data freshness and Needs attention (roadmap item 25): the data overview
+  lists every source worst first — fresh, waiting for data, overdue, never
+  delivered or without a schedule — from its periodicity and deadline, with
+  the last period delivered and the due date. Needs attention names overdue
+  sources (linking to the upload form with the source chosen), rejected
+  uploads nobody replaced and checked uploads waiting to be applied
+  (linking to their card, which `/upl/packages?open=<id>` now opens;
+  `GET /api/v1/upl/packages/{id}` returns one upload).
 - Data overview (roadmap wave 5): a lazily loaded page, Data overview in the
   menu, shows what came into the warehouse over 7, 30 or 90 days — uploads,
   applied, waiting to be applied, rejected and the rows that reached the

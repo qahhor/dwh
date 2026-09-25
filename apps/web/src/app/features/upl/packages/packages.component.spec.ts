@@ -93,6 +93,7 @@ async function createFixture(options: FixtureOptions = {}) {
     list: vi.fn(() => pages[Math.min(listCall++, pages.length - 1)]),
     upload: vi.fn((request: UplPackageUpload) => options.uploadResult ?? of(item({ sourceId: request.sourceId }))),
     errors: vi.fn(() => of(noErrors)),
+    get: vi.fn((id: string) => of({ ...item(), id })),
     searchSources: vi.fn((..._args: unknown[]) => sourcesResults[Math.min(sourcesCall++, sourcesResults.length - 1)]),
     source: vi.fn(() => of({ ...sourceList[1], id: 9, name: 'Created TEST' } as unknown as UplSource))
   };
@@ -301,6 +302,14 @@ describe('PackagesComponent', () => {
     expect(fixture.componentInstance.form.sourceId).toBe(9);
     fixture.detectChanges();
     expect(testId(fixture, 'upl-pkg-source')[0].textContent).toContain('Created TEST');
+  });
+
+  it('ссылка из обзора данных открывает карточку загрузки', async () => {
+    const { fixture, api } = await createFixture({ query: { open: 'pkg-42' } });
+    fixture.detectChanges();
+
+    expect(api.get).toHaveBeenCalledWith('pkg-42');
+    expect(fixture.componentInstance.selected()?.id).toBe('pkg-42');
   });
 
   it('кнопка «Загрузить» неактивна, пока не заполнены все четыре поля', async () => {

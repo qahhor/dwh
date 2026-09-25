@@ -81,6 +81,11 @@ export class UplPackagesApiService {
     return this.api.post<UplPackageItem>(PACKAGES, form, { notifyError: false });
   }
 
+  /** One upload by its id, for a card opened from a link. */
+  get(id: string): Observable<UplPackageItem> {
+    return this.api.get<UplPackageItem>(`${PACKAGES}/${encodeURIComponent(id)}`, undefined, { notifyError: false });
+  }
+
   errors(id: string): Observable<UplPackageErrors> {
     return this.api.get<UplPackageErrors>(`${PACKAGES}/${encodeURIComponent(id)}/errors`, undefined, { notifyError: false });
   }

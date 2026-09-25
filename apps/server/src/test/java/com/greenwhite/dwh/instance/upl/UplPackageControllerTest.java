@@ -400,6 +400,12 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
         assertThat((Integer) read(after, "$.totals.uploads")).isEqualTo(uploadsBefore + 1);
         assertThat((Integer) read(after, "$.totals.verified")).isEqualTo(verifiedBefore + 1);
         assertThat((String) read(after, "$.generatedAt")).isNotBlank();
+        // A checked upload waits for someone to apply it; the source is listed with its freshness.
+        assertThat((List<String>) read(after, "$.attention[?(@.kind == 'waiting')].fileName")).contains("TEST.xlsx");
+        assertThat((List<Integer>) read(after, "$.freshness[*].sourceId")).contains((int) sourceId);
+        String waiting = ((List<String>) read(after, "$.attention[?(@.kind == 'waiting')].packageId")).getFirst();
+        assertThat((String) read(sendGet(admin, BASE + "/" + waiting, 200), "$.id")).isEqualTo(waiting);
+        sendGet(admin, BASE + "/" + java.util.UUID.randomUUID(), 404);
         sendGet(admin, "/api/v1/upl/overview?days=5", 422);
         sendGet(login(strangerLogin), "/api/v1/upl/overview", 403);
     }

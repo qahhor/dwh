@@ -415,6 +415,11 @@ export class PackagesComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
+    // A link to one upload (from the data overview) opens its card at once.
+    const open = this.route.snapshot.queryParamMap.get('open');
+    if (open) {
+      this.api.get(open).subscribe({ next: item => this.openCard(item) });
+    }
     const created = this.route.snapshot.queryParamMap.get('source');
     if (this.canUpload() && created && /^\d+$/.test(created)) {
       this.api.source(created).subscribe({ next: source => this.chooseSource(source) });
