@@ -75,14 +75,11 @@ import { CustomFieldsFormService } from './services/custom-fields-form.service';
         [canEdit]="canEdit()"
         [canDelete]="canDelete()"
         [searchQuery]="searchQuery()"
-        [sortColumn]="sortColumn"
-        [sortDirection]="sortDirection"
         (copyCode)="copyCode($event)"
         (editField)="openEditModal($event)"
         (deleteField)="requestDeleteField($event)"
         (clearSearch)="clearSearch()"
         (createField)="openCreateModal()"
-        (sortChange)="onSortChange($event)"
       ></app-custom-fields-table>
 
       <!-- Modals (Create/Edit & Delete) -->

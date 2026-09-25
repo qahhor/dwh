@@ -1,8 +1,11 @@
-import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject, Signal, TemplateRef, computed, signal, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CustomField } from '../custom-fields.models';
 import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
 import { TranslatePipe, I18nService } from '../../../../core/services/i18n.service';
+
+import { UiLocalTableComponent } from '../../../../shared/ui/ui-local-table.component';
+import { TableConfig } from '../../../../shared/ui-kit/components/table/table.types';
 
 @Component({
   selector: 'app-custom-fields-table',
@@ -10,153 +13,77 @@ import { TranslatePipe, I18nService } from '../../../../core/services/i18n.servi
   imports: [
     CommonModule,
     UiButtonComponent,
-    TranslatePipe
-  ],
+    TranslatePipe, UiLocalTableComponent],
   template: `
     <div class="card table-card">
       <div class="table-wrapper" role="region" [attr.aria-label]="'iam.tablica_dinamicheskih_atributov' | t" tabindex="0">
-        <table class="data-table" [attr.aria-label]="'iam.dinamicheskie_atributy' | t">
-          <thead>
-            <tr>
-              <th class="col-order sortable" (click)="onSort('orderNo')" [attr.aria-sort]="getAriaSort('orderNo')">
-                <span class="th-content">
-                  #
-                  <span class="material-symbols-outlined sort-icon" aria-hidden="true">{{ getSortIcon('orderNo') }}</span>
-                </span>
-              </th>
-              <th class="sortable" (click)="onSort('code')" [attr.aria-sort]="getAriaSort('code')">
-                <span class="th-content">
-                  {{ 'iam.kod_polya' | t }}
-                  <span class="material-symbols-outlined sort-icon" aria-hidden="true">{{ getSortIcon('code') }}</span>
-                </span>
-              </th>
-              <th class="sortable" (click)="onSort('name')" [attr.aria-sort]="getAriaSort('name')">
-                <span class="th-content">
-                  {{ 'iam.nazvanie' | t }}
-                  <span class="material-symbols-outlined sort-icon" aria-hidden="true">{{ getSortIcon('name') }}</span>
-                </span>
-              </th>
-              <th class="sortable" (click)="onSort('entityType')" [attr.aria-sort]="getAriaSort('entityType')">
-                <span class="th-content">
-                  {{ 'iam.suschnost' | t }}
-                  <span class="material-symbols-outlined sort-icon" aria-hidden="true">{{ getSortIcon('entityType') }}</span>
-                </span>
-              </th>
-              <th class="sortable" (click)="onSort('fieldType')" [attr.aria-sort]="getAriaSort('fieldType')">
-                <span class="th-content">
-                  {{ 'iam.tip_dannyh' | t }}
-                  <span class="material-symbols-outlined sort-icon" aria-hidden="true">{{ getSortIcon('fieldType') }}</span>
-                </span>
-              </th>
-              <th class="sortable" (click)="onSort('isRequired')" [attr.aria-sort]="getAriaSort('isRequired')">
-                <span class="th-content">
-                  {{ 'iam.obyazatelnoe' | t }}
-                  <span class="material-symbols-outlined sort-icon" aria-hidden="true">{{ getSortIcon('isRequired') }}</span>
-                </span>
-              </th>
-              <th>{{ 'iam.znachenie_po_umolchaniyu' | t }}</th>
-              <th *ngIf="canManage || canEdit || canDelete" class="text-right">{{ 'common.actions' | t }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <!-- Loading Skeleton / Spinner State -->
-            <tr *ngIf="isLoading" class="loading-row">
-              <td [attr.colspan]="(canManage || canEdit || canDelete) ? 8 : 7" class="loading-cell">
-                <div class="loading-state">
-                  <span class="material-symbols-outlined spin-icon" aria-hidden="true">progress_activity</span>
-                  <span>{{ 'iam.zagruzka_poley' | t }}</span>
-                </div>
-              </td>
-            </tr>
-
-            <!-- Data Rows -->
-            <ng-container *ngIf="!isLoading">
-              <tr *ngFor="let f of fields; trackBy: trackById">
-                <td class="col-order order-cell font-mono">{{ f.orderNo || 0 }}</td>
-                <td class="code-cell font-mono">
-                  <div class="code-badge-wrap">
-                    <span class="code-text">{{ f.code }}</span>
-                    <button
-                      type="button"
-                      class="copy-code-btn"
-                      (click)="copyCode.emit(f.code)"
-                      [attr.aria-label]="'iam.kopirovat_kod' | t"
-                      [title]="'iam.kopirovat_kod' | t"
-                    >
-                      <span class="material-symbols-outlined" aria-hidden="true">content_copy</span>
-                    </button>
-                  </div>
-                </td>
-                <td class="name-cell font-medium">{{ f.name }}</td>
-                <td>
-                  <span class="entity-badge" [ngClass]="getEntityBadgeClass(f.entityType)">
-                    <span class="material-symbols-outlined entity-icon" aria-hidden="true">{{ getEntityIcon(f.entityType) }}</span>
-                    <span>{{ getEntityLabel(f.entityType) }}</span>
-                  </span>
-                </td>
-                <td>
-                  <span class="type-badge" [ngClass]="'type-' + f.fieldType">
-                    <span class="material-symbols-outlined type-icon" aria-hidden="true">{{ getTypeIcon(f.fieldType) }}</span>
-                    <span>{{ getTypeName(f.fieldType) }}</span>
-                  </span>
-                </td>
-                <td>
-                  <span class="status-indicator" [class.active]="f.isRequired">
-                    <span class="material-symbols-outlined status-icon" aria-hidden="true">
-                      {{ f.isRequired ? 'check_circle' : 'remove_circle_outline' }}
-                    </span>
-                    <span>{{ (f.isRequired ? 'common.yes' : 'common.no') | t }}</span>
-                  </span>
-                </td>
-                <td class="text-muted">{{ f.defaultValue || '—' }}</td>
-                <td *ngIf="canManage || canEdit || canDelete" class="text-right">
-                  <button
-                    *ngIf="canEdit || canManage"
-                    type="button"
-                    class="action-btn"
-                    (click)="editField.emit(f)"
-                    [attr.aria-label]="'iam.edit_named' | t:{name: f.name}"
-                    [title]="'common.edit' | t"
-                  >
-                    <span class="material-symbols-outlined" aria-hidden="true">edit</span>
-                  </button>
-                  <button
-                    *ngIf="canDelete || canManage"
-                    type="button"
-                    class="action-btn danger"
-                    (click)="deleteField.emit(f)"
-                    [attr.aria-label]="'iam.delete_named' | t:{name: f.name}"
-                    [title]="'common.delete' | t"
-                  >
-                    <span class="material-symbols-outlined" aria-hidden="true">delete</span>
-                  </button>
-                </td>
-              </tr>
-
-              <!-- Empty State -->
-              <tr *ngIf="fields.length === 0">
-                <td [attr.colspan]="(canManage || canEdit || canDelete) ? 8 : 7" class="empty-row">
-                  <div class="empty-state" *ngIf="searchQuery">
-                    <span class="material-symbols-outlined empty-icon" aria-hidden="true">search_off</span>
-                    <p>{{ 'iam.nichego_ne_naydeno_po_zaprosu' | t }}: «<strong>{{ searchQuery }}</strong>»</p>
-                    <ui-button variant="secondary" size="sm" (onClick)="clearSearch.emit()">
-                      {{ 'iam.sbrosit_poisk' | t }}
-                    </ui-button>
-                  </div>
-                  <div class="empty-state" *ngIf="!searchQuery">
-                    <span class="material-symbols-outlined empty-icon" aria-hidden="true">tune</span>
-                    <p>{{ 'iam.dinamicheskie_polya_ne_naydeny' | t }}</p>
-                    <ui-button *ngIf="canManage" variant="primary" size="sm" icon="add" (onClick)="createField.emit()">
-                      {{ 'iam.dobavit_pole' | t }}
-                    </ui-button>
-                  </div>
-                </td>
-              </tr>
-            </ng-container>
-          </tbody>
-        </table>
+        <ui-local-table [rows]="rows()" [config]="config()" [sortValues]="sortValues" [loading]="isLoading" [emptyTemplate]="emptyState" />
       </div>
     </div>
+
+    <ng-template #orderCell let-f><span class="order-cell font-mono">{{ f.orderNo || 0 }}</span></ng-template>
+    <ng-template #codeCell let-f>
+      <div class="code-badge-wrap font-mono">
+        <span class="code-text">{{ f.code }}</span>
+        <button type="button" class="copy-code-btn" (click)="copyCode.emit(f.code)"
+          [attr.aria-label]="'iam.copy_code_named' | t:{ code: f.code }" [title]="'iam.kopirovat_kod' | t">
+          <span class="material-symbols-outlined" aria-hidden="true">content_copy</span>
+        </button>
+      </div>
+    </ng-template>
+    <ng-template #nameCell let-f><span class="name-cell font-medium">{{ f.name }}</span></ng-template>
+    <ng-template #entityCell let-f>
+      <span class="entity-badge" [ngClass]="getEntityBadgeClass(f.entityType)">
+        <span class="material-symbols-outlined entity-icon" aria-hidden="true">{{ getEntityIcon(f.entityType) }}</span>
+        <span>{{ getEntityLabel(f.entityType) }}</span>
+      </span>
+    </ng-template>
+    <ng-template #typeCell let-f>
+      <span class="type-badge" [ngClass]="'type-' + f.fieldType">
+        <span class="material-symbols-outlined type-icon" aria-hidden="true">{{ getTypeIcon(f.fieldType) }}</span>
+        <span>{{ getTypeName(f.fieldType) }}</span>
+      </span>
+    </ng-template>
+    <ng-template #requiredCell let-f>
+      <span class="status-indicator" [class.active]="f.isRequired">
+        <span class="material-symbols-outlined status-icon" aria-hidden="true">{{ f.isRequired ? 'check_circle' : 'remove_circle_outline' }}</span>
+        <span>{{ (f.isRequired ? 'common.yes' : 'common.no') | t }}</span>
+      </span>
+    </ng-template>
+    <ng-template #defaultCell let-f><span class="text-muted">{{ f.defaultValue || '—' }}</span></ng-template>
+    <ng-template #actionsCell let-f>
+      <div class="text-right">
+        @if (canEdit || canManage) {
+          <button type="button" class="action-btn" (click)="editField.emit(f)"
+            [attr.aria-label]="'iam.edit_named' | t:{name: f.name}" [title]="'common.edit' | t">
+            <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+          </button>
+        }
+        @if (canDelete || canManage) {
+          <button type="button" class="action-btn danger" (click)="deleteField.emit(f)"
+            [attr.aria-label]="'iam.delete_named' | t:{name: f.name}" [title]="'common.delete' | t">
+            <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+          </button>
+        }
+      </div>
+    </ng-template>
+    <ng-template #emptyState>
+      @if (searchQuery) {
+        <div class="empty-state">
+          <span class="material-symbols-outlined empty-icon" aria-hidden="true">search_off</span>
+          <p>{{ 'iam.nichego_ne_naydeno_po_zaprosu' | t }}: «<strong>{{ searchQuery }}</strong>»</p>
+          <ui-button variant="secondary" size="sm" (onClick)="clearSearch.emit()">{{ 'iam.sbrosit_poisk' | t }}</ui-button>
+        </div>
+      } @else {
+        <div class="empty-state">
+          <span class="material-symbols-outlined empty-icon" aria-hidden="true">tune</span>
+          <p>{{ 'iam.dinamicheskie_polya_ne_naydeny' | t }}</p>
+          @if (canManage) {
+            <ui-button variant="primary" size="sm" icon="add" (onClick)="createField.emit()">{{ 'iam.dobavit_pole' | t }}</ui-button>
+          }
+        </div>
+      }
+    </ng-template>
   `,
   styles: [`
     :host {
@@ -176,79 +103,6 @@ import { TranslatePipe, I18nService } from '../../../../core/services/i18n.servi
       overflow-x: auto;
     }
 
-    .data-table {
-      width: 100%;
-      min-width: 820px;
-      border-collapse: collapse;
-      text-align: left;
-    }
-
-    .data-table th {
-      padding: 12px 16px;
-      background: var(--bg-hover);
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      color: var(--text-muted);
-      border-bottom: 1px solid var(--border-color);
-      white-space: nowrap;
-    }
-
-    .data-table th.sortable {
-      cursor: pointer;
-      user-select: none;
-      transition: background-color 0.15s;
-    }
-
-    .data-table th.sortable:hover {
-      background: var(--border-color);
-      color: var(--text-main);
-    }
-
-    .th-content {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .sort-icon {
-      font-size: 16px;
-      color: var(--text-light);
-      opacity: 0.6;
-    }
-
-    th.sortable:hover .sort-icon {
-      opacity: 1;
-    }
-
-    .col-order {
-      width: 60px;
-      text-align: center;
-    }
-
-    .order-cell {
-      text-align: center;
-      color: var(--text-muted);
-      font-size: 12px;
-    }
-
-    .data-table td {
-      padding: 13px 16px;
-      border-bottom: 1px solid var(--border-subtle);
-      font-size: 14px;
-      color: var(--text-main);
-      vertical-align: middle;
-    }
-
-    .data-table tr:hover td {
-      background: var(--bg-hover);
-    }
-
-    .code-cell {
-      color: var(--primary-text, var(--primary));
-      font-size: 13px;
-    }
 
     .code-badge-wrap {
       display: inline-flex;
@@ -429,39 +283,70 @@ import { TranslatePipe, I18nService } from '../../../../core/services/i18n.servi
 export class CustomFieldsTableComponent {
   private readonly uiI18n = inject(I18nService);
 
-  @Input() fields: CustomField[] = [];
+  @Input() set fields(fields: CustomField[]) {
+    this.rows.set(fields ?? []);
+  }
   @Input() isLoading = false;
-  @Input() canManage = false;
-  @Input() canEdit = false;
-  @Input() canDelete = false;
+  private readonly rights = signal({ manage: false, edit: false, remove: false });
+  @Input() set canManage(value: boolean) { this.rights.update(r => ({ ...r, manage: value })); }
+  get canManage(): boolean { return this.rights().manage; }
+  @Input() set canEdit(value: boolean) { this.rights.update(r => ({ ...r, edit: value })); }
+  get canEdit(): boolean { return this.rights().edit; }
+  @Input() set canDelete(value: boolean) { this.rights.update(r => ({ ...r, remove: value })); }
+  get canDelete(): boolean { return this.rights().remove; }
   @Input() searchQuery = '';
-  @Input() sortColumn: string = 'orderNo';
-  @Input() sortDirection: 'asc' | 'desc' = 'asc';
 
   @Output() copyCode = new EventEmitter<string>();
   @Output() editField = new EventEmitter<CustomField>();
   @Output() deleteField = new EventEmitter<CustomField>();
   @Output() clearSearch = new EventEmitter<void>();
   @Output() createField = new EventEmitter<void>();
-  @Output() sortChange = new EventEmitter<string>();
 
-  trackById(_index: number, item: CustomField): number | string {
-    return item.id ?? item.code;
-  }
+  readonly rows = signal<CustomField[]>([]);
+  private readonly orderCell = viewChild.required<TemplateRef<unknown>>('orderCell');
+  private readonly codeCell = viewChild.required<TemplateRef<unknown>>('codeCell');
+  private readonly nameCell = viewChild.required<TemplateRef<unknown>>('nameCell');
+  private readonly entityCell = viewChild.required<TemplateRef<unknown>>('entityCell');
+  private readonly typeCell = viewChild.required<TemplateRef<unknown>>('typeCell');
+  private readonly requiredCell = viewChild.required<TemplateRef<unknown>>('requiredCell');
+  private readonly defaultCell = viewChild.required<TemplateRef<unknown>>('defaultCell');
+  private readonly actionsCell = viewChild.required<TemplateRef<unknown>>('actionsCell');
 
-  onSort(column: string) {
-    this.sortChange.emit(column);
-  }
+  /** Every field is loaded, so a header click (by keyboard too) sorts the whole list. */
+  readonly sortValues = {
+    orderNo: (f: CustomField) => f.orderNo ?? 0,
+    code: (f: CustomField) => f.code,
+    name: (f: CustomField) => f.name,
+    entityType: (f: CustomField) => this.getEntityLabel(f.entityType),
+    fieldType: (f: CustomField) => this.getTypeName(f.fieldType),
+    isRequired: (f: CustomField) => (f.isRequired ? 0 : 1)
+  };
 
-  getSortIcon(col: string): string {
-    if (this.sortColumn !== col) return 'unfold_more';
-    return this.sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward';
-  }
-
-  getAriaSort(col: string): 'ascending' | 'descending' | 'none' {
-    if (this.sortColumn !== col) return 'none';
-    return this.sortDirection === 'asc' ? 'ascending' : 'descending';
-  }
+  readonly config = computed<TableConfig<CustomField>>(() => {
+    const header = (key: string) => ({ type: 'primitive' as const, value: key === '#' ? '#' : this.uiI18n.translate(key) });
+    const cell = (template: Signal<TemplateRef<unknown>>) => ({ type: 'templateRef' as const, value: template });
+    const columns: TableConfig<CustomField>['columns'] = {
+      orderNo: { header: header('#'), content: cell(this.orderCell), width: '70px' },
+      code: { header: header('iam.kod_polya'), content: cell(this.codeCell) },
+      name: { header: header('iam.nazvanie'), content: cell(this.nameCell) },
+      entityType: { header: header('iam.suschnost'), content: cell(this.entityCell) },
+      fieldType: { header: header('iam.tip_dannyh'), content: cell(this.typeCell) },
+      isRequired: { header: header('iam.obyazatelnoe'), content: cell(this.requiredCell), width: '130px' },
+      defaultValue: { header: header('iam.znachenie_po_umolchaniyu'), content: cell(this.defaultCell) }
+    };
+    const order = ['orderNo', 'code', 'name', 'entityType', 'fieldType', 'isRequired', 'defaultValue'];
+    if (this.canManage || this.canEdit || this.canDelete) {
+      columns['actions'] = { header: header('common.actions'), content: cell(this.actionsCell), width: '110px', align: 'right' };
+      order.push('actions');
+    }
+    return {
+      trackBy: (_index, f) => f.id ?? f.code,
+      ariaLabel: this.uiI18n.translate('iam.dinamicheskie_atributy'),
+      layout: 'fit',
+      columns,
+      columnsOrder: order
+    };
+  });
 
   getEntityLabel(ent: string): string {
     switch ((ent || '').toUpperCase()) {

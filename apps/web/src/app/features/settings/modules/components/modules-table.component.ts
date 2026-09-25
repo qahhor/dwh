@@ -1,90 +1,71 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { TranslatePipe } from '../../../../core/services/i18n.service';
+import { ChangeDetectionStrategy, Component, Signal, TemplateRef, computed, inject, input, output, viewChild } from '@angular/core';
+import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
+import { UiLocalTableComponent } from '../../../../shared/ui/ui-local-table.component';
+import { TableConfig } from '../../../../shared/ui-kit/components/table/table.types';
 import { InstalledModule } from '../modules.models';
 
+/**
+ * Installed modules on the kit table. Every module is loaded, so a header
+ * click sorts the whole list; a module is switched on or off in its row.
+ */
 @Component({
   selector: 'app-modules-table',
   standalone: true,
-  imports: [CommonModule, TranslatePipe],
+  imports: [TranslatePipe, UiLocalTableComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="table-container">
-      <table class="data-table" [attr.aria-label]="'modules.title' | t">
-        <thead>
-          <tr>
-            <th scope="col">{{ 'modules.col.module' | t }}</th>
-            <th scope="col">{{ 'modules.col.code' | t }}</th>
-            <th scope="col">{{ 'modules.col.version' | t }}</th>
-            <th scope="col">{{ 'modules.col.type' | t }}</th>
-            <th scope="col">{{ 'modules.col.status' | t }}</th>
-            <th scope="col" class="actions-col" *ngIf="canManage()">{{ 'modules.col.actions' | t }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngIf="isLoading() && modules().length === 0">
-            <td colspan="6" class="state-cell">
-              <div class="loading-state">
-                <span class="material-symbols-outlined spin" aria-hidden="true">sync</span>
-                <span>{{ 'common.loading' | t }}</span>
-              </div>
-            </td>
-          </tr>
-
-          <tr *ngIf="!isLoading() && modules().length === 0">
-            <td colspan="6" class="state-cell">
-              <div class="empty-state">
-                <span class="material-symbols-outlined empty-icon" aria-hidden="true">extension_off</span>
-                <p class="empty-title">{{ 'modules.empty_title' | t }}</p>
-                <p class="empty-desc">{{ 'modules.empty_desc' | t }}</p>
-              </div>
-            </td>
-          </tr>
-
-          <tr *ngFor="let mod of modules(); trackBy: trackByModuleCode">
-            <td>
-              <div class="module-info">
-                <span class="module-name">{{ mod.name }}</span>
-                <span class="module-desc" *ngIf="mod.description">{{ mod.description }}</span>
-              </div>
-            </td>
-            <td>
-              <code class="code-badge">{{ mod.code }}</code>
-            </td>
-            <td>
-              <span class="version-badge">v{{ mod.version }}</span>
-            </td>
-            <td>
-              <span class="badge" [class.badge-primary]="mod.isSystem" [class.badge-neutral]="!mod.isSystem">
-                {{ (mod.isSystem ? 'modules.type.system' : 'modules.type.custom') | t }}
-              </span>
-            </td>
-            <td>
-              <span class="badge" [class.badge-active]="mod.isActive" [class.badge-inactive]="!mod.isActive">
-                {{ (mod.isActive ? 'modules.status.active' : 'modules.status.disabled') | t }}
-              </span>
-            </td>
-            <td class="actions-col" *ngIf="canManage()">
-              <div class="action-cell">
-                <label class="switch-toggle" [class.disabled]="mod.isSystem || togglingCode() === mod.code" [title]="mod.isSystem ? ('modules.system_cannot_disable' | t) : ''">
-                  <input
-                    type="checkbox"
-                    [checked]="mod.isActive"
-                    [disabled]="mod.isSystem || togglingCode() === mod.code"
-                    (change)="toggle.emit({ module: mod, event: $event })"
-                    [attr.aria-label]="(mod.isActive ? 'modules.action.disable' : 'modules.action.enable') | t:{name: mod.name}"
-                  />
-                  <span class="toggle-slider"></span>
-                </label>
-                <span class="system-locked-hint" *ngIf="mod.isSystem" [title]="'modules.system_cannot_disable' | t">
-                  <span class="material-symbols-outlined lock-icon" aria-hidden="true">lock</span>
-                </span>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <ui-local-table [rows]="modules()" [config]="config()" [sortValues]="sortValues" [loading]="isLoading() && modules().length === 0"
+        [emptyTemplate]="emptyState" />
     </div>
+
+    <ng-template #moduleCell let-mod>
+      <div class="module-info">
+        <span class="module-name">{{ mod.name }}</span>
+        @if (mod.description) {
+          <span class="module-desc">{{ mod.description }}</span>
+        }
+      </div>
+    </ng-template>
+    <ng-template #codeCell let-mod><code class="code-badge">{{ mod.code }}</code></ng-template>
+    <ng-template #versionCell let-mod><span class="version-badge">v{{ mod.version }}</span></ng-template>
+    <ng-template #typeCell let-mod>
+      <span class="badge" [class.badge-primary]="mod.isSystem" [class.badge-neutral]="!mod.isSystem">
+        {{ (mod.isSystem ? 'modules.type.system' : 'modules.type.custom') | t }}
+      </span>
+    </ng-template>
+    <ng-template #statusCell let-mod>
+      <span class="badge" [class.badge-active]="mod.isActive" [class.badge-inactive]="!mod.isActive">
+        {{ (mod.isActive ? 'modules.status.active' : 'modules.status.disabled') | t }}
+      </span>
+    </ng-template>
+    <ng-template #actionsCell let-mod>
+      <div class="action-cell">
+        <label class="switch-toggle" [class.disabled]="mod.isSystem || togglingCode() === mod.code" [title]="mod.isSystem ? ('modules.system_cannot_disable' | t) : ''">
+          <input
+            type="checkbox"
+            data-testid="module-toggle"
+            [checked]="mod.isActive"
+            [disabled]="mod.isSystem || togglingCode() === mod.code"
+            (change)="toggle.emit({ module: mod, event: $event })"
+            [attr.aria-label]="(mod.isActive ? 'modules.action.disable' : 'modules.action.enable') | t:{name: mod.name}"
+          />
+          <span class="toggle-slider"></span>
+        </label>
+        @if (mod.isSystem) {
+          <span class="system-locked-hint" [title]="'modules.system_cannot_disable' | t">
+            <span class="material-symbols-outlined lock-icon" aria-hidden="true">lock</span>
+          </span>
+        }
+      </div>
+    </ng-template>
+    <ng-template #emptyState>
+      <div class="empty-state">
+        <span class="material-symbols-outlined empty-icon" aria-hidden="true">extension_off</span>
+        <p class="empty-title">{{ 'modules.empty_title' | t }}</p>
+        <p class="empty-desc">{{ 'modules.empty_desc' | t }}</p>
+      </div>
+    </ng-template>
   `,
   styles: [`
     :host { display: block; }
@@ -93,35 +74,6 @@ import { InstalledModule } from '../modules.models';
       border: 1px solid var(--border-color);
       border-radius: var(--radius-md);
       overflow-x: auto;
-    }
-    .data-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-      text-align: left;
-    }
-    .data-table th {
-      padding: 12px 16px;
-      background: var(--bg-hover);
-      color: var(--text-muted);
-      font-weight: 600;
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      border-bottom: 1px solid var(--border-color);
-      white-space: nowrap;
-    }
-    .data-table td {
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--border-color);
-      color: var(--text-main);
-      vertical-align: middle;
-    }
-    .data-table tbody tr:last-child td {
-      border-bottom: none;
-    }
-    .data-table tbody tr:hover td {
-      background: var(--bg-hover);
     }
     .module-info {
       display: flex;
@@ -236,11 +188,7 @@ import { InstalledModule } from '../modules.models';
     .lock-icon {
       font-size: 14px;
     }
-    .state-cell {
-      padding: 40px !important;
-      text-align: center;
-    }
-    .loading-state, .empty-state {
+    .empty-state {
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -278,7 +226,37 @@ export class ModulesTableComponent {
 
   readonly toggle = output<{ module: InstalledModule; event: Event }>();
 
-  trackByModuleCode(_index: number, item: InstalledModule): string {
-    return item.code;
-  }
+  private readonly i18n = inject(I18nService);
+  private readonly moduleCell = viewChild.required<TemplateRef<unknown>>('moduleCell');
+  private readonly codeCell = viewChild.required<TemplateRef<unknown>>('codeCell');
+  private readonly versionCell = viewChild.required<TemplateRef<unknown>>('versionCell');
+  private readonly typeCell = viewChild.required<TemplateRef<unknown>>('typeCell');
+  private readonly statusCell = viewChild.required<TemplateRef<unknown>>('statusCell');
+  private readonly actionsCell = viewChild.required<TemplateRef<unknown>>('actionsCell');
+
+  readonly sortValues = {
+    module: (mod: InstalledModule) => mod.name,
+    code: (mod: InstalledModule) => mod.code,
+    version: (mod: InstalledModule) => mod.version,
+    type: (mod: InstalledModule) => (mod.isSystem ? 0 : 1),
+    status: (mod: InstalledModule) => (mod.isActive ? 0 : 1)
+  };
+
+  readonly config = computed<TableConfig<InstalledModule>>(() => {
+    const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
+    const cell = (template: Signal<TemplateRef<unknown>>) => ({ type: 'templateRef' as const, value: template });
+    const columns: TableConfig<InstalledModule>['columns'] = {
+      module: { header: header('modules.col.module'), content: cell(this.moduleCell) },
+      code: { header: header('modules.col.code'), content: cell(this.codeCell), width: '160px' },
+      version: { header: header('modules.col.version'), content: cell(this.versionCell), width: '110px' },
+      type: { header: header('modules.col.type'), content: cell(this.typeCell), width: '130px' },
+      status: { header: header('modules.col.status'), content: cell(this.statusCell), width: '130px' }
+    };
+    const order = ['module', 'code', 'version', 'type', 'status'];
+    if (this.canManage()) {
+      columns['actions'] = { header: header('modules.col.actions'), content: cell(this.actionsCell), width: '120px', align: 'right' };
+      order.push('actions');
+    }
+    return { trackBy: (_index, mod) => mod.code, ariaLabel: this.i18n.translate('modules.title'), layout: 'fit', columns, columnsOrder: order };
+  });
 }

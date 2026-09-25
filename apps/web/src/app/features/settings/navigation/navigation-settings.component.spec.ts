@@ -79,7 +79,7 @@ describe('NavigationSettingsComponent', () => {
     expect(navService.loadAllItems).toHaveBeenCalled();
     expect(fixture.componentInstance.items()).toHaveLength(2);
 
-    const rows = fixture.nativeElement.querySelectorAll('.nav-table tbody tr');
+    const rows = fixture.nativeElement.querySelectorAll('.nav-table [role="rowgroup"] > [role="row"]');
     expect(rows).toHaveLength(2);
     expect(fixture.nativeElement.textContent).toContain('Отчет по продажам (Superset)');
     expect(fixture.nativeElement.textContent).toContain('Внешняя CRM');

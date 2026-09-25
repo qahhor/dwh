@@ -81,9 +81,9 @@ describe('ProfileComponent UI contracts', () => {
     expect(regions[0].tabIndex).toBe(0);
     expect(regions[0].querySelector('table')?.getAttribute('aria-label')).toBe('Каналы связи');
     expect(regions[1].tabIndex).toBe(0);
-    expect(regions[1].querySelector('table')?.getAttribute('aria-label')).toBe('Активные сессии');
+    expect(regions[1].querySelector('[role="table"]')?.getAttribute('aria-label')).toBe('Активные сессии');
     expect(regions[2].tabIndex).toBe(0);
-    expect(regions[2].querySelector('table')?.getAttribute('aria-label')).toBe('API-токены');
+    expect(regions[2].querySelector('[role="table"]')?.getAttribute('aria-label')).toBe('API-токены');
   });
 
   it('validates token name inline before creation', async () => {

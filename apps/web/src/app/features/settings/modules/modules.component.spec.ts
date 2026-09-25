@@ -76,7 +76,7 @@ describe('ModulesComponent', () => {
     expect(fixture.componentInstance.systemCount()).toBe(1);
     expect(fixture.componentInstance.customCount()).toBe(1);
 
-    const rows = fixture.nativeElement.querySelectorAll('tbody tr');
+    const rows = fixture.nativeElement.querySelectorAll('[role="rowgroup"] > [role="row"]');
     expect(rows.length).toBe(2);
   });
 

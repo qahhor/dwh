@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, Signal, TemplateRef, inject, signal, computed, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
@@ -7,6 +7,8 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
 import { PermissionService } from '../../../core/services/permission.service';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
+import { UiLocalTableComponent } from '../../../shared/ui/ui-local-table.component';
+import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
 import {
   WebhookSubscription,
   CreatedWebhookSubscription,
@@ -18,7 +20,7 @@ import {
 @Component({
   selector: 'app-webhooks-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslatePipe, UiButtonComponent, UiModalComponent],
+  imports: [CommonModule, FormsModule, TranslatePipe, UiButtonComponent, UiModalComponent, UiLocalTableComponent],
   template: `
     <div class="webhooks-container">
       <!-- Section Header -->
@@ -84,69 +86,55 @@ import {
 
         <!-- Subscriptions Table -->
         <div *ngIf="subscriptions().length > 0" class="table-card">
-          <table class="clean-table" [attr.aria-label]="'settings.webhooks.title' | t">
-            <thead>
-              <tr>
-                <th style="width: 60px;">ID</th>
-                <th>{{ 'settings.webhooks.name' | t }}</th>
-                <th>{{ 'settings.webhooks.target_url' | t }}</th>
-                <th>{{ 'settings.webhooks.events' | t }}</th>
-                <th style="width: 120px;">{{ 'settings.webhooks.status' | t }}</th>
-                <th style="width: 130px;" *ngIf="canManageWebhooks()">{{ 'common.actions' | t }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let sub of subscriptions()">
-                <td class="font-mono text-muted text-xs">#{{ sub.id }}</td>
-                <td class="sub-name-cell">
-                  <strong>{{ sub.name }}</strong>
-                  <span class="text-xs text-muted">{{ sub.createdAt | date:'dd.MM.yyyy HH:mm' }}</span>
-                </td>
-                <td class="url-cell">
-                  <span class="url-text font-mono text-xs" [title]="sub.targetUrl">{{ sub.targetUrl }}</span>
-                </td>
-                <td>
-                  <div class="events-wrap">
-                    <span *ngFor="let ev of sub.subscribedEvents" class="event-pill">
-                      {{ ev }}
-                    </span>
-                  </div>
-                </td>
-                <td>
-                  <span class="status-badge" [class.active]="sub.state === 'A'" [class.paused]="sub.state !== 'A'">
-                    <span class="status-dot"></span>
-                    {{ (sub.state === 'A' ? 'settings.webhooks.active' : 'settings.webhooks.paused') | t }}
-                  </span>
-                </td>
-                <td *ngIf="canManageWebhooks()">
-                  <div class="actions-cell">
-                    <button
-                      type="button"
-                      class="btn-icon"
-                      [title]="(sub.state === 'A' ? 'settings.webhooks.paused' : 'settings.webhooks.active') | t"
-                      [attr.aria-label]="(sub.state === 'A' ? 'settings.webhooks.paused' : 'settings.webhooks.active') | t"
-                      (click)="toggleState(sub)"
-                    >
-                      <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">
-                        {{ sub.state === 'A' ? 'pause_circle' : 'play_circle' }}
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      class="btn-icon danger"
-                      [title]="'common.delete' | t"
-                      [attr.aria-label]="'common.delete' | t"
-                      (click)="confirmDelete(sub)"
-                    >
-                      <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">delete</span>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <ui-local-table [rows]="subscriptions()" [config]="tableConfig()" [sortValues]="sortValues" />
         </div>
       </div>
+
+      <ng-template #idCell let-sub><span class="font-mono text-muted text-xs">#{{ sub.id }}</span></ng-template>
+      <ng-template #nameCell let-sub>
+        <span class="sub-name-cell">
+          <strong>{{ sub.name }}</strong>
+          <span class="text-xs text-muted">{{ sub.createdAt | date:'dd.MM.yyyy HH:mm' }}</span>
+        </span>
+      </ng-template>
+      <ng-template #urlCell let-sub>
+        <span class="url-cell"><span class="url-text font-mono text-xs" [title]="sub.targetUrl">{{ sub.targetUrl }}</span></span>
+      </ng-template>
+      <ng-template #eventsCell let-sub>
+        <div class="events-wrap">
+          @for (ev of sub.subscribedEvents; track ev) {
+            <span class="event-pill">{{ ev }}</span>
+          }
+        </div>
+      </ng-template>
+      <ng-template #statusCell let-sub>
+        <span class="status-badge" [class.active]="sub.state === 'A'" [class.paused]="sub.state !== 'A'">
+          <span class="status-dot" aria-hidden="true"></span>
+          {{ (sub.state === 'A' ? 'settings.webhooks.active' : 'settings.webhooks.paused') | t }}
+        </span>
+      </ng-template>
+      <ng-template #actionsCell let-sub>
+        <div class="actions-cell">
+          <button
+            type="button"
+            class="btn-icon"
+            [title]="(sub.state === 'A' ? 'settings.webhooks.paused' : 'settings.webhooks.active') | t"
+            [attr.aria-label]="(sub.state === 'A' ? 'settings.webhooks.pause_named' : 'settings.webhooks.resume_named') | t:{ name: sub.name }"
+            (click)="toggleState(sub)"
+          >
+            <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">{{ sub.state === 'A' ? 'pause_circle' : 'play_circle' }}</span>
+          </button>
+          <button
+            type="button"
+            class="btn-icon danger"
+            [title]="'common.delete' | t"
+            [attr.aria-label]="'settings.webhooks.delete_named' | t:{ name: sub.name }"
+            (click)="confirmDelete(sub)"
+          >
+            <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">delete</span>
+          </button>
+        </div>
+      </ng-template>
 
       <!-- Create Modal -->
       <ui-modal
@@ -593,6 +581,40 @@ export class WebhooksSettingsComponent implements OnInit {
   private readonly permService = inject(PermissionService);
 
   readonly subscriptions = signal<WebhookSubscription[]>([]);
+
+  private readonly idCell = viewChild.required<TemplateRef<unknown>>('idCell');
+  private readonly nameCell = viewChild.required<TemplateRef<unknown>>('nameCell');
+  private readonly urlCell = viewChild.required<TemplateRef<unknown>>('urlCell');
+  private readonly eventsCell = viewChild.required<TemplateRef<unknown>>('eventsCell');
+  private readonly statusCell = viewChild.required<TemplateRef<unknown>>('statusCell');
+  private readonly actionsCell = viewChild.required<TemplateRef<unknown>>('actionsCell');
+
+  /** Every subscription is loaded, so a header click sorts the whole list. */
+  readonly sortValues = {
+    id: (sub: WebhookSubscription) => sub.id,
+    name: (sub: WebhookSubscription) => sub.name,
+    url: (sub: WebhookSubscription) => sub.targetUrl,
+    status: (sub: WebhookSubscription) => (sub.state === 'A' ? 0 : 1)
+  };
+
+  readonly tableConfig = computed<TableConfig<WebhookSubscription>>(() => {
+    const i18n = this.uiI18n;
+    const header = (value: string) => ({ type: 'primitive' as const, value });
+    const cell = (template: Signal<TemplateRef<unknown>>) => ({ type: 'templateRef' as const, value: template });
+    const columns: TableConfig<WebhookSubscription>['columns'] = {
+      id: { header: header('ID'), content: cell(this.idCell), width: '80px' },
+      name: { header: header(i18n.translate('settings.webhooks.name')), content: cell(this.nameCell) },
+      url: { header: header(i18n.translate('settings.webhooks.target_url')), content: cell(this.urlCell) },
+      events: { header: header(i18n.translate('settings.webhooks.events')), content: cell(this.eventsCell) },
+      status: { header: header(i18n.translate('settings.webhooks.status')), content: cell(this.statusCell), width: '130px' }
+    };
+    const order = ['id', 'name', 'url', 'events', 'status'];
+    if (this.canManageWebhooks()) {
+      columns['actions'] = { header: header(i18n.translate('common.actions')), content: cell(this.actionsCell), width: '120px', align: 'right' };
+      order.push('actions');
+    }
+    return { trackBy: (_index, sub) => sub.id, ariaLabel: i18n.translate('settings.webhooks.title'), layout: 'fit', columns, columnsOrder: order };
+  });
   readonly isLoading = signal<boolean>(false);
   readonly isSaving = signal<boolean>(false);
   readonly loadError = signal<boolean>(false);

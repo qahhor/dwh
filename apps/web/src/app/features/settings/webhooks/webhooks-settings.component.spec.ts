@@ -98,7 +98,7 @@ describe('WebhooksSettingsComponent', () => {
     expect(api.get).toHaveBeenCalledWith('/webhooks/subscriptions');
     expect(component.subscriptions().length).toBe(2);
 
-    const rows = fixture.nativeElement.querySelectorAll('tbody tr');
+    const rows = fixture.nativeElement.querySelectorAll('[role="rowgroup"] > [role="row"]');
     expect(rows.length).toBe(2);
     expect(rows[0].textContent).toContain('ERP Integration');
     expect(rows[0].textContent).toContain('https://erp.example.com/webhooks');

@@ -9,6 +9,12 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- `ui-local-table`: the kit table over a list that is loaded whole, sorting
+  every row by a header click (by keyboard too), with empty values last and
+  ties kept in place. Modules, custom menu items, webhooks, custom fields,
+  active sessions and API tokens moved to it from hand-written tables; row
+  actions now name their item ("Delete “Sales report”") instead of repeating
+  "Delete" on every row, and custom fields can be sorted from the keyboard.
 - The file storage list pages through every file with a server cursor; it
   used to show at most the 100 newest and hide the rest. It runs on the field
   registry (`mf.files`): sorting of the whole list by name, size or date,
