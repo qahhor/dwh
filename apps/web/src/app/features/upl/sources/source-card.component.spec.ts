@@ -134,6 +134,11 @@ describe('SourceCardComponent', () => {
     expect(rows.length).toBe(2);
     const link = rows[0] as HTMLAnchorElement;
     expect(link.getAttribute('href')).toBe('/upl/sources/7/formats/1');
+    // Each version offers the supplier's file, named after the version for screen readers.
+    const template = fixture.nativeElement.querySelector('[data-testid="upl-version-template"]') as HTMLAnchorElement;
+    expect(template.getAttribute('href')).toBe('/api/v1/upl/sources/7/format-versions/1/template?lang=ru');
+    expect(template.hasAttribute('download')).toBe(true);
+    expect(template.getAttribute('aria-label')).toBe('Скачать шаблон файла для версии 1');
   });
 
   it('shows not found message on 404', async () => {

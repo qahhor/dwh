@@ -300,6 +300,18 @@ public class OpenApiController {
                                                 "404", Map.of("description", "LIST_VIEW_NOT_FOUND"))
                                 )
                         )),
+                        Map.entry("/api/v1/upl/sources/{id}/format-versions/{v}/template", Map.of(
+                                "get", Map.of(
+                                        "summary", "The file a supplier fills in for a format version: instruction sheet, headers, notes and input checks (xlsx), or the header line (csv)",
+                                        "tags", List.of("UPL"),
+                                        "parameters", List.of(Map.of("name", "lang", "in", "query", "required", false,
+                                                "description", "Language of the instruction; Russian by default", "schema", Map.of("type", "string"))),
+                                        "responses", Map.of(
+                                                "200", Map.of("description", "The template as an attachment"),
+                                                "404", Map.of("description", "Unknown source or version")
+                                        )
+                                )
+                        )),
                         Map.entry("/api/v1/upl/sources", Map.of(
                                 "get", Map.of(
                                         "summary", "UPL sources through the field registry, keyset paginated",

@@ -246,6 +246,12 @@ type DraftMode = 'empty' | 'copy';
           <span>{{ dash }}</span>
         }
       </ng-template>
+      <ng-template #templateCell let-v>
+        <a class="upl-crumb-link upl-template-link" data-testid="upl-version-template" [href]="templateUrl(v.version)" download
+          [attr.aria-label]="'upl.template.download_named' | t: { version: v.version }">
+          <span class="material-symbols-outlined" aria-hidden="true">download</span>{{ 'upl.template.download' | t }}
+        </a>
+      </ng-template>
 
       <ui-modal
         [isOpen]="isDraftOpen()"
@@ -460,6 +466,7 @@ export class SourceCardComponent {
   private readonly validFromCell = viewChild.required<TemplateRef<unknown>>('validFromCell');
   private readonly validToCell = viewChild.required<TemplateRef<unknown>>('validToCell');
   private readonly publishedCell = viewChild.required<TemplateRef<unknown>>('publishedCell');
+  private readonly templateCell = viewChild.required<TemplateRef<unknown>>('templateCell');
 
   /** All versions of a source are loaded, so a header click sorts them all. */
   readonly versionSortValues = {
@@ -482,11 +489,20 @@ export class SourceCardComponent {
         status: { header: header('upl.version.col.status'), content: cell(this.versionStatusCell), width: '150px' },
         validFrom: { header: header('upl.version.col.valid_from'), content: cell(this.validFromCell), width: '140px' },
         validTo: { header: header('upl.version.col.valid_to'), content: cell(this.validToCell), width: '140px' },
-        published: { header: header('upl.version.col.published'), content: cell(this.publishedCell) }
+        published: { header: header('upl.version.col.published'), content: cell(this.publishedCell) },
+        template: { header: header('upl.template.column'), content: cell(this.templateCell), width: '170px' }
       },
-      columnsOrder: ['version', 'status', 'validFrom', 'validTo', 'published']
+      columnsOrder: ['version', 'status', 'validFrom', 'validTo', 'published', 'template']
     };
   });
+
+  /** The supplier's file for a version, in the reader's language; the browser downloads it with the session cookie. */
+  templateUrl(version: number): string {
+    const id = encodeURIComponent(this.sourceId() ?? '');
+    const lang = encodeURIComponent(this.i18n.currentLang());
+    return `/api/v1/upl/sources/${id}/format-versions/${version}/template?lang=${lang}`;
+  }
+
   readonly isLoading = signal(true);
   readonly loadError = signal(false);
   readonly notFound = signal(false);

@@ -208,6 +208,18 @@ function fieldError(root: HTMLElement, fieldId: string): HTMLElement | null {
 }
 
 describe('PackagesComponent', () => {
+  it('после выбора источника форма даёт скачать шаблон файла его опубликованной версии анкеты', async () => {
+    const { fixture } = await createFixture({ pages: [of(page([]))] });
+    expect(testId(fixture, 'upl-pkg-template')).toHaveLength(0);
+
+    selectSource(fixture, 1);
+
+    const link = testId(fixture, 'upl-pkg-template')[0] as HTMLAnchorElement;
+    expect(link.getAttribute('href')).toBe('/api/v1/upl/sources/3/format-versions/2/template?lang=ru');
+    expect(link.hasAttribute('download')).toBe(true);
+    expect(link.textContent).toContain('анкета версии 2');
+  });
+
   it('без права загрузки формы нет, источники не запрашиваются, пустой текст короткий', async () => {
     const { fixture, api } = await createFixture({ canUpload: false, pages: [of(page([]))] });
 

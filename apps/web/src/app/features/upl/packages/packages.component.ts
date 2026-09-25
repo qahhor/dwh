@@ -117,6 +117,12 @@ function emptyFormErrors(): UplPackageFormErrors {
                   (create)="createSource($event)"
                 ></smt-select>
               </smt-control>
+              @if (templateLink(); as link) {
+                <a class="upl-pkg-template" data-testid="upl-pkg-template" [href]="link.href" download>
+                  <span class="material-symbols-outlined" aria-hidden="true">download</span>
+                  {{ 'upl.pkg.form.template' | t: { version: link.version } }}
+                </a>
+              }
 
               <smt-control class="form-group" [smtLabel]="'upl.pkg.form.period_from' | t">
                 <smt-date-picker
@@ -266,6 +272,19 @@ function emptyFormErrors(): UplPackageFormErrors {
 
     .upl-pkg-err-line {
       display: block;
+    }
+
+    .upl-pkg-template {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      align-self: flex-start;
+      font-size: 0.8125rem;
+      color: var(--primary-text, var(--primary));
+    }
+
+    .upl-pkg-template .material-symbols-outlined {
+      font-size: 16px;
     }
 
     .upl-field-error {
@@ -448,7 +467,23 @@ export class PackagesComponent implements OnInit {
     this.form = { ...this.form, sourceId: source.id };
   }
 
+  /** The published format version of each source seen in the lookup, for the template link. */
+  private readonly publishedVersions = new Map<number, number | null>();
+
+  /**
+   * The file to fill for the chosen source: the template of its latest published format version,
+   * so a supplier starts from the right headers. None until a source with a published version is chosen.
+   */
+  templateLink(): { href: string; version: number } | null {
+    const id = this.form.sourceId;
+    const version = id === null || id === undefined ? null : this.publishedVersions.get(id) ?? null;
+    if (id === null || id === undefined || version === null) return null;
+    const lang = encodeURIComponent(this.i18n.currentLang());
+    return { href: `/api/v1/upl/sources/${id}/format-versions/${version}/template?lang=${lang}`, version };
+  }
+
   private sourceOption(source: UplSource | UplSourceItem): SMTSelectOption<number> {
+    this.publishedVersions.set(source.id, source.lastPublishedVersion ?? null);
     return {
       id: source.id,
       label: source.name,

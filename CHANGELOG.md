@@ -9,6 +9,15 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- UPL file templates: every format version can be downloaded as the file a
+  supplier fills in — an instruction sheet (what the file is for, how to fill
+  it, each column with its type, whether it is required, its unit and key
+  format) and the data sheets with headers where the parser looks for them,
+  a note on each header, and number, integer and date columns formatted and
+  checked by Excel as the supplier types. A CSV format gets its header line.
+  The link is in the source's version list and in the upload form, for the
+  chosen source's published version. fastexcel writes the file; Apache POI
+  is not needed.
 - Field rights in the field registry (ADR-0016, 2.9): a list field can require
   its own right. Without it the field is absent from query-meta, a filter,
   sort or search on it is refused as for an unknown field, and its value is

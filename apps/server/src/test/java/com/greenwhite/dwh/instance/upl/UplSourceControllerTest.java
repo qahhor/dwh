@@ -388,6 +388,11 @@ class UplSourceControllerTest extends EmbeddedPostgresTest {
         sendGet(analyst, BASE, 200);
         sendGet(analyst, BASE + "/" + id, 200);
         sendGet(analyst, BASE + "/" + id + "/format-versions", 200);
+        var template = sendGet(analyst, BASE + "/" + id + "/format-versions/1/template?lang=ru", 200);
+        assertThat(template.getContentType()).startsWith("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        assertThat(template.getHeader("Content-Disposition")).startsWith("attachment").contains("_v1.xlsx");
+        assertThat(template.getContentAsByteArray()).startsWith((byte) 'P', (byte) 'K');
+        sendGet(analyst, BASE + "/" + id + "/format-versions/9/template", 404);
 
         assertForbidden(send(analyst, post(BASE), sourceBody("test.api." + rnd(), "TEST", "month", null)));
         assertForbidden(send(analyst, put(BASE + "/" + id), sourceBody("x", "TEST", "month", 0)));
