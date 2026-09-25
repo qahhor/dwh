@@ -2,6 +2,8 @@ import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SMTSortableActionsDirective, SMTSortableItemDirective, SMTSortableListComponent } from '../../../shared/ui-kit/components/sortable-list';
+import { SMTColorInputComponent, SMTColorInputValueAccessor } from '../../../shared/ui-kit/components/forms/color-input';
+import { SMTControlComponent } from '../../../shared/ui-kit/components/forms/control';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
@@ -11,7 +13,7 @@ import { TaskStatus, TaskType } from '../../../core/models/task.models';
   selector: 'app-task-dictionaries-modal',
   standalone: true,
   imports: [
-    CommonModule,
+    SMTColorInputComponent, SMTColorInputValueAccessor, SMTControlComponent, CommonModule,
     FormsModule,
     SMTSortableListComponent, SMTSortableItemDirective, SMTSortableActionsDirective, TranslatePipe,
     UiModalComponent,
@@ -88,10 +90,9 @@ import { TaskStatus, TaskType } from '../../../core/models/task.models';
                 <label class="clean-label" for="task-type-name">{{ 'tasks.nazvanie_tipa' | t }}</label>
                 <input id="task-type-name" name="taskTypeName" type="text" class="clean-input" [placeholder]="'tasks.naprimer_dokument' | t" [(ngModel)]="newTypeForm.name" />
               </div>
-              <div class="color-picker-row">
-                <label class="clean-label" for="task-type-color">{{ 'tasks.cvet_tipa' | t }}</label>
-                <input id="task-type-color" name="taskTypeColor" type="color" class="clean-input color-picker" [(ngModel)]="newTypeForm.color" [title]="'tasks.vybrat_cvet' | t" />
-              </div>
+              <smt-control class="color-field" [smtLabel]="'tasks.cvet_tipa' | t">
+                <smt-color-input smtFieldId="task-type-color" name="taskTypeColor" [(ngModel)]="newTypeForm.color" />
+              </smt-control>
             </div>
             <div class="add-dict-actions">
               <ui-button variant="secondary" size="sm" icon="add" (onClick)="submitType()">
@@ -132,10 +133,9 @@ import { TaskStatus, TaskType } from '../../../core/models/task.models';
                 <label class="clean-label" for="task-status-name">{{ 'tasks.nazvanie_statusa.44a913b' | t }}</label>
                 <input id="task-status-name" name="taskStatusName" type="text" class="clean-input" [placeholder]="'tasks.nazvanie_statusa' | t" [(ngModel)]="newStatusForm.name" />
               </div>
-              <div class="color-picker-row">
-                <label class="clean-label" for="task-status-color">{{ 'tasks.cvet_statusa' | t }}</label>
-                <input id="task-status-color" name="taskStatusColor" type="color" class="clean-input color-picker" [(ngModel)]="newStatusForm.color" [title]="'tasks.vybrat_cvet' | t" />
-              </div>
+              <smt-control class="color-field" [smtLabel]="'tasks.cvet_statusa' | t">
+                <smt-color-input smtFieldId="task-status-color" name="taskStatusColor" [(ngModel)]="newStatusForm.color" />
+              </smt-control>
               <label class="terminal-toggle-label">
                 <input name="taskStatusTerminal" type="checkbox" [(ngModel)]="newStatusForm.isTerminal" />
                 <span>{{ 'tasks.zavershayuschiy' | t }}</span>
@@ -225,7 +225,7 @@ import { TaskStatus, TaskType } from '../../../core/models/task.models';
     .add-dict-title { font-size: 11px; font-weight: 600; color: var(--text-muted); margin: 0; }
     .form-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
     .dict-form-field,
-    .color-picker-row { display: flex; flex-direction: column; gap: 4px; }
+    .color-field { grid-column: 1 / -1; }
     .clean-label { font-size: 11px; font-weight: 500; color: var(--text-muted); }
     .clean-input {
       height: 34px;
@@ -238,7 +238,6 @@ import { TaskStatus, TaskType } from '../../../core/models/task.models';
       outline: none;
     }
     .clean-input:focus { border-color: var(--primary); }
-    .color-picker { width: 100%; padding: 2px; height: 34px; cursor: pointer; }
     .terminal-toggle-label {
       display: inline-flex;
       align-items: center;
@@ -269,8 +268,8 @@ export class TaskDictionariesModalComponent {
   @Output() reorderStatuses = new EventEmitter<TaskStatus[]>();
 
   settingsTab: 'types' | 'statuses' = 'types';
-  newTypeForm = { code: '', name: '', icon: 'task_alt', color: '#6366f1' };
-  newStatusForm = { name: '', color: '#3b82f6', isTerminal: false };
+  newTypeForm = { code: '', name: '', icon: 'task_alt', color: '#2563eb' };
+  newStatusForm = { name: '', color: '#0284c7', isTerminal: false };
 
   /** Rows are kept by id, so a moved row keeps its focus. */
   readonly byId = (item: { id: number }) => item.id;
@@ -285,7 +284,7 @@ export class TaskDictionariesModalComponent {
       icon: this.newTypeForm.icon.trim() || 'task_alt',
       color: this.newTypeForm.color
     });
-    this.newTypeForm = { code: '', name: '', icon: 'task_alt', color: '#6366f1' };
+    this.newTypeForm = { code: '', name: '', icon: 'task_alt', color: '#2563eb' };
   }
 
   submitStatus() {
@@ -295,7 +294,7 @@ export class TaskDictionariesModalComponent {
       color: this.newStatusForm.color,
       isTerminal: this.newStatusForm.isTerminal
     });
-    this.newStatusForm = { name: '', color: '#3b82f6', isTerminal: false };
+    this.newStatusForm = { name: '', color: '#0284c7', isTerminal: false };
   }
 
   /** Asks the page to delete; the page confirms it first. */

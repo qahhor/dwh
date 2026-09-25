@@ -32,12 +32,10 @@ const NAMED = { white: '#ffffff', black: '#000000' };
  * value is not styling:
  */
 const LITERAL_ALLOWED = new Map([
-  ['src/app/features/iam/users/users.models.ts',
-   'the avatar palette is a value in the model, picked per user'],
   ['src/app/features/tasks/components/task-dictionaries-modal.component.ts',
    'the default colour of a task type or status the operator creates'],
-  ['src/app/features/tasks/services/task-dictionaries.service.ts',
-   'the default colour of a task type or status the operator creates'],
+  ['src/app/shared/ui-kit/components/forms/color-input/color-input.component.ts',
+   'the palette a person picks a status or task type colour from; the chosen colour is stored data'],
   ['src/app/features/notes/notes.component.css',
    'the note card palette the author picks from, each class named for its colour'],
 ]);
@@ -309,6 +307,8 @@ for (const [key, value] of bridge.mapping) {
 for (const root of bridge.sources) {
   for (const file of await templateFiles(root)) {
     const relative = path.relative(webRoot, file);
+    // A file whose colours are data (a palette to pick from) is exempt here too.
+    if (LITERAL_ALLOWED.has(relative.split(path.sep).join('/'))) continue;
     const lines = (await readFile(file, 'utf8')).split('\n');
     lines.forEach((text, index) => {
       const arbitrary = [...text.matchAll(ARBITRARY_COLOUR)].map(match => match[0]);

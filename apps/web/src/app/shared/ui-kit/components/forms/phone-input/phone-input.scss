@@ -1,0 +1,71 @@
+/* Our styles for smt-phone-input, from semantic tokens so both themes work. */
+
+.smt-phone-input {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+}
+
+.smt-phone-input__control {
+  display: flex;
+  min-width: 0;
+}
+
+.smt-phone-input__country,
+.smt-phone-input__number {
+  min-height: var(--control-height);
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+  font: inherit;
+  font-size: 13px;
+}
+
+.smt-phone-input__country {
+  flex-shrink: 0;
+  padding: 6px 8px;
+  border-right: none;
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+  cursor: pointer;
+}
+
+.smt-phone-input__number {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 12px;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.smt-phone-input__number::placeholder {
+  color: var(--text-muted);
+}
+
+.smt-phone-input__country:focus,
+.smt-phone-input__number:focus {
+  border-color: var(--primary);
+}
+
+.smt-phone-input__country:focus-visible,
+.smt-phone-input__number:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.smt-phone-input__country:disabled,
+.smt-phone-input__number:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.smt-phone-input--invalid .smt-phone-input__number {
+  border-color: var(--danger);
+}
+
+.smt-phone-input__problem {
+  margin: 0;
+  color: var(--danger-text);
+  font-size: 12px;
+}

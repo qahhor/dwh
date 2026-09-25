@@ -1,0 +1,62 @@
+/* Our styles for smt-color-input, from semantic tokens so both themes work. */
+
+.smt-color-input {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.smt-color-input__own {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.smt-color-input__picker {
+  width: 34px;
+  height: 34px;
+  padding: 2px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-surface);
+  cursor: pointer;
+}
+
+.smt-color-input__hex {
+  width: 110px;
+  min-height: var(--control-height);
+  padding: 6px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+  font-family: var(--font-mono, monospace);
+  font-size: 13px;
+}
+
+.smt-color-input__hex:focus {
+  border-color: var(--primary);
+}
+
+.smt-color-input__picker:focus-visible,
+.smt-color-input__hex:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.smt-color-input__hex[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+
+.smt-color-input__picker:disabled,
+.smt-color-input__hex:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.smt-color-input__problem {
+  margin: 0;
+  color: var(--danger-text);
+  font-size: 12px;
+}
