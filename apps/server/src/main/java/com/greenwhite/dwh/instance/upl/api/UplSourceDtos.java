@@ -102,18 +102,20 @@ public final class UplSourceDtos {
             String keyMask,
             @Positive Integer keyPadLength,
             @Positive Integer keyPadMax,
-            String refBookCode) {
+            String refBookCode,
+            @Size(max = 10) List<@NotBlank @Size(max = 200) String> headerSynonyms) {
 
         /** Порядок колонки берётся из позиции в списке (контракт: {@code ordinal} = позиция), id назначает БД. */
         public Column toModel(int position) {
             return new Column(null, position, filePosition, nameInFile, targetField, DataType.fromDb(dataType),
-                    required, sourceUnit, baseUnit, keyMask, keyPadLength, keyPadMax, refBookCode);
+                    required, sourceUnit, baseUnit, keyMask, keyPadLength, keyPadMax, refBookCode,
+                    headerSynonyms == null ? List.of() : headerSynonyms.stream().map(String::strip).toList());
         }
 
         public static ColumnDto of(Column c) {
             return new ColumnDto(c.id(), c.ordinal(), c.filePosition(), c.nameInFile(), c.targetField(),
                     mapOrNull(c.dataType(), DataType::db), c.required(), c.sourceUnit(), c.baseUnit(),
-                    c.keyMask(), c.keyPadLength(), c.keyPadMax(), c.refBookCode());
+                    c.keyMask(), c.keyPadLength(), c.keyPadMax(), c.refBookCode(), c.headerSynonyms());
         }
     }
 

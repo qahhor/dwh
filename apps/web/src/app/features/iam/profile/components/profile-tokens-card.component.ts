@@ -1,20 +1,27 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, Signal, TemplateRef, computed, inject, signal, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
 import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
-import { TranslatePipe } from '../../../../core/services/i18n.service';
+import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
+import { UiLocalTableComponent } from '../../../../shared/ui/ui-local-table.component';
+import { TableConfig } from '../../../../shared/ui-kit/components/table/table.types';
 import { ApiToken, TokenExpirationOption } from '../profile.models';
+import { SMTControlComponent } from '../../../../shared/ui-kit/components/forms/control';
+import { SMTRadioGroupComponent, SMTRadioOption } from '../../../../shared/ui-kit/components/forms/radio-group';
 
 @Component({
   selector: 'app-profile-tokens-card',
   standalone: true,
   imports: [
+    UiLocalTableComponent,
     CommonModule,
     FormsModule,
     TranslatePipe,
     UiButtonComponent,
-    UiModalComponent
+    UiModalComponent,
+    SMTControlComponent,
+    SMTRadioGroupComponent
   ],
   template: `
     <div class="card section-card full-width">
@@ -30,55 +37,24 @@ import { ApiToken, TokenExpirationOption } from '../profile.models';
       </div>
 
       <div class="table-wrapper" role="region" [attr.aria-label]="'iam.tablica_api_tokenov' | t" tabindex="0">
-        <table class="data-table" [attr.aria-label]="'nav.tokens' | t">
-          <thead>
-            <tr>
-              <th>{{ 'iam.nazvanie_tokena' | t }}</th>
-              <th>{{ 'iam.prefiks_tokena' | t }}</th>
-              <th>{{ 'iam.sozdan' | t }}</th>
-              <th>{{ 'iam.srok_deystviya' | t }}</th>
-              <th class="text-right">{{ 'audit.deystvie' | t }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <!-- Skeleton rows when loading -->
-            <ng-container *ngIf="isLoadingTokens">
-              <tr class="skeleton-row" *ngFor="let item of [1, 2]">
-                <td><div class="skeleton-pill w-36"></div></td>
-                <td><div class="skeleton-pill w-24"></div></td>
-                <td><div class="skeleton-pill w-28"></div></td>
-                <td><div class="skeleton-pill w-32"></div></td>
-                <td class="text-right"><div class="skeleton-pill w-20 ml-auto"></div></td>
-              </tr>
-            </ng-container>
-
-            <!-- Real token rows -->
-            <ng-container *ngIf="!isLoadingTokens">
-              <tr *ngFor="let t of tokens">
-                <td class="font-medium">{{ t.name }}</td>
-                <td class="tabular-nums font-mono token-prefix-cell">{{ t.tokenPrefix }}...</td>
-                <td class="tabular-nums text-muted">{{ t.createdAt | date:'dd.MM.yyyy' }}</td>
-                <td class="tabular-nums">{{ t.expiresAt ? (t.expiresAt | date:'dd.MM.yyyy') : ('common.never_expires' | t) }}</td>
-                <td class="text-right">
-                  <ui-button
-                    variant="danger"
-                    size="sm"
-                    icon="delete"
-                    [ariaLabel]="'iam.revoke_api_token_named' | t:{name: t.name}"
-                    (onClick)="requestRevoke.emit(t)"
-                  >
-                    {{ 'iam.otozvat' | t }}
-                  </ui-button>
-                </td>
-              </tr>
-              <tr *ngIf="tokens.length === 0">
-                <td colspan="5" class="empty-cell">{{ 'iam.net_sozdannyh_api_tokenov' | t }}</td>
-              </tr>
-            </ng-container>
-          </tbody>
-        </table>
+        <div class="data-table">
+          <ui-local-table [rows]="rows()" [config]="config()" [sortValues]="sortValues" [loading]="isLoadingTokens" [emptyTemplate]="emptyTokens" />
+        </div>
       </div>
     </div>
+
+    <ng-template #tokenNameCell let-t><span class="font-medium">{{ t.name }}</span></ng-template>
+    <ng-template #tokenPrefixCell let-t><span class="tabular-nums font-mono token-prefix-cell">{{ t.tokenPrefix }}...</span></ng-template>
+    <ng-template #tokenCreatedCell let-t><span class="tabular-nums text-muted">{{ t.createdAt | date:'dd.MM.yyyy' }}</span></ng-template>
+    <ng-template #tokenExpiresCell let-t><span class="tabular-nums">{{ t.expiresAt ? (t.expiresAt | date:'dd.MM.yyyy') : ('common.never_expires' | t) }}</span></ng-template>
+    <ng-template #tokenActionCell let-t>
+      <div class="text-right">
+        <ui-button variant="danger" size="sm" icon="delete" [ariaLabel]="'iam.revoke_api_token_named' | t:{name: t.name}" (onClick)="requestRevoke.emit(t)">
+          {{ 'iam.otozvat' | t }}
+        </ui-button>
+      </div>
+    </ng-template>
+    <ng-template #emptyTokens><p class="empty-cell">{{ 'iam.net_sozdannyh_api_tokenov' | t }}</p></ng-template>
 
     <!-- Create Token Modal -->
     <ui-modal
@@ -107,26 +83,14 @@ import { ApiToken, TokenExpirationOption } from '../profile.models';
           </span>
         </div>
 
-        <div class="form-group mt-3">
-          <label class="form-label">{{ 'iam.srok_deystviya_tokena' | t }}</label>
-          <div class="expiration-options">
-            <label
-              *ngFor="let opt of tokenExpirationOptions"
-              class="expiration-pill"
-              [class.selected]="selectedTokenExpiration === opt.value"
-            >
-              <input
-                type="radio"
-                name="tokenExpiration"
-                [value]="opt.value"
-                [ngModel]="selectedTokenExpiration"
-                (ngModelChange)="expirationChange.emit($event)"
-                class="sr-only"
-              />
-              <span>{{ opt.labelKey | t }}</span>
-            </label>
-          </div>
-        </div>
+        <smt-control class="mt-3" [smtLabel]="'iam.srok_deystviya_tokena' | t">
+          <smt-radio-group
+            smtAppearance="cards"
+            smtOrientation="horizontal"
+            [options]="expirationItems()"
+            [value]="selectedTokenExpiration"
+            (valueChange)="onExpirationChosen($event)" />
+        </smt-control>
       </div>
       <div footer>
         <ui-button variant="secondary" size="md" (onClick)="closeCreateTokenModal.emit()">
@@ -167,33 +131,51 @@ import { ApiToken, TokenExpirationOption } from '../profile.models';
         </ui-button>
       </div>
     </ui-modal>
-
-    <!-- Token Revocation Confirmation -->
-    <ui-modal
-      [isOpen]="tokenToRevoke !== null"
-      [title]="'iam.otzyv_api_tokena' | t"
-      size="sm"
-      (close)="cancelRevoke.emit()"
-    >
-      <div body class="confirmation-body" *ngIf="tokenToRevoke as token">
-        <p>{{ 'iam.otozvat_api_token' | t }} <strong>{{ token.name }}</strong>?</p>
-        <span class="confirmation-hint">{{ 'iam.integracii_s_etim_tokenom_nemedlenno_poteryayut_' | t }}</span>
-      </div>
-      <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="cancelRevoke.emit()">{{ 'common.cancel' | t }}</ui-button>
-        <ui-button variant="danger" size="md" [loading]="isRevokingToken" (onClick)="confirmRevoke.emit()">
-          {{ 'iam.otozvat' | t }}
-        </ui-button>
-      </div>
-    </ui-modal>
   `,
   styleUrl: './profile-tokens-card.component.css'
 })
 export class ProfileTokensCardComponent {
-  @Input() tokens: ApiToken[] = [];
+  @Input() set tokens(tokens: ApiToken[]) {
+    this.rows.set(tokens ?? []);
+  }
+  get tokens(): ApiToken[] {
+    return this.rows();
+  }
+
+  private readonly i18n = inject(I18nService);
+  readonly rows = signal<ApiToken[]>([]);
+  private readonly nameCell = viewChild.required<TemplateRef<unknown>>('tokenNameCell');
+  private readonly prefixCell = viewChild.required<TemplateRef<unknown>>('tokenPrefixCell');
+  private readonly createdCell = viewChild.required<TemplateRef<unknown>>('tokenCreatedCell');
+  private readonly expiresCell = viewChild.required<TemplateRef<unknown>>('tokenExpiresCell');
+  private readonly actionCell = viewChild.required<TemplateRef<unknown>>('tokenActionCell');
+
+  readonly sortValues = {
+    name: (t: ApiToken) => t.name,
+    prefix: (t: ApiToken) => t.tokenPrefix,
+    created: (t: ApiToken) => new Date(t.createdAt),
+    expires: (t: ApiToken) => (t.expiresAt ? new Date(t.expiresAt) : null)
+  };
+
+  readonly config = computed<TableConfig<ApiToken>>(() => {
+    const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
+    const cell = (template: Signal<TemplateRef<unknown>>) => ({ type: 'templateRef' as const, value: template });
+    return {
+      trackBy: (_index, t) => t.id,
+      ariaLabel: this.i18n.translate('nav.tokens'),
+      layout: 'fit',
+      columns: {
+        name: { header: header('iam.nazvanie_tokena'), content: cell(this.nameCell) },
+        prefix: { header: header('iam.prefiks_tokena'), content: cell(this.prefixCell) },
+        created: { header: header('iam.sozdan'), content: cell(this.createdCell), width: '130px' },
+        expires: { header: header('iam.srok_deystviya'), content: cell(this.expiresCell), width: '150px' },
+        action: { header: header('audit.deystvie'), content: cell(this.actionCell), width: '140px', align: 'right' }
+      },
+      columnsOrder: ['name', 'prefix', 'created', 'expires', 'action']
+    };
+  });
   @Input() isLoadingTokens = false;
   @Input() isCreatingToken = false;
-  @Input() isRevokingToken = false;
   @Input() isCreateTokenModalOpen = false;
   @Input() isTokenSecretModalOpen = false;
   @Input() isTokenSubmitted = false;
@@ -201,8 +183,13 @@ export class ProfileTokensCardComponent {
   @Input() selectedTokenExpiration = '90';
   @Input() createdTokenSecret = '';
   @Input() copiedSecret = false;
-  @Input() tokenToRevoke: ApiToken | null = null;
-  @Input() tokenExpirationOptions: TokenExpirationOption[] = [];
+  @Input() set tokenExpirationOptions(options: TokenExpirationOption[]) {
+    this.expirationSource.set(options);
+  }
+  private readonly expirationSource = signal<TokenExpirationOption[]>([]);
+  /** The lifetimes as radio items, translated again when the language changes. */
+  readonly expirationItems = computed<SMTRadioOption<string>[]>(() =>
+    this.expirationSource().map(option => ({ value: option.value, label: this.i18n.translate(option.labelKey) })));
 
   @Output() openCreateTokenModal = new EventEmitter<void>();
   @Output() closeCreateTokenModal = new EventEmitter<void>();
@@ -212,6 +199,8 @@ export class ProfileTokensCardComponent {
   @Output() closeSecretModal = new EventEmitter<void>();
   @Output() copySecret = new EventEmitter<void>();
   @Output() requestRevoke = new EventEmitter<ApiToken>();
-  @Output() confirmRevoke = new EventEmitter<void>();
-  @Output() cancelRevoke = new EventEmitter<void>();
+
+  onExpirationChosen(value: string | null): void {
+    if (value !== null) this.expirationChange.emit(value);
+  }
 }

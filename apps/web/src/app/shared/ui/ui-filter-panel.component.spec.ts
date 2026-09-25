@@ -19,12 +19,20 @@ const META: QueryListMeta = {
   ]
 };
 
-async function render(conditions: QueryCondition[] = []) {
+/** A list with a date field, for the period editor. */
+const DATED: QueryListMeta = {
+  ...META,
+  fields: [
+    { key: 'uploadedAt', labelKey: 'upl.pkg.col.uploaded_at', type: 'date', ops: ['between', 'gte'], sortable: true, nullable: false, defaultVisible: true, enumValues: [], enumLabelPrefix: null }
+  ]
+};
+
+async function render(conditions: QueryCondition[] = [], meta: QueryListMeta = META) {
   const close = vi.fn();
   await TestBed.configureTestingModule({
     imports: [UiFilterPanelComponent],
     providers: [
-      { provide: SMT_DRAWER_DATA, useValue: { meta: META, conditions } },
+      { provide: SMT_DRAWER_DATA, useValue: { meta, conditions } },
       { provide: SMT_DRAWER_REF, useValue: { close, afterClosed: vi.fn(), componentInstance: null } }
     ]
   }).compileComponents();
@@ -139,5 +147,35 @@ describe('ui-filter-panel', () => {
 
     button(fixture, 'filter-cancel').click();
     expect(close).toHaveBeenLastCalledWith();
+  });
+
+  it('edits a "between" date as one period with presets and applies both bounds', async () => {
+    const { fixture, close } = await render([{ field: 'uploadedAt', op: 'between', value: ['2026-09-01', '2026-09-10'] }], DATED);
+
+    const range = all(fixture, 'filter-date-range')[0];
+    const trigger = range.querySelector('.smt-date-range-picker__trigger') as HTMLButtonElement;
+    expect(trigger.getAttribute('aria-label')).toBe(`${PACKAGED_RUSSIAN['ui.filter.period']}: 01.09.2026 – 10.09.2026`);
+    expect(all(fixture, 'filter-date')).toHaveLength(0);
+
+    trigger.click();
+    fixture.detectChanges();
+    const presets = [...document.querySelectorAll<HTMLButtonElement>('.smt-date-popup__preset')];
+    presets[0].click();
+    fixture.detectChanges();
+    button(fixture, 'filter-apply').click();
+
+    const applied = close.mock.calls.at(-1)?.[0] as QueryCondition[];
+    expect(applied[0].field).toBe('uploadedAt');
+    expect(applied[0].op).toBe('between');
+    const [from, to] = applied[0].value as string[];
+    expect(from).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(to).toBe(from);
+  });
+
+  it('keeps a single date picker for a one-sided date condition', async () => {
+    const { fixture } = await render([{ field: 'uploadedAt', op: 'gte', value: '2026-09-01' }], DATED);
+
+    expect(all(fixture, 'filter-date')).toHaveLength(1);
+    expect(all(fixture, 'filter-date-range')).toHaveLength(0);
   });
 });

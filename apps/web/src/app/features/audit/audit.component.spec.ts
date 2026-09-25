@@ -5,6 +5,11 @@ import { ApiService } from '../../core/services/api.service';
 import { ToastService } from '../../core/services/toast.service';
 import { AuditComponent, AuditRecord, SecurityEventRecord } from './audit.component';
 
+/** The button that opens a tab's period picker. */
+function periodTrigger(fixture: { nativeElement: HTMLElement }, tab: 'audit' | 'security'): HTMLButtonElement | null {
+  return fixture.nativeElement.querySelector(`[data-testid="${tab}-period-filter"] .smt-date-range-picker__trigger`);
+}
+
 describe('AuditComponent UI contracts', () => {
   /** Stats plus two-page list endpoints: the first page hands out cursor 'p2'. */
   const pagedGet = () => vi.fn((url: string, params?: Record<string, unknown>) => url === '/audit/stats'
@@ -165,17 +170,34 @@ describe('AuditComponent UI contracts', () => {
 
     expect(fixture.nativeElement.querySelector('label[for="audit-row-pk-filter"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('label[for="audit-user-filter"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('label[for="audit-from-filter"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('label[for="audit-to-filter"]')).not.toBeNull();
+    expect(periodTrigger(fixture, 'audit')?.getAttribute('aria-label')).toMatch(/^Период \(UTC\): /);
     expect(fixture.nativeElement.querySelector('#audit-reset-filters')).not.toBeNull();
 
     fixture.componentInstance.setTab('security');
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('label[for="security-user-filter"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('label[for="security-from-filter"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('label[for="security-to-filter"]')).not.toBeNull();
+    expect(periodTrigger(fixture, 'security')?.getAttribute('aria-label')).toMatch(/^Период \(UTC\): /);
     expect(fixture.nativeElement.querySelector('#security-reset-filters')).not.toBeNull();
+  });
+
+  it('applies a period preset at once as whole UTC days', async () => {
+    const { fixture, get } = await createFixture(pagedGet());
+    const component = fixture.componentInstance;
+
+    periodTrigger(fixture, 'audit')!.click();
+    fixture.detectChanges();
+    const today = [...document.querySelectorAll<HTMLButtonElement>('.smt-date-popup__preset')][0];
+    today.click();
+    fixture.detectChanges();
+
+    expect(component.auditFromFilter).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(component.auditToFilter).toBe(component.auditFromFilter);
+    const params = get.mock.calls.filter(([url]: [string]) => url === '/audit/logs').at(-1)?.[1];
+    expect(params).toEqual(expect.objectContaining({
+      from: `${component.auditFromFilter}T00:00:00.000Z`,
+      to: `${component.auditFromFilter}T23:59:59.999Z`
+    }));
   });
 
   it('sends every audit filter to the server and resets the cursor history', async () => {

@@ -3,6 +3,9 @@ package com.greenwhite.dwh.instance.upl.upload;
 import com.greenwhite.dwh.instance.upl.upload.UplPackageModel.ErrorRow;
 import com.greenwhite.dwh.instance.upl.upload.UplPackageModel.NewPackage;
 import com.greenwhite.dwh.instance.upl.upload.UplPackageModel.PackageRow;
+import com.greenwhite.dwh.core.pagination.KeysetPage;
+import com.greenwhite.dwh.instance.common.query.QueryListRepository;
+import com.greenwhite.dwh.instance.common.query.QueryPlan;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 import tools.jackson.databind.ObjectMapper;
@@ -24,15 +27,17 @@ import java.util.UUID;
 @Repository
 public class UplPackageRepository {
 
-    private static final String PACKAGE_SELECT = """
-            select p.id, p.public_id, p.source_id, s.code as source_code, s.name as source_name,
+    /** Колонки пакета; вместе с {@link #PACKAGE_FROM} — и для одиночного чтения, и для списка реестра. */
+    static final String PACKAGE_COLUMNS = """
+            p.id, p.public_id, p.source_id, s.code as source_code, s.name as source_name,
                    p.format_version, p.period_from, p.period_to, p.file_id, p.file_name, p.file_sha256,
                    p.file_size_bytes, p.status, p.rows_total, p.rows_accepted, p.rows_rejected, p.errors_total,
                    p.reject_code, p.reject_params::text as reject_params, p.load_id, p.raw_rows,
-                   p.uploaded_at, p.uploaded_by
-              from upl_packages p
-              join upl_sources s on s.id = p.source_id
-            """;
+                   p.uploaded_at, p.uploaded_by""";
+
+    static final String PACKAGE_FROM = "upl_packages p join upl_sources s on s.id = p.source_id";
+
+    private static final String PACKAGE_SELECT = "select " + PACKAGE_COLUMNS + " from " + PACKAGE_FROM + " ";
 
     private static final String ERROR_SELECT = """
             select ordinal, sheet, row_no, column_name, cell_value, code, params::text as params
@@ -43,10 +48,12 @@ public class UplPackageRepository {
 
     private final JdbcClient jdbc;
     private final ObjectMapper json;
+    private final QueryListRepository lists;
 
-    public UplPackageRepository(JdbcClient jdbc, ObjectMapper json) {
+    public UplPackageRepository(JdbcClient jdbc, ObjectMapper json, QueryListRepository lists) {
         this.jdbc = jdbc;
         this.json = json;
+        this.lists = lists;
     }
 
     public long insert(NewPackage p, String actorName) {
@@ -94,21 +101,9 @@ public class UplPackageRepository {
                 .optional();
     }
 
-    /** Страница списка: от новых к старым, {@code beforeId} — последний показанный id. */
-    public List<PackageRow> list(Long beforeId, int limit) {
-        return jdbc.sql(PACKAGE_SELECT + """
-                         where (:before::bigint is null or p.id < :before)
-                         order by p.id desc
-                         limit :limit
-                        """)
-                .param("before", beforeId)
-                .param("limit", limit)
-                .query(this::mapPackage)
-                .list();
-    }
-
-    public long count() {
-        return jdbc.sql("select count(*) from upl_packages").query(Long.class).single();
+    /** Страница списка по плану реестра ({@link UplPackageQuery#LIST}). */
+    public KeysetPage<PackageRow> pagePackages(QueryPlan plan) {
+        return lists.page(plan, this::mapPackage);
     }
 
     /** Переводит пакет в «проверен»; возвращает 0, если пакет уже не в статусе «получен». */

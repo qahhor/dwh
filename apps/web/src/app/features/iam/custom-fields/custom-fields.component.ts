@@ -10,6 +10,9 @@ import { CustomFieldsToolbarComponent } from './components/custom-fields-toolbar
 import { CustomFieldsTableComponent } from './components/custom-fields-table.component';
 import { CustomFieldsModalsComponent } from './components/custom-fields-modals.component';
 import { CustomFieldsFormService } from './services/custom-fields-form.service';
+import { finalize, tap } from 'rxjs';
+import { SMTModalService } from '../../../shared/ui-kit/components/modal';
+import { problemText } from '../../../shared/ui/problem-text';
 
 @Component({
   selector: 'app-custom-fields',
@@ -75,29 +78,22 @@ import { CustomFieldsFormService } from './services/custom-fields-form.service';
         [canEdit]="canEdit()"
         [canDelete]="canDelete()"
         [searchQuery]="searchQuery()"
-        [sortColumn]="sortColumn"
-        [sortDirection]="sortDirection"
         (copyCode)="copyCode($event)"
         (editField)="openEditModal($event)"
         (deleteField)="requestDeleteField($event)"
         (clearSearch)="clearSearch()"
         (createField)="openCreateModal()"
-        (sortChange)="onSortChange($event)"
       ></app-custom-fields-table>
 
       <!-- Modals (Create/Edit & Delete) -->
       <app-custom-fields-modals
         [showModal]="showModal"
         [editingField]="editingField"
-        [fieldToDelete]="fieldToDelete"
         [formData]="formData"
         [formError]="formError"
         [saving]="saving"
-        [isDeleting]="isDeleting"
         (closeModal)="closeModal()"
         (saveField)="saveField()"
-        (cancelDelete)="fieldToDelete = null"
-        (confirmDelete)="confirmDeleteField()"
         (codeInput)="onCodeInput($event)"
       ></app-custom-fields-modals>
     </div>
@@ -160,6 +156,8 @@ export class CustomFieldsComponent implements OnInit {
     return result;
   });
 
+  private readonly modal = inject(SMTModalService);
+
   // --- Non-signal UI state ---
   isLoading = false;
   showModal = false;
@@ -167,7 +165,6 @@ export class CustomFieldsComponent implements OnInit {
   saving = false;
   isDeleting = false;
   formError = '';
-  fieldToDelete: CustomField | null = null;
   formData: CustomFieldFormData = this.formService.createInitialFormData('USER', 0);
 
   ngOnInit() {
@@ -327,25 +324,26 @@ export class CustomFieldsComponent implements OnInit {
     }
   }
 
+  /** Asks before deleting; the dialog stays open until the server answers and shows why it refused. */
   requestDeleteField(field: CustomField) {
-    this.fieldToDelete = field;
-  }
-
-  confirmDeleteField() {
-    if (!this.fieldToDelete) return;
-    const field = this.fieldToDelete;
-    this.isDeleting = true;
-    this.api.delete(`/custom-fields/${field.id}`).subscribe({
-      next: () => {
-        this.isDeleting = false;
-        this.fieldToDelete = null;
-        this.toast.success(this.uiI18n.translate('iam.pole_udaleno'));
-        this.loadFields();
+    const t = (key: string, params?: Record<string, string>) => this.uiI18n.translate(key, params);
+    this.modal.confirm({
+      title: t('iam.udalenie_dinamicheskogo_polya'),
+      message: `${t('iam.delete_custom_field_question', { name: field.name, code: field.code })}\n${t('iam.sohranennye_znacheniya_etogo_atributa_mogut_stat')}`,
+      yesLabel: t('common.delete'),
+      noLabel: t('common.cancel'),
+      destructive: true,
+      action: () => {
+        this.isDeleting = true;
+        return this.api.delete(`/custom-fields/${field.id}`, { notifyError: false }).pipe(
+          tap(() => {
+            this.toast.success(t('iam.pole_udaleno'));
+            this.loadFields();
+          }),
+          finalize(() => { this.isDeleting = false; })
+        );
       },
-      error: () => {
-        this.isDeleting = false;
-        this.toast.error(this.uiI18n.translate('iam.oshibka_udaleniya_polya'));
-      }
-    });
+      actionError: error => problemText(error) || t('iam.oshibka_udaleniya_polya')
+    }).subscribe();
   }
 }

@@ -178,22 +178,6 @@ import { TaskStatus, TaskType } from '../../../core/models/task.models';
         <ui-button variant="secondary" size="md" (onClick)="close.emit()">{{ 'audit.zakryt' | t }}</ui-button>
       </div>
     </ui-modal>
-
-    <ui-modal
-      [isOpen]="deleteTarget !== null"
-      [title]="'tasks.udalenie_elementa_spravochnika' | t"
-      size="sm"
-      (close)="deleteTarget = null"
-    >
-      <div body class="dictionary-delete-body" *ngIf="deleteTarget as target">
-        <p>{{ 'tasks.delete_dictionary_confirm' | t:{kind: ((target.kind === 'type' ? 'tasks.task_type_accusative' : 'tasks.status_accusative') | t), name: target.name} }}</p>
-        <span>{{ 'tasks.udalenie_budet_otkloneno_esli_element_uzhe_ispol' | t }}</span>
-      </div>
-      <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="deleteTarget = null">{{ 'common.cancel' | t }}</ui-button>
-        <ui-button variant="danger" size="md" (onClick)="confirmDelete()">{{ 'common.delete' | t }}</ui-button>
-      </div>
-    </ui-modal>
   `,
   styles: [`
     .settings-modal-content { display: flex; flex-direction: column; gap: 14px; }
@@ -340,7 +324,6 @@ export class TaskDictionariesModalComponent {
   settingsTab: 'types' | 'statuses' = 'types';
   newTypeForm = { code: '', name: '', icon: 'task_alt', color: '#6366f1' };
   newStatusForm = { name: '', color: '#3b82f6', isTerminal: false };
-  deleteTarget: { kind: 'type' | 'status'; id: number; name: string } | null = null;
 
   onTypeDrop(event: CdkDragDrop<TaskType[]>) {
     const list = [...this.taskTypes];
@@ -391,13 +374,8 @@ export class TaskDictionariesModalComponent {
     this.newStatusForm = { name: '', color: '#3b82f6', isTerminal: false };
   }
 
+  /** Asks the page to delete; the page confirms it first. */
   requestDelete(kind: 'type' | 'status', id: number, name: string) {
-    this.deleteTarget = { kind, id, name };
-  }
-
-  confirmDelete() {
-    if (!this.deleteTarget) return;
-    this.deleteItem.emit(this.deleteTarget);
-    this.deleteTarget = null;
+    this.deleteItem.emit({ kind, id, name });
   }
 }

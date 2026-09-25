@@ -5,12 +5,13 @@ import { TranslatePipe } from '../../../core/services/i18n.service';
 import { NavItem, NavSection } from '../app-shell.models';
 import { AppSidebarNavSectionsComponent } from './app-sidebar-nav-sections.component';
 import { AppSidebarFlyoutComponent } from './app-sidebar-flyout.component';
+import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
 
 @Component({
   selector: 'app-sidebar',
   standalone: true,
   imports: [
-    CommonModule,
+    SMTAvatarComponent, CommonModule,
     RouterModule,
     TranslatePipe,
     AppSidebarNavSectionsComponent,
@@ -117,9 +118,7 @@ import { AppSidebarFlyoutComponent } from './app-sidebar-flyout.component';
             (mouseleave)="profileMouseLeave.emit()"
             (click)="onNavClick.emit()"
           >
-            <div class="avatar-circle">
-              {{ getUserInitial() }}
-            </div>
+            <smt-avatar class="avatar-circle" [name]="currentUser?.name" smtSize="md" />
             <div class="user-meta" *ngIf="!isCollapsed || isMobileMenuOpen">
               <div class="user-name">{{ currentUser?.name }}</div>
               <div class="user-role font-mono">&#64;{{ currentUser?.login }}</div>
@@ -193,8 +192,4 @@ export class AppSidebarComponent {
   @Output() profileFlyoutClick = new EventEmitter<void>();
   @Output() logout = new EventEmitter<void>();
 
-  getUserInitial(): string {
-    const user = this.currentUser;
-    return user && user.name ? user.name.charAt(0).toUpperCase() : 'U';
-  }
 }

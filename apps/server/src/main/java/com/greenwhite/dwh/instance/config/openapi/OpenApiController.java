@@ -265,6 +265,24 @@ public class OpenApiController {
                                         )
                                 )
                         )),
+                        Map.entry("/api/v1/history", Map.of(
+                                "get", Map.of(
+                                        "summary", "Kinds of records whose history the viewer may open",
+                                        "tags", List.of("Audit"),
+                                        "responses", Map.of("200", Map.of("description", "Kinds, e.g. tasks, projects, users"))
+                                )
+                        )),
+                        Map.entry("/api/v1/history/{kind}/{id}", Map.of(
+                                "get", Map.of(
+                                        "summary", "Change history of one record, newest first (keyset, cursor)",
+                                        "tags", List.of("Audit"),
+                                        "responses", Map.of(
+                                                "200", Map.of("description", "Changes with who, when and field old/new values"),
+                                                "403", Map.of("description", "No right to the kind of record"),
+                                                "404", Map.of("description", "Unknown kind, or a record the viewer cannot see")
+                                        )
+                                )
+                        )),
                         Map.entry("/api/v1/list-views/{code}/{id}", Map.of(
                                 "put", Map.of(
                                         "summary", "Change an own view (lockVersion required)",
@@ -280,6 +298,75 @@ public class OpenApiController {
                                         "tags", List.of("Query"),
                                         "responses", Map.of("204", Map.of("description", "Deleted"),
                                                 "404", Map.of("description", "LIST_VIEW_NOT_FOUND"))
+                                )
+                        )),
+                        Map.entry("/api/v1/exports", Map.of(
+                                "get", Map.of(
+                                        "summary", "The signed-in person's last exports (ADR-0018)",
+                                        "tags", List.of("Reports"),
+                                        "responses", Map.of("200", Map.of("description", "Exports, newest first"))
+                                ),
+                                "post", Map.of(
+                                        "summary", "Queue an export of a registry list as on screen: filter, sort, q, columns, options, lang",
+                                        "tags", List.of("Reports"),
+                                        "responses", Map.of(
+                                                "202", Map.of("description", "The queued export"),
+                                                "404", Map.of("description", "EXPORT_LIST_UNKNOWN"),
+                                                "409", Map.of("description", "EXPORT_BUSY: three exports already waiting or running"),
+                                                "422", Map.of("description", "Bad filter, sort, search, column or option")
+                                        )
+                                )
+                        )),
+                        Map.entry("/api/v1/exports/{id}/file", Map.of(
+                                "get", Map.of(
+                                        "summary", "The xlsx of an own finished export while it is kept",
+                                        "tags", List.of("Reports"),
+                                        "responses", Map.of(
+                                                "200", Map.of("description", "The file as an attachment"),
+                                                "404", Map.of("description", "EXPORT_NOT_FOUND"),
+                                                "409", Map.of("description", "EXPORT_NOT_READY")
+                                        )
+                                )
+                        )),
+                        Map.entry("/api/v1/upl/overview", Map.of(
+                                "get", Map.of(
+                                        "summary", "Data overview of 7, 30 or 90 days: uploads by status, freshness of every source, items needing attention",
+                                        "tags", List.of("UPL"),
+                                        "responses", Map.of(
+                                                "200", Map.of("description", "The overview"),
+                                                "422", Map.of("description", "UPL_OVERVIEW_PERIOD_INVALID")
+                                        )
+                                )
+                        )),
+                        Map.entry("/api/v1/upl/packages/{id}", Map.of(
+                                "get", Map.of(
+                                        "summary", "One upload, as the list shows it",
+                                        "tags", List.of("UPL"),
+                                        "responses", Map.of("200", Map.of("description", "The upload"), "404", Map.of("description", "UPL_PKG_NOT_FOUND"))
+                                )
+                        )),
+                        Map.entry("/api/v1/upl/packages/{id}/errors/file", Map.of(
+                                "get", Map.of(
+                                        "summary", "Errors of an upload as xlsx: summary, then every stored error with sheet, row, column, value and words",
+                                        "tags", List.of("UPL"),
+                                        "parameters", List.of(Map.of("name", "lang", "in", "query", "required", false,
+                                                "description", "Language of the texts; Russian by default", "schema", Map.of("type", "string"))),
+                                        "responses", Map.of(
+                                                "200", Map.of("description", "The errors file as an attachment"),
+                                                "404", Map.of("description", "UPL_PKG_NOT_FOUND")
+                                        )
+                                )
+                        )),
+                        Map.entry("/api/v1/upl/sources/{id}/format-versions/{v}/template", Map.of(
+                                "get", Map.of(
+                                        "summary", "The file a supplier fills in for a format version: instruction sheet, headers, notes and input checks (xlsx), or the header line (csv)",
+                                        "tags", List.of("UPL"),
+                                        "parameters", List.of(Map.of("name", "lang", "in", "query", "required", false,
+                                                "description", "Language of the instruction; Russian by default", "schema", Map.of("type", "string"))),
+                                        "responses", Map.of(
+                                                "200", Map.of("description", "The template as an attachment"),
+                                                "404", Map.of("description", "Unknown source or version")
+                                        )
                                 )
                         )),
                         Map.entry("/api/v1/upl/sources", Map.of(

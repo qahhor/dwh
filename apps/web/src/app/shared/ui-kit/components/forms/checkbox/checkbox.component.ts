@@ -8,6 +8,7 @@ import {
   computed,
   ElementRef,
   input,
+  linkedSignal,
   model,
   output,
   signal,
@@ -75,6 +76,9 @@ export class SMTCheckboxComponent<T> implements FormCheckboxControl {
 
   hint = input<string | null>(null, { alias: 'smtHint' });
 
+  /** Bound by Signal Forms; the field's touched state. */
+  readonly touched = input(false, { transform: booleanAttribute });
+
   /**
    * Always emitted on user toggle (click/keyboard), even when `checked` stays the same
    * (half-checked → clear). Prefer this for select-all / tri-state handlers; `checkedChange`
@@ -82,10 +86,14 @@ export class SMTCheckboxComponent<T> implements FormCheckboxControl {
    */
   checkedUserChange = output<boolean>({ alias: 'smtCheckedChange' });
 
+  /** Tells Signal Forms the person has left the field (Angular 22 reads `touch`, not `touchedChange`). */
+  readonly touch = output<void>();
+
   /** Two-way checked state; use `[(checked)]` or `[formField]` (emits `checkedChange`). */
   checked = model(false);
 
-  touched = model(false);
+  /** Touched here or by the form; follows the form again when it resets `touched`. */
+  protected readonly wasTouched = linkedSignal(() => this.touched());
 
   /** Internal: `smt-checkbox-group` disables projected children via `contentChildren` (projection breaks DI). */
   private groupDisabled = signal(false);
@@ -94,7 +102,7 @@ export class SMTCheckboxComponent<T> implements FormCheckboxControl {
     shouldShowSMTFormControlError({
       invalid: this.invalid(),
       errors: this.errors(),
-      touched: this.touched(),
+      touched: this.wasTouched(),
       required: this.required(),
       empty: !this.checked(),
     })
@@ -191,7 +199,8 @@ export class SMTCheckboxComponent<T> implements FormCheckboxControl {
   }
 
   markTouched(): void {
-    this.touched.set(true);
+    this.wasTouched.set(true);
+    this.touch.emit();
   }
 
   toggle(e: Event) {

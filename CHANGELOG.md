@@ -9,6 +9,182 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Avatar, tags and menu button (roadmap item 33). `smt-avatar` shows a photo
+  or up to two initials on one of six token tones picked from the name —
+  decorative beside a written name, an image named by the person when alone —
+  and replaces eight hand-made avatars with their own colours (users list and
+  card, profile, sidebar, workload, task members and comments, project
+  members). `smt-tag` is a toned label with a named remove button;
+  `smt-tag-group` is a set of toggle tags, and the user dialogs pick roles
+  with it (the admin's own admin role shows locked, with the reason read out).
+  `smt-dropdown-button` is a menu button on the CDK menu (APG keyboard,
+  focus back to the trigger); the users list keeps view and edit on the row
+  and puts block, unblock and delete behind "More actions: <name>".
+- Data selects (roadmap item 32): `smt-data-select` and
+  `smt-multi-data-select` feed themselves from a lookup source — the first
+  page when opened, search after a pause, "load more", retry, and the name of
+  a record chosen before any page arrived, asked once by id and shown as
+  "ID: #…" when the server will not return it. A source is written once per
+  reference list (`shared/lookups/lookup-sources.ts`, `restLookup` over any
+  keyset endpoint); screens bind `[source]` with Signal Forms, ngModel or
+  reactive forms. The manager picker of the user dialogs uses it: seven
+  inputs and outputs per dialog are gone, and its "Manager" label now names
+  the field.
+- Form fields from the kit, wave 6 (roadmap item 31), written as our code after
+  the kit's ideas, on semantic tokens, for Signal Forms and — through value
+  accessors — ngModel and reactive forms: `smt-textarea` grows with its text
+  and shows "used of allowed" linked to the field; `smt-switch` is a real
+  role="switch" button; `smt-radio-group` follows the APG radio group (one tab
+  stop, arrows choose, plain or card look); `smt-time-picker` reads 930, 9:30
+  or 9.30 and offers a list of times every `step` minutes within
+  `minTime`/`maxTime`. smt-control now names radio groups and switches.
+  In use: the data-scope rule of a role, the API token lifetime and the UPL
+  new-draft choice (radio groups, the lifetime group now has a name); project
+  descriptions and announcement texts (textarea, the announcement's own
+  counter replaced); notification sound, required 2FA and module switches
+  (switch; a module switch shows the change at once and takes it back if the
+  server refuses).
+- Front-end tooling (roadmap item 30). `npm run signals:audit` checks the
+  member order of Angular classes (inject, inputs, outputs, models, queries,
+  signals, computed, effects, fields, constructor, methods; public before
+  private), ported from the kit's `order-angular-signals` rule to the
+  TypeScript API; `--fix <file>` reorders a file. The 84 classes that broke
+  the order are listed in a baseline that may only shrink. A feature can now
+  carry an `*.i18n.spec.ts` (`src/testing/feature-i18n.ts`): its keys are in
+  ru.json, in en.json where it ships English, keys built at run time are
+  declared, and none of its keys is dead — exports, notifications,
+  announcements and the data overview have one. CI runs the web tests with
+  coverage and puts the table in the job summary of every pull request,
+  failing below a floor just under today's figures. The web tests type-check
+  against Node types through `tsconfig.spec.json`.
+- HTTP interceptors (roadmap item 29). A 401 from the API while signed in
+  signs the tab out once — not a toast per failed request — tells the other
+  tabs, explains why and, after signing in again, returns to the same page;
+  a deep link opened without a session also lands there after sign-in. A 401
+  on logout counts as signed out. Every change sent to the API (POST, PUT,
+  PATCH, DELETE) carries its own `Idempotency-Key`, and a change whose answer
+  was lost (network error, 502, 503, 504) is repeated twice under the same
+  key, honouring a short `Retry-After`, so the server does it only once.
+  Sign-in, secrets, file uploads, downloads and bodies over 60 KB go without
+  a key, as the server requires.
+- Idle lock (roadmap item 28): after `security.idle_lock_minutes` (30 by
+  default, 0 — off, set in Settings → Security) without a click, key or scroll
+  in any tab, the session is closed on the server and the sign-in page says
+  why. A minute before, a dialog counts down and offers to keep working.
+  Activity in one tab keeps the others open. `GET /api/v1/settings/session`
+  returns the limit to a signed-in user.
+- Open tabs stay in step (roadmap item 27): signing out — or changing the
+  password — in one tab signs out the others with a note why; signing in
+  wakes the tabs still on the sign-in page; a language chosen in one tab
+  follows in the others without saving it again. The theme already synced.
+  Only well-formed messages on the channel are applied; without
+  BroadcastChannel the tabs simply do not sync.
+- KPI cards and charts on the data overview (roadmap item 26): each figure
+  shows its change against the same number of days before, coloured by
+  which way is good for it (fewer rejections is good), and reads as one
+  sentence to screen readers. Uploads by day are a stacked bar chart —
+  applied, in progress, rejected — drawn in plain SVG from theme colours,
+  with a tooltip per bar and the same figures as a table for screen
+  readers. No chart library: the start of the application does not grow.
+- Data freshness and Needs attention (roadmap item 25): the data overview
+  lists every source worst first — fresh, waiting for data, overdue, never
+  delivered or without a schedule — from its periodicity and deadline, with
+  the last period delivered and the due date. Needs attention names overdue
+  sources (linking to the upload form with the source chosen), rejected
+  uploads nobody replaced and checked uploads waiting to be applied
+  (linking to their card, which `/upl/packages?open=<id>` now opens;
+  `GET /api/v1/upl/packages/{id}` returns one upload).
+- Data overview (roadmap wave 5): a lazily loaded page, Data overview in the
+  menu, shows what came into the warehouse over 7, 30 or 90 days — uploads,
+  applied, waiting to be applied, rejected and the rows that reached the
+  warehouse (`GET /api/v1/upl/overview`). Each widget (`ui-dashboard-card`)
+  has its own loading, failure and empty state; the page says when the
+  figures were taken and refreshes by itself every five minutes while the
+  tab is visible. The start of the application does not grow with it.
+- UPL header synonyms: a format column can accept other headers besides its
+  name ("Сумма, руб", "Итого") — up to ten, entered separated by semicolons
+  in the format editor. The parser finds the column by any of them and does
+  not call them unknown; a synonym that equals another column's header is
+  refused as a duplicate. Headers now also match across runs of spaces. The
+  template's instruction sheet lists the accepted headers.
+- Exports to Excel (ADR-0018): registry lists (UPL sources and uploads,
+  files) have a To Excel button that queues the list exactly as on screen —
+  filter, sort, search and the columns shown. A background job writes the
+  xlsx as the person who asked, with their rights at that moment, and the
+  file waits for a week in My exports (profile menu), which refreshes itself
+  while an export is being prepared. Numbers, dates and choices keep their
+  kind in the file; long lists stop at the configured row limit and say so.
+- UPL errors file: an upload's errors can be downloaded as xlsx — what was
+  uploaded and what came of it, then every stored error with its sheet, row,
+  column, the value found and what is wrong in words (the card's words, in
+  the reader's language), with a filter and a fixed header. The upload card
+  links to it for checked uploads with errors and for rejected ones.
+- UPL file templates: every format version can be downloaded as the file a
+  supplier fills in — an instruction sheet (what the file is for, how to fill
+  it, each column with its type, whether it is required, its unit and key
+  format) and the data sheets with headers where the parser looks for them,
+  a note on each header, and number, integer and date columns formatted and
+  checked by Excel as the supplier types. A CSV format gets its header line.
+  The link is in the source's version list and in the upload form, for the
+  chosen source's published version. fastexcel writes the file; Apache POI
+  is not needed.
+- Field rights in the field registry (ADR-0016, 2.9): a list field can require
+  its own right. Without it the field is absent from query-meta, a filter,
+  sort or search on it is refused as for an unknown field, and its value is
+  left out of the response. Who uploaded a UPL package is the first such
+  field: it is shown to those who may see the user directory.
+- Record history (ADR-0017): the task card and the user card have a
+  "Change history" section that shows who changed which field from what to
+  what and when, newest first, from the audit log. It opens with the
+  record's own right and data scope, not with the audit log right, and loads
+  only when opened. `GET /api/v1/history/{kind}/{id}` serves tasks, projects
+  and users; a module adds a kind with one `RecordHistorySource` bean.
+- `ui-local-table`: the kit table over a list that is loaded whole, sorting
+  every row by a header click (by keyboard too), with empty values last and
+  ties kept in place. Modules, custom menu items, webhooks, custom fields,
+  active sessions and API tokens moved to it from hand-written tables; row
+  actions now name their item ("Delete “Sales report”") instead of repeating
+  "Delete" on every row, and custom fields can be sorted from the keyboard.
+  Later moved as well: UPL format versions and cell errors, team workload in
+  analytics, project members, a user's sessions and login attempts, search
+  generations and jobs, and communication channels. The search job history
+  pages newest first, so it offers no header sorting. Hand-written tables stay
+  only where the grid is the editor or not a list: the role permission matrix,
+  UPL sheet mapping, notification preferences, the audit before/after diff and
+  the calendar.
+- Period presets in filters: the audit log and security events take one
+  period (today, last 7 days, this month…) instead of two date fields, and
+  it applies at once; a "between" date condition in the filter builder is
+  edited the same way.
+- Form fields in UPL sources and uploads, tasks, users and projects are
+  wrapped in `smt-control`: the label, a required mark, the hint and the
+  error are linked to the field for screen readers (hints and UPL errors
+  were not linked before), and a required field says so once it is left
+  empty, not only after submitting.
+- Confirmations run their action: deleting a file, a user, a custom field,
+  a menu item, a webhook, a task type or status; removing a project member;
+  revoking a token, ending sessions, unbinding a channel; the user security
+  actions; publishing or archiving an announcement and removing a UPL sheet
+  now ask in one accessible alert dialog. It stays open and busy while the
+  request runs, cannot be dismissed meanwhile, and shows the server's reason
+  in the dialog (not as a toast) so the person can retry or decline. Rights
+  to delete a file are checked again when Yes is pressed. Discard-changes
+  prompts, role deletion and the data scope change keep their own dialogs:
+  they are part of the leave guards and nested decisions of those screens.
+- The project in the task create and edit forms and in the task filter is
+  chosen from a searchable list (`smt-select`) instead of a native select,
+  so a long project list can be filtered by name. Short fixed lists
+  (priority, language, yes/no) stay native selects.
+- The file storage list pages through every file with a server cursor; it
+  used to show at most the 100 newest and hide the rest. It runs on the field
+  registry (`mf.files`): sorting of the whole list by name, size or date,
+  column settings, saved views, the filter builder and a search over file and
+  uploader names, all within the viewer's data scope and the "mine" switch.
+- The UPL uploads list now runs on the field registry like the sources list:
+  columns from the server, sorting of the whole list by a header click,
+  column settings, saved views, the filter builder (status, period, source,
+  file, rows, errors, format version, uploader) and a search over source and
+  file names. It pages instead of "Load more"; a row still opens its card.
 - Bulk actions. Server tables can let people choose rows; a bar above the
   table says how many are chosen and holds the screen's actions, and the
   choice ends when another page arrives. `POST …/bulk` applies one action to
@@ -242,6 +418,10 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Checkbox and the new fields tell Signal Forms when they are touched: Angular
+  22 listens to a `touch` output, and the kit's `touchedChange` never reached
+  the form, so a checkbox's required error could stay hidden.
+
 - Opening and at once closing a dialog with a date, select or tree field
   bound through `ngModel` no longer throws NG0953: the fields ignore a form
   that registers with them after they are gone.
@@ -417,6 +597,11 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Control Plane, fleet management, heartbeat, enrollment, and license gates.
 
 ### Security
+
+- Personal settings are limited to `user.*` and `ui.*` keys: saving any other
+  key as a personal setting is rejected with 422 `SETTING_NOT_PERSONAL`, and a
+  stored personal value no longer shadows an instance setting, so nobody can
+  switch their own idle lock or other security settings off.
 
 - Pinned ClamAV to `clamav/clamav-debian:1.5.4` (Debian 13.7) by digest.
   The previous pin, 1.5.3 on Debian 13.6, carried 44 HIGH/CRITICAL fixable

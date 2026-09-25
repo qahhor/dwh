@@ -118,7 +118,9 @@ describe('AnnouncementsComponent', () => {
     const publishFixture = await createFixture();
     (publishFixture.fixture.nativeElement.querySelector('.publish-action') as HTMLButtonElement).click();
     publishFixture.fixture.detectChanges();
-    expect(publishFixture.fixture.nativeElement.querySelector('[role="dialog"]')?.textContent).toContain('Опубликовать объявление?');
+    await publishFixture.fixture.whenStable();
+    expect(document.querySelector('[role="alertdialog"]')?.textContent).toContain('Опубликовать объявление?');
+    document.querySelectorAll('.cdk-overlay-container').forEach(node => node.remove());
 
     TestBed.resetTestingModule();
     const archiveFixture = await createFixture({ records: [{
@@ -128,7 +130,11 @@ describe('AnnouncementsComponent', () => {
     }] });
     (archiveFixture.fixture.nativeElement.querySelector('.archive-action') as HTMLButtonElement).click();
     archiveFixture.fixture.detectChanges();
-    expect(archiveFixture.fixture.nativeElement.querySelector('[role="dialog"]')?.textContent).toContain('Архивировать объявление?');
+    await archiveFixture.fixture.whenStable();
+    const archiveDialog = document.querySelector('[role="alertdialog"]');
+    expect(archiveDialog?.textContent).toContain('Архивировать объявление?');
+    expect([...archiveDialog!.querySelectorAll('button')].at(-1)?.classList).toContain('smt-modal-button--danger');
+    document.querySelectorAll('.cdk-overlay-container').forEach(node => node.remove());
   });
 
   it('provides distinct empty and recoverable error states', async () => {

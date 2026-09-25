@@ -15,6 +15,7 @@ import { TableColumnStateStore } from '../ui-kit/services/table-column-state.sto
 import { ListViewState } from '../list-views/list-views';
 import { UiListViewsComponent } from './ui-list-views.component';
 import { UiFilterBarComponent } from './ui-filter-bar.component';
+import { UiExportButtonComponent } from './ui-export-button.component';
 import { QueryListMeta } from '../../core/models/query-meta.models';
 import { KeysetPager } from '../paging/keyset-pager';
 import { UiButtonComponent } from './ui-button.component';
@@ -49,7 +50,7 @@ import { UiPaginationComponent } from './ui-pagination.component';
   selector: 'ui-server-table',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTTableComponent, UiPaginationComponent, UiButtonComponent, TranslatePipe, SMTColumnSettingsComponent, UiListViewsComponent, UiFilterBarComponent],
+  imports: [SMTTableComponent, UiPaginationComponent, UiButtonComponent, TranslatePipe, SMTColumnSettingsComponent, UiListViewsComponent, UiFilterBarComponent, UiExportButtonComponent],
   template: `
     @if (columnsId() || views()) {
       <div class="server-table-tools">
@@ -58,6 +59,9 @@ import { UiPaginationComponent } from './ui-pagination.component';
         }
         @if (views(); as views) {
           <ui-list-views [state]="views" />
+          @if (exportable() && filterMeta(); as meta) {
+            <ui-export-button [meta]="meta" [views]="views" [search]="exportSearch()" [options]="exportOptions()" />
+          }
         }
         <smt-column-settings [smtColumns]="columnOptions()" [smtState]="columnState()" (smtStateChange)="saveColumns($event)" />
       </div>
@@ -148,6 +152,11 @@ export class UiServerTableComponent<T> {
   readonly views = input<ListViewState | null>(null);
   /** The list's field metadata; with `views`, it turns on the filter builder. */
   readonly filterMeta = input<QueryListMeta | null>(null);
+  /** Offers "Export to Excel" of the list as on screen (ADR-0018); needs `views` and `filterMeta`. */
+  readonly exportable = input(false);
+  /** The screen's search text and list options, so the export matches what is shown. */
+  readonly exportSearch = input<string | null>(null);
+  readonly exportOptions = input<Record<string, string> | null>(null);
   /** Columns that cannot be hidden, such as the one that names the row. */
   readonly lockedColumns = input<readonly string[]>([]);
 

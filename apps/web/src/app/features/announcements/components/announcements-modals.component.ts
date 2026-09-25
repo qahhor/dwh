@@ -5,12 +5,13 @@ import { A11yModule } from '@angular/cdk/a11y';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
+import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/ui-kit/components/forms/textarea';
 import { AnnouncementAdminRecord, AnnouncementBannerType, Confirmation } from '../announcements.models';
 
 @Component({
   selector: 'app-announcements-modals',
   standalone: true,
-  imports: [CommonModule, FormsModule, A11yModule, TranslatePipe, UiButtonComponent, UiModalComponent],
+  imports: [CommonModule, FormsModule, A11yModule, TranslatePipe, UiButtonComponent, UiModalComponent, SMTTextareaComponent, SMTTextareaValueAccessor],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Create / Edit Draft Modal -->
@@ -65,18 +66,16 @@ import { AnnouncementAdminRecord, AnnouncementBannerType, Confirmation } from '.
           <div class="field-group">
             <div class="field-header">
               <label for="announcement-body-ru">{{ 'announcements.tekst_obyavleniya_ru' | t }} <span aria-hidden="true">*</span></label>
-              <span class="char-count">{{ bodyRu.length }} / 10 000 {{ 'announcements.simvolov' | t }}</span>
             </div>
-            <textarea
-              id="announcement-body-ru"
+            <smt-textarea
+              smtFieldId="announcement-body-ru"
               name="announcementBodyRu"
-              rows="7"
-              maxlength="10000"
+              smtDescribedBy="announcement-body-hint"
+              [rows]="7"
+              [maxRows]="20"
+              [maxLength]="10000"
               required
-              [(ngModel)]="bodyRu"
-              [attr.aria-invalid]="bodyRu.trim().length === 0"
-              aria-describedby="announcement-body-hint"
-            ></textarea>
+              [(ngModel)]="bodyRu" />
             <span id="announcement-body-hint" class="field-hint">{{ 'announcements.do_10_000_simvolov_tekst_uvidyat_vse_polzovateli' | t }}</span>
           </div>
         </ng-container>
@@ -100,16 +99,15 @@ import { AnnouncementAdminRecord, AnnouncementBannerType, Confirmation } from '.
           <div class="field-group">
             <div class="field-header">
               <label for="announcement-body-other">{{ 'announcements.empty_body' | t }} ({{ selectedLang().toUpperCase() }})</label>
-              <span class="char-count">{{ (draftBodies()[selectedLang()] || '').length }} / 10 000</span>
             </div>
-            <textarea
-              id="announcement-body-other"
+            <smt-textarea
+              smtFieldId="announcement-body-other"
               name="announcementBodyOther"
-              rows="7"
-              maxlength="10000"
+              [rows]="7"
+              [maxRows]="20"
+              [maxLength]="10000"
               [ngModel]="draftBodies()[selectedLang()]"
-              (ngModelChange)="onDraftBodyChange(selectedLang(), $event)"
-            ></textarea>
+              (ngModelChange)="onDraftBodyChange(selectedLang(), $event)" />
           </div>
         </ng-container>
 
@@ -138,31 +136,6 @@ import { AnnouncementAdminRecord, AnnouncementBannerType, Confirmation } from '.
         </div>
       </form>
     </ui-modal>
-
-    <!-- Confirmation modal with action-specific button and item title -->
-    <ui-modal
-      [isOpen]="confirmation() !== null"
-      [title]="confirmationTitle()"
-      size="sm"
-      [dismissible]="!isSaving()"
-      (close)="cancelConfirmation.emit()"
-    >
-      <div body *ngIf="confirmation() as pending" class="confirmation-copy">
-        <p class="confirmation-target">
-          <strong>«{{ localizedValue(pending.announcement.titleJson) }}»</strong>
-        </p>
-        <p *ngIf="pending.action === 'publish'">{{ 'announcements.posle_publikacii_obyavlenie_uvidyat_polzovateli_' | t }}</p>
-        <p *ngIf="pending.action === 'archive'">{{ 'announcements.obyavlenie_ischeznet_u_polzovateley_i_ostanetsya' | t }}</p>
-      </div>
-      <div footer class="modal-actions">
-        <ui-button variant="secondary" [disabled]="isSaving()" (onClick)="cancelConfirmation.emit()">{{ 'common.cancel' | t }}</ui-button>
-        <ui-button
-          [variant]="confirmation()?.action === 'archive' ? 'danger' : 'primary'"
-          [loading]="isSaving()"
-          (onClick)="confirmAction.emit()"
-        >{{ 'common.confirm' | t }}</ui-button>
-      </div>
-    </ui-modal>
   `,
   styles: [`
     :host { display: block; }
@@ -187,9 +160,6 @@ import { AnnouncementAdminRecord, AnnouncementBannerType, Confirmation } from '.
     .primary-button { height: 34px; padding: 6px 14px; border: 0; border-radius: var(--radius-sm); background: var(--primary); color: var(--on-primary); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
     .primary-button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid var(--focus-ring, var(--primary)); outline-offset: 2px; }
     .primary-button:disabled { cursor: not-allowed; opacity: .5; }
-    .confirmation-copy { color: var(--text-muted); font-size: 13px; line-height: 1.5; }
-    .confirmation-copy p { margin: 0 0 8px 0; }
-    .confirmation-target { margin-bottom: 12px !important; color: var(--text-main); font-size: 14px; }
   `]
 })
 export class AnnouncementsModalsComponent {
@@ -201,15 +171,12 @@ export class AnnouncementsModalsComponent {
   readonly draftTitles = input.required<Record<string, string>>();
   readonly draftBodies = input.required<Record<string, string>>();
   readonly bannerType = input.required<AnnouncementBannerType>();
-  readonly confirmation = input<Confirmation | null>(null);
 
   readonly closeEditor = output<void>();
   readonly saveDraft = output<void>();
   readonly bannerTypeChange = output<AnnouncementBannerType>();
   readonly draftTitlesChange = output<Record<string, string>>();
   readonly draftBodiesChange = output<Record<string, string>>();
-  readonly confirmAction = output<void>();
-  readonly cancelConfirmation = output<void>();
 
   readonly selectedLang = signal('ru');
 
@@ -250,11 +217,6 @@ export class AnnouncementsModalsComponent {
     }
   }
 
-  confirmationTitle(): string {
-    return this.confirmation()?.action === 'archive'
-      ? this.uiI18n.translate('announcements.arhivirovat_obyavlenie')
-      : this.uiI18n.translate('announcements.opublikovat_obyavlenie');
-  }
 
   localizedValue(values: Record<string, string> | null | undefined): string {
     if (!values) return '';

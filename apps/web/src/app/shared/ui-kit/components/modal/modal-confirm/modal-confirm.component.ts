@@ -7,7 +7,8 @@
  * message carry the ids the dialog is labelled and described by; focus
  * starts on the declining button, so Enter pressed by habit never confirms;
  * `destructive` gives the confirming button the danger style; native buttons
- * styled from our tokens replace the kit button. */
+ * styled from our tokens replace the kit button; an `action` keeps the
+ * dialog open and busy until the work is done and shows its error. */
 import {
   ChangeDetectionStrategy,
   Component,
@@ -18,6 +19,7 @@ import {
   ViewEncapsulation,
 } from '@angular/core';
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { SMTI18nService } from '../../../i18n';
 import type { SMTModalConfirmCloseResult, SMTModalConfirmData } from '../types/modal-confirm.types';
 
@@ -61,7 +63,13 @@ export class SMTModalConfirmComponent {
 
   readonly destructive = !!this.data.destructive;
 
-  readonly isConfirmDisabled = computed(() => this.countdown() > 0);
+  /** The confirmed action is running; nothing else may close the dialog meanwhile. */
+  readonly busy = signal(false);
+
+  /** Why the last attempt failed, shown under the message. */
+  readonly failure = signal('');
+
+  readonly isConfirmDisabled = computed(() => this.countdown() > 0 || this.busy());
 
   private timerId: ReturnType<typeof setInterval> | null = null;
 
@@ -72,14 +80,29 @@ export class SMTModalConfirmComponent {
 
   confirm(): void {
     if (this.isConfirmDisabled()) return;
-    this.dialogRef.close({ action: 'confirm' });
+    const action = this.data.action;
+    if (!action) {
+      this.dialogRef.close({ action: 'confirm' });
+      return;
+    }
+    this.busy.set(true);
+    this.failure.set('');
+    action().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      complete: () => this.dialogRef.close({ action: 'confirm' }),
+      error: (error: unknown) => {
+        this.busy.set(false);
+        this.failure.set(this.data.actionError?.(error) || this.i18n.messages().modalConfirm.failed);
+      },
+    });
   }
 
   decline(): void {
+    if (this.busy()) return;
     this.dialogRef.close({ action: 'decline' });
   }
 
   cancel(): void {
+    if (this.busy()) return;
     this.dialogRef.close({ action: 'cancel' });
   }
 

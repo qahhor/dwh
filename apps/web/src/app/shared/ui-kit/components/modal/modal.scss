@@ -140,6 +140,30 @@
   overflow-wrap: anywhere;
 }
 
+.smt-modal-confirm__error {
+  margin: -12px 0 18px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--danger-text);
+}
+
+.smt-modal-button__spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: smt-modal-spin 0.8s linear infinite;
+}
+
+@keyframes smt-modal-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .smt-modal-button__spinner { animation-duration: 2.4s; }
+}
+
 .smt-modal-confirm__actions {
   display: flex;
   flex-wrap: wrap;

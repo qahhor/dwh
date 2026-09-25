@@ -1,6 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
-import { ApiService } from './api.service';
+import { ApiRequestOptions, ApiService } from './api.service';
 import {
   CustomNavigationItem,
   CreateNavigationItemPayload,
@@ -61,8 +61,8 @@ export class NavigationService {
     );
   }
 
-  deleteItem(id: number): Observable<void> {
-    return this.api.delete<void>(`/navigation/items/${id}`).pipe(
+  deleteItem(id: number, options?: ApiRequestOptions): Observable<void> {
+    return this.api.delete<void>(`/navigation/items/${id}`, options).pipe(
       tap(() => this.loadActiveItems().subscribe({ error: () => {} }))
     );
   }

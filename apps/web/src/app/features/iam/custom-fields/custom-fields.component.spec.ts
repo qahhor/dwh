@@ -119,11 +119,15 @@ describe('CustomFieldsComponent', () => {
     expect(remove?.getAttribute('aria-label')).toBe('Удалить Бюджет');
     remove.click();
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('Удалить динамическое поле «Бюджет»');
+    await fixture.whenStable();
+    const dialog = document.querySelector('.smt-modal-confirm') as HTMLElement;
+    expect(dialog.textContent).toContain('Удалить динамическое поле «Бюджет» (budget)?');
+    expect(api.delete).not.toHaveBeenCalled();
 
-    fixture.componentInstance.confirmDeleteField();
-    expect(api.delete).toHaveBeenCalledWith('/custom-fields/8');
+    [...dialog.querySelectorAll<HTMLButtonElement>('button')].at(-1)!.click();
+    expect(api.delete).toHaveBeenCalledWith('/custom-fields/8', { notifyError: false });
     expect(toast.success).toHaveBeenCalled();
+    document.querySelectorAll('.cdk-overlay-container').forEach(node => node.remove());
   });
 
   it('filters fields by search query and clears search', async () => {

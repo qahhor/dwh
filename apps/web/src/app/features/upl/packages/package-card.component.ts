@@ -3,6 +3,10 @@ import {
   ChangeDetectionStrategy,
   Component,
   EventEmitter,
+  Signal,
+  TemplateRef,
+  computed,
+  viewChild,
   Input,
   OnChanges,
   Output,
@@ -14,6 +18,8 @@ import { ProblemDetail } from '../../../core/models/common.models';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { UiLocalTableComponent } from '../../../shared/ui/ui-local-table.component';
+import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
 import { uplErrorKey } from '../upl-labels';
 import { UplPackageErrorItem, UplPackageErrors, UplPackageItem, UplPackagesApiService } from './packages-api';
 import { UplTranslate, uplPackageCodeText } from './packages-errors';
@@ -31,7 +37,7 @@ const NOT_FOUND = 'UPL_PKG_NOT_FOUND';
   selector: 'app-upl-package-card',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, TranslatePipe, UiBadgeComponent, UiButtonComponent],
+  imports: [CommonModule, TranslatePipe, UiBadgeComponent, UiButtonComponent, UiLocalTableComponent],
   template: `
     <div class="upl-pkg-card">
       <div class="upl-pkg-card-head">
@@ -68,6 +74,9 @@ const NOT_FOUND = 'UPL_PKG_NOT_FOUND';
               <span class="upl-pkg-struct-row" data-testid="upl-pkg-struct-row">{{ codeText(row) }}</span>
             }
             <span class="upl-pkg-hint">{{ 'upl.pkg.card.rejected_hint' | t }}</span>
+            @if (structRows().length > 0) {
+              <a class="upl-pkg-errors-file" data-testid="upl-pkg-errors-file" [href]="errorsFileUrl()" download><span class="material-symbols-outlined" aria-hidden="true">download</span>{{ 'upl.errfile.download' | t }}</a>
+            }
           </div>
         } @else {
           <div class="upl-pkg-counters" data-testid="upl-pkg-counters">
@@ -97,18 +106,8 @@ const NOT_FOUND = 'UPL_PKG_NOT_FOUND';
             </ui-button>
           </div>
         } @else if (isLoading()) {
-          <div class="table-card">
-            <div class="table-scroll">
-              <table>
-                <tbody>
-                  @for (row of skeletonRows; track row) {
-                    <tr data-testid="upl-pkg-errors-skeleton">
-                      <td><span class="upl-pkg-skeleton-bar"></span></td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
+          <div class="table-card" data-testid="upl-pkg-errors-loading">
+            <ui-local-table [rows]="[]" [config]="errorsConfig()" [loading]="true" />
           </div>
         } @else if (item.status !== 'rejected') {
           @if (errors(); as loaded) {
@@ -120,30 +119,12 @@ const NOT_FOUND = 'UPL_PKG_NOT_FOUND';
                   {{ 'upl.pkg.errors.shown_first' | t: { shown: loaded.shown, n: loaded.total } }}
                 </p>
               }
+              <a class="upl-pkg-errors-file" data-testid="upl-pkg-errors-file" [href]="errorsFileUrl()" download><span class="material-symbols-outlined" aria-hidden="true">download</span>{{ 'upl.errfile.download' | t }}</a>
               <div class="table-card">
                 <div class="table-scroll">
-                  <table data-testid="upl-pkg-errors-table">
-                    <thead>
-                      <tr>
-                        <th>{{ 'upl.pkg.errors.col.sheet' | t }}</th>
-                        <th>{{ 'upl.pkg.errors.col.row' | t }}</th>
-                        <th>{{ 'upl.pkg.errors.col.column' | t }}</th>
-                        <th>{{ 'upl.pkg.errors.col.value' | t }}</th>
-                        <th>{{ 'upl.pkg.errors.col.what' | t }}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      @for (row of cellRows(); track $index) {
-                        <tr data-testid="upl-pkg-error-row">
-                          <td>{{ row.sheet ?? '—' }}</td>
-                          <td>{{ row.rowNo }}</td>
-                          <td>{{ row.columnName ?? '—' }}</td>
-                          <td><code class="upl-pkg-value" [title]="row.value ?? ''">{{ row.value ?? '—' }}</code></td>
-                          <td>{{ codeText(row) }}</td>
-                        </tr>
-                      }
-                    </tbody>
-                  </table>
+                  <div data-testid="upl-pkg-errors-table">
+                    <ui-local-table [rows]="cellRows()" [config]="errorsConfig()" [sortValues]="errorSortValues" />
+                  </div>
                 </div>
               </div>
             }
@@ -151,6 +132,9 @@ const NOT_FOUND = 'UPL_PKG_NOT_FOUND';
         }
       }
     </div>
+
+    <ng-template #errorValueCell let-row><code class="upl-pkg-value" [title]="row.value ?? ''">{{ row.value ?? '—' }}</code></ng-template>
+    <ng-template #errorWhatCell let-row>{{ codeText(row) }}</ng-template>
   `,
   styles: [`
     .upl-pkg-card {
@@ -215,6 +199,19 @@ const NOT_FOUND = 'UPL_PKG_NOT_FOUND';
       gap: 0.375rem;
     }
 
+    .upl-pkg-errors-file {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      align-self: flex-start;
+      font-size: 0.8125rem;
+      color: var(--primary-text, var(--primary));
+    }
+
+    .upl-pkg-errors-file .material-symbols-outlined {
+      font-size: 16px;
+    }
+
     .upl-pkg-hint {
       color: var(--text-muted);
       font-size: 0.8125rem;
@@ -274,7 +271,35 @@ export class PackageCardComponent implements OnChanges {
   readonly applying = signal(false);
   readonly applyError = signal<string | null>(null);
 
-  readonly skeletonRows = [1, 2, 3, 4, 5];
+  private readonly errorValueCell = viewChild.required<TemplateRef<unknown>>('errorValueCell');
+  private readonly errorWhatCell = viewChild.required<TemplateRef<unknown>>('errorWhatCell');
+
+  /** The stored errors are all on screen, so a header click sorts them all: by sheet, row, column or reason. */
+  readonly errorSortValues = {
+    sheet: (row: UplPackageErrorItem) => row.sheet,
+    row: (row: UplPackageErrorItem) => row.rowNo,
+    column: (row: UplPackageErrorItem) => row.columnName,
+    value: (row: UplPackageErrorItem) => row.value,
+    what: (row: UplPackageErrorItem) => this.codeText(row)
+  };
+
+  readonly errorsConfig = computed<TableConfig<UplPackageErrorItem>>(() => {
+    const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
+    const cell = (template: Signal<TemplateRef<unknown>>) => ({ type: 'templateRef' as const, value: template });
+    return {
+      trackBy: (index: number) => index,
+      ariaLabel: this.i18n.translate('upl.pkg.errors.title'),
+      layout: 'fit',
+      columns: {
+        sheet: { header: header('upl.pkg.errors.col.sheet'), content: { type: 'primitive', value: row => row.sheet ?? '—' }, width: '140px' },
+        row: { header: header('upl.pkg.errors.col.row'), content: { type: 'primitive', value: row => row.rowNo }, width: '90px', align: 'right' },
+        column: { header: header('upl.pkg.errors.col.column'), content: { type: 'primitive', value: row => row.columnName ?? '—' } },
+        value: { header: header('upl.pkg.errors.col.value'), content: cell(this.errorValueCell) },
+        what: { header: header('upl.pkg.errors.col.what'), content: cell(this.errorWhatCell) }
+      },
+      columnsOrder: ['sheet', 'row', 'column', 'value', 'what']
+    };
+  });
   readonly statusKey = UPL_PACKAGE_STATUS_KEY;
   readonly statusVariant = UPL_PACKAGE_STATUS_VARIANT;
 
@@ -294,15 +319,21 @@ export class PackageCardComponent implements OnChanges {
     this.reloadErrors();
   }
 
+  /** Every stored error as an xlsx the supplier fixes the data from, in the reader's language. */
+  errorsFileUrl(): string {
+    return '/api/v1/upl/packages/' + encodeURIComponent(this.item.id) + '/errors/file?lang=' + encodeURIComponent(this.i18n.currentLang());
+  }
+
   /** Строка шапки: источник · период · версия анкеты · кто загрузил · когда. */
   metaText(): string {
     return [
       this.item.sourceName,
       formatUplPeriod(this.item.periodFrom, this.item.periodTo),
       this.i18n.translate('upl.pkg.card.format_version', { v: this.item.formatVersion }),
-      this.i18n.translate('upl.pkg.card.uploaded_by', { who: this.item.uploadedBy }),
+      // Who uploaded comes only to those who may see people; without it the line skips the part.
+      this.item.uploadedBy ? this.i18n.translate('upl.pkg.card.uploaded_by', { who: this.item.uploadedBy }) : '',
       formatUplDateTime(this.item.uploadedAt)
-    ].join(' · ');
+    ].filter(Boolean).join(' · ');
   }
 
   /** Причина отклонения словами; кода отклонения нет — оставляем пусто. */

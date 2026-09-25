@@ -3,6 +3,8 @@ package com.greenwhite.dwh.instance.mf.service;
 import com.greenwhite.dwh.core.error.ErrorCode;
 import com.greenwhite.dwh.instance.audit.service.AuditLogService;
 import com.greenwhite.dwh.instance.common.error.ApiException;
+import com.greenwhite.dwh.core.pagination.KeysetPage;
+import com.greenwhite.dwh.instance.common.query.QueryPlan;
 import com.greenwhite.dwh.instance.common.security.ScopeFilter;
 import com.greenwhite.dwh.instance.mf.repository.MfFileRepository;
 import org.springframework.dao.DuplicateKeyException;
@@ -167,15 +169,8 @@ public class MfFileMetadataService {
     }
 
     @Transactional(readOnly = true)
-    public List<MfFileRepository.FileDetailRecord> listFiles(
-            Long userId, boolean onlyMine, String query, int limit) {
-        return listFiles(userId, onlyMine, query, limit, ScopeFilter.unrestricted());
-    }
-
-    @Transactional(readOnly = true)
-    public List<MfFileRepository.FileDetailRecord> listFiles(
-            Long userId, boolean onlyMine, String query, int limit, ScopeFilter scope) {
-        return fileRepository.listFiles(userId, onlyMine, query, limit, scope);
+    public KeysetPage<MfFileRepository.FileDetailRecord> pageFiles(QueryPlan plan, ScopeFilter scope, Long onlyOwnerId) {
+        return fileRepository.pageFiles(plan, scope, onlyOwnerId);
     }
 
     private void validateQuota(Long ownerId, long requestedBytes) {

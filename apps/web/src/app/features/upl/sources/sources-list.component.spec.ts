@@ -95,6 +95,13 @@ async function createFixture(options: FixtureOptions = {}) {
   return { fixture, api, queryMeta, listViews, permissions, toast, navigate };
 }
 
+/** The error smt-control shows for a field, found the way assistive technology finds it: through aria-describedby. */
+function fieldError(root: HTMLElement, fieldId: string): HTMLElement | null {
+  const field = root.querySelector('#' + fieldId);
+  const ids = (field?.getAttribute('aria-describedby') ?? '').split(/\s+/).filter(Boolean);
+  return ids.map(id => root.querySelector<HTMLElement>('#' + id)).find(node => node?.classList.contains('smt-control__error')) ?? null;
+}
+
 function testId(fixture: ComponentFixture<SourcesListComponent>, id: string): HTMLElement[] {
   return fixture.debugElement.queryAll(By.css(`[data-testid="${id}"]`)).map(node => node.nativeElement as HTMLElement);
 }
@@ -324,7 +331,7 @@ describe('SourcesListComponent', () => {
     await openCreateForm(fixture, { code: 'Cement Output', name: 'Vypusk', ownerOrg: 'Org' });
 
     expect(api.createSource).not.toHaveBeenCalled();
-    expect(testId(fixture, 'upl-err-code')).toHaveLength(1);
+    expect(fieldError(fixture.nativeElement, 'upl-source-code')).not.toBeNull();
   });
 
   it('создаёт источник и переходит на карточку', async () => {
@@ -359,7 +366,7 @@ describe('SourcesListComponent', () => {
 
     await openCreateForm(fixture, { code: 'cement.output', name: 'Vypusk', ownerOrg: 'Org' });
 
-    expect(testId(fixture, 'upl-err-code')).toHaveLength(1);
+    expect(fieldError(fixture.nativeElement, 'upl-source-code')).not.toBeNull();
     expect(fixture.componentInstance.isCreateOpen()).toBe(true);
   });
 
@@ -374,7 +381,7 @@ describe('SourcesListComponent', () => {
 
     await openCreateForm(fixture, { code: 'cement.output', name: 'Vypusk', ownerOrg: 'Org' });
 
-    expect(testId(fixture, 'upl-err-code')).toHaveLength(1);
+    expect(fieldError(fixture.nativeElement, 'upl-source-code')).not.toBeNull();
     expect(fixture.componentInstance.isCreateOpen()).toBe(true);
   });
 
@@ -390,8 +397,8 @@ describe('SourcesListComponent', () => {
 
     await openCreateForm(fixture, { code: 'cement.output', name: 'Vypusk', ownerOrg: 'Org' });
 
-    expect(testId(fixture, 'upl-err-name')).toHaveLength(1);
-    expect(testId(fixture, 'upl-err-name')[0].textContent).toContain(PACKAGED_RUSSIAN['upl.err.Size']);
+    expect(fieldError(fixture.nativeElement, 'upl-source-name')?.textContent).toContain(PACKAGED_RUSSIAN['upl.err.Size']);
+    expect(fixture.nativeElement.querySelector('#upl-source-name')?.getAttribute('aria-invalid')).toBe('true');
     expect(testId(fixture, 'upl-create-error')).toHaveLength(1);
   });
 

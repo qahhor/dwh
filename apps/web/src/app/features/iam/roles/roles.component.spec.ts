@@ -173,7 +173,7 @@ describe('RolesComponent UI contracts', () => {
       expect(write.observed).toBe(true);
       expect(fixture.componentInstance.scopePanelBusy()).toBe(true);
       expect(panel.confirmationOpen).toBe(false);
-      expect(fixture.nativeElement.querySelector('app-role-scope-panel input[type="radio"]')).toBeNull();
+      expect(fixture.nativeElement.querySelector('app-role-scope-panel [role="radio"]')).toBeNull();
       expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
       expect(fixture.componentInstance.canLeaveRecordPage()).toBe(false);
 

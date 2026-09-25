@@ -43,6 +43,15 @@ export interface SMTSelectMessages {
   readonly create: (text: string) => string;
 }
 
+export interface SMTTimeMessages {
+  readonly placeholder: string;
+  readonly open: string;
+  readonly clear: string;
+  readonly list: string;
+  readonly invalid: string;
+  readonly range: (min: string, max: string) => string;
+}
+
 export interface SMTDropzoneMessages {
   readonly drop: string;
   readonly choose: string;
@@ -68,11 +77,14 @@ export interface SMTMessages {
   readonly columns: SMTColumnsMessages;
   readonly select: SMTSelectMessages;
   readonly date: SMTDateMessages;
+  readonly time: SMTTimeMessages;
+  readonly textarea: { readonly counter: (count: number, max: number) => string };
+  readonly tag: { readonly remove: (label: string) => string };
   readonly common: { readonly close: string; readonly cancel: string };
   readonly table: { readonly noResults: string };
   readonly dataTable: { readonly selectAll: string; readonly selectRow: string };
   readonly tree: { readonly expandAll: string; readonly collapseAll: string };
-  readonly modalConfirm: { readonly title: string; readonly yes: string; readonly no: string };
+  readonly modalConfirm: { readonly title: string; readonly yes: string; readonly no: string; readonly failed: string };
 }
 
 @Injectable({ providedIn: 'root' })
@@ -170,10 +182,25 @@ export class SMTI18nService {
       expandAll: this.i18n.translate('ui.tree.razvernut_vse'),
       collapseAll: this.i18n.translate('ui.tree.svernut_vse'),
     },
+    time: {
+      placeholder: this.i18n.translate('ui.time.placeholder'),
+      open: this.i18n.translate('ui.time.open'),
+      clear: this.i18n.translate('ui.time.clear'),
+      list: this.i18n.translate('ui.time.list'),
+      invalid: this.i18n.translate('ui.time.invalid'),
+      range: (min, max) => this.i18n.translate('ui.time.range', { min, max }),
+    },
+    textarea: {
+      counter: (count, max) => this.i18n.translate('ui.textarea.counter', { count: String(count), max: String(max) }),
+    },
+    tag: {
+      remove: label => this.i18n.translate('ui.tag.remove', { label }),
+    },
     modalConfirm: {
       title: this.i18n.translate('ui.modal.confirm_title'),
       yes: this.i18n.translate('common.yes'),
       no: this.i18n.translate('common.no'),
+      failed: this.i18n.translate('ui.modal.confirm_failed'),
     },
   }));
 }

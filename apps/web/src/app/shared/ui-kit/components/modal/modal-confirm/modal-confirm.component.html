@@ -2,9 +2,12 @@
      Per ADR-0015 this copy is ours to change. See NOTICE and the component header for what differs. -->
 <h2 class="smt-modal-confirm__title" [id]="titleId">{{ title() }}</h2>
 <p class="smt-modal-confirm__message" [id]="messageId">{{ message() }}</p>
+@if (failure()) {
+  <p class="smt-modal-confirm__error" role="alert">{{ failure() }}</p>
+}
 <div class="smt-modal-confirm__actions">
   @if (hasCancel()) {
-    <button type="button" class="smt-modal-button smt-modal-button--secondary" (click)="cancel()">
+    <button type="button" class="smt-modal-button smt-modal-button--secondary" [disabled]="busy()" (click)="cancel()">
       {{ cancelLabel() }}
     </button>
   }
@@ -12,6 +15,7 @@
     type="button"
     class="smt-modal-button smt-modal-button--secondary"
     cdkFocusInitial
+    [disabled]="busy()"
     (click)="decline()">
     {{ noLabel() }}
   </button>
@@ -21,9 +25,13 @@
     [class.smt-modal-button--primary]="!destructive"
     [class.smt-modal-button--danger]="destructive"
     [disabled]="isConfirmDisabled()"
+    [attr.aria-busy]="busy() || null"
     (click)="confirm()">
+    @if (busy()) {
+      <span class="smt-modal-button__spinner" aria-hidden="true"></span>
+    }
     {{ yesLabel() }}
-    @if (isConfirmDisabled()) {
+    @if (countdown() > 0) {
       <span>({{ countdown() }})</span>
     }
   </button>

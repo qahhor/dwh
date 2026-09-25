@@ -1,7 +1,7 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { PermissionService } from '../../../core/services/permission.service';
@@ -9,7 +9,19 @@ import { ToastService } from '../../../core/services/toast.service';
 import { User, UserSession, ApiToken, UserChannel } from './profile.models';
 import { ProfileComponent } from './profile.component';
 
+/** The confirmation dialog lives in the overlay; Yes is its last button. */
+async function answerYes(fixture: { detectChanges(): void; whenStable(): Promise<unknown> }): Promise<string> {
+  fixture.detectChanges();
+  await fixture.whenStable();
+  const dialog = document.querySelector('.smt-modal-confirm') as HTMLElement;
+  const text = dialog.querySelector('.smt-modal-confirm__message')?.textContent ?? '';
+  [...dialog.querySelectorAll<HTMLButtonElement>('button')].at(-1)!.click();
+  return text;
+}
+
 describe('ProfileComponent UI contracts', () => {
+  afterEach(() => document.querySelectorAll('.cdk-overlay-container').forEach(node => node.remove()));
+
   async function createFixture(options?: {
     sessions?: UserSession[];
     tokens?: ApiToken[];
@@ -79,11 +91,11 @@ describe('ProfileComponent UI contracts', () => {
 
     expect(regions.length).toBe(3);
     expect(regions[0].tabIndex).toBe(0);
-    expect(regions[0].querySelector('table')?.getAttribute('aria-label')).toBe('Каналы связи');
+    expect(regions[0].querySelector('[role="table"]')?.getAttribute('aria-label')).toBe('Каналы связи');
     expect(regions[1].tabIndex).toBe(0);
-    expect(regions[1].querySelector('table')?.getAttribute('aria-label')).toBe('Активные сессии');
+    expect(regions[1].querySelector('[role="table"]')?.getAttribute('aria-label')).toBe('Активные сессии');
     expect(regions[2].tabIndex).toBe(0);
-    expect(regions[2].querySelector('table')?.getAttribute('aria-label')).toBe('API-токены');
+    expect(regions[2].querySelector('[role="table"]')?.getAttribute('aria-label')).toBe('API-токены');
   });
 
   it('validates token name inline before creation', async () => {
@@ -213,11 +225,13 @@ describe('ProfileComponent UI contracts', () => {
     const comp = fixture.componentInstance;
 
     comp.requestTerminateSession(sessions[0]);
-    expect(comp.sessionToTerminate).toEqual(sessions[0]);
+    expect(apiMock.delete).not.toHaveBeenCalled();
 
-    comp.confirmTerminateSession();
-    expect(apiMock.delete).toHaveBeenCalledWith('/iam/profile/sessions/101');
-    expect(comp.sessionToTerminate).toBeNull();
+    const question = await answerYes(fixture);
+    expect(question).toContain('Завершить сессию с IP 127.0.0.1?');
+    expect(apiMock.delete).toHaveBeenCalledWith('/iam/profile/sessions/101', { notifyError: false });
+    await fixture.whenStable();
+    expect(document.querySelector('.smt-modal-confirm')).toBeNull();
   });
 
   it('renders communication channels and status badges', async () => {
@@ -244,7 +258,7 @@ describe('ProfileComponent UI contracts', () => {
     const cardEl = fixture.nativeElement.querySelector('app-profile-channels-card');
     expect(cardEl).not.toBeNull();
 
-    const rows = cardEl.querySelectorAll('tbody tr');
+    const rows = cardEl.querySelectorAll('[role="rowgroup"] > [role="row"]');
     expect(rows.length).toBe(2);
 
     const verifiedBadge = rows[0].querySelector('ui-badge');
@@ -252,6 +266,11 @@ describe('ProfileComponent UI contracts', () => {
 
     const pendingBadge = rows[1].querySelector('ui-badge');
     expect(pendingBadge?.textContent).toContain('Ожидает подтверждения');
+
+    const unbindLabels = [...cardEl.querySelectorAll('button')]
+      .map(button => (button as HTMLElement).getAttribute('aria-label'))
+      .filter(label => label?.startsWith('Отвязать'));
+    expect(unbindLabels).toEqual(['Отвязать user@example.com', 'Отвязать @user_tg']);
   });
 
   it('initiates channel binding and opens verification modal', async () => {
@@ -300,9 +319,11 @@ describe('ProfileComponent UI contracts', () => {
     const { fixture, apiMock } = await createFixture({ channels });
     const comp = fixture.componentInstance;
 
-    comp.onUnbindChannel('telegram');
+    comp.onUnbindChannel(channels[0]);
+    const question = await answerYes(fixture);
 
-    expect(apiMock.delete).toHaveBeenCalledWith('/iam/profile/channels/telegram');
+    expect(question).toContain('@user_tg');
+    expect(apiMock.delete).toHaveBeenCalledWith('/iam/profile/channels/telegram', { notifyError: false });
   });
 });
 

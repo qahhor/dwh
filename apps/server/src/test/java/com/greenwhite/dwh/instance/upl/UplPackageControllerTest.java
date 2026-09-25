@@ -133,6 +133,16 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
         var errors = sendGet(admin, BASE + "/" + read(list, "$.items[0].id") + "/errors", 200);
         assertThat((Integer) read(errors, "$.total")).isEqualTo(3);
         assertThat((Integer) read(errors, "$.shown")).isEqualTo(3);
+        var file = sendGet(admin, BASE + "/" + read(list, "$.items[0].id") + "/errors/file?lang=ru", 200);
+        assertThat(file.getContentType()).startsWith("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        assertThat(file.getHeader("Content-Disposition")).startsWith("attachment").contains("errors_");
+        try (var workbook = new org.dhatim.fastexcel.reader.ReadableWorkbook(new java.io.ByteArrayInputStream(file.getContentAsByteArray()))) {
+            List<String> texts = workbook.getFirstSheet().read().stream().map(row -> row.getCellText(4)).toList();
+            // Three cell errors in words, the same words the card shows.
+            assertThat(texts.stream().filter(t -> !t.isBlank()).count()).isGreaterThanOrEqualTo(4);
+            assertThat(texts).noneMatch(t -> t.startsWith("upl.err."));
+        }
+        sendGet(admin, BASE + "/" + java.util.UUID.randomUUID() + "/errors/file", 404);
         List<Map<String, Object>> items = read(errors, "$.items");
         assertThat(items).hasSize(3).allSatisfy(item -> {
             assertThat(item).containsEntry("code", UplXlsxParser.UPL_CELL_KEY_MASK);
@@ -327,6 +337,83 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
         assertThat((String) read(list, "$.items[0].status")).isEqualTo(UplPackageModel.VERIFIED);
     }
 
+    @Test
+    @DisplayName("реестр полей: список загрузок фильтруется по статусу, ищется по файлу и источнику, поля-фильтры без колонки")
+    void packagesListGoesThroughTheRegistry() throws Exception {
+        Session admin = login(adminLogin);
+        assertThat(upload(admin, String.valueOf(sourceId), PERIOD_FROM, PERIOD_TO, UplPackageTestData.workbook(2, 0))
+                .getStatus()).isEqualTo(202);
+        assertThat(jobs.runQueued()).isEqualTo(1);
+
+        String verified = java.net.URLEncoder.encode("[{\"field\":\"status\",\"op\":\"eq\",\"value\":\"verified\"}]",
+                java.nio.charset.StandardCharsets.UTF_8);
+        String rejected = verified.replace("verified", "rejected");
+        assertThat((List<String>) read(sendGetUri(admin, BASE + "?filter=" + verified, 200), "$.items[*].status"))
+                .containsExactly(UplPackageModel.VERIFIED);
+        assertThat((List<Object>) read(sendGetUri(admin, BASE + "?filter=" + rejected, 200), "$.items")).isEmpty();
+        assertThat((List<Object>) read(sendGet(admin, BASE + "?q=TEST.xls", 200), "$.items")).hasSize(1);
+        assertThat((List<Object>) read(sendGet(admin, BASE + "?q=no-such-file", 200), "$.items")).isEmpty();
+        sendGet(admin, BASE + "?sort=periodFrom", 200);
+        sendGet(admin, BASE + "?sort=fileName", 422);
+
+        var meta = sendGet(admin, "/api/v1/query-meta/upl.packages", 200);
+        assertThat((String) read(meta, "$.defaultSort")).isEqualTo("-uploadedAt");
+        assertThat((List<String>) read(meta, "$.fields[?(@.defaultVisible == false)].key"))
+                .containsExactly("sourceCode", "periodTo", "errorsTotal", "formatVersion", "uploadedBy");
+    }
+
+    @Test
+    @DisplayName("права на поля: без права на справочник пользователей не видно, кто загрузил, — ни колонки, ни фильтра, ни значения")
+    void uploaderFollowsTheFieldRight() throws Exception {
+        Session admin = login(adminLogin);
+        assertThat(upload(admin, String.valueOf(sourceId), PERIOD_FROM, PERIOD_TO, UplPackageTestData.workbook(2, 0))
+                .getStatus()).isEqualTo(202);
+        String uploader = read(sendGet(admin, BASE, 200), "$.items[0].uploadedBy");
+        assertThat(uploader).isNotBlank();
+
+        Session analyst = login(analystLogin);
+        var list = sendGet(analyst, BASE, 200);
+        assertThat((List<Object>) read(list, "$.items")).isNotEmpty();
+        assertThat((List<Object>) read(list, "$.items[?(@.uploadedBy)]")).isEmpty();
+        assertThat((List<String>) read(sendGet(analyst, "/api/v1/query-meta/upl.packages", 200), "$.fields[*].key"))
+                .doesNotContain("uploadedBy").contains("fileName");
+        String byUploader = java.net.URLEncoder.encode(
+                "[{\"field\":\"uploadedBy\",\"op\":\"eq\",\"value\":\"" + uploader + "\"}]",
+                java.nio.charset.StandardCharsets.UTF_8);
+        var refused = sendGetUri(analyst, BASE + "?filter=" + byUploader, 422);
+        assertThat((List<String>) read(refused, "$.errors[*].code")).containsExactly("QUERY_UNKNOWN_FIELD");
+    }
+
+    @Test
+    @DisplayName("обзор данных: загрузки за период по статусам; период только из списка; право — просмотр загрузок")
+    void overviewCountsUploadsOfThePeriod() throws Exception {
+        Session admin = login(adminLogin);
+        var before = sendGet(admin, "/api/v1/upl/overview?days=7", 200);
+        int uploadsBefore = read(before, "$.totals.uploads");
+        int verifiedBefore = read(before, "$.totals.verified");
+        assertThat(upload(admin, String.valueOf(sourceId), PERIOD_FROM, PERIOD_TO, UplPackageTestData.workbook(2, 0))
+                .getStatus()).isEqualTo(202);
+        assertThat(jobs.runQueued()).isEqualTo(1);
+
+        var after = sendGet(login(analystLogin), "/api/v1/upl/overview?days=7", 200);
+        assertThat((Integer) read(after, "$.days")).isEqualTo(7);
+        assertThat((Integer) read(after, "$.totals.uploads")).isEqualTo(uploadsBefore + 1);
+        assertThat((Integer) read(after, "$.totals.verified")).isEqualTo(verifiedBefore + 1);
+        assertThat((String) read(after, "$.generatedAt")).isNotBlank();
+        // Every day of the period, today last; the week before for the change of each figure.
+        assertThat((List<Object>) read(after, "$.daily")).hasSize(7);
+        assertThat((Integer) read(after, "$.daily[6].other")).isPositive();
+        assertThat((Integer) read(after, "$.previous.uploads")).isNotNegative();
+        // A checked upload waits for someone to apply it; the source is listed with its freshness.
+        assertThat((List<String>) read(after, "$.attention[?(@.kind == 'waiting')].fileName")).contains("TEST.xlsx");
+        assertThat((List<Integer>) read(after, "$.freshness[*].sourceId")).contains((int) sourceId);
+        String waiting = ((List<String>) read(after, "$.attention[?(@.kind == 'waiting')].packageId")).getFirst();
+        assertThat((String) read(sendGet(admin, BASE + "/" + waiting, 200), "$.id")).isEqualTo(waiting);
+        sendGet(admin, BASE + "/" + java.util.UUID.randomUUID(), 404);
+        sendGet(admin, "/api/v1/upl/overview?days=5", 422);
+        sendGet(login(strangerLogin), "/api/v1/upl/overview", 403);
+    }
+
     // ---------- помощники ----------
 
     private MockHttpServletResponse upload(Session session, String source, String from, String to, byte[] content)
@@ -345,6 +432,13 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
         request.header("X-XSRF-TOKEN", session.csrf().getValue());
         var response = mvc.perform(request).andReturn().getResponse();
         assertThat(response.getStatus()).as(response.getContentAsString()).isNotEqualTo(500);
+        return response;
+    }
+
+    /** For a query string that is already encoded: a String would be read as a URI template and encoded again. */
+    private MockHttpServletResponse sendGetUri(Session session, String url, int expectedStatus) throws Exception {
+        var response = mvc.perform(get(java.net.URI.create(url)).cookie(session.session(), session.csrf())).andReturn().getResponse();
+        assertThat(response.getStatus()).as(response.getContentAsString()).isEqualTo(expectedStatus);
         return response;
     }
 

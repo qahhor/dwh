@@ -5,6 +5,9 @@ import { ApiService } from '../../../core/services/api.service';
 import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
+import { Observable, finalize, tap } from 'rxjs';
+import { SMTModalService } from '../../../shared/ui-kit/components/modal';
+import { problemText } from '../../../shared/ui/problem-text';
 
 import {
   User,
@@ -83,7 +86,6 @@ export * from './profile.models';
           [isLoadingChannels]="isLoadingChannels()"
           [isBindingChannel]="isBindingChannel()"
           [isConfirmingChannel]="isConfirmingChannel()"
-          [isUnbindingChannel]="isUnbindingChannel()"
           [canManageChannels]="canManageChannels()"
           (bindChannel)="onBindChannel($event)"
           (confirmChannel)="onConfirmChannel($event)"
@@ -95,12 +97,9 @@ export * from './profile.models';
           [sessions]="sessions()"
           [isLoadingSessions]="isLoadingSessions()"
           [isTerminatingSession]="isTerminatingSession()"
-          [sessionToTerminate]="sessionToTerminate"
           (loadSessions)="loadSessions()"
           (terminateSession)="requestTerminateSession($event)"
           (terminateOtherSessions)="requestTerminateOtherSessions()"
-          (confirmTerminate)="confirmTerminateSession()"
-          (cancelTerminate)="sessionToTerminate = null"
         ></app-profile-sessions-card>
 
         <!-- API Tokens Card -->
@@ -108,7 +107,6 @@ export * from './profile.models';
           [tokens]="tokens()"
           [isLoadingTokens]="isLoadingTokens()"
           [isCreatingToken]="isCreatingToken()"
-          [isRevokingToken]="isRevokingToken()"
           [isCreateTokenModalOpen]="isCreateTokenModalOpen()"
           [isTokenSecretModalOpen]="isTokenSecretModalOpen()"
           [isTokenSubmitted]="isTokenSubmitted"
@@ -116,7 +114,6 @@ export * from './profile.models';
           [selectedTokenExpiration]="selectedTokenExpiration"
           [createdTokenSecret]="createdTokenSecret"
           [copiedSecret]="copiedSecret()"
-          [tokenToRevoke]="tokenToRevoke"
           [tokenExpirationOptions]="tokenExpirationOptions"
           (openCreateTokenModal)="openCreateTokenModal()"
           (closeCreateTokenModal)="isCreateTokenModalOpen.set(false)"
@@ -126,8 +123,6 @@ export * from './profile.models';
           (closeSecretModal)="isTokenSecretModalOpen.set(false)"
           (copySecret)="copySecret()"
           (requestRevoke)="requestRevokeToken($event)"
-          (confirmRevoke)="confirmRevokeToken()"
-          (cancelRevoke)="tokenToRevoke = null"
         ></app-profile-tokens-card>
       </div>
     </div>
@@ -193,6 +188,7 @@ export * from './profile.models';
 })
 export class ProfileComponent implements OnInit {
   private readonly uiI18n = inject(I18nService);
+  private readonly modal = inject(SMTModalService);
   public readonly permissionService = inject(PermissionService);
 
   @ViewChild('channelsCard') channelsCard?: ProfileChannelsCardComponent;
@@ -205,11 +201,9 @@ export class ProfileComponent implements OnInit {
   readonly isLoadingTokens = signal<boolean>(false);
   readonly isLoadingChannels = signal<boolean>(false);
   readonly isCreatingToken = signal<boolean>(false);
-  readonly isRevokingToken = signal<boolean>(false);
   readonly isTerminatingSession = signal<boolean>(false);
   readonly isBindingChannel = signal<boolean>(false);
   readonly isConfirmingChannel = signal<boolean>(false);
-  readonly isUnbindingChannel = signal<boolean>(false);
   readonly copiedSecret = signal<boolean>(false);
   readonly canManageChannels = computed(() => this.permissionService.hasPermission('iam.profile', 'manage_channels'));
 
@@ -227,8 +221,6 @@ export class ProfileComponent implements OnInit {
   newTokenName = '';
   selectedTokenExpiration = '90';
   createdTokenSecret = '';
-  sessionToTerminate: UserSession | 'others' | null = null;
-  tokenToRevoke: ApiToken | null = null;
 
   tokenExpirationOptions: TokenExpirationOption[] = [
     { value: '30', labelKey: 'iam.srok_30_dney' },
@@ -350,19 +342,40 @@ export class ProfileComponent implements OnInit {
     });
   }
 
-  onUnbindChannel(channel: string) {
-    this.isUnbindingChannel.set(true);
-    this.api.delete(`/iam/profile/channels/${channel}`).subscribe({
-      next: () => {
-        this.isUnbindingChannel.set(false);
-        this.toast.success(this.uiI18n.translate('iam.kanal_uspeshno_otvyazan'));
+  onUnbindChannel(channel: UserChannel) {
+    const t = (key: string, params?: Record<string, string>) => this.uiI18n.translate(key, params);
+    const label = this.channelsCard ? this.channelsCard.channelLabel(channel.channel) : channel.channel;
+    this.askThenRun({
+      title: t('iam.otvyazat_kanal'),
+      message: `${t('iam.vy_uvereny_chto_hotite_otvyazat_kanal', { channel: label, address: channel.address })}\n${t('iam.otvyazat_kanal_preduprezhdenie')}`,
+      yesLabel: t('iam.otvyazat_kanal'),
+      request: () => this.api.delete(`/iam/profile/channels/${channel.channel}`, { notifyError: false }),
+      done: () => {
+        this.toast.success(t('iam.kanal_uspeshno_otvyazan'));
         this.loadChannels();
       },
-      error: (err: any) => {
-        this.isUnbindingChannel.set(false);
-        this.toast.error(err?.error?.detail || this.uiI18n.translate('iam.oshibka_otvyazki_kanala'));
-      }
+      failure: t('iam.oshibka_otvyazki_kanala')
     });
+  }
+
+  /**
+   * Asks before a destructive profile action and runs it from the dialog:
+   * the dialog stays open while the request runs and shows the server's
+   * reason (or `failure`) if it fails, so the person can retry or keep things.
+   */
+  private askThenRun(ask: { title: string; message: string; yesLabel: string; request: () => Observable<unknown>; done: () => void; failure: string; busy?: (on: boolean) => void }): void {
+    this.modal.confirm({
+      title: ask.title,
+      message: ask.message,
+      yesLabel: ask.yesLabel,
+      noLabel: this.uiI18n.translate('common.cancel'),
+      destructive: true,
+      action: () => {
+        ask.busy?.(true);
+        return ask.request().pipe(tap(() => ask.done()), finalize(() => ask.busy?.(false)));
+      },
+      actionError: error => problemText(error) || ask.failure
+    }).subscribe();
   }
 
   loadSessions() {
@@ -379,45 +392,34 @@ export class ProfileComponent implements OnInit {
   }
 
   requestTerminateSession(session: UserSession) {
-    this.sessionToTerminate = session;
+    const t = (key: string, params?: Record<string, string>) => this.uiI18n.translate(key, params);
+    this.askThenRun({
+      title: t('iam.zavershenie_sessii'),
+      message: `${t('iam.terminate_session_question', { ip: session.ip })}\n${t('iam.na_zavershennyh_ustroystvah_potrebuetsya_vypolni')}`,
+      yesLabel: t('iam.zavershit'),
+      request: () => this.api.delete(`/iam/profile/sessions/${session.id}`, { notifyError: false }),
+      done: () => {
+        this.toast.success(t('iam.sessiya_uspeshno_zavershena'));
+        this.loadSessions();
+      },
+      failure: t('iam.oshibka_pri_zavershenii_sessii'),
+      busy: on => this.isTerminatingSession.set(on)
+    });
   }
 
   requestTerminateOtherSessions() {
-    this.sessionToTerminate = 'others';
-  }
-
-  confirmTerminateSession() {
-    const target = this.sessionToTerminate;
-    if (!target) return;
-
-    this.isTerminatingSession.set(true);
-    if (target === 'others') {
-      this.api.delete('/iam/profile/sessions/others').subscribe({
-        next: () => {
-          this.isTerminatingSession.set(false);
-          this.sessionToTerminate = null;
-          this.toast.success(this.uiI18n.translate('iam.vse_ostalnye_sessii_uspeshno_zaversheny'));
-          this.loadSessions();
-        },
-        error: (err: any) => {
-          this.isTerminatingSession.set(false);
-          this.toast.error(err?.error?.detail || this.uiI18n.translate('iam.oshibka_pri_zavershenii_sessiy'));
-        }
-      });
-      return;
-    }
-
-    this.api.delete(`/iam/profile/sessions/${target.id}`).subscribe({
-      next: () => {
-        this.isTerminatingSession.set(false);
-        this.sessionToTerminate = null;
-        this.toast.success(this.uiI18n.translate('iam.sessiya_uspeshno_zavershena'));
+    const t = (key: string) => this.uiI18n.translate(key);
+    this.askThenRun({
+      title: t('iam.zavershenie_sessii'),
+      message: `${t('iam.zavershit_vse_ostalnye_aktivnye_sessii_krome_tek')}\n${t('iam.na_zavershennyh_ustroystvah_potrebuetsya_vypolni')}`,
+      yesLabel: t('iam.zavershit'),
+      request: () => this.api.delete('/iam/profile/sessions/others', { notifyError: false }),
+      done: () => {
+        this.toast.success(t('iam.vse_ostalnye_sessii_uspeshno_zaversheny'));
         this.loadSessions();
       },
-      error: (err: any) => {
-        this.isTerminatingSession.set(false);
-        this.toast.error(err?.error?.detail || this.uiI18n.translate('iam.oshibka_pri_zavershenii_sessii'));
-      }
+      failure: t('iam.oshibka_pri_zavershenii_sessiy'),
+      busy: on => this.isTerminatingSession.set(on)
     });
   }
 
@@ -516,24 +518,17 @@ export class ProfileComponent implements OnInit {
   }
 
   requestRevokeToken(token: ApiToken) {
-    this.tokenToRevoke = token;
-  }
-
-  confirmRevokeToken() {
-    if (!this.tokenToRevoke) return;
-    const token = this.tokenToRevoke;
-    this.isRevokingToken.set(true);
-    this.api.delete(`/iam/profile/tokens/${token.id}`).subscribe({
-      next: () => {
-        this.isRevokingToken.set(false);
-        this.tokenToRevoke = null;
-        this.toast.success(this.uiI18n.translate('iam.token_uspeshno_otozvan'));
+    const t = (key: string, params?: Record<string, string>) => this.uiI18n.translate(key, params);
+    this.askThenRun({
+      title: t('iam.otzyv_api_tokena'),
+      message: `${t('iam.revoke_token_question', { name: token.name })}\n${t('iam.integracii_s_etim_tokenom_nemedlenno_poteryayut_')}`,
+      yesLabel: t('iam.otozvat'),
+      request: () => this.api.delete(`/iam/profile/tokens/${token.id}`, { notifyError: false }),
+      done: () => {
+        this.toast.success(t('iam.token_uspeshno_otozvan'));
         this.loadTokens();
       },
-      error: (err: any) => {
-        this.isRevokingToken.set(false);
-        this.toast.error(err?.error?.detail || this.uiI18n.translate('iam.oshibka_pri_otzyve_tokena'));
-      }
+      failure: t('iam.oshibka_pri_otzyve_tokena')
     });
   }
 

@@ -1,0 +1,21 @@
+<!-- Our template, after the idea of the kit's smt-textarea (smartup-ui-kit@6472beb). See the component header. -->
+<textarea
+  #field
+  class="smt-textarea__field"
+  [id]="customId() || fieldId"
+  [attr.name]="name() || null"
+  [placeholder]="placeholder()"
+  [rows]="rows()"
+  [value]="text()"
+  [disabled]="isDisabled()"
+  [readOnly]="readonly()"
+  [required]="required()"
+  [attr.maxlength]="maxLength() ?? null"
+  [attr.minlength]="minLength() ?? null"
+  [attr.aria-describedby]="describedByIds()"
+  [attr.aria-invalid]="hasError() ? 'true' : null"
+  (input)="onInput($event)"
+  (blur)="onBlur()"></textarea>
+@if (counter(); as counterText) {
+  <span class="smt-textarea__counter" [class.smt-textarea__counter--near]="nearLimit()" [id]="counterId">{{ counterText }}</span>
+}

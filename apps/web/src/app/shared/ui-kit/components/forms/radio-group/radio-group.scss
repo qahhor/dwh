@@ -1,0 +1,109 @@
+/* Our styles for smt-radio-group, from semantic tokens so both themes work. */
+
+.smt-radio-group {
+  display: block;
+  min-width: 0;
+}
+
+.smt-radio-group__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.smt-radio-group--horizontal .smt-radio-group__list {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+}
+
+.smt-radio-group__item {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  font-size: 13px;
+  line-height: 18px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.smt-radio-group__item:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.smt-radio-group__item[aria-disabled='true'] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.smt-radio-group__list[aria-readonly='true'] .smt-radio-group__item {
+  cursor: default;
+}
+
+.smt-radio-group__dot {
+  position: relative;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  background-color: var(--bg-surface);
+  transition: border-color 0.15s ease;
+}
+
+.smt-radio-group__item:hover:not([aria-disabled='true']) .smt-radio-group__dot {
+  border-color: var(--primary);
+}
+
+.smt-radio-group__item--checked .smt-radio-group__dot {
+  border-color: var(--primary);
+}
+
+.smt-radio-group__item--checked .smt-radio-group__dot::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background-color: var(--primary);
+}
+
+.smt-radio-group--invalid .smt-radio-group__dot {
+  border-color: var(--danger);
+}
+
+.smt-radio-group__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.smt-radio-group--cards .smt-radio-group__item {
+  display: flex;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-surface);
+}
+
+.smt-radio-group--cards .smt-radio-group__item:hover:not([aria-disabled='true']) {
+  background-color: var(--bg-hover);
+}
+
+.smt-radio-group--cards .smt-radio-group__item--checked {
+  border-color: var(--primary);
+}
+
+.smt-radio-group__hint {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.smt-radio-group--cards .smt-radio-group__label {
+  font-weight: 600;
+}

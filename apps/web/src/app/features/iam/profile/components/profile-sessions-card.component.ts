@@ -1,20 +1,21 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, Signal, TemplateRef, computed, inject, signal, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
 import { UiBadgeComponent } from '../../../../shared/ui/ui-badge.component';
-import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
-import { TranslatePipe } from '../../../../core/services/i18n.service';
+import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
+import { UiLocalTableComponent } from '../../../../shared/ui/ui-local-table.component';
+import { TableConfig } from '../../../../shared/ui-kit/components/table/table.types';
 import { UserSession } from '../profile.models';
 
 @Component({
   selector: 'app-profile-sessions-card',
   standalone: true,
   imports: [
+    UiLocalTableComponent,
     CommonModule,
     TranslatePipe,
     UiButtonComponent,
-    UiBadgeComponent,
-    UiModalComponent
+    UiBadgeComponent
   ],
   template: `
     <div class="card section-card full-width">
@@ -49,85 +50,35 @@ import { UserSession } from '../profile.models';
       </div>
 
       <div class="table-wrapper" role="region" [attr.aria-label]="'iam.tablica_aktivnyh_sessiy' | t" tabindex="0">
-        <table class="data-table" [attr.aria-label]="'iam.aktivnye_sessii' | t">
-          <thead>
-            <tr>
-              <th>{{ 'iam.ip_adres' | t }}</th>
-              <th>{{ 'iam.ustroystvo_brauzer' | t }}</th>
-              <th>{{ 'iam.sozdana' | t }}</th>
-              <th>{{ 'iam.poslednyaya_aktivnost' | t }}</th>
-              <th class="text-right">{{ 'audit.deystvie' | t }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <!-- Skeleton rows when loading -->
-            <ng-container *ngIf="isLoadingSessions">
-              <tr class="skeleton-row" *ngFor="let item of [1, 2]">
-                <td><div class="skeleton-pill w-28"></div></td>
-                <td><div class="skeleton-pill w-48"></div></td>
-                <td><div class="skeleton-pill w-32"></div></td>
-                <td><div class="skeleton-pill w-36"></div></td>
-                <td class="text-right"><div class="skeleton-pill w-20 ml-auto"></div></td>
-              </tr>
-            </ng-container>
-
-            <!-- Real session rows -->
-            <ng-container *ngIf="!isLoadingSessions">
-              <tr *ngFor="let s of sessions" [class.highlight-row]="s.current">
-                <td class="tabular-nums font-mono">
-                  <div class="session-ip-cell">
-                    <span>{{ s.ip }}</span>
-                    <ui-badge *ngIf="s.current" variant="active" [dot]="true" size="sm">
-                      {{ 'iam.tekuschaya_sessiya' | t }}
-                    </ui-badge>
-                  </div>
-                </td>
-                <td>{{ s.deviceInfo || s.userAgent || ('iam.unknown_device' | t) }}</td>
-                <td class="tabular-nums text-muted">{{ s.createdAt | date:'dd.MM.yyyy HH:mm' }}</td>
-                <td class="tabular-nums font-medium">{{ s.lastSeenAt | date:'dd.MM.yyyy HH:mm:ss' }}</td>
-                <td class="text-right">
-                  <span *ngIf="s.current" class="current-session-label text-muted">
-                    {{ 'iam.tekuschaya' | t }}
-                  </span>
-                  <ui-button
-                    *ngIf="!s.current"
-                    variant="danger"
-                    size="sm"
-                    [ariaLabel]="'iam.terminate_session_ip' | t:{ip: s.ip}"
-                    (onClick)="terminateSession.emit(s)"
-                  >
-                    {{ 'iam.zavershit' | t }}
-                  </ui-button>
-                </td>
-              </tr>
-              <tr *ngIf="sessions.length === 0">
-                <td colspan="5" class="empty-cell">{{ 'iam.net_aktivnyh_sessiy' | t }}</td>
-              </tr>
-            </ng-container>
-          </tbody>
-        </table>
+        <div class="data-table">
+          <ui-local-table [rows]="rows()" [config]="config()" [sortValues]="sortValues" [loading]="isLoadingSessions" [emptyTemplate]="emptySessions" />
+        </div>
       </div>
     </div>
 
-    <!-- Session Termination Confirmation Modal -->
-    <ui-modal
-      [isOpen]="sessionToTerminate !== null"
-      [title]="'iam.zavershenie_sessii' | t"
-      size="sm"
-      (close)="cancelTerminate.emit()"
-    >
-      <div body class="confirmation-body" *ngIf="sessionToTerminate as target">
-        <p *ngIf="target === 'others'">{{ 'iam.zavershit_vse_ostalnye_aktivnye_sessii_krome_tek' | t }}</p>
-        <p *ngIf="target !== 'others'">{{ 'iam.zavershit_sessiyu_s_ip' | t }} <strong>{{ target.ip }}</strong>?</p>
-        <span class="confirmation-hint">{{ 'iam.na_zavershennyh_ustroystvah_potrebuetsya_vypolni' | t }}</span>
+    <ng-template #ipCell let-s>
+      <div class="session-ip-cell tabular-nums font-mono">
+        <span>{{ s.ip }}</span>
+        @if (s.current) {
+          <ui-badge variant="active" [dot]="true" size="sm">{{ 'iam.tekuschaya_sessiya' | t }}</ui-badge>
+        }
       </div>
-      <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="cancelTerminate.emit()">{{ 'common.cancel' | t }}</ui-button>
-        <ui-button variant="danger" size="md" [loading]="isTerminatingSession" (onClick)="confirmTerminate.emit()">
-          {{ 'iam.zavershit' | t }}
-        </ui-button>
+    </ng-template>
+    <ng-template #deviceCell let-s>{{ s.deviceInfo || s.userAgent || ('iam.unknown_device' | t) }}</ng-template>
+    <ng-template #createdCell let-s><span class="tabular-nums text-muted">{{ s.createdAt | date:'dd.MM.yyyy HH:mm' }}</span></ng-template>
+    <ng-template #seenCell let-s><span class="tabular-nums font-medium">{{ s.lastSeenAt | date:'dd.MM.yyyy HH:mm:ss' }}</span></ng-template>
+    <ng-template #actionCell let-s>
+      <div class="text-right">
+        @if (s.current) {
+          <span class="current-session-label text-muted">{{ 'iam.tekuschaya' | t }}</span>
+        } @else {
+          <ui-button variant="danger" size="sm" [ariaLabel]="'iam.terminate_session_ip' | t:{ip: s.ip}" (onClick)="terminateSession.emit(s)">
+            {{ 'iam.zavershit' | t }}
+          </ui-button>
+        }
       </div>
-    </ui-modal>
+    </ng-template>
+    <ng-template #emptySessions><p class="empty-cell">{{ 'iam.net_aktivnyh_sessiy' | t }}</p></ng-template>
   `,
   styles: [`
     :host {
@@ -326,14 +277,50 @@ import { UserSession } from '../profile.models';
   `]
 })
 export class ProfileSessionsCardComponent {
-  @Input() sessions: UserSession[] = [];
+  @Input() set sessions(sessions: UserSession[]) {
+    this.rows.set(sessions ?? []);
+  }
+  get sessions(): UserSession[] {
+    return this.rows();
+  }
   @Input() isLoadingSessions = false;
   @Input() isTerminatingSession = false;
-  @Input() sessionToTerminate: UserSession | 'others' | null = null;
 
   @Output() loadSessions = new EventEmitter<void>();
   @Output() terminateSession = new EventEmitter<UserSession>();
   @Output() terminateOtherSessions = new EventEmitter<void>();
-  @Output() confirmTerminate = new EventEmitter<void>();
-  @Output() cancelTerminate = new EventEmitter<void>();
+
+  private readonly i18n = inject(I18nService);
+  readonly rows = signal<UserSession[]>([]);
+  private readonly ipCell = viewChild.required<TemplateRef<unknown>>('ipCell');
+  private readonly deviceCell = viewChild.required<TemplateRef<unknown>>('deviceCell');
+  private readonly createdCell = viewChild.required<TemplateRef<unknown>>('createdCell');
+  private readonly seenCell = viewChild.required<TemplateRef<unknown>>('seenCell');
+  private readonly actionCell = viewChild.required<TemplateRef<unknown>>('actionCell');
+
+  readonly sortValues = {
+    ip: (s: UserSession) => s.ip,
+    device: (s: UserSession) => s.deviceInfo || s.userAgent || '',
+    created: (s: UserSession) => new Date(s.createdAt),
+    seen: (s: UserSession) => (s.lastSeenAt ? new Date(s.lastSeenAt) : null)
+  };
+
+  readonly config = computed<TableConfig<UserSession>>(() => {
+    const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
+    const cell = (template: Signal<TemplateRef<unknown>>) => ({ type: 'templateRef' as const, value: template });
+    return {
+      trackBy: (_index, s) => s.id ?? s.ip,
+      ariaLabel: this.i18n.translate('iam.aktivnye_sessii'),
+      layout: 'fit',
+      rowClass: s => (s.current ? 'highlight-row' : null),
+      columns: {
+        ip: { header: header('iam.ip_adres'), content: cell(this.ipCell) },
+        device: { header: header('iam.ustroystvo_brauzer'), content: cell(this.deviceCell) },
+        created: { header: header('iam.sozdana'), content: cell(this.createdCell), width: '160px' },
+        seen: { header: header('iam.poslednyaya_aktivnost'), content: cell(this.seenCell), width: '180px' },
+        action: { header: header('audit.deystvie'), content: cell(this.actionCell), width: '140px', align: 'right' }
+      },
+      columnsOrder: ['ip', 'device', 'created', 'seen', 'action']
+    };
+  });
 }

@@ -12,6 +12,7 @@ import {
   tap,
   throwError
 } from 'rxjs';
+import { Subject } from 'rxjs';
 import {
   CreateLanguageRequest,
   LanguageInfo,
@@ -102,6 +103,10 @@ export class I18nService {
   private readonly inFlight = new Map<string, Observable<TranslationDictionary>>();
   private initialization?: Promise<void>;
 
+  private readonly chosen = new Subject<string>();
+  /** Languages the person chose here (saved to their settings), for the other open tabs to follow. */
+  readonly languageChosen: Observable<string> = this.chosen.asObservable();
+
   constructor(@Optional() private readonly http: HttpClient | null) {}
 
   initialize(): Promise<void> {
@@ -130,6 +135,9 @@ export class I18nService {
             withCredentials: true
           })
         : of(undefined)),
+      tap(() => {
+        if (persist) this.chosen.next(normalized);
+      }),
       map(() => undefined),
       catchError(error => {
         this.activate(previousCode, previousDictionary);

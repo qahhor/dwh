@@ -36,6 +36,9 @@ public record QueryList(String code, String form, String action, String select, 
         if (sort == null || !sort.sortable()) {
             throw new IllegalArgumentException("Query list " + code + ": default sort must be a sortable field");
         }
+        if (sort.requiredForm() != null) {
+            throw new IllegalArgumentException("Query list " + code + ": the default sort must be open to every viewer");
+        }
         if (defaultLimit < 1 || defaultLimit > maxLimit) {
             throw new IllegalArgumentException("Query list " + code + ": default limit out of range");
         }
@@ -48,5 +51,15 @@ public record QueryList(String code, String form, String action, String select, 
 
     public Optional<QueryField> field(String key) {
         return fields.stream().filter(field -> field.key().equals(key)).findFirst();
+    }
+
+    /** Поля, которые видит тот, кто сейчас спрашивает (права на поля, ADR-0016, 2.9). */
+    public List<QueryField> viewerFields() {
+        return fields.stream().filter(QueryField::visibleToViewer).toList();
+    }
+
+    /** Поле по ключу, если смотрящий его видит; чужое поле неотличимо от несуществующего. */
+    public Optional<QueryField> viewerField(String key) {
+        return field(key).filter(QueryField::visibleToViewer);
     }
 }

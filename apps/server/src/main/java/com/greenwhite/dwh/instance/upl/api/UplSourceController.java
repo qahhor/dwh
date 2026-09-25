@@ -16,6 +16,11 @@ import com.greenwhite.dwh.instance.upl.api.UplSourceDtos.SourceResponse;
 import com.greenwhite.dwh.instance.upl.api.UplSourceDtos.VersionItem;
 import com.greenwhite.dwh.instance.upl.format.UplFormatModel.SourceSummary;
 import com.greenwhite.dwh.instance.upl.format.UplSourceService;
+import com.greenwhite.dwh.instance.upl.format.UplTemplateBuilder;
+import com.greenwhite.dwh.instance.md.service.MdI18nService;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -30,7 +35,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /** API анкеты файла: источники и версии формата (контракт И3). */
@@ -41,9 +48,13 @@ public class UplSourceController {
     private static final String VALIDATION_FAILED = "VALIDATION_FAILED";
 
     private final UplSourceService service;
+    private final UplTemplateBuilder templates;
+    private final MdI18nService i18n;
 
-    public UplSourceController(UplSourceService service) {
+    public UplSourceController(UplSourceService service, UplTemplateBuilder templates, MdI18nService i18n) {
         this.service = service;
+        this.templates = templates;
+        this.i18n = i18n;
     }
 
     private static long userId() {
@@ -112,6 +123,35 @@ public class UplSourceController {
     @RequiresPermission(form = UplPref.FORM_SOURCES, action = UplPref.ACTION_VIEW)
     public ResponseEntity<FormatVersionResponse> getVersion(@PathVariable long id, @PathVariable int v) {
         return ResponseEntity.ok(FormatVersionResponse.of(service.getVersion(id, v)));
+    }
+
+    /**
+     * The file a supplier fills in for this format version (roadmap item 20): an instruction sheet and
+     * the data sheets with headers, notes and input checks, in the language asked for (Russian by default).
+     */
+    @GetMapping("/{id}/format-versions/{v}/template")
+    @RequiresPermission(form = UplPref.FORM_SOURCES, action = UplPref.ACTION_VIEW)
+    public ResponseEntity<byte[]> template(@PathVariable long id, @PathVariable int v,
+                                           @RequestParam(required = false) String lang) {
+        var source = service.getSource(id).source();
+        var version = service.getVersion(id, v);
+        Map<String, String> dictionary = i18n.effectiveDictionary(lang);
+        UplTemplateBuilder.TemplateFile file = templates.build(source, version,
+                (key, params) -> fill(dictionary.getOrDefault(key, key), params));
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(file.contentType()))
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename(file.fileName(), StandardCharsets.UTF_8).build().toString())
+                .body(file.content());
+    }
+
+    /** Puts {@code {name}} parameters into a dictionary text, as the web client does. */
+    private static String fill(String template, Map<String, Object> params) {
+        String result = template;
+        for (var entry : params.entrySet()) {
+            result = result.replace("{" + entry.getKey() + "}", String.valueOf(entry.getValue()));
+        }
+        return result;
     }
 
     @PutMapping("/{id}/format-versions/{v}")

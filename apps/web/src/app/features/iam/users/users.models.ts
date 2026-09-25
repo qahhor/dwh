@@ -3,14 +3,6 @@ import { Role } from '../../../core/models/rbac.models';
 import { ToastService } from '../../../core/services/toast.service';
 import { I18nService } from '../../../core/services/i18n.service';
 
-export interface SecurityConfirmConfig {
-  title: string;
-  message: string;
-  confirmBtnText: string;
-  confirmBtnVariant: 'primary' | 'secondary' | 'danger' | 'ghost';
-  action: () => void;
-}
-
 export interface UserCreateForm {
   name: string;
   login: string;
@@ -63,19 +55,6 @@ export function createDefaultUserEditForm(user: User): UserEditForm {
     roleIds: user.roleIds ? [...user.roleIds] : [],
     attributes: { ...(user.attributes || {}) }
   };
-}
-
-export function getUserInitial(user: User): string {
-  return user.name ? user.name.trim().charAt(0).toUpperCase() : 'U';
-}
-
-export function getAvatarBgColor(name: string): string {
-  const colors = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#8b5cf6'];
-  let hash = 0;
-  for (let i = 0; i < (name || '').length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return colors[Math.abs(hash) % colors.length];
 }
 
 /** The manager's name, or their id while the name is unknown. */

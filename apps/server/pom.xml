@@ -142,12 +142,11 @@
             <artifactId>fastexcel-reader</artifactId>
             <version>0.20.2</version>
         </dependency>
-        <!-- Сборка синтетических xlsx кодом тестов: двоичных файлов-образцов в репозитории нет. -->
+        <!-- Запись xlsx: шаблоны анкет для поставщиков (upl) и синтетические файлы тестов; Apache POI не нужен. -->
         <dependency>
             <groupId>org.dhatim</groupId>
             <artifactId>fastexcel</artifactId>
             <version>0.20.2</version>
-            <scope>test</scope>
         </dependency>
         <!-- Встроенный PostgreSQL для интеграционных тестов модулей DW:
              Docker в среде разработки недоступен, Testcontainers каркаса локально не поднимаются. -->

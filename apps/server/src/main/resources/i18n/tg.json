@@ -1261,10 +1261,7 @@
   "iam.two_factor_enabled": "2FA фаъол аст",
   "iam.two_factor_disabled_short": "2FA ғайрифаъол",
   "iam.view_user_named": "Дидани корбар {name}",
-  "iam.edit_user_named": "Таҳрири корбар {name}",
-  "iam.block_user_named": "Блоки корбар {name}",
-  "iam.unblock_user_named": "Кушодани корбар {name}",
-  "iam.delete_user_named": "Нест кардани корбар {name}",
+  "iam.edit_user_named": "Таҳрири корбар {name}",
   "iam.hide_password": "Паролро пинҳон кунед",
   "iam.show_password": "Нишон додани парол",
   "notifications.mark_named_read": "Огоҳиномаи \"{title}\" -ро ҳамчун хондашуда қайд кунед",

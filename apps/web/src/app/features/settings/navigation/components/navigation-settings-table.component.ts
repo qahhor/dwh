@@ -1,16 +1,24 @@
-import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
+import { Component, EventEmitter, Input, Output, Signal, TemplateRef, computed, inject, signal, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CustomNavigationItem, NavigationTargetType } from '../../../../core/models/navigation.models';
 import { TranslatePipe, I18nService } from '../../../../core/services/i18n.service';
+import { UiLocalTableComponent } from '../../../../shared/ui/ui-local-table.component';
+import { TableConfig } from '../../../../shared/ui-kit/components/table/table.types';
 
+/**
+ * Custom menu items on the kit table: the whole list is loaded, so a header
+ * click sorts it all. Every row action names its item, so a screen reader
+ * hears "Edit “Sales report”" rather than a row of identical "Edit" buttons.
+ */
 @Component({
   selector: 'app-navigation-settings-table',
   standalone: true,
   imports: [
     CommonModule,
     FormsModule,
-    TranslatePipe
+    TranslatePipe,
+    UiLocalTableComponent
   ],
   template: `
     <!-- Search & Filter Bar -->
@@ -20,114 +28,71 @@ import { TranslatePipe, I18nService } from '../../../../core/services/i18n.servi
         <input
           type="text"
           class="search-input"
+          [attr.aria-label]="'nav.settings.search_placeholder' | t"
           [ngModel]="searchQuery"
           (ngModelChange)="searchQueryChange.emit($event)"
           [placeholder]="'nav.settings.search_placeholder' | t"
         />
-        <button
-          *ngIf="searchQuery"
-          type="button"
-          class="clear-search-btn"
-          (click)="clearSearch.emit()"
-          aria-label="Clear search"
-        >
-          <span class="material-symbols-outlined" aria-hidden="true">close</span>
+        @if (searchQuery) {
+          <button type="button" class="clear-search-btn" (click)="clearSearch.emit()" [attr.aria-label]="'nav.settings.clear_search' | t">
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
+          </button>
+        }
+      </div>
+    </div>
+
+    <div class="table-container nav-table">
+      <ui-local-table [rows]="rows()" [config]="config()" [sortValues]="sortValues" [loading]="isLoading"
+        [emptyTemplate]="emptyState" />
+    </div>
+
+    <ng-template #iconCell let-item>
+      <span class="material-symbols-outlined table-icon" aria-hidden="true">{{ item.icon }}</span>
+    </ng-template>
+    <ng-template #titleCell let-item>
+      <div class="title-main">{{ item.title }}</div>
+      <div class="code-sub">{{ item.code }}</div>
+    </ng-template>
+    <ng-template #typeCell let-item>
+      <span class="badge badge-type" [ngClass]="item.targetType.toLowerCase()">{{ targetTypeLabel(item.targetType) }}</span>
+    </ng-template>
+    <ng-template #sectionCell let-item>
+      <span class="badge badge-section">{{ sectionLabel(item.sectionId) }}</span>
+    </ng-template>
+    <ng-template #targetCell let-item>
+      <span class="url-cell" [title]="item.url"><span class="url-text">{{ item.url }}</span></span>
+    </ng-template>
+    <ng-template #orderCell let-item>{{ item.sortOrder }}</ng-template>
+    <ng-template #statusCell let-item>
+      <button
+        type="button"
+        class="status-toggle-btn"
+        [class.active]="item.state === 'A'"
+        [attr.aria-pressed]="item.state === 'A'"
+        [attr.aria-label]="'nav.settings.toggle_named' | t:{ title: item.title }"
+        (click)="toggleItem.emit(item)"
+        [title]="item.state === 'A' ? ('common.block' | t) : ('common.unblock' | t)"
+      >
+        {{ item.state === 'A' ? ('common.active' | t) : ('common.passive' | t) }}
+      </button>
+    </ng-template>
+    <ng-template #actionsCell let-item>
+      <div class="actions-cell">
+        <button type="button" class="action-icon-btn preview-btn" (click)="previewItem.emit(item)"
+          [title]="'nav.settings.open' | t" [attr.aria-label]="'nav.settings.open_named' | t:{ title: item.title }">
+          <span class="material-symbols-outlined" aria-hidden="true">open_in_new</span>
+        </button>
+        <button type="button" class="action-icon-btn" (click)="editItem.emit(item)"
+          [title]="'common.edit' | t" [attr.aria-label]="'nav.settings.edit_named' | t:{ title: item.title }">
+          <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+        </button>
+        <button type="button" class="action-icon-btn danger" (click)="deleteItem.emit(item)"
+          [title]="'common.delete' | t" [attr.aria-label]="'nav.settings.delete_named' | t:{ title: item.title }">
+          <span class="material-symbols-outlined" aria-hidden="true">delete</span>
         </button>
       </div>
-    </div>
-
-    <!-- Items Table -->
-    <div class="table-container">
-      <div *ngIf="isLoading" class="loading-box">
-        <div class="spinner"></div>
-        <span>{{ 'common.loading' | t }}</span>
-      </div>
-
-      <table *ngIf="!isLoading" class="nav-table">
-        <thead>
-          <tr>
-            <th style="width: 48px">{{ 'nav.settings.th_icon' | t }}</th>
-            <th>{{ 'nav.settings.th_title' | t }}</th>
-            <th style="width: 130px">{{ 'nav.settings.th_type' | t }}</th>
-            <th style="width: 140px">{{ 'nav.settings.th_section' | t }}</th>
-            <th>{{ 'nav.settings.th_target' | t }}</th>
-            <th style="width: 70px; text-align: center">{{ 'nav.settings.th_order' | t }}</th>
-            <th style="width: 90px; text-align: center">{{ 'common.status' | t }}</th>
-            <th style="width: 140px; text-align: right">{{ 'common.actions' | t }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let item of items">
-            <td class="icon-cell">
-              <span class="material-symbols-outlined table-icon" aria-hidden="true">{{ item.icon }}</span>
-            </td>
-            <td>
-              <div class="title-main">{{ item.title }}</div>
-              <div class="code-sub">{{ item.code }}</div>
-            </td>
-            <td>
-              <span class="badge badge-type" [ngClass]="item.targetType.toLowerCase()">
-                {{ targetTypeLabel(item.targetType) }}
-              </span>
-            </td>
-            <td>
-              <span class="badge badge-section">
-                {{ sectionLabel(item.sectionId) }}
-              </span>
-            </td>
-            <td class="url-cell" [title]="item.url">
-              <span class="url-text">{{ item.url }}</span>
-            </td>
-            <td style="text-align: center">{{ item.sortOrder }}</td>
-            <td style="text-align: center">
-              <button
-                type="button"
-                class="status-toggle-btn"
-                [class.active]="item.state === 'A'"
-                (click)="toggleItem.emit(item)"
-                [title]="item.state === 'A' ? ('common.block' | t) : ('common.unblock' | t)"
-              >
-                {{ item.state === 'A' ? ('common.active' | t) : ('common.passive' | t) }}
-              </button>
-            </td>
-            <td class="actions-cell">
-              <button
-                type="button"
-                class="action-icon-btn preview-btn"
-                (click)="previewItem.emit(item)"
-                [title]="'nav.settings.open' | t"
-                [attr.aria-label]="'nav.settings.open' | t"
-              >
-                <span class="material-symbols-outlined" aria-hidden="true">open_in_new</span>
-              </button>
-              <button
-                type="button"
-                class="action-icon-btn"
-                (click)="editItem.emit(item)"
-                [title]="'common.edit' | t"
-                [attr.aria-label]="'common.edit' | t"
-              >
-                <span class="material-symbols-outlined" aria-hidden="true">edit</span>
-              </button>
-              <button
-                type="button"
-                class="action-icon-btn danger"
-                (click)="deleteItem.emit(item)"
-                [title]="'common.delete' | t"
-                [attr.aria-label]="'common.delete' | t"
-              >
-                <span class="material-symbols-outlined" aria-hidden="true">delete</span>
-              </button>
-            </td>
-          </tr>
-          <tr *ngIf="items.length === 0">
-            <td colspan="8" class="empty-cell">
-              {{ 'common.no_data' | t }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    </ng-template>
+    <ng-template #emptyState><p class="empty-cell">{{ 'common.no_data' | t }}</p></ng-template>
   `,
   styles: [`
     :host {
@@ -197,37 +162,6 @@ import { TranslatePipe, I18nService } from '../../../../core/services/i18n.servi
       border-radius: var(--radius-md);
       overflow-x: auto;
       box-shadow: var(--shadow-sm);
-    }
-
-    .nav-table {
-      width: 100%;
-      border-collapse: collapse;
-      text-align: left;
-      font-size: 13px;
-    }
-
-    .nav-table th {
-      padding: 12px 16px;
-      font-weight: 600;
-      color: var(--text-muted);
-      background-color: var(--bg-hover);
-      border-bottom: 1px solid var(--border-color);
-      white-space: nowrap;
-    }
-
-    .nav-table td {
-      padding: 12px 16px;
-      border-bottom: 1px solid var(--border-subtle);
-      color: var(--text-main);
-      vertical-align: middle;
-    }
-
-    .nav-table tr:hover td {
-      background-color: var(--bg-hover);
-    }
-
-    .nav-table tr:last-child td {
-      border-bottom: none;
     }
 
     .icon-cell {
@@ -339,24 +273,6 @@ import { TranslatePipe, I18nService } from '../../../../core/services/i18n.servi
       font-size: 17px;
     }
 
-    .loading-box {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      padding: 48px 0;
-      color: var(--text-muted);
-    }
-
-    .spinner {
-      width: 20px;
-      height: 20px;
-      border: 2px solid var(--border-color);
-      border-top-color: var(--primary);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-
     .empty-cell {
       text-align: center;
       padding: 48px !important;
@@ -371,7 +287,9 @@ import { TranslatePipe, I18nService } from '../../../../core/services/i18n.servi
 export class NavigationSettingsTableComponent {
   private readonly uiI18n = inject(I18nService);
 
-  @Input() items: CustomNavigationItem[] = [];
+  @Input() set items(items: CustomNavigationItem[]) {
+    this.rows.set(items ?? []);
+  }
   @Input() isLoading = false;
   @Input() searchQuery = '';
 
@@ -381,6 +299,46 @@ export class NavigationSettingsTableComponent {
   @Output() previewItem = new EventEmitter<CustomNavigationItem>();
   @Output() editItem = new EventEmitter<CustomNavigationItem>();
   @Output() deleteItem = new EventEmitter<CustomNavigationItem>();
+
+  readonly rows = signal<CustomNavigationItem[]>([]);
+  private readonly iconCell = viewChild.required<TemplateRef<unknown>>('iconCell');
+  private readonly titleCell = viewChild.required<TemplateRef<unknown>>('titleCell');
+  private readonly typeCell = viewChild.required<TemplateRef<unknown>>('typeCell');
+  private readonly sectionCell = viewChild.required<TemplateRef<unknown>>('sectionCell');
+  private readonly targetCell = viewChild.required<TemplateRef<unknown>>('targetCell');
+  private readonly orderCell = viewChild.required<TemplateRef<unknown>>('orderCell');
+  private readonly statusCell = viewChild.required<TemplateRef<unknown>>('statusCell');
+  private readonly actionsCell = viewChild.required<TemplateRef<unknown>>('actionsCell');
+
+  readonly sortValues = {
+    title: (item: CustomNavigationItem) => item.title,
+    type: (item: CustomNavigationItem) => this.targetTypeLabel(item.targetType),
+    section: (item: CustomNavigationItem) => this.sectionLabel(item.sectionId),
+    target: (item: CustomNavigationItem) => item.url,
+    order: (item: CustomNavigationItem) => item.sortOrder,
+    status: (item: CustomNavigationItem) => (item.state === 'A' ? 0 : 1)
+  };
+
+  readonly config = computed<TableConfig<CustomNavigationItem>>(() => {
+    const header = (key: string) => ({ type: 'primitive' as const, value: this.uiI18n.translate(key) });
+    const cell = (template: Signal<TemplateRef<unknown>>) => ({ type: 'templateRef' as const, value: template });
+    return {
+      trackBy: (_index, item) => item.id,
+      ariaLabel: this.uiI18n.translate('nav.settings.table_label'),
+      layout: 'fit',
+      columns: {
+        icon: { header: header('nav.settings.th_icon'), content: cell(this.iconCell), width: '64px' },
+        title: { header: header('nav.settings.th_title'), content: cell(this.titleCell) },
+        type: { header: header('nav.settings.th_type'), content: cell(this.typeCell), width: '140px' },
+        section: { header: header('nav.settings.th_section'), content: cell(this.sectionCell), width: '150px' },
+        target: { header: header('nav.settings.th_target'), content: cell(this.targetCell) },
+        order: { header: header('nav.settings.th_order'), content: cell(this.orderCell), width: '90px', align: 'center' },
+        status: { header: header('common.status'), content: cell(this.statusCell), width: '110px', align: 'center' },
+        actions: { header: header('common.actions'), content: cell(this.actionsCell), width: '140px', align: 'right' }
+      },
+      columnsOrder: ['icon', 'title', 'type', 'section', 'target', 'order', 'status', 'actions']
+    };
+  });
 
   targetTypeLabel(type: NavigationTargetType): string {
     switch (type) {

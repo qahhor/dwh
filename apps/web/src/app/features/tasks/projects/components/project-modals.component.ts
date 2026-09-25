@@ -5,6 +5,8 @@ import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
 import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
 import { UiCustomFieldsComponent } from '../../../../shared/ui/ui-custom-fields.component';
 import { TranslatePipe, I18nService } from '../../../../core/services/i18n.service';
+import { SMTControlComponent } from '../../../../shared/ui-kit/components/forms/control';
+import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../../shared/ui-kit/components/forms/textarea';
 import { Project } from '../../../../core/models/task.models';
 import { CustomField } from '../../../../core/models/custom-field.models';
 import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../projects.models';
@@ -13,6 +15,7 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
   selector: 'app-project-modals',
   standalone: true,
   imports: [
+    SMTControlComponent, SMTTextareaComponent, SMTTextareaValueAccessor,
     CommonModule,
     FormsModule,
     TranslatePipe,
@@ -56,40 +59,24 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
     >
       <form body id="project-create-form" (ngSubmit)="submitCreateProject.emit()">
         <fieldset class="modal-form modal-form-fieldset project-create-form" [disabled]="isSubmitting">
-          <div class="form-group">
-            <div class="label-row">
-              <label class="clean-label" for="project-create-name">{{ 'projects.nazvanie_proekta' | t }}</label>
-              <span class="req-tag">{{ 'projects.obyazatelnoe_pole' | t }}</span>
-            </div>
+          <smt-control class="form-group" [smtLabel]="'projects.nazvanie_proekta' | t" [smtError]="isCreateSubmitted && !createForm.name.trim() ? ('projects.pozhaluysta_ukazhite_nazvanie_proekta' | t) : ''">
             <input
               id="project-create-name"
               name="projectCreateName"
               type="text"
               class="clean-input"
               required
-              [attr.aria-invalid]="isCreateSubmitted && !createForm.name.trim()"
-              [attr.aria-describedby]="isCreateSubmitted && !createForm.name.trim() ? 'project-create-name-error' : null"
-              [class.input-error]="isCreateSubmitted && !createForm.name.trim()"
               [(ngModel)]="createForm.name"
               [placeholder]="'projects.naprimer_vnedrenie_dwh_cdc' | t"
             />
-            <span id="project-create-name-error" class="error-msg" *ngIf="isCreateSubmitted && !createForm.name.trim()">
-              {{ 'projects.pozhaluysta_ukazhite_nazvanie_proekta' | t }}
-            </span>
-          </div>
-          <div class="form-group">
-            <div class="label-row">
-              <label class="clean-label" for="project-create-description">{{ 'projects.opisanie_proekta' | t }}</label>
-            </div>
-            <textarea
-              id="project-create-description"
+          </smt-control>
+          <smt-control class="form-group" [smtLabel]="'projects.opisanie_proekta' | t">
+            <smt-textarea
+              smtFieldId="project-create-description"
               name="projectCreateDescription"
-              class="clean-input clean-textarea"
-              rows="3"
               [(ngModel)]="createForm.description"
-              [placeholder]="'projects.celi_granicy_i_kontekst_proekta' | t"
-            ></textarea>
-          </div>
+              [placeholder]="'projects.celi_granicy_i_kontekst_proekta' | t" />
+          </smt-control>
           <div class="form-group" *ngIf="projectCustomFields.length > 0">
             <ui-custom-fields
               [fields]="projectCustomFields"
@@ -138,41 +125,25 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
       </div>
       <form body id="project-edit-form" (ngSubmit)="submitEditProject.emit()" *ngIf="editingProject as p">
         <fieldset class="modal-form modal-form-fieldset project-edit-form" [disabled]="isSubmitting">
-          <div class="form-group">
-            <div class="label-row">
-              <label class="clean-label" for="project-edit-name">{{ 'projects.nazvanie_proekta' | t }}</label>
-              <span class="req-tag">{{ 'projects.obyazatelnoe_pole' | t }}</span>
-            </div>
+          <smt-control class="form-group" [smtLabel]="'projects.nazvanie_proekta' | t" [smtError]="isEditSubmitted && !editForm.name.trim() ? ('projects.nazvanie_proekta_ne_mozhet_byt_pustym' | t) : ''">
             <input
               id="project-edit-name"
               name="projectEditName"
               type="text"
               class="clean-input"
               required
-              [attr.aria-invalid]="isEditSubmitted && !editForm.name.trim()"
-              [attr.aria-describedby]="isEditSubmitted && !editForm.name.trim() ? 'project-edit-name-error' : null"
-              [class.input-error]="isEditSubmitted && !editForm.name.trim()"
               [(ngModel)]="editForm.name"
             />
-            <span id="project-edit-name-error" class="error-msg" *ngIf="isEditSubmitted && !editForm.name.trim()">
-              {{ 'projects.nazvanie_proekta_ne_mozhet_byt_pustym' | t }}
-            </span>
-          </div>
-          <div class="form-group">
-            <div class="label-row">
-              <label class="clean-label" for="project-edit-state">{{ 'iam.status_aktivnosti' | t }}</label>
-            </div>
+          </smt-control>
+          <smt-control class="form-group" [smtLabel]="'iam.status_aktivnosti' | t">
             <select id="project-edit-state" name="projectEditState" class="clean-input" [(ngModel)]="editForm.state">
               <option value="A">{{ 'projects.state_active' | t }}</option>
               <option value="P">{{ 'projects.state_archived' | t }}</option>
             </select>
-          </div>
-          <div class="form-group">
-            <div class="label-row">
-              <label class="clean-label" for="project-edit-description">{{ 'projects.opisanie' | t }}</label>
-            </div>
-            <textarea id="project-edit-description" name="projectEditDescription" class="clean-input clean-textarea" rows="3" [(ngModel)]="editForm.description"></textarea>
-          </div>
+          </smt-control>
+          <smt-control class="form-group" [smtLabel]="'projects.opisanie' | t">
+            <smt-textarea smtFieldId="project-edit-description" name="projectEditDescription" [(ngModel)]="editForm.description" />
+          </smt-control>
           <div class="form-group" *ngIf="projectCustomFields.length > 0">
             <ui-custom-fields
               [fields]="projectCustomFields"
@@ -208,7 +179,8 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
     .modal-form { display: flex; flex-direction: column; gap: 12px; }
     .form-group { display: flex; flex-direction: column; gap: 4px; }
     .label-row { display: flex; align-items: center; justify-content: space-between; }
-    .clean-label { font-size: 11px; font-weight: 500; color: var(--text-muted); }
+    /* The same as the smt-control label, so wrapped and plain fields read alike. */
+    .clean-label { font-size: 12px; font-weight: 600; color: var(--text-main); }
     .req-tag {
       font-size: 10px;
       font-weight: 500;

@@ -151,6 +151,21 @@ class UplXlsxParserTest {
     }
 
     @Test
+    @DisplayName("Синоним заголовка: колонка находится по другому заголовку и не считается лишней")
+    void headerSynonymMatchesTheColumn() {
+        List<Column> columns = new ArrayList<>(format().sheets().getFirst().columns());
+        Column amount = columns.get(3);
+        columns.set(3, new Column(amount.id(), amount.ordinal(), amount.filePosition(), amount.nameInFile(), amount.targetField(),
+                amount.dataType(), amount.required(), null, null, null, null, null, null, List.of("Сумма, руб")));
+        List<String> header = List.of("№", "Ключ", "Название", "сумма,  руб", "Дата");
+
+        UplParseResult result = parse(file(header, cleanRows(2)), format(MatchBy.HEADER, columns));
+
+        assertThat(result.errors()).isEmpty();
+        assertThat(result.outcome()).isEqualTo(UplParseResult.Outcome.VERIFIED);
+    }
+
+    @Test
     @DisplayName("Расхождения с анкетой: нет колонки и есть лишняя — файл отклонён, значения не проверяются")
     void structureMismatchRejectsFile() {
         List<String> header = List.of("№", "Ключ", "Название", "Лишняя", "Дата");

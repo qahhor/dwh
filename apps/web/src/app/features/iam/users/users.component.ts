@@ -1,6 +1,8 @@
 import { Component, OnInit, OnDestroy, signal, HostListener, ElementRef, ViewChild, inject, DestroyRef } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Observable, Subscription } from 'rxjs';
+import { Observable, Subscription, finalize, tap } from 'rxjs';
+import { SMTModalService } from '../../../shared/ui-kit/components/modal';
+import { problemText } from '../../../shared/ui/problem-text';
 import { canonicalRecordId, recordResponseMatches, safeNumericRecordId } from '../../../core/services/search-target';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -22,11 +24,8 @@ import { UserCreateModalComponent } from './components/user-create-modal.compone
 import { UserEditModalComponent } from './components/user-edit-modal.component';
 import { UserDetailModalComponent } from './components/user-detail-modal.component';
 import {
-  SecurityConfirmConfig,
   UserCreateForm,
   UserEditForm,
-  getUserInitial,
-  getAvatarBgColor,
   getManagerName,
   getUserRoleNames,
   generateSecurePassword,
@@ -42,8 +41,6 @@ import { UserSecurityService } from './services/user-security.service';
 import { UserFormsService } from './services/user-forms.service';
 import { UserFilterService } from './services/user-filter.service';
 import { UserDirectoryService } from './services/user-directory.service';
-
-export type { SecurityConfirmConfig };
 
 const EXPORT_PAGE_SIZE = 200;
 /** Enough for any real organisation's user list; a broader export is a report, not a CSV from the screen. */
@@ -68,10 +65,6 @@ const EXPORT_MAX_ROWS = 10_000;
   styleUrl: './users.component.css'
 })
 export class UsersComponent implements OnInit, OnDestroy {
-  readonly isRoleSelectedInEditFn = (roleId: number) => this.isRoleSelectedInEdit(roleId);
-  readonly isRoleSelectedInCreateFn = (roleId: number) => this.isRoleSelectedInCreate(roleId);
-  readonly getUserInitialFn = (u: User) => getUserInitial(u);
-  readonly getAvatarBgColorFn = (name: string) => getAvatarBgColor(name);
   readonly getUserRoleNamesFn = (u: User) => getUserRoleNames(u, this.roles());
   readonly getManagerNameFn = (u: User) => getManagerName(u, id => this.directory.nameOf(id));
 
@@ -122,9 +115,6 @@ export class UsersComponent implements OnInit, OnDestroy {
   get isEditModalOpen() { return this.formsService.isEditModalOpen; }
   get showPassword() { return this.formsService.showPassword; }
   get isFilterMenuOpen() { return this.filterService.isFilterMenuOpen; }
-  get isSecConfirmModalOpen() { return this.secService.isSecConfirmModalOpen; }
-  get secConfirmConfig() { return this.secService.secConfirmConfig; }
-  set secConfirmConfig(c: SecurityConfirmConfig | null) { this.secService.secConfirmConfig = c; }
   get userSecurity() { return this.secService.userSecurity; }
   get isLoadingSecurity() { return this.secService.isLoadingSecurity; }
   get isSecurityActionPending() { return this.secService.isSecurityActionPending; }
@@ -150,12 +140,11 @@ export class UsersComponent implements OnInit, OnDestroy {
   get selected2fa() { return this.filterService.selected2fa; }
   set selected2fa(v: boolean | null) { this.filterService.selected2fa = v; }
 
+  private readonly modal = inject(SMTModalService);
   readonly isViewModalOpen = signal<boolean>(false);
-  readonly isDeleteModalOpen = signal<boolean>(false);
   readonly activeViewTab = signal<'info' | 'security' | 'orgUnits' | 'permissions'>('info');
 
   viewingUser: User | null = null;
-  deletingUser: User | null = null;
 
   @ViewChild('filterTrigger') private filterTrigger?: ElementRef<HTMLButtonElement>;
   @ViewChild(UserDetailModalComponent) private userDetailModal?: UserDetailModalComponent;
@@ -207,7 +196,6 @@ export class UsersComponent implements OnInit, OnDestroy {
     this.recordRequestId++;
     clearTimeout(this.searchDebounceTimer);
     this.exportRequest?.unsubscribe();
-    this.directory.cancel();
   }
 
   // Permissions
@@ -314,8 +302,6 @@ export class UsersComponent implements OnInit, OnDestroy {
   }
 
   // User display helpers
-  getUserInitial(user: User) { return getUserInitial(user); }
-  getAvatarBgColor(name: string) { return getAvatarBgColor(name); }
   getManagerName(user: User) { return getManagerName(user, id => this.directory.nameOf(id)); }
   getUserRoleNames(user: User) { return getUserRoleNames(user, this.roles()); }
 
@@ -392,19 +378,13 @@ export class UsersComponent implements OnInit, OnDestroy {
   }
 
   openCreateModal() {
-    this.directory.openManagerPicker(null);
     this.formsService.openCreateModal(this.roles());
   }
-  isRoleSelectedInCreate(roleId: number) { return this.formsService.isRoleSelectedInCreate(roleId); }
-  toggleRoleInCreate(roleId: number) { this.formsService.toggleRoleInCreate(roleId); }
   submitCreateUser() { this.formsService.submitCreateUser(() => this.loadUsers(true)); }
 
   openEditModal(user: User) {
-    this.directory.openManagerPicker(user.managerId ?? null);
     this.formsService.openEditModal(user);
   }
-  isRoleSelectedInEdit(roleId: number) { return this.formsService.isRoleSelectedInEdit(roleId); }
-  toggleRoleInEdit(roleId: number) { this.formsService.toggleRoleInEdit(roleId); }
   submitEditUser() {
     this.formsService.submitEditUser(
       () => this.destroyed,
@@ -427,23 +407,27 @@ export class UsersComponent implements OnInit, OnDestroy {
     });
   }
 
+  /** Asks before deleting and anonymising a user; the dialog stays open until the server answers. */
   openDeleteConfirmModal(user: User) {
-    this.deletingUser = user;
-    this.isDeleteModalOpen.set(true);
-  }
-
-  confirmDeleteUser() {
-    if (!this.deletingUser) return;
-    this.isSubmitting.set(true);
-    this.api.delete(`/iam/users/${this.deletingUser.id}`).subscribe({
-      next: () => {
-        this.isSubmitting.set(false);
-        this.isDeleteModalOpen.set(false);
-        this.toast.success(this.uiI18n.translate('iam.polzovatel_uspeshno_udalen'));
-        this.loadUsers();
+    const t = (key: string, params?: Record<string, string>) => this.uiI18n.translate(key, params);
+    this.modal.confirm({
+      title: t('iam.udalenie_polzovatelya'),
+      message: `${t('iam.delete_user_question', { name: user.name, login: user.login })}\n${t('iam.personalnye_dannye_budut_sterty_a_aktivnye_sessi')}`,
+      yesLabel: t('common.delete'),
+      noLabel: t('common.cancel'),
+      destructive: true,
+      action: () => {
+        this.isSubmitting.set(true);
+        return this.api.delete(`/iam/users/${user.id}`, { notifyError: false }).pipe(
+          tap(() => {
+            this.toast.success(t('iam.polzovatel_uspeshno_udalen'));
+            this.loadUsers();
+          }),
+          finalize(() => this.isSubmitting.set(false))
+        );
       },
-      error: () => this.isSubmitting.set(false)
-    });
+      actionError: problemText
+    }).subscribe();
   }
 
   toggleUserState(user: User, action: 'block' | 'unblock') {
@@ -493,7 +477,6 @@ export class UsersComponent implements OnInit, OnDestroy {
   terminateSingleSession(sessionId: number, userId: number) { this.secService.terminateSingleSession(sessionId, userId); }
   forcePasswordChange(userId: number) { this.secService.forcePasswordChange(userId, () => this.loadUsers()); }
   resetUser2fa(userId: number) { this.secService.resetUser2fa(userId, () => this.loadUsers()); }
-  confirmSecurityAction() { this.secService.confirmSecurityAction(); }
 
   // Password helpers
   generateSecurePassword(): string {

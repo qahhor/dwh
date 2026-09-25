@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal, Signal, TemplateRef, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -6,9 +6,13 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { ProblemDetail } from '../../../core/models/common.models';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
+import { SMTControlComponent } from '../../../shared/ui-kit/components/forms/control';
+import { SMTRadioGroupComponent, SMTRadioOption } from '../../../shared/ui-kit/components/forms/radio-group';
 import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
+import { UiLocalTableComponent } from '../../../shared/ui/ui-local-table.component';
+import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import {
@@ -47,13 +51,16 @@ type DraftMode = 'empty' | 'copy';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    SMTControlComponent,
+    UiLocalTableComponent,
     CommonModule,
     FormsModule,
     RouterLink,
     TranslatePipe,
     UiButtonComponent,
     UiModalComponent,
-    UiBadgeComponent
+    UiBadgeComponent,
+    SMTRadioGroupComponent
   ],
   template: `
     @if (isLoading()) {
@@ -111,8 +118,7 @@ type DraftMode = 'empty' | 'copy';
             <code class="upl-code">{{ s.code }}</code>
           </div>
 
-          <div class="form-group">
-            <label class="form-label" for="upl-source-name">{{ 'upl.source.field.name' | t }}</label>
+          <smt-control class="form-group" [smtLabel]="'upl.source.field.name' | t" [smtError]="fieldErrorText('name')">
             <input
               id="upl-source-name"
               class="form-input"
@@ -122,13 +128,9 @@ type DraftMode = 'empty' | 'copy';
               [disabled]="!canEdit()"
               [(ngModel)]="form.name"
             />
-            @if (fieldErrors()['name']; as err) {
-              <span class="upl-field-error" data-testid="upl-err-name">{{ err | t }}</span>
-            }
-          </div>
+          </smt-control>
 
-          <div class="form-group">
-            <label class="form-label" for="upl-source-owner-org">{{ 'upl.source.field.owner_org' | t }}</label>
+          <smt-control class="form-group" [smtLabel]="'upl.source.field.owner_org' | t" [smtError]="fieldErrorText('ownerOrg')">
             <input
               id="upl-source-owner-org"
               class="form-input"
@@ -138,13 +140,9 @@ type DraftMode = 'empty' | 'copy';
               [disabled]="!canEdit()"
               [(ngModel)]="form.ownerOrg"
             />
-            @if (fieldErrors()['ownerOrg']; as err) {
-              <span class="upl-field-error" data-testid="upl-err-ownerOrg">{{ err | t }}</span>
-            }
-          </div>
+          </smt-control>
 
-          <div class="form-group">
-            <label class="form-label" for="upl-source-owner-contact">{{ 'upl.source.field.owner_contact' | t }}</label>
+          <smt-control class="form-group" [smtLabel]="'upl.source.field.owner_contact' | t" [smtError]="fieldErrorText('ownerContact')">
             <input
               id="upl-source-owner-contact"
               class="form-input"
@@ -154,13 +152,9 @@ type DraftMode = 'empty' | 'copy';
               [disabled]="!canEdit()"
               [(ngModel)]="form.ownerContact"
             />
-            @if (fieldErrors()['ownerContact']; as err) {
-              <span class="upl-field-error" data-testid="upl-err-ownerContact">{{ err | t }}</span>
-            }
-          </div>
+          </smt-control>
 
-          <div class="form-group">
-            <label class="form-label" for="upl-source-periodicity">{{ 'upl.source.field.periodicity' | t }}</label>
+          <smt-control class="form-group" [smtLabel]="'upl.source.field.periodicity' | t">
             <select
               id="upl-source-periodicity"
               class="form-select"
@@ -172,10 +166,9 @@ type DraftMode = 'empty' | 'copy';
                 <option [value]="p">{{ periodicityKey[p] | t }}</option>
               }
             </select>
-          </div>
+          </smt-control>
 
-          <div class="form-group">
-            <label class="form-label" for="upl-source-sla-days">{{ 'upl.source.field.sla_days' | t }}</label>
+          <smt-control class="form-group" [smtLabel]="'upl.source.field.sla_days' | t" [smtError]="fieldErrorText('slaDays')">
             <input
               id="upl-source-sla-days"
               class="form-input"
@@ -186,13 +179,9 @@ type DraftMode = 'empty' | 'copy';
               [disabled]="!canEdit()"
               [(ngModel)]="form.slaDays"
             />
-            @if (fieldErrors()['slaDays']; as err) {
-              <span class="upl-field-error" data-testid="upl-err-slaDays">{{ err | t }}</span>
-            }
-          </div>
+          </smt-control>
 
-          <div class="form-group">
-            <label class="form-label" for="upl-source-strictness">{{ 'upl.source.field.strictness' | t }}</label>
+          <smt-control class="form-group" [smtLabel]="'upl.source.field.strictness' | t">
             <select
               id="upl-source-strictness"
               class="form-select"
@@ -204,7 +193,7 @@ type DraftMode = 'empty' | 'copy';
                 <option [value]="st">{{ strictnessKey[st] | t }}</option>
               }
             </select>
-          </div>
+          </smt-control>
         </div>
 
         @if (canEdit()) {
@@ -237,46 +226,34 @@ type DraftMode = 'empty' | 'copy';
         } @else {
           <div class="table-card">
             <div class="table-scroll">
-              <table>
-                <thead>
-                  <tr>
-                    <th>{{ 'upl.version.col.version' | t }}</th>
-                    <th>{{ 'upl.version.col.status' | t }}</th>
-                    <th>{{ 'upl.version.col.valid_from' | t }}</th>
-                    <th>{{ 'upl.version.col.valid_to' | t }}</th>
-                    <th>{{ 'upl.version.col.published' | t }}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (v of versions(); track v.version) {
-                    <tr data-testid="upl-version-row">
-                      <td>
-                        <a
-                          class="upl-crumb-link"
-                          [routerLink]="['/upl/sources', sourceId(), 'formats', v.version]"
-                        >{{ v.version }}</a>
-                      </td>
-                      <td>
-                        <ui-badge [variant]="statusVariant(v.status)">{{ versionStatusKey[v.status] | t }}</ui-badge>
-                      </td>
-                      <td>{{ v.validFrom ? (v.validFrom | date: 'dd.MM.yyyy') : dash }}</td>
-                      <td>{{ v.validTo ? (v.validTo | date: 'dd.MM.yyyy') : dash }}</td>
-                      <td>
-                        @if (v.publishedAt) {
-                          <span>{{ v.publishedBy }}</span>
-                          <span class="upl-muted">{{ v.publishedAt | date: 'dd.MM.yyyy HH:mm' }}</span>
-                        } @else {
-                          <span>{{ dash }}</span>
-                        }
-                      </td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
+              <ui-local-table [rows]="versions()" [config]="versionsConfig()" [sortValues]="versionSortValues" />
             </div>
           </div>
         }
       </section>
+
+      <ng-template #versionCell let-v>
+        <a class="upl-crumb-link" data-testid="upl-version-row" [routerLink]="['/upl/sources', sourceId(), 'formats', v.version]">{{ v.version }}</a>
+      </ng-template>
+      <ng-template #versionStatusCell let-v>
+        <ui-badge [variant]="statusVariant(v.status)">{{ statusKeyOf(v) | t }}</ui-badge>
+      </ng-template>
+      <ng-template #validFromCell let-v>{{ v.validFrom ? (v.validFrom | date: 'dd.MM.yyyy') : dash }}</ng-template>
+      <ng-template #validToCell let-v>{{ v.validTo ? (v.validTo | date: 'dd.MM.yyyy') : dash }}</ng-template>
+      <ng-template #publishedCell let-v>
+        @if (v.publishedAt) {
+          <span>{{ v.publishedBy }}</span>
+          <span class="upl-muted">{{ v.publishedAt | date: 'dd.MM.yyyy HH:mm' }}</span>
+        } @else {
+          <span>{{ dash }}</span>
+        }
+      </ng-template>
+      <ng-template #templateCell let-v>
+        <a class="upl-crumb-link upl-template-link" data-testid="upl-version-template" [href]="templateUrl(v.version)" download
+          [attr.aria-label]="'upl.template.download_named' | t: { version: v.version }">
+          <span class="material-symbols-outlined" aria-hidden="true">download</span>{{ 'upl.template.download' | t }}
+        </a>
+      </ng-template>
 
       <ui-modal
         [isOpen]="isDraftOpen()"
@@ -286,31 +263,18 @@ type DraftMode = 'empty' | 'copy';
         (close)="closeDraftDialog()"
       >
         <div body class="upl-draft-body">
-          <label class="upl-radio">
-            <input
-              type="radio"
-              name="uplDraftMode"
-              data-testid="upl-draft-mode-empty"
-              [checked]="draftMode() === 'empty'"
-              (change)="draftMode.set('empty')"
-            />
-            <span>{{ 'upl.version.draft_empty' | t }}</span>
-          </label>
+          <smt-radio-group
+            data-testid="upl-draft-mode"
+            [options]="draftModes()"
+            [value]="draftMode()"
+            [smtAriaLabel]="'upl.version.new_draft' | t"
+            (valueChange)="draftMode.set($event ?? 'empty')" />
 
           @if (copyCandidates().length > 0) {
-            <label class="upl-radio">
-              <input
-                type="radio"
-                name="uplDraftMode"
-                data-testid="upl-draft-mode-copy"
-                [checked]="draftMode() === 'copy'"
-                (change)="draftMode.set('copy')"
-              />
-              <span>{{ 'upl.version.draft_copy' | t }}</span>
-            </label>
             <select
               class="form-select"
               data-testid="upl-draft-copy-from"
+              [attr.aria-label]="'upl.version.draft_copy' | t"
               [disabled]="draftMode() !== 'copy'"
               [ngModel]="copyFrom()"
               (ngModelChange)="copyFrom.set($event)"
@@ -438,12 +402,6 @@ type DraftMode = 'empty' | 'copy';
       flex-direction: column;
       gap: 0.75rem;
     }
-    .upl-radio {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      color: var(--text-main);
-    }
     .upl-skeleton {
       display: flex;
       flex-direction: column;
@@ -478,7 +436,56 @@ export class SourceCardComponent {
 
   readonly sourceId = signal<string | null>(null);
   readonly source = signal<UplSource | null>(null);
+  /** The translated message for a field's error code, or nothing; smt-control links it to the field. */
+  fieldErrorText(key: string): string {
+    const code = this.fieldErrors()[key];
+    return code ? this.i18n.translate(code) : '';
+  }
+
   readonly versions = signal<UplVersionItem[]>([]);
+
+  private readonly versionCell = viewChild.required<TemplateRef<unknown>>('versionCell');
+  private readonly versionStatusCell = viewChild.required<TemplateRef<unknown>>('versionStatusCell');
+  private readonly validFromCell = viewChild.required<TemplateRef<unknown>>('validFromCell');
+  private readonly validToCell = viewChild.required<TemplateRef<unknown>>('validToCell');
+  private readonly publishedCell = viewChild.required<TemplateRef<unknown>>('publishedCell');
+  private readonly templateCell = viewChild.required<TemplateRef<unknown>>('templateCell');
+
+  /** All versions of a source are loaded, so a header click sorts them all. */
+  readonly versionSortValues = {
+    version: (v: UplVersionItem) => v.version,
+    status: (v: UplVersionItem) => v.status,
+    validFrom: (v: UplVersionItem) => v.validFrom,
+    validTo: (v: UplVersionItem) => v.validTo,
+    published: (v: UplVersionItem) => v.publishedAt
+  };
+
+  readonly versionsConfig = computed<TableConfig<UplVersionItem>>(() => {
+    const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
+    const cell = (template: Signal<TemplateRef<unknown>>) => ({ type: 'templateRef' as const, value: template });
+    return {
+      trackBy: (_index, v) => v.version,
+      ariaLabel: this.i18n.translate('upl.version.title'),
+      layout: 'fit',
+      columns: {
+        version: { header: header('upl.version.col.version'), content: cell(this.versionCell), width: '100px' },
+        status: { header: header('upl.version.col.status'), content: cell(this.versionStatusCell), width: '150px' },
+        validFrom: { header: header('upl.version.col.valid_from'), content: cell(this.validFromCell), width: '140px' },
+        validTo: { header: header('upl.version.col.valid_to'), content: cell(this.validToCell), width: '140px' },
+        published: { header: header('upl.version.col.published'), content: cell(this.publishedCell) },
+        template: { header: header('upl.template.column'), content: cell(this.templateCell), width: '170px' }
+      },
+      columnsOrder: ['version', 'status', 'validFrom', 'validTo', 'published', 'template']
+    };
+  });
+
+  /** The supplier's file for a version, in the reader's language; the browser downloads it with the session cookie. */
+  templateUrl(version: number): string {
+    const id = encodeURIComponent(this.sourceId() ?? '');
+    const lang = encodeURIComponent(this.i18n.currentLang());
+    return `/api/v1/upl/sources/${id}/format-versions/${version}/template?lang=${lang}`;
+  }
+
   readonly isLoading = signal(true);
   readonly loadError = signal(false);
   readonly notFound = signal(false);
@@ -497,6 +504,11 @@ export class SourceCardComponent {
 
   readonly canEdit = computed(() => this.permissions.hasPermission('upl.sources', 'edit'));
   readonly draftVersion = computed(() => this.versions().find(v => v.status === 'draft') ?? null);
+  /** A copy is offered only when there is a version to copy. */
+  readonly draftModes = computed<SMTRadioOption<DraftMode>[]>(() => [
+    { value: 'empty', label: this.i18n.translate('upl.version.draft_empty') },
+    ...(this.copyCandidates().length > 0 ? [{ value: 'copy' as const, label: this.i18n.translate('upl.version.draft_copy') }] : [])
+  ]);
   readonly copyCandidates = computed(() =>
     this.versions()
       .filter(v => v.status === 'published' || v.status === 'superseded')
@@ -548,6 +560,10 @@ export class SourceCardComponent {
 
   activeVersionLabel(source: UplSource): string {
     return this.i18n.translate('upl.card.active_version', { version: source.lastPublishedVersion ?? 0 });
+  }
+
+  statusKeyOf(version: UplVersionItem): string {
+    return this.versionStatusKey[version.status];
   }
 
   statusVariant(status: UplVersionStatus): 'success' | 'info' | 'neutral' {

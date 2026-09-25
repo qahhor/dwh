@@ -10,6 +10,33 @@ import { AuthService } from '../../core/services/auth.service';
 import { PermissionService } from '../../core/services/permission.service';
 import { ToastService } from '../../core/services/toast.service';
 import { FileDetail, FilesComponent, StorageStats } from './files.component';
+import { QueryListMeta } from '../../core/models/query-meta.models';
+import { QueryMetaService } from '../../core/services/query-meta.service';
+import { ListViewsApi } from '../../shared/list-views/list-views';
+
+const field = (key: string, labelKey: string, type: QueryListMeta['fields'][number]['type'], extra: Partial<QueryListMeta['fields'][number]> = {}) =>
+  ({ key, labelKey, type, ops: ['eq'], sortable: false, nullable: false, defaultVisible: true, enumValues: [], enumLabelPrefix: null, ...extra }) as QueryListMeta['fields'][number];
+
+/** What `query-meta/mf.files` answers. */
+const FILES_META: QueryListMeta = {
+  code: 'mf.files', defaultSort: '-createdAt', defaultLimit: 50, maxLimit: 200, maxConditions: 20, maxInValues: 100,
+  fields: [
+    field('originalName', 'files.imya_fayla', 'text', { sortable: true }),
+    field('sizeBytes', 'files.razmer', 'number', { sortable: true }),
+    field('mimeType', 'files.tip_mime', 'text'),
+    field('creatorName', 'files.zagruzil', 'text', { nullable: true }),
+    field('createdAt', 'files.data_zagruzki', 'instant', { sortable: true })
+  ]
+};
+
+const REGISTRY_PROVIDERS = [
+  { provide: QueryMetaService, useValue: { get: () => of(FILES_META) } },
+  { provide: ListViewsApi, useValue: { list: () => of([]), create: vi.fn(), update: vi.fn(), remove: vi.fn() } }
+];
+
+function keyset<T>(items: T[], nextCursor: string | null = null) {
+  return { items, nextCursor, hasMore: nextCursor !== null, totalEstimated: items.length };
+}
 
 describe('FilesComponent UI contracts', () => {
   async function createFixture() {
@@ -17,7 +44,8 @@ describe('FilesComponent UI contracts', () => {
       imports: [FilesComponent],
       providers: [
         provideRouter([]),
-        { provide: ApiService, useValue: { get: vi.fn(() => of([])), delete: vi.fn(() => of({})) } },
+        ...REGISTRY_PROVIDERS,
+        { provide: ApiService, useValue: { get: vi.fn(() => of(keyset([]))), delete: vi.fn(() => of({})) } },
         { provide: PermissionService, useValue: { hasPermission: () => true } },
         { provide: ToastService, useValue: { success: vi.fn(), error: vi.fn() } }
       ]
@@ -46,7 +74,7 @@ describe('FilesComponent UI contracts', () => {
     expect(fixture.nativeElement.querySelector('label[for="file-search"]')).not.toBeNull();
     const region = fixture.nativeElement.querySelector('.table-container[role="region"]') as HTMLElement;
     expect(region.tabIndex).toBe(0);
-    expect(region.querySelector('table')?.getAttribute('aria-label')).toBe('Список файлов');
+    expect(region.querySelector('[role="table"]')?.getAttribute('aria-label')).toBe('Список файлов');
     expect(fixture.nativeElement.querySelector('.file-name-cell')?.tagName).toBe('BUTTON');
     expect(fixture.nativeElement.querySelector('button[aria-label="Удалить файл report.pdf"]')).not.toBeNull();
   });
@@ -94,7 +122,7 @@ describe('FilesComponent request and deletion mechanics', () => {
   async function createFixture(permissions = ['platform.files.delete'], initialFiles?: FileDetail[]) {
     await TestBed.configureTestingModule({
       imports: [FilesComponent],
-      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])]
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([]), ...REGISTRY_PROVIDERS]
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
     TestBed.inject(AuthService).currentUser.set(user);
@@ -105,7 +133,7 @@ describe('FilesComponent request and deletion mechanics', () => {
     const initialList = http.expectOne(request => request.url === '/api/v1/files');
     if (initialFiles) {
       initialStats.flush(stats);
-      initialList.flush(initialFiles);
+      initialList.flush(keyset(initialFiles));
       fixture.detectChanges();
     }
     return {
@@ -119,8 +147,8 @@ describe('FilesComponent request and deletion mechanics', () => {
     initialStats.flush(stats);
     component.setScope('mine');
     const latest = http.expectOne(request => request.url === '/api/v1/files' && request.params.get('scope') === 'mine');
-    latest.flush([file(2)]);
-    if (!initialList.cancelled) initialList.flush([file(1)]);
+    latest.flush(keyset([file(2)]));
+    if (!initialList.cancelled) initialList.flush(keyset([file(1)]));
     fixture.detectChanges();
 
     expect(host.querySelector('.primary-name')?.textContent).toBe('report-2.pdf');
@@ -138,13 +166,13 @@ describe('FilesComponent request and deletion mechanics', () => {
 
     expect(component.isLoading()).toBe(true);
     expect(toast.toasts()).toEqual([]);
-    latest.flush([file(2)]);
+    latest.flush(keyset([file(2)]));
     expect(component.files().map(item => item.id)).toEqual(['2']);
   });
 
   it('keeps the newest quota response when refresh requests overlap', async () => {
     const { component, initialList, initialStats } = await createFixture();
-    initialList.flush([]);
+    initialList.flush(keyset([]));
     component.loadStats();
     http.expectOne('/api/v1/files/storage/stats').flush({ ...stats, totalFilesCount: 3 });
     if (!initialStats.cancelled) initialStats.flush(stats);
@@ -160,114 +188,117 @@ describe('FilesComponent request and deletion mechanics', () => {
     expect(initialStats.cancelled).toBe(true);
   });
 
-  it('starts a submitted search on page one even when both result sets have several pages', async () => {
-    const rows = Array.from({ length: 31 }, (_, index) => file(index + 1));
-    const { component, fixture, host } = await createFixture(undefined, rows);
-    component.currentPage = 2;
-    fixture.detectChanges();
+  it('a submitted search asks the server for the first page with q and no cursor', async () => {
+    const { fixture, host } = await createFixture(undefined, [file(1)]);
     const input = host.querySelector('#file-search') as HTMLInputElement;
     input.value = 'report';
     input.dispatchEvent(new Event('input'));
     input.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', bubbles: true }));
-    http.expectOne(request => request.url === '/api/v1/files' && request.params.get('q') === 'report').flush(rows);
+    const request = http.expectOne(req => req.url === '/api/v1/files' && req.params.get('q') === 'report');
+    expect(request.request.params.has('cursor')).toBe(false);
+    expect(request.request.params.get('sort')).toBe('-createdAt');
+    request.flush(keyset([file(7)]));
     fixture.detectChanges();
 
-    expect(component.currentPage).toBe(1);
-    expect(host.querySelector('.primary-name')?.textContent).toBe('report-1.pdf');
+    expect(host.querySelector('.primary-name')?.textContent).toBe('report-7.pdf');
   });
 
-  it('clearing search returns to page one and omits the previous query', async () => {
-    const rows = Array.from({ length: 31 }, (_, index) => file(index + 1));
-    const { component, fixture, host } = await createFixture(undefined, rows);
+  it('clearing search omits the previous query', async () => {
+    const { component, fixture, host } = await createFixture(undefined, [file(1)]);
     component.searchQuery = 'report';
-    component.currentPage = 2;
     fixture.detectChanges();
     (host.querySelector('.clear-btn') as HTMLButtonElement).click();
-    const request = http.expectOne(request => request.url === '/api/v1/files');
+    const request = http.expectOne(req => req.url === '/api/v1/files');
     expect(request.request.params.has('q')).toBe(false);
-    request.flush(rows);
+    request.flush(keyset([]));
     fixture.detectChanges();
-
-    expect(component.currentPage).toBe(1);
-    expect(host.querySelector('.primary-name')?.textContent).toBe('report-1.pdf');
-  });
-
-  it('clamps a refreshed page after rows disappear and returns empty results to page one', async () => {
-    const rows = Array.from({ length: 31 }, (_, index) => file(index + 1));
-    const { component, fixture, host } = await createFixture(undefined, rows);
-    component.currentPage = 3;
-    component.loadFiles();
-    http.expectOne(request => request.url === '/api/v1/files').flush(rows.slice(0, 16));
-    fixture.detectChanges();
-
-    expect(component.currentPage).toBe(2);
-    expect(host.querySelector('.primary-name')?.textContent).toBe('report-16.pdf');
-    component.loadFiles();
-    http.expectOne(request => request.url === '/api/v1/files').flush([]);
-    fixture.detectChanges();
-    expect(component.currentPage).toBe(1);
     expect(host.querySelector('.empty-state-box')).not.toBeNull();
   });
 
-  it('sends one DELETE for repeated confirmation before the view has updated', async () => {
-    const { fixture, host } = await createFixture(undefined, [file(1)]);
+  it('pages through the whole list with the server cursor and sorts it by a header click', async () => {
+    const { fixture, host } = await createFixture(undefined, []);
+    fixture.componentInstance.loadFiles();
+    http.expectOne(req => req.url === '/api/v1/files').flush(keyset([file(1)], 'cursor-2'));
+    fixture.detectChanges();
+
+    (host.querySelector('button[aria-label="Следующая страница"]') as HTMLButtonElement).click();
+    const next = http.expectOne(req => req.url === '/api/v1/files' && req.params.get('cursor') === 'cursor-2');
+    next.flush(keyset([file(2)]));
+    fixture.detectChanges();
+    expect(host.querySelector('.primary-name')?.textContent).toBe('report-2.pdf');
+
+    const sizeHeader = [...host.querySelectorAll('[role="columnheader"]')].find(cell => cell.textContent?.includes('Размер'));
+    sizeHeader?.querySelector('smt-cell-header')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    const sorted = http.expectOne(req => req.url === '/api/v1/files' && req.params.get('sort') === 'sizeBytes');
+    expect(sorted.request.params.has('cursor')).toBe(false);
+    sorted.flush(keyset([file(3)]));
+  });
+
+  /** Opens the delete question for the first file; the dialog lives in the overlay, outside the page. */
+  async function openDelete(fixture: { detectChanges(): void; whenStable(): Promise<unknown> }, host: HTMLElement): Promise<HTMLElement> {
     (host.querySelector('.delete-btn') as HTMLButtonElement).click();
     fixture.detectChanges();
-    const confirm = host.querySelector('.modal-footer .btn-danger') as HTMLButtonElement;
-    confirm.click();
-    confirm.click();
+    await fixture.whenStable();
+    return document.querySelector('.smt-modal-confirm') as HTMLElement;
+  }
+  const dialogButtons = () => [...document.querySelectorAll<HTMLButtonElement>('.smt-modal-confirm button')];
+  const yes = () => dialogButtons().at(-1)!;
+
+  afterEach(() => document.querySelectorAll('.cdk-overlay-container').forEach(node => node.remove()));
+
+  it('asks in an alert dialog and sends one DELETE however often Yes is pressed', async () => {
+    const { fixture, host } = await createFixture(undefined, [file(1)]);
+    const dialog = await openDelete(fixture, host);
+
+    const pane = dialog.closest('[role="alertdialog"]') as HTMLElement;
+    expect(document.getElementById(pane.getAttribute('aria-describedby')!)?.textContent).toContain('Удалить файл «report-1.pdf»?');
+    yes().click();
+    yes().click();
     const requests = http.match({ method: 'DELETE', url: '/api/v1/files/1' });
 
     expect(requests).toHaveLength(1);
     fixture.detectChanges();
-    expect(confirm.disabled).toBe(true);
-    expect(confirm.getAttribute('aria-busy')).toBe('true');
+    expect(yes().disabled).toBe(true);
+    expect(yes().getAttribute('aria-busy')).toBe('true');
     requests[0].flush({ detail: 'Retry later' }, { status: 503, statusText: 'Unavailable' });
   });
 
-  it.each(['cancel', 'escape', 'backdrop', 'target change'])(
-    'keeps the original deletion visible while pending after %s', async action => {
-      const { component, fixture, host } = await createFixture(undefined, [file(1), file(2)]);
-      (host.querySelector('.delete-btn') as HTMLButtonElement).click();
-      fixture.detectChanges();
-      (host.querySelector('.modal-footer .btn-danger') as HTMLButtonElement).click();
-      const request = http.expectOne({ method: 'DELETE', url: '/api/v1/files/1' });
-      fixture.detectChanges();
-      if (action === 'cancel') (host.querySelector('.modal-footer .btn-secondary') as HTMLButtonElement).click();
-      if (action === 'escape') document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
-      if (action === 'backdrop') (host.querySelector('.modal-backdrop') as HTMLElement).click();
-      if (action === 'target change') component.confirmDeleteFile(file(2));
-      fixture.detectChanges();
-
-      expect(component.fileToDelete?.id).toBe('1');
-      expect(host.querySelector('[role="dialog"] .modal-body strong')?.textContent).toBe('report-1.pdf');
-      expect(host.querySelector('.modal-close')).toBeNull();
-      request.flush({ detail: 'Retry later' }, { status: 503, statusText: 'Unavailable' });
-    }
-  );
-
-  it('shows one server error, preserves the target and permits a successful retry', async () => {
-    const { component, fixture, host, toast } = await createFixture(undefined, [file(1)]);
-    (host.querySelector('.delete-btn') as HTMLButtonElement).click();
+  it.each(['decline', 'escape', 'backdrop'])('keeps the dialog while the deletion runs after %s', async action => {
+    const { fixture, host } = await createFixture(undefined, [file(1), file(2)]);
+    const dialog = await openDelete(fixture, host);
+    yes().click();
+    const request = http.expectOne({ method: 'DELETE', url: '/api/v1/files/1' });
     fixture.detectChanges();
-    (host.querySelector('.modal-footer .btn-danger') as HTMLButtonElement).click();
+
+    if (action === 'decline') dialogButtons()[0].click();
+    if (action === 'escape') dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    if (action === 'backdrop') (document.querySelector('.smt-modal-backdrop') as HTMLElement).click();
+    fixture.detectChanges();
+
+    expect(document.querySelector('.smt-modal-confirm')).not.toBeNull();
+    request.flush({ detail: 'Retry later' }, { status: 503, statusText: 'Unavailable' });
+  });
+
+  it('shows the server reason in the dialog instead of a toast and deletes on retry', async () => {
+    const { fixture, host, toast } = await createFixture(undefined, [file(1)]);
+    await openDelete(fixture, host);
+    yes().click();
     http.expectOne({ method: 'DELETE', url: '/api/v1/files/1' })
       .flush({ detail: 'Deletion temporarily unavailable' }, { status: 503, statusText: 'Unavailable' });
-    fixture.detectChanges();
+    TestBed.tick(); // the dialog is attached to the application, not to this fixture
 
-    expect(toast.toasts().map(item => ({ type: item.type, message: item.message }))).toEqual([
-      { type: 'error', message: 'Deletion temporarily unavailable' }
-    ]);
-    expect(host.querySelector('.modal-body strong')?.textContent).toBe('report-1.pdf');
-    expect((host.querySelector('.modal-footer .btn-danger') as HTMLButtonElement).disabled).toBe(false);
-    (host.querySelector('.modal-footer .btn-danger') as HTMLButtonElement).click();
+    expect(document.querySelector('.smt-modal-confirm [role="alert"]')?.textContent?.trim()).toBe('Deletion temporarily unavailable');
+    expect(toast.toasts()).toEqual([]);
+    expect(yes().disabled).toBe(false);
+
+    yes().click();
     http.expectOne({ method: 'DELETE', url: '/api/v1/files/1' }).flush(null, { status: 204, statusText: 'No Content' });
     http.expectOne('/api/v1/files/storage/stats').flush({ ...stats, totalFilesCount: 0 });
-    http.expectOne(request => request.url === '/api/v1/files').flush([]);
+    http.expectOne(request => request.url === '/api/v1/files').flush(keyset([]));
     fixture.detectChanges();
+    await fixture.whenStable();
 
-    expect(component.fileToDelete).toBeNull();
-    expect(host.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.querySelector('.smt-modal-confirm')).toBeNull();
     expect(host.querySelector('.primary-name')).toBeNull();
     expect(toast.toasts().filter(item => item.type === 'success')).toHaveLength(1);
   });
@@ -282,14 +313,14 @@ describe('FilesComponent request and deletion mechanics', () => {
     expect(Array.from(host.querySelectorAll('.delete-btn'), button => button.getAttribute('aria-label'))).toEqual(visible);
   });
 
-  it('does not dispatch a deletion if permission was revoked after confirmation opened', async () => {
-    const { component, fixture, host } = await createFixture(undefined, [file(1)]);
-    (host.querySelector('.delete-btn') as HTMLButtonElement).click();
-    fixture.detectChanges();
+  it('does not delete when the right was revoked while the question was open', async () => {
+    const { fixture, host } = await createFixture(undefined, [file(1)]);
+    await openDelete(fixture, host);
     TestBed.inject(PermissionService).setPermissions([]);
-    component.executeDeleteFile();
+    yes().click();
+    fixture.detectChanges();
 
     expect(http.match(request => request.method === 'DELETE')).toHaveLength(0);
-    expect(component.fileToDelete?.id).toBe('1');
+    expect(document.querySelector('.smt-modal-confirm [role="alert"]')?.textContent?.trim()).toBe('У вас больше нет права удалить этот файл.');
   });
 });

@@ -1,3 +1,4 @@
+import { IdleLockDialogComponent } from './components/idle-lock-dialog.component';
 import { Component, DestroyRef, ElementRef, HostListener, OnDestroy, ViewChild, computed, effect, signal, inject } from '@angular/core';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -34,6 +35,7 @@ import { AppShellFlyoutService } from './services/app-shell-flyout.service';
   selector: 'app-shell',
   standalone: true,
   imports: [
+    IdleLockDialogComponent,
     CommonModule,
     RouterModule,
     TranslatePipe,
@@ -446,10 +448,6 @@ export class AppShellComponent implements OnDestroy {
 
 
 
-  getUserInitial(): string {
-    const user = this.authService.currentUser();
-    return user && user.name ? user.name.charAt(0).toUpperCase() : 'U';
-  }
 
   asLang(l: string): Language {
     return l as Language;

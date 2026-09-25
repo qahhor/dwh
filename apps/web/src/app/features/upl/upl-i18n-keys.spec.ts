@@ -17,7 +17,7 @@ const NOT_KEYS = new Set(['upl.sources', 'upl.packages']);
 const VALIDATOR_CODES = ['NotBlank', 'NotNull', 'Pattern', 'Min', 'Max', 'Size', 'Positive', 'PositiveOrZero'];
 
 function sourceFiles(): string[] {
-  const own = readdirSync(UPL_DIR, { recursive: true })
+  const own = readdirSync(UPL_DIR, { recursive: true, encoding: 'utf8' })
     .map(name => `${UPL_DIR}/${name.replace(/\\/g, '/')}`)
     .filter(name => name.endsWith('.ts') && !name.endsWith('.spec.ts') && !name.endsWith('.d.ts'));
   return [...own, ...SHELL_FILES];

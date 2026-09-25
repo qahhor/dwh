@@ -11,16 +11,13 @@
     @if (loadError) { <p role="alert">{{ (savedRefreshFailed ? 'iam.data_scope.saved_refresh_error' : 'iam.data_scope.load_error') | t }} {{ loadError.detail }}</p> }
     @if (loaded) {
       @if (!can('assign')) { <p role="status">{{ 'iam.data_scope.view_only' | t }}</p> }
-      <fieldset [disabled]="pending || !can('assign')">
-        <legend class="sr-only">{{ 'iam.data_scope.rule' | t }}</legend>
-        @for (option of options; track option.value) {
-          <label class="option" [for]="'role-scope-' + roleId + '-' + option.value">
-            <input [id]="'role-scope-' + roleId + '-' + option.value" type="radio" [name]="'role-scope-' + roleId"
-              [value]="option.value" [checked]="selectedRule() === option.value" [disabled]="pending || !can('assign')" (change)="selectRule(option.value)">
-            <span><strong>{{ option.labelKey | t }}</strong><small>{{ option.descriptionKey | t }}</small></span>
-          </label>
-        }
-      </fieldset>
+      <smt-radio-group
+        smtAppearance="cards"
+        [options]="ruleOptions()"
+        [value]="selectedRule()"
+        [disabled]="pending || !can('assign')"
+        [smtAriaLabel]="'iam.data_scope.rule' | t"
+        (valueChange)="onRuleChosen($event)" />
       <p class="warning">{{ 'iam.data_scope.widest_rule_warning' | t }}</p>
       @if (saveError) { <p role="alert">{{ saveError.detail || ('iam.data_scope.save_error' | t) }}</p> }
       @if (can('assign')) {

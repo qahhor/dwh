@@ -1,18 +1,22 @@
-import { Component, Input, computed, signal } from '@angular/core';
+import { Component, Input, Signal, TemplateRef, computed, inject, signal, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { TranslatePipe } from '../../../core/services/i18n.service';
+import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
-import { UserWorkload, WorkloadSortColumn, SortDirection } from '../analytics.models';
+import { UiLocalTableComponent } from '../../../shared/ui/ui-local-table.component';
+import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
+import { UserWorkload } from '../analytics.models';
+import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
 
 @Component({
   selector: 'app-analytics-workload-table',
   standalone: true,
   imports: [
-    CommonModule,
+    SMTAvatarComponent, CommonModule,
     FormsModule,
     TranslatePipe,
-    UiBadgeComponent
+    UiBadgeComponent,
+    UiLocalTableComponent
   ],
   template: `
     <div class="table-card" style="margin-top: 20px;">
@@ -46,89 +50,39 @@ import { UserWorkload, WorkloadSortColumn, SortDirection } from '../analytics.mo
       </div>
 
       <div class="table-scroll" role="region" tabindex="0" [attr.aria-label]="'analytics.utilizaciya_i_zagruzka_komandy' | t">
-        <table>
-          <thead>
-            <tr>
-              <th style="width: 240px;" class="th-sort" [attr.aria-sort]="workloadSortColumn() === 'name' ? (workloadSortDir() === 'asc' ? 'ascending' : 'descending') : null">
-                <button type="button" class="sort-button" (click)="changeWorkloadSort('name')" [attr.aria-pressed]="workloadSortColumn() === 'name'">
-                  {{ 'analytics.sotrudnik' | t }}
-                  <span class="material-symbols-outlined sort-ico" *ngIf="workloadSortColumn() === 'name'" aria-hidden="true">
-                    {{ workloadSortDir() === 'asc' ? 'north' : 'south' }}
-                  </span>
-                </button>
-              </th>
-              <th class="th-sort" [attr.aria-sort]="workloadSortColumn() === 'login' ? (workloadSortDir() === 'asc' ? 'ascending' : 'descending') : null">
-                <button type="button" class="sort-button" (click)="changeWorkloadSort('login')" [attr.aria-pressed]="workloadSortColumn() === 'login'">
-                  {{ 'analytics.login' | t }}
-                  <span class="material-symbols-outlined sort-ico" *ngIf="workloadSortColumn() === 'login'" aria-hidden="true">
-                    {{ workloadSortDir() === 'asc' ? 'north' : 'south' }}
-                  </span>
-                </button>
-              </th>
-              <th class="th-sort" [attr.aria-sort]="workloadSortColumn() === 'assigned' ? (workloadSortDir() === 'asc' ? 'ascending' : 'descending') : null">
-                <button type="button" class="sort-button" (click)="changeWorkloadSort('assigned')" [attr.aria-pressed]="workloadSortColumn() === 'assigned'">
-                  {{ 'analytics.naznacheno_zadach' | t }}
-                  <span class="material-symbols-outlined sort-ico" *ngIf="workloadSortColumn() === 'assigned'" aria-hidden="true">
-                    {{ workloadSortDir() === 'asc' ? 'north' : 'south' }}
-                  </span>
-                </button>
-              </th>
-              <th class="th-sort" [attr.aria-sort]="workloadSortColumn() === 'completed' ? (workloadSortDir() === 'asc' ? 'ascending' : 'descending') : null">
-                <button type="button" class="sort-button" (click)="changeWorkloadSort('completed')" [attr.aria-pressed]="workloadSortColumn() === 'completed'">
-                  {{ 'analytics.zaversheno' | t }}
-                  <span class="material-symbols-outlined sort-ico" *ngIf="workloadSortColumn() === 'completed'" aria-hidden="true">
-                    {{ workloadSortDir() === 'asc' ? 'north' : 'south' }}
-                  </span>
-                </button>
-              </th>
-              <th class="th-sort" [attr.aria-sort]="workloadSortColumn() === 'efficiency' ? (workloadSortDir() === 'asc' ? 'ascending' : 'descending') : null">
-                <button type="button" class="sort-button" (click)="changeWorkloadSort('efficiency')" [attr.aria-pressed]="workloadSortColumn() === 'efficiency'">
-                  {{ 'analytics.effektivnost' | t }}
-                  <span class="material-symbols-outlined sort-ico" *ngIf="workloadSortColumn() === 'efficiency'" aria-hidden="true">
-                    {{ workloadSortDir() === 'asc' ? 'north' : 'south' }}
-                  </span>
-                </button>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let u of filteredWorkload()">
-              <td>
-                <div class="user-cell">
-                  <div class="user-avatar-sm" [style.background-color]="getAvatarBgColor(u.userName)">
-                    {{ getUserInitial(u.userName) }}
-                  </div>
-                  <span class="user-name-text">{{ u.userName }}</span>
-                </div>
-              </td>
-              <td>
-                <span class="mono badge badge-neutral">{{ u.userLogin }}</span>
-              </td>
-              <td style="font-weight: 600;">{{ u.assignedTasks }}</td>
-              <td class="text-success" style="font-weight: 600;">{{ u.completedTasks }}</td>
-              <td>
-                <div class="efficiency-cell">
-                  <ui-badge [variant]="u.assignedTasks > 0 && (u.completedTasks / u.assignedTasks) >= 0.7 ? 'success' : 'neutral'">
-                    {{ u.assignedTasks > 0 ? ((u.completedTasks / u.assignedTasks) * 100 | number:'1.0-0') : 0 }}%
-                  </ui-badge>
-                  <div class="eff-mini-bar-bg" *ngIf="u.assignedTasks > 0">
-                    <div class="eff-mini-bar-fill"
-                      [style.width.%]="getEfficiencyPercent(u)"
-                      [style.background-color]="(u.completedTasks / u.assignedTasks) >= 0.7 ? 'var(--success)' : 'var(--primary)'">
-                    </div>
-                  </div>
-                </div>
-              </td>
-            </tr>
-            <tr *ngIf="filteredWorkload().length === 0 && !loading && !error">
-              <td colspan="5" class="empty">
-                <span>{{ 'analytics.dannye_po_zagruzke_sotrudnikov_otsutstvuyut' | t }}</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <ui-local-table [rows]="filteredWorkload()" [config]="config()" [sortValues]="sortValues" [emptyTemplate]="emptyWorkload" />
       </div>
     </div>
+
+    <ng-template #userCell let-u>
+      <div class="user-cell">
+        <smt-avatar [name]="u.userName" smtSize="sm" />
+        <span class="user-name-text">{{ u.userName }}</span>
+      </div>
+    </ng-template>
+    <ng-template #loginCell let-u><span class="mono badge badge-neutral">{{ u.userLogin }}</span></ng-template>
+    <ng-template #assignedCell let-u><span class="num-strong">{{ u.assignedTasks }}</span></ng-template>
+    <ng-template #completedCell let-u><span class="num-strong text-success">{{ u.completedTasks }}</span></ng-template>
+    <ng-template #efficiencyCell let-u>
+      <div class="efficiency-cell">
+        <ui-badge [variant]="efficiencyOf(u) >= 0.7 ? 'success' : 'neutral'">
+          {{ getEfficiencyPercent(u) }}%
+        </ui-badge>
+        @if (u.assignedTasks > 0) {
+          <div class="eff-mini-bar-bg" aria-hidden="true">
+            <div class="eff-mini-bar-fill"
+              [style.width.%]="getEfficiencyPercent(u)"
+              [style.background-color]="efficiencyOf(u) >= 0.7 ? 'var(--success)' : 'var(--primary)'">
+            </div>
+          </div>
+        }
+      </div>
+    </ng-template>
+    <ng-template #emptyWorkload>
+      @if (!loading && !error) {
+        <p class="empty">{{ 'analytics.dannye_po_zagruzke_sotrudnikov_otsutstvuyut' | t }}</p>
+      }
+    </ng-template>
   `,
   styles: [`
     .table-card {
@@ -212,70 +166,7 @@ import { UserWorkload, WorkloadSortColumn, SortDirection } from '../analytics.mo
       outline-offset: -2px;
     }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-    }
-
-    th {
-      text-align: left;
-      padding: 10px 14px;
-      background-color: var(--bg-hover);
-      color: var(--text-muted);
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-      border-bottom: 1px solid var(--border-color);
-    }
-
-    td {
-      padding: 10px 14px;
-      border-bottom: 1px solid var(--border-color);
-      color: var(--text-main);
-    }
-
-    tr:last-child td {
-      border-bottom: none;
-    }
-
-    tr:hover td {
-      background-color: var(--bg-hover);
-    }
-
-    .th-sort {
-      padding: 0 !important;
-    }
-    .sort-button {
-      width: 100%;
-      border: 0;
-      background: transparent;
-      color: inherit;
-      cursor: pointer;
-      font: inherit;
-      letter-spacing: inherit;
-      padding: 8px 12px;
-      text-align: left;
-      text-transform: inherit;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      user-select: none;
-      transition: color 0.15s ease;
-    }
-    .sort-button:hover {
-      color: var(--primary);
-    }
-    .sort-button:focus-visible {
-      outline: 2px solid var(--primary);
-      outline-offset: -2px;
-      border-radius: var(--radius-xs);
-    }
-    .sort-ico {
-      font-size: 14px;
-      vertical-align: middle;
-    }
+    .num-strong { font-weight: 600; }
 
     .user-cell {
       display: flex;
@@ -283,18 +174,6 @@ import { UserWorkload, WorkloadSortColumn, SortDirection } from '../analytics.mo
       gap: 8px;
     }
 
-    .user-avatar-sm {
-      width: 26px;
-      height: 26px;
-      border-radius: 50%;
-      background-color: var(--primary-subtle);
-      color: var(--primary-text);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 11px;
-      font-weight: 700;
-    }
 
     .user-name-text {
       font-weight: 600;
@@ -336,7 +215,7 @@ import { UserWorkload, WorkloadSortColumn, SortDirection } from '../analytics.mo
       transition: width 0.2s ease;
     }
 
-    td.empty {
+    .empty {
       padding: 30px;
       text-align: center;
       color: var(--text-muted);
@@ -357,9 +236,18 @@ export class AnalyticsWorkloadTableComponent {
   @Input() error = '';
 
   searchUserQuery = signal('');
-  workloadSortColumn = signal<WorkloadSortColumn>('assigned');
-  workloadSortDir = signal<SortDirection>('desc');
 
+  private readonly i18n = inject(I18nService);
+  private readonly userCell = viewChild.required<TemplateRef<unknown>>('userCell');
+  private readonly loginCell = viewChild.required<TemplateRef<unknown>>('loginCell');
+  private readonly assignedCell = viewChild.required<TemplateRef<unknown>>('assignedCell');
+  private readonly completedCell = viewChild.required<TemplateRef<unknown>>('completedCell');
+  private readonly efficiencyCell = viewChild.required<TemplateRef<unknown>>('efficiencyCell');
+
+  /**
+   * The people matching the search, busiest first (by name on a tie). This is
+   * the order the table falls back to when a header click switches sorting off.
+   */
   filteredWorkload = computed(() => {
     const query = this.searchUserQuery().trim().toLowerCase();
     let list = this._workload();
@@ -369,62 +257,44 @@ export class AnalyticsWorkloadTableComponent {
         u.userLogin.toLowerCase().includes(query)
       );
     }
-    const col = this.workloadSortColumn();
-    const dir = this.workloadSortDir() === 'asc' ? 1 : -1;
-
-    return [...list].sort((a, b) => {
-      let diff = 0;
-      switch (col) {
-        case 'name':
-          diff = a.userName.localeCompare(b.userName);
-          break;
-        case 'login':
-          diff = a.userLogin.localeCompare(b.userLogin);
-          break;
-        case 'assigned':
-          diff = a.assignedTasks - b.assignedTasks;
-          break;
-        case 'completed':
-          diff = a.completedTasks - b.completedTasks;
-          break;
-        case 'efficiency': {
-          const effA = a.assignedTasks > 0 ? a.completedTasks / a.assignedTasks : 0;
-          const effB = b.assignedTasks > 0 ? b.completedTasks / b.assignedTasks : 0;
-          diff = effA - effB;
-          break;
-        }
-      }
-      return diff !== 0 ? diff * dir : a.userName.localeCompare(b.userName);
-    });
+    return [...list].sort((a, b) => b.assignedTasks - a.assignedTasks || a.userName.localeCompare(b.userName));
   });
 
-  changeWorkloadSort(col: WorkloadSortColumn): void {
-    if (this.workloadSortColumn() === col) {
-      this.workloadSortDir.update(d => (d === 'asc' ? 'desc' : 'asc'));
-    } else {
-      this.workloadSortColumn.set(col);
-      this.workloadSortDir.set(col === 'name' || col === 'login' ? 'asc' : 'desc');
-    }
+  /** The whole team is loaded, so a header click sorts every person, not a page. */
+  readonly sortValues = {
+    name: (u: UserWorkload) => u.userName,
+    login: (u: UserWorkload) => u.userLogin,
+    assigned: (u: UserWorkload) => u.assignedTasks,
+    completed: (u: UserWorkload) => u.completedTasks,
+    efficiency: (u: UserWorkload) => this.efficiencyOf(u)
+  };
+
+  readonly config = computed<TableConfig<UserWorkload>>(() => {
+    const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
+    const cell = (template: Signal<TemplateRef<unknown>>) => ({ type: 'templateRef' as const, value: template });
+    return {
+      trackBy: (_index, u) => u.userId,
+      ariaLabel: this.i18n.translate('analytics.utilizaciya_i_zagruzka_komandy'),
+      layout: 'fit',
+      columns: {
+        name: { header: header('analytics.sotrudnik'), content: cell(this.userCell), width: '240px' },
+        login: { header: header('analytics.login'), content: cell(this.loginCell) },
+        assigned: { header: header('analytics.naznacheno_zadach'), content: cell(this.assignedCell), align: 'right' },
+        completed: { header: header('analytics.zaversheno'), content: cell(this.completedCell), align: 'right' },
+        efficiency: { header: header('analytics.effektivnost'), content: cell(this.efficiencyCell) }
+      },
+      columnsOrder: ['name', 'login', 'assigned', 'completed', 'efficiency']
+    };
+  });
+
+  /** Share of assigned tasks that are done; nobody assigned counts as none done. */
+  efficiencyOf(u: UserWorkload): number {
+    return u.assignedTasks > 0 ? u.completedTasks / u.assignedTasks : 0;
   }
 
   getEfficiencyPercent(u: UserWorkload): number {
-    if (u.assignedTasks <= 0) return 0;
-    return Math.min(100, Math.round((u.completedTasks / u.assignedTasks) * 100));
+    return Math.min(100, Math.round(this.efficiencyOf(u) * 100));
   }
 
-  getAvatarBgColor(name: string): string {
-    const colors = [
-      '#4338ca', '#0369a1', '#047857', '#b45309',
-      '#6d28d9', '#be185d', '#0f766e', '#c2410c'
-    ];
-    let hash = 0;
-    for (let i = 0; i < (name || '').length; i++) {
-      hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return colors[Math.abs(hash) % colors.length];
-  }
 
-  getUserInitial(name: string): string {
-    return (name || '').trim().charAt(0).toUpperCase() || '?';
-  }
 }

@@ -71,11 +71,21 @@ export const TEST_MESSAGES: SMTMessages = {
       thisYear: 'This year',
     },
   },
+  time: {
+    placeholder: 'hh:mm',
+    open: 'Choose a time',
+    clear: 'Clear the time',
+    list: 'Times',
+    invalid: 'Enter a time as hh:mm',
+    range: (min, max) => `Enter a time from ${min} to ${max}`,
+  },
+  textarea: { counter: (count, max) => `${count} of ${max} characters` },
+  tag: { remove: label => `Remove ${label}` },
   common: { close: 'Close', cancel: 'Cancel' },
   table: { noResults: 'No results' },
   dataTable: { selectAll: 'Select all', selectRow: 'Select row' },
   tree: { expandAll: 'Expand all', collapseAll: 'Collapse all' },
-  modalConfirm: { title: 'Confirmation', yes: 'Yes', no: 'No' },
+  modalConfirm: { title: 'Confirmation', yes: 'Yes', no: 'No', failed: 'The action failed. Try again.' },
 };
 
 /** Stub with the Russian day-first date pattern and the en-GB locale for readable, day-first labels. */

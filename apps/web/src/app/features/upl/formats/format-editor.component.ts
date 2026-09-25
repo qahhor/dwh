@@ -412,7 +412,8 @@ export class FormatEditorComponent implements RecordNavigationPage {
           keyMask: trimToNull(column.keyMask),
           keyPadLength: column.keyPadLength,
           keyPadMax: column.keyPadMax,
-          refBookCode: trimToNull(column.refBookCode)
+          refBookCode: trimToNull(column.refBookCode),
+          headerSynonyms: (column.headerSynonyms ?? []).map(name => name.trim()).filter(name => name.length > 0)
         }))
       }))
     };

@@ -2,6 +2,7 @@
  * Per ADR-0015 this copy is ours to change; the commit above is only the
  * base for comparing later work in the kit. See NOTICE. */
 import type { TemplateRef } from '@angular/core';
+import type { Observable } from 'rxjs';
 
 export interface SMTModalData {
   title?: string;
@@ -40,6 +41,8 @@ export interface SMTModalConfig {
   ariaDescribedBy?: string;
   /** `alertdialog` for a question that interrupts the flow. Not in the kit. */
   role?: 'dialog' | 'alertdialog';
+  /** Asked before a backdrop click or Escape closes the dialog; false keeps it open. Not in the kit. */
+  canDismiss?: () => boolean;
 }
 
 /** Config for confirm - prompts user with Yes/No, returns Observable<boolean> */
@@ -61,6 +64,15 @@ export interface SMTModalConfirmConfig {
    * button takes the danger style. Not in the kit.
    */
   destructive?: boolean;
+  /**
+   * The work Yes starts. While it runs the dialog stays open with its buttons
+   * disabled and cannot be dismissed; it closes (and `confirm()` emits true)
+   * when the work completes, and on an error it stays open with the message
+   * from `actionError`, so the person can retry or decline. Not in the kit.
+   */
+  action?: () => Observable<unknown>;
+  /** The message shown when `action` fails; a generic one when not given. Not in the kit. */
+  actionError?: (error: unknown) => string;
   /** Optional callback when Yes is clicked */
   onConfirm?: () => void;
   /** Optional callback when No is clicked */

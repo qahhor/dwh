@@ -1,6 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from '../../../core/services/api.service';
+import { ListQuery } from '../../../core/models/query-meta.models';
+import { toQueryParams } from '../../../core/services/query-meta.service';
 import { KeysetPage } from '../../../core/models/common.models';
 import { UplApiService, UplSource, UplSourceItem } from '../upl-api';
 
@@ -19,7 +21,8 @@ export interface UplPackageItem {
   periodTo: string;
   fileName: string;
   fileSizeBytes: number;
-  uploadedBy: string;
+  /** Absent when the viewer may not see who uploaded (a field right on the server, ADR-0016 2.9). */
+  uploadedBy?: string;
   uploadedAt: string;
   status: UplPackageStatus;
   rowsTotal: number | null;
@@ -62,8 +65,10 @@ export class UplPackagesApiService {
   private readonly api = inject(ApiService);
   private readonly upl = inject(UplApiService);
 
-  list(limit = 50, cursor?: string | null): Observable<KeysetPage<UplPackageItem>> {
-    return this.api.get<KeysetPage<UplPackageItem>>(PACKAGES, { limit, ...(cursor ? { cursor } : {}) }, { notifyError: false });
+  /** Страница загрузок; `query` — фильтр, сортировка и поиск реестра полей (`query-meta/upl.packages`). */
+  list(limit = 50, cursor?: string | null, query?: ListQuery | null): Observable<KeysetPage<UplPackageItem>> {
+    const params = { limit, ...(cursor ? { cursor } : {}), ...toQueryParams(query) };
+    return this.api.get<KeysetPage<UplPackageItem>>(PACKAGES, params, { notifyError: false });
   }
 
   /** `multipart/form-data`: заголовок ставит браузер сам — руками его не задаём, иначе теряется граница частей. */
@@ -74,6 +79,11 @@ export class UplPackagesApiService {
     form.append('periodTo', request.periodTo);
     form.append('file', request.file, request.file.name);
     return this.api.post<UplPackageItem>(PACKAGES, form, { notifyError: false });
+  }
+
+  /** One upload by its id, for a card opened from a link. */
+  get(id: string): Observable<UplPackageItem> {
+    return this.api.get<UplPackageItem>(`${PACKAGES}/${encodeURIComponent(id)}`, undefined, { notifyError: false });
   }
 
   errors(id: string): Observable<UplPackageErrors> {

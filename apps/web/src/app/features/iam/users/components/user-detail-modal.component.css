@@ -23,24 +23,6 @@
 .view-header-card .name { font-size: 15px; font-weight: 600; margin: 0; overflow-wrap: anywhere; }
 .view-header-card .handle { font-size: 12px; color: var(--text-muted); overflow-wrap: anywhere; }
 
-.avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  color: var(--text-inverse);
-  font-size: 11px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.avatar.lg {
-  width: 44px;
-  height: 44px;
-  font-size: 18px;
-}
-
 /* Modal Tabs */
 .modal-tab-bar {
   display: flex;
@@ -215,30 +197,9 @@
       border: 1px solid var(--border-color);
       border-radius: var(--radius-sm);
     }
-    .clean-table.compact {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12px;
-    }
-    .clean-table.compact th {
-      position: sticky;
-      top: 0;
-      background-color: var(--bg-hover);
-      padding: 6px 10px;
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text-muted);
-      border-bottom: 1px solid var(--border-color);
-      text-align: left;
-    }
-    .clean-table.compact td {
-      padding: 6px 10px;
-      border-bottom: 1px solid var(--border-color);
-      color: var(--text-main);
-    }
-    .clean-table.compact tr:last-child td { border-bottom: none; }
 
     .text-truncate {
+      display: block;
       max-width: 250px;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -302,4 +263,11 @@
       .sec-metrics-grid {
         grid-template-columns: repeat(2, 1fr);
       }
+    }
+
+    /* The change history under the profile facts, separated from them. */
+    .user-history {
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border-color);
     }

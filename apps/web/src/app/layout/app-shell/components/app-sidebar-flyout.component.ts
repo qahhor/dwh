@@ -105,6 +105,10 @@ import { NavSection } from '../app-shell.models';
           <span class="material-symbols-outlined flyout-icon" aria-hidden="true">account_circle</span>
           <span class="flyout-label">{{ 'nav.profile' | t }}</span>
         </a>
+        <a routerLink="/exports" class="flyout-item" (click)="profileFlyoutClick.emit()" role="menuitem">
+          <span class="material-symbols-outlined flyout-icon" aria-hidden="true">download</span>
+          <span class="flyout-label">{{ 'nav.exports' | t }}</span>
+        </a>
         <a routerLink="/settings" class="flyout-item" (click)="profileFlyoutClick.emit()" role="menuitem">
           <span class="material-symbols-outlined flyout-icon" aria-hidden="true">settings</span>
           <span class="flyout-label">{{ 'nav.settings' | t }}</span>

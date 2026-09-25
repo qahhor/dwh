@@ -263,20 +263,6 @@
       color: var(--sidebar-text-strong);
     }
 
-    .avatar-circle {
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      background-color: var(--primary);
-      color: var(--on-primary);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 600;
-      font-size: 13px;
-      flex-shrink: 0;
-    }
-
     .user-meta {
       flex: 1;
       min-width: 0;

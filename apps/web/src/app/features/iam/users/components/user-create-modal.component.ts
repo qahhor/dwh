@@ -1,10 +1,13 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, inject, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { TranslatePipe } from '../../../../core/services/i18n.service';
+import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
+import { SMTControlComponent } from '../../../../shared/ui-kit/components/forms/control';
 import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
 import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
-import { SMTSelectComponent, SMTSelectOption } from '../../../../shared/ui-kit/components/forms/select';
+import { SMTDataSelectComponent } from '../../../../shared/ui-kit/components/forms/data-select';
+import { LookupSources } from '../../../../shared/lookups/lookup-sources';
+import { SMTTagGroupComponent, SMTTagOption } from '../../../../shared/ui-kit/components/tag';
 import { UiCustomFieldsComponent } from '../../../../shared/ui/ui-custom-fields.component';
 import { Role } from '../../../../core/models/rbac.models';
 import { CustomField } from '../../../../core/models/custom-field.models';
@@ -13,12 +16,14 @@ import { CustomField } from '../../../../core/models/custom-field.models';
   selector: 'app-user-create-modal',
   standalone: true,
   imports: [
+    SMTControlComponent,
     CommonModule,
     FormsModule,
     TranslatePipe,
     UiModalComponent,
     UiButtonComponent,
-    SMTSelectComponent,
+    SMTDataSelectComponent,
+    SMTTagGroupComponent,
     UiCustomFieldsComponent
   ],
   template: `
@@ -30,26 +35,19 @@ import { CustomField } from '../../../../core/models/custom-field.models';
     >
       <div body class="clean-modal-body">
         <div class="form-grid">
-          <div class="form-group span-2">
-            <label class="clean-label" for="user-create-name">{{ 'iam.fio' | t }} <span class="req">*</span></label>
+          <smt-control class="form-group span-2" [smtLabel]="'iam.fio' | t" [smtError]="isCreateSubmitted && !createForm.name.trim() ? ('iam.ukazhite_fio_polzovatelya' | t) : ''">
             <input
               id="user-create-name"
               name="userCreateName"
               type="text"
               class="clean-input"
               required
-              [attr.aria-invalid]="isCreateSubmitted && !createForm.name.trim()"
-              [attr.aria-describedby]="isCreateSubmitted && !createForm.name.trim() ? 'user-create-name-error' : null"
               [(ngModel)]="createForm.name"
               [placeholder]="'iam.ivanov_ivan_ivanovich' | t"
             />
-            <span id="user-create-name-error" class="field-error" *ngIf="isCreateSubmitted && !createForm.name.trim()">
-              {{ 'iam.ukazhite_fio_polzovatelya' | t }}
-            </span>
-          </div>
+          </smt-control>
 
-          <div class="form-group">
-            <label class="clean-label" for="user-create-login">{{ 'analytics.login' | t }} <span class="req">*</span></label>
+          <smt-control class="form-group" [smtLabel]="'analytics.login' | t" [smtError]="isCreateSubmitted && !createForm.login.trim() ? ('iam.ukazhite_login' | t) : ''">
             <input
               id="user-create-login"
               name="userCreateLogin"
@@ -57,18 +55,12 @@ import { CustomField } from '../../../../core/models/custom-field.models';
               class="clean-input font-mono"
               required
               autocomplete="username"
-              [attr.aria-invalid]="isCreateSubmitted && !createForm.login.trim()"
-              [attr.aria-describedby]="isCreateSubmitted && !createForm.login.trim() ? 'user-create-login-error' : null"
               [(ngModel)]="createForm.login"
               placeholder="ivanov"
             />
-            <span id="user-create-login-error" class="field-error" *ngIf="isCreateSubmitted && !createForm.login.trim()">
-              {{ 'iam.ukazhite_login' | t }}
-            </span>
-          </div>
+          </smt-control>
 
-          <div class="form-group">
-            <label class="clean-label" for="user-create-email">Email <span class="req">*</span></label>
+          <smt-control class="form-group" smtLabel="Email" [smtError]="isCreateSubmitted && !createForm.email.trim() ? ('iam.ukazhite_email' | t) : ''">
             <input
               id="user-create-email"
               name="userCreateEmail"
@@ -76,18 +68,12 @@ import { CustomField } from '../../../../core/models/custom-field.models';
               class="clean-input font-mono"
               required
               autocomplete="email"
-              [attr.aria-invalid]="isCreateSubmitted && !createForm.email.trim()"
-              [attr.aria-describedby]="isCreateSubmitted && !createForm.email.trim() ? 'user-create-email-error' : null"
               [(ngModel)]="createForm.email"
               placeholder="ivanov@company.local"
             />
-            <span id="user-create-email-error" class="field-error" *ngIf="isCreateSubmitted && !createForm.email.trim()">
-              {{ 'iam.ukazhite_email' | t }}
-            </span>
-          </div>
+          </smt-control>
 
-          <div class="form-group">
-            <label class="clean-label" for="user-create-phone">{{ 'iam.telefon.822f9fd' | t }}</label>
+          <smt-control class="form-group" [smtLabel]="'iam.telefon.822f9fd' | t">
             <input
               id="user-create-phone"
               name="userCreatePhone"
@@ -97,31 +83,20 @@ import { CustomField } from '../../../../core/models/custom-field.models';
               [(ngModel)]="createForm.phone"
               placeholder="+998901234567"
             />
-          </div>
+          </smt-control>
 
-          <div class="form-group">
-            <span class="clean-label">{{ 'iam.rukovoditel' | t }}</span>
+          <smt-control class="form-group" [smtLabel]="'iam.rukovoditel' | t">
             <!-- Searches the server: a manager is rarely among the rows loaded on the list. -->
-            <smt-select
-              [options]="managerOptions"
+            <smt-data-select
+              [source]="users"
               [value]="createForm.managerId"
-              [ariaLabel]="'iam.rukovoditel' | t"
               (valueChange)="createForm.managerId = $event"
               [placeholder]="'iam.bez_rukovoditelya' | t"
               [searchPlaceholder]="'tasks.poisk_sotrudnika_po_imeni_ili_loginu' | t"
-              [emptyLabel]="'iam.bez_rukovoditelya' | t"
-              [remoteSearch]="true"
-              [loading]="managerLookupLoading"
-              [loadError]="managerLookupError"
-              [hasMore]="managerLookupHasMore"
-              (searchChange)="managerSearch.emit($event)"
-              (loadMore)="managerLoadMore.emit()"
-              (retry)="managerRetry.emit()"
-            ></smt-select>
-          </div>
+              [emptyLabel]="'iam.bez_rukovoditelya' | t" />
+          </smt-control>
 
-          <div class="form-group span-2">
-            <label class="clean-label" for="user-create-password">{{ 'iam.vremennyy_parol' | t }} <span class="req">*</span></label>
+          <smt-control class="form-group span-2" [smtLabel]="'iam.vremennyy_parol' | t" [smtHint]="createForm.password ? '' : ('iam.ne_menee_10_simvolov_bez_sovpadeniy_s_loginom' | t)" [smtError]="isCreateSubmitted && createForm.password.length < 10 ? ('iam.parol_dolzhen_soderzhat_ne_menee_10_simvolov' | t) : ''">
             <div class="pwd-wrapper">
               <input
                 id="user-create-password"
@@ -131,8 +106,6 @@ import { CustomField } from '../../../../core/models/custom-field.models';
                 required
                 minlength="10"
                 autocomplete="new-password"
-                [attr.aria-invalid]="isCreateSubmitted && createForm.password.length < 10"
-                [attr.aria-describedby]="isCreateSubmitted && createForm.password.length < 10 ? 'user-create-password-error user-create-password-hint' : 'user-create-password-hint'"
                 [(ngModel)]="createForm.password"
                 [placeholder]="'iam.minimum_10_simvolov' | t"
               />
@@ -168,7 +141,6 @@ import { CustomField } from '../../../../core/models/custom-field.models';
                 </button>
               </div>
             </div>
-
             <!-- Dynamic Password Strength Meter -->
             <div class="pwd-strength-container" *ngIf="createForm.password">
               <div class="pwd-meter-header">
@@ -180,7 +152,6 @@ import { CustomField } from '../../../../core/models/custom-field.models';
                 </div>
                 <span class="pwd-strength-label" [style.color]="passwordStrength.color">{{ passwordStrength.label }}</span>
               </div>
-
               <div class="pwd-checklist">
                 <div class="check-item" [class.valid]="hasMinLength">
                   <span class="material-symbols-outlined check-ico" aria-hidden="true">{{ hasMinLength ? 'check' : 'close' }}</span>
@@ -204,26 +175,17 @@ import { CustomField } from '../../../../core/models/custom-field.models';
                 </div>
               </div>
             </div>
+          </smt-control>
 
-            <span id="user-create-password-hint" class="clean-hint" *ngIf="!createForm.password">
-              {{ 'iam.ne_menee_10_simvolov_bez_sovpadeniy_s_loginom' | t }}
-            </span>
-            <span id="user-create-password-error" class="field-error" *ngIf="isCreateSubmitted && createForm.password.length < 10">
-              {{ 'iam.parol_dolzhen_soderzhat_ne_menee_10_simvolov' | t }}
-            </span>
-          </div>
-
-          <div class="form-group">
-            <label class="clean-label" for="user-create-language">{{ 'iam.yazyk' | t }}</label>
+          <smt-control class="form-group" [smtLabel]="'iam.yazyk' | t">
             <select id="user-create-language" name="userCreateLanguage" class="clean-input" [(ngModel)]="createForm.language">
               <option *ngFor="let lang of languages" [value]="lang.code">
                 {{ lang.name }} ({{ lang.code }})
               </option>
             </select>
-          </div>
+          </smt-control>
 
-          <div class="form-group">
-            <label class="clean-label" for="user-create-timezone">{{ 'iam.chasovoy_poyas' | t }}</label>
+          <smt-control class="form-group" [smtLabel]="'iam.chasovoy_poyas' | t">
             <select id="user-create-timezone" name="userCreateTimezone" class="clean-input" [(ngModel)]="createForm.timezone">
               <option value="Asia/Tashkent">Asia/Tashkent (UTC+5)</option>
               <option value="Europe/Moscow">Europe/Moscow (UTC+3)</option>
@@ -231,7 +193,7 @@ import { CustomField } from '../../../../core/models/custom-field.models';
               <option value="Asia/Almaty">Asia/Almaty (UTC+5)</option>
               <option value="Asia/Dubai">Asia/Dubai (UTC+4)</option>
             </select>
-          </div>
+          </smt-control>
 
           <div class="form-group span-2">
             <label class="clean-checkbox">
@@ -241,23 +203,12 @@ import { CustomField } from '../../../../core/models/custom-field.models';
           </div>
 
           <!-- Roles -->
-          <div class="form-group span-2" *ngIf="roles.length > 0">
-            <span class="clean-label">{{ 'iam.roli_dostupa_rbac' | t }}</span>
-            <div class="roles-chips">
-              <label
-                *ngFor="let role of roles"
-                class="role-chip"
-                [class.selected]="isRoleSelected(role.id)"
-              >
-                <input
-                  type="checkbox"
-                  [checked]="isRoleSelected(role.id)"
-                  (change)="toggleRole.emit(role.id)"
-                />
-                <span>{{ role.name }}</span>
-              </label>
-            </div>
-          </div>
+          <smt-control class="form-group span-2" *ngIf="roles.length > 0" [smtLabel]="'iam.roli_dostupa_rbac' | t">
+            <smt-tag-group
+              [options]="roleOptions()"
+              [value]="createForm.roleIds || []"
+              (valueChange)="createForm.roleIds = $event" />
+          </smt-control>
 
           <!-- Custom Fields -->
           <div class="form-group span-2" *ngIf="customFields.length > 0">
@@ -291,10 +242,11 @@ import { CustomField } from '../../../../core/models/custom-field.models';
       flex-direction: column;
       gap: 4px;
     }
+    /* The same as the smt-control label, so wrapped and plain fields read alike. */
     .clean-label {
-      font-size: 11px;
-      font-weight: 500;
-      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-main);
     }
     .clean-input {
       height: 34px;
@@ -414,27 +366,6 @@ import { CustomField } from '../../../../core/models/custom-field.models';
       font-size: 13px;
     }
 
-    .roles-chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-    .role-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 10px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--border-color);
-      background-color: var(--bg-surface);
-      font-size: 12px;
-      color: var(--text-main);
-      cursor: pointer;
-    }
-    .role-chip.selected {
-      border-color: var(--primary);
-      background-color: rgba(99,102,241,0.06);
-    }
 
     @media (max-width: 640px) {
       .modal-form,
@@ -445,14 +376,15 @@ import { CustomField } from '../../../../core/models/custom-field.models';
   `]
 })
 export class UserCreateModalComponent {
+  private readonly i18n = inject(I18nService);
+
+  /** Active users for the manager picker; the field searches them itself. */
+  readonly users = inject(LookupSources).activeUsers;
+  private roleOptionsCache: { roles: Role[]; lang: string; options: SMTTagOption<number>[] } | null = null;
   @Input() isOpen = false;
   @Input() isSubmitting = false;
   @Input() isCreateSubmitted = false;
   @Input() createForm: any = {};
-  @Input() managerOptions: SMTSelectOption[] = [];
-  @Input() managerLookupLoading = false;
-  @Input() managerLookupError = false;
-  @Input() managerLookupHasMore = false;
   @Input() roles: Role[] = [];
   @Input() languages: Array<{ code: string, name: string }> = [];
   @Input() customFields: CustomField[] = [];
@@ -462,15 +394,20 @@ export class UserCreateModalComponent {
   @Input() hasUpperAndLower = false;
   @Input() hasDigitsOrSymbols = false;
   @Input() doesNotContainLogin = false;
-  @Input() isRoleSelected!: (roleId: number) => boolean;
 
   @Output() close = new EventEmitter<void>();
   @Output() submit = new EventEmitter<void>();
   @Output() toggleShowPassword = new EventEmitter<void>();
   @Output() generatePassword = new EventEmitter<void>();
   @Output() copyPassword = new EventEmitter<void>();
-  @Output() toggleRole = new EventEmitter<number>();
-  @Output() managerSearch = new EventEmitter<string>();
-  @Output() managerLoadMore = new EventEmitter<void>();
-  @Output() managerRetry = new EventEmitter<void>();
+
+  /** The roles as tags. */
+  roleOptions(): SMTTagOption<number>[] {
+    const lang = this.i18n.currentLang();
+    const cached = this.roleOptionsCache;
+    if (cached && cached.roles === this.roles && cached.lang === lang) return cached.options;
+    const options = this.roles.map(role => ({ value: role.id, label: role.name }));
+    this.roleOptionsCache = { roles: this.roles, lang, options };
+    return options;
+  }
 }

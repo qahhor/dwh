@@ -203,18 +203,25 @@ describe('TasksComponent UI contracts', () => {
     fixture.componentInstance.openCreateTaskModal();
     fixture.componentInstance.isCreateSubmitted = true;
     fixture.detectChanges();
+    TestBed.tick(); // smt-control wires label, error and aria state after render
 
     const title = fixture.nativeElement.querySelector('#task-create-title') as HTMLInputElement;
-    const error = fixture.nativeElement.querySelector('#task-create-title-error') as HTMLElement;
+    const error = (title.getAttribute('aria-describedby') ?? '').split(' ').map(id => fixture.nativeElement.querySelector('#' + id)).find(node => node?.classList.contains('smt-control__error')) as HTMLElement | undefined;
 
     expect(fixture.nativeElement.querySelector(`label[for="${title.id}"]`)).not.toBeNull();
     expect(title.required).toBe(true);
+    expect(title.getAttribute('aria-required')).toBe('true');
     expect(title.getAttribute('aria-invalid')).toBe('true');
-    expect(title.getAttribute('aria-describedby')).toBe(error.id);
+    expect(error?.textContent).toContain('Пожалуйста, укажите название задачи');
     expect(fixture.nativeElement.querySelector('[role="group"][aria-label="Тип задачи"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('smt-select button[aria-label="Родительская задача"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('smt-multi-select button[aria-label="Наблюдатели"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('ui-markdown-editor textarea')?.getAttribute('id')).not.toBe('');
+    // The project is a searchable combobox named by its label, in the form and in the filter bar.
+    const project = fixture.nativeElement.querySelector('#task-create-project') as HTMLElement;
+    expect(project.getAttribute('role')).toBe('combobox');
+    expect(fixture.nativeElement.querySelector('label[for="task-create-project"]')?.textContent).toContain('Проект');
+    expect((fixture.nativeElement.querySelector('#task-project-filter') as HTMLElement).getAttribute('role')).toBe('combobox');
   });
 
   it('labels task dictionaries and confirms destructive actions in-app', async () => {
@@ -238,7 +245,11 @@ describe('TasksComponent UI contracts', () => {
     const remove = fixture.nativeElement.querySelector('button[aria-label="Удалить тип задачи Проверка"]') as HTMLButtonElement;
     remove.click();
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('Удалить тип задачи «Проверка»?');
+    await fixture.whenStable();
+    const dialog = document.querySelector('.smt-modal-confirm') as HTMLElement;
+    expect(dialog.closest('[role="alertdialog"]')).not.toBeNull();
+    expect(dialog.textContent).toContain('Удалить тип задачи «Проверка»?');
+    document.querySelectorAll('.cdk-overlay-container').forEach(node => node.remove());
   });
 
   it('renders each subtask action as a native named button', async () => {
@@ -264,6 +275,10 @@ describe('TasksComponent UI contracts', () => {
     expect(action.tagName).toBe('BUTTON');
     expect(action.type).toBe('button');
     expect(action.getAttribute('aria-label')).toBe('Открыть подзадачу #11: Проверить подзадачу');
+    // The card offers the task's change history, closed until asked for.
+    const history = fixture.nativeElement.querySelector('ui-record-history [data-testid="record-history-toggle"]') as HTMLButtonElement;
+    expect(history.getAttribute('aria-expanded')).toBe('false');
+    expect(history.textContent).toContain('История изменений');
   });
 
   it('submits executorUserIds when creating a task with co-executors', async () => {

@@ -39,7 +39,8 @@ import { SMTI18nService } from '../../../i18n';
 import { shouldShowSMTFormControlError } from '../../../forms/form-control-validation';
 import { fromLegacyErrors, messageForError, type SMTControlError } from './control-messages';
 
-const FIELD_SELECTOR = 'input:not([type="hidden"]), select, textarea, [role="combobox"], [role="textbox"], [contenteditable="true"]';
+// A radio group, a switch and a tag group are fields too (smt-radio-group, smt-switch, smt-tag-group): the label names them.
+const FIELD_SELECTOR = 'input:not([type="hidden"]), select, textarea, [role="combobox"], [role="textbox"], [role="radiogroup"], [role="switch"], [role="group"], [contenteditable="true"]';
 const LABELABLE = new Set(['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON', 'METER', 'OUTPUT', 'PROGRESS']);
 
 let nextControlId = 0;

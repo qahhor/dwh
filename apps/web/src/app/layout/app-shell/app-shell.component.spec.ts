@@ -5,6 +5,7 @@ import { provideRouter, Router } from '@angular/router';
 import { BehaviorSubject, of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthService } from '../../core/services/auth.service';
+import { IdleLockService } from '../../core/services/idle-lock.service';
 import { CommandPaletteService } from '../../core/services/command-palette.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { NotificationService } from '../../core/services/notification.service';
@@ -101,6 +102,8 @@ describe('AppShellComponent', () => {
         provideRouter([]),
         { provide: BreakpointObserver, useValue: { observe: () => viewport.asObservable() } },
         { provide: AuthService, useValue: authService },
+        // The idle lock has its own spec; here it only has to stay quiet.
+        { provide: IdleLockService, useValue: { warningSeconds: signal(null), keepWorking: () => undefined } },
         { provide: PermissionService, useValue: permissionService },
         { provide: ThemeService, useValue: themeService },
         { provide: I18nService, useValue: i18nService },
@@ -314,7 +317,7 @@ describe('AppShellComponent', () => {
     // Check items per section
     const workspaceSection = sections.find(s => s.id === 'workspace');
     expect(workspaceSection?.items.map(i => i.id)).toEqual([
-      'tasks', 'projects', 'notes', 'upl-sources', 'upl-packages', 'files', 'analytics', 'notifications'
+      'tasks', 'projects', 'notes', 'upl-overview', 'upl-sources', 'upl-packages', 'files', 'analytics', 'notifications'
     ]);
 
     const iamSection = sections.find(s => s.id === 'iam');

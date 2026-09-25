@@ -1261,10 +1261,7 @@
   "iam.two_factor_enabled": "2FA aktiviert",
   "iam.two_factor_disabled_short": "2FA deaktiviert",
   "iam.view_user_named": "Benutzer {name} anzeigen",
-  "iam.edit_user_named": "Benutzer {name} bearbeiten",
-  "iam.block_user_named": "Benutzer {name} blockieren",
-  "iam.unblock_user_named": "Entsperren Sie Benutzer {name}",
-  "iam.delete_user_named": "Benutzer {name} löschen",
+  "iam.edit_user_named": "Benutzer {name} bearbeiten",
   "iam.hide_password": "Passwort verbergen",
   "iam.show_password": "Passwort anzeigen",
   "notifications.mark_named_read": "Markieren Sie die Benachrichtigung „{title}“ als gelesen",

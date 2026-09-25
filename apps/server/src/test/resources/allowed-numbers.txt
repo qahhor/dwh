@@ -7,3 +7,6 @@ src/main/resources/db/migration/V111__upl_formats.sql:1251 # имя кодиро
 src/main/java/com/greenwhite/dwh/instance/upl/api/UplSourceDtos.java:1251 # имя кодировки windows-1251 в проверке DTO, не норматив
 src/main/java/com/greenwhite/dwh/instance/upl/UplLimits.java:1024 # предел загрузки, не норматив: байты → мегабайты
 src/main/java/com/greenwhite/dwh/instance/upl/UplLimits.java:1000000 # предел загрузки, не норматив: число заполненных ячеек в файле
+src/main/java/com/greenwhite/dwh/instance/upl/format/UplTemplateBuilder.java:5000 # строк шаблона с проверками ввода, не норматив
+src/main/java/com/greenwhite/dwh/instance/upl/format/UplTemplateBuilder.java:1.0 # версия приложения в свойствах xlsx, не норматив
+src/main/resources/db/migration/V119__report_export_cleanup_job.sql:3600 # период задания report.export_cleanup, секунды

@@ -49,7 +49,7 @@ public class QueryListRepository {
         List<Row<T>> rows = new ArrayList<>(jdbc.sql(sql).params(params).query((rs, rowNum) -> new Row<>(
                 mapper.mapRow(rs, rowNum),
                 QueryValues.read(rs, SORT_COLUMN, plan.sort().type()),
-                rs.getLong(ID_COLUMN))).list());
+                rs.getString(ID_COLUMN))).list());
 
         boolean hasMore = rows.size() > plan.limit();
         List<Row<T>> page = rows.subList(0, Math.min(rows.size(), plan.limit()));
@@ -71,6 +71,6 @@ public class QueryListRepository {
                 .single();
     }
 
-    private record Row<T>(T item, Object sortValue, long id) {
+    private record Row<T>(T item, Object sortValue, String id) {
     }
 }

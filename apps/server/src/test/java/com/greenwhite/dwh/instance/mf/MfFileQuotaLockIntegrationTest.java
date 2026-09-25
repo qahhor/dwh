@@ -29,8 +29,10 @@ class MfFileQuotaLockIntegrationTest {
     void concurrentQuotaWriterWaitsUntilTheFirstTransactionCommits() throws Exception {
         var dataSource = new DriverManagerDataSource(
                 postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
-        var firstRepository = new MfFileRepository(JdbcClient.create(dataSource));
-        var secondRepository = new MfFileRepository(JdbcClient.create(dataSource));
+        var firstRepository = new MfFileRepository(JdbcClient.create(dataSource),
+                new com.greenwhite.dwh.instance.common.query.QueryListRepository(JdbcClient.create(dataSource)));
+        var secondRepository = new MfFileRepository(JdbcClient.create(dataSource),
+                new com.greenwhite.dwh.instance.common.query.QueryListRepository(JdbcClient.create(dataSource)));
         var firstTransaction = new TransactionTemplate(new DataSourceTransactionManager(dataSource));
         var secondTransaction = new TransactionTemplate(new DataSourceTransactionManager(dataSource));
         CountDownLatch firstHasLock = new CountDownLatch(1);

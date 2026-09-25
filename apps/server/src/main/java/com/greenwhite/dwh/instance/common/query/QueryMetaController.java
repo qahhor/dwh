@@ -55,7 +55,7 @@ public class QueryMetaController {
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "QUERY_LIST_NOT_FOUND"));
         return ResponseEntity.ok(new ListMeta(
                 list.code(),
-                list.fields().stream().map(FieldMeta::of).toList(),
+                list.viewerFields().stream().map(FieldMeta::of).toList(),
                 (list.defaultDescending() ? "-" : "") + list.defaultSort(),
                 list.defaultLimit(),
                 list.maxLimit(),

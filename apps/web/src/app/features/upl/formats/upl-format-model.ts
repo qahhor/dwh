@@ -39,7 +39,8 @@ export function emptyColumn(): UplColumn {
     keyMask: null,
     keyPadLength: null,
     keyPadMax: null,
-    refBookCode: null
+    refBookCode: null,
+    headerSynonyms: []
   };
 }
 

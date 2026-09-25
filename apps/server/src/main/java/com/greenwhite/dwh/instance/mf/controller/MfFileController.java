@@ -53,14 +53,17 @@ public class MfFileController {
 
     @GetMapping
     @RequiresPermission(form = MfPref.FORM_FILES, action = "view")
-    public ResponseEntity<java.util.List<MfFileRepository.FileDetailRecord>> listFiles(
+    public ResponseEntity<com.greenwhite.dwh.core.pagination.KeysetPage<MfFileRepository.FileDetailRecord>> listFiles(
             @RequestParam(name = "scope", defaultValue = "all") String scope,
             @RequestParam(name = "q", required = false) String query,
-            @RequestParam(name = "limit", defaultValue = "50") int limit
+            @RequestParam(name = "limit", required = false) Integer limit,
+            @RequestParam(name = "cursor", required = false) String cursor,
+            @RequestParam(name = "filter", required = false) String filter,
+            @RequestParam(name = "sort", required = false) String sort
     ) {
         Long currentUserId = SecurityContext.getCurrentUserId();
         boolean onlyMine = "mine".equalsIgnoreCase(scope);
-        return ResponseEntity.ok(fileService.listFiles(currentUserId, onlyMine, query, limit));
+        return ResponseEntity.ok(fileService.listFiles(currentUserId, onlyMine, limit, cursor, filter, sort, query));
     }
 
     @DeleteMapping("/{id}")

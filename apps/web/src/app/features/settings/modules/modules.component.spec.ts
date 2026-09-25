@@ -76,7 +76,7 @@ describe('ModulesComponent', () => {
     expect(fixture.componentInstance.systemCount()).toBe(1);
     expect(fixture.componentInstance.customCount()).toBe(1);
 
-    const rows = fixture.nativeElement.querySelectorAll('tbody tr');
+    const rows = fixture.nativeElement.querySelectorAll('[role="rowgroup"] > [role="row"]');
     expect(rows.length).toBe(2);
   });
 
@@ -103,8 +103,7 @@ describe('ModulesComponent', () => {
     const toast = TestBed.inject(ToastService);
     const systemModule = mockModules[0];
 
-    const fakeEvent = { target: { checked: false } } as unknown as Event;
-    fixture.componentInstance.toggleModule(systemModule, fakeEvent);
+    fixture.componentInstance.toggleModule(systemModule, false);
 
     expect(toast.error).toHaveBeenCalled();
   });
@@ -113,8 +112,7 @@ describe('ModulesComponent', () => {
     const { fixture, apiMock } = await createFixture();
     const appModule = mockModules[1];
 
-    const fakeEvent = { target: { checked: false } } as unknown as Event;
-    fixture.componentInstance.toggleModule(appModule, fakeEvent);
+    fixture.componentInstance.toggleModule(appModule, false);
 
     expect(apiMock.post).toHaveBeenCalledWith('/modules/notes/toggle', { enabled: false });
   });

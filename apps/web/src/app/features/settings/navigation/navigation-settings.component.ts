@@ -16,6 +16,9 @@ import { transliterateToCode } from '../../../core/utils/transliteration';
 import { NavigationSettingsStatsComponent } from './components/navigation-settings-stats.component';
 import { NavigationSettingsTableComponent } from './components/navigation-settings-table.component';
 import { NavigationSettingsModalComponent } from './components/navigation-settings-modal.component';
+import { tap } from 'rxjs';
+import { SMTModalService } from '../../../shared/ui-kit/components/modal';
+import { problemText } from '../../../shared/ui/problem-text';
 
 @Component({
   selector: 'app-navigation-settings',
@@ -74,7 +77,6 @@ import { NavigationSettingsModalComponent } from './components/navigation-settin
       <app-navigation-settings-modal
         [isModalOpen]="isModalOpen()"
         [editingItem]="editingItem()"
-        [deleteTarget]="deleteTarget()"
         [isSubmitting]="isSubmitting()"
         [isFormValid]="isFormValid()"
         [formTitle]="formTitle"
@@ -96,8 +98,6 @@ import { NavigationSettingsModalComponent } from './components/navigation-settin
         (urlBlur)="onUrlBlur()"
         (closeModal)="closeModal()"
         (saveItem)="saveItem()"
-        (cancelDelete)="deleteTarget.set(null)"
-        (executeDelete)="executeDelete()"
       ></app-navigation-settings-modal>
     </div>
   `,
@@ -143,7 +143,7 @@ export class NavigationSettingsComponent implements OnInit {
   readonly isSubmitting = signal<boolean>(false);
   readonly isModalOpen = signal<boolean>(false);
   readonly editingItem = signal<CustomNavigationItem | null>(null);
-  readonly deleteTarget = signal<CustomNavigationItem | null>(null);
+  private readonly modal = inject(SMTModalService);
 
   searchQuery = '';
 
@@ -349,23 +349,21 @@ export class NavigationSettingsComponent implements OnInit {
     });
   }
 
+  /** Asks before deleting a menu item; the dialog stays open until the server answers. */
   confirmDelete(item: CustomNavigationItem): void {
-    this.deleteTarget.set(item);
-  }
-
-  executeDelete(): void {
-    const target = this.deleteTarget();
-    if (!target) return;
-    this.navService.deleteItem(target.id).subscribe({
-      next: () => {
-        this.toast.success(this.i18n.translate('common.saved'));
-        this.deleteTarget.set(null);
-        this.loadItems();
-      },
-      error: (err: any) => {
-        const msg = err?.error?.detail || err?.error?.message || this.i18n.translate('common.error');
-        this.toast.error(msg);
-      }
-    });
+    this.modal.confirm({
+      title: this.i18n.translate('nav.settings.delete_modal_title'),
+      message: this.i18n.translate('nav.settings.delete_confirm', { title: item.title }),
+      yesLabel: this.i18n.translate('common.delete'),
+      noLabel: this.i18n.translate('common.cancel'),
+      destructive: true,
+      action: () => this.navService.deleteItem(item.id, { notifyError: false }).pipe(
+        tap(() => {
+          this.toast.success(this.i18n.translate('common.saved'));
+          this.loadItems();
+        })
+      ),
+      actionError: error => problemText(error) || this.i18n.translate('common.error')
+    }).subscribe();
   }
 }

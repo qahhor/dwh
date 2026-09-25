@@ -79,7 +79,7 @@ describe('NavigationSettingsComponent', () => {
     expect(navService.loadAllItems).toHaveBeenCalled();
     expect(fixture.componentInstance.items()).toHaveLength(2);
 
-    const rows = fixture.nativeElement.querySelectorAll('.nav-table tbody tr');
+    const rows = fixture.nativeElement.querySelectorAll('.nav-table [role="rowgroup"] > [role="row"]');
     expect(rows).toHaveLength(2);
     expect(fixture.nativeElement.textContent).toContain('Отчет по продажам (Superset)');
     expect(fixture.nativeElement.textContent).toContain('Внешняя CRM');
@@ -162,17 +162,22 @@ describe('NavigationSettingsComponent', () => {
     expect(navService.loadAllItems).toHaveBeenCalledTimes(2);
   });
 
-  it('opens delete confirmation and executes deletion', () => {
+  it('asks before deleting and deletes on Yes', async () => {
     const { fixture, navService, toast } = setup();
     fixture.detectChanges();
 
     fixture.componentInstance.confirmDelete(sampleItems[0]);
-    expect(fixture.componentInstance.deleteTarget()).toEqual(sampleItems[0]);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const dialog = document.querySelector('.smt-modal-confirm') as HTMLElement;
+    expect(dialog.closest('[role="alertdialog"]')).not.toBeNull();
+    expect(navService.deleteItem).not.toHaveBeenCalled();
 
-    fixture.componentInstance.executeDelete();
+    [...dialog.querySelectorAll<HTMLButtonElement>('button')].at(-1)!.click();
 
-    expect(navService.deleteItem).toHaveBeenCalledWith(1);
+    expect(navService.deleteItem).toHaveBeenCalledWith(1, { notifyError: false });
     expect(toast.success).toHaveBeenCalled();
-    expect(fixture.componentInstance.deleteTarget()).toBeNull();
+    await fixture.whenStable();
+    expect(document.querySelector('.smt-modal-confirm')).toBeNull();
   });
 });

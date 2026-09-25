@@ -86,7 +86,12 @@
       width: 110px;
     }
 
-    .compact-filter label {
+    .compact-filter-period {
+      min-width: 220px;
+    }
+
+    .compact-filter label,
+    .compact-filter-label {
       color: var(--text-light);
       font-size: 11px;
       font-weight: 600;

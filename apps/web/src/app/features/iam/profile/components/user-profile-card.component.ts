@@ -3,20 +3,19 @@ import { CommonModule } from '@angular/common';
 import { UiBadgeComponent } from '../../../../shared/ui/ui-badge.component';
 import { TranslatePipe } from '../../../../core/services/i18n.service';
 import { User } from '../profile.models';
+import { SMTAvatarComponent } from '../../../../shared/ui-kit/components/avatar';
 
 @Component({
   selector: 'app-user-profile-card',
   standalone: true,
   imports: [
-    CommonModule,
+    SMTAvatarComponent, CommonModule,
     TranslatePipe,
     UiBadgeComponent
   ],
   template: `
     <div class="card user-card" *ngIf="user">
-      <div class="user-avatar-large">
-        {{ user.name ? user.name.charAt(0).toUpperCase() : 'U' }}
-      </div>
+      <smt-avatar class="user-avatar-large" [name]="user.name" smtSize="xl" />
       <div class="user-details">
         <div class="user-title-row">
           <h3 class="user-fullname">{{ user.name }}</h3>
@@ -68,18 +67,7 @@ import { User } from '../profile.models';
     }
 
     .user-avatar-large {
-      width: 64px;
-      height: 64px;
-      border-radius: 50%;
-      background-color: var(--primary);
-      color: var(--on-primary);
-      font-size: 26px;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      --smt-avatar-size: 64px;
     }
 
     .user-details {
@@ -147,10 +135,7 @@ import { User } from '../profile.models';
         gap: 14px;
       }
       .user-avatar-large {
-        width: 48px;
-        height: 48px;
-        flex-basis: 48px;
-        font-size: 20px;
+        --smt-avatar-size: 48px;
       }
       .user-title-row {
         flex-wrap: wrap;

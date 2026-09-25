@@ -61,6 +61,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/notifications/notifications.component').then(m => m.NotificationsComponent)
       },
       {
+        path: 'exports',
+        loadComponent: () => import('./features/exports/exports.component').then(m => m.ExportsComponent)
+      },
+      {
         path: 'files',
         loadComponent: () => import('./features/files/files.component').then(m => m.FilesComponent)
       },
@@ -92,6 +96,12 @@ export const routes: Routes = [
         pathMatch: 'full',
         canActivate: [moduleActiveGuard('upl'), permissionGuard('upl.sources', 'view')],
         loadComponent: () => import('./features/upl/sources/sources-list.component').then(m => m.SourcesListComponent)
+      },
+      {
+        path: 'upl/overview',
+        pathMatch: 'full',
+        canActivate: [moduleActiveGuard('upl'), permissionGuard('upl.packages', 'view')],
+        loadComponent: () => import('./features/upl/overview/upl-overview.component').then(m => m.UplOverviewComponent)
       },
       {
         path: 'upl/packages',

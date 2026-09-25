@@ -166,7 +166,10 @@ describe('SettingsComponent UI contracts', () => {
     expect(fixture.nativeElement.querySelector(`label[for="${passwordLength.id}"]`)).not.toBeNull();
     expect(passwordLength.min).toBe('8');
     expect(passwordLength.getAttribute('aria-describedby')).toBe('settings-password-length-hint');
-    expect(fixture.nativeElement.querySelector('#settings-require-2fa[aria-labelledby="settings-require-2fa-label"]')).not.toBeNull();
+    const requireTwoFactor = fixture.nativeElement.querySelector('#settings-require-2fa') as HTMLElement;
+    expect(requireTwoFactor.getAttribute('role')).toBe('switch');
+    expect(requireTwoFactor.getAttribute('aria-labelledby')).toBe('settings-require-2fa-label');
+    expect(requireTwoFactor.getAttribute('aria-describedby')).toBe('settings-require-2fa-desc');
   });
 
   it('keeps operational status out of settings and exposes no custom-module controls', async () => {

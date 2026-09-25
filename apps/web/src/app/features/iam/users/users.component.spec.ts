@@ -37,7 +37,8 @@ describe('UsersComponent UI contracts', () => {
               { code: 'de', name: 'Deutsch', active: true },
               { code: 'tr', name: 'Türkçe', active: true }
             ]),
-            translate: translateTest
+            translate: translateTest,
+            currentLang: signal('ru')
           }
         },
         { provide: ToastService, useValue: { success: vi.fn(), warning: vi.fn(), error: vi.fn() } }
@@ -87,6 +88,7 @@ describe('UsersComponent UI contracts', () => {
     fixture.componentInstance.openCreateModal();
     (fixture.componentInstance as any).isCreateSubmitted = true;
     fixture.detectChanges();
+    TestBed.tick(); // smt-control wires label, error and aria state after render
 
     const name = fixture.nativeElement.querySelector('#user-create-name') as HTMLInputElement;
     const password = fixture.nativeElement.querySelector('#user-create-password') as HTMLInputElement;
@@ -94,7 +96,8 @@ describe('UsersComponent UI contracts', () => {
     expect(fixture.nativeElement.querySelector(`label[for="${name.id}"]`)).not.toBeNull();
     expect(name.required).toBe(true);
     expect(name.getAttribute('aria-invalid')).toBe('true');
-    expect(name.getAttribute('aria-describedby')).toBe('user-create-name-error');
+    expect((name.getAttribute('aria-describedby') ?? '').split(' ').map(id => fixture.nativeElement.querySelector('#' + id)).find(node => node?.classList.contains('smt-control__error'))?.textContent).toContain('Укажите ФИО пользователя');
+    expect(password.getAttribute('aria-describedby')?.split(' ').length).toBe(2); // hint and error
     expect(password.required).toBe(true);
     expect(fixture.nativeElement.querySelector('button[aria-label="Показать пароль"]')).not.toBeNull();
     const language = fixture.nativeElement.querySelector('#user-create-language') as HTMLSelectElement;
@@ -424,6 +427,15 @@ describe('UsersComponent UI contracts', () => {
     expect(fixture.componentInstance.userSecurity()?.userId).toBe(15);
     expect(fixture.componentInstance.userSecurity()?.activeSessionsCount).toBe(1);
     expect(fixture.componentInstance.userSecurity()?.recentLoginAttempts.length).toBe(1);
+
+    const root = fixture.nativeElement as HTMLElement;
+    const sessionsTable = root.querySelector('[data-testid="user-sessions-table"] [role="table"]');
+    expect(sessionsTable?.getAttribute('aria-label')).toBe('Активные сессии');
+    const endButton = root.querySelector<HTMLButtonElement>('[data-testid="user-sessions-table"] button.btn-icon');
+    expect(endButton?.getAttribute('aria-label')).toBe('Завершить сессию с IP 127.0.0.1');
+    const attemptCells = [...root.querySelectorAll('[data-testid="user-login-attempts-table"] [role="rowgroup"] > [role="row"] [role="cell"]')]
+      .map(cell => cell.textContent?.trim());
+    expect(attemptCells.slice(1)).toEqual(['127.0.0.1', 'Успешно', '—']);
   });
 
   it('pages forward with the cursor the server returned and back without asking for a new one', async () => {
@@ -652,12 +664,17 @@ describe('UsersComponent UI contracts', () => {
     fixture.componentInstance.terminateUserSessions(42);
 
     expect(confirmSpy).not.toHaveBeenCalled();
-    expect(fixture.componentInstance.isSecConfirmModalOpen()).toBe(true);
-    expect(fixture.componentInstance.secConfirmConfig).not.toBeNull();
-    expect(fixture.componentInstance.secConfirmConfig?.confirmBtnVariant).toBe('danger');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const dialog = document.querySelector('.smt-modal-confirm') as HTMLElement;
+    expect(dialog.closest('[role="alertdialog"]')).not.toBeNull();
+    const yes = [...dialog.querySelectorAll<HTMLButtonElement>('button')].at(-1)!;
+    expect(yes.classList).toContain('smt-modal-button--danger');
+    expect(api.delete).not.toHaveBeenCalled();
 
-    fixture.componentInstance.confirmSecurityAction();
-    expect(api.delete).toHaveBeenCalledWith('/iam/users/42/sessions');
+    yes.click();
+    expect(api.delete).toHaveBeenCalledWith('/iam/users/42/sessions', { notifyError: false });
+    document.querySelectorAll('.cdk-overlay-container').forEach(node => node.remove());
 
     confirmSpy.mockRestore();
   });

@@ -1,5 +1,6 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { SMTSwitchComponent } from '../../../shared/ui-kit/components/forms/switch';
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '../../../core/services/i18n.service';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
@@ -8,6 +9,7 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
   selector: 'app-settings-preferences-panel',
   standalone: true,
   imports: [
+    SMTSwitchComponent,
     CommonModule,
     FormsModule,
     TranslatePipe,
@@ -62,20 +64,15 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
           <div class="toggle-row">
             <div class="toggle-info">
               <span id="settings-notification-sound-label" class="toggle-title">{{ 'settings.notifications_sound' | t }}</span>
-              <span class="toggle-desc">{{ 'settings.vosproizvodit_zvukovoy_signal_pri_poluchenii_nov' | t }}</span>
+              <span id="settings-notification-sound-desc" class="toggle-desc">{{ 'settings.vosproizvodit_zvukovoy_signal_pri_poluchenii_nov' | t }}</span>
             </div>
-            <label class="switch-toggle">
-              <input
-                id="settings-notification-sound"
-                name="settingsNotificationSound"
-                type="checkbox"
-                aria-labelledby="settings-notification-sound-label"
-                [disabled]="isSaving"
-                [checked]="userSettings['user.notifications_sound'] !== 'false'"
-                (change)="toggleSound.emit($event)"
-              />
-              <span class="toggle-slider" aria-hidden="true"></span>
-            </label>
+            <smt-switch
+              smtFieldId="settings-notification-sound"
+              smtLabelledBy="settings-notification-sound-label"
+              smtDescribedBy="settings-notification-sound-desc"
+              [disabled]="isSaving"
+              [checked]="userSettings['user.notifications_sound'] !== 'false'"
+              (smtUserChange)="toggleSound.emit($event)" />
           </div>
         </div>
       </div>
@@ -192,49 +189,6 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
       font-size: 12px;
       color: var(--text-light);
     }
-    .switch-toggle {
-      position: relative;
-      display: inline-block;
-      width: 44px;
-      height: 24px;
-    }
-    .switch-toggle input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-    .toggle-slider {
-      position: absolute;
-      cursor: pointer;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: var(--bg-active);
-      transition: .2s;
-      border-radius: 24px;
-    }
-    .toggle-slider:before {
-      position: absolute;
-      content: "";
-      height: 18px;
-      width: 18px;
-      left: 3px;
-      bottom: 3px;
-      background-color: var(--text-inverse);
-      transition: .2s;
-      border-radius: 50%;
-    }
-    input:checked + .toggle-slider {
-      background-color: var(--primary);
-    }
-    input:checked + .toggle-slider:before {
-      transform: translateX(20px);
-    }
-    .switch-toggle input:focus-visible + .toggle-slider {
-      outline: 2px solid var(--primary);
-      outline-offset: 2px;
-    }
     .card-footer-actions {
       display: flex;
       justify-content: flex-end;
@@ -253,5 +207,5 @@ export class SettingsPreferencesPanelComponent {
   @Output() save = new EventEmitter<void>();
   @Output() changeLanguage = new EventEmitter<string>();
   @Output() themeChange = new EventEmitter<string>();
-  @Output() toggleSound = new EventEmitter<any>();
+  @Output() toggleSound = new EventEmitter<boolean>();
 }
