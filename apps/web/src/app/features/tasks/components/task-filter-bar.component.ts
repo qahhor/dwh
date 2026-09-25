@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '../../../core/services/i18n.service';
 import { Project, TaskStatus } from '../../../core/models/task.models';
+import { SMTSelectComponent } from '../../../shared/ui-kit/components/forms/select';
+import { ProjectOptionsPipe } from './project-options.pipe';
 
 export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | 'overdue';
 
@@ -12,7 +14,9 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
   imports: [
     CommonModule,
     FormsModule,
-    TranslatePipe
+    TranslatePipe,
+    SMTSelectComponent,
+    ProjectOptionsPipe
   ],
   template: `
     <div class="toolbar">
@@ -145,16 +149,16 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
 
         <!-- Project Filter -->
         <label class="sr-only" for="task-project-filter">{{ 'tasks.filtr_po_proektu' | t }}</label>
-        <select
-          id="task-project-filter"
-          name="taskProjectFilter"
-          class="clean-select"
-          [ngModel]="selectedProjectId"
-          (ngModelChange)="selectedProjectIdChange.emit($event)"
-        >
-          <option [ngValue]="null">{{ 'tasks.vse_proekty' | t }}</option>
-          <option *ngFor="let p of projects" [ngValue]="p.id">{{ p.name }}</option>
-        </select>
+        <smt-select
+          class="project-filter"
+          smtTriggerId="task-project-filter"
+          [value]="selectedProjectId"
+          (valueChange)="selectedProjectIdChange.emit($event)"
+          [options]="projects | projectOptions"
+          [placeholder]="'tasks.vse_proekty' | t"
+          [searchPlaceholder]="'tasks.search_project' | t"
+          [emptyLabel]="'tasks.vse_proekty' | t"
+        ></smt-select>
 
         <!-- Priority Filter -->
         <label class="sr-only" for="task-priority-filter">{{ 'tasks.filtr_po_prioritetu' | t }}</label>
@@ -343,6 +347,8 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
       white-space: nowrap;
     }
     .clean-select:focus { border-color: var(--primary); }
+    /* A searchable project list; wide enough for a typical project name. */
+    .project-filter { display: block; width: 200px; max-width: 100%; }
 
     .reset-filters-btn {
       border: 1px solid var(--border-color);

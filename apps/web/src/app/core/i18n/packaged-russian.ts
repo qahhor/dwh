@@ -933,6 +933,7 @@ export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(
   "tasks.dop_polya": "Доп. поля",
   "tasks.pozhaluysta_ukazhite_nazvanie_zadachi": "Пожалуйста, укажите название задачи",
   "tasks.bez_proekta": "Без проекта",
+  "tasks.search_project": "Найти проект по названию",
   "tasks.otvetstvennyy_sotrudnik_i_t1": "Ответственный сотрудник (I-T1)",
   "tasks.srok_sdachi_dedlayn": "Срок сдачи (Дедлайн)",
   "tasks.nablyudateli_poluchayut_uvedomleniya": "Наблюдатели (получают уведомления)",

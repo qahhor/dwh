@@ -3,12 +3,13 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SMTMultiSelectComponent } from '../../../shared/ui-kit/components/forms/multi-select';
 import { UserOptionsPipe } from './user-options.pipe';
+import { ProjectOptionsPipe } from './project-options.pipe';
 import { SMTDatePickerComponent, SMTDatePickerValueAccessor } from '../../../shared/ui-kit/components/forms/date-picker';
 import { TranslatePipe } from '../../../core/services/i18n.service';
 import { SMTControlComponent } from '../../../shared/ui-kit/components/forms/control';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
-import { SMTSelectComponent, SMTSelectOption } from '../../../shared/ui-kit/components/forms/select';
+import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../../../shared/ui-kit/components/forms/select';
 import { UiMarkdownEditorComponent } from '../../../shared/ui/ui-markdown-editor.component';
 import { UiCustomFieldsComponent } from '../../../shared/ui/ui-custom-fields.component';
 import { CustomField } from '../../../core/models/custom-field.models';
@@ -30,6 +31,8 @@ import { User } from '../../../core/models/auth.models';
     SMTSelectComponent,
     SMTMultiSelectComponent,
     UserOptionsPipe,
+    ProjectOptionsPipe,
+    SMTSelectValueAccessor,
     UiMarkdownEditorComponent,
     UiCustomFieldsComponent
   ],
@@ -124,10 +127,15 @@ import { User } from '../../../core/models/auth.models';
         <div class="form-grid-2">
           <!-- Project Selector -->
           <smt-control class="form-group" [smtLabel]="'projects.proekt' | t">
-            <select id="task-create-project" name="taskCreateProject" class="clean-input" [(ngModel)]="createForm.projectId">
-              <option [ngValue]="null">{{ 'tasks.bez_proekta' | t }}</option>
-              <option *ngFor="let p of projects" [ngValue]="p.id">{{ p.name }}</option>
-            </select>
+            <smt-select
+              smtTriggerId="task-create-project"
+              name="taskCreateProject"
+              [(ngModel)]="createForm.projectId"
+              [options]="projects | projectOptions"
+              [placeholder]="'tasks.bez_proekta' | t"
+              [searchPlaceholder]="'tasks.search_project' | t"
+              [emptyLabel]="'tasks.bez_proekta' | t"
+            ></smt-select>
           </smt-control>
 
           <!-- Parent Task (Searchable Select) -->

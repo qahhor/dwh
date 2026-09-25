@@ -217,6 +217,11 @@ describe('TasksComponent UI contracts', () => {
     expect(fixture.nativeElement.querySelector('smt-select button[aria-label="Родительская задача"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('smt-multi-select button[aria-label="Наблюдатели"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('ui-markdown-editor textarea')?.getAttribute('id')).not.toBe('');
+    // The project is a searchable combobox named by its label, in the form and in the filter bar.
+    const project = fixture.nativeElement.querySelector('#task-create-project') as HTMLElement;
+    expect(project.getAttribute('role')).toBe('combobox');
+    expect(fixture.nativeElement.querySelector('label[for="task-create-project"]')?.textContent).toContain('Проект');
+    expect((fixture.nativeElement.querySelector('#task-project-filter') as HTMLElement).getAttribute('role')).toBe('combobox');
   });
 
   it('labels task dictionaries and confirms destructive actions in-app', async () => {

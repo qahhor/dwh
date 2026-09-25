@@ -931,6 +931,7 @@
   "tasks.dop_polya": "Add. fields",
   "tasks.pozhaluysta_ukazhite_nazvanie_zadachi": "Please enter the name of the task",
   "tasks.bez_proekta": "Without a project",
+  "tasks.search_project": "Find a project by name",
   "tasks.otvetstvennyy_sotrudnik_i_t1": "Responsible Officer (I-T1)",
   "tasks.srok_sdachi_dedlayn": "Due date (Deadline)",
   "tasks.nablyudateli_poluchayut_uvedomleniya": "Observers (receive notifications)",

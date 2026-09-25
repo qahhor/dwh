@@ -41,6 +41,10 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   to delete a file are checked again when Yes is pressed. Discard-changes
   prompts, role deletion and the data scope change keep their own dialogs:
   they are part of the leave guards and nested decisions of those screens.
+- The project in the task create and edit forms and in the task filter is
+  chosen from a searchable list (`smt-select`) instead of a native select,
+  so a long project list can be filtered by name. Short fixed lists
+  (priority, language, yes/no) stay native selects.
 - The file storage list pages through every file with a server cursor; it
   used to show at most the 100 newest and hide the rest. It runs on the field
   registry (`mf.files`): sorting of the whole list by name, size or date,
