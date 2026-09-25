@@ -9,6 +9,11 @@ const overview = (days: number, uploads = 12): UplOverview => ({
   days,
   generatedAt: '2026-09-25T09:30:00Z',
   totals: { uploads, received: 1, verified: 2, rejected: 3, applied: 6, rowsApplied: 12345 },
+  previous: { uploads: 10, received: 0, verified: 2, rejected: 6, applied: 4, rowsApplied: 0 },
+  daily: [
+    { day: '2026-09-24', applied: 2, rejected: 1, other: 0 },
+    { day: '2026-09-25', applied: 4, rejected: 2, other: 3 }
+  ],
   freshness: [
     { sourceId: 3, code: 'tax', name: 'Налоги', periodicity: 'month', state: 'fresh', lastPeriodTo: '2026-08-31', dueBy: '2026-10-05' },
     { sourceId: 5, code: 'brick', name: 'Кирпич', periodicity: 'month', state: 'overdue', lastPeriodTo: '2026-06-30', dueBy: '2026-08-05' }
@@ -53,11 +58,15 @@ describe('UplOverviewComponent', () => {
     expect(get).toHaveBeenCalledWith(30);
     const card = host.querySelector('[data-testid="overview-totals"] section') as HTMLElement;
     expect(document.getElementById(card.getAttribute('aria-labelledby')!)?.textContent).toBe('Загрузки за период');
-    const tiles = [...card.querySelectorAll('.overview__tile')]
-      .map(tile => `${tile.querySelector('dt')?.textContent?.trim()} ${tile.querySelector('dd')?.textContent?.trim()}`);
-    expect(tiles[0]).toBe('Всего загрузок 12');
-    expect(tiles[3]).toBe('Отклонено 3');
-    expect(tiles[4]).toContain('12');
+    const kpis = [...card.querySelectorAll('.kpi')].map(kpi => kpi.getAttribute('aria-label'));
+    expect(kpis[0]).toBe('Всего загрузок: 12, рост на 20% к прошлому периоду');
+    expect(kpis[3]).toBe('Отклонено: 3, снижение на 50% к прошлому периоду');
+    expect(kpis[4]).toContain('рост на 12');
+    expect(card.querySelectorAll('.kpi__change--good')).toHaveLength(3);
+    // The daily chart: a bar per day and the same figures as a table for screen readers.
+    expect(host.querySelectorAll('[data-testid="bar-chart-bar"]')).toHaveLength(2);
+    const firstDay = host.querySelector('[data-testid="bar-chart-table"] tbody tr') as HTMLElement;
+    expect([...firstDay.children].map(cell => cell.textContent?.trim())).toEqual(['24.09', '2', '0', '1']);
     expect(host.querySelector('[data-testid="overview-stamp"]')?.textContent).toContain('Данные на');
   });
 
@@ -79,7 +88,7 @@ describe('UplOverviewComponent', () => {
 
     expect(get.mock.calls.map(call => call[0])).toEqual([30, 7, 90]);
     expect(buttons().map(button => button.getAttribute('aria-pressed'))).toEqual(['false', 'false', 'true']);
-    expect(host.querySelector('.overview__tile')?.textContent).toContain('40');
+    expect(host.querySelector('.kpi__value')?.textContent).toContain('40');
   });
 
   it('keeps a failure inside its widget with a retry, and says when there were no uploads', async () => {

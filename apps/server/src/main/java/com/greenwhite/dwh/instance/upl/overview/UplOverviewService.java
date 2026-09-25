@@ -54,7 +54,12 @@ public class UplOverviewService {
         this.clock = clock;
     }
 
+    /**
+     * @param previous the same number of days just before, for the change of each figure
+     * @param daily    every day of the period, oldest first, days without uploads as zeros
+     */
     public record Overview(int days, Instant generatedAt, UplOverviewRepository.Totals totals,
+                           UplOverviewRepository.Totals previous, List<UplOverviewRepository.DayRow> daily,
                            List<SourceFreshness> freshness, List<AttentionItem> attention) {
     }
 
@@ -83,7 +88,20 @@ public class UplOverviewService {
         Instant since = now.minus(Duration.ofDays(days));
         LocalDate today = LocalDate.ofInstant(now, ZoneOffset.UTC);
         List<SourceFreshness> freshness = repo.sourceFreshness().stream().map(row -> freshness(row, today)).toList();
-        return new Overview(days, now, repo.totals(since), freshness, attention(freshness, since, today));
+        Instant before = since.minus(Duration.ofDays(days));
+        return new Overview(days, now, repo.totals(since), repo.totals(before, since), daily(since, today, days),
+                freshness, attention(freshness, since, today));
+    }
+
+    /** One row per day of the period, so a chart shows quiet days as quiet rather than skipping them. */
+    private List<UplOverviewRepository.DayRow> daily(Instant since, LocalDate today, int days) {
+        java.util.Map<LocalDate, UplOverviewRepository.DayRow> found = new java.util.HashMap<>();
+        repo.daily(since).forEach(row -> found.put(row.day(), row));
+        List<UplOverviewRepository.DayRow> rows = new ArrayList<>();
+        for (LocalDate day = today.minusDays(days - 1L); !day.isAfter(today); day = day.plusDays(1)) {
+            rows.add(found.getOrDefault(day, new UplOverviewRepository.DayRow(day, 0, 0, 0)));
+        }
+        return rows;
     }
 
     private List<AttentionItem> attention(List<SourceFreshness> freshness, Instant since, LocalDate today) {

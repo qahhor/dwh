@@ -9,6 +9,13 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- KPI cards and charts on the data overview (roadmap item 26): each figure
+  shows its change against the same number of days before, coloured by
+  which way is good for it (fewer rejections is good), and reads as one
+  sentence to screen readers. Uploads by day are a stacked bar chart —
+  applied, in progress, rejected — drawn in plain SVG from theme colours,
+  with a tooltip per bar and the same figures as a table for screen
+  readers. No chart library: the start of the application does not grow.
 - Data freshness and Needs attention (roadmap item 25): the data overview
   lists every source worst first — fresh, waiting for data, overdue, never
   delivered or without a schedule — from its periodicity and deadline, with

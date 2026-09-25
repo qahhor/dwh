@@ -42,11 +42,23 @@ export interface UplAttentionItem {
   daysLate?: number | null;
 }
 
+/** Uploads of one UTC day by outcome. */
+export interface UplOverviewDay {
+  day: string;
+  applied: number;
+  rejected: number;
+  other: number;
+}
+
 /** `GET /upl/overview?days=`: everything the data overview shows about one period. */
 export interface UplOverview {
   days: number;
   generatedAt: string;
   totals: UplOverviewTotals;
+  /** The same number of days just before, for the change of each figure. */
+  previous: UplOverviewTotals;
+  /** Every day of the period, oldest first. */
+  daily: UplOverviewDay[];
   freshness: UplSourceFreshness[];
   attention: UplAttentionItem[];
 }

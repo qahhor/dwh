@@ -6,6 +6,8 @@ import { I18nService, TranslatePipe } from '../../../core/services/i18n.service'
 import { RouterLink } from '@angular/router';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { BarChartPoint, BarChartSeries, UiBarChartComponent } from '../../../shared/ui/ui-bar-chart.component';
+import { UiKpiCardComponent } from '../../../shared/ui/ui-kpi-card.component';
 import { UiLocalTableComponent } from '../../../shared/ui/ui-local-table.component';
 import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
 import { UiDashboardCardComponent } from '../../../shared/ui/ui-dashboard-card.component';
@@ -45,7 +47,7 @@ const STATE_KEY: Record<UplFreshnessState, string> = {
   selector: 'app-upl-overview',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, RouterLink, TranslatePipe, UiBadgeComponent, UiButtonComponent, UiDashboardCardComponent, UiLocalTableComponent],
+  imports: [DatePipe, RouterLink, TranslatePipe, UiBadgeComponent, UiButtonComponent, UiDashboardCardComponent, UiLocalTableComponent, UiKpiCardComponent, UiBarChartComponent],
   template: `
     <section class="overview" aria-labelledby="overview-title">
       <header class="overview__head">
@@ -85,29 +87,46 @@ const STATE_KEY: Record<UplFreshnessState, string> = {
           [emptyText]="'upl.overview.totals.empty' | t"
           (retry)="load()">
           @if (data(); as current) {
-            <dl class="overview__tiles">
-              <div class="overview__tile">
-                <dt>{{ 'upl.overview.totals.uploads' | t }}</dt>
-                <dd>{{ count(current.totals.uploads) }}</dd>
-              </div>
-              <div class="overview__tile">
-                <dt>{{ 'upl.overview.totals.applied' | t }}</dt>
-                <dd>{{ count(current.totals.applied) }}</dd>
-              </div>
-              <div class="overview__tile">
-                <dt>{{ 'upl.overview.totals.verified' | t }}</dt>
-                <dd>{{ count(current.totals.verified) }}</dd>
-              </div>
-              <div class="overview__tile">
-                <dt>{{ 'upl.overview.totals.rejected' | t }}</dt>
-                <dd>{{ count(current.totals.rejected) }}</dd>
-              </div>
-              <div class="overview__tile">
-                <dt>{{ 'upl.overview.totals.rows' | t }}</dt>
-                <dd>{{ count(current.totals.rowsApplied) }}</dd>
-              </div>
-            </dl>
+            <div class="overview__tiles" data-testid="overview-kpis">
+              <ui-kpi-card
+                [label]="'upl.overview.totals.uploads' | t"
+                [value]="current.totals.uploads"
+                [previous]="current.previous?.uploads ?? null"
+                goodWhen="neutral" />
+              <ui-kpi-card
+                [label]="'upl.overview.totals.applied' | t"
+                [value]="current.totals.applied"
+                [previous]="current.previous?.applied ?? null" />
+              <ui-kpi-card
+                [label]="'upl.overview.totals.verified' | t"
+                [value]="current.totals.verified"
+                [previous]="current.previous?.verified ?? null"
+                goodWhen="down" />
+              <ui-kpi-card
+                [label]="'upl.overview.totals.rejected' | t"
+                [value]="current.totals.rejected"
+                [previous]="current.previous?.rejected ?? null"
+                goodWhen="down" />
+              <ui-kpi-card
+                [label]="'upl.overview.totals.rows' | t"
+                [value]="current.totals.rowsApplied"
+                [previous]="current.previous?.rowsApplied ?? null" />
+            </div>
           }
+        </ui-dashboard-card>
+
+        <ui-dashboard-card
+          class="overview__wide"
+          data-testid="overview-daily"
+          [title]="'upl.overview.daily.title' | t"
+          [subtitle]="'upl.overview.days_long' | t: { n: days() }"
+          [loading]="loading() && !data()"
+          [failed]="failed()"
+          [empty]="data()?.totals?.uploads === 0"
+          [emptyText]="'upl.overview.totals.empty' | t"
+          (retry)="load()">
+          <ui-bar-chart [series]="chartSeries()" [points]="chartPoints()" [caption]="'upl.overview.daily.caption' | t: { n: days() }"
+            [axisLabel]="'upl.overview.daily.day' | t" />
         </ui-dashboard-card>
 
         <ui-dashboard-card
@@ -169,7 +188,6 @@ const STATE_KEY: Record<UplFreshnessState, string> = {
     .overview__stamp { margin: 0; font-size: 12px; color: var(--text-muted); }
     .overview__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px; }
     .overview__tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin: 0; }
-    .overview__tile { padding: 10px 12px; border-radius: var(--radius-sm); background: var(--bg-hover); }
     .overview__tile dt { font-size: 12px; color: var(--text-muted); }
     .overview__wide { grid-column: 1 / -1; }
     .overview__attention { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
@@ -201,6 +219,18 @@ export class UplOverviewComponent implements OnInit {
   private readonly stateCell = viewChild.required<TemplateRef<unknown>>('stateCell');
   private readonly lastCell = viewChild.required<TemplateRef<unknown>>('lastCell');
   private readonly dueCell = viewChild.required<TemplateRef<unknown>>('dueCell');
+
+  readonly chartSeries = computed<BarChartSeries[]>(() => [
+    { key: 'applied', label: this.i18n.translate('upl.overview.totals.applied'), color: 'var(--success)' },
+    { key: 'other', label: this.i18n.translate('upl.overview.daily.other'), color: 'var(--primary)' },
+    { key: 'rejected', label: this.i18n.translate('upl.overview.totals.rejected'), color: 'var(--danger)' }
+  ]);
+
+  /** Every day of the period as a bar, labelled day.month. */
+  readonly chartPoints = computed<BarChartPoint[]>(() => (this.data()?.daily ?? []).map(day => ({
+    label: day.day.slice(8, 10) + '.' + day.day.slice(5, 7),
+    values: { applied: day.applied, other: day.other, rejected: day.rejected }
+  })));
 
   /** Sources worst first, by name within a state; a header click sorts them otherwise. */
   readonly freshnessRows = computed(() => [...(this.data()?.freshness ?? [])]
@@ -275,11 +305,6 @@ export class UplOverviewComponent implements OnInit {
 
   attentionQuery(item: UplAttentionItem): Record<string, string> {
     return item.packageId ? { open: item.packageId } : { source: String(item.sourceId) };
-  }
-
-  /** A figure with digit grouping in the reader's language. */
-  count(value: number): string {
-    return new Intl.NumberFormat(this.i18n.currentLang()).format(value);
   }
 
   choose(period: UplOverviewPeriod): void {

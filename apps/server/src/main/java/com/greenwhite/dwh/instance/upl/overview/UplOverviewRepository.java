@@ -24,6 +24,11 @@ public class UplOverviewRepository {
     }
 
     public Totals totals(Instant since) {
+        return totals(since, null);
+    }
+
+    /** Uploads in [from, to); no {@code to} — up to now. */
+    public Totals totals(Instant from, Instant to) {
         return jdbc.sql("""
                         select count(*) as uploads,
                                count(*) filter (where status = 'received') as received,
@@ -32,9 +37,10 @@ public class UplOverviewRepository {
                                count(*) filter (where status = 'applied') as applied,
                                coalesce(sum(rows_accepted) filter (where status = 'applied'), 0) as rows_applied
                           from upl_packages
-                         where uploaded_at >= :since
+                         where uploaded_at >= :since and (cast(:until as timestamptz) is null or uploaded_at < :until)
                         """)
-                .param("since", Timestamp.from(since))
+                .param("since", Timestamp.from(from))
+                .param("until", to == null ? null : Timestamp.from(to))
                 .query((rs, n) -> new Totals(rs.getLong("uploads"), rs.getLong("received"), rs.getLong("verified"),
                         rs.getLong("rejected"), rs.getLong("applied"), rs.getLong("rows_applied")))
                 .single();
@@ -93,6 +99,26 @@ public class UplOverviewRepository {
         return query.query((rs, n) -> new PackageAttentionRow(rs.getObject("public_id", UUID.class), rs.getLong("source_id"), rs.getString("code"),
                         rs.getString("name"), rs.getString("file_name"), rs.getObject("period_from", LocalDate.class),
                         rs.getObject("period_to", LocalDate.class), rs.getTimestamp("uploaded_at").toInstant()))
+                .list();
+    }
+    /** Uploads of one UTC day by outcome: applied, rejected and the rest (received or checked). */
+    public record DayRow(LocalDate day, long applied, long rejected, long other) {
+    }
+
+    public List<DayRow> daily(Instant since) {
+        return jdbc.sql("""
+                        select (uploaded_at at time zone 'UTC')::date as day,
+                               count(*) filter (where status = 'applied') as applied,
+                               count(*) filter (where status = 'rejected') as rejected,
+                               count(*) filter (where status in ('received', 'verified')) as other
+                          from upl_packages
+                         where uploaded_at >= :since
+                         group by 1
+                         order by 1
+                        """)
+                .param("since", Timestamp.from(since))
+                .query((rs, n) -> new DayRow(rs.getObject("day", LocalDate.class), rs.getLong("applied"),
+                        rs.getLong("rejected"), rs.getLong("other")))
                 .list();
     }
 }

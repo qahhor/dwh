@@ -400,6 +400,10 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
         assertThat((Integer) read(after, "$.totals.uploads")).isEqualTo(uploadsBefore + 1);
         assertThat((Integer) read(after, "$.totals.verified")).isEqualTo(verifiedBefore + 1);
         assertThat((String) read(after, "$.generatedAt")).isNotBlank();
+        // Every day of the period, today last; the week before for the change of each figure.
+        assertThat((List<Object>) read(after, "$.daily")).hasSize(7);
+        assertThat((Integer) read(after, "$.daily[6].other")).isPositive();
+        assertThat((Integer) read(after, "$.previous.uploads")).isNotNegative();
         // A checked upload waits for someone to apply it; the source is listed with its freshness.
         assertThat((List<String>) read(after, "$.attention[?(@.kind == 'waiting')].fileName")).contains("TEST.xlsx");
         assertThat((List<Integer>) read(after, "$.freshness[*].sourceId")).contains((int) sourceId);
