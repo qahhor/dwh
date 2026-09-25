@@ -6,6 +6,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { ProblemDetail } from '../../../core/models/common.models';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
+import { SMTControlComponent } from '../../../shared/ui-kit/components/forms/control';
 import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
@@ -49,6 +50,7 @@ type DraftMode = 'empty' | 'copy';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    SMTControlComponent,
     UiLocalTableComponent,
     CommonModule,
     FormsModule,
@@ -114,8 +116,7 @@ type DraftMode = 'empty' | 'copy';
             <code class="upl-code">{{ s.code }}</code>
           </div>
 
-          <div class="form-group">
-            <label class="form-label" for="upl-source-name">{{ 'upl.source.field.name' | t }}</label>
+          <smt-control class="form-group" [smtLabel]="'upl.source.field.name' | t" [smtError]="fieldErrorText('name')">
             <input
               id="upl-source-name"
               class="form-input"
@@ -125,13 +126,9 @@ type DraftMode = 'empty' | 'copy';
               [disabled]="!canEdit()"
               [(ngModel)]="form.name"
             />
-            @if (fieldErrors()['name']; as err) {
-              <span class="upl-field-error" data-testid="upl-err-name">{{ err | t }}</span>
-            }
-          </div>
+          </smt-control>
 
-          <div class="form-group">
-            <label class="form-label" for="upl-source-owner-org">{{ 'upl.source.field.owner_org' | t }}</label>
+          <smt-control class="form-group" [smtLabel]="'upl.source.field.owner_org' | t" [smtError]="fieldErrorText('ownerOrg')">
             <input
               id="upl-source-owner-org"
               class="form-input"
@@ -141,13 +138,9 @@ type DraftMode = 'empty' | 'copy';
               [disabled]="!canEdit()"
               [(ngModel)]="form.ownerOrg"
             />
-            @if (fieldErrors()['ownerOrg']; as err) {
-              <span class="upl-field-error" data-testid="upl-err-ownerOrg">{{ err | t }}</span>
-            }
-          </div>
+          </smt-control>
 
-          <div class="form-group">
-            <label class="form-label" for="upl-source-owner-contact">{{ 'upl.source.field.owner_contact' | t }}</label>
+          <smt-control class="form-group" [smtLabel]="'upl.source.field.owner_contact' | t" [smtError]="fieldErrorText('ownerContact')">
             <input
               id="upl-source-owner-contact"
               class="form-input"
@@ -157,13 +150,9 @@ type DraftMode = 'empty' | 'copy';
               [disabled]="!canEdit()"
               [(ngModel)]="form.ownerContact"
             />
-            @if (fieldErrors()['ownerContact']; as err) {
-              <span class="upl-field-error" data-testid="upl-err-ownerContact">{{ err | t }}</span>
-            }
-          </div>
+          </smt-control>
 
-          <div class="form-group">
-            <label class="form-label" for="upl-source-periodicity">{{ 'upl.source.field.periodicity' | t }}</label>
+          <smt-control class="form-group" [smtLabel]="'upl.source.field.periodicity' | t">
             <select
               id="upl-source-periodicity"
               class="form-select"
@@ -175,10 +164,9 @@ type DraftMode = 'empty' | 'copy';
                 <option [value]="p">{{ periodicityKey[p] | t }}</option>
               }
             </select>
-          </div>
+          </smt-control>
 
-          <div class="form-group">
-            <label class="form-label" for="upl-source-sla-days">{{ 'upl.source.field.sla_days' | t }}</label>
+          <smt-control class="form-group" [smtLabel]="'upl.source.field.sla_days' | t" [smtError]="fieldErrorText('slaDays')">
             <input
               id="upl-source-sla-days"
               class="form-input"
@@ -189,13 +177,9 @@ type DraftMode = 'empty' | 'copy';
               [disabled]="!canEdit()"
               [(ngModel)]="form.slaDays"
             />
-            @if (fieldErrors()['slaDays']; as err) {
-              <span class="upl-field-error" data-testid="upl-err-slaDays">{{ err | t }}</span>
-            }
-          </div>
+          </smt-control>
 
-          <div class="form-group">
-            <label class="form-label" for="upl-source-strictness">{{ 'upl.source.field.strictness' | t }}</label>
+          <smt-control class="form-group" [smtLabel]="'upl.source.field.strictness' | t">
             <select
               id="upl-source-strictness"
               class="form-select"
@@ -207,7 +191,7 @@ type DraftMode = 'empty' | 'copy';
                 <option [value]="st">{{ strictnessKey[st] | t }}</option>
               }
             </select>
-          </div>
+          </smt-control>
         </div>
 
         @if (canEdit()) {
@@ -463,6 +447,12 @@ export class SourceCardComponent {
 
   readonly sourceId = signal<string | null>(null);
   readonly source = signal<UplSource | null>(null);
+  /** The translated message for a field's error code, or nothing; smt-control links it to the field. */
+  fieldErrorText(key: string): string {
+    const code = this.fieldErrors()[key];
+    return code ? this.i18n.translate(code) : '';
+  }
+
   readonly versions = signal<UplVersionItem[]>([]);
 
   private readonly versionCell = viewChild.required<TemplateRef<unknown>>('versionCell');

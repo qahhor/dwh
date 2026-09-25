@@ -203,14 +203,16 @@ describe('TasksComponent UI contracts', () => {
     fixture.componentInstance.openCreateTaskModal();
     fixture.componentInstance.isCreateSubmitted = true;
     fixture.detectChanges();
+    TestBed.tick(); // smt-control wires label, error and aria state after render
 
     const title = fixture.nativeElement.querySelector('#task-create-title') as HTMLInputElement;
-    const error = fixture.nativeElement.querySelector('#task-create-title-error') as HTMLElement;
+    const error = (title.getAttribute('aria-describedby') ?? '').split(' ').map(id => fixture.nativeElement.querySelector('#' + id)).find(node => node?.classList.contains('smt-control__error')) as HTMLElement | undefined;
 
     expect(fixture.nativeElement.querySelector(`label[for="${title.id}"]`)).not.toBeNull();
     expect(title.required).toBe(true);
+    expect(title.getAttribute('aria-required')).toBe('true');
     expect(title.getAttribute('aria-invalid')).toBe('true');
-    expect(title.getAttribute('aria-describedby')).toBe(error.id);
+    expect(error?.textContent).toContain('Пожалуйста, укажите название задачи');
     expect(fixture.nativeElement.querySelector('[role="group"][aria-label="Тип задачи"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('smt-select button[aria-label="Родительская задача"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('smt-multi-select button[aria-label="Наблюдатели"]')).not.toBeNull();

@@ -5,6 +5,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ProblemDetail } from '../../../core/models/common.models';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
+import { SMTControlComponent } from '../../../shared/ui-kit/components/forms/control';
 import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
@@ -56,6 +57,7 @@ function emptyFormErrors(): UplPackageFormErrors {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    SMTControlComponent,
     CommonModule, FormsModule, TranslatePipe, UiBadgeComponent, UiButtonComponent, PackageCardComponent,
     SMTDatePickerComponent, SMTDatePickerValueAccessor, SMTSelectComponent, SMTSelectValueAccessor,
     UiServerTableComponent,
@@ -91,8 +93,7 @@ function emptyFormErrors(): UplPackageFormErrors {
             }
 
             <div class="upl-pkg-fields">
-              <div class="form-group">
-                <label class="form-label" for="upl-pkg-source-field">{{ 'upl.pkg.form.source' | t }}</label>
+              <smt-control class="form-group" [smtLabel]="'upl.pkg.form.source' | t" [smtError]="formErrors().source.join(' ')">
                 <!-- A lookup over the server list: search by code or name, columns, "create" from the typed text. -->
                 <smt-select
                   smtTriggerId="upl-pkg-source-field"
@@ -115,17 +116,9 @@ function emptyFormErrors(): UplPackageFormErrors {
                   (retry)="sourceLookup.retry(selectedSource)"
                   (create)="createSource($event)"
                 ></smt-select>
-                @if (formErrors().source.length > 0) {
-                  <span class="upl-field-error" data-testid="upl-pkg-err-source">
-                    @for (message of formErrors().source; track $index) {
-                      <span class="upl-pkg-err-line">{{ message }}</span>
-                    }
-                  </span>
-                }
-              </div>
+              </smt-control>
 
-              <div class="form-group">
-                <label class="form-label" for="upl-pkg-period-from-field">{{ 'upl.pkg.form.period_from' | t }}</label>
+              <smt-control class="form-group" [smtLabel]="'upl.pkg.form.period_from' | t">
                 <smt-date-picker
                   smtInputId="upl-pkg-period-from-field"
                   name="periodFrom"
@@ -134,10 +127,9 @@ function emptyFormErrors(): UplPackageFormErrors {
                   [ngModel]="form.periodFrom"
                   (ngModelChange)="form.periodFrom = $event ?? ''"
                 />
-              </div>
+              </smt-control>
 
-              <div class="form-group">
-                <label class="form-label" for="upl-pkg-period-to-field">{{ 'upl.pkg.form.period_to' | t }}</label>
+              <smt-control class="form-group" [smtLabel]="'upl.pkg.form.period_to' | t" [smtError]="formErrors().period.join(' ')">
                 <smt-date-picker
                   smtInputId="upl-pkg-period-to-field"
                   name="periodTo"
@@ -146,17 +138,9 @@ function emptyFormErrors(): UplPackageFormErrors {
                   [ngModel]="form.periodTo"
                   (ngModelChange)="form.periodTo = $event ?? ''"
                 />
-                @if (formErrors().period.length > 0) {
-                  <span class="upl-field-error" data-testid="upl-pkg-err-period">
-                    @for (message of formErrors().period; track $index) {
-                      <span class="upl-pkg-err-line">{{ message }}</span>
-                    }
-                  </span>
-                }
-              </div>
+              </smt-control>
 
-              <div class="form-group">
-                <label class="form-label" for="upl-pkg-file-field">{{ 'upl.pkg.form.file' | t }}</label>
+              <smt-control class="form-group" [smtLabel]="'upl.pkg.form.file' | t" [smtError]="formErrors().file.join(' ')">
                 <input
                   #fileInput
                   class="form-input"
@@ -167,14 +151,7 @@ function emptyFormErrors(): UplPackageFormErrors {
                   [disabled]="isSending()"
                   (change)="pickFile($event)"
                 />
-                @if (formErrors().file.length > 0) {
-                  <span class="upl-field-error" data-testid="upl-pkg-err-file">
-                    @for (message of formErrors().file; track $index) {
-                      <span class="upl-pkg-err-line">{{ message }}</span>
-                    }
-                  </span>
-                }
-              </div>
+              </smt-control>
             </div>
 
             <div class="upl-pkg-form-actions">

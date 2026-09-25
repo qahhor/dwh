@@ -10,6 +10,13 @@ import { PACKAGED_RUSSIAN } from '../../../core/i18n/packaged-russian';
 import { UplApiService, UplFormatVersion, UplSource, UplVersionItem } from '../upl-api';
 import { SourceCardComponent } from './source-card.component';
 
+/** The error smt-control shows for a field, found the way assistive technology finds it: through aria-describedby. */
+function fieldError(root: HTMLElement, fieldId: string): HTMLElement | null {
+  const field = root.querySelector('#' + fieldId);
+  const ids = (field?.getAttribute('aria-describedby') ?? '').split(/\s+/).filter(Boolean);
+  return ids.map(id => root.querySelector<HTMLElement>('#' + id)).find(node => node?.classList.contains('smt-control__error')) ?? null;
+}
+
 describe('SourceCardComponent', () => {
   const source: UplSource = {
     id: 7,
@@ -108,6 +115,8 @@ describe('SourceCardComponent', () => {
     expect(button).not.toBeNull();
     button.componentInstance.onClick.emit();
     fixture.detectChanges();
+    // A full tick also runs the after-render phase, where smt-control links its error to the field.
+    TestBed.tick();
   }
 
   function setInput(fixture: ComponentFixture<SourceCardComponent>, testid: string, value: string): void {
@@ -170,7 +179,7 @@ describe('SourceCardComponent', () => {
     setInput(fixture, 'upl-field-name', '');
     clickUiButton(fixture, 'upl-save-source');
     expect(api.updateSource).not.toHaveBeenCalled();
-    expect(el(fixture, 'upl-err-name')).not.toBeNull();
+    expect(fieldError(fixture.nativeElement, 'upl-source-name')).not.toBeNull();
   });
 
   it('offers open draft instead of new draft when a draft exists', async () => {
@@ -253,8 +262,8 @@ describe('SourceCardComponent', () => {
     });
     setInput(fixture, 'upl-field-name', 'Edited TEST');
     clickUiButton(fixture, 'upl-save-source');
-    expect(el(fixture, 'upl-err-name')).not.toBeNull();
-    expect(el(fixture, 'upl-err-name')?.textContent).toContain(PACKAGED_RUSSIAN['upl.err.Size']);
+    expect(fieldError(fixture.nativeElement, 'upl-source-name')).not.toBeNull();
+    expect(fieldError(fixture.nativeElement, 'upl-source-name')?.textContent).toContain(PACKAGED_RUSSIAN['upl.err.Size']);
     expect(el(fixture, 'upl-save-error')?.textContent).toContain(PACKAGED_RUSSIAN['upl.err.VALIDATION_FAILED']);
     expect((el(fixture, 'upl-field-name') as HTMLInputElement).value).toBe('Edited TEST');
     expect(el(fixture, 'upl-conflict')).toBeNull();
@@ -271,7 +280,7 @@ describe('SourceCardComponent', () => {
     });
     setInput(fixture, 'upl-field-name', 'Edited TEST');
     clickUiButton(fixture, 'upl-save-source');
-    const shown = el(fixture, 'upl-err-ownerOrg')?.textContent ?? '';
+    const shown = fieldError(fixture.nativeElement, 'upl-source-owner-org')?.textContent ?? '';
     expect(shown).toContain('srv (UPL_SOMETHING_NEW)');
     expect(shown).not.toContain('upl.err.');
   });

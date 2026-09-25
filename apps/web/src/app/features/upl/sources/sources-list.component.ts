@@ -10,6 +10,7 @@ import { KeysetPager } from '../../../shared/paging/keyset-pager';
 import { ListViewState, ListViewsApi } from '../../../shared/list-views/list-views';
 import { TableColumnStateStore } from '../../../shared/ui-kit/services/table-column-state.store';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
+import { SMTControlComponent } from '../../../shared/ui-kit/components/forms/control';
 import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
@@ -64,6 +65,7 @@ function emptyForm(): SourceCreateForm {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    SMTControlComponent,
     CommonModule,
     FormsModule,
     RouterLink,
@@ -145,8 +147,7 @@ function emptyForm(): SourceCreateForm {
           </div>
         }
 
-        <div class="form-group">
-          <label class="form-label" for="upl-source-code">{{ 'upl.source.field.code' | t }}</label>
+        <smt-control class="form-group" [smtLabel]="'upl.source.field.code' | t" [smtHint]="'upl.source.hint.code' | t" [smtError]="fieldErrorText('code')">
           <input
             class="form-input"
             id="upl-source-code"
@@ -155,14 +156,9 @@ function emptyForm(): SourceCreateForm {
             maxlength="63"
             [(ngModel)]="form.code"
           />
-          <span class="upl-hint">{{ 'upl.source.hint.code' | t }}</span>
-          @if (fieldErrors()['code']) {
-            <span class="upl-field-error" data-testid="upl-err-code">{{ fieldErrors()['code'] | t }}</span>
-          }
-        </div>
+        </smt-control>
 
-        <div class="form-group">
-          <label class="form-label" for="upl-source-name">{{ 'upl.source.field.name' | t }}</label>
+        <smt-control class="form-group" [smtLabel]="'upl.source.field.name' | t" [smtHint]="'upl.source.hint.name' | t" [smtError]="fieldErrorText('name')">
           <input
             class="form-input"
             id="upl-source-name"
@@ -171,14 +167,9 @@ function emptyForm(): SourceCreateForm {
             maxlength="200"
             [(ngModel)]="form.name"
           />
-          <span class="upl-hint">{{ 'upl.source.hint.name' | t }}</span>
-          @if (fieldErrors()['name']) {
-            <span class="upl-field-error" data-testid="upl-err-name">{{ fieldErrors()['name'] | t }}</span>
-          }
-        </div>
+        </smt-control>
 
-        <div class="form-group">
-          <label class="form-label" for="upl-source-owner-org">{{ 'upl.source.field.owner_org' | t }}</label>
+        <smt-control class="form-group" [smtLabel]="'upl.source.field.owner_org' | t" [smtHint]="'upl.source.hint.owner_org' | t" [smtError]="fieldErrorText('ownerOrg')">
           <input
             class="form-input"
             id="upl-source-owner-org"
@@ -187,14 +178,9 @@ function emptyForm(): SourceCreateForm {
             maxlength="200"
             [(ngModel)]="form.ownerOrg"
           />
-          <span class="upl-hint">{{ 'upl.source.hint.owner_org' | t }}</span>
-          @if (fieldErrors()['ownerOrg']) {
-            <span class="upl-field-error" data-testid="upl-err-owner-org">{{ fieldErrors()['ownerOrg'] | t }}</span>
-          }
-        </div>
+        </smt-control>
 
-        <div class="form-group">
-          <label class="form-label" for="upl-source-owner-contact">{{ 'upl.source.field.owner_contact' | t }}</label>
+        <smt-control class="form-group" [smtLabel]="'upl.source.field.owner_contact' | t" [smtHint]="'upl.source.hint.owner_contact' | t" [smtError]="fieldErrorText('ownerContact')">
           <input
             class="form-input"
             id="upl-source-owner-contact"
@@ -203,14 +189,9 @@ function emptyForm(): SourceCreateForm {
             maxlength="200"
             [(ngModel)]="form.ownerContact"
           />
-          <span class="upl-hint">{{ 'upl.source.hint.owner_contact' | t }}</span>
-          @if (fieldErrors()['ownerContact']) {
-            <span class="upl-field-error" data-testid="upl-err-owner-contact">{{ fieldErrors()['ownerContact'] | t }}</span>
-          }
-        </div>
+        </smt-control>
 
-        <div class="form-group">
-          <label class="form-label" for="upl-source-periodicity">{{ 'upl.source.field.periodicity' | t }}</label>
+        <smt-control class="form-group" [smtLabel]="'upl.source.field.periodicity' | t" [smtHint]="'upl.source.hint.periodicity' | t">
           <select
             class="form-select"
             id="upl-source-periodicity"
@@ -221,11 +202,9 @@ function emptyForm(): SourceCreateForm {
               <option [value]="option">{{ periodicityKey[option] | t }}</option>
             }
           </select>
-          <span class="upl-hint">{{ 'upl.source.hint.periodicity' | t }}</span>
-        </div>
+        </smt-control>
 
-        <div class="form-group">
-          <label class="form-label" for="upl-source-sla-days">{{ 'upl.source.field.sla_days' | t }}</label>
+        <smt-control class="form-group" [smtLabel]="'upl.source.field.sla_days' | t" [smtHint]="'upl.source.hint.sla_days' | t" [smtError]="fieldErrorText('slaDays')">
           <input
             class="form-input"
             id="upl-source-sla-days"
@@ -236,14 +215,9 @@ function emptyForm(): SourceCreateForm {
             step="1"
             [(ngModel)]="form.slaDays"
           />
-          <span class="upl-hint">{{ 'upl.source.hint.sla_days' | t }}</span>
-          @if (fieldErrors()['slaDays']) {
-            <span class="upl-field-error" data-testid="upl-err-sla-days">{{ fieldErrors()['slaDays'] | t }}</span>
-          }
-        </div>
+        </smt-control>
 
-        <div class="form-group">
-          <label class="form-label" for="upl-source-strictness">{{ 'upl.source.field.strictness' | t }}</label>
+        <smt-control class="form-group" [smtLabel]="'upl.source.field.strictness' | t" [smtHint]="'upl.source.hint.strictness' | t">
           <select
             class="form-select"
             id="upl-source-strictness"
@@ -254,8 +228,7 @@ function emptyForm(): SourceCreateForm {
               <option [value]="option">{{ strictnessKey[option] | t }}</option>
             }
           </select>
-          <span class="upl-hint">{{ 'upl.source.hint.strictness' | t }}</span>
-        </div>
+        </smt-control>
       </form>
 
       <div footer class="upl-modal-footer">
@@ -538,6 +511,12 @@ export class SourcesListComponent implements OnInit {
         this.handleCreateError(problem);
       }
     });
+  }
+
+  /** The translated message for a field's error code, or nothing; smt-control links it to the field. */
+  fieldErrorText(key: string): string {
+    const code = this.fieldErrors()[key];
+    return code ? this.i18n.translate(code) : '';
   }
 
   private validateForm(): Record<string, string> {

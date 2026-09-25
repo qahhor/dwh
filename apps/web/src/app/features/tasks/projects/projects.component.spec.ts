@@ -71,9 +71,10 @@ describe('ProjectsComponent UI contracts', () => {
     fixture.componentInstance.openCreateModal();
     fixture.componentInstance.isCreateSubmitted = true;
     fixture.detectChanges();
+    TestBed.tick(); // smt-control wires label, error and aria state after render
 
     const name = fixture.nativeElement.querySelector('#project-create-name') as HTMLInputElement;
-    const error = fixture.nativeElement.querySelector('#project-create-name-error') as HTMLElement;
+    const error = (name.getAttribute('aria-describedby') ?? '').split(' ').map(id => fixture.nativeElement.querySelector('#' + id)).find(node => node?.classList.contains('smt-control__error')) as HTMLElement;
 
     expect(fixture.nativeElement.querySelector(`label[for="${name.id}"]`)).not.toBeNull();
     expect(name.required).toBe(true);

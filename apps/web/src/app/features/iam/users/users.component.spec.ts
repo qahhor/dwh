@@ -87,6 +87,7 @@ describe('UsersComponent UI contracts', () => {
     fixture.componentInstance.openCreateModal();
     (fixture.componentInstance as any).isCreateSubmitted = true;
     fixture.detectChanges();
+    TestBed.tick(); // smt-control wires label, error and aria state after render
 
     const name = fixture.nativeElement.querySelector('#user-create-name') as HTMLInputElement;
     const password = fixture.nativeElement.querySelector('#user-create-password') as HTMLInputElement;
@@ -94,7 +95,8 @@ describe('UsersComponent UI contracts', () => {
     expect(fixture.nativeElement.querySelector(`label[for="${name.id}"]`)).not.toBeNull();
     expect(name.required).toBe(true);
     expect(name.getAttribute('aria-invalid')).toBe('true');
-    expect(name.getAttribute('aria-describedby')).toBe('user-create-name-error');
+    expect((name.getAttribute('aria-describedby') ?? '').split(' ').map(id => fixture.nativeElement.querySelector('#' + id)).find(node => node?.classList.contains('smt-control__error'))?.textContent).toContain('Укажите ФИО пользователя');
+    expect(password.getAttribute('aria-describedby')?.split(' ').length).toBe(2); // hint and error
     expect(password.required).toBe(true);
     expect(fixture.nativeElement.querySelector('button[aria-label="Показать пароль"]')).not.toBeNull();
     const language = fixture.nativeElement.querySelector('#user-create-language') as HTMLSelectElement;

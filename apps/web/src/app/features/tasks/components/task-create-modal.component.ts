@@ -5,6 +5,7 @@ import { SMTMultiSelectComponent } from '../../../shared/ui-kit/components/forms
 import { UserOptionsPipe } from './user-options.pipe';
 import { SMTDatePickerComponent, SMTDatePickerValueAccessor } from '../../../shared/ui-kit/components/forms/date-picker';
 import { TranslatePipe } from '../../../core/services/i18n.service';
+import { SMTControlComponent } from '../../../shared/ui-kit/components/forms/control';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { SMTSelectComponent, SMTSelectOption } from '../../../shared/ui-kit/components/forms/select';
@@ -18,6 +19,7 @@ import { User } from '../../../core/models/auth.models';
   selector: 'app-task-create-modal',
   standalone: true,
   imports: [
+    SMTControlComponent,
     CommonModule,
     FormsModule,
     SMTDatePickerComponent,
@@ -41,27 +43,17 @@ import { User } from '../../../core/models/auth.models';
     >
       <fieldset body class="modal-form modal-form-fieldset task-create-form" [disabled]="isSubmitting">
         <!-- Title Input (Required) -->
-        <div class="form-group">
-          <div class="label-row">
-            <label class="clean-label" for="task-create-title">{{ 'task.title' | t }}</label>
-            <span class="req-tag">{{ 'projects.obyazatelnoe_pole' | t }}</span>
-          </div>
+        <smt-control class="form-group" [smtLabel]="'task.title' | t" [smtError]="isCreateSubmitted && !createForm.title.trim() ? ('tasks.pozhaluysta_ukazhite_nazvanie_zadachi' | t) : ''">
           <input
             id="task-create-title"
             name="taskCreateTitle"
             type="text"
             class="clean-input title-input"
             required
-            [attr.aria-invalid]="isCreateSubmitted && !createForm.title.trim()"
-            [attr.aria-describedby]="isCreateSubmitted && !createForm.title.trim() ? 'task-create-title-error' : null"
-            [class.input-error]="isCreateSubmitted && !createForm.title.trim()"
             [(ngModel)]="createForm.title"
             [placeholder]="'tasks.kratkaya_i_yasnaya_formulirovka_zadachi' | t"
           />
-          <span id="task-create-title-error" class="error-msg" *ngIf="isCreateSubmitted && !createForm.title.trim()">
-            {{ 'tasks.pozhaluysta_ukazhite_nazvanie_zadachi' | t }}
-          </span>
-        </div>
+        </smt-control>
 
         <!-- Visual Type Selector Chips -->
         <div class="form-group">
@@ -131,15 +123,12 @@ import { User } from '../../../core/models/auth.models';
 
         <div class="form-grid-2">
           <!-- Project Selector -->
-          <div class="form-group">
-            <div class="label-row">
-              <label class="clean-label" for="task-create-project">{{ 'projects.proekt' | t }}</label>
-            </div>
+          <smt-control class="form-group" [smtLabel]="'projects.proekt' | t">
             <select id="task-create-project" name="taskCreateProject" class="clean-input" [(ngModel)]="createForm.projectId">
               <option [ngValue]="null">{{ 'tasks.bez_proekta' | t }}</option>
               <option *ngFor="let p of projects" [ngValue]="p.id">{{ p.name }}</option>
             </select>
-          </div>
+          </smt-control>
 
           <!-- Parent Task (Searchable Select) -->
           <div class="form-group">
@@ -190,12 +179,9 @@ import { User } from '../../../core/models/auth.models';
           </div>
 
           <!-- Deadlines: End Date / Deadline -->
-          <div class="form-group">
-            <div class="label-row">
-              <label class="clean-label" for="task-create-deadline">{{ 'tasks.srok_sdachi_dedlayn' | t }}</label>
-            </div>
+          <smt-control class="form-group" [smtLabel]="'tasks.srok_sdachi_dedlayn' | t">
             <smt-date-picker smtInputId="task-create-deadline" name="taskCreateDeadline" smtWithTime [ngModel]="createForm.endTime" (ngModelChange)="createForm.endTime = $event ?? ''" />
-          </div>
+          </smt-control>
         </div>
 
         <!-- Executors Searchable Multi-Select Tags Input -->

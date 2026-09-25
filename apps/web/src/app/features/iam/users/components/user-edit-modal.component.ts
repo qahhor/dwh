@@ -2,6 +2,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '../../../../core/services/i18n.service';
+import { SMTControlComponent } from '../../../../shared/ui-kit/components/forms/control';
 import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
 import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
 import { SMTSelectComponent, SMTSelectOption } from '../../../../shared/ui-kit/components/forms/select';
@@ -14,6 +15,7 @@ import { CustomField } from '../../../../core/models/custom-field.models';
   selector: 'app-user-edit-modal',
   standalone: true,
   imports: [
+    SMTControlComponent,
     CommonModule,
     FormsModule,
     TranslatePipe,
@@ -31,36 +33,27 @@ import { CustomField } from '../../../../core/models/custom-field.models';
     >
       <div body class="clean-modal-body" *ngIf="editingUser as u">
         <div class="form-grid">
-          <div class="form-group span-2">
-            <label class="clean-label" for="user-edit-name">{{ 'iam.fio' | t }} <span class="req">*</span></label>
+          <smt-control class="form-group span-2" [smtLabel]="'iam.fio' | t" [smtError]="isEditSubmitted && !editForm.name.trim() ? ('iam.ukazhite_fio_polzovatelya' | t) : ''">
             <input
               id="user-edit-name"
               name="userEditName"
               type="text"
               class="clean-input"
               required
-              [attr.aria-invalid]="isEditSubmitted && !editForm.name.trim()"
-              [attr.aria-describedby]="isEditSubmitted && !editForm.name.trim() ? 'user-edit-name-error' : null"
               [(ngModel)]="editForm.name"
               [placeholder]="'iam.ivanov_ivan_ivanovich' | t"
             />
-            <span id="user-edit-name-error" class="field-error" *ngIf="isEditSubmitted && !editForm.name.trim()">
-              {{ 'iam.ukazhite_fio_polzovatelya' | t }}
-            </span>
-          </div>
+          </smt-control>
 
-          <div class="form-group">
-            <label class="clean-label" for="user-edit-login">{{ 'iam.login_chtenie' | t }}</label>
+          <smt-control class="form-group" [smtLabel]="'iam.login_chtenie' | t">
             <input id="user-edit-login" type="text" class="clean-input font-mono disabled" [value]="u.login" disabled />
-          </div>
+          </smt-control>
 
-          <div class="form-group">
-            <label class="clean-label" for="user-edit-email">{{ 'iam.email_chtenie' | t }}</label>
+          <smt-control class="form-group" [smtLabel]="'iam.email_chtenie' | t">
             <input id="user-edit-email" type="email" class="clean-input font-mono disabled" [value]="u.email" disabled />
-          </div>
+          </smt-control>
 
-          <div class="form-group">
-            <label class="clean-label" for="user-edit-phone">{{ 'iam.telefon.822f9fd' | t }}</label>
+          <smt-control class="form-group" [smtLabel]="'iam.telefon.822f9fd' | t">
             <input
               id="user-edit-phone"
               name="userEditPhone"
@@ -70,7 +63,7 @@ import { CustomField } from '../../../../core/models/custom-field.models';
               [(ngModel)]="editForm.phone"
               placeholder="+998901234567"
             />
-          </div>
+          </smt-control>
 
           <div class="form-group">
             <span class="clean-label">{{ 'iam.rukovoditel' | t }}</span>
@@ -93,17 +86,15 @@ import { CustomField } from '../../../../core/models/custom-field.models';
             ></smt-select>
           </div>
 
-          <div class="form-group">
-            <label class="clean-label" for="user-edit-language">{{ 'iam.yazyk' | t }}</label>
+          <smt-control class="form-group" [smtLabel]="'iam.yazyk' | t">
             <select id="user-edit-language" name="userEditLanguage" class="clean-input" [(ngModel)]="editForm.language">
               <option *ngFor="let lang of languages" [value]="lang.code">
                 {{ lang.name }} ({{ lang.code }})
               </option>
             </select>
-          </div>
+          </smt-control>
 
-          <div class="form-group">
-            <label class="clean-label" for="user-edit-timezone">{{ 'iam.chasovoy_poyas' | t }}</label>
+          <smt-control class="form-group" [smtLabel]="'iam.chasovoy_poyas' | t">
             <select id="user-edit-timezone" name="userEditTimezone" class="clean-input" [(ngModel)]="editForm.timezone">
               <option value="Asia/Tashkent">Asia/Tashkent (UTC+5)</option>
               <option value="Europe/Moscow">Europe/Moscow (UTC+3)</option>
@@ -111,7 +102,7 @@ import { CustomField } from '../../../../core/models/custom-field.models';
               <option value="Asia/Almaty">Asia/Almaty (UTC+5)</option>
               <option value="Asia/Dubai">Asia/Dubai (UTC+4)</option>
             </select>
-          </div>
+          </smt-control>
 
           <div class="form-group span-2">
             <label class="clean-checkbox">
@@ -174,10 +165,11 @@ import { CustomField } from '../../../../core/models/custom-field.models';
       flex-direction: column;
       gap: 4px;
     }
+    /* The same as the smt-control label, so wrapped and plain fields read alike. */
     .clean-label {
-      font-size: 11px;
-      font-weight: 500;
-      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-main);
     }
     .clean-input {
       height: 34px;

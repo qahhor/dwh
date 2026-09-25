@@ -26,6 +26,11 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   period (today, last 7 days, this month…) instead of two date fields, and
   it applies at once; a "between" date condition in the filter builder is
   edited the same way.
+- Form fields in UPL sources and uploads, tasks, users and projects are
+  wrapped in `smt-control`: the label, a required mark, the hint and the
+  error are linked to the field for screen readers (hints and UPL errors
+  were not linked before), and a required field says so once it is left
+  empty, not only after submitting.
 - The file storage list pages through every file with a server cursor; it
   used to show at most the 100 newest and hide the rest. It runs on the field
   registry (`mf.files`): sorting of the whole list by name, size or date,

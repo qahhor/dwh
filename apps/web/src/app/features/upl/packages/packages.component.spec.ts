@@ -131,6 +131,8 @@ function text(fixture: ComponentFixture<PackagesComponent>): string {
 function click(fixture: ComponentFixture<PackagesComponent>, id: string): void {
   fixture.debugElement.query(By.css(`[data-testid="${id}"]`)).triggerEventHandler('onClick', null);
   fixture.detectChanges();
+  // A full tick also runs the after-render phase, where smt-control links its error to the field.
+  TestBed.tick();
 }
 
 function tableRows(fixture: ComponentFixture<PackagesComponent>): HTMLElement[] {
@@ -198,6 +200,13 @@ function problem(status: number, code: string, detail: string, errors?: ProblemD
   return { title: 'error', status, code, detail, errors };
 }
 
+/** The error smt-control shows for a field, found the way assistive technology finds it: through aria-describedby. */
+function fieldError(root: HTMLElement, fieldId: string): HTMLElement | null {
+  const field = root.querySelector('#' + fieldId);
+  const ids = (field?.getAttribute('aria-describedby') ?? '').split(/\s+/).filter(Boolean);
+  return ids.map(id => root.querySelector<HTMLElement>('#' + id)).find(node => node?.classList.contains('smt-control__error')) ?? null;
+}
+
 describe('PackagesComponent', () => {
   it('без права загрузки формы нет, источники не запрашиваются, пустой текст короткий', async () => {
     const { fixture, api } = await createFixture({ canUpload: false, pages: [of(page([]))] });
@@ -213,6 +222,7 @@ describe('PackagesComponent', () => {
 
     expect(testId(fixture, 'upl-pkg-form')).toHaveLength(1);
     expect(api.searchSources).not.toHaveBeenCalled();
+    TestBed.tick(); // smt-control points its label at the field after render
     const label = fixture.nativeElement.querySelector('label[for="upl-pkg-source-field"]') as HTMLLabelElement;
     expect(document.getElementById(label.htmlFor)?.getAttribute('role')).toBe('combobox');
 
@@ -340,13 +350,13 @@ describe('PackagesComponent', () => {
 
     click(fixture, 'upl-pkg-submit');
 
-    expect(testId(fixture, 'upl-pkg-err-source')[0].textContent).toContain(
+    expect(fieldError(fixture.nativeElement, 'upl-pkg-source-field')?.textContent).toContain(
       PACKAGED_RUSSIAN['upl.err.UPL_PKG_SOURCE_REQUIRED']
     );
-    expect(testId(fixture, 'upl-pkg-err-period')[0].textContent).toContain(
+    expect(fieldError(fixture.nativeElement, 'upl-pkg-period-to-field')?.textContent).toContain(
       PACKAGED_RUSSIAN['upl.err.UPL_PKG_PERIOD_ORDER']
     );
-    expect(testId(fixture, 'upl-pkg-err-file')[0].textContent).toContain(
+    expect(fieldError(fixture.nativeElement, 'upl-pkg-file-field')?.textContent).toContain(
       PACKAGED_RUSSIAN['upl.err.UPL_PKG_FILE_NOT_XLSX']
     );
     expect(testId(fixture, 'upl-pkg-err-form')).toHaveLength(0);
@@ -360,7 +370,7 @@ describe('PackagesComponent', () => {
 
     click(fixture, 'upl-pkg-submit');
 
-    expect(testId(fixture, 'upl-pkg-err-source')[0].textContent).toContain(
+    expect(fieldError(fixture.nativeElement, 'upl-pkg-source-field')?.textContent).toContain(
       PACKAGED_RUSSIAN['upl.err.UPL_SOURCE_NOT_FOUND']
     );
   });
@@ -373,7 +383,7 @@ describe('PackagesComponent', () => {
 
     click(fixture, 'upl-pkg-submit');
 
-    expect(testId(fixture, 'upl-pkg-err-source')[0].textContent).toContain(
+    expect(fieldError(fixture.nativeElement, 'upl-pkg-source-field')?.textContent).toContain(
       PACKAGED_RUSSIAN['upl.err.UPL_PKG_NO_FORMAT_AT_DATE']
     );
   });
@@ -386,7 +396,7 @@ describe('PackagesComponent', () => {
 
     click(fixture, 'upl-pkg-submit');
 
-    expect(testId(fixture, 'upl-pkg-err-file')[0].textContent).toContain(
+    expect(fieldError(fixture.nativeElement, 'upl-pkg-file-field')?.textContent).toContain(
       PACKAGED_RUSSIAN['upl.err.UPL_PKG_FILE_TOO_LARGE']
     );
   });
@@ -399,7 +409,7 @@ describe('PackagesComponent', () => {
 
     click(fixture, 'upl-pkg-submit');
 
-    expect(testId(fixture, 'upl-pkg-err-file')[0].textContent).toContain(
+    expect(fieldError(fixture.nativeElement, 'upl-pkg-file-field')?.textContent).toContain(
       PACKAGED_RUSSIAN['upl.err.UPL_PKG_FILE_TOO_LARGE']
     );
     expect(testId(fixture, 'upl-pkg-err-form')).toHaveLength(0);
