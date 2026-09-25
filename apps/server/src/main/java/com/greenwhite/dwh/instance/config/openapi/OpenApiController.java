@@ -236,6 +236,17 @@ public class OpenApiController {
                                         )
                                 )
                         )),
+                        Map.entry("/api/v1/tasks/bulk", Map.of(
+                                "post", Map.of(
+                                        "summary", "One action on up to 100 tasks (status, priority), each in its own transaction",
+                                        "tags", List.of("Tasks"),
+                                        "responses", Map.of(
+                                                "200", Map.of("description", "Result per task: ok, or the code and message of the single operation"),
+                                                "403", Map.of("description", "No right to change tasks"),
+                                                "422", Map.of("description", "BULK_INVALID or BULK_ACTION_UNKNOWN")
+                                        )
+                                )
+                        )),
                         Map.entry("/api/v1/list-views/{code}", Map.of(
                                 "get", Map.of(
                                         "summary", "The signed-in user's saved views of a registry list",
