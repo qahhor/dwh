@@ -21,12 +21,13 @@ import { ProjectModalsComponent } from './components/project-modals.component';
 import { ProjectMembersModalComponent } from './components/project-members-modal.component';
 import { ProjectFormsService } from './services/project-forms.service';
 import { ProjectSort, sortProjects } from './projects-order';
+import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '../../../shared/ui-kit/components/forms/radio-group';
 
 @Component({
   selector: 'app-projects',
   standalone: true,
   imports: [
-    CommonModule,
+    SMTRadioGroupComponent, CommonModule,
     FormsModule,
     RouterModule,
     TranslatePipe,
@@ -42,6 +43,9 @@ import { ProjectSort, sortProjects } from './projects-order';
   styleUrl: './projects.component.css'
 })
 export class ProjectsComponent implements OnInit, OnDestroy {
+  /** Texts of the radio options below; translated again when the language changes. */
+  private readonly optionText = inject(I18nService);
+
   readonly forms = inject(ProjectFormsService);
   private readonly recordRoute = inject(ActivatedRoute, { optional: true });
   private recordRouteSubscription?: Subscription;
@@ -405,5 +409,14 @@ export class ProjectsComponent implements OnInit, OnDestroy {
       },
       error: () => {}
     });
+  }
+
+  private readonly viewMemo = optionsMemo<SMTRadioOption<ProjectViewState>[]>();
+
+  viewOptions(): SMTRadioOption<ProjectViewState>[] {
+    return this.viewMemo([this.optionText.currentLang()], () => [
+      { value: 'list', label: this.optionText.translate('projects.spisok'), icon: 'table_rows', title: this.optionText.translate('projects.spisok_tablica') },
+      { value: 'cards', label: this.optionText.translate('projects.kartochki'), icon: 'grid_view' },
+    ]);
   }
 }

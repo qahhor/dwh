@@ -70,7 +70,7 @@ describe('AnalyticsComponent request and rendering contracts', () => {
   }
 
   function selectRange(index: number) {
-    (host.querySelectorAll<HTMLButtonElement>('.status-tab')[index]).click();
+    (host.querySelectorAll<HTMLElement>('.range-picker [role="radio"]')[index]).click();
     fixture.detectChanges();
   }
 
@@ -94,7 +94,7 @@ describe('AnalyticsComponent request and rendering contracts', () => {
 
     expect(host.querySelector('.trend-svg')?.textContent).toContain('09-07');
     expect(host.querySelector('.trend-svg')?.textContent).not.toContain('08-20');
-    expect(host.querySelector('.status-tab.active')?.textContent).toContain('90');
+    expect(host.querySelector('.range-picker [role="radio"][aria-checked="true"]')?.textContent).toContain('90');
   });
 
   it('labels the retained chart with its loaded period while a new range is pending', async () => {
@@ -125,7 +125,8 @@ describe('AnalyticsComponent request and rendering contracts', () => {
     expect(host.querySelector('.trend-svg')?.textContent).toContain('09-01');
     expect(host.querySelector('.chart-card .empty-chart')).toBeNull();
 
-    selectRange(1);
+    (host.querySelector('[data-testid="analytics-retry"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
     http.expectOne('/api/v1/analytics/trends?range=30d').flush(latestTrends);
     await renderResponses();
     expect(host.querySelector('[role="alert"]')).toBeNull();

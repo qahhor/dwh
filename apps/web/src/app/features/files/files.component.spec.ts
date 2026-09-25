@@ -70,7 +70,7 @@ describe('FilesComponent UI contracts', () => {
     fixture.componentInstance.files.set([file]);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('.scope-tabs[role="group"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.scope-filter [role="radiogroup"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('label[for="file-search"]')).not.toBeNull();
     const region = fixture.nativeElement.querySelector('.table-container[role="region"]') as HTMLElement;
     expect(region.tabIndex).toBe(0);

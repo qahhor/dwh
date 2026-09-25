@@ -6,30 +6,13 @@
       <span *ngIf="isListReady()" class="count-badge">{{ filteredProjects().length }}</span>
 
       <!-- View Mode Switcher -->
-      <div class="status-tabs" role="group" [attr.aria-label]="'projects.rezhim_otobrazheniya_proektov' | t">
-        <button
-          type="button"
-          class="status-tab"
-          [class.active]="viewMode === 'list'"
-          [attr.aria-pressed]="viewMode === 'list'"
-          (click)="viewMode = 'list'"
-          [title]="'projects.spisok_tablica' | t"
-        >
-          <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">table_rows</span>
-          <span>{{ 'projects.spisok' | t }}</span>
-        </button>
-        <button
-          type="button"
-          class="status-tab"
-          [class.active]="viewMode === 'cards'"
-          [attr.aria-pressed]="viewMode === 'cards'"
-          (click)="viewMode = 'cards'"
-          [title]="'projects.kartochki' | t"
-        >
-          <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">grid_view</span>
-          <span>{{ 'projects.kartochki' | t }}</span>
-        </button>
-      </div>
+      <smt-radio-group
+        smtAppearance="segmented"
+        class="view-switch"
+        [options]="viewOptions()"
+        [value]="viewMode"
+        [smtAriaLabel]="'projects.rezhim_otobrazheniya_proektov' | t"
+        (valueChange)="viewMode = $event ?? viewMode" />
     </div>
 
     <div class="header-right">

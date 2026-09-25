@@ -45,6 +45,10 @@ export interface SMTRadioOption<T> {
   readonly color?: string;
   /** How a chosen item's label reads in the segmented look, e.g. a priority. */
   readonly tone?: 'success' | 'warning' | 'danger';
+  /** A number after the label, read as part of its name ("Tasks, 12"). */
+  readonly count?: number;
+  /** A longer explanation shown on hover. */
+  readonly title?: string;
 }
 
 export type SMTRadioAppearance = 'plain' | 'cards' | 'chips' | 'segmented';

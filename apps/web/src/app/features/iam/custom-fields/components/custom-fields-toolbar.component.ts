@@ -2,32 +2,26 @@ import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe, I18nService } from '../../../../core/services/i18n.service';
+import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '../../../../shared/ui-kit/components/forms/radio-group';
 
 @Component({
   selector: 'app-custom-fields-toolbar',
   standalone: true,
   imports: [
-    CommonModule,
+    SMTRadioGroupComponent, CommonModule,
     FormsModule,
     TranslatePipe
   ],
   template: `
     <div class="toolbar-container">
       <!-- Entity Type Filter Tabs -->
-      <div class="filter-tabs" role="group" [attr.aria-label]="'iam.filtr_po_tipu_suschnosti' | t">
-        <button
-          *ngFor="let ent of availableEntities"
-          type="button"
-          class="tab-btn"
-          [class.active]="selectedEntity === ent"
-          [attr.aria-pressed]="selectedEntity === ent"
-          (click)="entityChange.emit(ent)"
-        >
-          <span class="material-symbols-outlined tab-icon" aria-hidden="true">{{ getEntityIcon(ent) }}</span>
-          <span class="tab-label">{{ getEntityLabel(ent) }}</span>
-          <span class="tab-count">{{ entityCounts[ent] || 0 }}</span>
-        </button>
-      </div>
+      <smt-radio-group
+        smtAppearance="chips"
+        class="entity-filter"
+        [options]="entityOptions()"
+        [value]="selectedEntity"
+        [smtAriaLabel]="'iam.filtr_po_tipu_suschnosti' | t"
+        (valueChange)="entityChange.emit($event ?? selectedEntity)" />
 
       <!-- Quick Search -->
       <div class="search-box">
@@ -67,62 +61,12 @@ import { TranslatePipe, I18nService } from '../../../../core/services/i18n.servi
       flex-wrap: wrap;
     }
 
-    .filter-tabs {
-      display: flex;
-      gap: 6px;
-      background: var(--bg-hover);
-      padding: 4px;
-      border-radius: 10px;
-      border: 1px solid var(--border-subtle);
-      overflow-x: auto;
-      max-width: 100%;
-    }
 
-    .tab-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 7px 14px;
-      border-radius: 7px;
-      border: none;
-      background: transparent;
-      color: var(--text-light);
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: all 0.2s;
-    }
 
-    .tab-btn:hover {
-      color: var(--text-main);
-      background: var(--bg-surface);
-    }
 
-    .tab-btn.active {
-      background: var(--bg-surface);
-      color: var(--primary);
-      font-weight: 600;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-    }
 
-    .tab-icon {
-      font-size: 17px;
-      opacity: 0.85;
-    }
 
-    .tab-count {
-      font-size: 11px;
-      padding: 1px 6px;
-      border-radius: 10px;
-      background: rgba(0, 0, 0, 0.08);
-      font-weight: 600;
-    }
 
-    .tab-btn.active .tab-count {
-      background: var(--primary-subtle);
-      color: var(--primary);
-    }
 
     .search-box {
       position: relative;
@@ -190,6 +134,9 @@ import { TranslatePipe, I18nService } from '../../../../core/services/i18n.servi
   `]
 })
 export class CustomFieldsToolbarComponent {
+  /** Texts of the radio options below; translated again when the language changes. */
+  private readonly optionText = inject(I18nService);
+
   private readonly uiI18n = inject(I18nService);
 
   @Input() availableEntities: string[] = ['ALL', 'USER', 'PROJECT', 'TASK', 'NOTE'];
@@ -200,6 +147,8 @@ export class CustomFieldsToolbarComponent {
   @Output() entityChange = new EventEmitter<string>();
   @Output() searchQueryChange = new EventEmitter<string>();
   @Output() clearSearch = new EventEmitter<void>();
+
+  private readonly entityMemo = optionsMemo<SMTRadioOption<string>[]>();
 
   getEntityLabel(ent: string): string {
     switch (ent) {
@@ -222,5 +171,15 @@ export class CustomFieldsToolbarComponent {
       case 'ORGANIZATION_UNIT': return 'corporate_fare';
       default: return 'data_object';
     }
+  }
+
+  /** Entity types as chips with their icon and how many fields each has. */
+  entityOptions(): SMTRadioOption<string>[] {
+    return this.entityMemo([this.availableEntities, this.entityCounts, this.optionText.currentLang()], () => this.availableEntities.map(entity => ({
+      value: entity,
+      label: this.getEntityLabel(entity),
+      icon: this.getEntityIcon(entity),
+      count: this.entityCounts[entity] || 0,
+    })));
   }
 }

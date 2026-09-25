@@ -1,3 +1,4 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
@@ -49,7 +50,7 @@ describe('UserEffectivePermissionsPanelComponent', () => {
     };
 
     const toast = { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() };
-    const i18n = { translate: vi.fn((key: string) => key) };
+    const i18n = { translate: vi.fn((key: string) => key), currentLang: signal('ru') };
 
     await TestBed.configureTestingModule({
       imports: [UserEffectivePermissionsPanelComponent],

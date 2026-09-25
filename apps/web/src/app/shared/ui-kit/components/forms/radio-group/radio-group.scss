@@ -178,6 +178,20 @@
 .smt-radio-group__item--checked.smt-radio-group__item--tone-warning { color: var(--warning-text); }
 .smt-radio-group__item--checked.smt-radio-group__item--tone-danger { color: var(--danger-text); }
 
+.smt-radio-group__swatch {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--smt-radio-color, var(--primary));
+}
+
+.smt-radio-group__count {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+}
+
 .smt-radio-group__icon {
   flex-shrink: 0;
   color: var(--smt-radio-color, currentColor);
