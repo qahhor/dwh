@@ -104,6 +104,7 @@ function emptyForm(): SourceCreateForm {
           [config]="config"
           [views]="views"
           [filterMeta]="meta()"
+          [exportable]="true"
           [lockedColumns]="['name']"
           [loadingLabel]="'upl.common.loading' | t"
           [errorLabel]="'upl.list.load_error' | t"

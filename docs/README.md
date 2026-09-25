@@ -31,6 +31,7 @@ Current ADRs that are not superseded:
   it, and amends ADR-0012 for that subset only.
 - [ADR-0016 — field registry, query-meta and filter DSL](adr/ADR-0016-field-registry-query-dsl.md)
 - [ADR-0017 — record history tab](adr/ADR-0017-record-history.md)
+- [ADR-0018 — asynchronous list exports and their journal](adr/ADR-0018-async-exports.md)
   — lists declare their fields on the server; clients read them from
   `query-meta` and filter and sort through one checked JSON DSL.
 

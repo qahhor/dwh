@@ -185,6 +185,7 @@ function emptyFormErrors(): UplPackageFormErrors {
             [config]="config"
             [views]="views"
             [filterMeta]="meta()"
+            [exportable]="true"
             [loadingLabel]="'upl.common.loading' | t"
             [errorLabel]="'upl.pkg.load_error' | t"
             [emptyTemplate]="emptyState"

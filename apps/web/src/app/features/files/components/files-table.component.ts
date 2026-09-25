@@ -32,6 +32,9 @@ import { OrderBy, TableConfig } from '../../../shared/ui-kit/components/table/ta
           [config]="config"
           [views]="views()"
           [filterMeta]="meta()"
+          [exportable]="true"
+          [exportSearch]="exportSearch()"
+          [exportOptions]="exportOptions()"
           [lockedColumns]="['originalName', 'actions']"
           [loadingLabel]="'files.list_loading' | t"
           [errorLabel]="'files.list_load_error' | t"
@@ -249,6 +252,9 @@ export class FilesTableComponent {
   readonly pager = input.required<KeysetPager<FileDetail>>();
   readonly meta = input<QueryListMeta | null>(null);
   readonly views = input<ListViewState | null>(null);
+  /** The search text and scope on screen, so an export matches the list shown. */
+  readonly exportSearch = input<string | null>(null);
+  readonly exportOptions = input<Record<string, string> | null>(null);
   @Input() isDeleting: boolean = false;
   @Input() canDeleteFn: (file: FileDetail) => boolean = () => false;
 

@@ -9,6 +9,13 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Exports to Excel (ADR-0018): registry lists (UPL sources and uploads,
+  files) have a To Excel button that queues the list exactly as on screen —
+  filter, sort, search and the columns shown. A background job writes the
+  xlsx as the person who asked, with their rights at that moment, and the
+  file waits for a week in My exports (profile menu), which refreshes itself
+  while an export is being prepared. Numbers, dates and choices keep their
+  kind in the file; long lists stop at the configured row limit and say so.
 - UPL errors file: an upload's errors can be downloaded as xlsx — what was
   uploaded and what came of it, then every stored error with its sheet, row,
   column, the value found and what is wrong in words (the card's words, in

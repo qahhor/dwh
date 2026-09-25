@@ -300,6 +300,34 @@ public class OpenApiController {
                                                 "404", Map.of("description", "LIST_VIEW_NOT_FOUND"))
                                 )
                         )),
+                        Map.entry("/api/v1/exports", Map.of(
+                                "get", Map.of(
+                                        "summary", "The signed-in person's last exports (ADR-0018)",
+                                        "tags", List.of("Reports"),
+                                        "responses", Map.of("200", Map.of("description", "Exports, newest first"))
+                                ),
+                                "post", Map.of(
+                                        "summary", "Queue an export of a registry list as on screen: filter, sort, q, columns, options, lang",
+                                        "tags", List.of("Reports"),
+                                        "responses", Map.of(
+                                                "202", Map.of("description", "The queued export"),
+                                                "404", Map.of("description", "EXPORT_LIST_UNKNOWN"),
+                                                "409", Map.of("description", "EXPORT_BUSY: three exports already waiting or running"),
+                                                "422", Map.of("description", "Bad filter, sort, search, column or option")
+                                        )
+                                )
+                        )),
+                        Map.entry("/api/v1/exports/{id}/file", Map.of(
+                                "get", Map.of(
+                                        "summary", "The xlsx of an own finished export while it is kept",
+                                        "tags", List.of("Reports"),
+                                        "responses", Map.of(
+                                                "200", Map.of("description", "The file as an attachment"),
+                                                "404", Map.of("description", "EXPORT_NOT_FOUND"),
+                                                "409", Map.of("description", "EXPORT_NOT_READY")
+                                        )
+                                )
+                        )),
                         Map.entry("/api/v1/upl/packages/{id}/errors/file", Map.of(
                                 "get", Map.of(
                                         "summary", "Errors of an upload as xlsx: summary, then every stored error with sheet, row, column, value and words",

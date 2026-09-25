@@ -61,6 +61,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/notifications/notifications.component').then(m => m.NotificationsComponent)
       },
       {
+        path: 'exports',
+        loadComponent: () => import('./features/exports/exports.component').then(m => m.ExportsComponent)
+      },
+      {
         path: 'files',
         loadComponent: () => import('./features/files/files.component').then(m => m.FilesComponent)
       },

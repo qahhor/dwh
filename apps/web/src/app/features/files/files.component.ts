@@ -87,6 +87,8 @@ function formatBytes(bytes: number): string {
         [pager]="pager"
         [meta]="meta()"
         [views]="views"
+        [exportSearch]="searchQuery"
+        [exportOptions]="exportOptions()"
         [isDeleting]="isDeleting()"
         [canDeleteFn]="canDeleteFileBound"
         (download)="downloadFile($event)"
@@ -179,6 +181,13 @@ export class FilesComponent implements OnInit, OnDestroy {
   readonly isDeleting = signal(false);
 
   scope: 'all' | 'mine' = 'all';
+  private exportScope: { scope: string } = { scope: 'all' };
+
+  /** The scope as an export option; the same object while the scope stays, so the button is not re-rendered. */
+  exportOptions(): Record<string, string> {
+    if (this.exportScope.scope !== this.scope) this.exportScope = { scope: this.scope };
+    return this.exportScope;
+  }
   searchQuery = '';
 
   readonly canDeleteFileBound = (file: FileDetail) => this.canDeleteFile(file);
