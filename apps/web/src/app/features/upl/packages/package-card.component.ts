@@ -29,6 +29,7 @@ import {
   formatUplDateTime,
   formatUplPeriod
 } from './packages-labels';
+import { SMTAlertComponent } from '../../../shared/ui-kit/components/alert';
 
 /** Подкод ответа, при котором показываем «Загрузка не найдена», а не общий текст сбоя. */
 const NOT_FOUND = 'UPL_PKG_NOT_FOUND';
@@ -37,7 +38,7 @@ const NOT_FOUND = 'UPL_PKG_NOT_FOUND';
   selector: 'app-upl-package-card',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, TranslatePipe, UiBadgeComponent, UiButtonComponent, UiLocalTableComponent],
+  imports: [SMTAlertComponent, CommonModule, TranslatePipe, UiBadgeComponent, UiButtonComponent, UiLocalTableComponent],
   template: `
     <div class="upl-pkg-card">
       <div class="upl-pkg-card-head">
@@ -60,14 +61,14 @@ const NOT_FOUND = 'UPL_PKG_NOT_FOUND';
       </div>
       <div class="upl-pkg-card-meta" data-testid="upl-pkg-card-meta">{{ metaText() }}</div>
       @if (applyError(); as message) {
-        <div class="alert alert-error upl-pkg-alert" data-testid="upl-pkg-apply-error">{{ message }}</div>
+        <smt-alert smtTone="danger" class="upl-pkg-alert" data-testid="upl-pkg-apply-error">{{ message }}</smt-alert>
       }
 
       @if (item.status === 'received') {
         <p class="upl-pkg-checking" data-testid="upl-pkg-checking">{{ 'upl.pkg.card.checking' | t }}</p>
       } @else {
         @if (item.status === 'rejected') {
-          <div class="alert alert-error upl-pkg-rejected" role="alert" data-testid="upl-pkg-rejected">
+          <smt-alert smtTone="danger" class="upl-pkg-rejected" data-testid="upl-pkg-rejected">
             <strong>{{ 'upl.pkg.card.rejected' | t }}</strong>
             <span class="upl-pkg-reject-reason">{{ rejectText() }}</span>
             @for (row of structRows(); track $index) {
@@ -77,7 +78,7 @@ const NOT_FOUND = 'UPL_PKG_NOT_FOUND';
             @if (structRows().length > 0) {
               <a class="upl-pkg-errors-file" data-testid="upl-pkg-errors-file" [href]="errorsFileUrl()" download><span class="material-symbols-outlined" aria-hidden="true">download</span>{{ 'upl.errfile.download' | t }}</a>
             }
-          </div>
+          </smt-alert>
         } @else {
           <div class="upl-pkg-counters" data-testid="upl-pkg-counters">
             <span class="upl-pkg-counter">
@@ -94,17 +95,17 @@ const NOT_FOUND = 'UPL_PKG_NOT_FOUND';
             </span>
           </div>
           @if (reconciliationText(); as line) {
-            <div class="alert alert-success upl-pkg-reconciliation" data-testid="upl-pkg-reconciliation">{{ line }}</div>
+            <smt-alert smtTone="success" smtLive="off" class="upl-pkg-reconciliation" data-testid="upl-pkg-reconciliation">{{ line }}</smt-alert>
           }
         }
 
         @if (loadError()) {
-          <div class="alert alert-error upl-pkg-alert" role="alert" data-testid="upl-pkg-errors-load-error">
+          <smt-alert smtTone="danger" class="upl-pkg-alert" data-testid="upl-pkg-errors-load-error">
             <span>{{ loadError() }}</span>
             <ui-button variant="secondary" data-testid="upl-pkg-errors-retry" (onClick)="reloadErrors()">
               {{ 'upl.common.retry' | t }}
             </ui-button>
-          </div>
+          </smt-alert>
         } @else if (isLoading()) {
           <div class="table-card" data-testid="upl-pkg-errors-loading">
             <ui-local-table [rows]="[]" [config]="errorsConfig()" [loading]="true" />

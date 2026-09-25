@@ -17,6 +17,7 @@ import { AnalyticsMetricsTilesComponent } from './components/analytics-metrics-t
 import { AnalyticsTrendChartComponent } from './components/analytics-trend-chart.component';
 import { AnalyticsProjectsCardComponent } from './components/analytics-projects-card.component';
 import { AnalyticsWorkloadTableComponent } from './components/analytics-workload-table.component';
+import { SMTAlertComponent } from '../../shared/ui-kit/components/alert';
 
 export * from './analytics.models';
 
@@ -24,7 +25,7 @@ export * from './analytics.models';
   selector: 'app-analytics',
   standalone: true,
   imports: [
-    CommonModule,
+    SMTAlertComponent, CommonModule,
     TranslatePipe,
     UiButtonComponent,
     AnalyticsMetricsTilesComponent,
@@ -97,10 +98,10 @@ export * from './analytics.models';
       </div>
 
       <!-- Error Alert -->
-      <div *ngIf="error()" class="alert alert-error" role="alert">
+      <smt-alert smtTone="danger" *ngIf="error()">
         <span class="material-symbols-outlined" aria-hidden="true">error</span>
         <span>{{ error() }}</span>
-      </div>
+      </smt-alert>
 
       <!-- KPI Metrics Row -->
       <app-analytics-metrics-tiles

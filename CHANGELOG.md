@@ -9,6 +9,13 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Alert (roadmap item 37). `smt-alert` shows a message in a tone — danger,
+  warning, success, info — with its icon, an optional title and close button,
+  and a live role that follows the tone: danger is read at once, the others
+  politely, and `smtLive="off"` keeps a result that is part of the page quiet.
+  It replaces the twenty-two hand-made `.alert` blocks (UPL sources, formats
+  and packages, analytics, exports, files, role permissions), and the global
+  `.alert` styles with their hard-coded border colours are gone.
 - Dynamic field (roadmap item 36). `smt-dynamic-field` draws a field described
   as data — text, long text, number, yes/no, date, date and time, time, a
   choice from a list, a person — with the matching kit field inside

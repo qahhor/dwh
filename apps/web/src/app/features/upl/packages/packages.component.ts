@@ -33,6 +33,7 @@ import {
   formatUplPeriod,
   uplPackageRowsText
 } from './packages-labels';
+import { SMTAlertComponent } from '../../../shared/ui-kit/components/alert';
 
 /** Поля формы «Новая загрузка»: обычный объект, чтобы работал `[(ngModel)]`. */
 interface PackageUploadForm {
@@ -57,7 +58,7 @@ function emptyFormErrors(): UplPackageFormErrors {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    SMTControlComponent,
+    SMTAlertComponent, SMTControlComponent,
     CommonModule, FormsModule, TranslatePipe, UiBadgeComponent, UiButtonComponent, PackageCardComponent,
     SMTDatePickerComponent, SMTDatePickerValueAccessor, SMTSelectComponent, SMTSelectValueAccessor,
     UiServerTableComponent,
@@ -85,11 +86,11 @@ function emptyFormErrors(): UplPackageFormErrors {
             <h2 class="upl-pkg-form-title">{{ 'upl.pkg.form.title' | t }}</h2>
 
             @if (formErrors().form.length > 0) {
-              <div class="alert alert-error upl-pkg-err-form" role="alert" data-testid="upl-pkg-err-form">
+              <smt-alert smtTone="danger" class="upl-pkg-err-form" data-testid="upl-pkg-err-form">
                 @for (message of formErrors().form; track $index) {
                   <span class="upl-pkg-err-line">{{ message }}</span>
                 }
-              </div>
+              </smt-alert>
             }
 
             <div class="upl-pkg-fields">
@@ -173,12 +174,12 @@ function emptyFormErrors(): UplPackageFormErrors {
         }
 
         @if (metaError()) {
-          <div class="alert alert-error upl-alert" role="alert" data-testid="upl-pkg-load-error">
+          <smt-alert smtTone="danger" class="upl-alert" data-testid="upl-pkg-load-error">
             <span>{{ 'upl.pkg.load_error' | t }}</span>
             <ui-button variant="secondary" data-testid="upl-pkg-retry" (onClick)="load()">
               {{ 'upl.common.retry' | t }}
             </ui-button>
-          </div>
+          </smt-alert>
         } @else if (tableConfig(); as config) {
           <ui-server-table
             [pager]="pager"

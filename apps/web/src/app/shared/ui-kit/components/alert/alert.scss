@@ -1,0 +1,71 @@
+/* Our styles for smt-alert, from semantic tokens so both themes work. */
+
+.smt-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border: 1px solid var(--info-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--info-bg);
+  color: var(--info-text);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.smt-alert--danger { border-color: var(--danger-border); background-color: var(--danger-bg); color: var(--danger-text); }
+.smt-alert--warning { border-color: var(--warning-border); background-color: var(--warning-bg); color: var(--warning-text); }
+.smt-alert--success { border-color: var(--success-border); background-color: var(--success-bg); color: var(--success-text); }
+
+.smt-alert__icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+  font-size: 18px;
+}
+
+.smt-alert__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.smt-alert__title {
+  margin: 0;
+  font-weight: 600;
+}
+
+.smt-alert__content {
+  overflow-wrap: anywhere;
+}
+
+.smt-alert__close {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin: -2px -6px 0 0;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.smt-alert__close .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.smt-alert__close:hover {
+  background-color: var(--bg-hover);
+}
+
+.smt-alert__close:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}

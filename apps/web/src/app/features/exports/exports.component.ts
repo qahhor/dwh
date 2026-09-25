@@ -8,6 +8,7 @@ import { UiBadgeComponent } from '../../shared/ui/ui-badge.component';
 import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 import { UiLocalTableComponent } from '../../shared/ui/ui-local-table.component';
 import { TableConfig } from '../../shared/ui-kit/components/table/table.types';
+import { SMTAlertComponent } from '../../shared/ui-kit/components/alert';
 
 /** Titles of the lists that can be exported; an unknown code is shown as it is. */
 const LIST_TITLES: Record<string, string> = {
@@ -37,7 +38,7 @@ const POLL_MS = 3000;
   selector: 'app-exports',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, TranslatePipe, UiBadgeComponent, UiButtonComponent, UiLocalTableComponent],
+  imports: [SMTAlertComponent, DatePipe, TranslatePipe, UiBadgeComponent, UiButtonComponent, UiLocalTableComponent],
   template: `
     <section class="exports-page" aria-labelledby="exports-title">
       <header class="exports-head">
@@ -51,10 +52,10 @@ const POLL_MS = 3000;
       </header>
 
       @if (failed()) {
-        <div class="alert alert-error" role="alert" data-testid="exports-error">
+        <smt-alert smtTone="danger" data-testid="exports-error">
           <span>{{ 'exports.load_error' | t }}</span>
           <ui-button variant="secondary" size="sm" (onClick)="load()">{{ 'common.retry' | t }}</ui-button>
-        </div>
+        </smt-alert>
       }
 
       <div class="table-card" data-testid="exports-table">
