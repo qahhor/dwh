@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, linkedSignal, output, TemplateRef } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, linkedSignal, model, output, TemplateRef, untracked } from '@angular/core';
 import { TranslatePipe } from '../../core/services/i18n.service';
 import { SMTTableComponent } from '../ui-kit/components/table/table.component';
 import { TableColumnResizeEvent, TableConfig, OrderBy } from '../ui-kit/components/table/table.types';
@@ -39,6 +39,11 @@ import { UiPaginationComponent } from './ui-pagination.component';
  * the columns belong to the list's saved views instead (ADR-0016), and the
  * views menu sits next to the column settings. With `filterMeta` as well, the
  * filter builder and the chips of the active conditions come first.
+ *
+ * With `selectable`, rows get checkboxes and a bar above the table says how
+ * many are chosen and holds the screen's bulk actions (`[bulkActions]`). The
+ * choice belongs to the page on screen: moving to another page, reloading or
+ * changing the filter clears it, so an action never reaches rows out of sight.
  */
 @Component({
   selector: 'ui-server-table',
@@ -57,6 +62,14 @@ import { UiPaginationComponent } from './ui-pagination.component';
         <smt-column-settings [smtColumns]="columnOptions()" [smtState]="columnState()" (smtStateChange)="saveColumns($event)" />
       </div>
     }
+    @if (selectable() && selected().length > 0) {
+      <div class="bulk-bar" role="region" data-testid="bulk-bar" [attr.aria-label]="'ui.bulk.region' | t">
+        <span class="bulk-count" role="status">{{ 'ui.bulk.selected' | t: { count: selected().length } }}</span>
+        <ng-content select="[bulkActions]" />
+        <span class="bulk-spacer"></span>
+        <ui-button variant="ghost" size="sm" data-testid="bulk-clear" (onClick)="selected.set([])">{{ 'ui.bulk.clear' | t }}</ui-button>
+      </div>
+    }
     @if (pager().failed()) {
       <div class="inline-feedback" role="alert" [attr.id]="errorId() || null">
         <span class="material-symbols-outlined" aria-hidden="true">error</span>
@@ -73,6 +86,7 @@ import { UiPaginationComponent } from './ui-pagination.component';
       <smt-table
         [smtData]="pager().items()"
         [smtConfig]="shownConfig()"
+        [(smtSelectedItems)]="selected"
         [smtIsLoading]="pager().loading()"
         [smtSkeletonRowCount]="pager().pageSize()"
         [smtEmptyTemplate]="emptyTemplate()"
@@ -95,6 +109,13 @@ import { UiPaginationComponent } from './ui-pagination.component';
   `,
   styles: [`
     :host { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+    .bulk-bar {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 12px;
+      border: 1px solid var(--primary-border); border-radius: var(--radius-md);
+      background: var(--primary-subtle); color: var(--text-main);
+    }
+    .bulk-count { font-weight: 600; }
+    .bulk-spacer { flex: 1; }
     .server-table-tools { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
     .inline-feedback {
       display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
@@ -130,7 +151,22 @@ export class UiServerTableComponent<T> {
   /** Columns that cannot be hidden, such as the one that names the row. */
   readonly lockedColumns = input<readonly string[]>([]);
 
+  /** Rows can be chosen for bulk actions. */
+  readonly selectable = input(false);
+  /** The chosen rows of the page on screen. */
+  readonly selected = model<T[]>([]);
+
   private readonly columnStore = inject(TableColumnStateStore);
+
+  constructor() {
+    // A new page of rows (paging, reload, a new filter) ends the old choice.
+    effect(() => {
+      this.pager().items();
+      untracked(() => {
+        if (this.selected().length > 0) this.selected.set([]);
+      });
+    });
+  }
 
   /** The stored choice for this table, reloaded when the id changes. */
   private readonly storedColumns = linkedSignal<TableColumnState>(() => {
@@ -143,8 +179,10 @@ export class UiServerTableComponent<T> {
 
   private readonly customizable = computed(() => Boolean(this.columnsId() || this.views()));
 
-  protected readonly shownConfig = computed(() =>
-    this.customizable() ? applyColumnState(this.config(), this.columnState(), this.lockedColumns()) : this.config());
+  protected readonly shownConfig = computed(() => {
+    const config = this.customizable() ? applyColumnState(this.config(), this.columnState(), this.lockedColumns()) : this.config();
+    return this.selectable() ? { ...config, hasMultipleSelection: true } : config;
+  });
 
   /** Labels for the settings panel, from each column's plain header; otherwise its key. */
   protected readonly columnOptions = computed<SMTColumnOption[]>(() => {

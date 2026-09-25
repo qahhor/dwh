@@ -210,3 +210,75 @@ describe('ui-server-table column settings', () => {
     expect(localStorage.getItem('dwh.table-columns.v1.test.columns')).toBeNull();
   });
 });
+
+@Component({
+  standalone: true,
+  imports: [UiServerTableComponent],
+  template: `
+    <ui-server-table [pager]="pager" [config]="config" loadingLabel="Loading" errorLabel="Failed"
+      [selectable]="true" [(selected)]="chosen">
+      <button bulkActions type="button" class="host-action">Archive</button>
+    </ui-server-table>`,
+})
+class SelectHostComponent {
+  readonly pager = new KeysetPager<Row>(
+    cursor => of(cursor ? { items: [{ id: 3 }], nextCursor: null } : { items: [{ id: 1 }, { id: 2 }], nextCursor: 'c2', hasMore: true }),
+    { pageSize: 2 });
+  chosen: Row[] = [];
+  readonly config: TableConfig<Row> = {
+    trackBy: (_index, row) => row.id,
+    ariaLabel: 'Rows',
+    columns: { id: { header: { type: 'primitive', value: 'ID' }, content: { type: 'primitive', value: row => `#${row.id}` } } },
+    columnsOrder: ['id'],
+  };
+}
+
+describe('ui-server-table selection', () => {
+  async function renderSelect(): Promise<ComponentFixture<SelectHostComponent>> {
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({ imports: [SelectHostComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(SelectHostComponent);
+    fixture.detectChanges();
+    fixture.componentInstance.pager.first();
+    fixture.detectChanges();
+    return fixture;
+  }
+  const rowChecks = (fixture: ComponentFixture<SelectHostComponent>) =>
+    [...(fixture.nativeElement as HTMLElement).querySelectorAll('[role="rowgroup"] input[type="checkbox"]')] as HTMLInputElement[];
+  const bar = (fixture: ComponentFixture<SelectHostComponent>) =>
+    (fixture.nativeElement as HTMLElement).querySelector('[data-testid="bulk-bar"]') as HTMLElement | null;
+
+  it('shows the bulk bar with the count and the screen actions once rows are chosen', async () => {
+    const fixture = await renderSelect();
+    expect(bar(fixture)).toBeNull();
+    expect(rowChecks(fixture)).toHaveLength(2);
+
+    rowChecks(fixture)[0].click();
+    fixture.detectChanges();
+    rowChecks(fixture)[1].click();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.chosen.map(row => row.id)).toEqual([1, 2]);
+    expect(bar(fixture)!.getAttribute('role')).toBe('region');
+    expect(bar(fixture)!.querySelector('[role="status"]')?.textContent).toContain('Выбрано: 2');
+    expect(bar(fixture)!.querySelector('.host-action')).not.toBeNull();
+
+    (bar(fixture)!.querySelector('[data-testid="bulk-clear"] button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.chosen).toEqual([]);
+    expect(bar(fixture)).toBeNull();
+  });
+
+  it('drops the choice when another page arrives', async () => {
+    const fixture = await renderSelect();
+    rowChecks(fixture)[0].click();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.chosen).toHaveLength(1);
+
+    fixture.componentInstance.pager.next();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.chosen).toEqual([]);
+    expect(bar(fixture)).toBeNull();
+  });
+});

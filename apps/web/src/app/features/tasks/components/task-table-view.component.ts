@@ -1,9 +1,13 @@
-import { Component, computed, EventEmitter, inject, Input, Output, Signal, TemplateRef, viewChild } from '@angular/core';
+import { Component, computed, EventEmitter, inject, Input, Output, Signal, signal, TemplateRef, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiServerTableComponent } from '../../../shared/ui/ui-server-table.component';
+import { UiBulkResultComponent } from '../../../shared/ui/ui-bulk-result.component';
+import { BulkResult } from '../../../shared/bulk/bulk';
+import { ApiService } from '../../../core/services/api.service';
+import { ToastService } from '../../../core/services/toast.service';
 import { KeysetPager } from '../../../shared/paging/keyset-pager';
 import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
 import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.models';
@@ -15,6 +19,11 @@ import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.m
  * the priority and status selects change the task in place. The server orders
  * tasks itself and pages by cursor, so there is no column sorting: sorting one
  * page would only look like sorting the list.
+ *
+ * With the right to change tasks, rows can be chosen and changed together:
+ * a new status or priority for every chosen task, through `POST /tasks/bulk`.
+ * Each task is changed on its own, so a task that cannot be changed is named
+ * with its reason while the rest go through.
  */
 @Component({
   selector: 'app-task-table-view',
@@ -24,7 +33,8 @@ import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.m
     FormsModule,
     TranslatePipe,
     UiButtonComponent,
-    UiServerTableComponent
+    UiServerTableComponent,
+    UiBulkResultComponent
   ],
   template: `
     <div class="table-card" role="region" [attr.aria-label]="'tasks.tablica_zadach' | t" [attr.aria-busy]="pager.loading()">
@@ -36,7 +46,36 @@ import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.m
         errorId="tasks-load-error"
         [countsPage]="true"
         [emptyTemplate]="emptyState()"
-        (rowClick)="openTaskDetails.emit($event)" />
+        [selectable]="canUpdateTask"
+        [(selected)]="selectedTasks"
+        (rowClick)="openTaskDetails.emit($event)">
+        <div bulkActions class="bulk-actions">
+          <label class="bulk-field">
+            <span class="bulk-label">{{ 'tasks.bulk.status' | t }}</span>
+            <select class="form-select bulk-select" data-testid="bulk-status" [disabled]="bulkBusy()"
+              [value]="bulkStatusId()" (change)="bulkStatusId.set($any($event.target).value)">
+              <option value="">{{ 'tasks.bulk.choose' | t }}</option>
+              @for (s of statuses; track s.id) { <option [value]="s.id">{{ s.name }}</option> }
+            </select>
+          </label>
+          <ui-button variant="secondary" size="sm" data-testid="bulk-status-apply" [disabled]="!bulkStatusId() || bulkBusy()"
+            [loading]="bulkBusy() && bulkAction() === 'status'" (onClick)="applyBulk('status')">{{ 'tasks.bulk.apply' | t }}</ui-button>
+          <label class="bulk-field">
+            <span class="bulk-label">{{ 'common.priority' | t }}</span>
+            <select class="form-select bulk-select" data-testid="bulk-priority" [disabled]="bulkBusy()"
+              [value]="bulkPriority()" (change)="bulkPriority.set($any($event.target).value)">
+              <option value="">{{ 'tasks.bulk.choose' | t }}</option>
+              <option value="low">{{ 'task.priority.low' | t }}</option>
+              <option value="medium">{{ 'tasks.sredniy' | t }}</option>
+              <option value="high">{{ 'task.priority.high' | t }}</option>
+              <option value="critical">{{ 'tasks.kriticheskiy' | t }}</option>
+            </select>
+          </label>
+          <ui-button variant="secondary" size="sm" data-testid="bulk-priority-apply" [disabled]="!bulkPriority() || bulkBusy()"
+            [loading]="bulkBusy() && bulkAction() === 'priority'" (onClick)="applyBulk('priority')">{{ 'tasks.bulk.apply' | t }}</ui-button>
+        </div>
+      </ui-server-table>
+      <ui-bulk-result [result]="bulkResult()" [itemLabel]="bulkItemLabel" (closed)="bulkResult.set(null)" />
     </div>
 
     <ng-template #idCell let-t>
@@ -160,6 +199,10 @@ import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.m
   `,
   styles: [`
     :host { display: block; min-width: 0; }
+    .bulk-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .bulk-field { display: inline-flex; align-items: center; gap: 6px; }
+    .bulk-label { color: var(--text-muted); font-size: 12px; }
+    .bulk-select { min-width: 150px; height: 30px; font-size: 13px; }
     .table-card { min-width: 0; }
     /* The row belongs to the kit table's template, so it is reached from here.
        An inset shadow marks it without widening the row's grid. */
@@ -365,6 +408,52 @@ export class TaskTableViewComponent {
   @Output() createTask = new EventEmitter<void>();
 
   private readonly i18n = inject(I18nService);
+  private readonly api = inject(ApiService);
+  private readonly toast = inject(ToastService);
+
+  /** Rows chosen on the page on screen; the table clears them when the page changes. */
+  readonly selectedTasks = signal<Task[]>([]);
+  readonly bulkStatusId = signal('');
+  readonly bulkPriority = signal('');
+  readonly bulkBusy = signal(false);
+  readonly bulkAction = signal<'status' | 'priority' | null>(null);
+  /** Set when some tasks failed; the dialog names them. */
+  readonly bulkResult = signal<BulkResult | null>(null);
+  /** Titles of the tasks sent, so the result can name a task after the page reloads. */
+  private bulkTitles = new Map<number, string>();
+  readonly bulkItemLabel = (id: number) => {
+    const title = this.bulkTitles.get(id);
+    return title ? `#${id} ${title}` : `#${id}`;
+  };
+
+  /** One status or priority for every chosen task; the page reloads with what the server now holds. */
+  applyBulk(action: 'status' | 'priority'): void {
+    const tasks = this.selectedTasks();
+    if (tasks.length === 0 || this.bulkBusy()) return;
+    const params = action === 'status' ? { statusId: Number(this.bulkStatusId()) } : { priority: this.bulkPriority() };
+    this.bulkTitles = new Map(tasks.map(task => [task.id, task.title]));
+    this.bulkBusy.set(true);
+    this.bulkAction.set(action);
+    this.api.post<BulkResult>('/tasks/bulk', { action, ids: tasks.map(task => task.id), params }, { notifyError: false })
+      .subscribe({
+        next: result => {
+          this.bulkBusy.set(false);
+          this.bulkAction.set(null);
+          this.bulkStatusId.set('');
+          this.bulkPriority.set('');
+          if (result.succeeded > 0) {
+            this.toast.success(this.i18n.translate('tasks.bulk.done', { count: result.succeeded }));
+          }
+          if (result.failed > 0) this.bulkResult.set(result);
+          this.pager.reload();
+        },
+        error: () => {
+          this.bulkBusy.set(false);
+          this.bulkAction.set(null);
+          this.toast.error(this.i18n.translate('tasks.bulk.error'));
+        }
+      });
+  }
   private readonly idCell = viewChild.required<TemplateRef<unknown>>('idCell');
   private readonly typeCell = viewChild.required<TemplateRef<unknown>>('typeCell');
   private readonly titleCell = viewChild.required<TemplateRef<unknown>>('titleCell');

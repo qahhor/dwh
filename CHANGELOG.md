@@ -9,6 +9,14 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Bulk actions. Server tables can let people choose rows; a bar above the
+  table says how many are chosen and holds the screen's actions, and the
+  choice ends when another page arrives. `POST …/bulk` applies one action to
+  up to 100 records, each through the same single-record operation — its
+  rights, data scope, checks and audit — in its own transaction, and answers
+  record by record, so one failure does not undo the rest. The task list is
+  the first to use it: a new status or priority for every chosen task, with
+  the tasks that could not change named alongside their reasons.
 - Lookups: a select can show its options as columns under a header row,
   search the server, load more, and offer "Create “typed text”" as its last
   option. Registry lists take a free-text `q` that matches any searchable

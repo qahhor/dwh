@@ -2,6 +2,9 @@ package com.greenwhite.dwh.instance.ms.task.controller;
 
 import com.greenwhite.dwh.core.pagination.KeysetPage;
 import com.greenwhite.dwh.instance.ms.task.MsTaskPatch;
+import com.greenwhite.dwh.instance.common.bulk.BulkRunner;
+import com.greenwhite.dwh.instance.common.bulk.BulkRunner.BulkRequest;
+import com.greenwhite.dwh.instance.common.bulk.BulkRunner.BulkResult;
 import com.greenwhite.dwh.instance.common.security.SecurityContext;
 import com.greenwhite.dwh.instance.common.annotation.RequiresPermission;
 import com.greenwhite.dwh.instance.ms.task.pref.MsTaskPref;
@@ -26,6 +29,9 @@ import java.util.Map;
 @RestController
 @RequestMapping({"/api/v1/tasks/items", "/api/v1/tasks"})
 public class MsTaskController {
+
+    private static final List<String> PRIORITIES = List.of(MsTaskPref.PRIORITY_LOW, MsTaskPref.PRIORITY_MEDIUM,
+            MsTaskPref.PRIORITY_HIGH, MsTaskPref.PRIORITY_CRITICAL);
 
     private final MsTaskService taskService;
 
@@ -216,6 +222,42 @@ public class MsTaskController {
         taskService.updateTask(id, body.toPatch(), currentUserId);
 
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Массовое действие над выбранными задачами. Каждая задача меняется той же одиночной операцией, что
+     * и из карточки, в своей транзакции: скоуп, проверка статуса и аудит — её; ответ — итог по каждой задаче.
+     * <ul>
+     *   <li>{@code status}, {@code params.statusId} — сменить статус;</li>
+     *   <li>{@code priority}, {@code params.priority} — сменить приоритет.</li>
+     * </ul>
+     */
+    @PostMapping("/bulk")
+    @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
+    public ResponseEntity<BulkResult> bulk(@RequestBody BulkRequest body) {
+        Long currentUserId = SecurityContext.getCurrentUserId();
+        List<Long> ids = BulkRunner.checkedIds(body);
+        String action = body.action() == null ? "" : body.action();
+        return switch (action) {
+            case "status" -> {
+                long statusId = body.params() == null ? 0 : body.params().path("statusId").asLong(0);
+                if (taskService.listStatuses().stream().noneMatch(status -> Long.valueOf(statusId).equals(status.id()))) {
+                    throw BulkRunner.invalidParam("statusId", "unknown status");
+                }
+                yield ResponseEntity.ok(BulkRunner.run(action, ids,
+                        id -> taskService.changeStatus(id, statusId, currentUserId)));
+            }
+            case "priority" -> {
+                String priority = body.params() == null ? "" : body.params().path("priority").asString("");
+                if (!PRIORITIES.contains(priority)) {
+                    throw BulkRunner.invalidParam("priority", "one of " + PRIORITIES);
+                }
+                MsTaskPatch patch = new MsTaskPatch(false, null, false, null, false, null, false, null,
+                        true, priority, false, null, false, null, false, null, false, null, false, null, false, null);
+                yield ResponseEntity.ok(BulkRunner.run(action, ids, id -> taskService.updateTask(id, patch, currentUserId)));
+            }
+            default -> throw BulkRunner.unknownAction(action);
+        };
     }
 
     @PostMapping("/{id}/status")
