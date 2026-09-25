@@ -9,6 +9,13 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Saved list views (ADR-0016). A person can save what a list shows —
+  columns, their order and widths, the sort and, later, the filter — under a
+  name, switch between views from a menu next to the column settings, update
+  or delete a view, and choose the one the list opens with. Views are stored
+  on the server per person and list (`/api/v1/list-views/{list}`), checked
+  against the list's field registry, audited, and guarded by a lock version.
+  The UPL sources list is the first to offer them.
 - Column settings for server tables: a "Columns" button opens a panel to
   show or hide columns and move them up or down — by keyboard too, with each
   new place announced — and a Reset; widths are set by dragging a header

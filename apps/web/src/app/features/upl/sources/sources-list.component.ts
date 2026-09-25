@@ -4,9 +4,11 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ProblemDetail } from '../../../core/models/common.models';
-import { QueryListMeta, QuerySort } from '../../../core/models/query-meta.models';
+import { QueryListMeta } from '../../../core/models/query-meta.models';
 import { QueryMetaService, parseSort } from '../../../core/services/query-meta.service';
 import { KeysetPager } from '../../../shared/paging/keyset-pager';
+import { ListViewState, ListViewsApi } from '../../../shared/list-views/list-views';
+import { TableColumnStateStore } from '../../../shared/ui-kit/services/table-column-state.store';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
@@ -98,7 +100,7 @@ function emptyForm(): SourceCreateForm {
         <ui-server-table
           [pager]="pager"
           [config]="config"
-          columnsId="upl.sources"
+          [views]="views"
           [lockedColumns]="['name']"
           [loadingLabel]="'upl.common.loading' | t"
           [errorLabel]="'upl.list.load_error' | t"
@@ -386,6 +388,20 @@ export class SourcesListComponent implements OnInit {
   private readonly queryMeta = inject(QueryMetaService);
   private readonly destroyRef = inject(DestroyRef);
 
+  /** Field metadata of the list (`query-meta/upl.sources`): columns, headers, what sorts. */
+  readonly meta = signal<QueryListMeta | null>(null);
+
+  /** Saved views own the columns and the sort; the list opens with the person's default view. */
+  readonly views = new ListViewState('upl.sources', inject(ListViewsApi), {
+    defaultSort: () => {
+      const meta = this.meta();
+      return meta ? parseSort(meta.defaultSort) : null;
+    },
+    onApply: () => this.pager.first(),
+    columnsStore: inject(TableColumnStateStore)
+  });
+  readonly sort = this.views.sort;
+
   /** The sort goes with every page, so a cursor always continues the query that issued it. */
   readonly pager = new KeysetPager<UplSourceItem>(
     (cursor, limit) => this.api.listSources(limit, cursor, { sort: this.sort() }),
@@ -394,10 +410,7 @@ export class SourcesListComponent implements OnInit {
   readonly items = this.pager.items;
   readonly isLoading = this.pager.loading;
   readonly loadError = this.pager.failed;
-  /** Field metadata of the list (`query-meta/upl.sources`): columns, headers, what sorts. */
-  readonly meta = signal<QueryListMeta | null>(null);
   readonly metaError = signal(false);
-  readonly sort = signal<QuerySort | null>(null);
 
   private readonly codeCell = viewChild.required<TemplateRef<unknown>>('codeCell');
   private readonly nameCell = viewChild.required<TemplateRef<unknown>>('nameCell');
@@ -448,9 +461,8 @@ export class SourcesListComponent implements OnInit {
     this.metaError.set(false);
     this.queryMeta.get('upl.sources').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: meta => {
-        this.sort.set(parseSort(meta.defaultSort));
         this.meta.set(meta);
-        this.pager.first();
+        this.views.load().subscribe(() => this.pager.first());
       },
       error: () => this.metaError.set(true)
     });
@@ -458,9 +470,8 @@ export class SourcesListComponent implements OnInit {
 
   /** A header click sorts the whole list on the server; switching sorting off returns to the default order. */
   onSort(event: { column: string; sortBy: OrderBy } | undefined): void {
-    const meta = this.meta();
-    if (!meta) return;
-    this.sort.set(sortFromHeader(event) ?? parseSort(meta.defaultSort));
+    if (!this.meta()) return;
+    this.views.setSort(sortFromHeader(event));
     this.pager.first();
   }
 

@@ -236,6 +236,41 @@ public class OpenApiController {
                                         )
                                 )
                         )),
+                        Map.entry("/api/v1/list-views/{code}", Map.of(
+                                "get", Map.of(
+                                        "summary", "The signed-in user's saved views of a registry list",
+                                        "tags", List.of("Query"),
+                                        "responses", Map.of(
+                                                "200", Map.of("description", "Views with columns, sort and filter"),
+                                                "404", Map.of("description", "QUERY_LIST_NOT_FOUND")
+                                        )
+                                ),
+                                "post", Map.of(
+                                        "summary", "Save a view; its state is checked against the field registry",
+                                        "tags", List.of("Query"),
+                                        "responses", Map.of(
+                                                "201", Map.of("description", "Saved view in canonical form"),
+                                                "422", Map.of("description", "LIST_VIEW_INVALID, LIST_VIEW_NAME_TAKEN or LIST_VIEW_LIMIT")
+                                        )
+                                )
+                        )),
+                        Map.entry("/api/v1/list-views/{code}/{id}", Map.of(
+                                "put", Map.of(
+                                        "summary", "Change an own view (lockVersion required)",
+                                        "tags", List.of("Query"),
+                                        "responses", Map.of(
+                                                "200", Map.of("description", "Changed view"),
+                                                "404", Map.of("description", "LIST_VIEW_NOT_FOUND"),
+                                                "409", Map.of("description", "STALE_VERSION")
+                                        )
+                                ),
+                                "delete", Map.of(
+                                        "summary", "Delete an own view",
+                                        "tags", List.of("Query"),
+                                        "responses", Map.of("204", Map.of("description", "Deleted"),
+                                                "404", Map.of("description", "LIST_VIEW_NOT_FOUND"))
+                                )
+                        )),
                         Map.entry("/api/v1/upl/sources", Map.of(
                                 "get", Map.of(
                                         "summary", "UPL sources through the field registry, keyset paginated",
