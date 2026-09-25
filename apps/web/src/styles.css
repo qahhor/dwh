@@ -751,29 +751,6 @@ td.empty {
   border-color: var(--primary);
 }
 
-/* Alerts */
-.alert {
-  padding: 12px 16px;
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  margin-bottom: 16px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.alert-error {
-  background-color: var(--danger-bg);
-  color: var(--danger-text);
-  border: 1px solid rgba(220, 38, 38, 0.2);
-}
-
-.alert-success {
-  background-color: var(--success-bg);
-  color: var(--success-text);
-  border: 1px solid rgba(22, 163, 74, 0.2);
-}
-
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

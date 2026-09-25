@@ -377,7 +377,7 @@ describe('PackageCardComponent', () => {
   it('AC-13: применённая загрузка с обоими числами — зелёная строка сверки', async () => {
     const { fixture } = await createFixture(item({ status: 'applied', loadId: 9, rowsTotal: 10, rawRows: 10 }));
 
-    expect(testId(fixture, 'upl-pkg-reconciliation')[0].textContent?.trim()).toBe('В файле 10 строк = в базе 10 строк');
+    expect(testId(fixture, 'upl-pkg-reconciliation')[0].querySelector('.smt-alert__content')?.textContent?.trim()).toBe('В файле 10 строк = в базе 10 строк');
   });
 
   it('AC-13: применённая загрузка без числа строк в базе — строки сверки нет', async () => {

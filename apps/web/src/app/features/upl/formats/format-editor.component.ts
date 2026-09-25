@@ -29,6 +29,7 @@ import { FormatPublishStepComponent } from './format-publish-step.component';
 import { FormatSheetsStepComponent } from './format-sheets-step.component';
 import { UplFieldError, parseUplFieldErrors, parseUplProblem, uplFieldErrorText } from './upl-format-errors';
 import { UplFormatStep, emptyModel, trimToNull, uplErrorStep } from './upl-format-model';
+import { SMTAlertComponent } from '../../../shared/ui-kit/components/alert';
 
 const TARGET_FIELD_PATTERN = /^[a-z][a-z0-9_]{0,62}$/;
 
@@ -52,7 +53,7 @@ const COLUMN_FIELD_LABEL_KEY: Record<string, string> = {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule, FormsModule, RouterLink, TranslatePipe, UiButtonComponent, UiModalComponent, UiBadgeComponent,
+    SMTAlertComponent, CommonModule, FormsModule, RouterLink, TranslatePipe, UiButtonComponent, UiModalComponent, UiBadgeComponent,
     SMTDatePickerComponent, SMTDatePickerValueAccessor, SMTProgressStepperComponent,
     FormatFileStepComponent, FormatSheetsStepComponent, FormatPublishStepComponent,
   ],
@@ -61,15 +62,15 @@ const COLUMN_FIELD_LABEL_KEY: Record<string, string> = {
       @if (isLoading()) {
         <p class="upl-muted">{{ 'upl.common.loading' | t }}</p>
       } @else if (notFound()) {
-        <div class="alert alert-error" role="alert" data-testid="upl-not-found">
+        <smt-alert smtTone="danger" data-testid="upl-not-found">
           <span>{{ 'upl.err.UPL_SOURCE_NOT_FOUND' | t }}</span>
           <a routerLink="/upl/sources">{{ 'upl.list.title' | t }}</a>
-        </div>
+        </smt-alert>
       } @else if (loadError()) {
-        <div class="alert alert-error" role="alert" data-testid="upl-load-error">
+        <smt-alert smtTone="danger" data-testid="upl-load-error">
           <span>{{ 'upl.common.load_error' | t }}</span>
           <ui-button variant="secondary" size="sm" (onClick)="reload()">{{ 'upl.common.retry' | t }}</ui-button>
-        </div>
+        </smt-alert>
       } @else {
         <nav class="upl-crumbs" [attr.aria-label]="'upl.format.crumbs' | t">
           <a routerLink="/upl/sources">{{ 'upl.list.title' | t }}</a>
@@ -94,14 +95,14 @@ const COLUMN_FIELD_LABEL_KEY: Record<string, string> = {
         }
 
         @if (conflict()) {
-          <div class="alert alert-error" role="alert" data-testid="upl-conflict">
+          <smt-alert smtTone="danger" data-testid="upl-conflict">
             <span>{{ 'upl.err.STALE_VERSION' | t }}</span>
             <ui-button variant="secondary" size="sm" (onClick)="discardAndReload()">{{ 'upl.common.refresh_discard' | t }}</ui-button>
-          </div>
+          </smt-alert>
         }
 
         @if (actionError(); as problem) {
-          <div class="alert alert-error" role="alert" data-testid="upl-action-error">{{ problem }}</div>
+          <smt-alert smtTone="danger" data-testid="upl-action-error">{{ problem }}</smt-alert>
         }
 
         <smt-progress-stepper
@@ -112,7 +113,7 @@ const COLUMN_FIELD_LABEL_KEY: Record<string, string> = {
         />
 
         @if (errors().length > 0) {
-          <div class="alert alert-error" role="alert" data-testid="upl-errors-summary">
+          <smt-alert smtTone="danger" data-testid="upl-errors-summary">
             <p class="upl-errors-title">{{ 'upl.format.errors_title' | t }}</p>
             <ul class="upl-errors-list">
               @for (problem of errors(); track $index) {
@@ -126,7 +127,7 @@ const COLUMN_FIELD_LABEL_KEY: Record<string, string> = {
                 </li>
               }
             </ul>
-          </div>
+          </smt-alert>
         }
 
         <section class="upl-block" id="upl-step-file" data-testid="upl-step-file" [hidden]="step() !== 'file'">
