@@ -76,7 +76,6 @@ src/app/shared/ui-kit/components/modal/modal.component.ts SMTModalComponent
 src/app/shared/ui-kit/components/progress-stepper/progress-stepper.component.ts SMTProgressStepperComponent
 src/app/shared/ui-kit/components/table/table.component.ts SMTTableComponent
 src/app/shared/ui-kit/components/tree-table/tree-table.component.ts SMTTreeTableComponent
-src/app/shared/ui/ui-custom-fields.component.ts UiCustomFieldsComponent
 src/app/shared/ui/ui-file-upload.component.ts UiFileUploadComponent
 src/app/shared/ui/ui-filter-bar.component.ts UiFilterBarComponent
 src/app/shared/ui/ui-filter-panel.component.ts UiFilterPanelComponent
