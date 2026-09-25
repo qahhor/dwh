@@ -9,6 +9,11 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- The UPL uploads list now runs on the field registry like the sources list:
+  columns from the server, sorting of the whole list by a header click,
+  column settings, saved views, the filter builder (status, period, source,
+  file, rows, errors, format version, uploader) and a search over source and
+  file names. It pages instead of "Load more"; a row still opens its card.
 - Bulk actions. Server tables can let people choose rows; a bar above the
   table says how many are chosen and holds the screen's actions, and the
   choice ends when another page arrives. `POST …/bulk` applies one action to

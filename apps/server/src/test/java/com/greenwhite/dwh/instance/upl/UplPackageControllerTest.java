@@ -327,6 +327,31 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
         assertThat((String) read(list, "$.items[0].status")).isEqualTo(UplPackageModel.VERIFIED);
     }
 
+    @Test
+    @DisplayName("реестр полей: список загрузок фильтруется по статусу, ищется по файлу и источнику, поля-фильтры без колонки")
+    void packagesListGoesThroughTheRegistry() throws Exception {
+        Session admin = login(adminLogin);
+        assertThat(upload(admin, String.valueOf(sourceId), PERIOD_FROM, PERIOD_TO, UplPackageTestData.workbook(2, 0))
+                .getStatus()).isEqualTo(202);
+        assertThat(jobs.runQueued()).isEqualTo(1);
+
+        String verified = java.net.URLEncoder.encode("[{\"field\":\"status\",\"op\":\"eq\",\"value\":\"verified\"}]",
+                java.nio.charset.StandardCharsets.UTF_8);
+        String rejected = verified.replace("verified", "rejected");
+        assertThat((List<String>) read(sendGetUri(admin, BASE + "?filter=" + verified, 200), "$.items[*].status"))
+                .containsExactly(UplPackageModel.VERIFIED);
+        assertThat((List<Object>) read(sendGetUri(admin, BASE + "?filter=" + rejected, 200), "$.items")).isEmpty();
+        assertThat((List<Object>) read(sendGet(admin, BASE + "?q=TEST.xls", 200), "$.items")).hasSize(1);
+        assertThat((List<Object>) read(sendGet(admin, BASE + "?q=no-such-file", 200), "$.items")).isEmpty();
+        sendGet(admin, BASE + "?sort=periodFrom", 200);
+        sendGet(admin, BASE + "?sort=fileName", 422);
+
+        var meta = sendGet(admin, "/api/v1/query-meta/upl.packages", 200);
+        assertThat((String) read(meta, "$.defaultSort")).isEqualTo("-uploadedAt");
+        assertThat((List<String>) read(meta, "$.fields[?(@.defaultVisible == false)].key"))
+                .containsExactly("sourceCode", "periodTo", "errorsTotal", "formatVersion", "uploadedBy");
+    }
+
     // ---------- помощники ----------
 
     private MockHttpServletResponse upload(Session session, String source, String from, String to, byte[] content)
@@ -345,6 +370,13 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
         request.header("X-XSRF-TOKEN", session.csrf().getValue());
         var response = mvc.perform(request).andReturn().getResponse();
         assertThat(response.getStatus()).as(response.getContentAsString()).isNotEqualTo(500);
+        return response;
+    }
+
+    /** For a query string that is already encoded: a String would be read as a URI template and encoded again. */
+    private MockHttpServletResponse sendGetUri(Session session, String url, int expectedStatus) throws Exception {
+        var response = mvc.perform(get(java.net.URI.create(url)).cookie(session.session(), session.csrf())).andReturn().getResponse();
+        assertThat(response.getStatus()).as(response.getContentAsString()).isEqualTo(expectedStatus);
         return response;
     }
 

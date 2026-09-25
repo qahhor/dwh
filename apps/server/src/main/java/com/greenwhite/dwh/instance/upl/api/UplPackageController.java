@@ -65,9 +65,12 @@ public class UplPackageController {
 
     @GetMapping
     @RequiresPermission(form = UplPref.FORM_PACKAGES, action = UplPref.ACTION_VIEW)
-    public ResponseEntity<KeysetPage<PackageItem>> list(@RequestParam(defaultValue = "50") int limit,
-                                                        @RequestParam(required = false) String cursor) {
-        KeysetPage<PackageRow> page = packages.list(limit, cursor);
+    public ResponseEntity<KeysetPage<PackageItem>> list(@RequestParam(required = false) Integer limit,
+                                                        @RequestParam(required = false) String cursor,
+                                                        @RequestParam(required = false) String filter,
+                                                        @RequestParam(required = false) String sort,
+                                                        @RequestParam(required = false) String q) {
+        KeysetPage<PackageRow> page = packages.list(limit, cursor, filter, sort, q);
         List<PackageItem> items = page.items().stream().map(PackageItem::of).toList();
         return ResponseEntity.ok(KeysetPage.of(items, page.nextCursor(), page.hasMore(), page.totalEstimated()));
     }

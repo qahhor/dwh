@@ -18,11 +18,13 @@ export interface RegistryTableOptions<T> {
  * A table configuration from a list's server metadata (ADR-0016): the columns,
  * their order, headers and which of them sort all come from `query-meta`, so a
  * field added on the server shows up without touching the screen. A screen
- * only supplies cells that need more than the value.
+ * only supplies cells that need more than the value. A field the server marks
+ * `defaultVisible: false` is offered in the filter but gets no column.
  */
 export function registryTableConfig<T>(meta: QueryListMeta, options: RegistryTableOptions<T>): TableConfig<T> {
   const columns: Record<string, ColumnInfo<T>> = {};
-  for (const field of meta.fields) {
+  const shown = meta.fields.filter(field => field.defaultVisible !== false);
+  for (const field of shown) {
     columns[field.key] = {
       key: field.key,
       header: { type: 'primitive', value: options.translate(field.labelKey) },
@@ -37,7 +39,7 @@ export function registryTableConfig<T>(meta: QueryListMeta, options: RegistryTab
     trackBy: options.trackBy,
     ariaLabel: options.ariaLabel,
     columns,
-    columnsOrder: meta.fields.map(field => field.key),
+    columnsOrder: shown.map(field => field.key),
   };
 }
 

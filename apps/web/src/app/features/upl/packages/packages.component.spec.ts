@@ -8,6 +8,9 @@ import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { UplSource, UplSourceItem } from '../upl-api';
+import { QueryListMeta } from '../../../core/models/query-meta.models';
+import { QueryMetaService } from '../../../core/services/query-meta.service';
+import { ListViewsApi } from '../../../shared/list-views/list-views';
 import { PackageCardComponent } from './package-card.component';
 import { PackagesComponent } from './packages.component';
 import { UplPackageErrors, UplPackageItem, UplPackageUpload, UplPackagesApiService } from './packages-api';
@@ -39,8 +42,30 @@ function item(patch: Partial<UplPackageItem> = {}): UplPackageItem {
 }
 
 function page(items: UplPackageItem[], hasMore = false, nextCursor: string | null = null): KeysetPage<UplPackageItem> {
-  return { items, nextCursor, hasMore, totalReturned: items.length };
+  return { items, nextCursor, hasMore, totalEstimated: items.length } as unknown as KeysetPage<UplPackageItem>;
 }
+
+const field = (key: string, labelKey: string, type: QueryListMeta['fields'][number]['type'], extra: Partial<QueryListMeta['fields'][number]> = {}) =>
+  ({ key, labelKey, type, ops: ['eq'], sortable: false, nullable: false, defaultVisible: true, enumValues: [], enumLabelPrefix: null, ...extra }) as QueryListMeta['fields'][number];
+
+/** What `query-meta/upl.packages` answers. */
+const PACKAGES_META: QueryListMeta = {
+  code: 'upl.packages',
+  defaultSort: '-uploadedAt',
+  defaultLimit: 50,
+  maxLimit: 200,
+  maxConditions: 20,
+  maxInValues: 100,
+  fields: [
+    field('uploadedAt', 'upl.pkg.col.uploaded_at', 'instant', { sortable: true, ops: ['gte'] }),
+    field('sourceName', 'upl.pkg.col.source', 'text', { sortable: true }),
+    field('sourceCode', 'upl.list.col.code', 'text', { defaultVisible: false }),
+    field('periodFrom', 'upl.pkg.col.period', 'date', { sortable: true, ops: ['gte'] }),
+    field('fileName', 'upl.pkg.col.file', 'text'),
+    field('status', 'upl.pkg.col.status', 'enum', { enumValues: ['received', 'verified', 'rejected', 'applied'], enumLabelPrefix: 'upl.pkg.status.' }),
+    field('rowsTotal', 'upl.pkg.col.rows', 'number', { nullable: true })
+  ]
+};
 
 const noErrors: UplPackageErrors = { total: 0, shown: 0, items: [] };
 
@@ -81,6 +106,8 @@ async function createFixture(options: FixtureOptions = {}) {
     imports: [PackagesComponent],
     providers: [
       provideRouter([]),
+      { provide: QueryMetaService, useValue: { get: vi.fn(() => of(PACKAGES_META)) } },
+      { provide: ListViewsApi, useValue: { list: vi.fn(() => of([])), create: vi.fn(), update: vi.fn(), remove: vi.fn() } },
       { provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: convertToParamMap(options.query ?? {}) } } },
       { provide: UplPackagesApiService, useValue: api },
       { provide: PermissionService, useValue: permissions },
@@ -106,8 +133,12 @@ function click(fixture: ComponentFixture<PackagesComponent>, id: string): void {
   fixture.detectChanges();
 }
 
+function tableRows(fixture: ComponentFixture<PackagesComponent>): HTMLElement[] {
+  return [...(fixture.nativeElement as HTMLElement).querySelectorAll('[role="rowgroup"] > [role="row"]')] as HTMLElement[];
+}
+
 function clickRow(fixture: ComponentFixture<PackagesComponent>, index = 0): void {
-  fixture.debugElement.queryAll(By.css('[data-testid="upl-pkg-row"]'))[index].triggerEventHandler('click', {});
+  tableRows(fixture)[index].click();
   fixture.detectChanges();
 }
 
@@ -406,55 +437,58 @@ describe('PackagesComponent', () => {
     expect(document.querySelectorAll('[role="option"]')).toHaveLength(3);
   });
 
-  it('пока список грузится, видны строки-скелетоны', async () => {
+  it('колонки берутся из метаданных реестра; поле-фильтр без колонки; по умолчанию сначала новые', async () => {
+    const { fixture, api } = await createFixture();
+
+    const headers = [...fixture.nativeElement.querySelectorAll('[role="columnheader"] span.truncate')].map(cell => (cell as HTMLElement).textContent?.trim());
+    expect(headers).toEqual([
+      PACKAGED_RUSSIAN['upl.pkg.col.uploaded_at'], PACKAGED_RUSSIAN['upl.pkg.col.source'], PACKAGED_RUSSIAN['upl.pkg.col.period'],
+      PACKAGED_RUSSIAN['upl.pkg.col.file'], PACKAGED_RUSSIAN['upl.pkg.col.status'], PACKAGED_RUSSIAN['upl.pkg.col.rows']
+    ]);
+    expect(api.list).toHaveBeenCalledWith(50, null, { sort: { field: 'uploadedAt', descending: true }, conditions: [] });
+    expect(fixture.nativeElement.querySelector('[data-testid="filter-trigger"]')).not.toBeNull();
+  });
+
+  it('пока список грузится, это объявляется, строк нет', async () => {
     const { fixture } = await createFixture({ pages: [NEVER] });
 
-    expect(testId(fixture, 'upl-pkg-skeleton')).toHaveLength(5);
+    expect(fixture.nativeElement.querySelector('[data-server-table-status]')).not.toBeNull();
     expect(testId(fixture, 'upl-pkg-row')).toHaveLength(0);
   });
 
-  it('сбой списка: полоса и «Повторить» перезапрашивает', async () => {
+  it('сбой списка: таблица предлагает повторить именно этот запрос', async () => {
     const { fixture, api } = await createFixture({
       pages: [throwError(() => ({ status: 503 })), of(page([item()]))]
     });
 
-    expect(testId(fixture, 'upl-pkg-load-error')[0].textContent).toContain(PACKAGED_RUSSIAN['upl.pkg.load_error']);
-    click(fixture, 'upl-pkg-retry');
+    const alert = fixture.nativeElement.querySelector('ui-server-table [role="alert"]') as HTMLElement;
+    expect(alert.textContent).toContain(PACKAGED_RUSSIAN['upl.pkg.load_error']);
+    (alert.querySelector('button') as HTMLButtonElement).click();
+    fixture.detectChanges();
 
     expect(api.list).toHaveBeenCalledTimes(2);
     expect(testId(fixture, 'upl-pkg-row')).toHaveLength(1);
   });
 
-  it('«Загрузить ещё» дописывает строки и передаёт курсор', async () => {
+  it('следующая страница запрашивается курсором того же запроса', async () => {
     const { fixture, api } = await createFixture({
       pages: [
         of(page([item()], true, 'cursor-2')),
-        of(page([item({ id: '6f1b0d1e-0000-4000-8000-000000000002' })]))
+        of(page([item({ id: '6f1b0d1e-0000-4000-8000-000000000002', fileName: 'b_feb.xlsx' })]))
       ]
     });
 
-    expect(testId(fixture, 'upl-pkg-more')).toHaveLength(1);
-    click(fixture, 'upl-pkg-more');
+    (fixture.nativeElement.querySelector('button[aria-label="Следующая страница"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
 
-    expect(api.list).toHaveBeenLastCalledWith(50, 'cursor-2');
-    expect(testId(fixture, 'upl-pkg-row')).toHaveLength(2);
-    expect(testId(fixture, 'upl-pkg-more')).toHaveLength(0);
-  });
-
-  it('сбой дозагрузки показывает тост', async () => {
-    const { fixture, toast } = await createFixture({
-      pages: [of(page([item()], true, 'cursor-2')), throwError(() => ({ status: 503 }))]
-    });
-
-    click(fixture, 'upl-pkg-more');
-
-    expect(toast.error).toHaveBeenCalledWith(PACKAGED_RUSSIAN['upl.pkg.load_error']);
+    expect(api.list).toHaveBeenLastCalledWith(50, 'cursor-2', { sort: { field: 'uploadedAt', descending: true }, conditions: [] });
+    expect(tableRows(fixture).map(row => row.textContent)).toEqual([expect.stringContaining('b_feb.xlsx')]);
   });
 
   it('строка списка показывает дату, источник, период, файл, статус и строки', async () => {
     const { fixture } = await createFixture();
 
-    const row = testId(fixture, 'upl-pkg-row')[0].textContent ?? '';
+    const row = tableRows(fixture)[0].textContent ?? '';
     expect(row).toContain('Nalogi TEST');
     expect(row).toContain('01.01.2026–31.01.2026');
     expect(row).toContain('a_jan.xlsx');
@@ -481,7 +515,7 @@ describe('PackagesComponent', () => {
     });
     const { fixture } = await createFixture({ pages: [of(page([unchecked, rejected]))] });
 
-    const rows = testId(fixture, 'upl-pkg-row');
+    const rows = tableRows(fixture);
     expect(rows[0].textContent).toContain('—');
     expect(rows[0].textContent).not.toContain('120');
     expect(rows[1].textContent).toContain(PACKAGED_RUSSIAN['upl.pkg.status.rejected']);
@@ -492,9 +526,9 @@ describe('PackagesComponent', () => {
     const received = item({ status: 'received', rowsTotal: null, rowsAccepted: null, rowsRejected: null });
     const { fixture } = await createFixture({ pages: [of(page([received, item({ id: 'c' })]))] });
 
-    const badges = fixture.debugElement.queryAll(By.css('[data-testid="upl-pkg-row"] ui-badge'));
-    expect(badges[0].nativeElement.getAttribute('title')).toBe(PACKAGED_RUSSIAN['upl.pkg.status.received_hint']);
-    expect(badges[1].nativeElement.getAttribute('title')).toBeNull();
+    const badges = tableRows(fixture).map(row => row.querySelector('ui-badge') as HTMLElement);
+    expect(badges[0].getAttribute('title')).toBe(PACKAGED_RUSSIAN['upl.pkg.status.received_hint']);
+    expect(badges[1].getAttribute('title')).toBeNull();
   });
 
   it('щелчок по строке открывает карточку вместо формы и списка', async () => {

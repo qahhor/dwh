@@ -2,7 +2,6 @@ package com.greenwhite.dwh.instance.upl.upload;
 
 import com.greenwhite.dwh.core.error.ErrorCode;
 import com.greenwhite.dwh.core.error.FieldErrorItem;
-import com.greenwhite.dwh.core.pagination.CursorUtils;
 import com.greenwhite.dwh.core.pagination.KeysetPage;
 import com.greenwhite.dwh.instance.common.error.ApiException;
 import com.greenwhite.dwh.instance.common.query.QueryCompiler;
@@ -75,21 +74,15 @@ public class UplPackageService {
         return new ErrorsView(total, repo.findErrors(row.id()));
     }
 
-    /** Список пакетов от новых к старым; курсор несёт последний показанный id и общее число. */
+    /** Список пакетов по реестру: по умолчанию от новых к старым; фильтр, сортировка и поиск — ADR-0016. */
     @Transactional(readOnly = true)
     public KeysetPage<PackageRow> list(int limit, String cursor) {
-        if (limit < 1 || limit > MAX_LIMIT) {
-            throw invalidField("limit", QueryCompiler.INVALID_LIMIT);
-        }
-        PageCursor decoded = decodeCursor(cursor);
-        List<PackageRow> rows = repo.list(decoded == null ? null : decoded.lastId(), limit + 1);
-        boolean hasMore = rows.size() > limit;
-        List<PackageRow> page = rows.subList(0, Math.min(rows.size(), limit));
-        long total = decoded == null ? repo.count() : decoded.total();
-        String next = hasMore && !page.isEmpty()
-                ? CursorUtils.encode(page.getLast().id() + "|" + total)
-                : null;
-        return KeysetPage.of(List.copyOf(page), next, hasMore, total);
+        return list(limit, cursor, null, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public KeysetPage<PackageRow> list(Integer limit, String cursor, String filter, String sort, String search) {
+        return repo.pagePackages(QueryCompiler.compile(UplPackageQuery.LIST, filter, sort, limit, cursor, search));
     }
 
     /** Записывает итог разбора: статус, счётчики и первые сохранённые ошибки. */
@@ -135,25 +128,6 @@ public class UplPackageService {
             return UUID.fromString(publicId);
         } catch (IllegalArgumentException notUuid) {
             throw ApiException.notFound(ErrorCode.NOT_FOUND, UPL_PKG_NOT_FOUND);
-        }
-    }
-
-    private record PageCursor(long lastId, long total) {
-    }
-
-    private static PageCursor decodeCursor(String cursor) {
-        if (cursor == null || cursor.isBlank()) {
-            return null;
-        }
-        String raw = CursorUtils.decode(cursor);
-        int bar = raw == null ? -1 : raw.lastIndexOf('|');
-        if (bar <= 0) {
-            throw invalidField("cursor", QueryCompiler.INVALID_CURSOR);
-        }
-        try {
-            return new PageCursor(Long.parseLong(raw.substring(0, bar)), Long.parseLong(raw.substring(bar + 1)));
-        } catch (NumberFormatException notNumber) {
-            throw invalidField("cursor", QueryCompiler.INVALID_CURSOR);
         }
     }
 

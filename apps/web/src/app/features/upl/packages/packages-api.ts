@@ -1,6 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from '../../../core/services/api.service';
+import { ListQuery } from '../../../core/models/query-meta.models';
+import { toQueryParams } from '../../../core/services/query-meta.service';
 import { KeysetPage } from '../../../core/models/common.models';
 import { UplApiService, UplSource, UplSourceItem } from '../upl-api';
 
@@ -62,8 +64,10 @@ export class UplPackagesApiService {
   private readonly api = inject(ApiService);
   private readonly upl = inject(UplApiService);
 
-  list(limit = 50, cursor?: string | null): Observable<KeysetPage<UplPackageItem>> {
-    return this.api.get<KeysetPage<UplPackageItem>>(PACKAGES, { limit, ...(cursor ? { cursor } : {}) }, { notifyError: false });
+  /** Страница загрузок; `query` — фильтр, сортировка и поиск реестра полей (`query-meta/upl.packages`). */
+  list(limit = 50, cursor?: string | null, query?: ListQuery | null): Observable<KeysetPage<UplPackageItem>> {
+    const params = { limit, ...(cursor ? { cursor } : {}), ...toQueryParams(query) };
+    return this.api.get<KeysetPage<UplPackageItem>>(PACKAGES, params, { notifyError: false });
   }
 
   /** `multipart/form-data`: заголовок ставит браузер сам — руками его не задаём, иначе теряется граница частей. */

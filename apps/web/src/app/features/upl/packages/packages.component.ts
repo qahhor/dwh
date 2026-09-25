@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, ElementRef, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, OnInit, TemplateRef, ViewChild, computed, inject, signal, viewChild } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ProblemDetail } from '../../../core/models/common.models';
@@ -11,6 +12,14 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { SMTDatePickerComponent, SMTDatePickerValueAccessor } from '../../../shared/ui-kit/components/forms/date-picker';
 import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../../../shared/ui-kit/components/forms/select';
 import { LookupChannel } from '../../../shared/paging/lookup-channel';
+import { KeysetPager } from '../../../shared/paging/keyset-pager';
+import { ListViewState, ListViewsApi } from '../../../shared/list-views/list-views';
+import { TableColumnStateStore } from '../../../shared/ui-kit/services/table-column-state.store';
+import { UiServerTableComponent } from '../../../shared/ui/ui-server-table.component';
+import { registryTableConfig, sortFromHeader } from '../../../shared/ui/registry-table-config';
+import { OrderBy, TableConfig } from '../../../shared/ui-kit/components/table/table.types';
+import { QueryListMeta } from '../../../core/models/query-meta.models';
+import { QueryMetaService, parseSort } from '../../../core/services/query-meta.service';
 import { UPL_PERIODICITY_KEY } from '../upl-labels';
 import { UplSource, UplSourceItem } from '../upl-api';
 import { PackageCardComponent } from './package-card.component';
@@ -49,6 +58,7 @@ function emptyFormErrors(): UplPackageFormErrors {
   imports: [
     CommonModule, FormsModule, TranslatePipe, UiBadgeComponent, UiButtonComponent, PackageCardComponent,
     SMTDatePickerComponent, SMTDatePickerValueAccessor, SMTSelectComponent, SMTSelectValueAccessor,
+    UiServerTableComponent,
   ],
   template: `
     @if (selected(); as current) {
@@ -179,85 +189,43 @@ function emptyFormErrors(): UplPackageFormErrors {
           </form>
         }
 
-        @if (loadError()) {
+        @if (metaError()) {
           <div class="alert alert-error upl-alert" role="alert" data-testid="upl-pkg-load-error">
             <span>{{ 'upl.pkg.load_error' | t }}</span>
             <ui-button variant="secondary" data-testid="upl-pkg-retry" (onClick)="load()">
               {{ 'upl.common.retry' | t }}
             </ui-button>
           </div>
-        } @else if (isLoading()) {
-          <div class="table-card">
-            <div class="table-scroll">
-              <table>
-                <tbody>
-                  @for (row of skeletonRows; track row) {
-                    <tr data-testid="upl-pkg-skeleton">
-                      <td><span class="upl-pkg-skeleton-bar"></span></td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-          </div>
-        } @else if (items().length === 0) {
-          <div class="upl-empty" data-testid="upl-pkg-empty">
-            <span class="material-symbols-outlined upl-empty-icon" aria-hidden="true">upload_file</span>
-            <p class="upl-empty-text">{{ (canUpload() ? 'upl.pkg.empty_hint' : 'upl.pkg.empty') | t }}</p>
-          </div>
+        } @else if (tableConfig(); as config) {
+          <ui-server-table
+            [pager]="pager"
+            [config]="config"
+            [views]="views"
+            [filterMeta]="meta()"
+            [loadingLabel]="'upl.common.loading' | t"
+            [errorLabel]="'upl.pkg.load_error' | t"
+            [emptyTemplate]="emptyState"
+            (sortChange)="onSort($event)"
+            (rowClick)="openCard($event)" />
         } @else {
-          <div class="table-card">
-            <div class="table-scroll">
-              <table>
-                <thead>
-                  <tr>
-                    <th>{{ 'upl.pkg.col.uploaded_at' | t }}</th>
-                    <th>{{ 'upl.pkg.col.source' | t }}</th>
-                    <th>{{ 'upl.pkg.col.period' | t }}</th>
-                    <th>{{ 'upl.pkg.col.file' | t }}</th>
-                    <th>{{ 'upl.pkg.col.status' | t }}</th>
-                    <th>{{ 'upl.pkg.col.rows' | t }}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (item of items(); track item.id) {
-                    <tr
-                      class="upl-pkg-row"
-                      data-testid="upl-pkg-row"
-                      tabindex="0"
-                      (click)="openCard(item)"
-                      (keydown.enter)="openCard(item)"
-                    >
-                      <td>{{ dateTime(item.uploadedAt) }}</td>
-                      <td>{{ item.sourceName }}</td>
-                      <td>{{ period(item) }}</td>
-                      <td>{{ item.fileName }}</td>
-                      <td>
-                        <ui-badge
-                          [variant]="statusVariant[item.status]"
-                          [attr.title]="item.status === 'received' ? ('upl.pkg.status.received_hint' | t) : null"
-                        >{{ statusKey[item.status] | t }}</ui-badge>
-                      </td>
-                      <td>{{ rowsText(item) }}</td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-          </div>
-          @if (hasMore() && nextCursor() !== null) {
-            <div class="upl-more">
-              <ui-button
-                variant="secondary"
-                [loading]="isLoadingMore()"
-                data-testid="upl-pkg-more"
-                (onClick)="loadMore()"
-              >{{ 'upl.pkg.more' | t }}</ui-button>
-            </div>
-          }
+          <p class="upl-muted" role="status" data-testid="upl-pkg-meta-loading">{{ 'upl.common.loading' | t }}</p>
         }
       </div>
     }
+
+    <ng-template #emptyState>
+      <div class="upl-empty" data-testid="upl-pkg-empty">
+        <span class="material-symbols-outlined upl-empty-icon" aria-hidden="true">upload_file</span>
+        <p class="upl-empty-text">{{ (canUpload() ? 'upl.pkg.empty_hint' : 'upl.pkg.empty') | t }}</p>
+      </div>
+    </ng-template>
+    <ng-template #uploadedAtCell let-item><span data-testid="upl-pkg-row">{{ dateTime(item.uploadedAt) }}</span></ng-template>
+    <ng-template #periodCell let-item>{{ period(item) }}</ng-template>
+    <ng-template #statusCell let-item>
+      <ui-badge [variant]="variantOf(item)"
+        [attr.title]="item.status === 'received' ? ('upl.pkg.status.received_hint' | t) : null">{{ statusKeyOf(item) | t }}</ui-badge>
+    </ng-template>
+    <ng-template #rowsCell let-item>{{ rowsText(item) }}</ng-template>
   `,
   styles: [`
     .upl-page {
@@ -337,30 +305,8 @@ function emptyFormErrors(): UplPackageFormErrors {
       gap: 1rem;
     }
 
-    .upl-pkg-row {
-      cursor: pointer;
-    }
-
-    .upl-pkg-row:hover {
-      background: var(--bg-hover);
-    }
-
-    .upl-pkg-row:focus-visible {
-      outline: 2px solid var(--focus-ring, var(--primary));
-      outline-offset: -2px;
-    }
-
-    .upl-pkg-skeleton-bar {
-      display: block;
-      height: 1rem;
-      border-radius: var(--radius-sm);
-      background: var(--bg-hover);
-      animation: upl-pkg-skeleton-pulse 1.2s ease-in-out infinite;
-    }
-
-    @keyframes upl-pkg-skeleton-pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
+    .upl-muted {
+      color: var(--text-muted);
     }
 
     .upl-empty {
@@ -383,11 +329,6 @@ function emptyFormErrors(): UplPackageFormErrors {
       margin: 0;
       color: var(--text-muted);
     }
-
-    .upl-more {
-      display: flex;
-      justify-content: center;
-    }
   `]
 })
 export class PackagesComponent implements OnInit {
@@ -398,12 +339,47 @@ export class PackagesComponent implements OnInit {
 
   @ViewChild('fileInput') fileInput?: ElementRef<HTMLInputElement>;
 
-  readonly items = signal<UplPackageItem[]>([]);
-  readonly nextCursor = signal<string | null>(null);
-  readonly hasMore = signal(false);
-  readonly isLoading = signal(true);
-  readonly isLoadingMore = signal(false);
-  readonly loadError = signal(false);
+  private readonly queryMeta = inject(QueryMetaService);
+  private readonly destroyRef = inject(DestroyRef);
+
+  /** Field metadata of the list (`query-meta/upl.packages`). */
+  readonly meta = signal<QueryListMeta | null>(null);
+  readonly metaError = signal(false);
+  readonly views = new ListViewState('upl.packages', inject(ListViewsApi), {
+    defaultSort: () => {
+      const meta = this.meta();
+      return meta ? parseSort(meta.defaultSort) : null;
+    },
+    onApply: () => this.pager.first(),
+    columnsStore: inject(TableColumnStateStore)
+  });
+  readonly pager = new KeysetPager<UplPackageItem>(
+    (cursor, limit) => this.api.list(limit, cursor, { sort: this.views.sort(), conditions: this.views.filter() }),
+    { pageSize: PAGE_SIZE, destroyRef: this.destroyRef, onLoaded: rows => this.syncSelected(rows) }
+  );
+  readonly items = this.pager.items;
+
+  private readonly uploadedAtCell = viewChild.required<TemplateRef<unknown>>('uploadedAtCell');
+  private readonly periodCell = viewChild.required<TemplateRef<unknown>>('periodCell');
+  private readonly statusCell = viewChild.required<TemplateRef<unknown>>('statusCell');
+  private readonly rowsCell = viewChild.required<TemplateRef<unknown>>('rowsCell');
+
+  readonly tableConfig = computed<TableConfig<UplPackageItem> | null>(() => {
+    const meta = this.meta();
+    if (!meta) return null;
+    return registryTableConfig<UplPackageItem>(meta, {
+      translate: key => this.i18n.translate(key),
+      trackBy: (_index, item) => item.id,
+      ariaLabel: this.i18n.translate('upl.pkg.title'),
+      sort: this.views.sort(),
+      cells: {
+        uploadedAt: { type: 'templateRef', value: this.uploadedAtCell },
+        periodFrom: { type: 'templateRef', value: this.periodCell },
+        status: { type: 'templateRef', value: this.statusCell },
+        rowsTotal: { type: 'templateRef', value: this.rowsCell }
+      }
+    });
+  });
   readonly selected = signal<UplPackageItem | null>(null);
 
   private readonly router = inject(Router);
@@ -433,7 +409,6 @@ export class PackagesComponent implements OnInit {
   readonly isSending = signal(false);
   readonly formErrors = signal<UplPackageFormErrors>(emptyFormErrors());
 
-  readonly skeletonRows = [1, 2, 3, 4, 5];
   readonly statusKey = UPL_PACKAGE_STATUS_KEY;
   readonly statusVariant = UPL_PACKAGE_STATUS_VARIANT;
 
@@ -508,45 +483,27 @@ export class PackagesComponent implements OnInit {
     };
   }
 
+  /** The list's metadata once, then its first page; later calls reload the first page (after an upload or a retry). */
   load(): void {
-    this.isLoading.set(true);
-    this.loadError.set(false);
-    this.items.set([]);
-    this.nextCursor.set(null);
-    this.hasMore.set(false);
-    this.api.list(PAGE_SIZE).subscribe({
-      next: page => {
-        const loaded = page?.items ?? [];
-        this.items.set(loaded);
-        this.nextCursor.set(page?.nextCursor ?? null);
-        this.hasMore.set(page?.hasMore === true);
-        this.isLoading.set(false);
-        this.syncSelected(loaded);
+    if (this.meta()) {
+      this.pager.first();
+      return;
+    }
+    this.metaError.set(false);
+    this.queryMeta.get('upl.packages').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: meta => {
+        this.meta.set(meta);
+        this.views.load().subscribe(() => this.pager.first());
       },
-      error: () => {
-        this.loadError.set(true);
-        this.isLoading.set(false);
-      }
+      error: () => this.metaError.set(true)
     });
   }
 
-  loadMore(): void {
-    if (this.isLoadingMore() || !this.hasMore() || this.nextCursor() === null) {
-      return;
-    }
-    this.isLoadingMore.set(true);
-    this.api.list(PAGE_SIZE, this.nextCursor()).subscribe({
-      next: page => {
-        this.items.update(current => [...current, ...(page?.items ?? [])]);
-        this.nextCursor.set(page?.nextCursor ?? null);
-        this.hasMore.set(page?.hasMore === true);
-        this.isLoadingMore.set(false);
-      },
-      error: () => {
-        this.isLoadingMore.set(false);
-        this.toast.error(this.i18n.translate('upl.pkg.load_error'));
-      }
-    });
+  /** A header click sorts the whole list on the server; switching sorting off returns to the default order. */
+  onSort(event: { column: string; sortBy: OrderBy } | undefined): void {
+    if (!this.meta()) return;
+    this.views.setSort(sortFromHeader(event));
+    this.pager.first();
   }
 
   pickFile(event: Event): void {
@@ -591,6 +548,14 @@ export class PackagesComponent implements OnInit {
           this.formErrors.set(mapUplUploadProblem(problem, this.translate));
         }
       });
+  }
+
+  variantOf(item: UplPackageItem): string {
+    return this.statusVariant[item.status];
+  }
+
+  statusKeyOf(item: UplPackageItem): string {
+    return this.statusKey[item.status];
   }
 
   openCard(item: UplPackageItem): void {
