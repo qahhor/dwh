@@ -88,7 +88,8 @@ bash scripts/prod/backup.sh
 
 Check the age recipient, read-only database credential, target capacity, and
 S3/R2 endpoint/permissions. The backup process deliberately exits non-zero if
-dump, encryption, checksum, or upload fails. Do not run a migration until a
+dump, encryption, checksum, or upload fails — for the DWH database as well as
+the CMS one; `backup-bootstrap` grants the backup role read access to both. Do not run a migration until a
 one-shot backup succeeds or a documented risk owner explicitly stops the
 release.
 

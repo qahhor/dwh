@@ -181,6 +181,7 @@ services:
     environment:
       PGHOST: postgres
       PGDATABASE: ${DB_NAME:-smartupcms}
+      DWH_DB_NAME: ${DWH_DB_NAME:-smartupcms_dwh}
       PGUSER: ${DB_USER:-smartupcms}
       PGPASSWORD_FILE: /run/secrets/database_password
       BACKUP_DB_USER: ${BACKUP_DB_USER:-smartupcms_backup}
@@ -198,6 +199,7 @@ services:
     environment:
       PGHOST: postgres
       PGDATABASE: ${DB_NAME:-smartupcms}
+      DWH_DB_NAME: ${DWH_DB_NAME:-smartupcms_dwh}
       PGUSER: ${BACKUP_DB_USER:-smartupcms_backup}
       PGPASSWORD_FILE: /run/secrets/backup_database_password
       AGE_RECIPIENT: ${BACKUP_AGE_RECIPIENT:-}

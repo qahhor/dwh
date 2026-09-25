@@ -151,6 +151,9 @@ jobs:
       - name: Verify backup failure blocks migrations
         run: bash scripts/prod/test-deploy-fail-closed.sh
 
+      - name: Verify backup and restore of both databases
+        run: bash scripts/prod/test-backup-databases.sh
+
   e2e:
     name: e2e (clean deploy + Playwright Chromium)
     runs-on: ubuntu-24.04

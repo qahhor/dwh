@@ -1,5 +1,7 @@
 param(
     [Parameter(Mandatory = $true)][string]$DatabaseBackupFile,
+    # The smartupcms_dwh-<timestamp>.dump.age of the same set (ADR-0001); without it the drill proves the CMS only.
+    [string]$DwhBackupFile,
     [Parameter(Mandatory = $true)][string]$ObjectBackupFile,
     [Parameter(Mandatory = $true)][string]$AgeIdentityFile,
     [Parameter(Mandatory = $true)][ValidatePattern('^smartupcms-restore-[a-z0-9][a-z0-9-]{2,40}$')][string]$IsolatedProjectName,
@@ -32,6 +34,7 @@ $evidence = [ordered]@{
     gitSha = $gitSha
     isolatedProjectName = $IsolatedProjectName
     rowCounts = $null
+    dwhTableCount = $null
     objectCount = 0
     missingObjects = $null
     orphanObjects = $null
@@ -75,6 +78,7 @@ function Assert-SafeObjectKey([string]$Key) {
 }
 
 $databaseBackupPath = (Resolve-Path -LiteralPath $DatabaseBackupFile).Path
+$dwhBackupPath = if ($DwhBackupFile) { (Resolve-Path -LiteralPath $DwhBackupFile).Path } else { $null }
 $objectBackupPath = (Resolve-Path -LiteralPath $ObjectBackupFile).Path
 $identityPath = (Resolve-Path -LiteralPath $AgeIdentityFile).Path
 $composePath = (Resolve-Path -LiteralPath $ComposeFile).Path
@@ -135,10 +139,12 @@ function Invoke-PgRestoreList([string]$DumpFile) {
 }
 
 Test-Checksum $databaseBackupPath
+if ($dwhBackupPath) { Test-Checksum $dwhBackupPath }
 Test-Checksum $objectBackupPath
 New-Item -ItemType Directory -Path $temporaryRoot | Out-Null
 
 $databasePlain = Join-Path $temporaryRoot 'database.dump'
+$dwhPlain = Join-Path $temporaryRoot 'dwh.dump'
 $objectsTar = Join-Path $temporaryRoot 'objects.tar'
 $objectsExpanded = Join-Path $temporaryRoot 'objects-expanded'
 New-Item -ItemType Directory -Path $objectsExpanded | Out-Null
@@ -150,6 +156,7 @@ try {
     # Both decryptions happen before the isolated database starts. Missing/wrong
     # age keys and a partial object backup therefore fail closed.
     Invoke-AgeDecrypt -Identity $identityPath -InputFile $databaseBackupPath -OutputFile $databasePlain
+    if ($dwhBackupPath) { Invoke-AgeDecrypt -Identity $identityPath -InputFile $dwhBackupPath -OutputFile $dwhPlain }
     Invoke-AgeDecrypt -Identity $identityPath -InputFile $objectBackupPath -OutputFile $objectsTar
 
     $entries = @(& $tarPath -tf $objectsTar)
@@ -181,6 +188,7 @@ try {
     $evidence.objectCount = @($manifest.objects).Count
 
     Invoke-PgRestoreList -DumpFile $databasePlain
+    if ($dwhBackupPath) { Invoke-PgRestoreList -DumpFile $dwhPlain }
 
     Invoke-Compose @('config', '--quiet')
     $startedByScript = $true
@@ -191,6 +199,21 @@ try {
     & docker compose -p $IsolatedProjectName -f $composePath --env-file $environmentPath exec -T postgres `
         sh -ec 'exec pg_restore --exit-on-error --no-owner --no-acl -U "$POSTGRES_USER" -d "$POSTGRES_DB" /tmp/restore.dump && rm -f /tmp/restore.dump'
     if ($LASTEXITCODE -ne 0) { throw 'Isolated PostgreSQL restore failed.' }
+
+    if ($dwhBackupPath) {
+        # init-dwh.sh created the empty DWH database, owned by the application role;
+        # --role keeps that role the owner of what is restored.
+        & docker compose -p $IsolatedProjectName -f $composePath --env-file $environmentPath cp $dwhPlain "postgres:/tmp/restore-dwh.dump"
+        if ($LASTEXITCODE -ne 0) { throw 'Failed to copy decrypted DWH dump into postgres container.' }
+        & docker compose -p $IsolatedProjectName -f $composePath --env-file $environmentPath exec -T postgres `
+            sh -ec 'exec pg_restore --exit-on-error --no-owner --no-acl --role="$APP_DB_USER" -U "$POSTGRES_USER" -d "$DWH_DB_NAME" /tmp/restore-dwh.dump && rm -f /tmp/restore-dwh.dump'
+        if ($LASTEXITCODE -ne 0) { throw 'Isolated DWH restore failed.' }
+        $dwhTableCount = ("select count(*) from pg_tables where schemaname not in ('pg_catalog', 'information_schema');" | & docker compose -p $IsolatedProjectName -f $composePath --env-file $environmentPath exec -T postgres `
+            sh -ec 'exec psql -X -A -t -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$DWH_DB_NAME"') -join ''
+        if ($LASTEXITCODE -ne 0) { throw 'Restored DWH table-count query failed.' }
+        $evidence.dwhTableCount = [int]$dwhTableCount.Trim()
+        if ($evidence.dwhTableCount -lt 1) { throw 'The restored DWH database has no tables.' }
+    }
 
     $rowCountSql = @'
 select json_build_object(
