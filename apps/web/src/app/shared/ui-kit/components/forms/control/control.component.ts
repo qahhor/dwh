@@ -40,7 +40,10 @@ import { shouldShowSMTFormControlError } from '../../../forms/form-control-valid
 import { fromLegacyErrors, messageForError, type SMTControlError } from './control-messages';
 
 // A radio group, a switch and a tag group are fields too (smt-radio-group, smt-switch, smt-tag-group): the label names them.
-const FIELD_SELECTOR = 'input:not([type="hidden"]), select, textarea, [role="combobox"], [role="textbox"], [role="radiogroup"], [role="switch"], [role="group"], [contenteditable="true"]';
+// A part marked data-smt-field-part (a phone's country list) is skipped, so the label names the field itself.
+const FIELD_SELECTOR = ['input:not([type="hidden"])', 'select', 'textarea', '[role="combobox"]', '[role="textbox"]', '[role="radiogroup"]', '[role="switch"]', '[role="group"]', '[contenteditable="true"]']
+  .map(selector => selector + ':not([data-smt-field-part])')
+  .join(', ');
 const LABELABLE = new Set(['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON', 'METER', 'OUTPUT', 'PROGRESS']);
 
 let nextControlId = 0;

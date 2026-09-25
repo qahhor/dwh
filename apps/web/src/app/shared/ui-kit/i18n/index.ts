@@ -8,6 +8,7 @@ import { Injectable, computed, inject } from '@angular/core';
 import { I18nService, LANGUAGE_LOCALES } from '../../../core/services/i18n.service';
 import type { SMTControlMessages } from '../components/forms/control/control-messages';
 import type { DateRangePresetKey } from '../components/forms/date-picker/date-utils';
+import type { SMTColorKey } from '../components/forms/color-input/color-input.component';
 
 export interface SMTDateMessages {
   readonly placeholder: string;
@@ -80,6 +81,13 @@ export interface SMTMessages {
   readonly time: SMTTimeMessages;
   readonly textarea: { readonly counter: (count: number, max: number) => string };
   readonly tag: { readonly remove: (label: string) => string };
+  readonly phone: { readonly country: string; readonly other: string; readonly incomplete: string };
+  readonly color: {
+    readonly own: string;
+    readonly code: string;
+    readonly invalid: string;
+    readonly names: Readonly<Record<SMTColorKey, string>>;
+  };
   readonly sortable: {
     readonly handle: string;
     readonly moveUp: (label: string) => string;
@@ -211,6 +219,28 @@ export class SMTI18nService {
     },
     tag: {
       remove: label => this.i18n.translate('ui.tag.remove', { label }),
+    },
+    phone: {
+      country: this.i18n.translate('ui.phone.country'),
+      other: this.i18n.translate('ui.phone.other'),
+      incomplete: this.i18n.translate('ui.phone.incomplete'),
+    },
+    color: {
+      own: this.i18n.translate('ui.color.own'),
+      code: this.i18n.translate('ui.color.code'),
+      invalid: this.i18n.translate('ui.color.invalid'),
+      names: {
+        blue: this.i18n.translate('ui.color.blue'),
+        sky: this.i18n.translate('ui.color.sky'),
+        teal: this.i18n.translate('ui.color.teal'),
+        green: this.i18n.translate('ui.color.green'),
+        amber: this.i18n.translate('ui.color.amber'),
+        orange: this.i18n.translate('ui.color.orange'),
+        red: this.i18n.translate('ui.color.red'),
+        pink: this.i18n.translate('ui.color.pink'),
+        violet: this.i18n.translate('ui.color.violet'),
+        slate: this.i18n.translate('ui.color.slate'),
+      },
     },
     sortable: {
       handle: this.i18n.translate('ui.sortable.handle'),

@@ -81,6 +81,13 @@ export const TEST_MESSAGES: SMTMessages = {
   },
   textarea: { counter: (count, max) => `${count} of ${max} characters` },
   tag: { remove: label => `Remove ${label}` },
+  phone: { country: 'Country code', other: 'Other', incomplete: 'The number is not complete' },
+  color: {
+    own: 'Own colour',
+    code: 'Colour code',
+    invalid: 'Enter a colour as #RRGGBB',
+    names: { blue: 'Blue', sky: 'Sky', teal: 'Teal', green: 'Green', amber: 'Amber', orange: 'Orange', red: 'Red', pink: 'Pink', violet: 'Violet', slate: 'Slate' },
+  },
   sortable: {
     handle: 'Drag to reorder',
     moveUp: label => `Move ${label} up`,

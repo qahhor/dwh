@@ -9,6 +9,15 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Phone and colour fields (roadmap item 39). `smt-phone-input` pairs a
+  native country list for the product's markets (and "other") with a
+  telephone field that writes digits into the country's mask as they are
+  typed and stores E.164; an incomplete number is said under the field. The
+  user dialogs use it. `smt-color-input` offers a named palette as a radio
+  group — "Blue", not "#2563eb" — then the system picker and the hex code for
+  an own colour; the task type and status dialogs use it, and new types and
+  statuses start on a palette colour. smt-control skips a field's parts
+  marked `data-smt-field-part`, so a label names the number, not the country.
 - Segmented filters (roadmap item 38). Eleven single-choice groups built from
   toggle buttons — analytics and data overview periods, files scope, custom
   field entities, role matrix modules, effective permission sources, user,
