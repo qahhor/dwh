@@ -4,11 +4,15 @@ import { ListQuery, QueryCondition, QueryListMeta, QuerySort } from '../models/q
 import { ApiService } from './api.service';
 
 /** Query parameters for a registry list: `filter` (JSON DSL) and `sort` (`-key` for descending). */
-export function toQueryParams(query: ListQuery | null | undefined): { filter?: string; sort?: string } {
-  const params: { filter?: string; sort?: string } = {};
+export function toQueryParams(query: ListQuery | null | undefined): { filter?: string; sort?: string; q?: string } {
+  const params: { filter?: string; sort?: string; q?: string } = {};
   const conditions = query?.conditions ?? [];
   if (conditions.length > 0) {
     params.filter = JSON.stringify(conditions.map(normalizeCondition));
+  }
+  const search = query?.search?.trim();
+  if (search) {
+    params.q = search;
   }
   if (query?.sort) {
     params.sort = formatSort(query.sort);

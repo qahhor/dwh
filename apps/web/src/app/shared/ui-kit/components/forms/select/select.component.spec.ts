@@ -60,6 +60,29 @@ class NgModelHost {
   readonly options = PEOPLE;
 }
 
+@Component({
+  standalone: true,
+  imports: [SMTSelectComponent],
+  template: `
+    <smt-select
+      ariaLabel="Source"
+      [options]="options"
+      [value]="value"
+      (valueChange)="value = $event"
+      [smtColumnHeaders]="['Code', 'Period']"
+      [smtAllowCreate]="true"
+      (create)="created.push($event)" />
+  `,
+})
+class LookupHost {
+  value: number | null = null;
+  readonly created: string[] = [];
+  readonly options: SMTSelectOption<number>[] = [
+    { id: 1, label: 'Cement output', columns: ['cement.output', 'Monthly'] },
+    { id: 2, label: 'Brick output', columns: ['brick.output', ''] },
+  ];
+}
+
 describe('SMTSelectComponent', () => {
   afterEach(() => {
     document.querySelectorAll('.cdk-overlay-container').forEach(node => node.remove());
@@ -261,5 +284,43 @@ describe('SMTSelectComponent', () => {
     await key(search(), 'Enter');
 
     expect(fixture.componentInstance.owner).toBe(2);
+  });
+
+  it('shows a lookup as columns under a header row and names each option with its cells', async () => {
+    const { trigger, options, key } = await render(LookupHost);
+    await key(trigger, 'Enter');
+
+    const header = document.querySelector('.smt-select__columns')!;
+    expect(header.getAttribute('aria-hidden')).toBe('true');
+    expect([...header.querySelectorAll('.smt-select__column-head')].map(cell => cell.textContent)).toEqual(['Code', 'Period']);
+    const [cement, brick] = options().filter(option => !option.id.endsWith('-none'));
+    expect([...cement.querySelectorAll('.smt-select__cell')].map(cell => cell.textContent)).toEqual(['cement.output', 'Monthly']);
+    expect(cement.getAttribute('aria-label')).toBe('Cement output, Code: cement.output, Period: Monthly');
+    expect(brick.getAttribute('aria-label')).toBe('Brick output, Code: brick.output');
+  });
+
+  it('offers to create the typed text as the last option, reachable with the arrows and Enter', async () => {
+    const { fixture, trigger, search, options, key, type } = await render(LookupHost);
+    await key(trigger, 'Enter');
+    expect(options().some(option => option.id.endsWith('-create'))).toBe(false);
+
+    await type('cement');
+    const create = options().at(-1)!;
+    expect(create.id.endsWith('-create')).toBe(true);
+    expect(create.textContent).toContain('Create “cement”');
+    await key(search(), 'ArrowDown');
+    expect(search().getAttribute('aria-activedescendant')).toBe(create.id);
+    await key(search(), 'Enter');
+
+    expect(fixture.componentInstance.created).toEqual(['cement']);
+    expect(fixture.componentInstance.value).toBeNull();
+    expect(trigger.getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('does not offer to create what an option is already called', async () => {
+    const { trigger, options, key, type } = await render(LookupHost);
+    await key(trigger, 'Enter');
+    await type('  brick OUTPUT ');
+    expect(options().some(option => option.id.endsWith('-create'))).toBe(false);
   });
 });

@@ -40,6 +40,11 @@ describe('toQueryParams', () => {
     expect(params.sort).toBe('-name');
   });
 
+  it('sends the free-text search as q, trimmed, and nothing for blank text', () => {
+    expect(toQueryParams({ search: '  cement ' })).toEqual({ q: 'cement' });
+    expect(toQueryParams({ search: '   ' })).toEqual({});
+  });
+
   it('reads a sort back', () => {
     expect(parseSort('-name')).toEqual({ field: 'name', descending: true });
     expect(parseSort('code')).toEqual({ field: 'code', descending: false });

@@ -329,6 +329,28 @@ class UplSourceControllerTest extends EmbeddedPostgresTest {
     }
 
     @Test
+    @DisplayName("свободный поиск q: по коду или по названию, без учёта регистра, вместе с фильтром")
+    void searchMatchesCodeOrName() throws Exception {
+        Session admin = login(adminLogin);
+        String prefix = "test.api." + rnd() + ".";
+        assertThat(send(admin, post(BASE), sourceBody(prefix + "cement", "TEST Выпуск кирпича", "month", null))
+                .getStatus()).isEqualTo(201);
+        assertThat(send(admin, post(BASE), sourceBody(prefix + "brick", "TEST Выпуск ЦЕМЕНТА", "year", null))
+                .getStatus()).isEqualTo(201);
+        String mine = "[{\"field\":\"code\",\"op\":\"starts_with\",\"value\":\"" + prefix + "\"}]";
+
+        var byEither = sendGet(admin, get(BASE).param("filter", mine).param("q", "цемент"), 200);
+        assertThat((List<String>) read(byEither, "$.items[*].code")).containsExactly(prefix + "brick");
+        var byCode = sendGet(admin, get(BASE).param("filter", mine).param("q", "CEMENT"), 200);
+        assertThat((List<String>) read(byCode, "$.items[*].code")).containsExactly(prefix + "cement");
+        var both = sendGet(admin, get(BASE).param("filter", mine).param("q", "выпуск"), 200);
+        assertThat((Integer) read(both, "$.totalEstimated")).isEqualTo(2);
+
+        var meta = sendGet(admin, "/api/v1/query-meta/upl.sources", 200);
+        assertThat((List<Boolean>) read(meta, "$.fields[*].searchable")).containsExactly(true, true, false, false, false);
+    }
+
+    @Test
     @DisplayName("query-meta: поля списка тому, кто видит список; остальным — 404 и 401")
     void queryMetaDescribesTheList() throws Exception {
         String url = "/api/v1/query-meta/upl.sources";

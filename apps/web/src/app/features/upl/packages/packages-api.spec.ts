@@ -85,16 +85,12 @@ describe('UplPackagesApiService', () => {
     expect(seen).toBe(item);
   });
 
-  it('joins every page of sources and stops when the server has no more', () => {
-    const { service, upl } = create({
-      sourcePages: [sourcePage([source(1), source(2)], true, 'c-2'), sourcePage([source(3)], false, null)]
-    });
+  it('searches the sources by code or name, one page at a time', () => {
+    const { service, upl } = create({ sourcePages: [sourcePage([source(1)], true, 'c-2')] });
     let result: UplSourceItem[] = [];
-    service.allSources().subscribe(items => (result = items));
-    expect(result.map(item => item.id)).toEqual([1, 2, 3]);
-    expect(upl.listSources).toHaveBeenCalledTimes(2);
-    expect(upl.listSources).toHaveBeenNthCalledWith(1, 200);
-    expect(upl.listSources).toHaveBeenNthCalledWith(2, 200, 'c-2');
+    service.searchSources('cement', 'c-1', 20).subscribe(page => (result = page.items));
+    expect(result.map(item => item.id)).toEqual([1]);
+    expect(upl.listSources).toHaveBeenCalledWith(20, 'c-1', { search: 'cement' });
   });
 
   it('returns what the server sends for a package and for its errors', () => {

@@ -14,10 +14,11 @@ import java.util.regex.Pattern;
  * @param labelKey       ключ словаря для заголовка
  * @param enumLabelPrefix префикс ключей словаря для значений перечисления ({@code upl.periodicity.})
  * @param sortable       можно сортировать; такое поле не бывает пустым, иначе keyset-курсор теряет строки
+ * @param searchable     участвует в свободном поиске {@code q} (только текст)
  */
 public record QueryField(String key, String labelKey, QueryFieldType type, String sql, boolean filterable,
                          boolean sortable, boolean nullable, boolean defaultVisible, List<String> enumValues,
-                         String enumLabelPrefix) {
+                         String enumLabelPrefix, boolean searchable) {
 
     private static final Pattern KEY = Pattern.compile("^[a-z][a-zA-Z0-9]{0,63}$");
 
@@ -33,38 +34,47 @@ public record QueryField(String key, String labelKey, QueryFieldType type, Strin
             throw new IllegalArgumentException("Query field " + key + " is sortable, so it must not be nullable");
         }
         enumValues = enumValues == null ? List.of() : List.copyOf(enumValues);
+        if (searchable && type != QueryFieldType.TEXT) {
+            throw new IllegalArgumentException("Query field " + key + ": only text fields are searchable");
+        }
         if ((type == QueryFieldType.ENUM) == enumValues.isEmpty()) {
             throw new IllegalArgumentException("Query field " + key + ": enum values go with the ENUM type only");
         }
     }
 
     public static QueryField of(String key, String labelKey, QueryFieldType type, String sql) {
-        return new QueryField(key, labelKey, type, sql, true, false, false, true, List.of(), null);
+        return new QueryField(key, labelKey, type, sql, true, false, false, true, List.of(), null, false);
     }
 
     public static QueryField enumeration(String key, String labelKey, String sql, List<String> values,
                                          String labelPrefix) {
-        return new QueryField(key, labelKey, QueryFieldType.ENUM, sql, true, false, false, true, values, labelPrefix);
+        return new QueryField(key, labelKey, QueryFieldType.ENUM, sql, true, false, false, true, values, labelPrefix,
+                false);
     }
 
     public QueryField asSortable() {
         return new QueryField(key, labelKey, type, sql, filterable, true, nullable, defaultVisible, enumValues,
-                enumLabelPrefix);
+                enumLabelPrefix, searchable);
     }
 
     public QueryField asNullable() {
         return new QueryField(key, labelKey, type, sql, filterable, sortable, true, defaultVisible, enumValues,
-                enumLabelPrefix);
+                enumLabelPrefix, searchable);
     }
 
     public QueryField asNotFilterable() {
         return new QueryField(key, labelKey, type, sql, false, sortable, nullable, defaultVisible, enumValues,
-                enumLabelPrefix);
+                enumLabelPrefix, searchable);
+    }
+
+    public QueryField asSearchable() {
+        return new QueryField(key, labelKey, type, sql, filterable, sortable, nullable, defaultVisible, enumValues,
+                enumLabelPrefix, true);
     }
 
     public QueryField asHidden() {
         return new QueryField(key, labelKey, type, sql, filterable, sortable, nullable, false, enumValues,
-                enumLabelPrefix);
+                enumLabelPrefix, searchable);
     }
 
     /** Операции, которые поле принимает в фильтре; пусто — поле не фильтруется. */

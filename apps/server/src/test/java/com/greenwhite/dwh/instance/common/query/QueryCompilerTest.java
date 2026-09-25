@@ -170,6 +170,29 @@ class QueryCompilerTest {
     }
 
     @Test
+    @DisplayName("свободный поиск q: подстрока в любом searchable-поле, экранирован, входит в отпечаток курсора")
+    void searchLooksAtSearchableFieldsOnly() {
+        QueryList list = new QueryList("test.search", "test.form", "view", "t.id", "test_items t", "t.id",
+                List.of(QueryField.of("code", "c", QueryFieldType.TEXT, "t.code").asSortable().asSearchable(),
+                        QueryField.of("name", "n", QueryFieldType.TEXT, "t.name").asSearchable(),
+                        QueryField.of("note", "x", QueryFieldType.TEXT, "t.note")),
+                "code");
+
+        QueryPlan plan = QueryCompiler.compile(list, null, null, null, null, "  50%_off  ");
+        assertThat(plan.where().sql()).isEqualTo(" and (t.code ilike :q_search escape '\\' or t.name ilike :q_search escape '\\')");
+        assertThat(plan.where().params()).containsEntry("q_search", "%50\\%\\_off%");
+        assertThat(QueryCompiler.compile(list, null, null, null, null, "   ").where().sql()).isEmpty();
+        assertThat(plan.fingerprint()).isNotEqualTo(QueryCompiler.compile(list, null, null, null, null, "other").fingerprint());
+
+        assertThatThrownBy(() -> QueryCompiler.compile(list, null, null, null, null, "x".repeat(201)))
+                .isInstanceOf(ApiException.class);
+        assertThatThrownBy(() -> QueryCompiler.compile(LIST, null, null, null, null, "x"))
+                .isInstanceOf(ApiException.class);
+        assertThatThrownBy(() -> QueryField.of("n", "n", QueryFieldType.NUMBER, "t.n").asSearchable())
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     @DisplayName("реестр не пускает сортировку по пустому полю и дубли")
     void registryRejectsUnsafeDefinitions() {
         assertThatThrownBy(() -> QueryField.of("note", "x", QueryFieldType.TEXT, "t.note").asNullable().asSortable())

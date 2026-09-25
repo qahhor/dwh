@@ -235,3 +235,34 @@
   border-top: 1px solid var(--border-color);
   text-align: start;
 }
+
+/* Lookup: options with columns under a header row; the check keeps the last track. */
+.smt-select__columns,
+.smt-select__option--columns {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) repeat(var(--smt-select-columns, 1), minmax(0, 1fr)) 20px;
+  gap: 8px;
+  align-items: center;
+}
+
+.smt-select__columns {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.smt-select__column-head,
+.smt-select__cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.smt-select__cell {
+  color: var(--text-muted);
+}
+
+.smt-select__option--create {
+  color: var(--primary-text);
+}

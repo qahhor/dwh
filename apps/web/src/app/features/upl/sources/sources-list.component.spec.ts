@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { Router, provideRouter } from '@angular/router';
+import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { NEVER, Observable, of, throwError } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { KeysetPage, ProblemDetail } from '../../../core/models/common.models';
@@ -60,6 +60,7 @@ interface FixtureOptions {
   canCreate?: boolean;
   meta?: Array<Observable<QueryListMeta>>;
   views?: Observable<SavedListView[]>;
+  query?: Record<string, string>;
 }
 
 async function createFixture(options: FixtureOptions = {}) {
@@ -82,6 +83,7 @@ async function createFixture(options: FixtureOptions = {}) {
       { provide: UplApiService, useValue: api },
       { provide: QueryMetaService, useValue: queryMeta },
       { provide: ListViewsApi, useValue: listViews },
+      ...(options.query ? [{ provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: convertToParamMap(options.query) } } }] : []),
       { provide: PermissionService, useValue: permissions },
       { provide: ToastService, useValue: toast }
     ]
@@ -104,6 +106,14 @@ function click(fixture: ComponentFixture<SourcesListComponent>, id: string): voi
 
 function headers(fixture: ComponentFixture<SourcesListComponent>): HTMLElement[] {
   return [...(fixture.nativeElement as HTMLElement).querySelectorAll('[role="columnheader"]')] as HTMLElement[];
+}
+
+/** Submits the create form as it was opened, keeping what was prefilled. */
+function submitPrefilled(fixture: ComponentFixture<SourcesListComponent>, values: Partial<SourcesListComponent['form']>): void {
+  fixture.detectChanges();
+  Object.assign(fixture.componentInstance.form, values);
+  fixture.debugElement.query(By.css('#upl-source-create')).triggerEventHandler('ngSubmit', null);
+  fixture.detectChanges();
 }
 
 async function openCreateForm(
@@ -267,6 +277,27 @@ describe('SourcesListComponent', () => {
     expect(api.listSources).toHaveBeenCalledWith(50, null, { sort: { field: 'code', descending: false }, conditions: [] });
     expect(testId(fixture, 'views-trigger')[0].textContent).toContain(PACKAGED_RUSSIAN['ui.views.standard']);
     expect(testId(fixture, 'upl-source-row')).toHaveLength(2);
+  });
+
+  it('«создать из поля» другой формы: окно открыто с названием, после создания — обратно в форму', async () => {
+    const { fixture, navigate, api } = await createFixture({ query: { create: '  Выпуск стекла ', returnTo: 'packages' } });
+
+    expect(fixture.componentInstance.isCreateOpen()).toBe(true);
+    expect(fixture.componentInstance.form.name).toBe('Выпуск стекла');
+    submitPrefilled(fixture, { code: 'glass.output', ownerOrg: 'Org' });
+
+    expect(api.createSource).toHaveBeenCalledWith(expect.objectContaining({ name: 'Выпуск стекла', code: 'glass.output' }));
+    expect(navigate).toHaveBeenCalledWith(['/upl/packages'], { queryParams: { source: 7 } });
+  });
+
+  it('возвращается только в известные места, а без права create окно не открывает', async () => {
+    const foreign = await createFixture({ query: { create: 'Стекло', returnTo: 'https://evil.example' } });
+    submitPrefilled(foreign.fixture, { code: 'glass.output', ownerOrg: 'Org' });
+    expect(foreign.navigate).toHaveBeenCalledWith(['/upl/sources', 7]);
+
+    TestBed.resetTestingModule();
+    const viewer = await createFixture({ query: { create: 'Стекло', returnTo: 'packages' }, canCreate: false });
+    expect(viewer.fixture.componentInstance.isCreateOpen()).toBe(false);
   });
 
   it('пока список грузится, сообщает об этом и не показывает пустое состояние', async () => {

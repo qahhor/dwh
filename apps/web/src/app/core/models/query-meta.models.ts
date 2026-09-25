@@ -19,6 +19,8 @@ export interface QueryFieldMeta {
   enumValues: string[];
   /** Dictionary key prefix for enum values, e.g. `upl.periodicity.` + `month`. */
   enumLabelPrefix: string | null;
+  /** Looked at by the free-text search `q`. */
+  searchable?: boolean;
 }
 
 export interface QueryListMeta {
@@ -51,4 +53,6 @@ export interface QuerySort {
 export interface ListQuery {
   conditions?: QueryCondition[];
   sort?: QuerySort | null;
+  /** Free text matched in any searchable field (`q`). */
+  search?: string | null;
 }

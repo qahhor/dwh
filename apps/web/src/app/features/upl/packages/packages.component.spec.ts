@@ -6,7 +6,8 @@ import { PACKAGED_RUSSIAN } from '../../../core/i18n/packaged-russian';
 import { KeysetPage, ProblemDetail } from '../../../core/models/common.models';
 import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { UplSourceItem } from '../upl-api';
+import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
+import { UplSource, UplSourceItem } from '../upl-api';
 import { PackageCardComponent } from './package-card.component';
 import { PackagesComponent } from './packages.component';
 import { UplPackageErrors, UplPackageItem, UplPackageUpload, UplPackagesApiService } from './packages-api';
@@ -51,39 +52,45 @@ const sourceList: UplSourceItem[] = [
 interface FixtureOptions {
   pages?: Array<Observable<KeysetPage<UplPackageItem>>>;
   uploadResult?: Observable<UplPackageItem>;
-  sourcesResult?: Array<Observable<UplSourceItem[]>>;
+  sourcesResult?: Array<Observable<KeysetPage<UplSourceItem>>>;
   canUpload?: boolean;
+  canCreateSource?: boolean;
+  query?: Record<string, string>;
   canApply?: boolean;
 }
 
 async function createFixture(options: FixtureOptions = {}) {
   const pages = options.pages ?? [of(page([item()]))];
-  const sourcesResults = options.sourcesResult ?? [of(sourceList)];
+  const sourcesResults = options.sourcesResult ?? [of({ items: sourceList, nextCursor: null, hasMore: false, totalEstimated: 2 } as unknown as KeysetPage<UplSourceItem>)];
   let listCall = 0;
   let sourcesCall = 0;
   const api = {
     list: vi.fn(() => pages[Math.min(listCall++, pages.length - 1)]),
     upload: vi.fn((request: UplPackageUpload) => options.uploadResult ?? of(item({ sourceId: request.sourceId }))),
     errors: vi.fn(() => of(noErrors)),
-    allSources: vi.fn(() => sourcesResults[Math.min(sourcesCall++, sourcesResults.length - 1)])
+    searchSources: vi.fn((..._args: unknown[]) => sourcesResults[Math.min(sourcesCall++, sourcesResults.length - 1)]),
+    source: vi.fn(() => of({ ...sourceList[1], id: 9, name: 'Created TEST' } as unknown as UplSource))
   };
   const permissions = {
     hasPermission: vi.fn((form: string, action: string) =>
-      action === 'apply' ? options.canApply === true : options.canUpload !== false
+      action === 'apply' ? options.canApply === true : action === 'create' ? options.canCreateSource === true : options.canUpload !== false
     )
   };
   const toast = { success: vi.fn(), error: vi.fn() };
   await TestBed.configureTestingModule({
     imports: [PackagesComponent],
     providers: [
+      provideRouter([]),
+      { provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: convertToParamMap(options.query ?? {}) } } },
       { provide: UplPackagesApiService, useValue: api },
       { provide: PermissionService, useValue: permissions },
       { provide: ToastService, useValue: toast }
     ]
   }).compileComponents();
   const fixture = TestBed.createComponent(PackagesComponent);
+  const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
   fixture.detectChanges();
-  return { fixture, api, permissions, toast };
+  return { fixture, api, permissions, toast, navigate };
 }
 
 function testId(fixture: ComponentFixture<PackagesComponent>, id: string): HTMLElement[] {
@@ -109,10 +116,15 @@ function submitButton(fixture: ComponentFixture<PackagesComponent>): HTMLButtonE
 }
 
 /** Поля заполняем как человек — событиями, иначе `OnPush` не перерисует форму. */
+function openSources(fixture: ComponentFixture<PackagesComponent>): HTMLElement[] {
+  const trigger = testId(fixture, 'upl-pkg-source')[0].querySelector('button[role="combobox"]') as HTMLButtonElement;
+  if (trigger.getAttribute('aria-expanded') !== 'true') trigger.click();
+  fixture.detectChanges();
+  return [...document.querySelectorAll('[role="option"]')] as HTMLElement[];
+}
+
 function selectSource(fixture: ComponentFixture<PackagesComponent>, index: number): void {
-  const select = testId(fixture, 'upl-pkg-source')[0] as HTMLSelectElement;
-  select.selectedIndex = index;
-  select.dispatchEvent(new Event('change'));
+  openSources(fixture)[index].click();
   fixture.detectChanges();
 }
 
@@ -147,7 +159,8 @@ function fillForm(fixture: ComponentFixture<PackagesComponent>): void {
 }
 
 function isDisabled(element: HTMLElement): boolean {
-  return (element as HTMLInputElement | HTMLSelectElement).disabled;
+  const control = element.tagName === 'SMT-SELECT' ? element.querySelector('button[role="combobox"]') : element;
+  return (control as HTMLInputElement | HTMLSelectElement).disabled;
 }
 
 function problem(status: number, code: string, detail: string, errors?: ProblemDetail['errors']): ProblemDetail {
@@ -159,21 +172,82 @@ describe('PackagesComponent', () => {
     const { fixture, api } = await createFixture({ canUpload: false, pages: [of(page([]))] });
 
     expect(testId(fixture, 'upl-pkg-form')).toHaveLength(0);
-    expect(api.allSources).not.toHaveBeenCalled();
+    expect(api.searchSources).not.toHaveBeenCalled();
     expect(text(fixture)).toContain(PACKAGED_RUSSIAN['upl.pkg.empty']);
     expect(text(fixture)).not.toContain(PACKAGED_RUSSIAN['upl.pkg.empty_hint']);
   });
 
-  it('с правом загрузки форма есть, источники в списке, пустой текст подсказывает что делать', async () => {
+  it('с правом загрузки форма есть, источник ищется на сервере при открытии, пустой текст подсказывает что делать', async () => {
     const { fixture, api } = await createFixture({ pages: [of(page([]))] });
 
     expect(testId(fixture, 'upl-pkg-form')).toHaveLength(1);
-    expect(api.allSources).toHaveBeenCalledTimes(1);
-    const options = fixture.debugElement.queryAll(By.css('[data-testid="upl-pkg-source"] option'));
-    expect(options).toHaveLength(3);
-    expect(options[0].nativeElement.textContent).toContain(PACKAGED_RUSSIAN['upl.pkg.form.source_placeholder']);
-    expect(options[1].nativeElement.textContent).toContain('cement.output');
+    expect(api.searchSources).not.toHaveBeenCalled();
+    const label = fixture.nativeElement.querySelector('label[for="upl-pkg-source-field"]') as HTMLLabelElement;
+    expect(document.getElementById(label.htmlFor)?.getAttribute('role')).toBe('combobox');
+
+    const options = openSources(fixture);
+    expect(api.searchSources).toHaveBeenCalledWith('', null, 20);
+    expect(options[0].textContent).toContain(PACKAGED_RUSSIAN['upl.pkg.form.source_placeholder']);
+    expect(options[1].getAttribute('aria-label')).toBe(
+      `Nalogi TEST, ${PACKAGED_RUSSIAN['upl.list.col.code']}: cement.output, ${PACKAGED_RUSSIAN['upl.list.col.periodicity']}: ${PACKAGED_RUSSIAN['upl.periodicity.month']}, ${PACKAGED_RUSSIAN['upl.list.col.published_version']}: 2`
+    );
     expect(text(fixture)).toContain(PACKAGED_RUSSIAN['upl.pkg.empty_hint']);
+  });
+
+  it('поиск источника идёт на сервер по коду или названию', async () => {
+    vi.useFakeTimers();
+    try {
+      const { fixture, api } = await createFixture();
+      openSources(fixture);
+      const search = document.querySelector('.smt-select__search-input') as HTMLInputElement;
+      search.value = 'cem';
+      search.dispatchEvent(new Event('input'));
+      vi.advanceTimersByTime(400);
+      fixture.detectChanges();
+
+      expect(api.searchSources).toHaveBeenLastCalledWith('cem', null, 20);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('«создать из поля»: только с правом, ведёт к созданию источника с набранным названием', async () => {
+    vi.useFakeTimers();
+    try {
+      const typeInSearch = (fixture: ComponentFixture<PackagesComponent>, value: string) => {
+        const search = document.querySelector('.smt-select__search-input') as HTMLInputElement;
+        search.value = value;
+        search.dispatchEvent(new Event('input'));
+        vi.advanceTimersByTime(400);
+        fixture.detectChanges();
+      };
+      const without = await createFixture();
+      openSources(without.fixture);
+      typeInSearch(without.fixture, 'Новый');
+      expect(document.querySelector('[role="option"][id$="-create"]')).toBeNull();
+      document.querySelectorAll('.cdk-overlay-container').forEach(node => node.remove());
+
+      TestBed.resetTestingModule();
+      const { fixture, navigate } = await createFixture({ canCreateSource: true });
+      openSources(fixture);
+      typeInSearch(fixture, 'Новый');
+      const create = document.querySelector('[role="option"][id$="-create"]') as HTMLElement;
+      expect(create.textContent).toContain('Создать «Новый»');
+      create.click();
+
+      expect(navigate).toHaveBeenCalledWith(['/upl/sources'], { queryParams: { create: 'Новый', returnTo: 'packages' } });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('источник, созданный из формы, приходит выбранным', async () => {
+    const { fixture, api } = await createFixture({ query: { source: '9' } });
+
+    expect(api.source).toHaveBeenCalledWith('9');
+    expect(fixture.componentInstance.form.sourceId).toBe(9);
+    fixture.detectChanges();
+    expect(testId(fixture, 'upl-pkg-source')[0].textContent).toContain('Created TEST');
   });
 
   it('кнопка «Загрузить» неактивна, пока не заполнены все четыре поля', async () => {
@@ -313,16 +387,23 @@ describe('PackagesComponent', () => {
     expect(bar).toContain('(service_unavailable)');
   });
 
-  it('сбой списка источников: полоса в форме и «Повторить» запрашивает снова', async () => {
+  it('сбой поиска источников: сообщение в списке и «Повторить» запрашивает снова', async () => {
     const { fixture, api } = await createFixture({
-      sourcesResult: [throwError(() => ({ status: 503 })), of(sourceList)]
+      sourcesResult: [
+        throwError(() => ({ status: 503 })),
+        of({ items: sourceList, nextCursor: null, hasMore: false, totalEstimated: 2 } as unknown as KeysetPage<UplSourceItem>)
+      ]
     });
 
-    expect(testId(fixture, 'upl-pkg-sources-error')).toHaveLength(1);
-    click(fixture, 'upl-pkg-sources-retry');
+    openSources(fixture);
+    const alert = document.querySelector('.smt-select__error[role="alert"]') as HTMLElement;
+    expect(alert).not.toBeNull();
+    (alert.querySelector('button') as HTMLButtonElement).click();
+    fixture.detectChanges();
 
-    expect(api.allSources).toHaveBeenCalledTimes(2);
-    expect(testId(fixture, 'upl-pkg-sources-error')).toHaveLength(0);
+    expect(api.searchSources).toHaveBeenCalledTimes(2);
+    expect(document.querySelector('.smt-select__error')).toBeNull();
+    expect(document.querySelectorAll('[role="option"]')).toHaveLength(3);
   });
 
   it('пока список грузится, видны строки-скелетоны', async () => {

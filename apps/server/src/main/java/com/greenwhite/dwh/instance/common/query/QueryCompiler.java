@@ -32,11 +32,13 @@ public final class QueryCompiler {
     public static final String OP_NOT_ALLOWED = "QUERY_OP_NOT_ALLOWED";
     public static final String VALUE_INVALID = "QUERY_VALUE_INVALID";
     public static final String SORT_INVALID = "QUERY_SORT_INVALID";
+    public static final String SEARCH_INVALID = "QUERY_SEARCH_INVALID";
 
     /** Больше условий человек в фильтре не собирает; ограничение защищает базу от гигантских запросов. */
     public static final int MAX_CONDITIONS = 20;
     public static final int MAX_IN_VALUES = 100;
     private static final int MAX_FILTER_CHARS = 16_384;
+    public static final int MAX_SEARCH_CHARS = 200;
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
 
@@ -44,6 +46,15 @@ public final class QueryCompiler {
     }
 
     public static QueryPlan compile(QueryList list, String filter, String sort, Integer limit, String cursor) {
+        return compile(list, filter, sort, limit, cursor, null);
+    }
+
+    /**
+     * @param search свободный поиск {@code q}: подстрока в любом поле с {@code searchable}, без учёта регистра;
+     *               пустой — без поиска
+     */
+    public static QueryPlan compile(QueryList list, String filter, String sort, Integer limit, String cursor,
+                                    String search) {
         int pageSize = limit == null ? list.defaultLimit() : limit;
         if (pageSize < 1 || pageSize > list.maxLimit()) {
             throw ApiException.validation(INVALID_LIMIT, List.of(new FieldErrorItem("limit", INVALID_LIMIT,
@@ -64,11 +75,16 @@ public final class QueryCompiler {
                 descending = minus;
             }
         }
+        String term = search == null || search.isBlank() ? null : search.strip();
+        if (term != null && (term.length() > MAX_SEARCH_CHARS
+                || list.fields().stream().noneMatch(QueryField::searchable))) {
+            errors.add(new FieldErrorItem("q", SEARCH_INVALID, "search is too long or the list has no searchable field"));
+        }
         if (!errors.isEmpty()) {
             throw ApiException.validation(QUERY_INVALID, errors);
         }
 
-        String fingerprint = fingerprint(list, conditions, sortField, descending);
+        String fingerprint = fingerprint(list, conditions, sortField, descending, term);
         QueryCursor decoded = null;
         if (cursor != null && !cursor.isBlank()) {
             decoded = QueryCursor.decode(cursor, fingerprint, sortField);
@@ -77,7 +93,7 @@ public final class QueryCompiler {
                         "cursor is malformed or belongs to another filter or sort")));
             }
         }
-        return new QueryPlan(list, conditions, sortField, descending, pageSize, decoded, fingerprint);
+        return new QueryPlan(list, conditions, sortField, descending, pageSize, decoded, fingerprint, term);
     }
 
     private static List<QueryPlan.Condition> parseFilter(QueryList list, String filter, List<FieldErrorItem> errors) {
@@ -176,9 +192,10 @@ public final class QueryCompiler {
     }
 
     private static String fingerprint(QueryList list, List<QueryPlan.Condition> conditions, QueryField sort,
-                                      boolean descending) {
+                                      boolean descending, String search) {
         StringBuilder canonical = new StringBuilder(list.code()).append('|').append(descending ? '-' : '+')
-                .append(sort.key());
+                .append(sort.key()).append("|q").append(search == null ? -1 : search.length()).append('=')
+                .append(search == null ? "" : search);
         for (QueryPlan.Condition condition : conditions) {
             canonical.append('|').append(condition.field().key()).append(':').append(condition.op().wire());
             for (Object value : condition.values()) {
