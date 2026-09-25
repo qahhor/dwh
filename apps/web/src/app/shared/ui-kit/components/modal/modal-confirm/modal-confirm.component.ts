@@ -45,9 +45,11 @@ export class SMTModalConfirmComponent {
 
   readonly countdown = signal(0);
 
-  readonly titleId = this.data.titleId;
+  /** The confirmed action is running; nothing else may close the dialog meanwhile. */
+  readonly busy = signal(false);
 
-  readonly messageId = this.data.messageId;
+  /** Why the last attempt failed, shown under the message. */
+  readonly failure = signal('');
 
   readonly title = computed(() => this.data.title ?? this.i18n.messages().modalConfirm.title);
 
@@ -61,15 +63,13 @@ export class SMTModalConfirmComponent {
 
   readonly hasCancel = computed(() => !!this.data.cancelLabel || !!this.data.onCancel);
 
-  readonly destructive = !!this.data.destructive;
-
-  /** The confirmed action is running; nothing else may close the dialog meanwhile. */
-  readonly busy = signal(false);
-
-  /** Why the last attempt failed, shown under the message. */
-  readonly failure = signal('');
-
   readonly isConfirmDisabled = computed(() => this.countdown() > 0 || this.busy());
+
+  readonly titleId = this.data.titleId;
+
+  readonly messageId = this.data.messageId;
+
+  readonly destructive = !!this.data.destructive;
 
   private timerId: ReturnType<typeof setInterval> | null = null;
 

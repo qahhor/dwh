@@ -46,12 +46,16 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
   private readonly permissions = inject(PermissionService);
   private readonly i18n = inject(I18nService);
 
-  readonly entities: SearchEntityType[] = ['TASK', 'PROJECT', 'USER', 'NOTE'];
+  private readonly generationIdCell = viewChild.required<TemplateRef<unknown>>('generationIdCell');
+  private readonly generationStateCell = viewChild.required<TemplateRef<unknown>>('generationStateCell');
+  private readonly generationDocumentsCell = viewChild.required<TemplateRef<unknown>>('generationDocumentsCell');
+  private readonly generationQueueCell = viewChild.required<TemplateRef<unknown>>('generationQueueCell');
+  private readonly jobIdCell = viewChild.required<TemplateRef<unknown>>('jobIdCell');
+  private readonly jobStateCell = viewChild.required<TemplateRef<unknown>>('jobStateCell');
+  private readonly jobGenerationCell = viewChild.required<TemplateRef<unknown>>('jobGenerationCell');
+  private readonly jobCreatedCell = viewChild.required<TemplateRef<unknown>>('jobCreatedCell');
+  private readonly jobActionsCell = viewChild.required<TemplateRef<unknown>>('jobActionsCell');
 
-  get displayedEntities(): SearchEntityType[] {
-    const draft = this.draft();
-    return this.entities.filter(e => e !== 'NOTE' || (draft && draft.fields['NOTE'] && draft.fields['NOTE'].length > 0));
-  }
   readonly status = signal<SearchManagementStatus | null>(null);
   readonly statusLoading = signal(false);
   readonly statusError = signal<ProblemDetail | null>(null);
@@ -77,13 +81,11 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
   readonly uncertainMutation = signal<PendingMutation | null>(null);
   readonly activeJob = signal<SearchJobStatus | null>(null);
   readonly activeJobId = signal<string | null>(null);
-  readonly activeOperation = computed(() => this.activeJobId() !== null);
   readonly pollError = signal<ProblemDetail | null>(null);
   readonly confirmation = signal<MaintenanceConfirmation | null>(null);
   readonly historyRetryNextPage = signal(false);
 
-  previewQuery = '';
-  previewEntity: SearchEntityType | '' = '';
+  readonly activeOperation = computed(() => this.activeJobId() !== null);
 
   readonly policyErrors = computed(() => validateSearchPolicy(this.draft(), this.entities));
   readonly dirty = computed(() => {
@@ -99,26 +101,6 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
   });
   readonly atCapacity = computed(() => (this.status()?.generations.length ?? 0) >= 4);
   readonly displayedJobs = computed(() => this.history().length ? this.history() : (this.status()?.jobs ?? []));
-
-  private readonly generationIdCell = viewChild.required<TemplateRef<unknown>>('generationIdCell');
-  private readonly generationStateCell = viewChild.required<TemplateRef<unknown>>('generationStateCell');
-  private readonly generationDocumentsCell = viewChild.required<TemplateRef<unknown>>('generationDocumentsCell');
-  private readonly generationQueueCell = viewChild.required<TemplateRef<unknown>>('generationQueueCell');
-  private readonly jobIdCell = viewChild.required<TemplateRef<unknown>>('jobIdCell');
-  private readonly jobStateCell = viewChild.required<TemplateRef<unknown>>('jobStateCell');
-  private readonly jobGenerationCell = viewChild.required<TemplateRef<unknown>>('jobGenerationCell');
-  private readonly jobCreatedCell = viewChild.required<TemplateRef<unknown>>('jobCreatedCell');
-  private readonly jobActionsCell = viewChild.required<TemplateRef<unknown>>('jobActionsCell');
-
-  /** At most four generations exist and all of them are shown, so a header click sorts them all. */
-  readonly generationSortValues = {
-    id: (g: SearchGenerationStatus) => g.id,
-    state: (g: SearchGenerationStatus) => g.state,
-    profile: (g: SearchGenerationStatus) => g.registeredProfile,
-    documents: (g: SearchGenerationStatus) => g.documentCount,
-    storage: (g: SearchGenerationStatus) => g.storageBytes,
-    queue: (g: SearchGenerationStatus) => g.pendingDeliveries
-  };
 
   readonly generationsConfig = computed<TableConfig<SearchGenerationStatus>>(() => {
     const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
@@ -165,6 +147,21 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
     };
   });
 
+  readonly entities: SearchEntityType[] = ['TASK', 'PROJECT', 'USER', 'NOTE'];
+
+  previewQuery = '';
+  previewEntity: SearchEntityType | '' = '';
+
+  /** At most four generations exist and all of them are shown, so a header click sorts them all. */
+  readonly generationSortValues = {
+    id: (g: SearchGenerationStatus) => g.id,
+    state: (g: SearchGenerationStatus) => g.state,
+    profile: (g: SearchGenerationStatus) => g.registeredProfile,
+    documents: (g: SearchGenerationStatus) => g.documentCount,
+    storage: (g: SearchGenerationStatus) => g.storageBytes,
+    queue: (g: SearchGenerationStatus) => g.pendingDeliveries
+  };
+
   private statusRequest?: Subscription;
   private settingsRequest?: Subscription;
   private historyRequest?: Subscription;
@@ -173,6 +170,11 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
   private mutationRequest?: Subscription;
   private pollRequest?: Subscription;
   private cooldownRequest?: Subscription;
+
+  get displayedEntities(): SearchEntityType[] {
+    const draft = this.draft();
+    return this.entities.filter(e => e !== 'NOTE' || (draft && draft.fields['NOTE'] && draft.fields['NOTE'].length > 0));
+  }
 
   ngOnInit(): void {
     if (!this.canSearch()) return;

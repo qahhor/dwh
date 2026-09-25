@@ -430,12 +430,34 @@ import { UserChannel } from '../profile.models';
   `]
 })
 export class ProfileChannelsCardComponent {
-  @Input() set channels(channels: UserChannel[]) {
-    this.rows.set(channels ?? []);
-  }
-  get channels(): UserChannel[] {
-    return this.rows();
-  }
+  private readonly i18n = inject(I18nService);
+
+  private readonly typeCell = viewChild.required<TemplateRef<unknown>>('channelTypeCell');
+  private readonly addressCell = viewChild.required<TemplateRef<unknown>>('channelAddressCell');
+  private readonly createdCell = viewChild.required<TemplateRef<unknown>>('channelCreatedCell');
+  private readonly statusCell = viewChild.required<TemplateRef<unknown>>('channelStatusCell');
+  private readonly actionCell = viewChild.required<TemplateRef<unknown>>('channelActionCell');
+
+  readonly rows = signal<UserChannel[]>([]);
+
+  readonly config = computed<TableConfig<UserChannel>>(() => {
+    const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
+    const cell = (template: Signal<TemplateRef<unknown>>) => ({ type: 'templateRef' as const, value: template });
+    return {
+      trackBy: (_index, c) => c.id,
+      ariaLabel: this.i18n.translate('iam.kanaly_svyazi'),
+      layout: 'fit',
+      columns: {
+        type: { header: header('iam.tip_kanala'), content: cell(this.typeCell), width: '160px' },
+        address: { header: header('iam.adres_ili_login'), content: cell(this.addressCell) },
+        created: { header: header('iam.sozdan'), content: cell(this.createdCell), width: '150px' },
+        status: { header: header('common.status'), content: cell(this.statusCell), width: '200px' },
+        action: { header: header('audit.deystvie'), content: cell(this.actionCell), width: '260px', align: 'right' }
+      },
+      columnsOrder: ['type', 'address', 'created', 'status', 'action']
+    };
+  });
+
   @Input() isLoadingChannels = false;
   @Input() isBindingChannel = false;
   @Input() isConfirmingChannel = false;
@@ -458,15 +480,6 @@ export class ProfileChannelsCardComponent {
   activeVerifyAddress = '';
   verificationCode = '';
 
-
-  private readonly i18n = inject(I18nService);
-  readonly rows = signal<UserChannel[]>([]);
-  private readonly typeCell = viewChild.required<TemplateRef<unknown>>('channelTypeCell');
-  private readonly addressCell = viewChild.required<TemplateRef<unknown>>('channelAddressCell');
-  private readonly createdCell = viewChild.required<TemplateRef<unknown>>('channelCreatedCell');
-  private readonly statusCell = viewChild.required<TemplateRef<unknown>>('channelStatusCell');
-  private readonly actionCell = viewChild.required<TemplateRef<unknown>>('channelActionCell');
-
   /** A person has only a few channels and all are shown, so a header click sorts them all. */
   readonly sortValues = {
     type: (c: UserChannel) => this.channelLabel(c.channel),
@@ -475,23 +488,12 @@ export class ProfileChannelsCardComponent {
     status: (c: UserChannel) => this.channelStatus(c)
   };
 
-  readonly config = computed<TableConfig<UserChannel>>(() => {
-    const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
-    const cell = (template: Signal<TemplateRef<unknown>>) => ({ type: 'templateRef' as const, value: template });
-    return {
-      trackBy: (_index, c) => c.id,
-      ariaLabel: this.i18n.translate('iam.kanaly_svyazi'),
-      layout: 'fit',
-      columns: {
-        type: { header: header('iam.tip_kanala'), content: cell(this.typeCell), width: '160px' },
-        address: { header: header('iam.adres_ili_login'), content: cell(this.addressCell) },
-        created: { header: header('iam.sozdan'), content: cell(this.createdCell), width: '150px' },
-        status: { header: header('common.status'), content: cell(this.statusCell), width: '200px' },
-        action: { header: header('audit.deystvie'), content: cell(this.actionCell), width: '260px', align: 'right' }
-      },
-      columnsOrder: ['type', 'address', 'created', 'status', 'action']
-    };
-  });
+  @Input() set channels(channels: UserChannel[]) {
+    this.rows.set(channels ?? []);
+  }
+  get channels(): UserChannel[] {
+    return this.rows();
+  }
 
   channelLabel(channel: string): string {
     return this.i18n.translate(this.getChannelLabelKey(channel));

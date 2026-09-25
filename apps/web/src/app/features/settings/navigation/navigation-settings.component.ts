@@ -137,13 +137,17 @@ export class NavigationSettingsComponent implements OnInit {
   private readonly navService = inject(NavigationService);
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(I18nService);
+  private readonly modal = inject(SMTModalService);
 
   readonly items = signal<CustomNavigationItem[]>([]);
   readonly isLoading = signal<boolean>(false);
   readonly isSubmitting = signal<boolean>(false);
   readonly isModalOpen = signal<boolean>(false);
   readonly editingItem = signal<CustomNavigationItem | null>(null);
-  private readonly modal = inject(SMTModalService);
+
+  readonly activeCount = computed(() => this.items().filter(i => i.state === 'A').length);
+  readonly embeddedCount = computed(() => this.items().filter(i => i.targetType === 'EMBEDDED_IFRAME').length);
+  readonly externalCount = computed(() => this.items().filter(i => i.targetType === 'EXTERNAL_LINK').length);
 
   searchQuery = '';
 
@@ -159,10 +163,6 @@ export class NavigationSettingsComponent implements OnInit {
   formUrl = '';
   formIcon = 'analytics';
   formSortOrder = 100;
-
-  readonly activeCount = computed(() => this.items().filter(i => i.state === 'A').length);
-  readonly embeddedCount = computed(() => this.items().filter(i => i.targetType === 'EMBEDDED_IFRAME').length);
-  readonly externalCount = computed(() => this.items().filter(i => i.targetType === 'EXTERNAL_LINK').length);
 
   ngOnInit(): void {
     this.loadItems();

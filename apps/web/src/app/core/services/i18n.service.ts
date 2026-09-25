@@ -88,17 +88,19 @@ interface CachedDictionary {
 
 @Injectable({ providedIn: 'root' })
 export class I18nService {
-  private readonly offlineFallback = offlineRussianFallback();
   readonly languages = signal<LanguageInfo[]>([FALLBACK_LANGUAGE]);
   readonly currentLang = signal<string>(RUSSIAN);
   readonly isLoading = signal(false);
   readonly loadError = signal<string | null>(null);
+
+  private readonly activeDictionary = signal<TranslationDictionary>(offlineRussianFallback());
+  private readonly russianDictionary = signal<TranslationDictionary>(offlineRussianFallback());
+
   readonly currentLanguage = computed(() =>
     this.languages().find(language => language.code === this.currentLang()) ?? FALLBACK_LANGUAGE
   );
 
-  private readonly activeDictionary = signal<TranslationDictionary>(this.offlineFallback);
-  private readonly russianDictionary = signal<TranslationDictionary>(this.offlineFallback);
+  private readonly offlineFallback = offlineRussianFallback();
   private readonly cache = new Map<string, CachedDictionary>();
   private readonly inFlight = new Map<string, Observable<TranslationDictionary>>();
   private initialization?: Promise<void>;

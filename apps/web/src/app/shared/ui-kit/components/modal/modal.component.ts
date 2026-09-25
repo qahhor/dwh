@@ -43,8 +43,6 @@ export class SMTModalComponent {
 
   private readonly data = inject<SMTModalData | null>(DIALOG_DATA, { optional: true });
 
-  readonly titleId = `smt-modal-title-${nextTitleId++}`;
-
   title = input<string>('', { alias: 'smtTitle' });
 
   showCloseButton = input<boolean>(true, { alias: 'smtShowCloseButton' });
@@ -62,6 +60,8 @@ export class SMTModalComponent {
     }
     return this.showCloseButton();
   });
+
+  readonly titleId = `smt-modal-title-${nextTitleId++}`;
 
   /** Context passed to the content template - provides close and save callbacks */
   readonly templateContext = {

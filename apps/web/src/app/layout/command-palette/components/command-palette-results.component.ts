@@ -310,12 +310,13 @@ export class CommandPaletteResultsComponent {
   readonly errorMessage = input.required<string>();
   readonly retrySeconds = input.required<number>();
   readonly searchQuery = input.required<string>();
-  readonly metadata = input<SearchResult | null>(null);
   readonly results = input.required<SearchHit[]>();
   readonly recentSearches = input.required<string[]>();
   readonly selectedIndex = input.required<number>();
   readonly listboxId = input.required<string>();
   readonly validQuery = input.required<boolean>();
+
+  readonly metadata = input<SearchResult | null>(null);
 
   readonly retry = output<void>();
   readonly selectRecent = output<string>();

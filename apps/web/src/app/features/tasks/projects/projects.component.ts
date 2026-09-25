@@ -43,32 +43,26 @@ import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '../../../sh
   styleUrl: './projects.component.css'
 })
 export class ProjectsComponent implements OnInit, OnDestroy {
+  readonly forms = inject(ProjectFormsService);
   /** Texts of the radio options below; translated again when the language changes. */
   private readonly optionText = inject(I18nService);
-
-  readonly forms = inject(ProjectFormsService);
   private readonly recordRoute = inject(ActivatedRoute, { optional: true });
-  private recordRouteSubscription?: Subscription;
-  private recordRequest?: Subscription;
-  private recordRequestId = 0;
+
+  private readonly toast = inject(ToastService);
+  private readonly uiI18n = inject(I18nService);
+  private readonly modal = inject(SMTModalService);
+
   readonly routeRecordId = signal<string | null>(null);
   readonly viewingProject = signal<Project | null>(null);
   readonly recordLoading = signal(false);
   readonly recordError = signal(false);
   readonly recordNotFound = signal(false);
-  private listRequest?: Subscription;
-  private statsRequest?: Subscription;
-  private destroyed = false;
-
-  private readonly toast = inject(ToastService);
-  private readonly uiI18n = inject(I18nService);
 
   readonly selectedProjectForMembers = signal<Project | null>(null);
   readonly projectMembers = signal<ProjectMember[]>([]);
   readonly isLoadingMembers = signal<boolean>(false);
   readonly isAddingMember = signal<boolean>(false);
   readonly removingMemberId = signal<number | null>(null);
-  private readonly modal = inject(SMTModalService);
 
   readonly projects = signal<Project[]>([]);
   readonly projectStats = signal<Record<number, ProjectTaskStats>>({});
@@ -78,6 +72,15 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   readonly statsLoading = signal<boolean>(false);
   readonly statsLoadError = signal<boolean>(false);
   readonly statsLoaded = signal<boolean>(false);
+
+  readonly projectCustomFields = signal<CustomField[]>([]);
+
+  private recordRouteSubscription?: Subscription;
+  private recordRequest?: Subscription;
+  private recordRequestId = 0;
+  private listRequest?: Subscription;
+  private statsRequest?: Subscription;
+  private destroyed = false;
 
   readonly isCreateModalOpen = this.forms.isCreateModalOpen;
   readonly isEditModalOpen = this.forms.isEditModalOpen;
@@ -97,7 +100,13 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   currentPage = 1;
   pageSize = 10;
 
-  readonly projectCustomFields = signal<CustomField[]>([]);
+  private readonly viewMemo = optionsMemo<SMTRadioOption<ProjectViewState>[]>();
+
+  constructor(
+    public permService: PermissionService,
+    private api: ApiService,
+    private router: Router
+  ) {}
 
   get createForm(): ProjectCreateForm { return this.forms.createForm; }
   set createForm(val: ProjectCreateForm) { this.forms.createForm = val; }
@@ -113,12 +122,6 @@ export class ProjectsComponent implements OnInit, OnDestroy {
 
   get editingProject(): Project | null { return this.forms.editingProject; }
   set editingProject(val: Project | null) { this.forms.editingProject = val; }
-
-  constructor(
-    public permService: PermissionService,
-    private api: ApiService,
-    private router: Router
-  ) {}
 
   ngOnInit() {
     this.forms.onProjectCreated = (created) => {
@@ -272,11 +275,6 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     return this.listLoaded() && !this.isLoading() && !this.listLoadError();
   }
 
-  private clampCurrentPage() {
-    const lastPage = Math.max(1, Math.ceil(this.filteredProjects().length / this.pageSize));
-    this.currentPage = Math.min(this.currentPage, lastPage);
-  }
-
   filteredProjects(): Project[] {
     const q = this.searchQuery.trim().toLowerCase();
     const st = this.selectedState;
@@ -411,12 +409,15 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     });
   }
 
-  private readonly viewMemo = optionsMemo<SMTRadioOption<ProjectViewState>[]>();
-
   viewOptions(): SMTRadioOption<ProjectViewState>[] {
     return this.viewMemo([this.optionText.currentLang()], () => [
       { value: 'list', label: this.optionText.translate('projects.spisok'), icon: 'table_rows', title: this.optionText.translate('projects.spisok_tablica') },
       { value: 'cards', label: this.optionText.translate('projects.kartochki'), icon: 'grid_view' },
     ]);
+  }
+
+  private clampCurrentPage() {
+    const lastPage = Math.max(1, Math.ceil(this.filteredProjects().length / this.pageSize));
+    this.currentPage = Math.min(this.currentPage, lastPage);
   }
 }

@@ -5,12 +5,12 @@ import { Role } from '../../../../core/models/rbac.models';
   providedIn: 'root'
 })
 export class UserFilterService {
+  readonly isFilterMenuOpen = signal<boolean>(false);
+
   searchQuery = '';
   selectedState = '';
   selectedRoleId: number | null = null;
   selected2fa: boolean | null = null;
-
-  readonly isFilterMenuOpen = signal<boolean>(false);
 
   hasExtraFilters(): boolean {
     return this.selectedRoleId !== null || this.selected2fa !== null;

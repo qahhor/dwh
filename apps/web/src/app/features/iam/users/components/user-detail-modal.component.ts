@@ -254,50 +254,7 @@ export class UserDetailModalComponent {
   /** Texts of the tabs below; translated again when the language changes. */
   private readonly tabText = inject(I18nService);
 
-  @Input() isOpen = false;
-  @Input() viewingUser: User | null = null;
-  @Input() routeRecordId: string | null = null;
-  @Input() recordLoading = false;
-  @Input() recordError = false;
-  @Input() recordNotFound = false;
-  @Input() activeViewTab: 'info' | 'security' | 'orgUnits' | 'permissions' = 'info';
-  @Input() isLoadingSecurity = false;
-  @Input() set userSecurity(summary: UserSecuritySummary | null) {
-    this.security.set(summary);
-  }
-  get userSecurity(): UserSecuritySummary | null {
-    return this.security();
-  }
-  @Input() isSecurityActionPending = false;
-  @Input() canUpdateUser = false;
-  @Input() canViewOrgUnits = false;
-  @Input() canViewAssignments = false;
-  @Input() canAssignPermissions = false;
-  @Input() safeRecordId!: (id: any) => boolean;
-  @Input() getUserRoleNames!: (u: User) => string[];
-  @Input() getManagerName!: (u: User) => string | null;
-
-  @Input() isSubmitting = false;
-
-
-  @Output() closeRecordView = new EventEmitter<void>();
-  @Output() retryRecordView = new EventEmitter<string | null>();
-  @Output() switchTab = new EventEmitter<{ tab: 'info' | 'security' | 'orgUnits' | 'permissions', userId: number }>();
-  @Output() openEdit = new EventEmitter<void>();
-  @Output() forcePasswordChange = new EventEmitter<number>();
-  @Output() reset2fa = new EventEmitter<number>();
-  @Output() terminateAllSessions = new EventEmitter<number>();
-  @Output() terminateSingleSession = new EventEmitter<{ sessionId: number, userId: number }>();
-  @Output() orgPanelBusy = new EventEmitter<boolean>();
-
-
-
-  @ViewChild(UserOrgUnitsPanelComponent) orgUnitsPanel?: UserOrgUnitsPanelComponent;
-
   private readonly i18n = inject(I18nService);
-  private readonly security = signal<UserSecuritySummary | null>(null);
-  readonly sessions = computed(() => this.security()?.activeSessions ?? []);
-  readonly attempts = computed(() => this.security()?.recentLoginAttempts ?? []);
 
   private readonly sessionIpCell = viewChild.required<TemplateRef<unknown>>('sessionIpCell');
   private readonly sessionAgentCell = viewChild.required<TemplateRef<unknown>>('sessionAgentCell');
@@ -309,21 +266,10 @@ export class UserDetailModalComponent {
   private readonly attemptStatusCell = viewChild.required<TemplateRef<unknown>>('attemptStatusCell');
   private readonly attemptReasonCell = viewChild.required<TemplateRef<unknown>>('attemptReasonCell');
 
-  /** The summary carries every open session, so a header click sorts them all. */
-  readonly sessionSortValues = {
-    ip: (s: UserSession) => s.ip,
-    agent: (s: UserSession) => s.userAgent,
-    created: (s: UserSession) => new Date(s.createdAt),
-    seen: (s: UserSession) => new Date(s.lastSeenAt)
-  };
+  private readonly security = signal<UserSecuritySummary | null>(null);
 
-  /** The recent attempts the summary returns, sortable by time, address, outcome and reason. */
-  readonly attemptSortValues = {
-    time: (att: LoginAttemptRecord) => new Date(att.attemptAt),
-    ip: (att: LoginAttemptRecord) => att.ip,
-    status: (att: LoginAttemptRecord) => this.attemptStatus(att),
-    reason: (att: LoginAttemptRecord) => att.failureReason
-  };
+  readonly sessions = computed(() => this.security()?.activeSessions ?? []);
+  readonly attempts = computed(() => this.security()?.recentLoginAttempts ?? []);
 
   readonly sessionsConfig = computed<TableConfig<UserSession>>(() => {
     const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
@@ -360,6 +306,62 @@ export class UserDetailModalComponent {
     };
   });
 
+  @Input() isOpen = false;
+  @Input() viewingUser: User | null = null;
+  @Input() routeRecordId: string | null = null;
+  @Input() recordLoading = false;
+  @Input() recordError = false;
+  @Input() recordNotFound = false;
+  @Input() activeViewTab: 'info' | 'security' | 'orgUnits' | 'permissions' = 'info';
+  @Input() isLoadingSecurity = false;
+  @Input() isSecurityActionPending = false;
+  @Input() canUpdateUser = false;
+  @Input() canViewOrgUnits = false;
+  @Input() canViewAssignments = false;
+  @Input() canAssignPermissions = false;
+  @Input() safeRecordId!: (id: any) => boolean;
+  @Input() getUserRoleNames!: (u: User) => string[];
+  @Input() getManagerName!: (u: User) => string | null;
+
+  @Input() isSubmitting = false;
+
+  @Output() closeRecordView = new EventEmitter<void>();
+  @Output() retryRecordView = new EventEmitter<string | null>();
+  @Output() switchTab = new EventEmitter<{ tab: 'info' | 'security' | 'orgUnits' | 'permissions', userId: number }>();
+  @Output() openEdit = new EventEmitter<void>();
+  @Output() forcePasswordChange = new EventEmitter<number>();
+  @Output() reset2fa = new EventEmitter<number>();
+  @Output() terminateAllSessions = new EventEmitter<number>();
+  @Output() terminateSingleSession = new EventEmitter<{ sessionId: number, userId: number }>();
+  @Output() orgPanelBusy = new EventEmitter<boolean>();
+
+  @ViewChild(UserOrgUnitsPanelComponent) orgUnitsPanel?: UserOrgUnitsPanelComponent;
+
+  /** The summary carries every open session, so a header click sorts them all. */
+  readonly sessionSortValues = {
+    ip: (s: UserSession) => s.ip,
+    agent: (s: UserSession) => s.userAgent,
+    created: (s: UserSession) => new Date(s.createdAt),
+    seen: (s: UserSession) => new Date(s.lastSeenAt)
+  };
+
+  /** The recent attempts the summary returns, sortable by time, address, outcome and reason. */
+  readonly attemptSortValues = {
+    time: (att: LoginAttemptRecord) => new Date(att.attemptAt),
+    ip: (att: LoginAttemptRecord) => att.ip,
+    status: (att: LoginAttemptRecord) => this.attemptStatus(att),
+    reason: (att: LoginAttemptRecord) => att.failureReason
+  };
+
+  private readonly tabsMemo = optionsMemo<SMTTabItem<'info' | 'security' | 'orgUnits' | 'permissions'>[]>();
+
+  @Input() set userSecurity(summary: UserSecuritySummary | null) {
+    this.security.set(summary);
+  }
+  get userSecurity(): UserSecuritySummary | null {
+    return this.security();
+  }
+
   attemptStatus(att: LoginAttemptRecord): string {
     return this.i18n.translate(att.isSuccess ? 'iam.uspeshno' : 'iam.oshibka');
   }
@@ -372,8 +374,6 @@ export class UserDetailModalComponent {
   canLeave(): boolean | Observable<boolean> {
     return this.orgUnitsPanel?.canLeave() ?? true;
   }
-
-  private readonly tabsMemo = optionsMemo<SMTTabItem<'info' | 'security' | 'orgUnits' | 'permissions'>[]>();
 
   /** The card's sections; org units and effective rights only with the right to see them. */
   viewTabs(user: User): SMTTabItem<'info' | 'security' | 'orgUnits' | 'permissions'>[] {

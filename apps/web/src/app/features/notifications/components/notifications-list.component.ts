@@ -308,11 +308,12 @@ export class NotificationsListComponent {
   readonly filteredCount = input.required<number>();
   readonly filterTab = input.required<NotificationFilterTab>();
   readonly isLoading = input.required<boolean>();
-  readonly loadError = input<string | null>(null);
   readonly isMarkingAll = input.required<boolean>();
   readonly pendingReads = input.required<Set<number>>();
   readonly currentPage = input.required<number>();
   readonly pageSize = input.required<number>();
+
+  readonly loadError = input<string | null>(null);
 
   readonly itemClick = output<NotificationItem>();
   readonly itemKeydown = output<{ event: KeyboardEvent; item: NotificationItem }>();

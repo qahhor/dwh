@@ -20,13 +20,21 @@ import { OrgUnit, UserScope } from './org-units.models';
   templateUrl: './user-org-units-panel.component.html', styleUrl: './user-org-units-panel.component.css'
 })
 export class UserOrgUnitsPanelComponent implements OnChanges {
-  @Input({ required: true }) userId = 0;
-  @Output() busyChange = new EventEmitter<boolean>();
   readonly permissions = inject(PermissionService);
   private readonly api = inject(OrgUnitsApiService);
   private readonly changeDetector = inject(ChangeDetectorRef);
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(I18nService);
+
+  readonly selectedOrgUnitIds = signal<readonly number[]>([]);
+  readonly search = signal('');
+
+  /** The tree table identifies rows by string id. */
+  readonly checkedRowIds = computed(() => this.selectedOrgUnitIds().map(String));
+  readonly treeColumns = computed(() => orgUnitTreeColumns(key => this.i18n.translate(key)));
+
+  @Input({ required: true }) userId = 0;
+  @Output() busyChange = new EventEmitter<boolean>();
   private readonly writes = new Subscription();
   private treeRequest?: Subscription;
   private assignmentsRequest?: Subscription;
@@ -35,15 +43,8 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
   private deferredTarget: number | null = null;
   private viewEpoch = 0;
   private originalOrgUnitIds: readonly number[] = [];
-
-  readonly selectedOrgUnitIds = signal<readonly number[]>([]);
-  /** The tree table identifies rows by string id. */
-  readonly checkedRowIds = computed(() => this.selectedOrgUnitIds().map(String));
-  readonly search = signal('');
   private readonly treeRowCache = new OrgUnitTreeRows();
-  get treeRows(): TreeRow<OrgUnit>[] { return this.treeRowCache.of(this.units); }
   readonly searchText = orgUnitSearchText(key => this.i18n.translate(key));
-  readonly treeColumns = computed(() => orgUnitTreeColumns(key => this.i18n.translate(key)));
   units: OrgUnit[] = [];
   legacyOrgUnitId: number | null = null;
   effectiveScope: UserScope | null = null;
@@ -71,6 +72,8 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
       this.discard.cancel(); this.cancelReads(); this.writes.unsubscribe(); this.setPending(false);
     });
   }
+
+  get treeRows(): TreeRow<OrgUnit>[] { return this.treeRowCache.of(this.units); }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (!changes['userId'] || changes['userId'].currentValue === this.activeTarget) return;

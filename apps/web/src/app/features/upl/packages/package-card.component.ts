@@ -260,29 +260,14 @@ export class PackageCardComponent implements OnChanges {
   private readonly api = inject(UplPackagesApiService);
   private readonly i18n = inject(I18nService);
 
-  @Input({ required: true }) item!: UplPackageItem;
-  @Output() back = new EventEmitter<void>();
-  @Output() refresh = new EventEmitter<void>();
-  @Input() canApply = false;
-  @Output() applied = new EventEmitter<UplPackageItem>();
+  private readonly errorValueCell = viewChild.required<TemplateRef<unknown>>('errorValueCell');
+  private readonly errorWhatCell = viewChild.required<TemplateRef<unknown>>('errorWhatCell');
 
   readonly errors = signal<UplPackageErrors | null>(null);
   readonly isLoading = signal(false);
   readonly loadError = signal<string | null>(null);
   readonly applying = signal(false);
   readonly applyError = signal<string | null>(null);
-
-  private readonly errorValueCell = viewChild.required<TemplateRef<unknown>>('errorValueCell');
-  private readonly errorWhatCell = viewChild.required<TemplateRef<unknown>>('errorWhatCell');
-
-  /** The stored errors are all on screen, so a header click sorts them all: by sheet, row, column or reason. */
-  readonly errorSortValues = {
-    sheet: (row: UplPackageErrorItem) => row.sheet,
-    row: (row: UplPackageErrorItem) => row.rowNo,
-    column: (row: UplPackageErrorItem) => row.columnName,
-    value: (row: UplPackageErrorItem) => row.value,
-    what: (row: UplPackageErrorItem) => this.codeText(row)
-  };
 
   readonly errorsConfig = computed<TableConfig<UplPackageErrorItem>>(() => {
     const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
@@ -301,6 +286,21 @@ export class PackageCardComponent implements OnChanges {
       columnsOrder: ['sheet', 'row', 'column', 'value', 'what']
     };
   });
+
+  @Input({ required: true }) item!: UplPackageItem;
+  @Output() back = new EventEmitter<void>();
+  @Output() refresh = new EventEmitter<void>();
+  @Input() canApply = false;
+  @Output() applied = new EventEmitter<UplPackageItem>();
+
+  /** The stored errors are all on screen, so a header click sorts them all: by sheet, row, column or reason. */
+  readonly errorSortValues = {
+    sheet: (row: UplPackageErrorItem) => row.sheet,
+    row: (row: UplPackageErrorItem) => row.rowNo,
+    column: (row: UplPackageErrorItem) => row.columnName,
+    value: (row: UplPackageErrorItem) => row.value,
+    what: (row: UplPackageErrorItem) => this.codeText(row)
+  };
   readonly statusKey = UPL_PACKAGE_STATUS_KEY;
   readonly statusVariant = UPL_PACKAGE_STATUS_VARIANT;
 

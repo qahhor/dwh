@@ -98,16 +98,17 @@ import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
   `]
 })
 export class LoginResetModalComponent {
-  @Input() isOpen = false;
-  @Output() close = new EventEmitter<void>();
-
   private readonly api = inject(ApiService);
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(I18nService);
 
-  resetEmail = '';
   readonly resetError = signal<string>('');
   readonly isResetLoading = signal<boolean>(false);
+
+  @Input() isOpen = false;
+  @Output() close = new EventEmitter<void>();
+
+  resetEmail = '';
 
   onClose(): void {
     this.resetEmail = '';

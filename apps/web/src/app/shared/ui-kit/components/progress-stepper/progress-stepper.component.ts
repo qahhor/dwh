@@ -41,10 +41,10 @@ export interface SMTProgressStep {
 export class SMTProgressStepperComponent {
   readonly i18n = inject(SMTI18nService);
 
-  readonly steps = input<readonly SMTProgressStep[]>([], { alias: 'smtSteps' });
-
   /** Accessible name of the navigation landmark. */
   readonly label = input.required<string>({ alias: 'smtLabel' });
+
+  readonly steps = input<readonly SMTProgressStep[]>([], { alias: 'smtSteps' });
 
   /** Id of the current step. */
   readonly current = model('', { alias: 'smtCurrent' });

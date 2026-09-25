@@ -117,23 +117,16 @@ import { SecurityEventRecord } from '../audit.models';
   styleUrl: './audit-security-table.component.css'
 })
 export class AuditSecurityTableComponent {
-  @Input({ required: true }) pager!: KeysetPager<SecurityEventRecord>;
+  private readonly i18n = inject(I18nService);
 
-  @Input() secEventTypeFilter = '';
-  @Input() secIpFilter = '';
-  @Input() securityUserFilter = '';
-  @Input() set securityFromFilter(value: string) {
-    this.periodFrom.set(value ?? '');
-  }
-  get securityFromFilter(): string {
-    return this.periodFrom();
-  }
-  @Input() set securityToFilter(value: string) {
-    this.periodTo.set(value ?? '');
-  }
-  get securityToFilter(): string {
-    return this.periodTo();
-  }
+  readonly emptyState = viewChild.required<TemplateRef<unknown>>('emptyStateTpl');
+  private readonly idCell = viewChild.required<TemplateRef<unknown>>('idCell');
+  private readonly eventCell = viewChild.required<TemplateRef<unknown>>('eventCell');
+  private readonly userCell = viewChild.required<TemplateRef<unknown>>('userCell');
+  private readonly ipCell = viewChild.required<TemplateRef<unknown>>('ipCell');
+  private readonly agentCell = viewChild.required<TemplateRef<unknown>>('agentCell');
+  private readonly dateCell = viewChild.required<TemplateRef<unknown>>('dateCell');
+  private readonly detailsCell = viewChild.required<TemplateRef<unknown>>('detailsCell');
 
   private readonly periodFrom = signal('');
   private readonly periodTo = signal('');
@@ -144,26 +137,6 @@ export class AuditSecurityTableComponent {
     const to = this.periodTo();
     return from || to ? { from: from || null, to: to || null } : null;
   });
-
-  @Output() secEventTypeFilterChange = new EventEmitter<string>();
-  @Output() secIpFilterChange = new EventEmitter<string>();
-  @Output() securityUserFilterChange = new EventEmitter<string>();
-  @Output() securityFromFilterChange = new EventEmitter<string>();
-  @Output() securityToFilterChange = new EventEmitter<string>();
-
-  @Output() applyFilters = new EventEmitter<void>();
-  @Output() resetFilters = new EventEmitter<void>();
-  @Output() selectEvent = new EventEmitter<SecurityEventRecord>();
-
-  private readonly i18n = inject(I18nService);
-  private readonly idCell = viewChild.required<TemplateRef<unknown>>('idCell');
-  private readonly eventCell = viewChild.required<TemplateRef<unknown>>('eventCell');
-  private readonly userCell = viewChild.required<TemplateRef<unknown>>('userCell');
-  private readonly ipCell = viewChild.required<TemplateRef<unknown>>('ipCell');
-  private readonly agentCell = viewChild.required<TemplateRef<unknown>>('agentCell');
-  private readonly dateCell = viewChild.required<TemplateRef<unknown>>('dateCell');
-  private readonly detailsCell = viewChild.required<TemplateRef<unknown>>('detailsCell');
-  readonly emptyState = viewChild.required<TemplateRef<unknown>>('emptyStateTpl');
 
   readonly tableConfig = computed<TableConfig<SecurityEventRecord>>(() => {
     const header = (value: string) => ({ type: 'primitive' as const, value });
@@ -186,6 +159,35 @@ export class AuditSecurityTableComponent {
       },
     };
   });
+
+  @Input({ required: true }) pager!: KeysetPager<SecurityEventRecord>;
+
+  @Input() secEventTypeFilter = '';
+  @Input() secIpFilter = '';
+  @Input() securityUserFilter = '';
+
+  @Output() secEventTypeFilterChange = new EventEmitter<string>();
+  @Output() secIpFilterChange = new EventEmitter<string>();
+  @Output() securityUserFilterChange = new EventEmitter<string>();
+  @Output() securityFromFilterChange = new EventEmitter<string>();
+  @Output() securityToFilterChange = new EventEmitter<string>();
+
+  @Output() applyFilters = new EventEmitter<void>();
+  @Output() resetFilters = new EventEmitter<void>();
+  @Output() selectEvent = new EventEmitter<SecurityEventRecord>();
+
+  @Input() set securityFromFilter(value: string) {
+    this.periodFrom.set(value ?? '');
+  }
+  get securityFromFilter(): string {
+    return this.periodFrom();
+  }
+  @Input() set securityToFilter(value: string) {
+    this.periodTo.set(value ?? '');
+  }
+  get securityToFilter(): string {
+    return this.periodTo();
+  }
 
   getSecurityEventBadgeClass(type: string): string {
     if (type.includes('SUCCESS')) return 'success';

@@ -43,24 +43,25 @@ import { RoleFormsService } from './services/role-forms.service';
   styleUrl: './roles.component.css'
 })
 export class RolesComponent implements OnInit {
-  readonly hasPermissionFn = (formCode: string, action: string) => this.hasPermission(formCode, action);
-  readonly isPermissionDirtyFn = (formCode: string, action: string) => this.isPermissionDirty(formCode, action);
-  readonly getModuleIconFn = (moduleCode: string) => this.getModuleIcon(moduleCode);
-  readonly getModuleActionsCountFn = (mod: ModuleGroup) => this.getModuleActionsCount(mod);
-
   private readonly router = inject(Router, { optional: true });
   private readonly uiI18n = inject(I18nService);
   private readonly destroyRef = inject(DestroyRef);
-  private permissionsRequest?: Subscription;
-  private panelLeaveSubscription?: Subscription;
-  private roleScopePanel?: RoleScopePanelComponent;
-  private readonly loadedPermissionsRoleId = signal<number | null>(null);
-  readonly safeRoleId = safeNumericRecordId;
+
+  private readonly roleForms = inject(RoleFormsService);
+
   readonly roles = signal<Role[]>([]);
   readonly forms = signal<FormTreeItem[]>([]);
   readonly selectedRole = signal<Role | null>(null);
   readonly rolePermissions = signal<Set<string>>(new Set());
   readonly originalRolePermissions = signal<Set<string>>(new Set());
+
+  readonly isLoading = signal<boolean>(false);
+  readonly permissionsError = signal('');
+  readonly isSaving = signal<boolean>(false);
+  readonly scopePanelBusy = signal(false);
+  readonly roleUserCounts = signal<Record<number, number>>({});
+  readonly isDiscardPermissionsModalOpen = signal<boolean>(false);
+  private readonly loadedPermissionsRoleId = signal<number | null>(null);
 
   readonly isPermissionsDirty = computed<boolean>(() =>
     arePermissionsDirty(this.originalRolePermissions(), this.rolePermissions())
@@ -70,14 +71,15 @@ export class RolesComponent implements OnInit {
     countDirtyPermissions(this.originalRolePermissions(), this.rolePermissions())
   );
 
-  private readonly roleForms = inject(RoleFormsService);
-
-  readonly isLoading = signal<boolean>(false);
-  readonly permissionsError = signal('');
-  readonly isSaving = signal<boolean>(false);
+  readonly hasPermissionFn = (formCode: string, action: string) => this.hasPermission(formCode, action);
+  readonly isPermissionDirtyFn = (formCode: string, action: string) => this.isPermissionDirty(formCode, action);
+  readonly getModuleIconFn = (moduleCode: string) => this.getModuleIcon(moduleCode);
+  readonly getModuleActionsCountFn = (mod: ModuleGroup) => this.getModuleActionsCount(mod);
+  private permissionsRequest?: Subscription;
+  private panelLeaveSubscription?: Subscription;
+  private roleScopePanel?: RoleScopePanelComponent;
+  readonly safeRoleId = safeNumericRecordId;
   readonly isSubmittingRole = this.roleForms.isSubmittingRole;
-  readonly scopePanelBusy = signal(false);
-  readonly roleUserCounts = signal<Record<number, number>>({});
 
   roleSearchQuery = '';
   matrixSearchQuery = '';
@@ -89,8 +91,15 @@ export class RolesComponent implements OnInit {
   readonly isCreateModalOpen = this.roleForms.isCreateModalOpen;
   readonly isEditModalOpen = this.roleForms.isEditModalOpen;
   readonly isDeleteModalOpen = this.roleForms.isDeleteModalOpen;
-  readonly isDiscardPermissionsModalOpen = signal<boolean>(false);
   pendingRoleToSelect: Role | null = null;
+
+  constructor(
+    public permService: PermissionService,
+    private api: ApiService,
+    private toast: ToastService
+  ) {
+    this.destroyRef.onDestroy(() => this.panelLeaveSubscription?.unsubscribe());
+  }
 
   get isCreateSubmitted() { return this.roleForms.isCreateSubmitted; }
   set isCreateSubmitted(v: boolean) { this.roleForms.isCreateSubmitted = v; }
@@ -109,14 +118,6 @@ export class RolesComponent implements OnInit {
 
   get deletingRole() { return this.roleForms.deletingRole; }
   set deletingRole(v: Role | null) { this.roleForms.deletingRole = v; }
-
-  constructor(
-    public permService: PermissionService,
-    private api: ApiService,
-    private toast: ToastService
-  ) {
-    this.destroyRef.onDestroy(() => this.panelLeaveSubscription?.unsubscribe());
-  }
 
   @ViewChild(RoleScopePanelComponent)
   set scopePanel(panel: RoleScopePanelComponent | undefined) {
@@ -266,47 +267,6 @@ export class RolesComponent implements OnInit {
       error: () => {
         this.isSaving.set(false);
       }
-    });
-  }
-
-  private activateRole(role: Role): void {
-    if (this.destroyRef.destroyed) return;
-    this.permissionsRequest?.unsubscribe();
-    this.selectedRole.set(role);
-    this.rolePermissions.set(new Set());
-    this.originalRolePermissions.set(new Set());
-    this.loadedPermissionsRoleId.set(null);
-    this.permissionsError.set('');
-    this.isLoading.set(true);
-    this.permissionsRequest = this.api.get<string[]>(`/rbac/roles/${role.id}/permissions`, undefined, { notifyError: false })
-      .pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: res => {
-        if (this.selectedRole()?.id !== role.id) return;
-        const perms = new Set(res || []);
-        this.rolePermissions.set(new Set(perms));
-        this.originalRolePermissions.set(new Set(perms));
-        this.loadedPermissionsRoleId.set(role.id);
-        this.isLoading.set(false);
-      },
-      error: error => {
-        if (this.selectedRole()?.id !== role.id) return;
-        this.permissionsError.set(error.detail || error.title);
-        this.isLoading.set(false);
-      }
-    });
-  }
-
-  private afterRoleScopeLeave(action: () => void): void {
-    if (this.destroyRef.destroyed) return;
-    this.panelLeaveSubscription?.unsubscribe();
-    this.panelLeaveSubscription = undefined;
-    const decision = this.roleScopePanel?.canLeave() ?? true;
-    if (typeof decision === 'boolean') {
-      if (decision) action();
-      return;
-    }
-    this.panelLeaveSubscription = decision.subscribe(allow => {
-      if (allow && !this.destroyRef.destroyed) action();
     });
   }
 
@@ -477,6 +437,47 @@ export class RolesComponent implements OnInit {
       return;
     }
     this.deleteRole(target);
+  }
+
+  private activateRole(role: Role): void {
+    if (this.destroyRef.destroyed) return;
+    this.permissionsRequest?.unsubscribe();
+    this.selectedRole.set(role);
+    this.rolePermissions.set(new Set());
+    this.originalRolePermissions.set(new Set());
+    this.loadedPermissionsRoleId.set(null);
+    this.permissionsError.set('');
+    this.isLoading.set(true);
+    this.permissionsRequest = this.api.get<string[]>(`/rbac/roles/${role.id}/permissions`, undefined, { notifyError: false })
+      .pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: res => {
+        if (this.selectedRole()?.id !== role.id) return;
+        const perms = new Set(res || []);
+        this.rolePermissions.set(new Set(perms));
+        this.originalRolePermissions.set(new Set(perms));
+        this.loadedPermissionsRoleId.set(role.id);
+        this.isLoading.set(false);
+      },
+      error: error => {
+        if (this.selectedRole()?.id !== role.id) return;
+        this.permissionsError.set(error.detail || error.title);
+        this.isLoading.set(false);
+      }
+    });
+  }
+
+  private afterRoleScopeLeave(action: () => void): void {
+    if (this.destroyRef.destroyed) return;
+    this.panelLeaveSubscription?.unsubscribe();
+    this.panelLeaveSubscription = undefined;
+    const decision = this.roleScopePanel?.canLeave() ?? true;
+    if (typeof decision === 'boolean') {
+      if (decision) action();
+      return;
+    }
+    this.panelLeaveSubscription = decision.subscribe(allow => {
+      if (allow && !this.destroyRef.destroyed) action();
+    });
   }
 
   private deleteRole(target: Role): void {

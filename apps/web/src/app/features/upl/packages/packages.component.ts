@@ -335,32 +335,26 @@ export class PackagesComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(I18nService);
 
-  @ViewChild('fileInput') fileInput?: ElementRef<HTMLInputElement>;
-
   private readonly queryMeta = inject(QueryMetaService);
   private readonly destroyRef = inject(DestroyRef);
 
-  /** Field metadata of the list (`query-meta/upl.packages`). */
-  readonly meta = signal<QueryListMeta | null>(null);
-  readonly metaError = signal(false);
-  readonly views = new ListViewState('upl.packages', inject(ListViewsApi), {
-    defaultSort: () => {
-      const meta = this.meta();
-      return meta ? parseSort(meta.defaultSort) : null;
-    },
-    onApply: () => this.pager.first(),
-    columnsStore: inject(TableColumnStateStore)
-  });
-  readonly pager = new KeysetPager<UplPackageItem>(
-    (cursor, limit) => this.api.list(limit, cursor, { sort: this.views.sort(), conditions: this.views.filter() }),
-    { pageSize: PAGE_SIZE, destroyRef: this.destroyRef, onLoaded: rows => this.syncSelected(rows) }
-  );
-  readonly items = this.pager.items;
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   private readonly uploadedAtCell = viewChild.required<TemplateRef<unknown>>('uploadedAtCell');
   private readonly periodCell = viewChild.required<TemplateRef<unknown>>('periodCell');
   private readonly statusCell = viewChild.required<TemplateRef<unknown>>('statusCell');
   private readonly rowsCell = viewChild.required<TemplateRef<unknown>>('rowsCell');
+
+  /** Field metadata of the list (`query-meta/upl.packages`). */
+  readonly meta = signal<QueryListMeta | null>(null);
+  readonly metaError = signal(false);
+  readonly selected = signal<UplPackageItem | null>(null);
+
+  /** Options of the source lookup: the rows the last search returned, with the chosen one kept. */
+  readonly sourceOptions = signal<SMTSelectOption<number>[]>([]);
+  readonly isSending = signal(false);
+  readonly formErrors = signal<UplPackageFormErrors>(emptyFormErrors());
 
   readonly tableConfig = computed<TableConfig<UplPackageItem> | null>(() => {
     const meta = this.meta();
@@ -378,18 +372,26 @@ export class PackagesComponent implements OnInit {
       }
     });
   });
-  readonly selected = signal<UplPackageItem | null>(null);
-
-  private readonly router = inject(Router);
-  private readonly route = inject(ActivatedRoute);
-
-  /** Options of the source lookup: the rows the last search returned, with the chosen one kept. */
-  readonly sourceOptions = signal<SMTSelectOption<number>[]>([]);
   readonly sourceColumns = computed(() => [
     this.i18n.translate('upl.list.col.code'),
     this.i18n.translate('upl.list.col.periodicity'),
     this.i18n.translate('upl.list.col.published_version')
   ]);
+
+  @ViewChild('fileInput') fileInput?: ElementRef<HTMLInputElement>;
+  readonly views = new ListViewState('upl.packages', inject(ListViewsApi), {
+    defaultSort: () => {
+      const meta = this.meta();
+      return meta ? parseSort(meta.defaultSort) : null;
+    },
+    onApply: () => this.pager.first(),
+    columnsStore: inject(TableColumnStateStore)
+  });
+  readonly pager = new KeysetPager<UplPackageItem>(
+    (cursor, limit) => this.api.list(limit, cursor, { sort: this.views.sort(), conditions: this.views.filter() }),
+    { pageSize: PAGE_SIZE, destroyRef: this.destroyRef, onLoaded: rows => this.syncSelected(rows) }
+  );
+  readonly items = this.pager.items;
   readonly selectedSource = () => this.form.sourceId;
   readonly sourceLookup = new LookupChannel<UplSourceItem, number | null>(
     (query, cursor, pageSize) => this.api.searchSources(query, cursor, pageSize),
@@ -404,8 +406,6 @@ export class PackagesComponent implements OnInit {
     null,
     { pageSize: 20 }
   );
-  readonly isSending = signal(false);
-  readonly formErrors = signal<UplPackageFormErrors>(emptyFormErrors());
 
   readonly statusKey = UPL_PACKAGE_STATUS_KEY;
   readonly statusVariant = UPL_PACKAGE_STATUS_VARIANT;
@@ -413,6 +413,9 @@ export class PackagesComponent implements OnInit {
   form: PackageUploadForm = emptyForm();
 
   private readonly translate: UplTranslate = (key, params) => this.i18n.translate(key, params);
+
+  /** The published format version of each source seen in the lookup, for the template link. */
+  private readonly publishedVersions = new Map<number, number | null>();
 
   ngOnInit(): void {
     this.load();
@@ -468,15 +471,6 @@ export class PackagesComponent implements OnInit {
     void this.router.navigate(['/upl/sources'], { queryParams: { create: name, returnTo: 'packages' } });
   }
 
-  private chooseSource(source: UplSource | UplSourceItem): void {
-    const option = this.sourceOption(source);
-    this.sourceOptions.update(current => [option, ...current.filter(item => item.id !== option.id)]);
-    this.form = { ...this.form, sourceId: source.id };
-  }
-
-  /** The published format version of each source seen in the lookup, for the template link. */
-  private readonly publishedVersions = new Map<number, number | null>();
-
   /**
    * The file to fill for the chosen source: the template of its latest published format version,
    * so a supplier starts from the right headers. None until a source with a published version is chosen.
@@ -487,19 +481,6 @@ export class PackagesComponent implements OnInit {
     if (id === null || id === undefined || version === null) return null;
     const lang = encodeURIComponent(this.i18n.currentLang());
     return { href: `/api/v1/upl/sources/${id}/format-versions/${version}/template?lang=${lang}`, version };
-  }
-
-  private sourceOption(source: UplSource | UplSourceItem): SMTSelectOption<number> {
-    this.publishedVersions.set(source.id, source.lastPublishedVersion ?? null);
-    return {
-      id: source.id,
-      label: source.name,
-      columns: [
-        source.code,
-        this.i18n.translate(UPL_PERIODICITY_KEY[source.periodicity]),
-        source.lastPublishedVersion === null || source.lastPublishedVersion === undefined ? '—' : String(source.lastPublishedVersion)
-      ]
-    };
   }
 
   /** The list's metadata once, then its first page; later calls reload the first page (after an upload or a retry). */
@@ -583,6 +564,25 @@ export class PackagesComponent implements OnInit {
 
   closeCard(): void {
     this.selected.set(null);
+  }
+
+  private chooseSource(source: UplSource | UplSourceItem): void {
+    const option = this.sourceOption(source);
+    this.sourceOptions.update(current => [option, ...current.filter(item => item.id !== option.id)]);
+    this.form = { ...this.form, sourceId: source.id };
+  }
+
+  private sourceOption(source: UplSource | UplSourceItem): SMTSelectOption<number> {
+    this.publishedVersions.set(source.id, source.lastPublishedVersion ?? null);
+    return {
+      id: source.id,
+      label: source.name,
+      columns: [
+        source.code,
+        this.i18n.translate(UPL_PERIODICITY_KEY[source.periodicity]),
+        source.lastPublishedVersion === null || source.lastPublishedVersion === undefined ? '—' : String(source.lastPublishedVersion)
+      ]
+    };
   }
 
   /** После успеха чистим только файл: источник и период нужны для следующего файла. */

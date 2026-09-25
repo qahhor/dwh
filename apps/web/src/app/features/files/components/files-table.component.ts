@@ -255,22 +255,16 @@ import { OrderBy, TableConfig } from '../../../shared/ui-kit/components/table/ta
   `]
 })
 export class FilesTableComponent {
+  private readonly i18n = inject(I18nService);
+
   readonly pager = input.required<KeysetPager<FileDetail>>();
+
   readonly meta = input<QueryListMeta | null>(null);
   readonly views = input<ListViewState | null>(null);
   /** The search text and scope on screen, so an export matches the list shown. */
   readonly exportSearch = input<string | null>(null);
   readonly exportOptions = input<Record<string, string> | null>(null);
-  @Input() isDeleting: boolean = false;
-  @Input() canDeleteFn: (file: FileDetail) => boolean = () => false;
 
-  @Output() download = new EventEmitter<FileDetail>();
-  /** An image asked to be shown in the preview. */
-  @Output() preview = new EventEmitter<FileDetail>();
-  @Output() delete = new EventEmitter<FileDetail>();
-  @Output() sortChange = new EventEmitter<{ column: string; sortBy: OrderBy } | undefined>();
-
-  private readonly i18n = inject(I18nService);
   private readonly nameCell = viewChild.required<TemplateRef<unknown>>('nameCell');
   private readonly sizeCell = viewChild.required<TemplateRef<unknown>>('sizeCell');
   private readonly mimeCell = viewChild.required<TemplateRef<unknown>>('mimeCell');
@@ -313,6 +307,15 @@ export class FilesTableComponent {
       columnsOrder: [...base.columnsOrder, 'actions']
     };
   });
+
+  @Input() isDeleting: boolean = false;
+  @Input() canDeleteFn: (file: FileDetail) => boolean = () => false;
+
+  @Output() download = new EventEmitter<FileDetail>();
+  /** An image asked to be shown in the preview. */
+  @Output() preview = new EventEmitter<FileDetail>();
+  @Output() delete = new EventEmitter<FileDetail>();
+  @Output() sortChange = new EventEmitter<{ column: string; sortBy: OrderBy } | undefined>();
 
   kindOf(file: FileDetail): SMTFileKind {
     return fileKind(file.mimeType, file.originalName);

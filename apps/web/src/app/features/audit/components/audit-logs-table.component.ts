@@ -354,24 +354,17 @@ import { AuditRecord } from '../audit.models';
   `]
 })
 export class AuditLogsTableComponent {
-  @Input({ required: true }) pager!: KeysetPager<AuditRecord>;
+  private readonly i18n = inject(I18nService);
 
-  @Input() tableFilter = '';
-  @Input() eventFilter = '';
-  @Input() rowPkFilter = '';
-  @Input() auditUserFilter = '';
-  @Input() set auditFromFilter(value: string) {
-    this.periodFrom.set(value ?? '');
-  }
-  get auditFromFilter(): string {
-    return this.periodFrom();
-  }
-  @Input() set auditToFilter(value: string) {
-    this.periodTo.set(value ?? '');
-  }
-  get auditToFilter(): string {
-    return this.periodTo();
-  }
+  readonly emptyState = viewChild.required<TemplateRef<unknown>>('emptyStateTpl');
+  private readonly idCell = viewChild.required<TemplateRef<unknown>>('idCell');
+  private readonly tableCell = viewChild.required<TemplateRef<unknown>>('tableCell');
+  private readonly pkCell = viewChild.required<TemplateRef<unknown>>('pkCell');
+  private readonly eventCell = viewChild.required<TemplateRef<unknown>>('eventCell');
+  private readonly userCell = viewChild.required<TemplateRef<unknown>>('userCell');
+  private readonly channelCell = viewChild.required<TemplateRef<unknown>>('channelCell');
+  private readonly dateCell = viewChild.required<TemplateRef<unknown>>('dateCell');
+  private readonly diffCell = viewChild.required<TemplateRef<unknown>>('diffCell');
 
   private readonly periodFrom = signal('');
   private readonly periodTo = signal('');
@@ -382,28 +375,6 @@ export class AuditLogsTableComponent {
     const to = this.periodTo();
     return from || to ? { from: from || null, to: to || null } : null;
   });
-
-  @Output() tableFilterChange = new EventEmitter<string>();
-  @Output() eventFilterChange = new EventEmitter<string>();
-  @Output() rowPkFilterChange = new EventEmitter<string>();
-  @Output() auditUserFilterChange = new EventEmitter<string>();
-  @Output() auditFromFilterChange = new EventEmitter<string>();
-  @Output() auditToFilterChange = new EventEmitter<string>();
-
-  @Output() applyFilters = new EventEmitter<void>();
-  @Output() resetFilters = new EventEmitter<void>();
-  @Output() selectRecord = new EventEmitter<AuditRecord>();
-
-  private readonly i18n = inject(I18nService);
-  private readonly idCell = viewChild.required<TemplateRef<unknown>>('idCell');
-  private readonly tableCell = viewChild.required<TemplateRef<unknown>>('tableCell');
-  private readonly pkCell = viewChild.required<TemplateRef<unknown>>('pkCell');
-  private readonly eventCell = viewChild.required<TemplateRef<unknown>>('eventCell');
-  private readonly userCell = viewChild.required<TemplateRef<unknown>>('userCell');
-  private readonly channelCell = viewChild.required<TemplateRef<unknown>>('channelCell');
-  private readonly dateCell = viewChild.required<TemplateRef<unknown>>('dateCell');
-  private readonly diffCell = viewChild.required<TemplateRef<unknown>>('diffCell');
-  readonly emptyState = viewChild.required<TemplateRef<unknown>>('emptyStateTpl');
 
   readonly tableConfig = computed<TableConfig<AuditRecord>>(() => {
     const header = (value: string) => ({ type: 'primitive' as const, value });
@@ -427,6 +398,37 @@ export class AuditLogsTableComponent {
       },
     };
   });
+
+  @Input({ required: true }) pager!: KeysetPager<AuditRecord>;
+
+  @Input() tableFilter = '';
+  @Input() eventFilter = '';
+  @Input() rowPkFilter = '';
+  @Input() auditUserFilter = '';
+
+  @Output() tableFilterChange = new EventEmitter<string>();
+  @Output() eventFilterChange = new EventEmitter<string>();
+  @Output() rowPkFilterChange = new EventEmitter<string>();
+  @Output() auditUserFilterChange = new EventEmitter<string>();
+  @Output() auditFromFilterChange = new EventEmitter<string>();
+  @Output() auditToFilterChange = new EventEmitter<string>();
+
+  @Output() applyFilters = new EventEmitter<void>();
+  @Output() resetFilters = new EventEmitter<void>();
+  @Output() selectRecord = new EventEmitter<AuditRecord>();
+
+  @Input() set auditFromFilter(value: string) {
+    this.periodFrom.set(value ?? '');
+  }
+  get auditFromFilter(): string {
+    return this.periodFrom();
+  }
+  @Input() set auditToFilter(value: string) {
+    this.periodTo.set(value ?? '');
+  }
+  get auditToFilter(): string {
+    return this.periodTo();
+  }
 
   getEventName(event: string): string {
     switch (event) {

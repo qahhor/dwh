@@ -283,26 +283,6 @@ import { TableConfig } from '../../../../shared/ui-kit/components/table/table.ty
 export class CustomFieldsTableComponent {
   private readonly uiI18n = inject(I18nService);
 
-  @Input() set fields(fields: CustomField[]) {
-    this.rows.set(fields ?? []);
-  }
-  @Input() isLoading = false;
-  private readonly rights = signal({ manage: false, edit: false, remove: false });
-  @Input() set canManage(value: boolean) { this.rights.update(r => ({ ...r, manage: value })); }
-  get canManage(): boolean { return this.rights().manage; }
-  @Input() set canEdit(value: boolean) { this.rights.update(r => ({ ...r, edit: value })); }
-  get canEdit(): boolean { return this.rights().edit; }
-  @Input() set canDelete(value: boolean) { this.rights.update(r => ({ ...r, remove: value })); }
-  get canDelete(): boolean { return this.rights().remove; }
-  @Input() searchQuery = '';
-
-  @Output() copyCode = new EventEmitter<string>();
-  @Output() editField = new EventEmitter<CustomField>();
-  @Output() deleteField = new EventEmitter<CustomField>();
-  @Output() clearSearch = new EventEmitter<void>();
-  @Output() createField = new EventEmitter<void>();
-
-  readonly rows = signal<CustomField[]>([]);
   private readonly orderCell = viewChild.required<TemplateRef<unknown>>('orderCell');
   private readonly codeCell = viewChild.required<TemplateRef<unknown>>('codeCell');
   private readonly nameCell = viewChild.required<TemplateRef<unknown>>('nameCell');
@@ -312,15 +292,8 @@ export class CustomFieldsTableComponent {
   private readonly defaultCell = viewChild.required<TemplateRef<unknown>>('defaultCell');
   private readonly actionsCell = viewChild.required<TemplateRef<unknown>>('actionsCell');
 
-  /** Every field is loaded, so a header click (by keyboard too) sorts the whole list. */
-  readonly sortValues = {
-    orderNo: (f: CustomField) => f.orderNo ?? 0,
-    code: (f: CustomField) => f.code,
-    name: (f: CustomField) => f.name,
-    entityType: (f: CustomField) => this.getEntityLabel(f.entityType),
-    fieldType: (f: CustomField) => this.getTypeName(f.fieldType),
-    isRequired: (f: CustomField) => (f.isRequired ? 0 : 1)
-  };
+  readonly rows = signal<CustomField[]>([]);
+  private readonly rights = signal({ manage: false, edit: false, remove: false });
 
   readonly config = computed<TableConfig<CustomField>>(() => {
     const header = (key: string) => ({ type: 'primitive' as const, value: key === '#' ? '#' : this.uiI18n.translate(key) });
@@ -347,6 +320,35 @@ export class CustomFieldsTableComponent {
       columnsOrder: order
     };
   });
+
+  @Input() isLoading = false;
+  @Input() searchQuery = '';
+
+  @Output() copyCode = new EventEmitter<string>();
+  @Output() editField = new EventEmitter<CustomField>();
+  @Output() deleteField = new EventEmitter<CustomField>();
+  @Output() clearSearch = new EventEmitter<void>();
+  @Output() createField = new EventEmitter<void>();
+
+  /** Every field is loaded, so a header click (by keyboard too) sorts the whole list. */
+  readonly sortValues = {
+    orderNo: (f: CustomField) => f.orderNo ?? 0,
+    code: (f: CustomField) => f.code,
+    name: (f: CustomField) => f.name,
+    entityType: (f: CustomField) => this.getEntityLabel(f.entityType),
+    fieldType: (f: CustomField) => this.getTypeName(f.fieldType),
+    isRequired: (f: CustomField) => (f.isRequired ? 0 : 1)
+  };
+
+  @Input() set fields(fields: CustomField[]) {
+    this.rows.set(fields ?? []);
+  }
+  @Input() set canManage(value: boolean) { this.rights.update(r => ({ ...r, manage: value })); }
+  get canManage(): boolean { return this.rights().manage; }
+  @Input() set canEdit(value: boolean) { this.rights.update(r => ({ ...r, edit: value })); }
+  get canEdit(): boolean { return this.rights().edit; }
+  @Input() set canDelete(value: boolean) { this.rights.update(r => ({ ...r, remove: value })); }
+  get canDelete(): boolean { return this.rights().remove; }
 
   getEntityLabel(ent: string): string {
     switch ((ent || '').toUpperCase()) {

@@ -290,21 +290,9 @@ import { TrendDataPoint, ChartPoint, YAxisTick } from '../analytics.models';
   `]
 })
 export class AnalyticsTrendChartComponent {
-  private _trends = signal<TrendDataPoint[]>([]);
-
-  @Input() set trends(value: TrendDataPoint[]) {
-    this._trends.set(value || []);
-  }
-  get trends(): TrendDataPoint[] {
-    return this._trends();
-  }
-
-  @Input() displayedRange = '7d';
-  @Input() loading = false;
-  @Input() error = '';
-
   hoveredPoint = signal<ChartPoint | null>(null);
   hoverIndex = signal<number | null>(null);
+  private _trends = signal<TrendDataPoint[]>([]);
 
   chartPoints = computed<ChartPoint[]>(() => {
     const list = this._trends();
@@ -378,6 +366,17 @@ export class AnalyticsTrendChartComponent {
     const first = pts[0];
     return `${line} L ${last.x} 190 L ${first.x} 190 Z`;
   });
+
+  @Input() displayedRange = '7d';
+  @Input() loading = false;
+  @Input() error = '';
+
+  @Input() set trends(value: TrendDataPoint[]) {
+    this._trends.set(value || []);
+  }
+  get trends(): TrendDataPoint[] {
+    return this._trends();
+  }
 
   setHoveredPoint(pt: ChartPoint, idx: number): void {
     this.hoveredPoint.set(pt);

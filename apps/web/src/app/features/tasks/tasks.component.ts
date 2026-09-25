@@ -65,24 +65,33 @@ export type { TaskDeadlineInfo, TaskCreateFormValue, TaskEditFormValue };
   styleUrl: './tasks.component.css'
 })
 export class TasksComponent implements OnInit, OnDestroy {
-  /** Texts of the radio options below; translated again when the language changes. */
-  private readonly optionText = inject(I18nService);
-
-  detailRecordId(): string | null {
-    return this.routeRecordId() ?? (this.selectedTask() ? String(this.selectedTask()!.id) : null);
-  }
-
-  private readonly uiI18n = inject(I18nService);
-  private readonly recordRouter = inject(Router, { optional: true });
-
   public readonly dictService = inject(TaskDictionariesService);
   public readonly lookupsService = inject(TaskLookupsService);
   public readonly detailsService = inject(TaskDetailsService);
   public readonly formsService = inject(TaskFormsService);
   public readonly kanbanService = inject(TaskKanbanService);
   public readonly filterService = inject(TaskFilterService);
+  /** Texts of the radio options below; translated again when the language changes. */
+  private readonly optionText = inject(I18nService);
+
+  private readonly uiI18n = inject(I18nService);
+  private readonly recordRouter = inject(Router, { optional: true });
 
   readonly routeRecordId = signal<string | null>(null);
+  readonly projects = signal<Project[]>([]);
+  readonly taskCustomFields = signal<CustomField[]>([]);
+
+  /** A user-typed custom field on the open card shows a name: unknown ones are asked for once. */
+  private readonly userFieldNames = effect(() => {
+    const attributes = this.selectedTask()?.attributes;
+    if (!attributes) return;
+    const ids = this.taskCustomFields()
+      .filter(field => field.fieldType === 'user_ref')
+      .map(field => Number(attributes[field.code]))
+      .filter(id => Number.isSafeInteger(id) && id > 0);
+    untracked(() => this.lookupsService.resolveUserNames(ids));
+  });
+
   readonly detailNotFound = this.detailsService.detailNotFound;
   readonly safeRecordId = safeNumericRecordId;
   private recordRouteSubscription?: Subscription;
@@ -98,41 +107,10 @@ export class TasksComponent implements OnInit, OnDestroy {
   );
   /** Writable: kanban and inline edits update rows in place. */
   readonly tasks = this.taskPager.items;
-  readonly projects = signal<Project[]>([]);
-  readonly taskCustomFields = signal<CustomField[]>([]);
-
-  /** A user-typed custom field on the open card shows a name: unknown ones are asked for once. */
-  private readonly userFieldNames = effect(() => {
-    const attributes = this.selectedTask()?.attributes;
-    if (!attributes) return;
-    const ids = this.taskCustomFields()
-      .filter(field => field.fieldType === 'user_ref')
-      .map(field => Number(attributes[field.code]))
-      .filter(id => Number.isSafeInteger(id) && id > 0);
-    untracked(() => this.lookupsService.resolveUserNames(ids));
-  });
 
   readonly isLoading = this.taskPager.loading;
   readonly listLoadError = this.taskPager.failed;
   readonly hasMore = this.taskPager.canGoForward;
-
-  // Filter delegates
-  get activePreset() { return this.filterService.activePreset; }
-  set activePreset(v) { this.filterService.activePreset = v; }
-  get viewMode() { return this.filterService.viewMode; }
-  set viewMode(v) { this.filterService.viewMode = v; }
-  get searchQuery() { return this.filterService.searchQuery; }
-  set searchQuery(v) { this.filterService.searchQuery = v; }
-  get selectedPriority() { return this.filterService.selectedPriority; }
-  set selectedPriority(v) { this.filterService.selectedPriority = v; }
-  get selectedProjectId() { return this.filterService.selectedProjectId; }
-  set selectedProjectId(v) { this.filterService.selectedProjectId = v; }
-  get statusFilterMode() { return this.filterService.statusFilterMode; }
-  set statusFilterMode(v) { this.filterService.statusFilterMode = v; }
-  get currentPage() { return this.taskPager.page(); }
-  get pageSize() { return this.taskPager.pageSize(); }
-  get showExportMenu() { return this.filterService.showExportMenu; }
-  set showExportMenu(v) { this.filterService.showExportMenu = v; }
 
   // Delegated signals from Dictionaries Service
   readonly statuses = this.dictService.statuses;
@@ -153,30 +131,14 @@ export class TasksComponent implements OnInit, OnDestroy {
   readonly commentsLoading = this.detailsService.commentsLoading;
   readonly commentsLoadError = this.detailsService.commentsLoadError;
   readonly isCommentSubmitting = this.detailsService.isCommentSubmitting;
-  get commentDraft() { return this.detailsService.commentDraft; }
-  set commentDraft(v: string) { this.detailsService.commentDraft = v; }
 
   // Delegated signals from Forms Service
   readonly isCreateModalOpen = this.formsService.isCreateModalOpen;
-  get isCreateSubmitted() { return this.formsService.isCreateSubmitted; }
-  set isCreateSubmitted(v: boolean) { this.formsService.isCreateSubmitted = v; }
-  get createForm() { return this.formsService.createForm; }
-  set createForm(f: TaskCreateFormValue) { this.formsService.createForm = f; }
   readonly isEditModalOpen = this.formsService.isEditModalOpen;
   readonly isEditDiscardConfirmationOpen = this.formsService.isEditDiscardConfirmationOpen;
-  get isEditSubmitted() { return this.formsService.isEditSubmitted; }
-  set isEditSubmitted(v: boolean) { this.formsService.isEditSubmitted = v; }
   readonly editLoading = this.formsService.editLoading;
   readonly editLoadError = this.formsService.editLoadError;
   readonly isSubmitting = this.formsService.isSubmitting;
-  get editingTask() { return this.formsService.editingTask; }
-  set editingTask(t: Task | null) { this.formsService.editingTask = t; }
-  get editForm() { return this.formsService.editForm; }
-  set editForm(f: TaskEditFormValue) { this.formsService.editForm = f; }
-
-  // Delegated getters from Kanban Service
-  get draggedTask() { return this.kanbanService.draggedTask; }
-  set draggedTask(t: Task | null) { this.kanbanService.draggedTask = t; }
 
   // Function delegates for templates
   readonly getDeadlineInfoFn = (e: string | null | undefined, id: number) => this.getDeadlineInfo(e, id);
@@ -190,12 +152,52 @@ export class TasksComponent implements OnInit, OnDestroy {
   readonly getStatusColorFn = (id: number | null | undefined) => this.getStatusColor(id);
   readonly getStatusNameFn = (id: number | null | undefined) => this.getStatusName(id);
 
+  private readonly viewMemo = optionsMemo<SMTRadioOption<'table' | 'kanban'>[]>();
+
   constructor(
     public permService: PermissionService,
     private api: ApiService,
     private toast: ToastService,
     private route: ActivatedRoute
   ) {}
+
+  detailRecordId(): string | null {
+    return this.routeRecordId() ?? (this.selectedTask() ? String(this.selectedTask()!.id) : null);
+  }
+
+  // Filter delegates
+  get activePreset() { return this.filterService.activePreset; }
+  set activePreset(v) { this.filterService.activePreset = v; }
+  get viewMode() { return this.filterService.viewMode; }
+  set viewMode(v) { this.filterService.viewMode = v; }
+  get searchQuery() { return this.filterService.searchQuery; }
+  set searchQuery(v) { this.filterService.searchQuery = v; }
+  get selectedPriority() { return this.filterService.selectedPriority; }
+  set selectedPriority(v) { this.filterService.selectedPriority = v; }
+  get selectedProjectId() { return this.filterService.selectedProjectId; }
+  set selectedProjectId(v) { this.filterService.selectedProjectId = v; }
+  get statusFilterMode() { return this.filterService.statusFilterMode; }
+  set statusFilterMode(v) { this.filterService.statusFilterMode = v; }
+  get currentPage() { return this.taskPager.page(); }
+  get pageSize() { return this.taskPager.pageSize(); }
+  get showExportMenu() { return this.filterService.showExportMenu; }
+  set showExportMenu(v) { this.filterService.showExportMenu = v; }
+  get commentDraft() { return this.detailsService.commentDraft; }
+  set commentDraft(v: string) { this.detailsService.commentDraft = v; }
+  get isCreateSubmitted() { return this.formsService.isCreateSubmitted; }
+  set isCreateSubmitted(v: boolean) { this.formsService.isCreateSubmitted = v; }
+  get createForm() { return this.formsService.createForm; }
+  set createForm(f: TaskCreateFormValue) { this.formsService.createForm = f; }
+  get isEditSubmitted() { return this.formsService.isEditSubmitted; }
+  set isEditSubmitted(v: boolean) { this.formsService.isEditSubmitted = v; }
+  get editingTask() { return this.formsService.editingTask; }
+  set editingTask(t: Task | null) { this.formsService.editingTask = t; }
+  get editForm() { return this.formsService.editForm; }
+  set editForm(f: TaskEditFormValue) { this.formsService.editForm = f; }
+
+  // Delegated getters from Kanban Service
+  get draggedTask() { return this.kanbanService.draggedTask; }
+  set draggedTask(t: Task | null) { this.kanbanService.draggedTask = t; }
 
   ngOnInit() {
     this.routeSubscription = this.route.queryParams.subscribe(params => {
@@ -260,11 +262,6 @@ export class TasksComponent implements OnInit, OnDestroy {
     this.loadTasks(true);
   }
 
-  /** The answer in flight is for the old query: drop it and show the list as busy. */
-  private cancelListRequestForFilterChange() {
-    this.taskPager.invalidate();
-  }
-
   retryTaskList() {
     if (this.isLoading()) return;
     this.taskPager.retry();
@@ -318,10 +315,6 @@ export class TasksComponent implements OnInit, OnDestroy {
       },
       () => this.loadTasks(true)
     );
-  }
-
-  private applyStatusToVisibleTasks(taskId: number, statusId: number) {
-    this.kanbanService.applyStatusToVisibleTasks(taskId, statusId, this.statuses(), this.statusFilterMode, this.tasks);
   }
 
   exportTasks(format: 'xlsx' | 'csv'): void {
@@ -437,12 +430,19 @@ export class TasksComponent implements OnInit, OnDestroy {
   hasAttributes(attrs: any) { return hasAttributes(attrs); }
   formatAttributes(attrs: any) { return formatAttributes(attrs, this.taskCustomFields(), id => this.lookupsService.nameOf(id), this.uiI18n); }
 
-  private readonly viewMemo = optionsMemo<SMTRadioOption<'table' | 'kanban'>[]>();
-
   viewOptions(): SMTRadioOption<'table' | 'kanban'>[] {
     return this.viewMemo([this.optionText.currentLang()], () => [
       { value: 'table', label: this.optionText.translate('projects.spisok'), icon: 'table_rows', title: this.optionText.translate('tasks.tablichnyy_vid') },
       { value: 'kanban', label: this.optionText.translate('tasks.kanban'), icon: 'view_kanban', title: this.optionText.translate('tasks.kanban_doska') },
     ]);
+  }
+
+  /** The answer in flight is for the old query: drop it and show the list as busy. */
+  private cancelListRequestForFilterChange() {
+    this.taskPager.invalidate();
+  }
+
+  private applyStatusToVisibleTasks(taskId: number, statusId: number) {
+    this.kanbanService.applyStatusToVisibleTasks(taskId, statusId, this.statuses(), this.statusFilterMode, this.tasks);
   }
 }

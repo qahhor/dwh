@@ -223,26 +223,16 @@ import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
   `]
 })
 export class AnalyticsWorkloadTableComponent {
-  private _workload = signal<UserWorkload[]>([]);
-
-  @Input() set workload(value: UserWorkload[]) {
-    this._workload.set(value || []);
-  }
-  get workload(): UserWorkload[] {
-    return this._workload();
-  }
-
-  @Input() loading = false;
-  @Input() error = '';
-
-  searchUserQuery = signal('');
-
   private readonly i18n = inject(I18nService);
+
   private readonly userCell = viewChild.required<TemplateRef<unknown>>('userCell');
   private readonly loginCell = viewChild.required<TemplateRef<unknown>>('loginCell');
   private readonly assignedCell = viewChild.required<TemplateRef<unknown>>('assignedCell');
   private readonly completedCell = viewChild.required<TemplateRef<unknown>>('completedCell');
   private readonly efficiencyCell = viewChild.required<TemplateRef<unknown>>('efficiencyCell');
+
+  searchUserQuery = signal('');
+  private _workload = signal<UserWorkload[]>([]);
 
   /**
    * The people matching the search, busiest first (by name on a tie). This is
@@ -259,15 +249,6 @@ export class AnalyticsWorkloadTableComponent {
     }
     return [...list].sort((a, b) => b.assignedTasks - a.assignedTasks || a.userName.localeCompare(b.userName));
   });
-
-  /** The whole team is loaded, so a header click sorts every person, not a page. */
-  readonly sortValues = {
-    name: (u: UserWorkload) => u.userName,
-    login: (u: UserWorkload) => u.userLogin,
-    assigned: (u: UserWorkload) => u.assignedTasks,
-    completed: (u: UserWorkload) => u.completedTasks,
-    efficiency: (u: UserWorkload) => this.efficiencyOf(u)
-  };
 
   readonly config = computed<TableConfig<UserWorkload>>(() => {
     const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
@@ -286,6 +267,25 @@ export class AnalyticsWorkloadTableComponent {
       columnsOrder: ['name', 'login', 'assigned', 'completed', 'efficiency']
     };
   });
+
+  @Input() loading = false;
+  @Input() error = '';
+
+  /** The whole team is loaded, so a header click sorts every person, not a page. */
+  readonly sortValues = {
+    name: (u: UserWorkload) => u.userName,
+    login: (u: UserWorkload) => u.userLogin,
+    assigned: (u: UserWorkload) => u.assignedTasks,
+    completed: (u: UserWorkload) => u.completedTasks,
+    efficiency: (u: UserWorkload) => this.efficiencyOf(u)
+  };
+
+  @Input() set workload(value: UserWorkload[]) {
+    this._workload.set(value || []);
+  }
+  get workload(): UserWorkload[] {
+    return this._workload();
+  }
 
   /** Share of assigned tasks that are done; nobody assigned counts as none done. */
   efficiencyOf(u: UserWorkload): number {

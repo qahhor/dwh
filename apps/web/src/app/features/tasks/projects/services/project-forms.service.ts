@@ -15,6 +15,18 @@ export class ProjectFormsService {
   private readonly permService = inject(PermissionService);
   private readonly toast = inject(ToastService);
   private readonly uiI18n = inject(I18nService);
+
+  readonly isSubmitting = signal<boolean>(false);
+  readonly editLoading = signal<boolean>(false);
+  readonly editLoadError = signal<boolean>(false);
+  readonly createSaveError = signal<string | null>(null);
+  readonly editSaveError = signal<string | null>(null);
+
+  readonly isCreateModalOpen = signal<boolean>(false);
+  readonly isEditModalOpen = signal<boolean>(false);
+  readonly isCreateDiscardConfirmationOpen = signal<boolean>(false);
+  readonly isEditDiscardConfirmationOpen = signal<boolean>(false);
+
   private readonly navigationDecision = new RecordNavigationDecision();
 
   private editDetailRequest?: Subscription;
@@ -25,19 +37,8 @@ export class ProjectFormsService {
   private editSaveRequestId = 0;
   private destroyed = false;
 
-  readonly isSubmitting = signal<boolean>(false);
-  readonly editLoading = signal<boolean>(false);
-  readonly editLoadError = signal<boolean>(false);
-  readonly createSaveError = signal<string | null>(null);
-  readonly editSaveError = signal<string | null>(null);
-
   isCreateSubmitted = false;
   isEditSubmitted = false;
-
-  readonly isCreateModalOpen = signal<boolean>(false);
-  readonly isEditModalOpen = signal<boolean>(false);
-  readonly isCreateDiscardConfirmationOpen = signal<boolean>(false);
-  readonly isEditDiscardConfirmationOpen = signal<boolean>(false);
 
   createForm: ProjectCreateForm = { name: '', description: '', attributes: {} };
   editForm: ProjectEditForm = { name: '', description: '', state: 'A', attributes: {} };
@@ -277,54 +278,6 @@ export class ProjectFormsService {
     });
   }
 
-  private loadEditDetails(projectId: number) {
-    const requestId = ++this.editDetailRequestId;
-    this.editDetailRequest?.unsubscribe();
-    this.editLoading.set(true);
-    this.editLoadError.set(false);
-    this.editSaveError.set(null);
-    this.editingProject = null;
-    this.editFormBaseline = null;
-
-    this.editDetailRequest = this.api.get<Project>(`/tasks/projects/${projectId}`, undefined, { notifyError: false }).subscribe({
-      next: project => {
-        if (
-          this.destroyed
-          || requestId !== this.editDetailRequestId
-          || !this.isEditModalOpen()
-          || this.isCreateModalOpen()
-          || this.editTargetId !== projectId
-        ) return;
-        this.editLoading.set(false);
-        if (!project || project.id !== projectId) {
-          this.editLoadError.set(true);
-          return;
-        }
-        const normalized: ProjectEditForm = {
-          name: project.name.trim(),
-          description: (project.description || '').trim(),
-          state: project.state
-        };
-        if (project.attributes && Object.keys(project.attributes).length > 0) {
-          normalized.attributes = { ...project.attributes };
-        }
-        this.editingProject = project;
-        this.editForm = { ...normalized };
-        this.editFormBaseline = { ...normalized, ...(normalized.attributes ? { attributes: { ...normalized.attributes } } : {}) };
-      },
-      error: () => {
-        if (
-          this.destroyed
-          || requestId !== this.editDetailRequestId
-          || !this.isEditModalOpen()
-          || this.editTargetId !== projectId
-        ) return;
-        this.editLoading.set(false);
-        this.editLoadError.set(true);
-      }
-    });
-  }
-
   isCreateDraftDirty(): boolean {
     return this.createForm.name !== this.createFormBaseline.name
       || this.createForm.description !== this.createFormBaseline.description
@@ -378,5 +331,53 @@ export class ProjectFormsService {
     if (this.isCreateModalOpen()) this.closeCreateModal();
     if (this.isEditModalOpen()) this.closeEditModal();
     return true;
+  }
+
+  private loadEditDetails(projectId: number) {
+    const requestId = ++this.editDetailRequestId;
+    this.editDetailRequest?.unsubscribe();
+    this.editLoading.set(true);
+    this.editLoadError.set(false);
+    this.editSaveError.set(null);
+    this.editingProject = null;
+    this.editFormBaseline = null;
+
+    this.editDetailRequest = this.api.get<Project>(`/tasks/projects/${projectId}`, undefined, { notifyError: false }).subscribe({
+      next: project => {
+        if (
+          this.destroyed
+          || requestId !== this.editDetailRequestId
+          || !this.isEditModalOpen()
+          || this.isCreateModalOpen()
+          || this.editTargetId !== projectId
+        ) return;
+        this.editLoading.set(false);
+        if (!project || project.id !== projectId) {
+          this.editLoadError.set(true);
+          return;
+        }
+        const normalized: ProjectEditForm = {
+          name: project.name.trim(),
+          description: (project.description || '').trim(),
+          state: project.state
+        };
+        if (project.attributes && Object.keys(project.attributes).length > 0) {
+          normalized.attributes = { ...project.attributes };
+        }
+        this.editingProject = project;
+        this.editForm = { ...normalized };
+        this.editFormBaseline = { ...normalized, ...(normalized.attributes ? { attributes: { ...normalized.attributes } } : {}) };
+      },
+      error: () => {
+        if (
+          this.destroyed
+          || requestId !== this.editDetailRequestId
+          || !this.isEditModalOpen()
+          || this.editTargetId !== projectId
+        ) return;
+        this.editLoading.set(false);
+        this.editLoadError.set(true);
+      }
+    });
   }
 }

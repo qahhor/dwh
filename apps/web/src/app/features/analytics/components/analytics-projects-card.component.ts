@@ -243,20 +243,8 @@ import { ProjectDistribution } from '../analytics.models';
   `]
 })
 export class AnalyticsProjectsCardComponent {
-  private _projects = signal<ProjectDistribution[]>([]);
-
-  @Input() set projects(value: ProjectDistribution[]) {
-    this._projects.set(value || []);
-  }
-  get projects(): ProjectDistribution[] {
-    return this._projects();
-  }
-
-  @Input() loading = false;
-  @Input() error = '';
-  @Output() projectClick = new EventEmitter<number>();
-
   searchProjectQuery = signal('');
+  private _projects = signal<ProjectDistribution[]>([]);
 
   filteredProjects = computed(() => {
     const query = this.searchProjectQuery().trim().toLowerCase();
@@ -264,6 +252,17 @@ export class AnalyticsProjectsCardComponent {
     if (!query) return list;
     return list.filter(p => p.projectName.toLowerCase().includes(query));
   });
+
+  @Input() loading = false;
+  @Input() error = '';
+  @Output() projectClick = new EventEmitter<number>();
+
+  @Input() set projects(value: ProjectDistribution[]) {
+    this._projects.set(value || []);
+  }
+  get projects(): ProjectDistribution[] {
+    return this._projects();
+  }
 
   getProgressColor(pct: number): string {
     if (pct >= 100) return 'var(--success)';

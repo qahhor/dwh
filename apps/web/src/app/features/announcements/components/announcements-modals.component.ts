@@ -159,11 +159,12 @@ export class AnnouncementsModalsComponent {
   private readonly uiI18n = inject(I18nService);
 
   readonly isEditorOpen = input.required<boolean>();
-  readonly editingId = input<number | null>(null);
   readonly isSaving = input.required<boolean>();
   readonly draftTitles = input.required<Record<string, string>>();
   readonly draftBodies = input.required<Record<string, string>>();
   readonly bannerType = input.required<AnnouncementBannerType>();
+
+  readonly editingId = input<number | null>(null);
 
   readonly closeEditor = output<void>();
   readonly saveDraft = output<void>();
@@ -174,6 +175,8 @@ export class AnnouncementsModalsComponent {
   readonly selectedLang = signal('ru');
 
   readonly availableLanguages = () => this.uiI18n.languages().filter(l => l.active);
+
+  private readonly tabsMemo = optionsMemo<SMTTabItem<string>[]>();
 
   get titleRu(): string {
     return this.draftTitles()['ru'] || '';
@@ -210,14 +213,11 @@ export class AnnouncementsModalsComponent {
     }
   }
 
-
   localizedValue(values: Record<string, string> | null | undefined): string {
     if (!values) return '';
     const current = this.uiI18n.currentLang();
     return values[current] ?? values['ru'] ?? Object.values(values).find(value => value?.trim().length > 0) ?? '';
   }
-
-  private readonly tabsMemo = optionsMemo<SMTTabItem<string>[]>();
 
   /** The languages to write in; Russian, the one required, is marked. */
   languageTabs(): SMTTabItem<string>[] {

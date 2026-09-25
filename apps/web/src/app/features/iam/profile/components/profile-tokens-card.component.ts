@@ -135,27 +135,16 @@ import { SMTRadioGroupComponent, SMTRadioOption } from '../../../../shared/ui-ki
   styleUrl: './profile-tokens-card.component.css'
 })
 export class ProfileTokensCardComponent {
-  @Input() set tokens(tokens: ApiToken[]) {
-    this.rows.set(tokens ?? []);
-  }
-  get tokens(): ApiToken[] {
-    return this.rows();
-  }
-
   private readonly i18n = inject(I18nService);
-  readonly rows = signal<ApiToken[]>([]);
+
   private readonly nameCell = viewChild.required<TemplateRef<unknown>>('tokenNameCell');
   private readonly prefixCell = viewChild.required<TemplateRef<unknown>>('tokenPrefixCell');
   private readonly createdCell = viewChild.required<TemplateRef<unknown>>('tokenCreatedCell');
   private readonly expiresCell = viewChild.required<TemplateRef<unknown>>('tokenExpiresCell');
   private readonly actionCell = viewChild.required<TemplateRef<unknown>>('tokenActionCell');
 
-  readonly sortValues = {
-    name: (t: ApiToken) => t.name,
-    prefix: (t: ApiToken) => t.tokenPrefix,
-    created: (t: ApiToken) => new Date(t.createdAt),
-    expires: (t: ApiToken) => (t.expiresAt ? new Date(t.expiresAt) : null)
-  };
+  readonly rows = signal<ApiToken[]>([]);
+  private readonly expirationSource = signal<TokenExpirationOption[]>([]);
 
   readonly config = computed<TableConfig<ApiToken>>(() => {
     const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
@@ -174,6 +163,16 @@ export class ProfileTokensCardComponent {
       columnsOrder: ['name', 'prefix', 'created', 'expires', 'action']
     };
   });
+  /** The lifetimes as radio items, translated again when the language changes. */
+  readonly expirationItems = computed<SMTRadioOption<string>[]>(() =>
+    this.expirationSource().map(option => ({ value: option.value, label: this.i18n.translate(option.labelKey) })));
+
+  readonly sortValues = {
+    name: (t: ApiToken) => t.name,
+    prefix: (t: ApiToken) => t.tokenPrefix,
+    created: (t: ApiToken) => new Date(t.createdAt),
+    expires: (t: ApiToken) => (t.expiresAt ? new Date(t.expiresAt) : null)
+  };
   @Input() isLoadingTokens = false;
   @Input() isCreatingToken = false;
   @Input() isCreateTokenModalOpen = false;
@@ -183,13 +182,6 @@ export class ProfileTokensCardComponent {
   @Input() selectedTokenExpiration = '90';
   @Input() createdTokenSecret = '';
   @Input() copiedSecret = false;
-  @Input() set tokenExpirationOptions(options: TokenExpirationOption[]) {
-    this.expirationSource.set(options);
-  }
-  private readonly expirationSource = signal<TokenExpirationOption[]>([]);
-  /** The lifetimes as radio items, translated again when the language changes. */
-  readonly expirationItems = computed<SMTRadioOption<string>[]>(() =>
-    this.expirationSource().map(option => ({ value: option.value, label: this.i18n.translate(option.labelKey) })));
 
   @Output() openCreateTokenModal = new EventEmitter<void>();
   @Output() closeCreateTokenModal = new EventEmitter<void>();
@@ -199,6 +191,16 @@ export class ProfileTokensCardComponent {
   @Output() closeSecretModal = new EventEmitter<void>();
   @Output() copySecret = new EventEmitter<void>();
   @Output() requestRevoke = new EventEmitter<ApiToken>();
+
+  @Input() set tokens(tokens: ApiToken[]) {
+    this.rows.set(tokens ?? []);
+  }
+  get tokens(): ApiToken[] {
+    return this.rows();
+  }
+  @Input() set tokenExpirationOptions(options: TokenExpirationOption[]) {
+    this.expirationSource.set(options);
+  }
 
   onExpirationChosen(value: string | null): void {
     if (value !== null) this.expirationChange.emit(value);

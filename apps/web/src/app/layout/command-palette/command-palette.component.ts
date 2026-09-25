@@ -151,29 +151,16 @@ export {
   styleUrl: './command-palette.component.css'
 })
 export class CommandPaletteComponent implements OnDestroy {
+  public readonly moduleService = inject(ModuleService);
   private readonly uiI18n = inject(I18nService);
   private readonly destroyRef = inject(DestroyRef);
-  private static nextId = 0;
 
-  searchQuery = '';
-  entityType = 'ALL';
   readonly metadata = signal<SearchResult | null>(null);
   readonly retrySeconds = signal(0);
-  private retryUntil = 0;
-  private cooldownTimer?: ReturnType<typeof setInterval>;
-  selectedIndex = 0;
   readonly isLoading = signal<boolean>(false);
   readonly results = signal<SearchHit[]>([]);
   readonly errorMessage = signal<string>('');
   readonly recentSearches = signal<string[]>([]);
-  private readonly searchSubject = new Subject<string | null>();
-  private readonly componentId = CommandPaletteComponent.nextId++;
-  readonly titleId = `command-palette-title-${this.componentId}`;
-  readonly inputId = `command-palette-input-${this.componentId}`;
-  readonly listboxId = `command-palette-results-${this.componentId}`;
-  public readonly moduleService = inject(ModuleService);
-  private previouslyFocusedElement: HTMLElement | null = null;
-  private wasOpen = false;
 
   readonly categories = computed<CategoryItem[]>(() => {
     const list: CategoryItem[] = [
@@ -187,6 +174,21 @@ export class CommandPaletteComponent implements OnDestroy {
     }
     return list;
   });
+
+  private static nextId = 0;
+
+  searchQuery = '';
+  entityType = 'ALL';
+  private retryUntil = 0;
+  private cooldownTimer?: ReturnType<typeof setInterval>;
+  selectedIndex = 0;
+  private readonly searchSubject = new Subject<string | null>();
+  private readonly componentId = CommandPaletteComponent.nextId++;
+  readonly titleId = `command-palette-title-${this.componentId}`;
+  readonly inputId = `command-palette-input-${this.componentId}`;
+  readonly listboxId = `command-palette-results-${this.componentId}`;
+  private previouslyFocusedElement: HTMLElement | null = null;
+  private wasOpen = false;
 
   @ViewChild('searchInput') private searchInput?: ElementRef<HTMLInputElement>;
 
@@ -318,11 +320,6 @@ export class CommandPaletteComponent implements OnDestroy {
     this.onSearchChange(this.searchQuery);
   }
 
-  private resetSearch(): void {
-    this.searchQuery = '';
-    this.onSearchChange('');
-  }
-
   optionId(index: number): string {
     return `${this.listboxId}-option-${index}`;
   }
@@ -341,6 +338,33 @@ export class CommandPaletteComponent implements OnDestroy {
     this.searchQuery = query;
     this.onSearchChange(query);
     this.searchInput?.nativeElement.focus();
+  }
+
+  clearRecentSearches() {
+    try {
+      this.recentSearches.set([]);
+      localStorage.removeItem(RECENT_SEARCHES_STORAGE_KEY);
+    } catch {
+      // localStorage may fail
+    }
+  }
+
+  queryLength(query: string): number { return Array.from(query.trim()).length; }
+
+  validQuery(query: string): boolean {
+    const length = this.queryLength(query);
+    return length >= 2 && length <= 200;
+  }
+
+  onBackdropClick(event: MouseEvent) {
+    if ((event.target as HTMLElement).classList.contains('palette-backdrop')) {
+      this.paletteService.close();
+    }
+  }
+
+  private resetSearch(): void {
+    this.searchQuery = '';
+    this.onSearchChange('');
   }
 
   private loadRecentSearches() {
@@ -368,22 +392,6 @@ export class CommandPaletteComponent implements OnDestroy {
     }
   }
 
-  clearRecentSearches() {
-    try {
-      this.recentSearches.set([]);
-      localStorage.removeItem(RECENT_SEARCHES_STORAGE_KEY);
-    } catch {
-      // localStorage may fail
-    }
-  }
-
-  queryLength(query: string): number { return Array.from(query.trim()).length; }
-
-  validQuery(query: string): boolean {
-    const length = this.queryLength(query);
-    return length >= 2 && length <= 200;
-  }
-
   private startCooldown(seconds: unknown): void {
     const bounded = typeof seconds === 'number' && Number.isSafeInteger(seconds) && seconds >= 0
       ? Math.min(seconds, 300) : 1;
@@ -394,12 +402,6 @@ export class CommandPaletteComponent implements OnDestroy {
       this.retrySeconds.set(Math.max(0, Math.ceil((this.retryUntil - Date.now()) / 1000)));
       if (this.retrySeconds() === 0) clearInterval(this.cooldownTimer);
     }, 250);
-  }
-
-  onBackdropClick(event: MouseEvent) {
-    if ((event.target as HTMLElement).classList.contains('palette-backdrop')) {
-      this.paletteService.close();
-    }
   }
 
   private getSearchErrorMessage(error: unknown): string {

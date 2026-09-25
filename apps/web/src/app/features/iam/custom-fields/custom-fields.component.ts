@@ -107,12 +107,12 @@ export class CustomFieldsComponent implements OnInit {
   private readonly uiI18n = inject(I18nService);
   private readonly formService = inject(CustomFieldsFormService);
 
+  private readonly modal = inject(SMTModalService);
+
   // --- Reactive state via signals ---
   readonly fields = signal<CustomField[]>([]);
   readonly selectedEntity = signal('ALL');
   readonly searchQuery = signal('');
-  sortColumn = 'orderNo';
-  sortDirection: 'asc' | 'desc' = 'asc';
 
   readonly availableEntities = computed(() => {
     const base = ['ALL', 'USER', 'PROJECT', 'TASK', 'NOTE'];
@@ -156,7 +156,8 @@ export class CustomFieldsComponent implements OnInit {
     return result;
   });
 
-  private readonly modal = inject(SMTModalService);
+  sortColumn = 'orderNo';
+  sortDirection: 'asc' | 'desc' = 'asc';
 
   // --- Non-signal UI state ---
   isLoading = false;

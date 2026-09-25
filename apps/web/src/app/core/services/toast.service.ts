@@ -23,9 +23,11 @@ interface ToastTimer {
   providedIn: 'root'
 })
 export class ToastService {
-  readonly toasts = signal<ToastMessage[]>([]);
   private readonly i18n = inject(I18nService);
   private readonly announcer = inject(LiveAnnouncerService);
+
+  readonly toasts = signal<ToastMessage[]>([]);
+
   private readonly timers = new Map<string, ToastTimer>();
 
   /**

@@ -47,56 +47,25 @@ import { AppShellFlyoutService } from './services/app-shell-flyout.service';
   styleUrl: './app-shell.component.css'
 })
 export class AppShellComponent implements OnDestroy {
-  @ViewChild('mainContent') mainContent?: ElementRef<HTMLElement>;
-  @ViewChild(AppHeaderComponent) appHeader?: AppHeaderComponent;
-  get mobileMenuBtn(): ElementRef<HTMLButtonElement> | undefined {
-    return this.appHeader?.mobileMenuBtn;
-  }
-  @ViewChild(AppSidebarComponent) appSidebar?: AppSidebarComponent;
-  get sidebarElement(): ElementRef<HTMLElement> | undefined {
-    return this.appSidebar?.sidebarElement;
-  }
-  get mobileDrawerClose(): ElementRef<HTMLButtonElement> | undefined {
-    return this.appSidebar?.mobileDrawerClose;
-  }
-
-  readonly isSectionActiveFn = (section: NavSection) => this.isSectionActive(section);
-  readonly isRouteActiveFn = (route: string, exact: boolean = false) => this.isRouteActive(route, exact);
-  readonly getSectionIconFn = (id: string) => this.getSectionIcon(id);
-  readonly getSectionBadgeFn = (section: NavSection) => this.getSectionBadge(section);
-  readonly hasVisibleItemsFn = (section: NavSection) => this.hasVisibleItems(section);
-  readonly isSectionExpandedFn = (id: string) => this.isSectionExpanded(id);
-  readonly isSubmenuExpandedFn = (id: string) => this.isSubmenuExpanded(id);
-
-  readonly sidebarId = 'app-sidebar';
   private readonly uiI18n = inject(I18nService);
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly breakpointObserver = inject(BreakpointObserver, { optional: true });
 
-  private readonly COLLAPSED_STATE_KEY = COLLAPSED_STATE_KEY;
-  readonly isCollapsed = signal<boolean>(loadCollapsedState());
-
   private readonly flyout = inject(AppShellFlyoutService);
 
-  // Collapsed rail flyout popover
-  readonly hoveredFlyoutSection = this.flyout.hoveredFlyoutSection;
-  readonly hoveredFlyoutItem = this.flyout.hoveredFlyoutItem;
-  readonly flyoutAnchorTop = this.flyout.flyoutAnchorTop;
-  readonly isFlyoutVisible = this.flyout.isFlyoutVisible;
-  readonly isProfileFlyoutVisible = this.flyout.isProfileFlyoutVisible;
+  readonly isCollapsed = signal<boolean>(loadCollapsedState());
 
   readonly isMobile = signal<boolean>(false);
   readonly isMobileMenuOpen = signal<boolean>(false);
   readonly isChangingLanguage = signal(false);
   readonly isDismissingAnnouncement = signal(false);
-  private readonly announcementRevision = signal(0);
-  readonly canReadNotifications = computed(() => this.canViewNotifications());
-  readonly canReadAnnouncements = computed(() => this.permService.canView('platform.announcements'));
-
-  private readonly COLLAPSED_SECTIONS_KEY = COLLAPSED_SECTIONS_KEY;
   readonly collapsedSections = signal<Set<string>>(loadCollapsedSections());
   readonly expandedSubmenus = signal<Set<string>>(new Set<string>());
+  private readonly announcementRevision = signal(0);
+
+  readonly canReadNotifications = computed(() => this.canViewNotifications());
+  readonly canReadAnnouncements = computed(() => this.permService.canView('platform.announcements'));
 
   readonly navSections = computed<NavSection[]>(() => buildNavSections({
     activeCustomModules: this.moduleService.getActiveCustomModules(),
@@ -122,6 +91,50 @@ export class AppShellComponent implements OnDestroy {
     canViewSettings: () => this.canViewSettings(),
     unreadCount: () => this.notifService.unreadCount()
   }));
+
+  @ViewChild('mainContent') mainContent?: ElementRef<HTMLElement>;
+  @ViewChild(AppHeaderComponent) appHeader?: AppHeaderComponent;
+  @ViewChild(AppSidebarComponent) appSidebar?: AppSidebarComponent;
+
+  readonly isSectionActiveFn = (section: NavSection) => this.isSectionActive(section);
+  readonly isRouteActiveFn = (route: string, exact: boolean = false) => this.isRouteActive(route, exact);
+  readonly getSectionIconFn = (id: string) => this.getSectionIcon(id);
+  readonly getSectionBadgeFn = (section: NavSection) => this.getSectionBadge(section);
+  readonly hasVisibleItemsFn = (section: NavSection) => this.hasVisibleItems(section);
+  readonly isSectionExpandedFn = (id: string) => this.isSectionExpanded(id);
+  readonly isSubmenuExpandedFn = (id: string) => this.isSubmenuExpanded(id);
+
+  readonly sidebarId = 'app-sidebar';
+
+  private readonly COLLAPSED_STATE_KEY = COLLAPSED_STATE_KEY;
+
+  // Collapsed rail flyout popover
+  readonly hoveredFlyoutSection = this.flyout.hoveredFlyoutSection;
+  readonly hoveredFlyoutItem = this.flyout.hoveredFlyoutItem;
+  readonly flyoutAnchorTop = this.flyout.flyoutAnchorTop;
+  readonly isFlyoutVisible = this.flyout.isFlyoutVisible;
+  readonly isProfileFlyoutVisible = this.flyout.isProfileFlyoutVisible;
+
+  private readonly COLLAPSED_SECTIONS_KEY = COLLAPSED_SECTIONS_KEY;
+
+  canViewTasks = () => this.permService.canView('tasks.items') || this.permService.canView('tasks');
+  canViewProjects = () => this.permService.canView('tasks.projects') || this.permService.canView('projects');
+  canViewAnalytics = () => this.permService.canView('analytics.dashboard') || this.permService.canView('analytics');
+  canViewUsers = () => this.permService.canView('iam.users') || this.permService.canView('md_users');
+  canViewRoles = () => this.permService.canView('rbac.roles') || this.permService.canView('iam.roles') || this.permService.canView('md_roles') || this.permService.canView('md.roles');
+  canViewOrgUnits = () => this.permService.canView('iam.org_units');
+  canViewCustomFields = () => this.permService.canView('md.custom_fields') || this.permService.canView('system.custom_fields') || this.permService.canView('md_custom_fields');
+  canViewFiles = () => this.permService.canView('platform.files') || this.permService.canView('files');
+  canViewNotifications = () => this.permService.canView('notify.inbox') || this.permService.canView('notifications');
+  canViewAnnouncements = () => this.permService.canUpdate('platform.announcements');
+  canViewAudit = () => this.permService.canView('audit.log') || this.permService.canView('audit.logs') || this.permService.canView('audit');
+  canViewSettings = () => true;
+  canViewSystem = () => this.permService.canView('platform.settings');
+  canViewNotes = () => this.permService.canView('notes') && this.moduleService.isModuleActive('notes');
+  canViewSources = () => this.permService.canView('upl.sources') && this.moduleService.isModuleActive('upl');
+  canViewPackages = () => this.permService.canView('upl.packages') && this.moduleService.isModuleActive('upl');
+  canViewModules = () => this.permService.canView('platform.modules');
+  canViewNavigationSettings = () => this.permService.canView('platform.navigation');
 
   constructor(
     public authService: AuthService,
@@ -187,6 +200,16 @@ export class AppShellComponent implements OnDestroy {
     });
   }
 
+  get mobileMenuBtn(): ElementRef<HTMLButtonElement> | undefined {
+    return this.appHeader?.mobileMenuBtn;
+  }
+  get sidebarElement(): ElementRef<HTMLElement> | undefined {
+    return this.appSidebar?.sidebarElement;
+  }
+  get mobileDrawerClose(): ElementRef<HTMLButtonElement> | undefined {
+    return this.appSidebar?.mobileDrawerClose;
+  }
+
   @HostListener('keydown', ['$event'])
   handleKeyDown(event: KeyboardEvent) {
     if (event.key === 'Escape') {
@@ -224,7 +247,6 @@ export class AppShellComponent implements OnDestroy {
   hasVisibleItems(section: NavSection): boolean {
     return section.items.some(item => item.permission());
   }
-
 
   isSectionExpanded(sectionId: string): boolean {
     return !this.collapsedSections().has(sectionId);
@@ -282,7 +304,6 @@ export class AppShellComponent implements OnDestroy {
       return next;
     });
   }
-
 
   onItemMouseEnter(section: NavSection, item: NavItem, event: MouseEvent) {
     this.flyout.onItemMouseEnter(section, item, event, this.isCollapsed(), this.isMobile());
@@ -364,7 +385,6 @@ export class AppShellComponent implements OnDestroy {
     return (sectionId && SECTION_ICON_MAP[sectionId]) || 'folder';
   }
 
-
   toggleSidebar() {
     this.isCollapsed.update(v => {
       const next = !v;
@@ -380,7 +400,6 @@ export class AppShellComponent implements OnDestroy {
     this.closeFlyout();
     this.closeProfileFlyout();
   }
-
 
   toggleMobileMenu() {
     if (this.isMobileMenuOpen()) {
@@ -426,28 +445,6 @@ export class AppShellComponent implements OnDestroy {
   isRouteActive(route: string, exact: boolean = false): boolean {
     return exact ? this.router.url === route : this.router.url.startsWith(route);
   }
-
-  canViewTasks = () => this.permService.canView('tasks.items') || this.permService.canView('tasks');
-  canViewProjects = () => this.permService.canView('tasks.projects') || this.permService.canView('projects');
-  canViewAnalytics = () => this.permService.canView('analytics.dashboard') || this.permService.canView('analytics');
-  canViewUsers = () => this.permService.canView('iam.users') || this.permService.canView('md_users');
-  canViewRoles = () => this.permService.canView('rbac.roles') || this.permService.canView('iam.roles') || this.permService.canView('md_roles') || this.permService.canView('md.roles');
-  canViewOrgUnits = () => this.permService.canView('iam.org_units');
-  canViewCustomFields = () => this.permService.canView('md.custom_fields') || this.permService.canView('system.custom_fields') || this.permService.canView('md_custom_fields');
-  canViewFiles = () => this.permService.canView('platform.files') || this.permService.canView('files');
-  canViewNotifications = () => this.permService.canView('notify.inbox') || this.permService.canView('notifications');
-  canViewAnnouncements = () => this.permService.canUpdate('platform.announcements');
-  canViewAudit = () => this.permService.canView('audit.log') || this.permService.canView('audit.logs') || this.permService.canView('audit');
-  canViewSettings = () => true;
-  canViewSystem = () => this.permService.canView('platform.settings');
-  canViewNotes = () => this.permService.canView('notes') && this.moduleService.isModuleActive('notes');
-  canViewSources = () => this.permService.canView('upl.sources') && this.moduleService.isModuleActive('upl');
-  canViewPackages = () => this.permService.canView('upl.packages') && this.moduleService.isModuleActive('upl');
-  canViewModules = () => this.permService.canView('platform.modules');
-  canViewNavigationSettings = () => this.permService.canView('platform.navigation');
-
-
-
 
   asLang(l: string): Language {
     return l as Language;

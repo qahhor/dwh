@@ -359,16 +359,43 @@ export class SourcesListComponent implements OnInit {
   private readonly i18n = inject(I18nService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
-  /** Where to go back after creating from another form's field; only known places, never a URL from the address bar. */
-  private returnTo: 'packages' | null = null;
 
   /* A reload while "load more" is pending cancels it, so the old page is
      never appended to the refreshed list. */
   private readonly queryMeta = inject(QueryMetaService);
   private readonly destroyRef = inject(DestroyRef);
 
+  private readonly codeCell = viewChild.required<TemplateRef<unknown>>('codeCell');
+  private readonly nameCell = viewChild.required<TemplateRef<unknown>>('nameCell');
+  private readonly draftCell = viewChild.required<TemplateRef<unknown>>('draftCell');
+
   /** Field metadata of the list (`query-meta/upl.sources`): columns, headers, what sorts. */
   readonly meta = signal<QueryListMeta | null>(null);
+  readonly metaError = signal(false);
+  readonly isCreateOpen = signal(false);
+  readonly isSaving = signal(false);
+  /** Значение — ключ i18n либо готовый текст сервера; в шаблоне всё равно идёт через `| t`. */
+  readonly fieldErrors = signal<Record<string, string>>({});
+  readonly createError = signal<string | null>(null);
+
+  readonly tableConfig = computed<TableConfig<UplSourceItem> | null>(() => {
+    const meta = this.meta();
+    if (!meta) return null;
+    return registryTableConfig<UplSourceItem>(meta, {
+      translate: key => this.i18n.translate(key),
+      trackBy: (_index, item) => item.id,
+      ariaLabel: this.i18n.translate('upl.list.title'),
+      sort: this.sort(),
+      cells: {
+        code: { type: 'templateRef', value: this.codeCell },
+        name: { type: 'templateRef', value: this.nameCell },
+        hasDraft: { type: 'templateRef', value: this.draftCell }
+      }
+    });
+  });
+
+  /** Where to go back after creating from another form's field; only known places, never a URL from the address bar. */
+  private returnTo: 'packages' | null = null;
 
   /** Saved views own the columns and the sort; the list opens with the person's default view. */
   readonly views = new ListViewState('upl.sources', inject(ListViewsApi), {
@@ -389,32 +416,6 @@ export class SourcesListComponent implements OnInit {
   readonly items = this.pager.items;
   readonly isLoading = this.pager.loading;
   readonly loadError = this.pager.failed;
-  readonly metaError = signal(false);
-
-  private readonly codeCell = viewChild.required<TemplateRef<unknown>>('codeCell');
-  private readonly nameCell = viewChild.required<TemplateRef<unknown>>('nameCell');
-  private readonly draftCell = viewChild.required<TemplateRef<unknown>>('draftCell');
-
-  readonly tableConfig = computed<TableConfig<UplSourceItem> | null>(() => {
-    const meta = this.meta();
-    if (!meta) return null;
-    return registryTableConfig<UplSourceItem>(meta, {
-      translate: key => this.i18n.translate(key),
-      trackBy: (_index, item) => item.id,
-      ariaLabel: this.i18n.translate('upl.list.title'),
-      sort: this.sort(),
-      cells: {
-        code: { type: 'templateRef', value: this.codeCell },
-        name: { type: 'templateRef', value: this.nameCell },
-        hasDraft: { type: 'templateRef', value: this.draftCell }
-      }
-    });
-  });
-  readonly isCreateOpen = signal(false);
-  readonly isSaving = signal(false);
-  /** Значение — ключ i18n либо готовый текст сервера; в шаблоне всё равно идёт через `| t`. */
-  readonly fieldErrors = signal<Record<string, string>>({});
-  readonly createError = signal<string | null>(null);
 
   readonly periodicities = UPL_PERIODICITIES;
   readonly strictnesses = UPL_STRICTNESSES;

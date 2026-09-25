@@ -79,11 +79,11 @@ export class SMTDropzoneComponent {
 
   readonly rejected = output<SMTDropzoneRejection[]>();
 
-  readonly inputId = `smt-dropzone-${nextDropzoneId++}`;
-
   readonly dragging = signal(false);
 
   readonly rejections = signal<readonly SMTDropzoneRejection[]>([]);
+
+  readonly inputId = `smt-dropzone-${nextDropzoneId++}`;
 
   onDragOver(event: DragEvent): void {
     if (this.disabled()) return;

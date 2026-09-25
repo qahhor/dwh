@@ -79,13 +79,15 @@ import { FilterPanelData, UiFilterPanelComponent } from './ui-filter-panel.compo
   `],
 })
 export class UiFilterBarComponent {
-  readonly meta = input.required<QueryListMeta>();
-  readonly conditions = input<QueryCondition[]>([]);
-  readonly conditionsChange = output<QueryCondition[]>();
-
   private readonly i18n = inject(I18nService);
   private readonly drawer = inject(SMTDrawerService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+
+  readonly meta = input.required<QueryListMeta>();
+
+  readonly conditions = input<QueryCondition[]>([]);
+
+  readonly conditionsChange = output<QueryCondition[]>();
 
   readonly hasFields = computed(() => filterableFields(this.meta()).length > 0);
   readonly chips = computed(() =>

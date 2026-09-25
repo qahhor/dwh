@@ -187,37 +187,21 @@ export type {
 })
 export class AnnouncementsComponent implements OnInit {
   private readonly uiI18n = inject(I18nService);
+  private readonly modal = inject(SMTModalService);
+
   readonly announcements = signal<AnnouncementAdminRecord[]>([]);
   readonly isLoading = signal(true);
   readonly loadError = signal(false);
   readonly operationError = signal<string | null>(null);
   readonly isSaving = signal(false);
   readonly isEditorOpen = signal(false);
-  private readonly modal = inject(SMTModalService);
 
   readonly statusFilter = signal<'ALL' | 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'>('ALL');
   readonly searchQuery = signal('');
-
-  editingId: number | null = null;
-  editingLockVersion: number | null = null;
   readonly bannerType = signal<AnnouncementBannerType>('INFO');
 
   readonly draftTitles = signal<Record<string, string>>({ ru: '' });
   readonly draftBodies = signal<Record<string, string>>({ ru: '' });
-
-  get titleRu(): string {
-    return this.draftTitles()['ru'] || '';
-  }
-  set titleRu(val: string) {
-    this.draftTitles.set({ ...this.draftTitles(), ru: val });
-  }
-
-  get bodyRu(): string {
-    return this.draftBodies()['ru'] || '';
-  }
-  set bodyRu(val: string) {
-    this.draftBodies.set({ ...this.draftBodies(), ru: val });
-  }
 
   readonly draftCount = computed(() =>
     this.announcements().filter(a => a.state === 'DRAFT').length
@@ -254,11 +238,28 @@ export class AnnouncementsComponent implements OnInit {
     return list;
   });
 
+  editingId: number | null = null;
+  editingLockVersion: number | null = null;
+
   constructor(
     private readonly api: ApiService,
     private readonly permissions: PermissionService,
     private readonly toast: ToastService
   ) {}
+
+  get titleRu(): string {
+    return this.draftTitles()['ru'] || '';
+  }
+  set titleRu(val: string) {
+    this.draftTitles.set({ ...this.draftTitles(), ru: val });
+  }
+
+  get bodyRu(): string {
+    return this.draftBodies()['ru'] || '';
+  }
+  set bodyRu(val: string) {
+    this.draftBodies.set({ ...this.draftBodies(), ru: val });
+  }
 
   ngOnInit(): void {
     this.loadAnnouncements();
@@ -405,6 +406,20 @@ export class AnnouncementsComponent implements OnInit {
     }).subscribe();
   }
 
+  refreshAfterConflict(): void {
+    this.operationError.set(null);
+    this.isEditorOpen.set(false);
+    this.loadAnnouncements();
+  }
+
+  localizedValue(values: Record<string, string> | null | undefined): string {
+    if (!values) {
+      return '';
+    }
+    const current = this.uiI18n.currentLang();
+    return values[current] ?? values['ru'] ?? Object.values(values).find(value => value?.trim().length > 0) ?? '';
+  }
+
   /**
    * Publishes or archives from the dialog. A refusal closes the dialog and is
    * shown on the page like any other save error, since a conflict needs the
@@ -424,20 +439,6 @@ export class AnnouncementsComponent implements OnInit {
       }),
       finalize(() => this.isSaving.set(false))
     );
-  }
-
-  refreshAfterConflict(): void {
-    this.operationError.set(null);
-    this.isEditorOpen.set(false);
-    this.loadAnnouncements();
-  }
-
-  localizedValue(values: Record<string, string> | null | undefined): string {
-    if (!values) {
-      return '';
-    }
-    const current = this.uiI18n.currentLang();
-    return values[current] ?? values['ru'] ?? Object.values(values).find(value => value?.trim().length > 0) ?? '';
   }
 
   private upsert(saved: AnnouncementAdminRecord): void {

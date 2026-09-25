@@ -199,21 +199,9 @@ type UserMenuAction = 'block' | 'unblock' | 'delete';
   `]
 })
 export class UserTableViewComponent {
-  @Input({ required: true }) pager!: KeysetPager<User>;
-  @Input() canUpdateUser = false;
-  @Input() canBlockUser = false;
-  @Input() canUnblockUser = false;
-  @Input() canDeleteUser = false;
-
-  @Input() getUserRoleNames!: (u: User) => string[];
-  @Input() getManagerName!: (u: User) => string | null;
-
-  @Output() viewUser = new EventEmitter<User>();
-  @Output() editUser = new EventEmitter<User>();
-  @Output() toggleState = new EventEmitter<{ user: User, action: 'block' | 'unblock' }>();
-  @Output() deleteUser = new EventEmitter<User>();
-
   private readonly i18n = inject(I18nService);
+
+  readonly emptyState = viewChild.required<TemplateRef<unknown>>('emptyStateTpl');
   private readonly identityCell = viewChild.required<TemplateRef<unknown>>('identityCell');
   private readonly contactsCell = viewChild.required<TemplateRef<unknown>>('contactsCell');
   private readonly rolesCell = viewChild.required<TemplateRef<unknown>>('rolesCell');
@@ -222,9 +210,6 @@ export class UserTableViewComponent {
   private readonly statusCell = viewChild.required<TemplateRef<unknown>>('statusCell');
   private readonly createdCell = viewChild.required<TemplateRef<unknown>>('createdCell');
   private readonly actionsCell = viewChild.required<TemplateRef<unknown>>('actionsCell');
-  /** Per user, the menu built for the rights and language it was built with, so an open menu is not rebuilt. */
-  private readonly actionMenus = new WeakMap<User, { key: string; items: SMTMenuItem<UserMenuAction>[] | null }>();
-  readonly emptyState = viewChild.required<TemplateRef<unknown>>('emptyStateTpl');
 
   readonly tableConfig = computed<TableConfig<User>>(() => {
     const header = (value: string) => ({ type: 'primitive' as const, value });
@@ -248,6 +233,22 @@ export class UserTableViewComponent {
       },
     };
   });
+
+  @Input({ required: true }) pager!: KeysetPager<User>;
+  @Input() canUpdateUser = false;
+  @Input() canBlockUser = false;
+  @Input() canUnblockUser = false;
+  @Input() canDeleteUser = false;
+
+  @Input() getUserRoleNames!: (u: User) => string[];
+  @Input() getManagerName!: (u: User) => string | null;
+
+  @Output() viewUser = new EventEmitter<User>();
+  @Output() editUser = new EventEmitter<User>();
+  @Output() toggleState = new EventEmitter<{ user: User, action: 'block' | 'unblock' }>();
+  @Output() deleteUser = new EventEmitter<User>();
+  /** Per user, the menu built for the rights and language it was built with, so an open menu is not rebuilt. */
+  private readonly actionMenus = new WeakMap<User, { key: string; items: SMTMenuItem<UserMenuAction>[] | null }>();
 
   /** Block or unblock and delete, behind "more" so the row keeps two visible actions; null when none apply. */
   moreActions(user: User): SMTMenuItem<UserMenuAction>[] | null {

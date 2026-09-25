@@ -251,7 +251,6 @@ export class FormatEditorComponent implements RecordNavigationPage {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly cdr = inject(ChangeDetectorRef);
-  private readonly navigationDecision = new RecordNavigationDecision();
 
   readonly source = signal<UplSource | null>(null);
   readonly version = signal<UplFormatVersion | null>(null);
@@ -272,11 +271,6 @@ export class FormatEditorComponent implements RecordNavigationPage {
   readonly publishDateError = signal<string | null>(null);
   readonly isLeaveOpen = signal(false);
 
-  sourceId = '';
-  versionNumber = '';
-  model: UplFormatDraftRequest = emptyModel();
-  private savedSnapshot = JSON.stringify(emptyModel());
-
   readonly canEdit = computed(() => this.permissions.hasPermission('upl.sources', 'edit'));
   readonly editable = computed(() => this.version()?.status === 'draft' && this.permissions.hasPermission('upl.sources', 'edit'));
   readonly canPublish = computed(() => this.version()?.status === 'draft' && this.permissions.hasPermission('upl.sources', 'publish'));
@@ -295,6 +289,21 @@ export class FormatEditorComponent implements RecordNavigationPage {
     if (published.length === 0) return null;
     return published.reduce((latest, item) => (item.version > latest.version ? item : latest)).validFrom;
   });
+
+  private readonly navigationDecision = new RecordNavigationDecision();
+
+  sourceId = '';
+  versionNumber = '';
+  model: UplFormatDraftRequest = emptyModel();
+  private savedSnapshot = JSON.stringify(emptyModel());
+
+  constructor() {
+    this.route.paramMap.pipe(takeUntilDestroyed()).subscribe(params => {
+      this.sourceId = params.get('id') ?? '';
+      this.versionNumber = params.get('v') ?? '';
+      this.reload();
+    });
+  }
 
   /** Шаги анкеты со статусом: «есть ошибки» — по адресам ошибок, «готово» — по заполненности. */
   steps(): SMTProgressStep[] {
@@ -331,14 +340,6 @@ export class FormatEditorComponent implements RecordNavigationPage {
         hint: this.statusKey() ? this.text(this.statusKey()) : undefined
       }
     ];
-  }
-
-  constructor() {
-    this.route.paramMap.pipe(takeUntilDestroyed()).subscribe(params => {
-      this.sourceId = params.get('id') ?? '';
-      this.versionNumber = params.get('v') ?? '';
-      this.reload();
-    });
   }
 
   text(key: string, params?: Record<string, string>): string {

@@ -58,11 +58,10 @@ let nextCalendarId = 0;
   host: { class: 'smt-calendar' },
 })
 export class SMTCalendarComponent {
+  readonly i18n = inject(SMTI18nService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   private readonly injector = inject(Injector);
-
-  readonly i18n = inject(SMTI18nService);
 
   /** The picked day (single mode). */
   readonly selected = input<CalendarDate | null>(null);
@@ -82,8 +81,6 @@ export class SMTCalendarComponent {
   readonly today = input<CalendarDate>(fromJsDate(new Date()));
 
   readonly picked = output<CalendarDate>();
-
-  readonly titleId = `smt-calendar-title-${nextCalendarId++}`;
 
   /** The day that holds keyboard focus; its month is the one shown. */
   readonly active = signal<CalendarDate>(fromJsDate(new Date()));
@@ -122,24 +119,13 @@ export class SMTCalendarComponent {
     return to ? orderedRange(from, to) : { from, to: from };
   });
 
+  readonly titleId = `smt-calendar-title-${nextCalendarId++}`;
+
   /** Shows the month of `date` (or of the value, or today) and focuses that day. */
   focusDay(date?: CalendarDate | null): void {
     const target = date ?? untracked(this.selected) ?? untracked(this.rangeFrom) ?? untracked(this.today);
     this.active.set(target);
     this.focusActiveAfterRender();
-  }
-
-  /** Focuses the active day once the view shows it (its month may have just changed). */
-  private focusActiveAfterRender(): void {
-    afterNextRender(
-      {
-        write: () => {
-          const iso = toIsoDate(this.active());
-          this.host.nativeElement.querySelector<HTMLElement>(`[data-date="${iso}"]`)?.focus();
-        },
-      },
-      { injector: this.injector }
-    );
   }
 
   isSelected(cell: CalendarCell): boolean {
@@ -215,5 +201,18 @@ export class SMTCalendarComponent {
     this.active.set(next);
     if (this.rangeFrom() && !this.rangeTo()) this.previewEnd.set(next);
     this.focusActiveAfterRender();
+  }
+
+  /** Focuses the active day once the view shows it (its month may have just changed). */
+  private focusActiveAfterRender(): void {
+    afterNextRender(
+      {
+        write: () => {
+          const iso = toIsoDate(this.active());
+          this.host.nativeElement.querySelector<HTMLElement>(`[data-date="${iso}"]`)?.focus();
+        },
+      },
+      { injector: this.injector }
+    );
   }
 }

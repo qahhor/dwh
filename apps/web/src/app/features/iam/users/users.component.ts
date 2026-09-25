@@ -65,16 +65,30 @@ const EXPORT_MAX_ROWS = 10_000;
   styleUrl: './users.component.css'
 })
 export class UsersComponent implements OnInit, OnDestroy {
-  readonly getUserRoleNamesFn = (u: User) => getUserRoleNames(u, this.roles());
-  readonly getManagerNameFn = (u: User) => getManagerName(u, id => this.directory.nameOf(id));
-
-  private readonly uiI18n = inject(I18nService);
-  private readonly recordRoute = inject(ActivatedRoute, { optional: true });
-  private readonly recordRouter = inject(Router, { optional: true });
   public readonly secService = inject(UserSecurityService);
   public readonly formsService = inject(UserFormsService);
   public readonly filterService = inject(UserFilterService);
   public readonly directory = inject(UserDirectoryService);
+
+  private readonly uiI18n = inject(I18nService);
+  private readonly recordRoute = inject(ActivatedRoute, { optional: true });
+  private readonly recordRouter = inject(Router, { optional: true });
+
+  private readonly modal = inject(SMTModalService);
+
+  readonly routeRecordId = signal<string | null>(null);
+  readonly recordLoading = signal(false);
+  readonly recordError = signal(false);
+  readonly recordNotFound = signal(false);
+  readonly orgPanelBusy = signal(false);
+  readonly isExporting = signal(false);
+  readonly roles = signal<Role[]>([]);
+  readonly customFields = signal<CustomField[]>([]);
+  readonly isViewModalOpen = signal<boolean>(false);
+  readonly activeViewTab = signal<'info' | 'security' | 'orgUnits' | 'permissions'>('info');
+
+  readonly getUserRoleNamesFn = (u: User) => getUserRoleNames(u, this.roles());
+  readonly getManagerNameFn = (u: User) => getManagerName(u, id => this.directory.nameOf(id));
 
   private recordRouteSubscription?: Subscription;
   private queryParamSubscription?: Subscription;
@@ -83,12 +97,6 @@ export class UsersComponent implements OnInit, OnDestroy {
   private recordRequestId = 0;
   private searchDebounceTimer: any = null;
   private destroyed = false;
-
-  readonly routeRecordId = signal<string | null>(null);
-  readonly recordLoading = signal(false);
-  readonly recordError = signal(false);
-  readonly recordNotFound = signal(false);
-  readonly orgPanelBusy = signal(false);
   readonly safeRecordId = safeNumericRecordId;
 
   /* A page at a time, in the server's order. The pager cancels a superseded
@@ -103,11 +111,21 @@ export class UsersComponent implements OnInit, OnDestroy {
     }
   });
   readonly users = this.userPager.items;
-  readonly isExporting = signal(false);
   private exportRequest?: Subscription;
-  readonly roles = signal<Role[]>([]);
-  readonly customFields = signal<CustomField[]>([]);
   readonly isLoading = this.userPager.loading;
+
+  viewingUser: User | null = null;
+
+  @ViewChild('filterTrigger') private filterTrigger?: ElementRef<HTMLButtonElement>;
+  @ViewChild(UserDetailModalComponent) private userDetailModal?: UserDetailModalComponent;
+
+  constructor(
+    public permService: PermissionService,
+    private api: ApiService,
+    private toast: ToastService,
+    private elementRef: ElementRef,
+    public i18n: I18nService
+  ) {}
 
   // Delegated signals and getters
   get isSubmitting() { return this.formsService.isSubmitting; }
@@ -139,26 +157,9 @@ export class UsersComponent implements OnInit, OnDestroy {
   set selectedRoleId(v: number | null) { this.filterService.selectedRoleId = v; }
   get selected2fa() { return this.filterService.selected2fa; }
   set selected2fa(v: boolean | null) { this.filterService.selected2fa = v; }
-
-  private readonly modal = inject(SMTModalService);
-  readonly isViewModalOpen = signal<boolean>(false);
-  readonly activeViewTab = signal<'info' | 'security' | 'orgUnits' | 'permissions'>('info');
-
-  viewingUser: User | null = null;
-
-  @ViewChild('filterTrigger') private filterTrigger?: ElementRef<HTMLButtonElement>;
-  @ViewChild(UserDetailModalComponent) private userDetailModal?: UserDetailModalComponent;
   get userOrgUnitsPanel(): UserOrgUnitsPanelComponent | undefined {
     return this.userDetailModal?.orgUnitsPanel;
   }
-
-  constructor(
-    public permService: PermissionService,
-    private api: ApiService,
-    private toast: ToastService,
-    private elementRef: ElementRef,
-    public i18n: I18nService
-  ) {}
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
@@ -220,37 +221,10 @@ export class UsersComponent implements OnInit, OnDestroy {
     return this.userOrgUnitsPanel?.canLeave() ?? true;
   }
 
-  private afterOrgPanelLeave(action: () => void): void {
-    if (this.destroyed) return;
-    this.panelLeaveSubscription?.unsubscribe();
-    this.panelLeaveSubscription = undefined;
-    const decision = this.userOrgUnitsPanel?.canLeave() ?? true;
-    if (typeof decision === 'boolean') {
-      if (decision) action();
-      return;
-    }
-    this.panelLeaveSubscription = decision.subscribe((allow: boolean) => {
-      if (allow && !this.destroyed) action();
-    });
-  }
-
   /** The first page for the current filters; without `reset`, the page on screen again. */
   loadUsers(reset: boolean = false) {
     if (reset) this.userPager.first();
     else this.userPager.reload();
-  }
-
-  private listFilters() {
-    return {
-      search: this.searchQuery ? this.searchQuery.trim() : undefined,
-      state: this.selectedState || undefined,
-      role_id: this.selectedRoleId || undefined,
-      is_2fa_enabled: this.selected2fa !== null ? this.selected2fa : undefined
-    };
-  }
-
-  private fetchUsers(cursor: string | null, limit: number) {
-    return this.api.get<KeysetPage<User>>('/iam/users', { limit, cursor: cursor ?? undefined, ...this.listFilters() });
   }
 
   loadRoles() {
@@ -494,4 +468,31 @@ export class UsersComponent implements OnInit, OnDestroy {
   hasUpperAndLower(): boolean { return hasUpperAndLower(this.createForm.password); }
   hasDigitsOrSymbols(): boolean { return hasDigitsOrSymbols(this.createForm.password); }
   doesNotContainLogin(): boolean { return doesNotContainLogin(this.createForm.password, this.createForm.login); }
+
+  private afterOrgPanelLeave(action: () => void): void {
+    if (this.destroyed) return;
+    this.panelLeaveSubscription?.unsubscribe();
+    this.panelLeaveSubscription = undefined;
+    const decision = this.userOrgUnitsPanel?.canLeave() ?? true;
+    if (typeof decision === 'boolean') {
+      if (decision) action();
+      return;
+    }
+    this.panelLeaveSubscription = decision.subscribe((allow: boolean) => {
+      if (allow && !this.destroyed) action();
+    });
+  }
+
+  private listFilters() {
+    return {
+      search: this.searchQuery ? this.searchQuery.trim() : undefined,
+      state: this.selectedState || undefined,
+      role_id: this.selectedRoleId || undefined,
+      is_2fa_enabled: this.selected2fa !== null ? this.selected2fa : undefined
+    };
+  }
+
+  private fetchUsers(cursor: string | null, limit: number) {
+    return this.api.get<KeysetPage<User>>('/iam/users', { limit, cursor: cursor ?? undefined, ...this.listFilters() });
+  }
 }

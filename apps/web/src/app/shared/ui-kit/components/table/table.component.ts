@@ -158,6 +158,9 @@ export class SMTTableComponent<T> {
   /** Escape hatch: `false` restores full rendering of every row regardless of row count. */
   virtualRowsEnabled = input(true, { alias: 'smtVirtualRows', transform: booleanAttribute });
 
+  /** Replaces the generic "nothing found" state, e.g. with advice to clear filters. */
+  emptyTemplate = input<TemplateRef<unknown> | null>(null, { alias: 'smtEmptyTemplate' });
+
   rowClick = output<T>({ alias: 'smtRowClick' });
 
   /** Keyboard input on a focusable (`treegrid`) row; the owner decides what a key does. */
@@ -185,21 +188,11 @@ export class SMTTableComponent<T> {
 
   detailRowTemplate = contentChild<TemplateRef<{ $implicit: T }>>('smtDetailRow');
 
-  /** Replaces the generic "nothing found" state, e.g. with advice to clear filters. */
-  emptyTemplate = input<TemplateRef<unknown> | null>(null, { alias: 'smtEmptyTemplate' });
-
   protected showScrollToTop = signal(false);
 
   protected showHorizontalScrollLeft = signal(false);
 
   protected showHorizontalScrollRight = signal(false);
-
-  /**
-   * A container that scrolls sideways must be reachable by keyboard, or its
-   * hidden columns are out of reach without a pointer. It becomes a named Tab
-   * stop only while it actually overflows, so a table that fits adds none.
-   */
-  protected scrollsSideways = computed(() => this.showHorizontalScrollLeft() || this.showHorizontalScrollRight());
 
   /** Pixel height lock while collapsing the detail row (null when not closing). */
   protected detailCloseHeightPx = signal<number | null>(null);
@@ -242,35 +235,6 @@ export class SMTTableComponent<T> {
 
   isEmptyData = computed(() => !this.isLoading() && this.data().length === 0);
 
-  /* Table semantics. The grid is drawn with divs, so without these roles a
-     screen reader meets a stack of unrelated blocks instead of a table: no
-     header association, no row count, no sort state. */
-  protected tableRole = computed(() => this.config().ariaRole ?? 'table');
-
-  protected cellRole = computed(() => (this.tableRole() === 'treegrid' ? 'gridcell' : 'cell'));
-
-  private headerRowCount = computed(() => (this.config().hideHeader ? 0 : 1));
-
-  /** Counts every row, not only the rendered window, so virtualization is invisible to the reader. */
-  protected ariaRowCount = computed(() => this.headerRowCount() + this.tableData().length);
-
-  /** 1-based position among all rows, header included. */
-  protected ariaRowIndex(windowIndex: number): number {
-    return this.headerRowCount() + this.virtualRange().start + windowIndex + 1;
-  }
-
-  protected ariaSort(sortedBy: OrderBy | undefined, hasSorting: boolean): string | null {
-    if (!hasSorting) return null;
-    if (sortedBy === OrderBy.Asc) return 'ascending';
-    if (sortedBy === OrderBy.Desc) return 'descending';
-    return 'none';
-  }
-
-  protected rowAria(row: unknown): TableRowAria | null {
-    if (row === 2 || this.tableRole() !== 'treegrid') return null;
-    return this.config().rowAria?.(row as T) ?? null;
-  }
-
   /** Placeholder rows only when loading an empty table (no previous data to skeletonize). */
   skeletons = computed(() => {
     const requested = Math.max(1, Math.round(this.skeletonRowCount()) || 10);
@@ -289,6 +253,23 @@ export class SMTTableComponent<T> {
     if (rows.length === 0) return this.skeletons();
     return rows.length > MAX_SKELETON_ROWS ? rows.slice(0, MAX_SKELETON_ROWS) : rows;
   });
+
+  /**
+   * A container that scrolls sideways must be reachable by keyboard, or its
+   * hidden columns are out of reach without a pointer. It becomes a named Tab
+   * stop only while it actually overflows, so a table that fits adds none.
+   */
+  protected scrollsSideways = computed(() => this.showHorizontalScrollLeft() || this.showHorizontalScrollRight());
+
+  /* Table semantics. The grid is drawn with divs, so without these roles a
+     screen reader meets a stack of unrelated blocks instead of a table: no
+     header association, no row count, no sort state. */
+  protected tableRole = computed(() => this.config().ariaRole ?? 'table');
+
+  protected cellRole = computed(() => (this.tableRole() === 'treegrid' ? 'gridcell' : 'cell'));
+
+  /** Counts every row, not only the rendered window, so virtualization is invisible to the reader. */
+  protected ariaRowCount = computed(() => this.headerRowCount() + this.tableData().length);
 
   /**
    * Windowed rendering guard. Falls back to full rendering (the pre-virtualization path,
@@ -586,6 +567,8 @@ export class SMTTableComponent<T> {
     return this.dndData() ?? this.data();
   });
 
+  private headerRowCount = computed(() => (this.config().hideHeader ? 0 : 1));
+
   /** Index of the expanded (or closing) detail row within the current data; -1 when none. */
   private expandedRowIndex = computed(() => {
     if (!this.detailRowTemplate()) return -1;
@@ -862,6 +845,23 @@ export class SMTTableComponent<T> {
     } else {
       this.unselectAll();
     }
+  }
+
+  /** 1-based position among all rows, header included. */
+  protected ariaRowIndex(windowIndex: number): number {
+    return this.headerRowCount() + this.virtualRange().start + windowIndex + 1;
+  }
+
+  protected ariaSort(sortedBy: OrderBy | undefined, hasSorting: boolean): string | null {
+    if (!hasSorting) return null;
+    if (sortedBy === OrderBy.Asc) return 'ascending';
+    if (sortedBy === OrderBy.Desc) return 'descending';
+    return 'none';
+  }
+
+  protected rowAria(row: unknown): TableRowAria | null {
+    if (row === 2 || this.tableRole() !== 'treegrid') return null;
+    return this.config().rowAria?.(row as T) ?? null;
   }
 
   protected onScrollContainerScroll(e: Event) {

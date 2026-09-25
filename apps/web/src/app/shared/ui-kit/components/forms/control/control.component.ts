@@ -83,24 +83,14 @@ export class SMTControlComponent {
 
   private readonly ngControl = contentChild(NgControl, { descendants: true });
 
+  /** The id the label points at: the field's own id, or ours when it has none (set in the constructor, after `id`). */
+  readonly fieldId = signal('');
+
   /** Bumped on every legacy control event, so computeds re-read it. */
   private readonly legacyVersion = signal(0);
 
   /** `required` attribute found on a native field (template-driven forms). */
   private readonly nativeRequired = signal(false);
-
-  private readonly id = nextControlId++;
-
-  readonly labelId = `smt-control-label-${this.id}`;
-
-  readonly hintId = `smt-control-hint-${this.id}`;
-
-  readonly errorId = `smt-control-error-${this.id}`;
-
-  /** The id the label points at: the field's own id, or ours when it has none. */
-  readonly fieldId = signal(`smt-control-field-${this.id}`);
-
-  private readonly fieldState = computed(() => this.formField()?.state());
 
   readonly isRequired = computed(() => {
     const explicit = this.required();
@@ -119,13 +109,6 @@ export class SMTControlComponent {
     return errors ? fromLegacyErrors(errors) : [];
   });
 
-  private readonly touched = computed(() => {
-    const state = this.fieldState();
-    if (state) return state.touched();
-    this.legacyVersion();
-    return !!this.ngControl()?.control?.touched;
-  });
-
   readonly showError = computed(
     () => !!this.error() || shouldShowSMTFormControlError({ errors: this.errors(), touched: this.touched() })
   );
@@ -135,10 +118,28 @@ export class SMTControlComponent {
     return this.showError() ? messageForError(this.errors()[0], this.i18n.messages().control) : '';
   });
 
+  private readonly fieldState = computed(() => this.formField()?.state());
+
+  private readonly touched = computed(() => {
+    const state = this.fieldState();
+    if (state) return state.touched();
+    this.legacyVersion();
+    return !!this.ngControl()?.control?.touched;
+  });
+
+  private readonly id = nextControlId++;
+
+  readonly labelId = `smt-control-label-${this.id}`;
+
+  readonly hintId = `smt-control-hint-${this.id}`;
+
+  readonly errorId = `smt-control-error-${this.id}`;
+
   /** Our tokens last written to the field's aria-describedby, so a rerun replaces only them. */
   private ownDescribedBy: string[] = [];
 
   constructor() {
+    this.fieldId.set(`smt-control-field-${this.id}`);
     effect(onCleanup => {
       // `[formField]` also provides an NgControl for interop; its control has
       // no event stream, and the field state is read from signals anyway.

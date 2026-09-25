@@ -59,11 +59,8 @@ let nextRangeId = 0;
   },
 })
 export class SMTDateRangePickerComponent implements FormValueControl<DateRange | null> {
-  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
-
   readonly i18n = inject(SMTI18nService);
-
-  readonly value = model<DateRange | null>(null);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   readonly disabled = input(false, { transform: booleanAttribute });
 
@@ -82,15 +79,11 @@ export class SMTDateRangePickerComponent implements FormValueControl<DateRange |
 
   readonly touch = output<void>();
 
-  readonly id = nextRangeId++;
+  readonly value = model<DateRange | null>(null);
 
-  readonly dialogId = `smt-date-range-dialog-${this.id}`;
+  private readonly calendar = viewChild(SMTCalendarComponent);
 
-  readonly presetsLabelId = `smt-date-range-presets-${this.id}`;
-
-  readonly presets = DATE_RANGE_PRESETS;
-
-  readonly positions = DATE_POPUP_POSITIONS;
+  private readonly trigger = viewChild<ElementRef<HTMLButtonElement>>('trigger');
 
   readonly open = signal(false);
 
@@ -99,10 +92,6 @@ export class SMTDateRangePickerComponent implements FormValueControl<DateRange |
   readonly draftTo = signal<CalendarDate | null>(null);
 
   private readonly disabledByForms = signal(false);
-
-  private readonly calendar = viewChild(SMTCalendarComponent);
-
-  private readonly trigger = viewChild<ElementRef<HTMLButtonElement>>('trigger');
 
   readonly isDisabled = computed(() => this.disabled() || this.disabledByForms());
 
@@ -138,6 +127,16 @@ export class SMTDateRangePickerComponent implements FormValueControl<DateRange |
       }) ?? null
     );
   });
+
+  readonly id = nextRangeId++;
+
+  readonly dialogId = `smt-date-range-dialog-${this.id}`;
+
+  readonly presetsLabelId = `smt-date-range-presets-${this.id}`;
+
+  readonly presets = DATE_RANGE_PRESETS;
+
+  readonly positions = DATE_POPUP_POSITIONS;
 
   setDisabledFromForms(disabled: boolean): void {
     this.disabledByForms.set(disabled);
