@@ -2270,6 +2270,7 @@ export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(
   "common.request_failed": "Не удалось выполнить запрос",
   "common.language_packs_failed": "Не удалось загрузить языковые пакеты",
   "auth.welcome_name": "Добро пожаловать, {name}!",
+  "auth.signed_out_elsewhere": "Вы вышли из системы в другой вкладке.",
   "auth.login_confirmed": "Вход успешно подтвержден!",
   "notifications.new_notification": "Новое уведомление",
   "announcements.system_announcement": "Системное объявление",

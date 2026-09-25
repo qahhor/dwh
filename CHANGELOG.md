@@ -9,6 +9,12 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Open tabs stay in step (roadmap item 27): signing out — or changing the
+  password — in one tab signs out the others with a note why; signing in
+  wakes the tabs still on the sign-in page; a language chosen in one tab
+  follows in the others without saving it again. The theme already synced.
+  Only well-formed messages on the channel are applied; without
+  BroadcastChannel the tabs simply do not sync.
 - KPI cards and charts on the data overview (roadmap item 26): each figure
   shows its change against the same number of days before, coloured by
   which way is good for it (fewer rejections is good), and reads as one

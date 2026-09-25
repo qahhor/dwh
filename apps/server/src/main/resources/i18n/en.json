@@ -1932,6 +1932,7 @@
   "common.request_failed": "The request could not be completed",
   "common.language_packs_failed": "Language packs could not be loaded",
   "auth.welcome_name": "Welcome, {name}!",
+  "auth.signed_out_elsewhere": "You signed out in another tab.",
   "auth.login_confirmed": "Sign-in confirmed!",
   "notifications.new_notification": "New notification",
   "announcements.system_announcement": "System announcement",

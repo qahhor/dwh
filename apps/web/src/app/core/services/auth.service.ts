@@ -6,6 +6,7 @@ import { PermissionService } from './permission.service';
 import { ToastService } from './toast.service';
 import { User, LoginResponse, MeResponse } from '../models/auth.models';
 import { I18nService } from './i18n.service';
+import { TabSyncService } from './tab-sync.service';
 
 @Injectable({
   providedIn: 'root'
@@ -22,8 +23,14 @@ export class AuthService {
     private permissionService: PermissionService,
     private toast: ToastService,
     private router: Router,
-    private i18n: I18nService
-  ) {}
+    private i18n: I18nService,
+    private tabs: TabSyncService
+  ) {
+    this.tabs.messages.subscribe(message => {
+      if (message.kind === 'signed-out') this.signedOutElsewhere();
+      if (message.kind === 'signed-in') this.signedInElsewhere(message.userId);
+    });
+  }
 
   checkSession(): Observable<MeResponse | null> {
     const generation = this.sessionGeneration;
@@ -53,6 +60,7 @@ export class AuthService {
         if (res.step === 'success' && res.user) {
           this.currentUser.set(res.user);
           this.i18n.useAuthenticatedPreference(res.user.language);
+          this.tabs.publish({ kind: 'signed-in', userId: res.user.id });
           if (!res.user.forcePasswordChange) {
             this.refreshMe().subscribe();
             this.toast.success(this.i18n.translate('auth.welcome_name', { name: res.user.name }));
@@ -69,6 +77,7 @@ export class AuthService {
         if (res.step === 'success' && res.user) {
           this.currentUser.set(res.user);
           this.i18n.useAuthenticatedPreference(res.user.language);
+          this.tabs.publish({ kind: 'signed-in', userId: res.user.id });
           if (!res.user.forcePasswordChange) {
             this.refreshMe().subscribe();
             this.toast.success(this.i18n.translate('auth.login_confirmed'));
@@ -92,11 +101,8 @@ export class AuthService {
   }
 
   onPasswordChanged(): void {
-    this.sessionGeneration++;
-    this.currentUser.set(null);
-    this.permissionService.clear();
-    this.isLoading.set(false);
-    for (const notification of this.toast.toasts()) this.toast.dismiss(notification.id);
+    this.endSessionHere();
+    this.tabs.publish({ kind: 'signed-out' });
     this.toast.success(this.i18n.translate('auth.password_changed_sign_in_again'));
     this.router.navigate(['/login'], { replaceUrl: true });
   }
@@ -111,17 +117,39 @@ export class AuthService {
       next: () => {
         // Invalidate reads from before and during logout only after success;
         // a failed logout must still allow pending permission initialization.
-        this.sessionGeneration++;
-        this.currentUser.set(null);
-        this.permissionService.clear();
-        this.isLoading.set(false);
-        for (const notification of this.toast.toasts()) this.toast.dismiss(notification.id);
+        this.endSessionHere();
+        this.tabs.publish({ kind: 'signed-out' });
         this.router.navigate(['/login'], { replaceUrl: true });
       },
       error: () => {
         // ApiService reports the failure. Do not claim that the server's
         // HttpOnly session ended when it could still be valid; allow retry.
       }
+    });
+  }
+
+  /** Forgets the session in this tab: the user, the rights and the messages about them. */
+  private endSessionHere(): void {
+    this.sessionGeneration++;
+    this.currentUser.set(null);
+    this.permissionService.clear();
+    this.isLoading.set(false);
+    for (const notification of this.toast.toasts()) this.toast.dismiss(notification.id);
+  }
+
+  /** Another tab signed out: the cookie is gone for this tab too, so it follows at once. */
+  private signedOutElsewhere(): void {
+    if (!this.currentUser()) return;
+    this.endSessionHere();
+    this.toast.info(this.i18n.translate('auth.signed_out_elsewhere'));
+    this.router.navigate(['/login'], { replaceUrl: true });
+  }
+
+  /** Another tab signed in: a tab on the sign-in page (or of another person) takes the new session. */
+  private signedInElsewhere(userId: number): void {
+    if (this.currentUser()?.id === userId) return;
+    this.checkSession().subscribe(session => {
+      if (session && this.router.url.startsWith('/login')) this.router.navigate(['/tasks']);
     });
   }
 }
