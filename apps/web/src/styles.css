@@ -545,49 +545,10 @@ body.modal-open {
   border-color: var(--primary);
 }
 
-.status-tabs {
-  display: inline-flex;
-  align-items: center;
-  background-color: var(--bg-hover);
-  border-radius: var(--radius-sm);
-  padding: 2px;
-  gap: 2px;
-  border: 1px solid var(--border-color);
-}
 
-.status-tab {
-  height: 28px;
-  padding: 0 10px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-muted);
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-xs);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  transition: all 0.12s ease;
-  user-select: none;
-}
 
-.status-tab:hover:not(.active) {
-  color: var(--text-main);
-}
 
-.status-tab.active {
-  background-color: var(--bg-surface);
-  color: var(--text-main);
-  font-weight: 600;
-  box-shadow: var(--shadow-sm);
-}
 
-.status-tab-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-}
 
 .clean-select, .ui-select {
   height: var(--control-height);

@@ -1,4 +1,4 @@
-import { Component, HostListener, OnDestroy, OnInit, signal, inject } from '@angular/core';
+import { Component, HostListener, OnInit, signal, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -20,12 +20,14 @@ import { SettingsStoragePanelComponent } from './components/settings-storage-pan
 import { SettingsPreferencesPanelComponent } from './components/settings-preferences-panel.component';
 import { SettingsLanguagesPanelComponent } from './components/settings-languages-panel.component';
 import { WebhooksSettingsComponent } from './webhooks/webhooks-settings.component';
+import { SMTTabBarComponent, SMTTabItem } from '../../shared/ui-kit/components/tab-bar';
+import { optionsMemo } from '../../shared/ui-kit/components/forms/radio-group';
 
 @Component({
   selector: 'app-settings',
   standalone: true,
   imports: [
-    CommonModule,
+    SMTTabBarComponent, CommonModule,
     FormsModule,
     TranslatePipe,
     UiButtonComponent,
@@ -41,13 +43,15 @@ import { WebhooksSettingsComponent } from './webhooks/webhooks-settings.componen
   templateUrl: './settings.component.html',
   styleUrl: './settings.component.css'
 })
-export class SettingsComponent implements OnInit, OnDestroy {
+export class SettingsComponent implements OnInit {
+  /** Texts of the tabs below; translated again when the language changes. */
+  private readonly tabText = inject(I18nService);
+
   private readonly uiI18n = inject(I18nService);
   private readonly themeService = inject(ThemeService);
   private readonly modal = inject(SMTModalService);
   private readonly route = inject(ActivatedRoute, { optional: true });
   private readonly router = inject(Router, { optional: true });
-  private pendingTabFocusScroll: ReturnType<typeof setTimeout> | null = null;
   activeTab: SettingsTab = 'general';
 
   readonly isLoading = signal<boolean>(false);
@@ -88,25 +92,6 @@ export class SettingsComponent implements OnInit, OnDestroy {
     }
     this.legacyLanguageCount.set(Object.keys(readLegacyLanguages()).length);
     this.loadAllSettings();
-  }
-
-  ngOnDestroy(): void {
-    if (this.pendingTabFocusScroll !== null) clearTimeout(this.pendingTabFocusScroll);
-    this.pendingTabFocusScroll = null;
-  }
-
-  onSettingsTabFocusIn(event: FocusEvent): void {
-    const tabList = event.currentTarget;
-    const target = event.target;
-    if (!(tabList instanceof HTMLElement) || !(target instanceof HTMLElement)
-      || !target.matches('.status-tab[role="tab"]') || !tabList.contains(target)) return;
-    if (this.pendingTabFocusScroll !== null) clearTimeout(this.pendingTabFocusScroll);
-    this.pendingTabFocusScroll = setTimeout(() => {
-      this.pendingTabFocusScroll = null;
-      if (!tabList.isConnected || !target.isConnected || !tabList.contains(target)
-        || document.activeElement !== target) return;
-      target.scrollIntoView({ behavior: 'instant', block: 'nearest', inline: 'center' });
-    }, 0);
   }
 
   canManageSystemSettings(): boolean {
@@ -351,37 +336,6 @@ export class SettingsComponent implements OnInit, OnDestroy {
     }
   }
 
-  onTabKeydown(event: KeyboardEvent, currentTab: string): void {
-    const tabs: SettingsTab[] = [
-      'general', 'security', 'storage', 'preferences', 'languages', 'search', 'navigation', 'webhooks'
-    ];
-    const availableTabs = tabs.filter(t => this.isTabAvailable(t));
-    const currentIndex = availableTabs.indexOf(currentTab as any);
-    if (currentIndex === -1) return;
-
-    let targetIndex = -1;
-    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
-      event.preventDefault();
-      targetIndex = (currentIndex + 1) % availableTabs.length;
-    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
-      event.preventDefault();
-      targetIndex = (currentIndex - 1 + availableTabs.length) % availableTabs.length;
-    } else if (event.key === 'Home') {
-      event.preventDefault();
-      targetIndex = 0;
-    } else if (event.key === 'End') {
-      event.preventDefault();
-      targetIndex = availableTabs.length - 1;
-    }
-
-    if (targetIndex >= 0) {
-      const targetTab = availableTabs[targetIndex];
-      this.setTab(targetTab);
-      const tabElement = document.getElementById(`settings-${targetTab}-tab`);
-      if (tabElement) tabElement.focus();
-    }
-  }
-
   @HostListener('window:keydown', ['$event'])
   handleGlobalKeydown(event: KeyboardEvent): void {
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's' && !event.altKey && !event.shiftKey) {
@@ -503,4 +457,28 @@ export class SettingsComponent implements OnInit, OnDestroy {
     );
   }
 
+
+  private readonly tabsMemo = optionsMemo<SMTTabItem<SettingsTab>[]>();
+
+  /** The sections the viewer may open; each tab names its panel. */
+  settingsTabs(): SMTTabItem<SettingsTab>[] {
+    const all: [SettingsTab, string, string][] = [
+      ['general', 'tune', 'settings.tab.general'],
+      ['security', 'security', 'settings.tab.security'],
+      ['storage', 'cloud', 'settings.tab.storage'],
+      ['preferences', 'person', 'settings.tab.preferences'],
+      ['languages', 'language', 'settings.yazyki_i_lokalizaciya'],
+      ['search', 'manage_search', 'settings.search.tab'],
+      ['navigation', 'menu_open', 'settings.navigation.tab'],
+      ['webhooks', 'webhook', 'settings.webhooks.tab'],
+    ];
+    const available = all.filter(([tab]) => this.isTabAvailable(tab));
+    return this.tabsMemo([this.tabText.currentLang(), available.map(([tab]) => tab).join()], () => available.map(([tab, icon, key]) => ({
+      value: tab,
+      label: this.tabText.translate(key),
+      icon,
+      id: `settings-${tab}-tab`,
+      panelId: `settings-${tab}-panel`,
+    })));
+  }
 }

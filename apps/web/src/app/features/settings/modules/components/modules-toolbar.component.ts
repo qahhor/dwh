@@ -1,12 +1,15 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslatePipe } from '../../../../core/services/i18n.service';
 import { ModuleFilterTab } from '../modules.models';
+import { SMTTabBarComponent, SMTTabItem } from '../../../../shared/ui-kit/components/tab-bar';
+import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-group';
+import { I18nService } from '../../../../core/services/i18n.service';
 
 @Component({
   selector: 'app-modules-toolbar',
   standalone: true,
-  imports: [CommonModule, TranslatePipe],
+  imports: [SMTTabBarComponent, CommonModule, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="toolbar">
@@ -31,48 +34,12 @@ import { ModuleFilterTab } from '../modules.models';
         </button>
       </div>
 
-      <div class="status-tabs" role="tablist" [attr.aria-label]="'modules.filter_tabs' | t">
-        <button
-          type="button"
-          role="tab"
-          class="status-tab"
-          [class.active]="filterTab() === 'all'"
-          [attr.aria-selected]="filterTab() === 'all'"
-          (click)="filterTabChange.emit('all')"
-        >
-          {{ 'modules.tab.all' | t }} ({{ totalCount() }})
-        </button>
-        <button
-          type="button"
-          role="tab"
-          class="status-tab"
-          [class.active]="filterTab() === 'active'"
-          [attr.aria-selected]="filterTab() === 'active'"
-          (click)="filterTabChange.emit('active')"
-        >
-          {{ 'modules.tab.active' | t }} ({{ activeCount() }})
-        </button>
-        <button
-          type="button"
-          role="tab"
-          class="status-tab"
-          [class.active]="filterTab() === 'system'"
-          [attr.aria-selected]="filterTab() === 'system'"
-          (click)="filterTabChange.emit('system')"
-        >
-          {{ 'modules.tab.system' | t }} ({{ systemCount() }})
-        </button>
-        <button
-          type="button"
-          role="tab"
-          class="status-tab"
-          [class.active]="filterTab() === 'custom'"
-          [attr.aria-selected]="filterTab() === 'custom'"
-          (click)="filterTabChange.emit('custom')"
-        >
-          {{ 'modules.tab.custom' | t }} ({{ customCount() }})
-        </button>
-      </div>
+      <smt-tab-bar
+        class="status-tab-bar"
+        [tabs]="filterTabs()"
+        [value]="filterTab()"
+        [smtAriaLabel]="'modules.filter_tabs' | t"
+        (valueChange)="$event && filterTabChange.emit($event)" />
     </div>
   `,
   styles: [`
@@ -127,38 +94,12 @@ import { ModuleFilterTab } from '../modules.models';
     .search-clear-btn .material-symbols-outlined {
       font-size: 16px;
     }
-    .status-tabs {
-      display: flex;
-      gap: 4px;
-      background: var(--bg-hover);
-      padding: 3px;
-      border-radius: var(--radius-md);
-      border: 1px solid var(--border-color);
-    }
-    .status-tab {
-      padding: 6px 14px;
-      border: none;
-      background: transparent;
-      border-radius: var(--radius-sm);
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--text-muted);
-      cursor: pointer;
-      transition: all 0.15s ease;
-      white-space: nowrap;
-    }
-    .status-tab:hover {
-      color: var(--text-main);
-    }
-    .status-tab.active {
-      background: var(--bg-surface);
-      color: var(--primary);
-      font-weight: 600;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
-    }
   `]
 })
 export class ModulesToolbarComponent {
+  /** Texts of the tabs below; translated again when the language changes. */
+  private readonly tabText = inject(I18nService);
+
   readonly searchQuery = input.required<string>();
   readonly filterTab = input.required<ModuleFilterTab>();
   readonly totalCount = input.required<number>();
@@ -170,8 +111,19 @@ export class ModulesToolbarComponent {
   readonly clearSearch = output<void>();
   readonly filterTabChange = output<ModuleFilterTab>();
 
+  private readonly tabsMemo = optionsMemo<SMTTabItem<ModuleFilterTab>[]>();
+
   onSearchInput(event: Event): void {
     const input = event.target as HTMLInputElement;
     this.searchChange.emit(input.value);
+  }
+
+  filterTabs(): SMTTabItem<ModuleFilterTab>[] {
+    return this.tabsMemo([this.tabText.currentLang(), this.totalCount(), this.activeCount(), this.systemCount(), this.customCount()], () => [
+      { value: 'all', label: this.tabText.translate('modules.tab.all'), count: this.totalCount() },
+      { value: 'active', label: this.tabText.translate('modules.tab.active'), count: this.activeCount() },
+      { value: 'system', label: this.tabText.translate('modules.tab.system'), count: this.systemCount() },
+      { value: 'custom', label: this.tabText.translate('modules.tab.custom'), count: this.customCount() },
+    ] as SMTTabItem<ModuleFilterTab>[]);
   }
 }
