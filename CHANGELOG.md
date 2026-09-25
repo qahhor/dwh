@@ -9,6 +9,12 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Record history (ADR-0017): the task card and the user card have a
+  "Change history" section that shows who changed which field from what to
+  what and when, newest first, from the audit log. It opens with the
+  record's own right and data scope, not with the audit log right, and loads
+  only when opened. `GET /api/v1/history/{kind}/{id}` serves tasks, projects
+  and users; a module adds a kind with one `RecordHistorySource` bean.
 - `ui-local-table`: the kit table over a list that is loaded whole, sorting
   every row by a header click (by keyboard too), with empty values last and
   ties kept in place. Modules, custom menu items, webhooks, custom fields,

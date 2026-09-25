@@ -30,6 +30,7 @@ Current ADRs that are not superseded:
   — vendors a subset of the shared component library instead of depending on
   it, and amends ADR-0012 for that subset only.
 - [ADR-0016 — field registry, query-meta and filter DSL](adr/ADR-0016-field-registry-query-dsl.md)
+- [ADR-0017 — record history tab](adr/ADR-0017-record-history.md)
   — lists declare their fields on the server; clients read them from
   `query-meta` and filter and sort through one checked JSON DSL.
 

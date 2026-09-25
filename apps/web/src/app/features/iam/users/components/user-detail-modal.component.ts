@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Observable } from 'rxjs';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { UiLocalTableComponent } from '../../../../shared/ui/ui-local-table.component';
+import { UiRecordHistoryComponent } from '../../../../shared/ui/ui-record-history.component';
 import { TableConfig } from '../../../../shared/ui-kit/components/table/table.types';
 import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
 import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
@@ -20,7 +21,8 @@ import { UserEffectivePermissionsPanelComponent } from './user-effective-permiss
     UiButtonComponent,
     UserOrgUnitsPanelComponent,
     UserEffectivePermissionsPanelComponent,
-    UiLocalTableComponent
+    UiLocalTableComponent,
+    UiRecordHistoryComponent
   ],
   template: `
     <!-- User View / Profile Modal -->
@@ -129,6 +131,7 @@ import { UserEffectivePermissionsPanelComponent } from './user-effective-permiss
             <span class="val font-mono">{{ u.createdAt | date:'dd.MM.yyyy' }}</span>
           </div>
         </div>
+        <ui-record-history *ngIf="activeViewTab === 'info' && safeRecordId(u.id)" class="user-history" kind="users" [recordId]="u.id" />
 
         <!-- Security & Sessions Tab -->
         <div class="security-tab-content" *ngIf="activeViewTab === 'security'">

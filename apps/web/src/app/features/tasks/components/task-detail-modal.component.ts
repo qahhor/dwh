@@ -6,6 +6,7 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiMarkdownViewComponent } from '../../../shared/ui/ui-markdown-view.component';
 import { UiFileUploadComponent } from '../../../shared/ui/ui-file-upload.component';
+import { UiRecordHistoryComponent } from '../../../shared/ui/ui-record-history.component';
 import { CustomField } from '../../../core/models/custom-field.models';
 import { Task, Project, TaskStatus, TaskType, TaskMember, TaskComment, TaskFile } from '../../../core/models/task.models';
 import { safeNumericRecordId } from '../../../core/services/search-target';
@@ -21,7 +22,8 @@ import { groupMembersByRole, GroupedTaskMembers } from '../tasks.models';
     UiModalComponent,
     UiButtonComponent,
     UiMarkdownViewComponent,
-    UiFileUploadComponent
+    UiFileUploadComponent,
+    UiRecordHistoryComponent
   ],
   template: `
     <ui-modal
@@ -179,6 +181,11 @@ import { groupMembersByRole, GroupedTaskMembers } from '../tasks.models';
                   {{ 'tasks.otpravit' | t }}
                 </ui-button>
               </div>
+            </div>
+
+            <!-- Change History (audit log), loaded when opened -->
+            <div class="detail-section" *ngIf="safeRecordId(t.id)">
+              <ui-record-history kind="tasks" [recordId]="t.id" />
             </div>
           </div>
 

@@ -275,6 +275,10 @@ describe('TasksComponent UI contracts', () => {
     expect(action.tagName).toBe('BUTTON');
     expect(action.type).toBe('button');
     expect(action.getAttribute('aria-label')).toBe('Открыть подзадачу #11: Проверить подзадачу');
+    // The card offers the task's change history, closed until asked for.
+    const history = fixture.nativeElement.querySelector('ui-record-history [data-testid="record-history-toggle"]') as HTMLButtonElement;
+    expect(history.getAttribute('aria-expanded')).toBe('false');
+    expect(history.textContent).toContain('История изменений');
   });
 
   it('submits executorUserIds when creating a task with co-executors', async () => {

@@ -282,3 +282,10 @@
         grid-template-columns: repeat(2, 1fr);
       }
     }
+
+    /* The change history under the profile facts, separated from them. */
+    .user-history {
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border-color);
+    }

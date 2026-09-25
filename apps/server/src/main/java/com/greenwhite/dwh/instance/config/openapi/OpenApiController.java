@@ -265,6 +265,24 @@ public class OpenApiController {
                                         )
                                 )
                         )),
+                        Map.entry("/api/v1/history", Map.of(
+                                "get", Map.of(
+                                        "summary", "Kinds of records whose history the viewer may open",
+                                        "tags", List.of("Audit"),
+                                        "responses", Map.of("200", Map.of("description", "Kinds, e.g. tasks, projects, users"))
+                                )
+                        )),
+                        Map.entry("/api/v1/history/{kind}/{id}", Map.of(
+                                "get", Map.of(
+                                        "summary", "Change history of one record, newest first (keyset, cursor)",
+                                        "tags", List.of("Audit"),
+                                        "responses", Map.of(
+                                                "200", Map.of("description", "Changes with who, when and field old/new values"),
+                                                "403", Map.of("description", "No right to the kind of record"),
+                                                "404", Map.of("description", "Unknown kind, or a record the viewer cannot see")
+                                        )
+                                )
+                        )),
                         Map.entry("/api/v1/list-views/{code}/{id}", Map.of(
                                 "put", Map.of(
                                         "summary", "Change an own view (lockVersion required)",

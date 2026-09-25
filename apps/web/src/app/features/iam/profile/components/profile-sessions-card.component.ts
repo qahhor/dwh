@@ -2,7 +2,6 @@ import { Component, EventEmitter, Input, Output, Signal, TemplateRef, computed, 
 import { CommonModule } from '@angular/common';
 import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
 import { UiBadgeComponent } from '../../../../shared/ui/ui-badge.component';
-import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { UiLocalTableComponent } from '../../../../shared/ui/ui-local-table.component';
 import { TableConfig } from '../../../../shared/ui-kit/components/table/table.types';
@@ -16,8 +15,7 @@ import { UserSession } from '../profile.models';
     CommonModule,
     TranslatePipe,
     UiButtonComponent,
-    UiBadgeComponent,
-    UiModalComponent
+    UiBadgeComponent
   ],
   template: `
     <div class="card section-card full-width">
