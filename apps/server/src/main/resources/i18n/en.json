@@ -1,6 +1,8 @@
 {
   "nav.tasks": "Tasks",
   "nav.projects": "Projects",
+  "nav.upl_packages": "Uploads",
+  "nav.upl_sources": "Sources and formats",
   "nav.upl_overview": "Data overview",
   "nav.users": "Users",
   "nav.roles": "Roles and permissions",
@@ -819,7 +821,6 @@
   "projects.poisk_polzovatelya": "Search user by name or email...",
   "projects.polzovatel_uzhe_uchastnik": "User is already a project member",
   "projects.tablica_uchastnikov_proekta": "Project members table",
-  "projects.uchastniki": "Members",
   "tasks.rezhim_otobrazheniya_zadach": "Task display mode",
   "tasks.loaded_count": "Uploaded by: {count}",
   "tasks.tablichnyy_vid": "Tabular View",

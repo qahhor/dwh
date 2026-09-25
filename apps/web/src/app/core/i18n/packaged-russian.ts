@@ -820,7 +820,6 @@ export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(
   "projects.poisk_polzovatelya": "Поиск пользователя по имени или email...",
   "projects.polzovatel_uzhe_uchastnik": "Пользователь уже является участником проекта",
   "projects.tablica_uchastnikov_proekta": "Таблица участников проекта",
-  "projects.uchastniki": "Участники",
   "tasks.rezhim_otobrazheniya_zadach": "Режим отображения задач",
   "tasks.loaded_count": "Загружено: {count}",
   "tasks.tablichnyy_vid": "Табличный вид",

@@ -99,3 +99,62 @@ export function featureI18nProblems(feature: FeatureI18n): string[] {
   }
   return [...new Set(problems)];
 }
+
+// ---------- keys the server names ----------
+//
+// Some keys never appear in the web's code because the server names them: a
+// list field's label (`QueryField.of("size", "files.razmer", ...)`), a cell of
+// the xlsx it builds, an error code the web turns into `upl.err.<code>` or
+// `error.<code>`. A feature spec declares those from the server's own sources
+// with the helpers below, so a key the server stops using becomes dead here too.
+
+const SERVER_JAVA_ROOTS = [
+  path.resolve(WEB_ROOT, '..', 'server', 'src', 'main', 'java'),
+  path.resolve(WEB_ROOT, '..', '..', 'libs'),
+];
+/** Package root of the server's classes, for `serverCodeKeys({ file })`. */
+const SERVER_PACKAGE = path.resolve(WEB_ROOT, '..', 'server', 'src', 'main', 'java', 'com', 'greenwhite', 'dwh');
+
+let serverCache: Map<string, string> | null = null;
+
+function serverSources(): Map<string, string> {
+  if (serverCache) return serverCache;
+  serverCache = new Map();
+  for (const root of SERVER_JAVA_ROOTS) {
+    for (const name of readdirSync(root, { recursive: true, encoding: 'utf8' })) {
+      const file = path.join(root, name);
+      if (!name.endsWith('.java') || /[\\/](test|target)[\\/]/.test(name)) continue;
+      serverCache.set(file, withoutComments(readFileSync(file, 'utf8')));
+    }
+  }
+  return serverCache;
+}
+
+function catalogKeys(prefix: string): string[] {
+  return Object.keys(load().ru).filter(key => key.startsWith(prefix));
+}
+
+/** Catalog keys under `prefix` that the server's code names in full, e.g. `"upl.template.title"`. */
+export function serverLiteralKeys(prefix: string): string[] {
+  const sources = [...serverSources().values()];
+  return catalogKeys(prefix).filter(key => sources.some(source => source.includes(`"${key}"`)));
+}
+
+/**
+ * Catalog keys `prefix + suffix` whose code the server uses: as a string literal
+ * (`"UPL_SHEET_NAME_REQUIRED"`), an enum constant (`ErrorCode.I18N_LANGUAGE_INVALID`)
+ * or a validation annotation (`@NotBlank`). `toCode` maps the key's suffix to that
+ * code (`error.i18n_language_invalid` → `I18N_LANGUAGE_INVALID`); `file` limits the
+ * search to one class under com/greenwhite/dwh, for codes as short as a field name.
+ */
+export function serverCodeKeys(prefix: string, options: { toCode?: (suffix: string) => string; file?: string } = {}): string[] {
+  const toCode = options.toCode ?? (suffix => suffix);
+  const sources = options.file
+    ? [withoutComments(readFileSync(path.join(SERVER_PACKAGE, options.file), 'utf8'))]
+    : [...serverSources().values()];
+  return catalogKeys(prefix).filter(key => {
+    const code = toCode(key.slice(prefix.length));
+    const word = new RegExp(`(?<![\\w])@?${code.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w])`);
+    return sources.some(source => source.includes(`"${code}"`) || (!options.file && word.test(source)));
+  });
+}

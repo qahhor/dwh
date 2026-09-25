@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Subscription, exhaustMap, timer } from 'rxjs';
 import { ProblemDetail } from '../../../core/models/common.models';
 import {
+  SEARCH_ENTITIES,
   SearchEntityType,
   SearchFieldPolicy,
   SearchGenerationStatus,
@@ -147,7 +148,7 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
     };
   });
 
-  readonly entities: SearchEntityType[] = ['TASK', 'PROJECT', 'USER', 'NOTE'];
+  readonly entities: readonly SearchEntityType[] = SEARCH_ENTITIES;
 
   previewQuery = '';
   previewEntity: SearchEntityType | '' = '';
