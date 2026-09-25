@@ -253,17 +253,17 @@ export class SettingsComponent implements OnInit, OnDestroy {
     });
   }
 
-  toggleRequire2fa(event: any) {
+  toggleRequire2fa(enabled: boolean) {
     this.systemSettings.update(settings => ({
       ...settings,
-      'security.require_2fa': event.target.checked ? 'true' : 'false'
+      'security.require_2fa': enabled ? 'true' : 'false'
     }));
   }
 
-  toggleSound(event: any) {
+  toggleSound(enabled: boolean) {
     this.userSettings.update(settings => ({
       ...settings,
-      'user.notifications_sound': event.target.checked ? 'true' : 'false'
+      'user.notifications_sound': enabled ? 'true' : 'false'
     }));
   }
 

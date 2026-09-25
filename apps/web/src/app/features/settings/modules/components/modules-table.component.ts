@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, Signal, TemplateRef, computed, inject, input, output, viewChild } from '@angular/core';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { UiLocalTableComponent } from '../../../../shared/ui/ui-local-table.component';
+import { SMTSwitchComponent } from '../../../../shared/ui-kit/components/forms/switch';
 import { TableConfig } from '../../../../shared/ui-kit/components/table/table.types';
 import { InstalledModule } from '../modules.models';
 
@@ -11,7 +12,7 @@ import { InstalledModule } from '../modules.models';
 @Component({
   selector: 'app-modules-table',
   standalone: true,
-  imports: [TranslatePipe, UiLocalTableComponent],
+  imports: [TranslatePipe, UiLocalTableComponent, SMTSwitchComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="table-container">
@@ -41,17 +42,14 @@ import { InstalledModule } from '../modules.models';
     </ng-template>
     <ng-template #actionsCell let-mod>
       <div class="action-cell">
-        <label class="switch-toggle" [class.disabled]="mod.isSystem || togglingCode() === mod.code" [title]="mod.isSystem ? ('modules.system_cannot_disable' | t) : ''">
-          <input
-            type="checkbox"
-            data-testid="module-toggle"
-            [checked]="mod.isActive"
-            [disabled]="mod.isSystem || togglingCode() === mod.code"
-            (change)="toggle.emit({ module: mod, event: $event })"
-            [attr.aria-label]="(mod.isActive ? 'modules.action.disable' : 'modules.action.enable') | t:{name: mod.name}"
-          />
-          <span class="toggle-slider"></span>
-        </label>
+        <smt-switch
+          smtSize="sm"
+          data-testid="module-toggle"
+          [checked]="mod.isActive"
+          [disabled]="mod.isSystem || togglingCode() === mod.code"
+          [title]="mod.isSystem ? ('modules.system_cannot_disable' | t) : ''"
+          [smtAriaLabel]="(mod.isActive ? 'modules.action.disable' : 'modules.action.enable') | t:{name: mod.name}"
+          (smtUserChange)="toggle.emit({ module: mod, enabled: $event })" />
         @if (mod.isSystem) {
           <span class="system-locked-hint" [title]="'modules.system_cannot_disable' | t">
             <span class="material-symbols-outlined lock-icon" aria-hidden="true">lock</span>
@@ -137,49 +135,6 @@ import { InstalledModule } from '../modules.models';
       justify-content: center;
       gap: 6px;
     }
-    .switch-toggle {
-      position: relative;
-      display: inline-block;
-      width: 36px;
-      height: 20px;
-      cursor: pointer;
-    }
-    .switch-toggle.disabled {
-      cursor: not-allowed;
-      opacity: 0.6;
-    }
-    .switch-toggle input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-    .toggle-slider {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: var(--border-color);
-      transition: 0.2s ease;
-      border-radius: 20px;
-    }
-    .toggle-slider:before {
-      position: absolute;
-      content: "";
-      height: 14px;
-      width: 14px;
-      left: 3px;
-      bottom: 3px;
-      background-color: white;
-      transition: 0.2s ease;
-      border-radius: 50%;
-    }
-    .switch-toggle input:checked + .toggle-slider {
-      background-color: var(--primary);
-    }
-    .switch-toggle input:checked + .toggle-slider:before {
-      transform: translateX(16px);
-    }
     .system-locked-hint {
       display: flex;
       align-items: center;
@@ -224,7 +179,7 @@ export class ModulesTableComponent {
   readonly canManage = input.required<boolean>();
   readonly togglingCode = input<string | null>(null);
 
-  readonly toggle = output<{ module: InstalledModule; event: Event }>();
+  readonly toggle = output<{ module: InstalledModule; enabled: boolean }>();
 
   private readonly i18n = inject(I18nService);
   private readonly moduleCell = viewChild.required<TemplateRef<unknown>>('moduleCell');

@@ -1,0 +1,77 @@
+<!-- Our template, after the idea of the kit's smt-time-picker (smartup-ui-kit@6472beb). See the component header. -->
+<div class="smt-time-picker__control" cdkOverlayOrigin #origin="cdkOverlayOrigin">
+  <input
+    #field
+    type="text"
+    class="smt-time-picker__input"
+    role="combobox"
+    aria-autocomplete="list"
+    autocomplete="off"
+    inputmode="numeric"
+    [id]="customId() || baseId"
+    [attr.name]="name() || null"
+    [placeholder]="placeholder() || i18n.messages().time.placeholder"
+    [value]="draft()"
+    [disabled]="isDisabled()"
+    [readOnly]="readonly()"
+    [required]="required()"
+    [attr.aria-expanded]="open()"
+    [attr.aria-controls]="open() ? listboxId : null"
+    [attr.aria-activedescendant]="activeId()"
+    [attr.aria-describedby]="problem() ? problemId : null"
+    [attr.aria-invalid]="hasError() ? 'true' : null"
+    (input)="onInput($event)"
+    (keydown)="onKeydown($event)"
+    (blur)="onBlur()" />
+  @if (value() && editable()) {
+    <button
+      type="button"
+      class="smt-time-picker__button smt-time-picker__clear"
+      tabindex="-1"
+      [attr.aria-label]="i18n.messages().time.clear"
+      (mousedown)="$event.preventDefault()"
+      (click)="clear()">
+      <span class="material-symbols-outlined" aria-hidden="true">close</span>
+    </button>
+  }
+  <button
+    type="button"
+    class="smt-time-picker__button smt-time-picker__toggle"
+    tabindex="-1"
+    [disabled]="!editable()"
+    [attr.aria-label]="i18n.messages().time.open"
+    [attr.aria-expanded]="open()"
+    [attr.aria-controls]="open() ? listboxId : null"
+    (mousedown)="$event.preventDefault()"
+    (click)="toggleList()">
+    <span class="material-symbols-outlined" aria-hidden="true">schedule</span>
+  </button>
+</div>
+
+@if (problem()) {
+  <p class="smt-time-picker__problem" [id]="problemId">{{ problemText() }}</p>
+}
+
+<ng-template
+  cdkConnectedOverlay
+  [cdkConnectedOverlayOrigin]="origin"
+  [cdkConnectedOverlayOpen]="open()"
+  [cdkConnectedOverlayPositions]="positions"
+  [cdkConnectedOverlayMinWidth]="origin.elementRef.nativeElement.offsetWidth || 120"
+  (overlayOutsideClick)="open.set(false)"
+  (detach)="open.set(false)">
+  <ul class="smt-time-picker__list" role="listbox" [id]="listboxId" [attr.aria-label]="i18n.messages().time.list">
+    @for (slot of slots(); track slot; let index = $index) {
+      <li
+        class="smt-time-picker__option"
+        role="option"
+        [id]="optionId(index)"
+        [class.smt-time-picker__option--active]="activeIndex() === index"
+        [attr.aria-selected]="slot === value() ? 'true' : 'false'"
+        (mousedown)="$event.preventDefault()"
+        (click)="choose(index)">
+        {{ slot }}
+      </li>
+    }
+  </ul>
+</ng-template>

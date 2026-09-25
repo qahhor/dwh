@@ -1,0 +1,136 @@
+/* Our styles for smt-time-picker, from semantic tokens so both themes work.
+ * Global (ViewEncapsulation.None): the list renders in the CDK overlay. */
+
+.smt-time-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+}
+
+.smt-time-picker__control {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.smt-time-picker__input {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--control-height);
+  padding: 6px 64px 6px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+  font: inherit;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  transition: border-color 0.15s ease;
+}
+
+.smt-time-picker__input::placeholder {
+  color: var(--text-muted);
+}
+
+.smt-time-picker__input:focus,
+.smt-time-picker__input[aria-expanded='true'] {
+  border-color: var(--primary);
+}
+
+.smt-time-picker__input:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.smt-time-picker__input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.smt-time-picker__input:read-only {
+  background-color: var(--bg-hover);
+}
+
+.smt-time-picker--invalid .smt-time-picker__input {
+  border-color: var(--danger);
+}
+
+.smt-time-picker__button {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.smt-time-picker__button:hover:not(:disabled) {
+  background-color: var(--bg-hover);
+  color: var(--text-main);
+}
+
+.smt-time-picker__button:disabled {
+  cursor: not-allowed;
+}
+
+.smt-time-picker__button .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.smt-time-picker__toggle {
+  right: 6px;
+}
+
+.smt-time-picker__clear {
+  right: 32px;
+}
+
+.smt-time-picker__clear .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.smt-time-picker__problem {
+  margin: 0;
+  color: var(--danger-text);
+  font-size: 12px;
+}
+
+.smt-time-picker__list {
+  max-height: min(240px, 50vh);
+  margin: 0;
+  padding: 4px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+  box-shadow: var(--shadow-overlay);
+  list-style: none;
+}
+
+.smt-time-picker__option {
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.smt-time-picker__option:hover,
+.smt-time-picker__option--active {
+  background-color: var(--bg-hover);
+}
+
+.smt-time-picker__option[aria-selected='true'] {
+  color: var(--primary-text);
+  font-weight: 600;
+}

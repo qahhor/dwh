@@ -1,0 +1,84 @@
+/* Our styles for smt-switch, from semantic tokens so both themes work. */
+
+.smt-switch {
+  --smt-switch-width: 36px;
+  --smt-switch-height: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  vertical-align: middle;
+}
+
+.smt-switch--sm {
+  --smt-switch-width: 28px;
+  --smt-switch-height: 16px;
+}
+
+.smt-switch__track {
+  position: relative;
+  flex-shrink: 0;
+  width: var(--smt-switch-width);
+  height: var(--smt-switch-height);
+  padding: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background-color: var(--bg-active);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.smt-switch__thumb {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: calc(var(--smt-switch-height) - 4px);
+  height: calc(var(--smt-switch-height) - 4px);
+  border-radius: 50%;
+  background-color: var(--bg-surface);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s ease;
+}
+
+.smt-switch--on .smt-switch__track {
+  border-color: var(--primary);
+  background-color: var(--primary);
+}
+
+.smt-switch--on .smt-switch__thumb {
+  background-color: var(--on-primary);
+  transform: translateX(calc(var(--smt-switch-width) - var(--smt-switch-height)));
+}
+
+.smt-switch--invalid .smt-switch__track {
+  border-color: var(--danger);
+}
+
+.smt-switch__track:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.smt-switch--disabled .smt-switch__track,
+.smt-switch--disabled .smt-switch__label {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.smt-switch__track[aria-readonly='true'] {
+  cursor: default;
+}
+
+.smt-switch__label {
+  color: var(--text-main);
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .smt-switch__track,
+  .smt-switch__thumb {
+    transition: none;
+  }
+}

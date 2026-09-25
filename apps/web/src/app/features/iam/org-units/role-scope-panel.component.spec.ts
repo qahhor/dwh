@@ -69,9 +69,10 @@ describe('RoleScopePanelComponent', () => {
 
   it('shows all four typed rules and read-only explanations with view permission alone', () => {
     const { fixture, panel, api } = setup({ permissions: ['iam.org_units.view'], rule: 'SELF' });
-    const radios = Array.from(fixture.nativeElement.querySelectorAll('input[type="radio"]')) as HTMLInputElement[];
-    expect(radios.map(input => input.value)).toEqual(['ALL', 'SUBTREE', 'UNITS', 'SELF']);
-    expect(radios.every(input => input.disabled)).toBe(true);
+    const radios = Array.from(fixture.nativeElement.querySelectorAll('[role="radio"]')) as HTMLElement[];
+    expect(radios).toHaveLength(4);
+    expect(radios[3].getAttribute('aria-checked')).toBe('true');
+    expect(radios.every(radio => radio.getAttribute('aria-disabled') === 'true')).toBe(true);
     expect(fixture.nativeElement.textContent).toContain('Связь определяется правилами конкретной сущности');
     panel.selectRule('ALL'); panel.save(); panel.confirmSave(); expect(api.saveRoleRule).not.toHaveBeenCalled();
   });

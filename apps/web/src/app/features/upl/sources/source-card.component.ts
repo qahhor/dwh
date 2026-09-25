@@ -7,6 +7,7 @@ import { forkJoin } from 'rxjs';
 import { ProblemDetail } from '../../../core/models/common.models';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { SMTControlComponent } from '../../../shared/ui-kit/components/forms/control';
+import { SMTRadioGroupComponent, SMTRadioOption } from '../../../shared/ui-kit/components/forms/radio-group';
 import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
@@ -58,7 +59,8 @@ type DraftMode = 'empty' | 'copy';
     TranslatePipe,
     UiButtonComponent,
     UiModalComponent,
-    UiBadgeComponent
+    UiBadgeComponent,
+    SMTRadioGroupComponent
   ],
   template: `
     @if (isLoading()) {
@@ -261,31 +263,18 @@ type DraftMode = 'empty' | 'copy';
         (close)="closeDraftDialog()"
       >
         <div body class="upl-draft-body">
-          <label class="upl-radio">
-            <input
-              type="radio"
-              name="uplDraftMode"
-              data-testid="upl-draft-mode-empty"
-              [checked]="draftMode() === 'empty'"
-              (change)="draftMode.set('empty')"
-            />
-            <span>{{ 'upl.version.draft_empty' | t }}</span>
-          </label>
+          <smt-radio-group
+            data-testid="upl-draft-mode"
+            [options]="draftModes()"
+            [value]="draftMode()"
+            [smtAriaLabel]="'upl.version.new_draft' | t"
+            (valueChange)="draftMode.set($event ?? 'empty')" />
 
           @if (copyCandidates().length > 0) {
-            <label class="upl-radio">
-              <input
-                type="radio"
-                name="uplDraftMode"
-                data-testid="upl-draft-mode-copy"
-                [checked]="draftMode() === 'copy'"
-                (change)="draftMode.set('copy')"
-              />
-              <span>{{ 'upl.version.draft_copy' | t }}</span>
-            </label>
             <select
               class="form-select"
               data-testid="upl-draft-copy-from"
+              [attr.aria-label]="'upl.version.draft_copy' | t"
               [disabled]="draftMode() !== 'copy'"
               [ngModel]="copyFrom()"
               (ngModelChange)="copyFrom.set($event)"
@@ -413,12 +402,6 @@ type DraftMode = 'empty' | 'copy';
       flex-direction: column;
       gap: 0.75rem;
     }
-    .upl-radio {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      color: var(--text-main);
-    }
     .upl-skeleton {
       display: flex;
       flex-direction: column;
@@ -521,6 +504,11 @@ export class SourceCardComponent {
 
   readonly canEdit = computed(() => this.permissions.hasPermission('upl.sources', 'edit'));
   readonly draftVersion = computed(() => this.versions().find(v => v.status === 'draft') ?? null);
+  /** A copy is offered only when there is a version to copy. */
+  readonly draftModes = computed<SMTRadioOption<DraftMode>[]>(() => [
+    { value: 'empty', label: this.i18n.translate('upl.version.draft_empty') },
+    ...(this.copyCandidates().length > 0 ? [{ value: 'copy' as const, label: this.i18n.translate('upl.version.draft_copy') }] : [])
+  ]);
   readonly copyCandidates = computed(() =>
     this.versions()
       .filter(v => v.status === 'published' || v.status === 'superseded')

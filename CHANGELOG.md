@@ -9,6 +9,20 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Form fields from the kit, wave 6 (roadmap item 31), written as our code after
+  the kit's ideas, on semantic tokens, for Signal Forms and — through value
+  accessors — ngModel and reactive forms: `smt-textarea` grows with its text
+  and shows "used of allowed" linked to the field; `smt-switch` is a real
+  role="switch" button; `smt-radio-group` follows the APG radio group (one tab
+  stop, arrows choose, plain or card look); `smt-time-picker` reads 930, 9:30
+  or 9.30 and offers a list of times every `step` minutes within
+  `minTime`/`maxTime`. smt-control now names radio groups and switches.
+  In use: the data-scope rule of a role, the API token lifetime and the UPL
+  new-draft choice (radio groups, the lifetime group now has a name); project
+  descriptions and announcement texts (textarea, the announcement's own
+  counter replaced); notification sound, required 2FA and module switches
+  (switch; a module switch shows the change at once and takes it back if the
+  server refuses).
 - Front-end tooling (roadmap item 30). `npm run signals:audit` checks the
   member order of Angular classes (inject, inputs, outputs, models, queries,
   signals, computed, effects, fields, constructor, methods; public before
@@ -382,6 +396,10 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   default.
 
 ### Fixed
+
+- Checkbox and the new fields tell Signal Forms when they are touched: Angular
+  22 listens to a `touch` output, and the kit's `touchedChange` never reached
+  the form, so a checkbox's required error could stay hidden.
 
 - Opening and at once closing a dialog with a date, select or tree field
   bound through `ngModel` no longer throws NG0953: the fields ignore a form

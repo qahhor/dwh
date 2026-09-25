@@ -1,0 +1,63 @@
+/* Our styles for smt-textarea, from semantic tokens so both themes work. */
+
+.smt-textarea {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+}
+
+.smt-textarea__field {
+  display: block;
+  width: 100%;
+  min-height: var(--control-height);
+  padding: 7px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+  font: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  resize: vertical;
+  transition: border-color 0.15s ease;
+}
+
+.smt-textarea__field::placeholder {
+  color: var(--text-muted);
+}
+
+.smt-textarea__field:focus {
+  border-color: var(--primary);
+}
+
+.smt-textarea__field:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.smt-textarea__field:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.smt-textarea__field:read-only {
+  background-color: var(--bg-hover);
+}
+
+.smt-textarea--invalid .smt-textarea__field {
+  border-color: var(--danger);
+}
+
+.smt-textarea__counter {
+  align-self: flex-end;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.smt-textarea__counter--near {
+  color: var(--danger-text);
+  font-weight: 600;
+}

@@ -1,0 +1,36 @@
+<!-- Our template, after the idea of the kit's smt-radio-group (smartup-ui-kit@6472beb). See the component header. -->
+<div
+  class="smt-radio-group__list"
+  role="radiogroup"
+  [id]="customId() || groupId"
+  [attr.aria-label]="ariaLabel() || null"
+  [attr.aria-orientation]="orientation()"
+  [attr.aria-required]="required() ? 'true' : null"
+  [attr.aria-invalid]="hasError() ? 'true' : null"
+  [attr.aria-disabled]="isDisabled() ? 'true' : null"
+  [attr.aria-readonly]="readonly() ? 'true' : null"
+  (focusout)="onFocusOut($event)">
+  @for (option of options(); track $index; let index = $index) {
+    <div
+      #item
+      class="smt-radio-group__item"
+      role="radio"
+      [id]="itemId(index)"
+      [class.smt-radio-group__item--checked]="selectedIndex() === index"
+      [attr.aria-checked]="selectedIndex() === index ? 'true' : 'false'"
+      [attr.aria-disabled]="itemDisabled(index) ? 'true' : null"
+      [attr.aria-labelledby]="itemId(index) + '-label'"
+      [attr.aria-describedby]="option.hint ? itemId(index) + '-hint' : null"
+      [tabindex]="tabStop() === index ? 0 : -1"
+      (click)="choose(index)"
+      (keydown)="onKeydown($event, index)">
+      <span class="smt-radio-group__dot" aria-hidden="true"></span>
+      <span class="smt-radio-group__text">
+        <span class="smt-radio-group__label" [id]="itemId(index) + '-label'">{{ option.label }}</span>
+        @if (option.hint) {
+          <span class="smt-radio-group__hint" [id]="itemId(index) + '-hint'">{{ option.hint }}</span>
+        }
+      </span>
+    </div>
+  }
+</div>

@@ -5,12 +5,13 @@ import { A11yModule } from '@angular/cdk/a11y';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
+import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/ui-kit/components/forms/textarea';
 import { AnnouncementAdminRecord, AnnouncementBannerType, Confirmation } from '../announcements.models';
 
 @Component({
   selector: 'app-announcements-modals',
   standalone: true,
-  imports: [CommonModule, FormsModule, A11yModule, TranslatePipe, UiButtonComponent, UiModalComponent],
+  imports: [CommonModule, FormsModule, A11yModule, TranslatePipe, UiButtonComponent, UiModalComponent, SMTTextareaComponent, SMTTextareaValueAccessor],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Create / Edit Draft Modal -->
@@ -65,18 +66,16 @@ import { AnnouncementAdminRecord, AnnouncementBannerType, Confirmation } from '.
           <div class="field-group">
             <div class="field-header">
               <label for="announcement-body-ru">{{ 'announcements.tekst_obyavleniya_ru' | t }} <span aria-hidden="true">*</span></label>
-              <span class="char-count">{{ bodyRu.length }} / 10 000 {{ 'announcements.simvolov' | t }}</span>
             </div>
-            <textarea
-              id="announcement-body-ru"
+            <smt-textarea
+              smtFieldId="announcement-body-ru"
               name="announcementBodyRu"
-              rows="7"
-              maxlength="10000"
+              smtDescribedBy="announcement-body-hint"
+              [rows]="7"
+              [maxRows]="20"
+              [maxLength]="10000"
               required
-              [(ngModel)]="bodyRu"
-              [attr.aria-invalid]="bodyRu.trim().length === 0"
-              aria-describedby="announcement-body-hint"
-            ></textarea>
+              [(ngModel)]="bodyRu" />
             <span id="announcement-body-hint" class="field-hint">{{ 'announcements.do_10_000_simvolov_tekst_uvidyat_vse_polzovateli' | t }}</span>
           </div>
         </ng-container>
@@ -100,16 +99,15 @@ import { AnnouncementAdminRecord, AnnouncementBannerType, Confirmation } from '.
           <div class="field-group">
             <div class="field-header">
               <label for="announcement-body-other">{{ 'announcements.empty_body' | t }} ({{ selectedLang().toUpperCase() }})</label>
-              <span class="char-count">{{ (draftBodies()[selectedLang()] || '').length }} / 10 000</span>
             </div>
-            <textarea
-              id="announcement-body-other"
+            <smt-textarea
+              smtFieldId="announcement-body-other"
               name="announcementBodyOther"
-              rows="7"
-              maxlength="10000"
+              [rows]="7"
+              [maxRows]="20"
+              [maxLength]="10000"
               [ngModel]="draftBodies()[selectedLang()]"
-              (ngModelChange)="onDraftBodyChange(selectedLang(), $event)"
-            ></textarea>
+              (ngModelChange)="onDraftBodyChange(selectedLang(), $event)" />
           </div>
         </ng-container>
 

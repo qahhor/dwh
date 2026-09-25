@@ -74,7 +74,7 @@ export type { InstalledModule, ModuleFilterTab };
         [isLoading]="isLoading()"
         [canManage]="canManage()"
         [togglingCode]="togglingCode()"
-        (toggle)="toggleModule($event.module, $event.event)"
+        (toggle)="toggleModule($event.module, $event.enabled)"
       />
 
       <!-- Developer Info / CLI Help Banner -->
@@ -261,17 +261,19 @@ export class ModulesComponent implements OnInit {
     });
   }
 
-  toggleModule(mod: InstalledModule, event: Event): void {
+  /** Shows the change at once and takes it back if the server refuses it. */
+  toggleModule(mod: InstalledModule, targetActive: boolean): void {
     if (mod.isSystem) {
       this.toast.error(this.i18n.translate('modules.system_cannot_disable'));
       return;
     }
 
-    const input = event.target as HTMLInputElement;
-    const targetActive = input.checked;
     const code = mod.code || mod.moduleCode || '';
     if (!code) return;
 
+    const setActive = (active: boolean) => this.modules.update(list =>
+      list.map(m => (m.code === code || m.moduleCode === code) ? { ...m, isActive: active } : m));
+    setActive(targetActive);
     this.togglingCode.set(code);
     this.api.post<InstalledModule>(`/modules/${code}/toggle`, { enabled: targetActive }).subscribe({
       next: (updated) => {
@@ -291,7 +293,7 @@ export class ModulesComponent implements OnInit {
       },
       error: () => {
         this.togglingCode.set(null);
-        input.checked = !targetActive;
+        setActive(!targetActive);
         this.toast.error(this.i18n.translate('modules.toggle_error'));
       }
     });

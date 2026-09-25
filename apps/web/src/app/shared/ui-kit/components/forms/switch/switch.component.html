@@ -1,0 +1,20 @@
+<!-- Our template, after the idea of the kit's smt-switch (smartup-ui-kit@6472beb). See the component header. -->
+<button
+  type="button"
+  role="switch"
+  class="smt-switch__track"
+  [id]="customId() || buttonId"
+  [attr.aria-checked]="checked() ? 'true' : 'false'"
+  [attr.aria-labelledby]="labelledBy()"
+  [attr.aria-label]="resolvedAriaLabel()"
+  [attr.aria-describedby]="describedBy().trim() || null"
+  [attr.aria-readonly]="readonly() ? 'true' : null"
+  [attr.aria-invalid]="hasError() ? 'true' : null"
+  [disabled]="isDisabled()"
+  (click)="toggle()"
+  (blur)="onBlur()">
+  <span class="smt-switch__thumb" aria-hidden="true"></span>
+</button>
+@if (label()) {
+  <span class="smt-switch__label" [id]="labelId" (click)="toggle()">{{ label() }}</span>
+}

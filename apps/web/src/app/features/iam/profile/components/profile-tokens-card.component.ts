@@ -7,6 +7,8 @@ import { I18nService, TranslatePipe } from '../../../../core/services/i18n.servi
 import { UiLocalTableComponent } from '../../../../shared/ui/ui-local-table.component';
 import { TableConfig } from '../../../../shared/ui-kit/components/table/table.types';
 import { ApiToken, TokenExpirationOption } from '../profile.models';
+import { SMTControlComponent } from '../../../../shared/ui-kit/components/forms/control';
+import { SMTRadioGroupComponent, SMTRadioOption } from '../../../../shared/ui-kit/components/forms/radio-group';
 
 @Component({
   selector: 'app-profile-tokens-card',
@@ -17,7 +19,9 @@ import { ApiToken, TokenExpirationOption } from '../profile.models';
     FormsModule,
     TranslatePipe,
     UiButtonComponent,
-    UiModalComponent
+    UiModalComponent,
+    SMTControlComponent,
+    SMTRadioGroupComponent
   ],
   template: `
     <div class="card section-card full-width">
@@ -79,26 +83,14 @@ import { ApiToken, TokenExpirationOption } from '../profile.models';
           </span>
         </div>
 
-        <div class="form-group mt-3">
-          <label class="form-label">{{ 'iam.srok_deystviya_tokena' | t }}</label>
-          <div class="expiration-options">
-            <label
-              *ngFor="let opt of tokenExpirationOptions"
-              class="expiration-pill"
-              [class.selected]="selectedTokenExpiration === opt.value"
-            >
-              <input
-                type="radio"
-                name="tokenExpiration"
-                [value]="opt.value"
-                [ngModel]="selectedTokenExpiration"
-                (ngModelChange)="expirationChange.emit($event)"
-                class="sr-only"
-              />
-              <span>{{ opt.labelKey | t }}</span>
-            </label>
-          </div>
-        </div>
+        <smt-control class="mt-3" [smtLabel]="'iam.srok_deystviya_tokena' | t">
+          <smt-radio-group
+            smtAppearance="cards"
+            smtOrientation="horizontal"
+            [options]="expirationItems()"
+            [value]="selectedTokenExpiration"
+            (valueChange)="onExpirationChosen($event)" />
+        </smt-control>
       </div>
       <div footer>
         <ui-button variant="secondary" size="md" (onClick)="closeCreateTokenModal.emit()">
@@ -191,7 +183,13 @@ export class ProfileTokensCardComponent {
   @Input() selectedTokenExpiration = '90';
   @Input() createdTokenSecret = '';
   @Input() copiedSecret = false;
-  @Input() tokenExpirationOptions: TokenExpirationOption[] = [];
+  @Input() set tokenExpirationOptions(options: TokenExpirationOption[]) {
+    this.expirationSource.set(options);
+  }
+  private readonly expirationSource = signal<TokenExpirationOption[]>([]);
+  /** The lifetimes as radio items, translated again when the language changes. */
+  readonly expirationItems = computed<SMTRadioOption<string>[]>(() =>
+    this.expirationSource().map(option => ({ value: option.value, label: this.i18n.translate(option.labelKey) })));
 
   @Output() openCreateTokenModal = new EventEmitter<void>();
   @Output() closeCreateTokenModal = new EventEmitter<void>();
@@ -201,4 +199,8 @@ export class ProfileTokensCardComponent {
   @Output() closeSecretModal = new EventEmitter<void>();
   @Output() copySecret = new EventEmitter<void>();
   @Output() requestRevoke = new EventEmitter<ApiToken>();
+
+  onExpirationChosen(value: string | null): void {
+    if (value !== null) this.expirationChange.emit(value);
+  }
 }

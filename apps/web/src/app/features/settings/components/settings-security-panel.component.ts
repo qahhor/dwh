@@ -1,5 +1,6 @@
 import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { SMTSwitchComponent } from '../../../shared/ui-kit/components/forms/switch';
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
@@ -8,6 +9,7 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
   selector: 'app-settings-security-panel',
   standalone: true,
   imports: [
+    SMTSwitchComponent,
     CommonModule,
     FormsModule,
     TranslatePipe,
@@ -84,20 +86,15 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
           <div class="toggle-row">
             <div class="toggle-info">
               <span id="settings-require-2fa-label" class="toggle-title">{{ 'settings.require_2fa' | t }}</span>
-              <span class="toggle-desc">{{ 'settings.prinuditelno_trebovat_dvuhfaktornuyu_autentifika' | t }}</span>
+              <span id="settings-require-2fa-desc" class="toggle-desc">{{ 'settings.prinuditelno_trebovat_dvuhfaktornuyu_autentifika' | t }}</span>
             </div>
-            <label class="switch-toggle">
-              <input
-                id="settings-require-2fa"
-                name="settingsRequire2fa"
-                type="checkbox"
-                aria-labelledby="settings-require-2fa-label"
-                [disabled]="!canUpdateSystemSettings || isSaving"
-                [checked]="systemSettings['security.require_2fa'] === 'true'"
-                (change)="toggleRequire2fa.emit($event)"
-              />
-              <span class="toggle-slider" aria-hidden="true"></span>
-            </label>
+            <smt-switch
+              smtFieldId="settings-require-2fa"
+              smtLabelledBy="settings-require-2fa-label"
+              smtDescribedBy="settings-require-2fa-desc"
+              [disabled]="!canUpdateSystemSettings || isSaving"
+              [checked]="systemSettings['security.require_2fa'] === 'true'"
+              (smtUserChange)="toggleRequire2fa.emit($event)" />
           </div>
         </div>
       </div>
@@ -214,49 +211,6 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
       font-size: 12px;
       color: var(--text-light);
     }
-    .switch-toggle {
-      position: relative;
-      display: inline-block;
-      width: 44px;
-      height: 24px;
-    }
-    .switch-toggle input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-    .toggle-slider {
-      position: absolute;
-      cursor: pointer;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: var(--bg-active);
-      transition: .2s;
-      border-radius: 24px;
-    }
-    .toggle-slider:before {
-      position: absolute;
-      content: "";
-      height: 18px;
-      width: 18px;
-      left: 3px;
-      bottom: 3px;
-      background-color: var(--text-inverse);
-      transition: .2s;
-      border-radius: 50%;
-    }
-    input:checked + .toggle-slider {
-      background-color: var(--primary);
-    }
-    input:checked + .toggle-slider:before {
-      transform: translateX(20px);
-    }
-    .switch-toggle input:focus-visible + .toggle-slider {
-      outline: 2px solid var(--primary);
-      outline-offset: 2px;
-    }
     .card-footer-actions {
       display: flex;
       justify-content: flex-end;
@@ -295,7 +249,7 @@ export class SettingsSecurityPanelComponent {
   @Input() canUpdateSystemSettings = false;
   @Input() isSaving = false;
   @Output() save = new EventEmitter<void>();
-  @Output() toggleRequire2fa = new EventEmitter<any>();
+  @Output() toggleRequire2fa = new EventEmitter<boolean>();
 
   formatSessionHours(hours: string | number | undefined): string {
     if (hours === undefined || hours === '') return '';

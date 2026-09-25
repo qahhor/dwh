@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, DestroyRef, effect, EventEmitter, HostListener, inject, Input, OnChanges, Output, signal, SimpleChanges } from '@angular/core';
+import { ChangeDetectorRef, Component, computed, DestroyRef, effect, EventEmitter, HostListener, inject, Input, OnChanges, Output, signal, SimpleChanges } from '@angular/core';
 import { Observable, Subscription } from 'rxjs';
 import { ProblemDetail } from '../../../core/models/common.models';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
@@ -7,6 +7,7 @@ import { safeNumericRecordId } from '../../../core/services/search-target';
 import { ToastService } from '../../../core/services/toast.service';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
+import { SMTRadioGroupComponent, SMTRadioOption } from '../../../shared/ui-kit/components/forms/radio-group';
 import { OrgUnitDraft } from './org-unit-draft';
 import { OrgUnitsApiService } from './org-units-api.service';
 import { ScopeRule } from './org-units.models';
@@ -15,7 +16,7 @@ export interface ScopeRuleOption { value: ScopeRule; labelKey: string; descripti
 
 @Component({
   selector: 'app-role-scope-panel', standalone: true,
-  imports: [TranslatePipe, UiButtonComponent, UiModalComponent],
+  imports: [TranslatePipe, UiButtonComponent, UiModalComponent, SMTRadioGroupComponent],
   templateUrl: './role-scope-panel.component.html', styleUrl: './role-scope-panel.component.css'
 })
 export class RoleScopePanelComponent implements OnChanges {
@@ -44,6 +45,12 @@ export class RoleScopePanelComponent implements OnChanges {
   loading = false;
   pending = false;
   loadError: ProblemDetail | null = null;
+  /** The rules as radio items, translated; each description says what the rule lets the role see. */
+  readonly ruleOptions = computed<SMTRadioOption<ScopeRule>[]>(() => this.options.map(option => ({
+    value: option.value,
+    label: this.i18n.translate(option.labelKey),
+    hint: this.i18n.translate(option.descriptionKey)
+  })));
   saveError: ProblemDetail | null = null;
   savedRefreshFailed = false;
   confirmationOpen = false;
@@ -136,6 +143,9 @@ export class RoleScopePanelComponent implements OnChanges {
   selectedRuleKey(): string { return this.ruleKey(this.selectedRule()); }
   cancelEdits(): void { this.discard.request(() => this.restoreDraft()); }
   canLeave(): boolean | Observable<boolean> { return this.discard.canLeave(); }
+  onRuleChosen(rule: ScopeRule | null): void {
+    if (rule) this.selectRule(rule);
+  }
   hasUnsavedWork(): boolean { return this.pending || this.dirty; }
 
   @HostListener('window:beforeunload', ['$event'])

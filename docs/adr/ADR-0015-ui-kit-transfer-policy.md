@@ -445,3 +445,12 @@ ADR-0012 выбрал Angular Material + CDK и отклонил Tailwind как
        сокращающемся baseline. По идее kernel — `*.i18n.spec.ts` на фичу через
        `src/testing/feature-i18n.ts`. По идее кита — таблица покрытия в сводке CI
        с нижней планкой (`scripts/coverage-summary.mjs`).
+39. [x] Поля форм, волна 6 (п. 31 роадмапа, 2026-09-25): `smt-textarea`,
+       `smt-switch`, `smt-radio-group`, `smt-time-picker` — свой код по идеям кита
+       (правило 2): копии кита тянули `ControlService`, палитру по теме и не имели
+       семантики switch/radiogroup/listbox. Time-picker — редактируемый combobox
+       со списком слотов вместо сетки часов и минут кита. Входы `min`/`max`/`id`
+       не используются: первые два Signal Forms резервирует под числовые границы
+       (`minTime`/`maxTime`), `id` попал бы и на хост (`smtFieldId`). Поправка к
+       перенесённому checkbox: `touched` — вход, касание сообщается выходом
+       `touch` (Angular 22 не читает `touchedChange`).

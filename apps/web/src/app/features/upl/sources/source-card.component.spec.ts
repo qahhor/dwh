@@ -196,7 +196,7 @@ describe('SourceCardComponent', () => {
   it('creates a draft as a copy of the latest published version and as an empty one', async () => {
     const copy = await createFixture();
     clickUiButton(copy.fixture, 'upl-new-draft');
-    (el(copy.fixture, 'upl-draft-mode-copy') as HTMLInputElement).dispatchEvent(new Event('change'));
+    (el(copy.fixture, 'upl-draft-mode') as HTMLElement).querySelectorAll<HTMLElement>('[role="radio"]')[1].click();
     copy.fixture.detectChanges();
     clickUiButton(copy.fixture, 'upl-create-draft');
     expect(copy.api.createDraft).toHaveBeenCalledWith('7', 2);

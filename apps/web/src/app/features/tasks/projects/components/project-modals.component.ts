@@ -6,6 +6,7 @@ import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
 import { UiCustomFieldsComponent } from '../../../../shared/ui/ui-custom-fields.component';
 import { TranslatePipe, I18nService } from '../../../../core/services/i18n.service';
 import { SMTControlComponent } from '../../../../shared/ui-kit/components/forms/control';
+import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../../shared/ui-kit/components/forms/textarea';
 import { Project } from '../../../../core/models/task.models';
 import { CustomField } from '../../../../core/models/custom-field.models';
 import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../projects.models';
@@ -14,7 +15,7 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
   selector: 'app-project-modals',
   standalone: true,
   imports: [
-    SMTControlComponent,
+    SMTControlComponent, SMTTextareaComponent, SMTTextareaValueAccessor,
     CommonModule,
     FormsModule,
     TranslatePipe,
@@ -70,14 +71,11 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
             />
           </smt-control>
           <smt-control class="form-group" [smtLabel]="'projects.opisanie_proekta' | t">
-            <textarea
-              id="project-create-description"
+            <smt-textarea
+              smtFieldId="project-create-description"
               name="projectCreateDescription"
-              class="clean-input clean-textarea"
-              rows="3"
               [(ngModel)]="createForm.description"
-              [placeholder]="'projects.celi_granicy_i_kontekst_proekta' | t"
-            ></textarea>
+              [placeholder]="'projects.celi_granicy_i_kontekst_proekta' | t" />
           </smt-control>
           <div class="form-group" *ngIf="projectCustomFields.length > 0">
             <ui-custom-fields
@@ -144,7 +142,7 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
             </select>
           </smt-control>
           <smt-control class="form-group" [smtLabel]="'projects.opisanie' | t">
-            <textarea id="project-edit-description" name="projectEditDescription" class="clean-input clean-textarea" rows="3" [(ngModel)]="editForm.description"></textarea>
+            <smt-textarea smtFieldId="project-edit-description" name="projectEditDescription" [(ngModel)]="editForm.description" />
           </smt-control>
           <div class="form-group" *ngIf="projectCustomFields.length > 0">
             <ui-custom-fields
