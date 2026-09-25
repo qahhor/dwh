@@ -57,7 +57,8 @@ class UplTemplateBuilderTest {
             List<String> names = workbook.getSheets().map(org.dhatim.fastexcel.reader.Sheet::getName).toList();
             assertThat(names).containsExactly("upl.template.instruction_sheet", "TEST лист");
             List<Row> instruction = workbook.getSheets().findFirst().orElseThrow().read();
-            assertThat(instruction.getFirst().getCellText(0)).isEqualTo("upl.template.title{source=Налоги TEST, version=3}");
+            // Parameters come as a map, in no fixed order.
+            assertThat(instruction.getFirst().getCellText(0)).startsWith("upl.template.title{").contains("source=Налоги TEST", "version=3");
             assertThat(instruction.stream().map(row -> row.getCellText(1)).toList()).contains("№", "Название", "Сумма", "Дата");
             List<Row> data = workbook.getSheets().skip(1).findFirst().orElseThrow().read();
             Optional<Row> header = data.stream().filter(row -> row.getRowNum() == 2).findFirst();
