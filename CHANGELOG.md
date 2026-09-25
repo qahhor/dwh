@@ -480,6 +480,14 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The DWH connection pool has time limits (DWH P0). It holds four connections
+  and had none: one heavy mart read or a transaction left open held a
+  connection for good. PostgreSQL now cancels a statement and ends a
+  transaction idle longer than `APP_DWH_STATEMENT_TIMEOUT` (default 60s); the
+  raw cleanup and the raw check, which scan all of raw, get
+  `APP_DWH_MAINTENANCE_STATEMENT_TIMEOUT` (default 30m) inside their own
+  transaction only, and the connection returns to the pool with the usual
+  limit. A socket timeout above both guards against a silent network.
 - An interrupted package apply no longer sticks (DWH P0). Applying is three
   steps — take a load number, write raw into the DWH, close the package — and a
   crash or database failure after the first left the package "verified" with a

@@ -207,3 +207,6 @@ app:
     username: ${APP_DWH_USERNAME}
     password: ${APP_DWH_PASSWORD}
     connect-timeout: ${APP_DWH_CONNECT_TIMEOUT}
+    # P0 DWH: предел запроса и простоя в транзакции для пула; задания обслуживания — свой, длиннее.
+    statement-timeout: ${APP_DWH_STATEMENT_TIMEOUT:60s}
+    maintenance-statement-timeout: ${APP_DWH_MAINTENANCE_STATEMENT_TIMEOUT:30m}
