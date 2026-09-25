@@ -480,6 +480,19 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The DWH database is backed up and restored (ADR-0001, P0). Every backup run
+  now writes `smartupcms_dwh-<timestamp>.dump.age` next to the CMS archive of
+  the same timestamp, each with its checksum and manifest, and fails the status
+  when either dump fails. `backup-bootstrap` creates the DWH database on an
+  installation from before the DWH (init-dwh.sh ran only on an empty data
+  directory) and gives the backup role read access to every DWH schema,
+  including those that later migrations add. `restore.sh`, `restore.ps1` and
+  `restore-combined.ps1` take the DWH archive and restore it with the
+  application role as owner. `backup-bootstrap` itself failed on every run
+  since 2026-09-18: psql variables inside a `DO $$ … $$` body are not
+  substituted, and `pg_sequences` has no `sequence_name` column — so a
+  deployment over existing data stopped at the pre-migration backup. CI now
+  runs `scripts/prod/test-backup-databases.sh` against a real PostgreSQL.
 - Checkbox and the new fields tell Signal Forms when they are touched: Angular
   22 listens to a `touch` output, and the kit's `touchedChange` never reached
   the form, so a checkbox's required error could stay hidden.

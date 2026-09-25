@@ -75,28 +75,31 @@ authorization, file access, search, audit, and provider queues.
 
 ## Database restore
 
-Identify the encrypted pre-migration `.dump.age`, its `.sha256`, and the matching
-age identity. Confirm the backup timestamp and expected data loss window. Stop
+Identify the encrypted pre-migration set — `smartupcms-<timestamp>.dump.age` and
+`smartupcms_dwh-<timestamp>.dump.age` of the same timestamp, each with its
+`.sha256` — and the matching age identity. Confirm the backup timestamp and expected data loss window. Stop
 incoming traffic before restore.
 
 Linux/macOS:
 
 ```bash
 bash scripts/prod/restore.sh \
-  /secure/pre-migration.dump.age \
-  /secure/backup-age-identity.txt
+  /secure/smartupcms-<timestamp>.dump.age \
+  /secure/backup-age-identity.txt \
+  /secure/smartupcms_dwh-<timestamp>.dump.age
 ```
 
 PowerShell:
 
 ```powershell
 ./scripts/prod/restore.ps1 `
-  -BackupFile C:\secure\pre-migration.dump.age `
+  -BackupFile C:\secure\smartupcms-<timestamp>.dump.age `
+  -DwhBackupFile C:\secure\smartupcms_dwh-<timestamp>.dump.age `
   -AgeIdentityFile C:\secure\backup-age-identity.txt
 ```
 
 The script verifies checksum and archive catalog before stopping the server,
-renames the current database to a timestamped recovery name, streams decrypted
+renames the current databases to timestamped recovery names, streams decrypted
 data directly into a clean database, applies current forward migrations,
 refreshes the backup role, and waits for health. If the restore fails after the
 database rename, keep traffic closed and preserve both databases for recovery.

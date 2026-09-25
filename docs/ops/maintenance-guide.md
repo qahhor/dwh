@@ -57,14 +57,19 @@ Never point a drill at production.
 
 Prepare a temporary environment file based on the production template, with a
 unique project name such as `smartupcms-restore-test` and `HTTP_PORT=18080`.
-Start only its database, then restore the encrypted archive:
+Start only its database, then restore the encrypted archives of one set: every
+backup run writes `smartupcms-<timestamp>.dump.age` (CMS) and
+`smartupcms_dwh-<timestamp>.dump.age` (DWH, ADR-0001) with the same timestamp,
+each with its checksum and manifest. Restore both; without the DWH archive the
+DWH database is left as it is and the script warns.
 
 ```bash
 docker compose -f deploy/compose/docker-compose.prod.yml \
   --env-file .env.restore-test up -d --wait postgres
 COMPOSE_FILE=deploy/compose/docker-compose.prod.yml \
 ENV_FILE=.env.restore-test \
-bash scripts/prod/restore.sh /secure/backup.dump.age /secure/backup-age-identity.txt
+bash scripts/prod/restore.sh /secure/smartupcms-<timestamp>.dump.age \
+  /secure/backup-age-identity.txt /secure/smartupcms_dwh-<timestamp>.dump.age
 ```
 
 PowerShell equivalent:
@@ -74,14 +79,17 @@ docker compose -f deploy/compose/docker-compose.prod.yml `
   --env-file .env.restore-test up -d --wait postgres
 ./scripts/prod/restore.ps1 `
   -EnvFile .env.restore-test `
-  -BackupFile C:\secure\backup.dump.age `
+  -BackupFile C:\secure\smartupcms-<timestamp>.dump.age `
+  -DwhBackupFile C:\secure\smartupcms_dwh-<timestamp>.dump.age `
   -AgeIdentityFile C:\secure\backup-age-identity.txt
 ```
 
 The restore script verifies SHA-256 and the `pg_restore` catalog before stopping
-the server. It preserves the previous database under a timestamped name, streams
-decrypted data directly into PostgreSQL, applies forward migrations, and waits
-for readiness.
+the server. It preserves the previous databases under timestamped names, streams
+decrypted data directly into PostgreSQL (the DWH with the application role as
+owner), applies forward migrations, refreshes the backup role, and waits for
+readiness. `restore-combined.ps1` takes the DWH archive as `-DwhBackupFile` and
+records the restored DWH table count in its evidence.
 
 Validate sign-in, representative record counts, permissions, audit history,
 search reindex behavior, and uploaded-object recovery. Record archive timestamp,
