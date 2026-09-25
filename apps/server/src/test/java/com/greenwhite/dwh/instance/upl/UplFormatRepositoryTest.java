@@ -16,6 +16,9 @@ import com.greenwhite.dwh.instance.upl.format.UplFormatModel.Strictness;
 import com.greenwhite.dwh.instance.upl.format.UplFormatRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import com.greenwhite.dwh.core.pagination.KeysetPage;
+import com.greenwhite.dwh.instance.common.query.QueryCompiler;
+import com.greenwhite.dwh.instance.upl.format.UplSourceQuery;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -89,12 +92,15 @@ class UplFormatRepositoryTest extends EmbeddedPostgresTest {
             repo.insertSource(data(p + ".c", "TEST c"), actor);
             repo.insertSource(data(p + ".a", "TEST a"), actor);
             repo.insertSource(data(p + ".b", "TEST b"), actor);
-            assertThat(repo.countSources()).isGreaterThanOrEqualTo(3);
+            String filter = "[{\"field\":\"code\",\"op\":\"starts_with\",\"value\":\"" + p + "\"}]";
 
-            List<SourceSummary> first = repo.listSources(p, 2);
+            KeysetPage<SourceSummary> page = repo.pageSources(QueryCompiler.compile(UplSourceQuery.LIST, filter, null, 2, null));
+            List<SourceSummary> first = page.items();
             assertThat(first).extracting(SourceSummary::code).containsExactly(p + ".a", p + ".b");
-            List<SourceSummary> next = repo.listSources(p + ".b", 2);
-            assertThat(next).first().extracting(SourceSummary::code).isEqualTo(p + ".c");
+            assertThat(page.totalEstimated()).isEqualTo(3);
+            List<SourceSummary> next = repo.pageSources(
+                    QueryCompiler.compile(UplSourceQuery.LIST, filter, null, 2, page.nextCursor())).items();
+            assertThat(next).extracting(SourceSummary::code).containsExactly(p + ".c");
 
             SourceSummary a = first.get(0);
             assertThat(a.lastPublishedVersion()).isNull();
@@ -179,8 +185,7 @@ class UplFormatRepositoryTest extends EmbeddedPostgresTest {
                 assertThat(v.status()).isEqualTo("draft");
                 assertThat(v.sheets()).isEmpty();
             });
-            SourceSummary summary = ours(repo.listSources(null, 1000)).stream()
-                    .filter(s -> s.id() == id).findFirst().orElseThrow();
+            SourceSummary summary = repo.findSummary(id).orElseThrow();
             assertThat(summary.hasDraft()).isTrue();
             assertThat(summary.lastPublishedVersion()).isNull();
         });
@@ -285,9 +290,5 @@ class UplFormatRepositoryTest extends EmbeddedPostgresTest {
     private static SourceData data(String code, String name) {
         return new SourceData(code, name, "TEST org", "TEST contact", Periodicity.MONTH, 5,
                 SourceType.FILE, Strictness.ERROR);
-    }
-
-    private static List<SourceSummary> ours(List<SourceSummary> all) {
-        return all.stream().filter(s -> s.code().startsWith(PREFIX)).toList();
     }
 }

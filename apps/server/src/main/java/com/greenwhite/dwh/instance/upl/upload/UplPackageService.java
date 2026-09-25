@@ -5,9 +5,9 @@ import com.greenwhite.dwh.core.error.FieldErrorItem;
 import com.greenwhite.dwh.core.pagination.CursorUtils;
 import com.greenwhite.dwh.core.pagination.KeysetPage;
 import com.greenwhite.dwh.instance.common.error.ApiException;
+import com.greenwhite.dwh.instance.common.query.QueryCompiler;
 import com.greenwhite.dwh.instance.fnd.FndActor;
 import com.greenwhite.dwh.instance.fnd.FndActors;
-import com.greenwhite.dwh.instance.upl.format.UplSourceService;
 import com.greenwhite.dwh.instance.upl.parse.UplParseResult;
 import com.greenwhite.dwh.instance.upl.upload.UplPackageModel.ErrorRow;
 import com.greenwhite.dwh.instance.upl.upload.UplPackageModel.ErrorsView;
@@ -79,7 +79,7 @@ public class UplPackageService {
     @Transactional(readOnly = true)
     public KeysetPage<PackageRow> list(int limit, String cursor) {
         if (limit < 1 || limit > MAX_LIMIT) {
-            throw invalidField("limit", UplSourceService.INVALID_LIMIT);
+            throw invalidField("limit", QueryCompiler.INVALID_LIMIT);
         }
         PageCursor decoded = decodeCursor(cursor);
         List<PackageRow> rows = repo.list(decoded == null ? null : decoded.lastId(), limit + 1);
@@ -148,12 +148,12 @@ public class UplPackageService {
         String raw = CursorUtils.decode(cursor);
         int bar = raw == null ? -1 : raw.lastIndexOf('|');
         if (bar <= 0) {
-            throw invalidField("cursor", UplSourceService.INVALID_CURSOR);
+            throw invalidField("cursor", QueryCompiler.INVALID_CURSOR);
         }
         try {
             return new PageCursor(Long.parseLong(raw.substring(0, bar)), Long.parseLong(raw.substring(bar + 1)));
         } catch (NumberFormatException notNumber) {
-            throw invalidField("cursor", UplSourceService.INVALID_CURSOR);
+            throw invalidField("cursor", QueryCompiler.INVALID_CURSOR);
         }
     }
 

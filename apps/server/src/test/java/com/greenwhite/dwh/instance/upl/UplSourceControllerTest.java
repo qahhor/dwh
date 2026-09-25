@@ -291,6 +291,69 @@ class UplSourceControllerTest extends EmbeddedPostgresTest {
     }
 
     @Test
+    @DisplayName("реестр полей: фильтр DSL, сортировка по убыванию и курсор этого запроса")
+    void listFiltersAndSortsThroughTheRegistry() throws Exception {
+        Session admin = login(adminLogin);
+        String prefix = "test.api." + rnd() + ".";
+        assertThat(send(admin, post(BASE), sourceBody(prefix + "a", "TEST b-name", "month", null)).getStatus())
+                .isEqualTo(201);
+        assertThat(send(admin, post(BASE), sourceBody(prefix + "b", "TEST c-name", "year", null)).getStatus())
+                .isEqualTo(201);
+        assertThat(send(admin, post(BASE), sourceBody(prefix + "c", "TEST a-name", "month", null)).getStatus())
+                .isEqualTo(201);
+        String filter = "[{\"field\":\"code\",\"op\":\"starts_with\",\"value\":\"" + prefix + "\"},"
+                + "{\"field\":\"periodicity\",\"op\":\"in\",\"value\":[\"month\"]},"
+                + "{\"field\":\"hasDraft\",\"op\":\"eq\",\"value\":false}]";
+
+        var first = sendGet(admin, get(BASE).param("filter", filter).param("sort", "-name").param("limit", "1"), 200);
+        assertThat((List<String>) read(first, "$.items[*].code")).containsExactly(prefix + "a");
+        assertThat((Integer) read(first, "$.totalEstimated")).isEqualTo(2);
+        String cursor = read(first, "$.nextCursor");
+
+        var second = sendGet(admin, get(BASE).param("filter", filter).param("sort", "-name").param("limit", "1")
+                .param("cursor", cursor), 200);
+        assertThat((List<String>) read(second, "$.items[*].code")).containsExactly(prefix + "c");
+        assertThat((Boolean) read(second, "$.hasMore")).isFalse();
+
+        var otherSort = sendGet(admin, get(BASE).param("filter", filter).param("sort", "name").param("cursor", cursor),
+                422);
+        assertThat((String) read(otherSort, "$.errors[0].field")).isEqualTo("cursor");
+
+        var bad = sendGet(admin, get(BASE).param("filter",
+                "[{\"field\":\"ownerContact\",\"op\":\"eq\",\"value\":\"x\"},"
+                        + "{\"field\":\"lastPublishedVersion\",\"op\":\"contains\",\"value\":\"1\"}]")
+                .param("sort", "hasDraft"), 422);
+        assertThat((String) read(bad, "$.detail")).isEqualTo("QUERY_INVALID");
+        assertThat((List<String>) read(bad, "$.errors[*].field"))
+                .containsExactly("filter[0].field", "filter[1].op", "sort");
+    }
+
+    @Test
+    @DisplayName("query-meta: поля списка тому, кто видит список; остальным — 404 и 401")
+    void queryMetaDescribesTheList() throws Exception {
+        String url = "/api/v1/query-meta/upl.sources";
+        var meta = sendGet(login(analystLogin), url, 200);
+        assertThat((List<String>) read(meta, "$.fields[*].key"))
+                .containsExactly("code", "name", "periodicity", "lastPublishedVersion", "hasDraft");
+        assertThat((String) read(meta, "$.defaultSort")).isEqualTo("code");
+        assertThat((Integer) read(meta, "$.maxLimit")).isEqualTo(200);
+        assertThat((String) read(meta, "$.fields[2].type")).isEqualTo("enum");
+        assertThat((List<String>) read(meta, "$.fields[2].enumValues")).containsExactly("month", "quarter", "year",
+                "adhoc");
+        assertThat((String) read(meta, "$.fields[2].enumLabelPrefix")).isEqualTo("upl.periodicity.");
+        assertThat((List<String>) read(meta, "$.fields[3].ops")).contains("gt", "empty", "not_empty");
+        assertThat((Boolean) read(meta, "$.fields[0].sortable")).isTrue();
+        assertThat(meta.getContentAsString()).doesNotContain("s.code").doesNotContain("upl_format_versions");
+
+        String outsiderLogin = "upl-user-" + rnd();
+        createUser(outsiderLogin, "user");
+        Session outsider = login(outsiderLogin);
+        assertThat((String) read(sendGet(outsider, url, 404), "$.detail")).isEqualTo("QUERY_LIST_NOT_FOUND");
+        sendGet(outsider, "/api/v1/query-meta/no.such.list", 404);
+        assertThat(mvc.perform(get(url)).andReturn().getResponse().getStatus()).isEqualTo(401);
+    }
+
+    @Test
     @DisplayName("AC-14: analyst только читает")
     void analystReadsOnly() throws Exception {
         Session admin = login(adminLogin);
@@ -358,7 +421,12 @@ class UplSourceControllerTest extends EmbeddedPostgresTest {
     }
 
     private MockHttpServletResponse sendGet(Session s, String url, int expectedStatus) throws Exception {
-        var response = mvc.perform(get(url).cookie(s.session(), s.csrf())).andReturn().getResponse();
+        return sendGet(s, get(url), expectedStatus);
+    }
+
+    private MockHttpServletResponse sendGet(Session s, MockHttpServletRequestBuilder request, int expectedStatus)
+            throws Exception {
+        var response = mvc.perform(request.cookie(s.session(), s.csrf())).andReturn().getResponse();
         assertThat(response.getStatus()).as(response.getContentAsString()).isEqualTo(expectedStatus);
         return response;
     }

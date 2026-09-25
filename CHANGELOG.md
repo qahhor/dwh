@@ -9,6 +9,14 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- A server field registry for lists (ADR-0016). A module declares a list's
+  fields once — type, label, whether it can be filtered, sorted or empty —
+  and `GET /api/v1/query-meta/{list}` gives them to anyone who may see the
+  list. Lists take a `filter` of JSON conditions (`contains`, `in`,
+  `between`, `empty` and others, by field type) and a `sort` on any sortable
+  field; values only ever reach SQL as parameters, every mistake comes back
+  as a 422 addressed to its condition, and a cursor continues only the query
+  that issued it. The UPL sources list is the first to use it.
 - One dialog service for the whole application, vendored from the UI kit:
   `SMTModalService.open()` for any content and `confirm()` for a yes/no
   question. The confirm dialog is announced as an alert dialog named by its

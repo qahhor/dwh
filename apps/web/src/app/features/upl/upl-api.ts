@@ -2,6 +2,8 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 import { KeysetPage } from '../../core/models/common.models';
+import { ListQuery } from '../../core/models/query-meta.models';
+import { toQueryParams } from '../../core/services/query-meta.service';
 
 export type UplPeriodicity = 'month' | 'quarter' | 'year' | 'adhoc';
 export type UplStrictness = 'error' | 'warning';
@@ -127,8 +129,10 @@ const SOURCES = '/upl/sources';
 export class UplApiService {
   private readonly api = inject(ApiService);
 
-  listSources(limit = 50, cursor?: string | null): Observable<KeysetPage<UplSourceItem>> {
-    return this.api.get<KeysetPage<UplSourceItem>>(SOURCES, { limit, ...(cursor ? { cursor } : {}) }, { notifyError: false });
+  /** Sources page; `query` filters and sorts through the field registry (`query-meta/upl.sources`). */
+  listSources(limit = 50, cursor?: string | null, query?: ListQuery | null): Observable<KeysetPage<UplSourceItem>> {
+    const params = { limit, ...(cursor ? { cursor } : {}), ...toQueryParams(query) };
+    return this.api.get<KeysetPage<UplSourceItem>>(SOURCES, params, { notifyError: false });
   }
 
   getSource(id: string): Observable<UplSource> {
