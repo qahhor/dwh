@@ -1,40 +1,23 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslatePipe } from '../../../core/services/i18n.service';
 import { NotificationFilterTab } from '../notifications.models';
+import { SMTTabBarComponent, SMTTabItem } from '../../../shared/ui-kit/components/tab-bar';
+import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group';
+import { I18nService } from '../../../core/services/i18n.service';
 
 @Component({
   selector: 'app-notifications-tabs',
   standalone: true,
-  imports: [CommonModule, TranslatePipe],
+  imports: [SMTTabBarComponent, CommonModule, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="notif-tabs" role="tablist" [attr.aria-label]="'notifications.spisok_uvedomleniy' | t">
-      <button
-        type="button"
-        role="tab"
-        class="tab-btn"
-        [class.active]="filterTab() === 'all'"
-        [attr.aria-selected]="filterTab() === 'all'"
-        (click)="tabChange.emit('all')"
-      >
-        <span>{{ 'notifications.vse' | t }}</span>
-        <span class="tab-badge">{{ totalCount() }}</span>
-      </button>
-      <button
-        type="button"
-        role="tab"
-        class="tab-btn"
-        [class.active]="filterTab() === 'unread'"
-        [attr.aria-selected]="filterTab() === 'unread'"
-        (click)="tabChange.emit('unread')"
-      >
-        <span>{{ 'notifications.neprochitannye' | t }}</span>
-        <span class="tab-badge tab-badge-unread" *ngIf="unreadCount() > 0">
-          {{ unreadCount() }}
-        </span>
-      </button>
-    </div>
+    <smt-tab-bar
+      class="notif-tabs"
+      [tabs]="tabs()"
+      [value]="filterTab()"
+      [smtAriaLabel]="'notifications.spisok_uvedomleniy' | t"
+      (valueChange)="$event && tabChange.emit($event)" />
   `,
   styles: [`
     :host { display: block; }
@@ -46,52 +29,25 @@ import { NotificationFilterTab } from '../notifications.models';
       border-bottom: 1px solid var(--border-color);
       background-color: var(--bg-surface);
     }
-    .tab-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text-muted);
-      background: transparent;
-      border: 1px solid transparent;
-      border-radius: var(--radius-md);
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }
-    .tab-btn:hover {
-      background-color: var(--bg-hover);
-      color: var(--text-main);
-    }
-    .tab-btn.active {
-      background-color: var(--primary-subtle);
-      color: var(--primary);
-      font-weight: 600;
-      border-color: rgba(99, 102, 241, 0.15);
-    }
-    .tab-badge {
-      font-size: 11px;
-      font-weight: 600;
-      padding: 1px 6px;
-      border-radius: 10px;
-      background-color: var(--bg-hover);
-      color: var(--text-muted);
-    }
-    .tab-badge-unread {
-      background-color: var(--primary);
-      color: var(--on-primary);
-    }
-    .tab-btn.active .tab-badge:not(.tab-badge-unread) {
-      background-color: rgba(99, 102, 241, 0.2);
-      color: var(--primary);
-    }
   `]
 })
 export class NotificationsTabsComponent {
+  /** Texts of the tabs below; translated again when the language changes. */
+  private readonly tabText = inject(I18nService);
+
   readonly filterTab = input.required<NotificationFilterTab>();
   readonly totalCount = input.required<number>();
   readonly unreadCount = input.required<number>();
 
   readonly tabChange = output<NotificationFilterTab>();
+
+  private readonly tabsMemo = optionsMemo<SMTTabItem<NotificationFilterTab>[]>();
+
+  /** All and unread, with their counts; the unread count stands out while there are any. */
+  tabs(): SMTTabItem<NotificationFilterTab>[] {
+    return this.tabsMemo([this.tabText.currentLang(), this.totalCount(), this.unreadCount()], () => [
+      { value: 'all', label: this.tabText.translate('notifications.vse'), count: this.totalCount() },
+      { value: 'unread', label: this.tabText.translate('notifications.neprochitannye'), count: this.unreadCount() || undefined, countTone: 'attention' },
+    ] as SMTTabItem<NotificationFilterTab>[]);
+  }
 }

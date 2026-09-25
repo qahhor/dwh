@@ -14,6 +14,8 @@ import { UiMarkdownViewComponent } from '../../shared/ui/ui-markdown-view.compon
 import { UiCustomFieldsComponent } from '../../shared/ui/ui-custom-fields.component';
 import { CustomField } from '../../core/models/custom-field.models';
 import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
+import { SMTTabBarComponent, SMTTabItem } from '../../shared/ui-kit/components/tab-bar';
+import { optionsMemo } from '../../shared/ui-kit/components/forms/radio-group';
 
 export interface Note {
   id: number;
@@ -31,7 +33,7 @@ export interface Note {
   selector: 'app-notes',
   standalone: true,
   imports: [
-    CommonModule,
+    SMTTabBarComponent, CommonModule,
     FormsModule,
     UiButtonComponent,
     UiModalComponent,
@@ -47,28 +49,12 @@ export interface Note {
           <h1 class="view-title">{{ 'notes.title' | t }}</h1>
           <span class="count-badge">{{ notes().length }}</span>
 
-          <div class="tabs-bar" role="tablist" [attr.aria-label]="'notes.title' | t">
-            <button
-              type="button"
-              class="tab-btn"
-              [class.active]="activeTab() === 'all'"
-              role="tab"
-              [attr.aria-selected]="activeTab() === 'all'"
-              (click)="activeTab.set('all')"
-            >
-              {{ 'notes.tab.all' | t }}
-            </button>
-            <button
-              type="button"
-              class="tab-btn"
-              [class.active]="activeTab() === 'pinned'"
-              role="tab"
-              [attr.aria-selected]="activeTab() === 'pinned'"
-              (click)="activeTab.set('pinned')"
-            >
-              {{ 'notes.tab.pinned' | t }}
-            </button>
-          </div>
+          <smt-tab-bar
+            class="tabs-bar"
+            [tabs]="noteTabs()"
+            [value]="activeTab()"
+            [smtAriaLabel]="'notes.title' | t"
+            (valueChange)="$event && activeTab.set($event)" />
         </div>
         <div class="header-right">
           <div class="search-box">
@@ -292,6 +278,9 @@ export interface Note {
   styleUrl: './notes.component.css'
 })
 export class NotesComponent implements OnInit, OnDestroy {
+  /** Texts of the tabs below; translated again when the language changes. */
+  private readonly tabText = inject(I18nService);
+
   private api = inject(ApiService);
   private toast = inject(ToastService);
   private perm = inject(PermissionService);
@@ -477,5 +466,14 @@ export class NotesComponent implements OnInit, OnDestroy {
       },
       error: () => this.toast.error(this.uiI18n.translate('notes.delete_error'))
     });
+  }
+
+  private readonly tabsMemo = optionsMemo<SMTTabItem<'all' | 'pinned'>[]>();
+
+  noteTabs(): SMTTabItem<'all' | 'pinned'>[] {
+    return this.tabsMemo([this.tabText.currentLang()], () => [
+      { value: 'all', label: this.tabText.translate('notes.tab.all') },
+      { value: 'pinned', label: this.tabText.translate('notes.tab.pinned') },
+    ]);
   }
 }

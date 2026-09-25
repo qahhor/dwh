@@ -2082,6 +2082,7 @@ export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(
   "iam.naznacheno_polzovatelyam": "Назначено пользователям",
   "iam.tolko_chtenie": "Только чтение",
   "iam.osnovnoe": "Основное",
+  "iam.razdely_kartochki": "Разделы карточки пользователя",
   "iam.bezopasnost_i_sessii": "Безопасность и сессии",
   "iam.status_2fa": "Статус 2FA",
   "iam.vklyuchena": "Включена",

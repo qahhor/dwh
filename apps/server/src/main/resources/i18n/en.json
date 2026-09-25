@@ -1744,6 +1744,7 @@
   "iam.naznacheno_polzovatelyam": "Assigned to users",
   "iam.tolko_chtenie": "Read only",
   "iam.osnovnoe": "General",
+  "iam.razdely_kartochki": "User card sections",
   "iam.bezopasnost_i_sessii": "Security & Sessions",
   "iam.status_2fa": "2FA Status",
   "iam.vklyuchena": "Enabled",

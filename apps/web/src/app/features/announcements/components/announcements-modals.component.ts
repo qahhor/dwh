@@ -7,11 +7,13 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/ui-kit/components/forms/textarea';
 import { AnnouncementAdminRecord, AnnouncementBannerType, Confirmation } from '../announcements.models';
+import { SMTTabBarComponent, SMTTabItem } from '../../../shared/ui-kit/components/tab-bar';
+import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group';
 
 @Component({
   selector: 'app-announcements-modals',
   standalone: true,
-  imports: [CommonModule, FormsModule, A11yModule, TranslatePipe, UiButtonComponent, UiModalComponent, SMTTextareaComponent, SMTTextareaValueAccessor],
+  imports: [SMTTabBarComponent, CommonModule, FormsModule, A11yModule, TranslatePipe, UiButtonComponent, UiModalComponent, SMTTextareaComponent, SMTTextareaValueAccessor],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Create / Edit Draft Modal -->
@@ -26,20 +28,12 @@ import { AnnouncementAdminRecord, AnnouncementBannerType, Confirmation } from '.
         <!-- Language selector tabs for multilingual content -->
         <div class="lang-selector-row">
           <span class="lang-selector-label">{{ 'announcements.yazyk_redaktirovaniya' | t }}:</span>
-          <div class="lang-chips" role="tablist">
-            <button
-              *ngFor="let lang of availableLanguages()"
-              type="button"
-              role="tab"
-              class="lang-chip"
-              [class.active]="selectedLang() === lang.code"
-              [attr.aria-selected]="selectedLang() === lang.code"
-              (click)="selectedLang.set(lang.code)"
-            >
-              <span>{{ lang.name }}</span>
-              <span class="lang-required-tag" *ngIf="lang.code === 'ru'">*</span>
-            </button>
-          </div>
+          <smt-tab-bar
+            class="lang-chips"
+            [tabs]="languageTabs()"
+            [value]="selectedLang()"
+            [smtAriaLabel]="'announcements.yazyk_redaktirovaniya' | t"
+            (valueChange)="$event && selectedLang.set($event)" />
         </div>
 
         <!-- Russian language inputs (Authoritative primary fields) -->
@@ -142,10 +136,6 @@ import { AnnouncementAdminRecord, AnnouncementBannerType, Confirmation } from '.
     .editor-form { display: flex; flex-direction: column; gap: 16px; }
     .lang-selector-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-bottom: 8px; border-bottom: 1px solid var(--border-color); }
     .lang-selector-label { font-size: 12px; font-weight: 600; color: var(--text-muted); }
-    .lang-chips { display: flex; gap: 6px; flex-wrap: wrap; }
-    .lang-chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; font-size: 12px; font-weight: 500; border: 1px solid var(--border-color); border-radius: var(--radius-sm); background: var(--bg-surface); color: var(--text-muted); cursor: pointer; transition: all 0.15s ease; }
-    .lang-chip:hover { background: var(--bg-hover); color: var(--text-main); }
-    .lang-chip.active { background: var(--primary-subtle); border-color: var(--primary); color: var(--primary); font-weight: 600; }
     .lang-required-tag { color: var(--danger); font-weight: 700; }
 
     .field-group { display: flex; flex-direction: column; gap: 6px; }
@@ -163,6 +153,9 @@ import { AnnouncementAdminRecord, AnnouncementBannerType, Confirmation } from '.
   `]
 })
 export class AnnouncementsModalsComponent {
+  /** Texts of the tabs below; translated again when the language changes. */
+  private readonly tabText = inject(I18nService);
+
   private readonly uiI18n = inject(I18nService);
 
   readonly isEditorOpen = input.required<boolean>();
@@ -222,5 +215,16 @@ export class AnnouncementsModalsComponent {
     if (!values) return '';
     const current = this.uiI18n.currentLang();
     return values[current] ?? values['ru'] ?? Object.values(values).find(value => value?.trim().length > 0) ?? '';
+  }
+
+  private readonly tabsMemo = optionsMemo<SMTTabItem<string>[]>();
+
+  /** The languages to write in; Russian, the one required, is marked. */
+  languageTabs(): SMTTabItem<string>[] {
+    const languages = this.availableLanguages();
+    return this.tabsMemo([this.tabText.currentLang(), languages.map(language => language.code + language.name).join()], () => languages.map(language => ({
+      value: language.code,
+      label: language.code === 'ru' ? `${language.name} *` : language.name,
+    })));
   }
 }

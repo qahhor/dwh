@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
+import { Component, EventEmitter, Input, Output, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SMTSortableActionsDirective, SMTSortableItemDirective, SMTSortableListComponent } from '../../../shared/ui-kit/components/sortable-list';
@@ -8,12 +8,14 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
 import { TaskStatus, TaskType } from '../../../core/models/task.models';
+import { SMTTabBarComponent, SMTTabItem } from '../../../shared/ui-kit/components/tab-bar';
+import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group';
 
 @Component({
   selector: 'app-task-dictionaries-modal',
   standalone: true,
   imports: [
-    SMTColorInputComponent, SMTColorInputValueAccessor, SMTControlComponent, CommonModule,
+    SMTTabBarComponent, SMTColorInputComponent, SMTColorInputValueAccessor, SMTControlComponent, CommonModule,
     FormsModule,
     SMTSortableListComponent, SMTSortableItemDirective, SMTSortableActionsDirective, TranslatePipe,
     UiModalComponent,
@@ -28,32 +30,12 @@ import { TaskStatus, TaskType } from '../../../core/models/task.models';
     >
       <div body class="settings-modal-content">
         <!-- Settings Tabs -->
-        <div class="settings-tabs" role="tablist" [attr.aria-label]="'tasks.spravochniki_zadach' | t">
-          <button
-            id="task-types-tab"
-            type="button"
-            role="tab"
-            class="tab-btn"
-            [class.active]="settingsTab === 'types'"
-            [attr.aria-selected]="settingsTab === 'types'"
-            aria-controls="task-types-panel"
-            (click)="settingsTab = 'types'"
-          >
-            {{ 'tasks.task_types_count' | t:{count: taskTypes.length} }}
-          </button>
-          <button
-            id="task-statuses-tab"
-            type="button"
-            role="tab"
-            class="tab-btn"
-            [class.active]="settingsTab === 'statuses'"
-            [attr.aria-selected]="settingsTab === 'statuses'"
-            aria-controls="task-statuses-panel"
-            (click)="settingsTab = 'statuses'"
-          >
-            {{ 'tasks.task_statuses_count' | t:{count: statuses.length} }}
-          </button>
-        </div>
+        <smt-tab-bar
+          class="settings-tabs"
+          [tabs]="dictionaryTabs()"
+          [value]="settingsTab"
+          [smtAriaLabel]="'tasks.spravochniki_zadach' | t"
+          (valueChange)="settingsTab = $event ?? settingsTab" />
 
         <!-- TAB 1: Task Types (Drag & Drop Reordering) -->
         <div id="task-types-panel" class="tab-pane" role="tabpanel" aria-labelledby="task-types-tab" *ngIf="settingsTab === 'types'">
@@ -164,27 +146,6 @@ import { TaskStatus, TaskType } from '../../../core/models/task.models';
       padding: 2px;
       gap: 2px;
     }
-    .tab-btn {
-      flex: 1;
-      border: none;
-      background: transparent;
-      padding: 6px 12px;
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--text-muted);
-      border-radius: var(--radius-xs);
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      transition: all 0.1s ease;
-    }
-    .tab-btn.active {
-      background-color: var(--bg-surface);
-      color: var(--text-main);
-      box-shadow: var(--shadow-sm);
-    }
     .tab-pane { display: flex; flex-direction: column; gap: 12px; }
     .dict-list {
       display: flex;
@@ -256,6 +217,9 @@ import { TaskStatus, TaskType } from '../../../core/models/task.models';
   `]
 })
 export class TaskDictionariesModalComponent {
+  /** Texts of the tabs below; translated again when the language changes. */
+  private readonly tabText = inject(I18nService);
+
   @Input() isOpen = false;
   @Input() taskTypes: TaskType[] = [];
   @Input() statuses: TaskStatus[] = [];
@@ -275,6 +239,8 @@ export class TaskDictionariesModalComponent {
   readonly byId = (item: { id: number }) => item.id;
 
   readonly nameOf = (item: { name: string }) => item.name;
+
+  private readonly tabsMemo = optionsMemo<SMTTabItem<'types' | 'statuses'>[]>();
 
   submitType() {
     if (!this.newTypeForm.code.trim() || !this.newTypeForm.name.trim()) return;
@@ -300,5 +266,12 @@ export class TaskDictionariesModalComponent {
   /** Asks the page to delete; the page confirms it first. */
   requestDelete(kind: 'type' | 'status', id: number, name: string) {
     this.deleteItem.emit({ kind, id, name });
+  }
+
+  dictionaryTabs(): SMTTabItem<'types' | 'statuses'>[] {
+    return this.tabsMemo([this.tabText.currentLang(), this.taskTypes.length, this.statuses.length], () => [
+      { value: 'types', label: this.tabText.translate('tasks.task_types_count', { count: this.taskTypes.length }), id: 'task-types-tab', panelId: 'task-types-panel' },
+      { value: 'statuses', label: this.tabText.translate('tasks.task_statuses_count', { count: this.statuses.length }), id: 'task-statuses-tab', panelId: 'task-statuses-panel' },
+    ]);
   }
 }
