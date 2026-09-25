@@ -5,6 +5,7 @@ import { catchError } from 'rxjs/operators';
 import { ProblemDetail } from '../models/common.models';
 import { ToastService } from './toast.service';
 import { I18nService } from './i18n.service';
+import { isSessionBound } from '../http/session-bound';
 
 export interface ApiRequestOptions {
   notifyError?: boolean;
@@ -136,9 +137,11 @@ export class ApiService {
       problem.retryAfterSeconds = Number(retryAfter);
     }
 
-    // Don't toast 401 on initial /auth/me verification or normal 404 search
+    // Don't toast 401 on initial /auth/me verification or normal 404 search; a lost session
+    // is explained once by sessionExpiredInterceptor, not by every request that failed.
     const isAuthCheck = error.status === 401 && error.url?.includes('/auth/me');
-    if (!isAuthCheck && options.notifyError !== false) {
+    const isSessionLost = error.status === 401 && isSessionBound(error.url ?? '');
+    if (!isAuthCheck && !isSessionLost && options.notifyError !== false) {
       this.toast.error(problem.detail || problem.title);
     }
 

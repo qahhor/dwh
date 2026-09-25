@@ -1940,6 +1940,7 @@
   "auth.idle.sign_out": "Sign out",
   "auth.idle.signed_out": "The session was closed after a period without activity. Sign in again.",
   "auth.signed_out_elsewhere": "You signed out in another tab.",
+  "auth.session_expired": "The session expired or was ended. Sign in again to return to the same page.",
   "auth.login_confirmed": "Sign-in confirmed!",
   "notifications.new_notification": "New notification",
   "announcements.system_announcement": "System announcement",

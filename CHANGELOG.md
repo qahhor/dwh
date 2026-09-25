@@ -9,6 +9,16 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- HTTP interceptors (roadmap item 29). A 401 from the API while signed in
+  signs the tab out once — not a toast per failed request — tells the other
+  tabs, explains why and, after signing in again, returns to the same page;
+  a deep link opened without a session also lands there after sign-in. A 401
+  on logout counts as signed out. Every change sent to the API (POST, PUT,
+  PATCH, DELETE) carries its own `Idempotency-Key`, and a change whose answer
+  was lost (network error, 502, 503, 504) is repeated twice under the same
+  key, honouring a short `Retry-After`, so the server does it only once.
+  Sign-in, secrets, file uploads, downloads and bodies over 60 KB go without
+  a key, as the server requires.
 - Idle lock (roadmap item 28): after `security.idle_lock_minutes` (30 by
   default, 0 — off, set in Settings → Security) without a click, key or scroll
   in any tab, the session is closed on the server and the sign-in page says

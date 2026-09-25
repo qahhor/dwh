@@ -2276,6 +2276,7 @@
   "auth.idle.sign_out": "Выйти",
   "auth.idle.signed_out": "Сеанс закрыт из-за бездействия. Войдите снова.",
   "auth.signed_out_elsewhere": "Вы вышли из системы в другой вкладке.",
+  "auth.session_expired": "Сеанс истёк или был завершён. Войдите снова — откроется та же страница.",
   "auth.login_confirmed": "Вход успешно подтвержден!",
   "notifications.new_notification": "Новое уведомление",
   "announcements.system_announcement": "Системное объявление",

@@ -60,7 +60,7 @@ describe('tab sync of the session and the language', () => {
     const incoming = new Subject<TabSyncMessage>();
     const tabs = { messages: incoming.asObservable(), publish: vi.fn() };
     const navigate = vi.fn(() => Promise.resolve(true));
-    const router = { navigate, url: '/tasks' };
+    const router = { navigate, navigateByUrl: vi.fn(() => Promise.resolve(true)), url: '/tasks' };
     const toast = { toasts: vi.fn(() => []), dismiss: vi.fn(), info: vi.fn(), success: vi.fn() };
     const permissions = { clear: vi.fn(), setPermissions: vi.fn() };
     const api = { get: vi.fn(() => of({ user: { id: 9, language: 'ru' }, permissions: [], permissionsVersion: 1 })), post: vi.fn(() => of({})) };
@@ -106,7 +106,7 @@ describe('tab sync of the session and the language', () => {
 
     expect(api.get).toHaveBeenCalledWith('/auth/me');
     expect(auth.currentUser()?.id).toBe(9);
-    expect(router.navigate).toHaveBeenCalledWith(['/tasks']);
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/tasks');
   });
 
   it('carries a chosen language to the other tabs and follows theirs without saving again', () => {

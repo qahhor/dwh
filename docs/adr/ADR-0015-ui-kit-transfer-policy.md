@@ -432,3 +432,9 @@ ADR-0012 выбрал Angular Material + CDK и отклонил Tailwind как
        показывает `app-idle-lock-dialog` с обратным отсчётом и закрывает сеанс на
        сервере. Порог — настройка экземпляра `security.idle_lock_minutes`
        (0–1440, 0 — выкл.); личные настройки ограничены `user.*`/`ui.*`.
+37. [x] HTTP-интерсепторы (п. 29 роадмапа, 2026-09-25): своё решение — в
+       источниках его нет. `sessionExpiredInterceptor`: 401 вне `/auth/*` при
+       активном сеансе → `AuthService.sessionExpired()` (один выход, сообщение,
+       возврат на ту же страницу после входа). `idempotencyKeyInterceptor`:
+       UUID в `Idempotency-Key` для изменений и два повтора под тем же ключом
+       при 0/502/503/504; исключения повторяют ограничения `IdempotencyFilter`.
