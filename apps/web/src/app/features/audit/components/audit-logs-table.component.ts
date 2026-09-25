@@ -1,9 +1,9 @@
-import { Component, computed, EventEmitter, inject, Input, Output, Signal, TemplateRef, viewChild } from '@angular/core';
+import { Component, computed, EventEmitter, inject, Input, Output, Signal, signal, TemplateRef, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiServerTableComponent } from '../../../shared/ui/ui-server-table.component';
-import { SMTDatePickerComponent, SMTDatePickerValueAccessor } from '../../../shared/ui-kit/components/forms/date-picker';
+import { DateRange, SMTDateRangePickerComponent } from '../../../shared/ui-kit/components/forms/date-picker';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { KeysetPager } from '../../../shared/paging/keyset-pager';
 import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
@@ -18,8 +18,7 @@ import { AuditRecord } from '../audit.models';
     TranslatePipe,
     UiButtonComponent,
     UiServerTableComponent,
-    SMTDatePickerComponent,
-    SMTDatePickerValueAccessor
+    SMTDateRangePickerComponent
   ],
   template: `
     <div id="audit-log-panel" class="tab-content" role="tabpanel" aria-labelledby="audit-log-tab">
@@ -58,16 +57,10 @@ import { AuditRecord } from '../audit.models';
               pattern="[0-9]*" [ngModel]="auditUserFilter" (ngModelChange)="auditUserFilterChange.emit($event)" (keyup.enter)="applyFilters.emit()" />
           </div>
 
-          <div class="compact-filter">
-            <label for="audit-from-filter">{{ 'audit.date_from_utc' | t }}</label>
-            <smt-date-picker smtInputId="audit-from-filter" name="auditFromFilter"
-              [ngModel]="auditFromFilter" (ngModelChange)="auditFromFilterChange.emit($event)" />
-          </div>
-
-          <div class="compact-filter">
-            <label for="audit-to-filter">{{ 'audit.date_to_utc' | t }}</label>
-            <smt-date-picker smtInputId="audit-to-filter" name="auditToFilter"
-              [ngModel]="auditToFilter" (ngModelChange)="auditToFilterChange.emit($event)" />
+          <div class="compact-filter compact-filter-period">
+            <span class="compact-filter-label" aria-hidden="true">{{ 'audit.period_utc' | t }}</span>
+            <smt-date-range-picker data-testid="audit-period-filter" [smtAriaLabel]="'audit.period_utc' | t"
+              [value]="period()" (valueChange)="onPeriodChange($event)" />
           </div>
 
           <ui-button id="audit-apply-filters" variant="primary" size="sm" icon="filter_alt"
@@ -186,7 +179,12 @@ import { AuditRecord } from '../audit.models';
       width: 110px;
     }
 
-    .compact-filter label {
+    .compact-filter-period {
+      min-width: 220px;
+    }
+
+    .compact-filter label,
+    .compact-filter-label {
       color: var(--text-light);
       font-size: 11px;
       font-weight: 600;
@@ -362,8 +360,28 @@ export class AuditLogsTableComponent {
   @Input() eventFilter = '';
   @Input() rowPkFilter = '';
   @Input() auditUserFilter = '';
-  @Input() auditFromFilter = '';
-  @Input() auditToFilter = '';
+  @Input() set auditFromFilter(value: string) {
+    this.periodFrom.set(value ?? '');
+  }
+  get auditFromFilter(): string {
+    return this.periodFrom();
+  }
+  @Input() set auditToFilter(value: string) {
+    this.periodTo.set(value ?? '');
+  }
+  get auditToFilter(): string {
+    return this.periodTo();
+  }
+
+  private readonly periodFrom = signal('');
+  private readonly periodTo = signal('');
+
+  /** The two UTC day bounds as one period; none set is "any period". */
+  readonly period = computed<DateRange | null>(() => {
+    const from = this.periodFrom();
+    const to = this.periodTo();
+    return from || to ? { from: from || null, to: to || null } : null;
+  });
 
   @Output() tableFilterChange = new EventEmitter<string>();
   @Output() eventFilterChange = new EventEmitter<string>();
@@ -426,5 +444,12 @@ export class AuditLogsTableComponent {
       case 'D': return 'delete';
       default: return '';
     }
+  }
+
+  /** A preset, Apply or clearing sets both bounds and refetches at once. */
+  onPeriodChange(range: DateRange | null): void {
+    this.auditFromFilterChange.emit(range?.from ?? '');
+    this.auditToFilterChange.emit(range?.to ?? '');
+    this.applyFilters.emit();
   }
 }

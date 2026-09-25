@@ -1,9 +1,9 @@
-import { Component, computed, EventEmitter, inject, Input, Output, Signal, TemplateRef, viewChild } from '@angular/core';
+import { Component, computed, EventEmitter, inject, Input, Output, Signal, signal, TemplateRef, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiServerTableComponent } from '../../../shared/ui/ui-server-table.component';
-import { SMTDatePickerComponent, SMTDatePickerValueAccessor } from '../../../shared/ui-kit/components/forms/date-picker';
+import { DateRange, SMTDateRangePickerComponent } from '../../../shared/ui-kit/components/forms/date-picker';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { KeysetPager } from '../../../shared/paging/keyset-pager';
 import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
@@ -18,8 +18,7 @@ import { SecurityEventRecord } from '../audit.models';
     TranslatePipe,
     UiButtonComponent,
     UiServerTableComponent,
-    SMTDatePickerComponent,
-    SMTDatePickerValueAccessor
+    SMTDateRangePickerComponent
   ],
   template: `
     <div id="security-events-panel" class="tab-content" role="tabpanel" aria-labelledby="security-events-tab">
@@ -59,16 +58,10 @@ import { SecurityEventRecord } from '../audit.models';
               pattern="[0-9]*" [ngModel]="securityUserFilter" (ngModelChange)="securityUserFilterChange.emit($event)" (keyup.enter)="applyFilters.emit()" />
           </div>
 
-          <div class="compact-filter">
-            <label for="security-from-filter">{{ 'audit.date_from_utc' | t }}</label>
-            <smt-date-picker smtInputId="security-from-filter" name="securityFromFilter"
-              [ngModel]="securityFromFilter" (ngModelChange)="securityFromFilterChange.emit($event)" />
-          </div>
-
-          <div class="compact-filter">
-            <label for="security-to-filter">{{ 'audit.date_to_utc' | t }}</label>
-            <smt-date-picker smtInputId="security-to-filter" name="securityToFilter"
-              [ngModel]="securityToFilter" (ngModelChange)="securityToFilterChange.emit($event)" />
+          <div class="compact-filter compact-filter-period">
+            <span class="compact-filter-label" aria-hidden="true">{{ 'audit.period_utc' | t }}</span>
+            <smt-date-range-picker data-testid="security-period-filter" [smtAriaLabel]="'audit.period_utc' | t"
+              [value]="period()" (valueChange)="onPeriodChange($event)" />
           </div>
 
           <ui-button id="security-apply-filters" variant="primary" size="sm" icon="filter_alt"
@@ -129,8 +122,28 @@ export class AuditSecurityTableComponent {
   @Input() secEventTypeFilter = '';
   @Input() secIpFilter = '';
   @Input() securityUserFilter = '';
-  @Input() securityFromFilter = '';
-  @Input() securityToFilter = '';
+  @Input() set securityFromFilter(value: string) {
+    this.periodFrom.set(value ?? '');
+  }
+  get securityFromFilter(): string {
+    return this.periodFrom();
+  }
+  @Input() set securityToFilter(value: string) {
+    this.periodTo.set(value ?? '');
+  }
+  get securityToFilter(): string {
+    return this.periodTo();
+  }
+
+  private readonly periodFrom = signal('');
+  private readonly periodTo = signal('');
+
+  /** The two UTC day bounds as one period; none set is "any period". */
+  readonly period = computed<DateRange | null>(() => {
+    const from = this.periodFrom();
+    const to = this.periodTo();
+    return from || to ? { from: from || null, to: to || null } : null;
+  });
 
   @Output() secEventTypeFilterChange = new EventEmitter<string>();
   @Output() secIpFilterChange = new EventEmitter<string>();
@@ -198,5 +211,12 @@ export class AuditSecurityTableComponent {
     if (ua.includes('Firefox')) return 'Mozilla Firefox';
     if (ua.includes('Safari')) return 'Apple Safari';
     return ua.length > 30 ? ua.substring(0, 30) + '...' : ua;
+  }
+
+  /** A preset, Apply or clearing sets both bounds and refetches at once. */
+  onPeriodChange(range: DateRange | null): void {
+    this.securityFromFilterChange.emit(range?.from ?? '');
+    this.securityToFilterChange.emit(range?.to ?? '');
+    this.applyFilters.emit();
   }
 }

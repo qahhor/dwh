@@ -12,7 +12,7 @@ import {
   toCondition,
 } from '../list-views/filter-conditions';
 import { SMT_DRAWER_DATA, SMT_DRAWER_REF, SMTDrawerRef } from '../ui-kit/components/drawer';
-import { SMTDatePickerComponent } from '../ui-kit/components/forms/date-picker';
+import { DateRange, SMTDatePickerComponent, SMTDateRangePickerComponent } from '../ui-kit/components/forms/date-picker';
 import { UiButtonComponent } from './ui-button.component';
 
 export interface FilterPanelData {
@@ -35,7 +35,7 @@ let nextPanelId = 0;
   selector: 'ui-filter-panel',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TranslatePipe, UiButtonComponent, SMTDatePickerComponent],
+  imports: [TranslatePipe, UiButtonComponent, SMTDatePickerComponent, SMTDateRangePickerComponent],
   template: `
     <form class="filter-panel" (submit)="$event.preventDefault(); apply()" novalidate>
       <p class="filter-intro">{{ 'ui.filter.intro' | t }}</p>
@@ -96,16 +96,17 @@ let nextPanelId = 0;
                       </div>
                     }
                     @case ('date') {
-                      <div class="filter-control">
-                        <label class="filter-label" [for]="rowId(i) + '-from'">{{ (row.op === 'between' ? 'ui.filter.from' : 'ui.filter.value') | t }}</label>
-                        <smt-date-picker data-testid="filter-date" [smtInputId]="rowId(i) + '-from'" [value]="row.value || null"
-                          (valueChange)="patch(i, { value: $event ?? '' })" />
-                      </div>
                       @if (row.op === 'between') {
                         <div class="filter-control">
-                          <label class="filter-label" [for]="rowId(i) + '-to'">{{ 'ui.filter.to' | t }}</label>
-                          <smt-date-picker data-testid="filter-date-to" [smtInputId]="rowId(i) + '-to'" [value]="row.valueTo || null"
-                            (valueChange)="patch(i, { valueTo: $event ?? '' })" />
+                          <span class="filter-label" aria-hidden="true">{{ 'ui.filter.period' | t }}</span>
+                          <smt-date-range-picker data-testid="filter-date-range" [smtAriaLabel]="'ui.filter.period' | t"
+                            [value]="rangeOf(row)" (valueChange)="patch(i, { value: $event?.from ?? '', valueTo: $event?.to ?? '' })" />
+                        </div>
+                      } @else {
+                        <div class="filter-control">
+                          <label class="filter-label" [for]="rowId(i) + '-from'">{{ 'ui.filter.value' | t }}</label>
+                          <smt-date-picker data-testid="filter-date" [smtInputId]="rowId(i) + '-from'" [value]="row.value || null"
+                            (valueChange)="patch(i, { value: $event ?? '' })" />
                         </div>
                       }
                     }
@@ -206,6 +207,16 @@ export class UiFilterPanelComponent {
   private checked = false;
 
   readonly canAdd = computed(() => this.rows().length < this.data.meta.maxConditions && this.fields().length > 0);
+
+  private readonly ranges = new WeakMap<FilterDraft, DateRange | null>();
+
+  /** A "between" date row as one period with presets; rows are replaced on change, so each keeps its own value. */
+  rangeOf(row: FilterDraft): DateRange | null {
+    if (!this.ranges.has(row)) {
+      this.ranges.set(row, row.value || row.valueTo ? { from: row.value || null, to: row.valueTo || null } : null);
+    }
+    return this.ranges.get(row) ?? null;
+  }
 
   rowId(index: number): string {
     return `${this.panelId}-${index}`;

@@ -22,6 +22,10 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   only where the grid is the editor or not a list: the role permission matrix,
   UPL sheet mapping, notification preferences, the audit before/after diff and
   the calendar.
+- Period presets in filters: the audit log and security events take one
+  period (today, last 7 days, this month…) instead of two date fields, and
+  it applies at once; a "between" date condition in the filter builder is
+  edited the same way.
 - The file storage list pages through every file with a server cursor; it
   used to show at most the 100 newest and hide the rest. It runs on the field
   registry (`mf.files`): sorting of the whole list by name, size or date,
