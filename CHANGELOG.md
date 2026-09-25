@@ -9,6 +9,13 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Dynamic field (roadmap item 36). `smt-dynamic-field` draws a field described
+  as data — text, long text, number, yes/no, date, date and time, time, a
+  choice from a list, a person — with the matching kit field inside
+  smt-control. Custom fields on users, tasks, projects and notes use it: a
+  person field searches the server instead of offering the first hundred
+  users, a list field is a searchable select, yes/no is a switch, and every
+  field gets the same label, required mark and error.
 - Task dialogs on the kit's pickers (roadmap item 35). Parent, responsible,
   co-executors and observers are data selects over the shared users and tasks
   sources; the people and parent a task's card already names are passed in
