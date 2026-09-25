@@ -1,11 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, Signal, TemplateRef, computed, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Subscription, exhaustMap, timer } from 'rxjs';
 import { ProblemDetail } from '../../../core/models/common.models';
 import {
   SearchEntityType,
   SearchFieldPolicy,
+  SearchGenerationStatus,
   SearchJobAction,
   SearchJobStatus,
   SearchManagementStatus,
@@ -19,6 +20,8 @@ import { I18nService, TranslatePipe } from '../../../core/services/i18n.service'
 import { PermissionService } from '../../../core/services/permission.service';
 import { SearchManagementService } from '../../../core/services/search-management.service';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
+import { UiLocalTableComponent } from '../../../shared/ui/ui-local-table.component';
+import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
 
 import {
   PendingMutation,
@@ -34,7 +37,7 @@ import {
 @Component({
   selector: 'app-search-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslatePipe, UiModalComponent],
+  imports: [CommonModule, FormsModule, TranslatePipe, UiModalComponent, UiLocalTableComponent],
   templateUrl: './search-settings.component.html',
   styleUrl: './search-settings.component.scss'
 })
@@ -96,6 +99,71 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
   });
   readonly atCapacity = computed(() => (this.status()?.generations.length ?? 0) >= 4);
   readonly displayedJobs = computed(() => this.history().length ? this.history() : (this.status()?.jobs ?? []));
+
+  private readonly generationIdCell = viewChild.required<TemplateRef<unknown>>('generationIdCell');
+  private readonly generationStateCell = viewChild.required<TemplateRef<unknown>>('generationStateCell');
+  private readonly generationDocumentsCell = viewChild.required<TemplateRef<unknown>>('generationDocumentsCell');
+  private readonly generationQueueCell = viewChild.required<TemplateRef<unknown>>('generationQueueCell');
+  private readonly jobIdCell = viewChild.required<TemplateRef<unknown>>('jobIdCell');
+  private readonly jobStateCell = viewChild.required<TemplateRef<unknown>>('jobStateCell');
+  private readonly jobGenerationCell = viewChild.required<TemplateRef<unknown>>('jobGenerationCell');
+  private readonly jobCreatedCell = viewChild.required<TemplateRef<unknown>>('jobCreatedCell');
+  private readonly jobActionsCell = viewChild.required<TemplateRef<unknown>>('jobActionsCell');
+
+  /** At most four generations exist and all of them are shown, so a header click sorts them all. */
+  readonly generationSortValues = {
+    id: (g: SearchGenerationStatus) => g.id,
+    state: (g: SearchGenerationStatus) => g.state,
+    profile: (g: SearchGenerationStatus) => g.registeredProfile,
+    documents: (g: SearchGenerationStatus) => g.documentCount,
+    storage: (g: SearchGenerationStatus) => g.storageBytes,
+    queue: (g: SearchGenerationStatus) => g.pendingDeliveries
+  };
+
+  readonly generationsConfig = computed<TableConfig<SearchGenerationStatus>>(() => {
+    const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
+    const cell = (template: Signal<TemplateRef<unknown>>) => ({ type: 'templateRef' as const, value: template });
+    return {
+      trackBy: (_index, g) => g.id,
+      ariaLabel: this.i18n.translate('settings.search.generations.scroll_label'),
+      layout: 'fit',
+      columns: {
+        id: { header: header('settings.search.generations.generation'), content: cell(this.generationIdCell) },
+        state: { header: header('common.status'), content: cell(this.generationStateCell) },
+        profile: { header: header('settings.search.status.profile'), content: { type: 'primitive', value: g => g.registeredProfile } },
+        documents: { header: header('settings.search.generations.documents'), content: cell(this.generationDocumentsCell) },
+        storage: { header: header('settings.search.generations.storage'), content: { type: 'primitive', value: g => this.displayBytes(g.storageBytes) } },
+        queue: { header: header('settings.search.generations.queue'), content: cell(this.generationQueueCell) }
+      },
+      columnsOrder: ['id', 'state', 'profile', 'documents', 'storage', 'queue']
+    };
+  });
+
+  /**
+   * The job history comes newest first a page at a time ("load more"), so it
+   * offers no header sorting: sorting the loaded pages would pass for sorting
+   * the whole history.
+   */
+  readonly jobsConfig = computed<TableConfig<SearchJobStatus>>(() => {
+    const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
+    const cell = (template: Signal<TemplateRef<unknown>>) => ({ type: 'templateRef' as const, value: template });
+    return {
+      trackBy: (index, job) => this.trackJob(index, job),
+      ariaLabel: this.i18n.translate('settings.search.jobs.scroll_label'),
+      layout: 'fit',
+      columns: {
+        id: { header: header('settings.search.jobs.id'), content: cell(this.jobIdCell) },
+        action: { header: header('settings.search.jobs.action'), content: { type: 'primitive', value: job => job.action } },
+        state: { header: header('common.status'), content: cell(this.jobStateCell) },
+        generation: { header: header('settings.search.jobs.generation'), content: cell(this.jobGenerationCell) },
+        processed: { header: header('settings.search.jobs.processed'), content: { type: 'primitive', value: job => job.processedCount }, align: 'right' },
+        failed: { header: header('settings.search.jobs.failed'), content: { type: 'primitive', value: job => job.failedCount }, align: 'right' },
+        created: { header: header('settings.search.jobs.created'), content: cell(this.jobCreatedCell) },
+        actions: { header: header('common.actions'), content: cell(this.jobActionsCell) }
+      },
+      columnsOrder: ['id', 'action', 'state', 'generation', 'processed', 'failed', 'created', 'actions']
+    };
+  });
 
   private statusRequest?: Subscription;
   private settingsRequest?: Subscription;

@@ -33,8 +33,6 @@ export interface UserWorkload {
   completedTasks: number;
 }
 
-export type WorkloadSortColumn = 'name' | 'login' | 'assigned' | 'completed' | 'efficiency';
-export type SortDirection = 'asc' | 'desc';
 
 export interface ChartPoint {
   x: number;

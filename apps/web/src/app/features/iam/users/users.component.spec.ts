@@ -424,6 +424,15 @@ describe('UsersComponent UI contracts', () => {
     expect(fixture.componentInstance.userSecurity()?.userId).toBe(15);
     expect(fixture.componentInstance.userSecurity()?.activeSessionsCount).toBe(1);
     expect(fixture.componentInstance.userSecurity()?.recentLoginAttempts.length).toBe(1);
+
+    const root = fixture.nativeElement as HTMLElement;
+    const sessionsTable = root.querySelector('[data-testid="user-sessions-table"] [role="table"]');
+    expect(sessionsTable?.getAttribute('aria-label')).toBe('Активные сессии');
+    const endButton = root.querySelector<HTMLButtonElement>('[data-testid="user-sessions-table"] button.btn-icon');
+    expect(endButton?.getAttribute('aria-label')).toBe('Завершить сессию с IP 127.0.0.1');
+    const attemptCells = [...root.querySelectorAll('[data-testid="user-login-attempts-table"] [role="rowgroup"] > [role="row"] [role="cell"]')]
+      .map(cell => cell.textContent?.trim());
+    expect(attemptCells.slice(1)).toEqual(['127.0.0.1', 'Успешно', '—']);
   });
 
   it('pages forward with the cursor the server returned and back without asking for a new one', async () => {

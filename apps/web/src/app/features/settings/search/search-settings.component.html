@@ -28,20 +28,7 @@
       </div>
       <div class="notice notice-warning" *ngIf="rebuildRequired()" data-state="rebuild-required" role="status">{{ 'settings.search.rebuild_required' | t }}</div>
       <div class="table-scroll" role="region" tabindex="0" [attr.aria-label]="'settings.search.generations.scroll_label' | t">
-        <table>
-          <thead><tr><th>{{ 'settings.search.generations.generation' | t }}</th><th>{{ 'common.status' | t }}</th><th>{{ 'settings.search.status.profile' | t }}</th><th>{{ 'settings.search.generations.documents' | t }}</th><th>{{ 'settings.search.generations.storage' | t }}</th><th>{{ 'settings.search.generations.queue' | t }}</th></tr></thead>
-          <tbody>
-            <tr *ngFor="let generation of current.generations">
-              <td class="mono">{{ generation.id }}</td>
-              <td>{{ generation.state }}<span *ngIf="generation.active"> · {{ 'settings.search.generations.active' | t }}</span></td>
-              <td>{{ generation.registeredProfile }}</td>
-              <td>{{ displayNumber(generation.documentCount) }}<small>TASK {{ displayNumber(generation.entityDocumentCounts.TASK) }} · PROJECT {{ displayNumber(generation.entityDocumentCounts.PROJECT) }} · USER {{ displayNumber(generation.entityDocumentCounts.USER) }}</small></td>
-              <td>{{ displayBytes(generation.storageBytes) }}</td>
-              <td>{{ generation.pendingDeliveries }} / {{ generation.failedDeliveries }} · {{ displayNumber(generation.queueLagSeconds) }}s</td>
-            </tr>
-            <tr *ngIf="current.generations.length === 0"><td colspan="6">{{ 'settings.search.generations.empty' | t }}</td></tr>
-          </tbody>
-        </table>
+        <ui-local-table data-testid="search-generations-table" [rows]="current.generations" [config]="generationsConfig()" [sortValues]="generationSortValues" [emptyTemplate]="noGenerations" />
       </div>
     </ng-container>
   </section>
@@ -136,8 +123,7 @@
       <button *ngIf="historyRetryNextPage()" type="button" class="btn btn-secondary" data-action="retry-search-history-page" (click)="retryHistory()">{{ 'common.retry' | t }}</button>
     </div>
     <div class="table-scroll" role="region" tabindex="0" [attr.aria-label]="'settings.search.jobs.scroll_label' | t" [attr.aria-busy]="historyLoading()">
-      <table><thead><tr><th>{{ 'settings.search.jobs.id' | t }}</th><th>{{ 'settings.search.jobs.action' | t }}</th><th>{{ 'common.status' | t }}</th><th>{{ 'settings.search.jobs.generation' | t }}</th><th>{{ 'settings.search.jobs.processed' | t }}</th><th>{{ 'settings.search.jobs.failed' | t }}</th><th>{{ 'settings.search.jobs.created' | t }}</th><th>{{ 'common.actions' | t }}</th></tr></thead>
-        <tbody><tr *ngFor="let job of displayedJobs(); trackBy: trackJob"><td class="mono">{{ job.id }}</td><td>{{ job.action }}</td><td>{{ job.state }}<small *ngIf="job.errorCode" class="error-text" [attr.data-job-error]="job.id">{{ jobErrorMessage(job.errorCode) }}</small></td><td class="mono">{{ job.generationId }}</td><td>{{ job.processedCount }}</td><td>{{ job.failedCount }}</td><td>{{ job.createdAt | date:'short' }}</td><td><button *ngIf="canMaintain() && canCancel(job)" type="button" class="btn btn-secondary btn-sm" [disabled]="mutationPending() || savePending()" (click)="cancelJob(job)">{{ 'common.cancel' | t }}</button><button *ngIf="canMaintain() && (job.state === 'FAILED' || job.state === 'CANCELLED')" type="button" class="btn btn-secondary btn-sm" [disabled]="mutationPending() || savePending() || activeOperation()" (click)="retryJob(job)">{{ 'common.retry' | t }}</button></td></tr><tr *ngIf="displayedJobs().length === 0 && !historyError()"><td colspan="8">{{ 'settings.search.jobs.empty' | t }}</td></tr></tbody></table>
+      <ui-local-table data-testid="search-jobs-table" [rows]="displayedJobs()" [config]="jobsConfig()" [emptyTemplate]="noJobs" />
     </div>
     <button *ngIf="historyHasMore() && !historyError()" type="button" class="btn btn-secondary load-more" data-action="load-more-search-jobs" [disabled]="historyLoading()" (click)="loadMoreHistory()">{{ 'settings.search.jobs.load_more' | t }}</button>
   </section>
@@ -147,5 +133,29 @@
     <div footer class="dialog-actions"><button type="button" class="btn btn-secondary" (click)="confirmation.set(null)">{{ 'common.cancel' | t }}</button><button type="button" class="btn btn-primary" data-action="confirm-search-maintenance" (click)="confirmMaintenance()">{{ 'common.confirm' | t }}</button></div>
   </ui-modal>
 </section>
+
+<ng-template #generationIdCell let-generation><span class="mono">{{ generation.id }}</span></ng-template>
+<ng-template #generationStateCell let-generation>{{ generation.state }}<span *ngIf="generation.active"> · {{ 'settings.search.generations.active' | t }}</span></ng-template>
+<ng-template #generationDocumentsCell let-generation>
+  <span class="cell-stack">{{ displayNumber(generation.documentCount) }}<small>TASK {{ displayNumber(generation.entityDocumentCounts.TASK) }} · PROJECT {{ displayNumber(generation.entityDocumentCounts.PROJECT) }} · USER {{ displayNumber(generation.entityDocumentCounts.USER) }}</small></span>
+</ng-template>
+<ng-template #generationQueueCell let-generation>{{ generation.pendingDeliveries }} / {{ generation.failedDeliveries }} · {{ displayNumber(generation.queueLagSeconds) }}s</ng-template>
+<ng-template #noGenerations><p class="table-empty">{{ 'settings.search.generations.empty' | t }}</p></ng-template>
+
+<ng-template #jobIdCell let-job><span class="mono">{{ job.id }}</span></ng-template>
+<ng-template #jobStateCell let-job>
+  <span class="cell-stack">{{ job.state }}<small *ngIf="job.errorCode" class="error-text" [attr.data-job-error]="job.id">{{ jobErrorMessage(job.errorCode) }}</small></span>
+</ng-template>
+<ng-template #jobGenerationCell let-job><span class="mono">{{ job.generationId }}</span></ng-template>
+<ng-template #jobCreatedCell let-job>{{ job.createdAt | date:'short' }}</ng-template>
+<ng-template #jobActionsCell let-job>
+  <span class="cell-actions">
+    <button *ngIf="canMaintain() && canCancel(job)" type="button" class="btn btn-secondary btn-sm" [attr.aria-label]="'settings.search.jobs.cancel_named' | t:{id: job.id}" [disabled]="mutationPending() || savePending()" (click)="cancelJob(job)">{{ 'common.cancel' | t }}</button>
+    <button *ngIf="canMaintain() && (job.state === 'FAILED' || job.state === 'CANCELLED')" type="button" class="btn btn-secondary btn-sm" [attr.aria-label]="'settings.search.jobs.retry_named' | t:{id: job.id}" [disabled]="mutationPending() || savePending() || activeOperation()" (click)="retryJob(job)">{{ 'common.retry' | t }}</button>
+  </span>
+</ng-template>
+<ng-template #noJobs>
+  <p *ngIf="!historyError()" class="table-empty">{{ 'settings.search.jobs.empty' | t }}</p>
+</ng-template>
 
 <ng-template #noSearchAccess><div class="notice notice-error" data-state="search-access-unavailable" role="alert">{{ 'settings.search.access_unavailable' | t }}</div></ng-template>

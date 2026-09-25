@@ -79,7 +79,7 @@ describe('ProfileComponent UI contracts', () => {
 
     expect(regions.length).toBe(3);
     expect(regions[0].tabIndex).toBe(0);
-    expect(regions[0].querySelector('table')?.getAttribute('aria-label')).toBe('Каналы связи');
+    expect(regions[0].querySelector('[role="table"]')?.getAttribute('aria-label')).toBe('Каналы связи');
     expect(regions[1].tabIndex).toBe(0);
     expect(regions[1].querySelector('[role="table"]')?.getAttribute('aria-label')).toBe('Активные сессии');
     expect(regions[2].tabIndex).toBe(0);
@@ -244,7 +244,7 @@ describe('ProfileComponent UI contracts', () => {
     const cardEl = fixture.nativeElement.querySelector('app-profile-channels-card');
     expect(cardEl).not.toBeNull();
 
-    const rows = cardEl.querySelectorAll('tbody tr');
+    const rows = cardEl.querySelectorAll('[role="rowgroup"] > [role="row"]');
     expect(rows.length).toBe(2);
 
     const verifiedBadge = rows[0].querySelector('ui-badge');
@@ -252,6 +252,11 @@ describe('ProfileComponent UI contracts', () => {
 
     const pendingBadge = rows[1].querySelector('ui-badge');
     expect(pendingBadge?.textContent).toContain('Ожидает подтверждения');
+
+    const unbindLabels = [...cardEl.querySelectorAll('button')]
+      .map(button => (button as HTMLElement).getAttribute('aria-label'))
+      .filter(label => label?.startsWith('Отвязать'));
+    expect(unbindLabels).toEqual(['Отвязать user@example.com', 'Отвязать @user_tg']);
   });
 
   it('initiates channel binding and opens verification modal', async () => {

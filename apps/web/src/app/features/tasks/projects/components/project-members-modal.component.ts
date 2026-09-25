@@ -1,13 +1,15 @@
-import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
+import { Component, EventEmitter, Input, Output, Signal, TemplateRef, computed, inject, signal, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { of, Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { ApiService } from '../../../../core/services/api.service';
-import { TranslatePipe } from '../../../../core/services/i18n.service';
+import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
 import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
 import { UiBadgeComponent } from '../../../../shared/ui/ui-badge.component';
+import { UiLocalTableComponent } from '../../../../shared/ui/ui-local-table.component';
+import { TableConfig } from '../../../../shared/ui-kit/components/table/table.types';
 import { Project } from '../../../../core/models/task.models';
 import { User } from '../../../../core/models/auth.models';
 import { ProjectMember } from '../projects.models';
@@ -21,7 +23,8 @@ import { ProjectMember } from '../projects.models';
     TranslatePipe,
     UiModalComponent,
     UiButtonComponent,
-    UiBadgeComponent
+    UiBadgeComponent,
+    UiLocalTableComponent
   ],
   template: `
     <ui-modal
@@ -123,71 +126,13 @@ import { ProjectMember } from '../projects.models';
 
         <!-- Members Table -->
         <div class="table-wrapper" role="region" [attr.aria-label]="'projects.tablica_uchastnikov_proekta' | t" tabindex="0">
-          <table class="data-table" [attr.aria-label]="'projects.uchastniki_proekta' | t">
-            <thead>
-              <tr>
-                <th>{{ 'nav.users' | t }}</th>
-                <th>{{ 'iam.email' | t }}</th>
-                <th>{{ 'projects.uroven_dostupa' | t }}</th>
-                <th *ngIf="canUpdateProject" class="text-right">{{ 'audit.deystvie' | t }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <!-- Skeleton loading rows -->
-              <ng-container *ngIf="isLoadingMembers">
-                <tr class="skeleton-row" *ngFor="let item of [1, 2]">
-                  <td><div class="skeleton-pill w-48"></div></td>
-                  <td><div class="skeleton-pill w-36"></div></td>
-                  <td><div class="skeleton-pill w-28"></div></td>
-                  <td *ngIf="canUpdateProject" class="text-right"><div class="skeleton-pill w-20 ml-auto"></div></td>
-                </tr>
-              </ng-container>
-
-              <!-- Real members rows -->
-              <ng-container *ngIf="!isLoadingMembers">
-                <tr *ngFor="let m of members">
-                  <td>
-                    <div class="member-user-cell">
-                      <span class="user-avatar-mini">{{ getInitials(m.userName) }}</span>
-                      <span class="font-medium">{{ m.userName }}</span>
-                    </div>
-                  </td>
-                  <td class="text-muted tabular-nums">{{ m.userEmail || '—' }}</td>
-                  <td>
-                    <ui-badge *ngIf="m.accessKind === 'MANAGER'" variant="info">
-                      {{ 'projects.rol_rukovoditel' | t }}
-                    </ui-badge>
-                    <ui-badge *ngIf="m.accessKind === 'MEMBER'" variant="success">
-                      {{ 'projects.rol_uchastnik' | t }}
-                    </ui-badge>
-                    <ui-badge *ngIf="m.accessKind === 'OBSERVER'" variant="neutral">
-                      {{ 'projects.rol_nablyudatel' | t }}
-                    </ui-badge>
-                    <ui-badge *ngIf="m.accessKind !== 'MANAGER' && m.accessKind !== 'MEMBER' && m.accessKind !== 'OBSERVER'" variant="neutral">
-                      {{ m.accessKind }}
-                    </ui-badge>
-                  </td>
-                  <td *ngIf="canUpdateProject" class="text-right">
-                    <ui-button
-                      variant="danger"
-                      size="sm"
-                      icon="delete"
-                      [title]="'projects.udalit_iz_proekta' | t"
-                      [loading]="isRemovingMember && memberToRemove?.userId === m.userId"
-                      (onClick)="requestRemove(m)"
-                    >
-                      {{ 'common.delete' | t }}
-                    </ui-button>
-                  </td>
-                </tr>
-                <tr *ngIf="members.length === 0">
-                  <td [attr.colspan]="canUpdateProject ? 4 : 3" class="empty-cell">
-                    {{ 'projects.net_uchastnikov_proekta' | t }}
-                  </td>
-                </tr>
-              </ng-container>
-            </tbody>
-          </table>
+          <ui-local-table
+            data-testid="project-members-table"
+            [rows]="rows()"
+            [config]="config()"
+            [sortValues]="sortValues"
+            [loading]="isLoadingMembers"
+            [emptyTemplate]="emptyMembers" />
         </div>
       </div>
 
@@ -197,6 +142,32 @@ import { ProjectMember } from '../projects.models';
         </ui-button>
       </div>
     </ui-modal>
+
+    <ng-template #memberUserCell let-m>
+      <div class="member-user-cell">
+        <span class="user-avatar-mini" aria-hidden="true">{{ getInitials(m.userName) }}</span>
+        <span class="font-medium">{{ m.userName }}</span>
+      </div>
+    </ng-template>
+    <ng-template #memberEmailCell let-m><span class="text-muted tabular-nums">{{ m.userEmail || '—' }}</span></ng-template>
+    <ng-template #memberAccessCell let-m>
+      <ui-badge [variant]="accessVariant(m.accessKind)">{{ accessLabel(m.accessKind) }}</ui-badge>
+    </ng-template>
+    <ng-template #memberActionCell let-m>
+      <div class="text-right">
+        <ui-button
+          variant="danger"
+          size="sm"
+          icon="delete"
+          [ariaLabel]="'projects.remove_member_named' | t:{name: m.userName}"
+          [loading]="isRemovingMember && memberToRemove?.userId === m.userId"
+          (onClick)="requestRemove(m)"
+        >
+          {{ 'common.delete' | t }}
+        </ui-button>
+      </div>
+    </ng-template>
+    <ng-template #emptyMembers><p class="empty-cell">{{ 'projects.net_uchastnikov_proekta' | t }}</p></ng-template>
 
     <!-- Remove Member Confirmation Modal -->
     <ui-modal
@@ -435,32 +406,6 @@ import { ProjectMember } from '../projects.models';
       background-color: var(--bg-surface);
     }
 
-    .data-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-      text-align: left;
-    }
-
-    .data-table th {
-      background-color: var(--bg-hover);
-      color: var(--text-muted);
-      font-weight: 600;
-      padding: 10px 14px;
-      border-bottom: 1px solid var(--border-color);
-      white-space: nowrap;
-    }
-
-    .data-table td {
-      padding: 10px 14px;
-      border-bottom: 1px solid var(--border-color);
-      color: var(--text-main);
-      vertical-align: middle;
-    }
-
-    .data-table tr:last-child td {
-      border-bottom: none;
-    }
 
     .member-user-cell {
       display: flex;
@@ -491,30 +436,6 @@ import { ProjectMember } from '../projects.models';
       font-style: italic;
     }
 
-    /* Skeleton Loading */
-    .skeleton-row td {
-      padding: 12px 14px;
-    }
-
-    .skeleton-pill {
-      height: 14px;
-      background: linear-gradient(90deg, var(--bg-hover) 25%, var(--border-color) 50%, var(--bg-hover) 75%);
-      background-size: 200% 100%;
-      animation: skeleton-shimmer 1.5s infinite;
-      border-radius: 4px;
-    }
-
-    .w-20 { width: 80px; }
-    .w-28 { width: 112px; }
-    .w-36 { width: 144px; }
-    .w-48 { width: 192px; }
-    .ml-auto { margin-left: auto; }
-
-    @keyframes skeleton-shimmer {
-      0% { background-position: 200% 0; }
-      100% { background-position: -200% 0; }
-    }
-
     .modal-footer-actions {
       display: flex;
       justify-content: flex-end;
@@ -535,14 +456,58 @@ import { ProjectMember } from '../projects.models';
 })
 export class ProjectMembersModalComponent {
   private readonly api = inject(ApiService);
+  private readonly i18n = inject(I18nService);
 
   @Input() isOpen = false;
   @Input() project: Project | null = null;
-  @Input() members: ProjectMember[] = [];
+  @Input() set members(members: ProjectMember[]) {
+    this.rows.set(members ?? []);
+  }
+  get members(): ProjectMember[] {
+    return this.rows();
+  }
   @Input() isLoadingMembers = false;
   @Input() isAddingMember = false;
   @Input() isRemovingMember = false;
-  @Input() canUpdateProject = false;
+  @Input() set canUpdateProject(can: boolean) {
+    this.canUpdate.set(can);
+  }
+  get canUpdateProject(): boolean {
+    return this.canUpdate();
+  }
+
+  readonly rows = signal<ProjectMember[]>([]);
+  private readonly canUpdate = signal(false);
+  private readonly userCell = viewChild.required<TemplateRef<unknown>>('memberUserCell');
+  private readonly emailCell = viewChild.required<TemplateRef<unknown>>('memberEmailCell');
+  private readonly accessCell = viewChild.required<TemplateRef<unknown>>('memberAccessCell');
+  private readonly actionCell = viewChild.required<TemplateRef<unknown>>('memberActionCell');
+
+  /** Every member of the project is loaded, so a header click sorts them all. */
+  readonly sortValues = {
+    user: (m: ProjectMember) => m.userName,
+    email: (m: ProjectMember) => m.userEmail,
+    access: (m: ProjectMember) => this.accessLabel(m.accessKind)
+  };
+
+  /** The remove column is there only for someone who may change the project. */
+  readonly config = computed<TableConfig<ProjectMember>>(() => {
+    const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
+    const cell = (template: Signal<TemplateRef<unknown>>) => ({ type: 'templateRef' as const, value: template });
+    const canUpdate = this.canUpdate();
+    return {
+      trackBy: (_index, m) => m.userId,
+      ariaLabel: this.i18n.translate('projects.uchastniki_proekta'),
+      layout: 'fit',
+      columns: {
+        user: { header: header('nav.users'), content: cell(this.userCell) },
+        email: { header: header('iam.email'), content: cell(this.emailCell) },
+        access: { header: header('projects.uroven_dostupa'), content: cell(this.accessCell), width: '170px' },
+        action: { header: header('audit.deystvie'), content: cell(this.actionCell), width: '140px', align: 'right' }
+      },
+      columnsOrder: canUpdate ? ['user', 'email', 'access', 'action'] : ['user', 'email', 'access']
+    };
+  });
 
   @Output() close = new EventEmitter<void>();
   @Output() addMember = new EventEmitter<{ projectId: number; userId: number; accessKind: string }>();
@@ -601,6 +566,20 @@ export class ProjectMembersModalComponent {
     this.userSearchQuery = '';
     this.foundUsers = [];
     this.isUserDropdownOpen = false;
+  }
+
+  accessVariant(kind: string): 'info' | 'success' | 'neutral' {
+    return kind === 'MANAGER' ? 'info' : kind === 'MEMBER' ? 'success' : 'neutral';
+  }
+
+  /** The role's name; a kind this screen does not know shows as it came. */
+  accessLabel(kind: string): string {
+    switch (kind) {
+      case 'MANAGER': return this.i18n.translate('projects.rol_rukovoditel');
+      case 'MEMBER': return this.i18n.translate('projects.rol_uchastnik');
+      case 'OBSERVER': return this.i18n.translate('projects.rol_nablyudatel');
+      default: return kind;
+    }
   }
 
   isUserAlreadyMember(userId: number): boolean {

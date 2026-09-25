@@ -1,10 +1,12 @@
-import { Component, EventEmitter, Input, Output, ViewChild } from '@angular/core';
+import { Component, EventEmitter, Input, Output, Signal, TemplateRef, ViewChild, computed, inject, signal, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Observable } from 'rxjs';
-import { TranslatePipe } from '../../../../core/services/i18n.service';
+import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
+import { UiLocalTableComponent } from '../../../../shared/ui/ui-local-table.component';
+import { TableConfig } from '../../../../shared/ui-kit/components/table/table.types';
 import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
 import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
-import { User, UserSecuritySummary } from '../../../../core/models/auth.models';
+import { LoginAttemptRecord, User, UserSecuritySummary, UserSession } from '../../../../core/models/auth.models';
 import { UserOrgUnitsPanelComponent } from '../../org-units/public-api';
 import { UserEffectivePermissionsPanelComponent } from './user-effective-permissions-panel.component';
 
@@ -25,7 +27,8 @@ export interface SecurityConfirmConfig {
     UiModalComponent,
     UiButtonComponent,
     UserOrgUnitsPanelComponent,
-    UserEffectivePermissionsPanelComponent
+    UserEffectivePermissionsPanelComponent,
+    UiLocalTableComponent
   ],
   template: `
     <!-- User View / Profile Modal -->
@@ -215,36 +218,7 @@ export interface SecurityConfirmConfig {
               </div>
 
               <div *ngIf="sec.activeSessions.length > 0" class="sec-table-scroll">
-                <table class="clean-table compact">
-                  <thead>
-                    <tr>
-                      <th>IP</th>
-                      <th>{{ 'iam.ustroystvo_i_brauzer' | t }}</th>
-                      <th>{{ 'iam.sozdana' | t }}</th>
-                      <th>{{ 'iam.poslednyaya_aktivnost' | t }}</th>
-                      <th style="width: 50px;"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr *ngFor="let s of sec.activeSessions">
-                      <td class="font-mono text-xs">{{ s.ip }}</td>
-                      <td class="text-xs text-truncate" [title]="s.userAgent">{{ s.userAgent || '—' }}</td>
-                      <td class="font-mono text-xs text-muted">{{ s.createdAt | date:'dd.MM.yyyy HH:mm' }}</td>
-                      <td class="font-mono text-xs text-muted">{{ s.lastSeenAt | date:'dd.MM.yyyy HH:mm' }}</td>
-                      <td class="text-right">
-                        <button
-                          type="button"
-                          class="btn-icon danger"
-                          [title]="'iam.zavershit_sessiyu' | t"
-                          [disabled]="isSecurityActionPending"
-                          (click)="terminateSingleSession.emit({ sessionId: s.id, userId: u.id })"
-                        >
-                          <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">close</span>
-                        </button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+                <ui-local-table data-testid="user-sessions-table" [rows]="sessions()" [config]="sessionsConfig()" [sortValues]="sessionSortValues" />
               </div>
             </div>
 
@@ -261,29 +235,7 @@ export interface SecurityConfirmConfig {
               </div>
 
               <div *ngIf="sec.recentLoginAttempts.length > 0" class="sec-table-scroll">
-                <table class="clean-table compact">
-                  <thead>
-                    <tr>
-                      <th>{{ 'iam.vremya' | t }}</th>
-                      <th>IP</th>
-                      <th>{{ 'common.status' | t }}</th>
-                      <th>{{ 'iam.prichina_otkaza' | t }}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr *ngFor="let att of sec.recentLoginAttempts">
-                      <td class="font-mono text-xs text-muted">{{ att.attemptAt | date:'dd.MM.yyyy HH:mm:ss' }}</td>
-                      <td class="font-mono text-xs">{{ att.ip }}</td>
-                      <td>
-                        <span class="status-indicator" [class.active]="att.isSuccess" [class.danger-dot]="!att.isSuccess">
-                          <span class="dot"></span>
-                          {{ (att.isSuccess ? 'iam.uspeshno' : 'iam.oshibka') | t }}
-                        </span>
-                      </td>
-                      <td class="text-xs text-muted">{{ att.failureReason || '—' }}</td>
-                    </tr>
-                  </tbody>
-                </table>
+                <ui-local-table data-testid="user-login-attempts-table" [rows]="attempts()" [config]="attemptsConfig()" [sortValues]="attemptSortValues" />
               </div>
             </div>
           </div>
@@ -313,6 +265,34 @@ export interface SecurityConfirmConfig {
         <ui-button *ngIf="canUpdateUser && viewingUser && safeRecordId(viewingUser.id)" variant="primary" size="md" (onClick)="openEdit.emit()">{{ 'common.edit' | t }}</ui-button>
       </div>
     </ui-modal>
+
+    <ng-template #sessionIpCell let-s><span class="font-mono text-xs">{{ s.ip }}</span></ng-template>
+    <ng-template #sessionAgentCell let-s><span class="text-xs text-truncate" [title]="s.userAgent">{{ s.userAgent || '—' }}</span></ng-template>
+    <ng-template #sessionCreatedCell let-s><span class="font-mono text-xs text-muted">{{ s.createdAt | date:'dd.MM.yyyy HH:mm' }}</span></ng-template>
+    <ng-template #sessionSeenCell let-s><span class="font-mono text-xs text-muted">{{ s.lastSeenAt | date:'dd.MM.yyyy HH:mm' }}</span></ng-template>
+    <ng-template #sessionActionCell let-s>
+      <div class="text-right">
+        <button
+          type="button"
+          class="btn-icon danger"
+          [title]="'iam.zavershit_sessiyu' | t"
+          [attr.aria-label]="'iam.terminate_session_ip_named' | t:{ip: s.ip}"
+          [disabled]="isSecurityActionPending"
+          (click)="terminateSession(s)"
+        >
+          <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">close</span>
+        </button>
+      </div>
+    </ng-template>
+    <ng-template #attemptTimeCell let-att><span class="font-mono text-xs text-muted">{{ att.attemptAt | date:'dd.MM.yyyy HH:mm:ss' }}</span></ng-template>
+    <ng-template #attemptIpCell let-att><span class="font-mono text-xs">{{ att.ip }}</span></ng-template>
+    <ng-template #attemptStatusCell let-att>
+      <span class="status-indicator" [class.active]="att.isSuccess" [class.danger-dot]="!att.isSuccess">
+        <span class="dot" aria-hidden="true"></span>
+        {{ attemptStatus(att) }}
+      </span>
+    </ng-template>
+    <ng-template #attemptReasonCell let-att><span class="text-xs text-muted">{{ att.failureReason || '—' }}</span></ng-template>
 
     <!-- Delete Confirmation Modal -->
     <ui-modal
@@ -360,7 +340,12 @@ export class UserDetailModalComponent {
   @Input() recordNotFound = false;
   @Input() activeViewTab: 'info' | 'security' | 'orgUnits' | 'permissions' = 'info';
   @Input() isLoadingSecurity = false;
-  @Input() userSecurity: UserSecuritySummary | null = null;
+  @Input() set userSecurity(summary: UserSecuritySummary | null) {
+    this.security.set(summary);
+  }
+  get userSecurity(): UserSecuritySummary | null {
+    return this.security();
+  }
   @Input() isSecurityActionPending = false;
   @Input() canUpdateUser = false;
   @Input() canViewOrgUnits = false;
@@ -396,6 +381,81 @@ export class UserDetailModalComponent {
   @Output() confirmSecurityAction = new EventEmitter<void>();
 
   @ViewChild(UserOrgUnitsPanelComponent) orgUnitsPanel?: UserOrgUnitsPanelComponent;
+
+  private readonly i18n = inject(I18nService);
+  private readonly security = signal<UserSecuritySummary | null>(null);
+  readonly sessions = computed(() => this.security()?.activeSessions ?? []);
+  readonly attempts = computed(() => this.security()?.recentLoginAttempts ?? []);
+
+  private readonly sessionIpCell = viewChild.required<TemplateRef<unknown>>('sessionIpCell');
+  private readonly sessionAgentCell = viewChild.required<TemplateRef<unknown>>('sessionAgentCell');
+  private readonly sessionCreatedCell = viewChild.required<TemplateRef<unknown>>('sessionCreatedCell');
+  private readonly sessionSeenCell = viewChild.required<TemplateRef<unknown>>('sessionSeenCell');
+  private readonly sessionActionCell = viewChild.required<TemplateRef<unknown>>('sessionActionCell');
+  private readonly attemptTimeCell = viewChild.required<TemplateRef<unknown>>('attemptTimeCell');
+  private readonly attemptIpCell = viewChild.required<TemplateRef<unknown>>('attemptIpCell');
+  private readonly attemptStatusCell = viewChild.required<TemplateRef<unknown>>('attemptStatusCell');
+  private readonly attemptReasonCell = viewChild.required<TemplateRef<unknown>>('attemptReasonCell');
+
+  /** The summary carries every open session, so a header click sorts them all. */
+  readonly sessionSortValues = {
+    ip: (s: UserSession) => s.ip,
+    agent: (s: UserSession) => s.userAgent,
+    created: (s: UserSession) => new Date(s.createdAt),
+    seen: (s: UserSession) => new Date(s.lastSeenAt)
+  };
+
+  /** The recent attempts the summary returns, sortable by time, address, outcome and reason. */
+  readonly attemptSortValues = {
+    time: (att: LoginAttemptRecord) => new Date(att.attemptAt),
+    ip: (att: LoginAttemptRecord) => att.ip,
+    status: (att: LoginAttemptRecord) => this.attemptStatus(att),
+    reason: (att: LoginAttemptRecord) => att.failureReason
+  };
+
+  readonly sessionsConfig = computed<TableConfig<UserSession>>(() => {
+    const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
+    const cell = (template: Signal<TemplateRef<unknown>>) => ({ type: 'templateRef' as const, value: template });
+    return {
+      trackBy: (_index, s) => s.id,
+      ariaLabel: this.i18n.translate('iam.aktivnye_sessii'),
+      layout: 'fit',
+      columns: {
+        ip: { header: { type: 'primitive', value: 'IP' }, content: cell(this.sessionIpCell), width: '130px' },
+        agent: { header: header('iam.ustroystvo_i_brauzer'), content: cell(this.sessionAgentCell) },
+        created: { header: header('iam.sozdana'), content: cell(this.sessionCreatedCell), width: '140px' },
+        seen: { header: header('iam.poslednyaya_aktivnost'), content: cell(this.sessionSeenCell), width: '160px' },
+        action: { header: header('audit.deystvie'), content: cell(this.sessionActionCell), width: '70px', align: 'right' }
+      },
+      columnsOrder: ['ip', 'agent', 'created', 'seen', 'action']
+    };
+  });
+
+  readonly attemptsConfig = computed<TableConfig<LoginAttemptRecord>>(() => {
+    const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
+    const cell = (template: Signal<TemplateRef<unknown>>) => ({ type: 'templateRef' as const, value: template });
+    return {
+      trackBy: (_index, att) => att.id,
+      ariaLabel: this.i18n.translate('iam.istoriya_popytok_vhoda'),
+      layout: 'fit',
+      columns: {
+        time: { header: header('iam.vremya'), content: cell(this.attemptTimeCell), width: '160px' },
+        ip: { header: { type: 'primitive', value: 'IP' }, content: cell(this.attemptIpCell), width: '130px' },
+        status: { header: header('common.status'), content: cell(this.attemptStatusCell), width: '120px' },
+        reason: { header: header('iam.prichina_otkaza'), content: cell(this.attemptReasonCell) }
+      },
+      columnsOrder: ['time', 'ip', 'status', 'reason']
+    };
+  });
+
+  attemptStatus(att: LoginAttemptRecord): string {
+    return this.i18n.translate(att.isSuccess ? 'iam.uspeshno' : 'iam.oshibka');
+  }
+
+  terminateSession(session: UserSession): void {
+    if (!this.viewingUser) return;
+    this.terminateSingleSession.emit({ sessionId: session.id, userId: this.viewingUser.id });
+  }
 
   canLeave(): boolean | Observable<boolean> {
     return this.orgUnitsPanel?.canLeave() ?? true;

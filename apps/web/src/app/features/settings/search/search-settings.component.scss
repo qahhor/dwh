@@ -175,6 +175,24 @@ button {
   position: relative;
 }
 
+.cell-stack {
+  display: grid;
+  gap: 2px;
+}
+
+.cell-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.table-empty {
+  margin: 0;
+  padding: 16px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
 .field-grid {
   display: grid;
   grid-template-columns: minmax(220px, 1fr) 96px 96px 80px;

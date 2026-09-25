@@ -191,7 +191,7 @@ describe('AnalyticsComponent request and rendering contracts', () => {
     await renderResponses();
 
     expect(host.querySelector('[role="alert"]')?.textContent).toContain('Не удалось загрузить данные аналитики');
-    expect(host.querySelectorAll('.empty-chart, td.empty')).toHaveLength(0);
+    expect(host.querySelectorAll('.empty-chart, td.empty, p.empty')).toHaveLength(0);
 
     refresh();
     const retry = takeSnapshotRequests();
@@ -201,7 +201,7 @@ describe('AnalyticsComponent request and rendering contracts', () => {
     retry.workload.flush([]);
     await renderResponses();
     expect(host.querySelector('[role="alert"]')).toBeNull();
-    expect(host.querySelectorAll('.empty-chart, td.empty')).toHaveLength(3);
+    expect(host.querySelectorAll('.empty-chart, td.empty, p.empty')).toHaveLength(3);
   });
 
   it('does not publish outstanding responses after the analytics screen is destroyed', async () => {
@@ -227,7 +227,8 @@ describe('AnalyticsComponent request and rendering contracts', () => {
     expect(region).not.toBeNull();
     expect(region?.tabIndex).toBe(0);
     expect(region?.getAttribute('aria-label')).toBe('Утилизация и загрузка команды');
-    expect(region?.querySelectorAll('tbody td')).toHaveLength(5);
+    expect(region?.querySelector('[role="table"]')?.getAttribute('aria-label')).toBe('Утилизация и загрузка команды');
+    expect(region?.querySelectorAll('[role="rowgroup"] > [role="row"] [role="cell"]')).toHaveLength(5);
   });
 
   it('keeps the trend chart keyboard reachable with its first and last date labels', async () => {
@@ -293,16 +294,17 @@ describe('AnalyticsComponent request and rendering contracts', () => {
     let names = Array.from(host.querySelectorAll('.user-name-text')).map(el => el.textContent?.trim());
     expect(names).toEqual(['Bob', 'Alice']);
 
-    // Click sort by Name (first column button) -> Alice, then Bob
-    const nameSortBtn = host.querySelector<HTMLButtonElement>('.th-sort button')!;
-    nameSortBtn.click();
+    // Click sort by Name (first column header) -> Alice, then Bob
+    const nameHeader = host.querySelector('[role="columnheader"] smt-cell-header')!;
+    const clickName = () => nameHeader.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    clickName();
     fixture.detectChanges();
 
     names = Array.from(host.querySelectorAll('.user-name-text')).map(el => el.textContent?.trim());
     expect(names).toEqual(['Alice', 'Bob']);
 
     // Click again -> Bob, Alice (desc)
-    nameSortBtn.click();
+    clickName();
     fixture.detectChanges();
     names = Array.from(host.querySelectorAll('.user-name-text')).map(el => el.textContent?.trim());
     expect(names).toEqual(['Bob', 'Alice']);

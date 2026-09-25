@@ -15,6 +15,13 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   active sessions and API tokens moved to it from hand-written tables; row
   actions now name their item ("Delete “Sales report”") instead of repeating
   "Delete" on every row, and custom fields can be sorted from the keyboard.
+  Later moved as well: UPL format versions and cell errors, team workload in
+  analytics, project members, a user's sessions and login attempts, search
+  generations and jobs, and communication channels. The search job history
+  pages newest first, so it offers no header sorting. Hand-written tables stay
+  only where the grid is the editor or not a list: the role permission matrix,
+  UPL sheet mapping, notification preferences, the audit before/after diff and
+  the calendar.
 - The file storage list pages through every file with a server cursor; it
   used to show at most the 100 newest and hide the rest. It runs on the field
   registry (`mf.files`): sorting of the whole list by name, size or date,

@@ -1,10 +1,12 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, Signal, TemplateRef, computed, inject, signal, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
 import { UiBadgeComponent } from '../../../../shared/ui/ui-badge.component';
 import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
-import { TranslatePipe } from '../../../../core/services/i18n.service';
+import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
+import { UiLocalTableComponent } from '../../../../shared/ui/ui-local-table.component';
+import { TableConfig } from '../../../../shared/ui-kit/components/table/table.types';
 import { UserChannel } from '../profile.models';
 
 @Component({
@@ -16,7 +18,8 @@ import { UserChannel } from '../profile.models';
     TranslatePipe,
     UiButtonComponent,
     UiBadgeComponent,
-    UiModalComponent
+    UiModalComponent,
+    UiLocalTableComponent
   ],
   template: `
     <div class="card section-card full-width">
@@ -43,82 +46,47 @@ import { UserChannel } from '../profile.models';
       </div>
 
       <div class="table-wrapper" role="region" [attr.aria-label]="'iam.tablica_kanalov_svyazi' | t" tabindex="0">
-        <table class="data-table" [attr.aria-label]="'iam.kanaly_svyazi' | t">
-          <thead>
-            <tr>
-              <th>{{ 'iam.tip_kanala' | t }}</th>
-              <th>{{ 'iam.adres_ili_login' | t }}</th>
-              <th>{{ 'iam.sozdan' | t }}</th>
-              <th>{{ 'common.status' | t }}</th>
-              <th class="text-right">{{ 'audit.deystvie' | t }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <!-- Skeleton rows when loading -->
-            <ng-container *ngIf="isLoadingChannels">
-              <tr class="skeleton-row" *ngFor="let item of [1, 2]">
-                <td><div class="skeleton-pill w-28"></div></td>
-                <td><div class="skeleton-pill w-48"></div></td>
-                <td><div class="skeleton-pill w-32"></div></td>
-                <td><div class="skeleton-pill w-24"></div></td>
-                <td class="text-right"><div class="skeleton-pill w-20 ml-auto"></div></td>
-              </tr>
-            </ng-container>
-
-            <!-- Real channel rows -->
-            <ng-container *ngIf="!isLoadingChannels">
-              <tr *ngFor="let c of channels">
-                <td>
-                  <div class="channel-type-cell">
-                    <span class="material-symbols-outlined channel-icon" aria-hidden="true">
-                      {{ getChannelIcon(c.channel) }}
-                    </span>
-                    <span class="font-medium">{{ getChannelLabelKey(c.channel) | t }}</span>
-                  </div>
-                </td>
-                <td class="tabular-nums font-mono">{{ c.address }}</td>
-                <td class="tabular-nums text-muted">{{ c.createdAt | date:'dd.MM.yyyy HH:mm' }}</td>
-                <td>
-                  <ui-badge *ngIf="c.isVerified" variant="success" [dot]="true">
-                    {{ 'iam.kanal_podtverzhden' | t }}
-                  </ui-badge>
-                  <ui-badge *ngIf="!c.isVerified" variant="warning" [dot]="true">
-                    {{ 'iam.ozhidaet_podtverzhdeniya' | t }}
-                  </ui-badge>
-                </td>
-                <td class="text-right">
-                  <div class="row-actions">
-                    <ui-button
-                      *ngIf="!c.isVerified && canManageChannels"
-                      variant="secondary"
-                      size="sm"
-                      icon="verified"
-                      [loading]="isConfirmingChannel"
-                      (onClick)="requestConfirm(c)"
-                    >
-                      {{ 'iam.podtverdit_kodom' | t }}
-                    </ui-button>
-                    <ui-button
-                      *ngIf="canManageChannels"
-                      variant="danger"
-                      size="sm"
-                      icon="delete"
-                      [attr.aria-label]="'iam.otvyazat_kanal' | t"
-                      (onClick)="requestUnbind(c)"
-                    >
-                      {{ 'iam.otvyazat_kanal' | t }}
-                    </ui-button>
-                  </div>
-                </td>
-              </tr>
-              <tr *ngIf="channels.length === 0">
-                <td colspan="5" class="empty-cell">{{ 'iam.net_privyazannyh_kanalov' | t }}</td>
-              </tr>
-            </ng-container>
-          </tbody>
-        </table>
+        <ui-local-table data-testid="profile-channels-table" [rows]="rows()" [config]="config()" [sortValues]="sortValues" [loading]="isLoadingChannels" [emptyTemplate]="emptyChannels" />
       </div>
     </div>
+
+    <ng-template #channelTypeCell let-c>
+      <div class="channel-type-cell">
+        <span class="material-symbols-outlined channel-icon" aria-hidden="true">{{ getChannelIcon(c.channel) }}</span>
+        <span class="font-medium">{{ channelLabel(c.channel) }}</span>
+      </div>
+    </ng-template>
+    <ng-template #channelAddressCell let-c><span class="tabular-nums font-mono">{{ c.address }}</span></ng-template>
+    <ng-template #channelCreatedCell let-c><span class="tabular-nums text-muted">{{ c.createdAt | date:'dd.MM.yyyy HH:mm' }}</span></ng-template>
+    <ng-template #channelStatusCell let-c>
+      <ui-badge [variant]="c.isVerified ? 'success' : 'warning'" [dot]="true">{{ channelStatus(c) }}</ui-badge>
+    </ng-template>
+    <ng-template #channelActionCell let-c>
+      <div class="row-actions">
+        <ui-button
+          *ngIf="!c.isVerified && canManageChannels"
+          variant="secondary"
+          size="sm"
+          icon="verified"
+          [ariaLabel]="'iam.confirm_channel_named' | t:{address: c.address}"
+          [loading]="isConfirmingChannel"
+          (onClick)="requestConfirm(c)"
+        >
+          {{ 'iam.podtverdit_kodom' | t }}
+        </ui-button>
+        <ui-button
+          *ngIf="canManageChannels"
+          variant="danger"
+          size="sm"
+          icon="delete"
+          [ariaLabel]="'iam.unbind_channel_named' | t:{address: c.address}"
+          (onClick)="requestUnbind(c)"
+        >
+          {{ 'iam.otvyazat_kanal' | t }}
+        </ui-button>
+      </div>
+    </ng-template>
+    <ng-template #emptyChannels><p class="empty-cell">{{ 'iam.net_privyazannyh_kanalov' | t }}</p></ng-template>
 
     <!-- Bind Channel Modal -->
     <ui-modal
@@ -355,32 +323,6 @@ import { UserChannel } from '../profile.models';
       outline-offset: 2px;
     }
 
-    .data-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-      text-align: left;
-    }
-
-    .data-table th {
-      background-color: var(--bg-hover);
-      color: var(--text-muted);
-      font-weight: 600;
-      padding: 10px 14px;
-      border-bottom: 1px solid var(--border-color);
-      white-space: nowrap;
-    }
-
-    .data-table td {
-      padding: 10px 14px;
-      border-bottom: 1px solid var(--border-color);
-      color: var(--text-main);
-      vertical-align: middle;
-    }
-
-    .data-table tr:last-child td {
-      border-bottom: none;
-    }
 
     .channel-type-cell {
       display: flex;
@@ -426,30 +368,6 @@ import { UserChannel } from '../profile.models';
       font-style: italic;
     }
 
-    /* Skeleton Loading */
-    .skeleton-row td {
-      padding: 12px 14px;
-    }
-
-    .skeleton-pill {
-      height: 14px;
-      background: linear-gradient(90deg, var(--bg-hover) 25%, var(--border-color) 50%, var(--bg-hover) 75%);
-      background-size: 200% 100%;
-      animation: skeleton-shimmer 1.5s infinite;
-      border-radius: 4px;
-    }
-
-    .w-20 { width: 80px; }
-    .w-24 { width: 96px; }
-    .w-28 { width: 112px; }
-    .w-32 { width: 128px; }
-    .w-48 { width: 192px; }
-    .ml-auto { margin-left: auto; }
-
-    @keyframes skeleton-shimmer {
-      0% { background-position: 200% 0; }
-      100% { background-position: -200% 0; }
-    }
 
     /* Modal Form Styles */
     .channel-form {
@@ -543,7 +461,12 @@ import { UserChannel } from '../profile.models';
   `]
 })
 export class ProfileChannelsCardComponent {
-  @Input() channels: UserChannel[] = [];
+  @Input() set channels(channels: UserChannel[]) {
+    this.rows.set(channels ?? []);
+  }
+  get channels(): UserChannel[] {
+    return this.rows();
+  }
   @Input() isLoadingChannels = false;
   @Input() isBindingChannel = false;
   @Input() isConfirmingChannel = false;
@@ -567,6 +490,48 @@ export class ProfileChannelsCardComponent {
   verificationCode = '';
 
   channelToUnbind: UserChannel | null = null;
+
+  private readonly i18n = inject(I18nService);
+  readonly rows = signal<UserChannel[]>([]);
+  private readonly typeCell = viewChild.required<TemplateRef<unknown>>('channelTypeCell');
+  private readonly addressCell = viewChild.required<TemplateRef<unknown>>('channelAddressCell');
+  private readonly createdCell = viewChild.required<TemplateRef<unknown>>('channelCreatedCell');
+  private readonly statusCell = viewChild.required<TemplateRef<unknown>>('channelStatusCell');
+  private readonly actionCell = viewChild.required<TemplateRef<unknown>>('channelActionCell');
+
+  /** A person has only a few channels and all are shown, so a header click sorts them all. */
+  readonly sortValues = {
+    type: (c: UserChannel) => this.channelLabel(c.channel),
+    address: (c: UserChannel) => c.address,
+    created: (c: UserChannel) => new Date(c.createdAt),
+    status: (c: UserChannel) => this.channelStatus(c)
+  };
+
+  readonly config = computed<TableConfig<UserChannel>>(() => {
+    const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
+    const cell = (template: Signal<TemplateRef<unknown>>) => ({ type: 'templateRef' as const, value: template });
+    return {
+      trackBy: (_index, c) => c.id,
+      ariaLabel: this.i18n.translate('iam.kanaly_svyazi'),
+      layout: 'fit',
+      columns: {
+        type: { header: header('iam.tip_kanala'), content: cell(this.typeCell), width: '160px' },
+        address: { header: header('iam.adres_ili_login'), content: cell(this.addressCell) },
+        created: { header: header('iam.sozdan'), content: cell(this.createdCell), width: '150px' },
+        status: { header: header('common.status'), content: cell(this.statusCell), width: '200px' },
+        action: { header: header('audit.deystvie'), content: cell(this.actionCell), width: '260px', align: 'right' }
+      },
+      columnsOrder: ['type', 'address', 'created', 'status', 'action']
+    };
+  });
+
+  channelLabel(channel: string): string {
+    return this.i18n.translate(this.getChannelLabelKey(channel));
+  }
+
+  channelStatus(c: UserChannel): string {
+    return this.i18n.translate(c.isVerified ? 'iam.kanal_podtverzhden' : 'iam.ozhidaet_podtverzhdeniya');
+  }
 
   getChannelIcon(channel: string): string {
     const norm = (channel || '').toLowerCase();
