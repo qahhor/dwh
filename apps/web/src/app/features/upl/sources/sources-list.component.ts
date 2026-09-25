@@ -101,6 +101,7 @@ function emptyForm(): SourceCreateForm {
           [pager]="pager"
           [config]="config"
           [views]="views"
+          [filterMeta]="meta()"
           [lockedColumns]="['name']"
           [loadingLabel]="'upl.common.loading' | t"
           [errorLabel]="'upl.list.load_error' | t"
@@ -404,7 +405,7 @@ export class SourcesListComponent implements OnInit {
 
   /** The sort goes with every page, so a cursor always continues the query that issued it. */
   readonly pager = new KeysetPager<UplSourceItem>(
-    (cursor, limit) => this.api.listSources(limit, cursor, { sort: this.sort() }),
+    (cursor, limit) => this.api.listSources(limit, cursor, { sort: this.sort(), conditions: this.views.filter() }),
     { pageSize: PAGE_SIZE, destroyRef: this.destroyRef }
   );
   readonly items = this.pager.items;

@@ -14,6 +14,8 @@ import { SMTColumnOption, SMTColumnSettingsComponent } from '../ui-kit/component
 import { TableColumnStateStore } from '../ui-kit/services/table-column-state.store';
 import { ListViewState } from '../list-views/list-views';
 import { UiListViewsComponent } from './ui-list-views.component';
+import { UiFilterBarComponent } from './ui-filter-bar.component';
+import { QueryListMeta } from '../../core/models/query-meta.models';
 import { KeysetPager } from '../paging/keyset-pager';
 import { UiButtonComponent } from './ui-button.component';
 import { UiPaginationComponent } from './ui-pagination.component';
@@ -35,16 +37,20 @@ import { UiPaginationComponent } from './ui-pagination.component';
  * With a `columnsId` the person can also show, hide, reorder and resize the
  * columns; the choice is remembered per table under that id. With `views`
  * the columns belong to the list's saved views instead (ADR-0016), and the
- * views menu sits next to the column settings.
+ * views menu sits next to the column settings. With `filterMeta` as well, the
+ * filter builder and the chips of the active conditions come first.
  */
 @Component({
   selector: 'ui-server-table',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTTableComponent, UiPaginationComponent, UiButtonComponent, TranslatePipe, SMTColumnSettingsComponent, UiListViewsComponent],
+  imports: [SMTTableComponent, UiPaginationComponent, UiButtonComponent, TranslatePipe, SMTColumnSettingsComponent, UiListViewsComponent, UiFilterBarComponent],
   template: `
     @if (columnsId() || views()) {
       <div class="server-table-tools">
+        @if (views() && filterMeta(); as meta) {
+          <ui-filter-bar [meta]="meta" [conditions]="views()!.filter()" (conditionsChange)="views()!.setFilter($event)" />
+        }
         @if (views(); as views) {
           <ui-list-views [state]="views" />
         }
@@ -119,6 +125,8 @@ export class UiServerTableComponent<T> {
   readonly columnsId = input('');
   /** Saved views of the list; when set, they own the column choice instead of `columnsId`. */
   readonly views = input<ListViewState | null>(null);
+  /** The list's field metadata; with `views`, it turns on the filter builder. */
+  readonly filterMeta = input<QueryListMeta | null>(null);
   /** Columns that cannot be hidden, such as the one that names the row. */
   readonly lockedColumns = input<readonly string[]>([]);
 
