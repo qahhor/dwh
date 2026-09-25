@@ -9,6 +9,11 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- The file storage list pages through every file with a server cursor; it
+  used to show at most the 100 newest and hide the rest. It runs on the field
+  registry (`mf.files`): sorting of the whole list by name, size or date,
+  column settings, saved views, the filter builder and a search over file and
+  uploader names, all within the viewer's data scope and the "mine" switch.
 - The UPL uploads list now runs on the field registry like the sources list:
   columns from the server, sorting of the whole list by a header click,
   column settings, saved views, the filter builder (status, period, source,

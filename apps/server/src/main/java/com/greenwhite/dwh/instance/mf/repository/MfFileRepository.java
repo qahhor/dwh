@@ -1,5 +1,8 @@
 package com.greenwhite.dwh.instance.mf.repository;
 
+import com.greenwhite.dwh.core.pagination.KeysetPage;
+import com.greenwhite.dwh.instance.common.query.QueryListRepository;
+import com.greenwhite.dwh.instance.common.query.QueryPlan;
 import com.greenwhite.dwh.instance.common.security.ScopeFilter;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -13,9 +16,27 @@ public class MfFileRepository {
 
     private static final long FILE_QUOTA_LOCK_KEY = 0x4D46514CL;
 
-    private final JdbcClient jdbcClient;
+    /** Columns and source of the file list; the registry list {@code mf.files} reads them too. */
+    static final String DETAIL_COLUMNS = """
+            f.id, f.sha256, f.original_name, f.size_bytes, f.mime_type,
+                   f.storage_bucket, f.storage_key, f.created_at, f.created_by,
+                   u.name as creator_name, u.login as creator_login""";
 
-    public MfFileRepository(JdbcClient jdbcClient) {
+    static final String DETAIL_FROM = "mf_files f left join md_users u on u.id = f.created_by";
+
+    public static String detailColumns() {
+        return DETAIL_COLUMNS;
+    }
+
+    public static String detailFrom() {
+        return DETAIL_FROM;
+    }
+
+    private final JdbcClient jdbcClient;
+    private final QueryListRepository lists;
+
+    public MfFileRepository(JdbcClient jdbcClient, QueryListRepository lists) {
+        this.lists = lists;
         this.jdbcClient = jdbcClient;
     }
 
@@ -175,45 +196,25 @@ public class MfFileRepository {
         return count != null ? count : 0;
     }
 
-    public java.util.List<FileDetailRecord> listFiles(Long userId, boolean onlyMine, String query, int limit) {
-        return listFiles(userId, onlyMine, query, limit, ScopeFilter.unrestricted());
+    /**
+     * A page of the file list by the registry plan. The data scope (ADR-0013) and "only mine" go into the same
+     * SQL as extra predicates, so paging and the total count only ever see visible files.
+     */
+    public KeysetPage<FileDetailRecord> pageFiles(QueryPlan plan, ScopeFilter scope, Long onlyOwnerId) {
+        StringBuilder sql = new StringBuilder(scope.sql());
+        java.util.Map<String, Object> params = new java.util.LinkedHashMap<>();
+        if (scope.bindsUserId()) {
+            params.put("scopeUserId", scope.userId());
+        }
+        if (onlyOwnerId != null) {
+            sql.append(" and f.created_by = :onlyOwnerId");
+            params.put("onlyOwnerId", onlyOwnerId);
+        }
+        return lists.page(plan, this::mapDetail, new QueryPlan.SqlFragment(sql.toString(), params));
     }
 
-    public java.util.List<FileDetailRecord> listFiles(
-            Long userId, boolean onlyMine, String query, int limit, ScopeFilter scope) {
-        StringBuilder sql = new StringBuilder("""
-                select f.id, f.sha256, f.original_name, f.size_bytes, f.mime_type,
-                       f.storage_bucket, f.storage_key, f.created_at, f.created_by,
-                       u.name as creator_name, u.login as creator_login
-                from mf_files f
-                left join md_users u on u.id = f.created_by
-                where 1=1
-                """);
-
-        sql.append(scope.sql());
-
-        var client = jdbcClient;
-        if (onlyMine && userId != null) {
-            sql.append(" and f.created_by = :userId");
-        }
-        if (query != null && !query.isBlank()) {
-            sql.append(" and f.original_name ilike :query");
-        }
-        sql.append(" order by f.created_at desc limit :limit");
-
-        var querySpec = client.sql(sql.toString());
-        if (scope.bindsUserId()) {
-            querySpec = querySpec.param("scopeUserId", scope.userId());
-        }
-        if (onlyMine && userId != null) {
-            querySpec = querySpec.param("userId", userId);
-        }
-        if (query != null && !query.isBlank()) {
-            querySpec = querySpec.param("query", "%" + query.trim() + "%");
-        }
-        querySpec = querySpec.param("limit", limit > 0 ? limit : 50);
-
-        return querySpec.query((rs, rowNum) -> new FileDetailRecord(
+    private FileDetailRecord mapDetail(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
+        return new FileDetailRecord(
                 UUID.fromString(rs.getString("id")),
                 rs.getString("sha256"),
                 rs.getString("original_name"),
@@ -224,8 +225,7 @@ public class MfFileRepository {
                 rs.getTimestamp("created_at").toInstant(),
                 rs.getObject("created_by") != null ? rs.getLong("created_by") : null,
                 rs.getString("creator_name"),
-                rs.getString("creator_login")
-        )).list();
+                rs.getString("creator_login"));
     }
 
     private FileRecord mapRecord(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {

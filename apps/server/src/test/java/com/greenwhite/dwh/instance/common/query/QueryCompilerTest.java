@@ -145,11 +145,11 @@ class QueryCompilerTest {
     @DisplayName("курсор продолжает только тот запрос, которым выдан")
     void cursorBelongsToItsQuery() {
         QueryPlan first = compile("[{\"field\":\"active\",\"op\":\"eq\",\"value\":true}]", "-amount");
-        String cursor = new QueryCursor(first.fingerprint(), new BigDecimal("12.50"), 42, 7).encode(first.sort());
+        String cursor = new QueryCursor(first.fingerprint(), new BigDecimal("12.50"), "42", 7).encode(first.sort());
 
         QueryPlan next = QueryCompiler.compile(LIST, "[{\"field\":\"active\",\"op\":\"eq\",\"value\":true}]",
                 "-amount", null, cursor);
-        assertThat(next.cursor().lastId()).isEqualTo(42);
+        assertThat(next.cursor().lastId()).isEqualTo("42");
         assertThat(next.cursor().total()).isEqualTo(7);
         assertThat(next.keyset().sql())
                 .isEqualTo(" and (t.amount < :q_after_value or (t.amount = :q_after_value and t.id < :q_after_id))");

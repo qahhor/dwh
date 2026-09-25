@@ -87,7 +87,7 @@ public record QueryPlan(QueryList list, List<Condition> conditions, QueryField s
                 + ":q_after_id))";
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("q_after_value", cursor.sortValue());
-        params.put("q_after_id", cursor.lastId());
+        params.put("q_after_id", idParameter(cursor.lastId()));
         return new SqlFragment(sql, params);
     }
 
@@ -102,6 +102,15 @@ public record QueryPlan(QueryList list, List<Condition> conditions, QueryField s
             return empty ? "(" + expr + " is null or " + expr + " = '')" : "(" + expr + " <> '')";
         }
         return expr + (empty ? " is null" : " is not null");
+    }
+
+    /** A numeric key binds as a number (a bigint column), any other as text (a UUID read as {@code id::text}). */
+    private static Object idParameter(String id) {
+        try {
+            return Long.parseLong(id);
+        } catch (NumberFormatException notNumber) {
+            return id;
+        }
     }
 
     static String escapeLike(String value) {

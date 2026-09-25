@@ -424,6 +424,8 @@ export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(
   "files.ochistit_poisk_faylov": "Очистить поиск файлов",
   "files.obnovit_spisok_faylov": "Обновить список файлов",
   "files.tablica_faylov": "Таблица файлов",
+  "files.list_loading": "Загружаем файлы",
+  "files.list_load_error": "Не удалось загрузить файлы",
   "files.spisok_faylov": "Список файлов",
   "files.skachat_fayl": "Скачать файл",
   "files.skachat": "Скачать",

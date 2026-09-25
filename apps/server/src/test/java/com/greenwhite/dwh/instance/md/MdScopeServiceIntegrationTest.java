@@ -80,7 +80,7 @@ class MdScopeServiceIntegrationTest {
         userRepository = new MdUserRepository(jdbc, new ObjectMapper());
         permissionService = new MdPermissionService(new MdPermissionRepository(jdbc));
         taskRepository = new MsTaskRepository(jdbc, new ObjectMapper());
-        fileRepository = new MfFileRepository(jdbc);
+        fileRepository = new MfFileRepository(jdbc, new com.greenwhite.dwh.instance.common.query.QueryListRepository(jdbc));
 
         scopeService = new MdScopeService(scopeRepository, orgUnitRepository, permissionService, auditLogService);
         orgUnitService = new MdOrgUnitService(orgUnitRepository, scopeService, auditLogService);
@@ -344,8 +344,11 @@ class MdScopeServiceIntegrationTest {
         assertThat(taskRepository.findById(hiddenTask, taskScope)).isEmpty();
 
         var fileScope = scopeService.filterForFiles(viewer);
-        var fileIds = fileRepository.listFiles(viewer, false, null, 100, fileScope)
-                .stream().map(MfFileRepository.FileDetailRecord::id).toList();
+        var fileIds = fileRepository.pageFiles(
+                        com.greenwhite.dwh.instance.common.query.QueryCompiler.compile(
+                                com.greenwhite.dwh.instance.mf.service.MfFileQuery.LIST, null, null, 200, null),
+                        fileScope, null)
+                .items().stream().map(MfFileRepository.FileDetailRecord::id).toList();
         assertThat(fileIds).contains(visibleFile).doesNotContain(hiddenFile);
         assertThat(fileRepository.findById(visibleFile, fileScope)).isPresent();
         assertThat(fileRepository.findById(hiddenFile, fileScope)).isEmpty();

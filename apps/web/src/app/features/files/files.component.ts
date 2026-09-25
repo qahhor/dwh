@@ -1,4 +1,5 @@
-import { Component, OnDestroy, OnInit, signal, inject } from '@angular/core';
+import { Component, DestroyRef, OnDestroy, OnInit, signal, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { finalize, Subscription } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
@@ -9,6 +10,14 @@ import { UiButtonComponent } from '../../shared/ui/ui-button.component';
 import { TaskFile } from '../../core/models/task.models';
 import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
 import { FileDetail, StorageStats } from './files.models';
+import { KeysetPage } from '../../core/models/common.models';
+import { QueryListMeta } from '../../core/models/query-meta.models';
+import { QueryMetaService, parseSort, toQueryParams } from '../../core/services/query-meta.service';
+import { KeysetPager } from '../../shared/paging/keyset-pager';
+import { ListViewState, ListViewsApi } from '../../shared/list-views/list-views';
+import { TableColumnStateStore } from '../../shared/ui-kit/services/table-column-state.store';
+import { sortFromHeader } from '../../shared/ui/registry-table-config';
+import { OrderBy } from '../../shared/ui-kit/components/table/table.types';
 import { FilesMetricsCardsComponent } from './components/files-metrics-cards.component';
 import { FilesToolbarComponent } from './components/files-toolbar.component';
 import { FilesTableComponent } from './components/files-table.component';
@@ -34,7 +43,7 @@ export type { FileDetail, StorageStats } from './files.models';
       <div class="view-header">
         <div class="header-left">
           <h1 class="view-title">{{ 'files.faylovoe_hranilische' | t }}</h1>
-          <span class="count-badge">{{ files().length }}</span>
+          <span class="count-badge" data-testid="files-count">{{ pager.total() }}</span>
         </div>
         <div class="header-right">
           <ui-button variant="primary" icon="cloud_upload" (onClick)="isUploadModalOpen.set(true)">
@@ -58,18 +67,21 @@ export type { FileDetail, StorageStats } from './files.models';
       ></app-files-toolbar>
 
       <!-- Files Table & Pagination -->
+      @if (metaError()) {
+        <div class="alert alert-error" role="alert" data-testid="files-meta-error">
+          <span>{{ 'files.list_load_error' | t }}</span>
+          <ui-button variant="secondary" size="sm" (onClick)="loadFiles()">{{ 'common.retry' | t }}</ui-button>
+        </div>
+      }
       <app-files-table
-        [files]="paginatedFiles()"
-        [allFilesCount]="files().length"
-        [isLoading]="isLoading()"
-        [pageSize]="pageSize"
-        [currentPage]="currentPage"
+        [pager]="pager"
+        [meta]="meta()"
+        [views]="views"
         [isDeleting]="isDeleting()"
         [canDeleteFn]="canDeleteFileBound"
         (download)="downloadFile($event)"
         (delete)="confirmDeleteFile($event)"
-        (pageChange)="currentPage = $event"
-        (pageSizeChange)="onPageSizeChange($event)"
+        (sortChange)="onSort($event)"
       ></app-files-table>
 
       <!-- Modals (Upload & Delete Confirmation) -->
@@ -129,20 +141,40 @@ export type { FileDetail, StorageStats } from './files.models';
 export class FilesComponent implements OnInit, OnDestroy {
   private readonly uiI18n = inject(I18nService);
   private readonly auth = inject(AuthService);
-  private listRequest?: Subscription;
+  private readonly queryMeta = inject(QueryMetaService);
+  private readonly destroyRef = inject(DestroyRef);
   private statsRequest?: Subscription;
   private destroyed = false;
-  readonly files = signal<FileDetail[]>([]);
+  /** Field metadata of the list (`query-meta/mf.files`). */
+  readonly meta = signal<QueryListMeta | null>(null);
+  readonly metaError = signal(false);
+  readonly views = new ListViewState('mf.files', inject(ListViewsApi), {
+    defaultSort: () => {
+      const meta = this.meta();
+      return meta ? parseSort(meta.defaultSort) : null;
+    },
+    onApply: () => this.pager.first(),
+    columnsStore: inject(TableColumnStateStore)
+  });
+  /** Every request carries the scope, the search box, the sort and the filter; only the latest answer lands. */
+  readonly pager = new KeysetPager<FileDetail>(
+    (cursor, limit) => this.api.get<KeysetPage<FileDetail>>('/files', {
+      scope: this.scope,
+      limit,
+      ...(cursor ? { cursor } : {}),
+      ...toQueryParams({ sort: this.views.sort(), conditions: this.views.filter(), search: this.searchQuery })
+    }, { notifyError: false }),
+    { pageSize: 15, destroyRef: this.destroyRef }
+  );
+  readonly files = this.pager.items;
   readonly stats = signal<StorageStats | null>(null);
-  readonly isLoading = signal<boolean>(false);
+  readonly isLoading = this.pager.loading;
   readonly isUploadModalOpen = signal<boolean>(false);
   readonly uploadedBatch = signal<TaskFile[]>([]);
   readonly isDeleting = signal(false);
 
   scope: 'all' | 'mine' = 'all';
   searchQuery = '';
-  currentPage = 1;
-  pageSize = 15;
 
   fileToDelete: FileDetail | null = null;
 
@@ -160,7 +192,7 @@ export class FilesComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.destroyed = true;
-    this.listRequest?.unsubscribe();
+    this.pager.cancel();
     this.statsRequest?.unsubscribe();
   }
 
@@ -178,35 +210,29 @@ export class FilesComponent implements OnInit, OnDestroy {
     });
   }
 
+  /** The list's metadata once, then the first page with the current scope, search, sort and filter. */
   loadFiles() {
     if (this.destroyed) return;
-    this.listRequest?.unsubscribe();
-    this.isLoading.set(true);
-    this.listRequest = this.api.get<FileDetail[]>('/files', {
-      scope: this.scope,
-      q: this.searchQuery,
-      limit: 100
-    }).subscribe({
-      next: res => {
-        this.files.set(res || []);
-        const lastPage = Math.max(1, Math.ceil(this.files().length / this.pageSize));
-        this.currentPage = Math.max(1, Math.min(this.currentPage, lastPage));
-        this.isLoading.set(false);
+    if (this.meta()) {
+      this.pager.first();
+      return;
+    }
+    this.metaError.set(false);
+    this.queryMeta.get('mf.files').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: meta => {
+        this.meta.set(meta);
+        this.views.load().subscribe(() => this.pager.first());
       },
-      error: () => {
-        this.isLoading.set(false);
-      }
+      error: () => this.metaError.set(true)
     });
   }
 
   searchFiles() {
-    this.currentPage = 1;
     this.loadFiles();
   }
 
   setScope(scope: 'all' | 'mine') {
     this.scope = scope;
-    this.currentPage = 1;
     this.loadFiles();
   }
 
@@ -219,15 +245,11 @@ export class FilesComponent implements OnInit, OnDestroy {
     this.searchFiles();
   }
 
-  onPageSizeChange(size: number) {
-    this.pageSize = size;
-    this.currentPage = 1;
-  }
-
-  paginatedFiles(): FileDetail[] {
-    const list = this.files();
-    const start = (this.currentPage - 1) * this.pageSize;
-    return list.slice(start, start + this.pageSize);
+  /** A header click sorts the whole list on the server. */
+  onSort(event: { column: string; sortBy: OrderBy } | undefined) {
+    if (!this.meta()) return;
+    this.views.setSort(sortFromHeader(event));
+    this.pager.first();
   }
 
   downloadFile(file: FileDetail) {

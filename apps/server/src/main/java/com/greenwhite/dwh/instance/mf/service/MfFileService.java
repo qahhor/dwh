@@ -160,9 +160,12 @@ public class MfFileService {
         return metadataService.getStorageStats(userId);
     }
 
-    public java.util.List<MfFileRepository.FileDetailRecord> listFiles(Long userId, boolean onlyMine, String query, int limit) {
-        return metadataService.listFiles(
-                userId, onlyMine, query, limit, scopeService.filterForFiles(userId));
+    /** The file list through the registry ({@code mf.files}): filter, sort, search {@code q} and the viewer's data scope. */
+    public com.greenwhite.dwh.core.pagination.KeysetPage<MfFileRepository.FileDetailRecord> listFiles(
+            Long userId, boolean onlyMine, Integer limit, String cursor, String filter, String sort, String query) {
+        var plan = com.greenwhite.dwh.instance.common.query.QueryCompiler.compile(
+                MfFileQuery.LIST, filter, sort, limit, cursor, query);
+        return metadataService.pageFiles(plan, scopeService.filterForFiles(userId), onlyMine ? userId : null);
     }
 
     public void deleteFile(UUID id, Long currentUserId, boolean canDeleteAny) {

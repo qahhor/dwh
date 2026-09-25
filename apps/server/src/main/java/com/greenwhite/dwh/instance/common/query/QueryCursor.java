@@ -8,8 +8,9 @@ import tools.jackson.databind.node.ObjectNode;
 /**
  * Keyset-курсор списка: значение сортировки и ключ последней строки, итог первой страницы и отпечаток
  * запроса. Курсор от другого фильтра или сортировки отвергается: иначе страница продолжилась бы не тем запросом.
+ * Ключ строки хранится текстом: числовой id и UUID ({@code f.id::text}) одинаково годятся.
  */
-public record QueryCursor(String fingerprint, Object sortValue, long lastId, long total) {
+public record QueryCursor(String fingerprint, Object sortValue, String lastId, long total) {
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
 
@@ -30,12 +31,12 @@ public record QueryCursor(String fingerprint, Object sortValue, long lastId, lon
         }
         try {
             JsonNode node = JSON.readTree(raw);
-            if (!fingerprint.equals(node.path("f").asString(null)) || !node.path("id").isIntegralNumber()
+            if (!fingerprint.equals(node.path("f").asString(null)) || !node.path("id").isString()
                     || !node.path("t").isIntegralNumber() || !node.path("v").isString()) {
                 return null;
             }
             Object value = QueryValues.parse(sort, node.path("v").asString());
-            return new QueryCursor(fingerprint, value, node.path("id").asLong(), node.path("t").asLong());
+            return new QueryCursor(fingerprint, value, node.path("id").asString(), node.path("t").asLong());
         } catch (RuntimeException e) {
             return null;
         }

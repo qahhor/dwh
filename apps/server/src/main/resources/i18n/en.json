@@ -422,6 +422,8 @@
   "files.ochistit_poisk_faylov": "Clear file search",
   "files.obnovit_spisok_faylov": "Update file list",
   "files.tablica_faylov": "File table",
+  "files.list_loading": "Loading the files",
+  "files.list_load_error": "Could not load the files",
   "files.spisok_faylov": "List of files",
   "files.skachat_fayl": "Download file",
   "files.skachat": "Download",
