@@ -21,6 +21,8 @@ export interface FeatureI18n {
   english: boolean;
   /** Keys composed at run time (`'x.status.' + status`), spelled out from the values they come from. */
   dynamic?: readonly string[];
+  /** Catalogs to check instead of the server's; only this helper's own spec needs them. */
+  catalogs?: { ru: Record<string, string>; en: Record<string, string> };
 }
 
 const WEB_ROOT = process.cwd();
@@ -72,7 +74,9 @@ function mentioned(key: string, sources: Iterable<string>): boolean {
 
 /** Everything wrong with the feature's keys; empty when the contract holds. */
 export function featureI18nProblems(feature: FeatureI18n): string[] {
-  const { ru, en, sources } = load();
+  const loaded = load();
+  const { ru, en } = feature.catalogs ?? loaded;
+  const { sources } = loaded;
   const folder = path.join(WEB_ROOT, feature.dir) + path.sep;
   const own = (key: string) => feature.owns.some(prefix => key.startsWith(prefix));
   const dynamic = new Set(feature.dynamic ?? []);
