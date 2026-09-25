@@ -20,8 +20,6 @@ export class TaskDictionariesService {
   readonly taskTypes = signal<TaskType[]>([]);
   readonly isSettingsModalOpen = signal<boolean>(false);
   settingsTab: 'types' | 'statuses' = 'types';
-  newTypeForm = { code: '', name: '', icon: 'task_alt', color: '#6366f1' };
-  newStatusForm = { name: '', color: '#3b82f6', isTerminal: false };
   dictionaryDeleteTarget: { kind: 'type' | 'status'; id: number; name: string } | null = null;
 
   loadStatuses(): void {

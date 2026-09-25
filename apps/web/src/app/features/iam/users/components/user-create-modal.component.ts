@@ -6,6 +6,7 @@ import { SMTControlComponent } from '../../../../shared/ui-kit/components/forms/
 import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
 import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
 import { SMTDataSelectComponent } from '../../../../shared/ui-kit/components/forms/data-select';
+import { SMTPhoneInputComponent, SMTPhoneInputValueAccessor } from '../../../../shared/ui-kit/components/forms/phone-input';
 import { LookupSources } from '../../../../shared/lookups/lookup-sources';
 import { SMTTagGroupComponent, SMTTagOption } from '../../../../shared/ui-kit/components/tag';
 import { UiCustomFieldsComponent } from '../../../../shared/ui/ui-custom-fields.component';
@@ -23,6 +24,8 @@ import { CustomField } from '../../../../core/models/custom-field.models';
     UiModalComponent,
     UiButtonComponent,
     SMTDataSelectComponent,
+    SMTPhoneInputComponent,
+    SMTPhoneInputValueAccessor,
     SMTTagGroupComponent,
     UiCustomFieldsComponent
   ],
@@ -74,15 +77,7 @@ import { CustomField } from '../../../../core/models/custom-field.models';
           </smt-control>
 
           <smt-control class="form-group" [smtLabel]="'iam.telefon.822f9fd' | t">
-            <input
-              id="user-create-phone"
-              name="userCreatePhone"
-              type="tel"
-              class="clean-input font-mono"
-              autocomplete="tel"
-              [(ngModel)]="createForm.phone"
-              placeholder="+998901234567"
-            />
+            <smt-phone-input smtFieldId="user-create-phone" name="userCreatePhone" [(ngModel)]="createForm.phone" />
           </smt-control>
 
           <smt-control class="form-group" [smtLabel]="'iam.rukovoditel' | t">
