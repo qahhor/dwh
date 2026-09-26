@@ -16,7 +16,7 @@ import { booleanAttribute, ChangeDetectionStrategy, Component, computed, input, 
 import { FormsModule } from '@angular/forms';
 import { SMTControlComponent } from '../control/control.component';
 import { SMTDataSelectComponent } from '../data-select/data-select.component';
-import type { SMTLookupSource } from '../data-select/lookup-source';
+import type { SMTLookupKey, SMTLookupSource } from '../data-select/lookup-source';
 import { SMTDatePickerComponent } from '../date-picker/date-picker.component';
 import { SMTDatePickerValueAccessor } from '../date-picker/date-picker-value-accessor';
 import { SMTSelectComponent, type SMTSelectOption } from '../select/select.component';
@@ -33,6 +33,8 @@ export interface SMTDynamicFieldDef {
   readonly required?: boolean;
   readonly placeholder?: string;
   readonly hint?: string;
+  /** The longest text a `string` or `text` field takes. */
+  readonly maxLength?: number | null;
   /** The choices of a `select`. */
   readonly options?: readonly SMTSelectOption<string | number | boolean>[];
 }
@@ -56,7 +58,7 @@ let nextFieldId = 0;
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'smt-dynamic-field' },
   template: `
-    <smt-control [smtLabel]="field().label" [smtHint]="field().hint ?? ''" [required]="!!field().required">
+    <smt-control [smtLabel]="field().label" [smtHint]="field().hint ?? ''" [required]="!!field().required" [smtError]="error()">
       @switch (field().type) {
         @case ('text') {
           <smt-textarea
@@ -65,6 +67,7 @@ let nextFieldId = 0;
             [placeholder]="field().placeholder ?? ''"
             [required]="!!field().required"
             [disabled]="disabled()"
+            [maxLength]="field().maxLength ?? undefined"
             [value]="text()"
             (valueChange)="value.set($event)" />
         }
@@ -142,6 +145,7 @@ let nextFieldId = 0;
             [placeholder]="field().placeholder ?? ''"
             [required]="!!field().required"
             [disabled]="disabled()"
+            [attr.maxlength]="field().maxLength ?? null"
             [value]="text()"
             (input)="setText($event)" />
         }
@@ -153,8 +157,11 @@ let nextFieldId = 0;
 export class SMTDynamicFieldComponent {
   readonly field = input.required<SMTDynamicFieldDef>();
 
-  /** Where a person is searched for; needed by a `user_ref` field. */
-  readonly userSource = input<SMTLookupSource<{ id: number }, number> | null>(null);
+  /** Where a person (or, from an entity form, any referenced record) is searched for; needed by a `user_ref` field. */
+  readonly userSource = input<SMTLookupSource<unknown, SMTLookupKey> | null>(null);
+
+  /** A problem to show under the field, such as the server's answer to a save. */
+  readonly error = input('');
 
   readonly disabled = input(false, { transform: booleanAttribute });
 

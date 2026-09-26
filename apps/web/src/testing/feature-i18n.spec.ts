@@ -18,9 +18,10 @@ describe('featureI18nProblems', () => {
   });
 
   it('finds no dead copy in the notes catalogs', () => {
-    // The note list's field labels are named by the server (MsNoteQuery).
+    // The note labels are named by the server (MsNoteQuery, MsNoteEntity); colours are notes.color_<colour>.
+    const colors = ['default', 'blue', 'green', 'yellow', 'purple', 'red'].map(color => `notes.color_${color}`);
     expect(featureI18nProblems({
-      dir: 'src/app/features/notes', owns: ['notes.'], english: true, dynamic: serverLiteralKeys('notes.'),
+      dir: 'src/app/features/notes', owns: ['notes.'], english: true, dynamic: [...serverLiteralKeys('notes.'), ...colors],
     })).toEqual([]);
   });
 
