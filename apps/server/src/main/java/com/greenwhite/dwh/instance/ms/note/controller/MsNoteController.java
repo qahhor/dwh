@@ -39,10 +39,16 @@ public class MsNoteController {
 
     @GetMapping
     @RequiresPermission(form = "notes", action = "view")
-    public ResponseEntity<List<NoteView>> getNotes(@RequestParam(required = false) String q) {
+    public ResponseEntity<com.greenwhite.dwh.core.pagination.KeysetPage<NoteView>> getNotes(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) Integer limit,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(required = false) String filter,
+            @RequestParam(required = false) String sort) {
         Long userId = SecurityContext.getCurrentUserId();
         if (userId == null) throw ApiException.unauthorized("Пользователь не авторизован");
-        return ResponseEntity.ok(noteService.getNotes(userId, q));
+        // Registry list ms.notes (ADR-0016): pages instead of the whole list, the owner's notes only.
+        return ResponseEntity.ok(noteService.getNotes(userId, limit, cursor, filter, sort, q));
     }
 
     @GetMapping("/{id}")

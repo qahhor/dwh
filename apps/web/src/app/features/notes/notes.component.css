@@ -199,3 +199,9 @@
       color: var(--text-main);
       line-height: 1.5;
     }
+
+.notes-more {
+  display: flex;
+  justify-content: center;
+  padding: 16px 0;
+}

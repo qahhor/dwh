@@ -64,30 +64,15 @@ public class MsNoteRepository {
                 .optional();
     }
 
-    public List<NoteRecord> findByOwner(Long userId, String search) {
-        if (search != null && !search.isBlank()) {
-            String pattern = "%" + search.trim().toLowerCase() + "%";
-            return jdbcClient.sql("""
-                    select id, title, content_md, color, is_pinned, attributes::text as attributes_str, created_by, modified_by, created_at, modified_at
-                    from ms_notes
-                    where created_by = :userId and (lower(title) like :pattern or lower(content_md) like :pattern)
-                    order by is_pinned desc, modified_at desc, id desc
-                    """)
-                    .param("userId", userId)
-                    .param("pattern", pattern)
-                    .query(this::mapNote)
-                    .list();
-        }
-
-        return jdbcClient.sql("""
-                select id, title, content_md, color, is_pinned, attributes::text as attributes_str, created_by, modified_by, created_at, modified_at
-                from ms_notes
-                where created_by = :userId
-                order by is_pinned desc, modified_at desc, id desc
-                """)
-                .param("userId", userId)
-                .query(this::mapNote)
-                .list();
+    /**
+     * A page of the owner's notes by the registry plan ({@code ms.notes}). Notes are personal (SELF scope): the
+     * owner predicate goes into the same SQL, so a page and its total only ever see the owner's notes.
+     */
+    public com.greenwhite.dwh.core.pagination.KeysetPage<NoteRecord> pageByOwner(
+            com.greenwhite.dwh.instance.common.query.QueryPlan plan, Long ownerId) {
+        return new com.greenwhite.dwh.instance.common.query.QueryListRepository(jdbcClient).page(plan, this::mapNote,
+                new com.greenwhite.dwh.instance.common.query.QueryPlan.SqlFragment(
+                        " and n.created_by = :ownerId", Map.of("ownerId", ownerId)));
     }
 
     public NoteRecord update(Long id, String title, String contentMd, String color, Boolean isPinned,

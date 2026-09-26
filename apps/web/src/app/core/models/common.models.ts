@@ -3,6 +3,8 @@ export interface KeysetPage<T> {
   nextCursor: string | null;
   hasMore: boolean;
   totalReturned: number;
+  /** The whole list's size, counted on the first page by registry lists (ADR-0016). */
+  totalEstimated?: number;
 }
 
 export interface ProblemDetail {

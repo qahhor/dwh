@@ -9,6 +9,11 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Notes are a registry list (`ms.notes`, roadmap item 51): `GET /notes` returns
+  pages, the pinned tab filters on the server and a "Show more" button adds
+  the next page. Pinned notes still come first, then the latest. Projects
+  stay a whole list for now: their progress sort depends on the viewer's
+  task scope, which no registry field expresses yet.
 - The audit log and the security events are registry lists (`audit.logs`,
   `audit.security_events`, roadmap item 50): filter, search, saved views,
   column settings and the server export, newest first as before and with
@@ -29,7 +34,7 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   filters and are part of the cursor), the total is real, and `limit` is
   bounded to 1–200. Module parameters that narrow a list are part of its
   cursor fingerprint; exporters check option values before the job starts.
-- ADR-0019 (proposed): the low-code entity model. An entity is one server
+- ADR-0019 (accepted 2026-09-26, option A): the low-code entity model. An entity is one server
   declaration (`EntityDefinition`) from which lists, forms (`form-meta` with
   the actions allowed to the viewer), cards, permissions and menus are built;
   custom fields become registry fields, lists refer to each other. The

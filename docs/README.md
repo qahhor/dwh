@@ -35,8 +35,6 @@ Current ADRs that are not superseded:
   — lists declare their fields on the server; clients read them from
   `query-meta` and filter and sort through one checked JSON DSL.
 
-Proposed, not yet accepted:
-
 - [ADR-0019 — low-code entity model](adr/ADR-0019-low-code-entity-model.md)
   — an entity is one server declaration from which lists, forms, cards,
   permissions and menus are built.
