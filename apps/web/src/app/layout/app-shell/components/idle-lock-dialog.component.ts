@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { AuthService } from '../../../core/services/auth.service';
 import { IdleLockService } from '../../../core/services/idle-lock.service';
 import { TranslatePipe } from '../../../core/services/i18n.service';
-import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 
 /**
@@ -14,15 +14,15 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
   selector: 'app-idle-lock-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TranslatePipe, UiButtonComponent, UiModalComponent],
+  imports: [TranslatePipe, SMTButtonComponent, UiModalComponent],
   template: `
     <ui-modal [isOpen]="idle.warningSeconds() !== null" [dismissible]="false" size="sm" [title]="'auth.idle.title' | t">
       <p body class="idle-text" role="alert" data-testid="idle-warning">
         {{ 'auth.idle.message' | t: { seconds: idle.warningSeconds() ?? 0 } }}
       </p>
       <div footer class="idle-actions">
-        <ui-button variant="secondary" size="md" data-testid="idle-sign-out" (onClick)="auth.logout()">{{ 'auth.idle.sign_out' | t }}</ui-button>
-        <ui-button variant="primary" size="md" data-testid="idle-keep" (onClick)="idle.keepWorking()">{{ 'auth.idle.keep' | t }}</ui-button>
+        <button smt-button type="button" smtVariant="secondary" smtSize="md" data-testid="idle-sign-out" (click)="auth.logout()">{{ 'auth.idle.sign_out' | t }}</button>
+        <button smt-button type="button" smtVariant="primary" smtSize="md" data-testid="idle-keep" (click)="idle.keepWorking()">{{ 'auth.idle.keep' | t }}</button>
       </div>
     </ui-modal>
   `,

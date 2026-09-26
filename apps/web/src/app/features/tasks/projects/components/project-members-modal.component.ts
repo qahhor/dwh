@@ -6,7 +6,7 @@ import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { ApiService } from '../../../../core/services/api.service';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
-import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { UiBadgeComponent } from '../../../../shared/ui/ui-badge.component';
 import { UiLocalTableComponent } from '../../../../shared/ui/ui-local-table.component';
 import { TableConfig } from '../../../../shared/ui-kit/components/table/table.types';
@@ -26,7 +26,7 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
     FormsModule,
     TranslatePipe,
     UiModalComponent,
-    UiButtonComponent,
+    SMTButtonComponent,
     UiBadgeComponent,
     UiLocalTableComponent
   ],
@@ -109,16 +109,16 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
 
             <!-- Submit Button -->
             <div class="add-btn-wrapper">
-              <ui-button
-                variant="primary"
-                size="md"
-                icon="add"
+              <button smt-button type="button"
+                smtVariant="primary"
+                smtSize="md"
+                smtIcon="add"
                 [disabled]="!selectedUser || isAddingMember"
-                [loading]="isAddingMember"
-                (onClick)="submitAddMember()"
+                [smtLoading]="isAddingMember"
+                (click)="submitAddMember()"
               >
                 {{ 'common.add' | t }}
-              </ui-button>
+              </button>
             </div>
           </div>
         </div>
@@ -136,9 +136,9 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
       </div>
 
       <div footer class="modal-footer-actions">
-        <ui-button variant="secondary" size="md" (onClick)="close.emit()">
+        <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="close.emit()">
           {{ 'common.close' | t }}
-        </ui-button>
+        </button>
       </div>
     </ui-modal>
 
@@ -154,16 +154,16 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
     </ng-template>
     <ng-template #memberActionCell let-m>
       <div class="text-right">
-        <ui-button
-          variant="danger"
-          size="sm"
-          icon="delete"
-          [ariaLabel]="'projects.remove_member_named' | t:{name: m.userName}"
-          [loading]="removingUserId === m.userId"
-          (onClick)="requestRemove(m)"
+        <button smt-button type="button"
+          smtVariant="danger"
+          smtSize="sm"
+          smtIcon="delete"
+          [attr.aria-label]="'projects.remove_member_named' | t:{name: m.userName}"
+          [smtLoading]="removingUserId === m.userId"
+          (click)="requestRemove(m)"
         >
           {{ 'common.delete' | t }}
-        </ui-button>
+        </button>
       </div>
     </ng-template>
     <ng-template #emptyMembers><p class="empty-cell">{{ 'projects.net_uchastnikov_proekta' | t }}</p></ng-template>

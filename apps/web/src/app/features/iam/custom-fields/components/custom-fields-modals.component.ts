@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CustomField, CustomFieldFormData } from '../custom-fields.models';
 import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
-import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
 import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../../../../shared/ui-kit/components/forms/select';
@@ -35,7 +35,7 @@ const FIELD_TYPES: readonly [string, string][] = [
     CommonModule,
     FormsModule,
     UiModalComponent,
-    UiButtonComponent,
+    SMTButtonComponent,
     TranslatePipe
   ],
   template: `
@@ -171,8 +171,8 @@ const FIELD_TYPES: readonly [string, string][] = [
       </form>
 
       <div footer class="modal-footer-actions">
-        <ui-button type="button" variant="secondary" (onClick)="closeModal.emit()">{{ 'common.cancel' | t }}</ui-button>
-        <ui-button type="submit" form="customFieldForm" variant="primary" [loading]="saving" (onClick)="saveField.emit()">{{ 'common.save' | t }}</ui-button>
+        <button smt-button type="button" smtVariant="secondary" (click)="closeModal.emit()">{{ 'common.cancel' | t }}</button>
+        <button smt-button type="submit" form="customFieldForm" smtVariant="primary" [smtLoading]="saving" (click)="saveField.emit()">{{ 'common.save' | t }}</button>
       </div>
     </ui-modal>
   `,

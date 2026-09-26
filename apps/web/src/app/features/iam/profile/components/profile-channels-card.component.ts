@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, Output, Signal, TemplateRef, computed, inject, signal, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { UiBadgeComponent } from '../../../../shared/ui/ui-badge.component';
 import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
@@ -18,7 +18,7 @@ import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../
     CommonModule,
     FormsModule,
     TranslatePipe,
-    UiButtonComponent,
+    SMTButtonComponent,
     UiBadgeComponent,
     UiModalComponent,
     UiLocalTableComponent
@@ -36,15 +36,15 @@ import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../
             <p class="section-subtitle">{{ 'iam.kanaly_svyazi_opisanie' | t }}</p>
           </div>
         </div>
-        <ui-button
+        <button smt-button type="button"
           *ngIf="canManageChannels"
-          variant="primary"
-          size="sm"
-          icon="add"
-          (onClick)="openBindModal()"
+          smtVariant="primary"
+          smtSize="sm"
+          smtIcon="add"
+          (click)="openBindModal()"
         >
           {{ 'iam.privyazat_kanal' | t }}
-        </ui-button>
+        </button>
       </div>
 
       <div class="table-wrapper" role="region" [attr.aria-label]="'iam.tablica_kanalov_svyazi' | t" tabindex="0">
@@ -65,27 +65,27 @@ import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../
     </ng-template>
     <ng-template #channelActionCell let-c>
       <div class="row-actions">
-        <ui-button
+        <button smt-button type="button"
           *ngIf="!c.isVerified && canManageChannels"
-          variant="secondary"
-          size="sm"
-          icon="verified"
-          [ariaLabel]="'iam.confirm_channel_named' | t:{address: c.address}"
-          [loading]="isConfirmingChannel"
-          (onClick)="requestConfirm(c)"
+          smtVariant="secondary"
+          smtSize="sm"
+          smtIcon="verified"
+          [attr.aria-label]="'iam.confirm_channel_named' | t:{address: c.address}"
+          [smtLoading]="isConfirmingChannel"
+          (click)="requestConfirm(c)"
         >
           {{ 'iam.podtverdit_kodom' | t }}
-        </ui-button>
-        <ui-button
+        </button>
+        <button smt-button type="button"
           *ngIf="canManageChannels"
-          variant="danger"
-          size="sm"
-          icon="delete"
-          [ariaLabel]="'iam.unbind_channel_named' | t:{address: c.address}"
-          (onClick)="requestUnbind(c)"
+          smtVariant="danger"
+          smtSize="sm"
+          smtIcon="delete"
+          [attr.aria-label]="'iam.unbind_channel_named' | t:{address: c.address}"
+          (click)="requestUnbind(c)"
         >
           {{ 'iam.otvyazat_kanal' | t }}
-        </ui-button>
+        </button>
       </div>
     </ng-template>
     <ng-template #emptyChannels><p class="empty-cell">{{ 'iam.net_privyazannyh_kanalov' | t }}</p></ng-template>
@@ -129,18 +129,18 @@ import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../
         </div>
       </div>
       <div footer class="modal-actions">
-        <ui-button variant="secondary" size="md" (onClick)="closeBindModal()">
+        <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeBindModal()">
           {{ 'common.cancel' | t }}
-        </ui-button>
-        <ui-button
-          variant="primary"
-          size="md"
-          icon="send"
-          [loading]="isBindingChannel"
-          (onClick)="submitBind()"
+        </button>
+        <button smt-button type="button"
+          smtVariant="primary"
+          smtSize="md"
+          smtIcon="send"
+          [smtLoading]="isBindingChannel"
+          (click)="submitBind()"
         >
           {{ 'iam.otpravit_kod' | t }}
-        </ui-button>
+        </button>
       </div>
     </ui-modal>
 
@@ -178,18 +178,18 @@ import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../
         </div>
       </div>
       <div footer class="modal-actions">
-        <ui-button variant="secondary" size="md" (onClick)="closeConfirmModal()">
+        <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeConfirmModal()">
           {{ 'common.cancel' | t }}
-        </ui-button>
-        <ui-button
-          variant="primary"
-          size="md"
-          icon="check"
-          [loading]="isConfirmingChannel"
-          (onClick)="submitConfirm()"
+        </button>
+        <button smt-button type="button"
+          smtVariant="primary"
+          smtSize="md"
+          smtIcon="check"
+          [smtLoading]="isConfirmingChannel"
+          (click)="submitConfirm()"
         >
           {{ 'common.confirm' | t }}
-        </ui-button>
+        </button>
       </div>
     </ui-modal>
   `,

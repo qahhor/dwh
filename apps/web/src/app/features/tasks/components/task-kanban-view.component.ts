@@ -2,7 +2,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DragDropModule, CdkDragDrop } from '@angular/cdk/drag-drop';
 import { TranslatePipe } from '../../../core/services/i18n.service';
-import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.models';
 
 @Component({
@@ -12,18 +12,18 @@ import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.m
     CommonModule,
     DragDropModule,
     TranslatePipe,
-    UiButtonComponent
+    SMTButtonComponent
   ],
   template: `
     <div class="kanban-board" cdkDropListGroup role="region" [attr.aria-label]="'tasks.kanban_doska_zadach' | t">
       <div class="kanban-empty-recovery" *ngIf="tasks.length === 0 && !isLoading && !listLoadError">
         <span>{{ 'tasks.zadachi_ne_naydeny' | t }}</span>
-        <ui-button *ngIf="hasActiveFilters" variant="secondary" size="sm" (onClick)="resetFilters.emit()">
+        <button smt-button type="button" *ngIf="hasActiveFilters" smtVariant="secondary" smtSize="sm" (click)="resetFilters.emit()">
           {{ 'tasks.sbrosit_vse_filtry' | t }}
-        </ui-button>
-        <ui-button *ngIf="!hasActiveFilters && canCreateTask" variant="primary" size="sm" icon="add" (onClick)="createTask.emit()">
+        </button>
+        <button smt-button type="button" *ngIf="!hasActiveFilters && canCreateTask" smtVariant="primary" smtSize="sm" smtIcon="add" (click)="createTask.emit()">
           {{ 'task.new' | t }}
-        </ui-button>
+        </button>
       </div>
 
       <div

@@ -5,7 +5,7 @@ import { PermissionService } from '../../../core/services/permission.service';
 import { safeNumericRecordId } from '../../../core/services/search-target';
 import { ToastService } from '../../../core/services/toast.service';
 import { ProblemDetail } from '../../../core/models/common.models';
-import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { OrgUnitsApiService } from './org-units-api.service';
 import { OrgUnitTreeRows, orgUnitKindKeys, orgUnitSearchText, orgUnitTreeColumns } from './org-unit-tree';
@@ -15,7 +15,7 @@ import { SMTInputComponent } from '../../../shared/ui-kit/components/forms/input
 import { OrgUnitDraft } from './org-unit-draft';
 import { OrgUnit, OrgUnitCreate } from './org-units.models';
 import { OrgUnitEditorComponent, OrgUnitSubmission } from './org-unit-editor.component';
-@Component({ selector: 'app-org-units', standalone: true, imports: [TranslatePipe, UiButtonComponent, UiModalComponent, SMTTreeTableComponent, OrgUnitEditorComponent, SMTInputComponent], templateUrl: './org-units.component.html', styleUrl: './org-units.component.css' })
+@Component({ selector: 'app-org-units', standalone: true, imports: [TranslatePipe, SMTButtonComponent, UiModalComponent, SMTTreeTableComponent, OrgUnitEditorComponent, SMTInputComponent], templateUrl: './org-units.component.html', styleUrl: './org-units.component.css' })
 export class OrgUnitsComponent implements OnInit {
   readonly permissions = inject(PermissionService);
   private readonly api = inject(OrgUnitsApiService);

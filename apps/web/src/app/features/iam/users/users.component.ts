@@ -9,7 +9,7 @@ import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
 import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { User, UserSecuritySummary } from '../../../core/models/auth.models';
 import { Role } from '../../../core/models/rbac.models';
 import { CustomField } from '../../../core/models/custom-field.models';
@@ -53,7 +53,7 @@ const EXPORT_MAX_ROWS = 10_000;
     TranslatePipe,
     CommonModule,
     FormsModule,
-    UiButtonComponent,
+    SMTButtonComponent,
     UserFilterBarComponent,
     UserTableViewComponent,
     UserCreateModalComponent,

@@ -18,7 +18,7 @@ import { UiFilterBarComponent } from './ui-filter-bar.component';
 import { UiExportButtonComponent } from './ui-export-button.component';
 import { QueryListMeta } from '../../core/models/query-meta.models';
 import { KeysetPager } from '../paging/keyset-pager';
-import { UiButtonComponent } from './ui-button.component';
+import { SMTButtonComponent } from '../ui-kit/components/button';
 import { UiPaginationComponent } from './ui-pagination.component';
 
 /**
@@ -50,7 +50,7 @@ import { UiPaginationComponent } from './ui-pagination.component';
   selector: 'ui-server-table',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTTableComponent, UiPaginationComponent, UiButtonComponent, TranslatePipe, SMTColumnSettingsComponent, UiListViewsComponent, UiFilterBarComponent, UiExportButtonComponent],
+  imports: [SMTTableComponent, UiPaginationComponent, SMTButtonComponent, TranslatePipe, SMTColumnSettingsComponent, UiListViewsComponent, UiFilterBarComponent, UiExportButtonComponent],
   template: `
     @if (columnsId() || views()) {
       <div class="server-table-tools">
@@ -71,16 +71,16 @@ import { UiPaginationComponent } from './ui-pagination.component';
         <span class="bulk-count" role="status">{{ 'ui.bulk.selected' | t: { count: selected().length } }}</span>
         <ng-content select="[bulkActions]" />
         <span class="bulk-spacer"></span>
-        <ui-button variant="ghost" size="sm" data-testid="bulk-clear" (onClick)="selected.set([])">{{ 'ui.bulk.clear' | t }}</ui-button>
+        <button smt-button type="button" smtVariant="ghost" smtSize="sm" data-testid="bulk-clear" (click)="selected.set([])">{{ 'ui.bulk.clear' | t }}</button>
       </div>
     }
     @if (pager().failed()) {
       <div class="inline-feedback" role="alert" [attr.id]="errorId() || null">
         <span class="material-symbols-outlined" aria-hidden="true">error</span>
         <span>{{ errorLabel() }}</span>
-        <ui-button variant="secondary" size="sm" icon="refresh" (onClick)="pager().retry()">
+        <button smt-button type="button" smtVariant="secondary" smtSize="sm" smtIcon="refresh" (click)="pager().retry()">
           {{ 'ui.table.povtorit' | t }}
-        </ui-button>
+        </button>
       </div>
     }
     @if (pager().loading()) {

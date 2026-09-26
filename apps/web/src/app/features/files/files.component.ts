@@ -6,7 +6,7 @@ import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { PermissionService } from '../../core/services/permission.service';
 import { ToastService } from '../../core/services/toast.service';
-import { UiButtonComponent } from '../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
 import { TaskFile } from '../../core/models/task.models';
 import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
 import { FileDetail, StorageStats } from './files.models';
@@ -42,7 +42,7 @@ function formatBytes(bytes: number): string {
   standalone: true,
   imports: [
     SMTAlertComponent, CommonModule,
-    UiButtonComponent,
+    SMTButtonComponent,
     TranslatePipe,
     FilesMetricsCardsComponent,
     FilesToolbarComponent,
@@ -58,9 +58,9 @@ function formatBytes(bytes: number): string {
           <span class="count-badge" data-testid="files-count">{{ pager.total() }}</span>
         </div>
         <div class="header-right">
-          <ui-button variant="primary" icon="cloud_upload" (onClick)="isUploadModalOpen.set(true)">
+          <button smt-button type="button" smtVariant="primary" smtIcon="cloud_upload" (click)="isUploadModalOpen.set(true)">
             {{ 'files.zagruzit_fayl' | t }}
-          </ui-button>
+          </button>
         </div>
       </div>
 
@@ -82,7 +82,7 @@ function formatBytes(bytes: number): string {
       @if (metaError()) {
         <smt-alert smtTone="danger" data-testid="files-meta-error">
           <span>{{ 'files.list_load_error' | t }}</span>
-          <ui-button variant="secondary" size="sm" (onClick)="loadFiles()">{{ 'common.retry' | t }}</ui-button>
+          <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="loadFiles()">{{ 'common.retry' | t }}</button>
         </smt-alert>
       }
       <app-files-table

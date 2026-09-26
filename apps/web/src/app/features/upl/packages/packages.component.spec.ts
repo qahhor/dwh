@@ -130,7 +130,7 @@ function text(fixture: ComponentFixture<PackagesComponent>): string {
 }
 
 function click(fixture: ComponentFixture<PackagesComponent>, id: string): void {
-  fixture.debugElement.query(By.css(`[data-testid="${id}"]`)).triggerEventHandler('onClick', null);
+  fixture.debugElement.query(By.css(`[data-testid="${id}"]`)).triggerEventHandler('click', new MouseEvent('click'));
   fixture.detectChanges();
   // A full tick also runs the after-render phase, where smt-control links its error to the field.
   TestBed.tick();
@@ -146,7 +146,7 @@ function clickRow(fixture: ComponentFixture<PackagesComponent>, index = 0): void
 }
 
 function submitButton(fixture: ComponentFixture<PackagesComponent>): HTMLButtonElement {
-  return fixture.debugElement.query(By.css('[data-testid="upl-pkg-submit"] button')).nativeElement as HTMLButtonElement;
+  return fixture.debugElement.query(By.css('button[data-testid="upl-pkg-submit"]')).nativeElement as HTMLButtonElement;
 }
 
 /** Поля заполняем как человек — событиями, иначе `OnPush` не перерисует форму. */

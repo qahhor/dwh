@@ -2,7 +2,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '../../../core/services/i18n.service';
-import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
 import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../../../shared/ui-kit/components/forms/select';
 import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group/radio-options';
@@ -42,7 +42,7 @@ function withCurrent(known: readonly SMTSelectOption<string>[], current: string 
     CommonModule,
     FormsModule,
     TranslatePipe,
-    UiButtonComponent
+    SMTButtonComponent
   ],
   template: `
     <div class="settings-card">
@@ -88,9 +88,9 @@ function withCurrent(known: readonly SMTSelectOption<string>[], current: string 
       </div>
 
       <div class="card-footer-actions" *ngIf="canUpdateSystemSettings">
-        <ui-button [loading]="isSaving" (onClick)="save.emit()">
+        <button smt-button type="button" [smtLoading]="isSaving" (click)="save.emit()">
           {{ 'common.save' | t }}
-        </ui-button>
+        </button>
       </div>
     </div>
   `,

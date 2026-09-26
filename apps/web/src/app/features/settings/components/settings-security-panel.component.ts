@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { SMTSwitchComponent } from '../../../shared/ui-kit/components/forms/switch';
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
-import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
 
 @Component({
@@ -14,7 +14,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit
     CommonModule,
     FormsModule,
     TranslatePipe,
-    UiButtonComponent
+    SMTButtonComponent
   ],
   template: `
     <div class="settings-card">
@@ -95,9 +95,9 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit
       </div>
 
       <div class="card-footer-actions" *ngIf="canUpdateSystemSettings">
-        <ui-button [loading]="isSaving" (onClick)="save.emit()">
+        <button smt-button type="button" [smtLoading]="isSaving" (click)="save.emit()">
           {{ 'common.save' | t }}
-        </ui-button>
+        </button>
       </div>
     </div>
   `,

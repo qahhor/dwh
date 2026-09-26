@@ -2,7 +2,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
-import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { UiMarkdownViewComponent } from '../../../shared/ui/ui-markdown-view.component';
 import { UiFileUploadComponent } from '../../../shared/ui/ui-file-upload.component';
 import { UiRecordHistoryComponent } from '../../../shared/ui/ui-record-history.component';
@@ -22,7 +22,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
     SMTAvatarComponent, SMTSelectComponent, SMTTextareaComponent, CommonModule,
     TranslatePipe,
     UiModalComponent,
-    UiButtonComponent,
+    SMTButtonComponent,
     UiMarkdownViewComponent,
     UiFileUploadComponent,
     UiRecordHistoryComponent
@@ -40,8 +40,8 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
 
       <div body class="request-state request-error" *ngIf="detailLoadError" role="alert">
         <span>{{ (detailNotFound ? 'search.record_not_found' : 'tasks.detail_load_error') | t }}</span>
-        <ui-button *ngIf="!detailNotFound" variant="secondary" size="sm" (onClick)="retryTaskDetails.emit()">{{ 'audit.retry' | t }}</ui-button>
-        <ui-button *ngIf="detailNotFound" variant="secondary" size="sm" (onClick)="close.emit()">{{ 'search.back_to_list' | t }}</ui-button>
+        <button smt-button type="button" *ngIf="!detailNotFound" smtVariant="secondary" smtSize="sm" (click)="retryTaskDetails.emit()">{{ 'audit.retry' | t }}</button>
+        <button smt-button type="button" *ngIf="detailNotFound" smtVariant="secondary" smtSize="sm" (click)="close.emit()">{{ 'search.back_to_list' | t }}</button>
       </div>
 
       <div body class="task-details-view" [attr.data-record-id]="detailRecordId" *ngIf="!detailLoading && !detailLoadError && selectedTask as t">
@@ -147,7 +147,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
               </div>
               <div class="request-state request-error" *ngIf="commentsLoadError" role="alert">
                 <span>{{ 'tasks.comments_load_error' | t }}</span>
-                <ui-button variant="secondary" size="sm" (onClick)="retryComments.emit()">{{ 'audit.retry' | t }}</ui-button>
+                <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="retryComments.emit()">{{ 'audit.retry' | t }}</button>
               </div>
 
               <div class="comments-feed" *ngIf="!commentsLoading && !commentsLoadError">
@@ -179,9 +179,9 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
                   (valueChange)="commentDraftChange.emit($event)"
                   [disabled]="isCommentSubmitting"
                   (keydown.ctrl.enter)="submitComment.emit()" />
-                <ui-button variant="primary" size="sm" icon="send" [loading]="isCommentSubmitting" (onClick)="submitComment.emit()">
+                <button smt-button type="button" smtVariant="primary" smtSize="sm" smtIcon="send" [smtLoading]="isCommentSubmitting" (click)="submitComment.emit()">
                   {{ 'tasks.otpravit' | t }}
-                </ui-button>
+                </button>
               </div>
             </div>
 
@@ -362,7 +362,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
       </div>
 
       <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="close.emit()">{{ 'audit.zakryt' | t }}</ui-button>
+        <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="close.emit()">{{ 'audit.zakryt' | t }}</button>
       </div>
     </ui-modal>
   `,

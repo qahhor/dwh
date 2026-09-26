@@ -11,7 +11,7 @@ import { I18nService, TranslatePipe } from '../../../core/services/i18n.service'
 import { SMTControlComponent } from '../../../shared/ui-kit/components/forms/control';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
-import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { SMTSelectComponent, SMTSelectValueAccessor } from '../../../shared/ui-kit/components/forms/select';
 import { UiMarkdownEditorComponent } from '../../../shared/ui/ui-markdown-editor.component';
 import { UiCustomFieldsComponent } from '../../../shared/ui/ui-custom-fields.component';
@@ -29,7 +29,7 @@ import { Project, Task, TaskType } from '../../../core/models/task.models';
     SMTDatePickerValueAccessor,
     TranslatePipe,
     UiModalComponent,
-    UiButtonComponent,
+    SMTButtonComponent,
     SMTSelectComponent,
     SMTDataSelectComponent,
     SMTRadioGroupComponent,
@@ -54,7 +54,7 @@ import { Project, Task, TaskType } from '../../../core/models/task.models';
       </div>
       <div body class="request-state request-error" *ngIf="editLoadError" role="alert">
         <span>{{ 'tasks.edit_load_error' | t }}</span>
-        <ui-button variant="secondary" size="sm" (onClick)="retryEditLoad.emit()">{{ 'audit.retry' | t }}</ui-button>
+        <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="retryEditLoad.emit()">{{ 'audit.retry' | t }}</button>
       </div>
       <fieldset body class="modal-form modal-form-fieldset task-edit-form" [disabled]="isSubmitting" *ngIf="editingTask as task">
         <!-- Title Input (Required) -->
@@ -201,8 +201,8 @@ import { Project, Task, TaskType } from '../../../core/models/task.models';
         </div>
       </fieldset>
       <div footer>
-        <ui-button variant="secondary" size="md" [disabled]="isSubmitting" (onClick)="close.emit()">{{ editLoadError ? ('audit.zakryt' | t) : ('common.cancel' | t) }}</ui-button>
-        <ui-button *ngIf="editingTask" variant="primary" size="md" [loading]="isSubmitting" (onClick)="submit.emit()">{{ 'tasks.sohranit_izmeneniya' | t }}</ui-button>
+        <button smt-button type="button" smtVariant="secondary" smtSize="md" [disabled]="isSubmitting" (click)="close.emit()">{{ editLoadError ? ('audit.zakryt' | t) : ('common.cancel' | t) }}</button>
+        <button smt-button type="button" *ngIf="editingTask" smtVariant="primary" smtSize="md" [smtLoading]="isSubmitting" (click)="submit.emit()">{{ 'tasks.sohranit_izmeneniya' | t }}</button>
       </div>
     </ui-modal>
 
@@ -216,8 +216,8 @@ import { Project, Task, TaskType } from '../../../core/models/task.models';
         <p>{{ 'tasks.discard_edit_message' | t }}</p>
       </div>
       <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="cancelDiscard.emit()">{{ 'common.cancel' | t }}</ui-button>
-        <ui-button variant="danger" size="md" (onClick)="confirmDiscard.emit()">{{ 'tasks.discard_edit_action' | t }}</ui-button>
+        <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="cancelDiscard.emit()">{{ 'common.cancel' | t }}</button>
+        <button smt-button type="button" smtVariant="danger" smtSize="md" (click)="confirmDiscard.emit()">{{ 'tasks.discard_edit_action' | t }}</button>
       </div>
     </ui-modal>
   `,

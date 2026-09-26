@@ -1,7 +1,7 @@
 import { Component, computed, EventEmitter, inject, Input, Output, Signal, signal, TemplateRef, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
-import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { UiServerTableComponent } from '../../../shared/ui/ui-server-table.component';
 import { UiBulkResultComponent } from '../../../shared/ui/ui-bulk-result.component';
 import { BulkResult } from '../../../shared/bulk/bulk';
@@ -32,7 +32,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
   imports: [
     CommonModule,
     TranslatePipe,
-    UiButtonComponent,
+    SMTButtonComponent,
     UiServerTableComponent,
     UiBulkResultComponent,
     SMTSelectComponent
@@ -57,16 +57,16 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
               [options]="statusOptions()" [value]="bulkStatusId()" (valueChange)="bulkStatusId.set($event)"
               [placeholder]="'tasks.bulk.choose' | t" [emptyLabel]="'tasks.bulk.choose' | t"></smt-select>
           </div>
-          <ui-button variant="secondary" size="sm" data-testid="bulk-status-apply" [disabled]="!bulkStatusId() || bulkBusy()"
-            [loading]="bulkBusy() && bulkAction() === 'status'" (onClick)="applyBulk('status')">{{ 'tasks.bulk.apply' | t }}</ui-button>
+          <button smt-button type="button" smtVariant="secondary" smtSize="sm" data-testid="bulk-status-apply" [disabled]="!bulkStatusId() || bulkBusy()"
+            [smtLoading]="bulkBusy() && bulkAction() === 'status'" (click)="applyBulk('status')">{{ 'tasks.bulk.apply' | t }}</button>
           <div class="bulk-field">
             <label class="bulk-label" for="task-bulk-priority">{{ 'common.priority' | t }}</label>
             <smt-select class="bulk-select" data-testid="bulk-priority" smtTriggerId="task-bulk-priority" [disabled]="bulkBusy()"
               [options]="priorityOptions()" [value]="bulkPriority()" (valueChange)="bulkPriority.set($event)"
               [placeholder]="'tasks.bulk.choose' | t" [emptyLabel]="'tasks.bulk.choose' | t"></smt-select>
           </div>
-          <ui-button variant="secondary" size="sm" data-testid="bulk-priority-apply" [disabled]="!bulkPriority() || bulkBusy()"
-            [loading]="bulkBusy() && bulkAction() === 'priority'" (onClick)="applyBulk('priority')">{{ 'tasks.bulk.apply' | t }}</ui-button>
+          <button smt-button type="button" smtVariant="secondary" smtSize="sm" data-testid="bulk-priority-apply" [disabled]="!bulkPriority() || bulkBusy()"
+            [smtLoading]="bulkBusy() && bulkAction() === 'priority'" (click)="applyBulk('priority')">{{ 'tasks.bulk.apply' | t }}</button>
         </div>
       </ui-server-table>
       <ui-bulk-result [result]="bulkResult()" [itemLabel]="bulkItemLabel" (closed)="bulkResult.set(null)" />
@@ -181,9 +181,9 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
         <span class="material-symbols-outlined icon" aria-hidden="true">task</span>
         <p>{{ 'tasks.zadachi_ne_naydeny' | t }}</p>
         @if (hasActiveFilters) {
-          <ui-button variant="secondary" size="sm" (onClick)="resetFilters.emit()">{{ 'tasks.sbrosit_vse_filtry' | t }}</ui-button>
+          <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="resetFilters.emit()">{{ 'tasks.sbrosit_vse_filtry' | t }}</button>
         } @else if (canCreateTask) {
-          <ui-button variant="primary" size="sm" icon="add" (onClick)="createTask.emit()">{{ 'task.new' | t }}</ui-button>
+          <button smt-button type="button" smtVariant="primary" smtSize="sm" smtIcon="add" (click)="createTask.emit()">{{ 'task.new' | t }}</button>
         }
       </div>
     </ng-template>

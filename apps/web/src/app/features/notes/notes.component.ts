@@ -7,7 +7,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ApiService } from '../../core/services/api.service';
 import { ToastService } from '../../core/services/toast.service';
 import { PermissionService } from '../../core/services/permission.service';
-import { UiButtonComponent } from '../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
 import { UiModalComponent } from '../../shared/ui/ui-modal.component';
 import { UiMarkdownEditorComponent } from '../../shared/ui/ui-markdown-editor.component';
 import { UiMarkdownViewComponent } from '../../shared/ui/ui-markdown-view.component';
@@ -38,7 +38,7 @@ export interface Note {
   imports: [SMTInputComponent, SMTInputValueAccessor, SMTCheckboxComponent, SMTCheckboxValueAccessor, SMTSelectComponent, SMTSelectValueAccessor,
     SMTTabBarComponent, CommonModule,
     FormsModule,
-    UiButtonComponent,
+    SMTButtonComponent,
     UiModalComponent,
     UiMarkdownEditorComponent,
     UiMarkdownViewComponent,
@@ -70,16 +70,16 @@ export interface Note {
             [smtAriaLabel]="'notes.search_placeholder' | t"
             [value]="searchQuery"
             (valueChange)="onSearchChange($any($event) ?? '')" />
-          <ui-button
+          <button smt-button type="button"
             *ngIf="canCreate()"
-            variant="primary"
-            size="md"
-            icon="add"
+            smtVariant="primary"
+            smtSize="md"
+            smtIcon="add"
             [attr.aria-label]="'notes.create' | t"
-            (onClick)="openCreateModal()"
+            (click)="openCreateModal()"
           >
             {{ 'notes.create' | t }}
-          </ui-button>
+          </button>
         </div>
       </div>
 
@@ -143,16 +143,16 @@ export interface Note {
           <span class="material-symbols-outlined empty-icon" aria-hidden="true">description</span>
           <h3>{{ 'notes.empty_title' | t }}</h3>
           <p>{{ 'notes.empty_desc' | t }}</p>
-          <ui-button
+          <button smt-button type="button"
             *ngIf="canCreate()"
-            variant="primary"
-            size="md"
-            icon="add"
+            smtVariant="primary"
+            smtSize="md"
+            smtIcon="add"
             [attr.aria-label]="'notes.create' | t"
-            (onClick)="openCreateModal()"
+            (click)="openCreateModal()"
           >
             {{ 'notes.create' | t }}
-          </ui-button>
+          </button>
         </div>
       </ng-template>
 
@@ -230,8 +230,8 @@ export interface Note {
 
         <div footer>
           <div class="modal-footer-actions">
-            <ui-button variant="secondary" [disabled]="isSaving()" (onClick)="closeModal()">{{ 'common.cancel' | t }}</ui-button>
-            <ui-button variant="primary" type="submit" form="noteForm" [loading]="isSaving()" (onClick)="saveNote()">{{ 'common.save' | t }}</ui-button>
+            <button smt-button type="button" smtVariant="secondary" [disabled]="isSaving()" (click)="closeModal()">{{ 'common.cancel' | t }}</button>
+            <button smt-button smtVariant="primary" type="submit" form="noteForm" [smtLoading]="isSaving()" (click)="saveNote()">{{ 'common.save' | t }}</button>
           </div>
         </div>
       </ui-modal>
@@ -249,8 +249,8 @@ export interface Note {
         </p>
         <div footer>
           <div class="modal-footer-actions">
-            <ui-button variant="secondary" [disabled]="isDeleting()" (onClick)="cancelDelete()">{{ 'common.cancel' | t }}</ui-button>
-            <ui-button variant="danger" [loading]="isDeleting()" (onClick)="confirmDelete()">{{ 'common.delete' | t }}</ui-button>
+            <button smt-button type="button" smtVariant="secondary" [disabled]="isDeleting()" (click)="cancelDelete()">{{ 'common.cancel' | t }}</button>
+            <button smt-button type="button" smtVariant="danger" [smtLoading]="isDeleting()" (click)="confirmDelete()">{{ 'common.delete' | t }}</button>
           </div>
         </div>
       </ui-modal>

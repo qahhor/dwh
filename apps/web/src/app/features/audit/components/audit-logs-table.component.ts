@@ -2,7 +2,7 @@ import { Component, computed, EventEmitter, inject, Input, Output, Signal, signa
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
-import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { UiServerTableComponent } from '../../../shared/ui/ui-server-table.component';
 import { DateRange, SMTDateRangePickerComponent } from '../../../shared/ui-kit/components/forms/date-picker';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
@@ -21,7 +21,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
     SMTInputComponent,
     SMTInputValueAccessor,
     TranslatePipe,
-    UiButtonComponent,
+    SMTButtonComponent,
     UiServerTableComponent,
     SMTDateRangePickerComponent,
     SMTSelectComponent
@@ -59,10 +59,10 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
               [value]="period()" (valueChange)="onPeriodChange($event)" />
           </div>
 
-          <ui-button id="audit-apply-filters" variant="primary" size="sm" icon="filter_alt"
-            (onClick)="applyFilters.emit()">{{ 'audit.apply_filters' | t }}</ui-button>
-          <ui-button id="audit-reset-filters" variant="ghost" size="sm" icon="filter_alt_off"
-            (onClick)="resetFilters.emit()">{{ 'audit.reset_filters' | t }}</ui-button>
+          <button smt-button type="button" id="audit-apply-filters" smtVariant="primary" smtSize="sm" smtIcon="filter_alt"
+            (click)="applyFilters.emit()">{{ 'audit.apply_filters' | t }}</button>
+          <button smt-button type="button" id="audit-reset-filters" smtVariant="ghost" smtSize="sm" smtIcon="filter_alt_off"
+            (click)="resetFilters.emit()">{{ 'audit.reset_filters' | t }}</button>
         </div>
       </div>
 

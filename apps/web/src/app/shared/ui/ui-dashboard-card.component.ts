@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { TranslatePipe } from '../../core/services/i18n.service';
-import { UiButtonComponent } from './ui-button.component';
+import { SMTButtonComponent } from '../ui-kit/components/button';
 
 let nextCardId = 0;
 
@@ -14,7 +14,7 @@ let nextCardId = 0;
   selector: 'ui-dashboard-card',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TranslatePipe, UiButtonComponent],
+  imports: [TranslatePipe, SMTButtonComponent],
   template: `
     <section class="dash-card" [attr.aria-labelledby]="titleId" [attr.aria-busy]="loading() || null">
       <header class="dash-card__head">
@@ -30,7 +30,7 @@ let nextCardId = 0;
         @if (failed()) {
           <div class="dash-card__state dash-card__state--error" role="alert" data-testid="dash-card-error">
             <span>{{ errorText() || ('ui.dashboard.load_error' | t) }}</span>
-            <ui-button variant="secondary" size="sm" (onClick)="retry.emit()">{{ 'common.retry' | t }}</ui-button>
+            <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="retry.emit()">{{ 'common.retry' | t }}</button>
           </div>
         } @else if (loading()) {
           <div class="dash-card__state" role="status" data-testid="dash-card-loading">

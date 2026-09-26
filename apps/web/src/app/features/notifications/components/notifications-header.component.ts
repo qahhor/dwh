@@ -1,12 +1,12 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslatePipe } from '../../../core/services/i18n.service';
-import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 
 @Component({
   selector: 'app-notifications-header',
   standalone: true,
-  imports: [CommonModule, TranslatePipe, UiButtonComponent],
+  imports: [CommonModule, TranslatePipe, SMTButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="view-header">
@@ -17,32 +17,32 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
         </span>
       </div>
       <div class="header-right">
-        <ui-button
-          variant="secondary"
-          icon="refresh"
-          [loading]="isLoading()"
-          [ariaLabel]="'notifications.obnovit' | t"
-          (onClick)="refresh.emit()"
+        <button smt-button type="button"
+          smtVariant="secondary"
+          smtIcon="refresh"
+          [smtLoading]="isLoading()"
+          [attr.aria-label]="'notifications.obnovit' | t"
+          (click)="refresh.emit()"
         >
           {{ 'notifications.obnovit' | t }}
-        </ui-button>
-        <ui-button
-          variant="secondary"
-          icon="done_all"
+        </button>
+        <button smt-button type="button"
+          smtVariant="secondary"
+          smtIcon="done_all"
           [disabled]="unreadCount() === 0 || hasPendingReads() || isMarkingAll()"
-          [loading]="isMarkingAll()"
-          (onClick)="markAllRead.emit()"
+          [smtLoading]="isMarkingAll()"
+          (click)="markAllRead.emit()"
         >
           {{ 'notifications.prochitat_vse' | t }}
-        </ui-button>
-        <ui-button
-          variant="secondary"
-          icon="tune"
-          [ariaLabel]="'notifications.preferences_title' | t"
-          (onClick)="openPreferences.emit()"
+        </button>
+        <button smt-button type="button"
+          smtVariant="secondary"
+          smtIcon="tune"
+          [attr.aria-label]="'notifications.preferences_title' | t"
+          (click)="openPreferences.emit()"
         >
           {{ 'notifications.preferences_title' | t }}
-        </ui-button>
+        </button>
       </div>
     </div>
   `,

@@ -99,7 +99,7 @@
     .request-error { color: var(--danger); }
 
     @media (max-width: 768px) {
-      .header-right > ui-button { order: -1; }
+      .header-right > .smt-button { order: -1; }
       .compact-secondary-action { padding-inline: 7px; }
       .compact-secondary-action > span:not(.material-symbols-outlined) { display: none; }
     }

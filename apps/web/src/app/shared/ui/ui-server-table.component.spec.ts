@@ -266,7 +266,7 @@ describe('ui-server-table selection', () => {
     expect(bar(fixture)!.querySelector('[role="status"]')?.textContent).toContain('Выбрано: 2');
     expect(bar(fixture)!.querySelector('.host-action')).not.toBeNull();
 
-    (bar(fixture)!.querySelector('[data-testid="bulk-clear"] button') as HTMLButtonElement).click();
+    (bar(fixture)!.querySelector('button[data-testid="bulk-clear"]') as HTMLButtonElement).click();
     fixture.detectChanges();
     expect(fixture.componentInstance.chosen).toEqual([]);
     expect(bar(fixture)).toBeNull();

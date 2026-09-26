@@ -3,7 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
-import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { ApiService } from '../../../core/services/api.service';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
 import { ThemeService } from '../../../core/services/theme.service';
@@ -22,7 +22,7 @@ export * from './login.models';
     TranslatePipe,
     CommonModule,
     FormsModule,
-    UiButtonComponent,
+    SMTButtonComponent,
     LoginTopBarComponent,
     LoginHeaderComponent,
     LoginResetModalComponent
@@ -77,16 +77,16 @@ export * from './login.models';
 
           <p *ngIf="formError()" id="login-error" class="form-error" role="alert">{{ formError() }}</p>
 
-          <ui-button
+          <button smt-button
             type="submit"
-            variant="primary"
-            size="lg"
-            [loading]="isLoading()"
-            [fullWidth]="true"
+            smtVariant="primary"
+            smtSize="lg"
+            [smtLoading]="isLoading()"
+            [smtFullWidth]="true"
             class="submit-btn"
           >
             {{ 'auth.voyti_v_sistemu' | t }}
-          </ui-button>
+          </button>
 
         </form>
 
@@ -121,26 +121,26 @@ export * from './login.models';
           <p *ngIf="formError()" id="otp-error" class="form-error" role="alert">{{ formError() }}</p>
 
           <div class="otp-actions">
-            <ui-button
+            <button smt-button
               type="submit"
-              variant="primary"
-              size="lg"
-              [loading]="isLoading()"
-              [fullWidth]="true"
+              smtVariant="primary"
+              smtSize="lg"
+              [smtLoading]="isLoading()"
+              [smtFullWidth]="true"
               class="submit-btn"
             >
               {{ 'auth.podtverdit_vhod' | t }}
-            </ui-button>
+            </button>
 
-            <ui-button
+            <button smt-button
               type="button"
-              variant="ghost"
-              size="md"
+              smtVariant="ghost"
+              smtSize="md"
               [disabled]="isLoading()"
-              (onClick)="backToCredentials()"
+              (click)="backToCredentials()"
             >
               {{ 'auth.vernutsya_nazad' | t }}
-            </ui-button>
+            </button>
           </div>
         </form>
 
@@ -199,26 +199,26 @@ export * from './login.models';
           <p *ngIf="formError()" id="password-change-error" class="form-error" role="alert">{{ formError() }}</p>
 
           <div class="otp-actions">
-            <ui-button
+            <button smt-button
               type="submit"
-              variant="primary"
-              size="lg"
-              [loading]="isLoading()"
-              [fullWidth]="true"
+              smtVariant="primary"
+              smtSize="lg"
+              [smtLoading]="isLoading()"
+              [smtFullWidth]="true"
               class="submit-btn"
             >
               {{ 'auth.change_password' | t }}
-            </ui-button>
+            </button>
 
-            <ui-button
+            <button smt-button
               type="button"
-              variant="ghost"
-              size="md"
+              smtVariant="ghost"
+              smtSize="md"
               [disabled]="isLoading()"
-              (onClick)="backToCredentials()"
+              (click)="backToCredentials()"
             >
               {{ 'common.cancel' | t }}
-            </ui-button>
+            </button>
           </div>
         </form>
       </div>

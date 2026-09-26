@@ -5,7 +5,7 @@ import { I18nService, TranslatePipe } from '../../../core/services/i18n.service'
 import { LanguageInfo } from '../../../core/models/i18n.models';
 import { SMTTableComponent } from '../../../shared/ui-kit/components/table/table.component';
 import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
-import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { LanguageEditorComponent } from '../language-editor.component';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
@@ -18,7 +18,7 @@ import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/
     CommonModule,
     FormsModule,
     TranslatePipe,
-    UiButtonComponent,
+    SMTButtonComponent,
     UiModalComponent,
     LanguageEditorComponent,
     SMTTableComponent
@@ -148,8 +148,8 @@ import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/
         </div>
       </div>
       <div modal-footer class="modal-footer-btns">
-        <ui-button variant="secondary" (onClick)="closeAddLangModal.emit()" [disabled]="isAddingLang">{{ 'common.cancel' | t }}</ui-button>
-        <ui-button variant="primary" [loading]="isAddingLang" (onClick)="saveNewLanguage.emit()" [disabled]="!newLangCode.trim() || !newLangName.trim()">{{ 'settings.sohranit_yazyk' | t }}</ui-button>
+        <button smt-button type="button" smtVariant="secondary" (click)="closeAddLangModal.emit()" [disabled]="isAddingLang">{{ 'common.cancel' | t }}</button>
+        <button smt-button type="button" smtVariant="primary" [smtLoading]="isAddingLang" (click)="saveNewLanguage.emit()" [disabled]="!newLangCode.trim() || !newLangName.trim()">{{ 'settings.sohranit_yazyk' | t }}</button>
       </div>
     </ui-modal>
   `,

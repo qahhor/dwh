@@ -157,7 +157,7 @@ describe('UserOrgUnitsPanelComponent', () => {
     panel.reloadTree(); fixture.detectChanges();
     expect(panel.selectedOrgUnitIds()).toEqual([7]); expect(panel.effectiveScope?.visibleOrgUnitIds).toEqual([7, 8]);
     expect(fixture.nativeElement.textContent).toContain('Tree only failed');
-    const retry = fixture.nativeElement.querySelector('[data-action="retry-assignment-tree"] button') as HTMLButtonElement;
+    const retry = fixture.nativeElement.querySelector('button[data-action="retry-assignment-tree"]') as HTMLButtonElement;
     expect(retry).not.toBeNull(); retry.click(); fixture.detectChanges();
     expect(api.list).toHaveBeenCalledTimes(3); expect(api.assignments).toHaveBeenCalledTimes(1); expect(api.scope).toHaveBeenCalledTimes(1);
   });

@@ -2,7 +2,7 @@ import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
-import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { UiCustomFieldsComponent } from '../../../../shared/ui/ui-custom-fields.component';
 import { TranslatePipe, I18nService } from '../../../../core/services/i18n.service';
 import { SMTControlComponent } from '../../../../shared/ui-kit/components/forms/control';
@@ -23,7 +23,7 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
     FormsModule,
     TranslatePipe,
     UiModalComponent,
-    UiButtonComponent,
+    SMTButtonComponent,
     UiCustomFieldsComponent
   ],
   template: `
@@ -33,7 +33,7 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
         <p *ngIf="recordLoading" role="status">{{ 'search.record_loading' | t }}</p>
         <div *ngIf="recordError" role="alert">
           <p>{{ (recordNotFound ? 'search.record_not_found' : 'search.record_load_error') | t }}</p>
-          <ui-button *ngIf="!recordNotFound" variant="secondary" (onClick)="loadRecordView.emit(routeRecordId)">{{ 'audit.retry' | t }}</ui-button>
+          <button smt-button type="button" *ngIf="!recordNotFound" smtVariant="secondary" (click)="loadRecordView.emit(routeRecordId)">{{ 'audit.retry' | t }}</button>
         </div>
         <div *ngIf="viewingProject as project" [attr.data-record-id]="routeRecordId">
           <p>#{{ routeRecordId }}</p>
@@ -49,7 +49,7 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
           </div>
         </div>
       </div>
-      <div footer><ui-button variant="secondary" (onClick)="closeRecordView.emit()">{{ 'search.back_to_list' | t }}</ui-button></div>
+      <div footer><button smt-button type="button" smtVariant="secondary" (click)="closeRecordView.emit()">{{ 'search.back_to_list' | t }}</button></div>
     </ui-modal>
 
     <!-- Create Project Modal -->
@@ -90,8 +90,8 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
         </fieldset>
       </form>
       <div footer>
-        <ui-button variant="secondary" size="md" [disabled]="isSubmitting" (onClick)="requestCloseCreate.emit()">{{ 'common.cancel' | t }}</ui-button>
-        <ui-button type="submit" form="project-create-form" variant="primary" size="md" [loading]="isSubmitting">{{ 'projects.sozdat_proekt' | t }}</ui-button>
+        <button smt-button type="button" smtVariant="secondary" smtSize="md" [disabled]="isSubmitting" (click)="requestCloseCreate.emit()">{{ 'common.cancel' | t }}</button>
+        <button smt-button type="submit" form="project-create-form" smtVariant="primary" smtSize="md" [smtLoading]="isSubmitting">{{ 'projects.sozdat_proekt' | t }}</button>
       </div>
     </ui-modal>
 
@@ -103,8 +103,8 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
     >
       <div body><p>{{ 'projects.discard_create_message' | t }}</p></div>
       <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="cancelNavigationDiscard.emit('create')">{{ 'common.cancel' | t }}</ui-button>
-        <ui-button variant="danger" size="md" (onClick)="confirmDiscardCreate.emit()">{{ 'projects.discard_create_action' | t }}</ui-button>
+        <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="cancelNavigationDiscard.emit('create')">{{ 'common.cancel' | t }}</button>
+        <button smt-button type="button" smtVariant="danger" smtSize="md" (click)="confirmDiscardCreate.emit()">{{ 'projects.discard_create_action' | t }}</button>
       </div>
     </ui-modal>
 
@@ -121,7 +121,7 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
       </div>
       <div body class="request-state request-error" data-testid="project-edit-load-error" *ngIf="editLoadError" role="alert">
         <span>{{ 'projects.edit_load_error' | t }}</span>
-        <ui-button class="project-edit-retry" variant="secondary" size="sm" (onClick)="retryEditLoad.emit()">{{ 'projects.retry_edit_load' | t }}</ui-button>
+        <button smt-button type="button" class="project-edit-retry" smtVariant="secondary" smtSize="sm" (click)="retryEditLoad.emit()">{{ 'projects.retry_edit_load' | t }}</button>
       </div>
       <form body id="project-edit-form" (ngSubmit)="submitEditProject.emit()" *ngIf="editingProject as p">
         <fieldset class="modal-form modal-form-fieldset project-edit-form" [disabled]="isSubmitting">
@@ -157,8 +157,8 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
         </fieldset>
       </form>
       <div footer>
-        <ui-button variant="secondary" size="md" [disabled]="isSubmitting" (onClick)="requestCloseEdit.emit()">{{ 'common.cancel' | t }}</ui-button>
-        <ui-button *ngIf="editingProject" type="submit" form="project-edit-form" variant="primary" size="md" [loading]="isSubmitting">{{ 'common.save' | t }}</ui-button>
+        <button smt-button type="button" smtVariant="secondary" smtSize="md" [disabled]="isSubmitting" (click)="requestCloseEdit.emit()">{{ 'common.cancel' | t }}</button>
+        <button smt-button *ngIf="editingProject" type="submit" form="project-edit-form" smtVariant="primary" smtSize="md" [smtLoading]="isSubmitting">{{ 'common.save' | t }}</button>
       </div>
     </ui-modal>
 
@@ -170,8 +170,8 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
     >
       <div body><p>{{ 'projects.discard_edit_message' | t }}</p></div>
       <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="cancelNavigationDiscard.emit('edit')">{{ 'common.cancel' | t }}</ui-button>
-        <ui-button variant="danger" size="md" (onClick)="confirmDiscardEdit.emit()">{{ 'projects.discard_edit_action' | t }}</ui-button>
+        <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="cancelNavigationDiscard.emit('edit')">{{ 'common.cancel' | t }}</button>
+        <button smt-button type="button" smtVariant="danger" smtSize="md" (click)="confirmDiscardEdit.emit()">{{ 'projects.discard_edit_action' | t }}</button>
       </div>
     </ui-modal>
   `,

@@ -5,7 +5,7 @@ import { Subscription, timer } from 'rxjs';
 import { ExportItem, ExportsService } from '../../core/services/exports.service';
 import { I18nService, TranslatePipe } from '../../core/services/i18n.service';
 import { UiBadgeComponent } from '../../shared/ui/ui-badge.component';
-import { UiButtonComponent } from '../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
 import { UiLocalTableComponent } from '../../shared/ui/ui-local-table.component';
 import { TableConfig } from '../../shared/ui-kit/components/table/table.types';
 import { SMTAlertComponent } from '../../shared/ui-kit/components/alert';
@@ -38,7 +38,7 @@ const POLL_MS = 3000;
   selector: 'app-exports',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTAlertComponent, DatePipe, TranslatePipe, UiBadgeComponent, UiButtonComponent, UiLocalTableComponent],
+  imports: [SMTAlertComponent, DatePipe, TranslatePipe, UiBadgeComponent, SMTButtonComponent, UiLocalTableComponent],
   template: `
     <section class="exports-page" aria-labelledby="exports-title">
       <header class="exports-head">
@@ -46,15 +46,15 @@ const POLL_MS = 3000;
           <h1 id="exports-title" class="exports-title">{{ 'exports.title' | t }}</h1>
           <p class="exports-subtitle">{{ 'exports.subtitle' | t }}</p>
         </div>
-        <ui-button variant="secondary" size="sm" icon="refresh" data-testid="exports-refresh" (onClick)="load()">
+        <button smt-button type="button" smtVariant="secondary" smtSize="sm" smtIcon="refresh" data-testid="exports-refresh" (click)="load()">
           {{ 'common.refresh' | t }}
-        </ui-button>
+        </button>
       </header>
 
       @if (failed()) {
         <smt-alert smtTone="danger" data-testid="exports-error">
           <span>{{ 'exports.load_error' | t }}</span>
-          <ui-button variant="secondary" size="sm" (onClick)="load()">{{ 'common.retry' | t }}</ui-button>
+          <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="load()">{{ 'common.retry' | t }}</button>
         </smt-alert>
       }
 

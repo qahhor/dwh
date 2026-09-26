@@ -2,7 +2,7 @@ import { Component, inject, input, model, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { SMTModalService } from '../../../shared/ui-kit/components/modal';
 import { UPL_DATA_TYPES, UplColumn, UplDataType, UplFormatDraftRequest, UplSheet, UplUnit } from '../upl-api';
 import { UPL_DATA_TYPE_KEY } from '../upl-labels';
@@ -21,7 +21,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
   selector: 'app-upl-format-sheets-step',
   standalone: true,
   // Не OnPush: вид файла и сопоставление колонок меняет соседний шаг «Файл» в той же изменяемой модели.
-  imports: [SMTCheckboxComponent, SMTCheckboxValueAccessor, SMTInputComponent, SMTInputValueAccessor, SMTSelectComponent, SMTSelectValueAccessor, FormsModule, TranslatePipe, UiButtonComponent],
+  imports: [SMTCheckboxComponent, SMTCheckboxValueAccessor, SMTInputComponent, SMTInputValueAccessor, SMTSelectComponent, SMTSelectValueAccessor, FormsModule, TranslatePipe, SMTButtonComponent],
   template: `
     <h2 class="upl-block-title">{{ 'upl.format.sheets' | t }}</h2>
     <div class="upl-tabs" role="tablist">
@@ -289,32 +289,32 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
                   }
                   @if (editable()) {
                     <td class="upl-row-actions">
-                      <ui-button
-                        variant="ghost"
-                        size="sm"
-                        icon="arrow_upward"
+                      <button smt-button type="button"
+                        smtVariant="ghost"
+                        smtSize="sm"
+                        smtIcon="arrow_upward"
                         data-testid="upl-column-up"
-                        [ariaLabel]="'upl.format.move_up' | t"
+                        [attr.aria-label]="'upl.format.move_up' | t"
                         [disabled]="$index === 0"
-                        (onClick)="moveColumn($index, -1)"
-                      ></ui-button>
-                      <ui-button
-                        variant="ghost"
-                        size="sm"
-                        icon="arrow_downward"
+                        (click)="moveColumn($index, -1)"
+                      ></button>
+                      <button smt-button type="button"
+                        smtVariant="ghost"
+                        smtSize="sm"
+                        smtIcon="arrow_downward"
                         data-testid="upl-column-down"
-                        [ariaLabel]="'upl.format.move_down' | t"
+                        [attr.aria-label]="'upl.format.move_down' | t"
                         [disabled]="$index === sheet.columns.length - 1"
-                        (onClick)="moveColumn($index, 1)"
-                      ></ui-button>
-                      <ui-button
-                        variant="ghost"
-                        size="sm"
-                        icon="close"
+                        (click)="moveColumn($index, 1)"
+                      ></button>
+                      <button smt-button type="button"
+                        smtVariant="ghost"
+                        smtSize="sm"
+                        smtIcon="close"
                         data-testid="upl-column-remove"
-                        [ariaLabel]="'upl.format.remove_column' | t"
-                        (onClick)="removeColumn($index)"
-                      ></ui-button>
+                        [attr.aria-label]="'upl.format.remove_column' | t"
+                        (click)="removeColumn($index)"
+                      ></button>
                     </td>
                   }
                 </tr>
@@ -325,9 +325,9 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
       </div>
 
       @if (editable()) {
-        <ui-button variant="secondary" size="sm" data-testid="upl-add-column" (onClick)="addColumn()">
+        <button smt-button type="button" smtVariant="secondary" smtSize="sm" data-testid="upl-add-column" (click)="addColumn()">
           {{ 'upl.format.add_column' | t }}
-        </ui-button>
+        </button>
       }
     }
   `,

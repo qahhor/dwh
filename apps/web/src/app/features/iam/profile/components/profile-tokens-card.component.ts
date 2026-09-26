@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, Output, Signal, TemplateRef, computed, inject, signal, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { UiLocalTableComponent } from '../../../../shared/ui/ui-local-table.component';
@@ -19,7 +19,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
     CommonModule,
     FormsModule,
     TranslatePipe,
-    UiButtonComponent,
+    SMTButtonComponent,
     UiModalComponent,
     SMTControlComponent,
     SMTRadioGroupComponent
@@ -32,9 +32,9 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
           <h4 class="section-title">{{ 'iam.api_tokeny_dostupa_bearer_tokens' | t }}</h4>
           <span class="badge-count">{{ tokens.length }}</span>
         </div>
-        <ui-button variant="primary" size="sm" icon="add" (onClick)="openCreateTokenModal.emit()">
+        <button smt-button type="button" smtVariant="primary" smtSize="sm" smtIcon="add" (click)="openCreateTokenModal.emit()">
           {{ 'iam.vypustit_token' | t }}
-        </ui-button>
+        </button>
       </div>
 
       <div class="table-wrapper" role="region" [attr.aria-label]="'iam.tablica_api_tokenov' | t" tabindex="0">
@@ -50,9 +50,9 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
     <ng-template #tokenExpiresCell let-t><span class="tabular-nums">{{ t.expiresAt ? (t.expiresAt | date:'dd.MM.yyyy') : ('common.never_expires' | t) }}</span></ng-template>
     <ng-template #tokenActionCell let-t>
       <div class="text-right">
-        <ui-button variant="danger" size="sm" icon="delete" [ariaLabel]="'iam.revoke_api_token_named' | t:{name: t.name}" (onClick)="requestRevoke.emit(t)">
+        <button smt-button type="button" smtVariant="danger" smtSize="sm" smtIcon="delete" [attr.aria-label]="'iam.revoke_api_token_named' | t:{name: t.name}" (click)="requestRevoke.emit(t)">
           {{ 'iam.otozvat' | t }}
-        </ui-button>
+        </button>
       </div>
     </ng-template>
     <ng-template #emptyTokens><p class="empty-cell">{{ 'iam.net_sozdannyh_api_tokenov' | t }}</p></ng-template>
@@ -91,12 +91,12 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
         </smt-control>
       </div>
       <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="closeCreateTokenModal.emit()">
+        <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeCreateTokenModal.emit()">
           {{ 'common.cancel' | t }}
-        </ui-button>
-        <ui-button variant="primary" size="md" [loading]="isCreatingToken" (onClick)="createTokenSubmit.emit()">
+        </button>
+        <button smt-button type="button" smtVariant="primary" smtSize="md" [smtLoading]="isCreatingToken" (click)="createTokenSubmit.emit()">
           {{ 'iam.sgenerirovat' | t }}
-        </ui-button>
+        </button>
       </div>
     </ui-modal>
 
@@ -115,18 +115,18 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
         </div>
         <div class="token-secret-box">
           <code>{{ createdTokenSecret }}</code>
-          <ui-button
-            [variant]="copiedSecret ? 'primary' : 'secondary'"
-            size="sm"
-            [icon]="copiedSecret ? 'check' : 'content_copy'"
-            (onClick)="copySecret.emit()"
+          <button smt-button type="button"
+            [smtVariant]="copiedSecret ? 'primary' : 'secondary'"
+            smtSize="sm"
+            [smtIcon]="copiedSecret ? 'check' : 'content_copy'"
+            (click)="copySecret.emit()"
           >
             {{ (copiedSecret ? 'iam.skopirovano' : 'iam.skopirovat') | t }}
-          </ui-button>
+          </button>
         </div>
-        <ui-button variant="primary" size="md" class="mt-4" (onClick)="closeSecretModal.emit()">
+        <button smt-button type="button" smtVariant="primary" smtSize="md" class="mt-4" (click)="closeSecretModal.emit()">
           {{ 'iam.ya_sohranil_token' | t }}
-        </ui-button>
+        </button>
       </div>
     </ui-modal>
   `,

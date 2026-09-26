@@ -5,7 +5,7 @@ import { Subscription, filter, interval } from 'rxjs';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { RouterLink } from '@angular/router';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
-import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { BarChartPoint, BarChartSeries, UiBarChartComponent } from '../../../shared/ui/ui-bar-chart.component';
 import { UiKpiCardComponent } from '../../../shared/ui/ui-kpi-card.component';
 import { UiLocalTableComponent } from '../../../shared/ui/ui-local-table.component';
@@ -48,7 +48,7 @@ const STATE_KEY: Record<UplFreshnessState, string> = {
   selector: 'app-upl-overview',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTRadioGroupComponent, DatePipe, RouterLink, TranslatePipe, UiBadgeComponent, UiButtonComponent, UiDashboardCardComponent, UiLocalTableComponent, UiKpiCardComponent, UiBarChartComponent],
+  imports: [SMTRadioGroupComponent, DatePipe, RouterLink, TranslatePipe, UiBadgeComponent, SMTButtonComponent, UiDashboardCardComponent, UiLocalTableComponent, UiKpiCardComponent, UiBarChartComponent],
   template: `
     <section class="overview" aria-labelledby="overview-title">
       <header class="overview__head">
@@ -65,9 +65,9 @@ const STATE_KEY: Record<UplFreshnessState, string> = {
             [value]="days()"
             [smtAriaLabel]="'upl.overview.period' | t"
             (valueChange)="choose($event ?? days())" />
-          <ui-button variant="secondary" size="sm" icon="refresh" data-testid="overview-refresh" (onClick)="load()">
+          <button smt-button type="button" smtVariant="secondary" smtSize="sm" smtIcon="refresh" data-testid="overview-refresh" (click)="load()">
             {{ 'common.refresh' | t }}
-          </ui-button>
+          </button>
         </div>
       </header>
       @if (data(); as current) {

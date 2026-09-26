@@ -20,7 +20,7 @@ describe('OrgUnitsComponent lifecycle', () => {
   }
   it('empty state offers explicit root creation and opening never writes', () => {
     const { fixture, page, api } = setup([]);
-    const create = fixture.nativeElement.querySelector('[data-action="create"] button') as HTMLButtonElement;
+    const create = fixture.nativeElement.querySelector('button[data-action="create"]') as HTMLButtonElement;
     expect(create?.textContent ?? '').toContain('корень'); create.click(); fixture.detectChanges();
     expect(page.editorInitial).toMatchObject({ parentId: null });
     expect(api.create).not.toHaveBeenCalled(); expect(api.update).not.toHaveBeenCalled();
@@ -121,13 +121,13 @@ describe('OrgUnitsComponent lifecycle', () => {
   });
   it('requires named deletion confirmation and retains selection on server conflict', () => {
     const { fixture, page, api } = setup(); page.select(child); fixture.detectChanges();
-    const remove = fixture.nativeElement.querySelector('[data-action="delete"] button') as HTMLButtonElement;
+    const remove = fixture.nativeElement.querySelector('button[data-action="delete"]') as HTMLButtonElement;
     expect(remove).not.toBeNull(); remove.click(); fixture.detectChanges();
     expect(api.remove).not.toHaveBeenCalled();
     const dialog = fixture.nativeElement.querySelector('[data-delete-confirm]');
     expect(dialog.textContent).toContain('CHILD'); expect(dialog.textContent).toContain('Child');
     api.remove.mockReturnValueOnce(throwError(() => ({ status: 409, detail: 'Assigned employees' })));
-    (fixture.nativeElement.querySelector('[data-action="confirm-delete"] button') as HTMLButtonElement).click(); fixture.detectChanges();
+    (fixture.nativeElement.querySelector('button[data-action="confirm-delete"]') as HTMLButtonElement).click(); fixture.detectChanges();
     expect(api.remove).toHaveBeenCalledWith(2); expect(page.selected?.id).toBe(2);
     expect(fixture.nativeElement.textContent).toContain('Assigned employees');
   });

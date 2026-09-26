@@ -9,7 +9,7 @@ import { ToastService } from '../../core/services/toast.service';
 import { I18nService, TranslatePipe } from '../../core/services/i18n.service';
 import { PermissionService } from '../../core/services/permission.service';
 import { ThemeService } from '../../core/services/theme.service';
-import { UiButtonComponent } from '../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
 import { SMTModalService } from '../../shared/ui-kit/components/modal';
 import { SearchSettingsComponent } from './search/search-settings.component';
 import { NavigationSettingsComponent } from './navigation/navigation-settings.component';
@@ -30,7 +30,7 @@ import { optionsMemo } from '../../shared/ui-kit/components/forms/radio-group';
     SMTTabBarComponent, CommonModule,
     FormsModule,
     TranslatePipe,
-    UiButtonComponent,
+    SMTButtonComponent,
     SearchSettingsComponent,
     NavigationSettingsComponent,
     SettingsGeneralPanelComponent,

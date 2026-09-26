@@ -1,6 +1,6 @@
 import { Component, EventEmitter, Input, Output, Signal, TemplateRef, computed, inject, signal, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { UiBadgeComponent } from '../../../../shared/ui/ui-badge.component';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { UiLocalTableComponent } from '../../../../shared/ui/ui-local-table.component';
@@ -14,7 +14,7 @@ import { UserSession } from '../profile.models';
     UiLocalTableComponent,
     CommonModule,
     TranslatePipe,
-    UiButtonComponent,
+    SMTButtonComponent,
     UiBadgeComponent
   ],
   template: `
@@ -26,26 +26,26 @@ import { UserSession } from '../profile.models';
           <span class="badge-count">{{ sessions.length }}</span>
         </div>
         <div class="sessions-header-actions">
-          <ui-button
+          <button smt-button type="button"
             *ngIf="sessions.length > 1"
-            variant="danger"
-            size="sm"
-            icon="logout"
-            [loading]="isTerminatingSession"
+            smtVariant="danger"
+            smtSize="sm"
+            smtIcon="logout"
+            [smtLoading]="isTerminatingSession"
             [title]="'iam.zavershit_vse_ostalnye_sessii_krome_tekuschey' | t"
-            (onClick)="terminateOtherSessions.emit()"
+            (click)="terminateOtherSessions.emit()"
           >
             {{ 'iam.zavershit_drugie_sessii' | t }}
-          </ui-button>
-          <ui-button
-            variant="secondary"
-            size="sm"
-            icon="refresh"
-            [loading]="isLoadingSessions"
-            (onClick)="loadSessions.emit()"
+          </button>
+          <button smt-button type="button"
+            smtVariant="secondary"
+            smtSize="sm"
+            smtIcon="refresh"
+            [smtLoading]="isLoadingSessions"
+            (click)="loadSessions.emit()"
           >
             {{ 'common.refresh' | t }}
-          </ui-button>
+          </button>
         </div>
       </div>
 
@@ -72,9 +72,9 @@ import { UserSession } from '../profile.models';
         @if (s.current) {
           <span class="current-session-label text-muted">{{ 'iam.tekuschaya' | t }}</span>
         } @else {
-          <ui-button variant="danger" size="sm" [ariaLabel]="'iam.terminate_session_ip' | t:{ip: s.ip}" (onClick)="terminateSession.emit(s)">
+          <button smt-button type="button" smtVariant="danger" smtSize="sm" [attr.aria-label]="'iam.terminate_session_ip' | t:{ip: s.ip}" (click)="terminateSession.emit(s)">
             {{ 'iam.zavershit' | t }}
-          </ui-button>
+          </button>
         }
       </div>
     </ng-template>

@@ -5,7 +5,7 @@ import { ApiService } from '../../../core/services/api.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
 import { PermissionService } from '../../../core/services/permission.service';
-import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { UiLocalTableComponent } from '../../../shared/ui/ui-local-table.component';
 import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
@@ -25,7 +25,7 @@ import { SMTCheckboxComponent } from '../../../shared/ui-kit/components/forms/ch
 @Component({
   selector: 'app-webhooks-settings',
   standalone: true,
-  imports: [SMTCheckboxComponent, SMTInputComponent, SMTInputValueAccessor, CommonModule, FormsModule, TranslatePipe, UiButtonComponent, UiModalComponent, UiLocalTableComponent],
+  imports: [SMTCheckboxComponent, SMTInputComponent, SMTInputValueAccessor, CommonModule, FormsModule, TranslatePipe, SMTButtonComponent, UiModalComponent, UiLocalTableComponent],
   template: `
     <div class="webhooks-container">
       <!-- Section Header -->
@@ -35,24 +35,24 @@ import { SMTCheckboxComponent } from '../../../shared/ui-kit/components/forms/ch
           <p class="section-subtitle">{{ 'settings.webhooks.subtitle' | t }}</p>
         </div>
         <div class="header-right">
-          <ui-button
-            variant="secondary"
-            size="sm"
-            icon="refresh"
-            [loading]="isLoading()"
-            (onClick)="loadSubscriptions()"
+          <button smt-button type="button"
+            smtVariant="secondary"
+            smtSize="sm"
+            smtIcon="refresh"
+            [smtLoading]="isLoading()"
+            (click)="loadSubscriptions()"
           >
             {{ 'common.refresh' | t }}
-          </ui-button>
-          <ui-button
+          </button>
+          <button smt-button type="button"
             *ngIf="canManageWebhooks()"
-            variant="primary"
-            size="sm"
-            icon="add"
-            (onClick)="openCreateModal()"
+            smtVariant="primary"
+            smtSize="sm"
+            smtIcon="add"
+            (click)="openCreateModal()"
           >
             {{ 'settings.webhooks.add' | t }}
-          </ui-button>
+          </button>
         </div>
       </div>
 
@@ -66,9 +66,9 @@ import { SMTCheckboxComponent } from '../../../shared/ui-kit/components/forms/ch
       <div *ngIf="!isLoading() && loadError()" class="error-banner" role="alert">
         <span class="material-symbols-outlined" aria-hidden="true">error</span>
         <span>{{ 'common.error' | t }}</span>
-        <ui-button variant="secondary" size="sm" (onClick)="loadSubscriptions()">
+        <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="loadSubscriptions()">
           {{ 'common.retry' | t }}
-        </ui-button>
+        </button>
       </div>
 
       <!-- Subscriptions Content -->
@@ -78,15 +78,15 @@ import { SMTCheckboxComponent } from '../../../shared/ui-kit/components/forms/ch
           <span class="material-symbols-outlined empty-icon" aria-hidden="true">webhook</span>
           <h4>{{ 'settings.webhooks.empty' | t }}</h4>
           <p class="empty-desc">{{ 'settings.webhooks.subtitle' | t }}</p>
-          <ui-button
+          <button smt-button type="button"
             *ngIf="canManageWebhooks()"
-            variant="primary"
-            size="sm"
-            icon="add"
-            (onClick)="openCreateModal()"
+            smtVariant="primary"
+            smtSize="sm"
+            smtIcon="add"
+            (click)="openCreateModal()"
           >
             {{ 'settings.webhooks.add' | t }}
-          </ui-button>
+          </button>
         </div>
 
         <!-- Subscriptions Table -->
@@ -192,18 +192,18 @@ import { SMTCheckboxComponent } from '../../../shared/ui-kit/components/forms/ch
           </div>
         </div>
         <div footer>
-          <ui-button variant="secondary" size="md" (onClick)="closeCreateModal()">
+          <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeCreateModal()">
             {{ 'common.cancel' | t }}
-          </ui-button>
-          <ui-button
-            variant="primary"
-            size="md"
+          </button>
+          <button smt-button type="button"
+            smtVariant="primary"
+            smtSize="md"
             [disabled]="!isCreateValid()"
-            [loading]="isSaving()"
-            (onClick)="submitCreate()"
+            [smtLoading]="isSaving()"
+            (click)="submitCreate()"
           >
             {{ 'common.save' | t }}
-          </ui-button>
+          </button>
         </div>
       </ui-modal>
 
@@ -228,14 +228,14 @@ import { SMTCheckboxComponent } from '../../../shared/ui-kit/components/forms/ch
                 [value]="sub.secretToken"
                 readonly
                 smtAriaLabel="Secret token" />
-              <ui-button
-                variant="secondary"
-                size="sm"
-                icon="content_copy"
-                (onClick)="copySecret(sub.secretToken)"
+              <button smt-button type="button"
+                smtVariant="secondary"
+                smtSize="sm"
+                smtIcon="content_copy"
+                (click)="copySecret(sub.secretToken)"
               >
                 {{ 'settings.webhooks.copy_secret' | t }}
-              </ui-button>
+              </button>
             </div>
           </div>
 
@@ -246,9 +246,9 @@ import { SMTCheckboxComponent } from '../../../shared/ui-kit/components/forms/ch
           </div>
         </div>
         <div footer>
-          <ui-button variant="primary" size="md" (onClick)="closeSecretModal()">
+          <button smt-button type="button" smtVariant="primary" smtSize="md" (click)="closeSecretModal()">
             {{ 'common.confirm' | t }}
-          </ui-button>
+          </button>
         </div>
       </ui-modal>
     </div>

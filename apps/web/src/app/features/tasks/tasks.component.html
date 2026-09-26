@@ -54,15 +54,15 @@
           </div>
 
           <!-- Create Task Button -->
-          <ui-button
+          <button smt-button type="button"
             *ngIf="canCreateTask()"
-            variant="primary"
-            size="md"
-            icon="add"
-            (onClick)="openCreateTaskModal()"
+            smtVariant="primary"
+            smtSize="md"
+            smtIcon="add"
+            (click)="openCreateTaskModal()"
           >
             {{ 'task.new' | t }}
-          </ui-button>
+          </button>
         </div>
       </div>
 
@@ -92,7 +92,7 @@
       </div>
       <div class="request-state request-error" *ngIf="viewMode !== 'table' && listLoadError()" role="alert">
         <span>{{ (tasks().length ? 'tasks.list_load_error_stale' : 'tasks.list_load_error') | t }}</span>
-        <ui-button variant="secondary" size="sm" (onClick)="retryTaskList()">{{ 'audit.retry' | t }}</ui-button>
+        <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="retryTaskList()">{{ 'audit.retry' | t }}</button>
       </div>
 
       <!-- ======================================================================= -->

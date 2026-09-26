@@ -6,15 +6,15 @@
           <p class="view-subtitle">{{ 'settings.sistemnye_nastroyki' | t }}</p>
         </div>
         <div class="header-right">
-          <ui-button
-            variant="secondary"
-            icon="refresh"
-            [loading]="isLoading()"
-            [ariaLabel]="'common.refresh' | t"
-            (onClick)="loadAllSettings()"
+          <button smt-button type="button"
+            smtVariant="secondary"
+            smtIcon="refresh"
+            [smtLoading]="isLoading()"
+            [attr.aria-label]="'common.refresh' | t"
+            (click)="loadAllSettings()"
           >
             {{ 'common.refresh' | t }}
-          </ui-button>
+          </button>
         </div>
       </div>
 

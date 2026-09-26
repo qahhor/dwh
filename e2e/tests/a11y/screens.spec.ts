@@ -100,7 +100,7 @@ const screens: Screen[] = [
     name: 'task list with the responsible lookup open',
     path: '/tasks',
     open: async page => {
-      await page.locator('ui-button').filter({ hasText: /Новая задача|Создать задачу/ }).first().locator('button').click();
+      await page.locator('button.smt-button').filter({ hasText: /Новая задача|Создать задачу/ }).first().click();
       await page.getByRole('combobox', { name: 'Ответственный' }).first().click();
       await expect(page.getByRole('listbox').first()).toBeVisible();
     },

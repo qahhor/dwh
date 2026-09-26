@@ -8,7 +8,7 @@ import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { ApiService } from '../../core/services/api.service';
 import { PermissionService } from '../../core/services/permission.service';
 import { ToastService } from '../../core/services/toast.service';
-import { UiButtonComponent } from '../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
 import { SMTSelectOption } from '../../shared/ui-kit/components/forms/select';
 import { UiPaginationComponent } from '../../shared/ui/ui-pagination.component';
 import { Task, Project, TaskStatus, TaskType, TaskFile } from '../../core/models/task.models';
@@ -57,7 +57,7 @@ export type { TaskDeadlineInfo, TaskCreateFormValue, TaskEditFormValue };
   selector: 'app-tasks',
   standalone: true,
   imports: [
-    SMTRadioGroupComponent, TranslatePipe, CommonModule, FormsModule, UiButtonComponent, UiPaginationComponent,
+    SMTRadioGroupComponent, TranslatePipe, CommonModule, FormsModule, SMTButtonComponent, UiPaginationComponent,
     TaskDictionariesModalComponent, TaskKanbanViewComponent, TaskTableViewComponent,
     TaskFilterBarComponent, TaskDetailModalComponent, TaskCreateModalComponent, TaskEditModalComponent
   ],

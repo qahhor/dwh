@@ -5,7 +5,7 @@ import { I18nService, TranslatePipe } from '../../../core/services/i18n.service'
 import { PermissionService } from '../../../core/services/permission.service';
 import { safeNumericRecordId } from '../../../core/services/search-target';
 import { ToastService } from '../../../core/services/toast.service';
-import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { SMTRadioGroupComponent, SMTRadioOption } from '../../../shared/ui-kit/components/forms/radio-group';
 import { OrgUnitDraft } from './org-unit-draft';
@@ -16,7 +16,7 @@ export interface ScopeRuleOption { value: ScopeRule; labelKey: string; descripti
 
 @Component({
   selector: 'app-role-scope-panel', standalone: true,
-  imports: [TranslatePipe, UiButtonComponent, UiModalComponent, SMTRadioGroupComponent],
+  imports: [TranslatePipe, SMTButtonComponent, UiModalComponent, SMTRadioGroupComponent],
   templateUrl: './role-scope-panel.component.html', styleUrl: './role-scope-panel.component.css'
 })
 export class RoleScopePanelComponent implements OnChanges {

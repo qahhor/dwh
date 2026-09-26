@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CustomNavigationItem, NavigationTargetType } from '../../../../core/models/navigation.models';
 import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
-import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
 import { SMTSelectComponent, SMTSelectOption } from '../../../../shared/ui-kit/components/forms/select';
@@ -16,7 +16,7 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
     CommonModule,
     FormsModule,
     UiModalComponent,
-    UiButtonComponent,
+    SMTButtonComponent,
     TranslatePipe
   ],
   template: `
@@ -109,10 +109,10 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
       </div>
 
       <div footer class="modal-footer-btns">
-        <ui-button variant="secondary" (onClick)="closeModal.emit()">{{ 'common.cancel' | t }}</ui-button>
-        <ui-button variant="primary" [loading]="isSubmitting" (onClick)="saveItem.emit()" [disabled]="!isFormValid">
+        <button smt-button type="button" smtVariant="secondary" (click)="closeModal.emit()">{{ 'common.cancel' | t }}</button>
+        <button smt-button type="button" smtVariant="primary" [smtLoading]="isSubmitting" (click)="saveItem.emit()" [disabled]="!isFormValid">
           {{ 'common.save' | t }}
-        </ui-button>
+        </button>
       </div>
     </ui-modal>
   `,

@@ -9,7 +9,7 @@ import { SMTControlComponent } from '../../../shared/ui-kit/components/forms/con
 import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
-import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { SMTDatePickerComponent, SMTDatePickerValueAccessor } from '../../../shared/ui-kit/components/forms/date-picker';
 import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../../../shared/ui-kit/components/forms/select';
 import { LookupChannel } from '../../../shared/paging/lookup-channel';
@@ -59,7 +59,7 @@ function emptyFormErrors(): UplPackageFormErrors {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTAlertComponent, SMTControlComponent,
-    CommonModule, FormsModule, TranslatePipe, UiBadgeComponent, UiButtonComponent, PackageCardComponent,
+    CommonModule, FormsModule, TranslatePipe, UiBadgeComponent, SMTButtonComponent, PackageCardComponent,
     SMTDatePickerComponent, SMTDatePickerValueAccessor, SMTSelectComponent, SMTSelectValueAccessor,
     UiServerTableComponent,
   ],
@@ -76,9 +76,9 @@ function emptyFormErrors(): UplPackageFormErrors {
       <div class="upl-page">
         <div class="toolbar upl-toolbar">
           <h1 class="upl-title">{{ 'upl.pkg.title' | t }}</h1>
-          <ui-button variant="secondary" icon="refresh" data-testid="upl-pkg-refresh" (onClick)="load()">
+          <button smt-button type="button" smtVariant="secondary" smtIcon="refresh" data-testid="upl-pkg-refresh" (click)="load()">
             {{ 'upl.pkg.refresh' | t }}
-          </ui-button>
+          </button>
         </div>
 
         @if (canUpload()) {
@@ -162,13 +162,13 @@ function emptyFormErrors(): UplPackageFormErrors {
             </div>
 
             <div class="upl-pkg-form-actions">
-              <ui-button
-                variant="primary"
+              <button smt-button type="button"
+                smtVariant="primary"
                 [disabled]="!isReady()"
-                [loading]="isSending()"
+                [smtLoading]="isSending()"
                 data-testid="upl-pkg-submit"
-                (onClick)="submit()"
-              >{{ 'upl.pkg.form.submit' | t }}</ui-button>
+                (click)="submit()"
+              >{{ 'upl.pkg.form.submit' | t }}</button>
             </div>
           </form>
         }
@@ -176,9 +176,9 @@ function emptyFormErrors(): UplPackageFormErrors {
         @if (metaError()) {
           <smt-alert smtTone="danger" class="upl-alert" data-testid="upl-pkg-load-error">
             <span>{{ 'upl.pkg.load_error' | t }}</span>
-            <ui-button variant="secondary" data-testid="upl-pkg-retry" (onClick)="load()">
+            <button smt-button type="button" smtVariant="secondary" data-testid="upl-pkg-retry" (click)="load()">
               {{ 'upl.common.retry' | t }}
-            </ui-button>
+            </button>
           </smt-alert>
         } @else if (tableConfig(); as config) {
           <ui-server-table

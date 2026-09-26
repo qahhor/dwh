@@ -13,7 +13,7 @@ import { ToastService } from '../../../core/services/toast.service';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
 import { UiLocalTableComponent } from '../../../shared/ui/ui-local-table.component';
 import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
-import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import {
   UPL_PERIODICITIES,
@@ -60,7 +60,7 @@ type DraftMode = 'empty' | 'copy';
     FormsModule,
     RouterLink,
     TranslatePipe,
-    UiButtonComponent,
+    SMTButtonComponent,
     UiModalComponent,
     UiBadgeComponent,
     SMTRadioGroupComponent
@@ -80,7 +80,7 @@ type DraftMode = 'empty' | 'copy';
     } @else if (loadError()) {
       <smt-alert smtTone="danger" data-testid="upl-load-error">
         <span>{{ 'upl.err.LOAD_FAILED' | t }}</span>
-        <ui-button variant="secondary" (onClick)="reload()">{{ 'upl.common.retry' | t }}</ui-button>
+        <button smt-button type="button" smtVariant="secondary" (click)="reload()">{{ 'upl.common.retry' | t }}</button>
       </smt-alert>
     } @else if (source(); as s) {
       <nav class="upl-crumbs" aria-label="breadcrumb">
@@ -106,9 +106,9 @@ type DraftMode = 'empty' | 'copy';
         @if (conflict()) {
           <smt-alert smtTone="danger" data-testid="upl-conflict">
             <span>{{ 'upl.err.STALE_VERSION' | t }}</span>
-            <ui-button variant="secondary" data-testid="upl-conflict-refresh" (onClick)="refreshAfterConflict()">
+            <button smt-button type="button" smtVariant="secondary" data-testid="upl-conflict-refresh" (click)="refreshAfterConflict()">
               {{ 'upl.common.refresh_discard' | t }}
-            </ui-button>
+            </button>
           </smt-alert>
         }
         @if (saveError(); as err) {
@@ -184,9 +184,9 @@ type DraftMode = 'empty' | 'copy';
 
         @if (canEdit()) {
           <div class="upl-actions">
-            <ui-button data-testid="upl-save-source" [loading]="isSaving()" (onClick)="save()">
+            <button smt-button type="button" data-testid="upl-save-source" [smtLoading]="isSaving()" (click)="save()">
               {{ 'upl.common.save' | t }}
-            </ui-button>
+            </button>
           </div>
         }
       </section>
@@ -201,9 +201,9 @@ type DraftMode = 'empty' | 'copy';
               [routerLink]="['/upl/sources', sourceId(), 'formats', d.version]"
             >{{ 'upl.version.open_draft' | t }}</a>
           } @else if (canEdit()) {
-            <ui-button data-testid="upl-new-draft" (onClick)="openDraftDialog()">
+            <button smt-button type="button" data-testid="upl-new-draft" (click)="openDraftDialog()">
               {{ 'upl.version.new_draft' | t }}
-            </ui-button>
+            </button>
           }
         </div>
 
@@ -271,9 +271,9 @@ type DraftMode = 'empty' | 'copy';
           @if (draftExists()) {
             <smt-alert smtTone="danger">
               <span>{{ 'upl.err.FND_VERSION_DRAFT_EXISTS' | t }}</span>
-              <ui-button variant="secondary" data-testid="upl-open-existing-draft" (onClick)="openExistingDraft()">
+              <button smt-button type="button" smtVariant="secondary" data-testid="upl-open-existing-draft" (click)="openExistingDraft()">
                 {{ 'upl.version.open' | t }}
-              </ui-button>
+              </button>
             </smt-alert>
           }
           @if (draftError(); as err) {
@@ -282,12 +282,12 @@ type DraftMode = 'empty' | 'copy';
         </div>
 
         <div footer class="upl-actions">
-          <ui-button variant="secondary" [disabled]="isCreatingDraft()" (onClick)="closeDraftDialog()">
+          <button smt-button type="button" smtVariant="secondary" [disabled]="isCreatingDraft()" (click)="closeDraftDialog()">
             {{ 'upl.common.cancel' | t }}
-          </ui-button>
-          <ui-button data-testid="upl-create-draft" [loading]="isCreatingDraft()" (onClick)="createDraft()">
+          </button>
+          <button smt-button type="button" data-testid="upl-create-draft" [smtLoading]="isCreatingDraft()" (click)="createDraft()">
             {{ 'upl.common.create' | t }}
-          </ui-button>
+          </button>
         </div>
       </ui-modal>
     }

@@ -91,7 +91,7 @@ function text(fixture: ComponentFixture<PackageCardComponent>): string {
 }
 
 function click(fixture: ComponentFixture<PackageCardComponent>, id: string): void {
-  fixture.debugElement.query(By.css(`[data-testid="${id}"]`)).triggerEventHandler('onClick', null);
+  fixture.debugElement.query(By.css(`[data-testid="${id}"]`)).triggerEventHandler('click', new MouseEvent('click'));
   fixture.detectChanges();
 }
 

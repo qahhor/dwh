@@ -81,6 +81,7 @@ export interface SMTMessages {
   readonly time: SMTTimeMessages;
   readonly textarea: { readonly counter: (count: number, max: number) => string };
   readonly input: { readonly clear: string; readonly showPassword: string; readonly hidePassword: string };
+  readonly button: { readonly busy: string };
   readonly tag: { readonly remove: (label: string) => string };
   readonly phone: { readonly country: string; readonly other: string; readonly incomplete: string };
   readonly color: {
@@ -220,6 +221,9 @@ export class SMTI18nService {
     },
     tag: {
       remove: label => this.i18n.translate('ui.tag.remove', { label }),
+    },
+    button: {
+      busy: this.i18n.translate('ui.button.vypolnyaetsya'),
     },
     input: {
       clear: this.i18n.translate('ui.input.clear'),

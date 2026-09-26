@@ -9,6 +9,17 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Button (roadmap item 44). `smt-button` is an attribute on a real `<button>`
+  or `<a>` — `<button smt-button smtVariant="danger" smtIcon="delete">` —
+  so its type, form, disabled state, click and every aria-* attribute are
+  the button's own; four variants and three sizes from our tokens, a
+  Material Symbols icon, and a loading state that disables the button, marks
+  it busy and says "in progress" to screen readers; a disabled link leaves
+  the tab order and does not navigate. It replaces all 222 `ui-button`s,
+  which is removed. Attributes that used to sit on the wrapper and never
+  reached the button (`aria-expanded`, menu triggers, test ids) now do; a
+  button without a type is `type="button"`, so none submits a form by
+  accident.
 - Kit controls everywhere (roadmap item 43). Fifty-two native selects are
   `smt-select`, the remaining text fields `smt-input`, the textareas
   `smt-textarea`, and checkboxes follow one rule: a toggle that acts at once

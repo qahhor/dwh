@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { TranslatePipe } from '../../core/services/i18n.service';
 import { BulkResult, failedItems } from '../bulk/bulk';
-import { UiButtonComponent } from './ui-button.component';
+import { SMTButtonComponent } from '../ui-kit/components/button';
 import { UiModalComponent } from './ui-modal.component';
 
 /**
@@ -13,7 +13,7 @@ import { UiModalComponent } from './ui-modal.component';
   selector: 'ui-bulk-result',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TranslatePipe, UiModalComponent, UiButtonComponent],
+  imports: [TranslatePipe, UiModalComponent, SMTButtonComponent],
   template: `
     <ui-modal [isOpen]="!!result()" [title]="'ui.bulk.result_title' | t" size="md" (close)="closed.emit()">
       <div body class="bulk-result">
@@ -32,7 +32,7 @@ import { UiModalComponent } from './ui-modal.component';
         }
       </div>
       <div footer class="bulk-result-footer">
-        <ui-button variant="primary" (onClick)="closed.emit()">{{ 'common.close' | t }}</ui-button>
+        <button smt-button type="button" smtVariant="primary" (click)="closed.emit()">{{ 'common.close' | t }}</button>
       </div>
     </ui-modal>
   `,

@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, Output, inject, Signal, TemplateRef, computed, signal, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CustomField } from '../custom-fields.models';
-import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { TranslatePipe, I18nService } from '../../../../core/services/i18n.service';
 
 import { UiLocalTableComponent } from '../../../../shared/ui/ui-local-table.component';
@@ -12,7 +12,7 @@ import { TableConfig } from '../../../../shared/ui-kit/components/table/table.ty
   standalone: true,
   imports: [
     CommonModule,
-    UiButtonComponent,
+    SMTButtonComponent,
     TranslatePipe, UiLocalTableComponent],
   template: `
     <div class="card table-card">
@@ -72,14 +72,14 @@ import { TableConfig } from '../../../../shared/ui-kit/components/table/table.ty
         <div class="empty-state">
           <span class="material-symbols-outlined empty-icon" aria-hidden="true">search_off</span>
           <p>{{ 'iam.nichego_ne_naydeno_po_zaprosu' | t }}: «<strong>{{ searchQuery }}</strong>»</p>
-          <ui-button variant="secondary" size="sm" (onClick)="clearSearch.emit()">{{ 'iam.sbrosit_poisk' | t }}</ui-button>
+          <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="clearSearch.emit()">{{ 'iam.sbrosit_poisk' | t }}</button>
         </div>
       } @else {
         <div class="empty-state">
           <span class="material-symbols-outlined empty-icon" aria-hidden="true">tune</span>
           <p>{{ 'iam.dinamicheskie_polya_ne_naydeny' | t }}</p>
           @if (canManage) {
-            <ui-button variant="primary" size="sm" icon="add" (onClick)="createField.emit()">{{ 'iam.dobavit_pole' | t }}</ui-button>
+            <button smt-button type="button" smtVariant="primary" smtSize="sm" smtIcon="add" (click)="createField.emit()">{{ 'iam.dobavit_pole' | t }}</button>
           }
         </div>
       }

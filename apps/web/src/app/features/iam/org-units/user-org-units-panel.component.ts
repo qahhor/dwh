@@ -5,7 +5,7 @@ import { I18nService, TranslatePipe } from '../../../core/services/i18n.service'
 import { PermissionService } from '../../../core/services/permission.service';
 import { safeNumericRecordId } from '../../../core/services/search-target';
 import { ToastService } from '../../../core/services/toast.service';
-import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { OrgUnitDraft } from './org-unit-draft';
 import { SMTTreeTableComponent } from '../../../shared/ui-kit/components/tree-table/tree-table.component';
@@ -17,7 +17,7 @@ import { OrgUnit, UserScope } from './org-units.models';
 
 @Component({
   selector: 'app-user-org-units-panel', standalone: true,
-  imports: [TranslatePipe, UiButtonComponent, UiModalComponent, SMTTreeTableComponent, SMTInputComponent],
+  imports: [TranslatePipe, SMTButtonComponent, UiModalComponent, SMTTreeTableComponent, SMTInputComponent],
   templateUrl: './user-org-units-panel.component.html', styleUrl: './user-org-units-panel.component.css'
 })
 export class UserOrgUnitsPanelComponent implements OnChanges {

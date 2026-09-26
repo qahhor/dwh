@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { A11yModule } from '@angular/cdk/a11y';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
-import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/ui-kit/components/forms/textarea';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
@@ -15,7 +15,7 @@ import { SMTSelectComponent, SMTSelectOption } from '../../../shared/ui-kit/comp
 @Component({
   selector: 'app-announcements-modals',
   standalone: true,
-  imports: [SMTTabBarComponent, CommonModule, FormsModule, A11yModule, TranslatePipe, UiButtonComponent, UiModalComponent, SMTInputComponent, SMTInputValueAccessor, SMTTextareaComponent, SMTTextareaValueAccessor, SMTSelectComponent],
+  imports: [SMTTabBarComponent, CommonModule, FormsModule, A11yModule, TranslatePipe, SMTButtonComponent, UiModalComponent, SMTInputComponent, SMTInputValueAccessor, SMTTextareaComponent, SMTTextareaValueAccessor, SMTSelectComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Create / Edit Draft Modal -->
@@ -114,7 +114,7 @@ import { SMTSelectComponent, SMTSelectOption } from '../../../shared/ui-kit/comp
           />
         </div>
         <div class="form-actions">
-          <ui-button variant="secondary" (onClick)="closeEditor.emit()">{{ 'common.cancel' | t }}</ui-button>
+          <button smt-button type="button" smtVariant="secondary" (click)="closeEditor.emit()">{{ 'common.cancel' | t }}</button>
           <button
             type="submit"
             class="primary-button"

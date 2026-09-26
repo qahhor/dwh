@@ -2,7 +2,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TaskFile } from '../../../core/models/task.models';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
-import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { UiFileUploadComponent } from '../../../shared/ui/ui-file-upload.component';
 import { TranslatePipe } from '../../../core/services/i18n.service';
 
@@ -12,7 +12,7 @@ import { TranslatePipe } from '../../../core/services/i18n.service';
   imports: [
     CommonModule,
     UiModalComponent,
-    UiButtonComponent,
+    SMTButtonComponent,
     UiFileUploadComponent,
     TranslatePipe
   ],
@@ -34,7 +34,7 @@ import { TranslatePipe } from '../../../core/services/i18n.service';
         ></ui-file-upload>
       </div>
       <div footer class="modal-footer-actions">
-        <ui-button variant="secondary" (onClick)="closeUpload.emit()">{{ 'audit.zakryt' | t }}</ui-button>
+        <button smt-button type="button" smtVariant="secondary" (click)="closeUpload.emit()">{{ 'audit.zakryt' | t }}</button>
       </div>
     </ui-modal>
   `,

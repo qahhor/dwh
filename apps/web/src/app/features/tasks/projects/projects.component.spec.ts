@@ -153,7 +153,7 @@ describe('ProjectsComponent UI contracts', () => {
     const { fixture } = await createFixture();
     const host = fixture.nativeElement as HTMLElement;
 
-    (host.querySelector('.header-right ui-button button') as HTMLButtonElement).click();
+    (host.querySelector('.header-right .smt-button') as HTMLButtonElement).click();
     fixture.detectChanges();
     const name = host.querySelector('#project-create-name') as HTMLInputElement;
     name.value = 'Unsaved project';
@@ -246,7 +246,7 @@ describe('ProjectsComponent UI contracts', () => {
     const { fixture } = await createFixture({ api });
     const host = fixture.nativeElement as HTMLElement;
 
-    (host.querySelector('.header-right ui-button button') as HTMLButtonElement).click();
+    (host.querySelector('.header-right .smt-button') as HTMLButtonElement).click();
     fixture.detectChanges();
     const name = host.querySelector('#project-create-name') as HTMLInputElement;
     name.value = 'Pending project';
@@ -367,7 +367,7 @@ describe('ProjectsComponent UI contracts', () => {
     fixture.detectChanges();
     expect(component.editLoadError()).toBe(true);
 
-    (fixture.nativeElement.querySelector('.project-edit-retry button') as HTMLButtonElement).click();
+    (fixture.nativeElement.querySelector('button.project-edit-retry') as HTMLButtonElement).click();
     fresh.next({ ...project(7), name: ' Current ', description: ' Current description ' });
     fresh.complete();
     fixture.detectChanges();
@@ -759,7 +759,7 @@ describe('ProjectsComponent UI contracts', () => {
     });
     expect(fixture.componentInstance.canCreateProject()).toBe(true);
     expect(fixture.componentInstance.canUpdateProject()).toBe(true);
-    expect(fixture.nativeElement.querySelector('ui-button')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.smt-button')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('.icon-ghost-btn')).not.toBeNull();
 
     fixture.componentInstance.openCreateModal();

@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { SMTControlComponent } from '../../../../shared/ui-kit/components/forms/control';
 import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
-import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { SMTDataSelectComponent } from '../../../../shared/ui-kit/components/forms/data-select';
 import { SMTPhoneInputComponent, SMTPhoneInputValueAccessor } from '../../../../shared/ui-kit/components/forms/phone-input';
 import { LookupSources } from '../../../../shared/lookups/lookup-sources';
@@ -41,7 +41,7 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
     FormsModule,
     TranslatePipe,
     UiModalComponent,
-    UiButtonComponent,
+    SMTButtonComponent,
     SMTDataSelectComponent,
     SMTPhoneInputComponent,
     SMTPhoneInputValueAccessor,
@@ -216,8 +216,8 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
         </div>
       </div>
       <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="close.emit()">{{ 'common.cancel' | t }}</ui-button>
-        <ui-button variant="primary" size="md" [loading]="isSubmitting" (onClick)="submit.emit()">{{ 'common.create' | t }}</ui-button>
+        <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="close.emit()">{{ 'common.cancel' | t }}</button>
+        <button smt-button type="button" smtVariant="primary" smtSize="md" [smtLoading]="isSubmitting" (click)="submit.emit()">{{ 'common.create' | t }}</button>
       </div>
     </ui-modal>
   `,

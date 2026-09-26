@@ -1,13 +1,13 @@
 <section class="page" aria-labelledby="org-units-title">
   <header><h1 id="org-units-title">{{ 'iam.org_units.title' | t }}</h1>
-    @if (can('view')) { <ui-button variant="secondary" [disabled]="pending || loading || editorOpen" (onClick)="reload()">{{ 'iam.org_units.refresh' | t }}</ui-button> }
+    @if (can('view')) { <button smt-button type="button" smtVariant="secondary" [disabled]="pending || loading || editorOpen" (click)="reload()">{{ 'iam.org_units.refresh' | t }}</button> }
   </header>
   @if (!can('view')) { <p role="alert">{{ 'iam.org_units.forbidden' | t }}</p> }
   @else {
     @if (loading) { <p role="status">{{ 'iam.org_units.loading' | t }}</p> }
     @if (treeError) {
       <div role="alert"><p>{{ (savedRefreshFailed ? 'iam.org_units.saved_refresh_error' : 'iam.org_units.load_error') | t }} {{ treeError.detail }}</p>
-        <ui-button data-action="retry-tree" variant="secondary" [disabled]="pending || loading || editorOpen" (onClick)="reload()">{{ 'iam.org_units.retry' | t }}</ui-button>
+        <button smt-button type="button" data-action="retry-tree" smtVariant="secondary" [disabled]="pending || loading || editorOpen" (click)="reload()">{{ 'iam.org_units.retry' | t }}</button>
       </div>
     }
     @if (loaded && !units.length && !treeError) { <p>{{ 'iam.org_units.empty' | t }}</p> }
@@ -34,11 +34,11 @@
           @if (!safeId(unit.id)) { <p role="status">{{ 'iam.org_units.readonly_id' | t }}</p> }
           @if (hasChildren && can('delete')) { <p>{{ 'iam.org_units.delete_children' | t }}</p> }
           <div class="actions">
-            @if (can('update') && safeId(unit.id)) { <ui-button data-action="edit" variant="secondary" [disabled]="pending || loading" (onClick)="edit()">{{ 'iam.org_units.edit' | t }}</ui-button> }
-            @if (can('delete') && safeId(unit.id)) { <ui-button data-action="delete" variant="danger" [disabled]="pending || loading || hasChildren" (onClick)="requestDelete()">{{ 'iam.org_units.delete' | t }}</ui-button> }
+            @if (can('update') && safeId(unit.id)) { <button smt-button type="button" data-action="edit" smtVariant="secondary" [disabled]="pending || loading" (click)="edit()">{{ 'iam.org_units.edit' | t }}</button> }
+            @if (can('delete') && safeId(unit.id)) { <button smt-button type="button" data-action="delete" smtVariant="danger" [disabled]="pending || loading || hasChildren" (click)="requestDelete()">{{ 'iam.org_units.delete' | t }}</button> }
           </div>
         }
-        @if (can('create')) { <ui-button data-action="create" [disabled]="!canCreate || pending || loading" (onClick)="create()">{{ (units.length ? 'iam.org_units.create_child' : 'iam.org_units.create_root') | t }}</ui-button> }
+        @if (can('create')) { <button smt-button type="button" data-action="create" [disabled]="!canCreate || pending || loading" (click)="create()">{{ (units.length ? 'iam.org_units.create_child' : 'iam.org_units.create_root') | t }}</button> }
       </section>
     </div>
   }
@@ -47,7 +47,7 @@
 <ui-modal [isOpen]="editorOpen" [title]="'iam.org_units.editor_title' | t" [hasFooter]="false" [dismissible]="!pending" (close)="closeEditor()">
   @if (editorOpen) {
     @if (detailLoading) { <p role="status">{{ 'iam.org_units.loading' | t }}</p> }
-    @if (detailError) { <p role="alert">{{ detailError.detail || ('iam.org_units.load_error' | t) }}</p><ui-button variant="secondary" (onClick)="loadDetail()">{{ 'iam.org_units.retry' | t }}</ui-button> }
+    @if (detailError) { <p role="alert">{{ detailError.detail || ('iam.org_units.load_error' | t) }}</p><button smt-button type="button" smtVariant="secondary" (click)="loadDetail()">{{ 'iam.org_units.retry' | t }}</button> }
     @for (initial of editorInitial ? [editorInitial] : []; track initial) { <app-org-unit-editor [initial]="initial" [units]="units" [pending]="pending" [error]="saveError" (save)="save($event)" (cancel)="closeEditor()" /> }
   }
 </ui-modal>
@@ -57,15 +57,15 @@
     @if (deleteError) { <p role="alert">{{ deleteError.detail || ('iam.org_units.delete_error' | t) }}</p> }
   </div>
   <div footer class="actions">
-    <ui-button variant="secondary" [disabled]="pending" (onClick)="closeDelete()">{{ 'iam.org_units.cancel' | t }}</ui-button>
-    <ui-button data-action="confirm-delete" variant="danger" [loading]="pending" (onClick)="confirmDelete()">{{ 'iam.org_units.delete' | t }}</ui-button>
+    <button smt-button type="button" smtVariant="secondary" [disabled]="pending" (click)="closeDelete()">{{ 'iam.org_units.cancel' | t }}</button>
+    <button smt-button type="button" data-action="confirm-delete" smtVariant="danger" [smtLoading]="pending" (click)="confirmDelete()">{{ 'iam.org_units.delete' | t }}</button>
   </div>
 </ui-modal>
 <ui-modal [isOpen]="discard.open()" [title]="'iam.org_units.discard_title' | t" (close)="discard.cancel()">
   <p body>{{ 'iam.org_units.discard_warning' | t }}</p>
   <div footer class="actions">
-    <ui-button variant="secondary" (onClick)="discard.cancel()">{{ 'iam.org_units.keep_editing' | t }}</ui-button>
-    <ui-button variant="danger" (onClick)="discard.confirm()">{{ 'iam.org_units.discard' | t }}</ui-button>
+    <button smt-button type="button" smtVariant="secondary" (click)="discard.cancel()">{{ 'iam.org_units.keep_editing' | t }}</button>
+    <button smt-button type="button" smtVariant="danger" (click)="discard.confirm()">{{ 'iam.org_units.discard' | t }}</button>
   </div>
 </ui-modal>
 }

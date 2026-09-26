@@ -4,7 +4,7 @@ import { ApiService } from '../../../core/services/api.service';
 import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
-import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 
 import { InstalledModule, ModuleFilterTab } from './modules.models';
 import { ModulesStatsComponent } from './components/modules-stats.component';
@@ -19,7 +19,7 @@ export type { InstalledModule, ModuleFilterTab };
   imports: [
     CommonModule,
     TranslatePipe,
-    UiButtonComponent,
+    SMTButtonComponent,
     ModulesStatsComponent,
     ModulesToolbarComponent,
     ModulesTableComponent
@@ -35,15 +35,15 @@ export type { InstalledModule, ModuleFilterTab };
           <p class="subtitle">{{ 'modules.description' | t }}</p>
         </div>
         <div class="header-actions">
-          <ui-button
-            variant="secondary"
-            icon="refresh"
-            [loading]="isLoading()"
-            [ariaLabel]="'common.refresh' | t"
-            (onClick)="loadModules()"
+          <button smt-button type="button"
+            smtVariant="secondary"
+            smtIcon="refresh"
+            [smtLoading]="isLoading()"
+            [attr.aria-label]="'common.refresh' | t"
+            (click)="loadModules()"
           >
             {{ 'common.refresh' | t }}
-          </ui-button>
+          </button>
         </div>
       </header>
 

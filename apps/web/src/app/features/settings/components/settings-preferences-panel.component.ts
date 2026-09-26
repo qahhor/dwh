@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { SMTSelectComponent, SMTSelectOption } from '../../../shared/ui-kit/components/forms/select';
 import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group/radio-options';
-import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 
 @Component({
   selector: 'app-settings-preferences-panel',
@@ -16,7 +16,7 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
     CommonModule,
     FormsModule,
     TranslatePipe,
-    UiButtonComponent
+    SMTButtonComponent
   ],
   template: `
     <div class="settings-card">
@@ -73,9 +73,9 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
       </div>
 
       <div class="card-footer-actions">
-        <ui-button [loading]="isSaving" (onClick)="save.emit()">
+        <button smt-button type="button" [smtLoading]="isSaving" (click)="save.emit()">
           {{ 'common.save' | t }}
-        </ui-button>
+        </button>
       </div>
     </div>
   `,

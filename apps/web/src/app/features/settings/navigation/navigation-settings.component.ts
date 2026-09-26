@@ -11,7 +11,7 @@ import {
 } from '../../../core/models/navigation.models';
 import { ToastService } from '../../../core/services/toast.service';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
-import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { transliterateToCode } from '../../../core/utils/transliteration';
 import { NavigationSettingsStatsComponent } from './components/navigation-settings-stats.component';
 import { NavigationSettingsTableComponent } from './components/navigation-settings-table.component';
@@ -28,7 +28,7 @@ import { problemText } from '../../../shared/ui/problem-text';
     FormsModule,
     RouterModule,
     TranslatePipe,
-    UiButtonComponent,
+    SMTButtonComponent,
     NavigationSettingsStatsComponent,
     NavigationSettingsTableComponent,
     NavigationSettingsModalComponent
@@ -42,13 +42,13 @@ import { problemText } from '../../../shared/ui/problem-text';
           <p class="page-subtitle">{{ 'nav.settings.navigation_subtitle' | t }}</p>
         </div>
         <div class="header-actions">
-          <ui-button
-            variant="primary"
-            icon="add"
-            (onClick)="openCreateModal()"
+          <button smt-button type="button"
+            smtVariant="primary"
+            smtIcon="add"
+            (click)="openCreateModal()"
           >
             {{ 'nav.settings.add_item' | t }}
-          </ui-button>
+          </button>
         </div>
       </div>
 

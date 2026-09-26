@@ -14,7 +14,7 @@ import { SMTControlComponent } from '../../../shared/ui-kit/components/forms/con
 import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
-import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { UiServerTableComponent } from '../../../shared/ui/ui-server-table.component';
 import { registryTableConfig, sortFromHeader } from '../../../shared/ui/registry-table-config';
@@ -74,7 +74,7 @@ function emptyForm(): SourceCreateForm {
     FormsModule,
     RouterLink,
     TranslatePipe,
-    UiButtonComponent,
+    SMTButtonComponent,
     UiModalComponent,
     UiBadgeComponent,
     UiServerTableComponent
@@ -89,18 +89,18 @@ function emptyForm(): SourceCreateForm {
           }
         </h1>
         @if (canCreate()) {
-          <ui-button variant="primary" icon="add" data-testid="upl-new-source" (onClick)="openCreate()">
+          <button smt-button type="button" smtVariant="primary" smtIcon="add" data-testid="upl-new-source" (click)="openCreate()">
             {{ 'upl.list.new' | t }}
-          </ui-button>
+          </button>
         }
       </div>
 
       @if (metaError()) {
         <smt-alert smtTone="danger" class="upl-alert" data-testid="upl-load-error">
           <span>{{ 'upl.list.load_error' | t }}</span>
-          <ui-button variant="secondary" data-testid="upl-retry" (onClick)="load()">
+          <button smt-button type="button" smtVariant="secondary" data-testid="upl-retry" (click)="load()">
             {{ 'upl.common.retry' | t }}
-          </ui-button>
+          </button>
         </smt-alert>
       } @else if (tableConfig(); as config) {
         <ui-server-table
@@ -124,9 +124,9 @@ function emptyForm(): SourceCreateForm {
         <span class="material-symbols-outlined upl-empty-icon" aria-hidden="true">table_view</span>
         <p class="upl-empty-text">{{ 'upl.list.empty' | t }}</p>
         @if (canCreate()) {
-          <ui-button variant="primary" data-testid="upl-empty-new" (onClick)="openCreate()">
+          <button smt-button type="button" smtVariant="primary" data-testid="upl-empty-new" (click)="openCreate()">
             {{ 'upl.list.new' | t }}
-          </ui-button>
+          </button>
         }
       </div>
     </ng-template>
@@ -217,16 +217,16 @@ function emptyForm(): SourceCreateForm {
       </form>
 
       <div footer class="upl-modal-footer">
-        <ui-button variant="secondary" data-testid="upl-create-cancel" (onClick)="closeCreate()">
+        <button smt-button type="button" smtVariant="secondary" data-testid="upl-create-cancel" (click)="closeCreate()">
           {{ 'upl.common.cancel' | t }}
-        </ui-button>
-        <ui-button
-          variant="primary"
+        </button>
+        <button smt-button
+          smtVariant="primary"
           type="submit"
           form="upl-source-create"
-          [loading]="isSaving()"
+          [smtLoading]="isSaving()"
           data-testid="upl-create-submit"
-        >{{ 'upl.source.create' | t }}</ui-button>
+        >{{ 'upl.source.create' | t }}</button>
       </div>
     </ui-modal>
   `,

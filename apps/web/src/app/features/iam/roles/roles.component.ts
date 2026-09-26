@@ -7,7 +7,7 @@ import { Observable, Subscription } from 'rxjs';
 import { ApiService } from '../../../core/services/api.service';
 import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { Role, FormTreeItem, PermissionPair } from '../../../core/models/rbac.models';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
 import { safeNumericRecordId } from '../../../core/services/search-target';
@@ -38,7 +38,7 @@ import { RoleFormsService } from './services/role-forms.service';
   selector: 'app-roles',
   standalone: true,
   imports: [
-    TranslatePipe, CommonModule, FormsModule, UiButtonComponent, RoleScopePanelComponent, RoleModalsComponent, RoleCardsBarComponent, RolePermissionsMatrixComponent],
+    TranslatePipe, CommonModule, FormsModule, SMTButtonComponent, RoleScopePanelComponent, RoleModalsComponent, RoleCardsBarComponent, RolePermissionsMatrixComponent],
   templateUrl: './roles.component.html',
   styleUrl: './roles.component.css'
 })

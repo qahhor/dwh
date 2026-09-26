@@ -5,25 +5,25 @@
           <h1 class="view-title">{{ 'nav.users' | t }}</h1>
         </div>
         <div class="header-right">
-          <ui-button
-            variant="secondary"
-            size="md"
-            icon="file_download"
+          <button smt-button type="button"
+            smtVariant="secondary"
+            smtSize="md"
+            smtIcon="file_download"
             [title]="'iam.eksport_v_csv' | t"
-            [loading]="isExporting()"
-            (onClick)="exportToCsv()"
+            [smtLoading]="isExporting()"
+            (click)="exportToCsv()"
           >
             {{ (isExporting() ? 'iam.users.exporting' : 'analytics.eksport') | t }}
-          </ui-button>
-          <ui-button
+          </button>
+          <button smt-button type="button"
             *ngIf="canCreateUser()"
-            variant="primary"
-            size="md"
-            icon="add"
-            (onClick)="openCreateModal()"
+            smtVariant="primary"
+            smtSize="md"
+            smtIcon="add"
+            (click)="openCreateModal()"
           >
             {{ 'iam.novyy_polzovatel' | t }}
-          </ui-button>
+          </button>
         </div>
       </div>
 
