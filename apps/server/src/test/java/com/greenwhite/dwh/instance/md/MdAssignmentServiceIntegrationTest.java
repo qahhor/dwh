@@ -1,7 +1,8 @@
 package com.greenwhite.dwh.instance.md;
 
+import com.greenwhite.dwh.instance.support.TestDatabases;
+
 import com.greenwhite.dwh.instance.common.error.ApiException;
-import com.greenwhite.dwh.instance.config.db.FlywayUtcConfiguration;
 import com.greenwhite.dwh.instance.md.repository.MdPermissionRepository;
 import com.greenwhite.dwh.instance.md.repository.MdOrgUnitRepository;
 import com.greenwhite.dwh.instance.md.repository.MdRoleRepository;
@@ -10,15 +11,10 @@ import com.greenwhite.dwh.instance.md.repository.MdUserRepository;
 import com.greenwhite.dwh.instance.md.service.MdAssignmentService;
 import com.greenwhite.dwh.instance.md.service.MdPermissionService;
 import com.greenwhite.dwh.instance.md.service.MdScopeService;
-import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import tools.jackson.databind.ObjectMapper;
 
@@ -33,14 +29,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * изменении (I-P2), защита последнего администратора (F-04),
  * запрет прав на пары вне каталога (FR-PERM-1).
  */
-@Testcontainers
 class MdAssignmentServiceIntegrationTest {
-
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:18-alpine")
-            .withDatabaseName("dwh_assign_test")
-            .withUsername("test_user")
-            .withPassword("test_pass");
 
     static JdbcClient jdbc;
     static MdAssignmentService service;
@@ -53,9 +42,7 @@ class MdAssignmentServiceIntegrationTest {
 
     @BeforeAll
     static void setup() {
-        var ds = new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
-        FlywayUtcConfiguration.configure(Flyway.configure())
-                .dataSource(ds).locations("classpath:db/migration").load().migrate();
+        var ds = TestDatabases.migratedCopy("dwh_assign_test");
         jdbc = JdbcClient.create(ds);
 
         var userRepository = new MdUserRepository(jdbc, new ObjectMapper());

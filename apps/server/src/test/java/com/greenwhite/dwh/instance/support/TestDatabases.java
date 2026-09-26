@@ -35,7 +35,13 @@ public final class TestDatabases {
     public static synchronized EmbeddedPostgres instance() {
         if (postgres == null) {
             try {
-                postgres = EmbeddedPostgres.builder().setServerConfig("timezone", "UTC").start();
+                // Test data is thrown away with the process: no durability, so no fsync on every commit (slow on Windows).
+                postgres = EmbeddedPostgres.builder()
+                        .setServerConfig("timezone", "UTC")
+                        .setServerConfig("fsync", "off")
+                        .setServerConfig("synchronous_commit", "off")
+                        .setServerConfig("full_page_writes", "off")
+                        .start();
             } catch (IOException e) {
                 throw new UncheckedIOException("Встроенный PostgreSQL не запустился", e);
             }
@@ -69,6 +75,43 @@ public final class TestDatabases {
             FndMigrator.migrateDwh(dwh());
             migrated = true;
         }
+    }
+
+    private static final String TEMPLATE_DB = "cms_template";
+    private static boolean templateReady;
+    private static int copies;
+
+    /**
+     * A fresh database with every OLTP migration applied, for a test class of its own. The migrations run once
+     * into a template; each call copies it ({@code create database … template}), which takes a fraction of a
+     * second instead of a container start and 55 migrations per class.
+     *
+     * @param prefix a readable part of the database name, e.g. {@code users}
+     */
+    public static synchronized DataSource migratedCopy(String prefix) {
+        instance();
+        if (!templateReady) {
+            createDatabase(TEMPLATE_DB);
+            FndMigrator.migrateOltp(database(TEMPLATE_DB));
+            templateReady = true;
+        }
+        String name = prefix.toLowerCase().replaceAll("[^a-z0-9_]", "_") + "_" + (++copies);
+        try (Connection c = postgres.getPostgresDatabase().getConnection(); Statement st = c.createStatement()) {
+            st.execute("create database " + name + " template " + TEMPLATE_DB);
+            created.add(name);
+        } catch (SQLException e) {
+            throw new IllegalStateException("Не удалось создать копию шаблонной базы " + name, e);
+        }
+        // A small pool: on Windows every new connection to the embedded server starts a process, so a
+        // connection per statement (DriverManagerDataSource) made statement-heavy tests several times slower.
+        var pool = new com.zaxxer.hikari.HikariConfig();
+        pool.setJdbcUrl(jdbcUrl(name));
+        pool.setUsername(USER);
+        pool.setMaximumPoolSize(4);
+        pool.setMinimumIdle(0);
+        pool.setIdleTimeout(10_000);
+        pool.setPoolName(name);
+        return new com.zaxxer.hikari.HikariDataSource(pool);
     }
 
     public static DataSource oltp() {

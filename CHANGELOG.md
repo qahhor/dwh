@@ -547,6 +547,11 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Server integration tests that only need a migrated database no longer start
+  a container each: `TestDatabases.migratedCopy` copies a template database
+  on the shared embedded PostgreSQL and hands a small connection pool (a new
+  connection per statement spawns a process on Windows). Sixteen classes moved;
+  the full server gate went from 10:31 to 8:47 minutes.
 - Every Angular class lists its members in the agreed order; the signal order
   baseline is empty (82 classes before). `signal-order-audit --fix` reordered
   them; two initializers that read a field now declared below were changed by
@@ -827,6 +832,11 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Removed
 
+- Dead code and one-off files: the web `collectKeyset` helper (the user
+  export is on the server now), unused global CSS classes, `KauthSecurityContext`,
+  `ResourceProfile`, `TokenUtils`, `scripts/calc-stats.ps1`,
+  `scripts/dev/translate-all-catalogs.py` (it sent catalog texts to an
+  unofficial external endpoint) and the dated `design-qa.md`.
 - 102 localization keys nothing uses any more (784 entries across the eight
   catalogs): old toasts and confirmations, retired navigation, notes and task
   labels, superseded kit texts. A key counts as used when its text appears in

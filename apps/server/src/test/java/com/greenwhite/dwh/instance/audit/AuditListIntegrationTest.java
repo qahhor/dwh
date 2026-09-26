@@ -1,5 +1,7 @@
 package com.greenwhite.dwh.instance.audit;
 
+import com.greenwhite.dwh.instance.support.TestDatabases;
+
 import com.greenwhite.dwh.core.error.FieldErrorItem;
 import com.greenwhite.dwh.instance.audit.repository.AuditLogRepository;
 import com.greenwhite.dwh.instance.audit.repository.AuditLogRepository.AuditLogFilters;
@@ -14,16 +16,10 @@ import com.greenwhite.dwh.instance.audit.service.AuditQuery;
 import com.greenwhite.dwh.instance.common.error.ApiException;
 import com.greenwhite.dwh.instance.common.query.QueryCompiler;
 import com.greenwhite.dwh.instance.common.query.QueryListRepository;
-import com.greenwhite.dwh.instance.config.db.FlywayUtcConfiguration;
-import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.Instant;
@@ -34,25 +30,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** The audit log and the security events on the field registry (ADR-0016, roadmap item 50). */
-@Testcontainers
 class AuditListIntegrationTest {
 
     private static final Instant TIE = Instant.parse("2026-09-04T10:15:30Z");
-
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:18-alpine")
-            .withDatabaseName("dwh_audit_list_test")
-            .withUsername("test_user")
-            .withPassword("test_pass");
 
     static JdbcClient jdbc;
     static AuditListService audit;
 
     @BeforeAll
     static void setup() {
-        var ds = new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
-        FlywayUtcConfiguration.configure(Flyway.configure())
-                .dataSource(ds).locations("classpath:db/migration").load().migrate();
+        var ds = TestDatabases.migratedCopy("dwh_audit_list_test");
         jdbc = JdbcClient.create(ds);
         var repository = new AuditLogRepository(jdbc, new ObjectMapper());
         audit = new AuditListService(new QueryListRepository(jdbc), repository,

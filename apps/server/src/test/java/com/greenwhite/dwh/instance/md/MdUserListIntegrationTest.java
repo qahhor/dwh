@@ -1,5 +1,7 @@
 package com.greenwhite.dwh.instance.md;
 
+import com.greenwhite.dwh.instance.support.TestDatabases;
+
 import com.greenwhite.dwh.core.error.FieldErrorItem;
 import com.greenwhite.dwh.instance.audit.repository.AuditLogRepository;
 import com.greenwhite.dwh.instance.audit.service.AuditDataRedactor;
@@ -7,7 +9,6 @@ import com.greenwhite.dwh.instance.audit.service.AuditLogService;
 import com.greenwhite.dwh.instance.common.error.ApiException;
 import com.greenwhite.dwh.instance.common.query.QueryCompiler;
 import com.greenwhite.dwh.instance.common.query.QueryListRepository;
-import com.greenwhite.dwh.instance.config.db.FlywayUtcConfiguration;
 import com.greenwhite.dwh.instance.md.repository.MdOrgUnitRepository;
 import com.greenwhite.dwh.instance.md.repository.MdPermissionRepository;
 import com.greenwhite.dwh.instance.md.repository.MdRoleRepository;
@@ -20,15 +21,10 @@ import com.greenwhite.dwh.instance.md.service.MdScopeService;
 import com.greenwhite.dwh.instance.md.service.MdUserListService;
 import com.greenwhite.dwh.instance.md.service.MdUserQuery;
 import com.greenwhite.dwh.instance.md.service.MdUserView;
-import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
@@ -38,14 +34,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** The user list on the field registry (ADR-0016, roadmap item 48), with the flat filters it took before. */
-@Testcontainers
 class MdUserListIntegrationTest {
-
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:18-alpine")
-            .withDatabaseName("dwh_user_list_test")
-            .withUsername("test_user")
-            .withPassword("test_pass");
 
     static JdbcClient jdbc;
     static MdScopeService scopeService;
@@ -56,9 +45,7 @@ class MdUserListIntegrationTest {
 
     @BeforeAll
     static void setup() {
-        var ds = new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
-        FlywayUtcConfiguration.configure(Flyway.configure())
-                .dataSource(ds).locations("classpath:db/migration").load().migrate();
+        var ds = TestDatabases.migratedCopy("dwh_user_list_test");
         jdbc = JdbcClient.create(ds);
         var audit = new AuditLogService(new AuditLogRepository(jdbc, new ObjectMapper()), null, new AuditDataRedactor());
         roleRepository = new MdRoleRepository(jdbc);

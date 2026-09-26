@@ -1,11 +1,12 @@
 package com.greenwhite.dwh.instance.kauth;
 
+import com.greenwhite.dwh.instance.support.TestDatabases;
+
 import com.greenwhite.dwh.instance.audit.repository.AuditLogRepository;
 import com.greenwhite.dwh.instance.audit.service.AuditLogService;
 import com.greenwhite.dwh.instance.audit.service.AuditDataRedactor;
 import com.greenwhite.dwh.instance.common.error.ApiException;
 import com.greenwhite.dwh.instance.common.provider.ProviderRegistry;
-import com.greenwhite.dwh.instance.config.db.FlywayUtcConfiguration;
 import com.greenwhite.dwh.instance.kauth.repository.KauthChannelRepository;
 import com.greenwhite.dwh.instance.kauth.repository.KauthLoginAttemptRepository;
 import com.greenwhite.dwh.instance.kauth.repository.KauthOtpCodeRepository;
@@ -24,16 +25,11 @@ import com.greenwhite.dwh.spi.messenger.MessengerProvider;
 import com.greenwhite.dwh.spi.messenger.MessengerSendResult;
 import com.greenwhite.dwh.spi.sms.SmsProvider;
 import com.greenwhite.dwh.spi.storage.StorageProvider;
-import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.ArrayList;
@@ -60,17 +56,10 @@ import static org.mockito.Mockito.when;
  * Эти тесты закрепляют оба свойства: код действительно уходит в канал, а найти
  * его можно только по своему токену.
  */
-@Testcontainers
 class KauthOtpLoginIntegrationTest {
 
     private static final Pattern CODE = Pattern.compile("(\\d{6})");
     private static final String PASSWORD = "OtpProbe-Pass-2026"; // gitleaks:allow -- isolated test credential
-
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:18-alpine")
-            .withDatabaseName("dwh_otp_test")
-            .withUsername("test_user")
-            .withPassword("test_pass");
 
     static JdbcClient jdbc;
     static KauthAuthService authService;
@@ -81,9 +70,7 @@ class KauthOtpLoginIntegrationTest {
 
     @BeforeAll
     static void setup() {
-        var ds = new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
-        FlywayUtcConfiguration.configure(Flyway.configure())
-                .dataSource(ds).locations("classpath:db/migration").load().migrate();
+        var ds = TestDatabases.migratedCopy("dwh_otp_test");
         jdbc = JdbcClient.create(ds);
 
         var mapper = new ObjectMapper();

@@ -1,18 +1,14 @@
 package com.greenwhite.dwh.instance.md;
 
-import com.greenwhite.dwh.instance.config.db.FlywayUtcConfiguration;
+import com.greenwhite.dwh.instance.support.TestDatabases;
+
 import com.greenwhite.dwh.instance.kauth.repository.KauthApiTokenRepository;
 import com.greenwhite.dwh.instance.kauth.repository.KauthSessionRepository;
 import com.greenwhite.dwh.instance.kauth.service.KauthUserSessionInvalidator;
-import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -21,22 +17,13 @@ import static org.assertj.core.api.Assertions.assertThat;
  * сессии и отзывает все API-токены. Реализация: MdUserService.setUserState →
  * порт UserSessionInvalidator → KauthUserSessionInvalidator (та же транзакция).
  */
-@Testcontainers
 class UserBlockingInvariantTest {
-
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:18-alpine")
-            .withDatabaseName("dwh_block_test")
-            .withUsername("test_user")
-            .withPassword("test_pass");
 
     static JdbcClient jdbc;
 
     @BeforeAll
     static void migrate() {
-        var ds = new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
-        FlywayUtcConfiguration.configure(Flyway.configure())
-                .dataSource(ds).locations("classpath:db/migration").load().migrate();
+        var ds = TestDatabases.migratedCopy("dwh_block_test");
         jdbc = JdbcClient.create(ds);
     }
 
