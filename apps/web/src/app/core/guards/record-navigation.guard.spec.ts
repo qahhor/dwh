@@ -5,7 +5,7 @@ import { of, Subject } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { routes } from '../../app.routes';
 import { ApiService } from '../services/api.service';
-import { TASKS_META } from '../../../testing/registry-meta';
+import { PROJECTS_META, TASKS_META } from '../../../testing/registry-meta';
 import { PermissionService } from '../services/permission.service';
 import { AuthService } from '../services/auth.service';
 import { TasksComponent } from '../../features/tasks/tasks.component';
@@ -24,13 +24,14 @@ describe('Record routes with the actual router and actual templates', () => {
           const response = new Subject<any>(); requests.set(path, response); return response.asObservable();
         }
         if (path === '/query-meta/ms.tasks') return of(TASKS_META);
+        if (path === '/query-meta/ms.projects') return of(PROJECTS_META);
         if (path === '/query-meta/iam.users') {
           // The user list is a registry list: its columns come from the server's field list.
           return of({ code: 'iam.users', defaultSort: 'name', defaultLimit: 20, maxLimit: 200, maxConditions: 20, maxInValues: 100,
             fields: [{ key: 'name', labelKey: 'iam.users.col.name', type: 'text', ops: ['eq'], sortable: true, nullable: false,
               defaultVisible: true, enumValues: [], enumLabelPrefix: null }] });
         }
-        return of(path === '/tasks' || path === '/iam/users' ? { items: [], hasMore: false, nextCursor: null, totalReturned: 0 } : []);
+        return of(path === '/tasks' || path === '/iam/users' || path === '/tasks/projects/page' ? { items: [], hasMore: false, nextCursor: null, totalReturned: 0 } : []);
       }), post: vi.fn(() => of({})), patch: vi.fn(() => of({})), delete: vi.fn(() => of({}))
     };
     TestBed.configureTestingModule({ providers: [provideRouter([routes[0], ...routes[1].children!]),

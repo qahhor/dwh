@@ -19,9 +19,12 @@ import java.util.Map;
 public class MsProjectController {
 
     private final MsProjectService projectService;
+    private final com.greenwhite.dwh.instance.ms.task.service.MsProjectListService projectListService;
 
-    public MsProjectController(MsProjectService projectService) {
+    public MsProjectController(MsProjectService projectService,
+                               com.greenwhite.dwh.instance.ms.task.service.MsProjectListService projectListService) {
         this.projectService = projectService;
+        this.projectListService = projectListService;
     }
 
     @GetMapping
@@ -29,6 +32,23 @@ public class MsProjectController {
     public ResponseEntity<List<MsProjectRepository.ProjectRecord>> listProjects(
             @RequestParam(name = "state", required = false) String state) {
         return ResponseEntity.ok(projectService.listProjects(state));
+    }
+
+    /**
+     * The project list a page at a time on the registry (ms.projects, roadmap item 51): filter, sort, search and
+     * the viewer's task counts. The whole list above stays for the pickers.
+     */
+    @GetMapping("/page")
+    @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "view")
+    public ResponseEntity<com.greenwhite.dwh.core.pagination.KeysetPage<com.greenwhite.dwh.instance.ms.task.service.MsProjectListService.ProjectListItem>> pageProjects(
+            @RequestParam(name = "limit", required = false) Integer limit,
+            @RequestParam(name = "cursor", required = false) String cursor,
+            @RequestParam(name = "filter", required = false) String filter,
+            @RequestParam(name = "sort", required = false) String sort,
+            @RequestParam(name = "q", required = false) String query,
+            @RequestParam(name = "state", required = false) String state) {
+        return ResponseEntity.ok(projectListService.page(SecurityContext.getCurrentUserId(), limit, cursor, filter, sort,
+                query, state));
     }
 
     @GetMapping("/{id}")

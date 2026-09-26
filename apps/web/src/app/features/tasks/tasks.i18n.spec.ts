@@ -8,7 +8,8 @@ describe('i18n: tasks and projects', () => {
     expect(featureI18nProblems({
       dir: 'src/app/features/tasks', owns: ['tasks.', 'task.', 'projects.'], english: true,
       dynamic: [...serverLiteralKeys('task.'), ...serverLiteralKeys('tasks.'),
-        ...['low', 'medium', 'high', 'critical'].map(priority => 'tasks.priority.' + priority)],
+        ...['low', 'medium', 'high', 'critical'].map(priority => 'tasks.priority.' + priority),
+        ...serverLiteralKeys('projects.'), 'projects.state.A', 'projects.state.P'],
     })).toEqual([]);
   });
 });

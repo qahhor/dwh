@@ -105,8 +105,10 @@ import { Project, ProjectTaskStats } from '../../../../core/models/task.models';
         [totalItems]="totalCount"
         [currentPage]="currentPage"
         [pageSize]="pageSize"
+        [showPageSize]="false"
+        [cursorMode]="true"
+        [hasNextPage]="hasNextPage"
         (pageChange)="pageChange.emit($event)"
-        (pageSizeChange)="pageSizeChange.emit($event)"
       ></ui-pagination>
     </div>
   `,
@@ -260,6 +262,8 @@ export class ProjectCardsViewComponent {
   @Input() totalCount = 0;
   @Input() currentPage = 1;
   @Input() pageSize = 10;
+  /** The server pages by cursor (ms.projects): the next page exists while it says so. */
+  @Input() hasNextPage = false;
   @Input() canViewTasks = false;
   @Input() canUpdateProject = false;
   @Input() projectStats: Record<number, ProjectTaskStats> = {};
@@ -271,7 +275,6 @@ export class ProjectCardsViewComponent {
   @Output() editProject = new EventEmitter<Project>();
   @Output() manageMembers = new EventEmitter<Project>();
   @Output() pageChange = new EventEmitter<number>();
-  @Output() pageSizeChange = new EventEmitter<number>();
 
   hasProjectStats(projectId: number): boolean {
     return this.canViewTasks

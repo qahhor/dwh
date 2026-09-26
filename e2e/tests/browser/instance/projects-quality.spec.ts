@@ -405,6 +405,27 @@ test('controlled project fixtures keep filter, copy, hitbox, card, and mobile co
       await route.fulfill({ contentType: 'application/json', json: fixtures });
       return;
     }
+    if (path === `${PROJECTS_PATH}/page`) {
+      // The screen pages the registry list ms.projects (roadmap item 51); counts come with each row.
+      const params = new URL(request.url()).searchParams;
+      const text = (params.get('q') ?? '').toLowerCase();
+      const state = params.get('state');
+      const matching = fixtures
+        .filter(project => !text || project.name.toLowerCase().includes(text))
+        .filter(project => !state || project.state === state)
+        .map(project => {
+          const entry = stats.find(item => item.projectId === project.id);
+          return entry
+            ? { ...project, totalTasks: entry.totalTasks, doneTasks: entry.doneTasks, progress: Math.round(entry.doneTasks * 100 / entry.totalTasks) }
+            : project;
+        });
+      const size = Number(params.get('limit') ?? 10);
+      const start = params.get('cursor') ? Number(params.get('cursor')) : 0;
+      const items = matching.slice(start, start + size);
+      const next = start + size < matching.length ? String(start + size) : null;
+      await route.fulfill({ contentType: 'application/json', json: { items, nextCursor: next, hasMore: next !== null, totalEstimated: matching.length } });
+      return;
+    }
     if (path === `${PROJECTS_PATH}/stats`) {
       await route.fulfill({ contentType: 'application/json', json: stats });
       return;
@@ -441,12 +462,13 @@ test('controlled project fixtures keep filter, copy, hitbox, card, and mobile co
 
     const listEdit = projectEditButton(page, 'Fixture active anchor');
     await expectMinimumHitbox(listEdit, { width: 28, height: 28 });
-    await page.getByRole('button', { name: 'Страница 2', exact: true }).click();
-    await expect(page.getByRole('button', { name: 'Страница 2', exact: true })).toHaveAttribute('aria-current', 'page');
+    // The server pages by cursor: forward with "next", and a new search starts from the first page again.
+    await page.getByRole('button', { name: 'Следующая страница', exact: true }).click();
+    await expect(page.locator('.current-page-indicator')).toContainText('2');
     const search = page.getByRole('searchbox', { name: 'Поиск проектов', exact: true });
     await search.fill('Fixture active anchor');
     await expect(projectRow(page, 'Fixture active anchor')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Страница 1', exact: true })).toHaveAttribute('aria-current', 'page');
+    await expect(page.locator('.current-page-indicator')).toContainText('1');
     await page.getByRole('button', { name: 'Очистить поле', exact: true }).click();
 
     await cardsButton.click();

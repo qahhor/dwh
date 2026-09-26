@@ -149,6 +149,27 @@ export const fixtures = {
     state: id % 5 ? 'A' : 'P', attributes: {}, createdAt: at(id), createdBy: 1,
   })),
   '/tasks/projects/stats': range(1, 12).map(id => ({ projectId: id, totalTasks: id + 2, activeTasks: 2, doneTasks: id })),
+  // The project screen pages the registry list ms.projects (roadmap item 51); counts come with each row.
+  '/query-meta/ms.projects': {
+    code: 'ms.projects', defaultSort: 'name', defaultLimit: 50, maxLimit: 200, maxConditions: 20, maxInValues: 100,
+    fields: [
+      metaField('id', 'projects.col.id', 'number', { sortable: true }),
+      metaField('name', 'projects.col.name', 'text', { sortable: true, searchable: true }),
+      metaField('state', 'projects.col.state', 'enum', { enumValues: ['A', 'P'], enumLabelPrefix: 'projects.state.' }),
+      metaField('createdAt', 'projects.col.created_at', 'instant', { sortable: true }),
+      metaField('progress', 'projects.col.progress', 'number', { sortable: true })
+    ]
+  },
+  '/list-views/ms.projects': [],
+  '/tasks/projects/page': page(range(1, 10).map(id => ({
+    id, name: `Выкладка в сети ${id}`, description: id % 2 ? `Регион ${id}: контроль полки и POSM` : undefined,
+    state: id % 5 ? 'A' : 'P', attributes: {}, createdAt: at(id), createdBy: 1,
+    totalTasks: id + 2, doneTasks: id, progress: Math.round(id * 100 / (id + 2)),
+  })), 'p2', 14),
+  '/tasks/projects/page#p2': page(range(11, 14).map(id => ({
+    id, name: `Выкладка в сети ${id}`, state: 'A', attributes: {}, createdAt: at(id), createdBy: 1,
+    totalTasks: 0, doneTasks: 0, progress: 0,
+  })), null, 14),
   '/tasks/statuses': [{ id: 1, name: 'Открыта', color: '#3b82f6', orderNo: 1, isFinal: false }],
   '/tasks/types': [],
 };

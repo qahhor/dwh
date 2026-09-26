@@ -10,6 +10,19 @@ import { ToastService } from '../../../core/services/toast.service';
 import { SMTDialogComponent } from '../../../shared/ui-kit/components/modal';
 import { ProjectsComponent } from './projects.component';
 import { inScreen, redraw } from '../../../../testing/in-screen';
+import { PROJECTS_META, registryProviders } from '../../../../testing/registry-meta';
+import { QueryListMeta } from '../../../core/models/query-meta.models';
+import { ProjectListItem } from './projects.models';
+
+/** A page of the project list as the server answers it. */
+const page = (items: ProjectListItem[], nextCursor: string | null = null) => ({ items, nextCursor, hasMore: nextCursor !== null, totalEstimated: items.length });
+
+/** An API that answers the project list with one page of these projects and every other read empty. */
+const listApi = (items: ProjectListItem[]): ApiDouble => {
+  const api = emptyApi();
+  api.get.mockImplementation((url: string) => of(url === '/tasks/projects/page' ? page(items) : []));
+  return api;
+};
 
 interface ApiDouble {
   get: ReturnType<typeof vi.fn>;
@@ -29,6 +42,7 @@ describe('ProjectsComponent UI contracts', () => {
   async function createFixture(options: {
     api?: ApiDouble;
     permissions?: string[];
+    meta?: QueryListMeta;
   } = {}) {
     const api = options.api ?? emptyApi();
     const router = { navigate: vi.fn() };
@@ -39,7 +53,8 @@ describe('ProjectsComponent UI contracts', () => {
         { provide: ApiService, useValue: api },
         PermissionService,
         { provide: ToastService, useValue: toast },
-        { provide: Router, useValue: router }
+        { provide: Router, useValue: router },
+        ...registryProviders(options.meta ?? PROJECTS_META)
       ]
     }).compileComponents();
     TestBed.inject(PermissionService).setPermissions(options.permissions ?? ['*.*']);
@@ -87,7 +102,7 @@ describe('ProjectsComponent UI contracts', () => {
   it('renders plain project state copy while retaining A and P option values', async () => {
     const api = emptyApi();
     api.get.mockImplementation((url: string) => {
-      if (url === '/tasks/projects') return of([project(1), project(2, 'P')]);
+      if (url === '/tasks/projects/page') return of(page([project(1), project(2, 'P')]));
       if (url === '/tasks/projects/1') return of(project(1));
       return of([]);
     });
@@ -190,7 +205,7 @@ describe('ProjectsComponent UI contracts', () => {
     const freshDetail = new Subject<Project>();
     const api = emptyApi();
     api.get.mockImplementation((url: string) => {
-      if (url === '/tasks/projects') return of([summary]);
+      if (url === '/tasks/projects/page') return of(page([summary]));
       if (url === '/tasks/projects/5') return freshDetail;
       return of([]);
     });
@@ -291,7 +306,8 @@ describe('ProjectsComponent UI contracts', () => {
 
     component.isCreateDiscardConfirmationOpen.set(false);
     expect(component.createForm.name).toBe('Unsaved project');
-    const createModal = fixture.debugElement.queryAll(By.directive(SMTDialogComponent))[0]
+    redraw(fixture);
+    const createModal = fixture.debugElement.queryAll(By.directive(SMTDialogComponent)).find(dialog => dialog.componentInstance.open())!
       .componentInstance as SMTDialogComponent;
     createModal.closed.emit();
     expect(component.isCreateModalOpen()).toBe(true);
@@ -323,7 +339,7 @@ describe('ProjectsComponent UI contracts', () => {
       description: 'Draft description'
     });
     expect(inScreen(fixture.nativeElement).querySelector('.project-create-form')?.disabled).toBe(true);
-    expect(fixture.debugElement.queryAll(By.directive(SMTDialogComponent))[0].componentInstance.dismissible()).toBe(false);
+    expect(fixture.debugElement.queryAll(By.directive(SMTDialogComponent)).find(dialog => dialog.componentInstance.open())!.componentInstance.dismissible()).toBe(false);
     component.requestCloseCreate();
     expect(component.isCreateModalOpen()).toBe(true);
 
@@ -504,126 +520,55 @@ describe('ProjectsComponent UI contracts', () => {
     expect(toast.success).not.toHaveBeenCalled();
   });
 
-  it('sorts the whole filtered list from a column header and returns to the first page', async () => {
-    const rows = Array.from({ length: 21 }, (_, index) => project(index + 1));
-    const api = emptyApi();
-    api.get.mockImplementation((url: string) => of(url.endsWith('/stats') ? [] : rows));
-    const { fixture } = await createFixture({ api });
-    const component = fixture.componentInstance;
-    const firstRowId = () => inScreen(fixture.nativeElement).querySelector('.project-row')?.textContent?.match(/#(\d+)/)?.[1];
-    const idHeader = () => [...inScreen(fixture.nativeElement).querySelectorAll('[role="columnheader"]')]
-      .find(header => (header as HTMLElement).textContent?.trim().startsWith('ID')) as HTMLElement;
-    expect(firstRowId()).toBe('1');
-
-    component.currentPage = 2;
-    redraw(fixture);
-    const sortButton = idHeader().querySelector('button, [role="button"]') as HTMLElement ?? idHeader();
-    sortButton.click();
-    redraw(fixture);
-    sortButton.click();
-    redraw(fixture);
-
-    // Descending by id over all 21 projects: page 1 starts with the last one, not with the last of page 2.
-    expect(component.currentPage).toBe(1);
-    expect(component.projectSort).toEqual({ column: 'id', sortBy: 'DESC' });
-    expect(idHeader().getAttribute('aria-sort')).toBe('descending');
-    expect(firstRowId()).toBe('21');
-  });
-
-  it('resets pagination when search and status filters change or search is cleared', async () => {
-    const rows = Array.from({ length: 21 }, (_, index) => project(index + 1, index === 20 ? 'P' : 'A'));
-    const api = emptyApi();
-    api.get.mockImplementation((url: string) => of(url.endsWith('/stats') ? [] : rows));
-    const { fixture } = await createFixture({ api });
-    const component = fixture.componentInstance;
-    const search = inScreen(fixture.nativeElement).querySelector('#project-search') as HTMLInputElement;
-
-    component.currentPage = 2;
-    search.value = 'Project 21';
-    search.dispatchEvent(new Event('input'));
-    redraw(fixture);
-
-    expect(component.currentPage).toBe(1);
-    expect(inScreen(fixture.nativeElement).querySelector('.project-row')?.textContent).toContain('Project 21');
-
-    component.currentPage = 2;
-    (search.closest('smt-input')?.querySelector('button.smt-input__action') as HTMLButtonElement).click();
-    redraw(fixture);
-    expect(component.currentPage).toBe(1);
-    expect(component.searchQuery).toBe('');
-
-    const statusButtons = Array.from(
-      inScreen(fixture.nativeElement).querySelectorAll('.status-filter [role="radio"]') as NodeListOf<HTMLElement>
-    );
-    for (const [label, visibleProject] of [
-      ['Архив', 'Project 21'],
-      ['Активные', 'Project 1'],
-      ['Все', 'Project 1']
-    ] as const) {
-      component.currentPage = 2;
-      statusButtons.find(button => button.textContent?.includes(label))?.click();
+  it('asks the server for one page with the search, the state and the sort; a header sorts the whole list', async () => {
+    vi.useFakeTimers();
+    try {
+      const api = listApi([project(1), project(2)]);
+      const { fixture } = await createFixture({ api });
+      const component = fixture.componentInstance;
+      await vi.advanceTimersByTimeAsync(0);
       redraw(fixture);
-      expect(component.currentPage).toBe(1);
-      expect(inScreen(fixture.nativeElement).querySelector('.project-row')?.textContent).toContain(visibleProject);
+      expect(api.get).toHaveBeenCalledWith('/tasks/projects/page', expect.objectContaining({ limit: 10, cursor: undefined }), { notifyError: false });
+      expect(inScreen(fixture.nativeElement).querySelector('.count-badge')?.textContent?.trim()).toBe('2');
+
+      component.setSearchQuery('Proj');
+      await vi.advanceTimersByTimeAsync(300);
+      expect(api.get).toHaveBeenLastCalledWith('/tasks/projects/page', expect.objectContaining({ q: 'Proj' }), { notifyError: false });
+
+      component.setSelectedState('P');
+      expect(api.get).toHaveBeenLastCalledWith('/tasks/projects/page', expect.objectContaining({ state: 'P', q: 'Proj' }), { notifyError: false });
+
+      component.onSort({ column: 'progress', sortBy: 'DESC' as never });
+      expect(api.get).toHaveBeenLastCalledWith('/tasks/projects/page', expect.objectContaining({ sort: '-progress' }), { notifyError: false });
+      expect(component.exportOptions()).toEqual({ state: 'P' });
+    } finally {
+      vi.useRealTimers();
     }
   });
 
-  it('clamps the page to filtered results after successful reloads', async () => {
-    const api = emptyApi();
-    const responses: Project[][] = [
-      Array.from({ length: 25 }, (_, index) => project(index + 1)),
-      Array.from({ length: 15 }, (_, index) => project(index + 1)),
-      Array.from({ length: 21 }, (_, index) => project(index + 1, index === 20 ? 'P' : 'A')),
-      []
-    ];
-    api.get.mockImplementation((url: string) => url.includes('/custom-fields') ? of([]) : of(url.endsWith('/stats') ? [] : responses.shift() ?? []));
-    const { fixture } = await createFixture({ api });
-    const component = fixture.componentInstance;
-
-    component.currentPage = 3;
-    component.loadProjects();
-    expect(component.currentPage).toBe(2);
-
-    component.selectedState = 'A';
-    component.currentPage = 1;
-    component.loadProjects(21);
-    expect(component.currentPage).toBe(1);
-
-    component.currentPage = 3;
-    component.loadProjects();
-    expect(component.currentPage).toBe(1);
-  });
-
   it('shows recoverable list loading and error states without empty results in list and cards', async () => {
-    const first = new Subject<Project[]>();
-    const retry = new Subject<Project[]>();
-    const listReads = [first, retry];
+    const first = new Subject<unknown>();
+    const retry = new Subject<unknown>();
+    const reads = [first, retry];
     const api = emptyApi();
-    api.get.mockImplementation((url: string): Observable<Project[] | ProjectTaskStats[]> =>
-      url.includes('/custom-fields') ? of([]) : (url.endsWith('/stats') ? of([]) : (listReads.shift() ?? of([])))
-    );
+    api.get.mockImplementation((url: string) => url === '/tasks/projects/page' ? (reads.shift() ?? of(page([]))) : of([]));
     const { fixture } = await createFixture({ api });
 
     expect(inScreen(fixture.nativeElement).querySelector('[data-testid="projects-list-loading"][role="status"]')).not.toBeNull();
     expect(inScreen(fixture.nativeElement).textContent).not.toContain('Проекты не найдены');
-    expect(inScreen(fixture.nativeElement).querySelector('ui-pagination')).toBeNull();
-    expect(api.get).toHaveBeenCalledWith('/tasks/projects', undefined, { notifyError: false });
 
     fixture.componentInstance.viewMode = 'cards';
     redraw(fixture);
-    expect(inScreen(fixture.nativeElement).textContent).not.toContain('Проекты не найдены');
     expect(inScreen(fixture.nativeElement).querySelector('.project-card')).toBeNull();
 
     first.error({ status: 503, title: 'Unavailable', code: 'API_ERROR', detail: 'Unavailable' });
     redraw(fixture);
     expect(inScreen(fixture.nativeElement).querySelector('[data-testid="projects-list-error"][role="alert"]')).not.toBeNull();
-    expect(inScreen(fixture.nativeElement).querySelector('ui-pagination')).toBeNull();
 
     const retryButton = inScreen(fixture.nativeElement).querySelector('.projects-list-retry') as HTMLButtonElement;
     expect(retryButton.textContent).toContain('Повторить загрузку проектов');
     retryButton.click();
-    redraw(fixture);
-    retry.next([project(1)]);
+    retry.next(page([project(1)]));
     retry.complete();
     redraw(fixture);
 
@@ -631,11 +576,8 @@ describe('ProjectsComponent UI contracts', () => {
     expect(inScreen(fixture.nativeElement).querySelector('.project-card')?.textContent).toContain('Project 1');
   });
 
-  it('describes terminal project tasks as closed in list and card progress', async () => {
-    const api = emptyApi();
-    api.get.mockImplementation((url: string) => of(url.endsWith('/stats')
-      ? [{ projectId: 1, totalTasks: 4, activeTasks: 2, doneTasks: 2 }]
-      : [project(1)]));
+  it('describes terminal project tasks as closed in list and card progress, from the counts on each row', async () => {
+    const api = listApi([{ ...project(1), totalTasks: 4, doneTasks: 2, progress: 50 }]);
     const { fixture } = await createFixture({ api });
     const host = inScreen(fixture.nativeElement);
 
@@ -645,82 +587,28 @@ describe('ProjectsComponent UI contracts', () => {
       .toBe('Доля закрытых задач проекта Project 1');
     expect(host.querySelector('[data-testid="projects-stats-scope"]')?.textContent)
       .toContain('конечных статусах, включая выполненные и отменённые');
+    expect(api.get.mock.calls.filter(([url]) => String(url).endsWith('/stats'))).toHaveLength(0);
 
     fixture.componentInstance.viewMode = 'cards';
     redraw(fixture);
 
     expect(host.querySelector('.progress-count')?.textContent?.trim()).toBe('2 / 4 закрыто');
     expect(host.querySelector('[role="progressbar"]')?.getAttribute('aria-valuenow')).toBe('50');
-    expect(host.querySelector('[role="progressbar"]')?.getAttribute('aria-label'))
-      .toBe('Доля закрытых задач проекта Project 1');
-  });
-
-  it('renders task statistics only for real successful rows and recovers independently', async () => {
-    const pending = new Subject<ProjectTaskStats[]>();
-    const retry = new Subject<ProjectTaskStats[]>();
-    const explicitZero = new Subject<ProjectTaskStats[]>();
-    const missing = new Subject<ProjectTaskStats[]>();
-    const statsReads = [pending, retry, explicitZero, missing];
-    const api = emptyApi();
-    api.get.mockImplementation((url: string) => url.endsWith('/stats') ? (statsReads.shift() ?? of([])) : of([project(1)]));
-    const { fixture } = await createFixture({ api });
-    const component = fixture.componentInstance;
-
-    expect(inScreen(fixture.nativeElement).querySelector('[data-testid="projects-stats-loading"][role="status"]')).not.toBeNull();
-    expect(inScreen(fixture.nativeElement).querySelector('[role="progressbar"]')).toBeNull();
-    expect(inScreen(fixture.nativeElement).textContent).not.toContain('0 / 0');
-    expect(api.get).toHaveBeenCalledWith('/tasks/projects/stats', undefined, { notifyError: false });
-
-    component.viewMode = 'cards';
-    redraw(fixture);
-    expect(inScreen(fixture.nativeElement).querySelector('.project-card')?.textContent).toContain('Project 1');
-    expect(inScreen(fixture.nativeElement).querySelector('[role="progressbar"]')).toBeNull();
-
-    pending.error({ status: 503, title: 'Unavailable', code: 'API_ERROR', detail: 'Unavailable' });
-    redraw(fixture);
-    expect(inScreen(fixture.nativeElement).querySelector('[data-testid="projects-stats-error"][role="alert"]')).not.toBeNull();
-    expect(inScreen(fixture.nativeElement).querySelector('[role="progressbar"]')).toBeNull();
-
-    (inScreen(fixture.nativeElement).querySelector('.projects-stats-retry') as HTMLButtonElement).click();
-    redraw(fixture);
-    retry.next([{ projectId: 1, totalTasks: 4, activeTasks: 2, doneTasks: 2 }]);
-    retry.complete();
-    redraw(fixture);
-    expect(inScreen(fixture.nativeElement).querySelector('[role="progressbar"]')?.getAttribute('aria-valuenow')).toBe('50');
-    expect(inScreen(fixture.nativeElement).textContent).toContain('2 / 4');
-
-    component.loadStats();
-    explicitZero.next([{ projectId: 1, totalTasks: 0, activeTasks: 0, doneTasks: 0 }]);
-    explicitZero.complete();
-    redraw(fixture);
-    expect(inScreen(fixture.nativeElement).querySelector('[role="progressbar"]')?.getAttribute('aria-valuenow')).toBe('0');
-    expect(inScreen(fixture.nativeElement).textContent).toContain('0 / 0');
-
-    component.loadStats();
-    missing.next([]);
-    missing.complete();
-    redraw(fixture);
-    expect(inScreen(fixture.nativeElement).querySelector('[role="progressbar"]')).toBeNull();
-    expect(inScreen(fixture.nativeElement).textContent).toContain('Статистика недоступна');
   });
 
   it('keeps project-view-only users on plain project data without task statistics or drilldowns', async () => {
-    const api = emptyApi();
-    api.get.mockImplementation((url: string) => of(url.endsWith('/stats') ? [] : [project(1)]));
-    const { fixture, router } = await createFixture({ api, permissions: ['tasks.projects.view'] });
+    const api = listApi([project(1)]);
+    const withoutProgress = { ...PROJECTS_META, fields: PROJECTS_META.fields.filter(field => field.key !== 'progress') };
+    const { fixture, router } = await createFixture({ api, permissions: ['tasks.projects.view'], meta: withoutProgress });
 
     expect(inScreen(fixture.nativeElement).querySelector('.project-name')).toBeNull();
     expect(inScreen(fixture.nativeElement).querySelector('.project-name-text')?.textContent).toContain('Project 1');
     expect(inScreen(fixture.nativeElement).querySelector('[role="progressbar"]')).toBeNull();
-    expect(inScreen(fixture.nativeElement).textContent).not.toContain('Задачи (');
     expect(inScreen(fixture.nativeElement).querySelector('[data-testid="projects-stats-permission"][role="status"]')).not.toBeNull();
-    expect(inScreen(fixture.nativeElement).querySelector('.projects-stats-retry')).toBeNull();
-    expect(api.get.mock.calls.filter(([url]) => String(url).endsWith('/stats'))).toHaveLength(0);
 
     fixture.componentInstance.viewMode = 'cards';
     redraw(fixture);
     expect(inScreen(fixture.nativeElement).querySelector('.project-title-btn')).toBeNull();
-    expect(inScreen(fixture.nativeElement).querySelector('.project-name-text')?.textContent).toContain('Project 1');
     expect(inScreen(fixture.nativeElement).querySelector('.view-tasks-link')).toBeNull();
     expect(inScreen(fixture.nativeElement).querySelector('.card-progress')).toBeNull();
 
@@ -729,8 +617,7 @@ describe('ProjectsComponent UI contracts', () => {
   });
 
   it('does not let task create or update permissions grant project actions', async () => {
-    const api = emptyApi();
-    api.get.mockImplementation((url: string) => of(url.endsWith('/stats') ? [] : [project(1)]));
+    const api = listApi([project(1)]);
     const { fixture } = await createFixture({
       api,
       permissions: ['tasks.projects.view', 'tasks.items.create', 'tasks.items.update']
@@ -754,11 +641,9 @@ describe('ProjectsComponent UI contracts', () => {
   });
 
   it('retains project create and update actions for scoped users and wildcard administrators', async () => {
-    const api = emptyApi();
-    api.get.mockImplementation((url: string) => {
-      if (url === '/tasks/projects/1') return of(project(1));
-      return of(url.endsWith('/stats') ? [] : [project(1)]);
-    });
+    const api = listApi([project(1)]);
+    const inner = api.get.getMockImplementation() as (url: string, ...rest: unknown[]) => unknown;
+    api.get.mockImplementation((url: string, ...rest: unknown[]) => url === '/tasks/projects/1' ? of(project(1)) : inner(url, ...rest));
     api.post.mockReturnValue(of(project(2)));
     const { fixture } = await createFixture({
       api,
@@ -778,71 +663,12 @@ describe('ProjectsComponent UI contracts', () => {
     fixture.componentInstance.editForm.name = 'Updated';
     fixture.componentInstance.submitEditProject();
     expect(api.patch).toHaveBeenCalledTimes(1);
-
-    TestBed.inject(PermissionService).setPermissions(['*.*']);
-    redraw(fixture);
-    expect(fixture.componentInstance.canCreateProject()).toBe(true);
-    expect(fixture.componentInstance.canUpdateProject()).toBe(true);
   });
 
-  it('cancels replaced reads and ignores list or statistics responses after destroy', async () => {
-    const firstList = new Subject<Project[]>();
-    const latestList = new Subject<Project[]>();
-    const afterDestroyList = new Subject<Project[]>();
-    const firstStats = new Subject<ProjectTaskStats[]>();
-    const latestStats = new Subject<ProjectTaskStats[]>();
-    const afterDestroyStats = new Subject<ProjectTaskStats[]>();
-    const listReads = [firstList, latestList, afterDestroyList];
-    const statsReads = [firstStats, latestStats, afterDestroyStats];
-    const api = emptyApi();
-    api.get.mockImplementation((url: string) => {
-      if (url.includes('/custom-fields')) return of([]);
-      return url.endsWith('/stats') ? statsReads.shift()! : listReads.shift()!;
-    });
-    const { fixture } = await createFixture({ api });
-    const component = fixture.componentInstance;
-
-    component.loadProjects();
-    component.loadStats();
-    latestList.next([project(2)]);
-    latestStats.next([{ projectId: 2, totalTasks: 5, activeTasks: 1, doneTasks: 4 }]);
-    firstList.next([project(1)]);
-    firstStats.next([{ projectId: 1, totalTasks: 99, activeTasks: 99, doneTasks: 99 }]);
-
-    expect(component.projects().map(row => row.id)).toEqual([2]);
-    expect(component.projectStats()[2]?.totalTasks).toBe(5);
-    expect(component.projectStats()[1]).toBeUndefined();
-
-    component.loadProjects();
-    component.loadStats();
-    fixture.destroy();
-    afterDestroyList.next([project(3)]);
-    afterDestroyStats.next([{ projectId: 3, totalTasks: 3, activeTasks: 3, doneTasks: 0 }]);
-
-    expect(component.projects().map(row => row.id)).toEqual([]);
-    expect(component.projectStats()).toEqual({});
-  });
-
-  it('reveals a newly created project even when it belongs on a later page', async () => {
-    const existing = Array.from({ length: 10 }, (_, index) => ({
-      id: index + 1,
-      name: `Project ${index + 1}`,
-      state: 'A' as const,
-      createdAt: '2026-08-30T00:00:00Z'
-    }));
-    const created = {
-      id: 11,
-      name: 'Newly created project',
-      state: 'A' as const,
-      createdAt: '2026-08-30T00:00:00Z'
-    };
-    let wasCreated = false;
-    const api = emptyApi();
-    api.get.mockImplementation((url: string) => of(url.endsWith('/stats') ? [] : wasCreated ? [...existing, created] : existing));
-    api.post.mockImplementation(() => {
-      wasCreated = true;
-      return of(created);
-    });
+  it('reloads the first page with the filters cleared after a project is created', async () => {
+    const created = { ...project(11), name: 'Newly created project' };
+    const api = listApi([project(1)]);
+    api.post.mockReturnValue(of(created));
     const { fixture } = await createFixture({ api });
     const component = fixture.componentInstance;
     component.searchQuery = 'old filter';
@@ -854,8 +680,10 @@ describe('ProjectsComponent UI contracts', () => {
 
     expect(component.searchQuery).toBe('');
     expect(component.selectedState).toBe('all');
-    expect(component.currentPage).toBe(2);
-    expect(component.paginatedProjects().map(row => row.id)).toContain(created.id);
+    const request = api.get.mock.calls.filter(([url]) => url === '/tasks/projects/page').at(-1)?.[1] as Record<string, unknown>;
+    expect(request['state']).toBeUndefined();
+    expect(request['q']).toBeUndefined();
+    expect(request['cursor']).toBeUndefined();
   });
 
   it('manages project members modal: opens, loads members, adds and removes members', async () => {

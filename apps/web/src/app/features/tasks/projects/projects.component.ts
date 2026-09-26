@@ -1,4 +1,5 @@
-import { Component, OnDestroy, OnInit, signal, inject } from '@angular/core';
+import { Component, DestroyRef, OnDestroy, OnInit, computed, signal, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
@@ -13,14 +14,22 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
 import { CustomField } from '../../../core/models/custom-field.models';
 import { ToastService } from '../../../core/services/toast.service';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
-import { ProjectCreateForm, ProjectEditForm, ProjectViewState, ProjectStateFilter, ProjectMember } from './projects.models';
+import { ProjectCreateForm, ProjectEditForm, ProjectViewState, ProjectStateFilter, ProjectMember, ProjectListItem } from './projects.models';
 import { ProjectFilterBarComponent } from './components/project-filter-bar.component';
 import { ProjectTableViewComponent } from './components/project-table-view.component';
 import { ProjectCardsViewComponent } from './components/project-cards-view.component';
 import { ProjectModalsComponent } from './components/project-modals.component';
 import { ProjectMembersModalComponent } from './components/project-members-modal.component';
 import { ProjectFormsService } from './services/project-forms.service';
-import { ProjectSort, sortProjects } from './projects-order';
+import { KeysetPager } from '../../../shared/paging/keyset-pager';
+import { KeysetPage } from '../../../core/models/common.models';
+import { QueryListMeta } from '../../../core/models/query-meta.models';
+import { QueryMetaService, parseSort, toQueryParams } from '../../../core/services/query-meta.service';
+import { ListViewState, ListViewsApi } from '../../../shared/list-views/list-views';
+import { TableColumnStateStore } from '../../../shared/ui-kit/services/table-column-state.store';
+import { sortFromHeader } from '../../../shared/ui/registry-table-config';
+import { OrderBy } from '../../../shared/ui-kit/components/table/table.types';
+import { SMTAlertComponent } from '../../../shared/ui-kit/components/alert';
 import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '../../../shared/ui-kit/components/forms/radio-group';
 
 @Component({
@@ -32,6 +41,7 @@ import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '../../../sh
     RouterModule,
     TranslatePipe,
     SMTButtonComponent,
+    SMTAlertComponent,
     ProjectFilterBarComponent,
     ProjectTableViewComponent,
     ProjectCardsViewComponent,
@@ -51,6 +61,8 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   private readonly toast = inject(ToastService);
   private readonly uiI18n = inject(I18nService);
   private readonly modal = inject(SMTModalService);
+  private readonly queryMeta = inject(QueryMetaService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly routeRecordId = signal<string | null>(null);
   readonly viewingProject = signal<Project | null>(null);
@@ -64,22 +76,62 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   readonly isAddingMember = signal<boolean>(false);
   readonly removingMemberId = signal<number | null>(null);
 
-  readonly projects = signal<Project[]>([]);
-  readonly projectStats = signal<Record<number, ProjectTaskStats>>({});
-  readonly isLoading = signal<boolean>(false);
-  readonly listLoadError = signal<boolean>(false);
+  /** Field metadata of the list (`query-meta/ms.projects`), roadmap item 51. */
+  readonly meta = signal<QueryListMeta | null>(null);
+  readonly metaError = signal(false);
   readonly listLoaded = signal<boolean>(false);
-  readonly statsLoading = signal<boolean>(false);
-  readonly statsLoadError = signal<boolean>(false);
-  readonly statsLoaded = signal<boolean>(false);
 
   readonly projectCustomFields = signal<CustomField[]>([]);
+
+  /** The counts the server sent with each row; empty for someone who may not view tasks. */
+  readonly projectStats = computed<Record<number, ProjectTaskStats>>(() => {
+    const stats: Record<number, ProjectTaskStats> = {};
+    for (const project of this.projects()) {
+      if (project.totalTasks == null || project.doneTasks == null) continue;
+      stats[project.id] = {
+        projectId: project.id,
+        totalTasks: project.totalTasks,
+        doneTasks: project.doneTasks,
+        activeTasks: project.totalTasks - project.doneTasks
+      } as ProjectTaskStats;
+    }
+    return stats;
+  });
+  readonly statsLoaded = computed(() => this.canViewTasks() && this.isListReady());
+  readonly statsLoading = computed(() => false);
+  readonly statsLoadError = computed(() => false);
+
+  private exportFilters: Record<string, string> = {};
+
+  /** Sort, filter and columns of the list; saved views keep them under a name. */
+  readonly views = new ListViewState('ms.projects', inject(ListViewsApi), {
+    defaultSort: () => {
+      const meta = this.meta();
+      return meta ? parseSort(meta.defaultSort) : null;
+    },
+    onApply: () => this.pager.first(),
+    columnsStore: inject(TableColumnStateStore)
+  });
+
+  /* A page at a time from the server, which sorts the whole list (by progress too) and counts each
+     project's tasks over the ones the viewer may see. The pager cancels a superseded request. */
+  readonly pager = new KeysetPager<ProjectListItem>(
+    (cursor, limit) => this.api.get<KeysetPage<ProjectListItem>>('/tasks/projects/page', {
+      limit,
+      cursor: cursor ?? undefined,
+      ...this.flatFilters(),
+      ...toQueryParams({ sort: this.views.sort(), conditions: this.views.filter(), match: this.views.match(), search: this.searchQuery })
+    }, { notifyError: false }),
+    { pageSize: 10, destroyRef: this.destroyRef, onLoaded: () => this.listLoaded.set(true) }
+  );
+  readonly projects = this.pager.items;
+  readonly isLoading = this.pager.loading;
+  readonly listLoadError = this.pager.failed;
 
   private recordRouteSubscription?: Subscription;
   private recordRequest?: Subscription;
   private recordRequestId = 0;
-  private listRequest?: Subscription;
-  private statsRequest?: Subscription;
+  private searchTimer?: ReturnType<typeof setTimeout>;
   private destroyed = false;
 
   readonly isCreateModalOpen = this.forms.isCreateModalOpen;
@@ -94,11 +146,7 @@ export class ProjectsComponent implements OnInit, OnDestroy {
 
   viewMode: ProjectViewState = 'list';
   searchQuery = '';
-  /** The column order the user chose in the table; none keeps the server's order. */
-  projectSort: ProjectSort | undefined;
   selectedState: ProjectStateFilter = 'all';
-  currentPage = 1;
-  pageSize = 10;
 
   private readonly viewMemo = optionsMemo<SMTRadioOption<ProjectViewState>[]>();
 
@@ -124,18 +172,13 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   set editingProject(val: Project | null) { this.forms.editingProject = val; }
 
   ngOnInit() {
-    this.forms.onProjectCreated = (created) => {
+    this.forms.onProjectCreated = () => {
       this.searchQuery = '';
       this.selectedState = 'all';
-      this.loadProjects(created.id);
-      this.loadStats();
-    };
-    this.forms.onProjectUpdated = () => {
       this.loadProjects();
-      this.loadStats();
     };
+    this.forms.onProjectUpdated = () => this.loadProjects();
     this.loadProjects();
-    this.loadStats();
     this.loadProjectCustomFields();
     this.recordRouteSubscription = this.recordRoute?.paramMap?.subscribe(params => this.loadRecordView(params.get('id')));
   }
@@ -146,8 +189,7 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     this.recordRequest?.unsubscribe();
     this.recordRequestId++;
     this.destroyed = true;
-    this.listRequest?.unsubscribe();
-    this.statsRequest?.unsubscribe();
+    clearTimeout(this.searchTimer);
   }
 
   canCreateProject(): boolean {
@@ -176,123 +218,63 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   cancelNavigationDiscard(kind: 'create' | 'edit') { this.forms.cancelNavigationDiscard(kind); }
   canLeaveRecordPage(): boolean | Observable<boolean> | Promise<boolean> { return this.forms.canLeaveRecordPage(); }
 
-  loadProjects(focusProjectId?: number) {
+  /** The first page for the current filters; the list's metadata comes first, once. */
+  loadProjects() {
     if (this.destroyed) return;
-
-    this.listRequest?.unsubscribe();
-    this.isLoading.set(true);
-    this.listLoadError.set(false);
-    this.listLoaded.set(false);
-    this.projects.set([]);
-    this.listRequest = this.api.get<Project[]>('/tasks/projects', undefined, { notifyError: false }).subscribe({
-      next: res => {
-        if (this.destroyed) return;
-        this.isLoading.set(false);
-        const projects = res || [];
-        this.projects.set(projects);
-        this.listLoaded.set(true);
-
-        const filteredProjects = this.filteredProjects();
-        if (focusProjectId !== undefined) {
-          const projectIndex = filteredProjects.findIndex(project => project.id === focusProjectId);
-          if (projectIndex >= 0) {
-            this.currentPage = Math.floor(projectIndex / this.pageSize) + 1;
-            return;
-          }
-        }
-
-        this.clampCurrentPage();
-      },
-      error: () => {
-        if (this.destroyed) return;
-        this.isLoading.set(false);
-        this.listLoadError.set(true);
-      }
-    });
+    clearTimeout(this.searchTimer);
+    if (!this.meta()) {
+      this.metaError.set(false);
+      this.queryMeta.get('ms.projects').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: meta => {
+          this.meta.set(meta);
+          this.views.load().subscribe(() => this.pager.first());
+        },
+        error: () => this.metaError.set(true)
+      });
+      return;
+    }
+    this.pager.first();
   }
 
-  loadStats() {
-    this.statsRequest?.unsubscribe();
-    this.projectStats.set({});
-    this.statsLoading.set(false);
-    this.statsLoadError.set(false);
-    this.statsLoaded.set(false);
-
-    if (this.destroyed || !this.canViewTasks()) return;
-
-    this.statsLoading.set(true);
-    this.statsRequest = this.api.get<ProjectTaskStats[]>('/tasks/projects/stats', undefined, { notifyError: false }).subscribe({
-      next: res => {
-        if (this.destroyed) return;
-        const map: Record<number, ProjectTaskStats> = {};
-        for (const s of res || []) {
-          map[s.projectId] = s;
-        }
-        this.projectStats.set(map);
-        this.statsLoading.set(false);
-        this.statsLoaded.set(true);
-      },
-      error: () => {
-        if (this.destroyed) return;
-        this.statsLoading.set(false);
-        this.statsLoadError.set(true);
-      }
-    });
-  }
-
+  /** The search box asks the server after a short pause, so typing does not send a request per key. */
   setSearchQuery(value: string) {
     this.searchQuery = value;
-    this.currentPage = 1;
+    clearTimeout(this.searchTimer);
+    this.pager.invalidate();
+    this.searchTimer = setTimeout(() => this.loadProjects(), 300);
   }
 
   clearSearch() {
     this.searchQuery = '';
-    this.currentPage = 1;
+    this.loadProjects();
   }
 
   setSelectedState(state: ProjectStateFilter) {
     this.selectedState = state;
-    this.currentPage = 1;
+    this.loadProjects();
   }
 
-  setSort(sort: ProjectSort | undefined) {
-    this.projectSort = sort;
-    this.currentPage = 1;
+  /** A header click sorts the whole list on the server. */
+  onSort(event: { column: string; sortBy: OrderBy } | undefined) {
+    if (!this.meta()) return;
+    this.views.setSort(sortFromHeader(event));
+    this.pager.first();
   }
 
-  setPage(page: number) {
+  goToPage(page: number) {
     if (!this.isListReady()) return;
-    this.currentPage = page;
-  }
-
-  setPageSize(pageSize: number) {
-    if (!this.isListReady()) return;
-    this.pageSize = pageSize;
-    this.currentPage = 1;
+    this.pager.goTo(page);
   }
 
   isListReady(): boolean {
     return this.listLoaded() && !this.isLoading() && !this.listLoadError();
   }
 
-  filteredProjects(): Project[] {
-    const q = this.searchQuery.trim().toLowerCase();
-    const st = this.selectedState;
-
-    const matching = this.projects().filter(p => {
-      const matchSearch = !q || p.name.toLowerCase().includes(q) || (p.description && p.description.toLowerCase().includes(q));
-      const matchState = st === 'all' || p.state === st;
-      return matchSearch && matchState;
-    });
-    // Progress sorts only on statistics the table actually shows.
-    const stats = this.statsLoaded() && !this.statsLoading() && !this.statsLoadError() ? this.projectStats() : {};
-    return sortProjects(matching, this.projectSort, stats, this.uiI18n.currentLang());
-  }
-
-  paginatedProjects(): Project[] {
-    const list = this.filteredProjects();
-    const start = (this.currentPage - 1) * this.pageSize;
-    return list.slice(start, start + this.pageSize);
+  /** The state quick filter as an export option; the same object while it stays. */
+  exportOptions(): Record<string, string> {
+    const state = this.selectedState === 'all' ? undefined : this.selectedState;
+    if ((this.exportFilters['state'] ?? undefined) !== state) this.exportFilters = state ? { state } : {};
+    return this.exportFilters;
   }
 
   viewProjectTasks(project: Project) {
@@ -416,8 +398,8 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     ]);
   }
 
-  private clampCurrentPage() {
-    const lastPage = Math.max(1, Math.ceil(this.filteredProjects().length / this.pageSize));
-    this.currentPage = Math.min(this.currentPage, lastPage);
+  private flatFilters() {
+    return { state: this.selectedState === 'all' ? undefined : this.selectedState };
   }
+
 }
