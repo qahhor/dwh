@@ -53,6 +53,8 @@ const task = id => ({
   parentTaskId: null, endTime: at((id % 27) + 1), createdAt: at(1), modifiedAt: at(1),
 });
 const page = (items, nextCursor = null, totalEstimated = items.length) => ({ items, nextCursor, hasMore: nextCursor !== null, totalEstimated });
+const metaField = (key, labelKey, type, extra = {}) =>
+  ({ key, labelKey, type, ops: ['eq'], sortable: false, nullable: false, defaultVisible: true, searchable: false, enumValues: [], enumLabelPrefix: null, ...extra });
 const range = (from, to) => Array.from({ length: Math.abs(to - from) + 1 }, (_, i) => from < to ? from + i : from - i);
 
 export const me = {
@@ -77,9 +79,22 @@ export const fixtures = {
   '/iam/org-units': orgUnits(),
   '/iam/org-units/users/1': { userId: 1, orgUnitIds: [2, 5], legacyOrgUnitId: null },
   '/iam/org-units/users/1/scope': { rule: 'UNITS', visibleOrgUnitIds: [2, 5] },
-  // Like the real endpoint, the user list counts only the page it returns.
-  '/iam/users': page(range(1, 50).map(user), 'u2'),
-  '/iam/users#u2': page(range(51, 60).map(user), null),
+  // The user list is a registry list (roadmap item 48): its fields come from query-meta, the total is real.
+  '/query-meta/iam.users': {
+    code: 'iam.users', defaultSort: 'name', defaultLimit: 20, maxLimit: 200, maxConditions: 20, maxInValues: 100,
+    fields: [
+      metaField('name', 'iam.users.col.name', 'text', { sortable: true, searchable: true }),
+      metaField('login', 'iam.users.col.login', 'text', { sortable: true, searchable: true, defaultVisible: false }),
+      metaField('email', 'iam.users.col.email', 'text', { sortable: true, searchable: true }),
+      metaField('phone', 'iam.users.col.phone', 'text', { nullable: true, searchable: true, defaultVisible: false }),
+      metaField('state', 'iam.users.col.state', 'enum', { enumValues: ['A', 'P'], enumLabelPrefix: 'iam.users.state.' }),
+      metaField('is2faEnabled', 'iam.users.col.two_factor', 'boolean'),
+      metaField('createdAt', 'iam.users.col.created_at', 'instant', { sortable: true })
+    ]
+  },
+  '/list-views/iam.users': [],
+  '/iam/users': page(range(1, 50).map(user), 'u2', 60),
+  '/iam/users#u2': page(range(51, 60).map(user), null, 60),
   '/iam/users/80': { ...user(80), managerId: 1 },
   '/rbac/roles': [],
   '/custom-fields': [],

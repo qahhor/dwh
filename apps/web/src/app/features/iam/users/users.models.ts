@@ -183,49 +183,6 @@ export function calculatePasswordStrength(
   return { score: 4, label: uiI18n.translate('iam.parol_otlichnyy'), color: 'var(--success)' };
 }
 
-export function exportUsersToCsv(users: User[], uiI18n: I18nService, toast: ToastService): void {
-  if (users.length === 0) {
-    toast.info(uiI18n.translate('iam.net_dannyh_dlya_eksporta'));
-    return;
-  }
-
-  const headers = [
-    'ID',
-    uiI18n.translate('iam.imya'),
-    uiI18n.translate('analytics.login'),
-    'Email',
-    uiI18n.translate('iam.telefon.822f9fd'),
-    uiI18n.translate('common.status'),
-    '2FA',
-    uiI18n.translate('iam.yazyk'),
-    uiI18n.translate('iam.chasovoy_poyas'),
-    uiI18n.translate('iam.sozdan')
-  ];
-  const rows = users.map(u => [
-    u.id,
-    `"${(u.name || '').replace(/"/g, '""')}"`,
-    `"${u.login}"`,
-    `"${u.email}"`,
-    `"${u.phone || ''}"`,
-    u.state === 'A' ? uiI18n.translate('common.active') : uiI18n.translate('common.passive'),
-    u.is2faEnabled ? uiI18n.translate('iam.da') : uiI18n.translate('iam.net'),
-    u.language || 'ru',
-    u.timezone || 'Asia/Tashkent',
-    u.createdAt
-  ]);
-
-  const csvContent = '\uFEFF' + [headers.join(';'), ...rows.map(e => e.join(';'))].join('\n');
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.setAttribute('href', url);
-  link.setAttribute('download', `users_${new Date().toISOString().slice(0, 10)}.csv`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  toast.success(uiI18n.translate('iam.eksport_vypolnen'));
-}
-
 export interface EffectivePermissionItem {
   form: string;
   action: string;

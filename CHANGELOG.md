@@ -9,6 +9,14 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- The user list is a registry list (`iam.users`, roadmap item 48): filter,
+  sort of the whole list, search `q` over name, login, email and phone,
+  saved views, column settings and the server export (ADR-0018) replace the
+  CSV the browser built page by page. The old parameters still work
+  (`search` is an alias of `q`; state, role, manager and 2FA stay flat
+  filters and are part of the cursor), the total is real, and `limit` is
+  bounded to 1–200. Module parameters that narrow a list are part of its
+  cursor fingerprint; exporters check option values before the job starts.
 - ADR-0019 (proposed): the low-code entity model. An entity is one server
   declaration (`EntityDefinition`) from which lists, forms (`form-meta` with
   the actions allowed to the viewer), cards, permissions and menus are built;

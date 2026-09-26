@@ -1,4 +1,5 @@
 import { Component, OnInit, OnDestroy, signal, HostListener, ElementRef, ViewChild, inject, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Observable, Subscription, finalize, tap } from 'rxjs';
 import { SMTModalService } from '../../../shared/ui-kit/components/modal';
@@ -15,7 +16,13 @@ import { Role } from '../../../core/models/rbac.models';
 import { CustomField } from '../../../core/models/custom-field.models';
 import { KeysetPage } from '../../../core/models/common.models';
 import { KeysetPager } from '../../../shared/paging/keyset-pager';
-import { collectKeyset } from '../../../shared/paging/collect-keyset';
+import { QueryListMeta } from '../../../core/models/query-meta.models';
+import { QueryMetaService, parseSort, toQueryParams } from '../../../core/services/query-meta.service';
+import { ListViewState, ListViewsApi } from '../../../shared/list-views/list-views';
+import { TableColumnStateStore } from '../../../shared/ui-kit/services/table-column-state.store';
+import { sortFromHeader } from '../../../shared/ui/registry-table-config';
+import { OrderBy } from '../../../shared/ui-kit/components/table/table.types';
+import { SMTAlertComponent } from '../../../shared/ui-kit/components/alert';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { UserOrgUnitsPanelComponent } from '../org-units/public-api';
 import { UserFilterBarComponent } from './components/user-filter-bar.component';
@@ -34,17 +41,12 @@ import {
   hasUpperAndLower,
   hasDigitsOrSymbols,
   doesNotContainLogin,
-  calculatePasswordStrength,
-  exportUsersToCsv
+  calculatePasswordStrength
 } from './users.models';
 import { UserSecurityService } from './services/user-security.service';
 import { UserFormsService } from './services/user-forms.service';
 import { UserFilterService } from './services/user-filter.service';
 import { UserDirectoryService } from './services/user-directory.service';
-
-const EXPORT_PAGE_SIZE = 200;
-/** Enough for any real organisation's user list; a broader export is a report, not a CSV from the screen. */
-const EXPORT_MAX_ROWS = 10_000;
 
 @Component({
   selector: 'app-users',
@@ -54,6 +56,7 @@ const EXPORT_MAX_ROWS = 10_000;
     CommonModule,
     FormsModule,
     SMTButtonComponent,
+    SMTAlertComponent,
     UserFilterBarComponent,
     UserTableViewComponent,
     UserCreateModalComponent,
@@ -75,13 +78,17 @@ export class UsersComponent implements OnInit, OnDestroy {
   private readonly recordRouter = inject(Router, { optional: true });
 
   private readonly modal = inject(SMTModalService);
+  private readonly queryMeta = inject(QueryMetaService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly routeRecordId = signal<string | null>(null);
   readonly recordLoading = signal(false);
   readonly recordError = signal(false);
   readonly recordNotFound = signal(false);
   readonly orgPanelBusy = signal(false);
-  readonly isExporting = signal(false);
+  /** Field metadata of the list (`query-meta/iam.users`), roadmap item 48. */
+  readonly meta = signal<QueryListMeta | null>(null);
+  readonly metaError = signal(false);
   readonly roles = signal<Role[]>([]);
   readonly customFields = signal<CustomField[]>([]);
   readonly isViewModalOpen = signal<boolean>(false);
@@ -99,19 +106,29 @@ export class UsersComponent implements OnInit, OnDestroy {
   private destroyed = false;
   readonly safeRecordId = safeNumericRecordId;
 
-  /* A page at a time, in the server's order. The pager cancels a superseded
+  /** Sort, filter and columns of the list; saved views keep them under a name. */
+  readonly views = new ListViewState('iam.users', inject(ListViewsApi), {
+    defaultSort: () => {
+      const meta = this.meta();
+      return meta ? parseSort(meta.defaultSort) : null;
+    },
+    onApply: () => this.userPager.first(),
+    columnsStore: inject(TableColumnStateStore)
+  });
+
+  /* A page at a time, sorted on the server. The pager cancels a superseded
      request, so a slower answer to an earlier search or filter never replaces
      the newer result. */
   readonly userPager = new KeysetPager<User>((cursor, limit) => this.fetchUsers(cursor, limit), {
     pageSize: 20,
-    destroyRef: inject(DestroyRef),
+    destroyRef: this.destroyRef,
     onLoaded: rows => {
       this.directory.remember(rows);
       this.directory.resolve(rows.map(user => user.managerId));
     }
   });
   readonly users = this.userPager.items;
-  private exportRequest?: Subscription;
+  private exportFilters: Record<string, string> = {};
   readonly isLoading = this.userPager.loading;
 
   viewingUser: User | null = null;
@@ -198,7 +215,6 @@ export class UsersComponent implements OnInit, OnDestroy {
     this.recordRequest?.unsubscribe();
     this.recordRequestId++;
     clearTimeout(this.searchDebounceTimer);
-    this.exportRequest?.unsubscribe();
   }
 
   // Permissions
@@ -223,10 +239,41 @@ export class UsersComponent implements OnInit, OnDestroy {
     return this.userOrgUnitsPanel?.canLeave() ?? true;
   }
 
-  /** The first page for the current filters; without `reset`, the page on screen again. */
+  /** The first page for the current filters; without `reset`, the page on screen again. The metadata comes first, once. */
   loadUsers(reset: boolean = false) {
+    if (this.destroyed) return;
+    if (!this.meta()) {
+      this.metaError.set(false);
+      this.queryMeta.get('iam.users').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: meta => {
+          this.meta.set(meta);
+          this.views.load().subscribe(() => this.userPager.first());
+        },
+        error: () => this.metaError.set(true)
+      });
+      return;
+    }
     if (reset) this.userPager.first();
     else this.userPager.reload();
+  }
+
+  /** A header click sorts the whole list on the server. */
+  onSort(event: { column: string; sortBy: OrderBy } | undefined) {
+    if (!this.meta()) return;
+    this.views.setSort(sortFromHeader(event));
+    this.userPager.first();
+  }
+
+  /** The quick filters as export options; the same object while they stay, so the button is not re-rendered. */
+  exportOptions(): Record<string, string> {
+    const next: Record<string, string> = {};
+    for (const [key, value] of Object.entries(this.flatFilters())) {
+      if (value !== undefined) next[key] = String(value);
+    }
+    const same = Object.keys(next).length === Object.keys(this.exportFilters).length
+      && Object.entries(next).every(([key, value]) => this.exportFilters[key] === value);
+    if (!same) this.exportFilters = next;
+    return this.exportFilters;
   }
 
   loadRoles() {
@@ -415,31 +462,6 @@ export class UsersComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Every user the filters match, not only the page on screen, walked page by
-   * page with the filters as they were when the export started.
-   */
-  exportToCsv() {
-    if (this.isExporting()) return;
-    const filters = this.listFilters();
-    this.isExporting.set(true);
-    this.exportRequest = collectKeyset<User>(
-      (cursor, limit) => this.api.get<KeysetPage<User>>('/iam/users', { limit, cursor: cursor ?? undefined, ...filters }, { notifyError: false }),
-      EXPORT_PAGE_SIZE,
-      EXPORT_MAX_ROWS
-    ).subscribe({
-      next: ({ rows, complete }) => {
-        this.isExporting.set(false);
-        exportUsersToCsv(rows, this.uiI18n, this.toast);
-        if (!complete) this.toast.warning(this.uiI18n.translate('iam.users.export_truncated', { count: rows.length }));
-      },
-      error: () => {
-        this.isExporting.set(false);
-        this.toast.error(this.uiI18n.translate('iam.users.export_failed'));
-      }
-    });
-  }
-
   // Security actions
   switchViewTab(tab: 'info' | 'security' | 'orgUnits' | 'permissions', userId?: number) {
     this.activeViewTab.set(tab);
@@ -485,9 +507,9 @@ export class UsersComponent implements OnInit, OnDestroy {
     });
   }
 
-  private listFilters() {
+  /** The quick filters of the toolbar; the server keeps them beside the filter DSL (and in the cursor). */
+  private flatFilters() {
     return {
-      search: this.searchQuery ? this.searchQuery.trim() : undefined,
       state: this.selectedState || undefined,
       role_id: this.selectedRoleId || undefined,
       is_2fa_enabled: this.selected2fa !== null ? this.selected2fa : undefined
@@ -495,6 +517,11 @@ export class UsersComponent implements OnInit, OnDestroy {
   }
 
   private fetchUsers(cursor: string | null, limit: number) {
-    return this.api.get<KeysetPage<User>>('/iam/users', { limit, cursor: cursor ?? undefined, ...this.listFilters() });
+    return this.api.get<KeysetPage<User>>('/iam/users', {
+      limit,
+      cursor: cursor ?? undefined,
+      ...this.flatFilters(),
+      ...toQueryParams({ sort: this.views.sort(), conditions: this.views.filter(), search: this.searchQuery })
+    });
   }
 }

@@ -22,6 +22,12 @@ describe('Record routes with the actual router and actual templates', () => {
         if (/\/(?:tasks|projects|users)\/\d+(?:\/comments)?$/.test(path)) {
           const response = new Subject<any>(); requests.set(path, response); return response.asObservable();
         }
+        if (path === '/query-meta/iam.users') {
+          // The user list is a registry list: its columns come from the server's field list.
+          return of({ code: 'iam.users', defaultSort: 'name', defaultLimit: 20, maxLimit: 200, maxConditions: 20, maxInValues: 100,
+            fields: [{ key: 'name', labelKey: 'iam.users.col.name', type: 'text', ops: ['eq'], sortable: true, nullable: false,
+              defaultVisible: true, enumValues: [], enumLabelPrefix: null }] });
+        }
         return of(path === '/tasks' || path === '/iam/users' ? { items: [], hasMore: false, nextCursor: null, totalReturned: 0 } : []);
       }), post: vi.fn(() => of({})), patch: vi.fn(() => of({})), delete: vi.fn(() => of({}))
     };

@@ -6,16 +6,6 @@
         </div>
         <div class="header-right">
           <button smt-button type="button"
-            smtVariant="secondary"
-            smtSize="md"
-            smtIcon="file_download"
-            [title]="'iam.eksport_v_csv' | t"
-            [smtLoading]="isExporting()"
-            (click)="exportToCsv()"
-          >
-            {{ (isExporting() ? 'iam.users.exporting' : 'analytics.eksport') | t }}
-          </button>
-          <button smt-button type="button"
             *ngIf="canCreateUser()"
             smtVariant="primary"
             smtSize="md"
@@ -54,9 +44,20 @@
         (resetAllFilters)="resetAllFilters()"
       ></app-user-filter-bar>
 
-      <!-- Minimal Data Table (Delegated Component) -->
+      <!-- The list on the registry table (query-meta/iam.users) -->
+      @if (metaError()) {
+        <smt-alert smtTone="danger" data-testid="users-meta-error">
+          <span>{{ 'iam.users.load_error' | t }}</span>
+          <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="loadUsers(true)">{{ 'common.retry' | t }}</button>
+        </smt-alert>
+      }
       <app-user-table-view
         [pager]="userPager"
+        [meta]="meta()"
+        [views]="views"
+        [exportSearch]="searchQuery"
+        [exportOptions]="exportOptions()"
+        (sortChange)="onSort($event)"
         [canUpdateUser]="canUpdateUser()"
         [canBlockUser]="canBlockUser()"
         [canUnblockUser]="canUnblockUser()"

@@ -12,6 +12,27 @@ import { UsersComponent } from './users.component';
 import { translateTest } from '../../../../testing/i18n-test.stub';
 import { UserOrgUnitsPanelComponent } from '../org-units/public-api';
 import { inScreen, redraw } from '../../../../testing/in-screen';
+import { QueryListMeta } from '../../../core/models/query-meta.models';
+import { QueryMetaService } from '../../../core/services/query-meta.service';
+import { ListViewsApi } from '../../../shared/list-views/list-views';
+import { OrderBy } from '../../../shared/ui-kit/components/table/table.types';
+
+const field = (key: string, labelKey: string, type: QueryListMeta['fields'][number]['type'], extra: Partial<QueryListMeta['fields'][number]> = {}) =>
+  ({ key, labelKey, type, ops: ['eq'], sortable: false, nullable: false, defaultVisible: true, enumValues: [], enumLabelPrefix: null, ...extra }) as QueryListMeta['fields'][number];
+
+/** What `query-meta/iam.users` answers. */
+const USERS_META: QueryListMeta = {
+  code: 'iam.users', defaultSort: 'name', defaultLimit: 20, maxLimit: 200, maxConditions: 20, maxInValues: 100,
+  fields: [
+    field('name', 'iam.users.col.name', 'text', { sortable: true }),
+    field('login', 'iam.users.col.login', 'text', { sortable: true, defaultVisible: false }),
+    field('email', 'iam.users.col.email', 'text', { sortable: true }),
+    field('phone', 'iam.users.col.phone', 'text', { nullable: true, defaultVisible: false }),
+    field('state', 'iam.users.col.state', 'enum', { enumValues: ['A', 'P'], enumLabelPrefix: 'iam.users.state.' }),
+    field('is2faEnabled', 'iam.users.col.two_factor', 'boolean'),
+    field('createdAt', 'iam.users.col.created_at', 'instant', { sortable: true })
+  ]
+};
 
 describe('UsersComponent UI contracts', () => {
   async function createFixture() {
@@ -42,7 +63,9 @@ describe('UsersComponent UI contracts', () => {
             currentLang: signal('ru')
           }
         },
-        { provide: ToastService, useValue: { success: vi.fn(), warning: vi.fn(), error: vi.fn() } }
+        { provide: ToastService, useValue: { success: vi.fn(), warning: vi.fn(), error: vi.fn() } },
+        { provide: QueryMetaService, useValue: { get: () => of(USERS_META) } },
+        { provide: ListViewsApi, useValue: { list: () => of([]), create: vi.fn(), update: vi.fn(), remove: vi.fn() } }
       ]
     }).compileComponents();
     TestBed.inject(PermissionService).setPermissions(['*.*']);
@@ -94,8 +117,8 @@ describe('UsersComponent UI contracts', () => {
     expect(inScreen(fixture.nativeElement).querySelector('[role="radiogroup"][aria-label="Фильтр пользователей по статусу"]')).not.toBeNull();
     expect(region.getAttribute('aria-label')).toBe('Таблица пользователей');
     expect(region.querySelector('[role="table"]')?.getAttribute('aria-label')).toBe('Список пользователей');
-    // The server orders the list, so no header pretends to sort it.
-    expect(region.querySelector('[aria-sort]')).toBeNull();
+    // The whole list sorts on the server by the registry's sortable fields; name is the default.
+    expect(region.querySelector('[aria-sort="ascending"]')?.textContent).toContain('Имя');
     expect(identity.tagName).toBe('BUTTON');
     expect(inScreen(fixture.nativeElement).querySelector('button[aria-label="Редактировать пользователя Анна Иванова"]')).not.toBeNull();
   });
@@ -530,32 +553,20 @@ describe('UsersComponent UI contracts', () => {
     expect(fixture.componentInstance.users().map(item => item.id)).toEqual([1]);
   });
 
-  it('exports every user the filters match, not only the page on screen', async () => {
+  it('sorts the whole list on the server and hands the quick filters to the server export', async () => {
     const fixture = await createFixture();
     const api = TestBed.inject(ApiService) as unknown as { get: ReturnType<typeof vi.fn> };
-    const toast = TestBed.inject(ToastService) as unknown as { success: ReturnType<typeof vi.fn>; warning: ReturnType<typeof vi.fn> };
-    const createObjectURL = vi.fn(() => 'blob:users');
-    Object.assign(URL, { createObjectURL, revokeObjectURL: vi.fn() });
-    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
-
     fixture.componentInstance.selectedState = 'A';
-    api.get
-      .mockReturnValueOnce(of({ items: [user(1, 'Первый')], nextCursor: 'c1', hasMore: true }))
-      .mockReturnValueOnce(of({ items: [user(2, 'Второй')], nextCursor: null, hasMore: false }));
-    fixture.componentInstance.exportToCsv();
+    fixture.componentInstance.selected2fa = true;
 
-    expect(api.get).toHaveBeenNthCalledWith(api.get.mock.calls.length - 1, '/iam/users',
-      expect.objectContaining({ limit: 200, cursor: undefined, state: 'A' }), { notifyError: false });
-    expect(api.get).toHaveBeenLastCalledWith('/iam/users',
-      expect.objectContaining({ limit: 200, cursor: 'c1', state: 'A' }), { notifyError: false });
-    const blob = (createObjectURL.mock.calls[0] as unknown as [Blob])[0];
-    const csv = await blob.text();
-    expect(csv).toContain('Первый');
-    expect(csv).toContain('Второй');
-    expect(toast.success).toHaveBeenCalled();
-    expect(toast.warning).not.toHaveBeenCalled();
-    expect(fixture.componentInstance.isExporting()).toBe(false);
-    click.mockRestore();
+    fixture.componentInstance.onSort({ column: 'createdAt', sortBy: OrderBy.Desc });
+
+    expect(api.get).toHaveBeenLastCalledWith('/iam/users', expect.objectContaining({ sort: '-createdAt', state: 'A', is_2fa_enabled: true, cursor: undefined }));
+    const options = fixture.componentInstance.exportOptions();
+    expect(options).toEqual({ state: 'A', is_2fa_enabled: 'true' });
+    expect(fixture.componentInstance.exportOptions()).toBe(options);
+    redraw(fixture);
+    expect(inScreen(fixture.nativeElement).querySelector('ui-export-button')).not.toBeNull();
   });
 
   it('does not page the new search text from the old query while the user is still typing', async () => {
@@ -575,7 +586,7 @@ describe('UsersComponent UI contracts', () => {
 
       api.get.mockReturnValueOnce(of({ items: [user(4, 'Анна')], nextCursor: null, hasMore: false }));
       vi.advanceTimersByTime(250);
-      expect(api.get).toHaveBeenLastCalledWith('/iam/users', expect.objectContaining({ search: 'ann', cursor: undefined }));
+      expect(api.get).toHaveBeenLastCalledWith('/iam/users', expect.objectContaining({ q: 'ann', cursor: undefined }));
       expect(fixture.componentInstance.users().map(item => item.id)).toEqual([4]);
     } finally {
       vi.useRealTimers();
