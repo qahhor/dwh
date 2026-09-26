@@ -1,7 +1,5 @@
 package com.greenwhite.dwh.instance.ms.task.service;
 
-import com.greenwhite.dwh.core.pagination.CursorUtils;
-import com.greenwhite.dwh.core.pagination.KeysetPage;
 import com.greenwhite.dwh.core.error.ErrorCode;
 import com.greenwhite.dwh.instance.common.error.ApiException;
 import com.greenwhite.dwh.instance.md.service.MdCustomFieldService;
@@ -234,66 +232,6 @@ public class MsTaskService {
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.TASK_NOT_FOUND, "Задача не найдена"));
     }
 
-    @Transactional(readOnly = true)
-    public KeysetPage<MsTaskRepository.TaskRecord> listTasks(
-            int limit, String cursor, Long projectId, Long statusId, String priority, String search) {
-        return listTasks(limit, cursor, projectId, statusId, priority, search, false);
-    }
-
-    @Transactional(readOnly = true)
-    public KeysetPage<MsTaskRepository.TaskRecord> listTasks(
-            int limit, String cursor, Long projectId, Long statusId, String priority, String search, Boolean hideTerminal) {
-        return listTasks(limit, cursor, projectId, statusId, priority, search, hideTerminal, null);
-    }
-
-    @Transactional(readOnly = true)
-    public KeysetPage<MsTaskRepository.TaskRecord> listTasks(
-            int limit, String cursor, Long projectId, Long statusId, String priority, String search,
-            Boolean hideTerminal, Long currentUserId) {
-        return listTasks(limit, cursor, projectId, statusId, priority, search, hideTerminal,
-                null, null, null, currentUserId);
-    }
-
-    @Transactional(readOnly = true)
-    public KeysetPage<MsTaskRepository.TaskRecord> listTasks(
-            int limit, String cursor, Long projectId, Long statusId, String priority, String search,
-            Boolean hideTerminal, Long assignedUserId, Long reporterId, Boolean overdue, Long currentUserId) {
-        return listTasks(limit, cursor, projectId, statusId, priority, search, hideTerminal,
-                assignedUserId, reporterId, overdue, null, currentUserId);
-    }
-
-    @Transactional(readOnly = true)
-    public KeysetPage<MsTaskRepository.TaskRecord> listTasks(
-            int limit, String cursor, Long projectId, Long statusId, String priority, String search,
-            Boolean hideTerminal, Long assignedUserId, Long reporterId, Boolean overdue,
-            String memberRole, Long currentUserId) {
-
-        Long afterId = null;
-        if (cursor != null && !cursor.isBlank()) {
-            String decoded = CursorUtils.decode(cursor);
-            if (decoded != null) {
-                try {
-                    afterId = Long.parseLong(decoded);
-                } catch (NumberFormatException ignored) {}
-            }
-        }
-
-        int fetchLimit = limit + 1;
-        List<MsTaskRepository.TaskRecord> tasks = taskRepository.listTasks(
-                fetchLimit, afterId, projectId, statusId, priority, search, hideTerminal,
-                assignedUserId, reporterId, overdue, memberRole, scopeService.filterForTasks(currentUserId));
-
-        boolean hasMore = tasks.size() > limit;
-        List<MsTaskRepository.TaskRecord> resultItems = hasMore ? tasks.subList(0, limit) : tasks;
-
-        String nextCursor = null;
-        if (hasMore && !resultItems.isEmpty()) {
-            Long lastId = resultItems.get(resultItems.size() - 1).id();
-            nextCursor = CursorUtils.encode(String.valueOf(lastId));
-        }
-
-        return KeysetPage.of(resultItems, nextCursor, hasMore, resultItems.size());
-    }
 
 
     @Transactional

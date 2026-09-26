@@ -141,7 +141,7 @@ class TaskFileDataScopeControllerTest {
     }
 
     private static MockMvc taskMvc(MsTaskService service) {
-        return MockMvcBuilders.standaloneSetup(new MsTaskController(service))
+        return MockMvcBuilders.standaloneSetup(new MsTaskController(service, null))
                 .addInterceptors(new RequiresPermissionInterceptor())
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();

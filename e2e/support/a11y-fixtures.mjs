@@ -102,6 +102,20 @@ export const fixtures = {
   '/audit/logs': page(range(30, 11).map(auditRecord), 'a2', 30),
   '/audit/logs#a2': page(range(10, 1).map(auditRecord), null, 30),
   '/audit/security-events': page(range(12, 1).map(securityEvent), null, 12),
+  // The task list is a registry list (roadmap item 49).
+  '/query-meta/ms.tasks': {
+    code: 'ms.tasks', defaultSort: 'id', defaultLimit: 50, maxLimit: 200, maxConditions: 20, maxInValues: 100,
+    fields: [
+      metaField('id', 'tasks.col.id', 'number', { sortable: true }),
+      metaField('title', 'tasks.col.title', 'text', { sortable: true, searchable: true }),
+      metaField('descriptionMarkdown', 'tasks.col.description', 'text', { searchable: true, defaultVisible: false }),
+      metaField('projectId', 'tasks.col.project', 'number', { nullable: true }),
+      metaField('priority', 'tasks.col.priority', 'enum', { enumValues: ['low', 'medium', 'high', 'critical'], enumLabelPrefix: 'tasks.priority.' }),
+      metaField('statusId', 'tasks.col.status', 'number'),
+      metaField('endTime', 'tasks.col.due', 'instant', { nullable: true })
+    ]
+  },
+  '/list-views/ms.tasks': [],
   '/tasks': page(range(100, 51).map(task), 't2', 60),
   '/tasks#t2': page(range(50, 41).map(task), null, 60),
   '/tasks/projects': range(1, 14).map(id => ({

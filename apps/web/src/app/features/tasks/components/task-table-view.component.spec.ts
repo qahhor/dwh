@@ -7,6 +7,7 @@ import { ApiService } from '../../../core/services/api.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { KeysetPager } from '../../../shared/paging/keyset-pager';
 import { TaskTableViewComponent } from './task-table-view.component';
+import { TASKS_META } from '../../../../testing/registry-meta';
 
 const TASKS = [
   { id: 11, title: 'Отчёт за январь', priority: 'medium', statusId: 1, endTime: null, projectId: null, parentTaskId: null },
@@ -33,6 +34,7 @@ async function render(options: { canUpdate?: boolean; post?: ReturnType<typeof v
   const reload = vi.spyOn(pager, 'reload');
   const component = fixture.componentInstance;
   component.pager = pager;
+  fixture.componentRef.setInput('meta', TASKS_META);
   component.statuses = STATUSES;
   component.canUpdateTask = options.canUpdate ?? true;
   component.isOverdue = () => false;

@@ -98,9 +98,20 @@
       <!-- ======================================================================= -->
       <!-- VIEW 1: TABLE / LIST VIEW (Default View)                                -->
       <!-- ======================================================================= -->
+      @if (metaError()) {
+        <smt-alert smtTone="danger" data-testid="tasks-meta-error">
+          <span>{{ 'tasks.list_load_error' | t }}</span>
+          <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="loadTasks(true)">{{ 'common.retry' | t }}</button>
+        </smt-alert>
+      }
       <app-task-table-view
         *ngIf="viewMode === 'table'"
         [pager]="taskPager"
+        [meta]="meta()"
+        [views]="views"
+        [exportSearch]="filterService.searchQuery"
+        [exportOptions]="exportOptions()"
+        (sortChange)="onSort($event)"
         [statuses]="statuses()"
         [projects]="projects()"
         [taskTypes]="taskTypes()"

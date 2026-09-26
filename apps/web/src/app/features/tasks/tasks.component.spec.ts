@@ -9,6 +9,7 @@ import { Task, TaskStatus } from '../../core/models/task.models';
 import { User } from '../../core/models/auth.models';
 import { TasksComponent } from './tasks.component';
 import { inScreen, redraw } from '../../../testing/in-screen';
+import { registryProviders, TASKS_META } from '../../../testing/registry-meta';
 
 describe('TasksComponent UI contracts', () => {
   async function createFixture() {
@@ -24,6 +25,7 @@ describe('TasksComponent UI contracts', () => {
       imports: [TasksComponent],
       providers: [
         { provide: ApiService, useValue: api },
+        ...registryProviders(TASKS_META),
         { provide: PermissionService, useValue: { canCreate: () => true, canUpdate: () => true, canDelete: () => true, hasPermission: () => true } },
         { provide: ToastService, useValue: { success: vi.fn(), error: vi.fn() } },
         { provide: ActivatedRoute, useValue: { queryParams: of({}) } }
@@ -298,6 +300,7 @@ describe('TasksComponent UI contracts', () => {
       imports: [TasksComponent],
       providers: [
         { provide: ApiService, useValue: api },
+        ...registryProviders(TASKS_META),
         { provide: PermissionService, useValue: { canCreate: () => true, canUpdate: () => true, canDelete: () => true, hasPermission: () => true } },
         { provide: ToastService, useValue: { success: vi.fn(), error: vi.fn() } },
         { provide: ActivatedRoute, useValue: { queryParams: of({}) } }
@@ -407,6 +410,7 @@ describe('TasksComponent asynchronous detail and editing state', () => {
       imports: [TasksComponent],
       providers: [
         { provide: ApiService, useValue: api },
+        ...registryProviders(TASKS_META),
         { provide: PermissionService, useValue: permissions },
         { provide: ToastService, useValue: { success: vi.fn(), error: vi.fn(), warning: vi.fn() } },
         { provide: ActivatedRoute, useValue: { queryParams: of({}) } }
@@ -691,21 +695,21 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     await vi.advanceTimersByTimeAsync(349);
     expect(api.get.mock.calls.filter(([path]) => path === '/tasks')).toHaveLength(initialCalls);
     await vi.advanceTimersByTimeAsync(1);
-    expect(api.get.mock.calls.filter(([path, params]) => path === '/tasks' && params.search === 'alpha')).toHaveLength(1);
+    expect(api.get.mock.calls.filter(([path, params]) => path === '/tasks' && params.q === 'alpha')).toHaveLength(1);
 
     input.value = 'beta';
     input.dispatchEvent(new Event('input'));
     input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-    expect(api.get.mock.calls.filter(([path, params]) => path === '/tasks' && params.search === 'beta')).toHaveLength(1);
+    expect(api.get.mock.calls.filter(([path, params]) => path === '/tasks' && params.q === 'beta')).toHaveLength(1);
     await vi.advanceTimersByTimeAsync(350);
-    expect(api.get.mock.calls.filter(([path, params]) => path === '/tasks' && params.search === 'beta')).toHaveLength(1);
+    expect(api.get.mock.calls.filter(([path, params]) => path === '/tasks' && params.q === 'beta')).toHaveLength(1);
   });
 
   it('cancels the old list immediately during search debounce and clearing loads the unfiltered page', async () => {
     vi.useFakeTimers();
     const initial = new Subject<unknown>();
     const { fixture, component, api } = await createControlledFixture({
-      get: (path, params) => path === '/tasks' && !params?.['search'] ? initial : of(path === '/tasks'
+      get: (path, params) => path === '/tasks' && !params?.['q'] ? initial : of(path === '/tasks'
         ? { items: [task(70, 'Filtered')], nextCursor: null, hasMore: false }
         : [])
     });
@@ -721,7 +725,7 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     const clear = input.closest('smt-input')?.querySelector('button.smt-input__action') as HTMLButtonElement;
     expect(clear.getAttribute('aria-label')).toBeTruthy();
     clear.click();
-    expect(api.get.mock.calls.filter(([path, params]) => path === '/tasks' && params.search === undefined).length).toBeGreaterThan(1);
+    expect(api.get.mock.calls.filter(([path, params]) => path === '/tasks' && params.q === undefined).length).toBeGreaterThan(1);
     expect(component.searchQuery).toBe('');
   });
 
@@ -730,7 +734,7 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     const { fixture, component, api } = await createControlledFixture({
       get: (path, params) => path === '/tasks' && params?.['cursor'] === 'c50'
         ? throwError(() => ({ status: 503 }))
-        : of(path === '/tasks' ? { items: [task(1)], nextCursor: 'c50', hasMore: true } : [])
+        : of(path === '/tasks' ? { items: [task(1)], nextCursor: 'c50', hasMore: true, totalEstimated: 60 } : [])
     });
     (inScreen(fixture.nativeElement).querySelector('button[aria-label="Следующая страница"]') as HTMLButtonElement).click();
     redraw(fixture);
@@ -746,10 +750,10 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     expect(api.get.mock.calls).toHaveLength(callsAfterFailure);
 
     component.setStatusFilterMode('all');
-    const appliedCalls = api.get.mock.calls.filter(([path, params]) => path === '/tasks' && params.search === 'pending');
+    const appliedCalls = api.get.mock.calls.filter(([path, params]) => path === '/tasks' && params.q === 'pending');
     expect(appliedCalls).toHaveLength(1);
     await vi.advanceTimersByTimeAsync(350);
-    expect(api.get.mock.calls.filter(([path, params]) => path === '/tasks' && params.search === 'pending')).toHaveLength(1);
+    expect(api.get.mock.calls.filter(([path, params]) => path === '/tasks' && params.q === 'pending')).toHaveLength(1);
   });
 
   it('offers recovery for filtered and first empty states', async () => {
@@ -921,7 +925,8 @@ describe('TasksComponent asynchronous detail and editing state', () => {
       items: Array.from({ length: end - start + 1 }, (_, index) => task(start + index)),
       nextCursor,
       hasMore: nextCursor !== null,
-      totalReturned: end - start + 1
+      // The registry list counts the whole list on its first page (ADR-0016).
+      totalEstimated: 125
     });
     const requestedCursors: Array<string | undefined> = [];
     const { fixture, component } = await createControlledFixture({
@@ -949,8 +954,7 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     expect(seen).toEqual(Array.from({ length: 125 }, (_, index) => index + 1));
     expect(new Set(seen).size).toBe(125);
     expect(inScreen(fixture.nativeElement).textContent).toContain('#125');
-    expect(loadedRanges).toEqual(['Показано 1–50', 'Показано 51–100', 'Показано 101–125']);
-    expect(inScreen(fixture.nativeElement).querySelector('ui-pagination [role="status"]').textContent).not.toContain('из 25');
+    expect(loadedRanges.map(range => range?.replace(/\s+/g, ' '))).toEqual(['Показано 1–50 из 125', 'Показано 51–100 из 125', 'Показано 101–125 из 125']);
   });
 
   it('resets cursor history on a filter change and ignores the old page response', async () => {

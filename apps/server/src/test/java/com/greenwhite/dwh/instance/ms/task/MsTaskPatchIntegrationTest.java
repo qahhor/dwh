@@ -123,7 +123,7 @@ class MsTaskPatchIntegrationTest {
                 commentServiceTarget, transactions, MsTaskCommentService.class);
 
         mvc = MockMvcBuilders.standaloneSetup(
-                        new MsTaskController(taskService),
+                        new MsTaskController(taskService, null),
                         new MsTaskCommentController(commentService))
                 .addInterceptors(new RequiresPermissionInterceptor())
                 .setControllerAdvice(new GlobalExceptionHandler())

@@ -1,4 +1,4 @@
-import { Component, computed, EventEmitter, inject, Input, Output, Signal, signal, TemplateRef, viewChild } from '@angular/core';
+import { Component, computed, EventEmitter, inject, input, Input, Output, Signal, signal, TemplateRef, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
@@ -8,7 +8,10 @@ import { BulkResult } from '../../../shared/bulk/bulk';
 import { ApiService } from '../../../core/services/api.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { KeysetPager } from '../../../shared/paging/keyset-pager';
-import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
+import { OrderBy, TableConfig } from '../../../shared/ui-kit/components/table/table.types';
+import { QueryListMeta } from '../../../core/models/query-meta.models';
+import { ListViewState } from '../../../shared/list-views/list-views';
+import { registryTableConfig } from '../../../shared/ui/registry-table-config';
 import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.models';
 import { SMTSelectComponent, SMTSelectOption } from '../../../shared/ui-kit/components/forms/select';
 import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group/radio-options';
@@ -39,13 +42,20 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
   ],
   template: `
     <div class="table-card" role="region" [attr.aria-label]="'tasks.tablica_zadach' | t" [attr.aria-busy]="pager.loading()">
+      @if (tableConfig(); as config) {
       <ui-server-table
         [pager]="pager"
-        [config]="tableConfig()"
+        [config]="config"
+        [views]="views()"
+        [filterMeta]="meta()"
+        [exportable]="true"
+        [exportSearch]="exportSearch()"
+        [exportOptions]="exportOptions()"
+        [lockedColumns]="['id', 'title', 'actions']"
+        (sortChange)="sortChange.emit($event)"
         [loadingLabel]="'tasks.list_loading' | t"
         [errorLabel]="(pager.items().length ? 'tasks.list_load_error_stale' : 'tasks.list_load_error') | t"
         errorId="tasks-load-error"
-        [countsPage]="true"
         [emptyTemplate]="emptyState()"
         [selectable]="canUpdateTask"
         [(selected)]="selectedTasks"
@@ -69,6 +79,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
             [smtLoading]="bulkBusy() && bulkAction() === 'priority'" (click)="applyBulk('priority')">{{ 'tasks.bulk.apply' | t }}</button>
         </div>
       </ui-server-table>
+      }
       <ui-bulk-result [result]="bulkResult()" [itemLabel]="bulkItemLabel" (closed)="bulkResult.set(null)" />
     </div>
 
@@ -331,6 +342,12 @@ export class TaskTableViewComponent {
   private readonly api = inject(ApiService);
   private readonly toast = inject(ToastService);
 
+  readonly meta = input<QueryListMeta | null>(null);
+  readonly views = input<ListViewState | null>(null);
+  /** The search text and quick filters on screen, so an export matches the list shown. */
+  readonly exportSearch = input<string | null>(null);
+  readonly exportOptions = input<Record<string, string> | null>(null);
+
   readonly emptyState = viewChild.required<TemplateRef<unknown>>('emptyStateTpl');
   private readonly idCell = viewChild.required<TemplateRef<unknown>>('idCell');
   private readonly typeCell = viewChild.required<TemplateRef<unknown>>('typeCell');
@@ -350,27 +367,45 @@ export class TaskTableViewComponent {
   /** Set when some tasks failed; the dialog names them. */
   readonly bulkResult = signal<BulkResult | null>(null);
 
-  readonly tableConfig = computed<TableConfig<Task>>(() => {
+  /** Registry columns with the screen's cells (status, project and deadline by name), plus the type and actions. */
+  readonly tableConfig = computed<TableConfig<Task> | null>(() => {
+    const meta = this.meta();
+    if (!meta) return null;
     const header = (value: string) => ({ type: 'primitive' as const, value });
     const cell = (template: Signal<TemplateRef<unknown>>) => ({ type: 'templateRef' as const, value: template });
     // Every row is its own grid, so tracks are fixed or shares of the width, never content-sized.
     const rest = '(100% - 750px)';
-    return {
+    const base = registryTableConfig<Task>(meta, {
+      translate: key => this.i18n.translate(key),
       trackBy: (_index, task) => task.id,
-      layout: 'fit',
       ariaLabel: this.i18n.translate('tasks.spisok_zadach'),
-      rowClass: task => this.isOverdue(task.endTime, task.statusId) ? 'task-row-overdue' : null,
-      columnsOrder: ['id', 'type', 'title', 'project', 'priority', 'status', 'deadline', 'actions'],
-      columns: {
-        id: { header: header('ID'), content: cell(this.idCell), width: '70px' },
-        type: { header: header(this.i18n.translate('settings.tip')), content: cell(this.typeCell), width: '120px' },
-        title: { header: header(this.i18n.translate('tasks.zadacha')), content: cell(this.titleCell), width: `max(220px, calc(${rest} * 0.6))` },
-        project: { header: header(this.i18n.translate('projects.proekt')), content: cell(this.projectCell), width: `max(140px, calc(${rest} * 0.4))` },
-        priority: { header: header(this.i18n.translate('common.priority')), content: cell(this.priorityCell), width: '130px' },
-        status: { header: header(this.i18n.translate('common.status')), content: cell(this.statusCell), width: '150px' },
-        deadline: { header: header(this.i18n.translate('tasks.srok')), content: cell(this.deadlineCell), width: '180px' },
-        actions: { header: header(this.i18n.translate('common.actions')), content: cell(this.actionsCell), width: '100px', align: 'right' },
+      sort: this.views()?.sort() ?? null,
+      cells: {
+        id: cell(this.idCell),
+        title: cell(this.titleCell),
+        projectId: cell(this.projectCell),
+        priority: cell(this.priorityCell),
+        statusId: cell(this.statusCell),
+        endTime: cell(this.deadlineCell)
       },
+      widths: {
+        id: '70px', title: `max(220px, calc(${rest} * 0.6))`, projectId: `max(140px, calc(${rest} * 0.4))`,
+        priority: '130px', statusId: '150px', endTime: '180px'
+      },
+      align: { id: 'left' }
+    });
+    const order = [...base.columnsOrder];
+    order.splice(order.includes('id') ? order.indexOf('id') + 1 : 0, 0, 'type');
+    return {
+      ...base,
+      layout: 'fit',
+      rowClass: task => this.isOverdue(task.endTime, task.statusId) ? 'task-row-overdue' : null,
+      columns: {
+        ...base.columns,
+        type: { key: 'type', header: header(this.i18n.translate('settings.tip')), content: cell(this.typeCell), width: '120px' },
+        actions: { key: 'actions', header: header(this.i18n.translate('common.actions')), content: cell(this.actionsCell), width: '100px', align: 'right' }
+      },
+      columnsOrder: [...order, 'actions']
     };
   });
 
@@ -400,6 +435,7 @@ export class TaskTableViewComponent {
   @Output() updateStatus = new EventEmitter<{ taskId: number; statusId: number }>();
   @Output() resetFilters = new EventEmitter<void>();
   @Output() createTask = new EventEmitter<void>();
+  @Output() sortChange = new EventEmitter<{ column: string; sortBy: OrderBy } | undefined>();
   /** Titles of the tasks sent, so the result can name a task after the page reloads. */
   private bulkTitles = new Map<number, string>();
   readonly bulkItemLabel = (id: number) => {

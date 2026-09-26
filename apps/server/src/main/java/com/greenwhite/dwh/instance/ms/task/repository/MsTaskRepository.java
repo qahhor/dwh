@@ -73,89 +73,89 @@ public class MsTaskRepository {
         return query.query(this::mapRecord).optional();
     }
 
-    public List<TaskRecord> listTasks(int limit, Long afterId, Long projectId, Long statusId,
-                                      String priority, String search, Boolean hideTerminal) {
-        return listTasks(limit, afterId, projectId, statusId, priority, search, hideTerminal,
-                null, null, null, ScopeFilter.unrestricted());
-    }
+    /** Columns of a task row as {@link #mapRecord} reads them; the registry list {@code ms.tasks} selects them. */
+    public static final String LIST_COLUMNS = """
+            t.id, t.project_id, t.parent_task_id, t.title, t.description_markdown, t.status_id,
+            t.priority, t.reporter_id, t.attributes::text as attributes_str, t.begin_time,
+            t.end_time, t.resolved_time, t.created_at, t.modified_at, t.created_by, t.modified_by,
+            t.revision""";
 
-    public List<TaskRecord> listTasks(int limit, Long afterId, Long projectId, Long statusId,
-                                      String priority, String search, Boolean hideTerminal, ScopeFilter scope) {
-        return listTasks(limit, afterId, projectId, statusId, priority, search, hideTerminal,
-                null, null, null, scope);
-    }
+    /**
+     * The flat filters the task list took before the registry, kept so the task screen, its kanban and the
+     * lookups keep working. {@code memberRole} narrows {@code assignedUserId}: R, E, O, or both R and E.
+     */
+    public record LegacyTaskFilters(Long projectId, Long statusId, String priority, Boolean hideTerminal,
+                                    Long assignedUserId, String memberRole, Long reporterId, Boolean overdue) {
 
-    public List<TaskRecord> listTasks(int limit, Long afterId, Long projectId, Long statusId,
-                                      String priority, String search, Boolean hideTerminal,
-                                      Long assignedUserId, Long reporterId, Boolean overdue, ScopeFilter scope) {
-        return listTasks(limit, afterId, projectId, statusId, priority, search, hideTerminal,
-                assignedUserId, reporterId, overdue, null, scope);
-    }
-
-    public List<TaskRecord> listTasks(int limit, Long afterId, Long projectId, Long statusId,
-                                      String priority, String search, Boolean hideTerminal,
-                                      Long assignedUserId, Long reporterId, Boolean overdue,
-                                      String memberRole, ScopeFilter scope) {
-        StringBuilder sql = new StringBuilder("""
-                select t.id, t.project_id, t.parent_task_id, t.title, t.description_markdown, t.status_id,
-                       t.priority, t.reporter_id, t.attributes::text as attributes_str, t.begin_time,
-                       t.end_time, t.resolved_time, t.created_at, t.modified_at, t.created_by, t.modified_by,
-                       t.revision
-                from ms_tasks t
-                where 1=1
-                """);
-
-        sql.append(scope.sql());
-
-        if (afterId != null) {
-            sql.append(" and t.id > :afterId");
+        public static LegacyTaskFilters none() {
+            return new LegacyTaskFilters(null, null, null, null, null, null, null, null);
         }
-        if (projectId != null) {
+
+        /** Canonical form for the cursor fingerprint; null when no filter is set. */
+        public String canonical() {
+            StringBuilder value = new StringBuilder();
+            if (projectId != null) value.append(";project=").append(projectId);
+            if (statusId != null) value.append(";status=").append(statusId);
+            else if (Boolean.TRUE.equals(hideTerminal)) value.append(";active");
+            if (priority != null && !priority.isBlank()) value.append(";priority=").append(priority.strip());
+            if (assignedUserId != null) value.append(";member=").append(assignedUserId).append(':').append(role());
+            if (reporterId != null) value.append(";reporter=").append(reporterId);
+            if (Boolean.TRUE.equals(overdue)) value.append(";overdue");
+            return value.isEmpty() ? null : value.toString();
+        }
+
+        private String role() {
+            String role = memberRole == null ? "" : memberRole.strip().toUpperCase(java.util.Locale.ROOT);
+            return switch (role) {
+                case "R", "E", "O" -> role;
+                default -> "RE";
+            };
+        }
+    }
+
+    /**
+     * The data scope (ADR-0013) and the flat filters as one predicate for the registry page. They go into the
+     * same SQL, so a page and its total only ever see visible tasks.
+     */
+    public static com.greenwhite.dwh.instance.common.query.QueryPlan.SqlFragment listPredicate(
+            ScopeFilter scope, LegacyTaskFilters filters) {
+        StringBuilder sql = new StringBuilder(scope.sql());
+        Map<String, Object> params = new java.util.LinkedHashMap<>();
+        if (scope.bindsUserId()) params.put("scopeUserId", scope.userId());
+        if (filters.projectId() != null) {
             sql.append(" and t.project_id = :projectId");
+            params.put("projectId", filters.projectId());
         }
-        if (statusId != null) {
+        if (filters.statusId() != null) {
             sql.append(" and t.status_id = :statusId");
-        } else if (Boolean.TRUE.equals(hideTerminal)) {
+            params.put("statusId", filters.statusId());
+        } else if (Boolean.TRUE.equals(filters.hideTerminal())) {
             sql.append(" and t.status_id not in (select id from ms_task_statuses where is_terminal = true)");
         }
-        if (priority != null && !priority.isBlank()) {
+        if (filters.priority() != null && !filters.priority().isBlank()) {
             sql.append(" and t.priority = :priority");
+            params.put("priority", filters.priority().strip());
         }
-        if (search != null && !search.isBlank()) {
-            sql.append(" and (t.title ilike :search or t.description_markdown ilike :search)");
+        if (filters.assignedUserId() != null) {
+            String kinds = switch (filters.role()) {
+                case "R" -> "('R')";
+                case "E" -> "('E')";
+                case "O" -> "('O')";
+                default -> "('R', 'E')";
+            };
+            sql.append(" and exists (select 1 from ms_task_members m where m.task_id = t.id"
+                    + " and m.user_id = :assignedUserId and m.involve_kind in " + kinds + ")");
+            params.put("assignedUserId", filters.assignedUserId());
         }
-        if (assignedUserId != null) {
-            if ("R".equalsIgnoreCase(memberRole)) {
-                sql.append(" and exists (select 1 from ms_task_members m where m.task_id = t.id and m.user_id = :assignedUserId and m.involve_kind = 'R')");
-            } else if ("E".equalsIgnoreCase(memberRole)) {
-                sql.append(" and exists (select 1 from ms_task_members m where m.task_id = t.id and m.user_id = :assignedUserId and m.involve_kind = 'E')");
-            } else if ("O".equalsIgnoreCase(memberRole)) {
-                sql.append(" and exists (select 1 from ms_task_members m where m.task_id = t.id and m.user_id = :assignedUserId and m.involve_kind = 'O')");
-            } else {
-                sql.append(" and exists (select 1 from ms_task_members m where m.task_id = t.id and m.user_id = :assignedUserId and m.involve_kind in ('R', 'E'))");
-            }
-        }
-        if (reporterId != null) {
+        if (filters.reporterId() != null) {
             sql.append(" and (t.reporter_id = :reporterId or t.created_by = :reporterId)");
+            params.put("reporterId", filters.reporterId());
         }
-        if (Boolean.TRUE.equals(overdue)) {
-            sql.append(" and t.end_time is not null and t.end_time < now() and t.status_id not in (select id from ms_task_statuses where is_terminal = true)");
+        if (Boolean.TRUE.equals(filters.overdue())) {
+            sql.append(" and t.end_time is not null and t.end_time < now()"
+                    + " and t.status_id not in (select id from ms_task_statuses where is_terminal = true)");
         }
-
-        sql.append(" order by t.id asc limit :limit");
-
-        var query = jdbcClient.sql(sql.toString()).param("limit", limit);
-
-        if (scope.bindsUserId()) query = query.param("scopeUserId", scope.userId());
-        if (afterId != null) query.param("afterId", afterId);
-        if (projectId != null) query.param("projectId", projectId);
-        if (statusId != null) query.param("statusId", statusId);
-        if (priority != null && !priority.isBlank()) query.param("priority", priority);
-        if (search != null && !search.isBlank()) query.param("search", "%" + search.trim() + "%");
-        if (assignedUserId != null) query.param("assignedUserId", assignedUserId);
-        if (reporterId != null) query.param("reporterId", reporterId);
-
-        return query.query(this::mapRecord).list();
+        return new com.greenwhite.dwh.instance.common.query.QueryPlan.SqlFragment(sql.toString(), params);
     }
 
 
@@ -391,7 +391,8 @@ public class MsTaskRepository {
     ) {}
 
 
-    private TaskRecord mapRecord(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
+    /** Reads a row of {@link #LIST_COLUMNS}; the task list (registry {@code ms.tasks}) maps its pages with it. */
+    public TaskRecord mapRecord(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
         return new TaskRecord(
                 rs.getLong("id"),
                 rs.getObject("project_id") != null ? rs.getLong("project_id") : null,
