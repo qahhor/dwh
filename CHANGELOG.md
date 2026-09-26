@@ -9,6 +9,11 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- ADR-0019 (proposed): the low-code entity model. An entity is one server
+  declaration (`EntityDefinition`) from which lists, forms (`form-meta` with
+  the actions allowed to the viewer), cards, permissions and menus are built;
+  custom fields become registry fields, lists refer to each other. The
+  analysis behind it and the order of roadmap wave 9 are in the ADR.
 - Extra kit controls (roadmap item 40), our own code after the kit's ideas:
   `smt-rating` (a radio group of stars, arrows/Home/End, a clearable rating
   clears by its own star), `smt-range-slider` (a from–to band on two native
