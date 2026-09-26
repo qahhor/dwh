@@ -50,6 +50,18 @@ export const SECURITY_EVENTS_META: QueryListMeta = {
   ]
 } as QueryListMeta;
 
+/** What `query-meta/ms.projects` answers for someone who may view tasks (MsProjectQuery on the server). */
+export const PROJECTS_META: QueryListMeta = {
+  code: 'ms.projects', defaultSort: 'name', defaultLimit: 50, maxLimit: 200, maxConditions: 20, maxInValues: 100,
+  fields: [
+    metaField('id', 'projects.col.id', 'number', { sortable: true }),
+    metaField('name', 'projects.col.name', 'text', { sortable: true }),
+    metaField('state', 'projects.col.state', 'enum', { enumValues: ['A', 'P'], enumLabelPrefix: 'projects.state.' }),
+    metaField('createdAt', 'projects.col.created_at', 'instant', { sortable: true }),
+    metaField('progress', 'projects.col.progress', 'number', { sortable: true })
+  ]
+} as QueryListMeta;
+
 /** Providers that answer each list's metadata by its code and an empty set of saved views. */
 export function registryProviders(...metas: QueryListMeta[]) {
   return [

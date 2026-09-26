@@ -90,8 +90,8 @@ const screens: Screen[] = [
     open: async page => {
       const table = page.getByRole('table', { name: 'Список проектов' });
       await expect(table).toBeVisible();
+      // The list opens sorted by name, ascending (ms.projects); one click turns the whole list on the server.
       const nameHeader = table.getByRole('columnheader', { name: /Проект/ });
-      await nameHeader.click();
       await nameHeader.click();
       await expect(nameHeader).toHaveAttribute('aria-sort', 'descending');
     },

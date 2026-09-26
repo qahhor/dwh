@@ -1,16 +1,19 @@
-import { Component, computed, EventEmitter, inject, Input, Output, Signal, signal, TemplateRef, viewChild } from '@angular/core';
+import { Component, computed, EventEmitter, inject, input, Input, Output, Signal, signal, TemplateRef, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
-import { UiPaginationComponent } from '../../../../shared/ui/ui-pagination.component';
-import { SMTTableComponent } from '../../../../shared/ui-kit/components/table/table.component';
+import { UiServerTableComponent } from '../../../../shared/ui/ui-server-table.component';
 import { OrderBy, TableConfig } from '../../../../shared/ui-kit/components/table/table.types';
-import { Project, ProjectTaskStats } from '../../../../core/models/task.models';
-import { ProjectSort, ProjectSortColumn } from '../projects-order';
+import { ProjectTaskStats } from '../../../../core/models/task.models';
+import { QueryListMeta } from '../../../../core/models/query-meta.models';
+import { KeysetPager } from '../../../../shared/paging/keyset-pager';
+import { ListViewState } from '../../../../shared/list-views/list-views';
+import { registryTableConfig } from '../../../../shared/ui/registry-table-config';
+import { ProjectListItem } from '../projects.models';
 
 /**
- * The project list on the kit table. Every project is loaded at once, so the
- * sortable columns order the whole filtered list (the page owns that order),
- * not just the page on screen.
+ * The project list a page at a time on the registry table (`query-meta/ms.projects`, roadmap item 51): the
+ * server sorts the whole list, by progress too, and the columns, views, filter and export come from its field
+ * list. Progress is a field only for someone who may view tasks, so without that right it has no column.
  */
 @Component({
   selector: 'app-project-table-view',
@@ -18,26 +21,26 @@ import { ProjectSort, ProjectSortColumn } from '../projects-order';
   imports: [
     CommonModule,
     TranslatePipe,
-    UiPaginationComponent,
-    SMTTableComponent
+    UiServerTableComponent
   ],
   template: `
     <div class="table-card" role="region" [attr.aria-label]="'projects.tablica_proektov' | t">
-      <smt-table
-        [smtData]="paginatedProjects"
-        [smtConfig]="tableConfig()"
-        [smtEmptyTemplate]="emptyState()"
-        [smtColumnResizeEnabled]="false"
-        [smtVirtualRows]="false"
-        (smtSortChange)="onSortChange($event)" />
-
-      <ui-pagination
-        [totalItems]="totalCount"
-        [currentPage]="currentPage"
-        [pageSize]="pageSize"
-        (pageChange)="pageChange.emit($event)"
-        (pageSizeChange)="pageSizeChange.emit($event)"
-      ></ui-pagination>
+      @if (tableConfig(); as config) {
+        <ui-server-table
+          [pager]="pager()"
+          [config]="config"
+          [views]="views()"
+          [filterMeta]="meta()"
+          [exportable]="true"
+          [exportSearch]="exportSearch()"
+          [exportOptions]="exportOptions()"
+          [lockedColumns]="['name', 'actions']"
+          [loadingLabel]="'projects.loading_projects' | t"
+          [errorLabel]="'projects.load_projects_error' | t"
+          errorId="projects-load-error"
+          [emptyTemplate]="emptyState()"
+          (sortChange)="sortChange.emit($event)" />
+      }
     </div>
 
     <ng-template #idCell let-p>
@@ -258,6 +261,14 @@ import { ProjectSort, ProjectSortColumn } from '../projects-order';
 export class ProjectTableViewComponent {
   private readonly i18n = inject(I18nService);
 
+  readonly pager = input.required<KeysetPager<ProjectListItem>>();
+
+  readonly meta = input<QueryListMeta | null>(null);
+  readonly views = input<ListViewState | null>(null);
+  /** The search text and state filter on screen, so an export matches the list shown. */
+  readonly exportSearch = input<string | null>(null);
+  readonly exportOptions = input<Record<string, string> | null>(null);
+
   readonly emptyState = viewChild.required<TemplateRef<unknown>>('emptyStateTpl');
   private readonly idCell = viewChild.required<TemplateRef<unknown>>('idCell');
   private readonly nameCell = viewChild.required<TemplateRef<unknown>>('nameCell');
@@ -267,67 +278,53 @@ export class ProjectTableViewComponent {
   private readonly actionsCell = viewChild.required<TemplateRef<unknown>>('actionsCell');
 
   private readonly viewTasksAllowed = signal(false);
-  private readonly currentSort = signal<ProjectSort | undefined>(undefined);
 
-  readonly tableConfig = computed<TableConfig<Project>>(() => {
+  /** Registry columns with the screen's cells, plus the row actions, which are not a field. */
+  readonly tableConfig = computed<TableConfig<ProjectListItem> | null>(() => {
+    const meta = this.meta();
+    if (!meta) return null;
     const header = (value: string) => ({ type: 'primitive' as const, value });
     const cell = (template: Signal<TemplateRef<unknown>>) => ({ type: 'templateRef' as const, value: template });
-    const sort = this.currentSort();
-    const sorted = (column: ProjectSortColumn) => ({ hasSorting: true, sortedBy: sort?.column === column ? sort.sortBy : undefined });
-    const withProgress = this.viewTasksAllowed();
     // Every row is its own grid, so tracks are fixed or shares of the width, never content-sized.
-    const fixed = withProgress ? 710 : 490;
-    return {
+    const fixed = meta.fields.some(field => field.key === 'progress') ? 710 : 490;
+    const base = registryTableConfig<ProjectListItem>(meta, {
+      translate: key => this.i18n.translate(key),
       trackBy: (_index, project) => project.id,
-      layout: 'fit',
       ariaLabel: this.i18n.translate('projects.spisok_proektov'),
-      rowClass: () => 'project-row',
-      columnsOrder: withProgress
-        ? ['id', 'name', 'state', 'progress', 'created', 'actions']
-        : ['id', 'name', 'state', 'created', 'actions'],
-      columns: {
-        id: { header: header('ID'), content: cell(this.idCell), width: '70px', ...sorted('id') },
-        name: { header: header(this.i18n.translate('projects.proekt')), content: cell(this.nameCell), width: `max(220px, calc(100% - ${fixed}px))`, ...sorted('name') },
-        state: { header: header(this.i18n.translate('common.status')), content: cell(this.stateCell), width: '120px', ...sorted('state') },
-        progress: { header: header(this.i18n.translate('projects.closed_tasks')), content: cell(this.progressCell), width: '220px', ...sorted('progress') },
-        created: { header: header(this.i18n.translate('iam.sozdan')), content: cell(this.createdCell), width: '120px', ...sorted('created') },
-        actions: { header: header(this.i18n.translate('common.actions')), content: cell(this.actionsCell), width: '180px', align: 'right' },
+      sort: this.views()?.sort() ?? null,
+      cells: {
+        id: cell(this.idCell), name: cell(this.nameCell), state: cell(this.stateCell),
+        progress: cell(this.progressCell), createdAt: cell(this.createdCell)
       },
+      widths: { id: '70px', name: `max(220px, calc(100% - ${fixed}px))`, state: '120px', progress: '220px', createdAt: '120px' },
+      align: { id: 'left' }
+    });
+    return {
+      ...base,
+      layout: 'fit',
+      rowClass: () => 'project-row',
+      columns: {
+        ...base.columns,
+        actions: { key: 'actions', header: header(this.i18n.translate('common.actions')), content: cell(this.actionsCell), width: '180px', align: 'right' }
+      },
+      columnsOrder: [...base.columnsOrder, 'actions']
     };
   });
 
-  @Input() paginatedProjects: Project[] = [];
-  @Input() totalCount = 0;
-  @Input() currentPage = 1;
-  @Input() pageSize = 10;
   @Input() canUpdateProject = false;
   @Input() projectStats: Record<number, ProjectTaskStats> = {};
-  @Input() statsLoading = false;
-  @Input() statsLoadError = false;
   @Input() statsLoaded = false;
 
-  @Output() viewTasks = new EventEmitter<Project>();
-  @Output() editProject = new EventEmitter<Project>();
-  @Output() manageMembers = new EventEmitter<Project>();
-  @Output() pageChange = new EventEmitter<number>();
-  @Output() pageSizeChange = new EventEmitter<number>();
-  @Output() sortChange = new EventEmitter<ProjectSort | undefined>();
+  @Output() viewTasks = new EventEmitter<ProjectListItem>();
+  @Output() editProject = new EventEmitter<ProjectListItem>();
+  @Output() manageMembers = new EventEmitter<ProjectListItem>();
+  @Output() sortChange = new EventEmitter<{ column: string; sortBy: OrderBy } | undefined>();
 
   @Input() set canViewTasks(value: boolean) { this.viewTasksAllowed.set(value); }
   get canViewTasks(): boolean { return this.viewTasksAllowed(); }
-  /** The order the page applies to the whole list; shown on the column headers. */
-  @Input() set sort(value: ProjectSort | undefined) { this.currentSort.set(value); }
-
-  onSortChange(event: { column: string; sortBy: OrderBy } | undefined): void {
-    this.sortChange.emit(event ? { column: event.column as ProjectSortColumn, sortBy: event.sortBy } : undefined);
-  }
 
   hasProjectStats(projectId: number): boolean {
-    return this.canViewTasks
-      && this.statsLoaded
-      && !this.statsLoading
-      && !this.statsLoadError
-      && this.projectStats[projectId] !== undefined;
+    return this.canViewTasks && this.statsLoaded && this.projectStats[projectId] !== undefined;
   }
 
   getProjectTotalCount(projectId: number): number {

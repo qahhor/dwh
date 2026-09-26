@@ -103,7 +103,7 @@ class MsProjectWriteIntegrationTest {
         projectService = transactional(serviceTarget, transactions, MsProjectService.class);
         transactionTemplate = new TransactionTemplate(transactions);
 
-        mvc = MockMvcBuilders.standaloneSetup(new MsProjectController(projectService))
+        mvc = MockMvcBuilders.standaloneSetup(new MsProjectController(projectService, null))
                 .addInterceptors(new RequiresPermissionInterceptor())
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();

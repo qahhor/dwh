@@ -3,7 +3,7 @@
   <div class="view-header">
     <div class="header-left">
       <h1 class="view-title">{{ 'nav.projects' | t }}</h1>
-      <span *ngIf="isListReady()" class="count-badge">{{ filteredProjects().length }}</span>
+      <span *ngIf="isListReady()" class="count-badge">{{ pager.total() }}</span>
 
       <!-- View Mode Switcher -->
       <smt-radio-group
@@ -48,10 +48,16 @@
   </div>
   <div *ngIf="listLoadError()" class="request-state request-error" data-testid="projects-list-error" role="alert">
     <span>{{ 'projects.load_projects_error' | t }}</span>
-    <button type="button" class="request-retry projects-list-retry" (click)="loadProjects()">
+    <button type="button" class="request-retry projects-list-retry" (click)="pager.retry()">
       {{ 'projects.retry_projects' | t }}
     </button>
   </div>
+  @if (metaError()) {
+    <smt-alert smtTone="danger" data-testid="projects-meta-error">
+      <span>{{ 'projects.load_projects_error' | t }}</span>
+      <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="loadProjects()">{{ 'common.retry' | t }}</button>
+    </smt-alert>
+  }
 
   <div
     *ngIf="!canViewTasks()"
@@ -61,59 +67,36 @@
   >
     {{ 'projects.stats_permission' | t }}
   </div>
-  <div
-    *ngIf="canViewTasks() && statsLoading()"
-    class="stats-state"
-    data-testid="projects-stats-loading"
-    role="status"
-    aria-live="polite"
-  >
-    {{ 'projects.loading_stats' | t }}
-  </div>
-  <div
-    *ngIf="canViewTasks() && statsLoadError()"
-    class="stats-state request-error"
-    data-testid="projects-stats-error"
-    role="alert"
-  >
-    <span>{{ 'projects.load_stats_error' | t }}</span>
-    <button type="button" class="request-retry projects-stats-retry" (click)="loadStats()">
-      {{ 'projects.retry_stats' | t }}
-    </button>
-  </div>
   <div *ngIf="canViewTasks() && statsLoaded()" class="stats-state" data-testid="projects-stats-scope" role="status">
     {{ 'projects.closed_stats_scope' | t }}
   </div>
 
   <!-- VIEW 1: TABLE / LIST VIEW -->
   <app-project-table-view
-    *ngIf="viewMode === 'list' && isListReady()"
-    [paginatedProjects]="paginatedProjects()"
-    [totalCount]="filteredProjects().length"
-    [currentPage]="currentPage"
-    [pageSize]="pageSize"
+    *ngIf="viewMode === 'list' && meta()"
+    [pager]="pager"
+    [meta]="meta()"
+    [views]="views"
+    [exportSearch]="searchQuery"
+    [exportOptions]="exportOptions()"
     [canViewTasks]="canViewTasks()"
     [canUpdateProject]="canUpdateProject()"
     [projectStats]="projectStats()"
-    [statsLoading]="statsLoading()"
-    [statsLoadError]="statsLoadError()"
     [statsLoaded]="statsLoaded()"
-    [sort]="projectSort"
     (viewTasks)="viewProjectTasks($event)"
     (editProject)="openEditModal($event)"
     (manageMembers)="openMembersModal($event)"
-    (pageChange)="setPage($event)"
-    (pageSizeChange)="setPageSize($event)"
-    (sortChange)="setSort($event)"
+    (sortChange)="onSort($event)"
   ></app-project-table-view>
 
   <!-- VIEW 2: CARDS GRID VIEW -->
   <app-project-cards-view
     *ngIf="viewMode === 'cards' && isListReady()"
-    [paginatedProjects]="paginatedProjects()"
-    [totalCount]="filteredProjects().length"
-    [currentPage]="currentPage"
-    [pageSize]="pageSize"
+    [paginatedProjects]="projects()"
+    [totalCount]="pager.total()"
+    [currentPage]="pager.page()"
+    [pageSize]="pager.pageSize()"
+    [hasNextPage]="pager.canGoForward()"
     [canViewTasks]="canViewTasks()"
     [canUpdateProject]="canUpdateProject()"
     [projectStats]="projectStats()"
@@ -123,8 +106,7 @@
     (viewTasks)="viewProjectTasks($event)"
     (editProject)="openEditModal($event)"
     (manageMembers)="openMembersModal($event)"
-    (pageChange)="setPage($event)"
-    (pageSizeChange)="setPageSize($event)"
+    (pageChange)="goToPage($event)"
   ></app-project-cards-view>
 </div>
 

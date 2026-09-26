@@ -124,7 +124,8 @@ public class MsProjectRepository {
                 .list();
     }
 
-    private ProjectRecord mapRecord(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
+    /** Reads a project row; the project list (registry {@code ms.projects}) maps its pages with it. */
+    public ProjectRecord mapRecord(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
         return new ProjectRecord(
                 rs.getLong("id"),
                 rs.getString("name"),
