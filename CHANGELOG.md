@@ -593,6 +593,11 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Technical specification 1.3 (roadmap item 58, for the specification
+  owner to accept): `FR-MOD-01` names the real module table
+  `md_installed_modules`, and `FR-MOD-04`–`FR-MOD-06` state the field
+  registry lists, the entity declaration with `form-meta`, and the
+  capabilities an entity gets from its declaration, each with its tests.
 - Server integration tests that only need a migrated database no longer start
   a container each: `TestDatabases.migratedCopy` copies a template database
   on the shared embedded PostgreSQL and hands a small connection pool (a new

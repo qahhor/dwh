@@ -1,10 +1,10 @@
 # Техническое задание SmartupCMS
 
-**Версия:** 1.2
+**Версия:** 1.3
 
 **Статус:** Базовая спецификация для подготовки релиза
 
-**Дата:** 2026-09-04
+**Дата:** 2026-09-27
 
 **Горизонт запуска:** четыре месяца; точная календарная дата не утверждена
 
@@ -164,9 +164,12 @@ SmartupCMS — самостоятельно размещаемая платфо�
 
 | ID | Требование («Должна») | Подтверждение в репозитории | Метод приёмки |
 |---|---|---|---|
-| `FR-MOD-01` | Система должна предоставлять реестр модулей (`md_module_registry`) с возможностью включения, отключения и проверки активности модулей через серверный guard и API. | `apps/server/src/main/java/com/greenwhite/dwh/instance/md/controller/ModuleRegistryController.java`; `apps/server/src/main/java/com/greenwhite/dwh/instance/md/service/ModuleRegistryService.java`; `apps/server/src/main/resources/db/migration/V028__module_registry_and_reference_module.sql` | Интеграционный тест проверяет регистрацию модуля, переключение флага активности и серверный запрет доступа к деактивированному модулю. |
+| `FR-MOD-01` | Система должна предоставлять реестр модулей (`md_installed_modules`) с возможностью включения, отключения и проверки активности модулей через серверный guard и API. | `apps/server/src/main/java/com/greenwhite/dwh/instance/md/controller/ModuleRegistryController.java`; `apps/server/src/main/java/com/greenwhite/dwh/instance/md/service/ModuleRegistryService.java`; `apps/server/src/main/resources/db/migration/V028__module_registry_and_reference_module.sql` | Интеграционный тест проверяет регистрацию модуля, переключение флага активности и серверный запрет доступа к деактивированному модулю. |
 | `FR-MOD-02` | Система должна позволять администратору настраивать иерархические элементы навигации (`md_navigation_items`) с привязкой к правам и ролям. | `apps/server/src/main/java/com/greenwhite/dwh/instance/md/controller/NavigationItemController.java`; `apps/server/src/main/java/com/greenwhite/dwh/instance/md/service/NavigationItemService.java`; `apps/server/src/main/resources/db/migration/V032__custom_navigation_items.sql` | API-тест проверяет сохранение порядка, родительских связей и фильтрацию навигационного меню по правам текущего пользователя. |
 | `FR-MOD-03` | Система должна поддерживать расширенные настраиваемые поля для дополнительных бизнес-сущностей с сохранением аудита изменений. | `apps/server/src/main/resources/db/migration/V029__expand_custom_fields_entities.sql`; `apps/server/src/main/java/com/greenwhite/dwh/instance/md/service/MdCustomFieldService.java` | Интеграционный тест проверяет запись и чтение кастомных полей для расширенных сущностей и запись audit trail. |
+| `FR-MOD-04` | Система должна предоставлять списки записей через реестр полей: фильтр (JSON DSL с группами «любое из условий»), сортировку, поиск, keyset-курсор, поля-ссылки на другие списки и дополнительные поля; сервер проверяет права списка и скоуп данных. | `apps/server/src/main/java/com/greenwhite/dwh/instance/common/query/QueryCompiler.java`; `apps/server/src/main/java/com/greenwhite/dwh/instance/common/query/QueryListRegistry.java`; `docs/adr/ADR-0016-field-registry-query-dsl.md` | `QueryCompilerTest` проверяет DSL, группы, лимиты и отпечаток курсора; `MdUserListIntegrationTest`, `MsTaskListIntegrationTest`, `MsProjectListIntegrationTest`, `AuditListIntegrationTest`, `MdCustomFieldQueryFieldsIntegrationTest` — фильтр, сортировку, скоуп и дополнительные поля на данных. |
+| `FR-MOD-05` | Система должна описывать сущность одним серверным объявлением (`EntityDefinition`): поля формы и их правила, раскладку, действия с правом каждое; `GET /api/v1/form-meta/{code}` отдаёт форму и разрешённые пользователю действия, а сервер проверяет сохранение по тем же правилам (422 с ошибкой на поле). | `apps/server/src/main/java/com/greenwhite/dwh/instance/common/entity/EntityDefinition.java`; `apps/server/src/main/java/com/greenwhite/dwh/instance/common/entity/FormMetaController.java`; `apps/server/src/main/java/com/greenwhite/dwh/instance/common/entity/EntityValidator.java`; `docs/adr/ADR-0019-low-code-entity-model.md` | `EntityDefinitionTest` проверяет инварианты объявления, проверку полей и одинаковый 404; `EntityActionPermissionContractTest` сверяет действия с `@RequiresPermission`; `MsNoteIntegrationTest` — 422 на поле при сохранении заметки. |
+| `FR-MOD-06` | Система должна давать объявленной сущности по её возможностям историю изменений, экспорт списка, сохранённые виды и массовое удаление, а также пункт меню и названия прав в матрице — без отдельного кода модуля для каждого из них; объявление без нужного для возможности не допускает старта приложения. | `apps/server/src/main/java/com/greenwhite/dwh/instance/common/entity/EntityRegistry.java`; `apps/server/src/main/java/com/greenwhite/dwh/instance/common/entity/EntityBulkController.java`; `apps/server/src/main/java/com/greenwhite/dwh/instance/common/entity/EntityMenuController.java`; `apps/server/src/main/java/com/greenwhite/dwh/instance/md/service/MdPermissionService.java`; `scripts/dev/create-module.ps1` | `EntityFeaturesTest` проверяет историю, экспорт, массовое удаление с правом действия, меню по правам и отказ старта; `MdPermissionEntityNamesTest` — названия прав из объявления; `MdFormCatalogTest` — название у каждой пары права. |
 
 ### 3.11. Заметки и персональные записи
 
