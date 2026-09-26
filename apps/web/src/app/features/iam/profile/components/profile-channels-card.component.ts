@@ -9,11 +9,12 @@ import { UiLocalTableComponent } from '../../../../shared/ui/ui-local-table.comp
 import { TableConfig } from '../../../../shared/ui-kit/components/table/table.types';
 import { UserChannel } from '../profile.models';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
+import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../../../../shared/ui-kit/components/forms/select';
 
 @Component({
   selector: 'app-profile-channels-card',
   standalone: true,
-  imports: [SMTInputComponent, SMTInputValueAccessor, 
+  imports: [SMTInputComponent, SMTInputValueAccessor, SMTSelectComponent, SMTSelectValueAccessor,
     CommonModule,
     FormsModule,
     TranslatePipe,
@@ -101,16 +102,12 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
           <label class="form-label" for="profile-channel-type">
             {{ 'iam.tip_kanala' | t }} <span class="req">*</span>
           </label>
-          <select
-            id="profile-channel-type"
+          <smt-select
+            smtTriggerId="profile-channel-type"
             name="channelType"
-            class="form-input form-select"
             [(ngModel)]="selectedChannelType"
-          >
-            <option value="email">{{ 'iam.kanal_email' | t }}</option>
-            <option value="telegram">{{ 'iam.kanal_telegram' | t }}</option>
-            <option value="sms">{{ 'iam.kanal_sms' | t }}</option>
-          </select>
+            [options]="channelTypeOptions()"
+            [allowClear]="false" />
         </div>
 
         <div class="form-group">
@@ -368,10 +365,6 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
       transition: border-color 0.15s;
     }
 
-    .form-select {
-      cursor: pointer;
-    }
-
     .form-input:focus {
       border-color: var(--primary);
     }
@@ -451,6 +444,15 @@ export class ProfileChannelsCardComponent {
       },
       columnsOrder: ['type', 'address', 'created', 'status', 'action']
     };
+  });
+
+  readonly channelTypeOptions = computed<SMTSelectOption<string>[]>(() => {
+    this.i18n.currentLang();
+    return [
+      { id: 'email', label: this.i18n.translate('iam.kanal_email') },
+      { id: 'telegram', label: this.i18n.translate('iam.kanal_telegram') },
+      { id: 'sms', label: this.i18n.translate('iam.kanal_sms') },
+    ];
   });
 
   @Input() isLoadingChannels = false;

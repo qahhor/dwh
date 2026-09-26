@@ -320,10 +320,9 @@ export class RolesComponent implements OnInit {
     return this.selectedRole()?.pcode === 'admin' || this.rolePermissions().has(`${formCode}.${action}`);
   }
 
-  togglePermission(formCode: string, action: string, event: Event) {
+  togglePermission(formCode: string, action: string, checked: boolean) {
     if (!this.canEditPermissions()) return;
 
-    const checked = (event.target as HTMLInputElement).checked;
     const current = new Set(this.rolePermissions());
     const key = `${formCode}.${action}`;
 

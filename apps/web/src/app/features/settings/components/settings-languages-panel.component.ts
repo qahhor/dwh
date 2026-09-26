@@ -9,11 +9,12 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { LanguageEditorComponent } from '../language-editor.component';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
+import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/ui-kit/components/forms/textarea';
 
 @Component({
   selector: 'app-settings-languages-panel',
   standalone: true,
-  imports: [SMTInputComponent, SMTInputValueAccessor, 
+  imports: [SMTTextareaComponent, SMTTextareaValueAccessor, SMTInputComponent, SMTInputValueAccessor, 
     CommonModule,
     FormsModule,
     TranslatePipe,
@@ -137,14 +138,13 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit
         </div>
         <div class="form-group full-width">
           <label class="form-label" for="new-lang-json">{{ 'settings.json_slovar_perevodov_opcionalno' | t }}</label>
-          <textarea
-            id="new-lang-json"
-            class="form-input mono"
-            rows="6"
+          <smt-textarea
+            class="mono"
+            smtFieldId="new-lang-json"
+            [rows]="6"
             [ngModel]="newLangJson"
             (ngModelChange)="newLangJsonChange.emit($event)"
-            [placeholder]="'settings.translation_json_example' | t"
-          ></textarea>
+            [placeholder]="'settings.translation_json_example' | t" />
         </div>
       </div>
       <div modal-footer class="modal-footer-btns">

@@ -1,16 +1,21 @@
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, inject, Input, OnInit, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { TranslatePipe } from '../../../core/services/i18n.service';
+import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { safeNumericRecordId } from '../../../core/services/search-target';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { orderedTree, orgUnitKindKeys, orgUnitTreeOptions, parentCandidates } from './org-unit-tree';
+import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../../../shared/ui-kit/components/forms/select';
+import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group';
 import { SMTTreeOption, SMTTreeSelectComponent, SMTTreeSelectValueAccessor } from '../../../shared/ui-kit/components/forms/tree-select';
+import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
 import { OrgUnit, OrgUnitCreate, OrgUnitPatch } from './org-units.models';
 import { ProblemDetail } from '../../../core/models/common.models';
 export type OrgUnitSubmission = { mode: 'create'; body: OrgUnitCreate } | { mode: 'edit'; id: number; patch: OrgUnitPatch };
-@Component({ selector: 'app-org-unit-editor', standalone: true, imports: [FormsModule, TranslatePipe, UiButtonComponent, UiModalComponent, SMTTreeSelectComponent, SMTTreeSelectValueAccessor], templateUrl: './org-unit-editor.component.html', styleUrl: './org-unit-editor.component.css' })
+@Component({ selector: 'app-org-unit-editor', standalone: true, imports: [FormsModule, TranslatePipe, UiButtonComponent, UiModalComponent, SMTSelectComponent, SMTSelectValueAccessor, SMTTreeSelectComponent, SMTTreeSelectValueAccessor, SMTInputComponent, SMTInputValueAccessor], templateUrl: './org-unit-editor.component.html', styleUrl: './org-unit-editor.component.css' })
 export class OrgUnitEditorComponent implements OnInit {
+  private readonly i18n = inject(I18nService);
+
   @Input({ required: true }) initial!: OrgUnit | OrgUnitCreate;
   @Input() units: OrgUnit[] = [];
   @Input() pending = false;
@@ -26,10 +31,25 @@ export class OrgUnitEditorComponent implements OnInit {
   attempted = false;
   private parentTreeCache: { units: OrgUnit[]; original: OrgUnit | OrgUnitCreate; tree: SMTTreeOption<number>[] } | null = null;
   impactOpen = false;
+  private readonly kindMemo = optionsMemo<SMTSelectOption<string>[]>();
+  private readonly stateMemo = optionsMemo<SMTSelectOption<'A' | 'P'>[]>();
 
   ngOnInit(): void {
     this.original = { ...this.initial };
     this.draft = { ...this.original, state: 'state' in this.original ? this.original.state : 'A' };
+  }
+  /** The known kinds, translated; an unknown kind of the edited unit stays first, as its raw code. */
+  kindOptions(): SMTSelectOption<string>[] {
+    return this.kindMemo([this.i18n.currentLang(), this.original], () => [
+      ...(this.kindKeys[this.original.kind] ? [] : [{ id: this.original.kind, label: this.original.kind }]),
+      ...this.kinds.map(kind => ({ id: kind, label: this.i18n.translate(this.kindKeys[kind]) })),
+    ]);
+  }
+  stateOptions(): SMTSelectOption<'A' | 'P'>[] {
+    return this.stateMemo([this.i18n.currentLang()], () => [
+      { id: 'A', label: this.i18n.translate('iam.org_units.active') },
+      { id: 'P', label: this.i18n.translate('iam.org_units.passive') },
+    ]);
   }
   get editing(): boolean { return 'id' in this.original; }
   get dirty(): boolean {

@@ -74,7 +74,7 @@
           (toggleReadOnlyModule)="toggleReadOnlyModule($event)"
           (toggleAllModule)="toggleAllModule($event.mod, $event.select)"
           (toggleAllForm)="toggleAllForm($event.form, $event.select)"
-          (togglePermission)="togglePermission($event.formCode, $event.action, $event.event)"
+          (togglePermission)="togglePermission($event.formCode, $event.action, $event.checked)"
         ></app-role-permissions-matrix>
         <app-role-scope-panel
           *ngIf="canViewOrgUnits() && safeRoleId(role.id)"

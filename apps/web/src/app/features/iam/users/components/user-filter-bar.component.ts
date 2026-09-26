@@ -6,12 +6,14 @@ import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
 import { Role } from '../../../../core/models/rbac.models';
 import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '../../../../shared/ui-kit/components/forms/radio-group';
 import { I18nService } from '../../../../core/services/i18n.service';
+import { SMTSelectComponent, SMTSelectOption } from '../../../../shared/ui-kit/components/forms/select';
+import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/input';
 
 @Component({
   selector: 'app-user-filter-bar',
   standalone: true,
   imports: [
-    SMTRadioGroupComponent, CommonModule,
+    SMTRadioGroupComponent, SMTSelectComponent, SMTInputComponent, CommonModule,
     FormsModule,
     TranslatePipe,
     UiButtonComponent
@@ -20,28 +22,19 @@ import { I18nService } from '../../../../core/services/i18n.service';
     <!-- Compact Single-Line Toolbar -->
     <div class="toolbar">
       <div class="search-field">
-        <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
         <label class="sr-only" for="user-search">{{ 'iam.poisk_polzovateley' | t }}</label>
-        <input
-          id="user-search"
+        <smt-input
+          smtFieldId="user-search"
           name="userSearch"
-          type="text"
+          type="search"
+          smtIcon="search"
+          clearable
           class="search-input"
           [placeholder]="'iam.poisk_po_imeni_loginu_email' | t"
-          [ngModel]="searchQuery"
-          (ngModelChange)="searchQueryChange.emit($event)"
+          [value]="searchQuery"
+          (valueChange)="searchQueryChange.emit($event === null ? '' : '' + $event)"
           (input)="searchInput.emit()"
-        />
-        <button
-          *ngIf="searchQuery"
-          type="button"
-          class="btn-icon"
-          style="position: absolute; right: 6px;"
-          [attr.aria-label]="'iam.ochistit_poisk_polzovateley' | t"
-          (click)="clearSearch.emit()"
-        >
-          <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">close</span>
-        </button>
+          (cleared)="clearSearch.emit()" />
       </div>
 
       <div class="toolbar-controls">
@@ -90,31 +83,24 @@ import { I18nService } from '../../../../core/services/i18n.service';
             <div class="filter-dropdown-body">
               <div class="filter-group">
                 <label class="filter-caption" for="user-role-filter">{{ 'iam.rol_polzovatelya' | t }}</label>
-                <select
-                  id="user-role-filter"
-                  name="userRoleFilter"
-                  class="filter-select"
-                  [ngModel]="selectedRoleId"
-                  (ngModelChange)="roleFilterChange.emit($event)"
-                >
-                  <option [ngValue]="null">{{ 'iam.vse_roli' | t }}</option>
-                  <option *ngFor="let r of roles" [ngValue]="r.id">{{ r.name }}</option>
-                </select>
+                <smt-select
+                  smtTriggerId="user-role-filter"
+                  [value]="selectedRoleId"
+                  (valueChange)="roleFilterChange.emit($event)"
+                  [options]="roleOptions()"
+                  [placeholder]="'iam.vse_roli' | t"
+                  [emptyLabel]="'iam.vse_roli' | t" />
               </div>
 
               <div class="filter-group">
                 <label class="filter-caption" for="user-2fa-filter">{{ 'iam.dvuhfaktornaya_zaschita_2fa' | t }}</label>
-                <select
-                  id="user-2fa-filter"
-                  name="user2faFilter"
-                  class="filter-select"
-                  [ngModel]="selected2fa"
-                  (ngModelChange)="twoFactorFilterChange.emit($event)"
-                >
-                  <option [ngValue]="null">{{ 'iam.lyuboy_status_2fa' | t }}</option>
-                  <option [ngValue]="true">{{ 'iam.tolko_s_2fa' | t }}</option>
-                  <option [ngValue]="false">{{ 'iam.bez_2fa' | t }}</option>
-                </select>
+                <smt-select
+                  smtTriggerId="user-2fa-filter"
+                  [value]="selected2fa"
+                  (valueChange)="twoFactorFilterChange.emit($event)"
+                  [options]="twoFactorOptions()"
+                  [placeholder]="'iam.lyuboy_status_2fa' | t"
+                  [emptyLabel]="'iam.lyuboy_status_2fa' | t" />
               </div>
             </div>
           </div>
@@ -186,25 +172,8 @@ import { I18nService } from '../../../../core/services/i18n.service';
       position: relative;
       display: flex;
       align-items: center;
-      gap: 6px;
-      background-color: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      padding: 4px 10px;
       width: 320px;
       max-width: 100%;
-    }
-    .search-icon {
-      font-size: 17px;
-      color: var(--text-muted);
-    }
-    .search-input {
-      border: none;
-      background: transparent;
-      outline: none;
-      font-size: 13px;
-      color: var(--text-main);
-      width: 100%;
     }
     .btn-icon {
       border: none;
@@ -365,16 +334,6 @@ import { I18nService } from '../../../../core/services/i18n.service';
       gap: 4px;
     }
     .filter-caption { font-size: 11px; color: var(--text-muted); }
-    .filter-select {
-      height: 30px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--border-color);
-      background-color: var(--bg-surface);
-      color: var(--text-main);
-      font-size: 12px;
-      padding: 2px 6px;
-      outline: none;
-    }
 
     /* Accessibility focus indicators */
 
@@ -417,12 +376,25 @@ export class UserFilterBarComponent {
   @Output() resetAllFilters = new EventEmitter<void>();
 
   private readonly stateMemo = optionsMemo<SMTRadioOption<string>[]>();
+  private readonly roleMemo = optionsMemo<SMTSelectOption<number>[]>();
+  private readonly twoFactorMemo = optionsMemo<SMTSelectOption<boolean>[]>();
 
   stateOptions(): SMTRadioOption<string>[] {
     return this.stateMemo([this.optionText.currentLang()], () => [
       { value: '', label: this.optionText.translate('common.all') },
       { value: 'A', label: this.optionText.translate('iam.aktivnye'), color: 'var(--success)' },
       { value: 'P', label: this.optionText.translate('iam.zablokirovannye'), color: 'var(--danger)' },
+    ]);
+  }
+
+  roleOptions(): SMTSelectOption<number>[] {
+    return this.roleMemo([this.roles], () => this.roles.map(role => ({ id: role.id, label: role.name })));
+  }
+
+  twoFactorOptions(): SMTSelectOption<boolean>[] {
+    return this.twoFactorMemo([this.optionText.currentLang()], () => [
+      { id: true, label: this.optionText.translate('iam.tolko_s_2fa') },
+      { id: false, label: this.optionText.translate('iam.bez_2fa') },
     ]);
   }
 }

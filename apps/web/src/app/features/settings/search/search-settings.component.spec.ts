@@ -1,5 +1,6 @@
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { Observable, Subject, of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { ProblemDetail } from '../../../core/models/common.models';
@@ -13,6 +14,13 @@ import { PermissionService } from '../../../core/services/permission.service';
 import { SearchManagementService } from '../../../core/services/search-management.service';
 import { translateTest } from '../../../../testing/i18n-test.stub';
 import { SearchSettingsComponent } from './search-settings.component';
+import { SMTSelectComponent } from '../../../shared/ui-kit/components/forms/select';
+
+/** The smt-select whose trigger has the given id. */
+function picker(fixture: ComponentFixture<SearchSettingsComponent>, triggerId: string): SMTSelectComponent<string> {
+  return fixture.debugElement.queryAll(By.directive(SMTSelectComponent))
+    .find(debug => debug.nativeElement.querySelector(`#${triggerId}`))!.componentInstance as SMTSelectComponent<string>;
+}
 
 const policy: SearchQueryPolicy = {
   globalLimit: 10,
@@ -181,6 +189,26 @@ describe('SearchSettingsComponent', () => {
     expect(fixture.nativeElement.querySelector('button[data-action="save-search-settings"]')).toBeNull();
   });
 
+  it('previews one entity type chosen in the entity picker and all of them again once it is cleared', async () => {
+    const { fixture, management } = await createFixture(['platform.search.view']);
+    const query = fixture.nativeElement.querySelector('#search-preview-query') as HTMLInputElement;
+    query.value = 'report';
+    query.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('label[for="search-preview-entity"]')).not.toBeNull();
+    const entity = picker(fixture, 'search-preview-entity');
+    expect(entity.options().map(option => option.id)).toEqual(['TASK', 'PROJECT', 'USER']);
+    entity.pick(entity.options().find(option => option.id === 'PROJECT')!);
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('button[data-action="preview-search-settings"]') as HTMLButtonElement).click();
+    expect(management['preview']).toHaveBeenLastCalledWith({ q: 'report', entity: 'PROJECT' });
+
+    entity.pickNone();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.previewEntity).toBe('');
+  });
+
   it('previews the readable unsaved policy but hides Save without update permission', async () => {
     const { fixture, management } = await createFixture([
       'platform.search.view', 'platform.settings.view'
@@ -286,9 +314,9 @@ describe('SearchSettingsComponent', () => {
     const { fixture } = await createFixture([
       'platform.search.view', 'platform.settings.view', 'platform.settings.update'
     ], { save: vi.fn(() => of({ version: 8, policy: saved })) });
-    const profile = fixture.nativeElement.querySelector('#search-schema-profile') as HTMLSelectElement;
-    profile.value = 'RU';
-    profile.dispatchEvent(new Event('change'));
+    const profile = picker(fixture, 'search-schema-profile');
+    expect(profile.options().map(option => option.id)).toEqual(['MIXED', 'RU']);
+    profile.pick(profile.options().find(option => option.id === 'RU')!);
     fixture.detectChanges();
 
     (fixture.nativeElement.querySelector('button[data-action="save-search-settings"]') as HTMLButtonElement).click();

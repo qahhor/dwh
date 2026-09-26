@@ -4,19 +4,16 @@
   <fieldset [disabled]="pending || impactOpen">
     <legend class="sr-only">{{ 'iam.org_units.details' | t }}</legend>
     <label [for]="formId + '-code'">{{ 'iam.org_units.code' | t }}</label>
-    <input [id]="formId + '-code'" name="code" [(ngModel)]="draft.code" required [readOnly]="editing"
-      [attr.aria-invalid]="fieldError('code') ? 'true' : null" [attr.aria-describedby]="fieldError('code') ? formId + '-code-error' : null">
+    <smt-input [smtFieldId]="formId + '-code'" name="code" [(ngModel)]="draft.code" required [readonly]="editing"
+      [smtInvalid]="!!fieldError('code')" [smtDescribedBy]="fieldError('code') ? formId + '-code-error' : null" />
     @if (fieldError('code'); as message) { <small [id]="formId + '-code-error'">{{ message }}</small> }
     <label [for]="formId + '-name'">{{ 'iam.org_units.name' | t }}</label>
-    <input [id]="formId + '-name'" name="name" [(ngModel)]="draft.name" required
-      [attr.aria-invalid]="fieldError('name') ? 'true' : null" [attr.aria-describedby]="fieldError('name') ? formId + '-name-error' : null">
+    <smt-input [smtFieldId]="formId + '-name'" name="name" [(ngModel)]="draft.name" required
+      [smtInvalid]="!!fieldError('name')" [smtDescribedBy]="fieldError('name') ? formId + '-name-error' : null" />
     @if (fieldError('name'); as message) { <small [id]="formId + '-name-error'">{{ message }}</small> }
     <label [for]="formId + '-kind'">{{ 'iam.org_units.kind' | t }}</label>
-    <select [id]="formId + '-kind'" name="kind" [(ngModel)]="draft.kind" required
-      [attr.aria-invalid]="fieldError('kind') ? 'true' : null" [attr.aria-describedby]="fieldError('kind') ? formId + '-kind-error' : null">
-      @if (!kindKeys[original.kind]) { <option [value]="original.kind">{{ original.kind }}</option> }
-      @for (kind of kinds; track kind) { <option [value]="kind">{{ kindKeys[kind] | t }}</option> }
-    </select>
+    <smt-select [smtTriggerId]="formId + '-kind'" name="kind" [(ngModel)]="draft.kind" required [allowClear]="false" [options]="kindOptions()"
+      [smtInvalid]="!!fieldError('kind')" [smtDescribedBy]="fieldError('kind') ? formId + '-kind-error' : null" />
     @if (fieldError('kind'); as message) { <small [id]="formId + '-kind-error'">{{ message }}</small> }
     @if (editing && original.parentId !== null) {
       <label [for]="formId + '-parent'">{{ 'iam.org_units.parent' | t }}</label>
@@ -27,15 +24,13 @@
     } @else { <p>{{ (original.parentId === null ? 'iam.org_units.root' : 'iam.org_units.parent') | t }}{{ original.parentId === null ? '' : ': ' + original.parentId }}</p> }
     @if (editing) {
       <label [for]="formId + '-state'">{{ 'iam.org_units.state' | t }}</label>
-      <select [id]="formId + '-state'" name="state" [(ngModel)]="draft.state"
-        [attr.aria-invalid]="fieldError('state') ? 'true' : null" [attr.aria-describedby]="fieldError('state') ? formId + '-state-error' : null">
-        <option value="A">{{ 'iam.org_units.active' | t }}</option><option value="P">{{ 'iam.org_units.passive' | t }}</option>
-      </select>
+      <smt-select [smtTriggerId]="formId + '-state'" name="state" [(ngModel)]="draft.state" [allowClear]="false" [options]="stateOptions()"
+        [smtInvalid]="!!fieldError('state')" [smtDescribedBy]="fieldError('state') ? formId + '-state-error' : null" />
       @if (fieldError('state'); as message) { <small [id]="formId + '-state-error'">{{ message }}</small> }
     }
     <label [for]="formId + '-order'">{{ 'iam.org_units.order' | t }}</label>
-    <input [id]="formId + '-order'" name="orderNo" type="number" step="1" min="-2147483648" max="2147483647" [(ngModel)]="draft.orderNo" required
-      [attr.aria-invalid]="fieldError('orderNo') ? 'true' : null" [attr.aria-describedby]="fieldError('orderNo') ? formId + '-order-error' : null">
+    <smt-input [smtFieldId]="formId + '-order'" name="orderNo" type="number" [smtStep]="1" [smtMin]="-2147483648" [smtMax]="2147483647" [(ngModel)]="draft.orderNo" required
+      [smtInvalid]="!!fieldError('orderNo')" [smtDescribedBy]="fieldError('orderNo') ? formId + '-order-error' : null" />
     @if (fieldError('orderNo'); as message) { <small [id]="formId + '-order-error'">{{ message }}</small> }
   </fieldset>
   <div class="actions">

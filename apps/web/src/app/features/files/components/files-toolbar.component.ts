@@ -1,6 +1,7 @@
 import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
 import { TranslatePipe } from '../../../core/services/i18n.service';
 import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '../../../shared/ui-kit/components/forms/radio-group';
 import { I18nService } from '../../../core/services/i18n.service';
@@ -9,7 +10,7 @@ import { I18nService } from '../../../core/services/i18n.service';
   selector: 'app-files-toolbar',
   standalone: true,
   imports: [
-    SMTRadioGroupComponent, CommonModule,
+    SMTRadioGroupComponent, SMTInputComponent, SMTInputValueAccessor, CommonModule,
     FormsModule,
     TranslatePipe
   ],
@@ -27,21 +28,19 @@ import { I18nService } from '../../../core/services/i18n.service';
 
         <!-- Search Input -->
         <div class="search-box">
-          <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
           <label class="sr-only" for="file-search">{{ 'files.poisk_faylov' | t }}</label>
-          <input
-            id="file-search"
+          <smt-input
+            class="search-field"
+            smtFieldId="file-search"
             name="fileSearch"
-            type="text"
-            class="search-input"
+            type="search"
+            smtIcon="search"
+            clearable
             [placeholder]="'files.poisk_faylov_po_imeni' | t"
             [ngModel]="searchQuery"
             (ngModelChange)="searchQueryChange.emit($event)"
             (keyup.enter)="search.emit()"
-          />
-          <button type="button" class="clear-btn" [attr.aria-label]="'files.ochistit_poisk_faylov' | t" *ngIf="searchQuery" (click)="clear.emit()">
-            <span class="material-symbols-outlined" aria-hidden="true">close</span>
-          </button>
+            (cleared)="clear.emit()" />
         </div>
       </div>
 
@@ -87,61 +86,14 @@ import { I18nService } from '../../../core/services/i18n.service';
 
     .search-box {
       position: relative;
-      display: flex;
-      align-items: center;
       flex: 1;
       max-width: 380px;
       min-width: 200px;
     }
 
-    .search-icon {
-      position: absolute;
-      left: 10px;
-      font-size: 18px;
-      color: var(--text-muted);
-      pointer-events: none;
-    }
 
-    .search-input {
-      width: 100%;
-      height: 36px;
-      padding: 0 32px 0 34px;
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      font-size: 13px;
-      color: var(--text-main);
-      outline: none;
-      transition: border-color 0.15s ease;
-    }
 
-    .search-input:focus {
-      border-color: var(--primary);
-    }
 
-    .clear-btn {
-      position: absolute;
-      right: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      border: none;
-      background: transparent;
-      color: var(--text-muted);
-      cursor: pointer;
-    }
-
-    .clear-btn:hover {
-      color: var(--text-main);
-      background: var(--bg-hover);
-    }
-
-    .clear-btn .material-symbols-outlined {
-      font-size: 14px;
-    }
 
     .icon-refresh-btn {
       width: 36px;

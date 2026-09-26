@@ -83,6 +83,20 @@ class LookupHost {
   ];
 }
 
+@Component({
+  standalone: true,
+  imports: [SMTSelectComponent],
+  template: `
+    <smt-select ariaLabel="Person" [options]="options" [value]="value" (valueChange)="value = $event"
+      [smtInvalid]="rejected()" [smtDescribedBy]="rejected() ? 'person-error' : null" />
+  `,
+})
+class ErrorHost {
+  value: number | null = 2;
+  readonly rejected = signal(false);
+  readonly options = PEOPLE;
+}
+
 describe('SMTSelectComponent', () => {
   afterEach(() => {
     document.querySelectorAll('.cdk-overlay-container').forEach(node => node.remove());
@@ -114,6 +128,19 @@ describe('SMTSelectComponent', () => {
     };
     return { fixture, element, trigger, search, options, key, type, settle };
   }
+
+  it('marks an error the screen shows on the trigger and names each value for tests', async () => {
+    const { fixture, trigger, options, settle } = await render(ErrorHost);
+    expect(trigger.getAttribute('aria-invalid')).toBeNull();
+    expect(trigger.getAttribute('data-value')).toBe('2');
+    fixture.componentInstance.rejected.set(true);
+    await settle();
+    expect(trigger.getAttribute('aria-invalid')).toBe('true');
+    expect(trigger.getAttribute('aria-describedby')).toBe('person-error');
+    trigger.click();
+    await settle();
+    expect(options().filter(option => option.hasAttribute('data-value')).map(option => option.getAttribute('data-value'))).toEqual(['1', '2', '3']);
+  });
 
   it('is a combobox named by the surrounding label whose text is the chosen option', async () => {
     const { element, trigger } = await render(Host);

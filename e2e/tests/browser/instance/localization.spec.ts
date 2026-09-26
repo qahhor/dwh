@@ -1,12 +1,13 @@
 import { expect, test } from '@playwright/test';
 
 import { loginToInstance } from '../../../support/auth.js';
+import { chooseOption } from '../../../support/select.js';
 
 test('translation override repaints live, persists across sessions, and keeps Russian fallback', async ({ browser, page }) => {
   const marker = `E2E-Save-${Date.now()}`;
   await loginToInstance(page);
   const languageSelector = page.locator('#app-language-selector');
-  const originalLanguage = await languageSelector.inputValue();
+  const originalLanguage = await languageSelector.getAttribute('data-value');
   let originalGerman = '';
   let overrideSaved = false;
 
@@ -45,7 +46,7 @@ test('translation override repaints live, persists across sessions, and keeps Ru
     overrideSaved = true;
 
     await page.getByTestId('language-editor-close').click();
-    await persistLanguageChange('de', () => languageSelector.selectOption('de'));
+    await persistLanguageChange('de', () => chooseOption(languageSelector, 'de'));
 
     await page.goto('/settings');
     await expect(page.getByRole('button', { name: marker, exact: true })).toBeVisible();
@@ -72,6 +73,6 @@ test('translation override repaints live, persists across sessions, and keeps Ru
       await expect(page.getByText('Переводы успешно сохранены')).toBeVisible();
     }
     await persistLanguageChange(originalLanguage || 'ru',
-      () => page.locator('#app-language-selector').selectOption(originalLanguage || 'ru'));
+      () => chooseOption(page.locator('#app-language-selector'), originalLanguage || 'ru'));
   }
 });

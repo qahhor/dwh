@@ -8,6 +8,7 @@ import { SMTInputComponent } from '../ui-kit/components/forms/input';
 import { SMTModalService } from '../ui-kit/components/modal';
 import { UiButtonComponent } from './ui-button.component';
 import { UiModalComponent } from './ui-modal.component';
+import { SMTCheckboxComponent } from '../ui-kit/components/forms/checkbox';
 
 const NAME_MAX = 80;
 
@@ -23,7 +24,7 @@ const NAME_MAX = 80;
   selector: 'ui-list-views',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTInputComponent, CdkMenuTrigger, CdkMenu, CdkMenuGroup, CdkMenuItem, CdkMenuItemRadio, TranslatePipe, UiModalComponent, UiButtonComponent],
+  imports: [SMTCheckboxComponent, SMTInputComponent, CdkMenuTrigger, CdkMenu, CdkMenuGroup, CdkMenuItem, CdkMenuItemRadio, TranslatePipe, UiModalComponent, UiButtonComponent],
   template: `
     <button type="button" class="views-trigger" data-testid="views-trigger" [cdkMenuTriggerFor]="menu" [disabled]="state().busy()">
       <span class="material-symbols-outlined" aria-hidden="true">bookmarks</span>
@@ -84,10 +85,9 @@ const NAME_MAX = 80;
         @if (nameError(); as error) {
           <span class="views-error" [id]="nameId + '-error'" data-testid="views-name-error">{{ error | t }}</span>
         }
-        <label class="views-default-choice">
-          <input type="checkbox" data-testid="views-name-default" [checked]="makeDefault()" (change)="makeDefault.set($any($event.target).checked)" />
+        <div smt-checkbox class="views-default-choice" data-testid="views-name-default" [checked]="makeDefault()" (checkedChange)="makeDefault.set($event)">
           {{ 'ui.views.open_by_default' | t }}
-        </label>
+        </div>
       </form>
       <div footer class="views-footer">
         <ui-button variant="secondary" (onClick)="closeSaveAs()">{{ 'common.cancel' | t }}</ui-button>

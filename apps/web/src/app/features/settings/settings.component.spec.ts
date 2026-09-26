@@ -1,5 +1,6 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { Observable, of, Subject } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { ApiService } from '../../core/services/api.service';
@@ -9,6 +10,7 @@ import { SearchManagementService } from '../../core/services/search-management.s
 import { ToastService } from '../../core/services/toast.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { SMTModalService } from '../../shared/ui-kit/components/modal';
+import { SMTSelectComponent } from '../../shared/ui-kit/components/forms/select';
 import { SettingsComponent } from './settings.component';
 import { translateTest } from '../../../testing/i18n-test.stub';
 
@@ -98,8 +100,10 @@ describe('SettingsComponent UI contracts', () => {
     expect(fixture.nativeElement.querySelector('#settings-general-panel[role="tabpanel"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('label[for="settings-company-name"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('label[for="settings-default-language"]')).not.toBeNull();
-    const language = fixture.nativeElement.querySelector('#settings-default-language') as HTMLSelectElement;
-    expect(Array.from(language.options).map(option => option.value)).toEqual(['ru', 'de', 'tr']);
+    const language = fixture.nativeElement.querySelector('#settings-default-language') as HTMLButtonElement;
+    expect(language.getAttribute('role')).toBe('combobox');
+    const picker = fixture.debugElement.query(By.css('smt-select[name="settingsDefaultLanguage"]')).componentInstance as SMTSelectComponent<string>;
+    expect(picker.options().map(option => option.id)).toEqual(['ru', 'de', 'tr']);
   });
 
   it('shows the search tab from search permission and destroys its child on a structural tab switch', async () => {
@@ -395,7 +399,8 @@ describe('SettingsComponent UI contracts', () => {
     expect(fixture.componentInstance.canViewWebhookSettings()).toBe(true);
     expect(fixture.componentInstance.isTabAvailable('webhooks')).toBe(true);
 
-    fixture.componentInstance.setTab('webhooks');
+    // A click marks the screen for checking, as it does in the app; the switch works through setTab.
+    (fixture.nativeElement.querySelector('#settings-webhooks-tab') as HTMLButtonElement).click();
     fixture.detectChanges();
 
     const panel = fixture.nativeElement.querySelector('#settings-webhooks-panel');

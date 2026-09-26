@@ -1,16 +1,18 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CustomNavigationItem, NavigationTargetType } from '../../../../core/models/navigation.models';
 import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
 import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
-import { TranslatePipe } from '../../../../core/services/i18n.service';
+import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
+import { SMTSelectComponent, SMTSelectOption } from '../../../../shared/ui-kit/components/forms/select';
+import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-group/radio-options';
 
 @Component({
   selector: 'app-navigation-settings-modal',
   standalone: true,
-  imports: [SMTInputComponent, SMTInputValueAccessor, 
+  imports: [SMTInputComponent, SMTInputValueAccessor, SMTSelectComponent,
     CommonModule,
     FormsModule,
     UiModalComponent,
@@ -48,20 +50,13 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
         <div class="form-row">
           <div class="form-group flex-1">
             <label class="form-label" for="nav-type">{{ 'nav.settings.field_type' | t }}</label>
-            <select id="nav-type" class="form-input" [ngModel]="formTargetType" (ngModelChange)="formTargetTypeChange.emit($event)">
-              <option value="EMBEDDED_IFRAME">{{ 'nav.settings.type_embedded' | t }}</option>
-              <option value="EXTERNAL_LINK">{{ 'nav.settings.type_external' | t }}</option>
-              <option value="INTERNAL_ROUTE">{{ 'nav.settings.type_internal' | t }}</option>
-            </select>
+            <smt-select smtTriggerId="nav-type" [options]="targetTypeOptions()" [allowClear]="false"
+              [value]="formTargetType" (valueChange)="$event && formTargetTypeChange.emit($event)" />
           </div>
           <div class="form-group flex-1">
             <label class="form-label" for="nav-section">{{ 'nav.settings.field_section' | t }}</label>
-            <select id="nav-section" class="form-input" [ngModel]="formSectionId" (ngModelChange)="formSectionIdChange.emit($event)">
-              <option value="custom">{{ 'nav.settings.section_custom' | t }}</option>
-              <option value="workspace">{{ 'nav.section.workspace' | t }}</option>
-              <option value="iam">{{ 'nav.section.iam' | t }}</option>
-              <option value="administration">{{ 'nav.section.administration' | t }}</option>
-            </select>
+            <smt-select smtTriggerId="nav-section" [options]="sectionOptions()" [allowClear]="false"
+              [value]="formSectionId" (valueChange)="$event && formSectionIdChange.emit($event)" />
           </div>
           <div class="form-group flex-1">
             <label class="form-label" for="nav-order">{{ 'nav.settings.field_order' | t }}</label>
@@ -153,20 +148,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
       color: var(--text-main);
     }
 
-    .form-input {
-      padding: 8px 12px;
-      font-size: 13px;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      background-color: var(--bg-surface);
-      color: var(--text-main);
-      outline: none;
-      transition: border-color 0.15s ease;
-    }
 
-    .form-input:focus {
-      border-color: var(--primary);
-    }
 
     .form-hint {
       font-size: 11px;
@@ -260,6 +242,8 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
   `]
 })
 export class NavigationSettingsModalComponent {
+  private readonly i18n = inject(I18nService);
+
   @Input() isModalOpen = false;
   @Input() editingItem: CustomNavigationItem | null = null;
   @Input() isSubmitting = false;
@@ -286,4 +270,25 @@ export class NavigationSettingsModalComponent {
   @Output() urlBlur = new EventEmitter<void>();
   @Output() closeModal = new EventEmitter<void>();
   @Output() saveItem = new EventEmitter<void>();
+
+  private readonly targetTypeMemo = optionsMemo<SMTSelectOption<NavigationTargetType>[]>();
+
+  private readonly sectionMemo = optionsMemo<SMTSelectOption<string>[]>();
+
+  targetTypeOptions(): SMTSelectOption<NavigationTargetType>[] {
+    return this.targetTypeMemo([this.i18n.currentLang()], () => [
+      { id: 'EMBEDDED_IFRAME', label: this.i18n.translate('nav.settings.type_embedded') },
+      { id: 'EXTERNAL_LINK', label: this.i18n.translate('nav.settings.type_external') },
+      { id: 'INTERNAL_ROUTE', label: this.i18n.translate('nav.settings.type_internal') },
+    ]);
+  }
+
+  sectionOptions(): SMTSelectOption<string>[] {
+    return this.sectionMemo([this.i18n.currentLang()], () => [
+      { id: 'custom', label: this.i18n.translate('nav.settings.section_custom') },
+      { id: 'workspace', label: this.i18n.translate('nav.section.workspace') },
+      { id: 'iam', label: this.i18n.translate('nav.section.iam') },
+      { id: 'administration', label: this.i18n.translate('nav.section.administration') },
+    ]);
+  }
 }

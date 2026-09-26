@@ -9,6 +9,7 @@
   [type]="nativeType()"
   [attr.name]="name() || null"
   [attr.data-testid]="testId()"
+  [attr.cdkFocusInitial]="focusInitial() ? '' : null"
   [placeholder]="placeholder()"
   [value]="text()"
   [disabled]="isDisabled()"

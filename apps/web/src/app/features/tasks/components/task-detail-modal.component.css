@@ -121,18 +121,7 @@
       align-items: flex-end;
       margin-top: 6px;
     }
-    .comment-textarea {
-      flex: 1;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      background-color: var(--bg-surface);
-      color: var(--text-main);
-      padding: 6px 8px;
-      font-size: 12px;
-      font-family: inherit;
-      outline: none;
-      resize: vertical;
-    }
+    .comment-textarea { flex: 1; min-width: 0; }
     .details-side-col { display: flex; flex-direction: column; gap: 12px; }
     .side-card {
       background-color: var(--bg-hover);
@@ -229,19 +218,6 @@
     .text-danger { color: var(--danger); }
     .text-xs { font-size: 11px; }
     .tabular-nums { font-variant-numeric: tabular-nums; }
-    .clean-select {
-      height: 26px;
-      padding: 1px 6px;
-      font-size: 11px;
-      font-weight: 500;
-      border-radius: 10px;
-      border: 1px solid var(--border-color);
-      background-color: var(--bg-surface);
-      color: var(--text-main);
-      cursor: pointer;
-      outline: none;
-    }
-    .clean-select:focus { border-color: var(--primary); }
     .status-dot {
       width: 8px;
       height: 8px;

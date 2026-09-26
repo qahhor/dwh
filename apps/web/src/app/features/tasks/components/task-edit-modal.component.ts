@@ -9,6 +9,7 @@ import { ProjectOptionsPipe } from './project-options.pipe';
 import { SMTDatePickerComponent, SMTDatePickerValueAccessor } from '../../../shared/ui-kit/components/forms/date-picker';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { SMTControlComponent } from '../../../shared/ui-kit/components/forms/control';
+import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { SMTSelectComponent, SMTSelectValueAccessor } from '../../../shared/ui-kit/components/forms/select';
@@ -35,6 +36,8 @@ import { Project, Task, TaskType } from '../../../core/models/task.models';
     SMTMultiDataSelectComponent,
     ProjectOptionsPipe,
     SMTSelectValueAccessor,
+    SMTInputComponent,
+    SMTInputValueAccessor,
     UiMarkdownEditorComponent,
     UiCustomFieldsComponent
   ],
@@ -56,14 +59,12 @@ import { Project, Task, TaskType } from '../../../core/models/task.models';
       <fieldset body class="modal-form modal-form-fieldset task-edit-form" [disabled]="isSubmitting" *ngIf="editingTask as task">
         <!-- Title Input (Required) -->
         <smt-control class="form-group" [smtLabel]="'task.title' | t" [smtError]="isEditSubmitted && !editForm.title.trim() ? ('tasks.nazvanie_zadachi_ne_mozhet_byt_pustym' | t) : ''">
-          <input
-            id="task-edit-title"
+          <smt-input
+            smtFieldId="task-edit-title"
             name="taskEditTitle"
-            type="text"
-            class="clean-input title-input"
+            class="title-input"
             required
-            [(ngModel)]="editForm.title"
-          />
+            [(ngModel)]="editForm.title" />
         </smt-control>
 
         <!-- Visual Type Selector Chips -->
@@ -228,18 +229,6 @@ import { Project, Task, TaskType } from '../../../core/models/task.models';
     .label-row { display: flex; align-items: center; justify-content: space-between; }
     .clean-label { font-size: 12px; font-weight: 600; color: var(--text-main); }
     .req-tag { font-size: 10px; color: var(--text-muted); }
-    .clean-input {
-      height: 34px;
-      padding: 6px 10px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--border-color);
-      background-color: var(--bg-surface);
-      color: var(--text-main);
-      font-size: 13px;
-      outline: none;
-      transition: border-color 0.12s ease;
-    }
-    .clean-input:focus { border-color: var(--primary); }
     .title-input { font-size: 14px; font-weight: 500; }
     .input-error { border-color: var(--danger); }
     .error-msg { font-size: 11px; color: var(--danger); margin-top: 2px; }

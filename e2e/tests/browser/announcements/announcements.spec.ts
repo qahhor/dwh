@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 import { expectNoSeriousAccessibilityViolations } from '../../../support/accessibility.js';
 import { loginToInstance } from '../../../support/auth.js';
 import { collectPageErrors, uniqueRunName } from '../../../support/diagnostics.js';
+import { chooseOption } from '../../../support/select.js';
 
 test('administrator creates, publishes, and archives a local announcement', async ({ page }) => {
   const title = uniqueRunName('E2E announcement');
@@ -25,7 +26,7 @@ test('administrator creates, publishes, and archives a local announcement', asyn
   await expect(editor.getByLabel('Заголовок (RU)')).toBeFocused();
   await editor.getByLabel('Заголовок (RU)').fill(title);
   await editor.getByLabel('Текст объявления (RU)').fill(body);
-  await editor.getByLabel('Уровень сообщения').selectOption('WARNING');
+  await chooseOption(editor.getByLabel('Уровень сообщения'), 'WARNING');
   await expectNoSeriousAccessibilityViolations(page, '[role="dialog"]');
 
   const createResponse = page.waitForResponse(response =>

@@ -34,7 +34,7 @@ class FormHost {
   imports: [SMTInputComponent, SMTInputValueAccessor, FormsModule],
   template: `
     <smt-input type="number" [(ngModel)]="count" [smtMin]="0" [smtMax]="10" [disabled]="off()" smtAriaLabel="Count" />
-    <smt-input type="search" clearable smtIcon="search" [(value)]="query" smtAriaLabel="Search" (keydown.enter)="submitted = submitted + 1" />
+    <smt-input type="search" clearable smtFocusInitial smtIcon="search" [(value)]="query" smtAriaLabel="Search" (keydown.enter)="submitted = submitted + 1" (cleared)="clears = clears + 1" />
     <smt-input type="password" [(value)]="secret" smtAriaLabel="Password" [smtInvalid]="rejected()" />
   `,
 })
@@ -43,6 +43,7 @@ class PlainHost {
   query = 'cement';
   secret = 'hunter2';
   submitted = 0;
+  clears = 0;
   readonly off = signal(false);
   readonly rejected = signal(false);
 }
@@ -115,6 +116,7 @@ describe('SMTInputComponent', () => {
   it('clears the search with a named button and lets Enter reach the host', async () => {
     const { fixture, element, fields, settle } = await render(PlainHost);
     const search = fields[1];
+    expect(search.hasAttribute('cdkFocusInitial')).toBe(true);
     search.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     await settle();
     expect(fixture.componentInstance.submitted).toBe(1);
@@ -123,6 +125,7 @@ describe('SMTInputComponent', () => {
     clear.click();
     await settle();
     expect(fixture.componentInstance.query).toBe('');
+    expect(fixture.componentInstance.clears).toBe(1);
     expect(element.querySelectorAll('smt-input')[1].querySelector('button')).toBeNull();
     expect(element.querySelectorAll('.smt-input__icon')[0].getAttribute('aria-hidden')).toBe('true');
   });

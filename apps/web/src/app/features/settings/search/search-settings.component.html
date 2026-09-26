@@ -44,7 +44,7 @@
     <header class="block-header"><div><h3 id="search-relevance-title">{{ 'settings.search.relevance.title' | t }}</h3><p>{{ 'settings.search.relevance.description' | t }}</p></div></header>
     <ng-container *ngIf="draft() as policy">
       <div class="form-grid">
-        <label><span>{{ 'settings.search.global_limit' | t }}</span><input id="search-global-limit" name="searchGlobalLimit" type="number" min="1" max="50" step="1" inputmode="numeric" [ngModel]="policy.globalLimit" (ngModelChange)="updatePolicyNumber('globalLimit', $event)"><small>{{ 'settings.search.global_limit_hint' | t }}</small></label>
+        <label><span>{{ 'settings.search.global_limit' | t }}</span><smt-input smtFieldId="search-global-limit" name="searchGlobalLimit" type="number" [smtMin]="1" [smtMax]="50" [smtStep]="1" inputmode="numeric" [ngModel]="policy.globalLimit" (ngModelChange)="updatePolicyNumber('globalLimit', $event)" /><small>{{ 'settings.search.global_limit_hint' | t }}</small></label>
       </div>
       <div class="field-groups">
         <div class="field-group" *ngFor="let entity of displayedEntities">
@@ -53,9 +53,9 @@
             <div class="field-grid field-grid-head" aria-hidden="true"><span>{{ 'settings.search.fields.field' | t }}</span><span>{{ 'settings.search.fields.weight' | t }}</span><span>{{ 'settings.search.fields.typos' | t }}</span><span>{{ 'settings.search.fields.prefix' | t }}</span></div>
             <div class="field-grid" *ngFor="let field of fields(entity); let i = index; trackBy: trackField">
               <span class="field-name" [id]="'search-field-' + entity + '-' + i">{{ ('settings.search.field.' + field.field) | t }}</span>
-              <label><span class="sr-only">{{ 'settings.search.fields.weight' | t }}</span><input type="number" min="0" max="127" step="1" inputmode="numeric" [attr.aria-describedby]="'search-field-' + entity + '-' + i" [ngModel]="field.weight" (ngModelChange)="updateFieldNumber(entity, i, 'weight', $event)"></label>
-              <label><span class="sr-only">{{ 'settings.search.fields.typos' | t }}</span><input type="number" min="0" max="2" step="1" inputmode="numeric" [attr.aria-describedby]="'search-field-' + entity + '-' + i" [ngModel]="field.numTypos" (ngModelChange)="updateFieldNumber(entity, i, 'numTypos', $event)"></label>
-              <label class="checkbox-cell"><span class="sr-only">{{ 'settings.search.fields.prefix' | t }}</span><input type="checkbox" [checked]="field.prefix" [attr.aria-describedby]="'search-field-' + entity + '-' + i" (change)="updateFieldPrefix(entity, i, $any($event.target).checked)"></label>
+              <label><span class="sr-only">{{ 'settings.search.fields.weight' | t }}</span><smt-input type="number" [smtMin]="0" [smtMax]="127" [smtStep]="1" inputmode="numeric" [smtDescribedBy]="'search-field-' + entity + '-' + i" [ngModel]="field.weight" (ngModelChange)="updateFieldNumber(entity, i, 'weight', $event)" /></label>
+              <label><span class="sr-only">{{ 'settings.search.fields.typos' | t }}</span><smt-input type="number" [smtMin]="0" [smtMax]="2" [smtStep]="1" inputmode="numeric" [smtDescribedBy]="'search-field-' + entity + '-' + i" [ngModel]="field.numTypos" (ngModelChange)="updateFieldNumber(entity, i, 'numTypos', $event)" /></label>
+              <div class="checkbox-cell"><div smt-checkbox smtHideLabel [smtAriaLabel]="('settings.search.fields.prefix' | t) + ': ' + (('settings.search.field.' + field.field) | t)" [checked]="field.prefix" (checkedChange)="updateFieldPrefix(entity, i, $event)"></div></div>
             </div>
           </div>
         </div>
@@ -64,8 +64,8 @@
     <div class="preview-panel" *ngIf="statusAuthorized()">
       <h4>{{ 'settings.search.preview.title' | t }}</h4><p>{{ 'settings.search.preview.description' | t }}</p>
       <div class="preview-controls">
-        <label><span>{{ 'settings.search.preview.query' | t }}</span><input id="search-preview-query" name="searchPreviewQuery" type="search" [(ngModel)]="previewQuery" autocomplete="off"></label>
-        <label><span>{{ 'settings.search.preview.entity' | t }}</span><select id="search-preview-entity" name="searchPreviewEntity" [(ngModel)]="previewEntity"><option value="">{{ 'settings.search.preview.all_entities' | t }}</option><option *ngFor="let entity of displayedEntities" [value]="entity">{{ ('settings.search.entity.' + entity.toLowerCase()) | t }}</option></select></label>
+        <label><span>{{ 'settings.search.preview.query' | t }}</span><smt-input smtFieldId="search-preview-query" name="searchPreviewQuery" type="search" [(ngModel)]="previewQuery" autocomplete="off" /></label>
+        <label for="search-preview-entity"><span>{{ 'settings.search.preview.entity' | t }}</span><smt-select smtTriggerId="search-preview-entity" [options]="previewEntityOptions()" [placeholder]="'settings.search.preview.all_entities' | t" [emptyLabel]="'settings.search.preview.all_entities' | t" [value]="previewEntity || null" (valueChange)="previewEntity = $event ?? ''" /></label>
         <button type="button" class="btn btn-secondary" data-action="preview-search-settings" [disabled]="!previewQuery.trim() || (draft() !== null && policyErrors().length > 0) || previewCooldownSeconds() > 0" [attr.aria-busy]="previewPending()" (click)="preview()">{{ 'settings.search.preview.action' | t }}</button>
       </div>
       <p *ngIf="previewCooldownSeconds() > 0" role="status">{{ 'settings.search.preview.cooldown' | t:{seconds: previewCooldownSeconds()} }}</p>
@@ -81,15 +81,15 @@
   <ng-container *ngIf="draft() as policy">
     <section class="settings-block" aria-labelledby="search-language-title">
       <header class="block-header"><div><h3 id="search-language-title">{{ 'settings.search.language.title' | t }}</h3><p>{{ 'settings.search.language.description' | t }}</p></div></header>
-      <label class="profile-choice"><span>{{ 'settings.search.language.profile' | t }}</span><select id="search-schema-profile" name="searchSchemaProfile" [ngModel]="policy.schemaProfile" (ngModelChange)="updateSchemaProfile($event)"><option value="MIXED">MIXED</option><option value="RU">RU</option></select></label>
+      <label class="profile-choice" for="search-schema-profile"><span>{{ 'settings.search.language.profile' | t }}</span><smt-select smtTriggerId="search-schema-profile" [options]="schemaProfileOptions" [allowClear]="false" [value]="policy.schemaProfile" (valueChange)="$event && updateSchemaProfile($event)" /></label>
       <div class="notice notice-warning">{{ 'settings.search.language.rebuild_explanation' | t }}</div>
     </section>
 
     <section class="settings-block" aria-labelledby="search-protection-title">
       <header class="block-header"><div><h3 id="search-protection-title">{{ 'settings.search.protection.title' | t }}</h3><p>{{ 'settings.search.protection.description' | t }}</p></div></header>
       <div class="form-grid protection-grid">
-        <label><span>{{ 'settings.search.requests_per_minute' | t }}</span><input id="search-requests-per-minute" type="number" min="30" max="600" step="1" inputmode="numeric" [ngModel]="policy.requestsPerMinute" (ngModelChange)="updatePolicyNumber('requestsPerMinute', $event)"></label>
-        <label><span>{{ 'settings.search.burst' | t }}</span><input id="search-burst" type="number" min="10" max="60" step="1" inputmode="numeric" [ngModel]="policy.burst" (ngModelChange)="updatePolicyNumber('burst', $event)"></label>
+        <label><span>{{ 'settings.search.requests_per_minute' | t }}</span><smt-input smtFieldId="search-requests-per-minute" type="number" [smtMin]="30" [smtMax]="600" [smtStep]="1" inputmode="numeric" [ngModel]="policy.requestsPerMinute" (ngModelChange)="updatePolicyNumber('requestsPerMinute', $event)" /></label>
+        <label><span>{{ 'settings.search.burst' | t }}</span><smt-input smtFieldId="search-burst" type="number" [smtMin]="10" [smtMax]="60" [smtStep]="1" inputmode="numeric" [ngModel]="policy.burst" (ngModelChange)="updatePolicyNumber('burst', $event)" /></label>
       </div>
       <div *ngIf="status()?.budgets?.searchRate as rates" class="effective-rates"><span>{{ 'settings.search.protection.effective_user' | t }}: {{ rates.user.perMinute }}/min · burst {{ rates.user.capacity }}</span><span>{{ 'settings.search.protection.effective_api' | t }}: {{ rates.api.perMinute }}/min · burst {{ rates.api.capacity }}</span></div>
       <div *ngIf="saveAttempted() && policyErrors().length > 0" class="notice notice-error" data-state="policy-invalid" role="alert"><strong>{{ 'settings.search.validation.title' | t }}</strong><ul><li *ngFor="let error of policyErrors()">{{ error | t }}</li></ul></div>

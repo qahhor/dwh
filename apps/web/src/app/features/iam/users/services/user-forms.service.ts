@@ -22,7 +22,6 @@ export class UserFormsService {
 
   readonly isCreateModalOpen = signal<boolean>(false);
   readonly isEditModalOpen = signal<boolean>(false);
-  readonly showPassword = signal<boolean>(false);
   readonly isSubmitting = signal<boolean>(false);
 
   isCreateSubmitted = false;
@@ -47,7 +46,6 @@ export class UserFormsService {
     const defaultUserRole = roles.find(r => r.pcode === 'user');
     const defaultRoleIds = defaultUserRole ? [defaultUserRole.id] : [];
     this.createForm = createDefaultUserCreateForm(defaultRoleIds);
-    this.showPassword.set(false);
     this.isCreateSubmitted = false;
     this.isCreateModalOpen.set(true);
   }

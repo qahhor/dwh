@@ -6,8 +6,6 @@ h1 { font-size: 24px; margin: 0; }
 h2 { font-size: 18px; overflow-wrap: anywhere; }
 .columns { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 20px; }
 .tree { display: flex; flex-direction: column; gap: 12px; }
-.search { width: 100%; min-height: 36px; padding: 6px 10px; font: inherit; color: var(--text-main); background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-sm); }
-.search::placeholder { color: var(--text-light); }
 .tree, .details { min-width: 0; padding: 16px; border: 1px solid var(--border-color); border-radius: var(--radius-lg); background: var(--bg-surface); }
 dl { display: grid; grid-template-columns: minmax(80px, 1fr) minmax(0, 2fr); gap: 10px; }
 dt { color: var(--text-muted); } dd { margin: 0; overflow-wrap: anywhere; }

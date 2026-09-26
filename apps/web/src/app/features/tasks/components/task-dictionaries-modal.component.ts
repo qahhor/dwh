@@ -4,18 +4,20 @@ import { FormsModule } from '@angular/forms';
 import { SMTSortableActionsDirective, SMTSortableItemDirective, SMTSortableListComponent } from '../../../shared/ui-kit/components/sortable-list';
 import { SMTColorInputComponent, SMTColorInputValueAccessor } from '../../../shared/ui-kit/components/forms/color-input';
 import { SMTControlComponent } from '../../../shared/ui-kit/components/forms/control';
+import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
 import { TaskStatus, TaskType } from '../../../core/models/task.models';
 import { SMTTabBarComponent, SMTTabItem } from '../../../shared/ui-kit/components/tab-bar';
 import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group';
+import { SMTCheckboxComponent, SMTCheckboxValueAccessor } from '../../../shared/ui-kit/components/forms/checkbox';
 
 @Component({
   selector: 'app-task-dictionaries-modal',
   standalone: true,
-  imports: [
-    SMTTabBarComponent, SMTColorInputComponent, SMTColorInputValueAccessor, SMTControlComponent, CommonModule,
+  imports: [SMTCheckboxComponent, SMTCheckboxValueAccessor, 
+    SMTTabBarComponent, SMTColorInputComponent, SMTColorInputValueAccessor, SMTControlComponent, SMTInputComponent, SMTInputValueAccessor, CommonModule,
     FormsModule,
     SMTSortableListComponent, SMTSortableItemDirective, SMTSortableActionsDirective, TranslatePipe,
     UiModalComponent,
@@ -66,11 +68,11 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
             <div class="form-grid-3">
               <div class="dict-form-field">
                 <label class="clean-label" for="task-type-code">{{ 'tasks.kod_tipa' | t }}</label>
-                <input id="task-type-code" name="taskTypeCode" type="text" class="clean-input" [placeholder]="'tasks.naprimer_doc' | t" [(ngModel)]="newTypeForm.code" />
+                <smt-input smtFieldId="task-type-code" name="taskTypeCode" [placeholder]="'tasks.naprimer_doc' | t" [(ngModel)]="newTypeForm.code" />
               </div>
               <div class="dict-form-field">
                 <label class="clean-label" for="task-type-name">{{ 'tasks.nazvanie_tipa' | t }}</label>
-                <input id="task-type-name" name="taskTypeName" type="text" class="clean-input" [placeholder]="'tasks.naprimer_dokument' | t" [(ngModel)]="newTypeForm.name" />
+                <smt-input smtFieldId="task-type-name" name="taskTypeName" [placeholder]="'tasks.naprimer_dokument' | t" [(ngModel)]="newTypeForm.name" />
               </div>
               <smt-control class="color-field" [smtLabel]="'tasks.cvet_tipa' | t">
                 <smt-color-input smtFieldId="task-type-color" name="taskTypeColor" [(ngModel)]="newTypeForm.color" />
@@ -113,15 +115,14 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
             <div class="form-grid-3">
               <div class="dict-form-field">
                 <label class="clean-label" for="task-status-name">{{ 'tasks.nazvanie_statusa.44a913b' | t }}</label>
-                <input id="task-status-name" name="taskStatusName" type="text" class="clean-input" [placeholder]="'tasks.nazvanie_statusa' | t" [(ngModel)]="newStatusForm.name" />
+                <smt-input smtFieldId="task-status-name" name="taskStatusName" [placeholder]="'tasks.nazvanie_statusa' | t" [(ngModel)]="newStatusForm.name" />
               </div>
               <smt-control class="color-field" [smtLabel]="'tasks.cvet_statusa' | t">
                 <smt-color-input smtFieldId="task-status-color" name="taskStatusColor" [(ngModel)]="newStatusForm.color" />
               </smt-control>
-              <label class="terminal-toggle-label">
-                <input name="taskStatusTerminal" type="checkbox" [(ngModel)]="newStatusForm.isTerminal" />
-                <span>{{ 'tasks.zavershayuschiy' | t }}</span>
-              </label>
+              <div smt-checkbox class="terminal-toggle-label" name="taskStatusTerminal" [(ngModel)]="newStatusForm.isTerminal">
+                {{ 'tasks.zavershayuschiy' | t }}
+              </div>
             </div>
             <div class="add-dict-actions">
               <ui-button variant="secondary" size="sm" icon="add" (onClick)="submitStatus()">
@@ -188,17 +189,6 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
     .dict-form-field,
     .color-field { grid-column: 1 / -1; }
     .clean-label { font-size: 11px; font-weight: 500; color: var(--text-muted); }
-    .clean-input {
-      height: 34px;
-      padding: 4px 8px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--border-color);
-      background-color: var(--bg-surface);
-      color: var(--text-main);
-      font-size: 13px;
-      outline: none;
-    }
-    .clean-input:focus { border-color: var(--primary); }
     .terminal-toggle-label {
       display: inline-flex;
       align-items: center;

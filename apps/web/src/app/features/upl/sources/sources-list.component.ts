@@ -32,6 +32,8 @@ import { parseUplProblem, uplFieldErrorText } from '../formats/upl-format-errors
 import { UPL_PERIODICITY_KEY, UPL_STRICTNESS_KEY, uplProblemText } from '../upl-labels';
 import { SMTAlertComponent } from '../../../shared/ui-kit/components/alert';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
+import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../../../shared/ui-kit/components/forms/select';
+import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group/radio-options';
 
 /** Модель окна «Новый источник»: обычный объект, чтобы работал `[(ngModel)]`. */
 interface SourceCreateForm {
@@ -66,7 +68,7 @@ function emptyForm(): SourceCreateForm {
   selector: 'app-upl-sources-list',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTInputComponent, SMTInputValueAccessor, 
+  imports: [SMTInputComponent, SMTInputValueAccessor, SMTSelectComponent, SMTSelectValueAccessor,
     SMTAlertComponent, SMTControlComponent,
     CommonModule,
     FormsModule,
@@ -183,16 +185,13 @@ function emptyForm(): SourceCreateForm {
         </smt-control>
 
         <smt-control class="form-group" [smtLabel]="'upl.source.field.periodicity' | t" [smtHint]="'upl.source.hint.periodicity' | t">
-          <select
-            class="form-select"
-            id="upl-source-periodicity"
+          <smt-select
+            smtTriggerId="upl-source-periodicity"
             name="periodicity"
+            [options]="periodicityOptions()"
+            [allowClear]="false"
             [(ngModel)]="form.periodicity"
-          >
-            @for (option of periodicities; track option) {
-              <option [value]="option">{{ periodicityKey[option] | t }}</option>
-            }
-          </select>
+          ></smt-select>
         </smt-control>
 
         <smt-control class="form-group" [smtLabel]="'upl.source.field.sla_days' | t" [smtHint]="'upl.source.hint.sla_days' | t" [smtError]="fieldErrorText('slaDays')">
@@ -207,16 +206,13 @@ function emptyForm(): SourceCreateForm {
         </smt-control>
 
         <smt-control class="form-group" [smtLabel]="'upl.source.field.strictness' | t" [smtHint]="'upl.source.hint.strictness' | t">
-          <select
-            class="form-select"
-            id="upl-source-strictness"
+          <smt-select
+            smtTriggerId="upl-source-strictness"
             name="reconciliationStrictness"
+            [options]="strictnessOptions()"
+            [allowClear]="false"
             [(ngModel)]="form.reconciliationStrictness"
-          >
-            @for (option of strictnesses; track option) {
-              <option [value]="option">{{ strictnessKey[option] | t }}</option>
-            }
-          </select>
+          ></smt-select>
         </smt-control>
       </form>
 
@@ -404,12 +400,22 @@ export class SourcesListComponent implements OnInit {
   readonly isLoading = this.pager.loading;
   readonly loadError = this.pager.failed;
 
-  readonly periodicities = UPL_PERIODICITIES;
-  readonly strictnesses = UPL_STRICTNESSES;
-  readonly periodicityKey = UPL_PERIODICITY_KEY;
-  readonly strictnessKey = UPL_STRICTNESS_KEY;
+  private readonly periodicityMemo = optionsMemo<SMTSelectOption<UplPeriodicity>[]>();
+  private readonly strictnessMemo = optionsMemo<SMTSelectOption<UplStrictness>[]>();
 
   form: SourceCreateForm = emptyForm();
+
+  /** Periodicities of a source; translated again when the language changes. */
+  periodicityOptions(): SMTSelectOption<UplPeriodicity>[] {
+    return this.periodicityMemo([this.i18n.currentLang()], () =>
+      UPL_PERIODICITIES.map(option => ({ id: option, label: this.i18n.translate(UPL_PERIODICITY_KEY[option]) })));
+  }
+
+  /** Reconciliation strictness levels; translated again when the language changes. */
+  strictnessOptions(): SMTSelectOption<UplStrictness>[] {
+    return this.strictnessMemo([this.i18n.currentLang()], () =>
+      UPL_STRICTNESSES.map(option => ({ id: option, label: this.i18n.translate(UPL_STRICTNESS_KEY[option]) })));
+  }
 
   ngOnInit(): void {
     this.load();

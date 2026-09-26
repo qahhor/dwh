@@ -90,6 +90,9 @@ export class SMTInputComponent implements FormValueControl<SMTInputValue> {
   /** A button that empties the field, shown once there is text. */
   readonly clearable = input(false, { transform: booleanAttribute });
 
+  /** Where a CDK focus trap (a dialog) puts focus first: the inner field gets `cdkFocusInitial`. */
+  readonly focusInitial = input(false, { alias: 'smtFocusInitial', transform: booleanAttribute });
+
   readonly size = input<'sm' | 'md'>('md', { alias: 'smtSize' });
 
   readonly autocomplete = input<string | null>(null);
@@ -133,6 +136,9 @@ export class SMTInputComponent implements FormValueControl<SMTInputValue> {
 
   /** Every edit by the person, even one that leaves the value as it was — what ngModel reports, like a native field. */
   readonly edited = output<SMTInputValue>();
+
+  /** The clear button emptied the field — a screen that searches at once on clearing listens here. */
+  readonly cleared = output<void>();
 
   readonly value = model<SMTInputValue>('');
 
@@ -188,6 +194,7 @@ export class SMTInputComponent implements FormValueControl<SMTInputValue> {
 
   clear(): void {
     this.write(this.type() === 'number' ? null : '');
+    this.cleared.emit();
     this.field().nativeElement.focus();
   }
 

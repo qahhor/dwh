@@ -79,7 +79,6 @@
       [roles]="roles()"
       [languages]="i18n.languages()"
       [customFields]="customFields()"
-      [showPassword]="showPassword()"
       [passwordStrength]="passwordStrength()"
       [hasMinLength]="hasMinLength()"
       [hasUpperAndLower]="hasUpperAndLower()"
@@ -87,7 +86,6 @@
       [doesNotContainLogin]="doesNotContainLogin()"
       (close)="isCreateModalOpen.set(false)"
       (submit)="submitCreateUser()"
-      (toggleShowPassword)="showPassword.update(v => !v)"
       (generatePassword)="generateSecurePassword()"
       (copyPassword)="copyGeneratedPassword()"
     ></app-user-create-modal>

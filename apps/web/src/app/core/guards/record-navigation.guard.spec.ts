@@ -239,7 +239,7 @@ describe('Record routes with the actual router and actual templates', () => {
     expect(harness.routeNativeElement?.querySelector('.side-edit-btn')).toBeNull();
     expect(harness.routeNativeElement?.querySelector('.add-subtask-btn')).toBeNull();
     expect(harness.routeNativeElement?.querySelector('.add-comment-box')).toBeNull();
-    expect((harness.routeNativeElement?.querySelector('.status-select') as HTMLSelectElement).disabled).toBe(true);
+    expect((harness.routeNativeElement?.querySelector('.status-select [role="combobox"]') as HTMLButtonElement).disabled).toBe(true);
     page.openEditModal(record); page.openAddSubtaskModal(record); page.updateStatus(record.id, 2);
     page.commentDraft = 'text'; page.submitComment();
     page.onTaskFileAttached({ fileId: 1, fileName: 'fixture' } as any);

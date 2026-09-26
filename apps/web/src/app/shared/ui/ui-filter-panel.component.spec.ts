@@ -1,8 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { describe, expect, it, vi } from 'vitest';
 import { QueryCondition, QueryListMeta } from '../../core/models/query-meta.models';
 import { PACKAGED_RUSSIAN } from '../../core/i18n/packaged-russian';
 import { SMT_DRAWER_DATA, SMT_DRAWER_REF } from '../ui-kit/components/drawer';
+import { SMTSelectComponent } from '../ui-kit/components/forms/select';
 import { UiFilterPanelComponent } from './ui-filter-panel.component';
 
 const META: QueryListMeta = {
@@ -46,9 +48,15 @@ const all = (fixture: ComponentFixture<UiFilterPanelComponent>, id: string) =>
   [...el(fixture).querySelectorAll(`[data-testid="${id}"]`)] as HTMLElement[];
 const button = (fixture: ComponentFixture<UiFilterPanelComponent>, id: string) =>
   el(fixture).querySelector(`[data-testid="${id}"] button`) as HTMLButtonElement;
-function choose(select: HTMLElement, value: string) {
-  (select as HTMLSelectElement).value = value;
-  select.dispatchEvent(new Event('change'));
+/** The smt-select whose host is the given element. */
+function picker(fixture: ComponentFixture<UiFilterPanelComponent>, host: HTMLElement): SMTSelectComponent<unknown> {
+  return fixture.debugElement.queryAll(By.directive(SMTSelectComponent)).find(debug => debug.nativeElement === host)!.componentInstance;
+}
+const labels = (fixture: ComponentFixture<UiFilterPanelComponent>, host: HTMLElement) =>
+  picker(fixture, host).options().map(option => option.label);
+function choose(fixture: ComponentFixture<UiFilterPanelComponent>, host: HTMLElement, value: string) {
+  const select = picker(fixture, host);
+  select.pick(select.options().find(option => option.id === value)!);
 }
 function type(input: HTMLElement, value: string) {
   (input as HTMLInputElement).value = value;
@@ -66,13 +74,17 @@ describe('ui-filter-panel', () => {
     const row = all(fixture, 'filter-row')[0];
     expect(row.tagName).toBe('FIELDSET');
     expect(row.querySelector('legend')?.textContent).toContain('Условие 1');
-    const field = row.querySelector('[data-testid="filter-field"]') as HTMLSelectElement;
-    expect(field.closest('label')?.textContent).toContain(PACKAGED_RUSSIAN['ui.filter.field']);
-    expect([...field.options].map(option => option.textContent?.trim())).toEqual([
+    const field = row.querySelector('[data-testid="filter-field"]') as HTMLElement;
+    const fieldTrigger = field.querySelector('button[role="combobox"]') as HTMLButtonElement;
+    expect(row.querySelector(`label[for="${fieldTrigger.id}"]`)?.textContent).toContain(PACKAGED_RUSSIAN['ui.filter.field']);
+    expect(fieldTrigger.textContent).toContain(PACKAGED_RUSSIAN['upl.list.col.code']);
+    expect(labels(fixture, field)).toEqual([
       PACKAGED_RUSSIAN['upl.list.col.code'], PACKAGED_RUSSIAN['upl.list.col.periodicity'], PACKAGED_RUSSIAN['upl.list.col.published_version']
     ]);
-    const op = row.querySelector('[data-testid="filter-op"]') as HTMLSelectElement;
-    expect([...op.options].map(option => option.textContent?.trim())).toEqual([PACKAGED_RUSSIAN['ui.filter.op.eq'], PACKAGED_RUSSIAN['ui.filter.op.starts_with']]);
+    const op = row.querySelector('[data-testid="filter-op"]') as HTMLElement;
+    const opTrigger = op.querySelector('button[role="combobox"]') as HTMLButtonElement;
+    expect(row.querySelector(`label[for="${opTrigger.id}"]`)?.textContent).toContain(PACKAGED_RUSSIAN['ui.filter.operation']);
+    expect(labels(fixture, op)).toEqual([PACKAGED_RUSSIAN['ui.filter.op.eq'], PACKAGED_RUSSIAN['ui.filter.op.starts_with']]);
     expect(row.querySelector('[data-testid="filter-remove"]')?.getAttribute('aria-label')).toBe('Удалить условие 1');
   });
 
@@ -89,7 +101,7 @@ describe('ui-filter-panel', () => {
     expect(error.textContent).toContain(PACKAGED_RUSSIAN['ui.filter.err.required']);
     expect(row.getAttribute('aria-describedby')).toBe(error.id);
 
-    choose(row.querySelector('[data-testid="filter-op"]')!, 'starts_with');
+    choose(fixture, row.querySelector('[data-testid="filter-op"]')!, 'starts_with');
     fixture.detectChanges();
     type(all(fixture, 'filter-value')[0], 'cement.');
     fixture.detectChanges();
@@ -103,25 +115,30 @@ describe('ui-filter-panel', () => {
     const { fixture, close } = await render();
     button(fixture, 'filter-add').click();
     fixture.detectChanges();
-    choose(all(fixture, 'filter-field')[0], 'periodicity');
+    choose(fixture, all(fixture, 'filter-field')[0], 'periodicity');
     fixture.detectChanges();
-    choose(all(fixture, 'filter-op')[0], 'in');
+    const single = all(fixture, 'filter-value')[0];
+    expect(single.querySelector('button[role="combobox"]')?.textContent).toContain(PACKAGED_RUSSIAN['ui.filter.choose']);
+    expect(labels(fixture, single)).toEqual([PACKAGED_RUSSIAN['upl.periodicity.month'], PACKAGED_RUSSIAN['upl.periodicity.year']]);
+    choose(fixture, all(fixture, 'filter-op')[0], 'in');
     fixture.detectChanges();
 
     const group = el(fixture).querySelector('[role="group"]')!;
     expect(document.getElementById(group.getAttribute('aria-labelledby')!)?.textContent).toContain(PACKAGED_RUSSIAN['ui.filter.values']);
-    const choices = all(fixture, 'filter-choice') as HTMLInputElement[];
-    expect(choices.map(choice => choice.closest('label')?.textContent?.trim())).toEqual([
+    const boxes = all(fixture, 'filter-choice').map(choice => choice.querySelector('[role="checkbox"]') as HTMLElement);
+    expect(boxes.map(box => document.getElementById(box.getAttribute('aria-labelledby')!)?.textContent?.trim())).toEqual([
       PACKAGED_RUSSIAN['upl.periodicity.month'], PACKAGED_RUSSIAN['upl.periodicity.year']
     ]);
-    choices[1].click();
+    expect(boxes.map(box => box.getAttribute('aria-checked'))).toEqual(['false', 'false']);
+    boxes[1].click();
     fixture.detectChanges();
+    expect(boxes.map(box => box.getAttribute('aria-checked'))).toEqual(['false', 'true']);
 
     button(fixture, 'filter-add').click();
     fixture.detectChanges();
-    choose(all(fixture, 'filter-field')[1], 'lastPublishedVersion');
+    choose(fixture, all(fixture, 'filter-field')[1], 'lastPublishedVersion');
     fixture.detectChanges();
-    choose(all(fixture, 'filter-op')[1], 'empty');
+    choose(fixture, all(fixture, 'filter-op')[1], 'empty');
     fixture.detectChanges();
     expect(all(fixture, 'filter-row')[1].querySelector('[data-testid="filter-value"]')).toBeNull();
     expect(button(fixture, 'filter-add').disabled).toBe(true);

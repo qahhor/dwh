@@ -4,11 +4,14 @@ import { I18nService, TranslatePipe } from '../../../core/services/i18n.service'
 import { ToastService } from '../../../core/services/toast.service';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { SMTModalService } from '../../../shared/ui-kit/components/modal';
-import { UPL_DATA_TYPES, UplColumn, UplFormatDraftRequest, UplSheet, UplUnit } from '../upl-api';
+import { UPL_DATA_TYPES, UplColumn, UplDataType, UplFormatDraftRequest, UplSheet, UplUnit } from '../upl-api';
 import { UPL_DATA_TYPE_KEY } from '../upl-labels';
 import { UplFieldError, uplCellError, uplFieldErrorText, uplSheetError, uplSheetHasErrors } from './upl-format-errors';
 import { clearFieldsForType, emptyColumn, emptySheet, isNumericColumn } from './upl-format-model';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
+import { SMTCheckboxComponent, SMTCheckboxValueAccessor } from '../../../shared/ui-kit/components/forms/checkbox';
+import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../../../shared/ui-kit/components/forms/select';
+import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group/radio-options';
 
 /**
  * Шаг «Листы и колонки» анкеты: вкладки листов, параметры листа и таблица колонок.
@@ -18,7 +21,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit
   selector: 'app-upl-format-sheets-step',
   standalone: true,
   // Не OnPush: вид файла и сопоставление колонок меняет соседний шаг «Файл» в той же изменяемой модели.
-  imports: [SMTInputComponent, SMTInputValueAccessor, FormsModule, TranslatePipe, UiButtonComponent],
+  imports: [SMTCheckboxComponent, SMTCheckboxValueAccessor, SMTInputComponent, SMTInputValueAccessor, SMTSelectComponent, SMTSelectValueAccessor, FormsModule, TranslatePipe, UiButtonComponent],
   template: `
     <h2 class="upl-block-title">{{ 'upl.format.sheets' | t }}</h2>
     <div class="upl-tabs" role="tablist">
@@ -165,52 +168,46 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit
                     [class.upl-cell-error]="cellError(activeSheet(), $index, 'dataType')"
                     [attr.title]="cellTitle(activeSheet(), $index, 'dataType')"
                   >
-                    <select
-                      class="form-select"
+                    <smt-select
                       data-testid="upl-cell-type"
-                      [attr.aria-label]="'upl.format.col.type' | t"
+                      [ariaLabel]="'upl.format.col.type' | t"
                       [disabled]="!editable()"
+                      [options]="dataTypeOptions()"
+                      [allowClear]="false"
                       [(ngModel)]="column.dataType"
                       [ngModelOptions]="{ standalone: true }"
                       (ngModelChange)="onTypeChange(column)"
-                    >
-                      @for (type of dataTypes; track type) {
-                        <option [value]="type">{{ dataTypeKey[type] | t }}</option>
-                      }
-                    </select>
+                    ></smt-select>
                   </td>
                   <td
                     [class.upl-cell-error]="cellError(activeSheet(), $index, 'required')"
                     [attr.title]="cellTitle(activeSheet(), $index, 'required')"
                   >
-                    <input
-                      type="checkbox"
+                    <span
+                      smt-checkbox
+                      smtHideLabel
                       data-testid="upl-cell-required"
-                      [attr.aria-label]="'upl.format.col.required' | t"
+                      [smtAriaLabel]="'upl.format.col.required' | t"
                       [disabled]="!editable()"
                       [(ngModel)]="column.required"
-                      [ngModelOptions]="{ standalone: true }"
-                    />
+                      [ngModelOptions]="{ standalone: true }"></span>
                   </td>
                   <td
                     [class.upl-cell-error]="cellError(activeSheet(), $index, 'sourceUnit')"
                     [attr.title]="cellTitle(activeSheet(), $index, 'sourceUnit')"
                   >
                     @if (isNumeric(column)) {
-                      <select
-                        class="form-select"
+                      <smt-select
                         data-testid="upl-cell-source-unit"
-                        [attr.aria-label]="'upl.format.col.source_unit' | t"
+                        [ariaLabel]="'upl.format.col.source_unit' | t"
                         [disabled]="!editable()"
+                        [options]="unitOptions()"
+                        placeholder="—"
+                        emptyLabel="—"
                         [(ngModel)]="column.sourceUnit"
                         [ngModelOptions]="{ standalone: true }"
                         (ngModelChange)="onUnitChange(column)"
-                      >
-                        <option [ngValue]="null">—</option>
-                        @for (unit of units(); track unit.code) {
-                          <option [ngValue]="unit.code">{{ unit.name }} ({{ unit.code }})</option>
-                        }
-                      </select>
+                      ></smt-select>
                     }
                   </td>
                   <td
@@ -366,8 +363,19 @@ export class FormatSheetsStepComponent {
   readonly activeSheet = model(0);
   readonly errors = model<UplFieldError[]>([]);
 
-  readonly dataTypes = UPL_DATA_TYPES;
-  readonly dataTypeKey = UPL_DATA_TYPE_KEY;
+  private readonly dataTypeMemo = optionsMemo<SMTSelectOption<UplDataType>[]>();
+  private readonly unitMemo = optionsMemo<SMTSelectOption<string>[]>();
+
+  /** Типы данных колонки; подписи переводятся заново при смене языка. */
+  dataTypeOptions(): SMTSelectOption<UplDataType>[] {
+    return this.dataTypeMemo([this.i18n.currentLang()], () =>
+      UPL_DATA_TYPES.map(type => ({ id: type, label: this.i18n.translate(UPL_DATA_TYPE_KEY[type]) })));
+  }
+
+  /** Единицы из /upl/units как «Имя (код)». */
+  unitOptions(): SMTSelectOption<string>[] {
+    return this.unitMemo([this.units()], () => this.units().map(unit => ({ id: unit.code, label: `${unit.name} (${unit.code})` })));
+  }
 
 
   /** Synonyms as the person types them: separated by semicolons, since a header may hold a comma. */

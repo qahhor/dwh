@@ -88,21 +88,12 @@
       display: flex;
       align-items: center;
       gap: 6px;
-      background-color: var(--bg-hover);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      padding: 5px 10px;
       width: 380px;
       max-width: 100%;
     }
-    .matrix-search-field .icon { font-size: 16px; color: var(--text-muted); }
     .matrix-search-input {
-      border: none;
-      background: transparent;
-      outline: none;
+      flex: 1 1 auto;
       font-size: 12px;
-      color: var(--text-main);
-      width: 100%;
     }
     .search-match-badge {
       font-size: 10px;
@@ -113,15 +104,6 @@
       border-radius: var(--radius-xs);
       white-space: nowrap;
     }
-    .clear-search-btn {
-      border: none;
-      background: transparent;
-      color: var(--text-muted);
-      cursor: pointer;
-      display: flex;
-      padding: 0;
-    }
-    .clear-search-btn .material-symbols-outlined { font-size: 14px; }
 
     .expand-all-links { display: flex; align-items: center; gap: 6px; font-size: 11px; }
     .text-link {
@@ -287,7 +269,6 @@
     }
     .action-checkbox-card.readonly { opacity: 0.9; cursor: not-allowed; }
 
-    .chk-input { margin: 0; cursor: pointer; }
     .chk-label { font-size: 12px; }
 
     .no-forms-box {

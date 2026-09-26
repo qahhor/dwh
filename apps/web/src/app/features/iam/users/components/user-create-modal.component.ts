@@ -9,15 +9,34 @@ import { SMTDataSelectComponent } from '../../../../shared/ui-kit/components/for
 import { SMTPhoneInputComponent, SMTPhoneInputValueAccessor } from '../../../../shared/ui-kit/components/forms/phone-input';
 import { LookupSources } from '../../../../shared/lookups/lookup-sources';
 import { SMTTagGroupComponent, SMTTagOption } from '../../../../shared/ui-kit/components/tag';
+import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../../../../shared/ui-kit/components/forms/select';
+import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-group';
+import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
+import { SMTCheckboxComponent, SMTCheckboxValueAccessor } from '../../../../shared/ui-kit/components/forms/checkbox';
 import { UiCustomFieldsComponent } from '../../../../shared/ui/ui-custom-fields.component';
 import { Role } from '../../../../core/models/rbac.models';
 import { CustomField } from '../../../../core/models/custom-field.models';
+
+/** The time zones offered; their names are not translated. */
+const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
+  { id: 'Asia/Tashkent', label: 'Asia/Tashkent (UTC+5)' },
+  { id: 'Europe/Moscow', label: 'Europe/Moscow (UTC+3)' },
+  { id: 'UTC', label: 'UTC (UTC+0)' },
+  { id: 'Asia/Almaty', label: 'Asia/Almaty (UTC+5)' },
+  { id: 'Asia/Dubai', label: 'Asia/Dubai (UTC+4)' },
+];
 
 @Component({
   selector: 'app-user-create-modal',
   standalone: true,
   imports: [
     SMTControlComponent,
+    SMTSelectComponent,
+    SMTSelectValueAccessor,
+    SMTInputComponent,
+    SMTInputValueAccessor,
+    SMTCheckboxComponent,
+    SMTCheckboxValueAccessor,
     CommonModule,
     FormsModule,
     TranslatePipe,
@@ -39,41 +58,35 @@ import { CustomField } from '../../../../core/models/custom-field.models';
       <div body class="clean-modal-body">
         <div class="form-grid">
           <smt-control class="form-group span-2" [smtLabel]="'iam.fio' | t" [smtError]="isCreateSubmitted && !createForm.name.trim() ? ('iam.ukazhite_fio_polzovatelya' | t) : ''">
-            <input
-              id="user-create-name"
+            <smt-input
+              smtFieldId="user-create-name"
               name="userCreateName"
-              type="text"
-              class="clean-input"
               required
               [(ngModel)]="createForm.name"
-              [placeholder]="'iam.ivanov_ivan_ivanovich' | t"
-            />
+              [placeholder]="'iam.ivanov_ivan_ivanovich' | t" />
           </smt-control>
 
           <smt-control class="form-group" [smtLabel]="'analytics.login' | t" [smtError]="isCreateSubmitted && !createForm.login.trim() ? ('iam.ukazhite_login' | t) : ''">
-            <input
-              id="user-create-login"
+            <smt-input
+              smtFieldId="user-create-login"
               name="userCreateLogin"
-              type="text"
-              class="clean-input font-mono"
+              class="font-mono"
               required
               autocomplete="username"
               [(ngModel)]="createForm.login"
-              placeholder="ivanov"
-            />
+              placeholder="ivanov" />
           </smt-control>
 
           <smt-control class="form-group" smtLabel="Email" [smtError]="isCreateSubmitted && !createForm.email.trim() ? ('iam.ukazhite_email' | t) : ''">
-            <input
-              id="user-create-email"
+            <smt-input
+              smtFieldId="user-create-email"
               name="userCreateEmail"
               type="email"
-              class="clean-input font-mono"
+              class="font-mono"
               required
               autocomplete="email"
               [(ngModel)]="createForm.email"
-              placeholder="ivanov@company.local"
-            />
+              placeholder="ivanov@company.local" />
           </smt-control>
 
           <smt-control class="form-group" [smtLabel]="'iam.telefon.822f9fd' | t">
@@ -93,28 +106,18 @@ import { CustomField } from '../../../../core/models/custom-field.models';
 
           <smt-control class="form-group span-2" [smtLabel]="'iam.vremennyy_parol' | t" [smtHint]="createForm.password ? '' : ('iam.ne_menee_10_simvolov_bez_sovpadeniy_s_loginom' | t)" [smtError]="isCreateSubmitted && createForm.password.length < 10 ? ('iam.parol_dolzhen_soderzhat_ne_menee_10_simvolov' | t) : ''">
             <div class="pwd-wrapper">
-              <input
-                id="user-create-password"
+              <!-- The field shows and hides the password itself; generating and copying sit beside it. -->
+              <smt-input
+                smtFieldId="user-create-password"
                 name="userCreatePassword"
-                [type]="showPassword ? 'text' : 'password'"
-                class="clean-input font-mono"
+                type="password"
+                class="pwd-field font-mono"
                 required
-                minlength="10"
+                [minLength]="10"
                 autocomplete="new-password"
                 [(ngModel)]="createForm.password"
-                [placeholder]="'iam.minimum_10_simvolov' | t"
-              />
+                [placeholder]="'iam.minimum_10_simvolov' | t" />
               <div class="pwd-actions">
-                <button
-                  type="button"
-                  class="pwd-btn"
-                  [attr.aria-label]="(showPassword ? 'iam.hide_password' : 'iam.show_password') | t"
-                  [attr.aria-pressed]="showPassword"
-                  [title]="(showPassword ? 'iam.hide_password' : 'iam.show_password') | t"
-                  (click)="toggleShowPassword.emit()"
-                >
-                  <span class="material-symbols-outlined" aria-hidden="true">{{ showPassword ? 'visibility_off' : 'visibility' }}</span>
-                </button>
                 <button
                   type="button"
                   class="pwd-btn"
@@ -173,28 +176,25 @@ import { CustomField } from '../../../../core/models/custom-field.models';
           </smt-control>
 
           <smt-control class="form-group" [smtLabel]="'iam.yazyk' | t">
-            <select id="user-create-language" name="userCreateLanguage" class="clean-input" [(ngModel)]="createForm.language">
-              <option *ngFor="let lang of languages" [value]="lang.code">
-                {{ lang.name }} ({{ lang.code }})
-              </option>
-            </select>
+            <smt-select
+              smtTriggerId="user-create-language"
+              name="userCreateLanguage"
+              [(ngModel)]="createForm.language"
+              [options]="languageOptions()"
+              [allowClear]="false" />
           </smt-control>
 
           <smt-control class="form-group" [smtLabel]="'iam.chasovoy_poyas' | t">
-            <select id="user-create-timezone" name="userCreateTimezone" class="clean-input" [(ngModel)]="createForm.timezone">
-              <option value="Asia/Tashkent">Asia/Tashkent (UTC+5)</option>
-              <option value="Europe/Moscow">Europe/Moscow (UTC+3)</option>
-              <option value="UTC">UTC (UTC+0)</option>
-              <option value="Asia/Almaty">Asia/Almaty (UTC+5)</option>
-              <option value="Asia/Dubai">Asia/Dubai (UTC+4)</option>
-            </select>
+            <smt-select
+              smtTriggerId="user-create-timezone"
+              name="userCreateTimezone"
+              [(ngModel)]="createForm.timezone"
+              [options]="timezoneOptions"
+              [allowClear]="false" />
           </smt-control>
 
           <div class="form-group span-2">
-            <label class="clean-checkbox">
-              <input name="userCreate2fa" type="checkbox" [(ngModel)]="createForm.is2faEnabled" />
-              <span>{{ 'iam.vklyuchit_dvuhfaktornuyu_zaschitu_2fa_otp' | t }}</span>
-            </label>
+            <div smt-checkbox name="userCreate2fa" [(ngModel)]="createForm.is2faEnabled">{{ 'iam.vklyuchit_dvuhfaktornuyu_zaschitu_2fa_otp' | t }}</div>
           </div>
 
           <!-- Roles -->
@@ -243,44 +243,20 @@ import { CustomField } from '../../../../core/models/custom-field.models';
       font-weight: 600;
       color: var(--text-main);
     }
-    .clean-input {
-      height: 34px;
-      padding: 4px 8px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--border-color);
-      background-color: var(--bg-surface);
-      color: var(--text-main);
-      font-size: 13px;
-      outline: none;
-      transition: border-color 0.15s ease;
-    }
-    .clean-input:focus { border-color: var(--primary); }
     .font-mono { font-family: monospace; }
     .req { color: var(--danger); }
     .field-error { font-size: 10px; color: var(--danger); }
     .clean-hint { font-size: 10px; color: var(--text-muted); }
 
-    .clean-checkbox {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-      color: var(--text-main);
-      cursor: pointer;
-    }
-
     .pwd-wrapper {
-      position: relative;
       display: flex;
       align-items: center;
+      gap: 4px;
     }
-    .pwd-wrapper .clean-input {
-      width: 100%;
-      padding-right: 90px;
+    .pwd-field {
+      flex: 1;
     }
     .pwd-actions {
-      position: absolute;
-      right: 4px;
       display: flex;
       align-items: center;
       gap: 2px;
@@ -375,6 +351,8 @@ export class UserCreateModalComponent {
 
   /** Active users for the manager picker; the field searches them itself. */
   readonly users = inject(LookupSources).activeUsers;
+  readonly timezoneOptions = TIMEZONE_OPTIONS;
+  private readonly languageMemo = optionsMemo<SMTSelectOption<string>[]>();
   private roleOptionsCache: { roles: Role[]; lang: string; options: SMTTagOption<number>[] } | null = null;
   @Input() isOpen = false;
   @Input() isSubmitting = false;
@@ -383,7 +361,6 @@ export class UserCreateModalComponent {
   @Input() roles: Role[] = [];
   @Input() languages: Array<{ code: string, name: string }> = [];
   @Input() customFields: CustomField[] = [];
-  @Input() showPassword = false;
   @Input() passwordStrength: { score: number, label: string, color: string } = { score: 0, label: '', color: '' };
   @Input() hasMinLength = false;
   @Input() hasUpperAndLower = false;
@@ -392,9 +369,14 @@ export class UserCreateModalComponent {
 
   @Output() close = new EventEmitter<void>();
   @Output() submit = new EventEmitter<void>();
-  @Output() toggleShowPassword = new EventEmitter<void>();
   @Output() generatePassword = new EventEmitter<void>();
   @Output() copyPassword = new EventEmitter<void>();
+
+  /** The languages as options, labelled as they are named in the data. */
+  languageOptions(): SMTSelectOption<string>[] {
+    return this.languageMemo([this.languages], () =>
+      this.languages.map(lang => ({ id: lang.code, label: `${lang.name} (${lang.code})` })));
+  }
 
   /** The roles as tags. */
   roleOptions(): SMTTagOption<number>[] {

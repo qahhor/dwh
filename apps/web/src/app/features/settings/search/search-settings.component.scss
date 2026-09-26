@@ -113,27 +113,10 @@ label,
   font-weight: 500;
 }
 
-input,
-select {
-  width: 100%;
-  min-width: 0;
+smt-input {
   min-height: 42px;
-  box-sizing: border-box;
-  padding: 8px 10px;
-  color: var(--text-main);
-  background: var(--bg-surface);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm, 8px);
 }
 
-input[type='checkbox'] {
-  width: 22px;
-  min-height: 22px;
-  accent-color: var(--primary);
-}
-
-input:focus-visible,
-select:focus-visible,
 button:focus-visible,
 .table-scroll:focus-visible,
 .field-grid-scroll:focus-visible {

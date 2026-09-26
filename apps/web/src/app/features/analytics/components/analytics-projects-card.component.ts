@@ -1,6 +1,6 @@
 import { Component, EventEmitter, Input, Output, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { SMTInputComponent } from '../../../shared/ui-kit/components/forms/input';
 import { TranslatePipe } from '../../../core/services/i18n.service';
 import { ProjectDistribution } from '../analytics.models';
 
@@ -8,8 +8,8 @@ import { ProjectDistribution } from '../analytics.models';
   selector: 'app-analytics-projects-card',
   standalone: true,
   imports: [
+    SMTInputComponent,
     CommonModule,
-    FormsModule,
     TranslatePipe
   ],
   template: `
@@ -20,26 +20,17 @@ import { ProjectDistribution } from '../analytics.models';
           <p class="card-subtitle">{{ 'analytics.statusy_i_procent_vypolneniya' | t }}</p>
         </div>
         <!-- Quick Project Filter -->
-        <div class="project-search-box" *ngIf="projects.length > 3">
-          <span class="material-symbols-outlined search-ico" aria-hidden="true">search</span>
-          <input
-            type="text"
-            class="search-mini-input"
-            [placeholder]="'analytics.poisk_proekta' | t"
-            [attr.aria-label]="'analytics.poisk_proekta' | t"
-            [ngModel]="searchProjectQuery()"
-            (ngModelChange)="searchProjectQuery.set($event)"
-          />
-          <button
-            *ngIf="searchProjectQuery()"
-            type="button"
-            class="clear-mini-btn"
-            (click)="searchProjectQuery.set('')"
-            [attr.aria-label]="'common.clear' | t"
-          >
-            <span class="material-symbols-outlined" style="font-size: 14px;" aria-hidden="true">close</span>
-          </button>
-        </div>
+        <smt-input
+          *ngIf="projects.length > 3"
+          class="project-search-box"
+          type="search"
+          smtIcon="search"
+          clearable
+          smtSize="sm"
+          [placeholder]="'analytics.poisk_proekta' | t"
+          [smtAriaLabel]="'analytics.poisk_proekta' | t"
+          [value]="searchProjectQuery()"
+          (valueChange)="searchProjectQuery.set($any($event) ?? '')" />
       </div>
 
       <div class="project-list" *ngIf="filteredProjects().length > 0">
@@ -102,43 +93,8 @@ import { ProjectDistribution } from '../analytics.models';
     }
 
     .project-search-box {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background-color: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      padding: 2px 8px;
-      height: 28px;
-      transition: border-color 0.15s ease;
-    }
-    .project-search-box:focus-within {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 1px var(--primary);
-    }
-    .search-ico {
-      font-size: 16px;
-      color: var(--text-muted);
-    }
-    .search-mini-input {
-      border: none;
-      outline: none;
-      background: transparent;
+      width: 190px;
       font-size: 12px;
-      color: var(--text-main);
-      width: 130px;
-    }
-    .clear-mini-btn {
-      background: transparent;
-      border: none;
-      color: var(--text-muted);
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      padding: 0;
-    }
-    .clear-mini-btn:hover {
-      color: var(--text-main);
     }
 
     .project-list {

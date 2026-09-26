@@ -20,11 +20,12 @@ import {
   WebhookEventOption
 } from './webhooks-settings.models';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
+import { SMTCheckboxComponent } from '../../../shared/ui-kit/components/forms/checkbox';
 
 @Component({
   selector: 'app-webhooks-settings',
   standalone: true,
-  imports: [SMTInputComponent, SMTInputValueAccessor, CommonModule, FormsModule, TranslatePipe, UiButtonComponent, UiModalComponent, UiLocalTableComponent],
+  imports: [SMTCheckboxComponent, SMTInputComponent, SMTInputValueAccessor, CommonModule, FormsModule, TranslatePipe, UiButtonComponent, UiModalComponent, UiLocalTableComponent],
   template: `
     <div class="webhooks-container">
       <!-- Section Header -->
@@ -178,17 +179,15 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit
               </button>
             </div>
             <div class="events-grid">
-              <label *ngFor="let opt of availableEvents" class="event-checkbox-label">
-                <input
-                  type="checkbox"
-                  [checked]="selectedEvents.has(opt.code)"
-                  (change)="onEventCheck(opt.code, $event)"
-                />
-                <span class="event-opt-info">
-                  <strong class="event-opt-code font-mono text-xs">{{ opt.code }}</strong>
-                  <span class="event-opt-desc text-xs text-muted">{{ opt.descKey | t }}</span>
-                </span>
-              </label>
+              <div
+                *ngFor="let opt of availableEvents"
+                smt-checkbox
+                class="event-checkbox-label"
+                [checked]="selectedEvents.has(opt.code)"
+                [smtHint]="opt.descKey | t"
+                (smtCheckedChange)="onEventCheck(opt.code, $event)">
+                <span class="event-opt-code font-mono">{{ opt.code }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -501,11 +500,6 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit
     .event-checkbox-label:hover {
       background: rgba(0, 0, 0, 0.03);
     }
-    .event-opt-info {
-      display: flex;
-      flex-direction: column;
-      gap: 1px;
-    }
 
     .warning-callout {
       display: flex;
@@ -642,8 +636,7 @@ export class WebhooksSettingsComponent implements OnInit {
     this.isCreateModalOpen.set(false);
   }
 
-  onEventCheck(code: string, event: Event): void {
-    const checked = (event.target as HTMLInputElement).checked;
+  onEventCheck(code: string, checked: boolean): void {
     if (checked) {
       this.selectedEvents.add(code);
     } else {

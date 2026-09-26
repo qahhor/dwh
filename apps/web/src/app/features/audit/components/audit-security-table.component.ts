@@ -1,6 +1,7 @@
 import { Component, computed, EventEmitter, inject, Input, Output, Signal, signal, TemplateRef, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiServerTableComponent } from '../../../shared/ui/ui-server-table.component';
 import { DateRange, SMTDateRangePickerComponent } from '../../../shared/ui-kit/components/forms/date-picker';
@@ -8,6 +9,8 @@ import { I18nService, TranslatePipe } from '../../../core/services/i18n.service'
 import { KeysetPager } from '../../../shared/paging/keyset-pager';
 import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
 import { SecurityEventRecord } from '../audit.models';
+import { SMTSelectComponent, SMTSelectOption } from '../../../shared/ui-kit/components/forms/select';
+import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group/radio-options';
 
 @Component({
   selector: 'app-audit-security-table',
@@ -15,10 +18,13 @@ import { SecurityEventRecord } from '../audit.models';
   imports: [
     CommonModule,
     FormsModule,
+    SMTInputComponent,
+    SMTInputValueAccessor,
     TranslatePipe,
     UiButtonComponent,
     UiServerTableComponent,
-    SMTDateRangePickerComponent
+    SMTDateRangePickerComponent,
+    SMTSelectComponent
   ],
   template: `
     <div id="security-events-panel" class="tab-content" role="tabpanel" aria-labelledby="security-events-tab">
@@ -26,36 +32,29 @@ import { SecurityEventRecord } from '../audit.models';
       <div class="filter-toolbar">
         <div class="filter-group">
           <label class="sr-only" for="security-event-filter">{{ 'audit.filtr_sobytiy_bezopasnosti' | t }}</label>
-          <select id="security-event-filter" name="securityEventFilter" class="filter-select"
-            [ngModel]="secEventTypeFilter" (ngModelChange)="secEventTypeFilterChange.emit($event); applyFilters.emit()">
-            <option value="">{{ 'audit.vse_sobytiya' | t }}</option>
-            <option value="LOGIN_SUCCESS">{{ 'audit.uspeshnyy_vhod_login_success' | t }}</option>
-            <option value="LOGIN_FAILED">{{ 'audit.oshibka_vhoda_login_failed' | t }}</option>
-            <option value="LOGIN_LOCKED">{{ 'audit.blokirovka_brute_force_login_locked' | t }}</option>
-            <option value="IP_RATE_LIMITED">Rate Limit IP (IP_RATE_LIMITED)</option>
-            <option value="PASSWORD_CHANGED">{{ 'audit.smena_parolya_password_changed' | t }}</option>
-            <option value="API_TOKEN_CREATED">{{ 'audit.vypusk_api_tokena' | t }}</option>
-          </select>
+          <smt-select smtTriggerId="security-event-filter" class="filter-select" [options]="eventTypeOptions()"
+            [placeholder]="'audit.vse_sobytiya' | t" [emptyLabel]="'audit.vse_sobytiya' | t"
+            [value]="secEventTypeFilter || null"
+            (valueChange)="secEventTypeFilterChange.emit($event ?? ''); applyFilters.emit()" />
 
           <div class="search-box">
-            <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
             <label class="sr-only" for="security-ip-search">{{ 'audit.poisk_sobytiy_po_ip_adresu' | t }}</label>
-            <input
-              id="security-ip-search"
+            <smt-input
+              smtFieldId="security-ip-search"
               name="securityIpSearch"
               type="text"
-              class="search-input"
+              smtIcon="search"
+              smtSize="sm"
               [placeholder]="'audit.poisk_po_ip' | t"
               [ngModel]="secIpFilter"
               (ngModelChange)="secIpFilterChange.emit($event)"
-              (keyup.enter)="applyFilters.emit()"
-            />
+              (keyup.enter)="applyFilters.emit()" />
           </div>
 
           <div class="compact-filter compact-filter-narrow">
             <label for="security-user-filter">{{ 'audit.user_id' | t }}</label>
-            <input id="security-user-filter" name="securityUserFilter" class="filter-input" type="text" inputmode="numeric"
-              pattern="[0-9]*" [ngModel]="securityUserFilter" (ngModelChange)="securityUserFilterChange.emit($event)" (keyup.enter)="applyFilters.emit()" />
+            <smt-input smtFieldId="security-user-filter" name="securityUserFilter" type="text" inputmode="numeric" smtSize="sm"
+              smtPattern="[0-9]*" [ngModel]="securityUserFilter" (ngModelChange)="securityUserFilterChange.emit($event)" (keyup.enter)="applyFilters.emit()" />
           </div>
 
           <div class="compact-filter compact-filter-period">
@@ -160,6 +159,8 @@ export class AuditSecurityTableComponent {
     };
   });
 
+  private readonly eventTypeMemo = optionsMemo<SMTSelectOption<string>[]>();
+
   @Input({ required: true }) pager!: KeysetPager<SecurityEventRecord>;
 
   @Input() secEventTypeFilter = '';
@@ -175,6 +176,17 @@ export class AuditSecurityTableComponent {
   @Output() applyFilters = new EventEmitter<void>();
   @Output() resetFilters = new EventEmitter<void>();
   @Output() selectEvent = new EventEmitter<SecurityEventRecord>();
+
+  eventTypeOptions(): SMTSelectOption<string>[] {
+    return this.eventTypeMemo([this.i18n.currentLang()], () => [
+      { id: 'LOGIN_SUCCESS', label: this.i18n.translate('audit.uspeshnyy_vhod_login_success') },
+      { id: 'LOGIN_FAILED', label: this.i18n.translate('audit.oshibka_vhoda_login_failed') },
+      { id: 'LOGIN_LOCKED', label: this.i18n.translate('audit.blokirovka_brute_force_login_locked') },
+      { id: 'IP_RATE_LIMITED', label: 'Rate Limit IP (IP_RATE_LIMITED)' },
+      { id: 'PASSWORD_CHANGED', label: this.i18n.translate('audit.smena_parolya_password_changed') },
+      { id: 'API_TOKEN_CREATED', label: this.i18n.translate('audit.vypusk_api_tokena') },
+    ]);
+  }
 
   @Input() set securityFromFilter(value: string) {
     this.periodFrom.set(value ?? '');

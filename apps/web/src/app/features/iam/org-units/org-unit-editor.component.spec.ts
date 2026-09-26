@@ -54,10 +54,13 @@ describe('OrgUnitEditorComponent', () => {
     expect(fixture.nativeElement.querySelector('#' + input.getAttribute('aria-describedby')).textContent).toContain('Field conflict');
     expect(fixture.nativeElement.querySelector('select[name="parentId"]')).toBeNull();
   });
-  it('preserves an unknown kind even when its name matches an object prototype property', () => {
+  it('preserves an unknown kind even when its name matches an object prototype property', async () => {
     const { fixture, editor } = setup({ ...child, kind: 'constructor' });
-    const option = Array.from(fixture.nativeElement.querySelectorAll('option')) as HTMLOptionElement[];
-    expect(option.some(item => item.value === 'constructor' && item.textContent === 'constructor')).toBe(true);
+    await fixture.whenStable(); // ngModel writes the value to the picker after a tick
+    fixture.detectChanges();
+    const kind = fixture.nativeElement.querySelector('smt-select[name="kind"] button[role="combobox"]') as HTMLButtonElement;
+    expect(editor.kindOptions()[0]).toEqual({ id: 'constructor', label: 'constructor' });
+    expect(kind.textContent).toContain('constructor');
     expect(editor.draft.kind).toBe('constructor');
   });
 });

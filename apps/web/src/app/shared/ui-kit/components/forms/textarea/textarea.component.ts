@@ -89,6 +89,9 @@ export class SMTTextareaComponent implements FormValueControl<string> {
 
   readonly invalid = input(false, { transform: booleanAttribute });
 
+  /** An error the screen decides itself (after a failed save), shown at once; Signal Forms fills `invalid`. */
+  readonly screenInvalid = input(false, { alias: 'smtInvalid', transform: booleanAttribute });
+
   readonly errors = input<readonly WithOptionalFieldTree<ValidationError>[]>([]);
 
   /** Bound by Signal Forms; the field's touched state. */
@@ -115,6 +118,7 @@ export class SMTTextareaComponent implements FormValueControl<string> {
   readonly hasError = computed(() =>
     shouldShowSMTFormControlError({
       invalid: this.invalid(),
+      legacyInvalid: this.screenInvalid(),
       errors: this.errors(),
       touched: this.wasTouched(),
       required: this.required(),

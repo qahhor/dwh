@@ -12,7 +12,7 @@ import { I18nService, TranslatePipe, Language } from '../../core/services/i18n.s
 import { NotificationService } from '../../core/services/notification.service';
 import { CommandPaletteService } from '../../core/services/command-palette.service';
 import { CommandPaletteComponent } from '../command-palette/command-palette.component';
-import { AppHeaderComponent } from './components/app-header.component';
+import { AppHeaderComponent, LanguageChangeRequest } from './components/app-header.component';
 import { AppSidebarComponent } from './components/app-sidebar.component';
 import { ToastService } from '../../core/services/toast.service';
 import { ModuleService } from '../../core/services/module.service';
@@ -464,20 +464,19 @@ export class AppShellComponent implements OnDestroy {
     }
   }
 
-  changeLanguage(event: Event) {
-    const select = event.target as HTMLSelectElement;
+  changeLanguage(request: LanguageChangeRequest) {
     if (this.isChangingLanguage() || this.i18n.isLoading() || this.authService.isLoggingOut()) {
-      select.value = this.i18n.currentLang();
+      request.revert();
       return;
     }
-    if (select.value === this.i18n.currentLang()) return;
+    if (request.code === this.i18n.currentLang()) return;
     this.isChangingLanguage.set(true);
-    this.i18n.setLanguage(select.value).pipe(
+    this.i18n.setLanguage(request.code).pipe(
       takeUntilDestroyed(this.destroyRef),
       finalize(() => this.isChangingLanguage.set(false))
     ).subscribe({
       error: () => {
-        select.value = this.i18n.currentLang();
+        request.revert();
         if (!this.destroyRef.destroyed) this.toast.error(this.uiI18n.translate('layout.app_shell.language_change_failed'));
       }
     });

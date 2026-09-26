@@ -37,40 +37,7 @@
       flex-wrap: wrap;
     }
     .search-box {
-      position: relative;
-      display: flex;
-      align-items: center;
-    }
-    .search-icon {
-      position: absolute;
-      left: 10px;
-      font-size: 18px;
-      color: var(--text-muted);
-    }
-    .search-input {
-      padding: 8px 30px 8px 34px;
-      border-radius: 8px;
-      border: 1px solid var(--border-color);
-      background: var(--bg-surface);
-      font-size: 0.875rem;
       width: 220px;
-    }
-    .search-clear-btn {
-      position: absolute;
-      right: 8px;
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      padding: 0;
-    }
-    .search-clear-btn:hover {
-      color: var(--text-main);
-    }
-    .search-clear-btn .material-symbols-outlined {
-      font-size: 18px;
     }
     .notes-grid {
       display: grid;
@@ -198,15 +165,6 @@
       font-weight: 500;
       color: var(--text-main);
     }
-    .form-control {
-      padding: 8px 12px;
-      border-radius: 8px;
-      border: 1px solid var(--border-color);
-      font-size: 0.875rem;
-      background: var(--bg-surface);
-      color: var(--text-main);
-      transition: border-color 0.15s ease;
-    }
     .field-error {
       font-size: 0.75rem;
       color: var(--danger);
@@ -214,14 +172,6 @@
     }
     .checkbox-group {
       margin-top: 24px;
-    }
-    .checkbox-label {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 0.875rem;
-      cursor: pointer;
-      color: var(--text-main);
     }
     .custom-fields-section {
       display: flex;

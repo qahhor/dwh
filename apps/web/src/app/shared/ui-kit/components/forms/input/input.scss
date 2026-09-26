@@ -106,3 +106,10 @@
 .smt-input__action .material-symbols-outlined {
   font-size: 18px;
 }
+
+/* The browser's own clear button would double ours (`clearable`). */
+.smt-input__field::-webkit-search-cancel-button,
+.smt-input__field::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}

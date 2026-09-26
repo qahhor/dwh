@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { loginToInstance } from '../../../support/auth.js';
+import { chooseOption } from '../../../support/select.js';
 
 const stats = {
   totalAuditLogs: 41,
@@ -130,7 +131,7 @@ test('audit pagination is stable, secrets stay redacted, and filter reset drops 
   await page.getByLabel('ID пользователя').fill('7');
   await page.getByLabel('Дата с (UTC)').fill('2026-09-01');
   await page.getByLabel('Дата по (UTC)').fill('2026-09-04');
-  await page.getByLabel('Фильтр журнала по действию').selectOption('U');
+  await chooseOption(page.getByLabel('Фильтр журнала по действию'), 'U');
   await page.getByRole('button', { name: 'Применить' }).click();
 
   const filteredRequest = requestedLogUrls.at(-1);
@@ -146,7 +147,7 @@ test('audit pagination is stable, secrets stay redacted, and filter reset drops 
   await expect(page.getByLabel('ID пользователя')).toHaveValue('');
   await expect(page.getByLabel('Дата с (UTC)')).toHaveValue('');
   await expect(page.getByLabel('Дата по (UTC)')).toHaveValue('');
-  await expect(page.getByLabel('Фильтр журнала по действию')).toHaveValue('');
+  await expect(page.getByLabel('Фильтр журнала по действию')).not.toHaveAttribute('data-value');
 
   const resetRequest = requestedLogUrls.at(-1);
   for (const parameter of ['row_pk', 'user_id', 'event', 'from', 'to', 'cursor']) {

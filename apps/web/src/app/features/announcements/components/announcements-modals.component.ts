@@ -6,14 +6,16 @@ import { I18nService, TranslatePipe } from '../../../core/services/i18n.service'
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/ui-kit/components/forms/textarea';
+import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
 import { AnnouncementAdminRecord, AnnouncementBannerType, Confirmation } from '../announcements.models';
 import { SMTTabBarComponent, SMTTabItem } from '../../../shared/ui-kit/components/tab-bar';
 import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group';
+import { SMTSelectComponent, SMTSelectOption } from '../../../shared/ui-kit/components/forms/select';
 
 @Component({
   selector: 'app-announcements-modals',
   standalone: true,
-  imports: [SMTTabBarComponent, CommonModule, FormsModule, A11yModule, TranslatePipe, UiButtonComponent, UiModalComponent, SMTTextareaComponent, SMTTextareaValueAccessor],
+  imports: [SMTTabBarComponent, CommonModule, FormsModule, A11yModule, TranslatePipe, UiButtonComponent, UiModalComponent, SMTInputComponent, SMTInputValueAccessor, SMTTextareaComponent, SMTTextareaValueAccessor, SMTSelectComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Create / Edit Draft Modal -->
@@ -43,18 +45,15 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
               <label for="announcement-title-ru">{{ 'announcements.zagolovok_ru' | t }} <span aria-hidden="true">*</span></label>
               <span class="char-count">{{ titleRu.length }} / 10 000 {{ 'announcements.simvolov' | t }}</span>
             </div>
-            <input
-              id="announcement-title-ru"
+            <smt-input
+              smtFieldId="announcement-title-ru"
               name="announcementTitleRu"
               type="text"
-              maxlength="10000"
+              [maxLength]="10000"
               required
-              cdkFocusInitial
-              autofocus
+              smtFocusInitial
               [(ngModel)]="titleRu"
-              [attr.aria-invalid]="titleRu.trim().length === 0"
-              aria-describedby="announcement-title-hint"
-            />
+              smtDescribedBy="announcement-title-hint" />
             <span id="announcement-title-hint" class="field-hint">{{ 'announcements.korotko_opishite_glavnoe_soobschenie' | t }}</span>
           </div>
           <div class="field-group">
@@ -81,14 +80,13 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
               <label for="announcement-title-other">{{ 'task.title' | t }} ({{ selectedLang().toUpperCase() }})</label>
               <span class="char-count">{{ (draftTitles()[selectedLang()] || '').length }} / 10 000</span>
             </div>
-            <input
-              id="announcement-title-other"
+            <smt-input
+              smtFieldId="announcement-title-other"
               name="announcementTitleOther"
               type="text"
-              maxlength="10000"
+              [maxLength]="10000"
               [ngModel]="draftTitles()[selectedLang()]"
-              (ngModelChange)="onDraftTitleChange(selectedLang(), $event)"
-            />
+              (ngModelChange)="onDraftTitleChange(selectedLang(), $event)" />
           </div>
           <div class="field-group">
             <div class="field-header">
@@ -107,16 +105,13 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
 
         <div class="field-group">
           <label for="announcement-banner-type">{{ 'announcements.uroven_soobscheniya' | t }}</label>
-          <select
-            id="announcement-banner-type"
-            name="announcementBannerType"
-            [ngModel]="bannerType()"
-            (ngModelChange)="bannerTypeChange.emit($event)"
-          >
-            <option value="INFO">{{ 'announcements.informaciya' | t }}</option>
-            <option value="WARNING">{{ 'announcements.preduprezhdenie' | t }}</option>
-            <option value="CRITICAL">{{ 'announcements.kriticheskoe' | t }}</option>
-          </select>
+          <smt-select
+            smtTriggerId="announcement-banner-type"
+            [options]="bannerTypeOptions()"
+            [allowClear]="false"
+            [value]="bannerType()"
+            (valueChange)="$event && bannerTypeChange.emit($event)"
+          />
         </div>
         <div class="form-actions">
           <ui-button variant="secondary" (onClick)="closeEditor.emit()">{{ 'common.cancel' | t }}</ui-button>
@@ -142,13 +137,13 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
     .field-header { display: flex; align-items: center; justify-content: space-between; }
     .field-group label { color: var(--text-main); font-size: 12px; font-weight: 600; }
     .char-count { font-size: 11px; color: var(--text-muted); }
-    .field-group input, .field-group textarea, .field-group select { width: 100%; box-sizing: border-box; border: 1px solid var(--border-color); border-radius: var(--radius-sm); background: var(--bg-app); color: var(--text-main); font: inherit; font-size: 13px; padding: 9px 11px; }
+    .field-group textarea { width: 100%; box-sizing: border-box; border: 1px solid var(--border-color); border-radius: var(--radius-sm); background: var(--bg-app); color: var(--text-main); font: inherit; font-size: 13px; padding: 9px 11px; }
     .field-group textarea { resize: vertical; min-height: 140px; line-height: 1.5; }
     .field-hint { color: var(--text-muted); font-size: 11px; }
     .form-actions, .modal-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
     .form-actions { margin: 4px -18px -18px; padding: 12px 18px; border-top: 1px solid var(--border-color); }
     .primary-button { height: 34px; padding: 6px 14px; border: 0; border-radius: var(--radius-sm); background: var(--primary); color: var(--on-primary); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
-    .primary-button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid var(--focus-ring, var(--primary)); outline-offset: 2px; }
+    .primary-button:focus-visible, textarea:focus-visible { outline: 2px solid var(--focus-ring, var(--primary)); outline-offset: 2px; }
     .primary-button:disabled { cursor: not-allowed; opacity: .5; }
   `]
 })
@@ -177,6 +172,8 @@ export class AnnouncementsModalsComponent {
   readonly availableLanguages = () => this.uiI18n.languages().filter(l => l.active);
 
   private readonly tabsMemo = optionsMemo<SMTTabItem<string>[]>();
+
+  private readonly bannerTypeMemo = optionsMemo<SMTSelectOption<AnnouncementBannerType>[]>();
 
   get titleRu(): string {
     return this.draftTitles()['ru'] || '';
@@ -220,6 +217,14 @@ export class AnnouncementsModalsComponent {
   }
 
   /** The languages to write in; Russian, the one required, is marked. */
+  bannerTypeOptions(): SMTSelectOption<AnnouncementBannerType>[] {
+    return this.bannerTypeMemo([this.tabText.currentLang()], () => [
+      { id: 'INFO', label: this.tabText.translate('announcements.informaciya') },
+      { id: 'WARNING', label: this.tabText.translate('announcements.preduprezhdenie') },
+      { id: 'CRITICAL', label: this.tabText.translate('announcements.kriticheskoe') },
+    ]);
+  }
+
   languageTabs(): SMTTabItem<string>[] {
     const languages = this.availableLanguages();
     return this.tabsMemo([this.tabText.currentLang(), languages.map(language => language.code + language.name).join()], () => languages.map(language => ({

@@ -1,6 +1,7 @@
 import { Component, computed, EventEmitter, inject, Input, Output, Signal, signal, TemplateRef, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiServerTableComponent } from '../../../shared/ui/ui-server-table.component';
 import { DateRange, SMTDateRangePickerComponent } from '../../../shared/ui-kit/components/forms/date-picker';
@@ -8,6 +9,8 @@ import { I18nService, TranslatePipe } from '../../../core/services/i18n.service'
 import { KeysetPager } from '../../../shared/paging/keyset-pager';
 import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
 import { AuditRecord } from '../audit.models';
+import { SMTSelectComponent, SMTSelectOption } from '../../../shared/ui-kit/components/forms/select';
+import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group/radio-options';
 
 @Component({
   selector: 'app-audit-logs-table',
@@ -15,10 +18,13 @@ import { AuditRecord } from '../audit.models';
   imports: [
     CommonModule,
     FormsModule,
+    SMTInputComponent,
+    SMTInputValueAccessor,
     TranslatePipe,
     UiButtonComponent,
     UiServerTableComponent,
-    SMTDateRangePickerComponent
+    SMTDateRangePickerComponent,
+    SMTSelectComponent
   ],
   template: `
     <div id="audit-log-panel" class="tab-content" role="tabpanel" aria-labelledby="audit-log-tab">
@@ -26,35 +32,25 @@ import { AuditRecord } from '../audit.models';
       <div class="filter-toolbar">
         <div class="filter-group">
           <label class="sr-only" for="audit-table-filter">{{ 'audit.filtr_zhurnala_po_tablice' | t }}</label>
-          <select id="audit-table-filter" name="auditTableFilter" class="filter-select"
-            [ngModel]="tableFilter" (ngModelChange)="tableFilterChange.emit($event); applyFilters.emit()">
-            <option value="">{{ 'audit.vse_tablicy' | t }}</option>
-            <option value="md_users">{{ 'audit.polzovateli_md_users' | t }}</option>
-            <option value="ms_tasks">{{ 'audit.zadachi_ms_tasks' | t }}</option>
-            <option value="ms_projects">{{ 'audit.proekty_ms_projects' | t }}</option>
-            <option value="md_roles">{{ 'audit.roli_i_prava_md_roles' | t }}</option>
-            <option value="md_custom_fields">{{ 'audit.dinamicheskie_polya_md_custom_fields' | t }}</option>
-          </select>
+          <smt-select smtTriggerId="audit-table-filter" class="filter-select" [options]="tableOptions()"
+            [placeholder]="'audit.vse_tablicy' | t" [emptyLabel]="'audit.vse_tablicy' | t"
+            [value]="tableFilter || null" (valueChange)="tableFilterChange.emit($event ?? ''); applyFilters.emit()" />
 
           <label class="sr-only" for="audit-event-filter">{{ 'audit.filtr_zhurnala_po_deystviyu' | t }}</label>
-          <select id="audit-event-filter" name="auditEventFilter" class="filter-select"
-            [ngModel]="eventFilter" (ngModelChange)="eventFilterChange.emit($event); applyFilters.emit()">
-            <option value="">{{ 'audit.vse_deystviya' | t }}</option>
-            <option value="I">{{ 'audit.sozdanie_insert' | t }}</option>
-            <option value="U">{{ 'audit.izmenenie_update' | t }}</option>
-            <option value="D">{{ 'audit.udalenie_delete' | t }}</option>
-          </select>
+          <smt-select smtTriggerId="audit-event-filter" class="filter-select" [options]="eventOptions()"
+            [placeholder]="'audit.vse_deystviya' | t" [emptyLabel]="'audit.vse_deystviya' | t"
+            [value]="eventFilter || null" (valueChange)="eventFilterChange.emit($event ?? ''); applyFilters.emit()" />
 
           <div class="compact-filter">
             <label for="audit-row-pk-filter">{{ 'audit.row_pk' | t }}</label>
-            <input id="audit-row-pk-filter" name="auditRowPkFilter" class="filter-input" type="text"
+            <smt-input smtFieldId="audit-row-pk-filter" name="auditRowPkFilter" type="text" smtSize="sm"
               [ngModel]="rowPkFilter" (ngModelChange)="rowPkFilterChange.emit($event)" (keyup.enter)="applyFilters.emit()" />
           </div>
 
           <div class="compact-filter compact-filter-narrow">
             <label for="audit-user-filter">{{ 'audit.user_id' | t }}</label>
-            <input id="audit-user-filter" name="auditUserFilter" class="filter-input" type="text" inputmode="numeric"
-              pattern="[0-9]*" [ngModel]="auditUserFilter" (ngModelChange)="auditUserFilterChange.emit($event)" (keyup.enter)="applyFilters.emit()" />
+            <smt-input smtFieldId="audit-user-filter" name="auditUserFilter" type="text" inputmode="numeric" smtSize="sm"
+              smtPattern="[0-9]*" [ngModel]="auditUserFilter" (ngModelChange)="auditUserFilterChange.emit($event)" (keyup.enter)="applyFilters.emit()" />
           </div>
 
           <div class="compact-filter compact-filter-period">
@@ -153,18 +149,8 @@ import { AuditRecord } from '../audit.models';
     }
 
     .filter-select {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 7px 12px;
-      color: var(--text-main);
-      font-size: 13px;
-      outline: none;
-    }
-
-    .filter-select option {
-      background: var(--bg-surface);
-      color: var(--text-main);
+      width: 240px;
+      max-width: 100%;
     }
 
     .compact-filter {
@@ -188,20 +174,6 @@ import { AuditRecord } from '../audit.models';
       color: var(--text-light);
       font-size: 11px;
       font-weight: 600;
-    }
-
-    .filter-input {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 6px 10px;
-      color: var(--text-main);
-      font-size: 13px;
-      outline: none;
-    }
-
-    .filter-input:focus, .filter-select:focus {
-      border-color: var(--primary);
     }
 
     .sr-only {
@@ -416,6 +388,28 @@ export class AuditLogsTableComponent {
   @Output() applyFilters = new EventEmitter<void>();
   @Output() resetFilters = new EventEmitter<void>();
   @Output() selectRecord = new EventEmitter<AuditRecord>();
+
+  private readonly tableOptionsMemo = optionsMemo<SMTSelectOption<string>[]>();
+
+  private readonly eventOptionsMemo = optionsMemo<SMTSelectOption<string>[]>();
+
+  tableOptions(): SMTSelectOption<string>[] {
+    return this.tableOptionsMemo([this.i18n.currentLang()], () => [
+      { id: 'md_users', label: this.i18n.translate('audit.polzovateli_md_users') },
+      { id: 'ms_tasks', label: this.i18n.translate('audit.zadachi_ms_tasks') },
+      { id: 'ms_projects', label: this.i18n.translate('audit.proekty_ms_projects') },
+      { id: 'md_roles', label: this.i18n.translate('audit.roli_i_prava_md_roles') },
+      { id: 'md_custom_fields', label: this.i18n.translate('audit.dinamicheskie_polya_md_custom_fields') },
+    ]);
+  }
+
+  eventOptions(): SMTSelectOption<string>[] {
+    return this.eventOptionsMemo([this.i18n.currentLang()], () => [
+      { id: 'I', label: this.i18n.translate('audit.sozdanie_insert') },
+      { id: 'U', label: this.i18n.translate('audit.izmenenie_update') },
+      { id: 'D', label: this.i18n.translate('audit.udalenie_delete') },
+    ]);
+  }
 
   @Input() set auditFromFilter(value: string) {
     this.periodFrom.set(value ?? '');

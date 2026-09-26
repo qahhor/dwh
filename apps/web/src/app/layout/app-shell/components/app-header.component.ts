@@ -6,6 +6,14 @@ import { ThemeService } from '../../../core/services/theme.service';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { CommandPaletteService } from '../../../core/services/command-palette.service';
+import { SMTSelectComponent, SMTSelectOption } from '../../../shared/ui-kit/components/forms/select';
+import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group/radio-options';
+
+/** A language the person picked; `revert` shows the current one again. */
+export interface LanguageChangeRequest {
+  readonly code: string;
+  revert(): void;
+}
 
 @Component({
   selector: 'app-header',
@@ -13,7 +21,8 @@ import { CommandPaletteService } from '../../../core/services/command-palette.se
   imports: [
     CommonModule,
     RouterModule,
-    TranslatePipe
+    TranslatePipe,
+    SMTSelectComponent
   ],
   template: `
     <!-- Top Navigation -->
@@ -51,19 +60,17 @@ import { CommandPaletteService } from '../../../core/services/command-palette.se
         <!-- Language Switcher -->
         <div class="lang-selector">
           <span class="material-symbols-outlined lang-icon" aria-hidden="true">language</span>
-          <select
-            id="app-language-selector"
+          <smt-select
+            smtTriggerId="app-language-selector"
             class="lang-select"
-            [attr.aria-label]="'settings.yazyk_interfeysa' | t"
+            [ariaLabel]="'settings.yazyk_interfeysa' | t"
+            [options]="languageOptions()"
+            [allowClear]="false"
             [value]="i18n.currentLang()"
             [disabled]="i18n.isLoading() || isChangingLanguage || authService.isLoggingOut()"
             [attr.aria-busy]="isChangingLanguage"
-            (change)="changeLanguage.emit($event)"
-          >
-            <option *ngFor="let lang of i18n.languages()" [value]="lang.code">
-              {{ lang.code.toUpperCase() }} — {{ lang.name }}
-            </option>
-          </select>
+            (valueChange)="onLanguagePick($event)"
+          />
         </div>
 
         <!-- Theme Toggle -->
@@ -200,28 +207,17 @@ import { CommandPaletteService } from '../../../core/services/command-palette.se
       position: relative;
       display: flex;
       align-items: center;
+      gap: 6px;
       flex-shrink: 0;
     }
 
     .lang-icon {
-      position: absolute;
-      left: 8px;
-      pointer-events: none;
       color: var(--text-muted);
       font-size: 17px;
     }
 
     .lang-select {
-      height: 34px;
-      max-width: 174px;
-      padding: 4px 24px 4px 30px;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      background: var(--bg-surface);
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text-main);
-      cursor: pointer;
+      width: 174px;
     }
 
     .icon-btn {
@@ -243,14 +239,13 @@ import { CommandPaletteService } from '../../../core/services/command-palette.se
       color: var(--text-main);
     }
 
-    .icon-btn:disabled, .palette-trigger:disabled, .lang-select:disabled {
+    .icon-btn:disabled, .palette-trigger:disabled {
       opacity: 0.6;
       cursor: wait;
     }
 
     .palette-trigger:focus-visible,
-    .icon-btn:focus-visible,
-    .lang-select:focus-visible {
+    .icon-btn:focus-visible {
       outline: 2px solid var(--focus-ring, var(--primary));
       outline-offset: 2px;
     }
@@ -367,10 +362,7 @@ import { CommandPaletteService } from '../../../core/services/command-palette.se
         display: none;
       }
       .lang-select {
-        width: 64px;
-        height: 44px;
-        padding: 4px 18px 4px 4px;
-        font-size: 12px;
+        width: 96px;
       }
 
       .trigger-text,
@@ -396,6 +388,8 @@ export class AppHeaderComponent {
 
   @ViewChild('mobileMenuBtn') mobileMenuBtn?: ElementRef<HTMLButtonElement>;
 
+  @ViewChild(SMTSelectComponent) languagePicker?: SMTSelectComponent<string>;
+
   @Input() isMobile = false;
   @Input() isMobileMenuOpen = false;
   @Input() sidebarId = 'app-sidebar-nav';
@@ -405,9 +399,35 @@ export class AppHeaderComponent {
   @Input() canReadAnnouncements = false;
 
   @Output() toggleMobileMenu = new EventEmitter<void>();
-  @Output() changeLanguage = new EventEmitter<Event>();
+  @Output() changeLanguage = new EventEmitter<LanguageChangeRequest>();
   @Output() dismissAnnouncement = new EventEmitter<void>();
   @Output() logout = new EventEmitter<void>();
+
+  private readonly languageMemo = optionsMemo<SMTSelectOption<string>[]>();
+
+  /** True while the shell writes the current language back into the picker. */
+  private restoringLanguage = false;
+
+  languageOptions(): SMTSelectOption<string>[] {
+    const languages = this.i18n.languages();
+    return this.languageMemo([languages], () =>
+      languages.map(lang => ({ id: lang.code, label: `${lang.code.toUpperCase()} — ${lang.name}` }))
+    );
+  }
+
+  /** A pick hands the shell the code and a way to show the current language again when it refuses or the save fails. */
+  onLanguagePick(code: string | null): void {
+    const picker = this.languagePicker;
+    if (!code || !picker || this.restoringLanguage) return;
+    this.changeLanguage.emit({
+      code,
+      revert: () => {
+        this.restoringLanguage = true;
+        picker.value.set(this.i18n.currentLang());
+        this.restoringLanguage = false;
+      },
+    });
+  }
 
   onLogout() {
     this.logout.emit();
