@@ -1,6 +1,9 @@
 package com.greenwhite.dwh.instance.common.query;
 
+import com.greenwhite.dwh.core.error.FieldErrorItem;
 import com.greenwhite.dwh.core.pagination.KeysetPage;
+
+import java.util.List;
 
 import java.util.Map;
 import java.util.Set;
@@ -23,6 +26,14 @@ public interface QueryListExporter {
      */
     default Set<String> options() {
         return Set.of();
+    }
+
+    /**
+     * Checks the option values before the job starts, so a bad value is refused at once and not in the job.
+     * Addresses are the option names; the caller prefixes them with {@code options.}.
+     */
+    default List<FieldErrorItem> checkOptions(Map<String, String> options) {
+        return List.of();
     }
 
     /** One page for the signed-in person, exactly as the list endpoint would return it. */

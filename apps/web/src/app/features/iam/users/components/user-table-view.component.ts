@@ -1,10 +1,13 @@
-import { Component, computed, EventEmitter, inject, Input, Output, Signal, TemplateRef, viewChild } from '@angular/core';
+import { Component, computed, EventEmitter, inject, input, Input, Output, Signal, TemplateRef, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { UiServerTableComponent } from '../../../../shared/ui/ui-server-table.component';
 import { KeysetPager } from '../../../../shared/paging/keyset-pager';
-import { TableConfig } from '../../../../shared/ui-kit/components/table/table.types';
+import { OrderBy, TableConfig } from '../../../../shared/ui-kit/components/table/table.types';
+import { QueryListMeta } from '../../../../core/models/query-meta.models';
+import { ListViewState } from '../../../../shared/list-views/list-views';
+import { registryTableConfig } from '../../../../shared/ui/registry-table-config';
 import { User } from '../../../../core/models/auth.models';
 import { SMTAvatarComponent } from '../../../../shared/ui-kit/components/avatar';
 import { SMTDropdownButtonComponent, SMTMenuItem } from '../../../../shared/ui-kit/components/dropdown-button';
@@ -12,11 +15,11 @@ import { SMTDropdownButtonComponent, SMTMenuItem } from '../../../../shared/ui-k
 type UserMenuAction = 'block' | 'unblock' | 'delete';
 
 /**
- * The user list, a page at a time from the server.
- *
- * The server returns users in the order they were created and pages by
- * cursor, so the table offers no column sorting: sorting the rows of one page
- * would only look like sorting the list.
+ * The user list, a page at a time from the server, on the registry table
+ * (`query-meta/iam.users`, roadmap item 48): columns, sorting of the whole
+ * list, column settings, saved views, the filter and the export come from the
+ * server's field list. Roles, manager and the row actions are not fields and
+ * keep their own columns.
  */
 @Component({
   selector: 'app-user-table-view',
@@ -29,14 +32,22 @@ type UserMenuAction = 'block' | 'unblock' | 'delete';
   ],
   template: `
     <div class="table-container" role="region" [attr.aria-label]="'iam.tablica_polzovateley' | t" [attr.aria-busy]="pager.loading()">
-      <ui-server-table
-        [pager]="pager"
-        [config]="tableConfig()"
-        [loadingLabel]="'iam.users.loading' | t"
-        [errorLabel]="'iam.users.load_error' | t"
-        errorId="users-load-error"
-        [countsPage]="true"
-        [emptyTemplate]="emptyState()" />
+      @if (tableConfig(); as config) {
+        <ui-server-table
+          [pager]="pager"
+          [config]="config"
+          [views]="views()"
+          [filterMeta]="meta()"
+          [exportable]="true"
+          [exportSearch]="exportSearch()"
+          [exportOptions]="exportOptions()"
+          [lockedColumns]="['name', 'actions']"
+          [loadingLabel]="'iam.users.loading' | t"
+          [errorLabel]="'iam.users.load_error' | t"
+          errorId="users-load-error"
+          [emptyTemplate]="emptyState()"
+          (sortChange)="sortChange.emit($event)" />
+      }
     </div>
 
     <ng-template #identityCell let-u>
@@ -201,6 +212,12 @@ type UserMenuAction = 'block' | 'unblock' | 'delete';
 export class UserTableViewComponent {
   private readonly i18n = inject(I18nService);
 
+  readonly meta = input<QueryListMeta | null>(null);
+  readonly views = input<ListViewState | null>(null);
+  /** The search text and quick filters on screen, so an export matches the list shown. */
+  readonly exportSearch = input<string | null>(null);
+  readonly exportOptions = input<Record<string, string> | null>(null);
+
   readonly emptyState = viewChild.required<TemplateRef<unknown>>('emptyStateTpl');
   private readonly identityCell = viewChild.required<TemplateRef<unknown>>('identityCell');
   private readonly contactsCell = viewChild.required<TemplateRef<unknown>>('contactsCell');
@@ -211,26 +228,42 @@ export class UserTableViewComponent {
   private readonly createdCell = viewChild.required<TemplateRef<unknown>>('createdCell');
   private readonly actionsCell = viewChild.required<TemplateRef<unknown>>('actionsCell');
 
-  readonly tableConfig = computed<TableConfig<User>>(() => {
+  /** Registry columns with the screen's cells, plus roles, manager and actions, which are not fields. */
+  readonly tableConfig = computed<TableConfig<User> | null>(() => {
+    const meta = this.meta();
+    if (!meta) return null;
     const header = (value: string) => ({ type: 'primitive' as const, value });
     const cell = (template: Signal<TemplateRef<unknown>>) => ({ type: 'templateRef' as const, value: template });
     // Every row is its own grid, so tracks are fixed or shares of the width, never content-sized.
     const share = 'max(150px, calc((100% - 480px) / 4))';
-    return {
+    const base = registryTableConfig<User>(meta, {
+      translate: key => this.i18n.translate(key),
       trackBy: (_index, user) => user.id,
-      layout: 'fit',
       ariaLabel: this.i18n.translate('iam.spisok_polzovateley'),
-      columnsOrder: ['identity', 'contacts', 'roles', 'manager', 'twoFactor', 'status', 'created', 'actions'],
-      columns: {
-        identity: { header: header(this.i18n.translate('audit.polzovatel')), content: cell(this.identityCell), width: share },
-        contacts: { header: header(this.i18n.translate('iam.kontakty')), content: cell(this.contactsCell), width: share },
-        roles: { header: header(this.i18n.translate('iam.roli')), content: cell(this.rolesCell), width: share },
-        manager: { header: header(this.i18n.translate('iam.rukovoditel')), content: cell(this.managerCell), width: share },
-        twoFactor: { header: header('2FA'), content: cell(this.twoFactorCell), width: '60px', align: 'center' },
-        status: { header: header(this.i18n.translate('common.status')), content: cell(this.statusCell), width: '130px' },
-        created: { header: header(this.i18n.translate('iam.sozdan')), content: cell(this.createdCell), width: '100px', align: 'right' },
-        actions: { header: header(this.i18n.translate('common.actions')), content: cell(this.actionsCell), width: '190px', align: 'right' },
+      sort: this.views()?.sort() ?? null,
+      cells: {
+        name: cell(this.identityCell),
+        email: cell(this.contactsCell),
+        is2faEnabled: cell(this.twoFactorCell),
+        state: cell(this.statusCell),
+        createdAt: cell(this.createdCell)
       },
+      widths: { name: share, email: share, is2faEnabled: '60px', state: '130px', createdAt: '100px' },
+      align: { is2faEnabled: 'center', createdAt: 'right' }
+    });
+    const order = [...base.columnsOrder];
+    const afterEmail = order.includes('email') ? order.indexOf('email') + 1 : order.length;
+    order.splice(afterEmail, 0, 'roles', 'manager');
+    return {
+      ...base,
+      layout: 'fit',
+      columns: {
+        ...base.columns,
+        roles: { key: 'roles', header: header(this.i18n.translate('iam.roli')), content: cell(this.rolesCell), width: share },
+        manager: { key: 'manager', header: header(this.i18n.translate('iam.rukovoditel')), content: cell(this.managerCell), width: share },
+        actions: { key: 'actions', header: header(this.i18n.translate('common.actions')), content: cell(this.actionsCell), width: '190px', align: 'right' }
+      },
+      columnsOrder: [...order, 'actions']
     };
   });
 
@@ -247,6 +280,7 @@ export class UserTableViewComponent {
   @Output() editUser = new EventEmitter<User>();
   @Output() toggleState = new EventEmitter<{ user: User, action: 'block' | 'unblock' }>();
   @Output() deleteUser = new EventEmitter<User>();
+  @Output() sortChange = new EventEmitter<{ column: string; sortBy: OrderBy } | undefined>();
   /** Per user, the menu built for the rights and language it was built with, so an open menu is not rebuilt. */
   private readonly actionMenus = new WeakMap<User, { key: string; items: SMTMenuItem<UserMenuAction>[] | null }>();
 

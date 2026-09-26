@@ -140,82 +140,62 @@ public class MdUserRepository {
                 .update();
     }
 
-    public List<UserRecord> listUsers(int limit, Long afterId, String search, String state, Long roleId, Long managerId, Boolean is2faEnabled) {
-        return listUsers(limit, afterId, search, state, roleId, managerId, is2faEnabled,
-                com.greenwhite.dwh.instance.common.security.ScopeFilter.unrestricted());
+    /** Columns of a user row as {@link #mapUser} reads them; the registry list {@code iam.users} selects them. */
+    public static final String LIST_COLUMNS = """
+            md_users.id, md_users.name, md_users.login, md_users.email, md_users.phone, md_users.password_hash,
+            md_users.state, md_users.manager_id, md_users.language, md_users.timezone, md_users.avatar_file_id,
+            md_users.attributes::text as attributes_str, md_users.is_2fa_enabled, md_users.force_password_change,
+            md_users.password_changed_at, md_users.created_at, md_users.modified_at, md_users.created_by,
+            md_users.modified_by, md_users.auth_version""";
+
+    /** The flat filters the list took before the registry, kept so existing callers keep working. */
+    public record LegacyUserFilters(String state, Long roleId, Long managerId, Boolean is2faEnabled) {
+
+        public static LegacyUserFilters none() {
+            return new LegacyUserFilters(null, null, null, null);
+        }
+
+        /** Canonical form for the cursor fingerprint; null when no filter is set. */
+        public String canonical() {
+            String value = (state == null || state.isBlank() ? "" : "state=" + state.strip())
+                    + (roleId == null ? "" : ";role=" + roleId)
+                    + (managerId == null ? "" : ";manager=" + managerId)
+                    + (is2faEnabled == null ? "" : ";2fa=" + is2faEnabled);
+            return value.isEmpty() ? null : value;
+        }
     }
 
     /**
-     * Тот же список, но ограниченный скоупом данных (ADR-0013).
-     * Предикат уходит в SQL, а не фильтрует результат: иначе страница в 50
-     * строк после фильтра становится короче, и keyset-пагинация врёт.
+     * The data scope (ADR-0013) and the flat filters as one predicate for the registry page. They go into the
+     * same SQL, so a page and its total only ever see visible users.
      */
-    public List<UserRecord> listUsers(int limit, Long afterId, String search, String state, Long roleId,
-                                      Long managerId, Boolean is2faEnabled,
-                                      com.greenwhite.dwh.instance.common.security.ScopeFilter scope) {
-        StringBuilder sql = new StringBuilder("""
-                select id, name, login, email, phone, password_hash, state, manager_id, language, timezone,
-                       avatar_file_id, attributes::text as attributes_str, is_2fa_enabled, force_password_change,
-                       password_changed_at, created_at, modified_at, created_by, modified_by, auth_version
-                from md_users
-                where 1=1
-                """);
-
-        if (afterId != null) {
-            sql.append(" and id > :afterId");
-        }
-        if (state != null && !state.isBlank()) {
-            sql.append(" and state = :state");
-        }
-        if (roleId != null) {
-            sql.append(" and exists (select 1 from md_user_roles ur where ur.user_id = md_users.id and ur.role_id = :roleId)");
-        }
-        if (managerId != null) {
-            sql.append(" and manager_id = :managerId");
-        }
-        if (is2faEnabled != null) {
-            sql.append(" and is_2fa_enabled = :is2faEnabled");
-        }
-        if (search != null && !search.isBlank()) {
-            sql.append(" and (name ilike :search or login ilike :search or email ilike :search or phone ilike :search)");
-        }
-
+    public static com.greenwhite.dwh.instance.common.query.QueryPlan.SqlFragment listPredicate(
+            com.greenwhite.dwh.instance.common.security.ScopeFilter scope, LegacyUserFilters filters) {
+        StringBuilder sql = new StringBuilder();
+        Map<String, Object> params = new java.util.LinkedHashMap<>();
         if (!scope.isUnrestricted()) {
             sql.append(scope.sql());
+            if (scope.bindsUserId()) {
+                params.put("scopeUserId", scope.userId());
+            }
         }
-
-        sql.append(" order by id asc limit :limit");
-
-        var query = jdbcClient.sql(sql.toString())
-                .param("limit", limit);
-
-        if (afterId != null) {
-            query.param("afterId", afterId);
+        if (filters.state() != null && !filters.state().isBlank()) {
+            sql.append(" and md_users.state = :state");
+            params.put("state", filters.state().strip());
         }
-        if (state != null && !state.isBlank()) {
-            query.param("state", state);
+        if (filters.roleId() != null) {
+            sql.append(" and exists (select 1 from md_user_roles ur where ur.user_id = md_users.id and ur.role_id = :roleId)");
+            params.put("roleId", filters.roleId());
         }
-        if (roleId != null) {
-            query.param("roleId", roleId);
+        if (filters.managerId() != null) {
+            sql.append(" and md_users.manager_id = :managerId");
+            params.put("managerId", filters.managerId());
         }
-        if (managerId != null) {
-            query.param("managerId", managerId);
+        if (filters.is2faEnabled() != null) {
+            sql.append(" and md_users.is_2fa_enabled = :is2faEnabled");
+            params.put("is2faEnabled", filters.is2faEnabled());
         }
-        if (is2faEnabled != null) {
-            query.param("is2faEnabled", is2faEnabled);
-        }
-        if (search != null && !search.isBlank()) {
-            query.param("search", "%" + search.trim() + "%");
-        }
-        if (scope.bindsUserId()) {
-            query.param("scopeUserId", scope.userId());
-        }
-
-        return query.query(this::mapUser).list();
-    }
-
-    public List<UserRecord> listUsers(int limit, Long afterId, String search, String state) {
-        return listUsers(limit, afterId, search, state, null, null, null);
+        return new com.greenwhite.dwh.instance.common.query.QueryPlan.SqlFragment(sql.toString(), params);
     }
 
 
@@ -334,7 +314,8 @@ public class MdUserRepository {
                 .update();
     }
 
-    private UserRecord mapUser(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
+    /** Reads a row of {@link #LIST_COLUMNS}; the user list (registry {@code iam.users}) maps its pages with it. */
+    public UserRecord mapUser(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
         Map<String, Object> attrs = parseJson(rs.getString("attributes_str"));
         return new UserRecord(
                 rs.getLong("id"),

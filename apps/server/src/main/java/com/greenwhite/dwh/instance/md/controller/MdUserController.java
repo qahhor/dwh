@@ -5,6 +5,7 @@ import com.greenwhite.dwh.instance.common.annotation.RequiresPermission;
 import com.greenwhite.dwh.instance.common.security.SecurityContext;
 import com.greenwhite.dwh.instance.md.pref.MdPref;
 import com.greenwhite.dwh.instance.md.repository.MdUserRepository;
+import com.greenwhite.dwh.instance.md.service.MdUserListService;
 import com.greenwhite.dwh.instance.md.service.MdUserService;
 import com.greenwhite.dwh.instance.md.service.MdUserView;
 import jakarta.validation.Valid;
@@ -24,29 +25,31 @@ import java.util.UUID;
 public class MdUserController {
 
     private final MdUserService userService;
+    private final MdUserListService userListService;
 
-    public MdUserController(MdUserService userService) {
+    public MdUserController(MdUserService userService, MdUserListService userListService) {
         this.userService = userService;
+        this.userListService = userListService;
     }
 
     @GetMapping
     @RequiresPermission(form = MdPref.FORM_USERS, action = "view")
     public ResponseEntity<KeysetPage<MdUserView>> listUsers(
-            @RequestParam(name = "limit", defaultValue = "20") int limit,
+            @RequestParam(name = "limit", required = false) Integer limit,
             @RequestParam(name = "cursor", required = false) String cursor,
+            @RequestParam(name = "filter", required = false) String filter,
+            @RequestParam(name = "sort", required = false) String sort,
+            @RequestParam(name = "q", required = false) String query,
             @RequestParam(name = "search", required = false) String search,
             @RequestParam(name = "state", required = false) String state,
             @RequestParam(name = "role_id", required = false) Long roleId,
             @RequestParam(name = "manager_id", required = false) Long managerId,
             @RequestParam(name = "is_2fa_enabled", required = false) Boolean is2faEnabled) {
 
-        var page = userService.listUsers(limit, cursor, search, state, roleId, managerId, is2faEnabled);
-        var userIds = page.items().stream().map(MdUserRepository.UserRecord::id).toList();
-        var rolesMap = userService.getUsersRoleIds(userIds);
-
-        return ResponseEntity.ok(new KeysetPage<>(
-                page.items().stream().map(u -> MdUserView.from(u, rolesMap.getOrDefault(u.id(), List.of()))).toList(),
-                page.nextCursor(), page.hasMore(), page.totalEstimated()));
+        // Registry list iam.users (ADR-0016); `search` and the flat filters are kept for existing callers.
+        return ResponseEntity.ok(userListService.pageViews(SecurityContext.getCurrentUserId(), limit, cursor, filter,
+                sort, query != null && !query.isBlank() ? query : search,
+                new MdUserRepository.LegacyUserFilters(state, roleId, managerId, is2faEnabled)));
     }
 
 

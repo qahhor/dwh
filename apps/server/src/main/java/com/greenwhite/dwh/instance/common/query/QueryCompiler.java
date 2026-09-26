@@ -55,6 +55,16 @@ public final class QueryCompiler {
      */
     public static QueryPlan compile(QueryList list, String filter, String sort, Integer limit, String cursor,
                                     String search) {
+        return compile(list, filter, sort, limit, cursor, search, null);
+    }
+
+    /**
+     * @param narrowing параметры модуля, сужающие список помимо DSL (например, прежние плоские фильтры), в
+     *                  канонической строке. Они входят в отпечаток курсора: курсор от другого набора
+     *                  параметров отвергается так же, как от другого фильтра. {@code null} — таких параметров нет
+     */
+    public static QueryPlan compile(QueryList list, String filter, String sort, Integer limit, String cursor,
+                                    String search, String narrowing) {
         int pageSize = limit == null ? list.defaultLimit() : limit;
         if (pageSize < 1 || pageSize > list.maxLimit()) {
             throw ApiException.validation(INVALID_LIMIT, List.of(new FieldErrorItem("limit", INVALID_LIMIT,
@@ -84,7 +94,7 @@ public final class QueryCompiler {
             throw ApiException.validation(QUERY_INVALID, errors);
         }
 
-        String fingerprint = fingerprint(list, conditions, sortField, descending, term);
+        String fingerprint = fingerprint(list, conditions, sortField, descending, term, narrowing);
         QueryCursor decoded = null;
         if (cursor != null && !cursor.isBlank()) {
             decoded = QueryCursor.decode(cursor, fingerprint, sortField);
@@ -194,10 +204,13 @@ public final class QueryCompiler {
     }
 
     private static String fingerprint(QueryList list, List<QueryPlan.Condition> conditions, QueryField sort,
-                                      boolean descending, String search) {
+                                      boolean descending, String search, String narrowing) {
         StringBuilder canonical = new StringBuilder(list.code()).append('|').append(descending ? '-' : '+')
                 .append(sort.key()).append("|q").append(search == null ? -1 : search.length()).append('=')
                 .append(search == null ? "" : search);
+        if (narrowing != null) {
+            canonical.append("|m").append(narrowing.length()).append('=').append(narrowing);
+        }
         for (QueryPlan.Condition condition : conditions) {
             canonical.append('|').append(condition.field().key()).append(':').append(condition.op().wire());
             for (Object value : condition.values()) {

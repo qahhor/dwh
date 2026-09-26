@@ -59,6 +59,7 @@ class MdScopeServiceIntegrationTest {
     static MdPermissionService permissionService;
     static MsTaskRepository taskRepository;
     static MfFileRepository fileRepository;
+    static com.greenwhite.dwh.instance.md.service.MdUserListService userList;
 
     static Long company;
     static Long regionTashkent;
@@ -84,6 +85,9 @@ class MdScopeServiceIntegrationTest {
 
         scopeService = new MdScopeService(scopeRepository, orgUnitRepository, permissionService, auditLogService);
         orgUnitService = new MdOrgUnitService(orgUnitRepository, scopeService, auditLogService);
+        userList = new com.greenwhite.dwh.instance.md.service.MdUserListService(
+                new com.greenwhite.dwh.instance.common.query.QueryListRepository(jdbc), userRepository, scopeService,
+                roleRepository);
 
         company = orgUnitService.create(null, "HQ", "Компания", "company", 10).id();
         regionTashkent = orgUnitService.create(company, "R-TAS", "Регион Ташкент", "region", 10).id();
@@ -206,9 +210,8 @@ class MdScopeServiceIntegrationTest {
         Long inBranch = createUser("scope_in_branch", branchYunusabad);
         Long inOtherRegion = createUser("scope_in_samarkand", regionSamarkand);
 
-        var filter = scopeService.filterFor(viewer, "md_users.org_unit_id", "md_users.id");
-        var visible = userRepository.listUsers(100, null, null, null, null, null, null, filter)
-                .stream().map(MdUserRepository.UserRecord::id).toList();
+        var visible = userList.page(viewer, 100, null, null, null, null, MdUserRepository.LegacyUserFilters.none())
+                .items().stream().map(MdUserRepository.UserRecord::id).toList();
 
         assertThat(visible).contains(viewer, inBranch);
         assertThat(visible).as("соседний регион виден быть не должен").doesNotContain(inOtherRegion);
@@ -226,8 +229,8 @@ class MdScopeServiceIntegrationTest {
         var filter = scopeService.filterFor(admin, "md_users.org_unit_id", "md_users.id");
         assertThat(filter.isUnrestricted()).isTrue();
 
-        var visible = userRepository.listUsers(200, null, null, null, null, null, null, filter)
-                .stream().map(MdUserRepository.UserRecord::id).toList();
+        var visible = userList.page(admin, 200, null, null, null, null, MdUserRepository.LegacyUserFilters.none())
+                .items().stream().map(MdUserRepository.UserRecord::id).toList();
         assertThat(visible).contains(admin, other);
     }
 

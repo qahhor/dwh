@@ -121,6 +121,10 @@ public class ReportExportService {
         List<FieldErrorItem> errors = new ArrayList<>();
         options.keySet().stream().filter(key -> !exporter.options().contains(key))
                 .forEach(key -> errors.add(new FieldErrorItem("options." + key, EXPORT_INVALID, "unknown option " + key)));
+        if (errors.isEmpty()) {
+            exporter.checkOptions(options).forEach(error -> errors.add(
+                    new FieldErrorItem("options." + error.field(), EXPORT_INVALID, error.message())));
+        }
         if (request.columns() != null) {
             for (int i = 0; i < request.columns().size(); i++) {
                 String key = request.columns().get(i);

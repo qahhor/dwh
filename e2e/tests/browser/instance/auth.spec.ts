@@ -149,7 +149,7 @@ test('administrator can create and remove a user and upload and delete a file', 
   const refreshedUsers = page.waitForResponse(response =>
     response.request().method() === 'GET'
       && response.url().includes('/api/v1/iam/users?')
-      && response.url().includes(`search=${encodeURIComponent(login)}`)
+      && response.url().includes(`q=${encodeURIComponent(login)}`)
   );
   await page.getByLabel('Поиск пользователей').fill(login);
   expect((await refreshedUsers).ok()).toBe(true);

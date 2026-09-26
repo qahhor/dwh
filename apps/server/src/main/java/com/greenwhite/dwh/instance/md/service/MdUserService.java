@@ -1,8 +1,6 @@
 package com.greenwhite.dwh.instance.md.service;
 
 import com.greenwhite.dwh.core.error.ErrorCode;
-import com.greenwhite.dwh.core.pagination.CursorUtils;
-import com.greenwhite.dwh.core.pagination.KeysetPage;
 import com.greenwhite.dwh.instance.common.error.ApiException;
 import com.greenwhite.dwh.instance.md.pref.MdPref;
 import com.greenwhite.dwh.instance.md.repository.MdRoleRepository;
@@ -122,47 +120,6 @@ public class MdUserService {
     public MdUserRepository.UserRecord getUserById(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.USER_NOT_FOUND, "Пользователь не найден"));
-    }
-
-    @Transactional(readOnly = true)
-    public KeysetPage<MdUserRepository.UserRecord> listUsers(
-            int limit, String cursor, String search, String state, Long roleId, Long managerId, Boolean is2faEnabled) {
-        Long afterId = null;
-        if (cursor != null && !cursor.isBlank()) {
-            String decoded = CursorUtils.decode(cursor);
-            if (decoded != null) {
-                try {
-                    afterId = Long.parseLong(decoded);
-                } catch (NumberFormatException ignored) {}
-            }
-        }
-
-        int fetchLimit = limit + 1;
-        // ADR-0013: список ограничивается скоупом текущего пользователя.
-        // Для правила ALL — а его сегодня имеют все роли — предикат пуст
-        // и запрос не меняется ни на символ.
-        var scope = scopeService.filterFor(
-                com.greenwhite.dwh.instance.common.security.SecurityContext.getCurrentUserId(),
-                "md_users.org_unit_id", "md_users.id");
-
-        List<MdUserRepository.UserRecord> users = userRepository.listUsers(
-                fetchLimit, afterId, search, state, roleId, managerId, is2faEnabled, scope);
-
-        boolean hasMore = users.size() > limit;
-        List<MdUserRepository.UserRecord> resultItems = hasMore ? users.subList(0, limit) : users;
-
-        String nextCursor = null;
-        if (hasMore && !resultItems.isEmpty()) {
-            Long lastId = resultItems.get(resultItems.size() - 1).id();
-            nextCursor = CursorUtils.encode(String.valueOf(lastId));
-        }
-
-        return KeysetPage.of(resultItems, nextCursor, hasMore, resultItems.size());
-    }
-
-    @Transactional(readOnly = true)
-    public KeysetPage<MdUserRepository.UserRecord> listUsers(int limit, String cursor, String search, String state) {
-        return listUsers(limit, cursor, search, state, null, null, null);
     }
 
 
