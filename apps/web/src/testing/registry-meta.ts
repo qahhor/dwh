@@ -23,10 +23,37 @@ export const TASKS_META: QueryListMeta = {
   ]
 } as QueryListMeta;
 
-/** Providers that answer a list's metadata and an empty set of saved views. */
-export function registryProviders(meta: QueryListMeta) {
+/** What `query-meta/audit.logs` answers (AuditQuery on the server). */
+export const AUDIT_LOGS_META: QueryListMeta = {
+  code: 'audit.logs', defaultSort: '-changedAt', defaultLimit: 50, maxLimit: 200, maxConditions: 20, maxInValues: 100,
+  fields: [
+    metaField('id', 'audit.col.id', 'number'),
+    metaField('tableName', 'audit.col.table', 'text'),
+    metaField('rowPk', 'audit.col.row', 'text'),
+    metaField('event', 'audit.col.event', 'enum', { enumValues: ['I', 'U', 'D'], enumLabelPrefix: 'audit.event.' }),
+    metaField('changedByName', 'audit.col.changed_by', 'text', { nullable: true }),
+    metaField('isApi', 'audit.col.channel', 'boolean'),
+    metaField('changedAt', 'audit.col.changed_at', 'instant', { sortable: true })
+  ]
+} as QueryListMeta;
+
+/** What `query-meta/audit.security_events` answers. */
+export const SECURITY_EVENTS_META: QueryListMeta = {
+  code: 'audit.security_events', defaultSort: '-createdAt', defaultLimit: 50, maxLimit: 200, maxConditions: 20, maxInValues: 100,
+  fields: [
+    metaField('id', 'audit.col.id', 'number'),
+    metaField('eventType', 'audit.col.event_type', 'text'),
+    metaField('userName', 'audit.col.user', 'text', { nullable: true }),
+    metaField('ip', 'audit.col.ip', 'text', { nullable: true }),
+    metaField('userAgent', 'audit.col.user_agent', 'text', { nullable: true }),
+    metaField('createdAt', 'audit.col.created_at', 'instant', { sortable: true })
+  ]
+} as QueryListMeta;
+
+/** Providers that answer each list's metadata by its code and an empty set of saved views. */
+export function registryProviders(...metas: QueryListMeta[]) {
   return [
-    { provide: QueryMetaService, useValue: { get: () => of(meta) } },
+    { provide: QueryMetaService, useValue: { get: (code: string) => of(metas.find(meta => meta.code === code) ?? metas[0]) } },
     { provide: ListViewsApi, useValue: { list: () => of([]), create: vi.fn(), update: vi.fn(), remove: vi.fn() } }
   ];
 }

@@ -9,6 +9,12 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- The audit log and the security events are registry lists (`audit.logs`,
+  `audit.security_events`, roadmap item 50): filter, search, saved views,
+  column settings and the server export, newest first as before and with
+  every flat filter kept. Only the event time sorts, because the log is
+  partitioned by it. Rows are redacted on every page and in exports, and
+  exports carry registry fields only, never old/new rows or event details.
 - The task list is a registry list (`ms.tasks`, roadmap item 49): filter,
   sort of the whole list, search `q` over title and description, saved
   views, column settings and the server export, with bulk actions and the

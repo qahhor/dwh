@@ -1,6 +1,7 @@
 package com.greenwhite.dwh.instance.audit.controller;
 
 import com.greenwhite.dwh.instance.audit.repository.AuditLogRepository;
+import com.greenwhite.dwh.instance.audit.service.AuditListService;
 import com.greenwhite.dwh.instance.audit.service.AuditLogService;
 import com.greenwhite.dwh.core.pagination.KeysetPage;
 import com.greenwhite.dwh.instance.audit.pref.AuditPref;
@@ -17,9 +18,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuditLogController {
 
     private final AuditLogService auditLogService;
+    private final AuditListService auditListService;
 
-    public AuditLogController(AuditLogService auditLogService) {
+    public AuditLogController(AuditLogService auditLogService, AuditListService auditListService) {
         this.auditLogService = auditLogService;
+        this.auditListService = auditListService;
     }
 
     @GetMapping("/stats")
@@ -37,10 +40,15 @@ public class AuditLogController {
             @RequestParam(name = "user_id", required = false) Long userId,
             @RequestParam(name = "from", required = false) java.time.Instant from,
             @RequestParam(name = "to", required = false) java.time.Instant to,
-            @RequestParam(name = "limit", defaultValue = "50") int limit,
-            @RequestParam(name = "cursor", required = false) String cursor) {
+            @RequestParam(name = "limit", required = false) Integer limit,
+            @RequestParam(name = "cursor", required = false) String cursor,
+            @RequestParam(name = "filter", required = false) String filter,
+            @RequestParam(name = "sort", required = false) String sort,
+            @RequestParam(name = "q", required = false) String query) {
 
-        return ResponseEntity.ok(auditLogService.listAuditLogs(tableName, rowPk, event, userId, from, to, limit, cursor));
+        // Registry list audit.logs (ADR-0016); the flat filters are kept for existing callers.
+        return ResponseEntity.ok(auditListService.logs(limit, cursor, filter, sort, query,
+                new AuditLogRepository.AuditLogFilters(tableName, rowPk, event, userId, from, to)));
     }
 
     @GetMapping("/security-events")
@@ -51,10 +59,15 @@ public class AuditLogController {
             @RequestParam(name = "ip", required = false) String ip,
             @RequestParam(name = "from", required = false) java.time.Instant from,
             @RequestParam(name = "to", required = false) java.time.Instant to,
-            @RequestParam(name = "limit", defaultValue = "50") int limit,
-            @RequestParam(name = "cursor", required = false) String cursor) {
+            @RequestParam(name = "limit", required = false) Integer limit,
+            @RequestParam(name = "cursor", required = false) String cursor,
+            @RequestParam(name = "filter", required = false) String filter,
+            @RequestParam(name = "sort", required = false) String sort,
+            @RequestParam(name = "q", required = false) String query) {
 
-        return ResponseEntity.ok(auditLogService.listSecurityEvents(eventType, userId, ip, from, to, limit, cursor));
+        // Registry list audit.security_events (ADR-0016); the flat filters are kept for existing callers.
+        return ResponseEntity.ok(auditListService.securityEvents(limit, cursor, filter, sort, query,
+                new AuditLogRepository.SecurityEventFilters(eventType, userId, ip, from, to)));
     }
 }
 

@@ -75,31 +75,7 @@ public class AuditLogService {
         String nextCursor = hasMore && !pageRows.isEmpty()
                 ? encodeCursor(pageRows.getLast().changedAt(), pageRows.getLast().id(), total)
                 : null;
-        List<AuditLogRepository.AuditRecord> safeRows = pageRows.stream().map(this::redact).toList();
-        return KeysetPage.of(safeRows, nextCursor, hasMore, total);
-    }
-
-    @Transactional(readOnly = true)
-    public KeysetPage<AuditLogRepository.SecurityEventRecord> listSecurityEvents(
-            String eventType, Long userId, String ip, java.time.Instant from, java.time.Instant to,
-            int limit, String cursor) {
-        int pageSize = normalizePageSize(limit);
-        AuditCursor decodedCursor = decodeCursor(cursor);
-        List<AuditLogRepository.SecurityEventRecord> rows = auditLogRepository.listSecurityEvents(
-                eventType, userId, ip, from, to,
-                decodedCursor != null ? decodedCursor.timestamp() : null,
-                decodedCursor != null ? decodedCursor.id() : null,
-                pageSize + 1
-        );
-        boolean hasMore = rows.size() > pageSize;
-        List<AuditLogRepository.SecurityEventRecord> pageRows = rows.subList(0, Math.min(rows.size(), pageSize));
-        long total = decodedCursor == null
-                ? auditLogRepository.countSecurityEvents(eventType, userId, ip, from, to)
-                : decodedCursor.totalEstimated();
-        String nextCursor = hasMore && !pageRows.isEmpty()
-                ? encodeCursor(pageRows.getLast().createdAt(), pageRows.getLast().id(), total)
-                : null;
-        List<AuditLogRepository.SecurityEventRecord> safeRows = pageRows.stream().map(this::redact).toList();
+        List<AuditLogRepository.AuditRecord> safeRows = pageRows.stream().map(this::redacted).toList();
         return KeysetPage.of(safeRows, nextCursor, hasMore, total);
     }
 
@@ -119,7 +95,8 @@ public class AuditLogService {
         return fresh;
     }
 
-    private AuditLogRepository.AuditRecord redact(AuditLogRepository.AuditRecord record) {
+    /** The row as a client may see it: credentials in the old and new row masked. */
+    public AuditLogRepository.AuditRecord redacted(AuditLogRepository.AuditRecord record) {
         return new AuditLogRepository.AuditRecord(
                 record.id(), record.tableName(), record.rowPk(), record.event(), record.changedBy(),
                 record.sessionId(), record.isApi(), record.changedAt(), record.changedColumns(),
@@ -128,7 +105,8 @@ public class AuditLogService {
         );
     }
 
-    private AuditLogRepository.SecurityEventRecord redact(AuditLogRepository.SecurityEventRecord record) {
+    /** The event as a client may see it: credentials in its details masked. */
+    public AuditLogRepository.SecurityEventRecord redacted(AuditLogRepository.SecurityEventRecord record) {
         return new AuditLogRepository.SecurityEventRecord(
                 record.id(), record.eventType(), record.userId(), record.ip(), record.userAgent(),
                 auditDataRedactor.redact(record.details()), record.createdAt(), record.userName(), record.userLogin()
