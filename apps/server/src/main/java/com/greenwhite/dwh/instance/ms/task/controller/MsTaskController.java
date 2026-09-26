@@ -13,6 +13,7 @@ import com.greenwhite.dwh.instance.ms.task.repository.MsTaskRepository;
 import com.greenwhite.dwh.instance.ms.task.repository.MsTaskStatusRepository;
 
 import com.greenwhite.dwh.instance.ms.task.repository.MsTaskTypeRepository;
+import com.greenwhite.dwh.instance.ms.task.service.MsTaskListService;
 import com.greenwhite.dwh.instance.ms.task.service.MsTaskService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -34,16 +35,21 @@ public class MsTaskController {
             MsTaskPref.PRIORITY_HIGH, MsTaskPref.PRIORITY_CRITICAL);
 
     private final MsTaskService taskService;
+    private final MsTaskListService taskListService;
 
-    public MsTaskController(MsTaskService taskService) {
+    public MsTaskController(MsTaskService taskService, MsTaskListService taskListService) {
         this.taskService = taskService;
+        this.taskListService = taskListService;
     }
 
     @GetMapping
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
     public ResponseEntity<KeysetPage<MsTaskRepository.TaskRecord>> listTasks(
-            @RequestParam(name = "limit", defaultValue = "50") int limit,
+            @RequestParam(name = "limit", required = false) Integer limit,
             @RequestParam(name = "cursor", required = false) String cursor,
+            @RequestParam(name = "filter", required = false) String filter,
+            @RequestParam(name = "sort", required = false) String sort,
+            @RequestParam(name = "q", required = false) String query,
             @RequestParam(name = "project_id", required = false) Long projectId,
             @RequestParam(name = "status_id", required = false) Long statusId,
             @RequestParam(name = "priority", required = false) String priority,
@@ -54,9 +60,11 @@ public class MsTaskController {
             @RequestParam(name = "reporter_id", required = false) Long reporterId,
             @RequestParam(name = "overdue", required = false) Boolean overdue) {
 
-        return ResponseEntity.ok(taskService.listTasks(
-                limit, cursor, projectId, statusId, priority, search, hideTerminal,
-                assignedUserId, reporterId, overdue, memberRole, SecurityContext.getCurrentUserId()));
+        // Registry list ms.tasks (ADR-0016); `search` and the flat filters are kept for existing callers.
+        return ResponseEntity.ok(taskListService.page(SecurityContext.getCurrentUserId(), limit, cursor, filter, sort,
+                query != null && !query.isBlank() ? query : search,
+                new MsTaskRepository.LegacyTaskFilters(projectId, statusId, priority, hideTerminal,
+                        assignedUserId, memberRole, reporterId, overdue)));
     }
 
     // =========================================================================

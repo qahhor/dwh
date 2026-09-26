@@ -340,8 +340,10 @@ class MdScopeServiceIntegrationTest {
         UUID hiddenFile = createFile("repository-hidden.txt", other);
 
         var taskScope = scopeService.filterForTasks(viewer);
-        var taskIds = taskRepository.listTasks(100, null, null, null, null, null, false, taskScope)
-                .stream().map(MsTaskRepository.TaskRecord::id).toList();
+        var taskIds = new com.greenwhite.dwh.instance.ms.task.service.MsTaskListService(
+                        new com.greenwhite.dwh.instance.common.query.QueryListRepository(jdbc), taskRepository, scopeService)
+                .page(viewer, 100, null, null, null, null, MsTaskRepository.LegacyTaskFilters.none())
+                .items().stream().map(MsTaskRepository.TaskRecord::id).toList();
         assertThat(taskIds).contains(visibleTask).doesNotContain(hiddenTask);
         assertThat(taskRepository.findById(visibleTask, taskScope)).isPresent();
         assertThat(taskRepository.findById(hiddenTask, taskScope)).isEmpty();

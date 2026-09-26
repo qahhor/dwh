@@ -9,6 +9,12 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- The task list is a registry list (`ms.tasks`, roadmap item 49): filter,
+  sort of the whole list, search `q` over title and description, saved
+  views, column settings and the server export, with bulk actions and the
+  data scope as before. Tasks stay ordered by number by default, so the
+  table and the kanban keep their order; the old flat filters and `search`
+  still work and are part of the cursor; the total is real.
 - The user list is a registry list (`iam.users`, roadmap item 48): filter,
   sort of the whole list, search `q` over name, login, email and phone,
   saved views, column settings and the server export (ADR-0018) replace the

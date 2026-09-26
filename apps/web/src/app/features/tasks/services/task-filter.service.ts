@@ -95,7 +95,6 @@ export class TaskFilterService {
     return {
       limit,
       cursor: cursor || undefined,
-      search: this.searchQuery || undefined,
       priority: this.selectedPriority || undefined,
       project_id: this.selectedProjectId || undefined,
       status_id: statusIdParam,

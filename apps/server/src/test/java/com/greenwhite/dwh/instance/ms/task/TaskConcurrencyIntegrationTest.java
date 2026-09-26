@@ -121,7 +121,7 @@ class TaskConcurrencyIntegrationTest {
                 audit);
         MsTaskService taskService = transactional(taskServiceTarget, transactions, MsTaskService.class);
 
-        mvc = MockMvcBuilders.standaloneSetup(new MsTaskController(taskService))
+        mvc = MockMvcBuilders.standaloneSetup(new MsTaskController(taskService, null))
                 .addInterceptors(new RequiresPermissionInterceptor())
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();

@@ -1,9 +1,17 @@
 import { Component, DestroyRef, OnDestroy, OnInit, effect, inject, signal, untracked } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { canonicalRecordId, safeNumericRecordId } from '../../core/services/search-target';
 import { KeysetPager } from '../../shared/paging/keyset-pager';
+import { QueryListMeta } from '../../core/models/query-meta.models';
+import { QueryMetaService, parseSort, toQueryParams } from '../../core/services/query-meta.service';
+import { ListViewState, ListViewsApi } from '../../shared/list-views/list-views';
+import { TableColumnStateStore } from '../../shared/ui-kit/services/table-column-state.store';
+import { sortFromHeader } from '../../shared/ui/registry-table-config';
+import { OrderBy } from '../../shared/ui-kit/components/table/table.types';
+import { SMTAlertComponent } from '../../shared/ui-kit/components/alert';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { ApiService } from '../../core/services/api.service';
 import { PermissionService } from '../../core/services/permission.service';
@@ -57,7 +65,7 @@ export type { TaskDeadlineInfo, TaskCreateFormValue, TaskEditFormValue };
   selector: 'app-tasks',
   standalone: true,
   imports: [
-    SMTRadioGroupComponent, TranslatePipe, CommonModule, FormsModule, SMTButtonComponent, UiPaginationComponent,
+    SMTRadioGroupComponent, TranslatePipe, CommonModule, FormsModule, SMTButtonComponent, UiPaginationComponent, SMTAlertComponent,
     TaskDictionariesModalComponent, TaskKanbanViewComponent, TaskTableViewComponent,
     TaskFilterBarComponent, TaskDetailModalComponent, TaskCreateModalComponent, TaskEditModalComponent
   ],
@@ -76,10 +84,16 @@ export class TasksComponent implements OnInit, OnDestroy {
 
   private readonly uiI18n = inject(I18nService);
   private readonly recordRouter = inject(Router, { optional: true });
+  private readonly queryMeta = inject(QueryMetaService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly routeRecordId = signal<string | null>(null);
   readonly projects = signal<Project[]>([]);
   readonly taskCustomFields = signal<CustomField[]>([]);
+
+  /** Field metadata of the list (`query-meta/ms.tasks`), roadmap item 49. */
+  readonly meta = signal<QueryListMeta | null>(null);
+  readonly metaError = signal(false);
 
   /** A user-typed custom field on the open card shows a name: unknown ones are asked for once. */
   private readonly userFieldNames = effect(() => {
@@ -96,14 +110,28 @@ export class TasksComponent implements OnInit, OnDestroy {
   readonly safeRecordId = safeNumericRecordId;
   private recordRouteSubscription?: Subscription;
   private routeSubscription?: Subscription;
+  private exportFilters: Record<string, string> = {};
+
+  /** Sort, filter and columns of the list; saved views keep them under a name. */
+  readonly views = new ListViewState('ms.tasks', inject(ListViewsApi), {
+    defaultSort: () => {
+      const meta = this.meta();
+      return meta ? parseSort(meta.defaultSort) : null;
+    },
+    onApply: () => this.taskPager.first(),
+    columnsStore: inject(TableColumnStateStore)
+  });
 
   /* Page-by-page over the keyset API. The pager cancels a superseded request,
      moves the page only when it arrives and retries exactly the failed one;
-     the filters are read when each request is made. */
+     the quick filters, the search, the sort and the filter are read when each request is made. */
   readonly taskPager = new KeysetPager<Task>(
-    (cursor, limit) => this.api.get<KeysetPage<Task>>('/tasks', this.filterService.buildListParams(cursor, limit)),
+    (cursor, limit) => this.api.get<KeysetPage<Task>>('/tasks', {
+      ...this.filterService.buildListParams(cursor, limit),
+      ...toQueryParams({ sort: this.views.sort(), conditions: this.views.filter(), search: this.filterService.searchQuery })
+    }),
     // One page size: the pager's, which is also the limit each request sends.
-    { pageSize: this.filterService.pageSize, destroyRef: inject(DestroyRef) }
+    { pageSize: this.filterService.pageSize, destroyRef: this.destroyRef }
   );
   /** Writable: kanban and inline edits update rows in place. */
   readonly tasks = this.taskPager.items;
@@ -244,10 +272,42 @@ export class TasksComponent implements OnInit, OnDestroy {
     this.api.get<CustomField[]>('/custom-fields', { entity_type: 'TASK' }).subscribe({ next: res => this.taskCustomFields.set(res || []), error: () => {} });
   }
 
+  /** The first page for the current filters; without `reset`, the page on screen again. The metadata comes first, once. */
   loadTasks(reset: boolean = false) {
     clearTimeout(this.filterService.taskSearchTimer);
+    if (!this.meta()) {
+      this.metaError.set(false);
+      this.queryMeta.get('ms.tasks').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: meta => {
+          this.meta.set(meta);
+          this.views.load().subscribe(() => this.taskPager.first());
+        },
+        error: () => this.metaError.set(true)
+      });
+      return;
+    }
     if (reset) this.taskPager.first();
     else this.taskPager.reload();
+  }
+
+  /** A header click sorts the whole list on the server. */
+  onSort(event: { column: string; sortBy: OrderBy } | undefined) {
+    if (!this.meta()) return;
+    this.views.setSort(sortFromHeader(event));
+    this.taskPager.first();
+  }
+
+  /** The quick filters as export options; the same object while they stay, so the button is not re-rendered. */
+  exportOptions(): Record<string, string> {
+    const next: Record<string, string> = {};
+    const { limit: _limit, cursor: _cursor, ...filters } = this.filterService.buildListParams(null);
+    for (const [key, value] of Object.entries(filters)) {
+      if (value !== undefined && value !== null && value !== '') next[key] = String(value);
+    }
+    const same = Object.keys(next).length === Object.keys(this.exportFilters).length
+      && Object.entries(next).every(([key, value]) => this.exportFilters[key] === value);
+    if (!same) this.exportFilters = next;
+    return this.exportFilters;
   }
 
   onTaskSearchChange(query: string) {
