@@ -576,6 +576,10 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- User rows in the list carried no roles: the role lookup built its query
+  but never ran it. Editing a user opened from the list therefore sent an
+  empty role list and removed every role the user had (only the last
+  administrator was protected). The query runs now; a test covers it.
 - Menu items limited to a right are shown only to its holders (FR-MOD-02,
   roadmap item 47). `required_permission` was stored but applied nowhere:
   `/navigation/items/active` now drops items the viewer lacks the right for,

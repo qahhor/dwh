@@ -169,8 +169,9 @@ public class MdRoleRepository {
                     Long uid = rs.getLong("user_id");
                     Long rid = rs.getLong("role_id");
                     map.computeIfAbsent(uid, k -> new java.util.ArrayList<>()).add(rid);
-                    return null;
-                });
+                    return rid;
+                })
+                .list(); // without a terminal call the query never runs and every user had no roles
         return map;
     }
 
