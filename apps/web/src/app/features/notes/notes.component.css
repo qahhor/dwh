@@ -145,48 +145,14 @@
       font-size: 48px;
       color: var(--text-muted);
     }
+    .note-custom {
+      display: block;
+      margin-top: 8px;
+    }
     .modal-form {
       display: flex;
       flex-direction: column;
       gap: 16px;
-    }
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .form-row {
-      display: flex;
-      gap: 16px;
-      align-items: center;
-    }
-    .form-label {
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: var(--text-main);
-    }
-    .field-error {
-      font-size: 0.75rem;
-      color: var(--danger);
-      margin-top: 2px;
-    }
-    .checkbox-group {
-      margin-top: 24px;
-    }
-    .custom-fields-section {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      padding-top: 12px;
-      border-top: 1px solid var(--border-color);
-    }
-    .custom-fields-title {
-      font-size: 0.8125rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      margin: 0;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
     }
     .modal-footer-actions {
       display: flex;

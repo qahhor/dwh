@@ -1,28 +1,34 @@
 import { Component, OnInit, OnDestroy, signal, computed, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, finalize } from 'rxjs/operators';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ApiService } from '../../core/services/api.service';
 import { KeysetPage } from '../../core/models/common.models';
 import { toQueryParams } from '../../core/services/query-meta.service';
-
-const NOTES_PAGE_SIZE = 50;
+import { ProblemDetail } from '../../core/models/common.models';
+import { FormMeta, FormProblems, FormValues } from '../../core/models/form-meta.models';
+import {
+  FormMetaService, canDo, formProblems, recordPayload, recordValues, serverProblems,
+} from '../../core/services/form-meta.service';
 import { ToastService } from '../../core/services/toast.service';
-import { PermissionService } from '../../core/services/permission.service';
 import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
 import { SMTDialogComponent, SMTDialogContentDirective } from '../../shared/ui-kit/components/modal';
-import { UiMarkdownEditorComponent } from '../../shared/ui/ui-markdown-editor.component';
 import { UiMarkdownViewComponent } from '../../shared/ui/ui-markdown-view.component';
-import { UiCustomFieldsComponent } from '../../shared/ui/ui-custom-fields.component';
-import { CustomField } from '../../core/models/custom-field.models';
+import { SMTEntityFormComponent } from '../../shared/entity/smt-entity-form.component';
+import { SMTEntityCardComponent } from '../../shared/entity/smt-entity-card.component';
 import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
 import { SMTTabBarComponent, SMTTabItem } from '../../shared/ui-kit/components/tab-bar';
 import { optionsMemo } from '../../shared/ui-kit/components/forms/radio-group';
-import { SMTInputComponent, SMTInputValueAccessor } from '../../shared/ui-kit/components/forms/input';
-import { SMTCheckboxComponent, SMTCheckboxValueAccessor } from '../../shared/ui-kit/components/forms/checkbox';
-import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../../shared/ui-kit/components/forms/select';
+import { SMTInputComponent } from '../../shared/ui-kit/components/forms/input';
+
+const NOTES_PAGE_SIZE = 50;
+
+/** The note entity (MsNoteEntity on the server): its form, rules and the viewer's actions. */
+const NOTE_ENTITY = 'ms.notes';
+
+/** What a new note starts with. */
+const NEW_NOTE = { color: 'default', isPinned: false };
 
 export interface Note {
   id: number;
@@ -39,14 +45,13 @@ export interface Note {
 @Component({
   selector: 'app-notes',
   standalone: true,
-  imports: [SMTInputComponent, SMTInputValueAccessor, SMTCheckboxComponent, SMTCheckboxValueAccessor, SMTSelectComponent, SMTSelectValueAccessor,
+  imports: [SMTInputComponent,
     SMTTabBarComponent, CommonModule,
-    FormsModule,
     SMTButtonComponent,
     SMTDialogComponent, SMTDialogContentDirective,
-    UiMarkdownEditorComponent,
     UiMarkdownViewComponent,
-    UiCustomFieldsComponent,
+    SMTEntityFormComponent,
+    SMTEntityCardComponent,
     TranslatePipe
   ],
   template: `
@@ -99,6 +104,7 @@ export interface Note {
             <span class="note-title">{{ note.title }}</span>
             <div class="card-actions">
               <button
+                *ngIf="canPin()"
                 type="button"
                 class="icon-btn"
                 [class.pinned]="note.isPinned"
@@ -134,6 +140,9 @@ export interface Note {
 
           <div class="card-body">
             <ui-markdown-view class="note-content" [content]="note.contentMd"></ui-markdown-view>
+            @if (meta(); as form) {
+              <smt-entity-card class="note-custom" [meta]="form" [value]="valuesOf(note)" [sections]="customSections" />
+            }
           </div>
 
           <div class="card-footer">
@@ -175,67 +184,9 @@ export interface Note {
         (closed)="closeModal()">
         <ng-template smtDialogContent>
         <form ngNoForm (submit)="$event.preventDefault(); saveNote()" class="modal-form" novalidate id="noteForm">
-          <div class="form-group">
-            <label class="form-label" for="note-title-input">{{ 'notes.title_label' | t }} *</label>
-            <smt-input
-              smtFieldId="note-title-input"
-              name="title"
-              [smtInvalid]="isSubmitted() && !formData.title.trim()"
-              [smtDescribedBy]="isSubmitted() && !formData.title.trim() ? 'note-title-error' : null"
-              [maxLength]="255"
-              [(ngModel)]="formData.title"
-              [ngModelOptions]="{standalone: true}"
-              [placeholder]="'notes.title_placeholder' | t"
-              required />
-            <span id="note-title-error" class="field-error" *ngIf="isSubmitted() && !formData.title.trim()">
-              {{ 'notes.title_required' | t }}
-            </span>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">{{ 'notes.content_label' | t }}</label>
-            <ui-markdown-editor
-              [value]="formData.contentMd"
-              [placeholder]="'notes.content_placeholder' | t"
-              [ariaLabel]="'notes.content_label' | t"
-              [rows]="6"
-              (valueChange)="formData.contentMd = $event"
-            ></ui-markdown-editor>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label" for="note-color-select">{{ 'notes.color_label' | t }}</label>
-              <smt-select
-                smtTriggerId="note-color-select"
-                name="color"
-                [options]="colorOptions()"
-                [allowClear]="false"
-                [(ngModel)]="formData.color"
-                [ngModelOptions]="{standalone: true}"
-              />
-            </div>
-
-            <div class="form-group checkbox-group">
-              <div
-                smt-checkbox
-                data-testid="note-pinned-checkbox"
-                name="isPinned"
-                [(ngModel)]="formData.isPinned"
-                [ngModelOptions]="{standalone: true}">
-                {{ 'notes.pinned_label' | t }}
-              </div>
-            </div>
-          </div>
-
-          <!-- Custom Fields -->
-          <div class="custom-fields-section" *ngIf="noteCustomFields().length > 0">
-            <h4 class="custom-fields-title">{{ 'nav.custom_fields' | t }}</h4>
-            <ui-custom-fields
-              [fields]="noteCustomFields()"
-              [(values)]="formData.attributes"
-            ></ui-custom-fields>
-          </div>
+          @if (meta(); as form) {
+            <smt-entity-form [meta]="form" [(value)]="formValues" [problems]="problems()" [disabled]="isSaving()" />
+          }
         </form>
 
         <div footer>
@@ -276,7 +227,7 @@ export class NotesComponent implements OnInit, OnDestroy {
 
   private api = inject(ApiService);
   private toast = inject(ToastService);
-  private perm = inject(PermissionService);
+  private formMeta = inject(FormMetaService);
   private destroyRef = inject(DestroyRef);
   private readonly uiI18n = inject(I18nService);
 
@@ -287,38 +238,38 @@ export class NotesComponent implements OnInit, OnDestroy {
   deletingNote = signal<Note | null>(null);
   isSaving = signal(false);
   isDeleting = signal(false);
-  isSubmitted = signal(false);
-  noteCustomFields = signal<CustomField[]>([]);
+  /** The note form from the server (roadmap item 55); the buttons follow its actions. */
+  readonly meta = signal<FormMeta | null>(null);
+  /** The note being edited, by field key. */
+  readonly formValues = signal<FormValues>({});
+  readonly problems = signal<FormProblems>({});
   /** Registry list ms.notes (roadmap item 51): pinned first, then the latest; a page at a time. */
   readonly total = signal(0);
   readonly nextCursor = signal<string | null>(null);
   readonly isLoadingMore = signal(false);
 
-  canCreate = computed(() => this.perm.hasPermission('notes', 'create'));
-  canEdit = computed(() => this.perm.hasPermission('notes', 'update'));
-  canDelete = computed(() => this.perm.hasPermission('notes', 'delete'));
+  canCreate = computed(() => canDo(this.meta(), 'create'));
+  canEdit = computed(() => canDo(this.meta(), 'update'));
+  canPin = computed(() => canDo(this.meta(), 'pin'));
+  canDelete = computed(() => canDo(this.meta(), 'delete'));
 
   /** The tab filters on the server, so the loaded notes are the ones to show. */
   filteredNotes = computed(() => this.notes());
 
+  /** The card shows the custom fields; the title and text are drawn by the card itself. */
+  readonly customSections = ['custom'];
+
   private readonly searchSubject = new Subject<string>();
   searchQuery = '';
 
-  formData = {
-    title: '',
-    contentMd: '',
-    color: 'default',
-    isPinned: false,
-    attributes: {} as Record<string, any>
-  };
-
   private readonly tabsMemo = optionsMemo<SMTTabItem<'all' | 'pinned'>[]>();
 
-  private readonly colorMemo = optionsMemo<SMTSelectOption<string>[]>();
+  /** A note's values for its card, the same object while the note and the form stay the same. */
+  private readonly cardValues = new WeakMap<Note, { meta: FormMeta; values: FormValues }>();
 
   ngOnInit(): void {
     this.loadNotes();
-    this.loadCustomFields();
+    this.loadForm();
 
     this.searchSubject.pipe(
       debounceTime(300),
@@ -363,11 +314,21 @@ export class NotesComponent implements OnInit, OnDestroy {
     this.loadNotes();
   }
 
-  loadCustomFields(): void {
-    this.api.get<CustomField[]>('/custom-fields', { entity_type: 'NOTE' }).subscribe({
-      next: (data) => this.noteCustomFields.set(data || []),
-      error: () => {}
+  loadForm(): void {
+    this.formMeta.get(NOTE_ENTITY).subscribe({
+      next: meta => this.meta.set(meta),
+      error: () => this.toast.error(this.uiI18n.translate('notes.load_error'))
     });
+  }
+
+  valuesOf(note: Note): FormValues {
+    const meta = this.meta();
+    if (!meta) return {};
+    const cached = this.cardValues.get(note);
+    if (cached?.meta === meta) return cached.values;
+    const values = recordValues(meta, note as unknown as Record<string, unknown>);
+    this.cardValues.set(note, { meta, values });
+    return values;
   }
 
   onSearchChange(value: string): void {
@@ -376,29 +337,11 @@ export class NotesComponent implements OnInit, OnDestroy {
   }
 
   openCreateModal(): void {
-    this.editingNote.set(null);
-    this.isSubmitted.set(false);
-    this.formData = {
-      title: '',
-      contentMd: '',
-      color: 'default',
-      isPinned: false,
-      attributes: {}
-    };
-    this.isModalOpen.set(true);
+    this.openModal(null);
   }
 
   openEditModal(note: Note): void {
-    this.editingNote.set(note);
-    this.isSubmitted.set(false);
-    this.formData = {
-      title: note.title,
-      contentMd: note.contentMd,
-      color: note.color || 'default',
-      isPinned: note.isPinned,
-      attributes: note.attributes ? { ...note.attributes } : {}
-    };
-    this.isModalOpen.set(true);
+    this.openModal(note);
   }
 
   closeModal(): void {
@@ -406,48 +349,40 @@ export class NotesComponent implements OnInit, OnDestroy {
     this.isModalOpen.set(false);
   }
 
+  /** Checked by the note's declared rules first; the server checks them again and names the fields it rejects. */
   saveNote(): void {
-    this.isSubmitted.set(true);
-    if (!this.formData.title.trim()) {
-      this.toast.error(this.uiI18n.translate('notes.title_required'));
-      return;
-    }
-
-    this.isSaving.set(true);
-    const payload = {
-      title: this.formData.title.trim(),
-      contentMd: this.formData.contentMd || '',
-      color: this.formData.color || 'default',
-      isPinned: !!this.formData.isPinned,
-      attributes: this.formData.attributes || {}
-    };
+    const meta = this.meta();
+    if (!meta || this.isSaving()) return;
+    const translate = (key: string, params?: Record<string, string | number>) => this.uiI18n.translate(key, params);
+    const problems = formProblems(meta, this.formValues(), translate);
+    this.problems.set(problems);
+    if (Object.keys(problems).length > 0) return;
 
     const current = this.editingNote();
-    if (current) {
-      this.api.put<Note>(`/notes/${current.id}`, payload).pipe(
-        finalize(() => this.isSaving.set(false))
-      ).subscribe({
-        next: () => {
-          this.toast.success(this.uiI18n.translate('notes.updated'));
-          this.isSaving.set(false);
-          this.isModalOpen.set(false);
-          this.loadNotes();
-        },
-        error: () => this.toast.error(this.uiI18n.translate('notes.save_error'))
-      });
-    } else {
-      this.api.post<Note>('/notes', payload).pipe(
-        finalize(() => this.isSaving.set(false))
-      ).subscribe({
-        next: () => {
-          this.toast.success(this.uiI18n.translate('notes.created'));
-          this.isSaving.set(false);
-          this.isModalOpen.set(false);
-          this.loadNotes();
-        },
-        error: () => this.toast.error(this.uiI18n.translate('notes.create_error'))
-      });
-    }
+    const payload = recordPayload(meta, this.formValues(), current as unknown as Record<string, unknown> | null);
+    const request = current
+      ? this.api.put<Note>(`/notes/${current.id}`, payload, { notifyError: false })
+      : this.api.post<Note>('/notes', payload, { notifyError: false });
+    this.isSaving.set(true);
+    request.pipe(
+      finalize(() => this.isSaving.set(false))
+    ).subscribe({
+      next: () => {
+        this.toast.success(this.uiI18n.translate(current ? 'notes.updated' : 'notes.created'));
+        this.isSaving.set(false);
+        this.isModalOpen.set(false);
+        this.loadNotes();
+      },
+      error: (problem: ProblemDetail) => {
+        const onFields = serverProblems(meta, problem?.errors, translate);
+        this.problems.set(onFields);
+        if (Object.keys(onFields).length === 0) {
+          this.toast.error(problem?.status === 422 && problem.detail
+            ? problem.detail
+            : this.uiI18n.translate(current ? 'notes.save_error' : 'notes.create_error'));
+        }
+      }
+    });
   }
 
   togglePin(note: Note): void {
@@ -490,17 +425,13 @@ export class NotesComponent implements OnInit, OnDestroy {
     ]);
   }
 
-  colorOptions(): SMTSelectOption<string>[] {
-    return this.colorMemo([this.tabText.currentLang()], () =>
-      [
-        { id: 'default', label: this.tabText.translate('notes.color_default') },
-        { id: 'blue', label: this.tabText.translate('notes.color_blue') },
-        { id: 'green', label: this.tabText.translate('notes.color_green') },
-        { id: 'yellow', label: this.tabText.translate('notes.color_yellow') },
-        { id: 'purple', label: this.tabText.translate('notes.color_purple') },
-        { id: 'red', label: this.tabText.translate('notes.color_red') },
-      ]
-    );
+  private openModal(note: Note | null): void {
+    const meta = this.meta();
+    if (!meta) return;
+    this.editingNote.set(note);
+    this.problems.set({});
+    this.formValues.set(recordValues(meta, (note ?? NEW_NOTE) as unknown as Record<string, unknown>));
+    this.isModalOpen.set(true);
   }
 
   private listParams(cursor: string | null): Record<string, string | number> {

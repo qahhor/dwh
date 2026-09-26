@@ -9,6 +9,14 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- One entity form and card for every declared entity (roadmap item 55,
+  ADR-0019 2.5): `smt-entity-form` draws the form from `form-meta` —
+  sections, the kit control for each field, required marks, the declared
+  limits and the problems the server names on save; a screen may replace one
+  field with its own template. `smt-entity-card` reads a record by the same
+  layout. Notes use them: the note form, its custom fields and the note
+  buttons come from the server, the pin button now follows the update right,
+  and a note card shows its custom fields.
 - Entities are declared once (roadmap item 54, ADR-0019 2.1–2.2):
   `GET /api/v1/form-meta/{code}` returns an entity's form fields, sections,
   rules, capabilities and the actions the viewer may take, with the entity's
