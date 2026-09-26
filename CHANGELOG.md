@@ -9,6 +9,15 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Entity capabilities work from the declaration (roadmap item 56): a module
+  gives one `EntityRecords` bean (who may see a record, the list page, the
+  single delete) and the platform builds the history tab, the list export and
+  a bulk delete (`POST /api/v1/entities/{code}/bulk`) for every entity that
+  declares them; a declaration missing what a capability needs fails the
+  start. `smt-entity-toolbar` shows saved views, export and "Delete
+  selected" by the declared capabilities and the viewer's rights. Notes now
+  have a change history, export, saved views (the pinned tab is part of a
+  view) and deleting several notes at once.
 - One entity form and card for every declared entity (roadmap item 55,
   ADR-0019 2.5): `smt-entity-form` draws the form from `form-meta` —
   sections, the kit control for each field, required marks, the declared

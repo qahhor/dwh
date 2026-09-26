@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -15,12 +16,14 @@ import java.util.Set;
  * @param form         the right's form ({@code notes}); viewing needs {@code form.view}
  * @param listCode     its list in the field registry, or null
  * @param customEntity the entity type of its custom fields ({@code NOTE}), or null
+ * @param auditTable   the {@code audit_log.table_name} its changes are written under ({@code ms_notes}), or null
  * @param fields       the form's own fields, in order
  * @param layout       sections of the form; every field appears in exactly one
  * @param actions      what can be done, each with the action of the right it needs
  * @param capabilities what the platform provides for it
  */
-public record EntityDefinition(String code, String form, String listCode, String customEntity, List<FormField> fields,
+public record EntityDefinition(String code, String form, String listCode, String customEntity, String auditTable,
+                               List<FormField> fields,
                                List<FormSection> layout, List<EntityAction> actions, Set<EntityCapability> capabilities) {
 
     /** An action on the entity and the action of the entity's right it needs ({@code create} → {@code notes.create}). */
@@ -37,6 +40,9 @@ public record EntityDefinition(String code, String form, String listCode, String
             fields = List.copyOf(fields);
         }
     }
+
+    /** The action a bulk delete runs as, one record at a time. */
+    public static final String DELETE = "delete";
 
     public EntityDefinition {
         Objects.requireNonNull(code, "code");
@@ -66,6 +72,20 @@ public record EntityDefinition(String code, String form, String listCode, String
         if (capabilities.contains(EntityCapability.CUSTOM_FIELDS) != (customEntity != null)) {
             throw new IllegalArgumentException("Entity " + code + ": custom fields need their entity type, and only then");
         }
+        if (capabilities.contains(EntityCapability.HISTORY) != (auditTable != null)) {
+            throw new IllegalArgumentException("Entity " + code + ": history needs its audit table, and only then");
+        }
+        if ((capabilities.contains(EntityCapability.EXPORT) || capabilities.contains(EntityCapability.SAVED_VIEWS))
+                && listCode == null) {
+            throw new IllegalArgumentException("Entity " + code + ": export and saved views need its list");
+        }
+        if (capabilities.contains(EntityCapability.BULK) && actions.stream().noneMatch(a -> DELETE.equals(a.code()))) {
+            throw new IllegalArgumentException("Entity " + code + ": bulk delete needs the delete action");
+        }
+    }
+
+    public Optional<EntityAction> action(String code) {
+        return actions.stream().filter(action -> action.code().equals(code)).findFirst();
     }
 
     public Map<String, FormField> fieldsByKey() {

@@ -175,4 +175,28 @@ class MsNoteIntegrationTest {
                 .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.getFieldErrors())
                         .extracting(item -> item.field()).containsExactly("title"));
     }
+
+    @Test
+    @DisplayName("6. Записи для истории, экспорта и массового удаления: чужая заметка — как несуществующая")
+    void recordsHideOtherPeoplesNotes() {
+        var records = new com.greenwhite.dwh.instance.ms.note.service.MsNoteRecords(noteService);
+        var mine = noteService.createNote("rec моя", "", "default", false, null, user1Id);
+        var theirs = noteService.createNote("rec чужая", "", "default", false, null, user2Id);
+        com.greenwhite.dwh.instance.common.security.SecurityContext.setPrincipal(
+                new com.greenwhite.dwh.instance.common.security.SecurityContext.KauthPrincipal(
+                        user1Id, "user1", "user1@example.com", 1L, false, java.util.Set.of(), 1L, false, 0, null));
+        try {
+            records.requireVisible(mine.id());
+            assertThatThrownBy(() -> records.requireVisible(theirs.id()))
+                    .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.getErrorCode())
+                            .isEqualTo(com.greenwhite.dwh.core.error.ErrorCode.NOT_FOUND));
+            assertThat(records.page(50, null, null, null, "rec ").items()).hasSize(1);
+
+            records.delete(mine.id());
+            assertThatThrownBy(() -> records.delete(theirs.id())).isInstanceOf(ApiException.class);
+            assertThat(noteService.getNote(theirs.id(), user2Id).title()).isEqualTo("rec чужая");
+        } finally {
+            com.greenwhite.dwh.instance.common.security.SecurityContext.clear();
+        }
+    }
 }

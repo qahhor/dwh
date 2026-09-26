@@ -4,6 +4,7 @@ import com.greenwhite.dwh.core.error.ErrorCode;
 import com.greenwhite.dwh.core.error.FieldErrorItem;
 import com.greenwhite.dwh.core.pagination.KeysetPage;
 import com.greenwhite.dwh.instance.audit.service.AuditLogService;
+import com.greenwhite.dwh.instance.common.entity.EntityRegistry;
 import com.greenwhite.dwh.instance.common.error.ApiException;
 import com.greenwhite.dwh.instance.common.query.QueryCompiler;
 import com.greenwhite.dwh.instance.common.query.QueryField;
@@ -86,13 +87,15 @@ public class ReportExportService {
     private final int maxRows;
 
     public ReportExportService(ReportExportRepository repo, QueryListRegistry registry, List<QueryListExporter> exporters,
-                               ExportPrincipals principals, MdI18nService i18n, StorageProvider storage,
+                               EntityRegistry entities, ExportPrincipals principals, MdI18nService i18n, StorageProvider storage,
                                // Lazy: the runner collects every job, including ours, which needs this service.
                                @Lazy FndJobRunner jobs, AuditLogService audit, ObjectMapper json,
                                @Value("${dwh.reports.export.max-rows:50000}") int maxRows) {
         this.repo = repo;
         this.registry = registry;
-        this.exporters = exporters.stream().collect(Collectors.toUnmodifiableMap(QueryListExporter::code, Function.identity()));
+        // The modules' own exporters and those the declared entities get from their declaration (roadmap item 56).
+        this.exporters = java.util.stream.Stream.concat(exporters.stream(), entities.exporters().stream())
+                .collect(Collectors.toUnmodifiableMap(QueryListExporter::code, Function.identity()));
         this.principals = principals;
         this.i18n = i18n;
         this.storage = storage;

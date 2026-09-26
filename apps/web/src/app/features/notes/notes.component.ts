@@ -5,11 +5,12 @@ import { debounceTime, distinctUntilChanged, finalize } from 'rxjs/operators';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ApiService } from '../../core/services/api.service';
 import { KeysetPage } from '../../core/models/common.models';
-import { toQueryParams } from '../../core/services/query-meta.service';
+import { QueryMetaService, toQueryParams } from '../../core/services/query-meta.service';
+import { QueryCondition, QueryListMeta } from '../../core/models/query-meta.models';
 import { ProblemDetail } from '../../core/models/common.models';
 import { FormMeta, FormProblems, FormValues } from '../../core/models/form-meta.models';
 import {
-  FormMetaService, canDo, formProblems, recordPayload, recordValues, serverProblems,
+  FormMetaService, canDo, formProblems, hasCapability, recordPayload, recordValues, serverProblems,
 } from '../../core/services/form-meta.service';
 import { ToastService } from '../../core/services/toast.service';
 import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
@@ -17,6 +18,10 @@ import { SMTDialogComponent, SMTDialogContentDirective } from '../../shared/ui-k
 import { UiMarkdownViewComponent } from '../../shared/ui/ui-markdown-view.component';
 import { SMTEntityFormComponent } from '../../shared/entity/smt-entity-form.component';
 import { SMTEntityCardComponent } from '../../shared/entity/smt-entity-card.component';
+import { SMTEntityToolbarComponent } from '../../shared/entity/smt-entity-toolbar.component';
+import { UiRecordHistoryComponent } from '../../shared/ui/ui-record-history.component';
+import { ListViewState, ListViewsApi } from '../../shared/list-views/list-views';
+import { SMTCheckboxComponent } from '../../shared/ui-kit/components/forms/checkbox';
 import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
 import { SMTTabBarComponent, SMTTabItem } from '../../shared/ui-kit/components/tab-bar';
 import { optionsMemo } from '../../shared/ui-kit/components/forms/radio-group';
@@ -26,6 +31,9 @@ const NOTES_PAGE_SIZE = 50;
 
 /** The note entity (MsNoteEntity on the server): its form, rules and the viewer's actions. */
 const NOTE_ENTITY = 'ms.notes';
+
+/** The pinned tab is this filter, so a saved view keeps it. */
+const PINNED: QueryCondition = { field: 'isPinned', op: 'eq', value: true };
 
 /** What a new note starts with. */
 const NEW_NOTE = { color: 'default', isPinned: false };
@@ -52,6 +60,9 @@ export interface Note {
     UiMarkdownViewComponent,
     SMTEntityFormComponent,
     SMTEntityCardComponent,
+    SMTEntityToolbarComponent,
+    UiRecordHistoryComponent,
+    SMTCheckboxComponent,
     TranslatePipe
   ],
   template: `
@@ -69,6 +80,13 @@ export interface Note {
             (valueChange)="$event && setTab($event)" />
         </div>
         <div class="header-right">
+          <smt-entity-toolbar
+            [meta]="meta()"
+            [views]="views"
+            [listMeta]="listMeta()"
+            [search]="searchQuery"
+            [(selected)]="selectedIds"
+            (bulkDone)="loadNotes()" />
           <smt-input
             class="search-box"
             type="search"
@@ -101,6 +119,14 @@ export interface Note {
           [class.is-pinned]="note.isPinned"
         >
           <div class="card-header">
+            @if (canSelect()) {
+              <div smt-checkbox
+                class="note-select"
+                smtHideLabel
+                [smtAriaLabel]="'notes.select' | t:{ title: note.title }"
+                [checked]="isSelected(note)"
+                (smtCheckedChange)="setSelected(note, $event)"></div>
+            }
             <span class="note-title">{{ note.title }}</span>
             <div class="card-actions">
               <button
@@ -186,6 +212,9 @@ export interface Note {
         <form ngNoForm (submit)="$event.preventDefault(); saveNote()" class="modal-form" novalidate id="noteForm">
           @if (meta(); as form) {
             <smt-entity-form [meta]="form" [(value)]="formValues" [problems]="problems()" [disabled]="isSaving()" />
+            @if (showHistory() && editingNote(); as note) {
+              <ui-record-history [kind]="form.code" [recordId]="note.id" />
+            }
           }
         </form>
 
@@ -228,6 +257,7 @@ export class NotesComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
   private toast = inject(ToastService);
   private formMeta = inject(FormMetaService);
+  private queryMeta = inject(QueryMetaService);
   private destroyRef = inject(DestroyRef);
   private readonly uiI18n = inject(I18nService);
 
@@ -243,6 +273,10 @@ export class NotesComponent implements OnInit, OnDestroy {
   /** The note being edited, by field key. */
   readonly formValues = signal<FormValues>({});
   readonly problems = signal<FormProblems>({});
+  /** Field metadata of the note list, for the export's columns. */
+  readonly listMeta = signal<QueryListMeta | null>(null);
+  /** The notes chosen for a bulk action. */
+  readonly selectedIds = signal<number[]>([]);
   /** Registry list ms.notes (roadmap item 51): pinned first, then the latest; a page at a time. */
   readonly total = signal(0);
   readonly nextCursor = signal<string | null>(null);
@@ -252,12 +286,24 @@ export class NotesComponent implements OnInit, OnDestroy {
   canEdit = computed(() => canDo(this.meta(), 'update'));
   canPin = computed(() => canDo(this.meta(), 'pin'));
   canDelete = computed(() => canDo(this.meta(), 'delete'));
+  /** Choosing notes is offered when the note entity has bulk actions the viewer may take. */
+  canSelect = computed(() => hasCapability(this.meta(), 'bulk') && canDo(this.meta(), 'delete'));
+  showHistory = computed(() => hasCapability(this.meta(), 'history'));
 
   /** The tab filters on the server, so the loaded notes are the ones to show. */
   filteredNotes = computed(() => this.notes());
 
   /** The card shows the custom fields; the title and text are drawn by the card itself. */
   readonly customSections = ['custom'];
+
+  /** Saved views of the note list (roadmap item 56): the pinned tab and the search order travel with a view. */
+  readonly views = new ListViewState(NOTE_ENTITY, inject(ListViewsApi), {
+    defaultSort: () => null,
+    onApply: () => {
+      this.activeTab.set(this.views.filter().some(isPinnedFilter) ? 'pinned' : 'all');
+      this.loadNotes();
+    }
+  });
 
   private readonly searchSubject = new Subject<string>();
   searchQuery = '';
@@ -268,8 +314,12 @@ export class NotesComponent implements OnInit, OnDestroy {
   private readonly cardValues = new WeakMap<Note, { meta: FormMeta; values: FormValues }>();
 
   ngOnInit(): void {
-    this.loadNotes();
     this.loadForm();
+    this.queryMeta.get(NOTE_ENTITY).subscribe({ next: meta => this.listMeta.set(meta), error: () => {} });
+    this.views.load().subscribe(() => {
+      this.activeTab.set(this.views.filter().some(isPinnedFilter) ? 'pinned' : 'all');
+      this.loadNotes();
+    });
 
     this.searchSubject.pipe(
       debounceTime(300),
@@ -311,7 +361,19 @@ export class NotesComponent implements OnInit, OnDestroy {
 
   setTab(tab: 'all' | 'pinned'): void {
     this.activeTab.set(tab);
+    const others = this.views.filter().filter(condition => !isPinnedFilter(condition));
+    this.views.filter.set(tab === 'pinned' ? [...others, PINNED] : others);
     this.loadNotes();
+  }
+
+  isSelected(note: Note): boolean {
+    return this.selectedIds().includes(note.id);
+  }
+
+  setSelected(note: Note, selected: boolean): void {
+    this.selectedIds.update(ids => selected
+      ? (ids.includes(note.id) ? ids : [...ids, note.id])
+      : ids.filter(id => id !== note.id));
   }
 
   loadForm(): void {
@@ -440,8 +502,14 @@ export class NotesComponent implements OnInit, OnDestroy {
       ...(cursor ? { cursor } : {}),
       ...toQueryParams({
         search: this.searchQuery,
-        conditions: this.activeTab() === 'pinned' ? [{ field: 'isPinned', op: 'eq', value: true }] : []
+        sort: this.views.sort(),
+        conditions: this.views.filter(),
+        match: this.views.match()
       })
     };
   }
+}
+
+function isPinnedFilter(condition: QueryCondition): boolean {
+  return condition.field === PINNED.field && condition.op === PINNED.op && condition.value === true;
 }
