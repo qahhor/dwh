@@ -2,10 +2,10 @@
 # A red required job must block merge in GitHub branch protection.
 name: ci
 
-# Paused while the low-code roadmap (wave 9) is built: runs only by hand.
-# Restore before release: on: push: branches: [main] / pull_request.
 on:
-  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
 
 permissions:
   contents: read
