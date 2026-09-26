@@ -7,6 +7,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
 import static org.assertj.core.api.Assertions.*;
@@ -27,16 +28,18 @@ class SearchJobResourceIntegrationTest extends SearchDeliveryTestSupport {
 
     @ParameterizedTest @ValueSource(strings={"CANCEL","OWNER","SHUTDOWN"})
     void suspendedProofAndCursorAreClosedWithoutTouchingAnotherSessionsTemporaryObjects(String stop) throws Exception {
-        activeGeneration();
+        UUID generation=activeGeneration();
         jdbc.sql("insert into md_users(name,login,email) select 'Fixture '||n,'resource-'||n,'resource-'||n||'@example.invalid' from generate_series(1,205) n").update();
         jdbc.sql("insert into search_projection_versions(entity_type,entity_id,revision) select 'USER',id,1 from md_users").update();
-        for (int i=0;i<3;i++) worker.runOnce();
+        deliverAll(generation,205);
         var writesBefore=List.copyOf(writes);
         UUID job=jobService.start(new StartJobRequest(UUID.randomUUID(),"CHECK",null)).id();
         jobWorker.runOnce();
         try (var connection=database.getConnection()) {
             var other=JdbcClient.create(new SingleConnectionDataSource(connection,true));
             other.sql("create temporary table search_reconcile_sentinel(id int)").update();
+            // Three schema checks, two empty exports and one user page: the proof is suspended mid-export,
+            // far short of the 14+ cycles a complete proof needs, whatever size its time-bounded pages take.
             for (int i=0;i<6;i++) jobWorker.runOnce();
             assertThat(jobRepository.find(job).orElseThrow().state()).isEqualTo("VERIFYING");
             assertThat(jobRepository.find(job).orElseThrow().processedCount()).isEqualTo(205);
@@ -79,6 +82,18 @@ class SearchJobResourceIntegrationTest extends SearchDeliveryTestSupport {
         users.updateUser(id,"After",null,null,null,null,null,null,null,null,id);worker.runOnce();
         assertThat(documents.get("users/"+id)).containsEntry("name","After");
         jobWorker.close();
+    }
+    /**
+     * A delivery cycle claims at most 100 rows, and a claim that fails transiently (import read timeout, connection
+     * failure under a loaded build) waits out a backoff measured on the fixture clock. Deliver every row before the
+     * job starts so the proof always sees a complete generation instead of racing the delivery.
+     */
+    private void deliverAll(UUID generation,long rows) {
+        for (int cycle=0;cycle<20 && generationRepository.processed(generation)<rows;cycle++) {
+            worker.runOnce();
+            clock.advance(Duration.ofMinutes(6));
+        }
+        assertThat(generationRepository.processed(generation)).isEqualTo(rows);
     }
     private long proofObjects() {
         return jdbc.sql("select count(*) from pg_class where relpersistence='t' and relname in ('search_reconcile_index','search_reconcile_source')")

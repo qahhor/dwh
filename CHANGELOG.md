@@ -625,6 +625,13 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The search job resource test no longer fails intermittently in the full
+  server build (processed 158 or 204 of 205). It delivered the fixture in
+  exactly three cycles of at most 100 rows, so one transient import or
+  connection failure left rows waiting for a retry on the frozen test clock.
+  It now delivers until every row is in, advancing the clock past the retry
+  backoff, and checks that before starting the job. What it proves is
+  unchanged.
 - Changing a custom field's default value, options or order is audited; only
   its name and required flag were before.
 - User rows in the list carried no roles: the role lookup built its query
