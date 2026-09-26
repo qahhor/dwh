@@ -59,12 +59,16 @@ public class MsNoteService {
         }
     }
 
+    /** A page of the owner's notes through the registry ({@code ms.notes}): filter, sort and search {@code q}. */
     @Transactional(readOnly = true)
-    public List<NoteView> getNotes(Long userId, String search) {
+    public com.greenwhite.dwh.core.pagination.KeysetPage<NoteView> getNotes(Long userId, Integer limit, String cursor,
+                                                                          String filter, String sort, String search) {
         checkModuleActive();
-        return noteRepository.findByOwner(userId, search).stream()
-                .map(NoteView::from)
-                .toList();
+        var plan = com.greenwhite.dwh.instance.common.query.QueryCompiler.compile(
+                MsNoteQuery.LIST, filter, sort, limit, cursor, search);
+        var page = noteRepository.pageByOwner(plan, userId);
+        return new com.greenwhite.dwh.core.pagination.KeysetPage<>(page.items().stream().map(NoteView::from).toList(),
+                page.nextCursor(), page.hasMore(), page.totalEstimated());
     }
 
     @Transactional(readOnly = true)

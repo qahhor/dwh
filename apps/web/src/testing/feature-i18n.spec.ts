@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { featureI18nProblems } from './feature-i18n';
+import { featureI18nProblems, serverLiteralKeys } from './feature-i18n';
 
 const CATALOGS = path.resolve(process.cwd(), '..', 'server', 'src', 'main', 'resources', 'i18n');
 const catalog = (code: string) => JSON.parse(readFileSync(path.join(CATALOGS, `${code}.json`), 'utf8')) as Record<string, string>;
@@ -18,7 +18,10 @@ describe('featureI18nProblems', () => {
   });
 
   it('finds no dead copy in the notes catalogs', () => {
-    expect(featureI18nProblems({ dir: 'src/app/features/notes', owns: ['notes.'], english: true })).toEqual([]);
+    // The note list's field labels are named by the server (MsNoteQuery).
+    expect(featureI18nProblems({
+      dir: 'src/app/features/notes', owns: ['notes.'], english: true, dynamic: serverLiteralKeys('notes.'),
+    })).toEqual([]);
   });
 
   it('accepts a key the feature builds at run time once it is declared', () => {

@@ -5,6 +5,10 @@ import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, finalize } from 'rxjs/operators';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ApiService } from '../../core/services/api.service';
+import { KeysetPage } from '../../core/models/common.models';
+import { toQueryParams } from '../../core/services/query-meta.service';
+
+const NOTES_PAGE_SIZE = 50;
 import { ToastService } from '../../core/services/toast.service';
 import { PermissionService } from '../../core/services/permission.service';
 import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
@@ -50,14 +54,14 @@ export interface Note {
       <div class="view-header">
         <div class="header-left">
           <h1 class="view-title">{{ 'notes.title' | t }}</h1>
-          <span class="count-badge">{{ notes().length }}</span>
+          <span class="count-badge">{{ total() }}</span>
 
           <smt-tab-bar
             class="tabs-bar"
             [tabs]="noteTabs()"
             [value]="activeTab()"
             [smtAriaLabel]="'notes.title' | t"
-            (valueChange)="$event && activeTab.set($event)" />
+            (valueChange)="$event && setTab($event)" />
         </div>
         <div class="header-right">
           <smt-input
@@ -137,6 +141,12 @@ export interface Note {
           </div>
         </div>
       </div>
+      @if (nextCursor()) {
+        <div class="notes-more">
+          <button smt-button type="button" smtVariant="secondary" data-testid="notes-load-more" [smtLoading]="isLoadingMore()"
+            (click)="loadMore()">{{ 'notes.load_more' | t }}</button>
+        </div>
+      }
 
       <ng-template #emptyState>
         <div class="empty-state">
@@ -279,18 +289,17 @@ export class NotesComponent implements OnInit, OnDestroy {
   isDeleting = signal(false);
   isSubmitted = signal(false);
   noteCustomFields = signal<CustomField[]>([]);
+  /** Registry list ms.notes (roadmap item 51): pinned first, then the latest; a page at a time. */
+  readonly total = signal(0);
+  readonly nextCursor = signal<string | null>(null);
+  readonly isLoadingMore = signal(false);
 
   canCreate = computed(() => this.perm.hasPermission('notes', 'create'));
   canEdit = computed(() => this.perm.hasPermission('notes', 'update'));
   canDelete = computed(() => this.perm.hasPermission('notes', 'delete'));
 
-  filteredNotes = computed(() => {
-    const list = this.notes();
-    if (this.activeTab() === 'pinned') {
-      return list.filter(n => n.isPinned);
-    }
-    return list;
-  });
+  /** The tab filters on the server, so the loaded notes are the ones to show. */
+  filteredNotes = computed(() => this.notes());
 
   private readonly searchSubject = new Subject<string>();
   searchQuery = '';
@@ -323,11 +332,35 @@ export class NotesComponent implements OnInit, OnDestroy {
   }
 
   loadNotes(): void {
-    const params = this.searchQuery ? { q: this.searchQuery } : undefined;
-    this.api.get<Note[]>('/notes', params).subscribe({
-      next: (data) => this.notes.set(data || []),
+    this.api.get<KeysetPage<Note>>('/notes', this.listParams(null)).subscribe({
+      next: page => {
+        this.notes.set(page?.items ?? []);
+        this.nextCursor.set(page?.nextCursor ?? null);
+        this.total.set(page?.totalEstimated ?? page?.items?.length ?? 0);
+      },
       error: () => this.toast.error(this.uiI18n.translate('notes.load_error'))
     });
+  }
+
+  /** The next page, added below the notes on screen. */
+  loadMore(): void {
+    const cursor = this.nextCursor();
+    if (!cursor || this.isLoadingMore()) return;
+    this.isLoadingMore.set(true);
+    this.api.get<KeysetPage<Note>>('/notes', this.listParams(cursor)).pipe(
+      finalize(() => this.isLoadingMore.set(false))
+    ).subscribe({
+      next: page => {
+        this.notes.update(notes => [...notes, ...(page?.items ?? [])]);
+        this.nextCursor.set(page?.nextCursor ?? null);
+      },
+      error: () => this.toast.error(this.uiI18n.translate('notes.load_error'))
+    });
+  }
+
+  setTab(tab: 'all' | 'pinned'): void {
+    this.activeTab.set(tab);
+    this.loadNotes();
   }
 
   loadCustomFields(): void {
@@ -468,5 +501,16 @@ export class NotesComponent implements OnInit, OnDestroy {
         { id: 'red', label: this.tabText.translate('notes.color_red') },
       ]
     );
+  }
+
+  private listParams(cursor: string | null): Record<string, string | number> {
+    return {
+      limit: NOTES_PAGE_SIZE,
+      ...(cursor ? { cursor } : {}),
+      ...toQueryParams({
+        search: this.searchQuery,
+        conditions: this.activeTab() === 'pinned' ? [{ field: 'isPinned', op: 'eq', value: true }] : []
+      })
+    };
   }
 }

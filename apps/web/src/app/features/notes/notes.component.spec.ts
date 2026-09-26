@@ -29,7 +29,9 @@ describe('NotesComponent', () => {
         {
           provide: ApiService,
           useValue: {
-            get: vi.fn(() => of([mockNote])),
+            get: vi.fn((path: string) => of(path === '/notes'
+              ? { items: [mockNote], nextCursor: null, hasMore: false, totalEstimated: 1 }
+              : [])),
             post: vi.fn(() => of(mockNote)),
             put: vi.fn(() => of(mockNote)),
             delete: vi.fn(() => of({}))
@@ -99,24 +101,35 @@ describe('NotesComponent', () => {
     expect(fixture.componentInstance.isModalOpen()).toBe(false);
   });
 
-  it('filters notes by pinned tab', async () => {
+  it('asks the server for pinned notes on the pinned tab, and for every note again on the other', async () => {
     const fixture = await createFixture();
-    const pinnedNote: Note = {
-      ...mockNote,
-      id: 2,
-      title: 'Закреплённая заметка',
-      isPinned: true
-    };
-    fixture.componentInstance.notes.set([mockNote, pinnedNote]);
+    const api = TestBed.inject(ApiService) as unknown as { get: ReturnType<typeof vi.fn> };
+
+    fixture.componentInstance.setTab('pinned');
+    expect(api.get).toHaveBeenLastCalledWith('/notes', expect.objectContaining({
+      limit: 50, filter: JSON.stringify([{ field: 'isPinned', op: 'eq', value: true }])
+    }));
+
+    fixture.componentInstance.setTab('all');
+    expect(api.get.mock.lastCall?.[1]).not.toHaveProperty('filter');
+  });
+
+  it('adds the next page below the notes on screen', async () => {
+    const fixture = await createFixture();
+    const api = TestBed.inject(ApiService) as unknown as { get: ReturnType<typeof vi.fn> };
+    api.get.mockReturnValueOnce(of({ items: [mockNote], nextCursor: 'n2', hasMore: true, totalEstimated: 2 }));
+    fixture.componentInstance.loadNotes();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.total()).toBe(2);
+
+    const more = fixture.nativeElement.querySelector('[data-testid="notes-load-more"]') as HTMLButtonElement;
+    api.get.mockReturnValueOnce(of({ items: [{ ...mockNote, id: 2 }], nextCursor: null, hasMore: false, totalEstimated: 2 }));
+    more.click();
     fixture.detectChanges();
 
-    expect(fixture.componentInstance.filteredNotes().length).toBe(2);
-
-    fixture.componentInstance.activeTab.set('pinned');
-    fixture.detectChanges();
-
-    expect(fixture.componentInstance.filteredNotes().length).toBe(1);
-    expect(fixture.componentInstance.filteredNotes()[0].title).toBe('Закреплённая заметка');
+    expect(api.get).toHaveBeenLastCalledWith('/notes', expect.objectContaining({ cursor: 'n2' }));
+    expect(fixture.componentInstance.notes().map(note => note.id)).toEqual([mockNote.id, 2]);
+    expect(fixture.nativeElement.querySelector('[data-testid="notes-load-more"]')).toBeNull();
   });
 
   it('opens delete confirmation modal and confirms delete', async () => {

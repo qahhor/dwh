@@ -83,7 +83,7 @@ class MsNoteIntegrationTest {
         assertThat(pinned.isPinned()).isTrue();
 
         // Поиск по ключевому слову
-        var found = noteService.getNotes(user1Id, "манифест");
+        var found = noteService.getNotes(user1Id, null, null, null, null, "манифест").items();
         assertThat(found).hasSize(1);
         assertThat(found.getFirst().id()).isEqualTo(note.id());
 
@@ -108,7 +108,7 @@ class MsNoteIntegrationTest {
                 .isInstanceOf(ApiException.class);
 
         // Пользователь 2 не видит чужую заметку в своем списке
-        var user2Notes = noteService.getNotes(user2Id, null);
+        var user2Notes = noteService.getNotes(user2Id, null, null, null, null, null).items();
         assertThat(user2Notes.stream().map(MsNoteService.NoteView::id)).doesNotContain(user1Note.id());
 
         // Пользователь 2 не может изменить чужую заметку
@@ -136,7 +136,7 @@ class MsNoteIntegrationTest {
         jdbc.sql("update md_installed_modules set status = 'DISABLED' where code = 'notes'").update();
 
         try {
-            assertThatThrownBy(() -> restrictedNoteService.getNotes(user1Id, null))
+            assertThatThrownBy(() -> restrictedNoteService.getNotes(user1Id, null, null, null, null, null))
                     .isInstanceOf(ApiException.class)
                     .hasMessageContaining("Модуль 'notes' отключен администратором");
 
@@ -147,5 +147,26 @@ class MsNoteIntegrationTest {
             // Restore notes module
             jdbc.sql("update md_installed_modules set status = 'ACTIVE' where code = 'notes'").update();
         }
+    }
+
+    @Test
+    @DisplayName("4. Список на реестре: закреплённые первыми, затем свежие; курсор и фильтр «закреплённые»")
+    void registryListKeepsPinnedFirst() {
+        var older = noteService.createNote("nl старая", "", "default", false, null, user2Id);
+        var pinned = noteService.createNote("nl закреплённая", "", "default", true, null, user2Id);
+        var newer = noteService.createNote("nl свежая", "", "default", false, null, user2Id);
+        jdbc.sql("update ms_notes set modified_at = now() - interval '2 hour' where id = :id").param("id", older.id()).update();
+        jdbc.sql("update ms_notes set modified_at = now() - interval '3 hour' where id = :id").param("id", pinned.id()).update();
+
+        var first = noteService.getNotes(user2Id, 2, null, null, null, "nl ");
+        var second = noteService.getNotes(user2Id, 2, first.nextCursor(), null, null, "nl ");
+        assertThat(first.items()).extracting(MsNoteService.NoteView::id).containsExactly(pinned.id(), newer.id());
+        assertThat(second.items()).extracting(MsNoteService.NoteView::id).containsExactly(older.id());
+        assertThat(first.totalEstimated()).isEqualTo(3);
+
+        var onlyPinned = noteService.getNotes(user2Id, null, null,
+                "[{\"field\":\"isPinned\",\"op\":\"eq\",\"value\":true}]", null, "nl ");
+        assertThat(onlyPinned.items()).extracting(MsNoteService.NoteView::id).containsExactly(pinned.id());
+        assertThat(noteService.getNotes(user1Id, null, null, null, null, "nl ").items()).isEmpty();
     }
 }
