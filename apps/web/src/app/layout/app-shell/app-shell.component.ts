@@ -89,6 +89,7 @@ export class AppShellComponent implements OnDestroy {
     canViewAudit: () => this.canViewAudit(),
     canViewSystem: () => this.canViewSystem(),
     canViewSettings: () => this.canViewSettings(),
+    hasPermission: permission => this.permService.hasPermissionKey(permission),
     unreadCount: () => this.notifService.unreadCount()
   }));
 

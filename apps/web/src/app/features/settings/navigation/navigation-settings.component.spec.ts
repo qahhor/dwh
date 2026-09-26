@@ -19,6 +19,8 @@ describe('NavigationSettingsComponent', () => {
       targetType: 'EMBEDDED_IFRAME',
       url: 'https://superset.example.com/sales',
       openInIframe: true,
+      requiredPermission: 'platform.navigation.manage',
+      parentId: 7,
       sortOrder: 10,
       state: 'A',
       createdAt: '2026-09-09T10:00:00Z',
@@ -46,7 +48,11 @@ describe('NavigationSettingsComponent', () => {
       createItem: vi.fn().mockReturnValue(of({ ...items[0], id: 3 })),
       updateItem: vi.fn().mockReturnValue(of({ ...items[0], title: 'Updated' })),
       toggleItem: vi.fn().mockReturnValue(of({ ...items[0], state: 'P' })),
-      deleteItem: vi.fn().mockReturnValue(of(undefined))
+      deleteItem: vi.fn().mockReturnValue(of(undefined)),
+      loadPermissionChoices: vi.fn().mockReturnValue(of([
+        { permission: 'platform.navigation.manage', formName: 'Navigation', actionName: 'Manage' },
+        { permission: 'tasks.items.view', formName: 'Tasks', actionName: 'View' }
+      ]))
     };
 
     const toast = {
@@ -150,6 +156,36 @@ describe('NavigationSettingsComponent', () => {
       })
     );
     expect(toast.success).toHaveBeenCalled();
+  });
+
+  it('keeps the right and the parent of an edited item, so saving does not show it to everyone', () => {
+    const { fixture, navService } = setup();
+    fixture.detectChanges();
+
+    fixture.componentInstance.openEditModal(sampleItems[0]);
+    expect(fixture.componentInstance.formRequiredPermission).toBe('platform.navigation.manage');
+    fixture.componentInstance.saveItem();
+
+    expect(navService.updateItem).toHaveBeenCalledWith(1, expect.objectContaining({
+      requiredPermission: 'platform.navigation.manage',
+      parentId: 7
+    }));
+  });
+
+  it('limits a new item to the chosen right and offers the catalog by name', () => {
+    const { fixture, navService } = setup();
+    fixture.detectChanges();
+
+    expect(navService.loadPermissionChoices).toHaveBeenCalled();
+    fixture.componentInstance.openCreateModal();
+    expect(fixture.componentInstance.formRequiredPermission).toBeNull();
+    fixture.componentInstance.formTitle = 'Tasks board';
+    fixture.componentInstance.formCode = 'tasks-board';
+    fixture.componentInstance.formUrl = '/tasks';
+    fixture.componentInstance.formRequiredPermission = 'tasks.items.view';
+    fixture.componentInstance.saveItem();
+
+    expect(navService.createItem).toHaveBeenCalledWith(expect.objectContaining({ requiredPermission: 'tasks.items.view' }));
   });
 
   it('toggles item state and refreshes list', () => {

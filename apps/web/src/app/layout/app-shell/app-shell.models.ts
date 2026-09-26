@@ -45,6 +45,8 @@ export interface BuildNavSectionsOptions {
   canViewAudit: () => boolean;
   canViewSystem: () => boolean;
   canViewSettings: () => boolean;
+  /** Checks a `form.action` pair; a custom menu item carries one in `requiredPermission`. */
+  hasPermission: (permission: string) => boolean;
   unreadCount: () => number;
 }
 
@@ -135,7 +137,7 @@ export function buildNavSections(options: BuildNavSectionsOptions): NavSection[]
         openInIframe: ci.targetType === 'EMBEDDED_IFRAME',
         label: ci.title,
         icon: ci.icon || 'analytics',
-        permission: () => true
+        permission: () => !ci.requiredPermission || options.hasPermission(ci.requiredPermission)
       };
 
       const targetSection = sections.find(s => s.id === ci.sectionId);

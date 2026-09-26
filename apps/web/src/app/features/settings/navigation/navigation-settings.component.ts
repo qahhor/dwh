@@ -5,6 +5,7 @@ import { RouterModule } from '@angular/router';
 import { NavigationService } from '../../../core/services/navigation.service';
 import {
   CustomNavigationItem,
+  NavigationPermissionChoice,
   CreateNavigationItemPayload,
   UpdateNavigationItemPayload,
   NavigationTargetType
@@ -86,6 +87,8 @@ import { problemText } from '../../../shared/ui/problem-text';
         [formSortOrder]="formSortOrder"
         [formUrl]="formUrl"
         [formIcon]="formIcon"
+        [formRequiredPermission]="formRequiredPermission"
+        [permissionChoices]="permissionChoices()"
         [popularIcons]="popularIcons"
         (formTitleChange)="formTitle = $event"
         (formCodeChange)="formCode = $event"
@@ -94,6 +97,7 @@ import { problemText } from '../../../shared/ui/problem-text';
         (formSortOrderChange)="formSortOrder = $event"
         (formUrlChange)="formUrl = $event"
         (formIconChange)="formIcon = $event"
+        (formRequiredPermissionChange)="formRequiredPermission = $event"
         (titleChange)="onTitleChange()"
         (urlBlur)="onUrlBlur()"
         (closeModal)="closeModal()"
@@ -144,6 +148,7 @@ export class NavigationSettingsComponent implements OnInit {
   readonly isSubmitting = signal<boolean>(false);
   readonly isModalOpen = signal<boolean>(false);
   readonly editingItem = signal<CustomNavigationItem | null>(null);
+  readonly permissionChoices = signal<NavigationPermissionChoice[]>([]);
 
   readonly activeCount = computed(() => this.items().filter(i => i.state === 'A').length);
   readonly embeddedCount = computed(() => this.items().filter(i => i.targetType === 'EMBEDDED_IFRAME').length);
@@ -163,9 +168,19 @@ export class NavigationSettingsComponent implements OnInit {
   formUrl = '';
   formIcon = 'analytics';
   formSortOrder = 100;
+  formRequiredPermission: string | null = null;
 
   ngOnInit(): void {
     this.loadItems();
+    this.loadPermissionChoices();
+  }
+
+  /** Without the list the item keeps its right: the select shows the stored pair only. */
+  loadPermissionChoices(): void {
+    this.navService.loadPermissionChoices().subscribe({
+      next: choices => this.permissionChoices.set(choices || []),
+      error: () => this.permissionChoices.set([])
+    });
   }
 
   loadItems(): void {
@@ -249,6 +264,7 @@ export class NavigationSettingsComponent implements OnInit {
     this.formUrl = '';
     this.formIcon = 'analytics';
     this.formSortOrder = (this.items().length + 1) * 10;
+    this.formRequiredPermission = null;
     this.isModalOpen.set(true);
   }
 
@@ -261,6 +277,7 @@ export class NavigationSettingsComponent implements OnInit {
     this.formUrl = item.url;
     this.formIcon = item.icon;
     this.formSortOrder = item.sortOrder;
+    this.formRequiredPermission = item.requiredPermission ?? null;
     this.isModalOpen.set(true);
   }
 
@@ -297,6 +314,9 @@ export class NavigationSettingsComponent implements OnInit {
         icon: this.formIcon.trim() || 'bar_chart',
         sortOrder: this.formSortOrder,
         openInIframe: this.formTargetType === 'EMBEDDED_IFRAME',
+        requiredPermission: this.formRequiredPermission,
+        parentId: editing.parentId ?? null,
+        titleKey: editing.titleKey ?? null,
         state: editing.state
       };
       this.navService.updateItem(editing.id, payload).subscribe({
@@ -321,7 +341,8 @@ export class NavigationSettingsComponent implements OnInit {
         url: finalUrl,
         icon: this.formIcon.trim() || 'bar_chart',
         sortOrder: this.formSortOrder,
-        openInIframe: this.formTargetType === 'EMBEDDED_IFRAME'
+        openInIframe: this.formTargetType === 'EMBEDDED_IFRAME',
+        requiredPermission: this.formRequiredPermission
       };
       this.navService.createItem(payload).subscribe({
         next: () => {

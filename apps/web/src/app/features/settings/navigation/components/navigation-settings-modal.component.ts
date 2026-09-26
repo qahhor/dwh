@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { CustomNavigationItem, NavigationTargetType } from '../../../../core/models/navigation.models';
+import { CustomNavigationItem, NavigationPermissionChoice, NavigationTargetType } from '../../../../core/models/navigation.models';
 import { SMTDialogComponent, SMTDialogContentDirective } from '../../../../shared/ui-kit/components/modal';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
@@ -82,6 +82,15 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
             (touch)="urlBlur.emit()"
             placeholder="https://bi.company.uz/superset/dashboard/123/" />
           <span class="form-hint">{{ 'nav.settings.url_hint' | t }}</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="nav-permission">{{ 'nav.settings.field_permission' | t }}</label>
+          <smt-select smtTriggerId="nav-permission" [options]="permissionOptions()" [allowClear]="true"
+            smtDescribedBy="nav-permission-hint"
+            [placeholder]="'nav.settings.permission_everyone' | t"
+            [value]="formRequiredPermission" (valueChange)="formRequiredPermissionChange.emit($event ?? null)" />
+          <span class="form-hint" id="nav-permission-hint">{{ 'nav.settings.permission_hint' | t }}</span>
         </div>
 
         <div class="form-group">
@@ -257,6 +266,9 @@ export class NavigationSettingsModalComponent {
   @Input() formSortOrder = 10;
   @Input() formUrl = '';
   @Input() formIcon = 'analytics';
+  /** `form.action` pair the item is limited to; null shows it to everyone. */
+  @Input() formRequiredPermission: string | null = null;
+  @Input() permissionChoices: NavigationPermissionChoice[] = [];
   @Input() popularIcons: string[] = [];
 
   @Output() formTitleChange = new EventEmitter<string>();
@@ -266,6 +278,7 @@ export class NavigationSettingsModalComponent {
   @Output() formSortOrderChange = new EventEmitter<number>();
   @Output() formUrlChange = new EventEmitter<string>();
   @Output() formIconChange = new EventEmitter<string>();
+  @Output() formRequiredPermissionChange = new EventEmitter<string | null>();
 
   @Output() titleChange = new EventEmitter<void>();
   @Output() urlBlur = new EventEmitter<void>();
@@ -275,6 +288,22 @@ export class NavigationSettingsModalComponent {
   private readonly targetTypeMemo = optionsMemo<SMTSelectOption<NavigationTargetType>[]>();
 
   private readonly sectionMemo = optionsMemo<SMTSelectOption<string>[]>();
+
+  private readonly permissionMemo = optionsMemo<SMTSelectOption<string>[]>();
+
+  /** Catalog pairs by name; a stored pair missing from the list stays visible by its key. */
+  permissionOptions(): SMTSelectOption<string>[] {
+    return this.permissionMemo([this.permissionChoices, this.formRequiredPermission], () => {
+      const options = this.permissionChoices.map(choice => ({
+        id: choice.permission,
+        label: `${choice.formName} — ${choice.actionName}`
+      }));
+      const stored = this.formRequiredPermission;
+      return stored && !options.some(option => option.id === stored)
+        ? [{ id: stored, label: stored }, ...options]
+        : options;
+    });
+  }
 
   targetTypeOptions(): SMTSelectOption<NavigationTargetType>[] {
     return this.targetTypeMemo([this.i18n.currentLang()], () => [
