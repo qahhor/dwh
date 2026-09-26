@@ -9,13 +9,6 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- Projects are a registry list (`ms.projects`, the rest of roadmap item 51):
-  the project screen pages `GET /tasks/projects/page` with filter, search,
-  saved views, column settings, custom fields and the server export; the
-  whole list stays for pickers. Task counts and progress are counted over the
-  tasks the viewer may see and exist only with the right to view tasks;
-  progress sorts and filters the whole list on the server. The cards view
-  pages by cursor as well.
 - Filters can match any condition (roadmap item 53): the filter DSL takes
   `{"any": [...]}` groups, and the filter builder offers "All conditions /
   Any condition"; saved views keep the choice. Reference fields are picked by
