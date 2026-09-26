@@ -1,8 +1,9 @@
 name: DCO
 
+# Paused while the low-code roadmap (wave 9) is built: runs only by hand.
+# Restore before release: on: pull_request: types: [opened, synchronize, reopened].
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+  workflow_dispatch:
 
 permissions:
   contents: read
