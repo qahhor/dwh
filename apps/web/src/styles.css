@@ -482,26 +482,6 @@ html, body {
 
 
 
-.clean-select, .ui-select {
-  height: var(--control-height);
-  padding: 0 8px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  background-color: var(--bg-surface);
-  color: var(--text-main);
-  font-size: 12px;
-  font-family: inherit;
-  cursor: pointer;
-  transition: border-color 0.15s ease;
-}
-.clean-select:focus, .ui-select:focus {
-  border-color: var(--primary);
-}
-
-@media (max-width: 767px) {
-  .ui-select { min-height: var(--control-touch-height); }
-}
-
 /* Card & Table Standard */
 .table-card {
   background-color: var(--bg-surface);
@@ -604,11 +584,6 @@ td.empty {
   line-height: 1.1;
 }
 
-.tile-value-sm {
-  font-size: 16px;
-  font-weight: 600;
-}
-
 .tile-alarm {
   border-color: rgba(220, 38, 38, 0.4);
   background: linear-gradient(to bottom right, var(--bg-surface), var(--danger-bg));
@@ -628,7 +603,7 @@ td.empty {
   color: var(--text-main);
 }
 
-.form-input, .form-select, .form-textarea {
+.form-input {
   width: 100%;
   padding: 8px 12px;
   border-radius: var(--radius-sm);
@@ -640,7 +615,7 @@ td.empty {
   transition: border-color 0.15s ease;
 }
 
-.form-input:focus, .form-select:focus, .form-textarea:focus {
+.form-input:focus {
   border-color: var(--primary);
 }
 

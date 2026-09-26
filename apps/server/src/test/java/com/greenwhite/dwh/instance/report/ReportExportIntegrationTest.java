@@ -1,12 +1,13 @@
 package com.greenwhite.dwh.instance.report;
 
+import com.greenwhite.dwh.instance.support.TestDatabases;
+
 import com.greenwhite.dwh.core.error.ErrorCode;
 import com.greenwhite.dwh.instance.audit.repository.AuditLogRepository;
 import com.greenwhite.dwh.instance.audit.service.AuditDataRedactor;
 import com.greenwhite.dwh.instance.audit.service.AuditLogService;
 import com.greenwhite.dwh.instance.common.error.ApiException;
 import com.greenwhite.dwh.instance.common.security.SecurityContext;
-import com.greenwhite.dwh.instance.config.db.FlywayUtcConfiguration;
 import com.greenwhite.dwh.instance.config.error.GlobalExceptionHandler;
 import com.greenwhite.dwh.instance.kauth.security.RequiresPermissionInterceptor;
 import com.greenwhite.dwh.instance.md.repository.MdOrgUnitRepository;
@@ -18,7 +19,6 @@ import com.greenwhite.dwh.instance.md.service.MdPermissionService;
 import com.greenwhite.dwh.instance.md.service.MdScopeService;
 import com.greenwhite.dwh.instance.report.controller.ReportController;
 import com.greenwhite.dwh.instance.report.service.ReportService;
-import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,15 +28,11 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.w3c.dom.Element;
 import tools.jackson.databind.ObjectMapper;
 
@@ -56,13 +52,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /** Exercises HTTP export serialization with the real SQL authorization predicate. */
-@Testcontainers
 class ReportExportIntegrationTest {
     private static final String SS = "urn:schemas-microsoft-com:office:spreadsheet";
 
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:18-alpine")
-            .withDatabaseName("report_export_test").withUsername("test_user").withPassword("test_pass");
 
     static JdbcClient jdbc;
     static DataSourceTransactionManager transactions;
@@ -76,9 +68,7 @@ class ReportExportIntegrationTest {
 
     @BeforeAll
     static void setup() {
-        var ds = new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
-        FlywayUtcConfiguration.configure(Flyway.configure())
-                .dataSource(ds).locations("classpath:db/migration").load().migrate();
+        var ds = TestDatabases.migratedCopy("report_export_test");
         jdbc = JdbcClient.create(ds);
         transactions = new DataSourceTransactionManager(ds);
         scopeRepository = new MdScopeRepository(jdbc);

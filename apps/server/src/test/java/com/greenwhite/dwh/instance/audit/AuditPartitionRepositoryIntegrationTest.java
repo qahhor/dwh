@@ -1,16 +1,12 @@
 package com.greenwhite.dwh.instance.audit;
 
+import com.greenwhite.dwh.instance.support.TestDatabases;
+
 import com.greenwhite.dwh.instance.audit.repository.AuditPartitionRepository;
-import com.greenwhite.dwh.instance.config.db.FlywayUtcConfiguration;
-import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.YearMonth;
 
@@ -24,23 +20,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * {@code rename to} — на моках не проверяется никак, а ошибка здесь стоит
  * дороже прочих: партиция уходит из журнала вместе с записями.
  */
-@Testcontainers
 class AuditPartitionRepositoryIntegrationTest {
-
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:18-alpine")
-            .withDatabaseName("dwh_partition_test")
-            .withUsername("test_user")
-            .withPassword("test_pass");
 
     static JdbcClient jdbc;
     static AuditPartitionRepository repository;
 
     @BeforeAll
     static void setup() {
-        var ds = new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
-        FlywayUtcConfiguration.configure(Flyway.configure())
-                .dataSource(ds).locations("classpath:db/migration").load().migrate();
+        var ds = TestDatabases.migratedCopy("dwh_partition_test");
         jdbc = JdbcClient.create(ds);
         repository = new AuditPartitionRepository(jdbc);
     }
