@@ -7,3 +7,4 @@ export * from './modal.component';
 export * from './modal-confirm/modal-confirm.component';
 export * from './types/modal.types';
 export * from './types/modal-confirm.types';
+export * from './dialog.component';

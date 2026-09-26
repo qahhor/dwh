@@ -1226,7 +1226,6 @@
   "ui.filter.op.between": "between",
   "ui.filter.op.empty": "is empty",
   "ui.filter.op.not_empty": "is not empty",
-  "ui.modal.close_named_dialog": "Close the “{title}” dialog",
   "ui.modal.confirm_title": "Confirmation",
   "ui.modal.confirm_failed": "The action failed. Try again.",
   "ui.history.title": "Change history",

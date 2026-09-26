@@ -300,10 +300,6 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-body.modal-open {
-  overflow: hidden;
-}
-
 :where(button, a, input, select, textarea, [tabindex]):focus-visible {
   outline: 2px solid var(--focus-ring) !important;
   outline-offset: 2px !important;

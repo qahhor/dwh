@@ -38,10 +38,12 @@
     <button smt-button type="submit" [smtLoading]="pending" [disabled]="!dirty || !valid || impactOpen">{{ 'iam.org_units.save' | t }}</button>
   </div>
 </form>
-<ui-modal [isOpen]="impactOpen" [title]="'iam.org_units.impact_title' | t" (close)="impactOpen = false">
+<smt-dialog [open]="impactOpen" [smtTitle]="'iam.org_units.impact_title' | t" (closed)="impactOpen = false">
+  <ng-template smtDialogContent>
   <p body>{{ 'iam.org_units.impact_warning' | t }}</p>
   <div footer class="actions">
     <button smt-button type="button" smtVariant="secondary" (click)="impactOpen = false">{{ 'iam.org_units.cancel' | t }}</button>
     <button smt-button type="button" (click)="confirmImpact()">{{ 'iam.org_units.confirm_save' | t }}</button>
   </div>
-</ui-modal>
+  </ng-template>
+</smt-dialog>

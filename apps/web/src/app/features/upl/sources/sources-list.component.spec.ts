@@ -12,6 +12,7 @@ import { PACKAGED_RUSSIAN } from '../../../core/i18n/packaged-russian';
 import { UplApiService, UplSource, UplSourceItem } from '../upl-api';
 import { SourcesListComponent } from './sources-list.component';
 import { ListViewsApi, SavedListView } from '../../../shared/list-views/list-views';
+import { inScreen } from '../../../../testing/in-screen';
 
 function page(items: UplSourceItem[], hasMore = false, nextCursor: string | null = null, total = items.length): KeysetPage<UplSourceItem> {
   return { items, nextCursor, hasMore, totalEstimated: total } as unknown as KeysetPage<UplSourceItem>;
@@ -112,7 +113,7 @@ function click(fixture: ComponentFixture<SourcesListComponent>, id: string): voi
 }
 
 function headers(fixture: ComponentFixture<SourcesListComponent>): HTMLElement[] {
-  return [...(fixture.nativeElement as HTMLElement).querySelectorAll('[role="columnheader"]')] as HTMLElement[];
+  return [...inScreen(fixture.nativeElement).querySelectorAll('[role="columnheader"]')] as HTMLElement[];
 }
 
 /** Submits the create form as it was opened, keeping what was prefilled. */
@@ -151,10 +152,10 @@ describe('SourcesListComponent', () => {
     ]);
     expect(headers(fixture)[0].getAttribute('aria-sort')).toBe('ascending');
     expect(testId(fixture, 'upl-source-row')).toHaveLength(2);
-    const links = [...fixture.nativeElement.querySelectorAll('a.upl-link')] as HTMLAnchorElement[];
+    const links = [...inScreen(fixture.nativeElement).querySelectorAll('a.upl-link')] as HTMLAnchorElement[];
     expect(links.map(link => link.getAttribute('href'))).toEqual(['/upl/sources/1', '/upl/sources/5']);
-    expect(fixture.nativeElement.querySelectorAll('[role="rowgroup"] ui-badge')).toHaveLength(1);
-    expect(fixture.nativeElement.textContent).toContain(PACKAGED_RUSSIAN['upl.periodicity.quarter']);
+    expect(inScreen(fixture.nativeElement).querySelectorAll('[role="rowgroup"] ui-badge')).toHaveLength(1);
+    expect(inScreen(fixture.nativeElement).textContent).toContain(PACKAGED_RUSSIAN['upl.periodicity.quarter']);
     expect(testId(fixture, 'upl-count')[0].textContent?.trim()).toBe('2');
   });
 
@@ -174,7 +175,7 @@ describe('SourcesListComponent', () => {
       pages: [of(page([firstItem], true, 'cursor-1', 2)), of(page([secondItem], false, null, 2))]
     });
 
-    (fixture.nativeElement.querySelector('button[aria-label="Следующая страница"]') as HTMLButtonElement).click();
+    (inScreen(fixture.nativeElement).querySelector('button[aria-label="Следующая страница"]') as HTMLButtonElement).click();
     fixture.detectChanges();
 
     expect(api.listSources).toHaveBeenLastCalledWith(50, 'cursor-1', { sort: { field: 'code', descending: false }, conditions: [] });
@@ -209,7 +210,7 @@ describe('SourcesListComponent', () => {
       pages: [throwError(() => ({ status: 503 })), of(page([firstItem]))]
     });
 
-    const alert = fixture.nativeElement.querySelector('ui-server-table [role="alert"]') as HTMLElement;
+    const alert = inScreen(fixture.nativeElement).querySelector('ui-server-table [role="alert"]') as HTMLElement;
     expect(alert.textContent).toContain(PACKAGED_RUSSIAN['upl.list.load_error']);
     (alert.querySelector('button') as HTMLButtonElement).click();
     fixture.detectChanges();
@@ -221,7 +222,7 @@ describe('SourcesListComponent', () => {
   it('позволяет настроить колонки, кроме названия', async () => {
     const { fixture } = await createFixture();
 
-    (fixture.nativeElement.querySelector('.smt-columns__trigger') as HTMLButtonElement).click();
+    (inScreen(fixture.nativeElement).querySelector('.smt-columns__trigger') as HTMLButtonElement).click();
     fixture.detectChanges();
     const checks = [...document.querySelectorAll('[role="dialog"] input[type="checkbox"]')] as HTMLInputElement[];
     expect(checks).toHaveLength(5);
@@ -267,15 +268,15 @@ describe('SourcesListComponent', () => {
       sort: { field: 'code', descending: false },
       conditions: [{ field: 'periodicity', op: 'in', value: ['month'] }]
     });
-    const chip = fixture.nativeElement.querySelector('[data-testid="filter-chip"] .filter-chip-text') as HTMLElement;
+    const chip = inScreen(fixture.nativeElement).querySelector('[data-testid="filter-chip"] .filter-chip-text') as HTMLElement;
     expect(chip.textContent).toContain(PACKAGED_RUSSIAN['upl.periodicity.month']);
 
-    (fixture.nativeElement.querySelector('.filter-chip-remove') as HTMLButtonElement).click();
+    (inScreen(fixture.nativeElement).querySelector('.filter-chip-remove') as HTMLButtonElement).click();
     fixture.detectChanges();
 
     expect(api.listSources).toHaveBeenLastCalledWith(50, null, { sort: { field: 'code', descending: false }, conditions: [] });
     expect(testId(fixture, 'views-trigger')[0].textContent).toContain(PACKAGED_RUSSIAN['ui.views.changed']);
-    expect(fixture.nativeElement.querySelector('[data-testid="filter-chip"]')).toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('[data-testid="filter-chip"]')).toBeNull();
   });
 
   it('без представлений открывается стандартным, даже если их не удалось загрузить', async () => {
@@ -310,7 +311,7 @@ describe('SourcesListComponent', () => {
   it('пока список грузится, сообщает об этом и не показывает пустое состояние', async () => {
     const { fixture } = await createFixture({ pages: [NEVER] });
 
-    expect(fixture.nativeElement.querySelector('[data-server-table-status]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('[data-server-table-status]')).not.toBeNull();
     expect(testId(fixture, 'upl-empty')).toHaveLength(0);
     expect(testId(fixture, 'upl-source-row')).toHaveLength(0);
   });
@@ -331,7 +332,7 @@ describe('SourcesListComponent', () => {
     await openCreateForm(fixture, { code: 'Cement Output', name: 'Vypusk', ownerOrg: 'Org' });
 
     expect(api.createSource).not.toHaveBeenCalled();
-    expect(fieldError(fixture.nativeElement, 'upl-source-code')).not.toBeNull();
+    expect(fieldError(document.body, 'upl-source-code')).not.toBeNull();
   });
 
   it('создаёт источник и переходит на карточку', async () => {
@@ -394,7 +395,7 @@ describe('SourcesListComponent', () => {
 
     await openCreateForm(fixture, { code: 'cement.output', name: 'Vypusk', ownerOrg: 'Org' });
 
-    expect(fieldError(fixture.nativeElement, 'upl-source-code')).not.toBeNull();
+    expect(fieldError(document.body, 'upl-source-code')).not.toBeNull();
     expect(fixture.componentInstance.isCreateOpen()).toBe(true);
   });
 
@@ -409,7 +410,7 @@ describe('SourcesListComponent', () => {
 
     await openCreateForm(fixture, { code: 'cement.output', name: 'Vypusk', ownerOrg: 'Org' });
 
-    expect(fieldError(fixture.nativeElement, 'upl-source-code')).not.toBeNull();
+    expect(fieldError(document.body, 'upl-source-code')).not.toBeNull();
     expect(fixture.componentInstance.isCreateOpen()).toBe(true);
   });
 
@@ -425,8 +426,8 @@ describe('SourcesListComponent', () => {
 
     await openCreateForm(fixture, { code: 'cement.output', name: 'Vypusk', ownerOrg: 'Org' });
 
-    expect(fieldError(fixture.nativeElement, 'upl-source-name')?.textContent).toContain(PACKAGED_RUSSIAN['upl.err.Size']);
-    expect(fixture.nativeElement.querySelector('#upl-source-name')?.getAttribute('aria-invalid')).toBe('true');
+    expect(fieldError(document.body, 'upl-source-name')?.textContent).toContain(PACKAGED_RUSSIAN['upl.err.Size']);
+    expect(inScreen(fixture.nativeElement).querySelector('#upl-source-name')?.getAttribute('aria-invalid')).toBe('true');
     expect(testId(fixture, 'upl-create-error')).toHaveLength(1);
   });
 

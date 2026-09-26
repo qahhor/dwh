@@ -1043,7 +1043,6 @@
   "ui.user_multi_select.add_more": "+Кошуу",
   "ui.file_upload.upload_progress": "Жүктөлүүдө... {progress}%",
   "ui.file_upload.uploaded_named": "File {name} uploaded successfully",
-  "ui.modal.close_named_dialog": "Close the dialog \"{title}\"",
   "ui.pagination.page_number": "Бет {page}",
   "ui.markdown_editor.vtoroy_element": "Экинчи элемент",
   "ui.markdown_editor.vtoroy_punkt": "Экинчи пункт",

@@ -7,8 +7,9 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
 import { ApiService } from '../../../core/services/api.service';
 import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
+import { SMTDialogComponent } from '../../../shared/ui-kit/components/modal';
 import { ProjectsComponent } from './projects.component';
+import { inScreen, redraw } from '../../../../testing/in-screen';
 
 interface ApiDouble {
   get: ReturnType<typeof vi.fn>;
@@ -43,7 +44,7 @@ describe('ProjectsComponent UI contracts', () => {
     }).compileComponents();
     TestBed.inject(PermissionService).setPermissions(options.permissions ?? ['*.*']);
     const fixture = TestBed.createComponent(ProjectsComponent);
-    fixture.detectChanges();
+    redraw(fixture);
     return { fixture, api, router, toast };
   }
 
@@ -57,11 +58,11 @@ describe('ProjectsComponent UI contracts', () => {
   it('labels filters and keeps the projects table inside a named scroll region', async () => {
     const { fixture } = await createFixture();
 
-    const search = fixture.nativeElement.querySelector('#project-search') as HTMLInputElement;
-    const region = fixture.nativeElement.querySelector('.table-card[role="region"]') as HTMLElement;
+    const search = inScreen(fixture.nativeElement).querySelector('#project-search') as HTMLInputElement;
+    const region = inScreen(fixture.nativeElement).querySelector('.table-card[role="region"]') as HTMLElement;
 
-    expect(fixture.nativeElement.querySelector(`label[for="${search.id}"]`)).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('[role="radiogroup"][aria-label="Режим отображения проектов"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector(`label[for="${search.id}"]`)).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('[role="radiogroup"][aria-label="Режим отображения проектов"]')).not.toBeNull();
     expect(region.getAttribute('aria-label')).toBe('Таблица проектов');
     expect(region.querySelector('[role="table"]')?.getAttribute('aria-label')).toBe('Список проектов');
   });
@@ -70,17 +71,17 @@ describe('ProjectsComponent UI contracts', () => {
     const { fixture } = await createFixture();
     fixture.componentInstance.openCreateModal();
     fixture.componentInstance.isCreateSubmitted = true;
-    fixture.detectChanges();
+    redraw(fixture);
     TestBed.tick(); // smt-control wires label, error and aria state after render
 
-    const name = fixture.nativeElement.querySelector('#project-create-name') as HTMLInputElement;
-    const error = (name.getAttribute('aria-describedby') ?? '').split(' ').map(id => fixture.nativeElement.querySelector('#' + id)).find(node => node?.classList.contains('smt-control__error')) as HTMLElement;
+    const name = inScreen(fixture.nativeElement).querySelector('#project-create-name') as HTMLInputElement;
+    const error = (name.getAttribute('aria-describedby') ?? '').split(' ').map(id => inScreen(fixture.nativeElement).querySelector('#' + id)).find(node => node?.classList.contains('smt-control__error')) as HTMLElement;
 
-    expect(fixture.nativeElement.querySelector(`label[for="${name.id}"]`)).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector(`label[for="${name.id}"]`)).not.toBeNull();
     expect(name.required).toBe(true);
     expect(name.getAttribute('aria-invalid')).toBe('true');
     expect(name.getAttribute('aria-describedby')).toBe(error.id);
-    expect(fixture.nativeElement.querySelector('#project-create-description')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('#project-create-description')).not.toBeNull();
   });
 
   it('renders plain project state copy while retaining A and P option values', async () => {
@@ -91,29 +92,29 @@ describe('ProjectsComponent UI contracts', () => {
       return of([]);
     });
     const { fixture } = await createFixture({ api });
-    const host = fixture.nativeElement as HTMLElement;
+    const host = inScreen(fixture.nativeElement);
 
-    expect(Array.from(host.querySelectorAll('.status-pill')).map(node => node.textContent?.trim()))
+    expect(Array.from(host.querySelectorAll('.status-pill') as Element[]).map(node => node.textContent?.trim()))
       .toEqual(['Активен', 'В архиве']);
 
     fixture.componentInstance.viewMode = 'cards';
-    fixture.detectChanges();
-    expect(Array.from(host.querySelectorAll('.status-pill')).map(node => node.textContent?.trim()))
+    redraw(fixture);
+    expect(Array.from(host.querySelectorAll('.status-pill') as Element[]).map(node => node.textContent?.trim()))
       .toEqual(['Активен', 'В архиве']);
 
     fixture.componentInstance.openEditModal(project(1));
-    fixture.detectChanges();
+    redraw(fixture);
     await fixture.whenStable();
-    fixture.detectChanges();
+    redraw(fixture);
     const state = host.querySelector('#project-edit-state') as HTMLButtonElement;
     expect(state.getAttribute('role')).toBe('combobox');
     expect(state.textContent).toContain('Активен');
     state.click();
-    fixture.detectChanges();
+    redraw(fixture);
     const options = Array.from(document.querySelectorAll('.smt-select__option')) as HTMLElement[];
     expect(options.map(option => option.querySelector('.smt-select__option-label')?.textContent?.trim())).toEqual(['Активен', 'В архиве']);
     options[1].click();
-    fixture.detectChanges();
+    redraw(fixture);
     expect(fixture.componentInstance.editForm.state).toBe('P');
   });
 
@@ -122,25 +123,25 @@ describe('ProjectsComponent UI contracts', () => {
     const api = emptyApi();
     api.post.mockReturnValue(pendingSave);
     const { fixture } = await createFixture({ api });
-    const host = fixture.nativeElement as HTMLElement;
+    const host = inScreen(fixture.nativeElement);
 
     fixture.componentInstance.openCreateModal();
-    fixture.detectChanges();
+    redraw(fixture);
     await fixture.whenStable();
-    fixture.detectChanges();
+    redraw(fixture);
     const name = host.querySelector('#project-create-name') as HTMLInputElement;
     const description = host.querySelector('#project-create-description') as HTMLTextAreaElement;
     name.value = '  Native create  ';
     name.dispatchEvent(new Event('input'));
     description.value = '  Submitted from the form  ';
     description.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
+    redraw(fixture);
 
     const form = host.querySelector('#project-create-form') as HTMLFormElement;
     expect(form).not.toBeNull();
     form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-    fixture.detectChanges();
+    redraw(fixture);
 
     expect(api.post).toHaveBeenCalledTimes(1);
     expect(api.post).toHaveBeenCalledWith('/tasks/projects', {
@@ -151,33 +152,36 @@ describe('ProjectsComponent UI contracts', () => {
 
   it('keeps an entered create draft visible when Cancel or Escape requests dismissal', async () => {
     const { fixture } = await createFixture();
-    const host = fixture.nativeElement as HTMLElement;
+    const host = inScreen(fixture.nativeElement);
 
     (host.querySelector('.header-right .smt-button') as HTMLButtonElement).click();
-    fixture.detectChanges();
+    redraw(fixture);
+    // The dialog's fields meet ngModel a microtask after it opens.
+    await fixture.whenStable();
+    redraw(fixture);
     const name = host.querySelector('#project-create-name') as HTMLInputElement;
     name.value = 'Unsaved project';
     name.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
+    redraw(fixture);
 
-    const createButtons = host.querySelectorAll('.modal-backdrop .modal-footer button');
+    const createButtons = host.querySelectorAll('[role="dialog"] [footer] button');
     (createButtons[0] as HTMLButtonElement).click();
-    fixture.detectChanges();
+    redraw(fixture);
 
-    expect(host.querySelectorAll('.modal-backdrop')).toHaveLength(2);
+    expect(host.querySelectorAll('[role="dialog"]')).toHaveLength(2);
     expect((host.querySelector('#project-create-name') as HTMLInputElement).value).toBe('Unsaved project');
 
-    const confirmation = host.querySelectorAll('.modal-backdrop')[1] as HTMLElement;
-    (confirmation.querySelector('.modal-footer button') as HTMLButtonElement).click();
-    fixture.detectChanges();
-    expect(host.querySelectorAll('.modal-backdrop')).toHaveLength(1);
+    const confirmation = host.querySelectorAll('[role="dialog"]')[1] as HTMLElement;
+    (confirmation.querySelector('[footer] button') as HTMLButtonElement).click();
+    redraw(fixture);
+    expect(host.querySelectorAll('[role="dialog"]')).toHaveLength(1);
     expect((host.querySelector('#project-create-name') as HTMLInputElement).value).toBe('Unsaved project');
 
     const escape = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
-    document.dispatchEvent(escape);
-    fixture.detectChanges();
+    (document.activeElement ?? document.body).dispatchEvent(escape);
+    redraw(fixture);
     expect(escape.defaultPrevented).toBe(true);
-    expect(host.querySelectorAll('.modal-backdrop')).toHaveLength(2);
+    expect(host.querySelectorAll('[role="dialog"]')).toHaveLength(2);
     expect((host.querySelector('#project-create-name') as HTMLInputElement).value).toBe('Unsaved project');
   });
 
@@ -191,18 +195,18 @@ describe('ProjectsComponent UI contracts', () => {
       return of([]);
     });
     const { fixture } = await createFixture({ api });
-    const host = fixture.nativeElement as HTMLElement;
+    const host = inScreen(fixture.nativeElement);
 
     (host.querySelector('.icon-ghost-btn') as HTMLButtonElement).click();
-    fixture.detectChanges();
+    redraw(fixture);
     expect(host.querySelector('[data-testid="project-edit-loading"][role="status"]')).not.toBeNull();
     expect(host.querySelector('#project-edit-name')).toBeNull();
 
     freshDetail.next({ ...project(5), name: 'Fresh name', description: 'Актуальное описание с сервера' });
     freshDetail.complete();
-    fixture.detectChanges();
+    redraw(fixture);
     await fixture.whenStable();
-    fixture.detectChanges();
+    redraw(fixture);
 
     expect((host.querySelector('#project-edit-name') as HTMLInputElement).value).toBe('Fresh name');
     expect((host.querySelector('#project-edit-description') as HTMLTextAreaElement).value)
@@ -217,23 +221,23 @@ describe('ProjectsComponent UI contracts', () => {
       : of([]));
     api.patch.mockReturnValue(pendingPatch);
     const { fixture } = await createFixture({ api });
-    const host = fixture.nativeElement as HTMLElement;
+    const host = inScreen(fixture.nativeElement);
 
     fixture.componentInstance.openEditModal(project(3));
-    fixture.detectChanges();
+    redraw(fixture);
     await fixture.whenStable();
-    fixture.detectChanges();
+    redraw(fixture);
     const name = host.querySelector('#project-edit-name') as HTMLInputElement;
     name.value = '  Native rename  ';
     name.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
+    redraw(fixture);
     expect(fixture.componentInstance.editForm.name).toBe('  Native rename  ');
 
     const form = host.querySelector('#project-edit-form') as HTMLFormElement;
     expect(form).not.toBeNull();
     form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-    fixture.detectChanges();
+    redraw(fixture);
 
     expect(api.patch).toHaveBeenCalledTimes(1);
     expect(api.patch).toHaveBeenCalledWith('/tasks/projects/3', { name: 'Native rename' });
@@ -244,26 +248,29 @@ describe('ProjectsComponent UI contracts', () => {
     const api = emptyApi();
     api.post.mockReturnValue(pendingSave);
     const { fixture } = await createFixture({ api });
-    const host = fixture.nativeElement as HTMLElement;
+    const host = inScreen(fixture.nativeElement);
 
     (host.querySelector('.header-right .smt-button') as HTMLButtonElement).click();
-    fixture.detectChanges();
+    redraw(fixture);
+    // The dialog's fields meet ngModel a microtask after it opens.
+    await fixture.whenStable();
+    redraw(fixture);
     const name = host.querySelector('#project-create-name') as HTMLInputElement;
     name.value = 'Pending project';
     name.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
+    redraw(fixture);
 
-    const footerButtons = host.querySelectorAll('.modal-backdrop .modal-footer button');
+    const footerButtons = host.querySelectorAll('[role="dialog"] [footer] button');
     const save = footerButtons[1] as HTMLButtonElement;
     save.click();
     save.click();
-    fixture.detectChanges();
+    redraw(fixture);
 
     expect(api.post).toHaveBeenCalledTimes(1);
     expect((host.querySelector('fieldset.project-create-form') as HTMLFieldSetElement).disabled).toBe(true);
-    expect((host.querySelectorAll('.modal-backdrop .modal-footer button')[0] as HTMLButtonElement).disabled).toBe(true);
-    expect((host.querySelectorAll('.modal-backdrop .modal-footer button')[1] as HTMLButtonElement).disabled).toBe(true);
-    expect(host.querySelector('.modal-backdrop .modal-close')).toBeNull();
+    expect((host.querySelectorAll('[role="dialog"] [footer] button')[0] as HTMLButtonElement).disabled).toBe(true);
+    expect((host.querySelectorAll('[role="dialog"] [footer] button')[1] as HTMLButtonElement).disabled).toBe(true);
+    expect(host.querySelector('[role="dialog"] .smt-modal__close')).toBeNull();
   });
 
   it('guards create drafts for Cancel and modal dismissal while pristine drafts close directly', async () => {
@@ -284,9 +291,9 @@ describe('ProjectsComponent UI contracts', () => {
 
     component.isCreateDiscardConfirmationOpen.set(false);
     expect(component.createForm.name).toBe('Unsaved project');
-    const createModal = fixture.debugElement.queryAll(By.directive(UiModalComponent))[0]
-      .componentInstance as UiModalComponent;
-    createModal.close.emit();
+    const createModal = fixture.debugElement.queryAll(By.directive(SMTDialogComponent))[0]
+      .componentInstance as SMTDialogComponent;
+    createModal.closed.emit();
     expect(component.isCreateModalOpen()).toBe(true);
     expect(component.isCreateDiscardConfirmationOpen()).toBe(true);
 
@@ -308,23 +315,23 @@ describe('ProjectsComponent UI contracts', () => {
 
     component.submitCreateProject();
     component.submitCreateProject();
-    fixture.detectChanges();
+    redraw(fixture);
 
     expect(api.post).toHaveBeenCalledTimes(1);
     expect(api.post).toHaveBeenCalledWith('/tasks/projects', {
       name: 'New project',
       description: 'Draft description'
     });
-    expect(fixture.nativeElement.querySelector('.project-create-form')?.disabled).toBe(true);
-    expect(fixture.debugElement.queryAll(By.directive(UiModalComponent))[0].componentInstance.dismissible).toBe(false);
+    expect(inScreen(fixture.nativeElement).querySelector('.project-create-form')?.disabled).toBe(true);
+    expect(fixture.debugElement.queryAll(By.directive(SMTDialogComponent))[0].componentInstance.dismissible()).toBe(false);
     component.requestCloseCreate();
     expect(component.isCreateModalOpen()).toBe(true);
 
     firstSave.error({ status: 422, title: 'Invalid', code: 'VALIDATION_ERROR', detail: 'Normalized create detail' });
-    fixture.detectChanges();
+    redraw(fixture);
     expect(component.createForm.name).toBe('  New project  ');
     expect(component.isSubmitting()).toBe(false);
-    expect(fixture.nativeElement.querySelector('[data-testid="project-create-save-error"][role="alert"]')?.textContent)
+    expect(inScreen(fixture.nativeElement).querySelector('[data-testid="project-create-save-error"][role="alert"]')?.textContent)
       .toContain('Normalized create detail');
     expect(toast.error).not.toHaveBeenCalled();
 
@@ -349,32 +356,32 @@ describe('ProjectsComponent UI contracts', () => {
     const component = fixture.componentInstance;
 
     component.openEditModal(project(7));
-    fixture.detectChanges();
+    redraw(fixture);
     expect(api.get).toHaveBeenCalledWith('/tasks/projects/7', undefined, { notifyError: false });
     expect(component.editLoading()).toBe(true);
     expect(component.editingProject).toBeNull();
-    expect(fixture.nativeElement.querySelector('[data-testid="project-edit-loading"][role="status"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('[data-testid="project-edit-loading"][role="status"]')).not.toBeNull();
 
     mismatch.next({ ...project(8), name: 'Wrong project' });
     mismatch.complete();
-    fixture.detectChanges();
+    redraw(fixture);
     expect(component.editLoadError()).toBe(true);
     expect(component.editingProject).toBeNull();
-    expect(fixture.nativeElement.querySelector('[data-testid="project-edit-load-error"][role="alert"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('[data-testid="project-edit-load-error"][role="alert"]')).not.toBeNull();
 
     component.retryEditLoad();
     failed.error({ status: 503, title: 'Unavailable', code: 'API_ERROR', detail: 'Unavailable' });
-    fixture.detectChanges();
+    redraw(fixture);
     expect(component.editLoadError()).toBe(true);
 
-    (fixture.nativeElement.querySelector('button.project-edit-retry') as HTMLButtonElement).click();
+    (inScreen(fixture.nativeElement).querySelector('button.project-edit-retry') as HTMLButtonElement).click();
     fresh.next({ ...project(7), name: ' Current ', description: ' Current description ' });
     fresh.complete();
-    fixture.detectChanges();
+    redraw(fixture);
     expect(component.editLoading()).toBe(false);
     expect(component.editLoadError()).toBe(false);
     expect(component.editForm).toEqual({ name: 'Current', description: 'Current description', state: 'A' });
-    expect(fixture.nativeElement.querySelector('.project-edit-form')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('.project-edit-form')).not.toBeNull();
   });
 
   it('cancels obsolete edit detail reads on close and prevents another modal from resetting a live draft', async () => {
@@ -471,17 +478,17 @@ describe('ProjectsComponent UI contracts', () => {
 
     component.submitEditProject();
     component.submitEditProject();
-    fixture.detectChanges();
+    redraw(fixture);
     expect(api.patch).toHaveBeenCalledTimes(1);
-    expect(fixture.nativeElement.querySelector('.project-edit-form')?.disabled).toBe(true);
+    expect(inScreen(fixture.nativeElement).querySelector('.project-edit-form')?.disabled).toBe(true);
     component.requestCloseEdit();
     component.confirmDiscardEdit();
     expect(component.isEditModalOpen()).toBe(true);
 
     pendingPatch.error({ status: 409, title: 'Conflict', code: 'CONFLICT', detail: 'Normalized edit detail' });
-    fixture.detectChanges();
+    redraw(fixture);
     expect(component.editForm.name).toBe('Changed');
-    expect(fixture.nativeElement.querySelector('[data-testid="project-edit-save-error"][role="alert"]')?.textContent)
+    expect(inScreen(fixture.nativeElement).querySelector('[data-testid="project-edit-save-error"][role="alert"]')?.textContent)
       .toContain('Normalized edit detail');
     expect(toast.error).not.toHaveBeenCalled();
 
@@ -503,18 +510,18 @@ describe('ProjectsComponent UI contracts', () => {
     api.get.mockImplementation((url: string) => of(url.endsWith('/stats') ? [] : rows));
     const { fixture } = await createFixture({ api });
     const component = fixture.componentInstance;
-    const firstRowId = () => fixture.nativeElement.querySelector('.project-row')?.textContent?.match(/#(\d+)/)?.[1];
-    const idHeader = () => [...fixture.nativeElement.querySelectorAll('[role="columnheader"]')]
+    const firstRowId = () => inScreen(fixture.nativeElement).querySelector('.project-row')?.textContent?.match(/#(\d+)/)?.[1];
+    const idHeader = () => [...inScreen(fixture.nativeElement).querySelectorAll('[role="columnheader"]')]
       .find(header => (header as HTMLElement).textContent?.trim().startsWith('ID')) as HTMLElement;
     expect(firstRowId()).toBe('1');
 
     component.currentPage = 2;
-    fixture.detectChanges();
+    redraw(fixture);
     const sortButton = idHeader().querySelector('button, [role="button"]') as HTMLElement ?? idHeader();
     sortButton.click();
-    fixture.detectChanges();
+    redraw(fixture);
     sortButton.click();
-    fixture.detectChanges();
+    redraw(fixture);
 
     // Descending by id over all 21 projects: page 1 starts with the last one, not with the last of page 2.
     expect(component.currentPage).toBe(1);
@@ -529,24 +536,24 @@ describe('ProjectsComponent UI contracts', () => {
     api.get.mockImplementation((url: string) => of(url.endsWith('/stats') ? [] : rows));
     const { fixture } = await createFixture({ api });
     const component = fixture.componentInstance;
-    const search = fixture.nativeElement.querySelector('#project-search') as HTMLInputElement;
+    const search = inScreen(fixture.nativeElement).querySelector('#project-search') as HTMLInputElement;
 
     component.currentPage = 2;
     search.value = 'Project 21';
     search.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
+    redraw(fixture);
 
     expect(component.currentPage).toBe(1);
-    expect(fixture.nativeElement.querySelector('.project-row')?.textContent).toContain('Project 21');
+    expect(inScreen(fixture.nativeElement).querySelector('.project-row')?.textContent).toContain('Project 21');
 
     component.currentPage = 2;
     (search.closest('smt-input')?.querySelector('button.smt-input__action') as HTMLButtonElement).click();
-    fixture.detectChanges();
+    redraw(fixture);
     expect(component.currentPage).toBe(1);
     expect(component.searchQuery).toBe('');
 
     const statusButtons = Array.from(
-      fixture.nativeElement.querySelectorAll('.status-filter [role="radio"]') as NodeListOf<HTMLElement>
+      inScreen(fixture.nativeElement).querySelectorAll('.status-filter [role="radio"]') as NodeListOf<HTMLElement>
     );
     for (const [label, visibleProject] of [
       ['Архив', 'Project 21'],
@@ -555,9 +562,9 @@ describe('ProjectsComponent UI contracts', () => {
     ] as const) {
       component.currentPage = 2;
       statusButtons.find(button => button.textContent?.includes(label))?.click();
-      fixture.detectChanges();
+      redraw(fixture);
       expect(component.currentPage).toBe(1);
-      expect(fixture.nativeElement.querySelector('.project-row')?.textContent).toContain(visibleProject);
+      expect(inScreen(fixture.nativeElement).querySelector('.project-row')?.textContent).toContain(visibleProject);
     }
   });
 
@@ -597,31 +604,31 @@ describe('ProjectsComponent UI contracts', () => {
     );
     const { fixture } = await createFixture({ api });
 
-    expect(fixture.nativeElement.querySelector('[data-testid="projects-list-loading"][role="status"]')).not.toBeNull();
-    expect(fixture.nativeElement.textContent).not.toContain('Проекты не найдены');
-    expect(fixture.nativeElement.querySelector('ui-pagination')).toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('[data-testid="projects-list-loading"][role="status"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).textContent).not.toContain('Проекты не найдены');
+    expect(inScreen(fixture.nativeElement).querySelector('ui-pagination')).toBeNull();
     expect(api.get).toHaveBeenCalledWith('/tasks/projects', undefined, { notifyError: false });
 
     fixture.componentInstance.viewMode = 'cards';
-    fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).not.toContain('Проекты не найдены');
-    expect(fixture.nativeElement.querySelector('.project-card')).toBeNull();
+    redraw(fixture);
+    expect(inScreen(fixture.nativeElement).textContent).not.toContain('Проекты не найдены');
+    expect(inScreen(fixture.nativeElement).querySelector('.project-card')).toBeNull();
 
     first.error({ status: 503, title: 'Unavailable', code: 'API_ERROR', detail: 'Unavailable' });
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('[data-testid="projects-list-error"][role="alert"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('ui-pagination')).toBeNull();
+    redraw(fixture);
+    expect(inScreen(fixture.nativeElement).querySelector('[data-testid="projects-list-error"][role="alert"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('ui-pagination')).toBeNull();
 
-    const retryButton = fixture.nativeElement.querySelector('.projects-list-retry') as HTMLButtonElement;
+    const retryButton = inScreen(fixture.nativeElement).querySelector('.projects-list-retry') as HTMLButtonElement;
     expect(retryButton.textContent).toContain('Повторить загрузку проектов');
     retryButton.click();
-    fixture.detectChanges();
+    redraw(fixture);
     retry.next([project(1)]);
     retry.complete();
-    fixture.detectChanges();
+    redraw(fixture);
 
-    expect(fixture.nativeElement.querySelector('[data-testid="projects-list-error"]')).toBeNull();
-    expect(fixture.nativeElement.querySelector('.project-card')?.textContent).toContain('Project 1');
+    expect(inScreen(fixture.nativeElement).querySelector('[data-testid="projects-list-error"]')).toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('.project-card')?.textContent).toContain('Project 1');
   });
 
   it('describes terminal project tasks as closed in list and card progress', async () => {
@@ -630,7 +637,7 @@ describe('ProjectsComponent UI contracts', () => {
       ? [{ projectId: 1, totalTasks: 4, activeTasks: 2, doneTasks: 2 }]
       : [project(1)]));
     const { fixture } = await createFixture({ api });
-    const host = fixture.nativeElement as HTMLElement;
+    const host = inScreen(fixture.nativeElement);
 
     expect(host.querySelector('.progress-count')?.textContent?.trim()).toBe('2 / 4 закрыто');
     expect(host.querySelector('[role="progressbar"]')?.getAttribute('aria-valuenow')).toBe('50');
@@ -640,7 +647,7 @@ describe('ProjectsComponent UI contracts', () => {
       .toContain('конечных статусах, включая выполненные и отменённые');
 
     fixture.componentInstance.viewMode = 'cards';
-    fixture.detectChanges();
+    redraw(fixture);
 
     expect(host.querySelector('.progress-count')?.textContent?.trim()).toBe('2 / 4 закрыто');
     expect(host.querySelector('[role="progressbar"]')?.getAttribute('aria-valuenow')).toBe('50');
@@ -659,42 +666,42 @@ describe('ProjectsComponent UI contracts', () => {
     const { fixture } = await createFixture({ api });
     const component = fixture.componentInstance;
 
-    expect(fixture.nativeElement.querySelector('[data-testid="projects-stats-loading"][role="status"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('[role="progressbar"]')).toBeNull();
-    expect(fixture.nativeElement.textContent).not.toContain('0 / 0');
+    expect(inScreen(fixture.nativeElement).querySelector('[data-testid="projects-stats-loading"][role="status"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('[role="progressbar"]')).toBeNull();
+    expect(inScreen(fixture.nativeElement).textContent).not.toContain('0 / 0');
     expect(api.get).toHaveBeenCalledWith('/tasks/projects/stats', undefined, { notifyError: false });
 
     component.viewMode = 'cards';
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.project-card')?.textContent).toContain('Project 1');
-    expect(fixture.nativeElement.querySelector('[role="progressbar"]')).toBeNull();
+    redraw(fixture);
+    expect(inScreen(fixture.nativeElement).querySelector('.project-card')?.textContent).toContain('Project 1');
+    expect(inScreen(fixture.nativeElement).querySelector('[role="progressbar"]')).toBeNull();
 
     pending.error({ status: 503, title: 'Unavailable', code: 'API_ERROR', detail: 'Unavailable' });
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('[data-testid="projects-stats-error"][role="alert"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('[role="progressbar"]')).toBeNull();
+    redraw(fixture);
+    expect(inScreen(fixture.nativeElement).querySelector('[data-testid="projects-stats-error"][role="alert"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('[role="progressbar"]')).toBeNull();
 
-    (fixture.nativeElement.querySelector('.projects-stats-retry') as HTMLButtonElement).click();
-    fixture.detectChanges();
+    (inScreen(fixture.nativeElement).querySelector('.projects-stats-retry') as HTMLButtonElement).click();
+    redraw(fixture);
     retry.next([{ projectId: 1, totalTasks: 4, activeTasks: 2, doneTasks: 2 }]);
     retry.complete();
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('[role="progressbar"]')?.getAttribute('aria-valuenow')).toBe('50');
-    expect(fixture.nativeElement.textContent).toContain('2 / 4');
+    redraw(fixture);
+    expect(inScreen(fixture.nativeElement).querySelector('[role="progressbar"]')?.getAttribute('aria-valuenow')).toBe('50');
+    expect(inScreen(fixture.nativeElement).textContent).toContain('2 / 4');
 
     component.loadStats();
     explicitZero.next([{ projectId: 1, totalTasks: 0, activeTasks: 0, doneTasks: 0 }]);
     explicitZero.complete();
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('[role="progressbar"]')?.getAttribute('aria-valuenow')).toBe('0');
-    expect(fixture.nativeElement.textContent).toContain('0 / 0');
+    redraw(fixture);
+    expect(inScreen(fixture.nativeElement).querySelector('[role="progressbar"]')?.getAttribute('aria-valuenow')).toBe('0');
+    expect(inScreen(fixture.nativeElement).textContent).toContain('0 / 0');
 
     component.loadStats();
     missing.next([]);
     missing.complete();
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('[role="progressbar"]')).toBeNull();
-    expect(fixture.nativeElement.textContent).toContain('Статистика недоступна');
+    redraw(fixture);
+    expect(inScreen(fixture.nativeElement).querySelector('[role="progressbar"]')).toBeNull();
+    expect(inScreen(fixture.nativeElement).textContent).toContain('Статистика недоступна');
   });
 
   it('keeps project-view-only users on plain project data without task statistics or drilldowns', async () => {
@@ -702,20 +709,20 @@ describe('ProjectsComponent UI contracts', () => {
     api.get.mockImplementation((url: string) => of(url.endsWith('/stats') ? [] : [project(1)]));
     const { fixture, router } = await createFixture({ api, permissions: ['tasks.projects.view'] });
 
-    expect(fixture.nativeElement.querySelector('.project-name')).toBeNull();
-    expect(fixture.nativeElement.querySelector('.project-name-text')?.textContent).toContain('Project 1');
-    expect(fixture.nativeElement.querySelector('[role="progressbar"]')).toBeNull();
-    expect(fixture.nativeElement.textContent).not.toContain('Задачи (');
-    expect(fixture.nativeElement.querySelector('[data-testid="projects-stats-permission"][role="status"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('.projects-stats-retry')).toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('.project-name')).toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('.project-name-text')?.textContent).toContain('Project 1');
+    expect(inScreen(fixture.nativeElement).querySelector('[role="progressbar"]')).toBeNull();
+    expect(inScreen(fixture.nativeElement).textContent).not.toContain('Задачи (');
+    expect(inScreen(fixture.nativeElement).querySelector('[data-testid="projects-stats-permission"][role="status"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('.projects-stats-retry')).toBeNull();
     expect(api.get.mock.calls.filter(([url]) => String(url).endsWith('/stats'))).toHaveLength(0);
 
     fixture.componentInstance.viewMode = 'cards';
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.project-title-btn')).toBeNull();
-    expect(fixture.nativeElement.querySelector('.project-name-text')?.textContent).toContain('Project 1');
-    expect(fixture.nativeElement.querySelector('.view-tasks-link')).toBeNull();
-    expect(fixture.nativeElement.querySelector('.card-progress')).toBeNull();
+    redraw(fixture);
+    expect(inScreen(fixture.nativeElement).querySelector('.project-title-btn')).toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('.project-name-text')?.textContent).toContain('Project 1');
+    expect(inScreen(fixture.nativeElement).querySelector('.view-tasks-link')).toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('.card-progress')).toBeNull();
 
     fixture.componentInstance.viewProjectTasks(project(1));
     expect(router.navigate).not.toHaveBeenCalled();
@@ -759,8 +766,8 @@ describe('ProjectsComponent UI contracts', () => {
     });
     expect(fixture.componentInstance.canCreateProject()).toBe(true);
     expect(fixture.componentInstance.canUpdateProject()).toBe(true);
-    expect(fixture.nativeElement.querySelector('.smt-button')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('.icon-ghost-btn')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('.smt-button')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('.icon-ghost-btn')).not.toBeNull();
 
     fixture.componentInstance.openCreateModal();
     fixture.componentInstance.createForm = { name: 'Created', description: '' };
@@ -773,7 +780,7 @@ describe('ProjectsComponent UI contracts', () => {
     expect(api.patch).toHaveBeenCalledTimes(1);
 
     TestBed.inject(PermissionService).setPermissions(['*.*']);
-    fixture.detectChanges();
+    redraw(fixture);
     expect(fixture.componentInstance.canCreateProject()).toBe(true);
     expect(fixture.componentInstance.canUpdateProject()).toBe(true);
   });
@@ -886,7 +893,7 @@ describe('ProjectsComponent UI contracts', () => {
 
     // 3. Remove member
     component.onRemoveProjectMember({ projectId: 42, userId: 10, userName: 'Иван' });
-    fixture.detectChanges();
+    redraw(fixture);
     await fixture.whenStable();
     const dialog = document.querySelector('.smt-modal-confirm') as HTMLElement;
     expect(dialog.textContent).toContain('Иван');

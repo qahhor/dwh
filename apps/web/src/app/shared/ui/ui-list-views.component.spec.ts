@@ -7,6 +7,7 @@ import { ToastService } from '../../core/services/toast.service';
 import { ListViewState, ListViewsApi, SavedListView } from '../list-views/list-views';
 import { SMTModalService } from '../ui-kit/components/modal';
 import { UiListViewsComponent } from './ui-list-views.component';
+import { inScreen } from '../../../testing/in-screen';
 
 const monthly: SavedListView = {
   id: 1,
@@ -49,14 +50,15 @@ describe('ui-list-views', () => {
     await TestBed.configureTestingModule({
       imports: [HostComponent],
       providers: [
-        { provide: ToastService, useValue: toast },
-        { provide: SMTModalService, useValue: { confirm } }
+        { provide: ToastService, useValue: toast }
       ]
     }).compileComponents();
+    // The real service opens the save dialog; only the question is answered here.
+    vi.spyOn(TestBed.inject(SMTModalService), 'confirm').mockImplementation(confirm);
     const fixture = TestBed.createComponent(HostComponent);
     fixture.componentInstance.state.load().subscribe();
     fixture.detectChanges();
-    const trigger = fixture.nativeElement.querySelector('[data-testid="views-trigger"]') as HTMLButtonElement;
+    const trigger = inScreen(fixture.nativeElement).querySelector('[data-testid="views-trigger"]') as HTMLButtonElement;
     const openMenu = () => { trigger.click(); fixture.detectChanges(); };
     const item = (id: string) => document.querySelector(`[data-testid="${id}"]`) as HTMLButtonElement | null;
     return { fixture, trigger, openMenu, item, toast, confirm };

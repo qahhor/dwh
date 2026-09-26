@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { safeNumericRecordId } from '../../../core/services/search-target';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
+import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
 import { orderedTree, orgUnitKindKeys, orgUnitTreeOptions, parentCandidates } from './org-unit-tree';
 import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../../../shared/ui-kit/components/forms/select';
 import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group';
@@ -12,7 +12,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit
 import { OrgUnit, OrgUnitCreate, OrgUnitPatch } from './org-units.models';
 import { ProblemDetail } from '../../../core/models/common.models';
 export type OrgUnitSubmission = { mode: 'create'; body: OrgUnitCreate } | { mode: 'edit'; id: number; patch: OrgUnitPatch };
-@Component({ selector: 'app-org-unit-editor', standalone: true, imports: [FormsModule, TranslatePipe, SMTButtonComponent, UiModalComponent, SMTSelectComponent, SMTSelectValueAccessor, SMTTreeSelectComponent, SMTTreeSelectValueAccessor, SMTInputComponent, SMTInputValueAccessor], templateUrl: './org-unit-editor.component.html', styleUrl: './org-unit-editor.component.css' })
+@Component({ selector: 'app-org-unit-editor', standalone: true, imports: [FormsModule, TranslatePipe, SMTButtonComponent, SMTDialogComponent, SMTDialogContentDirective, SMTSelectComponent, SMTSelectValueAccessor, SMTTreeSelectComponent, SMTTreeSelectValueAccessor, SMTInputComponent, SMTInputValueAccessor], templateUrl: './org-unit-editor.component.html', styleUrl: './org-unit-editor.component.css' })
 export class OrgUnitEditorComponent implements OnInit {
   private readonly i18n = inject(I18nService);
 

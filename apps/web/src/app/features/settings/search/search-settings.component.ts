@@ -32,7 +32,7 @@ const ENTITY_LABEL_KEYS: Record<SearchEntityType, string> = {
 };
 import { PermissionService } from '../../../core/services/permission.service';
 import { SearchManagementService } from '../../../core/services/search-management.service';
-import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
+import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
 import { UiLocalTableComponent } from '../../../shared/ui/ui-local-table.component';
 import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
 
@@ -51,7 +51,7 @@ import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 @Component({
   selector: 'app-search-settings',
   standalone: true,
-  imports: [SMTButtonComponent, CommonModule, FormsModule, TranslatePipe, UiModalComponent, UiLocalTableComponent, SMTSelectComponent, SMTInputComponent, SMTInputValueAccessor, SMTCheckboxComponent],
+  imports: [SMTButtonComponent, CommonModule, FormsModule, TranslatePipe, SMTDialogComponent, SMTDialogContentDirective, UiLocalTableComponent, SMTSelectComponent, SMTInputComponent, SMTInputValueAccessor, SMTCheckboxComponent],
   templateUrl: './search-settings.component.html',
   styleUrl: './search-settings.component.scss'
 })

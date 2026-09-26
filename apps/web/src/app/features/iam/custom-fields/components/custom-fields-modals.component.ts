@@ -2,7 +2,7 @@ import { Component, EventEmitter, inject, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CustomField, CustomFieldFormData } from '../custom-fields.models';
-import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
+import { SMTDialogComponent, SMTDialogContentDirective } from '../../../../shared/ui-kit/components/modal';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
@@ -34,19 +34,18 @@ const FIELD_TYPES: readonly [string, string][] = [
     SMTTextareaComponent, SMTTextareaValueAccessor, SMTCheckboxComponent, SMTCheckboxValueAccessor,
     CommonModule,
     FormsModule,
-    UiModalComponent,
+    SMTDialogComponent, SMTDialogContentDirective,
     SMTButtonComponent,
     TranslatePipe
   ],
   template: `
     <!-- Create / Edit Modal -->
-    <ui-modal
+    <smt-dialog
       *ngIf="showModal"
-      [isOpen]="showModal"
-      [title]="(editingField ? 'iam.edit_field' : 'iam.new_custom_field') | t"
-      [hasFooter]="true"
-      (close)="closeModal.emit()"
-    >
+      [open]="showModal"
+      [smtTitle]="(editingField ? 'iam.edit_field' : 'iam.new_custom_field') | t"
+      (closed)="closeModal.emit()">
+      <ng-template smtDialogContent>
       <form id="customFieldForm" body class="modal-form" (ngSubmit)="saveField.emit()">
         <!-- Entity Target (only in creation) -->
         <div class="form-group" *ngIf="!editingField">
@@ -174,7 +173,8 @@ const FIELD_TYPES: readonly [string, string][] = [
         <button smt-button type="button" smtVariant="secondary" (click)="closeModal.emit()">{{ 'common.cancel' | t }}</button>
         <button smt-button type="submit" form="customFieldForm" smtVariant="primary" [smtLoading]="saving" (click)="saveField.emit()">{{ 'common.save' | t }}</button>
       </div>
-    </ui-modal>
+      </ng-template>
+    </smt-dialog>
   `,
   styles: [`
     :host {

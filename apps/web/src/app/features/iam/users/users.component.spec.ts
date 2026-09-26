@@ -11,6 +11,7 @@ import { signal } from '@angular/core';
 import { UsersComponent } from './users.component';
 import { translateTest } from '../../../../testing/i18n-test.stub';
 import { UserOrgUnitsPanelComponent } from '../org-units/public-api';
+import { inScreen, redraw } from '../../../../testing/in-screen';
 
 describe('UsersComponent UI contracts', () => {
   async function createFixture() {
@@ -46,7 +47,7 @@ describe('UsersComponent UI contracts', () => {
     }).compileComponents();
     TestBed.inject(PermissionService).setPermissions(['*.*']);
     const fixture = TestBed.createComponent(UsersComponent);
-    fixture.detectChanges();
+    redraw(fixture);
     return fixture;
   }
 
@@ -83,50 +84,50 @@ describe('UsersComponent UI contracts', () => {
       modifiedAt: '2026-08-30T00:00:00Z'
     };
     fixture.componentInstance.users.set([user]);
-    fixture.detectChanges();
+    redraw(fixture);
 
-    const search = fixture.nativeElement.querySelector('#user-search') as HTMLInputElement;
-    const region = fixture.nativeElement.querySelector('.table-container[role="region"]') as HTMLElement;
-    const identity = fixture.nativeElement.querySelector('.user-identity') as HTMLElement;
+    const search = inScreen(fixture.nativeElement).querySelector('#user-search') as HTMLInputElement;
+    const region = inScreen(fixture.nativeElement).querySelector('.table-container[role="region"]') as HTMLElement;
+    const identity = inScreen(fixture.nativeElement).querySelector('.user-identity') as HTMLElement;
 
-    expect(fixture.nativeElement.querySelector(`label[for="${search.id}"]`)).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('[role="radiogroup"][aria-label="Фильтр пользователей по статусу"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector(`label[for="${search.id}"]`)).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('[role="radiogroup"][aria-label="Фильтр пользователей по статусу"]')).not.toBeNull();
     expect(region.getAttribute('aria-label')).toBe('Таблица пользователей');
     expect(region.querySelector('[role="table"]')?.getAttribute('aria-label')).toBe('Список пользователей');
     // The server orders the list, so no header pretends to sort it.
     expect(region.querySelector('[aria-sort]')).toBeNull();
     expect(identity.tagName).toBe('BUTTON');
-    expect(fixture.nativeElement.querySelector('button[aria-label="Редактировать пользователя Анна Иванова"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('button[aria-label="Редактировать пользователя Анна Иванова"]')).not.toBeNull();
   });
 
   it('connects required create-user fields to inline validation', async () => {
     const fixture = await createFixture();
     fixture.componentInstance.openCreateModal();
     (fixture.componentInstance as any).isCreateSubmitted = true;
-    fixture.detectChanges();
+    redraw(fixture);
     TestBed.tick(); // smt-control wires label, error and aria state after render
 
-    const name = fixture.nativeElement.querySelector('#user-create-name') as HTMLInputElement;
-    const password = fixture.nativeElement.querySelector('#user-create-password') as HTMLInputElement;
+    const name = inScreen(fixture.nativeElement).querySelector('#user-create-name') as HTMLInputElement;
+    const password = inScreen(fixture.nativeElement).querySelector('#user-create-password') as HTMLInputElement;
 
-    expect(fixture.nativeElement.querySelector(`label[for="${name.id}"]`)).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector(`label[for="${name.id}"]`)).not.toBeNull();
     expect(name.required).toBe(true);
     expect(name.getAttribute('aria-invalid')).toBe('true');
-    expect((name.getAttribute('aria-describedby') ?? '').split(' ').map(id => fixture.nativeElement.querySelector('#' + id)).find(node => node?.classList.contains('smt-control__error'))?.textContent).toContain('Укажите ФИО пользователя');
+    expect((name.getAttribute('aria-describedby') ?? '').split(' ').map(id => inScreen(fixture.nativeElement).querySelector('#' + id)).find(node => node?.classList.contains('smt-control__error'))?.textContent).toContain('Укажите ФИО пользователя');
     expect(password.getAttribute('aria-describedby')?.split(' ').length).toBe(2); // hint and error
     expect(password.required).toBe(true);
-    expect(fixture.nativeElement.querySelector('button[aria-label="Показать пароль"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('button[aria-label="Показать пароль"]')).not.toBeNull();
     // The 2FA flag is saved with the form, so it is a checkbox named by its visible text.
-    const twoFactor = fixture.nativeElement.querySelector('app-user-create-modal [role="checkbox"]') as HTMLElement;
+    const twoFactor = inScreen(fixture.nativeElement).querySelector('[role="dialog"] [role="checkbox"]') as HTMLElement;
     expect(document.getElementById(twoFactor.getAttribute('aria-labelledby')!)?.textContent?.trim()).toBe('Включить двухфакторную защиту (2FA OTP)');
     twoFactor.click();
     await fixture.whenStable();
     expect(fixture.componentInstance.createForm.is2faEnabled).toBe(true);
-    const language = fixture.nativeElement.querySelector('#user-create-language') as HTMLButtonElement;
+    const language = inScreen(fixture.nativeElement).querySelector('#user-create-language') as HTMLButtonElement;
     expect(language.getAttribute('role')).toBe('combobox');
-    expect(fixture.nativeElement.querySelector(`label[for="${language.id}"]`)).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector(`label[for="${language.id}"]`)).not.toBeNull();
     language.click();
-    fixture.detectChanges();
+    redraw(fixture);
     expect((Array.from(document.querySelectorAll('.smt-select__option-label')) as HTMLElement[]).map(option => option.textContent?.trim()))
       .toEqual(['Русский (ru)', 'Deutsch (de)', 'Türkçe (tr)']);
   });
@@ -139,28 +140,28 @@ describe('UsersComponent UI contracts', () => {
     api.get.mockImplementation((path: string) => of(orgResponse(path, first)));
 
     fixture.componentInstance.openViewModal(first);
-    fixture.detectChanges();
+    redraw(fixture);
     const panel = fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent)).componentInstance as UserOrgUnitsPanelComponent;
-    (fixture.nativeElement.querySelector('[data-smt-check="2"]') as HTMLInputElement).click();
-    fixture.detectChanges();
+    (inScreen(fixture.nativeElement).querySelector('[data-smt-check="2"]') as HTMLInputElement).click();
+    redraw(fixture);
     expect(panel.hasUnsavedWork()).toBe(true);
-    expect(fixture.nativeElement.querySelector('[role="treegrid"] [role="row"][aria-expanded="true"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('[role="treegrid"] [role="row"][aria-expanded="true"]')).not.toBeNull();
 
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
-    fixture.detectChanges();
+    (document.activeElement ?? document.body).dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    redraw(fixture);
     expect(fixture.componentInstance.viewingUser?.id).toBe(first.id);
     expect(fixture.componentInstance.isViewModalOpen()).toBe(true);
     expect(panel.discard.open()).toBe(true);
-    expect(fixture.nativeElement.querySelectorAll('[role="dialog"]')).toHaveLength(2);
+    expect(inScreen(fixture.nativeElement).querySelectorAll('[role="dialog"]')).toHaveLength(2);
 
     panel.discard.cancel();
     fixture.componentInstance.openViewModal(second);
-    fixture.detectChanges();
+    redraw(fixture);
     expect(fixture.componentInstance.viewingUser?.id).toBe(first.id);
     expect(panel.discard.open()).toBe(true);
 
     panel.discard.confirm();
-    fixture.detectChanges();
+    redraw(fixture);
     expect(fixture.componentInstance.viewingUser?.id).toBe(second.id);
     expect(fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent)).componentInstance.userId).toBe(second.id);
   });
@@ -178,12 +179,12 @@ describe('UsersComponent UI contracts', () => {
     api.put.mockReturnValue(write.asObservable());
 
     fixture.componentInstance.openViewModal(first);
-    fixture.detectChanges();
+    redraw(fixture);
     const panel = fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent)).componentInstance as UserOrgUnitsPanelComponent;
-    (fixture.nativeElement.querySelector('[data-smt-check="2"]') as HTMLInputElement).click();
+    (inScreen(fixture.nativeElement).querySelector('[data-smt-check="2"]') as HTMLInputElement).click();
     panel.save();
     fixture.componentInstance.openViewModal(second);
-    fixture.detectChanges();
+    redraw(fixture);
     expect(panel.pending).toBe(true);
     expect(fixture.componentInstance.viewingUser?.id).toBe(first.id);
     expect(panel.discard.open()).toBe(false);
@@ -213,9 +214,9 @@ describe('UsersComponent UI contracts', () => {
       api.put.mockReturnValue(write.asObservable());
 
       fixture.componentInstance.openViewModal(first);
-      fixture.detectChanges();
+      redraw(fixture);
       const panel = fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent)).componentInstance as UserOrgUnitsPanelComponent;
-      (fixture.nativeElement.querySelector('[data-smt-check="2"]') as HTMLInputElement).click();
+      (inScreen(fixture.nativeElement).querySelector('[data-smt-check="2"]') as HTMLInputElement).click();
       fixture.componentInstance.openViewModal(second);
       expect(panel.discard.open()).toBe(true);
       panel.discard.cancel();
@@ -223,7 +224,7 @@ describe('UsersComponent UI contracts', () => {
       const readsBeforeRevocation = api.get.mock.calls.filter(([path]) => String(path).startsWith('/iam/org-units')).length;
 
       permissions.setPermissions(['iam.users.view', 'iam.users.update', 'iam.org_units.assign']);
-      fixture.detectChanges();
+      redraw(fixture);
 
       const retained = fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent));
       expect(retained?.componentInstance).toBe(panel);
@@ -231,9 +232,9 @@ describe('UsersComponent UI contracts', () => {
       expect(write.observed).toBe(true);
       expect(fixture.componentInstance.orgPanelBusy()).toBe(true);
       expect(panel.discard.open()).toBe(false);
-      expect(fixture.nativeElement.querySelector('app-user-org-units-panel input[data-smt-check]')).toBeNull();
-      expect(fixture.nativeElement.querySelectorAll('[role="dialog"]')).toHaveLength(1);
-      expect(fixture.nativeElement.textContent).not.toContain('Компания');
+      expect(inScreen(fixture.nativeElement).querySelector('app-user-org-units-panel input[data-smt-check]')).toBeNull();
+      expect(inScreen(fixture.nativeElement).querySelectorAll('[role="dialog"]')).toHaveLength(1);
+      expect(inScreen(fixture.nativeElement).textContent).not.toContain('Компания');
       expect(fixture.componentInstance.canLeaveRecordPage()).toBe(false);
 
       fixture.componentInstance.closeRecordView();
@@ -244,7 +245,7 @@ describe('UsersComponent UI contracts', () => {
       expect(fixture.componentInstance.viewingUser?.id).toBe(first.id);
 
       permissions.setPermissions(['*.*']);
-      fixture.detectChanges();
+      redraw(fixture);
       expect(fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent)).componentInstance).toBe(panel);
       expect(api.get.mock.calls.filter(([path]) => String(path).startsWith('/iam/org-units'))).toHaveLength(readsBeforeRevocation);
       panel.save();
@@ -256,7 +257,7 @@ describe('UsersComponent UI contracts', () => {
       } else {
         write.error({ status: 409, detail: 'Late revoked assignment failure' });
       }
-      fixture.detectChanges();
+      redraw(fixture);
 
       expect(panel.pending).toBe(false);
       expect(fixture.componentInstance.orgPanelBusy()).toBe(false);
@@ -264,10 +265,10 @@ describe('UsersComponent UI contracts', () => {
       expect(panel.selectedOrgUnitIds()).toEqual([]);
       expect(panel.saveError).toBeNull();
       expect(toast.success).not.toHaveBeenCalled();
-      expect(fixture.nativeElement.textContent).not.toContain('Late revoked assignment failure');
+      expect(inScreen(fixture.nativeElement).textContent).not.toContain('Late revoked assignment failure');
 
       panel.reloadAll();
-      fixture.detectChanges();
+      redraw(fixture);
       expect(api.get.mock.calls.filter(([path]) => String(path).startsWith('/iam/org-units'))).toHaveLength(readsBeforeRevocation + 3);
       expect(panel.units.map(unit => unit.id)).toEqual([1, 2]);
     }
@@ -280,7 +281,7 @@ describe('UsersComponent UI contracts', () => {
     api.get.mockImplementation((path: string) => of(orgResponse(path, first)));
 
     fixture.componentInstance.loadRecordView('7');
-    fixture.detectChanges();
+    redraw(fixture);
 
     const panel = fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent)).componentInstance as UserOrgUnitsPanelComponent;
     expect(fixture.componentInstance.routeRecordId()).toBe('7');
@@ -293,9 +294,9 @@ describe('UsersComponent UI contracts', () => {
     const first = user(7, 'Анна');
     api.get.mockImplementation((path: string) => of(orgResponse(path, first)));
     fixture.componentInstance.loadRecordView('7');
-    fixture.detectChanges();
+    redraw(fixture);
     const panel = fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent)).componentInstance as UserOrgUnitsPanelComponent;
-    (fixture.nativeElement.querySelector('[data-smt-check="2"]') as HTMLInputElement).click();
+    (inScreen(fixture.nativeElement).querySelector('[data-smt-check="2"]') as HTMLInputElement).click();
     const readsBeforeReload = api.get.mock.calls.filter(([path]) => path === '/iam/users/7').length;
 
     fixture.componentInstance.openViewModal(first);
@@ -313,9 +314,9 @@ describe('UsersComponent UI contracts', () => {
     const first = user(7, 'Анна');
     api.get.mockImplementation((path: string) => of(orgResponse(path, first)));
     fixture.componentInstance.loadRecordView('7');
-    fixture.detectChanges();
+    redraw(fixture);
     const panel = fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent)).componentInstance as UserOrgUnitsPanelComponent;
-    (fixture.nativeElement.querySelector('[data-smt-check="2"]') as HTMLInputElement).click();
+    (inScreen(fixture.nativeElement).querySelector('[data-smt-check="2"]') as HTMLInputElement).click();
     const readsBeforeReload = api.get.mock.calls.filter(([path]) => path === '/iam/users/7').length;
 
     fixture.componentInstance.closeEditModal();
@@ -342,20 +343,20 @@ describe('UsersComponent UI contracts', () => {
       api.patch.mockReturnValue(profileSave.asObservable());
       api.put.mockReturnValue(assignmentSave.asObservable());
       fixture.componentInstance.loadRecordView('7');
-      fixture.detectChanges();
+      redraw(fixture);
 
       fixture.componentInstance.openEditFromView();
       fixture.componentInstance.submitEditUser();
       fixture.componentInstance.closeEditModal();
-      fixture.detectChanges();
+      redraw(fixture);
       const newerPanel = fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent)).componentInstance as UserOrgUnitsPanelComponent;
-      (fixture.nativeElement.querySelector('[data-smt-check="2"]') as HTMLInputElement).click();
+      (inScreen(fixture.nativeElement).querySelector('[data-smt-check="2"]') as HTMLInputElement).click();
       if (panelState === 'pending') newerPanel.save();
       const readsBeforeProfileSettlement = api.get.mock.calls.filter(([path]) => path === '/iam/users/7').length;
 
       profileSave.next();
       profileSave.complete();
-      fixture.detectChanges();
+      redraw(fixture);
 
       expect(fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent)).componentInstance).toBe(newerPanel);
       expect(fixture.componentInstance.viewingUser?.id).toBe(first.id);
@@ -377,12 +378,12 @@ describe('UsersComponent UI contracts', () => {
     api.get.mockImplementation((path: string) => of(orgResponse(path, first)));
     api.patch.mockReturnValueOnce(firstSave.asObservable()).mockReturnValueOnce(newerSave.asObservable());
     fixture.componentInstance.loadRecordView('7');
-    fixture.detectChanges();
+    redraw(fixture);
 
     fixture.componentInstance.openEditFromView();
     fixture.componentInstance.submitEditUser();
     fixture.componentInstance.closeEditModal();
-    fixture.detectChanges();
+    redraw(fixture);
     fixture.componentInstance.openEditFromView();
     fixture.componentInstance.submitEditUser();
 
@@ -444,21 +445,21 @@ describe('UsersComponent UI contracts', () => {
     });
 
     fixture.componentInstance.openViewModal(targetUser);
-    fixture.detectChanges();
+    redraw(fixture);
     expect(fixture.componentInstance.activeViewTab()).toBe('info');
 
     fixture.componentInstance.switchViewTab('security', targetUser.id);
-    fixture.detectChanges();
+    redraw(fixture);
 
     expect(fixture.componentInstance.activeViewTab()).toBe('security');
     expect(fixture.componentInstance.userSecurity()?.userId).toBe(15);
     expect(fixture.componentInstance.userSecurity()?.activeSessionsCount).toBe(1);
     expect(fixture.componentInstance.userSecurity()?.recentLoginAttempts.length).toBe(1);
 
-    const root = fixture.nativeElement as HTMLElement;
+    const root = inScreen(fixture.nativeElement);
     const sessionsTable = root.querySelector('[data-testid="user-sessions-table"] [role="table"]');
     expect(sessionsTable?.getAttribute('aria-label')).toBe('Активные сессии');
-    const endButton = root.querySelector<HTMLButtonElement>('[data-testid="user-sessions-table"] button.smt-button');
+    const endButton = root.querySelector('[data-testid="user-sessions-table"] button.smt-button') as HTMLButtonElement;
     expect(endButton?.getAttribute('aria-label')).toBe('Завершить сессию с IP 127.0.0.1');
     const attemptCells = [...root.querySelectorAll('[data-testid="user-login-attempts-table"] [role="rowgroup"] > [role="row"] [role="cell"]')]
       .map(cell => cell.textContent?.trim());
@@ -610,16 +611,16 @@ describe('UsersComponent UI contracts', () => {
           : []
     ));
     fixture.componentInstance.loadUsers(true);
-    fixture.detectChanges();
+    redraw(fixture);
 
     expect(api.get).toHaveBeenCalledWith('/iam/users/42', undefined, { notifyError: false });
-    expect(fixture.nativeElement.textContent).toContain('Дальний руководитель');
+    expect(inScreen(fixture.nativeElement).textContent).toContain('Дальний руководитель');
 
     fixture.componentInstance.openEditModal(report);
-    fixture.detectChanges();
-    const picker = fixture.nativeElement.querySelector('app-user-edit-modal smt-select button[aria-haspopup="listbox"]') as HTMLButtonElement;
+    redraw(fixture);
+    const picker = inScreen(fixture.nativeElement).querySelector('[role="dialog"] smt-select button[aria-haspopup="listbox"]') as HTMLButtonElement;
     expect(picker.textContent).toContain('Дальний руководитель');
-    expect(fixture.nativeElement.querySelector('#user-edit-manager')).toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('#user-edit-manager')).toBeNull();
   });
 
   it('generateSecurePassword generates a 14-char password meeting all complexity rules', async () => {
@@ -661,11 +662,11 @@ describe('UsersComponent UI contracts', () => {
     fixture.componentInstance.selectedRoleId = 10;
     fixture.componentInstance.selected2fa = true;
     fixture.componentInstance.selectedState = 'A';
-    fixture.detectChanges();
+    redraw(fixture);
 
     expect(fixture.componentInstance.hasAnyActiveFilters()).toBe(true);
 
-    const pills = fixture.nativeElement.querySelectorAll('.filter-pill');
+    const pills = inScreen(fixture.nativeElement).querySelectorAll('.filter-pill');
     expect(pills.length).toBe(3);
 
     fixture.componentInstance.clear2faFilter();
@@ -691,7 +692,7 @@ describe('UsersComponent UI contracts', () => {
     fixture.componentInstance.terminateUserSessions(42);
 
     expect(confirmSpy).not.toHaveBeenCalled();
-    fixture.detectChanges();
+    redraw(fixture);
     await fixture.whenStable();
     const dialog = document.querySelector('.smt-modal-confirm') as HTMLElement;
     expect(dialog.closest('[role="alertdialog"]')).not.toBeNull();

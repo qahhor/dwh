@@ -44,14 +44,17 @@
   }
 </section>
 @if (can('view')) {
-<ui-modal [isOpen]="editorOpen" [title]="'iam.org_units.editor_title' | t" [hasFooter]="false" [dismissible]="!pending" (close)="closeEditor()">
+<smt-dialog [open]="editorOpen" [smtTitle]="'iam.org_units.editor_title' | t" [dismissible]="!pending" (closed)="closeEditor()">
+  <ng-template smtDialogContent>
   @if (editorOpen) {
     @if (detailLoading) { <p role="status">{{ 'iam.org_units.loading' | t }}</p> }
     @if (detailError) { <p role="alert">{{ detailError.detail || ('iam.org_units.load_error' | t) }}</p><button smt-button type="button" smtVariant="secondary" (click)="loadDetail()">{{ 'iam.org_units.retry' | t }}</button> }
     @for (initial of editorInitial ? [editorInitial] : []; track initial) { <app-org-unit-editor [initial]="initial" [units]="units" [pending]="pending" [error]="saveError" (save)="save($event)" (cancel)="closeEditor()" /> }
   }
-</ui-modal>
-<ui-modal [isOpen]="!!deleteTarget" [title]="'iam.org_units.delete_title' | t" [dismissible]="!pending" (close)="closeDelete()">
+  </ng-template>
+</smt-dialog>
+<smt-dialog [open]="!!deleteTarget" [smtTitle]="'iam.org_units.delete_title' | t" [dismissible]="!pending" (closed)="closeDelete()">
+  <ng-template smtDialogContent>
   <div body data-delete-confirm>
     <p>{{ 'iam.org_units.delete_warning' | t:{name: deleteTarget?.name ?? '', code: deleteTarget?.code ?? ''} }}</p>
     @if (deleteError) { <p role="alert">{{ deleteError.detail || ('iam.org_units.delete_error' | t) }}</p> }
@@ -60,12 +63,15 @@
     <button smt-button type="button" smtVariant="secondary" [disabled]="pending" (click)="closeDelete()">{{ 'iam.org_units.cancel' | t }}</button>
     <button smt-button type="button" data-action="confirm-delete" smtVariant="danger" [smtLoading]="pending" (click)="confirmDelete()">{{ 'iam.org_units.delete' | t }}</button>
   </div>
-</ui-modal>
-<ui-modal [isOpen]="discard.open()" [title]="'iam.org_units.discard_title' | t" (close)="discard.cancel()">
+  </ng-template>
+</smt-dialog>
+<smt-dialog [open]="discard.open()" [smtTitle]="'iam.org_units.discard_title' | t" (closed)="discard.cancel()">
+  <ng-template smtDialogContent>
   <p body>{{ 'iam.org_units.discard_warning' | t }}</p>
   <div footer class="actions">
     <button smt-button type="button" smtVariant="secondary" (click)="discard.cancel()">{{ 'iam.org_units.keep_editing' | t }}</button>
     <button smt-button type="button" smtVariant="danger" (click)="discard.confirm()">{{ 'iam.org_units.discard' | t }}</button>
   </div>
-</ui-modal>
+  </ng-template>
+</smt-dialog>
 }

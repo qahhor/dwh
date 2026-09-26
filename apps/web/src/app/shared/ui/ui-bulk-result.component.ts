@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
 import { TranslatePipe } from '../../core/services/i18n.service';
 import { BulkResult, failedItems } from '../bulk/bulk';
 import { SMTButtonComponent } from '../ui-kit/components/button';
-import { UiModalComponent } from './ui-modal.component';
+import { SMTDialogComponent, SMTDialogContentDirective } from '../ui-kit/components/modal';
 
 /**
  * What a bulk action did when some records failed: how many changed, and for
@@ -13,9 +13,10 @@ import { UiModalComponent } from './ui-modal.component';
   selector: 'ui-bulk-result',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TranslatePipe, UiModalComponent, SMTButtonComponent],
+  imports: [TranslatePipe, SMTDialogComponent, SMTDialogContentDirective, SMTButtonComponent],
   template: `
-    <ui-modal [isOpen]="!!result()" [title]="'ui.bulk.result_title' | t" size="md" (close)="closed.emit()">
+    <smt-dialog [open]="!!result()" [smtTitle]="'ui.bulk.result_title' | t" smtSize="md" (closed)="closed.emit()">
+      <ng-template smtDialogContent>
       <div body class="bulk-result">
         @if (result(); as result) {
           <p class="bulk-result-summary" data-testid="bulk-result-summary">
@@ -34,7 +35,8 @@ import { UiModalComponent } from './ui-modal.component';
       <div footer class="bulk-result-footer">
         <button smt-button type="button" smtVariant="primary" (click)="closed.emit()">{{ 'common.close' | t }}</button>
       </div>
-    </ui-modal>
+      </ng-template>
+    </smt-dialog>
   `,
   styles: [`
     .bulk-result { display: flex; flex-direction: column; gap: 10px; }

@@ -7,6 +7,7 @@ import { ToastService } from '../../../core/services/toast.service';
 import { OrgUnitsApiService } from './org-units-api.service';
 import { RoleRuleSnapshot, ScopeRule } from './org-units.models';
 import { RoleScopePanelComponent } from './role-scope-panel.component';
+import { inScreen } from '../../../../testing/in-screen';
 
 @Component({
   standalone: true,
@@ -52,14 +53,14 @@ describe('RoleScopePanelComponent', () => {
     const grantOnly = setup({ permissions: ['iam.org_units.view', 'rbac.roles.grant'] });
     grantOnly.panel.selectRule('SELF'); grantOnly.panel.save(); grantOnly.panel.confirmSave();
     expect(grantOnly.api.saveRoleRule).not.toHaveBeenCalled();
-    expect(grantOnly.fixture.nativeElement.querySelector('[data-action="save-rule"]')).toBeNull();
+    expect(inScreen(grantOnly.fixture.nativeElement).querySelector('[data-action="save-rule"]')).toBeNull();
   });
 
   it('requires confirmation naming previous and new rules plus widest-rule semantics', () => {
     const { fixture, panel, api } = setup({ rule: 'UNITS' });
     panel.selectRule('SUBTREE'); panel.save(); fixture.detectChanges();
     expect(api.saveRoleRule).not.toHaveBeenCalled(); expect(panel.confirmationOpen).toBe(true);
-    const dialog = fixture.nativeElement.querySelector('[data-rule-confirm]') as HTMLElement;
+    const dialog = inScreen(fixture.nativeElement).querySelector('[data-rule-confirm]') as HTMLElement;
     expect(dialog.textContent).toContain('Только свои подразделения');
     expect(dialog.textContent).toContain('Свои подразделения и подчинённые');
     expect(dialog.textContent).toContain('самое широкое правило');
@@ -69,7 +70,7 @@ describe('RoleScopePanelComponent', () => {
 
   it('shows all four typed rules and read-only explanations with view permission alone', () => {
     const { fixture, panel, api } = setup({ permissions: ['iam.org_units.view'], rule: 'SELF' });
-    const radios = Array.from(fixture.nativeElement.querySelectorAll('[role="radio"]')) as HTMLElement[];
+    const radios = Array.from(inScreen(fixture.nativeElement).querySelectorAll('[role="radio"]')) as HTMLElement[];
     expect(radios).toHaveLength(4);
     expect(radios[3].getAttribute('aria-checked')).toBe('true');
     expect(radios.every(radio => radio.getAttribute('aria-disabled') === 'true')).toBe(true);

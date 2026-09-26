@@ -1043,7 +1043,6 @@
   "ui.user_multi_select.add_more": "+Hinzufügen",
   "ui.file_upload.upload_progress": "Wird geladen... {progress}%",
   "ui.file_upload.uploaded_named": "Datei {name} erfolgreich hochgeladen",
-  "ui.modal.close_named_dialog": "Schließen Sie den Dialog „{title}“",
   "ui.pagination.page_number": "Seite {page}",
   "ui.markdown_editor.vtoroy_element": "Zweites Element",
   "ui.markdown_editor.vtoroy_punkt": "Zweiter Punkt",

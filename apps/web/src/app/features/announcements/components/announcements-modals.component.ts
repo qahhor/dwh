@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { A11yModule } from '@angular/cdk/a11y';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
+import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
 import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/ui-kit/components/forms/textarea';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
 import { AnnouncementAdminRecord, AnnouncementBannerType, Confirmation } from '../announcements.models';
@@ -15,17 +15,16 @@ import { SMTSelectComponent, SMTSelectOption } from '../../../shared/ui-kit/comp
 @Component({
   selector: 'app-announcements-modals',
   standalone: true,
-  imports: [SMTTabBarComponent, CommonModule, FormsModule, A11yModule, TranslatePipe, SMTButtonComponent, UiModalComponent, SMTInputComponent, SMTInputValueAccessor, SMTTextareaComponent, SMTTextareaValueAccessor, SMTSelectComponent],
+  imports: [SMTTabBarComponent, CommonModule, FormsModule, A11yModule, TranslatePipe, SMTButtonComponent, SMTDialogComponent, SMTDialogContentDirective, SMTInputComponent, SMTInputValueAccessor, SMTTextareaComponent, SMTTextareaValueAccessor, SMTSelectComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Create / Edit Draft Modal -->
-    <ui-modal
-      [isOpen]="isEditorOpen()"
-      [title]="(editingId() === null ? 'announcements.new_announcement' : 'announcements.edit_announcement') | t"
-      size="lg"
-      [hasFooter]="false"
-      (close)="closeEditor.emit()"
-    >
+    <smt-dialog
+      [open]="isEditorOpen()"
+      [smtTitle]="(editingId() === null ? 'announcements.new_announcement' : 'announcements.edit_announcement') | t"
+      smtSize="lg"
+      (closed)="closeEditor.emit()">
+      <ng-template smtDialogContent>
       <form body id="announcement-editor" class="editor-form" (ngSubmit)="onSaveDraft()" novalidate>
         <!-- Language selector tabs for multilingual content -->
         <div class="lang-selector-row">
@@ -124,7 +123,8 @@ import { SMTSelectComponent, SMTSelectOption } from '../../../shared/ui-kit/comp
           >{{ (isSaving() ? 'common.saving' : 'announcements.save_draft') | t }}</button>
         </div>
       </form>
-    </ui-modal>
+      </ng-template>
+    </smt-dialog>
   `,
   styles: [`
     :host { display: block; }

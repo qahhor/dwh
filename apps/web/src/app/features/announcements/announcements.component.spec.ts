@@ -5,6 +5,7 @@ import { ApiService } from '../../core/services/api.service';
 import { PermissionService } from '../../core/services/permission.service';
 import { ToastService } from '../../core/services/toast.service';
 import { AnnouncementAdminRecord, AnnouncementsComponent } from './announcements.component';
+import { inScreen } from '../../../testing/in-screen';
 
 describe('AnnouncementsComponent', () => {
   const draft: AnnouncementAdminRecord = {
@@ -89,35 +90,35 @@ describe('AnnouncementsComponent', () => {
     };
     const { fixture } = await createFixture({ records: [invalidDraft] });
 
-    const publish = fixture.nativeElement.querySelector('.publish-action') as HTMLButtonElement;
+    const publish = inScreen(fixture.nativeElement).querySelector('.publish-action') as HTMLButtonElement;
     expect(publish.disabled).toBe(true);
 
-    (fixture.nativeElement.querySelector('button[aria-label="Создать объявление"]') as HTMLButtonElement).click();
+    (inScreen(fixture.nativeElement).querySelector('button[aria-label="Создать объявление"]') as HTMLButtonElement).click();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('[role="dialog"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('label[for="announcement-title-ru"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('label[for="announcement-body-ru"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('label[for="announcement-banner-type"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('#announcement-banner-type')?.getAttribute('role')).toBe('combobox');
-    expect((fixture.nativeElement.querySelector('[data-testid="save-draft"]') as HTMLButtonElement).disabled).toBe(true);
+    expect(inScreen(fixture.nativeElement).querySelector('[role="dialog"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('label[for="announcement-title-ru"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('label[for="announcement-body-ru"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('label[for="announcement-banner-type"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('#announcement-banner-type')?.getAttribute('role')).toBe('combobox');
+    expect((inScreen(fixture.nativeElement).querySelector('[data-testid="save-draft"]') as HTMLButtonElement).disabled).toBe(true);
   });
 
   it('surfaces optimistic-lock conflicts and offers a refresh', async () => {
     const { fixture, api } = await createFixture({ putError: true });
-    (fixture.nativeElement.querySelector('.edit-action') as HTMLButtonElement).click();
+    (inScreen(fixture.nativeElement).querySelector('.edit-action') as HTMLButtonElement).click();
     fixture.detectChanges();
-    (fixture.nativeElement.querySelector('[data-testid="save-draft"]') as HTMLButtonElement).click();
+    (inScreen(fixture.nativeElement).querySelector('[data-testid="save-draft"]') as HTMLButtonElement).click();
     fixture.detectChanges();
 
     expect(api.put).toHaveBeenCalledWith('/announcements/7', expect.objectContaining({ lockVersion: 3 }));
-    expect(fixture.nativeElement.querySelector('[role="alert"]')?.textContent).toContain('объявление уже изменено другим пользователем');
-    expect(fixture.nativeElement.querySelector('button[aria-label="Обновить список объявлений"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('[role="alert"]')?.textContent).toContain('объявление уже изменено другим пользователем');
+    expect(inScreen(fixture.nativeElement).querySelector('button[aria-label="Обновить список объявлений"]')).not.toBeNull();
   });
 
   it('requires confirmation before publishing or archiving', async () => {
     const publishFixture = await createFixture();
-    (publishFixture.fixture.nativeElement.querySelector('.publish-action') as HTMLButtonElement).click();
+    (inScreen(publishFixture.fixture.nativeElement).querySelector('.publish-action') as HTMLButtonElement).click();
     publishFixture.fixture.detectChanges();
     await publishFixture.fixture.whenStable();
     expect(document.querySelector('[role="alertdialog"]')?.textContent).toContain('Опубликовать объявление?');
@@ -129,7 +130,7 @@ describe('AnnouncementsComponent', () => {
       state: 'PUBLISHED',
       publishedAt: '2026-09-02T09:00:00Z'
     }] });
-    (archiveFixture.fixture.nativeElement.querySelector('.archive-action') as HTMLButtonElement).click();
+    (inScreen(archiveFixture.fixture.nativeElement).querySelector('.archive-action') as HTMLButtonElement).click();
     archiveFixture.fixture.detectChanges();
     await archiveFixture.fixture.whenStable();
     const archiveDialog = document.querySelector('[role="alertdialog"]');
@@ -140,12 +141,12 @@ describe('AnnouncementsComponent', () => {
 
   it('provides distinct empty and recoverable error states', async () => {
     const empty = await createFixture({ records: [] });
-    expect(empty.fixture.nativeElement.querySelector('[data-testid="announcements-empty"]')?.textContent).toContain('Объявлений пока нет');
+    expect(inScreen(empty.fixture.nativeElement).querySelector('[data-testid="announcements-empty"]')?.textContent).toContain('Объявлений пока нет');
 
     TestBed.resetTestingModule();
     const failed = await createFixture({ getError: true });
-    expect(failed.fixture.nativeElement.querySelector('[data-testid="announcements-load-error"][role="alert"]')?.textContent).toContain('Не удалось загрузить объявления');
-    expect(failed.fixture.nativeElement.querySelector('button[aria-label="Повторить загрузку объявлений"]')).not.toBeNull();
+    expect(inScreen(failed.fixture.nativeElement).querySelector('[data-testid="announcements-load-error"][role="alert"]')?.textContent).toContain('Не удалось загрузить объявления');
+    expect(inScreen(failed.fixture.nativeElement).querySelector('button[aria-label="Повторить загрузку объявлений"]')).not.toBeNull();
   });
 
   it('filters announcements by status and search text', async () => {
@@ -181,7 +182,7 @@ describe('AnnouncementsComponent', () => {
     const { fixture } = await createFixture({ records: [draft, published, archived] });
     fixture.detectChanges();
 
-    const activeBadge = fixture.nativeElement.querySelector('.active-badge');
+    const activeBadge = inScreen(fixture.nativeElement).querySelector('.active-badge');
     expect(activeBadge).not.toBeNull();
     expect(activeBadge.textContent).toContain('Активно');
   });

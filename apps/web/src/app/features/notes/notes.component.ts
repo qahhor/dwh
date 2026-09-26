@@ -8,7 +8,7 @@ import { ApiService } from '../../core/services/api.service';
 import { ToastService } from '../../core/services/toast.service';
 import { PermissionService } from '../../core/services/permission.service';
 import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
-import { UiModalComponent } from '../../shared/ui/ui-modal.component';
+import { SMTDialogComponent, SMTDialogContentDirective } from '../../shared/ui-kit/components/modal';
 import { UiMarkdownEditorComponent } from '../../shared/ui/ui-markdown-editor.component';
 import { UiMarkdownViewComponent } from '../../shared/ui/ui-markdown-view.component';
 import { UiCustomFieldsComponent } from '../../shared/ui/ui-custom-fields.component';
@@ -39,7 +39,7 @@ export interface Note {
     SMTTabBarComponent, CommonModule,
     FormsModule,
     SMTButtonComponent,
-    UiModalComponent,
+    SMTDialogComponent, SMTDialogContentDirective,
     UiMarkdownEditorComponent,
     UiMarkdownViewComponent,
     UiCustomFieldsComponent,
@@ -157,13 +157,13 @@ export interface Note {
       </ng-template>
 
       <!-- Modal Create / Edit -->
-      <ui-modal
-        [isOpen]="isModalOpen()"
-        [title]="editingNote() ? ('notes.edit_title' | t) : ('notes.create_title' | t)"
-        size="md"
+      <smt-dialog
+        [open]="isModalOpen()"
+        [smtTitle]="editingNote() ? ('notes.edit_title' | t) : ('notes.create_title' | t)"
+        smtSize="md"
         [dismissible]="!isSaving()"
-        (close)="closeModal()"
-      >
+        (closed)="closeModal()">
+        <ng-template smtDialogContent>
         <form ngNoForm (submit)="$event.preventDefault(); saveNote()" class="modal-form" novalidate id="noteForm">
           <div class="form-group">
             <label class="form-label" for="note-title-input">{{ 'notes.title_label' | t }} *</label>
@@ -234,16 +234,17 @@ export interface Note {
             <button smt-button smtVariant="primary" type="submit" form="noteForm" [smtLoading]="isSaving()" (click)="saveNote()">{{ 'common.save' | t }}</button>
           </div>
         </div>
-      </ui-modal>
+        </ng-template>
+      </smt-dialog>
 
       <!-- Delete Confirmation Modal -->
-      <ui-modal
-        [isOpen]="!!deletingNote()"
-        [title]="'common.delete' | t"
-        size="sm"
+      <smt-dialog
+        [open]="!!deletingNote()"
+        [smtTitle]="'common.delete' | t"
+        smtSize="sm"
         [dismissible]="!isDeleting()"
-        (close)="cancelDelete()"
-      >
+        (closed)="cancelDelete()">
+        <ng-template smtDialogContent>
         <p class="delete-dialog-text">
           {{ 'notes.delete_confirm' | t:{ title: deletingNote()?.title || '' } }}
         </p>
@@ -253,7 +254,8 @@ export interface Note {
             <button smt-button type="button" smtVariant="danger" [smtLoading]="isDeleting()" (click)="confirmDelete()">{{ 'common.delete' | t }}</button>
           </div>
         </div>
-      </ui-modal>
+        </ng-template>
+      </smt-dialog>
     </div>
   `,
   styleUrl: './notes.component.css'

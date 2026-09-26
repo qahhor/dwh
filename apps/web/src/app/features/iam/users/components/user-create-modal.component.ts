@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { SMTControlComponent } from '../../../../shared/ui-kit/components/forms/control';
-import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
+import { SMTDialogComponent, SMTDialogContentDirective } from '../../../../shared/ui-kit/components/modal';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { SMTDataSelectComponent } from '../../../../shared/ui-kit/components/forms/data-select';
 import { SMTPhoneInputComponent, SMTPhoneInputValueAccessor } from '../../../../shared/ui-kit/components/forms/phone-input';
@@ -40,7 +40,7 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
     CommonModule,
     FormsModule,
     TranslatePipe,
-    UiModalComponent,
+    SMTDialogComponent, SMTDialogContentDirective,
     SMTButtonComponent,
     SMTDataSelectComponent,
     SMTPhoneInputComponent,
@@ -49,12 +49,12 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
     UiCustomFieldsComponent
   ],
   template: `
-    <ui-modal
-      [isOpen]="isOpen"
-      [title]="'iam.sozdat_polzovatelya' | t"
-      size="md"
-      (close)="close.emit()"
-    >
+    <smt-dialog
+      [open]="isOpen"
+      [smtTitle]="'iam.sozdat_polzovatelya' | t"
+      smtSize="md"
+      (closed)="close.emit()">
+      <ng-template smtDialogContent>
       <div body class="clean-modal-body">
         <div class="form-grid">
           <smt-control class="form-group span-2" [smtLabel]="'iam.fio' | t" [smtError]="isCreateSubmitted && !createForm.name.trim() ? ('iam.ukazhite_fio_polzovatelya' | t) : ''">
@@ -219,7 +219,8 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
         <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="close.emit()">{{ 'common.cancel' | t }}</button>
         <button smt-button type="button" smtVariant="primary" smtSize="md" [smtLoading]="isSubmitting" (click)="submit.emit()">{{ 'common.create' | t }}</button>
       </div>
-    </ui-modal>
+      </ng-template>
+    </smt-dialog>
   `,
   styles: [`
     .clean-modal-body {

@@ -5,7 +5,7 @@ import { I18nService, TranslatePipe } from '../../../../core/services/i18n.servi
 import { UiLocalTableComponent } from '../../../../shared/ui/ui-local-table.component';
 import { UiRecordHistoryComponent } from '../../../../shared/ui/ui-record-history.component';
 import { TableConfig } from '../../../../shared/ui-kit/components/table/table.types';
-import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
+import { SMTDialogComponent, SMTDialogContentDirective } from '../../../../shared/ui-kit/components/modal';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { LoginAttemptRecord, User, UserSecuritySummary, UserSession } from '../../../../core/models/auth.models';
 import { UserOrgUnitsPanelComponent } from '../../org-units/public-api';
@@ -20,7 +20,7 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
   imports: [
     SMTTabBarComponent, SMTAvatarComponent, CommonModule,
     TranslatePipe,
-    UiModalComponent,
+    SMTDialogComponent, SMTDialogContentDirective,
     SMTButtonComponent,
     UserOrgUnitsPanelComponent,
     UserEffectivePermissionsPanelComponent,
@@ -29,12 +29,12 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
   ],
   template: `
     <!-- User View / Profile Modal -->
-    <ui-modal
-      [isOpen]="isOpen"
-      [title]="'iam.profil_polzovatelya' | t"
-      [size]="activeViewTab === 'security' || activeViewTab === 'permissions' || (canViewOrgUnits && viewingUser && safeRecordId(viewingUser.id)) ? 'xl' : 'sm'"
-      (close)="closeRecordView.emit()"
-    >
+    <smt-dialog
+      [open]="isOpen"
+      [smtTitle]="'iam.profil_polzovatelya' | t"
+      [smtSize]="activeViewTab === 'security' || activeViewTab === 'permissions' || (canViewOrgUnits && viewingUser && safeRecordId(viewingUser.id)) ? 'xl' : 'sm'"
+      (closed)="closeRecordView.emit()">
+      <ng-template smtDialogContent>
       <div body *ngIf="recordLoading" role="status">{{ 'search.record_loading' | t }}</div>
       <div body *ngIf="recordError" role="alert">
         <p>{{ (recordNotFound ? 'search.record_not_found' : 'search.record_load_error') | t }}</p>
@@ -218,7 +218,8 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
         <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeRecordView.emit()">{{ (routeRecordId ? 'search.back_to_list' : 'audit.zakryt') | t }}</button>
         <button smt-button type="button" *ngIf="canUpdateUser && viewingUser && safeRecordId(viewingUser.id)" smtVariant="primary" smtSize="md" (click)="openEdit.emit()">{{ 'common.edit' | t }}</button>
       </div>
-    </ui-modal>
+      </ng-template>
+    </smt-dialog>
 
     <ng-template #sessionIpCell let-s><span class="font-mono text-xs">{{ s.ip }}</span></ng-template>
     <ng-template #sessionAgentCell let-s><span class="text-xs text-truncate" [title]="s.userAgent">{{ s.userAgent || '—' }}</span></ng-template>

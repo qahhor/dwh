@@ -6,7 +6,7 @@ import { LanguageInfo } from '../../../core/models/i18n.models';
 import { SMTTableComponent } from '../../../shared/ui-kit/components/table/table.component';
 import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
+import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
 import { LanguageEditorComponent } from '../language-editor.component';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
 import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/ui-kit/components/forms/textarea';
@@ -19,7 +19,7 @@ import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/
     FormsModule,
     TranslatePipe,
     SMTButtonComponent,
-    UiModalComponent,
+    SMTDialogComponent, SMTDialogContentDirective,
     LanguageEditorComponent,
     SMTTableComponent
   ],
@@ -111,13 +111,13 @@ import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/
     </div>
 
     <!-- Modal: Add New Custom Language -->
-    <ui-modal
+    <smt-dialog
       *ngIf="isAddLangModalOpen"
-      [isOpen]="isAddLangModalOpen"
-      [title]="'settings.dobavlenie_novogo_yazyka' | t"
-      [ariaLabel]="'settings.dobavlenie_novogo_yazyka' | t"
-      (close)="closeAddLangModal.emit()"
-    >
+      [open]="isAddLangModalOpen"
+      [smtTitle]="'settings.dobavlenie_novogo_yazyka' | t"
+      [smtAriaLabel]="'settings.dobavlenie_novogo_yazyka' | t"
+      (closed)="closeAddLangModal.emit()">
+      <ng-template smtDialogContent>
       <div class="form-grid">
         <div class="form-group">
           <label class="form-label" for="new-lang-code">{{ 'settings.kod_yazyka_iso_639_1' | t }}</label>
@@ -151,7 +151,8 @@ import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/
         <button smt-button type="button" smtVariant="secondary" (click)="closeAddLangModal.emit()" [disabled]="isAddingLang">{{ 'common.cancel' | t }}</button>
         <button smt-button type="button" smtVariant="primary" [smtLoading]="isAddingLang" (click)="saveNewLanguage.emit()" [disabled]="!newLangCode.trim() || !newLangName.trim()">{{ 'settings.sohranit_yazyk' | t }}</button>
       </div>
-    </ui-modal>
+      </ng-template>
+    </smt-dialog>
   `,
   styles: [`
     .settings-card {

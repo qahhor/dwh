@@ -14,7 +14,7 @@ import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
 import { UiLocalTableComponent } from '../../../shared/ui/ui-local-table.component';
 import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
+import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
 import {
   UPL_PERIODICITIES,
   UPL_STRICTNESSES,
@@ -61,7 +61,7 @@ type DraftMode = 'empty' | 'copy';
     RouterLink,
     TranslatePipe,
     SMTButtonComponent,
-    UiModalComponent,
+    SMTDialogComponent, SMTDialogContentDirective,
     UiBadgeComponent,
     SMTRadioGroupComponent
   ],
@@ -241,13 +241,12 @@ type DraftMode = 'empty' | 'copy';
         </a>
       </ng-template>
 
-      <ui-modal
-        [isOpen]="isDraftOpen()"
-        [title]="'upl.version.new_draft' | t"
-        size="sm"
-        [hasFooter]="true"
-        (close)="closeDraftDialog()"
-      >
+      <smt-dialog
+        [open]="isDraftOpen()"
+        [smtTitle]="'upl.version.new_draft' | t"
+        smtSize="sm"
+        (closed)="closeDraftDialog()">
+        <ng-template smtDialogContent>
         <div body class="upl-draft-body">
           <smt-radio-group
             data-testid="upl-draft-mode"
@@ -289,7 +288,8 @@ type DraftMode = 'empty' | 'copy';
             {{ 'upl.common.create' | t }}
           </button>
         </div>
-      </ui-modal>
+        </ng-template>
+      </smt-dialog>
     }
   `,
   styles: [`

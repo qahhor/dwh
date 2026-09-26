@@ -1043,7 +1043,6 @@
   "ui.user_multi_select.add_more": "+Илова кунед",
   "ui.file_upload.upload_progress": "Бор карда мешавад... {progress}%",
   "ui.file_upload.uploaded_named": "Файл {name} бомуваффақият бор карда шуд",
-  "ui.modal.close_named_dialog": "Муколамаи \"{title}\" -ро пӯшед",
   "ui.pagination.page_number": "Саҳифа {page}",
   "ui.markdown_editor.vtoroy_element": "Унсури дуюм",
   "ui.markdown_editor.vtoroy_punkt": "Нуктаи дуюм",

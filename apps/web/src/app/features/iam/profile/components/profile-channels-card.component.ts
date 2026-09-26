@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { UiBadgeComponent } from '../../../../shared/ui/ui-badge.component';
-import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
+import { SMTDialogComponent, SMTDialogContentDirective } from '../../../../shared/ui-kit/components/modal';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { UiLocalTableComponent } from '../../../../shared/ui/ui-local-table.component';
 import { TableConfig } from '../../../../shared/ui-kit/components/table/table.types';
@@ -20,7 +20,7 @@ import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../
     TranslatePipe,
     SMTButtonComponent,
     UiBadgeComponent,
-    UiModalComponent,
+    SMTDialogComponent, SMTDialogContentDirective,
     UiLocalTableComponent
   ],
   template: `
@@ -91,12 +91,12 @@ import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../
     <ng-template #emptyChannels><p class="empty-cell">{{ 'iam.net_privyazannyh_kanalov' | t }}</p></ng-template>
 
     <!-- Bind Channel Modal -->
-    <ui-modal
-      [isOpen]="isBindModalOpen"
-      [title]="'iam.privyazka_kanala_svyazi' | t"
-      size="sm"
-      (close)="closeBindModal()"
-    >
+    <smt-dialog
+      [open]="isBindModalOpen"
+      [smtTitle]="'iam.privyazka_kanala_svyazi' | t"
+      smtSize="sm"
+      (closed)="closeBindModal()">
+      <ng-template smtDialogContent>
       <div body class="channel-form">
         <div class="form-group">
           <label class="form-label" for="profile-channel-type">
@@ -142,15 +142,16 @@ import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../
           {{ 'iam.otpravit_kod' | t }}
         </button>
       </div>
-    </ui-modal>
+      </ng-template>
+    </smt-dialog>
 
     <!-- Confirm OTP Modal -->
-    <ui-modal
-      [isOpen]="isConfirmModalOpen"
-      [title]="'iam.podtverzhdenie_kanala' | t"
-      size="sm"
-      (close)="closeConfirmModal()"
-    >
+    <smt-dialog
+      [open]="isConfirmModalOpen"
+      [smtTitle]="'iam.podtverzhdenie_kanala' | t"
+      smtSize="sm"
+      (closed)="closeConfirmModal()">
+      <ng-template smtDialogContent>
       <div body class="channel-form">
         <p class="confirm-info-text">
           {{ 'iam.kod_podtverzhdeniya_otpravlen' | t:{address: activeVerifyAddress} }}
@@ -191,7 +192,8 @@ import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../
           {{ 'common.confirm' | t }}
         </button>
       </div>
-    </ui-modal>
+      </ng-template>
+    </smt-dialog>
   `,
   styles: [`
     :host {

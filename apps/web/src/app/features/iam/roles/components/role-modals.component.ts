@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Role } from '../../../../core/models/rbac.models';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
-import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
+import { SMTDialogComponent, SMTDialogContentDirective } from '../../../../shared/ui-kit/components/modal';
 import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../../../../shared/ui-kit/components/forms/select';
 import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-group';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
@@ -12,15 +12,15 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
 @Component({
   selector: 'app-role-modals',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslatePipe, SMTButtonComponent, UiModalComponent, SMTSelectComponent, SMTSelectValueAccessor, SMTInputComponent, SMTInputValueAccessor],
+  imports: [CommonModule, FormsModule, TranslatePipe, SMTButtonComponent, SMTDialogComponent, SMTDialogContentDirective, SMTSelectComponent, SMTSelectValueAccessor, SMTInputComponent, SMTInputValueAccessor],
   template: `
     <!-- Create Role Modal -->
-    <ui-modal
-      [isOpen]="isCreateModalOpen"
-      [title]="'iam.sozdanie_novoy_roli' | t"
-      size="sm"
-      (close)="closeCreate.emit()"
-    >
+    <smt-dialog
+      [open]="isCreateModalOpen"
+      [smtTitle]="'iam.sozdanie_novoy_roli' | t"
+      smtSize="sm"
+      (closed)="closeCreate.emit()">
+      <ng-template smtDialogContent>
       <div body class="modal-body-form">
         <div class="modal-field">
           <label class="modal-label" for="role-create-name">{{ 'iam.nazvanie_roli' | t }} <span class="req">*</span></label>
@@ -49,15 +49,16 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
         <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeCreate.emit()">{{ 'common.cancel' | t }}</button>
         <button smt-button type="button" smtVariant="primary" smtSize="md" [smtLoading]="isSubmittingRole" (click)="submitCreate.emit()">{{ 'common.create' | t }}</button>
       </div>
-    </ui-modal>
+      </ng-template>
+    </smt-dialog>
 
     <!-- Edit Role Modal -->
-    <ui-modal
-      [isOpen]="isEditModalOpen"
-      [title]="'iam.redaktirovanie_roli' | t"
-      size="sm"
-      (close)="closeEdit.emit()"
-    >
+    <smt-dialog
+      [open]="isEditModalOpen"
+      [smtTitle]="'iam.redaktirovanie_roli' | t"
+      smtSize="sm"
+      (closed)="closeEdit.emit()">
+      <ng-template smtDialogContent>
       <div body class="modal-body-form" *ngIf="editingRole as r">
         <div class="modal-field">
           <label class="modal-label" for="role-edit-name">{{ 'iam.nazvanie_roli' | t }} <span class="req">*</span></label>
@@ -87,16 +88,17 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
         <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeEdit.emit()">{{ 'common.cancel' | t }}</button>
         <button smt-button type="button" smtVariant="primary" smtSize="md" [smtLoading]="isSubmittingRole" (click)="submitEdit.emit()">{{ 'common.save' | t }}</button>
       </div>
-    </ui-modal>
+      </ng-template>
+    </smt-dialog>
 
     <!-- Delete Role Modal -->
-    <ui-modal
-      [isOpen]="isDeleteModalOpen"
-      [title]="'iam.udalenie_roli' | t"
-      size="sm"
+    <smt-dialog
+      [open]="isDeleteModalOpen"
+      [smtTitle]="'iam.udalenie_roli' | t"
+      smtSize="sm"
       [dismissible]="!isSubmittingRole"
-      (close)="closeDelete.emit()"
-    >
+      (closed)="closeDelete.emit()">
+      <ng-template smtDialogContent>
       <div body class="modal-delete-body" *ngIf="deletingRole as r">
         <p class="delete-title">
           {{ 'iam.vy_deystvitelno_hotite_udalit_polzovatelskuyu_ro' | t }} <strong>{{ r.name }}</strong>?
@@ -107,16 +109,17 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
         <button smt-button type="button" smtVariant="secondary" smtSize="md" [disabled]="isSubmittingRole" (click)="closeDelete.emit()">{{ 'common.cancel' | t }}</button>
         <button smt-button type="button" smtVariant="danger" smtSize="md" [smtLoading]="isSubmittingRole" (click)="confirmDelete.emit()">{{ 'common.delete' | t }}</button>
       </div>
-    </ui-modal>
+      </ng-template>
+    </smt-dialog>
 
     <!-- Unsaved Changes Confirmation Modal -->
-    <ui-modal
-      [isOpen]="isDiscardPermissionsModalOpen"
-      [title]="'iam.nesohranennye_izmeneniya_prav' | t"
-      size="sm"
+    <smt-dialog
+      [open]="isDiscardPermissionsModalOpen"
+      [smtTitle]="'iam.nesohranennye_izmeneniya_prav' | t"
+      smtSize="sm"
       [dismissible]="!isSaving"
-      (close)="closeDiscard.emit()"
-    >
+      (closed)="closeDiscard.emit()">
+      <ng-template smtDialogContent>
       <div body class="modal-delete-body" *ngIf="selectedRole as r">
         <p class="delete-title">
           {{ 'iam.u_vas_est_nesohranennye_izmeneniya_v_matrice' | t:{name: r.name, count: dirtyPermissionsCount} }}
@@ -133,7 +136,8 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
           {{ 'iam.sohranit_i_pereyti' | t }}
         </button>
       </div>
-    </ui-modal>
+      </ng-template>
+    </smt-dialog>
   `,
   styles: [`
     .modal-body-form { display: flex; flex-direction: column; gap: 14px; }

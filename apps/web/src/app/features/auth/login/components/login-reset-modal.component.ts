@@ -5,20 +5,20 @@ import { ApiService } from '../../../../core/services/api.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
-import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
+import { SMTDialogComponent, SMTDialogContentDirective } from '../../../../shared/ui-kit/components/modal';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
 
 @Component({
   selector: 'app-login-reset-modal',
   standalone: true,
-  imports: [SMTInputComponent, SMTInputValueAccessor, CommonModule, FormsModule, UiModalComponent, SMTButtonComponent, TranslatePipe],
+  imports: [SMTInputComponent, SMTInputValueAccessor, CommonModule, FormsModule, SMTDialogComponent, SMTDialogContentDirective, SMTButtonComponent, TranslatePipe],
   template: `
-    <ui-modal
-      [isOpen]="isOpen"
-      [title]="'auth.vosstanovlenie_parolya' | t"
-      size="sm"
-      (close)="onClose()"
-    >
+    <smt-dialog
+      [open]="isOpen"
+      [smtTitle]="'auth.vosstanovlenie_parolya' | t"
+      smtSize="sm"
+      (closed)="onClose()">
+      <ng-template smtDialogContent>
       <div body class="reset-body">
         <p id="reset-hint" class="reset-hint">{{ 'auth.vvedite_email_vashey_uchetnoy_zapisi_my_otpravim' | t }}</p>
         <div class="form-group">
@@ -39,7 +39,8 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
         <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="onClose()">{{ 'common.cancel' | t }}</button>
         <button smt-button type="button" smtVariant="primary" smtSize="md" [smtLoading]="isResetLoading()" (click)="sendResetRequest()">{{ 'auth.otpravit_kod' | t }}</button>
       </div>
-    </ui-modal>
+      </ng-template>
+    </smt-dialog>
   `,
   styles: [`
     .reset-body {

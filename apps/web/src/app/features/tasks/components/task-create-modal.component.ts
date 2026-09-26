@@ -9,7 +9,7 @@ import { SMTDatePickerComponent, SMTDatePickerValueAccessor } from '../../../sha
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { SMTControlComponent } from '../../../shared/ui-kit/components/forms/control';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
-import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
+import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { SMTSelectComponent, SMTSelectValueAccessor } from '../../../shared/ui-kit/components/forms/select';
 import { UiMarkdownEditorComponent } from '../../../shared/ui/ui-markdown-editor.component';
@@ -27,7 +27,7 @@ import { Project, TaskType } from '../../../core/models/task.models';
     SMTDatePickerComponent,
     SMTDatePickerValueAccessor,
     TranslatePipe,
-    UiModalComponent,
+    SMTDialogComponent, SMTDialogContentDirective,
     SMTButtonComponent,
     SMTSelectComponent,
     SMTDataSelectComponent,
@@ -41,13 +41,13 @@ import { Project, TaskType } from '../../../core/models/task.models';
     UiCustomFieldsComponent
   ],
   template: `
-    <ui-modal
-      [isOpen]="isOpen"
-      [title]="createForm.parentTaskId ? ('tasks.create_subtask_for' | t:{id: createForm.parentTaskId}) : ('tasks.create_new_task' | t)"
-      size="lg"
+    <smt-dialog
+      [open]="isOpen"
+      [smtTitle]="createForm.parentTaskId ? ('tasks.create_subtask_for' | t:{id: createForm.parentTaskId}) : ('tasks.create_new_task' | t)"
+      smtSize="lg"
       [dismissible]="!isSubmitting"
-      (close)="close.emit()"
-    >
+      (closed)="close.emit()">
+      <ng-template smtDialogContent>
       <fieldset body class="modal-form modal-form-fieldset task-create-form" [disabled]="isSubmitting">
         <!-- Title Input (Required) -->
         <smt-control class="form-group" [smtLabel]="'task.title' | t" [smtError]="isCreateSubmitted && !createForm.title.trim() ? ('tasks.pozhaluysta_ukazhite_nazvanie_zadachi' | t) : ''">
@@ -204,7 +204,8 @@ import { Project, TaskType } from '../../../core/models/task.models';
         <button smt-button type="button" smtVariant="secondary" smtSize="md" [disabled]="isSubmitting" (click)="close.emit()">{{ 'common.cancel' | t }}</button>
         <button smt-button type="button" smtVariant="primary" smtSize="md" [smtLoading]="isSubmitting" (click)="submit.emit()">{{ 'tasks.sozdat_zadachu' | t }}</button>
       </div>
-    </ui-modal>
+      </ng-template>
+    </smt-dialog>
   `,
   styles: [`
     .modal-form { display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; }

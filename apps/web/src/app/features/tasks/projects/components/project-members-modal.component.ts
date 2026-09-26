@@ -5,7 +5,7 @@ import { of, Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { ApiService } from '../../../../core/services/api.service';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
-import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
+import { SMTDialogComponent, SMTDialogContentDirective } from '../../../../shared/ui-kit/components/modal';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { UiBadgeComponent } from '../../../../shared/ui/ui-badge.component';
 import { UiLocalTableComponent } from '../../../../shared/ui/ui-local-table.component';
@@ -25,18 +25,18 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
     SMTAvatarComponent, CommonModule,
     FormsModule,
     TranslatePipe,
-    UiModalComponent,
+    SMTDialogComponent, SMTDialogContentDirective,
     SMTButtonComponent,
     UiBadgeComponent,
     UiLocalTableComponent
   ],
   template: `
-    <ui-modal
-      [isOpen]="isOpen"
-      [title]="'projects.uchastniki_proekta_title' | t:{name: project?.name || ''}"
-      size="lg"
-      (close)="close.emit()"
-    >
+    <smt-dialog
+      [open]="isOpen"
+      [smtTitle]="'projects.uchastniki_proekta_title' | t:{name: project?.name || ''}"
+      smtSize="lg"
+      (closed)="close.emit()">
+      <ng-template smtDialogContent>
       <div body class="members-modal-body">
         <!-- Add Member Panel (visible if user can update project) -->
         <div *ngIf="canUpdateProject" class="add-member-panel">
@@ -140,7 +140,8 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
           {{ 'common.close' | t }}
         </button>
       </div>
-    </ui-modal>
+      </ng-template>
+    </smt-dialog>
 
     <ng-template #memberUserCell let-m>
       <div class="member-user-cell">

@@ -6,7 +6,7 @@ import { ToastService } from '../../../core/services/toast.service';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
 import { PermissionService } from '../../../core/services/permission.service';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
+import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
 import { UiLocalTableComponent } from '../../../shared/ui/ui-local-table.component';
 import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
 import { finalize, tap } from 'rxjs';
@@ -25,7 +25,7 @@ import { SMTCheckboxComponent } from '../../../shared/ui-kit/components/forms/ch
 @Component({
   selector: 'app-webhooks-settings',
   standalone: true,
-  imports: [SMTCheckboxComponent, SMTInputComponent, SMTInputValueAccessor, CommonModule, FormsModule, TranslatePipe, SMTButtonComponent, UiModalComponent, UiLocalTableComponent],
+  imports: [SMTCheckboxComponent, SMTInputComponent, SMTInputValueAccessor, CommonModule, FormsModule, TranslatePipe, SMTButtonComponent, SMTDialogComponent, SMTDialogContentDirective, UiLocalTableComponent],
   template: `
     <div class="webhooks-container">
       <!-- Section Header -->
@@ -145,12 +145,12 @@ import { SMTCheckboxComponent } from '../../../shared/ui-kit/components/forms/ch
       </ng-template>
 
       <!-- Create Modal -->
-      <ui-modal
-        [isOpen]="isCreateModalOpen()"
-        [title]="'settings.webhooks.add' | t"
-        size="md"
-        (close)="closeCreateModal()"
-      >
+      <smt-dialog
+        [open]="isCreateModalOpen()"
+        [smtTitle]="'settings.webhooks.add' | t"
+        smtSize="md"
+        (closed)="closeCreateModal()">
+        <ng-template smtDialogContent>
         <div body class="create-form-body">
           <div class="form-row">
             <label for="webhook-name" class="form-lbl">{{ 'settings.webhooks.name' | t }} *</label>
@@ -208,15 +208,16 @@ import { SMTCheckboxComponent } from '../../../shared/ui-kit/components/forms/ch
             {{ 'common.save' | t }}
           </button>
         </div>
-      </ui-modal>
+        </ng-template>
+      </smt-dialog>
 
       <!-- Secret Key Reveal Modal (Shown once after creation) -->
-      <ui-modal
-        [isOpen]="createdSecretModalOpen()"
-        [title]="'settings.webhooks.secret_modal_title' | t"
-        size="md"
-        (close)="closeSecretModal()"
-      >
+      <smt-dialog
+        [open]="createdSecretModalOpen()"
+        [smtTitle]="'settings.webhooks.secret_modal_title' | t"
+        smtSize="md"
+        (closed)="closeSecretModal()">
+        <ng-template smtDialogContent>
         <div body class="secret-modal-body" *ngIf="recentlyCreatedSubscription() as sub">
           <div class="warning-callout">
             <span class="material-symbols-outlined callout-icon" aria-hidden="true">warning</span>
@@ -253,7 +254,8 @@ import { SMTCheckboxComponent } from '../../../shared/ui-kit/components/forms/ch
             {{ 'common.confirm' | t }}
           </button>
         </div>
-      </ui-modal>
+        </ng-template>
+      </smt-dialog>
     </div>
   `,
   styles: [`

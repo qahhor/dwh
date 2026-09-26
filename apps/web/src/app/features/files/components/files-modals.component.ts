@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TaskFile } from '../../../core/models/task.models';
-import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
+import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { UiFileUploadComponent } from '../../../shared/ui/ui-file-upload.component';
 import { TranslatePipe } from '../../../core/services/i18n.service';
@@ -11,19 +11,19 @@ import { TranslatePipe } from '../../../core/services/i18n.service';
   standalone: true,
   imports: [
     CommonModule,
-    UiModalComponent,
+    SMTDialogComponent, SMTDialogContentDirective,
     SMTButtonComponent,
     UiFileUploadComponent,
     TranslatePipe
   ],
   template: `
     <!-- Upload Modal -->
-    <ui-modal
-      [isOpen]="isUploadModalOpen"
-      [title]="'files.zagruzka_faylov_v_hranilische' | t"
-      size="md"
-      (close)="closeUpload.emit()"
-    >
+    <smt-dialog
+      [open]="isUploadModalOpen"
+      [smtTitle]="'files.zagruzka_faylov_v_hranilische' | t"
+      smtSize="md"
+      (closed)="closeUpload.emit()">
+      <ng-template smtDialogContent>
       <div body class="upload-modal-body">
         <ui-file-upload
           [files]="uploadedBatch"
@@ -36,7 +36,8 @@ import { TranslatePipe } from '../../../core/services/i18n.service';
       <div footer class="modal-footer-actions">
         <button smt-button type="button" smtVariant="secondary" (click)="closeUpload.emit()">{{ 'audit.zakryt' | t }}</button>
       </div>
-    </ui-modal>
+      </ng-template>
+    </smt-dialog>
   `,
   styles: [`
     :host {

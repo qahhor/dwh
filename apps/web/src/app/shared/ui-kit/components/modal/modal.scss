@@ -236,3 +236,36 @@
     width: 100%;
   }
 }
+
+/* smt-dialog: a footer row (elements marked `footer`, `modal-footer` or
+   `slot="footer"` at the top of the content) stays at the bottom of the
+   panel while the body scrolls. */
+.smt-dialog__body > [footer],
+.smt-dialog__body > [modal-footer],
+.smt-dialog__body > [slot='footer'] {
+  position: sticky;
+  bottom: -18px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin: 18px -18px -18px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--border-color);
+  background-color: var(--bg-surface);
+}
+
+@media (max-width: 640px) {
+  .smt-dialog__body {
+    padding: 14px 12px;
+  }
+
+  .smt-dialog__body > [footer],
+  .smt-dialog__body > [modal-footer],
+  .smt-dialog__body > [slot='footer'] {
+    bottom: -14px;
+    margin: 14px -12px -14px;
+    padding: 12px 14px;
+  }
+}

@@ -2,7 +2,7 @@ import { Component, EventEmitter, Input, Output, Signal, TemplateRef, computed, 
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
-import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
+import { SMTDialogComponent, SMTDialogContentDirective } from '../../../../shared/ui-kit/components/modal';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { UiLocalTableComponent } from '../../../../shared/ui/ui-local-table.component';
 import { TableConfig } from '../../../../shared/ui-kit/components/table/table.types';
@@ -20,7 +20,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
     FormsModule,
     TranslatePipe,
     SMTButtonComponent,
-    UiModalComponent,
+    SMTDialogComponent, SMTDialogContentDirective,
     SMTControlComponent,
     SMTRadioGroupComponent
   ],
@@ -58,12 +58,12 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
     <ng-template #emptyTokens><p class="empty-cell">{{ 'iam.net_sozdannyh_api_tokenov' | t }}</p></ng-template>
 
     <!-- Create Token Modal -->
-    <ui-modal
-      [isOpen]="isCreateTokenModalOpen"
-      [title]="'iam.vypusk_novogo_api_tokena' | t"
-      size="sm"
-      (close)="closeCreateTokenModal.emit()"
-    >
+    <smt-dialog
+      [open]="isCreateTokenModalOpen"
+      [smtTitle]="'iam.vypusk_novogo_api_tokena' | t"
+      smtSize="sm"
+      (closed)="closeCreateTokenModal.emit()">
+      <ng-template smtDialogContent>
       <div body class="token-form">
         <div class="form-group">
           <label class="form-label" for="profile-token-name">{{ 'iam.nazvanie_tokena' | t }} <span class="req">*</span></label>
@@ -98,16 +98,16 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
           {{ 'iam.sgenerirovat' | t }}
         </button>
       </div>
-    </ui-modal>
+      </ng-template>
+    </smt-dialog>
 
     <!-- Token Secret Reveal Modal -->
-    <ui-modal
-      [isOpen]="isTokenSecretModalOpen"
-      [title]="'iam.api_token_uspeshno_sozdan' | t"
-      size="md"
-      [hasFooter]="false"
-      (close)="closeSecretModal.emit()"
-    >
+    <smt-dialog
+      [open]="isTokenSecretModalOpen"
+      [smtTitle]="'iam.api_token_uspeshno_sozdan' | t"
+      smtSize="md"
+      (closed)="closeSecretModal.emit()">
+      <ng-template smtDialogContent>
       <div body class="secret-reveal-body">
         <div class="warning-box">
           <span class="material-symbols-outlined" aria-hidden="true">warning</span>
@@ -128,7 +128,8 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
           {{ 'iam.ya_sohranil_token' | t }}
         </button>
       </div>
-    </ui-modal>
+      </ng-template>
+    </smt-dialog>
   `,
   styleUrl: './profile-tokens-card.component.css'
 })

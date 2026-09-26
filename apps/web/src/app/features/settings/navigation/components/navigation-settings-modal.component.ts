@@ -2,7 +2,7 @@ import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CustomNavigationItem, NavigationTargetType } from '../../../../core/models/navigation.models';
-import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
+import { SMTDialogComponent, SMTDialogContentDirective } from '../../../../shared/ui-kit/components/modal';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
@@ -15,18 +15,18 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
   imports: [SMTInputComponent, SMTInputValueAccessor, SMTSelectComponent,
     CommonModule,
     FormsModule,
-    UiModalComponent,
+    SMTDialogComponent, SMTDialogContentDirective,
     SMTButtonComponent,
     TranslatePipe
   ],
   template: `
     <!-- Create/Edit Modal -->
-    <ui-modal
+    <smt-dialog
       *ngIf="isModalOpen"
-      [isOpen]="isModalOpen"
-      [title]="editingItem ? ('nav.settings.edit_modal_title' | t) : ('nav.settings.create_modal_title' | t)"
-      (close)="closeModal.emit()"
-    >
+      [open]="isModalOpen"
+      [smtTitle]="editingItem ? ('nav.settings.edit_modal_title' | t) : ('nav.settings.create_modal_title' | t)"
+      (closed)="closeModal.emit()">
+      <ng-template smtDialogContent>
       <div class="modal-form">
         <div class="form-row">
           <div class="form-group flex-2">
@@ -114,7 +114,8 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
           {{ 'common.save' | t }}
         </button>
       </div>
-    </ui-modal>
+      </ng-template>
+    </smt-dialog>
   `,
   styles: [`
     :host {
