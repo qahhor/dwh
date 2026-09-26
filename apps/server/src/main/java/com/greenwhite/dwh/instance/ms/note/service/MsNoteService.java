@@ -1,6 +1,7 @@
 package com.greenwhite.dwh.instance.ms.note.service;
 
 import com.greenwhite.dwh.instance.audit.service.AuditLogService;
+import com.greenwhite.dwh.instance.common.entity.EntityValidator;
 import com.greenwhite.dwh.instance.common.error.ApiException;
 import com.greenwhite.dwh.instance.ms.note.repository.MsNoteRepository;
 import com.greenwhite.dwh.instance.ms.note.repository.MsNoteRepository.NoteRecord;
@@ -8,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -94,9 +96,7 @@ public class MsNoteService {
     public NoteView createNote(String title, String contentMd, String color, boolean isPinned,
                                Map<String, Object> attributes, Long userId) {
         checkModuleActive();
-        if (title == null || title.isBlank()) {
-            throw ApiException.badRequest(com.greenwhite.dwh.core.error.ErrorCode.BAD_REQUEST, "Заголовок заметки не может быть пустым");
-        }
+        EntityValidator.check(MsNoteEntity.DEFINITION, values(title, contentMd, color, isPinned), false);
 
         if (customFieldService != null && attributes != null && !attributes.isEmpty()) {
             customFieldService.validateAttributes("NOTE", attributes);
@@ -121,6 +121,7 @@ public class MsNoteService {
         if (!existing.createdBy().equals(userId)) {
             throw ApiException.forbidden(com.greenwhite.dwh.core.error.ErrorCode.FORBIDDEN, "Нет доступа к чужой заметке");
         }
+        EntityValidator.check(MsNoteEntity.DEFINITION, values(title, contentMd, color, isPinned), true);
 
         if (customFieldService != null && attributes != null && !attributes.isEmpty()) {
             customFieldService.validateAttributes("NOTE", attributes);
@@ -134,6 +135,16 @@ public class MsNoteService {
                 Map.of("title", updated.title(), "color", updated.color(), "is_pinned", updated.isPinned()));
 
         return NoteView.from(updated);
+    }
+
+    /** The declared fields a save carries; an absent one (null) is left out, so an update keeps it. */
+    private static Map<String, Object> values(String title, String contentMd, String color, Boolean isPinned) {
+        Map<String, Object> values = new HashMap<>();
+        if (title != null) values.put("title", title);
+        if (contentMd != null) values.put("contentMd", contentMd);
+        if (color != null) values.put("color", color);
+        if (isPinned != null) values.put("isPinned", isPinned);
+        return values;
     }
 
     @Transactional
