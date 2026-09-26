@@ -175,16 +175,6 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
       width: 320px;
       max-width: 100%;
     }
-    .btn-icon {
-      border: none;
-      background: transparent;
-      color: var(--text-muted);
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0;
-    }
     .toolbar-controls {
       display: flex;
       align-items: center;

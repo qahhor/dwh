@@ -22,7 +22,7 @@
       <div *ngIf="loadError()" class="load-error-banner" role="alert">
         <span class="material-symbols-outlined" aria-hidden="true">error</span>
         <span class="load-error-text">{{ loadError() }}</span>
-        <button type="button" class="btn btn-secondary btn-sm" (click)="loadAllSettings()">
+        <button smt-button smtVariant="secondary" smtSize="sm" type="button" (click)="loadAllSettings()">
           {{ 'common.retry' | t }}
         </button>
       </div>

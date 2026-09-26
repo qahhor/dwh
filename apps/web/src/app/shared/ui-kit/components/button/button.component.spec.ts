@@ -15,6 +15,7 @@ import { SMTButtonComponent } from './button.component';
       <button smt-button type="submit" smtIcon="save" class="save" [smtLoading]="saving()" [disabled]="locked()"
         aria-label="Save the note" (click)="clicks = clicks + 1">Save</button>
       <button smt-button type="button" smtVariant="danger" smtSize="sm" smtFullWidth>Delete</button>
+      <button smt-button type="button" smtVariant="ghost" smtIconOnly smtIcon="close" aria-label="Close"></button>
     </form>
     <a smt-button smtVariant="ghost" href="#help" [disabled]="locked()" (click)="linkClicks = linkClicks + 1">Help</a>
   `,
@@ -36,9 +37,9 @@ describe('SMTButtonComponent', () => {
     document.body.appendChild(fixture.nativeElement);
     fixture.detectChanges();
     const element = fixture.nativeElement as HTMLElement;
-    const [save, remove] = Array.from(element.querySelectorAll('button')) as HTMLButtonElement[];
+    const [save, remove, close] = Array.from(element.querySelectorAll('button')) as HTMLButtonElement[];
     const link = element.querySelector('a') as HTMLAnchorElement;
-    return { fixture, save, remove, link };
+    return { fixture, save, remove, close, link };
   }
 
   it('is the real button: its type submits the form, its aria-label and classes are its own', () => {
@@ -55,6 +56,14 @@ describe('SMTButtonComponent', () => {
     save.click();
     expect(fixture.componentInstance.clicks).toBe(1);
     expect(fixture.componentInstance.submitted).toBe(1);
+  });
+
+  it('draws an icon-only button square, named by its aria-label', () => {
+    const { close } = render();
+    expect(close.classList).toContain('smt-button--icon-only');
+    expect(close.getAttribute('aria-label')).toBe('Close');
+    expect(close.textContent!.trim()).toBe('close');
+    expect(close.querySelector('.smt-button__icon')!.getAttribute('aria-hidden')).toBe('true');
   });
 
   it('is disabled and busy while loading, with a spinner and a hidden text instead of the icon', () => {

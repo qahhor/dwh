@@ -46,11 +46,12 @@ import {
   formatBytes,
   formatJobError
 } from './search-settings.models';
+import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 
 @Component({
   selector: 'app-search-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslatePipe, UiModalComponent, UiLocalTableComponent, SMTSelectComponent, SMTInputComponent, SMTInputValueAccessor, SMTCheckboxComponent],
+  imports: [SMTButtonComponent, CommonModule, FormsModule, TranslatePipe, UiModalComponent, UiLocalTableComponent, SMTSelectComponent, SMTInputComponent, SMTInputValueAccessor, SMTCheckboxComponent],
   templateUrl: './search-settings.component.html',
   styleUrl: './search-settings.component.scss'
 })

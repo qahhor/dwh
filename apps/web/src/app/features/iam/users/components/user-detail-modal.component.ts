@@ -227,15 +227,17 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
     <ng-template #sessionActionCell let-s>
       <div class="text-right">
         <button
+          smt-button
           type="button"
-          class="btn-icon danger"
+          smtVariant="ghost"
+          smtSize="sm"
+          smtIconOnly
+          smtIcon="close"
+          class="danger"
           [title]="'iam.zavershit_sessiyu' | t"
           [attr.aria-label]="'iam.terminate_session_ip_named' | t:{ip: s.ip}"
           [disabled]="isSecurityActionPending"
-          (click)="terminateSession(s)"
-        >
-          <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">close</span>
-        </button>
+          (click)="terminateSession(s)"></button>
       </div>
     </ng-template>
     <ng-template #attemptTimeCell let-att><span class="font-mono text-xs text-muted">{{ att.attemptAt | date:'dd.MM.yyyy HH:mm:ss' }}</span></ng-template>

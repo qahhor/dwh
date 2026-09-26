@@ -19,13 +19,14 @@ import { AuditModalsComponent } from './components/audit-modals.component';
 import { SMTTabBarComponent, SMTTabItem } from '../../shared/ui-kit/components/tab-bar';
 import { optionsMemo } from '../../shared/ui-kit/components/forms/radio-group';
 import { I18nService } from '../../core/services/i18n.service';
+import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
 
 export * from './audit.models';
 
 @Component({
   selector: 'app-audit',
   standalone: true,
-  imports: [
+  imports: [SMTButtonComponent, 
     SMTTabBarComponent, CommonModule,
     TranslatePipe,
     AuditStatsTilesComponent,
@@ -42,7 +43,7 @@ export * from './audit.models';
           <span class="count-badge">WORM Log</span>
         </div>
         <div class="header-right">
-          <button type="button" class="btn btn-secondary" [attr.aria-label]="'audit.obnovit_zhurnal_audita' | t" (click)="refreshAll()" [title]="'audit.obnovit_zhurnal' | t">
+          <button smt-button smtVariant="secondary" type="button" [attr.aria-label]="'audit.obnovit_zhurnal_audita' | t" (click)="refreshAll()" [title]="'audit.obnovit_zhurnal' | t">
             <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
             <span>{{ 'common.refresh' | t }}</span>
           </button>

@@ -190,18 +190,7 @@
     .status-indicator.active .dot { background-color: var(--success); }
     .status-indicator.danger-dot .dot { background-color: var(--danger); }
 
-    .btn-icon {
-      border: none;
-      background: transparent;
-      color: var(--text-muted);
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0;
-    }
-    .btn-icon.danger:hover:not(:disabled) { color: var(--danger); }
-    .btn-icon:disabled { opacity: 0.5; cursor: not-allowed; }
+    .smt-button.danger:hover:not(:disabled) { color: var(--danger); }
 
     .delete-body {
       display: flex;

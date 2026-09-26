@@ -37,10 +37,10 @@ import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/
           <strong>{{ 'settings.legacy_packages_found' | t:{count: legacyLanguageCount} }}</strong>
           <span>{{ 'settings.perenesite_ih_v_obschee_servernoe_hranilische_ch' | t }}</span>
         </div>
-        <button
+        <button smt-button smtVariant="secondary"
           id="migrate-legacy-languages"
           type="button"
-          class="btn btn-secondary"
+         
           *ngIf="canUpdateSystemSettings"
           [disabled]="isMigratingLegacyLanguages"
           (click)="migrateLegacyLanguages.emit()"
@@ -57,7 +57,7 @@ import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/
             <p class="card-desc">{{ 'settings.dinamicheskoe_dobavlenie_novyh_yazykov_i_import_' | t }}</p>
           </div>
         </div>
-        <button type="button" class="btn btn-primary" *ngIf="canUpdateSystemSettings" (click)="openAddLangModal.emit()">
+        <button smt-button type="button" *ngIf="canUpdateSystemSettings" (click)="openAddLangModal.emit()">
           <span class="material-symbols-outlined" aria-hidden="true">add</span>
           <span>{{ 'settings.dobavit_yazyk' | t }}</span>
         </button>
@@ -93,16 +93,16 @@ import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/
 
       <ng-template #actionsCell let-lang>
         <div class="table-actions-right">
-          <button type="button" class="btn btn-secondary btn-sm" [attr.data-testid]="'edit-language-' + lang.code" (click)="openLanguageEditor.emit(lang.code)">
+          <button smt-button smtVariant="secondary" smtSize="sm" type="button" [attr.data-testid]="'edit-language-' + lang.code" (click)="openLanguageEditor.emit(lang.code)">
             <span class="material-symbols-outlined" aria-hidden="true">edit</span>
             <span>{{ 'common.edit' | t }}</span>
           </button>
-          <button type="button" class="btn btn-secondary btn-sm" (click)="exportLangJson.emit(lang.code)" [title]="'settings.eksportirovat_json' | t">
+          <button smt-button smtVariant="secondary" smtSize="sm" type="button" (click)="exportLangJson.emit(lang.code)" [title]="'settings.eksportirovat_json' | t">
             <span class="material-symbols-outlined" aria-hidden="true">download</span>
             <span>JSON</span>
           </button>
           @if (currentLang !== lang.code) {
-            <button type="button" class="btn btn-primary btn-sm" [attr.data-testid]="'switch-language-' + lang.code" (click)="switchLanguage.emit(lang.code)">
+            <button smt-button smtSize="sm" type="button" [attr.data-testid]="'switch-language-' + lang.code" (click)="switchLanguage.emit(lang.code)">
               <span>{{ 'settings.pereklyuchitsya' | t }}</span>
             </button>
           }
@@ -333,38 +333,6 @@ import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/
       display: flex;
       justify-content: flex-end;
       gap: 8px;
-    }
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 8px 14px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      border: 1px solid transparent;
-      transition: all 0.15s ease;
-    }
-    .btn-sm {
-      padding: 4px 8px;
-      font-size: 12px;
-      border-radius: 6px;
-    }
-    .btn-primary {
-      background: var(--primary);
-      color: var(--on-primary);
-    }
-    .btn-primary:hover {
-      background: var(--primary-hover);
-    }
-    .btn-secondary {
-      background: var(--bg-surface);
-      border-color: var(--border-color);
-      color: var(--text-main);
-    }
-    .btn-secondary:hover {
-      background: var(--bg-hover);
     }
     @media (max-width: 680px) {
       .legacy-import { align-items: stretch; flex-direction: column; }

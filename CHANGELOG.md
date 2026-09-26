@@ -19,7 +19,9 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   which is removed. Attributes that used to sit on the wrapper and never
   reached the button (`aria-expanded`, menu triggers, test ids) now do; a
   button without a type is `type="button"`, so none submits a form by
-  accident.
+  accident. The 31 buttons styled by the global `.btn` classes and the three
+  `.btn-icon` ones use it too (`smtIconOnly` draws a square icon button), and
+  the global and local `.btn*` rules are gone.
 - Kit controls everywhere (roadmap item 43). Fifty-two native selects are
   `smt-select`, the remaining text fields `smt-input`, the textareas
   `smt-textarea`, and checkboxes follow one rule: a toggle that acts at once

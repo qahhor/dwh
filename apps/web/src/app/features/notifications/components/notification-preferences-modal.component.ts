@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { NotificationPrefItem } from '../../../core/models/notification.models';
 import { TranslatePipe } from '../../../core/services/i18n.service';
 import { SMTCheckboxComponent } from '../../../shared/ui-kit/components/forms/checkbox';
+import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 
 export interface EventTypeRow {
   code: string;
@@ -13,7 +14,7 @@ export interface EventTypeRow {
 @Component({
   selector: 'app-notification-preferences-modal',
   standalone: true,
-  imports: [SMTCheckboxComponent, CommonModule, FormsModule, TranslatePipe],
+  imports: [SMTButtonComponent, SMTCheckboxComponent, CommonModule, FormsModule, TranslatePipe],
   template: `
     <div class="modal-backdrop" (click)="onBackdropClick($event)" role="presentation">
       <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="pref-modal-title">
@@ -81,10 +82,10 @@ export interface EventTypeRow {
         </div>
 
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" (click)="close.emit()" [disabled]="isSaving">
+          <button smt-button smtVariant="secondary" type="button" (click)="close.emit()" [disabled]="isSaving">
             {{ 'common.cancel' | t }}
           </button>
-          <button type="button" class="btn btn-primary" (click)="onSave()" [disabled]="isSaving">
+          <button smt-button type="button" (click)="onSave()" [disabled]="isSaving">
             <span *ngIf="isSaving" class="spinner" aria-hidden="true"></span>
             <span>{{ 'common.save' | t }}</span>
           </button>
@@ -217,30 +218,6 @@ export interface EventTypeRow {
       justify-content: flex-end;
       gap: 10px;
     }
-    .btn {
-      padding: 6px 16px;
-      font-size: 13px;
-      font-weight: 500;
-      border-radius: var(--radius-sm);
-      border: 1px solid transparent;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.1s ease;
-    }
-    .btn-secondary {
-      background: var(--bg-hover);
-      border-color: var(--border-color);
-      color: var(--text-main);
-    }
-    .btn-secondary:hover { background: var(--border-color); }
-    .btn-primary {
-      background: var(--primary);
-      color: var(--on-primary);
-    }
-    .btn-primary:hover { opacity: 0.9; }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .spinner {
       width: 14px;
       height: 14px;

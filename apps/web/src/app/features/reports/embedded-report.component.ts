@@ -5,11 +5,12 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { NavigationService } from '../../core/services/navigation.service';
 import { CustomNavigationItem } from '../../core/models/navigation.models';
 import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
+import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
 
 @Component({
   selector: 'app-embedded-report',
   standalone: true,
-  imports: [CommonModule, RouterModule, TranslatePipe],
+  imports: [SMTButtonComponent, CommonModule, RouterModule, TranslatePipe],
   template: `
     <div class="embedded-report-container" [class.fullscreen]="isFullscreen()">
       <!-- Top Toolbar -->
@@ -91,7 +92,7 @@ import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
         <div *ngIf="errorMessage()" class="report-error" role="alert">
           <span class="material-symbols-outlined icon" aria-hidden="true">error</span>
           <span>{{ errorMessage() }}</span>
-          <button type="button" class="btn btn-secondary" (click)="loadReport()">{{ 'common.retry' | t }}</button>
+          <button smt-button smtVariant="secondary" type="button" (click)="loadReport()">{{ 'common.retry' | t }}</button>
         </div>
 
         <!-- Safe iFrame -->

@@ -121,23 +121,26 @@ import { SMTCheckboxComponent } from '../../../shared/ui-kit/components/forms/ch
       <ng-template #actionsCell let-sub>
         <div class="actions-cell">
           <button
+            smt-button
             type="button"
-            class="btn-icon"
+            smtVariant="ghost"
+            smtSize="sm"
+            smtIconOnly
+            [smtIcon]="sub.state === 'A' ? 'pause_circle' : 'play_circle'"
             [title]="(sub.state === 'A' ? 'settings.webhooks.paused' : 'settings.webhooks.active') | t"
             [attr.aria-label]="(sub.state === 'A' ? 'settings.webhooks.pause_named' : 'settings.webhooks.resume_named') | t:{ name: sub.name }"
-            (click)="toggleState(sub)"
-          >
-            <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">{{ sub.state === 'A' ? 'pause_circle' : 'play_circle' }}</span>
-          </button>
+            (click)="toggleState(sub)"></button>
           <button
+            smt-button
             type="button"
-            class="btn-icon danger"
+            smtVariant="ghost"
+            smtSize="sm"
+            smtIconOnly
+            smtIcon="delete"
+            class="danger"
             [title]="'common.delete' | t"
             [attr.aria-label]="'settings.webhooks.delete_named' | t:{ name: sub.name }"
-            (click)="confirmDelete(sub)"
-          >
-            <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true">delete</span>
-          </button>
+            (click)="confirmDelete(sub)"></button>
         </div>
       </ng-template>
 
@@ -415,22 +418,7 @@ import { SMTCheckboxComponent } from '../../../shared/ui-kit/components/forms/ch
       display: flex;
       gap: 4px;
     }
-    .btn-icon {
-      background: transparent;
-      border: none;
-      padding: 4px;
-      cursor: pointer;
-      color: var(--text-muted);
-      border-radius: 4px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .btn-icon:hover {
-      background: var(--bg-hover);
-      color: var(--text-main);
-    }
-    .btn-icon.danger:hover {
+    .smt-button.danger:hover {
       color: var(--danger);
       background: rgba(239, 68, 68, 0.1);
     }

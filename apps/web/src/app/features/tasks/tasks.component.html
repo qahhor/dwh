@@ -17,9 +17,9 @@
 
         <div class="header-right">
           <!-- Dictionary Settings Button -->
-          <button
+          <button smt-button smtVariant="secondary"
             type="button"
-            class="btn btn-secondary compact-secondary-action"
+            class="compact-secondary-action"
             [title]="'tasks.upravlenie_statusami_i_tipami_zadach' | t"
             (click)="openSettingsModal()"
           >
@@ -29,9 +29,9 @@
 
           <!-- Export Dropdown -->
           <div class="export-dropdown-container" style="position: relative; display: inline-block;">
-            <button
+            <button smt-button smtVariant="secondary"
               type="button"
-              class="btn btn-secondary compact-secondary-action"
+              class="compact-secondary-action"
               [title]="'tasks.export_all_accessible' | t"
               (click)="showExportMenu = !showExportMenu"
             >

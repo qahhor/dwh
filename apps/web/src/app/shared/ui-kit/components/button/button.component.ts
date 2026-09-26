@@ -37,6 +37,7 @@ export type SMTButtonSize = 'sm' | 'md' | 'lg';
     '[class.smt-button--md]': "size() === 'md'",
     '[class.smt-button--lg]': "size() === 'lg'",
     '[class.smt-button--full]': 'fullWidth()',
+    '[class.smt-button--icon-only]': 'iconOnly()',
     '[attr.disabled]': 'nativeDisabled()',
     '[attr.aria-disabled]': 'anchorDisabled()',
     '[attr.tabindex]': "anchorDisabled() ? '-1' : null",
@@ -65,6 +66,9 @@ export class SMTButtonComponent {
   readonly loading = input(false, { alias: 'smtLoading', transform: booleanAttribute });
 
   readonly fullWidth = input(false, { alias: 'smtFullWidth', transform: booleanAttribute });
+
+  /** A square button showing only its icon; it needs an aria-label for its name. */
+  readonly iconOnly = input(false, { alias: 'smtIconOnly', transform: booleanAttribute });
 
   readonly disabled = input(false, { transform: booleanAttribute });
 

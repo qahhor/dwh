@@ -137,3 +137,9 @@
     min-height: var(--control-touch-height);
   }
 }
+
+/* Icon only: square, the icon is the whole content. */
+.smt-button--icon-only {
+  padding: 0;
+  aspect-ratio: 1;
+}
