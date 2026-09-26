@@ -53,17 +53,20 @@ class MdI18nRepositoryIntegrationTest {
     }
 
     @Test
-    @DisplayName("Миграция регистрирует восемь встроенных языков")
+    @DisplayName("Встроенные языки — русский, узбекский и английский; прежние встроенные выключены, но сохранены")
     void migrationSeedsSupportedLanguages() {
-        assertThat(repository.findLanguages(false))
+        assertThat(repository.findLanguages(true))
                 .extracting(language -> language.code())
-                .containsExactly("ru", "uz", "en", "kk", "ky", "tg", "de", "tr");
+                .containsExactly("ru", "uz", "en");
         assertThat(repository.findLanguages(false))
-                .allSatisfy(language -> {
-                    assertThat(language.builtin()).isTrue();
-                    assertThat(language.active()).isTrue();
-                    assertThat(language.revision()).isEqualTo(1L);
-                });
+                .filteredOn(language -> language.builtin())
+                .extracting(language -> language.code())
+                .containsExactly("ru", "uz", "en");
+        assertThat(repository.findLanguages(false))
+                .filteredOn(language -> !language.builtin())
+                .allSatisfy(language -> assertThat(language.active()).isFalse())
+                .extracting(language -> language.code())
+                .containsExactlyInAnyOrder("kk", "ky", "tg", "de", "tr");
     }
 
     @Test

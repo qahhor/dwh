@@ -18,8 +18,8 @@ import java.util.Set;
 @Component
 public class MdI18nCatalog {
 
-    private static final List<String> BUNDLED_CODES = List.of(
-            "ru", "uz", "en", "kk", "ky", "tg", "de", "tr");
+    /** Languages with a catalog in the build; others are an administrator's own, translated in the language editor. */
+    private static final List<String> BUNDLED_CODES = List.of("ru", "uz", "en");
 
     private final Map<String, Map<String, String>> dictionaries;
     private final Set<String> russianKeys;

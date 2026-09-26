@@ -5,7 +5,7 @@ import process from 'node:process';
 const webRoot = process.cwd();
 const appRoot = path.join(webRoot, 'src', 'app');
 const catalogRoot = path.resolve(webRoot, '..', 'server', 'src', 'main', 'resources', 'i18n');
-const supported = ['ru', 'uz', 'en', 'kk', 'ky', 'tg', 'de', 'tr'];
+const supported = ['ru', 'uz', 'en'];
 const cyrillic = /[А-Яа-яЁё]/;
 
 async function filesUnder(directory) {

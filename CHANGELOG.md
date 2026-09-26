@@ -593,6 +593,13 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Built-in languages are Russian, Uzbek and English, and the Uzbek (733
+  strings) and English (334 strings) catalogs are now complete. The Kazakh,
+  Kyrgyz, Tajik, German and Turkish catalogs no longer ship: migration V122
+  turns those languages into switched-off administrator languages, keeping any
+  overrides, and moves their users to Russian. Other languages are added and
+  translated in the language editor (technical specification 1.4,
+  `FR-I18N-01`).
 - Technical specification 1.3 (roadmap item 58, for the specification
   owner to accept): `FR-MOD-01` names the real module table
   `md_installed_modules`, and `FR-MOD-04`–`FR-MOD-06` state the field
