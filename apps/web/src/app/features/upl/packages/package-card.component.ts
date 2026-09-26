@@ -17,7 +17,7 @@ import {
 import { ProblemDetail } from '../../../core/models/common.models';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
-import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { UiLocalTableComponent } from '../../../shared/ui/ui-local-table.component';
 import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
 import { uplErrorKey } from '../upl-labels';
@@ -38,20 +38,20 @@ const NOT_FOUND = 'UPL_PKG_NOT_FOUND';
   selector: 'app-upl-package-card',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTAlertComponent, CommonModule, TranslatePipe, UiBadgeComponent, UiButtonComponent, UiLocalTableComponent],
+  imports: [SMTAlertComponent, CommonModule, TranslatePipe, UiBadgeComponent, SMTButtonComponent, UiLocalTableComponent],
   template: `
     <div class="upl-pkg-card">
       <div class="upl-pkg-card-head">
-        <ui-button variant="ghost" data-testid="upl-pkg-back" (onClick)="back.emit()">
+        <button smt-button type="button" smtVariant="ghost" data-testid="upl-pkg-back" (click)="back.emit()">
           {{ 'upl.pkg.card.back' | t }}
-        </ui-button>
-        <ui-button variant="secondary" icon="refresh" data-testid="upl-pkg-card-refresh" (onClick)="refresh.emit()">
+        </button>
+        <button smt-button type="button" smtVariant="secondary" smtIcon="refresh" data-testid="upl-pkg-card-refresh" (click)="refresh.emit()">
           {{ 'upl.pkg.refresh' | t }}
-        </ui-button>
+        </button>
         @if (item.status === 'verified' && canApply && (item.rowsAccepted ?? 0) > 0) {
-          <ui-button variant="primary" data-testid="upl-pkg-apply" [disabled]="applying()" (onClick)="apply()">
+          <button smt-button type="button" smtVariant="primary" data-testid="upl-pkg-apply" [disabled]="applying()" (click)="apply()">
             {{ 'upl.pkg.card.apply' | t }}
-          </ui-button>
+          </button>
         }
       </div>
 
@@ -102,9 +102,9 @@ const NOT_FOUND = 'UPL_PKG_NOT_FOUND';
         @if (loadError()) {
           <smt-alert smtTone="danger" class="upl-pkg-alert" data-testid="upl-pkg-errors-load-error">
             <span>{{ loadError() }}</span>
-            <ui-button variant="secondary" data-testid="upl-pkg-errors-retry" (onClick)="reloadErrors()">
+            <button smt-button type="button" smtVariant="secondary" data-testid="upl-pkg-errors-retry" (click)="reloadErrors()">
               {{ 'upl.common.retry' | t }}
-            </ui-button>
+            </button>
           </smt-alert>
         } @else if (isLoading()) {
           <div class="table-card" data-testid="upl-pkg-errors-loading">

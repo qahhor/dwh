@@ -174,7 +174,7 @@ describe('Login form interactions', () => {
     submit();
     const requests = http.match('/api/v1/auth/otp');
     expect(requests).toHaveLength(1);
-    const back = fixture.nativeElement.querySelector('.btn-ghost') as HTMLButtonElement;
+    const back = fixture.nativeElement.querySelector('.smt-button--ghost') as HTMLButtonElement;
     expect(back.disabled).toBe(true);
     back.click();
     expect(component.step()).toBe('otp');
@@ -218,7 +218,7 @@ describe('Login form interactions', () => {
     submit();
     const requests = http.match('/api/v1/auth/password');
     expect(requests).toHaveLength(1);
-    expect(fixture.nativeElement.querySelector('.btn-ghost').disabled).toBe(true);
+    expect(fixture.nativeElement.querySelector('.smt-button--ghost').disabled).toBe(true);
     requests[0].flush({ detail: 'Попробуйте снова' }, { status: 503, statusText: 'Unavailable' });
     fixture.detectChanges();
     await fixture.whenStable();
@@ -234,7 +234,7 @@ describe('Login form interactions', () => {
     component.confirmNewPassword = 'Synthetic-draft';
     component.formError.set('Previous step error');
     fixture.detectChanges();
-    fixture.nativeElement.querySelector('.btn-ghost').click();
+    fixture.nativeElement.querySelector('.smt-button--ghost').click();
     fixture.detectChanges();
     await fixture.whenStable();
     expect(component.step()).toBe('credentials');

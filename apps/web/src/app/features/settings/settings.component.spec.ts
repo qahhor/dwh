@@ -257,7 +257,7 @@ describe('SettingsComponent UI contracts', () => {
     const companyInput = fixture.nativeElement.querySelector('#settings-company-name') as HTMLInputElement;
     expect(companyInput.disabled).toBe(true);
 
-    const generalSaveBtn = fixture.nativeElement.querySelector('#settings-general-panel .card-footer-actions ui-button');
+    const generalSaveBtn = fixture.nativeElement.querySelector('#settings-general-panel .card-footer-actions .smt-button');
     expect(generalSaveBtn).toBeNull();
   });
 

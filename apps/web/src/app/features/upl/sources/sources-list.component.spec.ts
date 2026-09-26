@@ -107,7 +107,7 @@ function testId(fixture: ComponentFixture<SourcesListComponent>, id: string): HT
 }
 
 function click(fixture: ComponentFixture<SourcesListComponent>, id: string): void {
-  fixture.debugElement.query(By.css(`[data-testid="${id}"]`)).triggerEventHandler('onClick', null);
+  fixture.debugElement.query(By.css(`[data-testid="${id}"]`)).triggerEventHandler('click', new MouseEvent('click'));
   fixture.detectChanges();
 }
 

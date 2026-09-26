@@ -10,7 +10,7 @@ import { I18nService, TranslatePipe } from '../../../core/services/i18n.service'
 import { SMTControlComponent } from '../../../shared/ui-kit/components/forms/control';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
-import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { SMTSelectComponent, SMTSelectValueAccessor } from '../../../shared/ui-kit/components/forms/select';
 import { UiMarkdownEditorComponent } from '../../../shared/ui/ui-markdown-editor.component';
 import { UiCustomFieldsComponent } from '../../../shared/ui/ui-custom-fields.component';
@@ -28,7 +28,7 @@ import { Project, TaskType } from '../../../core/models/task.models';
     SMTDatePickerValueAccessor,
     TranslatePipe,
     UiModalComponent,
-    UiButtonComponent,
+    SMTButtonComponent,
     SMTSelectComponent,
     SMTDataSelectComponent,
     SMTRadioGroupComponent,
@@ -201,8 +201,8 @@ import { Project, TaskType } from '../../../core/models/task.models';
         </div>
       </fieldset>
       <div footer>
-        <ui-button variant="secondary" size="md" [disabled]="isSubmitting" (onClick)="close.emit()">{{ 'common.cancel' | t }}</ui-button>
-        <ui-button variant="primary" size="md" [loading]="isSubmitting" (onClick)="submit.emit()">{{ 'tasks.sozdat_zadachu' | t }}</ui-button>
+        <button smt-button type="button" smtVariant="secondary" smtSize="md" [disabled]="isSubmitting" (click)="close.emit()">{{ 'common.cancel' | t }}</button>
+        <button smt-button type="button" smtVariant="primary" smtSize="md" [smtLoading]="isSubmitting" (click)="submit.emit()">{{ 'tasks.sozdat_zadachu' | t }}</button>
       </div>
     </ui-modal>
   `,

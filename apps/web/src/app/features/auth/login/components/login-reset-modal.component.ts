@@ -4,14 +4,14 @@ import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../../core/services/api.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
-import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
 
 @Component({
   selector: 'app-login-reset-modal',
   standalone: true,
-  imports: [SMTInputComponent, SMTInputValueAccessor, CommonModule, FormsModule, UiModalComponent, UiButtonComponent, TranslatePipe],
+  imports: [SMTInputComponent, SMTInputValueAccessor, CommonModule, FormsModule, UiModalComponent, SMTButtonComponent, TranslatePipe],
   template: `
     <ui-modal
       [isOpen]="isOpen"
@@ -36,8 +36,8 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
         <p *ngIf="resetError()" class="form-error" role="alert">{{ resetError() }}</p>
       </div>
       <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="onClose()">{{ 'common.cancel' | t }}</ui-button>
-        <ui-button variant="primary" size="md" [loading]="isResetLoading()" (onClick)="sendResetRequest()">{{ 'auth.otpravit_kod' | t }}</ui-button>
+        <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="onClose()">{{ 'common.cancel' | t }}</button>
+        <button smt-button type="button" smtVariant="primary" smtSize="md" [smtLoading]="isResetLoading()" (click)="sendResetRequest()">{{ 'auth.otpravit_kod' | t }}</button>
       </div>
     </ui-modal>
   `,

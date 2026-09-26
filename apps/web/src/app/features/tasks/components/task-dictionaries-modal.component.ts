@@ -6,7 +6,7 @@ import { SMTColorInputComponent, SMTColorInputValueAccessor } from '../../../sha
 import { SMTControlComponent } from '../../../shared/ui-kit/components/forms/control';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
-import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
 import { TaskStatus, TaskType } from '../../../core/models/task.models';
 import { SMTTabBarComponent, SMTTabItem } from '../../../shared/ui-kit/components/tab-bar';
@@ -21,7 +21,7 @@ import { SMTCheckboxComponent, SMTCheckboxValueAccessor } from '../../../shared/
     FormsModule,
     SMTSortableListComponent, SMTSortableItemDirective, SMTSortableActionsDirective, TranslatePipe,
     UiModalComponent,
-    UiButtonComponent
+    SMTButtonComponent
   ],
   template: `
     <ui-modal
@@ -79,9 +79,9 @@ import { SMTCheckboxComponent, SMTCheckboxValueAccessor } from '../../../shared/
               </smt-control>
             </div>
             <div class="add-dict-actions">
-              <ui-button variant="secondary" size="sm" icon="add" (onClick)="submitType()">
+              <button smt-button type="button" smtVariant="secondary" smtSize="sm" smtIcon="add" (click)="submitType()">
                 {{ 'tasks.dobavit_tip' | t }}
-              </ui-button>
+              </button>
             </div>
           </div>
         </div>
@@ -125,15 +125,15 @@ import { SMTCheckboxComponent, SMTCheckboxValueAccessor } from '../../../shared/
               </div>
             </div>
             <div class="add-dict-actions">
-              <ui-button variant="secondary" size="sm" icon="add" (onClick)="submitStatus()">
+              <button smt-button type="button" smtVariant="secondary" smtSize="sm" smtIcon="add" (click)="submitStatus()">
                 {{ 'tasks.dobavit_status' | t }}
-              </ui-button>
+              </button>
             </div>
           </div>
         </div>
       </div>
       <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="close.emit()">{{ 'audit.zakryt' | t }}</ui-button>
+        <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="close.emit()">{{ 'audit.zakryt' | t }}</button>
       </div>
     </ui-modal>
   `,

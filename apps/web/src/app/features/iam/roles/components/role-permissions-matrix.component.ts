@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Role } from '../../../../core/models/rbac.models';
 import { TranslatePipe } from '../../../../core/services/i18n.service';
-import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { GroupedForm, ModuleGroup } from '../roles.models';
 import { SMTAlertComponent } from '../../../../shared/ui-kit/components/alert';
 import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '../../../../shared/ui-kit/components/forms/radio-group';
@@ -14,7 +14,7 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
 @Component({
   selector: 'app-role-permissions-matrix',
   standalone: true,
-  imports: [SMTCheckboxComponent, SMTInputComponent, SMTRadioGroupComponent, SMTAlertComponent, CommonModule, FormsModule, TranslatePipe, UiButtonComponent],
+  imports: [SMTCheckboxComponent, SMTInputComponent, SMTRadioGroupComponent, SMTAlertComponent, CommonModule, FormsModule, TranslatePipe, SMTButtonComponent],
   template: `
     <!-- Role Meta Header & Save Button -->
     <div class="matrix-header-bar">
@@ -46,34 +46,34 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
       </div>
 
       <div class="matrix-actions-box">
-        <ui-button
+        <button smt-button type="button"
           *ngIf="canGrant && isPermissionsDirty"
-          variant="secondary"
-          size="md"
-          icon="undo"
+          smtVariant="secondary"
+          smtSize="md"
+          smtIcon="undo"
           [disabled]="!canEditPermissions"
-          (onClick)="resetChanges.emit()"
+          (click)="resetChanges.emit()"
         >
           {{ 'iam.sbrosit_izmeneniya' | t }}
-        </ui-button>
-        <ui-button
+        </button>
+        <button smt-button type="button"
           *ngIf="canGrant"
-          variant="primary"
-          size="md"
-          icon="save"
-          [loading]="isSaving"
+          smtVariant="primary"
+          smtSize="md"
+          smtIcon="save"
+          [smtLoading]="isSaving"
           [disabled]="!canEditPermissions"
-          (onClick)="savePermissions.emit()"
+          (click)="savePermissions.emit()"
         >
           {{ 'iam.sohranit_prava' | t }}<span *ngIf="isPermissionsDirty"> ({{ dirtyPermissionsCount }})</span>
-        </ui-button>
+        </button>
       </div>
     </div>
 
     <div *ngIf="isLoading" class="matrix-load-status" role="status">{{ 'common.loading' | t }}</div>
     <smt-alert smtTone="danger" *ngIf="permissionsError">
       <span>{{ permissionsError }}</span>
-      <ui-button variant="secondary" size="sm" (onClick)="refreshRole.emit(role)">{{ 'common.refresh' | t }}</ui-button>
+      <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="refreshRole.emit(role)">{{ 'common.refresh' | t }}</button>
     </smt-alert>
 
     <!-- Superadmin Shield Banner -->

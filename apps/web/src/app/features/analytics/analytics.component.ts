@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, Subscription, forkJoin } from 'rxjs';
-import { UiButtonComponent } from '../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
 import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
 
 import {
@@ -28,7 +28,7 @@ export * from './analytics.models';
   imports: [
     SMTRadioGroupComponent, SMTAlertComponent, CommonModule,
     TranslatePipe,
-    UiButtonComponent,
+    SMTButtonComponent,
     AnalyticsMetricsTilesComponent,
     AnalyticsTrendChartComponent,
     AnalyticsProjectsCardComponent,
@@ -53,26 +53,26 @@ export * from './analytics.models';
             [smtAriaLabel]="'analytics.period_analitiki' | t"
             (valueChange)="setRange($event ?? selectedRange)" />
 
-          <ui-button
-            variant="secondary"
-            size="sm"
-            icon="download"
-            (onClick)="exportReport()"
+          <button smt-button type="button"
+            smtVariant="secondary"
+            smtSize="sm"
+            smtIcon="download"
+            (click)="exportReport()"
             [title]="'analytics.eksport_spiska_zadach_v_excel' | t"
           >
             {{ 'analytics.eksport' | t }}
-          </ui-button>
+          </button>
 
-          <ui-button
-            variant="secondary"
-            size="sm"
-            icon="refresh"
-            [loading]="loading()"
+          <button smt-button type="button"
+            smtVariant="secondary"
+            smtSize="sm"
+            smtIcon="refresh"
+            [smtLoading]="loading()"
             [title]="'common.refresh' | t"
-            (onClick)="loadAll()"
+            (click)="loadAll()"
           >
             {{ 'common.refresh' | t }}
-          </ui-button>
+          </button>
         </div>
       </div>
 

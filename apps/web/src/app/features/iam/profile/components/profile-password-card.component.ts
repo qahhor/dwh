@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { TranslatePipe } from '../../../../core/services/i18n.service';
 import { PasswordForm, PasswordStrength } from '../profile.models';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
@@ -13,7 +13,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
     CommonModule,
     FormsModule,
     TranslatePipe,
-    UiButtonComponent
+    SMTButtonComponent
   ],
   template: `
     <div class="card section-card">
@@ -129,9 +129,9 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
         </div>
 
         <div class="form-actions">
-          <ui-button variant="primary" size="md" [loading]="isChangingPassword" type="submit">
+          <button smt-button smtVariant="primary" smtSize="md" [smtLoading]="isChangingPassword" type="submit">
             {{ 'iam.obnovit_parol' | t }}
-          </ui-button>
+          </button>
         </div>
       </form>
     </div>

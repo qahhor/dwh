@@ -6,15 +6,15 @@
           <span class="count-badge">{{ roles().length }}</span>
         </div>
         <div class="header-right">
-          <ui-button
+          <button smt-button type="button"
             *ngIf="canCreateRole()"
-            variant="primary"
-            size="md"
-            icon="add"
-            (onClick)="openCreateModal()"
+            smtVariant="primary"
+            smtSize="md"
+            smtIcon="add"
+            (click)="openCreateModal()"
           >
             {{ 'iam.novaya_rol' | t }}
-          </ui-button>
+          </button>
         </div>
       </div>
 

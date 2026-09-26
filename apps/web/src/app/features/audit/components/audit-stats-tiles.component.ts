@@ -1,6 +1,6 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { TranslatePipe } from '../../../core/services/i18n.service';
 import { AuditStats } from '../audit.models';
 
@@ -10,7 +10,7 @@ import { AuditStats } from '../audit.models';
   imports: [
     CommonModule,
     TranslatePipe,
-    UiButtonComponent
+    SMTButtonComponent
   ],
   template: `
     <!-- Stats Cards -->
@@ -61,9 +61,9 @@ import { AuditStats } from '../audit.models';
     <div id="audit-stats-error" class="inline-feedback" role="alert" *ngIf="statsError">
       <span class="material-symbols-outlined" aria-hidden="true">error</span>
       <span>{{ 'audit.load_stats_error' | t }}</span>
-      <ui-button variant="secondary" size="sm" icon="refresh" (onClick)="retryStats.emit()">
+      <button smt-button type="button" smtVariant="secondary" smtSize="sm" smtIcon="refresh" (click)="retryStats.emit()">
         {{ 'audit.retry' | t }}
-      </ui-button>
+      </button>
     </div>
   `,
   styles: [`

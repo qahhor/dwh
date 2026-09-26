@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ApiService } from '../../../core/services/api.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { PermissionService } from '../../../core/services/permission.service';
-import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
 import { CustomField, CustomFieldFormData } from './custom-fields.models';
 import { CustomFieldsToolbarComponent } from './components/custom-fields-toolbar.component';
@@ -19,7 +19,7 @@ import { problemText } from '../../../shared/ui/problem-text';
   standalone: true,
   imports: [
     CommonModule,
-    UiButtonComponent,
+    SMTButtonComponent,
     TranslatePipe,
     CustomFieldsToolbarComponent,
     CustomFieldsTableComponent,
@@ -48,14 +48,14 @@ import { problemText } from '../../../shared/ui/problem-text';
           >
             <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
           </button>
-          <ui-button
+          <button smt-button type="button"
             *ngIf="canCreate()"
-            variant="primary"
-            icon="add"
-            (onClick)="openCreateModal()"
+            smtVariant="primary"
+            smtIcon="add"
+            (click)="openCreateModal()"
           >
             {{ 'iam.dobavit_pole' | t }}
-          </ui-button>
+          </button>
         </div>
       </div>
 

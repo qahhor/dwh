@@ -1,7 +1,7 @@
 import { Component, computed, EventEmitter, inject, Input, Output, Signal, TemplateRef, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
-import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { UiServerTableComponent } from '../../../../shared/ui/ui-server-table.component';
 import { KeysetPager } from '../../../../shared/paging/keyset-pager';
 import { TableConfig } from '../../../../shared/ui-kit/components/table/table.types';
@@ -24,7 +24,7 @@ type UserMenuAction = 'block' | 'unblock' | 'delete';
   imports: [
     SMTDropdownButtonComponent, SMTAvatarComponent, CommonModule,
     TranslatePipe,
-    UiButtonComponent,
+    SMTButtonComponent,
     UiServerTableComponent
   ],
   template: `
@@ -84,9 +84,9 @@ type UserMenuAction = 'block' | 'unblock' | 'delete';
     </ng-template>
     <ng-template #actionsCell let-u>
       <div class="row-actions">
-        <ui-button variant="ghost" size="sm" icon="visibility" [ariaLabel]="'iam.view_user_named' | t:{name: u.name}" [title]="'iam.prosmotr' | t" (onClick)="viewUser.emit(u)"></ui-button>
+        <button smt-button type="button" smtVariant="ghost" smtSize="sm" smtIcon="visibility" [attr.aria-label]="'iam.view_user_named' | t:{name: u.name}" [title]="'iam.prosmotr' | t" (click)="viewUser.emit(u)"></button>
         @if (canUpdateUser) {
-          <ui-button variant="ghost" size="sm" icon="edit" [ariaLabel]="'iam.edit_user_named' | t:{name: u.name}" [title]="'common.edit' | t" (onClick)="editUser.emit(u)"></ui-button>
+          <button smt-button type="button" smtVariant="ghost" smtSize="sm" smtIcon="edit" [attr.aria-label]="'iam.edit_user_named' | t:{name: u.name}" [title]="'common.edit' | t" (click)="editUser.emit(u)"></button>
         }
         @if (moreActions(u); as actions) {
           <smt-dropdown-button

@@ -7,7 +7,7 @@ import { ToastService } from '../../core/services/toast.service';
 import { ListViewState } from '../list-views/list-views';
 import { normalizeColumnState } from '../ui-kit/components/table/column-state';
 import { problemText } from './problem-text';
-import { UiButtonComponent } from './ui-button.component';
+import { SMTButtonComponent } from '../ui-kit/components/button';
 
 /**
  * "Export to Excel" for a registry list (ADR-0018): the list exactly as on
@@ -19,19 +19,19 @@ import { UiButtonComponent } from './ui-button.component';
   selector: 'ui-export-button',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TranslatePipe, UiButtonComponent],
+  imports: [TranslatePipe, SMTButtonComponent],
   template: `
-    <ui-button
-      variant="secondary"
-      size="sm"
-      icon="download"
+    <button smt-button type="button"
+      smtVariant="secondary"
+      smtSize="sm"
+      smtIcon="download"
       data-testid="export-button"
-      [loading]="busy()"
+      [smtLoading]="busy()"
       [disabled]="!meta()"
-      [ariaLabel]="'exports.button_label' | t"
-      (onClick)="export()">
+      [attr.aria-label]="'exports.button_label' | t"
+      (click)="export()">
       {{ 'exports.button' | t }}
-    </ui-button>
+    </button>
   `,
 })
 export class UiExportButtonComponent {

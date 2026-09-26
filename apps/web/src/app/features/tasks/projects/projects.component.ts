@@ -8,7 +8,7 @@ import { SMTModalService } from '../../../shared/ui-kit/components/modal';
 import { problemText } from '../../../shared/ui/problem-text';
 import { ApiService } from '../../../core/services/api.service';
 import { PermissionService } from '../../../core/services/permission.service';
-import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { Project, ProjectTaskStats } from '../../../core/models/task.models';
 import { CustomField } from '../../../core/models/custom-field.models';
 import { ToastService } from '../../../core/services/toast.service';
@@ -31,7 +31,7 @@ import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '../../../sh
     FormsModule,
     RouterModule,
     TranslatePipe,
-    UiButtonComponent,
+    SMTButtonComponent,
     ProjectFilterBarComponent,
     ProjectTableViewComponent,
     ProjectCardsViewComponent,

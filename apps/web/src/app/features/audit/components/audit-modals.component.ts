@@ -1,6 +1,6 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { TranslatePipe } from '../../../core/services/i18n.service';
 import { AuditRecord, SecurityEventRecord } from '../audit.models';
@@ -11,7 +11,7 @@ import { AuditRecord, SecurityEventRecord } from '../audit.models';
   imports: [
     CommonModule,
     TranslatePipe,
-    UiButtonComponent,
+    SMTButtonComponent,
     UiModalComponent
   ],
   template: `
@@ -75,7 +75,7 @@ import { AuditRecord, SecurityEventRecord } from '../audit.models';
         </ng-template>
       </div>
       <div footer class="modal-footer-actions">
-        <ui-button variant="secondary" (onClick)="closeAuditModal.emit()">{{ 'audit.zakryt' | t }}</ui-button>
+        <button smt-button type="button" smtVariant="secondary" (click)="closeAuditModal.emit()">{{ 'audit.zakryt' | t }}</button>
       </div>
     </ui-modal>
 
@@ -116,7 +116,7 @@ import { AuditRecord, SecurityEventRecord } from '../audit.models';
         <pre class="json-details-viewer">{{ ev.details | json }}</pre>
       </div>
       <div footer class="modal-footer-actions">
-        <ui-button variant="secondary" (onClick)="closeSecModal.emit()">{{ 'audit.zakryt' | t }}</ui-button>
+        <button smt-button type="button" smtVariant="secondary" (click)="closeSecModal.emit()">{{ 'audit.zakryt' | t }}</button>
       </div>
     </ui-modal>
   `,

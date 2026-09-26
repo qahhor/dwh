@@ -58,7 +58,7 @@ describe('RolesComponent permission matrix lifecycle', () => {
   }
 
   function saveButton() {
-    return host.querySelector<HTMLButtonElement>('.matrix-actions-box .btn-primary')
+    return host.querySelector<HTMLButtonElement>('.matrix-actions-box .smt-button--primary')
       ?? host.querySelector<HTMLButtonElement>('.matrix-actions-box button');
   }
 

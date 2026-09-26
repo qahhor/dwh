@@ -10,7 +10,7 @@ import { I18nService, TranslatePipe } from '../../../core/services/i18n.service'
 import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
-import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { SMTDatePickerComponent, SMTDatePickerValueAccessor } from '../../../shared/ui-kit/components/forms/date-picker';
 import { SMTProgressStep, SMTProgressStepperComponent } from '../../../shared/ui-kit/components/progress-stepper';
@@ -53,7 +53,7 @@ const COLUMN_FIELD_LABEL_KEY: Record<string, string> = {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    SMTAlertComponent, CommonModule, FormsModule, RouterLink, TranslatePipe, UiButtonComponent, UiModalComponent, UiBadgeComponent,
+    SMTAlertComponent, CommonModule, FormsModule, RouterLink, TranslatePipe, SMTButtonComponent, UiModalComponent, UiBadgeComponent,
     SMTDatePickerComponent, SMTDatePickerValueAccessor, SMTProgressStepperComponent,
     FormatFileStepComponent, FormatSheetsStepComponent, FormatPublishStepComponent,
   ],
@@ -69,7 +69,7 @@ const COLUMN_FIELD_LABEL_KEY: Record<string, string> = {
       } @else if (loadError()) {
         <smt-alert smtTone="danger" data-testid="upl-load-error">
           <span>{{ 'upl.common.load_error' | t }}</span>
-          <ui-button variant="secondary" size="sm" (onClick)="reload()">{{ 'upl.common.retry' | t }}</ui-button>
+          <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="reload()">{{ 'upl.common.retry' | t }}</button>
         </smt-alert>
       } @else {
         <nav class="upl-crumbs" [attr.aria-label]="'upl.format.crumbs' | t">
@@ -97,7 +97,7 @@ const COLUMN_FIELD_LABEL_KEY: Record<string, string> = {
         @if (conflict()) {
           <smt-alert smtTone="danger" data-testid="upl-conflict">
             <span>{{ 'upl.err.STALE_VERSION' | t }}</span>
-            <ui-button variant="secondary" size="sm" (onClick)="discardAndReload()">{{ 'upl.common.refresh_discard' | t }}</ui-button>
+            <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="discardAndReload()">{{ 'upl.common.refresh_discard' | t }}</button>
           </smt-alert>
         }
 
@@ -157,23 +157,23 @@ const COLUMN_FIELD_LABEL_KEY: Record<string, string> = {
         @if (version()?.status === 'draft' && (canEdit() || canPublish())) {
           <div class="upl-actions" data-testid="upl-actions">
             @if (canEdit()) {
-              <ui-button
-                variant="primary"
+              <button smt-button type="button"
+                smtVariant="primary"
                 data-testid="upl-save"
-                [loading]="isSaving()"
+                [smtLoading]="isSaving()"
                 [disabled]="!isDirty()"
-                (onClick)="save()"
-              >{{ 'upl.format.save' | t }}</ui-button>
+                (click)="save()"
+              >{{ 'upl.format.save' | t }}</button>
             }
             @if (canPublish()) {
-              <ui-button variant="secondary" data-testid="upl-publish" (onClick)="openPublish()">
+              <button smt-button type="button" smtVariant="secondary" data-testid="upl-publish" (click)="openPublish()">
                 {{ 'upl.format.publish' | t }}
-              </ui-button>
+              </button>
             }
             @if (canEdit()) {
-              <ui-button variant="ghost" data-testid="upl-revert" [disabled]="!isDirty()" (onClick)="revert()">
+              <button smt-button type="button" smtVariant="ghost" data-testid="upl-revert" [disabled]="!isDirty()" (click)="revert()">
                 {{ 'upl.format.revert' | t }}
-              </ui-button>
+              </button>
             }
           </div>
         }
@@ -200,23 +200,23 @@ const COLUMN_FIELD_LABEL_KEY: Record<string, string> = {
             <p>{{ 'upl.version.publish_note' | t }}</p>
           </div>
           <div footer class="upl-modal-actions">
-            <ui-button variant="secondary" (onClick)="closePublish()">{{ 'upl.common.cancel' | t }}</ui-button>
-            <ui-button
-              variant="primary"
+            <button smt-button type="button" smtVariant="secondary" (click)="closePublish()">{{ 'upl.common.cancel' | t }}</button>
+            <button smt-button type="button"
+              smtVariant="primary"
               data-testid="upl-publish-confirm"
-              [loading]="isPublishing()"
-              (onClick)="confirmPublish()"
-            >{{ 'upl.format.publish' | t }}</ui-button>
+              [smtLoading]="isPublishing()"
+              (click)="confirmPublish()"
+            >{{ 'upl.format.publish' | t }}</button>
           </div>
         </ui-modal>
 
         <ui-modal [isOpen]="isLeaveOpen()" [title]="'upl.format.leave_title' | t" size="sm" (close)="settleLeave(false)">
           <p body>{{ 'upl.format.leave_confirm' | t }}</p>
           <div footer class="upl-modal-actions">
-            <ui-button variant="secondary" (onClick)="settleLeave(false)">{{ 'upl.format.stay' | t }}</ui-button>
-            <ui-button variant="danger" data-testid="upl-leave-confirm" (onClick)="settleLeave(true)">
+            <button smt-button type="button" smtVariant="secondary" (click)="settleLeave(false)">{{ 'upl.format.stay' | t }}</button>
+            <button smt-button type="button" smtVariant="danger" data-testid="upl-leave-confirm" (click)="settleLeave(true)">
               {{ 'upl.format.leave' | t }}
-            </ui-button>
+            </button>
           </div>
         </ui-modal>
       }

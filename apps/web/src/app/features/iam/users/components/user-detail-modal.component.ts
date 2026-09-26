@@ -6,7 +6,7 @@ import { UiLocalTableComponent } from '../../../../shared/ui/ui-local-table.comp
 import { UiRecordHistoryComponent } from '../../../../shared/ui/ui-record-history.component';
 import { TableConfig } from '../../../../shared/ui-kit/components/table/table.types';
 import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
-import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { LoginAttemptRecord, User, UserSecuritySummary, UserSession } from '../../../../core/models/auth.models';
 import { UserOrgUnitsPanelComponent } from '../../org-units/public-api';
 import { UserEffectivePermissionsPanelComponent } from './user-effective-permissions-panel.component';
@@ -21,7 +21,7 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
     SMTTabBarComponent, SMTAvatarComponent, CommonModule,
     TranslatePipe,
     UiModalComponent,
-    UiButtonComponent,
+    SMTButtonComponent,
     UserOrgUnitsPanelComponent,
     UserEffectivePermissionsPanelComponent,
     UiLocalTableComponent,
@@ -38,7 +38,7 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
       <div body *ngIf="recordLoading" role="status">{{ 'search.record_loading' | t }}</div>
       <div body *ngIf="recordError" role="alert">
         <p>{{ (recordNotFound ? 'search.record_not_found' : 'search.record_load_error') | t }}</p>
-        <ui-button *ngIf="!recordNotFound" variant="secondary" (onClick)="retryRecordView.emit(routeRecordId)">{{ 'audit.retry' | t }}</ui-button>
+        <button smt-button type="button" *ngIf="!recordNotFound" smtVariant="secondary" (click)="retryRecordView.emit(routeRecordId)">{{ 'audit.retry' | t }}</button>
       </div>
       <div body class="view-body" [attr.data-record-id]="routeRecordId || (viewingUser ? viewingUser.id : '')" *ngIf="viewingUser as u">
         <p *ngIf="routeRecordId">#{{ routeRecordId }}</p>
@@ -215,8 +215,8 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
         </div>
       </div>
       <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="closeRecordView.emit()">{{ (routeRecordId ? 'search.back_to_list' : 'audit.zakryt') | t }}</ui-button>
-        <ui-button *ngIf="canUpdateUser && viewingUser && safeRecordId(viewingUser.id)" variant="primary" size="md" (onClick)="openEdit.emit()">{{ 'common.edit' | t }}</ui-button>
+        <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeRecordView.emit()">{{ (routeRecordId ? 'search.back_to_list' : 'audit.zakryt') | t }}</button>
+        <button smt-button type="button" *ngIf="canUpdateUser && viewingUser && safeRecordId(viewingUser.id)" smtVariant="primary" smtSize="md" (click)="openEdit.emit()">{{ 'common.edit' | t }}</button>
       </div>
     </ui-modal>
 
@@ -227,15 +227,17 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
     <ng-template #sessionActionCell let-s>
       <div class="text-right">
         <button
+          smt-button
           type="button"
-          class="btn-icon danger"
+          smtVariant="ghost"
+          smtSize="sm"
+          smtIconOnly
+          smtIcon="close"
+          class="danger"
           [title]="'iam.zavershit_sessiyu' | t"
           [attr.aria-label]="'iam.terminate_session_ip_named' | t:{ip: s.ip}"
           [disabled]="isSecurityActionPending"
-          (click)="terminateSession(s)"
-        >
-          <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true">close</span>
-        </button>
+          (click)="terminateSession(s)"></button>
       </div>
     </ng-template>
     <ng-template #attemptTimeCell let-att><span class="font-mono text-xs text-muted">{{ att.attemptAt | date:'dd.MM.yyyy HH:mm:ss' }}</span></ng-template>

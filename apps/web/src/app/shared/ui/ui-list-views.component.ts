@@ -6,7 +6,7 @@ import { ToastService } from '../../core/services/toast.service';
 import { ListViewState, SavedListView } from '../list-views/list-views';
 import { SMTInputComponent } from '../ui-kit/components/forms/input';
 import { SMTModalService } from '../ui-kit/components/modal';
-import { UiButtonComponent } from './ui-button.component';
+import { SMTButtonComponent } from '../ui-kit/components/button';
 import { UiModalComponent } from './ui-modal.component';
 import { SMTCheckboxComponent } from '../ui-kit/components/forms/checkbox';
 
@@ -24,7 +24,7 @@ const NAME_MAX = 80;
   selector: 'ui-list-views',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTCheckboxComponent, SMTInputComponent, CdkMenuTrigger, CdkMenu, CdkMenuGroup, CdkMenuItem, CdkMenuItemRadio, TranslatePipe, UiModalComponent, UiButtonComponent],
+  imports: [SMTCheckboxComponent, SMTInputComponent, CdkMenuTrigger, CdkMenu, CdkMenuGroup, CdkMenuItem, CdkMenuItemRadio, TranslatePipe, UiModalComponent, SMTButtonComponent],
   template: `
     <button type="button" class="views-trigger" data-testid="views-trigger" [cdkMenuTriggerFor]="menu" [disabled]="state().busy()">
       <span class="material-symbols-outlined" aria-hidden="true">bookmarks</span>
@@ -90,10 +90,10 @@ const NAME_MAX = 80;
         </div>
       </form>
       <div footer class="views-footer">
-        <ui-button variant="secondary" (onClick)="closeSaveAs()">{{ 'common.cancel' | t }}</ui-button>
-        <ui-button variant="primary" data-testid="views-name-submit" [loading]="state().busy()" (onClick)="submitSaveAs()">
+        <button smt-button type="button" smtVariant="secondary" (click)="closeSaveAs()">{{ 'common.cancel' | t }}</button>
+        <button smt-button type="button" smtVariant="primary" data-testid="views-name-submit" [smtLoading]="state().busy()" (click)="submitSaveAs()">
           {{ 'ui.views.save_button' | t }}
-        </ui-button>
+        </button>
       </div>
     </ui-modal>
   `,

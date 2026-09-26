@@ -5,7 +5,7 @@
   } @else {
     <div class="heading">
       <p class="help">{{ 'iam.data_scope.role_help' | t }}</p>
-      <ui-button variant="secondary" [disabled]="pending || loading || dirty" (onClick)="reload()">{{ 'iam.org_units.retry' | t }}</ui-button>
+      <button smt-button type="button" smtVariant="secondary" [disabled]="pending || loading || dirty" (click)="reload()">{{ 'iam.org_units.retry' | t }}</button>
     </div>
     @if (loading) { <p role="status">{{ 'iam.data_scope.loading' | t }}</p> }
     @if (loadError) { <p role="alert">{{ (savedRefreshFailed ? 'iam.data_scope.saved_refresh_error' : 'iam.data_scope.load_error') | t }} {{ loadError.detail }}</p> }
@@ -22,8 +22,8 @@
       @if (saveError) { <p role="alert">{{ saveError.detail || ('iam.data_scope.save_error' | t) }}</p> }
       @if (can('assign')) {
         <div class="actions">
-          <ui-button variant="secondary" [disabled]="pending || !dirty" (onClick)="cancelEdits()">{{ 'iam.org_units.cancel' | t }}</ui-button>
-          <ui-button data-action="save-rule" [loading]="pending" [disabled]="!dirty || confirmationOpen" (onClick)="save()">{{ 'iam.org_units.save' | t }}</ui-button>
+          <button smt-button type="button" smtVariant="secondary" [disabled]="pending || !dirty" (click)="cancelEdits()">{{ 'iam.org_units.cancel' | t }}</button>
+          <button smt-button type="button" data-action="save-rule" [smtLoading]="pending" [disabled]="!dirty || confirmationOpen" (click)="save()">{{ 'iam.org_units.save' | t }}</button>
         </div>
       }
     }
@@ -36,15 +36,15 @@
       <p>{{ 'iam.data_scope.widest_rule_warning' | t }}</p>
     </div>
     <div footer class="actions">
-      <ui-button variant="secondary" [disabled]="pending" (onClick)="closeConfirmation()">{{ 'iam.org_units.cancel' | t }}</ui-button>
-      <ui-button [loading]="pending" (onClick)="confirmSave()">{{ 'iam.org_units.confirm_save' | t }}</ui-button>
+      <button smt-button type="button" smtVariant="secondary" [disabled]="pending" (click)="closeConfirmation()">{{ 'iam.org_units.cancel' | t }}</button>
+      <button smt-button type="button" [smtLoading]="pending" (click)="confirmSave()">{{ 'iam.org_units.confirm_save' | t }}</button>
     </div>
   </ui-modal>
   <ui-modal [isOpen]="discard.open()" [title]="'iam.data_scope.discard_title' | t" (close)="discard.cancel()">
     <p body>{{ 'iam.data_scope.discard_warning' | t }}</p>
     <div footer class="actions">
-      <ui-button variant="secondary" (onClick)="discard.cancel()">{{ 'iam.org_units.keep_editing' | t }}</ui-button>
-      <ui-button variant="danger" (onClick)="discard.confirm()">{{ 'iam.org_units.discard' | t }}</ui-button>
+      <button smt-button type="button" smtVariant="secondary" (click)="discard.cancel()">{{ 'iam.org_units.keep_editing' | t }}</button>
+      <button smt-button type="button" smtVariant="danger" (click)="discard.confirm()">{{ 'iam.org_units.discard' | t }}</button>
     </div>
   </ui-modal>
 }

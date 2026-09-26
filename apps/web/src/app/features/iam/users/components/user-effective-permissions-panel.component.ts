@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../../core/services/api.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { TranslatePipe, I18nService } from '../../../../core/services/i18n.service';
-import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { FormTreeItem } from '../../../../core/models/rbac.models';
 import { MODULE_ICON_MAP, MODULE_NAME_KEY_MAP } from '../../roles/roles.models';
 import { EffectivePermissionItem, PersonalGrant, EffectivePermissionsResponse, PersonalPermissionsResponse } from '../users.models';
@@ -33,7 +33,7 @@ export interface GroupedPermissionModule {
 @Component({
   selector: 'app-user-effective-permissions-panel',
   standalone: true,
-  imports: [SMTRadioGroupComponent, SMTSelectComponent, SMTInputComponent, CommonModule, FormsModule, TranslatePipe, UiButtonComponent],
+  imports: [SMTRadioGroupComponent, SMTSelectComponent, SMTInputComponent, CommonModule, FormsModule, TranslatePipe, SMTButtonComponent],
   template: `
     <div class="effective-perms-container">
       <!-- Loading State -->
@@ -46,9 +46,9 @@ export interface GroupedPermissionModule {
       <div *ngIf="!isLoading() && loadError()" class="perms-error" role="alert">
         <span class="material-symbols-outlined error-icon" aria-hidden="true">error</span>
         <p>{{ 'common.error' | t }}</p>
-        <ui-button variant="secondary" size="sm" icon="refresh" (onClick)="loadAll()">
+        <button smt-button type="button" smtVariant="secondary" smtSize="sm" smtIcon="refresh" (click)="loadAll()">
           {{ 'common.retry' | t }}
-        </ui-button>
+        </button>
       </div>
 
       <!-- Content -->
@@ -114,29 +114,29 @@ export interface GroupedPermissionModule {
                 [emptyLabel]="'iam.vyberite_deystvie' | t" />
             </div>
 
-            <ui-button
-              variant="secondary"
-              size="sm"
-              icon="add"
+            <button smt-button type="button"
+              smtVariant="secondary"
+              smtSize="sm"
+              smtIcon="add"
               [disabled]="!selectedFormCode() || !selectedAction()"
-              (onClick)="addPersonalGrant()"
+              (click)="addPersonalGrant()"
             >
               {{ 'common.add' | t }}
-            </ui-button>
+            </button>
           </div>
 
           <div *ngIf="hasUnsavedChanges()" class="unsaved-banner">
             <span class="material-symbols-outlined warning-icon" aria-hidden="true">warning</span>
             <span>{{ 'settings.search.unsaved' | t }}</span>
-            <ui-button
-              variant="primary"
-              size="sm"
-              icon="save"
-              [loading]="isSaving()"
-              (onClick)="savePersonalGrants()"
+            <button smt-button type="button"
+              smtVariant="primary"
+              smtSize="sm"
+              smtIcon="save"
+              [smtLoading]="isSaving()"
+              (click)="savePersonalGrants()"
             >
               {{ 'iam.sohranit_prava' | t }}
-            </ui-button>
+            </button>
           </div>
         </div>
 

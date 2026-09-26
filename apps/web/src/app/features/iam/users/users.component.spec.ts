@@ -458,7 +458,7 @@ describe('UsersComponent UI contracts', () => {
     const root = fixture.nativeElement as HTMLElement;
     const sessionsTable = root.querySelector('[data-testid="user-sessions-table"] [role="table"]');
     expect(sessionsTable?.getAttribute('aria-label')).toBe('Активные сессии');
-    const endButton = root.querySelector<HTMLButtonElement>('[data-testid="user-sessions-table"] button.btn-icon');
+    const endButton = root.querySelector<HTMLButtonElement>('[data-testid="user-sessions-table"] button.smt-button');
     expect(endButton?.getAttribute('aria-label')).toBe('Завершить сессию с IP 127.0.0.1');
     const attemptCells = [...root.querySelectorAll('[data-testid="user-login-attempts-table"] [role="rowgroup"] > [role="row"] [role="cell"]')]
       .map(cell => cell.textContent?.trim());

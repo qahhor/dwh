@@ -2,7 +2,7 @@ import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '../../../../core/services/i18n.service';
-import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { Role } from '../../../../core/models/rbac.models';
 import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '../../../../shared/ui-kit/components/forms/radio-group';
 import { I18nService } from '../../../../core/services/i18n.service';
@@ -16,7 +16,7 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
     SMTRadioGroupComponent, SMTSelectComponent, SMTInputComponent, CommonModule,
     FormsModule,
     TranslatePipe,
-    UiButtonComponent
+    SMTButtonComponent
   ],
   template: `
     <!-- Compact Single-Line Toolbar -->
@@ -106,15 +106,15 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
           </div>
         </div>
 
-        <ui-button
-          variant="ghost"
-          size="sm"
-          icon="refresh"
-          [ariaLabel]="'iam.obnovit_spisok_polzovateley' | t"
-          [loading]="isLoading"
+        <button smt-button type="button"
+          smtVariant="ghost"
+          smtSize="sm"
+          smtIcon="refresh"
+          [attr.aria-label]="'iam.obnovit_spisok_polzovateley' | t"
+          [smtLoading]="isLoading"
           [title]="'common.refresh' | t"
-          (onClick)="refresh.emit()"
-        ></ui-button>
+          (click)="refresh.emit()"
+        ></button>
       </div>
     </div>
 
@@ -174,16 +174,6 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
       align-items: center;
       width: 320px;
       max-width: 100%;
-    }
-    .btn-icon {
-      border: none;
-      background: transparent;
-      color: var(--text-muted);
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0;
     }
     .toolbar-controls {
       display: flex;

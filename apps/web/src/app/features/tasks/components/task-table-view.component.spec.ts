@@ -65,7 +65,7 @@ function choose(fixture: ComponentFixture<TaskTableViewComponent>, testId: strin
 const chosen = (fixture: ComponentFixture<TaskTableViewComponent>, testId: string) =>
   el(fixture).querySelector(`[data-testid="${testId}"] :is(.smt-select__value, .smt-select__placeholder)`)?.textContent?.trim();
 function apply(fixture: ComponentFixture<TaskTableViewComponent>, testId: string) {
-  (el(fixture).querySelector(`[data-testid="${testId}"] button`) as HTMLButtonElement).click();
+  (el(fixture).querySelector(`button[data-testid="${testId}"]`) as HTMLButtonElement).click();
   fixture.detectChanges();
 }
 
@@ -80,7 +80,7 @@ describe('TaskTableViewComponent bulk actions', () => {
     rowChecks(fixture).forEach(check => { check.click(); fixture.detectChanges(); });
     expect(el(fixture).querySelector('[data-testid="bulk-bar"]')?.textContent).toContain('Выбрано: 2');
 
-    const button = el(fixture).querySelector('[data-testid="bulk-status-apply"] button') as HTMLButtonElement;
+    const button = el(fixture).querySelector('button[data-testid="bulk-status-apply"]') as HTMLButtonElement;
     expect(button.disabled).toBe(true);
     choose(fixture, 'bulk-status', 'Готово');
     expect(chosen(fixture, 'bulk-status')).toBe('Готово');

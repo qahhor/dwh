@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ApiService } from '../../core/services/api.service';
 import { PermissionService } from '../../core/services/permission.service';
 import { ToastService } from '../../core/services/toast.service';
-import { UiButtonComponent } from '../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
 import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
 
 import {
@@ -36,7 +36,7 @@ export type {
   imports: [
     CommonModule,
     TranslatePipe,
-    UiButtonComponent,
+    SMTButtonComponent,
     AnnouncementsToolbarComponent,
     AnnouncementsListComponent,
     AnnouncementsModalsComponent
@@ -51,19 +51,19 @@ export type {
           <p class="subtitle">{{ 'announcements.publikuyte_vazhnye_soobscheniya_polzovatelyam_et' | t }}</p>
         </div>
         <div class="header-actions">
-          <ui-button
-            variant="secondary"
-            icon="refresh"
-            [loading]="isLoading()"
-            [ariaLabel]="'announcements.obnovit_spisok_obyavleniy' | t"
-            (onClick)="loadAnnouncements()"
-          >{{ 'common.refresh' | t }}</ui-button>
-          <ui-button
+          <button smt-button type="button"
+            smtVariant="secondary"
+            smtIcon="refresh"
+            [smtLoading]="isLoading()"
+            [attr.aria-label]="'announcements.obnovit_spisok_obyavleniy' | t"
+            (click)="loadAnnouncements()"
+          >{{ 'common.refresh' | t }}</button>
+          <button smt-button type="button"
             *ngIf="canCreate()"
-            icon="add"
-            [ariaLabel]="'announcements.sozdat_obyavlenie' | t"
-            (onClick)="openCreate()"
-          >{{ 'common.create' | t }}</ui-button>
+            smtIcon="add"
+            [attr.aria-label]="'announcements.sozdat_obyavlenie' | t"
+            (click)="openCreate()"
+          >{{ 'common.create' | t }}</button>
         </div>
       </header>
 
@@ -73,9 +73,9 @@ export type {
           <strong>{{ 'announcements.izmeneniya_ne_sohraneny' | t }}</strong>
           <p>{{ operationError() }}</p>
         </div>
-        <ui-button variant="secondary" size="sm" [ariaLabel]="'announcements.obnovit_spisok_obyavleniy' | t" (onClick)="refreshAfterConflict()">
+        <button smt-button type="button" smtVariant="secondary" smtSize="sm" [attr.aria-label]="'announcements.obnovit_spisok_obyavleniy' | t" (click)="refreshAfterConflict()">
           {{ 'announcements.obnovit_spisok' | t }}
-        </ui-button>
+        </button>
       </div>
 
       <!-- Toolbar: Tabs for status filtering & Search box -->
@@ -103,7 +103,7 @@ export type {
           <h2>{{ 'announcements.ne_udalos_zagruzit_obyavleniya' | t }}</h2>
           <p>{{ 'announcements.proverte_soedinenie_s_serverom_i_povtorite_zapro' | t }}</p>
         </div>
-        <ui-button variant="secondary" [ariaLabel]="'announcements.povtorit_zagruzku_obyavleniy' | t" (onClick)="loadAnnouncements()">{{ 'announcements.povtorit' | t }}</ui-button>
+        <button smt-button type="button" smtVariant="secondary" [attr.aria-label]="'announcements.povtorit_zagruzku_obyavleniy' | t" (click)="loadAnnouncements()">{{ 'announcements.povtorit' | t }}</button>
       </div>
 
       <div *ngIf="!isLoading() && !loadError() && announcements().length === 0" class="state-panel empty-state" data-testid="announcements-empty">
@@ -112,7 +112,7 @@ export type {
           <h2>{{ 'announcements.obyavleniy_poka_net' | t }}</h2>
           <p>{{ 'announcements.sozdayte_chernovik_proverte_tekst_i_opublikuyte_' | t }}</p>
         </div>
-        <ui-button *ngIf="canCreate()" variant="secondary" icon="add" (onClick)="openCreate()">{{ 'announcements.sozdat_chernovik' | t }}</ui-button>
+        <button smt-button type="button" *ngIf="canCreate()" smtVariant="secondary" smtIcon="add" (click)="openCreate()">{{ 'announcements.sozdat_chernovik' | t }}</button>
       </div>
 
       <!-- Empty state when search or tab filter matches nothing -->
@@ -121,9 +121,9 @@ export type {
         <div>
           <h2>{{ 'announcements.po_filtram_nichego_ne_naydeno' | t }}</h2>
         </div>
-        <ui-button variant="secondary" size="sm" (onClick)="resetFilters()">
+        <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="resetFilters()">
           {{ 'announcements.sbrosit_filtry' | t }}
-        </ui-button>
+        </button>
       </div>
 
       <!-- Announcement Cards List -->
@@ -171,7 +171,7 @@ export type {
     .empty-state { flex-direction: column; text-align: center; }
     .empty-state > .material-symbols-outlined { color: var(--primary); font-size: 38px; }
     .error-state > .material-symbols-outlined, .inline-alert > .material-symbols-outlined { color: var(--danger); font-size: 28px; }
-    .error-state ui-button, .inline-alert ui-button { margin-left: auto; }
+    .error-state .smt-button, .inline-alert .smt-button { margin-left: auto; }
     .inline-alert { padding: 14px 16px; border-color: color-mix(in srgb, var(--danger) 35%, var(--border-color)); }
     .spinner { width: 20px; height: 20px; border: 2px solid var(--border-color); border-top-color: var(--primary); border-radius: 50%; animation: spin .7s linear infinite; }
 
@@ -180,7 +180,7 @@ export type {
       .view-header { flex-direction: column; }
       .header-actions { width: 100%; }
       .state-panel, .inline-alert { align-items: flex-start; flex-wrap: wrap; }
-      .error-state ui-button, .inline-alert ui-button { margin-left: 42px; }
+      .error-state .smt-button, .inline-alert .smt-button { margin-left: 42px; }
     }
     @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 1.5s; } }
   `]

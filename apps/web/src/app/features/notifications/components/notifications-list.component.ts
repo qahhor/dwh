@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslatePipe } from '../../../core/services/i18n.service';
-import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { UiPaginationComponent } from '../../../shared/ui/ui-pagination.component';
 import { NotificationItem } from '../../../core/models/notification.models';
 import { NotificationFilterTab, resolveNotificationIcon } from '../notifications.models';
@@ -9,7 +9,7 @@ import { NotificationFilterTab, resolveNotificationIcon } from '../notifications
 @Component({
   selector: 'app-notifications-list',
   standalone: true,
-  imports: [CommonModule, TranslatePipe, UiButtonComponent, UiPaginationComponent],
+  imports: [CommonModule, TranslatePipe, SMTButtonComponent, UiPaginationComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div *ngIf="isLoading() && itemsCount() === 0" class="notif-loading" role="status">
@@ -20,9 +20,9 @@ import { NotificationFilterTab, resolveNotificationIcon } from '../notifications
     <div *ngIf="loadError() && !isLoading()" class="notif-error" role="alert">
       <span class="material-symbols-outlined error-icon" aria-hidden="true">error</span>
       <span class="error-text">{{ loadError() }}</span>
-      <ui-button variant="secondary" size="sm" icon="refresh" (onClick)="retry.emit()">
+      <button smt-button type="button" smtVariant="secondary" smtSize="sm" smtIcon="refresh" (click)="retry.emit()">
         {{ 'notifications.povtorit' | t }}
-      </ui-button>
+      </button>
     </div>
 
     <div

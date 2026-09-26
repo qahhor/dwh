@@ -29,7 +29,7 @@ describe('CustomFieldsComponent', () => {
     return { fixture: TestBed.createComponent(CustomFieldsComponent), api, toast };
   }
 
-  it('opens creation from ui-button and labels every modal control', async () => {
+  it('opens creation from the header button and labels every modal control', async () => {
     const { fixture } = await createFixture();
     fixture.detectChanges();
 

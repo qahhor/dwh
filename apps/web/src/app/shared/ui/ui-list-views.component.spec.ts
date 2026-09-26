@@ -100,7 +100,7 @@ describe('ui-list-views', () => {
     fixture.detectChanges();
 
     const submit = () => {
-      (document.querySelector('[data-testid="views-name-submit"] button') as HTMLButtonElement).click();
+      (document.querySelector('button[data-testid="views-name-submit"]') as HTMLButtonElement).click();
       fixture.detectChanges();
     };
     submit();

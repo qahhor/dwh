@@ -34,7 +34,7 @@ async function render(request: ReturnType<typeof vi.fn>) {
   fixture.componentRef.setInput('search', 'report');
   fixture.componentRef.setInput('options', { scope: 'mine' });
   fixture.detectChanges();
-  const button = fixture.nativeElement.querySelector('[data-testid="export-button"] button') as HTMLButtonElement;
+  const button = fixture.nativeElement.querySelector('button[data-testid="export-button"]') as HTMLButtonElement;
   return { fixture, views, toast, button };
 }
 

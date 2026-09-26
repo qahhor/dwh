@@ -34,14 +34,14 @@
     @if (fieldError('orderNo'); as message) { <small [id]="formId + '-order-error'">{{ message }}</small> }
   </fieldset>
   <div class="actions">
-    <ui-button variant="secondary" [disabled]="pending || impactOpen" (onClick)="cancel.emit()">{{ 'iam.org_units.cancel' | t }}</ui-button>
-    <ui-button type="submit" [loading]="pending" [disabled]="!dirty || !valid || impactOpen">{{ 'iam.org_units.save' | t }}</ui-button>
+    <button smt-button type="button" smtVariant="secondary" [disabled]="pending || impactOpen" (click)="cancel.emit()">{{ 'iam.org_units.cancel' | t }}</button>
+    <button smt-button type="submit" [smtLoading]="pending" [disabled]="!dirty || !valid || impactOpen">{{ 'iam.org_units.save' | t }}</button>
   </div>
 </form>
 <ui-modal [isOpen]="impactOpen" [title]="'iam.org_units.impact_title' | t" (close)="impactOpen = false">
   <p body>{{ 'iam.org_units.impact_warning' | t }}</p>
   <div footer class="actions">
-    <ui-button variant="secondary" (onClick)="impactOpen = false">{{ 'iam.org_units.cancel' | t }}</ui-button>
-    <ui-button (onClick)="confirmImpact()">{{ 'iam.org_units.confirm_save' | t }}</ui-button>
+    <button smt-button type="button" smtVariant="secondary" (click)="impactOpen = false">{{ 'iam.org_units.cancel' | t }}</button>
+    <button smt-button type="button" (click)="confirmImpact()">{{ 'iam.org_units.confirm_save' | t }}</button>
   </div>
 </ui-modal>

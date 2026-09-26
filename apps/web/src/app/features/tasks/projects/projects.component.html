@@ -16,15 +16,15 @@
     </div>
 
     <div class="header-right">
-      <ui-button
+      <button smt-button type="button"
         *ngIf="canCreateProject()"
-        variant="primary"
-        size="md"
-        icon="add"
-        (onClick)="openCreateModal()"
+        smtVariant="primary"
+        smtSize="md"
+        smtIcon="add"
+        (click)="openCreateModal()"
       >
         {{ 'projects.novyy_proekt' | t }}
-      </ui-button>
+      </button>
     </div>
   </div>
 

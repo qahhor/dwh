@@ -113,7 +113,7 @@ describe('SourceCardComponent', () => {
   function clickUiButton(fixture: ComponentFixture<SourceCardComponent>, testid: string): void {
     const button = fixture.debugElement.query(By.css(`[data-testid="${testid}"]`));
     expect(button).not.toBeNull();
-    button.componentInstance.onClick.emit();
+    button.triggerEventHandler('click', new MouseEvent('click'));
     fixture.detectChanges();
     // A full tick also runs the after-render phase, where smt-control links its error to the field.
     TestBed.tick();

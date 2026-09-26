@@ -47,7 +47,7 @@ const el = (fixture: ComponentFixture<UiFilterPanelComponent>) => fixture.native
 const all = (fixture: ComponentFixture<UiFilterPanelComponent>, id: string) =>
   [...el(fixture).querySelectorAll(`[data-testid="${id}"]`)] as HTMLElement[];
 const button = (fixture: ComponentFixture<UiFilterPanelComponent>, id: string) =>
-  el(fixture).querySelector(`[data-testid="${id}"] button`) as HTMLButtonElement;
+  el(fixture).querySelector(`button[data-testid="${id}"]`) as HTMLButtonElement;
 /** The smt-select whose host is the given element. */
 function picker(fixture: ComponentFixture<UiFilterPanelComponent>, host: HTMLElement): SMTSelectComponent<unknown> {
   return fixture.debugElement.queryAll(By.directive(SMTSelectComponent)).find(debug => debug.nativeElement === host)!.componentInstance;

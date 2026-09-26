@@ -13,7 +13,7 @@ import {
 } from '../list-views/filter-conditions';
 import { SMT_DRAWER_DATA, SMT_DRAWER_REF, SMTDrawerRef } from '../ui-kit/components/drawer';
 import { DateRange, SMTDatePickerComponent, SMTDateRangePickerComponent } from '../ui-kit/components/forms/date-picker';
-import { UiButtonComponent } from './ui-button.component';
+import { SMTButtonComponent } from '../ui-kit/components/button';
 import { SMTInputComponent, SMTInputValue } from '../ui-kit/components/forms/input';
 import { SMTCheckboxComponent } from '../ui-kit/components/forms/checkbox';
 import { SMTSelectComponent, SMTSelectOption } from '../ui-kit/components/forms/select';
@@ -39,7 +39,7 @@ let nextPanelId = 0;
   selector: 'ui-filter-panel',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTInputComponent, SMTCheckboxComponent, SMTSelectComponent, TranslatePipe, UiButtonComponent, SMTDatePickerComponent, SMTDateRangePickerComponent],
+  imports: [SMTInputComponent, SMTCheckboxComponent, SMTSelectComponent, TranslatePipe, SMTButtonComponent, SMTDatePickerComponent, SMTDateRangePickerComponent],
   template: `
     <form class="filter-panel" (submit)="$event.preventDefault(); apply()" novalidate>
       <p class="filter-intro">{{ 'ui.filter.intro' | t }}</p>
@@ -136,21 +136,21 @@ let nextPanelId = 0;
       </ol>
 
       <div class="filter-add">
-        <ui-button variant="secondary" size="sm" icon="add" data-testid="filter-add" [disabled]="!canAdd()" (onClick)="add()">
+        <button smt-button type="button" smtVariant="secondary" smtSize="sm" smtIcon="add" data-testid="filter-add" [disabled]="!canAdd()" (click)="add()">
           {{ 'ui.filter.add' | t }}
-        </ui-button>
+        </button>
         @if (!canAdd() && rows().length > 0) {
           <span class="filter-hint">{{ 'ui.filter.max' | t: { count: data.meta.maxConditions } }}</span>
         }
       </div>
 
       <div class="filter-footer">
-        <ui-button variant="ghost" data-testid="filter-clear" [disabled]="rows().length === 0" (onClick)="clear()">
+        <button smt-button type="button" smtVariant="ghost" data-testid="filter-clear" [disabled]="rows().length === 0" (click)="clear()">
           {{ 'ui.filter.clear' | t }}
-        </ui-button>
+        </button>
         <span class="filter-spacer"></span>
-        <ui-button variant="secondary" data-testid="filter-cancel" (onClick)="cancel()">{{ 'common.cancel' | t }}</ui-button>
-        <ui-button variant="primary" type="submit" data-testid="filter-apply">{{ 'ui.filter.apply' | t }}</ui-button>
+        <button smt-button type="button" smtVariant="secondary" data-testid="filter-cancel" (click)="cancel()">{{ 'common.cancel' | t }}</button>
+        <button smt-button smtVariant="primary" type="submit" data-testid="filter-apply">{{ 'ui.filter.apply' | t }}</button>
       </div>
     </form>
   `,

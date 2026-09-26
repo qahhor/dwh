@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Role } from '../../../../core/models/rbac.models';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
-import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
 import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../../../../shared/ui-kit/components/forms/select';
 import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-group';
@@ -12,7 +12,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
 @Component({
   selector: 'app-role-modals',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslatePipe, UiButtonComponent, UiModalComponent, SMTSelectComponent, SMTSelectValueAccessor, SMTInputComponent, SMTInputValueAccessor],
+  imports: [CommonModule, FormsModule, TranslatePipe, SMTButtonComponent, UiModalComponent, SMTSelectComponent, SMTSelectValueAccessor, SMTInputComponent, SMTInputValueAccessor],
   template: `
     <!-- Create Role Modal -->
     <ui-modal
@@ -46,8 +46,8 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
         </div>
       </div>
       <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="closeCreate.emit()">{{ 'common.cancel' | t }}</ui-button>
-        <ui-button variant="primary" size="md" [loading]="isSubmittingRole" (onClick)="submitCreate.emit()">{{ 'common.create' | t }}</ui-button>
+        <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeCreate.emit()">{{ 'common.cancel' | t }}</button>
+        <button smt-button type="button" smtVariant="primary" smtSize="md" [smtLoading]="isSubmittingRole" (click)="submitCreate.emit()">{{ 'common.create' | t }}</button>
       </div>
     </ui-modal>
 
@@ -84,8 +84,8 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
         </div>
       </div>
       <div footer>
-        <ui-button variant="secondary" size="md" (onClick)="closeEdit.emit()">{{ 'common.cancel' | t }}</ui-button>
-        <ui-button variant="primary" size="md" [loading]="isSubmittingRole" (onClick)="submitEdit.emit()">{{ 'common.save' | t }}</ui-button>
+        <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeEdit.emit()">{{ 'common.cancel' | t }}</button>
+        <button smt-button type="button" smtVariant="primary" smtSize="md" [smtLoading]="isSubmittingRole" (click)="submitEdit.emit()">{{ 'common.save' | t }}</button>
       </div>
     </ui-modal>
 
@@ -104,8 +104,8 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
         <span class="delete-desc">{{ 'iam.vse_naznachennye_prava_etoy_roli_budut_udaleny_e' | t }}</span>
       </div>
       <div footer>
-        <ui-button variant="secondary" size="md" [disabled]="isSubmittingRole" (onClick)="closeDelete.emit()">{{ 'common.cancel' | t }}</ui-button>
-        <ui-button variant="danger" size="md" [loading]="isSubmittingRole" (onClick)="confirmDelete.emit()">{{ 'common.delete' | t }}</ui-button>
+        <button smt-button type="button" smtVariant="secondary" smtSize="md" [disabled]="isSubmittingRole" (click)="closeDelete.emit()">{{ 'common.cancel' | t }}</button>
+        <button smt-button type="button" smtVariant="danger" smtSize="md" [smtLoading]="isSubmittingRole" (click)="confirmDelete.emit()">{{ 'common.delete' | t }}</button>
       </div>
     </ui-modal>
 
@@ -123,15 +123,15 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
         </p>
       </div>
       <div footer>
-        <ui-button variant="secondary" size="md" [disabled]="isSaving" (onClick)="closeDiscard.emit()">
+        <button smt-button type="button" smtVariant="secondary" smtSize="md" [disabled]="isSaving" (click)="closeDiscard.emit()">
           {{ 'common.cancel' | t }}
-        </ui-button>
-        <ui-button variant="danger" size="md" [disabled]="isSaving" (onClick)="confirmDiscardAndSwitch.emit()">
+        </button>
+        <button smt-button type="button" smtVariant="danger" smtSize="md" [disabled]="isSaving" (click)="confirmDiscardAndSwitch.emit()">
           {{ 'iam.sbrosit_i_pereyti' | t }}
-        </ui-button>
-        <ui-button variant="primary" size="md" [loading]="isSaving" (onClick)="saveAndSwitch.emit()">
+        </button>
+        <button smt-button type="button" smtVariant="primary" smtSize="md" [smtLoading]="isSaving" (click)="saveAndSwitch.emit()">
           {{ 'iam.sohranit_i_pereyti' | t }}
-        </ui-button>
+        </button>
       </div>
     </ui-modal>
   `,

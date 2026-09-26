@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ApiService } from '../../core/services/api.service';
-import { UiButtonComponent } from '../../shared/ui/ui-button.component';
+import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
 import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
 
 export interface SystemInfo {
@@ -31,7 +31,7 @@ type OverallStatus = 'healthy' | 'attention' | 'unavailable';
   selector: 'app-system',
   standalone: true,
   imports: [
-    TranslatePipe,CommonModule, UiButtonComponent],
+    TranslatePipe,CommonModule, SMTButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="system-page" aria-labelledby="system-title">
@@ -41,13 +41,13 @@ type OverallStatus = 'healthy' | 'attention' | 'unavailable';
           <h1 id="system-title">{{ 'system.sostoyanie_sistemy' | t }}</h1>
           <p class="subtitle">{{ 'system.diagnostika_etoy_ustanovki_bez_vneshney_telemetr' | t }}</p>
         </div>
-        <ui-button
-          variant="secondary"
-          icon="refresh"
-          [loading]="isLoading()"
-          [ariaLabel]="'system.obnovit_sostoyanie_sistemy' | t"
-          (onClick)="loadSystemInfo()"
-        >{{ 'common.refresh' | t }}</ui-button>
+        <button smt-button type="button"
+          smtVariant="secondary"
+          smtIcon="refresh"
+          [smtLoading]="isLoading()"
+          [attr.aria-label]="'system.obnovit_sostoyanie_sistemy' | t"
+          (click)="loadSystemInfo()"
+        >{{ 'common.refresh' | t }}</button>
       </header>
 
       <div *ngIf="isLoading() && !systemInfo()" class="state-panel" aria-busy="true" aria-live="polite">
@@ -61,11 +61,11 @@ type OverallStatus = 'healthy' | 'attention' | 'unavailable';
           <h2>{{ 'system.ne_udalos_zagruzit_sostoyanie_sistemy' | t }}</h2>
           <p>{{ 'system.proverte_dostupnost_servera_i_povtorite_zapros' | t }}</p>
         </div>
-        <ui-button
-          variant="secondary"
-          [ariaLabel]="'system.povtorit_zagruzku_sostoyaniya_sistemy' | t"
-          (onClick)="loadSystemInfo()"
-        >{{ 'announcements.povtorit' | t }}</ui-button>
+        <button smt-button type="button"
+          smtVariant="secondary"
+          [attr.aria-label]="'system.povtorit_zagruzku_sostoyaniya_sistemy' | t"
+          (click)="loadSystemInfo()"
+        >{{ 'announcements.povtorit' | t }}</button>
       </div>
 
       <ng-container *ngIf="systemInfo() as info">
@@ -75,11 +75,11 @@ type OverallStatus = 'healthy' | 'attention' | 'unavailable';
             <strong>{{ 'system.refresh_failed' | t }}</strong>
             <p>{{ 'system.showing_data_from' | t }} <time [attr.datetime]="info.checkedAt">{{ info.checkedAt | date:'dd.MM.yyyy, HH:mm:ss' }}</time></p>
           </div>
-          <ui-button
-            variant="secondary"
-            [ariaLabel]="'system.povtorit_zagruzku_sostoyaniya_sistemy' | t"
-            (onClick)="loadSystemInfo()"
-          >{{ 'announcements.povtorit' | t }}</ui-button>
+          <button smt-button type="button"
+            smtVariant="secondary"
+            [attr.aria-label]="'system.povtorit_zagruzku_sostoyaniya_sistemy' | t"
+            (click)="loadSystemInfo()"
+          >{{ 'announcements.povtorit' | t }}</button>
         </div>
 
         <section
@@ -245,11 +245,11 @@ type OverallStatus = 'healthy' | 'attention' | 'unavailable';
     .state-panel { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 160px; padding: 24px; color: var(--text-muted); }
     .error-state { justify-content: flex-start; }
     .error-state > .material-symbols-outlined { color: var(--danger); font-size: 30px; }
-    .error-state ui-button { margin-left: auto; }
+    .error-state .smt-button { margin-left: auto; }
     .spinner { width: 20px; height: 20px; border: 2px solid var(--border-color); border-top-color: var(--primary); border-radius: 50%; animation: spin .7s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
     @media (max-width: 960px) { .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .content-grid { grid-template-columns: 1fr; } }
-    @media (max-width: 600px) { .view-header { align-items: stretch; flex-direction: column; } .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .overall-status { flex-wrap: wrap; padding: 15px; } .checked-at { width: 100%; padding-left: 40px; } .panel { padding: 14px; } .stale-state, .error-state { align-items: flex-start; flex-wrap: wrap; } .stale-state ui-button, .error-state ui-button { margin-left: 36px; } }
+    @media (max-width: 600px) { .view-header { align-items: stretch; flex-direction: column; } .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .overall-status { flex-wrap: wrap; padding: 15px; } .checked-at { width: 100%; padding-left: 40px; } .panel { padding: 14px; } .stale-state, .error-state { align-items: flex-start; flex-wrap: wrap; } .stale-state .smt-button, .error-state .smt-button { margin-left: 36px; } }
     @media (max-width: 380px) { .summary-grid { grid-template-columns: 1fr; } }
     @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
   `]
