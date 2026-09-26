@@ -72,6 +72,12 @@ export class PermissionService {
     return false;
   }
 
+  /** Checks a `form.action` pair written as one key, e.g. `platform.navigation.manage`. */
+  hasPermissionKey(key: string): boolean {
+    const dot = key.lastIndexOf('.');
+    return dot > 0 && dot < key.length - 1 && this.hasPermission(key.slice(0, dot), key.slice(dot + 1));
+  }
+
   canView(form: string): boolean {
     return this.hasPermission(form, 'view');
   }

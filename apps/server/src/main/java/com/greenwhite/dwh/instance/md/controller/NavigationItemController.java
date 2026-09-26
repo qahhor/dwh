@@ -6,6 +6,7 @@ import com.greenwhite.dwh.instance.md.pref.MdPref;
 import com.greenwhite.dwh.instance.md.service.NavigationItemService;
 import com.greenwhite.dwh.instance.md.service.NavigationItemService.CreateNavigationItemCommand;
 import com.greenwhite.dwh.instance.md.service.NavigationItemService.NavigationItemView;
+import com.greenwhite.dwh.instance.md.service.NavigationItemService.PermissionChoice;
 import com.greenwhite.dwh.instance.md.service.NavigationItemService.UpdateNavigationItemCommand;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -27,7 +28,14 @@ public class NavigationItemController {
     @GetMapping("/active")
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "view")
     public ResponseEntity<List<NavigationItemView>> getActiveItems() {
-        return ResponseEntity.ok(navigationService.getActiveItems());
+        return ResponseEntity.ok(NavigationItemService.visibleToViewer(navigationService.getActiveItems()));
+    }
+
+    /** Пары каталога, которыми можно ограничить пункт меню. */
+    @GetMapping("/permissions")
+    @RequiresPermission(form = MdPref.FORM_NAVIGATION, action = "manage")
+    public ResponseEntity<List<PermissionChoice>> getPermissionChoices() {
+        return ResponseEntity.ok(navigationService.getPermissionChoices());
     }
 
     @GetMapping
@@ -47,7 +55,7 @@ public class NavigationItemController {
     @GetMapping("/by-code/{code}")
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "view")
     public ResponseEntity<NavigationItemView> getItemByCode(@PathVariable String code) {
-        return navigationService.getItemByCode(code)
+        return navigationService.getVisibleItemByCode(code)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }

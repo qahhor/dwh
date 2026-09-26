@@ -576,6 +576,14 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Menu items limited to a right are shown only to its holders (FR-MOD-02,
+  roadmap item 47). `required_permission` was stored but applied nowhere:
+  `/navigation/items/active` now drops items the viewer lacks the right for,
+  together with their nested items, and `by-code` answers 404 for them as
+  for a missing item; the web checks the same pair. The right is a live
+  catalog pair (unknown or deprecated ones get 422 at `requiredPermission`),
+  chosen in the menu settings by name (`GET /navigation/items/permissions`),
+  and audited. Editing an item no longer clears its right and its parent.
 - The DWH connection pool has time limits (DWH P0). It holds four connections
   and had none: one heavy mart read or a transaction left open held a
   connection for good. PostgreSQL now cancels a statement and ends a

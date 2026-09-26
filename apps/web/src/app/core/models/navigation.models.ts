@@ -18,6 +18,13 @@ export interface CustomNavigationItem {
   modifiedAt?: string;
 }
 
+/** A catalog pair a menu item can be limited to, with its names. */
+export interface NavigationPermissionChoice {
+  permission: string;
+  formName: string;
+  actionName: string;
+}
+
 export interface CreateNavigationItemPayload {
   code: string;
   title: string;

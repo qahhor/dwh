@@ -3,6 +3,7 @@ import { Observable, tap } from 'rxjs';
 import { ApiRequestOptions, ApiService } from './api.service';
 import {
   CustomNavigationItem,
+  NavigationPermissionChoice,
   CreateNavigationItemPayload,
   UpdateNavigationItemPayload
 } from '../models/navigation.models';
@@ -33,6 +34,11 @@ export class NavigationService {
 
   loadAllItems(): Observable<CustomNavigationItem[]> {
     return this.api.get<CustomNavigationItem[]>('/navigation/items');
+  }
+
+  /** Catalog pairs an administrator can limit a menu item to. */
+  loadPermissionChoices(): Observable<NavigationPermissionChoice[]> {
+    return this.api.get<NavigationPermissionChoice[]>('/navigation/items/permissions');
   }
 
   getItemById(id: number): Observable<CustomNavigationItem> {
