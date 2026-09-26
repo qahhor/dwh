@@ -1,0 +1,49 @@
+/* Our styles for smt-weekday-toggle, from semantic tokens so both themes work. */
+
+.smt-weekday-toggle {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.smt-weekday-toggle__day {
+  min-width: 40px;
+  height: var(--control-height);
+  padding: 0 8px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+  font: inherit;
+  font-size: 13px;
+  text-transform: capitalize;
+  cursor: pointer;
+}
+
+.smt-weekday-toggle__day:hover:not(:disabled) {
+  background-color: var(--bg-hover);
+}
+
+.smt-weekday-toggle__day--on {
+  border-color: var(--primary);
+  background-color: var(--primary);
+  color: var(--on-primary);
+}
+
+.smt-weekday-toggle__day--on:hover:not(:disabled) {
+  background-color: var(--primary-hover);
+}
+
+.smt-weekday-toggle__day:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.smt-weekday-toggle--disabled .smt-weekday-toggle__day {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.smt-weekday-toggle--invalid .smt-weekday-toggle__day:not(.smt-weekday-toggle__day--on) {
+  border-color: var(--danger);
+}
