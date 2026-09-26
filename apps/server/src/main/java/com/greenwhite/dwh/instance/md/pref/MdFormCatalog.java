@@ -12,6 +12,9 @@ import java.util.Optional;
  * единственный источник правды, потому что именно они реально охраняют эндпоинты.
  * Здесь живут только названия для экрана матрицы прав.
  *
+ * Формы сущностей, объявленных через {@code EntityDefinition}, называют себя сами
+ * ({@code EntityRights}, roadmap item 57) и здесь не повторяются.
+ *
  * Пара, объявленная аннотацией, но забытая здесь, получит имя = собственный код
  * и не сломает работу; сборку в этом случае валит тест
  * {@code everyDeclaredPermissionHasHumanName}. Обратный случай — имя без
@@ -161,13 +164,6 @@ public final class MdFormCatalog {
         forms.put("platform.modules", new FormMeta("md", "Модули системы", ordered(
                 "view", "Просмотр установленных модулей",
                 "manage", "Управление активностью модулей")));
-
-        forms.put("notes", new FormMeta("ms.note", "Заметки", ordered(
-                "view", "Просмотр заметок",
-                "create", "Создание заметки",
-                "update", "Редактирование заметки",
-                "delete", "Удаление заметки",
-                "pin", "Закрепление заметки")));
 
         forms.put(MdPref.FORM_NAVIGATION, new FormMeta("md", "Навигация и меню", ordered(
                 "view", "Просмотр меню и отчетов",

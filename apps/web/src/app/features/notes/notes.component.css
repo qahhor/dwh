@@ -69,6 +69,13 @@
       align-items: flex-start;
       gap: 8px;
     }
+    .note-select {
+      flex: none;
+      margin-top: 2px;
+    }
+    .note-select + .note-title {
+      flex: 1;
+    }
     .note-title {
       font-weight: 600;
       font-size: 1.05rem;

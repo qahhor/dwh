@@ -3,6 +3,7 @@ package com.greenwhite.dwh.instance.audit.service;
 import com.greenwhite.dwh.core.error.ErrorCode;
 import com.greenwhite.dwh.core.pagination.KeysetPage;
 import com.greenwhite.dwh.instance.audit.repository.AuditLogRepository;
+import com.greenwhite.dwh.instance.common.entity.EntityRegistry;
 import com.greenwhite.dwh.instance.common.error.ApiException;
 import com.greenwhite.dwh.instance.common.history.RecordHistorySource;
 import com.greenwhite.dwh.instance.common.security.SecurityContext;
@@ -37,9 +38,11 @@ public class RecordHistoryService {
     private final AuditLogService auditLogService;
     private final Map<String, RecordHistorySource> sources;
 
-    public RecordHistoryService(AuditLogService auditLogService, List<RecordHistorySource> sources) {
+    /** The modules' own sources and those the declared entities get from their declaration (roadmap item 56). */
+    public RecordHistoryService(AuditLogService auditLogService, List<RecordHistorySource> sources, EntityRegistry entities) {
         this.auditLogService = auditLogService;
-        this.sources = sources.stream().collect(Collectors.toUnmodifiableMap(RecordHistorySource::key, Function.identity()));
+        this.sources = java.util.stream.Stream.concat(sources.stream(), entities.historySources().stream())
+                .collect(Collectors.toUnmodifiableMap(RecordHistorySource::key, Function.identity()));
     }
 
     @Transactional(readOnly = true)

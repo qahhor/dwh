@@ -25,6 +25,11 @@ export function canDo(meta: FormMeta | null | undefined, action: string): boolea
   return !!meta?.actions.includes(action);
 }
 
+/** Whether the entity declares the capability (`history`, `export`, `bulk`, `saved_views`, `custom_fields`). */
+export function hasCapability(meta: FormMeta | null | undefined, capability: string): boolean {
+  return !!meta?.capabilities.includes(capability);
+}
+
 /** The field's label: its catalog key, or the name a custom field carries. */
 export function fieldLabel(field: FormFieldMeta, translate: Translate): string {
   return field.labelKey ? translate(field.labelKey) : field.label ?? field.key;

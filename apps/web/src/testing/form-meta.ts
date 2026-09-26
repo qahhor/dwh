@@ -22,7 +22,7 @@ export const NOTES_FORM_META: FormMeta = {
     { key: 'settings', labelKey: 'entity.section.settings', fields: ['color', 'isPinned'] },
   ],
   actions: ['create', 'update', 'pin', 'delete'],
-  capabilities: ['custom_fields', 'saved_views'],
+  capabilities: ['bulk', 'custom_fields', 'export', 'history', 'saved_views'],
 };
 
 /** The note form with one custom field, as the registry adds it. */

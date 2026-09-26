@@ -42,7 +42,7 @@ class EntityDefinitionTest {
         assertThatThrownBy(() -> entity(List.of(title), List.of(
                 new FormSection("a", "a", List.of("title")), new FormSection("b", "b", List.of("title")))))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new EntityDefinition("x", "x", null, null, List.of(title),
+        assertThatThrownBy(() -> new EntityDefinition("x", "x", null, null, null, null, null, List.of(title),
                 List.of(new FormSection("main", "m", List.of("title"))), List.of(),
                 Set.of(EntityCapability.CUSTOM_FIELDS)))
                 .isInstanceOf(IllegalArgumentException.class);
@@ -109,7 +109,7 @@ class EntityDefinitionTest {
         FormFieldExtender extender = entity -> List.of(
                 FormField.of("cfBudget", "", FormFieldType.NUMBER).custom("Бюджет", "budget"),
                 FormField.of("title", "", FormFieldType.TEXT).custom("Дубль", "title"));
-        EntityRegistry registry = new EntityRegistry(List.of(NOTES), List.of(extender));
+        EntityRegistry registry = new EntityRegistry(List.of(NOTES), List.of(extender), List.of(EntityFeaturesTest.records(NOTES.code())));
 
         EntityDefinition resolved = registry.find(NOTES.code()).orElseThrow();
 
@@ -126,13 +126,13 @@ class EntityDefinitionTest {
     @Test
     void formMetaGivesOnlyTheActionsTheViewerMayTake() {
         SecurityContext.setPrincipal(principal(Set.of("notes.view", "notes.update")));
-        FormMetaController controller = new FormMetaController(new EntityRegistry(List.of(NOTES)));
+        FormMetaController controller = new FormMetaController(EntityFeaturesTest.notesRegistry());
 
         FormMetaController.FormMeta meta = controller.get(NOTES.code()).getBody();
 
         assertThat(meta.actions()).containsExactly("update", "pin");
         assertThat(meta.listCode()).isEqualTo("ms.notes");
-        assertThat(meta.capabilities()).containsExactly("custom_fields", "saved_views");
+        assertThat(meta.capabilities()).containsExactly("bulk", "custom_fields", "export", "history", "saved_views");
         FormMetaController.FieldMeta title = meta.fields().getFirst();
         assertThat(title.type()).isEqualTo("text");
         assertThat(title.required()).isTrue();
@@ -144,7 +144,7 @@ class EntityDefinitionTest {
     @Test
     void formMetaAnswersTheSame404ForUnknownAndHiddenEntities() {
         SecurityContext.setPrincipal(principal(Set.of("tasks.items.view")));
-        FormMetaController controller = new FormMetaController(new EntityRegistry(List.of(NOTES)));
+        FormMetaController controller = new FormMetaController(EntityFeaturesTest.notesRegistry());
 
         for (String code : List.of(NOTES.code(), "nope")) {
             assertThatThrownBy(() -> controller.get(code))
@@ -156,7 +156,7 @@ class EntityDefinitionTest {
     }
 
     private static EntityDefinition entity(List<FormField> fields, List<FormSection> layout) {
-        return new EntityDefinition("x.items", "x", null, null, fields, layout,
+        return new EntityDefinition("x.items", "x", null, null, null, null, null, fields, layout,
                 List.of(new EntityAction("create", "create")), Set.of());
     }
 

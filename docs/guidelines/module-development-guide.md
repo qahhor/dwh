@@ -1,8 +1,8 @@
 # Разработка модулей SmartupCMS
 
-**Версия:** 2.0
+**Версия:** 2.1
 
-**Обновлено:** 2026-09-03
+**Обновлено:** 2026-09-27
 
 **Основание:** [каноническое ТЗ](../technical-specification.md),
 [ADR-0014](../adr/ADR-0014-unified-open-source-runtime.md) и
@@ -43,6 +43,42 @@ backend-инфраструктура — в `libs/platform-common`, а инте�
 улучшает UX и не заменяет серверную авторизацию. Ошибки возвращаются в общем
 Problem Details формате, описанном в
 [соглашениях](../architecture/biruni-smartup-conventions.md).
+
+## Сущность как объявление: чек-лист
+
+Запись, которую пользователь создаёт, ищет и меняет, объявляется один раз
+([ADR-0019](../adr/ADR-0019-low-code-entity-model.md)). Каркас даёт
+`scripts/dev/create-module.ps1 -ModuleName <код> -ModuleTitle "<Название>"`:
+миграцию и пять Java-файлов. Образец в коде — заметки (`ms.note`).
+
+1. **Миграция:** таблица со стандартными полями (`attributes jsonb`, аудит
+   создания и изменения), модуль в `md_installed_modules`, выдача прав
+   системным ролям.
+2. **Список реестра** (`<Prefix><Name>Query`): `QueryList` с полями, их SQL,
+   фильтрами, сортировкой и поиском (ADR-0016).
+3. **Объявление** (`<Prefix><Name>Entity`): `EntityDefinition` — поля формы и
+   их правила, секции, действия с правом каждое, названия права для матрицы
+   (`EntityRights`), пункт меню (`EntityMenu`), возможности
+   (`HISTORY` c `auditTable`, `EXPORT`, `SAVED_VIEWS`, `BULK` с действием
+   `delete`, `CUSTOM_FIELDS` с типом сущности) и бин `EntityRecords`: видимость
+   записи в скоупе зрителя, страница списка, удаление одной записи.
+4. **Сервис** проверяет каждое сохранение `EntityValidator.check` по
+   объявлению (при изменении — частично) и пишет аудит в `auditTable`.
+5. **Контроллер** — страница списка, чтение, создание, изменение, удаление;
+   на каждом методе `@RequiresPermission` с формой и действием из объявления.
+6. **Переводы** в `apps/server/src/main/resources/i18n` (ru, en): `nav.<код>`,
+   подписи полей и вариантов; затем `npm run i18n:sync-ru`.
+7. **Экран:** маршрут в `app.routes.ts`; форма — `smt-entity-form`, просмотр —
+   `smt-entity-card`, виды, экспорт и массовое удаление — `smt-entity-toolbar`;
+   кнопки — по `actions` из `form-meta`, а не по своим проверкам прав. Пункт
+   меню появится сам (`GET /entities/menu`).
+8. **Проверки:** `EntityActionPermissionContractTest` сверяет действия
+   объявления с `@RequiresPermission`, `MdFormCatalogTest` — что у каждой пары
+   права есть название; объявление без того, что обещают его возможности, не
+   даёт приложению стартовать.
+
+Не нужно: записи в `MdFormCatalog`, свой источник истории, свой экспортёр,
+свой endpoint массовых действий, пункт меню в `app-shell.models.ts`.
 
 ## Angular feature
 

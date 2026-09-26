@@ -32,7 +32,8 @@ describe('NotesComponent', () => {
           useValue: {
             get: vi.fn((path: string) => of(path === '/notes'
               ? { items: [mockNote], nextCursor: null, hasMore: false, totalEstimated: 1 }
-              : path === '/form-meta/ms.notes' ? meta : [])),
+              : path === '/form-meta/ms.notes' ? meta
+              : path === '/query-meta/ms.notes' ? null : [])),
             post: vi.fn(() => of(mockNote)),
             put: vi.fn(() => of(mockNote)),
             delete: vi.fn(() => of({}))
@@ -175,6 +176,45 @@ describe('NotesComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.componentInstance.deletingNote()).toBeNull();
+  });
+  it('chooses notes and deletes them at once through the toolbar', async () => {
+    const fixture = await createFixture();
+    const screen = inScreen(fixture.nativeElement);
+    expect(screen.querySelector('[data-testid="entity-bulk-delete"]')).toBeNull();
+
+    fixture.componentInstance.setSelected(mockNote, true);
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.isSelected(mockNote)).toBe(true);
+    expect(screen.querySelector('[data-testid="entity-bulk-delete"]')).not.toBeNull();
+    fixture.componentInstance.setSelected(mockNote, false);
+    expect(fixture.componentInstance.selectedIds()).toEqual([]);
+  });
+
+  it('offers choosing notes only when the note entity has bulk actions', async () => {
+    const fixture = await createFixture({ ...NOTES_FORM_META, capabilities: ['custom_fields'] });
+
+    expect(fixture.componentInstance.canSelect()).toBe(false);
+    expect(inScreen(fixture.nativeElement).querySelector('.note-select')).toBeNull();
+  });
+
+  it('shows the history of the note being edited', async () => {
+    const fixture = await createFixture();
+    fixture.componentInstance.openEditModal(mockNote);
+    fixture.detectChanges();
+
+    expect(inScreen(fixture.nativeElement).querySelector('ui-record-history')).not.toBeNull();
+  });
+
+  it('keeps the pinned tab in the view state, so a saved view carries it', async () => {
+    const fixture = await createFixture();
+
+    fixture.componentInstance.setTab('pinned');
+    expect(fixture.componentInstance.views.filter()).toEqual([{ field: 'isPinned', op: 'eq', value: true }]);
+
+    fixture.componentInstance.views.filter.set([]);
+    fixture.componentInstance.views.apply(null);
+    expect(fixture.componentInstance.activeTab()).toBe('all');
   });
 });
 

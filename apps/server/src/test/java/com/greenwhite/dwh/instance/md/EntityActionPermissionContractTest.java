@@ -40,7 +40,7 @@ class EntityActionPermissionContractTest {
     }
 
     /** The entities the application declares: the {@code @Bean EntityDefinition} methods of its configurations. */
-    private static List<EntityDefinition> declaredEntities() throws Exception {
+    static List<EntityDefinition> declaredEntities() throws Exception {
         var scanner = new ClassPathScanningCandidateComponentProvider(false);
         scanner.addIncludeFilter(new AnnotationTypeFilter(Configuration.class));
         List<EntityDefinition> entities = new ArrayList<>();

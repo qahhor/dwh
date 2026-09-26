@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildNavSections, BuildNavSectionsOptions, NavItem } from './app-shell.models';
-import { CustomNavigationItem } from '../../core/models/navigation.models';
+import { CustomNavigationItem, EntityMenuItem } from '../../core/models/navigation.models';
 
 function item(code: string, requiredPermission: string | null): CustomNavigationItem {
   return {
@@ -9,17 +9,25 @@ function item(code: string, requiredPermission: string | null): CustomNavigation
   };
 }
 
-function customItems(held: string[]): NavItem[] {
+function options(held: string[], entityItems: EntityMenuItem[] = [], active: string[] = []): BuildNavSectionsOptions {
   const no = () => false;
-  const options: BuildNavSectionsOptions = {
+  return {
     activeCustomModules: [], customNavItems: [item('open', null), item('guarded', 'tasks.items.view')],
-    isNotesActive: false, canViewTasks: no, canViewProjects: no, canViewNotes: no, canViewSources: no,
+    entityItems, isModuleActive: code => active.includes(code),
+    canViewTasks: no, canViewProjects: no, canViewSources: no,
     canViewPackages: no, canViewFiles: no, canViewAnalytics: no, canViewNotifications: no, canViewUsers: no,
     canViewRoles: no, canViewOrgUnits: no, canViewCustomFields: no, canViewAnnouncements: no, canViewModules: no,
     canViewNavigationSettings: no, canViewAudit: no, canViewSystem: no, canViewSettings: no,
     hasPermission: permission => held.includes(permission), unreadCount: () => 0
   };
-  return buildNavSections(options).find(section => section.id === 'custom-reports')!.items;
+}
+
+function customItems(held: string[]): NavItem[] {
+  return buildNavSections(options(held)).find(section => section.id === 'custom-reports')!.items;
+}
+
+function entity(code: string, section: string, order: number, module: string | null): EntityMenuItem {
+  return { code, form: code.split('.')[1], route: '/' + code, labelKey: 'nav.' + code, icon: 'description', section, order, module };
 }
 
 describe('buildNavSections — custom menu items (FR-MOD-02)', () => {
@@ -27,5 +35,31 @@ describe('buildNavSections — custom menu items (FR-MOD-02)', () => {
     const shown = (held: string[]) => customItems(held).filter(nav => nav.permission()).map(nav => nav.id);
     expect(shown([])).toEqual(['custom-nav-open']);
     expect(shown(['tasks.items.view'])).toEqual(['custom-nav-open', 'custom-nav-guarded']);
+  });
+});
+
+describe('buildNavSections — items of declared entities (roadmap item 57)', () => {
+  const items = [
+    entity('ms.notes', 'workspace', 30, 'notes'),
+    entity('ms.later', 'workspace', 40, null),
+    entity('ms.admin', 'administration', 10, null),
+    entity('ms.off', 'workspace', 20, 'off'),
+  ];
+
+  it('places each item in its section by order and leaves out those whose module is off', () => {
+    const sections = buildNavSections(options(['notes.view'], items, ['notes']));
+    const workspace = sections.find(section => section.id === 'workspace')!.items.map(one => one.id);
+    const administration = sections.find(section => section.id === 'administration')!.items.map(one => one.id);
+
+    expect(workspace.slice(0, 4)).toEqual(['tasks', 'projects', 'notes', 'later']);
+    expect(workspace).not.toContain('off');
+    expect(administration.at(-1)).toBe('admin');
+  });
+
+  it('shows an item with its entity\'s view right', () => {
+    const workspace = buildNavSections(options(['notes.view'], items, ['notes'])).find(section => section.id === 'workspace')!.items;
+
+    expect(workspace.find(one => one.id === 'notes')!.permission()).toBe(true);
+    expect(workspace.find(one => one.id === 'later')!.permission()).toBe(false);
   });
 });

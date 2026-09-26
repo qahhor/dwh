@@ -9,6 +9,24 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Menu items and permission names come from entity declarations (roadmap
+  item 57): an entity declares its right's names (`EntityRights`) and its
+  menu item (`EntityMenu`); the permission catalog takes the names from it,
+  and `GET /api/v1/entities/menu` gives the shell the items the viewer may
+  open. `scripts/dev/create-module.ps1` now generates a declared entity —
+  a migration and five Java files (repository, service checked by the
+  declaration, controller, registry list, declaration with its records) —
+  and writes UTF-8 without a BOM, which javac rejected. The module guide has
+  a checklist for a declared entity.
+- Entity capabilities work from the declaration (roadmap item 56): a module
+  gives one `EntityRecords` bean (who may see a record, the list page, the
+  single delete) and the platform builds the history tab, the list export and
+  a bulk delete (`POST /api/v1/entities/{code}/bulk`) for every entity that
+  declares them; a declaration missing what a capability needs fails the
+  start. `smt-entity-toolbar` shows saved views, export and "Delete
+  selected" by the declared capabilities and the viewer's rights. Notes now
+  have a change history, export, saved views (the pinned tab is part of a
+  view) and deleting several notes at once.
 - One entity form and card for every declared entity (roadmap item 55,
   ADR-0019 2.5): `smt-entity-form` draws the form from `form-meta` —
   sections, the kit control for each field, required marks, the declared
@@ -575,6 +593,11 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Technical specification 1.3 (roadmap item 58, for the specification
+  owner to accept): `FR-MOD-01` names the real module table
+  `md_installed_modules`, and `FR-MOD-04`–`FR-MOD-06` state the field
+  registry lists, the entity declaration with `form-meta`, and the
+  capabilities an entity gets from its declaration, each with its tests.
 - Server integration tests that only need a migrated database no longer start
   a container each: `TestDatabases.migratedCopy` copies a template database
   on the shared embedded PostgreSQL and hands a small connection pool (a new
