@@ -1,4 +1,4 @@
-import { Component, computed, EventEmitter, inject, Input, Output, Signal, signal, TemplateRef, viewChild } from '@angular/core';
+import { Component, computed, EventEmitter, inject, input, Input, Output, Signal, signal, TemplateRef, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
@@ -7,7 +7,10 @@ import { UiServerTableComponent } from '../../../shared/ui/ui-server-table.compo
 import { DateRange, SMTDateRangePickerComponent } from '../../../shared/ui-kit/components/forms/date-picker';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { KeysetPager } from '../../../shared/paging/keyset-pager';
-import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
+import { OrderBy, TableConfig } from '../../../shared/ui-kit/components/table/table.types';
+import { QueryListMeta } from '../../../core/models/query-meta.models';
+import { ListViewState } from '../../../shared/list-views/list-views';
+import { registryTableConfig } from '../../../shared/ui/registry-table-config';
 import { SecurityEventRecord } from '../audit.models';
 import { SMTSelectComponent, SMTSelectOption } from '../../../shared/ui-kit/components/forms/select';
 import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group/radio-options';
@@ -71,13 +74,21 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
       </div>
 
       <div class="table-container" role="region" [attr.aria-label]="'audit.tablica_sobytiy_bezopasnosti' | t" [attr.aria-busy]="pager.loading()">
-        <ui-server-table
-          [pager]="pager"
-          [config]="tableConfig()"
-          [loadingLabel]="'audit.loading_security' | t"
-          [errorLabel]="'audit.load_security_error' | t"
-          errorId="security-load-error"
-          [emptyTemplate]="emptyState()" />
+        @if (tableConfig(); as config) {
+          <ui-server-table
+            [pager]="pager"
+            [config]="config"
+            [views]="views()"
+            [filterMeta]="meta()"
+            [exportable]="true"
+            [exportOptions]="exportOptions()"
+            [lockedColumns]="['id', 'details']"
+            [loadingLabel]="'audit.loading_security' | t"
+            [errorLabel]="'audit.load_security_error' | t"
+            errorId="security-load-error"
+            [emptyTemplate]="emptyState()"
+            (sortChange)="sortChange.emit($event)" />
+        }
       </div>
 
       <ng-template #idCell let-item><span class="tabular-nums font-mono text-muted">#{{ item.id }}</span></ng-template>
@@ -118,6 +129,11 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
 export class AuditSecurityTableComponent {
   private readonly i18n = inject(I18nService);
 
+  readonly meta = input<QueryListMeta | null>(null);
+  readonly views = input<ListViewState | null>(null);
+  /** The filters on screen, so an export matches the list shown. */
+  readonly exportOptions = input<Record<string, string> | null>(null);
+
   readonly emptyState = viewChild.required<TemplateRef<unknown>>('emptyStateTpl');
   private readonly idCell = viewChild.required<TemplateRef<unknown>>('idCell');
   private readonly eventCell = viewChild.required<TemplateRef<unknown>>('eventCell');
@@ -137,25 +153,34 @@ export class AuditSecurityTableComponent {
     return from || to ? { from: from || null, to: to || null } : null;
   });
 
-  readonly tableConfig = computed<TableConfig<SecurityEventRecord>>(() => {
+  /** Registry columns (`audit.security_events`) with the screen's cells, plus the details button. */
+  readonly tableConfig = computed<TableConfig<SecurityEventRecord> | null>(() => {
+    const meta = this.meta();
+    if (!meta) return null;
     const header = (value: string) => ({ type: 'primitive' as const, value });
     const cell = (template: Signal<TemplateRef<unknown>>) => ({ type: 'templateRef' as const, value: template });
     // Every row is its own grid, so tracks are fixed or shares of the width, never content-sized.
     const share = 'max(140px, calc((100% - 680px) / 2))';
-    return {
+    const base = registryTableConfig<SecurityEventRecord>(meta, {
+      translate: key => this.i18n.translate(key),
       trackBy: (_index, item) => item.id,
-      layout: 'fit',
       ariaLabel: this.i18n.translate('audit.sobytiya_bezopasnosti'),
-      columnsOrder: ['id', 'event', 'user', 'ip', 'agent', 'date', 'details'],
-      columns: {
-        id: { header: header('ID'), content: cell(this.idCell), width: '90px' },
-        event: { header: header(this.i18n.translate('audit.sobytie')), content: cell(this.eventCell), width: '190px' },
-        user: { header: header(this.i18n.translate('audit.polzovatel')), content: cell(this.userCell), width: share },
-        ip: { header: header(this.i18n.translate('audit.ip_adres')), content: cell(this.ipCell), width: '140px' },
-        agent: { header: header(this.i18n.translate('audit.user_agent_ustroystvo')), content: cell(this.agentCell), width: share },
-        date: { header: header(this.i18n.translate('audit.data_i_vremya')), content: cell(this.dateCell), width: '160px' },
-        details: { header: header(this.i18n.translate('audit.detali')), content: cell(this.detailsCell), width: '100px', align: 'right' },
+      sort: this.views()?.sort() ?? null,
+      cells: {
+        id: cell(this.idCell), eventType: cell(this.eventCell), userName: cell(this.userCell), ip: cell(this.ipCell),
+        userAgent: cell(this.agentCell), createdAt: cell(this.dateCell)
       },
+      widths: { id: '90px', eventType: '190px', userName: share, ip: '140px', userAgent: share, createdAt: '160px' },
+      align: { id: 'left' }
+    });
+    return {
+      ...base,
+      layout: 'fit',
+      columns: {
+        ...base.columns,
+        details: { key: 'details', header: header(this.i18n.translate('audit.detali')), content: cell(this.detailsCell), width: '100px', align: 'right' }
+      },
+      columnsOrder: [...base.columnsOrder, 'details']
     };
   });
 
@@ -175,6 +200,7 @@ export class AuditSecurityTableComponent {
 
   @Output() applyFilters = new EventEmitter<void>();
   @Output() resetFilters = new EventEmitter<void>();
+  @Output() sortChange = new EventEmitter<{ column: string; sortBy: OrderBy } | undefined>();
   @Output() selectEvent = new EventEmitter<SecurityEventRecord>();
 
   eventTypeOptions(): SMTSelectOption<string>[] {

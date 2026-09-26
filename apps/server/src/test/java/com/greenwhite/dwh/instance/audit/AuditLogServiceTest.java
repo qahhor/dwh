@@ -184,14 +184,10 @@ class AuditLogServiceTest {
                 Map.of("attempts", List.of(nested)), Instant.parse("2026-09-04T10:15:30Z"),
                 "User", "user"
         );
-        when(repository.listSecurityEvents(any(), any(), any(), any(), any(), any(), any(), anyInt()))
-                .thenReturn(List.of(stored));
-        when(repository.countSecurityEvents(any(), any(), any(), any(), any())).thenReturn(1L);
-
-        var result = service.listSecurityEvents(null, null, null, null, null, 20, null);
+        var result = service.redacted(stored);
 
         @SuppressWarnings("unchecked")
-        var attempts = (List<Map<String, Object>>) result.items().getFirst().details().get("attempts");
+        var attempts = (List<Map<String, Object>>) result.details().get("attempts");
         assertThat(attempts.getFirst())
                 .containsEntry("authHeader", "[REDACTED]")
                 .containsEntry("proxy_authorization", "[REDACTED]")
@@ -227,23 +223,6 @@ class AuditLogServiceTest {
         assertThat(result.hasMore()).isTrue();
         assertThat(result.totalEstimated()).isEqualTo(73L);
         assertThat(CursorUtils.decode(result.nextCursor())).isEqualTo(timestamp + "|20|73");
-    }
-
-    @Test
-    @DisplayName("Cursor следующей страницы и максимальный limit должны передаваться в запрос безопасно")
-    void shouldDecodeCursorAndCapPageSize() {
-        Instant timestamp = Instant.parse("2026-09-04T10:15:30Z");
-        String cursor = CursorUtils.encode(timestamp + "|20|73");
-        when(repository.listSecurityEvents(
-                isNull(), isNull(), isNull(), isNull(), isNull(), eq(timestamp), eq(20L), eq(201)))
-                .thenReturn(List.of());
-        var result = service.listSecurityEvents(null, null, null, null, null, 10_000, cursor);
-
-        assertThat(result.items()).isEmpty();
-        assertThat(result.hasMore()).isFalse();
-        assertThat(result.nextCursor()).isNull();
-        assertThat(result.totalEstimated()).isEqualTo(73L);
-        verify(repository, never()).countSecurityEvents(any(), any(), any(), any(), any());
     }
 
     @Test

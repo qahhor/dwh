@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { ApiService } from '../../core/services/api.service';
 import { ToastService } from '../../core/services/toast.service';
 import { AuditComponent, AuditRecord, SecurityEventRecord } from './audit.component';
+import { AUDIT_LOGS_META, registryProviders, SECURITY_EVENTS_META } from '../../../testing/registry-meta';
 
 /** The button that opens a tab's period picker. */
 function periodTrigger(fixture: { nativeElement: HTMLElement }, tab: 'audit' | 'security'): HTMLButtonElement | null {
@@ -25,6 +26,7 @@ describe('AuditComponent UI contracts', () => {
       imports: [AuditComponent],
       providers: [
         { provide: ApiService, useValue: { get } },
+        ...registryProviders(AUDIT_LOGS_META, SECURITY_EVENTS_META),
         { provide: ToastService, useValue: { error: vi.fn() } }
       ]
     }).compileComponents();
@@ -68,8 +70,9 @@ describe('AuditComponent UI contracts', () => {
       details: {},
       createdAt: '2026-08-30T00:00:00Z'
     };
-    fixture.componentInstance.securityPager.items.set([event]);
+    // The tab loads its metadata and first page on the way in; the row is set after it.
     fixture.componentInstance.setTab('security');
+    fixture.componentInstance.securityPager.items.set([event]);
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('label[for="security-event-filter"]')).not.toBeNull();

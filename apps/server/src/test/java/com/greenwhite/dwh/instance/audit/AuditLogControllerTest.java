@@ -2,6 +2,7 @@ package com.greenwhite.dwh.instance.audit;
 
 import com.greenwhite.dwh.instance.audit.controller.AuditLogController;
 import com.greenwhite.dwh.instance.audit.repository.AuditLogRepository;
+import com.greenwhite.dwh.instance.audit.service.AuditListService;
 import com.greenwhite.dwh.instance.audit.service.AuditLogService;
 import com.greenwhite.dwh.core.pagination.KeysetPage;
 import com.greenwhite.dwh.instance.common.security.SecurityContext;
@@ -18,7 +19,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
+
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -34,15 +35,15 @@ class AuditLogControllerTest {
 
     @Test
     void returnsAuditLogsAsCursorPage() throws Exception {
-        AuditLogService service = mock(AuditLogService.class);
+        AuditListService service = mock(AuditListService.class);
         var record = new AuditLogRepository.AuditRecord(
                 10L, "md_users", "5", "U", 1L, null, false,
                 Instant.parse("2026-09-04T10:15:30Z"), List.of("state"), Map.of(), Map.of("state", "A"),
                 "Admin", "admin"
         );
-        when(service.listAuditLogs(any(), any(), any(), any(), any(), any(), anyInt(), any()))
+        when(service.logs(any(), any(), any(), any(), any(), any()))
                 .thenReturn(KeysetPage.of(List.of(record), null, false, 1));
-        MockMvc mvc = MockMvcBuilders.standaloneSetup(new AuditLogController(service)).build();
+        MockMvc mvc = MockMvcBuilders.standaloneSetup(new AuditLogController(mock(AuditLogService.class), service)).build();
 
         mvc.perform(get("/api/v1/audit/logs").param("limit", "20"))
                 .andExpect(status().isOk())
@@ -53,14 +54,14 @@ class AuditLogControllerTest {
 
     @Test
     void returnsSecurityEventsAsCursorPage() throws Exception {
-        AuditLogService service = mock(AuditLogService.class);
+        AuditListService service = mock(AuditListService.class);
         var record = new AuditLogRepository.SecurityEventRecord(
                 11L, "LOGIN_FAILED", 5L, "127.0.0.1", "Mozilla/5.0", Map.of("reason", "INVALID_PASSWORD"),
                 Instant.parse("2026-09-04T10:15:30Z"), "User", "user"
         );
-        when(service.listSecurityEvents(any(), any(), any(), any(), any(), anyInt(), any()))
+        when(service.securityEvents(any(), any(), any(), any(), any(), any()))
                 .thenReturn(KeysetPage.of(List.of(record), null, false, 1));
-        MockMvc mvc = MockMvcBuilders.standaloneSetup(new AuditLogController(service)).build();
+        MockMvc mvc = MockMvcBuilders.standaloneSetup(new AuditLogController(mock(AuditLogService.class), service)).build();
 
         mvc.perform(get("/api/v1/audit/security-events").param("limit", "20"))
                 .andExpect(status().isOk())
@@ -72,7 +73,7 @@ class AuditLogControllerTest {
     @Test
     void allAuditEndpointsReturnForbiddenWithoutAuditViewPermission() throws Exception {
         SecurityContext.setPrincipal(principal(Set.of()));
-        MockMvc mvc = securedMvc(mock(AuditLogService.class));
+        MockMvc mvc = securedMvc(mock(AuditLogService.class), mock(AuditListService.class));
 
         for (String path : List.of("/api/v1/audit/stats", "/api/v1/audit/logs", "/api/v1/audit/security-events")) {
             mvc.perform(get(path))
@@ -84,15 +85,18 @@ class AuditLogControllerTest {
     @Test
     void allAuditEndpointsAllowAuditViewPermission() throws Exception {
         SecurityContext.setPrincipal(principal(Set.of("audit.log.view")));
-        MockMvc mvc = securedMvc(mock(AuditLogService.class));
+        AuditListService lists = mock(AuditListService.class);
+        when(lists.logs(any(), any(), any(), any(), any(), any())).thenReturn(KeysetPage.of(List.of(), null, false, 0));
+        when(lists.securityEvents(any(), any(), any(), any(), any(), any())).thenReturn(KeysetPage.of(List.of(), null, false, 0));
+        MockMvc mvc = securedMvc(mock(AuditLogService.class), lists);
 
         for (String path : List.of("/api/v1/audit/stats", "/api/v1/audit/logs", "/api/v1/audit/security-events")) {
             mvc.perform(get(path)).andExpect(status().isOk());
         }
     }
 
-    private static MockMvc securedMvc(AuditLogService service) {
-        return MockMvcBuilders.standaloneSetup(new AuditLogController(service))
+    private static MockMvc securedMvc(AuditLogService service, AuditListService lists) {
+        return MockMvcBuilders.standaloneSetup(new AuditLogController(service, lists))
                 .addInterceptors(new RequiresPermissionInterceptor())
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();

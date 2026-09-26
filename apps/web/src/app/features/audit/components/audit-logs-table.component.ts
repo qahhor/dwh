@@ -1,4 +1,4 @@
-import { Component, computed, EventEmitter, inject, Input, Output, Signal, signal, TemplateRef, viewChild } from '@angular/core';
+import { Component, computed, EventEmitter, inject, input, Input, Output, Signal, signal, TemplateRef, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
@@ -7,7 +7,10 @@ import { UiServerTableComponent } from '../../../shared/ui/ui-server-table.compo
 import { DateRange, SMTDateRangePickerComponent } from '../../../shared/ui-kit/components/forms/date-picker';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { KeysetPager } from '../../../shared/paging/keyset-pager';
-import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
+import { OrderBy, TableConfig } from '../../../shared/ui-kit/components/table/table.types';
+import { QueryListMeta } from '../../../core/models/query-meta.models';
+import { ListViewState } from '../../../shared/list-views/list-views';
+import { registryTableConfig } from '../../../shared/ui/registry-table-config';
 import { AuditRecord } from '../audit.models';
 import { SMTSelectComponent, SMTSelectOption } from '../../../shared/ui-kit/components/forms/select';
 import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group/radio-options';
@@ -68,13 +71,21 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
 
       <!-- The region keeps the page's scroll landmark; the table inside names itself. -->
       <div class="table-container" role="region" [attr.aria-label]="'audit.tablica_zhurnala_izmeneniy' | t" [attr.aria-busy]="pager.loading()">
-        <ui-server-table
-          [pager]="pager"
-          [config]="tableConfig()"
-          [loadingLabel]="'audit.loading_log' | t"
-          [errorLabel]="'audit.load_log_error' | t"
-          errorId="audit-load-error"
-          [emptyTemplate]="emptyState()" />
+        @if (tableConfig(); as config) {
+          <ui-server-table
+            [pager]="pager"
+            [config]="config"
+            [views]="views()"
+            [filterMeta]="meta()"
+            [exportable]="true"
+            [exportOptions]="exportOptions()"
+            [lockedColumns]="['id', 'diff']"
+            [loadingLabel]="'audit.loading_log' | t"
+            [errorLabel]="'audit.load_log_error' | t"
+            errorId="audit-load-error"
+            [emptyTemplate]="emptyState()"
+            (sortChange)="sortChange.emit($event)" />
+        }
       </div>
 
       <ng-template #idCell let-item><span class="tabular-nums font-mono text-muted">#{{ item.id }}</span></ng-template>
@@ -328,6 +339,11 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
 export class AuditLogsTableComponent {
   private readonly i18n = inject(I18nService);
 
+  readonly meta = input<QueryListMeta | null>(null);
+  readonly views = input<ListViewState | null>(null);
+  /** The filters on screen, so an export matches the list shown. */
+  readonly exportOptions = input<Record<string, string> | null>(null);
+
   readonly emptyState = viewChild.required<TemplateRef<unknown>>('emptyStateTpl');
   private readonly idCell = viewChild.required<TemplateRef<unknown>>('idCell');
   private readonly tableCell = viewChild.required<TemplateRef<unknown>>('tableCell');
@@ -348,26 +364,34 @@ export class AuditLogsTableComponent {
     return from || to ? { from: from || null, to: to || null } : null;
   });
 
-  readonly tableConfig = computed<TableConfig<AuditRecord>>(() => {
+  /** Registry columns (`audit.logs`) with the screen's cells, plus the diff button, which is not a field. */
+  readonly tableConfig = computed<TableConfig<AuditRecord> | null>(() => {
+    const meta = this.meta();
+    if (!meta) return null;
     const header = (value: string) => ({ type: 'primitive' as const, value });
     const cell = (template: Signal<TemplateRef<unknown>>) => ({ type: 'templateRef' as const, value: template });
     // Every row is its own grid, so tracks are fixed or shares of the width, never content-sized.
     const share = 'max(140px, calc((100% - 700px) / 2))';
-    return {
+    const base = registryTableConfig<AuditRecord>(meta, {
+      translate: key => this.i18n.translate(key),
       trackBy: (_index, item) => item.id,
-      layout: 'fit',
       ariaLabel: this.i18n.translate('audit.zhurnal_izmeneniy_dannyh'),
-      columnsOrder: ['id', 'table', 'pk', 'event', 'user', 'channel', 'date', 'diff'],
-      columns: {
-        id: { header: header('ID'), content: cell(this.idCell), width: '90px' },
-        table: { header: header(this.i18n.translate('audit.tablica')), content: cell(this.tableCell), width: share },
-        pk: { header: header('PK'), content: cell(this.pkCell), width: '110px' },
-        event: { header: header(this.i18n.translate('audit.deystvie')), content: cell(this.eventCell), width: '120px' },
-        user: { header: header(this.i18n.translate('audit.kto_izmenil')), content: cell(this.userCell), width: share },
-        channel: { header: header(this.i18n.translate('audit.kanal')), content: cell(this.channelCell), width: '120px' },
-        date: { header: header(this.i18n.translate('audit.data_i_vremya')), content: cell(this.dateCell), width: '170px' },
-        diff: { header: header('Diff'), content: cell(this.diffCell), width: '90px', align: 'right' },
+      sort: this.views()?.sort() ?? null,
+      cells: {
+        id: cell(this.idCell), tableName: cell(this.tableCell), rowPk: cell(this.pkCell), event: cell(this.eventCell),
+        changedByName: cell(this.userCell), isApi: cell(this.channelCell), changedAt: cell(this.dateCell)
       },
+      widths: { id: '90px', tableName: share, rowPk: '110px', event: '120px', changedByName: share, isApi: '120px', changedAt: '170px' },
+      align: { id: 'left' }
+    });
+    return {
+      ...base,
+      layout: 'fit',
+      columns: {
+        ...base.columns,
+        diff: { key: 'diff', header: header('Diff'), content: cell(this.diffCell), width: '90px', align: 'right' }
+      },
+      columnsOrder: [...base.columnsOrder, 'diff']
     };
   });
 
@@ -388,6 +412,7 @@ export class AuditLogsTableComponent {
   @Output() applyFilters = new EventEmitter<void>();
   @Output() resetFilters = new EventEmitter<void>();
   @Output() selectRecord = new EventEmitter<AuditRecord>();
+  @Output() sortChange = new EventEmitter<{ column: string; sortBy: OrderBy } | undefined>();
 
   private readonly tableOptionsMemo = optionsMemo<SMTSelectOption<string>[]>();
 

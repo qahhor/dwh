@@ -99,6 +99,32 @@ export const fixtures = {
   '/rbac/roles': [],
   '/custom-fields': [],
   '/audit/stats': { totalAuditLogs: 30, totalSecurityEvents: 12, securityEventsLast24h: 3, failedLoginsLast24h: 1 },
+  // Both audit lists are registry lists (roadmap item 50).
+  '/query-meta/audit.logs': {
+    code: 'audit.logs', defaultSort: '-changedAt', defaultLimit: 50, maxLimit: 200, maxConditions: 20, maxInValues: 100,
+    fields: [
+      metaField('id', 'audit.col.id', 'number'),
+      metaField('tableName', 'audit.col.table', 'text'),
+      metaField('rowPk', 'audit.col.row', 'text'),
+      metaField('event', 'audit.col.event', 'enum', { enumValues: ['I', 'U', 'D'], enumLabelPrefix: 'audit.event.' }),
+      metaField('changedByName', 'audit.col.changed_by', 'text', { nullable: true, searchable: true }),
+      metaField('isApi', 'audit.col.channel', 'boolean'),
+      metaField('changedAt', 'audit.col.changed_at', 'instant', { sortable: true })
+    ]
+  },
+  '/query-meta/audit.security_events': {
+    code: 'audit.security_events', defaultSort: '-createdAt', defaultLimit: 50, maxLimit: 200, maxConditions: 20, maxInValues: 100,
+    fields: [
+      metaField('id', 'audit.col.id', 'number'),
+      metaField('eventType', 'audit.col.event_type', 'text'),
+      metaField('userName', 'audit.col.user', 'text', { nullable: true, searchable: true }),
+      metaField('ip', 'audit.col.ip', 'text', { nullable: true, searchable: true }),
+      metaField('userAgent', 'audit.col.user_agent', 'text', { nullable: true, searchable: true }),
+      metaField('createdAt', 'audit.col.created_at', 'instant', { sortable: true })
+    ]
+  },
+  '/list-views/audit.logs': [],
+  '/list-views/audit.security_events': [],
   '/audit/logs': page(range(30, 11).map(auditRecord), 'a2', 30),
   '/audit/logs#a2': page(range(10, 1).map(auditRecord), null, 30),
   '/audit/security-events': page(range(12, 1).map(securityEvent), null, 12),

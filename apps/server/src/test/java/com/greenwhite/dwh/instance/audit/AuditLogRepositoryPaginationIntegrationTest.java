@@ -58,25 +58,6 @@ class AuditLogRepositoryPaginationIntegrationTest {
                 .isEqualTo(3L);
     }
 
-    @Test
-    void traversesSecurityEventsWithoutDuplicatesWhenTimestampsTie() {
-        long oldestId = insertSecurityEvent("PAGINATION_PROBE");
-        long middleId = insertSecurityEvent("PAGINATION_PROBE");
-        long newestId = insertSecurityEvent("PAGINATION_PROBE");
-
-        var first = repository.listSecurityEvents(
-                "PAGINATION_PROBE", null, null, null, null, null, null, 2);
-        var second = repository.listSecurityEvents(
-                "PAGINATION_PROBE", null, null, null, null, TIE_TIMESTAMP, middleId, 2);
-
-        assertThat(first).extracting(AuditLogRepository.SecurityEventRecord::id)
-                .containsExactly(newestId, middleId);
-        assertThat(second).extracting(AuditLogRepository.SecurityEventRecord::id)
-                .containsExactly(oldestId);
-        assertThat(repository.countSecurityEvents("PAGINATION_PROBE", null, null, null, null))
-                .isEqualTo(3L);
-    }
-
     private static long insertAudit(String tableName, String rowPk) {
         return jdbc.sql("""
                         insert into audit_log (table_name, row_pk, event, changed_at, changed_columns)
@@ -86,17 +67,6 @@ class AuditLogRepositoryPaginationIntegrationTest {
                 .param("tableName", tableName)
                 .param("rowPk", rowPk)
                 .param("changedAt", java.sql.Timestamp.from(TIE_TIMESTAMP))
-                .query(Long.class).single();
-    }
-
-    private static long insertSecurityEvent(String eventType) {
-        return jdbc.sql("""
-                        insert into security_events (event_type, ip, details, created_at)
-                        values (:eventType, '127.0.0.1', '{}'::jsonb, :createdAt)
-                        returning id
-                        """)
-                .param("eventType", eventType)
-                .param("createdAt", java.sql.Timestamp.from(TIE_TIMESTAMP))
                 .query(Long.class).single();
     }
 }
