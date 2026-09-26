@@ -29,7 +29,7 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   filters and are part of the cursor), the total is real, and `limit` is
   bounded to 1–200. Module parameters that narrow a list are part of its
   cursor fingerprint; exporters check option values before the job starts.
-- ADR-0019 (proposed): the low-code entity model. An entity is one server
+- ADR-0019 (accepted 2026-09-26, option A): the low-code entity model. An entity is one server
   declaration (`EntityDefinition`) from which lists, forms (`form-meta` with
   the actions allowed to the viewer), cards, permissions and menus are built;
   custom fields become registry fields, lists refer to each other. The
