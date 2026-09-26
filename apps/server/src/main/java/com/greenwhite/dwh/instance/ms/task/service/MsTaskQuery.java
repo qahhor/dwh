@@ -50,7 +50,7 @@ public class MsTaskQuery {
             "id",
             false,
             QueryList.DEFAULT_LIMIT,
-            QueryList.MAX_LIMIT);
+            QueryList.MAX_LIMIT).withCustomFields("TASK", "t.attributes");
 
     @Bean
     public QueryList msTasksQueryList() {

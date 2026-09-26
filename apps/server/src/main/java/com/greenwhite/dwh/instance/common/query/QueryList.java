@@ -16,10 +16,12 @@ import java.util.Optional;
  * @param from         источник без {@code from}: таблица с алиасом и соединения
  * @param idSql        уникальный ключ строки; добивает сортировку, чтобы курсор был однозначным
  * @param defaultSort  ключ поля сортировки по умолчанию
+ * @param customEntity сущность дополнительных полей ({@code TASK}); null — у списка их нет (ADR-0019, 2.3)
+ * @param attributesSql выражение колонки {@code attributes} строки ({@code t.attributes})
  */
 public record QueryList(String code, String form, String action, String select, String from, String idSql,
                         List<QueryField> fields, String defaultSort, boolean defaultDescending, int defaultLimit,
-                        int maxLimit) {
+                        int maxLimit, String customEntity, String attributesSql) {
 
     public static final int DEFAULT_LIMIT = 50;
     public static final int MAX_LIMIT = 200;
@@ -42,6 +44,28 @@ public record QueryList(String code, String form, String action, String select, 
         if (defaultLimit < 1 || defaultLimit > maxLimit) {
             throw new IllegalArgumentException("Query list " + code + ": default limit out of range");
         }
+    }
+
+    public QueryList(String code, String form, String action, String select, String from, String idSql,
+                     List<QueryField> fields, String defaultSort, boolean defaultDescending, int defaultLimit,
+                     int maxLimit) {
+        this(code, form, action, select, from, idSql, fields, defaultSort, defaultDescending, defaultLimit, maxLimit,
+                null, null);
+    }
+
+    /** The same list with the custom fields of {@code entity}, read from {@code attributesSql}. */
+    public QueryList withCustomFields(String entity, String attributesSql) {
+        return new QueryList(code, form, action, select, from, idSql, fields, defaultSort, defaultDescending,
+                defaultLimit, maxLimit, entity, attributesSql);
+    }
+
+    /** The same list with more fields after its own, e.g. the custom fields read at request time. */
+    public QueryList withExtraFields(List<QueryField> extra) {
+        if (extra.isEmpty()) return this;
+        List<QueryField> all = new java.util.ArrayList<>(fields);
+        all.addAll(extra);
+        return new QueryList(code, form, action, select, from, idSql, all, defaultSort, defaultDescending,
+                defaultLimit, maxLimit, customEntity, attributesSql);
     }
 
     public QueryList(String code, String form, String action, String select, String from, String idSql,

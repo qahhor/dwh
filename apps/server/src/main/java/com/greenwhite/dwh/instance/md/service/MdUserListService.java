@@ -23,13 +23,23 @@ public class MdUserListService {
     private final MdUserRepository userRepository;
     private final MdScopeService scopeService;
     private final MdRoleRepository roleRepository;
+    private final com.greenwhite.dwh.instance.common.query.QueryListRegistry registry;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public MdUserListService(QueryListRepository lists, MdUserRepository userRepository, MdScopeService scopeService,
-                             MdRoleRepository roleRepository) {
+                             MdRoleRepository roleRepository,
+                             com.greenwhite.dwh.instance.common.query.QueryListRegistry registry) {
         this.lists = lists;
         this.userRepository = userRepository;
         this.scopeService = scopeService;
         this.roleRepository = roleRepository;
+        this.registry = registry;
+    }
+
+    /** Without the registry: the declared fields only, no custom fields. */
+    public MdUserListService(QueryListRepository lists, MdUserRepository userRepository, MdScopeService scopeService,
+                             MdRoleRepository roleRepository) {
+        this(lists, userRepository, scopeService, roleRepository, null);
     }
 
     /** The page as the API answers it: safe views with each user's roles. The screen and the export share it. */
@@ -50,7 +60,8 @@ public class MdUserListService {
     @Transactional(readOnly = true)
     public KeysetPage<UserRecord> page(Long viewerId, Integer limit, String cursor, String filter, String sort,
                                        String search, LegacyUserFilters legacy) {
-        var plan = QueryCompiler.compile(MdUserQuery.LIST, filter, sort, limit, cursor, search, legacy.canonical());
+        var list = registry == null ? MdUserQuery.LIST : registry.resolve(MdUserQuery.LIST);
+        var plan = QueryCompiler.compile(list, filter, sort, limit, cursor, search, legacy.canonical());
         var scope = scopeService.filterFor(viewerId, "md_users.org_unit_id", "md_users.id");
         return lists.page(plan, userRepository::mapUser, MdUserRepository.listPredicate(scope, legacy));
     }

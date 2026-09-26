@@ -41,7 +41,8 @@ final class ExportWorkbookWriter implements AutoCloseable {
         this.fields = List.copyOf(fields);
         this.text = text;
         for (int c = 0; c < fields.size(); c++) {
-            sheet.value(0, c, text.apply(fields.get(c).labelKey()));
+            QueryField field = fields.get(c);
+            sheet.value(0, c, field.label() != null ? field.label() : text.apply(field.labelKey()));
             sheet.style(0, c).bold().fillColor(HEADER_FILL).set();
             sheet.width(c, width(fields.get(c)));
         }
@@ -49,12 +50,17 @@ final class ExportWorkbookWriter implements AutoCloseable {
         row = 1;
     }
 
-    /** One item, read by field key (the item's JSON property names). */
+    /** One item, read by field key (the item's JSON property names); a custom field from its attributes. */
     void add(Map<String, Object> item) {
         for (int c = 0; c < fields.size(); c++) {
             QueryField field = fields.get(c);
-            Object value = item.get(field.key());
+            Object value = field.attribute() != null ? attribute(item, field.attribute()) : item.get(field.key());
             if (value == null) continue;
+            if (field.attribute() != null) {
+                // Written by people before validation existed: shape is not guaranteed, so never fail the file on it.
+                customValue(c, field, value);
+                continue;
+            }
             switch (field.type()) {
                 case NUMBER -> {
                     if (value instanceof Number number) sheet.value(row, c, number);
@@ -74,6 +80,31 @@ final class ExportWorkbookWriter implements AutoCloseable {
             }
         }
         row++;
+    }
+
+    private static Object attribute(Map<String, Object> item, String code) {
+        return item.get("attributes") instanceof Map<?, ?> attributes ? attributes.get(code) : null;
+    }
+
+    private void customValue(int c, QueryField field, Object value) {
+        String raw = String.valueOf(value);
+        switch (field.type()) {
+            case NUMBER -> {
+                if (value instanceof Number number) sheet.value(row, c, number);
+                else sheet.value(row, c, raw);
+            }
+            case BOOLEAN -> sheet.value(row, c, "true".equalsIgnoreCase(raw) ? text.apply("common.yes")
+                    : "false".equalsIgnoreCase(raw) ? text.apply("common.no") : raw);
+            case DATE -> {
+                try {
+                    sheet.value(row, c, LocalDate.parse(raw.length() >= 10 ? raw.substring(0, 10) : raw));
+                    sheet.style(row, c).format(DATE_FORMAT).set();
+                } catch (java.time.format.DateTimeParseException e) {
+                    sheet.value(row, c, raw);
+                }
+            }
+            default -> sheet.value(row, c, raw);
+        }
     }
 
     int rows() {

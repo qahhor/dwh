@@ -25,6 +25,23 @@ export interface QueryFieldMeta {
   enumLabelPrefix: string | null;
   /** Looked at by the free-text search `q`. */
   searchable?: boolean;
+  /** A custom field's own name, shown instead of translating `labelKey` (ADR-0019, 2.3). */
+  label?: string | null;
+  /** A custom field's code: its value is `row.attributes[attribute]`, not `row[key]`. */
+  attribute?: string | null;
+}
+
+/** The field's heading: a custom field's own name, otherwise its dictionary key translated. */
+export function fieldLabel(field: Pick<QueryFieldMeta, 'label' | 'labelKey'>, translate: (key: string) => string): string {
+  return field.label ?? translate(field.labelKey);
+}
+
+/** The field's value in a row: a custom field from the row's attributes. */
+export function fieldValue(field: Pick<QueryFieldMeta, 'key' | 'attribute'>, row: unknown): unknown {
+  const record = row as Record<string, unknown>;
+  if (!field.attribute) return record[field.key];
+  const attributes = record['attributes'] as Record<string, unknown> | null | undefined;
+  return attributes?.[field.attribute];
 }
 
 export interface QueryListMeta {

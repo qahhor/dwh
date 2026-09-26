@@ -123,12 +123,23 @@ public class MdCustomFieldService {
     public void updateField(Long id, String name, Boolean isRequired, String defaultValue, Object options, Integer orderNo) {
         var before = requireField(id);
         customFieldRepository.update(id, name, isRequired, defaultValue, options, orderNo);
+        var after = requireField(id);
 
+        // The stored rows, before and after: the default and the options change what users may enter, so they
+        // are audited too (they were left out before, roadmap item 52).
         auditLogService.logChange("md_custom_fields", String.valueOf(id), "U",
-                List.of("name", "is_required", "default_value", "order_no"),
-                Map.of("name", before.name(), "is_required", before.isRequired()),
-                Map.of("name", name != null ? name : before.name(),
-                        "is_required", isRequired != null ? isRequired : before.isRequired()));
+                List.of("name", "is_required", "default_value", "options_json", "order_no"),
+                auditState(before), auditState(after));
+    }
+
+    private static Map<String, Object> auditState(MdCustomFieldRepository.CustomFieldRecord field) {
+        Map<String, Object> state = new java.util.LinkedHashMap<>();
+        state.put("name", field.name());
+        state.put("is_required", field.isRequired());
+        state.put("default_value", field.defaultValue());
+        state.put("options_json", field.optionsJson());
+        state.put("order_no", field.orderNo());
+        return state;
     }
 
     @Transactional

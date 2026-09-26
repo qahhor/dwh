@@ -1,4 +1,4 @@
-import { QueryCondition, QueryFieldMeta, QueryListMeta, QueryOp, QueryValue } from '../../core/models/query-meta.models';
+import { fieldLabel, QueryCondition, QueryFieldMeta, QueryListMeta, QueryOp, QueryValue } from '../../core/models/query-meta.models';
 
 /**
  * One row of the filter builder while it is being edited. Values are kept as
@@ -91,7 +91,7 @@ export function toCondition(draft: FilterDraft, meta: QueryListMeta): QueryCondi
 /** A short reading of a condition for its chip: "Periodicity: one of month, year". */
 export function describeCondition(condition: QueryCondition, meta: QueryListMeta, translate: (key: string) => string): string {
   const field = meta.fields.find(item => item.key === condition.field);
-  const label = field ? translate(field.labelKey) : condition.field;
+  const label = field ? fieldLabel(field, translate) : condition.field;
   const op = translate(`ui.filter.op.${condition.op}`);
   const show = (value: QueryValue) => displayValue(value, field, translate);
   if (condition.value === undefined) return `${label}: ${op}`;
@@ -103,7 +103,7 @@ export function describeCondition(condition: QueryCondition, meta: QueryListMeta
 }
 
 export function displayValue(value: QueryValue, field: QueryFieldMeta | undefined, translate: (key: string) => string): string {
-  if (field?.type === 'enum') return translate(`${field.enumLabelPrefix ?? ''}${value}`);
+  if (field?.type === 'enum') return field.enumLabelPrefix ? translate(`${field.enumLabelPrefix}${value}`) : String(value);
   if (field?.type === 'boolean') return translate(value === true || value === 'true' ? 'common.yes' : 'common.no');
   return String(value);
 }

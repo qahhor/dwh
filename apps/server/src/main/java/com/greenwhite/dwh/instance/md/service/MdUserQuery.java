@@ -43,7 +43,7 @@ public class MdUserQuery {
             "name",
             false,
             20,
-            QueryList.MAX_LIMIT);
+            QueryList.MAX_LIMIT).withCustomFields("USER", "md_users.attributes");
 
     @Bean
     public QueryList iamUsersQueryList() {

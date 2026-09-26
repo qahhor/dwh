@@ -9,6 +9,13 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Custom fields are registry fields (roadmap item 52, ADR-0019 2.3): on the
+  user, task and note lists each custom field is a column, a filter and, for
+  text, part of the search, named by its own name and read from the row's
+  attributes; a field an administrator adds appears at once. Values of the
+  wrong shape read as empty instead of failing the page. Custom fields do not
+  sort (that needs an index the application may not create). Exports include
+  them.
 - Notes are a registry list (`ms.notes`, roadmap item 51): `GET /notes` returns
   pages, the pinned tab filters on the server and a "Show more" button adds
   the next page. Pinned notes still come first, then the latest. Projects
@@ -601,6 +608,8 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Changing a custom field's default value, options or order is audited; only
+  its name and required flag were before.
 - User rows in the list carried no roles: the role lookup built its query
   but never ran it. Editing a user opened from the list therefore sent an
   empty role list and removed every role the user had (only the last
