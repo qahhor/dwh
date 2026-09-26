@@ -55,7 +55,8 @@ import { UiPaginationComponent } from './ui-pagination.component';
     @if (columnsId() || views()) {
       <div class="server-table-tools">
         @if (views() && filterMeta(); as meta) {
-          <ui-filter-bar [meta]="meta" [conditions]="views()!.filter()" (conditionsChange)="views()!.setFilter($event)" />
+          <ui-filter-bar [meta]="meta" [conditions]="views()!.filter()" [match]="views()!.match()"
+            (conditionsChange)="views()!.setFilter($event)" (filterChange)="views()!.setFilter($event.conditions, $event.match)" />
         }
         @if (views(); as views) {
           <ui-list-views [state]="views" />

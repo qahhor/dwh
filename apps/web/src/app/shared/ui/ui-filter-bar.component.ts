@@ -1,9 +1,9 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, input, output } from '@angular/core';
-import { QueryCondition, QueryListMeta } from '../../core/models/query-meta.models';
+import { QueryCondition, QueryListMeta, QueryMatch } from '../../core/models/query-meta.models';
 import { I18nService, TranslatePipe } from '../../core/services/i18n.service';
 import { describeCondition, filterableFields } from '../list-views/filter-conditions';
 import { SMTDrawerService } from '../ui-kit/components/drawer';
-import { FilterPanelData, UiFilterPanelComponent } from './ui-filter-panel.component';
+import { FilterPanelData, FilterPanelResult, UiFilterPanelComponent } from './ui-filter-panel.component';
 
 /**
  * The filter of a list above its table: a "Filter" button with the number of
@@ -31,6 +31,9 @@ import { FilterPanelData, UiFilterPanelComponent } from './ui-filter-panel.compo
     }
     @if (conditions().length > 0) {
       <ul class="filter-chips" [attr.aria-label]="'ui.filter.active' | t">
+        @if (match() === 'any' && conditions().length > 1) {
+          <li class="filter-match" data-testid="filter-match-badge">{{ 'ui.filter.match_any' | t }}</li>
+        }
         @for (chip of chips(); track $index; let i = $index) {
           <li class="filter-chip" data-testid="filter-chip">
             <span class="filter-chip-text">{{ chip }}</span>
@@ -55,6 +58,7 @@ import { FilterPanelData, UiFilterPanelComponent } from './ui-filter-panel.compo
       color: var(--text-main); font-size: 13px; cursor: pointer;
     }
     .filter-trigger:hover { background: var(--bg-hover); color: var(--text-main); }
+    .filter-match { font-size: 12px; font-weight: 600; color: var(--text-muted); }
     .filter-trigger:focus-visible, .filter-chip-remove:focus-visible, .filter-clear:focus-visible {
       outline: 2px solid var(--focus-ring); outline-offset: 2px;
     }
@@ -87,21 +91,27 @@ export class UiFilterBarComponent {
 
   readonly conditions = input<QueryCondition[]>([]);
 
+  /** How the conditions combine (roadmap item 53). */
+  readonly match = input<QueryMatch>('all');
+
   readonly conditionsChange = output<QueryCondition[]>();
+
+  /** "Apply" in the builder: the conditions and how they combine, together. */
+  readonly filterChange = output<FilterPanelResult>();
 
   readonly hasFields = computed(() => filterableFields(this.meta()).length > 0);
   readonly chips = computed(() =>
     this.conditions().map(condition => describeCondition(condition, this.meta(), key => this.i18n.translate(key))));
 
   open(): void {
-    const ref = this.drawer.open<QueryCondition[], FilterPanelData>(UiFilterPanelComponent, {
+    const ref = this.drawer.open<FilterPanelResult, FilterPanelData>(UiFilterPanelComponent, {
       title: this.i18n.translate('ui.filter.title'),
       width: '560px',
       closeOnBackdropClick: true,
-      data: { meta: this.meta(), conditions: this.conditions() },
+      data: { meta: this.meta(), conditions: this.conditions(), match: this.match() },
     });
-    ref.afterClosed().subscribe(conditions => {
-      if (conditions) this.conditionsChange.emit(conditions);
+    ref.afterClosed().subscribe(result => {
+      if (result) this.filterChange.emit(result);
     });
   }
 

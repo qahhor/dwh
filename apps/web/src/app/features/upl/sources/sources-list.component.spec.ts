@@ -142,7 +142,7 @@ describe('SourcesListComponent', () => {
     const { fixture, queryMeta, api } = await createFixture();
 
     expect(queryMeta.get).toHaveBeenCalledWith('upl.sources');
-    expect(api.listSources).toHaveBeenCalledWith(50, null, { sort: { field: 'code', descending: false }, conditions: [] });
+    expect(api.listSources).toHaveBeenCalledWith(50, null, { sort: { field: 'code', descending: false }, conditions: [], match: 'all' });
     expect(headers(fixture).map(cell => cell.querySelector('span.truncate')?.textContent?.trim())).toEqual([
       PACKAGED_RUSSIAN['upl.list.col.code'],
       PACKAGED_RUSSIAN['upl.list.col.name'],
@@ -165,7 +165,7 @@ describe('SourcesListComponent', () => {
     headers(fixture)[1].querySelector('smt-cell-header')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     fixture.detectChanges();
 
-    expect(api.listSources).toHaveBeenLastCalledWith(50, null, { sort: { field: 'name', descending: false }, conditions: [] });
+    expect(api.listSources).toHaveBeenLastCalledWith(50, null, { sort: { field: 'name', descending: false }, conditions: [], match: 'all' });
     expect(headers(fixture)[1].getAttribute('aria-sort')).toBe('ascending');
     expect(headers(fixture)[0].getAttribute('aria-sort')).toBe('none');
   });
@@ -178,7 +178,7 @@ describe('SourcesListComponent', () => {
     (inScreen(fixture.nativeElement).querySelector('button[aria-label="Следующая страница"]') as HTMLButtonElement).click();
     fixture.detectChanges();
 
-    expect(api.listSources).toHaveBeenLastCalledWith(50, 'cursor-1', { sort: { field: 'code', descending: false }, conditions: [] });
+    expect(api.listSources).toHaveBeenLastCalledWith(50, 'cursor-1', { sort: { field: 'code', descending: false }, conditions: [], match: 'all' });
     expect(testId(fixture, 'upl-source-row').map(row => row.textContent)).toEqual(['brick.output']);
   });
 
@@ -247,7 +247,7 @@ describe('SourcesListComponent', () => {
 
     expect(listViews.list).toHaveBeenCalledWith('upl.sources');
     expect(api.listSources).toHaveBeenCalledTimes(1);
-    expect(api.listSources).toHaveBeenCalledWith(50, null, { sort: { field: 'name', descending: true }, conditions: [] });
+    expect(api.listSources).toHaveBeenCalledWith(50, null, { sort: { field: 'name', descending: true }, conditions: [], match: 'all' });
     expect(headers(fixture)).toHaveLength(4);
     expect(headers(fixture)[1].getAttribute('aria-sort')).toBe('descending');
     expect(testId(fixture, 'views-trigger')[0].textContent).toContain('По названию');
@@ -266,7 +266,8 @@ describe('SourcesListComponent', () => {
 
     expect(api.listSources).toHaveBeenCalledWith(50, null, {
       sort: { field: 'code', descending: false },
-      conditions: [{ field: 'periodicity', op: 'in', value: ['month'] }]
+      conditions: [{ field: 'periodicity', op: 'in', value: ['month'] }],
+      match: 'all'
     });
     const chip = inScreen(fixture.nativeElement).querySelector('[data-testid="filter-chip"] .filter-chip-text') as HTMLElement;
     expect(chip.textContent).toContain(PACKAGED_RUSSIAN['upl.periodicity.month']);
@@ -274,7 +275,7 @@ describe('SourcesListComponent', () => {
     (inScreen(fixture.nativeElement).querySelector('.filter-chip-remove') as HTMLButtonElement).click();
     fixture.detectChanges();
 
-    expect(api.listSources).toHaveBeenLastCalledWith(50, null, { sort: { field: 'code', descending: false }, conditions: [] });
+    expect(api.listSources).toHaveBeenLastCalledWith(50, null, { sort: { field: 'code', descending: false }, conditions: [], match: 'all' });
     expect(testId(fixture, 'views-trigger')[0].textContent).toContain(PACKAGED_RUSSIAN['ui.views.changed']);
     expect(inScreen(fixture.nativeElement).querySelector('[data-testid="filter-chip"]')).toBeNull();
   });
@@ -282,7 +283,7 @@ describe('SourcesListComponent', () => {
   it('без представлений открывается стандартным, даже если их не удалось загрузить', async () => {
     const { fixture, api } = await createFixture({ views: throwError(() => ({ status: 503 })) });
 
-    expect(api.listSources).toHaveBeenCalledWith(50, null, { sort: { field: 'code', descending: false }, conditions: [] });
+    expect(api.listSources).toHaveBeenCalledWith(50, null, { sort: { field: 'code', descending: false }, conditions: [], match: 'all' });
     expect(testId(fixture, 'views-trigger')[0].textContent).toContain(PACKAGED_RUSSIAN['ui.views.standard']);
     expect(testId(fixture, 'upl-source-row')).toHaveLength(2);
   });

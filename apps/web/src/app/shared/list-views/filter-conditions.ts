@@ -12,6 +12,8 @@ export interface FilterDraft {
   value: string;
   valueTo: string;
   values: string[];
+  /** The name of a referenced row chosen by name, so the chip reads it (roadmap item 53). */
+  label?: string;
 }
 
 /** Operations without a value. */
@@ -39,6 +41,7 @@ export function changeField(draft: FilterDraft, field: QueryFieldMeta): FilterDr
     value: '',
     valueTo: '',
     values: [],
+    label: undefined,
   };
 }
 
@@ -51,7 +54,7 @@ export function fromCondition(condition: QueryCondition): FilterDraft {
   if (condition.op === 'in') {
     return { field: condition.field, op: condition.op, value: list.join(', '), valueTo: '', values: list };
   }
-  return { field: condition.field, op: condition.op, value: single, valueTo: '', values: [] };
+  return { field: condition.field, op: condition.op, value: single, valueTo: '', values: [], label: condition.label };
 }
 
 /**
@@ -85,7 +88,8 @@ export function toCondition(draft: FilterDraft, meta: QueryListMeta): QueryCondi
   if (draft.op === 'between') {
     return { field: field.key, op: 'between', value: [typed(field, draft.value), typed(field, draft.valueTo)] };
   }
-  return { field: field.key, op: draft.op, value: typed(field, draft.value) };
+  const condition: QueryCondition = { field: field.key, op: draft.op, value: typed(field, draft.value) };
+  return field.ref && draft.label ? { ...condition, label: draft.label } : condition;
 }
 
 /** A short reading of a condition for its chip: "Periodicity: one of month, year". */
@@ -95,6 +99,7 @@ export function describeCondition(condition: QueryCondition, meta: QueryListMeta
   const op = translate(`ui.filter.op.${condition.op}`);
   const show = (value: QueryValue) => displayValue(value, field, translate);
   if (condition.value === undefined) return `${label}: ${op}`;
+  if (condition.label) return `${label}: ${op} ${condition.label}`;
   if (Array.isArray(condition.value)) {
     const items = condition.value.map(show);
     return condition.op === 'between' ? `${label}: ${items[0]} — ${items[1]}` : `${label}: ${op} ${items.join(', ')}`;

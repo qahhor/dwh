@@ -9,6 +9,13 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Filters can match any condition (roadmap item 53): the filter DSL takes
+  `{"any": [...]}` groups, and the filter builder offers "All conditions /
+  Any condition"; saved views keep the choice. Reference fields are picked by
+  name from the list they refer to (task status, project and reporter; the
+  user in the audit log and security events; user custom fields); the chip
+  shows the chosen name, and the referenced endpoint's own rights decide what
+  is offered.
 - Custom fields are registry fields (roadmap item 52, ADR-0019 2.3): on the
   user, task and note lists each custom field is a column, a filter and, for
   text, part of the search, named by its own name and read from the row's

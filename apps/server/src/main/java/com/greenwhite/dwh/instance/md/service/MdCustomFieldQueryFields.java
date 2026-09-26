@@ -4,6 +4,7 @@ import com.greenwhite.dwh.instance.common.query.QueryField;
 import com.greenwhite.dwh.instance.common.query.QueryFieldType;
 import com.greenwhite.dwh.instance.common.query.QueryList;
 import com.greenwhite.dwh.instance.common.query.QueryListExtender;
+import com.greenwhite.dwh.instance.common.query.QueryRef;
 import com.greenwhite.dwh.instance.md.repository.MdCustomFieldRepository;
 import com.greenwhite.dwh.instance.md.repository.MdCustomFieldRepository.CustomFieldRecord;
 import org.springframework.stereotype.Component;
@@ -79,7 +80,8 @@ public class MdCustomFieldQueryFields implements QueryListExtender {
                     "(case when " + raw + " ~ '^-?[0-9]{1,15}([.][0-9]{1,6})?$' then " + raw + "::numeric end)",
                     code, List.of());
             case "user_ref" -> QueryField.custom(key, record.name(), QueryFieldType.NUMBER,
-                    "(case when " + raw + " ~ '^[0-9]{1,18}$' then " + raw + "::bigint end)", code, List.of());
+                    "(case when " + raw + " ~ '^[0-9]{1,18}$' then " + raw + "::bigint end)", code, List.of())
+                    .refersTo(QueryRef.paged("/iam/users", "name"));
             case "date" -> QueryField.custom(key, record.name(), QueryFieldType.DATE,
                     "(case when " + raw + " ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}' then left(" + raw + ", 10)::date end)",
                     code, List.of());

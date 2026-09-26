@@ -128,12 +128,39 @@ public final class QueryCompiler {
             errors.add(new FieldErrorItem("filter", FILTER_INVALID, "filter must be an array of conditions"));
             return conditions;
         }
-        if (root.size() > MAX_CONDITIONS) {
+        int total = 0;
+        for (JsonNode node : root) {
+            total += node.isObject() && node.has("any") && node.get("any").isArray() ? node.get("any").size() : 1;
+        }
+        if (total > MAX_CONDITIONS) {
             errors.add(new FieldErrorItem("filter", FILTER_TOO_LONG, "at most " + MAX_CONDITIONS + " conditions"));
             return conditions;
         }
+        int groups = 0;
         for (int i = 0; i < root.size(); i++) {
-            parseCondition(list, root.get(i), "filter[" + i + "]", errors).ifPresent(conditions::add);
+            JsonNode node = root.get(i);
+            String at = "filter[" + i + "]";
+            if (node.isObject() && node.has("any")) {
+                // {"any": [...]} — the conditions inside hold when any of them does (ADR-0016, 2.3; roadmap item 53).
+                JsonNode any = node.get("any");
+                if (!any.isArray() || any.size() < 2 || node.size() != 1) {
+                    errors.add(new FieldErrorItem(at, FILTER_INVALID, "a group is {\"any\": [two or more conditions]}"));
+                    continue;
+                }
+                int group = groups++;
+                for (int j = 0; j < any.size(); j++) {
+                    JsonNode inner = any.get(j);
+                    if (inner.isObject() && inner.has("any")) {
+                        errors.add(new FieldErrorItem(at + ".any[" + j + "]", FILTER_INVALID, "groups do not nest"));
+                        continue;
+                    }
+                    parseCondition(list, inner, at + ".any[" + j + "]", errors)
+                            .map(condition -> condition.inGroup(group))
+                            .ifPresent(conditions::add);
+                }
+                continue;
+            }
+            parseCondition(list, node, at, errors).ifPresent(conditions::add);
         }
         return conditions;
     }
@@ -212,7 +239,11 @@ public final class QueryCompiler {
             canonical.append("|m").append(narrowing.length()).append('=').append(narrowing);
         }
         for (QueryPlan.Condition condition : conditions) {
-            canonical.append('|').append(condition.field().key()).append(':').append(condition.op().wire());
+            canonical.append('|');
+            if (condition.group() >= 0) {
+                canonical.append("g").append(condition.group()).append('/');
+            }
+            canonical.append(condition.field().key()).append(':').append(condition.op().wire());
             for (Object value : condition.values()) {
                 canonical.append(':').append(QueryValues.format(condition.field().type(), value).length())
                         .append('=').append(QueryValues.format(condition.field().type(), value));

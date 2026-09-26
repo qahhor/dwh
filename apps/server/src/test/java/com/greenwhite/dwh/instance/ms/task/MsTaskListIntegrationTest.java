@@ -104,6 +104,14 @@ class MsTaskListIntegrationTest {
     }
 
     @Test
+    @DisplayName("An any-group matches rows that meet one of its conditions (roadmap item 53)")
+    void anyGroupMatchesEitherCondition() {
+        assertThat(titles(tasks.page(viewer, null, null, """
+                [{"any":[{"field":"priority","op":"eq","value":"low"},{"field":"title","op":"eq","value":"tl Alpha"}]}]""",
+                null, "tl ", LegacyTaskFilters.none()).items())).containsExactly("tl Alpha", "tl Beta");
+    }
+
+    @Test
     @DisplayName("A cursor continues only the same filters, including the flat ones")
     void cursorBelongsToItsFilters() {
         var first = tasks.page(viewer, 1, null, null, null, "tl ", LegacyTaskFilters.none());

@@ -521,7 +521,7 @@ export class UsersComponent implements OnInit, OnDestroy {
       limit,
       cursor: cursor ?? undefined,
       ...this.flatFilters(),
-      ...toQueryParams({ sort: this.views.sort(), conditions: this.views.filter(), search: this.searchQuery })
+      ...toQueryParams({ sort: this.views.sort(), conditions: this.views.filter(), match: this.views.match(), search: this.searchQuery })
     });
   }
 }

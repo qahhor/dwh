@@ -1,8 +1,8 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, catchError, map, of, tap } from 'rxjs';
-import { QueryCondition, QuerySort } from '../../core/models/query-meta.models';
+import { QueryCondition, QueryMatch, QuerySort } from '../../core/models/query-meta.models';
 import { ApiService } from '../../core/services/api.service';
-import { formatSort, parseSort } from '../../core/services/query-meta.service';
+import { filterDsl, formatSort, parseSort, readFilterDsl } from '../../core/services/query-meta.service';
 import { EMPTY_COLUMN_STATE, TableColumnState } from '../ui-kit/components/table/column-state';
 import { TableColumnStateStore } from '../ui-kit/services/table-column-state.store';
 
@@ -11,7 +11,8 @@ export interface ListViewPayload {
   columns: TableColumnState;
   /** Field key, minus for descending; `null` — the list's default order. */
   sort: string | null;
-  filter: QueryCondition[];
+  /** The filter DSL: conditions, or one `{"any": [...]}` group of them. */
+  filter: unknown[];
 }
 
 export interface SavedListView {
@@ -78,6 +79,8 @@ export class ListViewState {
   readonly columns = signal<TableColumnState>(EMPTY_COLUMN_STATE);
   readonly sort = signal<QuerySort | null>(null);
   readonly filter = signal<QueryCondition[]>([]);
+  /** How the conditions combine: all of them, or any (roadmap item 53). */
+  readonly match = signal<QueryMatch>('all');
   readonly busy = signal(false);
 
   readonly active = computed(() => this.views().find(view => view.id === this.activeId()) ?? null);
@@ -86,7 +89,7 @@ export class ListViewState {
   readonly current = computed<ListViewPayload>(() => ({
     columns: this.columns(),
     sort: this.sortText(this.sort()),
-    filter: this.filter(),
+    filter: filterDsl(this.filter(), this.match(), true),
   }));
 
   /** The active view differs from what is on screen. */
@@ -129,8 +132,9 @@ export class ListViewState {
   }
 
   /** New filter conditions from the builder or a removed chip; the list reloads from its first page. */
-  setFilter(conditions: QueryCondition[]): void {
+  setFilter(conditions: QueryCondition[], match: QueryMatch = this.match()): void {
     this.filter.set(conditions);
+    this.match.set(match);
     this.options.onApply();
   }
 
@@ -199,11 +203,14 @@ export class ListViewState {
     if (view) {
       this.columns.set(view.state.columns ?? EMPTY_COLUMN_STATE);
       this.sort.set(view.state.sort ? parseSort(view.state.sort) : this.options.defaultSort());
-      this.filter.set(view.state.filter ?? []);
+      const saved = readFilterDsl(view.state.filter);
+      this.filter.set(saved.conditions);
+      this.match.set(saved.match);
     } else {
       this.columns.set(this.options.columnsStore?.load(this.listCode) ?? EMPTY_COLUMN_STATE);
       this.sort.set(this.options.defaultSort());
       this.filter.set([]);
+      this.match.set('all');
     }
   }
 

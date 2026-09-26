@@ -108,7 +108,7 @@ describe('ui-filter-panel', () => {
     expect(all(fixture, 'filter-error')).toHaveLength(0);
 
     button(fixture, 'filter-apply').click();
-    expect(close).toHaveBeenCalledWith([{ field: 'code', op: 'starts_with', value: 'cement.' }]);
+    expect(close).toHaveBeenCalledWith({ conditions: [{ field: 'code', op: 'starts_with', value: 'cement.' }], match: 'all' });
   });
 
   it('offers the enum values as choices and needs no value for "is empty"', async () => {
@@ -145,10 +145,10 @@ describe('ui-filter-panel', () => {
     expect(el(fixture).textContent).toContain('Не больше 2 условий');
 
     button(fixture, 'filter-apply').click();
-    expect(close).toHaveBeenCalledWith([
+    expect(close).toHaveBeenCalledWith({ conditions: [
       { field: 'periodicity', op: 'in', value: ['year'] },
       { field: 'lastPublishedVersion', op: 'empty' }
-    ]);
+    ], match: 'all' });
   });
 
   it('opens with the active conditions, clears them all and cancels without a result', async () => {
@@ -160,7 +160,7 @@ describe('ui-filter-panel', () => {
     fixture.detectChanges();
     expect(all(fixture, 'filter-row')).toHaveLength(0);
     button(fixture, 'filter-apply').click();
-    expect(close).toHaveBeenLastCalledWith([]);
+    expect(close).toHaveBeenLastCalledWith({ conditions: [], match: 'all' });
 
     button(fixture, 'filter-cancel').click();
     expect(close).toHaveBeenLastCalledWith();
@@ -181,7 +181,7 @@ describe('ui-filter-panel', () => {
     fixture.detectChanges();
     button(fixture, 'filter-apply').click();
 
-    const applied = close.mock.calls.at(-1)?.[0] as QueryCondition[];
+    const applied = (close.mock.calls.at(-1)?.[0] as { conditions: QueryCondition[] }).conditions;
     expect(applied[0].field).toBe('uploadedAt');
     expect(applied[0].op).toBe('between');
     const [from, to] = applied[0].value as string[];

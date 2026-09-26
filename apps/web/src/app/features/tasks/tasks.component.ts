@@ -128,7 +128,7 @@ export class TasksComponent implements OnInit, OnDestroy {
   readonly taskPager = new KeysetPager<Task>(
     (cursor, limit) => this.api.get<KeysetPage<Task>>('/tasks', {
       ...this.filterService.buildListParams(cursor, limit),
-      ...toQueryParams({ sort: this.views.sort(), conditions: this.views.filter(), search: this.filterService.searchQuery })
+      ...toQueryParams({ sort: this.views.sort(), conditions: this.views.filter(), match: this.views.match(), search: this.filterService.searchQuery })
     }),
     // One page size: the pager's, which is also the limit each request sends.
     { pageSize: this.filterService.pageSize, destroyRef: this.destroyRef }

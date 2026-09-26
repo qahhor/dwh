@@ -25,7 +25,7 @@ const ACTIVE: QueryCondition[] = [
   { field: 'periodicity', op: 'in', value: ['month', 'year'] }
 ];
 
-async function render(conditions: QueryCondition[], result: QueryCondition[] | undefined = undefined) {
+async function render(conditions: QueryCondition[], result: { conditions: QueryCondition[]; match: 'all' | 'any' } | undefined = undefined) {
   const open = vi.fn(() => ({ close: vi.fn(), afterClosed: () => of(result), componentInstance: null }));
   await TestBed.configureTestingModule({
     imports: [UiFilterBarComponent],
@@ -36,6 +36,7 @@ async function render(conditions: QueryCondition[], result: QueryCondition[] | u
   fixture.componentRef.setInput('conditions', conditions);
   const changes: QueryCondition[][] = [];
   fixture.componentInstance.conditionsChange.subscribe(next => changes.push(next));
+  fixture.componentInstance.filterChange.subscribe(next => changes.push(next.conditions));
   fixture.detectChanges();
   return { fixture, open, changes };
 }
@@ -69,14 +70,14 @@ describe('ui-filter-bar', () => {
 
   it('opens the builder in a drawer with the active conditions and takes back what it applies', async () => {
     const applied: QueryCondition[] = [{ field: 'periodicity', op: 'in', value: ['year'] }];
-    const { fixture, open, changes } = await render([], applied);
+    const { fixture, open, changes } = await render([], { conditions: applied, match: 'all' });
     expect(el(fixture).querySelector('ul')).toBeNull();
 
     (el(fixture).querySelector('[data-testid="filter-trigger"]') as HTMLButtonElement).click();
 
     expect(open).toHaveBeenCalledWith(UiFilterPanelComponent, expect.objectContaining({
       title: PACKAGED_RUSSIAN['ui.filter.title'],
-      data: { meta: META, conditions: [] }
+      data: { meta: META, conditions: [], match: 'all' }
     }));
     expect(changes).toEqual([applied]);
   });
