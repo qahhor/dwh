@@ -1,0 +1,51 @@
+/* Our styles for smt-rating, from semantic tokens so both themes work. */
+
+.smt-rating {
+  display: inline-flex;
+}
+
+.smt-rating__group {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.smt-rating__star {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.smt-rating__star .material-symbols-outlined {
+  font-size: 24px;
+}
+
+.smt-rating__star--on {
+  color: var(--warning);
+}
+
+.smt-rating__star--on .material-symbols-outlined {
+  font-variation-settings: 'FILL' 1;
+}
+
+.smt-rating__star:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+.smt-rating--disabled .smt-rating__star {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.smt-rating--invalid .smt-rating__group {
+  border-radius: var(--radius-sm);
+  outline: 1px solid var(--danger);
+}

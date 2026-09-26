@@ -1,0 +1,69 @@
+/* Our styles for smt-cropper, from semantic tokens so both themes work. */
+
+.smt-cropper {
+  display: block;
+  max-width: 100%;
+}
+
+.smt-cropper__stage {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  touch-action: none;
+  user-select: none;
+}
+
+.smt-cropper__image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.smt-cropper__frame {
+  position: absolute;
+  box-sizing: border-box;
+  border: 2px solid var(--bg-surface);
+  outline: 1px solid var(--primary);
+  /* The part outside the frame is dimmed. */
+  box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.55);
+  cursor: move;
+}
+
+.smt-cropper__frame:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.smt-cropper__handle {
+  position: absolute;
+  right: -7px;
+  bottom: -7px;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--primary);
+  border-radius: 50%;
+  background-color: var(--bg-surface);
+  cursor: nwse-resize;
+}
+
+.smt-cropper__help {
+  display: block;
+  margin-top: 6px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.smt-cropper__status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.smt-cropper--disabled .smt-cropper__frame {
+  cursor: not-allowed;
+}

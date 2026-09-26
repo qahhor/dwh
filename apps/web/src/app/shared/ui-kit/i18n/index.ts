@@ -82,6 +82,14 @@ export interface SMTMessages {
   readonly textarea: { readonly counter: (count: number, max: number) => string };
   readonly input: { readonly clear: string; readonly showPassword: string; readonly hidePassword: string };
   readonly button: { readonly busy: string };
+  readonly rating: { readonly name: string; readonly star: (star: number, max: number) => string };
+  readonly range: { readonly from: string; readonly to: string };
+  readonly weekday: { readonly name: string };
+  readonly cropper: {
+    readonly area: string;
+    readonly help: string;
+    readonly status: (x: number, y: number, width: number, height: number) => string;
+  };
   readonly tag: { readonly remove: (label: string) => string };
   readonly phone: { readonly country: string; readonly other: string; readonly incomplete: string };
   readonly color: {
@@ -221,6 +229,22 @@ export class SMTI18nService {
     },
     tag: {
       remove: label => this.i18n.translate('ui.tag.remove', { label }),
+    },
+    rating: {
+      name: this.i18n.translate('ui.rating.name'),
+      star: (star, max) => this.i18n.translate('ui.rating.star', { star: String(star), max: String(max) }),
+    },
+    range: {
+      from: this.i18n.translate('ui.range.from'),
+      to: this.i18n.translate('ui.range.to'),
+    },
+    weekday: {
+      name: this.i18n.translate('ui.weekday.name'),
+    },
+    cropper: {
+      area: this.i18n.translate('ui.cropper.area'),
+      help: this.i18n.translate('ui.cropper.help'),
+      status: (x, y, width, height) => this.i18n.translate('ui.cropper.status', { x: String(x), y: String(y), width: String(width), height: String(height) }),
     },
     button: {
       busy: this.i18n.translate('ui.button.vypolnyaetsya'),

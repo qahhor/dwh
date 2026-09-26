@@ -1,0 +1,100 @@
+/* Our styles for smt-range-slider, from semantic tokens so both themes work.
+   Both native inputs lie on one track; only their thumbs take the pointer. */
+
+.smt-range-slider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+
+.smt-range-slider__track {
+  position: relative;
+  flex: 1;
+  height: 24px;
+}
+
+.smt-range-slider__track::before,
+.smt-range-slider__track::after {
+  position: absolute;
+  top: 50%;
+  height: 4px;
+  border-radius: 2px;
+  transform: translateY(-50%);
+  content: '';
+}
+
+.smt-range-slider__track::before {
+  right: 0;
+  left: 0;
+  background-color: var(--text-muted);
+}
+
+.smt-range-slider__track::after {
+  right: calc(100% - var(--smt-range-to));
+  left: var(--smt-range-from);
+  background-color: var(--primary);
+}
+
+.smt-range-slider__thumb {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  margin: 0;
+  background: transparent;
+  pointer-events: none;
+  appearance: none;
+}
+
+.smt-range-slider__thumb::-webkit-slider-thumb {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--primary);
+  border-radius: 50%;
+  background-color: var(--bg-surface);
+  cursor: pointer;
+  pointer-events: auto;
+  appearance: none;
+}
+
+.smt-range-slider__thumb::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--primary);
+  border-radius: 50%;
+  background-color: var(--bg-surface);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.smt-range-slider__thumb:focus-visible {
+  outline: none;
+}
+
+.smt-range-slider__thumb:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.smt-range-slider__thumb:focus-visible::-moz-range-thumb {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.smt-range-slider__values {
+  flex-shrink: 0;
+  color: var(--text-main);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.smt-range-slider--disabled {
+  opacity: 0.5;
+}
+
+.smt-range-slider--invalid .smt-range-slider__track::before {
+  background-color: var(--danger);
+}

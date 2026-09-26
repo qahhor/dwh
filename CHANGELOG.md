@@ -9,6 +9,15 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Extra kit controls (roadmap item 40), our own code after the kit's ideas:
+  `smt-rating` (a radio group of stars, arrows/Home/End, a clearable rating
+  clears by its own star), `smt-range-slider` (a from–to band on two native
+  range inputs that never cross), `smt-weekday-toggle` (pressed-state day
+  buttons named by Intl, the value being ISO days Monday first) and
+  `smt-cropper` (a crop area in natural pixels moved and resized by pointer
+  or keyboard, `toBlob` for the result). The kit's cropper wraps
+  ngx-image-cropper, so no new dependency is added. Each field is a Signal
+  Forms value control with an ngModel accessor.
 - Tables outside the kit reviewed (roadmap item 46). The audit record's
   before/after comparison is the kit table (`ui-local-table`). Editable grids
   stay native tables — the kit table is for reading lists, its virtual rows
