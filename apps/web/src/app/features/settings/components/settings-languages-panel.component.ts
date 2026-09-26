@@ -8,11 +8,13 @@ import { TableConfig } from '../../../shared/ui-kit/components/table/table.types
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { LanguageEditorComponent } from '../language-editor.component';
+import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
+import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/ui-kit/components/forms/textarea';
 
 @Component({
   selector: 'app-settings-languages-panel',
   standalone: true,
-  imports: [
+  imports: [SMTTextareaComponent, SMTTextareaValueAccessor, SMTInputComponent, SMTInputValueAccessor, 
     CommonModule,
     FormsModule,
     TranslatePipe,
@@ -119,37 +121,30 @@ import { LanguageEditorComponent } from '../language-editor.component';
       <div class="form-grid">
         <div class="form-group">
           <label class="form-label" for="new-lang-code">{{ 'settings.kod_yazyka_iso_639_1' | t }}</label>
-          <input
-            id="new-lang-code"
-            type="text"
-            class="form-input"
+          <smt-input
+            smtFieldId="new-lang-code"
             [ngModel]="newLangCode"
             (ngModelChange)="newLangCodeChange.emit($event)"
             placeholder="kk, ky, tg, de, tr"
-            maxlength="10"
-          >
+            [maxLength]="10" />
         </div>
         <div class="form-group">
           <label class="form-label" for="new-lang-name">{{ 'settings.nazvanie_yazyka' | t }}</label>
-          <input
-            id="new-lang-name"
-            type="text"
-            class="form-input"
+          <smt-input
+            smtFieldId="new-lang-name"
             [ngModel]="newLangName"
             (ngModelChange)="newLangNameChange.emit($event)"
-            [placeholder]="'settings.aza_sha_deutsch_etc' | t"
-          >
+            [placeholder]="'settings.aza_sha_deutsch_etc' | t" />
         </div>
         <div class="form-group full-width">
           <label class="form-label" for="new-lang-json">{{ 'settings.json_slovar_perevodov_opcionalno' | t }}</label>
-          <textarea
-            id="new-lang-json"
-            class="form-input mono"
-            rows="6"
+          <smt-textarea
+            class="mono"
+            smtFieldId="new-lang-json"
+            [rows]="6"
             [ngModel]="newLangJson"
             (ngModelChange)="newLangJsonChange.emit($event)"
-            [placeholder]="'settings.translation_json_example' | t"
-          ></textarea>
+            [placeholder]="'settings.translation_json_example' | t" />
         </div>
       </div>
       <div modal-footer class="modal-footer-btns">

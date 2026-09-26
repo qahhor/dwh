@@ -1,4 +1,6 @@
 import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
+import { SMTSelectComponent } from '../ui-kit/components/forms/select';
 import { describe, expect, it } from 'vitest';
 import { UiPaginationComponent } from './ui-pagination.component';
 
@@ -27,13 +29,32 @@ describe('UiPaginationComponent', () => {
     fixture.componentRef.setInput('totalItems', 25);
     fixture.detectChanges();
 
-    const select = fixture.nativeElement.querySelector('select') as HTMLSelectElement;
+    const select = fixture.nativeElement.querySelector('smt-select button[role="combobox"]') as HTMLButtonElement;
     const label = fixture.nativeElement.querySelector(`label[for="${select.id}"]`) as HTMLLabelElement;
     const range = fixture.nativeElement.querySelector('[role="status"][aria-live="polite"]') as HTMLElement;
 
     expect(select.id).not.toBe('');
     expect(label.textContent).toContain('Строк');
+    expect(select.textContent).toContain('10');
     expect(range.textContent).toContain('1–10');
+  });
+
+  it('offers the page sizes and emits the chosen one as a number', async () => {
+    await TestBed.configureTestingModule({ imports: [UiPaginationComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(UiPaginationComponent);
+    fixture.componentRef.setInput('totalItems', 120);
+    fixture.detectChanges();
+
+    const emitted: number[] = [];
+    fixture.componentInstance.pageSizeChange.subscribe(size => emitted.push(size));
+    const picker = fixture.debugElement.query(By.directive(SMTSelectComponent)).componentInstance as SMTSelectComponent<number>;
+    expect(picker.options().map(option => option.id)).toEqual([10, 25, 50, 100]);
+    picker.pick(picker.options()[2]);
+    fixture.detectChanges();
+
+    expect(emitted).toEqual([50]);
+    expect(fixture.componentInstance.pageSize).toBe(50);
+    expect(fixture.nativeElement.querySelector('[role="status"]').textContent).toContain('1–50');
   });
 
   it('renders bounded ranges and the known total for cursor consumers by default', async () => {

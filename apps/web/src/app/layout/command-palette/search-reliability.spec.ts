@@ -100,9 +100,12 @@ describe('Reliable search through the real HTTP adapter and template', () => {
     component.onSearchChange('report');
     await vi.advanceTimersByTimeAsync(120);
     const old = http.expectOne(req => req.url === '/api/v1/search');
-    const category = fixture.nativeElement.querySelector('#search-category') as HTMLSelectElement;
-    expect(Array.from(category.options).map(option => option.value)).toEqual(['ALL', 'TASK', 'PROJECT', 'USER', 'NOTE']);
-    category.value = 'PROJECT'; category.dispatchEvent(new Event('change'));
+    const pills = Array.from(fixture.nativeElement.querySelectorAll('.category-pills [role="tab"]')) as HTMLButtonElement[];
+    expect(fixture.nativeElement.querySelector('.category-pills').getAttribute('aria-label')).toBeTruthy();
+    expect(pills.map(pill => pill.getAttribute('data-category'))).toEqual(['ALL', 'TASK', 'PROJECT', 'USER', 'NOTE']);
+    pills.find(pill => pill.getAttribute('data-category') === 'PROJECT')!.click();
+    fixture.detectChanges();
+    expect(pills.find(pill => pill.getAttribute('data-category') === 'PROJECT')!.getAttribute('aria-selected')).toBe('true');
     expect(old.cancelled).toBe(true);
     await vi.advanceTimersByTimeAsync(120);
     const request = http.expectOne(req => req.url === '/api/v1/search');

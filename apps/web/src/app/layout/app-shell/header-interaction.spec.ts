@@ -2,6 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
+import { By } from '@angular/platform-browser';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Observable } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
@@ -10,6 +11,13 @@ import { NotificationService } from '../../core/services/notification.service';
 import { PermissionService } from '../../core/services/permission.service';
 import { ToastService } from '../../core/services/toast.service';
 import { AppShellComponent } from './app-shell.component';
+import { SMTSelectComponent } from '../../shared/ui-kit/components/forms/select';
+
+/** What the language tests read from the header's language picker. */
+interface LanguagePicker {
+  readonly disabled: boolean;
+  readonly value: string | null;
+}
 
 class TestEventSource {
   static instances: TestEventSource[] = [];
@@ -57,12 +65,20 @@ describe('Header interactions with HTTP state', () => {
     fixture.detectChanges();
   }
 
-  function changeLanguage(code: string): HTMLSelectElement {
-    const select = fixture.nativeElement.querySelector('#app-language-selector') as HTMLSelectElement;
-    select.value = code;
-    select.dispatchEvent(new Event('change', { bubbles: true }));
+  function languagePicker(): LanguagePicker {
+    const picker = fixture.debugElement.query(By.css('smt-select.lang-select')).componentInstance as SMTSelectComponent<string>;
+    const trigger = fixture.nativeElement.querySelector('#app-language-selector') as HTMLButtonElement;
+    return {
+      get disabled() { return trigger.disabled; },
+      get value() { return picker.value(); },
+    };
+  }
+
+  function changeLanguage(code: string): LanguagePicker {
+    const picker = fixture.debugElement.query(By.css('smt-select.lang-select')).componentInstance as SMTSelectComponent<string>;
+    picker.pick(picker.options().find(option => option.id === code)!);
     fixture.detectChanges();
-    return select;
+    return languagePicker();
   }
 
   it('disables language selection until both dictionary loading and preference saving finish', () => {
@@ -90,7 +106,7 @@ describe('Header interactions with HTTP state', () => {
     http.expectOne('/api/v1/settings/user').flush(null);
     fixture.detectChanges();
     expect(i18n.currentLang()).toBe('de');
-    expect((fixture.nativeElement.querySelector('#app-language-selector') as HTMLSelectElement).value).toBe('de');
+    expect(languagePicker().value).toBe('de');
     http.verify();
   });
 

@@ -9,11 +9,12 @@ import { TableConfig } from '../../../../shared/ui-kit/components/table/table.ty
 import { ApiToken, TokenExpirationOption } from '../profile.models';
 import { SMTControlComponent } from '../../../../shared/ui-kit/components/forms/control';
 import { SMTRadioGroupComponent, SMTRadioOption } from '../../../../shared/ui-kit/components/forms/radio-group';
+import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
 
 @Component({
   selector: 'app-profile-tokens-card',
   standalone: true,
-  imports: [
+  imports: [SMTInputComponent, SMTInputValueAccessor, 
     UiLocalTableComponent,
     CommonModule,
     FormsModule,
@@ -66,18 +67,15 @@ import { SMTRadioGroupComponent, SMTRadioOption } from '../../../../shared/ui-ki
       <div body class="token-form">
         <div class="form-group">
           <label class="form-label" for="profile-token-name">{{ 'iam.nazvanie_tokena' | t }} <span class="req">*</span></label>
-          <input
-            id="profile-token-name"
+          <smt-input
+            smtFieldId="profile-token-name"
             name="profileTokenName"
-            type="text"
-            class="form-input"
             required
-            [attr.aria-invalid]="isTokenSubmitted && !newTokenName.trim()"
-            [attr.aria-describedby]="isTokenSubmitted && !newTokenName.trim() ? 'profile-token-name-error' : null"
+            [smtInvalid]="isTokenSubmitted && !newTokenName.trim()"
+            [smtDescribedBy]="isTokenSubmitted && !newTokenName.trim() ? 'profile-token-name-error' : null"
             [ngModel]="newTokenName"
             (ngModelChange)="nameChange.emit($event)"
-            [placeholder]="'iam.naprimer_ci_cd_deployer_kafka_sync' | t"
-          />
+            [placeholder]="'iam.naprimer_ci_cd_deployer_kafka_sync' | t" />
           <span id="profile-token-name-error" class="field-error" *ngIf="isTokenSubmitted && !newTokenName.trim()">
             {{ 'iam.vvedite_nazvanie_api_tokena' | t }}
           </span>

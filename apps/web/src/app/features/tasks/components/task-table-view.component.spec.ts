@@ -52,12 +52,18 @@ async function render(options: { canUpdate?: boolean; post?: ReturnType<typeof v
 const el = (fixture: ComponentFixture<TaskTableViewComponent>) => fixture.nativeElement as HTMLElement;
 const rowChecks = (fixture: ComponentFixture<TaskTableViewComponent>) =>
   [...el(fixture).querySelectorAll('[role="rowgroup"] input[type="checkbox"]')] as HTMLInputElement[];
-function choose(fixture: ComponentFixture<TaskTableViewComponent>, testId: string, value: string) {
-  const select = el(fixture).querySelector(`[data-testid="${testId}"]`) as HTMLSelectElement;
-  select.value = value;
-  select.dispatchEvent(new Event('change'));
+/** Opens the smt-select with the test id and picks the option with the label. */
+function choose(fixture: ComponentFixture<TaskTableViewComponent>, testId: string, label: string) {
+  (el(fixture).querySelector(`[data-testid="${testId}"] [role="combobox"]`) as HTMLButtonElement).click();
+  fixture.detectChanges();
+  const option = ([...document.querySelectorAll('.smt-select__option')] as HTMLElement[])
+    .find(item => item.querySelector('.smt-select__option-label')?.textContent?.trim() === label);
+  if (!option) throw new Error(`no option "${label}" in ${testId}`);
+  option.click();
   fixture.detectChanges();
 }
+const chosen = (fixture: ComponentFixture<TaskTableViewComponent>, testId: string) =>
+  el(fixture).querySelector(`[data-testid="${testId}"] :is(.smt-select__value, .smt-select__placeholder)`)?.textContent?.trim();
 function apply(fixture: ComponentFixture<TaskTableViewComponent>, testId: string) {
   (el(fixture).querySelector(`[data-testid="${testId}"] button`) as HTMLButtonElement).click();
   fixture.detectChanges();
@@ -76,12 +82,15 @@ describe('TaskTableViewComponent bulk actions', () => {
 
     const button = el(fixture).querySelector('[data-testid="bulk-status-apply"] button') as HTMLButtonElement;
     expect(button.disabled).toBe(true);
-    choose(fixture, 'bulk-status', '3');
+    choose(fixture, 'bulk-status', 'Готово');
+    expect(chosen(fixture, 'bulk-status')).toBe('Готово');
+    expect(button.disabled).toBe(false);
     apply(fixture, 'bulk-status-apply');
 
     expect(post).toHaveBeenCalledWith('/tasks/bulk', { action: 'status', ids: [11, 12], params: { statusId: 3 } }, { notifyError: false });
     expect(toast.success).toHaveBeenCalledWith('Изменено задач: 2');
     expect(reload).toHaveBeenCalledTimes(1);
+    expect(fixture.componentInstance.bulkStatusId()).toBeNull();
   });
 
   it('names the tasks that could not be changed, with the reason', async () => {
@@ -94,7 +103,7 @@ describe('TaskTableViewComponent bulk actions', () => {
     }));
     const { fixture } = await render({ post });
     rowChecks(fixture).forEach(check => { check.click(); fixture.detectChanges(); });
-    choose(fixture, 'bulk-priority', 'high');
+    choose(fixture, 'bulk-priority', PACKAGED_RUSSIAN['task.priority.high']);
     apply(fixture, 'bulk-priority-apply');
 
     expect(post.mock.calls[0][1]).toEqual({ action: 'priority', ids: [11, 12], params: { priority: 'high' } });
@@ -107,11 +116,12 @@ describe('TaskTableViewComponent bulk actions', () => {
     const { fixture, toast, reload } = await render({ post: vi.fn(() => throwError(() => ({ status: 503 }))) });
     rowChecks(fixture)[0].click();
     fixture.detectChanges();
-    choose(fixture, 'bulk-status', '3');
+    choose(fixture, 'bulk-status', 'Готово');
     apply(fixture, 'bulk-status-apply');
 
     expect(toast.error).toHaveBeenCalledWith(PACKAGED_RUSSIAN['tasks.bulk.error']);
     expect(reload).not.toHaveBeenCalled();
+    expect(fixture.componentInstance.bulkStatusId()).toBe(3);
     expect(fixture.componentInstance.selectedTasks().map(task => task.id)).toEqual([11]);
   });
 });

@@ -50,6 +50,22 @@ describe('UsersComponent UI contracts', () => {
     return fixture;
   }
 
+  it('keeps the filter menu open while a filter option is picked in the overlay', async () => {
+    const fixture = await createFixture();
+    const component = fixture.componentInstance;
+    component.isFilterMenuOpen.set(true);
+    const overlay = document.createElement('div');
+    overlay.className = 'cdk-overlay-container';
+    const option = document.createElement('div');
+    overlay.appendChild(option);
+    document.body.appendChild(overlay);
+    component.onDocumentClick({ target: option } as unknown as MouseEvent);
+    expect(component.isFilterMenuOpen()).toBe(true);
+    component.onDocumentClick({ target: document.body } as unknown as MouseEvent);
+    expect(component.isFilterMenuOpen()).toBe(false);
+    overlay.remove();
+  });
+
   it('labels filters and exposes explicit table interactions', async () => {
     const fixture = await createFixture();
     const user: User = {
@@ -100,8 +116,19 @@ describe('UsersComponent UI contracts', () => {
     expect(password.getAttribute('aria-describedby')?.split(' ').length).toBe(2); // hint and error
     expect(password.required).toBe(true);
     expect(fixture.nativeElement.querySelector('button[aria-label="Показать пароль"]')).not.toBeNull();
-    const language = fixture.nativeElement.querySelector('#user-create-language') as HTMLSelectElement;
-    expect(Array.from(language.options).map(option => option.value)).toEqual(['ru', 'de', 'tr']);
+    // The 2FA flag is saved with the form, so it is a checkbox named by its visible text.
+    const twoFactor = fixture.nativeElement.querySelector('app-user-create-modal [role="checkbox"]') as HTMLElement;
+    expect(document.getElementById(twoFactor.getAttribute('aria-labelledby')!)?.textContent?.trim()).toBe('Включить двухфакторную защиту (2FA OTP)');
+    twoFactor.click();
+    await fixture.whenStable();
+    expect(fixture.componentInstance.createForm.is2faEnabled).toBe(true);
+    const language = fixture.nativeElement.querySelector('#user-create-language') as HTMLButtonElement;
+    expect(language.getAttribute('role')).toBe('combobox');
+    expect(fixture.nativeElement.querySelector(`label[for="${language.id}"]`)).not.toBeNull();
+    language.click();
+    fixture.detectChanges();
+    expect((Array.from(document.querySelectorAll('.smt-select__option-label')) as HTMLElement[]).map(option => option.textContent?.trim()))
+      .toEqual(['Русский (ru)', 'Deutsch (de)', 'Türkçe (tr)']);
   });
 
   it('keeps a dirty organization draft mounted until Escape or record selection is decided', async () => {

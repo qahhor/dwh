@@ -1,6 +1,8 @@
 import { signal } from '@angular/core';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
+import { SMTSelectComponent } from '../../shared/ui-kit/components/forms/select';
 import { provideRouter, Router } from '@angular/router';
 import { BehaviorSubject, of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -147,10 +149,11 @@ describe('AppShellComponent', () => {
     const fixture = TestBed.createComponent(AppShellComponent);
     fixture.detectChanges();
 
-    const selector = fixture.nativeElement.querySelector('#app-language-selector') as HTMLSelectElement;
+    const selector = fixture.nativeElement.querySelector('#app-language-selector') as HTMLButtonElement;
+    expect(selector.getAttribute('role')).toBe('combobox');
     expect(selector.getAttribute('aria-label')).toBe('Язык интерфейса');
-    expect(Array.from(selector.options).map(option => option.value))
-      .toEqual(['ru', 'uz', 'en', 'de', 'tr']);
+    const picker = fixture.debugElement.query(By.css('smt-select.lang-select')).componentInstance as SMTSelectComponent<string>;
+    expect(picker.options().map(option => option.id)).toEqual(['ru', 'uz', 'en', 'de', 'tr']);
     expect(fixture.nativeElement.querySelector('.notif-btn .sr-only')?.textContent).toContain('3');
   });
 

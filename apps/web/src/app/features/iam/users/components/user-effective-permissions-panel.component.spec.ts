@@ -135,6 +135,41 @@ describe('UserEffectivePermissionsPanelComponent', () => {
     expect(component.personalGrants()).not.toContainEqual({ form: 'iam.users', action: 'update' });
   });
 
+  it('picks the form and the action of a grant through the labelled pickers', async () => {
+    const { fixture } = await createFixture({ canAssign: true });
+    const component = fixture.componentInstance;
+    const options = () => Array.from(document.querySelectorAll('.smt-select__option')) as HTMLElement[];
+    const form = fixture.nativeElement.querySelector('#select-grant-form') as HTMLButtonElement;
+    const action = () => fixture.nativeElement.querySelector('#select-grant-action') as HTMLButtonElement;
+
+    expect(form.getAttribute('role')).toBe('combobox');
+    expect(fixture.nativeElement.querySelector('label[for="select-grant-form"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('label[for="select-grant-action"]')).not.toBeNull();
+    expect(action().disabled).toBe(true);
+
+    form.click();
+    fixture.detectChanges();
+    options().find(option => option.textContent?.includes('Пользователи (iam.users)'))!.click();
+    fixture.detectChanges();
+    expect(component.selectedFormCode()).toBe('iam.users');
+    expect(action().disabled).toBe(false);
+
+    action().click();
+    fixture.detectChanges();
+    options().find(option => option.textContent?.includes('Редактирование (update)'))!.click();
+    fixture.detectChanges();
+    expect(component.selectedAction()).toBe('update');
+
+    // The clearing row returns both pickers to their prompts, as the empty option did.
+    form.click();
+    fixture.detectChanges();
+    options()[0].click();
+    fixture.detectChanges();
+    expect(component.selectedFormCode()).toBe('');
+    expect(component.selectedAction()).toBe('');
+    expect(action().disabled).toBe(true);
+  });
+
   it('saves personal grants via PUT /iam/users/{userId}/permissions and displays success toast', async () => {
     const { fixture, api, toast } = await createFixture({ canAssign: true });
     const component = fixture.componentInstance;

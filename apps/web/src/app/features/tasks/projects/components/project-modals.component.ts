@@ -6,7 +6,10 @@ import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
 import { UiCustomFieldsComponent } from '../../../../shared/ui/ui-custom-fields.component';
 import { TranslatePipe, I18nService } from '../../../../core/services/i18n.service';
 import { SMTControlComponent } from '../../../../shared/ui-kit/components/forms/control';
+import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
 import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../../shared/ui-kit/components/forms/textarea';
+import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../../../../shared/ui-kit/components/forms/select';
+import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-group/radio-options';
 import { Project } from '../../../../core/models/task.models';
 import { CustomField } from '../../../../core/models/custom-field.models';
 import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../projects.models';
@@ -15,7 +18,7 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
   selector: 'app-project-modals',
   standalone: true,
   imports: [
-    SMTControlComponent, SMTTextareaComponent, SMTTextareaValueAccessor,
+    SMTControlComponent, SMTInputComponent, SMTInputValueAccessor, SMTTextareaComponent, SMTTextareaValueAccessor, SMTSelectComponent, SMTSelectValueAccessor,
     CommonModule,
     FormsModule,
     TranslatePipe,
@@ -60,15 +63,12 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
       <form body id="project-create-form" (ngSubmit)="submitCreateProject.emit()">
         <fieldset class="modal-form modal-form-fieldset project-create-form" [disabled]="isSubmitting">
           <smt-control class="form-group" [smtLabel]="'projects.nazvanie_proekta' | t" [smtError]="isCreateSubmitted && !createForm.name.trim() ? ('projects.pozhaluysta_ukazhite_nazvanie_proekta' | t) : ''">
-            <input
-              id="project-create-name"
+            <smt-input
+              smtFieldId="project-create-name"
               name="projectCreateName"
-              type="text"
-              class="clean-input"
               required
               [(ngModel)]="createForm.name"
-              [placeholder]="'projects.naprimer_vnedrenie_dwh_cdc' | t"
-            />
+              [placeholder]="'projects.naprimer_vnedrenie_dwh_cdc' | t" />
           </smt-control>
           <smt-control class="form-group" [smtLabel]="'projects.opisanie_proekta' | t">
             <smt-textarea
@@ -126,20 +126,20 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
       <form body id="project-edit-form" (ngSubmit)="submitEditProject.emit()" *ngIf="editingProject as p">
         <fieldset class="modal-form modal-form-fieldset project-edit-form" [disabled]="isSubmitting">
           <smt-control class="form-group" [smtLabel]="'projects.nazvanie_proekta' | t" [smtError]="isEditSubmitted && !editForm.name.trim() ? ('projects.nazvanie_proekta_ne_mozhet_byt_pustym' | t) : ''">
-            <input
-              id="project-edit-name"
+            <smt-input
+              smtFieldId="project-edit-name"
               name="projectEditName"
-              type="text"
-              class="clean-input"
               required
-              [(ngModel)]="editForm.name"
-            />
+              [(ngModel)]="editForm.name" />
           </smt-control>
           <smt-control class="form-group" [smtLabel]="'iam.status_aktivnosti' | t">
-            <select id="project-edit-state" name="projectEditState" class="clean-input" [(ngModel)]="editForm.state">
-              <option value="A">{{ 'projects.state_active' | t }}</option>
-              <option value="P">{{ 'projects.state_archived' | t }}</option>
-            </select>
+            <smt-select
+              smtTriggerId="project-edit-state"
+              name="projectEditState"
+              [(ngModel)]="editForm.state"
+              [options]="stateOptions()"
+              [allowClear]="false"
+            ></smt-select>
           </smt-control>
           <smt-control class="form-group" [smtLabel]="'projects.opisanie' | t">
             <smt-textarea smtFieldId="project-edit-description" name="projectEditDescription" [(ngModel)]="editForm.description" />
@@ -189,18 +189,6 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
       padding: 1px 5px;
       border-radius: 4px;
     }
-    .clean-input {
-      height: 32px;
-      padding: 4px 8px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--border-color);
-      background-color: var(--bg-surface);
-      color: var(--text-main);
-      font-size: 13px;
-      outline: none;
-    }
-    .clean-input:focus { border-color: var(--primary); }
-    .clean-input.input-error { border-color: var(--danger); background-color: var(--danger-bg); }
     .error-msg { font-size: 11px; color: var(--danger); margin-top: 2px; }
     .modal-form-fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
     .clean-textarea { height: auto; padding: 6px 8px; resize: vertical; font-family: inherit; }
@@ -231,6 +219,7 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
 })
 export class ProjectModalsComponent {
   private readonly uiI18n = inject(I18nService);
+  private readonly stateMemo = optionsMemo<SMTSelectOption<'A' | 'P'>[]>();
 
   // Record View
   @Input() routeRecordId: string | null = null;
@@ -271,6 +260,14 @@ export class ProjectModalsComponent {
   // Shared
   @Input() isSubmitting = false;
   @Input() projectCustomFields: CustomField[] = [];
+
+  /** Project states for the edit form; translated again when the language changes. */
+  stateOptions(): SMTSelectOption<'A' | 'P'>[] {
+    return this.stateMemo([this.uiI18n.currentLang()], () => [
+      { id: 'A', label: this.uiI18n.translate('projects.state_active') },
+      { id: 'P', label: this.uiI18n.translate('projects.state_archived') },
+    ]);
+  }
 
   hasAttributes(attrs: any): boolean {
     if (!attrs || typeof attrs !== 'object') return false;

@@ -1,12 +1,12 @@
 import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '../../../core/services/i18n.service';
 import { Project, TaskStatus } from '../../../core/models/task.models';
-import { SMTSelectComponent } from '../../../shared/ui-kit/components/forms/select';
+import { SMTSelectComponent, SMTSelectOption } from '../../../shared/ui-kit/components/forms/select';
 import { ProjectOptionsPipe } from './project-options.pipe';
 import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '../../../shared/ui-kit/components/forms/radio-group';
 import { I18nService } from '../../../core/services/i18n.service';
+import { SMTInputComponent, SMTInputValue } from '../../../shared/ui-kit/components/forms/input';
 
 export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | 'overdue';
 
@@ -14,8 +14,7 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
   selector: 'app-task-filter-bar',
   standalone: true,
   imports: [
-    SMTRadioGroupComponent, CommonModule,
-    FormsModule,
+    SMTRadioGroupComponent, SMTInputComponent, CommonModule,
     TranslatePipe,
     SMTSelectComponent,
     ProjectOptionsPipe
@@ -32,29 +31,19 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
           [smtAriaLabel]="'tasks.bystrye_filtry' | t"
           (valueChange)="onPresetClick($event ?? activePreset)" />
 
-        <div class="search-field">
-          <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
-          <label class="sr-only" for="task-search">{{ 'tasks.poisk_zadach' | t }}</label>
-          <input
-            id="task-search"
-            name="taskSearch"
-            type="text"
-            class="search-input"
-            [placeholder]="'projects.poisk_po_nazvaniyu_ili_opisaniyu' | t"
-            [ngModel]="searchQuery"
-            (ngModelChange)="searchQueryChange.emit($event)"
-            (keydown.enter)="searchApply.emit(); $event.preventDefault()"
-          />
-          <button
-            *ngIf="searchQuery"
-            type="button"
-            class="clear-btn"
-            [attr.aria-label]="'tasks.ochistit_poisk_zadach' | t"
-            (click)="searchClear.emit()"
-          >
-            <span class="material-symbols-outlined" aria-hidden="true">close</span>
-          </button>
-        </div>
+        <label class="sr-only" for="task-search">{{ 'tasks.poisk_zadach' | t }}</label>
+        <smt-input
+          class="search-field"
+          smtFieldId="task-search"
+          name="taskSearch"
+          type="search"
+          smtIcon="search"
+          smtSize="sm"
+          clearable
+          [placeholder]="'projects.poisk_po_nazvaniyu_ili_opisaniyu' | t"
+          [value]="searchQuery"
+          (valueChange)="onSearchValue($event)"
+          (keydown.enter)="searchApply.emit(); $event.preventDefault()" />
       </div>
 
       <div class="toolbar-controls">
@@ -82,19 +71,15 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
 
         <!-- Priority Filter -->
         <label class="sr-only" for="task-priority-filter">{{ 'tasks.filtr_po_prioritetu' | t }}</label>
-        <select
-          id="task-priority-filter"
-          name="taskPriorityFilter"
-          class="clean-select"
-          [ngModel]="selectedPriority"
-          (ngModelChange)="selectedPriorityChange.emit($event)"
-        >
-          <option value="">{{ 'tasks.vse_prioritety' | t }}</option>
-          <option value="critical">{{ 'tasks.kriticheskiy' | t }}</option>
-          <option value="high">{{ 'task.priority.high' | t }}</option>
-          <option value="medium">{{ 'tasks.sredniy' | t }}</option>
-          <option value="low">{{ 'task.priority.low' | t }}</option>
-        </select>
+        <smt-select
+          class="priority-filter"
+          smtTriggerId="task-priority-filter"
+          [value]="selectedPriority || null"
+          (valueChange)="selectedPriorityChange.emit($event ?? '')"
+          [options]="priorityOptions()"
+          [placeholder]="'tasks.vse_prioritety' | t"
+          [emptyLabel]="'tasks.vse_prioritety' | t"
+        ></smt-select>
 
         <button
           *ngIf="hasActiveFilters"
@@ -136,35 +121,7 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
       max-width: 100%;
       min-width: 0;
     }
-    .search-field {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      background-color: var(--bg-hover);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      padding: 4px 8px;
-      width: 260px;
-      max-width: 100%;
-    }
-    .search-icon { font-size: 16px; color: var(--text-muted); }
-    .search-input {
-      border: none;
-      background: transparent;
-      outline: none;
-      font-size: 12px;
-      color: var(--text-main);
-      width: 100%;
-    }
-    .clear-btn {
-      border: none;
-      background: transparent;
-      color: var(--text-muted);
-      cursor: pointer;
-      display: flex;
-      padding: 0;
-    }
-    .clear-btn .material-symbols-outlined { font-size: 14px; }
+    .search-field { width: 260px; max-width: 100%; }
 
     .toolbar-controls {
       display: flex;
@@ -176,20 +133,9 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
     }
 
 
-    .clean-select {
-      height: 30px;
-      padding: 2px 8px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--border-color);
-      background-color: var(--bg-surface);
-      color: var(--text-main);
-      font-size: 12px;
-      outline: none;
-      white-space: nowrap;
-    }
-    .clean-select:focus { border-color: var(--primary); }
     /* A searchable project list; wide enough for a typical project name. */
     .project-filter { display: block; width: 200px; max-width: 100%; }
+    .priority-filter { display: block; width: 160px; max-width: 100%; }
 
     .reset-filters-btn {
       border: 1px solid var(--border-color);
@@ -233,6 +179,18 @@ export class TaskFilterBarComponent {
 
   private readonly statusMemo = optionsMemo<SMTRadioOption<'active' | 'all' | number>[]>();
 
+  private readonly priorityMemo = optionsMemo<SMTSelectOption<string>[]>();
+
+  /** Typing searches after a pause; emptying the field (its clear button) drops the search at once. */
+  onSearchValue(value: SMTInputValue): void {
+    const query = value === null ? '' : String(value);
+    if (query === '') {
+      this.searchClear.emit();
+    } else {
+      this.searchQueryChange.emit(query);
+    }
+  }
+
   onPresetClick(preset: TaskPreset) {
     this.activePresetChange.emit(preset);
   }
@@ -254,6 +212,16 @@ export class TaskFilterBarComponent {
       { value: 'active', label: this.optionText.translate('iam.aktivnye'), title: this.optionText.translate('tasks.tolko_aktivnye_zadachi_bez_vypolnennyh_i_otmenen') },
       { value: 'all', label: this.optionText.translate('common.all'), title: this.optionText.translate('tasks.vse_zadachi_vklyuchaya_zavershennye') },
       ...this.statuses.map(status => ({ value: status.id, label: status.name, color: status.color || undefined })),
+    ]);
+  }
+
+  /** Priorities, most urgent first; no choice means every priority. */
+  priorityOptions(): SMTSelectOption<string>[] {
+    return this.priorityMemo([this.optionText.currentLang()], () => [
+      { id: 'critical', label: this.optionText.translate('tasks.kriticheskiy') },
+      { id: 'high', label: this.optionText.translate('task.priority.high') },
+      { id: 'medium', label: this.optionText.translate('tasks.sredniy') },
+      { id: 'low', label: this.optionText.translate('task.priority.low') },
     ]);
   }
 }

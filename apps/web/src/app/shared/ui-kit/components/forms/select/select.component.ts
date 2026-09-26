@@ -75,6 +75,7 @@ function sameId(a: unknown, b: unknown): boolean {
   host: {
     class: 'smt-select',
     '[class.smt-select--disabled]': 'isDisabled()',
+    '[class.smt-select--invalid]': 'screenInvalid()',
     '(focusout)': 'onFocusOut($event)',
   },
 })
@@ -103,6 +104,12 @@ export class SMTSelectComponent<T = unknown> implements FormValueControl<T | nul
 
   /** Accessible name when no outside label names the field. */
   readonly ariaLabel = input('');
+
+  /** An error the screen shows for this field (a server error, a failed save), marked on the trigger at once. */
+  readonly screenInvalid = input(false, { alias: 'smtInvalid', transform: booleanAttribute });
+
+  /** Ids of the texts that describe the field, such as its error message. */
+  readonly describedBy = input<string | null>('', { alias: 'smtDescribedBy' });
 
   /** Id for the trigger, so an outside label can point at it. */
   readonly triggerId = input<string | undefined>(undefined, { alias: 'smtTriggerId' });
@@ -222,6 +229,12 @@ export class SMTSelectComponent<T = unknown> implements FormValueControl<T | nul
 
   optionId(index: number): string {
     return `${this.listboxId}-opt-${index}`;
+  }
+
+  /** The option's value as text, so end-to-end tests pick it whatever the language; none for object values. */
+  optionValue(option: SMTSelectOption<T>): string | null {
+    const id = option.id as unknown;
+    return typeof id === 'string' || typeof id === 'number' || typeof id === 'boolean' ? String(id) : null;
   }
 
   /** "Label, header: value, …" for an option with columns; `null` keeps the visible text as its name. */

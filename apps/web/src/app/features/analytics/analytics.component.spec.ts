@@ -334,7 +334,7 @@ describe('AnalyticsComponent request and rendering contracts', () => {
     expect(names).toEqual(['Alice Smith']);
 
     // Clear filter
-    const clearBtn = host.querySelector<HTMLButtonElement>('.user-search-box .clear-mini-btn')!;
+    const clearBtn = host.querySelector<HTMLButtonElement>('.user-search-box .smt-input__action')!;
     clearBtn.click();
     fixture.detectChanges();
 

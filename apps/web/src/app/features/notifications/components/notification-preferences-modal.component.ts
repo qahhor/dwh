@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NotificationPrefItem } from '../../../core/models/notification.models';
 import { TranslatePipe } from '../../../core/services/i18n.service';
+import { SMTCheckboxComponent } from '../../../shared/ui-kit/components/forms/checkbox';
 
 export interface EventTypeRow {
   code: string;
@@ -12,7 +13,7 @@ export interface EventTypeRow {
 @Component({
   selector: 'app-notification-preferences-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslatePipe],
+  imports: [SMTCheckboxComponent, CommonModule, FormsModule, TranslatePipe],
   template: `
     <div class="modal-backdrop" (click)="onBackdropClick($event)" role="presentation">
       <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="pref-modal-title">
@@ -56,31 +57,22 @@ export interface EventTypeRow {
                     {{ row.titleKey | t }}
                   </td>
                   <td class="channel-cell">
-                    <input
-                      type="checkbox"
-                      class="toggle-checkbox"
+                    <span smt-checkbox smtHideLabel
                       [checked]="isEnabled(row.code, 'in_app')"
-                      (change)="toggle(row.code, 'in_app', $event)"
-                      [attr.aria-label]="(row.titleKey | t) + ' - In-App'"
-                    />
+                      (checkedChange)="toggle(row.code, 'in_app', $event)"
+                      [smtAriaLabel]="(row.titleKey | t) + ' - In-App'"></span>
                   </td>
                   <td class="channel-cell">
-                    <input
-                      type="checkbox"
-                      class="toggle-checkbox"
+                    <span smt-checkbox smtHideLabel
                       [checked]="isEnabled(row.code, 'email')"
-                      (change)="toggle(row.code, 'email', $event)"
-                      [attr.aria-label]="(row.titleKey | t) + ' - Email'"
-                    />
+                      (checkedChange)="toggle(row.code, 'email', $event)"
+                      [smtAriaLabel]="(row.titleKey | t) + ' - Email'"></span>
                   </td>
                   <td class="channel-cell">
-                    <input
-                      type="checkbox"
-                      class="toggle-checkbox"
+                    <span smt-checkbox smtHideLabel
                       [checked]="isEnabled(row.code, 'telegram')"
-                      (change)="toggle(row.code, 'telegram', $event)"
-                      [attr.aria-label]="(row.titleKey | t) + ' - Telegram'"
-                    />
+                      (checkedChange)="toggle(row.code, 'telegram', $event)"
+                      [smtAriaLabel]="(row.titleKey | t) + ' - Telegram'"></span>
                   </td>
                 </tr>
               </tbody>
@@ -217,12 +209,6 @@ export interface EventTypeRow {
       margin-right: 3px;
       color: var(--text-muted);
     }
-    .toggle-checkbox {
-      width: 17px;
-      height: 17px;
-      cursor: pointer;
-      accent-color: var(--primary);
-    }
     .modal-footer {
       padding: 12px 18px;
       border-top: 1px solid var(--border-color);
@@ -304,9 +290,8 @@ export class NotificationPreferencesModalComponent implements OnInit {
     return this.prefsMap.get(`${eventType}:${channel}`) ?? true;
   }
 
-  toggle(eventType: string, channel: string, event: Event): void {
-    const input = event.target as HTMLInputElement;
-    this.prefsMap.set(`${eventType}:${channel}`, input.checked);
+  toggle(eventType: string, channel: string, enabled: boolean): void {
+    this.prefsMap.set(`${eventType}:${channel}`, enabled);
   }
 
   onSave(): void {

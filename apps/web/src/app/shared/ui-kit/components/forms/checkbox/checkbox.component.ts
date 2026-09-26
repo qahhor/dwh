@@ -98,6 +98,9 @@ export class SMTCheckboxComponent<T> implements FormCheckboxControl {
   /** Internal: `smt-checkbox-group` disables projected children via `contentChildren` (projection breaks DI). */
   private groupDisabled = signal(false);
 
+  /** Disabled by a reactive form or ngModel through SMTCheckboxValueAccessor. */
+  private formsDisabled = signal(false);
+
   readonly hasError = computed(() =>
     shouldShowSMTFormControlError({
       invalid: this.invalid(),
@@ -114,7 +117,7 @@ export class SMTCheckboxComponent<T> implements FormCheckboxControl {
     return typeof h === 'string' && h.trim().length > 0;
   });
 
-  isDisabled = computed(() => this.disabled() || this.groupDisabled());
+  isDisabled = computed(() => this.disabled() || this.groupDisabled() || this.formsDisabled());
 
   readonly resolvedAriaLabel = computed(() => {
     const label = this.ariaLabel().trim();
@@ -196,6 +199,11 @@ export class SMTCheckboxComponent<T> implements FormCheckboxControl {
   /** Called by `SMTCheckboxGroupComponent` only. */
   setGroupDisabled(disabled: boolean): void {
     this.groupDisabled.set(disabled);
+  }
+
+  /** Called by SMTCheckboxValueAccessor. */
+  setDisabledFromForms(disabled: boolean): void {
+    this.formsDisabled.set(disabled);
   }
 
   markTouched(): void {

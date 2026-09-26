@@ -131,7 +131,6 @@ export class UsersComponent implements OnInit, OnDestroy {
   get isSubmitting() { return this.formsService.isSubmitting; }
   get isCreateModalOpen() { return this.formsService.isCreateModalOpen; }
   get isEditModalOpen() { return this.formsService.isEditModalOpen; }
-  get showPassword() { return this.formsService.showPassword; }
   get isFilterMenuOpen() { return this.filterService.isFilterMenuOpen; }
   get userSecurity() { return this.secService.userSecurity; }
   get isLoadingSecurity() { return this.secService.isLoadingSecurity; }
@@ -163,7 +162,10 @@ export class UsersComponent implements OnInit, OnDestroy {
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
-    if (!this.elementRef.nativeElement.contains(event.target)) {
+    // A select's options open in the CDK overlay, outside this element; picking one is not a click away.
+    const target = event.target as Element | null;
+    if (target?.closest?.('.cdk-overlay-container')) return;
+    if (!this.elementRef.nativeElement.contains(target)) {
       this.isFilterMenuOpen.set(false);
     }
   }

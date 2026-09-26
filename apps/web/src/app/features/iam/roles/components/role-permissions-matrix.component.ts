@@ -8,11 +8,13 @@ import { GroupedForm, ModuleGroup } from '../roles.models';
 import { SMTAlertComponent } from '../../../../shared/ui-kit/components/alert';
 import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '../../../../shared/ui-kit/components/forms/radio-group';
 import { I18nService } from '../../../../core/services/i18n.service';
+import { SMTCheckboxComponent } from '../../../../shared/ui-kit/components/forms/checkbox';
+import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/input';
 
 @Component({
   selector: 'app-role-permissions-matrix',
   standalone: true,
-  imports: [SMTRadioGroupComponent, SMTAlertComponent, CommonModule, FormsModule, TranslatePipe, UiButtonComponent],
+  imports: [SMTCheckboxComponent, SMTInputComponent, SMTRadioGroupComponent, SMTAlertComponent, CommonModule, FormsModule, TranslatePipe, UiButtonComponent],
   template: `
     <!-- Role Meta Header & Save Button -->
     <div class="matrix-header-bar">
@@ -90,23 +92,21 @@ import { I18nService } from '../../../../core/services/i18n.service';
     <div class="matrix-toolbar-box">
       <div class="search-and-expand-row">
         <div class="matrix-search-field">
-          <span class="material-symbols-outlined icon" aria-hidden="true">search</span>
           <label class="sr-only" for="permission-search">{{ 'iam.poisk_po_matrice_prav' | t }}</label>
-          <input
-            id="permission-search"
+          <smt-input
+            smtFieldId="permission-search"
             name="permissionSearch"
-            type="text"
+            type="search"
+            smtIcon="search"
+            clearable
+            smtSize="sm"
             class="matrix-search-input"
             [placeholder]="'iam.poisk_po_nazvaniyu_formy_deystviyu_ili_kodu' | t"
-            [ngModel]="matrixSearchQuery"
-            (ngModelChange)="matrixSearchQueryChange.emit($event)"
-          />
+            [value]="matrixSearchQuery"
+            (valueChange)="matrixSearchQueryChange.emit($event === null ? '' : '' + $event)" />
           <span *ngIf="matrixSearchQuery.trim()" class="search-match-badge">
             {{ 'iam.naydeno_form' | t:{count: matchingFormsCount} }}
           </span>
-          <button *ngIf="matrixSearchQuery" type="button" class="clear-search-btn" [attr.aria-label]="'iam.ochistit_poisk_po_matrice_prav' | t" (click)="matrixSearchQueryChange.emit('')">
-            <span class="material-symbols-outlined" aria-hidden="true">close</span>
-          </button>
         </div>
 
         <div class="expand-all-links">
@@ -210,24 +210,21 @@ import { I18nService } from '../../../../core/services/i18n.service';
 
                 <td class="form-actions-col">
                   <div class="actions-chips-wrap">
-                    <label
+                    <div
                       *ngFor="let act of f.actions"
+                      smt-checkbox
                       class="action-checkbox-card"
                       [class.checked]="hasPermission(f.formCode, act.action)"
                       [class.dirty]="isPermissionDirty(f.formCode, act.action)"
                       [class.readonly]="!canEditPermissions"
                       [title]="f.formCode + '.' + act.action"
+                      [checked]="hasPermission(f.formCode, act.action)"
+                      [disabled]="!canEditPermissions"
+                      (smtCheckedChange)="togglePermission.emit({ formCode: f.formCode, action: act.action, checked: $event })"
                     >
-                      <input
-                        type="checkbox"
-                        class="chk-input"
-                        [checked]="hasPermission(f.formCode, act.action)"
-                        [disabled]="!canEditPermissions"
-                        (change)="togglePermission.emit({ formCode: f.formCode, action: act.action, event: $event })"
-                      />
                       <span class="chk-label">{{ act.actionName }}</span>
                       <span *ngIf="isPermissionDirty(f.formCode, act.action)" class="dirty-indicator-dot" [title]="'iam.izmeneno' | t" aria-hidden="true">•</span>
-                    </label>
+                    </div>
                   </div>
                 </td>
               </tr>
@@ -283,7 +280,7 @@ export class RolePermissionsMatrixComponent {
   @Output() toggleReadOnlyModule = new EventEmitter<ModuleGroup>();
   @Output() toggleAllModule = new EventEmitter<{ mod: ModuleGroup; select: boolean }>();
   @Output() toggleAllForm = new EventEmitter<{ form: GroupedForm; select: boolean }>();
-  @Output() togglePermission = new EventEmitter<{ formCode: string; action: string; event: Event }>();
+  @Output() togglePermission = new EventEmitter<{ formCode: string; action: string; checked: boolean }>();
 
   private readonly moduleMemo = optionsMemo<SMTRadioOption<string>[]>();
 

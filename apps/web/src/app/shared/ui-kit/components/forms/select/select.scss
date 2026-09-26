@@ -266,3 +266,7 @@
 .smt-select__option--create {
   color: var(--primary-text);
 }
+
+.smt-select--invalid .smt-select__trigger {
+  border-color: var(--danger);
+}

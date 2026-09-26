@@ -1,13 +1,14 @@
 import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '../../core/services/i18n.service';
+import { SMTSelectComponent, SMTSelectOption } from '../ui-kit/components/forms/select';
+import { optionsMemo } from '../ui-kit/components/forms/radio-group/radio-options';
 
 @Component({
   selector: 'ui-pagination',
   standalone: true,
   imports: [
-    TranslatePipe,CommonModule, FormsModule],
+    TranslatePipe,CommonModule, SMTSelectComponent],
   template: `
     <nav class="pagination-bar" *ngIf="totalItems > 0 || (cursorMode && (currentPage > 1 || hasNextPage))" [attr.aria-label]="'ui.pagination.paginaciya' | t">
       <!-- Left: Item Range & Total Counter -->
@@ -23,15 +24,15 @@ import { TranslatePipe } from '../../core/services/i18n.service';
         <!-- Page Size Selector -->
         <div class="page-size-picker" *ngIf="showPageSize">
           <label class="size-label" [for]="pageSizeSelectId">{{ 'ui.pagination.strok' | t }}</label>
-          <select
-            [id]="pageSizeSelectId"
+          <smt-select
             class="size-select"
+            [smtTriggerId]="pageSizeSelectId"
+            [options]="pageSizeChoices()"
+            [allowClear]="false"
             [disabled]="disabled"
-            [ngModel]="pageSize"
-            (ngModelChange)="onPageSizeChange($event)"
-          >
-            <option *ngFor="let opt of pageSizeOptions" [ngValue]="opt">{{ opt }}</option>
-          </select>
+            [value]="pageSize"
+            (valueChange)="onPageSizeChange($event)"
+          />
         </div>
 
         <!-- Navigation Buttons & Page Numbers -->
@@ -155,17 +156,7 @@ import { TranslatePipe } from '../../core/services/i18n.service';
       font-size: 12px;
     }
     .size-select {
-      height: 28px;
-      padding: 2px 6px;
-      border-radius: var(--radius-xs);
-      border: 1px solid var(--border-color);
-      background-color: var(--bg-hover);
-      color: var(--text-main);
-      font-size: 12px;
-      cursor: pointer;
-    }
-    .size-select:focus {
-      border-color: var(--primary);
+      width: 88px;
     }
 
     .page-nav {
@@ -282,6 +273,12 @@ export class UiPaginationComponent implements OnChanges {
   visiblePages: number[] = [];
   readonly pageSizeSelectId = `ui-pagination-size-${UiPaginationComponent.nextId++}`;
 
+  private readonly pageSizeMemo = optionsMemo<SMTSelectOption<number>[]>();
+
+  pageSizeChoices(): SMTSelectOption<number>[] {
+    return this.pageSizeMemo([this.pageSizeOptions], () => this.pageSizeOptions.map(size => ({ id: size, label: String(size) })));
+  }
+
   ngOnChanges(changes: SimpleChanges): void {
     this.calculatePagination();
   }
@@ -337,7 +334,8 @@ export class UiPaginationComponent implements OnChanges {
     }
   }
 
-  onPageSizeChange(newSize: number) {
+  onPageSizeChange(newSize: number | null) {
+    if (newSize === null) return;
     this.pageSize = newSize;
     this.currentPage = 1;
     this.calculatePagination();

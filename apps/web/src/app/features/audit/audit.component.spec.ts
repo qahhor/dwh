@@ -50,6 +50,8 @@ describe('AuditComponent UI contracts', () => {
     expect(fixture.nativeElement.querySelector('[role="tablist"][aria-label="Разделы аудита"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('#audit-log-tab[aria-selected="true"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('label[for="audit-table-filter"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('#audit-table-filter')?.getAttribute('role')).toBe('combobox');
+    expect(fixture.nativeElement.querySelector('#audit-event-filter')?.getAttribute('role')).toBe('combobox');
     const region = fixture.nativeElement.querySelector('#audit-log-panel .table-container[role="region"]') as HTMLElement;
     expect(region.querySelector('[role="table"]')?.getAttribute('aria-label')).toBe('Журнал изменений данных');
     expect(region.querySelectorAll('[role="rowgroup"] > [role="row"]')).toHaveLength(1);
@@ -71,6 +73,7 @@ describe('AuditComponent UI contracts', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('label[for="security-event-filter"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('#security-event-filter')?.getAttribute('role')).toBe('combobox');
     expect(fixture.nativeElement.querySelector('label[for="security-ip-search"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('#security-events-panel [role="table"]')?.getAttribute('aria-label')).toBe('События безопасности');
     expect(fixture.nativeElement.querySelector('button[aria-label="Просмотреть событие безопасности #9"]')).not.toBeNull();

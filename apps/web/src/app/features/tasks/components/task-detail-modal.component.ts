@@ -1,6 +1,5 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
@@ -12,13 +11,15 @@ import { Task, Project, TaskStatus, TaskType, TaskMember, TaskComment, TaskFile 
 import { safeNumericRecordId } from '../../../core/services/search-target';
 import { groupMembersByRole, GroupedTaskMembers } from '../tasks.models';
 import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
+import { SMTSelectComponent, SMTSelectOption } from '../../../shared/ui-kit/components/forms/select';
+import { SMTTextareaComponent } from '../../../shared/ui-kit/components/forms/textarea';
+import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group/radio-options';
 
 @Component({
   selector: 'app-task-detail-modal',
   standalone: true,
   imports: [
-    SMTAvatarComponent, CommonModule,
-    FormsModule,
+    SMTAvatarComponent, SMTSelectComponent, SMTTextareaComponent, CommonModule,
     TranslatePipe,
     UiModalComponent,
     UiButtonComponent,
@@ -168,16 +169,16 @@ import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
               </div>
 
               <div class="add-comment-box" *ngIf="canCommentTask">
-                <textarea
+                <label class="sr-only" for="task-comment-draft">{{ 'tasks.comment_task_aria' | t:{id: t.id} }}</label>
+                <smt-textarea
                   class="comment-textarea"
-                  [attr.aria-label]="'tasks.comment_task_aria' | t:{id: t.id}"
-                  rows="2"
+                  smtFieldId="task-comment-draft"
+                  [rows]="2"
                   [placeholder]="'tasks.napisat_kommentariy_k_zadache_ctrl_enter_dlya_ot' | t"
-                  [ngModel]="commentDraft"
-                  (ngModelChange)="commentDraftChange.emit($event)"
+                  [value]="commentDraft"
+                  (valueChange)="commentDraftChange.emit($event)"
                   [disabled]="isCommentSubmitting"
-                  (keydown.ctrl.enter)="submitComment.emit()"
-                ></textarea>
+                  (keydown.ctrl.enter)="submitComment.emit()" />
                 <ui-button variant="primary" size="sm" icon="send" [loading]="isCommentSubmitting" (onClick)="submitComment.emit()">
                   {{ 'tasks.otpravit' | t }}
                 </ui-button>
@@ -197,15 +198,15 @@ import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
                 <span class="prop-k">{{ 'common.status' | t }}</span>
                 <div class="prop-v">
                   <span class="status-dot" [style.background-color]="getStatusColor(t.statusId)" aria-hidden="true"></span>
-                  <select
-                    class="clean-select status-select"
-                    [ngModel]="t.statusId"
-                    (ngModelChange)="statusChange.emit({ taskId: t.id, statusId: $event })"
+                  <smt-select
+                    class="status-select"
+                    [options]="statusOptions()"
+                    [value]="t.statusId"
+                    (valueChange)="onStatusChange(t.id, $event)"
+                    [allowClear]="false"
                     [disabled]="!canUpdateTask || !safeRecordId(t.id)"
-                    [attr.aria-label]="'tasks.task_status_aria' | t:{id: t.id}"
-                  >
-                    <option *ngFor="let s of statuses" [ngValue]="s.id">{{ s.name }}</option>
-                  </select>
+                    [ariaLabel]="'tasks.task_status_aria' | t:{id: t.id}"
+                  ></smt-select>
                 </div>
               </div>
 
@@ -416,7 +417,18 @@ export class TaskDetailModalComponent {
   @Output() commentDraftChange = new EventEmitter<string>();
   @Output() submitComment = new EventEmitter<void>();
 
+  private readonly statusMemo = optionsMemo<SMTSelectOption<number>[]>();
+
   constructor(private readonly i18n: I18nService) {}
+
+  /** Statuses as smt-select options; the same array while the statuses stay the same. */
+  statusOptions(): SMTSelectOption<number>[] {
+    return this.statusMemo([this.statuses], () => this.statuses.map(status => ({ id: status.id, label: status.name })));
+  }
+
+  onStatusChange(taskId: number, statusId: number | null): void {
+    if (statusId !== null) this.statusChange.emit({ taskId, statusId });
+  }
 
   get groupedMembers(): GroupedTaskMembers {
     return groupMembersByRole(this.taskMembers);

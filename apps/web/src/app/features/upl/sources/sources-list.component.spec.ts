@@ -355,6 +355,34 @@ describe('SourcesListComponent', () => {
     expect(fixture.componentInstance.isCreateOpen()).toBe(false);
   });
 
+  it('берёт периодичность и строгость сверки из выпадающих списков формы', async () => {
+    const { fixture, api } = await createFixture();
+    fixture.componentInstance.openCreate();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const pick = (triggerId: string, label: string) => {
+      const trigger = document.getElementById(triggerId) as HTMLButtonElement;
+      expect(trigger.getAttribute('role')).toBe('combobox');
+      expect(document.querySelector(`label[for="${triggerId}"]`)).not.toBeNull();
+      trigger.click();
+      fixture.detectChanges();
+      const option = ([...document.querySelectorAll('.smt-select__option')] as HTMLElement[])
+        .find(item => item.querySelector('.smt-select__option-label')?.textContent?.trim() === label);
+      option!.click();
+      fixture.detectChanges();
+    };
+    expect(document.getElementById('upl-source-periodicity')?.textContent).toContain(PACKAGED_RUSSIAN['upl.periodicity.month']);
+    pick('upl-source-periodicity', PACKAGED_RUSSIAN['upl.periodicity.quarter']);
+    pick('upl-source-strictness', PACKAGED_RUSSIAN['upl.strictness.warning']);
+    Object.assign(fixture.componentInstance.form, { code: 'cement.output', name: 'Vypusk', ownerOrg: 'Org' });
+    fixture.debugElement.query(By.css('#upl-source-create')).triggerEventHandler('ngSubmit', null);
+    fixture.detectChanges();
+
+    expect(api.createSource).toHaveBeenCalledWith(expect.objectContaining({ periodicity: 'quarter', reconciliationStrictness: 'warning' }));
+  });
+
   it('показывает занятый код под полем «Код», окно остаётся открытым', async () => {
     const problem: ProblemDetail = {
       title: 'Bad Request',

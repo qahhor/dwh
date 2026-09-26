@@ -3,11 +3,42 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '../../../core/services/i18n.service';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
+import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
+import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../../../shared/ui-kit/components/forms/select';
+import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group/radio-options';
+
+const TIMEZONES: readonly SMTSelectOption<string>[] = [
+  { id: 'Asia/Tashkent', label: 'Asia/Tashkent (UTC+5)' },
+  { id: 'Asia/Samarkand', label: 'Asia/Samarkand (UTC+5)' },
+  { id: 'Asia/Almaty', label: 'Asia/Almaty (UTC+5)' },
+  { id: 'Asia/Bishkek', label: 'Asia/Bishkek (UTC+6)' },
+  { id: 'Asia/Dushanbe', label: 'Asia/Dushanbe (UTC+5)' },
+  { id: 'Asia/Ashgabat', label: 'Asia/Ashgabat (UTC+5)' },
+  { id: 'Asia/Baku', label: 'Asia/Baku (UTC+4)' },
+  { id: 'Europe/Moscow', label: 'Europe/Moscow (UTC+3)' },
+  { id: 'Europe/Istanbul', label: 'Europe/Istanbul (UTC+3)' },
+  { id: 'Europe/Berlin', label: 'Europe/Berlin (UTC+1)' },
+  { id: 'Europe/London', label: 'Europe/London (UTC+0)' },
+  { id: 'UTC', label: 'UTC (GMT+0)' },
+];
+
+const DATE_FORMATS: readonly SMTSelectOption<string>[] = [
+  { id: 'dd.MM.yyyy HH:mm', label: '29.08.2026 14:30 (dd.MM.yyyy HH:mm)' },
+  { id: 'yyyy-MM-dd HH:mm', label: '2026-08-29 14:30 (yyyy-MM-dd HH:mm)' },
+  { id: 'MM/dd/yyyy hh:mm a', label: '08/29/2026 02:30 PM (MM/dd/yyyy)' },
+  { id: 'dd.MM.yyyy', label: '29.08.2026 (dd.MM.yyyy)' },
+  { id: 'dd/MM/yyyy HH:mm', label: '29/08/2026 14:30 (dd/MM/yyyy HH:mm)' },
+];
+
+/** The known choices, plus the stored value as its own choice when it is none of them. */
+function withCurrent(known: readonly SMTSelectOption<string>[], current: string | undefined): readonly SMTSelectOption<string>[] {
+  return current && !known.some(option => option.id === current) ? [...known, { id: current, label: current }] : known;
+}
 
 @Component({
   selector: 'app-settings-general-panel',
   standalone: true,
-  imports: [
+  imports: [SMTInputComponent, SMTInputValueAccessor, SMTSelectComponent, SMTSelectValueAccessor,
     CommonModule,
     FormsModule,
     TranslatePipe,
@@ -29,59 +60,30 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
       <div class="form-grid">
         <div class="form-group full-width">
           <label class="form-label" for="settings-company-name">{{ 'settings.company_name' | t }}</label>
-          <input
-            id="settings-company-name"
+          <smt-input
+            smtFieldId="settings-company-name"
             name="settingsCompanyName"
-            type="text"
-            class="form-input"
             [disabled]="!canUpdateSystemSettings || isSaving"
             [(ngModel)]="systemSettings['system.company_name']"
-            placeholder="SmartupCMS"
-          />
+            placeholder="SmartupCMS" />
         </div>
 
         <div class="form-group">
           <label class="form-label" for="settings-default-language">{{ 'settings.default_language' | t }}</label>
-          <select id="settings-default-language" name="settingsDefaultLanguage" class="form-select" [disabled]="!canUpdateSystemSettings || isSaving" [(ngModel)]="systemSettings['system.default_language']">
-            <option *ngFor="let lang of languages" [value]="lang.code">
-              {{ lang.name }} ({{ lang.code.toUpperCase() }})
-            </option>
-          </select>
+          <smt-select smtTriggerId="settings-default-language" name="settingsDefaultLanguage" [options]="languageOptions()" [allowClear]="false"
+            [disabled]="!canUpdateSystemSettings || isSaving" [(ngModel)]="systemSettings['system.default_language']" />
         </div>
 
         <div class="form-group">
           <label class="form-label" for="settings-default-timezone">{{ 'settings.default_timezone' | t }}</label>
-          <select id="settings-default-timezone" name="settingsDefaultTimezone" class="form-select" [disabled]="!canUpdateSystemSettings || isSaving" [(ngModel)]="systemSettings['system.default_timezone']">
-            <option value="Asia/Tashkent">Asia/Tashkent (UTC+5)</option>
-            <option value="Asia/Samarkand">Asia/Samarkand (UTC+5)</option>
-            <option value="Asia/Almaty">Asia/Almaty (UTC+5)</option>
-            <option value="Asia/Bishkek">Asia/Bishkek (UTC+6)</option>
-            <option value="Asia/Dushanbe">Asia/Dushanbe (UTC+5)</option>
-            <option value="Asia/Ashgabat">Asia/Ashgabat (UTC+5)</option>
-            <option value="Asia/Baku">Asia/Baku (UTC+4)</option>
-            <option value="Europe/Moscow">Europe/Moscow (UTC+3)</option>
-            <option value="Europe/Istanbul">Europe/Istanbul (UTC+3)</option>
-            <option value="Europe/Berlin">Europe/Berlin (UTC+1)</option>
-            <option value="Europe/London">Europe/London (UTC+0)</option>
-            <option value="UTC">UTC (GMT+0)</option>
-            <option *ngIf="isCustomTimezone(systemSettings['system.default_timezone'])" [value]="systemSettings['system.default_timezone']">
-              {{ systemSettings['system.default_timezone'] }}
-            </option>
-          </select>
+          <smt-select smtTriggerId="settings-default-timezone" name="settingsDefaultTimezone" [options]="timezoneOptions()" [allowClear]="false"
+            [disabled]="!canUpdateSystemSettings || isSaving" [(ngModel)]="systemSettings['system.default_timezone']" />
         </div>
 
         <div class="form-group">
           <label class="form-label" for="settings-date-format">{{ 'settings.date_format' | t }}</label>
-          <select id="settings-date-format" name="settingsDateFormat" class="form-select" [disabled]="!canUpdateSystemSettings || isSaving" [(ngModel)]="systemSettings['system.date_format']">
-            <option value="dd.MM.yyyy HH:mm">29.08.2026 14:30 (dd.MM.yyyy HH:mm)</option>
-            <option value="yyyy-MM-dd HH:mm">2026-08-29 14:30 (yyyy-MM-dd HH:mm)</option>
-            <option value="MM/dd/yyyy hh:mm a">08/29/2026 02:30 PM (MM/dd/yyyy)</option>
-            <option value="dd.MM.yyyy">29.08.2026 (dd.MM.yyyy)</option>
-            <option value="dd/MM/yyyy HH:mm">29/08/2026 14:30 (dd/MM/yyyy HH:mm)</option>
-            <option *ngIf="isCustomDateFormat(systemSettings['system.date_format'])" [value]="systemSettings['system.date_format']">
-              {{ systemSettings['system.date_format'] }}
-            </option>
-          </select>
+          <smt-select smtTriggerId="settings-date-format" name="settingsDateFormat" [options]="dateFormatOptions()" [allowClear]="false"
+            [disabled]="!canUpdateSystemSettings || isSaving" [(ngModel)]="systemSettings['system.date_format']" />
         </div>
       </div>
 
@@ -157,7 +159,7 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
       font-weight: 500;
       color: var(--text-main);
     }
-    .form-input, .form-select {
+    .form-input {
       background: var(--bg-surface);
       border: 1px solid var(--border-color);
       border-radius: 8px;
@@ -167,12 +169,8 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
       outline: none;
       transition: border-color 0.15s ease;
     }
-    .form-input:focus, .form-select:focus {
+    .form-input:focus {
       border-color: var(--primary);
-    }
-    .form-select option {
-      background: var(--bg-surface);
-      color: var(--text-main);
     }
     .card-footer-actions {
       display: flex;
@@ -201,22 +199,25 @@ export class SettingsGeneralPanelComponent {
   @Input() languages: Array<{ code: string; name: string }> = [];
   @Output() save = new EventEmitter<void>();
 
-  isCustomTimezone(tz: string | undefined): boolean {
-    if (!tz) return false;
-    const known = [
-      'Asia/Tashkent', 'Asia/Samarkand', 'Asia/Almaty', 'Asia/Bishkek',
-      'Asia/Dushanbe', 'Asia/Ashgabat', 'Asia/Baku', 'Europe/Moscow',
-      'Europe/Istanbul', 'Europe/Berlin', 'Europe/London', 'UTC'
-    ];
-    return !known.includes(tz);
+  private readonly languageMemo = optionsMemo<SMTSelectOption<string>[]>();
+
+  private readonly timezoneMemo = optionsMemo<readonly SMTSelectOption<string>[]>();
+
+  private readonly dateFormatMemo = optionsMemo<readonly SMTSelectOption<string>[]>();
+
+  languageOptions(): SMTSelectOption<string>[] {
+    return this.languageMemo([this.languages], () =>
+      this.languages.map(lang => ({ id: lang.code, label: `${lang.name} (${lang.code.toUpperCase()})` }))
+    );
   }
 
-  isCustomDateFormat(df: string | undefined): boolean {
-    if (!df) return false;
-    const known = [
-      'dd.MM.yyyy HH:mm', 'yyyy-MM-dd HH:mm', 'MM/dd/yyyy hh:mm a',
-      'dd.MM.yyyy', 'dd/MM/yyyy HH:mm'
-    ];
-    return !known.includes(df);
+  timezoneOptions(): readonly SMTSelectOption<string>[] {
+    const current = this.systemSettings['system.default_timezone'];
+    return this.timezoneMemo([current], () => withCurrent(TIMEZONES, current));
+  }
+
+  dateFormatOptions(): readonly SMTSelectOption<string>[] {
+    const current = this.systemSettings['system.date_format'];
+    return this.dateFormatMemo([current], () => withCurrent(DATE_FORMATS, current));
   }
 }

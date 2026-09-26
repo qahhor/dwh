@@ -9,6 +9,8 @@ import { FormTreeItem } from '../../../../core/models/rbac.models';
 import { MODULE_ICON_MAP, MODULE_NAME_KEY_MAP } from '../../roles/roles.models';
 import { EffectivePermissionItem, PersonalGrant, EffectivePermissionsResponse, PersonalPermissionsResponse } from '../users.models';
 import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '../../../../shared/ui-kit/components/forms/radio-group';
+import { SMTSelectComponent, SMTSelectOption } from '../../../../shared/ui-kit/components/forms/select';
+import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/input';
 
 export interface GroupedPermissionAction {
   action: string;
@@ -31,7 +33,7 @@ export interface GroupedPermissionModule {
 @Component({
   selector: 'app-user-effective-permissions-panel',
   standalone: true,
-  imports: [SMTRadioGroupComponent, CommonModule, FormsModule, TranslatePipe, UiButtonComponent],
+  imports: [SMTRadioGroupComponent, SMTSelectComponent, SMTInputComponent, CommonModule, FormsModule, TranslatePipe, UiButtonComponent],
   template: `
     <div class="effective-perms-container">
       <!-- Loading State -->
@@ -89,33 +91,27 @@ export interface GroupedPermissionModule {
           <div class="add-grant-form">
             <div class="form-group">
               <label for="select-grant-form" class="sr-only">{{ 'iam.forma' | t }}</label>
-              <select
-                id="select-grant-form"
+              <smt-select
+                smtTriggerId="select-grant-form"
                 class="grant-select"
-                [ngModel]="selectedFormCode()"
-                (ngModelChange)="onFormSelect($event)"
-              >
-                <option value="">{{ 'iam.vyberite_formu' | t }}</option>
-                <option *ngFor="let f of uniqueForms()" [value]="f.formCode">
-                  {{ f.formName }} ({{ f.formCode }})
-                </option>
-              </select>
+                [value]="selectedFormCode()"
+                (valueChange)="onFormSelect($event ?? '')"
+                [options]="formOptions()"
+                [placeholder]="'iam.vyberite_formu' | t"
+                [emptyLabel]="'iam.vyberite_formu' | t" />
             </div>
 
             <div class="form-group">
               <label for="select-grant-action" class="sr-only">{{ 'iam.deystvie' | t }}</label>
-              <select
-                id="select-grant-action"
+              <smt-select
+                smtTriggerId="select-grant-action"
                 class="grant-select"
-                [ngModel]="selectedAction()"
-                (ngModelChange)="selectedAction.set($event)"
+                [value]="selectedAction()"
+                (valueChange)="selectedAction.set($event ?? '')"
                 [disabled]="!selectedFormCode()"
-              >
-                <option value="">{{ 'iam.vyberite_deystvie' | t }}</option>
-                <option *ngFor="let act of availableActionsForSelectedForm()" [value]="act.action">
-                  {{ act.actionName }} ({{ act.action }})
-                </option>
-              </select>
+                [options]="actionOptions()"
+                [placeholder]="'iam.vyberite_deystvie' | t"
+                [emptyLabel]="'iam.vyberite_deystvie' | t" />
             </div>
 
             <ui-button
@@ -146,17 +142,15 @@ export interface GroupedPermissionModule {
 
         <!-- Filter & Search Toolbar -->
         <div class="perms-toolbar">
-          <div class="search-input-wrap">
-            <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
-            <input
-              type="search"
-              class="search-input"
-              [placeholder]="'iam.poisk_po_pravam' | t"
-              [ngModel]="searchQuery()"
-              (ngModelChange)="searchQuery.set($event)"
-              [attr.aria-label]="'iam.poisk_po_pravam' | t"
-            />
-          </div>
+          <smt-input
+            class="search-input-wrap"
+            type="search"
+            smtIcon="search"
+            clearable
+            [placeholder]="'iam.poisk_po_pravam' | t"
+            [value]="searchQuery()"
+            (valueChange)="searchQuery.set($event === null ? '' : '' + $event)"
+            [smtAriaLabel]="'iam.poisk_po_pravam' | t" />
 
           <smt-radio-group
             smtAppearance="chips"
@@ -339,18 +333,8 @@ export interface GroupedPermissionModule {
       align-items: center;
     }
     .grant-select {
-      height: 34px;
-      padding: 0 10px;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm, 6px);
-      background: var(--bg-surface);
-      color: var(--text-main);
-      font-size: 0.82rem;
+      display: block;
       min-width: 180px;
-    }
-    .grant-select:focus {
-      outline: none;
-      border-color: var(--primary);
     }
 
     .unsaved-banner {
@@ -374,32 +358,9 @@ export interface GroupedPermissionModule {
       flex-wrap: wrap;
     }
     .search-input-wrap {
-      position: relative;
       flex: 1;
+      width: auto;
       min-width: 200px;
-    }
-    .search-icon {
-      position: absolute;
-      left: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      font-size: 18px;
-      color: var(--text-muted);
-      pointer-events: none;
-    }
-    .search-input {
-      width: 100%;
-      height: 34px;
-      padding: 0 10px 0 34px;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm, 6px);
-      background: var(--bg-surface);
-      color: var(--text-main);
-      font-size: 0.82rem;
-    }
-    .search-input:focus {
-      outline: none;
-      border-color: var(--primary);
     }
 
 
@@ -559,6 +520,12 @@ export class UserEffectivePermissionsPanelComponent implements OnInit, OnChanges
     if (!code) return [];
     return this.formCatalog().filter(f => f.formCode === code);
   });
+
+  readonly formOptions = computed<SMTSelectOption<string>[]>(() =>
+    this.uniqueForms().map(f => ({ id: f.formCode, label: `${f.formName} (${f.formCode})` })));
+
+  readonly actionOptions = computed<SMTSelectOption<string>[]>(() =>
+    this.availableActionsForSelectedForm().map(act => ({ id: act.action, label: `${act.actionName} (${act.action})` })));
 
   readonly filteredItems = computed(() => {
     const q = this.searchQuery().trim().toLowerCase();

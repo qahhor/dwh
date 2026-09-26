@@ -443,11 +443,11 @@ test('controlled project fixtures keep filter, copy, hitbox, card, and mobile co
     await expectMinimumHitbox(listEdit, { width: 28, height: 28 });
     await page.getByRole('button', { name: 'Страница 2', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Страница 2', exact: true })).toHaveAttribute('aria-current', 'page');
-    const search = page.getByRole('textbox', { name: 'Поиск проектов', exact: true });
+    const search = page.getByRole('searchbox', { name: 'Поиск проектов', exact: true });
     await search.fill('Fixture active anchor');
     await expect(projectRow(page, 'Fixture active anchor')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Страница 1', exact: true })).toHaveAttribute('aria-current', 'page');
-    await page.getByRole('button', { name: 'Очистить поиск проектов', exact: true }).click();
+    await page.getByRole('button', { name: 'Очистить поле', exact: true }).click();
 
     await cardsButton.click();
     await expect(cardsButton).toHaveAttribute('aria-pressed', 'true');

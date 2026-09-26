@@ -338,7 +338,7 @@ test('a late search response cannot replace the current task query', async ({ pa
   });
 
   await page.goto('/tasks');
-  const search = page.getByRole('textbox', { name: 'Поиск задач' });
+  const search = page.getByRole('searchbox', { name: 'Поиск задач' });
   await search.fill('old');
   await oldStarted;
   await search.fill('new');
@@ -394,7 +394,7 @@ test('the real task status select uses semantic text and surface colors in both 
   const title = uniqueRunName('E2E status color');
   await loginToInstance(page);
   await createTaskThroughUi(page, title);
-  const statusSelect = taskOpenButton(page, title).locator('xpath=ancestor::*[@role="row"][1]').locator('.inline-status-select');
+  const statusSelect = taskOpenButton(page, title).locator('xpath=ancestor::*[@role="row"][1]').locator('.inline-status-select [role="combobox"]');
 
   await ensureTheme(page, 'light');
   await expectStatusColors(statusSelect, LIGHT_STATUS_COLORS);

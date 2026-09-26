@@ -40,12 +40,23 @@ describe('CustomFieldsComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.componentInstance.showModal).toBe(true);
-    const controls = Array.from(fixture.nativeElement.querySelectorAll('.modal-form input, .modal-form select')) as Array<HTMLInputElement | HTMLSelectElement>;
+    // smt-checkbox keeps a hidden native box (aria-hidden); the person meets its role="checkbox" instead.
+    const controls = Array.from(fixture.nativeElement.querySelectorAll('.modal-form input:not([aria-hidden="true"]), .modal-form select, .modal-form [role="combobox"]')) as HTMLElement[];
+    const required = fixture.nativeElement.querySelector('.modal-form [role="checkbox"]') as HTMLElement;
+    expect(document.getElementById(required.getAttribute('aria-labelledby')!)?.textContent?.trim()).toBe('Обязательное для заполнения');
+    expect(controls.filter(control => control.getAttribute('role') === 'combobox').map(control => control.id))
+      .toEqual(['custom-field-entity', 'custom-field-type']);
     for (const control of controls) {
       expect(control.id).not.toBe('');
       expect(fixture.nativeElement.querySelector(`label[for="${control.id}"]`)).not.toBeNull();
     }
     expect(fixture.nativeElement.querySelector('button[aria-label="Обновить поля"]')).not.toBeNull();
+
+    expect(fixture.componentInstance.formData.isRequired).toBe(false);
+    await fixture.whenStable(); // NgForm registers its ngModel controls a tick after render
+    required.click();
+    await fixture.whenStable();
+    expect(fixture.componentInstance.formData.isRequired).toBe(true);
   });
 
   it('configures select values and sends them to the existing API', async () => {
@@ -67,9 +78,10 @@ describe('CustomFieldsComponent', () => {
     code.dispatchEvent(new Event('input'));
     name.value = 'Тип статуса';
     name.dispatchEvent(new Event('input'));
-    const type = fixture.nativeElement.querySelector('#custom-field-type') as HTMLSelectElement;
-    type.selectedIndex = 4;
-    type.dispatchEvent(new Event('change'));
+    const type = fixture.nativeElement.querySelector('#custom-field-type') as HTMLButtonElement;
+    type.click();
+    fixture.detectChanges();
+    (Array.from(document.querySelectorAll('.smt-select__option')) as HTMLElement[])[4].click();
     await fixture.whenStable();
     fixture.detectChanges();
     expect(fixture.componentInstance.formData.fieldType).toBe('select');

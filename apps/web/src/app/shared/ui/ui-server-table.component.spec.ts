@@ -1,10 +1,12 @@
 import { Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { Observable, of, Subject, throwError } from 'rxjs';
 import { describe, expect, it } from 'vitest';
 import { KeysetPager, KeysetResponse } from '../paging/keyset-pager';
 import { TableConfig } from '../ui-kit/components/table/table.types';
 import { UiServerTableComponent } from './ui-server-table.component';
+import { SMTSelectComponent } from '../ui-kit/components/forms/select';
 
 interface Row { id: number }
 
@@ -114,9 +116,10 @@ describe('ui-server-table', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
-    const select = el(fixture).querySelector('select') as HTMLSelectElement;
-    expect([...select.options].map(option => option.textContent?.trim())).toEqual(['2', '10', '25', '50', '100']);
-    expect(select.selectedOptions[0]?.textContent?.trim()).toBe('2');
+    const select = fixture.debugElement.query(By.css('ui-pagination smt-select')).componentInstance as SMTSelectComponent<number>;
+    expect(select.options().map(option => option.label)).toEqual(['2', '10', '25', '50', '100']);
+    expect(select.selectedOption()?.label).toBe('2');
+    expect(el(fixture).querySelector('ui-pagination button[role="combobox"]')?.textContent).toContain('2');
   });
 
   it('shows the range on screen without a false total when the server counts only the page', async () => {

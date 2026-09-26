@@ -1,8 +1,10 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SMTSwitchComponent } from '../../../shared/ui-kit/components/forms/switch';
 import { FormsModule } from '@angular/forms';
-import { TranslatePipe } from '../../../core/services/i18n.service';
+import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
+import { SMTSelectComponent, SMTSelectOption } from '../../../shared/ui-kit/components/forms/select';
+import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group/radio-options';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 
 @Component({
@@ -10,6 +12,7 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
   standalone: true,
   imports: [
     SMTSwitchComponent,
+    SMTSelectComponent,
     CommonModule,
     FormsModule,
     TranslatePipe,
@@ -30,34 +33,26 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
       <div class="form-grid">
         <div class="form-group">
           <label class="form-label" for="settings-interface-language">{{ 'settings.yazyk_interfeysa' | t }}</label>
-          <select
-            id="settings-interface-language"
-            name="settingsInterfaceLanguage"
-            class="form-select"
+          <smt-select
+            smtTriggerId="settings-interface-language"
+            [options]="languageOptions()"
+            [allowClear]="false"
             [disabled]="isSaving"
-            [ngModel]="currentLang"
-            (ngModelChange)="changeLanguage.emit($event)"
-          >
-            <option *ngFor="let lang of languages" [value]="lang.code">
-              {{ lang.name }} ({{ lang.code.toUpperCase() }})
-            </option>
-          </select>
+            [value]="currentLang"
+            (valueChange)="$event && changeLanguage.emit($event)"
+          />
         </div>
 
         <div class="form-group">
           <label class="form-label" for="settings-theme">{{ 'settings.theme' | t }}</label>
-          <select
-            id="settings-theme"
-            name="settingsTheme"
-            class="form-select"
+          <smt-select
+            smtTriggerId="settings-theme"
+            [options]="themeOptions()"
+            [allowClear]="false"
             [disabled]="isSaving"
-            [ngModel]="userThemePreference"
-            (ngModelChange)="themeChange.emit($event)"
-          >
-            <option value="dark">{{ 'settings.temnaya_dark_premium' | t }}</option>
-            <option value="light">{{ 'settings.svetlaya_light_clean' | t }}</option>
-            <option value="system">{{ 'settings.sistemnaya_tema' | t }}</option>
-          </select>
+            [value]="userThemePreference"
+            (valueChange)="$event && themeChange.emit($event)"
+          />
         </div>
 
         <div class="form-group full-width">
@@ -149,23 +144,6 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
       font-weight: 500;
       color: var(--text-main);
     }
-    .form-select {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 9px 12px;
-      color: var(--text-main);
-      font-size: 13px;
-      outline: none;
-      transition: border-color 0.15s ease;
-    }
-    .form-select:focus {
-      border-color: var(--primary);
-    }
-    .form-select option {
-      background: var(--bg-surface);
-      color: var(--text-main);
-    }
     .toggle-row {
       display: flex;
       align-items: center;
@@ -198,6 +176,8 @@ import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
   `]
 })
 export class SettingsPreferencesPanelComponent {
+  private readonly i18n = inject(I18nService);
+
   @Input() userSettings: Record<string, string> = {};
   @Input() isSaving = false;
   @Input() currentLang = '';
@@ -208,4 +188,22 @@ export class SettingsPreferencesPanelComponent {
   @Output() changeLanguage = new EventEmitter<string>();
   @Output() themeChange = new EventEmitter<string>();
   @Output() toggleSound = new EventEmitter<boolean>();
+
+  private readonly languageMemo = optionsMemo<SMTSelectOption<string>[]>();
+
+  private readonly themeMemo = optionsMemo<SMTSelectOption<string>[]>();
+
+  languageOptions(): SMTSelectOption<string>[] {
+    return this.languageMemo([this.languages], () =>
+      this.languages.map(lang => ({ id: lang.code, label: `${lang.name} (${lang.code.toUpperCase()})` }))
+    );
+  }
+
+  themeOptions(): SMTSelectOption<string>[] {
+    return this.themeMemo([this.i18n.currentLang()], () => [
+      { id: 'dark', label: this.i18n.translate('settings.temnaya_dark_premium') },
+      { id: 'light', label: this.i18n.translate('settings.svetlaya_light_clean') },
+      { id: 'system', label: this.i18n.translate('settings.sistemnaya_tema') },
+    ]);
+  }
 }

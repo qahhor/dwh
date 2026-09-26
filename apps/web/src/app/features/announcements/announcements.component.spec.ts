@@ -99,6 +99,7 @@ describe('AnnouncementsComponent', () => {
     expect(fixture.nativeElement.querySelector('label[for="announcement-title-ru"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('label[for="announcement-body-ru"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('label[for="announcement-banner-type"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('#announcement-banner-type')?.getAttribute('role')).toBe('combobox');
     expect((fixture.nativeElement.querySelector('[data-testid="save-draft"]') as HTMLButtonElement).disabled).toBe(true);
   });
 

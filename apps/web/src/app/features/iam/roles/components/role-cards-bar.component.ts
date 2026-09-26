@@ -3,28 +3,28 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Role } from '../../../../core/models/rbac.models';
 import { TranslatePipe } from '../../../../core/services/i18n.service';
+import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/input';
 
 @Component({
   selector: 'app-role-cards-bar',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslatePipe],
+  imports: [SMTInputComponent, CommonModule, FormsModule, TranslatePipe],
   template: `
     <div class="roles-strip-container">
       <div class="roles-strip-header">
         <span class="strip-title">{{ 'iam.vyberite_rol_dlya_nastroyki_prav' | t }}</span>
-        <div class="search-field" style="width: 220px;">
-          <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
+        <div class="search-field">
           <label class="sr-only" for="role-search">{{ 'iam.poisk_roley' | t }}</label>
-          <input
-            id="role-search"
+          <smt-input
+            smtFieldId="role-search"
             name="roleSearch"
-            type="text"
-            class="search-input"
-            style="height: 30px;"
+            type="search"
+            smtIcon="search"
+            clearable
+            smtSize="sm"
             [placeholder]="'iam.filtr_roley' | t"
-            [ngModel]="searchQuery"
-            (ngModelChange)="searchQueryChange.emit($event)"
-          />
+            [value]="searchQuery"
+            (valueChange)="searchQueryChange.emit($event === null ? '' : '' + $event)" />
         </div>
       </div>
 
@@ -124,30 +124,8 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
       color: var(--text-main);
     }
     .search-field {
-      position: relative;
-      display: flex;
-      align-items: center;
+      width: 220px;
     }
-    .search-field .search-icon {
-      position: absolute;
-      left: 8px;
-      font-size: 16px;
-      color: var(--text-muted);
-      pointer-events: none;
-    }
-    .search-input {
-      width: 100%;
-      height: 32px;
-      padding: 4px 8px 4px 28px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--border-color);
-      background-color: var(--bg-surface);
-      color: var(--text-main);
-      font-size: 12px;
-      outline: none;
-      transition: border-color 0.15s ease;
-    }
-    .search-input:focus { border-color: var(--primary); }
 
     .roles-cards-grid {
       display: grid;

@@ -1,6 +1,5 @@
 import { Component, computed, EventEmitter, inject, Input, Output, Signal, signal, TemplateRef, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { UiButtonComponent } from '../../../shared/ui/ui-button.component';
 import { UiServerTableComponent } from '../../../shared/ui/ui-server-table.component';
@@ -11,6 +10,8 @@ import { ToastService } from '../../../core/services/toast.service';
 import { KeysetPager } from '../../../shared/paging/keyset-pager';
 import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
 import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.models';
+import { SMTSelectComponent, SMTSelectOption } from '../../../shared/ui-kit/components/forms/select';
+import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group/radio-options';
 
 /**
  * The task list, a page at a time from the server, on the shared server table.
@@ -30,11 +31,11 @@ import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.m
   standalone: true,
   imports: [
     CommonModule,
-    FormsModule,
     TranslatePipe,
     UiButtonComponent,
     UiServerTableComponent,
-    UiBulkResultComponent
+    UiBulkResultComponent,
+    SMTSelectComponent
   ],
   template: `
     <div class="table-card" role="region" [attr.aria-label]="'tasks.tablica_zadach' | t" [attr.aria-busy]="pager.loading()">
@@ -50,27 +51,20 @@ import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.m
         [(selected)]="selectedTasks"
         (rowClick)="openTaskDetails.emit($event)">
         <div bulkActions class="bulk-actions">
-          <label class="bulk-field">
-            <span class="bulk-label">{{ 'tasks.bulk.status' | t }}</span>
-            <select class="form-select bulk-select" data-testid="bulk-status" [disabled]="bulkBusy()"
-              [value]="bulkStatusId()" (change)="bulkStatusId.set($any($event.target).value)">
-              <option value="">{{ 'tasks.bulk.choose' | t }}</option>
-              @for (s of statuses; track s.id) { <option [value]="s.id">{{ s.name }}</option> }
-            </select>
-          </label>
+          <div class="bulk-field">
+            <label class="bulk-label" for="task-bulk-status">{{ 'tasks.bulk.status' | t }}</label>
+            <smt-select class="bulk-select" data-testid="bulk-status" smtTriggerId="task-bulk-status" [disabled]="bulkBusy()"
+              [options]="statusOptions()" [value]="bulkStatusId()" (valueChange)="bulkStatusId.set($event)"
+              [placeholder]="'tasks.bulk.choose' | t" [emptyLabel]="'tasks.bulk.choose' | t"></smt-select>
+          </div>
           <ui-button variant="secondary" size="sm" data-testid="bulk-status-apply" [disabled]="!bulkStatusId() || bulkBusy()"
             [loading]="bulkBusy() && bulkAction() === 'status'" (onClick)="applyBulk('status')">{{ 'tasks.bulk.apply' | t }}</ui-button>
-          <label class="bulk-field">
-            <span class="bulk-label">{{ 'common.priority' | t }}</span>
-            <select class="form-select bulk-select" data-testid="bulk-priority" [disabled]="bulkBusy()"
-              [value]="bulkPriority()" (change)="bulkPriority.set($any($event.target).value)">
-              <option value="">{{ 'tasks.bulk.choose' | t }}</option>
-              <option value="low">{{ 'task.priority.low' | t }}</option>
-              <option value="medium">{{ 'tasks.sredniy' | t }}</option>
-              <option value="high">{{ 'task.priority.high' | t }}</option>
-              <option value="critical">{{ 'tasks.kriticheskiy' | t }}</option>
-            </select>
-          </label>
+          <div class="bulk-field">
+            <label class="bulk-label" for="task-bulk-priority">{{ 'common.priority' | t }}</label>
+            <smt-select class="bulk-select" data-testid="bulk-priority" smtTriggerId="task-bulk-priority" [disabled]="bulkBusy()"
+              [options]="priorityOptions()" [value]="bulkPriority()" (valueChange)="bulkPriority.set($event)"
+              [placeholder]="'tasks.bulk.choose' | t" [emptyLabel]="'tasks.bulk.choose' | t"></smt-select>
+          </div>
           <ui-button variant="secondary" size="sm" data-testid="bulk-priority-apply" [disabled]="!bulkPriority() || bulkBusy()"
             [loading]="bulkBusy() && bulkAction() === 'priority'" (onClick)="applyBulk('priority')">{{ 'tasks.bulk.apply' | t }}</ui-button>
         </div>
@@ -114,34 +108,31 @@ import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.m
       }
     </ng-template>
     <ng-template #priorityCell let-t>
-      <select
+      <smt-select
         class="inline-priority-select"
         [attr.data-priority]="t.priority"
-        [ngModel]="t.priority"
-        (ngModelChange)="updatePriority.emit({ taskId: t.id, priority: $event })"
+        [options]="priorityOptions()"
+        [value]="t.priority"
+        (valueChange)="onPriorityChange(t.id, $event)"
+        [allowClear]="false"
         [disabled]="!canUpdateTask"
-        [attr.aria-label]="'common.priority' | t"
+        [ariaLabel]="'common.priority' | t"
         [title]="'common.priority' | t"
-      >
-        <option value="low">{{ 'task.priority.low' | t }}</option>
-        <option value="medium">{{ 'tasks.sredniy' | t }}</option>
-        <option value="high">{{ 'task.priority.high' | t }}</option>
-        <option value="critical">{{ 'tasks.kriticheskiy' | t }}</option>
-      </select>
+      ></smt-select>
     </ng-template>
     <ng-template #statusCell let-t>
       <div class="inline-status-wrapper table-status">
         <span class="status-dot" [style.background-color]="getStatusColor(t.statusId)" aria-hidden="true"></span>
-        <select
+        <smt-select
           class="inline-status-select"
-          [ngModel]="t.statusId"
-          (ngModelChange)="updateStatus.emit({ taskId: t.id, statusId: $event })"
+          [options]="statusOptions()"
+          [value]="t.statusId"
+          (valueChange)="onStatusChange(t.id, $event)"
+          [allowClear]="false"
           [disabled]="!canUpdateTask"
-          [attr.aria-label]="'tasks.task_status_aria' | t:{id: t.id}"
+          [ariaLabel]="'tasks.task_status_aria' | t:{id: t.id}"
           [title]="'tasks.nazhmite_dlya_smeny_statusa' | t"
-        >
-          @for (s of statuses; track s.id) { <option [ngValue]="s.id">{{ s.name }}</option> }
-        </select>
+        ></smt-select>
       </div>
     </ng-template>
     <ng-template #deadlineCell let-t>
@@ -202,7 +193,7 @@ import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.m
     .bulk-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .bulk-field { display: inline-flex; align-items: center; gap: 6px; }
     .bulk-label { color: var(--text-muted); font-size: 12px; }
-    .bulk-select { min-width: 150px; height: 30px; font-size: 13px; }
+    .bulk-select { width: 180px; }
     .table-card { min-width: 0; }
     /* The row belongs to the kit table's template, so it is reached from here.
        An inset shadow marks it without widening the row's grid. */
@@ -265,56 +256,9 @@ import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.m
     }
     .folder-ico { font-size: 14px; color: var(--warning); }
 
-    /* Inline Priority Select */
-    .inline-priority-select {
-      border: 1px solid transparent;
-      border-radius: 10px;
-      padding: 2px 6px;
-      font-size: 11px;
-      font-weight: 600;
-      cursor: pointer;
-      background-color: var(--bg-hover);
-      color: var(--text-muted);
-      outline: none;
-      transition: all 0.12s ease;
-      font-family: inherit;
-    }
-    .inline-priority-select:hover:not(:disabled) { border-color: var(--border-color); }
-    .inline-priority-select[data-priority="low"] {
-      background-color: rgba(16, 185, 129, 0.12);
-      color: var(--success-text);
-    }
-    .inline-priority-select[data-priority="medium"],
-    .inline-priority-select[data-priority="normal"] {
-      background-color: rgba(59, 130, 246, 0.12);
-      color: var(--info-text);
-    }
-    .inline-priority-select[data-priority="high"] {
-      background-color: rgba(245, 158, 11, 0.15);
-      color: var(--warning-text);
-    }
-    .inline-priority-select[data-priority="critical"],
-    .inline-priority-select[data-priority="urgent"] {
-      background-color: rgba(239, 68, 68, 0.15);
-      color: var(--danger-text);
-    }
-    .inline-priority-select:disabled { cursor: default; }
-
     /* Inline Status Select */
-    .inline-status-wrapper { display: inline-flex; align-items: center; gap: 5px; }
-    .inline-status-select {
-      height: 26px;
-      padding: 1px 6px;
-      font-size: 11px;
-      font-weight: 500;
-      border-radius: 10px;
-      border: 1px solid var(--border-color);
-      background-color: var(--bg-surface);
-      color: var(--text-main);
-      cursor: pointer;
-      outline: none;
-    }
-    .inline-status-select:focus { border-color: var(--primary); }
+    .inline-status-wrapper { display: flex; align-items: center; gap: 5px; min-width: 0; }
+    .inline-status-select { flex: 1; min-width: 0; }
 
     .status-dot {
       width: 8px;
@@ -399,8 +343,8 @@ export class TaskTableViewComponent {
 
   /** Rows chosen on the page on screen; the table clears them when the page changes. */
   readonly selectedTasks = signal<Task[]>([]);
-  readonly bulkStatusId = signal('');
-  readonly bulkPriority = signal('');
+  readonly bulkStatusId = signal<number | null>(null);
+  readonly bulkPriority = signal<string | null>(null);
   readonly bulkBusy = signal(false);
   readonly bulkAction = signal<'status' | 'priority' | null>(null);
   /** Set when some tasks failed; the dialog names them. */
@@ -429,6 +373,9 @@ export class TaskTableViewComponent {
       },
     };
   });
+
+  private readonly statusMemo = optionsMemo<SMTSelectOption<number>[]>();
+  private readonly priorityMemo = optionsMemo<SMTSelectOption<string>[]>();
 
   @Input({ required: true }) pager!: KeysetPager<Task>;
   @Input() statuses: TaskStatus[] = [];
@@ -460,11 +407,34 @@ export class TaskTableViewComponent {
     return title ? `#${id} ${title}` : `#${id}`;
   };
 
+  /** Statuses as smt-select options; the same array while the statuses stay the same. */
+  statusOptions(): SMTSelectOption<number>[] {
+    return this.statusMemo([this.statuses], () => this.statuses.map(status => ({ id: status.id, label: status.name })));
+  }
+
+  /** Priorities, lowest first, each with its colour mark; translated again when the language changes. */
+  priorityOptions(): SMTSelectOption<string>[] {
+    return this.priorityMemo([this.i18n.currentLang()], () => [
+      { id: 'low', label: this.i18n.translate('task.priority.low'), icon: 'flag', color: 'var(--success-text)' },
+      { id: 'medium', label: this.i18n.translate('tasks.sredniy'), icon: 'flag', color: 'var(--info-text)' },
+      { id: 'high', label: this.i18n.translate('task.priority.high'), icon: 'flag', color: 'var(--warning-text)' },
+      { id: 'critical', label: this.i18n.translate('tasks.kriticheskiy'), icon: 'flag', color: 'var(--danger-text)' },
+    ]);
+  }
+
+  onPriorityChange(taskId: number, priority: string | null): void {
+    if (priority !== null) this.updatePriority.emit({ taskId, priority });
+  }
+
+  onStatusChange(taskId: number, statusId: number | null): void {
+    if (statusId !== null) this.updateStatus.emit({ taskId, statusId });
+  }
+
   /** One status or priority for every chosen task; the page reloads with what the server now holds. */
   applyBulk(action: 'status' | 'priority'): void {
     const tasks = this.selectedTasks();
     if (tasks.length === 0 || this.bulkBusy()) return;
-    const params = action === 'status' ? { statusId: Number(this.bulkStatusId()) } : { priority: this.bulkPriority() };
+    const params = action === 'status' ? { statusId: this.bulkStatusId() } : { priority: this.bulkPriority() };
     this.bulkTitles = new Map(tasks.map(task => [task.id, task.title]));
     this.bulkBusy.set(true);
     this.bulkAction.set(action);
@@ -473,8 +443,8 @@ export class TaskTableViewComponent {
         next: result => {
           this.bulkBusy.set(false);
           this.bulkAction.set(null);
-          this.bulkStatusId.set('');
-          this.bulkPriority.set('');
+          this.bulkStatusId.set(null);
+          this.bulkPriority.set(null);
           if (result.succeeded > 0) {
             this.toast.success(this.i18n.translate('tasks.bulk.done', { count: result.succeeded }));
           }

@@ -16,6 +16,9 @@ import { CustomField } from '../../core/models/custom-field.models';
 import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
 import { SMTTabBarComponent, SMTTabItem } from '../../shared/ui-kit/components/tab-bar';
 import { optionsMemo } from '../../shared/ui-kit/components/forms/radio-group';
+import { SMTInputComponent, SMTInputValueAccessor } from '../../shared/ui-kit/components/forms/input';
+import { SMTCheckboxComponent, SMTCheckboxValueAccessor } from '../../shared/ui-kit/components/forms/checkbox';
+import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../../shared/ui-kit/components/forms/select';
 
 export interface Note {
   id: number;
@@ -32,7 +35,7 @@ export interface Note {
 @Component({
   selector: 'app-notes',
   standalone: true,
-  imports: [
+  imports: [SMTInputComponent, SMTInputValueAccessor, SMTCheckboxComponent, SMTCheckboxValueAccessor, SMTSelectComponent, SMTSelectValueAccessor,
     SMTTabBarComponent, CommonModule,
     FormsModule,
     UiButtonComponent,
@@ -57,26 +60,16 @@ export interface Note {
             (valueChange)="$event && activeTab.set($event)" />
         </div>
         <div class="header-right">
-          <div class="search-box">
-            <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
-            <input
-              type="text"
-              class="search-input"
-              [placeholder]="'notes.search_placeholder' | t"
-              [attr.aria-label]="'notes.search_placeholder' | t"
-              [ngModel]="searchQuery"
-              (ngModelChange)="onSearchChange($event)"
-            />
-            <button
-              *ngIf="searchQuery"
-              type="button"
-              class="search-clear-btn"
-              [attr.aria-label]="'search.clear_query' | t"
-              (click)="clearSearch()"
-            >
-              <span class="material-symbols-outlined" aria-hidden="true">cancel</span>
-            </button>
-          </div>
+          <smt-input
+            class="search-box"
+            type="search"
+            smtIcon="search"
+            clearable
+            smtSize="sm"
+            [placeholder]="'notes.search_placeholder' | t"
+            [smtAriaLabel]="'notes.search_placeholder' | t"
+            [value]="searchQuery"
+            (valueChange)="onSearchChange($any($event) ?? '')" />
           <ui-button
             *ngIf="canCreate()"
             variant="primary"
@@ -174,20 +167,16 @@ export interface Note {
         <form ngNoForm (submit)="$event.preventDefault(); saveNote()" class="modal-form" novalidate id="noteForm">
           <div class="form-group">
             <label class="form-label" for="note-title-input">{{ 'notes.title_label' | t }} *</label>
-            <input
-              id="note-title-input"
+            <smt-input
+              smtFieldId="note-title-input"
               name="title"
-              type="text"
-              class="form-control"
-              [class.has-error]="isSubmitted() && !formData.title.trim()"
-              [attr.aria-invalid]="isSubmitted() && !formData.title.trim()"
-              [attr.aria-describedby]="isSubmitted() && !formData.title.trim() ? 'note-title-error' : null"
-              maxlength="255"
+              [smtInvalid]="isSubmitted() && !formData.title.trim()"
+              [smtDescribedBy]="isSubmitted() && !formData.title.trim() ? 'note-title-error' : null"
+              [maxLength]="255"
               [(ngModel)]="formData.title"
               [ngModelOptions]="{standalone: true}"
               [placeholder]="'notes.title_placeholder' | t"
-              required
-            />
+              required />
             <span id="note-title-error" class="field-error" *ngIf="isSubmitted() && !formData.title.trim()">
               {{ 'notes.title_required' | t }}
             </span>
@@ -207,33 +196,25 @@ export interface Note {
           <div class="form-row">
             <div class="form-group">
               <label class="form-label" for="note-color-select">{{ 'notes.color_label' | t }}</label>
-              <select
-                id="note-color-select"
+              <smt-select
+                smtTriggerId="note-color-select"
                 name="color"
-                class="form-control"
+                [options]="colorOptions()"
+                [allowClear]="false"
                 [(ngModel)]="formData.color"
                 [ngModelOptions]="{standalone: true}"
-              >
-                <option value="default">{{ 'notes.color_default' | t }}</option>
-                <option value="blue">{{ 'notes.color_blue' | t }}</option>
-                <option value="green">{{ 'notes.color_green' | t }}</option>
-                <option value="yellow">{{ 'notes.color_yellow' | t }}</option>
-                <option value="purple">{{ 'notes.color_purple' | t }}</option>
-                <option value="red">{{ 'notes.color_red' | t }}</option>
-              </select>
+              />
             </div>
 
             <div class="form-group checkbox-group">
-              <label class="checkbox-label" for="note-pinned-checkbox">
-                <input
-                  id="note-pinned-checkbox"
-                  name="isPinned"
-                  type="checkbox"
-                  [(ngModel)]="formData.isPinned"
-                  [ngModelOptions]="{standalone: true}"
-                />
-                <span>{{ 'notes.pinned_label' | t }}</span>
-              </label>
+              <div
+                smt-checkbox
+                data-testid="note-pinned-checkbox"
+                name="isPinned"
+                [(ngModel)]="formData.isPinned"
+                [ngModelOptions]="{standalone: true}">
+                {{ 'notes.pinned_label' | t }}
+              </div>
             </div>
           </div>
 
@@ -322,6 +303,8 @@ export class NotesComponent implements OnInit, OnDestroy {
 
   private readonly tabsMemo = optionsMemo<SMTTabItem<'all' | 'pinned'>[]>();
 
+  private readonly colorMemo = optionsMemo<SMTSelectOption<string>[]>();
+
   ngOnInit(): void {
     this.loadNotes();
     this.loadCustomFields();
@@ -355,11 +338,6 @@ export class NotesComponent implements OnInit, OnDestroy {
   onSearchChange(value: string): void {
     this.searchQuery = value;
     this.searchSubject.next(value);
-  }
-
-  clearSearch(): void {
-    this.searchQuery = '';
-    this.loadNotes();
   }
 
   openCreateModal(): void {
@@ -475,5 +453,18 @@ export class NotesComponent implements OnInit, OnDestroy {
       { value: 'all', label: this.tabText.translate('notes.tab.all') },
       { value: 'pinned', label: this.tabText.translate('notes.tab.pinned') },
     ]);
+  }
+
+  colorOptions(): SMTSelectOption<string>[] {
+    return this.colorMemo([this.tabText.currentLang()], () =>
+      [
+        { id: 'default', label: this.tabText.translate('notes.color_default') },
+        { id: 'blue', label: this.tabText.translate('notes.color_blue') },
+        { id: 'green', label: this.tabText.translate('notes.color_green') },
+        { id: 'yellow', label: this.tabText.translate('notes.color_yellow') },
+        { id: 'purple', label: this.tabText.translate('notes.color_purple') },
+        { id: 'red', label: this.tabText.translate('notes.color_red') },
+      ]
+    );
   }
 }

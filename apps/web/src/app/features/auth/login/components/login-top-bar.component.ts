@@ -1,26 +1,25 @@
 import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
+import { SMTSelectComponent, SMTSelectOption } from '../../../../shared/ui-kit/components/forms/select';
+import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-group/radio-options';
 
 @Component({
   selector: 'app-login-top-bar',
   standalone: true,
-  imports: [CommonModule, TranslatePipe],
+  imports: [SMTSelectComponent, TranslatePipe],
   template: `
     <div class="login-top-bar">
       <div class="lang-selector-login">
         <span class="material-symbols-outlined lang-icon" aria-hidden="true">language</span>
-        <select
-          id="login-language-select"
+        <smt-select
+          smtTriggerId="login-language-select"
           class="lang-select-login"
-          [attr.aria-label]="'settings.yazyk_interfeysa' | t"
+          [ariaLabel]="'settings.yazyk_interfeysa' | t"
+          [options]="languageOptions()"
+          [allowClear]="false"
           [value]="i18n.currentLang()"
-          (change)="onLanguageChange($event)"
-        >
-          <option *ngFor="let lang of i18n.languages()" [value]="lang.code">
-            {{ lang.code.toUpperCase() }} — {{ lang.name }}
-          </option>
-        </select>
+          (valueChange)="onLanguageChange($event)"
+        />
       </div>
     </div>
   `,
@@ -38,11 +37,6 @@ import { I18nService, TranslatePipe } from '../../../../core/services/i18n.servi
       display: flex;
       align-items: center;
       gap: 6px;
-      background-color: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      padding: 4px 10px;
-      box-shadow: var(--shadow-sm);
     }
 
     .lang-selector-login .lang-icon {
@@ -51,24 +45,26 @@ import { I18nService, TranslatePipe } from '../../../../core/services/i18n.servi
     }
 
     .lang-select-login {
-      border: none;
-      background: transparent;
-      color: var(--text-main);
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      outline: none;
-      font-family: inherit;
+      width: 180px;
+      box-shadow: var(--shadow-sm);
     }
   `]
 })
 export class LoginTopBarComponent {
   readonly i18n = inject(I18nService);
 
-  onLanguageChange(event: Event): void {
-    const select = event.target as HTMLSelectElement;
-    if (select?.value && select.value !== this.i18n.currentLang()) {
-      this.i18n.setLanguage(select.value, false).subscribe();
+  private readonly languageMemo = optionsMemo<SMTSelectOption<string>[]>();
+
+  languageOptions(): SMTSelectOption<string>[] {
+    const languages = this.i18n.languages();
+    return this.languageMemo([languages], () =>
+      languages.map(lang => ({ id: lang.code, label: `${lang.code.toUpperCase()} — ${lang.name}` }))
+    );
+  }
+
+  onLanguageChange(code: string | null): void {
+    if (code && code !== this.i18n.currentLang()) {
+      this.i18n.setLanguage(code, false).subscribe();
     }
   }
 }

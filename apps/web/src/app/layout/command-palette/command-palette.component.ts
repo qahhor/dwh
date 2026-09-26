@@ -92,20 +92,13 @@ export {
 
         <!-- Category Filters -->
         <div class="palette-category">
-          <label for="search-category" class="sr-only">{{ 'search.category' | t }}</label>
-          <select id="search-category" class="sr-only" [(ngModel)]="entityType" (ngModelChange)="onSearchChange(searchQuery)">
-            <option value="ALL">{{ 'search.entity.all' | t }}</option>
-            <option value="TASK">{{ 'nav.tasks' | t }}</option>
-            <option value="PROJECT">{{ 'nav.projects' | t }}</option>
-            <option value="USER">{{ 'nav.users' | t }}</option>
-            <option *ngIf="moduleService.isModuleActive('notes')" value="NOTE">{{ 'search.entity.note' | t }}</option>
-          </select>
           <div class="category-pills" role="tablist" [attr.aria-label]="'search.category' | t">
             <button
               *ngFor="let cat of categories()"
               type="button"
               role="tab"
               class="cat-pill"
+              [attr.data-category]="cat.value"
               [class.active]="entityType === cat.value"
               [attr.aria-selected]="entityType === cat.value"
               (click)="setCategory(cat.value)"

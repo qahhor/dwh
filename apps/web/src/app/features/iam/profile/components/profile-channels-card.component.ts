@@ -8,11 +8,13 @@ import { I18nService, TranslatePipe } from '../../../../core/services/i18n.servi
 import { UiLocalTableComponent } from '../../../../shared/ui/ui-local-table.component';
 import { TableConfig } from '../../../../shared/ui-kit/components/table/table.types';
 import { UserChannel } from '../profile.models';
+import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
+import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../../../../shared/ui-kit/components/forms/select';
 
 @Component({
   selector: 'app-profile-channels-card',
   standalone: true,
-  imports: [
+  imports: [SMTInputComponent, SMTInputValueAccessor, SMTSelectComponent, SMTSelectValueAccessor,
     CommonModule,
     FormsModule,
     TranslatePipe,
@@ -100,34 +102,27 @@ import { UserChannel } from '../profile.models';
           <label class="form-label" for="profile-channel-type">
             {{ 'iam.tip_kanala' | t }} <span class="req">*</span>
           </label>
-          <select
-            id="profile-channel-type"
+          <smt-select
+            smtTriggerId="profile-channel-type"
             name="channelType"
-            class="form-input form-select"
             [(ngModel)]="selectedChannelType"
-          >
-            <option value="email">{{ 'iam.kanal_email' | t }}</option>
-            <option value="telegram">{{ 'iam.kanal_telegram' | t }}</option>
-            <option value="sms">{{ 'iam.kanal_sms' | t }}</option>
-          </select>
+            [options]="channelTypeOptions()"
+            [allowClear]="false" />
         </div>
 
         <div class="form-group">
           <label class="form-label" for="profile-channel-address">
             {{ 'iam.adres_ili_login' | t }} <span class="req">*</span>
           </label>
-          <input
-            id="profile-channel-address"
+          <smt-input
+            smtFieldId="profile-channel-address"
             name="channelAddress"
-            type="text"
-            class="form-input"
             required
             [placeholder]="getChannelPlaceholder()"
             [(ngModel)]="newAddress"
-            [attr.aria-invalid]="isBindSubmitted && !newAddress.trim()"
-            [attr.aria-describedby]="isBindSubmitted && !newAddress.trim() ? 'profile-channel-address-error' : null"
-            (keydown.enter)="submitBind()"
-          />
+            [smtInvalid]="isBindSubmitted && !newAddress.trim()"
+            [smtDescribedBy]="isBindSubmitted && !newAddress.trim() ? 'profile-channel-address-error' : null"
+            (keydown.enter)="submitBind()" />
           <span id="profile-channel-address-error" class="field-error" *ngIf="isBindSubmitted && !newAddress.trim()">
             {{ 'iam.adres_kanala_obyazatelen' | t }}
           </span>
@@ -165,20 +160,18 @@ import { UserChannel } from '../profile.models';
           <label class="form-label" for="profile-channel-code">
             {{ 'iam.vvedite_6_znachnyy_kod' | t }} <span class="req">*</span>
           </label>
-          <input
-            id="profile-channel-code"
+          <smt-input
+            class="font-mono otp-input"
+            smtFieldId="profile-channel-code"
             name="confirmCode"
-            type="text"
-            class="form-input font-mono otp-input"
-            maxlength="6"
+            [maxLength]="6"
             inputmode="numeric"
-            pattern="[0-9]*"
+            smtPattern="[0-9]*"
             placeholder="000000"
             [(ngModel)]="verificationCode"
-            [attr.aria-invalid]="isConfirmSubmitted && verificationCode.trim().length !== 6"
-            [attr.aria-describedby]="isConfirmSubmitted && verificationCode.trim().length !== 6 ? 'profile-channel-code-error' : null"
-            (keydown.enter)="submitConfirm()"
-          />
+            [smtInvalid]="isConfirmSubmitted && verificationCode.trim().length !== 6"
+            [smtDescribedBy]="isConfirmSubmitted && verificationCode.trim().length !== 6 ? 'profile-channel-code-error' : null"
+            (keydown.enter)="submitConfirm()" />
           <span id="profile-channel-code-error" class="field-error" *ngIf="isConfirmSubmitted && verificationCode.trim().length !== 6">
             {{ 'iam.kod_dolzhen_soderzhat_6_cifr' | t }}
           </span>
@@ -372,10 +365,6 @@ import { UserChannel } from '../profile.models';
       transition: border-color 0.15s;
     }
 
-    .form-select {
-      cursor: pointer;
-    }
-
     .form-input:focus {
       border-color: var(--primary);
     }
@@ -393,7 +382,6 @@ import { UserChannel } from '../profile.models';
       font-size: 20px;
       letter-spacing: 6px;
       text-align: center;
-      padding: 10px;
     }
 
     .confirm-info-text {
@@ -456,6 +444,15 @@ export class ProfileChannelsCardComponent {
       },
       columnsOrder: ['type', 'address', 'created', 'status', 'action']
     };
+  });
+
+  readonly channelTypeOptions = computed<SMTSelectOption<string>[]>(() => {
+    this.i18n.currentLang();
+    return [
+      { id: 'email', label: this.i18n.translate('iam.kanal_email') },
+      { id: 'telegram', label: this.i18n.translate('iam.kanal_telegram') },
+      { id: 'sms', label: this.i18n.translate('iam.kanal_sms') },
+    ];
   });
 
   @Input() isLoadingChannels = false;

@@ -1,15 +1,37 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, inject, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CustomField, CustomFieldFormData } from '../custom-fields.models';
 import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
 import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
-import { TranslatePipe } from '../../../../core/services/i18n.service';
+import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
+import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
+import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../../../../shared/ui-kit/components/forms/select';
+import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-group';
+import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../../shared/ui-kit/components/forms/textarea';
+import { SMTCheckboxComponent, SMTCheckboxValueAccessor } from '../../../../shared/ui-kit/components/forms/checkbox';
+
+const ENTITY_TYPES: readonly [string, string][] = [
+  ['USER', 'iam.polzovatel_user'],
+  ['PROJECT', 'iam.proekt_project'],
+  ['TASK', 'iam.zadacha_task'],
+  ['NOTE', 'iam.zametka_note'],
+];
+
+const FIELD_TYPES: readonly [string, string][] = [
+  ['string', 'iam.tekst_string'],
+  ['number', 'iam.chislo_number'],
+  ['boolean', 'iam.logicheskiy_pereklyuchatel_boolean'],
+  ['date', 'iam.data_date'],
+  ['select', 'iam.vypadayuschiy_spisok_select'],
+  ['user_ref', 'iam.ssylka_na_polzovatelya_user_ref'],
+];
 
 @Component({
   selector: 'app-custom-fields-modals',
   standalone: true,
-  imports: [
+  imports: [SMTInputComponent, SMTInputValueAccessor, SMTSelectComponent, SMTSelectValueAccessor,
+    SMTTextareaComponent, SMTTextareaValueAccessor, SMTCheckboxComponent, SMTCheckboxValueAccessor,
     CommonModule,
     FormsModule,
     UiModalComponent,
@@ -31,12 +53,13 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
           <label class="form-label" for="custom-field-entity">
             {{ 'iam.celevaya_suschnost' | t }} <span class="req" aria-hidden="true">*</span>
           </label>
-          <select id="custom-field-entity" name="entityType" class="form-select" [(ngModel)]="formData.entityType" required>
-            <option value="USER">{{ 'iam.polzovatel_user' | t }}</option>
-            <option value="PROJECT">{{ 'iam.proekt_project' | t }}</option>
-            <option value="TASK">{{ 'iam.zadacha_task' | t }}</option>
-            <option value="NOTE">{{ 'iam.zametka_note' | t }}</option>
-          </select>
+          <smt-select
+            smtTriggerId="custom-field-entity"
+            name="entityType"
+            [(ngModel)]="formData.entityType"
+            [options]="entityOptions()"
+            [allowClear]="false"
+            required />
         </div>
 
         <!-- Code & Name -->
@@ -45,21 +68,20 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
             <label class="form-label" for="custom-field-code">
               {{ 'iam.kod_polya_slug' | t }} <span class="req" aria-hidden="true">*</span>
             </label>
-            <input
-              id="custom-field-code"
+            <!-- The native input event bubbles from the inner field; the page cleans the code from it. -->
+            <smt-input
+              class="font-mono"
+              smtFieldId="custom-field-code"
               name="code"
-              type="text"
-              class="form-input font-mono"
               [(ngModel)]="formData.code"
               (input)="codeInput.emit($event)"
               [disabled]="!!editingField"
               [placeholder]="'iam.naprimer_inn_budget' | t"
-              maxlength="64"
+              [maxLength]="64"
               autocomplete="off"
-              [attr.aria-invalid]="!!formError"
-              [attr.aria-describedby]="formError ? 'custom-field-form-error' : null"
-              required
-            />
+              [smtInvalid]="!!formError"
+              [smtDescribedBy]="formError ? 'custom-field-form-error' : null"
+              required />
             <span class="form-hint" *ngIf="!editingField">{{ 'iam.kod_polya_help' | t }}</span>
             <span class="form-hint readonly-hint" *ngIf="editingField">{{ 'iam.kod_polya_readonly' | t }}</span>
           </div>
@@ -68,18 +90,15 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
             <label class="form-label" for="custom-field-name">
               {{ 'iam.nazvanie_polya' | t }} <span class="req" aria-hidden="true">*</span>
             </label>
-            <input
-              id="custom-field-name"
+            <smt-input
+              smtFieldId="custom-field-name"
               name="name"
-              type="text"
-              class="form-input"
               [(ngModel)]="formData.name"
               [placeholder]="'iam.naprimer_inn_byudzhet_proekta' | t"
-              maxlength="100"
-              [attr.aria-invalid]="!!formError"
-              [attr.aria-describedby]="formError ? 'custom-field-form-error' : null"
-              required
-            />
+              [maxLength]="100"
+              [smtInvalid]="!!formError"
+              [smtDescribedBy]="formError ? 'custom-field-form-error' : null"
+              required />
           </div>
         </div>
 
@@ -89,45 +108,40 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
             <label class="form-label" for="custom-field-type">
               {{ 'iam.tip_dannyh' | t }} <span class="req" aria-hidden="true">*</span>
             </label>
-            <select id="custom-field-type" name="fieldType" class="form-select" [(ngModel)]="formData.fieldType" required>
-              <option value="string">{{ 'iam.tekst_string' | t }}</option>
-              <option value="number">{{ 'iam.chislo_number' | t }}</option>
-              <option value="boolean">{{ 'iam.logicheskiy_pereklyuchatel_boolean' | t }}</option>
-              <option value="date">{{ 'iam.data_date' | t }}</option>
-              <option value="select">{{ 'iam.vypadayuschiy_spisok_select' | t }}</option>
-              <option value="user_ref">{{ 'iam.ssylka_na_polzovatelya_user_ref' | t }}</option>
-            </select>
+            <smt-select
+              smtTriggerId="custom-field-type"
+              name="fieldType"
+              [(ngModel)]="formData.fieldType"
+              [options]="fieldTypeOptions()"
+              [allowClear]="false"
+              required />
           </div>
 
           <div class="form-group flex-1">
             <label class="form-label" for="custom-field-default">
               {{ 'iam.znachenie_po_umolchaniyu' | t }}
             </label>
-            <input
-              id="custom-field-default"
+            <smt-input
+              smtFieldId="custom-field-default"
               name="defaultValue"
-              type="text"
-              class="form-input"
               [(ngModel)]="formData.defaultValue"
               [placeholder]="'iam.ne_obyazatelno' | t"
-              maxlength="255"
-            />
+              [maxLength]="255" />
           </div>
 
           <div class="form-group order-input-group">
             <label class="form-label" for="custom-field-order">
               {{ 'iam.poryadok_sortirovki' | t }}
             </label>
-            <input
-              id="custom-field-order"
+            <smt-input
+              class="font-mono"
+              smtFieldId="custom-field-order"
               name="orderNo"
               type="number"
-              class="form-input font-mono"
               [(ngModel)]="formData.orderNo"
               [placeholder]="'iam.poryadok_sortirovki_hint' | t"
-              min="0"
-              max="99999"
-            />
+              [smtMin]="0"
+              [smtMax]="99999" />
           </div>
         </div>
 
@@ -136,26 +150,21 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
           <label class="form-label" for="custom-field-options">
             {{ 'iam.varianty_spiska' | t }} <span class="req" aria-hidden="true">*</span>
           </label>
-          <textarea
-            id="custom-field-options"
+          <smt-textarea
+            smtFieldId="custom-field-options"
             name="optionsText"
-            class="form-input options-input"
             [(ngModel)]="formData.optionsText"
-            rows="4"
+            [rows]="4"
             [placeholder]="'iam.po_odnomu_variantu_v_stroke' | t"
-            [attr.aria-invalid]="!!formError"
-            [attr.aria-describedby]="formError ? 'custom-field-form-error' : null"
-            required
-          ></textarea>
+            [smtInvalid]="!!formError"
+            [smtDescribedBy]="formError ? 'custom-field-form-error' : ''"
+            required />
           <span class="form-hint">{{ 'iam.po_odnomu_variantu_v_stroke_dlya_otdelnogo_koda_' | t }}</span>
         </div>
 
-        <!-- Required Toggle -->
+        <!-- Required flag, saved with the form -->
         <div class="form-group checkbox-group">
-          <label class="checkbox-label" for="custom-field-required">
-            <input id="custom-field-required" name="isRequired" type="checkbox" [(ngModel)]="formData.isRequired" />
-            <span>{{ 'iam.obyazatelnoe_dlya_zapolneniya' | t }}</span>
-          </label>
+          <div smt-checkbox name="isRequired" [(ngModel)]="formData.isRequired">{{ 'iam.obyazatelnoe_dlya_zapolneniya' | t }}</div>
         </div>
 
         <p *ngIf="formError" id="custom-field-form-error" class="form-error" role="alert">{{ formError }}</p>
@@ -204,33 +213,6 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
 
     .req { color: var(--danger-text); }
 
-    .form-input, .form-select {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 9px 12px;
-      color: var(--text-main);
-      font-size: 14px;
-      transition: border-color 0.2s;
-    }
-
-    .form-input:focus, .form-select:focus {
-      outline: none;
-      border-color: var(--primary);
-    }
-
-    .form-input:disabled {
-      background: var(--bg-hover);
-      color: var(--text-muted);
-      cursor: not-allowed;
-    }
-
-    .options-input {
-      min-height: 92px;
-      resize: vertical;
-      font-family: inherit;
-    }
-
     .form-hint {
       color: var(--text-light);
       font-size: 12px;
@@ -253,15 +235,6 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
 
     .checkbox-group {
       margin-top: 4px;
-    }
-
-    .checkbox-label {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 14px;
-      color: var(--text-main);
-      cursor: pointer;
     }
 
     .modal-footer-actions {
@@ -293,6 +266,8 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
   `]
 })
 export class CustomFieldsModalsComponent {
+  private readonly i18n = inject(I18nService);
+
   @Input() showModal = false;
   @Input() editingField: CustomField | null = null;
   @Input() formData!: CustomFieldFormData;
@@ -302,4 +277,16 @@ export class CustomFieldsModalsComponent {
   @Output() closeModal = new EventEmitter<void>();
   @Output() saveField = new EventEmitter<void>();
   @Output() codeInput = new EventEmitter<Event>();
+  private readonly entityMemo = optionsMemo<SMTSelectOption<string>[]>();
+  private readonly fieldTypeMemo = optionsMemo<SMTSelectOption<string>[]>();
+
+  entityOptions(): SMTSelectOption<string>[] {
+    return this.entityMemo([this.i18n.currentLang()], () =>
+      ENTITY_TYPES.map(([id, key]) => ({ id, label: this.i18n.translate(key) })));
+  }
+
+  fieldTypeOptions(): SMTSelectOption<string>[] {
+    return this.fieldTypeMemo([this.i18n.currentLang()], () =>
+      FIELD_TYPES.map(([id, key]) => ({ id, label: this.i18n.translate(key) })));
+  }
 }

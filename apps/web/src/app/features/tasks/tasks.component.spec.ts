@@ -73,8 +73,8 @@ describe('TasksComponent UI contracts', () => {
     vi.spyOn(component, 'openTaskDetails').mockImplementation(task => { opened.push(task.id); });
     const row = fixture.nativeElement.querySelector('[role="rowgroup"] > [role="row"]') as HTMLElement;
 
-    (row.querySelector('.inline-priority-select') as HTMLSelectElement).click();
-    (row.querySelector('.inline-status-select') as HTMLSelectElement).click();
+    (row.querySelector('.inline-priority-select [role="combobox"]') as HTMLButtonElement).click();
+    (row.querySelector('.inline-status-select [role="combobox"]') as HTMLButtonElement).click();
     expect(opened).toEqual([]);
 
     (row.querySelector('.task-type-badge') as HTMLElement).click();
@@ -109,7 +109,7 @@ describe('TasksComponent UI contracts', () => {
     component.tasks.set([rowTask]);
     fixture.detectChanges();
 
-    const status = fixture.nativeElement.querySelector('select[aria-label="Статус задачи #42"]') as HTMLSelectElement;
+    const status = fixture.nativeElement.querySelector('.inline-status-select [role="combobox"][aria-label="Статус задачи #42"]') as HTMLButtonElement;
     status.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     expect(component.selectedTask()).toBeNull();
     const edit = fixture.nativeElement.querySelector('button[aria-label="Редактировать задачу #42"]') as HTMLButtonElement;
@@ -150,7 +150,7 @@ describe('TasksComponent UI contracts', () => {
     component.tasks.set([{ id: 42, title: 'Задача', statusId: 1, priority: 'medium', attributes: {}, createdAt: '2026-08-30T00:00:00Z' }]);
     fixture.detectChanges();
 
-    const select = fixture.nativeElement.querySelector('.inline-status-select') as HTMLSelectElement;
+    const select = fixture.nativeElement.querySelector('.inline-status-select [role="combobox"]') as HTMLButtonElement;
     (select.closest('[role="cell"]') as HTMLElement).style.color = 'rgb(255, 0, 0)';
     expect(getComputedStyle(select).color).toBe('var(--text-main)');
   });
@@ -674,8 +674,10 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     component.selectedTask.set(task(62));
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('.status-select')?.getAttribute('aria-label')).toBe('Статус задачи #62');
-    expect(fixture.nativeElement.querySelector('.comment-textarea')?.getAttribute('aria-label')).toBe('Комментарий к задаче #62');
+    expect(fixture.nativeElement.querySelector('.status-select [role="combobox"]')?.getAttribute('aria-label')).toBe('Статус задачи #62');
+    // The comment field is named by its own (visually hidden) label.
+    expect(fixture.nativeElement.querySelector('.comment-textarea textarea#task-comment-draft')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('label[for="task-comment-draft"]')?.textContent?.trim()).toBe('Комментарий к задаче #62');
   });
 
   it('debounces top-level search for 350 ms and Enter suppresses the delayed duplicate', async () => {
@@ -714,8 +716,12 @@ describe('TasksComponent asynchronous detail and editing state', () => {
 
     await vi.advanceTimersByTimeAsync(350);
     fixture.detectChanges();
-    (fixture.nativeElement.querySelector('button[aria-label="Очистить поиск задач"]') as HTMLButtonElement).click();
+    // The field's own named clear button.
+    const clear = input.closest('smt-input')?.querySelector('button.smt-input__action') as HTMLButtonElement;
+    expect(clear.getAttribute('aria-label')).toBeTruthy();
+    clear.click();
     expect(api.get.mock.calls.filter(([path, params]) => path === '/tasks' && params.search === undefined).length).toBeGreaterThan(1);
+    expect(component.searchQuery).toBe('');
   });
 
   it('blocks prior cursor retry during debounce and a filter change cancels the delayed duplicate', async () => {

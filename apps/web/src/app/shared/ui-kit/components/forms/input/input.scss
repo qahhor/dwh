@@ -1,0 +1,115 @@
+/* Our styles for smt-input, from semantic tokens so both themes work. */
+
+.smt-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  height: var(--control-height);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+  font-size: 13px;
+  transition: border-color 0.15s ease;
+}
+
+.smt-input--sm {
+  height: 30px;
+}
+
+.smt-input:focus-within {
+  border-color: var(--primary);
+}
+
+.smt-input:has(.smt-input__field:focus-visible) {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.smt-input--invalid {
+  border-color: var(--danger);
+}
+
+.smt-input--disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.smt-input:has(.smt-input__field:read-only:not(:disabled)) {
+  background-color: var(--bg-hover);
+}
+
+.smt-input__field {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 0 12px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  /* Type settings come from the host, so a class on <smt-input> (monospace, a code
+     field's spacing) reaches the text. */
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: inherit;
+  outline: none;
+}
+
+.smt-input__field::placeholder {
+  color: var(--text-muted);
+}
+
+.smt-input__field:disabled {
+  cursor: not-allowed;
+}
+
+.smt-input__icon {
+  flex-shrink: 0;
+  margin-left: 10px;
+  color: var(--text-muted);
+  font-size: 18px;
+}
+
+.smt-input__icon + .smt-input__field {
+  padding-left: 8px;
+}
+
+.smt-input__action {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-right: 4px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.smt-input__action:hover:not(:disabled) {
+  background-color: var(--bg-hover);
+  color: var(--text-main);
+}
+
+.smt-input__action:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.smt-input__action .material-symbols-outlined {
+  font-size: 18px;
+}
+
+/* The browser's own clear button would double ours (`clearable`). */
+.smt-input__field::-webkit-search-cancel-button,
+.smt-input__field::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}

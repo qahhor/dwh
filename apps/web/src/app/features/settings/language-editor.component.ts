@@ -21,11 +21,13 @@ import { I18nService, TranslatePipe } from '../../core/services/i18n.service';
 import { PermissionService } from '../../core/services/permission.service';
 import { ToastService } from '../../core/services/toast.service';
 import { SMTModalService } from '../../shared/ui-kit/components/modal';
+import { SMTSwitchComponent } from '../../shared/ui-kit/components/forms/switch';
+import { SMTInputComponent, SMTInputValueAccessor } from '../../shared/ui-kit/components/forms/input';
 
 @Component({
   selector: 'app-language-editor',
   standalone: true,
-  imports: [
+  imports: [SMTSwitchComponent, SMTInputComponent, SMTInputValueAccessor, 
     TranslatePipe,CommonModule, FormsModule],
   template: `
     <section class="translation-editor" aria-labelledby="translation-editor-title">
@@ -58,21 +60,17 @@ import { SMTModalService } from '../../shared/ui-kit/components/modal';
         <div class="editor-toolbar">
           <div class="search-field">
             <label for="translation-search">{{ 'settings.poisk_perevoda' | t }}</label>
-            <div class="search-control">
-              <span class="material-symbols-outlined" aria-hidden="true">search</span>
-              <input
-                id="translation-search"
-                type="search"
-                [ngModel]="search()"
-                (ngModelChange)="search.set($event)"
-                [placeholder]="'settings.klyuch_russkiy_tekst_ili_perevod' | t"
-              />
-            </div>
+            <smt-input
+              smtFieldId="translation-search"
+              type="search"
+              smtIcon="search"
+              clearable
+              [ngModel]="search()"
+              (ngModelChange)="search.set($event)"
+              [placeholder]="'settings.klyuch_russkiy_tekst_ili_perevod' | t" />
           </div>
-          <label class="missing-filter">
-            <input type="checkbox" [ngModel]="missingOnly()" (ngModelChange)="missingOnly.set($event)" />
-            <span>{{ 'settings.tolko_neperevedennye' | t }}</span>
-          </label>
+          <smt-switch class="missing-filter" [checked]="missingOnly()" (checkedChange)="missingOnly.set($event)"
+            [smtLabel]="'settings.tolko_neperevedennye' | t" />
           <label class="import-action" *ngIf="canEdit">
             <span class="material-symbols-outlined" aria-hidden="true">upload_file</span>
             <span>{{ 'settings.import_json' | t }}</span>
@@ -103,15 +101,14 @@ import { SMTModalService } from '../../shared/ui-kit/components/modal';
             </div>
             <div class="target-value" [attr.data-label]="'settings.translation' | t">
               <label class="sr-only" [for]="inputId(entry.key)">{{ 'settings.translation_for_key' | t:{key: entry.key} }}</label>
-              <input
-                [id]="inputId(entry.key)"
+              <smt-input
+                [smtFieldId]="inputId(entry.key)"
                 type="text"
                 [disabled]="!canEdit"
                 [ngModel]="valueFor(entry.key)"
                 (ngModelChange)="setValue(entry.key, $event)"
                 [placeholder]="languageCode === 'ru' ? entry.bundledValue || '' : entry.russianValue"
-                maxlength="4000"
-              />
+                [maxLength]="4000" />
               <button
                 type="button"
                 class="reset-action"

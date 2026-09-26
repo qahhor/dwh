@@ -7,7 +7,7 @@ import { forkJoin } from 'rxjs';
 import { ProblemDetail } from '../../../core/models/common.models';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { SMTControlComponent } from '../../../shared/ui-kit/components/forms/control';
-import { SMTRadioGroupComponent, SMTRadioOption } from '../../../shared/ui-kit/components/forms/radio-group';
+import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '../../../shared/ui-kit/components/forms/radio-group';
 import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
@@ -34,6 +34,8 @@ import {
   uplProblemText
 } from '../upl-labels';
 import { SMTAlertComponent } from '../../../shared/ui-kit/components/alert';
+import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
+import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../../../shared/ui-kit/components/forms/select';
 
 /** Реквизиты источника в форме экрана: код не правится и здесь не хранится. */
 interface SourceForm {
@@ -51,7 +53,7 @@ type DraftMode = 'empty' | 'copy';
   selector: 'app-upl-source-card',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
+  imports: [SMTInputComponent, SMTInputValueAccessor, SMTSelectComponent, SMTSelectValueAccessor,
     SMTAlertComponent, SMTControlComponent,
     UiLocalTableComponent,
     CommonModule,
@@ -120,80 +122,63 @@ type DraftMode = 'empty' | 'copy';
           </div>
 
           <smt-control class="form-group" [smtLabel]="'upl.source.field.name' | t" [smtError]="fieldErrorText('name')">
-            <input
-              id="upl-source-name"
-              class="form-input"
-              type="text"
-              maxlength="200"
-              data-testid="upl-field-name"
+            <smt-input
+              smtFieldId="upl-source-name"
+              [maxLength]="200"
+              smtTestId="upl-field-name"
               [disabled]="!canEdit()"
-              [(ngModel)]="form.name"
-            />
+              [(ngModel)]="form.name" />
           </smt-control>
 
           <smt-control class="form-group" [smtLabel]="'upl.source.field.owner_org' | t" [smtError]="fieldErrorText('ownerOrg')">
-            <input
-              id="upl-source-owner-org"
-              class="form-input"
-              type="text"
-              maxlength="200"
-              data-testid="upl-field-ownerOrg"
+            <smt-input
+              smtFieldId="upl-source-owner-org"
+              [maxLength]="200"
+              smtTestId="upl-field-ownerOrg"
               [disabled]="!canEdit()"
-              [(ngModel)]="form.ownerOrg"
-            />
+              [(ngModel)]="form.ownerOrg" />
           </smt-control>
 
           <smt-control class="form-group" [smtLabel]="'upl.source.field.owner_contact' | t" [smtError]="fieldErrorText('ownerContact')">
-            <input
-              id="upl-source-owner-contact"
-              class="form-input"
-              type="text"
-              maxlength="200"
-              data-testid="upl-field-ownerContact"
+            <smt-input
+              smtFieldId="upl-source-owner-contact"
+              [maxLength]="200"
+              smtTestId="upl-field-ownerContact"
               [disabled]="!canEdit()"
-              [(ngModel)]="form.ownerContact"
-            />
+              [(ngModel)]="form.ownerContact" />
           </smt-control>
 
           <smt-control class="form-group" [smtLabel]="'upl.source.field.periodicity' | t">
-            <select
-              id="upl-source-periodicity"
-              class="form-select"
+            <smt-select
+              smtTriggerId="upl-source-periodicity"
               data-testid="upl-field-periodicity"
               [disabled]="!canEdit()"
+              [options]="periodicityOptions()"
+              [allowClear]="false"
               [(ngModel)]="form.periodicity"
-            >
-              @for (p of periodicities; track p) {
-                <option [value]="p">{{ periodicityKey[p] | t }}</option>
-              }
-            </select>
+            ></smt-select>
           </smt-control>
 
           <smt-control class="form-group" [smtLabel]="'upl.source.field.sla_days' | t" [smtError]="fieldErrorText('slaDays')">
-            <input
-              id="upl-source-sla-days"
-              class="form-input"
+            <smt-input
+              smtFieldId="upl-source-sla-days"
               type="number"
-              min="0"
-              max="366"
-              data-testid="upl-field-slaDays"
+              [smtMin]="0"
+              [smtMax]="366"
+              smtTestId="upl-field-slaDays"
               [disabled]="!canEdit()"
-              [(ngModel)]="form.slaDays"
-            />
+              [(ngModel)]="form.slaDays" />
           </smt-control>
 
           <smt-control class="form-group" [smtLabel]="'upl.source.field.strictness' | t">
-            <select
-              id="upl-source-strictness"
-              class="form-select"
+            <smt-select
+              smtTriggerId="upl-source-strictness"
               data-testid="upl-field-strictness"
               [disabled]="!canEdit()"
+              [options]="strictnessOptions()"
+              [allowClear]="false"
               [(ngModel)]="form.reconciliationStrictness"
-            >
-              @for (st of strictnesses; track st) {
-                <option [value]="st">{{ strictnessKey[st] | t }}</option>
-              }
-            </select>
+            ></smt-select>
           </smt-control>
         </div>
 
@@ -272,18 +257,15 @@ type DraftMode = 'empty' | 'copy';
             (valueChange)="draftMode.set($event ?? 'empty')" />
 
           @if (copyCandidates().length > 0) {
-            <select
-              class="form-select"
+            <smt-select
               data-testid="upl-draft-copy-from"
-              [attr.aria-label]="'upl.version.draft_copy' | t"
+              [ariaLabel]="'upl.version.draft_copy' | t"
               [disabled]="draftMode() !== 'copy'"
-              [ngModel]="copyFrom()"
-              (ngModelChange)="copyFrom.set($event)"
-            >
-              @for (v of copyCandidates(); track v.version) {
-                <option [ngValue]="v.version">{{ v.version }}</option>
-              }
-            </select>
+              [options]="copyFromOptions()"
+              [allowClear]="false"
+              [value]="copyFrom()"
+              (valueChange)="copyFrom.set($event)"
+            ></smt-select>
           }
 
           @if (draftExists()) {
@@ -488,10 +470,12 @@ export class SourceCardComponent {
       .sort((a, b) => b.version - a.version)
   );
 
-  readonly periodicities = UPL_PERIODICITIES;
-  readonly strictnesses = UPL_STRICTNESSES;
-  readonly periodicityKey = UPL_PERIODICITY_KEY;
-  readonly strictnessKey = UPL_STRICTNESS_KEY;
+  /** Versions a draft can be copied from, newest first. */
+  readonly copyFromOptions = computed<SMTSelectOption<number>[]>(() =>
+    this.copyCandidates().map(v => ({ id: v.version, label: String(v.version) }))
+  );
+  private readonly periodicityMemo = optionsMemo<SMTSelectOption<UplPeriodicity>[]>();
+  private readonly strictnessMemo = optionsMemo<SMTSelectOption<UplStrictness>[]>();
   readonly versionStatusKey = UPL_VERSION_STATUS_KEY;
   readonly dash = '—';
 
@@ -521,6 +505,18 @@ export class SourceCardComponent {
   }
 
   /** The translated message for a field's error code, or nothing; smt-control links it to the field. */
+  /** Periodicities of a source; translated again when the language changes. */
+  periodicityOptions(): SMTSelectOption<UplPeriodicity>[] {
+    return this.periodicityMemo([this.i18n.currentLang()], () =>
+      UPL_PERIODICITIES.map(p => ({ id: p, label: this.i18n.translate(UPL_PERIODICITY_KEY[p]) })));
+  }
+
+  /** Reconciliation strictness levels; translated again when the language changes. */
+  strictnessOptions(): SMTSelectOption<UplStrictness>[] {
+    return this.strictnessMemo([this.i18n.currentLang()], () =>
+      UPL_STRICTNESSES.map(st => ({ id: st, label: this.i18n.translate(UPL_STRICTNESS_KEY[st]) })));
+  }
+
   fieldErrorText(key: string): string {
     const code = this.fieldErrors()[key];
     return code ? this.i18n.translate(code) : '';

@@ -207,7 +207,10 @@ describe('FilesComponent request and deletion mechanics', () => {
     const { component, fixture, host } = await createFixture(undefined, [file(1)]);
     component.searchQuery = 'report';
     fixture.detectChanges();
-    (host.querySelector('.clear-btn') as HTMLButtonElement).click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    // The field's own clear button; clearing lists every file again at once.
+    (host.querySelector('#file-search')!.closest('smt-input')!.querySelector('.smt-input__action') as HTMLButtonElement).click();
     const request = http.expectOne(req => req.url === '/api/v1/files');
     expect(request.request.params.has('q')).toBe(false);
     request.flush(keyset([]));

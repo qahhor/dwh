@@ -31,6 +31,9 @@ import {
 import { parseUplProblem, uplFieldErrorText } from '../formats/upl-format-errors';
 import { UPL_PERIODICITY_KEY, UPL_STRICTNESS_KEY, uplProblemText } from '../upl-labels';
 import { SMTAlertComponent } from '../../../shared/ui-kit/components/alert';
+import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
+import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../../../shared/ui-kit/components/forms/select';
+import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group/radio-options';
 
 /** Модель окна «Новый источник»: обычный объект, чтобы работал `[(ngModel)]`. */
 interface SourceCreateForm {
@@ -65,7 +68,7 @@ function emptyForm(): SourceCreateForm {
   selector: 'app-upl-sources-list',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
+  imports: [SMTInputComponent, SMTInputValueAccessor, SMTSelectComponent, SMTSelectValueAccessor,
     SMTAlertComponent, SMTControlComponent,
     CommonModule,
     FormsModule,
@@ -150,86 +153,66 @@ function emptyForm(): SourceCreateForm {
         }
 
         <smt-control class="form-group" [smtLabel]="'upl.source.field.code' | t" [smtHint]="'upl.source.hint.code' | t" [smtError]="fieldErrorText('code')">
-          <input
-            class="form-input"
-            id="upl-source-code"
+          <smt-input
+            smtFieldId="upl-source-code"
             name="code"
-            type="text"
-            maxlength="63"
-            [(ngModel)]="form.code"
-          />
+            [maxLength]="63"
+            [(ngModel)]="form.code" />
         </smt-control>
 
         <smt-control class="form-group" [smtLabel]="'upl.source.field.name' | t" [smtHint]="'upl.source.hint.name' | t" [smtError]="fieldErrorText('name')">
-          <input
-            class="form-input"
-            id="upl-source-name"
+          <smt-input
+            smtFieldId="upl-source-name"
             name="name"
-            type="text"
-            maxlength="200"
-            [(ngModel)]="form.name"
-          />
+            [maxLength]="200"
+            [(ngModel)]="form.name" />
         </smt-control>
 
         <smt-control class="form-group" [smtLabel]="'upl.source.field.owner_org' | t" [smtHint]="'upl.source.hint.owner_org' | t" [smtError]="fieldErrorText('ownerOrg')">
-          <input
-            class="form-input"
-            id="upl-source-owner-org"
+          <smt-input
+            smtFieldId="upl-source-owner-org"
             name="ownerOrg"
-            type="text"
-            maxlength="200"
-            [(ngModel)]="form.ownerOrg"
-          />
+            [maxLength]="200"
+            [(ngModel)]="form.ownerOrg" />
         </smt-control>
 
         <smt-control class="form-group" [smtLabel]="'upl.source.field.owner_contact' | t" [smtHint]="'upl.source.hint.owner_contact' | t" [smtError]="fieldErrorText('ownerContact')">
-          <input
-            class="form-input"
-            id="upl-source-owner-contact"
+          <smt-input
+            smtFieldId="upl-source-owner-contact"
             name="ownerContact"
-            type="text"
-            maxlength="200"
-            [(ngModel)]="form.ownerContact"
-          />
+            [maxLength]="200"
+            [(ngModel)]="form.ownerContact" />
         </smt-control>
 
         <smt-control class="form-group" [smtLabel]="'upl.source.field.periodicity' | t" [smtHint]="'upl.source.hint.periodicity' | t">
-          <select
-            class="form-select"
-            id="upl-source-periodicity"
+          <smt-select
+            smtTriggerId="upl-source-periodicity"
             name="periodicity"
+            [options]="periodicityOptions()"
+            [allowClear]="false"
             [(ngModel)]="form.periodicity"
-          >
-            @for (option of periodicities; track option) {
-              <option [value]="option">{{ periodicityKey[option] | t }}</option>
-            }
-          </select>
+          ></smt-select>
         </smt-control>
 
         <smt-control class="form-group" [smtLabel]="'upl.source.field.sla_days' | t" [smtHint]="'upl.source.hint.sla_days' | t" [smtError]="fieldErrorText('slaDays')">
-          <input
-            class="form-input"
-            id="upl-source-sla-days"
+          <smt-input
+            smtFieldId="upl-source-sla-days"
             name="slaDays"
             type="number"
-            min="0"
-            max="366"
-            step="1"
-            [(ngModel)]="form.slaDays"
-          />
+            [smtMin]="0"
+            [smtMax]="366"
+            [smtStep]="1"
+            [(ngModel)]="form.slaDays" />
         </smt-control>
 
         <smt-control class="form-group" [smtLabel]="'upl.source.field.strictness' | t" [smtHint]="'upl.source.hint.strictness' | t">
-          <select
-            class="form-select"
-            id="upl-source-strictness"
+          <smt-select
+            smtTriggerId="upl-source-strictness"
             name="reconciliationStrictness"
+            [options]="strictnessOptions()"
+            [allowClear]="false"
             [(ngModel)]="form.reconciliationStrictness"
-          >
-            @for (option of strictnesses; track option) {
-              <option [value]="option">{{ strictnessKey[option] | t }}</option>
-            }
-          </select>
+          ></smt-select>
         </smt-control>
       </form>
 
@@ -417,12 +400,22 @@ export class SourcesListComponent implements OnInit {
   readonly isLoading = this.pager.loading;
   readonly loadError = this.pager.failed;
 
-  readonly periodicities = UPL_PERIODICITIES;
-  readonly strictnesses = UPL_STRICTNESSES;
-  readonly periodicityKey = UPL_PERIODICITY_KEY;
-  readonly strictnessKey = UPL_STRICTNESS_KEY;
+  private readonly periodicityMemo = optionsMemo<SMTSelectOption<UplPeriodicity>[]>();
+  private readonly strictnessMemo = optionsMemo<SMTSelectOption<UplStrictness>[]>();
 
   form: SourceCreateForm = emptyForm();
+
+  /** Periodicities of a source; translated again when the language changes. */
+  periodicityOptions(): SMTSelectOption<UplPeriodicity>[] {
+    return this.periodicityMemo([this.i18n.currentLang()], () =>
+      UPL_PERIODICITIES.map(option => ({ id: option, label: this.i18n.translate(UPL_PERIODICITY_KEY[option]) })));
+  }
+
+  /** Reconciliation strictness levels; translated again when the language changes. */
+  strictnessOptions(): SMTSelectOption<UplStrictness>[] {
+    return this.strictnessMemo([this.i18n.currentLang()], () =>
+      UPL_STRICTNESSES.map(option => ({ id: option, label: this.i18n.translate(UPL_STRICTNESS_KEY[option]) })));
+  }
 
   ngOnInit(): void {
     this.load();

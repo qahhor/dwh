@@ -1,0 +1,49 @@
+<!-- Our template, after the idea of the kit's smt-input (smartup-ui-kit@6472beb). See the component header. -->
+@if (icon()) {
+  <span class="material-symbols-outlined smt-input__icon" aria-hidden="true">{{ icon() }}</span>
+}
+<input
+  #field
+  class="smt-input__field"
+  [id]="customId() || fieldId"
+  [type]="nativeType()"
+  [attr.name]="name() || null"
+  [attr.data-testid]="testId()"
+  [attr.cdkFocusInitial]="focusInitial() ? '' : null"
+  [placeholder]="placeholder()"
+  [value]="text()"
+  [disabled]="isDisabled()"
+  [readOnly]="readonly()"
+  [required]="required()"
+  [attr.aria-label]="ariaLabel() || null"
+  [attr.aria-describedby]="(describedBy() ?? '').trim() || null"
+  [attr.aria-invalid]="hasError() ? 'true' : null"
+  [attr.autocomplete]="autocomplete()"
+  [attr.inputmode]="inputmode()"
+  [attr.spellcheck]="spellcheck() === null ? null : spellcheck()"
+  [attr.pattern]="htmlPattern()"
+  [attr.maxlength]="maxLength() ?? null"
+  [attr.minlength]="minLength() ?? null"
+  [attr.min]="numberMin() ?? null"
+  [attr.max]="numberMax() ?? null"
+  [attr.step]="step() ?? null"
+  (input)="onInput($event)"
+  (blur)="onBlur()" />
+@if (showClear()) {
+  <button type="button" class="smt-input__action" data-smt-field-part [attr.aria-label]="i18n.messages().input.clear" (click)="clear()">
+    <span class="material-symbols-outlined" aria-hidden="true">close</span>
+  </button>
+}
+@if (type() === 'password') {
+  <button
+    type="button"
+    class="smt-input__action"
+    data-smt-field-part
+    [attr.aria-controls]="customId() || fieldId"
+    [attr.aria-label]="revealed() ? i18n.messages().input.hidePassword : i18n.messages().input.showPassword"
+    [attr.aria-pressed]="revealed() ? 'true' : 'false'"
+    [disabled]="isDisabled()"
+    (click)="toggleReveal()">
+    <span class="material-symbols-outlined" aria-hidden="true">{{ revealed() ? 'visibility_off' : 'visibility' }}</span>
+  </button>
+}

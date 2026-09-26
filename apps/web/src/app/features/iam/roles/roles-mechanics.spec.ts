@@ -54,7 +54,7 @@ describe('RolesComponent permission matrix lifecycle', () => {
   }
 
   function checkbox(action: string) {
-    return host.querySelector<HTMLInputElement>(`label[title="tasks.items.${action}"] input`)!;
+    return host.querySelector<HTMLInputElement>(`[title="tasks.items.${action}"] input`)!;
   }
 
   function saveButton() {
@@ -150,8 +150,7 @@ describe('RolesComponent permission matrix lifecycle', () => {
     for (const write of duplicates) write.flush(null);
 
     const component = fixture.componentInstance;
-    checkbox('update').checked = true;
-    component.togglePermission('tasks.items', 'update', { target: checkbox('update') } as unknown as Event);
+    component.togglePermission('tasks.items', 'update', true);
     component.toggleAllForm(component.moduleGroups[0].forms[0], true);
     component.toggleAllModule(component.moduleGroups[0], false);
     component.selectRole(roles[1]);

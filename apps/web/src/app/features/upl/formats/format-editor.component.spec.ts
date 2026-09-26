@@ -167,16 +167,25 @@ function click(element: HTMLElement | null): void {
   target.click();
 }
 
-function selectOption(element: HTMLElement | null, match: (option: HTMLOptionElement) => boolean): void {
-  if (!(element instanceof HTMLSelectElement)) {
-    throw new Error('select not found');
+/** The trigger of an smt-select host: the button that opens the list and carries its state. */
+function trigger(element: HTMLElement | null): HTMLButtonElement {
+  const button = element?.querySelector<HTMLButtonElement>('[role="combobox"]');
+  if (!button) {
+    throw new Error('smt-select not found');
   }
-  const option = Array.from(element.options).find(match);
+  return button;
+}
+
+/** Opens an smt-select and picks the first option whose label matches. */
+function selectOption(fixture: ComponentFixture<FormatEditorComponent>, element: HTMLElement | null, match: (label: string) => boolean): void {
+  trigger(element).click();
+  fixture.detectChanges();
+  const option = Array.from(document.querySelectorAll<HTMLElement>('.smt-select__option'))
+    .find(item => match(item.querySelector('.smt-select__option-label')?.textContent?.trim() ?? ''));
   if (!option) {
     throw new Error('option not found');
   }
-  element.value = option.value;
-  element.dispatchEvent(new Event('change'));
+  option.click();
 }
 
 function setInputValue(input: HTMLInputElement, value: string): void {
@@ -244,6 +253,9 @@ describe('FormatEditorComponent', () => {
     expect(one(fixture, 'upl-readonly-note')).not.toBeNull();
     expect(one(fixture, 'upl-actions')).toBeNull();
     expect((many(fixture, 'upl-cell-name-in-file')[0] as HTMLInputElement).disabled).toBe(true);
+    const required = many(fixture, 'upl-cell-required')[0];
+    expect(required.querySelector<HTMLInputElement>('input[type="checkbox"]')!.disabled).toBe(true);
+    expect(required.querySelector('[role="checkbox"]')!.getAttribute('aria-disabled')).toBe('true');
   });
 
   it('hides save without edit right and publish without publish right', async () => {
@@ -274,11 +286,20 @@ describe('FormatEditorComponent', () => {
     const { fixture, api, toast, component } = await createFixture();
 
     addValidColumn(fixture);
+    // The column flag is a named checkbox that shows the saved value and toggles the model.
+    const required = many(fixture, 'upl-cell-required');
+    expect(required[0].querySelector<HTMLInputElement>('input[type="checkbox"]')!.checked).toBe(true);
+    expect(required[1].querySelector<HTMLInputElement>('input[type="checkbox"]')!.checked).toBe(false);
+    const newRequired = required[2].querySelector<HTMLElement>('[role="checkbox"]')!;
+    expect(newRequired.getAttribute('aria-label')).toBe(PACKAGED_RUSSIAN['upl.format.col.required']);
+    newRequired.click();
+    fixture.detectChanges();
     click(one(fixture, 'upl-save'));
     fixture.detectChanges();
 
     expect(api.saveDraft).toHaveBeenCalledTimes(1);
     const [id, v, body] = api.saveDraft.mock.calls[0];
+    expect(body.sheets[0].columns.map(column => column.required)).toEqual([true, false, true]);
     expect(id).toBe('7');
     expect(v).toBe('1');
     expect(body.lockVersion).toBe(4);
@@ -297,7 +318,8 @@ describe('FormatEditorComponent', () => {
     const input = rows[rows.length - 1].querySelector('[data-testid="upl-cell-header-synonyms"]') as HTMLInputElement;
     expect(input.getAttribute('aria-label')).toBe('Также принимается заголовок');
     input.value = 'Сумма, руб ;  ; Итого';
-    input.dispatchEvent(new Event('change'));
+    // A browser's change event bubbles; smt-input hears it on the host.
+    input.dispatchEvent(new Event('change', { bubbles: true }));
     fixture.detectChanges();
 
     click(one(fixture, 'upl-save'));
@@ -324,7 +346,7 @@ describe('FormatEditorComponent', () => {
   it('clears fields that the new data type has not', async () => {
     const { fixture, toast, component } = await createFixture();
 
-    selectOption(many(fixture, 'upl-cell-type')[0], option => option.value.endsWith('text'));
+    selectOption(fixture, many(fixture, 'upl-cell-type')[0], label => label === PACKAGED_RUSSIAN['upl.format.type.text']);
     fixture.detectChanges();
 
     expect(component.model.sheets[0].columns[0].keyMask).toBeNull();
@@ -332,7 +354,7 @@ describe('FormatEditorComponent', () => {
     expect(component.model.sheets[0].columns[0].keyPadMax).toBeNull();
     expect(toast.info).toHaveBeenCalledTimes(1);
 
-    selectOption(many(fixture, 'upl-cell-type')[0], option => option.value.endsWith('date'));
+    selectOption(fixture, many(fixture, 'upl-cell-type')[0], label => label === PACKAGED_RUSSIAN['upl.format.type.date']);
     fixture.detectChanges();
     expect(toast.info).toHaveBeenCalledTimes(1);
   });
@@ -340,7 +362,7 @@ describe('FormatEditorComponent', () => {
   it('fills base unit from the chosen source unit', async () => {
     const { fixture, component } = await createFixture();
 
-    selectOption(one(fixture, 'upl-cell-source-unit'), option => option.textContent!.includes('(liter)'));
+    selectOption(fixture, one(fixture, 'upl-cell-source-unit'), label => label.includes('(liter)'));
     fixture.detectChanges();
 
     expect(component.model.sheets[0].columns[1].sourceUnit).toBe('liter');
@@ -658,8 +680,8 @@ describe('FormatEditorComponent', () => {
       expect(one(fixture, testId)).toBeNull();
     }
     expect((many(fixture, 'upl-cell-name-in-file')[0] as HTMLInputElement).disabled).toBe(true);
-    expect((many(fixture, 'upl-cell-type')[0] as HTMLSelectElement).disabled).toBe(true);
-    expect((one(fixture, 'upl-file-kind') as HTMLSelectElement).disabled).toBe(true);
+    expect(trigger(many(fixture, 'upl-cell-type')[0]).disabled).toBe(true);
+    expect(trigger(one(fixture, 'upl-file-kind')).disabled).toBe(true);
     expect(one(fixture, 'upl-actions')).toBeNull();
     expect(many(fixture, 'upl-column-row').length).toBe(2);
   });
@@ -710,7 +732,7 @@ describe('FormatEditorComponent', () => {
     fixture.detectChanges();
 
     expect(one(fixture, 'upl-errors-summary')!.querySelectorAll('li').length).toBe(3);
-    expect(fixture.nativeElement.querySelector('#upl-header-row').classList.contains('upl-cell-error')).toBe(true);
+    expect(fixture.nativeElement.querySelector('#upl-header-row').getAttribute('aria-invalid')).toBe('true');
     expect(many(fixture, 'upl-tab-error').length).toBe(1);
   });
 
@@ -931,7 +953,7 @@ describe('FormatEditorComponent', () => {
 
       click(stepButton(fixture, 'file'));
       fixture.detectChanges();
-      expect((one(fixture, 'upl-file-kind') as HTMLSelectElement).disabled).toBe(true);
+      expect(trigger(one(fixture, 'upl-file-kind')).disabled).toBe(true);
 
       click(stepButton(fixture, 'publish'));
       fixture.detectChanges();

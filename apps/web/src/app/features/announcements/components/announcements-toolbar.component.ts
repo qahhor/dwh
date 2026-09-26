@@ -4,11 +4,12 @@ import { TranslatePipe } from '../../../core/services/i18n.service';
 import { SMTTabBarComponent, SMTTabItem } from '../../../shared/ui-kit/components/tab-bar';
 import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group';
 import { I18nService } from '../../../core/services/i18n.service';
+import { SMTInputComponent, SMTInputValue } from '../../../shared/ui-kit/components/forms/input';
 
 @Component({
   selector: 'app-announcements-toolbar',
   standalone: true,
-  imports: [SMTTabBarComponent, CommonModule, TranslatePipe],
+  imports: [SMTTabBarComponent, SMTInputComponent, CommonModule, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="toolbar">
@@ -19,26 +20,15 @@ import { I18nService } from '../../../core/services/i18n.service';
         [smtAriaLabel]="'announcements.vse_statusy' | t"
         (valueChange)="$event && filterChange.emit($event)" />
 
-      <div class="search-box">
-        <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
-        <input
-          type="search"
-          class="search-input"
-          [placeholder]="'announcements.poisk' | t"
-          [attr.aria-label]="'announcements.poisk' | t"
-          [value]="searchQuery()"
-          (input)="onInput($event)"
-        />
-        <button
-          *ngIf="searchQuery().length > 0"
-          type="button"
-          class="clear-search-btn"
-          (click)="searchClear.emit()"
-          [attr.aria-label]="'announcements.sbrosit_filtry' | t"
-        >
-          <span class="material-symbols-outlined" aria-hidden="true">close</span>
-        </button>
-      </div>
+      <smt-input
+        class="search-box"
+        type="search"
+        smtIcon="search"
+        clearable
+        [placeholder]="'announcements.poisk' | t"
+        [smtAriaLabel]="'announcements.poisk' | t"
+        [value]="searchQuery()"
+        (valueChange)="onSearch($event)" />
     </div>
   `,
   styles: [`
@@ -59,60 +49,7 @@ import { I18nService } from '../../../core/services/i18n.service';
 
 
     .search-box {
-      position: relative;
-      display: flex;
-      align-items: center;
-      min-width: 240px;
-    }
-
-    .search-icon {
-      position: absolute;
-      left: 10px;
-      font-size: 18px;
-      color: var(--text-muted);
-      pointer-events: none;
-    }
-
-    .search-input {
-      width: 100%;
-      height: 34px;
-      padding: 6px 30px 6px 32px;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      background: var(--bg-surface);
-      color: var(--text-main);
-      font-size: 13px;
-      box-sizing: border-box;
-      transition: border-color 0.15s ease;
-    }
-
-    .search-input:focus {
-      outline: none;
-      border-color: var(--primary);
-    }
-
-    .clear-search-btn {
-      position: absolute;
-      right: 6px;
-      width: 22px;
-      height: 22px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 0;
-      background: transparent;
-      color: var(--text-muted);
-      cursor: pointer;
-      border-radius: 50%;
-    }
-
-    .clear-search-btn:hover {
-      background: var(--bg-hover);
-      color: var(--text-main);
-    }
-
-    .clear-search-btn .material-symbols-outlined {
-      font-size: 16px;
+      width: 240px;
     }
 
     @media (max-width: 680px) {
@@ -138,9 +75,14 @@ export class AnnouncementsToolbarComponent {
 
   private readonly tabsMemo = optionsMemo<SMTTabItem<'ALL' | 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'>[]>();
 
-  onInput(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    this.searchChange.emit(input.value);
+  /** The typed text; an emptied box (typed away or cleared with its button) clears the search. */
+  onSearch(value: SMTInputValue): void {
+    const text = value === null ? '' : String(value);
+    if (text) {
+      this.searchChange.emit(text);
+    } else {
+      this.searchClear.emit();
+    }
   }
 
   statusTabs(): SMTTabItem<'ALL' | 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'>[] {

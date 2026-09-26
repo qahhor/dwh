@@ -1,15 +1,18 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, inject, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Role } from '../../../../core/models/rbac.models';
-import { TranslatePipe } from '../../../../core/services/i18n.service';
+import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { UiButtonComponent } from '../../../../shared/ui/ui-button.component';
 import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
+import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../../../../shared/ui-kit/components/forms/select';
+import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-group';
+import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
 
 @Component({
   selector: 'app-role-modals',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslatePipe, UiButtonComponent, UiModalComponent],
+  imports: [CommonModule, FormsModule, TranslatePipe, UiButtonComponent, UiModalComponent, SMTSelectComponent, SMTSelectValueAccessor, SMTInputComponent, SMTInputValueAccessor],
   template: `
     <!-- Create Role Modal -->
     <ui-modal
@@ -21,30 +24,25 @@ import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
       <div body class="modal-body-form">
         <div class="modal-field">
           <label class="modal-label" for="role-create-name">{{ 'iam.nazvanie_roli' | t }} <span class="req">*</span></label>
-          <input
-            id="role-create-name"
+          <smt-input
+            smtFieldId="role-create-name"
             name="roleCreateName"
-            type="text"
-            class="modal-text-input"
             required
-            [class.input-error]="isCreateSubmitted && !newRoleForm.name.trim()"
-            [attr.aria-invalid]="isCreateSubmitted && !newRoleForm.name.trim()"
-            [attr.aria-describedby]="isCreateSubmitted && !newRoleForm.name.trim() ? 'role-create-name-error' : null"
+            [smtInvalid]="isCreateSubmitted && !newRoleForm.name.trim()"
+            [smtDescribedBy]="isCreateSubmitted && !newRoleForm.name.trim() ? 'role-create-name-error' : null"
             [(ngModel)]="newRoleForm.name"
-            [placeholder]="'iam.naprimer_starshiy_analitik_dannyh' | t"
-          />
+            [placeholder]="'iam.naprimer_starshiy_analitik_dannyh' | t" />
           <span id="role-create-name-error" class="field-error" *ngIf="isCreateSubmitted && !newRoleForm.name.trim()">{{ 'iam.ukazhite_nazvanie_roli' | t }}</span>
         </div>
         <div class="modal-field">
           <label class="modal-label" for="role-create-order">{{ 'iam.poryadok_otobrazheniya' | t }}</label>
-          <input
-            id="role-create-order"
+          <smt-input
+            smtFieldId="role-create-order"
             name="roleCreateOrder"
             type="number"
-            class="modal-text-input font-mono"
+            class="font-mono"
             [(ngModel)]="newRoleForm.orderNo"
-            placeholder="0"
-          />
+            placeholder="0" />
         </div>
       </div>
       <div footer>
@@ -63,24 +61,26 @@ import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
       <div body class="modal-body-form" *ngIf="editingRole as r">
         <div class="modal-field">
           <label class="modal-label" for="role-edit-name">{{ 'iam.nazvanie_roli' | t }} <span class="req">*</span></label>
-          <input id="role-edit-name" name="roleEditName" type="text" class="modal-text-input" required
-            [class.input-error]="isEditSubmitted && !editRoleForm.name.trim()"
-            [attr.aria-invalid]="isEditSubmitted && !editRoleForm.name.trim()"
-            [attr.aria-describedby]="isEditSubmitted && !editRoleForm.name.trim() ? 'role-edit-name-error' : null"
+          <smt-input smtFieldId="role-edit-name" name="roleEditName" required
+            [smtInvalid]="isEditSubmitted && !editRoleForm.name.trim()"
+            [smtDescribedBy]="isEditSubmitted && !editRoleForm.name.trim() ? 'role-edit-name-error' : null"
             [(ngModel)]="editRoleForm.name" />
           <span id="role-edit-name-error" class="field-error" *ngIf="isEditSubmitted && !editRoleForm.name.trim()">{{ 'iam.ukazhite_nazvanie_roli' | t }}</span>
         </div>
         <div class="modal-field">
           <label class="modal-label" for="role-edit-state">{{ 'iam.status_aktivnosti' | t }}</label>
-          <select id="role-edit-state" name="roleEditState" class="modal-text-input" [(ngModel)]="editRoleForm.state" [disabled]="r.pcode === 'admin'">
-            <option value="A">{{ 'iam.aktivna_a' | t }}</option>
-            <option value="P">{{ 'iam.otklyuchena_p' | t }}</option>
-          </select>
+          <smt-select
+            smtTriggerId="role-edit-state"
+            name="roleEditState"
+            [(ngModel)]="editRoleForm.state"
+            [options]="stateOptions()"
+            [allowClear]="false"
+            [disabled]="r.pcode === 'admin'" />
           <span class="modal-help" *ngIf="r.pcode === 'admin'">{{ 'iam.rol_superadministratora_vsegda_aktivna' | t }}</span>
         </div>
         <div class="modal-field">
           <label class="modal-label" for="role-edit-order">{{ 'iam.poryadok_otobrazheniya' | t }}</label>
-          <input id="role-edit-order" name="roleEditOrder" type="number" class="modal-text-input font-mono" [(ngModel)]="editRoleForm.orderNo" />
+          <smt-input smtFieldId="role-edit-order" name="roleEditOrder" type="number" class="font-mono" [(ngModel)]="editRoleForm.orderNo" />
         </div>
       </div>
       <div footer>
@@ -139,19 +139,6 @@ import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
     .modal-body-form { display: flex; flex-direction: column; gap: 14px; }
     .modal-field { display: flex; flex-direction: column; gap: 5px; }
     .modal-label { font-size: 12px; font-weight: 500; color: var(--text-main); }
-    .modal-text-input {
-      width: 100%;
-      height: 34px;
-      padding: 4px 10px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--border-color);
-      background-color: var(--bg-surface);
-      color: var(--text-main);
-      font-size: 13px;
-      outline: none;
-    }
-    .modal-text-input:focus { border-color: var(--primary); }
-    .modal-text-input.input-error { border-color: var(--danger); }
     .modal-help { font-size: 11px; color: var(--text-muted); }
     .field-error { font-size: 10px; color: var(--danger); }
 
@@ -164,6 +151,9 @@ import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
   `]
 })
 export class RoleModalsComponent {
+  private readonly i18n = inject(I18nService);
+  private readonly stateMemo = optionsMemo<SMTSelectOption<string>[]>();
+
   @Input() isCreateModalOpen = false;
   @Input() isCreateSubmitted = false;
   @Input() newRoleForm = { name: '', orderNo: 0 };
@@ -195,4 +185,11 @@ export class RoleModalsComponent {
   @Output() closeDiscard = new EventEmitter<void>();
   @Output() confirmDiscardAndSwitch = new EventEmitter<void>();
   @Output() saveAndSwitch = new EventEmitter<void>();
+
+  stateOptions(): SMTSelectOption<string>[] {
+    return this.stateMemo([this.i18n.currentLang()], () => [
+      { id: 'A', label: this.i18n.translate('iam.aktivna_a') },
+      { id: 'P', label: this.i18n.translate('iam.otklyuchena_p') },
+    ]);
+  }
 }

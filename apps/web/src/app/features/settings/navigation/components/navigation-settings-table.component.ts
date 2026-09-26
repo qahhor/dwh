@@ -1,6 +1,7 @@
 import { Component, EventEmitter, Input, Output, Signal, TemplateRef, computed, inject, signal, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
 import { CustomNavigationItem, NavigationTargetType } from '../../../../core/models/navigation.models';
 import { TranslatePipe, I18nService } from '../../../../core/services/i18n.service';
 import { UiLocalTableComponent } from '../../../../shared/ui/ui-local-table.component';
@@ -17,6 +18,8 @@ import { TableConfig } from '../../../../shared/ui-kit/components/table/table.ty
   imports: [
     CommonModule,
     FormsModule,
+    SMTInputComponent,
+    SMTInputValueAccessor,
     TranslatePipe,
     UiLocalTableComponent
   ],
@@ -24,20 +27,16 @@ import { TableConfig } from '../../../../shared/ui-kit/components/table/table.ty
     <!-- Search & Filter Bar -->
     <div class="filter-bar">
       <div class="search-box">
-        <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
-        <input
-          type="text"
-          class="search-input"
-          [attr.aria-label]="'nav.settings.search_placeholder' | t"
+        <smt-input
+          class="search-field"
+          type="search"
+          smtIcon="search"
+          clearable
+          [smtAriaLabel]="'nav.settings.search_placeholder' | t"
           [ngModel]="searchQuery"
           (ngModelChange)="searchQueryChange.emit($event)"
           [placeholder]="'nav.settings.search_placeholder' | t"
-        />
-        @if (searchQuery) {
-          <button type="button" class="clear-search-btn" (click)="clearSearch.emit()" [attr.aria-label]="'nav.settings.clear_search' | t">
-            <span class="material-symbols-outlined" aria-hidden="true">close</span>
-          </button>
-        }
+          (cleared)="clearSearch.emit()" />
       </div>
     </div>
 
@@ -111,49 +110,10 @@ import { TableConfig } from '../../../../shared/ui-kit/components/table/table.ty
       position: relative;
       flex: 1;
       max-width: 400px;
-      display: flex;
-      align-items: center;
     }
 
-    .search-icon {
-      position: absolute;
-      left: 10px;
-      font-size: 18px;
-      color: var(--text-muted);
-      pointer-events: none;
-    }
 
-    .search-input {
-      width: 100%;
-      padding: 8px 32px 8px 34px;
-      font-size: 13px;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      background-color: var(--bg-surface);
-      color: var(--text-main);
-      outline: none;
-      transition: border-color 0.15s ease;
-    }
 
-    .search-input:focus {
-      border-color: var(--primary);
-    }
-
-    .clear-search-btn {
-      position: absolute;
-      right: 8px;
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      padding: 2px;
-    }
-
-    .clear-search-btn .material-symbols-outlined {
-      font-size: 16px;
-    }
 
     /* Table */
     .table-container {

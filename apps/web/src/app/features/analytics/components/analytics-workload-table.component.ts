@@ -1,6 +1,6 @@
 import { Component, Input, Signal, TemplateRef, computed, inject, signal, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { SMTInputComponent } from '../../../shared/ui-kit/components/forms/input';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
 import { UiLocalTableComponent } from '../../../shared/ui/ui-local-table.component';
@@ -12,8 +12,7 @@ import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
   selector: 'app-analytics-workload-table',
   standalone: true,
   imports: [
-    SMTAvatarComponent, CommonModule,
-    FormsModule,
+    SMTAvatarComponent, SMTInputComponent, CommonModule,
     TranslatePipe,
     UiBadgeComponent,
     UiLocalTableComponent
@@ -27,26 +26,17 @@ import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
         </div>
 
         <!-- Quick User Filter -->
-        <div class="user-search-box" *ngIf="workload.length > 0">
-          <span class="material-symbols-outlined search-ico" aria-hidden="true">search</span>
-          <input
-            type="text"
-            class="search-mini-input"
-            [placeholder]="'analytics.poisk_sotrudnika' | t"
-            [attr.aria-label]="'analytics.poisk_sotrudnika' | t"
-            [ngModel]="searchUserQuery()"
-            (ngModelChange)="searchUserQuery.set($event)"
-          />
-          <button
-            *ngIf="searchUserQuery()"
-            type="button"
-            class="clear-mini-btn"
-            (click)="searchUserQuery.set('')"
-            [attr.aria-label]="'common.clear' | t"
-          >
-            <span class="material-symbols-outlined" style="font-size: 14px;" aria-hidden="true">close</span>
-          </button>
-        </div>
+        <smt-input
+          *ngIf="workload.length > 0"
+          class="user-search-box"
+          type="search"
+          smtIcon="search"
+          clearable
+          smtSize="sm"
+          [placeholder]="'analytics.poisk_sotrudnika' | t"
+          [smtAriaLabel]="'analytics.poisk_sotrudnika' | t"
+          [value]="searchUserQuery()"
+          (valueChange)="searchUserQuery.set($any($event) ?? '')" />
       </div>
 
       <div class="table-scroll" role="region" tabindex="0" [attr.aria-label]="'analytics.utilizaciya_i_zagruzka_komandy' | t">
@@ -118,43 +108,8 @@ import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
     }
 
     .user-search-box {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background-color: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      padding: 2px 8px;
-      height: 28px;
-      transition: border-color 0.15s ease;
-    }
-    .user-search-box:focus-within {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 1px var(--primary);
-    }
-    .search-ico {
-      font-size: 16px;
-      color: var(--text-muted);
-    }
-    .search-mini-input {
-      border: none;
-      outline: none;
-      background: transparent;
+      width: 190px;
       font-size: 12px;
-      color: var(--text-main);
-      width: 130px;
-    }
-    .clear-mini-btn {
-      background: transparent;
-      border: none;
-      color: var(--text-muted);
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      padding: 0;
-    }
-    .clear-mini-btn:hover {
-      color: var(--text-main);
     }
 
     .table-scroll {

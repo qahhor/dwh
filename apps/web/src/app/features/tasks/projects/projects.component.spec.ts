@@ -103,11 +103,18 @@ describe('ProjectsComponent UI contracts', () => {
 
     fixture.componentInstance.openEditModal(project(1));
     fixture.detectChanges();
-    const options = Array.from(host.querySelectorAll('#project-edit-state option')) as HTMLOptionElement[];
-    expect(options.map(option => ({ value: option.value, label: option.textContent?.trim() }))).toEqual([
-      { value: 'A', label: 'Активен' },
-      { value: 'P', label: 'В архиве' }
-    ]);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const state = host.querySelector('#project-edit-state') as HTMLButtonElement;
+    expect(state.getAttribute('role')).toBe('combobox');
+    expect(state.textContent).toContain('Активен');
+    state.click();
+    fixture.detectChanges();
+    const options = Array.from(document.querySelectorAll('.smt-select__option')) as HTMLElement[];
+    expect(options.map(option => option.querySelector('.smt-select__option-label')?.textContent?.trim())).toEqual(['Активен', 'В архиве']);
+    options[1].click();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.editForm.state).toBe('P');
   });
 
   it('submits entered create values through the native form only once while pending', async () => {
@@ -533,9 +540,10 @@ describe('ProjectsComponent UI contracts', () => {
     expect(fixture.nativeElement.querySelector('.project-row')?.textContent).toContain('Project 21');
 
     component.currentPage = 2;
-    (fixture.nativeElement.querySelector('.project-search-clear') as HTMLButtonElement).click();
+    (search.closest('smt-input')?.querySelector('button.smt-input__action') as HTMLButtonElement).click();
     fixture.detectChanges();
     expect(component.currentPage).toBe(1);
+    expect(component.searchQuery).toBe('');
 
     const statusButtons = Array.from(
       fixture.nativeElement.querySelectorAll('.status-filter [role="radio"]') as NodeListOf<HTMLElement>

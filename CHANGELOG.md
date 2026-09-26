@@ -9,6 +9,36 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Kit controls everywhere (roadmap item 43). Fifty-two native selects are
+  `smt-select`, the remaining text fields `smt-input`, the textareas
+  `smt-textarea`, and checkboxes follow one rule: a toggle that acts at once
+  (a filter) is `smt-switch`, a flag saved with a form or one of a set is
+  `smt-checkbox`, which gets an ngModel bridge. `smt-select` gains
+  `smtInvalid` and `smtDescribedBy` (the org-unit editor ties its server
+  errors to the field again) and `data-value` on the trigger and options, so
+  end-to-end tests pick a value whatever the language (`e2e/support/select.ts`).
+  `smt-input` gains `(cleared)` and `smtFocusInitial`, and hides the
+  browser's own search clear button; `smt-textarea` gains `smtInvalid`.
+  Search boxes use the field's icon and named clear button instead of their
+  own (eight keys that named those go); the login, profile and user-create
+  password fields share the built-in show/hide button. The users filter menu
+  stays open while an option is picked in the overlay, the header hands the
+  shell a typed language request instead of a fake change event, and the
+  command palette drops a hidden duplicate of its category buttons. Only the
+  palette's own combobox field and the Markdown editor's text area stay
+  native.
+- Text field (roadmap item 42). `smt-input` covers text, email, url, tel,
+  search, password and number (a number model, null when empty): an optional
+  icon, a named clear button, a show/hide password button that says which
+  and controls the field, native events that bubble to the host, and an
+  ngModel bridge that reports every edit like a native field. `smtInvalid`
+  shows an error the screen decides at once; Signal Forms keeps `invalid`.
+  Fifty-eight hand-styled fields across login, profile, settings, webhooks,
+  custom fields, notes, UPL, modules, navigation, project members and the
+  list filters and views use it; the file picker stays native. The login and
+  profile password fields drop their own show/hide buttons (and eight keys
+  that named them) for the built-in one, and the modules search its own icon
+  and clear button.
 - Every feature checks its own localization keys. Fifteen new
   `*.i18n.spec.ts` (analytics, audit, auth, files, iam, notes, reports,
   settings, system, tasks, upl, the app shell, the command palette, shared UI

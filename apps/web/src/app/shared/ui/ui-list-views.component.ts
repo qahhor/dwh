@@ -1,12 +1,14 @@
 import { CdkMenu, CdkMenuGroup, CdkMenuItem, CdkMenuItemRadio, CdkMenuTrigger } from '@angular/cdk/menu';
-import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, input, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, signal, viewChild } from '@angular/core';
 import { ProblemDetail } from '../../core/models/common.models';
 import { I18nService, TranslatePipe } from '../../core/services/i18n.service';
 import { ToastService } from '../../core/services/toast.service';
 import { ListViewState, SavedListView } from '../list-views/list-views';
+import { SMTInputComponent } from '../ui-kit/components/forms/input';
 import { SMTModalService } from '../ui-kit/components/modal';
 import { UiButtonComponent } from './ui-button.component';
 import { UiModalComponent } from './ui-modal.component';
+import { SMTCheckboxComponent } from '../ui-kit/components/forms/checkbox';
 
 const NAME_MAX = 80;
 
@@ -22,7 +24,7 @@ const NAME_MAX = 80;
   selector: 'ui-list-views',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CdkMenuTrigger, CdkMenu, CdkMenuGroup, CdkMenuItem, CdkMenuItemRadio, TranslatePipe, UiModalComponent, UiButtonComponent],
+  imports: [SMTCheckboxComponent, SMTInputComponent, CdkMenuTrigger, CdkMenu, CdkMenuGroup, CdkMenuItem, CdkMenuItemRadio, TranslatePipe, UiModalComponent, UiButtonComponent],
   template: `
     <button type="button" class="views-trigger" data-testid="views-trigger" [cdkMenuTriggerFor]="menu" [disabled]="state().busy()">
       <span class="material-symbols-outlined" aria-hidden="true">bookmarks</span>
@@ -77,16 +79,15 @@ const NAME_MAX = 80;
     <ui-modal [isOpen]="saveAsOpen()" [title]="'ui.views.save_as_title' | t" size="sm" (close)="closeSaveAs()">
       <form body class="views-form" (submit)="$event.preventDefault(); submitSaveAs()" novalidate>
         <label class="form-label" [for]="nameId">{{ 'ui.views.name' | t }}</label>
-        <input #nameInput class="form-input" type="text" data-testid="views-name" [id]="nameId" [maxLength]="nameMax"
-          [value]="name()" (input)="name.set($any($event.target).value)"
-          [attr.aria-invalid]="nameError() ? 'true' : null" [attr.aria-describedby]="nameError() ? nameId + '-error' : null" />
+        <smt-input #nameInput smtTestId="views-name" [smtFieldId]="nameId" [maxLength]="nameMax"
+          [value]="name()" (valueChange)="name.set($event === null ? '' : '' + $event)"
+          [smtInvalid]="!!nameError()" [smtDescribedBy]="nameError() ? nameId + '-error' : null" />
         @if (nameError(); as error) {
           <span class="views-error" [id]="nameId + '-error'" data-testid="views-name-error">{{ error | t }}</span>
         }
-        <label class="views-default-choice">
-          <input type="checkbox" data-testid="views-name-default" [checked]="makeDefault()" (change)="makeDefault.set($any($event.target).checked)" />
+        <div smt-checkbox class="views-default-choice" data-testid="views-name-default" [checked]="makeDefault()" (checkedChange)="makeDefault.set($event)">
           {{ 'ui.views.open_by_default' | t }}
-        </label>
+        </div>
       </form>
       <div footer class="views-footer">
         <ui-button variant="secondary" (onClick)="closeSaveAs()">{{ 'common.cancel' | t }}</ui-button>
@@ -138,7 +139,7 @@ export class UiListViewsComponent {
 
   readonly state = input.required<ListViewState>();
 
-  private readonly nameInput = viewChild<ElementRef<HTMLInputElement>>('nameInput');
+  private readonly nameInput = viewChild<SMTInputComponent>('nameInput');
 
   readonly saveAsOpen = signal(false);
   readonly name = signal('');
@@ -158,7 +159,7 @@ export class UiListViewsComponent {
     this.makeDefault.set(false);
     this.nameError.set(null);
     this.saveAsOpen.set(true);
-    setTimeout(() => this.nameInput()?.nativeElement.focus());
+    setTimeout(() => this.nameInput()?.focus());
   }
 
   closeSaveAs(): void {

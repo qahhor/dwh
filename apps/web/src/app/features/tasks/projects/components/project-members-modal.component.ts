@@ -14,11 +14,14 @@ import { Project } from '../../../../core/models/task.models';
 import { User } from '../../../../core/models/auth.models';
 import { ProjectMember } from '../projects.models';
 import { SMTAvatarComponent } from '../../../../shared/ui-kit/components/avatar';
+import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
+import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../../../../shared/ui-kit/components/forms/select';
+import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-group/radio-options';
 
 @Component({
   selector: 'app-project-members-modal',
   standalone: true,
-  imports: [
+  imports: [SMTInputComponent, SMTInputValueAccessor, SMTSelectComponent, SMTSelectValueAccessor,
     SMTAvatarComponent, CommonModule,
     FormsModule,
     TranslatePipe,
@@ -50,15 +53,12 @@ import { SMTAvatarComponent } from '../../../../shared/ui-kit/components/avatar'
               </label>
               <div class="search-input-box">
                 <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
-                <input
-                  id="project-member-search"
-                  type="text"
-                  class="form-input"
+                <smt-input
+                  smtFieldId="project-member-search"
                   [placeholder]="selectedUser ? selectedUser.name : ('projects.poisk_polzovatelya' | t)"
                   [(ngModel)]="userSearchQuery"
                   (ngModelChange)="onSearchInput($event)"
-                  (focus)="isUserDropdownOpen = true"
-                />
+                  (focusin)="isUserDropdownOpen = true" />
                 <button
                   *ngIf="selectedUser"
                   type="button"
@@ -97,16 +97,14 @@ import { SMTAvatarComponent } from '../../../../shared/ui-kit/components/avatar'
               <label class="form-label" for="project-member-role">
                 {{ 'projects.uroven_dostupa' | t }} <span class="req">*</span>
               </label>
-              <select
-                id="project-member-role"
+              <smt-select
+                smtTriggerId="project-member-role"
                 name="accessKind"
-                class="form-input form-select"
                 [(ngModel)]="selectedAccessKind"
-              >
-                <option value="MEMBER">{{ 'projects.rol_uchastnik' | t }}</option>
-                <option value="MANAGER">{{ 'projects.rol_rukovoditel' | t }}</option>
-                <option value="OBSERVER">{{ 'projects.rol_nablyudatel' | t }}</option>
-              </select>
+                [options]="accessKindOptions()"
+                [allowClear]="false"
+                [required]="true"
+              ></smt-select>
             </div>
 
             <!-- Submit Button -->
@@ -252,27 +250,8 @@ import { SMTAvatarComponent } from '../../../../shared/ui-kit/components/avatar'
       pointer-events: none;
     }
 
-    .form-input {
-      width: 100%;
-      box-sizing: border-box;
-      padding: 8px 12px 8px 34px;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      background-color: var(--bg-surface);
-      color: var(--text-main);
-      font-size: 13px;
-      outline: none;
-      transition: border-color 0.15s;
-    }
 
-    .form-select {
-      padding-left: 10px;
-      cursor: pointer;
-    }
 
-    .form-input:focus {
-      border-color: var(--primary);
-    }
 
     .clear-user-btn {
       position: absolute;
@@ -468,6 +447,7 @@ export class ProjectMembersModalComponent {
   foundUsers: User[] = [];
   selectedUser: User | null = null;
   selectedAccessKind = 'MEMBER';
+  private readonly accessKindMemo = optionsMemo<SMTSelectOption<string>[]>();
   isUserDropdownOpen = false;
 
   private searchSubject = new Subject<string>();
@@ -496,6 +476,15 @@ export class ProjectMembersModalComponent {
         this.foundUsers = [];
       }
     });
+  }
+
+  /** Access levels a new member can get; translated again when the language changes. */
+  accessKindOptions(): SMTSelectOption<string>[] {
+    return this.accessKindMemo([this.i18n.currentLang()], () => [
+      { id: 'MEMBER', label: this.i18n.translate('projects.rol_uchastnik') },
+      { id: 'MANAGER', label: this.i18n.translate('projects.rol_rukovoditel') },
+      { id: 'OBSERVER', label: this.i18n.translate('projects.rol_nablyudatel') },
+    ]);
   }
 
   @Input() set members(members: ProjectMember[]) {

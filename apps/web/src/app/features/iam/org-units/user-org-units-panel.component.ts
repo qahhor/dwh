@@ -10,13 +10,14 @@ import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
 import { OrgUnitDraft } from './org-unit-draft';
 import { SMTTreeTableComponent } from '../../../shared/ui-kit/components/tree-table/tree-table.component';
 import { TreeRow } from '../../../shared/ui-kit/components/tree-table/tree.utils';
+import { SMTInputComponent } from '../../../shared/ui-kit/components/forms/input';
 import { OrgUnitTreeRows, orgUnitSearchText, orgUnitTreeColumns } from './org-unit-tree';
 import { OrgUnitsApiService } from './org-units-api.service';
 import { OrgUnit, UserScope } from './org-units.models';
 
 @Component({
   selector: 'app-user-org-units-panel', standalone: true,
-  imports: [TranslatePipe, UiButtonComponent, UiModalComponent, SMTTreeTableComponent],
+  imports: [TranslatePipe, UiButtonComponent, UiModalComponent, SMTTreeTableComponent, SMTInputComponent],
   templateUrl: './user-org-units-panel.component.html', styleUrl: './user-org-units-panel.component.css'
 })
 export class UserOrgUnitsPanelComponent implements OnChanges {

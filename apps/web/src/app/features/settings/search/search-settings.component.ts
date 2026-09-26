@@ -18,6 +18,18 @@ import {
   SearchStartJobRequest
 } from '../../../core/models/search-management.models';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
+import { SMTSelectComponent, SMTSelectOption } from '../../../shared/ui-kit/components/forms/select';
+import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
+import { SMTCheckboxComponent } from '../../../shared/ui-kit/components/forms/checkbox';
+import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group/radio-options';
+
+/** The name of each indexed entity, as the entity sections of this screen show it. */
+const ENTITY_LABEL_KEYS: Record<SearchEntityType, string> = {
+  TASK: 'settings.search.entity.task',
+  PROJECT: 'settings.search.entity.project',
+  USER: 'settings.search.entity.user',
+  NOTE: 'settings.search.entity.note',
+};
 import { PermissionService } from '../../../core/services/permission.service';
 import { SearchManagementService } from '../../../core/services/search-management.service';
 import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
@@ -38,7 +50,7 @@ import {
 @Component({
   selector: 'app-search-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslatePipe, UiModalComponent, UiLocalTableComponent],
+  imports: [CommonModule, FormsModule, TranslatePipe, UiModalComponent, UiLocalTableComponent, SMTSelectComponent, SMTInputComponent, SMTInputValueAccessor, SMTCheckboxComponent],
   templateUrl: './search-settings.component.html',
   styleUrl: './search-settings.component.scss'
 })
@@ -150,6 +162,13 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
 
   readonly entities: readonly SearchEntityType[] = SEARCH_ENTITIES;
 
+  readonly schemaProfileOptions: readonly SMTSelectOption<string>[] = [
+    { id: 'MIXED', label: 'MIXED' },
+    { id: 'RU', label: 'RU' },
+  ];
+
+  private readonly previewEntityMemo = optionsMemo<SMTSelectOption<SearchEntityType>[]>();
+
   previewQuery = '';
   previewEntity: SearchEntityType | '' = '';
 
@@ -175,6 +194,13 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
   get displayedEntities(): SearchEntityType[] {
     const draft = this.draft();
     return this.entities.filter(e => e !== 'NOTE' || (draft && draft.fields['NOTE'] && draft.fields['NOTE'].length > 0));
+  }
+
+  previewEntityOptions(): SMTSelectOption<SearchEntityType>[] {
+    const entities = this.displayedEntities;
+    return this.previewEntityMemo([this.i18n.currentLang(), entities.join()], () =>
+      entities.map(entity => ({ id: entity, label: this.i18n.translate(ENTITY_LABEL_KEYS[entity]) }))
+    );
   }
 
   ngOnInit(): void {
@@ -310,7 +336,7 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
     });
   }
 
-  updatePolicyNumber(key: 'globalLimit' | 'requestsPerMinute' | 'burst', value: string | number): void {
+  updatePolicyNumber(key: 'globalLimit' | 'requestsPerMinute' | 'burst', value: string | number | null): void {
     const parsed = typeof value === 'number' ? value : Number(value);
     this.draft.update(current => current ? { ...current, [key]: parsed } : current);
   }
@@ -320,7 +346,7 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
     this.draft.update(current => current ? { ...current, schemaProfile: value } : current);
   }
 
-  updateFieldNumber(entity: SearchEntityType, index: number, key: 'weight' | 'numTypos', value: string | number): void {
+  updateFieldNumber(entity: SearchEntityType, index: number, key: 'weight' | 'numTypos', value: string | number | null): void {
     const parsed = typeof value === 'number' ? value : Number(value);
     this.updateField(entity, index, field => ({ ...field, [key]: parsed }));
   }
