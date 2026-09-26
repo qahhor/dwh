@@ -1669,6 +1669,7 @@ export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(
   "upl.err.UPL_XLSX_NO_CSV_PARAMS": "Кодировка и разделитель — только для CSV",
   "upl.err.VALIDATION_FAILED": "Проверьте поля",
   "upl.format.add_column": "+ Колонка",
+  "upl.format.columns_named": "Колонки листа «{sheet}»",
   "upl.format.add_sheet": "+ Лист",
   "upl.format.cleared": "Единица/маска очищены",
   "upl.format.col.actions": "Действия со строкой",

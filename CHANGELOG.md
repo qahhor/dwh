@@ -9,6 +9,13 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Tables outside the kit reviewed (roadmap item 46). The audit record's
+  before/after comparison is the kit table (`ui-local-table`). Editable grids
+  stay native tables — the kit table is for reading lists, its virtual rows
+  recycle DOM — and get their accessibility right: the role permissions
+  matrix names each row by its form (`th scope="row"`), and the UPL format
+  columns table is named by its sheet with `scope` on every header. The
+  chart's hidden data table stays as it is.
 - Dialogs on the kit (roadmap item 45). `smt-dialog` keeps the declarative
   shape screens use — `[open]`, a title, a size, the content in an
   `<ng-template smtDialogContent>` created only while open, a `footer` row —

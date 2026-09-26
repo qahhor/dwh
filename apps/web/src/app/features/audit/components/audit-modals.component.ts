@@ -1,9 +1,19 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, computed, EventEmitter, inject, Input, Output, TemplateRef, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
-import { TranslatePipe } from '../../../core/services/i18n.service';
+import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
+import { UiLocalTableComponent } from '../../../shared/ui/ui-local-table.component';
+import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
+import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group';
 import { AuditRecord, SecurityEventRecord } from '../audit.models';
+
+/** One changed field: its name and its value before and after, as shown. */
+interface DiffRow {
+  field: string;
+  before: string;
+  after: string;
+}
 
 @Component({
   selector: 'app-audit-modals',
@@ -12,9 +22,15 @@ import { AuditRecord, SecurityEventRecord } from '../audit.models';
     CommonModule,
     TranslatePipe,
     SMTButtonComponent,
-    SMTDialogComponent, SMTDialogContentDirective
+    SMTDialogComponent, SMTDialogContentDirective,
+    UiLocalTableComponent
   ],
   template: `
+    <!-- Cells of the diff table; outside the dialog, so they exist before it opens. -->
+    <ng-template #diffFieldCell let-row><span class="font-mono field-name">{{ row.field }}</span></ng-template>
+    <ng-template #diffBeforeCell let-row><pre class="diff-val diff-val--before">{{ row.before }}</pre></ng-template>
+    <ng-template #diffAfterCell let-row><pre class="diff-val diff-val--after">{{ row.after }}</pre></ng-template>
+
     <!-- MODAL: AUDIT DIFF VIEWER -->
     <smt-dialog
       [open]="selectedAudit !== null"
@@ -49,26 +65,7 @@ import { AuditRecord, SecurityEventRecord } from '../audit.models';
         <!-- Diff Table -->
         <div class="diff-section-title">{{ 'audit.sravnenie_poley_diff' | t }}</div>
         <div class="diff-table-box" role="region" [attr.aria-label]="'audit.sravnenie_izmenennyh_poley' | t" tabindex="0" *ngIf="getDiffKeys(audit).length > 0; else noDiff">
-          <table class="diff-table" [attr.aria-label]="'audit.sravnenie_znacheniy_do_i_posle_izmeneniya' | t">
-            <thead>
-              <tr>
-                <th style="width: 25%;">{{ 'audit.pole' | t }}</th>
-                <th style="width: 37.5%;">{{ 'audit.predyduschee_znachenie' | t }}</th>
-                <th style="width: 37.5%;">{{ 'audit.novoe_znachenie' | t }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let key of getDiffKeys(audit)">
-                <td class="font-mono field-name">{{ key }}</td>
-                <td class="diff-cell old-cell">
-                  <pre class="diff-val">{{ formatValue(audit.oldRow?.[key]) }}</pre>
-                </td>
-                <td class="diff-cell new-cell">
-                  <pre class="diff-val">{{ formatValue(audit.newRow?.[key]) }}</pre>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <ui-local-table [rows]="diffRows(audit)" [config]="diffConfig()" />
         </div>
         <ng-template #noDiff>
           <div class="no-diff-msg">{{ 'audit.net_podrobnyh_dannyh_diff_dlya_etoy_operacii' | t }}</div>
@@ -250,38 +247,21 @@ import { AuditRecord, SecurityEventRecord } from '../audit.models';
       outline-offset: -2px;
     }
 
-    .diff-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12px;
-    }
-
-    .diff-table th {
-      padding: 8px 12px;
-      background: var(--bg-hover);
-      color: var(--text-muted);
-      font-weight: 600;
-      border-bottom: 1px solid var(--border-color);
-      text-align: left;
-    }
-
-    .diff-table td {
-      padding: 8px 12px;
-      border-bottom: 1px solid var(--border-subtle);
-      vertical-align: top;
-    }
-
     .field-name {
       color: var(--primary-text);
       font-weight: 500;
     }
 
-    .diff-cell.old-cell {
+    .diff-val--before {
+      padding: 4px 6px;
+      border-radius: var(--radius-sm);
       background: var(--danger-bg);
       color: var(--danger-text);
     }
 
-    .diff-cell.new-cell {
+    .diff-val--after {
+      padding: 4px 6px;
+      border-radius: var(--radius-sm);
       background: var(--success-bg);
       color: var(--success-text);
     }
@@ -321,6 +301,33 @@ import { AuditRecord, SecurityEventRecord } from '../audit.models';
   `]
 })
 export class AuditModalsComponent {
+  private readonly i18n = inject(I18nService);
+
+  private readonly fieldCell = viewChild.required<TemplateRef<unknown>>('diffFieldCell');
+
+  private readonly beforeCell = viewChild.required<TemplateRef<unknown>>('diffBeforeCell');
+
+  private readonly afterCell = viewChild.required<TemplateRef<unknown>>('diffAfterCell');
+
+  /** The kit table over the changed fields: field, value before, value after. */
+  readonly diffConfig = computed<TableConfig<DiffRow>>(() => {
+    this.i18n.currentLang();
+    const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
+    return {
+      trackBy: (_index, row) => row.field,
+      ariaLabel: this.i18n.translate('audit.sravnenie_znacheniy_do_i_posle_izmeneniya'),
+      layout: 'fit',
+      columns: {
+        field: { header: header('audit.pole'), content: { type: 'templateRef', value: this.fieldCell }, width: '25%' },
+        before: { header: header('audit.predyduschee_znachenie'), content: { type: 'templateRef', value: this.beforeCell } },
+        after: { header: header('audit.novoe_znachenie'), content: { type: 'templateRef', value: this.afterCell } },
+      },
+      columnsOrder: ['field', 'before', 'after'],
+    };
+  });
+
+  private readonly diffMemo = optionsMemo<DiffRow[]>();
+
   @Input() selectedAudit: AuditRecord | null = null;
   @Input() selectedSecEvent: SecurityEventRecord | null = null;
 
@@ -356,6 +363,14 @@ export class AuditModalsComponent {
     const oldKeys = Object.keys(record.oldRow || {});
     const newKeys = Object.keys(record.newRow || {});
     return Array.from(new Set([...oldKeys, ...newKeys, ...(record.changedColumns || [])]));
+  }
+
+  diffRows(record: AuditRecord): DiffRow[] {
+    return this.diffMemo([record], () => this.getDiffKeys(record).map(field => ({
+      field,
+      before: this.formatValue(record.oldRow?.[field]),
+      after: this.formatValue(record.newRow?.[field]),
+    })));
   }
 
   formatValue(val: any): string {
