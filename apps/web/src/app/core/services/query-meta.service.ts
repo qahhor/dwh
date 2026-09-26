@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable, shareReplay } from 'rxjs';
-import { ListQuery, QueryCondition, QueryListMeta, QuerySort } from '../models/query-meta.models';
+import { ListQuery, QueryCondition, QueryListMeta, QueryMatch, QuerySort } from '../models/query-meta.models';
 import { ApiService } from './api.service';
 
 /** Query parameters for a registry list: `filter` (JSON DSL) and `sort` (`-key` for descending). */
@@ -8,7 +8,7 @@ export function toQueryParams(query: ListQuery | null | undefined): { filter?: s
   const params: { filter?: string; sort?: string; q?: string } = {};
   const conditions = query?.conditions ?? [];
   if (conditions.length > 0) {
-    params.filter = JSON.stringify(conditions.map(normalizeCondition));
+    params.filter = JSON.stringify(filterDsl(conditions, query?.match));
   }
   const search = query?.search?.trim();
   if (search) {
@@ -28,7 +28,25 @@ export function parseSort(sort: string): QuerySort {
   return sort.startsWith('-') ? { field: sort.slice(1), descending: true } : { field: sort, descending: false };
 }
 
-/** Conditions without a value send none, so `empty` does not travel as `"value": undefined`. */
+/** The filter as the server takes it: the conditions, or one `{"any": [...]}` group of them (roadmap item 53). */
+export function filterDsl(conditions: readonly QueryCondition[], match?: QueryMatch, keepLabels = false): unknown[] {
+  const plain = conditions.map(condition => {
+    const normal = normalizeCondition(condition);
+    return keepLabels && condition.label ? { ...normal, label: condition.label } : normal;
+  });
+  return match === 'any' && plain.length > 1 ? [{ any: plain }] : plain;
+}
+
+/** A saved filter back into its conditions and how they combine; a group is only ever written whole. */
+export function readFilterDsl(filter: readonly unknown[] | null | undefined): { conditions: QueryCondition[]; match: QueryMatch } {
+  const items = filter ?? [];
+  const group = items.length === 1 ? (items[0] as { any?: QueryCondition[] }).any : undefined;
+  return Array.isArray(group)
+    ? { conditions: group, match: 'any' }
+    : { conditions: items.filter((item): item is QueryCondition => typeof (item as QueryCondition)?.field === 'string'), match: 'all' };
+}
+
+/** Conditions without a value send none, so `empty` does not travel as `"value": undefined`; a label stays on the screen. */
 function normalizeCondition(condition: QueryCondition): QueryCondition {
   return condition.value === undefined
     ? { field: condition.field, op: condition.op }

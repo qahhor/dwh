@@ -393,7 +393,7 @@ export class SourcesListComponent implements OnInit {
 
   /** The sort goes with every page, so a cursor always continues the query that issued it. */
   readonly pager = new KeysetPager<UplSourceItem>(
-    (cursor, limit) => this.api.listSources(limit, cursor, { sort: this.sort(), conditions: this.views.filter() }),
+    (cursor, limit) => this.api.listSources(limit, cursor, { sort: this.sort(), conditions: this.views.filter(), match: this.views.match() }),
     { pageSize: PAGE_SIZE, destroyRef: this.destroyRef }
   );
   readonly items = this.pager.items;

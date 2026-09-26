@@ -206,7 +206,7 @@ export class AuditComponent implements OnInit {
   readonly auditPager = new KeysetPager<AuditRecord>((cursor, limit) =>
     this.api.get<AuditPage<AuditRecord>>('/audit/logs', {
       ...this.auditFlatFilters(),
-      ...toQueryParams({ sort: this.auditViews.sort(), conditions: this.auditViews.filter() }),
+      ...toQueryParams({ sort: this.auditViews.sort(), conditions: this.auditViews.filter(), match: this.auditViews.match() }),
       limit,
       cursor: cursor ?? undefined
     }), { destroyRef: this.destroyRef });
@@ -214,7 +214,7 @@ export class AuditComponent implements OnInit {
   readonly securityPager = new KeysetPager<SecurityEventRecord>((cursor, limit) =>
     this.api.get<AuditPage<SecurityEventRecord>>('/audit/security-events', {
       ...this.securityFlatFilters(),
-      ...toQueryParams({ sort: this.securityViews.sort(), conditions: this.securityViews.filter() }),
+      ...toQueryParams({ sort: this.securityViews.sort(), conditions: this.securityViews.filter(), match: this.securityViews.match() }),
       limit,
       cursor: cursor ?? undefined
     }), { destroyRef: this.destroyRef });

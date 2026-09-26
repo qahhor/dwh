@@ -250,4 +250,48 @@ class QueryCompilerTest {
                 .isInstanceOf(IllegalStateException.class);
         assertThat(new QueryListRegistry(List.of(LIST)).find("test.items")).contains(LIST);
     }
+
+    @Test
+    @DisplayName("группа any соединяет свои условия через or, остальные — через and (п. 53)")
+    void anyGroupJoinsItsConditionsWithOr() {
+        QueryPlan plan = compile("""
+                [{"field":"active","op":"eq","value":true},
+                 {"any":[{"field":"state","op":"eq","value":"open"},{"field":"amount","op":"gt","value":10}]}]""", null);
+
+        assertThat(plan.where().sql()).isEqualTo(" and t.active = :q_f0 and (t.state = :q_f1 or t.amount > :q_f2)");
+        assertThat(plan.where().params()).containsKeys("q_f0", "q_f1", "q_f2");
+        assertThat(plan.conditions()).extracting(QueryPlan.Condition::group).containsExactly(-1, 0, 0);
+        assertThat(plan.fingerprint()).as("a group is not the same filter as its conditions joined by and")
+                .isNotEqualTo(compile("""
+                        [{"field":"active","op":"eq","value":true},{"field":"state","op":"eq","value":"open"},
+                         {"field":"amount","op":"gt","value":10}]""", null).fingerprint());
+    }
+
+    @Test
+    @DisplayName("группа any: не меньше двух условий, без вложенности, адрес ошибки внутри группы, общий лимит условий")
+    void anyGroupIsChecked() {
+        assertThat(errors("[{\"any\":[{\"field\":\"code\",\"op\":\"eq\",\"value\":\"a\"}]}]", null))
+                .extracting(FieldErrorItem::field).containsExactly("filter[0]");
+        assertThat(errors("""
+                [{"any":[{"field":"code","op":"eq","value":"a"},{"any":[]}]}]""", null))
+                .extracting(FieldErrorItem::field).containsExactly("filter[0].any[1]");
+        assertThat(errors("""
+                [{"any":[{"field":"code","op":"eq","value":"a"},{"field":"secret","op":"eq","value":"b"}]}]""", null))
+                .extracting(FieldErrorItem::field, FieldErrorItem::code)
+                .containsExactly(org.assertj.core.groups.Tuple.tuple("filter[0].any[1].field", QueryCompiler.UNKNOWN_FIELD));
+        String many = String.join(",", java.util.Collections.nCopies(QueryCompiler.MAX_CONDITIONS, "{\"field\":\"code\",\"op\":\"eq\",\"value\":\"a\"}"));
+        assertThat(errors("[{\"field\":\"code\",\"op\":\"eq\",\"value\":\"a\"},{\"any\":[" + many + "]}]", null))
+                .extracting(FieldErrorItem::code).containsExactly(QueryCompiler.FILTER_TOO_LONG);
+    }
+
+    @Test
+    @DisplayName("ссылка на другой список: только числовой или текстовый ключ, путь без чужих символов (п. 53)")
+    void referencesAreChecked() {
+        QueryField ref = QueryField.of("ownerId", "o", QueryFieldType.NUMBER, "t.owner_id")
+                .refersTo(QueryRef.paged("/iam/users", "name"));
+        assertThat(ref.ref()).isEqualTo(new QueryRef("/iam/users", "name", "id", true));
+        assertThatThrownBy(() -> QueryField.of("flag", "f", QueryFieldType.BOOLEAN, "t.flag")
+                .refersTo(QueryRef.whole("/tasks/statuses", "name"))).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> QueryRef.paged("https://evil.test/x", "name")).isInstanceOf(IllegalArgumentException.class);
+    }
 }

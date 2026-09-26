@@ -29,7 +29,21 @@ export interface QueryFieldMeta {
   label?: string | null;
   /** A custom field's code: its value is `row.attributes[attribute]`, not `row[key]`. */
   attribute?: string | null;
+  /** The field holds the key of a row in another list, picked by name (ADR-0019 2.4). */
+  ref?: QueryRefMeta | null;
 }
+
+/** Where a reference field's values come from: an endpoint under /api/v1 and the row properties it uses. */
+export interface QueryRefMeta {
+  path: string;
+  labelField: string;
+  keyField: string;
+  /** Keyset pages searched with `q`; false — the whole short list, searched on the screen. */
+  paged: boolean;
+}
+
+/** How the conditions of a filter combine: all of them, or any of them (`{"any": [...]}`). */
+export type QueryMatch = 'all' | 'any';
 
 /** The field's heading: a custom field's own name, otherwise its dictionary key translated. */
 export function fieldLabel(field: Pick<QueryFieldMeta, 'label' | 'labelKey'>, translate: (key: string) => string): string {
@@ -63,6 +77,8 @@ export interface QueryCondition {
   op: QueryOp;
   /** One value, a list for `in`, a pair for `between`, nothing for `empty` / `not_empty`. */
   value?: QueryValue | QueryValue[];
+  /** The name of a referenced row, kept for the chip and in saved views; the server ignores it. */
+  label?: string;
 }
 
 export interface QuerySort {
@@ -73,6 +89,8 @@ export interface QuerySort {
 /** What a list screen asks for; turned into `filter` / `sort` query parameters by `toQueryParams`. */
 export interface ListQuery {
   conditions?: QueryCondition[];
+  /** `any` sends the conditions as one `{"any": [...]}` group. */
+  match?: QueryMatch;
   sort?: QuerySort | null;
   /** Free text matched in any searchable field (`q`). */
   search?: string | null;

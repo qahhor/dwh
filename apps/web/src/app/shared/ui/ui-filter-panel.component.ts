@@ -1,5 +1,10 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, signal } from '@angular/core';
-import { fieldLabel, QueryCondition, QueryFieldMeta, QueryListMeta, QueryOp } from '../../core/models/query-meta.models';
+import { fieldLabel, QueryCondition, QueryFieldMeta, QueryListMeta, QueryMatch, QueryOp } from '../../core/models/query-meta.models';
+import { ApiService } from '../../core/services/api.service';
+import { refLookup } from '../lookups/ref-lookup';
+import { SMTDataSelectComponent } from '../ui-kit/components/forms/data-select/data-select.component';
+import type { SMTLookupKey, SMTLookupSource } from '../ui-kit/components/forms/data-select/lookup-source';
+import { SMTRadioGroupComponent, SMTRadioOption } from '../ui-kit/components/forms/radio-group';
 import { I18nService, TranslatePipe } from '../../core/services/i18n.service';
 import {
   FilterDraft,
@@ -22,13 +27,21 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group/radio-option
 export interface FilterPanelData {
   meta: QueryListMeta;
   conditions: QueryCondition[];
+  /** How the conditions combine; `all` when not given. */
+  match?: QueryMatch;
+}
+
+/** What the panel closes with on "Apply". */
+export interface FilterPanelResult {
+  conditions: QueryCondition[];
+  match: QueryMatch;
 }
 
 let nextPanelId = 0;
 
 /**
  * The filter builder, shown in a drawer beside the list: rows of "field —
- * operation — value", joined with "and". The fields and the operations each
+ * operation — value", joined with "and" or, when chosen, "or". The fields and the operations each
  * one offers come from the list's server metadata (ADR-0016), and the value
  * editor follows the field type: text, number, a date picker, yes/no, a
  * choice or a set of choices. Nothing reaches the list until "Apply"; an
@@ -39,13 +52,17 @@ let nextPanelId = 0;
   selector: 'ui-filter-panel',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTInputComponent, SMTCheckboxComponent, SMTSelectComponent, TranslatePipe, SMTButtonComponent, SMTDatePickerComponent, SMTDateRangePickerComponent],
+  imports: [SMTInputComponent, SMTCheckboxComponent, SMTSelectComponent, TranslatePipe, SMTButtonComponent, SMTDatePickerComponent, SMTDateRangePickerComponent, SMTDataSelectComponent, SMTRadioGroupComponent],
   template: `
     <form class="filter-panel" (submit)="$event.preventDefault(); apply()" novalidate>
       <p class="filter-intro">{{ 'ui.filter.intro' | t }}</p>
 
       @if (rows().length === 0) {
         <p class="filter-empty" data-testid="filter-empty">{{ 'ui.filter.empty' | t }}</p>
+      }
+      @if (rows().length > 1) {
+        <smt-radio-group data-testid="filter-match" smtAppearance="segmented" smtOrientation="horizontal"
+          [smtAriaLabel]="'ui.filter.match' | t" [options]="matchOptions()" [value]="match()" (valueChange)="$event && match.set($event)" />
       }
 
       <ol class="filter-rows">
@@ -70,6 +87,15 @@ let nextPanelId = 0;
 
                 @if (field && takesValue(row.op)) {
                   @switch (editorOf(field, row.op)) {
+                    @case ('ref') {
+                      <div class="filter-control">
+                        <label class="filter-label" [for]="rowId(i) + '-ref'">{{ 'ui.filter.value' | t }}</label>
+                        <smt-data-select data-testid="filter-ref" [smtTriggerId]="rowId(i) + '-ref'" [source]="refSource(field)"
+                          [placeholder]="'ui.filter.choose' | t" [value]="refValue(row)"
+                          (valueChange)="patch(i, { value: $event == null ? '' : String($event) })"
+                          (rowChange)="patch(i, { label: refLabel(field, $event) })" />
+                      </div>
+                    }
                     @case ('choice') {
                       <div class="filter-control">
                         <label class="filter-label" [for]="rowId(i) + '-choice'">{{ 'ui.filter.value' | t }}</label>
@@ -186,17 +212,24 @@ let nextPanelId = 0;
 })
 export class UiFilterPanelComponent {
   readonly data = inject<FilterPanelData>(SMT_DRAWER_DATA);
-  private readonly drawer = inject<SMTDrawerRef<QueryCondition[]>>(SMT_DRAWER_REF);
+  private readonly drawer = inject<SMTDrawerRef<FilterPanelResult>>(SMT_DRAWER_REF);
   private readonly i18n = inject(I18nService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly api = inject(ApiService);
 
   readonly rows = signal<FilterDraft[]>(this.data.conditions.map(fromCondition));
+  /** How the rows combine; offered once there are two of them. */
+  readonly match = signal<QueryMatch>(this.data.match ?? 'all');
   /** Shown once "Apply" was pressed, then kept up to date as the rows change. */
   readonly errors = signal<(string | null)[]>([]);
 
   readonly fields = computed(() => filterableFields(this.data.meta));
 
   readonly canAdd = computed(() => this.rows().length < this.data.meta.maxConditions && this.fields().length > 0);
+
+  protected readonly String = String;
+  private readonly refSources = new Map<string, SMTLookupSource<Record<string, unknown>, SMTLookupKey>>();
+  private readonly matchMemo = optionsMemo<SMTRadioOption<QueryMatch>[]>();
 
   private readonly panelId = `ui-filter-panel-${nextPanelId++}`;
   private checked = false;
@@ -258,7 +291,8 @@ export class UiFilterPanelComponent {
     return opTakesValue(op);
   }
 
-  editorOf(field: QueryFieldMeta, op: QueryOp): 'choice' | 'choices' | 'date' | 'input' {
+  editorOf(field: QueryFieldMeta, op: QueryOp): 'ref' | 'choice' | 'choices' | 'date' | 'input' {
+    if (field.ref && (op === 'eq' || op === 'ne')) return 'ref';
     if (field.type === 'enum' || field.type === 'boolean') return op === 'in' ? 'choices' : 'choice';
     if (field.type === 'date' || field.type === 'instant') return 'date';
     return 'input';
@@ -272,6 +306,34 @@ export class UiFilterPanelComponent {
       ];
     }
     return field.enumValues.map(value => ({ value, label: field.enumLabelPrefix ? this.i18n.translate(`${field.enumLabelPrefix}${value}`) : value }));
+  }
+
+  matchOptions(): SMTRadioOption<QueryMatch>[] {
+    return this.matchMemo([this.i18n.currentLang()], () => [
+      { value: 'all', label: this.i18n.translate('ui.filter.match_all') },
+      { value: 'any', label: this.i18n.translate('ui.filter.match_any') },
+    ]);
+  }
+
+  /** One lookup per reference field, so its loaded rows survive re-rendering. */
+  refSource(field: QueryFieldMeta): SMTLookupSource<Record<string, unknown>, SMTLookupKey> {
+    let source = this.refSources.get(field.key);
+    if (!source) {
+      source = refLookup(this.api, field.ref!);
+      this.refSources.set(field.key, source);
+    }
+    return source;
+  }
+
+  /** The stored text value as the key the data select compares: a number field keeps a number. */
+  refValue(row: FilterDraft): SMTLookupKey | null {
+    if (row.value === '') return null;
+    const field = this.fieldOf(row);
+    return field?.type === 'number' && Number.isFinite(Number(row.value)) ? Number(row.value) : row.value;
+  }
+
+  refLabel(field: QueryFieldMeta, row: Record<string, unknown> | null): string | undefined {
+    return row ? String(row[field.ref!.labelField] ?? '') || undefined : undefined;
   }
 
   add(): void {
@@ -335,7 +397,7 @@ export class UiFilterPanelComponent {
       this.focusRow(first);
       return;
     }
-    this.drawer.close(this.rows().map(row => toCondition(row, this.data.meta)));
+    this.drawer.close({ conditions: this.rows().map(row => toCondition(row, this.data.meta)), match: this.match() });
   }
 
   private update(index: number, change: (row: FilterDraft) => FilterDraft): void {

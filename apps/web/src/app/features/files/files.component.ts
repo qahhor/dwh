@@ -181,7 +181,7 @@ export class FilesComponent implements OnInit, OnDestroy {
       scope: this.scope,
       limit,
       ...(cursor ? { cursor } : {}),
-      ...toQueryParams({ sort: this.views.sort(), conditions: this.views.filter(), search: this.searchQuery })
+      ...toQueryParams({ sort: this.views.sort(), conditions: this.views.filter(), match: this.views.match(), search: this.searchQuery })
     }, { notifyError: false }),
     { pageSize: 15, destroyRef: this.destroyRef }
   );

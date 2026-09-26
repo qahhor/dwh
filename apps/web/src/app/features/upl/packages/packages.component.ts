@@ -388,7 +388,7 @@ export class PackagesComponent implements OnInit {
     columnsStore: inject(TableColumnStateStore)
   });
   readonly pager = new KeysetPager<UplPackageItem>(
-    (cursor, limit) => this.api.list(limit, cursor, { sort: this.views.sort(), conditions: this.views.filter() }),
+    (cursor, limit) => this.api.list(limit, cursor, { sort: this.views.sort(), conditions: this.views.filter(), match: this.views.match() }),
     { pageSize: PAGE_SIZE, destroyRef: this.destroyRef, onLoaded: rows => this.syncSelected(rows) }
   );
   readonly items = this.pager.items;

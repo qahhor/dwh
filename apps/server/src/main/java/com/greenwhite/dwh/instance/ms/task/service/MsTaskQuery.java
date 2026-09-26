@@ -3,6 +3,7 @@ package com.greenwhite.dwh.instance.ms.task.service;
 import com.greenwhite.dwh.instance.common.query.QueryField;
 import com.greenwhite.dwh.instance.common.query.QueryFieldType;
 import com.greenwhite.dwh.instance.common.query.QueryList;
+import com.greenwhite.dwh.instance.common.query.QueryRef;
 import com.greenwhite.dwh.instance.ms.task.pref.MsTaskPref;
 import com.greenwhite.dwh.instance.ms.task.repository.MsTaskRepository;
 import org.springframework.context.annotation.Bean;
@@ -33,16 +34,17 @@ public class MsTaskQuery {
                     QueryField.of("descriptionMarkdown", "tasks.col.description", QueryFieldType.TEXT,
                             "t.description_markdown").asSearchable().asHidden(),
                     QueryField.of("projectId", "tasks.col.project", QueryFieldType.NUMBER, "t.project_id")
-                            .asNullable(),
+                            .asNullable().refersTo(QueryRef.whole("/tasks/projects", "name")),
                     QueryField.enumeration("priority", "tasks.col.priority", "t.priority",
                             List.of(MsTaskPref.PRIORITY_LOW, MsTaskPref.PRIORITY_MEDIUM, MsTaskPref.PRIORITY_HIGH,
                                     MsTaskPref.PRIORITY_CRITICAL), "tasks.priority."),
-                    QueryField.of("statusId", "tasks.col.status", QueryFieldType.NUMBER, "t.status_id"),
+                    QueryField.of("statusId", "tasks.col.status", QueryFieldType.NUMBER, "t.status_id")
+                            .refersTo(QueryRef.whole("/tasks/statuses", "name")),
                     QueryField.of("endTime", "tasks.col.due", QueryFieldType.INSTANT, "t.end_time").asNullable(),
                     QueryField.of("beginTime", "tasks.col.begin", QueryFieldType.INSTANT, "t.begin_time")
                             .asNullable().asHidden(),
                     QueryField.of("reporterId", "tasks.col.reporter", QueryFieldType.NUMBER, "t.reporter_id")
-                            .asHidden(),
+                            .asHidden().refersTo(QueryRef.paged("/iam/users", "name")),
                     QueryField.of("createdAt", "tasks.col.created_at", QueryFieldType.INSTANT, "t.created_at")
                             .asSortable().asHidden(),
                     QueryField.of("modifiedAt", "tasks.col.modified_at", QueryFieldType.INSTANT, "t.modified_at")

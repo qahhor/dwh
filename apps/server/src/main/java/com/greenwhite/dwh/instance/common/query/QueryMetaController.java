@@ -29,13 +29,14 @@ public class QueryMetaController {
 
     public record FieldMeta(String key, String labelKey, String type, List<String> ops, boolean sortable,
                             boolean nullable, boolean defaultVisible, List<String> enumValues,
-                            String enumLabelPrefix, boolean searchable, String label, String attribute) {
+                            String enumLabelPrefix, boolean searchable, String label, String attribute,
+                            QueryRef ref) {
 
         static FieldMeta of(QueryField field) {
             List<String> ops = field.ops().stream().map(QueryOp::wire).toList();
             return new FieldMeta(field.key(), field.labelKey(), field.type().wire(), ops, field.sortable(),
                     field.nullable(), field.defaultVisible(), field.enumValues(), field.enumLabelPrefix(),
-                    field.searchable(), field.label(), field.attribute());
+                    field.searchable(), field.label(), field.attribute(), field.ref());
         }
     }
 

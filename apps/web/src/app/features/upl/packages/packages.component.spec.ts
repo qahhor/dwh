@@ -476,7 +476,7 @@ describe('PackagesComponent', () => {
       PACKAGED_RUSSIAN['upl.pkg.col.uploaded_at'], PACKAGED_RUSSIAN['upl.pkg.col.source'], PACKAGED_RUSSIAN['upl.pkg.col.period'],
       PACKAGED_RUSSIAN['upl.pkg.col.file'], PACKAGED_RUSSIAN['upl.pkg.col.status'], PACKAGED_RUSSIAN['upl.pkg.col.rows']
     ]);
-    expect(api.list).toHaveBeenCalledWith(50, null, { sort: { field: 'uploadedAt', descending: true }, conditions: [] });
+    expect(api.list).toHaveBeenCalledWith(50, null, { sort: { field: 'uploadedAt', descending: true }, conditions: [], match: 'all' });
     expect(fixture.nativeElement.querySelector('[data-testid="filter-trigger"]')).not.toBeNull();
   });
 
@@ -512,7 +512,7 @@ describe('PackagesComponent', () => {
     (fixture.nativeElement.querySelector('button[aria-label="Следующая страница"]') as HTMLButtonElement).click();
     fixture.detectChanges();
 
-    expect(api.list).toHaveBeenLastCalledWith(50, 'cursor-2', { sort: { field: 'uploadedAt', descending: true }, conditions: [] });
+    expect(api.list).toHaveBeenLastCalledWith(50, 'cursor-2', { sort: { field: 'uploadedAt', descending: true }, conditions: [], match: 'all' });
     expect(tableRows(fixture).map(row => row.textContent)).toEqual([expect.stringContaining('b_feb.xlsx')]);
   });
 
