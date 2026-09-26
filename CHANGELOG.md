@@ -890,6 +890,12 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Removed
 
+- Repository cleanup before the developer presentation: dated audit reports
+  (`audit/`), agent plans (`docs/superpowers/`), design scratch
+  (`.superdesign/`), the machine-bound `local-up.cmd` with a plaintext local
+  database password, a personal Codex hook, the committed Graphify graph (now
+  built locally and ignored), the unused `SpaCsrfTokenRequestHandler` and the
+  unused hotkeys service and directive. Git history keeps all of them.
 - Dead code and one-off files: the web `collectKeyset` helper (the user
   export is on the server now), unused global CSS classes, `KauthSecurityContext`,
   `ResourceProfile`, `TokenUtils`, `scripts/calc-stats.ps1`,
