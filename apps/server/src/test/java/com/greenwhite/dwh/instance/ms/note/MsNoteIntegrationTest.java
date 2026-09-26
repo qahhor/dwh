@@ -156,4 +156,23 @@ class MsNoteIntegrationTest {
         assertThat(onlyPinned.items()).extracting(MsNoteService.NoteView::id).containsExactly(pinned.id());
         assertThat(noteService.getNotes(user1Id, null, null, null, null, "nl ").items()).isEmpty();
     }
+
+    @Test
+    @DisplayName("5. Сохранение проверяется по объявлению сущности: 422 с ошибкой на поле")
+    void savesAreCheckedByTheEntityDeclaration() {
+        assertThatThrownBy(() -> noteService.createNote(" ", "", "default", false, null, user1Id))
+                .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.getFieldErrors())
+                        .extracting(item -> item.field() + ":" + item.code()).containsExactly("title:required"));
+        assertThatThrownBy(() -> noteService.createNote("x".repeat(256), "", "orange", false, null, user1Id))
+                .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.getFieldErrors())
+                        .extracting(item -> item.field() + ":" + item.code())
+                        .containsExactly("title:too_long", "color:invalid"));
+
+        var note = noteService.createNote("Проверка", "", "default", false, null, user1Id);
+        assertThat(noteService.updateNote(note.id(), null, "только текст", null, null, null, user1Id).title())
+                .isEqualTo("Проверка");
+        assertThatThrownBy(() -> noteService.updateNote(note.id(), "", null, null, null, null, user1Id))
+                .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.getFieldErrors())
+                        .extracting(item -> item.field()).containsExactly("title"));
+    }
 }

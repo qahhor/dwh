@@ -9,6 +9,14 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Entities are declared once (roadmap item 54, ADR-0019 2.1–2.2):
+  `GET /api/v1/form-meta/{code}` returns an entity's form fields, sections,
+  rules, capabilities and the actions the viewer may take, with the entity's
+  custom fields in a section of their own. Saves are checked by the same
+  declaration and answer 422 with an error on each field. Notes are the
+  pilot: a blank title is now a field error instead of a bare 400, a title
+  over 255 characters is rejected instead of failing with 500, and the color
+  must be one the screen offers.
 - Projects are a registry list (`ms.projects`, the rest of roadmap item 51):
   the project screen pages `GET /tasks/projects/page` with filter, search,
   saved views, column settings, custom fields and the server export; the
