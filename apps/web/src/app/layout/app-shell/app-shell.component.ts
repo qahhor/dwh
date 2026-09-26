@@ -70,10 +70,10 @@ export class AppShellComponent implements OnDestroy {
   readonly navSections = computed<NavSection[]>(() => buildNavSections({
     activeCustomModules: this.moduleService.getActiveCustomModules(),
     customNavItems: this.navService.activeItems(),
-    isNotesActive: this.moduleService.isModuleActive('notes'),
+    entityItems: this.navService.entityItems(),
+    isModuleActive: code => this.moduleService.isModuleActive(code),
     canViewTasks: () => this.canViewTasks(),
     canViewProjects: () => this.canViewProjects(),
-    canViewNotes: () => this.canViewNotes(),
     canViewSources: () => this.canViewSources(),
     canViewPackages: () => this.canViewPackages(),
     canViewFiles: () => this.canViewFiles(),
@@ -131,7 +131,6 @@ export class AppShellComponent implements OnDestroy {
   canViewAudit = () => this.permService.canView('audit.log') || this.permService.canView('audit.logs') || this.permService.canView('audit');
   canViewSettings = () => true;
   canViewSystem = () => this.permService.canView('platform.settings');
-  canViewNotes = () => this.permService.canView('notes') && this.moduleService.isModuleActive('notes');
   canViewSources = () => this.permService.canView('upl.sources') && this.moduleService.isModuleActive('upl');
   canViewPackages = () => this.permService.canView('upl.packages') && this.moduleService.isModuleActive('upl');
   canViewModules = () => this.permService.canView('platform.modules');
@@ -152,6 +151,7 @@ export class AppShellComponent implements OnDestroy {
       if (this.authService.currentUser()) {
         this.moduleService.loadActiveModules().subscribe({ error: () => {} });
         this.navService.loadActiveItems().subscribe({ error: () => {} });
+        this.navService.loadEntityItems().subscribe({ error: () => {} });
       }
     });
     if (this.breakpointObserver) {

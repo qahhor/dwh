@@ -9,6 +9,15 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Menu items and permission names come from entity declarations (roadmap
+  item 57): an entity declares its right's names (`EntityRights`) and its
+  menu item (`EntityMenu`); the permission catalog takes the names from it,
+  and `GET /api/v1/entities/menu` gives the shell the items the viewer may
+  open. `scripts/dev/create-module.ps1` now generates a declared entity —
+  a migration and five Java files (repository, service checked by the
+  declaration, controller, registry list, declaration with its records) —
+  and writes UTF-8 without a BOM, which javac rejected. The module guide has
+  a checklist for a declared entity.
 - Entity capabilities work from the declaration (roadmap item 56): a module
   gives one `EntityRecords` bean (who may see a record, the list page, the
   single delete) and the platform builds the history tab, the list export and

@@ -1,20 +1,33 @@
 package com.greenwhite.dwh.instance.md.service;
 
+import com.greenwhite.dwh.instance.common.entity.EntityDefinition.EntityRights;
+import com.greenwhite.dwh.instance.common.entity.EntityRegistry;
 import com.greenwhite.dwh.instance.md.pref.MdFormCatalog;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import com.greenwhite.dwh.instance.md.repository.MdPermissionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 @Service
 public class MdPermissionService {
 
     private final MdPermissionRepository permissionRepository;
+    /** Declared entities name their own rights (roadmap item 57); null — only the catalog names them. */
+    private final EntityRegistry entities;
+
+    @Autowired
+    public MdPermissionService(MdPermissionRepository permissionRepository, @Lazy EntityRegistry entities) {
+        this.permissionRepository = permissionRepository;
+        this.entities = entities;
+    }
 
     public MdPermissionService(MdPermissionRepository permissionRepository) {
-        this.permissionRepository = permissionRepository;
+        this(permissionRepository, null);
     }
 
     @Transactional(readOnly = true)
@@ -41,7 +54,8 @@ public class MdPermissionService {
      * Приводит каталог форм в соответствие с кодом (FR-PERM-1).
      *
      * Существование пары определяется аннотациями {@code @RequiresPermission},
-     * имена — справочником {@link MdFormCatalog}. Всё, чего нет среди
+     * имена — объявлением сущности ({@link EntityRights}), а для форм без него —
+     * справочником {@link MdFormCatalog}. Всё, чего нет среди
      * объявленных пар, помечается устаревшим, но не удаляется: удаление
      * каскадом сняло бы уже выданные права.
      *
@@ -56,10 +70,13 @@ public class MdPermissionService {
             String formCode = pair.substring(0, dot);
             String action = pair.substring(dot + 1);
 
+            Optional<EntityRights> rights = entities == null ? Optional.empty() : entities.rights(formCode);
             permissionRepository.registerForm(formCode,
-                    MdFormCatalog.moduleOf(formCode), MdFormCatalog.formNameOf(formCode));
+                    rights.map(EntityRights::module).orElseGet(() -> MdFormCatalog.moduleOf(formCode)),
+                    rights.map(EntityRights::name).orElseGet(() -> MdFormCatalog.formNameOf(formCode)));
             permissionRepository.registerFormAction(formCode, action,
-                    MdFormCatalog.actionNameOf(formCode, action));
+                    rights.map(named -> named.actionNames().get(action))
+                            .orElseGet(() -> MdFormCatalog.actionNameOf(formCode, action)));
         }
 
         int deprecated = permissionRepository.deprecateMissing(declaredPairs);

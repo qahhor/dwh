@@ -3,6 +3,7 @@ import { Observable, tap } from 'rxjs';
 import { ApiRequestOptions, ApiService } from './api.service';
 import {
   CustomNavigationItem,
+  EntityMenuItem,
   NavigationPermissionChoice,
   CreateNavigationItemPayload,
   UpdateNavigationItemPayload
@@ -15,6 +16,8 @@ export class NavigationService {
   private readonly api = inject(ApiService);
 
   readonly activeItems = signal<CustomNavigationItem[]>([]);
+  /** Menu items of the declared entities the viewer may open (roadmap item 57). */
+  readonly entityItems = signal<EntityMenuItem[]>([]);
   readonly isLoading = signal<boolean>(false);
 
   loadActiveItems(): Observable<CustomNavigationItem[]> {
@@ -29,6 +32,12 @@ export class NavigationService {
           this.isLoading.set(false);
         }
       })
+    );
+  }
+
+  loadEntityItems(): Observable<EntityMenuItem[]> {
+    return this.api.get<EntityMenuItem[]>('/entities/menu', undefined, { notifyError: false }).pipe(
+      tap(items => this.entityItems.set(items || []))
     );
   }
 

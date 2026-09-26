@@ -64,13 +64,20 @@ class MdFormCatalogTest {
 
     @Test
     @DisplayName("У каждой объявленной в коде пары есть человеческое имя в справочнике")
-    void everyDeclaredPermissionHasHumanName() {
+    void everyDeclaredPermissionHasHumanName() throws Exception {
+        // A declared entity names its own right (EntityRights, roadmap item 57).
+        Set<String> namedByEntities = new TreeSet<>();
+        for (var entity : EntityActionPermissionContractTest.declaredEntities()) {
+            if (entity.rights() != null) {
+                entity.rights().actionNames().keySet().forEach(action -> namedByEntities.add(entity.form() + "." + action));
+            }
+        }
         List<String> withoutName = new ArrayList<>();
         for (String pair : declaredPairsFromSources()) {
             int dot = pair.lastIndexOf('.');
             String form = pair.substring(0, dot);
             String action = pair.substring(dot + 1);
-            if (!MdFormCatalog.hasHumanName(form, action)) {
+            if (!MdFormCatalog.hasHumanName(form, action) && !namedByEntities.contains(pair)) {
                 withoutName.add(pair);
             }
         }

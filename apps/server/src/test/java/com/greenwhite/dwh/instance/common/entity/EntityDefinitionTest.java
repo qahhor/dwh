@@ -42,7 +42,7 @@ class EntityDefinitionTest {
         assertThatThrownBy(() -> entity(List.of(title), List.of(
                 new FormSection("a", "a", List.of("title")), new FormSection("b", "b", List.of("title")))))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new EntityDefinition("x", "x", null, null, null, List.of(title),
+        assertThatThrownBy(() -> new EntityDefinition("x", "x", null, null, null, null, null, List.of(title),
                 List.of(new FormSection("main", "m", List.of("title"))), List.of(),
                 Set.of(EntityCapability.CUSTOM_FIELDS)))
                 .isInstanceOf(IllegalArgumentException.class);
@@ -156,7 +156,7 @@ class EntityDefinitionTest {
     }
 
     private static EntityDefinition entity(List<FormField> fields, List<FormSection> layout) {
-        return new EntityDefinition("x.items", "x", null, null, null, fields, layout,
+        return new EntityDefinition("x.items", "x", null, null, null, null, null, fields, layout,
                 List.of(new EntityAction("create", "create")), Set.of());
     }
 

@@ -71,11 +71,11 @@ class EntityFeaturesTest {
         List<FormSection> layout = List.of(new FormSection("main", "m", List.of("title")));
         List<EntityAction> create = List.of(new EntityAction("create", "create"));
 
-        assertThatThrownBy(() -> new EntityDefinition("x", "x", "x", null, null, List.of(title), layout, create,
+        assertThatThrownBy(() -> new EntityDefinition("x", "x", "x", null, null, null, null, List.of(title), layout, create,
                 Set.of(EntityCapability.HISTORY))).hasMessageContaining("audit table");
-        assertThatThrownBy(() -> new EntityDefinition("x", "x", null, null, null, List.of(title), layout, create,
+        assertThatThrownBy(() -> new EntityDefinition("x", "x", null, null, null, null, null, List.of(title), layout, create,
                 Set.of(EntityCapability.EXPORT))).hasMessageContaining("list");
-        assertThatThrownBy(() -> new EntityDefinition("x", "x", "x", null, null, List.of(title), layout, create,
+        assertThatThrownBy(() -> new EntityDefinition("x", "x", "x", null, null, null, null, List.of(title), layout, create,
                 Set.of(EntityCapability.BULK))).hasMessageContaining("delete action");
     }
 
@@ -143,6 +143,33 @@ class EntityFeaturesTest {
             assertThatThrownBy(() -> controller.bulk(code, delete))
                     .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND));
         }
+    }
+
+    @Test
+    void menuHasTheItemsOfEntitiesTheViewerMayOpen() {
+        EntityMenuController controller = new EntityMenuController(notesRegistry());
+
+        SecurityContext.setPrincipal(principal(Set.of("notes.view")));
+        var items = controller.menu().getBody();
+        assertThat(items).hasSize(1);
+        assertThat(items.getFirst()).isEqualTo(new EntityMenuController.MenuItem(
+                "ms.notes", "notes", "/notes", "nav.notes", "description", "workspace", 30, "notes"));
+
+        SecurityContext.setPrincipal(principal(Set.of("tasks.items.view")));
+        assertThat(controller.menu().getBody()).isEmpty();
+    }
+
+    @Test
+    void rightsNameViewAndEveryDeclaredActionsRight() {
+        FormField title = FormField.of("title", "t", FormFieldType.TEXT);
+        List<FormSection> layout = List.of(new FormSection("main", "m", List.of("title")));
+        var rights = new EntityDefinition.EntityRights("x", "X", Map.of("view", "Просмотр"));
+
+        assertThatThrownBy(() -> new EntityDefinition("x", "x", null, null, null, rights, null, List.of(title), layout,
+                List.of(new EntityAction("create", "create")), Set.of())).hasMessageContaining("right");
+        assertThat(notesRegistry().rights("notes").orElseThrow().actionNames())
+                .containsKeys("view", "create", "update", "delete");
+        assertThat(notesRegistry().rights("tasks.items")).isEmpty();
     }
 
     private static SecurityContext.KauthPrincipal principal(Set<String> permissions) {

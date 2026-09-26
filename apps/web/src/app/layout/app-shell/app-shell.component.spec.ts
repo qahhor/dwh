@@ -28,7 +28,8 @@ describe('AppShellComponent', () => {
   };
   const permissionService = {
     canView: vi.fn((_form: string) => true),
-    canUpdate: vi.fn((_form: string) => true)
+    canUpdate: vi.fn((_form: string) => true),
+    hasPermissionKey: vi.fn((_key: string) => true)
   };
   const themeService = {
     currentTheme: signal('light'),
@@ -72,8 +73,11 @@ describe('AppShellComponent', () => {
   };
   const navigationService = {
     activeItems: signal<CustomNavigationItem[]>([]),
+    entityItems: signal([{ code: 'ms.notes', form: 'notes', route: '/notes', labelKey: 'nav.notes', icon: 'description',
+      section: 'workspace', order: 30, module: 'notes' }]),
     isLoading: signal(false),
     loadActiveItems: vi.fn(() => of([])),
+    loadEntityItems: vi.fn(() => of([])),
     loadAllItems: vi.fn(() => of([])),
     getItemById: vi.fn(() => of(null)),
     getItemByCode: vi.fn(() => of(null)),

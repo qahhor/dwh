@@ -80,6 +80,14 @@ public class EntityRegistry {
         return List.copyOf(entities.values());
     }
 
+    /** How the permission matrix names a form, when an entity with that right declares it (roadmap item 57). */
+    public Optional<EntityDefinition.EntityRights> rights(String form) {
+        return entities.values().stream()
+                .filter(entity -> entity.form().equals(form) && entity.rights() != null)
+                .map(EntityDefinition::rights)
+                .findFirst();
+    }
+
     public Optional<EntityRecords> records(String code) {
         return Optional.ofNullable(records.get(code));
     }
@@ -98,7 +106,7 @@ public class EntityRegistry {
         List<FormSection> layout = new ArrayList<>(entity.layout());
         layout.add(new FormSection(CUSTOM_SECTION, "entity.section.custom", extra.stream().map(FormField::key).toList()));
         return new EntityDefinition(entity.code(), entity.form(), entity.listCode(), entity.customEntity(),
-                entity.auditTable(), fields, layout, entity.actions(), entity.capabilities());
+                entity.auditTable(), entity.rights(), entity.menu(), fields, layout, entity.actions(), entity.capabilities());
     }
 
     /**

@@ -53,3 +53,18 @@ export interface UpdateNavigationItemPayload {
   sortOrder?: number;
   state?: 'A' | 'P';
 }
+
+/** A side-menu item a declared entity brings (`GET /entities/menu`, roadmap item 57). */
+export interface EntityMenuItem {
+  code: string;
+  /** The entity's right; the item shows with `form.view`. */
+  form: string;
+  route: string;
+  labelKey: string;
+  icon: string;
+  /** The menu section: `workspace`, `iam` or `administration`. */
+  section: string;
+  order: number;
+  /** The installed module whose switch hides the item; none — always on. */
+  module: string | null;
+}

@@ -1,13 +1,15 @@
-<#
+﻿<#
 .SYNOPSIS
     SmartupCMS Module Scaffolding Generator
 .DESCRIPTION
     Автоматически генерирует стандартизированный каркас нового доменного модуля в архитектуре модульного монолита:
     1. Flyway SQL-миграцию со стандартными полями аудита, версионирования и JSONB-атрибутами.
-    2. Java Spring Boot бэкенд (Repository, Service, Controller, DTO).
-    3. Регистрацию в реестре модулей md_installed_modules и каталоге прав RBAC.
-    4. Angular веб-компонент с поддержкой API, модальных окон и адаптивного дизайна.
-    5. Автоматизированные тесты интеграции.
+    2. Java-модуль из пяти файлов как объявленная сущность (ADR-0019): Repository, Service, Controller,
+       список реестра полей (Query) и объявление сущности (Entity) с бином записей. Из объявления
+       платформа даёт форму (form-meta), проверку сохранения, названия прав, пункт меню, историю,
+       экспорт, сохранённые виды и массовое удаление.
+    3. Регистрацию в реестре модулей md_installed_modules и выдачу прав системным ролям.
+    Экран и ключи переводов — по чек-листу docs/guidelines/module-development-guide.md.
 .PARAMETER ModuleName
     Кодовое имя модуля (латиница в нижнем регистре, например: inventory, crm, wiki)
 .PARAMETER ModuleTitle
@@ -39,11 +41,16 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+
+# UTF-8 without a BOM: javac refuses one, and Set-Content -Encoding UTF8 in Windows PowerShell writes it.
+function Write-Utf8([string]$Path, [string]$Content) {
+    [System.IO.File]::WriteAllText($Path, $Content, (New-Object System.Text.UTF8Encoding $false))
+}
 $Root = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 
 $cleanCode = $ModuleName.ToLower().Trim()
 $capitalName = (Get-Culture).TextInfo.ToTitleCase($cleanCode)
-$prefixUpper = $Prefix.ToUpper()
+$prefixUpper = (Get-Culture).TextInfo.ToTitleCase($Prefix.ToLower())
 $prefixLower = $Prefix.ToLower()
 $tableName = "${prefixLower}_${cleanCode}"
 
@@ -126,9 +133,12 @@ on conflict (code) do update set
     route = excluded.route;
 "@
 
-Set-Content -Path $migrationFile -Value $sqlContent -Encoding UTF8
+Write-Utf8 $migrationFile $sqlContent
 
-# 2. Создание Java-пакетов
+# 2. Java: five files, as a declared entity (ADR-0019, roadmap item 57)
+#    repository, service, controller, the list (QueryList) and the entity declaration with its records bean.
+#    The declaration gives the form (form-meta), the rules the service checks, the right's names in the
+#    permission matrix, the menu item, history, export, saved views and bulk delete.
 $javaBase = Join-Path $Root "apps\server\src\main\java\com\greenwhite\dwh\instance\${prefixLower}\${cleanCode}"
 $repoDir = Join-Path $javaBase "repository"
 $serviceDir = Join-Path $javaBase "service"
@@ -138,16 +148,22 @@ New-Item -ItemType Directory -Force -Path $repoDir | Out-Null
 New-Item -ItemType Directory -Force -Path $serviceDir | Out-Null
 New-Item -ItemType Directory -Force -Path $ctrlDir | Out-Null
 
-$className = "${capitalName}"
 $repoClass = "${prefixUpper}${capitalName}Repository"
 $serviceClass = "${prefixUpper}${capitalName}Service"
 $ctrlClass = "${prefixUpper}${capitalName}Controller"
+$queryClass = "${prefixUpper}${capitalName}Query"
+$entityClass = "${prefixUpper}${capitalName}Entity"
+$listCode = "${prefixLower}.${cleanCode}"
+$pkg = "com.greenwhite.dwh.instance.${prefixLower}.${cleanCode}"
 
 # Repository
 $repoFile = Join-Path $repoDir "${repoClass}.java"
 $repoContent = @"
-package com.greenwhite.dwh.instance.${prefixLower}.${cleanCode}.repository;
+package ${pkg}.repository;
 
+import com.greenwhite.dwh.core.pagination.KeysetPage;
+import com.greenwhite.dwh.instance.common.query.QueryListRepository;
+import com.greenwhite.dwh.instance.common.query.QueryPlan;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 import tools.jackson.databind.ObjectMapper;
@@ -155,12 +171,15 @@ import tools.jackson.databind.ObjectMapper;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 @Repository
 public class ${repoClass} {
+
+    public static final String COLUMNS = """
+            t.id, t.name, t.code, t.status, t.attributes::text as attributes_str,
+            t.created_by, t.modified_by, t.created_at, t.modified_at""";
 
     private final JdbcClient jdbcClient;
     private final ObjectMapper objectMapper;
@@ -170,70 +189,57 @@ public class ${repoClass} {
         this.objectMapper = objectMapper;
     }
 
-    public record ItemRecord(
-            Long id,
-            String name,
-            String code,
-            String status,
-            Map<String, Object> attributes,
-            Long createdBy,
-            Long modifiedBy,
-            Instant createdAt,
-            Instant modifiedAt
-    ) {}
-
-    public ItemRecord create(String name, String code, Map<String, Object> attributes, Long userId) {
-        String attrsJson = toJson(attributes);
-        return jdbcClient.sql("""
-                insert into ${tableName} (name, code, status, attributes, created_by, modified_by, created_at, modified_at)
-                values (:name, :code, 'ACTIVE', cast(:attributes as jsonb), :userId, :userId, clock_timestamp(), clock_timestamp())
-                returning id, name, code, status, attributes::text as attributes_str, created_by, modified_by, created_at, modified_at
-                """)
-                .param("name", name)
-                .param("code", code.toLowerCase().trim())
-                .param("attributes", attrsJson)
-                .param("userId", userId)
-                .query(this::mapItem)
-                .single();
+    public record ItemRecord(Long id, String name, String code, String status, Map<String, Object> attributes,
+                             Long createdBy, Long modifiedBy, Instant createdAt, Instant modifiedAt) {
     }
 
-    public List<ItemRecord> findAll(String search) {
-        if (search != null && !search.isBlank()) {
-            String pattern = "%" + search.toLowerCase().trim() + "%";
-            return jdbcClient.sql("""
-                    select id, name, code, status, attributes::text as attributes_str, created_by, modified_by, created_at, modified_at
-                    from ${tableName}
-                    where lower(name) like :pattern or lower(code) like :pattern
-                    order by id desc
-                    """)
-                    .param("pattern", pattern)
-                    .query(this::mapItem)
-                    .list();
-        }
-        return jdbcClient.sql("""
-                select id, name, code, status, attributes::text as attributes_str, created_by, modified_by, created_at, modified_at
-                from ${tableName}
-                order by id desc
-                """)
-                .query(this::mapItem)
-                .list();
+    /** A page of the list through the field registry (${listCode}). */
+    public KeysetPage<ItemRecord> page(QueryPlan plan) {
+        return new QueryListRepository(jdbcClient).page(plan, this::mapItem);
     }
 
     public Optional<ItemRecord> findById(Long id) {
-        return jdbcClient.sql("""
-                select id, name, code, status, attributes::text as attributes_str, created_by, modified_by, created_at, modified_at
-                from ${tableName}
-                where id = :id
-                """)
+        return jdbcClient.sql("select " + COLUMNS + " from ${tableName} t where t.id = :id")
                 .param("id", id)
                 .query(this::mapItem)
                 .optional();
     }
 
-    public boolean delete(Long id) {
-        return jdbcClient.sql("delete from ${tableName} where id = :id")
+    public ItemRecord create(String name, String code, Map<String, Object> attributes, Long userId) {
+        return jdbcClient.sql("""
+                insert into ${tableName} as t (name, code, status, attributes, created_by, modified_by, created_at, modified_at)
+                values (:name, :code, 'ACTIVE', cast(:attributes as jsonb), :userId, :userId, clock_timestamp(), clock_timestamp())
+                returning\s""" + COLUMNS)
+                .param("name", name)
+                .param("code", code.toLowerCase().trim())
+                .param("attributes", toJson(attributes))
+                .param("userId", userId)
+                .query(this::mapItem)
+                .single();
+    }
+
+    /** Changes the fields given; a null one keeps its value. */
+    public ItemRecord update(Long id, String name, String status, Map<String, Object> attributes, Long userId) {
+        return jdbcClient.sql("""
+                update ${tableName} t
+                set name = coalesce(:name, t.name),
+                    status = coalesce(:status, t.status),
+                    attributes = coalesce(cast(:attributes as jsonb), t.attributes),
+                    modified_by = :userId,
+                    modified_at = clock_timestamp()
+                where t.id = :id
+                returning\s""" + COLUMNS)
                 .param("id", id)
-                .update() > 0;
+                .param("name", name)
+                .param("status", status)
+                .param("attributes", attributes == null ? null : toJson(attributes))
+                .param("userId", userId)
+                .query(this::mapItem)
+                .single();
+    }
+
+    public boolean delete(Long id) {
+        return jdbcClient.sql("delete from ${tableName} where id = :id").param("id", id).update() > 0;
     }
 
     private ItemRecord mapItem(ResultSet rs, int rowNum) throws SQLException {
@@ -246,8 +252,7 @@ public class ${repoClass} {
                 rs.getLong("created_by"),
                 rs.getLong("modified_by"),
                 rs.getTimestamp("created_at") != null ? rs.getTimestamp("created_at").toInstant() : null,
-                rs.getTimestamp("modified_at") != null ? rs.getTimestamp("modified_at").toInstant() : null
-        );
+                rs.getTimestamp("modified_at") != null ? rs.getTimestamp("modified_at").toInstant() : null);
     }
 
     private String toJson(Map<String, Object> map) {
@@ -262,24 +267,158 @@ public class ${repoClass} {
     }
 }
 "@
-Set-Content -Path $repoFile -Value $repoContent -Encoding UTF8
+Write-Utf8 $repoFile $repoContent
+
+# The list in the field registry
+$queryFile = Join-Path $serviceDir "${queryClass}.java"
+$queryContent = @"
+package ${pkg}.service;
+
+import com.greenwhite.dwh.instance.common.query.QueryField;
+import com.greenwhite.dwh.instance.common.query.QueryFieldType;
+import com.greenwhite.dwh.instance.common.query.QueryList;
+import ${pkg}.repository.${repoClass};
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
+
+/** The ${cleanCode} list in the field registry (ADR-0016): GET /api/v1/${cleanCode} and /api/v1/query-meta/${listCode}. */
+@Configuration
+public class ${queryClass} {
+
+    public static final QueryList LIST = new QueryList(
+            "${listCode}",
+            "${cleanCode}",
+            "view",
+            ${repoClass}.COLUMNS,
+            "${tableName} t",
+            "t.id",
+            List.of(
+                    QueryField.of("name", "${cleanCode}.col.name", QueryFieldType.TEXT, "t.name").asSortable().asSearchable(),
+                    QueryField.of("code", "${cleanCode}.col.code", QueryFieldType.TEXT, "t.code").asSortable().asSearchable(),
+                    QueryField.of("status", "${cleanCode}.col.status", QueryFieldType.TEXT, "t.status"),
+                    QueryField.of("modifiedAt", "${cleanCode}.col.modified_at", QueryFieldType.INSTANT, "t.modified_at")
+                            .asSortable()),
+            "modifiedAt",
+            true,
+            QueryList.DEFAULT_LIMIT,
+            QueryList.MAX_LIMIT);
+
+    @Bean
+    public QueryList ${prefixLower}${capitalName}QueryList() {
+        return LIST;
+    }
+}
+"@
+Write-Utf8 $queryFile $queryContent
+
+# The entity declaration and its records
+$entityFile = Join-Path $serviceDir "${entityClass}.java"
+$entityContent = @"
+package ${pkg}.service;
+
+import com.greenwhite.dwh.core.pagination.KeysetPage;
+import com.greenwhite.dwh.instance.common.entity.EntityCapability;
+import com.greenwhite.dwh.instance.common.entity.EntityDefinition;
+import com.greenwhite.dwh.instance.common.entity.EntityDefinition.EntityAction;
+import com.greenwhite.dwh.instance.common.entity.EntityDefinition.EntityMenu;
+import com.greenwhite.dwh.instance.common.entity.EntityDefinition.EntityRights;
+import com.greenwhite.dwh.instance.common.entity.EntityDefinition.FormSection;
+import com.greenwhite.dwh.instance.common.entity.EntityRecords;
+import com.greenwhite.dwh.instance.common.entity.FormField;
+import com.greenwhite.dwh.instance.common.entity.FormFieldType;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+/**
+ * The ${cleanCode} entity, declared once (ADR-0019): its form and rules (GET /api/v1/form-meta/${listCode}),
+ * the names of its right, its menu item, and history, export, saved views and bulk delete. Add a field here
+ * and in the list and the repository; add custom fields with CUSTOM_FIELDS and an entity type.
+ */
+@Configuration
+public class ${entityClass} {
+
+    public static final List<String> STATUSES = List.of("ACTIVE", "ARCHIVED");
+
+    public static final EntityDefinition DEFINITION = new EntityDefinition(
+            ${queryClass}.LIST.code(),
+            "${cleanCode}",
+            ${queryClass}.LIST.code(),
+            null,
+            "${tableName}",
+            new EntityRights("${prefixLower}", "${ModuleTitle}", Map.of(
+                    "view", "View",
+                    "create", "Create",
+                    "update", "Edit",
+                    "delete", "Delete")),
+            new EntityMenu("/${cleanCode}", "nav.${cleanCode}", "${Icon}", "workspace", 100, "${cleanCode}"),
+            List.of(
+                    FormField.of("name", "${cleanCode}.col.name", FormFieldType.TEXT).asRequired().length(1, 255),
+                    FormField.of("code", "${cleanCode}.col.code", FormFieldType.TEXT).asRequired().length(1, 64)
+                            .matching("[a-z0-9_-]+"),
+                    FormField.select("status", "${cleanCode}.col.status", STATUSES, "${cleanCode}.status_")),
+            List.of(new FormSection("main", "entity.section.main", List.of("name", "code", "status"))),
+            List.of(
+                    new EntityAction("create", "create"),
+                    new EntityAction("update", "update"),
+                    new EntityAction("delete", "delete")),
+            Set.of(EntityCapability.SAVED_VIEWS, EntityCapability.EXPORT, EntityCapability.HISTORY, EntityCapability.BULK));
+
+    @Bean
+    public EntityDefinition ${prefixLower}${capitalName}Entity() {
+        return DEFINITION;
+    }
+
+    /** What only the module knows: who sees a record, the list page and the single delete. */
+    @Bean
+    public EntityRecords ${prefixLower}${capitalName}Records(${serviceClass} service) {
+        return new EntityRecords() {
+            public String entity() { return DEFINITION.code(); }
+
+            public void requireVisible(long id) {
+                service.getItem(id);
+            }
+
+            public KeysetPage<?> page(int limit, String cursor, String filter, String sort, String search) {
+                return service.page(limit, cursor, filter, sort, search);
+            }
+
+            public void delete(long id) {
+                service.deleteItem(id);
+            }
+        };
+    }
+}
+"@
+Write-Utf8 $entityFile $entityContent
 
 # Service
 $serviceFile = Join-Path $serviceDir "${serviceClass}.java"
 $serviceContent = @"
-package com.greenwhite.dwh.instance.${prefixLower}.${cleanCode}.service;
+package ${pkg}.service;
 
+import com.greenwhite.dwh.core.error.ErrorCode;
+import com.greenwhite.dwh.core.pagination.KeysetPage;
 import com.greenwhite.dwh.instance.audit.service.AuditLogService;
+import com.greenwhite.dwh.instance.common.entity.EntityValidator;
 import com.greenwhite.dwh.instance.common.error.ApiException;
-import com.greenwhite.dwh.instance.${prefixLower}.${cleanCode}.repository.${repoClass};
-import com.greenwhite.dwh.instance.${prefixLower}.${cleanCode}.repository.${repoClass}.ItemRecord;
+import com.greenwhite.dwh.instance.common.query.QueryCompiler;
+import ${pkg}.repository.${repoClass};
+import ${pkg}.repository.${repoClass}.ItemRecord;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/** Saves are checked by the entity declaration (${entityClass}); every change is audited under ${tableName}. */
 @Service
 public class ${serviceClass} {
 
@@ -291,81 +430,82 @@ public class ${serviceClass} {
         this.auditLogService = auditLogService;
     }
 
-    public record ItemView(
-            Long id,
-            String name,
-            String code,
-            String status,
-            Map<String, Object> attributes,
-            Long createdBy,
-            Instant createdAt,
-            Instant modifiedAt
-    ) {
+    public record ItemView(Long id, String name, String code, String status, Map<String, Object> attributes,
+                           Long createdBy, Instant createdAt, Instant modifiedAt) {
         public static ItemView from(ItemRecord r) {
-            return new ItemView(
-                    r.id(), r.name(), r.code(), r.status(),
-                    r.attributes(), r.createdBy(), r.createdAt(), r.modifiedAt()
-            );
+            return new ItemView(r.id(), r.name(), r.code(), r.status(), r.attributes(), r.createdBy(), r.createdAt(),
+                    r.modifiedAt());
         }
     }
 
     @Transactional(readOnly = true)
-    public List<ItemView> getItems(String search) {
-        return repository.findAll(search).stream().map(ItemView::from).toList();
+    public KeysetPage<ItemView> page(Integer limit, String cursor, String filter, String sort, String search) {
+        var page = repository.page(QueryCompiler.compile(${queryClass}.LIST, filter, sort, limit, cursor, search));
+        return new KeysetPage<>(page.items().stream().map(ItemView::from).toList(), page.nextCursor(), page.hasMore(),
+                page.totalEstimated());
     }
 
     @Transactional(readOnly = true)
     public ItemView getItem(Long id) {
-        return repository.findById(id)
-                .map(ItemView::from)
-                .orElseThrow(() -> ApiException.notFound(com.greenwhite.dwh.core.error.ErrorCode.NOT_FOUND, "Запись не найдена: " + id));
+        return repository.findById(id).map(ItemView::from)
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Record not found: " + id));
     }
 
     @Transactional
     public ItemView createItem(String name, String code, Map<String, Object> attributes, Long userId) {
-        if (name == null || name.isBlank()) throw ApiException.badRequest(com.greenwhite.dwh.core.error.ErrorCode.BAD_REQUEST, "Имя не может быть пустым");
-        if (code == null || code.isBlank()) throw ApiException.badRequest(com.greenwhite.dwh.core.error.ErrorCode.BAD_REQUEST, "Код не может быть пустым");
-
-        var item = repository.create(name.trim(), code.trim(), attributes, userId);
-
-        auditLogService.logChange("${tableName}", String.valueOf(item.id()), "I",
-                List.of("name", "code", "status"),
-                null,
-                Map.of("name", item.name(), "code", item.code(), "status", item.status()));
-
+        EntityValidator.check(${entityClass}.DEFINITION, values(name, code, null), false);
+        var item = repository.create(name.trim(), code, attributes, userId);
+        auditLogService.logChange("${tableName}", String.valueOf(item.id()), "I", List.of("name", "code", "status"),
+                null, Map.of("name", item.name(), "code", item.code(), "status", item.status()));
         return ItemView.from(item);
+    }
+
+    @Transactional
+    public ItemView updateItem(Long id, String name, String status, Map<String, Object> attributes, Long userId) {
+        var existing = repository.findById(id)
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Record not found: " + id));
+        EntityValidator.check(${entityClass}.DEFINITION, values(name, null, status), true);
+        var updated = repository.update(id, name == null ? null : name.trim(), status, attributes, userId);
+        auditLogService.logChange("${tableName}", String.valueOf(id), "U", List.of("name", "status"),
+                Map.of("name", existing.name(), "status", existing.status()),
+                Map.of("name", updated.name(), "status", updated.status()));
+        return ItemView.from(updated);
     }
 
     @Transactional
     public void deleteItem(Long id) {
         var item = repository.findById(id)
-                .orElseThrow(() -> ApiException.notFound(com.greenwhite.dwh.core.error.ErrorCode.NOT_FOUND, "Запись не найдена: " + id));
-
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Record not found: " + id));
         repository.delete(id);
+        auditLogService.logChange("${tableName}", String.valueOf(id), "D", List.of("name", "code"),
+                Map.of("name", item.name(), "code", item.code()), null);
+    }
 
-        auditLogService.logChange("${tableName}", String.valueOf(id), "D",
-                List.of("name", "code"),
-                Map.of("name", item.name(), "code", item.code()),
-                null);
+    /** The declared fields a save carries; an absent one (null) is left out, so an update keeps it. */
+    private static Map<String, Object> values(String name, String code, String status) {
+        Map<String, Object> values = new HashMap<>();
+        if (name != null) values.put("name", name);
+        if (code != null) values.put("code", code);
+        if (status != null) values.put("status", status);
+        return values;
     }
 }
 "@
-Set-Content -Path $serviceFile -Value $serviceContent -Encoding UTF8
+Write-Utf8 $serviceFile $serviceContent
 
 # Controller
 $ctrlFile = Join-Path $ctrlDir "${ctrlClass}.java"
 $ctrlContent = @"
-package com.greenwhite.dwh.instance.${prefixLower}.${cleanCode}.controller;
+package ${pkg}.controller;
 
+import com.greenwhite.dwh.core.pagination.KeysetPage;
 import com.greenwhite.dwh.instance.common.annotation.RequiresPermission;
-import com.greenwhite.dwh.instance.common.error.ApiException;
 import com.greenwhite.dwh.instance.common.security.SecurityContext;
-import com.greenwhite.dwh.instance.${prefixLower}.${cleanCode}.service.${serviceClass};
-import com.greenwhite.dwh.instance.${prefixLower}.${cleanCode}.service.${serviceClass}.ItemView;
+import ${pkg}.service.${serviceClass};
+import ${pkg}.service.${serviceClass}.ItemView;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -380,10 +520,17 @@ public class ${ctrlClass} {
 
     public record CreateRequest(String name, String code, Map<String, Object> attributes) {}
 
+    public record UpdateRequest(String name, String status, Map<String, Object> attributes) {}
+
+    /** The list through the field registry: filter (JSON DSL), sort, search q and the keyset cursor. */
     @GetMapping
     @RequiresPermission(form = "${cleanCode}", action = "view")
-    public ResponseEntity<List<ItemView>> getItems(@RequestParam(required = false) String q) {
-        return ResponseEntity.ok(service.getItems(q));
+    public ResponseEntity<KeysetPage<ItemView>> page(@RequestParam(required = false) Integer limit,
+                                                     @RequestParam(required = false) String cursor,
+                                                     @RequestParam(required = false) String filter,
+                                                     @RequestParam(required = false) String sort,
+                                                     @RequestParam(required = false) String q) {
+        return ResponseEntity.ok(service.page(limit, cursor, filter, sort, q));
     }
 
     @GetMapping("/{id}")
@@ -395,9 +542,15 @@ public class ${ctrlClass} {
     @PostMapping
     @RequiresPermission(form = "${cleanCode}", action = "create")
     public ResponseEntity<ItemView> createItem(@RequestBody CreateRequest body) {
-        Long userId = SecurityContext.getCurrentUserId();
-        if (userId == null) throw ApiException.unauthorized("Пользователь не авторизован");
-        return ResponseEntity.ok(service.createItem(body.name(), body.code(), body.attributes(), userId));
+        return ResponseEntity.ok(service.createItem(body.name(), body.code(), body.attributes(),
+                SecurityContext.getCurrentUserId()));
+    }
+
+    @PutMapping("/{id}")
+    @RequiresPermission(form = "${cleanCode}", action = "update")
+    public ResponseEntity<ItemView> updateItem(@PathVariable Long id, @RequestBody UpdateRequest body) {
+        return ResponseEntity.ok(service.updateItem(id, body.name(), body.status(), body.attributes(),
+                SecurityContext.getCurrentUserId()));
     }
 
     @DeleteMapping("/{id}")
@@ -408,8 +561,10 @@ public class ${ctrlClass} {
     }
 }
 "@
-Set-Content -Path $ctrlFile -Value $ctrlContent -Encoding UTF8
+Write-Utf8 $ctrlFile $ctrlContent
 
-Write-Host "-> Создан бэкенд пакет: com.greenwhite.dwh.instance.${prefixLower}.${cleanCode}" -ForegroundColor Green
-Write-Host "Готово! Новый модуль '$cleanCode' сгенерирован." -ForegroundColor Cyan
-Write-Host "Для применения изменений выполните сборку: mvn compile"
+Write-Host "-> Created: ${pkg} (5 files: repository, service, controller, ${queryClass}, ${entityClass})" -ForegroundColor Green
+Write-Host "Next (docs/guidelines/module-development-guide.md, checklist):" -ForegroundColor Cyan
+Write-Host "  1. Label keys in apps/server/src/main/resources/i18n (ru, en): nav.${cleanCode}, ${cleanCode}.col.*, ${cleanCode}.status_*"
+Write-Host "  2. Screen: a route to /${cleanCode} with smt-entity-form, smt-entity-card and smt-entity-toolbar"
+Write-Host "  3. mvn verify: the entity contract tests check the declaration's rights against @RequiresPermission"

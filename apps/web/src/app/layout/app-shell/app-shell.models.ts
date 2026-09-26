@@ -1,5 +1,5 @@
 import { InstalledModule } from '../../core/services/module.service';
-import { CustomNavigationItem } from '../../core/models/navigation.models';
+import { CustomNavigationItem, EntityMenuItem } from '../../core/models/navigation.models';
 
 export interface NavItem {
   id: string;
@@ -26,10 +26,11 @@ export interface NavSection {
 export interface BuildNavSectionsOptions {
   activeCustomModules: InstalledModule[];
   customNavItems: CustomNavigationItem[];
-  isNotesActive: boolean;
+  /** Items the declared entities bring (roadmap item 57), placed in their sections by order. */
+  entityItems: EntityMenuItem[];
+  isModuleActive: (code: string) => boolean;
   canViewTasks: () => boolean;
   canViewProjects: () => boolean;
-  canViewNotes: () => boolean;
   canViewSources: () => boolean;
   canViewPackages: () => boolean;
   canViewFiles: () => boolean;
@@ -50,6 +51,24 @@ export interface BuildNavSectionsOptions {
   unreadCount: () => number;
 }
 
+/**
+ * A section's items from the entity declarations: in their order, without those whose module is switched off,
+ * each shown with its entity's view right. The id is the entity's list code without its module prefix
+ * (`ms.notes` → `notes`), as the built-in items are named.
+ */
+function entityNavItems(options: BuildNavSectionsOptions, section: string): NavItem[] {
+  return options.entityItems
+    .filter(item => item.section === section && (!item.module || options.isModuleActive(item.module)))
+    .sort((a, b) => a.order - b.order)
+    .map(item => ({
+      id: item.code.includes('.') ? item.code.slice(item.code.indexOf('.') + 1) : item.code,
+      route: item.route,
+      labelKey: item.labelKey,
+      icon: item.icon,
+      permission: () => options.hasPermission(`${item.form}.view`)
+    }));
+}
+
 export function buildNavSections(options: BuildNavSectionsOptions): NavSection[] {
   const customItems: NavItem[] = options.activeCustomModules.map(mod => ({
     id: `module-${mod.code}`,
@@ -64,15 +83,7 @@ export function buildNavSections(options: BuildNavSectionsOptions): NavSection[]
     { id: 'projects', route: '/tasks/projects', labelKey: 'nav.projects', icon: 'folder', permission: options.canViewProjects }
   ];
 
-  if (options.isNotesActive) {
-    workspaceItems.push({
-      id: 'notes',
-      route: '/notes',
-      labelKey: 'nav.notes',
-      icon: 'description',
-      permission: options.canViewNotes
-    });
-  }
+  workspaceItems.push(...entityNavItems(options, 'workspace'));
 
   workspaceItems.push(
     { id: 'upl-overview', route: '/upl/overview', labelKey: 'nav.upl_overview', icon: 'monitoring', permission: options.canViewPackages },
@@ -107,7 +118,8 @@ export function buildNavSections(options: BuildNavSectionsOptions): NavSection[]
         { id: 'users', route: '/iam/users', labelKey: 'nav.users', icon: 'people', permission: options.canViewUsers },
         { id: 'roles', route: '/iam/roles', labelKey: 'nav.roles', icon: 'security', permission: options.canViewRoles },
         { id: 'org-units', route: '/iam/org-units', labelKey: 'iam.org_units.title', titleKey: 'iam.org_units.title', icon: 'account_tree', permission: options.canViewOrgUnits },
-        { id: 'custom-fields', route: '/iam/custom-fields', labelKey: 'nav.custom_fields', icon: 'tune', permission: options.canViewCustomFields }
+        { id: 'custom-fields', route: '/iam/custom-fields', labelKey: 'nav.custom_fields', icon: 'tune', permission: options.canViewCustomFields },
+        ...entityNavItems(options, 'iam')
       ]
     },
     {
@@ -119,7 +131,8 @@ export function buildNavSections(options: BuildNavSectionsOptions): NavSection[]
         { id: 'navigation-settings', route: '/settings/navigation', labelKey: 'nav.navigation_settings', icon: 'menu_open', permission: options.canViewNavigationSettings },
         { id: 'audit', route: '/audit', labelKey: 'nav.audit', titleKey: 'layout.app_shell.audit', icon: 'history', permission: options.canViewAudit },
         { id: 'system', route: '/system', labelKey: 'layout.app_shell.sostoyanie', titleKey: 'system.sostoyanie_sistemy', icon: 'monitor_heart', permission: options.canViewSystem },
-        { id: 'settings', route: '/settings', labelKey: 'nav.settings', titleKey: 'layout.app_shell.nastroyki', icon: 'settings', permission: options.canViewSettings }
+        { id: 'settings', route: '/settings', labelKey: 'nav.settings', titleKey: 'layout.app_shell.nastroyki', icon: 'settings', permission: options.canViewSettings },
+        ...entityNavItems(options, 'administration')
       ]
     }
   );
