@@ -14,7 +14,7 @@ Flyway-миграции и Angular-код.
 
 ## Java-пакеты и модули
 
-Базовый пакет сервера — `com.greenwhite.dwh.instance`. Внутри него предметные
+Базовый пакет сервера — `com.smartup24.cms.instance`. Внутри него предметные
 пакеты отражают фактические границы: `md`, `kauth`, `ms.task`, `ms.notify`,
 `mf`, `audit`, `kwh`, `search`, `analytics` и `report`; общие runtime-компоненты
 располагаются в `common` и `config`.
@@ -105,7 +105,7 @@ HTTP API возвращает единый Problem Details контракт из
 ## Provider SPI
 
 Публичные интерфейсы хранения, сканирования файлов, mail, SMS и messenger
-находятся в `libs/provider-spi` под `com.greenwhite.dwh.spi`. Предметные сервисы
+находятся в `libs/provider-spi` под `com.smartup24.cms.spi`. Предметные сервисы
 зависят от этих интерфейсов, а выбор и конфигурация реализации выполняются в
 runtime-слое сервера. SPI не зависит от реализации или функционального модуля;
 provider-specific DTO не должны протекать в предметные API.

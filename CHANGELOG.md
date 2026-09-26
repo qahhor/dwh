@@ -593,6 +593,10 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- The Java base package and Maven group are `com.smartup24.cms` (were
+  `com.greenwhite.dwh`): every server and library class moved, and the
+  Compose migration entry point, scripts and documentation follow. The
+  vendored `@greenwhite/ui-kit` attribution is unchanged.
 - Built-in languages are Russian, Uzbek and English, and the Uzbek (733
   strings) and English (334 strings) catalogs are now complete. The Kazakh,
   Kyrgyz, Tajik, German and Turkish catalogs no longer ship: migration V122

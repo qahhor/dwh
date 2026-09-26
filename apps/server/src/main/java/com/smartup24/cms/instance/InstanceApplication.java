@@ -1,0 +1,18 @@
+package com.smartup24.cms.instance;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
+
+@SpringBootApplication
+@ConfigurationPropertiesScan
+@EnableScheduling
+@EnableAsync
+public class InstanceApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(InstanceApplication.class, args);
+    }
+}

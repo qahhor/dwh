@@ -9,12 +9,12 @@
 ## 1. Архитектурные правила, префиксы модулей и опыт Biruni/Smartup
 
 1. **Преемственность префиксов:** Архитектура и кодовая база платформы наследуют проверенную в Biruni и Smartup систему префиксов:
-   - **`md` (Master Data):** `com.greenwhite.dwh.instance.md` — пользователи, роли, формы, права, настройки.
-   - **`kauth` (Kernel Auth):** `com.greenwhite.dwh.instance.kauth` — аутентификация, сессии, токены, 2FA, сброс паролей.
-   - **`ms` (Messaging & Services):** `com.greenwhite.dwh.instance.ms` — задачи, проекты, комментарии, оповещения, outbox, объявления.
-   - **`mf` (Media & Files):** `com.greenwhite.dwh.instance.mf` — файловое хранилище (Garage S3).
-   - **`audit` (Audit & Security):** `com.greenwhite.dwh.instance.audit` — журнал изменений (JSONB) и security-события.
-   - **`cp` (Control Plane):** `com.greenwhite.dwh.cp` — реестр клиентов, лицензии, телеметрия флота.
+   - **`md` (Master Data):** `com.smartup24.cms.instance.md` — пользователи, роли, формы, права, настройки.
+   - **`kauth` (Kernel Auth):** `com.smartup24.cms.instance.kauth` — аутентификация, сессии, токены, 2FA, сброс паролей.
+   - **`ms` (Messaging & Services):** `com.smartup24.cms.instance.ms` — задачи, проекты, комментарии, оповещения, outbox, объявления.
+   - **`mf` (Media & Files):** `com.smartup24.cms.instance.mf` — файловое хранилище (Garage S3).
+   - **`audit` (Audit & Security):** `com.smartup24.cms.instance.audit` — журнал изменений (JSONB) и security-события.
+   - **`cp` (Control Plane):** `com.smartup24.cms.cp` — реестр клиентов, лицензии, телеметрия флота.
 2. **Именование классов с модульным префиксом:**
    - **Контроллеры:** `{Prefix}{Entity}Controller` (например, `MdUserController`, `KauthAuthController`, `MsTaskController`, `MfFileController`).
    - **Сервисы и Фасады:** `{Prefix}{Entity}Service` / `{Prefix}{Entity}Facade` (например, `MdUserService`, `KauthSessionService`, `MsTaskService`, `MsNotificationService`).
