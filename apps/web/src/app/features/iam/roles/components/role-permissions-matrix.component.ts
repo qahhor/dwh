@@ -196,7 +196,7 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
           <table class="forms-grid-table" [attr.aria-label]="'iam.module_permissions_named' | t:{name: mod.moduleName}">
             <tbody>
               <tr *ngFor="let f of mod.forms" class="form-grid-row">
-                <td class="form-title-col">
+                <th scope="row" class="form-title-col">
                   <div class="form-title-wrap">
                     <span class="form-name-text">{{ f.formName }}</span>
                     <span class="form-code-text font-mono">{{ f.formCode }}</span>
@@ -206,7 +206,7 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
                       <button type="button" class="mini-toggle-btn" [disabled]="!canEditPermissions" (click)="toggleAllForm.emit({ form: f, select: false })">{{ 'iam.snyat' | t }}</button>
                     </div>
                   </div>
-                </td>
+                </th>
 
                 <td class="form-actions-col">
                   <div class="actions-chips-wrap">

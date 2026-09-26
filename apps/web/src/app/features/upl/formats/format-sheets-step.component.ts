@@ -103,26 +103,26 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
 
       <div class="table-card">
         <div class="table-scroll">
-          <table>
+          <table [attr.aria-label]="'upl.format.columns_named' | t: { sheet: sheet.sheetName ?? '' }">
             <thead>
               <tr>
-                <th>{{ 'upl.format.col.name_in_file' | t }}</th>
+                <th scope="col">{{ 'upl.format.col.name_in_file' | t }}</th>
                 @if (model().matchColumnsBy !== 'position') {
-                  <th>{{ 'upl.format.col.header_synonyms' | t }}</th>
+                  <th scope="col">{{ 'upl.format.col.header_synonyms' | t }}</th>
                 }
-                <th>{{ 'upl.format.col.target_field' | t }}</th>
-                <th>{{ 'upl.format.col.type' | t }}</th>
-                <th>{{ 'upl.format.col.required' | t }}</th>
-                <th>{{ 'upl.format.col.source_unit' | t }}</th>
-                <th>{{ 'upl.format.col.base_unit' | t }}</th>
-                <th>{{ 'upl.format.col.key_mask' | t }}</th>
-                <th>{{ 'upl.format.col.key_pad' | t }}</th>
-                <th>{{ 'upl.format.col.ref_book' | t }}</th>
+                <th scope="col">{{ 'upl.format.col.target_field' | t }}</th>
+                <th scope="col">{{ 'upl.format.col.type' | t }}</th>
+                <th scope="col">{{ 'upl.format.col.required' | t }}</th>
+                <th scope="col">{{ 'upl.format.col.source_unit' | t }}</th>
+                <th scope="col">{{ 'upl.format.col.base_unit' | t }}</th>
+                <th scope="col">{{ 'upl.format.col.key_mask' | t }}</th>
+                <th scope="col">{{ 'upl.format.col.key_pad' | t }}</th>
+                <th scope="col">{{ 'upl.format.col.ref_book' | t }}</th>
                 @if (model().matchColumnsBy === 'position') {
-                  <th>{{ 'upl.format.col.file_position' | t }}</th>
+                  <th scope="col">{{ 'upl.format.col.file_position' | t }}</th>
                 }
                 @if (editable()) {
-                  <th [attr.aria-label]="'upl.format.col.actions' | t"></th>
+                  <th scope="col" [attr.aria-label]="'upl.format.col.actions' | t"></th>
                 }
               </tr>
             </thead>
