@@ -7,7 +7,7 @@ import { ListViewState, SavedListView } from '../list-views/list-views';
 import { SMTInputComponent } from '../ui-kit/components/forms/input';
 import { SMTModalService } from '../ui-kit/components/modal';
 import { SMTButtonComponent } from '../ui-kit/components/button';
-import { UiModalComponent } from './ui-modal.component';
+import { SMTDialogComponent, SMTDialogContentDirective } from '../ui-kit/components/modal';
 import { SMTCheckboxComponent } from '../ui-kit/components/forms/checkbox';
 
 const NAME_MAX = 80;
@@ -24,7 +24,7 @@ const NAME_MAX = 80;
   selector: 'ui-list-views',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTCheckboxComponent, SMTInputComponent, CdkMenuTrigger, CdkMenu, CdkMenuGroup, CdkMenuItem, CdkMenuItemRadio, TranslatePipe, UiModalComponent, SMTButtonComponent],
+  imports: [SMTCheckboxComponent, SMTInputComponent, CdkMenuTrigger, CdkMenu, CdkMenuGroup, CdkMenuItem, CdkMenuItemRadio, TranslatePipe, SMTDialogComponent, SMTDialogContentDirective, SMTButtonComponent],
   template: `
     <button type="button" class="views-trigger" data-testid="views-trigger" [cdkMenuTriggerFor]="menu" [disabled]="state().busy()">
       <span class="material-symbols-outlined" aria-hidden="true">bookmarks</span>
@@ -76,7 +76,8 @@ const NAME_MAX = 80;
       </div>
     </ng-template>
 
-    <ui-modal [isOpen]="saveAsOpen()" [title]="'ui.views.save_as_title' | t" size="sm" (close)="closeSaveAs()">
+    <smt-dialog [open]="saveAsOpen()" [smtTitle]="'ui.views.save_as_title' | t" smtSize="sm" (closed)="closeSaveAs()">
+      <ng-template smtDialogContent>
       <form body class="views-form" (submit)="$event.preventDefault(); submitSaveAs()" novalidate>
         <label class="form-label" [for]="nameId">{{ 'ui.views.name' | t }}</label>
         <smt-input #nameInput smtTestId="views-name" [smtFieldId]="nameId" [maxLength]="nameMax"
@@ -95,7 +96,8 @@ const NAME_MAX = 80;
           {{ 'ui.views.save_button' | t }}
         </button>
       </div>
-    </ui-modal>
+      </ng-template>
+    </smt-dialog>
   `,
   styles: [`
     :host { display: inline-flex; }

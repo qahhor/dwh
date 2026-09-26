@@ -9,6 +9,7 @@ import { ToastService } from '../../../core/services/toast.service';
 import { PACKAGED_RUSSIAN } from '../../../core/i18n/packaged-russian';
 import { UplApiService, UplFormatVersion, UplSource, UplVersionItem } from '../upl-api';
 import { SourceCardComponent } from './source-card.component';
+import { inScreen } from '../../../../testing/in-screen';
 
 /** The error smt-control shows for a field, found the way assistive technology finds it: through aria-describedby. */
 function fieldError(root: HTMLElement, fieldId: string): HTMLElement | null {
@@ -107,7 +108,7 @@ describe('SourceCardComponent', () => {
   }
 
   function el(fixture: ComponentFixture<SourceCardComponent>, testid: string): HTMLElement | null {
-    return fixture.nativeElement.querySelector(`[data-testid="${testid}"]`);
+    return inScreen(fixture.nativeElement).querySelector(`[data-testid="${testid}"]`);
   }
 
   function clickUiButton(fixture: ComponentFixture<SourceCardComponent>, testid: string): void {
@@ -130,12 +131,12 @@ describe('SourceCardComponent', () => {
     const { fixture, api } = await createFixture();
     expect(api.getSource).toHaveBeenCalledWith('7');
     expect(api.listVersions).toHaveBeenCalledWith('7');
-    const rows = fixture.nativeElement.querySelectorAll('[data-testid="upl-version-row"]');
+    const rows = inScreen(fixture.nativeElement).querySelectorAll('[data-testid="upl-version-row"]');
     expect(rows.length).toBe(2);
     const link = rows[0] as HTMLAnchorElement;
     expect(link.getAttribute('href')).toBe('/upl/sources/7/formats/1');
     // Each version offers the supplier's file, named after the version for screen readers.
-    const template = fixture.nativeElement.querySelector('[data-testid="upl-version-template"]') as HTMLAnchorElement;
+    const template = inScreen(fixture.nativeElement).querySelector('[data-testid="upl-version-template"]') as HTMLAnchorElement;
     expect(template.getAttribute('href')).toBe('/api/v1/upl/sources/7/format-versions/1/template?lang=ru');
     expect(template.hasAttribute('download')).toBe(true);
     expect(template.getAttribute('aria-label')).toBe('Скачать шаблон файла для версии 1');
@@ -232,7 +233,7 @@ describe('SourceCardComponent', () => {
   it('shows the empty versions note and offers the first draft', async () => {
     const { fixture } = await createFixture({ versions: [] });
     expect(el(fixture, 'upl-versions-empty')).not.toBeNull();
-    expect(fixture.nativeElement.querySelectorAll('[data-testid="upl-version-row"]').length).toBe(0);
+    expect(inScreen(fixture.nativeElement).querySelectorAll('[data-testid="upl-version-row"]').length).toBe(0);
     expect(el(fixture, 'upl-new-draft')).not.toBeNull();
   });
 

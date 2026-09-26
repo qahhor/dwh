@@ -9,6 +9,7 @@ import { PACKAGED_RUSSIAN } from '../../../core/i18n/packaged-russian';
 import { UplApiService, UplFormatDraftRequest, UplFormatVersion, UplSource, UplUnit, UplVersionItem } from '../upl-api';
 import { FormatEditorComponent } from './format-editor.component';
 import { FormatSheetsStepComponent } from './format-sheets-step.component';
+import { inScreen } from '../../../../testing/in-screen';
 
 const SOURCE: UplSource = {
   id: 7,
@@ -148,11 +149,11 @@ async function createFixture(options: FixtureOptions = {}) {
 }
 
 function one(fixture: ComponentFixture<FormatEditorComponent>, testId: string): HTMLElement | null {
-  return fixture.nativeElement.querySelector(`[data-testid="${testId}"]`);
+  return inScreen(fixture.nativeElement).querySelector(`[data-testid="${testId}"]`);
 }
 
 function many(fixture: ComponentFixture<FormatEditorComponent>, testId: string): HTMLElement[] {
-  return Array.from(fixture.nativeElement.querySelectorAll(`[data-testid="${testId}"]`));
+  return Array.from(inScreen(fixture.nativeElement).querySelectorAll(`[data-testid="${testId}"]`));
 }
 
 function sheetsStep(fixture: ComponentFixture<FormatEditorComponent>): FormatSheetsStepComponent {
@@ -732,7 +733,7 @@ describe('FormatEditorComponent', () => {
     fixture.detectChanges();
 
     expect(one(fixture, 'upl-errors-summary')!.querySelectorAll('li').length).toBe(3);
-    expect(fixture.nativeElement.querySelector('#upl-header-row').getAttribute('aria-invalid')).toBe('true');
+    expect(inScreen(fixture.nativeElement).querySelector('#upl-header-row').getAttribute('aria-invalid')).toBe('true');
     expect(many(fixture, 'upl-tab-error').length).toBe(1);
   });
 

@@ -6,6 +6,7 @@ import { ApiService } from '../../core/services/api.service';
 import { PermissionService } from '../../core/services/permission.service';
 import { ToastService } from '../../core/services/toast.service';
 import { NotesComponent, Note } from './notes.component';
+import { inScreen } from '../../../testing/in-screen';
 
 describe('NotesComponent', () => {
   const mockNote: Note = {
@@ -48,13 +49,13 @@ describe('NotesComponent', () => {
     const fixture = await createFixture();
     expect(fixture.componentInstance.notes().length).toBe(1);
 
-    const region = fixture.nativeElement.querySelector('.notes-view[role="region"]');
+    const region = inScreen(fixture.nativeElement).querySelector('.notes-view[role="region"]');
     expect(region).not.toBeNull();
 
-    const titleEl = fixture.nativeElement.querySelector('.note-title');
+    const titleEl = inScreen(fixture.nativeElement).querySelector('.note-title');
     expect(titleEl.textContent).toContain('Модульный манифест');
 
-    const contentEl = fixture.nativeElement.querySelector('.note-content');
+    const contentEl = inScreen(fixture.nativeElement).querySelector('.note-content');
     expect(contentEl.textContent).toContain('Чистая архитектура');
   });
 
@@ -81,7 +82,7 @@ describe('NotesComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.componentInstance.isSubmitted()).toBe(true);
-    const errorEl = fixture.nativeElement.querySelector('#note-title-error');
+    const errorEl = inScreen(fixture.nativeElement).querySelector('#note-title-error');
     expect(errorEl).not.toBeNull();
   });
 

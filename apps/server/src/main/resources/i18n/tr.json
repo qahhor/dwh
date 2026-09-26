@@ -1043,7 +1043,6 @@
   "ui.user_multi_select.add_more": "+ Ekle",
   "ui.file_upload.upload_progress": "Yükleniyor... {progress}%",
   "ui.file_upload.uploaded_named": "Dosya {name} başarıyla yüklendi",
-  "ui.modal.close_named_dialog": "\"{title}\" iletişim kutusunu kapat",
   "ui.pagination.page_number": "Sayfa {page}",
   "ui.markdown_editor.vtoroy_element": "İkinci öğe",
   "ui.markdown_editor.vtoroy_punkt": "İkinci öğe",

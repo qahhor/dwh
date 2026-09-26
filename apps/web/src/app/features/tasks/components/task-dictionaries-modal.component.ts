@@ -5,7 +5,7 @@ import { SMTSortableActionsDirective, SMTSortableItemDirective, SMTSortableListC
 import { SMTColorInputComponent, SMTColorInputValueAccessor } from '../../../shared/ui-kit/components/forms/color-input';
 import { SMTControlComponent } from '../../../shared/ui-kit/components/forms/control';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
-import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
+import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
 import { TaskStatus, TaskType } from '../../../core/models/task.models';
@@ -20,16 +20,16 @@ import { SMTCheckboxComponent, SMTCheckboxValueAccessor } from '../../../shared/
     SMTTabBarComponent, SMTColorInputComponent, SMTColorInputValueAccessor, SMTControlComponent, SMTInputComponent, SMTInputValueAccessor, CommonModule,
     FormsModule,
     SMTSortableListComponent, SMTSortableItemDirective, SMTSortableActionsDirective, TranslatePipe,
-    UiModalComponent,
+    SMTDialogComponent, SMTDialogContentDirective,
     SMTButtonComponent
   ],
   template: `
-    <ui-modal
-      [isOpen]="isOpen"
-      [title]="'tasks.nastroyka_spravochnikov_zadach' | t"
-      size="md"
-      (close)="close.emit()"
-    >
+    <smt-dialog
+      [open]="isOpen"
+      [smtTitle]="'tasks.nastroyka_spravochnikov_zadach' | t"
+      smtSize="md"
+      (closed)="close.emit()">
+      <ng-template smtDialogContent>
       <div body class="settings-modal-content">
         <!-- Settings Tabs -->
         <smt-tab-bar
@@ -135,7 +135,8 @@ import { SMTCheckboxComponent, SMTCheckboxValueAccessor } from '../../../shared/
       <div footer>
         <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="close.emit()">{{ 'audit.zakryt' | t }}</button>
       </div>
-    </ui-modal>
+      </ng-template>
+    </smt-dialog>
   `,
   styles: [`
     .settings-modal-content { display: flex; flex-direction: column; gap: 14px; }

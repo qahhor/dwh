@@ -9,6 +9,7 @@ import { ToastService } from '../../../core/services/toast.service';
 import { Role } from '../../../core/models/rbac.models';
 import { RolesComponent } from './roles.component';
 import { RoleScopePanelComponent } from '../org-units/public-api';
+import { inScreen } from '../../../../testing/in-screen';
 
 describe('RolesComponent UI contracts', () => {
   async function createFixture() {
@@ -60,12 +61,12 @@ describe('RolesComponent UI contracts', () => {
     }];
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('label[for="role-search"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('label[for="permission-search"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('button[aria-label="Выбрать роль Аналитик"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('[role="progressbar"][aria-label="Доля разрешённых действий"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('button[aria-expanded="true"][aria-controls="role-module-audit"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('#role-module-audit[role="region"] table[aria-label="Права модуля Аудит"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('label[for="role-search"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('label[for="permission-search"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('button[aria-label="Выбрать роль Аналитик"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('[role="progressbar"][aria-label="Доля разрешённых действий"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('button[aria-expanded="true"][aria-controls="role-module-audit"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('#role-module-audit[role="region"] table[aria-label="Права модуля Аудит"]')).not.toBeNull();
   });
 
   it('connects the required role name to inline validation', async () => {
@@ -74,8 +75,8 @@ describe('RolesComponent UI contracts', () => {
     (fixture.componentInstance as any).isCreateSubmitted = true;
     fixture.detectChanges();
 
-    const name = fixture.nativeElement.querySelector('#role-create-name') as HTMLInputElement;
-    expect(fixture.nativeElement.querySelector(`label[for="${name.id}"]`)).not.toBeNull();
+    const name = inScreen(fixture.nativeElement).querySelector('#role-create-name') as HTMLInputElement;
+    expect(inScreen(fixture.nativeElement).querySelector(`label[for="${name.id}"]`)).not.toBeNull();
     expect(name.required).toBe(true);
     expect(name.getAttribute('aria-invalid')).toBe('true');
     expect(name.getAttribute('aria-describedby')).toBe('role-create-name-error');
@@ -173,8 +174,8 @@ describe('RolesComponent UI contracts', () => {
       expect(write.observed).toBe(true);
       expect(fixture.componentInstance.scopePanelBusy()).toBe(true);
       expect(panel.confirmationOpen).toBe(false);
-      expect(fixture.nativeElement.querySelector('app-role-scope-panel [role="radio"]')).toBeNull();
-      expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
+      expect(inScreen(fixture.nativeElement).querySelector('app-role-scope-panel [role="radio"]')).toBeNull();
+      expect(inScreen(fixture.nativeElement).querySelector('[role="dialog"]')).toBeNull();
       expect(fixture.componentInstance.canLeaveRecordPage()).toBe(false);
 
       fixture.componentInstance.selectRole(second);

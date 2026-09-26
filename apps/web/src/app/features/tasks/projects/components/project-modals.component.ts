@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { UiModalComponent } from '../../../../shared/ui/ui-modal.component';
+import { SMTDialogComponent, SMTDialogContentDirective } from '../../../../shared/ui-kit/components/modal';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { UiCustomFieldsComponent } from '../../../../shared/ui/ui-custom-fields.component';
 import { TranslatePipe, I18nService } from '../../../../core/services/i18n.service';
@@ -22,13 +22,14 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
     CommonModule,
     FormsModule,
     TranslatePipe,
-    UiModalComponent,
+    SMTDialogComponent, SMTDialogContentDirective,
     SMTButtonComponent,
     UiCustomFieldsComponent
   ],
   template: `
     <!-- Record View Modal -->
-    <ui-modal *ngIf="routeRecordId !== null" [isOpen]="true" [title]="'projects.proekt' | t" size="sm" (close)="closeRecordView.emit()">
+    <smt-dialog *ngIf="routeRecordId !== null" [open]="true" [smtTitle]="'projects.proekt' | t" smtSize="sm" (closed)="closeRecordView.emit()">
+      <ng-template smtDialogContent>
       <div body>
         <p *ngIf="recordLoading" role="status">{{ 'search.record_loading' | t }}</p>
         <div *ngIf="recordError" role="alert">
@@ -50,16 +51,17 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
         </div>
       </div>
       <div footer><button smt-button type="button" smtVariant="secondary" (click)="closeRecordView.emit()">{{ 'search.back_to_list' | t }}</button></div>
-    </ui-modal>
+      </ng-template>
+    </smt-dialog>
 
     <!-- Create Project Modal -->
-    <ui-modal
-      [isOpen]="isCreateModalOpen"
-      [title]="'projects.sozdanie_novogo_proekta' | t"
-      size="sm"
+    <smt-dialog
+      [open]="isCreateModalOpen"
+      [smtTitle]="'projects.sozdanie_novogo_proekta' | t"
+      smtSize="sm"
       [dismissible]="!isSubmitting"
-      (close)="requestCloseCreate.emit()"
-    >
+      (closed)="requestCloseCreate.emit()">
+      <ng-template smtDialogContent>
       <form body id="project-create-form" (ngSubmit)="submitCreateProject.emit()">
         <fieldset class="modal-form modal-form-fieldset project-create-form" [disabled]="isSubmitting">
           <smt-control class="form-group" [smtLabel]="'projects.nazvanie_proekta' | t" [smtError]="isCreateSubmitted && !createForm.name.trim() ? ('projects.pozhaluysta_ukazhite_nazvanie_proekta' | t) : ''">
@@ -93,29 +95,31 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
         <button smt-button type="button" smtVariant="secondary" smtSize="md" [disabled]="isSubmitting" (click)="requestCloseCreate.emit()">{{ 'common.cancel' | t }}</button>
         <button smt-button type="submit" form="project-create-form" smtVariant="primary" smtSize="md" [smtLoading]="isSubmitting">{{ 'projects.sozdat_proekt' | t }}</button>
       </div>
-    </ui-modal>
+      </ng-template>
+    </smt-dialog>
 
-    <ui-modal
-      [isOpen]="isCreateDiscardConfirmationOpen"
-      [title]="'projects.discard_create_title' | t"
-      size="sm"
-      (close)="cancelNavigationDiscard.emit('create')"
-    >
+    <smt-dialog
+      [open]="isCreateDiscardConfirmationOpen"
+      [smtTitle]="'projects.discard_create_title' | t"
+      smtSize="sm"
+      (closed)="cancelNavigationDiscard.emit('create')">
+      <ng-template smtDialogContent>
       <div body><p>{{ 'projects.discard_create_message' | t }}</p></div>
       <div footer>
         <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="cancelNavigationDiscard.emit('create')">{{ 'common.cancel' | t }}</button>
         <button smt-button type="button" smtVariant="danger" smtSize="md" (click)="confirmDiscardCreate.emit()">{{ 'projects.discard_create_action' | t }}</button>
       </div>
-    </ui-modal>
+      </ng-template>
+    </smt-dialog>
 
     <!-- Edit Project Modal -->
-    <ui-modal
-      [isOpen]="isEditModalOpen"
-      [title]="'projects.redaktirovanie_proekta' | t"
-      size="sm"
+    <smt-dialog
+      [open]="isEditModalOpen"
+      [smtTitle]="'projects.redaktirovanie_proekta' | t"
+      smtSize="sm"
       [dismissible]="!isSubmitting"
-      (close)="requestCloseEdit.emit()"
-    >
+      (closed)="requestCloseEdit.emit()">
+      <ng-template smtDialogContent>
       <div body class="request-state" data-testid="project-edit-loading" *ngIf="editLoading" role="status">
         {{ 'projects.edit_loading' | t }}
       </div>
@@ -160,20 +164,22 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
         <button smt-button type="button" smtVariant="secondary" smtSize="md" [disabled]="isSubmitting" (click)="requestCloseEdit.emit()">{{ 'common.cancel' | t }}</button>
         <button smt-button *ngIf="editingProject" type="submit" form="project-edit-form" smtVariant="primary" smtSize="md" [smtLoading]="isSubmitting">{{ 'common.save' | t }}</button>
       </div>
-    </ui-modal>
+      </ng-template>
+    </smt-dialog>
 
-    <ui-modal
-      [isOpen]="isEditDiscardConfirmationOpen"
-      [title]="'projects.discard_edit_title' | t"
-      size="sm"
-      (close)="cancelNavigationDiscard.emit('edit')"
-    >
+    <smt-dialog
+      [open]="isEditDiscardConfirmationOpen"
+      [smtTitle]="'projects.discard_edit_title' | t"
+      smtSize="sm"
+      (closed)="cancelNavigationDiscard.emit('edit')">
+      <ng-template smtDialogContent>
       <div body><p>{{ 'projects.discard_edit_message' | t }}</p></div>
       <div footer>
         <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="cancelNavigationDiscard.emit('edit')">{{ 'common.cancel' | t }}</button>
         <button smt-button type="button" smtVariant="danger" smtSize="md" (click)="confirmDiscardEdit.emit()">{{ 'projects.discard_edit_action' | t }}</button>
       </div>
-    </ui-modal>
+      </ng-template>
+    </smt-dialog>
   `,
   styles: [`
     .modal-form { display: flex; flex-direction: column; gap: 12px; }

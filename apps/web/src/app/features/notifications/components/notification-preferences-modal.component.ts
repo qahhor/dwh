@@ -5,6 +5,7 @@ import { NotificationPrefItem } from '../../../core/models/notification.models';
 import { TranslatePipe } from '../../../core/services/i18n.service';
 import { SMTCheckboxComponent } from '../../../shared/ui-kit/components/forms/checkbox';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
+import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
 
 export interface EventTypeRow {
   code: string;
@@ -14,153 +15,71 @@ export interface EventTypeRow {
 @Component({
   selector: 'app-notification-preferences-modal',
   standalone: true,
-  imports: [SMTButtonComponent, SMTCheckboxComponent, CommonModule, FormsModule, TranslatePipe],
+  imports: [SMTDialogComponent, SMTDialogContentDirective, SMTButtonComponent, SMTCheckboxComponent, CommonModule, FormsModule, TranslatePipe],
   template: `
-    <div class="modal-backdrop" (click)="onBackdropClick($event)" role="presentation">
-      <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="pref-modal-title">
-        <div class="modal-header">
-          <div class="modal-title-wrap">
-            <span class="material-symbols-outlined header-icon" aria-hidden="true">tune</span>
-            <h2 id="pref-modal-title">{{ 'notifications.preferences_title' | t }}</h2>
-          </div>
-          <button type="button" class="close-btn" (click)="close.emit()" [attr.aria-label]="'common.close' | t">
-            <span class="material-symbols-outlined" aria-hidden="true">close</span>
-          </button>
+    <smt-dialog [open]="true" [smtTitle]="'notifications.preferences_title' | t" smtSize="lg" [dismissible]="!isSaving" (closed)="close.emit()">
+      <ng-template smtDialogContent>
+        <p class="modal-desc">
+          {{ 'notifications.preferences_desc' | t }}
+        </p>
+
+        <div class="table-wrap">
+          <table class="pref-table" [attr.aria-label]="'notifications.preferences_title' | t">
+            <thead>
+              <tr>
+                <th scope="col" class="event-col">{{ 'notifications.event_type' | t }}</th>
+                <th scope="col" class="channel-col">
+                  <span class="material-symbols-outlined channel-icon" aria-hidden="true">notifications</span>
+                  In-App
+                </th>
+                <th scope="col" class="channel-col">
+                  <span class="material-symbols-outlined channel-icon" aria-hidden="true">mail</span>
+                  Email
+                </th>
+                <th scope="col" class="channel-col">
+                  <span class="material-symbols-outlined channel-icon" aria-hidden="true">send</span>
+                  Telegram
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of eventRows">
+                <td class="event-title">
+                  {{ row.titleKey | t }}
+                </td>
+                <td class="channel-cell">
+                  <span smt-checkbox smtHideLabel
+                    [checked]="isEnabled(row.code, 'in_app')"
+                    (checkedChange)="toggle(row.code, 'in_app', $event)"
+                    [smtAriaLabel]="(row.titleKey | t) + ' - In-App'"></span>
+                </td>
+                <td class="channel-cell">
+                  <span smt-checkbox smtHideLabel
+                    [checked]="isEnabled(row.code, 'email')"
+                    (checkedChange)="toggle(row.code, 'email', $event)"
+                    [smtAriaLabel]="(row.titleKey | t) + ' - Email'"></span>
+                </td>
+                <td class="channel-cell">
+                  <span smt-checkbox smtHideLabel
+                    [checked]="isEnabled(row.code, 'telegram')"
+                    (checkedChange)="toggle(row.code, 'telegram', $event)"
+                    [smtAriaLabel]="(row.titleKey | t) + ' - Telegram'"></span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
-        <div class="modal-body">
-          <p class="modal-desc">
-            {{ 'notifications.preferences_desc' | t }}
-          </p>
-
-          <div class="table-wrap">
-            <table class="pref-table">
-              <thead>
-                <tr>
-                  <th scope="col" class="event-col">{{ 'notifications.event_type' | t }}</th>
-                  <th scope="col" class="channel-col">
-                    <span class="material-symbols-outlined channel-icon" aria-hidden="true">notifications</span>
-                    In-App
-                  </th>
-                  <th scope="col" class="channel-col">
-                    <span class="material-symbols-outlined channel-icon" aria-hidden="true">mail</span>
-                    Email
-                  </th>
-                  <th scope="col" class="channel-col">
-                    <span class="material-symbols-outlined channel-icon" aria-hidden="true">send</span>
-                    Telegram
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let row of eventRows">
-                  <td class="event-title">
-                    {{ row.titleKey | t }}
-                  </td>
-                  <td class="channel-cell">
-                    <span smt-checkbox smtHideLabel
-                      [checked]="isEnabled(row.code, 'in_app')"
-                      (checkedChange)="toggle(row.code, 'in_app', $event)"
-                      [smtAriaLabel]="(row.titleKey | t) + ' - In-App'"></span>
-                  </td>
-                  <td class="channel-cell">
-                    <span smt-checkbox smtHideLabel
-                      [checked]="isEnabled(row.code, 'email')"
-                      (checkedChange)="toggle(row.code, 'email', $event)"
-                      [smtAriaLabel]="(row.titleKey | t) + ' - Email'"></span>
-                  </td>
-                  <td class="channel-cell">
-                    <span smt-checkbox smtHideLabel
-                      [checked]="isEnabled(row.code, 'telegram')"
-                      (checkedChange)="toggle(row.code, 'telegram', $event)"
-                      [smtAriaLabel]="(row.titleKey | t) + ' - Telegram'"></span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div class="modal-footer">
+        <div footer>
           <button smt-button smtVariant="secondary" type="button" (click)="close.emit()" [disabled]="isSaving">
             {{ 'common.cancel' | t }}
           </button>
-          <button smt-button type="button" (click)="onSave()" [disabled]="isSaving">
-            <span *ngIf="isSaving" class="spinner" aria-hidden="true"></span>
-            <span>{{ 'common.save' | t }}</span>
-          </button>
+          <button smt-button type="button" [smtLoading]="isSaving" (click)="onSave()">{{ 'common.save' | t }}</button>
         </div>
-      </div>
-    </div>
+      </ng-template>
+    </smt-dialog>
   `,
   styles: [`
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.45);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1050;
-      backdrop-filter: blur(2px);
-      padding: 16px;
-    }
-    .modal-dialog {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-lg);
-      width: 100%;
-      max-width: 680px;
-      box-shadow: var(--shadow-xl, 0 20px 25px -5px rgba(0, 0, 0, 0.1));
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      animation: modalFadeIn 0.15s ease-out;
-    }
-    @keyframes modalFadeIn {
-      from { opacity: 0; transform: translateY(-8px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .modal-header {
-      padding: 14px 18px;
-      border-bottom: 1px solid var(--border-color);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .modal-title-wrap {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .header-icon {
-      font-size: 20px;
-      color: var(--primary);
-    }
-    .modal-header h2 {
-      margin: 0;
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--text-main);
-    }
-    .close-btn {
-      background: transparent;
-      border: none;
-      color: var(--text-muted);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: var(--radius-xs);
-      padding: 4px;
-    }
-    .close-btn:hover { color: var(--text-main); background: var(--bg-hover); }
-    .modal-body {
-      padding: 16px 18px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
     .modal-desc {
       margin: 0;
       font-size: 13px;
@@ -209,22 +128,6 @@ export interface EventTypeRow {
       vertical-align: text-bottom;
       margin-right: 3px;
       color: var(--text-muted);
-    }
-    .modal-footer {
-      padding: 12px 18px;
-      border-top: 1px solid var(--border-color);
-      background: var(--bg-surface);
-      display: flex;
-      justify-content: flex-end;
-      gap: 10px;
-    }
-    .spinner {
-      width: 14px;
-      height: 14px;
-      border: 2px solid rgba(255,255,255,0.3);
-      border-top-color: var(--text-inverse);
-      border-radius: 50%;
-      animation: spin 0.6s linear infinite;
     }
     @keyframes spin {
       to { transform: rotate(360deg); }
@@ -278,11 +181,5 @@ export class NotificationPreferencesModalComponent implements OnInit {
       items.push({ eventType, channel, isEnabled });
     }
     this.save.emit(items);
-  }
-
-  onBackdropClick(event: MouseEvent): void {
-    if (event.target === event.currentTarget) {
-      this.close.emit();
-    }
   }
 }

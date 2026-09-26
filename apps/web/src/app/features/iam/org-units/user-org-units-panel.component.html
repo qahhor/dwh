@@ -64,11 +64,13 @@
   }
 </section>
 @if (can('view')) {
-  <ui-modal [isOpen]="discard.open()" [title]="'iam.org_units.discard_title' | t" (close)="discard.cancel()">
+  <smt-dialog [open]="discard.open()" [smtTitle]="'iam.org_units.discard_title' | t" (closed)="discard.cancel()">
+    <ng-template smtDialogContent>
     <p body>{{ 'iam.org_units.assignments_discard_warning' | t }}</p>
     <div footer class="actions">
       <button smt-button type="button" smtVariant="secondary" (click)="discard.cancel()">{{ 'iam.org_units.keep_editing' | t }}</button>
       <button smt-button type="button" smtVariant="danger" (click)="discard.confirm()">{{ 'iam.org_units.discard' | t }}</button>
     </div>
-  </ui-modal>
+    </ng-template>
+  </smt-dialog>
 }

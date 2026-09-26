@@ -4,7 +4,7 @@
  *
  * Differences from the kit: focus returns to the element that opened the
  * drawer once it is gone; the overlay is disposed at once when there is no
- * leave animation to wait for; Escape is marked handled so a `ui-modal`
+ * leave animation to wait for; Escape is marked handled so a dialog
  * underneath does not close too; `afterClosed()` is a read-only
  * Observable; the container reads its config from its own token, so
  * `SMT_DRAWER_DATA` means the caller's data everywhere. */

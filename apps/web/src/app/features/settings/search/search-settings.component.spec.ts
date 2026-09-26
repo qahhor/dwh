@@ -15,6 +15,7 @@ import { SearchManagementService } from '../../../core/services/search-managemen
 import { translateTest } from '../../../../testing/i18n-test.stub';
 import { SearchSettingsComponent } from './search-settings.component';
 import { SMTSelectComponent } from '../../../shared/ui-kit/components/forms/select';
+import { inScreen } from '../../../../testing/in-screen';
 
 /** The smt-select whose trigger has the given id. */
 function picker(fixture: ComponentFixture<SearchSettingsComponent>, triggerId: string): SMTSelectComponent<string> {
@@ -143,7 +144,7 @@ describe('SearchSettingsComponent', () => {
   }
 
   function setNumber(fixture: ComponentFixture<SearchSettingsComponent>, selector: string, value: string): HTMLInputElement {
-    const input = fixture.nativeElement.querySelector(selector) as HTMLInputElement;
+    const input = inScreen(fixture.nativeElement).querySelector(selector) as HTMLInputElement;
     input.value = value;
     input.dispatchEvent(new Event('input'));
     fixture.detectChanges();
@@ -155,8 +156,8 @@ describe('SearchSettingsComponent', () => {
 
     expect(management['status']).not.toHaveBeenCalled();
     expect(management['settings']).not.toHaveBeenCalled();
-    expect(fixture.nativeElement.querySelector('[data-state="search-access-unavailable"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('button[data-action="save-search-settings"]')).toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('[data-state="search-access-unavailable"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('button[data-action="save-search-settings"]')).toBeNull();
   });
 
   it('shows server-confirmed status without configuration or mutation controls to a read-only search administrator', async () => {
@@ -164,44 +165,44 @@ describe('SearchSettingsComponent', () => {
 
     expect(management['status']).toHaveBeenCalledTimes(1);
     expect(management['settings']).not.toHaveBeenCalled();
-    expect(fixture.nativeElement.querySelector('[data-status="healthy"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('[data-readiness="ready"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('[data-effective-api="90"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('[data-status="healthy"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('[data-readiness="ready"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('[data-effective-api="90"]')).not.toBeNull();
     expect(fixture.nativeElement.textContent).toContain('27.1.0');
     expect(fixture.nativeElement.textContent).toContain('1500');
-    expect(fixture.nativeElement.querySelector('[data-state="configuration-not-authorized"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('button[data-action="start-rebuild"]')).toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('[data-state="configuration-not-authorized"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('button[data-action="start-rebuild"]')).toBeNull();
   });
 
   it('lets a server-confirmed search administrator preview the current policy without reading configuration', async () => {
     const { fixture, management } = await createFixture(['platform.search.view']);
 
-    const query = fixture.nativeElement.querySelector('#search-preview-query') as HTMLInputElement | null;
+    const query = inScreen(fixture.nativeElement).querySelector('#search-preview-query') as HTMLInputElement | null;
     expect(query).not.toBeNull();
     if (!query) return;
     query.value = 'current policy';
     query.dispatchEvent(new Event('input'));
     fixture.detectChanges();
-    (fixture.nativeElement.querySelector('button[data-action="preview-search-settings"]') as HTMLButtonElement).click();
+    (inScreen(fixture.nativeElement).querySelector('button[data-action="preview-search-settings"]') as HTMLButtonElement).click();
 
     expect(management['settings']).not.toHaveBeenCalled();
     expect(management['preview']).toHaveBeenCalledWith({ q: 'current policy' });
-    expect(fixture.nativeElement.querySelector('button[data-action="save-search-settings"]')).toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('button[data-action="save-search-settings"]')).toBeNull();
   });
 
   it('previews one entity type chosen in the entity picker and all of them again once it is cleared', async () => {
     const { fixture, management } = await createFixture(['platform.search.view']);
-    const query = fixture.nativeElement.querySelector('#search-preview-query') as HTMLInputElement;
+    const query = inScreen(fixture.nativeElement).querySelector('#search-preview-query') as HTMLInputElement;
     query.value = 'report';
     query.dispatchEvent(new Event('input'));
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('label[for="search-preview-entity"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('label[for="search-preview-entity"]')).not.toBeNull();
     const entity = picker(fixture, 'search-preview-entity');
     expect(entity.options().map(option => option.id)).toEqual(['TASK', 'PROJECT', 'USER']);
     entity.pick(entity.options().find(option => option.id === 'PROJECT')!);
     fixture.detectChanges();
-    (fixture.nativeElement.querySelector('button[data-action="preview-search-settings"]') as HTMLButtonElement).click();
+    (inScreen(fixture.nativeElement).querySelector('button[data-action="preview-search-settings"]') as HTMLButtonElement).click();
     expect(management['preview']).toHaveBeenLastCalledWith({ q: 'report', entity: 'PROJECT' });
 
     entity.pickNone();
@@ -214,17 +215,17 @@ describe('SearchSettingsComponent', () => {
       'platform.search.view', 'platform.settings.view'
     ]);
     setNumber(fixture, '#search-global-limit', '13');
-    const query = fixture.nativeElement.querySelector('#search-preview-query') as HTMLInputElement;
+    const query = inScreen(fixture.nativeElement).querySelector('#search-preview-query') as HTMLInputElement;
     query.value = 'unsaved policy';
     query.dispatchEvent(new Event('input'));
     fixture.detectChanges();
-    (fixture.nativeElement.querySelector('button[data-action="preview-search-settings"]') as HTMLButtonElement).click();
+    (inScreen(fixture.nativeElement).querySelector('button[data-action="preview-search-settings"]') as HTMLButtonElement).click();
 
     expect(management['preview']).toHaveBeenCalledWith(expect.objectContaining({
       q: 'unsaved policy',
       policy: expect.objectContaining({ globalLimit: 13 })
     }));
-    expect(fixture.nativeElement.querySelector('button[data-action="save-search-settings"]')).toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('button[data-action="save-search-settings"]')).toBeNull();
   });
 
   it('keeps maintenance authorization independent when configuration read fails and invents no baseline', async () => {
@@ -234,10 +235,10 @@ describe('SearchSettingsComponent', () => {
     ], { settings: vi.fn(() => throwError(() => unavailable)) });
 
     expect(management['settings']).toHaveBeenCalledTimes(1);
-    expect(fixture.nativeElement.querySelector('[data-state="configuration-unavailable"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('[data-state="policy-clean"]')).toBeNull();
-    expect(fixture.nativeElement.querySelector('button[data-action="save-search-settings"]')).toBeNull();
-    expect(fixture.nativeElement.querySelector('button[data-action="start-rebuild"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('[data-state="configuration-unavailable"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('[data-state="policy-clean"]')).toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('button[data-action="save-search-settings"]')).toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('button[data-action="start-rebuild"]')).not.toBeNull();
   });
 
   it('blocks an invalid policy before issuing a save request', async () => {
@@ -246,11 +247,11 @@ describe('SearchSettingsComponent', () => {
     ]);
     setNumber(fixture, '#search-global-limit', '0');
 
-    (fixture.nativeElement.querySelector('button[data-action="save-search-settings"]') as HTMLButtonElement).click();
+    (inScreen(fixture.nativeElement).querySelector('button[data-action="save-search-settings"]') as HTMLButtonElement).click();
     fixture.detectChanges();
 
     expect(management['save']).not.toHaveBeenCalled();
-    expect(fixture.nativeElement.querySelector('[data-state="policy-invalid"][role="alert"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('[data-state="policy-invalid"][role="alert"]')).not.toBeNull();
   });
 
   it('allows only one save while pending and disables the real template button', async () => {
@@ -259,7 +260,7 @@ describe('SearchSettingsComponent', () => {
       'platform.search.view', 'platform.settings.view', 'platform.settings.update'
     ], { save: vi.fn(() => pending) });
     setNumber(fixture, '#search-global-limit', '12');
-    const saveButton = fixture.nativeElement.querySelector('button[data-action="save-search-settings"]') as HTMLButtonElement;
+    const saveButton = inScreen(fixture.nativeElement).querySelector('button[data-action="save-search-settings"]') as HTMLButtonElement;
 
     saveButton.click();
     saveButton.click();
@@ -280,11 +281,11 @@ describe('SearchSettingsComponent', () => {
     ], { save: vi.fn(() => throwError(() => failure)) });
     const limit = setNumber(fixture, '#search-global-limit', '17');
 
-    (fixture.nativeElement.querySelector('button[data-action="save-search-settings"]') as HTMLButtonElement).click();
+    (inScreen(fixture.nativeElement).querySelector('button[data-action="save-search-settings"]') as HTMLButtonElement).click();
     fixture.detectChanges();
 
     expect(limit.value).toBe('17');
-    expect(fixture.nativeElement.querySelector('[data-state="save-error"]').textContent).toContain('Временно недоступно');
+    expect(inScreen(fixture.nativeElement).querySelector('[data-state="save-error"]').textContent).toContain('Временно недоступно');
   });
 
   it('preserves a conflicting draft and offers an explicit server reload', async () => {
@@ -298,11 +299,11 @@ describe('SearchSettingsComponent', () => {
     ], { settings, save: vi.fn(() => throwError(() => conflict)) });
     const limit = setNumber(fixture, '#search-global-limit', '25');
 
-    (fixture.nativeElement.querySelector('button[data-action="save-search-settings"]') as HTMLButtonElement).click();
+    (inScreen(fixture.nativeElement).querySelector('button[data-action="save-search-settings"]') as HTMLButtonElement).click();
     fixture.detectChanges();
 
     expect(limit.value).toBe('25');
-    const reloadButton = fixture.nativeElement.querySelector('button[data-action="reload-search-settings"]') as HTMLButtonElement;
+    const reloadButton = inScreen(fixture.nativeElement).querySelector('button[data-action="reload-search-settings"]') as HTMLButtonElement;
     expect(reloadButton).not.toBeNull();
     reloadButton.click();
     expect(settings).toHaveBeenCalledTimes(2);
@@ -319,11 +320,11 @@ describe('SearchSettingsComponent', () => {
     profile.pick(profile.options().find(option => option.id === 'RU')!);
     fixture.detectChanges();
 
-    (fixture.nativeElement.querySelector('button[data-action="save-search-settings"]') as HTMLButtonElement).click();
+    (inScreen(fixture.nativeElement).querySelector('button[data-action="save-search-settings"]') as HTMLButtonElement).click();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('[data-state="policy-clean"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('[data-state="rebuild-required"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('[data-state="policy-clean"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('[data-state="rebuild-required"]')).not.toBeNull();
   });
 
   it('does not replace a dirty policy when status refresh completes in the background', async () => {
@@ -336,7 +337,7 @@ describe('SearchSettingsComponent', () => {
     ], { status: statusCall });
     const limit = setNumber(fixture, '#search-global-limit', '19');
 
-    (fixture.nativeElement.querySelector('button[data-action="refresh-search-status"]') as HTMLButtonElement).click();
+    (inScreen(fixture.nativeElement).querySelector('button[data-action="refresh-search-status"]') as HTMLButtonElement).click();
     laterStatus.next({ ...structuredClone(status), configuredProfile: 'RU', rebuildRequired: true });
     fixture.detectChanges();
 
@@ -360,19 +361,19 @@ describe('SearchSettingsComponent', () => {
     const { fixture } = await createFixture([
       'platform.search.view', 'platform.settings.view', 'platform.settings.update'
     ], { preview });
-    const query = fixture.nativeElement.querySelector('#search-preview-query') as HTMLInputElement;
+    const query = inScreen(fixture.nativeElement).querySelector('#search-preview-query') as HTMLInputElement;
     query.value = 'first'; query.dispatchEvent(new Event('input'));
     fixture.detectChanges();
-    (fixture.nativeElement.querySelector('button[data-action="preview-search-settings"]') as HTMLButtonElement).click();
+    (inScreen(fixture.nativeElement).querySelector('button[data-action="preview-search-settings"]') as HTMLButtonElement).click();
     query.value = 'second'; query.dispatchEvent(new Event('input'));
     fixture.detectChanges();
-    (fixture.nativeElement.querySelector('button[data-action="preview-search-settings"]') as HTMLButtonElement).click();
+    (inScreen(fixture.nativeElement).querySelector('button[data-action="preview-search-settings"]') as HTMLButtonElement).click();
     fixture.detectChanges();
 
     expect(cancelled).toContain('first');
-    expect(fixture.nativeElement.querySelector('.preview-hit img')).toBeNull();
-    expect(fixture.nativeElement.querySelector('.preview-hit').textContent).toContain('<img src=x onerror=alert(1)>');
-    expect(fixture.nativeElement.querySelector('[data-active-profile="MIXED"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('.preview-hit img')).toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('.preview-hit').textContent).toContain('<img src=x onerror=alert(1)>');
+    expect(inScreen(fixture.nativeElement).querySelector('[data-active-profile="MIXED"]')).not.toBeNull();
   });
 
   it('gives a preview failure its own stable alert while a save alert remains visible', async () => {
@@ -385,16 +386,16 @@ describe('SearchSettingsComponent', () => {
       preview: vi.fn(() => throwError(() => previewFailure))
     });
     setNumber(fixture, '#search-global-limit', '14');
-    (fixture.nativeElement.querySelector('button[data-action="save-search-settings"]') as HTMLButtonElement).click();
-    const query = fixture.nativeElement.querySelector('#search-preview-query') as HTMLInputElement;
+    (inScreen(fixture.nativeElement).querySelector('button[data-action="save-search-settings"]') as HTMLButtonElement).click();
+    const query = inScreen(fixture.nativeElement).querySelector('#search-preview-query') as HTMLInputElement;
     query.value = 'failing preview';
     query.dispatchEvent(new Event('input'));
     fixture.detectChanges();
-    (fixture.nativeElement.querySelector('button[data-action="preview-search-settings"]') as HTMLButtonElement).click();
+    (inScreen(fixture.nativeElement).querySelector('button[data-action="preview-search-settings"]') as HTMLButtonElement).click();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('[data-state="save-error"]').textContent).toContain('Save conflict');
-    const previewAlert = fixture.nativeElement.querySelector('[data-state="preview-error"]') as HTMLElement;
+    expect(inScreen(fixture.nativeElement).querySelector('[data-state="save-error"]').textContent).toContain('Save conflict');
+    const previewAlert = inScreen(fixture.nativeElement).querySelector('[data-state="preview-error"]') as HTMLElement;
     expect(previewAlert).not.toBeNull();
     expect(previewAlert?.textContent).toContain('Preview unavailable');
   });
@@ -408,7 +409,7 @@ describe('SearchSettingsComponent', () => {
       settings: vi.fn(() => of(structuredClone(canonicalBackendSettings))),
       save
     });
-    const typoInputs = Array.from(fixture.nativeElement.querySelectorAll(
+    const typoInputs = Array.from(inScreen(fixture.nativeElement).querySelectorAll(
       '.field-grid:not(.field-grid-head) label:nth-of-type(2) input'
     )) as HTMLInputElement[];
     const editedValues = [1, 2, 2, 2, 2, 2, 2, 0, 0, 0];
@@ -418,12 +419,12 @@ describe('SearchSettingsComponent', () => {
     });
     fixture.detectChanges();
 
-    (fixture.nativeElement.querySelector('button[data-action="save-search-settings"]') as HTMLButtonElement).click();
-    const query = fixture.nativeElement.querySelector('#search-preview-query') as HTMLInputElement;
+    (inScreen(fixture.nativeElement).querySelector('button[data-action="save-search-settings"]') as HTMLButtonElement).click();
+    const query = inScreen(fixture.nativeElement).querySelector('#search-preview-query') as HTMLInputElement;
     query.value = 'canonical payload';
     query.dispatchEvent(new Event('input'));
     fixture.detectChanges();
-    (fixture.nativeElement.querySelector('button[data-action="preview-search-settings"]') as HTMLButtonElement).click();
+    (inScreen(fixture.nativeElement).querySelector('button[data-action="preview-search-settings"]') as HTMLButtonElement).click();
 
     expect(save).toHaveBeenCalledTimes(1);
     expect(management['preview']).toHaveBeenCalledTimes(1);
@@ -444,10 +445,10 @@ describe('SearchSettingsComponent', () => {
       'platform.search.view', 'platform.settings.view', 'platform.settings.update'
     ], { startJob });
 
-    (fixture.nativeElement.querySelector('button[data-action="start-rebuild"]') as HTMLButtonElement).click();
+    (inScreen(fixture.nativeElement).querySelector('button[data-action="start-rebuild"]') as HTMLButtonElement).click();
     fixture.detectChanges();
     expect(startJob).not.toHaveBeenCalled();
-    const confirm = fixture.nativeElement.querySelector('button[data-action="confirm-search-maintenance"]') as HTMLButtonElement;
+    const confirm = inScreen(fixture.nativeElement).querySelector('button[data-action="confirm-search-maintenance"]') as HTMLButtonElement;
     expect(confirm).not.toBeNull();
     confirm.click();
     fixture.detectChanges();
@@ -457,7 +458,7 @@ describe('SearchSettingsComponent', () => {
     expect(firstRequest).toMatchObject({ action: 'REBUILD' });
     expect(firstRequest.requestId).toMatch(/^[0-9a-f-]{36}$/u);
     expect(firstRequest).not.toHaveProperty('generationId');
-    const retry = fixture.nativeElement.querySelector('button[data-action="retry-uncertain-mutation"]') as HTMLButtonElement;
+    const retry = inScreen(fixture.nativeElement).querySelector('button[data-action="retry-uncertain-mutation"]') as HTMLButtonElement;
     expect(retry).not.toBeNull();
     retry.click();
 
@@ -478,13 +479,13 @@ describe('SearchSettingsComponent', () => {
       'platform.search.view', 'platform.settings.view', 'platform.settings.update'
     ], { status: vi.fn(() => of(full)), startJob });
 
-    const rebuild = fixture.nativeElement.querySelector('button[data-action="start-rebuild"]') as HTMLButtonElement;
+    const rebuild = inScreen(fixture.nativeElement).querySelector('button[data-action="start-rebuild"]') as HTMLButtonElement;
     expect(rebuild.disabled).toBe(true);
-    expect(fixture.nativeElement.querySelector('[data-state="generation-capacity"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('button[data-action*="delete"], input[name*="generation"]')).toBeNull();
-    const rollback = fixture.nativeElement.querySelector('button[data-generation-id="retained-1"]') as HTMLButtonElement;
+    expect(inScreen(fixture.nativeElement).querySelector('[data-state="generation-capacity"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('button[data-action*="delete"], input[name*="generation"]')).toBeNull();
+    const rollback = inScreen(fixture.nativeElement).querySelector('button[data-generation-id="retained-1"]') as HTMLButtonElement;
     rollback.click(); fixture.detectChanges();
-    (fixture.nativeElement.querySelector('button[data-action="confirm-search-maintenance"]') as HTMLButtonElement).click();
+    (inScreen(fixture.nativeElement).querySelector('button[data-action="confirm-search-maintenance"]') as HTMLButtonElement).click();
 
     expect(startJob).toHaveBeenCalledWith(expect.objectContaining({ action: 'ROLLBACK', generationId: 'retained-1' }));
     fixture.destroy();
@@ -506,7 +507,7 @@ describe('SearchSettingsComponent', () => {
         job
       });
 
-      (fixture.nativeElement.querySelector('button[data-action="start-check"]') as HTMLButtonElement).click();
+      (inScreen(fixture.nativeElement).querySelector('button[data-action="start-check"]') as HTMLButtonElement).click();
       vi.advanceTimersByTime(4500);
       expect(job).toHaveBeenCalledTimes(1);
       poll.next({
@@ -535,7 +536,7 @@ describe('SearchSettingsComponent', () => {
         'platform.search.view', 'platform.settings.update'
       ], { job });
 
-      (fixture.nativeElement.querySelector('button[data-action="start-check"]') as HTMLButtonElement).click();
+      (inScreen(fixture.nativeElement).querySelector('button[data-action="start-check"]') as HTMLButtonElement).click();
       vi.advanceTimersByTime(59_999);
 
       // Literal expectations intentionally pin the approved public cadence:
@@ -562,12 +563,12 @@ describe('SearchSettingsComponent', () => {
       ], { startJob, job: vi.fn(() => poll), save, retry, cancel });
       setNumber(fixture, '#search-global-limit', '12');
 
-      (fixture.nativeElement.querySelector('button[data-action="start-check"]') as HTMLButtonElement).click();
+      (inScreen(fixture.nativeElement).querySelector('button[data-action="start-check"]') as HTMLButtonElement).click();
       fixture.detectChanges();
 
-      expect((fixture.nativeElement.querySelector('button[data-action="save-search-settings"]') as HTMLButtonElement).disabled).toBe(true);
-      expect((fixture.nativeElement.querySelector('button[data-action="start-check"]') as HTMLButtonElement).disabled).toBe(true);
-      expect((fixture.nativeElement.querySelector('button[data-action="start-rebuild"]') as HTMLButtonElement).disabled).toBe(true);
+      expect((inScreen(fixture.nativeElement).querySelector('button[data-action="save-search-settings"]') as HTMLButtonElement).disabled).toBe(true);
+      expect((inScreen(fixture.nativeElement).querySelector('button[data-action="start-check"]') as HTMLButtonElement).disabled).toBe(true);
+      expect((inScreen(fixture.nativeElement).querySelector('button[data-action="start-rebuild"]') as HTMLButtonElement).disabled).toBe(true);
       fixture.componentInstance.save();
       fixture.componentInstance.requestMaintenance('CHECK');
       fixture.componentInstance.confirmation.set({ action: 'REBUILD' });
@@ -587,7 +588,7 @@ describe('SearchSettingsComponent', () => {
       };
       poll.next(running);
       fixture.detectChanges();
-      const cancelButton = fixture.nativeElement.querySelector('.active-job button') as HTMLButtonElement;
+      const cancelButton = inScreen(fixture.nativeElement).querySelector('.active-job button') as HTMLButtonElement;
       expect(cancelButton).not.toBeNull();
       expect(cancelButton.disabled).toBe(false);
       fixture.componentInstance.cancelJob(running);
@@ -621,8 +622,8 @@ describe('SearchSettingsComponent', () => {
       ], { status: statusCall, jobs: jobsCall, job, startJob });
       setNumber(fixture, '#search-global-limit', '12');
 
-      expect((fixture.nativeElement.querySelector('button[data-action="save-search-settings"]') as HTMLButtonElement).disabled).toBe(true);
-      expect((fixture.nativeElement.querySelector('button[data-action="start-check"]') as HTMLButtonElement).disabled).toBe(true);
+      expect((inScreen(fixture.nativeElement).querySelector('button[data-action="save-search-settings"]') as HTMLButtonElement).disabled).toBe(true);
+      expect((inScreen(fixture.nativeElement).querySelector('button[data-action="start-check"]') as HTMLButtonElement).disabled).toBe(true);
       fixture.componentInstance.requestMaintenance('CHECK');
       expect(startJob).not.toHaveBeenCalled();
       vi.advanceTimersByTime(0);
@@ -630,8 +631,8 @@ describe('SearchSettingsComponent', () => {
 
       firstPoll.error({ title: 'Unavailable', status: 503, code: 'SERVICE_UNAVAILABLE', detail: 'Polling failed' });
       fixture.detectChanges();
-      expect((fixture.nativeElement.querySelector('button[data-action="start-check"]') as HTMLButtonElement).disabled).toBe(true);
-      const resume = fixture.nativeElement.querySelector('button[data-action="resume-job-polling"]') as HTMLButtonElement;
+      expect((inScreen(fixture.nativeElement).querySelector('button[data-action="start-check"]') as HTMLButtonElement).disabled).toBe(true);
+      const resume = inScreen(fixture.nativeElement).querySelector('button[data-action="resume-job-polling"]') as HTMLButtonElement;
       expect(resume).not.toBeNull();
       resume.click();
       vi.advanceTimersByTime(0);
@@ -641,8 +642,8 @@ describe('SearchSettingsComponent', () => {
       fixture.detectChanges();
       expect(statusCall).toHaveBeenCalledTimes(2);
       expect(jobsCall).toHaveBeenCalledTimes(2);
-      expect((fixture.nativeElement.querySelector('button[data-action="save-search-settings"]') as HTMLButtonElement).disabled).toBe(false);
-      expect((fixture.nativeElement.querySelector('button[data-action="start-check"]') as HTMLButtonElement).disabled).toBe(false);
+      expect((inScreen(fixture.nativeElement).querySelector('button[data-action="save-search-settings"]') as HTMLButtonElement).disabled).toBe(false);
+      expect((inScreen(fixture.nativeElement).querySelector('button[data-action="start-check"]') as HTMLButtonElement).disabled).toBe(false);
       fixture.destroy();
     } finally {
       vi.useRealTimers();
@@ -668,9 +669,9 @@ describe('SearchSettingsComponent', () => {
         cancel
       });
 
-      (fixture.nativeElement.querySelector('.active-job button') as HTMLButtonElement).click();
+      (inScreen(fixture.nativeElement).querySelector('.active-job button') as HTMLButtonElement).click();
       fixture.detectChanges();
-      const retry = fixture.nativeElement.querySelector('button[data-action="retry-uncertain-mutation"]') as HTMLButtonElement;
+      const retry = inScreen(fixture.nativeElement).querySelector('button[data-action="retry-uncertain-mutation"]') as HTMLButtonElement;
       expect(retry).not.toBeNull();
       retry.click();
 
@@ -694,14 +695,14 @@ describe('SearchSettingsComponent', () => {
       .mockReturnValueOnce(of({ items: [second], hasMore: false }));
     const { fixture } = await createFixture(['platform.search.view'], { jobs });
 
-    const more = fixture.nativeElement.querySelector('button[data-action="load-more-search-jobs"]') as HTMLButtonElement;
+    const more = inScreen(fixture.nativeElement).querySelector('button[data-action="load-more-search-jobs"]') as HTMLButtonElement;
     expect(more).not.toBeNull();
     more.click(); fixture.detectChanges();
 
     expect(jobs).toHaveBeenNthCalledWith(2, 20, 'opaque+/=');
     expect(fixture.nativeElement.textContent).toContain('job-1');
     expect(fixture.nativeElement.textContent).toContain('job-2');
-    expect(fixture.nativeElement.querySelector('button[data-action="load-more-search-jobs"]')).toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('button[data-action="load-more-search-jobs"]')).toBeNull();
   });
 
   it('renders and retries an initial history failure without claiming the history is empty', async () => {
@@ -715,16 +716,16 @@ describe('SearchSettingsComponent', () => {
       .mockReturnValueOnce(of({ items: [recovered], hasMore: false }));
     const { fixture } = await createFixture(['platform.search.view'], { jobs });
 
-    const error = fixture.nativeElement.querySelector('[data-state="search-history-error"]') as HTMLElement;
+    const error = inScreen(fixture.nativeElement).querySelector('[data-state="search-history-error"]') as HTMLElement;
     expect(error).not.toBeNull();
     expect(error?.textContent).toContain('History unavailable');
     expect(fixture.nativeElement.textContent).not.toContain('История заданий пуста');
-    (fixture.nativeElement.querySelector('button[data-action="retry-search-history"]') as HTMLButtonElement).click();
+    (inScreen(fixture.nativeElement).querySelector('button[data-action="retry-search-history"]') as HTMLButtonElement).click();
     fixture.detectChanges();
 
     expect(jobs).toHaveBeenCalledTimes(2);
     expect(fixture.nativeElement.textContent).toContain('job-recovered');
-    expect(fixture.nativeElement.querySelector('[data-state="search-history-error"]')).toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('[data-state="search-history-error"]')).toBeNull();
   });
 
   it('retries a failed next history page with the same cursor and retains loaded rows', async () => {
@@ -740,20 +741,20 @@ describe('SearchSettingsComponent', () => {
       .mockReturnValueOnce(of({ items: [second], hasMore: false }));
     const { fixture } = await createFixture(['platform.search.view'], { jobs });
 
-    (fixture.nativeElement.querySelector('button[data-action="load-more-search-jobs"]') as HTMLButtonElement).click();
+    (inScreen(fixture.nativeElement).querySelector('button[data-action="load-more-search-jobs"]') as HTMLButtonElement).click();
     fixture.detectChanges();
-    const error = fixture.nativeElement.querySelector('[data-state="search-history-page-error"]') as HTMLElement;
+    const error = inScreen(fixture.nativeElement).querySelector('[data-state="search-history-page-error"]') as HTMLElement;
     expect(error).not.toBeNull();
     expect(error?.textContent).toContain('Older history unavailable');
     expect(fixture.nativeElement.textContent).toContain('job-1');
-    (fixture.nativeElement.querySelector('button[data-action="retry-search-history-page"]') as HTMLButtonElement).click();
+    (inScreen(fixture.nativeElement).querySelector('button[data-action="retry-search-history-page"]') as HTMLButtonElement).click();
     fixture.detectChanges();
 
     expect(jobs).toHaveBeenNthCalledWith(2, 20, 'opaque+/=');
     expect(jobs).toHaveBeenNthCalledWith(3, 20, 'opaque+/=');
     expect(fixture.nativeElement.textContent).toContain('job-1');
     expect(fixture.nativeElement.textContent).toContain('job-2');
-    expect(fixture.nativeElement.querySelector('[data-state="search-history-page-error"]')).toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('[data-state="search-history-page-error"]')).toBeNull();
   });
 
   it('stops an active job poll on destruction without asking the server to cancel work', async () => {
@@ -766,7 +767,7 @@ describe('SearchSettingsComponent', () => {
         'platform.search.view', 'platform.settings.update'
       ], { startJob: vi.fn(() => of({ id: 'job-1', state: 'QUEUED' })), job, cancel });
 
-      (fixture.nativeElement.querySelector('button[data-action="start-check"]') as HTMLButtonElement).click();
+      (inScreen(fixture.nativeElement).querySelector('button[data-action="start-check"]') as HTMLButtonElement).click();
       vi.advanceTimersByTime(0);
       expect(job).toHaveBeenCalledTimes(1);
       fixture.destroy();
@@ -792,7 +793,7 @@ describe('SearchSettingsComponent', () => {
       jobs: vi.fn(() => of({ items: [], hasMore: false }))
     });
 
-    const rendered = fixture.nativeElement.querySelector('[data-job-error="failed-job"]') as HTMLElement;
+    const rendered = inScreen(fixture.nativeElement).querySelector('[data-job-error="failed-job"]') as HTMLElement;
     expect(rendered).not.toBeNull();
     expect(rendered.textContent).toContain('Задание завершилось с безопасно скрытой ошибкой');
     expect(rendered.textContent).not.toContain('RAW_DOWNSTREAM_SECRET');
@@ -813,12 +814,12 @@ describe('SearchSettingsComponent', () => {
     ], { save: vi.fn(() => pending) });
     setNumber(fixture, '#search-global-limit', '12');
 
-    (fixture.nativeElement.querySelector('button[data-action="save-search-settings"]') as HTMLButtonElement).click();
+    (inScreen(fixture.nativeElement).querySelector('button[data-action="save-search-settings"]') as HTMLButtonElement).click();
     fixture.detectChanges();
 
-    expect((fixture.nativeElement.querySelector('button[data-action="start-check"]') as HTMLButtonElement).disabled).toBe(true);
-    expect((fixture.nativeElement.querySelector('button[data-action="start-rebuild"]') as HTMLButtonElement).disabled).toBe(true);
-    (fixture.nativeElement.querySelector('button[data-action="start-check"]') as HTMLButtonElement).click();
+    expect((inScreen(fixture.nativeElement).querySelector('button[data-action="start-check"]') as HTMLButtonElement).disabled).toBe(true);
+    expect((inScreen(fixture.nativeElement).querySelector('button[data-action="start-rebuild"]') as HTMLButtonElement).disabled).toBe(true);
+    (inScreen(fixture.nativeElement).querySelector('button[data-action="start-check"]') as HTMLButtonElement).click();
     expect(management['startJob']).not.toHaveBeenCalled();
   });
 });

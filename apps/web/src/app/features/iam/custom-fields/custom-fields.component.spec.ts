@@ -6,6 +6,7 @@ import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { CustomField } from '../../../core/models/custom-field.models';
 import { CustomFieldsComponent } from './custom-fields.component';
+import { inScreen } from '../../../../testing/in-screen';
 
 describe('CustomFieldsComponent', () => {
   async function createFixture(initialFields: CustomField[] = []) {
@@ -33,7 +34,7 @@ describe('CustomFieldsComponent', () => {
     const { fixture } = await createFixture();
     fixture.detectChanges();
 
-    const buttons = fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>;
+    const buttons = inScreen(fixture.nativeElement).querySelectorAll('button') as NodeListOf<HTMLButtonElement>;
     const addButton = Array.from(buttons)
       .find(button => button.textContent?.includes('Добавить поле')) as HTMLButtonElement;
     addButton.click();
@@ -41,16 +42,16 @@ describe('CustomFieldsComponent', () => {
 
     expect(fixture.componentInstance.showModal).toBe(true);
     // smt-checkbox keeps a hidden native box (aria-hidden); the person meets its role="checkbox" instead.
-    const controls = Array.from(fixture.nativeElement.querySelectorAll('.modal-form input:not([aria-hidden="true"]), .modal-form select, .modal-form [role="combobox"]')) as HTMLElement[];
-    const required = fixture.nativeElement.querySelector('.modal-form [role="checkbox"]') as HTMLElement;
+    const controls = Array.from(inScreen(fixture.nativeElement).querySelectorAll('.modal-form input:not([aria-hidden="true"]), .modal-form select, .modal-form [role="combobox"]')) as HTMLElement[];
+    const required = inScreen(fixture.nativeElement).querySelector('.modal-form [role="checkbox"]') as HTMLElement;
     expect(document.getElementById(required.getAttribute('aria-labelledby')!)?.textContent?.trim()).toBe('Обязательное для заполнения');
     expect(controls.filter(control => control.getAttribute('role') === 'combobox').map(control => control.id))
       .toEqual(['custom-field-entity', 'custom-field-type']);
     for (const control of controls) {
       expect(control.id).not.toBe('');
-      expect(fixture.nativeElement.querySelector(`label[for="${control.id}"]`)).not.toBeNull();
+      expect(inScreen(fixture.nativeElement).querySelector(`label[for="${control.id}"]`)).not.toBeNull();
     }
-    expect(fixture.nativeElement.querySelector('button[aria-label="Обновить поля"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('button[aria-label="Обновить поля"]')).not.toBeNull();
 
     expect(fixture.componentInstance.formData.isRequired).toBe(false);
     await fixture.whenStable(); // NgForm registers its ngModel controls a tick after render
@@ -63,7 +64,7 @@ describe('CustomFieldsComponent', () => {
     const { fixture, api } = await createFixture();
     fixture.detectChanges();
 
-    const buttons = fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>;
+    const buttons = inScreen(fixture.nativeElement).querySelectorAll('button') as NodeListOf<HTMLButtonElement>;
     const addButton = Array.from(buttons)
       .find(button => button.textContent?.includes('Добавить поле')) as HTMLButtonElement;
     addButton.click();
@@ -72,13 +73,13 @@ describe('CustomFieldsComponent', () => {
     fixture.detectChanges();
     expect(fixture.componentInstance.showModal).toBe(true);
 
-    const code = fixture.nativeElement.querySelector('#custom-field-code') as HTMLInputElement;
-    const name = fixture.nativeElement.querySelector('#custom-field-name') as HTMLInputElement;
+    const code = inScreen(fixture.nativeElement).querySelector('#custom-field-code') as HTMLInputElement;
+    const name = inScreen(fixture.nativeElement).querySelector('#custom-field-name') as HTMLInputElement;
     code.value = 'status_kind';
     code.dispatchEvent(new Event('input'));
     name.value = 'Тип статуса';
     name.dispatchEvent(new Event('input'));
-    const type = fixture.nativeElement.querySelector('#custom-field-type') as HTMLButtonElement;
+    const type = inScreen(fixture.nativeElement).querySelector('#custom-field-type') as HTMLButtonElement;
     type.click();
     fixture.detectChanges();
     (Array.from(document.querySelectorAll('.smt-select__option')) as HTMLElement[])[4].click();
@@ -88,7 +89,7 @@ describe('CustomFieldsComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    const options = fixture.nativeElement.querySelector('#custom-field-options') as HTMLTextAreaElement;
+    const options = inScreen(fixture.nativeElement).querySelector('#custom-field-options') as HTMLTextAreaElement;
     expect(options).not.toBeNull();
     options.value = 'Новый\nВ работе\nГотово';
     options.dispatchEvent(new Event('input'));
@@ -123,11 +124,11 @@ describe('CustomFieldsComponent', () => {
     const { fixture, api, toast } = await createFixture([field]);
     fixture.detectChanges();
 
-    const region = fixture.nativeElement.querySelector('.table-wrapper[role="region"]') as HTMLElement;
+    const region = inScreen(fixture.nativeElement).querySelector('.table-wrapper[role="region"]') as HTMLElement;
     expect(region.tabIndex).toBe(0);
     expect(fixture.componentInstance.filteredFields()).toHaveLength(1);
     expect(fixture.componentInstance.canManage()).toBe(true);
-    const remove = fixture.nativeElement.querySelector('button.action-btn.danger') as HTMLButtonElement;
+    const remove = inScreen(fixture.nativeElement).querySelector('button.action-btn.danger') as HTMLButtonElement;
     expect(remove?.getAttribute('aria-label')).toBe('Удалить Бюджет');
     remove.click();
     fixture.detectChanges();

@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
+import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
 import { TranslatePipe } from '../../../core/services/i18n.service';
 import { AuditRecord, SecurityEventRecord } from '../audit.models';
 
@@ -12,16 +12,16 @@ import { AuditRecord, SecurityEventRecord } from '../audit.models';
     CommonModule,
     TranslatePipe,
     SMTButtonComponent,
-    UiModalComponent
+    SMTDialogComponent, SMTDialogContentDirective
   ],
   template: `
     <!-- MODAL: AUDIT DIFF VIEWER -->
-    <ui-modal
-      [isOpen]="selectedAudit !== null"
-      [title]="'audit.detali_izmeneniya_zapisi_visual_diff' | t"
-      size="lg"
-      (close)="closeAuditModal.emit()"
-    >
+    <smt-dialog
+      [open]="selectedAudit !== null"
+      [smtTitle]="'audit.detali_izmeneniya_zapisi_visual_diff' | t"
+      smtSize="lg"
+      (closed)="closeAuditModal.emit()">
+      <ng-template smtDialogContent>
       <div body *ngIf="selectedAudit as audit" class="diff-modal-body">
         <div class="diff-meta-grid">
           <div class="meta-item">
@@ -77,15 +77,16 @@ import { AuditRecord, SecurityEventRecord } from '../audit.models';
       <div footer class="modal-footer-actions">
         <button smt-button type="button" smtVariant="secondary" (click)="closeAuditModal.emit()">{{ 'audit.zakryt' | t }}</button>
       </div>
-    </ui-modal>
+      </ng-template>
+    </smt-dialog>
 
     <!-- MODAL: SECURITY EVENT DETAILS -->
-    <ui-modal
-      [isOpen]="selectedSecEvent !== null"
-      [title]="'audit.sobytie_bezopasnosti' | t"
-      size="md"
-      (close)="closeSecModal.emit()"
-    >
+    <smt-dialog
+      [open]="selectedSecEvent !== null"
+      [smtTitle]="'audit.sobytie_bezopasnosti' | t"
+      smtSize="md"
+      (closed)="closeSecModal.emit()">
+      <ng-template smtDialogContent>
       <div body *ngIf="selectedSecEvent as ev" class="sec-modal-body">
         <div class="diff-meta-grid">
           <div class="meta-item">
@@ -118,7 +119,8 @@ import { AuditRecord, SecurityEventRecord } from '../audit.models';
       <div footer class="modal-footer-actions">
         <button smt-button type="button" smtVariant="secondary" (click)="closeSecModal.emit()">{{ 'audit.zakryt' | t }}</button>
       </div>
-    </ui-modal>
+      </ng-template>
+    </smt-dialog>
   `,
   styles: [`
     :host {

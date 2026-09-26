@@ -1,7 +1,7 @@
 /* Vendored from @greenwhite/ui-kit (MIT) at commit 6472beb, path components/modal/types/modal.types.ts.
  * Per ADR-0015 this copy is ours to change; the commit above is only the
  * base for comparing later work in the kit. See NOTICE. */
-import type { TemplateRef } from '@angular/core';
+import type { TemplateRef, ViewContainerRef } from '@angular/core';
 import type { Observable } from 'rxjs';
 
 export interface SMTModalData {
@@ -43,6 +43,8 @@ export interface SMTModalConfig {
   role?: 'dialog' | 'alertdialog';
   /** Asked before a backdrop click or Escape closes the dialog; false keeps it open. Not in the kit. */
   canDismiss?: () => boolean;
+  /** Where a template opened in the dialog is attached, so its bindings update with that view. Not in the kit. */
+  viewContainerRef?: ViewContainerRef;
 }
 
 /** Config for confirm - prompts user with Yes/No, returns Observable<boolean> */

@@ -15,7 +15,7 @@ import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
+import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
 import { UiServerTableComponent } from '../../../shared/ui/ui-server-table.component';
 import { registryTableConfig, sortFromHeader } from '../../../shared/ui/registry-table-config';
 import { OrderBy, TableConfig } from '../../../shared/ui-kit/components/table/table.types';
@@ -75,7 +75,7 @@ function emptyForm(): SourceCreateForm {
     RouterLink,
     TranslatePipe,
     SMTButtonComponent,
-    UiModalComponent,
+    SMTDialogComponent, SMTDialogContentDirective,
     UiBadgeComponent,
     UiServerTableComponent
   ],
@@ -138,13 +138,12 @@ function emptyForm(): SourceCreateForm {
       }
     </ng-template>
 
-    <ui-modal
-      [isOpen]="isCreateOpen()"
-      [title]="'upl.source.new_title' | t"
-      size="md"
-      [hasFooter]="true"
-      (close)="closeCreate()"
-    >
+    <smt-dialog
+      [open]="isCreateOpen()"
+      [smtTitle]="'upl.source.new_title' | t"
+      smtSize="md"
+      (closed)="closeCreate()">
+      <ng-template smtDialogContent>
       <form body id="upl-source-create" class="upl-form" (ngSubmit)="submitCreate()" novalidate>
         @if (createError()) {
           <smt-alert smtTone="danger" class="upl-alert" data-testid="upl-create-error">
@@ -228,7 +227,8 @@ function emptyForm(): SourceCreateForm {
           data-testid="upl-create-submit"
         >{{ 'upl.source.create' | t }}</button>
       </div>
-    </ui-modal>
+      </ng-template>
+    </smt-dialog>
   `,
   styles: [`
     .upl-page {

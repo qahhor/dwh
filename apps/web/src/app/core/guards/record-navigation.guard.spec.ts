@@ -41,7 +41,7 @@ describe('Record routes with the actual router and actual templates', () => {
     expect(requests.has('/tasks/123')).toBe(true);
     requests.get('/tasks/123')!.next({ task: { id: 123, title: 'Fresh detail', statusId: 1, priority: 'high', attributes: {}, createdAt: '2026-01-01' }, members: [], subtasks: [], ancestors: [], files: [] });
     harness.detectChanges();
-    expect(harness.routeNativeElement?.textContent).toContain('Fresh detail');
+    expect(document.body.textContent).toContain('Fresh detail');
     const returned = await harness.navigateByUrl('/tasks/items', TasksComponent);
     expect(returned === list).toBe(true);
     expect(returned.searchQuery).toBe('keep filter');
@@ -61,12 +61,12 @@ describe('Record routes with the actual router and actual templates', () => {
     expect(requests.has(endpoint)).toBe(true);
     requests.get(endpoint)!.next(record);
     harness.detectChanges();
-    expect(harness.routeNativeElement?.querySelector('[role="dialog"]')?.textContent).toContain(title);
+    expect(document.body.querySelector('[role="dialog"]')?.textContent).toContain(title);
     expect(list.isEditModalOpen()).toBe(false);
     expect(api.post).not.toHaveBeenCalled(); expect(api.patch).not.toHaveBeenCalled();
     await harness.navigateByUrl(listUrl);
     expect(list.searchQuery).toBe('keep');
-    expect(harness.routeNativeElement?.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.body.querySelector('[role="dialog"]')).toBeNull();
   });
 
   it('asks before cross-page navigation can destroy a dirty project draft', async () => {
@@ -95,10 +95,10 @@ describe('Record routes with the actual router and actual templates', () => {
     expect(page.isEditModalOpen()).toBe(true);
     const beforeExit = requests.get('/iam/users/41');
     if (exit === 'escape') {
-      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+      (document.activeElement ?? document.body).dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
     } else {
       const label = exit === 'save' ? 'Сохранить' : 'Отмена';
-      Array.from(harness.routeNativeElement!.querySelectorAll('[role="dialog"] button'))
+      Array.from(document.body.querySelectorAll('[role="dialog"] button'))
         .find(button => button.textContent?.trim() === label)!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     }
     harness.detectChanges();
@@ -109,7 +109,7 @@ describe('Record routes with the actual router and actual templates', () => {
     const restored = { ...original, name: exit === 'save' ? 'Saved user' : 'Original user' };
     requests.get('/iam/users/41')!.next(restored);
     harness.detectChanges();
-    const identity = harness.routeNativeElement!.querySelector('[data-record-id="41"]');
+    const identity = document.body.querySelector('[data-record-id="41"]');
     expect(identity?.textContent).toContain(restored.name);
     if (exit === 'save') expect(api.patch).toHaveBeenCalledWith('/iam/users/41', expect.objectContaining({ name: 'Saved user' }));
     else expect(api.patch).not.toHaveBeenCalled();
@@ -118,14 +118,14 @@ describe('Record routes with the actual router and actual templates', () => {
     // it must never replace the record underneath the old canonical ID.
     page.users.set([restored, other]);
     harness.detectChanges();
-    (harness.routeNativeElement!.querySelectorAll('.user-identity')[1] as HTMLButtonElement).click();
+    (document.body.querySelectorAll('.user-identity')[1] as HTMLButtonElement).click();
     await new Promise(resolve => setTimeout(resolve, 0));
     expect(router.url).toBe('/iam/users/42');
     expect(requests.has('/iam/users/42')).toBe(true);
     requests.get('/iam/users/42')!.next({ ...other, name: 'Fresh other user' });
     harness.detectChanges();
-    expect(harness.routeNativeElement!.querySelector('[data-record-id="41"]')).toBeNull();
-    expect(harness.routeNativeElement!.querySelector('[data-record-id="42"]')?.textContent).toContain('Fresh other user');
+    expect(document.body.querySelector('[data-record-id="41"]')).toBeNull();
+    expect(document.body.querySelector('[data-record-id="42"]')?.textContent).toContain('Fresh other user');
     page.closeRecordView();
     await new Promise(resolve => setTimeout(resolve, 0));
     expect(router.url).toBe('/iam/users');
@@ -147,11 +147,11 @@ describe('Record routes with the actual router and actual templates', () => {
       requests.get('/iam/users/42')!.next({ ...original, id: 42, name: 'Fresh other user' });
       previous.next(original);
       harness.detectChanges();
-      expect(harness.routeNativeElement!.querySelector('[data-record-id="42"]')?.textContent).toContain('Fresh other user');
-      expect(harness.routeNativeElement!.querySelector('[data-record-id="41"]')).toBeNull();
+      expect(document.body.querySelector('[data-record-id="42"]')?.textContent).toContain('Fresh other user');
+      expect(document.body.querySelector('[data-record-id="41"]')).toBeNull();
     } else {
       expect(router.url).toBe('/iam/users/41');
-      expect(harness.routeNativeElement!.querySelector('[data-record-id="41"]')?.textContent).toContain('Original user');
+      expect(document.body.querySelector('[data-record-id="41"]')?.textContent).toContain('Original user');
     }
     expect(api.get.mock.calls.some(([path]) => path.includes('9223372036854776000'))).toBe(false);
   });
@@ -234,12 +234,12 @@ describe('Record routes with the actual router and actual templates', () => {
     harness.detectChanges();
     await Promise.resolve();
     harness.detectChanges();
-    expect(harness.routeNativeElement?.querySelector('[data-record-id]')?.getAttribute('data-record-id')).toBe('9223372036854775807');
-    expect(harness.routeNativeElement?.querySelector('[role="dialog"]')?.textContent).toContain('#9223372036854775807');
-    expect(harness.routeNativeElement?.querySelector('.side-edit-btn')).toBeNull();
-    expect(harness.routeNativeElement?.querySelector('.add-subtask-btn')).toBeNull();
-    expect(harness.routeNativeElement?.querySelector('.add-comment-box')).toBeNull();
-    expect((harness.routeNativeElement?.querySelector('.status-select [role="combobox"]') as HTMLButtonElement).disabled).toBe(true);
+    expect(document.body.querySelector('[data-record-id]')?.getAttribute('data-record-id')).toBe('9223372036854775807');
+    expect(document.body.querySelector('[role="dialog"]')?.textContent).toContain('#9223372036854775807');
+    expect(document.body.querySelector('.side-edit-btn')).toBeNull();
+    expect(document.body.querySelector('.add-subtask-btn')).toBeNull();
+    expect(document.body.querySelector('.add-comment-box')).toBeNull();
+    expect((document.body.querySelector('.status-select [role="combobox"]') as HTMLButtonElement).disabled).toBe(true);
     page.openEditModal(record); page.openAddSubtaskModal(record); page.updateStatus(record.id, 2);
     page.commentDraft = 'text'; page.submitComment();
     page.onTaskFileAttached({ fileId: 1, fileName: 'fixture' } as any);
@@ -259,7 +259,7 @@ describe('Record routes with the actual router and actual templates', () => {
     const record = JSON.parse('{"id":9223372036854775807,"name":"Exact record","description":"x","login":"fixture","state":"A","createdAt":"2026-01-01","roleIds":[],"attributes":{}}');
     requests.get(endpoint)!.next(record);
     harness.detectChanges();
-    expect(harness.routeNativeElement?.querySelector('[data-record-id]')?.getAttribute('data-record-id')).toBe('9223372036854775807');
+    expect(document.body.querySelector('[data-record-id]')?.getAttribute('data-record-id')).toBe('9223372036854775807');
     if (page instanceof UsersComponent) page.openEditFromView();
     page.openEditModal(record);
     expect(page.isEditModalOpen()).toBe(false);
@@ -327,12 +327,12 @@ describe('Record routes with the actual router and actual templates', () => {
     expect(old.observed).toBe(false);
     requests.get(`${endpoint}/42`)!.error({ status: 404 });
     harness.detectChanges();
-    expect(harness.routeNativeElement?.querySelector('[role="alert"]')?.textContent).toContain('404 — Запись не найдена или недоступна.');
-    const back = Array.from(harness.routeNativeElement!.querySelectorAll('button')).find(button => button.textContent?.trim() === 'Вернуться к списку')!;
+    expect(document.body.querySelector('[role="alert"]')?.textContent).toContain('404 — Запись не найдена или недоступна.');
+    const back = Array.from(document.body.querySelectorAll('button')).find(button => button.textContent?.trim() === 'Вернуться к списку')!;
     back.click();
     await new Promise(resolve => setTimeout(resolve, 0));
     harness.detectChanges();
     expect(router.url).toBe(route);
-    expect(harness.routeNativeElement?.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.body.querySelector('[role="dialog"]')).toBeNull();
   });
 });

@@ -1043,7 +1043,6 @@
   "ui.user_multi_select.add_more": "+Qoʻshish",
   "ui.file_upload.upload_progress": "Yuklanmoqda... {progress}%",
   "ui.file_upload.uploaded_named": "{name} fayli muvaffaqiyatli yuklandi",
-  "ui.modal.close_named_dialog": "\"{title}\" muloqot oynasini yoping",
   "ui.pagination.page_number": "{page} sahifa",
   "ui.markdown_editor.vtoroy_element": "Ikkinchi element",
   "ui.markdown_editor.vtoroy_punkt": "Ikkinchi nuqta",

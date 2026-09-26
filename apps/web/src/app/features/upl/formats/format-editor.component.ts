@@ -11,7 +11,7 @@ import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
+import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
 import { SMTDatePickerComponent, SMTDatePickerValueAccessor } from '../../../shared/ui-kit/components/forms/date-picker';
 import { SMTProgressStep, SMTProgressStepperComponent } from '../../../shared/ui-kit/components/progress-stepper';
 import {
@@ -53,7 +53,7 @@ const COLUMN_FIELD_LABEL_KEY: Record<string, string> = {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    SMTAlertComponent, CommonModule, FormsModule, RouterLink, TranslatePipe, SMTButtonComponent, UiModalComponent, UiBadgeComponent,
+    SMTAlertComponent, CommonModule, FormsModule, RouterLink, TranslatePipe, SMTButtonComponent, SMTDialogComponent, SMTDialogContentDirective, UiBadgeComponent,
     SMTDatePickerComponent, SMTDatePickerValueAccessor, SMTProgressStepperComponent,
     FormatFileStepComponent, FormatSheetsStepComponent, FormatPublishStepComponent,
   ],
@@ -179,7 +179,8 @@ const COLUMN_FIELD_LABEL_KEY: Record<string, string> = {
         }
 
 
-        <ui-modal [isOpen]="isPublishOpen()" [title]="'upl.version.publish_title' | t" size="sm" (close)="closePublish()">
+        <smt-dialog [open]="isPublishOpen()" [smtTitle]="'upl.version.publish_title' | t" smtSize="sm" (closed)="closePublish()">
+          <ng-template smtDialogContent>
           <div body>
             <div class="form-group">
               <label class="form-label" for="upl-valid-from">{{ 'upl.version.valid_from' | t }}</label>
@@ -208,9 +209,11 @@ const COLUMN_FIELD_LABEL_KEY: Record<string, string> = {
               (click)="confirmPublish()"
             >{{ 'upl.format.publish' | t }}</button>
           </div>
-        </ui-modal>
+          </ng-template>
+        </smt-dialog>
 
-        <ui-modal [isOpen]="isLeaveOpen()" [title]="'upl.format.leave_title' | t" size="sm" (close)="settleLeave(false)">
+        <smt-dialog [open]="isLeaveOpen()" [smtTitle]="'upl.format.leave_title' | t" smtSize="sm" (closed)="settleLeave(false)">
+          <ng-template smtDialogContent>
           <p body>{{ 'upl.format.leave_confirm' | t }}</p>
           <div footer class="upl-modal-actions">
             <button smt-button type="button" smtVariant="secondary" (click)="settleLeave(false)">{{ 'upl.format.stay' | t }}</button>
@@ -218,7 +221,8 @@ const COLUMN_FIELD_LABEL_KEY: Record<string, string> = {
               {{ 'upl.format.leave' | t }}
             </button>
           </div>
-        </ui-modal>
+          </ng-template>
+        </smt-dialog>
       }
     </div>
   `,

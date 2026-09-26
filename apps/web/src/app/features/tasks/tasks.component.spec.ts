@@ -8,6 +8,7 @@ import { ToastService } from '../../core/services/toast.service';
 import { Task, TaskStatus } from '../../core/models/task.models';
 import { User } from '../../core/models/auth.models';
 import { TasksComponent } from './tasks.component';
+import { inScreen, redraw } from '../../../testing/in-screen';
 
 describe('TasksComponent UI contracts', () => {
   async function createFixture() {
@@ -29,7 +30,7 @@ describe('TasksComponent UI contracts', () => {
       ]
     }).compileComponents();
     const fixture = TestBed.createComponent(TasksComponent);
-    fixture.detectChanges();
+    redraw(fixture);
     return fixture;
   }
 
@@ -44,14 +45,14 @@ describe('TasksComponent UI contracts', () => {
       createdAt: '2026-08-30T00:00:00Z'
     };
     fixture.componentInstance.tasks.set([task]);
-    fixture.detectChanges();
+    redraw(fixture);
 
-    const search = fixture.nativeElement.querySelector('#task-search') as HTMLInputElement;
-    const region = fixture.nativeElement.querySelector('.table-card[role="region"]') as HTMLElement;
+    const search = inScreen(fixture.nativeElement).querySelector('#task-search') as HTMLInputElement;
+    const region = inScreen(fixture.nativeElement).querySelector('.table-card[role="region"]') as HTMLElement;
     const row = region.querySelector('[role="rowgroup"] > [role="row"]') as HTMLElement;
 
-    expect(fixture.nativeElement.querySelector(`label[for="${search.id}"]`)).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('[role="radiogroup"][aria-label="Режим отображения задач"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector(`label[for="${search.id}"]`)).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('[role="radiogroup"][aria-label="Режим отображения задач"]')).not.toBeNull();
     expect(region.getAttribute('aria-label')).toBe('Таблица задач');
     expect(region.querySelector('[role="table"]')?.getAttribute('aria-label')).toBe('Список задач');
     // A plain table row: the title button is the keyboard way in, the row is not a stop of its own.
@@ -60,7 +61,7 @@ describe('TasksComponent UI contracts', () => {
     expect(open.tagName).toBe('BUTTON');
     expect(open.type).toBe('button');
     expect(open.getAttribute('aria-label')).toBe('Открыть задачу #42: Проверить отчёт');
-    expect(fixture.nativeElement.querySelector('button[aria-label="Редактировать задачу #42"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('button[aria-label="Редактировать задачу #42"]')).not.toBeNull();
   });
 
   it('opens a task from a click on its row, but not from the row\'s own controls', async () => {
@@ -68,10 +69,10 @@ describe('TasksComponent UI contracts', () => {
     const component = fixture.componentInstance;
     component.statuses.set([{ id: 1, name: 'Новая', color: '#ff0000', orderNo: 1, isTerminal: false }]);
     component.tasks.set([{ id: 42, title: 'Проверить отчёт', statusId: 1, priority: 'high', attributes: {}, createdAt: '2026-08-30T00:00:00Z' }]);
-    fixture.detectChanges();
+    redraw(fixture);
     const opened: number[] = [];
     vi.spyOn(component, 'openTaskDetails').mockImplementation(task => { opened.push(task.id); });
-    const row = fixture.nativeElement.querySelector('[role="rowgroup"] > [role="row"]') as HTMLElement;
+    const row = inScreen(fixture.nativeElement).querySelector('[role="rowgroup"] > [role="row"]') as HTMLElement;
 
     (row.querySelector('.inline-priority-select [role="combobox"]') as HTMLButtonElement).click();
     (row.querySelector('.inline-status-select [role="combobox"]') as HTMLButtonElement).click();
@@ -91,8 +92,8 @@ describe('TasksComponent UI contracts', () => {
       { id: 1, title: 'Просрочена', statusId: 1, priority: 'high', attributes: {}, createdAt: '2026-08-01T00:00:00Z', endTime: '2020-01-01T00:00:00Z' },
       { id: 2, title: 'Без срока', statusId: 1, priority: 'high', attributes: {}, createdAt: '2026-08-01T00:00:00Z' },
     ]);
-    fixture.detectChanges();
-    const rows = [...fixture.nativeElement.querySelectorAll('[role="rowgroup"] > [role="row"]')] as HTMLElement[];
+    redraw(fixture);
+    const rows = [...inScreen(fixture.nativeElement).querySelectorAll('[role="rowgroup"] > [role="row"]')] as HTMLElement[];
     expect(rows.map(row => row.classList.contains('task-row-overdue'))).toEqual([true, false]);
   });
 
@@ -107,25 +108,25 @@ describe('TasksComponent UI contracts', () => {
       { id: 2, name: 'Готово', color: '#00ff00', orderNo: 2, isTerminal: true }
     ]);
     component.tasks.set([rowTask]);
-    fixture.detectChanges();
+    redraw(fixture);
 
-    const status = fixture.nativeElement.querySelector('.inline-status-select [role="combobox"][aria-label="Статус задачи #42"]') as HTMLButtonElement;
+    const status = inScreen(fixture.nativeElement).querySelector('.inline-status-select [role="combobox"][aria-label="Статус задачи #42"]') as HTMLButtonElement;
     status.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     expect(component.selectedTask()).toBeNull();
-    const edit = fixture.nativeElement.querySelector('button[aria-label="Редактировать задачу #42"]') as HTMLButtonElement;
+    const edit = inScreen(fixture.nativeElement).querySelector('button[aria-label="Редактировать задачу #42"]') as HTMLButtonElement;
     edit.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     expect(component.selectedTask()).toBeNull();
     edit.click();
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelectorAll('[role="dialog"]')).toHaveLength(1);
-    expect(fixture.nativeElement.querySelector('[role="dialog"]')?.textContent).toContain('Редактирование задачи');
+    redraw(fixture);
+    expect(inScreen(fixture.nativeElement).querySelectorAll('[role="dialog"]')).toHaveLength(1);
+    expect(inScreen(fixture.nativeElement).querySelector('[role="dialog"]')?.textContent).toContain('Редактирование задачи');
     component.requestCloseEdit();
 
-    const kanbanToggle = Array.from(fixture.nativeElement.querySelectorAll('.header-left [role="radio"]') as NodeListOf<HTMLElement>)
+    const kanbanToggle = Array.from(inScreen(fixture.nativeElement).querySelectorAll('.header-left [role="radio"]') as NodeListOf<HTMLElement>)
       .find(button => button.textContent?.includes('Канбан'))!;
     kanbanToggle.click();
-    fixture.detectChanges();
-    const move = fixture.nativeElement.querySelector('button[aria-label="Переместить задачу #42 вперёд"]') as HTMLButtonElement;
+    redraw(fixture);
+    const move = inScreen(fixture.nativeElement).querySelector('button[aria-label="Переместить задачу #42 вперёд"]') as HTMLButtonElement;
     move.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
     expect(component.selectedTask()).toBeNull();
   });
@@ -135,9 +136,9 @@ describe('TasksComponent UI contracts', () => {
     const component = fixture.componentInstance;
     component.statuses.set([{ id: 1, name: 'Новая', color: '#ff0000', orderNo: 1, isTerminal: false }]);
     component.tasks.set([{ id: 42, title: 'Задача', statusId: 1, priority: 'medium', attributes: {}, createdAt: '2026-08-30T00:00:00Z' }]);
-    fixture.detectChanges();
+    redraw(fixture);
 
-    const status = fixture.nativeElement.querySelector('.table-status') as HTMLElement;
+    const status = inScreen(fixture.nativeElement).querySelector('.table-status') as HTMLElement;
     expect(status.textContent).toContain('Новая');
     expect(status.style.color).toBe('');
     expect((status.querySelector('.status-dot') as HTMLElement).style.backgroundColor).toBe('rgb(255, 0, 0)');
@@ -148,9 +149,9 @@ describe('TasksComponent UI contracts', () => {
     const component = fixture.componentInstance;
     component.statuses.set([{ id: 1, name: 'Новая', color: '#ff0000', orderNo: 1, isTerminal: false }]);
     component.tasks.set([{ id: 42, title: 'Задача', statusId: 1, priority: 'medium', attributes: {}, createdAt: '2026-08-30T00:00:00Z' }]);
-    fixture.detectChanges();
+    redraw(fixture);
 
-    const select = fixture.nativeElement.querySelector('.inline-status-select [role="combobox"]') as HTMLButtonElement;
+    const select = inScreen(fixture.nativeElement).querySelector('.inline-status-select [role="combobox"]') as HTMLButtonElement;
     (select.closest('[role="cell"]') as HTMLElement).style.color = 'rgb(255, 0, 0)';
     expect(getComputedStyle(select).color).toBe('var(--text-main)');
   });
@@ -158,8 +159,8 @@ describe('TasksComponent UI contracts', () => {
   it('explains that export includes every accessible task and ignores filters', async () => {
     const fixture = await createFixture();
     fixture.componentInstance.showExportMenu = true;
-    fixture.detectChanges();
-    const menu = fixture.nativeElement.querySelector('.export-popover') as HTMLElement;
+    redraw(fixture);
+    const menu = inScreen(fixture.nativeElement).querySelector('.export-popover') as HTMLElement;
     expect(menu.textContent).toContain('Экспорт всех доступных задач');
     expect(menu.textContent).toContain('Текущие фильтры не применяются');
   });
@@ -177,23 +178,23 @@ describe('TasksComponent UI contracts', () => {
       orderNo: 1,
       createdAt: '2026-09-05T00:00:00Z'
     }]);
-    fixture.detectChanges();
-    const labels = Array.from(fixture.nativeElement.querySelectorAll('.clean-label, .custom-fields-title')).map((node: any) => node.textContent.trim());
+    redraw(fixture);
+    const labels = Array.from(inScreen(fixture.nativeElement).querySelectorAll('.clean-label, .custom-fields-title')).map((node: any) => node.textContent.trim());
     expect(labels).toContain('Ответственный');
     expect(labels).toContain('Описание');
     expect(labels).toContain('Динамические поля');
-    expect(fixture.nativeElement.querySelector('smt-select button[aria-label="Ответственный"]')).not.toBeNull();
-    const description = fixture.nativeElement.querySelector('ui-markdown-editor textarea') as HTMLTextAreaElement;
-    expect(fixture.nativeElement.querySelector(`label[for="${description.id}"]`)?.textContent).toBe('Описание');
+    expect(inScreen(fixture.nativeElement).querySelector('smt-select button[aria-label="Ответственный"]')).not.toBeNull();
+    const description = inScreen(fixture.nativeElement).querySelector('ui-markdown-editor textarea') as HTMLTextAreaElement;
+    expect(inScreen(fixture.nativeElement).querySelector(`label[for="${description.id}"]`)?.textContent).toBe('Описание');
   });
 
   it('uses the dynamic-fields navigation name in empty create-task guidance', async () => {
     const fixture = await createFixture();
     fixture.componentInstance.openCreateTaskModal();
     fixture.componentInstance.taskCustomFields.set([]);
-    fixture.detectChanges();
+    redraw(fixture);
 
-    const tip = fixture.nativeElement.querySelector('.custom-fields-empty-tip') as HTMLElement;
+    const tip = inScreen(fixture.nativeElement).querySelector('.custom-fields-empty-tip') as HTMLElement;
     expect(tip.textContent).toContain('Динамические поля');
     expect(tip.textContent).not.toContain('Настраиваемые поля');
   });
@@ -202,26 +203,26 @@ describe('TasksComponent UI contracts', () => {
     const fixture = await createFixture();
     fixture.componentInstance.openCreateTaskModal();
     fixture.componentInstance.isCreateSubmitted = true;
-    fixture.detectChanges();
+    redraw(fixture);
     TestBed.tick(); // smt-control wires label, error and aria state after render
 
-    const title = fixture.nativeElement.querySelector('#task-create-title') as HTMLInputElement;
-    const error = (title.getAttribute('aria-describedby') ?? '').split(' ').map(id => fixture.nativeElement.querySelector('#' + id)).find(node => node?.classList.contains('smt-control__error')) as HTMLElement | undefined;
+    const title = inScreen(fixture.nativeElement).querySelector('#task-create-title') as HTMLInputElement;
+    const error = (title.getAttribute('aria-describedby') ?? '').split(' ').map(id => inScreen(fixture.nativeElement).querySelector('#' + id)).find(node => node?.classList.contains('smt-control__error')) as HTMLElement | undefined;
 
-    expect(fixture.nativeElement.querySelector(`label[for="${title.id}"]`)).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector(`label[for="${title.id}"]`)).not.toBeNull();
     expect(title.required).toBe(true);
     expect(title.getAttribute('aria-required')).toBe('true');
     expect(title.getAttribute('aria-invalid')).toBe('true');
     expect(error?.textContent).toContain('Пожалуйста, укажите название задачи');
-    expect(fixture.nativeElement.querySelector('[role="radiogroup"][aria-label="Тип задачи"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('smt-select button[aria-label="Родительская задача"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('smt-multi-select button[aria-label="Наблюдатели"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('ui-markdown-editor textarea')?.getAttribute('id')).not.toBe('');
+    expect(inScreen(fixture.nativeElement).querySelector('[role="radiogroup"][aria-label="Тип задачи"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('smt-select button[aria-label="Родительская задача"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('smt-multi-select button[aria-label="Наблюдатели"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('ui-markdown-editor textarea')?.getAttribute('id')).not.toBe('');
     // The project is a searchable combobox named by its label, in the form and in the filter bar.
-    const project = fixture.nativeElement.querySelector('#task-create-project') as HTMLElement;
+    const project = inScreen(fixture.nativeElement).querySelector('#task-create-project') as HTMLElement;
     expect(project.getAttribute('role')).toBe('combobox');
-    expect(fixture.nativeElement.querySelector('label[for="task-create-project"]')?.textContent).toContain('Проект');
-    expect((fixture.nativeElement.querySelector('#task-project-filter') as HTMLElement).getAttribute('role')).toBe('combobox');
+    expect(inScreen(fixture.nativeElement).querySelector('label[for="task-create-project"]')?.textContent).toContain('Проект');
+    expect((inScreen(fixture.nativeElement).querySelector('#task-project-filter') as HTMLElement).getAttribute('role')).toBe('combobox');
   });
 
   it('labels task dictionaries and confirms destructive actions in-app', async () => {
@@ -236,15 +237,15 @@ describe('TasksComponent UI contracts', () => {
       isSystem: false
     }]);
     fixture.componentInstance.openSettingsModal();
-    fixture.detectChanges();
+    redraw(fixture);
 
-    expect(fixture.nativeElement.querySelector('[role="tablist"][aria-label="Справочники задач"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('label[for="task-type-code"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('label[for="task-type-name"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('[role="tablist"][aria-label="Справочники задач"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('label[for="task-type-code"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('label[for="task-type-name"]')).not.toBeNull();
 
-    const remove = fixture.nativeElement.querySelector('button[aria-label="Удалить тип задачи Проверка"]') as HTMLButtonElement;
+    const remove = inScreen(fixture.nativeElement).querySelector('button[aria-label="Удалить тип задачи Проверка"]') as HTMLButtonElement;
     remove.click();
-    fixture.detectChanges();
+    redraw(fixture);
     await fixture.whenStable();
     const dialog = document.querySelector('.smt-modal-confirm') as HTMLElement;
     expect(dialog.closest('[role="alertdialog"]')).not.toBeNull();
@@ -269,14 +270,14 @@ describe('TasksComponent UI contracts', () => {
     };
     fixture.componentInstance.selectedTask.set(parent);
     fixture.componentInstance.taskSubtasks.set([subtask]);
-    fixture.detectChanges();
+    redraw(fixture);
 
-    const action = fixture.nativeElement.querySelector('.subtask-row') as HTMLButtonElement;
+    const action = inScreen(fixture.nativeElement).querySelector('.subtask-row') as HTMLButtonElement;
     expect(action.tagName).toBe('BUTTON');
     expect(action.type).toBe('button');
     expect(action.getAttribute('aria-label')).toBe('Открыть подзадачу #11: Проверить подзадачу');
     // The card offers the task's change history, closed until asked for.
-    const history = fixture.nativeElement.querySelector('ui-record-history [data-testid="record-history-toggle"]') as HTMLButtonElement;
+    const history = inScreen(fixture.nativeElement).querySelector('ui-record-history [data-testid="record-history-toggle"]') as HTMLButtonElement;
     expect(history.getAttribute('aria-expanded')).toBe('false');
     expect(history.textContent).toContain('История изменений');
   });
@@ -303,7 +304,7 @@ describe('TasksComponent UI contracts', () => {
       ]
     }).compileComponents();
     const fixture = TestBed.createComponent(TasksComponent);
-    fixture.detectChanges();
+    redraw(fixture);
 
     fixture.componentInstance.openCreateTaskModal();
     fixture.componentInstance.createForm.title = 'Новая задача с соисполнителями';
@@ -338,9 +339,9 @@ describe('TasksComponent UI contracts', () => {
       { taskId: 42, userId: 4, userName: 'Глеб', userLogin: 'gleb', involveKind: 'O' },
       { taskId: 42, userId: 5, userName: 'Дамир', userLogin: 'damir', involveKind: 'A' }
     ]);
-    fixture.detectChanges();
+    redraw(fixture);
 
-    const roleTitles = Array.from(fixture.nativeElement.querySelectorAll('.member-role-title'))
+    const roleTitles = Array.from(inScreen(fixture.nativeElement).querySelectorAll('.member-role-title'))
       .map((node: any) => node.textContent.trim());
 
     expect(roleTitles.some(t => t.includes('Ответственный'))).toBe(true);
@@ -348,7 +349,7 @@ describe('TasksComponent UI contracts', () => {
     expect(roleTitles.some(t => t.includes('Наблюдатели'))).toBe(true);
     expect(roleTitles.some(t => t.includes('Автор'))).toBe(true);
 
-    const memberNames = Array.from(fixture.nativeElement.querySelectorAll('.member-name'))
+    const memberNames = Array.from(inScreen(fixture.nativeElement).querySelectorAll('.member-name'))
       .map((node: any) => node.textContent.trim());
     expect(memberNames).toContain('Алиса');
     expect(memberNames).toContain('Борис');
@@ -412,7 +413,7 @@ describe('TasksComponent asynchronous detail and editing state', () => {
       ]
     }).compileComponents();
     const fixture = TestBed.createComponent(TasksComponent);
-    fixture.detectChanges();
+    redraw(fixture);
     return { fixture, component: fixture.componentInstance, api };
   }
 
@@ -428,16 +429,16 @@ describe('TasksComponent asynchronous detail and editing state', () => {
 
     component.openEditModal(task(7, 'Stale row'));
     first.error({ detail: 'offline' });
-    fixture.detectChanges();
+    redraw(fixture);
 
     expect(component.editingTask).toBeNull();
     expect(component.editLoadError()).toBe(true);
-    expect(fixture.nativeElement.querySelector('#task-edit-title')).toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('#task-edit-title')).toBeNull();
 
     component.retryEditLoad();
     retry.next({ task: task(7, 'Fresh task'), members: [] });
     retry.complete();
-    fixture.detectChanges();
+    redraw(fixture);
 
     expect(component.editingTask?.title).toBe('Fresh task');
     expect(component.editForm.title).toBe('Fresh task');
@@ -591,9 +592,9 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     });
 
     component.openTaskDetails(task(14));
-    fixture.detectChanges();
+    redraw(fixture);
 
-    const author = fixture.nativeElement.querySelector('.comment-author') as HTMLElement;
+    const author = inScreen(fixture.nativeElement).querySelector('.comment-author') as HTMLElement;
     expect(author.textContent).toContain('Удалённый пользователь');
     expect(author.textContent).not.toContain('@null');
   });
@@ -653,38 +654,38 @@ describe('TasksComponent asynchronous detail and editing state', () => {
           : [])
     });
     component.openEditModal(task(61));
-    fixture.detectChanges();
-    const selector = fixture.nativeElement.querySelector('smt-select button[aria-label="Ответственный"]') as HTMLButtonElement;
+    redraw(fixture);
+    const selector = inScreen(fixture.nativeElement).querySelector('smt-select button[aria-label="Ответственный"]') as HTMLButtonElement;
     selector.click();
-    fixture.detectChanges();
+    redraw(fixture);
     expect(selector.getAttribute('aria-expanded')).toBe('true');
 
     (document.querySelector('.smt-select__search-input') as HTMLInputElement)
       .dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
-    fixture.detectChanges();
+    redraw(fixture);
 
     expect(selector.getAttribute('aria-expanded')).toBe('false');
     expect(component.isEditModalOpen()).toBe(true);
-    expect(fixture.nativeElement.querySelectorAll('[role="dialog"]')).toHaveLength(1);
+    expect(inScreen(fixture.nativeElement).querySelectorAll('[role="dialog"]')).toHaveLength(1);
   });
 
   it('gives detail status and comment controls accessible names', async () => {
     const { fixture, component } = await createControlledFixture();
     component.statuses.set([{ id: 1, name: 'Новая', color: '#ff0000', orderNo: 1, isTerminal: false }]);
     component.selectedTask.set(task(62));
-    fixture.detectChanges();
+    redraw(fixture);
 
-    expect(fixture.nativeElement.querySelector('.status-select [role="combobox"]')?.getAttribute('aria-label')).toBe('Статус задачи #62');
+    expect(inScreen(fixture.nativeElement).querySelector('.status-select [role="combobox"]')?.getAttribute('aria-label')).toBe('Статус задачи #62');
     // The comment field is named by its own (visually hidden) label.
-    expect(fixture.nativeElement.querySelector('.comment-textarea textarea#task-comment-draft')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('label[for="task-comment-draft"]')?.textContent?.trim()).toBe('Комментарий к задаче #62');
+    expect(inScreen(fixture.nativeElement).querySelector('.comment-textarea textarea#task-comment-draft')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('label[for="task-comment-draft"]')?.textContent?.trim()).toBe('Комментарий к задаче #62');
   });
 
   it('debounces top-level search for 350 ms and Enter suppresses the delayed duplicate', async () => {
     vi.useFakeTimers();
     const { fixture, api } = await createControlledFixture();
     const initialCalls = api.get.mock.calls.filter(([path]) => path === '/tasks').length;
-    const input = fixture.nativeElement.querySelector('#task-search') as HTMLInputElement;
+    const input = inScreen(fixture.nativeElement).querySelector('#task-search') as HTMLInputElement;
     input.value = 'alpha';
     input.dispatchEvent(new Event('input'));
     await vi.advanceTimersByTimeAsync(349);
@@ -708,14 +709,14 @@ describe('TasksComponent asynchronous detail and editing state', () => {
         ? { items: [task(70, 'Filtered')], nextCursor: null, hasMore: false }
         : [])
     });
-    const input = fixture.nativeElement.querySelector('#task-search') as HTMLInputElement;
+    const input = inScreen(fixture.nativeElement).querySelector('#task-search') as HTMLInputElement;
     input.value = 'current';
     input.dispatchEvent(new Event('input'));
     initial.next({ items: [task(69, 'Old answer')], nextCursor: null, hasMore: false });
     expect(component.tasks()).toEqual([]);
 
     await vi.advanceTimersByTimeAsync(350);
-    fixture.detectChanges();
+    redraw(fixture);
     // The field's own named clear button.
     const clear = input.closest('smt-input')?.querySelector('button.smt-input__action') as HTMLButtonElement;
     expect(clear.getAttribute('aria-label')).toBeTruthy();
@@ -731,16 +732,16 @@ describe('TasksComponent asynchronous detail and editing state', () => {
         ? throwError(() => ({ status: 503 }))
         : of(path === '/tasks' ? { items: [task(1)], nextCursor: 'c50', hasMore: true } : [])
     });
-    (fixture.nativeElement.querySelector('button[aria-label="Следующая страница"]') as HTMLButtonElement).click();
-    fixture.detectChanges();
+    (inScreen(fixture.nativeElement).querySelector('button[aria-label="Следующая страница"]') as HTMLButtonElement).click();
+    redraw(fixture);
     const callsAfterFailure = api.get.mock.calls.length;
-    const input = fixture.nativeElement.querySelector('#task-search') as HTMLInputElement;
+    const input = inScreen(fixture.nativeElement).querySelector('#task-search') as HTMLInputElement;
     input.value = 'pending';
     input.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
+    redraw(fixture);
 
-    expect(fixture.nativeElement.querySelector('button[aria-label="Следующая страница"]')?.disabled).toBe(true);
-    expect(fixture.nativeElement.querySelector('.request-error')).toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('button[aria-label="Следующая страница"]')?.disabled).toBe(true);
+    expect(inScreen(fixture.nativeElement).querySelector('.request-error')).toBeNull();
     component.retryTaskList();
     expect(api.get.mock.calls).toHaveLength(callsAfterFailure);
 
@@ -754,22 +755,22 @@ describe('TasksComponent asynchronous detail and editing state', () => {
   it('offers recovery for filtered and first empty states', async () => {
     const { fixture, component } = await createControlledFixture();
     component.searchQuery = 'missing';
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.empty-state-cell button')?.textContent).toContain('Сбросить все фильтры');
-    const kanbanToggle = Array.from(fixture.nativeElement.querySelectorAll('.header-left [role="radio"]') as NodeListOf<HTMLElement>)
+    redraw(fixture);
+    expect(inScreen(fixture.nativeElement).querySelector('.empty-state-cell button')?.textContent).toContain('Сбросить все фильтры');
+    const kanbanToggle = Array.from(inScreen(fixture.nativeElement).querySelectorAll('.header-left [role="radio"]') as NodeListOf<HTMLElement>)
       .find(button => button.textContent?.includes('Канбан'))!;
     kanbanToggle.click();
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.kanban-board')?.innerHTML).toContain('Сбросить все фильтры');
+    redraw(fixture);
+    expect(inScreen(fixture.nativeElement).querySelector('.kanban-board')?.innerHTML).toContain('Сбросить все фильтры');
     component.resetFilters();
     component.viewMode = 'table';
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.empty-state-cell')?.textContent).toContain('Новая задача');
+    redraw(fixture);
+    expect(inScreen(fixture.nativeElement).querySelector('.empty-state-cell')?.textContent).toContain('Новая задача');
   });
 
   it('keeps empty-list recovery outside the horizontally scrolling table', async () => {
     const { fixture } = await createControlledFixture();
-    const empty = fixture.nativeElement.querySelector('.empty-state-cell') as HTMLElement;
+    const empty = inScreen(fixture.nativeElement).querySelector('.empty-state-cell') as HTMLElement;
     expect(empty).not.toBeNull();
     // Not a fake row: the recovery actions sit outside the table's rows.
     expect(empty.closest('[role="rowgroup"]')).toBeNull();
@@ -781,9 +782,9 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     component.viewMode = 'kanban';
     component.statuses.set([{ id: 1, name: 'Новая', orderNo: 1, isTerminal: false }]);
     component.tasks.set([task(71)]);
-    fixture.detectChanges();
+    redraw(fixture);
 
-    const card = fixture.nativeElement.querySelector('.kanban-card') as HTMLElement;
+    const card = inScreen(fixture.nativeElement).querySelector('.kanban-card') as HTMLElement;
     expect(card.getAttribute('draggable')).not.toBe('true');
     expect(card.querySelector('.drag-grip-icon')).toBeNull();
     expect(card.querySelector('.kanban-move-actions')).toBeNull();
@@ -822,9 +823,9 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     component.openEditModal(task(19));
     component.editForm.title = 'Submitted snapshot';
     component.submitEditTask();
-    fixture.detectChanges();
+    redraw(fixture);
 
-    const form = fixture.nativeElement.querySelector('fieldset.task-edit-form') as HTMLFieldSetElement | null;
+    const form = inScreen(fixture.nativeElement).querySelector('fieldset.task-edit-form') as HTMLFieldSetElement | null;
     expect(form).not.toBeNull();
     expect(form?.disabled).toBe(true);
     const controls = Array.from(form?.querySelectorAll('input, select, textarea, button') || []) as HTMLElement[];
@@ -843,11 +844,11 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     component.submitCreateTask();
     component.submitCreateTask();
     component.requestCloseCreate();
-    fixture.detectChanges();
+    redraw(fixture);
 
     expect(api.post.mock.calls.filter(([path]) => path === '/tasks')).toHaveLength(1);
     expect(component.isCreateModalOpen()).toBe(true);
-    const form = fixture.nativeElement.querySelector('fieldset.task-create-form') as HTMLFieldSetElement | null;
+    const form = inScreen(fixture.nativeElement).querySelector('fieldset.task-create-form') as HTMLFieldSetElement | null;
     expect(form).not.toBeNull();
     expect(form?.disabled).toBe(true);
     const controls = Array.from(form?.querySelectorAll('input, select, textarea, button') || []) as HTMLElement[];
@@ -933,23 +934,23 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     });
 
     const seen = [...component.tasks().map(item => item.id)];
-    const loadedRanges = [(fixture.nativeElement.querySelector('ui-pagination [role="status"]') as HTMLElement).textContent?.trim()];
+    const loadedRanges = [(inScreen(fixture.nativeElement).querySelector('ui-pagination [role="status"]') as HTMLElement).textContent?.trim()];
     for (let expectedPage = 2; expectedPage <= 3; expectedPage++) {
-      const next = fixture.nativeElement.querySelector('button[aria-label="Следующая страница"]') as HTMLButtonElement;
+      const next = inScreen(fixture.nativeElement).querySelector('button[aria-label="Следующая страница"]') as HTMLButtonElement;
       expect(next.disabled).toBe(false);
       next.click();
-      fixture.detectChanges();
+      redraw(fixture);
       seen.push(...component.tasks().map(item => item.id));
-      loadedRanges.push((fixture.nativeElement.querySelector('ui-pagination [role="status"]') as HTMLElement).textContent?.trim());
+      loadedRanges.push((inScreen(fixture.nativeElement).querySelector('ui-pagination [role="status"]') as HTMLElement).textContent?.trim());
       expect(component.currentPage).toBe(expectedPage);
     }
 
     expect(requestedCursors).toEqual([undefined, 'c50', 'c100']);
     expect(seen).toEqual(Array.from({ length: 125 }, (_, index) => index + 1));
     expect(new Set(seen).size).toBe(125);
-    expect(fixture.nativeElement.textContent).toContain('#125');
+    expect(inScreen(fixture.nativeElement).textContent).toContain('#125');
     expect(loadedRanges).toEqual(['Показано 1–50', 'Показано 51–100', 'Показано 101–125']);
-    expect(fixture.nativeElement.querySelector('ui-pagination [role="status"]').textContent).not.toContain('из 25');
+    expect(inScreen(fixture.nativeElement).querySelector('ui-pagination [role="status"]').textContent).not.toContain('из 25');
   });
 
   it('resets cursor history on a filter change and ignores the old page response', async () => {
@@ -995,19 +996,19 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     });
 
     expect(component.tasks().map(item => item.id)).toEqual([1]);
-    const allButton = Array.from(fixture.nativeElement.querySelectorAll('.toolbar .status-filter [role="radio"]') as NodeListOf<HTMLElement>)
+    const allButton = Array.from(inScreen(fixture.nativeElement).querySelectorAll('.toolbar .status-filter [role="radio"]') as NodeListOf<HTMLElement>)
       .find(button => button.textContent?.trim() === 'Все')!;
     allButton.click();
-    fixture.detectChanges();
+    redraw(fixture);
     expect(component.tasks().map(item => item.id)).toEqual([1, 2]);
 
     component.viewMode = 'kanban';
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.toolbar [role="radiogroup"][aria-label="Фильтр по статусу"]')).not.toBeNull();
-    const activeButton = Array.from(fixture.nativeElement.querySelectorAll('.toolbar .status-filter [role="radio"]') as NodeListOf<HTMLElement>)
+    redraw(fixture);
+    expect(inScreen(fixture.nativeElement).querySelector('.toolbar [role="radiogroup"][aria-label="Фильтр по статусу"]')).not.toBeNull();
+    const activeButton = Array.from(inScreen(fixture.nativeElement).querySelectorAll('.toolbar .status-filter [role="radio"]') as NodeListOf<HTMLElement>)
       .find(button => button.textContent?.trim() === 'Активные')!;
     activeButton.click();
-    fixture.detectChanges();
+    redraw(fixture);
     expect(component.tasks().map(item => item.id)).toEqual([1]);
 
     component.updateStatus(1, 2);
@@ -1031,38 +1032,41 @@ describe('TasksComponent asynchronous detail and editing state', () => {
       }
     });
     component.openCreateTaskModal();
-    fixture.detectChanges();
+    redraw(fixture);
+    // The dialog's fields meet ngModel a microtask after it opens.
+    await vi.advanceTimersByTimeAsync(0);
+    redraw(fixture);
 
-    const responsible = fixture.nativeElement.querySelector('smt-select button[aria-label="Ответственный"]') as HTMLButtonElement;
+    const responsible = inScreen(fixture.nativeElement).querySelector('smt-select button[aria-label="Ответственный"]') as HTMLButtonElement;
     responsible.click();
-    fixture.detectChanges();
+    redraw(fixture);
     const userSearch = document.querySelector('.smt-select__search-input') as HTMLInputElement;
     userSearch.value = 'user501';
     userSearch.dispatchEvent(new Event('input'));
     await vi.advanceTimersByTimeAsync(300);
-    fixture.detectChanges();
+    redraw(fixture);
     (Array.from(document.querySelectorAll('.smt-select__option')) as HTMLElement[])
       .find(button => button.textContent?.includes('Remote User'))!.click();
 
-    const parentTrigger = fixture.nativeElement.querySelector('smt-select button[aria-label="Родительская задача"]') as HTMLButtonElement;
+    const parentTrigger = inScreen(fixture.nativeElement).querySelector('smt-select button[aria-label="Родительская задача"]') as HTMLButtonElement;
     parentTrigger.click();
-    fixture.detectChanges();
+    redraw(fixture);
     const parentSearch = document.querySelector('.smt-select__search-input') as HTMLInputElement;
     parentSearch.value = 'Outside';
     parentSearch.dispatchEvent(new Event('input'));
     await vi.advanceTimersByTimeAsync(300);
-    fixture.detectChanges();
+    redraw(fixture);
     (Array.from(document.querySelectorAll('.smt-select__option')) as HTMLElement[])
       .find(button => button.textContent?.includes('Outside filtered page'))!.click();
 
-    const observerTrigger = fixture.nativeElement.querySelector('smt-multi-select button[aria-label="Наблюдатели"]') as HTMLButtonElement;
+    const observerTrigger = inScreen(fixture.nativeElement).querySelector('smt-multi-select button[aria-label="Наблюдатели"]') as HTMLButtonElement;
     observerTrigger.click();
-    fixture.detectChanges();
+    redraw(fixture);
     const observerSearch = document.querySelector('.smt-select__search-input') as HTMLInputElement;
     observerSearch.value = 'user502';
     observerSearch.dispatchEvent(new Event('input'));
     await vi.advanceTimersByTimeAsync(300);
-    fixture.detectChanges();
+    redraw(fixture);
     (Array.from(document.querySelectorAll('.smt-select__option')) as HTMLElement[])
       .find(button => button.textContent?.includes('Remote Observer'))!.click();
 
@@ -1071,11 +1075,11 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     expect(component.createForm.observerUserIds).toEqual([502]);
     expect(api.get.mock.calls.some(([path, params]) => path === '/iam/users' && params.search === 'user501')).toBe(true);
     expect(api.get.mock.calls.some(([path, params]) => path === '/tasks' && params.search === 'Outside' && params.project_id === undefined && params.hide_terminal === undefined)).toBe(true);
-    fixture.detectChanges();
+    redraw(fixture);
     // The pickers name what was chosen, whatever their lists show now.
     expect(responsible.textContent).toContain('Remote User');
     expect(parentTrigger.textContent).toContain('Outside filtered page');
-    expect(fixture.nativeElement.querySelector('button[aria-label="Удалить Remote Observer"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('button[aria-label="Удалить Remote Observer"]')).not.toBeNull();
     vi.useRealTimers();
   });
 
@@ -1125,17 +1129,17 @@ describe('TasksComponent asynchronous detail and editing state', () => {
           : of(path === '/tasks' ? { items: [], nextCursor: null, hasMore: false, totalReturned: 0 } : [])
     });
     component.openEditModal(task(40));
-    fixture.detectChanges();
+    redraw(fixture);
 
-    const responsible = fixture.nativeElement.querySelector('smt-select button[aria-label="Ответственный"]') as HTMLButtonElement;
+    const responsible = inScreen(fixture.nativeElement).querySelector('smt-select button[aria-label="Ответственный"]') as HTMLButtonElement;
     responsible.click();
     await vi.advanceTimersByTimeAsync(300);
-    fixture.detectChanges();
+    redraw(fixture);
 
     expect(component.editForm.responsibleUserId).toBe(501);
     expect(component.editForm.observerUserIds).toEqual([502]);
     expect(responsible.textContent).toContain('Scoped Owner');
-    expect(fixture.nativeElement.querySelector('button[aria-label="Удалить Scoped Observer"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('button[aria-label="Удалить Scoped Observer"]')).not.toBeNull();
     expect(document.querySelector('.smt-select__error[role="alert"]')).not.toBeNull();
   });
 
@@ -1153,22 +1157,22 @@ describe('TasksComponent asynchronous detail and editing state', () => {
         : of(path === '/tasks' ? { items: [], nextCursor: null, hasMore: false, totalReturned: 0 } : [])
     });
     component.openCreateTaskModal();
-    fixture.detectChanges();
-    const responsible = fixture.nativeElement.querySelector('smt-select button[aria-label="Ответственный"]') as HTMLButtonElement;
+    redraw(fixture);
+    const responsible = inScreen(fixture.nativeElement).querySelector('smt-select button[aria-label="Ответственный"]') as HTMLButtonElement;
     responsible.click();
     await vi.advanceTimersByTimeAsync(300);
-    fixture.detectChanges();
+    redraw(fixture);
 
     const input = document.querySelector('.smt-select__search-input') as HTMLInputElement;
     input.value = 'new';
     input.dispatchEvent(new Event('input'));
     first.next({ items: [remoteUser(10, 'Stale user')], nextCursor: null, hasMore: false, totalReturned: 1 });
-    fixture.detectChanges();
+    redraw(fixture);
     expect((Array.from(document.querySelectorAll('.smt-select__option')) as HTMLElement[]).map(option => option.textContent ?? '').some(label => label.includes('Stale user'))).toBe(false);
 
     await vi.advanceTimersByTimeAsync(300);
     second.next({ items: [remoteUser(501, 'Current user')], nextCursor: null, hasMore: false, totalReturned: 1 });
-    fixture.detectChanges();
+    redraw(fixture);
     expect((Array.from(document.querySelectorAll('.smt-select__option')) as HTMLElement[]).map(option => option.textContent ?? '').some(label => label.includes('Current user'))).toBe(true);
   });
 
@@ -1187,10 +1191,10 @@ describe('TasksComponent asynchronous detail and editing state', () => {
       }
     });
 
-    let next = fixture.nativeElement.querySelector('button[aria-label="Следующая страница"]') as HTMLButtonElement;
+    let next = inScreen(fixture.nativeElement).querySelector('button[aria-label="Следующая страница"]') as HTMLButtonElement;
     next.click();
-    fixture.detectChanges();
-    next = fixture.nativeElement.querySelector('button[aria-label="Следующая страница"]') as HTMLButtonElement;
+    redraw(fixture);
+    next = inScreen(fixture.nativeElement).querySelector('button[aria-label="Следующая страница"]') as HTMLButtonElement;
     expect(next.disabled).toBe(true);
     next.click();
     expect(cursorCalls).toBe(1);
@@ -1198,14 +1202,14 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     expect(component.tasks().map(item => item.id)).toEqual([1]);
 
     firstNext.error({ status: 503 });
-    fixture.detectChanges();
+    redraw(fixture);
     expect(component.currentPage).toBe(1);
     expect(component.tasks().map(item => item.id)).toEqual([1]);
-    const retry = Array.from(fixture.nativeElement.querySelectorAll('#tasks-load-error button') as NodeListOf<HTMLButtonElement>)
+    const retry = Array.from(inScreen(fixture.nativeElement).querySelectorAll('#tasks-load-error button') as NodeListOf<HTMLButtonElement>)
       .find(button => button.textContent?.includes('Повторить'))!;
     retry.click();
     retryNext.next({ items: [task(51)], nextCursor: null, hasMore: false, totalReturned: 1 });
-    fixture.detectChanges();
+    redraw(fixture);
 
     expect(requested.filter(params => params?.['cursor'] === 'c50')).toHaveLength(2);
     expect(component.currentPage).toBe(2);
@@ -1221,12 +1225,12 @@ describe('TasksComponent asynchronous detail and editing state', () => {
         : of([])
     });
 
-    (fixture.nativeElement.querySelector('button[aria-label="Следующая страница"]') as HTMLButtonElement).click();
-    fixture.detectChanges();
+    (inScreen(fixture.nativeElement).querySelector('button[aria-label="Следующая страница"]') as HTMLButtonElement).click();
+    redraw(fixture);
 
     expect(component.currentPage).toBe(2);
     expect(component.tasks()).toEqual([]);
-    const previous = fixture.nativeElement.querySelector('button[aria-label="Предыдущая страница"]') as HTMLButtonElement;
+    const previous = inScreen(fixture.nativeElement).querySelector('button[aria-label="Предыдущая страница"]') as HTMLButtonElement;
     expect(previous).not.toBeNull();
     expect(previous.disabled).toBe(false);
   });
@@ -1245,14 +1249,14 @@ describe('TasksComponent asynchronous detail and editing state', () => {
             : { items: [task(1)], nextCursor: 'c50', hasMore: true, totalReturned: 1 })
           : of([])
     });
-    (fixture.nativeElement.querySelector('button[aria-label="Следующая страница"]') as HTMLButtonElement).click();
-    fixture.detectChanges();
+    (inScreen(fixture.nativeElement).querySelector('button[aria-label="Следующая страница"]') as HTMLButtonElement).click();
+    redraw(fixture);
     component.updateStatus(51, 2);
-    fixture.detectChanges();
+    redraw(fixture);
 
     expect(component.currentPage).toBe(2);
     expect(component.tasks()).toEqual([]);
-    expect(fixture.nativeElement.querySelector('button[aria-label="Предыдущая страница"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('button[aria-label="Предыдущая страница"]')).not.toBeNull();
   });
 
   it('invalidates selector paging while a new query is debouncing and ignores the old cursor response', async () => {
@@ -1272,27 +1276,27 @@ describe('TasksComponent asynchronous detail and editing state', () => {
       }
     });
     component.openCreateTaskModal();
-    fixture.detectChanges();
-    const responsible = fixture.nativeElement.querySelector('smt-select button[aria-label="Ответственный"]') as HTMLButtonElement;
+    redraw(fixture);
+    const responsible = inScreen(fixture.nativeElement).querySelector('smt-select button[aria-label="Ответственный"]') as HTMLButtonElement;
     responsible.click();
     await vi.advanceTimersByTimeAsync(300);
-    fixture.detectChanges();
+    redraw(fixture);
     (document.querySelector('.smt-select__more') as HTMLButtonElement).click();
 
     const input = document.querySelector('.smt-select__search-input') as HTMLInputElement;
     input.value = 'new';
     input.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
+    redraw(fixture);
     expect(document.querySelector('.smt-select__more')).toBeNull();
     expect(api.get.mock.calls.some(([path, params]) => path === '/iam/users' && params.search === 'new' && params.cursor === 'u50')).toBe(false);
 
     oldMore.next({ items: [user(2, 'Old late')], nextCursor: 'u100', hasMore: true, totalReturned: 1 });
-    fixture.detectChanges();
+    redraw(fixture);
     expect(document.querySelector('.smt-select__more')).toBeNull();
     expect((Array.from(document.querySelectorAll('.smt-select__option')) as HTMLElement[]).map(option => option.textContent ?? '').some(label => label.includes('Old late'))).toBe(false);
     await vi.advanceTimersByTimeAsync(300);
     newQuery.next({ items: [user(501, 'New result')], nextCursor: null, hasMore: false, totalReturned: 1 });
-    fixture.detectChanges();
+    redraw(fixture);
     expect((Array.from(document.querySelectorAll('.smt-select__option')) as HTMLElement[]).map(option => option.textContent ?? '').some(label => label.includes('New result'))).toBe(true);
   });
 
@@ -1307,9 +1311,9 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     component.openEditModal(task(60));
     component.requestCloseEdit();
     component.openEditModal(task(60));
-    fixture.detectChanges();
+    redraw(fixture);
 
-    const responsible = fixture.nativeElement.querySelector('smt-select button[aria-label="Ответственный"]') as HTMLButtonElement;
+    const responsible = inScreen(fixture.nativeElement).querySelector('smt-select button[aria-label="Ответственный"]') as HTMLButtonElement;
     expect(responsible.textContent).toContain('Fresh Name');
     expect(responsible.textContent).not.toContain('Old Name');
   });

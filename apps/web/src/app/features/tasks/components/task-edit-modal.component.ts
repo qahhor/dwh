@@ -10,7 +10,7 @@ import { SMTDatePickerComponent, SMTDatePickerValueAccessor } from '../../../sha
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { SMTControlComponent } from '../../../shared/ui-kit/components/forms/control';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
-import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
+import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { SMTSelectComponent, SMTSelectValueAccessor } from '../../../shared/ui-kit/components/forms/select';
 import { UiMarkdownEditorComponent } from '../../../shared/ui/ui-markdown-editor.component';
@@ -28,7 +28,7 @@ import { Project, Task, TaskType } from '../../../core/models/task.models';
     SMTDatePickerComponent,
     SMTDatePickerValueAccessor,
     TranslatePipe,
-    UiModalComponent,
+    SMTDialogComponent, SMTDialogContentDirective,
     SMTButtonComponent,
     SMTSelectComponent,
     SMTDataSelectComponent,
@@ -42,13 +42,13 @@ import { Project, Task, TaskType } from '../../../core/models/task.models';
     UiCustomFieldsComponent
   ],
   template: `
-    <ui-modal
-      [isOpen]="isOpen"
-      [title]="'tasks.redaktirovanie_zadachi' | t"
-      size="lg"
+    <smt-dialog
+      [open]="isOpen"
+      [smtTitle]="'tasks.redaktirovanie_zadachi' | t"
+      smtSize="lg"
       [dismissible]="!isSubmitting"
-      (close)="close.emit()"
-    >
+      (closed)="close.emit()">
+      <ng-template smtDialogContent>
       <div body class="request-state request-loading" *ngIf="editLoading" role="status">
         {{ 'tasks.edit_loading' | t }}
       </div>
@@ -204,14 +204,15 @@ import { Project, Task, TaskType } from '../../../core/models/task.models';
         <button smt-button type="button" smtVariant="secondary" smtSize="md" [disabled]="isSubmitting" (click)="close.emit()">{{ editLoadError ? ('audit.zakryt' | t) : ('common.cancel' | t) }}</button>
         <button smt-button type="button" *ngIf="editingTask" smtVariant="primary" smtSize="md" [smtLoading]="isSubmitting" (click)="submit.emit()">{{ 'tasks.sohranit_izmeneniya' | t }}</button>
       </div>
-    </ui-modal>
+      </ng-template>
+    </smt-dialog>
 
-    <ui-modal
-      [isOpen]="isEditDiscardConfirmationOpen"
-      [title]="'tasks.discard_edit_title' | t"
-      size="sm"
-      (close)="cancelDiscard.emit()"
-    >
+    <smt-dialog
+      [open]="isEditDiscardConfirmationOpen"
+      [smtTitle]="'tasks.discard_edit_title' | t"
+      smtSize="sm"
+      (closed)="cancelDiscard.emit()">
+      <ng-template smtDialogContent>
       <div body class="dictionary-delete-body">
         <p>{{ 'tasks.discard_edit_message' | t }}</p>
       </div>
@@ -219,7 +220,8 @@ import { Project, Task, TaskType } from '../../../core/models/task.models';
         <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="cancelDiscard.emit()">{{ 'common.cancel' | t }}</button>
         <button smt-button type="button" smtVariant="danger" smtSize="md" (click)="confirmDiscard.emit()">{{ 'tasks.discard_edit_action' | t }}</button>
       </div>
-    </ui-modal>
+      </ng-template>
+    </smt-dialog>
   `,
   styles: [`
     .modal-form { display: flex; flex-direction: column; gap: 14px; }

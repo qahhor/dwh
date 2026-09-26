@@ -8,6 +8,7 @@ import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { User, UserSession, ApiToken, UserChannel } from './profile.models';
 import { ProfileComponent } from './profile.component';
+import { inScreen } from '../../../../testing/in-screen';
 
 /** The confirmation dialog lives in the overlay; Yes is its last button. */
 async function answerYes(fixture: { detectChanges(): void; whenStable(): Promise<unknown> }): Promise<string> {
@@ -77,8 +78,8 @@ describe('ProfileComponent UI contracts', () => {
     fixture.componentInstance.submitChangePassword(new Event('submit'));
     fixture.detectChanges();
 
-    const current = fixture.nativeElement.querySelector('#profile-current-password') as HTMLInputElement;
-    expect(fixture.nativeElement.querySelector(`label[for="${current.id}"]`)).not.toBeNull();
+    const current = inScreen(fixture.nativeElement).querySelector('#profile-current-password') as HTMLInputElement;
+    expect(inScreen(fixture.nativeElement).querySelector(`label[for="${current.id}"]`)).not.toBeNull();
     expect(current.required).toBe(true);
     expect(current.getAttribute('aria-invalid')).toBe('true');
     expect(current.getAttribute('aria-describedby')).toBe('profile-current-password-error');
@@ -87,7 +88,7 @@ describe('ProfileComponent UI contracts', () => {
 
   it('names channel, session and token table regions', async () => {
     const { fixture } = await createFixture();
-    const regions = fixture.nativeElement.querySelectorAll('.table-wrapper[role="region"]');
+    const regions = inScreen(fixture.nativeElement).querySelectorAll('.table-wrapper[role="region"]');
 
     expect(regions.length).toBe(3);
     expect(regions[0].tabIndex).toBe(0);
@@ -104,8 +105,8 @@ describe('ProfileComponent UI contracts', () => {
     fixture.componentInstance.createTokenSubmit();
     fixture.detectChanges();
 
-    const name = fixture.nativeElement.querySelector('#profile-token-name') as HTMLInputElement;
-    expect(fixture.nativeElement.querySelector(`label[for="${name.id}"]`)).not.toBeNull();
+    const name = inScreen(fixture.nativeElement).querySelector('#profile-token-name') as HTMLInputElement;
+    expect(inScreen(fixture.nativeElement).querySelector(`label[for="${name.id}"]`)).not.toBeNull();
     expect(name.required).toBe(true);
     expect(name.getAttribute('aria-invalid')).toBe('true');
     expect(name.getAttribute('aria-describedby')).toBe('profile-token-name-error');
@@ -114,7 +115,7 @@ describe('ProfileComponent UI contracts', () => {
   it('lets each password field show and hide what was typed', async () => {
     const { fixture } = await createFixture();
     for (const id of ['profile-current-password', 'profile-new-password', 'profile-confirm-password']) {
-      const field = fixture.nativeElement.querySelector(`#${id}`) as HTMLInputElement;
+      const field = inScreen(fixture.nativeElement).querySelector(`#${id}`) as HTMLInputElement;
       expect(field.type).toBe('password');
       const toggle = field.closest('smt-input')!.querySelector('button') as HTMLButtonElement;
       expect(toggle.getAttribute('aria-label')).toBe('Показать пароль');
@@ -173,12 +174,12 @@ describe('ProfileComponent UI contracts', () => {
     const { fixture } = await createFixture({ sessions });
     fixture.detectChanges();
 
-    const currentBadge = fixture.nativeElement.querySelector('.session-ip-cell ui-badge');
+    const currentBadge = inScreen(fixture.nativeElement).querySelector('.session-ip-cell ui-badge');
     expect(currentBadge).not.toBeNull();
     expect(currentBadge.textContent).toContain('Текущая сессия');
 
     // The other session has a danger "Завершить" button
-    const buttons = fixture.nativeElement.querySelectorAll('.data-table button');
+    const buttons = inScreen(fixture.nativeElement).querySelectorAll('.data-table button');
     expect(buttons.length).toBeGreaterThanOrEqual(1);
   });
 
@@ -251,7 +252,7 @@ describe('ProfileComponent UI contracts', () => {
     ];
 
     const { fixture } = await createFixture({ channels });
-    const cardEl = fixture.nativeElement.querySelector('app-profile-channels-card');
+    const cardEl = inScreen(fixture.nativeElement).querySelector('app-profile-channels-card');
     expect(cardEl).not.toBeNull();
 
     const rows = cardEl.querySelectorAll('[role="rowgroup"] > [role="row"]');

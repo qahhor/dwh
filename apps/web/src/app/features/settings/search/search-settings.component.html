@@ -128,10 +128,12 @@
     <button smt-button smtVariant="secondary" *ngIf="historyHasMore() && !historyError()" type="button" class="load-more" data-action="load-more-search-jobs" [disabled]="historyLoading()" (click)="loadMoreHistory()">{{ 'settings.search.jobs.load_more' | t }}</button>
   </section>
 
-  <ui-modal *ngIf="confirmation() as dialog" [isOpen]="true" [dismissible]="!mutationPending()" [title]="(dialog.action === 'REBUILD' ? 'settings.search.confirm.rebuild_title' : 'settings.search.confirm.rollback_title') | t" (close)="confirmation.set(null)">
+  <smt-dialog *ngIf="confirmation() as dialog" [open]="true" [dismissible]="!mutationPending()" [smtTitle]="(dialog.action === 'REBUILD' ? 'settings.search.confirm.rebuild_title' : 'settings.search.confirm.rollback_title') | t" (closed)="confirmation.set(null)">
+    <ng-template smtDialogContent>
     <p>{{ (dialog.action === 'REBUILD' ? 'settings.search.confirm.rebuild_body' : 'settings.search.confirm.rollback_body') | t }}</p>
     <div footer class="dialog-actions"><button smt-button smtVariant="secondary" type="button" (click)="confirmation.set(null)">{{ 'common.cancel' | t }}</button><button smt-button type="button" data-action="confirm-search-maintenance" (click)="confirmMaintenance()">{{ 'common.confirm' | t }}</button></div>
-  </ui-modal>
+    </ng-template>
+  </smt-dialog>
 </section>
 
 <ng-template #generationIdCell let-generation><span class="mono">{{ generation.id }}</span></ng-template>

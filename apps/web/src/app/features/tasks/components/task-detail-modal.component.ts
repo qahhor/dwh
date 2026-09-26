@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
-import { UiModalComponent } from '../../../shared/ui/ui-modal.component';
+import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { UiMarkdownViewComponent } from '../../../shared/ui/ui-markdown-view.component';
 import { UiFileUploadComponent } from '../../../shared/ui/ui-file-upload.component';
@@ -21,19 +21,19 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
   imports: [
     SMTAvatarComponent, SMTSelectComponent, SMTTextareaComponent, CommonModule,
     TranslatePipe,
-    UiModalComponent,
+    SMTDialogComponent, SMTDialogContentDirective,
     SMTButtonComponent,
     UiMarkdownViewComponent,
     UiFileUploadComponent,
     UiRecordHistoryComponent
   ],
   template: `
-    <ui-modal
-      [isOpen]="isOpen"
-      [title]="'tasks.task_number' | t:{id: detailRecordId || ''}"
-      size="lg"
-      (close)="close.emit()"
-    >
+    <smt-dialog
+      [open]="isOpen"
+      [smtTitle]="'tasks.task_number' | t:{id: detailRecordId || ''}"
+      smtSize="lg"
+      (closed)="close.emit()">
+      <ng-template smtDialogContent>
       <div body class="request-state request-loading" *ngIf="detailLoading" role="status">
         {{ 'tasks.detail_loading' | t }}
       </div>
@@ -364,7 +364,8 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
       <div footer>
         <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="close.emit()">{{ 'audit.zakryt' | t }}</button>
       </div>
-    </ui-modal>
+      </ng-template>
+    </smt-dialog>
   `,
   styleUrl: './task-detail-modal.component.css'
 })

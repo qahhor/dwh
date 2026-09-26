@@ -9,6 +9,19 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Dialogs on the kit (roadmap item 45). `smt-dialog` keeps the declarative
+  shape screens use — `[open]`, a title, a size, the content in an
+  `<ng-template smtDialogContent>` created only while open, a `footer` row —
+  and opens a CDK dialog through the kit's modal service and look: an overlay
+  above the page, a focus trap that returns focus to the opener, a scroll
+  lock, Escape handled by the top dialog only, and correct stacking with
+  select lists and confirmations opened from it. Escape, the backdrop and the
+  close button ask (`closed`); the screen closes it, so a dialog with unsaved
+  changes can stay open. All 49 `ui-modal`s and the hand-made notification
+  preferences window use it; `ui-modal` and the
+  `body.modal-open` rule are removed. Tests find dialog content with
+  `inScreen()` (component and overlays) and redraw OnPush views with
+  `redraw()` from `src/testing/in-screen.ts`.
 - Button (roadmap item 44). `smt-button` is an attribute on a real `<button>`
   or `<a>` — `<button smt-button smtVariant="danger" smtIcon="delete">` —
   so its type, form, disabled state, click and every aria-* attribute are

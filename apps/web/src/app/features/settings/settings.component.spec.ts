@@ -13,6 +13,7 @@ import { SMTModalService } from '../../shared/ui-kit/components/modal';
 import { SMTSelectComponent } from '../../shared/ui-kit/components/forms/select';
 import { SettingsComponent } from './settings.component';
 import { translateTest } from '../../../testing/i18n-test.stub';
+import { inScreen, redraw } from '../../../testing/in-screen';
 
 describe('SettingsComponent UI contracts', () => {
   async function createFixture(
@@ -65,7 +66,7 @@ describe('SettingsComponent UI contracts', () => {
       ]
     }).compileComponents();
     const fixture = TestBed.createComponent(SettingsComponent);
-    fixture.detectChanges();
+    redraw(fixture);
     return fixture;
   }
 
@@ -88,19 +89,19 @@ describe('SettingsComponent UI contracts', () => {
     userSettings.next({ 'user.theme': 'light' });
     await fixture.whenStable();
 
-    const companyName = fixture.nativeElement.querySelector('#settings-company-name') as HTMLInputElement;
+    const companyName = inScreen(fixture.nativeElement).querySelector('#settings-company-name') as HTMLInputElement;
     expect(companyName.value).toBe('Persisted Company');
   });
 
   it('connects settings tabs and general fields', async () => {
     const fixture = await createFixture();
 
-    expect(fixture.nativeElement.querySelector('[role="tablist"][aria-label="Разделы настроек"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('#settings-general-tab[aria-selected="true"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('#settings-general-panel[role="tabpanel"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('label[for="settings-company-name"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('label[for="settings-default-language"]')).not.toBeNull();
-    const language = fixture.nativeElement.querySelector('#settings-default-language') as HTMLButtonElement;
+    expect(inScreen(fixture.nativeElement).querySelector('[role="tablist"][aria-label="Разделы настроек"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('#settings-general-tab[aria-selected="true"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('#settings-general-panel[role="tabpanel"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('label[for="settings-company-name"]')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('label[for="settings-default-language"]')).not.toBeNull();
+    const language = inScreen(fixture.nativeElement).querySelector('#settings-default-language') as HTMLButtonElement;
     expect(language.getAttribute('role')).toBe('combobox');
     const picker = fixture.debugElement.query(By.css('smt-select[name="settingsDefaultLanguage"]')).componentInstance as SMTSelectComponent<string>;
     expect(picker.options().map(option => option.id)).toEqual(['ru', 'de', 'tr']);
@@ -116,17 +117,17 @@ describe('SettingsComponent UI contracts', () => {
     const fixture = await createFixture(undefined, (form, action) =>
       form === 'platform.search' && action === 'view', searchManagement);
 
-    const searchTab = fixture.nativeElement.querySelector('#settings-search-tab') as HTMLButtonElement;
+    const searchTab = inScreen(fixture.nativeElement).querySelector('#settings-search-tab') as HTMLButtonElement;
     expect(searchTab).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('#settings-general-tab')).toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('#settings-general-tab')).toBeNull();
     searchTab.click();
-    fixture.detectChanges();
+    redraw(fixture);
     expect(searchManagement.status).toHaveBeenCalledTimes(1);
-    expect(fixture.nativeElement.querySelector('#settings-search-panel app-search-settings')).not.toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('#settings-search-panel app-search-settings')).not.toBeNull();
 
-    (fixture.nativeElement.querySelector('#settings-preferences-tab') as HTMLButtonElement).click();
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('#settings-search-panel')).toBeNull();
+    (inScreen(fixture.nativeElement).querySelector('#settings-preferences-tab') as HTMLButtonElement).click();
+    redraw(fixture);
+    expect(inScreen(fixture.nativeElement).querySelector('#settings-search-panel')).toBeNull();
     expect(statusUnsubscribed).toBe(1);
   });
 
@@ -134,9 +135,9 @@ describe('SettingsComponent UI contracts', () => {
     vi.useFakeTimers();
     try {
       const fixture = await createFixture();
-      const storage = fixture.nativeElement.querySelector('#settings-storage-tab') as HTMLButtonElement;
-      const languages = fixture.nativeElement.querySelector('#settings-languages-tab') as HTMLButtonElement;
-      const search = fixture.nativeElement.querySelector('#settings-search-tab') as HTMLButtonElement;
+      const storage = inScreen(fixture.nativeElement).querySelector('#settings-storage-tab') as HTMLButtonElement;
+      const languages = inScreen(fixture.nativeElement).querySelector('#settings-languages-tab') as HTMLButtonElement;
+      const search = inScreen(fixture.nativeElement).querySelector('#settings-search-tab') as HTMLButtonElement;
       const storageScroll = vi.fn();
       const languagesScroll = vi.fn();
       const searchScroll = vi.fn();
@@ -164,13 +165,13 @@ describe('SettingsComponent UI contracts', () => {
   it('names security values and switches', async () => {
     const fixture = await createFixture();
     fixture.componentInstance.activeTab = 'security';
-    fixture.detectChanges();
+    redraw(fixture);
 
-    const passwordLength = fixture.nativeElement.querySelector('#settings-password-length') as HTMLInputElement;
-    expect(fixture.nativeElement.querySelector(`label[for="${passwordLength.id}"]`)).not.toBeNull();
+    const passwordLength = inScreen(fixture.nativeElement).querySelector('#settings-password-length') as HTMLInputElement;
+    expect(inScreen(fixture.nativeElement).querySelector(`label[for="${passwordLength.id}"]`)).not.toBeNull();
     expect(passwordLength.min).toBe('8');
     expect(passwordLength.getAttribute('aria-describedby')).toBe('settings-password-length-hint');
-    const requireTwoFactor = fixture.nativeElement.querySelector('#settings-require-2fa') as HTMLElement;
+    const requireTwoFactor = inScreen(fixture.nativeElement).querySelector('#settings-require-2fa') as HTMLElement;
     expect(requireTwoFactor.getAttribute('role')).toBe('switch');
     expect(requireTwoFactor.getAttribute('aria-labelledby')).toBe('settings-require-2fa-label');
     expect(requireTwoFactor.getAttribute('aria-describedby')).toBe('settings-require-2fa-desc');
@@ -183,11 +184,11 @@ describe('SettingsComponent UI contracts', () => {
     expect(api.get).not.toHaveBeenCalledWith('/system/info');
     expect(api.get).not.toHaveBeenCalledWith('/system/license-info');
     expect(api.get).not.toHaveBeenCalledWith('/modules');
-    expect(fixture.nativeElement.querySelector('#settings-modules-tab')).toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('#settings-modules-tab')).toBeNull();
 
-    expect(fixture.nativeElement.querySelector('#settings-system-tab')).toBeNull();
-    expect(fixture.nativeElement.textContent).not.toContain('Control Plane');
-    expect(fixture.nativeElement.textContent).not.toContain('Лиценз');
+    expect(inScreen(fixture.nativeElement).querySelector('#settings-system-tab')).toBeNull();
+    expect(inScreen(fixture.nativeElement).textContent).not.toContain('Control Plane');
+    expect(inScreen(fixture.nativeElement).textContent).not.toContain('Лиценз');
   });
 
   it('migrates legacy browser translations atomically and removes them only after success', async () => {
@@ -249,15 +250,15 @@ describe('SettingsComponent UI contracts', () => {
       return false;
     };
     const fixture = await createFixture(undefined, hasPermission);
-    fixture.detectChanges();
+    redraw(fixture);
 
-    const readonlyBadges = fixture.nativeElement.querySelectorAll('.badge.badge-neutral');
+    const readonlyBadges = inScreen(fixture.nativeElement).querySelectorAll('.badge.badge-neutral');
     expect(Array.from(readonlyBadges).some((b: any) => b.textContent?.includes('Только чтение'))).toBe(true);
 
-    const companyInput = fixture.nativeElement.querySelector('#settings-company-name') as HTMLInputElement;
+    const companyInput = inScreen(fixture.nativeElement).querySelector('#settings-company-name') as HTMLInputElement;
     expect(companyInput.disabled).toBe(true);
 
-    const generalSaveBtn = fixture.nativeElement.querySelector('#settings-general-panel .card-footer-actions .smt-button');
+    const generalSaveBtn = inScreen(fixture.nativeElement).querySelector('#settings-general-panel .card-footer-actions .smt-button');
     expect(generalSaveBtn).toBeNull();
   });
 
@@ -342,16 +343,16 @@ describe('SettingsComponent UI contracts', () => {
   it('opens add language modal with isOpen=true and closes it cleanly', async () => {
     const fixture = await createFixture();
     fixture.componentInstance.activeTab = 'languages';
-    fixture.detectChanges();
+    redraw(fixture);
 
-    expect(fixture.nativeElement.querySelector('ui-modal')).toBeNull();
+    expect(inScreen(fixture.nativeElement).querySelector('[role="dialog"]')).toBeNull();
     fixture.componentInstance.openAddLangModal();
-    fixture.detectChanges();
+    redraw(fixture);
 
-    const modal = fixture.nativeElement.querySelector('ui-modal');
+    const modal = inScreen(fixture.nativeElement).querySelector('[role="dialog"]');
     expect(modal).not.toBeNull();
     expect(fixture.componentInstance.isAddLangModalOpen()).toBe(true);
-    expect(modal.querySelector('.modal-dialog')).not.toBeNull();
+    expect(modal.querySelector('.smt-dialog')).not.toBeNull();
   });
 
   it('rejects empty strings and non-numeric inputs for numeric settings', async () => {
@@ -400,10 +401,10 @@ describe('SettingsComponent UI contracts', () => {
     expect(fixture.componentInstance.isTabAvailable('webhooks')).toBe(true);
 
     // A click marks the screen for checking, as it does in the app; the switch works through setTab.
-    (fixture.nativeElement.querySelector('#settings-webhooks-tab') as HTMLButtonElement).click();
-    fixture.detectChanges();
+    (inScreen(fixture.nativeElement).querySelector('#settings-webhooks-tab') as HTMLButtonElement).click();
+    redraw(fixture);
 
-    const panel = fixture.nativeElement.querySelector('#settings-webhooks-panel');
+    const panel = inScreen(fixture.nativeElement).querySelector('#settings-webhooks-panel');
     expect(panel).not.toBeNull();
     const webhooksCmp = panel.querySelector('app-webhooks-settings');
     expect(webhooksCmp).not.toBeNull();

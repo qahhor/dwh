@@ -58,6 +58,7 @@ export class SMTModalService {
       ariaLabel: config.ariaLabel ?? null,
       ariaLabelledBy: config.ariaLabelledBy ?? null,
       ariaDescribedBy: config.ariaDescribedBy ?? null,
+      viewContainerRef: config.viewContainerRef,
     }) as DialogRef<R, T>;
 
     this.bindDefaultCloseInteractions(dialogRef, closeOnBackdropClick, closeOnEscape, config.canDismiss);
@@ -147,8 +148,7 @@ export class SMTModalService {
           takeUntil(dialogRef.closed)
         )
         .subscribe(event => {
-          // Marks the key as handled so a `ui-modal` underneath, which
-          // listens on the document, does not close as well.
+          // Marks the key as handled, so nothing underneath that listens on the          // document closes as well.
           event.preventDefault();
           if (canDismiss()) dialogRef.close();
         });

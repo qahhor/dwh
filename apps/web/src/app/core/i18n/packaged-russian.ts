@@ -1225,7 +1225,6 @@ export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(
   "ui.filter.op.between": "между",
   "ui.filter.op.empty": "пусто",
   "ui.filter.op.not_empty": "не пусто",
-  "ui.modal.close_named_dialog": "Закрыть диалог «{title}»",
   "ui.modal.confirm_title": "Подтверждение",
   "ui.modal.confirm_failed": "Не удалось выполнить действие. Попробуйте ещё раз.",
   "ui.history.title": "История изменений",
