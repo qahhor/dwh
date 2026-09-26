@@ -47,7 +47,7 @@ public class MsNoteQuery {
             "rank",
             true,
             QueryList.DEFAULT_LIMIT,
-            QueryList.MAX_LIMIT);
+            QueryList.MAX_LIMIT).withCustomFields("NOTE", "n.attributes");
 
     @Bean
     public QueryList msNotesQueryList() {

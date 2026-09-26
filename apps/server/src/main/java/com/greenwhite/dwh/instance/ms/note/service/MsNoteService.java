@@ -30,6 +30,14 @@ public class MsNoteService {
         this.moduleRegistryService = moduleRegistryService;
     }
 
+    /** The registry adds the note custom fields to the list (ADR-0019, 2.3); without it, the declared fields only. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setQueryListRegistry(com.greenwhite.dwh.instance.common.query.QueryListRegistry registry) {
+        this.registry = registry;
+    }
+
+    private com.greenwhite.dwh.instance.common.query.QueryListRegistry registry;
+
     public MsNoteService(MsNoteRepository noteRepository, AuditLogService auditLogService) {
         this(noteRepository, auditLogService, null, null);
     }
@@ -65,7 +73,7 @@ public class MsNoteService {
                                                                           String filter, String sort, String search) {
         checkModuleActive();
         var plan = com.greenwhite.dwh.instance.common.query.QueryCompiler.compile(
-                MsNoteQuery.LIST, filter, sort, limit, cursor, search);
+                registry == null ? MsNoteQuery.LIST : registry.resolve(MsNoteQuery.LIST), filter, sort, limit, cursor, search);
         var page = noteRepository.pageByOwner(plan, userId);
         return new com.greenwhite.dwh.core.pagination.KeysetPage<>(page.items().stream().map(NoteView::from).toList(),
                 page.nextCursor(), page.hasMore(), page.totalEstimated());

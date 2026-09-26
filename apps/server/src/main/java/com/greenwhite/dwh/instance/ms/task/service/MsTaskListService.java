@@ -20,11 +20,20 @@ public class MsTaskListService {
     private final QueryListRepository lists;
     private final MsTaskRepository taskRepository;
     private final MdScopeService scopeService;
+    private final com.greenwhite.dwh.instance.common.query.QueryListRegistry registry;
 
-    public MsTaskListService(QueryListRepository lists, MsTaskRepository taskRepository, MdScopeService scopeService) {
+    @org.springframework.beans.factory.annotation.Autowired
+    public MsTaskListService(QueryListRepository lists, MsTaskRepository taskRepository, MdScopeService scopeService,
+                             com.greenwhite.dwh.instance.common.query.QueryListRegistry registry) {
         this.lists = lists;
         this.taskRepository = taskRepository;
         this.scopeService = scopeService;
+        this.registry = registry;
+    }
+
+    /** Without the registry: the declared fields only, no custom fields. */
+    public MsTaskListService(QueryListRepository lists, MsTaskRepository taskRepository, MdScopeService scopeService) {
+        this(lists, taskRepository, scopeService, null);
     }
 
     /**
@@ -34,7 +43,8 @@ public class MsTaskListService {
     @Transactional(readOnly = true)
     public KeysetPage<TaskRecord> page(Long viewerId, Integer limit, String cursor, String filter, String sort,
                                        String search, LegacyTaskFilters legacy) {
-        var plan = QueryCompiler.compile(MsTaskQuery.LIST, filter, sort, limit, cursor, search, legacy.canonical());
+        var list = registry == null ? MsTaskQuery.LIST : registry.resolve(MsTaskQuery.LIST);
+        var plan = QueryCompiler.compile(list, filter, sort, limit, cursor, search, legacy.canonical());
         return lists.page(plan, taskRepository::mapRecord,
                 MsTaskRepository.listPredicate(scopeService.filterForTasks(viewerId), legacy));
     }

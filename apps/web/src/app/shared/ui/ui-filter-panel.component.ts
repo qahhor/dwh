@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, signal } from '@angular/core';
-import { QueryCondition, QueryFieldMeta, QueryListMeta, QueryOp } from '../../core/models/query-meta.models';
+import { fieldLabel, QueryCondition, QueryFieldMeta, QueryListMeta, QueryOp } from '../../core/models/query-meta.models';
 import { I18nService, TranslatePipe } from '../../core/services/i18n.service';
 import {
   FilterDraft,
@@ -247,7 +247,7 @@ export class UiFilterPanelComponent {
   }
 
   fieldLabel(field: QueryFieldMeta): string {
-    return this.i18n.translate(field.labelKey);
+    return fieldLabel(field, key => this.i18n.translate(key));
   }
 
   opLabel(op: QueryOp): string {
@@ -271,7 +271,7 @@ export class UiFilterPanelComponent {
         { value: 'false', label: this.i18n.translate('common.no') },
       ];
     }
-    return field.enumValues.map(value => ({ value, label: this.i18n.translate(`${field.enumLabelPrefix ?? ''}${value}`) }));
+    return field.enumValues.map(value => ({ value, label: field.enumLabelPrefix ? this.i18n.translate(`${field.enumLabelPrefix}${value}`) : value }));
   }
 
   add(): void {
