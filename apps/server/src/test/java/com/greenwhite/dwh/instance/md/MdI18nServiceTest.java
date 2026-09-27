@@ -50,14 +50,14 @@ class MdI18nServiceTest {
     @Test
     @DisplayName("Эффективный словарь соблюдает порядок override → bundle → русский")
     void mergesTargetAndRussianFallbackInOrder() {
-        when(repository.findLanguage("de")).thenReturn(Optional.of(language("de", true, true, 4)));
-        when(repository.findOverrides("de")).thenReturn(Map.of("common.save", "Sichern"));
+        when(repository.findLanguage("en")).thenReturn(Optional.of(language("en", true, true, 4)));
+        when(repository.findOverrides("en")).thenReturn(Map.of("common.save", "Keep"));
         when(repository.findLanguage("fr")).thenReturn(Optional.of(language("fr", false, true, 1)));
         when(repository.findOverrides("fr")).thenReturn(Map.of("nav.tasks", "Tâches"));
 
-        assertThat(service.effectiveDictionary("de"))
-                .containsEntry("common.save", "Sichern")
-                .containsEntry("nav.tasks", "Aufgaben");
+        assertThat(service.effectiveDictionary("en"))
+                .containsEntry("common.save", "Keep")
+                .containsEntry("nav.tasks", "Tasks");
         assertThat(service.effectiveDictionary("fr"))
                 .containsEntry("nav.tasks", "Tâches")
                 .containsEntry("common.save", "Сберечь")
@@ -77,10 +77,10 @@ class MdI18nServiceTest {
     @Test
     @DisplayName("Пользовательский выбор принимает только зарегистрированный активный язык")
     void requiresRegisteredActiveLanguageForUserPreference() {
-        when(repository.findLanguage("de")).thenReturn(Optional.of(language("de", true, true, 4)));
+        when(repository.findLanguage("en")).thenReturn(Optional.of(language("en", true, true, 4)));
         when(repository.findLanguage("fr")).thenReturn(Optional.of(language("fr", false, false, 1)));
 
-        assertThat(service.requireActiveLanguageCode(" DE ")).isEqualTo("de");
+        assertThat(service.requireActiveLanguageCode(" EN ")).isEqualTo("en");
         assertThatThrownBy(() -> service.requireActiveLanguageCode("fr"))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("не найден или отключён");
@@ -110,10 +110,10 @@ class MdI18nServiceTest {
     @Test
     @DisplayName("Неизвестный ключ отклоняется до записи")
     void rejectsUnknownTranslationKey() {
-        when(repository.findLanguage("de")).thenReturn(Optional.of(language("de", true, true, 1)));
+        when(repository.findLanguage("en")).thenReturn(Optional.of(language("en", true, true, 1)));
 
         assertThatThrownBy(() -> service.updateTranslations(
-                "de", new UpdateTranslationsRequest(1, Map.of("typo.unknown", "Wert")), 7L))
+                "en", new UpdateTranslationsRequest(1, Map.of("typo.unknown", "Wert")), 7L))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("Неизвестный ключ")
                 .satisfies(error -> assertThat(((ApiException) error).getErrorCode())
@@ -125,20 +125,20 @@ class MdI18nServiceTest {
     @Test
     @DisplayName("Сохранение сбрасывает кэш и оставляет аудит")
     void updateInvalidatesCacheAndAuditsChanges() {
-        when(repository.findLanguage("de")).thenReturn(Optional.of(language("de", true, true, 1)));
-        when(repository.findOverrides("de"))
+        when(repository.findLanguage("en")).thenReturn(Optional.of(language("en", true, true, 1)));
+        when(repository.findOverrides("en"))
                 .thenReturn(Map.of())
                 .thenReturn(Map.of())
-                .thenReturn(Map.of("common.save", "Sichern"));
-        when(repository.replaceOverrides(eq("de"), any(), eq(1L), eq(7L))).thenReturn(2L);
+                .thenReturn(Map.of("common.save", "Keep"));
+        when(repository.replaceOverrides(eq("en"), any(), eq(1L), eq(7L))).thenReturn(2L);
 
-        assertThat(service.effectiveDictionary("de")).containsEntry("common.save", "Speichern");
+        assertThat(service.effectiveDictionary("en")).containsEntry("common.save", "Save");
         service.updateTranslations(
-                "de", new UpdateTranslationsRequest(1, Map.of("common.save", "Sichern")), 7L);
-        when(repository.findLanguage("de")).thenReturn(Optional.of(language("de", true, true, 2)));
+                "en", new UpdateTranslationsRequest(1, Map.of("common.save", "Keep")), 7L);
+        when(repository.findLanguage("en")).thenReturn(Optional.of(language("en", true, true, 2)));
 
-        assertThat(service.effectiveDictionary("de")).containsEntry("common.save", "Sichern");
-        verify(audit).logChange(eq("md_i18n_translation_overrides"), eq("de:common.save"),
+        assertThat(service.effectiveDictionary("en")).containsEntry("common.save", "Keep");
+        verify(audit).logChange(eq("md_i18n_translation_overrides"), eq("en:common.save"),
                 eq("I"), any(), any(), any());
     }
 

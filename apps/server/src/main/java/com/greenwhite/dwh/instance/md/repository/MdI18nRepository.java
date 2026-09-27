@@ -34,9 +34,7 @@ public class MdI18nRepository {
                         from md_i18n_languages
                         %s
                         order by case code
-                            when 'ru' then 1 when 'uz' then 2 when 'en' then 3
-                            when 'kk' then 4 when 'ky' then 5 when 'tg' then 6
-                            when 'de' then 7 when 'tr' then 8 else 100 end,
+                            when 'ru' then 1 when 'uz' then 2 when 'en' then 3 else 100 end,
                             created_at, code
                         """.formatted(activeClause))
                 .query((rs, rowNum) -> mapLanguage(rs))

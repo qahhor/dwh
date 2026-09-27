@@ -12,7 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class MdI18nCatalogTest {
 
-    private static final Set<String> SUPPORTED = Set.of("ru", "uz", "en", "kk", "ky", "tg", "de", "tr");
+    private static final Set<String> SUPPORTED = Set.of("ru", "uz", "en");
     private static final Pattern HTML_TAG = Pattern.compile("<[/!a-zA-Z][^>]*>");
 
     @Test

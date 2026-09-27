@@ -33,8 +33,12 @@ describe('featureI18nProblems', () => {
   });
 
   it('reports owned keys without English where the feature ships it', () => {
-    expect(featureI18nProblems({ dir: 'src/app/features/upl/overview', owns: ['upl.overview.'], english: true }))
-      .toContain("'upl.overview.title' is missing from en.json");
+    // The real catalogs are complete, so English is taken away from one key here.
+    const en = { ...catalog('en') };
+    delete en['upl.overview.title'];
+    expect(featureI18nProblems({
+      dir: 'src/app/features/upl/overview', owns: ['upl.overview.'], english: true, catalogs: { ru: catalog('ru'), en },
+    })).toContain("'upl.overview.title' is missing from en.json");
   });
 
   it('reports a declared run-time key the catalogs lack', () => {
