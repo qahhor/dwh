@@ -16,6 +16,9 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          # Diff coverage compares the pull request with its base branch.
+          fetch-depth: 0
 
       - uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
         with:
@@ -33,6 +36,35 @@ jobs:
           if [ -f apps/server/target/architecture/frozen-violations.md ]; then
             cat apps/server/target/architecture/frozen-violations.md >> "$GITHUB_STEP_SUMMARY"
           fi
+
+      # Plan 10/10, item 1.4: every test runs, every business module keeps its coverage floor,
+      # and the lines a pull request changes are covered at 80 % at least.
+      - name: Every test ran
+        shell: pwsh
+        run: ./scripts/quality/test-no-skipped-tests.ps1
+
+      - name: Coverage floors by module
+        shell: pwsh
+        run: |
+          ./scripts/quality/test-coverage-floors.ps1
+          Get-Content apps/server/target/coverage/modules.md | Add-Content $env:GITHUB_STEP_SUMMARY
+
+      - name: Diff coverage of the pull request
+        if: github.event_name == 'pull_request'
+        shell: bash
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          python3 -m pip install --user --quiet diff-cover==10.6.0
+          status=0
+          python3 -m diff_cover.diff_cover_tool apps/server/target/site/jacoco/jacoco.xml \
+            --compare-branch="origin/$BASE_REF" \
+            --src-roots apps/server/src/main/java \
+            --fail-under=80 \
+            --format markdown:diff-coverage.md || status=$?
+          # The report reaches the summary under the threshold too: that is when it is read.
+          cat diff-coverage.md >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
 
       - name: SBOM (CycloneDX)
         run: mvn -B org.cyclonedx:cyclonedx-maven-plugin:2.9.1:makeAggregateBom -DoutputFormat=json

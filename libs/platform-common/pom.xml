@@ -15,6 +15,12 @@
     <name>Platform Common Library</name>
     <description>Shared infrastructure components: Argon2id security, W3C traceparent filter, TokenUtils, Flyway schema gate</description>
 
+    <properties>
+        <!-- Coverage floor of this module (plan 10/10, item 1.4): raised, never lowered, towards 0.80. -->
+        <coverage.line.minimum>0.19</coverage.line.minimum>
+        <coverage.branch.minimum>0.17</coverage.branch.minimum>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>com.smartup24.cms</groupId>

@@ -1,0 +1,19 @@
+# Coverage floors of the server's business modules, in percent (plan 10/10, item 1.4).
+# Each floor is what the module had when the floors were set; a floor is raised, never lowered, and every module
+# goes towards 80. scripts/quality/test-coverage-floors.ps1 checks them after mvn verify.
+module,line,branch
+analytics,14,0
+audit,87,68
+common,90,81
+config,91,73
+fnd,93,79
+kauth,82,71
+kwh,64,48
+md,82,65
+mf,66,52
+ms.note,84,48
+ms.notify,63,46
+ms.task,65,52
+report,90,72
+search,93,75
+upl,96,82

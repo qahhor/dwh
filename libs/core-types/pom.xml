@@ -15,6 +15,12 @@
     <name>Core Types</name>
     <description>Core domain types, RFC 9457 ProblemDetail, Keyset pagination and shared records</description>
 
+    <properties>
+        <!-- Coverage floor of this module (plan 10/10, item 1.4): raised, never lowered, towards 0.80. -->
+        <coverage.line.minimum>0.07</coverage.line.minimum>
+        <coverage.branch.minimum>0.38</coverage.branch.minimum>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>

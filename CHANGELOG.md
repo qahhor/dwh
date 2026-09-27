@@ -9,6 +9,13 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Test coverage is measured and cannot drop (plan 10/10, item 1.4). JaCoCo
+  0.8.15 reports every Maven module and checks its floor in `verify` (server:
+  83 % lines, 69 % branches); the business modules of the server keep their
+  own floors (`apps/server/coverage-floors.csv`, from analytics at 14 % to
+  upl at 96 %). CI fails when a test is skipped, when a module falls under its
+  floor, and when a pull request covers less than 80 % of the server lines it
+  changes (diff-cover), and publishes the module table in the build summary.
 - New migrations are linted and every build upgrades a previous release
   (plan 10/10, item 1.7). ADR-0020 fixes the database naming and types;
   `MigrationLintTest` checks them from V128 (identity keys, `text`,
