@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.kwh.controller;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.kwh.service.KwhWebhookService;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
+import com.smartup24.cms.instance.common.annotation.ReturnsSecret;
 import com.smartup24.cms.instance.kwh.pref.KwhPref;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -31,6 +32,7 @@ public class KwhSubscriptionController {
 
     @PostMapping
     @RequiresPermission(form = KwhPref.FORM_WEBHOOKS, action = "manage")
+    @ReturnsSecret
     public ResponseEntity<KwhWebhookService.CreatedSubscription> createSubscription(
             @Valid @RequestBody CreateSubscriptionDto body) {
 

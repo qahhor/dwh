@@ -12,6 +12,7 @@ import { LoginTopBarComponent } from './components/login-top-bar.component';
 import { LoginHeaderComponent } from './components/login-header.component';
 import { LoginResetModalComponent } from './components/login-reset-modal.component';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
+import { fitsPasswordPolicy, PASSWORD_POLICY } from '../../../core/security/password-policy';
 
 export * from './login.models';
 
@@ -150,7 +151,7 @@ export * from './login.models';
             <span class="material-symbols-outlined" aria-hidden="true">lock_reset</span>
             <div>
               <strong>{{ 'auth.smena_vremennogo_parolya' | t }}</strong>
-              <p id="password-policy-hint">{{ 'auth.ustanovite_postoyannyy_parol_ot_10_simvolov_dlya' | t }}</p>
+              <p id="password-policy-hint">{{ 'auth.set_permanent_password_hint' | t: passwordPolicy }}</p>
             </div>
           </div>
 
@@ -166,7 +167,8 @@ export * from './login.models';
               (touch)="capsLockField.set(null)"
               name="newPassword"
               required
-              [minLength]="10"
+              [minLength]="passwordPolicy.min"
+              [maxLength]="passwordPolicy.max"
               autocomplete="new-password"
               [spellcheck]="false"
               [smtInvalid]="!!formError()"
@@ -187,7 +189,8 @@ export * from './login.models';
               (touch)="capsLockField.set(null)"
               name="confirmNewPassword"
               required
-              [minLength]="10"
+              [minLength]="passwordPolicy.min"
+              [maxLength]="passwordPolicy.max"
               autocomplete="new-password"
               [spellcheck]="false"
               [smtInvalid]="!!formError()"
@@ -244,6 +247,7 @@ export class LoginComponent {
   readonly isResetModalOpen = signal<boolean>(false);
   readonly formError = signal<string>('');
 
+  readonly passwordPolicy = PASSWORD_POLICY;
   private readonly uiI18n = this.i18n;
 
   login = '';
@@ -333,8 +337,8 @@ export class LoginComponent {
       this.focusInput(!this.newPassword ? 'new-password' : 'confirm-new-password');
       return;
     }
-    if (this.newPassword.length < 10) {
-      this.formError.set(this.uiI18n.translate('auth.dlina_novogo_parolya_dolzhna_byt_ne_menee_10_sim'));
+    if (!fitsPasswordPolicy(this.newPassword)) {
+      this.formError.set(this.uiI18n.translate('password.policy.length_error', PASSWORD_POLICY));
       this.focusInput('new-password');
       return;
     }

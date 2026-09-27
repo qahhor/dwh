@@ -109,7 +109,7 @@ test('real indexed task/project/user hits open fresh exact records, survive relo
     { title: `${marker} task`, descriptionMarkdown: 'Synthetic search task', projectId: project.id, priority: 'medium', attributes: { task_type: 'task' } });
   const login = `search${randomBytes(8).toString('hex')}`;
   const user = await api<{ id: number }>(page, 'POST', '/iam/users', 201,
-    { name: `${marker} user`, login, email: `${login}@example.invalid`, password: `Qa!7${randomBytes(20).toString('hex')}`,
+    { name: `${marker} user`, login, email: `${login}@example.invalid`, password: `Qa!7${randomBytes(8).toString('hex')}`,
       language: 'ru', timezone: 'Asia/Tashkent', is2faEnabled: false, forcePasswordChange: true, roleIds: [], attributes: {} });
   const records = [
     { category: 'TASK' as const, id: String(task.id), endpoint: `/tasks/${task.id}`, route: `/tasks/items/${task.id}`, name: 'task', field: 'title' },

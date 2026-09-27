@@ -13,6 +13,7 @@ param(
     [ValidateSet('local', 's3')][string]$BackupStorageMode = 'local',
     [int]$HttpPort = 8080,
     [string]$HttpBind = '127.0.0.1',
+    [string]$PublicUrl = '',
     [switch]$Force,
     [switch]$Validate
 )
@@ -41,7 +42,8 @@ function New-SecureHexToken([int]$bytes = 32) {
     }
 }
 
-function New-SecurePassword([int]$length = 24) {
+# The first administrator password: 20 characters, the longest the password policy accepts.
+function New-SecurePassword([int]$length = 20) {
     $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*-_=+'
     $buffer = New-Object byte[] $length
     $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
@@ -64,7 +66,7 @@ if (-not (Test-Path -LiteralPath $targetSecretsDir)) {
 $dbPassword = New-SecureHexToken 32
 $backupDbPassword = New-SecureHexToken 32
 $typesenseApiKey = New-SecureHexToken 32
-$resolvedAdminPassword = if ([string]::IsNullOrWhiteSpace($AdminPassword)) { New-SecurePassword 24 } else { $AdminPassword }
+$resolvedAdminPassword = if ([string]::IsNullOrWhiteSpace($AdminPassword)) { New-SecurePassword 20 } else { $AdminPassword }
 
 # Write secret files
 $dbPasswordFile = Join-Path $targetSecretsDir 'database-password'
@@ -144,6 +146,10 @@ ORGANIZATION_CODE=$OrganizationCode
 ORGANIZATION_NAME=$OrganizationName
 RESOURCE_PROFILE=$ResourceProfile
 
+# Public address of the web application, e.g. https://cms.example.com.
+# Password reset links are built from it; empty means no link is sent.
+SMC_PUBLIC_URL=$PublicUrl
+
 # Database credentials (I-02 Least Privilege role separation)
 DB_NAME=smartupcms
 POSTGRES_USER=postgres
@@ -190,6 +196,23 @@ DWH_WEBHOOKS_ALLOWED_HOSTS=
 DWH_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES=false
 DWH_WEBHOOKS_CONNECT_TIMEOUT=3s
 DWH_WEBHOOKS_READ_TIMEOUT=10s
+
+# Delivery channels: password reset links and two-factor codes. console_* only
+# writes to the log; the server refuses to start while two-factor users depend
+# on it (SMC_DELIVERY_ENFORCE). Mail: SMTP_HOST + DWH_PROVIDER_MAIL=smtp.
+# Telegram: TELEGRAM_BOT_TOKEN + DWH_PROVIDER_MESSENGER=telegram.
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASSWORD=
+SMTP_STARTTLS=true
+DWH_MAIL_FROM=no-reply@localhost
+DWH_MAIL_FROM_NAME=SmartupCMS
+DWH_PROVIDER_MAIL=console_mail
+TELEGRAM_BOT_TOKEN=
+DWH_PROVIDER_MESSENGER=console_messenger
+DWH_PROVIDER_SMS=console_sms
+SMC_DELIVERY_ENFORCE=true
 
 # Network & Reverse Proxy
 HTTP_BIND=$HttpBind

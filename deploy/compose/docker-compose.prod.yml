@@ -19,6 +19,23 @@ x-server-common: &server-common
     DWH_INSTANCE_ADMIN_LOGIN: ${ADMIN_LOGIN:-admin}
     DWH_INSTANCE_ADMIN_EMAIL: ${ADMIN_EMAIL:-}
     DWH_INSTANCE_ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+    SMC_PUBLIC_URL: ${SMC_PUBLIC_URL:-}
+    SMC_LOG_FILE: ${SMC_LOG_FILE:-/var/lib/smartupcms/logs/server.log}
+    SMC_AUDIT_ARCHIVE_ENABLED: ${SMC_AUDIT_ARCHIVE_ENABLED:-true}
+    SMC_AUDIT_ARCHIVE_TARGET: ${SMC_AUDIT_ARCHIVE_TARGET:-local}
+    SMC_AUDIT_ARCHIVE_LOCAL_PATH: ${SMC_AUDIT_ARCHIVE_LOCAL_PATH:-/var/lib/smartupcms/audit-archive}
+    SMC_AUDIT_ARCHIVE_INTERVAL: ${SMC_AUDIT_ARCHIVE_INTERVAL:-7d}
+    SMC_AUDIT_ARCHIVE_SIZE_THRESHOLD: ${SMC_AUDIT_ARCHIVE_SIZE_THRESHOLD:-100MB}
+    SMC_AUDIT_ARCHIVE_RETENTION: ${SMC_AUDIT_ARCHIVE_RETENTION:-90d}
+    SMC_AUDIT_ARCHIVE_DELETE_AFTER_ARCHIVE: ${SMC_AUDIT_ARCHIVE_DELETE_AFTER_ARCHIVE:-false}
+    SMC_AUDIT_ARCHIVE_S3_ENDPOINT: ${SMC_AUDIT_ARCHIVE_S3_ENDPOINT:-}
+    SMC_AUDIT_ARCHIVE_S3_REGION: ${SMC_AUDIT_ARCHIVE_S3_REGION:-auto}
+    SMC_AUDIT_ARCHIVE_S3_ACCESS_KEY: ${SMC_AUDIT_ARCHIVE_S3_ACCESS_KEY:-}
+    SMC_AUDIT_ARCHIVE_S3_SECRET_KEY: ${SMC_AUDIT_ARCHIVE_S3_SECRET_KEY:-}
+    SMC_AUDIT_ARCHIVE_S3_BUCKET: ${SMC_AUDIT_ARCHIVE_S3_BUCKET:-}
+    SMC_AUDIT_ARCHIVE_S3_PREFIX: ${SMC_AUDIT_ARCHIVE_S3_PREFIX:-audit/}
+    SMC_AUDIT_ARCHIVE_S3_PATH_STYLE: ${SMC_AUDIT_ARCHIVE_S3_PATH_STYLE:-true}
+    SMC_AUDIT_ARCHIVE_CRON: ${SMC_AUDIT_ARCHIVE_CRON:-0 45 3 * * *}
     DWH_PROVIDER_STORAGE: ${DWH_PROVIDER_STORAGE:-local_disk}
     DWH_STORAGE_LOCAL_PATH: /var/lib/smartupcms/storage
     DWH_BACKUP_STATUS_FILE: /var/lib/smartupcms/backup/status.json
@@ -29,6 +46,18 @@ x-server-common: &server-common
     DWH_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES: ${DWH_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES:-false}
     DWH_WEBHOOKS_CONNECT_TIMEOUT: ${DWH_WEBHOOKS_CONNECT_TIMEOUT:-3s}
     DWH_WEBHOOKS_READ_TIMEOUT: ${DWH_WEBHOOKS_READ_TIMEOUT:-10s}
+    SMTP_HOST: ${SMTP_HOST:-}
+    SMTP_PORT: ${SMTP_PORT:-587}
+    SMTP_USER: ${SMTP_USER:-}
+    SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+    SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
+    DWH_MAIL_FROM: ${DWH_MAIL_FROM:-no-reply@localhost}
+    DWH_MAIL_FROM_NAME: ${DWH_MAIL_FROM_NAME:-SmartupCMS}
+    TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+    DWH_PROVIDER_MAIL: ${DWH_PROVIDER_MAIL:-console_mail}
+    DWH_PROVIDER_SMS: ${DWH_PROVIDER_SMS:-console_sms}
+    DWH_PROVIDER_MESSENGER: ${DWH_PROVIDER_MESSENGER:-console_messenger}
+    SMC_DELIVERY_ENFORCE: ${SMC_DELIVERY_ENFORCE:-true}
     DWH_S3_ENDPOINT: ${DWH_S3_ENDPOINT:-}
     DWH_S3_REGION: ${DWH_S3_REGION:-auto}
     DWH_S3_ACCESS_KEY: ${DWH_S3_ACCESS_KEY:-}
@@ -67,7 +96,7 @@ x-server-common: &server-common
         memory: 512M
   logging:
     driver: json-file
-    options: {max-size: "50m", max-file: "5"}
+    options: {max-size: "100m", max-file: "5", compress: "true"}
 
 services:
   postgres:
@@ -106,7 +135,7 @@ services:
           memory: 512M
     logging:
       driver: json-file
-      options: {max-size: "50m", max-file: "5"}
+      options: {max-size: "100m", max-file: "5", compress: "true"}
 
   migrate:
     <<: *server-common
@@ -184,7 +213,7 @@ services:
           memory: 64M
     logging:
       driver: json-file
-      options: {max-size: "50m", max-file: "5"}
+      options: {max-size: "100m", max-file: "5", compress: "true"}
 
   typesense:
     image: ${TYPESENSE_IMAGE:-${IMAGE_REGISTRY:-ghcr.io/smartupcms}/typesense:${APP_VERSION:?APP_VERSION must be an immutable release tag}}
@@ -217,7 +246,7 @@ services:
           memory: 256M
     logging:
       driver: json-file
-      options: {max-size: "50m", max-file: "5"}
+      options: {max-size: "100m", max-file: "5", compress: "true"}
 
   clamav:
     # Official multi-architecture image, pinned to both a security-patched
@@ -237,7 +266,7 @@ services:
           memory: 1024M
     logging:
       driver: json-file
-      options: {max-size: "50m", max-file: "5"}
+      options: {max-size: "100m", max-file: "5", compress: "true"}
 
   backup-bootstrap:
     image: ${BACKUP_IMAGE:-${IMAGE_REGISTRY:-ghcr.io/smartupcms}/backup:${APP_VERSION:?APP_VERSION must be an immutable release tag}}
@@ -311,7 +340,7 @@ services:
           memory: 128M
     logging:
       driver: json-file
-      options: {max-size: "50m", max-file: "5"}
+      options: {max-size: "100m", max-file: "5", compress: "true"}
 
 networks:
   frontend:

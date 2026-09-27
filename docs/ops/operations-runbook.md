@@ -51,8 +51,67 @@ Check in order:
 
 1. `web` health and host reverse-proxy/TLS routing.
 2. `server` readiness and its PostgreSQL/Typesense connection errors.
+   Readiness (`/actuator/health/readiness` on the management port) is DOWN
+   within the health timeout (`DWH_SYSTEM_HEALTH_TIMEOUT`, 2 s by default)
+   when the main database stops answering; liveness ignores it, so the
+   container is taken out of traffic, not restarted. pg-dwh, Typesense (if
+   enabled) and ClamAV (if scanning is required) appear in
+   `/actuator/health` but do not affect readiness: search falls back to
+   PostgreSQL, uploads fail closed and the DWH module degrades alone.
 3. PostgreSQL health, disk capacity, and filesystem errors.
 4. Whether a migration failed or the release tag changed unexpectedly.
+
+Logs are kept in two places (decision of 2026-09-27):
+
+- the server writes `/var/lib/smartupcms/logs/server.log` on its data volume
+  and archives it to `server.log.<year>-W<week>.<n>.gz` every week or at
+  100 MB, whichever comes first; 12 weeks and 2 GB of archives at most
+  (`SMC_LOG_*` in the environment file);
+- every container's console log rotates at 100 MB, five compressed files
+  (Docker's json-file driver rotates by size only).
+
+### Audit log archive
+
+The audit log is kept in daily partitions and archived by the server every
+night at 03:45 UTC (decision of 2026-09-27; `SMC_AUDIT_ARCHIVE_*` in the
+environment file):
+
+- days closed for a full day (a transaction started before midnight may still
+  commit into the day) that no archive holds yet go into one file
+  `audit-log_<from>_<to>_<stamp>_<id>.jsonl.gz` once a week, or earlier when
+  they reach 100 MB; one line is one row of `audit_log`;
+- the target is a directory on the server (`SMC_AUDIT_ARCHIVE_TARGET=local`,
+  `/var/lib/smartupcms/audit-archive` on the data volume) or a bucket of its
+  own (`s3`, with `SMC_AUDIT_ARCHIVE_S3_*`);
+- the file is read back and matched by SHA-256 and row count before it
+  counts; an archive that does not match is removed and retried the next night;
+- files older than 90 days are removed (`SMC_AUDIT_ARCHIVE_RETENTION`);
+- with `SMC_AUDIT_ARCHIVE_DELETE_AFTER_ARCHIVE=true` the archived days leave
+  the database, each only if its file is still in the store; the database
+  itself refuses a day that no verified, unexpired archive holds, and a day
+  whose row count differs from its archive. A day whose archive expired is
+  archived again before it leaves. Off by default: the archive is then a copy,
+  made once per day.
+- one instance runs the archive at a time (a lease in the database); a
+  verified archive record is permanent, so every day that left the database
+  keeps its trace. With deletion on, the application role can still remove
+  closed audit days: that is what the switch allows.
+
+Every archive, removal and expiry is a security event (`AUDIT_ARCHIVED`,
+`AUDIT_PARTITIONS_DROPPED`, `AUDIT_ARCHIVES_EXPIRED`). The files hold
+personal data of the audit log: keep the directory or bucket as private as the
+database backups.
+
+To read an archive back into a working table (through an operator-controlled
+PostgreSQL session):
+
+```sql
+create table audit_restore (like audit_log);
+create temporary table audit_restore_lines (line text);
+-- psql: \copy audit_restore_lines (line) from program 'gzip -dc audit-log_....jsonl.gz' with (format csv, quote e'\x01', delimiter e'\x02')
+insert into audit_restore
+select (jsonb_populate_record(null::audit_restore, line::jsonb)).* from audit_restore_lines;
+```
 
 Restart only the failed stateless service when the cause is understood:
 

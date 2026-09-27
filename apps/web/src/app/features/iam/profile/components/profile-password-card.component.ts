@@ -5,6 +5,7 @@ import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button'
 import { TranslatePipe } from '../../../../core/services/i18n.service';
 import { PasswordForm, PasswordStrength } from '../profile.models';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
+import { fitsPasswordPolicy, PASSWORD_POLICY } from '../../../../core/security/password-policy';
 
 @Component({
   selector: 'app-profile-password-card',
@@ -52,16 +53,17 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
             type="password"
             class="font-mono"
             autocomplete="new-password"
-            [minLength]="10"
+            [minLength]="passwordPolicy.min"
+            [maxLength]="passwordPolicy.max"
             [(ngModel)]="passwordForm.newPassword"
             name="newPassword"
-            [smtInvalid]="isPasswordSubmitted && passwordForm.newPassword.length < 10"
-            [smtDescribedBy]="isPasswordSubmitted && passwordForm.newPassword.length < 10 ? 'profile-new-password-hint profile-new-password-error' : 'profile-new-password-hint'"
-            [placeholder]="'iam.minimum_10_simvolov' | t"
+            [smtInvalid]="isPasswordSubmitted && !fitsPolicy(passwordForm.newPassword)"
+            [smtDescribedBy]="isPasswordSubmitted && !fitsPolicy(passwordForm.newPassword) ? 'profile-new-password-hint profile-new-password-error' : 'profile-new-password-hint'"
+            [placeholder]="'password.policy.range' | t: passwordPolicy"
             required />
-          <span id="profile-new-password-hint" class="field-hint">{{ 'iam.minimum_10_simvolov_ne_iz_chernogo_spiska_i_ne_s' | t }}</span>
-          <span id="profile-new-password-error" class="field-error" *ngIf="isPasswordSubmitted && passwordForm.newPassword.length < 10">
-            {{ 'iam.parol_dolzhen_soderzhat_ne_menee_10_simvolov' | t }}
+          <span id="profile-new-password-hint" class="field-hint">{{ 'password.policy.hint' | t: passwordPolicy }}</span>
+          <span id="profile-new-password-error" class="field-error" *ngIf="isPasswordSubmitted && !fitsPolicy(passwordForm.newPassword)">
+            {{ 'password.policy.length_error' | t: passwordPolicy }}
           </span>
 
           <!-- Live Password Strength Meter -->
@@ -350,6 +352,9 @@ export class ProfilePasswordCardComponent {
   @Input() hasMixedCase = false;
   @Input() passwordsMatch = false;
   @Output() submitPassword = new EventEmitter<Event>();
+
+  readonly passwordPolicy = PASSWORD_POLICY;
+  readonly fitsPolicy = fitsPasswordPolicy;
 
   onSubmit(e: Event) {
     this.submitPassword.emit(e);

@@ -59,7 +59,10 @@ do not substitute development credentials. Then:
    data/schema incompatibility requiring restore.
 
 Do not mark or delete a Flyway history row to make validation pass. Escalate any
-uncertain database state to the database/release owner.
+uncertain database state to the database/release owner. The one sanctioned
+exception is the known drift of `V100` (edited) and `V101` (deleted) on
+databases migrated before 2026-09-20: follow
+[migration history repair](../ops/migration-repair.md).
 
 ## Recovery decision
 

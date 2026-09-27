@@ -148,7 +148,9 @@ export class AuthService {
 
   /** Remembers a page to open after sign-in; only paths inside the app are kept. */
   rememberReturnUrl(url: string | null): void {
-    this.returnUrl = url && url.startsWith('/') && !url.startsWith('//') && !url.startsWith('/login') ? url : null;
+    // Sign-in and the reset link are not pages to come back to: the link's token is already gone.
+    this.returnUrl = url && url.startsWith('/') && !url.startsWith('//') && !url.startsWith('/login')
+      && !url.startsWith('/reset-password') ? url : null;
   }
 
   private takeReturnUrl(): string {

@@ -6,3 +6,7 @@ spring:
     web-application-type: none
   flyway:
     enabled: true
+# One-off repair of the migration history before migrating: docs/ops/migration-repair.md. Never left on.
+smc:
+  migrate:
+    repair: ${SMC_MIGRATE_REPAIR:false}

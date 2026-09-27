@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.kauth.controller;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
+import com.smartup24.cms.instance.common.annotation.ReturnsSecret;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.kauth.repository.KauthApiTokenRepository;
@@ -38,6 +39,7 @@ public class KauthApiTokenController {
 
     @PostMapping
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "manage_tokens")
+    @ReturnsSecret
     public ResponseEntity<KauthApiTokenService.CreatedTokenResult> createToken(@Valid @RequestBody CreateTokenDto body) {
         Long userId = SecurityContext.getCurrentUserId();
         if (userId == null) {

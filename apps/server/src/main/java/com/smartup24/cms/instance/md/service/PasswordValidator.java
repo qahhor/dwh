@@ -8,14 +8,16 @@ import java.util.Set;
 
 /**
  * Валидатор паролей пользователей (FR-USR-2):
- * - Минимальная длина: 10 символов.
+ * - Длина от {@value #MIN_PASSWORD_LENGTH} до {@value #MAX_PASSWORD_LENGTH} символов (решение 27.09.2026). Проверяется
+ *   только новый пароль: вход с прежним, более длинным паролем продолжает работать.
  * - Запрет распространённых слабых паролей (blacklist).
  * - Запрет использования логина в качестве пароля.
  */
 @Component
 public class PasswordValidator {
 
-    public static final int MIN_PASSWORD_LENGTH = 10;
+    public static final int MIN_PASSWORD_LENGTH = 8;
+    public static final int MAX_PASSWORD_LENGTH = 20;
 
     private static final Set<String> COMMON_PASSWORDS = Set.of(
             "password123", "password1234", "1234567890", "12345678901",
@@ -26,9 +28,9 @@ public class PasswordValidator {
     );
 
     public void validate(String password, String login) {
-        if (password == null || password.length() < MIN_PASSWORD_LENGTH) {
+        if (password == null || password.length() < MIN_PASSWORD_LENGTH || password.length() > MAX_PASSWORD_LENGTH) {
             throw ApiException.badRequest(ErrorCode.PASSWORD_POLICY,
-                    "Пароль должен содержать минимум " + MIN_PASSWORD_LENGTH + " символов");
+                    "Пароль должен содержать от " + MIN_PASSWORD_LENGTH + " до " + MAX_PASSWORD_LENGTH + " символов");
         }
 
         String lower = password.toLowerCase().trim();

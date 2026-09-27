@@ -52,7 +52,7 @@ describe('Login form interactions', () => {
 
   function fillCredentials(): void {
     component.login = 'login-ux';
-    component.password = 'Synthetic-password-2026!';
+    component.password = 'Synthetic-pass-26!';
     fixture.detectChanges();
   }
 
@@ -138,7 +138,7 @@ describe('Login form interactions', () => {
     expect(input('password').getAttribute('aria-describedby')).toContain('login-error');
     expect(TestBed.inject(ToastService).toasts()).toHaveLength(0);
     expect(document.activeElement).toBe(input('password'));
-    expect(input('password').value).toBe('Synthetic-password-2026!');
+    expect(input('password').value).toBe('Synthetic-pass-26!');
     input('password').dispatchEvent(new Event('input', { bubbles: true }));
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeNull();
@@ -201,8 +201,8 @@ describe('Login form interactions', () => {
 
   it('focuses confirmation and associates a password mismatch with its error', async () => {
     await enterStep('must_change_password');
-    component.newPassword = 'Synthetic-password-2026!';
-    component.confirmNewPassword = 'Different-password-2026!';
+    component.newPassword = 'Synthetic-pass-26!';
+    component.confirmNewPassword = 'Different-pass-26!';
     submit();
     await fixture.whenStable();
     expect(document.activeElement).toBe(input('confirm-new-password'));
@@ -212,7 +212,7 @@ describe('Login form interactions', () => {
 
   it('blocks duplicate password saves and cancellation, and keeps failures inline', async () => {
     await enterStep('must_change_password');
-    component.newPassword = 'Synthetic-new-password-2026!';
+    component.newPassword = 'Synth-new-pass-26!';
     component.confirmNewPassword = component.newPassword;
     submit();
     submit();
@@ -256,7 +256,7 @@ describe('Login form interactions', () => {
   it('ends the authenticated session if password saving succeeds after the form is destroyed', async () => {
     await enterStep('must_change_password');
     const auth = TestBed.inject(AuthService);
-    component.newPassword = 'Synthetic-new-password-2026!';
+    component.newPassword = 'Synth-new-pass-26!';
     component.confirmNewPassword = component.newPassword;
     submit();
     const request = http.expectOne('/api/v1/auth/password');

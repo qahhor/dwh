@@ -54,6 +54,21 @@ Assert-Matches $composeSource '/run/nginx:rw,nosuid,nodev,noexec,uid=10001,gid=1
 Assert-Matches $composeSource 'DWH_WEBHOOKS_ENABLED:\s*\$\{DWH_WEBHOOKS_ENABLED:-false\}' 'Outbound webhooks must be disabled by default.'
 Assert-Matches $composeSource 'DWH_WEBHOOKS_ALLOWED_HOSTS:\s*\$\{DWH_WEBHOOKS_ALLOWED_HOSTS:-\}' 'Outbound webhooks must require an explicit host allow-list.'
 Assert-Matches $composeSource 'DWH_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES:\s*\$\{DWH_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES:-false\}' 'Private webhook destinations must require an explicit opt-in.'
+foreach ($variable in @('SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASSWORD', 'SMTP_STARTTLS', 'DWH_MAIL_FROM',
+        'TELEGRAM_BOT_TOKEN', 'DWH_PROVIDER_MAIL', 'DWH_PROVIDER_MESSENGER', 'SMC_PUBLIC_URL')) {
+    Assert-Matches $composeSource ([regex]::Escape($variable) + ':\s*\$\{' + [regex]::Escape($variable) + ':-')
+        "Production Compose must pass $variable to the server (password reset and two-factor delivery)."
+}
+Assert-Matches $composeSource 'SMC_DELIVERY_ENFORCE:\s*\$\{SMC_DELIVERY_ENFORCE:-true\}' 'Production must refuse to start while two-factor users depend on a stub channel.'
+Assert-DoesNotMatch $composeSource 'max-size:\s*"50m"' 'Container logs rotate at 100 MB (decision of 2026-09-27).'
+Assert-Matches $composeSource 'max-size:\s*"100m",\s*max-file:\s*"5",\s*compress:\s*"true"' 'Container logs must rotate at 100 MB and be compressed.'
+Assert-Matches $composeSource 'SMC_LOG_FILE:\s*\$\{SMC_LOG_FILE:-/var/lib/smartupcms/logs/server\.log\}' 'The server must write its weekly archived log file on the data volume.'
+foreach ($variable in @('SMC_AUDIT_ARCHIVE_TARGET', 'SMC_AUDIT_ARCHIVE_LOCAL_PATH', 'SMC_AUDIT_ARCHIVE_RETENTION',
+        'SMC_AUDIT_ARCHIVE_DELETE_AFTER_ARCHIVE', 'SMC_AUDIT_ARCHIVE_S3_BUCKET', 'SMC_AUDIT_ARCHIVE_S3_SECRET_KEY')) {
+    Assert-Matches $composeSource ([regex]::Escape($variable) + ':\s*\$\{' + [regex]::Escape($variable) + ':-')
+        "Production Compose must pass $variable to the server (audit log archive)."
+}
+Assert-Matches $composeSource 'SMC_AUDIT_ARCHIVE_DELETE_AFTER_ARCHIVE:\s*\$\{SMC_AUDIT_ARCHIVE_DELETE_AFTER_ARCHIVE:-false\}' 'Deleting archived audit partitions must be an explicit opt-in.'
 Assert-Matches $webNginx 'server:8080' 'The single web origin must proxy API traffic to server:8080.'
 Assert-DoesNotMatch $webNginx 'control-plane|web-cp|app:8080' 'The web origin still references a retired runtime.'
 

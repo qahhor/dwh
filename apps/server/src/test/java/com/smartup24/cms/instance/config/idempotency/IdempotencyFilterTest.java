@@ -1,14 +1,21 @@
 package com.smartup24.cms.instance.config.idempotency;
 
 import com.smartup24.cms.core.error.ErrorCode;
+import com.smartup24.cms.instance.common.annotation.ReturnsSecret;
+import com.smartup24.cms.instance.kauth.controller.KauthApiTokenController;
+import com.smartup24.cms.instance.kwh.controller.KwhSubscriptionController;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.web.method.HandlerMethod;
+import org.springframework.web.servlet.HandlerExecutionChain;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import tools.jackson.databind.ObjectMapper;
 
 import java.nio.charset.StandardCharsets;
@@ -92,19 +99,41 @@ class IdempotencyFilterTest {
     }
 
     @Test
-    @DisplayName("Запрос на генерацию API-токена /api/v1/iam/profile/api-tokens отклоняется (400 IDEMPOTENCY_NOT_SUPPORTED)")
-    void shouldRejectApiTokenCreationEndpoint() throws Exception {
-        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/iam/profile/api-tokens");
+    @DisplayName("Ответ с секретом (@ReturnsSecret) выполняется без резервации и никогда не сохраняется")
+    void secretResponseIsNeverStored() throws Exception {
+        RequestMappingHandlerMapping mapping = Mockito.mock(RequestMappingHandlerMapping.class);
+        HandlerMethod handler = new HandlerMethod(new SecretController(), SecretController.class.getMethod("create"));
+        when(mapping.getHandler(any())).thenReturn(new HandlerExecutionChain(handler));
+        @SuppressWarnings("unchecked")
+        ObjectProvider<RequestMappingHandlerMapping> provider = Mockito.mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(mapping);
+        IdempotencyFilter secretAware = new IdempotencyFilter(idempotencyService, objectMapper, provider);
+
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/iam/profile/tokens");
         request.addHeader(IdempotencyFilter.HEADER_IDEMPOTENCY_KEY, UUID.randomUUID().toString());
         MockHttpServletResponse response = new MockHttpServletResponse();
         FilterChain chain = Mockito.mock(FilterChain.class);
 
-        filter.doFilter(request, response, chain);
+        secretAware.doFilter(request, response, chain);
 
-        assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_BAD_REQUEST);
-        assertThat(response.getContentAsString()).contains(ErrorCode.IDEMPOTENCY_NOT_SUPPORTED.getCode());
-        verifyNoInteractions(chain);
+        verify(chain).doFilter(request, response);
         verifyNoInteractions(idempotencyService);
+    }
+
+    @Test
+    @DisplayName("Создание API-токена и вебхука помечено @ReturnsSecret")
+    void secretHandlersAreMarked() throws Exception {
+        assertThat(KauthApiTokenController.class.getMethod("createToken", KauthApiTokenController.CreateTokenDto.class)
+                .isAnnotationPresent(ReturnsSecret.class)).isTrue();
+        assertThat(KwhSubscriptionController.class.getMethod("createSubscription",
+                KwhSubscriptionController.CreateSubscriptionDto.class).isAnnotationPresent(ReturnsSecret.class)).isTrue();
+    }
+
+    static class SecretController {
+        @ReturnsSecret
+        public String create() {
+            return "secret";
+        }
     }
 
     @Test

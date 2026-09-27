@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
+import { PASSWORD_POLICY } from '../../../core/security/password-policy';
 
 @Component({
   selector: 'app-settings-security-panel',
@@ -31,17 +32,8 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit
 
       <div class="form-grid">
         <div class="form-group">
-          <label class="form-label" for="settings-password-length">{{ 'settings.min_password_len' | t }}</label>
-          <smt-input
-            smtFieldId="settings-password-length"
-            name="settingsPasswordLength"
-            type="number"
-            [smtMin]="8"
-            [smtMax]="64"
-            [disabled]="!canUpdateSystemSettings || isSaving"
-            smtDescribedBy="settings-password-length-hint"
-            [(ngModel)]="systemSettings['security.min_password_length']" />
-          <span id="settings-password-length-hint" class="hint-text">{{ 'settings.rekomenduetsya_ne_menee_10_simvolov' | t }}</span>
+          <span class="form-label" id="settings-password-length">{{ 'settings.password_length' | t }}</span>
+          <p class="hint-text">{{ 'password.policy.hint' | t: passwordPolicy }}</p>
         </div>
 
         <div class="form-group">
@@ -245,6 +237,8 @@ export class SettingsSecurityPanelComponent {
   @Input() isSaving = false;
   @Output() save = new EventEmitter<void>();
   @Output() toggleRequire2fa = new EventEmitter<boolean>();
+
+  readonly passwordPolicy = PASSWORD_POLICY;
 
   formatSessionHours(hours: string | number | undefined): string {
     if (hours === undefined || hours === '') return '';

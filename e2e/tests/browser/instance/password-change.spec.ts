@@ -20,10 +20,11 @@ import { clearSecret, fillSecret } from '../../../support/secret.js';
 const environment = loadE2eEnv();
 const desktopViewport = { width: 1366, height: 900 } as const;
 const mobileViewport = { width: 390, height: 844 } as const;
+// 20 characters: the longest password the policy accepts (8..20).
 const rotatedInstancePassword = `E2e!${createHash('sha256')
   .update(environment.instance.password)
   .digest('base64url')
-  .slice(0, 24)}`;
+  .slice(0, 16)}`;
 
 type LoginOutcome = 'alert' | 'mandatory-change' | 'tasks';
 

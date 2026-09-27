@@ -10,22 +10,27 @@ import com.smartup24.cms.instance.kauth.repository.KauthApiTokenRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthChannelRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthLoginAttemptRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthOtpCodeRepository;
-import com.smartup24.cms.instance.kauth.repository.KauthPasswordResetRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthSessionRepository;
 import com.smartup24.cms.instance.kauth.service.KauthAuthService;
 import com.smartup24.cms.instance.kauth.service.KauthChannelService;
+import com.smartup24.cms.instance.kauth.service.KauthChannelTexts;
 import com.smartup24.cms.instance.kauth.service.KauthCredentialGuard;
 import com.smartup24.cms.instance.kauth.service.KauthOtpSender;
 import com.smartup24.cms.instance.kauth.service.KauthPasswordHasher;
 import com.smartup24.cms.instance.md.repository.MdCustomFieldRepository;
+import com.smartup24.cms.instance.md.repository.MdI18nRepository;
 import com.smartup24.cms.instance.md.repository.MdOrgUnitRepository;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdScopeRepository;
+import com.smartup24.cms.instance.md.repository.MdSettingRepository;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import com.smartup24.cms.instance.md.service.MdCustomFieldService;
+import com.smartup24.cms.instance.md.service.MdI18nCatalog;
+import com.smartup24.cms.instance.md.service.MdI18nService;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdScopeService;
+import com.smartup24.cms.instance.md.service.MdSettingService;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.md.service.PasswordValidator;
 import com.smartup24.cms.instance.md.service.UserSessionInvalidator;
@@ -99,11 +104,6 @@ class KauthOtpLoginIntegrationTest {
         var registry = new ProviderRegistry(
                 List.of(storageStub()), List.of(mailStub()), List.of(smsStub()), List.of(messenger),
                 "local", "console_mail", "console_sms", "telegram");
-        var sender = new KauthOtpSender(registry);
-        channelService = new KauthChannelService(channelRepository, otpCodeRepository, sender, auditLogService,
-                new KauthCredentialGuard(new KauthSessionRepository(jdbc),
-                        new KauthApiTokenRepository(jdbc)));
-
         var scopes = new MdScopeService(
                 new MdScopeRepository(jdbc),
                 new MdOrgUnitRepository(jdbc),
@@ -119,13 +119,20 @@ class KauthOtpLoginIntegrationTest {
                 Mockito.mock(SearchChangePublisher.class),
                 auditLogService,
                 scopes);
+        var i18n = new MdI18nService(new MdI18nRepository(jdbc, mapper), new MdI18nCatalog(mapper), auditLogService);
+        var texts = new KauthChannelTexts(i18n,
+                new MdSettingService(new MdSettingRepository(jdbc), userRepository, i18n, auditLogService), userService);
+        var sender = new KauthOtpSender(registry, texts);
+        channelService = new KauthChannelService(channelRepository, otpCodeRepository, sender, auditLogService,
+                new KauthCredentialGuard(new KauthSessionRepository(jdbc),
+                        new KauthApiTokenRepository(jdbc)));
+
 
         authService = new KauthAuthService(
                 userService,
                 new KauthSessionRepository(jdbc),
                 new KauthLoginAttemptRepository(jdbc),
                 otpCodeRepository,
-                new KauthPasswordResetRepository(jdbc),
                 new KauthPasswordHasher(),
                 new PasswordValidator(),
                 auditLogService,

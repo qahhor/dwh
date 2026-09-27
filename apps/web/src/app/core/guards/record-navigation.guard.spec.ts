@@ -34,7 +34,7 @@ describe('Record routes with the actual router and actual templates', () => {
         return of(path === '/tasks' || path === '/iam/users' || path === '/tasks/projects/page' ? { items: [], hasMore: false, nextCursor: null, totalReturned: 0 } : []);
       }), post: vi.fn(() => of({})), patch: vi.fn(() => of({})), delete: vi.fn(() => of({}))
     };
-    TestBed.configureTestingModule({ providers: [provideRouter([routes[0], ...routes[1].children!]),
+    TestBed.configureTestingModule({ providers: [provideRouter([routes[0], ...routes.find(route => route.path === '' && route.children)!.children!]),
       { provide: ApiService, useValue: api },
       { provide: PermissionService, useValue: { canCreate: () => true, canUpdate: () => true, canView: () => true, canDelete: () => true, hasPermission: () => true } }
     ] });

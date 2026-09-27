@@ -15,6 +15,7 @@ STORAGE_MODE="${STORAGE_MODE:-local_disk}"
 BACKUP_STORAGE_MODE="${BACKUP_STORAGE_MODE:-local}"
 HTTP_PORT="${HTTP_PORT:-8080}"
 HTTP_BIND="${HTTP_BIND:-127.0.0.1}"
+SMC_PUBLIC_URL="${SMC_PUBLIC_URL:-}"
 FORCE="${FORCE:-false}"
 VALIDATE="${VALIDATE:-false}"
 
@@ -33,11 +34,12 @@ generate_hex_token() {
     fi
 }
 
+# The first administrator password: 20 characters, the longest the password policy accepts.
 generate_secure_password() {
     if command -v openssl >/dev/null 2>&1; then
-        openssl rand -base64 24 | tr -dc 'A-Za-z0-9!@#$%^&*-_=+' | head -c 24
+        openssl rand -base64 24 | tr -dc 'A-Za-z0-9!@#$%^&*-_=+' | head -c 20
     else
-        head -c 64 /dev/urandom | tr -dc 'A-Za-z0-9!@#$%^&*-_=+' | head -c 24
+        head -c 64 /dev/urandom | tr -dc 'A-Za-z0-9!@#$%^&*-_=+' | head -c 20
     fi
 }
 
@@ -115,6 +117,10 @@ ORGANIZATION_CODE=$ORGANIZATION_CODE
 ORGANIZATION_NAME=$ORGANIZATION_NAME
 RESOURCE_PROFILE=$RESOURCE_PROFILE
 
+# Public address of the web application, e.g. https://cms.example.com.
+# Password reset links are built from it; empty means no link is sent.
+SMC_PUBLIC_URL=$SMC_PUBLIC_URL
+
 # Database credentials (I-02 Least Privilege role separation)
 DB_NAME=smartupcms
 POSTGRES_USER=postgres
@@ -161,6 +167,23 @@ DWH_WEBHOOKS_ALLOWED_HOSTS=
 DWH_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES=false
 DWH_WEBHOOKS_CONNECT_TIMEOUT=3s
 DWH_WEBHOOKS_READ_TIMEOUT=10s
+
+# Delivery channels: password reset links and two-factor codes. console_* only
+# writes to the log; the server refuses to start while two-factor users depend
+# on it (SMC_DELIVERY_ENFORCE). Mail: SMTP_HOST + DWH_PROVIDER_MAIL=smtp.
+# Telegram: TELEGRAM_BOT_TOKEN + DWH_PROVIDER_MESSENGER=telegram.
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASSWORD=
+SMTP_STARTTLS=true
+DWH_MAIL_FROM=no-reply@localhost
+DWH_MAIL_FROM_NAME=SmartupCMS
+DWH_PROVIDER_MAIL=console_mail
+TELEGRAM_BOT_TOKEN=
+DWH_PROVIDER_MESSENGER=console_messenger
+DWH_PROVIDER_SMS=console_sms
+SMC_DELIVERY_ENFORCE=true
 
 # Network & Reverse Proxy
 HTTP_BIND=$HTTP_BIND

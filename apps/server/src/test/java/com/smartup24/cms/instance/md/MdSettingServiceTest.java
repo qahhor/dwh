@@ -34,7 +34,7 @@ class MdSettingServiceTest {
 
         assertThat(settings.get("system.company_name")).isEqualTo("Smartup DWH Platform");
         assertThat(settings.get("system.default_language")).isEqualTo("ru");
-        assertThat(settings.get("security.min_password_length")).isEqualTo("10");
+        assertThat(settings.get("security.idle_lock_minutes")).isEqualTo("30");
         assertThat(settings.get("storage.default_user_quota_mb")).isEqualTo("1024");
     }
 
@@ -53,7 +53,7 @@ class MdSettingServiceTest {
         var effective = service.getEffectiveSettings(10L);
 
         // Inherited from Defaults
-        assertThat(effective.get("security.min_password_length")).isEqualTo("10");
+        assertThat(effective.get("security.idle_lock_minutes")).isEqualTo("30");
         // Overridden by Instance
         assertThat(effective.get("system.company_name")).isEqualTo("Acme Corporation");
         // Overridden by User

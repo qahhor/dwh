@@ -5,7 +5,6 @@ import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.kauth.repository.KauthLoginAttemptRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthOtpCodeRepository;
-import com.smartup24.cms.instance.kauth.repository.KauthPasswordResetRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthSessionRepository;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.service.MdUserService;
@@ -28,20 +27,20 @@ public class KauthAuthService {
     private final KauthSessionRepository sessionRepository;
     private final KauthLoginAttemptRepository loginAttemptRepository;
     private final KauthOtpCodeRepository otpCodeRepository;
-    private final KauthPasswordResetRepository passwordResetRepository;
     private final KauthPasswordHasher passwordHasher;
     private final PasswordValidator passwordValidator;
     private final AuditLogService auditLogService;
     private final KauthChannelService channelService;
     private final KauthOtpSender otpSender;
     private final SecureRandom secureRandom = new SecureRandom();
+    /** Hash an unknown login is checked against, so that it costs one Argon2 verification like a known one. */
+    private volatile String dummyPasswordHash;
 
     public KauthAuthService(
             MdUserService userService,
             KauthSessionRepository sessionRepository,
             KauthLoginAttemptRepository loginAttemptRepository,
             KauthOtpCodeRepository otpCodeRepository,
-            KauthPasswordResetRepository passwordResetRepository,
             KauthPasswordHasher passwordHasher,
             PasswordValidator passwordValidator,
             AuditLogService auditLogService,
@@ -51,7 +50,6 @@ public class KauthAuthService {
         this.sessionRepository = sessionRepository;
         this.loginAttemptRepository = loginAttemptRepository;
         this.otpCodeRepository = otpCodeRepository;
-        this.passwordResetRepository = passwordResetRepository;
         this.passwordHasher = passwordHasher;
         this.passwordValidator = passwordValidator;
         this.auditLogService = auditLogService;
@@ -60,42 +58,46 @@ public class KauthAuthService {
     }
 
 
-    @Transactional
+    /**
+     * The answer does not tell which logins exist (plan 10/10, item 0.6): an unknown login costs one Argon2
+     * verification like a wrong password, both answer "invalid credentials", and a blocked account shows its state
+     * only after the right password.
+     *
+     * <p>A refusal ({@link ApiException}) commits: the rollback it used to cause erased the attempt the lockout counts
+     * and the security event, so five wrong passwords never locked anything. Only refused credentials are counted;
+     * a refusal by the lockout itself is logged, not counted, otherwise every try during the lock would renew it.
+     * Other exceptions still roll everything back.
+     */
+    @Transactional(noRollbackFor = ApiException.class)
     public LoginResult login(String login, String password, String ip, String userAgent, String deviceInfo) {
         Instant tenMinutesAgo = Instant.now().minusSeconds(600);
 
         int failedIp = loginAttemptRepository.countFailedAttemptsForIpSince(ip, tenMinutesAgo);
         if (failedIp >= MAX_FAILED_ATTEMPTS_PER_IP) {
-            loginAttemptRepository.recordAttempt(login, ip, false, "IP_RATE_LIMITED");
             auditLogService.logSecurityEvent("IP_RATE_LIMITED", null, ip, userAgent, Map.of("login", login));
             throw ApiException.locked(ErrorCode.RATE_LIMITED, "Слишком много неудачных попыток входа с вашего IP");
         }
 
         int failedUser = loginAttemptRepository.countFailedAttemptsForLoginSince(login, tenMinutesAgo);
         if (failedUser >= MAX_FAILED_ATTEMPTS_PER_USER) {
-            loginAttemptRepository.recordAttempt(login, ip, false, "USER_LOCKED");
             auditLogService.logSecurityEvent("LOGIN_LOCKED", null, ip, userAgent, Map.of("login", login));
             throw ApiException.locked(ErrorCode.LOGIN_LOCKED, "Учётная запись временно заблокирована из-за частых ошибок ввода пароля");
         }
 
         var userOpt = userService.findAuthUserByLogin(login);
-        if (userOpt.isEmpty()) {
-            loginAttemptRepository.recordAttempt(login, ip, false, "USER_NOT_FOUND");
-            auditLogService.logSecurityEvent("LOGIN_FAILED", null, ip, userAgent, Map.of("login", login, "reason", "USER_NOT_FOUND"));
+        String storedHash = userOpt.map(MdUserService.AuthUser::passwordHash).orElse(null);
+        boolean passwordMatches = passwordHasher.verifyPassword(password,
+                storedHash != null ? storedHash : dummyPasswordHash());
+        if (userOpt.isEmpty() || storedHash == null || !passwordMatches) {
+            refuse(login, ip, userAgent, userOpt.map(MdUserService.AuthUser::id).orElse(null),
+                    userOpt.isEmpty() ? "USER_NOT_FOUND" : "INVALID_PASSWORD");
             throw ApiException.invalidCredentials();
         }
 
         var user = userOpt.get();
         if (MdPref.STATE_PASSIVE.equals(user.state())) {
-            loginAttemptRepository.recordAttempt(login, ip, false, "USER_BLOCKED");
-            auditLogService.logSecurityEvent("LOGIN_FAILED", user.id(), ip, userAgent, Map.of("login", login, "reason", "USER_BLOCKED"));
+            refuse(login, ip, userAgent, user.id(), "USER_BLOCKED");
             throw ApiException.conflict(ErrorCode.USER_BLOCKED, "Учётная запись заблокирована");
-        }
-
-        if (!passwordHasher.verifyPassword(password, user.passwordHash())) {
-            loginAttemptRepository.recordAttempt(login, ip, false, "INVALID_PASSWORD");
-            auditLogService.logSecurityEvent("LOGIN_FAILED", user.id(), ip, userAgent, Map.of("login", login, "reason", "INVALID_PASSWORD"));
-            throw ApiException.invalidCredentials();
         }
 
         loginAttemptRepository.recordAttempt(login, ip, true, null);
@@ -136,7 +138,12 @@ public class KauthAuthService {
         return LoginResult.success(sessionToken, user, session);
     }
 
-    @Transactional
+    /**
+     * Like {@link #login}, a refusal commits: the attempt a wrong code used stays used. The attempt is taken before
+     * the comparison ({@link KauthOtpCodeRepository#claimAttempt}); its row lock makes parallel guesses of one code
+     * wait for each other, so a code gets exactly as many comparisons as it has attempts.
+     */
+    @Transactional(noRollbackFor = ApiException.class)
     public LoginResult verifyOtp(String otpToken, String code, String ip, String userAgent, String deviceInfo) {
         if (otpToken == null || otpToken.isBlank()) {
             throw ApiException.badRequest(ErrorCode.OTP_INVALID, "Некорректный OTP токен");
@@ -152,9 +159,12 @@ public class KauthAuthService {
             throw ApiException.badRequest(ErrorCode.OTP_EXPIRED, "Срок действия OTP-кода истёк");
         }
 
+        // No attempt to claim: another request used the code, or took its last attempt, while this one waited.
+        if (!otpCodeRepository.claimAttempt(otp.id())) {
+            throw ApiException.badRequest(ErrorCode.OTP_INVALID, "Некорректный OTP токен");
+        }
         String inputHash = KauthPasswordHasher.sha256(code);
         if (!inputHash.equals(otp.codeHash())) {
-            otpCodeRepository.decrementAttempts(otp.id());
             if (otp.attemptsLeft() <= 1) {
                 throw ApiException.locked(ErrorCode.OTP_ATTEMPTS_EXCEEDED, "Превышено количество попыток ввода OTP");
             }
@@ -183,33 +193,19 @@ public class KauthAuthService {
         return LoginResult.success(sessionToken, user, session);
     }
 
-    @Transactional
-    public void requestPasswordReset(String email) {
-        userService.findAuthUserByEmail(email).ifPresent(user -> {
-            String code = String.format("%06d", secureRandom.nextInt(1000000));
-            String codeHash = KauthPasswordHasher.sha256(code);
-            passwordResetRepository.create(user.id(), codeHash, Instant.now().plusSeconds(900));
-        });
+    private void refuse(String login, String ip, String userAgent, Long userId, String reason) {
+        loginAttemptRepository.recordAttempt(login, ip, false, reason);
+        auditLogService.logSecurityEvent("LOGIN_FAILED", userId, ip, userAgent, Map.of("login", login, "reason", reason));
     }
 
-    @Transactional
-    public void confirmPasswordReset(String code, String newPassword) {
-        String codeHash = KauthPasswordHasher.sha256(code);
-        var reset = passwordResetRepository.findActiveByCodeHash(codeHash)
-                .orElseThrow(() -> ApiException.badRequest(ErrorCode.RESET_CODE_INVALID, "Неверный или просроченный код сброса пароля"));
-
-        var user = userService.findAuthUserById(reset.userId())
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.USER_NOT_FOUND, "Пользователь не найден"));
-
-        passwordValidator.validate(newPassword, user.login());
-
-        passwordResetRepository.markAsUsed(reset.id());
-
-        String newHash = passwordHasher.hashPassword(newPassword);
-        userService.setPasswordForReset(reset.userId(), newHash);
-        sessionRepository.closeAllUserSessions(reset.userId());
+    private String dummyPasswordHash() {
+        String hash = dummyPasswordHash;
+        if (hash == null) {
+            hash = passwordHasher.hashPassword(generateSecureToken());
+            dummyPasswordHash = hash;
+        }
+        return hash;
     }
-
 
     private String generateSecureToken() {
         byte[] bytes = new byte[32];

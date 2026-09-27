@@ -180,16 +180,6 @@ export class SettingsComponent implements OnInit {
   saveSystemSettings() {
     if (!this.canUpdateSystemSettings()) return;
 
-    const minPassStr = this.systemSettings()['security.min_password_length'];
-    if (minPassStr !== undefined) {
-      const trimmed = String(minPassStr).trim();
-      const minPass = trimmed === '' ? NaN : Number(trimmed);
-      if (!Number.isFinite(minPass) || minPass < 8 || minPass > 64) {
-        this.toast.error(this.uiI18n.translate('settings.validation.min_password'));
-        return;
-      }
-    }
-
     const sessionStr = this.systemSettings()['security.session_lifetime_hours'];
     if (sessionStr !== undefined) {
       const trimmed = String(sessionStr).trim();

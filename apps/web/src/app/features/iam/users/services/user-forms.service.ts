@@ -5,6 +5,7 @@ import { I18nService } from '../../../../core/services/i18n.service';
 import { User } from '../../../../core/models/auth.models';
 import { Role } from '../../../../core/models/rbac.models';
 import { safeNumericRecordId } from '../../../../core/services/search-target';
+import { fitsPasswordPolicy, PASSWORD_POLICY } from '../../../../core/security/password-policy';
 import {
   UserCreateForm,
   UserEditForm,
@@ -59,8 +60,8 @@ export class UserFormsService {
       return;
     }
 
-    if (this.createForm.password.length < 10) {
-      this.toast.warning(this.uiI18n.translate('iam.parol_dolzhen_soderzhat_minimum_10_simvolov'));
+    if (!fitsPasswordPolicy(this.createForm.password)) {
+      this.toast.warning(this.uiI18n.translate('password.policy.length_error', PASSWORD_POLICY));
       return;
     }
 

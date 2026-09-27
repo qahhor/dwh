@@ -39,6 +39,20 @@ public class KauthLoginAttemptRepository {
                 .single();
     }
 
+    /** Failures with the given reason from one address: password reset links, for one. */
+    public int countFailedAttemptsForIpSince(String ip, String failureReason, Instant since) {
+        return jdbcClient.sql("""
+                select count(*) from kauth_login_attempts
+                where ip = cast(:ip as inet) and not is_success and failure_reason = :failureReason
+                  and attempt_at >= :since
+                """)
+                .param("ip", ip)
+                .param("failureReason", failureReason)
+                .param("since", Timestamp.from(since))
+                .query(Integer.class)
+                .single();
+    }
+
     public int countFailedAttemptsForLoginSince(String login, Instant since) {
         return jdbcClient.sql("""
                 select count(*) from kauth_login_attempts

@@ -137,18 +137,6 @@ public class KauthAuthController {
         return ResponseEntity.ok(new MeResponse(MdUserView.from(user), permissions, version));
     }
 
-    @PostMapping("/password-reset/request")
-    public ResponseEntity<Void> requestPasswordReset(@Valid @RequestBody PasswordResetRequestDto body) {
-        authService.requestPasswordReset(body.email());
-        return ResponseEntity.noContent().build();
-    }
-
-    @PostMapping("/password-reset/confirm")
-    public ResponseEntity<Void> confirmPasswordReset(@Valid @RequestBody PasswordResetConfirmDto body) {
-        authService.confirmPasswordReset(body.code(), body.newPassword());
-        return ResponseEntity.noContent().build();
-    }
-
     private void setSessionCookie(HttpServletRequest request, HttpServletResponse response, String rawToken) {
         boolean isSecure = clientIpResolver.isSecure(request);
         ResponseCookie cookie = ResponseCookie.from(KauthPref.SESSION_COOKIE_NAME, rawToken)
@@ -173,15 +161,6 @@ public class KauthAuthController {
             @NotBlank String otpToken,
             @NotBlank String code,
             String deviceInfo
-    ) {}
-
-    public record PasswordResetRequestDto(
-            @NotBlank String email
-    ) {}
-
-    public record PasswordResetConfirmDto(
-            @NotBlank String code,
-            @NotBlank String newPassword
     ) {}
 
     public record MeResponse(

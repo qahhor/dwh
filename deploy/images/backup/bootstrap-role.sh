@@ -158,6 +158,13 @@ FROM pg_namespace WHERE nspname = 'public' \gexec
 SELECT format('REVOKE UPDATE, DELETE, TRUNCATE ON audit_log, audit_log_default FROM %I', :'app_user')
 WHERE EXISTS (SELECT 1 FROM pg_class WHERE relname = 'audit_log') \gexec
 
+-- Audit partition maintenance is granted to the application role only, not to PUBLIC (V125)
+SELECT format('GRANT EXECUTE ON FUNCTION audit_log_create_partition(int, int), audit_log_detach_partition(int, int) TO %I', :'app_user')
+WHERE EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'audit_log_detach_partition') \gexec
+-- Daily partitions and the audit archive (V127)
+SELECT format('GRANT EXECUTE ON FUNCTION audit_log_create_day_partition(date), audit_log_detach_day_partition(date), audit_log_drop_archived_partition(text) TO %I', :'app_user')
+WHERE EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'audit_log_drop_archived_partition') \gexec
+
 -- Backup user read-only permissions
 SELECT format('ALTER ROLE %I SET default_transaction_read_only = on', :'backup_user') \gexec
 SELECT format('GRANT CONNECT ON DATABASE %I TO %I', current_database(), :'backup_user') \gexec

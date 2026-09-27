@@ -342,9 +342,21 @@ public class MdUserService {
         return userRepository.findByEmail(email).map(AuthUser::from);
     }
 
+    /**
+     * Sets a password by a reset link: the effects of a change (a new authentication generation, every session and
+     * API token closed) without the old password.
+     *
+     * @return {@code false} when the user changed in the meantime: password, generation or state
+     */
     @Transactional
-    public void setPasswordForReset(Long userId, String newPasswordHash) {
-        userRepository.updatePassword(userId, newPasswordHash);
+    public boolean resetPassword(Long userId, long expectedAuthVersion, String expectedPasswordHash,
+                                 String newPasswordHash) {
+        if (!userRepository.compareAndSetPassword(userId, expectedAuthVersion, expectedPasswordHash, newPasswordHash)) {
+            return false;
+        }
+        userRepository.incrementAuthenticationVersion(userId);
+        sessionInvalidator.invalidateAllAccess(userId);
+        return true;
     }
 
     @Transactional

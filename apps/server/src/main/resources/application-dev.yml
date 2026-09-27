@@ -1,5 +1,13 @@
 # ТОЛЬКО локальная разработка (--spring.profiles.active=dev).
 # В прод-развёртывании эти значения приходят из конфигурации job'а (фаза P: Vault).
+smc:
+  public-url: http://localhost:4200
+  delivery:
+    enforce: false
+  audit:
+    archive:
+      local-path: ${java.io.tmpdir}/smartupcms-audit-archive
+
 dwh:
   schema-gate:
     enabled: true

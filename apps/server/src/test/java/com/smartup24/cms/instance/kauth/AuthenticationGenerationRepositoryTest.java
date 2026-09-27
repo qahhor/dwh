@@ -139,7 +139,8 @@ class AuthenticationGenerationRepositoryTest {
         assertThat(otps.consume(otp.id(),user,0,"login")).isFalse();
         jdbc.sql("update md_users set state='A',auth_version=1 where id=:id").param("id",user).update();
         assertThat(otps.consume(otp.id(),user,0,"login")).isFalse();
-        for(String condition:List.of("is_used=true","attempts_left=0","expires_at=now()-interval '1 second'")){
+        // Attempts are enforced by claimAttempt before the comparison; consume follows a successful claim.
+        for(String condition:List.of("is_used=true","expires_at=now()-interval '1 second'")){
             var invalid=otps.create(user,1,"telegram","synthetic",UUID.randomUUID().toString(),"login",Instant.now().plusSeconds(300));
             jdbc.sql("update kauth_otp_codes set "+condition+" where id=:id").param("id",invalid.id()).update();
             assertThat(otps.consume(invalid.id(),user,1,"login")).isFalse();
@@ -147,5 +148,9 @@ class AuthenticationGenerationRepositoryTest {
         var fresh=otps.create(user,1,"telegram","synthetic",UUID.randomUUID().toString(),"channel_verify",Instant.now().plusSeconds(300));
         assertThat(otps.consume(fresh.id(),user,1,"channel_verify")).isTrue();
         assertThat(otps.consume(fresh.id(),user,1,"channel_verify")).isFalse();
+        var limited=otps.create(user,1,"telegram","synthetic",UUID.randomUUID().toString(),"login",Instant.now().plusSeconds(300));
+        for(int attempt=0;attempt<3;attempt++)assertThat(otps.claimAttempt(limited.id())).isTrue();
+        assertThat(otps.claimAttempt(limited.id())).as("three attempts, then none").isFalse();
+        assertThat(otps.claimAttempt(fresh.id())).as("a used code has no attempt to claim").isFalse();
     }
 }

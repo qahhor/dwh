@@ -20,7 +20,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
       (closed)="onClose()">
       <ng-template smtDialogContent>
       <div body class="reset-body">
-        <p id="reset-hint" class="reset-hint">{{ 'auth.vvedite_email_vashey_uchetnoy_zapisi_my_otpravim' | t }}</p>
+        <p id="reset-hint" class="reset-hint">{{ 'auth.reset.request_hint' | t }}</p>
         <div class="form-group">
           <label class="form-label" for="reset-email">Email</label>
           <smt-input
@@ -37,7 +37,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
       </div>
       <div footer>
         <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="onClose()">{{ 'common.cancel' | t }}</button>
-        <button smt-button type="button" smtVariant="primary" smtSize="md" [smtLoading]="isResetLoading()" (click)="sendResetRequest()">{{ 'auth.otpravit_kod' | t }}</button>
+        <button smt-button type="button" smtVariant="primary" smtSize="md" [smtLoading]="isResetLoading()" (click)="sendResetRequest()">{{ 'auth.reset.send_link' | t }}</button>
       </div>
       </ng-template>
     </smt-dialog>
@@ -120,11 +120,11 @@ export class LoginResetModalComponent {
     if (!this.resetEmail) return;
     this.resetError.set('');
     this.isResetLoading.set(true);
-    this.api.post('/auth/password-reset/request', { email: this.resetEmail }).subscribe({
+    this.api.post('/auth/password-reset/request', { email: this.resetEmail }, { notifyError: false }).subscribe({
       next: () => {
         this.isResetLoading.set(false);
         this.onClose();
-        this.toast.success(this.i18n.translate('auth.instrukciya_po_sbrosu_parolya_otpravlena_na_ukaz'));
+        this.toast.success(this.i18n.translate('auth.reset.request_sent'));
       },
       error: err => {
         this.isResetLoading.set(false);

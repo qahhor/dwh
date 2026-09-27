@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.search;
 
+import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
 import org.junit.jupiter.api.Test;
 import org.flywaydb.core.Flyway;
 import java.util.UUID;
@@ -8,13 +9,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 class SearchJobMetadataMigrationTest extends SearchSettingsIntegrationTestSupport {
     @Test void migrationPreservesHistoricalUnknownRequestSemanticsAndMarksNewRequests() {
         String schema = "task2_upgrade_" + UUID.randomUUID().toString().replace("-", "");
-        var previous = Flyway.configure().dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
+        // In UTC like production: V011 turns date literals into partition bounds in the session time zone.
+        var previous = FlywayUtcConfiguration.configure(Flyway.configure()).dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
                 .schemas(schema).defaultSchema(schema).target("26").load();
         previous.migrate();
         UUID oldId = UUID.randomUUID();
         jdbc.sql("insert into " + schema + ".search_jobs(id,request_id,action,state) values(:id,:request,'CHECK','FAILED')")
                 .param("id", oldId).param("request", UUID.randomUUID()).update();
-        var upgrade = Flyway.configure().dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
+        var upgrade = FlywayUtcConfiguration.configure(Flyway.configure()).dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
                 .schemas(schema).defaultSchema(schema).load();
         upgrade.migrate();
         assertThat(jdbc.sql("select count(*) from information_schema.columns where table_schema=:schema and table_name='search_jobs' and column_name='request_metadata_recorded'")

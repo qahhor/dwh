@@ -1,14 +1,20 @@
 package com.smartup24.cms.instance.fnd.config;
 
+import com.smartup24.cms.instance.common.health.ReadinessChecks;
 import com.smartup24.cms.instance.fnd.FndPref;
 import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.convert.DurationStyle;
+import org.springframework.boot.health.contributor.Health;
+import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
 import javax.sql.DataSource;
+import java.time.Duration;
 
 /**
  * Второй {@link DataSource} — {@code pg-dwh}. Единственное место, где он создаётся; за пределы пакета
@@ -49,6 +55,22 @@ public class FndDwhConfig {
         long longestMs = Math.max(statementMs, props.maintenanceStatementTimeout().toMillis());
         ds.addDataSourceProperty("socketTimeout", String.valueOf((longestMs + 999) / 1000 + 60));
         return ds;
+    }
+
+    /**
+     * pg-dwh health for monitoring (plan 10/10, item 0.7), not a readiness member: the DWH module degrades alone.
+     * Declared here: the pg-dwh data source does not leave this package (AC-5).
+     */
+    @Bean
+    public HealthIndicator dwhHealthIndicator(@Qualifier(FndPref.DWH) DataSource dwhDataSource,
+                                              @Value("${dwh.system.health-timeout:2s}") String timeout) {
+        // Parsed here: the context of the pg-dwh configuration test has no conversion service.
+        Duration deadline = DurationStyle.detectAndParse(timeout);
+        JdbcClient jdbc = JdbcClient.create(dwhDataSource);
+        return () -> ReadinessChecks.within(deadline, () -> {
+            jdbc.sql("select 1").query().singleValue();
+            return Health.up().build();
+        });
     }
 
     @Bean
