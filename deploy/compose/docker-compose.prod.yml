@@ -130,7 +130,7 @@ services:
     entrypoint: ["sh", "-c"]
     command:
       - >-
-        java -cp app.jar com.greenwhite.dwh.instance.fnd.migration.MigrateMain
+        java -cp app.jar com.smartup24.cms.instance.fnd.migration.MigrateMain
         && exec java -jar app.jar --spring.profiles.active=migrate
     restart: "no"
     depends_on:

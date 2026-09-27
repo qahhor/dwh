@@ -113,7 +113,7 @@ const SERVER_JAVA_ROOTS = [
   path.resolve(WEB_ROOT, '..', '..', 'libs'),
 ];
 /** Package root of the server's classes, for `serverCodeKeys({ file })`. */
-const SERVER_PACKAGE = path.resolve(WEB_ROOT, '..', 'server', 'src', 'main', 'java', 'com', 'greenwhite', 'dwh');
+const SERVER_PACKAGE = path.resolve(WEB_ROOT, '..', 'server', 'src', 'main', 'java', 'com', 'smartup24', 'cms');
 
 let serverCache: Map<string, string> | null = null;
 
@@ -145,7 +145,7 @@ export function serverLiteralKeys(prefix: string): string[] {
  * (`"UPL_SHEET_NAME_REQUIRED"`), an enum constant (`ErrorCode.I18N_LANGUAGE_INVALID`)
  * or a validation annotation (`@NotBlank`). `toCode` maps the key's suffix to that
  * code (`error.i18n_language_invalid` → `I18N_LANGUAGE_INVALID`); `file` limits the
- * search to one class under com/greenwhite/dwh, for codes as short as a field name.
+ * search to one class under com/smartup24/cms, for codes as short as a field name.
  */
 export function serverCodeKeys(prefix: string, options: { toCode?: (suffix: string) => string; file?: string } = {}): string[] {
   const toCode = options.toCode ?? (suffix => suffix);

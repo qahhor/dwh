@@ -139,7 +139,7 @@ Write-Utf8 $migrationFile $sqlContent
 #    repository, service, controller, the list (QueryList) and the entity declaration with its records bean.
 #    The declaration gives the form (form-meta), the rules the service checks, the right's names in the
 #    permission matrix, the menu item, history, export, saved views and bulk delete.
-$javaBase = Join-Path $Root "apps\server\src\main\java\com\greenwhite\dwh\instance\${prefixLower}\${cleanCode}"
+$javaBase = Join-Path $Root "apps\server\src\main\java\com\smartup24\cms\instance\${prefixLower}\${cleanCode}"
 $repoDir = Join-Path $javaBase "repository"
 $serviceDir = Join-Path $javaBase "service"
 $ctrlDir = Join-Path $javaBase "controller"
@@ -154,16 +154,16 @@ $ctrlClass = "${prefixUpper}${capitalName}Controller"
 $queryClass = "${prefixUpper}${capitalName}Query"
 $entityClass = "${prefixUpper}${capitalName}Entity"
 $listCode = "${prefixLower}.${cleanCode}"
-$pkg = "com.greenwhite.dwh.instance.${prefixLower}.${cleanCode}"
+$pkg = "com.smartup24.cms.instance.${prefixLower}.${cleanCode}"
 
 # Repository
 $repoFile = Join-Path $repoDir "${repoClass}.java"
 $repoContent = @"
 package ${pkg}.repository;
 
-import com.greenwhite.dwh.core.pagination.KeysetPage;
-import com.greenwhite.dwh.instance.common.query.QueryListRepository;
-import com.greenwhite.dwh.instance.common.query.QueryPlan;
+import com.smartup24.cms.core.pagination.KeysetPage;
+import com.smartup24.cms.instance.common.query.QueryListRepository;
+import com.smartup24.cms.instance.common.query.QueryPlan;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 import tools.jackson.databind.ObjectMapper;
@@ -274,9 +274,9 @@ $queryFile = Join-Path $serviceDir "${queryClass}.java"
 $queryContent = @"
 package ${pkg}.service;
 
-import com.greenwhite.dwh.instance.common.query.QueryField;
-import com.greenwhite.dwh.instance.common.query.QueryFieldType;
-import com.greenwhite.dwh.instance.common.query.QueryList;
+import com.smartup24.cms.instance.common.query.QueryField;
+import com.smartup24.cms.instance.common.query.QueryFieldType;
+import com.smartup24.cms.instance.common.query.QueryList;
 import ${pkg}.repository.${repoClass};
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -318,16 +318,16 @@ $entityFile = Join-Path $serviceDir "${entityClass}.java"
 $entityContent = @"
 package ${pkg}.service;
 
-import com.greenwhite.dwh.core.pagination.KeysetPage;
-import com.greenwhite.dwh.instance.common.entity.EntityCapability;
-import com.greenwhite.dwh.instance.common.entity.EntityDefinition;
-import com.greenwhite.dwh.instance.common.entity.EntityDefinition.EntityAction;
-import com.greenwhite.dwh.instance.common.entity.EntityDefinition.EntityMenu;
-import com.greenwhite.dwh.instance.common.entity.EntityDefinition.EntityRights;
-import com.greenwhite.dwh.instance.common.entity.EntityDefinition.FormSection;
-import com.greenwhite.dwh.instance.common.entity.EntityRecords;
-import com.greenwhite.dwh.instance.common.entity.FormField;
-import com.greenwhite.dwh.instance.common.entity.FormFieldType;
+import com.smartup24.cms.core.pagination.KeysetPage;
+import com.smartup24.cms.instance.common.entity.EntityCapability;
+import com.smartup24.cms.instance.common.entity.EntityDefinition;
+import com.smartup24.cms.instance.common.entity.EntityDefinition.EntityAction;
+import com.smartup24.cms.instance.common.entity.EntityDefinition.EntityMenu;
+import com.smartup24.cms.instance.common.entity.EntityDefinition.EntityRights;
+import com.smartup24.cms.instance.common.entity.EntityDefinition.FormSection;
+import com.smartup24.cms.instance.common.entity.EntityRecords;
+import com.smartup24.cms.instance.common.entity.FormField;
+import com.smartup24.cms.instance.common.entity.FormFieldType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -402,12 +402,12 @@ $serviceFile = Join-Path $serviceDir "${serviceClass}.java"
 $serviceContent = @"
 package ${pkg}.service;
 
-import com.greenwhite.dwh.core.error.ErrorCode;
-import com.greenwhite.dwh.core.pagination.KeysetPage;
-import com.greenwhite.dwh.instance.audit.service.AuditLogService;
-import com.greenwhite.dwh.instance.common.entity.EntityValidator;
-import com.greenwhite.dwh.instance.common.error.ApiException;
-import com.greenwhite.dwh.instance.common.query.QueryCompiler;
+import com.smartup24.cms.core.error.ErrorCode;
+import com.smartup24.cms.core.pagination.KeysetPage;
+import com.smartup24.cms.instance.audit.service.AuditLogService;
+import com.smartup24.cms.instance.common.entity.EntityValidator;
+import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.query.QueryCompiler;
 import ${pkg}.repository.${repoClass};
 import ${pkg}.repository.${repoClass}.ItemRecord;
 import org.springframework.stereotype.Service;
@@ -498,9 +498,9 @@ $ctrlFile = Join-Path $ctrlDir "${ctrlClass}.java"
 $ctrlContent = @"
 package ${pkg}.controller;
 
-import com.greenwhite.dwh.core.pagination.KeysetPage;
-import com.greenwhite.dwh.instance.common.annotation.RequiresPermission;
-import com.greenwhite.dwh.instance.common.security.SecurityContext;
+import com.smartup24.cms.core.pagination.KeysetPage;
+import com.smartup24.cms.instance.common.annotation.RequiresPermission;
+import com.smartup24.cms.instance.common.security.SecurityContext;
 import ${pkg}.service.${serviceClass};
 import ${pkg}.service.${serviceClass}.ItemView;
 import org.springframework.http.ResponseEntity;
