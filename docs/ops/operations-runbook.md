@@ -53,9 +53,11 @@ Check in order:
 2. `server` readiness and its PostgreSQL/Typesense connection errors.
    Readiness (`/actuator/health/readiness` on the management port) is DOWN
    within the health timeout (`DWH_SYSTEM_HEALTH_TIMEOUT`, 2 s by default)
-   when the main database or pg-dwh stops answering, and when Typesense
-   (if enabled) or ClamAV (if scanning is required) does. Liveness ignores
-   them, so the container is taken out of traffic, not restarted.
+   when the main database stops answering; liveness ignores it, so the
+   container is taken out of traffic, not restarted. pg-dwh, Typesense (if
+   enabled) and ClamAV (if scanning is required) appear in
+   `/actuator/health` but do not affect readiness: search falls back to
+   PostgreSQL, uploads fail closed and the DWH module degrades alone.
 3. PostgreSQL health, disk capacity, and filesystem errors.
 4. Whether a migration failed or the release tag changed unexpectedly.
 

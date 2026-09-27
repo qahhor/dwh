@@ -58,8 +58,8 @@ public class FndDwhConfig {
     }
 
     /**
-     * pg-dwh in the readiness group (plan 10/10, item 0.7). Declared here: the pg-dwh data source does not leave
-     * this package (AC-5).
+     * pg-dwh health for monitoring (plan 10/10, item 0.7), not a readiness member: the DWH module degrades alone.
+     * Declared here: the pg-dwh data source does not leave this package (AC-5).
      */
     @Bean
     public HealthIndicator dwhHealthIndicator(@Qualifier(FndPref.DWH) DataSource dwhDataSource,

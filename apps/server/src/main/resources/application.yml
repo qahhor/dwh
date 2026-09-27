@@ -89,9 +89,11 @@ management:
         enabled: true
       group:
         readiness:
-          # Plan 10/10, item 0.7: traffic waits for the databases, and for Typesense and ClamAV when they are
-          # switched on. Liveness stays the process alone: a dead database must stop traffic, not restart the server.
-          include: readinessState,database,dwh,typesense,clamav
+          # Plan 10/10, item 0.7: traffic waits for the main database, without which no request can be served.
+          # pg-dwh, Typesense and ClamAV are health components (/actuator/health) but not readiness members: their
+          # outage degrades one feature (DWH module, search falls back to PostgreSQL, uploads fail closed), and
+          # taking the instance out of traffic would turn that into a full outage. Liveness stays the process alone.
+          include: readinessState,database
   health:
     mail:
       # Недоступность почтового шлюза не должна ронять экземпляр: healthcheck

@@ -18,12 +18,14 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 
 /**
- * The dependencies the readiness group waits for (plan 10/10, item 0.7): the main database, pg-dwh (declared next to
- * its data source in {@code FndDwhConfig}), Typesense when it is enabled and ClamAV when scanning is required.
+ * Health of the dependencies (plan 10/10, item 0.7), each under a hard deadline.
  *
- * <p>Before, readiness was the application state alone: with the database stopped the container stayed healthy and
- * the balancer kept sending traffic to an instance that answered every request with an error. A dependency that is
- * switched off reports UP with the reason, so the group has the same members in every installation.
+ * <p>The main database is a member of the readiness group: before, readiness was the application state alone, and
+ * with the database stopped the container stayed healthy and kept receiving traffic. Typesense (when enabled),
+ * ClamAV (when scanning is required) and pg-dwh (declared next to its data source in {@code FndDwhConfig}) are
+ * health components for monitoring only: search falls back to PostgreSQL, uploads fail closed and the DWH module
+ * degrades alone, so their outage must not take the whole instance out of traffic. A dependency that is switched
+ * off reports UP with the reason.
  */
 @Configuration(proxyBeanMethods = false)
 public class ReadinessHealthConfiguration {

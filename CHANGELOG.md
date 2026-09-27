@@ -616,12 +616,13 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   while active two-factor users have a code channel (resolved as at sign-in)
   served by a `console_*` stub; `SMC_DELIVERY_ENFORCE=false` turns it off, as
   the dev profile and the local Compose file do.
-- Readiness waits for the dependencies (plan 10/10, item 0.7). It used to be
+- Readiness waits for the main database (plan 10/10, item 0.7). It used to be
   the application state alone: with PostgreSQL stopped the container stayed
-  healthy and kept receiving traffic. The readiness group now includes the
-  main database, pg-dwh, Typesense when enabled and ClamAV when scanning is
-  required; each check answers DOWN within `DWH_SYSTEM_HEALTH_TIMEOUT`
-  instead of waiting 20 s for the pool. Liveness is unchanged.
+  healthy and kept receiving traffic. The check answers DOWN within
+  `DWH_SYSTEM_HEALTH_TIMEOUT` instead of waiting 20 s for the pool. pg-dwh,
+  Typesense (when enabled) and ClamAV (when required) are health components
+  under the same deadline but not readiness members: their outage degrades one
+  feature and must not take the instance out of traffic. Liveness is unchanged.
 - Code cleanup: 725 fully qualified class names in server and library code
   became imports; the job queue worker moved from the `upl` module to
   `config/jobs` (it runs every module's jobs, and `fnd` itself does not
