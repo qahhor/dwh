@@ -25,7 +25,7 @@
         <postgresql.version>42.7.5</postgresql.version>
         <archunit.version>1.5.0</archunit.version>
         <testcontainers.version>1.21.3</testcontainers.version>
-        <argon2.version>2.11</argon2.version>
+        <argon2.version>2.12</argon2.version>
         <bucket4j.version>8.10.1</bucket4j.version>
         <typesense.version>0.6.0</typesense.version>
         <aws.sdk.version>2.54.7</aws.sdk.version>
