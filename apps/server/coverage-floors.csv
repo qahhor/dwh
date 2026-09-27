@@ -1,19 +1,22 @@
 # Coverage floors of the server's business modules, in percent (plan 10/10, item 1.4).
 # Each floor is what the module had when the floors were set; a floor is raised, never lowered, and every module
 # goes towards 80. scripts/quality/test-coverage-floors.ps1 checks them after mvn verify.
+# 2026-09-28: line floors re-measured on the reformatted code (item 1.2). The formatter splits a long
+# `if (x) return;` into two lines, so an untaken return became a line of its own: search went from 93 to 91 with
+# the same tests and the same branches. Every other floor stayed or rose.
 module,line,branch
 analytics,14,0
 audit,87,68
-common,90,81
+common,91,82
 config,91,73
-fnd,93,78
-kauth,82,71
-kwh,64,48
+fnd,94,78
+kauth,83,71
+kwh,65,48
 md,82,65
-mf,66,52
-ms.note,84,48
+mf,67,52
+ms.note,86,48
 ms.notify,63,46
-ms.task,65,52
+ms.task,66,52
 report,90,72
-search,93,75
+search,91,75
 upl,96,82
