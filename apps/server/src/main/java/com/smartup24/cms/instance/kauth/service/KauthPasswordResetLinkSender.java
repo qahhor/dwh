@@ -53,7 +53,9 @@ public class KauthPasswordResetLinkSender {
             log.error("password_reset_link_not_sent reason=smc.public-url_not_set channel={}", event.channel().channel());
             return;
         }
-        long minutes = Math.max(1, Duration.between(Instant.now(), event.expiresAt()).toMinutes());
+        // Rounded up: a link issued a moment ago has 14:59 left and must still read "15 min".
+        long seconds = Duration.between(Instant.now(), event.expiresAt()).toSeconds();
+        long minutes = Math.max(1, (seconds + 59) / 60);
         String link = publicUrl + PATH + event.token();
         try {
             Map<String, String> strings = i18n.effectiveDictionary(event.language());
