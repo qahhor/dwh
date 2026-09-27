@@ -9,6 +9,42 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Branch and tag protection as code, and a release that cannot tag an
+  unscanned image (plan 10/10, item 1.9). `.github/rulesets` holds the main
+  ruleset (reviewed pull requests with code owners, merge commits only, the
+  required checks, CodeQL without high alerts) and two tag rulesets (only
+  administrators create `v*`, nobody moves or deletes one);
+  `scripts/github/apply-rulesets.ps1` applies them and CI checks that every
+  required check is produced by a job. `.github/CODEOWNERS` names the owners.
+  The release runs `ci.yml` itself on the tagged commit (`workflow_call`)
+  instead of a reduced copy, pushes each image by digest without a tag, and
+  tags the digest only after the Trivy scan, the attestation and the
+  signature; `verify-release.ps1` enforces that order.
+- CI is faster and hides nothing (plan 10/10, item 1.8). A new push to a pull
+  request cancels the previous run, every job has a timeout, Maven builds
+  modules in parallel, Playwright browsers come from a cache, and the E2E
+  suite runs in two shards through `scripts/dev/test-e2e.ps1`. Browser tests
+  run without retries; a known unstable test goes to `e2e/quarantine.json`
+  and runs in a separate non-blocking step. A nightly workflow runs the
+  readiness drills, the production upgrade drill, the no-default-egress
+  observation, a live API smoke on a clean stack and Trivy against newly
+  published advisories; the repository hygiene contract fails when a check
+  script is run by no workflow. The upgrade drill now expects the newest
+  migration instead of V019 and runs under Windows PowerShell too; the API
+  smoke (`scripts/dev/test-api.ps1`) follows today's API: management on 9090,
+  the mandatory change of the first administrator's password, sessions ended
+  by a password change, allow-listed webhook hosts, the module registry, and
+  no longer prints a raw API token or a webhook secret prefix.
+- Static analysis and supply-chain scoring (plan 10/10, item 1.6). CodeQL
+  analyses the Java server, the TypeScript of the web application and E2E
+  suite, and the workflows (`security-extended`, no build needed) on every
+  pull request, on main and weekly; OpenSSF Scorecard runs on main, weekly
+  and when branch protection changes. Both report to Code scanning.
+- Dependencies are updated by Dependabot (plan 10/10, item 1.5): Maven, npm
+  (web and E2E), GitHub Actions and Docker base images, weekly and grouped;
+  patch updates merge by themselves once the checks that main requires pass,
+  and never when main requires none. The settings an administrator must turn
+  on are listed in `docs/ops/repository-settings.md`.
 - The Java code is formatted and analysed on every build (plan 10/10, item
   1.2). Spotless 3.10 with palantir-java-format 2.99 (4 spaces, 120 columns)
   formats it, Checkstyle 14.3 checks naming, imports and defect-prone
@@ -795,6 +831,16 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Two accessibility defects that failed the axe gate (`npm run test:a11y`) on
+  main: the list of a select was named "Выбор значения" instead of its field
+  (the manager picker, for one), and a sortable header with the select-all
+  checkbox was a button with a checkbox inside it (nested controls). The list
+  now takes the label of its field, and in such a header the label is the
+  sort button beside the checkbox; Space on the checkbox no longer sorts.
+- A new password of 8 or 9 characters is accepted, as the password policy of
+  2026-09-27 says (8..20): the change-password and create-user requests still
+  required at least 10 characters (and allowed up to 100). Their limits now
+  come from `PasswordValidator`.
 - Task deadline reminders are saved again (item 0.4): the worker used the
   notification type `deadline_warning`, which the `ms_notifications` check
   constraint rejects, so no reminder was ever created. It now uses `warning`,

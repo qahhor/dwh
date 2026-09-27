@@ -1,11 +1,15 @@
 # ============================================================================
 # SmartupCMS - Browser E2E verification for an already running local stack
 # ============================================================================
+# CI runs this script too (ci.yml, job e2e): -SkipInstall after its own install, -Shard to split the suite.
 [CmdletBinding()]
 param(
     [switch]$SkipInstall,
     [string]$InstanceBaseUrl = $env:INSTANCE_BASE_URL,
-    [string]$InstanceHealthUrl = $env:INSTANCE_HEALTH_URL
+    [string]$InstanceHealthUrl = $env:INSTANCE_HEALTH_URL,
+    # A part of the suite, as Playwright takes it: "1/2" runs the first half of the spec files.
+    [ValidatePattern('^\d+/\d+$')]
+    [string]$Shard
 )
 
 $ErrorActionPreference = "Stop"
@@ -66,7 +70,11 @@ try {
     Invoke-CheckedStep "Validate E2E configuration contract" { npm run test:config }
     Invoke-CheckedStep "Type-check E2E sources" { npm run typecheck }
     Invoke-CheckedStep "Verify credential artifact redaction" { npm run test:artifact-security }
-    Invoke-CheckedStep "Run browser E2E suite" { npm test }
+    if ($Shard) {
+        Invoke-CheckedStep "Run browser E2E suite, shard $Shard" { npm test -- "--shard=$Shard" }
+    } else {
+        Invoke-CheckedStep "Run browser E2E suite" { npm test }
+    }
 } finally {
     Pop-Location
 }

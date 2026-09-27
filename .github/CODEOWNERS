@@ -1,0 +1,16 @@
+# Code owners (plan 10/10, item 1.9): the main ruleset requires the review of an owner of every file a pull request
+# changes. Until the teams exist on GitHub, the repository owner reviews everything; each line below is replaced by
+# the team that owns the area as soon as it is created (for example @qahhor/backend), the most specific line wins.
+*                               @qahhor
+
+# Rules of the repository: workflows, rulesets, release, supply chain.
+/.github/                       @qahhor
+/scripts/release/               @qahhor
+/scripts/security/              @qahhor
+
+# Server, database migrations (immutable once published), web application, infrastructure.
+/apps/server/                   @qahhor
+/apps/server/src/main/resources/db/  @qahhor
+/apps/web/                      @qahhor
+/deploy/                        @qahhor
+/docs/adr/                      @qahhor

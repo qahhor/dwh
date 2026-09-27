@@ -21,3 +21,8 @@ f57eb6c334e1117d546c6a7ed066a3654221c05d:apps/server/src/test/java/com/greenwhit
 
 # Documentation curl auth header example in operations-runbook.md
 2eb5bff81fd81137df8aba280a845462c9a1209b:docs/ops/operations-runbook.md:curl-auth-header:171
+
+# Synthetic webhook signing secret of the web unit test (webhooks-settings.component.spec.ts); the Prettier
+# reformat (5660f257) moved it from line 54 to line 51, so both fingerprints are listed.
+7b8e899cbdcd7da7b6d07df86bf7c613a974361f:apps/web/src/app/features/settings/webhooks/webhooks-settings.component.spec.ts:generic-api-key:54
+5660f25710276059f1c0400a9c1792bdd17adcc0:apps/web/src/app/features/settings/webhooks/webhooks-settings.component.spec.ts:generic-api-key:51

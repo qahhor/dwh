@@ -103,6 +103,7 @@ as coverage in Settings.
 - [Smartup-managed infrastructure acceptance](ops/managed-infrastructure-acceptance.md)
 - [Rollback and recovery](ops/rollback.md)
 - [Migration history repair](ops/migration-repair.md)
+- [GitHub repository settings](ops/repository-settings.md)
 - [RB-04 migration failure triage](runbooks/RB-04-migration-failure-triage.md)
 - [Threat model and personal-data inventory](security/threat-model.md)
 

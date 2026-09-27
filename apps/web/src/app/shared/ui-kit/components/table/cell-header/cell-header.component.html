@@ -12,7 +12,12 @@
 }
 
 @if (!selectionOnly()) {
-  <div class="flex min-w-0 items-center gap-1">
+  <div
+    #sortControl
+    class="flex min-w-0 items-center gap-1"
+    [attr.role]="sortOnLabel() ? 'button' : null"
+    [attr.tabindex]="sortOnLabel() ? 0 : null"
+  >
     <div
       #headerText
       class="min-w-0 truncate text-md font-medium text-gray-900"

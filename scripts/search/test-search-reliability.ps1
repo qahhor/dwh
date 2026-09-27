@@ -5,8 +5,10 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
-$mvnCmd = Join-Path $repoRoot 'mvnw.cmd'
-$pomPath = Join-Path $repoRoot 'apps/server/pom.xml'
+# The wrapper on Windows; the runner's Maven on Linux (the nightly workflow), as in ci.yml.
+$mvnCmd = if ($env:OS -eq 'Windows_NT') { Join-Path $repoRoot 'mvnw.cmd' } else { 'mvn' }
+# The reactor root: the server is built with the libs it depends on (-pl apps/server -am).
+$pomPath = Join-Path $repoRoot 'pom.xml'
 
 Write-Host "=== Starting Search Reliability Verification Drill (I-07) ===" -ForegroundColor Cyan
 
@@ -19,7 +21,7 @@ function Invoke-MavenTests {
     Write-Host "`n--> [$Description]" -ForegroundColor Yellow
     $startTime = [System.Diagnostics.Stopwatch]::StartNew()
 
-    $cmd = "& `"$mvnCmd`" test -f `"$pomPath`" -B -q `"-Dtest=$TestPattern`" `"-Dsurefire.failIfNoSpecifiedTests=false`""
+    $cmd = "& `"$mvnCmd`" test -f `"$pomPath`" -pl apps/server -am -B -q `"-Dtest=$TestPattern`" `"-Dsurefire.failIfNoSpecifiedTests=false`""
     
     $prevEap = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'

@@ -72,7 +72,7 @@ for (const file of await filesUnder(appRoot)) {
   // exact forms above apply there.
   const lines = file.endsWith('.html') ? [] : source.split(/\r?\n/);
   for (const line of lines.filter((candidate) => candidate.includes('| t'))) {
-    for (const match of line.matchAll(/['"]([a-z][a-z0-9_-]*(?:\.[a-z0-9_.-]+)+)['"]/g)) {
+    for (const match of line.matchAll(/['"]([a-z][a-z0-9_-]*(?:\.[a-z0-9_-]+)+)['"]/g)) {
       usedKeys.add(match[1]);
     }
   }

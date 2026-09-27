@@ -172,6 +172,29 @@ class KauthPasswordChangeIntegrationTest {
     }
 
     @Test
+    void newPasswordLengthFollowsThePolicyOfEightToTwentyCharacters() throws Exception {
+        var tooLong = fixture(false);
+        mvc.perform(post("/api/v1/auth/password")
+                        .cookie(sessionCookie(tooLong.sessionSecrets().getFirst()))
+                        .contentType("application/json")
+                        .content(mapper.writeValueAsString(
+                                Map.of("oldPassword", OLD_PASSWORD, "newPassword", "Twenty-One-Chars-26!x"))))
+                .andExpect(status().isUnprocessableEntity());
+
+        var shortest = fixture(false);
+        mvc.perform(post("/api/v1/auth/password")
+                        .cookie(sessionCookie(shortest.sessionSecrets().getFirst()))
+                        .contentType("application/json")
+                        .content(mapper.writeValueAsString(
+                                Map.of("oldPassword", OLD_PASSWORD, "newPassword", "Kz7!mQ2p"))))
+                .andExpect(status().isNoContent());
+        assertThat(hasher.verifyPassword(
+                        "Kz7!mQ2p",
+                        users.findById(shortest.userId()).orElseThrow().passwordHash()))
+                .isTrue();
+    }
+
+    @Test
     void passwordChangeAuthenticatedByApiTokenAlsoRevokesThatToken() throws Exception {
         var target = fixture(false);
 

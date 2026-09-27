@@ -105,7 +105,7 @@
       class="smt-select__list"
       role="listbox"
       [id]="listboxId"
-      [attr.aria-label]="ariaLabel() || i18n.messages().select.name"
+      [attr.aria-label]="ariaLabel() || listboxName() || i18n.messages().select.name"
     >
       @if (showNone()) {
         <li

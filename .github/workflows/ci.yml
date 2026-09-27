@@ -6,14 +6,22 @@ on:
   push:
     branches: [main]
   pull_request:
+  # The release workflow runs this very set of jobs on the tagged commit (plan 10/10, item 1.9).
+  workflow_call:
 
 permissions:
   contents: read
+
+# A new push to a pull request cancels the run of the previous one; main keeps every run (plan 10/10, item 1.8).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   backend:
     name: backend (mvn verify + ArchUnit + SBOM)
     runs-on: ubuntu-24.04
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
@@ -28,10 +36,10 @@ jobs:
 
       # Plan 10/10, item 1.2: format and style fail in a minute, before the tests.
       - name: Format and style (Spotless, Checkstyle)
-        run: mvn -B spotless:check checkstyle:check
+        run: mvn -B -T1C spotless:check checkstyle:check
 
       - name: Build & test
-        run: mvn -B verify
+        run: mvn -B -T1C verify
 
       - name: Report frozen architecture violations
         if: always()
@@ -83,6 +91,7 @@ jobs:
   frontend:
     name: frontend (unit + typecheck + build)
     runs-on: ubuntu-24.04
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
@@ -148,6 +157,12 @@ jobs:
 
       # Axe (WCAG 2.1 A/AA) on the rebuilt screens in both themes, against the
       # production build with a mocked API: no backend, database or Docker.
+      - name: Cache Playwright browsers
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('e2e/package-lock.json') }}
+
       - name: Check accessibility of key screens
         working-directory: e2e
         run: |
@@ -167,6 +182,7 @@ jobs:
   release-config:
     name: release config (Compose + NGINX + fail-closed deploy)
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
@@ -181,6 +197,10 @@ jobs:
       - name: Validate repository hygiene contract
         shell: pwsh
         run: ./scripts/docs/test-repository-hygiene.ps1
+
+      - name: Validate branch and tag rulesets
+        shell: pwsh
+        run: ./scripts/github/test-rulesets.ps1
 
       - name: Validate release supply-chain contract
         shell: pwsh
@@ -205,10 +225,14 @@ jobs:
         run: bash scripts/prod/test-backup-databases.sh
 
   e2e:
-    name: e2e (clean deploy + Playwright Chromium)
+    name: e2e (clean deploy + Playwright Chromium, shard ${{ matrix.shard }}/2)
     runs-on: ubuntu-24.04
     needs: [backend, frontend, release-config]
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
@@ -225,14 +249,11 @@ jobs:
           echo "::add-mask::$instance_password"
           echo "ADMIN_PASSWORD=$instance_password" >> "$GITHUB_ENV"
 
-      - name: Validate PowerShell dotenv parser
-        shell: pwsh
-        run: ./scripts/dev/test-dotenv-parser.ps1
-
       - name: Build clean Compose images
         run: docker compose --profile backup build --pull
 
       - name: Scan runtime images
+        if: matrix.shard == 1
         shell: pwsh
         run: ./scripts/security/scan-runtime-images.ps1
 
@@ -253,29 +274,41 @@ jobs:
           curl --fail --silent --show-error http://localhost:4200/healthz
           curl --fail --silent --show-error http://localhost:4200/
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('e2e/package-lock.json') }}
+
       - name: Install E2E dependencies
         working-directory: e2e
         run: |
           npm ci
           npx playwright install --with-deps chromium
 
+      # The suite runs on the stack's second origin (4201, published by docker-compose.yml): specs that create
+      # synthetic fixtures refuse the default installation's 4200, and this stack is disposable — its volumes are
+      # removed when the job ends. No retries: an unstable test goes to e2e/quarantine.json.
       - name: Run browser E2E suite
+        shell: pwsh
+        env:
+          INSTANCE_BASE_URL: http://localhost:4201
+        run: ./scripts/dev/test-e2e.ps1 -SkipInstall -Shard "${{ matrix.shard }}/2"
+
+      - name: Run quarantined browser tests (not blocking)
+        if: matrix.shard == 1
+        continue-on-error: true
         working-directory: e2e
-        run: |
-          npm run test:config
-          npm run typecheck
-          npm run test:artifact-security
-          # The suite runs on the stack's second origin (4201, published by
-          # docker-compose.yml): specs that create synthetic fixtures refuse
-          # the default installation's 4200, and this stack is disposable —
-          # its volumes are removed when the job ends.
-          INSTANCE_BASE_URL=http://localhost:4201 npm test
+        env:
+          INSTANCE_BASE_URL: http://localhost:4201
+          E2E_QUARANTINE: only
+        run: npx playwright test --pass-with-no-tests
 
       - name: Upload E2E failure artifacts
         if: failure()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
-          name: playwright-failure-artifacts
+          name: playwright-failure-artifacts-${{ matrix.shard }}
           path: e2e/test-results
           if-no-files-found: ignore
           retention-days: 7
@@ -287,6 +320,7 @@ jobs:
   security:
     name: security (gitleaks + trivy)
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     needs: backend
     permissions:
       actions: read

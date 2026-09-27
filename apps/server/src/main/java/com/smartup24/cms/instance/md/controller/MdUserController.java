@@ -8,6 +8,7 @@ import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import com.smartup24.cms.instance.md.service.MdUserListService;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.md.service.MdUserView;
+import com.smartup24.cms.instance.md.service.PasswordValidator;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -139,7 +140,10 @@ public class MdUserController {
             @NotBlank @Size(min = 3, max = 50) String login,
             @NotBlank @Email String email,
             String phone,
-            @NotBlank @Size(min = 10) String password,
+
+            @NotBlank @Size(min = PasswordValidator.MIN_PASSWORD_LENGTH, max = PasswordValidator.MAX_PASSWORD_LENGTH)
+            String password,
+
             Long managerId,
             String language,
             String timezone,
