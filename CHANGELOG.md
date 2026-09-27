@@ -608,6 +608,14 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Logs are archived weekly or at 100 MB (decision of 2026-09-27). The server
+  writes `/var/lib/smartupcms/logs/server.log` on its data volume in
+  production (`SMC_LOG_FILE`) and rolls it to
+  `server.log.<year>-W<week>.<n>.gz` every week or at 100 MB, keeping 12 weeks
+  and 2 GB of archives (`SMC_LOG_*`). Container console logs rotate at
+  100 MB into five compressed files (they were 50 MB, uncompressed); Docker's
+  json-file driver rotates by size only. `test-release-config.ps1` checks
+  both.
 - Messages sent to a channel (sign-in code, channel confirmation, password
   reset link) are in the user's language; when that language is not active,
   in the system language (`system.default_language` in the settings); when

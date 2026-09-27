@@ -41,7 +41,7 @@ WORKDIR /app
 
 # Каталог local_disk provider под non-root. В production этот путь обязан быть
 # томом; S3-compatible provider хранит bytes вне контейнера.
-RUN mkdir -p /var/lib/smartupcms/storage /var/lib/smartupcms/backup /opt/smartupcms/jna \
+RUN mkdir -p /var/lib/smartupcms/storage /var/lib/smartupcms/backup /var/lib/smartupcms/logs /opt/smartupcms/jna \
  && chown -R dwh:dwh /var/lib/smartupcms /opt/smartupcms/jna
 ENV DWH_STORAGE_LOCAL_PATH=/var/lib/smartupcms/storage \
     DWH_BACKUP_STATUS_FILE=/var/lib/smartupcms/backup/status.json

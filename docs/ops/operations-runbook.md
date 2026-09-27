@@ -61,6 +61,15 @@ Check in order:
 3. PostgreSQL health, disk capacity, and filesystem errors.
 4. Whether a migration failed or the release tag changed unexpectedly.
 
+Logs are kept in two places (decision of 2026-09-27):
+
+- the server writes `/var/lib/smartupcms/logs/server.log` on its data volume
+  and archives it to `server.log.<year>-W<week>.<n>.gz` every week or at
+  100 MB, whichever comes first; 12 weeks and 2 GB of archives at most
+  (`SMC_LOG_*` in the environment file);
+- every container's console log rotates at 100 MB, five compressed files
+  (Docker's json-file driver rotates by size only).
+
 Restart only the failed stateless service when the cause is understood:
 
 ```bash

@@ -60,6 +60,9 @@ foreach ($variable in @('SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASSWORD', 
         "Production Compose must pass $variable to the server (password reset and two-factor delivery)."
 }
 Assert-Matches $composeSource 'SMC_DELIVERY_ENFORCE:\s*\$\{SMC_DELIVERY_ENFORCE:-true\}' 'Production must refuse to start while two-factor users depend on a stub channel.'
+Assert-DoesNotMatch $composeSource 'max-size:\s*"50m"' 'Container logs rotate at 100 MB (decision of 2026-09-27).'
+Assert-Matches $composeSource 'max-size:\s*"100m",\s*max-file:\s*"5",\s*compress:\s*"true"' 'Container logs must rotate at 100 MB and be compressed.'
+Assert-Matches $composeSource 'SMC_LOG_FILE:\s*\$\{SMC_LOG_FILE:-/var/lib/smartupcms/logs/server\.log\}' 'The server must write its weekly archived log file on the data volume.'
 Assert-Matches $webNginx 'server:8080' 'The single web origin must proxy API traffic to server:8080.'
 Assert-DoesNotMatch $webNginx 'control-plane|web-cp|app:8080' 'The web origin still references a retired runtime.'
 

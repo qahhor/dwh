@@ -214,6 +214,17 @@ dwh:
 logging:
   pattern:
     level: "%5p [traceparent=%X{traceparent}] [client=%X{client_code}]"
+  # The log file, next to the console (decision of 2026-09-27): archived to .gz every week or at 100 MB, whichever
+  # comes first. Empty SMC_LOG_FILE -> console only (development). Production sets it in docker-compose.prod.yml.
+  file:
+    name: ${SMC_LOG_FILE:}
+  logback:
+    rollingpolicy:
+      file-name-pattern: "${logging.file.name}.%d{YYYY-'W'ww}.%i.gz"
+      max-file-size: ${SMC_LOG_MAX_FILE_SIZE:100MB}
+      # Weeks of archives kept, and the ceiling of all archives together.
+      max-history: ${SMC_LOG_MAX_HISTORY:12}
+      total-size-cap: ${SMC_LOG_TOTAL_SIZE_CAP:2GB}
 
 # Основа fnd — вторая база pg-dwh (промпт 02 п.18, AC-36). Значений по умолчанию нет намеренно:
 # без переменных окружения старт красный, а без таймаута — красный даже при заданном url. Имена переменных — в .env.example и docker-compose.yml.
