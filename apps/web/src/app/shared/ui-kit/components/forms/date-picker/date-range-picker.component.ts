@@ -121,7 +121,7 @@ export class SMTDateRangePickerComponent implements FormValueControl<DateRange |
     const to = this.to();
     if (!from || !to) return null;
     return (
-      this.presets.find(key => {
+      this.presets.find((key) => {
         const range = presetRange(key, this.today());
         return isSameDate(range.from, from) && isSameDate(range.to, to);
       }) ?? null

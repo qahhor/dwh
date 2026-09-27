@@ -3,17 +3,16 @@ package com.smartup24.cms.instance.md.repository;
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.md.i18n.I18nModels.LanguageRecord;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 @Repository
 public class MdI18nRepository {
@@ -28,7 +27,8 @@ public class MdI18nRepository {
 
     public List<LanguageRecord> findLanguages(boolean activeOnly) {
         String activeClause = activeOnly ? "where is_active" : "";
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                         select code, name, is_builtin, is_active, revision,
                                created_by, modified_by, created_at, modified_at
                         from md_i18n_languages
@@ -42,7 +42,8 @@ public class MdI18nRepository {
     }
 
     public Optional<LanguageRecord> findLanguage(String code) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                         select code, name, is_builtin, is_active, revision,
                                created_by, modified_by, created_at, modified_at
                         from md_i18n_languages
@@ -60,14 +61,12 @@ public class MdI18nRepository {
                         from md_i18n_translation_overrides
                         where language_code = :code
                         order by translation_key
-                        """)
-                .param("code", code)
-                .query(rs -> {
-                    while (rs.next()) {
-                        result.put(rs.getString("translation_key"), rs.getString("value"));
-                    }
-                    return result;
-                });
+                        """).param("code", code).query(rs -> {
+            while (rs.next()) {
+                result.put(rs.getString("translation_key"), rs.getString("value"));
+            }
+            return result;
+        });
         return result;
     }
 
@@ -77,20 +76,19 @@ public class MdI18nRepository {
                         select language_code, translation_key, value
                         from md_i18n_translation_overrides
                         order by language_code, translation_key
-                        """)
-                .query(rs -> {
-                    while (rs.next()) {
-                        result.computeIfAbsent(
-                                        rs.getString("language_code"), ignored -> new LinkedHashMap<>())
-                                .put(rs.getString("translation_key"), rs.getString("value"));
-                    }
-                    return result;
-                });
+                        """).query(rs -> {
+            while (rs.next()) {
+                result.computeIfAbsent(rs.getString("language_code"), ignored -> new LinkedHashMap<>())
+                        .put(rs.getString("translation_key"), rs.getString("value"));
+            }
+            return result;
+        });
         return result;
     }
 
     public LanguageRecord insertLanguage(String code, String name, Long userId) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                         insert into md_i18n_languages
                             (code, name, is_builtin, is_active, revision, created_by, modified_by)
                         values (:code, :name, false, true, 1, :userId, :userId)
@@ -108,9 +106,9 @@ public class MdI18nRepository {
      * Replaces the complete override set. The surrounding service transaction
      * makes revision claim, delete and insert one atomic operation.
      */
-    public long replaceOverrides(String code, Map<String, String> overrides,
-                                 long expectedRevision, Long userId) {
-        Optional<Long> nextRevision = jdbcClient.sql("""
+    public long replaceOverrides(String code, Map<String, String> overrides, long expectedRevision, Long userId) {
+        Optional<Long> nextRevision = jdbcClient
+                .sql("""
                         update md_i18n_languages
                         set revision = revision + 1,
                             modified_by = :userId,
@@ -125,16 +123,19 @@ public class MdI18nRepository {
                 .optional();
 
         if (nextRevision.isEmpty()) {
-            throw ApiException.conflict(ErrorCode.I18N_REVISION_CONFLICT,
+            throw ApiException.conflict(
+                    ErrorCode.I18N_REVISION_CONFLICT,
                     "Языковой пакет изменён другим администратором. Обновите данные и повторите операцию");
         }
 
-        jdbcClient.sql("delete from md_i18n_translation_overrides where language_code = :code")
+        jdbcClient
+                .sql("delete from md_i18n_translation_overrides where language_code = :code")
                 .param("code", code)
                 .update();
 
         if (!overrides.isEmpty()) {
-            jdbcClient.sql("""
+            jdbcClient
+                    .sql("""
                             insert into md_i18n_translation_overrides
                                 (language_code, translation_key, value, modified_by, modified_at)
                             select :code, item.key, item.value, :userId, now()

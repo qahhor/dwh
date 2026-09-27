@@ -5,11 +5,6 @@ import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.kwh.repository.KwhOutboxRepository;
 import com.smartup24.cms.instance.kwh.repository.KwhSubscriptionRepository;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.time.Instant;
@@ -17,6 +12,10 @@ import java.util.Base64;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class KwhWebhookService {
@@ -27,10 +26,11 @@ public class KwhWebhookService {
     private final AuditLogService auditLogService;
     private final WebhookTargetPolicy targetPolicy;
 
-    public KwhWebhookService(KwhSubscriptionRepository subscriptionRepository,
-                             KwhOutboxRepository outboxRepository,
-                             AuditLogService auditLogService,
-                             WebhookTargetPolicy targetPolicy) {
+    public KwhWebhookService(
+            KwhSubscriptionRepository subscriptionRepository,
+            KwhOutboxRepository outboxRepository,
+            AuditLogService auditLogService,
+            WebhookTargetPolicy targetPolicy) {
         this.subscriptionRepository = subscriptionRepository;
         this.outboxRepository = outboxRepository;
         this.auditLogService = auditLogService;
@@ -39,7 +39,9 @@ public class KwhWebhookService {
 
     @Transactional(readOnly = true)
     public List<SubscriptionView> listSubscriptions() {
-        return subscriptionRepository.listSubscriptions().stream().map(this::toView).toList();
+        return subscriptionRepository.listSubscriptions().stream()
+                .map(this::toView)
+                .toList();
     }
 
     @Transactional
@@ -58,32 +60,53 @@ public class KwhWebhookService {
         // адреса и удаление обязаны быть в журнале (FR-AUD-1).
         // Секретный токен в журнал НЕ попадает: аудит читают больше людей,
         // чем должны знать ключ подписи.
-        auditLogService.logChange("kwh_subscriptions", String.valueOf(subscription.id()), "I",
+        auditLogService.logChange(
+                "kwh_subscriptions",
+                String.valueOf(subscription.id()),
+                "I",
                 List.of("name", "target_url", "subscribed_events"),
                 null,
-                Map.of("name", name, "target_url", targetPolicy.redact(validatedTarget),
-                        "subscribed_events", subscribedEvents != null ? subscribedEvents : List.of()));
+                Map.of(
+                        "name",
+                        name,
+                        "target_url",
+                        targetPolicy.redact(validatedTarget),
+                        "subscribed_events",
+                        subscribedEvents != null ? subscribedEvents : List.of()));
 
         return new CreatedSubscription(
-                subscription.id(), subscription.name(), targetPolicy.redact(validatedTarget),
-                subscription.secretToken(), subscription.subscribedEvents(), subscription.state(),
-                subscription.createdAt(), subscription.createdBy());
+                subscription.id(),
+                subscription.name(),
+                targetPolicy.redact(validatedTarget),
+                subscription.secretToken(),
+                subscription.subscribedEvents(),
+                subscription.state(),
+                subscription.createdAt(),
+                subscription.createdBy());
     }
 
     @Transactional
-    public void updateSubscription(Long id, String name, String targetUrl, List<String> subscribedEvents, String state) {
+    public void updateSubscription(
+            Long id, String name, String targetUrl, List<String> subscribedEvents, String state) {
         if (targetUrl != null) {
             targetPolicy.validate(targetUrl);
         }
         var before = requireSubscription(id);
         subscriptionRepository.update(id, name, targetUrl, subscribedEvents, state);
 
-        auditLogService.logChange("kwh_subscriptions", String.valueOf(id), "U",
+        auditLogService.logChange(
+                "kwh_subscriptions",
+                String.valueOf(id),
+                "U",
                 List.of("name", "target_url", "subscribed_events", "state"),
                 Map.of("name", before.name(), "target_url", redact(before.targetUrl()), "state", before.state()),
-                Map.of("name", name != null ? name : before.name(),
-                        "target_url", redact(targetUrl != null ? targetUrl : before.targetUrl()),
-                        "state", state != null ? state : before.state()));
+                Map.of(
+                        "name",
+                        name != null ? name : before.name(),
+                        "target_url",
+                        redact(targetUrl != null ? targetUrl : before.targetUrl()),
+                        "state",
+                        state != null ? state : before.state()));
     }
 
     @Transactional
@@ -91,15 +114,19 @@ public class KwhWebhookService {
         var before = requireSubscription(id);
         subscriptionRepository.delete(id);
 
-        auditLogService.logChange("kwh_subscriptions", String.valueOf(id), "D",
+        auditLogService.logChange(
+                "kwh_subscriptions",
+                String.valueOf(id),
+                "D",
                 List.of("name", "target_url"),
                 Map.of("name", before.name(), "target_url", redact(before.targetUrl())),
                 null);
     }
 
     private KwhSubscriptionRepository.SubscriptionRecord requireSubscription(Long id) {
-        return subscriptionRepository.findById(id).orElseThrow(() ->
-                ApiException.notFound(ErrorCode.NOT_FOUND, "Подписка на события не найдена"));
+        return subscriptionRepository
+                .findById(id)
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Подписка на события не найдена"));
     }
 
     @Transactional
@@ -135,9 +162,13 @@ public class KwhWebhookService {
 
     private SubscriptionView toView(KwhSubscriptionRepository.SubscriptionRecord subscription) {
         return new SubscriptionView(
-                subscription.id(), subscription.name(), redact(subscription.targetUrl()),
-                subscription.subscribedEvents(), subscription.state(),
-                subscription.createdAt(), subscription.createdBy());
+                subscription.id(),
+                subscription.name(),
+                redact(subscription.targetUrl()),
+                subscription.subscribedEvents(),
+                subscription.state(),
+                subscription.createdAt(),
+                subscription.createdBy());
     }
 
     public record SubscriptionView(
@@ -147,8 +178,7 @@ public class KwhWebhookService {
             List<String> subscribedEvents,
             String state,
             Instant createdAt,
-            Long createdBy
-    ) {}
+            Long createdBy) {}
 
     public record CreatedSubscription(
             Long id,
@@ -158,6 +188,5 @@ public class KwhWebhookService {
             List<String> subscribedEvents,
             String state,
             Instant createdAt,
-            Long createdBy
-    ) {}
+            Long createdBy) {}
 }

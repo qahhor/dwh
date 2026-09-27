@@ -2,14 +2,13 @@ package com.smartup24.cms.instance.kauth.repository;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.smartup24.cms.instance.common.error.ApiException;
-import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
 
 @Repository
 public class KauthApiTokenRepository {
@@ -20,12 +19,17 @@ public class KauthApiTokenRepository {
             rs.getString("name"),
             rs.getString("token_prefix"),
             rs.getString("token_hash"),
-            rs.getTimestamp("expires_at") != null ? rs.getTimestamp("expires_at").toInstant() : null,
+            rs.getTimestamp("expires_at") != null
+                    ? rs.getTimestamp("expires_at").toInstant()
+                    : null,
             rs.getTimestamp("created_at").toInstant(),
-            rs.getTimestamp("last_used_at") != null ? rs.getTimestamp("last_used_at").toInstant() : null,
-            rs.getTimestamp("revoked_at") != null ? rs.getTimestamp("revoked_at").toInstant() : null,
-            rs.getLong("auth_version")
-    );
+            rs.getTimestamp("last_used_at") != null
+                    ? rs.getTimestamp("last_used_at").toInstant()
+                    : null,
+            rs.getTimestamp("revoked_at") != null
+                    ? rs.getTimestamp("revoked_at").toInstant()
+                    : null,
+            rs.getLong("auth_version"));
 
     private static final String SELECT = """
             select c.auth_version, c.id, c.user_id, c.name, c.token_prefix, c.token_hash, c.expires_at, c.created_at, c.last_used_at, c.revoked_at
@@ -42,8 +46,15 @@ public class KauthApiTokenRepository {
         this.jdbcClient = jdbcClient;
     }
 
-    public ApiTokenRecord create(Long userId, long authenticationVersion, String name, String tokenPrefix, String tokenHash, Instant expiresAt) {
-        return jdbcClient.sql("""
+    public ApiTokenRecord create(
+            Long userId,
+            long authenticationVersion,
+            String name,
+            String tokenPrefix,
+            String tokenHash,
+            Instant expiresAt) {
+        return jdbcClient
+                .sql("""
                 insert into kauth_api_tokens (user_id, auth_version, name, token_prefix, token_hash, expires_at, created_at)
                 select u.id, :authenticationVersion, :name, :tokenPrefix, :tokenHash, :expiresAt, now()
                 from md_users u
@@ -57,25 +68,29 @@ public class KauthApiTokenRepository {
                 .param("tokenHash", tokenHash)
                 .param("expiresAt", expiresAt != null ? Timestamp.from(expiresAt) : null)
                 .query(ROW_MAPPER)
-                .optional().orElseThrow(ApiException::invalidCredentials);
+                .optional()
+                .orElseThrow(ApiException::invalidCredentials);
     }
 
     public Optional<ApiTokenRecord> findActiveByTokenHash(String tokenHash) {
-        return jdbcClient.sql(SELECT + " where c.token_hash = :tokenHash and " + ACTIVE)
+        return jdbcClient
+                .sql(SELECT + " where c.token_hash = :tokenHash and " + ACTIVE)
                 .param("tokenHash", tokenHash)
                 .query(ROW_MAPPER)
                 .optional();
     }
 
     public Optional<ApiTokenRecord> findActiveById(Long id) {
-        return jdbcClient.sql(SELECT + " where c.id = :id and " + ACTIVE)
+        return jdbcClient
+                .sql(SELECT + " where c.id = :id and " + ACTIVE)
                 .param("id", id)
                 .query(ROW_MAPPER)
                 .optional();
     }
 
     public List<ApiTokenRecord> findByUserId(Long userId) {
-        return jdbcClient.sql(SELECT + " where c.user_id = :userId order by c.created_at desc")
+        return jdbcClient
+                .sql(SELECT + " where c.user_id = :userId order by c.created_at desc")
                 .param("userId", userId)
                 .query(ROW_MAPPER)
                 .list();
@@ -87,9 +102,7 @@ public class KauthApiTokenRepository {
                 set last_used_at = now()
                 where id = :tokenId
                   and (last_used_at is null or last_used_at < now() - interval '60 seconds')
-                """)
-                .param("tokenId", tokenId)
-                .update();
+                """).param("tokenId", tokenId).update();
     }
 
     public void revoke(Long tokenId, Long userId) {
@@ -97,15 +110,13 @@ public class KauthApiTokenRepository {
                 update kauth_api_tokens
                 set revoked_at = now()
                 where id = :tokenId and user_id = :userId and revoked_at is null
-                """)
-                .param("tokenId", tokenId)
-                .param("userId", userId)
-                .update();
+                """).param("tokenId", tokenId).param("userId", userId).update();
     }
 
     /** Массовый отзыв всех активных токенов пользователя (инвариант I-U1). */
     public void revokeAllUserTokens(Long userId) {
-        jdbcClient.sql("update kauth_api_tokens set revoked_at = now() where user_id = :userId and revoked_at is null")
+        jdbcClient
+                .sql("update kauth_api_tokens set revoked_at = now() where user_id = :userId and revoked_at is null")
                 .param("userId", userId)
                 .update();
     }
@@ -120,6 +131,5 @@ public class KauthApiTokenRepository {
             Instant createdAt,
             Instant lastUsedAt,
             Instant revokedAt,
-            @JsonIgnore long authenticationVersion
-    ) {}
+            @JsonIgnore long authenticationVersion) {}
 }

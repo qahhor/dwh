@@ -1,5 +1,8 @@
 package com.smartup24.cms.instance.search;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.smartup24.cms.instance.search.service.SearchQueryPolicy;
 import com.smartup24.cms.instance.search.service.SearchService.SearchHit;
 import com.smartup24.cms.instance.search.typesense.TypesenseClient;
@@ -8,14 +11,6 @@ import com.smartup24.cms.instance.search.typesense.TypesenseException;
 import com.smartup24.cms.instance.search.typesense.TypesenseProperties;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
@@ -26,16 +21,20 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Stream;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 class TypesenseClientHttpTest {
 
     private HttpServer server;
     private final List<CapturedRequest> requests = Collections.synchronizedList(new ArrayList<>());
     private final AtomicReference<Response> configuredResponse = new AtomicReference<>();
-    private Function<CapturedRequest,Response> responseByRequest;
+    private Function<CapturedRequest, Response> responseByRequest;
 
     @BeforeEach
     void startServer() throws IOException {
@@ -55,23 +54,27 @@ class TypesenseClientHttpTest {
         responseByRequest = request -> new Response(request.method().equals("DELETE") ? 404 : 200, "{}");
         client().deleteDocument("tasks", "7");
         assertThat(requests).extracting(CapturedRequest::method).containsExactly("DELETE", "GET");
-        assertThat(requests).extracting(CapturedRequest::path).containsExactly(
-                "/collections/tasks/documents/7", "/collections/tasks");
+        assertThat(requests)
+                .extracting(CapturedRequest::path)
+                .containsExactly("/collections/tasks/documents/7", "/collections/tasks");
     }
 
     @Test
     void collectionAuthorizationFailureDoesNotAttemptToCreateAReplacement() {
         configuredResponse.set(new Response(401, "secret-downstream-body"));
         assertThatThrownBy(() -> client().ensureCollection("generated_tasks", "TASK"))
-                .isInstanceOf(TypesenseException.class).hasMessageNotContaining("secret-downstream-body");
+                .isInstanceOf(TypesenseException.class)
+                .hasMessageNotContaining("secret-downstream-body");
         assertThat(requests).extracting(CapturedRequest::method).containsExactly("GET");
     }
 
     @Test
     void failedCollectionCreationIsNotReportedAsInitializationSuccess() {
-        responseByRequest = request -> new Response(request.method().equals("GET") ? 404 : 503, "secret-downstream-body");
+        responseByRequest =
+                request -> new Response(request.method().equals("GET") ? 404 : 503, "secret-downstream-body");
         assertThatThrownBy(() -> client().ensureCollection("generated_tasks", "TASK"))
-                .isInstanceOf(TypesenseException.class).hasMessageNotContaining("secret-downstream-body");
+                .isInstanceOf(TypesenseException.class)
+                .hasMessageNotContaining("secret-downstream-body");
         assertThat(requests).extracting(CapturedRequest::method).containsExactly("GET", "POST");
     }
 
@@ -79,22 +82,24 @@ class TypesenseClientHttpTest {
     void failedUpsertIsReportedSoDeliveryCanRetry() {
         configuredResponse.set(new Response(503, "secret-downstream-body"));
         assertThatThrownBy(() -> client().upsertDocument("tasks", Map.of("id", "7", "title", "Task")))
-                .isInstanceOf(TypesenseException.class).hasMessageNotContaining("secret-downstream-body");
+                .isInstanceOf(TypesenseException.class)
+                .hasMessageNotContaining("secret-downstream-body");
     }
 
     @Test
     void missingCollectionDeleteIsNotAcknowledged() {
         configuredResponse.set(new Response(404, "secret-downstream-body"));
         assertThatThrownBy(() -> client().deleteDocument("tasks", "7"))
-                .isInstanceOf(TypesenseException.class).hasMessageNotContaining("secret-downstream-body");
+                .isInstanceOf(TypesenseException.class)
+                .hasMessageNotContaining("secret-downstream-body");
     }
 
     @Test
     void allSearchUsesOnePostAndPreservesQueryInTypedMultiSearchBody() {
         TypesenseClient client = client();
 
-        List<CollectionSearch> result = client.multiSearch(
-                "Проект 100%_ready & +", "ALL", 4, collections(), SearchQueryPolicy.defaults());
+        List<CollectionSearch> result =
+                client.multiSearch("Проект 100%_ready & +", "ALL", 4, collections(), SearchQueryPolicy.defaults());
 
         assertThat(requests).hasSize(1);
         CapturedRequest request = requests.getFirst();
@@ -102,24 +107,47 @@ class TypesenseClientHttpTest {
         assertThat(request.path()).isEqualTo("/multi_search");
         var searches = new ObjectMapper().readTree(request.body()).path("searches");
         assertThat(searches).hasSize(3);
-        assertSearch(searches.get(0), "tasks", "Проект 100%_ready & +",
-                "title,description_markdown,status_name,project_name", "10,3,2,2", "2,2,2,2", "true,true,true,true", null);
-        assertSearch(searches.get(1), "projects", "Проект 100%_ready & +",
-                "name,description", "10,3", "2,2", "true,true", "state:=A");
-        assertSearch(searches.get(2), "users", "Проект 100%_ready & +",
-                "name,login,email,phone", "10,8,6,6", "2,0,0,0", "true,true,true,true", "state:=A");
+        assertSearch(
+                searches.get(0),
+                "tasks",
+                "Проект 100%_ready & +",
+                "title,description_markdown,status_name,project_name",
+                "10,3,2,2",
+                "2,2,2,2",
+                "true,true,true,true",
+                null);
+        assertSearch(
+                searches.get(1),
+                "projects",
+                "Проект 100%_ready & +",
+                "name,description",
+                "10,3",
+                "2,2",
+                "true,true",
+                "state:=A");
+        assertSearch(
+                searches.get(2),
+                "users",
+                "Проект 100%_ready & +",
+                "name,login,email,phone",
+                "10,8,6,6",
+                "2,0,0,0",
+                "true,true,true,true",
+                "state:=A");
         assertThat(result).extracting(CollectionSearch::entityType).containsExactly("TASK", "PROJECT", "USER");
         assertThat(result).extracting(CollectionSearch::found).containsExactly(7L, 4L, 1L);
         assertThat(result).extracting(CollectionSearch::searchTimeMs).containsExactly(4L, 3L, 2L);
         assertThat(result.stream().flatMap(group -> group.hits().stream()).toList())
-                .extracting(SearchHit::id).containsExactly("11", "12", "13", "21", "22", "31");
+                .extracting(SearchHit::id)
+                .containsExactly("11", "12", "13", "21", "22", "31");
     }
 
     @Test
     void validZeroHitResultIsSuccessful() {
         configuredResponse.set(new Response(200, "{\"results\":[{\"found\":0,\"search_time_ms\":1,\"hits\":[]}]}"));
 
-        List<CollectionSearch> result = client().multiSearch("none", "TASK", 10, collections(), SearchQueryPolicy.defaults());
+        List<CollectionSearch> result =
+                client().multiSearch("none", "TASK", 10, collections(), SearchQueryPolicy.defaults());
 
         assertThat(result).singleElement().satisfies(group -> {
             assertThat(group.entityType()).isEqualTo("TASK");
@@ -133,7 +161,8 @@ class TypesenseClientHttpTest {
     void malformedOrPartialResponsesFailTheWholeOperation(String ignoredName, Response response) {
         configuredResponse.set(response);
 
-        assertThatThrownBy(() -> client().multiSearch("safe-query", "ALL", 10, collections(), SearchQueryPolicy.defaults()))
+        assertThatThrownBy(() ->
+                        client().multiSearch("safe-query", "ALL", 10, collections(), SearchQueryPolicy.defaults()))
                 .isInstanceOf(TypesenseException.class)
                 .hasMessageNotContaining("secret-downstream-body")
                 .hasMessageNotContaining("safe-query");
@@ -143,36 +172,79 @@ class TypesenseClientHttpTest {
         String validTask = "{\"found\":0,\"search_time_ms\":1,\"hits\":[]}";
         String validProject = "{\"found\":0,\"search_time_ms\":1,\"hits\":[]}";
         return Stream.of(
-                org.junit.jupiter.params.provider.Arguments.of("collection error", new Response(200,
-                        "{\"results\":[{\"code\":503,\"error\":\"secret-downstream-body\"}," + validProject + "," + validProject + "]}")),
-                org.junit.jupiter.params.provider.Arguments.of("missing result", new Response(200,
-                        "{\"results\":[" + validTask + "," + validProject + "]}")),
-                org.junit.jupiter.params.provider.Arguments.of("invalid JSON", new Response(200, "secret-downstream-body{")),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "collection error",
+                        new Response(
+                                200,
+                                "{\"results\":[{\"code\":503,\"error\":\"secret-downstream-body\"}," + validProject
+                                        + "," + validProject + "]}")),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "missing result", new Response(200, "{\"results\":[" + validTask + "," + validProject + "]}")),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "invalid JSON", new Response(200, "secret-downstream-body{")),
                 org.junit.jupiter.params.provider.Arguments.of("null body", new Response(204, null)),
-                org.junit.jupiter.params.provider.Arguments.of("missing hits", new Response(200,
-                        "{\"results\":[{\"found\":0,\"search_time_ms\":1}," + validProject + "," + validProject + "]}")),
-                org.junit.jupiter.params.provider.Arguments.of("non-array hits", new Response(200,
-                        "{\"results\":[{\"found\":0,\"search_time_ms\":1,\"hits\":{}}," + validProject + "," + validProject + "]}")),
-                org.junit.jupiter.params.provider.Arguments.of("invalid id", new Response(200,
-                        "{\"results\":[{\"found\":1,\"search_time_ms\":1,\"hits\":[{\"document\":{\"id\":\"bad\",\"task_id\":\"bad\",\"title\":\"Task\"}}]}," + validProject + "," + validProject + "]}")),
-                org.junit.jupiter.params.provider.Arguments.of("missing document", new Response(200,
-                        "{\"results\":[{\"found\":1,\"search_time_ms\":1,\"hits\":[{}]}," + validProject + "," + validProject + "]}")),
-                org.junit.jupiter.params.provider.Arguments.of("numeric highlight", new Response(200,
-                        threeResults(taskResultWithHighlight("\"highlight\":7"), validProject))),
-                org.junit.jupiter.params.provider.Arguments.of("string highlight", new Response(200,
-                        threeResults(taskResultWithHighlight("\"highlight\":\"invalid\""), validProject))),
-                org.junit.jupiter.params.provider.Arguments.of("non-array highlights", new Response(200,
-                        threeResults(taskResultWithHighlight("\"highlights\":{}"), validProject))),
-                org.junit.jupiter.params.provider.Arguments.of("non-text highlight snippet", new Response(200,
-                        threeResults(taskResultWithHighlight("\"highlight\":{\"title\":{\"snippet\":7}}"), validProject))),
-                org.junit.jupiter.params.provider.Arguments.of("non-text highlight value", new Response(200,
-                        threeResults(taskResultWithHighlight("\"highlight\":{\"title\":{\"value\":false}}"), validProject))),
-                org.junit.jupiter.params.provider.Arguments.of("non-text highlights snippet", new Response(200,
-                        threeResults(taskResultWithHighlight("\"highlights\":[{\"snippet\":7}]"), validProject))),
-                org.junit.jupiter.params.provider.Arguments.of("malformed secondary highlights", new Response(200,
-                        threeResults(taskResultWithHighlight(
-                                "\"highlight\":{\"title\":{\"snippet\":\"valid\"}},\"highlights\":{}"), validProject)))
-        );
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "missing hits",
+                        new Response(
+                                200,
+                                "{\"results\":[{\"found\":0,\"search_time_ms\":1}," + validProject + "," + validProject
+                                        + "]}")),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "non-array hits",
+                        new Response(
+                                200,
+                                "{\"results\":[{\"found\":0,\"search_time_ms\":1,\"hits\":{}}," + validProject + ","
+                                        + validProject + "]}")),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "invalid id",
+                        new Response(
+                                200,
+                                "{\"results\":[{\"found\":1,\"search_time_ms\":1,\"hits\":[{\"document\":{\"id\":\"bad\",\"task_id\":\"bad\",\"title\":\"Task\"}}]},"
+                                        + validProject + "," + validProject + "]}")),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "missing document",
+                        new Response(
+                                200,
+                                "{\"results\":[{\"found\":1,\"search_time_ms\":1,\"hits\":[{}]}," + validProject + ","
+                                        + validProject + "]}")),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "numeric highlight",
+                        new Response(200, threeResults(taskResultWithHighlight("\"highlight\":7"), validProject))),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "string highlight",
+                        new Response(
+                                200, threeResults(taskResultWithHighlight("\"highlight\":\"invalid\""), validProject))),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "non-array highlights",
+                        new Response(200, threeResults(taskResultWithHighlight("\"highlights\":{}"), validProject))),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "non-text highlight snippet",
+                        new Response(
+                                200,
+                                threeResults(
+                                        taskResultWithHighlight("\"highlight\":{\"title\":{\"snippet\":7}}"),
+                                        validProject))),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "non-text highlight value",
+                        new Response(
+                                200,
+                                threeResults(
+                                        taskResultWithHighlight("\"highlight\":{\"title\":{\"value\":false}}"),
+                                        validProject))),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "non-text highlights snippet",
+                        new Response(
+                                200,
+                                threeResults(
+                                        taskResultWithHighlight("\"highlights\":[{\"snippet\":7}]"), validProject))),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "malformed secondary highlights",
+                        new Response(
+                                200,
+                                threeResults(
+                                        taskResultWithHighlight(
+                                                "\"highlight\":{\"title\":{\"snippet\":\"valid\"}},\"highlights\":{}"),
+                                        validProject))));
     }
 
     @ParameterizedTest(name = "valid empty highlight: {0}")
@@ -181,7 +253,9 @@ class TypesenseClientHttpTest {
         configuredResponse.set(new Response(200, "{\"results\":[" + taskResultWithHighlight(highlightFields) + "]}"));
 
         SearchHit hit = client().multiSearch("task", "TASK", 10, collections(), SearchQueryPolicy.defaults())
-                .getFirst().hits().getFirst();
+                .getFirst()
+                .hits()
+                .getFirst();
 
         assertThat(hit.description()).isEqualTo("fallback description");
     }
@@ -204,10 +278,13 @@ class TypesenseClientHttpTest {
                 """.formatted(oversized)));
 
         SearchHit hit = client().multiSearch("project", "PROJECT", 10, collections(), SearchQueryPolicy.defaults())
-                .getFirst().hits().getFirst();
+                .getFirst()
+                .hits()
+                .getFirst();
 
         assertThat(hit.description()).doesNotContain("<", ">");
-        assertThat(hit.description().codePointCount(0, hit.description().length())).isEqualTo(240);
+        assertThat(hit.description().codePointCount(0, hit.description().length()))
+                .isEqualTo(240);
     }
 
     private TypesenseClient client() {
@@ -217,10 +294,12 @@ class TypesenseClientHttpTest {
 
     private void respond(HttpExchange exchange) throws IOException {
         String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
-        CapturedRequest request = new CapturedRequest(exchange.getRequestMethod(), exchange.getRequestURI().getPath(), body);
+        CapturedRequest request = new CapturedRequest(
+                exchange.getRequestMethod(), exchange.getRequestURI().getPath(), body);
         requests.add(request);
         Response configured = responseByRequest == null ? configuredResponse.get() : responseByRequest.apply(request);
-        byte[] response = configured.body() == null ? new byte[0] : configured.body().getBytes(StandardCharsets.UTF_8);
+        byte[] response =
+                configured.body() == null ? new byte[0] : configured.body().getBytes(StandardCharsets.UTF_8);
         if (configured.body() != null) exchange.getResponseHeaders().set("Content-Type", "application/json");
         exchange.sendResponseHeaders(configured.status(), configured.body() == null ? -1 : response.length);
         if (response.length > 0) exchange.getResponseBody().write(response);
@@ -258,8 +337,15 @@ class TypesenseClientHttpTest {
         return Map.of("TASK", "tasks", "PROJECT", "projects", "USER", "users");
     }
 
-    private static void assertSearch(JsonNode search, String collection, String query,
-                                     String fields, String weights, String typos, String prefixes, String filterBy) {
+    private static void assertSearch(
+            JsonNode search,
+            String collection,
+            String query,
+            String fields,
+            String weights,
+            String typos,
+            String prefixes,
+            String filterBy) {
         assertThat(search.path("collection").asText()).isEqualTo(collection);
         assertThat(search.path("q").asText()).isEqualTo(query);
         assertThat(search.path("query_by").asText()).isEqualTo(fields);
@@ -274,5 +360,6 @@ class TypesenseClientHttpTest {
     }
 
     private record CapturedRequest(String method, String path, String body) {}
+
     private record Response(int status, String body) {}
 }

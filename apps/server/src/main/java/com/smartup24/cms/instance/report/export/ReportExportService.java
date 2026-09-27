@@ -17,16 +17,6 @@ import com.smartup24.cms.instance.md.service.MdI18nService;
 import com.smartup24.cms.instance.report.repository.ReportExportRepository;
 import com.smartup24.cms.instance.report.repository.ReportExportRepository.ExportRow;
 import com.smartup24.cms.spi.storage.StorageProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Lazy;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import tools.jackson.core.JacksonException;
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -45,6 +35,15 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Asynchronous exports of registry lists to xlsx and their journal (ADR-0018).
@@ -64,9 +63,11 @@ public class ReportExportService {
     static final String XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
     /** How many exports a person may have waiting or running at once. */
     static final int MAX_ACTIVE = 3;
+
     static final int JOURNAL_SIZE = 50;
     private static final int PAGE_SIZE = 200;
-    private static final DateTimeFormatter STAMP = DateTimeFormatter.ofPattern("yyyyMMdd-HHmm").withZone(ZoneOffset.UTC);
+    private static final DateTimeFormatter STAMP =
+            DateTimeFormatter.ofPattern("yyyyMMdd-HHmm").withZone(ZoneOffset.UTC);
 
     public static final String EXPORT_LIST_UNKNOWN = "EXPORT_LIST_UNKNOWN";
     public static final String EXPORT_INVALID = "EXPORT_INVALID";
@@ -87,11 +88,19 @@ public class ReportExportService {
     private final ObjectMapper json;
     private final int maxRows;
 
-    public ReportExportService(ReportExportRepository repo, QueryListRegistry registry, List<QueryListExporter> exporters,
-                               EntityRegistry entities, ExportPrincipals principals, MdI18nService i18n, StorageProvider storage,
-                               // Lazy: the runner collects every job, including ours, which needs this service.
-                               @Lazy FndJobRunner jobs, AuditLogService audit, ObjectMapper json,
-                               @Value("${dwh.reports.export.max-rows:50000}") int maxRows) {
+    public ReportExportService(
+            ReportExportRepository repo,
+            QueryListRegistry registry,
+            List<QueryListExporter> exporters,
+            EntityRegistry entities,
+            ExportPrincipals principals,
+            MdI18nService i18n,
+            StorageProvider storage,
+            // Lazy: the runner collects every job, including ours, which needs this service.
+            @Lazy FndJobRunner jobs,
+            AuditLogService audit,
+            ObjectMapper json,
+            @Value("${dwh.reports.export.max-rows:50000}") int maxRows) {
         this.repo = repo;
         this.registry = registry;
         // The modules' own exporters and those the declared entities get from their declaration (roadmap item 56).
@@ -107,9 +116,14 @@ public class ReportExportService {
     }
 
     /** What the client asks to export: the list as it stands on screen. */
-    public record ExportRequest(String list, String filter, String sort, String q, List<String> columns,
-                                Map<String, String> options, String lang) {
-    }
+    public record ExportRequest(
+            String list,
+            String filter,
+            String sort,
+            String q,
+            List<String> columns,
+            Map<String, String> options,
+            String lang) {}
 
     @Transactional
     public ExportRow request(ExportRequest request) {
@@ -123,11 +137,14 @@ public class ReportExportService {
         QueryCompiler.compile(list, request.filter(), request.sort(), 1, null, request.q());
         Map<String, String> options = request.options() == null ? Map.of() : request.options();
         List<FieldErrorItem> errors = new ArrayList<>();
-        options.keySet().stream().filter(key -> !exporter.options().contains(key))
-                .forEach(key -> errors.add(new FieldErrorItem("options." + key, EXPORT_INVALID, "unknown option " + key)));
+        options.keySet().stream()
+                .filter(key -> !exporter.options().contains(key))
+                .forEach(key ->
+                        errors.add(new FieldErrorItem("options." + key, EXPORT_INVALID, "unknown option " + key)));
         if (errors.isEmpty()) {
-            exporter.checkOptions(options).forEach(error -> errors.add(
-                    new FieldErrorItem("options." + error.field(), EXPORT_INVALID, error.message())));
+            exporter.checkOptions(options)
+                    .forEach(error -> errors.add(
+                            new FieldErrorItem("options." + error.field(), EXPORT_INVALID, error.message())));
         }
         if (request.columns() != null) {
             for (int i = 0; i < request.columns().size(); i++) {
@@ -152,7 +169,12 @@ public class ReportExportService {
         putIfPresent(stored, "lang", request.lang());
         ExportRow row = repo.insert(userId, list.code(), toJson(stored));
         jobs.enqueueOnce(JOB, Map.of("exportId", row.publicId().toString()));
-        audit.logChange("report_exports", row.publicId().toString(), "I", List.of("list_code"), null,
+        audit.logChange(
+                "report_exports",
+                row.publicId().toString(),
+                "I",
+                List.of("list_code"),
+                null,
                 Map.of("listCode", list.code()));
         return row;
     }
@@ -169,12 +191,13 @@ public class ReportExportService {
         if (!"done".equals(row.state()) || row.expiresAt().isBefore(Instant.now())) {
             throw ApiException.conflict(ErrorCode.CONFLICT, EXPORT_NOT_READY);
         }
-        return new ExportFile(row.fileName(), row.sizeBytes() == null ? -1 : row.sizeBytes(),
+        return new ExportFile(
+                row.fileName(),
+                row.sizeBytes() == null ? -1 : row.sizeBytes(),
                 storage.download(BUCKET, row.storageKey()).inputStream());
     }
 
-    public record ExportFile(String fileName, long sizeBytes, InputStream content) {
-    }
+    public record ExportFile(String fileName, long sizeBytes, InputStream content) {}
 
     /** The job: runs one queued export as its owner. */
     public void run(UUID publicId) {
@@ -187,11 +210,13 @@ public class ReportExportService {
             principals.runAs(row.userId(), () -> write(row));
         } catch (ApiException e) {
             // Rights may have changed since the request: say so rather than a bare failure.
-            repo.markFailed(row.id(), switch (e.getErrorCode()) {
-                case PERMISSION_DENIED, FORBIDDEN -> EXPORT_FORBIDDEN;
-                case VALIDATION_FAILED -> EXPORT_INVALID;
-                default -> EXPORT_FAILED;
-            });
+            repo.markFailed(
+                    row.id(),
+                    switch (e.getErrorCode()) {
+                        case PERMISSION_DENIED, FORBIDDEN -> EXPORT_FORBIDDEN;
+                        case VALIDATION_FAILED -> EXPORT_INVALID;
+                        default -> EXPORT_FAILED;
+                    });
         } catch (RuntimeException e) {
             log.warn("Export {} failed", publicId, e);
             repo.markFailed(row.id(), EXPORT_FAILED);
@@ -233,12 +258,17 @@ public class ReportExportService {
             int written;
             boolean truncated = false;
             try (OutputStream out = Files.newOutputStream(temp);
-                 ExportWorkbookWriter writer = new ExportWorkbookWriter(out, row.listCode(), fields, text,
-                         ExportWorkbookWriter.APPLICATION, ExportWorkbookWriter.APP_VERSION)) {
+                    ExportWorkbookWriter writer = new ExportWorkbookWriter(
+                            out,
+                            row.listCode(),
+                            fields,
+                            text,
+                            ExportWorkbookWriter.APPLICATION,
+                            ExportWorkbookWriter.APP_VERSION)) {
                 String cursor = null;
                 do {
-                    KeysetPage<?> page = exporter.page(PAGE_SIZE, cursor, request.filter(), request.sort(), request.q(),
-                            request.options());
+                    KeysetPage<?> page = exporter.page(
+                            PAGE_SIZE, cursor, request.filter(), request.sort(), request.q(), request.options());
                     for (Object item : page.items()) {
                         if (writer.rows() >= maxRows) {
                             truncated = true;
@@ -278,7 +308,10 @@ public class ReportExportService {
         if (requested == null || requested.isEmpty()) {
             return visible.stream().filter(QueryField::defaultVisible).toList();
         }
-        return requested.stream().map(list::viewerField).flatMap(Optional::stream).toList();
+        return requested.stream()
+                .map(list::viewerField)
+                .flatMap(Optional::stream)
+                .toList();
     }
 
     private ExportRow own(String publicId) {
@@ -289,7 +322,8 @@ public class ReportExportService {
             throw ApiException.notFound(ErrorCode.NOT_FOUND, EXPORT_NOT_FOUND);
         }
         long userId = SecurityContext.getCurrentUserId();
-        return repo.find(id).filter(row -> row.userId() == userId)
+        return repo.find(id)
+                .filter(row -> row.userId() == userId)
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, EXPORT_NOT_FOUND));
     }
 
@@ -297,9 +331,8 @@ public class ReportExportService {
         return row.listCode().replace('.', '_') + "_" + STAMP.format(row.createdAt()) + ".xlsx";
     }
 
-    private record StoredRequest(String filter, String sort, String q, List<String> columns,
-                                 Map<String, String> options, String lang) {
-    }
+    private record StoredRequest(
+            String filter, String sort, String q, List<String> columns, Map<String, String> options, String lang) {}
 
     private StoredRequest readRequest(String raw) {
         try {
@@ -308,8 +341,13 @@ public class ReportExportService {
             List<String> columns = (List<String>) map.get("columns");
             @SuppressWarnings("unchecked")
             Map<String, String> options = (Map<String, String>) map.getOrDefault("options", Map.of());
-            return new StoredRequest((String) map.get("filter"), (String) map.get("sort"), (String) map.get("q"),
-                    columns, options, (String) map.get("lang"));
+            return new StoredRequest(
+                    (String) map.get("filter"),
+                    (String) map.get("sort"),
+                    (String) map.get("q"),
+                    columns,
+                    options,
+                    (String) map.get("lang"));
         } catch (JacksonException e) {
             throw new IllegalStateException("Broken export request", e);
         }

@@ -23,7 +23,7 @@ import { SMTDatePickerValueAccessor } from './date-picker-value-accessor';
 })
 class SignalHost {
   readonly model = signal({ due: '2026-09-04' as string | null });
-  readonly task = form(this.model, path => required(path.due));
+  readonly task = form(this.model, (path) => required(path.due));
   readonly withTime = signal(false);
 }
 
@@ -38,7 +38,7 @@ class NgModelHost {
 
 describe('SMTDatePickerComponent', () => {
   afterEach(() => {
-    document.querySelectorAll('.cdk-overlay-container').forEach(node => node.remove());
+    document.querySelectorAll('.cdk-overlay-container').forEach((node) => node.remove());
     TestBed.resetTestingModule();
   });
 
@@ -128,9 +128,9 @@ describe('SMTDatePickerComponent', () => {
 
       toggle.click();
       await settle();
-      document.querySelector('[role="dialog"]')!.dispatchEvent(
-        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })
-      );
+      document
+        .querySelector('[role="dialog"]')!
+        .dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
       await settle();
 
       expect(document.querySelector('[role="dialog"]')).toBeNull();

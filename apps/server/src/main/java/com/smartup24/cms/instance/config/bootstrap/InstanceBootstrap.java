@@ -1,7 +1,7 @@
 package com.smartup24.cms.instance.config.bootstrap;
 
-import com.smartup24.cms.instance.md.service.PasswordHasher;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
+import com.smartup24.cms.instance.md.service.PasswordHasher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
@@ -30,10 +30,11 @@ public class InstanceBootstrap implements ApplicationRunner {
     private final MdPermissionService permissionService;
     private final InstanceBootstrapProperties props;
 
-    public InstanceBootstrap(JdbcClient jdbc,
-                             PasswordHasher passwordHasher,
-                             MdPermissionService permissionService,
-                             InstanceBootstrapProperties props) {
+    public InstanceBootstrap(
+            JdbcClient jdbc,
+            PasswordHasher passwordHasher,
+            MdPermissionService permissionService,
+            InstanceBootstrapProperties props) {
         this.jdbc = jdbc;
         this.passwordHasher = passwordHasher;
         this.permissionService = permissionService;
@@ -59,9 +60,10 @@ public class InstanceBootstrap implements ApplicationRunner {
                 """).update();
     }
 
-
     private void initInstanceInfo() {
-        Long count = jdbc.sql("select count(*) from md_instance_info").query(Long.class).single();
+        Long count = jdbc.sql("select count(*) from md_instance_info")
+                .query(Long.class)
+                .single();
         if (count > 0) {
             return;
         }
@@ -76,8 +78,7 @@ public class InstanceBootstrap implements ApplicationRunner {
                 .param("name", props.clientName())
                 .param("profile", props.resourceProfile())
                 .update();
-        log.info("Экземпляр инициализирован: client_code={}, profile={}",
-                props.clientCode(), props.resourceProfile());
+        log.info("Экземпляр инициализирован: client_code={}, profile={}", props.clientCode(), props.resourceProfile());
     }
 
     private void initFirstAdmin() {
@@ -107,23 +108,19 @@ public class InstanceBootstrap implements ApplicationRunner {
         jdbc.sql("""
                         insert into md_user_roles (user_id, role_id)
                         select :userId, id from md_roles where pcode = 'admin'
-                        """)
-                .param("userId", userId)
-                .update();
+                        """).param("userId", userId).update();
 
         permissionService.recalculateEffectivePermissions(userId);
         // Пароль в лог не пишется никогда (FR-OBS-4); force_password_change=true —
         // первый вход потребует смену.
-        log.info("Первый администратор создан: login={}, смена пароля при входе обязательна",
-                props.adminLogin());
+        log.info("Первый администратор создан: login={}, смена пароля при входе обязательна", props.adminLogin());
     }
 
     private static void require(String value, String property) {
         if (value == null || value.isBlank()) {
-            throw new IllegalStateException(
-                    "Экземпляр не инициализирован: задайте " + property
-                            + " в конфигурации развёртывания (FR-INST-1). "
-                            + "Значения по умолчанию запрещены (AUDIT-03 C-1/C-2).");
+            throw new IllegalStateException("Экземпляр не инициализирован: задайте " + property
+                    + " в конфигурации развёртывания (FR-INST-1). "
+                    + "Значения по умолчанию запрещены (AUDIT-03 C-1/C-2).");
         }
     }
 }

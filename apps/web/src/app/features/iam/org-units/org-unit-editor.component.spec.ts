@@ -3,13 +3,26 @@ import { describe, expect, it, vi } from 'vitest';
 import { OrgUnitEditorComponent } from './org-unit-editor.component';
 import { OrgUnit } from './org-units.models';
 
-const root: OrgUnit = { id: 1, parentId: null, code: 'ROOT', name: 'Root', kind: 'company', state: 'A', orderNo: 0, createdAt: '', modifiedAt: '' };
+const root: OrgUnit = {
+  id: 1,
+  parentId: null,
+  code: 'ROOT',
+  name: 'Root',
+  kind: 'company',
+  state: 'A',
+  orderNo: 0,
+  createdAt: '',
+  modifiedAt: '',
+};
 const child: OrgUnit = { ...root, id: 2, parentId: 1, code: 'CHILD', name: 'Child', kind: 'custom-kind' };
 describe('OrgUnitEditorComponent', () => {
   function setup(initial = child, units = [root, child]) {
     const fixture = TestBed.createComponent(OrgUnitEditorComponent);
-    fixture.componentRef.setInput('initial', initial); fixture.componentRef.setInput('units', units); fixture.detectChanges();
-    const save = vi.fn(); fixture.componentInstance.save.subscribe(save);
+    fixture.componentRef.setInput('initial', initial);
+    fixture.componentRef.setInput('units', units);
+    fixture.detectChanges();
+    const save = vi.fn();
+    fixture.componentInstance.save.subscribe(save);
     return { fixture, editor: fixture.componentInstance, save };
   }
   it('keeps unknown kinds and immutable code; sends name-only sparse PATCH through native form', async () => {
@@ -22,8 +35,13 @@ describe('OrgUnitEditorComponent', () => {
   });
   it('does not submit pristine, blank or pending forms', () => {
     const { editor, save, fixture } = setup();
-    editor.submit(); editor.draft.name = ' '; editor.submit();
-    editor.draft.name = 'New'; fixture.componentRef.setInput('pending', true); fixture.detectChanges(); editor.submit();
+    editor.submit();
+    editor.draft.name = ' ';
+    editor.submit();
+    editor.draft.name = 'New';
+    fixture.componentRef.setInput('pending', true);
+    fixture.detectChanges();
+    editor.submit();
     expect(save).not.toHaveBeenCalled();
     expect(fixture.nativeElement.querySelector('fieldset')?.disabled).toBe(true);
   });
@@ -38,27 +56,40 @@ describe('OrgUnitEditorComponent', () => {
   });
   it('excludes malformed parents and requires impact confirmation for state/move changes', () => {
     const { editor, save } = setup(child, [root, child, { ...root, id: 3, parentId: 90 }]);
-    expect(editor.parents.map(u => u.id)).toEqual([1]);
-    editor.draft.state = 'P'; editor.submit();
-    expect(save).not.toHaveBeenCalled(); expect(editor.impactOpen).toBe(true);
-    editor.confirmImpact(); expect(save).toHaveBeenCalledWith({ mode: 'edit', id: 2, patch: { state: 'P' } });
+    expect(editor.parents.map((u) => u.id)).toEqual([1]);
+    editor.draft.state = 'P';
+    editor.submit();
+    expect(save).not.toHaveBeenCalled();
+    expect(editor.impactOpen).toBe(true);
+    editor.confirmImpact();
+    expect(save).toHaveBeenCalledWith({ mode: 'edit', id: 2, patch: { state: 'P' } });
   });
   it('locks root parent and associates field errors without losing the draft', () => {
     const { editor, fixture } = setup(root);
     editor.draft.name = 'Preserved';
-    fixture.componentRef.setInput('error', { status: 409, title: 'Conflict', code: 'CONFLICT', detail: 'Try again', invalid_params: [{ name: 'name', reason: 'Field conflict' }] });
+    fixture.componentRef.setInput('error', {
+      status: 409,
+      title: 'Conflict',
+      code: 'CONFLICT',
+      detail: 'Try again',
+      invalid_params: [{ name: 'name', reason: 'Field conflict' }],
+    });
     fixture.detectChanges();
     expect(editor.draft.name).toBe('Preserved');
     const input = fixture.nativeElement.querySelector('input[name="name"]') as HTMLInputElement;
     expect(input?.getAttribute('aria-invalid')).toBe('true');
-    expect(fixture.nativeElement.querySelector('#' + input.getAttribute('aria-describedby')).textContent).toContain('Field conflict');
+    expect(fixture.nativeElement.querySelector('#' + input.getAttribute('aria-describedby')).textContent).toContain(
+      'Field conflict',
+    );
     expect(fixture.nativeElement.querySelector('select[name="parentId"]')).toBeNull();
   });
   it('preserves an unknown kind even when its name matches an object prototype property', async () => {
     const { fixture, editor } = setup({ ...child, kind: 'constructor' });
     await fixture.whenStable(); // ngModel writes the value to the picker after a tick
     fixture.detectChanges();
-    const kind = fixture.nativeElement.querySelector('smt-select[name="kind"] button[role="combobox"]') as HTMLButtonElement;
+    const kind = fixture.nativeElement.querySelector(
+      'smt-select[name="kind"] button[role="combobox"]',
+    ) as HTMLButtonElement;
     expect(editor.kindOptions()[0]).toEqual({ id: 'constructor', label: 'constructor' });
     expect(kind.textContent).toContain('constructor');
     expect(editor.draft.kind).toBe('constructor');

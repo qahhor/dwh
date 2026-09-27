@@ -2,7 +2,6 @@ package com.smartup24.cms.instance.common.entity;
 
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.common.error.ApiException;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
@@ -24,8 +23,7 @@ public final class EntityValidator {
     public static final String OUT_OF_RANGE = "out_of_range";
     public static final String INVALID = "invalid";
 
-    private EntityValidator() {
-    }
+    private EntityValidator() {}
 
     /**
      * @param values  the record's values by field key

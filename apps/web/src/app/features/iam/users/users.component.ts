@@ -1,4 +1,14 @@
-import { Component, OnInit, OnDestroy, signal, HostListener, ElementRef, ViewChild, inject, DestroyRef } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  signal,
+  HostListener,
+  ElementRef,
+  ViewChild,
+  inject,
+  DestroyRef,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Observable, Subscription, finalize, tap } from 'rxjs';
@@ -41,7 +51,7 @@ import {
   hasUpperAndLower,
   hasDigitsOrSymbols,
   doesNotContainLogin,
-  calculatePasswordStrength
+  calculatePasswordStrength,
 } from './users.models';
 import { UserSecurityService } from './services/user-security.service';
 import { UserFormsService } from './services/user-forms.service';
@@ -61,11 +71,11 @@ import { UserDirectoryService } from './services/user-directory.service';
     UserTableViewComponent,
     UserCreateModalComponent,
     UserEditModalComponent,
-    UserDetailModalComponent
+    UserDetailModalComponent,
   ],
   providers: [UserDirectoryService],
   templateUrl: './users.component.html',
-  styleUrl: './users.component.css'
+  styleUrl: './users.component.css',
 })
 export class UsersComponent implements OnInit, OnDestroy {
   public readonly secService = inject(UserSecurityService);
@@ -95,7 +105,7 @@ export class UsersComponent implements OnInit, OnDestroy {
   readonly activeViewTab = signal<'info' | 'security' | 'orgUnits' | 'permissions'>('info');
 
   readonly getUserRoleNamesFn = (u: User) => getUserRoleNames(u, this.roles());
-  readonly getManagerNameFn = (u: User) => getManagerName(u, id => this.directory.nameOf(id));
+  readonly getManagerNameFn = (u: User) => getManagerName(u, (id) => this.directory.nameOf(id));
 
   private recordRouteSubscription?: Subscription;
   private queryParamSubscription?: Subscription;
@@ -113,7 +123,7 @@ export class UsersComponent implements OnInit, OnDestroy {
       return meta ? parseSort(meta.defaultSort) : null;
     },
     onApply: () => this.userPager.first(),
-    columnsStore: inject(TableColumnStateStore)
+    columnsStore: inject(TableColumnStateStore),
   });
 
   /* A page at a time, sorted on the server. The pager cancels a superseded
@@ -122,10 +132,10 @@ export class UsersComponent implements OnInit, OnDestroy {
   readonly userPager = new KeysetPager<User>((cursor, limit) => this.fetchUsers(cursor, limit), {
     pageSize: 20,
     destroyRef: this.destroyRef,
-    onLoaded: rows => {
+    onLoaded: (rows) => {
       this.directory.remember(rows);
-      this.directory.resolve(rows.map(user => user.managerId));
-    }
+      this.directory.resolve(rows.map((user) => user.managerId));
+    },
   });
   readonly users = this.userPager.items;
   private exportFilters: Record<string, string> = {};
@@ -141,38 +151,88 @@ export class UsersComponent implements OnInit, OnDestroy {
     private api: ApiService,
     private toast: ToastService,
     private elementRef: ElementRef,
-    public i18n: I18nService
+    public i18n: I18nService,
   ) {}
 
   // Delegated signals and getters
-  get isSubmitting() { return this.formsService.isSubmitting; }
-  get isCreateModalOpen() { return this.formsService.isCreateModalOpen; }
-  get isEditModalOpen() { return this.formsService.isEditModalOpen; }
-  get isFilterMenuOpen() { return this.filterService.isFilterMenuOpen; }
-  get userSecurity() { return this.secService.userSecurity; }
-  get isLoadingSecurity() { return this.secService.isLoadingSecurity; }
-  get isSecurityActionPending() { return this.secService.isSecurityActionPending; }
+  get isSubmitting() {
+    return this.formsService.isSubmitting;
+  }
+  get isCreateModalOpen() {
+    return this.formsService.isCreateModalOpen;
+  }
+  get isEditModalOpen() {
+    return this.formsService.isEditModalOpen;
+  }
+  get isFilterMenuOpen() {
+    return this.filterService.isFilterMenuOpen;
+  }
+  get userSecurity() {
+    return this.secService.userSecurity;
+  }
+  get isLoadingSecurity() {
+    return this.secService.isLoadingSecurity;
+  }
+  get isSecurityActionPending() {
+    return this.secService.isSecurityActionPending;
+  }
 
-  get isCreateSubmitted() { return this.formsService.isCreateSubmitted; }
-  set isCreateSubmitted(v: boolean) { this.formsService.isCreateSubmitted = v; }
-  get isEditSubmitted() { return this.formsService.isEditSubmitted; }
-  set isEditSubmitted(v: boolean) { this.formsService.isEditSubmitted = v; }
-  get createForm(): UserCreateForm { return this.formsService.createForm; }
-  set createForm(form: UserCreateForm) { this.formsService.createForm = form; }
-  get editForm(): UserEditForm { return this.formsService.editForm; }
-  set editForm(form: UserEditForm) { this.formsService.editForm = form; }
-  get editingUser() { return this.formsService.editingUser; }
-  set editingUser(u: User | null) { this.formsService.editingUser = u; }
+  get isCreateSubmitted() {
+    return this.formsService.isCreateSubmitted;
+  }
+  set isCreateSubmitted(v: boolean) {
+    this.formsService.isCreateSubmitted = v;
+  }
+  get isEditSubmitted() {
+    return this.formsService.isEditSubmitted;
+  }
+  set isEditSubmitted(v: boolean) {
+    this.formsService.isEditSubmitted = v;
+  }
+  get createForm(): UserCreateForm {
+    return this.formsService.createForm;
+  }
+  set createForm(form: UserCreateForm) {
+    this.formsService.createForm = form;
+  }
+  get editForm(): UserEditForm {
+    return this.formsService.editForm;
+  }
+  set editForm(form: UserEditForm) {
+    this.formsService.editForm = form;
+  }
+  get editingUser() {
+    return this.formsService.editingUser;
+  }
+  set editingUser(u: User | null) {
+    this.formsService.editingUser = u;
+  }
 
   // Filter & Pagination properties
-  get searchQuery() { return this.filterService.searchQuery; }
-  set searchQuery(v: string) { this.filterService.searchQuery = v; }
-  get selectedState() { return this.filterService.selectedState; }
-  set selectedState(v: string) { this.filterService.selectedState = v; }
-  get selectedRoleId() { return this.filterService.selectedRoleId; }
-  set selectedRoleId(v: number | null) { this.filterService.selectedRoleId = v; }
-  get selected2fa() { return this.filterService.selected2fa; }
-  set selected2fa(v: boolean | null) { this.filterService.selected2fa = v; }
+  get searchQuery() {
+    return this.filterService.searchQuery;
+  }
+  set searchQuery(v: string) {
+    this.filterService.searchQuery = v;
+  }
+  get selectedState() {
+    return this.filterService.selectedState;
+  }
+  set selectedState(v: string) {
+    this.filterService.selectedState = v;
+  }
+  get selectedRoleId() {
+    return this.filterService.selectedRoleId;
+  }
+  set selectedRoleId(v: number | null) {
+    this.filterService.selectedRoleId = v;
+  }
+  get selected2fa() {
+    return this.filterService.selected2fa;
+  }
+  set selected2fa(v: boolean | null) {
+    this.filterService.selected2fa = v;
+  }
   get userOrgUnitsPanel(): UserOrgUnitsPanelComponent | undefined {
     return this.userDetailModal?.orgUnitsPanel;
   }
@@ -195,8 +255,10 @@ export class UsersComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    this.recordRouteSubscription = this.recordRoute?.paramMap?.subscribe(params => this.loadRecordView(params.get('id')));
-    this.queryParamSubscription = this.recordRoute?.queryParamMap?.subscribe(params => {
+    this.recordRouteSubscription = this.recordRoute?.paramMap?.subscribe((params) =>
+      this.loadRecordView(params.get('id')),
+    );
+    this.queryParamSubscription = this.recordRoute?.queryParamMap?.subscribe((params) => {
       const roleParam = params.get('roleId');
       if (roleParam && !isNaN(Number(roleParam))) {
         this.selectedRoleId = Number(roleParam);
@@ -218,19 +280,35 @@ export class UsersComponent implements OnInit, OnDestroy {
   }
 
   // Permissions
-  canCreateUser() { return this.permService.canCreate('iam.users') || this.permService.canCreate('md_users'); }
-  canUpdateUser() { return this.permService.canUpdate('iam.users') || this.permService.canUpdate('md_users'); }
-  canDeleteUser() { return this.permService.canDelete('iam.users') || this.permService.canDelete('md_users'); }
-  canBlockUser() { return this.permService.hasPermission('iam.users', 'block') || this.permService.hasPermission('md_users', 'block'); }
-  canUnblockUser() { return this.permService.hasPermission('iam.users', 'unblock') || this.permService.hasPermission('md_users', 'unblock'); }
+  canCreateUser() {
+    return this.permService.canCreate('iam.users') || this.permService.canCreate('md_users');
+  }
+  canUpdateUser() {
+    return this.permService.canUpdate('iam.users') || this.permService.canUpdate('md_users');
+  }
+  canDeleteUser() {
+    return this.permService.canDelete('iam.users') || this.permService.canDelete('md_users');
+  }
+  canBlockUser() {
+    return this.permService.hasPermission('iam.users', 'block') || this.permService.hasPermission('md_users', 'block');
+  }
+  canUnblockUser() {
+    return (
+      this.permService.hasPermission('iam.users', 'unblock') || this.permService.hasPermission('md_users', 'unblock')
+    );
+  }
   canViewOrgUnits() {
-    return this.permService.hasPermission('iam.org_units', 'view') ||
-           this.permService.hasPermission('iam.org_units', 'assign') ||
-           this.orgPanelBusy();
+    return (
+      this.permService.hasPermission('iam.org_units', 'view') ||
+      this.permService.hasPermission('iam.org_units', 'assign') ||
+      this.orgPanelBusy()
+    );
   }
   canViewAssignments() {
-    return this.permService.hasPermission('rbac.assignments', 'view') ||
-           this.permService.hasPermission('rbac.assignments', 'assign');
+    return (
+      this.permService.hasPermission('rbac.assignments', 'view') ||
+      this.permService.hasPermission('rbac.assignments', 'assign')
+    );
   }
   canAssignPermissions() {
     return this.permService.hasPermission('rbac.assignments', 'assign');
@@ -244,13 +322,16 @@ export class UsersComponent implements OnInit, OnDestroy {
     if (this.destroyed) return;
     if (!this.meta()) {
       this.metaError.set(false);
-      this.queryMeta.get('iam.users').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-        next: meta => {
-          this.meta.set(meta);
-          this.views.load().subscribe(() => this.userPager.first());
-        },
-        error: () => this.metaError.set(true)
-      });
+      this.queryMeta
+        .get('iam.users')
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (meta) => {
+            this.meta.set(meta);
+            this.views.load().subscribe(() => this.userPager.first());
+          },
+          error: () => this.metaError.set(true),
+        });
       return;
     }
     if (reset) this.userPager.first();
@@ -270,44 +351,64 @@ export class UsersComponent implements OnInit, OnDestroy {
     for (const [key, value] of Object.entries(this.flatFilters())) {
       if (value !== undefined) next[key] = String(value);
     }
-    const same = Object.keys(next).length === Object.keys(this.exportFilters).length
-      && Object.entries(next).every(([key, value]) => this.exportFilters[key] === value);
+    const same =
+      Object.keys(next).length === Object.keys(this.exportFilters).length &&
+      Object.entries(next).every(([key, value]) => this.exportFilters[key] === value);
     if (!same) this.exportFilters = next;
     return this.exportFilters;
   }
 
   loadRoles() {
     this.api.get<Role[]>('/rbac/roles').subscribe({
-      next: res => this.roles.set(res || []),
+      next: (res) => this.roles.set(res || []),
       error: () => {
         this.api.get<Role[]>('/iam/roles').subscribe({
-          next: res => this.roles.set(res || []),
-          error: () => {}
+          next: (res) => this.roles.set(res || []),
+          error: () => {},
         });
-      }
+      },
     });
   }
 
   loadCustomFields() {
-    this.api.get<CustomField[]>('/custom-fields', { entity_type: 'USER' }).subscribe(res => {
+    this.api.get<CustomField[]>('/custom-fields', { entity_type: 'USER' }).subscribe((res) => {
       this.customFields.set(res || []);
     });
   }
 
   // Filter delegates
-  hasExtraFilters() { return this.filterService.hasExtraFilters(); }
-  resetExtraFilters() { this.filterService.resetExtraFilters(() => this.loadUsers(true)); }
-  clearStateFilter() { this.filterService.clearStateFilter(() => this.loadUsers(true)); }
-  clear2faFilter() { this.filterService.clear2faFilter(() => this.loadUsers(true)); }
-  hasAnyActiveFilters() { return this.filterService.hasAnyActiveFilters(); }
+  hasExtraFilters() {
+    return this.filterService.hasExtraFilters();
+  }
+  resetExtraFilters() {
+    this.filterService.resetExtraFilters(() => this.loadUsers(true));
+  }
+  clearStateFilter() {
+    this.filterService.clearStateFilter(() => this.loadUsers(true));
+  }
+  clear2faFilter() {
+    this.filterService.clear2faFilter(() => this.loadUsers(true));
+  }
+  hasAnyActiveFilters() {
+    return this.filterService.hasAnyActiveFilters();
+  }
   resetAllFilters() {
     this.filterService.resetAllFilters(
-      () => this.recordRouter?.navigate([], { relativeTo: this.recordRoute, queryParams: { roleId: null }, queryParamsHandling: 'merge' }),
-      () => this.loadUsers(true)
+      () =>
+        this.recordRouter?.navigate([], {
+          relativeTo: this.recordRoute,
+          queryParams: { roleId: null },
+          queryParamsHandling: 'merge',
+        }),
+      () => this.loadUsers(true),
     );
   }
-  toggleFilterMenu(event: MouseEvent) { this.filterService.toggleFilterMenu(event); }
-  setStateFilter(state: string) { this.filterService.setStateFilter(state, () => this.loadUsers(true)); }
+  toggleFilterMenu(event: MouseEvent) {
+    this.filterService.toggleFilterMenu(event);
+  }
+  setStateFilter(state: string) {
+    this.filterService.setStateFilter(state, () => this.loadUsers(true));
+  }
   onSearchInput() {
     clearTimeout(this.searchDebounceTimer);
     // The search text has already changed: an answer or a next page of the
@@ -315,18 +416,32 @@ export class UsersComponent implements OnInit, OnDestroy {
     this.userPager.invalidate();
     this.searchDebounceTimer = setTimeout(() => this.loadUsers(true), 250);
   }
-  clearSearch() { this.searchQuery = ''; this.loadUsers(true); }
-  getSelectedRoleName() { return this.filterService.getSelectedRoleName(this.roles()); }
+  clearSearch() {
+    this.searchQuery = '';
+    this.loadUsers(true);
+  }
+  getSelectedRoleName() {
+    return this.filterService.getSelectedRoleName(this.roles());
+  }
   clearRoleFilter() {
     this.filterService.clearRoleFilter(
-      () => this.recordRouter?.navigate([], { relativeTo: this.recordRoute, queryParams: { roleId: null }, queryParamsHandling: 'merge' }),
-      () => this.loadUsers(true)
+      () =>
+        this.recordRouter?.navigate([], {
+          relativeTo: this.recordRoute,
+          queryParams: { roleId: null },
+          queryParamsHandling: 'merge',
+        }),
+      () => this.loadUsers(true),
     );
   }
 
   // User display helpers
-  getManagerName(user: User) { return getManagerName(user, id => this.directory.nameOf(id)); }
-  getUserRoleNames(user: User) { return getUserRoleNames(user, this.roles()); }
+  getManagerName(user: User) {
+    return getManagerName(user, (id) => this.directory.nameOf(id));
+  }
+  getUserRoleNames(user: User) {
+    return getUserRoleNames(user, this.roles());
+  }
 
   // Modals & Record View
   loadRecordView(id: string | null) {
@@ -343,24 +458,26 @@ export class UsersComponent implements OnInit, OnDestroy {
     this.userSecurity.set(null);
     if (id === null) return;
     if (!canonicalRecordId(id)) {
-      this.recordError.set(true); this.recordNotFound.set(true); return;
+      this.recordError.set(true);
+      this.recordNotFound.set(true);
+      return;
     }
     this.recordLoading.set(true);
     this.recordRequest = this.api.get<User>(`/iam/users/${id}`, undefined, { notifyError: false }).subscribe({
-      next: user => {
+      next: (user) => {
         if (requestId !== this.recordRequestId) return;
         this.recordLoading.set(false);
         if (recordResponseMatches(user?.id, id)) {
           this.viewingUser = user;
           this.directory.resolve([user.managerId]);
-        }
-        else this.recordError.set(true);
+        } else this.recordError.set(true);
       },
-      error: error => {
+      error: (error) => {
         if (requestId !== this.recordRequestId) return;
-        this.recordLoading.set(false); this.recordError.set(true);
+        this.recordLoading.set(false);
+        this.recordError.set(true);
         this.recordNotFound.set(error?.status === 404 || error?.status === 403);
-      }
+      },
     });
   }
 
@@ -403,7 +520,9 @@ export class UsersComponent implements OnInit, OnDestroy {
   openCreateModal() {
     this.formsService.openCreateModal(this.roles());
   }
-  submitCreateUser() { this.formsService.submitCreateUser(() => this.loadUsers(true)); }
+  submitCreateUser() {
+    this.formsService.submitCreateUser(() => this.loadUsers(true));
+  }
 
   openEditModal(user: User) {
     this.formsService.openEditModal(user);
@@ -412,7 +531,7 @@ export class UsersComponent implements OnInit, OnDestroy {
     this.formsService.submitEditUser(
       () => this.destroyed,
       () => this.loadUsers(),
-      (sessionId) => this.closeEditModal(sessionId)
+      (sessionId) => this.closeEditModal(sessionId),
     );
   }
 
@@ -423,42 +542,49 @@ export class UsersComponent implements OnInit, OnDestroy {
     this.isEditModalOpen.set(false);
     this.editingUser = null;
     const routeId = this.routeRecordId();
-    if (routeId !== null) this.afterOrgPanelLeave(() => {
-      if (closedSessionId === this.formsService.editSessionId && routeId === this.routeRecordId()) {
-        this.loadRecordView(routeId);
-      }
-    });
+    if (routeId !== null)
+      this.afterOrgPanelLeave(() => {
+        if (closedSessionId === this.formsService.editSessionId && routeId === this.routeRecordId()) {
+          this.loadRecordView(routeId);
+        }
+      });
   }
 
   /** Asks before deleting and anonymising a user; the dialog stays open until the server answers. */
   openDeleteConfirmModal(user: User) {
     const t = (key: string, params?: Record<string, string>) => this.uiI18n.translate(key, params);
-    this.modal.confirm({
-      title: t('iam.udalenie_polzovatelya'),
-      message: `${t('iam.delete_user_question', { name: user.name, login: user.login })}\n${t('iam.personalnye_dannye_budut_sterty_a_aktivnye_sessi')}`,
-      yesLabel: t('common.delete'),
-      noLabel: t('common.cancel'),
-      destructive: true,
-      action: () => {
-        this.isSubmitting.set(true);
-        return this.api.delete(`/iam/users/${user.id}`, { notifyError: false }).pipe(
-          tap(() => {
-            this.toast.success(t('iam.polzovatel_uspeshno_udalen'));
-            this.loadUsers();
-          }),
-          finalize(() => this.isSubmitting.set(false))
-        );
-      },
-      actionError: problemText
-    }).subscribe();
+    this.modal
+      .confirm({
+        title: t('iam.udalenie_polzovatelya'),
+        message: `${t('iam.delete_user_question', { name: user.name, login: user.login })}\n${t('iam.personalnye_dannye_budut_sterty_a_aktivnye_sessi')}`,
+        yesLabel: t('common.delete'),
+        noLabel: t('common.cancel'),
+        destructive: true,
+        action: () => {
+          this.isSubmitting.set(true);
+          return this.api.delete(`/iam/users/${user.id}`, { notifyError: false }).pipe(
+            tap(() => {
+              this.toast.success(t('iam.polzovatel_uspeshno_udalen'));
+              this.loadUsers();
+            }),
+            finalize(() => this.isSubmitting.set(false)),
+          );
+        },
+        actionError: problemText,
+      })
+      .subscribe();
   }
 
   toggleUserState(user: User, action: 'block' | 'unblock') {
     this.api.post(`/iam/users/${user.id}/${action}`).subscribe({
       next: () => {
-        this.toast.success(action === 'block' ? this.uiI18n.translate('iam.polzovatel_zablokirovan') : this.uiI18n.translate('iam.polzovatel_razblokirovan'));
+        this.toast.success(
+          action === 'block'
+            ? this.uiI18n.translate('iam.polzovatel_zablokirovan')
+            : this.uiI18n.translate('iam.polzovatel_razblokirovan'),
+        );
         this.loadUsers();
-      }
+      },
     });
   }
 
@@ -470,11 +596,21 @@ export class UsersComponent implements OnInit, OnDestroy {
     }
   }
 
-  loadUserSecurity(userId: number) { this.secService.loadUserSecurity(userId); }
-  terminateUserSessions(userId: number) { this.secService.terminateUserSessions(userId); }
-  terminateSingleSession(sessionId: number, userId: number) { this.secService.terminateSingleSession(sessionId, userId); }
-  forcePasswordChange(userId: number) { this.secService.forcePasswordChange(userId, () => this.loadUsers()); }
-  resetUser2fa(userId: number) { this.secService.resetUser2fa(userId, () => this.loadUsers()); }
+  loadUserSecurity(userId: number) {
+    this.secService.loadUserSecurity(userId);
+  }
+  terminateUserSessions(userId: number) {
+    this.secService.terminateUserSessions(userId);
+  }
+  terminateSingleSession(sessionId: number, userId: number) {
+    this.secService.terminateSingleSession(sessionId, userId);
+  }
+  forcePasswordChange(userId: number) {
+    this.secService.forcePasswordChange(userId, () => this.loadUsers());
+  }
+  resetUser2fa(userId: number) {
+    this.secService.resetUser2fa(userId, () => this.loadUsers());
+  }
 
   // Password helpers
   generateSecurePassword(): string {
@@ -488,10 +624,18 @@ export class UsersComponent implements OnInit, OnDestroy {
   passwordStrength() {
     return calculatePasswordStrength(this.createForm.password, this.createForm.login, this.uiI18n);
   }
-  hasMinLength(): boolean { return hasMinLength(this.createForm.password); }
-  hasUpperAndLower(): boolean { return hasUpperAndLower(this.createForm.password); }
-  hasDigitsOrSymbols(): boolean { return hasDigitsOrSymbols(this.createForm.password); }
-  doesNotContainLogin(): boolean { return doesNotContainLogin(this.createForm.password, this.createForm.login); }
+  hasMinLength(): boolean {
+    return hasMinLength(this.createForm.password);
+  }
+  hasUpperAndLower(): boolean {
+    return hasUpperAndLower(this.createForm.password);
+  }
+  hasDigitsOrSymbols(): boolean {
+    return hasDigitsOrSymbols(this.createForm.password);
+  }
+  doesNotContainLogin(): boolean {
+    return doesNotContainLogin(this.createForm.password, this.createForm.login);
+  }
 
   private afterOrgPanelLeave(action: () => void): void {
     if (this.destroyed) return;
@@ -512,7 +656,7 @@ export class UsersComponent implements OnInit, OnDestroy {
     return {
       state: this.selectedState || undefined,
       role_id: this.selectedRoleId || undefined,
-      is_2fa_enabled: this.selected2fa !== null ? this.selected2fa : undefined
+      is_2fa_enabled: this.selected2fa !== null ? this.selected2fa : undefined,
     };
   }
 
@@ -521,7 +665,12 @@ export class UsersComponent implements OnInit, OnDestroy {
       limit,
       cursor: cursor ?? undefined,
       ...this.flatFilters(),
-      ...toQueryParams({ sort: this.views.sort(), conditions: this.views.filter(), match: this.views.match(), search: this.searchQuery })
+      ...toQueryParams({
+        sort: this.views.sort(),
+        conditions: this.views.filter(),
+        match: this.views.match(),
+        search: this.searchQuery,
+      }),
     });
   }
 }

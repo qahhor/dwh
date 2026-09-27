@@ -14,11 +14,19 @@ import { firstValueFrom } from 'rxjs';
 
 /** Roadmap item 53: any-groups in the filter and fields that refer to another list. */
 const META: QueryListMeta = {
-  code: 'ms.tasks', defaultSort: 'id', defaultLimit: 50, maxLimit: 200, maxConditions: 20, maxInValues: 100,
+  code: 'ms.tasks',
+  defaultSort: 'id',
+  defaultLimit: 50,
+  maxLimit: 200,
+  maxConditions: 20,
+  maxInValues: 100,
   fields: [
     metaField('title', 'tasks.col.title', 'text', { ops: ['eq', 'contains'] }),
-    metaField('statusId', 'tasks.col.status', 'number', { ops: ['eq', 'ne', 'in'], ref: { path: '/tasks/statuses', labelField: 'name', keyField: 'id', paged: false } })
-  ]
+    metaField('statusId', 'tasks.col.status', 'number', {
+      ops: ['eq', 'ne', 'in'],
+      ref: { path: '/tasks/statuses', labelField: 'name', keyField: 'id', paged: false },
+    }),
+  ],
 } as QueryListMeta;
 
 const A: QueryCondition = { field: 'title', op: 'contains', value: 'road' };
@@ -30,8 +38,9 @@ describe('any-groups in the filter DSL', () => {
     expect(filterDsl([A], 'any')).toEqual([A]);
     expect(filterDsl([A, B], 'all')).toEqual([A, { field: 'statusId', op: 'eq', value: 3 }]);
     expect(filterDsl([B], 'all', true)).toEqual([B]);
-    expect(toQueryParams({ conditions: [A, B], match: 'any' }).filter)
-      .toBe(JSON.stringify([{ any: [A, { field: 'statusId', op: 'eq', value: 3 }] }]));
+    expect(toQueryParams({ conditions: [A, B], match: 'any' }).filter).toBe(
+      JSON.stringify([{ any: [A, { field: 'statusId', op: 'eq', value: 3 }] }]),
+    );
   });
 
   it('reads a saved filter back into its conditions and how they combine', () => {
@@ -42,10 +51,19 @@ describe('any-groups in the filter DSL', () => {
 
   it('keeps the match and the reference labels in a saved view, and restores them when the view is opened', () => {
     const view: SavedListView = {
-      id: 1, name: 'Mine', isDefault: true, lockVersion: 1, modifiedAt: '2026-09-26T00:00:00Z',
-      state: { columns: { order: [], hidden: [], widths: {} }, sort: null, filter: [{ any: [A, B] }] }
+      id: 1,
+      name: 'Mine',
+      isDefault: true,
+      lockVersion: 1,
+      modifiedAt: '2026-09-26T00:00:00Z',
+      state: { columns: { order: [], hidden: [], widths: {} }, sort: null, filter: [{ any: [A, B] }] },
     };
-    const api = { list: () => of([view]), create: vi.fn(), update: vi.fn(), remove: vi.fn() } as unknown as ListViewsApi;
+    const api = {
+      list: () => of([view]),
+      create: vi.fn(),
+      update: vi.fn(),
+      remove: vi.fn(),
+    } as unknown as ListViewsApi;
     const state = new ListViewState('ms.tasks', api, { defaultSort: () => null, onApply: () => {} });
     state.load().subscribe();
 
@@ -64,22 +82,34 @@ describe('reference fields', () => {
     const draft = { ...fromCondition({ field: 'statusId', op: 'eq', value: 3 }), label: 'Done' };
     const condition = toCondition(draft, META);
     expect(condition).toEqual(B);
-    expect(describeCondition(condition, META, key => ({ 'ui.filter.op.eq': '=' } as Record<string, string>)[key] ?? key)).toBe('tasks.col.status: = Done');
+    expect(
+      describeCondition(condition, META, (key) => (({ 'ui.filter.op.eq': '=' }) as Record<string, string>)[key] ?? key),
+    ).toBe('tasks.col.status: = Done');
     expect(fromCondition(B).label).toBe('Done');
   });
 
   it('search a whole short list on the screen and name chosen keys from it', async () => {
-    const get = vi.fn(() => of([{ id: 1, name: 'New' }, { id: 3, name: 'Done' }]));
+    const get = vi.fn(() =>
+      of([
+        { id: 1, name: 'New' },
+        { id: 3, name: 'Done' },
+      ]),
+    );
     const source = refLookup({ get } as unknown as ApiService, META.fields[1].ref!);
     const page = await firstValueFrom(source.page('do', null, 20));
-    expect(page?.items?.map(row => source.key(row))).toEqual([3]);
+    expect(page?.items?.map((row) => source.key(row))).toEqual([3]);
     expect(await firstValueFrom(source.resolve!([1]))).toEqual([{ id: 1, name: 'New' }]);
     expect(get).toHaveBeenCalledTimes(1);
   });
 
   it('search a paged list on the server with q', async () => {
     const get = vi.fn(() => of({ items: [{ id: 7, name: 'Anna' }], nextCursor: null, hasMore: false }));
-    const source = refLookup({ get } as unknown as ApiService, { path: '/iam/users', labelField: 'name', keyField: 'id', paged: true });
+    const source = refLookup({ get } as unknown as ApiService, {
+      path: '/iam/users',
+      labelField: 'name',
+      keyField: 'id',
+      paged: true,
+    });
     await firstValueFrom(source.page('an', null, 20));
     expect(get).toHaveBeenCalledWith('/iam/users', { limit: 20, cursor: undefined, q: 'an' }, { notifyError: false });
     expect(source.option({ id: 7, name: 'Anna' }).label).toBe('Anna');
@@ -94,8 +124,8 @@ describe('ui-filter-panel with two rows', () => {
       providers: [
         { provide: SMT_DRAWER_DATA, useValue: { meta: META, conditions: [A, B], match: 'all' } },
         { provide: SMT_DRAWER_REF, useValue: { close, afterClosed: vi.fn(), componentInstance: null } },
-        { provide: ApiService, useValue: { get: () => of([{ id: 3, name: 'Done' }]) } }
-      ]
+        { provide: ApiService, useValue: { get: () => of([{ id: 3, name: 'Done' }]) } },
+      ],
     }).compileComponents();
     const fixture = TestBed.createComponent(UiFilterPanelComponent);
     fixture.detectChanges();

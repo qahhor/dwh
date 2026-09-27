@@ -18,13 +18,13 @@ describe('IdleLockDialogComponent', () => {
       imports: [IdleLockDialogComponent],
       providers: [
         { provide: IdleLockService, useValue: idle },
-        { provide: AuthService, useValue: auth }
-      ]
+        { provide: AuthService, useValue: auth },
+      ],
     });
   });
 
   afterEach(() => {
-    document.querySelectorAll('.cdk-overlay-container').forEach(node => node.remove());
+    document.querySelectorAll('.cdk-overlay-container').forEach((node) => node.remove());
   });
 
   async function render() {

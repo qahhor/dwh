@@ -10,14 +10,10 @@ import {
   shareReplay,
   switchMap,
   tap,
-  throwError
+  throwError,
 } from 'rxjs';
 import { Subject } from 'rxjs';
-import {
-  CreateLanguageRequest,
-  LanguageInfo,
-  TranslationDictionary
-} from '../models/i18n.models';
+import { CreateLanguageRequest, LanguageInfo, TranslationDictionary } from '../models/i18n.models';
 
 export type Language = string;
 export type { LanguageInfo } from '../models/i18n.models';
@@ -30,7 +26,7 @@ export const LANGUAGE_LOCALES: Record<string, string> = {
   ky: 'ky-KG',
   tg: 'tg-TJ',
   de: 'de-DE',
-  tr: 'tr-TR'
+  tr: 'tr-TR',
 };
 
 export const LANGUAGE_NATIVE_NAMES: Record<string, string> = {
@@ -41,7 +37,7 @@ export const LANGUAGE_NATIVE_NAMES: Record<string, string> = {
   ky: 'Кыргызча',
   tg: 'Тоҷикӣ',
   de: 'Deutsch',
-  tr: 'Türkçe'
+  tr: 'Türkçe',
 };
 
 const API_ROOT = '/api/v1';
@@ -54,7 +50,7 @@ const FALLBACK_LANGUAGE: LanguageInfo = {
   revision: 0,
   translated: 0,
   total: 0,
-  coverage: 100
+  coverage: 100,
 };
 
 const TECHNICAL_RUSSIAN_FALLBACK: TranslationDictionary = {
@@ -71,13 +67,15 @@ const TECHNICAL_RUSSIAN_FALLBACK: TranslationDictionary = {
   'common.server_unavailable': 'Сервер недоступен или отсутствует соединение с сетью',
   'common.request_failed': 'Не удалось выполнить запрос',
   'common.operation_failed': 'Произошла ошибка при выполнении операции',
-  'common.language_packs_failed': 'Не удалось загрузить языковые пакеты'
+  'common.language_packs_failed': 'Не удалось загрузить языковые пакеты',
 };
 
 function offlineRussianFallback(): TranslationDictionary {
-  const testCatalog = (globalThis as typeof globalThis & {
-    __SMARTUPCMS_TEST_RUSSIAN__?: TranslationDictionary;
-  }).__SMARTUPCMS_TEST_RUSSIAN__;
+  const testCatalog = (
+    globalThis as typeof globalThis & {
+      __SMARTUPCMS_TEST_RUSSIAN__?: TranslationDictionary;
+    }
+  ).__SMARTUPCMS_TEST_RUSSIAN__;
   return testCatalog ?? TECHNICAL_RUSSIAN_FALLBACK;
 }
 
@@ -96,8 +94,8 @@ export class I18nService {
   private readonly activeDictionary = signal<TranslationDictionary>(offlineRussianFallback());
   private readonly russianDictionary = signal<TranslationDictionary>(offlineRussianFallback());
 
-  readonly currentLanguage = computed(() =>
-    this.languages().find(language => language.code === this.currentLang()) ?? FALLBACK_LANGUAGE
+  readonly currentLanguage = computed(
+    () => this.languages().find((language) => language.code === this.currentLang()) ?? FALLBACK_LANGUAGE,
   );
 
   private readonly offlineFallback = offlineRussianFallback();
@@ -120,7 +118,7 @@ export class I18nService {
 
   setLanguage(code: string, persist = true): Observable<void> {
     const normalized = this.normalize(code);
-    const target = this.languages().find(language => language.code === normalized && language.active);
+    const target = this.languages().find((language) => language.code === normalized && language.active);
     if (!target) {
       return throwError(() => new Error(`Language ${normalized} is not active`));
     }
@@ -129,22 +127,28 @@ export class I18nService {
     const previousDictionary = this.activeDictionary();
 
     return this.loadDictionary(normalized).pipe(
-      tap(dictionary => {
+      tap((dictionary) => {
         this.activate(normalized, dictionary);
       }),
-      switchMap(() => persist
-        ? this.client.patch<void>(`${API_ROOT}/settings/user`, { 'user.language': normalized }, {
-            withCredentials: true
-          })
-        : of(undefined)),
+      switchMap(() =>
+        persist
+          ? this.client.patch<void>(
+              `${API_ROOT}/settings/user`,
+              { 'user.language': normalized },
+              {
+                withCredentials: true,
+              },
+            )
+          : of(undefined),
+      ),
       tap(() => {
         if (persist) this.chosen.next(normalized);
       }),
       map(() => undefined),
-      catchError(error => {
+      catchError((error) => {
         this.activate(previousCode, previousDictionary);
         return throwError(() => error);
-      })
+      }),
     );
   }
 
@@ -152,16 +156,16 @@ export class I18nService {
     const normalized = this.normalize(code);
     if (normalized === this.currentLang()) return;
     this.setLanguage(normalized, false).subscribe({
-      error: () => this.setLanguage(RUSSIAN, false).subscribe()
+      error: () => this.setLanguage(RUSSIAN, false).subscribe(),
     });
   }
 
   refreshLanguages(): Observable<LanguageInfo[]> {
-    return this.client.get<LanguageInfo[]>(`${API_ROOT}/i18n/languages`, {
-      withCredentials: true
-    }).pipe(
-      tap(languages => this.languages.set(this.validLanguages(languages)))
-    );
+    return this.client
+      .get<LanguageInfo[]>(`${API_ROOT}/i18n/languages`, {
+        withCredentials: true,
+      })
+      .pipe(tap((languages) => this.languages.set(this.validLanguages(languages))));
   }
 
   refreshLanguage(code: string): Observable<void> {
@@ -178,7 +182,7 @@ export class I18nService {
         }
       }),
       switchMap(() => this.loadDictionary(normalized)),
-      tap(dictionary => {
+      tap((dictionary) => {
         if (normalized === RUSSIAN) {
           this.russianDictionary.set(dictionary);
         }
@@ -186,17 +190,16 @@ export class I18nService {
           this.activeDictionary.set(dictionary);
         }
       }),
-      switchMap(() => normalized === RUSSIAN && activeCode !== RUSSIAN
-        ? this.loadDictionary(activeCode).pipe(
-            tap(dictionary => this.activeDictionary.set(dictionary))
-          )
-        : of(undefined)),
-      map(() => undefined)
+      switchMap(() =>
+        normalized === RUSSIAN && activeCode !== RUSSIAN
+          ? this.loadDictionary(activeCode).pipe(tap((dictionary) => this.activeDictionary.set(dictionary)))
+          : of(undefined),
+      ),
+      map(() => undefined),
     );
   }
 
-  registerLanguage(code: string, name: string,
-                   dictionary: TranslationDictionary): Observable<LanguageInfo> {
+  registerLanguage(code: string, name: string, dictionary: TranslationDictionary): Observable<LanguageInfo> {
     const normalizedCode = (code ?? '').trim().toLowerCase();
     if (!/^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/.test(normalizedCode)) {
       return throwError(() => new Error('Invalid language code'));
@@ -204,19 +207,21 @@ export class I18nService {
     const request: CreateLanguageRequest = {
       code: normalizedCode,
       name: name.trim(),
-      translations: dictionary
+      translations: dictionary,
     };
-    return this.client.post<LanguageInfo>(`${API_ROOT}/i18n/admin/languages`, request, {
-      withCredentials: true
-    }).pipe(
-      switchMap(created => this.refreshLanguages().pipe(map(() => created)))
-    );
+    return this.client
+      .post<LanguageInfo>(`${API_ROOT}/i18n/admin/languages`, request, {
+        withCredentials: true,
+      })
+      .pipe(switchMap((created) => this.refreshLanguages().pipe(map(() => created))));
   }
 
   getDictionary(code: string): TranslationDictionary {
     const normalized = this.normalize(code);
-    return this.cache.get(normalized)?.values
-      ?? (normalized === RUSSIAN ? this.russianDictionary() : this.russianDictionary());
+    return (
+      this.cache.get(normalized)?.values ??
+      (normalized === RUSSIAN ? this.russianDictionary() : this.russianDictionary())
+    );
   }
 
   exportDictionary(code: string): string {
@@ -246,16 +251,17 @@ export class I18nService {
       }
     }
 
-    const template = this.activeDictionary()[resolvedKey]
-      ?? this.russianDictionary()[resolvedKey]
-      ?? this.offlineFallback[resolvedKey]
-      ?? this.activeDictionary()[key]
-      ?? this.russianDictionary()[key]
-      ?? this.offlineFallback[key]
-      ?? key;
+    const template =
+      this.activeDictionary()[resolvedKey] ??
+      this.russianDictionary()[resolvedKey] ??
+      this.offlineFallback[resolvedKey] ??
+      this.activeDictionary()[key] ??
+      this.russianDictionary()[key] ??
+      this.offlineFallback[key] ??
+      key;
     if (!params) return template;
     return template.replace(/\{([a-zA-Z0-9_]+)\}/g, (placeholder: string, name: string) =>
-      Object.prototype.hasOwnProperty.call(params, name) ? String(params[name]) : placeholder
+      Object.prototype.hasOwnProperty.call(params, name) ? String(params[name]) : placeholder,
     );
   }
 
@@ -265,11 +271,14 @@ export class I18nService {
       const d = typeof date === 'string' || typeof date === 'number' ? new Date(date) : date;
       if (isNaN(d.getTime())) return String(date);
       const locale = LANGUAGE_LOCALES[this.currentLang()] || this.currentLang();
-      return new Intl.DateTimeFormat(locale, options ?? {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      }).format(d);
+      return new Intl.DateTimeFormat(
+        locale,
+        options ?? {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+        },
+      ).format(d);
     } catch {
       return String(date);
     }
@@ -281,13 +290,16 @@ export class I18nService {
       const d = typeof date === 'string' || typeof date === 'number' ? new Date(date) : date;
       if (isNaN(d.getTime())) return String(date);
       const locale = LANGUAGE_LOCALES[this.currentLang()] || this.currentLang();
-      return new Intl.DateTimeFormat(locale, options ?? {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      }).format(d);
+      return new Intl.DateTimeFormat(
+        locale,
+        options ?? {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        },
+      ).format(d);
     } catch {
       return String(date);
     }
@@ -342,22 +354,18 @@ export class I18nService {
       return;
     }
     try {
-      const languages = this.validLanguages(await firstValueFrom(
-        this.client.get<LanguageInfo[]>(`${API_ROOT}/i18n/languages`, { withCredentials: true })
-      ));
+      const languages = this.validLanguages(
+        await firstValueFrom(this.client.get<LanguageInfo[]>(`${API_ROOT}/i18n/languages`, { withCredentials: true })),
+      );
       this.languages.set(languages);
 
       const russian = await firstValueFrom(this.loadDictionary(RUSSIAN));
       this.russianDictionary.set(russian);
 
       const saved = this.normalize(localStorage.getItem('dwh_lang'));
-      const selected = languages.some(language => language.active && language.code === saved)
-        ? saved
-        : RUSSIAN;
+      const selected = languages.some((language) => language.active && language.code === saved) ? saved : RUSSIAN;
       try {
-        const dictionary = selected === RUSSIAN
-          ? russian
-          : await firstValueFrom(this.loadDictionary(selected));
+        const dictionary = selected === RUSSIAN ? russian : await firstValueFrom(this.loadDictionary(selected));
         this.activate(selected, dictionary);
       } catch {
         this.activate(RUSSIAN, russian);
@@ -373,7 +381,7 @@ export class I18nService {
 
   private loadDictionary(code: string): Observable<TranslationDictionary> {
     const normalized = this.normalize(code);
-    const revision = this.languages().find(language => language.code === normalized)?.revision ?? 0;
+    const revision = this.languages().find((language) => language.code === normalized)?.revision ?? 0;
     const cached = this.cache.get(normalized);
     if (cached && cached.revision === revision) {
       return of(cached.values);
@@ -381,18 +389,20 @@ export class I18nService {
     const existing = this.inFlight.get(normalized);
     if (existing) return existing;
 
-    const request = this.client.get<TranslationDictionary>(`${API_ROOT}/i18n/${normalized}`, {
-      withCredentials: true
-    }).pipe(
-      tap(values => {
-        const immutable = { ...values };
-        this.cache.set(normalized, { revision, values: immutable });
-        if (normalized === RUSSIAN) this.russianDictionary.set(immutable);
-      }),
-      map(values => this.cache.get(normalized)?.values ?? { ...values }),
-      finalize(() => this.inFlight.delete(normalized)),
-      shareReplay({ bufferSize: 1, refCount: false })
-    );
+    const request = this.client
+      .get<TranslationDictionary>(`${API_ROOT}/i18n/${normalized}`, {
+        withCredentials: true,
+      })
+      .pipe(
+        tap((values) => {
+          const immutable = { ...values };
+          this.cache.set(normalized, { revision, values: immutable });
+          if (normalized === RUSSIAN) this.russianDictionary.set(immutable);
+        }),
+        map((values) => this.cache.get(normalized)?.values ?? { ...values }),
+        finalize(() => this.inFlight.delete(normalized)),
+        shareReplay({ bufferSize: 1, refCount: false }),
+      );
     this.inFlight.set(normalized, request);
     return request;
   }
@@ -405,12 +415,10 @@ export class I18nService {
   }
 
   private validLanguages(languages: LanguageInfo[] | null | undefined): LanguageInfo[] {
-    const valid = (languages ?? []).filter(language =>
-      Boolean(language?.active && this.normalize(language.code) === language.code.toLowerCase())
+    const valid = (languages ?? []).filter((language) =>
+      Boolean(language?.active && this.normalize(language.code) === language.code.toLowerCase()),
     );
-    return valid.some(language => language.code === RUSSIAN)
-      ? valid
-      : [FALLBACK_LANGUAGE, ...valid];
+    return valid.some((language) => language.code === RUSSIAN) ? valid : [FALLBACK_LANGUAGE, ...valid];
   }
 
   private normalize(code: string | null | undefined): string {
@@ -427,7 +435,7 @@ export class I18nService {
 @Pipe({
   name: 't',
   standalone: true,
-  pure: false
+  pure: false,
 })
 export class TranslatePipe implements PipeTransform {
   constructor(private readonly i18n: I18nService) {}

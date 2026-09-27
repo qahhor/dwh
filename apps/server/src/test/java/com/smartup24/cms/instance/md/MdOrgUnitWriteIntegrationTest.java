@@ -1,5 +1,11 @@
 package com.smartup24.cms.instance.md;
 
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
@@ -11,6 +17,16 @@ import com.smartup24.cms.instance.md.controller.MdOrgUnitController;
 import com.smartup24.cms.instance.md.repository.*;
 import com.smartup24.cms.instance.md.service.*;
 import com.smartup24.cms.instance.search.SearchChangePublisher;
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -28,29 +44,15 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import tools.jackson.databind.ObjectMapper;
 
-import java.time.Duration;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
 /** All writes run against a synthetic PostgreSQL database with actual transaction boundaries. */
 @Testcontainers
 class MdOrgUnitWriteIntegrationTest {
     @Container
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:18-alpine")
-            .withDatabaseName("org_write_test").withUsername("test_user").withPassword("test_pass");
+            .withDatabaseName("org_write_test")
+            .withUsername("test_user")
+            .withPassword("test_pass");
+
     static final AtomicInteger sequence = new AtomicInteger();
     static JdbcClient jdbc;
     static DataSourceTransactionManager transactions;
@@ -69,8 +71,11 @@ class MdOrgUnitWriteIntegrationTest {
     @BeforeAll
     static void setup() {
         var ds = new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
-        FlywayUtcConfiguration.configure(Flyway.configure()).dataSource(ds)
-                .locations("classpath:db/migration").load().migrate();
+        FlywayUtcConfiguration.configure(Flyway.configure())
+                .dataSource(ds)
+                .locations("classpath:db/migration")
+                .load()
+                .migrate();
         jdbc = JdbcClient.create(ds);
         transactions = new DataSourceTransactionManager(ds);
         transaction = new TransactionTemplate(transactions);
@@ -83,7 +88,8 @@ class MdOrgUnitWriteIntegrationTest {
         orgUnitService = proxy(new MdOrgUnitService(units, scopeService, audit));
         roleService = proxy(new MdRoleService(roles, permissions, audit, scopes));
         mvc = MockMvcBuilders.standaloneSetup(new MdOrgUnitController(orgUnitService, scopeService))
-                .setControllerAdvice(new GlobalExceptionHandler()).build();
+                .setControllerAdvice(new GlobalExceptionHandler())
+                .build();
         root = orgUnitService.create(null, "HQ", "Company", "company", 0).id();
     }
 
@@ -101,7 +107,8 @@ class MdOrgUnitWriteIntegrationTest {
         transaction.executeWithoutResult(s -> orgUnitService.update(child, newParent, null, null, null, null));
 
         assertThat(scopeService.getUserScope(oldManager).visibleOrgUnitIds()).containsExactly(oldParent);
-        assertThat(scopeService.getUserScope(newManager).visibleOrgUnitIds()).containsExactlyInAnyOrder(newParent, child, grandchild);
+        assertThat(scopeService.getUserScope(newManager).visibleOrgUnitIds())
+                .containsExactlyInAnyOrder(newParent, child, grandchild);
         assertThat(version(oldManager)).isEqualTo(oldVersion + 1);
         assertThat(version(newManager)).isEqualTo(newVersion + 1);
         assertThat(version(otherManager)).isEqualTo(otherVersion);
@@ -142,23 +149,35 @@ class MdOrgUnitWriteIntegrationTest {
     @Test
     void sparsePatchPreservesParentExplicitParentMovesAndNullConflicts() throws Exception {
         Long parent = unit(root), destination = unit(root), child = unit(parent);
-        mvc.perform(patch("/api/v1/iam/org-units/{id}", child).contentType("application/json")
+        mvc.perform(patch("/api/v1/iam/org-units/{id}", child)
+                        .contentType("application/json")
                         .content("{\"name\":\" Renamed \",\"orderNo\":-2147483648}"))
                 .andExpect(status().isNoContent());
         assertThat(units.findById(child).orElseThrow().parentId()).isEqualTo(parent);
         assertThat(units.findById(child).orElseThrow().name()).isEqualTo("Renamed");
         assertThat(units.findById(child).orElseThrow().orderNo()).isEqualTo(Integer.MIN_VALUE);
-        assertThat(jdbc.sql("select new_row ->> 'parent_id' from audit_log where table_name = 'md_org_units' and row_pk = :id and event = 'U' order by id desc limit 1")
-                .param("id", child.toString()).query(String.class).single()).isEqualTo(parent.toString());
-        mvc.perform(patch("/api/v1/iam/org-units/{id}", child).contentType("application/json")
+        assertThat(jdbc.sql(
+                                "select new_row ->> 'parent_id' from audit_log where table_name = 'md_org_units' and row_pk = :id and event = 'U' order by id desc limit 1")
+                        .param("id", child.toString())
+                        .query(String.class)
+                        .single())
+                .isEqualTo(parent.toString());
+        mvc.perform(patch("/api/v1/iam/org-units/{id}", child)
+                        .contentType("application/json")
                         .content("{\"parentId\":" + destination + "}"))
                 .andExpect(status().isNoContent());
         assertThat(units.findById(child).orElseThrow().parentId()).isEqualTo(destination);
-        assertThat(jdbc.sql("select new_row ->> 'parent_id' from audit_log where table_name = 'md_org_units' and row_pk = :id and event = 'U' order by id desc limit 1")
-                .param("id", child.toString()).query(String.class).single()).isEqualTo(destination.toString());
-        mvc.perform(patch("/api/v1/iam/org-units/{id}", child).contentType("application/json")
+        assertThat(jdbc.sql(
+                                "select new_row ->> 'parent_id' from audit_log where table_name = 'md_org_units' and row_pk = :id and event = 'U' order by id desc limit 1")
+                        .param("id", child.toString())
+                        .query(String.class)
+                        .single())
+                .isEqualTo(destination.toString());
+        mvc.perform(patch("/api/v1/iam/org-units/{id}", child)
+                        .contentType("application/json")
                         .content("{\"parentId\":null}"))
-                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("conflict"));
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("conflict"));
         assertThat(units.findById(child).orElseThrow().parentId()).isEqualTo(destination);
     }
 
@@ -166,16 +185,29 @@ class MdOrgUnitWriteIntegrationTest {
     void invalidPatchInputsReturnControlledErrorsWithoutWriting() throws Exception {
         Long child = unit(root);
         var before = units.findById(child).orElseThrow();
-        for (String body : List.of("{\"name\":\"  \"}", "{\"name\":\"\\b\"}",
-                "{\"state\":\"invalid\"}", "{\"state\":\"\"}", "{\"kind\":\"  \"}", "{\"parentId\":0}")) {
-            mvc.perform(patch("/api/v1/iam/org-units/{id}", child).contentType("application/json").content(body))
-                    .andExpect(status().isUnprocessableEntity()).andExpect(jsonPath("$.code").value("validation_failed"));
+        for (String body : List.of(
+                "{\"name\":\"  \"}",
+                "{\"name\":\"\\b\"}",
+                "{\"state\":\"invalid\"}",
+                "{\"state\":\"\"}",
+                "{\"kind\":\"  \"}",
+                "{\"parentId\":0}")) {
+            mvc.perform(patch("/api/v1/iam/org-units/{id}", child)
+                            .contentType("application/json")
+                            .content(body))
+                    .andExpect(status().isUnprocessableEntity())
+                    .andExpect(jsonPath("$.code").value("validation_failed"));
         }
-        mvc.perform(patch("/api/v1/iam/org-units/0").contentType("application/json").content("{}"))
+        mvc.perform(patch("/api/v1/iam/org-units/0")
+                        .contentType("application/json")
+                        .content("{}"))
                 .andExpect(status().isUnprocessableEntity());
-        mvc.perform(patch("/api/v1/iam/org-units/99999999").contentType("application/json").content("{}"))
+        mvc.perform(patch("/api/v1/iam/org-units/99999999")
+                        .contentType("application/json")
+                        .content("{}"))
                 .andExpect(status().isNotFound());
-        mvc.perform(patch("/api/v1/iam/org-units/{id}", child).contentType("application/json")
+        mvc.perform(patch("/api/v1/iam/org-units/{id}", child)
+                        .contentType("application/json")
                         .content("{\"parentId\":99999999}"))
                 .andExpect(status().isNotFound());
         assertThat(units.findById(child).orElseThrow()).isEqualTo(before);
@@ -184,16 +216,25 @@ class MdOrgUnitWriteIntegrationTest {
     @Test
     void createNormalizesFieldsAndRejectsDuplicateOrInvalidCode() throws Exception {
         String code = "code-" + sequence.incrementAndGet();
-        mvc.perform(post("/api/v1/iam/org-units").contentType("application/json")
-                        .content("{\"parentId\":" + root + ",\"code\":\" " + code + " \",\"name\":\" Child \",\"kind\":\" team \",\"orderNo\":0}"))
-                .andExpect(status().isCreated()).andExpect(jsonPath("$.code").value(code))
-                .andExpect(jsonPath("$.name").value("Child")).andExpect(jsonPath("$.kind").value("team"));
-        mvc.perform(post("/api/v1/iam/org-units").contentType("application/json")
-                        .content("{\"parentId\":" + root + ",\"code\":\"" + code + "\",\"name\":\"Child\",\"orderNo\":0}"))
-                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("conflict"));
+        mvc.perform(post("/api/v1/iam/org-units")
+                        .contentType("application/json")
+                        .content("{\"parentId\":" + root + ",\"code\":\" " + code
+                                + " \",\"name\":\" Child \",\"kind\":\" team \",\"orderNo\":0}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.code").value(code))
+                .andExpect(jsonPath("$.name").value("Child"))
+                .andExpect(jsonPath("$.kind").value("team"));
+        mvc.perform(post("/api/v1/iam/org-units")
+                        .contentType("application/json")
+                        .content("{\"parentId\":" + root + ",\"code\":\"" + code
+                                + "\",\"name\":\"Child\",\"orderNo\":0}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("conflict"));
         for (String badCode : List.of("  ", "\\b")) {
-            mvc.perform(post("/api/v1/iam/org-units").contentType("application/json")
-                            .content("{\"parentId\":" + root + ",\"code\":\"" + badCode + "\",\"name\":\"Child\",\"orderNo\":0}"))
+            mvc.perform(post("/api/v1/iam/org-units")
+                            .contentType("application/json")
+                            .content("{\"parentId\":" + root + ",\"code\":\"" + badCode
+                                    + "\",\"name\":\"Child\",\"orderNo\":0}"))
                     .andExpect(status().isUnprocessableEntity());
         }
     }
@@ -202,7 +243,9 @@ class MdOrgUnitWriteIntegrationTest {
     void occupiedNodesCannotBeDeleted() throws Exception {
         Long parent = unit(root), child = unit(parent), explicit = manager(child), legacy = unit(root);
         jdbc.sql("update md_users set org_unit_id = :unit where id = :user")
-                .param("unit", legacy).param("user", explicit).update();
+                .param("unit", legacy)
+                .param("user", explicit)
+                .update();
         for (Long id : List.of(parent, child, legacy)) {
             mvc.perform(delete("/api/v1/iam/org-units/{id}", id)).andExpect(status().isConflict());
             assertThat(units.findById(id)).isPresent();
@@ -212,41 +255,71 @@ class MdOrgUnitWriteIntegrationTest {
     @Test
     void rootAndCycleGuardsReturnConflictsAndRootCanBePatched() throws Exception {
         Long parent = unit(root), child = unit(parent);
-        for (Long[] move : List.of(new Long[]{parent, parent}, new Long[]{parent, child}, new Long[]{root, child})) {
-            mvc.perform(patch("/api/v1/iam/org-units/{id}", move[0]).contentType("application/json")
+        for (Long[] move : List.of(new Long[] {parent, parent}, new Long[] {parent, child}, new Long[] {root, child})) {
+            mvc.perform(patch("/api/v1/iam/org-units/{id}", move[0])
+                            .contentType("application/json")
                             .content("{\"parentId\":" + move[1] + "}"))
                     .andExpect(status().isConflict());
         }
-        mvc.perform(patch("/api/v1/iam/org-units/{id}", root).contentType("application/json")
+        mvc.perform(patch("/api/v1/iam/org-units/{id}", root)
+                        .contentType("application/json")
                         .content("{\"parentId\":null,\"name\":\"Company\"}"))
                 .andExpect(status().isNoContent());
-        mvc.perform(post("/api/v1/iam/org-units").contentType("application/json")
+        mvc.perform(post("/api/v1/iam/org-units")
+                        .contentType("application/json")
                         .content("{\"parentId\":null,\"code\":\"SECOND-HQ\",\"name\":\"Second\",\"orderNo\":0}"))
                 .andExpect(status().isConflict());
         assertThat(units.findById(root).orElseThrow().parentId()).isNull();
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"tree-create", "tree-update", "tree-delete", "unit-assignment", "role-rule",
-            "role-create", "role-update", "role-delete", "assign-roles", "user-create", "user-update"})
+    @ValueSource(
+            strings = {
+                "tree-create",
+                "tree-update",
+                "tree-delete",
+                "unit-assignment",
+                "role-rule",
+                "role-create",
+                "role-update",
+                "role-delete",
+                "assign-roles",
+                "user-create",
+                "user-update"
+            })
     void scopeWritersWaitForMutationLockBeforeTakingRowWriteLocks(String operation) throws Exception {
-        Long node = unit(root), user = manager(node), role = roles.getUserRoleIds(user).getFirst();
-        Long unusedRole = roleService.createRole("unused-" + sequence.incrementAndGet(), 0).id();
+        Long node = unit(root),
+                user = manager(node),
+                role = roles.getUserRoleIds(user).getFirst();
+        Long unusedRole = roleService
+                .createRole("unused-" + sequence.incrementAndGet(), 0)
+                .id();
         var users = new MdUserRepository(jdbc, new ObjectMapper());
-        var assignments = proxy(new MdAssignmentService(users, roles, new MdPermissionRepository(jdbc),
-                permissions, scopeService, audit));
-        var userService = proxy(new MdUserService(users, roles, mock(MdCustomFieldService.class),
-                mock(PasswordHasher.class), mock(PasswordValidator.class), mock(UserSessionInvalidator.class),
-                mock(SearchChangePublisher.class), audit, scopeService));
+        var assignments = proxy(new MdAssignmentService(
+                users, roles, new MdPermissionRepository(jdbc), permissions, scopeService, audit));
+        var userService = proxy(new MdUserService(
+                users,
+                roles,
+                mock(MdCustomFieldService.class),
+                mock(PasswordHasher.class),
+                mock(PasswordValidator.class),
+                mock(UserSessionInvalidator.class),
+                mock(SearchChangePublisher.class),
+                audit,
+                scopeService));
         Long emptyNode = unit(root);
         var started = new CountDownLatch(1);
         var backendPid = new AtomicInteger();
         var result = new AtomicReference<Future<?>>();
         try (var executor = Executors.newSingleThreadExecutor()) {
             transaction.executeWithoutResult(holder -> {
-                jdbc.sql("select pg_advisory_xact_lock(129632, 1)").query((rs, row) -> true).single();
+                jdbc.sql("select pg_advisory_xact_lock(129632, 1)")
+                        .query((rs, row) -> true)
+                        .single();
                 result.set(executor.submit(() -> transaction.executeWithoutResult(writer -> {
-                    backendPid.set(jdbc.sql("select pg_backend_pid()").query(Integer.class).single());
+                    backendPid.set(jdbc.sql("select pg_backend_pid()")
+                            .query(Integer.class)
+                            .single());
                     started.countDown();
                     switch (operation) {
                         case "tree-create" -> unit(root);
@@ -260,11 +333,34 @@ class MdOrgUnitWriteIntegrationTest {
                         case "assign-roles" -> assignments.assignRoles(user, List.of(unusedRole));
                         case "user-create" -> {
                             String login = "new-user-" + sequence.incrementAndGet();
-                            userService.createUser(login, login, login + "@test.invalid", null, null, null,
-                                    "ru", "UTC", null, Map.of(), false, List.of(role), null);
+                            userService.createUser(
+                                    login,
+                                    login,
+                                    login + "@test.invalid",
+                                    null,
+                                    null,
+                                    null,
+                                    "ru",
+                                    "UTC",
+                                    null,
+                                    Map.of(),
+                                    false,
+                                    List.of(role),
+                                    null);
                         }
-                        case "user-update" -> userService.updateUser(user, "Updated", null, null, null, null,
-                                null, null, null, List.of(unusedRole), null);
+                        case "user-update" ->
+                            userService.updateUser(
+                                    user,
+                                    "Updated",
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    List.of(unusedRole),
+                                    null);
                         default -> throw new AssertionError(operation);
                     }
                 })));
@@ -272,14 +368,23 @@ class MdOrgUnitWriteIntegrationTest {
                 long deadline = System.nanoTime() + Duration.ofSeconds(10).toNanos();
                 boolean waiting = false;
                 while (!result.get().isDone() && System.nanoTime() < deadline) {
-                    waiting = jdbc.sql("select exists(select 1 from pg_locks where pid = :pid and locktype = 'advisory' and not granted)")
-                            .param("pid", backendPid.get()).query(Boolean.class).single();
+                    waiting = jdbc.sql(
+                                    "select exists(select 1 from pg_locks where pid = :pid and locktype = 'advisory' and not granted)")
+                            .param("pid", backendPid.get())
+                            .query(Boolean.class)
+                            .single();
                     if (waiting) break;
                 }
-                assertThat(waiting).as(operation + " waits for shared scope writer lock").isTrue();
-                assertThat(jdbc.sql("select count(*) from pg_locks where pid = :pid and mode = 'RowExclusiveLock' and granted")
-                        .param("pid", backendPid.get()).query(Long.class).single())
-                        .as(operation + " has not changed source rows before acquiring the mutation lock").isZero();
+                assertThat(waiting)
+                        .as(operation + " waits for shared scope writer lock")
+                        .isTrue();
+                assertThat(jdbc.sql(
+                                        "select count(*) from pg_locks where pid = :pid and mode = 'RowExclusiveLock' and granted")
+                                .param("pid", backendPid.get())
+                                .query(Long.class)
+                                .single())
+                        .as(operation + " has not changed source rows before acquiring the mutation lock")
+                        .isZero();
             });
             result.get().get(10, TimeUnit.SECONDS);
         }
@@ -294,12 +399,14 @@ class MdOrgUnitWriteIntegrationTest {
         var newScope = scopeService.getUserScope(newManager);
         long oldVersion = version(oldManager), newVersion = version(newManager);
         var failingAudit = mock(AuditLogService.class);
-        doThrow(new IllegalStateException("synthetic audit failure")).when(failingAudit)
+        doThrow(new IllegalStateException("synthetic audit failure"))
+                .when(failingAudit)
                 .logChange(anyString(), anyString(), anyString(), anyList(), any(), any());
         var failingService = proxy(new MdOrgUnitService(units, scopeService, failingAudit));
 
         assertThatThrownBy(() -> failingService.update(child, newParent, "Rollback", null, null, null))
-                .isInstanceOf(IllegalStateException.class).hasMessage("synthetic audit failure");
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("synthetic audit failure");
         assertThat(units.findById(child)).isEqualTo(beforeUnit);
         assertThat(scopeService.getUserScope(oldManager)).isEqualTo(oldScope);
         assertThat(scopeService.getUserScope(newManager)).isEqualTo(newScope);
@@ -326,7 +433,9 @@ class MdOrgUnitWriteIntegrationTest {
                 var second = executor.submit(() -> {
                     try {
                         transaction.executeWithoutResult(s -> {
-                            secondPid.set(jdbc.sql("select pg_backend_pid()").query(Integer.class).single());
+                            secondPid.set(jdbc.sql("select pg_backend_pid()")
+                                    .query(Integer.class)
+                                    .single());
                             secondStarted.countDown();
                             orgUnitService.update(b, a, null, null, null, null);
                         });
@@ -340,14 +449,19 @@ class MdOrgUnitWriteIntegrationTest {
                 long deadline = System.nanoTime() + Duration.ofSeconds(10).toNanos();
                 boolean waiting = false;
                 while (!second.isDone() && System.nanoTime() < deadline) {
-                    waiting = jdbc.sql("select exists(select 1 from pg_locks where pid = :pid and locktype = 'advisory' and not granted)")
-                            .param("pid", secondPid.get()).query(Boolean.class).single();
+                    waiting = jdbc.sql(
+                                    "select exists(select 1 from pg_locks where pid = :pid and locktype = 'advisory' and not granted)")
+                            .param("pid", secondPid.get())
+                            .query(Boolean.class)
+                            .single();
                     if (waiting) break;
                 }
                 releaseFirst.countDown();
                 assertThat(first.get(10, TimeUnit.SECONDS)).isEqualTo("success");
                 assertThat(second.get(10, TimeUnit.SECONDS)).isEqualTo("conflict");
-                assertThat(waiting).as("second transaction waited for the database mutation lock").isTrue();
+                assertThat(waiting)
+                        .as("second transaction waited for the database mutation lock")
+                        .isTrue();
             } finally {
                 releaseFirst.countDown();
             }
@@ -364,8 +478,11 @@ class MdOrgUnitWriteIntegrationTest {
     static Long manager(Long unit) {
         return transaction.execute(s -> {
             String login = "manager-" + sequence.incrementAndGet();
-            Long user = jdbc.sql("insert into md_users (name, login, email, state) values (:login, :login, :login || '@test.invalid', 'A') returning id")
-                    .param("login", login).query(Long.class).single();
+            Long user = jdbc.sql(
+                            "insert into md_users (name, login, email, state) values (:login, :login, :login || '@test.invalid', 'A') returning id")
+                    .param("login", login)
+                    .query(Long.class)
+                    .single();
             Long role = roleService.createRole(login, 0).id();
             scopeService.setRoleRule(role, "SUBTREE");
             roles.assignRolesToUser(user, List.of(role));
@@ -374,7 +491,9 @@ class MdOrgUnitWriteIntegrationTest {
         });
     }
 
-    static long version(Long user) { return permissions.getPermissionVersion(user); }
+    static long version(Long user) {
+        return permissions.getPermissionVersion(user);
+    }
 
     static void await(CountDownLatch latch) {
         try {

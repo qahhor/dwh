@@ -7,15 +7,20 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group/radio-option
 @Component({
   selector: 'ui-pagination',
   standalone: true,
-  imports: [
-    TranslatePipe,CommonModule, SMTSelectComponent],
+  imports: [TranslatePipe, CommonModule, SMTSelectComponent],
   template: `
-    <nav class="pagination-bar" *ngIf="totalItems > 0 || (cursorMode && (currentPage > 1 || hasNextPage))" [attr.aria-label]="'ui.pagination.paginaciya' | t">
+    <nav
+      class="pagination-bar"
+      *ngIf="totalItems > 0 || (cursorMode && (currentPage > 1 || hasNextPage))"
+      [attr.aria-label]="'ui.pagination.paginaciya' | t"
+    >
       <!-- Left: Item Range & Total Counter -->
       <div class="pagination-info" *ngIf="totalItems > 0" role="status" aria-live="polite" aria-atomic="true">
         <span class="range-text">
           {{ 'ui.pagination.pokazano' | t }} <strong class="highlight font-mono">{{ startItem }}–{{ endItem }}</strong>
-          <ng-container *ngIf="!cursorMode || !cursorItemsArePageLength"> {{ 'files.iz' | t }} <strong class="highlight font-mono">{{ totalItems }}</strong></ng-container>
+          <ng-container *ngIf="!cursorMode || !cursorItemsArePageLength">
+            {{ 'files.iz' | t }} <strong class="highlight font-mono">{{ totalItems }}</strong></ng-container
+          >
         </span>
       </div>
 
@@ -71,7 +76,7 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group/radio-option
                 type="button"
                 class="page-btn font-mono"
                 [class.active]="p === currentPage"
-                [attr.aria-label]="'ui.pagination.page_number' | t:{page: p}"
+                [attr.aria-label]="'ui.pagination.page_number' | t: { page: p }"
                 [attr.aria-current]="p === currentPage ? 'page' : null"
                 [disabled]="disabled"
                 (click)="goToPage(p)"
@@ -82,13 +87,9 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group/radio-option
           </div>
 
           <!-- aria-label is ignored on a span without a role, so the name is real text. -->
-          <span
-            *ngIf="cursorMode"
-            class="current-page-indicator font-mono"
-            aria-current="page"
-          >
+          <span *ngIf="cursorMode" class="current-page-indicator font-mono" aria-current="page">
             <span aria-hidden="true">{{ currentPage }}</span>
-            <span class="sr-only">{{ 'ui.pagination.page_number' | t:{page: currentPage} }}</span>
+            <span class="sr-only">{{ 'ui.pagination.page_number' | t: { page: currentPage } }}</span>
           </span>
 
           <!-- Next Page -->
@@ -119,137 +120,139 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group/radio-option
       </div>
     </nav>
   `,
-  styles: [`
-    .pagination-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 10px 14px;
-      background-color: var(--bg-surface);
-      border-top: 1px solid var(--border-color);
-      flex-wrap: wrap;
-      font-size: 12px;
-    }
+  styles: [
+    `
+      .pagination-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 14px;
+        background-color: var(--bg-surface);
+        border-top: 1px solid var(--border-color);
+        flex-wrap: wrap;
+        font-size: 12px;
+      }
 
-    .pagination-info {
-      color: var(--text-muted);
-      font-size: 12px;
-    }
-    .highlight {
-      color: var(--text-main);
-      font-weight: 600;
-    }
+      .pagination-info {
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+      .highlight {
+        color: var(--text-main);
+        font-weight: 600;
+      }
 
-    .pagination-controls {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
+      .pagination-controls {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
 
-    .page-size-picker {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      color: var(--text-muted);
-      font-size: 12px;
-    }
-    .size-select {
-      width: 88px;
-    }
+      .page-size-picker {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+      .size-select {
+        width: 88px;
+      }
 
-    .page-nav {
-      display: inline-flex;
-      align-items: center;
-      gap: 3px;
-    }
+      .page-nav {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+      }
 
-    .nav-btn {
-      width: 28px;
-      height: 28px;
-      border: 1px solid var(--border-color);
-      background-color: var(--bg-hover);
-      color: var(--text-muted);
-      border-radius: var(--radius-xs);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      padding: 0;
-      transition: all 0.12s ease;
-    }
-    .nav-btn:hover:not(:disabled) {
-      background-color: var(--bg-surface);
-      color: var(--text-main);
-      border-color: var(--primary);
-    }
-    .nav-btn:disabled {
-      opacity: 0.35;
-      cursor: not-allowed;
-    }
-    .nav-btn .icon {
-      font-size: 16px;
-    }
+      .nav-btn {
+        width: 28px;
+        height: 28px;
+        border: 1px solid var(--border-color);
+        background-color: var(--bg-hover);
+        color: var(--text-muted);
+        border-radius: var(--radius-xs);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        padding: 0;
+        transition: all 0.12s ease;
+      }
+      .nav-btn:hover:not(:disabled) {
+        background-color: var(--bg-surface);
+        color: var(--text-main);
+        border-color: var(--primary);
+      }
+      .nav-btn:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+      .nav-btn .icon {
+        font-size: 16px;
+      }
 
-    .page-numbers {
-      display: inline-flex;
-      align-items: center;
-      gap: 3px;
-      margin: 0 2px;
-    }
+      .page-numbers {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        margin: 0 2px;
+      }
 
-    .page-btn {
-      min-width: 28px;
-      height: 28px;
-      padding: 0 6px;
-      border: 1px solid var(--border-color);
-      background-color: var(--bg-hover);
-      color: var(--text-muted);
-      border-radius: var(--radius-xs);
-      font-size: 12px;
-      font-weight: 500;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.12s ease;
-    }
-    .page-btn:hover:not(.active) {
-      color: var(--text-main);
-      border-color: var(--primary);
-    }
-    .page-btn.active {
-      background-color: var(--primary);
-      color: var(--on-primary);
-      border-color: var(--primary);
-      font-weight: 600;
-    }
+      .page-btn {
+        min-width: 28px;
+        height: 28px;
+        padding: 0 6px;
+        border: 1px solid var(--border-color);
+        background-color: var(--bg-hover);
+        color: var(--text-muted);
+        border-radius: var(--radius-xs);
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.12s ease;
+      }
+      .page-btn:hover:not(.active) {
+        color: var(--text-main);
+        border-color: var(--primary);
+      }
+      .page-btn.active {
+        background-color: var(--primary);
+        color: var(--on-primary);
+        border-color: var(--primary);
+        font-weight: 600;
+      }
 
-    .ellipsis {
-      padding: 0 4px;
-      color: var(--text-muted);
-      font-size: 12px;
-      user-select: none;
-    }
+      .ellipsis {
+        padding: 0 4px;
+        color: var(--text-muted);
+        font-size: 12px;
+        user-select: none;
+      }
 
-    .current-page-indicator {
-      min-width: 28px;
-      height: 28px;
-      padding: 0 6px;
-      border-radius: var(--radius-xs);
-      background-color: var(--primary);
-      color: var(--on-primary);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 600;
-    }
+      .current-page-indicator {
+        min-width: 28px;
+        height: 28px;
+        padding: 0 6px;
+        border-radius: var(--radius-xs);
+        background-color: var(--primary);
+        color: var(--on-primary);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+      }
 
-    .font-mono {
-      font-family: monospace;
-    }
-  `]
+      .font-mono {
+        font-family: monospace;
+      }
+    `,
+  ],
 })
 export class UiPaginationComponent implements OnChanges {
   private static nextId = 0;
@@ -276,7 +279,9 @@ export class UiPaginationComponent implements OnChanges {
   private readonly pageSizeMemo = optionsMemo<SMTSelectOption<number>[]>();
 
   pageSizeChoices(): SMTSelectOption<number>[] {
-    return this.pageSizeMemo([this.pageSizeOptions], () => this.pageSizeOptions.map(size => ({ id: size, label: String(size) })));
+    return this.pageSizeMemo([this.pageSizeOptions], () =>
+      this.pageSizeOptions.map((size) => ({ id: size, label: String(size) })),
+    );
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -319,9 +324,8 @@ export class UiPaginationComponent implements OnChanges {
 
   goToPage(page: number) {
     if (this.disabled) return;
-    const isCursorStep = this.cursorMode && (
-      page === this.currentPage - 1 || (page === this.currentPage + 1 && this.hasNextPage)
-    );
+    const isCursorStep =
+      this.cursorMode && (page === this.currentPage - 1 || (page === this.currentPage + 1 && this.hasNextPage));
     const isNumberedPage = !this.cursorMode && page >= 1 && page <= this.totalPages;
     if (page >= 1 && page !== this.currentPage && (isCursorStep || isNumberedPage)) {
       if (this.cursorMode) {

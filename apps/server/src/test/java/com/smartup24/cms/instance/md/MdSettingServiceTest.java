@@ -1,20 +1,19 @@
 package com.smartup24.cms.instance.md;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.*;
+
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.md.repository.MdSettingRepository;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import com.smartup24.cms.instance.md.service.MdI18nService;
 import com.smartup24.cms.instance.md.service.MdSettingService;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-
-import java.util.List;
-import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
 
 class MdSettingServiceTest {
 
@@ -22,8 +21,8 @@ class MdSettingServiceTest {
     private final MdUserRepository userRepository = Mockito.mock(MdUserRepository.class);
     private final MdI18nService i18nService = Mockito.mock(MdI18nService.class);
     private final AuditLogService auditLogService = Mockito.mock(AuditLogService.class);
-    private final MdSettingService service = new MdSettingService(
-            repository, userRepository, i18nService, auditLogService);
+    private final MdSettingService service =
+            new MdSettingService(repository, userRepository, i18nService, auditLogService);
 
     @Test
     @DisplayName("Системные настройки должны возвращать дефолтные значения при пустой базе")
@@ -41,14 +40,14 @@ class MdSettingServiceTest {
     @Test
     @DisplayName("Эффективные настройки должны правильно применять иерархию: Defaults -> Instance -> User")
     void shouldMergeSettingsHierarchically() {
-        when(repository.getAllInstanceSettings()).thenReturn(Map.of(
-                "system.company_name", "Acme Corporation",
-                "ui.theme", "light"
-        ));
-        when(repository.getAllUserSettings(10L)).thenReturn(Map.of(
-                "ui.theme", "dark",
-                "user.language", "uz"
-        ));
+        when(repository.getAllInstanceSettings())
+                .thenReturn(Map.of(
+                        "system.company_name", "Acme Corporation",
+                        "ui.theme", "light"));
+        when(repository.getAllUserSettings(10L))
+                .thenReturn(Map.of(
+                        "ui.theme", "dark",
+                        "user.language", "uz"));
 
         var effective = service.getEffectiveSettings(10L);
 
@@ -64,19 +63,19 @@ class MdSettingServiceTest {
     @Test
     @DisplayName("Обновление системных настроек должно фиксироваться в журнале аудита")
     void shouldAuditSystemSettingsChange() {
-        when(repository.getAllInstanceSettings()).thenReturn(Map.of(
-                "system.company_name", "Old Company Name"
-        ));
+        when(repository.getAllInstanceSettings()).thenReturn(Map.of("system.company_name", "Old Company Name"));
 
         service.updateInstanceSettings(Map.of("system.company_name", "New Company Name"));
 
         verify(repository, times(1)).setInstanceSetting("system.company_name", "New Company Name");
-        verify(auditLogService, times(1)).logChange(
-                eq("md_settings"), eq("system.company_name"), eq("U"),
-                eq(List.of("value")),
-                eq(Map.of("key", "system.company_name", "value", "Old Company Name")),
-                eq(Map.of("key", "system.company_name", "value", "New Company Name"))
-        );
+        verify(auditLogService, times(1))
+                .logChange(
+                        eq("md_settings"),
+                        eq("system.company_name"),
+                        eq("U"),
+                        eq(List.of("value")),
+                        eq(Map.of("key", "system.company_name", "value", "Old Company Name")),
+                        eq(Map.of("key", "system.company_name", "value", "New Company Name")));
     }
 
     @Test
@@ -84,10 +83,11 @@ class MdSettingServiceTest {
     void shouldSynchronizeLanguageWithCanonicalUserProfile() {
         when(i18nService.requireActiveLanguageCode("DE")).thenReturn("de");
 
-        service.updateUserSettings(10L, Map.of(
-                "user.language", "DE",
-                "ui.theme", "light"
-        ));
+        service.updateUserSettings(
+                10L,
+                Map.of(
+                        "user.language", "DE",
+                        "ui.theme", "light"));
 
         verify(repository).setUserSetting(10L, "user.language", "de");
         verify(repository).setUserSetting(10L, "ui.theme", "light");
@@ -97,28 +97,29 @@ class MdSettingServiceTest {
     @Test
     @DisplayName("Свои настройки — только user.* и ui.*: безопасность экземпляра пользователь не переопределит")
     void personalSettingsCannotShadowInstanceOnes() {
-        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
-                        service.updateUserSettings(10L, Map.of("security.idle_lock_minutes", "0")))
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                        () -> service.updateUserSettings(10L, Map.of("security.idle_lock_minutes", "0")))
                 .isInstanceOf(ApiException.class);
         verifyNoInteractions(repository, userRepository);
 
         when(repository.getAllInstanceSettings()).thenReturn(Map.of());
-        when(repository.getAllUserSettings(10L)).thenReturn(Map.of("security.idle_lock_minutes", "0", "ui.theme", "light"));
+        when(repository.getAllUserSettings(10L))
+                .thenReturn(Map.of("security.idle_lock_minutes", "0", "ui.theme", "light"));
         var effective = service.getEffectiveSettings(10L);
-        org.assertj.core.api.Assertions.assertThat(effective).containsEntry("security.idle_lock_minutes", "30")
+        org.assertj.core.api.Assertions.assertThat(effective)
+                .containsEntry("security.idle_lock_minutes", "30")
                 .containsEntry("ui.theme", "light");
-        org.assertj.core.api.Assertions.assertThat(service.getUserSettings(10L))
-                .containsOnlyKeys("ui.theme");
+        org.assertj.core.api.Assertions.assertThat(service.getUserSettings(10L)).containsOnlyKeys("ui.theme");
     }
 
     @Test
     @DisplayName("Блокировка по бездействию: от 0 до 1440 минут, иначе 422; испорченное значение — по умолчанию")
     void idleLockMinutesAreBounded() {
-        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
-                        service.updateInstanceSettings(Map.of("security.idle_lock_minutes", "2000")))
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                        () -> service.updateInstanceSettings(Map.of("security.idle_lock_minutes", "2000")))
                 .isInstanceOf(ApiException.class);
-        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
-                        service.updateInstanceSettings(Map.of("security.idle_lock_minutes", "soon")))
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                        () -> service.updateInstanceSettings(Map.of("security.idle_lock_minutes", "soon")))
                 .isInstanceOf(ApiException.class);
 
         when(repository.getAllInstanceSettings()).thenReturn(Map.of("security.idle_lock_minutes", "15"));
@@ -133,11 +134,11 @@ class MdSettingServiceTest {
         var error = new IllegalArgumentException("inactive language");
         when(i18nService.requireActiveLanguageCode("xx")).thenThrow(error);
 
-        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
-                service.updateUserSettings(10L, Map.of(
-                        "ui.theme", "light",
-                        "user.language", "xx"
-                )))
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.updateUserSettings(
+                        10L,
+                        Map.of(
+                                "ui.theme", "light",
+                                "user.language", "xx")))
                 .isSameAs(error);
 
         verifyNoInteractions(repository, userRepository);

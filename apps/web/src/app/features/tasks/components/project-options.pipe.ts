@@ -9,6 +9,6 @@ import { SMTSelectOption } from '../../../shared/ui-kit/components/forms/select'
 @Pipe({ name: 'projectOptions', standalone: true })
 export class ProjectOptionsPipe implements PipeTransform {
   transform(projects: readonly Project[] | null | undefined): SMTSelectOption<number>[] {
-    return (projects ?? []).map(project => ({ id: project.id, label: project.name }));
+    return (projects ?? []).map((project) => ({ id: project.id, label: project.name }));
   }
 }

@@ -32,7 +32,7 @@ function allTrim(value: string): string {
 export function formatBiruniNumberDisplay(
   value: string | number | null | undefined,
   scale = SMT_BIRUNI_NUMBER_DEFAULT_SCALE,
-  fillWithZero = false
+  fillWithZero = false,
 ): string {
   if (!hasValue(value)) {
     return value == null ? '' : String(value);
@@ -81,7 +81,7 @@ export function sanitizeBiruniNumberInput(value: string, signed = false): string
 export function normalizeBiruniNumberModel(
   value: string | number,
   scale = SMT_BIRUNI_NUMBER_DEFAULT_SCALE,
-  fillWithZero = false
+  fillWithZero = false,
 ): string {
   const formatted = formatBiruniNumberDisplay(value, scale, fillWithZero).replace(/\s/g, '');
   const trimmedScale = scale && formatted.includes('.') ? formatted.replace(/0+$/, '') : formatted;
@@ -99,7 +99,7 @@ export function isBiruniNumberViewValue(value: string | null | undefined): boole
 export function isBiruniNumberWithinLimits(
   value: string,
   precision = SMT_BIRUNI_NUMBER_DEFAULT_PRECISION,
-  scale = SMT_BIRUNI_NUMBER_DEFAULT_SCALE
+  scale = SMT_BIRUNI_NUMBER_DEFAULT_SCALE,
 ): boolean {
   if (!value) {
     return true;
@@ -117,7 +117,7 @@ export function applyBiruniNumberShortcut(
   selectionEnd: number | null,
   scale = SMT_BIRUNI_NUMBER_DEFAULT_SCALE,
   fillWithZero = false,
-  signed = false
+  signed = false,
 ): SMTBiruniNumberShortcutResult {
   const shortcut = SHORTCUTS[key.toLowerCase() as keyof typeof SHORTCUTS];
 
@@ -175,7 +175,7 @@ export interface SMTBiruniNumberConfig {
 
 export function resolveBiruniNumberInput(
   rawValue: string,
-  config: SMTBiruniNumberConfig = {}
+  config: SMTBiruniNumberConfig = {},
 ): { accepted: boolean; value: string } {
   const precision = config.precision ?? SMT_BIRUNI_NUMBER_DEFAULT_PRECISION;
   const scale = config.scale ?? SMT_BIRUNI_NUMBER_DEFAULT_SCALE;

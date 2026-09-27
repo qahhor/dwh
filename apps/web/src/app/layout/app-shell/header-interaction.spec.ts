@@ -22,11 +22,17 @@ interface LanguagePicker {
 class TestEventSource {
   static instances: TestEventSource[] = [];
   private listeners = new Map<string, (event: MessageEvent) => void>();
-  constructor() { TestEventSource.instances.push(this); }
-  addEventListener(type: string, listener: (event: MessageEvent) => void) { this.listeners.set(type, listener); }
+  constructor() {
+    TestEventSource.instances.push(this);
+  }
+  addEventListener(type: string, listener: (event: MessageEvent) => void) {
+    this.listeners.set(type, listener);
+  }
   close() {}
   // A callback queued before close may still run after a replacement connects.
-  emit(type: string, data: unknown) { this.listeners.get(type)?.(new MessageEvent(type, { data: JSON.stringify(data) })); }
+  emit(type: string, data: unknown) {
+    this.listeners.get(type)?.(new MessageEvent(type, { data: JSON.stringify(data) }));
+  }
 }
 
 describe('Header interactions with HTTP state', () => {
@@ -37,14 +43,24 @@ describe('Header interactions with HTTP state', () => {
   beforeEach(async () => {
     TestEventSource.instances = [];
     vi.stubGlobal('EventSource', TestEventSource);
-    await TestBed.configureTestingModule({ imports: [AppShellComponent], providers: [
-      provideHttpClient(), provideHttpClientTesting(), provideRouter([])
-    ] }).compileComponents();
+    await TestBed.configureTestingModule({
+      imports: [AppShellComponent],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
+    }).compileComponents();
     http = TestBed.inject(HttpTestingController);
     i18n = TestBed.inject(I18nService);
-    i18n.languages.set(['ru', 'de', 'en'].map(code => ({
-      code, name: code, builtin: true, active: true, revision: 1, translated: 1, total: 1, coverage: 100
-    })));
+    i18n.languages.set(
+      ['ru', 'de', 'en'].map((code) => ({
+        code,
+        name: code,
+        builtin: true,
+        active: true,
+        revision: 1,
+        translated: 1,
+        total: 1,
+        coverage: 100,
+      })),
+    );
     TestBed.inject(PermissionService).setPermissions(['*.*']);
     fixture = TestBed.createComponent(AppShellComponent);
   });
@@ -66,17 +82,23 @@ describe('Header interactions with HTTP state', () => {
   }
 
   function languagePicker(): LanguagePicker {
-    const picker = fixture.debugElement.query(By.css('smt-select.lang-select')).componentInstance as SMTSelectComponent<string>;
+    const picker = fixture.debugElement.query(By.css('smt-select.lang-select'))
+      .componentInstance as SMTSelectComponent<string>;
     const trigger = fixture.nativeElement.querySelector('#app-language-selector') as HTMLButtonElement;
     return {
-      get disabled() { return trigger.disabled; },
-      get value() { return picker.value(); },
+      get disabled() {
+        return trigger.disabled;
+      },
+      get value() {
+        return picker.value();
+      },
     };
   }
 
   function changeLanguage(code: string): LanguagePicker {
-    const picker = fixture.debugElement.query(By.css('smt-select.lang-select')).componentInstance as SMTSelectComponent<string>;
-    picker.pick(picker.options().find(option => option.id === code)!);
+    const picker = fixture.debugElement.query(By.css('smt-select.lang-select'))
+      .componentInstance as SMTSelectComponent<string>;
+    picker.pick(picker.options().find((option) => option.id === code)!);
     fixture.detectChanges();
     return languagePicker();
   }
@@ -114,7 +136,9 @@ describe('Header interactions with HTTP state', () => {
     renderAdmin();
     const select = changeLanguage('de');
     http.expectOne('/api/v1/i18n/de').flush({});
-    http.expectOne('/api/v1/settings/user').flush({ detail: 'Synthetic failure' }, { status: 503, statusText: 'Unavailable' });
+    http
+      .expectOne('/api/v1/settings/user')
+      .flush({ detail: 'Synthetic failure' }, { status: 503, statusText: 'Unavailable' });
     fixture.detectChanges();
 
     expect(i18n.currentLang()).toBe('ru');
@@ -131,7 +155,7 @@ describe('Header interactions with HTTP state', () => {
   it('does not save the already selected language', () => {
     renderAdmin();
     changeLanguage('ru');
-    http.expectNone(request => request.method === 'PATCH' || request.url.startsWith('/api/v1/i18n/'));
+    http.expectNone((request) => request.method === 'PATCH' || request.url.startsWith('/api/v1/i18n/'));
     http.verify();
   });
 
@@ -157,7 +181,9 @@ describe('Header interactions with HTTP state', () => {
     fixture.detectChanges();
     expect(logout.disabled).toBe(true);
     expect(disconnect).not.toHaveBeenCalled();
-    http.expectOne('/api/v1/auth/logout').flush({ detail: 'Synthetic failure' }, { status: 503, statusText: 'Unavailable' });
+    http
+      .expectOne('/api/v1/auth/logout')
+      .flush({ detail: 'Synthetic failure' }, { status: 503, statusText: 'Unavailable' });
     fixture.detectChanges();
     expect(logout.disabled).toBe(false);
     expect(disconnect).not.toHaveBeenCalled();
@@ -196,17 +222,21 @@ describe('Header interactions with HTTP state', () => {
     renderAdmin();
     const notifications = TestBed.inject(NotificationService);
     let delivered = 0;
-    const requests: Observable<unknown>[] = [notifications.fetchUnreadCount(), notifications.fetchActiveAnnouncement(),
-      notifications.fetchNotifications(), notifications.markAsRead(7),
-      notifications.markAllAsRead(), notifications.dismissAnnouncement(9)
+    const requests: Observable<unknown>[] = [
+      notifications.fetchUnreadCount(),
+      notifications.fetchActiveAnnouncement(),
+      notifications.fetchNotifications(),
+      notifications.markAsRead(7),
+      notifications.markAllAsRead(),
+      notifications.dismissAnnouncement(9),
     ];
-    requests.forEach(request => request.subscribe(() => delivered++));
-    const pending = http.match(request => /\/notifications\/|\/announcements\//.test(request.url));
+    requests.forEach((request) => request.subscribe(() => delivered++));
+    const pending = http.match((request) => /\/notifications\/|\/announcements\//.test(request.url));
     expect(pending).toHaveLength(6);
 
     fixture.destroy();
 
-    expect(pending.every(request => request.cancelled)).toBe(true);
+    expect(pending.every((request) => request.cancelled)).toBe(true);
     expect(delivered).toBe(0);
     expect(notifications.unreadCount()).toBe(0);
     expect(notifications.activeAnnouncement()).toBeNull();
@@ -226,7 +256,11 @@ describe('Header interactions with HTTP state', () => {
 
     expect(notifications.unreadCount()).toBe(1);
     expect(notifications.activeAnnouncement()).toBeNull();
-    expect(TestBed.inject(ToastService).toasts().map(toast => toast.message)).toEqual(['Current notification']);
+    expect(
+      TestBed.inject(ToastService)
+        .toasts()
+        .map((toast) => toast.message),
+    ).toEqual(['Current notification']);
     notifications.disconnectSse();
     http.verify();
   });

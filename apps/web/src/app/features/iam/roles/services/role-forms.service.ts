@@ -24,13 +24,13 @@ export class RoleFormsService {
 
   newRoleForm = {
     name: '',
-    orderNo: 0
+    orderNo: 0,
   };
 
   editRoleForm = {
     name: '',
     state: 'A',
-    orderNo: 0
+    orderNo: 0,
   };
 
   openCreateModal() {
@@ -47,20 +47,22 @@ export class RoleFormsService {
     }
 
     this.isSubmittingRole.set(true);
-    this.api.post<Role>('/rbac/roles', {
-      name: this.newRoleForm.name.trim(),
-      orderNo: this.newRoleForm.orderNo || 0
-    }).subscribe({
-      next: newRole => {
-        this.isSubmittingRole.set(false);
-        this.isCreateModalOpen.set(false);
-        this.toast.success(this.uiI18n.translate('iam.rol_uspeshno_sozdana'));
-        onSuccess(newRole);
-      },
-      error: () => {
-        this.isSubmittingRole.set(false);
-      }
-    });
+    this.api
+      .post<Role>('/rbac/roles', {
+        name: this.newRoleForm.name.trim(),
+        orderNo: this.newRoleForm.orderNo || 0,
+      })
+      .subscribe({
+        next: (newRole) => {
+          this.isSubmittingRole.set(false);
+          this.isCreateModalOpen.set(false);
+          this.toast.success(this.uiI18n.translate('iam.rol_uspeshno_sozdana'));
+          onSuccess(newRole);
+        },
+        error: () => {
+          this.isSubmittingRole.set(false);
+        },
+      });
   }
 
   openEditRoleModal(role: Role) {
@@ -68,7 +70,7 @@ export class RoleFormsService {
     this.editRoleForm = {
       name: role.name,
       state: role.state,
-      orderNo: role.orderNo
+      orderNo: role.orderNo,
     };
     this.isEditSubmitted = false;
     this.isEditModalOpen.set(true);
@@ -92,12 +94,13 @@ export class RoleFormsService {
       },
       error: () => {
         this.isSubmittingRole.set(false);
-      }
+      },
     });
   }
 
   openDeleteRoleModal(role: Role, isSaving: boolean, isScopeBusy: boolean) {
-    if (isSaving || isScopeBusy || this.isSubmittingRole() || this.isDeleteModalOpen() || !safeNumericRecordId(role.id)) return;
+    if (isSaving || isScopeBusy || this.isSubmittingRole() || this.isDeleteModalOpen() || !safeNumericRecordId(role.id))
+      return;
     this.deletingRole = { ...role };
     this.isDeleteModalOpen.set(true);
   }
@@ -121,7 +124,7 @@ export class RoleFormsService {
       },
       error: () => {
         this.isSubmittingRole.set(false);
-      }
+      },
     });
   }
 }

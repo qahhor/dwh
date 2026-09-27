@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.common.security;
 
 import java.util.Set;
+import org.jspecify.annotations.Nullable;
 
 public final class SecurityContext {
 
@@ -12,7 +13,7 @@ public final class SecurityContext {
         CURRENT_PRINCIPAL.set(principal);
     }
 
-    public static KauthPrincipal getPrincipal() {
+    public static @Nullable KauthPrincipal getPrincipal() {
         return CURRENT_PRINCIPAL.get();
     }
 
@@ -20,7 +21,7 @@ public final class SecurityContext {
         return CURRENT_PRINCIPAL.get() != null;
     }
 
-    public static Long getCurrentUserId() {
+    public static @Nullable Long getCurrentUserId() {
         var p = CURRENT_PRINCIPAL.get();
         return p != null ? p.userId() : null;
     }
@@ -46,6 +47,5 @@ public final class SecurityContext {
             long permissionVersion,
             boolean forcePasswordChange,
             @com.fasterxml.jackson.annotation.JsonIgnore long authenticationVersion,
-            @com.fasterxml.jackson.annotation.JsonIgnore Long apiTokenId
-    ) {}
+            @com.fasterxml.jackson.annotation.JsonIgnore Long apiTokenId) {}
 }

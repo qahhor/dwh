@@ -1,11 +1,11 @@
 package com.smartup24.cms.instance.config.cache;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 class CacheConfigTest {
 
@@ -17,15 +17,15 @@ class CacheConfigTest {
         CacheManager cacheManager = cacheConfig.cacheManager();
         assertThat(cacheManager).isNotNull();
 
-        assertThat(cacheManager.getCacheNames()).containsExactlyInAnyOrder(
-                CacheConfig.TASK_STATUSES_CACHE,
-                CacheConfig.TASK_TYPES_CACHE,
-                CacheConfig.ACTIVE_MODULES_CACHE,
-                CacheConfig.ALL_MODULES_CACHE,
-                CacheConfig.MODULE_ACTIVE_CACHE,
-                CacheConfig.NAVIGATION_ITEMS_CACHE,
-                CacheConfig.CUSTOM_FIELDS_CACHE
-        );
+        assertThat(cacheManager.getCacheNames())
+                .containsExactlyInAnyOrder(
+                        CacheConfig.TASK_STATUSES_CACHE,
+                        CacheConfig.TASK_TYPES_CACHE,
+                        CacheConfig.ACTIVE_MODULES_CACHE,
+                        CacheConfig.ALL_MODULES_CACHE,
+                        CacheConfig.MODULE_ACTIVE_CACHE,
+                        CacheConfig.NAVIGATION_ITEMS_CACHE,
+                        CacheConfig.CUSTOM_FIELDS_CACHE);
     }
 
     @Test

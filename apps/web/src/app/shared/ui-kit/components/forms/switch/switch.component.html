@@ -12,7 +12,8 @@
   [attr.aria-invalid]="hasError() ? 'true' : null"
   [disabled]="isDisabled()"
   (click)="toggle()"
-  (blur)="onBlur()">
+  (blur)="onBlur()"
+>
   <span class="smt-switch__thumb" aria-hidden="true"></span>
 </button>
 @if (label()) {

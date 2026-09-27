@@ -1,6 +1,9 @@
 package com.smartup24.cms.instance.md.service;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
+import java.util.Collection;
+import java.util.Set;
+import java.util.TreeSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -9,10 +12,6 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
-
-import java.util.Collection;
-import java.util.Set;
-import java.util.TreeSet;
 
 /**
  * Синхронизация каталога форм с кодом (FR-PERM-1, дефект Д-5).
@@ -38,8 +37,8 @@ public class MdFormCatalogSynchronizer {
     private final RequestMappingHandlerMapping handlerMapping;
     private final MdPermissionService permissionService;
 
-    public MdFormCatalogSynchronizer(RequestMappingHandlerMapping handlerMapping,
-                                     MdPermissionService permissionService) {
+    public MdFormCatalogSynchronizer(
+            RequestMappingHandlerMapping handlerMapping, MdPermissionService permissionService) {
         this.handlerMapping = handlerMapping;
         this.permissionService = permissionService;
     }
@@ -49,11 +48,15 @@ public class MdFormCatalogSynchronizer {
         Set<String> declared = declaredPairs(handlerMapping.getHandlerMethods().values());
         var result = permissionService.syncFormCatalog(declared);
 
-        log.info("Каталог прав синхронизирован с кодом: {} пар из @RequiresPermission, "
-                + "помечено устаревшими за этот проход: {}", declared.size(), result.deprecated());
+        log.info(
+                "Каталог прав синхронизирован с кодом: {} пар из @RequiresPermission, "
+                        + "помечено устаревшими за этот проход: {}",
+                declared.size(),
+                result.deprecated());
 
         if (!result.deprecatedPairs().isEmpty()) {
-            log.warn("Устаревшие права в каталоге (за ними нет эндпоинта, выдать их нельзя): {}",
+            log.warn(
+                    "Устаревшие права в каталоге (за ними нет эндпоинта, выдать их нельзя): {}",
                     String.join(", ", result.deprecatedPairs()));
         }
     }

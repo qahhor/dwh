@@ -9,8 +9,6 @@ import com.smartup24.cms.instance.upl.format.UplFormatModel.FileKind;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.FormatVersion;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.MatchBy;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.Sheet;
-import org.springframework.stereotype.Component;
-
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -20,6 +18,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+import org.springframework.stereotype.Component;
 
 /** Проверки анкеты перед публикацией (контракт И3, «Ошибки»): собирает все нарушения сразу. */
 @Component
@@ -102,7 +101,9 @@ public class UplFormatValidator {
         if (v.fileKind() != FileKind.CSV && isBlank(sheet.sheetName())) {
             add(errors, path + ".sheetName", UPL_SHEET_NAME_REQUIRED);
         }
-        long keys = columns.stream().filter(c -> c.dataType() == DataType.OBJECT_KEY).count();
+        long keys = columns.stream()
+                .filter(c -> c.dataType() == DataType.OBJECT_KEY)
+                .count();
         if (!columns.isEmpty() && keys != 1) {
             add(errors, path + ".columns", UPL_OBJECT_KEY_COUNT);
         }
@@ -120,8 +121,8 @@ public class UplFormatValidator {
         }
     }
 
-    private static void checkSheetNameUnique(FormatVersion v, Sheet sheet, String path, Set<String> seen,
-                                             List<FieldErrorItem> errors) {
+    private static void checkSheetNameUnique(
+            FormatVersion v, Sheet sheet, String path, Set<String> seen, List<FieldErrorItem> errors) {
         if (v.fileKind() == FileKind.CSV || isBlank(sheet.sheetName())) {
             return;
         }
@@ -130,8 +131,8 @@ public class UplFormatValidator {
         }
     }
 
-    private void checkDuplicates(Column c, String path, Set<String> names, Set<String> targets,
-                                 List<FieldErrorItem> errors) {
+    private void checkDuplicates(
+            Column c, String path, Set<String> names, Set<String> targets, List<FieldErrorItem> errors) {
         if (c.nameInFile() != null && !names.add(c.nameInFile().strip().toLowerCase(Locale.ROOT))) {
             add(errors, path + ".nameInFile", UPL_COLUMN_NAME_DUPLICATE);
         }
@@ -210,8 +211,8 @@ public class UplFormatValidator {
         }
     }
 
-    private void checkPosition(FormatVersion v, Column c, String path, Set<Integer> positions,
-                               List<FieldErrorItem> errors) {
+    private void checkPosition(
+            FormatVersion v, Column c, String path, Set<Integer> positions, List<FieldErrorItem> errors) {
         if (v.matchColumnsBy() != MatchBy.POSITION) {
             return;
         }

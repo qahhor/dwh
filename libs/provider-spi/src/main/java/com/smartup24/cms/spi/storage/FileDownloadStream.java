@@ -4,11 +4,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 
-public record FileDownloadStream(
-        InputStream inputStream,
-        long contentLength,
-        String contentType
-) implements Closeable {
+public record FileDownloadStream(InputStream inputStream, long contentLength, String contentType) implements Closeable {
 
     @Override
     public void close() throws IOException {

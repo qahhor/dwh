@@ -1,5 +1,9 @@
 package com.smartup24.cms.instance.search;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import com.smartup24.cms.instance.common.security.RoleMembershipAuthorizer;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
@@ -14,6 +18,19 @@ import com.smartup24.cms.instance.search.service.SearchResultBudget;
 import com.smartup24.cms.instance.search.service.SearchService;
 import com.smartup24.cms.instance.search.service.SearchService.SearchHit;
 import com.smartup24.cms.instance.search.typesense.TypesenseClient;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Proxy;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import javax.sql.DataSource;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -36,31 +53,14 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Proxy;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-import javax.sql.DataSource;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 @Testcontainers
 class SearchFallbackIntegrationTest {
 
     @Container
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:18-alpine")
-            .withDatabaseName("search_fallback_test").withUsername("test_user").withPassword("test_pass");
+            .withDatabaseName("search_fallback_test")
+            .withUsername("test_user")
+            .withPassword("test_pass");
 
     private static final AtomicInteger sequence = new AtomicInteger();
     private static JdbcClient jdbc;
@@ -76,7 +76,10 @@ class SearchFallbackIntegrationTest {
     static void setupDatabase() {
         database = new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
         FlywayUtcConfiguration.configure(Flyway.configure())
-                .dataSource(database).locations("classpath:db/migration").load().migrate();
+                .dataSource(database)
+                .locations("classpath:db/migration")
+                .load()
+                .migrate();
         jdbc = JdbcClient.create(database);
         transactions = new DataSourceTransactionManager(database);
         repository = new SearchFallbackRepository(jdbc);
@@ -109,8 +112,10 @@ class SearchFallbackIntegrationTest {
 
         FallbackSearch result = repository.search("%_", "TASK", 10);
 
-        assertThat(result.groups()).singleElement().satisfies(group ->
-                assertThat(group.hits()).extracting(SearchFallbackRepository.FallbackHit::id)
+        assertThat(result.groups())
+                .singleElement()
+                .satisfies(group -> assertThat(group.hits())
+                        .extracting(SearchFallbackRepository.FallbackHit::id)
                         .containsExactly(Long.toString(literal)));
     }
 
@@ -124,9 +129,11 @@ class SearchFallbackIntegrationTest {
         FallbackSearch users = repository.search("90-123", "USER", 10);
         FallbackSearch projects = repository.search("active-token", "PROJECT", 10);
 
-        assertThat(users.groups().getFirst().hits()).extracting(SearchFallbackRepository.FallbackHit::id)
+        assertThat(users.groups().getFirst().hits())
+                .extracting(SearchFallbackRepository.FallbackHit::id)
                 .containsExactly(Long.toString(activeUser));
-        assertThat(projects.groups().getFirst().hits()).extracting(SearchFallbackRepository.FallbackHit::id)
+        assertThat(projects.groups().getFirst().hits())
+                .extracting(SearchFallbackRepository.FallbackHit::id)
                 .containsExactly(Long.toString(activeProject));
     }
 
@@ -156,20 +163,29 @@ class SearchFallbackIntegrationTest {
         when(typesense.isEnabled()).thenReturn(false);
         SecurityContext.setPrincipal(new SecurityContext.KauthPrincipal(
                 999L, "admin", "admin@example.invalid", 1L, false, Set.of("*.*"), 1, false, 0, null));
-        SearchService service = new SearchService(typesense, repository,
-                new SearchAccessPolicy(mock(RoleMembershipAuthorizer.class)), new SearchResultBudget(),
+        SearchService service = new SearchService(
+                typesense,
+                repository,
+                new SearchAccessPolicy(mock(RoleMembershipAuthorizer.class)),
+                new SearchResultBudget(),
                 new SearchPolicyProvider(
                         new SearchOwnerRateLimits() {
-                            @Override public int userPerMinute() { return 600; }
-                            @Override public int tokenPerMinute() { return 300; }
-                        }, new SearchSettingsRepository(jdbc)),
-                new SearchExecutionSnapshotReader(
-                new SearchIndexStateRepository(jdbc)));
+                            @Override
+                            public int userPerMinute() {
+                                return 600;
+                            }
+
+                            @Override
+                            public int tokenPerMinute() {
+                                return 300;
+                            }
+                        },
+                        new SearchSettingsRepository(jdbc)),
+                new SearchExecutionSnapshotReader(new SearchIndexStateRepository(jdbc)));
 
         var result = service.search("budget-token", "ALL", 4);
 
-        assertThat(result.hits()).extracting(SearchHit::entityType)
-                .containsExactly("TASK", "TASK", "PROJECT", "USER");
+        assertThat(result.hits()).extracting(SearchHit::entityType).containsExactly("TASK", "TASK", "PROJECT", "USER");
         assertThat(result.totalHits()).isEqualTo(4);
         assertThat(result.foundHits()).isNull();
         assertThat(result.hasMore()).isTrue();
@@ -187,7 +203,8 @@ class SearchFallbackIntegrationTest {
         FallbackSearch result = repository.search("page-token", "TASK", 2);
 
         assertThat(result.groups()).singleElement().satisfies(group -> {
-            assertThat(group.hits()).extracting(SearchFallbackRepository.FallbackHit::id)
+            assertThat(group.hits())
+                    .extracting(SearchFallbackRepository.FallbackHit::id)
                     .containsExactly(Long.toString(first), Long.toString(second));
             assertThat(group.hasMore()).isTrue();
         });
@@ -200,12 +217,20 @@ class SearchFallbackIntegrationTest {
         long byProject = task("ordinary", "", reporter, project);
         String status = "Status " + sequence.incrementAndGet();
         jdbc.sql("update ms_task_statuses set name = :name where id = (select status_id from ms_tasks where id = :id)")
-                .param("name", status).param("id", byProject).update();
+                .param("name", status)
+                .param("id", byProject)
+                .update();
 
-        assertThat(repository.search("search-project-context", "TASK", 10).groups().getFirst().hits())
-                .extracting(SearchFallbackRepository.FallbackHit::id).containsExactly(Long.toString(byProject));
+        assertThat(repository
+                        .search("search-project-context", "TASK", 10)
+                        .groups()
+                        .getFirst()
+                        .hits())
+                .extracting(SearchFallbackRepository.FallbackHit::id)
+                .containsExactly(Long.toString(byProject));
         assertThat(repository.search(status, "TASK", 10).groups().getFirst().hits())
-                .extracting(SearchFallbackRepository.FallbackHit::id).containsExactly(Long.toString(byProject));
+                .extracting(SearchFallbackRepository.FallbackHit::id)
+                .containsExactly(Long.toString(byProject));
     }
 
     @Test
@@ -215,14 +240,17 @@ class SearchFallbackIntegrationTest {
         FallbackSearch result = proxiedRepository.search("read-only-probe", "TASK", 10);
 
         assertThat(AopUtils.isAopProxy(proxiedRepository)).isTrue();
-        assertThat(result.groups()).singleElement().satisfies(group -> assertThat(group.hits()).isEmpty());
+        assertThat(result.groups())
+                .singleElement()
+                .satisfies(group -> assertThat(group.hits()).isEmpty());
         assertThat(observedDatabase.transactionReadOnly()).isEqualTo("on");
     }
 
     @Test
     void springProxyCancelsBlockedFallbackWithinItsTwoSecondQueryBudget() throws Exception {
         ExecutorService executor = Executors.newSingleThreadExecutor();
-        try (Connection blocker = database.getConnection(); Statement statement = blocker.createStatement()) {
+        try (Connection blocker = database.getConnection();
+                Statement statement = blocker.createStatement()) {
             blocker.setAutoCommit(false);
             statement.execute("lock table ms_tasks in access exclusive mode");
 
@@ -244,8 +272,10 @@ class SearchFallbackIntegrationTest {
             }
 
             assertThat(failure.failure()).isNotNull();
-            assertThat(rootCause(failure.failure())).isInstanceOfSatisfying(SQLException.class,
-                    sql -> assertThat(sql.getSQLState()).isEqualTo("57014"));
+            assertThat(rootCause(failure.failure()))
+                    .isInstanceOfSatisfying(
+                            SQLException.class,
+                            sql -> assertThat(sql.getSQLState()).isEqualTo("57014"));
             assertThat(failure.elapsedMillis()).isBetween(1_000L, 5_000L);
         } finally {
             executor.shutdownNow();
@@ -269,15 +299,22 @@ class SearchFallbackIntegrationTest {
                                       attributes, is_2fa_enabled, force_password_change)
                 values (:name, :login, :email, :phone, 'x', :state, 'ru', 'UTC', '{}', false, false)
                 returning id
-                """).param("name", name).param("login", "search-user-" + number)
+                """)
+                .param("name", name)
+                .param("login", "search-user-" + number)
                 .param("email", "search-user-" + number + "@example.invalid")
-                .param("phone", phone).param("state", state).query(Long.class).single();
+                .param("phone", phone)
+                .param("state", state)
+                .query(Long.class)
+                .single();
     }
 
     private static long project(String name, String state) {
         return jdbc.sql("insert into ms_task_projects (name, state) values (:name, :state) returning id")
-                .param("name", name + "-" + sequence.incrementAndGet()).param("state", state)
-                .query(Long.class).single();
+                .param("name", name + "-" + sequence.incrementAndGet())
+                .param("state", state)
+                .query(Long.class)
+                .single();
     }
 
     private static long task(String title, String description, long reporter, Long project) {
@@ -288,8 +325,13 @@ class SearchFallbackIntegrationTest {
                         (select id from ms_task_statuses order by id limit 1), 'medium',
                         :reporter, '{}', :reporter, :reporter)
                 returning id
-                """).param("project", project).param("title", title).param("description", description)
-                .param("reporter", reporter).query(Long.class).single();
+                """)
+                .param("project", project)
+                .param("title", title)
+                .param("description", description)
+                .param("reporter", reporter)
+                .query(Long.class)
+                .single();
     }
 
     @Configuration(proxyBeanMethods = false)
@@ -343,11 +385,13 @@ class SearchFallbackIntegrationTest {
         }
 
         private Connection observe(Connection connection) {
-            return (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(),
-                    new Class<?>[]{Connection.class}, (proxy, method, arguments) -> {
+            return (Connection) Proxy.newProxyInstance(
+                    Connection.class.getClassLoader(),
+                    new Class<?>[] {Connection.class},
+                    (proxy, method, arguments) -> {
                         if (method.getName().equals("prepareStatement") && transactionReadOnly.get() == null) {
                             try (Statement statement = connection.createStatement();
-                                 ResultSet result = statement.executeQuery("show transaction_read_only")) {
+                                    ResultSet result = statement.executeQuery("show transaction_read_only")) {
                                 result.next();
                                 transactionReadOnly.compareAndSet(null, result.getString(1));
                             }

@@ -1,5 +1,11 @@
 package com.smartup24.cms.instance.upl;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+
 import com.jayway.jsonpath.JsonPath;
 import com.smartup24.cms.instance.config.idempotency.IdempotencyFilter;
 import com.smartup24.cms.instance.fnd.FndActors;
@@ -14,6 +20,10 @@ import com.smartup24.cms.instance.upl.upload.UplPackageService;
 import com.smartup24.cms.instance.upl.upload.UplUploadService;
 import com.smartup24.cms.instance.upl.upload.UplUploadValidator;
 import jakarta.servlet.http.Cookie;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,17 +39,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.context.WebApplicationContext;
 import tools.jackson.databind.ObjectMapper;
 
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-
 /** HTTP-проверка API загрузок файлов {@code /api/v1/upl/packages} (контракт И5, разделы 3 и 8). */
 class UplPackageControllerTest extends EmbeddedPostgresTest {
 
@@ -50,16 +49,22 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
 
     @Autowired
     private WebApplicationContext wac;
+
     @Autowired
     private MdUserService users;
+
     @Autowired
     private JdbcClient jdbc;
+
     @Autowired
     private UplSourceService sources;
+
     @Autowired
     private FndJobRunner jobs;
+
     @Autowired
     private FndActors actors;
+
     @Autowired
     private TransactionTemplate tx;
 
@@ -71,19 +76,21 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
     private long systemUserId;
     private long sourceId;
 
-    private record Session(Cookie session, Cookie csrf) {
-    }
+    private record Session(Cookie session, Cookie csrf) {}
 
     @BeforeEach
     void setUp() {
         DefaultMockMvcBuilder builder = MockMvcBuilders.webAppContextSetup(wac).apply(springSecurity());
-        IdempotencyFilter idempotency = wac.getBeanProvider(IdempotencyFilter.class).getIfAvailable();
+        IdempotencyFilter idempotency =
+                wac.getBeanProvider(IdempotencyFilter.class).getIfAvailable();
         if (idempotency != null) {
             builder.addFilters(idempotency);
         }
         mvc = builder.build();
 
-        systemUserId = jdbc.sql("select id from md_users where login = 'system'").query(Long.class).single();
+        systemUserId = jdbc.sql("select id from md_users where login = 'system'")
+                .query(Long.class)
+                .single();
         tx.executeWithoutResult(status -> {
             actors.apply(actors.system());
             jdbc.sql("delete from upl_package_errors").update();
@@ -109,8 +116,8 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
     void uploadedFileIsParsedAndVisible() throws Exception {
         Session admin = login(adminLogin);
 
-        var accepted = upload(admin, String.valueOf(sourceId), PERIOD_FROM, PERIOD_TO,
-                UplPackageTestData.workbook(7, 3));
+        var accepted =
+                upload(admin, String.valueOf(sourceId), PERIOD_FROM, PERIOD_TO, UplPackageTestData.workbook(7, 3));
         assertThat(accepted.getStatus()).as(accepted.getContentAsString()).isEqualTo(202);
         Map<String, Object> received = read(accepted, "$");
         assertThat(received).containsEntry("status", UplPackageModel.RECEIVED);
@@ -120,7 +127,9 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
         assertThat(received.get("rowsRejected")).isNull();
         assertThat(received.get("errorsTotal")).isNull();
 
-        assertThat(jdbc.sql("select handler from fnd_job_queue").query(String.class).list())
+        assertThat(jdbc.sql("select handler from fnd_job_queue")
+                        .query(String.class)
+                        .list())
                 .containsExactly(UplPref.JOB_PARSE);
         assertThat(jobs.runQueued()).isEqualTo(1);
 
@@ -135,10 +144,16 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
         assertThat((Integer) read(errors, "$.total")).isEqualTo(3);
         assertThat((Integer) read(errors, "$.shown")).isEqualTo(3);
         var file = sendGet(admin, BASE + "/" + read(list, "$.items[0].id") + "/errors/file?lang=ru", 200);
-        assertThat(file.getContentType()).startsWith("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        assertThat(file.getHeader("Content-Disposition")).startsWith("attachment").contains("errors_");
-        try (var workbook = new org.dhatim.fastexcel.reader.ReadableWorkbook(new java.io.ByteArrayInputStream(file.getContentAsByteArray()))) {
-            List<String> texts = workbook.getFirstSheet().read().stream().map(row -> row.getCellText(4)).toList();
+        assertThat(file.getContentType())
+                .startsWith("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        assertThat(file.getHeader("Content-Disposition"))
+                .startsWith("attachment")
+                .contains("errors_");
+        try (var workbook = new org.dhatim.fastexcel.reader.ReadableWorkbook(
+                new java.io.ByteArrayInputStream(file.getContentAsByteArray()))) {
+            List<String> texts = workbook.getFirstSheet().read().stream()
+                    .map(row -> row.getCellText(4))
+                    .toList();
             // Three cell errors in words, the same words the card shows.
             assertThat(texts.stream().filter(t -> !t.isBlank()).count()).isGreaterThanOrEqualTo(4);
             assertThat(texts).noneMatch(t -> t.startsWith("upl.err."));
@@ -163,11 +178,15 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
         String second = read(upload(admin, String.valueOf(sourceId), PERIOD_FROM, PERIOD_TO, content), "$.id");
 
         assertThat(first).isNotEqualTo(second);
-        List<String> hashes = jdbc.sql("select file_sha256 from upl_packages").query(String.class).list();
+        List<String> hashes = jdbc.sql("select file_sha256 from upl_packages")
+                .query(String.class)
+                .list();
         assertThat(hashes).hasSize(2);
         assertThat(hashes.get(0)).isEqualTo(hashes.get(1));
         Long stored = jdbc.sql("select count(*) from mf_files where sha256 = :sha")
-                .param("sha", hashes.getFirst()).query(Long.class).single();
+                .param("sha", hashes.getFirst())
+                .query(Long.class)
+                .single();
         assertThat(stored).isEqualTo(1);
     }
 
@@ -186,7 +205,9 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
 
         var errors = sendGet(admin, BASE + "/" + read(list, "$.items[0].id") + "/errors", 200);
         List<Map<String, Object>> items = read(errors, "$.items");
-        assertThat(items).hasSize(2).allSatisfy(item -> assertThat(item.get("rowNo")).isNull());
+        assertThat(items)
+                .hasSize(2)
+                .allSatisfy(item -> assertThat(item.get("rowNo")).isNull());
     }
 
     @Test
@@ -215,11 +236,12 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
 
         assertThat(response.getStatus()).as(response.getContentAsString()).isEqualTo(422);
         List<String> codes = read(response, "$.errors[*].code");
-        assertThat(codes).containsExactly(
-                UplUploadValidator.UPL_PKG_SOURCE_REQUIRED,
-                UplUploadValidator.UPL_PKG_PERIOD_REQUIRED,
-                UplUploadValidator.UPL_PKG_PERIOD_REQUIRED,
-                UplUploadValidator.UPL_PKG_FILE_REQUIRED);
+        assertThat(codes)
+                .containsExactly(
+                        UplUploadValidator.UPL_PKG_SOURCE_REQUIRED,
+                        UplUploadValidator.UPL_PKG_PERIOD_REQUIRED,
+                        UplUploadValidator.UPL_PKG_PERIOD_REQUIRED,
+                        UplUploadValidator.UPL_PKG_FILE_REQUIRED);
         assertThat(packageCount()).isZero();
     }
 
@@ -254,14 +276,14 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
     void permissionsAreEnforced() throws Exception {
         Session analyst = login(analystLogin);
         sendGet(analyst, BASE, 200);
-        var accepted = upload(analyst, String.valueOf(sourceId), PERIOD_FROM, PERIOD_TO,
-                UplPackageTestData.workbook(1, 0));
+        var accepted =
+                upload(analyst, String.valueOf(sourceId), PERIOD_FROM, PERIOD_TO, UplPackageTestData.workbook(1, 0));
         assertThat(accepted.getStatus()).as(accepted.getContentAsString()).isEqualTo(202);
 
         Session stranger = login(strangerLogin);
         sendGet(stranger, BASE, 403);
-        var refused = upload(stranger, String.valueOf(sourceId), PERIOD_FROM, PERIOD_TO,
-                UplPackageTestData.workbook(1, 0));
+        var refused =
+                upload(stranger, String.valueOf(sourceId), PERIOD_FROM, PERIOD_TO, UplPackageTestData.workbook(1, 0));
         assertThat(refused.getStatus()).as(refused.getContentAsString()).isEqualTo(403);
 
         assertThat(mvc.perform(get(BASE)).andReturn().getResponse().getStatus()).isEqualTo(401);
@@ -271,8 +293,8 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
     @DisplayName("Права: роль только с просмотром видит список и ошибки, загрузка — 403, пакет не создан")
     void viewOnlyRoleCannotUpload() throws Exception {
         Session analyst = login(analystLogin);
-        var accepted = upload(analyst, String.valueOf(sourceId), PERIOD_FROM, PERIOD_TO,
-                UplPackageTestData.workbook(1, 0));
+        var accepted =
+                upload(analyst, String.valueOf(sourceId), PERIOD_FROM, PERIOD_TO, UplPackageTestData.workbook(1, 0));
         assertThat(accepted.getStatus()).as(accepted.getContentAsString()).isEqualTo(202);
         String id = read(accepted, "$.id");
 
@@ -280,8 +302,8 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
         sendGet(viewer, BASE, 200);
         sendGet(viewer, BASE + "/" + id + "/errors", 200);
 
-        var refused = upload(viewer, String.valueOf(sourceId), PERIOD_FROM, PERIOD_TO,
-                UplPackageTestData.workbook(1, 0));
+        var refused =
+                upload(viewer, String.valueOf(sourceId), PERIOD_FROM, PERIOD_TO, UplPackageTestData.workbook(1, 0));
         assertThat(refused.getStatus()).as(refused.getContentAsString()).isEqualTo(403);
         assertThat(packageCount()).isEqualTo(1);
     }
@@ -290,8 +312,8 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
     @DisplayName("AC-10, 12: администратор применяет проверенную загрузку; повтор и неразобранная — 409")
     void adminAppliesVerifiedPackage() throws Exception {
         Session admin = login(adminLogin);
-        var accepted = upload(admin, String.valueOf(sourceId), PERIOD_FROM, PERIOD_TO,
-                UplPackageTestData.workbook(7, 3));
+        var accepted =
+                upload(admin, String.valueOf(sourceId), PERIOD_FROM, PERIOD_TO, UplPackageTestData.workbook(7, 3));
         assertThat(accepted.getStatus()).as(accepted.getContentAsString()).isEqualTo(202);
         String id = read(accepted, "$.id");
 
@@ -322,8 +344,8 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
     @DisplayName("AC-12: аналитик и пользователь только с просмотром не применяют — 403")
     void analystAndViewerCannotApply() throws Exception {
         Session admin = login(adminLogin);
-        var accepted = upload(admin, String.valueOf(sourceId), PERIOD_FROM, PERIOD_TO,
-                UplPackageTestData.workbook(7, 3));
+        var accepted =
+                upload(admin, String.valueOf(sourceId), PERIOD_FROM, PERIOD_TO, UplPackageTestData.workbook(7, 3));
         assertThat(accepted.getStatus()).as(accepted.getContentAsString()).isEqualTo(202);
         String id = read(accepted, "$.id");
         assertThat(jobs.runQueued()).isEqualTo(1);
@@ -339,21 +361,27 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
     }
 
     @Test
-    @DisplayName("реестр полей: список загрузок фильтруется по статусу, ищется по файлу и источнику, поля-фильтры без колонки")
+    @DisplayName(
+            "реестр полей: список загрузок фильтруется по статусу, ищется по файлу и источнику, поля-фильтры без колонки")
     void packagesListGoesThroughTheRegistry() throws Exception {
         Session admin = login(adminLogin);
         assertThat(upload(admin, String.valueOf(sourceId), PERIOD_FROM, PERIOD_TO, UplPackageTestData.workbook(2, 0))
-                .getStatus()).isEqualTo(202);
+                        .getStatus())
+                .isEqualTo(202);
         assertThat(jobs.runQueued()).isEqualTo(1);
 
-        String verified = java.net.URLEncoder.encode("[{\"field\":\"status\",\"op\":\"eq\",\"value\":\"verified\"}]",
+        String verified = java.net.URLEncoder.encode(
+                "[{\"field\":\"status\",\"op\":\"eq\",\"value\":\"verified\"}]",
                 java.nio.charset.StandardCharsets.UTF_8);
         String rejected = verified.replace("verified", "rejected");
         assertThat((List<String>) read(sendGetUri(admin, BASE + "?filter=" + verified, 200), "$.items[*].status"))
                 .containsExactly(UplPackageModel.VERIFIED);
-        assertThat((List<Object>) read(sendGetUri(admin, BASE + "?filter=" + rejected, 200), "$.items")).isEmpty();
-        assertThat((List<Object>) read(sendGet(admin, BASE + "?q=TEST.xls", 200), "$.items")).hasSize(1);
-        assertThat((List<Object>) read(sendGet(admin, BASE + "?q=no-such-file", 200), "$.items")).isEmpty();
+        assertThat((List<Object>) read(sendGetUri(admin, BASE + "?filter=" + rejected, 200), "$.items"))
+                .isEmpty();
+        assertThat((List<Object>) read(sendGet(admin, BASE + "?q=TEST.xls", 200), "$.items"))
+                .hasSize(1);
+        assertThat((List<Object>) read(sendGet(admin, BASE + "?q=no-such-file", 200), "$.items"))
+                .isEmpty();
         sendGet(admin, BASE + "?sort=periodFrom", 200);
         sendGet(admin, BASE + "?sort=fileName", 422);
 
@@ -364,11 +392,13 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
     }
 
     @Test
-    @DisplayName("права на поля: без права на справочник пользователей не видно, кто загрузил, — ни колонки, ни фильтра, ни значения")
+    @DisplayName(
+            "права на поля: без права на справочник пользователей не видно, кто загрузил, — ни колонки, ни фильтра, ни значения")
     void uploaderFollowsTheFieldRight() throws Exception {
         Session admin = login(adminLogin);
         assertThat(upload(admin, String.valueOf(sourceId), PERIOD_FROM, PERIOD_TO, UplPackageTestData.workbook(2, 0))
-                .getStatus()).isEqualTo(202);
+                        .getStatus())
+                .isEqualTo(202);
         String uploader = read(sendGet(admin, BASE, 200), "$.items[0].uploadedBy");
         assertThat(uploader).isNotBlank();
 
@@ -377,7 +407,8 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
         assertThat((List<Object>) read(list, "$.items")).isNotEmpty();
         assertThat((List<Object>) read(list, "$.items[?(@.uploadedBy)]")).isEmpty();
         assertThat((List<String>) read(sendGet(analyst, "/api/v1/query-meta/upl.packages", 200), "$.fields[*].key"))
-                .doesNotContain("uploadedBy").contains("fileName");
+                .doesNotContain("uploadedBy")
+                .contains("fileName");
         String byUploader = java.net.URLEncoder.encode(
                 "[{\"field\":\"uploadedBy\",\"op\":\"eq\",\"value\":\"" + uploader + "\"}]",
                 java.nio.charset.StandardCharsets.UTF_8);
@@ -393,7 +424,8 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
         int uploadsBefore = read(before, "$.totals.uploads");
         int verifiedBefore = read(before, "$.totals.verified");
         assertThat(upload(admin, String.valueOf(sourceId), PERIOD_FROM, PERIOD_TO, UplPackageTestData.workbook(2, 0))
-                .getStatus()).isEqualTo(202);
+                        .getStatus())
+                .isEqualTo(202);
         assertThat(jobs.runQueued()).isEqualTo(1);
 
         var after = sendGet(login(analystLogin), "/api/v1/upl/overview?days=7", 200);
@@ -406,10 +438,12 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
         assertThat((Integer) read(after, "$.daily[6].other")).isPositive();
         assertThat((Integer) read(after, "$.previous.uploads")).isNotNegative();
         // A checked upload waits for someone to apply it; the source is listed with its freshness.
-        assertThat((List<String>) read(after, "$.attention[?(@.kind == 'waiting')].fileName")).contains("TEST.xlsx");
+        assertThat((List<String>) read(after, "$.attention[?(@.kind == 'waiting')].fileName"))
+                .contains("TEST.xlsx");
         assertThat((List<Integer>) read(after, "$.freshness[*].sourceId")).contains((int) sourceId);
         String waiting = ((List<String>) read(after, "$.attention[?(@.kind == 'waiting')].packageId")).getFirst();
-        assertThat((String) read(sendGet(admin, BASE + "/" + waiting, 200), "$.id")).isEqualTo(waiting);
+        assertThat((String) read(sendGet(admin, BASE + "/" + waiting, 200), "$.id"))
+                .isEqualTo(waiting);
         sendGet(admin, BASE + "/" + UUID.randomUUID(), 404);
         sendGet(admin, "/api/v1/upl/overview?days=5", 422);
         sendGet(login(strangerLogin), "/api/v1/upl/overview", 403);
@@ -438,27 +472,35 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
 
     /** For a query string that is already encoded: a String would be read as a URI template and encoded again. */
     private MockHttpServletResponse sendGetUri(Session session, String url, int expectedStatus) throws Exception {
-        var response = mvc.perform(get(java.net.URI.create(url)).cookie(session.session(), session.csrf())).andReturn().getResponse();
+        var response = mvc.perform(get(java.net.URI.create(url)).cookie(session.session(), session.csrf()))
+                .andReturn()
+                .getResponse();
         assertThat(response.getStatus()).as(response.getContentAsString()).isEqualTo(expectedStatus);
         return response;
     }
 
     private MockHttpServletResponse sendGet(Session session, String url, int expectedStatus) throws Exception {
-        var response = mvc.perform(get(url).cookie(session.session(), session.csrf())).andReturn().getResponse();
+        var response = mvc.perform(get(url).cookie(session.session(), session.csrf()))
+                .andReturn()
+                .getResponse();
         assertThat(response.getStatus()).as(response.getContentAsString()).isEqualTo(expectedStatus);
         return response;
     }
 
     private Session login(String login) throws Exception {
-        var response = mvc.perform(post("/api/v1/auth/login").contentType("application/json")
+        var response = mvc.perform(post("/api/v1/auth/login")
+                        .contentType("application/json")
                         .content(json(Map.of("login", login, "password", PASSWORD, "deviceInfo", "test"))))
-                .andReturn().getResponse();
+                .andReturn()
+                .getResponse();
         assertThat(response.getStatus()).as(response.getContentAsString()).isEqualTo(200);
         Cookie session = response.getCookie(KauthPref.SESSION_COOKIE_NAME);
         assertThat(session).as("session cookie").isNotNull();
         Cookie csrf = response.getCookie("XSRF-TOKEN");
         if (csrf == null) {
-            var handshake = mvc.perform(get("/api/v1/auth/me").cookie(session)).andReturn().getResponse();
+            var handshake = mvc.perform(get("/api/v1/auth/me").cookie(session))
+                    .andReturn()
+                    .getResponse();
             assertThat(handshake.getStatus()).isEqualTo(200);
             csrf = handshake.getCookie("XSRF-TOKEN");
         }
@@ -467,8 +509,21 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
     }
 
     private void createUser(String login, Long roleId) {
-        users.createUser("TEST " + login, login, login + "@test.local", null, PASSWORD, null, "ru", "UTC", null,
-                Map.of(), false, false, roleId == null ? List.of() : List.of(roleId), systemUserId);
+        users.createUser(
+                "TEST " + login,
+                login,
+                login + "@test.local",
+                null,
+                PASSWORD,
+                null,
+                "ru",
+                "UTC",
+                null,
+                Map.of(),
+                false,
+                false,
+                roleId == null ? List.of() : List.of(roleId),
+                systemUserId);
     }
 
     /** Роль с единственной парой «загрузки — просмотр»: такой роли в миграциях нет, граница прав проверяется на ней. */
@@ -479,17 +534,22 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
             Long id = jdbc.sql("insert into md_roles (name, pcode) values (:name, :pcode) returning id")
                     .param("name", "TEST только просмотр " + suffix)
                     .param("pcode", "test_view_" + suffix)
-                    .query(Long.class).single();
+                    .query(Long.class)
+                    .single();
             jdbc.sql("insert into md_role_permissions (role_id, form_code, action) values (:role, :form, :action)")
-                    .param("role", id).param("form", UplPref.FORM_PACKAGES).param("action", UplPref.ACTION_VIEW)
+                    .param("role", id)
+                    .param("form", UplPref.FORM_PACKAGES)
+                    .param("action", UplPref.ACTION_VIEW)
                     .update();
             return id;
         });
     }
 
     private Long roleId(String role) {
-        return jdbc.sql("select id from md_roles where pcode = :role").param("role", role)
-                .query(Long.class).single();
+        return jdbc.sql("select id from md_roles where pcode = :role")
+                .param("role", role)
+                .query(Long.class)
+                .single();
     }
 
     private long packageCount() {

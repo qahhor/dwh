@@ -8,14 +8,13 @@ import com.smartup24.cms.instance.kauth.repository.KauthChannelRepository;
 import com.smartup24.cms.spi.mail.MailMessage;
 import com.smartup24.cms.spi.messenger.MessengerMessage;
 import com.smartup24.cms.spi.sms.SmsMessage;
+import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * Доставка одноразового кода в канал пользователя (FR-AUTH-5).
@@ -42,8 +41,10 @@ public class KauthOtpSender {
     private final boolean deliveryEnforced;
 
     @Autowired
-    public KauthOtpSender(ProviderRegistry providerRegistry, KauthChannelTexts texts,
-                          @Value("${smc.delivery.enforce:true}") boolean deliveryEnforced) {
+    public KauthOtpSender(
+            ProviderRegistry providerRegistry,
+            KauthChannelTexts texts,
+            @Value("${smc.delivery.enforce:true}") boolean deliveryEnforced) {
         this.providerRegistry = providerRegistry;
         this.texts = texts;
         this.deliveryEnforced = deliveryEnforced;
@@ -57,9 +58,12 @@ public class KauthOtpSender {
     /** Code of the provider behind a channel; {@code console_*} is a stub that only writes to the log. */
     public String providerCode(String channel) {
         return switch (channel) {
-            case KauthPref.CHANNEL_TELEGRAM -> providerRegistry.getActiveMessengerProvider().getProviderCode();
-            case KauthPref.CHANNEL_SMS -> providerRegistry.getActiveSmsProvider().getProviderCode();
-            case KauthPref.CHANNEL_EMAIL -> providerRegistry.getActiveMailProvider().getProviderCode();
+            case KauthPref.CHANNEL_TELEGRAM ->
+                providerRegistry.getActiveMessengerProvider().getProviderCode();
+            case KauthPref.CHANNEL_SMS ->
+                providerRegistry.getActiveSmsProvider().getProviderCode();
+            case KauthPref.CHANNEL_EMAIL ->
+                providerRegistry.getActiveMailProvider().getProviderCode();
             default -> STUB_PREFIX + channel;
         };
     }
@@ -75,7 +79,8 @@ public class KauthOtpSender {
      */
     public void requireDeliverable(String channel) {
         if (deliveryEnforced && isStub(providerCode(channel))) {
-            throw ApiException.conflict(ErrorCode.DELIVERY_CHANNEL_NOT_CONFIGURED,
+            throw ApiException.conflict(
+                    ErrorCode.DELIVERY_CHANNEL_NOT_CONFIGURED,
                     "Канал " + channel + " не настроен на сервере: сообщения туда не доставляются. "
                             + "Обратитесь к администратору");
         }
@@ -89,45 +94,66 @@ public class KauthOtpSender {
      */
     public void send(KauthChannelRepository.ChannelRecord channel, String subject, String text, String idempotencyKey) {
         boolean delivered = switch (channel.channel()) {
-            case KauthPref.CHANNEL_TELEGRAM -> providerRegistry.getActiveMessengerProvider()
-                    .send(new MessengerMessage(channel.address(), text, null, null, idempotencyKey))
-                    .isSuccess();
-            case KauthPref.CHANNEL_SMS -> providerRegistry.getActiveSmsProvider()
-                    .send(new SmsMessage(channel.address(), text, null, idempotencyKey))
-                    .isSuccess();
-            case KauthPref.CHANNEL_EMAIL -> providerRegistry.getActiveMailProvider()
-                    .send(new MailMessage(channel.address(), subject, null, text, List.of(), idempotencyKey))
-                    .isSuccess();
-            default -> throw ApiException.badRequest(ErrorCode.VALIDATION_FAILED,
-                    "Неизвестный канал доставки: " + channel.channel());
+            case KauthPref.CHANNEL_TELEGRAM ->
+                providerRegistry
+                        .getActiveMessengerProvider()
+                        .send(new MessengerMessage(channel.address(), text, null, null, idempotencyKey))
+                        .isSuccess();
+            case KauthPref.CHANNEL_SMS ->
+                providerRegistry
+                        .getActiveSmsProvider()
+                        .send(new SmsMessage(channel.address(), text, null, idempotencyKey))
+                        .isSuccess();
+            case KauthPref.CHANNEL_EMAIL ->
+                providerRegistry
+                        .getActiveMailProvider()
+                        .send(new MailMessage(channel.address(), subject, null, text, List.of(), idempotencyKey))
+                        .isSuccess();
+            default ->
+                throw ApiException.badRequest(
+                        ErrorCode.VALIDATION_FAILED, "Неизвестный канал доставки: " + channel.channel());
         };
 
         if (!delivered) {
             // Адрес получателя — персональные данные, в журнал не пишем.
             log.warn("Код не доставлен в канал {}", channel.channel());
-            throw new ApiException(ErrorCode.OTP_SEND_FAILED,
+            throw new ApiException(
+                    ErrorCode.OTP_SEND_FAILED,
                     "Не удалось отправить код в канал " + channel.channel() + ". Обратитесь к администратору");
         }
     }
 
     public void sendLoginCode(KauthChannelRepository.ChannelRecord channel, String code) {
-        sendText(channel, "login_code", Map.of("code", code, "minutes", "5"), "login-" + KauthPasswordHasher.sha256(code));
+        sendText(
+                channel,
+                "login_code",
+                Map.of("code", code, "minutes", "5"),
+                "login-" + KauthPasswordHasher.sha256(code));
     }
 
     public void sendVerificationCode(KauthChannelRepository.ChannelRecord channel, String code) {
-        sendText(channel, "channel_verify", Map.of("code", code, "minutes", "15"),
+        sendText(
+                channel,
+                "channel_verify",
+                Map.of("code", code, "minutes", "15"),
                 "verify-" + KauthPasswordHasher.sha256(code));
     }
 
     /** A password reset link; {@code minutes} is what the message promises, rounded up. */
     public void sendResetLink(KauthChannelRepository.ChannelRecord channel, String link, long minutes, String token) {
-        sendText(channel, "password_reset", Map.of("link", link, "minutes", Long.toString(minutes)),
+        sendText(
+                channel,
+                "password_reset",
+                Map.of("link", link, "minutes", Long.toString(minutes)),
                 "reset-" + KauthPasswordHasher.sha256(token));
     }
 
     /** A catalog text in the recipient's language ({@link KauthChannelTexts}). */
-    private void sendText(KauthChannelRepository.ChannelRecord channel, String name, Map<String, String> params,
-                          String idempotencyKey) {
+    private void sendText(
+            KauthChannelRepository.ChannelRecord channel,
+            String name,
+            Map<String, String> params,
+            String idempotencyKey) {
         KauthChannelTexts.Text text = texts.render(channel.userId(), name, params);
         send(channel, text.subject(), text.body(), idempotencyKey);
     }

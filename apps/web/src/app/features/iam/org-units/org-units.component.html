@@ -1,77 +1,205 @@
 <section class="page" aria-labelledby="org-units-title">
-  <header><h1 id="org-units-title">{{ 'iam.org_units.title' | t }}</h1>
-    @if (can('view')) { <button smt-button type="button" smtVariant="secondary" [disabled]="pending || loading || editorOpen" (click)="reload()">{{ 'iam.org_units.refresh' | t }}</button> }
+  <header>
+    <h1 id="org-units-title">{{ 'iam.org_units.title' | t }}</h1>
+    @if (can('view')) {
+      <button
+        smt-button
+        type="button"
+        smtVariant="secondary"
+        [disabled]="pending || loading || editorOpen"
+        (click)="reload()"
+      >
+        {{ 'iam.org_units.refresh' | t }}
+      </button>
+    }
   </header>
-  @if (!can('view')) { <p role="alert">{{ 'iam.org_units.forbidden' | t }}</p> }
-  @else {
-    @if (loading) { <p role="status">{{ 'iam.org_units.loading' | t }}</p> }
+  @if (!can('view')) {
+    <p role="alert">{{ 'iam.org_units.forbidden' | t }}</p>
+  } @else {
+    @if (loading) {
+      <p role="status">{{ 'iam.org_units.loading' | t }}</p>
+    }
     @if (treeError) {
-      <div role="alert"><p>{{ (savedRefreshFailed ? 'iam.org_units.saved_refresh_error' : 'iam.org_units.load_error') | t }} {{ treeError.detail }}</p>
-        <button smt-button type="button" data-action="retry-tree" smtVariant="secondary" [disabled]="pending || loading || editorOpen" (click)="reload()">{{ 'iam.org_units.retry' | t }}</button>
+      <div role="alert">
+        <p>
+          {{ (savedRefreshFailed ? 'iam.org_units.saved_refresh_error' : 'iam.org_units.load_error') | t }}
+          {{ treeError.detail }}
+        </p>
+        <button
+          smt-button
+          type="button"
+          data-action="retry-tree"
+          smtVariant="secondary"
+          [disabled]="pending || loading || editorOpen"
+          (click)="reload()"
+        >
+          {{ 'iam.org_units.retry' | t }}
+        </button>
       </div>
     }
-    @if (loaded && !units.length && !treeError) { <p>{{ 'iam.org_units.empty' | t }}</p> }
+    @if (loaded && !units.length && !treeError) {
+      <p>{{ 'iam.org_units.empty' | t }}</p>
+    }
     <div class="columns">
       <section class="tree" [attr.aria-label]="'iam.org_units.tree' | t">
         @if (units.length) {
-          <smt-input type="search" smtIcon="search" clearable [(value)]="search"
-            [placeholder]="'iam.org_units.search' | t" [smtAriaLabel]="'iam.org_units.search' | t" />
-          <smt-tree-table [smtRows]="treeRows" [smtColumns]="treeColumns()" [smtAriaLabel]="'iam.org_units.tree' | t"
-            [smtSearch]="search()" [smtSearchText]="searchText" [smtSelectedId]="selected ? '' + selected.id : null"
-            [smtDisabled]="pending" (smtSelect)="select($event.data)" />
+          <smt-input
+            type="search"
+            smtIcon="search"
+            clearable
+            [(value)]="search"
+            [placeholder]="'iam.org_units.search' | t"
+            [smtAriaLabel]="'iam.org_units.search' | t"
+          />
+          <smt-tree-table
+            [smtRows]="treeRows"
+            [smtColumns]="treeColumns()"
+            [smtAriaLabel]="'iam.org_units.tree' | t"
+            [smtSearch]="search()"
+            [smtSearchText]="searchText"
+            [smtSelectedId]="selected ? '' + selected.id : null"
+            [smtDisabled]="pending"
+            (smtSelect)="select($event.data)"
+          />
         }
       </section>
       <section class="details" [attr.aria-label]="'iam.org_units.details' | t">
         @if (selected; as unit) {
           <h2>{{ unit.name }}</h2>
           <dl>
-            <dt>{{ 'iam.org_units.code' | t }}</dt><dd>{{ unit.code }}</dd>
-            <dt>{{ 'iam.org_units.kind' | t }}</dt><dd>{{ kindKeys[unit.kind] ? (kindKeys[unit.kind] | t) : unit.kind }}</dd>
-            <dt>{{ 'iam.org_units.parent' | t }}</dt><dd>{{ parentName(unit) }}</dd>
-            <dt>{{ 'iam.org_units.state' | t }}</dt><dd>{{ (unit.state === 'A' ? 'iam.org_units.active' : 'iam.org_units.passive') | t }}</dd>
-            <dt>{{ 'iam.org_units.order' | t }}</dt><dd>{{ unit.orderNo }}</dd>
+            <dt>{{ 'iam.org_units.code' | t }}</dt>
+            <dd>{{ unit.code }}</dd>
+            <dt>{{ 'iam.org_units.kind' | t }}</dt>
+            <dd>{{ kindKeys[unit.kind] ? (kindKeys[unit.kind] | t) : unit.kind }}</dd>
+            <dt>{{ 'iam.org_units.parent' | t }}</dt>
+            <dd>{{ parentName(unit) }}</dd>
+            <dt>{{ 'iam.org_units.state' | t }}</dt>
+            <dd>{{ (unit.state === 'A' ? 'iam.org_units.active' : 'iam.org_units.passive') | t }}</dd>
+            <dt>{{ 'iam.org_units.order' | t }}</dt>
+            <dd>{{ unit.orderNo }}</dd>
           </dl>
-          @if (!safeId(unit.id)) { <p role="status">{{ 'iam.org_units.readonly_id' | t }}</p> }
-          @if (hasChildren && can('delete')) { <p>{{ 'iam.org_units.delete_children' | t }}</p> }
+          @if (!safeId(unit.id)) {
+            <p role="status">{{ 'iam.org_units.readonly_id' | t }}</p>
+          }
+          @if (hasChildren && can('delete')) {
+            <p>{{ 'iam.org_units.delete_children' | t }}</p>
+          }
           <div class="actions">
-            @if (can('update') && safeId(unit.id)) { <button smt-button type="button" data-action="edit" smtVariant="secondary" [disabled]="pending || loading" (click)="edit()">{{ 'iam.org_units.edit' | t }}</button> }
-            @if (can('delete') && safeId(unit.id)) { <button smt-button type="button" data-action="delete" smtVariant="danger" [disabled]="pending || loading || hasChildren" (click)="requestDelete()">{{ 'iam.org_units.delete' | t }}</button> }
+            @if (can('update') && safeId(unit.id)) {
+              <button
+                smt-button
+                type="button"
+                data-action="edit"
+                smtVariant="secondary"
+                [disabled]="pending || loading"
+                (click)="edit()"
+              >
+                {{ 'iam.org_units.edit' | t }}
+              </button>
+            }
+            @if (can('delete') && safeId(unit.id)) {
+              <button
+                smt-button
+                type="button"
+                data-action="delete"
+                smtVariant="danger"
+                [disabled]="pending || loading || hasChildren"
+                (click)="requestDelete()"
+              >
+                {{ 'iam.org_units.delete' | t }}
+              </button>
+            }
           </div>
         }
-        @if (can('create')) { <button smt-button type="button" data-action="create" [disabled]="!canCreate || pending || loading" (click)="create()">{{ (units.length ? 'iam.org_units.create_child' : 'iam.org_units.create_root') | t }}</button> }
+        @if (can('create')) {
+          <button
+            smt-button
+            type="button"
+            data-action="create"
+            [disabled]="!canCreate || pending || loading"
+            (click)="create()"
+          >
+            {{ (units.length ? 'iam.org_units.create_child' : 'iam.org_units.create_root') | t }}
+          </button>
+        }
       </section>
     </div>
   }
 </section>
 @if (can('view')) {
-<smt-dialog [open]="editorOpen" [smtTitle]="'iam.org_units.editor_title' | t" [dismissible]="!pending" (closed)="closeEditor()">
-  <ng-template smtDialogContent>
-  @if (editorOpen) {
-    @if (detailLoading) { <p role="status">{{ 'iam.org_units.loading' | t }}</p> }
-    @if (detailError) { <p role="alert">{{ detailError.detail || ('iam.org_units.load_error' | t) }}</p><button smt-button type="button" smtVariant="secondary" (click)="loadDetail()">{{ 'iam.org_units.retry' | t }}</button> }
-    @for (initial of editorInitial ? [editorInitial] : []; track initial) { <app-org-unit-editor [initial]="initial" [units]="units" [pending]="pending" [error]="saveError" (save)="save($event)" (cancel)="closeEditor()" /> }
-  }
-  </ng-template>
-</smt-dialog>
-<smt-dialog [open]="!!deleteTarget" [smtTitle]="'iam.org_units.delete_title' | t" [dismissible]="!pending" (closed)="closeDelete()">
-  <ng-template smtDialogContent>
-  <div body data-delete-confirm>
-    <p>{{ 'iam.org_units.delete_warning' | t:{name: deleteTarget?.name ?? '', code: deleteTarget?.code ?? ''} }}</p>
-    @if (deleteError) { <p role="alert">{{ deleteError.detail || ('iam.org_units.delete_error' | t) }}</p> }
-  </div>
-  <div footer class="actions">
-    <button smt-button type="button" smtVariant="secondary" [disabled]="pending" (click)="closeDelete()">{{ 'iam.org_units.cancel' | t }}</button>
-    <button smt-button type="button" data-action="confirm-delete" smtVariant="danger" [smtLoading]="pending" (click)="confirmDelete()">{{ 'iam.org_units.delete' | t }}</button>
-  </div>
-  </ng-template>
-</smt-dialog>
-<smt-dialog [open]="discard.open()" [smtTitle]="'iam.org_units.discard_title' | t" (closed)="discard.cancel()">
-  <ng-template smtDialogContent>
-  <p body>{{ 'iam.org_units.discard_warning' | t }}</p>
-  <div footer class="actions">
-    <button smt-button type="button" smtVariant="secondary" (click)="discard.cancel()">{{ 'iam.org_units.keep_editing' | t }}</button>
-    <button smt-button type="button" smtVariant="danger" (click)="discard.confirm()">{{ 'iam.org_units.discard' | t }}</button>
-  </div>
-  </ng-template>
-</smt-dialog>
+  <smt-dialog
+    [open]="editorOpen"
+    [smtTitle]="'iam.org_units.editor_title' | t"
+    [dismissible]="!pending"
+    (closed)="closeEditor()"
+  >
+    <ng-template smtDialogContent>
+      @if (editorOpen) {
+        @if (detailLoading) {
+          <p role="status">{{ 'iam.org_units.loading' | t }}</p>
+        }
+        @if (detailError) {
+          <p role="alert">{{ detailError.detail || ('iam.org_units.load_error' | t) }}</p>
+          <button smt-button type="button" smtVariant="secondary" (click)="loadDetail()">
+            {{ 'iam.org_units.retry' | t }}
+          </button>
+        }
+        @for (initial of editorInitial ? [editorInitial] : []; track initial) {
+          <app-org-unit-editor
+            [initial]="initial"
+            [units]="units"
+            [pending]="pending"
+            [error]="saveError"
+            (save)="save($event)"
+            (cancel)="closeEditor()"
+          />
+        }
+      }
+    </ng-template>
+  </smt-dialog>
+  <smt-dialog
+    [open]="!!deleteTarget"
+    [smtTitle]="'iam.org_units.delete_title' | t"
+    [dismissible]="!pending"
+    (closed)="closeDelete()"
+  >
+    <ng-template smtDialogContent>
+      <div body data-delete-confirm>
+        <p>
+          {{ 'iam.org_units.delete_warning' | t: { name: deleteTarget?.name ?? '', code: deleteTarget?.code ?? '' } }}
+        </p>
+        @if (deleteError) {
+          <p role="alert">{{ deleteError.detail || ('iam.org_units.delete_error' | t) }}</p>
+        }
+      </div>
+      <div footer class="actions">
+        <button smt-button type="button" smtVariant="secondary" [disabled]="pending" (click)="closeDelete()">
+          {{ 'iam.org_units.cancel' | t }}
+        </button>
+        <button
+          smt-button
+          type="button"
+          data-action="confirm-delete"
+          smtVariant="danger"
+          [smtLoading]="pending"
+          (click)="confirmDelete()"
+        >
+          {{ 'iam.org_units.delete' | t }}
+        </button>
+      </div>
+    </ng-template>
+  </smt-dialog>
+  <smt-dialog [open]="discard.open()" [smtTitle]="'iam.org_units.discard_title' | t" (closed)="discard.cancel()">
+    <ng-template smtDialogContent>
+      <p body>{{ 'iam.org_units.discard_warning' | t }}</p>
+      <div footer class="actions">
+        <button smt-button type="button" smtVariant="secondary" (click)="discard.cancel()">
+          {{ 'iam.org_units.keep_editing' | t }}
+        </button>
+        <button smt-button type="button" smtVariant="danger" (click)="discard.confirm()">
+          {{ 'iam.org_units.discard' | t }}
+        </button>
+      </div>
+    </ng-template>
+  </smt-dialog>
 }

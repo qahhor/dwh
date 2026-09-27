@@ -15,7 +15,6 @@ import com.smartup24.cms.instance.upl.format.UplFormatModel.Sheet;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.SourceData;
 import com.smartup24.cms.instance.upl.format.UplSourceService;
 import com.smartup24.cms.instance.upl.format.UplSourceService.DraftData;
-
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
@@ -29,8 +28,7 @@ public final class UplFixtureSources {
     private static final String SUFFIX_ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789";
     private static final int SUFFIX_LENGTH = 6;
 
-    private UplFixtureSources() {
-    }
+    private UplFixtureSources() {}
 
     /** Источник с опубликованной первой версией анкеты фикстуры; возвращает id источника. */
     public static long publish(UplSourceService service, Format format, long userId) {
@@ -55,22 +53,46 @@ public final class UplFixtureSources {
     }
 
     public static SourceData sourceData(Format f) {
-        return new SourceData(f.code() + "-" + randomSuffix(), f.name(), f.ownerOrg(), null,
-                Periodicity.fromDb(f.periodicity()), f.slaDays(), null, null);
+        return new SourceData(
+                f.code() + "-" + randomSuffix(),
+                f.name(),
+                f.ownerOrg(),
+                null,
+                Periodicity.fromDb(f.periodicity()),
+                f.slaDays(),
+                null,
+                null);
     }
 
     public static DraftData draftData(Format f) {
         List<Sheet> sheets = f.sheets().stream()
-                .map(s -> new Sheet(null, 0, s.sheetName(), s.headerRow(), s.totalRowMarker(),
+                .map(s -> new Sheet(
+                        null,
+                        0,
+                        s.sheetName(),
+                        s.headerRow(),
+                        s.totalRowMarker(),
                         s.columns().stream().map(UplFixtureSources::column).toList()))
                 .toList();
-        return new DraftData(FileKind.fromDb(f.fileKind()), f.encoding(), f.delimiter(),
-                MatchBy.fromDb(f.matchColumnsBy()), sheets);
+        return new DraftData(
+                FileKind.fromDb(f.fileKind()), f.encoding(), f.delimiter(), MatchBy.fromDb(f.matchColumnsBy()), sheets);
     }
 
     private static Column column(FormatColumn c) {
-        return new Column(null, 0, c.filePosition(), c.name(), c.field(), DataType.fromDb(c.type()), c.required(),
-                c.sourceUnit(), c.baseUnit(), c.keyMask(), c.keyPadLength(), c.keyPadMax(), c.refBook());
+        return new Column(
+                null,
+                0,
+                c.filePosition(),
+                c.name(),
+                c.field(),
+                DataType.fromDb(c.type()),
+                c.required(),
+                c.sourceUnit(),
+                c.baseUnit(),
+                c.keyMask(),
+                c.keyPadLength(),
+                c.keyPadMax(),
+                c.refBook());
     }
 
     private static String randomSuffix() {

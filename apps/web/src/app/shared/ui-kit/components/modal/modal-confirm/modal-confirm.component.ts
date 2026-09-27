@@ -87,13 +87,15 @@ export class SMTModalConfirmComponent {
     }
     this.busy.set(true);
     this.failure.set('');
-    action().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      complete: () => this.dialogRef.close({ action: 'confirm' }),
-      error: (error: unknown) => {
-        this.busy.set(false);
-        this.failure.set(this.data.actionError?.(error) || this.i18n.messages().modalConfirm.failed);
-      },
-    });
+    action()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        complete: () => this.dialogRef.close({ action: 'confirm' }),
+        error: (error: unknown) => {
+          this.busy.set(false);
+          this.failure.set(this.data.actionError?.(error) || this.i18n.messages().modalConfirm.failed);
+        },
+      });
   }
 
   decline(): void {

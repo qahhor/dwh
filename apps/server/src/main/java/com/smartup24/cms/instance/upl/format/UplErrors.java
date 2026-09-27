@@ -12,8 +12,7 @@ public final class UplErrors {
 
     private static final String NOT_DRAFT_DB_ERROR = "upl_format_not_draft";
 
-    private UplErrors() {
-    }
+    private UplErrors() {}
 
     /** Знакомую ошибку переводит в {@link ApiException}; незнакомую возвращает тем же объектом. */
     public static RuntimeException toApi(RuntimeException e) {
@@ -40,8 +39,7 @@ public final class UplErrors {
 
     private static RuntimeException fromConstraint(ConstraintViolationException e) {
         ConstraintErrorCode code = e.code();
-        if (code == ConstraintErrorCode.FND_VERSION_DRAFT_EXISTS
-                || code == ConstraintErrorCode.FND_VERSION_CONFLICT) {
+        if (code == ConstraintErrorCode.FND_VERSION_DRAFT_EXISTS || code == ConstraintErrorCode.FND_VERSION_CONFLICT) {
             return ApiException.conflict(ErrorCode.CONFLICT, UplSourceService.FND_VERSION_DRAFT_EXISTS);
         }
         if (code == ConstraintErrorCode.FND_VERSION_NOT_AFTER_PREVIOUS) {

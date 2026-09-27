@@ -9,9 +9,12 @@ describe('Global search feedback ownership', () => {
   it('returns the failure to the search dialog without adding a duplicate toast', () => {
     TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
     let failure: unknown;
-    TestBed.inject(CommandPaletteService).search('missing').subscribe({ error: error => failure = error });
+    TestBed.inject(CommandPaletteService)
+      .search('missing')
+      .subscribe({ error: (error) => (failure = error) });
     const http = TestBed.inject(HttpTestingController);
-    http.expectOne(request => request.url === '/api/v1/search')
+    http
+      .expectOne((request) => request.url === '/api/v1/search')
       .flush({ detail: 'Search temporarily unavailable' }, { status: 503, statusText: 'Unavailable' });
 
     expect(failure).toMatchObject({ detail: 'Search temporarily unavailable', status: 503 });

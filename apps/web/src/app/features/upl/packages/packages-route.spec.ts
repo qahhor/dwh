@@ -9,8 +9,8 @@ import { ToastService } from '../../../core/services/toast.service';
 import { I18nService } from '../../../core/services/i18n.service';
 
 function packagesRoute(): Route | undefined {
-  const shell = routes.find(route => route.path === '');
-  return (shell?.children ?? []).find(route => route.path === 'upl/packages');
+  const shell = routes.find((route) => route.path === '');
+  return (shell?.children ?? []).find((route) => route.path === 'upl/packages');
 }
 
 describe('upl packages route', () => {
@@ -22,18 +22,21 @@ describe('upl packages route', () => {
     TestBed.configureTestingModule({
       providers: [
         PermissionService,
-        { provide: Router, useValue: { createUrlTree: (commands: unknown[]) => (commands[0] === '/tasks' ? 'to-tasks' : 'redirect') } },
+        {
+          provide: Router,
+          useValue: { createUrlTree: (commands: unknown[]) => (commands[0] === '/tasks' ? 'to-tasks' : 'redirect') },
+        },
         {
           provide: ModuleService,
           useValue: {
             isLoaded: () => true,
             isModuleActive: (code: string) => activeModules.has(code),
-            loadActiveModules: () => of([])
-          }
+            loadActiveModules: () => of([]),
+          },
         },
         { provide: ToastService, useValue: { warning: vi.fn() } },
-        { provide: I18nService, useValue: { translate: (key: string) => key } }
-      ]
+        { provide: I18nService, useValue: { translate: (key: string) => key } },
+      ],
     });
     permissions = TestBed.inject(PermissionService);
   });
@@ -78,10 +81,7 @@ describe('upl packages route', () => {
   async function runGuard(route: Route, index: number): Promise<unknown> {
     const guard = route.canActivate?.[index] as CanActivateFn | undefined;
     expect(guard).toBeTypeOf('function');
-    const result = TestBed.runInInjectionContext(() => guard!(
-      {} as ActivatedRouteSnapshot,
-      {} as RouterStateSnapshot
-    ));
+    const result = TestBed.runInInjectionContext(() => guard!({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot));
     return isObservable(result) ? await firstValueFrom(result) : result;
   }
 });

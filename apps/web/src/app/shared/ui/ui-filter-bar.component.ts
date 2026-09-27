@@ -37,7 +37,12 @@ import { FilterPanelData, FilterPanelResult, UiFilterPanelComponent } from './ui
         @for (chip of chips(); track $index; let i = $index) {
           <li class="filter-chip" data-testid="filter-chip">
             <span class="filter-chip-text">{{ chip }}</span>
-            <button type="button" class="filter-chip-remove" [attr.aria-label]="'ui.filter.remove_chip' | t: { condition: chip }" (click)="removeAt(i)">
+            <button
+              type="button"
+              class="filter-chip-remove"
+              [attr.aria-label]="'ui.filter.remove_chip' | t: { condition: chip }"
+              (click)="removeAt(i)"
+            >
               <span class="material-symbols-outlined" aria-hidden="true">close</span>
             </button>
           </li>
@@ -50,37 +55,111 @@ import { FilterPanelData, FilterPanelResult, UiFilterPanelComponent } from './ui
       </ul>
     }
   `,
-  styles: [`
-    :host { display: flex; flex: 1; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
-    .filter-trigger {
-      display: inline-flex; align-items: center; gap: 6px; min-height: var(--control-height); padding: 0 12px;
-      border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-surface);
-      color: var(--text-main); font-size: 13px; cursor: pointer;
-    }
-    .filter-trigger:hover { background: var(--bg-hover); color: var(--text-main); }
-    .filter-match { font-size: 12px; font-weight: 600; color: var(--text-muted); }
-    .filter-trigger:focus-visible, .filter-chip-remove:focus-visible, .filter-clear:focus-visible {
-      outline: 2px solid var(--focus-ring); outline-offset: 2px;
-    }
-    .filter-trigger .material-symbols-outlined { font-size: 18px; }
-    .filter-count {
-      display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 6px;
-      border-radius: 999px; background: var(--primary); color: var(--on-primary); font-size: 12px; font-weight: 600;
-    }
-    .filter-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; padding: 0; list-style: none; }
-    .filter-chip {
-      display: inline-flex; align-items: center; gap: 2px; max-width: 320px; padding: 2px 4px 2px 10px;
-      border: 1px solid var(--primary-border); border-radius: 999px; background: var(--primary-subtle);
-      color: var(--primary-text); font-size: 12px;
-    }
-    .filter-chip-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .filter-chip-remove {
-      display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border: none;
-      border-radius: 50%; background: none; color: var(--primary-text); cursor: pointer;
-    }
-    .filter-chip-remove .material-symbols-outlined { font-size: 16px; }
-    .filter-clear { padding: 2px 6px; border: none; background: none; color: var(--primary-text); font-size: 12px; cursor: pointer; }
-  `],
+  styles: [
+    `
+      :host {
+        display: flex;
+        flex: 1;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+      }
+      .filter-trigger {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: var(--control-height);
+        padding: 0 12px;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        background: var(--bg-surface);
+        color: var(--text-main);
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .filter-trigger:hover {
+        background: var(--bg-hover);
+        color: var(--text-main);
+      }
+      .filter-match {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-muted);
+      }
+      .filter-trigger:focus-visible,
+      .filter-chip-remove:focus-visible,
+      .filter-clear:focus-visible {
+        outline: 2px solid var(--focus-ring);
+        outline-offset: 2px;
+      }
+      .filter-trigger .material-symbols-outlined {
+        font-size: 18px;
+      }
+      .filter-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 20px;
+        height: 20px;
+        padding: 0 6px;
+        border-radius: 999px;
+        background: var(--primary);
+        color: var(--on-primary);
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .filter-chips {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      .filter-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        max-width: 320px;
+        padding: 2px 4px 2px 10px;
+        border: 1px solid var(--primary-border);
+        border-radius: 999px;
+        background: var(--primary-subtle);
+        color: var(--primary-text);
+        font-size: 12px;
+      }
+      .filter-chip-text {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .filter-chip-remove {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        border: none;
+        border-radius: 50%;
+        background: none;
+        color: var(--primary-text);
+        cursor: pointer;
+      }
+      .filter-chip-remove .material-symbols-outlined {
+        font-size: 16px;
+      }
+      .filter-clear {
+        padding: 2px 6px;
+        border: none;
+        background: none;
+        color: var(--primary-text);
+        font-size: 12px;
+        cursor: pointer;
+      }
+    `,
+  ],
 })
 export class UiFilterBarComponent {
   private readonly i18n = inject(I18nService);
@@ -101,7 +180,8 @@ export class UiFilterBarComponent {
 
   readonly hasFields = computed(() => filterableFields(this.meta()).length > 0);
   readonly chips = computed(() =>
-    this.conditions().map(condition => describeCondition(condition, this.meta(), key => this.i18n.translate(key))));
+    this.conditions().map((condition) => describeCondition(condition, this.meta(), (key) => this.i18n.translate(key))),
+  );
 
   open(): void {
     const ref = this.drawer.open<FilterPanelResult, FilterPanelData>(UiFilterPanelComponent, {
@@ -110,7 +190,7 @@ export class UiFilterBarComponent {
       closeOnBackdropClick: true,
       data: { meta: this.meta(), conditions: this.conditions(), match: this.match() },
     });
-    ref.afterClosed().subscribe(result => {
+    ref.afterClosed().subscribe((result) => {
       if (result) this.filterChange.emit(result);
     });
   }

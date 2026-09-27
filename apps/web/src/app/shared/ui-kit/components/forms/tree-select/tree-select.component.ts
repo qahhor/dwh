@@ -223,9 +223,10 @@ export class SMTTreeSelectComponent<T = unknown> implements FormValueControl<T |
     this.query.set(initialQuery);
     // Open the path to the chosen node, so it is in view.
     const next = new Set(this.expanded());
-    let parentKey = this.value() === null || this.value() === undefined
-      ? null
-      : (this.index().get(keyOf(this.value()))?.parentKey ?? null);
+    let parentKey =
+      this.value() === null || this.value() === undefined
+        ? null
+        : (this.index().get(keyOf(this.value()))?.parentKey ?? null);
     while (parentKey !== null) {
       next.add(parentKey);
       parentKey = this.index().get(parentKey)?.parentKey ?? null;
@@ -249,7 +250,7 @@ export class SMTTreeSelectComponent<T = unknown> implements FormValueControl<T |
           this.scrollActiveIntoView();
         },
       },
-      { injector: this.injector }
+      { injector: this.injector },
     );
   }
 
@@ -303,7 +304,7 @@ export class SMTTreeSelectComponent<T = unknown> implements FormValueControl<T |
   onSearchInput(event: Event): void {
     this.query.set((event.target as HTMLInputElement).value);
     const rows = this.rows();
-    const firstMatch = rows.find(row => matches(row.option, this.query().trim().toLowerCase()));
+    const firstMatch = rows.find((row) => matches(row.option, this.query().trim().toLowerCase()));
     this.activeKey.set((firstMatch ?? rows[0])?.key ?? null);
   }
 
@@ -315,7 +316,7 @@ export class SMTTreeSelectComponent<T = unknown> implements FormValueControl<T |
 
   onSearchKeydown(event: KeyboardEvent): void {
     const rows = this.rows();
-    const index = rows.findIndex(row => row.key === this.activeKey());
+    const index = rows.findIndex((row) => row.key === this.activeKey());
     const active = index >= 0 ? rows[index] : undefined;
     const go = (target: TreeRow<T> | undefined) => {
       if (!target) return;
@@ -344,7 +345,7 @@ export class SMTTreeSelectComponent<T = unknown> implements FormValueControl<T |
           this.toggleNode(active);
         } else if (active.parentKey !== null) {
           event.preventDefault();
-          go(rows.find(row => row.key === active.parentKey));
+          go(rows.find((row) => row.key === active.parentKey));
         }
         break;
       case 'Home':
@@ -410,7 +411,7 @@ export class SMTTreeSelectComponent<T = unknown> implements FormValueControl<T |
     this.ownedBy = null;
     if (!modal) return;
     const popupId = `${this.treeId}-popup`;
-    const owned = (modal.getAttribute('aria-owns') ?? '').split(/\s+/).filter(token => token && token !== popupId);
+    const owned = (modal.getAttribute('aria-owns') ?? '').split(/\s+/).filter((token) => token && token !== popupId);
     if (owned.length) modal.setAttribute('aria-owns', owned.join(' '));
     else modal.removeAttribute('aria-owns');
   }

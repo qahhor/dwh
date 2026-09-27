@@ -1,5 +1,9 @@
 package com.smartup24.cms.instance.upl;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.error.ApiException;
@@ -18,6 +22,11 @@ import com.smartup24.cms.instance.upl.upload.UplPackageModel.NewPackage;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.PackageRow;
 import com.smartup24.cms.instance.upl.upload.UplPackageRepository;
 import com.smartup24.cms.instance.upl.upload.UplPackageService;
+import java.io.ByteArrayInputStream;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -25,16 +34,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.support.TransactionTemplate;
-
-import java.io.ByteArrayInputStream;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.assertThatCode;
 
 /** Пакет загрузки в базе: запись принятого файла, итог разбора, ошибки и список (контракт И5). */
 class UplPackageServiceTest extends EmbeddedPostgresTest {
@@ -44,16 +43,22 @@ class UplPackageServiceTest extends EmbeddedPostgresTest {
 
     @Autowired
     private UplPackageService packages;
+
     @Autowired
     private UplPackageRepository repo;
+
     @Autowired
     private UplSourceService sources;
+
     @Autowired
     private MfFileService files;
+
     @Autowired
     private FndActors actors;
+
     @Autowired
     private JdbcClient jdbc;
+
     @Autowired
     private TransactionTemplate tx;
 
@@ -62,7 +67,9 @@ class UplPackageServiceTest extends EmbeddedPostgresTest {
 
     @BeforeEach
     void setUp() {
-        userId = jdbc.sql("select id from md_users where login = 'system'").query(Long.class).single();
+        userId = jdbc.sql("select id from md_users where login = 'system'")
+                .query(Long.class)
+                .single();
         tx.executeWithoutResult(status -> {
             actors.apply(actors.system());
             jdbc.sql("delete from upl_package_errors").update();
@@ -105,10 +112,7 @@ class UplPackageServiceTest extends EmbeddedPostgresTest {
     @DisplayName("Итог «проверен»: счётчики строк и записи об ошибках по порядку")
     void saveVerifiedResult() {
         PackageRow row = register();
-        List<ErrorRecord> errors = List.of(
-                cellError(3, "12345"),
-                cellError(4, "1234567"),
-                cellError(5, "12345678X"));
+        List<ErrorRecord> errors = List.of(cellError(3, "12345"), cellError(4, "1234567"), cellError(5, "12345678X"));
 
         packages.saveParseResult(row.id(), UplParseResult.verified(10, 3, 3, errors));
 
@@ -123,8 +127,7 @@ class UplPackageServiceTest extends EmbeddedPostgresTest {
         assertThat(view.total()).isEqualTo(3);
         assertThat(view.items()).extracting(ErrorRow::ordinal).containsExactly(1, 2, 3);
         assertThat(view.items()).extracting(ErrorRow::rowNo).containsExactly(3, 4, 5);
-        assertThat(view.items()).extracting(ErrorRow::cellValue)
-                .containsExactly("12345", "1234567", "12345678X");
+        assertThat(view.items()).extracting(ErrorRow::cellValue).containsExactly("12345", "1234567", "12345678X");
         assertThat(view.items()).allSatisfy(error -> {
             assertThat(error.sheet()).isEqualTo(UplPackageTestData.SHEET);
             assertThat(error.columnName()).isEqualTo("Ключ");
@@ -141,8 +144,8 @@ class UplPackageServiceTest extends EmbeddedPostgresTest {
                 structError("Сумма", UplXlsxParser.UPL_STRUCT_COLUMN_MISSING),
                 structError("Лишняя", UplXlsxParser.UPL_STRUCT_COLUMN_UNKNOWN));
 
-        packages.saveParseResult(row.id(), UplParseResult.rejected(UplXlsxParser.UPL_PKG_STRUCTURE,
-                Map.of("count", 2), 2, errors));
+        packages.saveParseResult(
+                row.id(), UplParseResult.rejected(UplXlsxParser.UPL_PKG_STRUCTURE, Map.of("count", 2), 2, errors));
 
         PackageRow saved = packages.get(row.publicId().toString());
         assertThat(saved.status()).isEqualTo(UplPackageModel.REJECTED);
@@ -160,15 +163,17 @@ class UplPackageServiceTest extends EmbeddedPostgresTest {
     }
 
     @Test
-    @DisplayName("Повторный итог для проверенного пакета — ошибка, а отклонение в своей транзакции молча ничего не меняет")
+    @DisplayName(
+            "Повторный итог для проверенного пакета — ошибка, а отклонение в своей транзакции молча ничего не меняет")
     void secondResultIsRefused() {
         PackageRow row = register();
-        packages.saveParseResult(row.id(), UplParseResult.verified(10, 3, 3, List.of(cellError(3, "12345"),
-                cellError(4, "1234567"), cellError(5, "12345678X"))));
+        packages.saveParseResult(
+                row.id(),
+                UplParseResult.verified(
+                        10, 3, 3, List.of(cellError(3, "12345"), cellError(4, "1234567"), cellError(5, "12345678X"))));
         PackageRow verified = packages.get(row.publicId().toString());
 
-        assertThatThrownBy(() -> packages.saveParseResult(row.id(),
-                UplParseResult.verified(1, 0, 0, List.of())))
+        assertThatThrownBy(() -> packages.saveParseResult(row.id(), UplParseResult.verified(1, 0, 0, List.of())))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining(String.valueOf(row.id()));
         assertThat(packages.get(row.publicId().toString())).isEqualTo(verified);
@@ -222,8 +227,9 @@ class UplPackageServiceTest extends EmbeddedPostgresTest {
             assertThat(applied.rawRows()).isEqualTo(5);
             assertThat(repo.markApplyRejected(first.id(), "X", Map.of(), 5)).isZero();
 
-            assertThat(repo.markApplyRejected(second.id(), "UPL_PKG_RECONCILIATION",
-                    Map.of("fileRows", 3, "rawRows", 2), 2)).isEqualTo(1);
+            assertThat(repo.markApplyRejected(
+                            second.id(), "UPL_PKG_RECONCILIATION", Map.of("fileRows", 3, "rawRows", 2), 2))
+                    .isEqualTo(1);
             PackageRow rejected = repo.findById(second.id()).orElseThrow();
             assertThat(rejected.status()).isEqualTo(UplPackageModel.REJECTED);
             assertThat(rejected.rejectCode()).isEqualTo("UPL_PKG_RECONCILIATION");
@@ -236,20 +242,32 @@ class UplPackageServiceTest extends EmbeddedPostgresTest {
 
     private PackageRow register() {
         byte[] content = UplPackageTestData.workbook(2, 0);
-        FileRecord file = files.uploadFile("TEST.xlsx", UplPackageTestData.XLSX_MIME,
-                new ByteArrayInputStream(content), content.length, userId);
-        return packages.register(new NewPackage(sourceId, 1, PERIOD_FROM, PERIOD_TO, file.id(),
-                file.originalName(), file.sha256(), file.sizeBytes(), userId));
+        FileRecord file = files.uploadFile(
+                "TEST.xlsx", UplPackageTestData.XLSX_MIME, new ByteArrayInputStream(content), content.length, userId);
+        return packages.register(new NewPackage(
+                sourceId,
+                1,
+                PERIOD_FROM,
+                PERIOD_TO,
+                file.id(),
+                file.originalName(),
+                file.sha256(),
+                file.sizeBytes(),
+                userId));
     }
 
     private static ErrorRecord cellError(int rowNo, String value) {
-        return new ErrorRecord(UplPackageTestData.SHEET, rowNo, "Ключ", value,
-                UplXlsxParser.UPL_CELL_KEY_MASK, Map.of("column", "Ключ"));
+        return new ErrorRecord(
+                UplPackageTestData.SHEET,
+                rowNo,
+                "Ключ",
+                value,
+                UplXlsxParser.UPL_CELL_KEY_MASK,
+                Map.of("column", "Ключ"));
     }
 
     private static ErrorRecord structError(String column, String code) {
-        return new ErrorRecord(UplPackageTestData.SHEET, null, column, null, code,
-                Map.of("column", column));
+        return new ErrorRecord(UplPackageTestData.SHEET, null, column, null, code, Map.of("column", column));
     }
 
     private static void assertNotFound(ThrowingCallable call) {

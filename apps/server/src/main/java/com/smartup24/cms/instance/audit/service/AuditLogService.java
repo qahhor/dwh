@@ -7,14 +7,13 @@ import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.metrics.PlatformMetrics;
 import com.smartup24.cms.instance.common.security.SecurityContext;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AuditLogService {
@@ -26,17 +25,23 @@ public class AuditLogService {
     private final PlatformMetrics platformMetrics;
     private final AuditDataRedactor auditDataRedactor;
 
-    public AuditLogService(AuditLogRepository auditLogRepository,
-                           PlatformMetrics platformMetrics,
-                           AuditDataRedactor auditDataRedactor) {
+    public AuditLogService(
+            AuditLogRepository auditLogRepository,
+            PlatformMetrics platformMetrics,
+            AuditDataRedactor auditDataRedactor) {
         this.auditLogRepository = auditLogRepository;
         this.platformMetrics = platformMetrics;
         this.auditDataRedactor = auditDataRedactor;
     }
 
     @Transactional
-    public void logChange(String tableName, String rowPk, String event, List<String> changedColumns,
-                          Map<String, Object> oldRow, Map<String, Object> newRow) {
+    public void logChange(
+            String tableName,
+            String rowPk,
+            String event,
+            List<String> changedColumns,
+            Map<String, Object> oldRow,
+            Map<String, Object> newRow) {
 
         var principal = SecurityContext.getPrincipal();
         Long userId = principal != null ? principal.userId() : null;
@@ -44,42 +49,59 @@ public class AuditLogService {
         boolean isApi = principal != null && principal.isApi();
 
         auditLogRepository.logChange(
-                tableName, rowPk, event, userId, sessionId, isApi, changedColumns,
+                tableName,
+                rowPk,
+                event,
+                userId,
+                sessionId,
+                isApi,
+                changedColumns,
                 oldRow == null ? null : auditDataRedactor.redact(oldRow),
-                newRow == null ? null : auditDataRedactor.redact(newRow)
-        );
+                newRow == null ? null : auditDataRedactor.redact(newRow));
         if (platformMetrics != null) {
             platformMetrics.incrementAuditMutation();
         }
     }
 
-
     @Transactional
-    public void logSecurityEvent(String eventType, Long userId, String ip, String userAgent, Map<String, Object> details) {
+    public void logSecurityEvent(
+            String eventType, Long userId, String ip, String userAgent, Map<String, Object> details) {
         auditLogRepository.logSecurityEvent(eventType, userId, ip, userAgent, auditDataRedactor.redact(details));
     }
 
     @Transactional(readOnly = true)
     public KeysetPage<AuditLogRepository.AuditRecord> listAuditLogs(
-            String tableName, String rowPk, String event, Long userId,
-            Instant from, Instant to, int limit, String cursor) {
+            String tableName,
+            String rowPk,
+            String event,
+            Long userId,
+            Instant from,
+            Instant to,
+            int limit,
+            String cursor) {
         int pageSize = normalizePageSize(limit);
         AuditCursor decodedCursor = decodeCursor(cursor);
         List<AuditLogRepository.AuditRecord> rows = auditLogRepository.listAuditLogs(
-                tableName, rowPk, event, userId, from, to,
+                tableName,
+                rowPk,
+                event,
+                userId,
+                from,
+                to,
                 decodedCursor != null ? decodedCursor.timestamp() : null,
                 decodedCursor != null ? decodedCursor.id() : null,
-                pageSize + 1
-        );
+                pageSize + 1);
         boolean hasMore = rows.size() > pageSize;
         List<AuditLogRepository.AuditRecord> pageRows = rows.subList(0, Math.min(rows.size(), pageSize));
         long total = decodedCursor == null
                 ? auditLogRepository.countAuditLogs(tableName, rowPk, event, userId, from, to)
                 : decodedCursor.totalEstimated();
         String nextCursor = hasMore && !pageRows.isEmpty()
-                ? encodeCursor(pageRows.getLast().changedAt(), pageRows.getLast().id(), total)
+                ? encodeCursor(
+                        pageRows.getLast().changedAt(), pageRows.getLast().id(), total)
                 : null;
-        List<AuditLogRepository.AuditRecord> safeRows = pageRows.stream().map(this::redacted).toList();
+        List<AuditLogRepository.AuditRecord> safeRows =
+                pageRows.stream().map(this::redacted).toList();
         return KeysetPage.of(safeRows, nextCursor, hasMore, total);
     }
 
@@ -102,19 +124,33 @@ public class AuditLogService {
     /** The row as a client may see it: credentials in the old and new row masked. */
     public AuditLogRepository.AuditRecord redacted(AuditLogRepository.AuditRecord record) {
         return new AuditLogRepository.AuditRecord(
-                record.id(), record.tableName(), record.rowPk(), record.event(), record.changedBy(),
-                record.sessionId(), record.isApi(), record.changedAt(), record.changedColumns(),
-                auditDataRedactor.redact(record.oldRow()), auditDataRedactor.redact(record.newRow()),
-                record.changedByName(), record.changedByLogin()
-        );
+                record.id(),
+                record.tableName(),
+                record.rowPk(),
+                record.event(),
+                record.changedBy(),
+                record.sessionId(),
+                record.isApi(),
+                record.changedAt(),
+                record.changedColumns(),
+                auditDataRedactor.redact(record.oldRow()),
+                auditDataRedactor.redact(record.newRow()),
+                record.changedByName(),
+                record.changedByLogin());
     }
 
     /** The event as a client may see it: credentials in its details masked. */
     public AuditLogRepository.SecurityEventRecord redacted(AuditLogRepository.SecurityEventRecord record) {
         return new AuditLogRepository.SecurityEventRecord(
-                record.id(), record.eventType(), record.userId(), record.ip(), record.userAgent(),
-                auditDataRedactor.redact(record.details()), record.createdAt(), record.userName(), record.userLogin()
-        );
+                record.id(),
+                record.eventType(),
+                record.userId(),
+                record.ip(),
+                record.userAgent(),
+                auditDataRedactor.redact(record.details()),
+                record.createdAt(),
+                record.userName(),
+                record.userLogin());
     }
 
     private int normalizePageSize(int requested) {
@@ -122,9 +158,7 @@ public class AuditLogService {
     }
 
     private String encodeCursor(Instant timestamp, Long id, long totalEstimated) {
-        return timestamp == null || id == null
-                ? null
-                : CursorUtils.encode(timestamp + "|" + id + "|" + totalEstimated);
+        return timestamp == null || id == null ? null : CursorUtils.encode(timestamp + "|" + id + "|" + totalEstimated);
     }
 
     private AuditCursor decodeCursor(String cursor) {
@@ -150,4 +184,3 @@ public class AuditLogService {
 
     private record AuditCursor(Instant timestamp, Long id, long totalEstimated) {}
 }
-

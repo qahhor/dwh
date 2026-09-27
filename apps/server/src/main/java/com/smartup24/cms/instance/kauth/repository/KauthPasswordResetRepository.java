@@ -1,12 +1,11 @@
 package com.smartup24.cms.instance.kauth.repository;
 
-import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Optional;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
 
 /**
  * One-time password reset links ({@code kauth_password_reset_codes}). Only the SHA-256 of a link token is stored.
@@ -34,7 +33,8 @@ public class KauthPasswordResetRepository {
     }
 
     public ResetRecord create(Long userId, long authVersion, String channel, String codeHash, Instant expiresAt) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 insert into kauth_password_reset_codes (user_id, auth_version, channel, code_hash, expires_at)
                 values (:userId, :authVersion, :channel, :codeHash, :expiresAt)
                 returning\s""" + COLUMNS)
@@ -49,7 +49,8 @@ public class KauthPasswordResetRepository {
 
     /** A link that is neither used nor expired. */
     public Optional<ResetRecord> findActive(String codeHash) {
-        return jdbcClient.sql("select " + COLUMNS + """
+        return jdbcClient
+                .sql("select " + COLUMNS + """
                  from kauth_password_reset_codes
                 where code_hash = :codeHash and not is_used and expires_at > now()
                 """)
@@ -68,9 +69,7 @@ public class KauthPasswordResetRepository {
                 update kauth_password_reset_codes
                 set is_used = true, used_at = now()
                 where id = :id and not is_used and expires_at > now()
-                """)
-                .param("id", id)
-                .update() == 1;
+                """).param("id", id).update() == 1;
     }
 
     /** A new link replaces the ones issued before it: only the latest one works. */
@@ -79,21 +78,22 @@ public class KauthPasswordResetRepository {
                 update kauth_password_reset_codes
                 set is_used = true, used_at = now()
                 where user_id = :userId and not is_used
-                """)
-                .param("userId", userId)
-                .update();
+                """).param("userId", userId).update();
     }
 
     /** Serialises link issuing for one user until the end of the transaction. */
     public void lockUser(Long userId) {
-        jdbcClient.sql("select pg_advisory_xact_lock(hashtext('kauth_password_reset'), cast(mod(:userId, 2147483647) as int))")
+        jdbcClient
+                .sql(
+                        "select pg_advisory_xact_lock(hashtext('kauth_password_reset'), cast(mod(:userId, 2147483647) as int))")
                 .param("userId", userId)
                 .query()
                 .singleValue();
     }
 
     public int countIssuedSince(Long userId, Instant since) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select count(*) from kauth_password_reset_codes
                 where user_id = :userId and created_at >= :since
                 """)
@@ -104,11 +104,5 @@ public class KauthPasswordResetRepository {
     }
 
     public record ResetRecord(
-            Long id,
-            Long userId,
-            long authVersion,
-            String channel,
-            Instant expiresAt,
-            Instant createdAt
-    ) {}
+            Long id, Long userId, long authVersion, String channel, Instant expiresAt, Instant createdAt) {}
 }

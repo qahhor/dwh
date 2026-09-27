@@ -1,8 +1,12 @@
 package com.smartup24.cms.instance.md;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
 import com.smartup24.cms.instance.md.repository.MdI18nRepository;
+import java.util.Map;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -13,11 +17,6 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import tools.jackson.databind.ObjectMapper;
-
-import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @Testcontainers
 class MdI18nRepositoryIntegrationTest {
@@ -34,8 +33,8 @@ class MdI18nRepositoryIntegrationTest {
 
     @BeforeAll
     static void setup() {
-        var dataSource = new DriverManagerDataSource(
-                postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+        var dataSource =
+                new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
         FlywayUtcConfiguration.configure(Flyway.configure())
                 .dataSource(dataSource)
                 .locations("classpath:db/migration")
@@ -47,9 +46,7 @@ class MdI18nRepositoryIntegrationTest {
                         insert into md_users (name, login, email, password_hash, language, timezone)
                         values ('I18n Admin', 'i18n_admin', 'i18n-admin@test.local', 'x', 'ru', 'UTC')
                         returning id
-                        """)
-                .query(Long.class)
-                .single();
+                        """).query(Long.class).single();
     }
 
     @Test
@@ -75,10 +72,7 @@ class MdI18nRepositoryIntegrationTest {
         repository.insertLanguage("fr", "Français", actorId);
 
         long revision = repository.replaceOverrides(
-                "fr",
-                Map.of("nav.tasks", "Tâches", "common.save", "Enregistrer"),
-                1L,
-                actorId);
+                "fr", Map.of("nav.tasks", "Tâches", "common.save", "Enregistrer"), 1L, actorId);
 
         assertThat(revision).isEqualTo(2L);
         assertThat(repository.findOverrides("fr"))
@@ -88,8 +82,7 @@ class MdI18nRepositoryIntegrationTest {
                 .containsEntry("nav.tasks", "Tâches")
                 .containsEntry("common.save", "Enregistrer");
 
-        assertThatThrownBy(() -> repository.replaceOverrides(
-                "fr", Map.of("nav.tasks", "Travail"), 1L, actorId))
+        assertThatThrownBy(() -> repository.replaceOverrides("fr", Map.of("nav.tasks", "Travail"), 1L, actorId))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("изменён другим администратором");
 

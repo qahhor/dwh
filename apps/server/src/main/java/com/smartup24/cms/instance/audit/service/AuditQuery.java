@@ -6,10 +6,9 @@ import com.smartup24.cms.instance.common.query.QueryField;
 import com.smartup24.cms.instance.common.query.QueryFieldType;
 import com.smartup24.cms.instance.common.query.QueryList;
 import com.smartup24.cms.instance.common.query.QueryRef;
+import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import java.util.List;
 
 /**
  * The audit log and the security events in the field registry (ADR-0016, roadmap item 50):
@@ -31,12 +30,15 @@ public class AuditQuery {
                     QueryField.of("id", "audit.col.id", QueryFieldType.NUMBER, "a.id"),
                     QueryField.of("tableName", "audit.col.table", QueryFieldType.TEXT, "a.table_name"),
                     QueryField.of("rowPk", "audit.col.row", QueryFieldType.TEXT, "a.row_pk"),
-                    QueryField.enumeration("event", "audit.col.event", "a.event", List.of("I", "U", "D"),
-                            "audit.event."),
+                    QueryField.enumeration(
+                            "event", "audit.col.event", "a.event", List.of("I", "U", "D"), "audit.event."),
                     QueryField.of("changedByName", "audit.col.changed_by", QueryFieldType.TEXT, "u.name")
-                            .asNullable().asSearchable(),
+                            .asNullable()
+                            .asSearchable(),
                     QueryField.of("changedBy", "audit.col.changed_by_id", QueryFieldType.NUMBER, "a.changed_by")
-                            .asNullable().asHidden().refersTo(QueryRef.paged("/iam/users", "name")),
+                            .asNullable()
+                            .asHidden()
+                            .refersTo(QueryRef.paged("/iam/users", "name")),
                     QueryField.of("isApi", "audit.col.channel", QueryFieldType.BOOLEAN, "a.is_api"),
                     QueryField.of("changedAt", "audit.col.changed_at", QueryFieldType.INSTANT, "a.changed_at")
                             .asSortable()),
@@ -56,12 +58,18 @@ public class AuditQuery {
                     QueryField.of("id", "audit.col.id", QueryFieldType.NUMBER, "s.id"),
                     QueryField.of("eventType", "audit.col.event_type", QueryFieldType.TEXT, "s.event_type"),
                     QueryField.of("userName", "audit.col.user", QueryFieldType.TEXT, "u.name")
-                            .asNullable().asSearchable(),
+                            .asNullable()
+                            .asSearchable(),
                     QueryField.of("userId", "audit.col.user_id", QueryFieldType.NUMBER, "s.user_id")
-                            .asNullable().asHidden().refersTo(QueryRef.paged("/iam/users", "name")),
-                    QueryField.of("ip", "audit.col.ip", QueryFieldType.TEXT, "host(s.ip)").asNullable().asSearchable(),
+                            .asNullable()
+                            .asHidden()
+                            .refersTo(QueryRef.paged("/iam/users", "name")),
+                    QueryField.of("ip", "audit.col.ip", QueryFieldType.TEXT, "host(s.ip)")
+                            .asNullable()
+                            .asSearchable(),
                     QueryField.of("userAgent", "audit.col.user_agent", QueryFieldType.TEXT, "s.user_agent")
-                            .asNullable().asSearchable(),
+                            .asNullable()
+                            .asSearchable(),
                     QueryField.of("createdAt", "audit.col.created_at", QueryFieldType.INSTANT, "s.created_at")
                             .asSortable()),
             "createdAt",

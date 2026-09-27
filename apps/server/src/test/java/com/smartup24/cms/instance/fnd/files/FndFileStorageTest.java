@@ -1,19 +1,12 @@
 package com.smartup24.cms.instance.fnd.files;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.smartup24.cms.instance.mf.repository.MfFileRepository;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import com.smartup24.cms.spi.storage.FileDownloadStream;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.transaction.support.TransactionTemplate;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -24,9 +17,15 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.stream.Stream;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Блок B основы, AC-8: файл загрузки хранит модуль {@code mf} каркаса ({@code mf_files}, SPI {@code StorageProvider},
@@ -40,10 +39,13 @@ class FndFileStorageTest extends EmbeddedPostgresTest {
 
     @Autowired
     private MfFileService files;
+
     @Autowired
     private JdbcClient jdbc;
+
     @Autowired
     private TransactionTemplate tx;
+
     @Value("${dwh.storage.local-path}")
     private String storagePath;
 
@@ -55,7 +57,9 @@ class FndFileStorageTest extends EmbeddedPostgresTest {
         ownerA = userId("fnd-files-a");
         ownerB = userId("fnd-files-b");
         tx.executeWithoutResult(status -> jdbc.sql("delete from mf_files where created_by in (:a, :b)")
-                .param("a", ownerA).param("b", ownerB).update());
+                .param("a", ownerA)
+                .param("b", ownerB)
+                .update());
     }
 
     @ParameterizedTest(name = "{0}")
@@ -63,8 +67,8 @@ class FndFileStorageTest extends EmbeddedPostgresTest {
     @DisplayName("AC-8: 1 байт и 8 МБ + 1 байт с узбекскими именами — скачанные байты и sha256 совпадают")
     void roundTrip(String name) throws IOException {
         for (byte[] content : List.of(new byte[] {'x'}, payload(8 * 1024 * 1024 + 1))) {
-            MfFileRepository.FileRecord record = files.uploadFile(name, MIME,
-                    new ByteArrayInputStream(content), content.length, ownerA);
+            MfFileRepository.FileRecord record =
+                    files.uploadFile(name, MIME, new ByteArrayInputStream(content), content.length, ownerA);
 
             assertThat(record.originalName()).isEqualTo(name);
             assertThat(record.sizeBytes()).isEqualTo(content.length);
@@ -76,18 +80,19 @@ class FndFileStorageTest extends EmbeddedPostgresTest {
     }
 
     @Test
-    @DisplayName("AC-8: то же содержимое повторно — та же sha256 и один физический файл; новая ссылка у другого владельца")
+    @DisplayName(
+            "AC-8: то же содержимое повторно — та же sha256 и один физический файл; новая ссылка у другого владельца")
     void sameContentIsDeduplicated() throws IOException {
         byte[] content = payload(4096);
-        MfFileRepository.FileRecord first = files.uploadFile("birinchi.xlsx", MIME,
-                new ByteArrayInputStream(content), content.length, ownerA);
+        MfFileRepository.FileRecord first =
+                files.uploadFile("birinchi.xlsx", MIME, new ByteArrayInputStream(content), content.length, ownerA);
         Path stored = storedFile(first.sha256());
         FileTime storedAt = Files.getLastModifiedTime(stored);
 
-        MfFileRepository.FileRecord again = files.uploadFile("ikkinchi.xlsx", MIME,
-                new ByteArrayInputStream(content), content.length, ownerA);
-        MfFileRepository.FileRecord other = files.uploadFile("uchinchi.xlsx", MIME,
-                new ByteArrayInputStream(content), content.length, ownerB);
+        MfFileRepository.FileRecord again =
+                files.uploadFile("ikkinchi.xlsx", MIME, new ByteArrayInputStream(content), content.length, ownerA);
+        MfFileRepository.FileRecord other =
+                files.uploadFile("uchinchi.xlsx", MIME, new ByteArrayInputStream(content), content.length, ownerB);
 
         // Свой повтор каркас отдаёт той же записью, чужой — новой записью владения на тот же объект
         assertThat(again.id()).isEqualTo(first.id());
@@ -96,8 +101,11 @@ class FndFileStorageTest extends EmbeddedPostgresTest {
         assertThat(other.storageKey()).isEqualTo(first.storageKey());
         assertThat(storedFiles(first.sha256())).hasSize(1);
         assertThat(Files.getLastModifiedTime(stored)).isEqualTo(storedAt);
-        assertThat(jdbc.sql("select count(*) from mf_files where sha256 = :sha").param("sha", first.sha256())
-                .query(Long.class).single()).isEqualTo(2L);
+        assertThat(jdbc.sql("select count(*) from mf_files where sha256 = :sha")
+                        .param("sha", first.sha256())
+                        .query(Long.class)
+                        .single())
+                .isEqualTo(2L);
     }
 
     @Test
@@ -107,8 +115,11 @@ class FndFileStorageTest extends EmbeddedPostgresTest {
         assertThatThrownBy(() -> files.uploadFile("bosh.xlsx", MIME, new ByteArrayInputStream(empty), 0, ownerA))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageMatching("(?s).*(size_bytes|размер|пуст|содержимое).*");
-        assertThat(jdbc.sql("select count(*) from mf_files where sha256 = :sha").param("sha", sha256(empty))
-                .query(Long.class).single()).isZero();
+        assertThat(jdbc.sql("select count(*) from mf_files where sha256 = :sha")
+                        .param("sha", sha256(empty))
+                        .query(Long.class)
+                        .single())
+                .isZero();
     }
 
     // ---------- вспомогательное ----------
@@ -150,7 +161,9 @@ class FndFileStorageTest extends EmbeddedPostgresTest {
                         on conflict (login) do update set name = excluded.name
                         returning id
                         """)
-                .param("login", login).param("email", login + "@localhost")
-                .query(Long.class).single());
+                .param("login", login)
+                .param("email", login + "@localhost")
+                .query(Long.class)
+                .single());
     }
 }

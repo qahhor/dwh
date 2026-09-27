@@ -13,7 +13,9 @@ export const NOTES_FORM_META: FormMeta = {
     formField('title', 'text', { labelKey: 'notes.col.title', required: true, minLength: 1, maxLength: 255 }),
     formField('contentMd', 'markdown', { labelKey: 'notes.col.content', maxLength: 100000 }),
     formField('color', 'select', {
-      labelKey: 'notes.col.color', options: ['default', 'blue', 'green', 'yellow', 'purple', 'red'], optionLabelPrefix: 'notes.color_',
+      labelKey: 'notes.col.color',
+      options: ['default', 'blue', 'green', 'yellow', 'purple', 'red'],
+      optionLabelPrefix: 'notes.color_',
     }),
     formField('isPinned', 'boolean', { labelKey: 'notes.col.pinned' }),
   ],

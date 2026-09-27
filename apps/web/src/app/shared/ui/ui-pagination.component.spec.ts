@@ -15,7 +15,9 @@ describe('UiPaginationComponent', () => {
 
     const navigation = fixture.nativeElement.querySelector('nav[aria-label="Пагинация"]') as HTMLElement;
     const currentPage = fixture.nativeElement.querySelector('[aria-current="page"]') as HTMLButtonElement;
-    const nextPage = fixture.nativeElement.querySelector('button[aria-label="Следующая страница"]') as HTMLButtonElement;
+    const nextPage = fixture.nativeElement.querySelector(
+      'button[aria-label="Следующая страница"]',
+    ) as HTMLButtonElement;
 
     expect(navigation).not.toBeNull();
     expect(currentPage.textContent?.trim()).toBe('2');
@@ -46,9 +48,10 @@ describe('UiPaginationComponent', () => {
     fixture.detectChanges();
 
     const emitted: number[] = [];
-    fixture.componentInstance.pageSizeChange.subscribe(size => emitted.push(size));
-    const picker = fixture.debugElement.query(By.directive(SMTSelectComponent)).componentInstance as SMTSelectComponent<number>;
-    expect(picker.options().map(option => option.id)).toEqual([10, 25, 50, 100]);
+    fixture.componentInstance.pageSizeChange.subscribe((size) => emitted.push(size));
+    const picker = fixture.debugElement.query(By.directive(SMTSelectComponent))
+      .componentInstance as SMTSelectComponent<number>;
+    expect(picker.options().map((option) => option.id)).toEqual([10, 25, 50, 100]);
     picker.pick(picker.options()[2]);
     fixture.detectChanges();
 
@@ -64,7 +67,11 @@ describe('UiPaginationComponent', () => {
     fixture.componentRef.setInput('pageSize', 20);
     fixture.componentRef.setInput('cursorMode', true);
 
-    for (const [currentPage, expectedRange] of [[1, '1–20'], [2, '21–40'], [3, '41–41']] as const) {
+    for (const [currentPage, expectedRange] of [
+      [1, '1–20'],
+      [2, '21–40'],
+      [3, '41–41'],
+    ] as const) {
       fixture.componentRef.setInput('currentPage', currentPage);
       fixture.componentRef.setInput('hasNextPage', currentPage < 3);
       fixture.detectChanges();
@@ -88,8 +95,12 @@ describe('UiPaginationComponent', () => {
     expect(fixture.nativeElement.querySelector('button[aria-label="Первая страница"]')).toBeNull();
     expect(fixture.nativeElement.querySelector('button[aria-label="Последняя страница"]')).toBeNull();
     expect(fixture.nativeElement.querySelector('.page-numbers')).toBeNull();
-    expect((fixture.nativeElement.querySelector('button[aria-label="Предыдущая страница"]') as HTMLButtonElement).disabled).toBe(false);
-    expect((fixture.nativeElement.querySelector('button[aria-label="Следующая страница"]') as HTMLButtonElement).disabled).toBe(false);
+    expect(
+      (fixture.nativeElement.querySelector('button[aria-label="Предыдущая страница"]') as HTMLButtonElement).disabled,
+    ).toBe(false);
+    expect(
+      (fixture.nativeElement.querySelector('button[aria-label="Следующая страница"]') as HTMLButtonElement).disabled,
+    ).toBe(false);
   });
 
   it('does not clamp cursor pages to a local item count or present it as a total', async () => {
@@ -104,8 +115,10 @@ describe('UiPaginationComponent', () => {
     fixture.detectChanges();
 
     const emitted: number[] = [];
-    fixture.componentInstance.pageChange.subscribe(page => emitted.push(page));
-    const previous = fixture.nativeElement.querySelector('button[aria-label="Предыдущая страница"]') as HTMLButtonElement;
+    fixture.componentInstance.pageChange.subscribe((page) => emitted.push(page));
+    const previous = fixture.nativeElement.querySelector(
+      'button[aria-label="Предыдущая страница"]',
+    ) as HTMLButtonElement;
     previous.click();
 
     expect(fixture.componentInstance.currentPage).toBe(3);
@@ -124,7 +137,9 @@ describe('UiPaginationComponent', () => {
     fixture.componentRef.setInput('hasNextPage', false);
     fixture.detectChanges();
 
-    const previous = fixture.nativeElement.querySelector('button[aria-label="Предыдущая страница"]') as HTMLButtonElement;
+    const previous = fixture.nativeElement.querySelector(
+      'button[aria-label="Предыдущая страница"]',
+    ) as HTMLButtonElement;
     expect(previous).not.toBeNull();
     expect(previous.disabled).toBe(false);
   });

@@ -23,7 +23,7 @@ import { problemText } from '../../../shared/ui/problem-text';
     TranslatePipe,
     CustomFieldsToolbarComponent,
     CustomFieldsTableComponent,
-    CustomFieldsModalsComponent
+    CustomFieldsModalsComponent,
   ],
   template: `
     <div class="custom-fields-page">
@@ -48,7 +48,9 @@ import { problemText } from '../../../shared/ui/problem-text';
           >
             <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
           </button>
-          <button smt-button type="button"
+          <button
+            smt-button
+            type="button"
             *ngIf="canCreate()"
             smtVariant="primary"
             smtIcon="add"
@@ -98,7 +100,7 @@ import { problemText } from '../../../shared/ui/problem-text';
       ></app-custom-fields-modals>
     </div>
   `,
-  styleUrl: './custom-fields.component.css'
+  styleUrl: './custom-fields.component.css',
 })
 export class CustomFieldsComponent implements OnInit {
   private readonly api = inject(ApiService);
@@ -117,8 +119,8 @@ export class CustomFieldsComponent implements OnInit {
   readonly availableEntities = computed(() => {
     const base = ['ALL', 'USER', 'PROJECT', 'TASK', 'NOTE'];
     const dynamic = this.fields()
-      .map(f => f.entityType)
-      .filter(t => t && !base.includes(t));
+      .map((f) => f.entityType)
+      .filter((t) => t && !base.includes(t));
     return [...base, ...Array.from(new Set(dynamic))];
   });
 
@@ -133,19 +135,20 @@ export class CustomFieldsComponent implements OnInit {
   });
 
   readonly filteredFields = computed(() => {
-    const q = (this.searchQuery()).trim().toLowerCase();
+    const q = this.searchQuery().trim().toLowerCase();
     const entity = this.selectedEntity();
     let result = [...this.fields()];
 
     if (entity !== 'ALL') {
-      result = result.filter(f => f.entityType === entity);
+      result = result.filter((f) => f.entityType === entity);
     }
     if (q) {
-      result = result.filter(f =>
-        (f.code && f.code.toLowerCase().includes(q)) ||
-        (f.name && f.name.toLowerCase().includes(q)) ||
-        (f.defaultValue && f.defaultValue.toLowerCase().includes(q)) ||
-        (f.fieldType && f.fieldType.toLowerCase().includes(q))
+      result = result.filter(
+        (f) =>
+          (f.code && f.code.toLowerCase().includes(q)) ||
+          (f.name && f.name.toLowerCase().includes(q)) ||
+          (f.defaultValue && f.defaultValue.toLowerCase().includes(q)) ||
+          (f.fieldType && f.fieldType.toLowerCase().includes(q)),
       );
     }
     result.sort((a, b) => {
@@ -174,20 +177,26 @@ export class CustomFieldsComponent implements OnInit {
 
   // --- Granular RBAC ---
   canCreate(): boolean {
-    return this.permService.hasPermission('md.custom_fields', 'create') ||
-           this.permService.hasPermission('system.custom_fields', 'create');
+    return (
+      this.permService.hasPermission('md.custom_fields', 'create') ||
+      this.permService.hasPermission('system.custom_fields', 'create')
+    );
   }
 
   canEdit(): boolean {
-    return this.permService.hasPermission('md.custom_fields', 'update') ||
-           this.permService.hasPermission('system.custom_fields', 'update') ||
-           this.canCreate();
+    return (
+      this.permService.hasPermission('md.custom_fields', 'update') ||
+      this.permService.hasPermission('system.custom_fields', 'update') ||
+      this.canCreate()
+    );
   }
 
   canDelete(): boolean {
-    return this.permService.hasPermission('md.custom_fields', 'delete') ||
-           this.permService.hasPermission('system.custom_fields', 'delete') ||
-           this.canCreate();
+    return (
+      this.permService.hasPermission('md.custom_fields', 'delete') ||
+      this.permService.hasPermission('system.custom_fields', 'delete') ||
+      this.canCreate()
+    );
   }
 
   /** @deprecated Use canCreate/canEdit/canDelete for granular RBAC; kept for toolbar backward compat */
@@ -197,20 +206,20 @@ export class CustomFieldsComponent implements OnInit {
 
   getEntityCount(ent: string): number {
     if (ent === 'ALL') return this.fields().length;
-    return this.fields().filter(f => f.entityType === ent).length;
+    return this.fields().filter((f) => f.entityType === ent).length;
   }
 
   loadFields() {
     this.isLoading = true;
     this.api.get<CustomField[]>('/custom-fields').subscribe({
-      next: data => {
+      next: (data) => {
         this.fields.set(data || []);
         this.isLoading = false;
       },
       error: () => {
         this.isLoading = false;
         this.toast.error(this.uiI18n.translate('iam.oshibka_zagruzki_dinamicheskih_poley'));
-      }
+      },
     });
   }
 
@@ -237,9 +246,12 @@ export class CustomFieldsComponent implements OnInit {
 
   copyCode(code: string) {
     if (navigator?.clipboard?.writeText) {
-      navigator.clipboard.writeText(code).then(() => {
-        this.toast.success(this.uiI18n.translate('iam.kod_skopirovan'));
-      }).catch(() => {});
+      navigator.clipboard
+        .writeText(code)
+        .then(() => {
+          this.toast.success(this.uiI18n.translate('iam.kod_skopirovan'));
+        })
+        .catch(() => {});
     }
   }
 
@@ -282,69 +294,77 @@ export class CustomFieldsComponent implements OnInit {
     const options = this.formService.parseOptionsText(this.formData.optionsText);
 
     if (this.editingField) {
-      this.api.patch(`/custom-fields/${this.editingField.id}`, {
-        name: this.formData.name,
-        isRequired: this.formData.isRequired,
-        defaultValue: this.formData.defaultValue,
-        options,
-        orderNo: Number(this.formData.orderNo) || 0
-      }).subscribe({
-        next: () => {
-          this.saving = false;
-          this.toast.success(this.uiI18n.translate('iam.pole_uspeshno_obnovleno'));
-          this.closeModal();
-          this.loadFields();
-        },
-        error: () => {
-          this.saving = false;
-          this.toast.error(this.uiI18n.translate('iam.oshibka_sohraneniya_polya'));
-        }
-      });
+      this.api
+        .patch(`/custom-fields/${this.editingField.id}`, {
+          name: this.formData.name,
+          isRequired: this.formData.isRequired,
+          defaultValue: this.formData.defaultValue,
+          options,
+          orderNo: Number(this.formData.orderNo) || 0,
+        })
+        .subscribe({
+          next: () => {
+            this.saving = false;
+            this.toast.success(this.uiI18n.translate('iam.pole_uspeshno_obnovleno'));
+            this.closeModal();
+            this.loadFields();
+          },
+          error: () => {
+            this.saving = false;
+            this.toast.error(this.uiI18n.translate('iam.oshibka_sohraneniya_polya'));
+          },
+        });
     } else {
-      this.api.post('/custom-fields', {
-        entityType: this.formData.entityType,
-        code: this.formData.code,
-        name: this.formData.name,
-        fieldType: this.formData.fieldType,
-        isRequired: this.formData.isRequired,
-        defaultValue: this.formData.defaultValue,
-        orderNo: Number(this.formData.orderNo) || 0,
-        options
-      }).subscribe({
-        next: () => {
-          this.saving = false;
-          this.toast.success(this.uiI18n.translate('iam.pole_uspeshno_sozdano'));
-          this.closeModal();
-          this.loadFields();
-        },
-        error: () => {
-          this.saving = false;
-          this.toast.error(this.uiI18n.translate('iam.oshibka_sozdaniya_polya'));
-        }
-      });
+      this.api
+        .post('/custom-fields', {
+          entityType: this.formData.entityType,
+          code: this.formData.code,
+          name: this.formData.name,
+          fieldType: this.formData.fieldType,
+          isRequired: this.formData.isRequired,
+          defaultValue: this.formData.defaultValue,
+          orderNo: Number(this.formData.orderNo) || 0,
+          options,
+        })
+        .subscribe({
+          next: () => {
+            this.saving = false;
+            this.toast.success(this.uiI18n.translate('iam.pole_uspeshno_sozdano'));
+            this.closeModal();
+            this.loadFields();
+          },
+          error: () => {
+            this.saving = false;
+            this.toast.error(this.uiI18n.translate('iam.oshibka_sozdaniya_polya'));
+          },
+        });
     }
   }
 
   /** Asks before deleting; the dialog stays open until the server answers and shows why it refused. */
   requestDeleteField(field: CustomField) {
     const t = (key: string, params?: Record<string, string>) => this.uiI18n.translate(key, params);
-    this.modal.confirm({
-      title: t('iam.udalenie_dinamicheskogo_polya'),
-      message: `${t('iam.delete_custom_field_question', { name: field.name, code: field.code })}\n${t('iam.sohranennye_znacheniya_etogo_atributa_mogut_stat')}`,
-      yesLabel: t('common.delete'),
-      noLabel: t('common.cancel'),
-      destructive: true,
-      action: () => {
-        this.isDeleting = true;
-        return this.api.delete(`/custom-fields/${field.id}`, { notifyError: false }).pipe(
-          tap(() => {
-            this.toast.success(t('iam.pole_udaleno'));
-            this.loadFields();
-          }),
-          finalize(() => { this.isDeleting = false; })
-        );
-      },
-      actionError: error => problemText(error) || t('iam.oshibka_udaleniya_polya')
-    }).subscribe();
+    this.modal
+      .confirm({
+        title: t('iam.udalenie_dinamicheskogo_polya'),
+        message: `${t('iam.delete_custom_field_question', { name: field.name, code: field.code })}\n${t('iam.sohranennye_znacheniya_etogo_atributa_mogut_stat')}`,
+        yesLabel: t('common.delete'),
+        noLabel: t('common.cancel'),
+        destructive: true,
+        action: () => {
+          this.isDeleting = true;
+          return this.api.delete(`/custom-fields/${field.id}`, { notifyError: false }).pipe(
+            tap(() => {
+              this.toast.success(t('iam.pole_udaleno'));
+              this.loadFields();
+            }),
+            finalize(() => {
+              this.isDeleting = false;
+            }),
+          );
+        },
+        actionError: (error) => problemText(error) || t('iam.oshibka_udaleniya_polya'),
+      })
+      .subscribe();
   }
 }

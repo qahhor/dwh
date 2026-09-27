@@ -17,31 +17,50 @@ export function refLookup(api: ApiService, ref: QueryRefMeta): SMTLookupSource<R
   const option = (row: Row) => ({ label: String(row[ref.labelField] ?? row[ref.keyField] ?? '') });
   if (ref.paged) {
     return {
-      page: (search, cursor, limit) => api.get<KeysetPage<Row>>(ref.path, {
-        limit,
-        cursor: cursor ?? undefined,
-        q: search || undefined,
-      }, quiet),
+      page: (search, cursor, limit) =>
+        api.get<KeysetPage<Row>>(
+          ref.path,
+          {
+            limit,
+            cursor: cursor ?? undefined,
+            q: search || undefined,
+          },
+          quiet,
+        ),
       key,
       option,
       // A chosen key is named by its own read, as the reference lists do (lookup-sources.ts).
-      resolve: keys => forkJoin(keys.map(one => api.get<Row>(`${ref.path}/${encodeURIComponent(String(one))}`, undefined, quiet)
-        .pipe(catchError(() => of(null))))).pipe(map(found => found.filter((row): row is Row => row != null))),
+      resolve: (keys) =>
+        forkJoin(
+          keys.map((one) =>
+            api
+              .get<Row>(`${ref.path}/${encodeURIComponent(String(one))}`, undefined, quiet)
+              .pipe(catchError(() => of(null))),
+          ),
+        ).pipe(map((found) => found.filter((row): row is Row => row != null))),
     };
   }
   let whole: Observable<Row[]> | null = null;
-  const rows = () => whole ??= api.get<Row[] | KeysetPage<Row>>(ref.path, undefined, quiet).pipe(
-    map(body => (Array.isArray(body) ? body : body?.items ?? [])),
-    shareReplay({ bufferSize: 1, refCount: false }),
-  );
+  const rows = () =>
+    (whole ??= api.get<Row[] | KeysetPage<Row>>(ref.path, undefined, quiet).pipe(
+      map((body) => (Array.isArray(body) ? body : (body?.items ?? []))),
+      shareReplay({ bufferSize: 1, refCount: false }),
+    ));
   return {
-    page: search => rows().pipe(map(items => {
-      const text = search.trim().toLowerCase();
-      const found = text ? items.filter(row => option(row).label.toLowerCase().includes(text)) : items;
-      return { items: found, nextCursor: null, hasMore: false };
-    })),
+    page: (search) =>
+      rows().pipe(
+        map((items) => {
+          const text = search.trim().toLowerCase();
+          const found = text ? items.filter((row) => option(row).label.toLowerCase().includes(text)) : items;
+          return { items: found, nextCursor: null, hasMore: false };
+        }),
+      ),
     key,
     option,
-    resolve: keys => rows().pipe(map(items => items.filter(row => keys.includes(key(row)))), catchError(() => of([]))),
+    resolve: (keys) =>
+      rows().pipe(
+        map((items) => items.filter((row) => keys.includes(key(row)))),
+        catchError(() => of([])),
+      ),
   };
 }

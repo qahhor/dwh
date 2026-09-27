@@ -1,5 +1,10 @@
 package com.smartup24.cms.instance.mf;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.when;
+
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.ScopeFilter;
@@ -13,31 +18,23 @@ import com.smartup24.cms.spi.storage.FileDownloadStream;
 import com.smartup24.cms.spi.storage.FileScanner;
 import com.smartup24.cms.spi.storage.StorageProvider;
 import com.smartup24.cms.spi.storage.StoredFileMetadata;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-import org.springframework.dao.DuplicateKeyException;
-
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.when;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.springframework.dao.DuplicateKeyException;
 
 class MfFileServiceTest {
 
     private final MfFileRepository fileRepository = Mockito.mock(MfFileRepository.class);
     private final StorageProvider storageProvider = Mockito.mock(StorageProvider.class);
-    private final AuditLogService auditLogService =
-            Mockito.mock(AuditLogService.class);
-    private final MfFileMetadataService metadataService =
-            new MfFileMetadataService(fileRepository, auditLogService);
+    private final AuditLogService auditLogService = Mockito.mock(AuditLogService.class);
+    private final MfFileMetadataService metadataService = new MfFileMetadataService(fileRepository, auditLogService);
     private final MdScopeService scopeService = Mockito.mock(MdScopeService.class);
     private final MfFileService service = new MfFileService(
             metadataService,
@@ -56,7 +53,8 @@ class MfFileServiceTest {
     void shouldRejectForbiddenFileExtensions() {
         byte[] content = "echo dangerous".getBytes();
 
-        assertThatThrownBy(() -> service.uploadFile("malicious.sh", "text/plain", new ByteArrayInputStream(content), content.length, 1L))
+        assertThatThrownBy(() -> service.uploadFile(
+                        "malicious.sh", "text/plain", new ByteArrayInputStream(content), content.length, 1L))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("Загрузка исполняемых файлов (.sh) запрещена");
     }
@@ -64,17 +62,15 @@ class MfFileServiceTest {
     @Test
     @DisplayName("Исполняемый PE-файл нельзя скрыть под именем и MIME PDF")
     void shouldRejectExecutableSignatureBeforeStorageUpload() {
-        byte[] disguisedExecutable = new byte[] {
-                0x4d, 0x5a, (byte) 0x90, 0x00, 0x03, 0x00, 0x00, 0x00
-        };
+        byte[] disguisedExecutable = new byte[] {0x4d, 0x5a, (byte) 0x90, 0x00, 0x03, 0x00, 0x00, 0x00};
         givenRoomInQuotas(1L);
 
         assertThatThrownBy(() -> service.uploadFile(
-                "invoice.pdf",
-                "application/pdf",
-                new ByteArrayInputStream(disguisedExecutable),
-                disguisedExecutable.length,
-                1L))
+                        "invoice.pdf",
+                        "application/pdf",
+                        new ByteArrayInputStream(disguisedExecutable),
+                        disguisedExecutable.length,
+                        1L))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("исполняемого файла");
 
@@ -97,20 +93,15 @@ class MfFileServiceTest {
         givenRoomInQuotas(1L);
         when(storageProvider.upload(anyString(), anyString(), any(), anyLong(), anyString()))
                 .thenReturn(new StoredFileMetadata(
-                        "instance-files", "temp_scan", SHA, content.length,
-                        "application/pdf", Instant.now()));
+                        "instance-files", "temp_scan", SHA, content.length, "application/pdf", Instant.now()));
         when(storageProvider.download(eq("instance-files"), startsWith("temp_")))
-                .thenReturn(new FileDownloadStream(
-                        new ByteArrayInputStream(content), content.length, "application/pdf"));
+                .thenReturn(
+                        new FileDownloadStream(new ByteArrayInputStream(content), content.length, "application/pdf"));
         when(scanner.scan(any(), eq((long) content.length), eq("application/pdf")))
                 .thenReturn(FileScanner.ScanResult.infected("EICAR-Test-Signature"));
 
         assertThatThrownBy(() -> scanningService.uploadFile(
-                "invoice.pdf",
-                "application/pdf",
-                new ByteArrayInputStream(content),
-                content.length,
-                1L))
+                        "invoice.pdf", "application/pdf", new ByteArrayInputStream(content), content.length, 1L))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("вредоносное содержимое");
 
@@ -124,15 +115,10 @@ class MfFileServiceTest {
     void temporaryObjectIsDeletedWhenMetadataPublicationFails() {
         byte[] content = pdfBytes(128);
         givenRoomInQuotas(1L);
-        when(fileRepository.findBySha256AndOwner(SHA, 1L))
-                .thenThrow(new IllegalStateException("database unavailable"));
+        when(fileRepository.findBySha256AndOwner(SHA, 1L)).thenThrow(new IllegalStateException("database unavailable"));
 
         assertThatThrownBy(() -> service.uploadFile(
-                "invoice.pdf",
-                "application/pdf",
-                new ByteArrayInputStream(content),
-                content.length,
-                1L))
+                        "invoice.pdf", "application/pdf", new ByteArrayInputStream(content), content.length, 1L))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("database unavailable");
 
@@ -147,13 +133,21 @@ class MfFileServiceTest {
         when(fileRepository.getUserEffectiveQuotaBytes(userId)).thenReturn(1024L * 1024 * 1024);
         when(fileRepository.getUserUsedBytes(userId)).thenReturn(0L);
         when(storageProvider.upload(anyString(), anyString(), any(), anyLong(), anyString()))
-                .thenReturn(new StoredFileMetadata("instance-files", "temp_1", SHA, 1024, "application/pdf", Instant.now()));
+                .thenReturn(new StoredFileMetadata(
+                        "instance-files", "temp_1", SHA, 1024, "application/pdf", Instant.now()));
     }
 
     private static MfFileRepository.FileRecord record(String name, Long owner) {
         return new MfFileRepository.FileRecord(
-                UUID.randomUUID(), SHA, name, 1024, "application/pdf",
-                "instance-files", "e3/" + SHA, Instant.now(), owner);
+                UUID.randomUUID(),
+                SHA,
+                name,
+                1024,
+                "application/pdf",
+                "instance-files",
+                "e3/" + SHA,
+                Instant.now(),
+                owner);
     }
 
     @Test
@@ -163,8 +157,8 @@ class MfFileServiceTest {
         givenRoomInQuotas(1L);
         when(fileRepository.findBySha256AndOwner(SHA, 1L)).thenReturn(Optional.of(own));
 
-        var result = service.uploadFile("report_copy.pdf", "application/pdf",
-                new ByteArrayInputStream(pdfBytes(1024)), 1024, 1L);
+        var result = service.uploadFile(
+                "report_copy.pdf", "application/pdf", new ByteArrayInputStream(pdfBytes(1024)), 1024, 1L);
 
         assertThat(result.id()).isEqualTo(own.id());
         Mockito.verify(fileRepository, Mockito.never())
@@ -181,8 +175,8 @@ class MfFileServiceTest {
         when(fileRepository.create(anyString(), anyString(), anyLong(), anyString(), anyString(), anyString(), any()))
                 .thenAnswer(inv -> record(inv.getArgument(1), inv.getArgument(6)));
 
-        var result = service.uploadFile("my_copy.pdf", "application/pdf",
-                new ByteArrayInputStream(pdfBytes(1024)), 1024, 2L);
+        var result = service.uploadFile(
+                "my_copy.pdf", "application/pdf", new ByteArrayInputStream(pdfBytes(1024)), 1024, 2L);
 
         assertThat(result.id()).isNotEqualTo(foreign.id());
         assertThat(result.createdBy()).isEqualTo(2L);
@@ -225,7 +219,8 @@ class MfFileServiceTest {
 
         byte[] content = new byte[100]; // 950 + 100 = 1050 > 1000
 
-        assertThatThrownBy(() -> service.uploadFile("data.bin", "application/octet-stream", new ByteArrayInputStream(content), content.length, 1L))
+        assertThatThrownBy(() -> service.uploadFile(
+                        "data.bin", "application/octet-stream", new ByteArrayInputStream(content), content.length, 1L))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("Превышена дисковая квота компании");
     }
@@ -240,7 +235,8 @@ class MfFileServiceTest {
 
         byte[] content = pdfBytes(100); // 450 + 100 = 550 > 500
 
-        assertThatThrownBy(() -> service.uploadFile("my_doc.pdf", "application/pdf", new ByteArrayInputStream(content), content.length, 2L))
+        assertThatThrownBy(() -> service.uploadFile(
+                        "my_doc.pdf", "application/pdf", new ByteArrayInputStream(content), content.length, 2L))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("Превышена ваша персональная дисковая квота");
     }
@@ -260,8 +256,8 @@ class MfFileServiceTest {
         when(fileRepository.create(anyString(), anyString(), anyLong(), anyString(), anyString(), anyString(), any()))
                 .thenThrow(new DuplicateKeyException("mf_files_owner_sha256_uidx"));
 
-        var result = service.uploadFile("report.pdf", "application/pdf",
-                new ByteArrayInputStream(pdfBytes(1024)), 1024, 3L);
+        var result =
+                service.uploadFile("report.pdf", "application/pdf", new ByteArrayInputStream(pdfBytes(1024)), 1024, 3L);
 
         assertThat(result.id()).isEqualTo(winner.id());
     }
@@ -280,15 +276,13 @@ class MfFileServiceTest {
         when(storageProvider.exists("instance-files", "e3/" + SHA)).thenReturn(false);
         when(storageProvider.upload(anyString(), anyString(), any(), anyLong(), anyString()))
                 .thenReturn(new StoredFileMetadata(
-                        "instance-files", "temp_quota", SHA, content.length,
-                        "application/pdf", Instant.now()));
+                        "instance-files", "temp_quota", SHA, content.length, "application/pdf", Instant.now()));
         when(storageProvider.download(eq("instance-files"), startsWith("temp_")))
-                .thenReturn(new FileDownloadStream(
-                        new ByteArrayInputStream(content), content.length, "application/pdf"));
+                .thenReturn(
+                        new FileDownloadStream(new ByteArrayInputStream(content), content.length, "application/pdf"));
 
         assertThatThrownBy(() -> service.uploadFile(
-                "report.pdf", "application/pdf", new ByteArrayInputStream(content),
-                content.length, 9L))
+                        "report.pdf", "application/pdf", new ByteArrayInputStream(content), content.length, 9L))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("Превышена дисковая квота компании");
 

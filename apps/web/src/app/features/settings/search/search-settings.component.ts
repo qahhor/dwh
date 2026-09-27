@@ -15,7 +15,7 @@ import {
   SearchQueryPolicy,
   SearchRetryJobRequest,
   SearchSettingsSnapshot,
-  SearchStartJobRequest
+  SearchStartJobRequest,
 } from '../../../core/models/search-management.models';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { SMTSelectComponent, SMTSelectOption } from '../../../shared/ui-kit/components/forms/select';
@@ -44,16 +44,28 @@ import {
   cloneSearchPolicy,
   toProblemDetail,
   formatBytes,
-  formatJobError
+  formatJobError,
 } from './search-settings.models';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 
 @Component({
   selector: 'app-search-settings',
   standalone: true,
-  imports: [SMTButtonComponent, CommonModule, FormsModule, TranslatePipe, SMTDialogComponent, SMTDialogContentDirective, UiLocalTableComponent, SMTSelectComponent, SMTInputComponent, SMTInputValueAccessor, SMTCheckboxComponent],
+  imports: [
+    SMTButtonComponent,
+    CommonModule,
+    FormsModule,
+    TranslatePipe,
+    SMTDialogComponent,
+    SMTDialogContentDirective,
+    UiLocalTableComponent,
+    SMTSelectComponent,
+    SMTInputComponent,
+    SMTInputValueAccessor,
+    SMTCheckboxComponent,
+  ],
   templateUrl: './search-settings.component.html',
-  styleUrl: './search-settings.component.scss'
+  styleUrl: './search-settings.component.scss',
 })
 export class SearchSettingsComponent implements OnInit, OnDestroy {
   private readonly management = inject(SearchManagementService);
@@ -110,11 +122,13 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
   readonly rebuildRequired = computed(() => {
     const current = this.status();
     const saved = this.savedSettings();
-    return current?.rebuildRequired === true
-      || Boolean(saved && current?.activeProfile && saved.policy.schemaProfile !== current.activeProfile);
+    return (
+      current?.rebuildRequired === true ||
+      Boolean(saved && current?.activeProfile && saved.policy.schemaProfile !== current.activeProfile)
+    );
   });
   readonly atCapacity = computed(() => (this.status()?.generations.length ?? 0) >= 4);
-  readonly displayedJobs = computed(() => this.history().length ? this.history() : (this.status()?.jobs ?? []));
+  readonly displayedJobs = computed(() => (this.history().length ? this.history() : (this.status()?.jobs ?? [])));
 
   readonly generationsConfig = computed<TableConfig<SearchGenerationStatus>>(() => {
     const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
@@ -126,12 +140,21 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
       columns: {
         id: { header: header('settings.search.generations.generation'), content: cell(this.generationIdCell) },
         state: { header: header('common.status'), content: cell(this.generationStateCell) },
-        profile: { header: header('settings.search.status.profile'), content: { type: 'primitive', value: g => g.registeredProfile } },
-        documents: { header: header('settings.search.generations.documents'), content: cell(this.generationDocumentsCell) },
-        storage: { header: header('settings.search.generations.storage'), content: { type: 'primitive', value: g => this.displayBytes(g.storageBytes) } },
-        queue: { header: header('settings.search.generations.queue'), content: cell(this.generationQueueCell) }
+        profile: {
+          header: header('settings.search.status.profile'),
+          content: { type: 'primitive', value: (g) => g.registeredProfile },
+        },
+        documents: {
+          header: header('settings.search.generations.documents'),
+          content: cell(this.generationDocumentsCell),
+        },
+        storage: {
+          header: header('settings.search.generations.storage'),
+          content: { type: 'primitive', value: (g) => this.displayBytes(g.storageBytes) },
+        },
+        queue: { header: header('settings.search.generations.queue'), content: cell(this.generationQueueCell) },
       },
-      columnsOrder: ['id', 'state', 'profile', 'documents', 'storage', 'queue']
+      columnsOrder: ['id', 'state', 'profile', 'documents', 'storage', 'queue'],
     };
   });
 
@@ -149,15 +172,26 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
       layout: 'fit',
       columns: {
         id: { header: header('settings.search.jobs.id'), content: cell(this.jobIdCell) },
-        action: { header: header('settings.search.jobs.action'), content: { type: 'primitive', value: job => job.action } },
+        action: {
+          header: header('settings.search.jobs.action'),
+          content: { type: 'primitive', value: (job) => job.action },
+        },
         state: { header: header('common.status'), content: cell(this.jobStateCell) },
         generation: { header: header('settings.search.jobs.generation'), content: cell(this.jobGenerationCell) },
-        processed: { header: header('settings.search.jobs.processed'), content: { type: 'primitive', value: job => job.processedCount }, align: 'right' },
-        failed: { header: header('settings.search.jobs.failed'), content: { type: 'primitive', value: job => job.failedCount }, align: 'right' },
+        processed: {
+          header: header('settings.search.jobs.processed'),
+          content: { type: 'primitive', value: (job) => job.processedCount },
+          align: 'right',
+        },
+        failed: {
+          header: header('settings.search.jobs.failed'),
+          content: { type: 'primitive', value: (job) => job.failedCount },
+          align: 'right',
+        },
         created: { header: header('settings.search.jobs.created'), content: cell(this.jobCreatedCell) },
-        actions: { header: header('common.actions'), content: cell(this.jobActionsCell) }
+        actions: { header: header('common.actions'), content: cell(this.jobActionsCell) },
       },
-      columnsOrder: ['id', 'action', 'state', 'generation', 'processed', 'failed', 'created', 'actions']
+      columnsOrder: ['id', 'action', 'state', 'generation', 'processed', 'failed', 'created', 'actions'],
     };
   });
 
@@ -180,7 +214,7 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
     profile: (g: SearchGenerationStatus) => g.registeredProfile,
     documents: (g: SearchGenerationStatus) => g.documentCount,
     storage: (g: SearchGenerationStatus) => g.storageBytes,
-    queue: (g: SearchGenerationStatus) => g.pendingDeliveries
+    queue: (g: SearchGenerationStatus) => g.pendingDeliveries,
   };
 
   private statusRequest?: Subscription;
@@ -194,13 +228,15 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
 
   get displayedEntities(): SearchEntityType[] {
     const draft = this.draft();
-    return this.entities.filter(e => e !== 'NOTE' || (draft && draft.fields['NOTE'] && draft.fields['NOTE'].length > 0));
+    return this.entities.filter(
+      (e) => e !== 'NOTE' || (draft && draft.fields['NOTE'] && draft.fields['NOTE'].length > 0),
+    );
   }
 
   previewEntityOptions(): SMTSelectOption<SearchEntityType>[] {
     const entities = this.displayedEntities;
     return this.previewEntityMemo([this.i18n.currentLang(), entities.join()], () =>
-      entities.map(entity => ({ id: entity, label: this.i18n.translate(ENTITY_LABEL_KEYS[entity]) }))
+      entities.map((entity) => ({ id: entity, label: this.i18n.translate(ENTITY_LABEL_KEYS[entity]) })),
     );
   }
 
@@ -235,9 +271,16 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
   }
 
   canSave(): boolean {
-    return this.canMaintain() && this.canReadSettings() && this.savedSettings() !== null
-      && this.dirty() && this.policyErrors().length === 0 && !this.savePending()
-      && !this.mutationPending() && !this.activeOperation();
+    return (
+      this.canMaintain() &&
+      this.canReadSettings() &&
+      this.savedSettings() !== null &&
+      this.dirty() &&
+      this.policyErrors().length === 0 &&
+      !this.savePending() &&
+      !this.mutationPending() &&
+      !this.activeOperation()
+    );
   }
 
   fields(entity: SearchEntityType): SearchFieldPolicy[] {
@@ -255,17 +298,17 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
     this.statusLoading.set(true);
     this.statusError.set(null);
     this.statusRequest = this.management.status().subscribe({
-      next: value => {
+      next: (value) => {
         this.status.set(value);
         this.statusAuthorized.set(true);
         this.statusLoading.set(false);
         this.restoreActiveOperation(value);
       },
-      error: error => {
+      error: (error) => {
         this.statusError.set(this.problem(error));
         this.statusAuthorized.set(false);
         this.statusLoading.set(false);
-      }
+      },
     });
   }
 
@@ -276,16 +319,16 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
     this.historyError.set(null);
     this.historyRetryNextPage.set(false);
     this.historyRequest = this.management.jobs(20).subscribe({
-      next: page => {
+      next: (page) => {
         this.history.set(page.items);
         this.historyCursor.set(page.nextCursor ?? null);
         this.historyHasMore.set(page.hasMore);
         this.historyLoading.set(false);
       },
-      error: error => {
+      error: (error) => {
         this.historyError.set(this.problem(error));
         this.historyLoading.set(false);
-      }
+      },
     });
   }
 
@@ -297,18 +340,18 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
     this.historyError.set(null);
     this.historyRetryNextPage.set(true);
     this.historyRequest = this.management.jobs(20, cursor).subscribe({
-      next: page => {
-        const known = new Set(this.history().map(job => job.id));
-        this.history.update(current => [...current, ...page.items.filter(job => !known.has(job.id))]);
+      next: (page) => {
+        const known = new Set(this.history().map((job) => job.id));
+        this.history.update((current) => [...current, ...page.items.filter((job) => !known.has(job.id))]);
         this.historyCursor.set(page.nextCursor ?? null);
         this.historyHasMore.set(page.hasMore);
         this.historyLoading.set(false);
         this.historyRetryNextPage.set(false);
       },
-      error: error => {
+      error: (error) => {
         this.historyError.set(this.problem(error));
         this.historyLoading.set(false);
-      }
+      },
     });
   }
 
@@ -323,37 +366,42 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
     this.settingsLoading.set(true);
     this.settingsError.set(null);
     this.settingsRequest = this.management.settings().subscribe({
-      next: snapshot => {
+      next: (snapshot) => {
         this.savedSettings.set(this.cloneSnapshot(snapshot));
         this.draft.set(this.clonePolicy(snapshot.policy));
         this.saveError.set(null);
         this.saveAttempted.set(false);
         this.settingsLoading.set(false);
       },
-      error: error => {
+      error: (error) => {
         this.settingsError.set(this.problem(error));
         this.settingsLoading.set(false);
-      }
+      },
     });
   }
 
   updatePolicyNumber(key: 'globalLimit' | 'requestsPerMinute' | 'burst', value: string | number | null): void {
     const parsed = typeof value === 'number' ? value : Number(value);
-    this.draft.update(current => current ? { ...current, [key]: parsed } : current);
+    this.draft.update((current) => (current ? { ...current, [key]: parsed } : current));
   }
 
   updateSchemaProfile(value: string): void {
     if (value !== 'MIXED' && value !== 'RU') return;
-    this.draft.update(current => current ? { ...current, schemaProfile: value } : current);
+    this.draft.update((current) => (current ? { ...current, schemaProfile: value } : current));
   }
 
-  updateFieldNumber(entity: SearchEntityType, index: number, key: 'weight' | 'numTypos', value: string | number | null): void {
+  updateFieldNumber(
+    entity: SearchEntityType,
+    index: number,
+    key: 'weight' | 'numTypos',
+    value: string | number | null,
+  ): void {
     const parsed = typeof value === 'number' ? value : Number(value);
-    this.updateField(entity, index, field => ({ ...field, [key]: parsed }));
+    this.updateField(entity, index, (field) => ({ ...field, [key]: parsed }));
   }
 
   updateFieldPrefix(entity: SearchEntityType, index: number, enabled: boolean): void {
-    this.updateField(entity, index, field => ({ ...field, prefix: enabled }));
+    this.updateField(entity, index, (field) => ({ ...field, prefix: enabled }));
   }
 
   save(): void {
@@ -365,44 +413,51 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
     this.savePending.set(true);
     this.saveError.set(null);
     this.saveRequest = this.management.save({ version: baseline.version, policy: this.clonePolicy(policy) }).subscribe({
-      next: saved => {
+      next: (saved) => {
         this.savedSettings.set(this.cloneSnapshot(saved));
         this.draft.set(this.clonePolicy(saved.policy));
         this.savePending.set(false);
         this.saveAttempted.set(false);
       },
-      error: error => {
+      error: (error) => {
         this.saveError.set(this.problem(error));
         this.savePending.set(false);
-      }
+      },
     });
   }
 
   preview(): void {
     const policy = this.draft();
     const query = this.previewQuery.trim();
-    if (!this.statusAuthorized() || !query || (policy !== null && this.policyErrors().length > 0)
-      || this.previewCooldownSeconds() > 0) return;
+    if (
+      !this.statusAuthorized() ||
+      !query ||
+      (policy !== null && this.policyErrors().length > 0) ||
+      this.previewCooldownSeconds() > 0
+    )
+      return;
     this.previewRequest?.unsubscribe();
     this.previewPending.set(true);
     this.previewError.set(null);
     this.previewResult.set(null);
-    this.previewRequest = this.management.preview({
-      q: query,
-      ...(this.previewEntity ? { entity: this.previewEntity } : {}),
-      ...(policy ? { policy: this.clonePolicy(policy) } : {})
-    }).subscribe({
-      next: result => {
-        this.previewResult.set(result);
-        this.previewPending.set(false);
-      },
-      error: error => {
-        const failure = this.problem(error);
-        this.previewError.set(failure);
-        this.previewPending.set(false);
-        if (failure.retryAfterSeconds !== undefined) this.startCooldown(failure.retryAfterSeconds);
-      }
-    });
+    this.previewRequest = this.management
+      .preview({
+        q: query,
+        ...(this.previewEntity ? { entity: this.previewEntity } : {}),
+        ...(policy ? { policy: this.clonePolicy(policy) } : {}),
+      })
+      .subscribe({
+        next: (result) => {
+          this.previewResult.set(result);
+          this.previewPending.set(false);
+        },
+        error: (error) => {
+          const failure = this.problem(error);
+          this.previewError.set(failure);
+          this.previewPending.set(false);
+          if (failure.retryAfterSeconds !== undefined) this.startCooldown(failure.retryAfterSeconds);
+        },
+      });
   }
 
   requestMaintenance(action: SearchJobAction, generationId?: string): void {
@@ -413,11 +468,14 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
       return;
     }
     if (action === 'ROLLBACK') {
-      if (!generationId || !this.status()?.rollbackTargets.some(target => target.id === generationId)) return;
+      if (!generationId || !this.status()?.rollbackTargets.some((target) => target.id === generationId)) return;
       this.confirmation.set({ action, generationId });
       return;
     }
-    this.executeMutation({ kind: 'start', request: { requestId: this.newRequestId(), action, ...(generationId ? { generationId } : {}) } });
+    this.executeMutation({
+      kind: 'start',
+      request: { requestId: this.newRequestId(), action, ...(generationId ? { generationId } : {}) },
+    });
   }
 
   confirmMaintenance(): void {
@@ -429,14 +487,20 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
       request: {
         requestId: this.newRequestId(),
         action: confirmation.action,
-        ...(confirmation.generationId ? { generationId: confirmation.generationId } : {})
-      }
+        ...(confirmation.generationId ? { generationId: confirmation.generationId } : {}),
+      },
     });
   }
 
   retryJob(job: SearchJobStatus): void {
-    if (!this.canMaintain() || this.mutationPending() || this.savePending() || this.activeOperation()
-      || !['FAILED', 'CANCELLED'].includes(job.state)) return;
+    if (
+      !this.canMaintain() ||
+      this.mutationPending() ||
+      this.savePending() ||
+      this.activeOperation() ||
+      !['FAILED', 'CANCELLED'].includes(job.state)
+    )
+      return;
     this.executeMutation({ kind: 'retry', jobId: job.id, request: { requestId: this.newRequestId() } });
   }
 
@@ -465,7 +529,7 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
   }
 
   jobErrorMessage(code?: string | null): string {
-    return formatJobError(code, key => this.i18n.translate(key));
+    return formatJobError(code, (key) => this.i18n.translate(key));
   }
 
   displayNumber(value: number | null | undefined): string {
@@ -484,10 +548,14 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
     return job.id;
   }
 
-  private updateField(entity: SearchEntityType, index: number, update: (field: SearchFieldPolicy) => SearchFieldPolicy): void {
-    this.draft.update(current => {
+  private updateField(
+    entity: SearchEntityType,
+    index: number,
+    update: (field: SearchFieldPolicy) => SearchFieldPolicy,
+  ): void {
+    this.draft.update((current) => {
       if (!current || !current.fields[entity] || !current.fields[entity][index]) return current;
-      const rows = current.fields[entity].map((field, row) => row === index ? update(field) : field);
+      const rows = current.fields[entity].map((field, row) => (row === index ? update(field) : field));
       return { ...current, fields: { ...current.fields, [entity]: rows } };
     });
   }
@@ -497,13 +565,14 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
     this.mutationPending.set(true);
     this.mutationError.set(null);
     this.uncertainMutation.set(null);
-    const request = action.kind === 'start'
-      ? this.management.startJob(action.request)
-      : action.kind === 'retry'
-        ? this.management.retry(action.jobId, action.request)
-        : this.management.cancel(action.jobId);
+    const request =
+      action.kind === 'start'
+        ? this.management.startJob(action.request)
+        : action.kind === 'retry'
+          ? this.management.retry(action.jobId, action.request)
+          : this.management.cancel(action.jobId);
     this.mutationRequest = request.subscribe({
-      next: receipt => {
+      next: (receipt) => {
         this.mutationPending.set(false);
         this.activeJobId.set(receipt.id);
         if (receipt.state === 'CANCELLED') {
@@ -514,12 +583,12 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
           this.startPolling(receipt.id);
         }
       },
-      error: error => {
+      error: (error) => {
         const failure = this.problem(error);
         this.mutationPending.set(false);
         this.mutationError.set(failure);
         if (failure.status === 0 || failure.status >= 500) this.uncertainMutation.set(action);
-      }
+      },
     });
   }
 
@@ -529,17 +598,19 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
     this.pollRequest = undefined;
     this.activeJobId.set(jobId);
     this.pollError.set(null);
-    this.pollRequest = timer(0, 10_000).pipe(exhaustMap(() => this.management.job(jobId))).subscribe({
-      next: job => {
-        this.activeJob.set(job);
-        if (this.isTerminal(job)) this.finishPolling();
-      },
-      error: error => {
-        this.pollError.set(this.problem(error));
-        this.pollRequest?.unsubscribe();
-        this.pollRequest = undefined;
-      }
-    });
+    this.pollRequest = timer(0, 10_000)
+      .pipe(exhaustMap(() => this.management.job(jobId)))
+      .subscribe({
+        next: (job) => {
+          this.activeJob.set(job);
+          if (this.isTerminal(job)) this.finishPolling();
+        },
+        error: (error) => {
+          this.pollError.set(this.problem(error));
+          this.pollRequest?.unsubscribe();
+          this.pollRequest = undefined;
+        },
+      });
   }
 
   private finishPolling(): void {
@@ -550,7 +621,7 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
   }
 
   private restoreActiveOperation(current: SearchManagementStatus): void {
-    const running = current.jobs.find(job => !this.isTerminal(job));
+    const running = current.jobs.find((job) => !this.isTerminal(job));
     if (!running || (this.activeJobId() !== null && this.activeJobId() !== running.id)) return;
     this.activeJob.set(running);
     this.activeJobId.set(running.id);
@@ -584,6 +655,10 @@ export class SearchSettingsComponent implements OnInit, OnDestroy {
   }
 
   private problem(error: unknown): ProblemDetail {
-    return toProblemDetail(error, this.i18n.translate('common.error'), this.i18n.translate('settings.search.error.request_failed'));
+    return toProblemDetail(
+      error,
+      this.i18n.translate('common.error'),
+      this.i18n.translate('settings.search.error.request_failed'),
+    );
   }
 }

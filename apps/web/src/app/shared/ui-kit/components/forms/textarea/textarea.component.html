@@ -15,7 +15,10 @@
   [attr.aria-describedby]="describedByIds()"
   [attr.aria-invalid]="hasError() ? 'true' : null"
   (input)="onInput($event)"
-  (blur)="onBlur()"></textarea>
+  (blur)="onBlur()"
+></textarea>
 @if (counter(); as counterText) {
-  <span class="smt-textarea__counter" [class.smt-textarea__counter--near]="nearLimit()" [id]="counterId">{{ counterText }}</span>
+  <span class="smt-textarea__counter" [class.smt-textarea__counter--near]="nearLimit()" [id]="counterId">{{
+    counterText
+  }}</span>
 }

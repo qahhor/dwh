@@ -1,9 +1,8 @@
 package com.smartup24.cms.instance.report.export;
 
 import com.smartup24.cms.instance.fnd.jobs.FndJobHandler;
-import org.springframework.stereotype.Component;
-
 import java.util.Map;
+import org.springframework.stereotype.Component;
 
 /** Removes exports whose week is over, hourly by the schedule seeded in V119 (ADR-0018). */
 @Component

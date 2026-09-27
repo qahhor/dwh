@@ -1,9 +1,6 @@
 package com.smartup24.cms.instance.report.export;
 
 import com.smartup24.cms.instance.common.query.QueryField;
-import org.dhatim.fastexcel.Workbook;
-import org.dhatim.fastexcel.Worksheet;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.time.Instant;
@@ -13,6 +10,8 @@ import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import org.dhatim.fastexcel.Workbook;
+import org.dhatim.fastexcel.Worksheet;
 
 /**
  * One export as an xlsx sheet (ADR-0018): a header row of the list's column
@@ -24,6 +23,7 @@ final class ExportWorkbookWriter implements AutoCloseable {
 
     /** Who wrote the file, in its properties; the format wants the version as XX.YYYY. */
     static final String APPLICATION = "SmartupCMS";
+
     static final String APP_VERSION = "1.0";
     private static final String HEADER_FILL = "DCE6F2";
     private static final String DATE_FORMAT = "dd.mm.yyyy";
@@ -35,8 +35,13 @@ final class ExportWorkbookWriter implements AutoCloseable {
     private final Function<String, String> text;
     private int row;
 
-    ExportWorkbookWriter(OutputStream out, String sheetName, List<QueryField> fields, Function<String, String> text,
-                         String application, String version) {
+    ExportWorkbookWriter(
+            OutputStream out,
+            String sheetName,
+            List<QueryField> fields,
+            Function<String, String> text,
+            String application,
+            String version) {
         this.workbook = new Workbook(out, application, version);
         this.sheet = workbook.newWorksheet(sheetName(sheetName));
         this.fields = List.copyOf(fields);
@@ -72,10 +77,16 @@ final class ExportWorkbookWriter implements AutoCloseable {
                     sheet.style(row, c).format(DATE_FORMAT).set();
                 }
                 case INSTANT -> {
-                    sheet.value(row, c, Instant.parse(String.valueOf(value)).atZone(ZoneOffset.UTC).toLocalDateTime());
+                    sheet.value(
+                            row,
+                            c,
+                            Instant.parse(String.valueOf(value))
+                                    .atZone(ZoneOffset.UTC)
+                                    .toLocalDateTime());
                     sheet.style(row, c).format(MOMENT_FORMAT).set();
                 }
-                case BOOLEAN -> sheet.value(row, c, text.apply(Boolean.TRUE.equals(value) ? "common.yes" : "common.no"));
+                case BOOLEAN ->
+                    sheet.value(row, c, text.apply(Boolean.TRUE.equals(value) ? "common.yes" : "common.no"));
                 case ENUM -> sheet.value(row, c, enumWords(field, String.valueOf(value)));
                 default -> sheet.value(row, c, String.valueOf(value));
             }
@@ -94,8 +105,13 @@ final class ExportWorkbookWriter implements AutoCloseable {
                 if (value instanceof Number number) sheet.value(row, c, number);
                 else sheet.value(row, c, raw);
             }
-            case BOOLEAN -> sheet.value(row, c, "true".equalsIgnoreCase(raw) ? text.apply("common.yes")
-                    : "false".equalsIgnoreCase(raw) ? text.apply("common.no") : raw);
+            case BOOLEAN ->
+                sheet.value(
+                        row,
+                        c,
+                        "true".equalsIgnoreCase(raw)
+                                ? text.apply("common.yes")
+                                : "false".equalsIgnoreCase(raw) ? text.apply("common.no") : raw);
             case DATE -> {
                 try {
                     sheet.value(row, c, LocalDate.parse(raw.length() >= 10 ? raw.substring(0, 10) : raw));

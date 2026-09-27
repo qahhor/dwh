@@ -53,7 +53,11 @@ export interface SMTRange {
   },
   hostDirectives: [...SMT_FORM_FIELD_REGISTRY_HOST_DIRECTIVES],
   template: `
-    <div class="smt-range-slider__track" [style.--smt-range-from]="percent(band().from)" [style.--smt-range-to]="percent(band().to)">
+    <div
+      class="smt-range-slider__track"
+      [style.--smt-range-from]="percent(band().from)"
+      [style.--smt-range-to]="percent(band().to)"
+    >
       <input
         type="range"
         class="smt-range-slider__thumb"
@@ -65,7 +69,8 @@ export interface SMTRange {
         [attr.aria-label]="thumbName(i18n.messages().range.from)"
         [attr.aria-valuetext]="band().from + suffix()"
         (input)="setFrom($event)"
-        (blur)="markTouched()" />
+        (blur)="markTouched()"
+      />
       <input
         type="range"
         class="smt-range-slider__thumb"
@@ -77,10 +82,13 @@ export interface SMTRange {
         [attr.aria-label]="thumbName(i18n.messages().range.to)"
         [attr.aria-valuetext]="band().to + suffix()"
         (input)="setTo($event)"
-        (blur)="markTouched()" />
+        (blur)="markTouched()"
+      />
     </div>
     @if (showValues()) {
-      <span class="smt-range-slider__values" aria-hidden="true">{{ band().from }}{{ suffix() }} – {{ band().to }}{{ suffix() }}</span>
+      <span class="smt-range-slider__values" aria-hidden="true"
+        >{{ band().from }}{{ suffix() }} – {{ band().to }}{{ suffix() }}</span
+      >
     }
   `,
 })
@@ -139,7 +147,7 @@ export class SMTRangeSliderComponent implements FormValueControl<SMTRange | null
       invalid: this.invalid(),
       errors: this.errors(),
       touched: this.wasTouched(),
-    })
+    }),
   );
 
   thumbName(part: string): string {

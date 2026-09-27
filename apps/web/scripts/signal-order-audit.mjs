@@ -30,10 +30,24 @@ const baselineFile = path.join(webRoot, 'scripts', 'signal-order-baseline.txt');
 const ANGULAR = new Set(['Component', 'Directive', 'Injectable', 'Pipe']);
 
 const BASE = {
-  inject: 10, 'input.required': 15, input: 20, output: 30, 'model.required': 35, model: 40,
-  'viewChild.required': 45, viewChild: 50, 'viewChildren.required': 55, viewChildren: 60,
-  'contentChild.required': 65, contentChild: 70, 'contentChildren.required': 75, contentChildren: 80,
-  signal: 90, linkedSignal: 90, computed: 100, effect: 110
+  inject: 10,
+  'input.required': 15,
+  input: 20,
+  output: 30,
+  'model.required': 35,
+  model: 40,
+  'viewChild.required': 45,
+  viewChild: 50,
+  'viewChildren.required': 55,
+  viewChildren: 60,
+  'contentChild.required': 65,
+  contentChild: 70,
+  'contentChildren.required': 75,
+  contentChildren: 80,
+  signal: 90,
+  linkedSignal: 90,
+  computed: 100,
+  effect: 110,
 };
 const REQUIRABLE = new Set(['input', 'model', 'viewChild', 'viewChildren', 'contentChild', 'contentChildren']);
 const LABEL = { 120: 'field', 130: 'constructor', 140: 'method' };
@@ -42,8 +56,9 @@ async function sources(directory) {
   const found = [];
   for (const entry of await readdir(directory, { withFileTypes: true })) {
     const absolute = path.join(directory, entry.name);
-    if (entry.isDirectory()) found.push(...await sources(absolute));
-    else if (entry.name.endsWith('.ts') && !entry.name.endsWith('.spec.ts') && !entry.name.endsWith('.d.ts')) found.push(absolute);
+    if (entry.isDirectory()) found.push(...(await sources(absolute)));
+    else if (entry.name.endsWith('.ts') && !entry.name.endsWith('.spec.ts') && !entry.name.endsWith('.d.ts'))
+      found.push(absolute);
   }
   return found;
 }
@@ -53,8 +68,12 @@ function signalKind(initializer) {
   if (!initializer || !ts.isCallExpression(initializer)) return null;
   const callee = initializer.expression;
   if (ts.isIdentifier(callee)) return callee.text in BASE ? callee.text : null;
-  if (ts.isPropertyAccessExpression(callee) && callee.name.text === 'required' && ts.isIdentifier(callee.expression)
-      && REQUIRABLE.has(callee.expression.text)) {
+  if (
+    ts.isPropertyAccessExpression(callee) &&
+    callee.name.text === 'required' &&
+    ts.isIdentifier(callee.expression) &&
+    REQUIRABLE.has(callee.expression.text)
+  ) {
     return `${callee.expression.text}.required`;
   }
   return null;
@@ -85,16 +104,19 @@ function describe(member, placed) {
 }
 
 function isAngular(node) {
-  return (ts.getDecorators(node) ?? []).some(decorator =>
-    ts.isCallExpression(decorator.expression) && ts.isIdentifier(decorator.expression.expression)
-    && ANGULAR.has(decorator.expression.expression.text));
+  return (ts.getDecorators(node) ?? []).some(
+    (decorator) =>
+      ts.isCallExpression(decorator.expression) &&
+      ts.isIdentifier(decorator.expression.expression) &&
+      ANGULAR.has(decorator.expression.expression.text),
+  );
 }
 
 /** The first member that stands after one that should follow it, per Angular class. */
 function violations(file, text) {
   const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true);
   const found = [];
-  const visit = node => {
+  const visit = (node) => {
     if (ts.isClassDeclaration(node) && node.name && isAngular(node)) {
       let highest = null;
       for (const member of node.members) {
@@ -102,7 +124,11 @@ function violations(file, text) {
         if (!placed) continue;
         if (highest && placed.order < highest.placed.order) {
           const line = source.getLineAndCharacterOfPosition(member.getStart(source)).line + 1;
-          found.push({ id: node.name.text, line, message: `${describe(member, placed)} comes after ${describe(highest.member, highest.placed)}` });
+          found.push({
+            id: node.name.text,
+            line,
+            message: `${describe(member, placed)} comes after ${describe(highest.member, highest.placed)}`,
+          });
           break;
         }
         if (!highest || placed.order > highest.placed.order) highest = { member, placed };
@@ -118,12 +144,14 @@ function violations(file, text) {
 function fixed(file, text) {
   const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true);
   const edits = [];
-  const visit = node => {
+  const visit = (node) => {
     if (ts.isClassDeclaration(node) && node.name && isAngular(node) && node.members.length) {
       const members = [...node.members];
-      const order = member => rank(member)?.order ?? 999;
-      const sorted = members.map((member, index) => ({ member, index }))
-        .sort((a, b) => order(a.member) - order(b.member) || a.index - b.index).map(entry => entry.member);
+      const order = (member) => rank(member)?.order ?? 999;
+      const sorted = members
+        .map((member, index) => ({ member, index }))
+        .sort((a, b) => order(a.member) - order(b.member) || a.index - b.index)
+        .map((entry) => entry.member);
       if (sorted.some((member, index) => member !== members[index])) {
         const start = members[0].getFullStart();
         const end = members[members.length - 1].getEnd();
@@ -132,7 +160,10 @@ function fixed(file, text) {
           const full = text.slice(member.getFullStart(), member.getEnd());
           const body = full.replace(/^([ \t]*\r?\n)+/, '');
           const previous = sorted[index - 1];
-          const blank = previous && (rank(previous)?.group !== rank(member)?.group || /\n[ \t]*\r?\n/.test(full.slice(0, full.length - body.length)));
+          const blank =
+            previous &&
+            (rank(previous)?.group !== rank(member)?.group ||
+              /\n[ \t]*\r?\n/.test(full.slice(0, full.length - body.length)));
           return (blank ? '\n\n' : '\n') + body;
         });
         edits.push({ start, end, text: pieces.join('') });
@@ -141,7 +172,9 @@ function fixed(file, text) {
     ts.forEachChild(node, visit);
   };
   visit(source);
-  return edits.sort((a, b) => b.start - a.start).reduce((result, edit) => result.slice(0, edit.start) + edit.text + result.slice(edit.end), text);
+  return edits
+    .sort((a, b) => b.start - a.start)
+    .reduce((result, edit) => result.slice(0, edit.start) + edit.text + result.slice(edit.end), text);
 }
 
 const fixIndex = process.argv.indexOf('--fix');
@@ -158,8 +191,12 @@ if (fixIndex >= 0) {
   process.exit(0);
 }
 
-const baseline = new Set((await readFile(baselineFile, 'utf8').catch(() => ''))
-  .split(/\r?\n/).map(line => line.replace(/#.*/, '').trim()).filter(Boolean));
+const baseline = new Set(
+  (await readFile(baselineFile, 'utf8').catch(() => ''))
+    .split(/\r?\n/)
+    .map((line) => line.replace(/#.*/, '').trim())
+    .filter(Boolean),
+);
 const problems = [];
 const current = new Set();
 for (const file of await sources(appRoot)) {
@@ -170,19 +207,24 @@ for (const file of await sources(appRoot)) {
     if (!baseline.has(entry)) problems.push(`${relative}:${violation.line} ${violation.id}: ${violation.message}`);
   }
 }
-const stale = [...baseline].filter(entry => !current.has(entry));
+const stale = [...baseline].filter((entry) => !current.has(entry));
 
 if (process.argv.includes('--write-baseline')) {
-  const header = '# Angular classes that broke the member order before signal-order-audit existed.\n'
-    + '# Put a class in order and delete its line; never add one. Regenerate: npm run signals:audit -- --write-baseline\n';
+  const header =
+    '# Angular classes that broke the member order before signal-order-audit existed.\n' +
+    '# Put a class in order and delete its line; never add one. Regenerate: npm run signals:audit -- --write-baseline\n';
   const { writeFile } = await import('node:fs/promises');
   await writeFile(baselineFile, header + [...current].sort().join('\n') + '\n');
   process.stdout.write(`Baseline written: ${current.size} classes.\n`);
   process.exit(0);
 }
 if (problems.length || stale.length) {
-  if (problems.length) process.stderr.write(`Class members out of order (inject → inputs → outputs → models → queries → signal → computed → effect → fields → constructor → methods; public → protected → private):\n${problems.join('\n')}\n`);
-  if (stale.length) process.stderr.write(`Now in order — delete from scripts/signal-order-baseline.txt:\n${stale.join('\n')}\n`);
+  if (problems.length)
+    process.stderr.write(
+      `Class members out of order (inject → inputs → outputs → models → queries → signal → computed → effect → fields → constructor → methods; public → protected → private):\n${problems.join('\n')}\n`,
+    );
+  if (stale.length)
+    process.stderr.write(`Now in order — delete from scripts/signal-order-baseline.txt:\n${stale.join('\n')}\n`);
   process.exit(1);
 }
 process.stdout.write(`Signal order audit passed: ${current.size} classes still listed in the baseline.\n`);

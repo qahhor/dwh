@@ -2,19 +2,18 @@ package com.smartup24.cms.instance.kauth.controller;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.annotation.ReturnsSecret;
-import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.kauth.repository.KauthApiTokenRepository;
 import com.smartup24.cms.instance.kauth.service.KauthApiTokenService;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import java.time.Instant;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.time.Instant;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/iam/profile/tokens")
@@ -40,7 +39,8 @@ public class KauthApiTokenController {
     @PostMapping
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "manage_tokens")
     @ReturnsSecret
-    public ResponseEntity<KauthApiTokenService.CreatedTokenResult> createToken(@Valid @RequestBody CreateTokenDto body) {
+    public ResponseEntity<KauthApiTokenService.CreatedTokenResult> createToken(
+            @Valid @RequestBody CreateTokenDto body) {
         Long userId = SecurityContext.getCurrentUserId();
         if (userId == null) {
             throw ApiException.unauthorized("Пользователь не авторизован");
@@ -62,8 +62,5 @@ public class KauthApiTokenController {
         return ResponseEntity.noContent().build();
     }
 
-    public record CreateTokenDto(
-            @NotBlank String name,
-            Instant expiresAt
-    ) {}
+    public record CreateTokenDto(@NotBlank String name, Instant expiresAt) {}
 }

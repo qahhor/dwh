@@ -172,7 +172,7 @@ export class SMTInputComponent implements FormValueControl<SMTInputValue> {
       touched: this.wasTouched(),
       required: this.required(),
       empty: this.text().trim() === '',
-    })
+    }),
   );
 
   readonly fieldId = `smt-input-${nextInputId++}`;
@@ -199,7 +199,7 @@ export class SMTInputComponent implements FormValueControl<SMTInputValue> {
   }
 
   toggleReveal(): void {
-    this.revealed.update(shown => !shown);
+    this.revealed.update((shown) => !shown);
   }
 
   focus(): void {

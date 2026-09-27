@@ -46,9 +46,21 @@ describe('SMTRatingComponent', () => {
   it('is a named radio group of stars, the chosen one being the only tab stop', async () => {
     const { first, stars } = await render();
     expect(first.getAttribute('aria-label')).toBe('Service');
-    expect(stars(first).map(star => star.getAttribute('aria-label'))).toEqual(['1 of 5', '2 of 5', '3 of 5', '4 of 5', '5 of 5']);
-    expect(stars(first).map(star => star.getAttribute('aria-checked'))).toEqual(['false', 'true', 'false', 'false', 'false']);
-    expect(stars(first).map(star => star.tabIndex)).toEqual([-1, 0, -1, -1, -1]);
+    expect(stars(first).map((star) => star.getAttribute('aria-label'))).toEqual([
+      '1 of 5',
+      '2 of 5',
+      '3 of 5',
+      '4 of 5',
+      '5 of 5',
+    ]);
+    expect(stars(first).map((star) => star.getAttribute('aria-checked'))).toEqual([
+      'false',
+      'true',
+      'false',
+      'false',
+      'false',
+    ]);
+    expect(stars(first).map((star) => star.tabIndex)).toEqual([-1, 0, -1, -1, -1]);
   });
 
   it('moves and chooses with the arrows and the ends, and clears a clearable rating by its own star', async () => {
@@ -67,7 +79,7 @@ describe('SMTRatingComponent', () => {
 
   it('writes to ngModel, names stars by its own maximum and follows the disabled state', async () => {
     const { fixture, second, stars, settle } = await render();
-    expect(stars(second).map(star => star.getAttribute('aria-label'))).toEqual(['1 of 3', '2 of 3', '3 of 3']);
+    expect(stars(second).map((star) => star.getAttribute('aria-label'))).toEqual(['1 of 3', '2 of 3', '3 of 3']);
     expect(second.getAttribute('aria-label')).toBe('Rating');
     stars(second)[2].click();
     await settle();

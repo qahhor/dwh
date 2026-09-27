@@ -1,5 +1,12 @@
 package com.smartup24.cms.instance.security;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
@@ -13,23 +20,15 @@ import com.smartup24.cms.instance.ms.task.controller.MsTaskController;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository;
 import com.smartup24.cms.instance.ms.task.service.MsTaskCommentService;
 import com.smartup24.cms.instance.ms.task.service.MsTaskService;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Test;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 class TaskFileDataScopeControllerTest {
 
@@ -43,7 +42,8 @@ class TaskFileDataScopeControllerTest {
         MsTaskService service = mock(MsTaskService.class);
         SecurityContext.setPrincipal(principal(Set.of()));
 
-        taskMvc(service).perform(get("/api/v1/tasks/42"))
+        taskMvc(service)
+                .perform(get("/api/v1/tasks/42"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("permission_denied"));
     }
@@ -52,10 +52,11 @@ class TaskFileDataScopeControllerTest {
     void taskEndpointReturnsNotFoundForOutOfScopeIdentifier() throws Exception {
         MsTaskService service = mock(MsTaskService.class);
         SecurityContext.setPrincipal(principal(Set.of("tasks.items.view")));
-        when(service.getTaskById(42L, 10L)).thenThrow(
-                ApiException.notFound(ErrorCode.TASK_NOT_FOUND, "Задача не найдена"));
+        when(service.getTaskById(42L, 10L))
+                .thenThrow(ApiException.notFound(ErrorCode.TASK_NOT_FOUND, "Задача не найдена"));
 
-        taskMvc(service).perform(get("/api/v1/tasks/42"))
+        taskMvc(service)
+                .perform(get("/api/v1/tasks/42"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("task_not_found"));
     }
@@ -70,7 +71,8 @@ class TaskFileDataScopeControllerTest {
         when(service.getAncestorChain(42L, 10L)).thenReturn(List.of());
         when(service.listTaskFiles(42L, 10L)).thenReturn(List.of());
 
-        taskMvc(service).perform(get("/api/v1/tasks/42"))
+        taskMvc(service)
+                .perform(get("/api/v1/tasks/42"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.task.id").value(42));
 
@@ -86,7 +88,8 @@ class TaskFileDataScopeControllerTest {
         MsTaskCommentService service = mock(MsTaskCommentService.class);
         SecurityContext.setPrincipal(principal(Set.of()));
 
-        commentMvc(service).perform(get("/api/v1/tasks/42/comments"))
+        commentMvc(service)
+                .perform(get("/api/v1/tasks/42/comments"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("permission_denied"));
     }
@@ -95,10 +98,11 @@ class TaskFileDataScopeControllerTest {
     void commentEndpointReturnsNotFoundForOutOfScopeTaskIdentifier() throws Exception {
         MsTaskCommentService service = mock(MsTaskCommentService.class);
         SecurityContext.setPrincipal(principal(Set.of("tasks.comments.view")));
-        when(service.listComments(42L, 10L)).thenThrow(
-                ApiException.notFound(ErrorCode.TASK_NOT_FOUND, "Задача не найдена"));
+        when(service.listComments(42L, 10L))
+                .thenThrow(ApiException.notFound(ErrorCode.TASK_NOT_FOUND, "Задача не найдена"));
 
-        commentMvc(service).perform(get("/api/v1/tasks/42/comments"))
+        commentMvc(service)
+                .perform(get("/api/v1/tasks/42/comments"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("task_not_found"));
     }
@@ -108,7 +112,8 @@ class TaskFileDataScopeControllerTest {
         MfFileService service = mock(MfFileService.class);
         SecurityContext.setPrincipal(principal(Set.of()));
 
-        fileMvc(service).perform(get("/api/v1/files/6db360cf-26ba-4729-b8c9-f5adcf2df74c"))
+        fileMvc(service)
+                .perform(get("/api/v1/files/6db360cf-26ba-4729-b8c9-f5adcf2df74c"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("permission_denied"));
     }
@@ -118,10 +123,11 @@ class TaskFileDataScopeControllerTest {
         MfFileService service = mock(MfFileService.class);
         UUID id = UUID.fromString("6db360cf-26ba-4729-b8c9-f5adcf2df74c");
         SecurityContext.setPrincipal(principal(Set.of("platform.files.view")));
-        when(service.getFileMetadata(id, 10L)).thenThrow(
-                ApiException.notFound(ErrorCode.FILE_NOT_FOUND, "Файл не найден"));
+        when(service.getFileMetadata(id, 10L))
+                .thenThrow(ApiException.notFound(ErrorCode.FILE_NOT_FOUND, "Файл не найден"));
 
-        fileMvc(service).perform(get("/api/v1/files/{id}", id))
+        fileMvc(service)
+                .perform(get("/api/v1/files/{id}", id))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("file_not_found"));
     }
@@ -133,7 +139,8 @@ class TaskFileDataScopeControllerTest {
         SecurityContext.setPrincipal(principal(Set.of("platform.files.view")));
         when(service.getFileMetadata(id, 10L)).thenReturn(file(id));
 
-        fileMvc(service).perform(get("/api/v1/files/{id}", id))
+        fileMvc(service)
+                .perform(get("/api/v1/files/{id}", id))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(id.toString()));
 
@@ -169,13 +176,19 @@ class TaskFileDataScopeControllerTest {
     private static MsTaskRepository.TaskRecord task(Long id) {
         Instant now = Instant.parse("2026-09-04T10:15:30Z");
         return new MsTaskRepository.TaskRecord(
-                id, null, null, "Scoped task", "", 1L, "medium", 10L,
-                Map.of(), null, null, null, now, now, 10L, 10L);
+                id, null, null, "Scoped task", "", 1L, "medium", 10L, Map.of(), null, null, null, now, now, 10L, 10L);
     }
 
     private static MfFileRepository.FileRecord file(UUID id) {
         return new MfFileRepository.FileRecord(
-                id, "abc", "scoped.txt", 1, "text/plain", "instance-files", "ab/abc",
-                Instant.parse("2026-09-04T10:15:30Z"), 10L);
+                id,
+                "abc",
+                "scoped.txt",
+                1,
+                "text/plain",
+                "instance-files",
+                "ab/abc",
+                Instant.parse("2026-09-04T10:15:30Z"),
+                10L);
     }
 }

@@ -15,7 +15,7 @@ describe('NotificationsComponent UI contracts', () => {
     markAllAsRead: vi.fn(() => of(undefined)),
     markAsRead: vi.fn(() => of(undefined)),
     fetchPreferences: vi.fn(() => of([])),
-    updatePreferences: vi.fn(() => of(undefined))
+    updatePreferences: vi.fn(() => of(undefined)),
   };
   const toastService = { success: vi.fn(), error: vi.fn() };
   const router = { navigateByUrl: vi.fn() };
@@ -27,21 +27,23 @@ describe('NotificationsComponent UI contracts', () => {
       providers: [
         { provide: NotificationService, useValue: notificationService },
         { provide: ToastService, useValue: toastService },
-        { provide: Router, useValue: router }
-      ]
+        { provide: Router, useValue: router },
+      ],
     }).compileComponents();
   });
 
   it('exposes marking an unread notification as an explicit named button', () => {
     const fixture = TestBed.createComponent(NotificationsComponent);
     fixture.detectChanges();
-    fixture.componentInstance.items.set([{
-      id: 7,
-      userId: 3,
-      title: 'Новая задача',
-      isRead: false,
-      createdAt: '2026-08-30T00:00:00Z'
-    }]);
+    fixture.componentInstance.items.set([
+      {
+        id: 7,
+        userId: 3,
+        title: 'Новая задача',
+        isRead: false,
+        createdAt: '2026-08-30T00:00:00Z',
+      },
+    ]);
     fixture.detectChanges();
 
     const action = fixture.nativeElement.querySelector('.mark-read-btn') as HTMLButtonElement;
@@ -55,7 +57,7 @@ describe('NotificationsComponent UI contracts', () => {
     fixture.detectChanges();
     fixture.componentInstance.items.set([
       { id: 1, userId: 3, title: 'Item 1', isRead: true, createdAt: '2026-08-30T00:00:00Z' },
-      { id: 2, userId: 3, title: 'Item 2', isRead: false, createdAt: '2026-08-30T00:00:00Z' }
+      { id: 2, userId: 3, title: 'Item 2', isRead: false, createdAt: '2026-08-30T00:00:00Z' },
     ]);
     fixture.detectChanges();
 
@@ -82,7 +84,7 @@ describe('NotificationsComponent UI contracts', () => {
       title: 'Задача назначена',
       targetUrl: '/tasks/100',
       isRead: false,
-      createdAt: '2026-08-30T00:00:00Z'
+      createdAt: '2026-08-30T00:00:00Z',
     };
     fixture.componentInstance.items.set([item]);
     fixture.detectChanges();
@@ -100,26 +102,47 @@ describe('NotificationsComponent UI contracts', () => {
     const fixture = TestBed.createComponent(NotificationsComponent);
     const comp = fixture.componentInstance;
 
-    expect(comp.getNotificationIcon({ id: 1, userId: 1, title: 'T', sourceModule: 'tasks', isRead: false, createdAt: '' })).toBe('task_alt');
-    expect(comp.getNotificationIcon({ id: 2, userId: 1, title: 'C', sourceModule: 'comments', isRead: false, createdAt: '' })).toBe('chat_bubble');
-    expect(comp.getNotificationIcon({ id: 3, userId: 1, title: 'S', sourceModule: 'system', isRead: false, createdAt: '' })).toBe('dns');
-    expect(comp.getNotificationIcon({ id: 4, userId: 1, title: 'A', sourceModule: 'auth', isRead: false, createdAt: '' })).toBe('shield');
-    expect(comp.getNotificationIcon({ id: 5, userId: 1, title: 'R', sourceModule: 'reports', isRead: false, createdAt: '' })).toBe('analytics');
+    expect(
+      comp.getNotificationIcon({ id: 1, userId: 1, title: 'T', sourceModule: 'tasks', isRead: false, createdAt: '' }),
+    ).toBe('task_alt');
+    expect(
+      comp.getNotificationIcon({
+        id: 2,
+        userId: 1,
+        title: 'C',
+        sourceModule: 'comments',
+        isRead: false,
+        createdAt: '',
+      }),
+    ).toBe('chat_bubble');
+    expect(
+      comp.getNotificationIcon({ id: 3, userId: 1, title: 'S', sourceModule: 'system', isRead: false, createdAt: '' }),
+    ).toBe('dns');
+    expect(
+      comp.getNotificationIcon({ id: 4, userId: 1, title: 'A', sourceModule: 'auth', isRead: false, createdAt: '' }),
+    ).toBe('shield');
+    expect(
+      comp.getNotificationIcon({ id: 5, userId: 1, title: 'R', sourceModule: 'reports', isRead: false, createdAt: '' }),
+    ).toBe('analytics');
     expect(comp.getNotificationIcon({ id: 6, userId: 1, title: 'D', isRead: true, createdAt: '' })).toBe('drafts');
-    expect(comp.getNotificationIcon({ id: 7, userId: 1, title: 'U', isRead: false, createdAt: '' })).toBe('mark_email_unread');
+    expect(comp.getNotificationIcon({ id: 7, userId: 1, title: 'U', isRead: false, createdAt: '' })).toBe(
+      'mark_email_unread',
+    );
   });
 
   it('stops propagation when mark-read button is clicked on a clickable row', () => {
     const fixture = TestBed.createComponent(NotificationsComponent);
     fixture.detectChanges();
-    fixture.componentInstance.items.set([{
-      id: 9,
-      userId: 3,
-      title: 'Задача',
-      targetUrl: '/tasks/99',
-      isRead: false,
-      createdAt: '2026-08-30T00:00:00Z'
-    }]);
+    fixture.componentInstance.items.set([
+      {
+        id: 9,
+        userId: 3,
+        title: 'Задача',
+        targetUrl: '/tasks/99',
+        isRead: false,
+        createdAt: '2026-08-30T00:00:00Z',
+      },
+    ]);
     fixture.detectChanges();
 
     const markBtn = fixture.nativeElement.querySelector('.mark-read-btn') as HTMLButtonElement;
@@ -138,11 +161,9 @@ describe('NotificationsComponent UI contracts', () => {
     expect(notificationService.fetchPreferences).toHaveBeenCalled();
     expect(fixture.componentInstance.isPreferencesOpen()).toBe(true);
 
-    fixture.componentInstance.savePreferences([
-      { eventType: 'task_assigned', channel: 'in_app', isEnabled: true }
-    ]);
+    fixture.componentInstance.savePreferences([{ eventType: 'task_assigned', channel: 'in_app', isEnabled: true }]);
     expect(notificationService.updatePreferences).toHaveBeenCalledWith([
-      { eventType: 'task_assigned', channel: 'in_app', isEnabled: true }
+      { eventType: 'task_assigned', channel: 'in_app', isEnabled: true },
     ]);
     expect(fixture.componentInstance.isPreferencesOpen()).toBe(false);
   });

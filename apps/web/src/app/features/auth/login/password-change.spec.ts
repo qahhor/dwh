@@ -12,9 +12,18 @@ import { LoginComponent } from './login.component';
 
 describe('Password change ends the old authenticated session', () => {
   const user: User = {
-    id: 17, name: 'Password Test', login: 'password-test', email: 'password@example.test',
-    state: 'A', language: 'ru', timezone: 'UTC', attributes: {}, is2faEnabled: false,
-    forcePasswordChange: true, createdAt: '2026-09-06T00:00:00Z', modifiedAt: '2026-09-06T00:00:00Z'
+    id: 17,
+    name: 'Password Test',
+    login: 'password-test',
+    email: 'password@example.test',
+    state: 'A',
+    language: 'ru',
+    timezone: 'UTC',
+    attributes: {},
+    is2faEnabled: false,
+    forcePasswordChange: true,
+    createdAt: '2026-09-06T00:00:00Z',
+    modifiedAt: '2026-09-06T00:00:00Z',
   };
   let response: Subject<void>;
   let auth: AuthService;
@@ -22,11 +31,9 @@ describe('Password change ends the old authenticated session', () => {
   let toast: ToastService;
   const router = { navigate: vi.fn(() => Promise.resolve(true)) };
   const api = {
-    get: vi.fn((path: string) => of(path === '/auth/me'
-      ? { user, permissions: ['*.*'], permissionsVersion: 7 }
-      : [])),
+    get: vi.fn((path: string) => of(path === '/auth/me' ? { user, permissions: ['*.*'], permissionsVersion: 7 } : [])),
     post: vi.fn(),
-    delete: vi.fn()
+    delete: vi.fn(),
   };
 
   beforeEach(async () => {
@@ -36,10 +43,12 @@ describe('Password change ends the old authenticated session', () => {
     await TestBed.configureTestingModule({
       imports: [LoginComponent, ProfileComponent],
       providers: [
-        AuthService, PermissionService, ToastService,
+        AuthService,
+        PermissionService,
+        ToastService,
         { provide: ApiService, useValue: api },
-        { provide: Router, useValue: router }
-      ]
+        { provide: Router, useValue: router },
+      ],
     }).compileComponents();
     auth = TestBed.inject(AuthService);
     permissions = TestBed.inject(PermissionService);
@@ -54,7 +63,10 @@ describe('Password change ends the old authenticated session', () => {
     expect(auth.currentUser()).toBeNull();
     expect(permissions.hasPermission('tasks.items', 'view')).toBe(false);
     expect(toast.toasts()).toHaveLength(1);
-    expect(toast.toasts()[0]).toMatchObject({ type: 'success', message: 'Пароль изменён. Войдите снова с новым паролем.' });
+    expect(toast.toasts()[0]).toMatchObject({
+      type: 'success',
+      message: 'Пароль изменён. Войдите снова с новым паролем.',
+    });
     expect(router.navigate).toHaveBeenCalledWith(['/login'], { replaceUrl: true });
     expect(api.post).toHaveBeenCalledTimes(1);
     expect(api.get).not.toHaveBeenCalledWith('/auth/me');
@@ -83,8 +95,14 @@ describe('Password change ends the old authenticated session', () => {
 
     expect(component.step()).toBe('credentials');
     expect(component.login).toBe(user.login);
-    expect([component.password, component.tempOldPassword, component.newPassword,
-      component.confirmNewPassword, component.otpToken, component.otpCode]).toEqual(['', '', '', '', '', '']);
+    expect([
+      component.password,
+      component.tempOldPassword,
+      component.newPassword,
+      component.confirmNewPassword,
+      component.otpToken,
+      component.otpCode,
+    ]).toEqual(['', '', '', '', '', '']);
     expect(fixture.nativeElement.querySelector('#password')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('#new-password')).toBeNull();
     assertSignedOut();
@@ -116,7 +134,9 @@ describe('Password change ends the old authenticated session', () => {
     const component = fixture.componentInstance;
     fixture.detectChanges();
     component.passwordForm = {
-      oldPassword: 'Before-Change-2026!', newPassword: 'After-Change-2026!', confirmPassword: 'After-Change-2026!'
+      oldPassword: 'Before-Change-2026!',
+      newPassword: 'After-Change-2026!',
+      confirmPassword: 'After-Change-2026!',
     };
     component.submitChangePassword(new Event('submit'));
     expect(auth.isAuthenticated()).toBe(true);
@@ -135,7 +155,9 @@ describe('Password change ends the old authenticated session', () => {
     const component = fixture.componentInstance;
     fixture.detectChanges();
     component.passwordForm = {
-      oldPassword: 'Before-Change-2026!', newPassword: 'After-Change-2026!', confirmPassword: 'After-Change-2026!'
+      oldPassword: 'Before-Change-2026!',
+      newPassword: 'After-Change-2026!',
+      confirmPassword: 'After-Change-2026!',
     };
     component.submitChangePassword(new Event('submit'));
 
@@ -149,28 +171,33 @@ describe('Password change ends the old authenticated session', () => {
     expect(toast.toasts()).toHaveLength(0);
   });
 
-  it.each(['checkSession', 'refreshMe'] as const)('ignores a late %s response from before password revocation', (method) => {
-    const previousSession = new Subject<MeResponse>();
-    api.get.mockReturnValueOnce(previousSession.asObservable());
-    const observed = vi.fn();
-    auth[method]().subscribe(observed);
-    const fixture = TestBed.createComponent(ProfileComponent);
-    const component = fixture.componentInstance;
-    component.passwordForm = {
-      oldPassword: 'Before-Change-2026!', newPassword: 'After-Change-2026!', confirmPassword: 'After-Change-2026!'
-    };
-    component.submitChangePassword(new Event('submit'));
-    response.next();
-    response.complete();
-    expect(auth.isAuthenticated()).toBe(false);
+  it.each(['checkSession', 'refreshMe'] as const)(
+    'ignores a late %s response from before password revocation',
+    (method) => {
+      const previousSession = new Subject<MeResponse>();
+      api.get.mockReturnValueOnce(previousSession.asObservable());
+      const observed = vi.fn();
+      auth[method]().subscribe(observed);
+      const fixture = TestBed.createComponent(ProfileComponent);
+      const component = fixture.componentInstance;
+      component.passwordForm = {
+        oldPassword: 'Before-Change-2026!',
+        newPassword: 'After-Change-2026!',
+        confirmPassword: 'After-Change-2026!',
+      };
+      component.submitChangePassword(new Event('submit'));
+      response.next();
+      response.complete();
+      expect(auth.isAuthenticated()).toBe(false);
 
-    previousSession.next({ user, permissions: ['*.*'], permissionsVersion: 7 });
-    previousSession.complete();
+      previousSession.next({ user, permissions: ['*.*'], permissionsVersion: 7 });
+      previousSession.complete();
 
-    expect(auth.isAuthenticated()).toBe(false);
-    expect(permissions.hasPermission('tasks.items', 'view')).toBe(false);
-    expect(auth.isLoading()).toBe(false);
-    if (method === 'checkSession') expect(observed).toHaveBeenCalledWith(null);
-    else expect(observed).not.toHaveBeenCalled();
-  });
+      expect(auth.isAuthenticated()).toBe(false);
+      expect(permissions.hasPermission('tasks.items', 'view')).toBe(false);
+      expect(auth.isLoading()).toBe(false);
+      if (method === 'checkSession') expect(observed).toHaveBeenCalledWith(null);
+      else expect(observed).not.toHaveBeenCalled();
+    },
+  );
 });

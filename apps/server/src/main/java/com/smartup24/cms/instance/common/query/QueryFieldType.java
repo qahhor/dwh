@@ -1,9 +1,5 @@
 package com.smartup24.cms.instance.common.query;
 
-import java.util.EnumSet;
-import java.util.Locale;
-import java.util.Set;
-
 import static com.smartup24.cms.instance.common.query.QueryOp.BETWEEN;
 import static com.smartup24.cms.instance.common.query.QueryOp.CONTAINS;
 import static com.smartup24.cms.instance.common.query.QueryOp.EQ;
@@ -14,6 +10,10 @@ import static com.smartup24.cms.instance.common.query.QueryOp.LT;
 import static com.smartup24.cms.instance.common.query.QueryOp.LTE;
 import static com.smartup24.cms.instance.common.query.QueryOp.NE;
 import static com.smartup24.cms.instance.common.query.QueryOp.STARTS_WITH;
+
+import java.util.EnumSet;
+import java.util.Locale;
+import java.util.Set;
 
 /** Тип поля реестра: от него зависят разбор значения, допустимые операции и редактор фильтра на клиенте. */
 public enum QueryFieldType {

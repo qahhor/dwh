@@ -1,8 +1,5 @@
 package com.smartup24.cms.instance.fnd.migration;
 
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.math.BigInteger;
@@ -11,6 +8,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 
 /**
  * Каталог версионных миграций одной БД на classpath: имена файлов и последняя ожидаемая версия.
@@ -31,8 +30,8 @@ public final class MigrationCatalog {
     /** Читает каталог {@code classpath:<location>/V*.sql}; каталог без файлов — ошибка конфигурации. */
     public static MigrationCatalog onClasspath(String location) {
         try {
-            Resource[] resources = new PathMatchingResourcePatternResolver()
-                    .getResources("classpath*:" + location + "/V*.sql");
+            Resource[] resources =
+                    new PathMatchingResourcePatternResolver().getResources("classpath*:" + location + "/V*.sql");
             List<String> names = Arrays.stream(resources)
                     .map(Resource::getFilename)
                     .filter(Objects::nonNull)

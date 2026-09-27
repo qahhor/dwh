@@ -11,14 +11,13 @@ import com.smartup24.cms.instance.md.service.MdCustomFieldService;
 import com.smartup24.cms.instance.md.service.ModuleRegistryService;
 import com.smartup24.cms.instance.ms.note.repository.MsNoteRepository;
 import com.smartup24.cms.instance.ms.note.repository.MsNoteRepository.NoteRecord;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class MsNoteService {
@@ -29,10 +28,11 @@ public class MsNoteService {
     private final ModuleRegistryService moduleRegistryService;
 
     @Autowired
-    public MsNoteService(MsNoteRepository noteRepository,
-                         AuditLogService auditLogService,
-                         MdCustomFieldService customFieldService,
-                         @Autowired(required = false) ModuleRegistryService moduleRegistryService) {
+    public MsNoteService(
+            MsNoteRepository noteRepository,
+            AuditLogService auditLogService,
+            MdCustomFieldService customFieldService,
+            @Autowired(required = false) ModuleRegistryService moduleRegistryService) {
         this.noteRepository = noteRepository;
         this.auditLogService = auditLogService;
         this.customFieldService = customFieldService;
@@ -66,32 +66,46 @@ public class MsNoteService {
             Map<String, Object> attributes,
             Long createdBy,
             Instant createdAt,
-            Instant modifiedAt
-    ) {
+            Instant modifiedAt) {
         public static NoteView from(NoteRecord r) {
             return new NoteView(
-                    r.id(), r.title(), r.contentMd(), r.color(), r.isPinned(),
-                    r.attributes(), r.createdBy(), r.createdAt(), r.modifiedAt()
-            );
+                    r.id(),
+                    r.title(),
+                    r.contentMd(),
+                    r.color(),
+                    r.isPinned(),
+                    r.attributes(),
+                    r.createdBy(),
+                    r.createdAt(),
+                    r.modifiedAt());
         }
     }
 
     /** A page of the owner's notes through the registry ({@code ms.notes}): filter, sort and search {@code q}. */
     @Transactional(readOnly = true)
-    public KeysetPage<NoteView> getNotes(Long userId, Integer limit, String cursor,
-                                                                          String filter, String sort, String search) {
+    public KeysetPage<NoteView> getNotes(
+            Long userId, Integer limit, String cursor, String filter, String sort, String search) {
         checkModuleActive();
         var plan = QueryCompiler.compile(
-                registry == null ? MsNoteQuery.LIST : registry.resolve(MsNoteQuery.LIST), filter, sort, limit, cursor, search);
+                registry == null ? MsNoteQuery.LIST : registry.resolve(MsNoteQuery.LIST),
+                filter,
+                sort,
+                limit,
+                cursor,
+                search);
         var page = noteRepository.pageByOwner(plan, userId);
-        return new KeysetPage<>(page.items().stream().map(NoteView::from).toList(),
-                page.nextCursor(), page.hasMore(), page.totalEstimated());
+        return new KeysetPage<>(
+                page.items().stream().map(NoteView::from).toList(),
+                page.nextCursor(),
+                page.hasMore(),
+                page.totalEstimated());
     }
 
     @Transactional(readOnly = true)
     public NoteView getNote(Long id, Long userId) {
         checkModuleActive();
-        var note = noteRepository.findById(id)
+        var note = noteRepository
+                .findById(id)
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Заметка не найдена: " + id));
         if (!note.createdBy().equals(userId)) {
             throw ApiException.forbidden(ErrorCode.FORBIDDEN, "Нет доступа к чужой заметке");
@@ -100,8 +114,13 @@ public class MsNoteService {
     }
 
     @Transactional
-    public NoteView createNote(String title, String contentMd, String color, boolean isPinned,
-                               Map<String, Object> attributes, Long userId) {
+    public NoteView createNote(
+            String title,
+            String contentMd,
+            String color,
+            boolean isPinned,
+            Map<String, Object> attributes,
+            Long userId) {
         checkModuleActive();
         EntityValidator.check(MsNoteEntity.DEFINITION, values(title, contentMd, color, isPinned), false);
 
@@ -111,7 +130,10 @@ public class MsNoteService {
 
         var note = noteRepository.create(title.trim(), contentMd, color, isPinned, attributes, userId);
 
-        auditLogService.logChange("ms_notes", String.valueOf(note.id()), "I",
+        auditLogService.logChange(
+                "ms_notes",
+                String.valueOf(note.id()),
+                "I",
                 List.of("title", "color", "is_pinned"),
                 null,
                 Map.of("title", note.title(), "color", note.color(), "is_pinned", note.isPinned()));
@@ -120,10 +142,17 @@ public class MsNoteService {
     }
 
     @Transactional
-    public NoteView updateNote(Long id, String title, String contentMd, String color, Boolean isPinned,
-                               Map<String, Object> attributes, Long userId) {
+    public NoteView updateNote(
+            Long id,
+            String title,
+            String contentMd,
+            String color,
+            Boolean isPinned,
+            Map<String, Object> attributes,
+            Long userId) {
         checkModuleActive();
-        var existing = noteRepository.findById(id)
+        var existing = noteRepository
+                .findById(id)
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Заметка не найдена: " + id));
         if (!existing.createdBy().equals(userId)) {
             throw ApiException.forbidden(ErrorCode.FORBIDDEN, "Нет доступа к чужой заметке");
@@ -136,7 +165,10 @@ public class MsNoteService {
 
         var updated = noteRepository.update(id, title, contentMd, color, isPinned, attributes, userId);
 
-        auditLogService.logChange("ms_notes", String.valueOf(id), "U",
+        auditLogService.logChange(
+                "ms_notes",
+                String.valueOf(id),
+                "U",
                 List.of("title", "color", "is_pinned"),
                 Map.of("title", existing.title(), "color", existing.color(), "is_pinned", existing.isPinned()),
                 Map.of("title", updated.title(), "color", updated.color(), "is_pinned", updated.isPinned()));
@@ -157,7 +189,8 @@ public class MsNoteService {
     @Transactional
     public NoteView togglePinned(Long id, Long userId) {
         checkModuleActive();
-        var existing = noteRepository.findById(id)
+        var existing = noteRepository
+                .findById(id)
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Заметка не найдена: " + id));
         if (!existing.createdBy().equals(userId)) {
             throw ApiException.forbidden(ErrorCode.FORBIDDEN, "Нет доступа к чужой заметке");
@@ -169,7 +202,8 @@ public class MsNoteService {
     @Transactional
     public void deleteNote(Long id, Long userId) {
         checkModuleActive();
-        var existing = noteRepository.findById(id)
+        var existing = noteRepository
+                .findById(id)
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Заметка не найдена: " + id));
         if (!existing.createdBy().equals(userId)) {
             throw ApiException.forbidden(ErrorCode.FORBIDDEN, "Нет доступа к чужой заметке");
@@ -177,9 +211,7 @@ public class MsNoteService {
 
         noteRepository.delete(id);
 
-        auditLogService.logChange("ms_notes", String.valueOf(id), "D",
-                List.of("title"),
-                Map.of("title", existing.title()),
-                null);
+        auditLogService.logChange(
+                "ms_notes", String.valueOf(id), "D", List.of("title"), Map.of("title", existing.title()), null);
     }
 }

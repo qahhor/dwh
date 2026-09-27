@@ -162,13 +162,13 @@ export class SMTSkeletonDirective implements OnDestroy {
     this.renderer.setStyle(
       el,
       'background',
-      `linear-gradient(90deg, ${baseColor} 25%, ${shimmerColor} 50%, ${baseColor} 75%)`
+      `linear-gradient(90deg, ${baseColor} 25%, ${shimmerColor} 50%, ${baseColor} 75%)`,
     );
     this.renderer.setStyle(el, 'backgroundSize', '200% 100%');
     this.renderer.setStyle(
       el,
       'animation',
-      `${SHARED_ANIMATION_NAME} ${this.smtSkeletonDuration()}ms ease-in-out infinite`
+      `${SHARED_ANIMATION_NAME} ${this.smtSkeletonDuration()}ms ease-in-out infinite`,
     );
   }
 

@@ -7,7 +7,7 @@ import { Task, TaskStatus } from '../../../core/models/task.models';
 import { safeNumericRecordId } from '../../../core/services/search-target';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class TaskKanbanService {
   private readonly api = inject(ApiService);
@@ -20,7 +20,7 @@ export class TaskKanbanService {
     event: CdkDragDrop<Task[]>,
     targetStatusId: number,
     canUpdate: boolean,
-    onStatusChange: (task: Task, targetStatusId: number) => void
+    onStatusChange: (task: Task, targetStatusId: number) => void,
   ): void {
     if (!canUpdate) return;
     const task = event.item.data as Task;
@@ -64,7 +64,7 @@ export class TaskKanbanService {
     event: DragEvent,
     targetStatusId: number,
     canUpdate: boolean,
-    onStatusChange: (task: Task, targetStatusId: number) => void
+    onStatusChange: (task: Task, targetStatusId: number) => void,
   ): void {
     if (!canUpdate) return;
     event.preventDefault();
@@ -81,7 +81,7 @@ export class TaskKanbanService {
   }
 
   getTasksByStatus(statusId: number, tasks: Task[]): Task[] {
-    return tasks.filter(t => t.statusId === statusId);
+    return tasks.filter((t) => t.statusId === statusId);
   }
 
   isFirstStatus(statusId: number, statuses: TaskStatus[]): boolean {
@@ -97,10 +97,10 @@ export class TaskKanbanService {
     direction: -1 | 1,
     statuses: TaskStatus[],
     canUpdate: boolean,
-    onUpdateStatus: (taskId: number, targetStatusId: number) => void
+    onUpdateStatus: (taskId: number, targetStatusId: number) => void,
   ): void {
     if (!canUpdate) return;
-    const currentIndex = statuses.findIndex(s => s.id === task.statusId);
+    const currentIndex = statuses.findIndex((s) => s.id === task.statusId);
     if (currentIndex === -1) return;
 
     const targetIndex = currentIndex + direction;
@@ -110,29 +110,20 @@ export class TaskKanbanService {
     }
   }
 
-  updatePriority(
-    taskId: number,
-    newPriority: string,
-    onLocalUpdate: () => void
-  ): void {
+  updatePriority(taskId: number, newPriority: string, onLocalUpdate: () => void): void {
     if (!safeNumericRecordId(taskId) || !newPriority) return;
     this.api.patch(`/tasks/${taskId}`, { priority: newPriority }).subscribe({
       next: () => {
         this.toast.success(this.uiI18n.translate('tasks.priority_updated'));
         onLocalUpdate();
       },
-      error: err => {
+      error: (err) => {
         this.toast.error(err.error?.message || this.uiI18n.translate('tasks.ne_udalos_izmenit_prioritet'));
-      }
+      },
     });
   }
 
-  updateStatus(
-    taskId: number,
-    newStatusId: number,
-    onApplyVisible: () => void,
-    onUpdateSelected: () => void
-  ): void {
+  updateStatus(taskId: number, newStatusId: number, onApplyVisible: () => void, onUpdateSelected: () => void): void {
     if (!safeNumericRecordId(taskId) || !safeNumericRecordId(newStatusId)) return;
     this.api.post(`/tasks/${taskId}/status`, { statusId: newStatusId }).subscribe({
       next: () => {
@@ -140,9 +131,9 @@ export class TaskKanbanService {
         onApplyVisible();
         onUpdateSelected();
       },
-      error: err => {
+      error: (err) => {
         this.toast.error(err.error?.message || this.uiI18n.translate('tasks.ne_udalos_izmenit_status'));
-      }
+      },
     });
   }
 
@@ -152,7 +143,7 @@ export class TaskKanbanService {
     statusName: string,
     onApplyVisible: () => void,
     onUpdateSelected: () => void,
-    onErrorReload: () => void
+    onErrorReload: () => void,
   ): void {
     if (!safeNumericRecordId(task.id) || !safeNumericRecordId(targetStatusId)) return;
     onApplyVisible();
@@ -162,10 +153,10 @@ export class TaskKanbanService {
       next: () => {
         this.toast.success(this.uiI18n.translate('tasks.task_moved_to_status', { id: task.id, status: statusName }));
       },
-      error: err => {
+      error: (err) => {
         this.toast.error(err.error?.message || this.uiI18n.translate('tasks.ne_udalos_izmenit_status_zadachi'));
         onErrorReload();
-      }
+      },
     });
   }
 
@@ -174,14 +165,16 @@ export class TaskKanbanService {
     statusId: number,
     statuses: TaskStatus[],
     statusFilterMode: 'active' | 'all' | number,
-    tasks: WritableSignal<Task[]>
+    tasks: WritableSignal<Task[]>,
   ): void {
-    const targetStatus = statuses.find(status => status.id === statusId);
+    const targetStatus = statuses.find((status) => status.id === statusId);
     const leavesCurrentFilter =
       (statusFilterMode === 'active' && targetStatus?.isTerminal === true) ||
       (typeof statusFilterMode === 'number' && statusFilterMode !== statusId);
-    tasks.update(list => leavesCurrentFilter
-      ? list.filter(task => task.id !== taskId)
-      : list.map(task => task.id === taskId ? { ...task, statusId } : task));
+    tasks.update((list) =>
+      leavesCurrentFilter
+        ? list.filter((task) => task.id !== taskId)
+        : list.map((task) => (task.id === taskId ? { ...task, statusId } : task)),
+    );
   }
 }

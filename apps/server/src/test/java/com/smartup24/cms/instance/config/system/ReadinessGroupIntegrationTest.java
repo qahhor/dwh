@@ -1,16 +1,15 @@
 package com.smartup24.cms.instance.config.system;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.health.actuate.endpoint.HealthEndpointGroup;
 import org.springframework.boot.health.actuate.endpoint.HealthEndpointGroups;
 import org.springframework.context.ApplicationContext;
-
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Plan 10/10, item 0.7: readiness waits for the main database; the degradable dependencies are health components
@@ -35,8 +34,11 @@ class ReadinessGroupIntegrationTest extends EmbeddedPostgresTest {
         // A dead database must stop the traffic, not restart the process.
         assertThat(liveness.isMember("database")).isFalse();
         for (String degradable : List.of("dwh", "typesense", "clamav")) {
-            assertThat(context.containsBean(degradable + "HealthIndicator")).as("%s is monitored", degradable).isTrue();
-            assertThat(readiness.isMember(degradable)).as("%s outage degrades, it does not stop traffic", degradable)
+            assertThat(context.containsBean(degradable + "HealthIndicator"))
+                    .as("%s is monitored", degradable)
+                    .isTrue();
+            assertThat(readiness.isMember(degradable))
+                    .as("%s outage degrades, it does not stop traffic", degradable)
                     .isFalse();
         }
     }

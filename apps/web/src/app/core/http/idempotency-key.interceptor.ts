@@ -35,15 +35,16 @@ export const idempotencyKeyInterceptor: HttpInterceptorFn = (request, next) => {
       delay: (error: unknown, attempt: number) => {
         if (!(error instanceof HttpErrorResponse) || !RETRYABLE.has(error.status)) throw error;
         return timer(retryDelay(error, attempt));
-      }
-    })
+      },
+    }),
   );
 };
 
 function wantsKey(request: HttpRequest<unknown>): boolean {
   if (!MUTATING.has(request.method) || request.headers.has(IDEMPOTENCY_HEADER)) return false;
   const path = pathOf(request.url).split('?')[0];
-  if (!path.startsWith('/api/v1/') || path === '/api/v1/auth' || UNSUPPORTED.some(prefix => path.startsWith(prefix))) return false;
+  if (!path.startsWith('/api/v1/') || path === '/api/v1/auth' || UNSUPPORTED.some((prefix) => path.startsWith(prefix)))
+    return false;
   if (RETURNS_SECRET.has(`${request.method} ${path.replace(/\/+$/, '')}`)) return false;
   // A stored answer is replayed as JSON: downloads keep their own handling.
   if (request.responseType !== 'json' && request.responseType !== 'text') return false;
@@ -93,6 +94,6 @@ export function newKey(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(16));
   bytes[6] = (bytes[6] & 0x0f) | 0x40;
   bytes[8] = (bytes[8] & 0x3f) | 0x80;
-  const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }

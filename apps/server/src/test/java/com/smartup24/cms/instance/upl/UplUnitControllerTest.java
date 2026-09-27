@@ -1,5 +1,10 @@
 package com.smartup24.cms.instance.upl;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+
 import com.jayway.jsonpath.JsonPath;
 import com.smartup24.cms.instance.fnd.FndActors;
 import com.smartup24.cms.instance.fnd.units.FndUnitService;
@@ -8,6 +13,9 @@ import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import com.smartup24.cms.instance.upl.api.UplUnitController;
 import jakarta.servlet.http.Cookie;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,15 +28,6 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import tools.jackson.databind.ObjectMapper;
 
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-
 /** HTTP-проверка списка единиц {@code /api/v1/upl/units} (К-1, И4). */
 class UplUnitControllerTest extends EmbeddedPostgresTest {
 
@@ -37,12 +36,16 @@ class UplUnitControllerTest extends EmbeddedPostgresTest {
 
     @Autowired
     private WebApplicationContext wac;
+
     @Autowired
     private MdUserService users;
+
     @Autowired
     private JdbcClient jdbc;
+
     @Autowired
     private FndUnitService units;
+
     @Autowired
     private FndActors actors;
 
@@ -52,8 +55,7 @@ class UplUnitControllerTest extends EmbeddedPostgresTest {
     private String baseUnitCode;
     private String derivedUnitCode;
 
-    private record Session(Cookie session, Cookie csrf) {
-    }
+    private record Session(Cookie session, Cookie csrf) {}
 
     @BeforeEach
     void setUp() {
@@ -67,8 +69,8 @@ class UplUnitControllerTest extends EmbeddedPostgresTest {
         baseUnitCode = "ub" + rnd();
         derivedUnitCode = "ud" + rnd();
         units.registerUnit(baseUnitCode, Map.of("uz", "Bazaviy TEST"), baseUnitCode, actors.system());
-        units.registerUnit(derivedUnitCode, Map.of("uz", "Hosila TEST", "ru", "Единица TEST"), baseUnitCode,
-                actors.system());
+        units.registerUnit(
+                derivedUnitCode, Map.of("uz", "Hosila TEST", "ru", "Единица TEST"), baseUnitCode, actors.system());
     }
 
     @Test
@@ -106,7 +108,8 @@ class UplUnitControllerTest extends EmbeddedPostgresTest {
     void displayNameFallsBackToCode() {
         assertThat(UplUnitController.displayName("u_x", Map.of())).isEqualTo("u_x");
         assertThat(UplUnitController.displayName("u_x", Map.of("uz", "A"))).isEqualTo("A");
-        assertThat(UplUnitController.displayName("u_x", Map.of("uz", "A", "ru", "Б"))).isEqualTo("Б");
+        assertThat(UplUnitController.displayName("u_x", Map.of("uz", "A", "ru", "Б")))
+                .isEqualTo("Б");
         assertThat(UplUnitController.displayName("u_x", Map.of("ru", ""))).isEqualTo("u_x");
     }
 
@@ -116,23 +119,44 @@ class UplUnitControllerTest extends EmbeddedPostgresTest {
     }
 
     private void createUser(String login, String role) {
-        Long systemId = jdbc.sql("select id from md_users where login = 'system'").query(Long.class).single();
-        Long roleId = jdbc.sql("select id from md_roles where pcode = :role").param("role", role)
-                .query(Long.class).single();
-        users.createUser("TEST " + login, login, login + "@test.local", null, PASSWORD, null, "ru", "UTC", null,
-                Map.of(), false, false, List.of(roleId), systemId);
+        Long systemId = jdbc.sql("select id from md_users where login = 'system'")
+                .query(Long.class)
+                .single();
+        Long roleId = jdbc.sql("select id from md_roles where pcode = :role")
+                .param("role", role)
+                .query(Long.class)
+                .single();
+        users.createUser(
+                "TEST " + login,
+                login,
+                login + "@test.local",
+                null,
+                PASSWORD,
+                null,
+                "ru",
+                "UTC",
+                null,
+                Map.of(),
+                false,
+                false,
+                List.of(roleId),
+                systemId);
     }
 
     private Session login(String login) throws Exception {
-        var response = mvc.perform(post("/api/v1/auth/login").contentType("application/json")
+        var response = mvc.perform(post("/api/v1/auth/login")
+                        .contentType("application/json")
                         .content(json(Map.of("login", login, "password", PASSWORD, "deviceInfo", "test"))))
-                .andReturn().getResponse();
+                .andReturn()
+                .getResponse();
         assertThat(response.getStatus()).as(response.getContentAsString()).isEqualTo(200);
         Cookie session = response.getCookie(KauthPref.SESSION_COOKIE_NAME);
         assertThat(session).as("session cookie").isNotNull();
         Cookie csrf = response.getCookie("XSRF-TOKEN");
         if (csrf == null) {
-            var handshake = mvc.perform(get("/api/v1/auth/me").cookie(session)).andReturn().getResponse();
+            var handshake = mvc.perform(get("/api/v1/auth/me").cookie(session))
+                    .andReturn()
+                    .getResponse();
             assertThat(handshake.getStatus()).isEqualTo(200);
             csrf = handshake.getCookie("XSRF-TOKEN");
         }
@@ -141,7 +165,8 @@ class UplUnitControllerTest extends EmbeddedPostgresTest {
     }
 
     private MockHttpServletResponse sendGet(Session s, String url, int expectedStatus) throws Exception {
-        var response = mvc.perform(get(url).cookie(s.session(), s.csrf())).andReturn().getResponse();
+        var response =
+                mvc.perform(get(url).cookie(s.session(), s.csrf())).andReturn().getResponse();
         assertThat(response.getStatus()).as(response.getContentAsString()).isEqualTo(expectedStatus);
         return response;
     }

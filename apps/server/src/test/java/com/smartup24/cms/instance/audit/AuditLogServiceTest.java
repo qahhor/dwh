@@ -1,25 +1,24 @@
 package com.smartup24.cms.instance.audit;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.*;
+
 import com.smartup24.cms.core.pagination.CursorUtils;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.metrics.PlatformMetrics;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
-
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.*;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 
 class AuditLogServiceTest {
 
@@ -27,16 +26,22 @@ class AuditLogServiceTest {
     private final PlatformMetrics metrics = Mockito.mock(PlatformMetrics.class);
     private final AuditLogService service = new AuditLogService(repository, metrics, new AuditDataRedactor());
 
-
     @Test
     @DisplayName("Фиксация мутации сущности должна делегироваться в AuditLogRepository с параметрами")
     void shouldLogChange() {
         service.logChange("md_users", "10", "I", List.of("name", "login"), null, Map.of("name", "Alice"));
 
-        verify(repository, times(1)).logChange(
-                eq("md_users"), eq("10"), eq("I"), any(), any(), anyBoolean(),
-                eq(List.of("name", "login")), isNull(), eq(Map.of("name", "Alice"))
-        );
+        verify(repository, times(1))
+                .logChange(
+                        eq("md_users"),
+                        eq("10"),
+                        eq("I"),
+                        any(),
+                        any(),
+                        anyBoolean(),
+                        eq(List.of("name", "login")),
+                        isNull(),
+                        eq(Map.of("name", "Alice")));
     }
 
     @Test
@@ -44,9 +49,13 @@ class AuditLogServiceTest {
     void shouldLogSecurityEvent() {
         service.logSecurityEvent("LOGIN_SUCCESS", 5L, "192.168.1.100", "Mozilla/5.0", Map.of("device", "desktop"));
 
-        verify(repository, times(1)).logSecurityEvent(
-                eq("LOGIN_SUCCESS"), eq(5L), eq("192.168.1.100"), eq("Mozilla/5.0"), eq(Map.of("device", "desktop"))
-        );
+        verify(repository, times(1))
+                .logSecurityEvent(
+                        eq("LOGIN_SUCCESS"),
+                        eq(5L),
+                        eq("192.168.1.100"),
+                        eq("Mozilla/5.0"),
+                        eq(Map.of("device", "desktop")));
     }
 
     @Test
@@ -55,7 +64,7 @@ class AuditLogServiceTest {
         Map<String, Object> details = new LinkedHashMap<>();
         details.put("deviceInfo", "desktop");
         details.put("credentials", Map.of("secretKey", "storage-secret", "api-token", "api-secret"));
-        details.put("arrayPayload", new Object[]{Map.of("X-API-Key", "array-secret"), null});
+        details.put("arrayPayload", new Object[] {Map.of("X-API-Key", "array-secret"), null});
         details.put("setPayload", Set.of(Map.of("passcode", "set-secret")));
         details.put("objectPayload", new CredentialEnvelope("object-secret", "ACTIVE"));
 
@@ -63,19 +72,17 @@ class AuditLogServiceTest {
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Map<String, Object>> detailsCaptor = ArgumentCaptor.forClass(Map.class);
-        verify(repository).logSecurityEvent(
-                eq("LOGIN_SUCCESS"), eq(5L), eq("192.168.1.100"), eq("Mozilla/5.0"), detailsCaptor.capture()
-        );
+        verify(repository)
+                .logSecurityEvent(
+                        eq("LOGIN_SUCCESS"), eq(5L), eq("192.168.1.100"), eq("Mozilla/5.0"), detailsCaptor.capture());
 
         assertThat(detailsCaptor.getValue())
                 .containsEntry("deviceInfo", "desktop")
                 .containsEntry("credentials", "[REDACTED]");
         @SuppressWarnings("unchecked")
         List<Object> arrayPayload = (List<Object>) detailsCaptor.getValue().get("arrayPayload");
-        assertThat(arrayPayload)
-                .containsExactly(Map.of("X-API-Key", "[REDACTED]"), null);
-        assertThat(detailsCaptor.getValue().get("setPayload"))
-                .isEqualTo(List.of(Map.of("passcode", "[REDACTED]")));
+        assertThat(arrayPayload).containsExactly(Map.of("X-API-Key", "[REDACTED]"), null);
+        assertThat(detailsCaptor.getValue().get("setPayload")).isEqualTo(List.of(Map.of("passcode", "[REDACTED]")));
         assertThat(detailsCaptor.getValue().get("objectPayload"))
                 .isEqualTo(Map.of("apiKey", "[REDACTED]", "status", "ACTIVE"));
     }
@@ -84,32 +91,38 @@ class AuditLogServiceTest {
     @DisplayName("API аудита должен рекурсивно маскировать credential-поля, сохраняя полезные данные")
     void shouldRedactCredentialFieldsWhenReadingAuditRows() {
         var stored = new AuditLogRepository.AuditRecord(
-                17L, "md_users", "5", "U", 9L, 3L, false,
+                17L,
+                "md_users",
+                "5",
+                "U",
+                9L,
+                3L,
+                false,
                 Instant.parse("2026-09-04T10:15:30Z"),
                 List.of("password_hash", "profile"),
                 Map.of(
-                        "password_hash", "stored-hash",
-                        "profile", Map.of("api-token", "nested-secret", "email", "user@example.com")
-                ),
+                        "password_hash",
+                        "stored-hash",
+                        "profile",
+                        Map.of("api-token", "nested-secret", "email", "user@example.com")),
                 Map.of("authorization", "Bearer live-token", "state", "A"),
-                "Admin", "admin"
-        );
+                "Admin",
+                "admin");
         when(repository.listAuditLogs(any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
                 .thenReturn(List.of(stored));
-        when(repository.countAuditLogs(any(), any(), any(), any(), any(), any())).thenReturn(1L);
+        when(repository.countAuditLogs(any(), any(), any(), any(), any(), any()))
+                .thenReturn(1L);
 
         var result = service.listAuditLogs(null, null, null, null, null, null, 20, null);
 
         assertThat(result.items()).hasSize(1);
         var record = result.items().getFirst();
         assertThat(record.oldRow()).containsEntry("password_hash", "[REDACTED]");
-        assertThat(record.newRow())
-                .containsEntry("authorization", "[REDACTED]")
-                .containsEntry("state", "A");
-        assertThat(record.oldRow().get("profile")).isEqualTo(Map.of(
-                "api-token", "[REDACTED]",
-                "email", "user@example.com"
-        ));
+        assertThat(record.newRow()).containsEntry("authorization", "[REDACTED]").containsEntry("state", "A");
+        assertThat(record.oldRow().get("profile"))
+                .isEqualTo(Map.of(
+                        "api-token", "[REDACTED]",
+                        "email", "user@example.com"));
     }
 
     @Test
@@ -128,10 +141,17 @@ class AuditLogServiceTest {
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Map<String, Object>> newRowCaptor = ArgumentCaptor.forClass(Map.class);
-        verify(repository).logChange(
-                eq("md_settings"), eq("oauth.client_secret"), eq("U"), any(), any(), anyBoolean(),
-                eq(List.of("value")), isNull(), newRowCaptor.capture()
-        );
+        verify(repository)
+                .logChange(
+                        eq("md_settings"),
+                        eq("oauth.client_secret"),
+                        eq("U"),
+                        any(),
+                        any(),
+                        anyBoolean(),
+                        eq(List.of("value")),
+                        isNull(),
+                        newRowCaptor.capture());
         assertThat(newRowCaptor.getValue())
                 .containsEntry("key", "oauth.client_secret")
                 .containsEntry("value", "[REDACTED]")
@@ -147,16 +167,14 @@ class AuditLogServiceTest {
     void shouldRedactCredentialValuesInAlternateSemanticPairs() {
         Map<String, Object> details = Map.of(
                 "upperCase", Map.of("Key", "smtp.password", "Value", "mail-secret"),
-                "named", Map.of("name", "oauth.clientAssertion", "value", "signed-assertion")
-        );
+                "named", Map.of("name", "oauth.clientAssertion", "value", "signed-assertion"));
 
         service.logSecurityEvent("SETTINGS_CHANGED", 5L, null, null, details);
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Map<String, Object>> detailsCaptor = ArgumentCaptor.forClass(Map.class);
-        verify(repository).logSecurityEvent(
-                eq("SETTINGS_CHANGED"), eq(5L), isNull(), isNull(), detailsCaptor.capture()
-        );
+        verify(repository)
+                .logSecurityEvent(eq("SETTINGS_CHANGED"), eq(5L), isNull(), isNull(), detailsCaptor.capture());
         assertThat(detailsCaptor.getValue().get("upperCase"))
                 .isEqualTo(Map.of("Key", "smtp.password", "Value", "[REDACTED]"));
         assertThat(detailsCaptor.getValue().get("named"))
@@ -181,10 +199,15 @@ class AuditLogServiceTest {
         nested.put("status", "FAILED");
         nested.put("nullable", null);
         var stored = new AuditLogRepository.SecurityEventRecord(
-                21L, "LOGIN_FAILED", 5L, "192.168.1.100", "Mozilla/5.0",
-                Map.of("attempts", List.of(nested)), Instant.parse("2026-09-04T10:15:30Z"),
-                "User", "user"
-        );
+                21L,
+                "LOGIN_FAILED",
+                5L,
+                "192.168.1.100",
+                "Mozilla/5.0",
+                Map.of("attempts", List.of(nested)),
+                Instant.parse("2026-09-04T10:15:30Z"),
+                "User",
+                "user");
         var result = service.redacted(stored);
 
         @SuppressWarnings("unchecked")
@@ -213,14 +236,16 @@ class AuditLogServiceTest {
         var second = auditRecord(20L, timestamp);
         var lookAhead = auditRecord(10L, timestamp.minusSeconds(1));
         when(repository.listAuditLogs(
-                eq("md_users"), isNull(), eq("U"), isNull(), isNull(), isNull(), isNull(), isNull(), eq(3)))
+                        eq("md_users"), isNull(), eq("U"), isNull(), isNull(), isNull(), isNull(), isNull(), eq(3)))
                 .thenReturn(List.of(newest, second, lookAhead));
         when(repository.countAuditLogs(eq("md_users"), isNull(), eq("U"), isNull(), isNull(), isNull()))
                 .thenReturn(73L);
 
         var result = service.listAuditLogs("md_users", null, "U", null, null, null, 2, null);
 
-        assertThat(result.items()).extracting(AuditLogRepository.AuditRecord::id).containsExactly(30L, 20L);
+        assertThat(result.items())
+                .extracting(AuditLogRepository.AuditRecord::id)
+                .containsExactly(30L, 20L);
         assertThat(result.hasMore()).isTrue();
         assertThat(result.totalEstimated()).isEqualTo(73L);
         assertThat(CursorUtils.decode(result.nextCursor())).isEqualTo(timestamp + "|20|73");
@@ -229,18 +254,28 @@ class AuditLogServiceTest {
     @Test
     @DisplayName("Повреждённый cursor аудита должен отклоняться вместо возврата первой страницы")
     void shouldRejectMalformedAuditCursor() {
-        assertThatThrownBy(() -> service.listAuditLogs(
-                null, null, null, null, null, null, 20, "not-a-valid-cursor"))
+        assertThatThrownBy(() -> service.listAuditLogs(null, null, null, null, null, null, 20, "not-a-valid-cursor"))
                 .isInstanceOf(ApiException.class)
-                .satisfies(error -> assertThat(((ApiException) error).getErrorCode().getCode())
+                .satisfies(error -> assertThat(
+                                ((ApiException) error).getErrorCode().getCode())
                         .isEqualTo("bad_request"));
     }
 
     private AuditLogRepository.AuditRecord auditRecord(Long id, Instant changedAt) {
         return new AuditLogRepository.AuditRecord(
-                id, "md_users", "5", "U", 1L, null, false, changedAt,
-                List.of("state"), Map.of(), Map.of("state", "A"), "Admin", "admin"
-        );
+                id,
+                "md_users",
+                "5",
+                "U",
+                1L,
+                null,
+                false,
+                changedAt,
+                List.of("state"),
+                Map.of(),
+                Map.of("state", "A"),
+                "Admin",
+                "admin");
     }
 
     private record CredentialEnvelope(String apiKey, String status) {}

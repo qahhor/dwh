@@ -1,17 +1,16 @@
 package com.smartup24.cms.instance.ms.notify.sse;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
  * Реестр открытых SSE-соединений (FR-NOTIF-2, FR-API-5).
@@ -32,8 +31,9 @@ public class MsSseRegistry {
     private final long timeoutMs;
     private final int maxPerUser;
 
-    public MsSseRegistry(@Value("${dwh.sse.timeout-ms:1800000}") long timeoutMs,
-                         @Value("${dwh.sse.max-connections-per-user:5}") int maxPerUser) {
+    public MsSseRegistry(
+            @Value("${dwh.sse.timeout-ms:1800000}") long timeoutMs,
+            @Value("${dwh.sse.max-connections-per-user:5}") int maxPerUser) {
         this.timeoutMs = timeoutMs;
         this.maxPerUser = maxPerUser;
     }
@@ -43,8 +43,7 @@ public class MsSseRegistry {
      * поэтому истечение таймаута — штатное завершение, а не ошибка.
      */
     public SseEmitter subscribe(Long userId) {
-        List<SseEmitter> userEmitters =
-                emittersByUser.computeIfAbsent(userId, k -> new CopyOnWriteArrayList<>());
+        List<SseEmitter> userEmitters = emittersByUser.computeIfAbsent(userId, k -> new CopyOnWriteArrayList<>());
 
         // Защита от исчерпания потоков: вкладок у пользователя конечное число,
         // всё сверх лимита — почти наверняка утечка на клиенте.

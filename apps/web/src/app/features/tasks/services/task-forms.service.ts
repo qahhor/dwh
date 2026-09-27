@@ -7,15 +7,10 @@ import { Task, TaskDetailResponse, TaskMember } from '../../../core/models/task.
 import { RecordNavigationDecision } from '../../../core/guards/record-navigation.guard';
 import { safeNumericRecordId } from '../../../core/services/search-target';
 import { toLocalDateTime, toTaskInstant } from '../task-form-value';
-import {
-  TaskCreateFormValue,
-  TaskEditFormValue,
-  createDefaultTaskCreateForm,
-  sameIdSet
-} from '../tasks.models';
+import { TaskCreateFormValue, TaskEditFormValue, createDefaultTaskCreateForm, sameIdSet } from '../tasks.models';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class TaskFormsService {
   private readonly api = inject(ApiService);
@@ -40,7 +35,12 @@ export class TaskFormsService {
   editTargetId: number | null = null;
   editReturnTask: Task | null = null;
   editFormBaseline = '';
-  editAssignmentBaseline: { parentTaskId: number | null; responsibleUserId: number | null; executorUserIds: number[]; observerUserIds: number[] } | null = null;
+  editAssignmentBaseline: {
+    parentTaskId: number | null;
+    responsibleUserId: number | null;
+    executorUserIds: number[];
+    observerUserIds: number[];
+  } | null = null;
 
   editForm: TaskEditFormValue = {
     title: '',
@@ -54,7 +54,7 @@ export class TaskFormsService {
     observerUserIds: [],
     beginTime: '',
     endTime: '',
-    attributes: {}
+    attributes: {},
   };
 
   private editRequestId = 0;
@@ -71,7 +71,7 @@ export class TaskFormsService {
   openAddSubtaskModal(
     parentTask: Task,
     defaultType = 'task',
-    onRetainParent: (id: number, title: string) => void
+    onRetainParent: (id: number, title: string) => void,
   ): void {
     if (!safeNumericRecordId(parentTask.id)) return;
     this.isCreateSubmitted = false;
@@ -87,7 +87,7 @@ export class TaskFormsService {
       observerUserIds: [],
       beginTime: '',
       endTime: '',
-      attributes: {}
+      attributes: {},
     };
     onRetainParent(parentTask.id, parentTask.title);
     this.createFormBaseline = JSON.stringify(this.createForm);
@@ -99,9 +99,7 @@ export class TaskFormsService {
     this.isCreateModalOpen.set(false);
   }
 
-  submitCreateTask(
-    onSuccess: (parentTaskId: number | null) => void
-  ): void {
+  submitCreateTask(onSuccess: (parentTaskId: number | null) => void): void {
     if (this.isSubmitting()) return;
     this.isCreateSubmitted = true;
     if (!this.createForm.title.trim()) {
@@ -122,7 +120,7 @@ export class TaskFormsService {
       observerUserIds: this.createForm.observerUserIds,
       beginTime: toTaskInstant(this.createForm.beginTime),
       endTime: toTaskInstant(this.createForm.endTime),
-      attributes: attrs
+      attributes: attrs,
     };
 
     const parentId = this.createForm.parentTaskId ? Number(this.createForm.parentTaskId) : null;
@@ -134,10 +132,10 @@ export class TaskFormsService {
         this.toast.success(this.uiI18n.translate('tasks.zadacha_uspeshno_sozdana'));
         onSuccess(parentId);
       },
-      error: err => {
+      error: (err) => {
         this.isSubmitting.set(false);
         this.toast.error(err.error?.message || this.uiI18n.translate('tasks.oshibka_pri_sohranenii_zadachi'));
-      }
+      },
     });
   }
 
@@ -145,7 +143,7 @@ export class TaskFormsService {
     task: Task,
     closeDetailsIfMatches: () => Task | null,
     onRetainMember: (m: TaskMember) => void,
-    onRetainParent: (id: number, title: string) => void
+    onRetainParent: (id: number, title: string) => void,
   ): void {
     if (!safeNumericRecordId(task.id)) return;
     if (this.isSubmitting() || this.isEditModalOpen()) return;
@@ -163,7 +161,7 @@ export class TaskFormsService {
   loadEditDetails(
     taskId: number,
     onRetainMember: (m: TaskMember) => void,
-    onRetainParent: (id: number, title: string) => void
+    onRetainParent: (id: number, title: string) => void,
   ): void {
     const requestId = ++this.editRequestId;
     this.editRequest?.unsubscribe();
@@ -172,7 +170,7 @@ export class TaskFormsService {
     this.editingTask = null;
 
     this.editRequest = this.api.get<TaskDetailResponse>(`/tasks/${taskId}`).subscribe({
-      next: res => {
+      next: (res) => {
         if (requestId !== this.editRequestId || this.editTargetId !== taskId || !this.isEditModalOpen()) return;
         if (!res?.task || res.task.id !== taskId || !Array.isArray(res.members)) {
           this.editLoading.set(false);
@@ -180,16 +178,12 @@ export class TaskFormsService {
           return;
         }
         const freshTask = res.task;
-        const execIds = res.members
-          .filter(m => (m.involveKind || m.involvementKind) === 'E')
-          .map(m => m.userId);
-        const obsIds = res.members
-          .filter(m => (m.involveKind || m.involvementKind) === 'O')
-          .map(m => m.userId);
+        const execIds = res.members.filter((m) => (m.involveKind || m.involvementKind) === 'E').map((m) => m.userId);
+        const obsIds = res.members.filter((m) => (m.involveKind || m.involvementKind) === 'O').map((m) => m.userId);
 
-        const respMember = res.members.find(m => (m.involveKind || m.involvementKind) === 'R');
-        res.members.forEach(member => onRetainMember(member));
-        const parent = (res.ancestors || []).find(ancestor => ancestor.id === freshTask.parentTaskId);
+        const respMember = res.members.find((m) => (m.involveKind || m.involvementKind) === 'R');
+        res.members.forEach((member) => onRetainMember(member));
+        const parent = (res.ancestors || []).find((ancestor) => ancestor.id === freshTask.parentTaskId);
         if (parent) {
           onRetainParent(parent.id, parent.title);
         }
@@ -207,14 +201,14 @@ export class TaskFormsService {
           observerUserIds: obsIds,
           beginTime: toLocalDateTime(freshTask.beginTime),
           endTime: toLocalDateTime(freshTask.endTime),
-          attributes: { ...(freshTask.attributes || {}) }
+          attributes: { ...(freshTask.attributes || {}) },
         };
         this.editFormBaseline = this.serializeEditForm();
         this.editAssignmentBaseline = {
           parentTaskId: this.editForm.parentTaskId,
           responsibleUserId: this.editForm.responsibleUserId,
           executorUserIds: [...this.editForm.executorUserIds],
-          observerUserIds: [...this.editForm.observerUserIds]
+          observerUserIds: [...this.editForm.observerUserIds],
         };
         this.editLoading.set(false);
       },
@@ -222,14 +216,11 @@ export class TaskFormsService {
         if (requestId !== this.editRequestId || this.editTargetId !== taskId || !this.isEditModalOpen()) return;
         this.editLoading.set(false);
         this.editLoadError.set(true);
-      }
+      },
     });
   }
 
-  retryEditLoad(
-    onRetainMember: (m: TaskMember) => void,
-    onRetainParent: (id: number, title: string) => void
-  ): void {
+  retryEditLoad(onRetainMember: (m: TaskMember) => void, onRetainParent: (id: number, title: string) => void): void {
     if (this.editTargetId != null && !this.isSubmitting()) {
       this.loadEditDetails(this.editTargetId, onRetainMember, onRetainParent);
     }
@@ -261,14 +252,19 @@ export class TaskFormsService {
     this.navigationDecision.settle(false);
   }
 
-  canLeaveRecordPage(isCommentSubmitting: () => boolean, commentDraft: () => string, onOpenDetails: (t: Task) => void): boolean | Observable<boolean> {
+  canLeaveRecordPage(
+    isCommentSubmitting: () => boolean,
+    commentDraft: () => string,
+    onOpenDetails: (t: Task) => void,
+  ): boolean | Observable<boolean> {
     if (this.isSubmitting() || isCommentSubmitting()) return false;
     const dirtyEdit = this.isEditModalOpen() && this.editingTask && this.editFormBaseline !== this.serializeEditForm();
     const dirtyCreate = this.isCreateModalOpen() && this.createFormBaseline !== JSON.stringify(this.createForm);
     if (dirtyEdit || dirtyCreate || commentDraft().trim()) {
       return this.navigationDecision.request(
         () => this.isEditDiscardConfirmationOpen.set(true),
-        () => this.isEditDiscardConfirmationOpen.set(false));
+        () => this.isEditDiscardConfirmationOpen.set(false),
+      );
     }
     if (this.isEditModalOpen()) this.closeEditModal(false, onOpenDetails);
     this.isCreateModalOpen.set(false);
@@ -295,9 +291,7 @@ export class TaskFormsService {
     return JSON.stringify(this.editForm);
   }
 
-  submitEditTask(
-    onSuccess: (returnTask: Task | null, editedTaskId: number) => void
-  ): void {
+  submitEditTask(onSuccess: (returnTask: Task | null, editedTaskId: number) => void): void {
     if (!this.editingTask || this.isSubmitting() || this.editLoading() || this.editLoadError()) return;
     this.isEditSubmitted = true;
     if (!this.editForm.title.trim()) {
@@ -314,24 +308,33 @@ export class TaskFormsService {
       priority: this.editForm.priority || 'medium',
       beginTime: toTaskInstant(this.editForm.beginTime, this.editingTask.beginTime),
       endTime: toTaskInstant(this.editForm.endTime, this.editingTask.endTime),
-      attributes: attrs
+      attributes: attrs,
     };
     const currentAssignments = {
       parentTaskId: this.editForm.parentTaskId == null ? null : Number(this.editForm.parentTaskId),
       responsibleUserId: this.editForm.responsibleUserId == null ? null : Number(this.editForm.responsibleUserId),
       executorUserIds: [...this.editForm.executorUserIds],
-      observerUserIds: [...this.editForm.observerUserIds]
+      observerUserIds: [...this.editForm.observerUserIds],
     };
     if (!this.editAssignmentBaseline || currentAssignments.parentTaskId !== this.editAssignmentBaseline.parentTaskId) {
       payload['parentTaskId'] = currentAssignments.parentTaskId;
     }
-    if (!this.editAssignmentBaseline || currentAssignments.responsibleUserId !== this.editAssignmentBaseline.responsibleUserId) {
+    if (
+      !this.editAssignmentBaseline ||
+      currentAssignments.responsibleUserId !== this.editAssignmentBaseline.responsibleUserId
+    ) {
       payload['responsibleUserId'] = currentAssignments.responsibleUserId;
     }
-    if (!this.editAssignmentBaseline || !sameIdSet(currentAssignments.executorUserIds, this.editAssignmentBaseline.executorUserIds)) {
+    if (
+      !this.editAssignmentBaseline ||
+      !sameIdSet(currentAssignments.executorUserIds, this.editAssignmentBaseline.executorUserIds)
+    ) {
       payload['executorUserIds'] = currentAssignments.executorUserIds;
     }
-    if (!this.editAssignmentBaseline || !sameIdSet(currentAssignments.observerUserIds, this.editAssignmentBaseline.observerUserIds)) {
+    if (
+      !this.editAssignmentBaseline ||
+      !sameIdSet(currentAssignments.observerUserIds, this.editAssignmentBaseline.observerUserIds)
+    ) {
       payload['observerUserIds'] = currentAssignments.observerUserIds;
     }
 
@@ -346,11 +349,11 @@ export class TaskFormsService {
         this.toast.success(this.uiI18n.translate('tasks.zadacha_uspeshno_obnovlena'));
         onSuccess(returnTask, editedTask.id);
       },
-      error: err => {
+      error: (err) => {
         if (this.editingTask?.id !== editedTask.id) return;
         this.isSubmitting.set(false);
         this.toast.error(err.error?.message || this.uiI18n.translate('tasks.oshibka_pri_obnovlenii_zadachi'));
-      }
+      },
     });
   }
 

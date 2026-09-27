@@ -73,7 +73,7 @@ export class SMTDrawerService {
     const containerPortal = new ComponentPortal(
       SMTDrawerComponent,
       null,
-      this.createInjector(drawerRef as SMTDrawerRef, drawerConfig as SMTDrawerConfig)
+      this.createInjector(drawerRef as SMTDrawerRef, drawerConfig as SMTDrawerConfig),
     );
     const containerRef = overlayRef.attach(containerPortal);
     const drawerDestroyRef = containerRef.injector.get(DestroyRef);
@@ -90,9 +90,9 @@ export class SMTDrawerService {
         .keydownEvents()
         .pipe(
           filter((e: KeyboardEvent) => e.key === 'Escape'),
-          takeUntilDestroyed(drawerDestroyRef)
+          takeUntilDestroyed(drawerDestroyRef),
         )
-        .subscribe(e => {
+        .subscribe((e) => {
           e.preventDefault();
           containerRef.instance.close();
         });
@@ -136,7 +136,7 @@ export class SMTDrawerService {
   private closeDrawer(
     overlayRef: OverlayRef,
     containerRef: ComponentRef<SMTDrawerComponent> | undefined,
-    opener: HTMLElement | null
+    opener: HTMLElement | null,
   ): void {
     const dispose = () => {
       overlayRef.dispose();

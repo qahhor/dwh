@@ -13,7 +13,12 @@
   gap: 12px;
   flex-wrap: wrap;
 }
-.header-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
 .view-title {
   font-size: 18px;
   font-weight: 600;
@@ -30,8 +35,11 @@
   border: 1px solid var(--border-color);
 }
 
-.header-right { display: flex; align-items: center; gap: 8px; }
-
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 
 .request-state,
 .stats-state {

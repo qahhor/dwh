@@ -2,13 +2,12 @@ package com.smartup24.cms.instance.kauth.repository;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.smartup24.cms.instance.common.error.ApiException;
-import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
 
 @Repository
 public class KauthSessionRepository {
@@ -23,8 +22,7 @@ public class KauthSessionRepository {
             rs.getTimestamp("created_at").toInstant(),
             rs.getTimestamp("last_seen_at").toInstant(),
             rs.getTimestamp("closed_at") != null ? rs.getTimestamp("closed_at").toInstant() : null,
-            rs.getLong("auth_version")
-    );
+            rs.getLong("auth_version"));
 
     private static final String SELECT = """
             select c.auth_version, c.id, c.user_id, c.token_hash, host(c.ip) as ip_str, c.user_agent, c.device_info, c.created_at, c.last_seen_at, c.closed_at
@@ -41,8 +39,10 @@ public class KauthSessionRepository {
         this.jdbcClient = jdbcClient;
     }
 
-    public SessionRecord create(Long userId, long authenticationVersion, String tokenHash, String ip, String userAgent, String deviceInfo) {
-        return jdbcClient.sql("""
+    public SessionRecord create(
+            Long userId, long authenticationVersion, String tokenHash, String ip, String userAgent, String deviceInfo) {
+        return jdbcClient
+                .sql("""
                 insert into kauth_sessions (user_id, auth_version, token_hash, ip, user_agent, device_info, created_at, last_seen_at)
                 select u.id, :authenticationVersion, :tokenHash, cast(:ip as inet), :userAgent, :deviceInfo, now(), now()
                 from md_users u
@@ -56,18 +56,21 @@ public class KauthSessionRepository {
                 .param("userAgent", userAgent)
                 .param("deviceInfo", deviceInfo)
                 .query(ROW_MAPPER)
-                .optional().orElseThrow(ApiException::invalidCredentials);
+                .optional()
+                .orElseThrow(ApiException::invalidCredentials);
     }
 
     public Optional<SessionRecord> findActiveByTokenHash(String tokenHash) {
-        return jdbcClient.sql(SELECT + " where c.token_hash = :tokenHash and " + ACTIVE)
+        return jdbcClient
+                .sql(SELECT + " where c.token_hash = :tokenHash and " + ACTIVE)
                 .param("tokenHash", tokenHash)
                 .query(ROW_MAPPER)
                 .optional();
     }
 
     public Optional<SessionRecord> findActiveById(Long id) {
-        return jdbcClient.sql(SELECT + " where c.id = :id and " + ACTIVE)
+        return jdbcClient
+                .sql(SELECT + " where c.id = :id and " + ACTIVE)
                 .param("id", id)
                 .query(ROW_MAPPER)
                 .optional();
@@ -80,9 +83,7 @@ public class KauthSessionRepository {
                 where id = :sessionId
                   and closed_at is null
                   and (last_seen_at is null or last_seen_at < now() - interval '60 seconds')
-                """)
-                .param("sessionId", sessionId)
-                .update();
+                """).param("sessionId", sessionId).update();
     }
 
     public void close(Long sessionId) {
@@ -90,9 +91,7 @@ public class KauthSessionRepository {
                 update kauth_sessions
                 set closed_at = now()
                 where id = :sessionId and closed_at is null
-                """)
-                .param("sessionId", sessionId)
-                .update();
+                """).param("sessionId", sessionId).update();
     }
 
     public void closeAllUserSessions(Long userId) {
@@ -100,13 +99,12 @@ public class KauthSessionRepository {
                 update kauth_sessions
                 set closed_at = now()
                 where user_id = :userId and closed_at is null
-                """)
-                .param("userId", userId)
-                .update();
+                """).param("userId", userId).update();
     }
 
     public int closeInactiveSessions(Instant cutoff) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 update kauth_sessions
                 set closed_at = now()
                 where closed_at is null and last_seen_at < :cutoff
@@ -115,10 +113,9 @@ public class KauthSessionRepository {
                 .update();
     }
 
-
-
     public void closeOtherSessions(Long userId, Long currentSessionId) {
-        jdbcClient.sql("""
+        jdbcClient
+                .sql("""
                 update kauth_sessions
                 set closed_at = now()
                 where user_id = :userId and id <> :currentSessionId and closed_at is null
@@ -129,7 +126,8 @@ public class KauthSessionRepository {
     }
 
     public List<SessionRecord> findActiveByUserId(Long userId) {
-        return jdbcClient.sql(SELECT + " where c.user_id = :userId and " + ACTIVE + " order by c.last_seen_at desc")
+        return jdbcClient
+                .sql(SELECT + " where c.user_id = :userId and " + ACTIVE + " order by c.last_seen_at desc")
                 .param("userId", userId)
                 .query(ROW_MAPPER)
                 .list();
@@ -145,6 +143,5 @@ public class KauthSessionRepository {
             Instant createdAt,
             Instant lastSeenAt,
             Instant closedAt,
-            @JsonIgnore long authenticationVersion
-    ) {}
+            @JsonIgnore long authenticationVersion) {}
 }

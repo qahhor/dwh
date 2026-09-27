@@ -1,12 +1,11 @@
 package com.smartup24.cms.instance.fnd.migration;
 
 import com.smartup24.cms.instance.fnd.FndPref;
+import javax.sql.DataSource;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.output.MigrateResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.sql.DataSource;
 
 /**
  * Программное применение миграций обеих БД (промпт 02 п.10: «мигрируй → gate → старт»; AC-1, AC-3).
@@ -17,8 +16,7 @@ public final class FndMigrator {
 
     private static final Logger log = LoggerFactory.getLogger(FndMigrator.class);
 
-    private FndMigrator() {
-    }
+    private FndMigrator() {}
 
     /** Миграции OLTP из каталога каркаса {@code db/migration} (миграции каркаса + наши V1xx); возвращает число применённых файлов. */
     public static int migrateOltp(DataSource oltp) {
@@ -45,7 +43,11 @@ public final class FndMigrator {
                 .validateOnMigrate(true)
                 .load();
         MigrateResult result = flyway.migrate();
-        log.info("migrations_applied db={} count={} schemaVersion={}", db, result.migrationsExecuted, result.targetSchemaVersion);
+        log.info(
+                "migrations_applied db={} count={} schemaVersion={}",
+                db,
+                result.migrationsExecuted,
+                result.targetSchemaVersion);
         return result.migrationsExecuted;
     }
 }

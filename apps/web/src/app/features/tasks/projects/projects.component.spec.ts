@@ -15,7 +15,12 @@ import { QueryListMeta } from '../../../core/models/query-meta.models';
 import { ProjectListItem } from './projects.models';
 
 /** A page of the project list as the server answers it. */
-const page = (items: ProjectListItem[], nextCursor: string | null = null) => ({ items, nextCursor, hasMore: nextCursor !== null, totalEstimated: items.length });
+const page = (items: ProjectListItem[], nextCursor: string | null = null) => ({
+  items,
+  nextCursor,
+  hasMore: nextCursor !== null,
+  totalEstimated: items.length,
+});
 
 /** An API that answers the project list with one page of these projects and every other read empty. */
 const listApi = (items: ProjectListItem[]): ApiDouble => {
@@ -35,15 +40,17 @@ const emptyApi = (): ApiDouble => ({
   get: vi.fn(() => of([])),
   post: vi.fn(() => of({})),
   patch: vi.fn(() => of({})),
-  delete: vi.fn(() => of({}))
+  delete: vi.fn(() => of({})),
 });
 
 describe('ProjectsComponent UI contracts', () => {
-  async function createFixture(options: {
-    api?: ApiDouble;
-    permissions?: string[];
-    meta?: QueryListMeta;
-  } = {}) {
+  async function createFixture(
+    options: {
+      api?: ApiDouble;
+      permissions?: string[];
+      meta?: QueryListMeta;
+    } = {},
+  ) {
     const api = options.api ?? emptyApi();
     const router = { navigate: vi.fn() };
     const toast = { success: vi.fn(), warning: vi.fn(), error: vi.fn() };
@@ -54,8 +61,8 @@ describe('ProjectsComponent UI contracts', () => {
         PermissionService,
         { provide: ToastService, useValue: toast },
         { provide: Router, useValue: router },
-        ...registryProviders(options.meta ?? PROJECTS_META)
-      ]
+        ...registryProviders(options.meta ?? PROJECTS_META),
+      ],
     }).compileComponents();
     TestBed.inject(PermissionService).setPermissions(options.permissions ?? ['*.*']);
     const fixture = TestBed.createComponent(ProjectsComponent);
@@ -67,7 +74,7 @@ describe('ProjectsComponent UI contracts', () => {
     id,
     name: `Project ${id}`,
     state,
-    createdAt: '2026-09-06T00:00:00Z'
+    createdAt: '2026-09-06T00:00:00Z',
   });
 
   it('labels filters and keeps the projects table inside a named scroll region', async () => {
@@ -77,7 +84,9 @@ describe('ProjectsComponent UI contracts', () => {
     const region = inScreen(fixture.nativeElement).querySelector('.table-card[role="region"]') as HTMLElement;
 
     expect(inScreen(fixture.nativeElement).querySelector(`label[for="${search.id}"]`)).not.toBeNull();
-    expect(inScreen(fixture.nativeElement).querySelector('[role="radiogroup"][aria-label="Режим отображения проектов"]')).not.toBeNull();
+    expect(
+      inScreen(fixture.nativeElement).querySelector('[role="radiogroup"][aria-label="Режим отображения проектов"]'),
+    ).not.toBeNull();
     expect(region.getAttribute('aria-label')).toBe('Таблица проектов');
     expect(region.querySelector('[role="table"]')?.getAttribute('aria-label')).toBe('Список проектов');
   });
@@ -90,7 +99,10 @@ describe('ProjectsComponent UI contracts', () => {
     TestBed.tick(); // smt-control wires label, error and aria state after render
 
     const name = inScreen(fixture.nativeElement).querySelector('#project-create-name') as HTMLInputElement;
-    const error = (name.getAttribute('aria-describedby') ?? '').split(' ').map(id => inScreen(fixture.nativeElement).querySelector('#' + id)).find(node => node?.classList.contains('smt-control__error')) as HTMLElement;
+    const error = (name.getAttribute('aria-describedby') ?? '')
+      .split(' ')
+      .map((id) => inScreen(fixture.nativeElement).querySelector('#' + id))
+      .find((node) => node?.classList.contains('smt-control__error')) as HTMLElement;
 
     expect(inScreen(fixture.nativeElement).querySelector(`label[for="${name.id}"]`)).not.toBeNull();
     expect(name.required).toBe(true);
@@ -109,13 +121,15 @@ describe('ProjectsComponent UI contracts', () => {
     const { fixture } = await createFixture({ api });
     const host = inScreen(fixture.nativeElement);
 
-    expect(Array.from(host.querySelectorAll('.status-pill') as Element[]).map(node => node.textContent?.trim()))
-      .toEqual(['Активен', 'В архиве']);
+    expect(
+      Array.from(host.querySelectorAll('.status-pill') as Element[]).map((node) => node.textContent?.trim()),
+    ).toEqual(['Активен', 'В архиве']);
 
     fixture.componentInstance.viewMode = 'cards';
     redraw(fixture);
-    expect(Array.from(host.querySelectorAll('.status-pill') as Element[]).map(node => node.textContent?.trim()))
-      .toEqual(['Активен', 'В архиве']);
+    expect(
+      Array.from(host.querySelectorAll('.status-pill') as Element[]).map((node) => node.textContent?.trim()),
+    ).toEqual(['Активен', 'В архиве']);
 
     fixture.componentInstance.openEditModal(project(1));
     redraw(fixture);
@@ -127,7 +141,10 @@ describe('ProjectsComponent UI contracts', () => {
     state.click();
     redraw(fixture);
     const options = Array.from(document.querySelectorAll('.smt-select__option')) as HTMLElement[];
-    expect(options.map(option => option.querySelector('.smt-select__option-label')?.textContent?.trim())).toEqual(['Активен', 'В архиве']);
+    expect(options.map((option) => option.querySelector('.smt-select__option-label')?.textContent?.trim())).toEqual([
+      'Активен',
+      'В архиве',
+    ]);
     options[1].click();
     redraw(fixture);
     expect(fixture.componentInstance.editForm.state).toBe('P');
@@ -161,7 +178,7 @@ describe('ProjectsComponent UI contracts', () => {
     expect(api.post).toHaveBeenCalledTimes(1);
     expect(api.post).toHaveBeenCalledWith('/tasks/projects', {
       name: 'Native create',
-      description: 'Submitted from the form'
+      description: 'Submitted from the form',
     });
   });
 
@@ -224,16 +241,17 @@ describe('ProjectsComponent UI contracts', () => {
     redraw(fixture);
 
     expect((host.querySelector('#project-edit-name') as HTMLInputElement).value).toBe('Fresh name');
-    expect((host.querySelector('#project-edit-description') as HTMLTextAreaElement).value)
-      .toBe('Актуальное описание с сервера');
+    expect((host.querySelector('#project-edit-description') as HTMLTextAreaElement).value).toBe(
+      'Актуальное описание с сервера',
+    );
   });
 
   it('submits one sparse edit PATCH through the native form while pending', async () => {
     const pendingPatch = new Subject<void>();
     const api = emptyApi();
-    api.get.mockImplementation((url: string) => url === '/tasks/projects/3'
-      ? of({ ...project(3), name: 'Current', description: 'Current description' })
-      : of([]));
+    api.get.mockImplementation((url: string) =>
+      url === '/tasks/projects/3' ? of({ ...project(3), name: 'Current', description: 'Current description' }) : of([]),
+    );
     api.patch.mockReturnValue(pendingPatch);
     const { fixture } = await createFixture({ api });
     const host = inScreen(fixture.nativeElement);
@@ -307,8 +325,9 @@ describe('ProjectsComponent UI contracts', () => {
     component.isCreateDiscardConfirmationOpen.set(false);
     expect(component.createForm.name).toBe('Unsaved project');
     redraw(fixture);
-    const createModal = fixture.debugElement.queryAll(By.directive(SMTDialogComponent)).find(dialog => dialog.componentInstance.open())!
-      .componentInstance as SMTDialogComponent;
+    const createModal = fixture.debugElement
+      .queryAll(By.directive(SMTDialogComponent))
+      .find((dialog) => dialog.componentInstance.open())!.componentInstance as SMTDialogComponent;
     createModal.closed.emit();
     expect(component.isCreateModalOpen()).toBe(true);
     expect(component.isCreateDiscardConfirmationOpen()).toBe(true);
@@ -336,10 +355,15 @@ describe('ProjectsComponent UI contracts', () => {
     expect(api.post).toHaveBeenCalledTimes(1);
     expect(api.post).toHaveBeenCalledWith('/tasks/projects', {
       name: 'New project',
-      description: 'Draft description'
+      description: 'Draft description',
     });
     expect(inScreen(fixture.nativeElement).querySelector('.project-create-form')?.disabled).toBe(true);
-    expect(fixture.debugElement.queryAll(By.directive(SMTDialogComponent)).find(dialog => dialog.componentInstance.open())!.componentInstance.dismissible()).toBe(false);
+    expect(
+      fixture.debugElement
+        .queryAll(By.directive(SMTDialogComponent))
+        .find((dialog) => dialog.componentInstance.open())!
+        .componentInstance.dismissible(),
+    ).toBe(false);
     component.requestCloseCreate();
     expect(component.isCreateModalOpen()).toBe(true);
 
@@ -347,8 +371,10 @@ describe('ProjectsComponent UI contracts', () => {
     redraw(fixture);
     expect(component.createForm.name).toBe('  New project  ');
     expect(component.isSubmitting()).toBe(false);
-    expect(inScreen(fixture.nativeElement).querySelector('[data-testid="project-create-save-error"][role="alert"]')?.textContent)
-      .toContain('Normalized create detail');
+    expect(
+      inScreen(fixture.nativeElement).querySelector('[data-testid="project-create-save-error"][role="alert"]')
+        ?.textContent,
+    ).toContain('Normalized create detail');
     expect(toast.error).not.toHaveBeenCalled();
 
     component.submitCreateProject();
@@ -376,14 +402,18 @@ describe('ProjectsComponent UI contracts', () => {
     expect(api.get).toHaveBeenCalledWith('/tasks/projects/7', undefined, { notifyError: false });
     expect(component.editLoading()).toBe(true);
     expect(component.editingProject).toBeNull();
-    expect(inScreen(fixture.nativeElement).querySelector('[data-testid="project-edit-loading"][role="status"]')).not.toBeNull();
+    expect(
+      inScreen(fixture.nativeElement).querySelector('[data-testid="project-edit-loading"][role="status"]'),
+    ).not.toBeNull();
 
     mismatch.next({ ...project(8), name: 'Wrong project' });
     mismatch.complete();
     redraw(fixture);
     expect(component.editLoadError()).toBe(true);
     expect(component.editingProject).toBeNull();
-    expect(inScreen(fixture.nativeElement).querySelector('[data-testid="project-edit-load-error"][role="alert"]')).not.toBeNull();
+    expect(
+      inScreen(fixture.nativeElement).querySelector('[data-testid="project-edit-load-error"][role="alert"]'),
+    ).not.toBeNull();
 
     component.retryEditLoad();
     failed.error({ status: 503, title: 'Unavailable', code: 'API_ERROR', detail: 'Unavailable' });
@@ -430,9 +460,9 @@ describe('ProjectsComponent UI contracts', () => {
 
   it('guards whitespace-only edit draft changes and discards only after confirmation', async () => {
     const api = emptyApi();
-    api.get.mockImplementation((url: string) => url === '/tasks/projects/1'
-      ? of({ ...project(1), name: 'Current', description: 'Description' })
-      : of([]));
+    api.get.mockImplementation((url: string) =>
+      url === '/tasks/projects/1' ? of({ ...project(1), name: 'Current', description: 'Description' }) : of([]),
+    );
     const { fixture } = await createFixture({ api });
     const component = fixture.componentInstance;
     component.openEditModal(project(1));
@@ -455,9 +485,11 @@ describe('ProjectsComponent UI contracts', () => {
 
   it('sends only changed normalized fields and closes a no-change edit without PATCH or success toast', async () => {
     const api = emptyApi();
-    api.get.mockImplementation((url: string) => /^\/tasks\/projects\/\d+$/.test(url)
-      ? of({ ...project(Number(url.split('/').at(-1))), name: 'Current', description: 'Current description' })
-      : of([]));
+    api.get.mockImplementation((url: string) =>
+      /^\/tasks\/projects\/\d+$/.test(url)
+        ? of({ ...project(Number(url.split('/').at(-1))), name: 'Current', description: 'Current description' })
+        : of([]),
+    );
     const { fixture, toast } = await createFixture({ api });
     const component = fixture.componentInstance;
 
@@ -483,9 +515,9 @@ describe('ProjectsComponent UI contracts', () => {
   it('prevents duplicate edit saves, keeps a failed draft retryable and ignores mutation callbacks after destroy', async () => {
     const pendingPatch = new Subject<void>();
     const api = emptyApi();
-    api.get.mockImplementation((url: string) => url === '/tasks/projects/1'
-      ? of({ ...project(1), name: 'Current', description: 'Description' })
-      : of([]));
+    api.get.mockImplementation((url: string) =>
+      url === '/tasks/projects/1' ? of({ ...project(1), name: 'Current', description: 'Description' }) : of([]),
+    );
     api.patch.mockReturnValue(pendingPatch);
     const { fixture, toast } = await createFixture({ api });
     const component = fixture.componentInstance;
@@ -504,8 +536,10 @@ describe('ProjectsComponent UI contracts', () => {
     pendingPatch.error({ status: 409, title: 'Conflict', code: 'CONFLICT', detail: 'Normalized edit detail' });
     redraw(fixture);
     expect(component.editForm.name).toBe('Changed');
-    expect(inScreen(fixture.nativeElement).querySelector('[data-testid="project-edit-save-error"][role="alert"]')?.textContent)
-      .toContain('Normalized edit detail');
+    expect(
+      inScreen(fixture.nativeElement).querySelector('[data-testid="project-edit-save-error"][role="alert"]')
+        ?.textContent,
+    ).toContain('Normalized edit detail');
     expect(toast.error).not.toHaveBeenCalled();
 
     const lateCreate = new Subject<Project>();
@@ -528,18 +562,30 @@ describe('ProjectsComponent UI contracts', () => {
       const component = fixture.componentInstance;
       await vi.advanceTimersByTimeAsync(0);
       redraw(fixture);
-      expect(api.get).toHaveBeenCalledWith('/tasks/projects/page', expect.objectContaining({ limit: 10, cursor: undefined }), { notifyError: false });
+      expect(api.get).toHaveBeenCalledWith(
+        '/tasks/projects/page',
+        expect.objectContaining({ limit: 10, cursor: undefined }),
+        { notifyError: false },
+      );
       expect(inScreen(fixture.nativeElement).querySelector('.count-badge')?.textContent?.trim()).toBe('2');
 
       component.setSearchQuery('Proj');
       await vi.advanceTimersByTimeAsync(300);
-      expect(api.get).toHaveBeenLastCalledWith('/tasks/projects/page', expect.objectContaining({ q: 'Proj' }), { notifyError: false });
+      expect(api.get).toHaveBeenLastCalledWith('/tasks/projects/page', expect.objectContaining({ q: 'Proj' }), {
+        notifyError: false,
+      });
 
       component.setSelectedState('P');
-      expect(api.get).toHaveBeenLastCalledWith('/tasks/projects/page', expect.objectContaining({ state: 'P', q: 'Proj' }), { notifyError: false });
+      expect(api.get).toHaveBeenLastCalledWith(
+        '/tasks/projects/page',
+        expect.objectContaining({ state: 'P', q: 'Proj' }),
+        { notifyError: false },
+      );
 
       component.onSort({ column: 'progress', sortBy: 'DESC' as never });
-      expect(api.get).toHaveBeenLastCalledWith('/tasks/projects/page', expect.objectContaining({ sort: '-progress' }), { notifyError: false });
+      expect(api.get).toHaveBeenLastCalledWith('/tasks/projects/page', expect.objectContaining({ sort: '-progress' }), {
+        notifyError: false,
+      });
       expect(component.exportOptions()).toEqual({ state: 'P' });
     } finally {
       vi.useRealTimers();
@@ -551,10 +597,14 @@ describe('ProjectsComponent UI contracts', () => {
     const retry = new Subject<unknown>();
     const reads = [first, retry];
     const api = emptyApi();
-    api.get.mockImplementation((url: string) => url === '/tasks/projects/page' ? (reads.shift() ?? of(page([]))) : of([]));
+    api.get.mockImplementation((url: string) =>
+      url === '/tasks/projects/page' ? (reads.shift() ?? of(page([]))) : of([]),
+    );
     const { fixture } = await createFixture({ api });
 
-    expect(inScreen(fixture.nativeElement).querySelector('[data-testid="projects-list-loading"][role="status"]')).not.toBeNull();
+    expect(
+      inScreen(fixture.nativeElement).querySelector('[data-testid="projects-list-loading"][role="status"]'),
+    ).not.toBeNull();
     expect(inScreen(fixture.nativeElement).textContent).not.toContain('Проекты не найдены');
 
     fixture.componentInstance.viewMode = 'cards';
@@ -563,7 +613,9 @@ describe('ProjectsComponent UI contracts', () => {
 
     first.error({ status: 503, title: 'Unavailable', code: 'API_ERROR', detail: 'Unavailable' });
     redraw(fixture);
-    expect(inScreen(fixture.nativeElement).querySelector('[data-testid="projects-list-error"][role="alert"]')).not.toBeNull();
+    expect(
+      inScreen(fixture.nativeElement).querySelector('[data-testid="projects-list-error"][role="alert"]'),
+    ).not.toBeNull();
 
     const retryButton = inScreen(fixture.nativeElement).querySelector('.projects-list-retry') as HTMLButtonElement;
     expect(retryButton.textContent).toContain('Повторить загрузку проектов');
@@ -583,10 +635,12 @@ describe('ProjectsComponent UI contracts', () => {
 
     expect(host.querySelector('.progress-count')?.textContent?.trim()).toBe('2 / 4 закрыто');
     expect(host.querySelector('[role="progressbar"]')?.getAttribute('aria-valuenow')).toBe('50');
-    expect(host.querySelector('[role="progressbar"]')?.getAttribute('aria-label'))
-      .toBe('Доля закрытых задач проекта Project 1');
-    expect(host.querySelector('[data-testid="projects-stats-scope"]')?.textContent)
-      .toContain('конечных статусах, включая выполненные и отменённые');
+    expect(host.querySelector('[role="progressbar"]')?.getAttribute('aria-label')).toBe(
+      'Доля закрытых задач проекта Project 1',
+    );
+    expect(host.querySelector('[data-testid="projects-stats-scope"]')?.textContent).toContain(
+      'конечных статусах, включая выполненные и отменённые',
+    );
     expect(api.get.mock.calls.filter(([url]) => String(url).endsWith('/stats'))).toHaveLength(0);
 
     fixture.componentInstance.viewMode = 'cards';
@@ -598,13 +652,22 @@ describe('ProjectsComponent UI contracts', () => {
 
   it('keeps project-view-only users on plain project data without task statistics or drilldowns', async () => {
     const api = listApi([project(1)]);
-    const withoutProgress = { ...PROJECTS_META, fields: PROJECTS_META.fields.filter(field => field.key !== 'progress') };
-    const { fixture, router } = await createFixture({ api, permissions: ['tasks.projects.view'], meta: withoutProgress });
+    const withoutProgress = {
+      ...PROJECTS_META,
+      fields: PROJECTS_META.fields.filter((field) => field.key !== 'progress'),
+    };
+    const { fixture, router } = await createFixture({
+      api,
+      permissions: ['tasks.projects.view'],
+      meta: withoutProgress,
+    });
 
     expect(inScreen(fixture.nativeElement).querySelector('.project-name')).toBeNull();
     expect(inScreen(fixture.nativeElement).querySelector('.project-name-text')?.textContent).toContain('Project 1');
     expect(inScreen(fixture.nativeElement).querySelector('[role="progressbar"]')).toBeNull();
-    expect(inScreen(fixture.nativeElement).querySelector('[data-testid="projects-stats-permission"][role="status"]')).not.toBeNull();
+    expect(
+      inScreen(fixture.nativeElement).querySelector('[data-testid="projects-stats-permission"][role="status"]'),
+    ).not.toBeNull();
 
     fixture.componentInstance.viewMode = 'cards';
     redraw(fixture);
@@ -620,7 +683,7 @@ describe('ProjectsComponent UI contracts', () => {
     const api = listApi([project(1)]);
     const { fixture } = await createFixture({
       api,
-      permissions: ['tasks.projects.view', 'tasks.items.create', 'tasks.items.update']
+      permissions: ['tasks.projects.view', 'tasks.items.create', 'tasks.items.update'],
     });
     const component = fixture.componentInstance;
 
@@ -643,11 +706,13 @@ describe('ProjectsComponent UI contracts', () => {
   it('retains project create and update actions for scoped users and wildcard administrators', async () => {
     const api = listApi([project(1)]);
     const inner = api.get.getMockImplementation() as (url: string, ...rest: unknown[]) => unknown;
-    api.get.mockImplementation((url: string, ...rest: unknown[]) => url === '/tasks/projects/1' ? of(project(1)) : inner(url, ...rest));
+    api.get.mockImplementation((url: string, ...rest: unknown[]) =>
+      url === '/tasks/projects/1' ? of(project(1)) : inner(url, ...rest),
+    );
     api.post.mockReturnValue(of(project(2)));
     const { fixture } = await createFixture({
       api,
-      permissions: ['tasks.projects.view', 'tasks.projects.create', 'tasks.projects.update', 'tasks.items.view']
+      permissions: ['tasks.projects.view', 'tasks.projects.create', 'tasks.projects.update', 'tasks.items.view'],
     });
     expect(fixture.componentInstance.canCreateProject()).toBe(true);
     expect(fixture.componentInstance.canUpdateProject()).toBe(true);
@@ -680,7 +745,10 @@ describe('ProjectsComponent UI contracts', () => {
 
     expect(component.searchQuery).toBe('');
     expect(component.selectedState).toBe('all');
-    const request = api.get.mock.calls.filter(([url]) => url === '/tasks/projects/page').at(-1)?.[1] as Record<string, unknown>;
+    const request = api.get.mock.calls.filter(([url]) => url === '/tasks/projects/page').at(-1)?.[1] as Record<
+      string,
+      unknown
+    >;
     expect(request['state']).toBeUndefined();
     expect(request['q']).toBeUndefined();
     expect(request['cursor']).toBeUndefined();
@@ -690,7 +758,7 @@ describe('ProjectsComponent UI contracts', () => {
     const api = emptyApi();
     const testProject = project(42);
     const mockMembers = [
-      { projectId: 42, userId: 10, userName: 'Alice', userEmail: 'alice@example.com', accessKind: 'MANAGER' as const }
+      { projectId: 42, userId: 10, userName: 'Alice', userEmail: 'alice@example.com', accessKind: 'MANAGER' as const },
     ];
 
     api.get.mockImplementation((url: string) => {
@@ -729,7 +797,7 @@ describe('ProjectsComponent UI contracts', () => {
     [...dialog.querySelectorAll<HTMLButtonElement>('button')].at(-1)!.click();
     expect(api.delete).toHaveBeenCalledWith('/tasks/projects/42/members/10', { notifyError: false });
     expect(toast.success).toHaveBeenCalled();
-    document.querySelectorAll('.cdk-overlay-container').forEach(node => node.remove());
+    document.querySelectorAll('.cdk-overlay-container').forEach((node) => node.remove());
 
     // 4. Close modal
     component.closeMembersModal();

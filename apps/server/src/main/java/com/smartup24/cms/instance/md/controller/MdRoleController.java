@@ -8,18 +8,16 @@ import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdRoleService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 @RestController
 @RequestMapping({"/api/v1/rbac", "/api/v1/iam"})
 public class MdRoleController {
-
 
     private final MdRoleService roleService;
     private final MdPermissionService permissionService;
@@ -71,8 +69,7 @@ public class MdRoleController {
     @PutMapping("/roles/{id}/permissions")
     @RequiresPermission(form = MdPref.FORM_ROLES, action = "grant")
     public ResponseEntity<Void> setRolePermissions(
-            @PathVariable("id") Long id,
-            @RequestBody List<MdRoleRepository.PermissionPair> permissions) {
+            @PathVariable("id") Long id, @RequestBody List<MdRoleRepository.PermissionPair> permissions) {
 
         roleService.setRolePermissions(id, permissions);
         return ResponseEntity.noContent().build();
@@ -84,14 +81,7 @@ public class MdRoleController {
         return ResponseEntity.ok(permissionService.getFormCatalog());
     }
 
-    public record CreateRoleDto(
-            @NotBlank String name,
-            int orderNo
-    ) {}
+    public record CreateRoleDto(@NotBlank String name, int orderNo) {}
 
-    public record UpdateRoleDto(
-            String name,
-            String state,
-            Integer orderNo
-    ) {}
+    public record UpdateRoleDto(String name, String state, Integer orderNo) {}
 }

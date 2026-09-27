@@ -1,29 +1,29 @@
 .users-view {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      max-width: 1400px;
-    }
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 1400px;
+}
 
-    /* Minimal Header */
-    .view-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .view-title {
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--text-main);
-      margin: 0;
-    }
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+/* Minimal Header */
+.view-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.view-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin: 0;
+}
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

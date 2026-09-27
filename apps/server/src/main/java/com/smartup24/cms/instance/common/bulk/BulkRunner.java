@@ -2,15 +2,15 @@ package com.smartup24.cms.instance.common.bulk;
 
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.common.error.ApiException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import tools.jackson.databind.JsonNode;
-
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.LongConsumer;
+import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import tools.jackson.databind.JsonNode;
 
 /**
  * Массовое действие над выбранными записями ({@code POST …/bulk}): одна и та же операция для каждой записи,
@@ -27,19 +27,19 @@ public final class BulkRunner {
 
     private static final Logger log = LoggerFactory.getLogger(BulkRunner.class);
 
-    private BulkRunner() {
-    }
+    private BulkRunner() {}
 
     /** Тело запроса: действие, записи и параметры действия. */
-    public record BulkRequest(String action, List<Long> ids, JsonNode params) {
-    }
+    public record BulkRequest(String action, List<Long> ids, JsonNode params) {}
 
     /** Итог по одной записи; {@code code} и {@code message} — только у неудачи. */
-    public record BulkItemResult(long id, boolean ok, String code, String message) {
-    }
+    public record BulkItemResult(
+            long id,
+            boolean ok,
+            @Nullable String code,
+            @Nullable String message) {}
 
-    public record BulkResult(String action, int succeeded, int failed, List<BulkItemResult> results) {
-    }
+    public record BulkResult(String action, int succeeded, int failed, List<BulkItemResult> results) {}
 
     /**
      * Проверенный список записей: от одной до {@link #MAX_IDS}, без пустых, повторы убраны с сохранением порядка.
@@ -47,19 +47,22 @@ public final class BulkRunner {
     public static List<Long> checkedIds(BulkRequest request) {
         List<Long> ids = request == null ? null : request.ids();
         if (ids == null || ids.isEmpty() || ids.size() > MAX_IDS || ids.stream().anyMatch(id -> id == null || id < 1)) {
-            throw ApiException.validation(BULK_INVALID, List.of(new FieldErrorItem("ids", BULK_INVALID,
-                    "from 1 to " + MAX_IDS + " positive ids")));
+            throw ApiException.validation(
+                    BULK_INVALID,
+                    List.of(new FieldErrorItem("ids", BULK_INVALID, "from 1 to " + MAX_IDS + " positive ids")));
         }
         return List.copyOf(new LinkedHashSet<>(ids));
     }
 
     public static ApiException unknownAction(String action) {
-        return ApiException.validation(BULK_ACTION_UNKNOWN, List.of(new FieldErrorItem("action", BULK_ACTION_UNKNOWN,
-                "unknown action: " + action)));
+        return ApiException.validation(
+                BULK_ACTION_UNKNOWN,
+                List.of(new FieldErrorItem("action", BULK_ACTION_UNKNOWN, "unknown action: " + action)));
     }
 
     public static ApiException invalidParam(String name, String message) {
-        return ApiException.validation(BULK_INVALID, List.of(new FieldErrorItem("params." + name, BULK_INVALID, message)));
+        return ApiException.validation(
+                BULK_INVALID, List.of(new FieldErrorItem("params." + name, BULK_INVALID, message)));
     }
 
     /** Выполняет операцию для каждой записи и собирает итог; ожидаемые отказы — с кодом одиночной операции. */
@@ -72,7 +75,8 @@ public final class BulkRunner {
                 results.add(new BulkItemResult(id, true, null, null));
                 succeeded++;
             } catch (ApiException e) {
-                results.add(new BulkItemResult(id, false, e.getErrorCode().name().toLowerCase(Locale.ROOT), e.getMessage()));
+                results.add(new BulkItemResult(
+                        id, false, e.getErrorCode().name().toLowerCase(Locale.ROOT), e.getMessage()));
             } catch (RuntimeException e) {
                 // Unexpected: the item is reported without internals, the log keeps the cause.
                 log.warn("Bulk {} failed for id {}", action, id, e);

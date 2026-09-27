@@ -16,7 +16,11 @@ import { SMTMultiDataSelectComponent } from './multi-data-select.component';
 import { SMTMultiDataSelectValueAccessor } from './data-select-value-accessor';
 import type { SMTLookupSource } from './lookup-source';
 
-interface Person { id: number; name: string; login: string }
+interface Person {
+  id: number;
+  name: string;
+  login: string;
+}
 
 const PEOPLE: Person[] = [
   { id: 1, name: 'Aziz Karimov', login: 'aziz' },
@@ -36,7 +40,7 @@ class FakeSource implements SMTLookupSource<Person> {
     this.pages.push({ search, cursor });
     if (this.fail) return throwError(() => new Error('down'));
     if (this.pending) return this.pending;
-    const found = PEOPLE.filter(person => person.name.toLowerCase().includes(search.toLowerCase()));
+    const found = PEOPLE.filter((person) => person.name.toLowerCase().includes(search.toLowerCase()));
     const start = cursor ? Number(cursor) : 0;
     const items = found.slice(start, start + Math.min(limit, 2));
     const next = start + items.length < found.length ? String(start + items.length) : null;
@@ -53,7 +57,7 @@ class FakeSource implements SMTLookupSource<Person> {
 
   resolve(keys: readonly number[]): Observable<readonly Person[]> {
     this.resolved.push([...keys]);
-    return of([...PEOPLE, HIDDEN].filter(person => keys.includes(person.id)));
+    return of([...PEOPLE, HIDDEN].filter((person) => keys.includes(person.id)));
   }
 }
 
@@ -62,14 +66,19 @@ class FakeSource implements SMTLookupSource<Person> {
   imports: [SMTDataSelectComponent, SMTControlComponent, FormField],
   template: `
     <smt-control smtLabel="Manager">
-      <smt-data-select [formField]="user.managerId" [source]="source" [exclude]="notSelf" (rowChange)="rows.push($event)" />
+      <smt-data-select
+        [formField]="user.managerId"
+        [source]="source"
+        [exclude]="notSelf"
+        (rowChange)="rows.push($event)"
+      />
     </smt-control>
   `,
 })
 class FormHost {
   readonly source = new FakeSource();
   readonly model = signal({ managerId: 7 as number | null });
-  readonly user = form(this.model, path => required(path.managerId));
+  readonly user = form(this.model, (path) => required(path.managerId));
   readonly notSelf = (person: Person) => person.id === 3;
   readonly rows: (Person | null)[] = [];
 }
@@ -87,7 +96,13 @@ class NgModelHost {
 @Component({
   standalone: true,
   imports: [SMTMultiDataSelectComponent, SMTMultiDataSelectValueAccessor, FormsModule],
-  template: `<smt-multi-data-select [(ngModel)]="observers" name="observers" [source]="source" ariaLabel="Observers" (rowsChange)="rows = $event" />`,
+  template: `<smt-multi-data-select
+    [(ngModel)]="observers"
+    name="observers"
+    [source]="source"
+    ariaLabel="Observers"
+    (rowsChange)="rows = $event"
+  />`,
 })
 class MultiHost {
   readonly source = new FakeSource();
@@ -98,7 +113,13 @@ class MultiHost {
 @Component({
   standalone: true,
   imports: [SMTMultiDataSelectComponent, SMTMultiDataSelectValueAccessor, FormsModule],
-  template: `<smt-multi-data-select [(ngModel)]="members" name="members" [source]="source" [knownRows]="known" ariaLabel="Members" />`,
+  template: `<smt-multi-data-select
+    [(ngModel)]="members"
+    name="members"
+    [source]="source"
+    [knownRows]="known"
+    ariaLabel="Members"
+  />`,
 })
 class KnownHost {
   readonly source = new FakeSource();
@@ -111,7 +132,7 @@ describe('SMTDataSelectComponent', () => {
 
   afterEach(() => {
     vi.useRealTimers();
-    document.querySelectorAll('.cdk-overlay-container').forEach(node => node.remove());
+    document.querySelectorAll('.cdk-overlay-container').forEach((node) => node.remove());
     TestBed.resetTestingModule();
   });
 
@@ -128,9 +149,10 @@ describe('SMTDataSelectComponent', () => {
     await settle();
     const element = fixture.nativeElement as HTMLElement;
     const trigger = () => element.querySelector('[role="combobox"]') as HTMLElement;
-    const search = () => document.querySelector('.smt-select__search-input, .smt-multi-select__search-input') as HTMLInputElement;
+    const search = () =>
+      document.querySelector('.smt-select__search-input, .smt-multi-select__search-input') as HTMLInputElement;
     const options = () => Array.from(document.querySelectorAll('[role="option"]')) as HTMLElement[];
-    const labels = () => options().map(option => option.textContent!.replace(/\s+/g, ' ').trim());
+    const labels = () => options().map((option) => option.textContent!.replace(/\s+/g, ' ').trim());
     const open = async () => {
       trigger().click();
       await settle();
@@ -177,9 +199,11 @@ describe('SMTDataSelectComponent', () => {
     more.click();
     await settle();
     expect(fixture.componentInstance.source.pages[2]).toEqual({ search: 'o', cursor: '2' });
-    expect(labels().some(label => label.includes('Bekzod'))).toBe(false);
+    expect(labels().some((label) => label.includes('Bekzod'))).toBe(false);
 
-    options().find(option => option.textContent!.includes('Aziz'))!.click();
+    options()
+      .find((option) => option.textContent!.includes('Aziz'))!
+      .click();
     await settle();
     expect(fixture.componentInstance.model().managerId).toBe(1);
     expect(fixture.componentInstance.rows).toEqual([PEOPLE[0]]);
@@ -202,7 +226,9 @@ describe('SMTDataSelectComponent', () => {
     const { fixture, trigger, open, options, settle } = await render(NgModelHost);
     expect(trigger().textContent).toContain('ID: #9');
     await open();
-    options().find(option => option.textContent!.includes('Dilnoza'))!.click();
+    options()
+      .find((option) => option.textContent!.includes('Dilnoza'))!
+      .click();
     await settle();
     expect(fixture.componentInstance.managerId).toBe(2);
   });
@@ -211,10 +237,12 @@ describe('SMTDataSelectComponent', () => {
     const { fixture, element, open, options, settle } = await render(MultiHost);
     expect(element.textContent).toContain('Kamola Yusupova');
     await open();
-    options().find(option => option.textContent!.includes('Aziz'))!.click();
+    options()
+      .find((option) => option.textContent!.includes('Aziz'))!
+      .click();
     await settle();
     expect(fixture.componentInstance.observers).toEqual([7, 1]);
-    expect(fixture.componentInstance.rows.map(person => person.id)).toEqual([7, 1]);
+    expect(fixture.componentInstance.rows.map((person) => person.id)).toEqual([7, 1]);
   });
 
   it('names chosen records the caller already has without asking the source', async () => {

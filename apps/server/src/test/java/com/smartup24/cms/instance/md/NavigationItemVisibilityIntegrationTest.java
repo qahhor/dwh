@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.md;
 
-import com.smartup24.cms.instance.support.TestDatabases;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
@@ -16,18 +17,15 @@ import com.smartup24.cms.instance.md.service.NavigationItemService.CreateNavigat
 import com.smartup24.cms.instance.md.service.NavigationItemService.NavigationItemView;
 import com.smartup24.cms.instance.md.service.NavigationItemService.PermissionChoice;
 import com.smartup24.cms.instance.md.service.NavigationItemService.UpdateNavigationItemCommand;
+import com.smartup24.cms.instance.support.TestDatabases;
+import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import tools.jackson.databind.ObjectMapper;
-
-import java.util.List;
-import java.util.Set;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** FR-MOD-02: меню показывает пункт только тому, у кого есть его право. */
 class NavigationItemVisibilityIntegrationTest {
@@ -103,22 +101,50 @@ class NavigationItemVisibilityIntegrationTest {
     @DisplayName("Право пункта — живая пара каталога, иначе 422 с адресом поля")
     void permissionMustBeALiveCatalogPair() {
         assertThatThrownBy(() -> create("vis-bad", "platform.navigation.fly", null))
-                .isInstanceOfSatisfying(ApiException.class, error -> assertThat(error.getFieldErrors())
-                        .extracting(FieldErrorItem::field, FieldErrorItem::code)
-                        .containsExactly(org.assertj.core.groups.Tuple.tuple(
-                                "requiredPermission", NavigationItemService.PERMISSION_UNKNOWN)));
+                .isInstanceOfSatisfying(
+                        ApiException.class,
+                        error -> assertThat(error.getFieldErrors())
+                                .extracting(FieldErrorItem::field, FieldErrorItem::code)
+                                .containsExactly(org.assertj.core.groups.Tuple.tuple(
+                                        "requiredPermission", NavigationItemService.PERMISSION_UNKNOWN)));
 
         NavigationItemView item = create("vis-good", "  " + GUARDED + " ", null);
         assertThat(item.requiredPermission()).isEqualTo(GUARDED);
 
-        assertThatThrownBy(() -> service.updateItem(item.id(), new UpdateNavigationItemCommand(
-                item.code(), item.title(), null, null, null, null, "INTERNAL_ROUTE", "/tasks", false,
-                "nobody.nothing", 10, null), null))
+        assertThatThrownBy(() -> service.updateItem(
+                        item.id(),
+                        new UpdateNavigationItemCommand(
+                                item.code(),
+                                item.title(),
+                                null,
+                                null,
+                                null,
+                                null,
+                                "INTERNAL_ROUTE",
+                                "/tasks",
+                                false,
+                                "nobody.nothing",
+                                10,
+                                null),
+                        null))
                 .isInstanceOf(ApiException.class);
 
-        NavigationItemView cleared = service.updateItem(item.id(), new UpdateNavigationItemCommand(
-                item.code(), item.title(), null, null, null, null, "INTERNAL_ROUTE", "/tasks", false,
-                " ", 10, null), null);
+        NavigationItemView cleared = service.updateItem(
+                item.id(),
+                new UpdateNavigationItemCommand(
+                        item.code(),
+                        item.title(),
+                        null,
+                        null,
+                        null,
+                        null,
+                        "INTERNAL_ROUTE",
+                        "/tasks",
+                        false,
+                        " ",
+                        10,
+                        null),
+                null);
         assertThat(cleared.requiredPermission()).isNull();
     }
 
@@ -134,8 +160,10 @@ class NavigationItemVisibilityIntegrationTest {
     }
 
     private static NavigationItemView create(String code, String permission, Long parentId) {
-        return service.createItem(new CreateNavigationItemCommand(
-                code, code, null, "custom", parentId, null, "INTERNAL_ROUTE", "/tasks", false, permission, 10), null);
+        return service.createItem(
+                new CreateNavigationItemCommand(
+                        code, code, null, "custom", parentId, null, "INTERNAL_ROUTE", "/tasks", false, permission, 10),
+                null);
     }
 
     private static List<String> visibleCodes() {

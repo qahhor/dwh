@@ -12,12 +12,18 @@
     cdkTrapFocus
     [cdkTrapFocusAutoCapture]="trapAutoCapture()"
     [style.width]="panelWidth()"
-    (click)="$event.stopPropagation()">
+    (click)="$event.stopPropagation()"
+  >
     <div class="smt-drawer__header">
       @if (title) {
         <h2 class="smt-drawer__title" [id]="titleId">{{ title }}</h2>
       }
-      <button type="button" class="smt-drawer__close" (click)="close()" [attr.aria-label]="i18n.messages().common.close">
+      <button
+        type="button"
+        class="smt-drawer__close"
+        (click)="close()"
+        [attr.aria-label]="i18n.messages().common.close"
+      >
         <span class="material-symbols-outlined" aria-hidden="true">close</span>
       </button>
     </div>

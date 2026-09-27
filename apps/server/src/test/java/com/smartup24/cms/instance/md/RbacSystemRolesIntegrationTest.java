@@ -1,8 +1,15 @@
 package com.smartup24.cms.instance.md;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
 import com.smartup24.cms.instance.support.TestDatabases;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,14 +23,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * R6 (ремедиация): интеграционная проверка RBAC на PostgreSQL 18.
@@ -52,12 +51,12 @@ class RbacSystemRolesIntegrationTest {
      * Список закрытый — новый контроллер сюда не добавляется без обоснования.
      */
     private static final Set<String> PUBLIC_CONTROLLER_ALLOWLIST = Set.of(
-            "KauthAuthController",   // публичный/сессионный контур входа
+            "KauthAuthController", // публичный/сессионный контур входа
             "KauthPasswordController", // смена собственного пароля — контур аутентификации (Д-7)
             "KauthPasswordResetController", // сброс пароля по одноразовой ссылке, вход ещё не выполнен (план 0.1)
-            "OpenApiController",     // спецификация API, permitAll в SecurityConfig
-            "MdI18nController"       // публичные UI-словари, без данных экземпляра/пользователей
-    );
+            "OpenApiController", // спецификация API, permitAll в SecurityConfig
+            "MdI18nController" // публичные UI-словари, без данных экземпляра/пользователей
+            );
 
     @Test
     @DisplayName("FR-PERM-8: каждый handler-метод объявляет право (кроме публичного auth-контура)")
@@ -68,7 +67,8 @@ class RbacSystemRolesIntegrationTest {
                 continue;
             }
             for (Method m : controller.getDeclaredMethods()) {
-                if (isHandler(m) && m.getAnnotation(RequiresPermission.class) == null
+                if (isHandler(m)
+                        && m.getAnnotation(RequiresPermission.class) == null
                         && controller.getAnnotation(RequiresPermission.class) == null) {
                     unprotected.add(controller.getSimpleName() + "." + m.getName());
                 }
@@ -82,9 +82,9 @@ class RbacSystemRolesIntegrationTest {
     @Test
     @DisplayName("FR-PERM-1: каждая объявленная пара (form, action) существует в каталоге БД")
     void everyDeclaredPermissionExistsInCatalog() {
-        Set<String> catalog = new HashSet<>(jdbc
-                .sql("select form_code || ':' || action from md_form_actions")
-                .query(String.class).list());
+        Set<String> catalog = new HashSet<>(jdbc.sql("select form_code || ':' || action from md_form_actions")
+                .query(String.class)
+                .list());
 
         List<String> missing = new ArrayList<>();
         for (Class<?> controller : findRestControllers()) {
@@ -108,7 +108,8 @@ class RbacSystemRolesIntegrationTest {
     @DisplayName("Все четыре системные роли созданы")
     void systemRolesExist() {
         List<String> pcodes = jdbc.sql("select pcode from md_roles where pcode is not null order by pcode")
-                .query(String.class).list();
+                .query(String.class)
+                .list();
         // [допущение] И1: pcode есть и у ролей экземпляра (V110), поэтому contains, а не точное равенство
         assertThat(pcodes).contains("admin", "manager", "auditor", "user");
     }
@@ -154,11 +155,19 @@ class RbacSystemRolesIntegrationTest {
                 from md_role_permissions rp
                 join md_roles r on r.id = rp.role_id where r.pcode = 'user'
                 """).query(String.class).list());
-        assertThat(perms).contains("tasks.items:view", "tasks.items:create",
-                "iam.profile:view", "platform.search:view", "notify.inbox:view");
-        assertThat(perms).noneMatch(p -> p.startsWith("iam.users:")
-                || p.startsWith("rbac.") || p.startsWith("audit.")
-                || p.startsWith("platform.settings") || p.startsWith("platform.webhooks"));
+        assertThat(perms)
+                .contains(
+                        "tasks.items:view",
+                        "tasks.items:create",
+                        "iam.profile:view",
+                        "platform.search:view",
+                        "notify.inbox:view");
+        assertThat(perms)
+                .noneMatch(p -> p.startsWith("iam.users:")
+                        || p.startsWith("rbac.")
+                        || p.startsWith("audit.")
+                        || p.startsWith("platform.settings")
+                        || p.startsWith("platform.webhooks"));
     }
 
     // ------------------------------------------------------------------
@@ -175,18 +184,24 @@ class RbacSystemRolesIntegrationTest {
                                 '{}'::jsonb, false, false)
                         returning id
                         """).query(Long.class).single();
-        Long roleId = jdbc.sql("select id from md_roles where pcode = 'user'").query(Long.class).single();
+        Long roleId = jdbc.sql("select id from md_roles where pcode = 'user'")
+                .query(Long.class)
+                .single();
 
         var repo = new MdPermissionRepository(jdbc);
         jdbc.sql("insert into md_user_roles (user_id, role_id) values (:u, :r)")
-                .param("u", userId).param("r", roleId).update();
+                .param("u", userId)
+                .param("r", roleId)
+                .update();
         repo.recalculateEffectivePermissions(userId);
 
         Set<String> effective = repo.getEffectivePermissionsForUser(userId);
         assertThat(effective).contains("tasks.items.view");
         long v1 = repo.getPermissionVersion(userId);
 
-        jdbc.sql("delete from md_user_roles where user_id = :u").param("u", userId).update();
+        jdbc.sql("delete from md_user_roles where user_id = :u")
+                .param("u", userId)
+                .update();
         repo.recalculateEffectivePermissions(userId);
 
         assertThat(repo.getEffectivePermissionsForUser(userId)).isEmpty();
@@ -223,8 +238,11 @@ class RbacSystemRolesIntegrationTest {
     }
 
     private static boolean isHandler(Method m) {
-        return m.isAnnotationPresent(GetMapping.class) || m.isAnnotationPresent(PostMapping.class)
-                || m.isAnnotationPresent(PutMapping.class) || m.isAnnotationPresent(PatchMapping.class)
-                || m.isAnnotationPresent(DeleteMapping.class) || m.isAnnotationPresent(RequestMapping.class);
+        return m.isAnnotationPresent(GetMapping.class)
+                || m.isAnnotationPresent(PostMapping.class)
+                || m.isAnnotationPresent(PutMapping.class)
+                || m.isAnnotationPresent(PatchMapping.class)
+                || m.isAnnotationPresent(DeleteMapping.class)
+                || m.isAnnotationPresent(RequestMapping.class);
     }
 }

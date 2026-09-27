@@ -9,11 +9,10 @@ import com.smartup24.cms.instance.md.service.NavigationItemService.NavigationIte
 import com.smartup24.cms.instance.md.service.NavigationItemService.PermissionChoice;
 import com.smartup24.cms.instance.md.service.NavigationItemService.UpdateNavigationItemCommand;
 import jakarta.validation.Valid;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/navigation/items")
@@ -47,7 +46,8 @@ public class NavigationItemController {
     @GetMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_NAVIGATION, action = "view")
     public ResponseEntity<NavigationItemView> getItem(@PathVariable Long id) {
-        return navigationService.getItemById(id)
+        return navigationService
+                .getItemById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -55,7 +55,8 @@ public class NavigationItemController {
     @GetMapping("/by-code/{code}")
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "view")
     public ResponseEntity<NavigationItemView> getItemByCode(@PathVariable String code) {
-        return navigationService.getVisibleItemByCode(code)
+        return navigationService
+                .getVisibleItemByCode(code)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -70,7 +71,8 @@ public class NavigationItemController {
 
     @PutMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_NAVIGATION, action = "manage")
-    public ResponseEntity<NavigationItemView> updateItem(@PathVariable Long id, @Valid @RequestBody UpdateNavigationItemCommand cmd) {
+    public ResponseEntity<NavigationItemView> updateItem(
+            @PathVariable Long id, @Valid @RequestBody UpdateNavigationItemCommand cmd) {
         Long userId = SecurityContext.getCurrentUserId();
         return ResponseEntity.ok(navigationService.updateItem(id, cmd, userId));
     }

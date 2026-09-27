@@ -1,8 +1,5 @@
 package com.smartup24.cms.instance.report.repository;
 
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -10,6 +7,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
 
 /** The export journal {@code report_exports} (ADR-0018). */
 @Repository
@@ -25,15 +24,28 @@ public class ReportExportRepository {
         this.jdbc = jdbc;
     }
 
-    public record ExportRow(long id, UUID publicId, long userId, String listCode, String request, String state,
-                            Integer rowsCount, boolean truncated, String fileName, String storageKey, Long sizeBytes,
-                            String errorCode, Instant createdAt, Instant startedAt, Instant finishedAt,
-                            Instant expiresAt) {
-    }
+    public record ExportRow(
+            long id,
+            UUID publicId,
+            long userId,
+            String listCode,
+            String request,
+            String state,
+            Integer rowsCount,
+            boolean truncated,
+            String fileName,
+            String storageKey,
+            Long sizeBytes,
+            String errorCode,
+            Instant createdAt,
+            Instant startedAt,
+            Instant finishedAt,
+            Instant expiresAt) {}
 
     public ExportRow insert(long userId, String listCode, String requestJson) {
-        return jdbc.sql("insert into report_exports (user_id, list_code, request) values (:user, :list, cast(:request as jsonb)) "
-                        + "returning " + COLUMNS)
+        return jdbc.sql(
+                        "insert into report_exports (user_id, list_code, request) values (:user, :list, cast(:request as jsonb)) "
+                                + "returning " + COLUMNS)
                 .param("user", userId)
                 .param("list", listCode)
                 .param("request", requestJson)
@@ -49,7 +61,8 @@ public class ReportExportRepository {
     }
 
     public List<ExportRow> listForUser(long userId, int limit) {
-        return jdbc.sql("select " + COLUMNS + " from report_exports where user_id = :user order by created_at desc, id desc limit :limit")
+        return jdbc.sql("select " + COLUMNS
+                        + " from report_exports where user_id = :user order by created_at desc, id desc limit :limit")
                 .param("user", userId)
                 .param("limit", limit)
                 .query(this::map)
@@ -66,9 +79,11 @@ public class ReportExportRepository {
 
     /** Takes a queued export for running; false when another worker already took it or it is gone. */
     public boolean markRunning(long id) {
-        return jdbc.sql("update report_exports set state = 'running', started_at = now() where id = :id and state = 'queued'")
-                .param("id", id)
-                .update() == 1;
+        return jdbc.sql(
+                                "update report_exports set state = 'running', started_at = now() where id = :id and state = 'queued'")
+                        .param("id", id)
+                        .update()
+                == 1;
     }
 
     public void markDone(long id, int rows, boolean truncated, String fileName, String storageKey, long sizeBytes) {
@@ -95,7 +110,8 @@ public class ReportExportRepository {
     }
 
     public List<ExportRow> findExpired(Instant now, int limit) {
-        return jdbc.sql("select " + COLUMNS + " from report_exports where expires_at < :now order by expires_at limit :limit")
+        return jdbc.sql("select " + COLUMNS
+                        + " from report_exports where expires_at < :now order by expires_at limit :limit")
                 .param("now", Timestamp.from(now))
                 .param("limit", limit)
                 .query(this::map)

@@ -3,17 +3,15 @@ package com.smartup24.cms.instance.md.repository;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.query.QueryPlan;
 import com.smartup24.cms.instance.common.security.ScopeFilter;
+import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
-
-import java.time.Instant;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
 
 @Repository
 public class MdUserRepository {
@@ -29,7 +27,8 @@ public class MdUserRepository {
     public UserRecord create(UserCreateData data, Long createdBy) {
         String attributesJson = toJson(data.attributes());
 
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 insert into md_users (name, login, email, phone, password_hash, state, manager_id,
                                      language, timezone, avatar_file_id, attributes, is_2fa_enabled,
                                      force_password_change, created_at, modified_at, created_by, modified_by)
@@ -65,10 +64,7 @@ public class MdUserRepository {
                        password_changed_at, created_at, modified_at, created_by, modified_by, auth_version
                 from md_users
                 where id = :id
-                """)
-                .param("id", id)
-                .query(this::mapUser)
-                .optional();
+                """).param("id", id).query(this::mapUser).optional();
     }
 
     public Optional<UserRecord> findByLoginOrEmail(String identifier) {
@@ -79,10 +75,7 @@ public class MdUserRepository {
                        password_changed_at, created_at, modified_at, created_by, modified_by, auth_version
                 from md_users
                 where login = :ident or email = :ident
-                """)
-                .param("ident", clean)
-                .query(this::mapUser)
-                .optional();
+                """).param("ident", clean).query(this::mapUser).optional();
     }
 
     public Optional<UserRecord> findByLogin(String login) {
@@ -90,7 +83,8 @@ public class MdUserRepository {
     }
 
     public Optional<UserRecord> findByEmail(String email) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select id, name, login, email, phone, password_hash, state, manager_id, language, timezone,
                        avatar_file_id, attributes::text as attributes_str, is_2fa_enabled, force_password_change,
                        password_changed_at, created_at, modified_at, created_by, modified_by, auth_version
@@ -103,29 +97,36 @@ public class MdUserRepository {
     }
 
     public boolean existsByLogin(String login) {
-        return jdbcClient.sql("select count(*) from md_users where login = :login")
-                .param("login", login.toLowerCase().trim())
-                .query(Integer.class)
-                .single() > 0;
+        return jdbcClient
+                        .sql("select count(*) from md_users where login = :login")
+                        .param("login", login.toLowerCase().trim())
+                        .query(Integer.class)
+                        .single()
+                > 0;
     }
 
     public boolean existsByEmail(String email) {
-        return jdbcClient.sql("select count(*) from md_users where email = :email")
-                .param("email", email.toLowerCase().trim())
-                .query(Integer.class)
-                .single() > 0;
+        return jdbcClient
+                        .sql("select count(*) from md_users where email = :email")
+                        .param("email", email.toLowerCase().trim())
+                        .query(Integer.class)
+                        .single()
+                > 0;
     }
 
     public boolean existsByPhone(String phone) {
         if (phone == null || phone.isBlank()) return false;
-        return jdbcClient.sql("select count(*) from md_users where phone = :phone and state = 'A'")
-                .param("phone", phone.trim())
-                .query(Integer.class)
-                .single() > 0;
+        return jdbcClient
+                        .sql("select count(*) from md_users where phone = :phone and state = 'A'")
+                        .param("phone", phone.trim())
+                        .query(Integer.class)
+                        .single()
+                > 0;
     }
 
     public void anonymizeUser(Long userId, Long modifiedBy) {
-        jdbcClient.sql("""
+        jdbcClient
+                .sql("""
                 update md_users
                 set name = 'Deleted User ' || :userId,
                     login = 'deleted_' || :userId,
@@ -173,8 +174,7 @@ public class MdUserRepository {
      * The data scope (ADR-0013) and the flat filters as one predicate for the registry page. They go into the
      * same SQL, so a page and its total only ever see visible users.
      */
-    public static QueryPlan.SqlFragment listPredicate(
-            ScopeFilter scope, LegacyUserFilters filters) {
+    public static QueryPlan.SqlFragment listPredicate(ScopeFilter scope, LegacyUserFilters filters) {
         StringBuilder sql = new StringBuilder();
         Map<String, Object> params = new LinkedHashMap<>();
         if (!scope.isUnrestricted()) {
@@ -188,7 +188,8 @@ public class MdUserRepository {
             params.put("state", filters.state().strip());
         }
         if (filters.roleId() != null) {
-            sql.append(" and exists (select 1 from md_user_roles ur where ur.user_id = md_users.id and ur.role_id = :roleId)");
+            sql.append(
+                    " and exists (select 1 from md_user_roles ur where ur.user_id = md_users.id and ur.role_id = :roleId)");
             params.put("roleId", filters.roleId());
         }
         if (filters.managerId() != null) {
@@ -202,32 +203,36 @@ public class MdUserRepository {
         return new QueryPlan.SqlFragment(sql.toString(), params);
     }
 
-
-    public boolean compareAndSetPassword(Long userId, long expectedAuthVersion,
-                                         String expectedPasswordHash, String newPasswordHash) {
-        return jdbcClient.sql("""
+    public boolean compareAndSetPassword(
+            Long userId, long expectedAuthVersion, String expectedPasswordHash, String newPasswordHash) {
+        return jdbcClient
+                        .sql("""
                 update md_users
                 set password_hash = :newPasswordHash, password_changed_at = now(),
                     force_password_change = false, modified_at = now()
                 where id = :userId and state = 'A' and auth_version = :expectedAuthVersion
                   and password_hash is not distinct from :expectedPasswordHash
                 """)
-                .param("userId", userId)
-                .param("expectedAuthVersion", expectedAuthVersion)
-                .param("expectedPasswordHash", expectedPasswordHash)
-                .param("newPasswordHash", newPasswordHash)
-                .update() == 1;
+                        .param("userId", userId)
+                        .param("expectedAuthVersion", expectedAuthVersion)
+                        .param("expectedPasswordHash", expectedPasswordHash)
+                        .param("newPasswordHash", newPasswordHash)
+                        .update()
+                == 1;
     }
 
     /** The global access invalidator owns the sole increment; overflow must fail the transaction. */
     public void incrementAuthenticationVersion(Long userId) {
-        int changed = jdbcClient.sql("update md_users set auth_version = auth_version + 1 where id = :userId")
-                .param("userId", userId).update();
+        int changed = jdbcClient
+                .sql("update md_users set auth_version = auth_version + 1 where id = :userId")
+                .param("userId", userId)
+                .update();
         if (changed != 1) throw ApiException.invalidCredentials();
     }
 
     public void setState(Long userId, String state, Long modifiedBy) {
-        jdbcClient.sql("""
+        jdbcClient
+                .sql("""
                 update md_users
                 set state = :state, modified_at = now(), modified_by = :modifiedBy
                 where id = :userId
@@ -239,7 +244,8 @@ public class MdUserRepository {
     }
 
     public void updateLanguage(Long userId, String language, Long modifiedBy) {
-        jdbcClient.sql("""
+        jdbcClient
+                .sql("""
                 update md_users
                 set language = :language, modified_at = now(), modified_by = :modifiedBy
                 where id = :userId
@@ -251,7 +257,8 @@ public class MdUserRepository {
     }
 
     public void setForcePasswordChange(Long userId, boolean force, Long modifiedBy) {
-        jdbcClient.sql("""
+        jdbcClient
+                .sql("""
                 update md_users
                 set force_password_change = :force, modified_at = now(), modified_by = :modifiedBy
                 where id = :userId
@@ -263,7 +270,8 @@ public class MdUserRepository {
     }
 
     public void set2faEnabled(Long userId, boolean enabled, Long modifiedBy) {
-        jdbcClient.sql("""
+        jdbcClient
+                .sql("""
                 update md_users
                 set is_2fa_enabled = :enabled, modified_at = now(), modified_by = :modifiedBy
                 where id = :userId
@@ -277,7 +285,8 @@ public class MdUserRepository {
     public void update(Long userId, UserUpdateData data, Long modifiedBy) {
         String attributesJson = data.attributes() != null ? toJson(data.attributes()) : null;
 
-        jdbcClient.sql("""
+        jdbcClient
+                .sql("""
                 update md_users
                 set name = coalesce(:name, name),
                     phone = coalesce(:phone, phone),
@@ -324,13 +333,14 @@ public class MdUserRepository {
                 attrs,
                 rs.getBoolean("is_2fa_enabled"),
                 rs.getBoolean("force_password_change"),
-                rs.getTimestamp("password_changed_at") != null ? rs.getTimestamp("password_changed_at").toInstant() : null,
+                rs.getTimestamp("password_changed_at") != null
+                        ? rs.getTimestamp("password_changed_at").toInstant()
+                        : null,
                 rs.getTimestamp("created_at").toInstant(),
                 rs.getTimestamp("modified_at").toInstant(),
                 rs.getObject("created_by") != null ? rs.getLong("created_by") : null,
                 rs.getObject("modified_by") != null ? rs.getLong("modified_by") : null,
-                rs.getLong("auth_version")
-        );
+                rs.getLong("auth_version"));
     }
 
     private String toJson(Map<String, Object> map) {
@@ -358,10 +368,7 @@ public class MdUserRepository {
                         select count(*) from md_user_roles ur
                         join md_users u on u.id = ur.user_id and u.state = 'A'
                         where ur.role_id = :roleId
-                        """)
-                .param("roleId", roleId)
-                .query(Integer.class)
-                .single();
+                        """).param("roleId", roleId).query(Integer.class).single();
     }
 
     public record UserRecord(
@@ -384,8 +391,7 @@ public class MdUserRepository {
             Instant modifiedAt,
             Long createdBy,
             Long modifiedBy,
-            @com.fasterxml.jackson.annotation.JsonIgnore long authenticationVersion
-    ) {}
+            @com.fasterxml.jackson.annotation.JsonIgnore long authenticationVersion) {}
 
     public record UserCreateData(
             String name,
@@ -400,8 +406,7 @@ public class MdUserRepository {
             UUID avatarFileId,
             Map<String, Object> attributes,
             boolean is2faEnabled,
-            boolean forcePasswordChange
-    ) {}
+            boolean forcePasswordChange) {}
 
     public record UserUpdateData(
             String name,
@@ -411,6 +416,5 @@ public class MdUserRepository {
             String timezone,
             UUID avatarFileId,
             Map<String, Object> attributes,
-            Boolean is2faEnabled
-    ) {}
+            Boolean is2faEnabled) {}
 }

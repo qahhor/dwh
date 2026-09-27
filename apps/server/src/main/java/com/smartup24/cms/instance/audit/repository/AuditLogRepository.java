@@ -1,15 +1,14 @@
 package com.smartup24.cms.instance.audit.repository;
 
 import com.smartup24.cms.instance.common.query.QueryPlan;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
-
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 @Repository
 public class AuditLogRepository {
@@ -22,14 +21,22 @@ public class AuditLogRepository {
         this.objectMapper = objectMapper;
     }
 
-    public void logChange(String tableName, String rowPk, String event, Long changedBy,
-                          Long sessionId, boolean isApi, List<String> changedColumns,
-                          Map<String, Object> oldRow, Map<String, Object> newRow) {
+    public void logChange(
+            String tableName,
+            String rowPk,
+            String event,
+            Long changedBy,
+            Long sessionId,
+            boolean isApi,
+            List<String> changedColumns,
+            Map<String, Object> oldRow,
+            Map<String, Object> newRow) {
 
         String oldRowJson = oldRow != null ? toJson(oldRow) : null;
         String newRowJson = newRow != null ? toJson(newRow) : null;
 
-        jdbcClient.sql("""
+        jdbcClient
+                .sql("""
                 insert into audit_log (table_name, row_pk, event, changed_by, session_id,
                                       is_api, changed_at, changed_columns, old_row, new_row)
                 values (:tableName, :rowPk, :event, :changedBy, :sessionId,
@@ -47,10 +54,12 @@ public class AuditLogRepository {
                 .update();
     }
 
-    public void logSecurityEvent(String eventType, Long userId, String ip, String userAgent, Map<String, Object> details) {
+    public void logSecurityEvent(
+            String eventType, Long userId, String ip, String userAgent, Map<String, Object> details) {
         String detailsJson = toJson(details);
 
-        jdbcClient.sql("""
+        jdbcClient
+                .sql("""
                 insert into security_events (event_type, user_id, ip, user_agent, details, created_at)
                 values (:eventType, :userId, cast(:ip as inet), :userAgent, cast(:details as jsonb), now())
                 """)
@@ -62,9 +71,16 @@ public class AuditLogRepository {
                 .update();
     }
 
-    public List<AuditRecord> listAuditLogs(String tableName, String rowPk, String event, Long userId,
-                                           Instant from, Instant to, Instant cursorChangedAt,
-                                           Long cursorId, int limit) {
+    public List<AuditRecord> listAuditLogs(
+            String tableName,
+            String rowPk,
+            String event,
+            Long userId,
+            Instant from,
+            Instant to,
+            Instant cursorChangedAt,
+            Long cursorId,
+            int limit) {
         StringBuilder sql = new StringBuilder("""
                 select a.id, a.table_name, a.row_pk, a.event, a.changed_by, a.session_id, a.is_api,
                        a.changed_at, a.changed_columns, a.old_row::text as old_str, a.new_row::text as new_str,
@@ -93,7 +109,8 @@ public class AuditLogRepository {
             sql.append(" and a.changed_at <= :to");
         }
         if (cursorChangedAt != null && cursorId != null) {
-            sql.append(" and (a.changed_at < :cursorChangedAt or (a.changed_at = :cursorChangedAt and a.id < :cursorId))");
+            sql.append(
+                    " and (a.changed_at < :cursorChangedAt or (a.changed_at = :cursorChangedAt and a.id < :cursorId))");
         }
 
         sql.append(" order by a.changed_at desc, a.id desc limit :limit");
@@ -106,7 +123,8 @@ public class AuditLogRepository {
         if (from != null) query.param("from", java.sql.Timestamp.from(from));
         if (to != null) query.param("to", java.sql.Timestamp.from(to));
         if (cursorChangedAt != null && cursorId != null) {
-            query.param("cursorChangedAt", java.sql.Timestamp.from(cursorChangedAt)).param("cursorId", cursorId);
+            query.param("cursorChangedAt", java.sql.Timestamp.from(cursorChangedAt))
+                    .param("cursorId", cursorId);
         }
 
         return query.query(this::mapAuditRecord).list();
@@ -137,9 +155,12 @@ public class AuditLogRepository {
 
         /** Canonical form for the cursor fingerprint; null when no filter is set. */
         public String canonical() {
-            String value = part("table", tableName) + part("row", rowPk) + part("event", event)
+            String value = part("table", tableName)
+                    + part("row", rowPk)
+                    + part("event", event)
                     + (userId == null ? "" : ";user=" + userId)
-                    + (from == null ? "" : ";from=" + from) + (to == null ? "" : ";to=" + to);
+                    + (from == null ? "" : ";from=" + from)
+                    + (to == null ? "" : ";to=" + to);
             return value.isEmpty() ? null : value;
         }
     }
@@ -152,8 +173,11 @@ public class AuditLogRepository {
         }
 
         public String canonical() {
-            String value = part("type", eventType) + (userId == null ? "" : ";user=" + userId) + part("ip", ip)
-                    + (from == null ? "" : ";from=" + from) + (to == null ? "" : ";to=" + to);
+            String value = part("type", eventType)
+                    + (userId == null ? "" : ";user=" + userId)
+                    + part("ip", ip)
+                    + (from == null ? "" : ";from=" + from)
+                    + (to == null ? "" : ";to=" + to);
             return value.isEmpty() ? null : value;
         }
     }
@@ -194,8 +218,7 @@ public class AuditLogRepository {
     }
 
     /** The flat security-event filters as the registry page's extra predicate. */
-    public static QueryPlan.SqlFragment securityPredicate(
-            SecurityEventFilters filters) {
+    public static QueryPlan.SqlFragment securityPredicate(SecurityEventFilters filters) {
         StringBuilder sql = new StringBuilder();
         Map<String, Object> params = new LinkedHashMap<>();
         if (filters.eventType() != null && !filters.eventType().isBlank()) {
@@ -235,8 +258,7 @@ public class AuditLogRepository {
                 rs.getString("user_login"));
     }
 
-    public long countAuditLogs(String tableName, String rowPk, String event, Long userId,
-                               Instant from, Instant to) {
+    public long countAuditLogs(String tableName, String rowPk, String event, Long userId, Instant from, Instant to) {
         StringBuilder sql = new StringBuilder("select count(*) from audit_log a where 1=1");
         if (tableName != null && !tableName.isBlank()) sql.append(" and a.table_name = :tableName");
         if (rowPk != null && !rowPk.isBlank()) sql.append(" and a.row_pk = :rowPk");
@@ -256,26 +278,31 @@ public class AuditLogRepository {
     }
 
     public AuditStats getAuditStats() {
-        long totalLogs = jdbcClient.sql("select count(*) from audit_log").query(Long.class).single();
-        var secStats = jdbcClient.sql("""
+        long totalLogs = jdbcClient
+                .sql("select count(*) from audit_log")
+                .query(Long.class)
+                .single();
+        var secStats = jdbcClient
+                .sql("""
                 select
                     count(*) as total_sec,
                     count(*) filter (where created_at >= now() - interval '24 hours') as sec_24h,
                     count(*) filter (where event_type in ('LOGIN_FAILED', 'LOGIN_LOCKED', 'IP_RATE_LIMITED')
                                       and created_at >= now() - interval '24 hours') as failed_24h
                 from security_events
-                """).query((rs, rowNum) -> new long[] {
-                    rs.getLong("total_sec"),
-                    rs.getLong("sec_24h"),
-                    rs.getLong("failed_24h")
-                }).single();
+                """)
+                .query((rs, rowNum) ->
+                        new long[] {rs.getLong("total_sec"), rs.getLong("sec_24h"), rs.getLong("failed_24h")})
+                .single();
 
         return new AuditStats(totalLogs, secStats[0], secStats[1], secStats[2], Instant.now());
     }
 
     /** Reads a row of {@link #LOG_COLUMNS}. */
     public AuditRecord mapAuditRecord(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
-        String[] arr = rs.getArray("changed_columns") != null ? (String[]) rs.getArray("changed_columns").getArray() : null;
+        String[] arr = rs.getArray("changed_columns") != null
+                ? (String[]) rs.getArray("changed_columns").getArray()
+                : null;
         List<String> columns = arr != null ? List.of(arr) : List.of();
 
         return new AuditRecord(
@@ -291,8 +318,7 @@ public class AuditLogRepository {
                 parseJson(rs.getString("old_str")),
                 parseJson(rs.getString("new_str")),
                 rs.getString("changed_by_name"),
-                rs.getString("changed_by_login")
-        );
+                rs.getString("changed_by_login"));
     }
 
     private String toJson(Map<String, Object> map) {
@@ -327,8 +353,7 @@ public class AuditLogRepository {
             Map<String, Object> oldRow,
             Map<String, Object> newRow,
             String changedByName,
-            String changedByLogin
-    ) {}
+            String changedByLogin) {}
 
     public record SecurityEventRecord(
             Long id,
@@ -339,19 +364,17 @@ public class AuditLogRepository {
             Map<String, Object> details,
             Instant createdAt,
             String userName,
-            String userLogin
-    ) {}
+            String userLogin) {}
 
     public record AuditStats(
             long totalAuditLogs,
             long totalSecurityEvents,
             long securityEventsLast24h,
             long failedLoginsLast24h,
-            Instant computedAt
-    ) {
-        public AuditStats(long totalAuditLogs, long totalSecurityEvents, long securityEventsLast24h, long failedLoginsLast24h) {
+            Instant computedAt) {
+        public AuditStats(
+                long totalAuditLogs, long totalSecurityEvents, long securityEventsLast24h, long failedLoginsLast24h) {
             this(totalAuditLogs, totalSecurityEvents, securityEventsLast24h, failedLoginsLast24h, Instant.now());
         }
     }
 }
-

@@ -18,7 +18,6 @@ export interface User {
   modifiedAt: string;
 }
 
-
 export interface LoginResponse {
   step: 'success' | 'otp';
   otp_token?: string;

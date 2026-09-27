@@ -1,6 +1,9 @@
 package com.smartup24.cms.instance.report;
 
-import com.smartup24.cms.instance.support.TestDatabases;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
@@ -19,6 +22,16 @@ import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.report.controller.ReportController;
 import com.smartup24.cms.instance.report.service.ReportService;
+import com.smartup24.cms.instance.support.TestDatabases;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Stream;
+import javax.xml.parsers.DocumentBuilderFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,25 +49,9 @@ import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.w3c.dom.Element;
 import tools.jackson.databind.ObjectMapper;
 
-import javax.xml.parsers.DocumentBuilderFactory;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Stream;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
 /** Exercises HTTP export serialization with the real SQL authorization predicate. */
 class ReportExportIntegrationTest {
     private static final String SS = "urn:schemas-microsoft-com:office:spreadsheet";
-
 
     static JdbcClient jdbc;
     static DataSourceTransactionManager transactions;
@@ -75,14 +72,15 @@ class ReportExportIntegrationTest {
         roles = new MdRoleRepository(jdbc);
         var orgRepository = new MdOrgUnitRepository(jdbc);
         var permissions = new MdPermissionService(new MdPermissionRepository(jdbc));
-        var audit = new AuditLogService(new AuditLogRepository(jdbc, new ObjectMapper()), null,
-                new AuditDataRedactor());
+        var audit =
+                new AuditLogService(new AuditLogRepository(jdbc, new ObjectMapper()), null, new AuditDataRedactor());
         scopes = new MdScopeService(scopeRepository, orgRepository, permissions, audit);
         orgUnits = new MdOrgUnitService(orgRepository, scopes, audit);
         reports = new ReportService(jdbc, scopes);
         mvc = MockMvcBuilders.standaloneSetup(new ReportController(reports))
                 .addInterceptors(new RequiresPermissionInterceptor())
-                .setControllerAdvice(new GlobalExceptionHandler()).build();
+                .setControllerAdvice(new GlobalExceptionHandler())
+                .build();
     }
 
     @BeforeEach
@@ -107,8 +105,12 @@ class ReportExportIntegrationTest {
         expected.add(task("Только постановщик", outsider, viewer));
         for (String kind : List.of("R", "E", "P", "A", "O")) {
             Long taskId = task("Участник " + kind, outsider, outsider);
-            jdbc.sql("insert into ms_task_members (task_id, user_id, involve_kind, is_viewed) values (:task, :user, :kind, false)")
-                    .param("task", taskId).param("user", viewer).param("kind", kind).update();
+            jdbc.sql(
+                            "insert into ms_task_members (task_id, user_id, involve_kind, is_viewed) values (:task, :user, :kind, false)")
+                    .param("task", taskId)
+                    .param("user", viewer)
+                    .param("kind", kind)
+                    .update();
             expected.add(taskId);
         }
         task("Скрытая задача", outsider, outsider);
@@ -123,7 +125,8 @@ class ReportExportIntegrationTest {
         Long root = orgUnits.create(null, "ROOT", "Компания", "company", 1).id();
         Long region = orgUnits.create(root, "REGION", "Регион", "region", 1).id();
         Long branch = orgUnits.create(region, "BRANCH", "Филиал", "branch", 1).id();
-        Long sibling = orgUnits.create(root, "SIBLING", "Другой регион", "region", 2).id();
+        Long sibling =
+                orgUnits.create(root, "SIBLING", "Другой регион", "region", 2).id();
         Long viewer = user("viewer", null);
         Long primary = user("primary", region);
         Long child = user("child", branch);
@@ -133,8 +136,11 @@ class ReportExportIntegrationTest {
         Long primaryTask = task("Основной узел", primary, foreign);
         Long childTask = task("Дочерний узел", foreign, child);
         Long secondaryTask = task("Дополнительный узел наблюдателя", foreign, foreign);
-        jdbc.sql("insert into ms_task_members (task_id, user_id, involve_kind, is_viewed) values (:task, :user, 'O', false)")
-                .param("task", secondaryTask).param("user", secondary).update();
+        jdbc.sql(
+                        "insert into ms_task_members (task_id, user_id, involve_kind, is_viewed) values (:task, :user, 'O', false)")
+                .param("task", secondaryTask)
+                .param("user", secondary)
+                .update();
         task("Соседняя ветка", foreign, foreign);
         assignScope(viewer, "UNITS");
         scopes.assignUserOrgUnits(viewer, List.of(region));
@@ -153,8 +159,10 @@ class ReportExportIntegrationTest {
         Long outsider = user("outsider", null);
         Long first = task("Первая", outsider, outsider);
         Long second = task("Завершённая", outsider, outsider);
-        jdbc.sql("update ms_tasks set status_id = (select id from ms_task_statuses where pcode = 'done'), resolved_time = now() where id = :id")
-                .param("id", second).update();
+        jdbc.sql(
+                        "update ms_tasks set status_id = (select id from ms_task_statuses where pcode = 'done'), resolved_time = now() where id = :id")
+                .param("id", second)
+                .update();
         signIn(viewer, Set.of("*.*"), false);
         for (String rule : List.of("SELF", "UNITS", "SUBTREE")) {
             assignScope(viewer, rule);
@@ -167,15 +175,12 @@ class ReportExportIntegrationTest {
     @ParameterizedTest
     @ValueSource(strings = {"", "csv", "CSV", "unknown", "xlsx", "XLSX", "excel", "EXCEL"})
     void authenticationPermissionAndPasswordChangeRemainRequired(String format) throws Exception {
-        mvc.perform(get("/api/v1/reports/tasks/export").param("format", format))
-                .andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/reports/tasks/export").param("format", format)).andExpect(status().isUnauthorized());
         Long viewer = user("viewer", null);
         signIn(viewer, Set.of(), false);
-        mvc.perform(get("/api/v1/reports/tasks/export").param("format", format))
-                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/v1/reports/tasks/export").param("format", format)).andExpect(status().isForbidden());
         signIn(viewer, Set.of("tasks.items.view"), true);
-        mvc.perform(get("/api/v1/reports/tasks/export").param("format", format))
-                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/v1/reports/tasks/export").param("format", format)).andExpect(status().isForbidden());
     }
 
     @ParameterizedTest
@@ -183,16 +188,19 @@ class ReportExportIntegrationTest {
     void missingActorFailsBeforeWritingAnyBytes(boolean xml) {
         var output = new ByteArrayOutputStream();
         assertThatThrownBy(() -> {
-            if (xml) reports.exportTasksExcelXml(output, null);
-            else reports.exportTasksCsv(output, null);
-        }).isInstanceOfSatisfying(ApiException.class,
-                error -> assertThat(error.getErrorCode()).isEqualTo(ErrorCode.UNAUTHORIZED));
+                    if (xml) reports.exportTasksExcelXml(output, null);
+                    else reports.exportTasksCsv(output, null);
+                })
+                .isInstanceOfSatisfying(
+                        ApiException.class,
+                        error -> assertThat(error.getErrorCode()).isEqualTo(ErrorCode.UNAUTHORIZED));
         assertThat(output.size()).isZero();
     }
 
     @ParameterizedTest
     @MethodSource("csvTextCases")
-    void csvNeutralizesUnsafePrefixesInEveryEditableColumnAndPreservesCsvStructure(String input, boolean unsafe) throws Exception {
+    void csvNeutralizesUnsafePrefixesInEveryEditableColumnAndPreservesCsvStructure(String input, boolean unsafe)
+            throws Exception {
         prepareTextCells(input);
 
         var response = export("csv");
@@ -213,14 +221,41 @@ class ReportExportIntegrationTest {
 
     static Stream<Arguments> csvTextCases() {
         Stream<Arguments> unsafe = Stream.of(
-                "=1+1", "+1+1", "-1+1", "@SUM(1)", "＝1+1", "＋1+1", "－1+1", "＠SUM(1)",
-                " =1+1", "\t=1+1", "\r=1+1", "\n=1+1", " \tтекст", "\rтекст", "\nтекст",
-                "\u0001=1+1", "\u00A0=1+1", "\u2003+1+1", "\u200B@SUM(1)", "\uFEFF-1+1",
-                "=1+1\";=2+2", " =1+1\n;\"строка\"")
+                        "=1+1",
+                        "+1+1",
+                        "-1+1",
+                        "@SUM(1)",
+                        "＝1+1",
+                        "＋1+1",
+                        "－1+1",
+                        "＠SUM(1)",
+                        " =1+1",
+                        "\t=1+1",
+                        "\r=1+1",
+                        "\n=1+1",
+                        " \tтекст",
+                        "\rтекст",
+                        "\nтекст",
+                        "\u0001=1+1",
+                        "\u00A0=1+1",
+                        "\u2003+1+1",
+                        "\u200B@SUM(1)",
+                        "\uFEFF-1+1",
+                        "=1+1\";=2+2",
+                        " =1+1\n;\"строка\"")
                 .map(value -> Arguments.of(value, true));
         Stream<Arguments> ordinary = Stream.of(
-                "Обычная задача", "", "  пробелы", "'уже текст", "Задача; \"кавычки\"",
-                "Первая\nВторая", "Первая\r\nВторая", "Обычная;=1+1", "Текст\";=1+1", "Стоимость - 100", "—")
+                        "Обычная задача",
+                        "",
+                        "  пробелы",
+                        "'уже текст",
+                        "Задача; \"кавычки\"",
+                        "Первая\nВторая",
+                        "Первая\r\nВторая",
+                        "Обычная;=1+1",
+                        "Текст\";=1+1",
+                        "Стоимость - 100",
+                        "—")
                 .map(value -> Arguments.of(value, false));
         return Stream.concat(unsafe, ordinary);
     }
@@ -234,7 +269,8 @@ class ReportExportIntegrationTest {
         var exported = rows(export(format), format);
         assertThat(exported).hasSize(2);
         assertThat(exported.get(1)).hasSize(8);
-        for (int column : List.of(1, 2, 4, 7)) assertThat(exported.get(1).get(column)).isEqualTo(input);
+        for (int column : List.of(1, 2, 4, 7))
+            assertThat(exported.get(1).get(column)).isEqualTo(input);
     }
 
     private static void prepareTextCells(String text) {
@@ -242,13 +278,21 @@ class ReportExportIntegrationTest {
         assignScope(viewer, "SELF");
         Long taskId = task(text, viewer, viewer);
         Long project = jdbc.sql("insert into ms_task_projects (name) values (:name) returning id")
-                .param("name", text).query(Long.class).single();
+                .param("name", text)
+                .query(Long.class)
+                .single();
         jdbc.sql("update ms_tasks set project_id = :project where id = :id")
-                .param("project", project).param("id", taskId).update();
+                .param("project", project)
+                .param("id", taskId)
+                .update();
         jdbc.sql("update ms_task_statuses set name = :name where id = (select status_id from ms_tasks where id = :id)")
-                .param("name", text).param("id", taskId).update();
+                .param("name", text)
+                .param("id", taskId)
+                .update();
         jdbc.sql("update md_users set name = :name where id = :id")
-                .param("name", text).param("id", viewer).update();
+                .param("name", text)
+                .param("id", viewer)
+                .update();
         signIn(viewer, Set.of("tasks.items.view"), false);
     }
 
@@ -258,18 +302,25 @@ class ReportExportIntegrationTest {
         return mvc.perform(request).andExpect(status().isOk()).andReturn().getResponse();
     }
 
-    private static void assertIds(MockHttpServletResponse response, String format, List<Long> expected) throws Exception {
+    private static void assertIds(MockHttpServletResponse response, String format, List<Long> expected)
+            throws Exception {
         List<List<String>> rows = rows(response, format);
-        assertThat(rows.getFirst()).containsExactly("ID", "Заголовок", "Проект", "Приоритет", "Статус", "Срок", "Дата создания", "Автор");
+        assertThat(rows.getFirst())
+                .containsExactly("ID", "Заголовок", "Проект", "Приоритет", "Статус", "Срок", "Дата создания", "Автор");
         assertThat(rows).allSatisfy(row -> assertThat(row).hasSize(8));
-        assertThat(rows.stream().skip(1).map(row -> Long.valueOf(row.getFirst())).toList())
-                .containsExactlyElementsOf(expected.stream().sorted(Comparator.reverseOrder()).toList());
+        assertThat(rows.stream()
+                        .skip(1)
+                        .map(row -> Long.valueOf(row.getFirst()))
+                        .toList())
+                .containsExactlyElementsOf(
+                        expected.stream().sorted(Comparator.reverseOrder()).toList());
     }
 
     private static List<List<String>> rows(MockHttpServletResponse response, String format) throws Exception {
         if (format.equalsIgnoreCase("xlsx") || format.equalsIgnoreCase("excel")) {
             assertThat(response.getContentType()).isEqualTo("application/vnd.ms-excel; charset=UTF-8");
-            assertThat(response.getHeader("Content-Disposition")).isEqualTo("attachment; filename=\"tasks-export.xls\"");
+            assertThat(response.getHeader("Content-Disposition"))
+                    .isEqualTo("attachment; filename=\"tasks-export.xls\"");
             var factory = DocumentBuilderFactory.newInstance();
             factory.setNamespaceAware(true);
             factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
@@ -282,7 +333,8 @@ class ReportExportIntegrationTest {
                 for (int c = 0; c < cells.getLength(); c++) {
                     var cell = (Element) cells.item(c);
                     assertThat(cell.getAttributeNS(SS, "Type")).isEqualTo(r > 0 && c == 0 ? "Number" : "String");
-                    assertThat(((Element) cell.getParentNode()).hasAttributeNS(SS, "Formula")).isFalse();
+                    assertThat(((Element) cell.getParentNode()).hasAttributeNS(SS, "Formula"))
+                            .isFalse();
                     values.add(cell.getTextContent());
                 }
                 result.add(values);
@@ -301,18 +353,27 @@ class ReportExportIntegrationTest {
         List<String> row = new ArrayList<>();
         var cell = new StringBuilder();
         boolean quoted = false;
+        // A CSV parser steps over an escaped quote and a CRLF pair by moving the index itself.
+        // CHECKSTYLE.OFF: ModifiedControlVariable
         for (int i = 0; i < csv.length(); i++) {
             char ch = csv.charAt(i);
             if (ch == '"') {
-                if (quoted && i + 1 < csv.length() && csv.charAt(i + 1) == '"') { cell.append('"'); i++; }
-                else quoted = !quoted;
+                if (quoted && i + 1 < csv.length() && csv.charAt(i + 1) == '"') {
+                    cell.append('"');
+                    i++;
+                } else quoted = !quoted;
             } else if (ch == ';' && !quoted) {
-                row.add(cell.toString()); cell.setLength(0);
+                row.add(cell.toString());
+                cell.setLength(0);
             } else if ((ch == '\r' || ch == '\n') && !quoted) {
                 if (ch == '\r' && i + 1 < csv.length() && csv.charAt(i + 1) == '\n') i++;
-                row.add(cell.toString()); rows.add(row); row = new ArrayList<>(); cell.setLength(0);
+                row.add(cell.toString());
+                rows.add(row);
+                row = new ArrayList<>();
+                cell.setLength(0);
             } else cell.append(ch);
         }
+        // CHECKSTYLE.ON: ModifiedControlVariable
         assertThat(quoted).isFalse();
         assertThat(row).isEmpty();
         assertThat(cell).isEmpty();
@@ -325,7 +386,11 @@ class ReportExportIntegrationTest {
                                       attributes, is_2fa_enabled, force_password_change, org_unit_id)
                 values (:login, :login, :login || '@example.invalid', 'x', 'A', 'ru', 'UTC', '{}', false, false, :unit)
                 returning id
-                """).param("login", login).param("unit", orgUnitId).query(Long.class).single();
+                """)
+                .param("login", login)
+                .param("unit", orgUnitId)
+                .query(Long.class)
+                .single();
     }
 
     private static void assignScope(Long userId, String rule) {
@@ -341,7 +406,12 @@ class ReportExportIntegrationTest {
                                       attributes, created_by, modified_by, created_at)
                 values (:title, '', (select id from ms_task_statuses order by id limit 1), 'medium', :reporter,
                         '{}', :creator, :creator, '2026-09-05T08:30:00Z') returning id
-                """).param("title", title).param("creator", creator).param("reporter", reporter).query(Long.class).single();
+                """)
+                .param("title", title)
+                .param("creator", creator)
+                .param("reporter", reporter)
+                .query(Long.class)
+                .single();
     }
 
     private static void signIn(Long userId, Set<String> permissions, boolean forcePasswordChange) {

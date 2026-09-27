@@ -100,15 +100,15 @@ export class SMTCalendarComponent {
     const { year, month } = this.active();
     const locale = this.locale();
     const today = this.today();
-    return monthGrid(year, month).map(week =>
-      week.map(date => ({
+    return monthGrid(year, month).map((week) =>
+      week.map((date) => ({
         date,
         iso: toIsoDate(date),
         inMonth: date.month === month,
         label: fullDateLabel(date, locale),
         disabled: !isWithin(date, this.min(), this.max()),
         today: isSameDate(date, today),
-      }))
+      })),
     );
   });
 
@@ -144,7 +144,7 @@ export class SMTCalendarComponent {
   }
 
   moveMonth(delta: number): void {
-    this.active.update(date => addMonths(date, delta));
+    this.active.update((date) => addMonths(date, delta));
   }
 
   pick(cell: CalendarCell): void {
@@ -190,7 +190,7 @@ export class SMTCalendarComponent {
         event.preventDefault();
         const cell = this.weeks()
           .flat()
-          .find(candidate => isSameDate(candidate.date, current));
+          .find((candidate) => isSameDate(candidate.date, current));
         if (cell) this.pick(cell);
         return;
       }
@@ -212,7 +212,7 @@ export class SMTCalendarComponent {
           this.host.nativeElement.querySelector<HTMLElement>(`[data-date="${iso}"]`)?.focus();
         },
       },
-      { injector: this.injector }
+      { injector: this.injector },
     );
   }
 }

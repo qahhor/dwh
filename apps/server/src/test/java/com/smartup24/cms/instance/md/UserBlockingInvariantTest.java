@@ -1,16 +1,15 @@
 package com.smartup24.cms.instance.md;
 
-import com.smartup24.cms.instance.support.TestDatabases;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.smartup24.cms.instance.kauth.repository.KauthApiTokenRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthSessionRepository;
 import com.smartup24.cms.instance.kauth.service.KauthUserSessionInvalidator;
+import com.smartup24.cms.instance.support.TestDatabases;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.simple.JdbcClient;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * R6: инвариант I-U1 (FR-USR-4) — блокировка пользователя закрывает все его
@@ -47,17 +46,17 @@ class UserBlockingInvariantTest {
                 values (:u, 'integration', 'pfx1', 'th1'), (:u, 'backup', 'pfx2', 'th2')
                 """).param("u", userId).update();
 
-        new KauthUserSessionInvalidator(
-                new KauthSessionRepository(jdbc),
-                new KauthApiTokenRepository(jdbc))
+        new KauthUserSessionInvalidator(new KauthSessionRepository(jdbc), new KauthApiTokenRepository(jdbc))
                 .invalidateAllAccess(userId);
 
-        Long openSessions = jdbc.sql(
-                        "select count(*) from kauth_sessions where user_id = :u and closed_at is null")
-                .param("u", userId).query(Long.class).single();
-        Long activeTokens = jdbc.sql(
-                        "select count(*) from kauth_api_tokens where user_id = :u and revoked_at is null")
-                .param("u", userId).query(Long.class).single();
+        Long openSessions = jdbc.sql("select count(*) from kauth_sessions where user_id = :u and closed_at is null")
+                .param("u", userId)
+                .query(Long.class)
+                .single();
+        Long activeTokens = jdbc.sql("select count(*) from kauth_api_tokens where user_id = :u and revoked_at is null")
+                .param("u", userId)
+                .query(Long.class)
+                .single();
 
         assertThat(openSessions).as("открытых сессий после блокировки").isZero();
         assertThat(activeTokens).as("активных токенов после блокировки").isZero();

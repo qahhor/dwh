@@ -1,9 +1,9 @@
 package com.smartup24.cms.instance.search.controller;
 
-import com.smartup24.cms.instance.search.service.SearchService;
-import org.springframework.http.ResponseEntity;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.search.pref.SearchPref;
+import com.smartup24.cms.instance.search.service.SearchService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;

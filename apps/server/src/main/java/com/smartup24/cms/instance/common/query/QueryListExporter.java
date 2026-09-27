@@ -2,9 +2,7 @@ package com.smartup24.cms.instance.common.query;
 
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.core.pagination.KeysetPage;
-
 import java.util.List;
-
 import java.util.Map;
 import java.util.Set;
 
@@ -37,5 +35,6 @@ public interface QueryListExporter {
     }
 
     /** One page for the signed-in person, exactly as the list endpoint would return it. */
-    KeysetPage<?> page(int limit, String cursor, String filter, String sort, String search, Map<String, String> options);
+    KeysetPage<?> page(
+            int limit, String cursor, String filter, String sort, String search, Map<String, String> options);
 }

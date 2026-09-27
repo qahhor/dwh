@@ -1,13 +1,12 @@
 package com.smartup24.cms.instance.upl;
 
-import org.dhatim.fastexcel.Workbook;
-import org.dhatim.fastexcel.Worksheet;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import org.dhatim.fastexcel.Workbook;
+import org.dhatim.fastexcel.Worksheet;
 
 /**
  * Сборка синтетических xlsx прямо в памяти: двоичных файлов в репозитории нет.
@@ -15,16 +14,14 @@ import java.util.List;
  */
 public final class UplXlsxFixtures {
 
-    private UplXlsxFixtures() {
-    }
+    private UplXlsxFixtures() {}
 
     /**
      * Лист файла: имя, номер строки шапки (как в Excel, с 1), тексты шапки и строки данных
      * сразу под шапкой. В строке данных {@code String} — текст, {@code Number} — число,
      * {@code null} — ячейки нет.
      */
-    public record SheetSpec(String name, int headerRow, List<String> header, List<List<Object>> rows) {
-    }
+    public record SheetSpec(String name, int headerRow, List<String> header, List<List<Object>> rows) {}
 
     /** Собирает книгу из листов и отдаёт её байтами. */
     public static byte[] workbook(SheetSpec... sheets) {

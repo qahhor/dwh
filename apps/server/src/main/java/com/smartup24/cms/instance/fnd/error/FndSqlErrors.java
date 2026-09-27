@@ -1,11 +1,10 @@
 package com.smartup24.cms.instance.fnd.error;
 
+import java.sql.SQLException;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
-
-import java.sql.SQLException;
-import java.util.Optional;
 
 /**
  * Перевод ошибок PostgreSQL в {@link ConstraintViolationException} (AC-9б): по имени ограничения
@@ -17,8 +16,7 @@ public final class FndSqlErrors {
 
     private static final Logger log = LoggerFactory.getLogger(FndSqlErrors.class);
 
-    private FndSqlErrors() {
-    }
+    private FndSqlErrors() {}
 
     /** Выполняет действие; ошибку БД с известным кодом переводит в исключение с кодом. */
     public static <T> T translating(SqlAction<T> action) {
@@ -34,7 +32,8 @@ public final class FndSqlErrors {
         if (sql == null) {
             return e;
         }
-        Optional<ConstraintErrorCode> code = constraintName(sql).flatMap(ConstraintErrorCode::byConstraintName)
+        Optional<ConstraintErrorCode> code = constraintName(sql)
+                .flatMap(ConstraintErrorCode::byConstraintName)
                 .or(() -> ConstraintErrorCode.byMessage(sql.getMessage()));
         if (code.isEmpty()) {
             return e;

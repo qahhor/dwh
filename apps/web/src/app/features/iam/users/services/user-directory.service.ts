@@ -42,17 +42,20 @@ export class UserDirectoryService {
       if (id == null || this.known().has(id) || this.requested.has(id) || this.unavailable.has(id)) continue;
       this.requested.add(id);
       // Bound to the screen: a lookup still in flight when it closes is dropped.
-      this.api.get<User>(`/iam/users/${id}`, undefined, { notifyError: false }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-        next: user => {
-          this.requested.delete(id);
-          if (user?.id === id) this.remember([user]);
-          else this.unavailable.add(id);
-        },
-        error: () => {
-          this.requested.delete(id);
-          this.unavailable.add(id);
-        }
-      });
+      this.api
+        .get<User>(`/iam/users/${id}`, undefined, { notifyError: false })
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (user) => {
+            this.requested.delete(id);
+            if (user?.id === id) this.remember([user]);
+            else this.unavailable.add(id);
+          },
+          error: () => {
+            this.requested.delete(id);
+            this.unavailable.add(id);
+          },
+        });
     }
   }
 }

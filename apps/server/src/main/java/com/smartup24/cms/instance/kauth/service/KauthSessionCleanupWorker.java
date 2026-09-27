@@ -1,13 +1,12 @@
 package com.smartup24.cms.instance.kauth.service;
 
+import java.time.Duration;
+import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-
-import java.time.Duration;
-import java.time.Instant;
 
 /**
  * Фоновый воркер очистки неактивных сессий (FR-AUTH-8):
@@ -26,8 +25,7 @@ public class KauthSessionCleanupWorker {
         this.sessionService = sessionService;
     }
 
-    @Scheduled(fixedDelayString = "${dwh.session.cleanup-interval:1h}",
-               initialDelayString = "PT1M")
+    @Scheduled(fixedDelayString = "${dwh.session.cleanup-interval:1h}", initialDelayString = "PT1M")
     public void cleanupInactiveSessions() {
         try {
             Instant cutoff = Instant.now().minus(Duration.ofHours(12));

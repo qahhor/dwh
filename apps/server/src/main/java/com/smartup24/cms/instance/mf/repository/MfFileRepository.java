@@ -4,14 +4,13 @@ import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.query.QueryListRepository;
 import com.smartup24.cms.instance.common.query.QueryPlan;
 import com.smartup24.cms.instance.common.security.ScopeFilter;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
 
 @Repository
 public class MfFileRepository {
@@ -42,10 +41,17 @@ public class MfFileRepository {
         this.jdbcClient = jdbcClient;
     }
 
-    public FileRecord create(String sha256, String originalName, long sizeBytes,
-                             String mimeType, String storageBucket, String storageKey, Long createdBy) {
+    public FileRecord create(
+            String sha256,
+            String originalName,
+            long sizeBytes,
+            String mimeType,
+            String storageBucket,
+            String storageKey,
+            Long createdBy) {
 
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 insert into mf_files (id, sha256, original_name, size_bytes, mime_type, storage_bucket, storage_key, created_at, created_by)
                 values (gen_random_uuid(), :sha256, :originalName, :sizeBytes, :mimeType, :storageBucket, :storageKey, now(), :createdBy)
                 returning id, sha256, original_name, size_bytes, mime_type, storage_bucket, storage_key, created_at, created_by
@@ -84,7 +90,8 @@ public class MfFileRepository {
      * (V010): из неё берутся только bucket и ключ.
      */
     public Optional<FileRecord> findBySha256(String sha256) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select id, sha256, original_name, size_bytes, mime_type, storage_bucket, storage_key, created_at, created_by
                 from mf_files
                 where sha256 = :sha256
@@ -100,7 +107,8 @@ public class MfFileRepository {
         if (ownerId == null) {
             return Optional.empty();
         }
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select id, sha256, original_name, size_bytes, mime_type, storage_bucket, storage_key, created_at, created_by
                 from mf_files
                 where sha256 = :sha256 and created_by = :ownerId
@@ -113,7 +121,8 @@ public class MfFileRepository {
 
     /** Остались ли владельцы у этого содержимого — проверка перед удалением объекта с диска. */
     public boolean existsBySha256(String sha256) {
-        Long count = jdbcClient.sql("select count(*) from mf_files where sha256 = :sha256")
+        Long count = jdbcClient
+                .sql("select count(*) from mf_files where sha256 = :sha256")
                 .param("sha256", sha256)
                 .query(Long.class)
                 .single();
@@ -121,9 +130,7 @@ public class MfFileRepository {
     }
 
     public void delete(UUID id) {
-        jdbcClient.sql("delete from mf_files where id = :id")
-                .param("id", id)
-                .update();
+        jdbcClient.sql("delete from mf_files where id = :id").param("id", id).update();
     }
 
     /**
@@ -131,14 +138,16 @@ public class MfFileRepository {
      * Reads remain lock-free; callers must re-read usage after acquiring the lock.
      */
     public void lockQuotaBudget() {
-        jdbcClient.sql("select pg_advisory_xact_lock(:lockKey)")
+        jdbcClient
+                .sql("select pg_advisory_xact_lock(:lockKey)")
                 .param("lockKey", FILE_QUOTA_LOCK_KEY)
                 .query((rs, rowNum) -> Boolean.TRUE)
                 .single();
     }
 
     public long getTotalCompanyUsedBytes() {
-        Long sum = jdbcClient.sql("select coalesce(sum(size_bytes), 0) from mf_files")
+        Long sum = jdbcClient
+                .sql("select coalesce(sum(size_bytes), 0) from mf_files")
                 .query(Long.class)
                 .single();
         return sum != null ? sum : 0L;
@@ -146,7 +155,8 @@ public class MfFileRepository {
 
     public long getUserUsedBytes(Long userId) {
         if (userId == null) return 0L;
-        Long sum = jdbcClient.sql("select coalesce(sum(size_bytes), 0) from mf_files where created_by = :userId")
+        Long sum = jdbcClient
+                .sql("select coalesce(sum(size_bytes), 0) from mf_files where created_by = :userId")
                 .param("userId", userId)
                 .query(Long.class)
                 .single();
@@ -154,7 +164,8 @@ public class MfFileRepository {
     }
 
     public long getCompanyQuotaBytes() {
-        Long quota = jdbcClient.sql("select coalesce(storage_quota_bytes, 53687091200) from md_instance_info limit 1")
+        Long quota = jdbcClient
+                .sql("select coalesce(storage_quota_bytes, 53687091200) from md_instance_info limit 1")
                 .query(Long.class)
                 .optional()
                 .orElse(53687091200L);
@@ -163,7 +174,8 @@ public class MfFileRepository {
 
     public long getUserEffectiveQuotaBytes(Long userId) {
         if (userId == null) return 1073741824L; // 1 GB
-        Long quota = jdbcClient.sql("""
+        Long quota = jdbcClient
+                .sql("""
                 select coalesce(
                     u.storage_quota_bytes,
                     max(r.storage_quota_bytes),
@@ -183,7 +195,8 @@ public class MfFileRepository {
     }
 
     public int countTotalFiles() {
-        Integer count = jdbcClient.sql("select count(*) from mf_files")
+        Integer count = jdbcClient
+                .sql("select count(*) from mf_files")
                 .query(Integer.class)
                 .single();
         return count != null ? count : 0;
@@ -191,7 +204,8 @@ public class MfFileRepository {
 
     public int countUserFiles(Long userId) {
         if (userId == null) return 0;
-        Integer count = jdbcClient.sql("select count(*) from mf_files where created_by = :userId")
+        Integer count = jdbcClient
+                .sql("select count(*) from mf_files where created_by = :userId")
                 .param("userId", userId)
                 .query(Integer.class)
                 .single();
@@ -240,8 +254,7 @@ public class MfFileRepository {
                 rs.getString("storage_bucket"),
                 rs.getString("storage_key"),
                 rs.getTimestamp("created_at").toInstant(),
-                rs.getObject("created_by") != null ? rs.getLong("created_by") : null
-        );
+                rs.getObject("created_by") != null ? rs.getLong("created_by") : null);
     }
 
     public record FileRecord(
@@ -253,8 +266,7 @@ public class MfFileRepository {
             String storageBucket,
             String storageKey,
             Instant createdAt,
-            Long createdBy
-    ) {}
+            Long createdBy) {}
 
     public record FileDetailRecord(
             UUID id,
@@ -267,7 +279,5 @@ public class MfFileRepository {
             Instant createdAt,
             Long createdBy,
             String creatorName,
-            String creatorLogin
-    ) {}
+            String creatorLogin) {}
 }
-

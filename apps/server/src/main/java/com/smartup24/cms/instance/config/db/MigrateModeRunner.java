@@ -32,7 +32,8 @@ public class MigrateModeRunner implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         var current = flyway.info().current();
-        log.info("Миграции применены. Текущая версия схемы: {} ({})",
+        log.info(
+                "Миграции применены. Текущая версия схемы: {} ({})",
                 current != null ? current.getVersion() : "<пусто>",
                 current != null ? current.getDescription() : "-");
         System.exit(SpringApplication.exit(context, () -> 0));

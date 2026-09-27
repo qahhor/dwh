@@ -1,11 +1,18 @@
 package com.smartup24.cms.instance.config.idempotency;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.annotation.ReturnsSecret;
 import com.smartup24.cms.instance.kauth.controller.KauthApiTokenController;
 import com.smartup24.cms.instance.kwh.controller.KwhSubscriptionController;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletResponse;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -17,14 +24,6 @@ import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerExecutionChain;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import tools.jackson.databind.ObjectMapper;
-
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
 
 class IdempotencyFilterTest {
 
@@ -56,7 +55,8 @@ class IdempotencyFilterTest {
     @DisplayName("GET запрос с Idempotency-Key игнорируется и выполняется через стандартный FilterChain")
     void shouldBypassForNonMutatingMethod() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/tasks/items");
-        request.addHeader(IdempotencyFilter.HEADER_IDEMPOTENCY_KEY, UUID.randomUUID().toString());
+        request.addHeader(
+                IdempotencyFilter.HEADER_IDEMPOTENCY_KEY, UUID.randomUUID().toString());
         MockHttpServletResponse response = new MockHttpServletResponse();
         FilterChain chain = Mockito.mock(FilterChain.class);
 
@@ -85,7 +85,8 @@ class IdempotencyFilterTest {
     @DisplayName("Запрос на /api/v1/auth/login с Idempotency-Key отклоняется (400 IDEMPOTENCY_NOT_SUPPORTED)")
     void shouldRejectAuthLoginEndpoint() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/auth/login");
-        request.addHeader(IdempotencyFilter.HEADER_IDEMPOTENCY_KEY, UUID.randomUUID().toString());
+        request.addHeader(
+                IdempotencyFilter.HEADER_IDEMPOTENCY_KEY, UUID.randomUUID().toString());
         MockHttpServletResponse response = new MockHttpServletResponse();
         FilterChain chain = Mockito.mock(FilterChain.class);
 
@@ -110,7 +111,8 @@ class IdempotencyFilterTest {
         IdempotencyFilter secretAware = new IdempotencyFilter(idempotencyService, objectMapper, provider);
 
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/iam/profile/tokens");
-        request.addHeader(IdempotencyFilter.HEADER_IDEMPOTENCY_KEY, UUID.randomUUID().toString());
+        request.addHeader(
+                IdempotencyFilter.HEADER_IDEMPOTENCY_KEY, UUID.randomUUID().toString());
         MockHttpServletResponse response = new MockHttpServletResponse();
         FilterChain chain = Mockito.mock(FilterChain.class);
 
@@ -123,10 +125,14 @@ class IdempotencyFilterTest {
     @Test
     @DisplayName("Создание API-токена и вебхука помечено @ReturnsSecret")
     void secretHandlersAreMarked() throws Exception {
-        assertThat(KauthApiTokenController.class.getMethod("createToken", KauthApiTokenController.CreateTokenDto.class)
-                .isAnnotationPresent(ReturnsSecret.class)).isTrue();
-        assertThat(KwhSubscriptionController.class.getMethod("createSubscription",
-                KwhSubscriptionController.CreateSubscriptionDto.class).isAnnotationPresent(ReturnsSecret.class)).isTrue();
+        assertThat(KauthApiTokenController.class
+                        .getMethod("createToken", KauthApiTokenController.CreateTokenDto.class)
+                        .isAnnotationPresent(ReturnsSecret.class))
+                .isTrue();
+        assertThat(KwhSubscriptionController.class
+                        .getMethod("createSubscription", KwhSubscriptionController.CreateSubscriptionDto.class)
+                        .isAnnotationPresent(ReturnsSecret.class))
+                .isTrue();
     }
 
     static class SecretController {
@@ -141,7 +147,8 @@ class IdempotencyFilterTest {
     void shouldRejectMultipartRequest() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/files/upload");
         request.setContentType("multipart/form-data; boundary=---boundary");
-        request.addHeader(IdempotencyFilter.HEADER_IDEMPOTENCY_KEY, UUID.randomUUID().toString());
+        request.addHeader(
+                IdempotencyFilter.HEADER_IDEMPOTENCY_KEY, UUID.randomUUID().toString());
         MockHttpServletResponse response = new MockHttpServletResponse();
         FilterChain chain = Mockito.mock(FilterChain.class);
 
@@ -158,7 +165,8 @@ class IdempotencyFilterTest {
     @DisplayName("Запрос с телом больше 64 КБ отклоняется (413 PAYLOAD_TOO_LARGE)")
     void shouldRejectOversizedRequestBody() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/tasks/items");
-        request.addHeader(IdempotencyFilter.HEADER_IDEMPOTENCY_KEY, UUID.randomUUID().toString());
+        request.addHeader(
+                IdempotencyFilter.HEADER_IDEMPOTENCY_KEY, UUID.randomUUID().toString());
         request.setContentType("application/json");
 
         byte[] largeBody = new byte[IdempotencyFilter.MAX_REQUEST_BODY_BYTES + 100];
@@ -212,9 +220,7 @@ class IdempotencyFilterTest {
         request.setContent("{\"title\":\"Task 1\"}".getBytes(StandardCharsets.UTF_8));
 
         var existing = new IdempotencyRepository.IdempotencyRecord(
-                key, null, "hash123", 201, "{\"id\":10}",
-                IdempotencyRepository.State.COMPLETED, Instant.now()
-        );
+                key, null, "hash123", 201, "{\"id\":10}", IdempotencyRepository.State.COMPLETED, Instant.now());
 
         when(idempotencyService.computeRequestHash(anyString(), anyString(), any(), any()))
                 .thenReturn("hash123");
@@ -227,7 +233,8 @@ class IdempotencyFilterTest {
         filter.doFilter(request, response, chain);
 
         assertThat(response.getStatus()).isEqualTo(201);
-        assertThat(response.getHeader(IdempotencyFilter.HEADER_IDEMPOTENT_REPLAY)).isEqualTo("true");
+        assertThat(response.getHeader(IdempotencyFilter.HEADER_IDEMPOTENT_REPLAY))
+                .isEqualTo("true");
         assertThat(response.getContentAsString()).isEqualTo("{\"id\":10}");
         verifyNoInteractions(chain);
     }

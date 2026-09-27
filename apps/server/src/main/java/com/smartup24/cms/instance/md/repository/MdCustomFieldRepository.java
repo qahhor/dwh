@@ -1,13 +1,12 @@
 package com.smartup24.cms.instance.md.repository;
 
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 @Repository
 public class MdCustomFieldRepository {
@@ -20,11 +19,19 @@ public class MdCustomFieldRepository {
         this.objectMapper = objectMapper;
     }
 
-    public CustomFieldRecord create(String entityType, String code, String name, String fieldType,
-                                    boolean isRequired, String defaultValue, Object options, int orderNo) {
+    public CustomFieldRecord create(
+            String entityType,
+            String code,
+            String name,
+            String fieldType,
+            boolean isRequired,
+            String defaultValue,
+            Object options,
+            int orderNo) {
         String optionsJson = toJson(options);
 
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 insert into md_custom_fields (entity_type, code, name, field_type, is_required, default_value, options_json, order_no, created_at)
                 values (:entityType, :code, :name, :fieldType, :isRequired, :defaultValue, cast(:optionsJson as jsonb), :orderNo, now())
                 returning id, entity_type, code, name, field_type, is_required, default_value, options_json::text as options_str, order_no, created_at
@@ -46,14 +53,12 @@ public class MdCustomFieldRepository {
                 select id, entity_type, code, name, field_type, is_required, default_value, options_json::text as options_str, order_no, created_at
                 from md_custom_fields
                 where id = :id
-                """)
-                .param("id", id)
-                .query(this::mapRecord)
-                .optional();
+                """).param("id", id).query(this::mapRecord).optional();
     }
 
     public Optional<CustomFieldRecord> findByCode(String entityType, String code) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select id, entity_type, code, name, field_type, is_required, default_value, options_json::text as options_str, order_no, created_at
                 from md_custom_fields
                 where entity_type = :entityType and code = :code
@@ -65,7 +70,8 @@ public class MdCustomFieldRepository {
     }
 
     public List<CustomFieldRecord> findByEntityType(String entityType) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select id, entity_type, code, name, field_type, is_required, default_value, options_json::text as options_str, order_no, created_at
                 from md_custom_fields
                 where entity_type = :entityType
@@ -81,15 +87,14 @@ public class MdCustomFieldRepository {
                 select id, entity_type, code, name, field_type, is_required, default_value, options_json::text as options_str, order_no, created_at
                 from md_custom_fields
                 order by entity_type asc, order_no asc, id asc
-                """)
-                .query(this::mapRecord)
-                .list();
+                """).query(this::mapRecord).list();
     }
 
     public void update(Long id, String name, Boolean isRequired, String defaultValue, Object options, Integer orderNo) {
         String optionsJson = options != null ? toJson(options) : null;
 
-        jdbcClient.sql("""
+        jdbcClient
+                .sql("""
                 update md_custom_fields
                 set name = coalesce(:name, name),
                     is_required = coalesce(:isRequired, is_required),
@@ -108,7 +113,8 @@ public class MdCustomFieldRepository {
     }
 
     public void delete(Long id) {
-        jdbcClient.sql("delete from md_custom_fields where id = :id")
+        jdbcClient
+                .sql("delete from md_custom_fields where id = :id")
                 .param("id", id)
                 .update();
     }
@@ -124,8 +130,7 @@ public class MdCustomFieldRepository {
                 rs.getString("default_value"),
                 rs.getString("options_str"),
                 rs.getInt("order_no"),
-                rs.getTimestamp("created_at").toInstant()
-        );
+                rs.getTimestamp("created_at").toInstant());
     }
 
     private String toJson(Object obj) {
@@ -147,6 +152,5 @@ public class MdCustomFieldRepository {
             String defaultValue,
             String optionsJson,
             int orderNo,
-            Instant createdAt
-    ) {}
+            Instant createdAt) {}
 }

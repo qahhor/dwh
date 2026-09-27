@@ -30,19 +30,23 @@ public class AuditListService {
 
     /** @param legacy the old flat filters; they narrow the list and are part of the cursor's fingerprint */
     @Transactional(readOnly = true)
-    public KeysetPage<AuditRecord> logs(Integer limit, String cursor, String filter, String sort, String search,
-                                        AuditLogFilters legacy) {
+    public KeysetPage<AuditRecord> logs(
+            Integer limit, String cursor, String filter, String sort, String search, AuditLogFilters legacy) {
         var plan = QueryCompiler.compile(AuditQuery.LOGS, filter, sort, limit, cursor, search, legacy.canonical());
-        return lists.page(plan, (rs, row) -> auditLogService.redacted(repository.mapAuditRecord(rs, row)),
+        return lists.page(
+                plan,
+                (rs, row) -> auditLogService.redacted(repository.mapAuditRecord(rs, row)),
                 AuditLogRepository.logPredicate(legacy));
     }
 
     @Transactional(readOnly = true)
-    public KeysetPage<SecurityEventRecord> securityEvents(Integer limit, String cursor, String filter, String sort,
-                                                          String search, SecurityEventFilters legacy) {
-        var plan = QueryCompiler.compile(AuditQuery.SECURITY_EVENTS, filter, sort, limit, cursor, search,
-                legacy.canonical());
-        return lists.page(plan, (rs, row) -> auditLogService.redacted(repository.mapSecurityEvent(rs, row)),
+    public KeysetPage<SecurityEventRecord> securityEvents(
+            Integer limit, String cursor, String filter, String sort, String search, SecurityEventFilters legacy) {
+        var plan = QueryCompiler.compile(
+                AuditQuery.SECURITY_EVENTS, filter, sort, limit, cursor, search, legacy.canonical());
+        return lists.page(
+                plan,
+                (rs, row) -> auditLogService.redacted(repository.mapSecurityEvent(rs, row)),
                 AuditLogRepository.securityPredicate(legacy));
     }
 }

@@ -1,12 +1,7 @@
 package com.smartup24.cms.spi.messenger;
 
 public record MessengerSendResult(
-        boolean isSuccess,
-        String externalMessageId,
-        String errorCode,
-        String errorMessage,
-        long durationMs
-) {
+        boolean isSuccess, String externalMessageId, String errorCode, String errorMessage, long durationMs) {
     public static MessengerSendResult success(String externalMessageId, long durationMs) {
         return new MessengerSendResult(true, externalMessageId, null, null, durationMs);
     }

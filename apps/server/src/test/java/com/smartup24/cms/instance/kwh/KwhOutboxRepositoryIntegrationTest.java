@@ -1,7 +1,11 @@
 package com.smartup24.cms.instance.kwh;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
 import com.smartup24.cms.instance.kwh.repository.KwhOutboxRepository;
+import java.util.Map;
+import java.util.UUID;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,11 +17,6 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import tools.jackson.databind.ObjectMapper;
-
-import java.util.Map;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 @Testcontainers(disabledWithoutDocker = true)
 class KwhOutboxRepositoryIntegrationTest {
@@ -35,8 +34,8 @@ class KwhOutboxRepositoryIntegrationTest {
 
     @BeforeAll
     static void setup() {
-        var dataSource = new DriverManagerDataSource(
-                postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+        var dataSource =
+                new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
         FlywayUtcConfiguration.configure(Flyway.configure())
                 .dataSource(dataSource)
                 .locations("classpath:db/migration")
@@ -50,9 +49,7 @@ class KwhOutboxRepositoryIntegrationTest {
                             ('release-hook', 'https://example.test/hooks/release',
                              'test-secret', array['release.ready'], 'A')
                         returning id
-                        """)
-                .query(Long.class)
-                .single();
+                        """).query(Long.class).single();
         firstWorkerRepository = new KwhOutboxRepository(jdbc, new ObjectMapper());
         secondWorkerRepository = new KwhOutboxRepository(JdbcClient.create(dataSource), new ObjectMapper());
     }
@@ -86,8 +83,10 @@ class KwhOutboxRepositoryIntegrationTest {
         firstWorkerRepository.enqueue(subscriptionId, "release.ready", Map.of("id", 42));
         var claim = firstWorkerRepository.fetchPending(1).getFirst();
 
-        assertThat(firstWorkerRepository.markSuccess(claim.id(), UUID.randomUUID(), 200)).isFalse();
-        assertThat(firstWorkerRepository.markSuccess(claim.id(), claim.claimToken(), 200)).isTrue();
+        assertThat(firstWorkerRepository.markSuccess(claim.id(), UUID.randomUUID(), 200))
+                .isFalse();
+        assertThat(firstWorkerRepository.markSuccess(claim.id(), claim.claimToken(), 200))
+                .isTrue();
     }
 
     @Test
@@ -99,9 +98,7 @@ class KwhOutboxRepositoryIntegrationTest {
                         update kwh_outbox
                         set claimed_at = now() - interval '6 minutes'
                         where id = :id
-                        """)
-                .param("id", firstClaim.id())
-                .update();
+                        """).param("id", firstClaim.id()).update();
 
         var recovered = secondWorkerRepository.fetchPending(1).getFirst();
 

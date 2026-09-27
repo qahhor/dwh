@@ -5,10 +5,7 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
 @Component({
   selector: 'app-navigation-settings-stats',
   standalone: true,
-  imports: [
-    CommonModule,
-    TranslatePipe
-  ],
+  imports: [CommonModule, TranslatePipe],
   template: `
     <div class="stats-grid">
       <div class="stat-card">
@@ -29,45 +26,53 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
       </div>
     </div>
   `,
-  styles: [`
-    :host {
-      display: block;
-    }
+  styles: [
+    `
+      :host {
+        display: block;
+      }
 
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 14px;
-    }
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 14px;
+      }
 
-    .stat-card {
-      background-color: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      padding: 14px 18px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      box-shadow: var(--shadow-sm);
-    }
+      .stat-card {
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 14px 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        box-shadow: var(--shadow-sm);
+      }
 
-    .stat-value {
-      font-size: 24px;
-      font-weight: 700;
-      color: var(--text-main);
-      line-height: 1.2;
-    }
+      .stat-value {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--text-main);
+        line-height: 1.2;
+      }
 
-    .stat-value.stat-active { color: var(--success-text); }
-    .stat-value.stat-embedded { color: var(--info-text); }
-    .stat-value.stat-external { color: var(--accent-violet-text); }
+      .stat-value.stat-active {
+        color: var(--success-text);
+      }
+      .stat-value.stat-embedded {
+        color: var(--info-text);
+      }
+      .stat-value.stat-external {
+        color: var(--accent-violet-text);
+      }
 
-    .stat-label {
-      font-size: 12px;
-      color: var(--text-muted);
-      font-weight: 500;
-    }
-  `]
+      .stat-label {
+        font-size: 12px;
+        color: var(--text-muted);
+        font-weight: 500;
+      }
+    `,
+  ],
 })
 export class NavigationSettingsStatsComponent {
   @Input() totalCount = 0;

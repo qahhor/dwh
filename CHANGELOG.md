@@ -9,6 +9,48 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- The Java code is formatted and analysed on every build (plan 10/10, item
+  1.2). Spotless 3.10 with palantir-java-format 2.99 (4 spaces, 120 columns)
+  formats it, Checkstyle 14.3 checks naming, imports and defect-prone
+  constructs, and Error Prone 2.50 runs in every compilation: its ten findings
+  (a lookup whose `orElseThrow` result was dropped) now call one tested
+  existence check, `ApiException.requirePresent`. NullAway 0.14 checks the
+  production code of `@NullMarked` packages, `common` first, with JSpecify
+  `@Nullable` where a value may be null. CI checks format and style before the
+  tests. The one-time reformat is listed in `.git-blame-ignore-revs`.
+- The web application is linted and formatted (plan 10/10, item 1.1).
+  `npm run lint` runs ESLint 10 with typescript-eslint and angular-eslint
+  (OnPush, signal inputs, outputs and queries, built-in control flow, template
+  accessibility, no `any`), Stylelint 17 (unknown properties and at-rules,
+  duplicates, colours outside the design tokens) and a Prettier check; CI runs
+  it in the frontend job. The 1,893 ESLint violations of 2026-09-28 are kept
+  in `eslint-suppressions.json`: a new one fails, a fixed one must be pruned.
+  The web sources were formatted once with Prettier 3.9; that commit is listed
+  in `.git-blame-ignore-revs`.
+- Test coverage is measured and cannot drop (plan 10/10, item 1.4). JaCoCo
+  0.8.15 reports every Maven module and checks its floor in `verify` (server:
+  83 % lines, 69 % branches); the business modules of the server keep their
+  own floors (`apps/server/coverage-floors.csv`, from analytics at 14 % to
+  upl at 96 %). CI fails when a test is skipped, when a module falls under its
+  floor, and when a pull request covers less than 80 % of the server lines it
+  changes (diff-cover), and publishes the module table in the build summary.
+- New migrations are linted and every build upgrades a previous release
+  (plan 10/10, item 1.7). ADR-0020 fixes the database naming and types;
+  `MigrationLintTest` checks them from V128 (identity keys, `text`,
+  `timestamptz`, `modified_at`, `<table>_…_idx` and `_uq` indexes,
+  `<table>_(uk|fk|ck|ex)_…` constraints, concurrent indexes on large tables
+  in a file of their own). `MigrationFileRulesTest` now sees destructive
+  statements inside `DO` blocks. `ReleaseUpgradeIntegrationTest` upgrades a
+  release-V123 database with data to the current schema on the embedded
+  PostgreSQL, so it never skips for want of Docker.
+- Module boundaries are checked on every build (plan 10/10, item 1.3).
+  `ModuleBoundariesTest` forbids `common` to depend on business modules, a
+  controller to see a repository package (nested records included), modules
+  to meet outside each other's `service`/`api` package, and a repository to
+  query another module's tables. The violations of today are frozen
+  (`archunit_store`: 0, 100, 187 and 32): a new one fails the build, a fixed
+  one leaves the store, and CI publishes the count in the build summary.
+  ADR-0006 describes the rules.
 - Released migrations are immutable (plan 10/10, item 0.5).
   `MigrationManifestTest` keeps the SHA-256 of every file in `db/migration`
   and `db/dwh` (`migration-manifest.sha256`) and fails the build on any edit

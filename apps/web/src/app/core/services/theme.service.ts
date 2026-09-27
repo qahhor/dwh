@@ -11,7 +11,7 @@ function isThemePreference(value: unknown): value is ThemePreference {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class ThemeService {
   private readonly destroyRef = inject(DestroyRef);

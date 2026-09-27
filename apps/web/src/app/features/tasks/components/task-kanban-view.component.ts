@@ -8,20 +8,30 @@ import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.m
 @Component({
   selector: 'app-task-kanban-view',
   standalone: true,
-  imports: [
-    CommonModule,
-    DragDropModule,
-    TranslatePipe,
-    SMTButtonComponent
-  ],
+  imports: [CommonModule, DragDropModule, TranslatePipe, SMTButtonComponent],
   template: `
     <div class="kanban-board" cdkDropListGroup role="region" [attr.aria-label]="'tasks.kanban_doska_zadach' | t">
       <div class="kanban-empty-recovery" *ngIf="tasks.length === 0 && !isLoading && !listLoadError">
         <span>{{ 'tasks.zadachi_ne_naydeny' | t }}</span>
-        <button smt-button type="button" *ngIf="hasActiveFilters" smtVariant="secondary" smtSize="sm" (click)="resetFilters.emit()">
+        <button
+          smt-button
+          type="button"
+          *ngIf="hasActiveFilters"
+          smtVariant="secondary"
+          smtSize="sm"
+          (click)="resetFilters.emit()"
+        >
           {{ 'tasks.sbrosit_vse_filtry' | t }}
         </button>
-        <button smt-button type="button" *ngIf="!hasActiveFilters && canCreateTask" smtVariant="primary" smtSize="sm" smtIcon="add" (click)="createTask.emit()">
+        <button
+          smt-button
+          type="button"
+          *ngIf="!hasActiveFilters && canCreateTask"
+          smtVariant="primary"
+          smtSize="sm"
+          smtIcon="add"
+          (click)="createTask.emit()"
+        >
           {{ 'task.new' | t }}
         </button>
       </div>
@@ -68,11 +78,19 @@ import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.m
             <!-- Card Top -->
             <div class="card-top-row">
               <div class="card-type-group">
-                <span *ngIf="canUpdateTask" class="material-symbols-outlined drag-grip-icon" cdkDragHandle [title]="'tasks.peretaschit_kartochku' | t" aria-hidden="true">
+                <span
+                  *ngIf="canUpdateTask"
+                  class="material-symbols-outlined drag-grip-icon"
+                  cdkDragHandle
+                  [title]="'tasks.peretaschit_kartochku' | t"
+                  aria-hidden="true"
+                >
                   drag_indicator
                 </span>
                 <span class="task-type-badge-mini" [style.color]="getTypeColor(task)">
-                  <span class="material-symbols-outlined mini-ico" role="img" [attr.aria-label]="getTypeLabel(task)">{{ getTypeIcon(task) }}</span>
+                  <span class="material-symbols-outlined mini-ico" role="img" [attr.aria-label]="getTypeLabel(task)">{{
+                    getTypeIcon(task)
+                  }}</span>
                   <span class="task-id font-mono">#{{ task.id }}</span>
                 </span>
               </div>
@@ -86,7 +104,7 @@ import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.m
               type="button"
               class="card-title kanban-title-open"
               [class.title-overdue]="isOverdue(task.endTime, task.statusId)"
-              [attr.aria-label]="'tasks.open_task_named' | t:{id: task.id, title: task.title}"
+              [attr.aria-label]="'tasks.open_task_named' | t: { id: task.id, title: task.title }"
               (click)="openTaskDetails.emit(task)"
             >
               {{ task.title }}
@@ -98,9 +116,7 @@ import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.m
                 <span class="material-symbols-outlined folder-ico" aria-hidden="true">folder</span>
                 {{ pName }}
               </span>
-              <span *ngIf="task.parentTaskId" class="parent-chip font-mono">
-                ↳ #{{ task.parentTaskId }}
-              </span>
+              <span *ngIf="task.parentTaskId" class="parent-chip font-mono"> ↳ #{{ task.parentTaskId }} </span>
             </div>
 
             <!-- Card Bottom Row -->
@@ -112,10 +128,10 @@ import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.m
                   [class.overdue]="dl.state === 'overdue'"
                   [class.deadline-today]="dl.state === 'today'"
                   [class.deadline-tomorrow]="dl.state === 'tomorrow'"
-                  [title]="'tasks.deadline_value' | t:{date: (task.endTime | date:'dd.MM.yyyy HH:mm') || ''}"
+                  [title]="'tasks.deadline_value' | t: { date: (task.endTime | date: 'dd.MM.yyyy HH:mm') || '' }"
                 >
                   <span class="material-symbols-outlined ico" aria-hidden="true">
-                    {{ dl.state === 'overdue' ? 'warning' : (dl.state === 'today' ? 'alarm' : 'event') }}
+                    {{ dl.state === 'overdue' ? 'warning' : dl.state === 'today' ? 'alarm' : 'event' }}
                   </span>
                   {{ dl.label }}
                 </span>
@@ -127,7 +143,7 @@ import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.m
                 <button
                   type="button"
                   class="move-btn"
-                  [attr.aria-label]="'tasks.move_task_back' | t:{id: task.id}"
+                  [attr.aria-label]="'tasks.move_task_back' | t: { id: task.id }"
                   [title]="'tasks.peremestit_nazad' | t"
                   [disabled]="isFirstStatus(status.id)"
                   (click)="moveTaskStatus(task, -1)"
@@ -137,7 +153,7 @@ import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.m
                 <button
                   type="button"
                   class="move-btn"
-                  [attr.aria-label]="'tasks.move_task_forward' | t:{id: task.id}"
+                  [attr.aria-label]="'tasks.move_task_forward' | t: { id: task.id }"
                   [title]="'tasks.peremestit_vpered' | t"
                   [disabled]="isLastStatus(status.id)"
                   (click)="moveTaskStatus(task, 1)"
@@ -155,7 +171,7 @@ import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.m
       </div>
     </div>
   `,
-  styleUrl: './task-kanban-view.component.css'
+  styleUrl: './task-kanban-view.component.css',
 })
 export class TaskKanbanViewComponent {
   @Input() tasks: Task[] = [];
@@ -186,7 +202,7 @@ export class TaskKanbanViewComponent {
   private draggedTask: Task | null = null;
 
   getTasksByStatus(statusId: number): Task[] {
-    return this.tasks.filter(t => t.statusId === statusId);
+    return this.tasks.filter((t) => t.statusId === statusId);
   }
 
   isFirstStatus(statusId: number): boolean {
@@ -199,7 +215,7 @@ export class TaskKanbanViewComponent {
 
   moveTaskStatus(task: Task, direction: -1 | 1) {
     if (!this.canUpdateTask) return;
-    const currentIndex = this.statuses.findIndex(s => s.id === task.statusId);
+    const currentIndex = this.statuses.findIndex((s) => s.id === task.statusId);
     if (currentIndex === -1) return;
 
     const targetIndex = currentIndex + direction;
@@ -240,7 +256,7 @@ export class TaskKanbanViewComponent {
     if (event.dataTransfer) {
       event.dataTransfer.dropEffect = 'move';
     }
-    const col = (event.currentTarget as HTMLElement);
+    const col = event.currentTarget as HTMLElement;
     if (col && !col.classList.contains('drag-over')) {
       col.classList.add('drag-over');
     }
@@ -248,7 +264,7 @@ export class TaskKanbanViewComponent {
 
   onHtml5DragLeave(event: DragEvent) {
     if (!this.canUpdateTask) return;
-    const col = (event.currentTarget as HTMLElement);
+    const col = event.currentTarget as HTMLElement;
     if (col) {
       col.classList.remove('drag-over');
     }
@@ -257,7 +273,7 @@ export class TaskKanbanViewComponent {
   onHtml5Drop(event: DragEvent, targetStatusId: number) {
     if (!this.canUpdateTask) return;
     event.preventDefault();
-    const col = (event.currentTarget as HTMLElement);
+    const col = event.currentTarget as HTMLElement;
     if (col) {
       col.classList.remove('drag-over');
     }
@@ -271,7 +287,12 @@ export class TaskKanbanViewComponent {
 
   onTaskContainerClick(event: MouseEvent, task: Task) {
     const target = event.target as HTMLElement;
-    if (target.closest('button') || target.closest('select') || target.closest('a') || target.closest('.kanban-move-actions')) {
+    if (
+      target.closest('button') ||
+      target.closest('select') ||
+      target.closest('a') ||
+      target.closest('.kanban-move-actions')
+    ) {
       return;
     }
     this.openTaskDetails.emit(task);

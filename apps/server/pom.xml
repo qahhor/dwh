@@ -15,7 +15,19 @@
     <name>SmartupCMS Server</name>
     <description>Single-organization SmartupCMS modular monolith backend</description>
 
+    <properties>
+        <!-- Coverage floor of this module (plan 10/10, item 1.4): raised, never lowered, towards 0.80. -->
+        <coverage.line.minimum>0.83</coverage.line.minimum>
+        <coverage.branch.minimum>0.69</coverage.branch.minimum>
+    </properties>
+
     <dependencies>
+        <!-- @NullMarked / @Nullable, checked by NullAway (plan 10/10, item 1.2); version from the Boot BOM. -->
+        <dependency>
+            <groupId>org.jspecify</groupId>
+            <artifactId>jspecify</artifactId>
+        </dependency>
+
         <!-- Internal Platform Libraries -->
         <dependency>
             <groupId>com.smartup24.cms</groupId>

@@ -12,7 +12,7 @@ export interface ApiRequestOptions {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class ApiService {
   private readonly baseUrl = '/api/v1';
@@ -20,62 +20,62 @@ export class ApiService {
   constructor(
     private http: HttpClient,
     private toast: ToastService,
-    private i18n: I18nService
+    private i18n: I18nService,
   ) {}
 
   get<T>(path: string, params?: Record<string, any>, options: ApiRequestOptions = {}): Observable<T> {
     let httpParams = new HttpParams();
     if (params) {
-      Object.keys(params).forEach(key => {
+      Object.keys(params).forEach((key) => {
         if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
           httpParams = httpParams.set(key, params[key].toString());
         }
       });
     }
 
-    return this.http.get<T>(`${this.baseUrl}${path}`, {
-      params: httpParams,
-      headers: this.getHeaders(),
-      withCredentials: true
-    }).pipe(
-      catchError(err => this.handleError(err, options))
-    );
+    return this.http
+      .get<T>(`${this.baseUrl}${path}`, {
+        params: httpParams,
+        headers: this.getHeaders(),
+        withCredentials: true,
+      })
+      .pipe(catchError((err) => this.handleError(err, options)));
   }
 
   post<T>(path: string, body?: any, options: ApiRequestOptions = {}): Observable<T> {
-    return this.http.post<T>(`${this.baseUrl}${path}`, body || {}, {
-      headers: this.getHeaders(),
-      withCredentials: true
-    }).pipe(
-      catchError(err => this.handleError(err, options))
-    );
+    return this.http
+      .post<T>(`${this.baseUrl}${path}`, body || {}, {
+        headers: this.getHeaders(),
+        withCredentials: true,
+      })
+      .pipe(catchError((err) => this.handleError(err, options)));
   }
 
   patch<T>(path: string, body?: any, options: ApiRequestOptions = {}): Observable<T> {
-    return this.http.patch<T>(`${this.baseUrl}${path}`, body || {}, {
-      headers: this.getHeaders(),
-      withCredentials: true
-    }).pipe(
-      catchError(err => this.handleError(err, options))
-    );
+    return this.http
+      .patch<T>(`${this.baseUrl}${path}`, body || {}, {
+        headers: this.getHeaders(),
+        withCredentials: true,
+      })
+      .pipe(catchError((err) => this.handleError(err, options)));
   }
 
   put<T>(path: string, body?: any, options: ApiRequestOptions = {}): Observable<T> {
-    return this.http.put<T>(`${this.baseUrl}${path}`, body || {}, {
-      headers: this.getHeaders(),
-      withCredentials: true
-    }).pipe(
-      catchError(err => this.handleError(err, options))
-    );
+    return this.http
+      .put<T>(`${this.baseUrl}${path}`, body || {}, {
+        headers: this.getHeaders(),
+        withCredentials: true,
+      })
+      .pipe(catchError((err) => this.handleError(err, options)));
   }
 
   delete<T>(path: string, options: ApiRequestOptions = {}): Observable<T> {
-    return this.http.delete<T>(`${this.baseUrl}${path}`, {
-      headers: this.getHeaders(),
-      withCredentials: true
-    }).pipe(
-      catchError(err => this.handleError(err, options))
-    );
+    return this.http
+      .delete<T>(`${this.baseUrl}${path}`, {
+        headers: this.getHeaders(),
+        withCredentials: true,
+      })
+      .pipe(catchError((err) => this.handleError(err, options)));
   }
 
   private getXsrfToken(): string | null {
@@ -86,7 +86,7 @@ export class ApiService {
 
   private getHeaders(): HttpHeaders {
     let headers = new HttpHeaders();
-    const lang = untracked(() => this.i18n?.currentLang ? this.i18n.currentLang() : null);
+    const lang = untracked(() => (this.i18n?.currentLang ? this.i18n.currentLang() : null));
     if (lang) {
       headers = headers.set('Accept-Language', lang);
     }
@@ -119,16 +119,17 @@ export class ApiService {
         code: p.code || 'API_ERROR',
         detail: detail || p.title || this.i18n.translate('common.operation_failed'),
         errors: Array.isArray(p.errors) ? p.errors : undefined,
-        invalid_params: p.invalid_params
+        invalid_params: p.invalid_params,
       };
     } else {
       problem = {
         title: this.i18n.translate('common.connection_error'),
         status: error.status || 500,
         code: 'NETWORK_ERROR',
-        detail: error.status === 0
-          ? this.i18n.translate('common.server_unavailable')
-          : (error.message || this.i18n.translate('common.request_failed'))
+        detail:
+          error.status === 0
+            ? this.i18n.translate('common.server_unavailable')
+            : error.message || this.i18n.translate('common.request_failed'),
       };
     }
 
@@ -147,5 +148,4 @@ export class ApiService {
 
     return throwError(() => problem);
   }
-
 }

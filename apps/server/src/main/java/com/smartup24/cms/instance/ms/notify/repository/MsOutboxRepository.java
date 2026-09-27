@@ -1,15 +1,14 @@
 package com.smartup24.cms.instance.ms.notify.repository;
 
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
 import com.smartup24.cms.instance.ms.notify.pref.MsNotifyPref;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 @Repository
 public class MsOutboxRepository {
@@ -22,11 +21,12 @@ public class MsOutboxRepository {
         this.objectMapper = objectMapper;
     }
 
-    public OutboxRecord enqueue(String channel, String recipient, String templateCode,
-                                Map<String, Object> payload, UUID idempotencyKey) {
+    public OutboxRecord enqueue(
+            String channel, String recipient, String templateCode, Map<String, Object> payload, UUID idempotencyKey) {
         String payloadJson = toJson(payload);
 
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 insert into ms_notification_outbox (channel, recipient, template_code, payload,
                                                    status, attempts, max_attempts, next_attempt_at,
                                                    idempotency_key, created_at)
@@ -50,7 +50,8 @@ public class MsOutboxRepository {
 
     public List<OutboxRecord> fetchPending(int limit) {
         UUID claimToken = UUID.randomUUID();
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 with candidates as (
                     select id
                     from ms_notification_outbox
@@ -79,23 +80,26 @@ public class MsOutboxRepository {
     }
 
     public boolean markSuccess(Long id, UUID claimToken) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                        .sql("""
                 update ms_notification_outbox
                 set status = 'SENT', processed_at = now(), claim_token = null, claimed_at = null
                 where id = :id
                   and status = 'PROCESSING'
                   and claim_token = :claimToken
                 """)
-                .param("id", id)
-                .param("claimToken", claimToken)
-                .update() == 1;
+                        .param("id", id)
+                        .param("claimToken", claimToken)
+                        .update()
+                == 1;
     }
 
-    public boolean markFailed(Long id, UUID claimToken, int newAttempts, Instant nextAttemptAt,
-                              String error, boolean isDeadLetter) {
+    public boolean markFailed(
+            Long id, UUID claimToken, int newAttempts, Instant nextAttemptAt, String error, boolean isDeadLetter) {
         String status = isDeadLetter ? MsNotifyPref.OUTBOX_DEAD_LETTER : MsNotifyPref.OUTBOX_PENDING;
 
-        return jdbcClient.sql("""
+        return jdbcClient
+                        .sql("""
                 update ms_notification_outbox
                 set status = :status,
                     attempts = :attempts,
@@ -108,14 +112,15 @@ public class MsOutboxRepository {
                   and status = 'PROCESSING'
                   and claim_token = :claimToken
                 """)
-                .param("status", status)
-                .param("attempts", newAttempts)
-                .param("nextAttemptAt", nextAttemptAt != null ? java.sql.Timestamp.from(nextAttemptAt) : null)
-                .param("error", error)
-                .param("isDeadLetter", isDeadLetter)
-                .param("id", id)
-                .param("claimToken", claimToken)
-                .update() == 1;
+                        .param("status", status)
+                        .param("attempts", newAttempts)
+                        .param("nextAttemptAt", nextAttemptAt != null ? java.sql.Timestamp.from(nextAttemptAt) : null)
+                        .param("error", error)
+                        .param("isDeadLetter", isDeadLetter)
+                        .param("id", id)
+                        .param("claimToken", claimToken)
+                        .update()
+                == 1;
     }
 
     private OutboxRecord mapRecord(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
@@ -132,10 +137,13 @@ public class MsOutboxRepository {
                 UUID.fromString(rs.getString("idempotency_key")),
                 rs.getString("last_error"),
                 rs.getTimestamp("created_at").toInstant(),
-                rs.getTimestamp("processed_at") != null ? rs.getTimestamp("processed_at").toInstant() : null,
+                rs.getTimestamp("processed_at") != null
+                        ? rs.getTimestamp("processed_at").toInstant()
+                        : null,
                 rs.getObject("claim_token", UUID.class),
-                rs.getTimestamp("claimed_at") != null ? rs.getTimestamp("claimed_at").toInstant() : null
-        );
+                rs.getTimestamp("claimed_at") != null
+                        ? rs.getTimestamp("claimed_at").toInstant()
+                        : null);
     }
 
     private String toJson(Map<String, Object> map) {
@@ -172,6 +180,5 @@ public class MsOutboxRepository {
             Instant createdAt,
             Instant processedAt,
             UUID claimToken,
-            Instant claimedAt
-    ) {}
+            Instant claimedAt) {}
 }

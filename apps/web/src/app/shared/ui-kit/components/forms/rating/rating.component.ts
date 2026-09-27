@@ -52,7 +52,8 @@ import { shouldShowSMTFormControlError } from '../../../forms/form-control-valid
       [attr.aria-required]="required() ? 'true' : null"
       [attr.aria-invalid]="hasError() ? 'true' : null"
       [attr.aria-readonly]="readonly() ? 'true' : null"
-      [attr.aria-disabled]="isDisabled() ? 'true' : null">
+      [attr.aria-disabled]="isDisabled() ? 'true' : null"
+    >
       @for (star of stars(); track star) {
         <button
           #star
@@ -68,7 +69,8 @@ import { shouldShowSMTFormControlError } from '../../../forms/form-control-valid
           (mouseenter)="hovered.set(star)"
           (mouseleave)="hovered.set(null)"
           (keydown)="onKeydown($event, star)"
-          (blur)="markTouched()">
+          (blur)="markTouched()"
+        >
           <span class="material-symbols-outlined" aria-hidden="true">star</span>
         </button>
       }
@@ -129,7 +131,7 @@ export class SMTRatingComponent implements FormValueControl<number | null> {
       touched: this.wasTouched(),
       required: this.required(),
       empty: this.value() === null,
-    })
+    }),
   );
 
   choose(star: number): void {

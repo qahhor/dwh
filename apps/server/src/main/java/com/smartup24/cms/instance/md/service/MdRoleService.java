@@ -5,13 +5,12 @@ import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdScopeRepository;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Роли и матрица их прав (FR-PERM-2, FR-PERM-3).
@@ -28,10 +27,11 @@ public class MdRoleService {
     private final AuditLogService auditLogService;
     private final MdScopeRepository scopeRepository;
 
-    public MdRoleService(MdRoleRepository roleRepository,
-                         MdPermissionService permissionService,
-                         AuditLogService auditLogService,
-                         MdScopeRepository scopeRepository) {
+    public MdRoleService(
+            MdRoleRepository roleRepository,
+            MdPermissionService permissionService,
+            AuditLogService auditLogService,
+            MdScopeRepository scopeRepository) {
         this.roleRepository = roleRepository;
         this.permissionService = permissionService;
         this.auditLogService = auditLogService;
@@ -58,7 +58,10 @@ public class MdRoleService {
         // по умолчанию, а такие вещи должны быть видны администратору в списке.
         scopeRepository.setRoleRule(role.id(), MdScopeService.RULE_ALL);
 
-        auditLogService.logChange("md_roles", String.valueOf(role.id()), "I",
+        auditLogService.logChange(
+                "md_roles",
+                String.valueOf(role.id()),
+                "I",
                 List.of("name", "state", "order_no"),
                 null,
                 Map.of("id", role.id(), "name", name, "state", "A", "order_no", orderNo));
@@ -68,7 +71,8 @@ public class MdRoleService {
 
     @Transactional(readOnly = true)
     public MdRoleRepository.RoleRecord getRoleById(Long id) {
-        return roleRepository.findById(id)
+        return roleRepository
+                .findById(id)
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.ROLE_NOT_FOUND, "Роль не найдена"));
     }
 
@@ -77,7 +81,8 @@ public class MdRoleService {
         scopeRepository.lockScopeMutation();
         var role = getRoleById(id);
         if (role.pcode() != null && "admin".equals(role.pcode()) && "P".equalsIgnoreCase(state)) {
-            throw ApiException.forbidden(ErrorCode.SUPERADMIN_IMMUTABLE, "Роль администратора не может быть переведена в пассивный статус");
+            throw ApiException.forbidden(
+                    ErrorCode.SUPERADMIN_IMMUTABLE, "Роль администратора не может быть переведена в пассивный статус");
         }
         // Семантика частичного обновления: не переданное поле не меняется.
         // Раньше null в name уходил в базу и падал на not null, а не переданный
@@ -94,7 +99,10 @@ public class MdRoleService {
             }
         }
 
-        auditLogService.logChange("md_roles", String.valueOf(id), "U",
+        auditLogService.logChange(
+                "md_roles",
+                String.valueOf(id),
+                "U",
                 List.of("name", "state", "order_no"),
                 Map.of("name", role.name(), "state", role.state(), "order_no", role.orderNo()),
                 Map.of("name", newName, "state", newState, "order_no", newOrderNo));
@@ -109,11 +117,15 @@ public class MdRoleService {
         }
         List<Long> userIds = roleRepository.getUserIdsByRole(id);
         if (!userIds.isEmpty()) {
-            throw ApiException.conflict(ErrorCode.ROLE_NOT_FOUND, "Роль назначена пользователям и не может быть удалена");
+            throw ApiException.conflict(
+                    ErrorCode.ROLE_NOT_FOUND, "Роль назначена пользователям и не может быть удалена");
         }
         roleRepository.delete(id);
 
-        auditLogService.logChange("md_roles", String.valueOf(id), "D",
+        auditLogService.logChange(
+                "md_roles",
+                String.valueOf(id),
+                "D",
                 List.of("name", "state"),
                 Map.of("name", role.name(), "state", role.state()),
                 null);
@@ -133,7 +145,8 @@ public class MdRoleService {
         var grantable = permissionService.getGrantablePairs();
         for (var p : permissions != null ? permissions : List.<MdRoleRepository.PermissionPair>of()) {
             if (!grantable.contains(p.formCode() + "." + p.action())) {
-                throw ApiException.badRequest(ErrorCode.VALIDATION_FAILED,
+                throw ApiException.badRequest(
+                        ErrorCode.VALIDATION_FAILED,
                         "Пара форма/действие недоступна для выдачи: " + p.formCode() + "." + p.action());
             }
         }
@@ -148,14 +161,23 @@ public class MdRoleService {
         }
 
         Set<String> after = new TreeSet<>(roleRepository.getRolePermissions(roleId));
-        auditLogService.logChange("md_role_permissions", String.valueOf(roleId), "U",
+        auditLogService.logChange(
+                "md_role_permissions",
+                String.valueOf(roleId),
+                "U",
                 List.of("permissions"),
                 Map.of("role", role.name(), "permissions", List.copyOf(before)),
-                Map.of("role", role.name(),
-                        "permissions", List.copyOf(after),
-                        "granted", diff(after, before),
-                        "revoked", diff(before, after),
-                        "affected_users", userIds.size()));
+                Map.of(
+                        "role",
+                        role.name(),
+                        "permissions",
+                        List.copyOf(after),
+                        "granted",
+                        diff(after, before),
+                        "revoked",
+                        diff(before, after),
+                        "affected_users",
+                        userIds.size()));
     }
 
     /** Что есть в {@code from} и нет в {@code to} — читаемый диff для экрана аудита. */

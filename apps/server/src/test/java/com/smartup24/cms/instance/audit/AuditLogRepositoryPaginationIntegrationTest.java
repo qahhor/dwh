@@ -1,16 +1,14 @@
 package com.smartup24.cms.instance.audit;
 
-import com.smartup24.cms.instance.support.TestDatabases;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
+import com.smartup24.cms.instance.support.TestDatabases;
+import java.time.Instant;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import tools.jackson.databind.ObjectMapper;
-
-import java.time.Instant;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 class AuditLogRepositoryPaginationIntegrationTest {
 
@@ -32,15 +30,12 @@ class AuditLogRepositoryPaginationIntegrationTest {
         long middleId = insertAudit("pagination_probe", "2");
         long newestId = insertAudit("pagination_probe", "3");
 
-        var first = repository.listAuditLogs(
-                "pagination_probe", null, null, null, null, null, null, null, 2);
-        var second = repository.listAuditLogs(
-                "pagination_probe", null, null, null, null, null, TIE_TIMESTAMP, middleId, 2);
+        var first = repository.listAuditLogs("pagination_probe", null, null, null, null, null, null, null, 2);
+        var second =
+                repository.listAuditLogs("pagination_probe", null, null, null, null, null, TIE_TIMESTAMP, middleId, 2);
 
-        assertThat(first).extracting(AuditLogRepository.AuditRecord::id)
-                .containsExactly(newestId, middleId);
-        assertThat(second).extracting(AuditLogRepository.AuditRecord::id)
-                .containsExactly(oldestId);
+        assertThat(first).extracting(AuditLogRepository.AuditRecord::id).containsExactly(newestId, middleId);
+        assertThat(second).extracting(AuditLogRepository.AuditRecord::id).containsExactly(oldestId);
         assertThat(repository.countAuditLogs("pagination_probe", null, null, null, null, null))
                 .isEqualTo(3L);
     }
@@ -54,6 +49,7 @@ class AuditLogRepositoryPaginationIntegrationTest {
                 .param("tableName", tableName)
                 .param("rowPk", rowPk)
                 .param("changedAt", java.sql.Timestamp.from(TIE_TIMESTAMP))
-                .query(Long.class).single();
+                .query(Long.class)
+                .single();
     }
 }

@@ -1,16 +1,15 @@
 package com.smartup24.cms.instance.config.idempotency;
 
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.*;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 class IdempotencyServiceTest {
 
@@ -38,11 +37,10 @@ class IdempotencyServiceTest {
     void shouldFindExistingKey() {
         UUID key = UUID.randomUUID();
         var record = new IdempotencyRepository.IdempotencyRecord(
-                key, 1L, "abc123hash", 200, "{\"id\":42}",
-                IdempotencyRepository.State.COMPLETED, Instant.now()
-        );
+                key, 1L, "abc123hash", 200, "{\"id\":42}", IdempotencyRepository.State.COMPLETED, Instant.now());
 
-        when(repository.tryReserve(eq(key), eq(1L), eq("abc123hash"), any(UUID.class), any(Instant.class))).thenReturn(false);
+        when(repository.tryReserve(eq(key), eq(1L), eq("abc123hash"), any(UUID.class), any(Instant.class)))
+                .thenReturn(false);
         when(repository.findByKey(key)).thenReturn(Optional.of(record));
 
         var result = service.claim(key, 1L, "abc123hash");
@@ -58,8 +56,7 @@ class IdempotencyServiceTest {
     void shouldCompleteOwnedReservation() {
         UUID key = UUID.randomUUID();
         UUID reservationToken = UUID.randomUUID();
-        when(repository.complete(key, reservationToken, 201, "{\"id\":100}"))
-                .thenReturn(true);
+        when(repository.complete(key, reservationToken, 201, "{\"id\":100}")).thenReturn(true);
 
         service.complete(key, reservationToken, 201, "{\"id\":100}");
 

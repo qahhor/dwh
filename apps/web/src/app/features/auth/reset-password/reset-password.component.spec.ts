@@ -19,8 +19,8 @@ describe('ResetPasswordComponent', () => {
       imports: [ResetPasswordComponent],
       providers: [
         { provide: ApiService, useValue: api },
-        { provide: Router, useValue: router }
-      ]
+        { provide: Router, useValue: router },
+      ],
     }).compileComponents();
     const fixture = TestBed.createComponent(ResetPasswordComponent);
     fixture.detectChanges();
@@ -37,8 +37,11 @@ describe('ResetPasswordComponent', () => {
     component.confirmPassword = 'New-Password-2026';
     component.submit();
 
-    expect(api.post).toHaveBeenCalledWith('/auth/password-reset/confirm',
-      { token: 'link-token', newPassword: 'New-Password-2026' }, { notifyError: false });
+    expect(api.post).toHaveBeenCalledWith(
+      '/auth/password-reset/confirm',
+      { token: 'link-token', newPassword: 'New-Password-2026' },
+      { notifyError: false },
+    );
     expect(component.state()).toBe('done');
     expect(component.newPassword).toBe('');
   });

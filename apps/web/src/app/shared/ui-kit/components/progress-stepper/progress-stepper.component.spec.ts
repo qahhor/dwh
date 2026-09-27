@@ -22,7 +22,7 @@ describe('SMTProgressStepperComponent', () => {
     fixture.componentRef.setInput('smtLabel', 'Format steps');
     fixture.componentRef.setInput('smtCurrent', current);
     const changes: string[] = [];
-    fixture.componentInstance.current.subscribe(id => changes.push(id));
+    fixture.componentInstance.current.subscribe((id) => changes.push(id));
     fixture.detectChanges();
     const element = fixture.nativeElement as HTMLElement;
     const buttons = () => Array.from(element.querySelectorAll('button')) as HTMLButtonElement[];
@@ -35,7 +35,7 @@ describe('SMTProgressStepperComponent', () => {
     const nav = element.querySelector('nav')!;
     expect(nav.getAttribute('aria-label')).toBe('Format steps');
     expect(nav.querySelectorAll('ol > li').length).toBe(3);
-    expect(buttons().every(button => button.type === 'button' && button.tabIndex !== -1)).toBe(true);
+    expect(buttons().every((button) => button.type === 'button' && button.tabIndex !== -1)).toBe(true);
   });
 
   it('marks only the current step and names each status', () => {

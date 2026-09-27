@@ -1,15 +1,14 @@
 package com.smartup24.cms.instance.upl;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
-
-import java.util.List;
-import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /** U5а (В-2): V113 регистрирует upl в реестре модулей каркаса. */
 class UplModuleRegistryTest extends EmbeddedPostgresTest {
@@ -20,8 +19,8 @@ class UplModuleRegistryTest extends EmbeddedPostgresTest {
     @Test
     @DisplayName("upl зарегистрирован как активный несистемный модуль с маршрутом /upl/sources")
     void uplIsRegisteredAsActiveNonSystemModule() {
-        List<Map<String, Object>> rows = jdbc
-                .sql("select route, is_system, status from md_installed_modules where code = 'upl'")
+        List<Map<String, Object>> rows = jdbc.sql(
+                        "select route, is_system, status from md_installed_modules where code = 'upl'")
                 .query()
                 .listOfRows();
 

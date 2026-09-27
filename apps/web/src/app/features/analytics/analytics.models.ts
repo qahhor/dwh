@@ -33,7 +33,6 @@ export interface UserWorkload {
   completedTasks: number;
 }
 
-
 export interface ChartPoint {
   x: number;
   yCreated: number;

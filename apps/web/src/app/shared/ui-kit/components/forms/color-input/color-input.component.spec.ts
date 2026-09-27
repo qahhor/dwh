@@ -26,12 +26,15 @@ class Host {
 
 describe('normalizeHex', () => {
   it.each([
-    ['#2563EB', '#2563eb'], ['2563eb', '#2563eb'], ['#abc', '#aabbcc'], [' #ABC ', '#aabbcc'],
+    ['#2563EB', '#2563eb'],
+    ['2563eb', '#2563eb'],
+    ['#abc', '#aabbcc'],
+    [' #ABC ', '#aabbcc'],
   ])('reads %j as %s', (text, hex) => {
     expect(normalizeHex(text)).toBe(hex);
   });
 
-  it.each(['', 'blue', '#12345', '#ggg', '#1234567'])('refuses %j', text => {
+  it.each(['', 'blue', '#12345', '#ggg', '#1234567'])('refuses %j', (text) => {
     expect(normalizeHex(text)).toBeNull();
   });
 });
@@ -60,15 +63,17 @@ describe('SMTColorInputComponent', () => {
     const { element, radios, hex } = await render();
     const group = element.querySelector('[role="radiogroup"]') as HTMLElement;
     expect(group.getAttribute('aria-labelledby')).toBe(element.querySelector('label')!.id);
-    expect(radios().map(radio => radio.textContent!.trim())).toContain('Blue');
-    expect(radios().find(radio => radio.getAttribute('aria-checked') === 'true')!.textContent).toContain('Blue');
+    expect(radios().map((radio) => radio.textContent!.trim())).toContain('Blue');
+    expect(radios().find((radio) => radio.getAttribute('aria-checked') === 'true')!.textContent).toContain('Blue');
     expect(hex.value).toBe('#2563eb');
     expect(hex.getAttribute('aria-label')).toBe('Colour code');
   });
 
   it('writes a palette colour and a typed own colour, and shows the code of either', async () => {
     const { fixture, radios, hex, settle } = await render();
-    radios().find(radio => radio.textContent!.includes('Red'))!.click();
+    radios()
+      .find((radio) => radio.textContent!.includes('Red'))!
+      .click();
     await settle();
     expect(fixture.componentInstance.color).toBe('#dc2626');
     expect(hex.value).toBe('#dc2626');
@@ -78,7 +83,7 @@ describe('SMTColorInputComponent', () => {
     hex.dispatchEvent(new Event('blur'));
     await settle();
     expect(fixture.componentInstance.color).toBe('#aabbcc');
-    expect(radios().some(radio => radio.getAttribute('aria-checked') === 'true')).toBe(false);
+    expect(radios().some((radio) => radio.getAttribute('aria-checked') === 'true')).toBe(false);
   });
 
   it('says so and keeps the value for a code that is not a colour', async () => {

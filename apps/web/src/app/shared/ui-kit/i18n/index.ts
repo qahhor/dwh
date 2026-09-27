@@ -137,15 +137,15 @@ export class SMTI18nService {
       pattern: this.i18n.translate('ui.control.pattern'),
       parse: this.i18n.translate('ui.control.parse'),
       invalid: this.i18n.translate('ui.control.invalid'),
-      minLength: count => this.i18n.translate('ui.control.min_length', { count }),
-      maxLength: count => this.i18n.translate('ui.control.max_length', { count }),
-      min: value => this.i18n.translate('ui.control.min', { value }),
-      max: value => this.i18n.translate('ui.control.max', { value }),
+      minLength: (count) => this.i18n.translate('ui.control.min_length', { count }),
+      maxLength: (count) => this.i18n.translate('ui.control.max_length', { count }),
+      min: (value) => this.i18n.translate('ui.control.min', { value }),
+      max: (value) => this.i18n.translate('ui.control.max', { value }),
     },
     dropzone: {
       drop: this.i18n.translate('ui.file_upload.peretaschite_fayly_syuda_ili'),
       choose: this.i18n.translate('ui.file_upload.nazhmite_dlya_vybora'),
-      rejectedType: name => this.i18n.translate('ui.dropzone.rejected_type', { name }),
+      rejectedType: (name) => this.i18n.translate('ui.dropzone.rejected_type', { name }),
       rejectedSize: (name, size) => this.i18n.translate('ui.dropzone.rejected_size', { name, size }),
     },
     stepper: {
@@ -158,8 +158,8 @@ export class SMTI18nService {
       locked: this.i18n.translate('ui.columns.locked'),
       reset: this.i18n.translate('ui.columns.reset'),
       resetDone: this.i18n.translate('ui.columns.reset_done'),
-      moveUp: name => this.i18n.translate('ui.columns.move_up', { name }),
-      moveDown: name => this.i18n.translate('ui.columns.move_down', { name }),
+      moveUp: (name) => this.i18n.translate('ui.columns.move_up', { name }),
+      moveDown: (name) => this.i18n.translate('ui.columns.move_down', { name }),
       moved: (name, position, total) =>
         this.i18n.translate('ui.columns.moved', { name, position: String(position), total: String(total) }),
     },
@@ -175,10 +175,10 @@ export class SMTI18nService {
       loadFailed: this.i18n.translate('ui.remote_lookup.failed'),
       retry: this.i18n.translate('common.retry'),
       loadMore: this.i18n.translate('common.load_more'),
-      remove: name => this.i18n.translate('ui.user_multi_select.remove_user', { name }),
+      remove: (name) => this.i18n.translate('ui.user_multi_select.remove_user', { name }),
       add: this.i18n.translate('ui.user_multi_select.vybrat_polzovateley'),
       addMore: this.i18n.translate('ui.user_multi_select.add_more'),
-      create: text => this.i18n.translate('ui.select.create', { text }),
+      create: (text) => this.i18n.translate('ui.select.create', { text }),
     },
     date: {
       placeholder: this.i18n.translate('ui.date.placeholder'),
@@ -188,7 +188,7 @@ export class SMTI18nService {
       previousMonth: this.i18n.translate('ui.date.previous_month'),
       nextMonth: this.i18n.translate('ui.date.next_month'),
       time: this.i18n.translate('ui.date.time'),
-      invalid: format => this.i18n.translate('ui.date.invalid', { format }),
+      invalid: (format) => this.i18n.translate('ui.date.invalid', { format }),
       apply: this.i18n.translate('ui.date.apply'),
       anyPeriod: this.i18n.translate('ui.date.any_period'),
       clearPeriod: this.i18n.translate('ui.date.clear_period'),
@@ -228,7 +228,7 @@ export class SMTI18nService {
       counter: (count, max) => this.i18n.translate('ui.textarea.counter', { count: String(count), max: String(max) }),
     },
     tag: {
-      remove: label => this.i18n.translate('ui.tag.remove', { label }),
+      remove: (label) => this.i18n.translate('ui.tag.remove', { label }),
     },
     rating: {
       name: this.i18n.translate('ui.rating.name'),
@@ -244,7 +244,13 @@ export class SMTI18nService {
     cropper: {
       area: this.i18n.translate('ui.cropper.area'),
       help: this.i18n.translate('ui.cropper.help'),
-      status: (x, y, width, height) => this.i18n.translate('ui.cropper.status', { x: String(x), y: String(y), width: String(width), height: String(height) }),
+      status: (x, y, width, height) =>
+        this.i18n.translate('ui.cropper.status', {
+          x: String(x),
+          y: String(y),
+          width: String(width),
+          height: String(height),
+        }),
     },
     button: {
       busy: this.i18n.translate('ui.button.vypolnyaetsya'),
@@ -278,16 +284,17 @@ export class SMTI18nService {
     },
     sortable: {
       handle: this.i18n.translate('ui.sortable.handle'),
-      moveUp: label => this.i18n.translate('ui.sortable.move_up', { label }),
-      moveDown: label => this.i18n.translate('ui.sortable.move_down', { label }),
+      moveUp: (label) => this.i18n.translate('ui.sortable.move_up', { label }),
+      moveDown: (label) => this.i18n.translate('ui.sortable.move_down', { label }),
       moved: (label, position, total) =>
         this.i18n.translate('ui.sortable.moved', { label, position: String(position), total: String(total) }),
     },
     file: {
-      download: name => this.i18n.translate('ui.file.download', { name }),
-      preview: name => this.i18n.translate('ui.file.preview', { name }),
-      remove: name => this.i18n.translate('ui.file.remove', { name }),
-      position: (position, total) => this.i18n.translate('ui.file.position', { position: String(position), total: String(total) }),
+      download: (name) => this.i18n.translate('ui.file.download', { name }),
+      preview: (name) => this.i18n.translate('ui.file.preview', { name }),
+      remove: (name) => this.i18n.translate('ui.file.remove', { name }),
+      position: (position, total) =>
+        this.i18n.translate('ui.file.position', { position: String(position), total: String(total) }),
       previous: this.i18n.translate('ui.file.previous'),
       next: this.i18n.translate('ui.file.next'),
       cannotShow: this.i18n.translate('ui.file.cannot_show'),

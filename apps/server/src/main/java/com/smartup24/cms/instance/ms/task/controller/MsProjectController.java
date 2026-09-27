@@ -9,12 +9,11 @@ import com.smartup24.cms.instance.ms.task.service.MsProjectListService;
 import com.smartup24.cms.instance.ms.task.service.MsProjectService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import java.util.List;
+import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/tasks/projects")
@@ -23,8 +22,7 @@ public class MsProjectController {
     private final MsProjectService projectService;
     private final MsProjectListService projectListService;
 
-    public MsProjectController(MsProjectService projectService,
-                               MsProjectListService projectListService) {
+    public MsProjectController(MsProjectService projectService, MsProjectListService projectListService) {
         this.projectService = projectService;
         this.projectListService = projectListService;
     }
@@ -49,8 +47,8 @@ public class MsProjectController {
             @RequestParam(name = "sort", required = false) String sort,
             @RequestParam(name = "q", required = false) String query,
             @RequestParam(name = "state", required = false) String state) {
-        return ResponseEntity.ok(projectListService.page(SecurityContext.getCurrentUserId(), limit, cursor, filter, sort,
-                query, state));
+        return ResponseEntity.ok(
+                projectListService.page(SecurityContext.getCurrentUserId(), limit, cursor, filter, sort, query, state));
     }
 
     @GetMapping("/{id}")
@@ -63,7 +61,8 @@ public class MsProjectController {
     @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "create")
     public ResponseEntity<MsProjectRepository.ProjectRecord> createProject(@Valid @RequestBody CreateProjectDto body) {
         Long currentUserId = SecurityContext.getCurrentUserId();
-        var project = projectService.createProject(body.name(), body.description(), body.state(), body.attributes(), currentUserId);
+        var project = projectService.createProject(
+                body.name(), body.description(), body.state(), body.attributes(), currentUserId);
         return ResponseEntity.status(HttpStatus.CREATED).body(project);
     }
 
@@ -95,21 +94,9 @@ public class MsProjectController {
     }
 
     public record CreateProjectDto(
-            @NotBlank String name,
-            String description,
-            String state,
-            Map<String, Object> attributes
-    ) {}
+            @NotBlank String name, String description, String state, Map<String, Object> attributes) {}
 
-    public record UpdateProjectDto(
-            String name,
-            String description,
-            String state,
-            Map<String, Object> attributes
-    ) {}
+    public record UpdateProjectDto(String name, String description, String state, Map<String, Object> attributes) {}
 
-    public record AddMemberDto(
-            Long userId,
-            String accessKind
-    ) {}
+    public record AddMemberDto(Long userId, String accessKind) {}
 }

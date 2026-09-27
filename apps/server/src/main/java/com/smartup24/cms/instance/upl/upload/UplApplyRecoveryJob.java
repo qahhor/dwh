@@ -6,12 +6,11 @@ import com.smartup24.cms.instance.fnd.jobs.FndJobHandler;
 import com.smartup24.cms.instance.fnd.load.FndLoad;
 import com.smartup24.cms.instance.fnd.load.FndLoadService;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.PackageRow;
+import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * Закрывает применения, прервавшиеся между шагами {@link UplApplyService} (P0 DWH). Первый шаг
@@ -53,13 +52,16 @@ public class UplApplyRecoveryJob implements FndJobHandler {
     @Override
     public void run(Map<String, Object> args) {
         int staleMinutes = args.get("staleMinutes") instanceof Number minutes
-                ? Math.max(1, minutes.intValue()) : DEFAULT_STALE_MINUTES;
+                ? Math.max(1, minutes.intValue())
+                : DEFAULT_STALE_MINUTES;
         FndActor actor = actors.system();
         actors.apply(actor);
         List<PackageRow> stale = repo.lockStaleApplies(staleMinutes);
         for (PackageRow row : stale) {
             // Третий шаг закрывает пакет и загрузку в одной транзакции: загрузка не pending — не прерывание
-            if (loads.find(row.loadId()).filter(load -> FndLoad.PENDING.equals(load.status())).isEmpty()) {
+            if (loads.find(row.loadId())
+                    .filter(load -> FndLoad.PENDING.equals(load.status()))
+                    .isEmpty()) {
                 continue;
             }
             loads.fail(row.loadId(), UplApplyService.UPL_PKG_APPLY_INTERRUPTED, actor);

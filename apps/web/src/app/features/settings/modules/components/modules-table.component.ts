@@ -1,4 +1,14 @@
-import { ChangeDetectionStrategy, Component, Signal, TemplateRef, computed, inject, input, output, viewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  Signal,
+  TemplateRef,
+  computed,
+  inject,
+  input,
+  output,
+  viewChild,
+} from '@angular/core';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { UiLocalTableComponent } from '../../../../shared/ui/ui-local-table.component';
 import { SMTSwitchComponent } from '../../../../shared/ui-kit/components/forms/switch';
@@ -16,8 +26,13 @@ import { InstalledModule } from '../modules.models';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="table-container">
-      <ui-local-table [rows]="modules()" [config]="config()" [sortValues]="sortValues" [loading]="isLoading() && modules().length === 0"
-        [emptyTemplate]="emptyState" />
+      <ui-local-table
+        [rows]="modules()"
+        [config]="config()"
+        [sortValues]="sortValues"
+        [loading]="isLoading() && modules().length === 0"
+        [emptyTemplate]="emptyState"
+      />
     </div>
 
     <ng-template #moduleCell let-mod>
@@ -28,8 +43,12 @@ import { InstalledModule } from '../modules.models';
         }
       </div>
     </ng-template>
-    <ng-template #codeCell let-mod><code class="code-badge">{{ mod.code }}</code></ng-template>
-    <ng-template #versionCell let-mod><span class="version-badge">v{{ mod.version }}</span></ng-template>
+    <ng-template #codeCell let-mod
+      ><code class="code-badge">{{ mod.code }}</code></ng-template
+    >
+    <ng-template #versionCell let-mod
+      ><span class="version-badge">v{{ mod.version }}</span></ng-template
+    >
     <ng-template #typeCell let-mod>
       <span class="badge" [class.badge-primary]="mod.isSystem" [class.badge-neutral]="!mod.isSystem">
         {{ (mod.isSystem ? 'modules.type.system' : 'modules.type.custom') | t }}
@@ -48,8 +67,9 @@ import { InstalledModule } from '../modules.models';
           [checked]="mod.isActive"
           [disabled]="mod.isSystem || togglingCode() === mod.code"
           [title]="mod.isSystem ? ('modules.system_cannot_disable' | t) : ''"
-          [smtAriaLabel]="(mod.isActive ? 'modules.action.disable' : 'modules.action.enable') | t:{name: mod.name}"
-          (smtUserChange)="toggle.emit({ module: mod, enabled: $event })" />
+          [smtAriaLabel]="(mod.isActive ? 'modules.action.disable' : 'modules.action.enable') | t: { name: mod.name }"
+          (smtUserChange)="toggle.emit({ module: mod, enabled: $event })"
+        />
         @if (mod.isSystem) {
           <span class="system-locked-hint" [title]="'modules.system_cannot_disable' | t">
             <span class="material-symbols-outlined lock-icon" aria-hidden="true">lock</span>
@@ -65,113 +85,119 @@ import { InstalledModule } from '../modules.models';
       </div>
     </ng-template>
   `,
-  styles: [`
-    :host { display: block; }
-    .table-container {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      overflow-x: auto;
-    }
-    .module-info {
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-    }
-    .module-name {
-      font-weight: 600;
-      color: var(--text-main);
-    }
-    .module-desc {
-      font-size: 12px;
-      color: var(--text-muted);
-      max-width: 320px;
-    }
-    .code-badge {
-      padding: 2px 6px;
-      background: var(--bg-hover);
-      border: 1px solid var(--border-color);
-      border-radius: 4px;
-      font-family: var(--font-mono, monospace);
-      font-size: 11px;
-      color: var(--primary);
-    }
-    .version-badge {
-      font-size: 12px;
-      color: var(--text-muted);
-      font-family: var(--font-mono, monospace);
-    }
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      padding: 2px 8px;
-      border-radius: 9999px;
-      font-size: 11px;
-      font-weight: 600;
-    }
-    .badge-primary {
-      background: var(--primary-subtle);
-      color: var(--primary);
-    }
-    .badge-neutral {
-      background: var(--bg-hover);
-      color: var(--text-muted);
-    }
-    .badge-active {
-      background: rgba(16, 185, 129, 0.12);
-      color: var(--success-text);
-    }
-    .badge-inactive {
-      background: var(--bg-hover);
-      color: var(--text-muted);
-    }
-    .actions-col {
-      width: 80px;
-      text-align: center;
-    }
-    .action-cell {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-    }
-    .system-locked-hint {
-      display: flex;
-      align-items: center;
-      color: var(--text-muted);
-    }
-    .lock-icon {
-      font-size: 14px;
-    }
-    .empty-state {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      color: var(--text-muted);
-    }
-    .empty-icon {
-      font-size: 36px;
-      color: var(--text-muted);
-      opacity: 0.5;
-    }
-    .empty-title {
-      font-weight: 600;
-      color: var(--text-main);
-      margin: 0;
-    }
-    .empty-desc {
-      font-size: 12px;
-      margin: 0;
-    }
-    .spin {
-      animation: spin 1s linear infinite;
-    }
-    @keyframes spin {
-      100% { transform: rotate(360deg); }
-    }
-  `]
+  styles: [
+    `
+      :host {
+        display: block;
+      }
+      .table-container {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        overflow-x: auto;
+      }
+      .module-info {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+      .module-name {
+        font-weight: 600;
+        color: var(--text-main);
+      }
+      .module-desc {
+        font-size: 12px;
+        color: var(--text-muted);
+        max-width: 320px;
+      }
+      .code-badge {
+        padding: 2px 6px;
+        background: var(--bg-hover);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        font-family: var(--font-mono, monospace);
+        font-size: 11px;
+        color: var(--primary);
+      }
+      .version-badge {
+        font-size: 12px;
+        color: var(--text-muted);
+        font-family: var(--font-mono, monospace);
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 8px;
+        border-radius: 9999px;
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .badge-primary {
+        background: var(--primary-subtle);
+        color: var(--primary);
+      }
+      .badge-neutral {
+        background: var(--bg-hover);
+        color: var(--text-muted);
+      }
+      .badge-active {
+        background: rgba(16, 185, 129, 0.12);
+        color: var(--success-text);
+      }
+      .badge-inactive {
+        background: var(--bg-hover);
+        color: var(--text-muted);
+      }
+      .actions-col {
+        width: 80px;
+        text-align: center;
+      }
+      .action-cell {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
+      .system-locked-hint {
+        display: flex;
+        align-items: center;
+        color: var(--text-muted);
+      }
+      .lock-icon {
+        font-size: 14px;
+      }
+      .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        color: var(--text-muted);
+      }
+      .empty-icon {
+        font-size: 36px;
+        color: var(--text-muted);
+        opacity: 0.5;
+      }
+      .empty-title {
+        font-weight: 600;
+        color: var(--text-main);
+        margin: 0;
+      }
+      .empty-desc {
+        font-size: 12px;
+        margin: 0;
+      }
+      .spin {
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    `,
+  ],
 })
 export class ModulesTableComponent {
   private readonly i18n = inject(I18nService);
@@ -199,14 +225,25 @@ export class ModulesTableComponent {
       code: { header: header('modules.col.code'), content: cell(this.codeCell), width: '160px' },
       version: { header: header('modules.col.version'), content: cell(this.versionCell), width: '110px' },
       type: { header: header('modules.col.type'), content: cell(this.typeCell), width: '130px' },
-      status: { header: header('modules.col.status'), content: cell(this.statusCell), width: '130px' }
+      status: { header: header('modules.col.status'), content: cell(this.statusCell), width: '130px' },
     };
     const order = ['module', 'code', 'version', 'type', 'status'];
     if (this.canManage()) {
-      columns['actions'] = { header: header('modules.col.actions'), content: cell(this.actionsCell), width: '120px', align: 'right' };
+      columns['actions'] = {
+        header: header('modules.col.actions'),
+        content: cell(this.actionsCell),
+        width: '120px',
+        align: 'right',
+      };
       order.push('actions');
     }
-    return { trackBy: (_index, mod) => mod.code, ariaLabel: this.i18n.translate('modules.title'), layout: 'fit', columns, columnsOrder: order };
+    return {
+      trackBy: (_index, mod) => mod.code,
+      ariaLabel: this.i18n.translate('modules.title'),
+      layout: 'fit',
+      columns,
+      columnsOrder: order,
+    };
   });
 
   readonly sortValues = {
@@ -214,6 +251,6 @@ export class ModulesTableComponent {
     code: (mod: InstalledModule) => mod.code,
     version: (mod: InstalledModule) => mod.version,
     type: (mod: InstalledModule) => (mod.isSystem ? 0 : 1),
-    status: (mod: InstalledModule) => (mod.isActive ? 0 : 1)
+    status: (mod: InstalledModule) => (mod.isActive ? 0 : 1),
   };
 }

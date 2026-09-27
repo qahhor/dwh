@@ -2,7 +2,6 @@ package com.smartup24.cms.instance.kauth.service;
 
 import com.smartup24.cms.instance.kauth.repository.KauthLoginAttemptRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthSessionRepository;
-
 import java.time.Instant;
 import java.util.List;
 
@@ -16,5 +15,4 @@ public record UserSecuritySummary(
         long authVersion,
         int activeSessionsCount,
         List<KauthSessionRepository.SessionRecord> activeSessions,
-        List<KauthLoginAttemptRepository.LoginAttemptRecord> recentLoginAttempts
-) {}
+        List<KauthLoginAttemptRepository.LoginAttemptRecord> recentLoginAttempts) {}

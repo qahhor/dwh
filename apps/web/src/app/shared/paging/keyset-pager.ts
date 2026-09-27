@@ -10,7 +10,10 @@ export interface KeysetResponse<T> {
 }
 
 /** Fetches one page. `cursor` is null for the first page. */
-export type KeysetFetch<T> = (cursor: string | null, pageSize: number) => Observable<KeysetResponse<T> | null | undefined>;
+export type KeysetFetch<T> = (
+  cursor: string | null,
+  pageSize: number,
+) => Observable<KeysetResponse<T> | null | undefined>;
 
 interface Attempt {
   readonly page: number;
@@ -86,14 +89,16 @@ export class KeysetPager<T> {
     if (options.pageSize) this.pageSize.set(options.pageSize);
     const subscription = this.requests
       .pipe(
-        switchMap(attempt => attempt === null ? EMPTY :
-          fetch(attempt.cursor, this.pageSize()).pipe(
-            map(response => ({ attempt, response: response ?? {}, ok: true as const })),
-            catchError(() => of({ attempt, ok: false as const }))
-          )
-        )
+        switchMap((attempt) =>
+          attempt === null
+            ? EMPTY
+            : fetch(attempt.cursor, this.pageSize()).pipe(
+                map((response) => ({ attempt, response: response ?? {}, ok: true as const })),
+                catchError(() => of({ attempt, ok: false as const })),
+              ),
+        ),
       )
-      .subscribe(result => {
+      .subscribe((result) => {
         this.loading.set(false);
         this.loadingMore.set(false);
         if (!result.ok) {
@@ -105,7 +110,7 @@ export class KeysetPager<T> {
         const { attempt, response } = result;
         const rows = [...(response.items ?? [])];
         if (attempt.append) {
-          this.items.update(current => [...current, ...rows]);
+          this.items.update((current) => [...current, ...rows]);
         } else {
           this.cursors = this.cursors.slice(0, attempt.page - 1);
           this.cursors[attempt.page - 1] = attempt.cursor;

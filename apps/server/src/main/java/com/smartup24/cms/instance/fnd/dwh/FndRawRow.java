@@ -11,5 +11,4 @@ import java.util.Map;
  * @param sourceRowNo номер строки в самом файле
  * @param fields      поля строки как есть
  */
-public record FndRawRow(long rowNo, String sheet, Integer sourceRowNo, Map<String, Object> fields) {
-}
+public record FndRawRow(long rowNo, String sheet, Integer sourceRowNo, Map<String, Object> fields) {}

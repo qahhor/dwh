@@ -89,7 +89,7 @@ describe('SMTTagComponent and SMTTagGroupComponent', () => {
     const { element, tags } = await render(FormHost);
     const group = element.querySelector('[role="group"]') as HTMLElement;
     expect(group.getAttribute('aria-labelledby')).toBe(element.querySelector('label')!.id);
-    expect(tags().map(tag => tag.getAttribute('aria-pressed'))).toEqual(['true', 'false', 'true']);
+    expect(tags().map((tag) => tag.getAttribute('aria-pressed'))).toEqual(['true', 'false', 'true']);
     expect(tags()[0].disabled).toBe(true);
     expect(tags()[0].title).toBe('Protected');
     expect(tags()[0].textContent).toContain('Protected');

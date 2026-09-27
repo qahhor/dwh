@@ -12,7 +12,10 @@ import { ToastService } from '../../../core/services/toast.service';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
-import { SMTDatePickerComponent, SMTDatePickerValueAccessor } from '../../../shared/ui-kit/components/forms/date-picker';
+import {
+  SMTDatePickerComponent,
+  SMTDatePickerValueAccessor,
+} from '../../../shared/ui-kit/components/forms/date-picker';
 import { SMTProgressStep, SMTProgressStepperComponent } from '../../../shared/ui-kit/components/progress-stepper';
 import {
   UplApiService,
@@ -21,7 +24,7 @@ import {
   UplFormatVersion,
   UplSource,
   UplUnit,
-  UplVersionItem
+  UplVersionItem,
 } from '../upl-api';
 import { UPL_FILE_KIND_KEY, UPL_VERSION_STATUS_KEY, uplErrorKey, uplProblemText } from '../upl-labels';
 import { FormatFileStepComponent } from './format-file-step.component';
@@ -45,7 +48,7 @@ const COLUMN_FIELD_LABEL_KEY: Record<string, string> = {
   keyPadLength: 'upl.format.col.key_pad_length',
   keyPadMax: 'upl.format.col.key_pad_max',
   refBookCode: 'upl.format.col.ref_book',
-  filePosition: 'upl.format.col.file_position'
+  filePosition: 'upl.format.col.file_position',
 };
 
 @Component({
@@ -53,9 +56,21 @@ const COLUMN_FIELD_LABEL_KEY: Record<string, string> = {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    SMTAlertComponent, CommonModule, FormsModule, RouterLink, TranslatePipe, SMTButtonComponent, SMTDialogComponent, SMTDialogContentDirective, UiBadgeComponent,
-    SMTDatePickerComponent, SMTDatePickerValueAccessor, SMTProgressStepperComponent,
-    FormatFileStepComponent, FormatSheetsStepComponent, FormatPublishStepComponent,
+    SMTAlertComponent,
+    CommonModule,
+    FormsModule,
+    RouterLink,
+    TranslatePipe,
+    SMTButtonComponent,
+    SMTDialogComponent,
+    SMTDialogContentDirective,
+    UiBadgeComponent,
+    SMTDatePickerComponent,
+    SMTDatePickerValueAccessor,
+    SMTProgressStepperComponent,
+    FormatFileStepComponent,
+    FormatSheetsStepComponent,
+    FormatPublishStepComponent,
   ],
   template: `
     <div class="upl-editor">
@@ -69,7 +84,9 @@ const COLUMN_FIELD_LABEL_KEY: Record<string, string> = {
       } @else if (loadError()) {
         <smt-alert smtTone="danger" data-testid="upl-load-error">
           <span>{{ 'upl.common.load_error' | t }}</span>
-          <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="reload()">{{ 'upl.common.retry' | t }}</button>
+          <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="reload()">
+            {{ 'upl.common.retry' | t }}
+          </button>
         </smt-alert>
       } @else {
         <nav class="upl-crumbs" [attr.aria-label]="'upl.format.crumbs' | t">
@@ -81,7 +98,9 @@ const COLUMN_FIELD_LABEL_KEY: Record<string, string> = {
         </nav>
 
         <div class="upl-head">
-          <h1 class="upl-title">{{ text('upl.format.title', { name: source()?.name ?? '', version: versionNumber }) }}</h1>
+          <h1 class="upl-title">
+            {{ text('upl.format.title', { name: source()?.name ?? '', version: versionNumber }) }}
+          </h1>
           <ui-badge [variant]="statusVariant()">{{ statusKey() | t }}</ui-badge>
         </div>
 
@@ -89,7 +108,9 @@ const COLUMN_FIELD_LABEL_KEY: Record<string, string> = {
           <p class="upl-note" data-testid="upl-readonly-note">
             <span>{{ 'upl.format.readonly_note' | t }}</span>
             @if (canEdit() && source() && !source()!.hasDraft) {
-              <a [routerLink]="['/upl/sources', sourceId]" [queryParams]="{ newDraft: 1 }">{{ 'upl.version.new_draft' | t }}</a>
+              <a [routerLink]="['/upl/sources', sourceId]" [queryParams]="{ newDraft: 1 }">{{
+                'upl.version.new_draft' | t
+              }}</a>
             }
           </p>
         }
@@ -97,7 +118,9 @@ const COLUMN_FIELD_LABEL_KEY: Record<string, string> = {
         @if (conflict()) {
           <smt-alert smtTone="danger" data-testid="upl-conflict">
             <span>{{ 'upl.err.STALE_VERSION' | t }}</span>
-            <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="discardAndReload()">{{ 'upl.common.refresh_discard' | t }}</button>
+            <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="discardAndReload()">
+              {{ 'upl.common.refresh_discard' | t }}
+            </button>
           </smt-alert>
         }
 
@@ -157,13 +180,17 @@ const COLUMN_FIELD_LABEL_KEY: Record<string, string> = {
         @if (version()?.status === 'draft' && (canEdit() || canPublish())) {
           <div class="upl-actions" data-testid="upl-actions">
             @if (canEdit()) {
-              <button smt-button type="button"
+              <button
+                smt-button
+                type="button"
                 smtVariant="primary"
                 data-testid="upl-save"
                 [smtLoading]="isSaving()"
                 [disabled]="!isDirty()"
                 (click)="save()"
-              >{{ 'upl.format.save' | t }}</button>
+              >
+                {{ 'upl.format.save' | t }}
+              </button>
             }
             @if (canPublish()) {
               <button smt-button type="button" smtVariant="secondary" data-testid="upl-publish" (click)="openPublish()">
@@ -171,81 +198,190 @@ const COLUMN_FIELD_LABEL_KEY: Record<string, string> = {
               </button>
             }
             @if (canEdit()) {
-              <button smt-button type="button" smtVariant="ghost" data-testid="upl-revert" [disabled]="!isDirty()" (click)="revert()">
+              <button
+                smt-button
+                type="button"
+                smtVariant="ghost"
+                data-testid="upl-revert"
+                [disabled]="!isDirty()"
+                (click)="revert()"
+              >
                 {{ 'upl.format.revert' | t }}
               </button>
             }
           </div>
         }
 
-
-        <smt-dialog [open]="isPublishOpen()" [smtTitle]="'upl.version.publish_title' | t" smtSize="sm" (closed)="closePublish()">
+        <smt-dialog
+          [open]="isPublishOpen()"
+          [smtTitle]="'upl.version.publish_title' | t"
+          smtSize="sm"
+          (closed)="closePublish()"
+        >
           <ng-template smtDialogContent>
-          <div body>
-            <div class="form-group">
-              <label class="form-label" for="upl-valid-from">{{ 'upl.version.valid_from' | t }}</label>
-              <smt-date-picker
-                smtInputId="upl-valid-from"
-                data-testid="upl-valid-from"
-                [ngModel]="validFrom()"
-                [ngModelOptions]="{ standalone: true }"
-                (ngModelChange)="validFrom.set($event ?? '')"
-              />
-              @if (previousValidFrom(); as previous) {
-                <span class="upl-hint">{{ text('upl.version.prev_valid_from', { date: previous }) }}</span>
-              }
-              @if (publishDateError(); as problem) {
-                <span class="upl-field-error" data-testid="upl-publish-date-error">{{ problem | t }}</span>
-              }
+            <div body>
+              <div class="form-group">
+                <label class="form-label" for="upl-valid-from">{{ 'upl.version.valid_from' | t }}</label>
+                <smt-date-picker
+                  smtInputId="upl-valid-from"
+                  data-testid="upl-valid-from"
+                  [ngModel]="validFrom()"
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="validFrom.set($event ?? '')"
+                />
+                @if (previousValidFrom(); as previous) {
+                  <span class="upl-hint">{{ text('upl.version.prev_valid_from', { date: previous }) }}</span>
+                }
+                @if (publishDateError(); as problem) {
+                  <span class="upl-field-error" data-testid="upl-publish-date-error">{{ problem | t }}</span>
+                }
+              </div>
+              <p>{{ 'upl.version.publish_note' | t }}</p>
             </div>
-            <p>{{ 'upl.version.publish_note' | t }}</p>
-          </div>
-          <div footer class="upl-modal-actions">
-            <button smt-button type="button" smtVariant="secondary" (click)="closePublish()">{{ 'upl.common.cancel' | t }}</button>
-            <button smt-button type="button"
-              smtVariant="primary"
-              data-testid="upl-publish-confirm"
-              [smtLoading]="isPublishing()"
-              (click)="confirmPublish()"
-            >{{ 'upl.format.publish' | t }}</button>
-          </div>
+            <div footer class="upl-modal-actions">
+              <button smt-button type="button" smtVariant="secondary" (click)="closePublish()">
+                {{ 'upl.common.cancel' | t }}
+              </button>
+              <button
+                smt-button
+                type="button"
+                smtVariant="primary"
+                data-testid="upl-publish-confirm"
+                [smtLoading]="isPublishing()"
+                (click)="confirmPublish()"
+              >
+                {{ 'upl.format.publish' | t }}
+              </button>
+            </div>
           </ng-template>
         </smt-dialog>
 
-        <smt-dialog [open]="isLeaveOpen()" [smtTitle]="'upl.format.leave_title' | t" smtSize="sm" (closed)="settleLeave(false)">
+        <smt-dialog
+          [open]="isLeaveOpen()"
+          [smtTitle]="'upl.format.leave_title' | t"
+          smtSize="sm"
+          (closed)="settleLeave(false)"
+        >
           <ng-template smtDialogContent>
-          <p body>{{ 'upl.format.leave_confirm' | t }}</p>
-          <div footer class="upl-modal-actions">
-            <button smt-button type="button" smtVariant="secondary" (click)="settleLeave(false)">{{ 'upl.format.stay' | t }}</button>
-            <button smt-button type="button" smtVariant="danger" data-testid="upl-leave-confirm" (click)="settleLeave(true)">
-              {{ 'upl.format.leave' | t }}
-            </button>
-          </div>
+            <p body>{{ 'upl.format.leave_confirm' | t }}</p>
+            <div footer class="upl-modal-actions">
+              <button smt-button type="button" smtVariant="secondary" (click)="settleLeave(false)">
+                {{ 'upl.format.stay' | t }}
+              </button>
+              <button
+                smt-button
+                type="button"
+                smtVariant="danger"
+                data-testid="upl-leave-confirm"
+                (click)="settleLeave(true)"
+              >
+                {{ 'upl.format.leave' | t }}
+              </button>
+            </div>
           </ng-template>
         </smt-dialog>
       }
     </div>
   `,
-  styles: [`
-    .upl-editor { display: flex; flex-direction: column; gap: 1rem; padding-bottom: 5rem; }
-    .upl-muted { color: var(--text-muted); }
-    .upl-crumbs { display: flex; align-items: center; gap: 0.5rem; color: var(--text-muted); font-size: 0.875rem; }
-    .upl-crumbs a { color: var(--primary); text-decoration: none; }
-    .upl-head { display: flex; align-items: center; gap: 0.75rem; }
-    .upl-title { margin: 0; color: var(--text-main); font-size: 1.25rem; }
-    .upl-note { display: flex; gap: 0.5rem; color: var(--text-muted); margin: 0; }
-    .upl-note a { color: var(--primary); }
-    .upl-block { display: flex; flex-direction: column; gap: 0.75rem; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1rem; }
-    .upl-block[hidden] { display: none; }
-    .upl-hint { color: var(--text-light); font-size: 0.75rem; }
-    .upl-field-error { color: var(--danger); font-size: 0.75rem; }
-    .upl-errors-title { margin: 0 0 0.375rem; font-weight: 600; }
-    .upl-errors-list { margin: 0; padding-left: 1rem; }
-    .upl-error-item { display: inline-flex; gap: 0.375rem; padding: 0; background: none; border: none; color: inherit; text-align: left; cursor: pointer; }
-    .upl-error-at { color: var(--text-muted); }
-    .upl-actions { position: sticky; bottom: 0; display: flex; gap: 0.5rem; padding: 0.75rem 1rem; background: var(--bg-surface); border-top: 1px solid var(--border-color); border-radius: var(--radius-md) var(--radius-md) 0 0; }
-    .upl-modal-actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
-  `]
+  styles: [
+    `
+      .upl-editor {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        padding-bottom: 5rem;
+      }
+      .upl-muted {
+        color: var(--text-muted);
+      }
+      .upl-crumbs {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--text-muted);
+        font-size: 0.875rem;
+      }
+      .upl-crumbs a {
+        color: var(--primary);
+        text-decoration: none;
+      }
+      .upl-head {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+      .upl-title {
+        margin: 0;
+        color: var(--text-main);
+        font-size: 1.25rem;
+      }
+      .upl-note {
+        display: flex;
+        gap: 0.5rem;
+        color: var(--text-muted);
+        margin: 0;
+      }
+      .upl-note a {
+        color: var(--primary);
+      }
+      .upl-block {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 1rem;
+      }
+      .upl-block[hidden] {
+        display: none;
+      }
+      .upl-hint {
+        color: var(--text-light);
+        font-size: 0.75rem;
+      }
+      .upl-field-error {
+        color: var(--danger);
+        font-size: 0.75rem;
+      }
+      .upl-errors-title {
+        margin: 0 0 0.375rem;
+        font-weight: 600;
+      }
+      .upl-errors-list {
+        margin: 0;
+        padding-left: 1rem;
+      }
+      .upl-error-item {
+        display: inline-flex;
+        gap: 0.375rem;
+        padding: 0;
+        background: none;
+        border: none;
+        color: inherit;
+        text-align: left;
+        cursor: pointer;
+      }
+      .upl-error-at {
+        color: var(--text-muted);
+      }
+      .upl-actions {
+        position: sticky;
+        bottom: 0;
+        display: flex;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        background: var(--bg-surface);
+        border-top: 1px solid var(--border-color);
+        border-radius: var(--radius-md) var(--radius-md) 0 0;
+      }
+      .upl-modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+      }
+    `,
+  ],
 })
 export class FormatEditorComponent implements RecordNavigationPage {
   private readonly api = inject(UplApiService);
@@ -276,8 +412,12 @@ export class FormatEditorComponent implements RecordNavigationPage {
   readonly isLeaveOpen = signal(false);
 
   readonly canEdit = computed(() => this.permissions.hasPermission('upl.sources', 'edit'));
-  readonly editable = computed(() => this.version()?.status === 'draft' && this.permissions.hasPermission('upl.sources', 'edit'));
-  readonly canPublish = computed(() => this.version()?.status === 'draft' && this.permissions.hasPermission('upl.sources', 'publish'));
+  readonly editable = computed(
+    () => this.version()?.status === 'draft' && this.permissions.hasPermission('upl.sources', 'edit'),
+  );
+  readonly canPublish = computed(
+    () => this.version()?.status === 'draft' && this.permissions.hasPermission('upl.sources', 'publish'),
+  );
   readonly statusKey = computed(() => {
     const status = this.version()?.status;
     return status ? UPL_VERSION_STATUS_KEY[status] : '';
@@ -289,7 +429,7 @@ export class FormatEditorComponent implements RecordNavigationPage {
     return 'neutral';
   });
   readonly previousValidFrom = computed(() => {
-    const published = this.versions().filter(item => item.status === 'published' && item.validFrom);
+    const published = this.versions().filter((item) => item.status === 'published' && item.validFrom);
     if (published.length === 0) return null;
     return published.reduce((latest, item) => (item.version > latest.version ? item : latest)).validFrom;
   });
@@ -302,7 +442,7 @@ export class FormatEditorComponent implements RecordNavigationPage {
   private savedSnapshot = JSON.stringify(emptyModel());
 
   constructor() {
-    this.route.paramMap.pipe(takeUntilDestroyed()).subscribe(params => {
+    this.route.paramMap.pipe(takeUntilDestroyed()).subscribe((params) => {
       this.sourceId = params.get('id') ?? '';
       this.versionNumber = params.get('v') ?? '';
       this.reload();
@@ -312,11 +452,11 @@ export class FormatEditorComponent implements RecordNavigationPage {
   /** Шаги анкеты со статусом: «есть ошибки» — по адресам ошибок, «готово» — по заполненности. */
   steps(): SMTProgressStep[] {
     const errors = this.errors();
-    const fileErrors = errors.filter(item => uplErrorStep(item) === 'file').length;
+    const fileErrors = errors.filter((item) => uplErrorStep(item) === 'file').length;
     const sheetErrors = errors.length - fileErrors;
     const sheets = this.model.sheets;
     const columns = sheets.reduce((total, sheet) => total + sheet.columns.length, 0);
-    const sheetsFilled = sheets.length > 0 && sheets.every(sheet => sheet.columns.length > 0);
+    const sheetsFilled = sheets.length > 0 && sheets.every((sheet) => sheet.columns.length > 0);
     const status = this.version()?.status;
     const errorHint = (count: number) => this.text('upl.format.step.errors', { count: count.toString() });
     return [
@@ -325,24 +465,28 @@ export class FormatEditorComponent implements RecordNavigationPage {
         label: this.text('upl.format.step.file'),
         controls: 'upl-step-file',
         status: fileErrors > 0 ? 'error' : 'complete',
-        hint: fileErrors > 0 ? errorHint(fileErrors) : this.text(UPL_FILE_KIND_KEY[this.model.fileKind ?? 'xlsx'])
+        hint: fileErrors > 0 ? errorHint(fileErrors) : this.text(UPL_FILE_KIND_KEY[this.model.fileKind ?? 'xlsx']),
       },
       {
         id: 'sheets',
         label: this.text('upl.format.step.sheets'),
         controls: 'upl-step-sheets',
         status: sheetErrors > 0 ? 'error' : sheetsFilled ? 'complete' : 'none',
-        hint: sheetErrors > 0
-          ? errorHint(sheetErrors)
-          : this.text('upl.format.step.sheets_hint', { sheets: sheets.length.toString(), columns: columns.toString() })
+        hint:
+          sheetErrors > 0
+            ? errorHint(sheetErrors)
+            : this.text('upl.format.step.sheets_hint', {
+                sheets: sheets.length.toString(),
+                columns: columns.toString(),
+              }),
       },
       {
         id: 'publish',
         label: this.text('upl.format.step.publish'),
         controls: 'upl-step-publish',
         status: status === 'draft' || !status ? 'none' : 'complete',
-        hint: this.statusKey() ? this.text(this.statusKey()) : undefined
-      }
+        hint: this.statusKey() ? this.text(this.statusKey()) : undefined,
+      },
     ];
   }
 
@@ -361,9 +505,9 @@ export class FormatEditorComponent implements RecordNavigationPage {
       source: this.api.getSource(this.sourceId),
       version: this.api.getVersion(this.sourceId, this.versionNumber),
       versions: this.api.listVersions(this.sourceId),
-      units: this.api.listUnits()
+      units: this.api.listUnits(),
     }).subscribe({
-      next: loaded => {
+      next: (loaded) => {
         this.source.set(loaded.source);
         this.versions.set(loaded.versions ?? []);
         this.units.set(loaded.units ?? []);
@@ -381,7 +525,7 @@ export class FormatEditorComponent implements RecordNavigationPage {
           this.loadError.set(true);
         }
         this.cdr.markForCheck();
-      }
+      },
     });
   }
 
@@ -419,9 +563,9 @@ export class FormatEditorComponent implements RecordNavigationPage {
           keyPadLength: column.keyPadLength,
           keyPadMax: column.keyPadMax,
           refBookCode: trimToNull(column.refBookCode),
-          headerSynonyms: (column.headerSynonyms ?? []).map(name => name.trim()).filter(name => name.length > 0)
-        }))
-      }))
+          headerSynonyms: (column.headerSynonyms ?? []).map((name) => name.trim()).filter((name) => name.length > 0),
+        })),
+      })),
     };
   }
 
@@ -443,7 +587,7 @@ export class FormatEditorComponent implements RecordNavigationPage {
 
   /** Неизвестный код не прячем: показываем сообщение сервера и сам код. */
   errorText(problem: UplFieldError): string {
-    return uplFieldErrorText(problem, key => this.i18n.translate(key));
+    return uplFieldErrorText(problem, (key) => this.i18n.translate(key));
   }
 
   /** Ошибка в сводке ведёт на свой шаг и, если она у листа, на его вкладку. */
@@ -470,7 +614,7 @@ export class FormatEditorComponent implements RecordNavigationPage {
     this.isSaving.set(true);
     this.actionError.set(null);
     this.api.saveDraft(this.sourceId, this.versionNumber, this.buildRequest()).subscribe({
-      next: saved => {
+      next: (saved) => {
         this.isSaving.set(false);
         this.version.set(saved);
         this.resetModel(saved);
@@ -483,7 +627,7 @@ export class FormatEditorComponent implements RecordNavigationPage {
         this.isSaving.set(false);
         this.handleProblem(problem);
         this.cdr.markForCheck();
-      }
+      },
     });
   }
 
@@ -526,15 +670,21 @@ export class FormatEditorComponent implements RecordNavigationPage {
         }
         this.handleProblem(problem);
         this.cdr.markForCheck();
-      }
+      },
     });
   }
 
   canLeaveRecordPage(): boolean | Observable<boolean> {
     if (!this.isDirty()) return true;
     return this.navigationDecision.request(
-      () => { this.isLeaveOpen.set(true); this.cdr.markForCheck(); },
-      () => { this.isLeaveOpen.set(false); this.cdr.markForCheck(); }
+      () => {
+        this.isLeaveOpen.set(true);
+        this.cdr.markForCheck();
+      },
+      () => {
+        this.isLeaveOpen.set(false);
+        this.cdr.markForCheck();
+      },
     );
   }
 
@@ -593,7 +743,7 @@ export class FormatEditorComponent implements RecordNavigationPage {
       encoding: version.encoding,
       delimiter: version.delimiter,
       matchColumnsBy: version.matchColumnsBy ?? 'header',
-      sheets: structuredClone(version.sheets ?? [])
+      sheets: structuredClone(version.sheets ?? []),
     };
     if (this.activeSheet() >= this.model.sheets.length) {
       this.activeSheet.set(Math.max(0, this.model.sheets.length - 1));
@@ -606,7 +756,7 @@ export class FormatEditorComponent implements RecordNavigationPage {
       const parsed = parseUplProblem(problem);
       this.errors.set(parsed);
       this.isPublishOpen.set(false);
-      const addressed = parsed.find(item => item.sheet !== null) ?? parsed[0];
+      const addressed = parsed.find((item) => item.sheet !== null) ?? parsed[0];
       if (addressed) {
         this.showError(addressed);
       }
@@ -625,6 +775,6 @@ export class FormatEditorComponent implements RecordNavigationPage {
   }
 
   private problemText(problem: ProblemDetail): string {
-    return uplProblemText(problem, key => this.i18n.translate(key));
+    return uplProblemText(problem, (key) => this.i18n.translate(key));
   }
 }

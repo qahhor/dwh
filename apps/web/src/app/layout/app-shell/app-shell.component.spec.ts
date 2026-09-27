@@ -24,29 +24,29 @@ describe('AppShellComponent', () => {
   const authService = {
     currentUser: signal({ name: 'Иван Иванов', login: 'ivan' }),
     isLoggingOut: signal(false),
-    logout: vi.fn()
+    logout: vi.fn(),
   };
   const permissionService = {
     canView: vi.fn((_form: string) => true),
     canUpdate: vi.fn((_form: string) => true),
-    hasPermissionKey: vi.fn((_key: string) => true)
+    hasPermissionKey: vi.fn((_key: string) => true),
   };
   const themeService = {
     currentTheme: signal('light'),
-    toggleTheme: vi.fn()
+    toggleTheme: vi.fn(),
   };
   const i18nService = {
     currentLang: signal('ru'),
     isLoading: signal(false),
     languages: signal([
       { code: 'ru', name: 'Русский' },
-      { code: 'uz', name: "O‘zbekcha" },
+      { code: 'uz', name: 'O‘zbekcha' },
       { code: 'en', name: 'English' },
       { code: 'de', name: 'Deutsch' },
-      { code: 'tr', name: 'Türkçe' }
+      { code: 'tr', name: 'Türkçe' },
     ]),
     setLanguage: vi.fn(() => of(undefined)),
-    translate: translateTest
+    translate: translateTest,
   };
   const notificationService = {
     unreadCount: signal(3),
@@ -56,25 +56,35 @@ describe('AppShellComponent', () => {
     connectSse: vi.fn(),
     disconnectSse: vi.fn(),
     resetSession: vi.fn(),
-    dismissAnnouncement: vi.fn(() => of(undefined))
+    dismissAnnouncement: vi.fn(() => of(undefined)),
   };
   const paletteService = {
     isOpen: signal(false),
     open: vi.fn(),
     close: vi.fn(),
     toggle: vi.fn(),
-    search: vi.fn(() => of({ query: '', totalHits: 0, hits: [] }))
+    search: vi.fn(() => of({ query: '', totalHits: 0, hits: [] })),
   };
   const activeCodes = signal<Set<string>>(new Set(['notes', 'upl']));
   const moduleService = {
     isModuleActive: vi.fn((code: string) => activeCodes().has(code)),
     getActiveCustomModules: vi.fn((): InstalledModule[] => []),
-    loadActiveModules: vi.fn(() => of([]))
+    loadActiveModules: vi.fn(() => of([])),
   };
   const navigationService = {
     activeItems: signal<CustomNavigationItem[]>([]),
-    entityItems: signal([{ code: 'ms.notes', form: 'notes', route: '/notes', labelKey: 'nav.notes', icon: 'description',
-      section: 'workspace', order: 30, module: 'notes' }]),
+    entityItems: signal([
+      {
+        code: 'ms.notes',
+        form: 'notes',
+        route: '/notes',
+        labelKey: 'nav.notes',
+        icon: 'description',
+        section: 'workspace',
+        order: 30,
+        module: 'notes',
+      },
+    ]),
     isLoading: signal(false),
     loadActiveItems: vi.fn(() => of([])),
     loadEntityItems: vi.fn(() => of([])),
@@ -84,7 +94,7 @@ describe('AppShellComponent', () => {
     createItem: vi.fn(),
     updateItem: vi.fn(),
     toggleItem: vi.fn(),
-    deleteItem: vi.fn()
+    deleteItem: vi.fn(),
   };
 
   beforeEach(async () => {
@@ -93,7 +103,7 @@ describe('AppShellComponent', () => {
     paletteService.isOpen.set(false);
     paletteService.open.mockImplementation(() => paletteService.isOpen.set(true));
     paletteService.close.mockImplementation(() => paletteService.isOpen.set(false));
-    paletteService.toggle.mockImplementation(() => paletteService.isOpen.update(open => !open));
+    paletteService.toggle.mockImplementation(() => paletteService.isOpen.update((open) => !open));
     notificationService.unreadCount.set(3);
     permissionService.canView.mockImplementation((_form: string) => true);
     permissionService.canUpdate.mockImplementation((_form: string) => true);
@@ -116,8 +126,8 @@ describe('AppShellComponent', () => {
         { provide: NotificationService, useValue: notificationService },
         { provide: CommandPaletteService, useValue: paletteService },
         { provide: ModuleService, useValue: moduleService },
-        { provide: NavigationService, useValue: navigationService }
-      ]
+        { provide: NavigationService, useValue: navigationService },
+      ],
     }).compileComponents();
   });
 
@@ -156,8 +166,9 @@ describe('AppShellComponent', () => {
     const selector = fixture.nativeElement.querySelector('#app-language-selector') as HTMLButtonElement;
     expect(selector.getAttribute('role')).toBe('combobox');
     expect(selector.getAttribute('aria-label')).toBe('Язык интерфейса');
-    const picker = fixture.debugElement.query(By.css('smt-select.lang-select')).componentInstance as SMTSelectComponent<string>;
-    expect(picker.options().map(option => option.id)).toEqual(['ru', 'uz', 'en', 'de', 'tr']);
+    const picker = fixture.debugElement.query(By.css('smt-select.lang-select'))
+      .componentInstance as SMTSelectComponent<string>;
+    expect(picker.options().map((option) => option.id)).toEqual(['ru', 'uz', 'en', 'de', 'tr']);
     expect(fixture.nativeElement.querySelector('.notif-btn .sr-only')?.textContent).toContain('3');
   });
 
@@ -206,28 +217,34 @@ describe('AppShellComponent', () => {
     expect(opener.getAttribute('aria-controls')).toBe(sidebar.id);
   });
 
-  it.each(['button', 'Escape', 'backdrop'])('closes mobile navigation via %s and restores focus without collapsing desktop', async via => {
-    viewport.next({ matches: true, breakpoints: {} });
-    const fixture = TestBed.createComponent(AppShellComponent);
-    fixture.detectChanges();
-    const opener = fixture.nativeElement.querySelector('.mobile-menu-btn') as HTMLButtonElement;
-    opener.focus();
-    opener.click();
-    fixture.detectChanges();
-    await fixture.whenStable();
+  it.each(['button', 'Escape', 'backdrop'])(
+    'closes mobile navigation via %s and restores focus without collapsing desktop',
+    async (via) => {
+      viewport.next({ matches: true, breakpoints: {} });
+      const fixture = TestBed.createComponent(AppShellComponent);
+      fixture.detectChanges();
+      const opener = fixture.nativeElement.querySelector('.mobile-menu-btn') as HTMLButtonElement;
+      opener.focus();
+      opener.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
 
-    if (via === 'button') fixture.nativeElement.querySelector('.mobile-drawer-close')?.click();
-    if (via === 'backdrop') fixture.nativeElement.querySelector('.mobile-drawer-backdrop')?.click();
-    if (via === 'Escape') document.activeElement?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
-    fixture.detectChanges();
-    await fixture.whenStable();
+      if (via === 'button') fixture.nativeElement.querySelector('.mobile-drawer-close')?.click();
+      if (via === 'backdrop') fixture.nativeElement.querySelector('.mobile-drawer-backdrop')?.click();
+      if (via === 'Escape')
+        document.activeElement?.dispatchEvent(
+          new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+        );
+      fixture.detectChanges();
+      await fixture.whenStable();
 
-    expect(fixture.nativeElement.querySelector('.sidebar.mobile-open')).toBeNull();
-    expect(fixture.componentInstance.isCollapsed()).toBe(false);
-    expect(document.activeElement).toBe(opener);
-    expect(fixture.nativeElement.querySelector('.main-wrapper').hasAttribute('inert')).toBe(false);
-    expect(opener.getAttribute('aria-expanded')).toBe('false');
-  });
+      expect(fixture.nativeElement.querySelector('.sidebar.mobile-open')).toBeNull();
+      expect(fixture.componentInstance.isCollapsed()).toBe(false);
+      expect(document.activeElement).toBe(opener);
+      expect(fixture.nativeElement.querySelector('.main-wrapper').hasAttribute('inert')).toBe(false);
+      expect(opener.getAttribute('aria-expanded')).toBe('false');
+    },
+  );
 
   it('clears the mobile overlay when resizing to desktop and does not reopen it on return', async () => {
     viewport.next({ matches: true, breakpoints: {} });
@@ -259,7 +276,13 @@ describe('AppShellComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
 
-    const shortcut = new KeyboardEvent('keydown', { key: 'k', code: 'KeyK', ctrlKey: true, bubbles: true, cancelable: true });
+    const shortcut = new KeyboardEvent('keydown', {
+      key: 'k',
+      code: 'KeyK',
+      ctrlKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
     document.activeElement?.dispatchEvent(shortcut);
     fixture.detectChanges();
     await fixture.whenStable();
@@ -269,7 +292,9 @@ describe('AppShellComponent', () => {
     expect(fixture.nativeElement.querySelectorAll('[role="dialog"]')).toHaveLength(1);
     expect(document.activeElement).toBe(fixture.nativeElement.querySelector('.palette-input'));
 
-    document.activeElement?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    document.activeElement?.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+    );
     fixture.detectChanges();
     await fixture.whenStable();
     expect(fixture.nativeElement.querySelectorAll('[role="dialog"]')).toHaveLength(0);
@@ -283,13 +308,13 @@ describe('AppShellComponent', () => {
     expect(fixture.componentInstance.canViewOrgUnits()).toBe(false);
     expect(fixture.nativeElement.querySelector('a[href="/iam/org-units"]')).toBeNull();
 
-    permissionService.canView.mockImplementation(form => form === 'iam.users');
+    permissionService.canView.mockImplementation((form) => form === 'iam.users');
     fixture.detectChanges();
     expect(fixture.componentInstance.canViewOrgUnits()).toBe(false);
     expect(fixture.nativeElement.querySelector('a[href="/iam/org-units"]')).toBeNull();
 
     fixture.destroy();
-    permissionService.canView.mockImplementation(form => form === 'iam.org_units');
+    permissionService.canView.mockImplementation((form) => form === 'iam.org_units');
     vi.spyOn(TestBed.inject(Router), 'url', 'get').mockReturnValue('/iam/org-units');
     const allowedFixture = TestBed.createComponent(AppShellComponent);
     allowedFixture.detectChanges();
@@ -307,8 +332,9 @@ describe('AppShellComponent', () => {
     allowedFixture.componentInstance.isMobileMenuOpen.set(true);
     allowedFixture.detectChanges();
     expect(allowedFixture.nativeElement.querySelector('a[href="/iam/org-units"] .nav-label')).not.toBeNull();
-    (allowedFixture.nativeElement.querySelector('a[href="/iam/org-units"]') as HTMLAnchorElement)
-      .dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    (allowedFixture.nativeElement.querySelector('a[href="/iam/org-units"]') as HTMLAnchorElement).dispatchEvent(
+      new MouseEvent('click', { bubbles: true, cancelable: true }),
+    );
     allowedFixture.detectChanges();
     expect(allowedFixture.componentInstance.isMobileMenuOpen()).toBe(false);
   });
@@ -319,22 +345,33 @@ describe('AppShellComponent', () => {
 
     const sections = fixture.componentInstance.navSections();
     expect(sections).toHaveLength(3);
-    expect(sections.map(s => s.id)).toEqual(['workspace', 'iam', 'administration']);
+    expect(sections.map((s) => s.id)).toEqual(['workspace', 'iam', 'administration']);
 
     // Check items per section
-    const workspaceSection = sections.find(s => s.id === 'workspace');
-    expect(workspaceSection?.items.map(i => i.id)).toEqual([
-      'tasks', 'projects', 'notes', 'upl-overview', 'upl-sources', 'upl-packages', 'files', 'analytics', 'notifications'
+    const workspaceSection = sections.find((s) => s.id === 'workspace');
+    expect(workspaceSection?.items.map((i) => i.id)).toEqual([
+      'tasks',
+      'projects',
+      'notes',
+      'upl-overview',
+      'upl-sources',
+      'upl-packages',
+      'files',
+      'analytics',
+      'notifications',
     ]);
 
-    const iamSection = sections.find(s => s.id === 'iam');
-    expect(iamSection?.items.map(i => i.id)).toEqual([
-      'users', 'roles', 'org-units', 'custom-fields'
-    ]);
+    const iamSection = sections.find((s) => s.id === 'iam');
+    expect(iamSection?.items.map((i) => i.id)).toEqual(['users', 'roles', 'org-units', 'custom-fields']);
 
-    const adminSection = sections.find(s => s.id === 'administration');
-    expect(adminSection?.items.map(i => i.id)).toEqual([
-      'announcements', 'modules', 'navigation-settings', 'audit', 'system', 'settings'
+    const adminSection = sections.find((s) => s.id === 'administration');
+    expect(adminSection?.items.map((i) => i.id)).toEqual([
+      'announcements',
+      'modules',
+      'navigation-settings',
+      'audit',
+      'system',
+      'settings',
     ]);
 
     // Initially expanded: section titles visible, no collapsed category buttons
@@ -379,8 +416,8 @@ describe('AppShellComponent', () => {
         icon: 'handshake',
         isSystem: false,
         status: 'ACTIVE',
-        isActive: true
-      }
+        isActive: true,
+      },
     ]);
     const fixture = TestBed.createComponent(AppShellComponent);
     fixture.detectChanges();
@@ -463,14 +500,14 @@ describe('AppShellComponent', () => {
         sortOrder: 10,
         state: 'A',
         createdAt: '2026-09-09T10:00:00Z',
-        modifiedAt: '2026-09-09T10:00:00Z'
-      }
+        modifiedAt: '2026-09-09T10:00:00Z',
+      },
     ]);
     const fixture = TestBed.createComponent(AppShellComponent);
     fixture.detectChanges();
 
     const sections = fixture.componentInstance.navSections();
-    const reportsSection = sections.find(s => s.id === 'custom-reports');
+    const reportsSection = sections.find((s) => s.id === 'custom-reports');
     expect(reportsSection).toBeDefined();
     expect(reportsSection?.items).toHaveLength(1);
     expect(reportsSection?.items[0].route).toBe('/embed/superset-sales');
@@ -535,12 +572,12 @@ describe('AppShellComponent', () => {
     fixture.detectChanges();
 
     const sections = comp.navSections();
-    const iamSection = sections.find(s => s.id === 'iam')!;
+    const iamSection = sections.find((s) => s.id === 'iam')!;
     const usersItem = iamSection.items[0];
 
     // Trigger item mouse enter
     comp.onItemMouseEnter(iamSection, usersItem, {
-      currentTarget: { getBoundingClientRect: () => ({ top: 150 }) }
+      currentTarget: { getBoundingClientRect: () => ({ top: 150 }) },
     } as any);
 
     // Fast-forward or trigger visibility
@@ -577,13 +614,13 @@ describe('AppShellComponent', () => {
     expect(comp.isFlyoutVisible()).toBe(false);
     expect(fixture.nativeElement.querySelector('.rail-flyout-popover:not(.profile-flyout)')).toBeNull();
 
-    const iamSection = comp.navSections().find(s => s.id === 'iam')!;
+    const iamSection = comp.navSections().find((s) => s.id === 'iam')!;
 
     // Open flyout by clicking category button in collapsed rail
     const dummyEvent = {
       stopPropagation: () => {},
       currentTarget: categoryButtons[0],
-      target: categoryButtons[0]
+      target: categoryButtons[0],
     } as any;
     comp.onCategoryClick(iamSection, dummyEvent);
     fixture.detectChanges();
@@ -597,7 +634,7 @@ describe('AppShellComponent', () => {
     expect(flyout.querySelectorAll('.flyout-item').length).toBe(iamSection.items.length);
 
     // Switch category to administration
-    const adminSection = comp.navSections().find(s => s.id === 'administration')!;
+    const adminSection = comp.navSections().find((s) => s.id === 'administration')!;
     comp.onCategoryClick(adminSection, dummyEvent);
     fixture.detectChanges();
 
@@ -619,7 +656,7 @@ describe('AppShellComponent', () => {
 
     const comp = fixture.componentInstance;
     comp.isCollapsed.set(true);
-    const workspaceSection = comp.navSections().find(s => s.id === 'workspace')!;
+    const workspaceSection = comp.navSections().find((s) => s.id === 'workspace')!;
     comp.hoveredFlyoutSection.set(workspaceSection);
     comp.isFlyoutVisible.set(true);
     fixture.detectChanges();
@@ -655,23 +692,23 @@ describe('AppShellComponent', () => {
   });
 
   it('keeps the sources and formats link in the workspace section for upl.sources view', () => {
-    permissionService.canView.mockImplementation(form => form === 'upl.sources');
+    permissionService.canView.mockImplementation((form) => form === 'upl.sources');
     const fixture = TestBed.createComponent(AppShellComponent);
     fixture.detectChanges();
 
-    const workspaceSection = fixture.componentInstance.navSections().find(s => s.id === 'workspace')!;
-    const sourcesItem = workspaceSection.items.find(i => i.route === '/upl/sources');
+    const workspaceSection = fixture.componentInstance.navSections().find((s) => s.id === 'workspace')!;
+    const sourcesItem = workspaceSection.items.find((i) => i.route === '/upl/sources');
     expect(sourcesItem).toBeDefined();
     expect(sourcesItem!.permission()).toBe(true);
   });
 
   it('hides the sources and formats link without upl.sources view', () => {
-    permissionService.canView.mockImplementation(form => form !== 'upl.sources');
+    permissionService.canView.mockImplementation((form) => form !== 'upl.sources');
     const fixture = TestBed.createComponent(AppShellComponent);
     fixture.detectChanges();
 
-    const workspaceSection = fixture.componentInstance.navSections().find(s => s.id === 'workspace')!;
-    const sourcesItem = workspaceSection.items.find(i => i.route === '/upl/sources');
+    const workspaceSection = fixture.componentInstance.navSections().find((s) => s.id === 'workspace')!;
+    const sourcesItem = workspaceSection.items.find((i) => i.route === '/upl/sources');
     expect(sourcesItem).toBeDefined();
     expect(sourcesItem!.permission()).toBe(false);
   });
@@ -682,8 +719,8 @@ describe('AppShellComponent', () => {
     const fixture = TestBed.createComponent(AppShellComponent);
     fixture.detectChanges();
 
-    const workspaceSection = fixture.componentInstance.navSections().find(s => s.id === 'workspace')!;
-    const sourcesItem = workspaceSection.items.find(i => i.route === '/upl/sources');
+    const workspaceSection = fixture.componentInstance.navSections().find((s) => s.id === 'workspace')!;
+    const sourcesItem = workspaceSection.items.find((i) => i.route === '/upl/sources');
     expect(sourcesItem).toBeDefined();
     expect(sourcesItem!.permission()).toBe(false);
   });

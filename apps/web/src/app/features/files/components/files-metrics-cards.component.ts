@@ -6,10 +6,7 @@ import { TranslatePipe } from '../../../core/services/i18n.service';
 @Component({
   selector: 'app-files-metrics-cards',
   standalone: true,
-  imports: [
-    CommonModule,
-    TranslatePipe
-  ],
+  imports: [CommonModule, TranslatePipe],
   template: `
     <div class="storage-metrics-grid" *ngIf="stats as s">
       <!-- Company Quota Card -->
@@ -19,7 +16,11 @@ import { TranslatePipe } from '../../../core/services/i18n.service';
             <span class="material-symbols-outlined card-icon" aria-hidden="true">corporate_fare</span>
             <span class="card-title">{{ 'files.diskovoe_prostranstvo_kompanii' | t }}</span>
           </div>
-          <span class="percent-badge" [class.danger]="getCompanyPercent(s) >= 90" [class.warning]="getCompanyPercent(s) >= 75 && getCompanyPercent(s) < 90">
+          <span
+            class="percent-badge"
+            [class.danger]="getCompanyPercent(s) >= 90"
+            [class.warning]="getCompanyPercent(s) >= 75 && getCompanyPercent(s) < 90"
+          >
             {{ getCompanyPercent(s) }}%
           </span>
         </div>
@@ -48,8 +49,8 @@ import { TranslatePipe } from '../../../core/services/i18n.service';
           </div>
 
           <div class="metric-footer">
-            <span>{{ 'files.available_space' | t:{size: formatBytes(s.companyAvailableBytes)} }}</span>
-            <span>{{ 'files.total_files_count' | t:{count: s.totalFilesCount} }}</span>
+            <span>{{ 'files.available_space' | t: { size: formatBytes(s.companyAvailableBytes) } }}</span>
+            <span>{{ 'files.total_files_count' | t: { count: s.totalFilesCount } }}</span>
           </div>
         </div>
       </div>
@@ -61,7 +62,11 @@ import { TranslatePipe } from '../../../core/services/i18n.service';
             <span class="material-symbols-outlined card-icon" aria-hidden="true">person</span>
             <span class="card-title">{{ 'files.moya_personalnaya_kvota' | t }}</span>
           </div>
-          <span class="percent-badge user-badge" [class.danger]="getUserPercent(s) >= 90" [class.warning]="getUserPercent(s) >= 75 && getUserPercent(s) < 90">
+          <span
+            class="percent-badge user-badge"
+            [class.danger]="getUserPercent(s) >= 90"
+            [class.warning]="getUserPercent(s) >= 75 && getUserPercent(s) < 90"
+          >
             {{ getUserPercent(s) }}%
           </span>
         </div>
@@ -90,144 +95,152 @@ import { TranslatePipe } from '../../../core/services/i18n.service';
           </div>
 
           <div class="metric-footer">
-            <span>{{ 'files.available_space' | t:{size: formatBytes(s.userAvailableBytes)} }}</span>
-            <span>{{ 'files.my_files_count' | t:{count: s.userFilesCount} }}</span>
+            <span>{{ 'files.available_space' | t: { size: formatBytes(s.userAvailableBytes) } }}</span>
+            <span>{{ 'files.my_files_count' | t: { count: s.userFilesCount } }}</span>
           </div>
         </div>
       </div>
     </div>
   `,
-  styles: [`
-    :host {
-      display: block;
-    }
-
-    .storage-metrics-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-
-    @media (max-width: 768px) {
-      .storage-metrics-grid {
-        grid-template-columns: 1fr;
+  styles: [
+    `
+      :host {
+        display: block;
       }
-    }
 
-    .metric-card {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      padding: 16px 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
+      .storage-metrics-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
 
-    .metric-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
+      @media (max-width: 768px) {
+        .storage-metrics-grid {
+          grid-template-columns: 1fr;
+        }
+      }
 
-    .metric-title-group {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+      .metric-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 16px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
 
-    .card-icon {
-      font-size: 20px;
-      color: var(--primary-text);
-    }
+      .metric-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
 
-    .card-title {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text-main);
-    }
+      .metric-title-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
 
-    .percent-badge {
-      font-size: 12px;
-      font-weight: 700;
-      padding: 2px 8px;
-      border-radius: 6px;
-      background: var(--primary-subtle);
-      color: var(--primary-text);
-    }
+      .card-icon {
+        font-size: 20px;
+        color: var(--primary-text);
+      }
 
-    .percent-badge.warning { background: var(--warning-bg); color: var(--warning-text); }
-    .percent-badge.danger { background: var(--danger-bg); color: var(--danger-text); }
+      .card-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-main);
+      }
 
-    .user-badge {
-      background: var(--info-bg);
-      color: var(--info-text);
-    }
+      .percent-badge {
+        font-size: 12px;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 6px;
+        background: var(--primary-subtle);
+        color: var(--primary-text);
+      }
 
-    .metric-body {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
+      .percent-badge.warning {
+        background: var(--warning-bg);
+        color: var(--warning-text);
+      }
+      .percent-badge.danger {
+        background: var(--danger-bg);
+        color: var(--danger-text);
+      }
 
-    .metric-values {
-      display: flex;
-      align-items: baseline;
-      gap: 6px;
-      font-size: 13px;
-    }
+      .user-badge {
+        background: var(--info-bg);
+        color: var(--info-text);
+      }
 
-    .used-val {
-      font-size: 18px;
-      font-weight: 700;
-      color: var(--text-main);
-    }
+      .metric-body {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
 
-    .sep-val {
-      color: var(--text-muted);
-      font-size: 12px;
-    }
+      .metric-values {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        font-size: 13px;
+      }
 
-    .quota-val {
-      color: var(--text-muted);
-      font-weight: 500;
-    }
+      .used-val {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text-main);
+      }
 
-    .progress-bar-track {
-      height: 6px;
-      background: var(--bg-hover);
-      border-radius: 3px;
-      overflow: hidden;
-      position: relative;
-    }
+      .sep-val {
+        color: var(--text-muted);
+        font-size: 12px;
+      }
 
-    .progress-bar-fill {
-      height: 100%;
-      background: var(--primary);
-      border-radius: 3px;
-      transition: width 0.3s ease;
-    }
+      .quota-val {
+        color: var(--text-muted);
+        font-weight: 500;
+      }
 
-    .progress-bar-fill.user-fill {
-      background: var(--info);
-    }
+      .progress-bar-track {
+        height: 6px;
+        background: var(--bg-hover);
+        border-radius: 3px;
+        overflow: hidden;
+        position: relative;
+      }
 
-    .progress-bar-fill.warning-fill {
-      background: var(--warning);
-    }
+      .progress-bar-fill {
+        height: 100%;
+        background: var(--primary);
+        border-radius: 3px;
+        transition: width 0.3s ease;
+      }
 
-    .progress-bar-fill.danger-fill {
-      background: var(--danger);
-    }
+      .progress-bar-fill.user-fill {
+        background: var(--info);
+      }
 
-    .metric-footer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 11px;
-      color: var(--text-muted);
-    }
-  `]
+      .progress-bar-fill.warning-fill {
+        background: var(--warning);
+      }
+
+      .progress-bar-fill.danger-fill {
+        background: var(--danger);
+      }
+
+      .metric-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+    `,
+  ],
 })
 export class FilesMetricsCardsComponent {
   @Input() stats: StorageStats | null = null;

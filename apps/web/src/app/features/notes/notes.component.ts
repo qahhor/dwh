@@ -10,7 +10,13 @@ import { QueryCondition, QueryListMeta } from '../../core/models/query-meta.mode
 import { ProblemDetail } from '../../core/models/common.models';
 import { FormMeta, FormProblems, FormValues } from '../../core/models/form-meta.models';
 import {
-  FormMetaService, canDo, formProblems, hasCapability, recordPayload, recordValues, serverProblems,
+  FormMetaService,
+  canDo,
+  formProblems,
+  hasCapability,
+  recordPayload,
+  recordValues,
+  serverProblems,
 } from '../../core/services/form-meta.service';
 import { ToastService } from '../../core/services/toast.service';
 import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
@@ -53,17 +59,20 @@ export interface Note {
 @Component({
   selector: 'app-notes',
   standalone: true,
-  imports: [SMTInputComponent,
-    SMTTabBarComponent, CommonModule,
+  imports: [
+    SMTInputComponent,
+    SMTTabBarComponent,
+    CommonModule,
     SMTButtonComponent,
-    SMTDialogComponent, SMTDialogContentDirective,
+    SMTDialogComponent,
+    SMTDialogContentDirective,
     UiMarkdownViewComponent,
     SMTEntityFormComponent,
     SMTEntityCardComponent,
     SMTEntityToolbarComponent,
     UiRecordHistoryComponent,
     SMTCheckboxComponent,
-    TranslatePipe
+    TranslatePipe,
   ],
   template: `
     <div class="notes-view" role="region" [attr.aria-label]="'notes.title' | t">
@@ -77,7 +86,8 @@ export interface Note {
             [tabs]="noteTabs()"
             [value]="activeTab()"
             [smtAriaLabel]="'notes.title' | t"
-            (valueChange)="$event && setTab($event)" />
+            (valueChange)="$event && setTab($event)"
+          />
         </div>
         <div class="header-right">
           <smt-entity-toolbar
@@ -86,7 +96,8 @@ export interface Note {
             [listMeta]="listMeta()"
             [search]="searchQuery"
             [(selected)]="selectedIds"
-            (bulkDone)="loadNotes()" />
+            (bulkDone)="loadNotes()"
+          />
           <smt-input
             class="search-box"
             type="search"
@@ -96,8 +107,11 @@ export interface Note {
             [placeholder]="'notes.search_placeholder' | t"
             [smtAriaLabel]="'notes.search_placeholder' | t"
             [value]="searchQuery"
-            (valueChange)="onSearchChange($any($event) ?? '')" />
-          <button smt-button type="button"
+            (valueChange)="onSearchChange($any($event) ?? '')"
+          />
+          <button
+            smt-button
+            type="button"
             *ngIf="canCreate()"
             smtVariant="primary"
             smtSize="md"
@@ -120,12 +134,14 @@ export interface Note {
         >
           <div class="card-header">
             @if (canSelect()) {
-              <div smt-checkbox
+              <div
+                smt-checkbox
                 class="note-select"
                 smtHideLabel
-                [smtAriaLabel]="'notes.select' | t:{ title: note.title }"
+                [smtAriaLabel]="'notes.select' | t: { title: note.title }"
                 [checked]="isSelected(note)"
-                (smtCheckedChange)="setSelected(note, $event)"></div>
+                (smtCheckedChange)="setSelected(note, $event)"
+              ></div>
             }
             <span class="note-title">{{ note.title }}</span>
             <div class="card-actions">
@@ -139,7 +155,9 @@ export interface Note {
                 [title]="note.isPinned ? ('notes.unpin' | t) : ('notes.pin' | t)"
                 (click)="togglePin(note)"
               >
-                <span class="material-symbols-outlined" aria-hidden="true">{{ note.isPinned ? 'keep' : 'push_pin' }}</span>
+                <span class="material-symbols-outlined" aria-hidden="true">{{
+                  note.isPinned ? 'keep' : 'push_pin'
+                }}</span>
               </button>
               <button
                 *ngIf="canEdit()"
@@ -172,14 +190,22 @@ export interface Note {
           </div>
 
           <div class="card-footer">
-            <span class="note-date">{{ note.modifiedAt | date:'short' }}</span>
+            <span class="note-date">{{ note.modifiedAt | date: 'short' }}</span>
           </div>
         </div>
       </div>
       @if (nextCursor()) {
         <div class="notes-more">
-          <button smt-button type="button" smtVariant="secondary" data-testid="notes-load-more" [smtLoading]="isLoadingMore()"
-            (click)="loadMore()">{{ 'notes.load_more' | t }}</button>
+          <button
+            smt-button
+            type="button"
+            smtVariant="secondary"
+            data-testid="notes-load-more"
+            [smtLoading]="isLoadingMore()"
+            (click)="loadMore()"
+          >
+            {{ 'notes.load_more' | t }}
+          </button>
         </div>
       }
 
@@ -188,7 +214,9 @@ export interface Note {
           <span class="material-symbols-outlined empty-icon" aria-hidden="true">description</span>
           <h3>{{ 'notes.empty_title' | t }}</h3>
           <p>{{ 'notes.empty_desc' | t }}</p>
-          <button smt-button type="button"
+          <button
+            smt-button
+            type="button"
             *ngIf="canCreate()"
             smtVariant="primary"
             smtSize="md"
@@ -207,23 +235,35 @@ export interface Note {
         [smtTitle]="editingNote() ? ('notes.edit_title' | t) : ('notes.create_title' | t)"
         smtSize="md"
         [dismissible]="!isSaving()"
-        (closed)="closeModal()">
+        (closed)="closeModal()"
+      >
         <ng-template smtDialogContent>
-        <form ngNoForm (submit)="$event.preventDefault(); saveNote()" class="modal-form" novalidate id="noteForm">
-          @if (meta(); as form) {
-            <smt-entity-form [meta]="form" [(value)]="formValues" [problems]="problems()" [disabled]="isSaving()" />
-            @if (showHistory() && editingNote(); as note) {
-              <ui-record-history [kind]="form.code" [recordId]="note.id" />
+          <form ngNoForm (submit)="$event.preventDefault(); saveNote()" class="modal-form" novalidate id="noteForm">
+            @if (meta(); as form) {
+              <smt-entity-form [meta]="form" [(value)]="formValues" [problems]="problems()" [disabled]="isSaving()" />
+              @if (showHistory() && editingNote(); as note) {
+                <ui-record-history [kind]="form.code" [recordId]="note.id" />
+              }
             }
-          }
-        </form>
+          </form>
 
-        <div footer>
-          <div class="modal-footer-actions">
-            <button smt-button type="button" smtVariant="secondary" [disabled]="isSaving()" (click)="closeModal()">{{ 'common.cancel' | t }}</button>
-            <button smt-button smtVariant="primary" type="submit" form="noteForm" [smtLoading]="isSaving()" (click)="saveNote()">{{ 'common.save' | t }}</button>
+          <div footer>
+            <div class="modal-footer-actions">
+              <button smt-button type="button" smtVariant="secondary" [disabled]="isSaving()" (click)="closeModal()">
+                {{ 'common.cancel' | t }}
+              </button>
+              <button
+                smt-button
+                smtVariant="primary"
+                type="submit"
+                form="noteForm"
+                [smtLoading]="isSaving()"
+                (click)="saveNote()"
+              >
+                {{ 'common.save' | t }}
+              </button>
+            </div>
           </div>
-        </div>
         </ng-template>
       </smt-dialog>
 
@@ -233,22 +273,39 @@ export interface Note {
         [smtTitle]="'common.delete' | t"
         smtSize="sm"
         [dismissible]="!isDeleting()"
-        (closed)="cancelDelete()">
+        (closed)="cancelDelete()"
+      >
         <ng-template smtDialogContent>
-        <p class="delete-dialog-text">
-          {{ 'notes.delete_confirm' | t:{ title: deletingNote()?.title || '' } }}
-        </p>
-        <div footer>
-          <div class="modal-footer-actions">
-            <button smt-button type="button" smtVariant="secondary" [disabled]="isDeleting()" (click)="cancelDelete()">{{ 'common.cancel' | t }}</button>
-            <button smt-button type="button" smtVariant="danger" [smtLoading]="isDeleting()" (click)="confirmDelete()">{{ 'common.delete' | t }}</button>
+          <p class="delete-dialog-text">
+            {{ 'notes.delete_confirm' | t: { title: deletingNote()?.title || '' } }}
+          </p>
+          <div footer>
+            <div class="modal-footer-actions">
+              <button
+                smt-button
+                type="button"
+                smtVariant="secondary"
+                [disabled]="isDeleting()"
+                (click)="cancelDelete()"
+              >
+                {{ 'common.cancel' | t }}
+              </button>
+              <button
+                smt-button
+                type="button"
+                smtVariant="danger"
+                [smtLoading]="isDeleting()"
+                (click)="confirmDelete()"
+              >
+                {{ 'common.delete' | t }}
+              </button>
+            </div>
           </div>
-        </div>
         </ng-template>
       </smt-dialog>
     </div>
   `,
-  styleUrl: './notes.component.css'
+  styleUrl: './notes.component.css',
 })
 export class NotesComponent implements OnInit, OnDestroy {
   /** Texts of the tabs below; translated again when the language changes. */
@@ -302,7 +359,7 @@ export class NotesComponent implements OnInit, OnDestroy {
     onApply: () => {
       this.activeTab.set(this.views.filter().some(isPinnedFilter) ? 'pinned' : 'all');
       this.loadNotes();
-    }
+    },
   });
 
   private readonly searchSubject = new Subject<string>();
@@ -315,17 +372,15 @@ export class NotesComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadForm();
-    this.queryMeta.get(NOTE_ENTITY).subscribe({ next: meta => this.listMeta.set(meta), error: () => {} });
+    this.queryMeta.get(NOTE_ENTITY).subscribe({ next: (meta) => this.listMeta.set(meta), error: () => {} });
     this.views.load().subscribe(() => {
       this.activeTab.set(this.views.filter().some(isPinnedFilter) ? 'pinned' : 'all');
       this.loadNotes();
     });
 
-    this.searchSubject.pipe(
-      debounceTime(300),
-      distinctUntilChanged(),
-      takeUntilDestroyed(this.destroyRef)
-    ).subscribe(() => this.loadNotes());
+    this.searchSubject
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.loadNotes());
   }
 
   ngOnDestroy(): void {
@@ -334,12 +389,12 @@ export class NotesComponent implements OnInit, OnDestroy {
 
   loadNotes(): void {
     this.api.get<KeysetPage<Note>>('/notes', this.listParams(null)).subscribe({
-      next: page => {
+      next: (page) => {
         this.notes.set(page?.items ?? []);
         this.nextCursor.set(page?.nextCursor ?? null);
         this.total.set(page?.totalEstimated ?? page?.items?.length ?? 0);
       },
-      error: () => this.toast.error(this.uiI18n.translate('notes.load_error'))
+      error: () => this.toast.error(this.uiI18n.translate('notes.load_error')),
     });
   }
 
@@ -348,20 +403,21 @@ export class NotesComponent implements OnInit, OnDestroy {
     const cursor = this.nextCursor();
     if (!cursor || this.isLoadingMore()) return;
     this.isLoadingMore.set(true);
-    this.api.get<KeysetPage<Note>>('/notes', this.listParams(cursor)).pipe(
-      finalize(() => this.isLoadingMore.set(false))
-    ).subscribe({
-      next: page => {
-        this.notes.update(notes => [...notes, ...(page?.items ?? [])]);
-        this.nextCursor.set(page?.nextCursor ?? null);
-      },
-      error: () => this.toast.error(this.uiI18n.translate('notes.load_error'))
-    });
+    this.api
+      .get<KeysetPage<Note>>('/notes', this.listParams(cursor))
+      .pipe(finalize(() => this.isLoadingMore.set(false)))
+      .subscribe({
+        next: (page) => {
+          this.notes.update((notes) => [...notes, ...(page?.items ?? [])]);
+          this.nextCursor.set(page?.nextCursor ?? null);
+        },
+        error: () => this.toast.error(this.uiI18n.translate('notes.load_error')),
+      });
   }
 
   setTab(tab: 'all' | 'pinned'): void {
     this.activeTab.set(tab);
-    const others = this.views.filter().filter(condition => !isPinnedFilter(condition));
+    const others = this.views.filter().filter((condition) => !isPinnedFilter(condition));
     this.views.filter.set(tab === 'pinned' ? [...others, PINNED] : others);
     this.loadNotes();
   }
@@ -371,15 +427,15 @@ export class NotesComponent implements OnInit, OnDestroy {
   }
 
   setSelected(note: Note, selected: boolean): void {
-    this.selectedIds.update(ids => selected
-      ? (ids.includes(note.id) ? ids : [...ids, note.id])
-      : ids.filter(id => id !== note.id));
+    this.selectedIds.update((ids) =>
+      selected ? (ids.includes(note.id) ? ids : [...ids, note.id]) : ids.filter((id) => id !== note.id),
+    );
   }
 
   loadForm(): void {
     this.formMeta.get(NOTE_ENTITY).subscribe({
-      next: meta => this.meta.set(meta),
-      error: () => this.toast.error(this.uiI18n.translate('notes.load_error'))
+      next: (meta) => this.meta.set(meta),
+      error: () => this.toast.error(this.uiI18n.translate('notes.load_error')),
     });
   }
 
@@ -426,9 +482,7 @@ export class NotesComponent implements OnInit, OnDestroy {
       ? this.api.put<Note>(`/notes/${current.id}`, payload, { notifyError: false })
       : this.api.post<Note>('/notes', payload, { notifyError: false });
     this.isSaving.set(true);
-    request.pipe(
-      finalize(() => this.isSaving.set(false))
-    ).subscribe({
+    request.pipe(finalize(() => this.isSaving.set(false))).subscribe({
       next: () => {
         this.toast.success(this.uiI18n.translate(current ? 'notes.updated' : 'notes.created'));
         this.isSaving.set(false);
@@ -439,18 +493,20 @@ export class NotesComponent implements OnInit, OnDestroy {
         const onFields = serverProblems(meta, problem?.errors, translate);
         this.problems.set(onFields);
         if (Object.keys(onFields).length === 0) {
-          this.toast.error(problem?.status === 422 && problem.detail
-            ? problem.detail
-            : this.uiI18n.translate(current ? 'notes.save_error' : 'notes.create_error'));
+          this.toast.error(
+            problem?.status === 422 && problem.detail
+              ? problem.detail
+              : this.uiI18n.translate(current ? 'notes.save_error' : 'notes.create_error'),
+          );
         }
-      }
+      },
     });
   }
 
   togglePin(note: Note): void {
     this.api.post<Note>(`/notes/${note.id}/pin`, {}).subscribe({
       next: () => this.loadNotes(),
-      error: () => this.toast.error(this.uiI18n.translate('notes.pin_error'))
+      error: () => this.toast.error(this.uiI18n.translate('notes.pin_error')),
     });
   }
 
@@ -468,16 +524,17 @@ export class NotesComponent implements OnInit, OnDestroy {
     if (!note) return;
 
     this.isDeleting.set(true);
-    this.api.delete(`/notes/${note.id}`).pipe(
-      finalize(() => this.isDeleting.set(false))
-    ).subscribe({
-      next: () => {
-        this.toast.success(this.uiI18n.translate('notes.deleted'));
-        this.deletingNote.set(null);
-        this.loadNotes();
-      },
-      error: () => this.toast.error(this.uiI18n.translate('notes.delete_error'))
-    });
+    this.api
+      .delete(`/notes/${note.id}`)
+      .pipe(finalize(() => this.isDeleting.set(false)))
+      .subscribe({
+        next: () => {
+          this.toast.success(this.uiI18n.translate('notes.deleted'));
+          this.deletingNote.set(null);
+          this.loadNotes();
+        },
+        error: () => this.toast.error(this.uiI18n.translate('notes.delete_error')),
+      });
   }
 
   noteTabs(): SMTTabItem<'all' | 'pinned'>[] {
@@ -504,8 +561,8 @@ export class NotesComponent implements OnInit, OnDestroy {
         search: this.searchQuery,
         sort: this.views.sort(),
         conditions: this.views.filter(),
-        match: this.views.match()
-      })
+        match: this.views.match(),
+      }),
     };
   }
 }

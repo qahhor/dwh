@@ -14,16 +14,15 @@ import com.smartup24.cms.instance.upl.parse.UplParseResult;
 import com.smartup24.cms.instance.upl.parse.UplXlsxParser;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.PackageRow;
 import com.smartup24.cms.spi.storage.FileDownloadStream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.support.TransactionTemplate;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Применение пакета «проверен» (контракт И6, раздел 6): три шага, потому что raw лежит во второй базе —
@@ -55,9 +54,16 @@ public class UplApplyService {
     private final FndActors actors;
     private final TransactionTemplate tx;
 
-    public UplApplyService(UplPackageService packages, UplPackageRepository repo, UplSourceService sources,
-                           MfFileService files, UplXlsxParser parser, FndLoadService loads, FndRawWriter raw,
-                           FndActors actors, TransactionTemplate tx) {
+    public UplApplyService(
+            UplPackageService packages,
+            UplPackageRepository repo,
+            UplSourceService sources,
+            MfFileService files,
+            UplXlsxParser parser,
+            FndLoadService loads,
+            FndRawWriter raw,
+            FndActors actors,
+            TransactionTemplate tx) {
         this.packages = packages;
         this.repo = repo;
         this.sources = sources;
@@ -83,8 +89,7 @@ public class UplApplyService {
                 .orElseThrow(() -> new IllegalStateException("Пакет " + id + " пропал во время применения"));
     }
 
-    private record Started(PackageRow row, long loadId) {
-    }
+    private record Started(PackageRow row, long loadId) {}
 
     private Started begin(UUID id, FndActor actor) {
         PackageRow row = repo.lockByPublicId(id)
@@ -95,8 +100,13 @@ public class UplApplyService {
         if (row.rowsAccepted() == null || row.rowsAccepted() == 0) {
             throw ApiException.conflict(ErrorCode.CONFLICT, UPL_PKG_NOTHING_TO_APPLY);
         }
-        long loadId = loads.begin(row.sourceCode(), row.publicId(), row.periodFrom(), row.periodTo(),
-                String.valueOf(row.formatVersion()), actor);
+        long loadId = loads.begin(
+                row.sourceCode(),
+                row.publicId(),
+                row.periodFrom(),
+                row.periodTo(),
+                String.valueOf(row.formatVersion()),
+                actor);
         actors.apply(actor);
         requireOne(repo.setLoadId(row.id(), loadId), row);
         return new Started(row, loadId);
@@ -108,7 +118,9 @@ public class UplApplyService {
             raw.write(started.loadId(), started.row().fileId(), readRows(started.row()));
             return raw.read(started.loadId()).size();
         } catch (IOException | RuntimeException failure) {
-            log.error("Пакет {}: строки не записаны в raw ({})", started.row().publicId(),
+            log.error(
+                    "Пакет {}: строки не записаны в raw ({})",
+                    started.row().publicId(),
                     failure.getClass().getName());
             return null;
         }
@@ -118,11 +130,13 @@ public class UplApplyService {
         try (FileDownloadStream file = files.downloadFile(row.fileId())) {
             FormatVersion format = sources.getVersion(row.sourceId(), row.formatVersion());
             List<FndRawRow> rows = new ArrayList<>();
-            UplParseResult result = parser.parse(file.inputStream(), format,
+            UplParseResult result = parser.parse(
+                    file.inputStream(),
+                    format,
                     data -> rows.add(new FndRawRow(rows.size() + 1, data.sheet(), data.sourceRowNo(), data.fields())));
             if (result.outcome() != UplParseResult.Outcome.VERIFIED) {
-                throw new IllegalStateException("Повторный разбор файла пакета " + row.publicId()
-                        + " не дал «проверен»");
+                throw new IllegalStateException(
+                        "Повторный разбор файла пакета " + row.publicId() + " не дал «проверен»");
             }
             return rows;
         }
@@ -131,21 +145,35 @@ public class UplApplyService {
     private void finish(Started started, Integer rawRows, FndActor actor) {
         PackageRow row = started.row();
         actors.apply(actor);
-        boolean reconciled = rawRows != null && rawRows.intValue() == row.rowsTotal()
+        boolean reconciled = rawRows != null
+                && rawRows.intValue() == row.rowsTotal()
                 && row.rowsTotal() == row.rowsAccepted() + row.rowsRejected();
         if (reconciled) {
             loads.apply(started.loadId(), row.rowsTotal(), row.rowsAccepted(), row.rowsRejected(), actor);
             requireOne(repo.markApplied(row.id(), rawRows), row);
-            loads.log(row.publicId(), "applied", UplPackageModel.VERIFIED, UplPackageModel.APPLIED, actor, null,
+            loads.log(
+                    row.publicId(),
+                    "applied",
+                    UplPackageModel.VERIFIED,
+                    UplPackageModel.APPLIED,
+                    actor,
+                    null,
                     row.fileSha256());
         } else if (rawRows == null) {
             loads.fail(started.loadId(), UPL_PKG_RAW_WRITE_FAILED, actor);
             requireOne(repo.markApplyRejected(row.id(), UPL_PKG_RAW_WRITE_FAILED, Map.of(), null), row);
         } else {
-            loads.fail(started.loadId(), UPL_PKG_RECONCILIATION + ": в файле " + row.rowsTotal() + ", в raw " + rawRows,
+            loads.fail(
+                    started.loadId(),
+                    UPL_PKG_RECONCILIATION + ": в файле " + row.rowsTotal() + ", в raw " + rawRows,
                     actor);
-            requireOne(repo.markApplyRejected(row.id(), UPL_PKG_RECONCILIATION,
-                    Map.of("fileRows", row.rowsTotal(), "rawRows", rawRows), rawRows), row);
+            requireOne(
+                    repo.markApplyRejected(
+                            row.id(),
+                            UPL_PKG_RECONCILIATION,
+                            Map.of("fileRows", row.rowsTotal(), "rawRows", rawRows),
+                            rawRows),
+                    row);
         }
     }
 

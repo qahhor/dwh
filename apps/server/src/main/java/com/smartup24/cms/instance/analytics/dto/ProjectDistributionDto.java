@@ -6,5 +6,4 @@ public record ProjectDistributionDto(
         long totalTasks,
         long activeTasks,
         long completedTasks,
-        double progressPercent
-) {}
+        double progressPercent) {}

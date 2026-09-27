@@ -29,9 +29,16 @@ public class ExportPrincipals {
             throw ApiException.permissionDenied("iam.profile", "view");
         }
         SecurityContext.setPrincipal(new SecurityContext.KauthPrincipal(
-                user.id(), user.login(), user.email(), null, false,
-                permissions.getEffectivePermissions(userId), permissions.getPermissionVersion(userId),
-                user.forcePasswordChange(), user.authenticationVersion(), null));
+                user.id(),
+                user.login(),
+                user.email(),
+                null,
+                false,
+                permissions.getEffectivePermissions(userId),
+                permissions.getPermissionVersion(userId),
+                user.forcePasswordChange(),
+                user.authenticationVersion(),
+                null));
         try {
             work.run();
         } finally {

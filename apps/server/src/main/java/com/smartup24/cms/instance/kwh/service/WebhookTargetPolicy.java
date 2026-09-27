@@ -2,9 +2,6 @@ package com.smartup24.cms.instance.kwh.service;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
@@ -13,6 +10,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 @Component
 public class WebhookTargetPolicy {
@@ -67,14 +66,15 @@ public class WebhookTargetPolicy {
         try {
             addresses = hostResolver.resolve(host);
         } catch (UnknownHostException exception) {
-            throw ApiException.badRequest(ErrorCode.WEBHOOK_TARGET_UNREACHABLE,
-                    "Host вебхука не разрешается через DNS");
+            throw ApiException.badRequest(
+                    ErrorCode.WEBHOOK_TARGET_UNREACHABLE, "Host вебхука не разрешается через DNS");
         }
         if (addresses == null || addresses.isEmpty()) {
-            throw ApiException.badRequest(ErrorCode.WEBHOOK_TARGET_UNREACHABLE,
-                    "Host вебхука не разрешается через DNS");
+            throw ApiException.badRequest(
+                    ErrorCode.WEBHOOK_TARGET_UNREACHABLE, "Host вебхука не разрешается через DNS");
         }
-        if (!properties.isAllowPrivateAddresses() && addresses.stream().anyMatch(WebhookTargetPolicy::isSpecialAddress)) {
+        if (!properties.isAllowPrivateAddresses()
+                && addresses.stream().anyMatch(WebhookTargetPolicy::isSpecialAddress)) {
             throw invalid("Host вебхука разрешается во внутренний или специальный адрес");
         }
 
@@ -101,8 +101,11 @@ public class WebhookTargetPolicy {
     }
 
     private static boolean isSpecialAddress(InetAddress address) {
-        if (address.isAnyLocalAddress() || address.isLoopbackAddress() || address.isLinkLocalAddress()
-                || address.isSiteLocalAddress() || address.isMulticastAddress()) {
+        if (address.isAnyLocalAddress()
+                || address.isLoopbackAddress()
+                || address.isLinkLocalAddress()
+                || address.isSiteLocalAddress()
+                || address.isMulticastAddress()) {
             return true;
         }
 
@@ -122,8 +125,10 @@ public class WebhookTargetPolicy {
         int first = Byte.toUnsignedInt(bytes[0]);
         int second = Byte.toUnsignedInt(bytes[1]);
         boolean uniqueLocal = (first & 0xfe) == 0xfc;
-        boolean documentation = first == 0x20 && second == 0x01
-                && Byte.toUnsignedInt(bytes[2]) == 0x0d && Byte.toUnsignedInt(bytes[3]) == 0xb8;
+        boolean documentation = first == 0x20
+                && second == 0x01
+                && Byte.toUnsignedInt(bytes[2]) == 0x0d
+                && Byte.toUnsignedInt(bytes[3]) == 0xb8;
         return uniqueLocal || documentation;
     }
 

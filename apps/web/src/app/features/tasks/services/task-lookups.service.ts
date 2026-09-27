@@ -50,11 +50,13 @@ export class TaskLookupsService {
 
   /** Asks once for the names of users the screen shows by id, such as user-typed custom fields. */
   resolveUserNames(ids: Iterable<number>): void {
-    const missing = [...new Set(ids)].filter(id => Number.isSafeInteger(id) && id > 0 && !this.knownUsers().has(id) && !this.requested.has(id));
+    const missing = [...new Set(ids)].filter(
+      (id) => Number.isSafeInteger(id) && id > 0 && !this.knownUsers().has(id) && !this.requested.has(id),
+    );
     if (missing.length === 0 || !this.users.resolve) return;
-    missing.forEach(id => this.requested.add(id));
+    missing.forEach((id) => this.requested.add(id));
     this.users.resolve(missing).subscribe({
-      next: users => this.rememberUsers(users),
+      next: (users) => this.rememberUsers(users),
       error: () => undefined,
     });
   }

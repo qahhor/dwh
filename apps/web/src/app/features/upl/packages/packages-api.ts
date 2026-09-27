@@ -87,7 +87,9 @@ export class UplPackagesApiService {
   }
 
   errors(id: string): Observable<UplPackageErrors> {
-    return this.api.get<UplPackageErrors>(`${PACKAGES}/${encodeURIComponent(id)}/errors`, undefined, { notifyError: false });
+    return this.api.get<UplPackageErrors>(`${PACKAGES}/${encodeURIComponent(id)}/errors`, undefined, {
+      notifyError: false,
+    });
   }
 
   /** Применяет проверенную загрузку: ответ — пакет «применён» или «отклонён системой» с причиной сверки. */

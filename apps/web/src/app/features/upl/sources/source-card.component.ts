@@ -1,4 +1,13 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal, Signal, TemplateRef, viewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  signal,
+  Signal,
+  TemplateRef,
+  viewChild,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -7,7 +16,11 @@ import { forkJoin } from 'rxjs';
 import { ProblemDetail } from '../../../core/models/common.models';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { SMTControlComponent } from '../../../shared/ui-kit/components/forms/control';
-import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '../../../shared/ui-kit/components/forms/radio-group';
+import {
+  optionsMemo,
+  SMTRadioGroupComponent,
+  SMTRadioOption,
+} from '../../../shared/ui-kit/components/forms/radio-group';
 import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
@@ -24,18 +37,17 @@ import {
   UplSourceRequest,
   UplStrictness,
   UplVersionItem,
-  UplVersionStatus
+  UplVersionStatus,
 } from '../upl-api';
 import { parseUplProblem, uplFieldErrorText } from '../formats/upl-format-errors';
-import {
-  UPL_PERIODICITY_KEY,
-  UPL_STRICTNESS_KEY,
-  UPL_VERSION_STATUS_KEY,
-  uplProblemText
-} from '../upl-labels';
+import { UPL_PERIODICITY_KEY, UPL_STRICTNESS_KEY, UPL_VERSION_STATUS_KEY, uplProblemText } from '../upl-labels';
 import { SMTAlertComponent } from '../../../shared/ui-kit/components/alert';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
-import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../../../shared/ui-kit/components/forms/select';
+import {
+  SMTSelectComponent,
+  SMTSelectOption,
+  SMTSelectValueAccessor,
+} from '../../../shared/ui-kit/components/forms/select';
 
 /** Реквизиты источника в форме экрана: код не правится и здесь не хранится. */
 interface SourceForm {
@@ -53,17 +65,23 @@ type DraftMode = 'empty' | 'copy';
   selector: 'app-upl-source-card',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTInputComponent, SMTInputValueAccessor, SMTSelectComponent, SMTSelectValueAccessor,
-    SMTAlertComponent, SMTControlComponent,
+  imports: [
+    SMTInputComponent,
+    SMTInputValueAccessor,
+    SMTSelectComponent,
+    SMTSelectValueAccessor,
+    SMTAlertComponent,
+    SMTControlComponent,
     UiLocalTableComponent,
     CommonModule,
     FormsModule,
     RouterLink,
     TranslatePipe,
     SMTButtonComponent,
-    SMTDialogComponent, SMTDialogContentDirective,
+    SMTDialogComponent,
+    SMTDialogContentDirective,
     UiBadgeComponent,
-    SMTRadioGroupComponent
+    SMTRadioGroupComponent,
   ],
   template: `
     @if (isLoading()) {
@@ -106,7 +124,13 @@ type DraftMode = 'empty' | 'copy';
         @if (conflict()) {
           <smt-alert smtTone="danger" data-testid="upl-conflict">
             <span>{{ 'upl.err.STALE_VERSION' | t }}</span>
-            <button smt-button type="button" smtVariant="secondary" data-testid="upl-conflict-refresh" (click)="refreshAfterConflict()">
+            <button
+              smt-button
+              type="button"
+              smtVariant="secondary"
+              data-testid="upl-conflict-refresh"
+              (click)="refreshAfterConflict()"
+            >
               {{ 'upl.common.refresh_discard' | t }}
             </button>
           </smt-alert>
@@ -127,25 +151,36 @@ type DraftMode = 'empty' | 'copy';
               [maxLength]="200"
               smtTestId="upl-field-name"
               [disabled]="!canEdit()"
-              [(ngModel)]="form.name" />
+              [(ngModel)]="form.name"
+            />
           </smt-control>
 
-          <smt-control class="form-group" [smtLabel]="'upl.source.field.owner_org' | t" [smtError]="fieldErrorText('ownerOrg')">
+          <smt-control
+            class="form-group"
+            [smtLabel]="'upl.source.field.owner_org' | t"
+            [smtError]="fieldErrorText('ownerOrg')"
+          >
             <smt-input
               smtFieldId="upl-source-owner-org"
               [maxLength]="200"
               smtTestId="upl-field-ownerOrg"
               [disabled]="!canEdit()"
-              [(ngModel)]="form.ownerOrg" />
+              [(ngModel)]="form.ownerOrg"
+            />
           </smt-control>
 
-          <smt-control class="form-group" [smtLabel]="'upl.source.field.owner_contact' | t" [smtError]="fieldErrorText('ownerContact')">
+          <smt-control
+            class="form-group"
+            [smtLabel]="'upl.source.field.owner_contact' | t"
+            [smtError]="fieldErrorText('ownerContact')"
+          >
             <smt-input
               smtFieldId="upl-source-owner-contact"
               [maxLength]="200"
               smtTestId="upl-field-ownerContact"
               [disabled]="!canEdit()"
-              [(ngModel)]="form.ownerContact" />
+              [(ngModel)]="form.ownerContact"
+            />
           </smt-control>
 
           <smt-control class="form-group" [smtLabel]="'upl.source.field.periodicity' | t">
@@ -159,7 +194,11 @@ type DraftMode = 'empty' | 'copy';
             ></smt-select>
           </smt-control>
 
-          <smt-control class="form-group" [smtLabel]="'upl.source.field.sla_days' | t" [smtError]="fieldErrorText('slaDays')">
+          <smt-control
+            class="form-group"
+            [smtLabel]="'upl.source.field.sla_days' | t"
+            [smtError]="fieldErrorText('slaDays')"
+          >
             <smt-input
               smtFieldId="upl-source-sla-days"
               type="number"
@@ -167,7 +206,8 @@ type DraftMode = 'empty' | 'copy';
               [smtMax]="366"
               smtTestId="upl-field-slaDays"
               [disabled]="!canEdit()"
-              [(ngModel)]="form.slaDays" />
+              [(ngModel)]="form.slaDays"
+            />
           </smt-control>
 
           <smt-control class="form-group" [smtLabel]="'upl.source.field.strictness' | t">
@@ -199,7 +239,8 @@ type DraftMode = 'empty' | 'copy';
               class="upl-crumb-link"
               data-testid="upl-open-draft"
               [routerLink]="['/upl/sources', sourceId(), 'formats', d.version]"
-            >{{ 'upl.version.open_draft' | t }}</a>
+              >{{ 'upl.version.open_draft' | t }}</a
+            >
           } @else if (canEdit()) {
             <button smt-button type="button" data-testid="upl-new-draft" (click)="openDraftDialog()">
               {{ 'upl.version.new_draft' | t }}
@@ -219,7 +260,12 @@ type DraftMode = 'empty' | 'copy';
       </section>
 
       <ng-template #versionCell let-v>
-        <a class="upl-crumb-link" data-testid="upl-version-row" [routerLink]="['/upl/sources', sourceId(), 'formats', v.version]">{{ v.version }}</a>
+        <a
+          class="upl-crumb-link"
+          data-testid="upl-version-row"
+          [routerLink]="['/upl/sources', sourceId(), 'formats', v.version]"
+          >{{ v.version }}</a
+        >
       </ng-template>
       <ng-template #versionStatusCell let-v>
         <ui-badge [variant]="statusVariant(v.status)">{{ statusKeyOf(v) | t }}</ui-badge>
@@ -235,8 +281,13 @@ type DraftMode = 'empty' | 'copy';
         }
       </ng-template>
       <ng-template #templateCell let-v>
-        <a class="upl-crumb-link upl-template-link" data-testid="upl-version-template" [href]="templateUrl(v.version)" download
-          [attr.aria-label]="'upl.template.download_named' | t: { version: v.version }">
+        <a
+          class="upl-crumb-link upl-template-link"
+          data-testid="upl-version-template"
+          [href]="templateUrl(v.version)"
+          download
+          [attr.aria-label]="'upl.template.download_named' | t: { version: v.version }"
+        >
           <span class="material-symbols-outlined" aria-hidden="true">download</span>{{ 'upl.template.download' | t }}
         </a>
       </ng-template>
@@ -245,162 +296,184 @@ type DraftMode = 'empty' | 'copy';
         [open]="isDraftOpen()"
         [smtTitle]="'upl.version.new_draft' | t"
         smtSize="sm"
-        (closed)="closeDraftDialog()">
+        (closed)="closeDraftDialog()"
+      >
         <ng-template smtDialogContent>
-        <div body class="upl-draft-body">
-          <smt-radio-group
-            data-testid="upl-draft-mode"
-            [options]="draftModes()"
-            [value]="draftMode()"
-            [smtAriaLabel]="'upl.version.new_draft' | t"
-            (valueChange)="draftMode.set($event ?? 'empty')" />
+          <div body class="upl-draft-body">
+            <smt-radio-group
+              data-testid="upl-draft-mode"
+              [options]="draftModes()"
+              [value]="draftMode()"
+              [smtAriaLabel]="'upl.version.new_draft' | t"
+              (valueChange)="draftMode.set($event ?? 'empty')"
+            />
 
-          @if (copyCandidates().length > 0) {
-            <smt-select
-              data-testid="upl-draft-copy-from"
-              [ariaLabel]="'upl.version.draft_copy' | t"
-              [disabled]="draftMode() !== 'copy'"
-              [options]="copyFromOptions()"
-              [allowClear]="false"
-              [value]="copyFrom()"
-              (valueChange)="copyFrom.set($event)"
-            ></smt-select>
-          }
+            @if (copyCandidates().length > 0) {
+              <smt-select
+                data-testid="upl-draft-copy-from"
+                [ariaLabel]="'upl.version.draft_copy' | t"
+                [disabled]="draftMode() !== 'copy'"
+                [options]="copyFromOptions()"
+                [allowClear]="false"
+                [value]="copyFrom()"
+                (valueChange)="copyFrom.set($event)"
+              ></smt-select>
+            }
 
-          @if (draftExists()) {
-            <smt-alert smtTone="danger">
-              <span>{{ 'upl.err.FND_VERSION_DRAFT_EXISTS' | t }}</span>
-              <button smt-button type="button" smtVariant="secondary" data-testid="upl-open-existing-draft" (click)="openExistingDraft()">
-                {{ 'upl.version.open' | t }}
-              </button>
-            </smt-alert>
-          }
-          @if (draftError(); as err) {
-            <smt-alert smtTone="danger" data-testid="upl-draft-error">{{ err | t }}</smt-alert>
-          }
-        </div>
+            @if (draftExists()) {
+              <smt-alert smtTone="danger">
+                <span>{{ 'upl.err.FND_VERSION_DRAFT_EXISTS' | t }}</span>
+                <button
+                  smt-button
+                  type="button"
+                  smtVariant="secondary"
+                  data-testid="upl-open-existing-draft"
+                  (click)="openExistingDraft()"
+                >
+                  {{ 'upl.version.open' | t }}
+                </button>
+              </smt-alert>
+            }
+            @if (draftError(); as err) {
+              <smt-alert smtTone="danger" data-testid="upl-draft-error">{{ err | t }}</smt-alert>
+            }
+          </div>
 
-        <div footer class="upl-actions">
-          <button smt-button type="button" smtVariant="secondary" [disabled]="isCreatingDraft()" (click)="closeDraftDialog()">
-            {{ 'upl.common.cancel' | t }}
-          </button>
-          <button smt-button type="button" data-testid="upl-create-draft" [smtLoading]="isCreatingDraft()" (click)="createDraft()">
-            {{ 'upl.common.create' | t }}
-          </button>
-        </div>
+          <div footer class="upl-actions">
+            <button
+              smt-button
+              type="button"
+              smtVariant="secondary"
+              [disabled]="isCreatingDraft()"
+              (click)="closeDraftDialog()"
+            >
+              {{ 'upl.common.cancel' | t }}
+            </button>
+            <button
+              smt-button
+              type="button"
+              data-testid="upl-create-draft"
+              [smtLoading]="isCreatingDraft()"
+              (click)="createDraft()"
+            >
+              {{ 'upl.common.create' | t }}
+            </button>
+          </div>
         </ng-template>
       </smt-dialog>
     }
   `,
-  styles: [`
-    .upl-crumbs {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      margin-bottom: 0.75rem;
-      color: var(--text-muted);
-    }
-    .upl-crumb-link {
-      color: var(--primary);
-      text-decoration: none;
-    }
-    .upl-crumb-link:hover {
-      text-decoration: underline;
-    }
-    .upl-crumb-sep {
-      color: var(--text-light);
-    }
-    .upl-crumb-current {
-      color: var(--text-main);
-    }
-    .upl-head {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 0.75rem;
-      margin-bottom: 1.5rem;
-    }
-    .upl-title {
-      margin: 0;
-      font-size: 1.5rem;
-      color: var(--text-main);
-    }
-    .upl-code {
-      font-family: monospace;
-      background: var(--bg-hover);
-      border-radius: var(--radius-sm);
-      padding: 0.125rem 0.5rem;
-      color: var(--text-muted);
-    }
-    .upl-block {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-lg);
-      padding: 1.25rem;
-      margin-bottom: 1.5rem;
-    }
-    .upl-block-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      margin-bottom: 1rem;
-    }
-    .upl-block-title {
-      margin: 0 0 1rem;
-      font-size: 1.125rem;
-      color: var(--text-main);
-    }
-    .upl-block-head .upl-block-title {
-      margin: 0;
-    }
-    .upl-form {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
-      gap: 1rem;
-    }
-    .upl-field-error {
-      display: block;
-      margin-top: 0.25rem;
-      color: var(--danger);
-      font-size: 0.8125rem;
-    }
-    .upl-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 0.75rem;
-      margin-top: 1.25rem;
-    }
-    .upl-empty {
-      color: var(--text-muted);
-      padding: 1.5rem 0;
-      text-align: center;
-    }
-    .upl-muted {
-      color: var(--text-muted);
-      margin-left: 0.5rem;
-    }
-    .upl-draft-body {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-    }
-    .upl-skeleton {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-      padding: 1.5rem 0;
-    }
-    .upl-skeleton-bar {
-      display: block;
-      height: 1rem;
-      border-radius: var(--radius-sm);
-      background: var(--bg-hover);
-    }
-    .upl-skeleton-bar-wide {
-      height: 2rem;
-    }
-  `]
+  styles: [
+    `
+      .upl-crumbs {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+        color: var(--text-muted);
+      }
+      .upl-crumb-link {
+        color: var(--primary);
+        text-decoration: none;
+      }
+      .upl-crumb-link:hover {
+        text-decoration: underline;
+      }
+      .upl-crumb-sep {
+        color: var(--text-light);
+      }
+      .upl-crumb-current {
+        color: var(--text-main);
+      }
+      .upl-head {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+      }
+      .upl-title {
+        margin: 0;
+        font-size: 1.5rem;
+        color: var(--text-main);
+      }
+      .upl-code {
+        font-family: monospace;
+        background: var(--bg-hover);
+        border-radius: var(--radius-sm);
+        padding: 0.125rem 0.5rem;
+        color: var(--text-muted);
+      }
+      .upl-block {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+      }
+      .upl-block-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+      .upl-block-title {
+        margin: 0 0 1rem;
+        font-size: 1.125rem;
+        color: var(--text-main);
+      }
+      .upl-block-head .upl-block-title {
+        margin: 0;
+      }
+      .upl-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+        gap: 1rem;
+      }
+      .upl-field-error {
+        display: block;
+        margin-top: 0.25rem;
+        color: var(--danger);
+        font-size: 0.8125rem;
+      }
+      .upl-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        margin-top: 1.25rem;
+      }
+      .upl-empty {
+        color: var(--text-muted);
+        padding: 1.5rem 0;
+        text-align: center;
+      }
+      .upl-muted {
+        color: var(--text-muted);
+        margin-left: 0.5rem;
+      }
+      .upl-draft-body {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+      .upl-skeleton {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        padding: 1.5rem 0;
+      }
+      .upl-skeleton-bar {
+        display: block;
+        height: 1rem;
+        border-radius: var(--radius-sm);
+        background: var(--bg-hover);
+      }
+      .upl-skeleton-bar-wide {
+        height: 2rem;
+      }
+    `,
+  ],
 })
 export class SourceCardComponent {
   private readonly api = inject(UplApiService);
@@ -451,28 +524,30 @@ export class SourceCardComponent {
         validFrom: { header: header('upl.version.col.valid_from'), content: cell(this.validFromCell), width: '140px' },
         validTo: { header: header('upl.version.col.valid_to'), content: cell(this.validToCell), width: '140px' },
         published: { header: header('upl.version.col.published'), content: cell(this.publishedCell) },
-        template: { header: header('upl.template.column'), content: cell(this.templateCell), width: '170px' }
+        template: { header: header('upl.template.column'), content: cell(this.templateCell), width: '170px' },
       },
-      columnsOrder: ['version', 'status', 'validFrom', 'validTo', 'published', 'template']
+      columnsOrder: ['version', 'status', 'validFrom', 'validTo', 'published', 'template'],
     };
   });
 
   readonly canEdit = computed(() => this.permissions.hasPermission('upl.sources', 'edit'));
-  readonly draftVersion = computed(() => this.versions().find(v => v.status === 'draft') ?? null);
+  readonly draftVersion = computed(() => this.versions().find((v) => v.status === 'draft') ?? null);
   /** A copy is offered only when there is a version to copy. */
   readonly draftModes = computed<SMTRadioOption<DraftMode>[]>(() => [
     { value: 'empty', label: this.i18n.translate('upl.version.draft_empty') },
-    ...(this.copyCandidates().length > 0 ? [{ value: 'copy' as const, label: this.i18n.translate('upl.version.draft_copy') }] : [])
+    ...(this.copyCandidates().length > 0
+      ? [{ value: 'copy' as const, label: this.i18n.translate('upl.version.draft_copy') }]
+      : []),
   ]);
   readonly copyCandidates = computed(() =>
     this.versions()
-      .filter(v => v.status === 'published' || v.status === 'superseded')
-      .sort((a, b) => b.version - a.version)
+      .filter((v) => v.status === 'published' || v.status === 'superseded')
+      .sort((a, b) => b.version - a.version),
   );
 
   /** Versions a draft can be copied from, newest first. */
   readonly copyFromOptions = computed<SMTSelectOption<number>[]>(() =>
-    this.copyCandidates().map(v => ({ id: v.version, label: String(v.version) }))
+    this.copyCandidates().map((v) => ({ id: v.version, label: String(v.version) })),
   );
   private readonly periodicityMemo = optionsMemo<SMTSelectOption<UplPeriodicity>[]>();
   private readonly strictnessMemo = optionsMemo<SMTSelectOption<UplStrictness>[]>();
@@ -485,7 +560,7 @@ export class SourceCardComponent {
     status: (v: UplVersionItem) => v.status,
     validFrom: (v: UplVersionItem) => v.validFrom,
     validTo: (v: UplVersionItem) => v.validTo,
-    published: (v: UplVersionItem) => v.publishedAt
+    published: (v: UplVersionItem) => v.publishedAt,
   };
 
   form: SourceForm = {
@@ -494,11 +569,11 @@ export class SourceCardComponent {
     ownerContact: '',
     periodicity: 'month',
     slaDays: 0,
-    reconciliationStrictness: 'error'
+    reconciliationStrictness: 'error',
   };
 
   constructor() {
-    this.route.paramMap.pipe(takeUntilDestroyed()).subscribe(params => {
+    this.route.paramMap.pipe(takeUntilDestroyed()).subscribe((params) => {
       this.sourceId.set(params.get('id'));
       this.reload();
     });
@@ -508,13 +583,15 @@ export class SourceCardComponent {
   /** Periodicities of a source; translated again when the language changes. */
   periodicityOptions(): SMTSelectOption<UplPeriodicity>[] {
     return this.periodicityMemo([this.i18n.currentLang()], () =>
-      UPL_PERIODICITIES.map(p => ({ id: p, label: this.i18n.translate(UPL_PERIODICITY_KEY[p]) })));
+      UPL_PERIODICITIES.map((p) => ({ id: p, label: this.i18n.translate(UPL_PERIODICITY_KEY[p]) })),
+    );
   }
 
   /** Reconciliation strictness levels; translated again when the language changes. */
   strictnessOptions(): SMTSelectOption<UplStrictness>[] {
     return this.strictnessMemo([this.i18n.currentLang()], () =>
-      UPL_STRICTNESSES.map(st => ({ id: st, label: this.i18n.translate(UPL_STRICTNESS_KEY[st]) })));
+      UPL_STRICTNESSES.map((st) => ({ id: st, label: this.i18n.translate(UPL_STRICTNESS_KEY[st]) })),
+    );
   }
 
   fieldErrorText(key: string): string {
@@ -552,7 +629,7 @@ export class SourceCardComponent {
           return;
         }
         this.loadError.set(true);
-      }
+      },
     });
   }
 
@@ -590,12 +667,12 @@ export class SourceCardComponent {
       slaDays: Number(this.form.slaDays),
       sourceType: 'file',
       reconciliationStrictness: this.form.reconciliationStrictness,
-      lockVersion: source.lockVersion
+      lockVersion: source.lockVersion,
     };
     this.isSaving.set(true);
     this.saveError.set(null);
     this.api.updateSource(id, body).subscribe({
-      next: saved => {
+      next: (saved) => {
         this.isSaving.set(false);
         this.source.set(saved);
         this.fillForm(saved);
@@ -604,7 +681,7 @@ export class SourceCardComponent {
       error: (problem: ProblemDetail) => {
         this.isSaving.set(false);
         this.handleSaveError(problem);
-      }
+      },
     });
   }
 
@@ -618,7 +695,7 @@ export class SourceCardComponent {
     this.draftExists.set(false);
     this.draftMode.set('empty');
     const candidates = this.copyCandidates();
-    const published = candidates.find(v => v.status === 'published');
+    const published = candidates.find((v) => v.status === 'published');
     this.copyFrom.set(published?.version ?? candidates[0]?.version ?? null);
     this.isDraftOpen.set(true);
   }
@@ -635,12 +712,12 @@ export class SourceCardComponent {
     if (!id || this.isCreatingDraft()) {
       return;
     }
-    const copyFrom = this.draftMode() === 'copy' ? this.copyFrom() ?? undefined : undefined;
+    const copyFrom = this.draftMode() === 'copy' ? (this.copyFrom() ?? undefined) : undefined;
     this.isCreatingDraft.set(true);
     this.draftError.set(null);
     this.draftExists.set(false);
     this.api.createDraft(id, copyFrom).subscribe({
-      next: created => {
+      next: (created) => {
         this.isCreatingDraft.set(false);
         this.isDraftOpen.set(false);
         this.router.navigate(['/upl/sources', id, 'formats', created.version]);
@@ -652,7 +729,7 @@ export class SourceCardComponent {
           return;
         }
         this.draftError.set(this.problemText(problem));
-      }
+      },
     });
   }
 
@@ -662,9 +739,9 @@ export class SourceCardComponent {
       return;
     }
     this.api.listVersions(id).subscribe({
-      next: versions => {
+      next: (versions) => {
         this.versions.set(versions ?? []);
-        const draft = (versions ?? []).find(v => v.status === 'draft');
+        const draft = (versions ?? []).find((v) => v.status === 'draft');
         if (!draft) {
           this.draftError.set(this.i18n.translate('upl.err.FND_VERSION_UNKNOWN'));
           return;
@@ -672,7 +749,7 @@ export class SourceCardComponent {
         this.isDraftOpen.set(false);
         this.router.navigate(['/upl/sources', id, 'formats', draft.version]);
       },
-      error: (problem: ProblemDetail) => this.draftError.set(this.problemText(problem))
+      error: (problem: ProblemDetail) => this.draftError.set(this.problemText(problem)),
     });
   }
 
@@ -683,7 +760,7 @@ export class SourceCardComponent {
       ownerContact: source.ownerContact ?? '',
       periodicity: source.periodicity,
       slaDays: source.slaDays,
-      reconciliationStrictness: source.reconciliationStrictness
+      reconciliationStrictness: source.reconciliationStrictness,
     };
     this.fieldErrors.set({});
     this.saveError.set(null);
@@ -723,7 +800,7 @@ export class SourceCardComponent {
     if (problem?.status === 422) {
       const errors: Record<string, string> = {};
       for (const item of parseUplProblem(problem)) {
-        errors[item.field] = uplFieldErrorText(item, key => this.i18n.translate(key));
+        errors[item.field] = uplFieldErrorText(item, (key) => this.i18n.translate(key));
       }
       this.fieldErrors.set(errors);
       this.saveError.set('upl.err.VALIDATION_FAILED');
@@ -733,6 +810,6 @@ export class SourceCardComponent {
   }
 
   private problemText(problem: ProblemDetail): string {
-    return uplProblemText(problem, key => this.i18n.translate(key));
+    return uplProblemText(problem, (key) => this.i18n.translate(key));
   }
 }

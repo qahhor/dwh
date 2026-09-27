@@ -23,7 +23,7 @@ export interface RegistryTableOptions<T> {
  */
 export function registryTableConfig<T>(meta: QueryListMeta, options: RegistryTableOptions<T>): TableConfig<T> {
   const columns: Record<string, ColumnInfo<T>> = {};
-  const shown = meta.fields.filter(field => field.defaultVisible !== false);
+  const shown = meta.fields.filter((field) => field.defaultVisible !== false);
   for (const field of shown) {
     columns[field.key] = {
       key: field.key,
@@ -39,7 +39,7 @@ export function registryTableConfig<T>(meta: QueryListMeta, options: RegistryTab
     trackBy: options.trackBy,
     ariaLabel: options.ariaLabel,
     columns,
-    columnsOrder: shown.map(field => field.key),
+    columnsOrder: shown.map((field) => field.key),
   };
 }
 
@@ -52,13 +52,13 @@ function defaultCell<T>(field: QueryFieldMeta, translate: (key: string) => strin
   const value = (row: T) => fieldValue(field, row);
   switch (field.type) {
     case 'date':
-      return { type: 'date', value: row => (value(row) as string | null) ?? '' };
+      return { type: 'date', value: (row) => (value(row) as string | null) ?? '' };
     case 'instant':
-      return { type: 'date-time', value: row => (value(row) as string | null) ?? '' };
+      return { type: 'date-time', value: (row) => (value(row) as string | null) ?? '' };
     case 'enum':
       return {
         type: 'primitive',
-        value: row => {
+        value: (row) => {
           const raw = value(row);
           return raw == null ? '—' : field.enumLabelPrefix ? translate(`${field.enumLabelPrefix}${raw}`) : String(raw);
         },
@@ -67,7 +67,7 @@ function defaultCell<T>(field: QueryFieldMeta, translate: (key: string) => strin
       // A custom field may hold the text "true" or "false", and may be empty.
       return {
         type: 'primitive',
-        value: row => {
+        value: (row) => {
           const raw = value(row);
           if (raw === true || raw === 'true') return translate('common.yes');
           if (raw === false || raw === 'false') return translate('common.no');
@@ -75,6 +75,6 @@ function defaultCell<T>(field: QueryFieldMeta, translate: (key: string) => strin
         },
       };
     default:
-      return { type: 'primitive', value: row => (value(row) as string | number | null) ?? '—' };
+      return { type: 'primitive', value: (row) => (value(row) as string | number | null) ?? '—' };
   }
 }

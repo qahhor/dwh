@@ -3,9 +3,8 @@ package com.smartup24.cms.instance.kauth.service;
 import com.smartup24.cms.instance.md.service.MdI18nService;
 import com.smartup24.cms.instance.md.service.MdSettingService;
 import com.smartup24.cms.instance.md.service.MdUserService;
-import org.springframework.stereotype.Component;
-
 import java.util.Map;
+import org.springframework.stereotype.Component;
 
 /**
  * Texts sent to a user's channel: one-time codes and password reset links, in the user's language.
@@ -38,13 +37,17 @@ public class KauthChannelTexts {
      */
     public Text render(Long userId, String name, Map<String, String> params) {
         Map<String, String> strings = i18n.effectiveDictionary(language(userId));
-        return new Text(fill(strings.getOrDefault("channel." + name + ".subject", ""), params),
+        return new Text(
+                fill(strings.getOrDefault("channel." + name + ".subject", ""), params),
                 fill(strings.getOrDefault("channel." + name + ".body", ""), params));
     }
 
     String language(Long userId) {
-        String own = userId == null ? null
-                : users.findAuthUserById(userId).map(MdUserService.AuthUser::language).orElse(null);
+        String own = userId == null
+                ? null
+                : users.findAuthUserById(userId)
+                        .map(MdUserService.AuthUser::language)
+                        .orElse(null);
         if (i18n.isActiveLanguage(own)) {
             return own;
         }

@@ -1,12 +1,7 @@
 package com.smartup24.cms.spi.mail;
 
 public record MailSendResult(
-        boolean isSuccess,
-        String messageId,
-        String errorCode,
-        String errorMessage,
-        long durationMs
-) {
+        boolean isSuccess, String messageId, String errorCode, String errorMessage, long durationMs) {
     public static MailSendResult success(String messageId, long durationMs) {
         return new MailSendResult(true, messageId, null, null, durationMs);
     }

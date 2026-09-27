@@ -14,14 +14,19 @@ import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/
 @Component({
   selector: 'app-settings-languages-panel',
   standalone: true,
-  imports: [SMTTextareaComponent, SMTTextareaValueAccessor, SMTInputComponent, SMTInputValueAccessor, 
+  imports: [
+    SMTTextareaComponent,
+    SMTTextareaValueAccessor,
+    SMTInputComponent,
+    SMTInputValueAccessor,
     CommonModule,
     FormsModule,
     TranslatePipe,
     SMTButtonComponent,
-    SMTDialogComponent, SMTDialogContentDirective,
+    SMTDialogComponent,
+    SMTDialogContentDirective,
     LanguageEditorComponent,
-    SMTTableComponent
+    SMTTableComponent,
   ],
   template: `
     <app-language-editor
@@ -34,13 +39,14 @@ import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/
     <div class="settings-card" *ngIf="!editingLanguageCode">
       <div class="legacy-import" *ngIf="legacyLanguageCount > 0" role="status">
         <div>
-          <strong>{{ 'settings.legacy_packages_found' | t:{count: legacyLanguageCount} }}</strong>
+          <strong>{{ 'settings.legacy_packages_found' | t: { count: legacyLanguageCount } }}</strong>
           <span>{{ 'settings.perenesite_ih_v_obschee_servernoe_hranilische_ch' | t }}</span>
         </div>
-        <button smt-button smtVariant="secondary"
+        <button
+          smt-button
+          smtVariant="secondary"
           id="migrate-legacy-languages"
           type="button"
-         
           *ngIf="canUpdateSystemSettings"
           [disabled]="isMigratingLegacyLanguages"
           (click)="migrateLegacyLanguages.emit()"
@@ -93,16 +99,36 @@ import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/
 
       <ng-template #actionsCell let-lang>
         <div class="table-actions-right">
-          <button smt-button smtVariant="secondary" smtSize="sm" type="button" [attr.data-testid]="'edit-language-' + lang.code" (click)="openLanguageEditor.emit(lang.code)">
+          <button
+            smt-button
+            smtVariant="secondary"
+            smtSize="sm"
+            type="button"
+            [attr.data-testid]="'edit-language-' + lang.code"
+            (click)="openLanguageEditor.emit(lang.code)"
+          >
             <span class="material-symbols-outlined" aria-hidden="true">edit</span>
             <span>{{ 'common.edit' | t }}</span>
           </button>
-          <button smt-button smtVariant="secondary" smtSize="sm" type="button" (click)="exportLangJson.emit(lang.code)" [title]="'settings.eksportirovat_json' | t">
+          <button
+            smt-button
+            smtVariant="secondary"
+            smtSize="sm"
+            type="button"
+            (click)="exportLangJson.emit(lang.code)"
+            [title]="'settings.eksportirovat_json' | t"
+          >
             <span class="material-symbols-outlined" aria-hidden="true">download</span>
             <span>JSON</span>
           </button>
           @if (currentLang !== lang.code) {
-            <button smt-button smtSize="sm" type="button" [attr.data-testid]="'switch-language-' + lang.code" (click)="switchLanguage.emit(lang.code)">
+            <button
+              smt-button
+              smtSize="sm"
+              type="button"
+              [attr.data-testid]="'switch-language-' + lang.code"
+              (click)="switchLanguage.emit(lang.code)"
+            >
               <span>{{ 'settings.pereklyuchitsya' | t }}</span>
             </button>
           }
@@ -116,229 +142,271 @@ import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/
       [open]="isAddLangModalOpen"
       [smtTitle]="'settings.dobavlenie_novogo_yazyka' | t"
       [smtAriaLabel]="'settings.dobavlenie_novogo_yazyka' | t"
-      (closed)="closeAddLangModal.emit()">
+      (closed)="closeAddLangModal.emit()"
+    >
       <ng-template smtDialogContent>
-      <div class="form-grid">
-        <div class="form-group">
-          <label class="form-label" for="new-lang-code">{{ 'settings.kod_yazyka_iso_639_1' | t }}</label>
-          <smt-input
-            smtFieldId="new-lang-code"
-            [ngModel]="newLangCode"
-            (ngModelChange)="newLangCodeChange.emit($event)"
-            placeholder="kk, ky, tg, de, tr"
-            [maxLength]="10" />
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label" for="new-lang-code">{{ 'settings.kod_yazyka_iso_639_1' | t }}</label>
+            <smt-input
+              smtFieldId="new-lang-code"
+              [ngModel]="newLangCode"
+              (ngModelChange)="newLangCodeChange.emit($event)"
+              placeholder="kk, ky, tg, de, tr"
+              [maxLength]="10"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="new-lang-name">{{ 'settings.nazvanie_yazyka' | t }}</label>
+            <smt-input
+              smtFieldId="new-lang-name"
+              [ngModel]="newLangName"
+              (ngModelChange)="newLangNameChange.emit($event)"
+              [placeholder]="'settings.aza_sha_deutsch_etc' | t"
+            />
+          </div>
+          <div class="form-group full-width">
+            <label class="form-label" for="new-lang-json">{{ 'settings.json_slovar_perevodov_opcionalno' | t }}</label>
+            <smt-textarea
+              class="mono"
+              smtFieldId="new-lang-json"
+              [rows]="6"
+              [ngModel]="newLangJson"
+              (ngModelChange)="newLangJsonChange.emit($event)"
+              [placeholder]="'settings.translation_json_example' | t"
+            />
+          </div>
         </div>
-        <div class="form-group">
-          <label class="form-label" for="new-lang-name">{{ 'settings.nazvanie_yazyka' | t }}</label>
-          <smt-input
-            smtFieldId="new-lang-name"
-            [ngModel]="newLangName"
-            (ngModelChange)="newLangNameChange.emit($event)"
-            [placeholder]="'settings.aza_sha_deutsch_etc' | t" />
+        <div modal-footer class="modal-footer-btns">
+          <button
+            smt-button
+            type="button"
+            smtVariant="secondary"
+            (click)="closeAddLangModal.emit()"
+            [disabled]="isAddingLang"
+          >
+            {{ 'common.cancel' | t }}
+          </button>
+          <button
+            smt-button
+            type="button"
+            smtVariant="primary"
+            [smtLoading]="isAddingLang"
+            (click)="saveNewLanguage.emit()"
+            [disabled]="!newLangCode.trim() || !newLangName.trim()"
+          >
+            {{ 'settings.sohranit_yazyk' | t }}
+          </button>
         </div>
-        <div class="form-group full-width">
-          <label class="form-label" for="new-lang-json">{{ 'settings.json_slovar_perevodov_opcionalno' | t }}</label>
-          <smt-textarea
-            class="mono"
-            smtFieldId="new-lang-json"
-            [rows]="6"
-            [ngModel]="newLangJson"
-            (ngModelChange)="newLangJsonChange.emit($event)"
-            [placeholder]="'settings.translation_json_example' | t" />
-        </div>
-      </div>
-      <div modal-footer class="modal-footer-btns">
-        <button smt-button type="button" smtVariant="secondary" (click)="closeAddLangModal.emit()" [disabled]="isAddingLang">{{ 'common.cancel' | t }}</button>
-        <button smt-button type="button" smtVariant="primary" [smtLoading]="isAddingLang" (click)="saveNewLanguage.emit()" [disabled]="!newLangCode.trim() || !newLangName.trim()">{{ 'settings.sohranit_yazyk' | t }}</button>
-      </div>
       </ng-template>
     </smt-dialog>
   `,
-  styles: [`
-    .settings-card {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      padding: 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-    .card-header-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid var(--border-subtle);
-      padding-bottom: 16px;
-    }
-    .card-title-group {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .card-icon {
-      font-size: 28px;
-      color: var(--primary-text);
-    }
-    .card-title {
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--text-main);
-      margin: 0;
-    }
-    .card-desc {
-      font-size: 13px;
-      color: var(--text-light);
-      margin: 2px 0 0 0;
-    }
-    .legacy-import {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      padding: 12px 14px;
-      border: 1px solid var(--warning);
-      border-radius: 9px;
-      color: var(--text-main);
-      background: var(--warning-bg);
-    }
-    .legacy-import > div { display: grid; gap: 3px; }
-    .legacy-import span { color: var(--text-muted); font-size: 12px; }
+  styles: [
+    `
+      .settings-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .card-header-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--border-subtle);
+        padding-bottom: 16px;
+      }
+      .card-title-group {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .card-icon {
+        font-size: 28px;
+        color: var(--primary-text);
+      }
+      .card-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text-main);
+        margin: 0;
+      }
+      .card-desc {
+        font-size: 13px;
+        color: var(--text-light);
+        margin: 2px 0 0 0;
+      }
+      .legacy-import {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 12px 14px;
+        border: 1px solid var(--warning);
+        border-radius: 9px;
+        color: var(--text-main);
+        background: var(--warning-bg);
+      }
+      .legacy-import > div {
+        display: grid;
+        gap: 3px;
+      }
+      .legacy-import span {
+        color: var(--text-muted);
+        font-size: 12px;
+      }
 
-    .table-card {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      overflow: hidden;
-    }
-    .table-scroll { overflow-x: auto; }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-    }
-    th {
-      text-align: left;
-      padding: 10px 14px;
-      background: var(--bg-hover);
-      color: var(--text-light);
-      font-weight: 600;
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      border-bottom: 1px solid var(--border-color);
-    }
-    td {
-      padding: 12px 14px;
-      border-bottom: 1px solid var(--border-subtle);
-      color: var(--text-main);
-    }
-    tbody tr:last-child td { border-bottom: none; }
-    tbody tr:hover td { background: var(--bg-hover); }
+      .table-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .table-scroll {
+        overflow-x: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      th {
+        text-align: left;
+        padding: 10px 14px;
+        background: var(--bg-hover);
+        color: var(--text-light);
+        font-weight: 600;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 1px solid var(--border-color);
+      }
+      td {
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--border-subtle);
+        color: var(--text-main);
+      }
+      tbody tr:last-child td {
+        border-bottom: none;
+      }
+      tbody tr:hover td {
+        background: var(--bg-hover);
+      }
 
-    .font-medium { font-weight: 500; }
-    .mono { font-family: monospace; }
-    .table-actions-right {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 6px;
-      white-space: nowrap;
-    }
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      padding: 3px 8px;
-      font-size: 11px;
-      font-weight: 600;
-      border-radius: var(--radius-xs);
-    }
-    .badge-active {
-      background-color: var(--success-bg);
-      color: var(--success-text);
-    }
-    .badge-neutral {
-      background-color: var(--bg-active);
-      color: var(--text-muted);
-    }
-    .badge-info {
-      background-color: var(--primary-subtle);
-      color: var(--primary-text);
-    }
-    .language-coverage {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      min-width: 112px;
-      color: var(--text-light);
-      font-size: 11px;
-    }
-    .coverage-track {
-      display: block;
-      width: 100%;
-      height: 5px;
-      overflow: hidden;
-      border-radius: 999px;
-      background: var(--bg-active);
-    }
-    .coverage-track > span {
-      display: block;
-      height: 100%;
-      border-radius: inherit;
-      background: var(--primary);
-    }
+      .font-medium {
+        font-weight: 500;
+      }
+      .mono {
+        font-family: monospace;
+      }
+      .table-actions-right {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 6px;
+        white-space: nowrap;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 3px 8px;
+        font-size: 11px;
+        font-weight: 600;
+        border-radius: var(--radius-xs);
+      }
+      .badge-active {
+        background-color: var(--success-bg);
+        color: var(--success-text);
+      }
+      .badge-neutral {
+        background-color: var(--bg-active);
+        color: var(--text-muted);
+      }
+      .badge-info {
+        background-color: var(--primary-subtle);
+        color: var(--primary-text);
+      }
+      .language-coverage {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 112px;
+        color: var(--text-light);
+        font-size: 11px;
+      }
+      .coverage-track {
+        display: block;
+        width: 100%;
+        height: 5px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: var(--bg-active);
+      }
+      .coverage-track > span {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: var(--primary);
+      }
 
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 18px;
-    }
-    @media (max-width: 768px) {
       .form-grid {
-        grid-template-columns: 1fr;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 18px;
       }
-    }
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .form-group.full-width {
-      grid-column: span 2;
-    }
-    @media (max-width: 768px) {
+      @media (max-width: 768px) {
+        .form-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
       .form-group.full-width {
-        grid-column: span 1;
+        grid-column: span 2;
       }
-    }
-    .form-label {
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text-main);
-    }
-    .form-input {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 9px 12px;
-      color: var(--text-main);
-      font-size: 13px;
-      outline: none;
-      transition: border-color 0.15s ease;
-    }
-    .form-input:focus {
-      border-color: var(--primary);
-    }
-    .modal-footer-btns {
-      display: flex;
-      justify-content: flex-end;
-      gap: 8px;
-    }
-    @media (max-width: 680px) {
-      .legacy-import { align-items: stretch; flex-direction: column; }
-    }
-  `]
+      @media (max-width: 768px) {
+        .form-group.full-width {
+          grid-column: span 1;
+        }
+      }
+      .form-label {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-main);
+      }
+      .form-input {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 9px 12px;
+        color: var(--text-main);
+        font-size: 13px;
+        outline: none;
+        transition: border-color 0.15s ease;
+      }
+      .form-input:focus {
+        border-color: var(--primary);
+      }
+      .modal-footer-btns {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+      @media (max-width: 680px) {
+        .legacy-import {
+          align-items: stretch;
+          flex-direction: column;
+        }
+      }
+    `,
+  ],
 })
 export class SettingsLanguagesPanelComponent {
   private readonly i18n = inject(I18nService);
@@ -367,12 +435,37 @@ export class SettingsLanguagesPanelComponent {
       ariaLabel: this.i18n.translate('settings.upravlenie_yazykovymi_paketami_i_lokalizaciey'),
       columnsOrder: ['code', 'name', 'type', 'coverage', 'status', 'actions'],
       columns: {
-        code: { header: header(this.i18n.translate('settings.kod')), content: { type: 'templateRef', value: this.codeCell }, width: '88px' },
-        name: { header: header(this.i18n.translate('settings.nazvanie_yazyka')), content: { type: 'primitive', value: lang => lang.name }, width: share },
-        type: { header: header(this.i18n.translate('settings.tip')), content: { type: 'templateRef', value: this.typeCell }, width: share },
-        coverage: { header: header(this.i18n.translate('settings.gotovnost')), content: { type: 'templateRef', value: this.coverageCell }, width: share },
-        status: { header: header(this.i18n.translate('common.status')), content: { type: 'templateRef', value: this.statusCell }, width: '160px' },
-        actions: { header: header(this.i18n.translate('common.actions')), content: { type: 'templateRef', value: this.actionsCell }, align: 'right', width: '280px' },
+        code: {
+          header: header(this.i18n.translate('settings.kod')),
+          content: { type: 'templateRef', value: this.codeCell },
+          width: '88px',
+        },
+        name: {
+          header: header(this.i18n.translate('settings.nazvanie_yazyka')),
+          content: { type: 'primitive', value: (lang) => lang.name },
+          width: share,
+        },
+        type: {
+          header: header(this.i18n.translate('settings.tip')),
+          content: { type: 'templateRef', value: this.typeCell },
+          width: share,
+        },
+        coverage: {
+          header: header(this.i18n.translate('settings.gotovnost')),
+          content: { type: 'templateRef', value: this.coverageCell },
+          width: share,
+        },
+        status: {
+          header: header(this.i18n.translate('common.status')),
+          content: { type: 'templateRef', value: this.statusCell },
+          width: '160px',
+        },
+        actions: {
+          header: header(this.i18n.translate('common.actions')),
+          content: { type: 'templateRef', value: this.actionsCell },
+          align: 'right',
+          width: '280px',
+        },
       },
     };
   });

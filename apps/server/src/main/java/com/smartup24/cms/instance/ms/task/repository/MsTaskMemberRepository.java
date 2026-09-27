@@ -1,10 +1,9 @@
 package com.smartup24.cms.instance.ms.task.repository;
 
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-
 import java.util.List;
 import java.util.Optional;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
 
 @Repository
 public class MsTaskMemberRepository {
@@ -16,7 +15,8 @@ public class MsTaskMemberRepository {
     }
 
     public void addOrUpdateMember(Long taskId, Long userId, String involveKind, boolean isViewed) {
-        jdbcClient.sql("""
+        jdbcClient
+                .sql("""
                 insert into ms_task_members (task_id, user_id, involve_kind, is_viewed)
                 values (:taskId, :userId, :involveKind, :isViewed)
                 on conflict (task_id, user_id, involve_kind) do update set is_viewed = :isViewed
@@ -29,14 +29,17 @@ public class MsTaskMemberRepository {
     }
 
     public void removeMembersByKind(Long taskId, String involveKind) {
-        jdbcClient.sql("delete from ms_task_members where task_id = :taskId and involve_kind = :involveKind")
+        jdbcClient
+                .sql("delete from ms_task_members where task_id = :taskId and involve_kind = :involveKind")
                 .param("taskId", taskId)
                 .param("involveKind", involveKind)
                 .update();
     }
 
     public void removeMember(Long taskId, Long userId, String involveKind) {
-        jdbcClient.sql("delete from ms_task_members where task_id = :taskId and user_id = :userId and involve_kind = :involveKind")
+        jdbcClient
+                .sql(
+                        "delete from ms_task_members where task_id = :taskId and user_id = :userId and involve_kind = :involveKind")
                 .param("taskId", taskId)
                 .param("userId", userId)
                 .param("involveKind", involveKind)
@@ -48,14 +51,12 @@ public class MsTaskMemberRepository {
                 update ms_task_members
                 set is_viewed = true
                 where task_id = :taskId and user_id = :userId
-                """)
-                .param("taskId", taskId)
-                .param("userId", userId)
-                .update();
+                """).param("taskId", taskId).param("userId", userId).update();
     }
 
     public List<TaskMemberRecord> getTaskMembers(Long taskId) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select tm.task_id, tm.user_id, u.name as user_name, u.login as user_login,
                        u.email as user_email, tm.involve_kind, tm.is_viewed
                 from ms_task_members tm
@@ -71,8 +72,7 @@ public class MsTaskMemberRepository {
                         rs.getString("user_login"),
                         rs.getString("user_email"),
                         rs.getString("involve_kind"),
-                        rs.getBoolean("is_viewed")
-                ))
+                        rs.getBoolean("is_viewed")))
                 .list();
     }
 
@@ -81,10 +81,7 @@ public class MsTaskMemberRepository {
                 select user_id from ms_task_members
                 where task_id = :taskId and involve_kind = 'R'
                 limit 1
-                """)
-                .param("taskId", taskId)
-                .query(Long.class)
-                .optional();
+                """).param("taskId", taskId).query(Long.class).optional();
     }
 
     public record TaskMemberRecord(
@@ -94,7 +91,5 @@ public class MsTaskMemberRepository {
             String userLogin,
             String userEmail,
             String involveKind,
-            boolean isViewed
-    ) {}
+            boolean isViewed) {}
 }
-

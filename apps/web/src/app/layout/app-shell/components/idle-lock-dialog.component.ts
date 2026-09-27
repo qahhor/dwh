@@ -16,22 +16,56 @@ import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/u
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslatePipe, SMTButtonComponent, SMTDialogComponent, SMTDialogContentDirective],
   template: `
-    <smt-dialog [open]="idle.warningSeconds() !== null" [dismissible]="false" smtSize="sm" [smtTitle]="'auth.idle.title' | t">
+    <smt-dialog
+      [open]="idle.warningSeconds() !== null"
+      [dismissible]="false"
+      smtSize="sm"
+      [smtTitle]="'auth.idle.title' | t"
+    >
       <ng-template smtDialogContent>
-      <p body class="idle-text" role="alert" data-testid="idle-warning">
-        {{ 'auth.idle.message' | t: { seconds: idle.warningSeconds() ?? 0 } }}
-      </p>
-      <div footer class="idle-actions">
-        <button smt-button type="button" smtVariant="secondary" smtSize="md" data-testid="idle-sign-out" (click)="auth.logout()">{{ 'auth.idle.sign_out' | t }}</button>
-        <button smt-button type="button" smtVariant="primary" smtSize="md" data-testid="idle-keep" (click)="idle.keepWorking()">{{ 'auth.idle.keep' | t }}</button>
-      </div>
+        <p body class="idle-text" role="alert" data-testid="idle-warning">
+          {{ 'auth.idle.message' | t: { seconds: idle.warningSeconds() ?? 0 } }}
+        </p>
+        <div footer class="idle-actions">
+          <button
+            smt-button
+            type="button"
+            smtVariant="secondary"
+            smtSize="md"
+            data-testid="idle-sign-out"
+            (click)="auth.logout()"
+          >
+            {{ 'auth.idle.sign_out' | t }}
+          </button>
+          <button
+            smt-button
+            type="button"
+            smtVariant="primary"
+            smtSize="md"
+            data-testid="idle-keep"
+            (click)="idle.keepWorking()"
+          >
+            {{ 'auth.idle.keep' | t }}
+          </button>
+        </div>
       </ng-template>
     </smt-dialog>
   `,
-  styles: [`
-    .idle-text { margin: 0; font-size: 14px; color: var(--text-main); }
-    .idle-actions { display: flex; justify-content: flex-end; gap: 8px; width: 100%; }
-  `]
+  styles: [
+    `
+      .idle-text {
+        margin: 0;
+        font-size: 14px;
+        color: var(--text-main);
+      }
+      .idle-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        width: 100%;
+      }
+    `,
+  ],
 })
 export class IdleLockDialogComponent {
   readonly idle = inject(IdleLockService);

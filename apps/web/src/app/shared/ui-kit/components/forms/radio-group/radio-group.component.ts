@@ -80,7 +80,7 @@ export class SMTRadioGroupComponent<T> implements FormValueControl<T | null> {
 
   readonly orientation = input<'vertical' | 'horizontal'>('vertical', { alias: 'smtOrientation' });
 
-/**
+  /**
    * `cards` frames each item, for a choice whose items carry a description;
    * `chips` is a row of pills with icons (a task type); `segmented` is one bar
    * of equal parts (a priority, a filter). Chips and segmented are horizontal.
@@ -122,14 +122,16 @@ export class SMTRadioGroupComponent<T> implements FormValueControl<T | null> {
   readonly isDisabled = computed(() => this.disabled() || this.formsDisabled());
 
   /** Chips and segmented bars always lie in a row. */
-  readonly horizontal = computed(() => this.orientation() === 'horizontal' || this.appearance() === 'chips' || this.appearance() === 'segmented');
+  readonly horizontal = computed(
+    () => this.orientation() === 'horizontal' || this.appearance() === 'chips' || this.appearance() === 'segmented',
+  );
 
   readonly showDot = computed(() => this.appearance() === 'plain' || this.appearance() === 'cards');
 
   readonly selectedIndex = computed(() => {
     const value = this.value();
     const same = this.compareWith();
-    return this.options().findIndex(option => same(option.value, value));
+    return this.options().findIndex((option) => same(option.value, value));
   });
 
   /** The one item in the tab order. */
@@ -146,7 +148,7 @@ export class SMTRadioGroupComponent<T> implements FormValueControl<T | null> {
       touched: this.wasTouched(),
       required: this.required(),
       empty: this.selectedIndex() < 0,
-    })
+    }),
   );
 
   readonly groupId = `smt-radio-group-${nextGroupId++}`;
@@ -175,7 +177,7 @@ export class SMTRadioGroupComponent<T> implements FormValueControl<T | null> {
     if (event.key === 'Home' || event.key === 'End') {
       event.preventDefault();
       const order = this.options().map((_, i) => i);
-      const target = (event.key === 'Home' ? order : order.reverse()).find(i => this.available(i));
+      const target = (event.key === 'Home' ? order : order.reverse()).find((i) => this.available(i));
       if (target !== undefined) this.moveTo(target);
       return;
     }

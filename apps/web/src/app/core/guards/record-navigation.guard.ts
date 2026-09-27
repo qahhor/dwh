@@ -8,11 +8,16 @@ export interface RecordNavigationPage {
 }
 
 export const recordNavigationGuard: CanDeactivateFn<RecordNavigationPage> = (page, _route, _current, next) => {
-  const destination = next.root.children.find(route => route.outlet === PRIMARY_OUTLET);
+  const destination = next.root.children.find((route) => route.outlet === PRIMARY_OUTLET);
   // Successful logout/password change clears the session before navigating.
   // Never keep authenticated-page data mounted behind a draft prompt then.
-  if (inject(AuthService).currentUser() === null && destination?.routeConfig?.path === 'login'
-    && destination.url.length === 1 && destination.url[0].path === 'login') return true;
+  if (
+    inject(AuthService).currentUser() === null &&
+    destination?.routeConfig?.path === 'login' &&
+    destination.url.length === 1 &&
+    destination.url[0].path === 'login'
+  )
+    return true;
   return page.canLeaveRecordPage();
 };
 
@@ -20,10 +25,12 @@ export const recordNavigationGuard: CanDeactivateFn<RecordNavigationPage> = (pag
 export class RecordNavigationDecision {
   private observer: Subscriber<boolean> | null = null;
 
-  get pending(): boolean { return this.observer !== null; }
+  get pending(): boolean {
+    return this.observer !== null;
+  }
 
   request(show: () => void, hide: () => void): Observable<boolean> {
-    return new Observable(observer => {
+    return new Observable((observer) => {
       this.settle(false);
       this.observer = observer;
       show();

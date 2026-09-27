@@ -98,7 +98,7 @@ describe('SMTDrawerService closeOnNavigation', () => {
 
     const ref = service.open(DummyContent);
     const closedValues: unknown[] = [];
-    ref.afterClosed().subscribe(value => closedValues.push(value));
+    ref.afterClosed().subscribe((value) => closedValues.push(value));
 
     expect(urlListeners).toHaveLength(1);
 
@@ -153,7 +153,7 @@ describe('SMTDrawerService disposal', () => {
     const { service, overlayRef, containerRef } = createHarness();
     const ref = service.open<string>(DummyContent);
     const values: unknown[] = [];
-    ref.afterClosed().subscribe(value => values.push(value));
+    ref.afterClosed().subscribe((value) => values.push(value));
 
     ref.close('saved');
     ref.close('again');
@@ -176,8 +176,8 @@ class PackageDetails {
 
 describe('SMTDrawerService with CDK Overlay', () => {
   afterEach(() => {
-    document.querySelectorAll('.cdk-overlay-container').forEach(node => node.remove());
-    document.querySelectorAll('.drawer-opener').forEach(node => node.remove());
+    document.querySelectorAll('.cdk-overlay-container').forEach((node) => node.remove());
+    document.querySelectorAll('.drawer-opener').forEach((node) => node.remove());
     TestBed.resetTestingModule();
   });
 

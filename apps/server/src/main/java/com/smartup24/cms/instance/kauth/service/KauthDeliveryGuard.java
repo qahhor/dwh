@@ -1,15 +1,14 @@
 package com.smartup24.cms.instance.kauth.service;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Refuses to start while users with two-factor sign-in depend on a stub delivery channel (plan 10/10, item 0.8).
@@ -29,8 +28,8 @@ public class KauthDeliveryGuard implements ApplicationRunner {
     private final JdbcClient jdbc;
     private final boolean enforced;
 
-    public KauthDeliveryGuard(KauthOtpSender sender, JdbcClient jdbc,
-                              @Value("${smc.delivery.enforce:true}") boolean enforced) {
+    public KauthDeliveryGuard(
+            KauthOtpSender sender, JdbcClient jdbc, @Value("${smc.delivery.enforce:true}") boolean enforced) {
         this.sender = sender;
         this.jdbc = jdbc;
         this.enforced = enforced;

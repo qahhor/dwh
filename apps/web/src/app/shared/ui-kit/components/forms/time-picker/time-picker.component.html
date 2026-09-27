@@ -22,7 +22,8 @@
     [attr.aria-invalid]="hasError() ? 'true' : null"
     (input)="onInput($event)"
     (keydown)="onKeydown($event)"
-    (blur)="onBlur()" />
+    (blur)="onBlur()"
+  />
   @if (value() && editable()) {
     <button
       type="button"
@@ -30,7 +31,8 @@
       tabindex="-1"
       [attr.aria-label]="i18n.messages().time.clear"
       (mousedown)="$event.preventDefault()"
-      (click)="clear()">
+      (click)="clear()"
+    >
       <span class="material-symbols-outlined" aria-hidden="true">close</span>
     </button>
   }
@@ -43,7 +45,8 @@
     [attr.aria-expanded]="open()"
     [attr.aria-controls]="open() ? listboxId : null"
     (mousedown)="$event.preventDefault()"
-    (click)="toggleList()">
+    (click)="toggleList()"
+  >
     <span class="material-symbols-outlined" aria-hidden="true">schedule</span>
   </button>
 </div>
@@ -59,7 +62,8 @@
   [cdkConnectedOverlayPositions]="positions"
   [cdkConnectedOverlayMinWidth]="origin.elementRef.nativeElement.offsetWidth || 120"
   (overlayOutsideClick)="open.set(false)"
-  (detach)="open.set(false)">
+  (detach)="open.set(false)"
+>
   <ul class="smt-time-picker__list" role="listbox" [id]="listboxId" [attr.aria-label]="i18n.messages().time.list">
     @for (slot of slots(); track slot; let index = $index) {
       <li
@@ -69,7 +73,8 @@
         [class.smt-time-picker__option--active]="activeIndex() === index"
         [attr.aria-selected]="slot === value() ? 'true' : 'false'"
         (mousedown)="$event.preventDefault()"
-        (click)="choose(index)">
+        (click)="choose(index)"
+      >
         {{ slot }}
       </li>
     }

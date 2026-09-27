@@ -1,8 +1,5 @@
 package com.smartup24.cms.instance.audit.archive;
 
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
@@ -10,6 +7,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
 
 /**
  * Records of the archive files ({@code audit_log_archives}) and of the partitions each one holds (V127). A verified
@@ -82,8 +81,9 @@ public class AuditArchiveRepository {
     /** @return {@code false} when the record is gone (removed as unverified by a run that overlapped this one) */
     public boolean markVerified(long archiveId) {
         return jdbc.sql("update audit_log_archives set verified_at = now() where id = :id and verified_at is null")
-                .param("id", archiveId)
-                .update() == 1;
+                        .param("id", archiveId)
+                        .update()
+                == 1;
     }
 
     /** Partitions that any archive ever held: with deletion off, a partition is archived once. */
@@ -103,9 +103,7 @@ public class AuditArchiveRepository {
                         from audit_log_archive_partitions ap
                         join audit_log_archives a on a.id = ap.archive_id
                         where a.file_deleted_at is null
-                        """)
-                .query(String.class)
-                .list());
+                        """).query(String.class).list());
     }
 
     /** Archives left unverified by a run that failed half way; their records and files are removed before a retry. */
@@ -116,7 +114,9 @@ public class AuditArchiveRepository {
     }
 
     public void deleteUnverified(long archiveId) {
-        jdbc.sql("delete from audit_log_archives where id = :id and verified_at is null").param("id", archiveId).update();
+        jdbc.sql("delete from audit_log_archives where id = :id and verified_at is null")
+                .param("id", archiveId)
+                .update();
     }
 
     public Optional<Instant> lastVerifiedAt() {

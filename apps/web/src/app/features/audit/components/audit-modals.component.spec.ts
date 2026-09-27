@@ -43,12 +43,18 @@ describe('AuditModalsComponent diff', () => {
     fixture.detectChanges();
 
     const screen = inScreen(fixture.nativeElement);
-    const table = screen.querySelector('[role="dialog"] smt-table [role="table"], [role="dialog"] smt-table table') as HTMLElement | null;
+    const table = screen.querySelector(
+      '[role="dialog"] smt-table [role="table"], [role="dialog"] smt-table table',
+    ) as HTMLElement | null;
     expect(table?.getAttribute('aria-label')).toBe('Сравнение значений до и после изменения');
-    const fields = Array.from(screen.querySelectorAll('.field-name') as Element[]).map(node => node.textContent?.trim());
+    const fields = Array.from(screen.querySelectorAll('.field-name') as Element[]).map((node) =>
+      node.textContent?.trim(),
+    );
     expect(fields).toEqual(['title', 'priority', 'due']);
-    const before = Array.from(screen.querySelectorAll('.diff-val--before') as Element[]).map(node => node.textContent);
-    const after = Array.from(screen.querySelectorAll('.diff-val--after') as Element[]).map(node => node.textContent);
+    const before = Array.from(screen.querySelectorAll('.diff-val--before') as Element[]).map(
+      (node) => node.textContent,
+    );
+    const after = Array.from(screen.querySelectorAll('.diff-val--after') as Element[]).map((node) => node.textContent);
     expect(before).toEqual(['Old title', 'low', '—']);
     expect(after).toEqual(['New title', 'low', '2026-10-01']);
   });

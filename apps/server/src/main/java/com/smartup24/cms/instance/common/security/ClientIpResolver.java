@@ -1,11 +1,11 @@
 package com.smartup24.cms.instance.common.security;
 
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.security.web.util.matcher.IpAddressMatcher;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
+import org.jspecify.annotations.Nullable;
+import org.springframework.security.web.util.matcher.IpAddressMatcher;
 
 /**
  * Сервис безопасного определения IP-адреса и протокола клиента (H05, FR-SEC-2).
@@ -22,13 +22,15 @@ import java.util.regex.Pattern;
 public class ClientIpResolver {
 
     private static final String DEFAULT_FALLBACK_IP = "127.0.0.1";
-    private static final Pattern IPV4_PATTERN = Pattern.compile(
-            "^((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)\\.){3}(25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)$");
+    private static final Pattern IPV4_PATTERN =
+            Pattern.compile("^((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)\\.){3}(25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)$");
 
     private final List<IpAddressMatcher> matchers;
 
     public ClientIpResolver(TrustedProxyProperties properties) {
-        List<String> subnets = (properties != null && properties.trustedProxies() != null && !properties.trustedProxies().isEmpty())
+        List<String> subnets = (properties != null
+                        && properties.trustedProxies() != null
+                        && !properties.trustedProxies().isEmpty())
                 ? properties.trustedProxies()
                 : TrustedProxyProperties.DEFAULT_TRUSTED_PROXIES;
 
@@ -128,7 +130,7 @@ public class ClientIpResolver {
         return false;
     }
 
-    private static String normalize(String ip) {
+    private static @Nullable String normalize(@Nullable String ip) {
         if (ip == null) {
             return null;
         }

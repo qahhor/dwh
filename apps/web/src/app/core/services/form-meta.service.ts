@@ -32,7 +32,7 @@ export function hasCapability(meta: FormMeta | null | undefined, capability: str
 
 /** The field's label: its catalog key, or the name a custom field carries. */
 export function fieldLabel(field: FormFieldMeta, translate: Translate): string {
-  return field.labelKey ? translate(field.labelKey) : field.label ?? field.key;
+  return field.labelKey ? translate(field.labelKey) : (field.label ?? field.key);
 }
 
 /** An option's label: from the catalog by the field's prefix, or the option itself. */
@@ -62,7 +62,7 @@ export function recordPayload(meta: FormMeta, values: FormValues, row?: Row | nu
     const raw = values[field.key];
     const value = typeof raw === 'string' && field.type !== 'markdown' && field.type !== 'textarea' ? raw.trim() : raw;
     if (field.attribute) {
-      attributes[field.attribute] = value === '' ? null : value ?? null;
+      attributes[field.attribute] = value === '' ? null : (value ?? null);
     } else {
       payload[field.key] = value;
     }
@@ -85,12 +85,16 @@ export function formProblems(meta: FormMeta, values: FormValues, translate: Tran
  * A 422's field errors by field key. A custom field's error names it `attributes.<code>`; an error of a
  * field the form does not show is left for the caller's message.
  */
-export function serverProblems(meta: FormMeta, errors: readonly FieldErrorItem[] | undefined, translate: Translate): FormProblems {
+export function serverProblems(
+  meta: FormMeta,
+  errors: readonly FieldErrorItem[] | undefined,
+  translate: Translate,
+): FormProblems {
   const problems: FormProblems = {};
   for (const error of errors ?? []) {
-    const field = meta.fields.find(candidate => candidate.attribute
-      ? `attributes.${candidate.attribute}` === error.field
-      : candidate.key === error.field);
+    const field = meta.fields.find((candidate) =>
+      candidate.attribute ? `attributes.${candidate.attribute}` === error.field : candidate.key === error.field,
+    );
     if (field && !problems[field.key]) {
       problems[field.key] = KNOWN_CODES.has(error.code) ? problemText(error.code, field, translate) : error.message;
     }
@@ -118,7 +122,9 @@ function fieldProblem(field: FormFieldMeta, value: unknown): string | null {
     case 'number': {
       const number = Number(value);
       if (!Number.isFinite(number)) return 'invalid';
-      return (field.min != null && number < field.min) || (field.max != null && number > field.max) ? 'out_of_range' : null;
+      return (field.min != null && number < field.min) || (field.max != null && number > field.max)
+        ? 'out_of_range'
+        : null;
     }
     case 'select':
       return field.options?.includes(String(value)) ? null : 'invalid';

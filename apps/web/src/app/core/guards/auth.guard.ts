@@ -12,7 +12,7 @@ export const authGuard: CanActivateFn = (_route, state) => {
   }
 
   return authService.checkSession().pipe(
-    map(res => {
+    map((res) => {
       if (res && res.user) {
         return true;
       }
@@ -20,6 +20,6 @@ export const authGuard: CanActivateFn = (_route, state) => {
       authService.rememberReturnUrl(state.url);
       router.navigate(['/login']);
       return false;
-    })
+    }),
   );
 };

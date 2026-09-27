@@ -22,18 +22,28 @@ import { formatTime, nearestSlot, parseTime, timeSlots, withinBounds } from './t
 })
 class FormHost {
   readonly model = signal({ start: '09:00' as string | null });
-  readonly shift = form(this.model, path => required(path.start));
+  readonly shift = form(this.model, (path) => required(path.start));
 }
 
 describe('time utils', () => {
   it.each([
-    ['9', '09:00'], ['09', '09:00'], ['930', '09:30'], ['0930', '09:30'], ['9:30', '09:30'],
-    ['9.30', '09:30'], ['9-30', '09:30'], ['9 30', '09:30'], ['21:5', '21:05'], ['9::30', '09:30'], [' 23:59 ', '23:59'], ['0', '00:00'],
+    ['9', '09:00'],
+    ['09', '09:00'],
+    ['930', '09:30'],
+    ['0930', '09:30'],
+    ['9:30', '09:30'],
+    ['9.30', '09:30'],
+    ['9-30', '09:30'],
+    ['9 30', '09:30'],
+    ['21:5', '21:05'],
+    ['9::30', '09:30'],
+    [' 23:59 ', '23:59'],
+    ['0', '00:00'],
   ])('reads %j as %s', (text, time) => {
     expect(parseTime(text)).toBe(time);
   });
 
-  it.each(['', '24:00', '9:60', '12345', 'noon', '9:30:15', '-1'])('refuses %j', text => {
+  it.each(['', '24:00', '9:60', '12345', 'noon', '9:30:15', '-1'])('refuses %j', (text) => {
     expect(parseTime(text)).toBeNull();
   });
 
@@ -56,7 +66,7 @@ describe('time utils', () => {
 
 describe('SMTTimePickerComponent', () => {
   afterEach(() => {
-    document.querySelectorAll('.cdk-overlay-container').forEach(node => node.remove());
+    document.querySelectorAll('.cdk-overlay-container').forEach((node) => node.remove());
     TestBed.resetTestingModule();
   });
 
@@ -111,7 +121,13 @@ describe('SMTTimePickerComponent', () => {
     const { fixture, input, options, key } = await render();
     await key('ArrowDown');
     expect(input.getAttribute('aria-expanded')).toBe('true');
-    expect(options().map(option => option.textContent!.trim())).toEqual(['08:00', '09:00', '10:00', '11:00', '12:00']);
+    expect(options().map((option) => option.textContent!.trim())).toEqual([
+      '08:00',
+      '09:00',
+      '10:00',
+      '11:00',
+      '12:00',
+    ]);
     expect(input.getAttribute('aria-activedescendant')).toBe(options()[1].id);
     expect(options()[1].getAttribute('aria-selected')).toBe('true');
     await key('ArrowDown');
@@ -147,7 +163,9 @@ describe('SMTTimePickerComponent', () => {
     expect(input.getAttribute('aria-invalid')).toBe('true');
     await type('18:00');
     await key('Enter');
-    expect(element.querySelector('.smt-time-picker__problem')?.textContent).toContain('Enter a time from 08:00 to 12:00');
+    expect(element.querySelector('.smt-time-picker__problem')?.textContent).toContain(
+      'Enter a time from 08:00 to 12:00',
+    );
     await type('11');
     await key('Enter');
     expect(fixture.componentInstance.model().start).toBe('11:00');

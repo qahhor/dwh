@@ -42,13 +42,33 @@ interface CardLine {
       </dl>
     }
   `,
-  styles: [`
-    .entity-card { display: grid; gap: 4px; margin: 0; }
-    .entity-card-line { display: flex; gap: 6px; min-width: 0; font-size: 0.8125rem; }
-    dt { color: var(--text-secondary, inherit); flex: none; }
-    dt::after { content: ':'; }
-    dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
-  `],
+  styles: [
+    `
+      .entity-card {
+        display: grid;
+        gap: 4px;
+        margin: 0;
+      }
+      .entity-card-line {
+        display: flex;
+        gap: 6px;
+        min-width: 0;
+        font-size: 0.8125rem;
+      }
+      dt {
+        color: var(--text-secondary, inherit);
+        flex: none;
+      }
+      dt::after {
+        content: ':';
+      }
+      dd {
+        margin: 0;
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+    `,
+  ],
 })
 export class SMTEntityCardComponent {
   private readonly i18n = inject(I18nService);
@@ -73,25 +93,29 @@ export class SMTEntityCardComponent {
     const translate = (key: string) => this.i18n.translate(key);
     const values = this.value();
     const names = this.names();
-    return this.shownFields().flatMap(field => {
+    return this.shownFields().flatMap((field) => {
       const value = values[field.key];
       if (value === null || value === undefined || value === '') return [];
-      return [{
-        key: field.key,
-        label: fieldLabel(field, translate),
-        text: this.textOf(field, value, names, translate),
-        markdown: field.type === 'markdown',
-      }];
+      return [
+        {
+          key: field.key,
+          label: fieldLabel(field, translate),
+          text: this.textOf(field, value, names, translate),
+          markdown: field.type === 'markdown',
+        },
+      ];
     });
   });
 
   private readonly shownFields = computed<FormFieldMeta[]>(() => {
     const meta = this.meta();
     const only = this.sections();
-    const byKey = new Map(meta.fields.map(field => [field.key, field]));
+    const byKey = new Map(meta.fields.map((field) => [field.key, field]));
     return meta.layout
-      .filter(section => only.length === 0 || only.includes(section.key))
-      .flatMap(section => section.fields.map(key => byKey.get(key)).filter((field): field is FormFieldMeta => !!field));
+      .filter((section) => only.length === 0 || only.includes(section.key))
+      .flatMap((section) =>
+        section.fields.map((key) => byKey.get(key)).filter((field): field is FormFieldMeta => !!field),
+      );
   });
 
   /** References already asked for, so a name is read once. */
@@ -107,16 +131,23 @@ export class SMTEntityCardComponent {
         const wanted = nameKey(field.key, id);
         if (this.asked.has(wanted)) continue;
         this.asked.add(wanted);
-        const subscription = refLookup(this.api, ref).resolve?.([id as string | number]).subscribe(rows => {
-          const row = rows[0] as Record<string, unknown> | undefined;
-          if (row) this.names.update(names => ({ ...names, [wanted]: String(row[ref.labelField] ?? id) }));
-        });
+        const subscription = refLookup(this.api, ref)
+          .resolve?.([id as string | number])
+          .subscribe((rows) => {
+            const row = rows[0] as Record<string, unknown> | undefined;
+            if (row) this.names.update((names) => ({ ...names, [wanted]: String(row[ref.labelField] ?? id) }));
+          });
         if (subscription) this.destroyRef.onDestroy(() => subscription.unsubscribe());
       }
     });
   }
 
-  private textOf(field: FormFieldMeta, value: unknown, names: Record<string, string>, translate: (key: string) => string): string {
+  private textOf(
+    field: FormFieldMeta,
+    value: unknown,
+    names: Record<string, string>,
+    translate: (key: string) => string,
+  ): string {
     switch (field.type) {
       case 'boolean':
         return translate(value === true || value === 'true' ? 'common.yes' : 'common.no');

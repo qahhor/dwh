@@ -6,18 +6,6 @@ import com.smartup24.cms.spi.storage.StorageProvider;
 import com.smartup24.cms.spi.storage.StoredFileMetadata;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
-import software.amazon.awssdk.core.ResponseInputStream;
-import software.amazon.awssdk.core.sync.RequestBody;
-import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
-import software.amazon.awssdk.services.s3.model.GetObjectRequest;
-import software.amazon.awssdk.services.s3.model.GetObjectResponse;
-import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
-import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
-import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-import software.amazon.awssdk.services.s3.model.S3Exception;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -31,6 +19,17 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.Map;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 
 public final class S3StorageProvider implements StorageProvider {
 
@@ -54,11 +53,7 @@ public final class S3StorageProvider implements StorageProvider {
 
     @Override
     public StoredFileMetadata upload(
-            String bucket,
-            String key,
-            InputStream contentStream,
-            long sizeBytes,
-            String contentType) {
+            String bucket, String key, InputStream contentStream, long sizeBytes, String contentType) {
         validateObjectAddress(bucket, key);
         if (contentStream == null || sizeBytes < 0) {
             throw new IllegalArgumentException("Storage content and non-negative size are required");
@@ -71,7 +66,7 @@ public final class S3StorageProvider implements StorageProvider {
             staged = Files.createTempFile("smartupcms-s3-", ".upload");
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             try (InputStream source = new DigestInputStream(contentStream, digest);
-                 OutputStream target = Files.newOutputStream(staged)) {
+                    OutputStream target = Files.newOutputStream(staged)) {
                 byte[] buffer = new byte[8192];
                 int bytesRead;
                 long written = 0;
@@ -84,8 +79,7 @@ public final class S3StorageProvider implements StorageProvider {
                     written += bytesRead;
                 }
                 if (written != sizeBytes) {
-                    throw new IllegalArgumentException(
-                            "Declared storage object size does not match content length");
+                    throw new IllegalArgumentException("Declared storage object size does not match content length");
                 }
             }
 
@@ -109,8 +103,8 @@ public final class S3StorageProvider implements StorageProvider {
                 delete(bucket, key);
                 throw new IllegalStateException("S3 response checksum does not match uploaded content");
             }
-            StoredFileMetadata metadata = new StoredFileMetadata(
-                    bucket, key, sha256, actualSize, resolvedContentType, Instant.now());
+            StoredFileMetadata metadata =
+                    new StoredFileMetadata(bucket, key, sha256, actualSize, resolvedContentType, Instant.now());
             outcome = "success";
             return metadata;
         } catch (IllegalArgumentException error) {
@@ -210,12 +204,12 @@ public final class S3StorageProvider implements StorageProvider {
         long metricStartedAt = System.nanoTime();
         String outcome = "error";
         try {
-            client.headBucket(HeadBucketRequest.builder().bucket(properties.getBucket()).build());
+            client.headBucket(
+                    HeadBucketRequest.builder().bucket(properties.getBucket()).build());
             outcome = "success";
             return ProviderHealth.healthy(getProviderCode(), elapsedMillis(startedAt));
         } catch (Exception error) {
-            return ProviderHealth.unhealthy(
-                    getProviderCode(), "S3 storage is unavailable", elapsedMillis(startedAt));
+            return ProviderHealth.unhealthy(getProviderCode(), "S3 storage is unavailable", elapsedMillis(startedAt));
         } finally {
             recordOperation("health", outcome, metricStartedAt);
         }
@@ -248,8 +242,11 @@ public final class S3StorageProvider implements StorageProvider {
         if (bucket == null || bucket.isBlank() || key == null || key.isBlank()) {
             throw new IllegalArgumentException("Storage bucket and key are required");
         }
-        if (bucket.contains("/") || bucket.contains("\\")
-                || key.startsWith("/") || key.contains("\\") || containsParentSegment(key)
+        if (bucket.contains("/")
+                || bucket.contains("\\")
+                || key.startsWith("/")
+                || key.contains("\\")
+                || containsParentSegment(key)
                 || key.chars().anyMatch(Character::isISOControl)) {
             throw new IllegalArgumentException("Unsafe storage bucket or key");
         }

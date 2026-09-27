@@ -1,30 +1,31 @@
 package com.smartup24.cms.instance.ms.task.worker;
 
-import com.smartup24.cms.instance.ms.notify.service.MsNotificationService;
-import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-
-import java.time.Duration;
-import java.util.List;
-
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
+import com.smartup24.cms.instance.ms.notify.service.MsNotificationService;
+import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository;
+import java.time.Duration;
+import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+
 class TaskDeadlineReminderWorkerTest {
 
     private final MsTaskRepository taskRepository = Mockito.mock(MsTaskRepository.class);
     private final MsNotificationService notificationService = Mockito.mock(MsNotificationService.class);
-    private final TaskDeadlineReminderWorker worker = new TaskDeadlineReminderWorker(taskRepository, notificationService);
+    private final TaskDeadlineReminderWorker worker =
+            new TaskDeadlineReminderWorker(taskRepository, notificationService);
 
     @BeforeEach
     void setUp() {
-        when(notificationService.isNotificationEnabled(anyLong(), anyString(), anyString())).thenReturn(true);
+        when(notificationService.isNotificationEnabled(anyLong(), anyString(), anyString()))
+                .thenReturn(true);
     }
 
     @Test
@@ -32,18 +33,19 @@ class TaskDeadlineReminderWorkerTest {
     void sendsDeadlineNotificationWhenNotSentRecently() {
         var candidate = new MsTaskRepository.TaskDeadlineCandidate(101L, "Сдать финансовый отчёт", 10L);
         when(taskRepository.findUpcomingDeadlines(any(Duration.class))).thenReturn(List.of(candidate));
-        when(notificationService.hasRecentNotification(eq(10L), eq("task_deadline_101"), any(Duration.class))).thenReturn(false);
+        when(notificationService.hasRecentNotification(eq(10L), eq("task_deadline_101"), any(Duration.class)))
+                .thenReturn(false);
 
         worker.scanAndNotifyDeadlines();
 
-        verify(notificationService).sendInAppNotification(
-                eq(10L),
-                eq(TaskDeadlineReminderWorker.REMINDER_TYPE),
-                eq("Приближается дедлайн по задаче #101"),
-                eq("Срок выполнения задачи 'Сдать финансовый отчёт' истекает в ближайшие 24 часа."),
-                eq("/tasks"),
-                eq("task_deadline_101")
-        );
+        verify(notificationService)
+                .sendInAppNotification(
+                        eq(10L),
+                        eq(TaskDeadlineReminderWorker.REMINDER_TYPE),
+                        eq("Приближается дедлайн по задаче #101"),
+                        eq("Срок выполнения задачи 'Сдать финансовый отчёт' истекает в ближайшие 24 часа."),
+                        eq("/tasks"),
+                        eq("task_deadline_101"));
     }
 
     @Test
@@ -51,11 +53,13 @@ class TaskDeadlineReminderWorkerTest {
     void suppressesNotificationWhenAlreadySentRecently() {
         var candidate = new MsTaskRepository.TaskDeadlineCandidate(102L, "Обновить сертификаты", 20L);
         when(taskRepository.findUpcomingDeadlines(any(Duration.class))).thenReturn(List.of(candidate));
-        when(notificationService.hasRecentNotification(eq(20L), eq("task_deadline_102"), any(Duration.class))).thenReturn(true);
+        when(notificationService.hasRecentNotification(eq(20L), eq("task_deadline_102"), any(Duration.class)))
+                .thenReturn(true);
 
         worker.scanAndNotifyDeadlines();
 
-        verify(notificationService, never()).sendInAppNotification(anyLong(), anyString(), anyString(), anyString(), anyString(), anyString());
+        verify(notificationService, never())
+                .sendInAppNotification(anyLong(), anyString(), anyString(), anyString(), anyString(), anyString());
     }
 
     @Test
@@ -63,11 +67,13 @@ class TaskDeadlineReminderWorkerTest {
     void suppressesNotificationWhenDisabledInPreferences() {
         var candidate = new MsTaskRepository.TaskDeadlineCandidate(103L, "Провести аудит", 30L);
         when(taskRepository.findUpcomingDeadlines(any(Duration.class))).thenReturn(List.of(candidate));
-        when(notificationService.isNotificationEnabled(eq(30L), eq("task_deadline_reminder"), eq("in_app"))).thenReturn(false);
+        when(notificationService.isNotificationEnabled(eq(30L), eq("task_deadline_reminder"), eq("in_app")))
+                .thenReturn(false);
 
         worker.scanAndNotifyDeadlines();
 
-        verify(notificationService, never()).sendInAppNotification(anyLong(), anyString(), anyString(), anyString(), anyString(), anyString());
+        verify(notificationService, never())
+                .sendInAppNotification(anyLong(), anyString(), anyString(), anyString(), anyString(), anyString());
     }
 
     @Test
@@ -77,7 +83,8 @@ class TaskDeadlineReminderWorkerTest {
 
         worker.scanAndNotifyDeadlines();
 
-        verify(notificationService, never()).sendInAppNotification(anyLong(), anyString(), anyString(), anyString(), anyString(), anyString());
+        verify(notificationService, never())
+                .sendInAppNotification(anyLong(), anyString(), anyString(), anyString(), anyString(), anyString());
     }
 
     @Test
@@ -91,7 +98,13 @@ class TaskDeadlineReminderWorkerTest {
 
         worker.scanAndNotifyDeadlines();
 
-        verify(notificationService).sendInAppNotification(eq(50L), eq(TaskDeadlineReminderWorker.REMINDER_TYPE),
-                anyString(), anyString(), eq("/tasks"), eq("task_deadline_105"));
+        verify(notificationService)
+                .sendInAppNotification(
+                        eq(50L),
+                        eq(TaskDeadlineReminderWorker.REMINDER_TYPE),
+                        anyString(),
+                        anyString(),
+                        eq("/tasks"),
+                        eq("task_deadline_105"));
     }
 }

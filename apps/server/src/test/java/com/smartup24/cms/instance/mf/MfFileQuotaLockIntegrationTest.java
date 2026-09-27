@@ -1,7 +1,12 @@
 package com.smartup24.cms.instance.mf;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.smartup24.cms.instance.common.query.QueryListRepository;
 import com.smartup24.cms.instance.mf.repository.MfFileRepository;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
@@ -10,12 +15,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 @Testcontainers(disabledWithoutDocker = true)
 class MfFileQuotaLockIntegrationTest {
@@ -28,12 +27,12 @@ class MfFileQuotaLockIntegrationTest {
 
     @Test
     void concurrentQuotaWriterWaitsUntilTheFirstTransactionCommits() throws Exception {
-        var dataSource = new DriverManagerDataSource(
-                postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
-        var firstRepository = new MfFileRepository(JdbcClient.create(dataSource),
-                new QueryListRepository(JdbcClient.create(dataSource)));
-        var secondRepository = new MfFileRepository(JdbcClient.create(dataSource),
-                new QueryListRepository(JdbcClient.create(dataSource)));
+        var dataSource =
+                new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+        var firstRepository = new MfFileRepository(
+                JdbcClient.create(dataSource), new QueryListRepository(JdbcClient.create(dataSource)));
+        var secondRepository = new MfFileRepository(
+                JdbcClient.create(dataSource), new QueryListRepository(JdbcClient.create(dataSource)));
         var firstTransaction = new TransactionTemplate(new DataSourceTransactionManager(dataSource));
         var secondTransaction = new TransactionTemplate(new DataSourceTransactionManager(dataSource));
         CountDownLatch firstHasLock = new CountDownLatch(1);

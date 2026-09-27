@@ -10,6 +10,5 @@ import java.time.LocalDate;
 public record FndConversion(BigDecimal value, String unit, FndCoefficientRef coefficient, LocalDate date) {
 
     /** Ссылка на использованную версию коэффициента: её обязан сохранить вызывающий модуль. */
-    public record FndCoefficientRef(long coefficientId, int version) {
-    }
+    public record FndCoefficientRef(long coefficientId, int version) {}
 }

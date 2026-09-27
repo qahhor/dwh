@@ -1,13 +1,12 @@
 package com.smartup24.cms.instance.fnd.config;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.time.Duration;
+import javax.sql.DataSource;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
-
-import javax.sql.DataSource;
-import java.time.Duration;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * AC-36 / M-11: таймаут соединения с pg-dwh обязателен — без {@code app.dwh.connect-timeout} старт красный.
@@ -26,7 +25,9 @@ class DwhDataSourcePropertiesTest {
     @DisplayName("AC-36: без app.dwh.connect-timeout контекст не стартует, причина называет таймаут")
     void missingTimeoutFailsStartup() {
         runner.run(context -> {
-            assertThat(context.getStartupFailure()).as("старт должен быть красным").isNotNull();
+            assertThat(context.getStartupFailure())
+                    .as("старт должен быть красным")
+                    .isNotNull();
             assertThat(causeChain(context.getStartupFailure())).containsAnyOf("connect-timeout", "connectTimeout");
         });
     }
@@ -36,7 +37,8 @@ class DwhDataSourcePropertiesTest {
     void timeoutBindsAndPoolIsCreated() {
         runner.withPropertyValues("app.dwh.connect-timeout=2s").run(context -> {
             assertThat(context.getStartupFailure()).isNull();
-            assertThat(context.getBean(DwhDataSourceProperties.class).connectTimeout()).isEqualTo(Duration.ofSeconds(2));
+            assertThat(context.getBean(DwhDataSourceProperties.class).connectTimeout())
+                    .isEqualTo(Duration.ofSeconds(2));
             assertThat(context.getBean("dwhDataSource", DataSource.class)).isNotNull();
         });
     }

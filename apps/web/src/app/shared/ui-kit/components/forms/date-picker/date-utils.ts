@@ -18,14 +18,7 @@ export interface DateRange {
   readonly to: string | null;
 }
 
-export type DateRangePresetKey =
-  | 'today'
-  | 'yesterday'
-  | 'last7'
-  | 'last30'
-  | 'thisMonth'
-  | 'lastMonth'
-  | 'thisYear';
+export type DateRangePresetKey = 'today' | 'yesterday' | 'last7' | 'last30' | 'thisMonth' | 'lastMonth' | 'thisYear';
 
 export const DATE_RANGE_PRESETS: readonly DateRangePresetKey[] = [
   'today',
@@ -133,7 +126,7 @@ export function isWithin(date: CalendarDate, min: CalendarDate | null, max: Cale
 export function monthGrid(year: number, month: number): CalendarDate[][] {
   const first = startOfWeek({ year, month, day: 1 });
   return Array.from({ length: 6 }, (_, week) =>
-    Array.from({ length: 7 }, (_, weekday) => addDays(first, week * 7 + weekday))
+    Array.from({ length: 7 }, (_, weekday) => addDays(first, week * 7 + weekday)),
   );
 }
 

@@ -1,12 +1,6 @@
 package com.smartup24.cms.instance.ms.notify.repository;
 
 import com.smartup24.cms.instance.ms.notify.model.AnnouncementState;
-import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
@@ -16,6 +10,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 @Repository
 public class MsAnnouncementRepository {
@@ -36,7 +35,8 @@ public class MsAnnouncementRepository {
     }
 
     public List<AnnouncementRecord> getActiveUnreadAnnouncements(Long userId, String language) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select a.id,
                        coalesce(a.title_json ->> :lang, a.title_json ->> 'ru') as title,
                        coalesce(a.body_json ->> :lang, a.body_json ->> 'ru') as body,
@@ -53,13 +53,13 @@ public class MsAnnouncementRepository {
                         rs.getString("title"),
                         rs.getString("body"),
                         rs.getString("banner_type"),
-                        rs.getTimestamp("published_at").toInstant()
-                ))
+                        rs.getTimestamp("published_at").toInstant()))
                 .list();
     }
 
     public void markAsRead(Long announcementId, Long userId) {
-        jdbcClient.sql("""
+        jdbcClient
+                .sql("""
                 insert into ms_announcement_reads (announcement_id, user_id, read_at)
                 values (:announcementId, :userId, now())
                 on conflict (announcement_id, user_id) do nothing
@@ -70,24 +70,24 @@ public class MsAnnouncementRepository {
     }
 
     public List<ManagedAnnouncementRecord> findAll() {
-        return jdbcClient.sql("select " + MANAGED_COLUMNS + " from ms_announcements order by modified_at desc, id desc")
+        return jdbcClient
+                .sql("select " + MANAGED_COLUMNS + " from ms_announcements order by modified_at desc, id desc")
                 .query(managedMapper)
                 .list();
     }
 
     public Optional<ManagedAnnouncementRecord> findById(Long id) {
-        return jdbcClient.sql("select " + MANAGED_COLUMNS + " from ms_announcements where id = :id")
+        return jdbcClient
+                .sql("select " + MANAGED_COLUMNS + " from ms_announcements where id = :id")
                 .param("id", id)
                 .query(managedMapper)
                 .optional();
     }
 
     public ManagedAnnouncementRecord create(
-            Map<String, String> titleJson,
-            Map<String, String> bodyJson,
-            String bannerType,
-            Long createdBy) {
-        return jdbcClient.sql("""
+            Map<String, String> titleJson, Map<String, String> bodyJson, String bannerType, Long createdBy) {
+        return jdbcClient
+                .sql("""
                         insert into ms_announcements
                             (title_json, body_json, banner_type, state, created_by)
                         values
@@ -103,12 +103,9 @@ public class MsAnnouncementRepository {
     }
 
     public Optional<ManagedAnnouncementRecord> updateDraft(
-            Long id,
-            Map<String, String> titleJson,
-            Map<String, String> bodyJson,
-            String bannerType,
-            Long lockVersion) {
-        return jdbcClient.sql("""
+            Long id, Map<String, String> titleJson, Map<String, String> bodyJson, String bannerType, Long lockVersion) {
+        return jdbcClient
+                .sql("""
                         update ms_announcements
                         set title_json = cast(:titleJson as jsonb),
                             body_json = cast(:bodyJson as jsonb),
@@ -128,7 +125,8 @@ public class MsAnnouncementRepository {
     }
 
     public Optional<ManagedAnnouncementRecord> publish(Long id, Long lockVersion) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                         update ms_announcements
                         set state = 'PUBLISHED',
                             published_at = now(),
@@ -144,7 +142,8 @@ public class MsAnnouncementRepository {
     }
 
     public Optional<ManagedAnnouncementRecord> archive(Long id, Long lockVersion) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                         update ms_announcements
                         set state = 'ARCHIVED',
                             archived_at = now(),
@@ -205,19 +204,10 @@ public class MsAnnouncementRepository {
     }
 
     private static String normalizedLanguage(String language) {
-        return language == null || language.isBlank()
-                ? "ru"
-                : language.trim().toLowerCase(Locale.ROOT);
+        return language == null || language.isBlank() ? "ru" : language.trim().toLowerCase(Locale.ROOT);
     }
 
-    public record AnnouncementRecord(
-            Long id,
-            String title,
-            String body,
-            String bannerType,
-            Instant publishedAt
-    ) {
-    }
+    public record AnnouncementRecord(Long id, String title, String body, String bannerType, Instant publishedAt) {}
 
     public record ManagedAnnouncementRecord(
             Long id,
@@ -230,8 +220,7 @@ public class MsAnnouncementRepository {
             Instant modifiedAt,
             Instant publishedAt,
             Instant archivedAt,
-            long lockVersion
-    ) {
+            long lockVersion) {
         public ManagedAnnouncementRecord {
             titleJson = Collections.unmodifiableMap(new LinkedHashMap<>(titleJson));
             bodyJson = Collections.unmodifiableMap(new LinkedHashMap<>(bodyJson));

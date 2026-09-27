@@ -13,9 +13,10 @@ describe('Application notification host', () => {
     await TestBed.configureTestingModule({
       imports: [AppComponent],
       providers: [
-        provideRouter([]), ToastService,
-        { provide: AuthService, useValue: { isLoading: signal(false), checkSession: () => of(null) } }
-      ]
+        provideRouter([]),
+        ToastService,
+        { provide: AuthService, useValue: { isLoading: signal(false), checkSession: () => of(null) } },
+      ],
     }).compileComponents();
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
@@ -23,10 +24,12 @@ describe('Application notification host', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelectorAll('ui-toast-container')).toHaveLength(1);
-    expect(fixture.nativeElement.querySelector('.toast-success')?.textContent)
-      .toContain('Пароль изменён. Войдите снова с новым паролем.');
-    await new Promise(resolve => setTimeout(resolve, ANNOUNCE_DELAY_MS + 20));
-    expect(document.querySelector('.app-live-announcer[aria-live="polite"]')?.textContent)
-      .toBe('Пароль изменён. Войдите снова с новым паролем.');
+    expect(fixture.nativeElement.querySelector('.toast-success')?.textContent).toContain(
+      'Пароль изменён. Войдите снова с новым паролем.',
+    );
+    await new Promise((resolve) => setTimeout(resolve, ANNOUNCE_DELAY_MS + 20));
+    expect(document.querySelector('.app-live-announcer[aria-live="polite"]')?.textContent).toBe(
+      'Пароль изменён. Войдите снова с новым паролем.',
+    );
   });
 });

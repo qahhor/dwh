@@ -6,7 +6,8 @@
   [class.smt-dropzone--disabled]="disabled()"
   (dragover)="onDragOver($event)"
   (dragleave)="onDragLeave($event)"
-  (drop)="onDrop($event)">
+  (drop)="onDrop($event)"
+>
   <input
     class="smt-dropzone__input"
     type="file"
@@ -14,7 +15,8 @@
     [accept]="accept()"
     [multiple]="multiple()"
     [disabled]="disabled()"
-    (change)="onChange($event)" />
+    (change)="onChange($event)"
+  />
   <span class="material-symbols-outlined smt-dropzone__icon" aria-hidden="true">cloud_upload</span>
   <span class="smt-dropzone__text">
     <span class="smt-dropzone__prompt">

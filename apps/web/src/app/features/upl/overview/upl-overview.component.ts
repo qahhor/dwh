@@ -1,5 +1,16 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, Signal, TemplateRef, computed, inject, signal, viewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  OnInit,
+  Signal,
+  TemplateRef,
+  computed,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subscription, filter, interval } from 'rxjs';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
@@ -18,23 +29,31 @@ import {
   UplOverview,
   UplOverviewApi,
   UplOverviewPeriod,
-  UplSourceFreshness
+  UplSourceFreshness,
 } from './overview-api';
-import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '../../../shared/ui-kit/components/forms/radio-group';
+import {
+  optionsMemo,
+  SMTRadioGroupComponent,
+  SMTRadioOption,
+} from '../../../shared/ui-kit/components/forms/radio-group';
 
 /** How often an open, visible overview asks for fresh figures. */
 const REFRESH_MS = 5 * 60 * 1000;
 /** Worst first: what is late comes before what is merely due. */
 const SEVERITY: Record<UplFreshnessState, number> = { overdue: 0, due: 1, never: 2, fresh: 3, adhoc: 4 };
 const STATE_VARIANT: Record<UplFreshnessState, string> = {
-  overdue: 'danger', due: 'warning', never: 'neutral', fresh: 'success', adhoc: 'info'
+  overdue: 'danger',
+  due: 'warning',
+  never: 'neutral',
+  fresh: 'success',
+  adhoc: 'info',
 };
 const STATE_KEY: Record<UplFreshnessState, string> = {
   overdue: 'upl.overview.fresh.state.overdue',
   due: 'upl.overview.fresh.state.due',
   never: 'upl.overview.fresh.state.never',
   fresh: 'upl.overview.fresh.state.fresh',
-  adhoc: 'upl.overview.fresh.state.adhoc'
+  adhoc: 'upl.overview.fresh.state.adhoc',
 };
 
 /**
@@ -48,7 +67,18 @@ const STATE_KEY: Record<UplFreshnessState, string> = {
   selector: 'app-upl-overview',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTRadioGroupComponent, DatePipe, RouterLink, TranslatePipe, UiBadgeComponent, SMTButtonComponent, UiDashboardCardComponent, UiLocalTableComponent, UiKpiCardComponent, UiBarChartComponent],
+  imports: [
+    SMTRadioGroupComponent,
+    DatePipe,
+    RouterLink,
+    TranslatePipe,
+    UiBadgeComponent,
+    SMTButtonComponent,
+    UiDashboardCardComponent,
+    UiLocalTableComponent,
+    UiKpiCardComponent,
+    UiBarChartComponent,
+  ],
   template: `
     <section class="overview" aria-labelledby="overview-title">
       <header class="overview__head">
@@ -64,8 +94,17 @@ const STATE_KEY: Record<UplFreshnessState, string> = {
             [options]="periodOptions()"
             [value]="days()"
             [smtAriaLabel]="'upl.overview.period' | t"
-            (valueChange)="choose($event ?? days())" />
-          <button smt-button type="button" smtVariant="secondary" smtSize="sm" smtIcon="refresh" data-testid="overview-refresh" (click)="load()">
+            (valueChange)="choose($event ?? days())"
+          />
+          <button
+            smt-button
+            type="button"
+            smtVariant="secondary"
+            smtSize="sm"
+            smtIcon="refresh"
+            data-testid="overview-refresh"
+            (click)="load()"
+          >
             {{ 'common.refresh' | t }}
           </button>
         </div>
@@ -85,32 +124,38 @@ const STATE_KEY: Record<UplFreshnessState, string> = {
           [failed]="failed()"
           [empty]="data()?.totals?.uploads === 0"
           [emptyText]="'upl.overview.totals.empty' | t"
-          (retry)="load()">
+          (retry)="load()"
+        >
           @if (data(); as current) {
             <div class="overview__tiles" data-testid="overview-kpis">
               <ui-kpi-card
                 [label]="'upl.overview.totals.uploads' | t"
                 [value]="current.totals.uploads"
                 [previous]="current.previous.uploads"
-                goodWhen="neutral" />
+                goodWhen="neutral"
+              />
               <ui-kpi-card
                 [label]="'upl.overview.totals.applied' | t"
                 [value]="current.totals.applied"
-                [previous]="current.previous.applied" />
+                [previous]="current.previous.applied"
+              />
               <ui-kpi-card
                 [label]="'upl.overview.totals.verified' | t"
                 [value]="current.totals.verified"
                 [previous]="current.previous.verified"
-                goodWhen="down" />
+                goodWhen="down"
+              />
               <ui-kpi-card
                 [label]="'upl.overview.totals.rejected' | t"
                 [value]="current.totals.rejected"
                 [previous]="current.previous.rejected"
-                goodWhen="down" />
+                goodWhen="down"
+              />
               <ui-kpi-card
                 [label]="'upl.overview.totals.rows' | t"
                 [value]="current.totals.rowsApplied"
-                [previous]="current.previous.rowsApplied" />
+                [previous]="current.previous.rowsApplied"
+              />
             </div>
           }
         </ui-dashboard-card>
@@ -124,9 +169,14 @@ const STATE_KEY: Record<UplFreshnessState, string> = {
           [failed]="failed()"
           [empty]="data()?.totals?.uploads === 0"
           [emptyText]="'upl.overview.totals.empty' | t"
-          (retry)="load()">
-          <ui-bar-chart [series]="chartSeries()" [points]="chartPoints()" [caption]="'upl.overview.daily.caption' | t: { n: days() }"
-            [axisLabel]="'upl.overview.daily.day' | t" />
+          (retry)="load()"
+        >
+          <ui-bar-chart
+            [series]="chartSeries()"
+            [points]="chartPoints()"
+            [caption]="'upl.overview.daily.caption' | t: { n: days() }"
+            [axisLabel]="'upl.overview.daily.day' | t"
+          />
         </ui-dashboard-card>
 
         <ui-dashboard-card
@@ -136,14 +186,23 @@ const STATE_KEY: Record<UplFreshnessState, string> = {
           [failed]="failed()"
           [empty]="data()?.attention?.length === 0"
           [emptyText]="'upl.overview.attention.empty' | t"
-          (retry)="load()">
+          (retry)="load()"
+        >
           <ul class="overview__attention">
             @for (item of data()?.attention ?? []; track $index) {
-              <li class="overview__attention-item" [class]="'overview__attention-item overview__attention-item--' + item.kind">
+              <li
+                class="overview__attention-item"
+                [class]="'overview__attention-item overview__attention-item--' + item.kind"
+              >
                 <span class="material-symbols-outlined" aria-hidden="true">{{ attentionIcon(item) }}</span>
                 <span class="overview__attention-text">{{ attentionText(item) }}</span>
-                <a class="overview__attention-link" data-testid="overview-attention-link"
-                  [routerLink]="attentionLink(item)" [queryParams]="attentionQuery(item)">{{ attentionAction(item) }}</a>
+                <a
+                  class="overview__attention-link"
+                  data-testid="overview-attention-link"
+                  [routerLink]="attentionLink(item)"
+                  [queryParams]="attentionQuery(item)"
+                  >{{ attentionAction(item) }}</a
+                >
               </li>
             }
           </ul>
@@ -158,7 +217,8 @@ const STATE_KEY: Record<UplFreshnessState, string> = {
           [failed]="failed()"
           [empty]="data()?.freshness?.length === 0"
           [emptyText]="'upl.overview.fresh.empty' | t"
-          (retry)="load()">
+          (retry)="load()"
+        >
           <ui-local-table [rows]="freshnessRows()" [config]="freshnessConfig()" [sortValues]="freshnessSort" />
         </ui-dashboard-card>
       </div>
@@ -168,33 +228,121 @@ const STATE_KEY: Record<UplFreshnessState, string> = {
       <a class="overview__source" [routerLink]="['/upl/sources', f.sourceId]">{{ f.name }}</a>
       <span class="overview__code">{{ f.code }}</span>
     </ng-template>
-    <ng-template #stateCell let-f><ui-badge [variant]="stateVariant(f)" [dot]="true">{{ stateText(f) }}</ui-badge></ng-template>
+    <ng-template #stateCell let-f
+      ><ui-badge [variant]="stateVariant(f)" [dot]="true">{{ stateText(f) }}</ui-badge></ng-template
+    >
     <ng-template #lastCell let-f>{{ f.lastPeriodTo ? (f.lastPeriodTo | date: 'dd.MM.yyyy') : '—' }}</ng-template>
     <ng-template #dueCell let-f>{{ f.dueBy ? (f.dueBy | date: 'dd.MM.yyyy') : '—' }}</ng-template>
   `,
-  styles: [`
-    .overview { display: flex; flex-direction: column; gap: 12px; padding: 24px; min-width: 0; }
-    .overview__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-    .overview__title { margin: 0; font-size: 20px; font-weight: 700; color: var(--text-main); }
-    .overview__subtitle { margin: 4px 0 0; font-size: 13px; color: var(--text-muted); }
-    .overview__controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-    .overview__stamp { margin: 0; font-size: 12px; color: var(--text-muted); }
-    .overview__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px; }
-    .overview__tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin: 0; }
-    .overview__tile dt { font-size: 12px; color: var(--text-muted); }
-    .overview__wide { grid-column: 1 / -1; }
-    .overview__attention { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-    .overview__attention-item { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: start; font-size: 13px; }
-    .overview__attention-item .material-symbols-outlined { font-size: 18px; }
-    .overview__attention-item--overdue .material-symbols-outlined { color: var(--danger-text); }
-    .overview__attention-item--rejected .material-symbols-outlined { color: var(--warning-text, var(--danger-text)); }
-    .overview__attention-item--waiting .material-symbols-outlined { color: var(--primary-text, var(--primary)); }
-    .overview__attention-text { color: var(--text-main); overflow-wrap: anywhere; }
-    .overview__attention-link { color: var(--primary-text, var(--primary)); white-space: nowrap; }
-    .overview__source { color: var(--primary-text, var(--primary)); font-weight: 500; }
-    .overview__code { display: block; font-size: 12px; color: var(--text-muted); font-family: var(--font-mono, monospace); }
-    .overview__tile dd { margin: 4px 0 0; font-size: 22px; font-weight: 700; color: var(--text-main); font-variant-numeric: tabular-nums; }
-  `]
+  styles: [
+    `
+      .overview {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 24px;
+        min-width: 0;
+      }
+      .overview__head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .overview__title {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--text-main);
+      }
+      .overview__subtitle {
+        margin: 4px 0 0;
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+      .overview__controls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .overview__stamp {
+        margin: 0;
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+      .overview__grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+        gap: 16px;
+      }
+      .overview__tiles {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 12px;
+        margin: 0;
+      }
+      .overview__tile dt {
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+      .overview__wide {
+        grid-column: 1 / -1;
+      }
+      .overview__attention {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 8px;
+      }
+      .overview__attention-item {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 8px;
+        align-items: start;
+        font-size: 13px;
+      }
+      .overview__attention-item .material-symbols-outlined {
+        font-size: 18px;
+      }
+      .overview__attention-item--overdue .material-symbols-outlined {
+        color: var(--danger-text);
+      }
+      .overview__attention-item--rejected .material-symbols-outlined {
+        color: var(--warning-text, var(--danger-text));
+      }
+      .overview__attention-item--waiting .material-symbols-outlined {
+        color: var(--primary-text, var(--primary));
+      }
+      .overview__attention-text {
+        color: var(--text-main);
+        overflow-wrap: anywhere;
+      }
+      .overview__attention-link {
+        color: var(--primary-text, var(--primary));
+        white-space: nowrap;
+      }
+      .overview__source {
+        color: var(--primary-text, var(--primary));
+        font-weight: 500;
+      }
+      .overview__code {
+        display: block;
+        font-size: 12px;
+        color: var(--text-muted);
+        font-family: var(--font-mono, monospace);
+      }
+      .overview__tile dd {
+        margin: 4px 0 0;
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--text-main);
+        font-variant-numeric: tabular-nums;
+      }
+    `,
+  ],
 })
 export class UplOverviewComponent implements OnInit {
   /** Texts of the radio options below; translated again when the language changes. */
@@ -217,18 +365,23 @@ export class UplOverviewComponent implements OnInit {
   readonly chartSeries = computed<BarChartSeries[]>(() => [
     { key: 'applied', label: this.i18n.translate('upl.overview.totals.applied'), color: 'var(--success)' },
     { key: 'other', label: this.i18n.translate('upl.overview.daily.other'), color: 'var(--primary)' },
-    { key: 'rejected', label: this.i18n.translate('upl.overview.totals.rejected'), color: 'var(--danger)' }
+    { key: 'rejected', label: this.i18n.translate('upl.overview.totals.rejected'), color: 'var(--danger)' },
   ]);
 
   /** Every day of the period as a bar, labelled day.month. */
-  readonly chartPoints = computed<BarChartPoint[]>(() => (this.data()?.daily ?? []).map(day => ({
-    label: day.day.slice(8, 10) + '.' + day.day.slice(5, 7),
-    values: { applied: day.applied, other: day.other, rejected: day.rejected }
-  })));
+  readonly chartPoints = computed<BarChartPoint[]>(() =>
+    (this.data()?.daily ?? []).map((day) => ({
+      label: day.day.slice(8, 10) + '.' + day.day.slice(5, 7),
+      values: { applied: day.applied, other: day.other, rejected: day.rejected },
+    })),
+  );
 
   /** Sources worst first, by name within a state; a header click sorts them otherwise. */
-  readonly freshnessRows = computed(() => [...(this.data()?.freshness ?? [])]
-    .sort((a, b) => SEVERITY[a.state] - SEVERITY[b.state] || a.name.localeCompare(b.name)));
+  readonly freshnessRows = computed(() =>
+    [...(this.data()?.freshness ?? [])].sort(
+      (a, b) => SEVERITY[a.state] - SEVERITY[b.state] || a.name.localeCompare(b.name),
+    ),
+  );
 
   readonly freshnessConfig = computed<TableConfig<UplSourceFreshness>>(() => {
     const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
@@ -241,9 +394,9 @@ export class UplOverviewComponent implements OnInit {
         source: { header: header('upl.overview.fresh.col.source'), content: cell(this.sourceCell) },
         state: { header: header('upl.overview.fresh.col.state'), content: cell(this.stateCell), width: '170px' },
         last: { header: header('upl.overview.fresh.col.last'), content: cell(this.lastCell), width: '170px' },
-        due: { header: header('upl.overview.fresh.col.due'), content: cell(this.dueCell), width: '150px' }
+        due: { header: header('upl.overview.fresh.col.due'), content: cell(this.dueCell), width: '150px' },
       },
-      columnsOrder: ['source', 'state', 'last', 'due']
+      columnsOrder: ['source', 'state', 'last', 'due'],
     };
   });
 
@@ -254,17 +407,19 @@ export class UplOverviewComponent implements OnInit {
     source: (f: UplSourceFreshness) => f.name,
     state: (f: UplSourceFreshness) => SEVERITY[f.state],
     last: (f: UplSourceFreshness) => f.lastPeriodTo,
-    due: (f: UplSourceFreshness) => f.dueBy
+    due: (f: UplSourceFreshness) => f.dueBy,
   };
 
   private readonly periodMemo = optionsMemo<SMTRadioOption<UplOverviewPeriod>[]>();
 
   ngOnInit(): void {
     this.load();
-    interval(REFRESH_MS).pipe(
-      filter(() => typeof document === 'undefined' || document.visibilityState === 'visible'),
-      takeUntilDestroyed(this.destroyRef)
-    ).subscribe(() => this.load());
+    interval(REFRESH_MS)
+      .pipe(
+        filter(() => typeof document === 'undefined' || document.visibilityState === 'visible'),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(() => this.load());
   }
 
   stateText(f: UplSourceFreshness): string {
@@ -284,17 +439,28 @@ export class UplOverviewComponent implements OnInit {
     const day = (value?: string | null) => (value ? value.split('-').reverse().join('.') : '');
     switch (item.kind) {
       case 'overdue':
-        return this.i18n.translate('upl.overview.attention.overdue',
-          { source: item.sourceName, period: day(item.periodTo), days: item.daysLate ?? 0 });
+        return this.i18n.translate('upl.overview.attention.overdue', {
+          source: item.sourceName,
+          period: day(item.periodTo),
+          days: item.daysLate ?? 0,
+        });
       case 'rejected':
-        return this.i18n.translate('upl.overview.attention.rejected', { source: item.sourceName, file: item.fileName ?? '' });
+        return this.i18n.translate('upl.overview.attention.rejected', {
+          source: item.sourceName,
+          file: item.fileName ?? '',
+        });
       default:
-        return this.i18n.translate('upl.overview.attention.waiting', { source: item.sourceName, file: item.fileName ?? '' });
+        return this.i18n.translate('upl.overview.attention.waiting', {
+          source: item.sourceName,
+          file: item.fileName ?? '',
+        });
     }
   }
 
   attentionAction(item: UplAttentionItem): string {
-    return this.i18n.translate(item.kind === 'overdue' ? 'upl.overview.attention.open_source' : 'upl.overview.attention.open_upload');
+    return this.i18n.translate(
+      item.kind === 'overdue' ? 'upl.overview.attention.open_source' : 'upl.overview.attention.open_upload',
+    );
   }
 
   /** An overdue source opens the upload form with it chosen; an upload opens its own card. */
@@ -318,19 +484,27 @@ export class UplOverviewComponent implements OnInit {
     this.request?.unsubscribe();
     this.loading.set(true);
     this.failed.set(false);
-    this.request = this.api.get(this.days()).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: overview => {
-        this.data.set(overview);
-        this.loading.set(false);
-      },
-      error: () => {
-        this.loading.set(false);
-        this.failed.set(true);
-      }
-    });
+    this.request = this.api
+      .get(this.days())
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (overview) => {
+          this.data.set(overview);
+          this.loading.set(false);
+        },
+        error: () => {
+          this.loading.set(false);
+          this.failed.set(true);
+        },
+      });
   }
 
   periodOptions(): SMTRadioOption<UplOverviewPeriod>[] {
-    return this.periodMemo([this.optionText.currentLang()], () => this.periods.map(period => ({ value: period, label: this.optionText.translate('upl.overview.days', { n: period }) })));
+    return this.periodMemo([this.optionText.currentLang()], () =>
+      this.periods.map((period) => ({
+        value: period,
+        label: this.optionText.translate('upl.overview.days', { n: period }),
+      })),
+    );
   }
 }

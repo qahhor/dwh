@@ -1,8 +1,16 @@
 package com.smartup24.cms.instance.a1;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
+
 import com.smartup24.cms.instance.kauth.repository.SsoProviderRepository;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -10,15 +18,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.support.TransactionTemplate;
-
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Stream;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.tuple;
 
 /**
  * И1 шаги 1.3–1.4 (a1-on-cms), AC-9/AC-14/AC-16: роли экземпляра из V110,
@@ -28,18 +27,25 @@ class A1InstanceRolesTest extends EmbeddedPostgresTest {
 
     /** Точный набор analyst из V110 п.3 (M-2): набор роли user без tasks.*. */
     static final List<String> ANALYST_PAIRS = List.of(
-            "iam.profile:view", "iam.profile:update", "iam.profile:manage_tokens", "iam.profile:manage_channels",
-            "platform.files:view", "platform.files:upload",
+            "iam.profile:view",
+            "iam.profile:update",
+            "iam.profile:manage_tokens",
+            "iam.profile:manage_channels",
+            "platform.files:view",
+            "platform.files:upload",
             "platform.search:view",
             "notify.inbox:view",
-            "notify.preferences:view", "notify.preferences:update",
+            "notify.preferences:view",
+            "notify.preferences:update",
             "platform.announcements:view");
 
     /** Правило И3+: модули добавляют analyst свои рабочие пары своей миграцией (V112 — upl.sources, V115 — upl.packages); V116 — upl.packages:apply только chief_admin и admin. */
-    static final List<String> LATER_MODULE_ANALYST_PAIRS = List.of("upl.sources:view", "upl.packages:view", "upl.packages:upload");
+    static final List<String> LATER_MODULE_ANALYST_PAIRS =
+            List.of("upl.sources:view", "upl.packages:view", "upl.packages:upload");
 
     private static List<String> allAnalystPairs() {
-        return Stream.concat(ANALYST_PAIRS.stream(), LATER_MODULE_ANALYST_PAIRS.stream()).toList();
+        return Stream.concat(ANALYST_PAIRS.stream(), LATER_MODULE_ANALYST_PAIRS.stream())
+                .toList();
     }
 
     private static final String TEST_ANALYST_LOGIN = "test-analyst-a1";
@@ -62,29 +68,36 @@ class A1InstanceRolesTest extends EmbeddedPostgresTest {
     @AfterEach
     void removeTestAnalyst() {
         // Каскад md_user_roles / md_effective_permissions / md_user_permission_versions (V001)
-        jdbc.sql("delete from md_users where login = :login").param("login", TEST_ANALYST_LOGIN).update();
+        jdbc.sql("delete from md_users where login = :login")
+                .param("login", TEST_ANALYST_LOGIN)
+                .update();
     }
 
     @Test
     @DisplayName("AC-9: роли экземпляра chief_admin и analyst заведены с именами из V110")
     void instanceRolesExistWithPcode() {
-        List<String> pcodes = jdbc.sql("select pcode from md_roles where pcode in ('chief_admin','analyst') order by pcode")
-                .query(String.class).list();
+        List<String> pcodes = jdbc.sql(
+                        "select pcode from md_roles where pcode in ('chief_admin','analyst') order by pcode")
+                .query(String.class)
+                .list();
         assertThat(pcodes).containsExactly("analyst", "chief_admin");
 
         String chiefAdminName = jdbc.sql("select name from md_roles where pcode = 'chief_admin'")
-                .query(String.class).single();
+                .query(String.class)
+                .single();
         assertThat(chiefAdminName).isEqualTo("Bosh administrator");
 
         String analystName = jdbc.sql("select name from md_roles where pcode = 'analyst'")
-                .query(String.class).single();
+                .query(String.class)
+                .single();
         assertThat(analystName).isEqualTo("Tahlilchi");
 
         List<Map<String, Object>> rows = jdbc.sql("""
                 select pcode, state, order_no from md_roles
                 where pcode in ('chief_admin','analyst') order by pcode
                 """).query().listOfRows();
-        assertThat(rows).extracting(r -> r.get("pcode"), r -> r.get("state"), r -> r.get("order_no"))
+        assertThat(rows)
+                .extracting(r -> r.get("pcode"), r -> r.get("state"), r -> r.get("order_no"))
                 .containsExactly(tuple("analyst", "A", 120), tuple("chief_admin", "A", 110));
     }
 
@@ -96,7 +109,9 @@ class A1InstanceRolesTest extends EmbeddedPostgresTest {
                 join md_roles r on r.id = p.role_id
                 where r.pcode = 'chief_admin'
                 """).query(Long.class).single();
-        Long catalogPairs = jdbc.sql("select count(*) from md_form_actions").query(Long.class).single();
+        Long catalogPairs = jdbc.sql("select count(*) from md_form_actions")
+                .query(Long.class)
+                .single();
 
         assertThat(catalogPairs).isPositive();
         assertThat(chiefAdminPairs).isEqualTo(catalogPairs);
@@ -150,37 +165,68 @@ class A1InstanceRolesTest extends EmbeddedPostgresTest {
                 join md_roles r on r.id = p.role_id
                 where r.pcode = 'admin'
                 """).query(Long.class).single();
-        Long catalogPairs = jdbc.sql("select count(*) from md_form_actions").query(Long.class).single();
+        Long catalogPairs = jdbc.sql("select count(*) from md_form_actions")
+                .query(Long.class)
+                .single();
         assertThat(adminPairs).isEqualTo(catalogPairs);
     }
 
     @Test
     @DisplayName("AC-14: пользователь, созданный сразу с ролью analyst, имеет ровно одну роль и только права analyst")
     void analystUserHasExactlyOneRoleAndOnlyAnalystEffectivePermissions() {
-        Long systemId = jdbc.sql("select id from md_users where login = 'system'").query(Long.class).single();
-        Long analystRoleId = jdbc.sql("select id from md_roles where pcode = 'analyst'").query(Long.class).single();
+        Long systemId = jdbc.sql("select id from md_users where login = 'system'")
+                .query(Long.class)
+                .single();
+        Long analystRoleId = jdbc.sql("select id from md_roles where pcode = 'analyst'")
+                .query(Long.class)
+                .single();
 
-        var user = userService.createUser(TEST_ANALYST_NAME, TEST_ANALYST_LOGIN, TEST_ANALYST_LOGIN + "@test.local", null,
-                "StrongPassword2026!", null, "ru", "UTC", null, Map.of(), false, false, List.of(analystRoleId), systemId);
+        var user = userService.createUser(
+                TEST_ANALYST_NAME,
+                TEST_ANALYST_LOGIN,
+                TEST_ANALYST_LOGIN + "@test.local",
+                null,
+                "StrongPassword2026!",
+                null,
+                "ru",
+                "UTC",
+                null,
+                Map.of(),
+                false,
+                false,
+                List.of(analystRoleId),
+                systemId);
 
-        // M-4 (решение 15.09, вариант 1): роль user каркас выдаёт только при пустом списке ролей — здесь её быть не должно
+        // M-4 (решение 15.09, вариант 1): роль user каркас выдаёт только при пустом списке ролей — здесь её быть не
+        // должно
         List<Long> roleIds = jdbc.sql("select role_id from md_user_roles where user_id = :id")
-                .param("id", user.id()).query(Long.class).list();
+                .param("id", user.id())
+                .query(Long.class)
+                .list();
         assertThat(roleIds).containsExactly(analystRoleId);
 
         // S-11: ФИО кириллицей прошло через JDBC и БД без перекоса — сверка строки и байтов
         Map<String, Object> stored = jdbc.sql("select name, octet_length(name) as bytes from md_users where id = :id")
-                .param("id", user.id()).query().singleRow();
+                .param("id", user.id())
+                .query()
+                .singleRow();
         assertThat(stored.get("name")).isEqualTo(TEST_ANALYST_NAME);
         assertThat(((Number) stored.get("bytes")).intValue())
                 .isEqualTo(TEST_ANALYST_NAME.getBytes(StandardCharsets.UTF_8).length);
 
         // M-3: эффективные права материализованы каркасом при создании (scopeService.recalculateFor)
-        List<String> effective = jdbc.sql("select form_code || ':' || action from md_effective_permissions where user_id = :id")
-                .param("id", user.id()).query(String.class).list();
+        List<String> effective = jdbc.sql(
+                        "select form_code || ':' || action from md_effective_permissions where user_id = :id")
+                .param("id", user.id())
+                .query(String.class)
+                .list();
         assertThat(effective).containsExactlyInAnyOrderElementsOf(allAnalystPairs());
-        assertThat(effective).noneMatch(p -> p.startsWith("iam.users:") || p.startsWith("rbac.") || p.startsWith("audit.log:")
-                || p.startsWith("platform.settings:") || p.startsWith("tasks."));
+        assertThat(effective)
+                .noneMatch(p -> p.startsWith("iam.users:")
+                        || p.startsWith("rbac.")
+                        || p.startsWith("audit.log:")
+                        || p.startsWith("platform.settings:")
+                        || p.startsWith("tasks."));
     }
 
     @Test
@@ -201,8 +247,7 @@ class A1InstanceRolesTest extends EmbeddedPostgresTest {
     @Test
     @DisplayName("AC-16: oneid не попадает в список включённых провайдеров — кнопки OneID не будет")
     void oneIdNotAmongEnabledProviders() {
-        assertThat(ssoProviders.findEnabledProviders())
-                .noneMatch(p -> "oneid".equals(p.providerId()));
+        assertThat(ssoProviders.findEnabledProviders()).noneMatch(p -> "oneid".equals(p.providerId()));
         assertThat(ssoProviders.findByProviderId("oneid")).isEmpty();
     }
 
@@ -239,7 +284,8 @@ class A1InstanceRolesTest extends EmbeddedPostgresTest {
             assertThat(count("md_role_permissions")).isEqualTo(permissionsBefore);
         });
 
-        // После отката: права analyst на месте. S-13: проверку show lock_timeout/statement_timeout сняли — вне транзакции
+        // После отката: права analyst на месте. S-13: проверку show lock_timeout/statement_timeout сняли — вне
+        // транзакции
         // соединение пула не гарантировано то же; сброс SET после rollback гарантирует сам PostgreSQL.
         assertThat(count("md_role_permissions")).isEqualTo(permissionsBefore);
     }

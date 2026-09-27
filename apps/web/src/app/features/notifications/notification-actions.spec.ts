@@ -10,12 +10,21 @@ describe('Notification action lifecycle', () => {
   let fixture: ComponentFixture<NotificationsComponent>;
   let http: HttpTestingController;
   let service: NotificationService;
-  const record = { id: 7, userId: 3, type: 'info', title: 'New task', body: 'Please review',
-    isRead: false, createdAt: '2026-09-07T00:00:00Z' };
+  const record = {
+    id: 7,
+    userId: 3,
+    type: 'info',
+    title: 'New task',
+    body: 'Please review',
+    isRead: false,
+    createdAt: '2026-09-07T00:00:00Z',
+  };
 
   beforeEach(async () => {
-    await TestBed.configureTestingModule({ imports: [NotificationsComponent],
-      providers: [provideHttpClient(), provideHttpClientTesting()] }).compileComponents();
+    await TestBed.configureTestingModule({
+      imports: [NotificationsComponent],
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    }).compileComponents();
     http = TestBed.inject(HttpTestingController);
     service = TestBed.inject(NotificationService);
     fixture = TestBed.createComponent(NotificationsComponent);
@@ -24,7 +33,11 @@ describe('Notification action lifecycle', () => {
     service.unreadCount.set(1);
     fixture.detectChanges();
   });
-  afterEach(() => { fixture.destroy(); service.disconnectSse(); vi.unstubAllGlobals(); });
+  afterEach(() => {
+    fixture.destroy();
+    service.disconnectSse();
+    vi.unstubAllGlobals();
+  });
 
   it('sends only one read per pending notification and disables its action', () => {
     const item = fixture.componentInstance.items()[0];
@@ -43,11 +56,17 @@ describe('Notification action lifecycle', () => {
   it('keeps a failed read actionable with one error and allows a successful retry', () => {
     const item = fixture.componentInstance.items()[0];
     fixture.componentInstance.markAsRead(item);
-    http.expectOne('/api/v1/notifications/inbox/7/read').flush({ detail: 'Temporary failure' }, { status: 503, statusText: 'Unavailable' });
+    http
+      .expectOne('/api/v1/notifications/inbox/7/read')
+      .flush({ detail: 'Temporary failure' }, { status: 503, statusText: 'Unavailable' });
     fixture.detectChanges();
     expect(fixture.componentInstance.items()[0].isRead).toBe(false);
     expect(fixture.nativeElement.querySelector('.mark-read-btn').disabled).toBe(false);
-    expect(TestBed.inject(ToastService).toasts().filter(toast => toast.type === 'error')).toHaveLength(1);
+    expect(
+      TestBed.inject(ToastService)
+        .toasts()
+        .filter((toast) => toast.type === 'error'),
+    ).toHaveLength(1);
     fixture.componentInstance.markAsRead(item);
     http.expectOne('/api/v1/notifications/inbox/7/read').flush(null);
     http.expectOne('/api/v1/notifications/unread-count').flush({ unread_count: 0 });
@@ -85,12 +104,15 @@ describe('Notification action lifecycle', () => {
 
   it('restarts an unread snapshot when a new SSE notification arrives during reconciliation', () => {
     let notify: (event: MessageEvent) => void = () => {};
-    vi.stubGlobal('EventSource', class {
-      addEventListener(type: string, listener: (event: MessageEvent) => void) {
-        if (type === 'notification') notify = listener;
-      }
-      close() {}
-    });
+    vi.stubGlobal(
+      'EventSource',
+      class {
+        addEventListener(type: string, listener: (event: MessageEvent) => void) {
+          if (type === 'notification') notify = listener;
+        }
+        close() {}
+      },
+    );
     service.connectSse();
     fixture.componentInstance.markAllAsRead();
     http.expectOne('/api/v1/notifications/inbox/read-all').flush(null);

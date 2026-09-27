@@ -12,11 +12,14 @@
         [options]="viewOptions()"
         [value]="viewMode"
         [smtAriaLabel]="'projects.rezhim_otobrazheniya_proektov' | t"
-        (valueChange)="viewMode = $event ?? viewMode" />
+        (valueChange)="viewMode = $event ?? viewMode"
+      />
     </div>
 
     <div class="header-right">
-      <button smt-button type="button"
+      <button
+        smt-button
+        type="button"
         *ngIf="canCreateProject()"
         smtVariant="primary"
         smtSize="md"
@@ -37,13 +40,7 @@
     (stateChange)="setSelectedState($event)"
   ></app-project-filter-bar>
 
-  <div
-    *ngIf="isLoading()"
-    class="request-state"
-    data-testid="projects-list-loading"
-    role="status"
-    aria-live="polite"
-  >
+  <div *ngIf="isLoading()" class="request-state" data-testid="projects-list-loading" role="status" aria-live="polite">
     {{ 'projects.loading_projects' | t }}
   </div>
   <div *ngIf="listLoadError()" class="request-state request-error" data-testid="projects-list-error" role="alert">
@@ -55,16 +52,13 @@
   @if (metaError()) {
     <smt-alert smtTone="danger" data-testid="projects-meta-error">
       <span>{{ 'projects.load_projects_error' | t }}</span>
-      <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="loadProjects()">{{ 'common.retry' | t }}</button>
+      <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="loadProjects()">
+        {{ 'common.retry' | t }}
+      </button>
     </smt-alert>
   }
 
-  <div
-    *ngIf="!canViewTasks()"
-    class="stats-state"
-    data-testid="projects-stats-permission"
-    role="status"
-  >
+  <div *ngIf="!canViewTasks()" class="stats-state" data-testid="projects-stats-permission" role="status">
     {{ 'projects.stats_permission' | t }}
   </div>
   <div *ngIf="canViewTasks() && statsLoaded()" class="stats-state" data-testid="projects-stats-scope" role="status">
@@ -119,7 +113,6 @@
   [recordNotFound]="recordNotFound()"
   (closeRecordView)="closeRecordView()"
   (loadRecordView)="loadRecordView($event)"
-
   [isCreateModalOpen]="forms.isCreateModalOpen()"
   [isCreateSubmitted]="forms.isCreateSubmitted"
   [isCreateDiscardConfirmationOpen]="forms.isCreateDiscardConfirmationOpen()"
@@ -128,7 +121,6 @@
   (requestCloseCreate)="forms.requestCloseCreate()"
   (confirmDiscardCreate)="forms.confirmDiscardCreate()"
   (submitCreateProject)="forms.submitCreateProject()"
-
   [isEditModalOpen]="forms.isEditModalOpen()"
   [isEditSubmitted]="forms.isEditSubmitted"
   [isEditDiscardConfirmationOpen]="forms.isEditDiscardConfirmationOpen()"
@@ -141,9 +133,7 @@
   (confirmDiscardEdit)="forms.confirmDiscardEdit()"
   (submitEditProject)="forms.submitEditProject()"
   (retryEditLoad)="forms.retryEditLoad()"
-
   (cancelNavigationDiscard)="forms.cancelNavigationDiscard($event)"
-
   [isSubmitting]="forms.isSubmitting()"
   [projectCustomFields]="projectCustomFields()"
 ></app-project-modals>

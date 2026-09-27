@@ -1,4 +1,16 @@
-import { Component, computed, EventEmitter, inject, input, Input, Output, Signal, signal, TemplateRef, viewChild } from '@angular/core';
+import {
+  Component,
+  computed,
+  EventEmitter,
+  inject,
+  input,
+  Input,
+  Output,
+  Signal,
+  signal,
+  TemplateRef,
+  viewChild,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
@@ -27,7 +39,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
     SMTButtonComponent,
     UiServerTableComponent,
     SMTDateRangePickerComponent,
-    SMTSelectComponent
+    SMTSelectComponent,
   ],
   template: `
     <div id="security-events-panel" class="tab-content" role="tabpanel" aria-labelledby="security-events-tab">
@@ -35,10 +47,15 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
       <div class="filter-toolbar">
         <div class="filter-group">
           <label class="sr-only" for="security-event-filter">{{ 'audit.filtr_sobytiy_bezopasnosti' | t }}</label>
-          <smt-select smtTriggerId="security-event-filter" class="filter-select" [options]="eventTypeOptions()"
-            [placeholder]="'audit.vse_sobytiya' | t" [emptyLabel]="'audit.vse_sobytiya' | t"
+          <smt-select
+            smtTriggerId="security-event-filter"
+            class="filter-select"
+            [options]="eventTypeOptions()"
+            [placeholder]="'audit.vse_sobytiya' | t"
+            [emptyLabel]="'audit.vse_sobytiya' | t"
             [value]="secEventTypeFilter || null"
-            (valueChange)="secEventTypeFilterChange.emit($event ?? ''); applyFilters.emit()" />
+            (valueChange)="secEventTypeFilterChange.emit($event ?? ''); applyFilters.emit()"
+          />
 
           <div class="search-box">
             <label class="sr-only" for="security-ip-search">{{ 'audit.poisk_sobytiy_po_ip_adresu' | t }}</label>
@@ -51,29 +68,66 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
               [placeholder]="'audit.poisk_po_ip' | t"
               [ngModel]="secIpFilter"
               (ngModelChange)="secIpFilterChange.emit($event)"
-              (keyup.enter)="applyFilters.emit()" />
+              (keyup.enter)="applyFilters.emit()"
+            />
           </div>
 
           <div class="compact-filter compact-filter-narrow">
             <label for="security-user-filter">{{ 'audit.user_id' | t }}</label>
-            <smt-input smtFieldId="security-user-filter" name="securityUserFilter" type="text" inputmode="numeric" smtSize="sm"
-              smtPattern="[0-9]*" [ngModel]="securityUserFilter" (ngModelChange)="securityUserFilterChange.emit($event)" (keyup.enter)="applyFilters.emit()" />
+            <smt-input
+              smtFieldId="security-user-filter"
+              name="securityUserFilter"
+              type="text"
+              inputmode="numeric"
+              smtSize="sm"
+              smtPattern="[0-9]*"
+              [ngModel]="securityUserFilter"
+              (ngModelChange)="securityUserFilterChange.emit($event)"
+              (keyup.enter)="applyFilters.emit()"
+            />
           </div>
 
           <div class="compact-filter compact-filter-period">
             <span class="compact-filter-label" aria-hidden="true">{{ 'audit.period_utc' | t }}</span>
-            <smt-date-range-picker data-testid="security-period-filter" [smtAriaLabel]="'audit.period_utc' | t"
-              [value]="period()" (valueChange)="onPeriodChange($event)" />
+            <smt-date-range-picker
+              data-testid="security-period-filter"
+              [smtAriaLabel]="'audit.period_utc' | t"
+              [value]="period()"
+              (valueChange)="onPeriodChange($event)"
+            />
           </div>
 
-          <button smt-button type="button" id="security-apply-filters" smtVariant="primary" smtSize="sm" smtIcon="filter_alt"
-            (click)="applyFilters.emit()">{{ 'audit.apply_filters' | t }}</button>
-          <button smt-button type="button" id="security-reset-filters" smtVariant="ghost" smtSize="sm" smtIcon="filter_alt_off"
-            (click)="resetFilters.emit()">{{ 'audit.reset_filters' | t }}</button>
+          <button
+            smt-button
+            type="button"
+            id="security-apply-filters"
+            smtVariant="primary"
+            smtSize="sm"
+            smtIcon="filter_alt"
+            (click)="applyFilters.emit()"
+          >
+            {{ 'audit.apply_filters' | t }}
+          </button>
+          <button
+            smt-button
+            type="button"
+            id="security-reset-filters"
+            smtVariant="ghost"
+            smtSize="sm"
+            smtIcon="filter_alt_off"
+            (click)="resetFilters.emit()"
+          >
+            {{ 'audit.reset_filters' | t }}
+          </button>
         </div>
       </div>
 
-      <div class="table-container" role="region" [attr.aria-label]="'audit.tablica_sobytiy_bezopasnosti' | t" [attr.aria-busy]="pager.loading()">
+      <div
+        class="table-container"
+        role="region"
+        [attr.aria-label]="'audit.tablica_sobytiy_bezopasnosti' | t"
+        [attr.aria-busy]="pager.loading()"
+      >
         @if (tableConfig(); as config) {
           <ui-server-table
             [pager]="pager"
@@ -87,11 +141,14 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
             [errorLabel]="'audit.load_security_error' | t"
             errorId="security-load-error"
             [emptyTemplate]="emptyState()"
-            (sortChange)="sortChange.emit($event)" />
+            (sortChange)="sortChange.emit($event)"
+          />
         }
       </div>
 
-      <ng-template #idCell let-item><span class="tabular-nums font-mono text-muted">#{{ item.id }}</span></ng-template>
+      <ng-template #idCell let-item
+        ><span class="tabular-nums font-mono text-muted">#{{ item.id }}</span></ng-template
+      >
       <ng-template #eventCell let-item>
         <span class="sec-event-badge" [ngClass]="getSecurityEventBadgeClass(item.eventType)">
           <span class="material-symbols-outlined" aria-hidden="true">{{ getSecurityEventIcon(item.eventType) }}</span>
@@ -105,13 +162,25 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
         </div>
         <span *ngIf="!item.userName" class="text-muted">{{ item.details['login'] || ('common.guest' | t) }}</span>
       </ng-template>
-      <ng-template #ipCell let-item><span class="ip-pill font-mono">{{ item.ip }}</span></ng-template>
+      <ng-template #ipCell let-item
+        ><span class="ip-pill font-mono">{{ item.ip }}</span></ng-template
+      >
       <ng-template #agentCell let-item>
-        <span class="ua-cell text-muted text-xs" [title]="item.userAgent || ''">{{ formatUserAgent(item.userAgent) }}</span>
+        <span class="ua-cell text-muted text-xs" [title]="item.userAgent || ''">{{
+          formatUserAgent(item.userAgent)
+        }}</span>
       </ng-template>
-      <ng-template #dateCell let-item><span class="date-cell tabular-nums">{{ item.createdAt | date:'dd.MM.yyyy HH:mm:ss' }}</span></ng-template>
+      <ng-template #dateCell let-item
+        ><span class="date-cell tabular-nums">{{ item.createdAt | date: 'dd.MM.yyyy HH:mm:ss' }}</span></ng-template
+      >
       <ng-template #detailsCell let-item>
-        <button type="button" class="diff-btn" [attr.aria-label]="'audit.view_security_event_number' | t:{id: item.id}" [title]="'audit.prosmotr_detaley' | t" (click)="selectEvent.emit(item)">
+        <button
+          type="button"
+          class="diff-btn"
+          [attr.aria-label]="'audit.view_security_event_number' | t: { id: item.id }"
+          [title]="'audit.prosmotr_detaley' | t"
+          (click)="selectEvent.emit(item)"
+        >
           <span class="material-symbols-outlined" aria-hidden="true">info</span>
         </button>
       </ng-template>
@@ -124,7 +193,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
       </ng-template>
     </div>
   `,
-  styleUrl: './audit-security-table.component.css'
+  styleUrl: './audit-security-table.component.css',
 })
 export class AuditSecurityTableComponent {
   private readonly i18n = inject(I18nService);
@@ -162,25 +231,35 @@ export class AuditSecurityTableComponent {
     // Every row is its own grid, so tracks are fixed or shares of the width, never content-sized.
     const share = 'max(140px, calc((100% - 680px) / 2))';
     const base = registryTableConfig<SecurityEventRecord>(meta, {
-      translate: key => this.i18n.translate(key),
+      translate: (key) => this.i18n.translate(key),
       trackBy: (_index, item) => item.id,
       ariaLabel: this.i18n.translate('audit.sobytiya_bezopasnosti'),
       sort: this.views()?.sort() ?? null,
       cells: {
-        id: cell(this.idCell), eventType: cell(this.eventCell), userName: cell(this.userCell), ip: cell(this.ipCell),
-        userAgent: cell(this.agentCell), createdAt: cell(this.dateCell)
+        id: cell(this.idCell),
+        eventType: cell(this.eventCell),
+        userName: cell(this.userCell),
+        ip: cell(this.ipCell),
+        userAgent: cell(this.agentCell),
+        createdAt: cell(this.dateCell),
       },
       widths: { id: '90px', eventType: '190px', userName: share, ip: '140px', userAgent: share, createdAt: '160px' },
-      align: { id: 'left' }
+      align: { id: 'left' },
     });
     return {
       ...base,
       layout: 'fit',
       columns: {
         ...base.columns,
-        details: { key: 'details', header: header(this.i18n.translate('audit.detali')), content: cell(this.detailsCell), width: '100px', align: 'right' }
+        details: {
+          key: 'details',
+          header: header(this.i18n.translate('audit.detali')),
+          content: cell(this.detailsCell),
+          width: '100px',
+          align: 'right',
+        },
       },
-      columnsOrder: [...base.columnsOrder, 'details']
+      columnsOrder: [...base.columnsOrder, 'details'],
     };
   });
 

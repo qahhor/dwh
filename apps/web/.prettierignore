@@ -1,0 +1,8 @@
+# Generated from the server catalog by npm run i18n:sync-ru; CI compares it byte for byte.
+src/app/core/i18n/packaged-russian.ts
+dist/
+coverage/
+.angular/
+node_modules/
+package-lock.json
+eslint-suppressions.json

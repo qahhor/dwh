@@ -30,7 +30,9 @@ let nextCardId = 0;
         @if (failed()) {
           <div class="dash-card__state dash-card__state--error" role="alert" data-testid="dash-card-error">
             <span>{{ errorText() || ('ui.dashboard.load_error' | t) }}</span>
-            <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="retry.emit()">{{ 'common.retry' | t }}</button>
+            <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="retry.emit()">
+              {{ 'common.retry' | t }}
+            </button>
           </div>
         } @else if (loading()) {
           <div class="dash-card__state" role="status" data-testid="dash-card-loading">
@@ -38,37 +40,103 @@ let nextCardId = 0;
             <span class="sr-only">{{ 'common.loading' | t }}</span>
           </div>
         } @else if (empty()) {
-          <p class="dash-card__state dash-card__empty" data-testid="dash-card-empty">{{ emptyText() || ('ui.dashboard.empty' | t) }}</p>
+          <p class="dash-card__state dash-card__empty" data-testid="dash-card-empty">
+            {{ emptyText() || ('ui.dashboard.empty' | t) }}
+          </p>
         } @else {
           <ng-content />
         }
       </div>
     </section>
   `,
-  styles: [`
-    :host { display: block; min-width: 0; }
-    .dash-card {
-      display: flex; flex-direction: column; gap: 12px; height: 100%;
-      padding: 16px; border: 1px solid var(--border-color); border-radius: var(--radius-lg);
-      background: var(--bg-surface); box-shadow: var(--shadow-sm); min-width: 0;
-    }
-    .dash-card__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-    .dash-card__titles { min-width: 0; }
-    .dash-card__title { margin: 0; font-size: 15px; font-weight: 700; color: var(--text-main); }
-    .dash-card__subtitle { margin: 2px 0 0; font-size: 12px; color: var(--text-muted); }
-    .dash-card__actions { display: flex; gap: 6px; flex-shrink: 0; }
-    .dash-card__body { min-width: 0; flex: 1; }
-    .dash-card__state { display: flex; align-items: center; gap: 10px; min-height: 64px; font-size: 13px; color: var(--text-muted); }
-    .dash-card__state--error { color: var(--danger-text); justify-content: space-between; flex-wrap: wrap; }
-    .dash-card__empty { margin: 0; justify-content: center; }
-    .dash-card__skeleton {
-      display: block; width: 100%; height: 48px; border-radius: var(--radius-sm);
-      background: linear-gradient(90deg, var(--bg-hover) 25%, var(--border-color) 50%, var(--bg-hover) 75%);
-      background-size: 200% 100%; animation: dash-shimmer 1.5s infinite;
-    }
-    @keyframes dash-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-    @media (prefers-reduced-motion: reduce) { .dash-card__skeleton { animation: none; } }
-  `]
+  styles: [
+    `
+      :host {
+        display: block;
+        min-width: 0;
+      }
+      .dash-card {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        height: 100%;
+        padding: 16px;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        background: var(--bg-surface);
+        box-shadow: var(--shadow-sm);
+        min-width: 0;
+      }
+      .dash-card__head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .dash-card__titles {
+        min-width: 0;
+      }
+      .dash-card__title {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text-main);
+      }
+      .dash-card__subtitle {
+        margin: 2px 0 0;
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+      .dash-card__actions {
+        display: flex;
+        gap: 6px;
+        flex-shrink: 0;
+      }
+      .dash-card__body {
+        min-width: 0;
+        flex: 1;
+      }
+      .dash-card__state {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 64px;
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+      .dash-card__state--error {
+        color: var(--danger-text);
+        justify-content: space-between;
+        flex-wrap: wrap;
+      }
+      .dash-card__empty {
+        margin: 0;
+        justify-content: center;
+      }
+      .dash-card__skeleton {
+        display: block;
+        width: 100%;
+        height: 48px;
+        border-radius: var(--radius-sm);
+        background: linear-gradient(90deg, var(--bg-hover) 25%, var(--border-color) 50%, var(--bg-hover) 75%);
+        background-size: 200% 100%;
+        animation: dash-shimmer 1.5s infinite;
+      }
+      @keyframes dash-shimmer {
+        0% {
+          background-position: 200% 0;
+        }
+        100% {
+          background-position: -200% 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .dash-card__skeleton {
+          animation: none;
+        }
+      }
+    `,
+  ],
 })
 export class UiDashboardCardComponent {
   readonly title = input.required<string>();

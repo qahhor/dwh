@@ -5,6 +5,10 @@ import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.core.error.ProblemDetailRecord;
 import com.smartup24.cms.instance.common.error.ApiException;
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -25,11 +29,6 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -47,13 +46,13 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ProblemDetailRecord> handleUnreadableBody(HttpMessageNotReadableException ex,
-                                                                    HttpServletRequest request) {
+    public ResponseEntity<ProblemDetailRecord> handleUnreadableBody(
+            HttpMessageNotReadableException ex, HttpServletRequest request) {
         // Некорректный JSON — вина клиента, а не сервера: 400, не 500.
         // Текст исключения наружу не отдаём (может содержать фрагменты тела).
         log.warn("Некорректное тело запроса {}: {}", request.getRequestURI(), ex.getMessage());
-        var problem = ProblemDetailRecord.of(ErrorCode.BAD_REQUEST,
-                "Некорректный формат тела запроса", request.getRequestURI());
+        var problem = ProblemDetailRecord.of(
+                ErrorCode.BAD_REQUEST, "Некорректный формат тела запроса", request.getRequestURI());
         return ResponseEntity.badRequest().body(problem);
     }
 
@@ -64,11 +63,12 @@ public class GlobalExceptionHandler {
      * RFC 9110 требует на 405 заголовок Allow — отдаём его, чтобы клиент знал разрешённые методы.
      */
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    public ResponseEntity<ProblemDetailRecord> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex,
-                                                                        HttpServletRequest request) {
+    public ResponseEntity<ProblemDetailRecord> handleMethodNotSupported(
+            HttpRequestMethodNotSupportedException ex, HttpServletRequest request) {
         log.warn("Метод {} не поддержан маршрутом {}", ex.getMethod(), request.getRequestURI());
 
-        var problem = ProblemDetailRecord.of(ErrorCode.METHOD_NOT_ALLOWED,
+        var problem = ProblemDetailRecord.of(
+                ErrorCode.METHOD_NOT_ALLOWED,
                 "Метод " + ex.getMethod() + " не поддерживается этим ресурсом",
                 request.getRequestURI());
 
@@ -90,76 +90,72 @@ public class GlobalExceptionHandler {
      * внутренняя деталь схемы, по которой не должен строиться клиент.
      */
     @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<ProblemDetailRecord> handleDataIntegrityViolation(DataIntegrityViolationException ex,
-                                                                            HttpServletRequest request) {
-        log.warn("Нарушение ограничения целостности на {}: {}", request.getRequestURI(), ex.getMostSpecificCause().getMessage());
+    public ResponseEntity<ProblemDetailRecord> handleDataIntegrityViolation(
+            DataIntegrityViolationException ex, HttpServletRequest request) {
+        log.warn(
+                "Нарушение ограничения целостности на {}: {}",
+                request.getRequestURI(),
+                ex.getMostSpecificCause().getMessage());
 
         ErrorCode code = ex instanceof DuplicateKeyException ? ErrorCode.CODE_ALREADY_EXISTS : ErrorCode.CONFLICT;
-        var problem = ProblemDetailRecord.of(code,
-                "Запрос нарушает ограничение целостности данных", request.getRequestURI());
+        var problem =
+                ProblemDetailRecord.of(code, "Запрос нарушает ограничение целостности данных", request.getRequestURI());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<ProblemDetailRecord> handleMaxUploadSizeExceeded(
-            MaxUploadSizeExceededException ex,
-            HttpServletRequest request) {
+            MaxUploadSizeExceededException ex, HttpServletRequest request) {
         log.warn("Upload rejected because it exceeds the configured size boundary: {}", request.getRequestURI());
         var problem = ProblemDetailRecord.of(
-                ErrorCode.FILE_SIZE_EXCEEDED,
-                "Размер файла превышает допустимые 50 МБ",
-                request.getRequestURI());
+                ErrorCode.FILE_SIZE_EXCEEDED, "Размер файла превышает допустимые 50 МБ", request.getRequestURI());
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
                 .contentType(MediaType.APPLICATION_PROBLEM_JSON)
                 .body(problem);
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
-    public ResponseEntity<ProblemDetailRecord> handleNoResourceFound(NoResourceFoundException ex, HttpServletRequest request) {
+    public ResponseEntity<ProblemDetailRecord> handleNoResourceFound(
+            NoResourceFoundException ex, HttpServletRequest request) {
         var problem = ProblemDetailRecord.of(ErrorCode.NOT_FOUND, "Ресурс не найден", request.getRequestURI());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(problem);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ProblemDetailRecord> handleValidationException(MethodArgumentNotValidException ex, HttpServletRequest request) {
+    public ResponseEntity<ProblemDetailRecord> handleValidationException(
+            MethodArgumentNotValidException ex, HttpServletRequest request) {
         List<FieldErrorItem> errors = new ArrayList<>();
         for (FieldError fe : ex.getBindingResult().getFieldErrors()) {
             errors.add(new FieldErrorItem(fe.getField(), fe.getCode(), fe.getDefaultMessage()));
         }
 
-        var problem = ProblemDetailRecord.ofValidation(
-                "Ошибка валидации входных данных",
-                request.getRequestURI(),
-                errors
-        );
+        var problem =
+                ProblemDetailRecord.ofValidation("Ошибка валидации входных данных", request.getRequestURI(), errors);
 
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(problem);
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ProblemDetailRecord> handleTypeMismatch(
-            MethodArgumentTypeMismatchException ex,
-            HttpServletRequest request) {
-        log.warn("Некорректный тип аргумента в запросе {}: параметр '{}' имеет значение '{}'",
-                request.getRequestURI(), ex.getName(), ex.getValue());
+            MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
+        log.warn(
+                "Некорректный тип аргумента в запросе {}: параметр '{}' имеет значение '{}'",
+                request.getRequestURI(),
+                ex.getName(),
+                ex.getValue());
         var problem = ProblemDetailRecord.of(
-                ErrorCode.BAD_REQUEST,
-                "Некорректный параметр запроса: " + ex.getName(),
-                request.getRequestURI()
-        );
+                ErrorCode.BAD_REQUEST, "Некорректный параметр запроса: " + ex.getName(), request.getRequestURI());
         return ResponseEntity.badRequest().body(problem);
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<ProblemDetailRecord> handleMissingParam(
-            MissingServletRequestParameterException ex,
-            HttpServletRequest request) {
+            MissingServletRequestParameterException ex, HttpServletRequest request) {
         log.warn("Отсутствует обязательный параметр запроса {}: '{}'", request.getRequestURI(), ex.getParameterName());
         var problem = ProblemDetailRecord.of(
                 ErrorCode.BAD_REQUEST,
                 "Отсутствует обязательный параметр запроса: " + ex.getParameterName(),
-                request.getRequestURI()
-        );
+                request.getRequestURI());
         return ResponseEntity.badRequest().body(problem);
     }
 
@@ -176,8 +172,7 @@ public class GlobalExceptionHandler {
         var problem = ProblemDetailRecord.of(
                 ErrorCode.INTERNAL_ERROR,
                 "Внутренняя ошибка сервера. Обратитесь к администратору.",
-                request.getRequestURI()
-        );
+                request.getRequestURI());
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(problem);
     }

@@ -18,7 +18,9 @@
 
 ```powershell
 mvn -B verify
-Push-Location apps/web; npm test; npm run typecheck; npm run build; Pop-Location
+./scripts/quality/test-no-skipped-tests.ps1
+./scripts/quality/test-coverage-floors.ps1
+Push-Location apps/web; npm run lint; npm test; npm run typecheck; npm run build; Pop-Location
 ./scripts/architecture/test-unified-boundaries.ps1
 ./scripts/docs/test-public-docs.ps1
 ./scripts/docs/test-repository-hygiene.ps1
@@ -52,14 +54,35 @@ digest; часть критериев закрывается только releas
 сетевыми/E2E-сценариями через публичный web origin; отдельного статического gate,
 гарантирующего это для каждого вызова, в текущем CI нет.
 
+## Покрытие тестами (план 10/10, пункт 1.4)
+
+- **Модуль Maven.** `jacoco-maven-plugin` в каждом модуле пишет отчёт в
+  `target/site/jacoco` и в фазе `verify` проверяет порог строк и ветвлений
+  (`coverage.line.minimum`, `coverage.branch.minimum` в `pom.xml` модуля).
+- **Бизнес-модуль сервера.** Модуль (`md`, `kauth`, `ms.task` и т. д.)
+  занимает несколько пакетов, поэтому его порог хранится в
+  `apps/server/coverage-floors.csv` и проверяется
+  `scripts/quality/test-coverage-floors.ps1`; новый модуль без порога — ошибка.
+- **Изменения PR.** `diff-cover` сравнивает PR с базовой веткой: изменённые
+  строки сервера покрыты не меньше чем на 80 %.
+- **Ни один тест не пропущен.** `scripts/quality/test-no-skipped-tests.ps1`
+  падает, если в отчётах surefire есть пропуск: Testcontainers без Docker
+  больше не проходят молча.
+
+Пороги равны покрытию на момент введения (2026-09-27) и только поднимаются,
+к 80 % по каждому модулю. Когда покрытие выросло, порог поднимают в том же PR.
+
 ## Соответствие CI
 
 CI выполняет следующие независимые jobs:
 
-- **backend:** `mvn -B verify`, включая unit/integration/ArchUnit, затем
-  формирование CycloneDX SBOM;
-- **frontend:** `npm ci`, unit tests, typecheck и production build из
-  `apps/web`;
+- **backend:** сначала формат и стиль (`spotless:check`, `checkstyle:check`), затем
+  `mvn -B verify` с Error Prone и NullAway в компиляции, включая unit/integration/ArchUnit и пороги
+  покрытия JaCoCo, затем проверки «ни один тест не пропущен», пороги покрытия
+  бизнес-модулей, покрытие изменённых строк PR (не ниже 80 %) и формирование
+  CycloneDX SBOM;
+- **frontend:** `npm ci`, lint (ESLint с базовой линией подавлений, Stylelint,
+  Prettier), unit tests, typecheck и production build из `apps/web`;
 - **release config:** unified architecture, public docs, repository hygiene,
   release supply-chain, production Compose, encrypted-backup и managed
   acceptance contracts, а также fail-closed deploy test;

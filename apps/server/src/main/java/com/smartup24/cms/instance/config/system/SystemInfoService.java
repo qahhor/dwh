@@ -5,12 +5,6 @@ import com.smartup24.cms.instance.config.bootstrap.InstanceBootstrapProperties;
 import com.smartup24.cms.instance.search.typesense.TypesenseProperties;
 import com.smartup24.cms.spi.common.ProviderHealth;
 import jakarta.annotation.PreDestroy;
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.info.BuildProperties;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Service;
-
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -24,6 +18,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.info.BuildProperties;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Service;
 
 @Service
 public class SystemInfoService {
@@ -56,7 +55,8 @@ public class SystemInfoService {
         this.backupStatusReader = backupStatusReader;
         this.typesense = typesense;
         this.bootstrap = bootstrap;
-        this.httpClient = HttpClient.newBuilder().connectTimeout(COMPONENT_TIMEOUT).build();
+        this.httpClient =
+                HttpClient.newBuilder().connectTimeout(COMPONENT_TIMEOUT).build();
         BuildProperties build = buildProperties.getIfAvailable();
         this.appVersion = build != null && hasText(build.getVersion()) ? build.getVersion() : UNKNOWN;
         this.healthTimeout = healthTimeout == null || healthTimeout.isZero() || healthTimeout.isNegative()
@@ -68,8 +68,7 @@ public class SystemInfoService {
 
     public SystemInfoResponse getInfo() {
         CompletableFuture<SystemInfoResponse.Component> database = probe(
-                () -> new SystemInfoResponse.Component(databaseStatus()),
-                new SystemInfoResponse.Component("DOWN"));
+                () -> new SystemInfoResponse.Component(databaseStatus()), new SystemInfoResponse.Component("DOWN"));
         CompletableFuture<SystemInfoResponse.Component> typesenseHealth = probe(
                 () -> new SystemInfoResponse.Component(typesenseStatus()),
                 new SystemInfoResponse.Component("DEGRADED"));
@@ -79,21 +78,19 @@ public class SystemInfoService {
         try {
             var storage = providers.getActiveStorageProvider();
             storageProvider = storage.getProviderCode();
-            storageHealth = probe(
-                    () -> component(storage.checkHealth()),
-                    new SystemInfoResponse.Component("DEGRADED"));
+            storageHealth = probe(() -> component(storage.checkHealth()), new SystemInfoResponse.Component("DEGRADED"));
         } catch (Exception ignored) {
             storageHealth = CompletableFuture.completedFuture(new SystemInfoResponse.Component("DOWN"));
         }
 
         SystemInfoResponse.Organization organizationFallback = configuredOrganization();
         CompletableFuture<String> schemaVersion = probe(this::schemaVersion, UNKNOWN);
-        CompletableFuture<SystemInfoResponse.Organization> organization = probe(this::organization, organizationFallback);
-        BackupStatus unavailableBackup = backupFreshnessEvaluator.evaluate(
-                new BackupStatus("UNKNOWN", null, "STATUS_UNAVAILABLE"));
-        CompletableFuture<BackupStatus> backup = probe(
-                () -> backupFreshnessEvaluator.evaluate(backupStatusReader.read()),
-                unavailableBackup);
+        CompletableFuture<SystemInfoResponse.Organization> organization =
+                probe(this::organization, organizationFallback);
+        BackupStatus unavailableBackup =
+                backupFreshnessEvaluator.evaluate(new BackupStatus("UNKNOWN", null, "STATUS_UNAVAILABLE"));
+        CompletableFuture<BackupStatus> backup =
+                probe(() -> backupFreshnessEvaluator.evaluate(backupStatusReader.read()), unavailableBackup);
 
         Map<String, SystemInfoResponse.Component> components = new LinkedHashMap<>();
         components.put("database", database.join());
@@ -178,11 +175,11 @@ public class SystemInfoService {
         }
         try {
             URI uri = URI.create(typesense.url().replaceAll("/+$", "") + "/health");
-            HttpRequest request = HttpRequest.newBuilder(uri)
-                    .timeout(COMPONENT_TIMEOUT)
-                    .GET()
-                    .build();
-            int status = httpClient.send(request, HttpResponse.BodyHandlers.discarding()).statusCode();
+            HttpRequest request =
+                    HttpRequest.newBuilder(uri).timeout(COMPONENT_TIMEOUT).GET().build();
+            int status = httpClient
+                    .send(request, HttpResponse.BodyHandlers.discarding())
+                    .statusCode();
             return status == 200 ? "UP" : "DEGRADED";
         } catch (Exception ignored) {
             return "DEGRADED";

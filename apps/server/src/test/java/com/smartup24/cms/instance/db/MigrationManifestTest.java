@@ -1,7 +1,6 @@
 package com.smartup24.cms.instance.db;
 
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -17,8 +16,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Stream;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 /**
  * Plan 10/10, item 0.5: a migration, once in the manifest, never changes and never disappears.
@@ -59,8 +58,8 @@ class MigrationManifestTest {
         });
         onDisk.keySet().stream()
                 .filter(file -> !listed.containsKey(file))
-                .forEach(file -> problems.add(file + ": not in the manifest; run the test with"
-                        + " -Dmigrations.manifest.append=true"));
+                .forEach(file -> problems.add(
+                        file + ": not in the manifest; run the test with" + " -Dmigrations.manifest.append=true"));
 
         assertThat(problems).as("migrations against %s", MANIFEST).isEmpty();
     }
@@ -69,7 +68,8 @@ class MigrationManifestTest {
         Map<String, String> hashes = new TreeMap<>();
         for (String location : LOCATIONS) {
             try (Stream<Path> files = Files.list(RESOURCES.resolve(location))) {
-                for (Path file : files.filter(p -> p.getFileName().toString().endsWith(".sql")).toList()) {
+                for (Path file : files.filter(p -> p.getFileName().toString().endsWith(".sql"))
+                        .toList()) {
                     hashes.put(location + "/" + file.getFileName(), sha256(file));
                 }
             }
@@ -111,8 +111,12 @@ class MigrationManifestTest {
             }
         });
         if (!added.isEmpty()) {
-            Files.writeString(MANIFEST, added.toString(), StandardCharsets.UTF_8,
-                    StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+            Files.writeString(
+                    MANIFEST,
+                    added.toString(),
+                    StandardCharsets.UTF_8,
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.APPEND);
         }
     }
 }

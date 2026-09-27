@@ -1,4 +1,14 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, TemplateRef, computed, inject, signal, viewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  OnInit,
+  TemplateRef,
+  computed,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -26,13 +36,17 @@ import {
   UplPeriodicity,
   UplSourceItem,
   UplSourceRequest,
-  UplStrictness
+  UplStrictness,
 } from '../upl-api';
 import { parseUplProblem, uplFieldErrorText } from '../formats/upl-format-errors';
 import { UPL_PERIODICITY_KEY, UPL_STRICTNESS_KEY, uplProblemText } from '../upl-labels';
 import { SMTAlertComponent } from '../../../shared/ui-kit/components/alert';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
-import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../../../shared/ui-kit/components/forms/select';
+import {
+  SMTSelectComponent,
+  SMTSelectOption,
+  SMTSelectValueAccessor,
+} from '../../../shared/ui-kit/components/forms/select';
 import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group/radio-options';
 
 /** Модель окна «Новый источник»: обычный объект, чтобы работал `[(ngModel)]`. */
@@ -60,7 +74,7 @@ function emptyForm(): SourceCreateForm {
     ownerContact: '',
     periodicity: 'month',
     slaDays: 0,
-    reconciliationStrictness: 'error'
+    reconciliationStrictness: 'error',
   };
 }
 
@@ -68,16 +82,22 @@ function emptyForm(): SourceCreateForm {
   selector: 'app-upl-sources-list',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTInputComponent, SMTInputValueAccessor, SMTSelectComponent, SMTSelectValueAccessor,
-    SMTAlertComponent, SMTControlComponent,
+  imports: [
+    SMTInputComponent,
+    SMTInputValueAccessor,
+    SMTSelectComponent,
+    SMTSelectValueAccessor,
+    SMTAlertComponent,
+    SMTControlComponent,
     CommonModule,
     FormsModule,
     RouterLink,
     TranslatePipe,
     SMTButtonComponent,
-    SMTDialogComponent, SMTDialogContentDirective,
+    SMTDialogComponent,
+    SMTDialogContentDirective,
     UiBadgeComponent,
-    UiServerTableComponent
+    UiServerTableComponent,
   ],
   template: `
     <div class="upl-page">
@@ -89,7 +109,14 @@ function emptyForm(): SourceCreateForm {
           }
         </h1>
         @if (canCreate()) {
-          <button smt-button type="button" smtVariant="primary" smtIcon="add" data-testid="upl-new-source" (click)="openCreate()">
+          <button
+            smt-button
+            type="button"
+            smtVariant="primary"
+            smtIcon="add"
+            data-testid="upl-new-source"
+            (click)="openCreate()"
+          >
             {{ 'upl.list.new' | t }}
           </button>
         }
@@ -113,7 +140,8 @@ function emptyForm(): SourceCreateForm {
           [loadingLabel]="'upl.common.loading' | t"
           [errorLabel]="'upl.list.load_error' | t"
           [emptyTemplate]="emptyState"
-          (sortChange)="onSort($event)" />
+          (sortChange)="onSort($event)"
+        />
       } @else {
         <p class="upl-muted" role="status" data-testid="upl-meta-loading">{{ 'upl.common.loading' | t }}</p>
       }
@@ -130,210 +158,249 @@ function emptyForm(): SourceCreateForm {
         }
       </div>
     </ng-template>
-    <ng-template #codeCell let-item><code class="upl-code" data-testid="upl-source-row">{{ item.code }}</code></ng-template>
-    <ng-template #nameCell let-item><a class="upl-link" [routerLink]="['/upl/sources', item.id]">{{ item.name }}</a></ng-template>
+    <ng-template #codeCell let-item
+      ><code class="upl-code" data-testid="upl-source-row">{{ item.code }}</code></ng-template
+    >
+    <ng-template #nameCell let-item
+      ><a class="upl-link" [routerLink]="['/upl/sources', item.id]">{{ item.name }}</a></ng-template
+    >
     <ng-template #draftCell let-item>
       @if (item.hasDraft) {
         <ui-badge variant="info">{{ 'upl.list.has_draft' | t }}</ui-badge>
       }
     </ng-template>
 
-    <smt-dialog
-      [open]="isCreateOpen()"
-      [smtTitle]="'upl.source.new_title' | t"
-      smtSize="md"
-      (closed)="closeCreate()">
+    <smt-dialog [open]="isCreateOpen()" [smtTitle]="'upl.source.new_title' | t" smtSize="md" (closed)="closeCreate()">
       <ng-template smtDialogContent>
-      <form body id="upl-source-create" class="upl-form" (ngSubmit)="submitCreate()" novalidate>
-        @if (createError()) {
-          <smt-alert smtTone="danger" class="upl-alert" data-testid="upl-create-error">
-            {{ createError()! | t }}
-          </smt-alert>
-        }
+        <form body id="upl-source-create" class="upl-form" (ngSubmit)="submitCreate()" novalidate>
+          @if (createError()) {
+            <smt-alert smtTone="danger" class="upl-alert" data-testid="upl-create-error">
+              {{ createError()! | t }}
+            </smt-alert>
+          }
 
-        <smt-control class="form-group" [smtLabel]="'upl.source.field.code' | t" [smtHint]="'upl.source.hint.code' | t" [smtError]="fieldErrorText('code')">
-          <smt-input
-            smtFieldId="upl-source-code"
-            name="code"
-            [maxLength]="63"
-            [(ngModel)]="form.code" />
-        </smt-control>
+          <smt-control
+            class="form-group"
+            [smtLabel]="'upl.source.field.code' | t"
+            [smtHint]="'upl.source.hint.code' | t"
+            [smtError]="fieldErrorText('code')"
+          >
+            <smt-input smtFieldId="upl-source-code" name="code" [maxLength]="63" [(ngModel)]="form.code" />
+          </smt-control>
 
-        <smt-control class="form-group" [smtLabel]="'upl.source.field.name' | t" [smtHint]="'upl.source.hint.name' | t" [smtError]="fieldErrorText('name')">
-          <smt-input
-            smtFieldId="upl-source-name"
-            name="name"
-            [maxLength]="200"
-            [(ngModel)]="form.name" />
-        </smt-control>
+          <smt-control
+            class="form-group"
+            [smtLabel]="'upl.source.field.name' | t"
+            [smtHint]="'upl.source.hint.name' | t"
+            [smtError]="fieldErrorText('name')"
+          >
+            <smt-input smtFieldId="upl-source-name" name="name" [maxLength]="200" [(ngModel)]="form.name" />
+          </smt-control>
 
-        <smt-control class="form-group" [smtLabel]="'upl.source.field.owner_org' | t" [smtHint]="'upl.source.hint.owner_org' | t" [smtError]="fieldErrorText('ownerOrg')">
-          <smt-input
-            smtFieldId="upl-source-owner-org"
-            name="ownerOrg"
-            [maxLength]="200"
-            [(ngModel)]="form.ownerOrg" />
-        </smt-control>
+          <smt-control
+            class="form-group"
+            [smtLabel]="'upl.source.field.owner_org' | t"
+            [smtHint]="'upl.source.hint.owner_org' | t"
+            [smtError]="fieldErrorText('ownerOrg')"
+          >
+            <smt-input
+              smtFieldId="upl-source-owner-org"
+              name="ownerOrg"
+              [maxLength]="200"
+              [(ngModel)]="form.ownerOrg"
+            />
+          </smt-control>
 
-        <smt-control class="form-group" [smtLabel]="'upl.source.field.owner_contact' | t" [smtHint]="'upl.source.hint.owner_contact' | t" [smtError]="fieldErrorText('ownerContact')">
-          <smt-input
-            smtFieldId="upl-source-owner-contact"
-            name="ownerContact"
-            [maxLength]="200"
-            [(ngModel)]="form.ownerContact" />
-        </smt-control>
+          <smt-control
+            class="form-group"
+            [smtLabel]="'upl.source.field.owner_contact' | t"
+            [smtHint]="'upl.source.hint.owner_contact' | t"
+            [smtError]="fieldErrorText('ownerContact')"
+          >
+            <smt-input
+              smtFieldId="upl-source-owner-contact"
+              name="ownerContact"
+              [maxLength]="200"
+              [(ngModel)]="form.ownerContact"
+            />
+          </smt-control>
 
-        <smt-control class="form-group" [smtLabel]="'upl.source.field.periodicity' | t" [smtHint]="'upl.source.hint.periodicity' | t">
-          <smt-select
-            smtTriggerId="upl-source-periodicity"
-            name="periodicity"
-            [options]="periodicityOptions()"
-            [allowClear]="false"
-            [(ngModel)]="form.periodicity"
-          ></smt-select>
-        </smt-control>
+          <smt-control
+            class="form-group"
+            [smtLabel]="'upl.source.field.periodicity' | t"
+            [smtHint]="'upl.source.hint.periodicity' | t"
+          >
+            <smt-select
+              smtTriggerId="upl-source-periodicity"
+              name="periodicity"
+              [options]="periodicityOptions()"
+              [allowClear]="false"
+              [(ngModel)]="form.periodicity"
+            ></smt-select>
+          </smt-control>
 
-        <smt-control class="form-group" [smtLabel]="'upl.source.field.sla_days' | t" [smtHint]="'upl.source.hint.sla_days' | t" [smtError]="fieldErrorText('slaDays')">
-          <smt-input
-            smtFieldId="upl-source-sla-days"
-            name="slaDays"
-            type="number"
-            [smtMin]="0"
-            [smtMax]="366"
-            [smtStep]="1"
-            [(ngModel)]="form.slaDays" />
-        </smt-control>
+          <smt-control
+            class="form-group"
+            [smtLabel]="'upl.source.field.sla_days' | t"
+            [smtHint]="'upl.source.hint.sla_days' | t"
+            [smtError]="fieldErrorText('slaDays')"
+          >
+            <smt-input
+              smtFieldId="upl-source-sla-days"
+              name="slaDays"
+              type="number"
+              [smtMin]="0"
+              [smtMax]="366"
+              [smtStep]="1"
+              [(ngModel)]="form.slaDays"
+            />
+          </smt-control>
 
-        <smt-control class="form-group" [smtLabel]="'upl.source.field.strictness' | t" [smtHint]="'upl.source.hint.strictness' | t">
-          <smt-select
-            smtTriggerId="upl-source-strictness"
-            name="reconciliationStrictness"
-            [options]="strictnessOptions()"
-            [allowClear]="false"
-            [(ngModel)]="form.reconciliationStrictness"
-          ></smt-select>
-        </smt-control>
-      </form>
+          <smt-control
+            class="form-group"
+            [smtLabel]="'upl.source.field.strictness' | t"
+            [smtHint]="'upl.source.hint.strictness' | t"
+          >
+            <smt-select
+              smtTriggerId="upl-source-strictness"
+              name="reconciliationStrictness"
+              [options]="strictnessOptions()"
+              [allowClear]="false"
+              [(ngModel)]="form.reconciliationStrictness"
+            ></smt-select>
+          </smt-control>
+        </form>
 
-      <div footer class="upl-modal-footer">
-        <button smt-button type="button" smtVariant="secondary" data-testid="upl-create-cancel" (click)="closeCreate()">
-          {{ 'upl.common.cancel' | t }}
-        </button>
-        <button smt-button
-          smtVariant="primary"
-          type="submit"
-          form="upl-source-create"
-          [smtLoading]="isSaving()"
-          data-testid="upl-create-submit"
-        >{{ 'upl.source.create' | t }}</button>
-      </div>
+        <div footer class="upl-modal-footer">
+          <button
+            smt-button
+            type="button"
+            smtVariant="secondary"
+            data-testid="upl-create-cancel"
+            (click)="closeCreate()"
+          >
+            {{ 'upl.common.cancel' | t }}
+          </button>
+          <button
+            smt-button
+            smtVariant="primary"
+            type="submit"
+            form="upl-source-create"
+            [smtLoading]="isSaving()"
+            data-testid="upl-create-submit"
+          >
+            {{ 'upl.source.create' | t }}
+          </button>
+        </div>
       </ng-template>
     </smt-dialog>
   `,
-  styles: [`
-    .upl-page {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
+  styles: [
+    `
+      .upl-page {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
 
-    .upl-toolbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-    }
+      .upl-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+      }
 
-    .upl-title {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      margin: 0;
-      font-family: var(--font-family);
-      font-size: 1.25rem;
-      color: var(--text-main);
-    }
+      .upl-title {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin: 0;
+        font-family: var(--font-family);
+        font-size: 1.25rem;
+        color: var(--text-main);
+      }
 
-    .upl-count {
-      padding: 0.125rem 0.5rem;
-      border-radius: var(--radius-sm);
-      background: var(--bg-hover);
-      color: var(--text-muted);
-      font-size: 0.875rem;
-    }
+      .upl-count {
+        padding: 0.125rem 0.5rem;
+        border-radius: var(--radius-sm);
+        background: var(--bg-hover);
+        color: var(--text-muted);
+        font-size: 0.875rem;
+      }
 
-    .upl-alert {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-    }
+      .upl-alert {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+      }
 
-    .upl-code {
-      font-family: monospace;
-      color: var(--text-main);
-    }
+      .upl-code {
+        font-family: monospace;
+        color: var(--text-main);
+      }
 
-    .upl-link {
-      color: var(--primary);
-      text-decoration: none;
-    }
+      .upl-link {
+        color: var(--primary);
+        text-decoration: none;
+      }
 
-    .upl-link:hover {
-      text-decoration: underline;
-    }
+      .upl-link:hover {
+        text-decoration: underline;
+      }
 
-    .upl-empty {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.75rem;
-      padding: 3rem 1rem;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-lg);
-      background: var(--bg-surface);
-    }
+      .upl-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 3rem 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        background: var(--bg-surface);
+      }
 
-    .upl-empty-icon {
-      font-size: 2.5rem;
-      color: var(--text-light);
-    }
+      .upl-empty-icon {
+        font-size: 2.5rem;
+        color: var(--text-light);
+      }
 
-    .upl-empty-text {
-      margin: 0;
-      color: var(--text-muted);
-    }
+      .upl-empty-text {
+        margin: 0;
+        color: var(--text-muted);
+      }
 
-    .upl-muted {
-      color: var(--text-muted);
-    }
+      .upl-muted {
+        color: var(--text-muted);
+      }
 
-    .upl-form {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
+      .upl-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
 
-    .upl-hint {
-      display: block;
-      margin-top: 0.25rem;
-      color: var(--text-muted);
-      font-size: 0.8125rem;
-    }
+      .upl-hint {
+        display: block;
+        margin-top: 0.25rem;
+        color: var(--text-muted);
+        font-size: 0.8125rem;
+      }
 
-    .upl-field-error {
-      display: block;
-      margin-top: 0.25rem;
-      color: var(--danger);
-      font-size: 0.8125rem;
-    }
+      .upl-field-error {
+        display: block;
+        margin-top: 0.25rem;
+        color: var(--danger);
+        font-size: 0.8125rem;
+      }
 
-    .upl-modal-footer {
-      display: flex;
-      justify-content: flex-end;
-      gap: 0.5rem;
-    }
-  `]
+      .upl-modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+      }
+    `,
+  ],
 })
 export class SourcesListComponent implements OnInit {
   private readonly api = inject(UplApiService);
@@ -365,15 +432,15 @@ export class SourcesListComponent implements OnInit {
     const meta = this.meta();
     if (!meta) return null;
     return registryTableConfig<UplSourceItem>(meta, {
-      translate: key => this.i18n.translate(key),
+      translate: (key) => this.i18n.translate(key),
       trackBy: (_index, item) => item.id,
       ariaLabel: this.i18n.translate('upl.list.title'),
       sort: this.sort(),
       cells: {
         code: { type: 'templateRef', value: this.codeCell },
         name: { type: 'templateRef', value: this.nameCell },
-        hasDraft: { type: 'templateRef', value: this.draftCell }
-      }
+        hasDraft: { type: 'templateRef', value: this.draftCell },
+      },
     });
   });
 
@@ -387,14 +454,19 @@ export class SourcesListComponent implements OnInit {
       return meta ? parseSort(meta.defaultSort) : null;
     },
     onApply: () => this.pager.first(),
-    columnsStore: inject(TableColumnStateStore)
+    columnsStore: inject(TableColumnStateStore),
   });
   readonly sort = this.views.sort;
 
   /** The sort goes with every page, so a cursor always continues the query that issued it. */
   readonly pager = new KeysetPager<UplSourceItem>(
-    (cursor, limit) => this.api.listSources(limit, cursor, { sort: this.sort(), conditions: this.views.filter(), match: this.views.match() }),
-    { pageSize: PAGE_SIZE, destroyRef: this.destroyRef }
+    (cursor, limit) =>
+      this.api.listSources(limit, cursor, {
+        sort: this.sort(),
+        conditions: this.views.filter(),
+        match: this.views.match(),
+      }),
+    { pageSize: PAGE_SIZE, destroyRef: this.destroyRef },
   );
   readonly items = this.pager.items;
   readonly isLoading = this.pager.loading;
@@ -408,13 +480,15 @@ export class SourcesListComponent implements OnInit {
   /** Periodicities of a source; translated again when the language changes. */
   periodicityOptions(): SMTSelectOption<UplPeriodicity>[] {
     return this.periodicityMemo([this.i18n.currentLang()], () =>
-      UPL_PERIODICITIES.map(option => ({ id: option, label: this.i18n.translate(UPL_PERIODICITY_KEY[option]) })));
+      UPL_PERIODICITIES.map((option) => ({ id: option, label: this.i18n.translate(UPL_PERIODICITY_KEY[option]) })),
+    );
   }
 
   /** Reconciliation strictness levels; translated again when the language changes. */
   strictnessOptions(): SMTSelectOption<UplStrictness>[] {
     return this.strictnessMemo([this.i18n.currentLang()], () =>
-      UPL_STRICTNESSES.map(option => ({ id: option, label: this.i18n.translate(UPL_STRICTNESS_KEY[option]) })));
+      UPL_STRICTNESSES.map((option) => ({ id: option, label: this.i18n.translate(UPL_STRICTNESS_KEY[option]) })),
+    );
   }
 
   ngOnInit(): void {
@@ -439,13 +513,16 @@ export class SourcesListComponent implements OnInit {
       return;
     }
     this.metaError.set(false);
-    this.queryMeta.get('upl.sources').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: meta => {
-        this.meta.set(meta);
-        this.views.load().subscribe(() => this.pager.first());
-      },
-      error: () => this.metaError.set(true)
-    });
+    this.queryMeta
+      .get('upl.sources')
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (meta) => {
+          this.meta.set(meta);
+          this.views.load().subscribe(() => this.pager.first());
+        },
+        error: () => this.metaError.set(true),
+      });
   }
 
   /** A header click sorts the whole list on the server; switching sorting off returns to the default order. */
@@ -488,11 +565,11 @@ export class SourcesListComponent implements OnInit {
       slaDays: Number(this.form.slaDays),
       sourceType: 'file',
       reconciliationStrictness: this.form.reconciliationStrictness,
-      lockVersion: null
+      lockVersion: null,
     };
     this.isSaving.set(true);
     this.api.createSource(body).subscribe({
-      next: created => {
+      next: (created) => {
         this.isSaving.set(false);
         this.isCreateOpen.set(false);
         this.toast.success(this.i18n.translate('upl.source.created'));
@@ -505,7 +582,7 @@ export class SourcesListComponent implements OnInit {
       error: (problem: ProblemDetail) => {
         this.isSaving.set(false);
         this.handleCreateError(problem);
-      }
+      },
     });
   }
 
@@ -540,7 +617,7 @@ export class SourcesListComponent implements OnInit {
     if (problem?.status === 422) {
       const errors: Record<string, string> = {};
       for (const item of parseUplProblem(problem)) {
-        errors[item.field] = uplFieldErrorText(item, key => this.i18n.translate(key));
+        errors[item.field] = uplFieldErrorText(item, (key) => this.i18n.translate(key));
       }
       this.fieldErrors.set(errors);
       this.createError.set('upl.err.VALIDATION_FAILED');
@@ -555,6 +632,6 @@ export class SourcesListComponent implements OnInit {
 
   /** Неизвестный код ошибки не прячем: показываем подкод и код каркаса. */
   private problemText(problem: ProblemDetail): string {
-    return uplProblemText(problem, key => this.i18n.translate(key));
+    return uplProblemText(problem, (key) => this.i18n.translate(key));
   }
 }

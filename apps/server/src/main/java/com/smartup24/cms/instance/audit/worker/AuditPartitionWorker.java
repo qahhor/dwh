@@ -2,6 +2,11 @@ package com.smartup24.cms.instance.audit.worker;
 
 import com.smartup24.cms.instance.audit.repository.AuditPartitionRepository;
 import com.smartup24.cms.instance.audit.repository.AuditPartitionRepository.AuditPartition;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -10,12 +15,6 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-
-import java.time.LocalDate;
-import java.time.YearMonth;
-import java.time.ZoneOffset;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Досоздание партиций {@code audit_log} вперёд и срок хранения оперативного журнала (FR-AUD-2).
@@ -38,9 +37,10 @@ public class AuditPartitionWorker {
     private final int runwayDays;
     private final int retentionMonths;
 
-    public AuditPartitionWorker(AuditPartitionRepository partitionRepository,
-                                @Value("${dwh.audit.partition-runway-days:31}") int runwayDays,
-                                @Value("${dwh.audit.retention-months:12}") int retentionMonths) {
+    public AuditPartitionWorker(
+            AuditPartitionRepository partitionRepository,
+            @Value("${dwh.audit.partition-runway-days:31}") int runwayDays,
+            @Value("${dwh.audit.retention-months:12}") int retentionMonths) {
         this.partitionRepository = partitionRepository;
         this.runwayDays = runwayDays;
         this.retentionMonths = retentionMonths;
@@ -79,17 +79,21 @@ public class AuditPartitionWorker {
                 continue;
             }
             try {
-                archived.add(partition.daily()
-                        ? partitionRepository.detachDay(partition.from())
-                        : partitionRepository.detachAndArchive(YearMonth.from(partition.from())));
+                archived.add(
+                        partition.daily()
+                                ? partitionRepository.detachDay(partition.from())
+                                : partitionRepository.detachAndArchive(YearMonth.from(partition.from())));
             } catch (Exception e) {
                 log.error("Не удалось отцепить партицию аудита {}: {}", partition.name(), e.getMessage());
             }
         }
 
         if (!archived.isEmpty()) {
-            log.warn("Срок хранения {} мес. истёк, партиции аудита отцеплены и переименованы: {}. "
-                    + "Данные не удалены (FR-AUD-2)", retentionMonths, String.join(", ", archived));
+            log.warn(
+                    "Срок хранения {} мес. истёк, партиции аудита отцеплены и переименованы: {}. "
+                            + "Данные не удалены (FR-AUD-2)",
+                    retentionMonths,
+                    String.join(", ", archived));
         }
     }
 
@@ -108,8 +112,11 @@ public class AuditPartitionWorker {
             } catch (Exception e) {
                 // Ожидаемая причина одна: строки за этот день уже лежат в default,
                 // PostgreSQL сканирует его при создании партиции и отказывает
-                log.error("Не удалось создать партицию аудита за {}: {}. Перенесите строки "
-                        + "за этот день из audit_log_default и повторите", day, e.getMessage());
+                log.error(
+                        "Не удалось создать партицию аудита за {}: {}. Перенесите строки "
+                                + "за этот день из audit_log_default и повторите",
+                        day,
+                        e.getMessage());
             }
         }
 
@@ -119,8 +126,10 @@ public class AuditPartitionWorker {
 
         long stranded = partitionRepository.countDefaultRows();
         if (stranded > 0) {
-            log.error("В audit_log_default {} строк: партиция за какой-то день не была создана "
-                    + "вовремя, retention и архив эти записи не заберут (FR-AUD-2)", stranded);
+            log.error(
+                    "В audit_log_default {} строк: партиция за какой-то день не была создана "
+                            + "вовремя, retention и архив эти записи не заберут (FR-AUD-2)",
+                    stranded);
         }
     }
 }

@@ -17,11 +17,11 @@ bootstrapApplication(AppComponent, {
       withFetch(),
       withXsrfConfiguration({ cookieName: 'XSRF-TOKEN', headerName: 'X-XSRF-TOKEN' }),
       // Order matters: a 401 is seen once, after the retries of a keyed change are over.
-      withInterceptors([sessionExpiredInterceptor, idempotencyKeyInterceptor])
+      withInterceptors([sessionExpiredInterceptor, idempotencyKeyInterceptor]),
     ),
     provideAppInitializer(() => inject(I18nService).initialize()),
     provideAppInitializer(() => inject(LanguageTabSync).start()),
     // Created at start so it follows sign-in and sign-out by itself.
-    provideAppInitializer(() => void inject(IdleLockService))
-  ]
-}).catch(err => console.error(err));
+    provideAppInitializer(() => void inject(IdleLockService)),
+  ],
+}).catch((err) => console.error(err));

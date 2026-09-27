@@ -5,9 +5,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.filter.annotation.TypeExcludeFilters;
 import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * База интеграционных тестов: встроенный PostgreSQL с двумя базами ({@link TestDatabases}), миграции применены.
@@ -23,6 +23,7 @@ public abstract class EmbeddedPostgresTest {
 
     @Autowired
     private JdbcClient cleanupJdbc;
+
     @Autowired
     private TransactionTemplate cleanupTx;
 
@@ -34,15 +35,28 @@ public abstract class EmbeddedPostgresTest {
     protected void cleanUsersAndJournals() {
         cleanupTx.executeWithoutResult(tx -> {
             cleanupJdbc.sql("set local dwh.maintenance = 'on'").update();
-            for (String table : new String[] {"security_events", "audit_log", "idempotency_keys", "kauth_login_failures", "kauth_sessions",
-                    "kauth_auth_flows", "kauth_auth_codes_used", "kauth_link_requests",
-                    "kauth_external_identities", "md_effective_permissions", "md_permissions_version",
-                    "md_user_roles"}) {
+            for (String table : new String[] {
+                "security_events",
+                "audit_log",
+                "idempotency_keys",
+                "kauth_login_failures",
+                "kauth_sessions",
+                "kauth_auth_flows",
+                "kauth_auth_codes_used",
+                "kauth_link_requests",
+                "kauth_external_identities",
+                "md_effective_permissions",
+                "md_permissions_version",
+                "md_user_roles"
+            }) {
                 cleanupJdbc.sql("delete from " + table).update();
             }
-            // M-5: учётка system (создаётся кодом основы) остаётся — её id кеширует FndActors, удаление дало бы audit_actor_missing
-            cleanupJdbc.sql("delete from md_users where login <> :system")
-                    .param("system", FndPref.SYSTEM_ACTOR).update();
+            // M-5: учётка system (создаётся кодом основы) остаётся — её id кеширует FndActors, удаление дало бы
+            // audit_actor_missing
+            cleanupJdbc
+                    .sql("delete from md_users where login <> :system")
+                    .param("system", FndPref.SYSTEM_ACTOR)
+                    .update();
         });
     }
 
@@ -66,9 +80,9 @@ public abstract class EmbeddedPostgresTest {
         registry.add("dwh.instance.client-name", () -> "TEST instance");
         // Сгенерированный пароль bootstrap пишется в файл (AC-1/AC-17) — в тестах во временный каталог
         // Файлы модуля mf каркаса (AC-8) — на диске во временном каталоге теста, не в ./data/storage
-        registry.add("dwh.storage.local-path",
-                () -> System.getProperty("java.io.tmpdir") + "/dwh-test-storage");
-        registry.add("platform.bootstrap.admin-password-file",
+        registry.add("dwh.storage.local-path", () -> System.getProperty("java.io.tmpdir") + "/dwh-test-storage");
+        registry.add(
+                "platform.bootstrap.admin-password-file",
                 () -> System.getProperty("java.io.tmpdir") + "/dwh-test-bootstrap-password.txt");
         // Запускатель очереди заданий в тестах выключен: очередь снимают сами тесты вызовом runQueued()
         registry.add("dwh.fnd.jobs.ticker-enabled", () -> false);

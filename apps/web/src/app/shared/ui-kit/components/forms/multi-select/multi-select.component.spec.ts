@@ -27,7 +27,8 @@ const PEOPLE: SMTSelectOption<number>[] = [
       [options]="options()"
       [remoteSearch]="remote()"
       ariaLabel="Observers"
-      (searchChange)="searches.push($event)" />
+      (searchChange)="searches.push($event)"
+    />
   `,
 })
 class Host {
@@ -50,7 +51,7 @@ class NgModelHost {
 
 describe('SMTMultiSelectComponent', () => {
   afterEach(() => {
-    document.querySelectorAll('.cdk-overlay-container').forEach(node => node.remove());
+    document.querySelectorAll('.cdk-overlay-container').forEach((node) => node.remove());
     TestBed.resetTestingModule();
   });
 
@@ -67,7 +68,8 @@ describe('SMTMultiSelectComponent', () => {
     const element = fixture.nativeElement as HTMLElement;
     const trigger = element.querySelector('.smt-multi-select__trigger') as HTMLButtonElement;
     const search = () => document.querySelector('.smt-select__search-input') as HTMLInputElement;
-    const chips = () => Array.from(element.querySelectorAll('.smt-multi-select__chip-label')).map(c => c.textContent?.trim());
+    const chips = () =>
+      Array.from(element.querySelectorAll('.smt-multi-select__chip-label')).map((c) => c.textContent?.trim());
     const key = async (target: HTMLElement, name: string) => {
       target.dispatchEvent(new KeyboardEvent('keydown', { key: name, bubbles: true, cancelable: true }));
       await settle();
@@ -79,7 +81,9 @@ describe('SMTMultiSelectComponent', () => {
     const { element, trigger, chips } = await render(Host);
 
     expect(chips()).toEqual(['Dilnoza Rahimova']);
-    expect(element.querySelector('.smt-multi-select__chip-remove')?.getAttribute('aria-label')).toBe('Remove Dilnoza Rahimova');
+    expect(element.querySelector('.smt-multi-select__chip-remove')?.getAttribute('aria-label')).toBe(
+      'Remove Dilnoza Rahimova',
+    );
     expect(trigger.getAttribute('role')).toBe('combobox');
     expect(trigger.getAttribute('aria-label')).toBe('Observers');
     expect(trigger.textContent).toContain('+ Add');
@@ -101,7 +105,9 @@ describe('SMTMultiSelectComponent', () => {
     await key(search(), 'Enter');
     expect(fixture.componentInstance.model().observers).toEqual([1]);
     expect(chips()).toEqual(['Aziz Karimov']);
-    expect(document.getElementById(search().getAttribute('aria-activedescendant')!)!.getAttribute('aria-selected')).toBe('false');
+    expect(
+      document.getElementById(search().getAttribute('aria-activedescendant')!)!.getAttribute('aria-selected'),
+    ).toBe('false');
   });
 
   it('removes the last chip with Backspace in an empty search and closes on Escape', async () => {

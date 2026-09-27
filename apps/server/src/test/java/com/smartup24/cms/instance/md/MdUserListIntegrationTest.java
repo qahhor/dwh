@@ -1,5 +1,8 @@
 package com.smartup24.cms.instance.md;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
@@ -20,18 +23,14 @@ import com.smartup24.cms.instance.md.service.MdUserListService;
 import com.smartup24.cms.instance.md.service.MdUserQuery;
 import com.smartup24.cms.instance.md.service.MdUserView;
 import com.smartup24.cms.instance.support.TestDatabases;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import tools.jackson.databind.ObjectMapper;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** The user list on the field registry (ADR-0016, roadmap item 48), with the flat filters it took before. */
 class MdUserListIntegrationTest {
@@ -47,12 +46,19 @@ class MdUserListIntegrationTest {
     static void setup() {
         var ds = TestDatabases.migratedCopy("dwh_user_list_test");
         jdbc = JdbcClient.create(ds);
-        var audit = new AuditLogService(new AuditLogRepository(jdbc, new ObjectMapper()), null, new AuditDataRedactor());
+        var audit =
+                new AuditLogService(new AuditLogRepository(jdbc, new ObjectMapper()), null, new AuditDataRedactor());
         roleRepository = new MdRoleRepository(jdbc);
-        scopeService = new MdScopeService(new MdScopeRepository(jdbc), new MdOrgUnitRepository(jdbc),
-                new MdPermissionService(new MdPermissionRepository(jdbc)), audit);
-        users = new MdUserListService(new QueryListRepository(jdbc), new MdUserRepository(jdbc, new ObjectMapper()),
-                scopeService, roleRepository);
+        scopeService = new MdScopeService(
+                new MdScopeRepository(jdbc),
+                new MdOrgUnitRepository(jdbc),
+                new MdPermissionService(new MdPermissionRepository(jdbc)),
+                audit);
+        users = new MdUserListService(
+                new QueryListRepository(jdbc),
+                new MdUserRepository(jdbc, new ObjectMapper()),
+                scopeService,
+                roleRepository);
 
         viewer = createUser("lst_viewer", "Viewer", "A", false, null);
         roleId = roleRepository.findByPcode("admin").orElseThrow().id();
@@ -80,23 +86,39 @@ class MdUserListIntegrationTest {
     @Test
     @DisplayName("Search q looks in name, login, email and phone")
     void searchLooksInEveryTextField() {
-        assertThat(names(users.page(viewer, null, null, null, null, "+99890000000", LegacyUserFilters.none()).items()))
+        assertThat(names(users.page(viewer, null, null, null, null, "+99890000000", LegacyUserFilters.none())
+                        .items()))
                 .containsExactly("Alice", "Bob", "Carol");
-        assertThat(names(users.page(viewer, null, null, null, null, "lst_bob@", LegacyUserFilters.none()).items()))
+        assertThat(names(users.page(viewer, null, null, null, null, "lst_bob@", LegacyUserFilters.none())
+                        .items()))
                 .containsExactly("Bob");
     }
 
     @Test
     @DisplayName("The DSL and the old flat filters narrow the same list")
     void dslAndFlatFiltersNarrowTheList() {
-        assertThat(names(users.page(viewer, null, null, "[{\"field\":\"state\",\"op\":\"eq\",\"value\":\"P\"}]", null,
-                "lst_", LegacyUserFilters.none()).items())).containsExactly("Bob");
-        assertThat(names(users.page(viewer, null, null, null, null, "lst_",
-                new LegacyUserFilters("P", null, null, null)).items())).containsExactly("Bob");
-        assertThat(names(users.page(viewer, null, null, null, null, "lst_",
-                new LegacyUserFilters(null, null, null, true)).items())).containsExactly("Carol");
-        assertThat(names(users.page(viewer, null, null, null, null, "lst_",
-                new LegacyUserFilters(null, roleId, null, null)).items())).containsExactly("Dave", "Viewer");
+        assertThat(names(users.page(
+                                viewer,
+                                null,
+                                null,
+                                "[{\"field\":\"state\",\"op\":\"eq\",\"value\":\"P\"}]",
+                                null,
+                                "lst_",
+                                LegacyUserFilters.none())
+                        .items()))
+                .containsExactly("Bob");
+        assertThat(names(
+                        users.page(viewer, null, null, null, null, "lst_", new LegacyUserFilters("P", null, null, null))
+                                .items()))
+                .containsExactly("Bob");
+        assertThat(names(users.page(
+                                viewer, null, null, null, null, "lst_", new LegacyUserFilters(null, null, null, true))
+                        .items()))
+                .containsExactly("Carol");
+        assertThat(names(users.page(
+                                viewer, null, null, null, null, "lst_", new LegacyUserFilters(null, roleId, null, null))
+                        .items()))
+                .containsExactly("Dave", "Viewer");
     }
 
     @Test
@@ -107,43 +129,63 @@ class MdUserListIntegrationTest {
         var second = users.page(viewer, 2, first.nextCursor(), null, null, "lst_", LegacyUserFilters.none());
         assertThat(names(second.items())).containsExactly("Carol", "Dave");
 
-        assertThatThrownBy(() -> users.page(viewer, 2, first.nextCursor(), null, null, "lst_",
-                new LegacyUserFilters("A", null, null, null)))
-                .isInstanceOfSatisfying(ApiException.class, error -> assertThat(error.getFieldErrors())
-                        .extracting(FieldErrorItem::code).containsExactly(QueryCompiler.INVALID_CURSOR));
+        assertThatThrownBy(() -> users.page(
+                        viewer,
+                        2,
+                        first.nextCursor(),
+                        null,
+                        null,
+                        "lst_",
+                        new LegacyUserFilters("A", null, null, null)))
+                .isInstanceOfSatisfying(
+                        ApiException.class,
+                        error -> assertThat(error.getFieldErrors())
+                                .extracting(FieldErrorItem::code)
+                                .containsExactly(QueryCompiler.INVALID_CURSOR));
     }
 
     @Test
     @DisplayName("The page size is 1 to 200")
     void pageSizeIsBounded() {
         assertThatThrownBy(() -> users.page(viewer, 201, null, null, null, null, LegacyUserFilters.none()))
-                .isInstanceOfSatisfying(ApiException.class, error -> assertThat(error.getFieldErrors())
-                        .extracting(FieldErrorItem::code).containsExactly(QueryCompiler.INVALID_LIMIT));
+                .isInstanceOfSatisfying(
+                        ApiException.class,
+                        error -> assertThat(error.getFieldErrors())
+                                .extracting(FieldErrorItem::code)
+                                .containsExactly(QueryCompiler.INVALID_LIMIT));
     }
 
     @Test
     @DisplayName("Views carry roles and no password hash; every registry field is a view property")
     void viewsCarryRolesAndEveryField() {
         var page = users.pageViews(viewer, null, null, null, null, "lst_dave", LegacyUserFilters.none());
-        assertThat(page.items()).singleElement().satisfies(view -> assertThat(view.roleIds()).containsExactly(roleId));
+        assertThat(page.items())
+                .singleElement()
+                .satisfies(view -> assertThat(view.roleIds()).containsExactly(roleId));
 
         var properties = Arrays.stream(MdUserView.class.getRecordComponents())
-                .map(java.lang.reflect.RecordComponent::getName).toList();
-        assertThat(MdUserQuery.LIST.fields()).allSatisfy(field -> assertThat(properties).contains(field.key()));
+                .map(java.lang.reflect.RecordComponent::getName)
+                .toList();
+        assertThat(MdUserQuery.LIST.fields())
+                .allSatisfy(field -> assertThat(properties).contains(field.key()));
     }
 
     @Test
     @DisplayName("The export refuses bad option values before the job starts")
     void exportChecksOptionValues() {
         var exporter = new MdListExporters().iamUsersExporter(users);
-        assertThat(exporter.checkOptions(Map.of("role_id", "12", "state", "A", "is_2fa_enabled", "true"))).isEmpty();
+        assertThat(exporter.checkOptions(Map.of("role_id", "12", "state", "A", "is_2fa_enabled", "true")))
+                .isEmpty();
         assertThat(exporter.checkOptions(Map.of("role_id", "x", "state", "Z", "is_2fa_enabled", "yes")))
-                .extracting(FieldErrorItem::field).containsExactlyInAnyOrder("role_id", "state", "is_2fa_enabled");
+                .extracting(FieldErrorItem::field)
+                .containsExactlyInAnyOrder("role_id", "state", "is_2fa_enabled");
     }
 
     private static List<String> names(List<?> items) {
-        return items.stream().map(item -> item instanceof MdUserView view ? view.name()
-                : ((MdUserRepository.UserRecord) item).name()).toList();
+        return items.stream()
+                .map(item ->
+                        item instanceof MdUserView view ? view.name() : ((MdUserRepository.UserRecord) item).name())
+                .toList();
     }
 
     private static Long createUser(String login, String name, String state, boolean twoFactor, String phone) {
@@ -159,6 +201,7 @@ class MdUserListIntegrationTest {
                 .param("phone", phone)
                 .param("state", state)
                 .param("twoFactor", twoFactor)
-                .query(Long.class).single();
+                .query(Long.class)
+                .single();
     }
 }

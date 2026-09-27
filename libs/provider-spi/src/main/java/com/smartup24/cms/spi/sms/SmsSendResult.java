@@ -1,12 +1,7 @@
 package com.smartup24.cms.spi.sms;
 
 public record SmsSendResult(
-        boolean isSuccess,
-        String externalMessageId,
-        String errorCode,
-        String errorMessage,
-        long durationMs
-) {
+        boolean isSuccess, String externalMessageId, String errorCode, String errorMessage, long durationMs) {
     public static SmsSendResult success(String externalMessageId, long durationMs) {
         return new SmsSendResult(true, externalMessageId, null, null, durationMs);
     }

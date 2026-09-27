@@ -4,11 +4,10 @@ import com.smartup24.cms.spi.common.ProviderHealth;
 import com.smartup24.cms.spi.sms.SmsMessage;
 import com.smartup24.cms.spi.sms.SmsProvider;
 import com.smartup24.cms.spi.sms.SmsSendResult;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-
-import java.util.UUID;
 
 /**
  * Заглушка канала SMS для разработки: пишет сообщение в журнал и никуда его не шлёт.
@@ -33,7 +32,7 @@ public class ConsoleSmsProvider implements SmsProvider {
 
     @Override
     public ProviderHealth checkHealth() {
-        return ProviderHealth.unhealthy(getProviderCode(),
-                "Заглушка: SMS не доставляются. Подключите шлюз оператора", 0);
+        return ProviderHealth.unhealthy(
+                getProviderCode(), "Заглушка: SMS не доставляются. Подключите шлюз оператора", 0);
     }
 }

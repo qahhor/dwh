@@ -15,9 +15,6 @@ import com.smartup24.cms.instance.upl.format.UplFormatModel.SourceData;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.SourceSummary;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.SourceType;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.Strictness;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -29,6 +26,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
 
 /**
  * Чтение и запись анкеты файла (таблицы V111). Транзакции и актор аудита ставит сервис.
@@ -139,8 +138,8 @@ public class UplFormatRepository {
     }
 
     public Optional<FormatVersion> findVersion(long sourceId, int version) {
-        Optional<FormatVersion> header = jdbc.sql("select " + VERSION_COLUMNS
-                        + " from upl_format_versions where source_id = :s and version = :v")
+        Optional<FormatVersion> header = jdbc.sql(
+                        "select " + VERSION_COLUMNS + " from upl_format_versions where source_id = :s and version = :v")
                 .param("s", sourceId)
                 .param("v", version)
                 .query(this::mapVersion)
@@ -232,13 +231,12 @@ public class UplFormatRepository {
                         from upl_format_columns
                         where sheet_id in (select id from upl_format_sheets where source_id = :s and version = :v)
                         order by sheet_id, ordinal
-                        """)
-                .param("s", sourceId)
-                .param("v", version)
-                .query((ResultSet rs) -> {
-                    Column column = mapColumn(rs);
-                    columnsBySheet.computeIfAbsent(rs.getLong("sheet_id"), k -> new ArrayList<>()).add(column);
-                });
+                        """).param("s", sourceId).param("v", version).query((ResultSet rs) -> {
+            Column column = mapColumn(rs);
+            columnsBySheet
+                    .computeIfAbsent(rs.getLong("sheet_id"), k -> new ArrayList<>())
+                    .add(column);
+        });
         return jdbc.sql("""
                         select id, ordinal, sheet_name, header_row, total_row_marker
                         from upl_format_sheets

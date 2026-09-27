@@ -68,7 +68,8 @@ function optionalNumber(value: unknown): number | null {
           [style.width.px]="box.width"
           [style.height.px]="box.height"
           (pointerdown)="startMove($event)"
-          (keydown)="onKeydown($event)">
+          (keydown)="onKeydown($event)"
+        >
           <span class="smt-cropper__handle" aria-hidden="true" (pointerdown)="startResize($event)"></span>
         </div>
       }
@@ -114,7 +115,11 @@ export class SMTCropperComponent {
 
   readonly status = computed(() => {
     const area = this.area();
-    return area ? this.i18n.messages().cropper.status(Math.round(area.x), Math.round(area.y), Math.round(area.width), Math.round(area.height)) : '';
+    return area
+      ? this.i18n
+          .messages()
+          .cropper.status(Math.round(area.x), Math.round(area.y), Math.round(area.width), Math.round(area.height))
+      : '';
   });
 
   readonly helpId = `smt-cropper-help-${nextCropperId++}`;
@@ -138,7 +143,11 @@ export class SMTCropperComponent {
   nudge(dx: number, dy: number, resize = false): void {
     const area = this.area();
     if (!area || this.disabled()) return;
-    this.area.set(resize ? this.resized(area, area.width + dx, area.height + dy) : this.fit({ ...area, x: area.x + dx, y: area.y + dy }));
+    this.area.set(
+      resize
+        ? this.resized(area, area.width + dx, area.height + dy)
+        : this.fit({ ...area, x: area.x + dx, y: area.y + dy }),
+    );
   }
 
   onKeydown(event: KeyboardEvent): void {
@@ -175,7 +184,7 @@ export class SMTCropperComponent {
     const context = canvas.getContext('2d');
     if (!context) return Promise.resolve(null);
     context.drawImage(image, area.x, area.y, area.width, area.height, 0, 0, canvas.width, canvas.height);
-    return new Promise(resolve => canvas.toBlob(resolve, type, quality));
+    return new Promise((resolve) => canvas.toBlob(resolve, type, quality));
   }
 
   private drag(event: PointerEvent, next: (start: SMTCropArea, dx: number, dy: number) => SMTCropArea): void {
@@ -186,7 +195,9 @@ export class SMTCropperComponent {
     const target = event.currentTarget as HTMLElement;
     target.focus?.();
     const move = (moveEvent: PointerEvent) => {
-      this.area.set(next(start, (moveEvent.clientX - event.clientX) * scale, (moveEvent.clientY - event.clientY) * scale));
+      this.area.set(
+        next(start, (moveEvent.clientX - event.clientX) * scale, (moveEvent.clientY - event.clientY) * scale),
+      );
     };
     const stop = () => {
       window.removeEventListener('pointermove', move);

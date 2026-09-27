@@ -19,17 +19,17 @@ describe('SettingsComponent UI contracts', () => {
   async function createFixture(
     api: object = {
       get: vi.fn(() => of({})),
-      patch: vi.fn(() => of({}))
+      patch: vi.fn(() => of({})),
     },
     hasPermission: (form: string, action: string) => boolean = () => true,
     searchManagement: object = {
       status: vi.fn(() => of({})),
       settings: vi.fn(() => of({})),
-      jobs: vi.fn(() => of({ items: [], hasMore: false }))
+      jobs: vi.fn(() => of({ items: [], hasMore: false })),
     },
     themeService?: object,
     toast?: object,
-    i18nMock?: object
+    i18nMock?: object,
   ) {
     await TestBed.configureTestingModule({
       imports: [SettingsComponent],
@@ -44,8 +44,8 @@ describe('SettingsComponent UI contracts', () => {
             themePreference: signal('light'),
             currentTheme: signal('light'),
             setTheme: vi.fn(),
-            toggleTheme: vi.fn()
-          }
+            toggleTheme: vi.fn(),
+          },
         },
         {
           provide: I18nService,
@@ -54,16 +54,16 @@ describe('SettingsComponent UI contracts', () => {
             languages: signal([
               { code: 'ru', name: 'Русский', builtin: true, active: true },
               { code: 'de', name: 'Deutsch', builtin: true, active: true },
-              { code: 'tr', name: 'Türkçe', builtin: true, active: true }
+              { code: 'tr', name: 'Türkçe', builtin: true, active: true },
             ]),
             translate: translateTest,
             setLanguage: vi.fn(() => of(undefined)),
             registerLanguage: vi.fn(() => of({})),
             refreshLanguages: vi.fn(() => of([])),
-            exportDictionary: vi.fn(() => '{}')
-          }
-        }
-      ]
+            exportDictionary: vi.fn(() => '{}'),
+          },
+        },
+      ],
     }).compileComponents();
     const fixture = TestBed.createComponent(SettingsComponent);
     redraw(fixture);
@@ -74,8 +74,8 @@ describe('SettingsComponent UI contracts', () => {
     const systemSettings = new Subject<Record<string, string>>();
     const userSettings = new Subject<Record<string, string>>();
     const api = {
-      get: vi.fn((path: string) => path === '/settings/system' ? systemSettings : userSettings),
-      patch: vi.fn(() => of({}))
+      get: vi.fn((path: string) => (path === '/settings/system' ? systemSettings : userSettings)),
+      patch: vi.fn(() => of({})),
     };
     const fixture = await createFixture(api);
     fixture.autoDetectChanges();
@@ -84,7 +84,7 @@ describe('SettingsComponent UI contracts', () => {
       'system.company_name': 'Persisted Company',
       'system.default_language': 'en',
       'system.default_timezone': 'UTC',
-      'system.date_format': 'yyyy-MM-dd HH:mm'
+      'system.date_format': 'yyyy-MM-dd HH:mm',
     });
     userSettings.next({ 'user.theme': 'light' });
     await fixture.whenStable();
@@ -96,15 +96,18 @@ describe('SettingsComponent UI contracts', () => {
   it('connects settings tabs and general fields', async () => {
     const fixture = await createFixture();
 
-    expect(inScreen(fixture.nativeElement).querySelector('[role="tablist"][aria-label="Разделы настроек"]')).not.toBeNull();
+    expect(
+      inScreen(fixture.nativeElement).querySelector('[role="tablist"][aria-label="Разделы настроек"]'),
+    ).not.toBeNull();
     expect(inScreen(fixture.nativeElement).querySelector('#settings-general-tab[aria-selected="true"]')).not.toBeNull();
     expect(inScreen(fixture.nativeElement).querySelector('#settings-general-panel[role="tabpanel"]')).not.toBeNull();
     expect(inScreen(fixture.nativeElement).querySelector('label[for="settings-company-name"]')).not.toBeNull();
     expect(inScreen(fixture.nativeElement).querySelector('label[for="settings-default-language"]')).not.toBeNull();
     const language = inScreen(fixture.nativeElement).querySelector('#settings-default-language') as HTMLButtonElement;
     expect(language.getAttribute('role')).toBe('combobox');
-    const picker = fixture.debugElement.query(By.css('smt-select[name="settingsDefaultLanguage"]')).componentInstance as SMTSelectComponent<string>;
-    expect(picker.options().map(option => option.id)).toEqual(['ru', 'de', 'tr']);
+    const picker = fixture.debugElement.query(By.css('smt-select[name="settingsDefaultLanguage"]'))
+      .componentInstance as SMTSelectComponent<string>;
+    expect(picker.options().map((option) => option.id)).toEqual(['ru', 'de', 'tr']);
   });
 
   it('shows the search tab from search permission and destroys its child on a structural tab switch', async () => {
@@ -112,10 +115,13 @@ describe('SettingsComponent UI contracts', () => {
     const searchManagement = {
       status: vi.fn(() => new Observable(() => () => statusUnsubscribed++)),
       jobs: vi.fn(() => of({ items: [], hasMore: false })),
-      settings: vi.fn(() => of({}))
+      settings: vi.fn(() => of({})),
     };
-    const fixture = await createFixture(undefined, (form, action) =>
-      form === 'platform.search' && action === 'view', searchManagement);
+    const fixture = await createFixture(
+      undefined,
+      (form, action) => form === 'platform.search' && action === 'view',
+      searchManagement,
+    );
 
     const searchTab = inScreen(fixture.nativeElement).querySelector('#settings-search-tab') as HTMLButtonElement;
     expect(searchTab).not.toBeNull();
@@ -192,26 +198,30 @@ describe('SettingsComponent UI contracts', () => {
   });
 
   it('migrates legacy browser translations atomically and removes them only after success', async () => {
-    localStorage.setItem('dwh_custom_languages', JSON.stringify({
-      de: { name: 'Deutsch', dict: { 'common.save': 'Alt speichern', unknown: 'ignore' } }
-    }));
+    localStorage.setItem(
+      'dwh_custom_languages',
+      JSON.stringify({
+        de: { name: 'Deutsch', dict: { 'common.save': 'Alt speichern', unknown: 'ignore' } },
+      }),
+    );
     const api = {
       get: vi.fn((path: string) => {
         if (path === '/i18n/admin/languages/ru/translations') {
-          return of({ language: { revision: 4 }, entries: [
-            { key: 'common.save' }, { key: 'common.cancel' }
-          ] });
+          return of({ language: { revision: 4 }, entries: [{ key: 'common.save' }, { key: 'common.cancel' }] });
         }
         if (path === '/i18n/admin/languages/de/translations') {
-          return of({ language: { revision: 7 }, entries: [
-            { key: 'common.save', overrideValue: null },
-            { key: 'common.cancel', overrideValue: 'Abbrechen' }
-          ] });
+          return of({
+            language: { revision: 7 },
+            entries: [
+              { key: 'common.save', overrideValue: null },
+              { key: 'common.cancel', overrideValue: 'Abbrechen' },
+            ],
+          });
         }
         return of({});
       }),
       patch: vi.fn(() => of({})),
-      put: vi.fn(() => of({}))
+      put: vi.fn(() => of({})),
     };
     const fixture = await createFixture(api);
     const confirm = vi.spyOn(TestBed.inject(SMTModalService), 'confirm').mockReturnValue(of(true));
@@ -223,8 +233,8 @@ describe('SettingsComponent UI contracts', () => {
       expectedRevision: 7,
       translations: {
         'common.save': 'Alt speichern',
-        'common.cancel': 'Abbrechen'
-      }
+        'common.cancel': 'Abbrechen',
+      },
     });
     expect(localStorage.getItem('dwh_custom_languages')).toBeNull();
   });
@@ -258,7 +268,9 @@ describe('SettingsComponent UI contracts', () => {
     const companyInput = inScreen(fixture.nativeElement).querySelector('#settings-company-name') as HTMLInputElement;
     expect(companyInput.disabled).toBe(true);
 
-    const generalSaveBtn = inScreen(fixture.nativeElement).querySelector('#settings-general-panel .card-footer-actions .smt-button');
+    const generalSaveBtn = inScreen(fixture.nativeElement).querySelector(
+      '#settings-general-panel .card-footer-actions .smt-button',
+    );
     expect(generalSaveBtn).toBeNull();
   });
 
@@ -267,7 +279,7 @@ describe('SettingsComponent UI contracts', () => {
       themePreference: signal('light'),
       currentTheme: signal('light'),
       setTheme: vi.fn(),
-      toggleTheme: vi.fn()
+      toggleTheme: vi.fn(),
     };
     const fixture = await createFixture(undefined, () => true, undefined, themeServiceMock);
 
@@ -285,12 +297,12 @@ describe('SettingsComponent UI contracts', () => {
   it('validates password length, session lifetime, and quota bounds before sending patch', async () => {
     const api = {
       get: vi.fn(() => of({})),
-      patch: vi.fn(() => of({}))
+      patch: vi.fn(() => of({})),
     };
     const toast = {
       success: vi.fn(),
       error: vi.fn(),
-      info: vi.fn()
+      info: vi.fn(),
     };
     const fixture = await createFixture(api, () => true, undefined, undefined, toast);
 
@@ -312,7 +324,7 @@ describe('SettingsComponent UI contracts', () => {
     const toast = {
       success: vi.fn(),
       error: vi.fn(),
-      info: vi.fn()
+      info: vi.fn(),
     };
     const i18nMock = {
       currentLang: signal('ru'),
@@ -321,7 +333,7 @@ describe('SettingsComponent UI contracts', () => {
       setLanguage: vi.fn(() => of(undefined)),
       registerLanguage: vi.fn(() => of({})),
       refreshLanguages: vi.fn(() => of([])),
-      exportDictionary: vi.fn(() => '{}')
+      exportDictionary: vi.fn(() => '{}'),
     };
     const fixture = await createFixture(undefined, () => true, undefined, undefined, toast, i18nMock);
 
@@ -367,7 +379,7 @@ describe('SettingsComponent UI contracts', () => {
     toast.error.mockClear();
     fixture.componentInstance.systemSettings.set({
       'security.session_lifetime_hours': '720',
-      'storage.default_user_quota_mb': 'not-a-number'
+      'storage.default_user_quota_mb': 'not-a-number',
     });
     fixture.componentInstance.saveSystemSettings();
     expect(toast.error).toHaveBeenCalled();

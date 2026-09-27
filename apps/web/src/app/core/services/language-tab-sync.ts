@@ -18,9 +18,10 @@ export class LanguageTabSync {
   start(): void {
     if (this.started) return;
     this.started = true;
-    this.i18n.languageChosen.pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(code => this.tabs.publish({ kind: 'language', code }));
-    this.tabs.messages.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(message => {
+    this.i18n.languageChosen
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((code) => this.tabs.publish({ kind: 'language', code }));
+    this.tabs.messages.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((message) => {
       if (message.kind !== 'language' || message.code === this.i18n.currentLang()) return;
       this.i18n.setLanguage(message.code, false).subscribe({ error: () => undefined });
     });

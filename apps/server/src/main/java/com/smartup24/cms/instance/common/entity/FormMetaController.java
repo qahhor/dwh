@@ -5,14 +5,14 @@ import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.query.QueryRef;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import java.math.BigDecimal;
+import java.util.List;
+import org.jspecify.annotations.Nullable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.math.BigDecimal;
-import java.util.List;
 
 /**
  * {@code GET /api/v1/form-meta/{code}} (ADR-0019, 2.2): an entity's form fields, layout and rules, and the
@@ -29,23 +29,50 @@ public class FormMetaController {
         this.registry = registry;
     }
 
-    public record FieldMeta(String key, String labelKey, String label, String type, boolean required,
-                            Integer minLength, Integer maxLength, BigDecimal min, BigDecimal max, String pattern,
-                            List<String> options, String optionLabelPrefix, QueryRef ref, String attribute) {
+    public record FieldMeta(
+            String key,
+            String labelKey,
+            @Nullable String label,
+            String type,
+            boolean required,
+            @Nullable Integer minLength,
+            @Nullable Integer maxLength,
+            @Nullable BigDecimal min,
+            @Nullable BigDecimal max,
+            @Nullable String pattern,
+            List<String> options,
+            @Nullable String optionLabelPrefix,
+            @Nullable QueryRef ref,
+            @Nullable String attribute) {
 
         static FieldMeta of(FormField field) {
-            return new FieldMeta(field.key(), field.labelKey(), field.label(), field.type().wire(), field.required(),
-                    field.minLength(), field.maxLength(), field.min(), field.max(), field.pattern(), field.options(),
-                    field.optionLabelPrefix(), field.ref(), field.attribute());
+            return new FieldMeta(
+                    field.key(),
+                    field.labelKey(),
+                    field.label(),
+                    field.type().wire(),
+                    field.required(),
+                    field.minLength(),
+                    field.maxLength(),
+                    field.min(),
+                    field.max(),
+                    field.pattern(),
+                    field.options(),
+                    field.optionLabelPrefix(),
+                    field.ref(),
+                    field.attribute());
         }
     }
 
-    public record SectionMeta(String key, String labelKey, List<String> fields) {
-    }
+    public record SectionMeta(String key, String labelKey, List<String> fields) {}
 
-    public record FormMeta(String code, String listCode, List<FieldMeta> fields, List<SectionMeta> layout,
-                           List<String> actions, List<String> capabilities) {
-    }
+    public record FormMeta(
+            String code,
+            String listCode,
+            List<FieldMeta> fields,
+            List<SectionMeta> layout,
+            List<String> actions,
+            List<String> capabilities) {}
 
     /** Anyone signed in may ask; the entity's own right is checked below. A string: common depends on no module. */
     @GetMapping("/{code}")
@@ -62,11 +89,16 @@ public class FormMetaController {
                 entity.code(),
                 entity.listCode(),
                 entity.fields().stream().map(FieldMeta::of).toList(),
-                entity.layout().stream().map(s -> new SectionMeta(s.key(), s.labelKey(), s.fields())).toList(),
+                entity.layout().stream()
+                        .map(s -> new SectionMeta(s.key(), s.labelKey(), s.fields()))
+                        .toList(),
                 entity.actions().stream()
                         .filter(action -> SecurityContext.hasPermission(entity.form(), action.permission()))
                         .map(EntityDefinition.EntityAction::code)
                         .toList(),
-                entity.capabilities().stream().map(EntityCapability::wire).sorted().toList());
+                entity.capabilities().stream()
+                        .map(EntityCapability::wire)
+                        .sorted()
+                        .toList());
     }
 }

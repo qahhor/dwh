@@ -1,5 +1,8 @@
 package com.smartup24.cms.instance.audit.archive;
 
+import java.io.InputStream;
+import java.nio.file.Path;
+import java.time.Duration;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.checksums.RequestChecksumCalculation;
@@ -15,10 +18,6 @@ import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
-
-import java.io.InputStream;
-import java.nio.file.Path;
-import java.time.Duration;
 
 /**
  * Archives in an S3 bucket of their own ({@code smc.audit.archive.s3.*}), under a key prefix. The client is private
@@ -42,14 +41,16 @@ public class S3AuditArchiveStore implements AuditArchiveStore, AutoCloseable {
         S3Client client = S3Client.builder()
                 .endpointOverride(s3.endpoint())
                 .region(Region.of(s3.region()))
-                .credentialsProvider(StaticCredentialsProvider.create(
-                        AwsBasicCredentials.create(s3.accessKey(), s3.secretKey())))
+                .credentialsProvider(
+                        StaticCredentialsProvider.create(AwsBasicCredentials.create(s3.accessKey(), s3.secretKey())))
                 .httpClientBuilder(UrlConnectionHttpClient.builder()
                         .connectionTimeout(Duration.ofSeconds(10))
                         .socketTimeout(Duration.ofMinutes(5)))
                 .requestChecksumCalculation(RequestChecksumCalculation.WHEN_SUPPORTED)
                 .responseChecksumValidation(ResponseChecksumValidation.WHEN_SUPPORTED)
-                .serviceConfiguration(S3Configuration.builder().pathStyleAccessEnabled(s3.pathStyleAccess()).build())
+                .serviceConfiguration(S3Configuration.builder()
+                        .pathStyleAccessEnabled(s3.pathStyleAccess())
+                        .build())
                 .build();
         return new S3AuditArchiveStore(client, s3.bucket(), s3.prefix());
     }
@@ -61,7 +62,8 @@ public class S3AuditArchiveStore implements AuditArchiveStore, AutoCloseable {
 
     @Override
     public void put(String key, Path file) {
-        client.putObject(PutObjectRequest.builder()
+        client.putObject(
+                PutObjectRequest.builder()
                         .bucket(bucket)
                         .key(prefix + key)
                         .contentType("application/gzip")
@@ -71,13 +73,15 @@ public class S3AuditArchiveStore implements AuditArchiveStore, AutoCloseable {
 
     @Override
     public InputStream open(String key) {
-        return client.getObject(GetObjectRequest.builder().bucket(bucket).key(prefix + key).build());
+        return client.getObject(
+                GetObjectRequest.builder().bucket(bucket).key(prefix + key).build());
     }
 
     @Override
     public boolean exists(String key) {
         try {
-            client.headObject(HeadObjectRequest.builder().bucket(bucket).key(prefix + key).build());
+            client.headObject(
+                    HeadObjectRequest.builder().bucket(bucket).key(prefix + key).build());
             return true;
         } catch (NoSuchKeyException e) {
             return false;
@@ -91,7 +95,8 @@ public class S3AuditArchiveStore implements AuditArchiveStore, AutoCloseable {
 
     @Override
     public void delete(String key) {
-        client.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(prefix + key).build());
+        client.deleteObject(
+                DeleteObjectRequest.builder().bucket(bucket).key(prefix + key).build());
     }
 
     @Override

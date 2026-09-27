@@ -23,7 +23,7 @@ import { SMTInputValueAccessor } from './input-value-accessor';
 })
 class FormHost {
   readonly model = signal({ name: 'Ann' });
-  readonly person = form(this.model, path => {
+  readonly person = form(this.model, (path) => {
     required(path.name);
     maxLength(path.name, 40);
   });
@@ -34,7 +34,16 @@ class FormHost {
   imports: [SMTInputComponent, SMTInputValueAccessor, FormsModule],
   template: `
     <smt-input type="number" [(ngModel)]="count" [smtMin]="0" [smtMax]="10" [disabled]="off()" smtAriaLabel="Count" />
-    <smt-input type="search" clearable smtFocusInitial smtIcon="search" [(value)]="query" smtAriaLabel="Search" (keydown.enter)="submitted = submitted + 1" (cleared)="clears = clears + 1" />
+    <smt-input
+      type="search"
+      clearable
+      smtFocusInitial
+      smtIcon="search"
+      [(value)]="query"
+      smtAriaLabel="Search"
+      (keydown.enter)="submitted = submitted + 1"
+      (cleared)="clears = clears + 1"
+    />
     <smt-input type="password" [(value)]="secret" smtAriaLabel="Password" [smtInvalid]="rejected()" />
   `,
 })

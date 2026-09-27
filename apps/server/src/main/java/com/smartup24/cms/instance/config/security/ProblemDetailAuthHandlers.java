@@ -4,6 +4,10 @@ import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.error.ProblemDetailRecord;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.List;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
@@ -11,11 +15,6 @@ import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.csrf.CsrfException;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
-
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.List;
 
 /**
  * 401/403 из security-цепочки в формате RFC 9457 (FR-API-2) —
@@ -34,38 +33,46 @@ public class ProblemDetailAuthHandlers implements AuthenticationEntryPoint, Acce
     }
 
     @Override
-    public void commence(HttpServletRequest request, HttpServletResponse response,
-                         AuthenticationException authException) throws IOException {
+    public void commence(
+            HttpServletRequest request, HttpServletResponse response, AuthenticationException authException)
+            throws IOException {
         if (response.isCommitted()) {
             log.debug("Authentication failure after response commit on {}", request.getRequestURI());
             return;
         }
-        writeProblem(response, ErrorCode.UNAUTHORIZED,
-                "Требуется аутентификация для доступа к ресурсу", request.getRequestURI());
+        writeProblem(
+                response,
+                ErrorCode.UNAUTHORIZED,
+                "Требуется аутентификация для доступа к ресурсу",
+                request.getRequestURI());
     }
 
     @Override
-    public void handle(HttpServletRequest request, HttpServletResponse response,
-                       AccessDeniedException accessDeniedException) throws IOException {
+    public void handle(
+            HttpServletRequest request, HttpServletResponse response, AccessDeniedException accessDeniedException)
+            throws IOException {
         if (response.isCommitted()) {
             log.debug("Access denied after response commit on {}", request.getRequestURI());
             return;
         }
-        ErrorCode code = accessDeniedException instanceof CsrfException
-                ? ErrorCode.CSRF_TOKEN_INVALID
-                : ErrorCode.FORBIDDEN;
+        ErrorCode code =
+                accessDeniedException instanceof CsrfException ? ErrorCode.CSRF_TOKEN_INVALID : ErrorCode.FORBIDDEN;
         String detail = code == ErrorCode.CSRF_TOKEN_INVALID
                 ? "Отсутствует или недействителен CSRF-токен (заголовок X-XSRF-TOKEN)"
                 : "Доступ запрещён";
-        log.warn("AccessDenied [code={}] on {} | exceptionType={}, csrfHeaderPresent={}, cookieNames={}",
-                code, request.getRequestURI(), accessDeniedException.getClass().getSimpleName(),
+        log.warn(
+                "AccessDenied [code={}] on {} | exceptionType={}, csrfHeaderPresent={}, cookieNames={}",
+                code,
+                request.getRequestURI(),
+                accessDeniedException.getClass().getSimpleName(),
                 request.getHeader("X-XSRF-TOKEN") != null,
                 request.getCookies() != null
-                        ? Arrays.stream(request.getCookies()).map(jakarta.servlet.http.Cookie::getName).toList()
+                        ? Arrays.stream(request.getCookies())
+                                .map(jakarta.servlet.http.Cookie::getName)
+                                .toList()
                         : List.of());
         writeProblem(response, code, detail, request.getRequestURI());
     }
-
 
     public void writeProblem(HttpServletResponse response, ErrorCode code, String detail, String uri)
             throws IOException {

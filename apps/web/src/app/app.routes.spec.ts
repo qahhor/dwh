@@ -11,10 +11,7 @@ describe('application route permissions', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [
-        PermissionService,
-        { provide: Router, useValue: { createUrlTree: () => 'settings-redirect' } }
-      ]
+      providers: [PermissionService, { provide: Router, useValue: { createUrlTree: () => 'settings-redirect' } }],
     });
     permissions = TestBed.inject(PermissionService);
   });
@@ -41,34 +38,28 @@ describe('application route permissions', () => {
     permissions.setPermissions(['iam.org_units.view']);
     expect(runOrgUnitsGuard()).toBe(true);
 
-    const shell = routes.find(route => route.path === '');
-    const users = shell?.children?.find(route => route.matcher === userRecordMatcher);
-    const rolesRoute = shell?.children?.find(route => route.path === 'iam/roles');
-    const orgUnits = shell?.children?.find(route => route.path === 'iam/org-units');
+    const shell = routes.find((route) => route.path === '');
+    const users = shell?.children?.find((route) => route.matcher === userRecordMatcher);
+    const rolesRoute = shell?.children?.find((route) => route.path === 'iam/roles');
+    const orgUnits = shell?.children?.find((route) => route.path === 'iam/org-units');
     expect(users?.canDeactivate).toContain(recordNavigationGuard);
     expect(rolesRoute?.canDeactivate).toContain(recordNavigationGuard);
     expect(orgUnits?.canDeactivate).toContain(recordNavigationGuard);
   });
 
   function runAuditGuard(): unknown {
-    const shell = routes.find(route => route.path === '');
-    const audit = shell?.children?.find(route => route.path === 'audit');
+    const shell = routes.find((route) => route.path === '');
+    const audit = shell?.children?.find((route) => route.path === 'audit');
     const guard = audit?.canActivate?.[0] as CanActivateFn | undefined;
     expect(guard).toBeTypeOf('function');
-    return TestBed.runInInjectionContext(() => guard!(
-      {} as ActivatedRouteSnapshot,
-      {} as RouterStateSnapshot
-    ));
+    return TestBed.runInInjectionContext(() => guard!({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot));
   }
 
   function runOrgUnitsGuard(): unknown {
-    const shell = routes.find(route => route.path === '');
-    const orgUnits = shell?.children?.find(route => route.path === 'iam/org-units');
+    const shell = routes.find((route) => route.path === '');
+    const orgUnits = shell?.children?.find((route) => route.path === 'iam/org-units');
     const guard = orgUnits?.canActivate?.[0] as CanActivateFn | undefined;
     expect(guard).toBeTypeOf('function');
-    return TestBed.runInInjectionContext(() => guard!(
-      {} as ActivatedRouteSnapshot,
-      {} as RouterStateSnapshot
-    ));
+    return TestBed.runInInjectionContext(() => guard!({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot));
   }
 });

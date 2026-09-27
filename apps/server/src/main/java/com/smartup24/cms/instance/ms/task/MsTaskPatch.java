@@ -29,8 +29,7 @@ public record MsTaskPatch(
         boolean endTimePresent,
         Instant endTime,
         boolean expectedRevisionPresent,
-        Long expectedRevision
-) {
+        Long expectedRevision) {
     public MsTaskPatch(
             boolean projectIdPresent,
             Long projectId,
@@ -53,12 +52,31 @@ public record MsTaskPatch(
             boolean beginTimePresent,
             Instant beginTime,
             boolean endTimePresent,
-            Instant endTime
-    ) {
-        this(projectIdPresent, projectId, titlePresent, title, descriptionMarkdownPresent, descriptionMarkdown,
-                parentTaskIdPresent, parentTaskId, priorityPresent, priority, responsibleUserIdPresent, responsibleUserId,
-                executorUserIdsPresent, executorUserIds, observerUserIdsPresent, observerUserIds,
-                attributesPresent, attributes, beginTimePresent, beginTime, endTimePresent, endTime,
-                false, null);
+            Instant endTime) {
+        this(
+                projectIdPresent,
+                projectId,
+                titlePresent,
+                title,
+                descriptionMarkdownPresent,
+                descriptionMarkdown,
+                parentTaskIdPresent,
+                parentTaskId,
+                priorityPresent,
+                priority,
+                responsibleUserIdPresent,
+                responsibleUserId,
+                executorUserIdsPresent,
+                executorUserIds,
+                observerUserIdsPresent,
+                observerUserIds,
+                attributesPresent,
+                attributes,
+                beginTimePresent,
+                beginTime,
+                endTimePresent,
+                endTime,
+                false,
+                null);
     }
 }

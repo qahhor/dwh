@@ -29,18 +29,25 @@ import {
   toggleAllPermissionsSet,
   toggleReadOnlyAllPermissionsSet,
   filterRoles,
-  filterModuleGroups
+  filterModuleGroups,
 } from './roles.models';
 import { RoleFormsService } from './services/role-forms.service';
-
 
 @Component({
   selector: 'app-roles',
   standalone: true,
   imports: [
-    TranslatePipe, CommonModule, FormsModule, SMTButtonComponent, RoleScopePanelComponent, RoleModalsComponent, RoleCardsBarComponent, RolePermissionsMatrixComponent],
+    TranslatePipe,
+    CommonModule,
+    FormsModule,
+    SMTButtonComponent,
+    RoleScopePanelComponent,
+    RoleModalsComponent,
+    RoleCardsBarComponent,
+    RolePermissionsMatrixComponent,
+  ],
   templateUrl: './roles.component.html',
-  styleUrl: './roles.component.css'
+  styleUrl: './roles.component.css',
 })
 export class RolesComponent implements OnInit {
   private readonly router = inject(Router, { optional: true });
@@ -64,11 +71,11 @@ export class RolesComponent implements OnInit {
   private readonly loadedPermissionsRoleId = signal<number | null>(null);
 
   readonly isPermissionsDirty = computed<boolean>(() =>
-    arePermissionsDirty(this.originalRolePermissions(), this.rolePermissions())
+    arePermissionsDirty(this.originalRolePermissions(), this.rolePermissions()),
   );
 
   readonly dirtyPermissionsCount = computed<number>(() =>
-    countDirtyPermissions(this.originalRolePermissions(), this.rolePermissions())
+    countDirtyPermissions(this.originalRolePermissions(), this.rolePermissions()),
   );
 
   readonly hasPermissionFn = (formCode: string, action: string) => this.hasPermission(formCode, action);
@@ -96,28 +103,52 @@ export class RolesComponent implements OnInit {
   constructor(
     public permService: PermissionService,
     private api: ApiService,
-    private toast: ToastService
+    private toast: ToastService,
   ) {
     this.destroyRef.onDestroy(() => this.panelLeaveSubscription?.unsubscribe());
   }
 
-  get isCreateSubmitted() { return this.roleForms.isCreateSubmitted; }
-  set isCreateSubmitted(v: boolean) { this.roleForms.isCreateSubmitted = v; }
+  get isCreateSubmitted() {
+    return this.roleForms.isCreateSubmitted;
+  }
+  set isCreateSubmitted(v: boolean) {
+    this.roleForms.isCreateSubmitted = v;
+  }
 
-  get isEditSubmitted() { return this.roleForms.isEditSubmitted; }
-  set isEditSubmitted(v: boolean) { this.roleForms.isEditSubmitted = v; }
+  get isEditSubmitted() {
+    return this.roleForms.isEditSubmitted;
+  }
+  set isEditSubmitted(v: boolean) {
+    this.roleForms.isEditSubmitted = v;
+  }
 
-  get newRoleForm() { return this.roleForms.newRoleForm; }
-  set newRoleForm(v: any) { this.roleForms.newRoleForm = v; }
+  get newRoleForm() {
+    return this.roleForms.newRoleForm;
+  }
+  set newRoleForm(v: any) {
+    this.roleForms.newRoleForm = v;
+  }
 
-  get editRoleForm() { return this.roleForms.editRoleForm; }
-  set editRoleForm(v: any) { this.roleForms.editRoleForm = v; }
+  get editRoleForm() {
+    return this.roleForms.editRoleForm;
+  }
+  set editRoleForm(v: any) {
+    this.roleForms.editRoleForm = v;
+  }
 
-  get editingRole() { return this.roleForms.editingRole; }
-  set editingRole(v: Role | null) { this.roleForms.editingRole = v; }
+  get editingRole() {
+    return this.roleForms.editingRole;
+  }
+  set editingRole(v: Role | null) {
+    this.roleForms.editingRole = v;
+  }
 
-  get deletingRole() { return this.roleForms.deletingRole; }
-  set deletingRole(v: Role | null) { this.roleForms.deletingRole = v; }
+  get deletingRole() {
+    return this.roleForms.deletingRole;
+  }
+  set deletingRole(v: Role | null) {
+    this.roleForms.deletingRole = v;
+  }
 
   @ViewChild(RoleScopePanelComponent)
   set scopePanel(panel: RoleScopePanelComponent | undefined) {
@@ -131,26 +162,41 @@ export class RolesComponent implements OnInit {
   }
 
   canCreateRole(): boolean {
-    return this.permService.canCreate('rbac.roles') || this.permService.canCreate('iam.roles') || this.permService.canCreate('md_roles');
+    return (
+      this.permService.canCreate('rbac.roles') ||
+      this.permService.canCreate('iam.roles') ||
+      this.permService.canCreate('md_roles')
+    );
   }
 
   canUpdateRole(): boolean {
-    return this.permService.canUpdate('rbac.roles') || this.permService.canUpdate('iam.roles') || this.permService.canUpdate('md_roles');
+    return (
+      this.permService.canUpdate('rbac.roles') ||
+      this.permService.canUpdate('iam.roles') ||
+      this.permService.canUpdate('md_roles')
+    );
   }
 
   canDeleteRole(): boolean {
-    return this.permService.canDelete('rbac.roles') || this.permService.canDelete('iam.roles') || this.permService.canDelete('md_roles');
+    return (
+      this.permService.canDelete('rbac.roles') ||
+      this.permService.canDelete('iam.roles') ||
+      this.permService.canDelete('md_roles')
+    );
   }
 
   canGrant(): boolean {
-    return this.permService.hasPermission('rbac.roles', 'grant') ||
-           this.permService.hasPermission('iam.roles', 'grant');
+    return (
+      this.permService.hasPermission('rbac.roles', 'grant') || this.permService.hasPermission('iam.roles', 'grant')
+    );
   }
 
   canViewOrgUnits(): boolean {
-    return this.permService.hasPermission('iam.org_units', 'view') ||
-           this.permService.hasPermission('iam.org_units', 'assign') ||
-           this.scopePanelBusy();
+    return (
+      this.permService.hasPermission('iam.org_units', 'view') ||
+      this.permService.hasPermission('iam.org_units', 'assign') ||
+      this.scopePanelBusy()
+    );
   }
 
   canLeaveRecordPage(): boolean | Observable<boolean> {
@@ -160,51 +206,69 @@ export class RolesComponent implements OnInit {
 
   canEditPermissions(): boolean {
     const role = this.selectedRole();
-    return !!role && role.pcode !== 'admin' && this.canGrant() &&
-      this.loadedPermissionsRoleId() === role.id && !this.isLoading() && !this.isSaving();
+    return (
+      !!role &&
+      role.pcode !== 'admin' &&
+      this.canGrant() &&
+      this.loadedPermissionsRoleId() === role.id &&
+      !this.isLoading() &&
+      !this.isSaving()
+    );
   }
 
   loadRoles() {
     this.loadRoleUserCounts();
-    this.api.get<Role[]>('/rbac/roles').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: res => {
-        const list = res || [];
-        this.roles.set(list);
-        if (!this.selectedRole() && list.length > 0) {
-          this.selectRole(list[0]);
-        }
-      },
-      error: () => {
-        this.api.get<Role[]>('/iam/roles').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-          next: res => {
-            const list = res || [];
-            this.roles.set(list);
-            if (!this.selectedRole() && list.length > 0) {
-              this.selectRole(list[0]);
-            }
+    this.api
+      .get<Role[]>('/rbac/roles')
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          const list = res || [];
+          this.roles.set(list);
+          if (!this.selectedRole() && list.length > 0) {
+            this.selectRole(list[0]);
           }
-        });
-      }
-    });
+        },
+        error: () => {
+          this.api
+            .get<Role[]>('/iam/roles')
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe({
+              next: (res) => {
+                const list = res || [];
+                this.roles.set(list);
+                if (!this.selectedRole() && list.length > 0) {
+                  this.selectRole(list[0]);
+                }
+              },
+            });
+        },
+      });
   }
 
   loadRoleUserCounts() {
-    this.api.get<Record<number, number>>('/iam/roles/user-counts').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: counts => this.roleUserCounts.set(counts || {}),
-      error: () => {}
-    });
+    this.api
+      .get<Record<number, number>>('/iam/roles/user-counts')
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (counts) => this.roleUserCounts.set(counts || {}),
+        error: () => {},
+      });
   }
 
   loadForms() {
-    this.api.get<FormTreeItem[]>('/rbac/forms').pipe(takeUntilDestroyed(this.destroyRef)).subscribe(res => {
-      const items = res || [];
-      this.forms.set(items);
-      this.buildModuleGroups(items);
-    });
+    this.api
+      .get<FormTreeItem[]>('/rbac/forms')
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((res) => {
+        const items = res || [];
+        this.forms.set(items);
+        this.buildModuleGroups(items);
+      });
   }
 
   buildModuleGroups(items: FormTreeItem[]) {
-    this.moduleGroups = buildModuleGroups(items, mod => this.getModuleDisplayName(mod));
+    this.moduleGroups = buildModuleGroups(items, (mod) => this.getModuleDisplayName(mod));
   }
 
   selectRole(role: Role) {
@@ -246,28 +310,31 @@ export class RolesComponent implements OnInit {
     if (!currentRole || !this.canEditPermissions()) return;
 
     this.isSaving.set(true);
-    const pairs: PermissionPair[] = Array.from(this.rolePermissions()).map(p => {
+    const pairs: PermissionPair[] = Array.from(this.rolePermissions()).map((p) => {
       const parts = p.split('.');
       const action = parts.pop() || '';
       const formCode = parts.join('.');
       return { formCode, action };
     });
 
-    this.api.put(`/rbac/roles/${currentRole.id}/permissions`, pairs).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: () => {
-        this.isSaving.set(false);
-        this.originalRolePermissions.set(new Set(this.rolePermissions()));
-        this.toast.success(this.uiI18n.translate('iam.matrica_prav_uspeshno_sohranena'));
-        this.isDiscardPermissionsModalOpen.set(false);
-        this.pendingRoleToSelect = null;
-        if (nextRole) {
-          this.afterRoleScopeLeave(() => this.activateRole(nextRole));
-        }
-      },
-      error: () => {
-        this.isSaving.set(false);
-      }
-    });
+    this.api
+      .put(`/rbac/roles/${currentRole.id}/permissions`, pairs)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.isSaving.set(false);
+          this.originalRolePermissions.set(new Set(this.rolePermissions()));
+          this.toast.success(this.uiI18n.translate('iam.matrica_prav_uspeshno_sohranena'));
+          this.isDiscardPermissionsModalOpen.set(false);
+          this.pendingRoleToSelect = null;
+          if (nextRole) {
+            this.afterRoleScopeLeave(() => this.activateRole(nextRole));
+          }
+        },
+        error: () => {
+          this.isSaving.set(false);
+        },
+      });
   }
 
   filteredRoles(): Role[] {
@@ -287,7 +354,7 @@ export class RolesComponent implements OnInit {
   }
 
   setAllModulesExpanded(expanded: boolean) {
-    this.moduleGroups.forEach(mod => mod.isExpanded = expanded);
+    this.moduleGroups.forEach((mod) => (mod.isExpanded = expanded));
   }
 
   toggleModuleExpand(mod: ModuleGroup) {
@@ -380,23 +447,26 @@ export class RolesComponent implements OnInit {
     if (!role || !this.canEditPermissions()) return;
 
     this.isSaving.set(true);
-    const pairs: PermissionPair[] = Array.from(this.rolePermissions()).map(p => {
+    const pairs: PermissionPair[] = Array.from(this.rolePermissions()).map((p) => {
       const parts = p.split('.');
       const action = parts.pop() || '';
       const formCode = parts.join('.');
       return { formCode, action };
     });
 
-    this.api.put(`/rbac/roles/${role.id}/permissions`, pairs).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: () => {
-        this.isSaving.set(false);
-        this.originalRolePermissions.set(new Set(this.rolePermissions()));
-        this.toast.success(this.uiI18n.translate('iam.matrica_prav_uspeshno_sohranena'));
-      },
-      error: () => {
-        this.isSaving.set(false);
-      }
-    });
+    this.api
+      .put(`/rbac/roles/${role.id}/permissions`, pairs)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.isSaving.set(false);
+          this.originalRolePermissions.set(new Set(this.rolePermissions()));
+          this.toast.success(this.uiI18n.translate('iam.matrica_prav_uspeshno_sohranena'));
+        },
+        error: () => {
+          this.isSaving.set(false);
+        },
+      });
   }
 
   openCreateModal() {
@@ -404,7 +474,7 @@ export class RolesComponent implements OnInit {
   }
 
   submitCreateRole() {
-    this.roleForms.submitCreateRole(newRole => {
+    this.roleForms.submitCreateRole((newRole) => {
       this.loadRoles();
       this.selectRole(newRole);
     });
@@ -430,7 +500,14 @@ export class RolesComponent implements OnInit {
 
   confirmDeleteRole() {
     const target = this.deletingRole;
-    if (!target || this.isSaving() || this.scopePanelBusy() || this.isSubmittingRole() || !safeNumericRecordId(target.id)) return;
+    if (
+      !target ||
+      this.isSaving() ||
+      this.scopePanelBusy() ||
+      this.isSubmittingRole() ||
+      !safeNumericRecordId(target.id)
+    )
+      return;
     if (this.selectedRole()?.id === target.id) {
       this.afterRoleScopeLeave(() => this.deleteRole(target));
       return;
@@ -447,22 +524,24 @@ export class RolesComponent implements OnInit {
     this.loadedPermissionsRoleId.set(null);
     this.permissionsError.set('');
     this.isLoading.set(true);
-    this.permissionsRequest = this.api.get<string[]>(`/rbac/roles/${role.id}/permissions`, undefined, { notifyError: false })
-      .pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: res => {
-        if (this.selectedRole()?.id !== role.id) return;
-        const perms = new Set(res || []);
-        this.rolePermissions.set(new Set(perms));
-        this.originalRolePermissions.set(new Set(perms));
-        this.loadedPermissionsRoleId.set(role.id);
-        this.isLoading.set(false);
-      },
-      error: error => {
-        if (this.selectedRole()?.id !== role.id) return;
-        this.permissionsError.set(error.detail || error.title);
-        this.isLoading.set(false);
-      }
-    });
+    this.permissionsRequest = this.api
+      .get<string[]>(`/rbac/roles/${role.id}/permissions`, undefined, { notifyError: false })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          if (this.selectedRole()?.id !== role.id) return;
+          const perms = new Set(res || []);
+          this.rolePermissions.set(new Set(perms));
+          this.originalRolePermissions.set(new Set(perms));
+          this.loadedPermissionsRoleId.set(role.id);
+          this.isLoading.set(false);
+        },
+        error: (error) => {
+          if (this.selectedRole()?.id !== role.id) return;
+          this.permissionsError.set(error.detail || error.title);
+          this.isLoading.set(false);
+        },
+      });
   }
 
   private afterRoleScopeLeave(action: () => void): void {
@@ -474,7 +553,7 @@ export class RolesComponent implements OnInit {
       if (decision) action();
       return;
     }
-    this.panelLeaveSubscription = decision.subscribe(allow => {
+    this.panelLeaveSubscription = decision.subscribe((allow) => {
       if (allow && !this.destroyRef.destroyed) action();
     });
   }

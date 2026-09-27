@@ -1,11 +1,10 @@
 package com.smartup24.cms.instance.kwh.repository;
 
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
 
 @Repository
 public class KwhSubscriptionRepository {
@@ -16,8 +15,10 @@ public class KwhSubscriptionRepository {
         this.jdbcClient = jdbcClient;
     }
 
-    public SubscriptionRecord create(String name, String targetUrl, String secretToken, List<String> subscribedEvents, Long createdBy) {
-        return jdbcClient.sql("""
+    public SubscriptionRecord create(
+            String name, String targetUrl, String secretToken, List<String> subscribedEvents, Long createdBy) {
+        return jdbcClient
+                .sql("""
                 insert into kwh_subscriptions (name, target_url, secret_token, subscribed_events, state, created_at, created_by)
                 values (:name, :targetUrl, :secretToken, :events, 'A', now(), :createdBy)
                 returning id, name, target_url, secret_token, subscribed_events, state, created_at, created_by
@@ -36,10 +37,7 @@ public class KwhSubscriptionRepository {
                 select id, name, target_url, secret_token, subscribed_events, state, created_at, created_by
                 from kwh_subscriptions
                 where id = :id
-                """)
-                .param("id", id)
-                .query(this::mapRecord)
-                .optional();
+                """).param("id", id).query(this::mapRecord).optional();
     }
 
     public List<SubscriptionRecord> listSubscriptions() {
@@ -47,13 +45,12 @@ public class KwhSubscriptionRepository {
                 select id, name, target_url, secret_token, subscribed_events, state, created_at, created_by
                 from kwh_subscriptions
                 order by created_at desc
-                """)
-                .query(this::mapRecord)
-                .list();
+                """).query(this::mapRecord).list();
     }
 
     public List<SubscriptionRecord> findActiveByEvent(String eventType) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select id, name, target_url, secret_token, subscribed_events, state, created_at, created_by
                 from kwh_subscriptions
                 where state = 'A' and :eventType = any(subscribed_events)
@@ -64,7 +61,8 @@ public class KwhSubscriptionRepository {
     }
 
     public void update(Long id, String name, String targetUrl, List<String> subscribedEvents, String state) {
-        jdbcClient.sql("""
+        jdbcClient
+                .sql("""
                 update kwh_subscriptions
                 set name = coalesce(:name, name),
                     target_url = coalesce(:targetUrl, target_url),
@@ -81,7 +79,10 @@ public class KwhSubscriptionRepository {
     }
 
     public void delete(Long id) {
-        jdbcClient.sql("delete from kwh_subscriptions where id = :id").param("id", id).update();
+        jdbcClient
+                .sql("delete from kwh_subscriptions where id = :id")
+                .param("id", id)
+                .update();
     }
 
     private SubscriptionRecord mapRecord(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
@@ -96,8 +97,7 @@ public class KwhSubscriptionRepository {
                 events,
                 rs.getString("state"),
                 rs.getTimestamp("created_at").toInstant(),
-                rs.getObject("created_by") != null ? rs.getLong("created_by") : null
-        );
+                rs.getObject("created_by") != null ? rs.getLong("created_by") : null);
     }
 
     public record SubscriptionRecord(
@@ -108,6 +108,5 @@ public class KwhSubscriptionRepository {
             List<String> subscribedEvents,
             String state,
             Instant createdAt,
-            Long createdBy
-    ) {}
+            Long createdBy) {}
 }

@@ -9,48 +9,113 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group';
 @Component({
   selector: 'ui-markdown-editor',
   standalone: true,
-  imports: [
-    SMTTabBarComponent, TranslatePipe,CommonModule, FormsModule],
+  imports: [SMTTabBarComponent, TranslatePipe, CommonModule, FormsModule],
   template: `
     <div class="md-editor-container" [class.focused]="isFocused">
       <!-- Toolbar -->
       <div class="md-toolbar" role="toolbar" [attr.aria-label]="'ui.markdown_editor.formatirovanie_markdown' | t">
         <div class="toolbar-actions">
-          <button type="button" class="tool-btn" (click)="insertFormat('bold')" [attr.aria-label]="'ui.markdown_editor.zhirnyy' | t" [title]="'ui.markdown_editor.zhirnyy_ctrl_b' | t">
+          <button
+            type="button"
+            class="tool-btn"
+            (click)="insertFormat('bold')"
+            [attr.aria-label]="'ui.markdown_editor.zhirnyy' | t"
+            [title]="'ui.markdown_editor.zhirnyy_ctrl_b' | t"
+          >
             <span class="material-symbols-outlined" aria-hidden="true">format_bold</span>
           </button>
-          <button type="button" class="tool-btn" (click)="insertFormat('italic')" [attr.aria-label]="'ui.markdown_editor.kursiv' | t" [title]="'ui.markdown_editor.kursiv_ctrl_i' | t">
+          <button
+            type="button"
+            class="tool-btn"
+            (click)="insertFormat('italic')"
+            [attr.aria-label]="'ui.markdown_editor.kursiv' | t"
+            [title]="'ui.markdown_editor.kursiv_ctrl_i' | t"
+          >
             <span class="material-symbols-outlined" aria-hidden="true">format_italic</span>
           </button>
-          <button type="button" class="tool-btn" (click)="insertFormat('strike')" [attr.aria-label]="'ui.markdown_editor.zacherknutyy' | t" [title]="'ui.markdown_editor.zacherknutyy.681ea7a' | t">
+          <button
+            type="button"
+            class="tool-btn"
+            (click)="insertFormat('strike')"
+            [attr.aria-label]="'ui.markdown_editor.zacherknutyy' | t"
+            [title]="'ui.markdown_editor.zacherknutyy.681ea7a' | t"
+          >
             <span class="material-symbols-outlined" aria-hidden="true">format_strikethrough</span>
           </button>
           <span class="tool-sep" role="separator" aria-orientation="vertical"></span>
 
-          <button type="button" class="tool-btn" (click)="insertFormat('h2')" [attr.aria-label]="'ui.markdown_editor.zagolovok' | t" [title]="'ui.markdown_editor.zagolovok' | t">
+          <button
+            type="button"
+            class="tool-btn"
+            (click)="insertFormat('h2')"
+            [attr.aria-label]="'ui.markdown_editor.zagolovok' | t"
+            [title]="'ui.markdown_editor.zagolovok' | t"
+          >
             <span class="material-symbols-outlined" aria-hidden="true">title</span>
           </button>
-          <button type="button" class="tool-btn" (click)="insertFormat('bullet-list')" [attr.aria-label]="'ui.markdown_editor.markirovannyy_spisok' | t" [title]="'ui.markdown_editor.markirovannyy_spisok' | t">
+          <button
+            type="button"
+            class="tool-btn"
+            (click)="insertFormat('bullet-list')"
+            [attr.aria-label]="'ui.markdown_editor.markirovannyy_spisok' | t"
+            [title]="'ui.markdown_editor.markirovannyy_spisok' | t"
+          >
             <span class="material-symbols-outlined" aria-hidden="true">format_list_bulleted</span>
           </button>
-          <button type="button" class="tool-btn" (click)="insertFormat('num-list')" [attr.aria-label]="'ui.markdown_editor.numerovannyy_spisok' | t" [title]="'ui.markdown_editor.numerovannyy_spisok' | t">
+          <button
+            type="button"
+            class="tool-btn"
+            (click)="insertFormat('num-list')"
+            [attr.aria-label]="'ui.markdown_editor.numerovannyy_spisok' | t"
+            [title]="'ui.markdown_editor.numerovannyy_spisok' | t"
+          >
             <span class="material-symbols-outlined" aria-hidden="true">format_list_numbered</span>
           </button>
-          <button type="button" class="tool-btn" (click)="insertFormat('task-list')" [attr.aria-label]="'ui.markdown_editor.chek_list_zadach' | t" [title]="'ui.markdown_editor.chek_list_zadach' | t">
+          <button
+            type="button"
+            class="tool-btn"
+            (click)="insertFormat('task-list')"
+            [attr.aria-label]="'ui.markdown_editor.chek_list_zadach' | t"
+            [title]="'ui.markdown_editor.chek_list_zadach' | t"
+          >
             <span class="material-symbols-outlined" aria-hidden="true">checklist</span>
           </button>
           <span class="tool-sep" role="separator" aria-orientation="vertical"></span>
 
-          <button type="button" class="tool-btn" (click)="insertFormat('code')" [attr.aria-label]="'settings.kod' | t" [title]="'settings.kod' | t">
+          <button
+            type="button"
+            class="tool-btn"
+            (click)="insertFormat('code')"
+            [attr.aria-label]="'settings.kod' | t"
+            [title]="'settings.kod' | t"
+          >
             <span class="material-symbols-outlined" aria-hidden="true">code</span>
           </button>
-          <button type="button" class="tool-btn" (click)="insertFormat('quote')" [attr.aria-label]="'ui.markdown_editor.citata' | t" [title]="'ui.markdown_editor.citata' | t">
+          <button
+            type="button"
+            class="tool-btn"
+            (click)="insertFormat('quote')"
+            [attr.aria-label]="'ui.markdown_editor.citata' | t"
+            [title]="'ui.markdown_editor.citata' | t"
+          >
             <span class="material-symbols-outlined" aria-hidden="true">format_quote</span>
           </button>
-          <button type="button" class="tool-btn" (click)="insertFormat('link')" [attr.aria-label]="'ui.markdown_editor.ssylka' | t" [title]="'ui.markdown_editor.ssylka' | t">
+          <button
+            type="button"
+            class="tool-btn"
+            (click)="insertFormat('link')"
+            [attr.aria-label]="'ui.markdown_editor.ssylka' | t"
+            [title]="'ui.markdown_editor.ssylka' | t"
+          >
             <span class="material-symbols-outlined" aria-hidden="true">link</span>
           </button>
-          <button type="button" class="tool-btn" (click)="insertFormat('table')" [attr.aria-label]="'audit.tablica' | t" [title]="'audit.tablica' | t">
+          <button
+            type="button"
+            class="tool-btn"
+            (click)="insertFormat('table')"
+            [attr.aria-label]="'audit.tablica' | t"
+            [title]="'audit.tablica' | t"
+          >
             <span class="material-symbols-outlined" aria-hidden="true">table</span>
           </button>
         </div>
@@ -61,14 +126,23 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group';
           [tabs]="modeTabs()"
           [value]="mode"
           [smtAriaLabel]="'ui.markdown_editor.rezhim_markdown' | t"
-          (valueChange)="mode = $event ?? mode" />
+          (valueChange)="mode = $event ?? mode"
+        />
       </div>
 
       <!-- Editor Content -->
       <div class="md-body">
         <!-- Textarea Mode -->
-        <div *ngIf="mode === 'edit'" class="editor-pane" role="tabpanel" [id]="editPanelId" [attr.aria-labelledby]="editTabId">
-          <label class="sr-only" [for]="textareaId">{{ ariaLabel || ('ui.markdown_editor.tekst_v_formate_markdown' | t) }}</label>
+        <div
+          *ngIf="mode === 'edit'"
+          class="editor-pane"
+          role="tabpanel"
+          [id]="editPanelId"
+          [attr.aria-labelledby]="editTabId"
+        >
+          <label class="sr-only" [for]="textareaId">{{
+            ariaLabel || ('ui.markdown_editor.tekst_v_formate_markdown' | t)
+          }}</label>
           <textarea
             #textareaRef
             [id]="textareaId"
@@ -95,185 +169,205 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group';
       </div>
     </div>
   `,
-  styles: [`
-    :host {
-      display: block;
-      width: 100%;
-      min-width: 0;
-      max-width: 100%;
-    }
+  styles: [
+    `
+      :host {
+        display: block;
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+      }
 
-    .md-editor-container {
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      background-color: var(--bg-surface);
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      width: 100%;
-      min-width: 0;
-      max-width: 100%;
-      box-sizing: border-box;
-      transition: border-color 0.15s ease, box-shadow 0.15s ease;
-    }
-    .md-editor-container.focused {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 1px var(--primary);
-    }
+      .md-editor-container {
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        background-color: var(--bg-surface);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+        box-sizing: border-box;
+        transition:
+          border-color 0.15s ease,
+          box-shadow 0.15s ease;
+      }
+      .md-editor-container.focused {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 1px var(--primary);
+      }
 
-    .md-toolbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 6px;
-      padding: 4px 8px;
-      background-color: var(--bg-hover);
-      border-bottom: 1px solid var(--border-color);
-      flex-wrap: wrap;
-    }
+      .md-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        padding: 4px 8px;
+        background-color: var(--bg-hover);
+        border-bottom: 1px solid var(--border-color);
+        flex-wrap: wrap;
+      }
 
-    .toolbar-actions {
-      display: flex;
-      align-items: center;
-      gap: 2px;
-      flex-wrap: wrap;
-    }
+      .toolbar-actions {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        flex-wrap: wrap;
+      }
 
-    .tool-btn {
-      border: none;
-      background: transparent;
-      color: var(--text-muted);
-      border-radius: var(--radius-xs);
-      width: 26px;
-      height: 26px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      padding: 0;
-      transition: all 0.1s ease;
-    }
-    .tool-btn:hover {
-      background-color: var(--bg-surface);
-      color: var(--text-main);
-    }
-    .tool-btn .material-symbols-outlined { font-size: 16px; }
+      .tool-btn {
+        border: none;
+        background: transparent;
+        color: var(--text-muted);
+        border-radius: var(--radius-xs);
+        width: 26px;
+        height: 26px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        padding: 0;
+        transition: all 0.1s ease;
+      }
+      .tool-btn:hover {
+        background-color: var(--bg-surface);
+        color: var(--text-main);
+      }
+      .tool-btn .material-symbols-outlined {
+        font-size: 16px;
+      }
 
-    .tool-sep {
-      width: 1px;
-      height: 16px;
-      background-color: var(--border-color);
-      margin: 0 4px;
-    }
+      .tool-sep {
+        width: 1px;
+        height: 16px;
+        background-color: var(--border-color);
+        margin: 0 4px;
+      }
 
+      .md-body {
+        display: flex;
+        flex-direction: column;
+        position: relative;
+      }
 
-    .md-body {
-      display: flex;
-      flex-direction: column;
-      position: relative;
-    }
+      .editor-pane {
+        display: flex;
+        flex-direction: column;
+      }
 
-    .editor-pane {
-      display: flex;
-      flex-direction: column;
-    }
+      .md-textarea {
+        width: 100%;
+        border: none;
+        outline: none;
+        background: transparent;
+        color: var(--text-main);
+        padding: 8px 10px;
+        font-family: inherit;
+        font-size: 13px;
+        line-height: 1.5;
+        resize: vertical;
+        min-height: 90px;
+      }
 
-    .md-textarea {
-      width: 100%;
-      border: none;
-      outline: none;
-      background: transparent;
-      color: var(--text-main);
-      padding: 8px 10px;
-      font-family: inherit;
-      font-size: 13px;
-      line-height: 1.5;
-      resize: vertical;
-      min-height: 90px;
-    }
+      .md-preview-pane {
+        padding: 10px 12px;
+        min-height: 90px;
+        max-height: 350px;
+        overflow-y: auto;
+        font-size: 13px;
+        line-height: 1.6;
+        color: var(--text-main);
+        background-color: var(--bg-surface);
+      }
 
-    .md-preview-pane {
-      padding: 10px 12px;
-      min-height: 90px;
-      max-height: 350px;
-      overflow-y: auto;
-      font-size: 13px;
-      line-height: 1.6;
-      color: var(--text-main);
-      background-color: var(--bg-surface);
-    }
-
-    /* Markdown Rendered Typography */
-    :host ::ng-deep .md-preview-pane h1,
-    :host ::ng-deep .md-preview-pane h2,
-    :host ::ng-deep .md-preview-pane h3,
-    :host ::ng-deep .md-preview-pane h4 {
-      margin-top: 8px;
-      margin-bottom: 4px;
-      font-weight: 600;
-      color: var(--text-main);
-    }
-    :host ::ng-deep .md-preview-pane h1 { font-size: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 4px; }
-    :host ::ng-deep .md-preview-pane h2 { font-size: 15px; }
-    :host ::ng-deep .md-preview-pane h3 { font-size: 14px; }
-    :host ::ng-deep .md-preview-pane p { margin: 4px 0; }
-    :host ::ng-deep .md-preview-pane ul,
-    :host ::ng-deep .md-preview-pane ol { padding-left: 20px; margin: 4px 0; }
-    :host ::ng-deep .md-preview-pane li { margin: 2px 0; }
-    :host ::ng-deep .md-preview-pane code {
-      font-family: monospace;
-      font-size: 12px;
-      background-color: var(--bg-hover);
-      padding: 2px 5px;
-      border-radius: 3px;
-      border: 1px solid var(--border-color);
-    }
-    :host ::ng-deep .md-preview-pane pre {
-      background-color: var(--bg-hover);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      padding: 8px 10px;
-      overflow-x: auto;
-      margin: 6px 0;
-    }
-    :host ::ng-deep .md-preview-pane pre code {
-      border: none;
-      padding: 0;
-      background: transparent;
-    }
-    :host ::ng-deep .md-preview-pane blockquote {
-      margin: 6px 0;
-      padding: 4px 10px;
-      border-left: 3px solid var(--primary);
-      background-color: var(--bg-hover);
-      color: var(--text-muted);
-      border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
-    }
-    :host ::ng-deep .md-preview-pane table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 8px 0;
-      font-size: 12px;
-    }
-    :host ::ng-deep .md-preview-pane th,
-    :host ::ng-deep .md-preview-pane td {
-      border: 1px solid var(--border-color);
-      padding: 6px 8px;
-      text-align: left;
-    }
-    :host ::ng-deep .md-preview-pane th {
-      background-color: var(--bg-hover);
-      font-weight: 600;
-    }
-    :host ::ng-deep .md-preview-pane input[type="checkbox"] {
-      margin-right: 6px;
-      accent-color: var(--primary);
-    }
-    :host ::ng-deep .md-preview-pane a {
-      color: var(--primary);
-      text-decoration: underline;
-    }
-  `]
+      /* Markdown Rendered Typography */
+      :host ::ng-deep .md-preview-pane h1,
+      :host ::ng-deep .md-preview-pane h2,
+      :host ::ng-deep .md-preview-pane h3,
+      :host ::ng-deep .md-preview-pane h4 {
+        margin-top: 8px;
+        margin-bottom: 4px;
+        font-weight: 600;
+        color: var(--text-main);
+      }
+      :host ::ng-deep .md-preview-pane h1 {
+        font-size: 16px;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 4px;
+      }
+      :host ::ng-deep .md-preview-pane h2 {
+        font-size: 15px;
+      }
+      :host ::ng-deep .md-preview-pane h3 {
+        font-size: 14px;
+      }
+      :host ::ng-deep .md-preview-pane p {
+        margin: 4px 0;
+      }
+      :host ::ng-deep .md-preview-pane ul,
+      :host ::ng-deep .md-preview-pane ol {
+        padding-left: 20px;
+        margin: 4px 0;
+      }
+      :host ::ng-deep .md-preview-pane li {
+        margin: 2px 0;
+      }
+      :host ::ng-deep .md-preview-pane code {
+        font-family: monospace;
+        font-size: 12px;
+        background-color: var(--bg-hover);
+        padding: 2px 5px;
+        border-radius: 3px;
+        border: 1px solid var(--border-color);
+      }
+      :host ::ng-deep .md-preview-pane pre {
+        background-color: var(--bg-hover);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        padding: 8px 10px;
+        overflow-x: auto;
+        margin: 6px 0;
+      }
+      :host ::ng-deep .md-preview-pane pre code {
+        border: none;
+        padding: 0;
+        background: transparent;
+      }
+      :host ::ng-deep .md-preview-pane blockquote {
+        margin: 6px 0;
+        padding: 4px 10px;
+        border-left: 3px solid var(--primary);
+        background-color: var(--bg-hover);
+        color: var(--text-muted);
+        border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
+      }
+      :host ::ng-deep .md-preview-pane table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 8px 0;
+        font-size: 12px;
+      }
+      :host ::ng-deep .md-preview-pane th,
+      :host ::ng-deep .md-preview-pane td {
+        border: 1px solid var(--border-color);
+        padding: 6px 8px;
+        text-align: left;
+      }
+      :host ::ng-deep .md-preview-pane th {
+        background-color: var(--bg-hover);
+        font-weight: 600;
+      }
+      :host ::ng-deep .md-preview-pane input[type='checkbox'] {
+        margin-right: 6px;
+        accent-color: var(--primary);
+      }
+      :host ::ng-deep .md-preview-pane a {
+        color: var(--primary);
+        text-decoration: underline;
+      }
+    `,
+  ],
 })
 export class UiMarkdownEditorComponent {
   /** Texts of the tabs below; translated again when the language changes. */
@@ -320,7 +414,8 @@ export class UiMarkdownEditorComponent {
   insertFormat(type: string) {
     const el = this.textareaRef?.nativeElement;
     if (!el) {
-      if (type === 'bold') this.onTextChange((this.value || '') + this.uiI18n.translate('ui.markdown_editor.zhirnyy_tekst'));
+      if (type === 'bold')
+        this.onTextChange((this.value || '') + this.uiI18n.translate('ui.markdown_editor.zhirnyy_tekst'));
       return;
     }
 
@@ -397,7 +492,7 @@ export class UiMarkdownEditorComponent {
   renderMarkdown(text: string): string {
     if (!text || !text.trim()) {
       return `<span class="md-empty-preview">${this.escapeHtml(
-        this.uiI18n.translate('ui.markdown_editor.empty_preview')
+        this.uiI18n.translate('ui.markdown_editor.empty_preview'),
       )}</span>`;
     }
 
@@ -424,7 +519,10 @@ export class UiMarkdownEditorComponent {
 
     // Checklist: - [ ] and - [x]
     html = html.replace(/^- \[ \] (.*$)/gim, '<div><label><input type="checkbox" disabled /> $1</label></div>');
-    html = html.replace(/^- \[x\] (.*$)/gim, '<div><label><input type="checkbox" checked disabled /> <del>$1</del></label></div>');
+    html = html.replace(
+      /^- \[x\] (.*$)/gim,
+      '<div><label><input type="checkbox" checked disabled /> <del>$1</del></label></div>',
+    );
 
     // Unordered lists
     html = html.replace(/^\- (.*$)/gim, '<li>$1</li>');
@@ -441,8 +539,20 @@ export class UiMarkdownEditorComponent {
 
   modeTabs(): SMTTabItem<'edit' | 'preview'>[] {
     return this.tabsMemo([this.tabText.currentLang()], () => [
-      { value: 'edit', label: this.tabText.translate('ui.markdown_editor.redaktor'), icon: 'edit_note', id: this.editTabId, panelId: this.editPanelId },
-      { value: 'preview', label: this.tabText.translate('ui.markdown_editor.predprosmotr'), icon: 'visibility', id: this.previewTabId, panelId: this.previewPanelId },
+      {
+        value: 'edit',
+        label: this.tabText.translate('ui.markdown_editor.redaktor'),
+        icon: 'edit_note',
+        id: this.editTabId,
+        panelId: this.editPanelId,
+      },
+      {
+        value: 'preview',
+        label: this.tabText.translate('ui.markdown_editor.predprosmotr'),
+        icon: 'visibility',
+        id: this.previewTabId,
+        panelId: this.previewPanelId,
+      },
     ]);
   }
 

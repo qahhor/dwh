@@ -6,15 +6,10 @@ import { User } from '../../../../core/models/auth.models';
 import { Role } from '../../../../core/models/rbac.models';
 import { safeNumericRecordId } from '../../../../core/services/search-target';
 import { fitsPasswordPolicy, PASSWORD_POLICY } from '../../../../core/security/password-policy';
-import {
-  UserCreateForm,
-  UserEditForm,
-  createDefaultUserCreateForm,
-  createDefaultUserEditForm
-} from '../users.models';
+import { UserCreateForm, UserEditForm, createDefaultUserCreateForm, createDefaultUserEditForm } from '../users.models';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class UserFormsService {
   private readonly api = inject(ApiService);
@@ -40,18 +35,16 @@ export class UserFormsService {
     timezone: 'Asia/Tashkent',
     is2faEnabled: false,
     roleIds: [],
-    attributes: {}
+    attributes: {},
   };
 
   openCreateModal(roles: Role[]): void {
-    const defaultUserRole = roles.find(r => r.pcode === 'user');
+    const defaultUserRole = roles.find((r) => r.pcode === 'user');
     const defaultRoleIds = defaultUserRole ? [defaultUserRole.id] : [];
     this.createForm = createDefaultUserCreateForm(defaultRoleIds);
     this.isCreateSubmitted = false;
     this.isCreateModalOpen.set(true);
   }
-
-
 
   submitCreateUser(onSuccess: () => void): void {
     this.isCreateSubmitted = true;
@@ -75,7 +68,7 @@ export class UserFormsService {
       },
       error: () => {
         this.isSubmitting.set(false);
-      }
+      },
     });
   }
 
@@ -89,13 +82,7 @@ export class UserFormsService {
     return true;
   }
 
-
-
-  submitEditUser(
-    isDestroyed: () => boolean,
-    onSuccess: () => void,
-    onCloseModal: (sessionId: number) => void
-  ): void {
+  submitEditUser(isDestroyed: () => boolean, onSuccess: () => void, onCloseModal: (sessionId: number) => void): void {
     if (!this.editingUser) return;
     this.isEditSubmitted = true;
     if (!this.editForm.name) {
@@ -120,7 +107,7 @@ export class UserFormsService {
         if (!isDestroyed() && saveRequestId === this.editSaveRequestId) {
           this.isSubmitting.set(false);
         }
-      }
+      },
     });
   }
 }

@@ -157,11 +157,15 @@
 }
 
 @keyframes smt-modal-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .smt-modal-button__spinner { animation-duration: 2.4s; }
+  .smt-modal-button__spinner {
+    animation-duration: 2.4s;
+  }
 }
 
 .smt-modal-confirm__actions {

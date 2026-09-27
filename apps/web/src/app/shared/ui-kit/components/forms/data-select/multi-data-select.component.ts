@@ -51,11 +51,14 @@ import { LookupState, type SMTLookupKey, type SMTLookupSource } from './lookup-s
       (searchChange)="state.search($event)"
       (loadMore)="state.loadMore()"
       (retry)="state.retry()"
-      (touch)="touch.emit()" />
+      (touch)="touch.emit()"
+    />
   `,
   styles: [':host { display: block; min-width: 0; }'],
 })
-export class SMTMultiDataSelectComponent<Row, K extends SMTLookupKey = number> implements FormValueControl<readonly K[]> {
+export class SMTMultiDataSelectComponent<Row, K extends SMTLookupKey = number> implements FormValueControl<
+  readonly K[]
+> {
   readonly source = input.required<SMTLookupSource<Row, K>>();
 
   /** Rows not offered in the list; chosen ones stay as chips. */
@@ -93,7 +96,7 @@ export class SMTMultiDataSelectComponent<Row, K extends SMTLookupKey = number> i
 
   readonly options = computed(() => {
     const exclude = this.exclude();
-    return this.state.listed(row => exclude(row));
+    return this.state.listed((row) => exclude(row));
   });
 
   readonly state = new LookupState<Row, K>(() => this.source());
@@ -113,7 +116,7 @@ export class SMTMultiDataSelectComponent<Row, K extends SMTLookupKey = number> i
 
   choose(keys: readonly K[]): void {
     this.value.set(keys);
-    this.rowsChange.emit(keys.map(key => this.state.rowOf(key)).filter((row): row is Row => row !== undefined));
+    this.rowsChange.emit(keys.map((key) => this.state.rowOf(key)).filter((row): row is Row => row !== undefined));
   }
 
   /** Called by SMTMultiDataSelectValueAccessor. */

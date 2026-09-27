@@ -7,14 +7,13 @@ import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Назначение ролей и персональных прав пользователям (FR-PERM-4, FR-PERM-5, FR-PERM-10).
@@ -36,12 +35,13 @@ public class MdAssignmentService {
     private final MdScopeService scopeService;
     private final AuditLogService auditLogService;
 
-    public MdAssignmentService(MdUserRepository userRepository,
-                               MdRoleRepository roleRepository,
-                               MdPermissionRepository permissionRepository,
-                               MdPermissionService permissionService,
-                               MdScopeService scopeService,
-                               AuditLogService auditLogService) {
+    public MdAssignmentService(
+            MdUserRepository userRepository,
+            MdRoleRepository roleRepository,
+            MdPermissionRepository permissionRepository,
+            MdPermissionService permissionService,
+            MdScopeService scopeService,
+            AuditLogService auditLogService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.permissionRepository = permissionRepository;
@@ -64,8 +64,9 @@ public class MdAssignmentService {
         List<Long> requested = roleIds != null ? roleIds : List.of();
 
         for (Long roleId : requested) {
-            roleRepository.findById(roleId).orElseThrow(() ->
-                    ApiException.notFound(ErrorCode.ROLE_NOT_FOUND, "Роль не найдена: " + roleId));
+            ApiException.requirePresent(
+                    roleRepository.findById(roleId),
+                    () -> ApiException.notFound(ErrorCode.ROLE_NOT_FOUND, "Роль не найдена: " + roleId));
         }
 
         Set<Long> before = new TreeSet<>(roleRepository.getUserRoleIds(userId));
@@ -76,12 +77,19 @@ public class MdAssignmentService {
 
         Set<Long> after = new TreeSet<>(requested);
         var names = roleNames();
-        auditLogService.logChange("md_user_roles", String.valueOf(userId), "U",
+        auditLogService.logChange(
+                "md_user_roles",
+                String.valueOf(userId),
+                "U",
                 List.of("roles"),
                 Map.of("roles", named(before, names)),
-                Map.of("roles", named(after, names),
-                        "granted", named(diff(after, before), names),
-                        "revoked", named(diff(before, after), names)));
+                Map.of(
+                        "roles",
+                        named(after, names),
+                        "granted",
+                        named(diff(after, before), names),
+                        "revoked",
+                        named(diff(before, after), names)));
 
         return permissionService.getPermissionVersion(userId);
     }
@@ -98,7 +106,8 @@ public class MdAssignmentService {
         var grantable = permissionService.getGrantablePairs();
         for (var p : requested) {
             if (!grantable.contains(p.formCode() + "." + p.action())) {
-                throw ApiException.badRequest(ErrorCode.VALIDATION_FAILED,
+                throw ApiException.badRequest(
+                        ErrorCode.VALIDATION_FAILED,
                         "Пара форма/действие недоступна для выдачи: " + p.formCode() + "." + p.action());
             }
         }
@@ -109,12 +118,19 @@ public class MdAssignmentService {
         permissionService.recalculateEffectivePermissions(userId);
 
         Set<String> after = new TreeSet<>(permissionRepository.getUserPersonalPermissions(userId));
-        auditLogService.logChange("md_user_permissions", String.valueOf(userId), "U",
+        auditLogService.logChange(
+                "md_user_permissions",
+                String.valueOf(userId),
+                "U",
                 List.of("permissions"),
                 Map.of("permissions", List.copyOf(before)),
-                Map.of("permissions", List.copyOf(after),
-                        "granted", List.copyOf(diff(after, before)),
-                        "revoked", List.copyOf(diff(before, after))));
+                Map.of(
+                        "permissions",
+                        List.copyOf(after),
+                        "granted",
+                        List.copyOf(diff(after, before)),
+                        "revoked",
+                        List.copyOf(diff(before, after))));
 
         return permissionService.getPermissionVersion(userId);
     }
@@ -137,21 +153,22 @@ public class MdAssignmentService {
         boolean hadAdmin = roleRepository.getUserRoleIds(userId).contains(adminRole.id());
         boolean keepsAdmin = newRoleIds.contains(adminRole.id());
         if (hadAdmin && !keepsAdmin && userRepository.countUsersWithRole(adminRole.id()) <= 1) {
-            throw ApiException.conflict(ErrorCode.LAST_ADMIN,
-                    "Нельзя снять роль администратора с последнего администратора системы");
+            throw ApiException.conflict(
+                    ErrorCode.LAST_ADMIN, "Нельзя снять роль администратора с последнего администратора системы");
         }
     }
 
     private void requireUser(Long userId) {
-        userRepository.findById(userId).orElseThrow(() ->
-                ApiException.notFound(ErrorCode.USER_NOT_FOUND, "Пользователь не найден"));
+        ApiException.requirePresent(
+                userRepository.findById(userId),
+                () -> ApiException.notFound(ErrorCode.USER_NOT_FOUND, "Пользователь не найден"));
     }
 
     /** Одним запросом: идентификатор в имя. В журнале аудита имя роли читается, а идентификатор нет. */
     private Map<Long, String> roleNames() {
         return roleRepository.listRoles().stream()
-                .collect(Collectors.toMap(MdRoleRepository.RoleRecord::id,
-                        MdRoleRepository.RoleRecord::name, (a, b) -> a));
+                .collect(Collectors.toMap(
+                        MdRoleRepository.RoleRecord::id, MdRoleRepository.RoleRecord::name, (a, b) -> a));
     }
 
     private static List<String> named(Set<Long> ids, Map<Long, String> names) {
@@ -160,7 +177,6 @@ public class MdAssignmentService {
 
     /** Что есть в from и нет в to. */
     private static <T extends Comparable<T>> Set<T> diff(Set<T> from, Set<T> to) {
-        return from.stream().filter(x -> !to.contains(x))
-                .collect(Collectors.toCollection(TreeSet::new));
+        return from.stream().filter(x -> !to.contains(x)).collect(Collectors.toCollection(TreeSet::new));
     }
 }

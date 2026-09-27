@@ -12,13 +12,12 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/iam/users")
@@ -47,11 +46,15 @@ public class MdUserController {
             @RequestParam(name = "is_2fa_enabled", required = false) Boolean is2faEnabled) {
 
         // Registry list iam.users (ADR-0016); `search` and the flat filters are kept for existing callers.
-        return ResponseEntity.ok(userListService.pageViews(SecurityContext.getCurrentUserId(), limit, cursor, filter,
-                sort, query != null && !query.isBlank() ? query : search,
+        return ResponseEntity.ok(userListService.pageViews(
+                SecurityContext.getCurrentUserId(),
+                limit,
+                cursor,
+                filter,
+                sort,
+                query != null && !query.isBlank() ? query : search,
                 new MdUserRepository.LegacyUserFilters(state, roleId, managerId, is2faEnabled)));
     }
-
 
     @GetMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_USERS, action = "view")
@@ -80,8 +83,7 @@ public class MdUserController {
                 body.is2faEnabled(),
                 Boolean.TRUE.equals(body.forcePasswordChange()),
                 body.roleIds(),
-                currentUserId
-        );
+                currentUserId);
 
         var roleIds = userService.getUserRoleIds(user.id());
         return ResponseEntity.status(HttpStatus.CREATED).body(MdUserView.from(user, roleIds));
@@ -103,12 +105,10 @@ public class MdUserController {
                 body.attributes(),
                 body.is2faEnabled(),
                 body.roleIds(),
-                currentUserId
-        );
+                currentUserId);
 
         return ResponseEntity.noContent().build();
     }
-
 
     @PostMapping("/{id}/block")
     @RequiresPermission(form = MdPref.FORM_USERS, action = "block")
@@ -147,8 +147,7 @@ public class MdUserController {
             Map<String, Object> attributes,
             boolean is2faEnabled,
             Boolean forcePasswordChange,
-            List<Long> roleIds
-    ) {}
+            List<Long> roleIds) {}
 
     public record UpdateUserDto(
             String name,
@@ -159,9 +158,5 @@ public class MdUserController {
             UUID avatarFileId,
             Map<String, Object> attributes,
             Boolean is2faEnabled,
-            List<Long> roleIds
-    ) {}
-
-
+            List<Long> roleIds) {}
 }
-

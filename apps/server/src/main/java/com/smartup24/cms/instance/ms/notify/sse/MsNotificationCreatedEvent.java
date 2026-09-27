@@ -7,7 +7,4 @@ import com.smartup24.cms.instance.ms.notify.repository.MsNotificationRepository;
  * Публикуется внутри транзакции, доставляется подписчикам ПОСЛЕ коммита —
  * иначе клиент, получив push, мог бы прочитать ещё не зафиксированные данные.
  */
-public record MsNotificationCreatedEvent(
-        Long userId,
-        MsNotificationRepository.NotificationRecord notification
-) {}
+public record MsNotificationCreatedEvent(Long userId, MsNotificationRepository.NotificationRecord notification) {}

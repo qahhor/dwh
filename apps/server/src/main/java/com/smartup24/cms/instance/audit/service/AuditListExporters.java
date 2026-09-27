@@ -5,15 +5,14 @@ import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository.AuditLogFilters;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository.SecurityEventFilters;
 import com.smartup24.cms.instance.common.query.QueryListExporter;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
 /**
  * The audit log and the security events as exports (ADR-0018), with the screen's flat filters. Only registry
@@ -25,9 +24,13 @@ public class AuditListExporters {
     @Bean
     public QueryListExporter auditLogsExporter(AuditListService audit) {
         return new QueryListExporter() {
-            public String code() { return AuditQuery.LOGS.code(); }
+            public String code() {
+                return AuditQuery.LOGS.code();
+            }
 
-            public Set<String> options() { return Set.of("table_name", "row_pk", "event", "user_id", "from", "to"); }
+            public Set<String> options() {
+                return Set.of("table_name", "row_pk", "event", "user_id", "from", "to");
+            }
 
             public List<FieldErrorItem> checkOptions(Map<String, String> options) {
                 List<FieldErrorItem> errors = common(options);
@@ -38,11 +41,21 @@ public class AuditListExporters {
                 return errors;
             }
 
-            public KeysetPage<?> page(int limit, String cursor, String filter, String sort, String search,
-                                      Map<String, String> options) {
-                return audit.logs(limit, cursor, filter, sort, search, new AuditLogFilters(options.get("table_name"),
-                        options.get("row_pk"), options.get("event"), number(options.get("user_id")),
-                        instant(options.get("from")), instant(options.get("to"))));
+            public KeysetPage<?> page(
+                    int limit, String cursor, String filter, String sort, String search, Map<String, String> options) {
+                return audit.logs(
+                        limit,
+                        cursor,
+                        filter,
+                        sort,
+                        search,
+                        new AuditLogFilters(
+                                options.get("table_name"),
+                                options.get("row_pk"),
+                                options.get("event"),
+                                number(options.get("user_id")),
+                                instant(options.get("from")),
+                                instant(options.get("to"))));
             }
         };
     }
@@ -50,19 +63,32 @@ public class AuditListExporters {
     @Bean
     public QueryListExporter auditSecurityEventsExporter(AuditListService audit) {
         return new QueryListExporter() {
-            public String code() { return AuditQuery.SECURITY_EVENTS.code(); }
+            public String code() {
+                return AuditQuery.SECURITY_EVENTS.code();
+            }
 
-            public Set<String> options() { return Set.of("event_type", "user_id", "ip", "from", "to"); }
+            public Set<String> options() {
+                return Set.of("event_type", "user_id", "ip", "from", "to");
+            }
 
             public List<FieldErrorItem> checkOptions(Map<String, String> options) {
                 return common(options);
             }
 
-            public KeysetPage<?> page(int limit, String cursor, String filter, String sort, String search,
-                                      Map<String, String> options) {
-                return audit.securityEvents(limit, cursor, filter, sort, search, new SecurityEventFilters(
-                        options.get("event_type"), number(options.get("user_id")), options.get("ip"),
-                        instant(options.get("from")), instant(options.get("to"))));
+            public KeysetPage<?> page(
+                    int limit, String cursor, String filter, String sort, String search, Map<String, String> options) {
+                return audit.securityEvents(
+                        limit,
+                        cursor,
+                        filter,
+                        sort,
+                        search,
+                        new SecurityEventFilters(
+                                options.get("event_type"),
+                                number(options.get("user_id")),
+                                options.get("ip"),
+                                instant(options.get("from")),
+                                instant(options.get("to"))));
             }
         };
     }

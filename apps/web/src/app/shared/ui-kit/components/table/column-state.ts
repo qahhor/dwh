@@ -32,11 +32,11 @@ export function normalizeColumnState(
 ): TableColumnState {
   const known = new Set(keys);
   const chosen = (state?.order ?? []).filter((key, index, all) => known.has(key) && all.indexOf(key) === index);
-  const order = [...chosen, ...keys.filter(key => !chosen.includes(key))];
-  let hidden = (state?.hidden ?? []).filter(key => known.has(key) && !locked.includes(key));
+  const order = [...chosen, ...keys.filter((key) => !chosen.includes(key))];
+  let hidden = (state?.hidden ?? []).filter((key) => known.has(key) && !locked.includes(key));
   hidden = hidden.filter((key, index) => hidden.indexOf(key) === index);
   if (order.length > 0 && hidden.length >= order.length) {
-    hidden = hidden.filter(key => key !== order[0]);
+    hidden = hidden.filter((key) => key !== order[0]);
   }
   const widths: Record<string, string> = {};
   for (const [key, width] of Object.entries(state?.widths ?? {})) {
@@ -60,12 +60,12 @@ export function applyColumnState<T>(
   return {
     ...config,
     columns,
-    columnsOrder: normalized.order.filter(key => !normalized.hidden.includes(key)),
+    columnsOrder: normalized.order.filter((key) => !normalized.hidden.includes(key)),
   };
 }
 
 export function setColumnVisible(state: TableColumnState, key: string, visible: boolean): TableColumnState {
-  const hidden = state.hidden.filter(item => item !== key);
+  const hidden = state.hidden.filter((item) => item !== key);
   return { ...state, hidden: visible ? hidden : [...hidden, key] };
 }
 
@@ -87,7 +87,9 @@ export function setColumnWidth(state: TableColumnState, key: string, widthPx: nu
 
 /** True when the state changes nothing, so nothing needs to be stored. */
 export function isDefaultColumnState(state: TableColumnState, keys: readonly string[]): boolean {
-  return state.hidden.length === 0
-    && Object.keys(state.widths).length === 0
-    && state.order.every((key, index) => key === keys[index]);
+  return (
+    state.hidden.length === 0 &&
+    Object.keys(state.widths).length === 0 &&
+    state.order.every((key, index) => key === keys[index])
+  );
 }

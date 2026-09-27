@@ -1,5 +1,12 @@
 package com.smartup24.cms.instance.kauth;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
@@ -32,6 +39,12 @@ import com.smartup24.cms.instance.md.service.PasswordValidator;
 import com.smartup24.cms.instance.md.service.UserSessionInvalidator;
 import com.smartup24.cms.instance.search.SearchChangePublisher;
 import jakarta.servlet.http.Cookie;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
+import javax.sql.DataSource;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -56,20 +69,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import tools.jackson.databind.ObjectMapper;
 
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Stream;
-import javax.sql.DataSource;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
 /** FR-AUTH-04: the public password flow, not just the invalidator, revokes access atomically. */
 @Testcontainers
 class KauthPasswordChangeIntegrationTest {
@@ -80,7 +79,9 @@ class KauthPasswordChangeIntegrationTest {
 
     @Container
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:18-alpine")
-            .withDatabaseName("password_change_test").withUsername("test_user").withPassword("test_pass");
+            .withDatabaseName("password_change_test")
+            .withUsername("test_user")
+            .withPassword("test_pass");
 
     static DriverManagerDataSource dataSource;
     static JdbcClient jdbc;
@@ -96,8 +97,11 @@ class KauthPasswordChangeIntegrationTest {
     @BeforeAll
     static void setup() {
         dataSource = new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
-        FlywayUtcConfiguration.configure(Flyway.configure()).dataSource(dataSource)
-                .locations("classpath:db/migration").load().migrate();
+        FlywayUtcConfiguration.configure(Flyway.configure())
+                .dataSource(dataSource)
+                .locations("classpath:db/migration")
+                .load()
+                .migrate();
         jdbc = JdbcClient.create(dataSource);
         mapper = new ObjectMapper();
         hasher = new KauthPasswordHasher();
@@ -113,10 +117,14 @@ class KauthPasswordChangeIntegrationTest {
         mvc = MockMvcBuilders.standaloneSetup(
                         new KauthPasswordController(userService),
                         // Only /me is exercised here; login/OTP delivery has its own integration suite.
-                        new KauthAuthController(mock(KauthAuthService.class), sessionService, userService,
+                        new KauthAuthController(
+                                mock(KauthAuthService.class),
+                                sessionService,
+                                userService,
                                 CookieCsrfTokenRepository.withHttpOnlyFalse()))
                 .addFilters(new KauthAuthenticationFilter(sessionService, tokenService, userService, permissions))
-                .setControllerAdvice(new GlobalExceptionHandler()).build();
+                .setControllerAdvice(new GlobalExceptionHandler())
+                .build();
     }
 
     @AfterAll
@@ -142,9 +150,11 @@ class KauthPasswordChangeIntegrationTest {
         var unrelated = fixture(false);
         assertHttpAccess(target, 200);
 
-        mvc.perform(post(path).cookie(sessionCookie(target.sessionSecrets().getFirst()))
+        mvc.perform(post(path)
+                        .cookie(sessionCookie(target.sessionSecrets().getFirst()))
                         .contentType("application/json")
-                        .content(mapper.writeValueAsString(Map.of("oldPassword", OLD_PASSWORD, "newPassword", NEW_PASSWORD))))
+                        .content(mapper.writeValueAsString(
+                                Map.of("oldPassword", OLD_PASSWORD, "newPassword", NEW_PASSWORD))))
                 .andExpect(status().isNoContent());
 
         var updated = users.findById(target.userId()).orElseThrow();
@@ -156,7 +166,8 @@ class KauthPasswordChangeIntegrationTest {
         assertThat(openSessions(target.userId())).isZero();
         assertThat(activeTokens(target.userId())).isZero();
         assertHttpAccess(unrelated, 200);
-        assertThat(users.findById(unrelated.userId()).orElseThrow().authenticationVersion()).isZero();
+        assertThat(users.findById(unrelated.userId()).orElseThrow().authenticationVersion())
+                .isZero();
         assertThat(passwordAuditCount(target.userId())).isEqualTo(1);
     }
 
@@ -165,9 +176,12 @@ class KauthPasswordChangeIntegrationTest {
         var target = fixture(false);
 
         mvc.perform(post("/api/v1/auth/password")
-                        .header("Authorization", "Bearer " + target.tokenSecrets().getFirst())
+                        .header(
+                                "Authorization",
+                                "Bearer " + target.tokenSecrets().getFirst())
                         .contentType("application/json")
-                        .content(mapper.writeValueAsString(Map.of("oldPassword", OLD_PASSWORD, "newPassword", NEW_PASSWORD))))
+                        .content(mapper.writeValueAsString(
+                                Map.of("oldPassword", OLD_PASSWORD, "newPassword", NEW_PASSWORD))))
                 .andExpect(status().isNoContent());
 
         assertHttpAccess(target, 401);
@@ -178,9 +192,11 @@ class KauthPasswordChangeIntegrationTest {
         var target = fixture(true);
         String originalHash = users.findById(target.userId()).orElseThrow().passwordHash();
 
-        mvc.perform(post("/api/v1/auth/password").cookie(sessionCookie(target.sessionSecrets().getFirst()))
+        mvc.perform(post("/api/v1/auth/password")
+                        .cookie(sessionCookie(target.sessionSecrets().getFirst()))
                         .contentType("application/json")
-                        .content(mapper.writeValueAsString(Map.of("oldPassword", "Wrong-Current-2026!", "newPassword", NEW_PASSWORD))))
+                        .content(mapper.writeValueAsString(
+                                Map.of("oldPassword", "Wrong-Current-2026!", "newPassword", NEW_PASSWORD))))
                 .andExpect(status().isUnauthorized());
 
         assertUnchanged(target, originalHash);
@@ -191,9 +207,11 @@ class KauthPasswordChangeIntegrationTest {
         var target = fixture(true);
         String originalHash = users.findById(target.userId()).orElseThrow().passwordHash();
 
-        mvc.perform(post("/api/v1/auth/password").cookie(sessionCookie(target.sessionSecrets().getFirst()))
+        mvc.perform(post("/api/v1/auth/password")
+                        .cookie(sessionCookie(target.sessionSecrets().getFirst()))
                         .contentType("application/json")
-                        .content(mapper.writeValueAsString(Map.of("oldPassword", OLD_PASSWORD, "newPassword", "short"))))
+                        .content(
+                                mapper.writeValueAsString(Map.of("oldPassword", OLD_PASSWORD, "newPassword", "short"))))
                 .andExpect(status().isUnprocessableEntity());
 
         assertUnchanged(target, originalHash);
@@ -210,9 +228,11 @@ class KauthPasswordChangeIntegrationTest {
         };
 
         try (var failingContext = serviceContext(failingInvalidator)) {
-            assertThatThrownBy(() -> failingContext.getBean(MdUserService.class)
-                    .changePassword(target.userId(), 0, OLD_PASSWORD, NEW_PASSWORD))
-                    .isInstanceOf(IllegalStateException.class).hasMessage("synthetic revocation failure");
+            assertThatThrownBy(() -> failingContext
+                            .getBean(MdUserService.class)
+                            .changePassword(target.userId(), 0, OLD_PASSWORD, NEW_PASSWORD))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessage("synthetic revocation failure");
         }
 
         assertUnchanged(target, originalHash);
@@ -226,9 +246,18 @@ class KauthPasswordChangeIntegrationTest {
         var audit = new AuditLogService(new AuditLogRepository(jdbc, mapper), null, new AuditDataRedactor());
         var permissions = new MdPermissionService(new MdPermissionRepository(jdbc));
         var scopes = new MdScopeService(new MdScopeRepository(jdbc), new MdOrgUnitRepository(jdbc), permissions, audit);
-        testContext.registerBean(MdUserService.class, () -> new MdUserService(
-                users, new MdRoleRepository(jdbc), new MdCustomFieldService(new MdCustomFieldRepository(jdbc, mapper), audit),
-                hasher, new PasswordValidator(), credentialInvalidator, mock(SearchChangePublisher.class), audit, scopes));
+        testContext.registerBean(
+                MdUserService.class,
+                () -> new MdUserService(
+                        users,
+                        new MdRoleRepository(jdbc),
+                        new MdCustomFieldService(new MdCustomFieldRepository(jdbc, mapper), audit),
+                        hasher,
+                        new PasswordValidator(),
+                        credentialInvalidator,
+                        mock(SearchChangePublisher.class),
+                        audit,
+                        scopes));
         testContext.refresh();
         return testContext;
     }
@@ -241,12 +270,19 @@ class KauthPasswordChangeIntegrationTest {
                         values (:login, :login, :email, :hash, 'A', 'ru', 'UTC', '{}'::jsonb, false, :forced)
                         returning id
                         """)
-                .param("login", login).param("email", login + "@example.test")
-                .param("hash", hasher.hashPassword(OLD_PASSWORD)).param("forced", forced).query(Long.class).single();
-        List<String> sessionSecrets = List.of(UUID.randomUUID().toString(), UUID.randomUUID().toString());
+                .param("login", login)
+                .param("email", login + "@example.test")
+                .param("hash", hasher.hashPassword(OLD_PASSWORD))
+                .param("forced", forced)
+                .query(Long.class)
+                .single();
+        List<String> sessionSecrets =
+                List.of(UUID.randomUUID().toString(), UUID.randomUUID().toString());
         List<String> tokenSecrets = List.of("dwh_" + UUID.randomUUID(), "dwh_" + UUID.randomUUID());
-        for (String secret : sessionSecrets) sessions.create(userId, 0, KauthPasswordHasher.sha256(secret), "127.0.0.1", "test", "test");
-        for (String secret : tokenSecrets) tokens.create(userId, 0, "test", secret.substring(0, 12), KauthPasswordHasher.sha256(secret), null);
+        for (String secret : sessionSecrets)
+            sessions.create(userId, 0, KauthPasswordHasher.sha256(secret), "127.0.0.1", "test", "test");
+        for (String secret : tokenSecrets)
+            tokens.create(userId, 0, "test", secret.substring(0, 12), KauthPasswordHasher.sha256(secret), null);
         return new Credentials(userId, sessionSecrets, tokenSecrets);
     }
 
@@ -255,7 +291,8 @@ class KauthPasswordChangeIntegrationTest {
             mvc.perform(get("/api/v1/auth/me").cookie(sessionCookie(secret))).andExpect(status().is(expectedStatus));
         }
         for (String secret : target.tokenSecrets()) {
-            mvc.perform(get("/api/v1/auth/me").header("Authorization", "Bearer " + secret)).andExpect(status().is(expectedStatus));
+            mvc.perform(get("/api/v1/auth/me").header("Authorization", "Bearer " + secret))
+                    .andExpect(status().is(expectedStatus));
         }
     }
 
@@ -272,17 +309,23 @@ class KauthPasswordChangeIntegrationTest {
 
     private static long openSessions(Long userId) {
         return jdbc.sql("select count(*) from kauth_sessions where user_id = :id and closed_at is null")
-                .param("id", userId).query(Long.class).single();
+                .param("id", userId)
+                .query(Long.class)
+                .single();
     }
 
     private static long activeTokens(Long userId) {
         return jdbc.sql("select count(*) from kauth_api_tokens where user_id = :id and revoked_at is null")
-                .param("id", userId).query(Long.class).single();
+                .param("id", userId)
+                .query(Long.class)
+                .single();
     }
 
     private static long passwordAuditCount(Long userId) {
         return jdbc.sql("select count(*) from security_events where user_id = :id and event_type = 'PASSWORD_CHANGED'")
-                .param("id", userId).query(Long.class).single();
+                .param("id", userId)
+                .query(Long.class)
+                .single();
     }
 
     private static Cookie sessionCookie(String secret) {

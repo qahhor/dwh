@@ -1,8 +1,5 @@
 package com.smartup24.cms.instance.md.repository;
 
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -12,6 +9,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
 
 @Repository
 public class MdRoleRepository {
@@ -23,7 +22,8 @@ public class MdRoleRepository {
     }
 
     public RoleRecord create(String name, String pcode, String state, int orderNo) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 insert into md_roles (name, pcode, state, order_no, created_at, modified_at)
                 values (:name, :pcode, :state, :orderNo, now(), now())
                 returning id, name, pcode, state, order_no, created_at, modified_at
@@ -39,13 +39,13 @@ public class MdRoleRepository {
                         rs.getString("state"),
                         rs.getInt("order_no"),
                         rs.getTimestamp("created_at").toInstant(),
-                        rs.getTimestamp("modified_at").toInstant()
-                ))
+                        rs.getTimestamp("modified_at").toInstant()))
                 .single();
     }
 
     public Optional<RoleRecord> findById(Long id) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select id, name, pcode, state, order_no, created_at, modified_at
                 from md_roles
                 where id = :id
@@ -58,13 +58,13 @@ public class MdRoleRepository {
                         rs.getString("state"),
                         rs.getInt("order_no"),
                         rs.getTimestamp("created_at").toInstant(),
-                        rs.getTimestamp("modified_at").toInstant()
-                ))
+                        rs.getTimestamp("modified_at").toInstant()))
                 .optional();
     }
 
     public Optional<RoleRecord> findByPcode(String pcode) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select id, name, pcode, state, order_no, created_at, modified_at
                 from md_roles
                 where pcode = :pcode
@@ -77,13 +77,13 @@ public class MdRoleRepository {
                         rs.getString("state"),
                         rs.getInt("order_no"),
                         rs.getTimestamp("created_at").toInstant(),
-                        rs.getTimestamp("modified_at").toInstant()
-                ))
+                        rs.getTimestamp("modified_at").toInstant()))
                 .optional();
     }
 
     public List<RoleRecord> listRoles() {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select id, name, pcode, state, order_no, created_at, modified_at
                 from md_roles
                 order by order_no asc, id asc
@@ -95,13 +95,13 @@ public class MdRoleRepository {
                         rs.getString("state"),
                         rs.getInt("order_no"),
                         rs.getTimestamp("created_at").toInstant(),
-                        rs.getTimestamp("modified_at").toInstant()
-                ))
+                        rs.getTimestamp("modified_at").toInstant()))
                 .list();
     }
 
     public void update(Long id, String name, String state, int orderNo) {
-        jdbcClient.sql("""
+        jdbcClient
+                .sql("""
                 update md_roles
                 set name = :name, state = :state, order_no = :orderNo, modified_at = now()
                 where id = :id
@@ -122,19 +122,18 @@ public class MdRoleRepository {
                 select form_code || '.' || action as perm
                 from md_role_permissions
                 where role_id = :roleId
-                """)
-                .param("roleId", roleId)
-                .query(String.class)
-                .set();
+                """).param("roleId", roleId).query(String.class).set();
     }
 
     public void replaceRolePermissions(Long roleId, List<PermissionPair> permissions) {
-        jdbcClient.sql("delete from md_role_permissions where role_id = :roleId")
+        jdbcClient
+                .sql("delete from md_role_permissions where role_id = :roleId")
                 .param("roleId", roleId)
                 .update();
 
         for (PermissionPair perm : permissions) {
-            jdbcClient.sql("""
+            jdbcClient
+                    .sql("""
                     insert into md_role_permissions (role_id, form_code, action)
                     values (:roleId, :formCode, :action)
                     """)
@@ -146,19 +145,20 @@ public class MdRoleRepository {
     }
 
     public List<Long> getUserRoleIds(Long userId) {
-        return jdbcClient.sql("select role_id from md_user_roles where user_id = :userId")
+        return jdbcClient
+                .sql("select role_id from md_user_roles where user_id = :userId")
                 .param("userId", userId)
                 .query(Long.class)
                 .list();
     }
 
     public List<Long> getUserIdsByRole(Long roleId) {
-        return jdbcClient.sql("select user_id from md_user_roles where role_id = :roleId")
+        return jdbcClient
+                .sql("select user_id from md_user_roles where role_id = :roleId")
                 .param("roleId", roleId)
                 .query(Long.class)
                 .list();
     }
-
 
     public Map<Long, List<Long>> getUsersRoleIds(List<Long> userIds) {
         if (userIds == null || userIds.isEmpty()) return Map.of();
@@ -167,7 +167,8 @@ public class MdRoleRepository {
             map.put(id, new ArrayList<>());
         }
         String inSql = String.join(",", Collections.nCopies(userIds.size(), "?"));
-        jdbcClient.sql("select user_id, role_id from md_user_roles where user_id in (" + inSql + ")")
+        jdbcClient
+                .sql("select user_id, role_id from md_user_roles where user_id in (" + inSql + ")")
                 .params(userIds.toArray())
                 .query((rs, rowNum) -> {
                     Long uid = rs.getLong("user_id");
@@ -180,13 +181,15 @@ public class MdRoleRepository {
     }
 
     public void assignRolesToUser(Long userId, List<Long> roleIds) {
-        jdbcClient.sql("delete from md_user_roles where user_id = :userId")
+        jdbcClient
+                .sql("delete from md_user_roles where user_id = :userId")
                 .param("userId", userId)
                 .update();
 
         if (roleIds != null) {
             for (Long roleId : roleIds) {
-                jdbcClient.sql("insert into md_user_roles (user_id, role_id) values (:userId, :roleId)")
+                jdbcClient
+                        .sql("insert into md_user_roles (user_id, role_id) values (:userId, :roleId)")
                         .param("userId", userId)
                         .param("roleId", roleId)
                         .update();
@@ -195,7 +198,8 @@ public class MdRoleRepository {
     }
 
     public Map<Long, Integer> countUsersPerRole() {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select role_id, count(*) as cnt
                 from md_user_roles ur
                 join md_users u on u.id = ur.user_id and u.state = 'A'
@@ -208,17 +212,7 @@ public class MdRoleRepository {
     }
 
     public record RoleRecord(
-            Long id,
-            String name,
-            String pcode,
-            String state,
-            int orderNo,
-            Instant createdAt,
-            Instant modifiedAt
-    ) {}
+            Long id, String name, String pcode, String state, int orderNo, Instant createdAt, Instant modifiedAt) {}
 
-    public record PermissionPair(
-            String formCode,
-            String action
-    ) {}
+    public record PermissionPair(String formCode, String action) {}
 }

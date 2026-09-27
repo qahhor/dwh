@@ -7,13 +7,12 @@ import com.smartup24.cms.instance.common.query.QueryListExtender;
 import com.smartup24.cms.instance.common.query.QueryRef;
 import com.smartup24.cms.instance.md.repository.MdCustomFieldRepository;
 import com.smartup24.cms.instance.md.repository.MdCustomFieldRepository.CustomFieldRecord;
-import org.springframework.stereotype.Component;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.regex.Pattern;
+import org.springframework.stereotype.Component;
 
 /**
  * The custom fields of a list's entity as registry fields (ADR-0019, 2.3): a column, a filter and, for text,
@@ -29,6 +28,7 @@ public class MdCustomFieldQueryFields implements QueryListExtender {
 
     /** The code rule the custom field service enforces; checked again because the code goes into SQL text. */
     private static final Pattern CODE = Pattern.compile("^[a-z][a-z0-9_]{1,63}$");
+
     private static final Pattern ATTRIBUTES_SQL = Pattern.compile("^[a-z_][a-z0-9_]*\\.attributes$");
 
     private final MdCustomFieldRepository repository;
@@ -41,7 +41,8 @@ public class MdCustomFieldQueryFields implements QueryListExtender {
 
     @Override
     public List<QueryField> extraFields(QueryList list) {
-        if (list.customEntity() == null || list.attributesSql() == null
+        if (list.customEntity() == null
+                || list.attributesSql() == null
                 || !ATTRIBUTES_SQL.matcher(list.attributesSql()).matches()) {
             return List.of();
         }
@@ -74,27 +75,52 @@ public class MdCustomFieldQueryFields implements QueryListExtender {
             return Optional.empty();
         }
         String raw = "(" + attributes + "->>'" + code + "')";
-        return Optional.ofNullable(switch (record.fieldType().toLowerCase(Locale.ROOT)) {
-            case "string" -> QueryField.custom(key, record.name(), QueryFieldType.TEXT, raw, code, List.of());
-            case "number" -> QueryField.custom(key, record.name(), QueryFieldType.NUMBER,
-                    "(case when " + raw + " ~ '^-?[0-9]{1,15}([.][0-9]{1,6})?$' then " + raw + "::numeric end)",
-                    code, List.of());
-            case "user_ref" -> QueryField.custom(key, record.name(), QueryFieldType.NUMBER,
-                    "(case when " + raw + " ~ '^[0-9]{1,18}$' then " + raw + "::bigint end)", code, List.of())
-                    .refersTo(QueryRef.paged("/iam/users", "name"));
-            case "date" -> QueryField.custom(key, record.name(), QueryFieldType.DATE,
-                    "(case when " + raw + " ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}' then left(" + raw + ", 10)::date end)",
-                    code, List.of());
-            case "boolean" -> QueryField.custom(key, record.name(), QueryFieldType.BOOLEAN,
-                    "(case when lower(" + raw + ") in ('true', 'false') then lower(" + raw + ")::boolean end)",
-                    code, List.of());
-            case "select" -> {
-                List<String> options = service.parseSelectOptions(record.optionsJson());
-                yield options.isEmpty()
-                        ? QueryField.custom(key, record.name(), QueryFieldType.TEXT, raw, code, List.of())
-                        : QueryField.custom(key, record.name(), QueryFieldType.ENUM, raw, code, options);
-            }
-            default -> null;
-        });
+        return Optional.ofNullable(
+                switch (record.fieldType().toLowerCase(Locale.ROOT)) {
+                    case "string" -> QueryField.custom(key, record.name(), QueryFieldType.TEXT, raw, code, List.of());
+                    case "number" ->
+                        QueryField.custom(
+                                key,
+                                record.name(),
+                                QueryFieldType.NUMBER,
+                                "(case when " + raw + " ~ '^-?[0-9]{1,15}([.][0-9]{1,6})?$' then " + raw
+                                        + "::numeric end)",
+                                code,
+                                List.of());
+                    case "user_ref" ->
+                        QueryField.custom(
+                                        key,
+                                        record.name(),
+                                        QueryFieldType.NUMBER,
+                                        "(case when " + raw + " ~ '^[0-9]{1,18}$' then " + raw + "::bigint end)",
+                                        code,
+                                        List.of())
+                                .refersTo(QueryRef.paged("/iam/users", "name"));
+                    case "date" ->
+                        QueryField.custom(
+                                key,
+                                record.name(),
+                                QueryFieldType.DATE,
+                                "(case when " + raw + " ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}' then left(" + raw
+                                        + ", 10)::date end)",
+                                code,
+                                List.of());
+                    case "boolean" ->
+                        QueryField.custom(
+                                key,
+                                record.name(),
+                                QueryFieldType.BOOLEAN,
+                                "(case when lower(" + raw + ") in ('true', 'false') then lower(" + raw
+                                        + ")::boolean end)",
+                                code,
+                                List.of());
+                    case "select" -> {
+                        List<String> options = service.parseSelectOptions(record.optionsJson());
+                        yield options.isEmpty()
+                                ? QueryField.custom(key, record.name(), QueryFieldType.TEXT, raw, code, List.of())
+                                : QueryField.custom(key, record.name(), QueryFieldType.ENUM, raw, code, options);
+                    }
+                    default -> null;
+                });
     }
 }

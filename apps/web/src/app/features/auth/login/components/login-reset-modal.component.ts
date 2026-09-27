@@ -11,91 +11,110 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
 @Component({
   selector: 'app-login-reset-modal',
   standalone: true,
-  imports: [SMTInputComponent, SMTInputValueAccessor, CommonModule, FormsModule, SMTDialogComponent, SMTDialogContentDirective, SMTButtonComponent, TranslatePipe],
+  imports: [
+    SMTInputComponent,
+    SMTInputValueAccessor,
+    CommonModule,
+    FormsModule,
+    SMTDialogComponent,
+    SMTDialogContentDirective,
+    SMTButtonComponent,
+    TranslatePipe,
+  ],
   template: `
-    <smt-dialog
-      [open]="isOpen"
-      [smtTitle]="'auth.vosstanovlenie_parolya' | t"
-      smtSize="sm"
-      (closed)="onClose()">
+    <smt-dialog [open]="isOpen" [smtTitle]="'auth.vosstanovlenie_parolya' | t" smtSize="sm" (closed)="onClose()">
       <ng-template smtDialogContent>
-      <div body class="reset-body">
-        <p id="reset-hint" class="reset-hint">{{ 'auth.reset.request_hint' | t }}</p>
-        <div class="form-group">
-          <label class="form-label" for="reset-email">Email</label>
-          <smt-input
-            smtFieldId="reset-email"
-            name="resetEmail"
-            type="email"
-            [(ngModel)]="resetEmail"
-            placeholder="user@company.com"
-            autocomplete="email"
-            smtDescribedBy="reset-hint"
-            [smtInvalid]="resetError() ? 'true' : null" />
+        <div body class="reset-body">
+          <p id="reset-hint" class="reset-hint">{{ 'auth.reset.request_hint' | t }}</p>
+          <div class="form-group">
+            <label class="form-label" for="reset-email">Email</label>
+            <smt-input
+              smtFieldId="reset-email"
+              name="resetEmail"
+              type="email"
+              [(ngModel)]="resetEmail"
+              placeholder="user@company.com"
+              autocomplete="email"
+              smtDescribedBy="reset-hint"
+              [smtInvalid]="resetError() ? 'true' : null"
+            />
+          </div>
+          <p *ngIf="resetError()" class="form-error" role="alert">{{ resetError() }}</p>
         </div>
-        <p *ngIf="resetError()" class="form-error" role="alert">{{ resetError() }}</p>
-      </div>
-      <div footer>
-        <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="onClose()">{{ 'common.cancel' | t }}</button>
-        <button smt-button type="button" smtVariant="primary" smtSize="md" [smtLoading]="isResetLoading()" (click)="sendResetRequest()">{{ 'auth.reset.send_link' | t }}</button>
-      </div>
+        <div footer>
+          <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="onClose()">
+            {{ 'common.cancel' | t }}
+          </button>
+          <button
+            smt-button
+            type="button"
+            smtVariant="primary"
+            smtSize="md"
+            [smtLoading]="isResetLoading()"
+            (click)="sendResetRequest()"
+          >
+            {{ 'auth.reset.send_link' | t }}
+          </button>
+        </div>
       </ng-template>
     </smt-dialog>
   `,
-  styles: [`
-    .reset-body {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
+  styles: [
+    `
+      .reset-body {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
 
-    .reset-hint {
-      font-size: 12px;
-      color: var(--text-muted);
-      line-height: 1.4;
-    }
+      .reset-hint {
+        font-size: 12px;
+        color: var(--text-muted);
+        line-height: 1.4;
+      }
 
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-    }
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
 
-    .form-label {
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--text-main);
-    }
+      .form-label {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-main);
+      }
 
-    .form-input {
-      height: 36px;
-      padding: 6px 12px;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      background-color: var(--bg-surface);
-      color: var(--text-main);
-      font-size: 13px;
-      font-family: inherit;
-      outline: none;
-      transition: border-color 0.15s ease;
-    }
+      .form-input {
+        height: 36px;
+        padding: 6px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        background-color: var(--bg-surface);
+        color: var(--text-main);
+        font-size: 13px;
+        font-family: inherit;
+        outline: none;
+        transition: border-color 0.15s ease;
+      }
 
-    .form-input:focus {
-      border-color: var(--primary);
-      outline: 2px solid var(--focus-ring, var(--primary));
-      outline-offset: 2px;
-    }
+      .form-input:focus {
+        border-color: var(--primary);
+        outline: 2px solid var(--focus-ring, var(--primary));
+        outline-offset: 2px;
+      }
 
-    .form-input[aria-invalid="true"] {
-      border-color: var(--danger);
-    }
+      .form-input[aria-invalid='true'] {
+        border-color: var(--danger);
+      }
 
-    .form-error {
-      color: var(--danger);
-      font-size: 12px;
-      line-height: 1.4;
-    }
-  `]
+      .form-error {
+        color: var(--danger);
+        font-size: 12px;
+        line-height: 1.4;
+      }
+    `,
+  ],
 })
 export class LoginResetModalComponent {
   private readonly api = inject(ApiService);
@@ -126,10 +145,12 @@ export class LoginResetModalComponent {
         this.onClose();
         this.toast.success(this.i18n.translate('auth.reset.request_sent'));
       },
-      error: err => {
+      error: (err) => {
         this.isResetLoading.set(false);
-        this.resetError.set(this.errorMessage(err, this.i18n.translate('auth.ne_udalos_otpravit_instrukciyu_povtorite_popytku')));
-      }
+        this.resetError.set(
+          this.errorMessage(err, this.i18n.translate('auth.ne_udalos_otpravit_instrukciyu_povtorite_popytku')),
+        );
+      },
     });
   }
 

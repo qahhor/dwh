@@ -11,15 +11,12 @@ public record SystemInfoResponse(
         String storageProvider,
         Map<String, Component> components,
         BackupStatus backup,
-        Instant checkedAt
-) {
+        Instant checkedAt) {
     public SystemInfoResponse {
         components = Map.copyOf(components);
     }
 
-    public record Organization(String code, String name, String resourceProfile) {
-    }
+    public record Organization(String code, String name, String resourceProfile) {}
 
-    public record Component(String status) {
-    }
+    public record Component(String status) {}
 }

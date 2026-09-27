@@ -4,10 +4,9 @@ import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.service.MdSettingService;
+import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/settings")
@@ -64,4 +63,3 @@ public class MdSettingController {
         return ResponseEntity.noContent().build();
     }
 }
-

@@ -110,7 +110,10 @@ export class SMTModalService {
       messageId: `smt-modal-confirm-message-${id}`,
     };
 
-    const dialogRef: DialogRef<SMTModalConfirmCloseResult, SMTModalConfirmComponent> = this.open<SMTModalConfirmComponent, SMTModalConfirmCloseResult>(SMTModalConfirmComponent, {
+    const dialogRef: DialogRef<SMTModalConfirmCloseResult, SMTModalConfirmComponent> = this.open<
+      SMTModalConfirmComponent,
+      SMTModalConfirmCloseResult
+    >(SMTModalConfirmComponent, {
       canDismiss: () => !dialogRef.componentInstance?.busy(),
       width,
       minWidth,
@@ -125,7 +128,7 @@ export class SMTModalService {
 
     return dialogRef.closed.pipe(
       take(1),
-      map(result => this.resolveConfirmResult(result, { cancelLabel, onConfirm, onDecline, onCancel }))
+      map((result) => this.resolveConfirmResult(result, { cancelLabel, onConfirm, onDecline, onCancel })),
     );
   }
 
@@ -133,7 +136,7 @@ export class SMTModalService {
     dialogRef: DialogRef<R, T>,
     closeOnBackdropClick: boolean,
     closeOnEscape: boolean,
-    canDismiss: () => boolean = () => true
+    canDismiss: () => boolean = () => true,
   ): void {
     if (closeOnBackdropClick) {
       dialogRef.backdropClick.pipe(takeUntil(dialogRef.closed)).subscribe(() => {
@@ -144,10 +147,10 @@ export class SMTModalService {
     if (closeOnEscape) {
       dialogRef.keydownEvents
         .pipe(
-          filter(event => event.key === 'Escape'),
-          takeUntil(dialogRef.closed)
+          filter((event) => event.key === 'Escape'),
+          takeUntil(dialogRef.closed),
         )
-        .subscribe(event => {
+        .subscribe((event) => {
           // Marks the key as handled, so nothing underneath that listens on the          // document closes as well.
           event.preventDefault();
           if (canDismiss()) dialogRef.close();
@@ -157,7 +160,7 @@ export class SMTModalService {
 
   private resolveConfirmResult(
     result: SMTModalConfirmCloseResult | undefined,
-    config: Pick<SMTModalConfirmConfig, 'cancelLabel' | 'onConfirm' | 'onDecline' | 'onCancel'>
+    config: Pick<SMTModalConfirmConfig, 'cancelLabel' | 'onConfirm' | 'onDecline' | 'onCancel'>,
   ): boolean {
     const action = result?.action ?? this.getDismissAction(config);
 

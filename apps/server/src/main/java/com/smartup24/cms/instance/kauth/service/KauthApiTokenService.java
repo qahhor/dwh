@@ -1,15 +1,14 @@
 package com.smartup24.cms.instance.kauth.service;
 
-import com.smartup24.cms.instance.kauth.repository.KauthApiTokenRepository;
 import com.smartup24.cms.instance.common.security.SecurityContext.KauthPrincipal;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
+import com.smartup24.cms.instance.kauth.repository.KauthApiTokenRepository;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class KauthApiTokenService {
@@ -33,7 +32,8 @@ public class KauthApiTokenService {
         String tokenPrefix = rawToken.substring(0, Math.min(12, rawToken.length()));
         String tokenHash = KauthPasswordHasher.sha256(rawToken);
 
-        var record = apiTokenRepository.create(principal.userId(), principal.authenticationVersion(), name, tokenPrefix, tokenHash, expiresAt);
+        var record = apiTokenRepository.create(
+                principal.userId(), principal.authenticationVersion(), name, tokenPrefix, tokenHash, expiresAt);
         return new CreatedTokenResult(record, rawToken);
     }
 
@@ -61,8 +61,5 @@ public class KauthApiTokenService {
         apiTokenRepository.revoke(tokenId, userId);
     }
 
-    public record CreatedTokenResult(
-            KauthApiTokenRepository.ApiTokenRecord record,
-            String rawSecretToken
-    ) {}
+    public record CreatedTokenResult(KauthApiTokenRepository.ApiTokenRecord record, String rawSecretToken) {}
 }

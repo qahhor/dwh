@@ -6,7 +6,8 @@
     smtHideLabel
     [smtAriaLabel]="i18n.messages().dataTable.selectRow"
     [checked]="isSelected()"
-    (checkedChange)="isSelectedChange.emit($event)"></label>
+    (checkedChange)="isSelectedChange.emit($event)"
+  ></label>
 }
 
 @if (!selectionOnly()) {
@@ -41,7 +42,8 @@
       @if (data.type === 'component' && data; as data) {
         <ng-container
           [ngComponentOutlet]="data.value.component"
-          [ngComponentOutletInputs]="data.value.inputs | cb: row()" />
+          [ngComponentOutletInputs]="data.value.inputs | cb: row()"
+        />
       }
     }
   </div>

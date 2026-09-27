@@ -15,7 +15,7 @@ describe('CustomFieldsComponent', () => {
       get: vi.fn(() => of(initialFields)),
       post: vi.fn(() => of({})),
       patch: vi.fn(() => of({})),
-      delete: vi.fn(() => of({}))
+      delete: vi.fn(() => of({})),
     };
 
     await TestBed.configureTestingModule({
@@ -23,8 +23,8 @@ describe('CustomFieldsComponent', () => {
       providers: [
         { provide: ApiService, useValue: api },
         { provide: ToastService, useValue: toast },
-        { provide: PermissionService, useValue: { hasPermission: () => true } }
-      ]
+        { provide: PermissionService, useValue: { hasPermission: () => true } },
+      ],
     }).compileComponents();
 
     return { fixture: TestBed.createComponent(CustomFieldsComponent), api, toast };
@@ -35,18 +35,26 @@ describe('CustomFieldsComponent', () => {
     fixture.detectChanges();
 
     const buttons = inScreen(fixture.nativeElement).querySelectorAll('button') as NodeListOf<HTMLButtonElement>;
-    const addButton = Array.from(buttons)
-      .find(button => button.textContent?.includes('Добавить поле')) as HTMLButtonElement;
+    const addButton = Array.from(buttons).find((button) =>
+      button.textContent?.includes('Добавить поле'),
+    ) as HTMLButtonElement;
     addButton.click();
     fixture.detectChanges();
 
     expect(fixture.componentInstance.showModal).toBe(true);
     // smt-checkbox keeps a hidden native box (aria-hidden); the person meets its role="checkbox" instead.
-    const controls = Array.from(inScreen(fixture.nativeElement).querySelectorAll('.modal-form input:not([aria-hidden="true"]), .modal-form select, .modal-form [role="combobox"]')) as HTMLElement[];
+    const controls = Array.from(
+      inScreen(fixture.nativeElement).querySelectorAll(
+        '.modal-form input:not([aria-hidden="true"]), .modal-form select, .modal-form [role="combobox"]',
+      ),
+    ) as HTMLElement[];
     const required = inScreen(fixture.nativeElement).querySelector('.modal-form [role="checkbox"]') as HTMLElement;
-    expect(document.getElementById(required.getAttribute('aria-labelledby')!)?.textContent?.trim()).toBe('Обязательное для заполнения');
-    expect(controls.filter(control => control.getAttribute('role') === 'combobox').map(control => control.id))
-      .toEqual(['custom-field-entity', 'custom-field-type']);
+    expect(document.getElementById(required.getAttribute('aria-labelledby')!)?.textContent?.trim()).toBe(
+      'Обязательное для заполнения',
+    );
+    expect(
+      controls.filter((control) => control.getAttribute('role') === 'combobox').map((control) => control.id),
+    ).toEqual(['custom-field-entity', 'custom-field-type']);
     for (const control of controls) {
       expect(control.id).not.toBe('');
       expect(inScreen(fixture.nativeElement).querySelector(`label[for="${control.id}"]`)).not.toBeNull();
@@ -65,8 +73,9 @@ describe('CustomFieldsComponent', () => {
     fixture.detectChanges();
 
     const buttons = inScreen(fixture.nativeElement).querySelectorAll('button') as NodeListOf<HTMLButtonElement>;
-    const addButton = Array.from(buttons)
-      .find(button => button.textContent?.includes('Добавить поле')) as HTMLButtonElement;
+    const addButton = Array.from(buttons).find((button) =>
+      button.textContent?.includes('Добавить поле'),
+    ) as HTMLButtonElement;
     addButton.click();
     fixture.detectChanges();
     await fixture.whenStable();
@@ -96,18 +105,23 @@ describe('CustomFieldsComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    expect(fixture.componentInstance.formData).toEqual(expect.objectContaining({
-      code: 'status_kind',
-      name: 'Тип статуса',
-      fieldType: 'select',
-      optionsText: 'Новый\nВ работе\nГотово'
-    }));
+    expect(fixture.componentInstance.formData).toEqual(
+      expect.objectContaining({
+        code: 'status_kind',
+        name: 'Тип статуса',
+        fieldType: 'select',
+        optionsText: 'Новый\nВ работе\nГотово',
+      }),
+    );
 
     fixture.componentInstance.saveField();
 
-    expect(api.post).toHaveBeenCalledWith('/custom-fields', expect.objectContaining({
-      options: ['Новый', 'В работе', 'Готово']
-    }));
+    expect(api.post).toHaveBeenCalledWith(
+      '/custom-fields',
+      expect.objectContaining({
+        options: ['Новый', 'В работе', 'Готово'],
+      }),
+    );
   });
 
   it('keeps the table keyboard-scrollable and confirms deletion in-app', async () => {
@@ -119,7 +133,7 @@ describe('CustomFieldsComponent', () => {
       fieldType: 'number',
       isRequired: false,
       orderNo: 10,
-      createdAt: '2026-08-30T00:00:00Z'
+      createdAt: '2026-08-30T00:00:00Z',
     };
     const { fixture, api, toast } = await createFixture([field]);
     fixture.detectChanges();
@@ -140,14 +154,41 @@ describe('CustomFieldsComponent', () => {
     [...dialog.querySelectorAll<HTMLButtonElement>('button')].at(-1)!.click();
     expect(api.delete).toHaveBeenCalledWith('/custom-fields/8', { notifyError: false });
     expect(toast.success).toHaveBeenCalled();
-    document.querySelectorAll('.cdk-overlay-container').forEach(node => node.remove());
+    document.querySelectorAll('.cdk-overlay-container').forEach((node) => node.remove());
   });
 
   it('filters fields by search query and clears search', async () => {
     const fields: CustomField[] = [
-      { id: 1, entityType: 'USER', code: 'skype_id', name: 'Skype ID', fieldType: 'string', isRequired: false, orderNo: 1, createdAt: '2026-09-01T00:00:00Z' },
-      { id: 2, entityType: 'TASK', code: 'cost_usd', name: 'Стоимость USD', fieldType: 'number', isRequired: true, orderNo: 2, createdAt: '2026-09-01T00:00:00Z' },
-      { id: 3, entityType: 'USER', code: 'telegram_handle', name: 'Telegram Handle', fieldType: 'string', isRequired: false, orderNo: 3, createdAt: '2026-09-01T00:00:00Z' }
+      {
+        id: 1,
+        entityType: 'USER',
+        code: 'skype_id',
+        name: 'Skype ID',
+        fieldType: 'string',
+        isRequired: false,
+        orderNo: 1,
+        createdAt: '2026-09-01T00:00:00Z',
+      },
+      {
+        id: 2,
+        entityType: 'TASK',
+        code: 'cost_usd',
+        name: 'Стоимость USD',
+        fieldType: 'number',
+        isRequired: true,
+        orderNo: 2,
+        createdAt: '2026-09-01T00:00:00Z',
+      },
+      {
+        id: 3,
+        entityType: 'USER',
+        code: 'telegram_handle',
+        name: 'Telegram Handle',
+        fieldType: 'string',
+        isRequired: false,
+        orderNo: 3,
+        createdAt: '2026-09-01T00:00:00Z',
+      },
     ];
 
     const { fixture } = await createFixture(fields);
@@ -171,9 +212,36 @@ describe('CustomFieldsComponent', () => {
 
   it('filters by entity tab and displays accurate tab counts', async () => {
     const fields: CustomField[] = [
-      { id: 1, entityType: 'USER', code: 'skype_id', name: 'Skype ID', fieldType: 'string', isRequired: false, orderNo: 1, createdAt: '2026-09-01T00:00:00Z' },
-      { id: 2, entityType: 'TASK', code: 'cost_usd', name: 'Стоимость USD', fieldType: 'number', isRequired: true, orderNo: 2, createdAt: '2026-09-01T00:00:00Z' },
-      { id: 3, entityType: 'USER', code: 'telegram_handle', name: 'Telegram Handle', fieldType: 'string', isRequired: false, orderNo: 3, createdAt: '2026-09-01T00:00:00Z' }
+      {
+        id: 1,
+        entityType: 'USER',
+        code: 'skype_id',
+        name: 'Skype ID',
+        fieldType: 'string',
+        isRequired: false,
+        orderNo: 1,
+        createdAt: '2026-09-01T00:00:00Z',
+      },
+      {
+        id: 2,
+        entityType: 'TASK',
+        code: 'cost_usd',
+        name: 'Стоимость USD',
+        fieldType: 'number',
+        isRequired: true,
+        orderNo: 2,
+        createdAt: '2026-09-01T00:00:00Z',
+      },
+      {
+        id: 3,
+        entityType: 'USER',
+        code: 'telegram_handle',
+        name: 'Telegram Handle',
+        fieldType: 'string',
+        isRequired: false,
+        orderNo: 3,
+        createdAt: '2026-09-01T00:00:00Z',
+      },
     ];
 
     const { fixture } = await createFixture(fields);
@@ -193,15 +261,42 @@ describe('CustomFieldsComponent', () => {
 
   it('sorts fields by orderNo ascending then by name', async () => {
     const fields: CustomField[] = [
-      { id: 1, entityType: 'USER', code: 'field_b', name: 'Поле Б', fieldType: 'string', isRequired: false, orderNo: 30, createdAt: '2026-09-01T00:00:00Z' },
-      { id: 2, entityType: 'USER', code: 'field_a', name: 'Поле А', fieldType: 'string', isRequired: false, orderNo: 10, createdAt: '2026-09-01T00:00:00Z' },
-      { id: 3, entityType: 'USER', code: 'field_c', name: 'Поле В', fieldType: 'string', isRequired: false, orderNo: 20, createdAt: '2026-09-01T00:00:00Z' }
+      {
+        id: 1,
+        entityType: 'USER',
+        code: 'field_b',
+        name: 'Поле Б',
+        fieldType: 'string',
+        isRequired: false,
+        orderNo: 30,
+        createdAt: '2026-09-01T00:00:00Z',
+      },
+      {
+        id: 2,
+        entityType: 'USER',
+        code: 'field_a',
+        name: 'Поле А',
+        fieldType: 'string',
+        isRequired: false,
+        orderNo: 10,
+        createdAt: '2026-09-01T00:00:00Z',
+      },
+      {
+        id: 3,
+        entityType: 'USER',
+        code: 'field_c',
+        name: 'Поле В',
+        fieldType: 'string',
+        isRequired: false,
+        orderNo: 20,
+        createdAt: '2026-09-01T00:00:00Z',
+      },
     ];
 
     const { fixture } = await createFixture(fields);
     fixture.detectChanges();
 
-    const orderedCodes = fixture.componentInstance.filteredFields().map(f => f.code);
+    const orderedCodes = fixture.componentInstance.filteredFields().map((f) => f.code);
     expect(orderedCodes).toEqual(['field_a', 'field_c', 'field_b']);
   });
 

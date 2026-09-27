@@ -1,10 +1,9 @@
 package com.smartup24.cms.instance.kwh.service;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-
 import java.time.Duration;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "dwh.webhooks")
 public class KwhWebhookProperties {

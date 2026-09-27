@@ -18,7 +18,8 @@ import { SMTInputComponent, SMTInputValue } from '../../../shared/ui-kit/compone
         [tabs]="statusTabs()"
         [value]="statusFilter()"
         [smtAriaLabel]="'announcements.vse_statusy' | t"
-        (valueChange)="$event && filterChange.emit($event)" />
+        (valueChange)="$event && filterChange.emit($event)"
+      />
 
       <smt-input
         class="search-box"
@@ -28,35 +29,39 @@ import { SMTInputComponent, SMTInputValue } from '../../../shared/ui-kit/compone
         [placeholder]="'announcements.poisk' | t"
         [smtAriaLabel]="'announcements.poisk' | t"
         [value]="searchQuery()"
-        (valueChange)="onSearch($event)" />
+        (valueChange)="onSearch($event)"
+      />
     </div>
   `,
-  styles: [`
-    :host { display: block; }
-    .toolbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
-      padding: 6px 0;
-    }
+  styles: [
+    `
+      :host {
+        display: block;
+      }
+      .toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 6px 0;
+      }
 
+      .search-box {
+        width: 240px;
+      }
 
-
-
-
-
-
-    .search-box {
-      width: 240px;
-    }
-
-    @media (max-width: 680px) {
-      .toolbar { flex-direction: column; align-items: stretch; }
-      .search-box { width: 100%; }
-    }
-  `]
+      @media (max-width: 680px) {
+        .toolbar {
+          flex-direction: column;
+          align-items: stretch;
+        }
+        .search-box {
+          width: 100%;
+        }
+      }
+    `,
+  ],
 })
 export class AnnouncementsToolbarComponent {
   /** Texts of the tabs below; translated again when the language changes. */
@@ -86,11 +91,22 @@ export class AnnouncementsToolbarComponent {
   }
 
   statusTabs(): SMTTabItem<'ALL' | 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'>[] {
-    return this.tabsMemo([this.tabText.currentLang(), this.totalCount(), this.publishedCount(), this.draftCount(), this.archivedCount()], () => [
-      { value: 'ALL', label: this.tabText.translate('announcements.vse_statusy'), count: this.totalCount() },
-      { value: 'PUBLISHED', label: this.tabText.translate('announcements.status_published'), count: this.publishedCount() },
-      { value: 'DRAFT', label: this.tabText.translate('announcements.status_draft'), count: this.draftCount() },
-      { value: 'ARCHIVED', label: this.tabText.translate('announcements.status_archived'), count: this.archivedCount() },
-    ]);
+    return this.tabsMemo(
+      [this.tabText.currentLang(), this.totalCount(), this.publishedCount(), this.draftCount(), this.archivedCount()],
+      () => [
+        { value: 'ALL', label: this.tabText.translate('announcements.vse_statusy'), count: this.totalCount() },
+        {
+          value: 'PUBLISHED',
+          label: this.tabText.translate('announcements.status_published'),
+          count: this.publishedCount(),
+        },
+        { value: 'DRAFT', label: this.tabText.translate('announcements.status_draft'), count: this.draftCount() },
+        {
+          value: 'ARCHIVED',
+          label: this.tabText.translate('announcements.status_archived'),
+          count: this.archivedCount(),
+        },
+      ],
+    );
   }
 }

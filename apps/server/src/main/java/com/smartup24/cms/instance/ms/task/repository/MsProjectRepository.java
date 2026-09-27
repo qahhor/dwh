@@ -1,14 +1,13 @@
 package com.smartup24.cms.instance.ms.task.repository;
 
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 @Repository
 public class MsProjectRepository {
@@ -21,10 +20,12 @@ public class MsProjectRepository {
         this.objectMapper = objectMapper;
     }
 
-    public ProjectRecord create(String name, String description, String state, Map<String, Object> attributes, Long createdBy) {
+    public ProjectRecord create(
+            String name, String description, String state, Map<String, Object> attributes, Long createdBy) {
         String attrsJson = toJson(attributes);
 
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 insert into ms_task_projects (name, description, state, attributes, created_at, created_by)
                 values (:name, :description, :state, cast(:attributes as jsonb), now(), :createdBy)
                 returning id, name, description, state, attributes::text as attributes_str, created_at, created_by
@@ -43,10 +44,7 @@ public class MsProjectRepository {
                 select id, name, description, state, attributes::text as attributes_str, created_at, created_by
                 from ms_task_projects
                 where id = :id
-                """)
-                .param("id", id)
-                .query(this::mapRecord)
-                .optional();
+                """).param("id", id).query(this::mapRecord).optional();
     }
 
     public List<ProjectRecord> listProjects(String state) {
@@ -70,7 +68,8 @@ public class MsProjectRepository {
     public void update(Long id, String name, String description, String state, Map<String, Object> attributes) {
         String attrsJson = attributes != null ? toJson(attributes) : null;
 
-        jdbcClient.sql("""
+        jdbcClient
+                .sql("""
                 update ms_task_projects
                 set name = coalesce(:name, name),
                     description = coalesce(:description, description),
@@ -87,7 +86,8 @@ public class MsProjectRepository {
     }
 
     public void addMember(Long projectId, Long userId, String accessKind) {
-        jdbcClient.sql("""
+        jdbcClient
+                .sql("""
                 insert into ms_task_project_members (project_id, user_id, access_kind)
                 values (:projectId, :userId, :accessKind)
                 on conflict (project_id, user_id) do update set access_kind = :accessKind
@@ -99,14 +99,16 @@ public class MsProjectRepository {
     }
 
     public void removeMember(Long projectId, Long userId) {
-        jdbcClient.sql("delete from ms_task_project_members where project_id = :projectId and user_id = :userId")
+        jdbcClient
+                .sql("delete from ms_task_project_members where project_id = :projectId and user_id = :userId")
                 .param("projectId", projectId)
                 .param("userId", userId)
                 .update();
     }
 
     public List<ProjectMemberRecord> getMembers(Long projectId) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select pm.project_id, pm.user_id, u.name as user_name, u.email as user_email, pm.access_kind
                 from ms_task_project_members pm
                 join md_users u on u.id = pm.user_id
@@ -119,8 +121,7 @@ public class MsProjectRepository {
                         rs.getLong("user_id"),
                         rs.getString("user_name"),
                         rs.getString("user_email"),
-                        rs.getString("access_kind")
-                ))
+                        rs.getString("access_kind")))
                 .list();
     }
 
@@ -133,8 +134,7 @@ public class MsProjectRepository {
                 rs.getString("state"),
                 parseJson(rs.getString("attributes_str")),
                 rs.getTimestamp("created_at").toInstant(),
-                rs.getObject("created_by") != null ? rs.getLong("created_by") : null
-        );
+                rs.getObject("created_by") != null ? rs.getLong("created_by") : null);
     }
 
     private String toJson(Map<String, Object> map) {
@@ -163,14 +163,8 @@ public class MsProjectRepository {
             String state,
             Map<String, Object> attributes,
             Instant createdAt,
-            Long createdBy
-    ) {}
+            Long createdBy) {}
 
     public record ProjectMemberRecord(
-            Long projectId,
-            Long userId,
-            String userName,
-            String userEmail,
-            String accessKind
-    ) {}
+            Long projectId, Long userId, String userName, String userEmail, String accessKind) {}
 }

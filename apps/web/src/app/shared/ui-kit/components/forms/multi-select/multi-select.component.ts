@@ -129,7 +129,7 @@ export class SMTMultiSelectComponent<T = unknown> implements FormValueControl<re
   readonly isDisabled = computed(() => this.disabled() || this.disabledByForms());
 
   readonly chips = computed(() =>
-    (this.value() ?? []).map(id => this.known().get(key(id)) ?? { id, label: `#${String(id)}` })
+    (this.value() ?? []).map((id) => this.known().get(key(id)) ?? { id, label: `#${String(id)}` }),
   );
 
   readonly visibleOptions = computed<readonly SMTSelectOption<T>[]>(() => {
@@ -137,7 +137,7 @@ export class SMTMultiSelectComponent<T = unknown> implements FormValueControl<re
     const query = this.query().trim().toLowerCase();
     if (this.remoteSearch() || !query) return options;
     return options.filter(
-      option => option.label.toLowerCase().includes(query) || !!option.subLabel?.toLowerCase().includes(query)
+      (option) => option.label.toLowerCase().includes(query) || !!option.subLabel?.toLowerCase().includes(query),
     );
   });
 
@@ -146,9 +146,7 @@ export class SMTMultiSelectComponent<T = unknown> implements FormValueControl<re
     return index === null ? null : this.optionId(index);
   });
 
-  readonly showEmpty = computed(
-    () => this.visibleOptions().length === 0 && !this.loading() && !this.loadError()
-  );
+  readonly showEmpty = computed(() => this.visibleOptions().length === 0 && !this.loading() && !this.loadError());
 
   private readonly selectedKeys = computed(() => new Set((this.value() ?? []).map(key)));
 
@@ -208,7 +206,7 @@ export class SMTMultiSelectComponent<T = unknown> implements FormValueControl<re
           box.setSelectionRange(box.value.length, box.value.length);
         },
       },
-      { injector: this.injector }
+      { injector: this.injector },
     );
   }
 
@@ -224,12 +222,12 @@ export class SMTMultiSelectComponent<T = unknown> implements FormValueControl<re
     if (option.disabled) return;
     const current = this.value() ?? [];
     this.value.set(
-      this.isSelected(option) ? current.filter(id => key(id) !== key(option.id)) : [...current, option.id]
+      this.isSelected(option) ? current.filter((id) => key(id) !== key(option.id)) : [...current, option.id],
     );
   }
 
   remove(id: T): void {
-    this.value.set((this.value() ?? []).filter(item => key(item) !== key(id)));
+    this.value.set((this.value() ?? []).filter((item) => key(item) !== key(id)));
     this.trigger()?.nativeElement.focus();
   }
 
@@ -352,7 +350,7 @@ export class SMTMultiSelectComponent<T = unknown> implements FormValueControl<re
     this.ownedBy = null;
     if (!modal) return;
     const popupId = `${this.listboxId}-popup`;
-    const owned = (modal.getAttribute('aria-owns') ?? '').split(/\s+/).filter(token => token && token !== popupId);
+    const owned = (modal.getAttribute('aria-owns') ?? '').split(/\s+/).filter((token) => token && token !== popupId);
     if (owned.length) modal.setAttribute('aria-owns', owned.join(' '));
     else modal.removeAttribute('aria-owns');
   }

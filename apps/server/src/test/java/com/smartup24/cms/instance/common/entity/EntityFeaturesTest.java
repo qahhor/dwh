@@ -1,5 +1,8 @@
 package com.smartup24.cms.instance.common.entity;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.bulk.BulkRunner.BulkRequest;
@@ -11,16 +14,12 @@ import com.smartup24.cms.instance.common.history.RecordHistorySource;
 import com.smartup24.cms.instance.common.query.QueryListExporter;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.ms.note.service.MsNoteEntity;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Test;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /** Roadmap item 56: history, export and bulk delete built from an entity's declaration and its records. */
 class EntityFeaturesTest {
@@ -36,7 +35,9 @@ class EntityFeaturesTest {
             this.entity = entity;
         }
 
-        public String entity() { return entity; }
+        public String entity() {
+            return entity;
+        }
 
         public void requireVisible(long id) {
             if (id > 2) throw ApiException.notFound(ErrorCode.NOT_FOUND, "Запись не найдена");
@@ -71,20 +72,55 @@ class EntityFeaturesTest {
         List<FormSection> layout = List.of(new FormSection("main", "m", List.of("title")));
         List<EntityAction> create = List.of(new EntityAction("create", "create"));
 
-        assertThatThrownBy(() -> new EntityDefinition("x", "x", "x", null, null, null, null, List.of(title), layout, create,
-                Set.of(EntityCapability.HISTORY))).hasMessageContaining("audit table");
-        assertThatThrownBy(() -> new EntityDefinition("x", "x", null, null, null, null, null, List.of(title), layout, create,
-                Set.of(EntityCapability.EXPORT))).hasMessageContaining("list");
-        assertThatThrownBy(() -> new EntityDefinition("x", "x", "x", null, null, null, null, List.of(title), layout, create,
-                Set.of(EntityCapability.BULK))).hasMessageContaining("delete action");
+        assertThatThrownBy(() -> new EntityDefinition(
+                        "x",
+                        "x",
+                        "x",
+                        null,
+                        null,
+                        null,
+                        null,
+                        List.of(title),
+                        layout,
+                        create,
+                        Set.of(EntityCapability.HISTORY)))
+                .hasMessageContaining("audit table");
+        assertThatThrownBy(() -> new EntityDefinition(
+                        "x",
+                        "x",
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        List.of(title),
+                        layout,
+                        create,
+                        Set.of(EntityCapability.EXPORT)))
+                .hasMessageContaining("list");
+        assertThatThrownBy(() -> new EntityDefinition(
+                        "x",
+                        "x",
+                        "x",
+                        null,
+                        null,
+                        null,
+                        null,
+                        List.of(title),
+                        layout,
+                        create,
+                        Set.of(EntityCapability.BULK)))
+                .hasMessageContaining("delete action");
     }
 
     @Test
     void anEntityPromisingRecordFeaturesNeedsItsRecordsAtStart() {
         assertThatThrownBy(() -> new EntityRegistry(List.of(NOTES)))
-                .isInstanceOf(IllegalStateException.class).hasMessageContaining("EntityRecords");
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("EntityRecords");
         assertThatThrownBy(() -> new EntityRegistry(List.of(NOTES), List.of(), List.of(records("ms.unknown"))))
-                .isInstanceOf(IllegalStateException.class).hasMessageContaining("undeclared");
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("undeclared");
     }
 
     @Test
@@ -94,11 +130,15 @@ class EntityFeaturesTest {
         assertThat(source.key()).isEqualTo("ms.notes");
         assertThat(source.tableName()).isEqualTo("ms_notes");
         assertThat(source.form() + "." + source.action()).isEqualTo("notes.view");
-        assertThat(source.fieldLabels()).containsEntry("isPinned", "notes.col.pinned").containsEntry("title", "notes.col.title");
+        assertThat(source.fieldLabels())
+                .containsEntry("isPinned", "notes.col.pinned")
+                .containsEntry("title", "notes.col.title");
         source.requireVisible("1");
         for (String hidden : List.of("3", "x")) {
             assertThatThrownBy(() -> source.requireVisible(hidden))
-                    .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND));
+                    .isInstanceOfSatisfying(
+                            ApiException.class,
+                            e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND));
         }
     }
 
@@ -108,18 +148,21 @@ class EntityFeaturesTest {
 
         assertThat(exporter.code()).isEqualTo("ms.notes");
         assertThat(exporter.options()).isEmpty();
-        List<Object> items = List.copyOf(exporter.page(10, null, null, null, "план", Map.of()).items());
+        List<Object> items = List.copyOf(
+                exporter.page(10, null, null, null, "план", Map.of()).items());
         assertThat(items).containsExactly(Map.of("title", "план"));
     }
 
     @Test
     void bulkDeleteRunsTheModuleDeleteRecordByRecordWithTheDeclaredRight() {
         FakeRecords records = records(NOTES.code());
-        EntityBulkController controller = new EntityBulkController(
-                new EntityRegistry(List.of(NOTES), List.of(), List.of(records)));
+        EntityBulkController controller =
+                new EntityBulkController(new EntityRegistry(List.of(NOTES), List.of(), List.of(records)));
         SecurityContext.setPrincipal(principal(Set.of("notes.view", "notes.delete")));
 
-        BulkResult result = controller.bulk("ms.notes", new BulkRequest("delete", List.of(1L, 3L, 2L), null)).getBody();
+        BulkResult result = controller
+                .bulk("ms.notes", new BulkRequest("delete", List.of(1L, 3L, 2L), null))
+                .getBody();
 
         assertThat(result.succeeded()).isEqualTo(2);
         assertThat(result.failed()).isEqualTo(1);
@@ -134,14 +177,18 @@ class EntityFeaturesTest {
 
         SecurityContext.setPrincipal(principal(Set.of("notes.view")));
         assertThatThrownBy(() -> controller.bulk("ms.notes", delete))
-                .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.PERMISSION_DENIED));
+                .isInstanceOfSatisfying(
+                        ApiException.class, e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.PERMISSION_DENIED));
         assertThatThrownBy(() -> controller.bulk("ms.notes", new BulkRequest("archive", List.of(1L), null)))
-                .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.VALIDATION_FAILED));
+                .isInstanceOfSatisfying(
+                        ApiException.class, e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.VALIDATION_FAILED));
 
         SecurityContext.setPrincipal(principal(Set.of("tasks.items.view")));
         for (String code : List.of("ms.notes", "nope")) {
             assertThatThrownBy(() -> controller.bulk(code, delete))
-                    .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND));
+                    .isInstanceOfSatisfying(
+                            ApiException.class,
+                            e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND));
         }
     }
 
@@ -152,8 +199,9 @@ class EntityFeaturesTest {
         SecurityContext.setPrincipal(principal(Set.of("notes.view")));
         var items = controller.menu().getBody();
         assertThat(items).hasSize(1);
-        assertThat(items.getFirst()).isEqualTo(new EntityMenuController.MenuItem(
-                "ms.notes", "notes", "/notes", "nav.notes", "description", "workspace", 30, "notes"));
+        assertThat(items.getFirst())
+                .isEqualTo(new EntityMenuController.MenuItem(
+                        "ms.notes", "notes", "/notes", "nav.notes", "description", "workspace", 30, "notes"));
 
         SecurityContext.setPrincipal(principal(Set.of("tasks.items.view")));
         assertThat(controller.menu().getBody()).isEmpty();
@@ -165,8 +213,19 @@ class EntityFeaturesTest {
         List<FormSection> layout = List.of(new FormSection("main", "m", List.of("title")));
         var rights = new EntityDefinition.EntityRights("x", "X", Map.of("view", "Просмотр"));
 
-        assertThatThrownBy(() -> new EntityDefinition("x", "x", null, null, null, rights, null, List.of(title), layout,
-                List.of(new EntityAction("create", "create")), Set.of())).hasMessageContaining("right");
+        assertThatThrownBy(() -> new EntityDefinition(
+                        "x",
+                        "x",
+                        null,
+                        null,
+                        null,
+                        rights,
+                        null,
+                        List.of(title),
+                        layout,
+                        List.of(new EntityAction("create", "create")),
+                        Set.of()))
+                .hasMessageContaining("right");
         assertThat(notesRegistry().rights("notes").orElseThrow().actionNames())
                 .containsKeys("view", "create", "update", "delete");
         assertThat(notesRegistry().rights("tasks.items")).isEmpty();

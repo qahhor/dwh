@@ -24,7 +24,8 @@ export type TTooltipTheme = 'light' | 'dark';
       <div
         class="text-xs font-normal"
         [class.text-gray-500]="this.theme() === 'light'"
-        [class.text-white]="this.theme() === 'dark'">
+        [class.text-white]="this.theme() === 'dark'"
+      >
         {{ this.supportingText() }}
       </div>
     }

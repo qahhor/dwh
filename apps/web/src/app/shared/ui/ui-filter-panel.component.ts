@@ -1,5 +1,12 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, signal } from '@angular/core';
-import { fieldLabel, QueryCondition, QueryFieldMeta, QueryListMeta, QueryMatch, QueryOp } from '../../core/models/query-meta.models';
+import {
+  fieldLabel,
+  QueryCondition,
+  QueryFieldMeta,
+  QueryListMeta,
+  QueryMatch,
+  QueryOp,
+} from '../../core/models/query-meta.models';
 import { ApiService } from '../../core/services/api.service';
 import { refLookup } from '../lookups/ref-lookup';
 import { SMTDataSelectComponent } from '../ui-kit/components/forms/data-select/data-select.component';
@@ -52,7 +59,17 @@ let nextPanelId = 0;
   selector: 'ui-filter-panel',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTInputComponent, SMTCheckboxComponent, SMTSelectComponent, TranslatePipe, SMTButtonComponent, SMTDatePickerComponent, SMTDateRangePickerComponent, SMTDataSelectComponent, SMTRadioGroupComponent],
+  imports: [
+    SMTInputComponent,
+    SMTCheckboxComponent,
+    SMTSelectComponent,
+    TranslatePipe,
+    SMTButtonComponent,
+    SMTDatePickerComponent,
+    SMTDateRangePickerComponent,
+    SMTDataSelectComponent,
+    SMTRadioGroupComponent,
+  ],
   template: `
     <form class="filter-panel" (submit)="$event.preventDefault(); apply()" novalidate>
       <p class="filter-intro">{{ 'ui.filter.intro' | t }}</p>
@@ -61,8 +78,15 @@ let nextPanelId = 0;
         <p class="filter-empty" data-testid="filter-empty">{{ 'ui.filter.empty' | t }}</p>
       }
       @if (rows().length > 1) {
-        <smt-radio-group data-testid="filter-match" smtAppearance="segmented" smtOrientation="horizontal"
-          [smtAriaLabel]="'ui.filter.match' | t" [options]="matchOptions()" [value]="match()" (valueChange)="$event && match.set($event)" />
+        <smt-radio-group
+          data-testid="filter-match"
+          smtAppearance="segmented"
+          smtOrientation="horizontal"
+          [smtAriaLabel]="'ui.filter.match' | t"
+          [options]="matchOptions()"
+          [value]="match()"
+          (valueChange)="$event && match.set($event)"
+        />
       }
 
       <ol class="filter-rows">
@@ -70,19 +94,35 @@ let nextPanelId = 0;
           @let field = fieldOf(row);
           @let error = errors()[i];
           <li>
-            <fieldset class="filter-row" [class.filter-row--invalid]="error" data-testid="filter-row"
-              [attr.aria-describedby]="error ? rowId(i) + '-error' : null">
+            <fieldset
+              class="filter-row"
+              [class.filter-row--invalid]="error"
+              data-testid="filter-row"
+              [attr.aria-describedby]="error ? rowId(i) + '-error' : null"
+            >
               <legend class="filter-legend">{{ 'ui.filter.condition_n' | t: { n: i + 1 } }}</legend>
               <div class="filter-controls">
                 <div class="filter-control">
                   <label class="filter-label" [for]="rowId(i) + '-field'">{{ 'ui.filter.field' | t }}</label>
-                  <smt-select data-testid="filter-field" [smtTriggerId]="rowId(i) + '-field'" [options]="fieldOptions()"
-                    [allowClear]="false" [value]="row.field" (valueChange)="setField(i, $event)" />
+                  <smt-select
+                    data-testid="filter-field"
+                    [smtTriggerId]="rowId(i) + '-field'"
+                    [options]="fieldOptions()"
+                    [allowClear]="false"
+                    [value]="row.field"
+                    (valueChange)="setField(i, $event)"
+                  />
                 </div>
                 <div class="filter-control">
                   <label class="filter-label" [for]="rowId(i) + '-op'">{{ 'ui.filter.operation' | t }}</label>
-                  <smt-select data-testid="filter-op" [smtTriggerId]="rowId(i) + '-op'" [options]="opOptions(field)"
-                    [allowClear]="false" [value]="row.op" (valueChange)="setOp(i, $event)" />
+                  <smt-select
+                    data-testid="filter-op"
+                    [smtTriggerId]="rowId(i) + '-op'"
+                    [options]="opOptions(field)"
+                    [allowClear]="false"
+                    [value]="row.op"
+                    (valueChange)="setOp(i, $event)"
+                  />
                 </div>
 
                 @if (field && takesValue(row.op)) {
@@ -90,26 +130,48 @@ let nextPanelId = 0;
                     @case ('ref') {
                       <div class="filter-control">
                         <label class="filter-label" [for]="rowId(i) + '-ref'">{{ 'ui.filter.value' | t }}</label>
-                        <smt-data-select data-testid="filter-ref" [smtTriggerId]="rowId(i) + '-ref'" [source]="refSource(field)"
-                          [placeholder]="'ui.filter.choose' | t" [value]="refValue(row)"
+                        <smt-data-select
+                          data-testid="filter-ref"
+                          [smtTriggerId]="rowId(i) + '-ref'"
+                          [source]="refSource(field)"
+                          [placeholder]="'ui.filter.choose' | t"
+                          [value]="refValue(row)"
                           (valueChange)="patch(i, { value: $event == null ? '' : String($event) })"
-                          (rowChange)="patch(i, { label: refLabel(field, $event) })" />
+                          (rowChange)="patch(i, { label: refLabel(field, $event) })"
+                        />
                       </div>
                     }
                     @case ('choice') {
                       <div class="filter-control">
                         <label class="filter-label" [for]="rowId(i) + '-choice'">{{ 'ui.filter.value' | t }}</label>
-                        <smt-select data-testid="filter-value" [smtTriggerId]="rowId(i) + '-choice'" [options]="choiceOptions(field)"
-                          [placeholder]="'ui.filter.choose' | t" [emptyLabel]="'ui.filter.choose' | t"
-                          [value]="row.value || null" (valueChange)="patch(i, { value: $event ?? '' })" />
+                        <smt-select
+                          data-testid="filter-value"
+                          [smtTriggerId]="rowId(i) + '-choice'"
+                          [options]="choiceOptions(field)"
+                          [placeholder]="'ui.filter.choose' | t"
+                          [emptyLabel]="'ui.filter.choose' | t"
+                          [value]="row.value || null"
+                          (valueChange)="patch(i, { value: $event ?? '' })"
+                        />
                       </div>
                     }
                     @case ('choices') {
-                      <div class="filter-control filter-choices" role="group" [attr.aria-labelledby]="rowId(i) + '-values'">
+                      <div
+                        class="filter-control filter-choices"
+                        role="group"
+                        [attr.aria-labelledby]="rowId(i) + '-values'"
+                      >
                         <span class="filter-label" [id]="rowId(i) + '-values'">{{ 'ui.filter.values' | t }}</span>
                         @for (value of choices(field); track value.value) {
-                          <div smt-checkbox class="filter-choice" data-testid="filter-choice" [checked]="row.values.includes(value.value)"
-                            (checkedChange)="toggleValue(i, value.value, $event)">{{ value.label }}</div>
+                          <div
+                            smt-checkbox
+                            class="filter-choice"
+                            data-testid="filter-choice"
+                            [checked]="row.values.includes(value.value)"
+                            (checkedChange)="toggleValue(i, value.value, $event)"
+                          >
+                            {{ value.label }}
+                          </div>
                         }
                       </div>
                     }
@@ -117,23 +179,37 @@ let nextPanelId = 0;
                       @if (row.op === 'between') {
                         <div class="filter-control">
                           <span class="filter-label" aria-hidden="true">{{ 'ui.filter.period' | t }}</span>
-                          <smt-date-range-picker data-testid="filter-date-range" [smtAriaLabel]="'ui.filter.period' | t"
-                            [value]="rangeOf(row)" (valueChange)="patch(i, { value: $event?.from ?? '', valueTo: $event?.to ?? '' })" />
+                          <smt-date-range-picker
+                            data-testid="filter-date-range"
+                            [smtAriaLabel]="'ui.filter.period' | t"
+                            [value]="rangeOf(row)"
+                            (valueChange)="patch(i, { value: $event?.from ?? '', valueTo: $event?.to ?? '' })"
+                          />
                         </div>
                       } @else {
                         <div class="filter-control">
                           <label class="filter-label" [for]="rowId(i) + '-from'">{{ 'ui.filter.value' | t }}</label>
-                          <smt-date-picker data-testid="filter-date" [smtInputId]="rowId(i) + '-from'" [value]="row.value || null"
-                            (valueChange)="patch(i, { value: $event ?? '' })" />
+                          <smt-date-picker
+                            data-testid="filter-date"
+                            [smtInputId]="rowId(i) + '-from'"
+                            [value]="row.value || null"
+                            (valueChange)="patch(i, { value: $event ?? '' })"
+                          />
                         </div>
                       }
                     }
                     @default {
                       <label class="filter-control">
-                        <span class="filter-label">{{ (row.op === 'between' ? 'ui.filter.from' : 'ui.filter.value') | t }}</span>
-                        <smt-input smtTestId="filter-value" [type]="field.type === 'number' && row.op !== 'in' ? 'number' : 'text'"
-                          [inputmode]="field.type === 'number' ? 'decimal' : null" [value]="row.value"
-                          (valueChange)="patch(i, { value: text($event) })" />
+                        <span class="filter-label">{{
+                          (row.op === 'between' ? 'ui.filter.from' : 'ui.filter.value') | t
+                        }}</span>
+                        <smt-input
+                          smtTestId="filter-value"
+                          [type]="field.type === 'number' && row.op !== 'in' ? 'number' : 'text'"
+                          [inputmode]="field.type === 'number' ? 'decimal' : null"
+                          [value]="row.value"
+                          (valueChange)="patch(i, { value: text($event) })"
+                        />
                         @if (row.op === 'in') {
                           <span class="filter-hint">{{ 'ui.filter.comma_hint' | t }}</span>
                         }
@@ -141,8 +217,12 @@ let nextPanelId = 0;
                       @if (row.op === 'between') {
                         <label class="filter-control">
                           <span class="filter-label">{{ 'ui.filter.to' | t }}</span>
-                          <smt-input smtTestId="filter-value-to" [type]="field.type === 'number' ? 'number' : 'text'"
-                            [value]="row.valueTo" (valueChange)="patch(i, { valueTo: text($event) })" />
+                          <smt-input
+                            smtTestId="filter-value-to"
+                            [type]="field.type === 'number' ? 'number' : 'text'"
+                            [value]="row.valueTo"
+                            (valueChange)="patch(i, { valueTo: text($event) })"
+                          />
                         </label>
                       }
                     }
@@ -152,8 +232,13 @@ let nextPanelId = 0;
               @if (error) {
                 <p class="filter-error" [id]="rowId(i) + '-error'" data-testid="filter-error">{{ error | t }}</p>
               }
-              <button type="button" class="filter-remove" data-testid="filter-remove"
-                [attr.aria-label]="'ui.filter.remove_n' | t: { n: i + 1 }" (click)="remove(i)">
+              <button
+                type="button"
+                class="filter-remove"
+                data-testid="filter-remove"
+                [attr.aria-label]="'ui.filter.remove_n' | t: { n: i + 1 }"
+                (click)="remove(i)"
+              >
                 <span class="material-symbols-outlined" aria-hidden="true">close</span>
               </button>
             </fieldset>
@@ -162,7 +247,16 @@ let nextPanelId = 0;
       </ol>
 
       <div class="filter-add">
-        <button smt-button type="button" smtVariant="secondary" smtSize="sm" smtIcon="add" data-testid="filter-add" [disabled]="!canAdd()" (click)="add()">
+        <button
+          smt-button
+          type="button"
+          smtVariant="secondary"
+          smtSize="sm"
+          smtIcon="add"
+          data-testid="filter-add"
+          [disabled]="!canAdd()"
+          (click)="add()"
+        >
           {{ 'ui.filter.add' | t }}
         </button>
         @if (!canAdd() && rows().length > 0) {
@@ -171,44 +265,138 @@ let nextPanelId = 0;
       </div>
 
       <div class="filter-footer">
-        <button smt-button type="button" smtVariant="ghost" data-testid="filter-clear" [disabled]="rows().length === 0" (click)="clear()">
+        <button
+          smt-button
+          type="button"
+          smtVariant="ghost"
+          data-testid="filter-clear"
+          [disabled]="rows().length === 0"
+          (click)="clear()"
+        >
           {{ 'ui.filter.clear' | t }}
         </button>
         <span class="filter-spacer"></span>
-        <button smt-button type="button" smtVariant="secondary" data-testid="filter-cancel" (click)="cancel()">{{ 'common.cancel' | t }}</button>
-        <button smt-button smtVariant="primary" type="submit" data-testid="filter-apply">{{ 'ui.filter.apply' | t }}</button>
+        <button smt-button type="button" smtVariant="secondary" data-testid="filter-cancel" (click)="cancel()">
+          {{ 'common.cancel' | t }}
+        </button>
+        <button smt-button smtVariant="primary" type="submit" data-testid="filter-apply">
+          {{ 'ui.filter.apply' | t }}
+        </button>
       </div>
     </form>
   `,
-  styles: [`
-    :host { display: block; }
-    .filter-panel { display: flex; flex-direction: column; gap: 12px; }
-    .filter-intro, .filter-empty { margin: 0; color: var(--text-muted); }
-    .filter-rows { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }
-    .filter-row {
-      position: relative; margin: 0; padding: 10px 40px 10px 12px; border: 1px solid var(--border-color);
-      border-radius: var(--radius-md); background: var(--bg-surface); color: var(--text-main);
-    }
-    .filter-row--invalid { border-color: var(--danger); }
-    .filter-legend { padding: 0 4px; color: var(--text-muted); font-size: 12px; }
-    .filter-controls { display: flex; flex-wrap: wrap; gap: 8px; }
-    .filter-control { display: flex; flex: 1 1 150px; flex-direction: column; gap: 4px; min-width: 0; }
-    .filter-label { color: var(--text-muted); font-size: 12px; }
-    .filter-choices { flex-basis: 100%; }
-    .filter-choice { display: inline-flex; }
-    .filter-hint { color: var(--text-muted); font-size: 12px; }
-    .filter-error { margin: 6px 0 0; color: var(--danger-text); font-size: 12px; }
-    .filter-remove {
-      position: absolute; top: 8px; right: 8px; display: inline-flex; align-items: center; justify-content: center;
-      width: 28px; height: 28px; border: none; border-radius: var(--radius-sm); background: none;
-      color: var(--text-muted); cursor: pointer;
-    }
-    .filter-remove:hover { background: var(--bg-hover); color: var(--text-main); }
-    .filter-remove:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
-    .filter-add { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-    .filter-footer { display: flex; align-items: center; gap: 8px; padding-top: 12px; border-top: 1px solid var(--border-color); }
-    .filter-spacer { flex: 1; }
-  `],
+  styles: [
+    `
+      :host {
+        display: block;
+      }
+      .filter-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .filter-intro,
+      .filter-empty {
+        margin: 0;
+        color: var(--text-muted);
+      }
+      .filter-rows {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      .filter-row {
+        position: relative;
+        margin: 0;
+        padding: 10px 40px 10px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        background: var(--bg-surface);
+        color: var(--text-main);
+      }
+      .filter-row--invalid {
+        border-color: var(--danger);
+      }
+      .filter-legend {
+        padding: 0 4px;
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+      .filter-controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .filter-control {
+        display: flex;
+        flex: 1 1 150px;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+      }
+      .filter-label {
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+      .filter-choices {
+        flex-basis: 100%;
+      }
+      .filter-choice {
+        display: inline-flex;
+      }
+      .filter-hint {
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+      .filter-error {
+        margin: 6px 0 0;
+        color: var(--danger-text);
+        font-size: 12px;
+      }
+      .filter-remove {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border: none;
+        border-radius: var(--radius-sm);
+        background: none;
+        color: var(--text-muted);
+        cursor: pointer;
+      }
+      .filter-remove:hover {
+        background: var(--bg-hover);
+        color: var(--text-main);
+      }
+      .filter-remove:focus-visible {
+        outline: 2px solid var(--focus-ring);
+        outline-offset: 2px;
+      }
+      .filter-add {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .filter-footer {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding-top: 12px;
+        border-top: 1px solid var(--border-color);
+      }
+      .filter-spacer {
+        flex: 1;
+      }
+    `,
+  ],
 })
 export class UiFilterPanelComponent {
   readonly data = inject<FilterPanelData>(SMT_DRAWER_DATA);
@@ -247,19 +435,21 @@ export class UiFilterPanelComponent {
 
   fieldOptions(): SMTSelectOption<string>[] {
     return this.fieldOptionsMemo([this.i18n.currentLang(), this.fields()], () =>
-      this.fields().map(field => ({ id: field.key, label: this.fieldLabel(field) }))
+      this.fields().map((field) => ({ id: field.key, label: this.fieldLabel(field) })),
     );
   }
 
   /** The operations a field offers, built once per field and language. */
   opOptions(field: QueryFieldMeta | undefined): SMTSelectOption<QueryOp>[] {
     if (!field) return [];
-    return this.cachedOptions(this.opOptionsCache, field.key, () => field.ops.map(op => ({ id: op, label: this.opLabel(op) })));
+    return this.cachedOptions(this.opOptionsCache, field.key, () =>
+      field.ops.map((op) => ({ id: op, label: this.opLabel(op) })),
+    );
   }
 
   choiceOptions(field: QueryFieldMeta): SMTSelectOption<string>[] {
     return this.cachedOptions(this.choiceOptionsCache, field.key, () =>
-      this.choices(field).map(choice => ({ id: choice.value, label: choice.label }))
+      this.choices(field).map((choice) => ({ id: choice.value, label: choice.label })),
     );
   }
 
@@ -276,11 +466,11 @@ export class UiFilterPanelComponent {
   }
 
   fieldOf(row: FilterDraft): QueryFieldMeta | undefined {
-    return this.data.meta.fields.find(field => field.key === row.field);
+    return this.data.meta.fields.find((field) => field.key === row.field);
   }
 
   fieldLabel(field: QueryFieldMeta): string {
-    return fieldLabel(field, key => this.i18n.translate(key));
+    return fieldLabel(field, (key) => this.i18n.translate(key));
   }
 
   opLabel(op: QueryOp): string {
@@ -305,7 +495,10 @@ export class UiFilterPanelComponent {
         { value: 'false', label: this.i18n.translate('common.no') },
       ];
     }
-    return field.enumValues.map(value => ({ value, label: field.enumLabelPrefix ? this.i18n.translate(`${field.enumLabelPrefix}${value}`) : value }));
+    return field.enumValues.map((value) => ({
+      value,
+      label: field.enumLabelPrefix ? this.i18n.translate(`${field.enumLabelPrefix}${value}`) : value,
+    }));
   }
 
   matchOptions(): SMTRadioOption<QueryMatch>[] {
@@ -339,28 +532,37 @@ export class UiFilterPanelComponent {
   add(): void {
     const draft = newDraft(this.data.meta);
     if (!draft || !this.canAdd()) return;
-    this.rows.update(rows => [...rows, draft]);
+    this.rows.update((rows) => [...rows, draft]);
     this.recheck();
     this.focusRow(this.rows().length - 1);
   }
 
   remove(index: number): void {
-    this.rows.update(rows => rows.filter((_, i) => i !== index));
+    this.rows.update((rows) => rows.filter((_, i) => i !== index));
     this.recheck();
     const left = this.rows().length;
     if (left > 0) this.focusRow(Math.min(index, left - 1));
-    else setTimeout(() => this.host.nativeElement.querySelector<HTMLElement>('[data-testid="filter-add"] button')?.focus());
+    else
+      setTimeout(() =>
+        this.host.nativeElement.querySelector<HTMLElement>('[data-testid="filter-add"] button')?.focus(),
+      );
   }
 
   setField(index: number, key: string | null): void {
-    const field = this.data.meta.fields.find(item => item.key === key);
+    const field = this.data.meta.fields.find((item) => item.key === key);
     if (!field) return;
-    this.update(index, row => changeField(row, field));
+    this.update(index, (row) => changeField(row, field));
   }
 
   setOp(index: number, op: QueryOp | null): void {
     if (!op) return;
-    this.update(index, row => ({ ...row, op, value: row.op === 'in' || op === 'in' ? '' : row.value, valueTo: '', values: [] }));
+    this.update(index, (row) => ({
+      ...row,
+      op,
+      value: row.op === 'in' || op === 'in' ? '' : row.value,
+      valueTo: '',
+      values: [],
+    }));
   }
 
   /** A draft keeps what was typed as text; a number field hands over a number or null. */
@@ -369,13 +571,15 @@ export class UiFilterPanelComponent {
   }
 
   patch(index: number, change: Partial<FilterDraft>): void {
-    this.update(index, row => ({ ...row, ...change }));
+    this.update(index, (row) => ({ ...row, ...change }));
   }
 
   toggleValue(index: number, value: string, checked: boolean): void {
-    this.update(index, row => ({
+    this.update(index, (row) => ({
       ...row,
-      values: checked ? [...row.values.filter(item => item !== value), value] : row.values.filter(item => item !== value),
+      values: checked
+        ? [...row.values.filter((item) => item !== value), value]
+        : row.values.filter((item) => item !== value),
     }));
   }
 
@@ -390,18 +594,18 @@ export class UiFilterPanelComponent {
 
   apply(): void {
     this.checked = true;
-    const errors = this.rows().map(row => draftError(row, this.data.meta));
+    const errors = this.rows().map((row) => draftError(row, this.data.meta));
     this.errors.set(errors);
-    const first = errors.findIndex(error => error !== null);
+    const first = errors.findIndex((error) => error !== null);
     if (first >= 0) {
       this.focusRow(first);
       return;
     }
-    this.drawer.close({ conditions: this.rows().map(row => toCondition(row, this.data.meta)), match: this.match() });
+    this.drawer.close({ conditions: this.rows().map((row) => toCondition(row, this.data.meta)), match: this.match() });
   }
 
   private update(index: number, change: (row: FilterDraft) => FilterDraft): void {
-    this.rows.update(rows => rows.map((row, i) => (i === index ? change(row) : row)));
+    this.rows.update((rows) => rows.map((row, i) => (i === index ? change(row) : row)));
     this.recheck();
   }
 
@@ -421,7 +625,7 @@ export class UiFilterPanelComponent {
   }
 
   private recheck(): void {
-    if (this.checked) this.errors.set(this.rows().map(row => draftError(row, this.data.meta)));
+    if (this.checked) this.errors.set(this.rows().map((row) => draftError(row, this.data.meta)));
   }
 
   /** Focus goes to the row's first control after it renders. */

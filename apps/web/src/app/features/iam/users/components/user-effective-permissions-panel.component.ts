@@ -7,8 +7,17 @@ import { TranslatePipe, I18nService } from '../../../../core/services/i18n.servi
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { FormTreeItem } from '../../../../core/models/rbac.models';
 import { MODULE_ICON_MAP, MODULE_NAME_KEY_MAP } from '../../roles/roles.models';
-import { EffectivePermissionItem, PersonalGrant, EffectivePermissionsResponse, PersonalPermissionsResponse } from '../users.models';
-import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '../../../../shared/ui-kit/components/forms/radio-group';
+import {
+  EffectivePermissionItem,
+  PersonalGrant,
+  EffectivePermissionsResponse,
+  PersonalPermissionsResponse,
+} from '../users.models';
+import {
+  optionsMemo,
+  SMTRadioGroupComponent,
+  SMTRadioOption,
+} from '../../../../shared/ui-kit/components/forms/radio-group';
 import { SMTSelectComponent, SMTSelectOption } from '../../../../shared/ui-kit/components/forms/select';
 import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/input';
 
@@ -33,7 +42,15 @@ export interface GroupedPermissionModule {
 @Component({
   selector: 'app-user-effective-permissions-panel',
   standalone: true,
-  imports: [SMTRadioGroupComponent, SMTSelectComponent, SMTInputComponent, CommonModule, FormsModule, TranslatePipe, SMTButtonComponent],
+  imports: [
+    SMTRadioGroupComponent,
+    SMTSelectComponent,
+    SMTInputComponent,
+    CommonModule,
+    FormsModule,
+    TranslatePipe,
+    SMTButtonComponent,
+  ],
   template: `
     <div class="effective-perms-container">
       <!-- Loading State -->
@@ -98,7 +115,8 @@ export interface GroupedPermissionModule {
                 (valueChange)="onFormSelect($event ?? '')"
                 [options]="formOptions()"
                 [placeholder]="'iam.vyberite_formu' | t"
-                [emptyLabel]="'iam.vyberite_formu' | t" />
+                [emptyLabel]="'iam.vyberite_formu' | t"
+              />
             </div>
 
             <div class="form-group">
@@ -111,10 +129,13 @@ export interface GroupedPermissionModule {
                 [disabled]="!selectedFormCode()"
                 [options]="actionOptions()"
                 [placeholder]="'iam.vyberite_deystvie' | t"
-                [emptyLabel]="'iam.vyberite_deystvie' | t" />
+                [emptyLabel]="'iam.vyberite_deystvie' | t"
+              />
             </div>
 
-            <button smt-button type="button"
+            <button
+              smt-button
+              type="button"
               smtVariant="secondary"
               smtSize="sm"
               smtIcon="add"
@@ -128,7 +149,9 @@ export interface GroupedPermissionModule {
           <div *ngIf="hasUnsavedChanges()" class="unsaved-banner">
             <span class="material-symbols-outlined warning-icon" aria-hidden="true">warning</span>
             <span>{{ 'settings.search.unsaved' | t }}</span>
-            <button smt-button type="button"
+            <button
+              smt-button
+              type="button"
               smtVariant="primary"
               smtSize="sm"
               smtIcon="save"
@@ -150,7 +173,8 @@ export interface GroupedPermissionModule {
             [placeholder]="'iam.poisk_po_pravam' | t"
             [value]="searchQuery()"
             (valueChange)="searchQuery.set($event === null ? '' : '' + $event)"
-            [smtAriaLabel]="'iam.poisk_po_pravam' | t" />
+            [smtAriaLabel]="'iam.poisk_po_pravam' | t"
+          />
 
           <smt-radio-group
             smtAppearance="chips"
@@ -158,7 +182,8 @@ export interface GroupedPermissionModule {
             [options]="sourceOptions()"
             [value]="sourceFilter()"
             [smtAriaLabel]="'iam.istochnik_prava' | t"
-            (valueChange)="sourceFilter.set($event ?? 'all')" />
+            (valueChange)="sourceFilter.set($event ?? 'all')"
+          />
         </div>
 
         <!-- Empty State -->
@@ -186,7 +211,11 @@ export interface GroupedPermissionModule {
                 <div class="form-actions-wrap">
                   <div *ngFor="let act of form.actions" class="action-tag" [class.personal]="act.source === 'personal'">
                     <span class="action-name font-mono">{{ act.action }}</span>
-                    <span class="source-badge" [class.role]="act.source === 'role'" [class.personal]="act.source === 'personal'">
+                    <span
+                      class="source-badge"
+                      [class.role]="act.source === 'role'"
+                      [class.personal]="act.source === 'personal'"
+                    >
                       {{ (act.source === 'role' ? 'iam.istochnik_rol' : 'iam.istochnik_personal') | t }}
                     </span>
                     <button
@@ -208,276 +237,299 @@ export interface GroupedPermissionModule {
       </div>
     </div>
   `,
-  styles: [`
-    .effective-perms-container {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      padding: 4px 0;
-    }
+  styles: [
+    `
+      .effective-perms-container {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        padding: 4px 0;
+      }
 
-    .perms-loading, .perms-error, .perms-empty {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 32px;
-      gap: 12px;
-      color: var(--text-muted);
-      text-align: center;
-    }
+      .perms-loading,
+      .perms-error,
+      .perms-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 32px;
+        gap: 12px;
+        color: var(--text-muted);
+        text-align: center;
+      }
 
-    .spin-icon {
-      font-size: 28px;
-      animation: spin 0.8s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
+      .spin-icon {
+        font-size: 28px;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
 
-    .error-icon, .empty-icon {
-      font-size: 36px;
-      color: var(--text-muted);
-    }
+      .error-icon,
+      .empty-icon {
+        font-size: 36px;
+        color: var(--text-muted);
+      }
 
-    .overview-section {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
+      .overview-section {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
 
-    .user-roles-banner {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-      padding: 8px 12px;
-      background: var(--bg-hover);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm, 6px);
-    }
-    .banner-lbl {
-      font-weight: 600;
-      font-size: 0.82rem;
-      color: var(--text-muted);
-    }
-    .roles-chips {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-    .role-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 2px 8px;
-      background: rgba(59, 130, 246, 0.1);
-      color: var(--info-text);
-      border-radius: 9999px;
-      font-size: 0.78rem;
-      font-weight: 500;
-    }
-    .role-chip .material-symbols-outlined { font-size: 14px; }
+      .user-roles-banner {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        padding: 8px 12px;
+        background: var(--bg-hover);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm, 6px);
+      }
+      .banner-lbl {
+        font-weight: 600;
+        font-size: 0.82rem;
+        color: var(--text-muted);
+      }
+      .roles-chips {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .role-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        background: rgba(59, 130, 246, 0.1);
+        color: var(--info-text);
+        border-radius: 9999px;
+        font-size: 0.78rem;
+        font-weight: 500;
+      }
+      .role-chip .material-symbols-outlined {
+        font-size: 14px;
+      }
 
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-    }
-    .stat-card {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm, 6px);
-      padding: 10px 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .stat-lbl {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
-    }
-    .stat-val {
-      font-size: 1.35rem;
-      font-weight: 700;
-      font-family: var(--font-mono, monospace);
-    }
-    .stat-val.primary { color: var(--primary); }
-    .stat-val.role { color: var(--info-text); }
-    .stat-val.personal { color: var(--warning-text); }
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+      }
+      .stat-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm, 6px);
+        padding: 10px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .stat-lbl {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+      .stat-val {
+        font-size: 1.35rem;
+        font-weight: 700;
+        font-family: var(--font-mono, monospace);
+      }
+      .stat-val.primary {
+        color: var(--primary);
+      }
+      .stat-val.role {
+        color: var(--info-text);
+      }
+      .stat-val.personal {
+        color: var(--warning-text);
+      }
 
-    .add-grant-card {
-      background: var(--bg-surface);
-      border: 1px dashed var(--primary);
-      border-radius: var(--radius-md, 8px);
-      padding: 12px 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .add-grant-header {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      color: var(--primary);
-    }
-    .add-grant-header h4 {
-      margin: 0;
-      font-size: 0.88rem;
-      font-weight: 600;
-    }
-    .add-grant-form {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-    .grant-select {
-      display: block;
-      min-width: 180px;
-    }
+      .add-grant-card {
+        background: var(--bg-surface);
+        border: 1px dashed var(--primary);
+        border-radius: var(--radius-md, 8px);
+        padding: 12px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .add-grant-header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--primary);
+      }
+      .add-grant-header h4 {
+        margin: 0;
+        font-size: 0.88rem;
+        font-weight: 600;
+      }
+      .add-grant-form {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .grant-select {
+        display: block;
+        min-width: 180px;
+      }
 
-    .unsaved-banner {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
-      background: rgba(245, 158, 11, 0.1);
-      border: 1px solid rgba(245, 158, 11, 0.3);
-      border-radius: var(--radius-sm, 6px);
-      font-size: 0.82rem;
-      color: var(--warning-text);
-    }
-    .warning-icon { font-size: 18px; color: var(--warning-text); }
+      .unsaved-banner {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        background: rgba(245, 158, 11, 0.1);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        border-radius: var(--radius-sm, 6px);
+        font-size: 0.82rem;
+        color: var(--warning-text);
+      }
+      .warning-icon {
+        font-size: 18px;
+        color: var(--warning-text);
+      }
 
-    .perms-toolbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    .search-input-wrap {
-      flex: 1;
-      width: auto;
-      min-width: 200px;
-    }
+      .perms-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .search-input-wrap {
+        flex: 1;
+        width: auto;
+        min-width: 200px;
+      }
 
+      .modules-accordion {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .module-group-card {
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md, 8px);
+        overflow: hidden;
+        background: var(--bg-surface);
+      }
+      .module-group-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        background: var(--bg-hover);
+        border-bottom: 1px solid var(--border-color);
+        font-weight: 600;
+        font-size: 0.82rem;
+      }
+      .mod-icon {
+        font-size: 18px;
+        color: var(--primary);
+      }
+      .mod-name {
+        flex: 1;
+      }
+      .mod-count {
+        font-size: 0.75rem;
+        padding: 2px 6px;
+        background: rgba(0, 0, 0, 0.06);
+        border-radius: 10px;
+        color: var(--text-muted);
+      }
 
-    .modules-accordion {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .module-group-card {
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md, 8px);
-      overflow: hidden;
-      background: var(--bg-surface);
-    }
-    .module-group-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 14px;
-      background: var(--bg-hover);
-      border-bottom: 1px solid var(--border-color);
-      font-weight: 600;
-      font-size: 0.82rem;
-    }
-    .mod-icon {
-      font-size: 18px;
-      color: var(--primary);
-    }
-    .mod-name { flex: 1; }
-    .mod-count {
-      font-size: 0.75rem;
-      padding: 2px 6px;
-      background: rgba(0, 0, 0, 0.06);
-      border-radius: 10px;
-      color: var(--text-muted);
-    }
+      .module-forms-list {
+        display: flex;
+        flex-direction: column;
+      }
+      .form-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--border-color);
+      }
+      .form-row:last-child {
+        border-bottom: none;
+      }
+      .form-info {
+        display: flex;
+        flex-direction: column;
+        min-width: 140px;
+      }
+      .form-name {
+        font-size: 0.82rem;
+        font-weight: 500;
+        color: var(--text-main);
+      }
+      .form-code {
+        color: var(--text-muted);
+      }
 
-    .module-forms-list {
-      display: flex;
-      flex-direction: column;
-    }
-    .form-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      padding: 10px 14px;
-      border-bottom: 1px solid var(--border-color);
-    }
-    .form-row:last-child { border-bottom: none; }
-    .form-info {
-      display: flex;
-      flex-direction: column;
-      min-width: 140px;
-    }
-    .form-name {
-      font-size: 0.82rem;
-      font-weight: 500;
-      color: var(--text-main);
-    }
-    .form-code {
-      color: var(--text-muted);
-    }
+      .form-actions-wrap {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .action-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        background: var(--bg-hover);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm, 6px);
+        font-size: 0.78rem;
+      }
+      .action-tag.personal {
+        border-color: rgba(245, 158, 11, 0.4);
+        background: rgba(245, 158, 11, 0.05);
+      }
+      .source-badge {
+        font-size: 0.68rem;
+        padding: 1px 4px;
+        border-radius: 3px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+      }
+      .source-badge.role {
+        background: rgba(59, 130, 246, 0.15);
+        color: var(--info-text);
+      }
+      .source-badge.personal {
+        background: rgba(245, 158, 11, 0.2);
+        color: var(--warning-text);
+      }
 
-    .form-actions-wrap {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-    .action-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 2px 8px;
-      background: var(--bg-hover);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm, 6px);
-      font-size: 0.78rem;
-    }
-    .action-tag.personal {
-      border-color: rgba(245, 158, 11, 0.4);
-      background: rgba(245, 158, 11, 0.05);
-    }
-    .source-badge {
-      font-size: 0.68rem;
-      padding: 1px 4px;
-      border-radius: 3px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.02em;
-    }
-    .source-badge.role {
-      background: rgba(59, 130, 246, 0.15);
-      color: var(--info-text);
-    }
-    .source-badge.personal {
-      background: rgba(245, 158, 11, 0.2);
-      color: var(--warning-text);
-    }
-
-    .remove-grant-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      background: transparent;
-      border: none;
-      color: var(--danger);
-      cursor: pointer;
-      padding: 1px;
-      border-radius: 2px;
-      margin-left: 2px;
-    }
-    .remove-grant-btn:hover {
-      background: rgba(239, 68, 68, 0.1);
-    }
-  `]
+      .remove-grant-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        border: none;
+        color: var(--danger);
+        cursor: pointer;
+        padding: 1px;
+        border-radius: 2px;
+        margin-left: 2px;
+      }
+      .remove-grant-btn:hover {
+        background: rgba(239, 68, 68, 0.1);
+      }
+    `,
+  ],
 })
 export class UserEffectivePermissionsPanelComponent implements OnInit, OnChanges {
   /** Texts of the radio options below; translated again when the language changes. */
@@ -502,8 +554,8 @@ export class UserEffectivePermissionsPanelComponent implements OnInit, OnChanges
   readonly selectedFormCode = signal<string>('');
   readonly selectedAction = signal<string>('');
 
-  readonly roleCount = computed(() => this.effectiveItems().filter(i => i.source === 'role').length);
-  readonly personalCount = computed(() => this.effectiveItems().filter(i => i.source === 'personal').length);
+  readonly roleCount = computed(() => this.effectiveItems().filter((i) => i.source === 'role').length);
+  readonly personalCount = computed(() => this.effectiveItems().filter((i) => i.source === 'personal').length);
 
   readonly uniqueForms = computed(() => {
     const map = new Map<string, { formCode: string; formName: string }>();
@@ -518,19 +570,24 @@ export class UserEffectivePermissionsPanelComponent implements OnInit, OnChanges
   readonly availableActionsForSelectedForm = computed(() => {
     const code = this.selectedFormCode();
     if (!code) return [];
-    return this.formCatalog().filter(f => f.formCode === code);
+    return this.formCatalog().filter((f) => f.formCode === code);
   });
 
   readonly formOptions = computed<SMTSelectOption<string>[]>(() =>
-    this.uniqueForms().map(f => ({ id: f.formCode, label: `${f.formName} (${f.formCode})` })));
+    this.uniqueForms().map((f) => ({ id: f.formCode, label: `${f.formName} (${f.formCode})` })),
+  );
 
   readonly actionOptions = computed<SMTSelectOption<string>[]>(() =>
-    this.availableActionsForSelectedForm().map(act => ({ id: act.action, label: `${act.actionName} (${act.action})` })));
+    this.availableActionsForSelectedForm().map((act) => ({
+      id: act.action,
+      label: `${act.actionName} (${act.action})`,
+    })),
+  );
 
   readonly filteredItems = computed(() => {
     const q = this.searchQuery().trim().toLowerCase();
     const sf = this.sourceFilter();
-    return this.effectiveItems().filter(item => {
+    return this.effectiveItems().filter((item) => {
       if (sf !== 'all' && item.source !== sf) return false;
       if (!q) return true;
       return item.form.toLowerCase().includes(q) || item.action.toLowerCase().includes(q);
@@ -572,7 +629,7 @@ export class UserEffectivePermissionsPanelComponent implements OnInit, OnChanges
         forms.push({
           formCode,
           formName: meta ? meta.formName : formCode,
-          actions
+          actions,
         });
       }
       forms.sort((a, b) => a.formName.localeCompare(b.formName));
@@ -627,7 +684,7 @@ export class UserEffectivePermissionsPanelComponent implements OnInit, OnChanges
       error: () => {
         this.loadError.set(true);
         this.isLoading.set(false);
-      }
+      },
     });
 
     // 2. Personal grants
@@ -635,7 +692,7 @@ export class UserEffectivePermissionsPanelComponent implements OnInit, OnChanges
       next: (res) => {
         this.personalGrants.set(res?.grants || []);
       },
-      error: () => {}
+      error: () => {},
     });
 
     // 3. Form catalog (if empty)
@@ -646,7 +703,7 @@ export class UserEffectivePermissionsPanelComponent implements OnInit, OnChanges
             this.formCatalog.set(catalog);
           }
         },
-        error: () => {}
+        error: () => {},
       });
     }
   }
@@ -662,7 +719,7 @@ export class UserEffectivePermissionsPanelComponent implements OnInit, OnChanges
     if (!form || !action) return;
 
     const currentGrants = [...this.personalGrants()];
-    const exists = currentGrants.some(g => g.form === form && g.action === action);
+    const exists = currentGrants.some((g) => g.form === form && g.action === action);
     if (exists) return;
 
     const updated = [...currentGrants, { form, action }];
@@ -671,7 +728,7 @@ export class UserEffectivePermissionsPanelComponent implements OnInit, OnChanges
 
     // Also optimistically add to effective items if not present
     const currentEffective = [...this.effectiveItems()];
-    const effectiveIndex = currentEffective.findIndex(i => i.form === form && i.action === action);
+    const effectiveIndex = currentEffective.findIndex((i) => i.form === form && i.action === action);
     if (effectiveIndex < 0) {
       this.effectiveItems.set([...currentEffective, { form, action, source: 'personal' }]);
     }
@@ -680,12 +737,14 @@ export class UserEffectivePermissionsPanelComponent implements OnInit, OnChanges
   }
 
   removePersonalGrant(form: string, action: string): void {
-    const updatedGrants = this.personalGrants().filter(g => !(g.form === form && g.action === action));
+    const updatedGrants = this.personalGrants().filter((g) => !(g.form === form && g.action === action));
     this.personalGrants.set(updatedGrants);
     this.hasUnsavedChanges.set(true);
 
     // Update effective items
-    const updatedEffective = this.effectiveItems().filter(i => !(i.form === form && i.action === action && i.source === 'personal'));
+    const updatedEffective = this.effectiveItems().filter(
+      (i) => !(i.form === form && i.action === action && i.source === 'personal'),
+    );
     this.effectiveItems.set(updatedEffective);
   }
 
@@ -701,8 +760,7 @@ export class UserEffectivePermissionsPanelComponent implements OnInit, OnChanges
       error: () => {
         this.isSaving.set(false);
         this.toast.error(this.uiI18n.translate('iam.oshibka_sohraneniya_prav'));
-      }
+      },
     });
   }
 }
-

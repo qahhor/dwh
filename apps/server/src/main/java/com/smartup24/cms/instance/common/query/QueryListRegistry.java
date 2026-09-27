@@ -1,14 +1,13 @@
 package com.smartup24.cms.instance.common.query;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 /**
  * Реестр списков: все бины {@link QueryList} приложения по коду. Список отдаётся уже достроенным: к полям из

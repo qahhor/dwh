@@ -62,7 +62,10 @@ const MONDAY = Date.UTC(2024, 0, 1);
         [attr.aria-label]="day.name"
         [disabled]="isDisabled()"
         (click)="toggle(day.value)"
-        (blur)="markTouched()">{{ day.short }}</button>
+        (blur)="markTouched()"
+      >
+        {{ day.short }}
+      </button>
     }
   `,
 })
@@ -101,7 +104,7 @@ export class SMTWeekdayToggleComponent implements FormValueControl<readonly SMTW
     const locale = this.i18n.locale();
     const short = new Intl.DateTimeFormat(locale, { weekday: 'short', timeZone: 'UTC' });
     const long = new Intl.DateTimeFormat(locale, { weekday: 'long', timeZone: 'UTC' });
-    return SMT_WEEKDAYS.map(value => {
+    return SMT_WEEKDAYS.map((value) => {
       const date = new Date(MONDAY + (value - 1) * 86_400_000);
       return { value, short: short.format(date), name: long.format(date) };
     });
@@ -114,7 +117,7 @@ export class SMTWeekdayToggleComponent implements FormValueControl<readonly SMTW
       touched: this.wasTouched(),
       required: this.required(),
       empty: (this.value() ?? []).length === 0,
-    })
+    }),
   );
 
   isOn(day: SMTWeekday): boolean {
@@ -126,7 +129,7 @@ export class SMTWeekdayToggleComponent implements FormValueControl<readonly SMTW
     const chosen = new Set(this.value() ?? []);
     if (chosen.has(day)) chosen.delete(day);
     else chosen.add(day);
-    this.value.set(SMT_WEEKDAYS.filter(value => chosen.has(value)));
+    this.value.set(SMT_WEEKDAYS.filter((value) => chosen.has(value)));
   }
 
   markTouched(): void {

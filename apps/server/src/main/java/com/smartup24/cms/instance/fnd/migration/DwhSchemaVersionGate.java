@@ -1,19 +1,17 @@
 package com.smartup24.cms.instance.fnd.migration;
 
 import com.smartup24.cms.instance.fnd.FndPref;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.stereotype.Component;
-
-import javax.sql.DataSource;
 import java.math.BigInteger;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-
+import javax.sql.DataSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Component;
 
 /**
  * Проверка при старте второй базы {@code pg-dwh}: последняя миграция сборки применена и успешна
@@ -59,8 +57,8 @@ public class DwhSchemaVersionGate implements InitializingBean {
 
     private String readActual(String db, DataSource dataSource, String expected) {
         try (Connection c = dataSource.getConnection();
-             PreparedStatement ps = c.prepareStatement(HISTORY_SQL);
-             ResultSet rs = ps.executeQuery()) {
+                PreparedStatement ps = c.prepareStatement(HISTORY_SQL);
+                ResultSet rs = ps.executeQuery()) {
             String latest = null;
             boolean expectedFound = false;
             while (rs.next()) {

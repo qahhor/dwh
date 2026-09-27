@@ -8,26 +8,48 @@ import { SMTModalService, type SMTModalConfirmConfig } from '../ui-kit/component
 import { ListViewState, ListViewsApi } from '../list-views/list-views';
 import { SMTEntityToolbarComponent } from './smt-entity-toolbar.component';
 
-const LIST_META = { code: 'ms.notes', fields: [], defaultSort: '-modifiedAt', defaultLimit: 50, maxLimit: 100, maxConditions: 20, maxInValues: 100 };
+const LIST_META = {
+  code: 'ms.notes',
+  fields: [],
+  defaultSort: '-modifiedAt',
+  defaultLimit: 50,
+  maxLimit: 100,
+  maxConditions: 20,
+  maxInValues: 100,
+};
 
 describe('SMTEntityToolbarComponent', () => {
   async function render(meta: FormMeta, selected: number[] = []) {
     const api = {
       get: vi.fn(() => of([])),
-      post: vi.fn(() => of({ action: 'delete', succeeded: 1, failed: 1, results: [
-        { id: 1, ok: true, code: null, message: null },
-        { id: 2, ok: false, code: 'not_found', message: 'Запись не найдена' },
-      ] })),
+      post: vi.fn(() =>
+        of({
+          action: 'delete',
+          succeeded: 1,
+          failed: 1,
+          results: [
+            { id: 1, ok: true, code: null, message: null },
+            { id: 2, ok: false, code: 'not_found', message: 'Запись не найдена' },
+          ],
+        }),
+      ),
     };
     await TestBed.configureTestingModule({
       imports: [SMTEntityToolbarComponent],
       providers: [{ provide: ApiService, useValue: api }],
     }).compileComponents();
-    const modal = { confirm: vi.spyOn(TestBed.inject(SMTModalService), 'confirm')
-      .mockImplementation((config: SMTModalConfirmConfig) => config.action!().pipe(map(() => true))) };
-    const views = TestBed.runInInjectionContext(() => new ListViewState('ms.notes', TestBed.inject(ListViewsApi), {
-      defaultSort: () => null, onApply: () => {},
-    }));
+    const modal = {
+      confirm: vi
+        .spyOn(TestBed.inject(SMTModalService), 'confirm')
+        .mockImplementation((config: SMTModalConfirmConfig) => config.action!().pipe(map(() => true))),
+    };
+    const views = TestBed.runInInjectionContext(
+      () =>
+        new ListViewState('ms.notes', TestBed.inject(ListViewsApi), {
+          defaultSort: () => null,
+          onApply: () => {},
+        }),
+    );
     const fixture = TestBed.createComponent(SMTEntityToolbarComponent);
     fixture.componentRef.setInput('meta', meta);
     fixture.componentRef.setInput('views', views);
@@ -63,7 +85,11 @@ describe('SMTEntityToolbarComponent', () => {
     fixture.detectChanges();
 
     expect(modal.confirm).toHaveBeenCalledWith(expect.objectContaining({ destructive: true }));
-    expect(api.post).toHaveBeenCalledWith('/entities/ms.notes/bulk', { action: 'delete', ids: [1, 2] }, { notifyError: false });
+    expect(api.post).toHaveBeenCalledWith(
+      '/entities/ms.notes/bulk',
+      { action: 'delete', ids: [1, 2] },
+      { notifyError: false },
+    );
     expect(done).toHaveBeenCalled();
     expect(fixture.componentInstance.selected()).toEqual([]);
     expect(fixture.componentInstance.result()?.failed).toBe(1);

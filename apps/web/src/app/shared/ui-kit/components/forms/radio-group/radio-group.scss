@@ -174,9 +174,15 @@
   white-space: nowrap;
 }
 
-.smt-radio-group__item--checked.smt-radio-group__item--tone-success { color: var(--success-text); }
-.smt-radio-group__item--checked.smt-radio-group__item--tone-warning { color: var(--warning-text); }
-.smt-radio-group__item--checked.smt-radio-group__item--tone-danger { color: var(--danger-text); }
+.smt-radio-group__item--checked.smt-radio-group__item--tone-success {
+  color: var(--success-text);
+}
+.smt-radio-group__item--checked.smt-radio-group__item--tone-warning {
+  color: var(--warning-text);
+}
+.smt-radio-group__item--checked.smt-radio-group__item--tone-danger {
+  color: var(--danger-text);
+}
 
 .smt-radio-group__swatch {
   flex-shrink: 0;

@@ -3,21 +3,45 @@ import { HttpTestingController, TestRequest, provideHttpClientTesting } from '@a
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { AnalyticsComponent, AnalyticsSummary, ProjectDistribution, TrendDataPoint, UserWorkload } from './analytics.component';
+import {
+  AnalyticsComponent,
+  AnalyticsSummary,
+  ProjectDistribution,
+  TrendDataPoint,
+  UserWorkload,
+} from './analytics.component';
 
 const summary: AnalyticsSummary = {
-  totalTasks: 12, activeTasks: 7, completedTasks: 5, overdueTasks: 2,
-  completionRatePercent: 42, createdLast7d: 4, completedLast7d: 3,
-  activeProjectsCount: 1, activeUsersCount: 2
+  totalTasks: 12,
+  activeTasks: 7,
+  completedTasks: 5,
+  overdueTasks: 2,
+  completionRatePercent: 42,
+  createdLast7d: 4,
+  completedLast7d: 3,
+  activeProjectsCount: 1,
+  activeUsersCount: 2,
 };
 const trends: TrendDataPoint[] = [{ date: '2026-09-01', createdCount: 4, completedCount: 2 }];
-const projects: ProjectDistribution[] = [{
-  projectId: 1, projectName: 'Original project', totalTasks: 12,
-  activeTasks: 7, completedTasks: 5, progressPercent: 42
-}];
-const workload: UserWorkload[] = [{
-  userId: 2, userName: 'Original user', userLogin: 'original', assignedTasks: 10, completedTasks: 5
-}];
+const projects: ProjectDistribution[] = [
+  {
+    projectId: 1,
+    projectName: 'Original project',
+    totalTasks: 12,
+    activeTasks: 7,
+    completedTasks: 5,
+    progressPercent: 42,
+  },
+];
+const workload: UserWorkload[] = [
+  {
+    userId: 2,
+    userName: 'Original user',
+    userLogin: 'original',
+    assignedTasks: 10,
+    completedTasks: 5,
+  },
+];
 const latestTrends: TrendDataPoint[] = [{ date: '2026-09-07', createdCount: 8, completedCount: 6 }];
 
 describe('AnalyticsComponent request and rendering contracts', () => {
@@ -28,7 +52,7 @@ describe('AnalyticsComponent request and rendering contracts', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [AnalyticsComponent],
-      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])]
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(AnalyticsComponent);
@@ -43,7 +67,7 @@ describe('AnalyticsComponent request and rendering contracts', () => {
       summary: http.expectOne('/api/v1/analytics/summary'),
       trends: http.expectOne(`/api/v1/analytics/trends?range=${range}`),
       projects: http.expectOne('/api/v1/analytics/projects'),
-      workload: http.expectOne('/api/v1/analytics/workload')
+      workload: http.expectOne('/api/v1/analytics/workload'),
     };
   }
 
@@ -70,13 +94,14 @@ describe('AnalyticsComponent request and rendering contracts', () => {
   }
 
   function selectRange(index: number) {
-    (host.querySelectorAll<HTMLElement>('.range-picker [role="radio"]')[index]).click();
+    host.querySelectorAll<HTMLElement>('.range-picker [role="radio"]')[index].click();
     fixture.detectChanges();
   }
 
   function refresh() {
-    const button = Array.from(host.querySelectorAll<HTMLButtonElement>('.header-right button'))
-      .find(candidate => candidate.textContent?.includes('Обновить'))!;
+    const button = Array.from(host.querySelectorAll<HTMLButtonElement>('.header-right button')).find((candidate) =>
+      candidate.textContent?.includes('Обновить'),
+    )!;
     button.click();
     fixture.detectChanges();
   }
@@ -115,9 +140,9 @@ describe('AnalyticsComponent request and rendering contracts', () => {
   it('shows a range failure without relabeling retained data and supports retry', async () => {
     await loadInitialSnapshot();
     selectRange(1);
-    http.expectOne('/api/v1/analytics/trends?range=30d').flush(
-      { detail: 'Trend service unavailable' }, { status: 503, statusText: 'Service Unavailable' }
-    );
+    http
+      .expectOne('/api/v1/analytics/trends?range=30d')
+      .flush({ detail: 'Trend service unavailable' }, { status: 503, statusText: 'Service Unavailable' });
     await renderResponses();
 
     expect(host.querySelector('[role="alert"]')?.textContent ?? '').toContain('Trend service unavailable');
@@ -170,7 +195,7 @@ describe('AnalyticsComponent request and rendering contracts', () => {
     flushIfActive(old.projects, projects);
     flushIfActive(old.workload, workload);
     flushIfActive(old.trends, [{ date: '2026-08-20', createdCount: 1, completedCount: 1 }]);
-    for (const request of http.match(request => !request.url.includes('/trends'))) {
+    for (const request of http.match((request) => !request.url.includes('/trends'))) {
       if (request.request.url.endsWith('/summary')) request.flush({ ...summary, totalTasks: 99 });
       else if (request.request.url.endsWith('/projects')) request.flush(projects);
       else request.flush(workload);
@@ -244,14 +269,15 @@ describe('AnalyticsComponent request and rendering contracts', () => {
     expect(region).not.toBeNull();
     expect(region?.tabIndex).toBe(0);
     expect(region?.getAttribute('aria-label')).toBe('Динамика потока задач');
-    expect(Array.from(region!.querySelectorAll('svg text'), label => label.textContent?.trim()))
-      .toEqual(['09-01', '09-07']);
+    expect(Array.from(region!.querySelectorAll('svg text'), (label) => label.textContent?.trim())).toEqual([
+      '09-01',
+      '09-07',
+    ]);
   });
 
   it('renders Y-axis scale ticks based on trend data values', async () => {
     await loadInitialSnapshot();
-    const ticks = Array.from(host.querySelectorAll<HTMLElement>('.y-axis-tick'))
-      .map(t => t.textContent?.trim());
+    const ticks = Array.from(host.querySelectorAll<HTMLElement>('.y-axis-tick')).map((t) => t.textContent?.trim());
     expect(ticks.length).toBe(4);
     expect(ticks[0]).toBe('4');
     expect(ticks[3]).toBe('0');
@@ -282,7 +308,7 @@ describe('AnalyticsComponent request and rendering contracts', () => {
   it('sorts workload table by name, login, assigned, completed and efficiency', async () => {
     const multiWorkload: UserWorkload[] = [
       { userId: 1, userName: 'Alice', userLogin: 'alice', assignedTasks: 5, completedTasks: 5 },
-      { userId: 2, userName: 'Bob', userLogin: 'bob', assignedTasks: 10, completedTasks: 2 }
+      { userId: 2, userName: 'Bob', userLogin: 'bob', assignedTasks: 10, completedTasks: 2 },
     ];
     const requests = takeSnapshotRequests();
     requests.summary.flush(summary);
@@ -292,7 +318,7 @@ describe('AnalyticsComponent request and rendering contracts', () => {
     await renderResponses();
 
     // Default sort is assigned desc: Bob (10), then Alice (5)
-    let names = Array.from(host.querySelectorAll('.user-name-text')).map(el => el.textContent?.trim());
+    let names = Array.from(host.querySelectorAll('.user-name-text')).map((el) => el.textContent?.trim());
     expect(names).toEqual(['Bob', 'Alice']);
 
     // Click sort by Name (first column header) -> Alice, then Bob
@@ -301,20 +327,20 @@ describe('AnalyticsComponent request and rendering contracts', () => {
     clickName();
     fixture.detectChanges();
 
-    names = Array.from(host.querySelectorAll('.user-name-text')).map(el => el.textContent?.trim());
+    names = Array.from(host.querySelectorAll('.user-name-text')).map((el) => el.textContent?.trim());
     expect(names).toEqual(['Alice', 'Bob']);
 
     // Click again -> Bob, Alice (desc)
     clickName();
     fixture.detectChanges();
-    names = Array.from(host.querySelectorAll('.user-name-text')).map(el => el.textContent?.trim());
+    names = Array.from(host.querySelectorAll('.user-name-text')).map((el) => el.textContent?.trim());
     expect(names).toEqual(['Bob', 'Alice']);
   });
 
   it('filters workload table by employee search query and clears filter', async () => {
     const multiWorkload: UserWorkload[] = [
       { userId: 1, userName: 'Alice Smith', userLogin: 'asmith', assignedTasks: 5, completedTasks: 3 },
-      { userId: 2, userName: 'Bob Jones', userLogin: 'bjones', assignedTasks: 8, completedTasks: 6 }
+      { userId: 2, userName: 'Bob Jones', userLogin: 'bjones', assignedTasks: 8, completedTasks: 6 },
     ];
     const requests = takeSnapshotRequests();
     requests.summary.flush(summary);
@@ -330,7 +356,7 @@ describe('AnalyticsComponent request and rendering contracts', () => {
     input.dispatchEvent(new Event('input'));
     fixture.detectChanges();
 
-    let names = Array.from(host.querySelectorAll('.user-name-text')).map(el => el.textContent?.trim());
+    let names = Array.from(host.querySelectorAll('.user-name-text')).map((el) => el.textContent?.trim());
     expect(names).toEqual(['Alice Smith']);
 
     // Clear filter
@@ -338,7 +364,7 @@ describe('AnalyticsComponent request and rendering contracts', () => {
     clearBtn.click();
     fixture.detectChanges();
 
-    names = Array.from(host.querySelectorAll('.user-name-text')).map(el => el.textContent?.trim());
+    names = Array.from(host.querySelectorAll('.user-name-text')).map((el) => el.textContent?.trim());
     expect(names).toEqual(['Bob Jones', 'Alice Smith']);
   });
 
@@ -347,10 +373,31 @@ describe('AnalyticsComponent request and rendering contracts', () => {
     const navSpy = vi.spyOn(router, 'navigate');
 
     const multiProjects: ProjectDistribution[] = [
-      { projectId: 1, projectName: 'Alpha ERP', totalTasks: 10, activeTasks: 5, completedTasks: 5, progressPercent: 50 },
+      {
+        projectId: 1,
+        projectName: 'Alpha ERP',
+        totalTasks: 10,
+        activeTasks: 5,
+        completedTasks: 5,
+        progressPercent: 50,
+      },
       { projectId: 2, projectName: 'Beta CRM', totalTasks: 8, activeTasks: 2, completedTasks: 6, progressPercent: 75 },
-      { projectId: 3, projectName: 'Gamma DWH', totalTasks: 4, activeTasks: 0, completedTasks: 4, progressPercent: 100 },
-      { projectId: 4, projectName: 'Delta Mobile', totalTasks: 12, activeTasks: 12, completedTasks: 0, progressPercent: 0 }
+      {
+        projectId: 3,
+        projectName: 'Gamma DWH',
+        totalTasks: 4,
+        activeTasks: 0,
+        completedTasks: 4,
+        progressPercent: 100,
+      },
+      {
+        projectId: 4,
+        projectName: 'Delta Mobile',
+        totalTasks: 12,
+        activeTasks: 12,
+        completedTasks: 0,
+        progressPercent: 0,
+      },
     ];
     const requests = takeSnapshotRequests();
     requests.summary.flush(summary);
@@ -366,7 +413,7 @@ describe('AnalyticsComponent request and rendering contracts', () => {
     projectInput.dispatchEvent(new Event('input'));
     fixture.detectChanges();
 
-    let projectNames = Array.from(host.querySelectorAll('.project-name')).map(el => el.textContent?.trim());
+    let projectNames = Array.from(host.querySelectorAll('.project-name')).map((el) => el.textContent?.trim());
     expect(projectNames).toEqual(['Beta CRM']);
 
     // Clicking project navigates to /tasks?project=2

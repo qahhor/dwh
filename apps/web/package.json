@@ -15,7 +15,10 @@
     "i18n:audit": "node scripts/localization-audit.mjs",
     "contrast:audit": "node scripts/contrast-audit.mjs",
     "i18n:sync-ru": "node scripts/sync-packaged-russian.mjs",
-    "aria:audit": "node scripts/aria-audit.mjs"
+    "aria:audit": "node scripts/aria-audit.mjs",
+    "lint": "eslint . && stylelint \"src/**/*.{css,scss}\" && prettier --check \"src/**/*.{ts,html,css,scss}\" \"scripts/**/*.mjs\" \"*.{mjs,json}\"",
+    "lint:prune": "eslint . --prune-suppressions",
+    "format": "prettier --write \"src/**/*.{ts,html,css,scss}\" \"scripts/**/*.mjs\" \"*.{mjs,json}\""
   },
   "engines": {
     "node": "24.15.0"
@@ -40,12 +43,18 @@
     "@angular/build": "^22.1.4",
     "@angular/cli": "^22.1.4",
     "@angular/compiler-cli": "^22.1.4",
+    "@eslint/js": "10.0.1",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^24.13.6",
     "@vitest/coverage-v8": "^4.1.11",
+    "angular-eslint": "22.5.0",
+    "eslint": "10.11.0",
     "jsdom": "^29.1.1",
+    "prettier": "3.9.9",
+    "stylelint": "17.15.0",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.0",
+    "typescript-eslint": "8.70.1",
     "vitest": "^4.1.11"
   }
 }

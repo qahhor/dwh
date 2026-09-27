@@ -1,4 +1,15 @@
-import { Component, DestroyRef, ElementRef, HostListener, OnDestroy, ViewChild, effect, signal, computed, inject } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  ElementRef,
+  HostListener,
+  OnDestroy,
+  ViewChild,
+  effect,
+  signal,
+  computed,
+  inject,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -11,19 +22,11 @@ import { searchTarget } from '../../core/services/search-target';
 import { EMPTY, Subject, catchError, of, switchMap, timer } from 'rxjs';
 import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
 
-import {
-  RECENT_SEARCHES_STORAGE_KEY,
-  MAX_RECENT_SEARCHES,
-  CategoryItem
-} from './command-palette.models';
+import { RECENT_SEARCHES_STORAGE_KEY, MAX_RECENT_SEARCHES, CategoryItem } from './command-palette.models';
 import { CommandPaletteResultsComponent } from './components/command-palette-results.component';
 import { CommandPaletteFooterComponent } from './components/command-palette-footer.component';
 
-export {
-  RECENT_SEARCHES_STORAGE_KEY,
-  MAX_RECENT_SEARCHES,
-  type CategoryItem
-};
+export { RECENT_SEARCHES_STORAGE_KEY, MAX_RECENT_SEARCHES, type CategoryItem };
 
 @Component({
   selector: 'app-command-palette',
@@ -34,7 +37,7 @@ export {
     FormsModule,
     A11yModule,
     CommandPaletteResultsComponent,
-    CommandPaletteFooterComponent
+    CommandPaletteFooterComponent,
   ],
   template: `
     <div *ngIf="paletteService.isOpen()" class="palette-backdrop" (click)="onBackdropClick($event)">
@@ -51,7 +54,9 @@ export {
         <!-- Search Header Box -->
         <div class="palette-search-box">
           <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
-          <label class="sr-only" [for]="inputId">{{ 'layout.command_palette.poisk_zadach_proektov_i_polzovateley' | t }}</label>
+          <label class="sr-only" [for]="inputId">{{
+            'layout.command_palette.poisk_zadach_proektov_i_polzovateley' | t
+          }}</label>
           <input
             #searchInput
             [id]="inputId"
@@ -110,7 +115,10 @@ export {
         </div>
 
         <!-- Did you mean suggestion -->
-        <div *ngIf="metadata()?.suggestedQuery && metadata()?.suggestedQuery !== searchQuery" class="palette-suggestion">
+        <div
+          *ngIf="metadata()?.suggestedQuery && metadata()?.suggestedQuery !== searchQuery"
+          class="palette-suggestion"
+        >
           <span class="material-symbols-outlined suggestion-icon" aria-hidden="true">lightbulb</span>
           <span class="suggestion-label">{{ 'search.did_you_mean' | t }}:</span>
           <button type="button" class="suggestion-btn" (click)="applySuggestion(metadata()!.suggestedQuery!)">
@@ -141,7 +149,7 @@ export {
       </div>
     </div>
   `,
-  styleUrl: './command-palette.component.css'
+  styleUrl: './command-palette.component.css',
 })
 export class CommandPaletteComponent implements OnDestroy {
   public readonly moduleService = inject(ModuleService);
@@ -160,7 +168,7 @@ export class CommandPaletteComponent implements OnDestroy {
       { value: 'ALL', label: 'search.entity.all', icon: 'apps' },
       { value: 'TASK', label: 'nav.tasks', icon: 'task_alt' },
       { value: 'PROJECT', label: 'nav.projects', icon: 'folder' },
-      { value: 'USER', label: 'nav.users', icon: 'person' }
+      { value: 'USER', label: 'nav.users', icon: 'person' },
     ];
     if (this.moduleService.isModuleActive('notes')) {
       list.push({ value: 'NOTE', label: 'search.entity.note', icon: 'description' });
@@ -187,7 +195,7 @@ export class CommandPaletteComponent implements OnDestroy {
 
   constructor(
     public paletteService: CommandPaletteService,
-    private router: Router
+    private router: Router,
   ) {
     this.loadRecentSearches();
 
@@ -196,9 +204,7 @@ export class CommandPaletteComponent implements OnDestroy {
       if (isOpen && !this.wasOpen) {
         this.resetSearch();
         this.loadRecentSearches();
-        this.previouslyFocusedElement = document.activeElement instanceof HTMLElement
-          ? document.activeElement
-          : null;
+        this.previouslyFocusedElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
         document.body.classList.add('palette-open');
         queueMicrotask(() => {
           if (!this.destroyRef.destroyed && this.paletteService.isOpen()) this.searchInput?.nativeElement.focus();
@@ -208,42 +214,45 @@ export class CommandPaletteComponent implements OnDestroy {
         document.body.classList.remove('palette-open');
         const focusTarget = this.previouslyFocusedElement;
         queueMicrotask(() => {
-          if (!this.destroyRef.destroyed && !this.paletteService.isOpen() && focusTarget?.isConnected) focusTarget.focus();
+          if (!this.destroyRef.destroyed && !this.paletteService.isOpen() && focusTarget?.isConnected)
+            focusTarget.focus();
         });
         this.previouslyFocusedElement = null;
       }
       this.wasOpen = isOpen;
     });
 
-    this.searchSubject.pipe(
-      switchMap(query => {
-        if (query === null || !this.validQuery(query) || this.retryUntil > Date.now()) return EMPTY;
-        // A new input cancels both the debounce timer and an older HTTP request.
-        return timer(120).pipe(
-          switchMap(() => this.paletteService.search(query, this.entityType)),
-          catchError(error => {
-            this.results.set([]);
-            this.isLoading.set(false);
-            this.errorMessage.set(this.getSearchErrorMessage(error));
-            if (error?.status === 429) this.startCooldown(error.retryAfterSeconds);
-            return of(null);
-          })
-        );
-      }),
-      takeUntilDestroyed(this.destroyRef)
-    ).subscribe(res => {
-      if (!res || !this.paletteService.isOpen()) return;
-      const hits = (res.hits || []).filter(h => {
-        if (h.entityType === 'NOTE' && !this.moduleService.isModuleActive('notes')) {
-          return false;
-        }
-        return true;
+    this.searchSubject
+      .pipe(
+        switchMap((query) => {
+          if (query === null || !this.validQuery(query) || this.retryUntil > Date.now()) return EMPTY;
+          // A new input cancels both the debounce timer and an older HTTP request.
+          return timer(120).pipe(
+            switchMap(() => this.paletteService.search(query, this.entityType)),
+            catchError((error) => {
+              this.results.set([]);
+              this.isLoading.set(false);
+              this.errorMessage.set(this.getSearchErrorMessage(error));
+              if (error?.status === 429) this.startCooldown(error.retryAfterSeconds);
+              return of(null);
+            }),
+          );
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((res) => {
+        if (!res || !this.paletteService.isOpen()) return;
+        const hits = (res.hits || []).filter((h) => {
+          if (h.entityType === 'NOTE' && !this.moduleService.isModuleActive('notes')) {
+            return false;
+          }
+          return true;
+        });
+        this.results.set(hits);
+        this.metadata.set(res);
+        this.selectedIndex = 0;
+        this.isLoading.set(false);
       });
-      this.results.set(hits);
-      this.metadata.set(res);
-      this.selectedIndex = 0;
-      this.isLoading.set(false);
-    });
   }
 
   ngOnDestroy() {
@@ -256,14 +265,22 @@ export class CommandPaletteComponent implements OnDestroy {
   @HostListener('document:keydown', ['$event'])
   handleKeyboard(event: KeyboardEvent) {
     if (event.defaultPrevented || event.isComposing) return;
-    if ((event.ctrlKey || event.metaKey) && !event.altKey && (event.code === 'KeyK' || event.key.toLowerCase() === 'k')) {
+    if (
+      (event.ctrlKey || event.metaKey) &&
+      !event.altKey &&
+      (event.code === 'KeyK' || event.key.toLowerCase() === 'k')
+    ) {
       event.preventDefault();
       if (!event.repeat) this.paletteService.toggle();
     } else if (event.key === 'Escape' && this.paletteService.isOpen()) {
       event.preventDefault();
       event.stopPropagation();
       this.paletteService.close();
-    } else if (this.paletteService.isOpen() && event.target === this.searchInput?.nativeElement && this.results().length > 0) {
+    } else if (
+      this.paletteService.isOpen() &&
+      event.target === this.searchInput?.nativeElement &&
+      this.results().length > 0
+    ) {
       if (event.key === 'ArrowDown') {
         event.preventDefault();
         this.selectedIndex = (this.selectedIndex + 1) % this.results().length;
@@ -285,8 +302,13 @@ export class CommandPaletteComponent implements OnDestroy {
     this.results.set([]);
     this.metadata.set(null);
     this.selectedIndex = 0;
-    this.errorMessage.set(this.retryUntil > Date.now() ? this.uiI18n.translate('search.rate_limited') :
-      this.queryLength(normalized) > 200 ? this.uiI18n.translate('search.query_too_long') : '');
+    this.errorMessage.set(
+      this.retryUntil > Date.now()
+        ? this.uiI18n.translate('search.rate_limited')
+        : this.queryLength(normalized) > 200
+          ? this.uiI18n.translate('search.query_too_long')
+          : '',
+    );
     this.isLoading.set(this.validQuery(normalized) && this.retryUntil <= Date.now());
     this.searchSubject.next(normalized);
   }
@@ -342,7 +364,9 @@ export class CommandPaletteComponent implements OnDestroy {
     }
   }
 
-  queryLength(query: string): number { return Array.from(query.trim()).length; }
+  queryLength(query: string): number {
+    return Array.from(query.trim()).length;
+  }
 
   validQuery(query: string): boolean {
     const length = this.queryLength(query);
@@ -366,7 +390,7 @@ export class CommandPaletteComponent implements OnDestroy {
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {
-          this.recentSearches.set(parsed.filter(item => typeof item === 'string'));
+          this.recentSearches.set(parsed.filter((item) => typeof item === 'string'));
         }
       }
     } catch {
@@ -376,7 +400,7 @@ export class CommandPaletteComponent implements OnDestroy {
 
   private saveRecentSearch(query: string) {
     try {
-      const current = this.recentSearches().filter(q => q.toLowerCase() !== query.toLowerCase());
+      const current = this.recentSearches().filter((q) => q.toLowerCase() !== query.toLowerCase());
       const updated = [query, ...current].slice(0, MAX_RECENT_SEARCHES);
       this.recentSearches.set(updated);
       localStorage.setItem(RECENT_SEARCHES_STORAGE_KEY, JSON.stringify(updated));
@@ -386,8 +410,8 @@ export class CommandPaletteComponent implements OnDestroy {
   }
 
   private startCooldown(seconds: unknown): void {
-    const bounded = typeof seconds === 'number' && Number.isSafeInteger(seconds) && seconds >= 0
-      ? Math.min(seconds, 300) : 1;
+    const bounded =
+      typeof seconds === 'number' && Number.isSafeInteger(seconds) && seconds >= 0 ? Math.min(seconds, 300) : 1;
     this.retryUntil = Date.now() + bounded * 1000;
     this.retrySeconds.set(bounded);
     clearInterval(this.cooldownTimer);

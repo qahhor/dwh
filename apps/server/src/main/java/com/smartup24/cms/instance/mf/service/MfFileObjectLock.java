@@ -1,10 +1,9 @@
 package com.smartup24.cms.instance.mf.service;
 
-import org.springframework.stereotype.Component;
-
 import java.util.Objects;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
+import org.springframework.stereotype.Component;
 
 /**
  * Serializes publish/delete operations for one content hash in the supported

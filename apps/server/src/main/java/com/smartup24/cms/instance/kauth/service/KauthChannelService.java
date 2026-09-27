@@ -3,19 +3,18 @@ package com.smartup24.cms.instance.kauth.service;
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.security.SecurityContext.KauthPrincipal;
 import com.smartup24.cms.instance.kauth.pref.KauthPref;
 import com.smartup24.cms.instance.kauth.repository.KauthChannelRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthOtpCodeRepository;
-import com.smartup24.cms.instance.common.security.SecurityContext.KauthPrincipal;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Каналы связи пользователя: привязка, подтверждение, выбор для второго фактора
@@ -50,11 +49,12 @@ public class KauthChannelService {
     private final KauthCredentialGuard credentialGuard;
     private final SecureRandom secureRandom = new SecureRandom();
 
-    public KauthChannelService(KauthChannelRepository channelRepository,
-                               KauthOtpCodeRepository otpCodeRepository,
-                               KauthOtpSender otpSender,
-                               AuditLogService auditLogService,
-                               KauthCredentialGuard credentialGuard) {
+    public KauthChannelService(
+            KauthChannelRepository channelRepository,
+            KauthOtpCodeRepository otpCodeRepository,
+            KauthOtpSender otpSender,
+            AuditLogService auditLogService,
+            KauthCredentialGuard credentialGuard) {
         this.channelRepository = channelRepository;
         this.otpCodeRepository = otpCodeRepository;
         this.otpSender = otpSender;
@@ -86,14 +86,22 @@ public class KauthChannelService {
 
         String verifyToken = randomToken();
         String code = String.format("%06d", secureRandom.nextInt(1_000_000));
-        otpCodeRepository.create(userId, principal.authenticationVersion(), normalized,
-                KauthPasswordHasher.sha256(code), KauthPasswordHasher.sha256(verifyToken),
-                "channel_verify", Instant.now().plusSeconds(VERIFICATION_TTL_MINUTES * 60L));
+        otpCodeRepository.create(
+                userId,
+                principal.authenticationVersion(),
+                normalized,
+                KauthPasswordHasher.sha256(code),
+                KauthPasswordHasher.sha256(verifyToken),
+                "channel_verify",
+                Instant.now().plusSeconds(VERIFICATION_TTL_MINUTES * 60L));
 
         otpSender.sendVerificationCode(record, code);
 
         // Адрес — персональные данные, в журнал идёт только факт и канал.
-        auditLogService.logChange("kauth_user_channels", userId + ":" + normalized, "U",
+        auditLogService.logChange(
+                "kauth_user_channels",
+                userId + ":" + normalized,
+                "U",
                 List.of("channel", "is_verified"),
                 null,
                 Map.of("channel", normalized, "is_verified", false));
@@ -110,8 +118,8 @@ public class KauthChannelService {
     public void confirmChannel(KauthPrincipal principal, String verifyToken, String code) {
         credentialGuard.requireCurrent(principal);
         Long userId = principal.userId();
-        var otp = otpCodeRepository.findActiveByTokenHash(
-                        KauthPasswordHasher.sha256(verifyToken), "channel_verify")
+        var otp = otpCodeRepository
+                .findActiveByTokenHash(KauthPasswordHasher.sha256(verifyToken), "channel_verify")
                 .orElseThrow(() -> ApiException.badRequest(ErrorCode.OTP_INVALID, "Некорректный токен подтверждения"));
 
         if (!otp.userId().equals(userId) || otp.authenticationVersion() != principal.authenticationVersion()) {
@@ -134,11 +142,15 @@ public class KauthChannelService {
         if (!otpCodeRepository.consume(otp.id(), userId, principal.authenticationVersion(), "channel_verify")) {
             throw ApiException.badRequest(ErrorCode.OTP_INVALID, "Некорректный токен подтверждения");
         }
-        var channel = channelRepository.findByUserIdAndChannel(userId, otp.channel())
+        var channel = channelRepository
+                .findByUserIdAndChannel(userId, otp.channel())
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Канал не найден"));
         channelRepository.bindOrUpdate(userId, channel.channel(), channel.address(), true);
 
-        auditLogService.logChange("kauth_user_channels", userId + ":" + channel.channel(), "U",
+        auditLogService.logChange(
+                "kauth_user_channels",
+                userId + ":" + channel.channel(),
+                "U",
                 List.of("is_verified"),
                 Map.of("channel", channel.channel(), "is_verified", false),
                 Map.of("channel", channel.channel(), "is_verified", true));
@@ -149,7 +161,10 @@ public class KauthChannelService {
         String normalized = normalizeChannel(channel);
         channelRepository.delete(userId, normalized);
 
-        auditLogService.logChange("kauth_user_channels", userId + ":" + normalized, "D",
+        auditLogService.logChange(
+                "kauth_user_channels",
+                userId + ":" + normalized,
+                "D",
                 List.of("channel"),
                 Map.of("channel", normalized),
                 null);
@@ -170,7 +185,8 @@ public class KauthChannelService {
                 }
             }
         }
-        throw ApiException.conflict(ErrorCode.OTP_CHANNEL_MISSING,
+        throw ApiException.conflict(
+                ErrorCode.OTP_CHANNEL_MISSING,
                 "Двухфакторный вход включён, но подтверждённого канала связи нет. "
                         + "Привяжите канал в профиле или обратитесь к администратору");
     }
@@ -178,7 +194,8 @@ public class KauthChannelService {
     private static String normalizeChannel(String channel) {
         String normalized = channel != null ? channel.trim().toLowerCase() : "";
         if (!SUPPORTED_CHANNELS.contains(normalized)) {
-            throw ApiException.badRequest(ErrorCode.VALIDATION_FAILED,
+            throw ApiException.badRequest(
+                    ErrorCode.VALIDATION_FAILED,
                     "Неизвестный канал: " + channel + ". Допустимо: " + SUPPORTED_CHANNELS);
         }
         return normalized;

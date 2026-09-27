@@ -1,5 +1,8 @@
 package com.smartup24.cms.instance.md;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
@@ -13,16 +16,12 @@ import com.smartup24.cms.instance.md.service.MdAssignmentService;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.support.TestDatabases;
+import java.util.List;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import tools.jackson.databind.ObjectMapper;
-
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * F2 (FR-PERM-4/5/10): назначение ролей и персональных прав.
@@ -50,20 +49,18 @@ class MdAssignmentServiceIntegrationTest {
         roleRepository = new MdRoleRepository(jdbc);
         var permissionRepository = new MdPermissionRepository(jdbc);
         permissionService = new MdPermissionService(permissionRepository);
-        auditLogService = new AuditLogService(
-                new AuditLogRepository(jdbc, new ObjectMapper()), null,
-                new AuditDataRedactor());
+        auditLogService =
+                new AuditLogService(new AuditLogRepository(jdbc, new ObjectMapper()), null, new AuditDataRedactor());
         scopeRepository = new MdScopeRepository(jdbc);
-        scopeService = new MdScopeService(scopeRepository, new MdOrgUnitRepository(jdbc),
-                permissionService, auditLogService);
-        service = new MdAssignmentService(userRepository, roleRepository, permissionRepository,
-                permissionService, scopeService, auditLogService);
+        scopeService =
+                new MdScopeService(scopeRepository, new MdOrgUnitRepository(jdbc), permissionService, auditLogService);
+        service = new MdAssignmentService(
+                userRepository, roleRepository, permissionRepository, permissionService, scopeService, auditLogService);
         scopeUnitId = jdbc.sql("""
                         insert into md_org_units (parent_id, code, name, kind, state, order_no)
                         values (null, 'ASSIGN-HQ', 'Assignment HQ', 'company', 'A', 10)
                         returning id
-                        """)
-                .query(Long.class).single();
+                        """).query(Long.class).single();
     }
 
     private static Long createUser(String login) {
@@ -73,9 +70,7 @@ class MdAssignmentServiceIntegrationTest {
                         values (:login, :login, :login || '@test.local', 'x', 'A', 'ru', 'UTC',
                                 '{}'::jsonb, false, false)
                         returning id
-                        """)
-                .param("login", login)
-                .query(Long.class).single();
+                        """).param("login", login).query(Long.class).single();
     }
 
     private static Long roleId(String pcode) {
@@ -94,8 +89,7 @@ class MdAssignmentServiceIntegrationTest {
 
         var effective = service.getEffectivePermissions(userId);
         assertThat(effective).isNotEmpty();
-        assertThat(effective).allSatisfy(i ->
-                assertThat(i.source()).startsWith("role:"));
+        assertThat(effective).allSatisfy(i -> assertThat(i.source()).startsWith("role:"));
         assertThat(effective).anySatisfy(i -> {
             assertThat(i.formCode()).isEqualTo("tasks.items");
             assertThat(i.action()).isEqualTo("create");
@@ -108,8 +102,7 @@ class MdAssignmentServiceIntegrationTest {
         Long userId = createUser("personal_target");
         service.assignRoles(userId, List.of(roleId("user")));
 
-        service.replacePersonalPermissions(userId,
-                List.of(new MdRoleRepository.PermissionPair("audit.log", "view")));
+        service.replacePersonalPermissions(userId, List.of(new MdRoleRepository.PermissionPair("audit.log", "view")));
 
         var effective = service.getEffectivePermissions(userId);
         assertThat(effective)
@@ -126,8 +119,7 @@ class MdAssignmentServiceIntegrationTest {
     @DisplayName("Замена набора прав — именно замена: прежние персональные права снимаются")
     void replaceSemanticsRemovesPrevious() {
         Long userId = createUser("replace_target");
-        service.replacePersonalPermissions(userId,
-                List.of(new MdRoleRepository.PermissionPair("audit.log", "view")));
+        service.replacePersonalPermissions(userId, List.of(new MdRoleRepository.PermissionPair("audit.log", "view")));
         service.replacePersonalPermissions(userId, List.of());
 
         assertThat(service.getEffectivePermissions(userId))
@@ -140,8 +132,8 @@ class MdAssignmentServiceIntegrationTest {
     void rejectsPermissionOutsideCatalog() {
         Long userId = createUser("bad_perm_target");
 
-        assertThatThrownBy(() -> service.replacePersonalPermissions(userId,
-                List.of(new MdRoleRepository.PermissionPair("no.such.form", "view"))))
+        assertThatThrownBy(() -> service.replacePersonalPermissions(
+                        userId, List.of(new MdRoleRepository.PermissionPair("no.such.form", "view"))))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("no.such.form");
     }
@@ -182,7 +174,8 @@ class MdAssignmentServiceIntegrationTest {
                 .param("userId", userId)
                 .param("unitId", scopeUnitId)
                 .update();
-        Long narrowRole = roleRepository.create("Scoped unit role", null, "A", 100).id();
+        Long narrowRole =
+                roleRepository.create("Scoped unit role", null, "A", 100).id();
         scopeRepository.setRoleRule(narrowRole, MdScopeService.RULE_UNITS);
 
         service.assignRoles(userId, List.of(roleId("user")));
@@ -210,8 +203,14 @@ class MdAssignmentServiceIntegrationTest {
         var rows = auditRows("md_user_roles", userId);
         assertThat(rows).as("две операции — две записи").hasSize(2);
 
-        assertThat(rows.get(0)).as("в журнале имя роли, а не служебный код").contains("Менеджер").contains("granted");
-        assertThat(rows.get(1)).as("снятие роли видно как revoked").contains("revoked").contains("Менеджер");
+        assertThat(rows.get(0))
+                .as("в журнале имя роли, а не служебный код")
+                .contains("Менеджер")
+                .contains("granted");
+        assertThat(rows.get(1))
+                .as("снятие роли видно как revoked")
+                .contains("revoked")
+                .contains("Менеджер");
         assertThat(rows.get(1)).contains("Пользователь");
     }
 
@@ -220,8 +219,7 @@ class MdAssignmentServiceIntegrationTest {
     void personalPermissionChangeIsAudited() {
         Long userId = createUser("audited_perms");
 
-        service.replacePersonalPermissions(userId,
-                List.of(new MdRoleRepository.PermissionPair("audit.log", "view")));
+        service.replacePersonalPermissions(userId, List.of(new MdRoleRepository.PermissionPair("audit.log", "view")));
         service.replacePersonalPermissions(userId, List.of());
 
         var rows = auditRows("md_user_permissions", userId);
@@ -240,6 +238,7 @@ class MdAssignmentServiceIntegrationTest {
                         """)
                 .param("t", tableName)
                 .param("pk", String.valueOf(rowPk))
-                .query(String.class).list();
+                .query(String.class)
+                .list();
     }
 }

@@ -169,7 +169,11 @@ export class AppShellFlyoutService {
 
   onDocumentClick(event: MouseEvent) {
     const target = event.target as HTMLElement;
-    if (!target.closest('.rail-flyout-popover') && !target.closest('.rail-category-btn') && !target.closest('.user-profile-btn')) {
+    if (
+      !target.closest('.rail-flyout-popover') &&
+      !target.closest('.rail-category-btn') &&
+      !target.closest('.user-profile-btn')
+    ) {
       this.closeFlyout();
       this.closeProfileFlyout();
     }

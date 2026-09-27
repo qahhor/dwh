@@ -11,10 +11,11 @@ import { TranslatePipe } from '../../../core/services/i18n.service';
   standalone: true,
   imports: [
     CommonModule,
-    SMTDialogComponent, SMTDialogContentDirective,
+    SMTDialogComponent,
+    SMTDialogContentDirective,
     SMTButtonComponent,
     UiFileUploadComponent,
-    TranslatePipe
+    TranslatePipe,
   ],
   template: `
     <!-- Upload Modal -->
@@ -22,39 +23,44 @@ import { TranslatePipe } from '../../../core/services/i18n.service';
       [open]="isUploadModalOpen"
       [smtTitle]="'files.zagruzka_faylov_v_hranilische' | t"
       smtSize="md"
-      (closed)="closeUpload.emit()">
+      (closed)="closeUpload.emit()"
+    >
       <ng-template smtDialogContent>
-      <div body class="upload-modal-body">
-        <ui-file-upload
-          [files]="uploadedBatch"
-          [canUpload]="true"
-          [canDelete]="true"
-          (fileAttached)="batchFileUploaded.emit($event)"
-          (fileRemoved)="batchFileRemoved.emit($event)"
-        ></ui-file-upload>
-      </div>
-      <div footer class="modal-footer-actions">
-        <button smt-button type="button" smtVariant="secondary" (click)="closeUpload.emit()">{{ 'audit.zakryt' | t }}</button>
-      </div>
+        <div body class="upload-modal-body">
+          <ui-file-upload
+            [files]="uploadedBatch"
+            [canUpload]="true"
+            [canDelete]="true"
+            (fileAttached)="batchFileUploaded.emit($event)"
+            (fileRemoved)="batchFileRemoved.emit($event)"
+          ></ui-file-upload>
+        </div>
+        <div footer class="modal-footer-actions">
+          <button smt-button type="button" smtVariant="secondary" (click)="closeUpload.emit()">
+            {{ 'audit.zakryt' | t }}
+          </button>
+        </div>
       </ng-template>
     </smt-dialog>
   `,
-  styles: [`
-    :host {
-      display: contents;
-    }
+  styles: [
+    `
+      :host {
+        display: contents;
+      }
 
-    .upload-modal-body {
-      padding: 8px 0;
-    }
+      .upload-modal-body {
+        padding: 8px 0;
+      }
 
-    .modal-footer-actions {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 8px;
-    }
-  `]
+      .modal-footer-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+    `,
+  ],
 })
 export class FilesModalsComponent {
   @Input() isUploadModalOpen = false;

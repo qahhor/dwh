@@ -22,15 +22,19 @@ public class KauthCredentialGuard {
             throw ApiException.invalidCredentials();
         }
         if (principal.isApi()) {
-            if (principal.sessionId() != null || principal.apiTokenId() == null) throw ApiException.invalidCredentials();
+            if (principal.sessionId() != null || principal.apiTokenId() == null)
+                throw ApiException.invalidCredentials();
             var token = tokens.findActiveById(principal.apiTokenId()).orElseThrow(ApiException::invalidCredentials);
-            if (!principal.userId().equals(token.userId()) || principal.authenticationVersion() != token.authenticationVersion()) {
+            if (!principal.userId().equals(token.userId())
+                    || principal.authenticationVersion() != token.authenticationVersion()) {
                 throw ApiException.invalidCredentials();
             }
         } else {
-            if (principal.sessionId() == null || principal.apiTokenId() != null) throw ApiException.invalidCredentials();
+            if (principal.sessionId() == null || principal.apiTokenId() != null)
+                throw ApiException.invalidCredentials();
             var session = sessions.findActiveById(principal.sessionId()).orElseThrow(ApiException::invalidCredentials);
-            if (!principal.userId().equals(session.userId()) || principal.authenticationVersion() != session.authenticationVersion()) {
+            if (!principal.userId().equals(session.userId())
+                    || principal.authenticationVersion() != session.authenticationVersion()) {
                 throw ApiException.invalidCredentials();
             }
         }

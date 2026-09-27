@@ -8,7 +8,7 @@ import { SMTModalService } from '../../../../shared/ui-kit/components/modal';
 import { problemText } from '../../../../shared/ui/problem-text';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class UserSecurityService {
   private readonly api = inject(ApiService);
@@ -29,7 +29,7 @@ export class UserSecurityService {
       },
       error: () => {
         this.isLoadingSecurity.set(false);
-      }
+      },
     });
   }
 
@@ -40,7 +40,7 @@ export class UserSecurityService {
       destructive: true,
       request: () => this.api.delete(`/iam/users/${userId}/sessions`, { notifyError: false }),
       success: 'iam.vse_sessii_zaversheny',
-      userId
+      userId,
     });
   }
 
@@ -52,7 +52,7 @@ export class UserSecurityService {
         this.toast.success(this.uiI18n.translate('iam.sessiya_zavershena'));
         this.loadUserSecurity(userId);
       },
-      error: () => this.isSecurityActionPending.set(false)
+      error: () => this.isSecurityActionPending.set(false),
     });
   }
 
@@ -64,7 +64,7 @@ export class UserSecurityService {
       request: () => this.api.post(`/iam/users/${userId}/force-password-change`, undefined, { notifyError: false }),
       success: 'iam.smena_parolya_potrebovana',
       userId,
-      onComplete
+      onComplete,
     });
   }
 
@@ -76,7 +76,7 @@ export class UserSecurityService {
       request: () => this.api.post(`/iam/users/${userId}/reset-2fa`, undefined, { notifyError: false }),
       success: 'iam.2fa_sbroshena',
       userId,
-      onComplete
+      onComplete,
     });
   }
 
@@ -93,24 +93,26 @@ export class UserSecurityService {
     userId: number;
     onComplete?: () => void;
   }): void {
-    this.modal.confirm({
-      title: this.uiI18n.translate(ask.title),
-      message: this.uiI18n.translate(ask.message),
-      yesLabel: this.uiI18n.translate('iam.vypolnit'),
-      noLabel: this.uiI18n.translate('common.cancel'),
-      destructive: ask.destructive,
-      action: () => {
-        this.isSecurityActionPending.set(true);
-        return ask.request().pipe(
-          tap(() => {
-            this.toast.success(this.uiI18n.translate(ask.success));
-            this.loadUserSecurity(ask.userId);
-            ask.onComplete?.();
-          }),
-          finalize(() => this.isSecurityActionPending.set(false))
-        );
-      },
-      actionError: problemText
-    }).subscribe();
+    this.modal
+      .confirm({
+        title: this.uiI18n.translate(ask.title),
+        message: this.uiI18n.translate(ask.message),
+        yesLabel: this.uiI18n.translate('iam.vypolnit'),
+        noLabel: this.uiI18n.translate('common.cancel'),
+        destructive: ask.destructive,
+        action: () => {
+          this.isSecurityActionPending.set(true);
+          return ask.request().pipe(
+            tap(() => {
+              this.toast.success(this.uiI18n.translate(ask.success));
+              this.loadUserSecurity(ask.userId);
+              ask.onComplete?.();
+            }),
+            finalize(() => this.isSecurityActionPending.set(false)),
+          );
+        },
+        actionError: problemText,
+      })
+      .subscribe();
   }
 }

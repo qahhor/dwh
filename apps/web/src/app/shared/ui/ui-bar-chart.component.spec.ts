@@ -4,16 +4,16 @@ import { UiBarChartComponent, niceMax } from './ui-bar-chart.component';
 import { UiKpiCardComponent } from './ui-kpi-card.component';
 
 describe('ui-bar-chart', () => {
-  it('stacks each point\'s series on a round scale and names every bar', async () => {
+  it("stacks each point's series on a round scale and names every bar", async () => {
     await TestBed.configureTestingModule({ imports: [UiBarChartComponent] }).compileComponents();
     const fixture = TestBed.createComponent(UiBarChartComponent);
     fixture.componentRef.setInput('series', [
       { key: 'ok', label: 'Готово', color: 'var(--success)' },
-      { key: 'bad', label: 'Ошибки', color: 'var(--danger)' }
+      { key: 'bad', label: 'Ошибки', color: 'var(--danger)' },
     ]);
     fixture.componentRef.setInput('points', [
       { label: '01.09', values: { ok: 30, bad: 10 } },
-      { label: '02.09', values: { ok: 0, bad: 0 } }
+      { label: '02.09', values: { ok: 0, bad: 0 } },
     ]);
     fixture.componentRef.setInput('caption', 'Загрузки по дням');
     fixture.detectChanges();
@@ -25,9 +25,9 @@ describe('ui-bar-chart', () => {
     const bars = host.querySelectorAll('[data-testid="bar-chart-bar"]');
     expect(bars[0].querySelector('title')?.textContent).toBe('01.09: Готово 30, Ошибки 10');
     // 40 rounds up to 50: the stack fills 80% of the 180 px height.
-    const heights = [...bars[0].querySelectorAll('rect')].map(rect => Number(rect.getAttribute('height')));
+    const heights = [...bars[0].querySelectorAll('rect')].map((rect) => Number(rect.getAttribute('height')));
     expect(heights[0] + heights[1]).toBeCloseTo(144);
-    expect([...bars[1].querySelectorAll('rect')].every(rect => Number(rect.getAttribute('height')) === 0)).toBe(true);
+    expect([...bars[1].querySelectorAll('rect')].every((rect) => Number(rect.getAttribute('height')) === 0)).toBe(true);
     expect(host.querySelectorAll('[data-testid="bar-chart-table"] tbody tr')).toHaveLength(2);
   });
 
@@ -53,14 +53,20 @@ describe('ui-kpi-card', () => {
 
   it('colours a fall as good when fewer is better and reads as one sentence', async () => {
     const host = await card(3, 6, 'down');
-    expect(host.querySelector('.kpi')?.getAttribute('aria-label')).toBe('Отклонено: 3, снижение на 50% к прошлому периоду');
+    expect(host.querySelector('.kpi')?.getAttribute('aria-label')).toBe(
+      'Отклонено: 3, снижение на 50% к прошлому периоду',
+    );
     expect(host.querySelector('[data-testid="kpi-change"]')?.classList).toContain('kpi__change--good');
   });
 
   it('counts instead of a percentage after a period with none, and says when nothing changed', async () => {
-    expect((await card(5, 0)).querySelector('.kpi')?.getAttribute('aria-label')).toBe('Отклонено: 5, рост на 5 к прошлому периоду');
+    expect((await card(5, 0)).querySelector('.kpi')?.getAttribute('aria-label')).toBe(
+      'Отклонено: 5, рост на 5 к прошлому периоду',
+    );
     TestBed.resetTestingModule();
-    expect((await card(5, 5)).querySelector('.kpi')?.getAttribute('aria-label')).toBe('Отклонено: 5, как в прошлом периоде');
+    expect((await card(5, 5)).querySelector('.kpi')?.getAttribute('aria-label')).toBe(
+      'Отклонено: 5, как в прошлом периоде',
+    );
     TestBed.resetTestingModule();
     expect((await card(5, null)).querySelector('[data-testid="kpi-change"]')).toBeNull();
   });

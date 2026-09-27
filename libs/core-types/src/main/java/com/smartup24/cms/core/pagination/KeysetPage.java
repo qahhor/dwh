@@ -6,12 +6,7 @@ import java.util.List;
 /**
  * Immutable container for Keyset-paginated results.
  */
-public record KeysetPage<T>(
-        List<T> items,
-        String nextCursor,
-        boolean hasMore,
-        long totalEstimated
-) {
+public record KeysetPage<T>(List<T> items, String nextCursor, boolean hasMore, long totalEstimated) {
     public KeysetPage {
         items = items == null ? List.of() : Collections.unmodifiableList(items);
     }

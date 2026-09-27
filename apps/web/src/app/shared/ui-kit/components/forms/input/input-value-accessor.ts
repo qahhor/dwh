@@ -17,10 +17,10 @@ export class SMTInputValueAccessor extends PickerValueAccessor<SMTInputValue> {
 
   protected readonly picker: BridgedPicker<SMTInputValue> = {
     value: {
-      set: value => this.input.value.set(value),
-      subscribe: callback => this.input.edited.subscribe(callback),
+      set: (value) => this.input.value.set(value),
+      subscribe: (callback) => this.input.edited.subscribe(callback),
     },
     touch: this.input.touch,
-    setDisabledFromForms: disabled => this.input.setDisabledFromForms(disabled),
+    setDisabledFromForms: (disabled) => this.input.setDisabledFromForms(disabled),
   };
 }

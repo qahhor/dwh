@@ -37,7 +37,7 @@ function item(patch: Partial<UplPackageItem> = {}): UplPackageItem {
     rejectParams: null,
     loadId: null,
     rawRows: null,
-    ...patch
+    ...patch,
   };
 }
 
@@ -45,8 +45,24 @@ function page(items: UplPackageItem[], hasMore = false, nextCursor: string | nul
   return { items, nextCursor, hasMore, totalEstimated: items.length } as unknown as KeysetPage<UplPackageItem>;
 }
 
-const field = (key: string, labelKey: string, type: QueryListMeta['fields'][number]['type'], extra: Partial<QueryListMeta['fields'][number]> = {}) =>
-  ({ key, labelKey, type, ops: ['eq'], sortable: false, nullable: false, defaultVisible: true, enumValues: [], enumLabelPrefix: null, ...extra }) as QueryListMeta['fields'][number];
+const field = (
+  key: string,
+  labelKey: string,
+  type: QueryListMeta['fields'][number]['type'],
+  extra: Partial<QueryListMeta['fields'][number]> = {},
+) =>
+  ({
+    key,
+    labelKey,
+    type,
+    ops: ['eq'],
+    sortable: false,
+    nullable: false,
+    defaultVisible: true,
+    enumValues: [],
+    enumLabelPrefix: null,
+    ...extra,
+  }) as QueryListMeta['fields'][number];
 
 /** What `query-meta/upl.packages` answers. */
 const PACKAGES_META: QueryListMeta = {
@@ -62,16 +78,19 @@ const PACKAGES_META: QueryListMeta = {
     field('sourceCode', 'upl.list.col.code', 'text', { defaultVisible: false }),
     field('periodFrom', 'upl.pkg.col.period', 'date', { sortable: true, ops: ['gte'] }),
     field('fileName', 'upl.pkg.col.file', 'text'),
-    field('status', 'upl.pkg.col.status', 'enum', { enumValues: ['received', 'verified', 'rejected', 'applied'], enumLabelPrefix: 'upl.pkg.status.' }),
-    field('rowsTotal', 'upl.pkg.col.rows', 'number', { nullable: true })
-  ]
+    field('status', 'upl.pkg.col.status', 'enum', {
+      enumValues: ['received', 'verified', 'rejected', 'applied'],
+      enumLabelPrefix: 'upl.pkg.status.',
+    }),
+    field('rowsTotal', 'upl.pkg.col.rows', 'number', { nullable: true }),
+  ],
 };
 
 const noErrors: UplPackageErrors = { total: 0, shown: 0, items: [] };
 
 const sourceList: UplSourceItem[] = [
   { id: 3, code: 'cement.output', name: 'Nalogi TEST', periodicity: 'month', lastPublishedVersion: 2, hasDraft: false },
-  { id: 5, code: 'brick.output', name: 'Baza TEST', periodicity: 'quarter', lastPublishedVersion: 1, hasDraft: false }
+  { id: 5, code: 'brick.output', name: 'Baza TEST', periodicity: 'quarter', lastPublishedVersion: 1, hasDraft: false },
 ];
 
 interface FixtureOptions {
@@ -86,7 +105,14 @@ interface FixtureOptions {
 
 async function createFixture(options: FixtureOptions = {}) {
   const pages = options.pages ?? [of(page([item()]))];
-  const sourcesResults = options.sourcesResult ?? [of({ items: sourceList, nextCursor: null, hasMore: false, totalEstimated: 2 } as unknown as KeysetPage<UplSourceItem>)];
+  const sourcesResults = options.sourcesResult ?? [
+    of({
+      items: sourceList,
+      nextCursor: null,
+      hasMore: false,
+      totalEstimated: 2,
+    } as unknown as KeysetPage<UplSourceItem>),
+  ];
   let listCall = 0;
   let sourcesCall = 0;
   const api = {
@@ -95,12 +121,16 @@ async function createFixture(options: FixtureOptions = {}) {
     errors: vi.fn(() => of(noErrors)),
     get: vi.fn((id: string) => of({ ...item(), id })),
     searchSources: vi.fn((..._args: unknown[]) => sourcesResults[Math.min(sourcesCall++, sourcesResults.length - 1)]),
-    source: vi.fn(() => of({ ...sourceList[1], id: 9, name: 'Created TEST' } as unknown as UplSource))
+    source: vi.fn(() => of({ ...sourceList[1], id: 9, name: 'Created TEST' } as unknown as UplSource)),
   };
   const permissions = {
     hasPermission: vi.fn((form: string, action: string) =>
-      action === 'apply' ? options.canApply === true : action === 'create' ? options.canCreateSource === true : options.canUpload !== false
-    )
+      action === 'apply'
+        ? options.canApply === true
+        : action === 'create'
+          ? options.canCreateSource === true
+          : options.canUpload !== false,
+    ),
   };
   const toast = { success: vi.fn(), error: vi.fn() };
   await TestBed.configureTestingModule({
@@ -108,12 +138,15 @@ async function createFixture(options: FixtureOptions = {}) {
     providers: [
       provideRouter([]),
       { provide: QueryMetaService, useValue: { get: vi.fn(() => of(PACKAGES_META)) } },
-      { provide: ListViewsApi, useValue: { list: vi.fn(() => of([])), create: vi.fn(), update: vi.fn(), remove: vi.fn() } },
+      {
+        provide: ListViewsApi,
+        useValue: { list: vi.fn(() => of([])), create: vi.fn(), update: vi.fn(), remove: vi.fn() },
+      },
       { provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: convertToParamMap(options.query ?? {}) } } },
       { provide: UplPackagesApiService, useValue: api },
       { provide: PermissionService, useValue: permissions },
-      { provide: ToastService, useValue: toast }
-    ]
+      { provide: ToastService, useValue: toast },
+    ],
   }).compileComponents();
   const fixture = TestBed.createComponent(PackagesComponent);
   const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
@@ -122,7 +155,9 @@ async function createFixture(options: FixtureOptions = {}) {
 }
 
 function testId(fixture: ComponentFixture<PackagesComponent>, id: string): HTMLElement[] {
-  return fixture.debugElement.queryAll(By.css(`[data-testid="${id}"]`)).map(node => node.nativeElement as HTMLElement);
+  return fixture.debugElement
+    .queryAll(By.css(`[data-testid="${id}"]`))
+    .map((node) => node.nativeElement as HTMLElement);
 }
 
 function text(fixture: ComponentFixture<PackagesComponent>): string {
@@ -137,7 +172,9 @@ function click(fixture: ComponentFixture<PackagesComponent>, id: string): void {
 }
 
 function tableRows(fixture: ComponentFixture<PackagesComponent>): HTMLElement[] {
-  return [...(fixture.nativeElement as HTMLElement).querySelectorAll('[role="rowgroup"] > [role="row"]')] as HTMLElement[];
+  return [
+    ...(fixture.nativeElement as HTMLElement).querySelectorAll('[role="rowgroup"] > [role="row"]'),
+  ] as HTMLElement[];
 }
 
 function clickRow(fixture: ComponentFixture<PackagesComponent>, index = 0): void {
@@ -205,7 +242,11 @@ function problem(status: number, code: string, detail: string, errors?: ProblemD
 function fieldError(root: HTMLElement, fieldId: string): HTMLElement | null {
   const field = root.querySelector('#' + fieldId);
   const ids = (field?.getAttribute('aria-describedby') ?? '').split(/\s+/).filter(Boolean);
-  return ids.map(id => root.querySelector<HTMLElement>('#' + id)).find(node => node?.classList.contains('smt-control__error')) ?? null;
+  return (
+    ids
+      .map((id) => root.querySelector<HTMLElement>('#' + id))
+      .find((node) => node?.classList.contains('smt-control__error')) ?? null
+  );
 }
 
 describe('PackagesComponent', () => {
@@ -243,7 +284,7 @@ describe('PackagesComponent', () => {
     expect(api.searchSources).toHaveBeenCalledWith('', null, 20);
     expect(options[0].textContent).toContain(PACKAGED_RUSSIAN['upl.pkg.form.source_placeholder']);
     expect(options[1].getAttribute('aria-label')).toBe(
-      `Nalogi TEST, ${PACKAGED_RUSSIAN['upl.list.col.code']}: cement.output, ${PACKAGED_RUSSIAN['upl.list.col.periodicity']}: ${PACKAGED_RUSSIAN['upl.periodicity.month']}, ${PACKAGED_RUSSIAN['upl.list.col.published_version']}: 2`
+      `Nalogi TEST, ${PACKAGED_RUSSIAN['upl.list.col.code']}: cement.output, ${PACKAGED_RUSSIAN['upl.list.col.periodicity']}: ${PACKAGED_RUSSIAN['upl.periodicity.month']}, ${PACKAGED_RUSSIAN['upl.list.col.published_version']}: 2`,
     );
     expect(text(fixture)).toContain(PACKAGED_RUSSIAN['upl.pkg.empty_hint']);
   });
@@ -279,7 +320,7 @@ describe('PackagesComponent', () => {
       openSources(without.fixture);
       typeInSearch(without.fixture, 'Новый');
       expect(document.querySelector('[role="option"][id$="-create"]')).toBeNull();
-      document.querySelectorAll('.cdk-overlay-container').forEach(node => node.remove());
+      document.querySelectorAll('.cdk-overlay-container').forEach((node) => node.remove());
 
       TestBed.resetTestingModule();
       const { fixture, navigate } = await createFixture({ canCreateSource: true });
@@ -289,7 +330,9 @@ describe('PackagesComponent', () => {
       expect(create.textContent).toContain('Создать «Новый»');
       create.click();
 
-      expect(navigate).toHaveBeenCalledWith(['/upl/sources'], { queryParams: { create: 'Новый', returnTo: 'packages' } });
+      expect(navigate).toHaveBeenCalledWith(['/upl/sources'], {
+        queryParams: { create: 'Новый', returnTo: 'packages' },
+      });
     } finally {
       vi.useRealTimers();
     }
@@ -335,7 +378,7 @@ describe('PackagesComponent', () => {
     expect(api.upload.mock.calls[0][0]).toMatchObject({
       sourceId: 3,
       periodFrom: '2026-01-01',
-      periodTo: '2026-01-31'
+      periodTo: '2026-01-31',
     });
     expect(api.upload.mock.calls[0][0].file.name).toBe('a_jan.xlsx');
     expect(toast.success).toHaveBeenCalledWith(PACKAGED_RUSSIAN['upl.pkg.toast.accepted']);
@@ -364,7 +407,7 @@ describe('PackagesComponent', () => {
     const rejection = problem(422, 'validation_error', 'invalid', [
       { field: 'sourceId', code: 'UPL_PKG_SOURCE_REQUIRED', message: 'source' },
       { field: 'periodTo', code: 'UPL_PKG_PERIOD_ORDER', message: 'period' },
-      { field: 'file', code: 'UPL_PKG_FILE_NOT_XLSX', message: 'file' }
+      { field: 'file', code: 'UPL_PKG_FILE_NOT_XLSX', message: 'file' },
     ]);
     const { fixture } = await createFixture({ uploadResult: throwError(() => rejection) });
     fillForm(fixture);
@@ -372,73 +415,73 @@ describe('PackagesComponent', () => {
     click(fixture, 'upl-pkg-submit');
 
     expect(fieldError(fixture.nativeElement, 'upl-pkg-source-field')?.textContent).toContain(
-      PACKAGED_RUSSIAN['upl.err.UPL_PKG_SOURCE_REQUIRED']
+      PACKAGED_RUSSIAN['upl.err.UPL_PKG_SOURCE_REQUIRED'],
     );
     expect(fieldError(fixture.nativeElement, 'upl-pkg-period-to-field')?.textContent).toContain(
-      PACKAGED_RUSSIAN['upl.err.UPL_PKG_PERIOD_ORDER']
+      PACKAGED_RUSSIAN['upl.err.UPL_PKG_PERIOD_ORDER'],
     );
     expect(fieldError(fixture.nativeElement, 'upl-pkg-file-field')?.textContent).toContain(
-      PACKAGED_RUSSIAN['upl.err.UPL_PKG_FILE_NOT_XLSX']
+      PACKAGED_RUSSIAN['upl.err.UPL_PKG_FILE_NOT_XLSX'],
     );
     expect(testId(fixture, 'upl-pkg-err-form')).toHaveLength(0);
   });
 
   it('источник не найден (404) показан под полем «Источник»', async () => {
     const { fixture } = await createFixture({
-      uploadResult: throwError(() => problem(404, 'not_found', 'UPL_SOURCE_NOT_FOUND'))
+      uploadResult: throwError(() => problem(404, 'not_found', 'UPL_SOURCE_NOT_FOUND')),
     });
     fillForm(fixture);
 
     click(fixture, 'upl-pkg-submit');
 
     expect(fieldError(fixture.nativeElement, 'upl-pkg-source-field')?.textContent).toContain(
-      PACKAGED_RUSSIAN['upl.err.UPL_SOURCE_NOT_FOUND']
+      PACKAGED_RUSSIAN['upl.err.UPL_SOURCE_NOT_FOUND'],
     );
   });
 
   it('нет анкеты на дату начала периода (409) показано под полем «Источник»', async () => {
     const { fixture } = await createFixture({
-      uploadResult: throwError(() => problem(409, 'conflict', 'UPL_PKG_NO_FORMAT_AT_DATE'))
+      uploadResult: throwError(() => problem(409, 'conflict', 'UPL_PKG_NO_FORMAT_AT_DATE')),
     });
     fillForm(fixture);
 
     click(fixture, 'upl-pkg-submit');
 
     expect(fieldError(fixture.nativeElement, 'upl-pkg-source-field')?.textContent).toContain(
-      PACKAGED_RUSSIAN['upl.err.UPL_PKG_NO_FORMAT_AT_DATE']
+      PACKAGED_RUSSIAN['upl.err.UPL_PKG_NO_FORMAT_AT_DATE'],
     );
   });
 
   it('наш отказ по размеру (413) показан под полем «Файл»', async () => {
     const { fixture } = await createFixture({
-      uploadResult: throwError(() => problem(413, 'file_size_exceeded', 'UPL_PKG_FILE_TOO_LARGE'))
+      uploadResult: throwError(() => problem(413, 'file_size_exceeded', 'UPL_PKG_FILE_TOO_LARGE')),
     });
     fillForm(fixture);
 
     click(fixture, 'upl-pkg-submit');
 
     expect(fieldError(fixture.nativeElement, 'upl-pkg-file-field')?.textContent).toContain(
-      PACKAGED_RUSSIAN['upl.err.UPL_PKG_FILE_TOO_LARGE']
+      PACKAGED_RUSSIAN['upl.err.UPL_PKG_FILE_TOO_LARGE'],
     );
   });
 
   it('отказ по размеру от каркаса (413 с чужим подкодом) тоже под полем «Файл»', async () => {
     const { fixture } = await createFixture({
-      uploadResult: throwError(() => problem(413, 'FILE_SIZE_EXCEEDED', 'file too large'))
+      uploadResult: throwError(() => problem(413, 'FILE_SIZE_EXCEEDED', 'file too large')),
     });
     fillForm(fixture);
 
     click(fixture, 'upl-pkg-submit');
 
     expect(fieldError(fixture.nativeElement, 'upl-pkg-file-field')?.textContent).toContain(
-      PACKAGED_RUSSIAN['upl.err.UPL_PKG_FILE_TOO_LARGE']
+      PACKAGED_RUSSIAN['upl.err.UPL_PKG_FILE_TOO_LARGE'],
     );
     expect(testId(fixture, 'upl-pkg-err-form')).toHaveLength(0);
   });
 
   it('неизвестный код уходит полосой над формой вместе с кодом', async () => {
     const { fixture } = await createFixture({
-      uploadResult: throwError(() => problem(503, 'service_unavailable', 'UPL_PKG_FROM_FUTURE'))
+      uploadResult: throwError(() => problem(503, 'service_unavailable', 'UPL_PKG_FROM_FUTURE')),
     });
     fillForm(fixture);
 
@@ -453,8 +496,13 @@ describe('PackagesComponent', () => {
     const { fixture, api } = await createFixture({
       sourcesResult: [
         throwError(() => ({ status: 503 })),
-        of({ items: sourceList, nextCursor: null, hasMore: false, totalEstimated: 2 } as unknown as KeysetPage<UplSourceItem>)
-      ]
+        of({
+          items: sourceList,
+          nextCursor: null,
+          hasMore: false,
+          totalEstimated: 2,
+        } as unknown as KeysetPage<UplSourceItem>),
+      ],
     });
 
     openSources(fixture);
@@ -471,12 +519,22 @@ describe('PackagesComponent', () => {
   it('колонки берутся из метаданных реестра; поле-фильтр без колонки; по умолчанию сначала новые', async () => {
     const { fixture, api } = await createFixture();
 
-    const headers = [...fixture.nativeElement.querySelectorAll('[role="columnheader"] span.truncate')].map(cell => (cell as HTMLElement).textContent?.trim());
+    const headers = [...fixture.nativeElement.querySelectorAll('[role="columnheader"] span.truncate')].map((cell) =>
+      (cell as HTMLElement).textContent?.trim(),
+    );
     expect(headers).toEqual([
-      PACKAGED_RUSSIAN['upl.pkg.col.uploaded_at'], PACKAGED_RUSSIAN['upl.pkg.col.source'], PACKAGED_RUSSIAN['upl.pkg.col.period'],
-      PACKAGED_RUSSIAN['upl.pkg.col.file'], PACKAGED_RUSSIAN['upl.pkg.col.status'], PACKAGED_RUSSIAN['upl.pkg.col.rows']
+      PACKAGED_RUSSIAN['upl.pkg.col.uploaded_at'],
+      PACKAGED_RUSSIAN['upl.pkg.col.source'],
+      PACKAGED_RUSSIAN['upl.pkg.col.period'],
+      PACKAGED_RUSSIAN['upl.pkg.col.file'],
+      PACKAGED_RUSSIAN['upl.pkg.col.status'],
+      PACKAGED_RUSSIAN['upl.pkg.col.rows'],
     ]);
-    expect(api.list).toHaveBeenCalledWith(50, null, { sort: { field: 'uploadedAt', descending: true }, conditions: [], match: 'all' });
+    expect(api.list).toHaveBeenCalledWith(50, null, {
+      sort: { field: 'uploadedAt', descending: true },
+      conditions: [],
+      match: 'all',
+    });
     expect(fixture.nativeElement.querySelector('[data-testid="filter-trigger"]')).not.toBeNull();
   });
 
@@ -489,7 +547,7 @@ describe('PackagesComponent', () => {
 
   it('сбой списка: таблица предлагает повторить именно этот запрос', async () => {
     const { fixture, api } = await createFixture({
-      pages: [throwError(() => ({ status: 503 })), of(page([item()]))]
+      pages: [throwError(() => ({ status: 503 })), of(page([item()]))],
     });
 
     const alert = fixture.nativeElement.querySelector('ui-server-table [role="alert"]') as HTMLElement;
@@ -505,15 +563,19 @@ describe('PackagesComponent', () => {
     const { fixture, api } = await createFixture({
       pages: [
         of(page([item()], true, 'cursor-2')),
-        of(page([item({ id: '6f1b0d1e-0000-4000-8000-000000000002', fileName: 'b_feb.xlsx' })]))
-      ]
+        of(page([item({ id: '6f1b0d1e-0000-4000-8000-000000000002', fileName: 'b_feb.xlsx' })])),
+      ],
     });
 
     (fixture.nativeElement.querySelector('button[aria-label="Следующая страница"]') as HTMLButtonElement).click();
     fixture.detectChanges();
 
-    expect(api.list).toHaveBeenLastCalledWith(50, 'cursor-2', { sort: { field: 'uploadedAt', descending: true }, conditions: [], match: 'all' });
-    expect(tableRows(fixture).map(row => row.textContent)).toEqual([expect.stringContaining('b_feb.xlsx')]);
+    expect(api.list).toHaveBeenLastCalledWith(50, 'cursor-2', {
+      sort: { field: 'uploadedAt', descending: true },
+      conditions: [],
+      match: 'all',
+    });
+    expect(tableRows(fixture).map((row) => row.textContent)).toEqual([expect.stringContaining('b_feb.xlsx')]);
   });
 
   it('строка списка показывает дату, источник, период, файл, статус и строки', async () => {
@@ -534,7 +596,7 @@ describe('PackagesComponent', () => {
       rowsTotal: null,
       rowsAccepted: null,
       rowsRejected: null,
-      errorsTotal: null
+      errorsTotal: null,
     });
     const rejected = item({
       id: 'b',
@@ -542,7 +604,7 @@ describe('PackagesComponent', () => {
       rowsTotal: null,
       rowsAccepted: null,
       rowsRejected: null,
-      rejectCode: 'UPL_PKG_UNREADABLE'
+      rejectCode: 'UPL_PKG_UNREADABLE',
     });
     const { fixture } = await createFixture({ pages: [of(page([unchecked, rejected]))] });
 
@@ -557,7 +619,7 @@ describe('PackagesComponent', () => {
     const received = item({ status: 'received', rowsTotal: null, rowsAccepted: null, rowsRejected: null });
     const { fixture } = await createFixture({ pages: [of(page([received, item({ id: 'c' })]))] });
 
-    const badges = tableRows(fixture).map(row => row.querySelector('ui-badge') as HTMLElement);
+    const badges = tableRows(fixture).map((row) => row.querySelector('ui-badge') as HTMLElement);
     expect(badges[0].getAttribute('title')).toBe(PACKAGED_RUSSIAN['upl.pkg.status.received_hint']);
     expect(badges[1].getAttribute('title')).toBeNull();
   });
@@ -586,7 +648,10 @@ describe('PackagesComponent', () => {
 
   it('«Обновить» в карточке перечитывает список и обновляет саму карточку', async () => {
     const { fixture, api } = await createFixture({
-      pages: [of(page([item({ status: 'received', rowsTotal: null, rowsAccepted: null, rowsRejected: null })])), of(page([item()]))]
+      pages: [
+        of(page([item({ status: 'received', rowsTotal: null, rowsAccepted: null, rowsRejected: null })])),
+        of(page([item()])),
+      ],
     });
     clickRow(fixture);
     expect(testId(fixture, 'upl-pkg-checking')).toHaveLength(1);
@@ -600,7 +665,7 @@ describe('PackagesComponent', () => {
 
   it('пропавшая из порции загрузка остаётся в карточке прежней', async () => {
     const { fixture } = await createFixture({
-      pages: [of(page([item()])), of(page([item({ id: 'other', fileName: 'b_q1.xlsx' })]))]
+      pages: [of(page([item()])), of(page([item({ id: 'other', fileName: 'b_q1.xlsx' })]))],
     });
     clickRow(fixture);
 
@@ -628,7 +693,7 @@ describe('PackagesComponent', () => {
     const appliedAfterReload = item({ status: 'applied', rowsTotal: 10, rawRows: 10 });
     const { fixture, api } = await createFixture({
       canApply: true,
-      pages: [of(page([item()])), of(page([appliedAfterReload]))]
+      pages: [of(page([item()])), of(page([appliedAfterReload]))],
     });
     clickRow(fixture);
     const listCallsBefore = api.list.mock.calls.length;

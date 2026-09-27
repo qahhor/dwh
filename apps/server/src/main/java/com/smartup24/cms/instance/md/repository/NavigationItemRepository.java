@@ -1,13 +1,12 @@
 package com.smartup24.cms.instance.md.repository;
 
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
 
 @Repository
 public class NavigationItemRepository {
@@ -35,8 +34,7 @@ public class NavigationItemRepository {
             Long createdBy,
             Long modifiedBy,
             Instant createdAt,
-            Instant modifiedAt
-    ) {}
+            Instant modifiedAt) {}
 
     public List<NavigationItemRecord> findAll() {
         return jdbcClient.sql("""
@@ -45,9 +43,7 @@ public class NavigationItemRepository {
                        created_by, modified_by, created_at, modified_at
                 from md_navigation_items
                 order by section_id asc, sort_order asc, id asc
-                """)
-                .query(this::mapRecord)
-                .list();
+                """).query(this::mapRecord).list();
     }
 
     public List<NavigationItemRecord> findActive() {
@@ -58,9 +54,7 @@ public class NavigationItemRepository {
                 from md_navigation_items
                 where state = 'A'
                 order by section_id asc, sort_order asc, id asc
-                """)
-                .query(this::mapRecord)
-                .list();
+                """).query(this::mapRecord).list();
     }
 
     public Optional<NavigationItemRecord> findById(Long id) {
@@ -70,10 +64,7 @@ public class NavigationItemRepository {
                        created_by, modified_by, created_at, modified_at
                 from md_navigation_items
                 where id = :id
-                """)
-                .param("id", id)
-                .query(this::mapRecord)
-                .optional();
+                """).param("id", id).query(this::mapRecord).optional();
     }
 
     public Optional<NavigationItemRecord> findByCode(String code) {
@@ -83,14 +74,12 @@ public class NavigationItemRepository {
                        created_by, modified_by, created_at, modified_at
                 from md_navigation_items
                 where code = :code
-                """)
-                .param("code", code)
-                .query(this::mapRecord)
-                .optional();
+                """).param("code", code).query(this::mapRecord).optional();
     }
 
     public Long insert(NavigationItemRecord item) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 insert into md_navigation_items (
                     code, title, title_key, section_id, parent_id, icon, target_type,
                     url, open_in_iframe, required_permission, sort_order, state,
@@ -121,7 +110,8 @@ public class NavigationItemRepository {
     }
 
     public int update(Long id, NavigationItemRecord item) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 update md_navigation_items
                 set code = :code,
                     title = :title,
@@ -157,7 +147,8 @@ public class NavigationItemRepository {
     }
 
     public int updateState(Long id, String state, Long modifiedBy) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 update md_navigation_items
                 set state = :state,
                     modified_by = :modifiedBy,
@@ -174,9 +165,7 @@ public class NavigationItemRepository {
         return jdbcClient.sql("""
                 delete from md_navigation_items
                 where id = :id
-                """)
-                .param("id", id)
-                .update();
+                """).param("id", id).update();
     }
 
     private NavigationItemRecord mapRecord(ResultSet rs, int rowNum) throws SQLException {
@@ -196,8 +185,11 @@ public class NavigationItemRepository {
                 rs.getString("state"),
                 rs.getObject("created_by") != null ? rs.getLong("created_by") : null,
                 rs.getObject("modified_by") != null ? rs.getLong("modified_by") : null,
-                rs.getTimestamp("created_at") != null ? rs.getTimestamp("created_at").toInstant() : null,
-                rs.getTimestamp("modified_at") != null ? rs.getTimestamp("modified_at").toInstant() : null
-        );
+                rs.getTimestamp("created_at") != null
+                        ? rs.getTimestamp("created_at").toInstant()
+                        : null,
+                rs.getTimestamp("modified_at") != null
+                        ? rs.getTimestamp("modified_at").toInstant()
+                        : null);
     }
 }

@@ -5,11 +5,6 @@ import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.query.QueryPlan;
 import com.smartup24.cms.instance.common.security.ScopeFilter;
 import com.smartup24.cms.instance.ms.task.MsTaskPatch;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -18,6 +13,10 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 @Repository
 public class MsTaskRepository {
@@ -33,7 +32,8 @@ public class MsTaskRepository {
     public TaskRecord create(TaskCreateData data, Long createdBy) {
         String attrsJson = toJson(data.attributes());
 
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 insert into ms_tasks (project_id, parent_task_id, title, description_markdown,
                                      status_id, priority, reporter_id, attributes, begin_time,
                                      end_time, created_at, modified_at, created_by, modified_by)
@@ -89,8 +89,15 @@ public class MsTaskRepository {
      * The flat filters the task list took before the registry, kept so the task screen, its kanban and the
      * lookups keep working. {@code memberRole} narrows {@code assignedUserId}: R, E, O, or both R and E.
      */
-    public record LegacyTaskFilters(Long projectId, Long statusId, String priority, Boolean hideTerminal,
-                                    Long assignedUserId, String memberRole, Long reporterId, Boolean overdue) {
+    public record LegacyTaskFilters(
+            Long projectId,
+            Long statusId,
+            String priority,
+            Boolean hideTerminal,
+            Long assignedUserId,
+            String memberRole,
+            Long reporterId,
+            Boolean overdue) {
 
         public static LegacyTaskFilters none() {
             return new LegacyTaskFilters(null, null, null, null, null, null, null, null);
@@ -102,8 +109,10 @@ public class MsTaskRepository {
             if (projectId != null) value.append(";project=").append(projectId);
             if (statusId != null) value.append(";status=").append(statusId);
             else if (Boolean.TRUE.equals(hideTerminal)) value.append(";active");
-            if (priority != null && !priority.isBlank()) value.append(";priority=").append(priority.strip());
-            if (assignedUserId != null) value.append(";member=").append(assignedUserId).append(':').append(role());
+            if (priority != null && !priority.isBlank())
+                value.append(";priority=").append(priority.strip());
+            if (assignedUserId != null)
+                value.append(";member=").append(assignedUserId).append(':').append(role());
             if (reporterId != null) value.append(";reporter=").append(reporterId);
             if (Boolean.TRUE.equals(overdue)) value.append(";overdue");
             return value.isEmpty() ? null : value.toString();
@@ -122,8 +131,7 @@ public class MsTaskRepository {
      * The data scope (ADR-0013) and the flat filters as one predicate for the registry page. They go into the
      * same SQL, so a page and its total only ever see visible tasks.
      */
-    public static QueryPlan.SqlFragment listPredicate(
-            ScopeFilter scope, LegacyTaskFilters filters) {
+    public static QueryPlan.SqlFragment listPredicate(ScopeFilter scope, LegacyTaskFilters filters) {
         StringBuilder sql = new StringBuilder(scope.sql());
         Map<String, Object> params = new LinkedHashMap<>();
         if (scope.bindsUserId()) params.put("scopeUserId", scope.userId());
@@ -163,11 +171,11 @@ public class MsTaskRepository {
         return new QueryPlan.SqlFragment(sql.toString(), params);
     }
 
-
     public void update(Long id, TaskUpdateData data, Long modifiedBy) {
         String attrsJson = data.attributes() != null ? toJson(data.attributes()) : null;
 
-        var updated = jdbcClient.sql("""
+        var updated = jdbcClient
+                .sql("""
                 update ms_tasks
                 set title = coalesce(:title, title),
                     description_markdown = coalesce(:descriptionMarkdown, description_markdown),
@@ -195,7 +203,9 @@ public class MsTaskRepository {
                 .param("parentTaskId", data.parentTaskId())
                 .param("beginTime", data.beginTime() != null ? java.sql.Timestamp.from(data.beginTime()) : null)
                 .param("endTime", data.endTime() != null ? java.sql.Timestamp.from(data.endTime()) : null)
-                .param("resolvedTime", data.resolvedTime() != null ? java.sql.Timestamp.from(data.resolvedTime()) : null)
+                .param(
+                        "resolvedTime",
+                        data.resolvedTime() != null ? java.sql.Timestamp.from(data.resolvedTime()) : null)
                 .param("attributes", attrsJson)
                 .param("expectedRevision", data.expectedRevision())
                 .param("modifiedBy", modifiedBy)
@@ -204,7 +214,8 @@ public class MsTaskRepository {
 
         if (updated.isEmpty()) {
             if (data.expectedRevision() != null) {
-                throw ApiException.conflict(ErrorCode.TASK_REVISION_CONFLICT,
+                throw ApiException.conflict(
+                        ErrorCode.TASK_REVISION_CONFLICT,
                         "Задача была изменена другим пользователем. Обновите данные и повторите попытку.");
             } else {
                 throw ApiException.notFound(ErrorCode.TASK_NOT_FOUND, "Задача не найдена");
@@ -215,7 +226,8 @@ public class MsTaskRepository {
     public void patch(Long id, MsTaskPatch patch, Long modifiedBy) {
         String attrsJson = patch.attributes() != null ? toJson(patch.attributes()) : null;
 
-        var updated = jdbcClient.sql("""
+        var updated = jdbcClient
+                .sql("""
                 update ms_tasks
                 set title = case when :titlePresent then :title else title end,
                     description_markdown = case when :descriptionPresent then :descriptionMarkdown else description_markdown end,
@@ -256,7 +268,8 @@ public class MsTaskRepository {
 
         if (updated.isEmpty()) {
             if (patch.expectedRevision() != null) {
-                throw ApiException.conflict(ErrorCode.TASK_REVISION_CONFLICT,
+                throw ApiException.conflict(
+                        ErrorCode.TASK_REVISION_CONFLICT,
                         "Задача была изменена другим пользователем. Обновите данные и повторите попытку.");
             } else {
                 throw ApiException.notFound(ErrorCode.TASK_NOT_FOUND, "Задача не найдена");
@@ -269,7 +282,8 @@ public class MsTaskRepository {
     }
 
     public void updateStatus(Long taskId, Long statusId, Instant resolvedTime, Long expectedRevision, Long modifiedBy) {
-        var updated = jdbcClient.sql("""
+        var updated = jdbcClient
+                .sql("""
                 update ms_tasks
                 set status_id = :statusId,
                     resolved_time = :resolvedTime,
@@ -290,7 +304,8 @@ public class MsTaskRepository {
 
         if (updated.isEmpty()) {
             if (expectedRevision != null) {
-                throw ApiException.conflict(ErrorCode.TASK_REVISION_CONFLICT,
+                throw ApiException.conflict(
+                        ErrorCode.TASK_REVISION_CONFLICT,
                         "Задача была изменена другим пользователем. Обновите данные и повторите попытку.");
             } else {
                 throw ApiException.notFound(ErrorCode.TASK_NOT_FOUND, "Задача не найдена");
@@ -347,7 +362,8 @@ public class MsTaskRepository {
 
     public boolean isDescendantOf(Long potentialDescendantId, Long ancestorId) {
         // Recursive CTE to check parent tree cycle
-        return jdbcClient.sql("""
+        return jdbcClient
+                        .sql("""
                 with recursive task_tree as (
                     select id, parent_task_id from ms_tasks where id = :potentialDescendantId
                     union all
@@ -356,10 +372,11 @@ public class MsTaskRepository {
                 )
                 select count(*) from task_tree where id = :ancestorId
                 """)
-                .param("potentialDescendantId", potentialDescendantId)
-                .param("ancestorId", ancestorId)
-                .query(Integer.class)
-                .single() > 0;
+                        .param("potentialDescendantId", potentialDescendantId)
+                        .param("ancestorId", ancestorId)
+                        .query(Integer.class)
+                        .single()
+                > 0;
     }
 
     public List<ProjectTaskStats> getProjectTaskStats() {
@@ -384,17 +401,11 @@ public class MsTaskRepository {
                         rs.getLong("project_id"),
                         rs.getInt("total_tasks"),
                         rs.getInt("active_tasks"),
-                        rs.getInt("done_tasks")
-                )).list();
+                        rs.getInt("done_tasks")))
+                .list();
     }
 
-    public record ProjectTaskStats(
-            Long projectId,
-            int totalTasks,
-            int activeTasks,
-            int doneTasks
-    ) {}
-
+    public record ProjectTaskStats(Long projectId, int totalTasks, int activeTasks, int doneTasks) {}
 
     /** Reads a row of {@link #LIST_COLUMNS}; the task list (registry {@code ms.tasks}) maps its pages with it. */
     public TaskRecord mapRecord(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
@@ -408,15 +419,20 @@ public class MsTaskRepository {
                 rs.getString("priority"),
                 rs.getLong("reporter_id"),
                 parseJson(rs.getString("attributes_str")),
-                rs.getTimestamp("begin_time") != null ? rs.getTimestamp("begin_time").toInstant() : null,
-                rs.getTimestamp("end_time") != null ? rs.getTimestamp("end_time").toInstant() : null,
-                rs.getTimestamp("resolved_time") != null ? rs.getTimestamp("resolved_time").toInstant() : null,
+                rs.getTimestamp("begin_time") != null
+                        ? rs.getTimestamp("begin_time").toInstant()
+                        : null,
+                rs.getTimestamp("end_time") != null
+                        ? rs.getTimestamp("end_time").toInstant()
+                        : null,
+                rs.getTimestamp("resolved_time") != null
+                        ? rs.getTimestamp("resolved_time").toInstant()
+                        : null,
                 rs.getTimestamp("created_at").toInstant(),
                 rs.getTimestamp("modified_at").toInstant(),
                 rs.getLong("created_by"),
                 rs.getLong("modified_by"),
-                rs.getObject("revision") != null ? rs.getLong("revision") : 1L
-        );
+                rs.getObject("revision") != null ? rs.getLong("revision") : 1L);
     }
 
     private String toJson(Map<String, Object> map) {
@@ -443,24 +459,19 @@ public class MsTaskRepository {
                 insert into ms_task_files (task_id, file_id, created_at)
                 values (:taskId, :fileId, now())
                 on conflict (task_id, file_id) do nothing
-                """)
-                .param("taskId", taskId)
-                .param("fileId", fileId)
-                .update();
+                """).param("taskId", taskId).param("fileId", fileId).update();
     }
 
     public void detachFile(Long taskId, UUID fileId) {
         jdbcClient.sql("""
                 delete from ms_task_files
                 where task_id = :taskId and file_id = :fileId
-                """)
-                .param("taskId", taskId)
-                .param("fileId", fileId)
-                .update();
+                """).param("taskId", taskId).param("fileId", fileId).update();
     }
 
     public List<TaskFileRecord> listTaskFiles(Long taskId) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select tf.file_id, f.original_name, f.size_bytes, f.mime_type, tf.created_at
                 from ms_task_files tf
                 join mf_files f on f.id = tf.file_id
@@ -473,19 +484,11 @@ public class MsTaskRepository {
                         rs.getString("original_name"),
                         rs.getLong("size_bytes"),
                         rs.getString("mime_type"),
-                        rs.getTimestamp("created_at").toInstant()
-                ))
+                        rs.getTimestamp("created_at").toInstant()))
                 .list();
     }
 
-    public record TaskFileRecord(
-            UUID fileId,
-            String fileName,
-            long sizeBytes,
-            String mimeType,
-            Instant createdAt
-    ) {}
-
+    public record TaskFileRecord(UUID fileId, String fileName, long sizeBytes, String mimeType, Instant createdAt) {}
 
     public record TaskRecord(
             Long id,
@@ -504,8 +507,7 @@ public class MsTaskRepository {
             Instant modifiedAt,
             Long createdBy,
             Long modifiedBy,
-            Long revision
-    ) {
+            Long revision) {
         public TaskRecord(
                 Long id,
                 Long projectId,
@@ -522,10 +524,25 @@ public class MsTaskRepository {
                 Instant createdAt,
                 Instant modifiedAt,
                 Long createdBy,
-                Long modifiedBy
-        ) {
-            this(id, projectId, parentTaskId, title, descriptionMarkdown, statusId, priority, reporterId, attributes,
-                    beginTime, endTime, resolvedTime, createdAt, modifiedAt, createdBy, modifiedBy, 1L);
+                Long modifiedBy) {
+            this(
+                    id,
+                    projectId,
+                    parentTaskId,
+                    title,
+                    descriptionMarkdown,
+                    statusId,
+                    priority,
+                    reporterId,
+                    attributes,
+                    beginTime,
+                    endTime,
+                    resolvedTime,
+                    createdAt,
+                    modifiedAt,
+                    createdBy,
+                    modifiedBy,
+                    1L);
         }
     }
 
@@ -539,13 +556,13 @@ public class MsTaskRepository {
             Long reporterId,
             Map<String, Object> attributes,
             Instant beginTime,
-            Instant endTime
-    ) {}
+            Instant endTime) {}
 
     public record TaskDeadlineCandidate(long taskId, String title, long userId) {}
 
     public List<TaskDeadlineCandidate> findUpcomingDeadlines(Duration window) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select distinct t.id as task_id, t.title, tm.user_id
                 from ms_tasks t
                 join ms_task_statuses s on s.id = t.status_id and s.is_terminal = false
@@ -555,11 +572,8 @@ public class MsTaskRepository {
                   and t.end_time <= now() + cast(:windowSeconds || ' seconds' as interval)
                 """)
                 .param("windowSeconds", window.toSeconds())
-                .query((rs, rowNum) -> new TaskDeadlineCandidate(
-                        rs.getLong("task_id"),
-                        rs.getString("title"),
-                        rs.getLong("user_id")
-                ))
+                .query((rs, rowNum) ->
+                        new TaskDeadlineCandidate(rs.getLong("task_id"), rs.getString("title"), rs.getLong("user_id")))
                 .list();
     }
 
@@ -574,8 +588,7 @@ public class MsTaskRepository {
             Instant beginTime,
             Instant endTime,
             Instant resolvedTime,
-            Long expectedRevision
-    ) {
+            Long expectedRevision) {
         public TaskUpdateData(
                 Long projectId,
                 String title,
@@ -586,11 +599,19 @@ public class MsTaskRepository {
                 Map<String, Object> attributes,
                 Instant beginTime,
                 Instant endTime,
-                Instant resolvedTime
-        ) {
-            this(projectId, title, descriptionMarkdown, statusId, priority, parentTaskId, attributes,
-                    beginTime, endTime, resolvedTime, null);
+                Instant resolvedTime) {
+            this(
+                    projectId,
+                    title,
+                    descriptionMarkdown,
+                    statusId,
+                    priority,
+                    parentTaskId,
+                    attributes,
+                    beginTime,
+                    endTime,
+                    resolvedTime,
+                    null);
         }
     }
 }
-

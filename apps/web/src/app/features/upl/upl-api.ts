@@ -154,7 +154,9 @@ export class UplApiService {
   }
 
   createDraft(id: string, copyFrom?: number): Observable<UplFormatVersion> {
-    return this.api.post<UplFormatVersion>(`${SOURCES}/${id}/format-versions`, copyFrom ? { copyFrom } : {}, { notifyError: false });
+    return this.api.post<UplFormatVersion>(`${SOURCES}/${id}/format-versions`, copyFrom ? { copyFrom } : {}, {
+      notifyError: false,
+    });
   }
 
   getVersion(id: string, v: string): Observable<UplFormatVersion> {

@@ -45,9 +45,16 @@ describe('SMTCropperComponent', () => {
   it('starts on the largest centred square and draws it at the shown scale', async () => {
     const { fixture, frame } = await render();
     expect(fixture.componentInstance.area).toEqual({ x: 100, y: 0, width: 200, height: 200 });
-    expect([frame().style.left, frame().style.top, frame().style.width, frame().style.height]).toEqual(['50px', '0px', '100px', '100px']);
+    expect([frame().style.left, frame().style.top, frame().style.width, frame().style.height]).toEqual([
+      '50px',
+      '0px',
+      '100px',
+      '100px',
+    ]);
     expect(frame().getAttribute('aria-label')).toBe('Crop area');
-    expect(fixture.nativeElement.querySelector('#' + frame().getAttribute('aria-describedby'))!.textContent).toContain('arrow keys');
+    expect(fixture.nativeElement.querySelector('#' + frame().getAttribute('aria-describedby'))!.textContent).toContain(
+      'arrow keys',
+    );
     expect(fixture.nativeElement.querySelector('.smt-cropper__status').textContent).toBe('200 by 200 from 100, 0');
   });
 

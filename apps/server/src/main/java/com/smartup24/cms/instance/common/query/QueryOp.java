@@ -6,7 +6,18 @@ import java.util.Optional;
 
 /** Операция условия фильтра; {@link #wire()} — имя в DSL и в {@code query-meta}. */
 public enum QueryOp {
-    EQ, NE, IN, CONTAINS, STARTS_WITH, GT, GTE, LT, LTE, BETWEEN, EMPTY, NOT_EMPTY;
+    EQ,
+    NE,
+    IN,
+    CONTAINS,
+    STARTS_WITH,
+    GT,
+    GTE,
+    LT,
+    LTE,
+    BETWEEN,
+    EMPTY,
+    NOT_EMPTY;
 
     public String wire() {
         return name().toLowerCase(Locale.ROOT);

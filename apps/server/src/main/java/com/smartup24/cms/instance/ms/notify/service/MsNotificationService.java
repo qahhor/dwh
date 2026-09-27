@@ -5,16 +5,15 @@ import com.smartup24.cms.instance.ms.notify.repository.MsNotificationPrefReposit
 import com.smartup24.cms.instance.ms.notify.repository.MsNotificationRepository;
 import com.smartup24.cms.instance.ms.notify.repository.MsOutboxRepository;
 import com.smartup24.cms.instance.ms.notify.sse.MsNotificationCreatedEvent;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class MsNotificationService {
@@ -70,15 +69,16 @@ public class MsNotificationService {
     public record PrefUpdateDto(String eventType, String channel, boolean isEnabled) {}
 
     @Transactional
-    public void sendInAppNotification(Long userId, String type, String title, String body, String formLink, String sourceCode) {
+    public void sendInAppNotification(
+            Long userId, String type, String title, String body, String formLink, String sourceCode) {
         var created = notificationRepository.create(userId, type, title, body, formLink, sourceCode);
         // Доставка в открытые SSE-потоки произойдёт после коммита (MsSsePublisher)
         eventPublisher.publishEvent(new MsNotificationCreatedEvent(userId, created));
     }
 
     @Transactional
-    public void enqueueExternalNotification(String channel, String recipient, String templateCode,
-                                           Map<String, Object> payload, UUID idempotencyKey) {
+    public void enqueueExternalNotification(
+            String channel, String recipient, String templateCode, Map<String, Object> payload, UUID idempotencyKey) {
         outboxRepository.enqueue(channel, recipient, templateCode, payload, idempotencyKey);
     }
 
@@ -114,6 +114,7 @@ public class MsNotificationService {
 
     @Transactional(readOnly = true)
     public boolean hasRecentNotification(Long userId, String sourceCode, Duration window) {
-        return notificationRepository.hasRecentNotification(userId, sourceCode, Instant.now().minus(window));
+        return notificationRepository.hasRecentNotification(
+                userId, sourceCode, Instant.now().minus(window));
     }
 }

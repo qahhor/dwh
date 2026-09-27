@@ -6,14 +6,13 @@ import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.ms.notify.model.AnnouncementDraftRequest;
 import com.smartup24.cms.instance.ms.notify.model.AnnouncementState;
 import com.smartup24.cms.instance.ms.notify.repository.MsAnnouncementRepository;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class MsAnnouncementService {
@@ -36,18 +35,14 @@ public class MsAnnouncementService {
     }
 
     @Transactional
-    public MsAnnouncementRepository.ManagedAnnouncementRecord create(
-            AnnouncementDraftRequest request, Long authorId) {
+    public MsAnnouncementRepository.ManagedAnnouncementRecord create(AnnouncementDraftRequest request, Long authorId) {
         validateDraft(request, false);
         if (authorId == null) {
             throw ApiException.unauthorized("Пользователь не авторизован");
         }
 
         var created = repository.create(
-                request.titleJson(),
-                request.bodyJson(),
-                normalizedBannerType(request.bannerType()),
-                authorId);
+                request.titleJson(), request.bodyJson(), normalizedBannerType(request.bannerType()), authorId);
         auditLogService.logChange(
                 "ms_announcements",
                 String.valueOf(created.id()),
@@ -59,22 +54,22 @@ public class MsAnnouncementService {
     }
 
     @Transactional
-    public MsAnnouncementRepository.ManagedAnnouncementRecord update(
-            Long id, AnnouncementDraftRequest request) {
+    public MsAnnouncementRepository.ManagedAnnouncementRecord update(Long id, AnnouncementDraftRequest request) {
         validateDraft(request, true);
         var current = getById(id);
         requireState(current, AnnouncementState.DRAFT, "Редактировать можно только черновик");
         requireCurrentVersion(current, request.lockVersion());
 
-        var updated = repository.updateDraft(
+        var updated = repository
+                .updateDraft(
                         id,
                         request.titleJson(),
                         request.bodyJson(),
                         normalizedBannerType(request.bannerType()),
                         request.lockVersion())
                 .orElseThrow(MsAnnouncementService::staleVersion);
-        auditMutation(current, updated, List.of(
-                "title_json", "body_json", "banner_type", "modified_at", "lock_version"));
+        auditMutation(
+                current, updated, List.of("title_json", "body_json", "banner_type", "modified_at", "lock_version"));
         return updated;
     }
 
@@ -82,14 +77,11 @@ public class MsAnnouncementService {
     public MsAnnouncementRepository.ManagedAnnouncementRecord publish(Long id, Long lockVersion) {
         requireValidVersion(lockVersion);
         var current = getById(id);
-        requireState(current, AnnouncementState.DRAFT,
-                "Опубликовать можно только объявление в статусе DRAFT");
+        requireState(current, AnnouncementState.DRAFT, "Опубликовать можно только объявление в статусе DRAFT");
         requireCurrentVersion(current, lockVersion);
 
-        var published = repository.publish(id, lockVersion)
-                .orElseThrow(MsAnnouncementService::staleVersion);
-        auditMutation(current, published, List.of(
-                "state", "published_at", "modified_at", "lock_version"));
+        var published = repository.publish(id, lockVersion).orElseThrow(MsAnnouncementService::staleVersion);
+        auditMutation(current, published, List.of("state", "published_at", "modified_at", "lock_version"));
         return published;
     }
 
@@ -97,14 +89,11 @@ public class MsAnnouncementService {
     public MsAnnouncementRepository.ManagedAnnouncementRecord archive(Long id, Long lockVersion) {
         requireValidVersion(lockVersion);
         var current = getById(id);
-        requireState(current, AnnouncementState.PUBLISHED,
-                "Архивировать можно только опубликованное объявление");
+        requireState(current, AnnouncementState.PUBLISHED, "Архивировать можно только опубликованное объявление");
         requireCurrentVersion(current, lockVersion);
 
-        var archived = repository.archive(id, lockVersion)
-                .orElseThrow(MsAnnouncementService::staleVersion);
-        auditMutation(current, archived, List.of(
-                "state", "archived_at", "modified_at", "lock_version"));
+        var archived = repository.archive(id, lockVersion).orElseThrow(MsAnnouncementService::staleVersion);
+        auditMutation(current, archived, List.of("state", "archived_at", "modified_at", "lock_version"));
         return archived;
     }
 
@@ -112,9 +101,9 @@ public class MsAnnouncementService {
         if (id == null) {
             throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "Идентификатор объявления обязателен");
         }
-        return repository.findById(id)
-                .orElseThrow(() -> ApiException.notFound(
-                        ErrorCode.NOT_FOUND, "Объявление не найдено: " + id));
+        return repository
+                .findById(id)
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Объявление не найдено: " + id));
     }
 
     private void auditMutation(
@@ -146,21 +135,20 @@ public class MsAnnouncementService {
 
     private static void validateLocalizedValues(String field, Map<String, String> values) {
         if (values == null || values.isEmpty()) {
-            throw ApiException.badRequest(ErrorCode.BAD_REQUEST,
-                    "Локализованный " + field + " обязателен");
+            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "Локализованный " + field + " обязателен");
         }
         if (values.size() > MAX_LOCALES) {
-            throw ApiException.badRequest(ErrorCode.BAD_REQUEST,
-                    "Для поля " + field + " допускается не более " + MAX_LOCALES + " языков");
+            throw ApiException.badRequest(
+                    ErrorCode.BAD_REQUEST, "Для поля " + field + " допускается не более " + MAX_LOCALES + " языков");
         }
         values.forEach((language, value) -> {
             if (language == null || language.isBlank() || value == null) {
-                throw ApiException.badRequest(ErrorCode.BAD_REQUEST,
-                        "Код языка и значение поля " + field + " обязательны");
+                throw ApiException.badRequest(
+                        ErrorCode.BAD_REQUEST, "Код языка и значение поля " + field + " обязательны");
             }
             if (value.length() > MAX_LOCALIZED_VALUE_LENGTH) {
-                throw ApiException.badRequest(ErrorCode.BAD_REQUEST,
-                        "Значение поля " + field + " не должно превышать 10000 символов");
+                throw ApiException.badRequest(
+                        ErrorCode.BAD_REQUEST, "Значение поля " + field + " не должно превышать 10000 символов");
             }
         });
     }
@@ -168,24 +156,20 @@ public class MsAnnouncementService {
     private static void requireRussianValue(String field, Map<String, String> values) {
         String russian = values.get("ru");
         if (russian == null || russian.isBlank()) {
-            throw ApiException.badRequest(ErrorCode.BAD_REQUEST,
-                    "RU " + field + " обязателен");
+            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "RU " + field + " обязателен");
         }
     }
 
     private static String normalizedBannerType(String bannerType) {
         String normalized = bannerType == null ? "" : bannerType.trim().toUpperCase(Locale.ROOT);
         if (!BANNER_TYPES.contains(normalized)) {
-            throw ApiException.badRequest(ErrorCode.BAD_REQUEST,
-                    "Тип баннера должен быть INFO, WARNING или CRITICAL");
+            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "Тип баннера должен быть INFO, WARNING или CRITICAL");
         }
         return normalized;
     }
 
     private static void requireState(
-            MsAnnouncementRepository.ManagedAnnouncementRecord current,
-            AnnouncementState expected,
-            String message) {
+            MsAnnouncementRepository.ManagedAnnouncementRecord current, AnnouncementState expected, String message) {
         if (current.state() != expected) {
             throw ApiException.conflict(ErrorCode.STATUS_TRANSITION_FORBIDDEN, message);
         }
@@ -193,8 +177,7 @@ public class MsAnnouncementService {
 
     private static void requireValidVersion(Long lockVersion) {
         if (lockVersion == null || lockVersion < 0) {
-            throw ApiException.badRequest(ErrorCode.BAD_REQUEST,
-                    "lockVersion должен быть неотрицательным числом");
+            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "lockVersion должен быть неотрицательным числом");
         }
     }
 
@@ -206,12 +189,11 @@ public class MsAnnouncementService {
     }
 
     private static ApiException staleVersion() {
-        return ApiException.conflict(ErrorCode.CONFLICT,
-                "Объявление уже изменено другим запросом; обновите данные и повторите действие");
+        return ApiException.conflict(
+                ErrorCode.CONFLICT, "Объявление уже изменено другим запросом; обновите данные и повторите действие");
     }
 
-    private static Map<String, Object> snapshot(
-            MsAnnouncementRepository.ManagedAnnouncementRecord announcement) {
+    private static Map<String, Object> snapshot(MsAnnouncementRepository.ManagedAnnouncementRecord announcement) {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("title", announcement.titleJson());
         result.put("body", announcement.bodyJson());

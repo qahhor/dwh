@@ -17,7 +17,9 @@ import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
         </span>
       </div>
       <div class="header-right">
-        <button smt-button type="button"
+        <button
+          smt-button
+          type="button"
           smtVariant="secondary"
           smtIcon="refresh"
           [smtLoading]="isLoading()"
@@ -26,7 +28,9 @@ import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
         >
           {{ 'notifications.obnovit' | t }}
         </button>
-        <button smt-button type="button"
+        <button
+          smt-button
+          type="button"
           smtVariant="secondary"
           smtIcon="done_all"
           [disabled]="unreadCount() === 0 || hasPendingReads() || isMarkingAll()"
@@ -35,7 +39,9 @@ import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
         >
           {{ 'notifications.prochitat_vse' | t }}
         </button>
-        <button smt-button type="button"
+        <button
+          smt-button
+          type="button"
           smtVariant="secondary"
           smtIcon="tune"
           [attr.aria-label]="'notifications.preferences_title' | t"
@@ -46,41 +52,45 @@ import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
       </div>
     </div>
   `,
-  styles: [`
-    :host { display: block; }
-    .view-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .view-title {
-      font-size: 20px;
-      font-weight: 700;
-      color: var(--text-main);
-      letter-spacing: -0.3px;
-      margin: 0;
-    }
-    .count-badge {
-      font-size: 12px;
-      font-weight: 600;
-      padding: 2px 8px;
-      border-radius: 12px;
-      background-color: var(--bg-hover);
-      color: var(--text-muted);
-    }
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-  `]
+  styles: [
+    `
+      :host {
+        display: block;
+      }
+      .view-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+      .header-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .view-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--text-main);
+        letter-spacing: -0.3px;
+        margin: 0;
+      }
+      .count-badge {
+        font-size: 12px;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 12px;
+        background-color: var(--bg-hover);
+        color: var(--text-muted);
+      }
+      .header-right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+    `,
+  ],
 })
 export class NotificationsHeaderComponent {
   readonly totalCount = input.required<number>();

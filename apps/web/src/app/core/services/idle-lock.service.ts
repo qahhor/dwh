@@ -50,25 +50,26 @@ export class IdleLockService {
     if (this.running) return;
     this.running = true;
     this.api.get<{ idleLockMinutes: number }>('/settings/session', undefined, { notifyError: false }).subscribe({
-      next: settings => {
+      next: (settings) => {
         if (!this.running || !(settings.idleLockMinutes > 0)) return;
         this.limitMs = settings.idleLockMinutes * 60_000;
         this.watch();
       },
-      error: () => undefined
+      error: () => undefined,
     });
   }
 
   private watch(): void {
     this.lastActivity = Date.now();
     if (typeof document !== 'undefined') {
-      for (const name of ACTIVITY_EVENTS) document.addEventListener(name, this.onActivity, { passive: true, capture: true });
+      for (const name of ACTIVITY_EVENTS)
+        document.addEventListener(name, this.onActivity, { passive: true, capture: true });
     }
     this.subscriptions.push(
-      this.tabs.messages.subscribe(message => {
+      this.tabs.messages.subscribe((message) => {
         if (message.kind === 'activity') this.touch(false);
       }),
-      interval(1000).subscribe(() => this.tick())
+      interval(1000).subscribe(() => this.tick()),
     );
   }
 
@@ -79,7 +80,7 @@ export class IdleLockService {
     if (typeof document !== 'undefined') {
       for (const name of ACTIVITY_EVENTS) document.removeEventListener(name, this.onActivity, { capture: true });
     }
-    this.subscriptions.splice(0).forEach(subscription => subscription.unsubscribe());
+    this.subscriptions.splice(0).forEach((subscription) => subscription.unsubscribe());
   }
 
   /** Activity here (announced to the other tabs now and then) or in another tab (not announced again). */

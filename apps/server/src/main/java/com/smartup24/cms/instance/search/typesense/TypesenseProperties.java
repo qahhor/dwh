@@ -3,12 +3,7 @@ package com.smartup24.cms.instance.search.typesense;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "dwh.typesense")
-public record TypesenseProperties(
-        String url,
-        String apiKey,
-        boolean enabled,
-        boolean syncOnStartup
-) {
+public record TypesenseProperties(String url, String apiKey, boolean enabled, boolean syncOnStartup) {
     public TypesenseProperties {
         if (url == null || url.isBlank()) {
             url = "http://typesense:8108";

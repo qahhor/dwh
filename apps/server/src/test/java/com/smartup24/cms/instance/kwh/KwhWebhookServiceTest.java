@@ -1,5 +1,8 @@
 package com.smartup24.cms.instance.kwh;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.kwh.repository.KwhOutboxRepository;
@@ -7,23 +10,21 @@ import com.smartup24.cms.instance.kwh.repository.KwhSubscriptionRepository;
 import com.smartup24.cms.instance.kwh.service.KwhWebhookProperties;
 import com.smartup24.cms.instance.kwh.service.KwhWebhookService;
 import com.smartup24.cms.instance.kwh.service.WebhookTargetPolicy;
+import java.time.Instant;
+import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import tools.jackson.databind.ObjectMapper;
 
-import java.time.Instant;
-import java.util.List;
-import java.util.Set;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 class KwhWebhookServiceTest {
 
     private final KwhSubscriptionRepository subscriptionRepository = Mockito.mock(KwhSubscriptionRepository.class);
     private final KwhOutboxRepository outboxRepository = Mockito.mock(KwhOutboxRepository.class);
-    private final KwhWebhookService service = new KwhWebhookService(subscriptionRepository, outboxRepository,
+    private final KwhWebhookService service = new KwhWebhookService(
+            subscriptionRepository,
+            outboxRepository,
             Mockito.mock(AuditLogService.class),
             policy(true, Set.of("hooks.example"), false));
 
@@ -51,12 +52,14 @@ class KwhWebhookServiceTest {
     @Test
     @DisplayName("Вебхуки должны быть fail-closed до явного включения оператором")
     void shouldRejectSubscriptionsWhenWebhooksAreDisabled() {
-        var disabledService = new KwhWebhookService(subscriptionRepository, outboxRepository,
+        var disabledService = new KwhWebhookService(
+                subscriptionRepository,
+                outboxRepository,
                 Mockito.mock(AuditLogService.class),
                 policy(false, Set.of("hooks.example"), false));
 
         assertThatThrownBy(() -> disabledService.createSubscription(
-                "Test", "https://hooks.example/events", List.of("task.created"), 1L))
+                        "Test", "https://hooks.example/events", List.of("task.created"), 1L))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("отключены");
         Mockito.verifyNoInteractions(subscriptionRepository);
@@ -65,12 +68,14 @@ class KwhWebhookServiceTest {
     @Test
     @DisplayName("Изменение адреса подписки должно повторно проходить outbound policy")
     void shouldRevalidateTargetUrlOnUpdate() {
-        var privateTargetService = new KwhWebhookService(subscriptionRepository, outboxRepository,
+        var privateTargetService = new KwhWebhookService(
+                subscriptionRepository,
+                outboxRepository,
                 Mockito.mock(AuditLogService.class),
                 policy(true, Set.of("127.0.0.1"), false));
 
-        assertThatThrownBy(() -> privateTargetService.updateSubscription(
-                10L, null, "http://127.0.0.1/internal", null, null))
+        assertThatThrownBy(() ->
+                        privateTargetService.updateSubscription(10L, null, "http://127.0.0.1/internal", null, null))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("внутренний или специальный адрес");
         Mockito.verifyNoInteractions(subscriptionRepository);
@@ -80,29 +85,39 @@ class KwhWebhookServiceTest {
     @DisplayName("Signing secret должен возвращаться только один раз при создании подписки")
     void shouldReturnSigningSecretOnlyAtCreation() throws Exception {
         var record = new KwhSubscriptionRepository.SubscriptionRecord(
-                7L, "Orders", "https://93.184.216.34/events?token=private-query",
-                "one-time-signing-secret", List.of("task.created"), "A", Instant.now(), 1L);
+                7L,
+                "Orders",
+                "https://93.184.216.34/events?token=private-query",
+                "one-time-signing-secret",
+                List.of("task.created"),
+                "A",
+                Instant.now(),
+                1L);
         Mockito.when(subscriptionRepository.create(
-                        Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyList(), Mockito.anyLong()))
+                        Mockito.anyString(),
+                        Mockito.anyString(),
+                        Mockito.anyString(),
+                        Mockito.anyList(),
+                        Mockito.anyLong()))
                 .thenReturn(record);
         Mockito.when(subscriptionRepository.listSubscriptions()).thenReturn(List.of(record));
-        var safeService = new KwhWebhookService(subscriptionRepository, outboxRepository,
+        var safeService = new KwhWebhookService(
+                subscriptionRepository,
+                outboxRepository,
                 Mockito.mock(AuditLogService.class),
                 policy(true, Set.of("93.184.216.34"), false));
         var mapper = new ObjectMapper();
 
-        String createdJson = mapper.writeValueAsString(safeService.createSubscription(
-                "Orders", record.targetUrl(), record.subscribedEvents(), 1L));
+        String createdJson = mapper.writeValueAsString(
+                safeService.createSubscription("Orders", record.targetUrl(), record.subscribedEvents(), 1L));
         String listJson = mapper.writeValueAsString(safeService.listSubscriptions());
 
         assertThat(createdJson).contains("one-time-signing-secret");
-        assertThat(listJson)
-                .doesNotContain("one-time-signing-secret")
-                .doesNotContain("private-query");
+        assertThat(listJson).doesNotContain("one-time-signing-secret").doesNotContain("private-query");
     }
 
-    private static WebhookTargetPolicy policy(boolean enabled, Set<String> allowedHosts,
-                                              boolean allowPrivateAddresses) {
+    private static WebhookTargetPolicy policy(
+            boolean enabled, Set<String> allowedHosts, boolean allowPrivateAddresses) {
         var properties = new KwhWebhookProperties();
         properties.setEnabled(enabled);
         properties.setAllowedHosts(allowedHosts);

@@ -4,16 +4,6 @@ import com.smartup24.cms.instance.fnd.FndPref;
 import com.smartup24.cms.instance.fnd.error.ConstraintErrorCode;
 import com.smartup24.cms.instance.fnd.error.ConstraintViolationException;
 import com.smartup24.cms.instance.fnd.load.FndLoad;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Component;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.support.TransactionTemplate;
-import tools.jackson.databind.ObjectMapper;
-
-import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -22,6 +12,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import javax.sql.DataSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Запись строк в {@code raw} второй базы (AC-33, AC-34, AC-36). Раскладка raw скрыта: модули
@@ -49,8 +48,11 @@ public class JdbcFndRawWriter implements FndRawWriter {
     private final TransactionTemplate oltpTx;
     private final ObjectMapper json;
 
-    public JdbcFndRawWriter(@Qualifier(FndPref.DWH) DataSource dwh, JdbcClient oltp,
-                            PlatformTransactionManager oltpTransactions, ObjectMapper json) {
+    public JdbcFndRawWriter(
+            @Qualifier(FndPref.DWH) DataSource dwh,
+            JdbcClient oltp,
+            PlatformTransactionManager oltpTransactions,
+            ObjectMapper json) {
         this.dwh = dwh;
         this.oltp = oltp;
         this.oltpTx = new TransactionTemplate(oltpTransactions);
@@ -112,14 +114,16 @@ public class JdbcFndRawWriter implements FndRawWriter {
     public List<FndRawRow> read(long loadId) {
         List<FndRawRow> rows = new ArrayList<>();
         try (Connection connection = connect();
-             PreparedStatement statement = connection.prepareStatement(
-                     "select row_no, sheet, source_row_no, fields::text as fields from raw.rows"
-                             + " where load_id = ? order by row_no")) {
+                PreparedStatement statement = connection.prepareStatement(
+                        "select row_no, sheet, source_row_no, fields::text as fields from raw.rows"
+                                + " where load_id = ? order by row_no")) {
             statement.setLong(1, loadId);
             try (var rs = statement.executeQuery()) {
                 while (rs.next()) {
                     Object sourceRowNo = rs.getObject("source_row_no");
-                    rows.add(new FndRawRow(rs.getLong("row_no"), rs.getString("sheet"),
+                    rows.add(new FndRawRow(
+                            rs.getLong("row_no"),
+                            rs.getString("sheet"),
                             sourceRowNo == null ? null : ((Number) sourceRowNo).intValue(),
                             json.readValue(rs.getString("fields"), Map.class)));
                 }
@@ -133,7 +137,10 @@ public class JdbcFndRawWriter implements FndRawWriter {
     /** Проверка статуса под {@code for share}: блокировка держится до конца OLTP-транзакции {@link #write}. */
     private void requirePending(long loadId) {
         String status = oltp.sql("select status from fnd_loads where id = :id for share")
-                .param("id", loadId).query(String.class).optional().orElse(null);
+                .param("id", loadId)
+                .query(String.class)
+                .optional()
+                .orElse(null);
         if (!FndLoad.PENDING.equals(status)) {
             throw new ConstraintViolationException(ConstraintErrorCode.FND_LOAD_STATUS_TRANSITION);
         }

@@ -5,13 +5,12 @@ import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.query.QueryListExporter;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository.LegacyTaskFilters;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
 /** The task list as an export (ADR-0018): the viewer's data scope and the screen's flat filters, as on the screen. */
 @Configuration
@@ -23,11 +22,20 @@ public class MsTaskListExporters {
     @Bean
     public QueryListExporter msTasksExporter(MsTaskListService tasks) {
         return new QueryListExporter() {
-            public String code() { return MsTaskQuery.LIST.code(); }
+            public String code() {
+                return MsTaskQuery.LIST.code();
+            }
 
             public Set<String> options() {
-                return Set.of("project_id", "status_id", "priority", "hide_terminal", "assigned_user_id",
-                        "member_role", "reporter_id", "overdue");
+                return Set.of(
+                        "project_id",
+                        "status_id",
+                        "priority",
+                        "hide_terminal",
+                        "assigned_user_id",
+                        "member_role",
+                        "reporter_id",
+                        "overdue");
             }
 
             public List<FieldErrorItem> checkOptions(Map<String, String> options) {
@@ -40,13 +48,20 @@ public class MsTaskListExporters {
                 }
                 for (String key : FLAGS) {
                     String value = options.get(key);
-                    if (value != null && !value.isBlank() && !List.of("true", "false").contains(value.strip())) {
+                    if (value != null
+                            && !value.isBlank()
+                            && !List.of("true", "false").contains(value.strip())) {
                         errors.add(new FieldErrorItem(key, "EXPORT_INVALID", "true or false"));
                     }
                 }
                 String priority = options.get("priority");
-                if (priority != null && !priority.isBlank()
-                        && !MsTaskQuery.LIST.field("priority").orElseThrow().enumValues().contains(priority.strip())) {
+                if (priority != null
+                        && !priority.isBlank()
+                        && !MsTaskQuery.LIST
+                                .field("priority")
+                                .orElseThrow()
+                                .enumValues()
+                                .contains(priority.strip())) {
                     errors.add(new FieldErrorItem("priority", "EXPORT_INVALID", "unknown priority"));
                 }
                 String role = options.get("member_role");
@@ -56,13 +71,24 @@ public class MsTaskListExporters {
                 return errors;
             }
 
-            public KeysetPage<?> page(int limit, String cursor, String filter, String sort, String search,
-                                      Map<String, String> options) {
-                return tasks.page(SecurityContext.getCurrentUserId(), limit, cursor, filter, sort, search,
-                        new LegacyTaskFilters(number(options.get("project_id")), number(options.get("status_id")),
-                                options.get("priority"), flag(options.get("hide_terminal")),
-                                number(options.get("assigned_user_id")), options.get("member_role"),
-                                number(options.get("reporter_id")), flag(options.get("overdue"))));
+            public KeysetPage<?> page(
+                    int limit, String cursor, String filter, String sort, String search, Map<String, String> options) {
+                return tasks.page(
+                        SecurityContext.getCurrentUserId(),
+                        limit,
+                        cursor,
+                        filter,
+                        sort,
+                        search,
+                        new LegacyTaskFilters(
+                                number(options.get("project_id")),
+                                number(options.get("status_id")),
+                                options.get("priority"),
+                                flag(options.get("hide_terminal")),
+                                number(options.get("assigned_user_id")),
+                                options.get("member_role"),
+                                number(options.get("reporter_id")),
+                                flag(options.get("overdue"))));
             }
         };
     }
@@ -71,9 +97,13 @@ public class MsTaskListExporters {
     @Bean
     public QueryListExporter msProjectsExporter(MsProjectListService projects) {
         return new QueryListExporter() {
-            public String code() { return MsProjectQuery.LIST.code(); }
+            public String code() {
+                return MsProjectQuery.LIST.code();
+            }
 
-            public Set<String> options() { return Set.of("state"); }
+            public Set<String> options() {
+                return Set.of("state");
+            }
 
             public List<FieldErrorItem> checkOptions(Map<String, String> options) {
                 String state = options.get("state");
@@ -82,10 +112,10 @@ public class MsTaskListExporters {
                         : List.of(new FieldErrorItem("state", "EXPORT_INVALID", "state is A or P"));
             }
 
-            public KeysetPage<?> page(int limit, String cursor, String filter, String sort, String search,
-                                      Map<String, String> options) {
-                return projects.page(SecurityContext.getCurrentUserId(), limit, cursor, filter, sort, search,
-                        options.get("state"));
+            public KeysetPage<?> page(
+                    int limit, String cursor, String filter, String sort, String search, Map<String, String> options) {
+                return projects.page(
+                        SecurityContext.getCurrentUserId(), limit, cursor, filter, sort, search, options.get("state"));
             }
         };
     }

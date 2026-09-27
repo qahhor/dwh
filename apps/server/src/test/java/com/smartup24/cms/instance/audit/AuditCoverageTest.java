@@ -1,14 +1,9 @@
 package com.smartup24.cms.instance.audit;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.search.repository.SearchJobRepository;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
-import org.springframework.core.type.filter.AnnotationTypeFilter;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -17,8 +12,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
+import org.springframework.core.type.filter.AnnotationTypeFilter;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * FR-AUD-1: значимое изменение оставляет след.
@@ -40,30 +39,28 @@ class AuditCoverageTest {
      * The worker also uses it on the activation connection, preserving pointer/job/audit atomicity.
      * This is audited delegation, not an exemption; behavioral coverage lives in the job tests.
      */
-    private static final Map<String, Class<?>> AUDIT_DELEGATES = Map.of(
-            "SearchJobService", SearchJobRepository.class
-    );
+    private static final Map<String, Class<?>> AUDIT_DELEGATES = Map.of("SearchJobService", SearchJobRepository.class);
 
     /**
      * Сервисы без аудита — каждый с обоснованием. Список закрытый: новый сервис
      * сюда не добавляется без причины, по которой его мутации не значимы.
      */
     private static final Set<String> WITHOUT_AUDIT_BY_DESIGN = Set.of(
-            "AuditLogService",        // сам механизм журнала
-            "MdPermissionService",    // материализация прав; источник изменения журналируют вызывающие
-            "IdempotencyService",     // служебный кэш ответов, бизнес-состояния не меняет
-            "KauthSessionService",    // вход и выход пишутся в security_events, а не в audit_log
-            "KauthApiTokenService",   // выдача и отзыв токена — тоже security_events
-            "SearchService",          // индексация, производная от уже пожурналированных данных
-            "SearchChangePublisher",  // производные ревизии; бизнес-мутацию журналирует владелец
-            "MsNotificationService",  // доставка оповещений, а не изменение данных
-            // аудит — триггерами основы (fnd_audit_enable, V100): актор через app.user_id, строка audit_log на каждую I/U/D
+            "AuditLogService", // сам механизм журнала
+            "MdPermissionService", // материализация прав; источник изменения журналируют вызывающие
+            "IdempotencyService", // служебный кэш ответов, бизнес-состояния не меняет
+            "KauthSessionService", // вход и выход пишутся в security_events, а не в audit_log
+            "KauthApiTokenService", // выдача и отзыв токена — тоже security_events
+            "SearchService", // индексация, производная от уже пожурналированных данных
+            "SearchChangePublisher", // производные ревизии; бизнес-мутацию журналирует владелец
+            "MsNotificationService", // доставка оповещений, а не изменение данных
+            // аудит — триггерами основы (fnd_audit_enable, V100): актор через app.user_id, строка audit_log на каждую
+            // I/U/D
             "FndLoadService",
             "FndUnitService",
             "FndVersioning",
             "UplSourceService",
-            "UplPackageService"
-    );
+            "UplPackageService");
 
     @Test
     @DisplayName("Каждый мутирующий сервис зависит от AuditLogService")
@@ -105,14 +102,20 @@ class AuditCoverageTest {
     void delegatedAuditMappingsReferToRealServicesAndConstructorDependencies() {
         List<Class<?>> services = findServices();
         AUDIT_DELEGATES.forEach((name, dependency) -> {
-            List<Class<?>> matches = services.stream().filter(service -> service.getSimpleName().equals(name)).toList();
+            List<Class<?>> matches = services.stream()
+                    .filter(service -> service.getSimpleName().equals(name))
+                    .toList();
             assertThat(matches).as("Mapped audited service %s", name).hasSize(1);
             Class<?> service = matches.getFirst();
-            assertThat(hasMutatingTransaction(service)).as("Mapped mutating service %s", name).isTrue();
+            assertThat(hasMutatingTransaction(service))
+                    .as("Mapped mutating service %s", name)
+                    .isTrue();
             assertThat(WITHOUT_AUDIT_BY_DESIGN).doesNotContain(name);
             assertThat(Arrays.stream(service.getDeclaredConstructors())
-                    .anyMatch(ctor -> Arrays.asList(ctor.getParameterTypes()).contains(dependency)))
-                    .as("Mapped audit constructor dependency %s -> %s", name, dependency.getSimpleName()).isTrue();
+                            .anyMatch(ctor ->
+                                    Arrays.asList(ctor.getParameterTypes()).contains(dependency)))
+                    .as("Mapped audit constructor dependency %s -> %s", name, dependency.getSimpleName())
+                    .isTrue();
         });
     }
 

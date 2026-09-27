@@ -2,12 +2,11 @@ package com.smartup24.cms.common.crypto;
 
 import de.mkammerer.argon2.Argon2;
 import de.mkammerer.argon2.Argon2Factory;
-import org.springframework.stereotype.Component;
-
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
+import org.springframework.stereotype.Component;
 
 /**
  * Единый промышленный хэшер паролей платформы на основе Argon2id и SHA-256 токенов.

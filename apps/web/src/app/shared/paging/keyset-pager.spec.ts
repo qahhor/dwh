@@ -2,13 +2,19 @@ import { Observable, of, Subject, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { KeysetPager, KeysetResponse } from './keyset-pager';
 
-const page = (items: number[], nextCursor: string | null, totalEstimated = 30): KeysetResponse<number> =>
-  ({ items, nextCursor, hasMore: nextCursor !== null, totalEstimated });
+const page = (items: number[], nextCursor: string | null, totalEstimated = 30): KeysetResponse<number> => ({
+  items,
+  nextCursor,
+  hasMore: nextCursor !== null,
+  totalEstimated,
+});
 
 /** Three pages: null -> [1,2] -> 'c2' -> [3,4] -> 'c3' -> [5]. */
 function server() {
   const pages: Record<string, KeysetResponse<number>> = {
-    first: page([1, 2], 'c2'), c2: page([3, 4], 'c3'), c3: page([5], null),
+    first: page([1, 2], 'c2'),
+    c2: page([3, 4], 'c3'),
+    c3: page([5], null),
   };
   return vi.fn((cursor: string | null) => of(pages[cursor ?? 'first']));
 }
@@ -18,7 +24,12 @@ describe('KeysetPager', () => {
     const fetch = server();
     const pager = new KeysetPager<number>(fetch, { pageSize: 2 });
     pager.first();
-    expect([pager.page(), [...pager.items()], pager.canGoBack(), pager.canGoForward()]).toEqual([1, [1, 2], false, true]);
+    expect([pager.page(), [...pager.items()], pager.canGoBack(), pager.canGoForward()]).toEqual([
+      1,
+      [1, 2],
+      false,
+      true,
+    ]);
 
     pager.next();
     pager.next();
@@ -53,7 +64,8 @@ describe('KeysetPager', () => {
     let failNext = false;
     const pages = server();
     const fetch = vi.fn((cursor: string | null): Observable<KeysetResponse<number>> =>
-      failNext ? throwError(() => new Error('offline')) : pages(cursor));
+      failNext ? throwError(() => new Error('offline')) : pages(cursor),
+    );
     const pager = new KeysetPager<number>(fetch);
     pager.first();
 
@@ -71,7 +83,8 @@ describe('KeysetPager', () => {
     let fail = false;
     const pages = server();
     const fetch = vi.fn((cursor: string | null): Observable<KeysetResponse<number>> =>
-      fail ? throwError(() => new Error('offline')) : pages(cursor));
+      fail ? throwError(() => new Error('offline')) : pages(cursor),
+    );
     const pager = new KeysetPager<number>(fetch, { pageSize: 2 });
     pager.first();
     pager.next();
@@ -94,7 +107,8 @@ describe('KeysetPager', () => {
     let emptied = false;
     const pages = server();
     const fetch = vi.fn((cursor: string | null): Observable<KeysetResponse<number>> =>
-      emptied && cursor === 'c3' ? of(page([], null)) : pages(cursor));
+      emptied && cursor === 'c3' ? of(page([], null)) : pages(cursor),
+    );
     const pager = new KeysetPager<number>(fetch, { pageSize: 2 });
     pager.first();
     pager.next();
@@ -165,12 +179,16 @@ describe('KeysetPager', () => {
 
   it('never appends rows for an old filter to a new one', () => {
     const answers: Subject<KeysetResponse<number>>[] = [];
-    const pager = new KeysetPager<number>(() => { const answer = new Subject<KeysetResponse<number>>(); answers.push(answer); return answer; });
+    const pager = new KeysetPager<number>(() => {
+      const answer = new Subject<KeysetResponse<number>>();
+      answers.push(answer);
+      return answer;
+    });
     pager.first();
     answers[0].next(page([1, 2], 'c2'));
-    pager.loadMore();           // pending
+    pager.loadMore(); // pending
     expect(pager.loadingMore()).toBe(true);
-    pager.first();              // the filter changes meanwhile
+    pager.first(); // the filter changes meanwhile
     answers[2].next(page([7], null));
     answers[1].next(page([3, 4], null)); // the old "load more" answers late
 
@@ -182,7 +200,9 @@ describe('KeysetPager', () => {
     let fail = false;
     const pages = server();
     const onError = vi.fn();
-    const pager = new KeysetPager<number>(cursor => (fail ? throwError(() => new Error('x')) : pages(cursor)), { onError });
+    const pager = new KeysetPager<number>((cursor) => (fail ? throwError(() => new Error('x')) : pages(cursor)), {
+      onError,
+    });
     pager.first();
     fail = true;
     pager.loadMore();
@@ -202,7 +222,7 @@ describe('KeysetPager', () => {
     expect([[...pager.items()], pager.loading()]).toEqual([[], true]);
   });
 
-  it('forgets the old query\'s next page on invalidate', () => {
+  it("forgets the old query's next page on invalidate", () => {
     const pager = new KeysetPager<number>(server());
     pager.first();
     expect(pager.canGoForward()).toBe(true);

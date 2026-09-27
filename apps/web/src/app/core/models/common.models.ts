@@ -20,7 +20,6 @@ export interface ProblemDetail {
   invalid_params?: Array<{ name: string; reason: string; code?: string }>;
 }
 
-
 export interface FieldErrorItem {
   field: string;
   code: string;

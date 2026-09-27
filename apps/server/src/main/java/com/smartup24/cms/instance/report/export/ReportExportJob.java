@@ -1,10 +1,9 @@
 package com.smartup24.cms.instance.report.export;
 
 import com.smartup24.cms.instance.fnd.jobs.FndJobHandler;
-import org.springframework.stereotype.Component;
-
 import java.util.Map;
 import java.util.UUID;
+import org.springframework.stereotype.Component;
 
 /** Writes one queued export (ADR-0018); the export's own row records how it went. */
 @Component

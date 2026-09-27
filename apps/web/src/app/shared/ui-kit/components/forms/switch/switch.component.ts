@@ -95,7 +95,7 @@ export class SMTSwitchComponent implements FormCheckboxControl {
   readonly isDisabled = computed(() => this.disabled() || this.formsDisabled());
 
   readonly hasError = computed(() =>
-    shouldShowSMTFormControlError({ invalid: this.invalid(), errors: this.errors(), touched: this.wasTouched() })
+    shouldShowSMTFormControlError({ invalid: this.invalid(), errors: this.errors(), touched: this.wasTouched() }),
   );
 
   readonly labelledBy = computed(() => (this.label() ? this.labelId : this.externalLabelledBy().trim() || null));

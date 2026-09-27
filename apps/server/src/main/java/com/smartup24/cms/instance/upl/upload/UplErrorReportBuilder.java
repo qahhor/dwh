@@ -4,10 +4,6 @@ import com.smartup24.cms.instance.upl.format.UplTemplateBuilder;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.ErrorRow;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.ErrorsView;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.PackageRow;
-import org.dhatim.fastexcel.Workbook;
-import org.dhatim.fastexcel.Worksheet;
-import org.springframework.stereotype.Component;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -15,6 +11,9 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.function.BiFunction;
+import org.dhatim.fastexcel.Workbook;
+import org.dhatim.fastexcel.Worksheet;
+import org.springframework.stereotype.Component;
 
 /**
  * The errors of one upload as a file the supplier can fix their data from
@@ -28,11 +27,11 @@ import java.util.function.BiFunction;
 public class UplErrorReportBuilder {
 
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("dd.MM.yyyy");
-    private static final DateTimeFormatter MOMENT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm").withZone(ZoneOffset.UTC);
+    private static final DateTimeFormatter MOMENT =
+            DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm").withZone(ZoneOffset.UTC);
     private static final String HEADER_FILL = "DCE6F2";
 
-    public record ReportFile(String fileName, byte[] content) {
-    }
+    public record ReportFile(String fileName, byte[] content) {}
 
     /**
      * @param text translation of a dictionary key with its parameters; for an error code it is looked up as
@@ -40,32 +39,53 @@ public class UplErrorReportBuilder {
      */
     public ReportFile build(PackageRow pkg, ErrorsView errors, BiFunction<String, Map<String, Object>, String> text) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try (Workbook workbook = new Workbook(out, UplTemplateBuilder.XLSX_APPLICATION, UplTemplateBuilder.XLSX_APP_VERSION)) {
+        try (Workbook workbook =
+                new Workbook(out, UplTemplateBuilder.XLSX_APPLICATION, UplTemplateBuilder.XLSX_APP_VERSION)) {
             Worksheet ws = workbook.newWorksheet(sheetName(text.apply("upl.errfile.sheet", Map.of())));
             int row = 0;
             ws.value(row, 0, text.apply("upl.errfile.title", Map.of("file", pkg.fileName())));
             ws.style(row, 0).bold().fontSize(14).set();
             row += 2;
-            row = fact(ws, row, text.apply("upl.errfile.source", Map.of()), pkg.sourceName() + " (" + pkg.sourceCode() + ")");
+            row = fact(
+                    ws,
+                    row,
+                    text.apply("upl.errfile.source", Map.of()),
+                    pkg.sourceName() + " (" + pkg.sourceCode() + ")");
             row = fact(ws, row, text.apply("upl.errfile.period", Map.of()), period(pkg));
-            row = fact(ws, row, text.apply("upl.errfile.uploaded_at", Map.of()),
+            row = fact(
+                    ws,
+                    row,
+                    text.apply("upl.errfile.uploaded_at", Map.of()),
                     pkg.uploadedAt() == null ? "" : MOMENT.format(pkg.uploadedAt()) + " UTC");
-            row = fact(ws, row, text.apply("upl.errfile.status", Map.of()), text.apply("upl.pkg.status." + pkg.status(), Map.of()));
+            row = fact(
+                    ws,
+                    row,
+                    text.apply("upl.errfile.status", Map.of()),
+                    text.apply("upl.pkg.status." + pkg.status(), Map.of()));
             row = fact(ws, row, text.apply("upl.errfile.rows", Map.of()), counters(pkg, text));
             if (pkg.rejectCode() != null) {
-                row = fact(ws, row, text.apply("upl.errfile.reason", Map.of()), codeText(pkg.rejectCode(), pkg.rejectParams(), text));
+                row = fact(
+                        ws,
+                        row,
+                        text.apply("upl.errfile.reason", Map.of()),
+                        codeText(pkg.rejectCode(), pkg.rejectParams(), text));
             }
             if (errors.items().size() < errors.total()) {
-                ws.value(row++, 0, text.apply("upl.errfile.truncated", Map.of("shown", errors.items().size(), "total", errors.total())));
+                ws.value(
+                        row++,
+                        0,
+                        text.apply(
+                                "upl.errfile.truncated",
+                                Map.of("shown", errors.items().size(), "total", errors.total())));
             }
             row++;
 
             String[] headers = {
-                    text.apply("upl.pkg.errors.col.sheet", Map.of()),
-                    text.apply("upl.pkg.errors.col.row", Map.of()),
-                    text.apply("upl.pkg.errors.col.column", Map.of()),
-                    text.apply("upl.pkg.errors.col.value", Map.of()),
-                    text.apply("upl.pkg.errors.col.what", Map.of())
+                text.apply("upl.pkg.errors.col.sheet", Map.of()),
+                text.apply("upl.pkg.errors.col.row", Map.of()),
+                text.apply("upl.pkg.errors.col.column", Map.of()),
+                text.apply("upl.pkg.errors.col.value", Map.of()),
+                text.apply("upl.pkg.errors.col.what", Map.of())
             };
             int headerRow = row;
             for (int c = 0; c < headers.length; c++) {
@@ -111,19 +131,24 @@ public class UplErrorReportBuilder {
     private static String period(PackageRow pkg) {
         if (pkg.periodFrom() == null) return "";
         String from = DAY.format(pkg.periodFrom());
-        return pkg.periodTo() == null || pkg.periodTo().equals(pkg.periodFrom()) ? from : from + " – " + DAY.format(pkg.periodTo());
+        return pkg.periodTo() == null || pkg.periodTo().equals(pkg.periodFrom())
+                ? from
+                : from + " – " + DAY.format(pkg.periodTo());
     }
 
     private static String counters(PackageRow pkg, BiFunction<String, Map<String, Object>, String> text) {
         if (pkg.rowsTotal() == null) return text.apply("upl.errfile.not_counted", Map.of());
-        return text.apply("upl.errfile.counters", Map.of(
-                "total", pkg.rowsTotal(),
-                "accepted", pkg.rowsAccepted() == null ? 0 : pkg.rowsAccepted(),
-                "rejected", pkg.rowsRejected() == null ? 0 : pkg.rowsRejected()));
+        return text.apply(
+                "upl.errfile.counters",
+                Map.of(
+                        "total", pkg.rowsTotal(),
+                        "accepted", pkg.rowsAccepted() == null ? 0 : pkg.rowsAccepted(),
+                        "rejected", pkg.rowsRejected() == null ? 0 : pkg.rowsRejected()));
     }
 
     /** The words for a code, as the card shows them; a code the dictionary does not know stays visible as is. */
-    static String codeText(String code, Map<String, Object> params, BiFunction<String, Map<String, Object>, String> text) {
+    static String codeText(
+            String code, Map<String, Object> params, BiFunction<String, Map<String, Object>, String> text) {
         String key = "upl.err." + code;
         String words = text.apply(key, params == null ? Map.of() : params);
         return words.equals(key) ? code : words;

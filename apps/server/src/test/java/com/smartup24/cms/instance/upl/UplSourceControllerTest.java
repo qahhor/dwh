@@ -1,5 +1,11 @@
 package com.smartup24.cms.instance.upl;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+
 import com.jayway.jsonpath.JsonPath;
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.config.idempotency.IdempotencyFilter;
@@ -7,6 +13,12 @@ import com.smartup24.cms.instance.kauth.pref.KauthPref;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import jakarta.servlet.http.Cookie;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,19 +32,6 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import tools.jackson.databind.ObjectMapper;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-
 /** HTTP-проверка API анкеты файла {@code /api/v1/upl/sources} (контракт И3, AC-1…AC-16). */
 class UplSourceControllerTest extends EmbeddedPostgresTest {
 
@@ -41,8 +40,10 @@ class UplSourceControllerTest extends EmbeddedPostgresTest {
 
     @Autowired
     private WebApplicationContext wac;
+
     @Autowired
     private MdUserService users;
+
     @Autowired
     private JdbcClient jdbc;
 
@@ -51,13 +52,13 @@ class UplSourceControllerTest extends EmbeddedPostgresTest {
     private String adminLogin;
     private String analystLogin;
 
-    private record Session(Cookie session, Cookie csrf) {
-    }
+    private record Session(Cookie session, Cookie csrf) {}
 
     @BeforeEach
     void setUp() {
         DefaultMockMvcBuilder builder = MockMvcBuilders.webAppContextSetup(wac).apply(springSecurity());
-        IdempotencyFilter idempotency = wac.getBeanProvider(IdempotencyFilter.class).getIfAvailable();
+        IdempotencyFilter idempotency =
+                wac.getBeanProvider(IdempotencyFilter.class).getIfAvailable();
         idempotencyEnabled = idempotency != null;
         if (idempotencyEnabled) {
             builder.addFilters(idempotency);
@@ -117,20 +118,25 @@ class UplSourceControllerTest extends EmbeddedPostgresTest {
         var noSource = sendGet(admin, BASE + "/-1/format-versions/1", 404);
         assertThat((String) read(noSource, "$.detail")).isEqualTo("UPL_SOURCE_NOT_FOUND");
 
-        assertThat(send(admin, post(versions + "/1/publish"), Map.of("validFrom", "2026-01-01")).getStatus())
+        assertThat(send(admin, post(versions + "/1/publish"), Map.of("validFrom", "2026-01-01"))
+                        .getStatus())
                 .isEqualTo(204);
-        assertThat((Integer) read(sendGet(admin, versions + "?at=2026-03-01", 200), "$.version")).isEqualTo(1);
+        assertThat((Integer) read(sendGet(admin, versions + "?at=2026-03-01", 200), "$.version"))
+                .isEqualTo(1);
 
         var copy = send(admin, post(versions), Map.of("copyFrom", 1));
         assertThat(copy.getStatus()).isEqualTo(201);
         assertThat((Integer) read(copy, "$.version")).isEqualTo(2);
         List<Object> copiedSheets = read(copy, "$.sheets");
         assertThat(copiedSheets).hasSize(2);
-        assertThat(send(admin, post(versions + "/2/publish"), Map.of("validFrom", "2026-04-01")).getStatus())
+        assertThat(send(admin, post(versions + "/2/publish"), Map.of("validFrom", "2026-04-01"))
+                        .getStatus())
                 .isEqualTo(204);
 
-        assertThat((Integer) read(sendGet(admin, versions + "?at=2026-03-31", 200), "$.version")).isEqualTo(1);
-        assertThat((Integer) read(sendGet(admin, versions + "?at=2026-04-01", 200), "$.version")).isEqualTo(2);
+        assertThat((Integer) read(sendGet(admin, versions + "?at=2026-03-31", 200), "$.version"))
+                .isEqualTo(1);
+        assertThat((Integer) read(sendGet(admin, versions + "?at=2026-04-01", 200), "$.version"))
+                .isEqualTo(2);
 
         var list = sendGet(admin, versions, 200);
         List<Object> items = read(list, "$");
@@ -188,10 +194,11 @@ class UplSourceControllerTest extends EmbeddedPostgresTest {
         var second = send(admin, post(BASE).header("Idempotency-Key", key), body);
         assertThat(first.getStatus()).isEqualTo(201);
         assertThat(second.getStatus()).isEqualTo(201);
-        assertThat(((Number) read(second, "$.id")).longValue())
-                .isEqualTo(((Number) read(first, "$.id")).longValue());
+        assertThat(((Number) read(second, "$.id")).longValue()).isEqualTo(((Number) read(first, "$.id")).longValue());
         Long rows = jdbc.sql("select count(*) from upl_sources where code = :code")
-                .param("code", idemCode).query(Long.class).single();
+                .param("code", idemCode)
+                .query(Long.class)
+                .single();
         assertThat(rows).isEqualTo(1L);
     }
 
@@ -200,14 +207,15 @@ class UplSourceControllerTest extends EmbeddedPostgresTest {
     void invalidSourceIs422AndNotStored() throws Exception {
         Session admin = login(adminLogin);
         String existing = "test.api." + rnd();
-        assertThat(send(admin, post(BASE), sourceBody(existing, "TEST source", "month", null)).getStatus())
+        assertThat(send(admin, post(BASE), sourceBody(existing, "TEST source", "month", null))
+                        .getStatus())
                 .isEqualTo(201);
 
         for (String code : List.of("Manba A", "1abc", "a")) {
             assertInvalidSource(admin, sourceBody(code, "TEST bad", "month", null), "code", 0);
         }
-        assertInvalidSource(admin, sourceBody(existing.toUpperCase(Locale.ROOT), "TEST upper", "month", null),
-                "code", 1);
+        assertInvalidSource(
+                admin, sourceBody(existing.toUpperCase(Locale.ROOT), "TEST upper", "month", null), "code", 1);
 
         List<Map.Entry<String, Object>> variants = List.of(
                 Map.entry("slaDays", 367),
@@ -235,12 +243,14 @@ class UplSourceControllerTest extends EmbeddedPostgresTest {
 
         List<Object> nullSheet = new ArrayList<>();
         nullSheet.add(null);
-        assertThat(send(admin, put(draftUrl), draftBody(lock, nullSheet)).getStatus()).isEqualTo(422);
+        assertThat(send(admin, put(draftUrl), draftBody(lock, nullSheet)).getStatus())
+                .isEqualTo(422);
 
         List<Object> nullColumn = new ArrayList<>();
         nullColumn.add(null);
         assertThat(send(admin, put(draftUrl), draftBody(lock, List.of(sheet("TEST sheet", 1, nullColumn))))
-                .getStatus()).isEqualTo(422);
+                        .getStatus())
+                .isEqualTo(422);
 
         Map<String, Object> koi8 = draftBody(lock, List.of(sheet("TEST sheet 1")));
         koi8.put("encoding", "koi8");
@@ -251,13 +261,16 @@ class UplSourceControllerTest extends EmbeddedPostgresTest {
 
         List<Object> moneyColumn = List.of(column("TEST money", "money_value", "money"));
         assertThat(send(admin, put(draftUrl), draftBody(lock, List.of(sheet("TEST sheet", 1, moneyColumn))))
-                .getStatus()).isEqualTo(422);
+                        .getStatus())
+                .isEqualTo(422);
         List<Object> unnamedColumn = List.of(column("", "unnamed", "text"));
         assertThat(send(admin, put(draftUrl), draftBody(lock, List.of(sheet("TEST sheet", 1, unnamedColumn))))
-                .getStatus()).isEqualTo(422);
+                        .getStatus())
+                .isEqualTo(422);
         List<Object> textColumn = List.of(column("TEST text", "label", "text"));
         assertThat(send(admin, put(draftUrl), draftBody(lock, List.of(sheet("TEST sheet", 0, textColumn))))
-                .getStatus()).isEqualTo(422);
+                        .getStatus())
+                .isEqualTo(422);
     }
 
     @Test
@@ -267,7 +280,8 @@ class UplSourceControllerTest extends EmbeddedPostgresTest {
         String prefix = "test.api." + rnd() + ".";
         for (String suffix : List.of("a", "b", "c")) {
             assertThat(send(admin, post(BASE), sourceBody(prefix + suffix, "TEST " + suffix, "month", null))
-                    .getStatus()).isEqualTo(201);
+                            .getStatus())
+                    .isEqualTo(201);
         }
         List<String> seen = new ArrayList<>();
         String cursor = null;
@@ -297,34 +311,49 @@ class UplSourceControllerTest extends EmbeddedPostgresTest {
     void listFiltersAndSortsThroughTheRegistry() throws Exception {
         Session admin = login(adminLogin);
         String prefix = "test.api." + rnd() + ".";
-        assertThat(send(admin, post(BASE), sourceBody(prefix + "a", "TEST b-name", "month", null)).getStatus())
+        assertThat(send(admin, post(BASE), sourceBody(prefix + "a", "TEST b-name", "month", null))
+                        .getStatus())
                 .isEqualTo(201);
-        assertThat(send(admin, post(BASE), sourceBody(prefix + "b", "TEST c-name", "year", null)).getStatus())
+        assertThat(send(admin, post(BASE), sourceBody(prefix + "b", "TEST c-name", "year", null))
+                        .getStatus())
                 .isEqualTo(201);
-        assertThat(send(admin, post(BASE), sourceBody(prefix + "c", "TEST a-name", "month", null)).getStatus())
+        assertThat(send(admin, post(BASE), sourceBody(prefix + "c", "TEST a-name", "month", null))
+                        .getStatus())
                 .isEqualTo(201);
         String filter = "[{\"field\":\"code\",\"op\":\"starts_with\",\"value\":\"" + prefix + "\"},"
                 + "{\"field\":\"periodicity\",\"op\":\"in\",\"value\":[\"month\"]},"
                 + "{\"field\":\"hasDraft\",\"op\":\"eq\",\"value\":false}]";
 
-        var first = sendGet(admin, get(BASE).param("filter", filter).param("sort", "-name").param("limit", "1"), 200);
+        var first = sendGet(
+                admin, get(BASE).param("filter", filter).param("sort", "-name").param("limit", "1"), 200);
         assertThat((List<String>) read(first, "$.items[*].code")).containsExactly(prefix + "a");
         assertThat((Integer) read(first, "$.totalEstimated")).isEqualTo(2);
         String cursor = read(first, "$.nextCursor");
 
-        var second = sendGet(admin, get(BASE).param("filter", filter).param("sort", "-name").param("limit", "1")
-                .param("cursor", cursor), 200);
+        var second = sendGet(
+                admin,
+                get(BASE)
+                        .param("filter", filter)
+                        .param("sort", "-name")
+                        .param("limit", "1")
+                        .param("cursor", cursor),
+                200);
         assertThat((List<String>) read(second, "$.items[*].code")).containsExactly(prefix + "c");
         assertThat((Boolean) read(second, "$.hasMore")).isFalse();
 
-        var otherSort = sendGet(admin, get(BASE).param("filter", filter).param("sort", "name").param("cursor", cursor),
-                422);
+        var otherSort = sendGet(
+                admin, get(BASE).param("filter", filter).param("sort", "name").param("cursor", cursor), 422);
         assertThat((String) read(otherSort, "$.errors[0].field")).isEqualTo("cursor");
 
-        var bad = sendGet(admin, get(BASE).param("filter",
-                "[{\"field\":\"ownerContact\",\"op\":\"eq\",\"value\":\"x\"},"
-                        + "{\"field\":\"lastPublishedVersion\",\"op\":\"contains\",\"value\":\"1\"}]")
-                .param("sort", "hasDraft"), 422);
+        var bad = sendGet(
+                admin,
+                get(BASE)
+                        .param(
+                                "filter",
+                                "[{\"field\":\"ownerContact\",\"op\":\"eq\",\"value\":\"x\"},"
+                                        + "{\"field\":\"lastPublishedVersion\",\"op\":\"contains\",\"value\":\"1\"}]")
+                        .param("sort", "hasDraft"),
+                422);
         assertThat((String) read(bad, "$.detail")).isEqualTo("QUERY_INVALID");
         assertThat((List<String>) read(bad, "$.errors[*].field"))
                 .containsExactly("filter[0].field", "filter[1].op", "sort");
@@ -336,9 +365,11 @@ class UplSourceControllerTest extends EmbeddedPostgresTest {
         Session admin = login(adminLogin);
         String prefix = "test.api." + rnd() + ".";
         assertThat(send(admin, post(BASE), sourceBody(prefix + "cement", "TEST Выпуск кирпича", "month", null))
-                .getStatus()).isEqualTo(201);
+                        .getStatus())
+                .isEqualTo(201);
         assertThat(send(admin, post(BASE), sourceBody(prefix + "brick", "TEST Выпуск ЦЕМЕНТА", "year", null))
-                .getStatus()).isEqualTo(201);
+                        .getStatus())
+                .isEqualTo(201);
         String mine = "[{\"field\":\"code\",\"op\":\"starts_with\",\"value\":\"" + prefix + "\"}]";
 
         var byEither = sendGet(admin, get(BASE).param("filter", mine).param("q", "цемент"), 200);
@@ -349,7 +380,8 @@ class UplSourceControllerTest extends EmbeddedPostgresTest {
         assertThat((Integer) read(both, "$.totalEstimated")).isEqualTo(2);
 
         var meta = sendGet(admin, "/api/v1/query-meta/upl.sources", 200);
-        assertThat((List<Boolean>) read(meta, "$.fields[*].searchable")).containsExactly(true, true, false, false, false);
+        assertThat((List<Boolean>) read(meta, "$.fields[*].searchable"))
+                .containsExactly(true, true, false, false, false);
     }
 
     @Test
@@ -362,8 +394,8 @@ class UplSourceControllerTest extends EmbeddedPostgresTest {
         assertThat((String) read(meta, "$.defaultSort")).isEqualTo("code");
         assertThat((Integer) read(meta, "$.maxLimit")).isEqualTo(200);
         assertThat((String) read(meta, "$.fields[2].type")).isEqualTo("enum");
-        assertThat((List<String>) read(meta, "$.fields[2].enumValues")).containsExactly("month", "quarter", "year",
-                "adhoc");
+        assertThat((List<String>) read(meta, "$.fields[2].enumValues"))
+                .containsExactly("month", "quarter", "year", "adhoc");
         assertThat((String) read(meta, "$.fields[2].enumLabelPrefix")).isEqualTo("upl.periodicity.");
         assertThat((List<String>) read(meta, "$.fields[3].ops")).contains("gt", "empty", "not_empty");
         assertThat((Boolean) read(meta, "$.fields[0].sortable")).isTrue();
@@ -384,53 +416,80 @@ class UplSourceControllerTest extends EmbeddedPostgresTest {
         var created = send(admin, post(BASE), sourceBody("test.api." + rnd(), "TEST source", "month", null));
         assertThat(created.getStatus()).isEqualTo(201);
         long id = ((Number) read(created, "$.id")).longValue();
-        assertThat(send(admin, post(BASE + "/" + id + "/format-versions"), null).getStatus()).isEqualTo(201);
+        assertThat(send(admin, post(BASE + "/" + id + "/format-versions"), null).getStatus())
+                .isEqualTo(201);
 
         Session analyst = login(analystLogin);
         sendGet(analyst, BASE, 200);
         sendGet(analyst, BASE + "/" + id, 200);
         sendGet(analyst, BASE + "/" + id + "/format-versions", 200);
         var template = sendGet(analyst, BASE + "/" + id + "/format-versions/1/template?lang=ru", 200);
-        assertThat(template.getContentType()).startsWith("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        assertThat(template.getHeader("Content-Disposition")).startsWith("attachment").contains("_v1.xlsx");
+        assertThat(template.getContentType())
+                .startsWith("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        assertThat(template.getHeader("Content-Disposition"))
+                .startsWith("attachment")
+                .contains("_v1.xlsx");
         assertThat(template.getContentAsByteArray()).startsWith((byte) 'P', (byte) 'K');
         sendGet(analyst, BASE + "/" + id + "/format-versions/9/template", 404);
 
         assertForbidden(send(analyst, post(BASE), sourceBody("test.api." + rnd(), "TEST", "month", null)));
         assertForbidden(send(analyst, put(BASE + "/" + id), sourceBody("x", "TEST", "month", 0)));
         assertForbidden(send(analyst, post(BASE + "/" + id + "/format-versions"), null));
-        assertForbidden(send(analyst, post(BASE + "/" + id + "/format-versions/1/publish"),
-                Map.of("validFrom", "2026-01-01")));
+        assertForbidden(
+                send(analyst, post(BASE + "/" + id + "/format-versions/1/publish"), Map.of("validFrom", "2026-01-01")));
     }
 
     @Test
     @DisplayName("AC-14: без входа — 401")
     void anonymousIsUnauthorized() throws Exception {
         assertThat(mvc.perform(get(BASE)).andReturn().getResponse().getStatus()).isEqualTo(401);
-        var anonymousPost = mvc.perform(post(BASE).contentType("application/json")
+        var anonymousPost = mvc.perform(post(BASE)
+                        .contentType("application/json")
                         .content(json(sourceBody("test.api." + rnd(), "TEST", "month", null))))
-                .andReturn().getResponse();
+                .andReturn()
+                .getResponse();
         assertThat(anonymousPost.getStatus()).isEqualTo(401);
     }
 
     private void createUser(String login, String role) {
-        Long systemId = jdbc.sql("select id from md_users where login = 'system'").query(Long.class).single();
-        Long roleId = jdbc.sql("select id from md_roles where pcode = :role").param("role", role)
-                .query(Long.class).single();
-        users.createUser("TEST " + login, login, login + "@test.local", null, PASSWORD, null, "ru", "UTC", null,
-                Map.of(), false, false, List.of(roleId), systemId);
+        Long systemId = jdbc.sql("select id from md_users where login = 'system'")
+                .query(Long.class)
+                .single();
+        Long roleId = jdbc.sql("select id from md_roles where pcode = :role")
+                .param("role", role)
+                .query(Long.class)
+                .single();
+        users.createUser(
+                "TEST " + login,
+                login,
+                login + "@test.local",
+                null,
+                PASSWORD,
+                null,
+                "ru",
+                "UTC",
+                null,
+                Map.of(),
+                false,
+                false,
+                List.of(roleId),
+                systemId);
     }
 
     private Session login(String login) throws Exception {
-        var response = mvc.perform(post("/api/v1/auth/login").contentType("application/json")
+        var response = mvc.perform(post("/api/v1/auth/login")
+                        .contentType("application/json")
                         .content(json(Map.of("login", login, "password", PASSWORD, "deviceInfo", "test"))))
-                .andReturn().getResponse();
+                .andReturn()
+                .getResponse();
         assertThat(response.getStatus()).as(response.getContentAsString()).isEqualTo(200);
         Cookie session = response.getCookie(KauthPref.SESSION_COOKIE_NAME);
         assertThat(session).as("session cookie").isNotNull();
         Cookie csrf = response.getCookie("XSRF-TOKEN");
         if (csrf == null) {
-            var handshake = mvc.perform(get("/api/v1/auth/me").cookie(session)).andReturn().getResponse();
+            var handshake = mvc.perform(get("/api/v1/auth/me").cookie(session))
+                    .andReturn()
+                    .getResponse();
             assertThat(handshake.getStatus()).isEqualTo(200);
             csrf = handshake.getCookie("XSRF-TOKEN");
         }
@@ -455,7 +514,8 @@ class UplSourceControllerTest extends EmbeddedPostgresTest {
 
     private MockHttpServletResponse sendGet(Session s, MockHttpServletRequestBuilder request, int expectedStatus)
             throws Exception {
-        var response = mvc.perform(request.cookie(s.session(), s.csrf())).andReturn().getResponse();
+        var response =
+                mvc.perform(request.cookie(s.session(), s.csrf())).andReturn().getResponse();
         assertThat(response.getStatus()).as(response.getContentAsString()).isEqualTo(expectedStatus);
         return response;
     }
@@ -472,11 +532,15 @@ class UplSourceControllerTest extends EmbeddedPostgresTest {
             throws Exception {
         var response = send(admin, post(BASE), body);
         String code = (String) body.get("code");
-        assertThat(response.getStatus()).as(code + " " + response.getContentAsString()).isEqualTo(422);
+        assertThat(response.getStatus())
+                .as(code + " " + response.getContentAsString())
+                .isEqualTo(422);
         List<String> fields = read(response, "$.errors[*].field");
         assertThat(fields).as(code).contains(field);
         Long rows = jdbc.sql("select count(*) from upl_sources where lower(code) = lower(:code)")
-                .param("code", code).query(Long.class).single();
+                .param("code", code)
+                .query(Long.class)
+                .single();
         assertThat(rows).as(code).isEqualTo(rowsAfter);
     }
 
@@ -528,8 +592,7 @@ class UplSourceControllerTest extends EmbeddedPostgresTest {
     }
 
     private static Map<String, Object> column(String nameInFile, String targetField, String dataType) {
-        return Map.of("nameInFile", nameInFile, "targetField", targetField, "dataType", dataType,
-                "required", false);
+        return Map.of("nameInFile", nameInFile, "targetField", targetField, "dataType", dataType, "required", false);
     }
 
     private static Map<String, Object> sheet(String name) {

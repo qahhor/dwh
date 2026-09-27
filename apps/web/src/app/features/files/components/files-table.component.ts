@@ -1,8 +1,25 @@
-import { Component, EventEmitter, Input, Output, Signal, TemplateRef, computed, inject, input, viewChild } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+  Signal,
+  TemplateRef,
+  computed,
+  inject,
+  input,
+  viewChild,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FileDetail } from '../files.models';
 import { I18nService, LANGUAGE_LOCALES, TranslatePipe } from '../../../core/services/i18n.service';
-import { canPreview, fileKind, fileKindIcon, formatFileSize, SMTFileKind } from '../../../shared/ui-kit/components/file-preview';
+import {
+  canPreview,
+  fileKind,
+  fileKindIcon,
+  formatFileSize,
+  SMTFileKind,
+} from '../../../shared/ui-kit/components/file-preview';
 import { QueryListMeta } from '../../../core/models/query-meta.models';
 import { KeysetPager } from '../../../shared/paging/keyset-pager';
 import { ListViewState } from '../../../shared/list-views/list-views';
@@ -20,13 +37,15 @@ import { OrderBy, TableConfig } from '../../../shared/ui-kit/components/table/ta
 @Component({
   selector: 'app-files-table',
   standalone: true,
-  imports: [
-    CommonModule,
-    TranslatePipe,
-    UiServerTableComponent
-  ],
+  imports: [CommonModule, TranslatePipe, UiServerTableComponent],
   template: `
-    <div class="table-container" role="region" [attr.aria-label]="'files.tablica_faylov' | t" tabindex="0" [attr.aria-busy]="pager().loading()">
+    <div
+      class="table-container"
+      role="region"
+      [attr.aria-label]="'files.tablica_faylov' | t"
+      tabindex="0"
+      [attr.aria-busy]="pager().loading()"
+    >
       @if (config(); as config) {
         <ui-server-table
           [pager]="pager()"
@@ -40,7 +59,8 @@ import { OrderBy, TableConfig } from '../../../shared/ui-kit/components/table/ta
           [loadingLabel]="'files.list_loading' | t"
           [errorLabel]="'files.list_load_error' | t"
           [emptyTemplate]="emptyState"
-          (sortChange)="sortChange.emit($event)" />
+          (sortChange)="sortChange.emit($event)"
+        />
       }
     </div>
 
@@ -49,14 +69,24 @@ import { OrderBy, TableConfig } from '../../../shared/ui-kit/components/table/ta
         <div class="file-icon-wrapper" [ngClass]="kindOf(file)">
           <span class="material-symbols-outlined" aria-hidden="true">{{ iconOf(file) }}</span>
         </div>
-        <button type="button" class="file-name-cell" (click)="download.emit(file)" [attr.aria-label]="'files.download_named' | t:{name: file.originalName}" [title]="'files.skachat_fayl' | t">
+        <button
+          type="button"
+          class="file-name-cell"
+          (click)="download.emit(file)"
+          [attr.aria-label]="'files.download_named' | t: { name: file.originalName }"
+          [title]="'files.skachat_fayl' | t"
+        >
           <span class="primary-name">{{ file.originalName }}</span>
           <span class="sha-sub text-muted text-xs font-mono">{{ file.sha256.substring(0, 12) }}...</span>
         </button>
       </div>
     </ng-template>
-    <ng-template #sizeCell let-file><span class="size-pill font-mono">{{ sizeOf(file) }}</span></ng-template>
-    <ng-template #mimeCell let-file><span class="mime-badge">{{ file.mimeType }}</span></ng-template>
+    <ng-template #sizeCell let-file
+      ><span class="size-pill font-mono">{{ sizeOf(file) }}</span></ng-template
+    >
+    <ng-template #mimeCell let-file
+      ><span class="mime-badge">{{ file.mimeType }}</span></ng-template
+    >
     <ng-template #creatorCell let-file>
       @if (file.creatorName) {
         <div class="creator-cell">
@@ -67,15 +97,29 @@ import { OrderBy, TableConfig } from '../../../shared/ui-kit/components/table/ta
         <span class="text-muted">—</span>
       }
     </ng-template>
-    <ng-template #dateCell let-file><span class="date-cell tabular-nums">{{ file.createdAt | date:'dd.MM.yyyy HH:mm' }}</span></ng-template>
+    <ng-template #dateCell let-file
+      ><span class="date-cell tabular-nums">{{ file.createdAt | date: 'dd.MM.yyyy HH:mm' }}</span></ng-template
+    >
     <ng-template #actionsCell let-file>
       <div class="row-actions">
         @if (previewable(file)) {
-          <button type="button" class="action-btn" data-testid="file-preview" [attr.aria-label]="'ui.file.preview' | t:{name: file.originalName}" (click)="preview.emit(file)">
+          <button
+            type="button"
+            class="action-btn"
+            data-testid="file-preview"
+            [attr.aria-label]="'ui.file.preview' | t: { name: file.originalName }"
+            (click)="preview.emit(file)"
+          >
             <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
           </button>
         }
-        <button type="button" class="action-btn download-btn" [attr.aria-label]="'files.download_named' | t:{name: file.originalName}" (click)="download.emit(file)" [title]="'files.skachat' | t">
+        <button
+          type="button"
+          class="action-btn download-btn"
+          [attr.aria-label]="'files.download_named' | t: { name: file.originalName }"
+          (click)="download.emit(file)"
+          [title]="'files.skachat' | t"
+        >
           <span class="material-symbols-outlined" aria-hidden="true">download</span>
         </button>
         @if (canDeleteFn(file)) {
@@ -83,7 +127,7 @@ import { OrderBy, TableConfig } from '../../../shared/ui-kit/components/table/ta
             type="button"
             class="action-btn delete-btn"
             [disabled]="isDeleting"
-            [attr.aria-label]="'files.delete_named' | t:{name: file.originalName}"
+            [attr.aria-label]="'files.delete_named' | t: { name: file.originalName }"
             (click)="delete.emit(file)"
             [title]="'common.delete' | t"
           >
@@ -100,159 +144,184 @@ import { OrderBy, TableConfig } from '../../../shared/ui-kit/components/table/ta
       </div>
     </ng-template>
   `,
-  styles: [`
-    :host {
-      display: block;
-    }
+  styles: [
+    `
+      :host {
+        display: block;
+      }
 
-    .table-container {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      overflow-x: auto;
-    }
+      .table-container {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        overflow-x: auto;
+      }
 
-    .name-with-icon { display: flex; align-items: center; gap: 10px; min-width: 0; }
+      .name-with-icon {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+      }
 
-    .file-icon-wrapper {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-    }
+      .file-icon-wrapper {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+      }
 
-    .file-icon-wrapper.image { background: var(--success-bg); color: var(--success-text); }
-    .file-icon-wrapper.pdf { background: var(--danger-bg); color: var(--danger-text); }
-    .file-icon-wrapper.doc { background: var(--info-bg); color: var(--info-text); }
-    .file-icon-wrapper.sheet { background: var(--success-bg); color: var(--success-text); }
-    .file-icon-wrapper.archive { background: var(--warning-bg); color: var(--warning-text); }
-    .file-icon-wrapper.other { background: var(--bg-hover); color: var(--text-muted); }
+      .file-icon-wrapper.image {
+        background: var(--success-bg);
+        color: var(--success-text);
+      }
+      .file-icon-wrapper.pdf {
+        background: var(--danger-bg);
+        color: var(--danger-text);
+      }
+      .file-icon-wrapper.doc {
+        background: var(--info-bg);
+        color: var(--info-text);
+      }
+      .file-icon-wrapper.sheet {
+        background: var(--success-bg);
+        color: var(--success-text);
+      }
+      .file-icon-wrapper.archive {
+        background: var(--warning-bg);
+        color: var(--warning-text);
+      }
+      .file-icon-wrapper.other {
+        background: var(--bg-hover);
+        color: var(--text-muted);
+      }
 
-    .file-name-cell {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 2px;
-      background: transparent;
-      border: none;
-      padding: 0;
-      cursor: pointer;
-      text-align: left;
-    }
+      .file-name-cell {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+        background: transparent;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+        text-align: left;
+      }
 
-    .file-name-cell:hover .primary-name {
-      color: var(--primary);
-      text-decoration: underline;
-    }
+      .file-name-cell:hover .primary-name {
+        color: var(--primary);
+        text-decoration: underline;
+      }
 
-    .primary-name {
-      font-weight: 600;
-      color: var(--text-main);
-      font-size: 13px;
-    }
+      .primary-name {
+        font-weight: 600;
+        color: var(--text-main);
+        font-size: 13px;
+      }
 
-    .sha-sub {
-      font-size: 11px;
-      color: var(--text-light);
-    }
+      .sha-sub {
+        font-size: 11px;
+        color: var(--text-light);
+      }
 
-    .size-pill {
-      font-size: 12px;
-      color: var(--text-muted);
-    }
+      .size-pill {
+        font-size: 12px;
+        color: var(--text-muted);
+      }
 
-    .mime-badge {
-      font-size: 11px;
-      font-family: monospace;
-      padding: 2px 6px;
-      border-radius: 4px;
-      background: var(--bg-hover);
-      color: var(--text-muted);
-    }
+      .mime-badge {
+        font-size: 11px;
+        font-family: monospace;
+        padding: 2px 6px;
+        border-radius: 4px;
+        background: var(--bg-hover);
+        color: var(--text-muted);
+      }
 
-    .creator-cell {
-      display: flex;
-      flex-direction: column;
-    }
+      .creator-cell {
+        display: flex;
+        flex-direction: column;
+      }
 
-    .creator-name {
-      font-size: 13px;
-      color: var(--text-main);
-    }
+      .creator-name {
+        font-size: 13px;
+        color: var(--text-main);
+      }
 
-    .date-cell {
-      font-size: 12px;
-      color: var(--text-light);
-    }
+      .date-cell {
+        font-size: 12px;
+        color: var(--text-light);
+      }
 
-    .row-actions {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 6px;
-    }
+      .row-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 6px;
+      }
 
-    .action-btn {
-      width: 28px;
-      height: 28px;
-      border-radius: 4px;
-      border: none;
-      background: transparent;
-      color: var(--text-light);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }
+      .action-btn {
+        width: 28px;
+        height: 28px;
+        border-radius: 4px;
+        border: none;
+        background: transparent;
+        color: var(--text-light);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
 
-    .action-btn .material-symbols-outlined {
-      font-size: 18px;
-    }
+      .action-btn .material-symbols-outlined {
+        font-size: 18px;
+      }
 
-    .action-btn.download-btn:hover {
-      background: var(--primary-subtle);
-      color: var(--primary-text);
-    }
+      .action-btn.download-btn:hover {
+        background: var(--primary-subtle);
+        color: var(--primary-text);
+      }
 
-    .action-btn.delete-btn:hover {
-      background: var(--danger-bg);
-      color: var(--danger-text);
-    }
+      .action-btn.delete-btn:hover {
+        background: var(--danger-bg);
+        color: var(--danger-text);
+      }
 
-    .empty-state-cell {
-      padding: 48px !important;
-      text-align: center;
-    }
+      .empty-state-cell {
+        padding: 48px !important;
+        text-align: center;
+      }
 
-    .empty-state-box {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-    }
+      .empty-state-box {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+      }
 
-    .empty-icon {
-      font-size: 48px;
-      color: var(--text-light);
-    }
+      .empty-icon {
+        font-size: 48px;
+        color: var(--text-light);
+      }
 
-    .empty-state-box h3 {
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--text-main);
-      margin: 0;
-    }
+      .empty-state-box h3 {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text-main);
+        margin: 0;
+      }
 
-    .empty-state-box p {
-      font-size: 13px;
-      color: var(--text-light);
-      margin: 0;
-    }
-  `]
+      .empty-state-box p {
+        font-size: 13px;
+        color: var(--text-light);
+        margin: 0;
+      }
+    `,
+  ],
 })
 export class FilesTableComponent {
   private readonly i18n = inject(I18nService);
@@ -279,7 +348,7 @@ export class FilesTableComponent {
     if (!meta) return null;
     const cell = (template: Signal<TemplateRef<unknown>>) => ({ type: 'templateRef' as const, value: template });
     const base = registryTableConfig<FileDetail>(meta, {
-      translate: key => this.i18n.translate(key),
+      translate: (key) => this.i18n.translate(key),
       trackBy: (_index, file) => file.id,
       ariaLabel: this.i18n.translate('files.spisok_faylov'),
       sort: views?.sort() ?? null,
@@ -288,9 +357,9 @@ export class FilesTableComponent {
         sizeBytes: cell(this.sizeCell),
         mimeType: cell(this.mimeCell),
         creatorName: cell(this.creatorCell),
-        createdAt: cell(this.dateCell)
+        createdAt: cell(this.dateCell),
       },
-      widths: { sizeBytes: '110px', createdAt: '150px' }
+      widths: { sizeBytes: '110px', createdAt: '150px' },
     });
     return {
       ...base,
@@ -301,10 +370,10 @@ export class FilesTableComponent {
           header: { type: 'primitive', value: this.i18n.translate('common.actions') },
           content: cell(this.actionsCell),
           width: '110px',
-          align: 'right'
-        }
+          align: 'right',
+        },
       },
-      columnsOrder: [...base.columnsOrder, 'actions']
+      columnsOrder: [...base.columnsOrder, 'actions'],
     };
   });
 

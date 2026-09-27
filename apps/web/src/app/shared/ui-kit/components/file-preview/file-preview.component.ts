@@ -10,7 +10,15 @@
  * run — one at a time in a dialog: its name, "n of m", previous and next
  * (buttons and the arrow keys), download, and a note with a download button
  * when an image cannot be read. Open it through SMTFilePreviewService. */
-import { ChangeDetectionStrategy, Component, computed, inject, Injectable, signal, ViewEncapsulation } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  Injectable,
+  signal,
+  ViewEncapsulation,
+} from '@angular/core';
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
 import { SMTI18nService } from '../../i18n';
 import { SMTModalService } from '../modal/modal.service';
@@ -48,29 +56,54 @@ let nextPreviewId = 0;
       @if (files.length > 1) {
         <span class="smt-file-preview__count">{{ i18n.messages().file.position(index() + 1, files.length) }}</span>
       }
-      <button type="button" class="smt-file-preview__button" [attr.aria-label]="i18n.messages().file.download(current().name)" (click)="download()">
+      <button
+        type="button"
+        class="smt-file-preview__button"
+        [attr.aria-label]="i18n.messages().file.download(current().name)"
+        (click)="download()"
+      >
         <span class="material-symbols-outlined" aria-hidden="true">download</span>
       </button>
-      <button type="button" class="smt-file-preview__button" cdkFocusInitial [attr.aria-label]="i18n.messages().common.close" (click)="close()">
+      <button
+        type="button"
+        class="smt-file-preview__button"
+        cdkFocusInitial
+        [attr.aria-label]="i18n.messages().common.close"
+        (click)="close()"
+      >
         <span class="material-symbols-outlined" aria-hidden="true">close</span>
       </button>
     </header>
     <div class="smt-file-preview__stage">
       @if (files.length > 1) {
-        <button type="button" class="smt-file-preview__nav" [disabled]="index() === 0" [attr.aria-label]="i18n.messages().file.previous" (click)="go(-1)">
+        <button
+          type="button"
+          class="smt-file-preview__nav"
+          [disabled]="index() === 0"
+          [attr.aria-label]="i18n.messages().file.previous"
+          (click)="go(-1)"
+        >
           <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
         </button>
       }
       @if (failed()) {
         <div class="smt-file-preview__failed" role="alert">
           <p>{{ i18n.messages().file.cannotShow }}</p>
-          <button type="button" class="smt-modal-button smt-modal-button--secondary" (click)="download()">{{ i18n.messages().file.downloadInstead }}</button>
+          <button type="button" class="smt-modal-button smt-modal-button--secondary" (click)="download()">
+            {{ i18n.messages().file.downloadInstead }}
+          </button>
         </div>
       } @else {
         <img class="smt-file-preview__image" [src]="current().url" [alt]="current().name" (error)="failed.set(true)" />
       }
       @if (files.length > 1) {
-        <button type="button" class="smt-file-preview__nav" [disabled]="index() === files.length - 1" [attr.aria-label]="i18n.messages().file.next" (click)="go(1)">
+        <button
+          type="button"
+          class="smt-file-preview__nav"
+          [disabled]="index() === files.length - 1"
+          [attr.aria-label]="i18n.messages().file.next"
+          (click)="go(1)"
+        >
           <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
         </button>
       }
@@ -121,7 +154,7 @@ export class SMTFilePreviewService {
   private readonly modal = inject(SMTModalService);
 
   open(files: readonly SMTPreviewFile[], chosen: SMTPreviewFile, download: (file: SMTPreviewFile) => void): void {
-    const images = files.filter(file => canPreview(file.mimeType, file.name));
+    const images = files.filter((file) => canPreview(file.mimeType, file.name));
     const index = images.indexOf(chosen);
     if (index < 0) return;
     const titleId = `smt-file-preview-title-${nextPreviewId++}`;

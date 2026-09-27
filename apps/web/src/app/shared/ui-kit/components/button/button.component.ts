@@ -14,7 +14,17 @@
  *
  * <button smt-button type="submit" smtVariant="primary" smtIcon="save" [smtLoading]="saving">Save</button>
  * <a smt-button smtVariant="ghost" routerLink="/help">Help</a> */
-import { booleanAttribute, ChangeDetectionStrategy, Component, computed, DestroyRef, ElementRef, inject, input, ViewEncapsulation } from '@angular/core';
+import {
+  booleanAttribute,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DestroyRef,
+  ElementRef,
+  inject,
+  input,
+  ViewEncapsulation,
+} from '@angular/core';
 import { SMTI18nService } from '../../i18n';
 
 export type SMTButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';

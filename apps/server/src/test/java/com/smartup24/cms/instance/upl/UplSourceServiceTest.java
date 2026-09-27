@@ -1,5 +1,8 @@
 package com.smartup24.cms.instance.upl;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.core.pagination.KeysetPage;
@@ -20,14 +23,6 @@ import com.smartup24.cms.instance.upl.format.UplFormatModel.SourceType;
 import com.smartup24.cms.instance.upl.format.UplSourceService;
 import com.smartup24.cms.instance.upl.format.UplSourceService.DraftData;
 import com.smartup24.cms.instance.upl.format.UplSourceService.SourceView;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.transaction.support.TransactionTemplate;
-
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -42,9 +37,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /** Сервис анкеты файла (И3 шаг 3.5): AC-1…AC-12 контракта source-formats. */
 class UplSourceServiceTest extends EmbeddedPostgresTest {
@@ -55,12 +54,16 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
 
     @Autowired
     private UplSourceService service;
+
     @Autowired
     private FndUnitService units;
+
     @Autowired
     private FndActors actors;
+
     @Autowired
     private JdbcClient jdbc;
+
     @Autowired
     private TransactionTemplate tx;
 
@@ -68,7 +71,9 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
 
     @BeforeEach
     void setUp() {
-        userId = jdbc.sql("select id from md_users where login = 'system'").query(Long.class).single();
+        userId = jdbc.sql("select id from md_users where login = 'system'")
+                .query(Long.class)
+                .single();
         ensureUnit(UNIT_BASE, UNIT_BASE);
         ensureUnit(UNIT_OTHER, UNIT_OTHER);
         ensureUnit(UNIT_PART, UNIT_BASE);
@@ -89,8 +94,10 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
         assertThat(updated.source().lockVersion()).isEqualTo(1);
 
         assertApi(() -> service.updateSource(id, 0, data(code), userId), ErrorCode.CONFLICT, "STALE_VERSION");
-        assertApi(() -> service.updateSource(id, 1, data(code + "x"), userId),
-                ErrorCode.VALIDATION_FAILED, "UPL_SOURCE_CODE_IMMUTABLE");
+        assertApi(
+                () -> service.updateSource(id, 1, data(code + "x"), userId),
+                ErrorCode.VALIDATION_FAILED,
+                "UPL_SOURCE_CODE_IMMUTABLE");
         assertApi(() -> service.updateSource(-1, 0, data(code), userId), ErrorCode.NOT_FOUND, "UPL_SOURCE_NOT_FOUND");
     }
 
@@ -99,8 +106,8 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
     void duplicateCodeIgnoringCase() {
         String code = newCode();
         service.createSource(data(code), userId);
-        assertApi(() -> service.createSource(data(code), userId),
-                ErrorCode.CODE_ALREADY_EXISTS, "UPL_SOURCE_CODE_TAKEN");
+        assertApi(
+                () -> service.createSource(data(code), userId), ErrorCode.CODE_ALREADY_EXISTS, "UPL_SOURCE_CODE_TAKEN");
     }
 
     @Test
@@ -114,7 +121,10 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
         String cursor = null;
         for (int guard = 0; guard < 100_000; guard++) {
             KeysetPage<SourceSummary> page = service.listSources(1, cursor);
-            page.items().stream().map(SourceSummary::code).filter(c -> c.startsWith(prefix)).forEach(ours::add);
+            page.items().stream()
+                    .map(SourceSummary::code)
+                    .filter(c -> c.startsWith(prefix))
+                    .forEach(ours::add);
             if (!page.hasMore()) {
                 break;
             }
@@ -147,8 +157,10 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
         assertThat(replaced.sheets()).hasSize(2);
         assertThat(replaced.fileKind()).isEqualTo(FileKind.XLSX);
         assertThat(replaced.matchColumnsBy()).isEqualTo(MatchBy.HEADER);
-        assertApi(() -> service.replaceDraft(id, version, lock, validDraft(), userId),
-                ErrorCode.CONFLICT, "STALE_VERSION");
+        assertApi(
+                () -> service.replaceDraft(id, version, lock, validDraft(), userId),
+                ErrorCode.CONFLICT,
+                "STALE_VERSION");
     }
 
     @Test
@@ -156,21 +168,65 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
     void headerSynonymsAreStoredAndMustNotClash() {
         long id = newSource();
         int version = service.createDraft(id, null, userId).version();
-        Column amount = new Column(null, 0, null, "Сумма", "amount", DataType.NUMBER, false, null, null,
-                null, null, null, null, List.of("Сумма, руб", " Итого "));
+        Column amount = new Column(
+                null,
+                0,
+                null,
+                "Сумма",
+                "amount",
+                DataType.NUMBER,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                List.of("Сумма, руб", " Итого "));
         Column name = col("Название", "org_name", DataType.TEXT, null, null, null, null, null, null);
-        replace(id, version, new DraftData(FileKind.XLSX, null, null, MatchBy.HEADER,
-                List.of(new Sheet(null, 0, "TEST лист", 1, null, List.of(name, amount)))));
+        replace(
+                id,
+                version,
+                new DraftData(
+                        FileKind.XLSX,
+                        null,
+                        null,
+                        MatchBy.HEADER,
+                        List.of(new Sheet(null, 0, "TEST лист", 1, null, List.of(name, amount)))));
 
-        Column stored = service.getVersion(id, version).sheets().getFirst().columns().get(1);
+        Column stored =
+                service.getVersion(id, version).sheets().getFirst().columns().get(1);
         assertThat(stored.headerSynonyms()).containsExactly("Сумма, руб", " Итого ");
 
-        Column clash = new Column(null, 0, null, "Сумма", "amount", DataType.NUMBER, false, null, null,
-                null, null, null, null, List.of("название"));
-        replace(id, version, new DraftData(FileKind.XLSX, null, null, MatchBy.HEADER,
-                List.of(new Sheet(null, 0, "TEST лист", 1, null, List.of(name, clash)))));
-        assertThat(publishErrors(id, version)).contains(new FieldErrorItem("sheets[0].columns[1].headerSynonyms[0]",
-                "UPL_COLUMN_NAME_DUPLICATE", "UPL_COLUMN_NAME_DUPLICATE"));
+        Column clash = new Column(
+                null,
+                0,
+                null,
+                "Сумма",
+                "amount",
+                DataType.NUMBER,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                List.of("название"));
+        replace(
+                id,
+                version,
+                new DraftData(
+                        FileKind.XLSX,
+                        null,
+                        null,
+                        MatchBy.HEADER,
+                        List.of(new Sheet(null, 0, "TEST лист", 1, null, List.of(name, clash)))));
+        assertThat(publishErrors(id, version))
+                .contains(new FieldErrorItem(
+                        "sheets[0].columns[1].headerSynonyms[0]",
+                        "UPL_COLUMN_NAME_DUPLICATE",
+                        "UPL_COLUMN_NAME_DUPLICATE"));
     }
 
     @Test
@@ -178,47 +234,100 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
     void publishCollectsAllViolations() {
         long xlsxId = newSource();
         int xlsx = service.createDraft(xlsxId, null, userId).version();
-        Sheet noName = new Sheet(null, 0, null, 1, null, List.of(
-                col("A", "a", DataType.TEXT, null, null, "x", null, null, null),
-                col(" a ", "b", DataType.TEXT, null, null, null, null, null, null),
-                col("C", "a", DataType.TEXT, null, null, null, null, null, null),
-                col("D", "d", DataType.INTEGER, null, null, null, null, 3, null),
-                col("E", "e", DataType.TEXT, null, UNIT_BASE, null, null, null, null),
-                withUnits(col("F", "f", DataType.NUMBER, null, null, null, null, null, null), UNIT_PART, null),
-                withUnits(col("G", "g", DataType.NUMBER, null, null, null, null, null, null), "test.u.nope", UNIT_BASE),
-                withUnits(col("H", "h", DataType.NUMBER, null, null, null, null, null, null), UNIT_PART, UNIT_OTHER),
-                col("I", "i", DataType.REF_CODE, null, null, null, null, null, null),
-                col("J", "j", DataType.TEXT, null, null, null, null, null, "test.book")));
-        Sheet badKeys = new Sheet(null, 0, "TEST keys", 1, null, List.of(
-                col("K1", "k1", DataType.OBJECT_KEY, null, null, null, null, null, null),
-                col("K2", "k2", DataType.OBJECT_KEY, null, null, "[", null, null, null)));
+        Sheet noName = new Sheet(
+                null,
+                0,
+                null,
+                1,
+                null,
+                List.of(
+                        col("A", "a", DataType.TEXT, null, null, "x", null, null, null),
+                        col(" a ", "b", DataType.TEXT, null, null, null, null, null, null),
+                        col("C", "a", DataType.TEXT, null, null, null, null, null, null),
+                        col("D", "d", DataType.INTEGER, null, null, null, null, 3, null),
+                        col("E", "e", DataType.TEXT, null, UNIT_BASE, null, null, null, null),
+                        withUnits(col("F", "f", DataType.NUMBER, null, null, null, null, null, null), UNIT_PART, null),
+                        withUnits(
+                                col("G", "g", DataType.NUMBER, null, null, null, null, null, null),
+                                "test.u.nope",
+                                UNIT_BASE),
+                        withUnits(
+                                col("H", "h", DataType.NUMBER, null, null, null, null, null, null),
+                                UNIT_PART,
+                                UNIT_OTHER),
+                        col("I", "i", DataType.REF_CODE, null, null, null, null, null, null),
+                        col("J", "j", DataType.TEXT, null, null, null, null, null, "test.book")));
+        Sheet badKeys = new Sheet(
+                null,
+                0,
+                "TEST keys",
+                1,
+                null,
+                List.of(
+                        col("K1", "k1", DataType.OBJECT_KEY, null, null, null, null, null, null),
+                        col("K2", "k2", DataType.OBJECT_KEY, null, null, "[", null, null, null)));
         Sheet empty = new Sheet(null, 0, "TEST empty", 1, null, List.of());
-        replace(xlsxId, xlsx, new DraftData(FileKind.XLSX, "utf-8", null, MatchBy.HEADER,
-                List.of(noName, badKeys, empty)));
+        replace(
+                xlsxId,
+                xlsx,
+                new DraftData(FileKind.XLSX, "utf-8", null, MatchBy.HEADER, List.of(noName, badKeys, empty)));
         List<FieldErrorItem> xlsxErrors = publishErrors(xlsxId, xlsx);
-        assertThat(codes(xlsxErrors)).contains("UPL_SHEET_NAME_REQUIRED", "UPL_OBJECT_KEY_COUNT",
-                "UPL_COLUMN_NAME_DUPLICATE", "UPL_TARGET_FIELD_DUPLICATE", "UPL_KEY_RULE_NOT_KEY",
-                "UPL_KEY_PAD_MAX_WITHOUT_LENGTH", "UPL_UNIT_NOT_NUMERIC", "UPL_BASE_UNIT_REQUIRED",
-                "UPL_UNIT_UNKNOWN", "UPL_BASE_UNIT_MISMATCH", "UPL_REF_BOOK_REQUIRED", "UPL_REF_BOOK_NOT_REF",
-                "UPL_XLSX_NO_CSV_PARAMS", "UPL_KEY_MASK_REQUIRED", "UPL_KEY_MASK_INVALID", "UPL_SHEET_NO_COLUMNS");
-        assertThat(xlsxErrors).contains(
-                new FieldErrorItem("sheets[0].columns[1].nameInFile", "UPL_COLUMN_NAME_DUPLICATE",
-                        "UPL_COLUMN_NAME_DUPLICATE"),
-                new FieldErrorItem("sheets[1].columns[1].keyMask", "UPL_KEY_MASK_INVALID", "UPL_KEY_MASK_INVALID"),
-                new FieldErrorItem("sheets[2].columns", "UPL_SHEET_NO_COLUMNS", "UPL_SHEET_NO_COLUMNS"));
+        assertThat(codes(xlsxErrors))
+                .contains(
+                        "UPL_SHEET_NAME_REQUIRED",
+                        "UPL_OBJECT_KEY_COUNT",
+                        "UPL_COLUMN_NAME_DUPLICATE",
+                        "UPL_TARGET_FIELD_DUPLICATE",
+                        "UPL_KEY_RULE_NOT_KEY",
+                        "UPL_KEY_PAD_MAX_WITHOUT_LENGTH",
+                        "UPL_UNIT_NOT_NUMERIC",
+                        "UPL_BASE_UNIT_REQUIRED",
+                        "UPL_UNIT_UNKNOWN",
+                        "UPL_BASE_UNIT_MISMATCH",
+                        "UPL_REF_BOOK_REQUIRED",
+                        "UPL_REF_BOOK_NOT_REF",
+                        "UPL_XLSX_NO_CSV_PARAMS",
+                        "UPL_KEY_MASK_REQUIRED",
+                        "UPL_KEY_MASK_INVALID",
+                        "UPL_SHEET_NO_COLUMNS");
+        assertThat(xlsxErrors)
+                .contains(
+                        new FieldErrorItem(
+                                "sheets[0].columns[1].nameInFile",
+                                "UPL_COLUMN_NAME_DUPLICATE",
+                                "UPL_COLUMN_NAME_DUPLICATE"),
+                        new FieldErrorItem(
+                                "sheets[1].columns[1].keyMask", "UPL_KEY_MASK_INVALID", "UPL_KEY_MASK_INVALID"),
+                        new FieldErrorItem("sheets[2].columns", "UPL_SHEET_NO_COLUMNS", "UPL_SHEET_NO_COLUMNS"));
         assertThat(service.getVersion(xlsxId, xlsx).status()).isEqualTo("draft");
 
         long csvId = newSource();
         int csv = service.createDraft(csvId, null, userId).version();
-        Sheet positions = new Sheet(null, 0, null, 1, null, List.of(
-                col("K", "k", DataType.OBJECT_KEY, null, null, "^[0-9]+$", null, null, null),
-                col("B", "b", DataType.TEXT, 2, null, null, null, null, null),
-                col("C", "c", DataType.TEXT, 2, null, null, null, null, null)));
-        Sheet second = new Sheet(null, 0, null, 1, null, List.of(
-                col("K", "k", DataType.OBJECT_KEY, 1, null, "^[0-9]+$", null, null, null)));
+        Sheet positions = new Sheet(
+                null,
+                0,
+                null,
+                1,
+                null,
+                List.of(
+                        col("K", "k", DataType.OBJECT_KEY, null, null, "^[0-9]+$", null, null, null),
+                        col("B", "b", DataType.TEXT, 2, null, null, null, null, null),
+                        col("C", "c", DataType.TEXT, 2, null, null, null, null, null)));
+        Sheet second = new Sheet(
+                null,
+                0,
+                null,
+                1,
+                null,
+                List.of(col("K", "k", DataType.OBJECT_KEY, 1, null, "^[0-9]+$", null, null, null)));
         replace(csvId, csv, new DraftData(FileKind.CSV, null, null, MatchBy.POSITION, List.of(positions, second)));
-        assertThat(codes(publishErrors(csvId, csv))).contains("UPL_CSV_ONE_SHEET", "UPL_CSV_ENCODING_REQUIRED",
-                "UPL_CSV_DELIMITER_REQUIRED", "UPL_POSITION_REQUIRED", "UPL_POSITION_DUPLICATE");
+        assertThat(codes(publishErrors(csvId, csv)))
+                .contains(
+                        "UPL_CSV_ONE_SHEET",
+                        "UPL_CSV_ENCODING_REQUIRED",
+                        "UPL_CSV_DELIMITER_REQUIRED",
+                        "UPL_POSITION_REQUIRED",
+                        "UPL_POSITION_DUPLICATE");
         assertThat(service.getVersion(csvId, csv).status()).isEqualTo("draft");
 
         long emptyId = newSource();
@@ -246,11 +355,14 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
         assertThat(copy.encoding()).isEqualTo(first.encoding());
         assertThat(copy.delimiter()).isEqualTo(first.delimiter());
         assertThat(copy.matchColumnsBy()).isEqualTo(first.matchColumnsBy());
-        assertThat(copy.sheets()).usingRecursiveComparison()
+        assertThat(copy.sheets())
+                .usingRecursiveComparison()
                 .ignoringFieldsMatchingRegexes("(.*\\.)?id")
                 .isEqualTo(first.sheets());
         assertThat(ids(copy)).doesNotContainAnyElementsOf(ids(first));
-        assertThat(service.getVersion(id, v1).sheets()).usingRecursiveComparison().isEqualTo(first.sheets());
+        assertThat(service.getVersion(id, v1).sheets())
+                .usingRecursiveComparison()
+                .isEqualTo(first.sheets());
 
         service.publish(id, v2, LocalDate.of(2026, 4, 1), userId);
         assertThat(service.versionAt(id, LocalDate.of(2026, 3, 31)).version()).isEqualTo(v1);
@@ -261,8 +373,10 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
         assertThat(service.getSource(id).lastPublishedVersion()).isEqualTo(v2);
 
         int v3 = service.createDraft(id, v2, userId).version();
-        assertApi(() -> service.publish(id, v3, LocalDate.of(2026, 4, 1), userId),
-                ErrorCode.CONFLICT, "FND_VERSION_NOT_AFTER_PREVIOUS");
+        assertApi(
+                () -> service.publish(id, v3, LocalDate.of(2026, 4, 1), userId),
+                ErrorCode.CONFLICT,
+                "FND_VERSION_NOT_AFTER_PREVIOUS");
         assertThat(service.getVersion(id, v3).status()).isEqualTo("draft");
     }
 
@@ -275,21 +389,27 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
         service.publish(id, version, LocalDate.of(2026, 1, 1), userId);
         int lock = service.getVersion(id, version).lockVersion();
 
-        assertApi(() -> service.replaceDraft(id, version, lock, validDraft(), userId),
-                ErrorCode.CONFLICT, "UPL_FORMAT_NOT_DRAFT");
-        assertApi(() -> service.publish(id, version, LocalDate.of(2026, 2, 1), userId),
-                ErrorCode.CONFLICT, "UPL_FORMAT_NOT_DRAFT");
+        assertApi(
+                () -> service.replaceDraft(id, version, lock, validDraft(), userId),
+                ErrorCode.CONFLICT,
+                "UPL_FORMAT_NOT_DRAFT");
+        assertApi(
+                () -> service.publish(id, version, LocalDate.of(2026, 2, 1), userId),
+                ErrorCode.CONFLICT,
+                "UPL_FORMAT_NOT_DRAFT");
         assertThat(service.getVersion(id, version).status()).isEqualTo("published");
     }
 
     @Test
-    @DisplayName("С-3, AC-9: единица источника = базовой, но производная — UPL_BASE_UNIT_MISMATCH; базовая = базовой — публикуется")
+    @DisplayName(
+            "С-3, AC-9: единица источника = базовой, но производная — UPL_BASE_UNIT_MISMATCH; базовая = базовой — публикуется")
     void sourceEqualsBaseUnitMustBeBase() {
         long derivedId = newSource();
         int derived = service.createDraft(derivedId, null, userId).version();
         replace(derivedId, derived, draftWithUnits(UNIT_PART, UNIT_PART));
-        assertThat(publishErrors(derivedId, derived)).contains(new FieldErrorItem(
-                "sheets[0].columns[1].baseUnit", "UPL_BASE_UNIT_MISMATCH", "UPL_BASE_UNIT_MISMATCH"));
+        assertThat(publishErrors(derivedId, derived))
+                .contains(new FieldErrorItem(
+                        "sheets[0].columns[1].baseUnit", "UPL_BASE_UNIT_MISMATCH", "UPL_BASE_UNIT_MISMATCH"));
 
         long baseId = newSource();
         int base = service.createDraft(baseId, null, userId).version();
@@ -304,10 +424,18 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
         long id = newSource();
         int version = service.createDraft(id, null, userId).version();
         List<Sheet> valid = validDraft().sheets();
-        replace(id, version, new DraftData(FileKind.XLSX, null, null, MatchBy.HEADER, List.of(
-                renamed(valid.get(0), "Лист"), renamed(valid.get(1), " лист "))));
-        assertThat(publishErrors(id, version)).contains(new FieldErrorItem(
-                "sheets[1].sheetName", "UPL_SHEET_NAME_DUPLICATE", "UPL_SHEET_NAME_DUPLICATE"));
+        replace(
+                id,
+                version,
+                new DraftData(
+                        FileKind.XLSX,
+                        null,
+                        null,
+                        MatchBy.HEADER,
+                        List.of(renamed(valid.get(0), "Лист"), renamed(valid.get(1), " лист "))));
+        assertThat(publishErrors(id, version))
+                .contains(new FieldErrorItem(
+                        "sheets[1].sheetName", "UPL_SHEET_NAME_DUPLICATE", "UPL_SHEET_NAME_DUPLICATE"));
     }
 
     @Test
@@ -326,10 +454,12 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
             long id = newSource();
             int version = service.createDraft(id, null, userId).version();
             replace(id, version, validDraft());
-            assertOneWinner(() -> {
-                service.publish(id, version, LocalDate.of(2026, 1, 1), userId);
-                return null;
-            }, "UPL_FORMAT_NOT_DRAFT");
+            assertOneWinner(
+                    () -> {
+                        service.publish(id, version, LocalDate.of(2026, 1, 1), userId);
+                        return null;
+                    },
+                    "UPL_FORMAT_NOT_DRAFT");
             assertThat(service.getVersion(id, version).status()).isEqualTo("published");
         }
     }
@@ -341,8 +471,8 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
         int version = service.createDraft(id, null, userId).version();
         replace(id, version, validDraft());
         int lock = service.getVersion(id, version).lockVersion();
-        DraftData invalid = new DraftData(null, null, null, null,
-                List.of(new Sheet(null, 0, "TEST no columns", 1, null, List.of())));
+        DraftData invalid = new DraftData(
+                null, null, null, null, List.of(new Sheet(null, 0, "TEST no columns", 1, null, List.of())));
         CountDownLatch locked = new CountDownLatch(1);
         CountDownLatch release = new CountDownLatch(1);
         ExecutorService pool = Executors.newFixedThreadPool(2);
@@ -358,7 +488,9 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
                 service.publish(id, version, LocalDate.of(2026, 1, 1), userId);
                 return null;
             });
-            assertThat(waitForLockWaiter()).as("публикация ждёт блокировку черновика").isTrue();
+            assertThat(waitForLockWaiter())
+                    .as("публикация ждёт блокировку черновика")
+                    .isTrue();
             release.countDown();
 
             edit.get(30, TimeUnit.SECONDS);
@@ -408,8 +540,10 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
     void versionsOfMissingSource() {
         assertApi(() -> service.getVersion(-1, 1), ErrorCode.NOT_FOUND, "UPL_SOURCE_NOT_FOUND");
         assertApi(() -> service.createDraft(-1, null, userId), ErrorCode.NOT_FOUND, "UPL_SOURCE_NOT_FOUND");
-        assertApi(() -> service.publish(-1, 1, LocalDate.of(2026, 1, 1), userId),
-                ErrorCode.NOT_FOUND, "UPL_SOURCE_NOT_FOUND");
+        assertApi(
+                () -> service.publish(-1, 1, LocalDate.of(2026, 1, 1), userId),
+                ErrorCode.NOT_FOUND,
+                "UPL_SOURCE_NOT_FOUND");
     }
 
     @Test
@@ -457,7 +591,12 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
         List<Sheet> valid = validDraft().sheets();
         Sheet first = valid.get(0);
         Column amount = withUnits(first.columns().get(1), sourceUnit, baseUnit);
-        Sheet changed = new Sheet(null, 0, first.sheetName(), first.headerRow(), first.totalRowMarker(),
+        Sheet changed = new Sheet(
+                null,
+                0,
+                first.sheetName(),
+                first.headerRow(),
+                first.totalRowMarker(),
                 List.of(first.columns().get(0), amount));
         return new DraftData(null, null, null, null, List.of(changed, valid.get(1)));
     }
@@ -492,34 +631,129 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
     }
 
     private static DraftData validDraft() {
-        return new DraftData(null, null, null, null, List.of(
-                new Sheet(null, 0, "TEST sheet 1", 2, "TEST total", List.of(
-                        col("TEST key", "object_key", DataType.OBJECT_KEY, null, null, "^[0-9]{9}$", 9, 1, null),
-                        withUnits(col("TEST amount", "amount", DataType.NUMBER, null, null, null, null, null, null),
-                                UNIT_PART, UNIT_BASE))),
-                new Sheet(null, 0, "TEST sheet 2", 1, null, List.of(
-                        col("TEST key", "object_key", DataType.OBJECT_KEY, null, null, "^[0-9]{9}$", null, null, null),
-                        col("TEST code", "ref_value", DataType.REF_CODE, null, null, null, null, null, "test.book")))));
+        return new DraftData(
+                null,
+                null,
+                null,
+                null,
+                List.of(
+                        new Sheet(
+                                null,
+                                0,
+                                "TEST sheet 1",
+                                2,
+                                "TEST total",
+                                List.of(
+                                        col(
+                                                "TEST key",
+                                                "object_key",
+                                                DataType.OBJECT_KEY,
+                                                null,
+                                                null,
+                                                "^[0-9]{9}$",
+                                                9,
+                                                1,
+                                                null),
+                                        withUnits(
+                                                col(
+                                                        "TEST amount",
+                                                        "amount",
+                                                        DataType.NUMBER,
+                                                        null,
+                                                        null,
+                                                        null,
+                                                        null,
+                                                        null,
+                                                        null),
+                                                UNIT_PART,
+                                                UNIT_BASE))),
+                        new Sheet(
+                                null,
+                                0,
+                                "TEST sheet 2",
+                                1,
+                                null,
+                                List.of(
+                                        col(
+                                                "TEST key",
+                                                "object_key",
+                                                DataType.OBJECT_KEY,
+                                                null,
+                                                null,
+                                                "^[0-9]{9}$",
+                                                null,
+                                                null,
+                                                null),
+                                        col(
+                                                "TEST code",
+                                                "ref_value",
+                                                DataType.REF_CODE,
+                                                null,
+                                                null,
+                                                null,
+                                                null,
+                                                null,
+                                                "test.book")))));
     }
 
     /** Колонка без единиц измерения; {@code sourceUnit} — только для случая «единица у не-числа». */
-    private static Column col(String name, String target, DataType type, Integer position, String sourceUnit,
-                              String mask, Integer padLength, Integer padMax, String refBook) {
-        return new Column(null, 0, position, name, target, type, false, sourceUnit, null,
-                mask, padLength, padMax, refBook);
+    private static Column col(
+            String name,
+            String target,
+            DataType type,
+            Integer position,
+            String sourceUnit,
+            String mask,
+            Integer padLength,
+            Integer padMax,
+            String refBook) {
+        return new Column(
+                null, 0, position, name, target, type, false, sourceUnit, null, mask, padLength, padMax, refBook);
     }
 
     private static Column withUnits(Column c, String sourceUnit, String baseUnit) {
-        return new Column(c.id(), c.ordinal(), c.filePosition(), c.nameInFile(), c.targetField(), c.dataType(),
-                c.required(), sourceUnit, baseUnit, c.keyMask(), c.keyPadLength(), c.keyPadMax(), c.refBookCode());
+        return new Column(
+                c.id(),
+                c.ordinal(),
+                c.filePosition(),
+                c.nameInFile(),
+                c.targetField(),
+                c.dataType(),
+                c.required(),
+                sourceUnit,
+                baseUnit,
+                c.keyMask(),
+                c.keyPadLength(),
+                c.keyPadMax(),
+                c.refBookCode());
     }
 
     /** Листы без идентификаторов строк — для сравнения копии с оригиналом. */
     private static List<Sheet> withoutIds(List<Sheet> sheets) {
-        return sheets.stream().map(s -> new Sheet(null, s.ordinal(), s.sheetName(), s.headerRow(),
-                s.totalRowMarker(), s.columns().stream().map(c -> new Column(null, c.ordinal(), c.filePosition(),
-                        c.nameInFile(), c.targetField(), c.dataType(), c.required(), c.sourceUnit(), c.baseUnit(),
-                        c.keyMask(), c.keyPadLength(), c.keyPadMax(), c.refBookCode())).toList())).toList();
+        return sheets.stream()
+                .map(s -> new Sheet(
+                        null,
+                        s.ordinal(),
+                        s.sheetName(),
+                        s.headerRow(),
+                        s.totalRowMarker(),
+                        s.columns().stream()
+                                .map(c -> new Column(
+                                        null,
+                                        c.ordinal(),
+                                        c.filePosition(),
+                                        c.nameInFile(),
+                                        c.targetField(),
+                                        c.dataType(),
+                                        c.required(),
+                                        c.sourceUnit(),
+                                        c.baseUnit(),
+                                        c.keyMask(),
+                                        c.keyPadLength(),
+                                        c.keyPadMax(),
+                                        c.refBookCode()))
+                                .toList()))
+                .toList();
     }
 
     private static List<String> codes(List<FieldErrorItem> errors) {

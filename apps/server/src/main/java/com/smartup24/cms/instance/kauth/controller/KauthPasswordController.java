@@ -47,12 +47,12 @@ public class KauthPasswordController {
     public ResponseEntity<Void> changeMyPassword(@Valid @RequestBody ChangePasswordDto body) {
         var principal = SecurityContext.getPrincipal();
         if (principal == null) throw ApiException.invalidCredentials();
-        userService.changePassword(principal.userId(), principal.authenticationVersion(), body.oldPassword(), body.newPassword());
+        userService.changePassword(
+                principal.userId(), principal.authenticationVersion(), body.oldPassword(), body.newPassword());
         return ResponseEntity.noContent().build();
     }
 
     public record ChangePasswordDto(
             @NotBlank String oldPassword,
-            @NotBlank @Size(min = 10, max = 100) String newPassword
-    ) {}
+            @NotBlank @Size(min = 10, max = 100) String newPassword) {}
 }

@@ -1,5 +1,8 @@
 package com.smartup24.cms.instance.audit;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository.AuditLogFilters;
@@ -15,19 +18,15 @@ import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.query.QueryCompiler;
 import com.smartup24.cms.instance.common.query.QueryListRepository;
 import com.smartup24.cms.instance.support.TestDatabases;
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import tools.jackson.databind.ObjectMapper;
-
-import java.time.Instant;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** The audit log and the security events on the field registry (ADR-0016, roadmap item 50). */
 class AuditListIntegrationTest {
@@ -42,7 +41,9 @@ class AuditListIntegrationTest {
         var ds = TestDatabases.migratedCopy("dwh_audit_list_test");
         jdbc = JdbcClient.create(ds);
         var repository = new AuditLogRepository(jdbc, new ObjectMapper());
-        audit = new AuditListService(new QueryListRepository(jdbc), repository,
+        audit = new AuditListService(
+                new QueryListRepository(jdbc),
+                repository,
                 new AuditLogService(repository, null, new AuditDataRedactor()));
     }
 
@@ -70,23 +71,37 @@ class AuditListIntegrationTest {
         var table = new AuditLogFilters("al_dsl", null, null, null, null, null);
 
         assertThat(audit.logs(null, null, "[{\"field\":\"event\",\"op\":\"eq\",\"value\":\"D\"}]", null, null, table)
-                .items()).extracting(AuditRecord::rowPk).containsExactly("2");
+                        .items())
+                .extracting(AuditRecord::rowPk)
+                .containsExactly("2");
         assertThat(audit.logs(null, null, null, "changedAt", null, table).items())
-                .extracting(AuditRecord::rowPk).containsExactly("1", "2");
+                .extracting(AuditRecord::rowPk)
+                .containsExactly("1", "2");
 
         var first = audit.logs(1, null, null, null, null, table);
-        assertThatThrownBy(() -> audit.logs(1, first.nextCursor(), null, null, null,
-                new AuditLogFilters("al_dsl", null, "I", null, null, null)))
-                .isInstanceOfSatisfying(ApiException.class, error -> assertThat(error.getFieldErrors())
-                        .extracting(FieldErrorItem::code).containsExactly(QueryCompiler.INVALID_CURSOR));
+        assertThatThrownBy(() -> audit.logs(
+                        1,
+                        first.nextCursor(),
+                        null,
+                        null,
+                        null,
+                        new AuditLogFilters("al_dsl", null, "I", null, null, null)))
+                .isInstanceOfSatisfying(
+                        ApiException.class,
+                        error -> assertThat(error.getFieldErrors())
+                                .extracting(FieldErrorItem::code)
+                                .containsExactly(QueryCompiler.INVALID_CURSOR));
     }
 
     @Test
     @DisplayName("Only the event time sorts: a large partitioned log is never sorted by an unindexed column")
     void onlyTheEventTimeSorts() {
         assertThatThrownBy(() -> audit.logs(null, null, null, "tableName", null, AuditLogFilters.none()))
-                .isInstanceOfSatisfying(ApiException.class, error -> assertThat(error.getFieldErrors())
-                        .extracting(FieldErrorItem::code).containsExactly(QueryCompiler.SORT_INVALID));
+                .isInstanceOfSatisfying(
+                        ApiException.class,
+                        error -> assertThat(error.getFieldErrors())
+                                .extracting(FieldErrorItem::code)
+                                .containsExactly(QueryCompiler.SORT_INVALID));
     }
 
     @Test
@@ -95,12 +110,16 @@ class AuditListIntegrationTest {
         insertAudit("al_secret", "1", "U", TIE, "{\"password_hash\":\"secret-hash\",\"state\":\"A\"}");
         insertSecurityEvent("AL_SECRET", "10.0.0.7", "{\"token\":\"live-token\",\"reason\":\"x\"}", TIE);
 
-        var row = audit.logs(null, null, null, null, null, new AuditLogFilters("al_secret", null, null, null, null, null))
-                .items().getFirst();
+        var row = audit.logs(
+                        null, null, null, null, null, new AuditLogFilters("al_secret", null, null, null, null, null))
+                .items()
+                .getFirst();
         assertThat(row.newRow()).containsEntry("password_hash", "[REDACTED]").containsEntry("state", "A");
 
-        var event = audit.securityEvents(null, null, null, null, null,
-                new SecurityEventFilters("AL_SECRET", null, null, null, null)).items().getFirst();
+        var event = audit.securityEvents(
+                        null, null, null, null, null, new SecurityEventFilters("AL_SECRET", null, null, null, null))
+                .items()
+                .getFirst();
         assertThat(event.details()).containsEntry("token", "[REDACTED]").containsEntry("reason", "x");
     }
 
@@ -118,34 +137,52 @@ class AuditListIntegrationTest {
         assertThat(second.items()).extracting(SecurityEventRecord::id).containsExactly(oldest);
 
         assertThat(audit.securityEvents(null, null, null, null, "10.9.9", type).items())
-                .extracting(SecurityEventRecord::id).containsExactly(newest);
-        assertThat(audit.securityEvents(null, null, null, null, null,
-                new SecurityEventFilters("AL_TIE", null, "10.1.1", null, null)).items())
-                .extracting(SecurityEventRecord::id).containsExactly(middle, oldest);
+                .extracting(SecurityEventRecord::id)
+                .containsExactly(newest);
+        assertThat(audit.securityEvents(
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                new SecurityEventFilters("AL_TIE", null, "10.1.1", null, null))
+                        .items())
+                .extracting(SecurityEventRecord::id)
+                .containsExactly(middle, oldest);
     }
 
     @Test
     @DisplayName("Every registry field is a property of the row the client receives")
     void everyFieldIsARowProperty() {
-        assertThat(AuditQuery.LOGS.fields()).allSatisfy(field -> assertThat(properties(AuditRecord.class)).contains(field.key()));
+        assertThat(AuditQuery.LOGS.fields())
+                .allSatisfy(field -> assertThat(properties(AuditRecord.class)).contains(field.key()));
         assertThat(AuditQuery.SECURITY_EVENTS.fields())
-                .allSatisfy(field -> assertThat(properties(SecurityEventRecord.class)).contains(field.key()));
+                .allSatisfy(field ->
+                        assertThat(properties(SecurityEventRecord.class)).contains(field.key()));
     }
 
     @Test
     @DisplayName("The exports refuse bad option values before the job starts")
     void exportsCheckOptionValues() {
         var exporters = new AuditListExporters();
-        assertThat(exporters.auditLogsExporter(audit).checkOptions(Map.of("event", "U", "user_id", "4",
-                "from", "2026-09-01T00:00:00Z"))).isEmpty();
-        assertThat(exporters.auditLogsExporter(audit).checkOptions(Map.of("event", "X", "user_id", "me",
-                "to", "yesterday"))).extracting(FieldErrorItem::field).containsExactlyInAnyOrder("event", "user_id", "to");
+        assertThat(exporters
+                        .auditLogsExporter(audit)
+                        .checkOptions(Map.of("event", "U", "user_id", "4", "from", "2026-09-01T00:00:00Z")))
+                .isEmpty();
+        assertThat(exporters
+                        .auditLogsExporter(audit)
+                        .checkOptions(Map.of("event", "X", "user_id", "me", "to", "yesterday")))
+                .extracting(FieldErrorItem::field)
+                .containsExactlyInAnyOrder("event", "user_id", "to");
         assertThat(exporters.auditSecurityEventsExporter(audit).checkOptions(Map.of("from", "soon")))
-                .extracting(FieldErrorItem::field).containsExactly("from");
+                .extracting(FieldErrorItem::field)
+                .containsExactly("from");
     }
 
     private static List<String> properties(Class<? extends Record> type) {
-        return Arrays.stream(type.getRecordComponents()).map(java.lang.reflect.RecordComponent::getName).toList();
+        return Arrays.stream(type.getRecordComponents())
+                .map(java.lang.reflect.RecordComponent::getName)
+                .toList();
     }
 
     private static long insertAudit(String table, String rowPk, String event, Instant at, String newRow) {
@@ -154,9 +191,13 @@ class AuditListIntegrationTest {
                         values (:table, :rowPk, :event, :at, array['state'], cast(:newRow as jsonb))
                         returning id
                         """)
-                .param("table", table).param("rowPk", rowPk).param("event", event)
-                .param("at", java.sql.Timestamp.from(at)).param("newRow", newRow)
-                .query(Long.class).single();
+                .param("table", table)
+                .param("rowPk", rowPk)
+                .param("event", event)
+                .param("at", java.sql.Timestamp.from(at))
+                .param("newRow", newRow)
+                .query(Long.class)
+                .single();
     }
 
     private static long insertSecurityEvent(String type, String ip, String details, Instant at) {
@@ -165,7 +206,11 @@ class AuditListIntegrationTest {
                         values (:type, cast(:ip as inet), cast(:details as jsonb), :at)
                         returning id
                         """)
-                .param("type", type).param("ip", ip).param("details", details).param("at", java.sql.Timestamp.from(at))
-                .query(Long.class).single();
+                .param("type", type)
+                .param("ip", ip)
+                .param("details", details)
+                .param("at", java.sql.Timestamp.from(at))
+                .query(Long.class)
+                .single();
     }
 }

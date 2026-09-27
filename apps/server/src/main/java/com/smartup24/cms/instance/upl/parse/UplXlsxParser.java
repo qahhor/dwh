@@ -6,14 +6,6 @@ import com.smartup24.cms.instance.upl.format.UplFormatModel.FormatVersion;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.MatchBy;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.Sheet;
 import com.smartup24.cms.instance.upl.parse.UplParseResult.ErrorRecord;
-import org.dhatim.fastexcel.reader.Cell;
-import org.dhatim.fastexcel.reader.CellType;
-import org.dhatim.fastexcel.reader.ExcelReaderException;
-import org.dhatim.fastexcel.reader.ReadableWorkbook;
-import org.dhatim.fastexcel.reader.Row;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -35,6 +27,13 @@ import java.util.function.Consumer;
 import java.util.function.ToIntFunction;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
+import org.dhatim.fastexcel.reader.Cell;
+import org.dhatim.fastexcel.reader.CellType;
+import org.dhatim.fastexcel.reader.ExcelReaderException;
+import org.dhatim.fastexcel.reader.ReadableWorkbook;
+import org.dhatim.fastexcel.reader.Row;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 /**
  * Разбор xlsx-файла пакета по опубликованной анкете. Читает файл потоком за два прохода:
@@ -88,7 +87,7 @@ public class UplXlsxParser {
 
     /** Разбирает файл по анкете. Поток закрывает вызывающий. */
     public UplParseResult parse(InputStream content, FormatVersion format) {
-        return parse(content, format, row -> { });
+        return parse(content, format, row -> {});
     }
 
     /**
@@ -100,8 +99,8 @@ public class UplXlsxParser {
             List<ErrorRecord> structure = new ArrayList<>();
             List<SheetMatch> sheets = matchStructure(book, format, structure);
             if (!structure.isEmpty()) {
-                return UplParseResult.rejected(UPL_PKG_STRUCTURE, Map.of("count", structure.size()),
-                        structure.size(), stored(structure));
+                return UplParseResult.rejected(
+                        UPL_PKG_STRUCTURE, Map.of("count", structure.size()), structure.size(), stored(structure));
             }
             return readValues(sheets, rows);
         } catch (IOException | ExcelReaderException unreadable) {
@@ -111,14 +110,19 @@ public class UplXlsxParser {
 
     // --- проход 1: структура ---
 
-    private List<SheetMatch> matchStructure(ReadableWorkbook book, FormatVersion format,
-                                            List<ErrorRecord> errors) throws IOException {
+    private List<SheetMatch> matchStructure(ReadableWorkbook book, FormatVersion format, List<ErrorRecord> errors)
+            throws IOException {
         List<org.dhatim.fastexcel.reader.Sheet> inFile = book.getSheets().toList();
         List<SheetMatch> matched = new ArrayList<>();
         for (Sheet spec : ordered(format.sheets(), Sheet::ordinal)) {
             Optional<org.dhatim.fastexcel.reader.Sheet> found = findSheet(inFile, spec.sheetName());
             if (found.isEmpty()) {
-                errors.add(new ErrorRecord(spec.sheetName(), null, null, null, UPL_STRUCT_SHEET_MISSING,
+                errors.add(new ErrorRecord(
+                        spec.sheetName(),
+                        null,
+                        null,
+                        null,
+                        UPL_STRUCT_SHEET_MISSING,
                         Map.of("sheet", spec.sheetName())));
                 continue;
             }
@@ -128,8 +132,8 @@ public class UplXlsxParser {
         return matched;
     }
 
-    private Optional<org.dhatim.fastexcel.reader.Sheet> findSheet(List<org.dhatim.fastexcel.reader.Sheet> inFile,
-                                                                  String name) {
+    private Optional<org.dhatim.fastexcel.reader.Sheet> findSheet(
+            List<org.dhatim.fastexcel.reader.Sheet> inFile, String name) {
         for (org.dhatim.fastexcel.reader.Sheet sheet : inFile) {
             if (sheet.getName().equals(name)) {
                 return Optional.of(sheet);
@@ -147,7 +151,8 @@ public class UplXlsxParser {
     /** Тексты ячеек шапки после {@code strip}; {@code null} — пустая ячейка. Строки нет — шапка пустая. */
     private List<String> headerTexts(org.dhatim.fastexcel.reader.Sheet file, int headerRow) throws IOException {
         try (Stream<Row> rows = file.openStream()) {
-            Optional<Row> header = rows.filter(row -> row.getRowNum() == headerRow).findFirst();
+            Optional<Row> header =
+                    rows.filter(row -> row.getRowNum() == headerRow).findFirst();
             if (header.isEmpty()) {
                 return List.of();
             }
@@ -161,8 +166,7 @@ public class UplXlsxParser {
         }
     }
 
-    private List<ColumnMatch> matchColumns(Sheet spec, List<String> header, MatchBy matchBy,
-                                           List<ErrorRecord> errors) {
+    private List<ColumnMatch> matchColumns(Sheet spec, List<String> header, MatchBy matchBy, List<ErrorRecord> errors) {
         return matchBy == MatchBy.POSITION
                 ? matchByPosition(spec, header, errors)
                 : matchByHeader(spec, header, errors);
@@ -221,7 +225,12 @@ public class UplXlsxParser {
     }
 
     private ErrorRecord structureError(Sheet spec, String column, String code) {
-        return new ErrorRecord(spec.sheetName(), null, column, null, code,
+        return new ErrorRecord(
+                spec.sheetName(),
+                null,
+                column,
+                null,
+                code,
                 Map.of("sheet", spec.sheetName(), "column", column, "headerRow", spec.headerRow()));
     }
 
@@ -240,8 +249,7 @@ public class UplXlsxParser {
                     Row row = reader.next();
                     cells += filledCells(row);
                     if (cells > maxCells) {
-                        return UplParseResult.rejected(UPL_PKG_TOO_MANY_CELLS, Map.of("limit", maxCells),
-                                0, List.of());
+                        return UplParseResult.rejected(UPL_PKG_TOO_MANY_CELLS, Map.of("limit", maxCells), 0, List.of());
                     }
                     if (row.getRowNum() <= sheet.spec().headerRow()) {
                         continue;
@@ -289,8 +297,8 @@ public class UplXlsxParser {
             CellValue value = values.get(index);
             String code = check(column, value);
             if (code != null) {
-                errors.add(new ErrorRecord(sheet.spec().sheetName(), rowNo, column.nameInFile(),
-                        shortened(value.text()), code, Map.of()));
+                errors.add(new ErrorRecord(
+                        sheet.spec().sheetName(), rowNo, column.nameInFile(), shortened(value.text()), code, Map.of()));
             }
         }
         return errors;
@@ -394,7 +402,9 @@ public class UplXlsxParser {
     private static DataRow dataRow(SheetMatch sheet, int rowNo, List<CellValue> values) {
         Map<String, Object> fields = new LinkedHashMap<>();
         for (int index = 0; index < sheet.columns().size(); index++) {
-            fields.put(sheet.columns().get(index).column().targetField(), values.get(index).text());
+            fields.put(
+                    sheet.columns().get(index).column().targetField(),
+                    values.get(index).text());
         }
         return new DataRow(sheet.spec().sheetName(), rowNo, fields);
     }
@@ -462,18 +472,14 @@ public class UplXlsxParser {
     }
 
     /** Строка данных как в файле: лист, № строки Excel и значения по полям анкеты ({@code null} — пустая ячейка). */
-    public record DataRow(String sheet, int sourceRowNo, Map<String, Object> fields) {
-    }
+    public record DataRow(String sheet, int sourceRowNo, Map<String, Object> fields) {}
 
     /** Значение ячейки: текст как в файле ({@code null} — пусто) и признак числовой ячейки. */
-    private record CellValue(String text, boolean numeric) {
-    }
+    private record CellValue(String text, boolean numeric) {}
 
     /** Сопоставленный лист: описание из анкеты, лист файла и колонки с индексами в файле. */
-    private record SheetMatch(Sheet spec, org.dhatim.fastexcel.reader.Sheet file, List<ColumnMatch> columns) {
-    }
+    private record SheetMatch(Sheet spec, org.dhatim.fastexcel.reader.Sheet file, List<ColumnMatch> columns) {}
 
     /** Колонка анкеты и её индекс в файле (с 0). */
-    private record ColumnMatch(Column column, int index) {
-    }
+    private record ColumnMatch(Column column, int index) {}
 }

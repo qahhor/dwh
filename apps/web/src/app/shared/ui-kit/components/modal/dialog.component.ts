@@ -70,7 +70,12 @@ export class SMTDialogContentDirective {
               <h2 class="smt-modal__title" [id]="titleId">{{ title() }}</h2>
             }
             @if (dismissible()) {
-              <button type="button" class="smt-modal__close" [attr.aria-label]="i18n.messages().common.close" (click)="dismiss()">
+              <button
+                type="button"
+                class="smt-modal__close"
+                [attr.aria-label]="i18n.messages().common.close"
+                (click)="dismiss()"
+              >
                 <span class="material-symbols-outlined" aria-hidden="true">close</span>
               </button>
             }

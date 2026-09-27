@@ -7,7 +7,7 @@ import {
   formatUplDate,
   formatUplDateTime,
   formatUplPeriod,
-  uplPackageRowsText
+  uplPackageRowsText,
 } from './packages-labels';
 
 const STATUSES: UplPackageStatus[] = ['received', 'verified', 'rejected', 'applied'];
@@ -33,7 +33,7 @@ function item(status: UplPackageStatus, rows: [number, number, number] | null): 
     rejectCode: null,
     rejectParams: null,
     loadId: null,
-    rawRows: null
+    rawRows: null,
   };
 }
 

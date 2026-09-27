@@ -22,32 +22,38 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
         [placeholder]="'modules.search_placeholder' | t"
         [smtAriaLabel]="'modules.search_placeholder' | t"
         [value]="searchQuery()"
-        (valueChange)="searchChange.emit($event === null ? '' : '' + $event)" />
+        (valueChange)="searchChange.emit($event === null ? '' : '' + $event)"
+      />
 
       <smt-tab-bar
         class="status-tab-bar"
         [tabs]="filterTabs()"
         [value]="filterTab()"
         [smtAriaLabel]="'modules.filter_tabs' | t"
-        (valueChange)="$event && filterTabChange.emit($event)" />
+        (valueChange)="$event && filterTabChange.emit($event)"
+      />
     </div>
   `,
-  styles: [`
-    :host { display: block; }
-    .toolbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
-    .search-box {
-      position: relative;
-      flex: 1;
-      max-width: 320px;
-      min-width: 200px;
-    }
-  `]
+  styles: [
+    `
+      :host {
+        display: block;
+      }
+      .toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+      .search-box {
+        position: relative;
+        flex: 1;
+        max-width: 320px;
+        min-width: 200px;
+      }
+    `,
+  ],
 })
 export class ModulesToolbarComponent {
   /** Texts of the tabs below; translated again when the language changes. */
@@ -66,11 +72,15 @@ export class ModulesToolbarComponent {
   private readonly tabsMemo = optionsMemo<SMTTabItem<ModuleFilterTab>[]>();
 
   filterTabs(): SMTTabItem<ModuleFilterTab>[] {
-    return this.tabsMemo([this.tabText.currentLang(), this.totalCount(), this.activeCount(), this.systemCount(), this.customCount()], () => [
-      { value: 'all', label: this.tabText.translate('modules.tab.all'), count: this.totalCount() },
-      { value: 'active', label: this.tabText.translate('modules.tab.active'), count: this.activeCount() },
-      { value: 'system', label: this.tabText.translate('modules.tab.system'), count: this.systemCount() },
-      { value: 'custom', label: this.tabText.translate('modules.tab.custom'), count: this.customCount() },
-    ] as SMTTabItem<ModuleFilterTab>[]);
+    return this.tabsMemo(
+      [this.tabText.currentLang(), this.totalCount(), this.activeCount(), this.systemCount(), this.customCount()],
+      () =>
+        [
+          { value: 'all', label: this.tabText.translate('modules.tab.all'), count: this.totalCount() },
+          { value: 'active', label: this.tabText.translate('modules.tab.active'), count: this.activeCount() },
+          { value: 'system', label: this.tabText.translate('modules.tab.system'), count: this.systemCount() },
+          { value: 'custom', label: this.tabText.translate('modules.tab.custom'), count: this.customCount() },
+        ] as SMTTabItem<ModuleFilterTab>[],
+    );
   }
 }

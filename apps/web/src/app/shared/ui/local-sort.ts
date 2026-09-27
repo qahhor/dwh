@@ -35,11 +35,16 @@ export function sortRows<T>(
       if (aEmpty) return a.index - b.index;
       return direction * compareValues(a.value!, b.value!, collator) || a.index - b.index;
     })
-    .map(entry => entry.row);
+    .map((entry) => entry.row);
 }
 
-function compareValues(a: Exclude<LocalSortValue, null | undefined>, b: Exclude<LocalSortValue, null | undefined>, collator: Intl.Collator): number {
+function compareValues(
+  a: Exclude<LocalSortValue, null | undefined>,
+  b: Exclude<LocalSortValue, null | undefined>,
+  collator: Intl.Collator,
+): number {
   if (typeof a === 'string' && typeof b === 'string') return collator.compare(a, b);
-  const toNumber = (value: typeof a) => (value instanceof Date ? value.getTime() : typeof value === 'boolean' ? Number(value) : Number(value));
+  const toNumber = (value: typeof a) =>
+    value instanceof Date ? value.getTime() : typeof value === 'boolean' ? Number(value) : Number(value);
   return toNumber(a) - toNumber(b);
 }

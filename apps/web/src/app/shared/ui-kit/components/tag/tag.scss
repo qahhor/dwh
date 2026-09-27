@@ -24,11 +24,31 @@
   white-space: nowrap;
 }
 
-.smt-tag--primary { border-color: var(--primary-border); background-color: var(--primary-subtle); color: var(--primary-text); }
-.smt-tag--success { border-color: var(--success-border); background-color: var(--success-bg); color: var(--success-text); }
-.smt-tag--warning { border-color: var(--warning-border); background-color: var(--warning-bg); color: var(--warning-text); }
-.smt-tag--danger { border-color: var(--danger-border); background-color: var(--danger-bg); color: var(--danger-text); }
-.smt-tag--info { border-color: var(--info-border); background-color: var(--info-bg); color: var(--info-text); }
+.smt-tag--primary {
+  border-color: var(--primary-border);
+  background-color: var(--primary-subtle);
+  color: var(--primary-text);
+}
+.smt-tag--success {
+  border-color: var(--success-border);
+  background-color: var(--success-bg);
+  color: var(--success-text);
+}
+.smt-tag--warning {
+  border-color: var(--warning-border);
+  background-color: var(--warning-bg);
+  color: var(--warning-text);
+}
+.smt-tag--danger {
+  border-color: var(--danger-border);
+  background-color: var(--danger-bg);
+  color: var(--danger-text);
+}
+.smt-tag--info {
+  border-color: var(--info-border);
+  background-color: var(--info-bg);
+  color: var(--info-text);
+}
 
 .smt-tag__remove {
   display: inline-flex;
@@ -74,7 +94,9 @@
 .smt-tag--selectable {
   color: var(--text-muted);
   cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .smt-tag--selectable:hover:not(:disabled) {

@@ -1,13 +1,21 @@
 package com.smartup24.cms.instance.fnd;
 
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.assignableTo;
+import static com.tngtech.archunit.core.domain.properties.HasName.Predicates.name;
+import static com.tngtech.archunit.core.domain.properties.HasOwner.Predicates.With.owner;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noMethods;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.smartup24.cms.instance.fnd.fixtures.FndDependsOnUplViolator;
 import com.smartup24.cms.instance.fnd.fixtures.FndScheduledViolator;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.support.fixtures.DwhQualifierViolator;
 import com.smartup24.cms.instance.upl.fixtures.UplModuleFixture;
 import com.smartup24.cms.spi.storage.StorageProvider;
-import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaCall;
+import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.domain.JavaCodeUnit;
 import com.tngtech.archunit.core.domain.JavaField;
@@ -26,14 +34,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RestController;
-
-import static com.tngtech.archunit.core.domain.JavaClass.Predicates.assignableTo;
-import static com.tngtech.archunit.core.domain.properties.HasName.Predicates.name;
-import static com.tngtech.archunit.core.domain.properties.HasOwner.Predicates.With.owner;
-import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
-import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
-import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noMethods;
-import static org.assertj.core.api.Assertions.assertThat;
 
 /** Правила основы (18 п.11, п.13–14): AC-5, AC-37, AC-42. Без Spring и базы. */
 class FndArchitectureTest {
@@ -60,15 +60,17 @@ class FndArchitectureTest {
                 boolean inFnd = type.getPackageName().startsWith(ROOT + ".fnd");
                 for (JavaField field : type.getFields()) {
                     if (isDwh(field.tryGetAnnotationOfType(Qualifier.class).orElse(null))) {
-                        events.add(new SimpleConditionEvent(type, inFnd,
-                                field.getFullName() + " объявляет @Qualifier(\"dwh\") вне пакета fnd"));
+                        events.add(new SimpleConditionEvent(
+                                type, inFnd, field.getFullName() + " объявляет @Qualifier(\"dwh\") вне пакета fnd"));
                     }
                 }
                 for (JavaCodeUnit unit : type.getCodeUnits()) {
                     for (JavaParameter parameter : unit.getParameters()) {
-                        if (isDwh(parameter.tryGetAnnotationOfType(Qualifier.class).orElse(null))) {
-                            events.add(new SimpleConditionEvent(type, inFnd,
-                                    unit.getFullName() + " принимает @Qualifier(\"dwh\") вне пакета fnd"));
+                        if (isDwh(parameter
+                                .tryGetAnnotationOfType(Qualifier.class)
+                                .orElse(null))) {
+                            events.add(new SimpleConditionEvent(
+                                    type, inFnd, unit.getFullName() + " принимает @Qualifier(\"dwh\") вне пакета fnd"));
                         }
                     }
                 }
@@ -97,8 +99,11 @@ class FndArchitectureTest {
 
     /** AC-37: основа не знает прикладных модулей; платформенные модули каркаса (common, config, kauth, md, mf, audit) — можно. */
     static ArchRule fndDependsOnNoApplicationModuleRule() {
-        return noClasses().that().resideInAPackage(FND)
-                .should().dependOnClassesThat()
+        return noClasses()
+                .that()
+                .resideInAPackage(FND)
+                .should()
+                .dependOnClassesThat()
                 .resideInAnyPackage(ROOT + ".upl..", ROOT + ".ref..", ROOT + ".reg..", ROOT + ".vit..");
     }
 
@@ -111,20 +116,27 @@ class FndArchitectureTest {
     @Test
     @DisplayName("AC-37: фикстура-нарушитель в fnd, импортирующая upl, делает правило красным")
     void fndDependingOnUplIsRed() {
-        JavaClasses withViolator = new ClassFileImporter()
-                .importClasses(FndDependsOnUplViolator.class, UplModuleFixture.class);
+        JavaClasses withViolator =
+                new ClassFileImporter().importClasses(FndDependsOnUplViolator.class, UplModuleFixture.class);
         EvaluationResult result = fndDependsOnNoApplicationModuleRule().evaluate(withViolator);
         assertThat(result.hasViolation()).isTrue();
-        assertThat(result.getFailureReport().toString()).contains("FndDependsOnUplViolator").contains("UplModuleFixture");
+        assertThat(result.getFailureReport().toString())
+                .contains("FndDependsOnUplViolator")
+                .contains("UplModuleFixture");
     }
 
     /** AC-8: файлы хранит модуль mf каркаса — своего хранилища и обращений к SPI в основе нет. */
     @Test
     @DisplayName("AC-8: в fnd нет своего FileStorage и зависимости от StorageProvider")
     void fndHasNoOwnFileStorage() {
-        noClasses().that().resideInAPackage(FND)
-                .should().haveSimpleNameContaining("FileStorage")
-                .orShould().dependOnClassesThat().areAssignableTo(StorageProvider.class)
+        noClasses()
+                .that()
+                .resideInAPackage(FND)
+                .should()
+                .haveSimpleNameContaining("FileStorage")
+                .orShould()
+                .dependOnClassesThat()
+                .areAssignableTo(StorageProvider.class)
                 .check(main);
     }
 
@@ -132,8 +144,11 @@ class FndArchitectureTest {
     @Test
     @DisplayName("AC-8: fnd не вызывает удаление файла в модуле mf")
     void fndNeverDeletesFiles() {
-        noClasses().that().resideInAPackage(FND)
-                .should().callMethodWhere(JavaCall.Predicates.target(owner(assignableTo(MfFileService.class)))
+        noClasses()
+                .that()
+                .resideInAPackage(FND)
+                .should()
+                .callMethodWhere(JavaCall.Predicates.target(owner(assignableTo(MfFileService.class)))
                         .and(JavaCall.Predicates.target(name("deleteFile"))))
                 .check(main);
     }
@@ -141,16 +156,24 @@ class FndArchitectureTest {
     @Test
     @DisplayName("AC-42: в fnd нет контроллеров и эндпоинтов")
     void fndHasNoControllers() {
-        noClasses().that().resideInAPackage(FND)
-                .should().beAnnotatedWith(RestController.class)
-                .orShould().beAnnotatedWith(Controller.class)
+        noClasses()
+                .that()
+                .resideInAPackage(FND)
+                .should()
+                .beAnnotatedWith(RestController.class)
+                .orShould()
+                .beAnnotatedWith(Controller.class)
                 .check(main);
     }
 
     /** AC-7: планировщика в основе нет — момент запуска заданий выбирает экземпляр; воркеры каркаса правило не трогает. */
     static ArchRule noScheduledInFndRule() {
-        return noMethods().that().areDeclaredInClassesThat().resideInAPackage(FND)
-                .should().beAnnotatedWith(Scheduled.class);
+        return noMethods()
+                .that()
+                .areDeclaredInClassesThat()
+                .resideInAPackage(FND)
+                .should()
+                .beAnnotatedWith(Scheduled.class);
     }
 
     @Test
@@ -162,7 +185,9 @@ class FndArchitectureTest {
                 .filter(type -> !type.getPackageName().startsWith(ROOT + ".fnd"))
                 .flatMap(type -> type.getMethods().stream())
                 .anyMatch(method -> method.isAnnotatedWith(Scheduled.class));
-        assertThat(frameworkHasScheduled).as("в модулях каркаса есть @Scheduled").isTrue();
+        assertThat(frameworkHasScheduled)
+                .as("в модулях каркаса есть @Scheduled")
+                .isTrue();
     }
 
     @Test

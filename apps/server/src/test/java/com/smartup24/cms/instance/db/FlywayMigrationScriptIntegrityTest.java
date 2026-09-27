@@ -1,13 +1,12 @@
 package com.smartup24.cms.instance.db;
 
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.springframework.core.io.ClassPathResource;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.core.io.ClassPathResource;
 
 class FlywayMigrationScriptIntegrityTest {
 
@@ -61,20 +60,22 @@ class FlywayMigrationScriptIntegrityTest {
 
             // Verify GIN indexes for JSONB dynamic attributes
             assertThat(sql)
-                    .contains("create index md_users_attributes_gin_idx on md_users using gin (attributes jsonb_path_ops)")
-                    .contains("create index ms_tasks_attributes_gin_idx on ms_tasks using gin (attributes jsonb_path_ops)");
+                    .contains(
+                            "create index md_users_attributes_gin_idx on md_users using gin (attributes jsonb_path_ops)")
+                    .contains(
+                            "create index ms_tasks_attributes_gin_idx on ms_tasks using gin (attributes jsonb_path_ops)");
 
             // Verify single responsible invariant index (I-T1)
             assertThat(sql)
-                    .contains("create unique index ms_task_single_responsible_uq on ms_task_members (task_id) where (involve_kind = 'R')");
+                    .contains(
+                            "create unique index ms_task_single_responsible_uq on ms_task_members (task_id) where (involve_kind = 'R')");
         }
     }
 
     @Test
     @DisplayName("V019 должна быть forward-only миграцией единого open-source продукта")
     void shouldContainUnifiedOpenSourceForwardMigration() throws Exception {
-        ClassPathResource resource = new ClassPathResource(
-                "db/migration/V019__unified_open_source_core.sql");
+        ClassPathResource resource = new ClassPathResource("db/migration/V019__unified_open_source_core.sql");
         assertThat(resource.exists()).isTrue();
 
         try (InputStream is = resource.getInputStream()) {

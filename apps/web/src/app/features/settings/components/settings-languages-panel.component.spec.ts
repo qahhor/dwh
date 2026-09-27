@@ -4,7 +4,14 @@ import { LanguageInfo } from '../../../core/models/i18n.models';
 import { SettingsLanguagesPanelComponent } from './settings-languages-panel.component';
 
 const language = (code: string, name: string, builtin = true, coverage = 100): LanguageInfo => ({
-  code, name, builtin, active: true, revision: 1, translated: coverage, total: 100, coverage,
+  code,
+  name,
+  builtin,
+  active: true,
+  revision: 1,
+  translated: coverage,
+  total: 100,
+  coverage,
 });
 
 const LANGUAGES = [language('ru', 'Русский'), language('en', 'English'), language('kk', 'Қазақша', false, 64)];
@@ -55,8 +62,8 @@ describe('SettingsLanguagesPanelComponent on the vendored table', () => {
     const fixture = await render();
     const opened: string[] = [];
     const switched: string[] = [];
-    fixture.componentInstance.openLanguageEditor.subscribe(code => opened.push(code));
-    fixture.componentInstance.switchLanguage.subscribe(code => switched.push(code));
+    fixture.componentInstance.openLanguageEditor.subscribe((code) => opened.push(code));
+    fixture.componentInstance.switchLanguage.subscribe((code) => switched.push(code));
 
     (fixture.nativeElement.querySelector('[data-testid="edit-language-kk"]') as HTMLButtonElement).click();
     (fixture.nativeElement.querySelector('[data-testid="switch-language-en"]') as HTMLButtonElement).click();

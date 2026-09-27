@@ -54,7 +54,7 @@ export function groupMembersByRole(members: TaskMember[]): GroupedTaskMembers {
     executors: [],
     observers: [],
     author: null,
-    others: []
+    others: [],
   };
 
   for (const m of members) {
@@ -75,7 +75,10 @@ export function groupMembersByRole(members: TaskMember[]): GroupedTaskMembers {
   return result;
 }
 
-export function createDefaultTaskCreateForm(projectId: number | null = null, defaultType = 'task'): TaskCreateFormValue {
+export function createDefaultTaskCreateForm(
+  projectId: number | null = null,
+  defaultType = 'task',
+): TaskCreateFormValue {
   return {
     title: '',
     taskType: defaultType,
@@ -88,13 +91,13 @@ export function createDefaultTaskCreateForm(projectId: number | null = null, def
     observerUserIds: [],
     beginTime: '',
     endTime: '',
-    attributes: {}
+    attributes: {},
   };
 }
 
 export function getTypeObj(task: Task, taskTypes: TaskType[]): TaskType | null {
   const code = (task.attributes && task.attributes['task_type']) || 'task';
-  return taskTypes.find(ty => ty.code === code) || null;
+  return taskTypes.find((ty) => ty.code === code) || null;
 }
 
 export function getTypeLabel(task: Task, taskTypes: TaskType[], uiI18n: I18nService): string {
@@ -120,19 +123,23 @@ export function getTypeBg(task: Task, taskTypes: TaskType[]): string {
 
 export function getProjectName(projectId: number | null | undefined, projects: Project[]): string | null {
   if (!projectId) return null;
-  const p = projects.find(x => x.id === projectId);
+  const p = projects.find((x) => x.id === projectId);
   return p ? p.name : `#${projectId}`;
 }
 
-export function getStatusName(statusId: number | null | undefined, statuses: TaskStatus[], uiI18n: I18nService): string {
+export function getStatusName(
+  statusId: number | null | undefined,
+  statuses: TaskStatus[],
+  uiI18n: I18nService,
+): string {
   if (!statusId) return uiI18n.translate('tasks.novaya');
-  const s = statuses.find(x => x.id === statusId);
+  const s = statuses.find((x) => x.id === statusId);
   return s ? s.name : uiI18n.translate('tasks.v_rabote');
 }
 
 export function getStatusColor(statusId: number | null | undefined, statuses: TaskStatus[]): string {
   if (!statusId) return 'var(--primary)';
-  const s = statuses.find(x => x.id === statusId);
+  const s = statuses.find((x) => x.id === statusId);
   return s?.color || 'var(--primary)';
 }
 
@@ -153,14 +160,19 @@ export function getPriorityLabel(priority: string, uiI18n: I18nService): string 
 
 export function isOverdue(endTime: string | null | undefined, statusId: number, statuses: TaskStatus[]): boolean {
   if (!endTime) return false;
-  const s = statuses.find(x => x.id === statusId);
+  const s = statuses.find((x) => x.id === statusId);
   if (s && s.isTerminal) return false;
   return new Date(endTime).getTime() < Date.now();
 }
 
-export function getDeadlineInfo(endTime: string | null | undefined, statusId: number, statuses: TaskStatus[], uiI18n: I18nService): TaskDeadlineInfo {
+export function getDeadlineInfo(
+  endTime: string | null | undefined,
+  statusId: number,
+  statuses: TaskStatus[],
+  uiI18n: I18nService,
+): TaskDeadlineInfo {
   if (!endTime) return { state: 'none', label: '—' };
-  const s = statuses.find(x => x.id === statusId);
+  const s = statuses.find((x) => x.id === statusId);
   if (s && s.isTerminal) {
     const d = new Date(endTime);
     const day = String(d.getDate()).padStart(2, '0');
@@ -172,15 +184,16 @@ export function getDeadlineInfo(endTime: string | null | undefined, statusId: nu
   const now = new Date();
   const diffMs = targetDate.getTime() - now.getTime();
 
-  const isToday = targetDate.getFullYear() === now.getFullYear() &&
-                  targetDate.getMonth() === now.getMonth() &&
-                  targetDate.getDate() === now.getDate();
+  const isToday =
+    targetDate.getFullYear() === now.getFullYear() &&
+    targetDate.getMonth() === now.getMonth() &&
+    targetDate.getDate() === now.getDate();
   if (isToday) {
     const hours = String(targetDate.getHours()).padStart(2, '0');
     const mins = String(targetDate.getMinutes()).padStart(2, '0');
     return {
       state: 'today',
-      label: `${uiI18n.translate('tasks.deadline_today')}, ${hours}:${mins}`
+      label: `${uiI18n.translate('tasks.deadline_today')}, ${hours}:${mins}`,
     };
   }
 
@@ -191,19 +204,20 @@ export function getDeadlineInfo(endTime: string | null | undefined, statusId: nu
     return {
       state: 'overdue',
       label: uiI18n.translate('tasks.deadline_overdue_days', { days: overdueDays }),
-      detail: `${day}.${month}.${targetDate.getFullYear()}`
+      detail: `${day}.${month}.${targetDate.getFullYear()}`,
     };
   }
 
   const tomorrow = new Date(now);
   tomorrow.setDate(now.getDate() + 1);
-  const isTomorrow = targetDate.getFullYear() === tomorrow.getFullYear() &&
-                    targetDate.getMonth() === tomorrow.getMonth() &&
-                    targetDate.getDate() === tomorrow.getDate();
+  const isTomorrow =
+    targetDate.getFullYear() === tomorrow.getFullYear() &&
+    targetDate.getMonth() === tomorrow.getMonth() &&
+    targetDate.getDate() === tomorrow.getDate();
   if (isTomorrow) {
     return {
       state: 'tomorrow',
-      label: uiI18n.translate('tasks.deadline_tomorrow')
+      label: uiI18n.translate('tasks.deadline_tomorrow'),
     };
   }
 
@@ -211,17 +225,22 @@ export function getDeadlineInfo(endTime: string | null | undefined, statusId: nu
   const month = String(targetDate.getMonth() + 1).padStart(2, '0');
   return {
     state: 'upcoming',
-    label: `${day}.${month}.${targetDate.getFullYear()}`
+    label: `${day}.${month}.${targetDate.getFullYear()}`,
   };
 }
 
 export function getInvolveKindLabel(kind: string | undefined, uiI18n: I18nService): string {
   switch (kind) {
-    case 'R': return uiI18n.translate('task.responsible');
-    case 'E': return uiI18n.translate('tasks.ispolnitel');
-    case 'O': return uiI18n.translate('tasks.nablyudatel');
-    case 'A': return uiI18n.translate('tasks.avtor');
-    default: return uiI18n.translate('tasks.uchastnik');
+    case 'R':
+      return uiI18n.translate('task.responsible');
+    case 'E':
+      return uiI18n.translate('tasks.ispolnitel');
+    case 'O':
+      return uiI18n.translate('tasks.nablyudatel');
+    case 'A':
+      return uiI18n.translate('tasks.avtor');
+    default:
+      return uiI18n.translate('tasks.uchastnik');
   }
 }
 
@@ -236,7 +255,7 @@ export function getInitials(name: string | undefined): string {
 
 export function hasAttributes(attrs: any): boolean {
   if (!attrs || typeof attrs !== 'object') return false;
-  const keys = Object.keys(attrs).filter(k => k !== 'task_type');
+  const keys = Object.keys(attrs).filter((k) => k !== 'task_type');
   return keys.length > 0;
 }
 
@@ -244,19 +263,17 @@ export function formatAttributes(
   attrs: any,
   taskCustomFields: CustomField[],
   nameOf: (userId: number) => string | null,
-  uiI18n: I18nService
+  uiI18n: I18nService,
 ): Array<{ key: string; value: string }> {
   if (!hasAttributes(attrs)) return [];
   return Object.entries(attrs)
     .filter(([k]) => k !== 'task_type')
     .map(([k, v]) => {
-      const field = taskCustomFields.find(f => f.code === k);
+      const field = taskCustomFields.find((f) => f.code === k);
       const keyLabel = field ? field.name : k;
       let valueStr = String(v ?? '');
       if (field?.fieldType === 'boolean') {
-        valueStr = v === true || v === 'true'
-          ? uiI18n.translate('common.yes')
-          : uiI18n.translate('common.no');
+        valueStr = v === true || v === 'true' ? uiI18n.translate('common.yes') : uiI18n.translate('common.no');
       } else if (field?.fieldType === 'user_ref') {
         const name = nameOf(Number(v));
         if (name) {
@@ -266,7 +283,7 @@ export function formatAttributes(
         try {
           const opts = JSON.parse(field.optionsJson);
           if (Array.isArray(opts)) {
-            const matched = opts.find(o => typeof o === 'object' && o !== null ? o.value === v : o === v);
+            const matched = opts.find((o) => (typeof o === 'object' && o !== null ? o.value === v : o === v));
             if (matched && typeof matched === 'object' && matched.label) {
               valueStr = matched.label;
             }
@@ -282,7 +299,5 @@ export function formatAttributes(
 export function sameIdSet(left: number[], right: number[]): boolean {
   if (left.length !== right.length) return false;
   const rightIds = new Set(right);
-  return left.every(id => rightIds.has(id));
+  return left.every((id) => rightIds.has(id));
 }
-
-

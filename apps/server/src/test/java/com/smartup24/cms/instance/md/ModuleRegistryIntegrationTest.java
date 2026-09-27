@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.md;
 
-import com.smartup24.cms.instance.support.TestDatabases;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
@@ -8,16 +9,13 @@ import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.md.repository.ModuleRegistryRepository;
 import com.smartup24.cms.instance.md.service.ModuleRegistryService;
+import com.smartup24.cms.instance.support.TestDatabases;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import tools.jackson.databind.ObjectMapper;
-
-import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ModuleRegistryIntegrationTest {
 
@@ -40,7 +38,9 @@ class ModuleRegistryIntegrationTest {
     void registryContainsCoreAndReferenceModules() {
         var all = moduleService.getAllModules();
         assertThat(all).isNotEmpty();
-        var codes = all.stream().map(ModuleRegistryService.InstalledModuleView::code).toList();
+        var codes = all.stream()
+                .map(ModuleRegistryService.InstalledModuleView::code)
+                .toList();
         assertThat(codes).contains("iam", "tasks", "files", "audit", "search", "notes");
 
         var active = moduleService.getActiveModules();
@@ -81,9 +81,15 @@ class ModuleRegistryIntegrationTest {
     @DisplayName("4. Динамическая регистрация нового модуля через реестр")
     void registerNewCustomModule() {
         var registered = moduleService.registerModule(
-                "inventory", "Управление складом", "Учет товаров и остатков",
-                "1.0.0", "package", "/inventory", false, 150, Map.of("currency", "USD")
-        );
+                "inventory",
+                "Управление складом",
+                "Учет товаров и остатков",
+                "1.0.0",
+                "package",
+                "/inventory",
+                false,
+                150,
+                Map.of("currency", "USD"));
 
         assertThat(registered.code()).isEqualTo("inventory");
         assertThat(registered.status()).isEqualTo("ACTIVE");

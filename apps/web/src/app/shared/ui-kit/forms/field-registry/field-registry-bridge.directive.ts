@@ -23,7 +23,7 @@ export class SmtFormFieldRegistryBridgeDirective {
   private readonly formField = inject(FORM_FIELD, { optional: true, self: true });
 
   constructor() {
-    effect(onCleanup => {
+    effect((onCleanup) => {
       const registry = this.fieldRegistry;
       const formField = this.formField;
       if (!registry || !formField) {

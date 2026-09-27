@@ -1,14 +1,13 @@
 package com.smartup24.cms.instance.kwh.repository;
 
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 @Repository
 public class KwhOutboxRepository {
@@ -24,7 +23,8 @@ public class KwhOutboxRepository {
     public void enqueue(Long subscriptionId, String eventType, Map<String, Object> payload) {
         String payloadJson = toJson(payload);
 
-        jdbcClient.sql("""
+        jdbcClient
+                .sql("""
                 insert into kwh_outbox (subscription_id, event_type, payload, status, attempts, max_attempts, next_attempt_at, created_at)
                 values (:subscriptionId, :eventType, cast(:payload as jsonb), 'PENDING', 0, 5, now(), now())
                 """)
@@ -36,7 +36,8 @@ public class KwhOutboxRepository {
 
     public List<KwhOutboxRecord> fetchPending(int limit) {
         UUID claimToken = UUID.randomUUID();
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 with candidates as (
                     select outbox.id
                     from kwh_outbox as outbox
@@ -73,7 +74,8 @@ public class KwhOutboxRepository {
     }
 
     public boolean markSuccess(Long id, UUID claimToken, int httpStatus) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                        .sql("""
                 update kwh_outbox
                 set status = 'SENT', last_http_status = :httpStatus, processed_at = now(),
                     claim_token = null, claimed_at = null
@@ -81,17 +83,25 @@ public class KwhOutboxRepository {
                   and status = 'PROCESSING'
                   and claim_token = :claimToken
                 """)
-                .param("id", id)
-                .param("httpStatus", httpStatus)
-                .param("claimToken", claimToken)
-                .update() == 1;
+                        .param("id", id)
+                        .param("httpStatus", httpStatus)
+                        .param("claimToken", claimToken)
+                        .update()
+                == 1;
     }
 
-    public boolean markFailed(Long id, UUID claimToken, int newAttempts, Instant nextAttemptAt,
-                              int httpStatus, String error, boolean isDeadLetter) {
+    public boolean markFailed(
+            Long id,
+            UUID claimToken,
+            int newAttempts,
+            Instant nextAttemptAt,
+            int httpStatus,
+            String error,
+            boolean isDeadLetter) {
         String status = isDeadLetter ? "DEAD_LETTER" : "PENDING";
 
-        return jdbcClient.sql("""
+        return jdbcClient
+                        .sql("""
                 update kwh_outbox
                 set status = :status,
                     attempts = :attempts,
@@ -105,19 +115,21 @@ public class KwhOutboxRepository {
                   and status = 'PROCESSING'
                   and claim_token = :claimToken
                 """)
-                .param("status", status)
-                .param("attempts", newAttempts)
-                .param("nextAttemptAt", nextAttemptAt != null ? java.sql.Timestamp.from(nextAttemptAt) : null)
-                .param("httpStatus", httpStatus)
-                .param("error", error)
-                .param("isDeadLetter", isDeadLetter)
-                .param("id", id)
-                .param("claimToken", claimToken)
-                .update() == 1;
+                        .param("status", status)
+                        .param("attempts", newAttempts)
+                        .param("nextAttemptAt", nextAttemptAt != null ? java.sql.Timestamp.from(nextAttemptAt) : null)
+                        .param("httpStatus", httpStatus)
+                        .param("error", error)
+                        .param("isDeadLetter", isDeadLetter)
+                        .param("id", id)
+                        .param("claimToken", claimToken)
+                        .update()
+                == 1;
     }
 
     public void recordLog(Long subscriptionId, String eventType, int httpStatus, int durationMs, boolean isSuccess) {
-        jdbcClient.sql("""
+        jdbcClient
+                .sql("""
                 insert into kwh_logs (subscription_id, event_type, http_status, duration_ms, is_success, sent_at)
                 values (:subscriptionId, :eventType, :httpStatus, :durationMs, :isSuccess, now())
                 """)
@@ -142,12 +154,15 @@ public class KwhOutboxRepository {
                 rs.getString("last_error"),
                 rs.getObject("last_http_status") != null ? rs.getInt("last_http_status") : null,
                 rs.getTimestamp("created_at").toInstant(),
-                rs.getTimestamp("processed_at") != null ? rs.getTimestamp("processed_at").toInstant() : null,
+                rs.getTimestamp("processed_at") != null
+                        ? rs.getTimestamp("processed_at").toInstant()
+                        : null,
                 rs.getObject("claim_token", UUID.class),
-                rs.getTimestamp("claimed_at") != null ? rs.getTimestamp("claimed_at").toInstant() : null,
+                rs.getTimestamp("claimed_at") != null
+                        ? rs.getTimestamp("claimed_at").toInstant()
+                        : null,
                 rs.getString("target_url"),
-                rs.getString("secret_token")
-        );
+                rs.getString("secret_token"));
     }
 
     private String toJson(Map<String, Object> map) {
@@ -185,6 +200,5 @@ public class KwhOutboxRepository {
             UUID claimToken,
             Instant claimedAt,
             String targetUrl,
-            String secretToken
-    ) {}
+            String secretToken) {}
 }

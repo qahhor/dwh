@@ -52,6 +52,7 @@ Current ADRs that are not superseded:
   `query-meta` and filter and sort through one checked JSON DSL.
 
 - [ADR-0019 — low-code entity model](adr/ADR-0019-low-code-entity-model.md)
+- [ADR-0020 — database naming and types](adr/ADR-0020-database-naming.md)
   — an entity is one server declaration from which lists, forms, cards,
   permissions and menus are built.
 

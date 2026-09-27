@@ -8,7 +8,8 @@
   aria-haspopup="dialog"
   [attr.aria-expanded]="open()"
   [attr.aria-controls]="open() ? panelId : null"
-  (click)="toggle()">
+  (click)="toggle()"
+>
   <span class="material-symbols-outlined" aria-hidden="true">view_column</span>
   <span>{{ i18n.messages().columns.button }}</span>
 </button>
@@ -20,14 +21,16 @@
   [cdkConnectedOverlayPositions]="positions"
   (overlayOutsideClick)="close(false)"
   (overlayKeydown)="onKeydown($event)"
-  (detach)="close(false)">
+  (detach)="close(false)"
+>
   <div
     class="smt-columns__panel"
     role="dialog"
     [id]="panelId"
     [attr.aria-labelledby]="panelId + '-title'"
     cdkTrapFocus
-    [cdkTrapFocusAutoCapture]="true">
+    [cdkTrapFocusAutoCapture]="true"
+  >
     <p class="smt-columns__title" [id]="panelId + '-title'">{{ i18n.messages().columns.title }}</p>
     <ul class="smt-columns__list">
       @for (row of rows(); track row.key; let first = $first; let last = $last) {
@@ -38,7 +41,8 @@
             [id]="panelId + '-' + row.key"
             [checked]="row.visible"
             [disabled]="row.locked || (row.visible && visibleCount() === 1)"
-            (change)="setVisible(row, $any($event.target).checked)" />
+            (change)="setVisible(row, $any($event.target).checked)"
+          />
           <label class="smt-columns__label" [for]="panelId + '-' + row.key">
             {{ row.label }}
             @if (row.locked) {
@@ -52,7 +56,8 @@
             data-move="-1"
             [attr.aria-label]="i18n.messages().columns.moveUp(row.label)"
             [disabled]="first"
-            (click)="move(row, -1)">
+            (click)="move(row, -1)"
+          >
             <span class="material-symbols-outlined" aria-hidden="true">arrow_upward</span>
           </button>
           <button
@@ -62,7 +67,8 @@
             data-move="1"
             [attr.aria-label]="i18n.messages().columns.moveDown(row.label)"
             [disabled]="last"
-            (click)="move(row, 1)">
+            (click)="move(row, 1)"
+          >
             <span class="material-symbols-outlined" aria-hidden="true">arrow_downward</span>
           </button>
         </li>

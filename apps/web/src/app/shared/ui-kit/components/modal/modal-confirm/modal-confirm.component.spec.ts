@@ -117,7 +117,7 @@ describe('SMTModalConfirmComponent', () => {
     const { host } = render({ message: 'Discard changes?' });
 
     const buttons = Array.from(host.querySelectorAll('button'));
-    expect(buttons.map(button => button.textContent?.trim())).toEqual(['No', 'Yes']);
+    expect(buttons.map((button) => button.textContent?.trim())).toEqual(['No', 'Yes']);
     expect(buttons[0].hasAttribute('cdkFocusInitial')).toBe(true);
   });
 
@@ -149,7 +149,7 @@ describe('SMTModalConfirmComponent', () => {
     fixture.detectChanges();
 
     expect(close).not.toHaveBeenCalled();
-    expect(buttons().every(button => button.disabled)).toBe(true);
+    expect(buttons().every((button) => button.disabled)).toBe(true);
     expect(buttons()[1].getAttribute('aria-busy')).toBe('true');
     expect(host.querySelector('.smt-modal-button__spinner')).not.toBeNull();
     // Declining is locked while the work runs.

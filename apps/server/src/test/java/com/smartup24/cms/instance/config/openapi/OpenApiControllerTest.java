@@ -1,13 +1,12 @@
 package com.smartup24.cms.instance.config.openapi;
 
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpStatus;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
 
 class OpenApiControllerTest {
 
@@ -73,19 +72,22 @@ class OpenApiControllerTest {
                 "/api/v1/notes",
                 "/api/v1/settings",
                 "/api/v1/modules",
-                "/api/v1/system/info"
-        );
+                "/api/v1/system/info");
 
         for (String expectedPath : expectedPaths) {
-            assertThat(paths).as("OpenAPI spec must contain path: " + expectedPath).containsKey(expectedPath);
+            assertThat(paths)
+                    .as("OpenAPI spec must contain path: " + expectedPath)
+                    .containsKey(expectedPath);
         }
 
         // Verify OCC and Rate-limit response documentation
-        Map<String, Object> taskPatch = (Map<String, Object>) ((Map<String, Object>) paths.get("/api/v1/tasks/items/{id}")).get("patch");
+        Map<String, Object> taskPatch =
+                (Map<String, Object>) ((Map<String, Object>) paths.get("/api/v1/tasks/items/{id}")).get("patch");
         Map<String, Object> patchResponses = (Map<String, Object>) taskPatch.get("responses");
         assertThat(patchResponses).containsKey("409");
 
-        Map<String, Object> fileUpload = (Map<String, Object>) ((Map<String, Object>) paths.get("/api/v1/files/upload")).get("post");
+        Map<String, Object> fileUpload =
+                (Map<String, Object>) ((Map<String, Object>) paths.get("/api/v1/files/upload")).get("post");
         Map<String, Object> uploadResponses = (Map<String, Object>) fileUpload.get("responses");
         assertThat(uploadResponses).containsKey("429");
     }

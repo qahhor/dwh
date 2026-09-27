@@ -1,11 +1,10 @@
 package com.smartup24.cms.instance.md.repository;
 
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
 
 /**
  * Скоуп данных: правило видимости у роли, позиция пользователя в дереве и
@@ -30,8 +29,10 @@ public class MdScopeRepository {
 
     /** Database-local IAM scope writer ordering; released by the caller's transaction. */
     public void lockScopeMutation() {
-        jdbcClient.sql("select pg_advisory_xact_lock(129632, 1)")
-                .query((rs, rowNum) -> true).single();
+        jdbcClient
+                .sql("select pg_advisory_xact_lock(129632, 1)")
+                .query((rs, rowNum) -> true)
+                .single();
     }
 
     // ------------------------------------------------------------------ роли
@@ -41,14 +42,12 @@ public class MdScopeRepository {
                         insert into md_role_scope_rules (role_id, rule, modified_at)
                         values (:roleId, :rule, now())
                         on conflict (role_id) do update set rule = excluded.rule, modified_at = now()
-                        """)
-                .param("roleId", roleId)
-                .param("rule", rule)
-                .update();
+                        """).param("roleId", roleId).param("rule", rule).update();
     }
 
     public String getRoleRule(Long roleId) {
-        return jdbcClient.sql("select rule from md_role_scope_rules where role_id = :roleId")
+        return jdbcClient
+                .sql("select rule from md_role_scope_rules where role_id = :roleId")
                 .param("roleId", roleId)
                 .query(String.class)
                 .optional()
@@ -56,7 +55,8 @@ public class MdScopeRepository {
     }
 
     public boolean roleExists(Long roleId) {
-        return jdbcClient.sql("select exists (select 1 from md_roles where id = :roleId)")
+        return jdbcClient
+                .sql("select exists (select 1 from md_roles where id = :roleId)")
                 .param("roleId", roleId)
                 .query(Boolean.class)
                 .single();
@@ -65,8 +65,8 @@ public class MdScopeRepository {
     // ----------------------------------------------------------- пользователь
 
     public Set<Long> getUserOrgUnitIds(Long userId) {
-        return Set.copyOf(jdbcClient.sql(
-                        "select org_unit_id from md_user_org_units where user_id = :userId order by org_unit_id")
+        return Set.copyOf(jdbcClient
+                .sql("select org_unit_id from md_user_org_units where user_id = :userId order by org_unit_id")
                 .param("userId", userId)
                 .query(Long.class)
                 .list());
@@ -74,7 +74,8 @@ public class MdScopeRepository {
 
     /** Полная замена набора узлов пользователя — та же семантика PUT, что у ролей. */
     public void replaceUserOrgUnits(Long userId, List<Long> orgUnitIds) {
-        jdbcClient.sql("delete from md_user_org_units where user_id = :userId")
+        jdbcClient
+                .sql("delete from md_user_org_units where user_id = :userId")
                 .param("userId", userId)
                 .update();
         for (Long unitId : orgUnitIds) {
@@ -82,15 +83,13 @@ public class MdScopeRepository {
                             insert into md_user_org_units (user_id, org_unit_id)
                             values (:userId, :unitId)
                             on conflict do nothing
-                            """)
-                    .param("userId", userId)
-                    .param("unitId", unitId)
-                    .update();
+                            """).param("userId", userId).param("unitId", unitId).update();
         }
     }
 
     public String getUserRule(Long userId) {
-        return jdbcClient.sql("select rule from md_user_scope where user_id = :userId")
+        return jdbcClient
+                .sql("select rule from md_user_scope where user_id = :userId")
                 .param("userId", userId)
                 .query(String.class)
                 .optional()
@@ -98,8 +97,8 @@ public class MdScopeRepository {
     }
 
     public Set<Long> getEffectiveScope(Long userId) {
-        return Set.copyOf(jdbcClient.sql(
-                        "select org_unit_id from md_effective_scope where user_id = :userId order by org_unit_id")
+        return Set.copyOf(jdbcClient
+                .sql("select org_unit_id from md_effective_scope where user_id = :userId order by org_unit_id")
                 .param("userId", userId)
                 .query(Long.class)
                 .list());
@@ -121,12 +120,10 @@ public class MdScopeRepository {
                         insert into md_user_scope (user_id, rule, recalculated_at)
                         values (:userId, :rule, now())
                         on conflict (user_id) do update set rule = excluded.rule, recalculated_at = now()
-                        """)
-                .param("userId", userId)
-                .param("rule", rule)
-                .update();
+                        """).param("userId", userId).param("rule", rule).update();
 
-        jdbcClient.sql("delete from md_effective_scope where user_id = :userId")
+        jdbcClient
+                .sql("delete from md_effective_scope where user_id = :userId")
                 .param("userId", userId)
                 .update();
 
@@ -139,9 +136,7 @@ public class MdScopeRepository {
                             join md_org_units u on u.id = uou.org_unit_id and u.state = 'A'
                             where uou.user_id = :userId
                             on conflict do nothing
-                            """)
-                    .param("userId", userId)
-                    .update();
+                            """).param("userId", userId).update();
 
             // Пассивный узел обрывает ветку целиком: узел выключен вместе с тем,
             // что под ним, иначе «выключение филиала» не выключало бы его отделы.
@@ -160,11 +155,11 @@ public class MdScopeRepository {
                             insert into md_effective_scope (user_id, org_unit_id)
                             select :userId, id from subtree
                             on conflict do nothing
-                            """)
-                    .param("userId", userId)
-                    .update();
+                            """).param("userId", userId).update();
 
-            default -> { /* ALL, SELF — материализация не нужна */ }
+            default -> {
+                /* ALL, SELF — материализация не нужна */
+            }
         }
 
         return rule;
@@ -176,29 +171,25 @@ public class MdScopeRepository {
      * экземпляр, и сужение должно быть осознанным действием администратора.
      */
     private String resolveWidestRule(Long userId) {
-        List<String> rules = jdbcClient.sql("""
+        List<String> rules =
+                jdbcClient.sql("""
                         select coalesce(sr.rule, 'ALL')
                         from md_user_roles ur
                         join md_roles r on r.id = ur.role_id and r.state = 'A'
                         left join md_role_scope_rules sr on sr.role_id = r.id
                         where ur.user_id = :userId
-                        """)
-                .param("userId", userId)
-                .query(String.class)
-                .list();
+                        """).param("userId", userId).query(String.class).list();
 
         if (rules.isEmpty()) {
             return "ALL";
         }
-        return RULES_WIDEST_FIRST.stream()
-                .filter(rules::contains)
-                .findFirst()
-                .orElse("ALL");
+        return RULES_WIDEST_FIRST.stream().filter(rules::contains).findFirst().orElse("ALL");
     }
 
     /** Пользователи роли — кому нужно пересчитать скоуп после смены её правила. */
     public List<Long> getUserIdsByRole(Long roleId) {
-        return jdbcClient.sql("select user_id from md_user_roles where role_id = :roleId order by user_id")
+        return jdbcClient
+                .sql("select user_id from md_user_roles where role_id = :roleId order by user_id")
                 .param("roleId", roleId)
                 .query(Long.class)
                 .list();
@@ -224,14 +215,12 @@ public class MdScopeRepository {
                         from md_user_org_units uou
                         join affected_units s on s.id = uou.org_unit_id
                         order by uou.user_id
-                        """)
-                .param("unitId", orgUnitId)
-                .query(Long.class)
-                .list();
+                        """).param("unitId", orgUnitId).query(Long.class).list();
     }
 
     public Optional<Long> findUserOrgUnit(Long userId) {
-        return jdbcClient.sql("select org_unit_id from md_users where id = :userId")
+        return jdbcClient
+                .sql("select org_unit_id from md_users where id = :userId")
                 .param("userId", userId)
                 .query(Long.class)
                 .optional();
@@ -239,7 +228,8 @@ public class MdScopeRepository {
 
     /** True when at least one target position intersects the viewer's materialized scope. */
     public boolean isUserInEffectiveScope(Long viewerId, Long targetUserId) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                         select exists (
                             select 1
                             from md_users target
@@ -268,7 +258,8 @@ public class MdScopeRepository {
     }
 
     public boolean userExists(Long userId) {
-        return jdbcClient.sql("select exists (select 1 from md_users where id = :userId)")
+        return jdbcClient
+                .sql("select exists (select 1 from md_users where id = :userId)")
                 .param("userId", userId)
                 .query(Boolean.class)
                 .single();

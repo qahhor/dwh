@@ -12,16 +12,15 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.List;
+import java.util.Set;
 import org.springframework.dao.DataAccessException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Set;
 
 /**
  * Аутентификация Bearer API-токеном или cookie-сессией.
@@ -63,17 +62,27 @@ public class KauthAuthenticationFilter extends OncePerRequestFilter {
                     var token = tokenOpt.get();
                     try {
                         var user = userService.getUserById(token.userId());
-                        if (MdPref.STATE_ACTIVE.equals(user.state()) && user.authenticationVersion() == token.authenticationVersion()) {
+                        if (MdPref.STATE_ACTIVE.equals(user.state())
+                                && user.authenticationVersion() == token.authenticationVersion()) {
                             apiTokenService.recordTokenUsage(token.id());
                             Set<String> permissions = permissionService.getEffectivePermissions(user.id());
                             long version = permissionService.getPermissionVersion(user.id());
                             authenticate(new SecurityContext.KauthPrincipal(
-                                    user.id(), user.login(), user.email(), null, true, permissions, version, user.forcePasswordChange(), token.authenticationVersion(), token.id()
-                            ));
+                                    user.id(),
+                                    user.login(),
+                                    user.email(),
+                                    null,
+                                    true,
+                                    permissions,
+                                    version,
+                                    user.forcePasswordChange(),
+                                    token.authenticationVersion(),
+                                    token.id()));
                         }
                     } catch (DataAccessException e) {
                         throw e;
-                    } catch (Exception ignored) {}
+                    } catch (Exception ignored) {
+                    }
                 }
             }
 
@@ -86,17 +95,27 @@ public class KauthAuthenticationFilter extends OncePerRequestFilter {
                         var session = sessionOpt.get();
                         try {
                             var user = userService.getUserById(session.userId());
-                            if (MdPref.STATE_ACTIVE.equals(user.state()) && user.authenticationVersion() == session.authenticationVersion()) {
+                            if (MdPref.STATE_ACTIVE.equals(user.state())
+                                    && user.authenticationVersion() == session.authenticationVersion()) {
                                 sessionService.updateLastSeen(session.id());
                                 Set<String> permissions = permissionService.getEffectivePermissions(user.id());
                                 long version = permissionService.getPermissionVersion(user.id());
                                 authenticate(new SecurityContext.KauthPrincipal(
-                                        user.id(), user.login(), user.email(), session.id(), false, permissions, version, user.forcePasswordChange(), session.authenticationVersion(), null
-                                ));
+                                        user.id(),
+                                        user.login(),
+                                        user.email(),
+                                        session.id(),
+                                        false,
+                                        permissions,
+                                        version,
+                                        user.forcePasswordChange(),
+                                        session.authenticationVersion(),
+                                        null));
                             }
                         } catch (DataAccessException e) {
                             throw e;
-                        } catch (Exception ignored) {}
+                        } catch (Exception ignored) {
+                        }
                     }
                 }
             }
@@ -113,8 +132,7 @@ public class KauthAuthenticationFilter extends OncePerRequestFilter {
     private void authenticate(SecurityContext.KauthPrincipal principal) {
         SecurityContext.setPrincipal(principal);
         var authority = new SimpleGrantedAuthority(principal.isApi() ? "ROLE_API" : "ROLE_USER");
-        var authentication = UsernamePasswordAuthenticationToken.authenticated(
-                principal, null, List.of(authority));
+        var authentication = UsernamePasswordAuthenticationToken.authenticated(principal, null, List.of(authority));
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 

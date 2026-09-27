@@ -1,34 +1,43 @@
 package com.smartup24.cms.instance.common.query;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowableOfType;
+
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.catchThrowableOfType;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 class QueryCompilerTest {
 
-    private static final QueryList LIST = new QueryList("test.items", "test.form", "view",
-            "t.id, t.code", "test_items t", "t.id",
+    private static final QueryList LIST = new QueryList(
+            "test.items",
+            "test.form",
+            "view",
+            "t.id, t.code",
+            "test_items t",
+            "t.id",
             List.of(
-                    QueryField.of("code", "test.code", QueryFieldType.TEXT, "t.code").asSortable(),
-                    QueryField.of("note", "test.note", QueryFieldType.TEXT, "t.note").asNullable(),
-                    QueryField.of("amount", "test.amount", QueryFieldType.NUMBER, "t.amount").asSortable(),
-                    QueryField.of("dueOn", "test.due", QueryFieldType.DATE, "t.due_on").asNullable(),
+                    QueryField.of("code", "test.code", QueryFieldType.TEXT, "t.code")
+                            .asSortable(),
+                    QueryField.of("note", "test.note", QueryFieldType.TEXT, "t.note")
+                            .asNullable(),
+                    QueryField.of("amount", "test.amount", QueryFieldType.NUMBER, "t.amount")
+                            .asSortable(),
+                    QueryField.of("dueOn", "test.due", QueryFieldType.DATE, "t.due_on")
+                            .asNullable(),
                     QueryField.of("active", "test.active", QueryFieldType.BOOLEAN, "t.active"),
                     QueryField.enumeration("state", "test.state", "t.state", List.of("open", "closed"), "test.state."),
-                    QueryField.of("secret", "test.secret", QueryFieldType.TEXT, "t.secret").asNotFilterable()),
+                    QueryField.of("secret", "test.secret", QueryFieldType.TEXT, "t.secret")
+                            .asNotFilterable()),
             "code");
 
     private static QueryPlan compile(String filter, String sort) {
@@ -66,12 +75,13 @@ class QueryCompilerTest {
                 """, null);
 
         QueryPlan.SqlFragment where = plan.where();
-        assertThat(where.sql()).isEqualTo(" and t.code ilike :q_f0 escape '\\'"
-                + " and t.amount between :q_f1_a and :q_f1_b"
-                + " and t.state in (:q_f2)"
-                + " and t.due_on >= :q_f3"
-                + " and (t.note is null or t.note = '')"
-                + " and t.active = :q_f5");
+        assertThat(where.sql())
+                .isEqualTo(" and t.code ilike :q_f0 escape '\\'"
+                        + " and t.amount between :q_f1_a and :q_f1_b"
+                        + " and t.state in (:q_f2)"
+                        + " and t.due_on >= :q_f3"
+                        + " and (t.note is null or t.note = '')"
+                        + " and t.active = :q_f5");
         assertThat(where.params())
                 .containsEntry("q_f0", "%50\\%\\_a\\\\b%")
                 .containsEntry("q_f1_a", new BigDecimal("10"))
@@ -113,14 +123,20 @@ class QueryCompilerTest {
     @Test
     @DisplayName("фильтр не JSON, не массив или слишком длинный — ошибка всего фильтра")
     void rejectsMalformedFilter() {
-        assertThat(errors("code=abc", null)).extracting(FieldErrorItem::code)
+        assertThat(errors("code=abc", null))
+                .extracting(FieldErrorItem::code)
                 .containsExactly(QueryCompiler.FILTER_INVALID);
-        assertThat(errors("{\"field\":\"code\"}", null)).extracting(FieldErrorItem::code)
+        assertThat(errors("{\"field\":\"code\"}", null))
+                .extracting(FieldErrorItem::code)
                 .containsExactly(QueryCompiler.FILTER_INVALID);
-        String many = "[" + String.join(",", Collections.nCopies(QueryCompiler.MAX_CONDITIONS + 1,
-                "{\"field\":\"active\",\"op\":\"eq\",\"value\":true}")) + "]";
-        assertThat(errors(many, null)).extracting(FieldErrorItem::code)
-                .containsExactly(QueryCompiler.FILTER_TOO_LONG);
+        String many = "["
+                + String.join(
+                        ",",
+                        Collections.nCopies(
+                                QueryCompiler.MAX_CONDITIONS + 1,
+                                "{\"field\":\"active\",\"op\":\"eq\",\"value\":true}"))
+                + "]";
+        assertThat(errors(many, null)).extracting(FieldErrorItem::code).containsExactly(QueryCompiler.FILTER_TOO_LONG);
     }
 
     @Test
@@ -129,9 +145,11 @@ class QueryCompilerTest {
         QueryPlan plan = compile(null, "-amount");
         assertThat(plan.orderBy()).isEqualTo(" order by t.amount desc, t.id desc");
 
-        assertThat(errors(null, "note")).extracting(FieldErrorItem::field, FieldErrorItem::code)
+        assertThat(errors(null, "note"))
+                .extracting(FieldErrorItem::field, FieldErrorItem::code)
                 .containsExactly(org.assertj.core.groups.Tuple.tuple("sort", QueryCompiler.SORT_INVALID));
-        assertThat(errors(null, "t.id; drop table x")).extracting(FieldErrorItem::code)
+        assertThat(errors(null, "t.id; drop table x"))
+                .extracting(FieldErrorItem::code)
                 .containsExactly(QueryCompiler.SORT_INVALID);
     }
 
@@ -139,8 +157,8 @@ class QueryCompilerTest {
     @DisplayName("размер страницы вне границ списка — INVALID_LIMIT")
     void rejectsLimitOutOfRange() {
         assertThatThrownBy(() -> QueryCompiler.compile(LIST, null, null, 0, null))
-                .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.getMessage())
-                        .isEqualTo(QueryCompiler.INVALID_LIMIT));
+                .isInstanceOfSatisfying(
+                        ApiException.class, e -> assertThat(e.getMessage()).isEqualTo(QueryCompiler.INVALID_LIMIT));
         assertThatThrownBy(() -> QueryCompiler.compile(LIST, null, null, QueryList.MAX_LIMIT + 1, null))
                 .isInstanceOf(ApiException.class);
     }
@@ -151,23 +169,25 @@ class QueryCompilerTest {
         QueryPlan first = compile("[{\"field\":\"active\",\"op\":\"eq\",\"value\":true}]", "-amount");
         String cursor = new QueryCursor(first.fingerprint(), new BigDecimal("12.50"), "42", 7).encode(first.sort());
 
-        QueryPlan next = QueryCompiler.compile(LIST, "[{\"field\":\"active\",\"op\":\"eq\",\"value\":true}]",
-                "-amount", null, cursor);
+        QueryPlan next = QueryCompiler.compile(
+                LIST, "[{\"field\":\"active\",\"op\":\"eq\",\"value\":true}]", "-amount", null, cursor);
         assertThat(next.cursor().lastId()).isEqualTo("42");
         assertThat(next.cursor().total()).isEqualTo(7);
         assertThat(next.keyset().sql())
                 .isEqualTo(" and (t.amount < :q_after_value or (t.amount = :q_after_value and t.id < :q_after_id))");
-        assertThat(next.keyset().params()).containsEntry("q_after_value", new BigDecimal("12.50"))
+        assertThat(next.keyset().params())
+                .containsEntry("q_after_value", new BigDecimal("12.50"))
                 .containsEntry("q_after_id", 42L);
 
-        for (String otherSort : new String[]{"amount", "code"}) {
-            assertThatThrownBy(() -> QueryCompiler.compile(LIST,
-                    "[{\"field\":\"active\",\"op\":\"eq\",\"value\":true}]", otherSort, null, cursor))
-                    .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.getMessage())
-                            .isEqualTo(QueryCompiler.INVALID_CURSOR));
+        for (String otherSort : new String[] {"amount", "code"}) {
+            assertThatThrownBy(() -> QueryCompiler.compile(
+                            LIST, "[{\"field\":\"active\",\"op\":\"eq\",\"value\":true}]", otherSort, null, cursor))
+                    .isInstanceOfSatisfying(
+                            ApiException.class,
+                            e -> assertThat(e.getMessage()).isEqualTo(QueryCompiler.INVALID_CURSOR));
         }
-        assertThatThrownBy(() -> QueryCompiler.compile(LIST,
-                "[{\"field\":\"active\",\"op\":\"eq\",\"value\":false}]", "-amount", null, cursor))
+        assertThatThrownBy(() -> QueryCompiler.compile(
+                        LIST, "[{\"field\":\"active\",\"op\":\"eq\",\"value\":false}]", "-amount", null, cursor))
                 .isInstanceOf(ApiException.class);
         assertThatThrownBy(() -> QueryCompiler.compile(LIST, null, null, null, "%%%"))
                 .isInstanceOf(ApiException.class);
@@ -176,23 +196,40 @@ class QueryCompilerTest {
     @Test
     @DisplayName("свободный поиск q: подстрока в любом searchable-поле, экранирован, входит в отпечаток курсора")
     void searchLooksAtSearchableFieldsOnly() {
-        QueryList list = new QueryList("test.search", "test.form", "view", "t.id", "test_items t", "t.id",
-                List.of(QueryField.of("code", "c", QueryFieldType.TEXT, "t.code").asSortable().asSearchable(),
-                        QueryField.of("name", "n", QueryFieldType.TEXT, "t.name").asSearchable(),
+        QueryList list = new QueryList(
+                "test.search",
+                "test.form",
+                "view",
+                "t.id",
+                "test_items t",
+                "t.id",
+                List.of(
+                        QueryField.of("code", "c", QueryFieldType.TEXT, "t.code")
+                                .asSortable()
+                                .asSearchable(),
+                        QueryField.of("name", "n", QueryFieldType.TEXT, "t.name")
+                                .asSearchable(),
                         QueryField.of("note", "x", QueryFieldType.TEXT, "t.note")),
                 "code");
 
         QueryPlan plan = QueryCompiler.compile(list, null, null, null, null, "  50%_off  ");
-        assertThat(plan.where().sql()).isEqualTo(" and (t.code ilike :q_search escape '\\' or t.name ilike :q_search escape '\\')");
+        assertThat(plan.where().sql())
+                .isEqualTo(" and (t.code ilike :q_search escape '\\' or t.name ilike :q_search escape '\\')");
         assertThat(plan.where().params()).containsEntry("q_search", "%50\\%\\_off%");
-        assertThat(QueryCompiler.compile(list, null, null, null, null, "   ").where().sql()).isEmpty();
-        assertThat(plan.fingerprint()).isNotEqualTo(QueryCompiler.compile(list, null, null, null, null, "other").fingerprint());
+        assertThat(QueryCompiler.compile(list, null, null, null, null, "   ")
+                        .where()
+                        .sql())
+                .isEmpty();
+        assertThat(plan.fingerprint())
+                .isNotEqualTo(QueryCompiler.compile(list, null, null, null, null, "other")
+                        .fingerprint());
 
         assertThatThrownBy(() -> QueryCompiler.compile(list, null, null, null, null, "x".repeat(201)))
                 .isInstanceOf(ApiException.class);
         assertThatThrownBy(() -> QueryCompiler.compile(LIST, null, null, null, null, "x"))
                 .isInstanceOf(ApiException.class);
-        assertThatThrownBy(() -> QueryField.of("n", "n", QueryFieldType.NUMBER, "t.n").asSearchable())
+        assertThatThrownBy(() ->
+                        QueryField.of("n", "n", QueryFieldType.NUMBER, "t.n").asSearchable())
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -202,26 +239,42 @@ class QueryCompilerTest {
     }
 
     private static void signIn(String... permissions) {
-        SecurityContext.setPrincipal(new SecurityContext.KauthPrincipal(1L, "viewer", "viewer@test", 1L, false,
-                Set.of(permissions), 1L, false, 1L, null));
+        SecurityContext.setPrincipal(new SecurityContext.KauthPrincipal(
+                1L, "viewer", "viewer@test", 1L, false, Set.of(permissions), 1L, false, 1L, null));
     }
 
     @Test
-    @DisplayName("права на поля: без права поле неотличимо от несуществующего в фильтре, сортировке и поиске, значение скрыто")
+    @DisplayName(
+            "права на поля: без права поле неотличимо от несуществующего в фильтре, сортировке и поиске, значение скрыто")
     void fieldRightHidesTheField() {
-        QueryList list = new QueryList("test.rights", "test.form", "view", "t.id", "test_items t", "t.id",
-                List.of(QueryField.of("code", "c", QueryFieldType.TEXT, "t.code").asSortable().asSearchable(),
-                        QueryField.of("owner", "o", QueryFieldType.TEXT, "t.owner").asSortable().asSearchable()
+        QueryList list = new QueryList(
+                "test.rights",
+                "test.form",
+                "view",
+                "t.id",
+                "test_items t",
+                "t.id",
+                List.of(
+                        QueryField.of("code", "c", QueryFieldType.TEXT, "t.code")
+                                .asSortable()
+                                .asSearchable(),
+                        QueryField.of("owner", "o", QueryFieldType.TEXT, "t.owner")
+                                .asSortable()
+                                .asSearchable()
                                 .requires("test.people", "view")),
                 "code");
 
         signIn("test.form.view");
         assertThat(list.viewerFields()).extracting(QueryField::key).containsExactly("code");
-        ApiException filter = catchThrowableOfType(ApiException.class,
-                () -> QueryCompiler.compile(list, "[{\"field\":\"owner\",\"op\":\"eq\",\"value\":\"x\"}]", null, null, null));
-        assertThat(filter.getFieldErrors()).extracting(FieldErrorItem::code).containsExactly(QueryCompiler.UNKNOWN_FIELD);
-        ApiException sort = catchThrowableOfType(ApiException.class,
-                () -> QueryCompiler.compile(list, null, "-owner", null, null));
+        ApiException filter = catchThrowableOfType(
+                ApiException.class,
+                () -> QueryCompiler.compile(
+                        list, "[{\"field\":\"owner\",\"op\":\"eq\",\"value\":\"x\"}]", null, null, null));
+        assertThat(filter.getFieldErrors())
+                .extracting(FieldErrorItem::code)
+                .containsExactly(QueryCompiler.UNKNOWN_FIELD);
+        ApiException sort =
+                catchThrowableOfType(ApiException.class, () -> QueryCompiler.compile(list, null, "-owner", null, null));
         assertThat(sort.getFieldErrors()).extracting(FieldErrorItem::code).containsExactly(QueryCompiler.SORT_INVALID);
         QueryPlan plan = QueryCompiler.compile(list, null, null, null, null, "ann");
         assertThat(plan.where().sql()).isEqualTo(" and (t.code ilike :q_search escape '\\')");
@@ -229,26 +282,38 @@ class QueryCompilerTest {
         assertThat(plan.shows("code")).isTrue();
 
         signIn("test.form.view", "test.people.view");
-        QueryPlan full = QueryCompiler.compile(list, "[{\"field\":\"owner\",\"op\":\"eq\",\"value\":\"x\"}]", "-owner", null, null, "ann");
+        QueryPlan full = QueryCompiler.compile(
+                list, "[{\"field\":\"owner\",\"op\":\"eq\",\"value\":\"x\"}]", "-owner", null, null, "ann");
         assertThat(full.shows("owner")).isTrue();
         assertThat(full.where().sql()).contains("t.owner ilike :q_search");
 
-        assertThatThrownBy(() -> new QueryList("test.bad", "test.form", "view", "t.id", "test_items t", "t.id",
-                List.of(QueryField.of("owner", "o", QueryFieldType.TEXT, "t.owner").asSortable().requires("test.people", "view")),
-                "owner")).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> QueryField.of("owner", "o", QueryFieldType.TEXT, "t.owner").requires("test.people", null))
+        assertThatThrownBy(() -> new QueryList(
+                        "test.bad",
+                        "test.form",
+                        "view",
+                        "t.id",
+                        "test_items t",
+                        "t.id",
+                        List.of(QueryField.of("owner", "o", QueryFieldType.TEXT, "t.owner")
+                                .asSortable()
+                                .requires("test.people", "view")),
+                        "owner"))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> QueryField.of("owner", "o", QueryFieldType.TEXT, "t.owner")
+                        .requires("test.people", null))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     @DisplayName("реестр не пускает сортировку по пустому полю и дубли")
     void registryRejectsUnsafeDefinitions() {
-        assertThatThrownBy(() -> QueryField.of("note", "x", QueryFieldType.TEXT, "t.note").asNullable().asSortable())
+        assertThatThrownBy(() -> QueryField.of("note", "x", QueryFieldType.TEXT, "t.note")
+                        .asNullable()
+                        .asSortable())
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> QueryField.of("Bad key", "x", QueryFieldType.TEXT, "t.x"))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new QueryListRegistry(List.of(LIST, LIST)))
-                .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new QueryListRegistry(List.of(LIST, LIST))).isInstanceOf(IllegalStateException.class);
         assertThat(new QueryListRegistry(List.of(LIST)).find("test.items")).contains(LIST);
     }
 
@@ -262,7 +327,8 @@ class QueryCompilerTest {
         assertThat(plan.where().sql()).isEqualTo(" and t.active = :q_f0 and (t.state = :q_f1 or t.amount > :q_f2)");
         assertThat(plan.where().params()).containsKeys("q_f0", "q_f1", "q_f2");
         assertThat(plan.conditions()).extracting(QueryPlan.Condition::group).containsExactly(-1, 0, 0);
-        assertThat(plan.fingerprint()).as("a group is not the same filter as its conditions joined by and")
+        assertThat(plan.fingerprint())
+                .as("a group is not the same filter as its conditions joined by and")
                 .isNotEqualTo(compile("""
                         [{"field":"active","op":"eq","value":true},{"field":"state","op":"eq","value":"open"},
                          {"field":"amount","op":"gt","value":10}]""", null).fingerprint());
@@ -272,17 +338,22 @@ class QueryCompilerTest {
     @DisplayName("группа any: не меньше двух условий, без вложенности, адрес ошибки внутри группы, общий лимит условий")
     void anyGroupIsChecked() {
         assertThat(errors("[{\"any\":[{\"field\":\"code\",\"op\":\"eq\",\"value\":\"a\"}]}]", null))
-                .extracting(FieldErrorItem::field).containsExactly("filter[0]");
+                .extracting(FieldErrorItem::field)
+                .containsExactly("filter[0]");
         assertThat(errors("""
-                [{"any":[{"field":"code","op":"eq","value":"a"},{"any":[]}]}]""", null))
-                .extracting(FieldErrorItem::field).containsExactly("filter[0].any[1]");
+                [{"any":[{"field":"code","op":"eq","value":"a"},{"any":[]}]}]""", null)).extracting(FieldErrorItem::field).containsExactly("filter[0].any[1]");
         assertThat(errors("""
                 [{"any":[{"field":"code","op":"eq","value":"a"},{"field":"secret","op":"eq","value":"b"}]}]""", null))
                 .extracting(FieldErrorItem::field, FieldErrorItem::code)
-                .containsExactly(org.assertj.core.groups.Tuple.tuple("filter[0].any[1].field", QueryCompiler.UNKNOWN_FIELD));
-        String many = String.join(",", Collections.nCopies(QueryCompiler.MAX_CONDITIONS, "{\"field\":\"code\",\"op\":\"eq\",\"value\":\"a\"}"));
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple("filter[0].any[1].field", QueryCompiler.UNKNOWN_FIELD));
+        String many = String.join(
+                ",",
+                Collections.nCopies(
+                        QueryCompiler.MAX_CONDITIONS, "{\"field\":\"code\",\"op\":\"eq\",\"value\":\"a\"}"));
         assertThat(errors("[{\"field\":\"code\",\"op\":\"eq\",\"value\":\"a\"},{\"any\":[" + many + "]}]", null))
-                .extracting(FieldErrorItem::code).containsExactly(QueryCompiler.FILTER_TOO_LONG);
+                .extracting(FieldErrorItem::code)
+                .containsExactly(QueryCompiler.FILTER_TOO_LONG);
     }
 
     @Test
@@ -292,7 +363,9 @@ class QueryCompilerTest {
                 .refersTo(QueryRef.paged("/iam/users", "name"));
         assertThat(ref.ref()).isEqualTo(new QueryRef("/iam/users", "name", "id", true));
         assertThatThrownBy(() -> QueryField.of("flag", "f", QueryFieldType.BOOLEAN, "t.flag")
-                .refersTo(QueryRef.whole("/tasks/statuses", "name"))).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> QueryRef.paged("https://evil.test/x", "name")).isInstanceOf(IllegalArgumentException.class);
+                        .refersTo(QueryRef.whole("/tasks/statuses", "name")))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> QueryRef.paged("https://evil.test/x", "name"))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }

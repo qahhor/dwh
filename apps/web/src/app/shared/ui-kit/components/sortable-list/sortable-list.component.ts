@@ -69,7 +69,8 @@ let nextListId = 0;
       cdkDropListLockAxis="y"
       [cdkDropListDisabled]="disabled()"
       [cdkDropListSortPredicate]="canDropAt"
-      (cdkDropListDropped)="onDrop($event)">
+      (cdkDropListDropped)="onDrop($event)"
+    >
       @for (item of items(); track trackBy()(item); let index = $index, first = $first, last = $last) {
         <div
           class="smt-sortable-list__row"
@@ -77,12 +78,15 @@ let nextListId = 0;
           cdkDrag
           [cdkDragData]="item"
           [cdkDragDisabled]="isLocked(item)"
-          [class.smt-sortable-list__row--locked]="isLocked(item)">
+          [class.smt-sortable-list__row--locked]="isLocked(item)"
+        >
           <span
             class="material-symbols-outlined smt-sortable-list__handle"
             aria-hidden="true"
             cdkDragHandle
-            [title]="i18n.messages().sortable.handle">drag_indicator</span>
+            [title]="i18n.messages().sortable.handle"
+            >drag_indicator</span
+          >
           <div class="smt-sortable-list__body">
             @if (itemTemplate(); as body) {
               <ng-container *ngTemplateOutlet="body.template; context: { $implicit: item, index: index }" />
@@ -97,7 +101,8 @@ let nextListId = 0;
                 data-move="-1"
                 [disabled]="!canMove(index, -1)"
                 [attr.aria-label]="i18n.messages().sortable.moveUp(itemLabel()(item))"
-                (click)="move(index, -1)">
+                (click)="move(index, -1)"
+              >
                 <span class="material-symbols-outlined" aria-hidden="true">arrow_upward</span>
               </button>
               <button
@@ -107,7 +112,8 @@ let nextListId = 0;
                 data-move="1"
                 [disabled]="!canMove(index, 1)"
                 [attr.aria-label]="i18n.messages().sortable.moveDown(itemLabel()(item))"
-                (click)="move(index, 1)">
+                (click)="move(index, 1)"
+              >
                 <span class="material-symbols-outlined" aria-hidden="true">arrow_downward</span>
               </button>
             }
@@ -129,10 +135,10 @@ export class SMTSortableListComponent<T> {
   readonly items = input<readonly T[]>([]);
 
   /** A row's identity, so a moved row keeps its DOM and focus. */
-  readonly trackBy = input<(item: T) => unknown>(item => item);
+  readonly trackBy = input<(item: T) => unknown>((item) => item);
 
   /** What a row is called in button names and announcements. */
-  readonly itemLabel = input<(item: T) => string>(item => String(item));
+  readonly itemLabel = input<(item: T) => string>((item) => String(item));
 
   /** Rows that stay where they are, such as system records. */
   readonly locked = input<(item: T) => boolean>(() => false);
@@ -196,12 +202,16 @@ export class SMTSortableListComponent<T> {
 
   /** The moved row keeps focus; at the edge its button is disabled, so focus goes to the other one. */
   private keepFocus(key: string, delta: -1 | 1): void {
-    afterNextRender(() => {
-      const buttons = Array.from(document.getElementById(this.listId)?.querySelectorAll<HTMLButtonElement>('[data-move]') ?? [])
-        .filter(button => button.dataset['key'] === key);
-      const same = buttons.find(button => button.dataset['move'] === String(delta));
-      const other = buttons.find(button => button.dataset['move'] === String(-delta));
-      (same && !same.disabled ? same : other)?.focus();
-    }, { injector: this.injector });
+    afterNextRender(
+      () => {
+        const buttons = Array.from(
+          document.getElementById(this.listId)?.querySelectorAll<HTMLButtonElement>('[data-move]') ?? [],
+        ).filter((button) => button.dataset['key'] === key);
+        const same = buttons.find((button) => button.dataset['move'] === String(delta));
+        const other = buttons.find((button) => button.dataset['move'] === String(-delta));
+        (same && !same.disabled ? same : other)?.focus();
+      },
+      { injector: this.injector },
+    );
   }
 }

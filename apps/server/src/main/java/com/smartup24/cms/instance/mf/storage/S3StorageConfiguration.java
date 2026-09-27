@@ -25,8 +25,8 @@ public class S3StorageConfiguration {
         return S3Client.builder()
                 .endpointOverride(properties.getEndpoint())
                 .region(Region.of(properties.getRegion()))
-                .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(
-                        properties.getAccessKey(), properties.getSecretKey())))
+                .credentialsProvider(StaticCredentialsProvider.create(
+                        AwsBasicCredentials.create(properties.getAccessKey(), properties.getSecretKey())))
                 .httpClientBuilder(UrlConnectionHttpClient.builder()
                         .connectionTimeout(properties.getConnectTimeout())
                         .socketTimeout(properties.getReadTimeout()))
@@ -40,9 +40,7 @@ public class S3StorageConfiguration {
 
     @Bean
     public S3StorageProvider s3StorageProvider(
-            S3Client client,
-            S3StorageProperties properties,
-            MeterRegistry meterRegistry) {
+            S3Client client, S3StorageProperties properties, MeterRegistry meterRegistry) {
         return new S3StorageProvider(client, properties, meterRegistry);
     }
 }

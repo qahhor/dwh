@@ -1,5 +1,8 @@
 package com.smartup24.cms.instance.fnd.migration;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
+
 import com.smartup24.cms.instance.support.TestDatabases;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -10,9 +13,6 @@ import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.catchThrowable;
 
 /**
  * AC-4 (ревизия 09.09.2026): gate второй базы {@code pg-dwh}. Схему OLTP проверяет gate каркаса
@@ -90,6 +90,8 @@ class DwhSchemaVersionGateTest {
 
     private static long appliedMigrations(String database) {
         return JdbcClient.create(TestDatabases.database(database))
-                .sql("select count(*) from flyway_schema_history").query(Long.class).single();
+                .sql("select count(*) from flyway_schema_history")
+                .query(Long.class)
+                .single();
     }
 }

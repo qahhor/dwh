@@ -33,9 +33,15 @@ describe('TableColumnStateStore', () => {
 
   it('keeps working when the browser refuses storage', () => {
     const store = new TableColumnStateStore();
-    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked'); });
-    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('blocked'); });
-    vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => { throw new Error('blocked'); });
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
 
     expect(() => store.save('t', { order: [], hidden: [], widths: {} })).not.toThrow();
     expect(store.load('t')).toBeNull();

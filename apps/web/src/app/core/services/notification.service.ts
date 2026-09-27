@@ -23,7 +23,7 @@ interface BackendUnreadCount {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class NotificationService {
   readonly unreadCount = signal<number>(0);
@@ -37,7 +37,7 @@ export class NotificationService {
   constructor(
     private api: ApiService,
     private toast: ToastService,
-    private i18n: I18nService
+    private i18n: I18nService,
   ) {}
 
   fetchUnreadCount(): Observable<{ unreadCount: number }> {
@@ -47,16 +47,16 @@ export class NotificationService {
       switchMap(() => this.api.get<BackendUnreadCount>('/notifications/unread-count')),
       take(1),
       takeUntil(this.sessionEnded),
-      map(res => ({ unreadCount: res.unread_count })),
-      tap(res => this.unreadCount.set(res.unreadCount))
+      map((res) => ({ unreadCount: res.unread_count })),
+      tap((res) => this.unreadCount.set(res.unreadCount)),
     );
   }
 
   fetchNotifications(limit: number = 20, _cursor?: string): Observable<KeysetPage<NotificationItem>> {
     return this.api.get<BackendNotification[]>('/notifications/inbox', { limit }).pipe(
       takeUntil(this.sessionEnded),
-      map(records => {
-        const items = records.map(record => ({
+      map((records) => {
+        const items = records.map((record) => ({
           id: record.id,
           userId: record.userId,
           title: record.title,
@@ -72,41 +72,37 @@ export class NotificationService {
           hasMore: false,
           totalReturned: items.length,
         };
-      })
+      }),
     );
   }
 
   markAsRead(id: number): Observable<void> {
     return this.api.post<void>(`/notifications/inbox/${id}/read`).pipe(
       takeUntil(this.sessionEnded),
-      tap(() => this.unreadChanged.next())
+      tap(() => this.unreadChanged.next()),
     );
   }
 
   markAllAsRead(): Observable<void> {
     return this.api.post<void>('/notifications/inbox/read-all').pipe(
       takeUntil(this.sessionEnded),
-      tap(() => this.unreadChanged.next())
+      tap(() => this.unreadChanged.next()),
     );
   }
 
   fetchPreferences(): Observable<NotificationPrefItem[]> {
-    return this.api.get<NotificationPrefItem[]>('/notifications/preferences').pipe(
-      takeUntil(this.sessionEnded)
-    );
+    return this.api.get<NotificationPrefItem[]>('/notifications/preferences').pipe(takeUntil(this.sessionEnded));
   }
 
   updatePreferences(prefs: NotificationPrefItem[]): Observable<void> {
-    return this.api.put<void>('/notifications/preferences', prefs).pipe(
-      takeUntil(this.sessionEnded)
-    );
+    return this.api.put<void>('/notifications/preferences', prefs).pipe(takeUntil(this.sessionEnded));
   }
 
   fetchActiveAnnouncement(language = 'ru'): Observable<Announcement | null> {
     return this.api.get<Announcement[]>('/announcements/active', { language }).pipe(
       takeUntil(this.sessionEnded),
-      map(res => res[0] ?? null),
-      tap(a => this.activeAnnouncement.set(a))
+      map((res) => res[0] ?? null),
+      tap((a) => this.activeAnnouncement.set(a)),
     );
   }
 
@@ -119,7 +115,7 @@ export class NotificationService {
       takeUntil(this.sessionEnded),
       tap(() => {
         if (this.activeAnnouncement()?.id === id) this.activeAnnouncement.set(null);
-      })
+      }),
     );
   }
 
@@ -146,7 +142,7 @@ export class NotificationService {
         if (this.eventSource !== source) return;
         try {
           const data = JSON.parse(event.data);
-          this.unreadCount.update(c => c + 1);
+          this.unreadCount.update((c) => c + 1);
           this.unreadChanged.next();
 
           const title = data.title || this.i18n.translate('notifications.new_notification');
@@ -163,7 +159,10 @@ export class NotificationService {
         try {
           const data = JSON.parse(event.data);
           this.activeAnnouncement.set(data);
-          this.toast.warning(data.title || this.i18n.translate('announcements.system_announcement'), this.i18n.translate('announcements.announcement'));
+          this.toast.warning(
+            data.title || this.i18n.translate('announcements.system_announcement'),
+            this.i18n.translate('announcements.announcement'),
+          );
         } catch (err) {
           console.debug('SSE: Error parsing announcement event', err);
         }

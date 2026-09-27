@@ -90,7 +90,7 @@ export function resolveBiruniColumnAlign(options: {
  */
 export function formatBiruniColumnCellValue(
   value: unknown,
-  format?: string | null
+  format?: string | null,
 ): string | number | boolean | null | undefined {
   const kind = String(format ?? '')
     .trim()
@@ -112,7 +112,7 @@ export function formatBiruniColumnCellValue(
 export function getBiruniTableSizingBasisWidth(viewportWidthPx: number): number {
   return Math.max(
     1,
-    Math.round(Math.max(BIRUNI_GRID_MIN_WIDTH_PX, viewportWidthPx) - BIRUNI_GRID_RESIZE_HANDLE_OVERHANG_PX)
+    Math.round(Math.max(BIRUNI_GRID_MIN_WIDTH_PX, viewportWidthPx) - BIRUNI_GRID_RESIZE_HANDLE_OVERHANG_PX),
   );
 }
 
@@ -130,7 +130,7 @@ export function getBiruniTableSizeTracks(options: {
   columnSizes: (string | number | null | undefined)[];
   withCheckbox?: boolean;
 }): string[] {
-  const sizeArray = options.columnSizes.map(size => {
+  const sizeArray = options.columnSizes.map((size) => {
     const text = String(size ?? '').trim();
     if (text.endsWith('%')) {
       return `${Number.parseFloat(text) || 1}%`;

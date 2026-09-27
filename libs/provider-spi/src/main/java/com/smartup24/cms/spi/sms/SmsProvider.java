@@ -1,7 +1,6 @@
 package com.smartup24.cms.spi.sms;
 
 import com.smartup24.cms.spi.common.ProviderHealth;
-
 import java.util.concurrent.CompletableFuture;
 
 /**

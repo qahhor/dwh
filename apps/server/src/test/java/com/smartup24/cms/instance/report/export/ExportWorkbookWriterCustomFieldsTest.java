@@ -1,23 +1,23 @@
 package com.smartup24.cms.instance.report.export;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.smartup24.cms.instance.common.query.QueryField;
 import com.smartup24.cms.instance.common.query.QueryFieldType;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.ZipFile;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 /** Custom fields in a list export (roadmap item 52): headed by their name, read from the row's attributes. */
 class ExportWorkbookWriterCustomFieldsTest {
 
     @Test
-    @DisplayName("A custom field is headed by its name, read from attributes, and a value of the wrong shape never fails the file")
+    @DisplayName(
+            "A custom field is headed by its name, read from attributes, and a value of the wrong shape never fails the file")
     void writesCustomFieldsFromAttributes() throws Exception {
         List<QueryField> fields = List.of(
                 QueryField.of("name", "iam.users.col.name", QueryFieldType.TEXT, "u.name"),
@@ -26,7 +26,11 @@ class ExportWorkbookWriterCustomFieldsTest {
                 QueryField.custom("cfRemote", "Remote", QueryFieldType.BOOLEAN, "(a->>'remote')", "remote", List.of()));
         var out = new ByteArrayOutputStream();
         try (var writer = new ExportWorkbookWriter(out, "Users", fields, key -> "[" + key + "]", "test", "1.0")) {
-            writer.add(Map.of("name", "Anna", "attributes", Map.of("region", "Tashkent", "hired", "2024-03-01", "remote", "true")));
+            writer.add(Map.of(
+                    "name",
+                    "Anna",
+                    "attributes",
+                    Map.of("region", "Tashkent", "hired", "2024-03-01", "remote", "true")));
             writer.add(Map.of("name", "Old", "attributes", Map.of("hired", "soon", "remote", "maybe")));
             writer.add(Map.of("name", "None"));
             assertThat(writer.rows()).isEqualTo(3);
@@ -34,7 +38,8 @@ class ExportWorkbookWriterCustomFieldsTest {
 
         String strings = entry(out.toByteArray(), "xl/sharedStrings.xml");
         // Non-ASCII text is XML-escaped in the file, so the test uses ASCII names.
-        assertThat(strings).contains("[iam.users.col.name]", "Region", "Hired", "Tashkent", "[common.yes]", "soon", "maybe");
+        assertThat(strings)
+                .contains("[iam.users.col.name]", "Region", "Hired", "Tashkent", "[common.yes]", "soon", "maybe");
     }
 
     /** Every XML part of the workbook as text (fastexcel may keep strings shared or inline). */

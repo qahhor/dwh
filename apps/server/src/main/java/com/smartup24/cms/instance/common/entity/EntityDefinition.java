@@ -25,9 +25,18 @@ import java.util.Set;
  * @param actions      what can be done, each with the action of the right it needs
  * @param capabilities what the platform provides for it
  */
-public record EntityDefinition(String code, String form, String listCode, String customEntity, String auditTable,
-                               EntityRights rights, EntityMenu menu, List<FormField> fields,
-                               List<FormSection> layout, List<EntityAction> actions, Set<EntityCapability> capabilities) {
+public record EntityDefinition(
+        String code,
+        String form,
+        String listCode,
+        String customEntity,
+        String auditTable,
+        EntityRights rights,
+        EntityMenu menu,
+        List<FormField> fields,
+        List<FormSection> layout,
+        List<EntityAction> actions,
+        Set<EntityCapability> capabilities) {
 
     /**
      * How the permission matrix names the entity's right (roadmap item 57): the owning module, the form's name and
@@ -99,7 +108,8 @@ public record EntityDefinition(String code, String form, String listCode, String
             throw new IllegalArgumentException("Entity " + code + ": every field belongs to one section");
         }
         if (capabilities.contains(EntityCapability.CUSTOM_FIELDS) != (customEntity != null)) {
-            throw new IllegalArgumentException("Entity " + code + ": custom fields need their entity type, and only then");
+            throw new IllegalArgumentException(
+                    "Entity " + code + ": custom fields need their entity type, and only then");
         }
         if (capabilities.contains(EntityCapability.HISTORY) != (auditTable != null)) {
             throw new IllegalArgumentException("Entity " + code + ": history needs its audit table, and only then");

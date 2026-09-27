@@ -1,25 +1,5 @@
 package com.smartup24.cms.instance.md;
 
-import com.smartup24.cms.instance.audit.service.AuditLogService;
-import com.smartup24.cms.core.error.ErrorCode;
-import com.smartup24.cms.instance.common.error.ApiException;
-import com.smartup24.cms.instance.md.i18n.I18nModels.CreateLanguageRequest;
-import com.smartup24.cms.instance.md.i18n.I18nModels.LanguageRecord;
-import com.smartup24.cms.instance.md.i18n.I18nModels.UpdateTranslationsRequest;
-import com.smartup24.cms.instance.md.repository.MdI18nRepository;
-import com.smartup24.cms.instance.md.service.MdI18nCatalog;
-import com.smartup24.cms.instance.md.service.MdI18nService;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-import tools.jackson.databind.ObjectMapper;
-
-import java.time.Instant;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -28,6 +8,24 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import com.smartup24.cms.core.error.ErrorCode;
+import com.smartup24.cms.instance.audit.service.AuditLogService;
+import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.md.i18n.I18nModels.CreateLanguageRequest;
+import com.smartup24.cms.instance.md.i18n.I18nModels.LanguageRecord;
+import com.smartup24.cms.instance.md.i18n.I18nModels.UpdateTranslationsRequest;
+import com.smartup24.cms.instance.md.repository.MdI18nRepository;
+import com.smartup24.cms.instance.md.service.MdI18nCatalog;
+import com.smartup24.cms.instance.md.service.MdI18nService;
+import java.time.Instant;
+import java.util.Map;
+import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import tools.jackson.databind.ObjectMapper;
 
 class MdI18nServiceTest {
 
@@ -90,9 +88,10 @@ class MdI18nServiceTest {
     @DisplayName("Редактор считает только реально переведённые строки пользовательского языка")
     void editorReportsCustomLanguageCoverage() {
         when(repository.findLanguage("fr")).thenReturn(Optional.of(language("fr", false, true, 3)));
-        when(repository.findOverrides("fr")).thenReturn(Map.of(
-                "nav.tasks", "Tâches",
-                "common.save", "Enregistrer"));
+        when(repository.findOverrides("fr"))
+                .thenReturn(Map.of(
+                        "nav.tasks", "Tâches",
+                        "common.save", "Enregistrer"));
 
         var editor = service.editor("fr");
 
@@ -113,7 +112,7 @@ class MdI18nServiceTest {
         when(repository.findLanguage("en")).thenReturn(Optional.of(language("en", true, true, 1)));
 
         assertThatThrownBy(() -> service.updateTranslations(
-                "en", new UpdateTranslationsRequest(1, Map.of("typo.unknown", "Wert")), 7L))
+                        "en", new UpdateTranslationsRequest(1, Map.of("typo.unknown", "Wert")), 7L))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("Неизвестный ключ")
                 .satisfies(error -> assertThat(((ApiException) error).getErrorCode())
@@ -133,34 +132,39 @@ class MdI18nServiceTest {
         when(repository.replaceOverrides(eq("en"), any(), eq(1L), eq(7L))).thenReturn(2L);
 
         assertThat(service.effectiveDictionary("en")).containsEntry("common.save", "Save");
-        service.updateTranslations(
-                "en", new UpdateTranslationsRequest(1, Map.of("common.save", "Keep")), 7L);
+        service.updateTranslations("en", new UpdateTranslationsRequest(1, Map.of("common.save", "Keep")), 7L);
         when(repository.findLanguage("en")).thenReturn(Optional.of(language("en", true, true, 2)));
 
         assertThat(service.effectiveDictionary("en")).containsEntry("common.save", "Keep");
-        verify(audit).logChange(eq("md_i18n_translation_overrides"), eq("en:common.save"),
-                eq("I"), any(), any(), any());
+        verify(audit)
+                .logChange(eq("md_i18n_translation_overrides"), eq("en:common.save"), eq("I"), any(), any(), any());
     }
 
     @Test
     @DisplayName("Новый язык нормализуется и сохраняет начальный пакет")
     void createsNormalizedCustomLanguage() {
         when(repository.findLanguage("fr-ca")).thenReturn(Optional.empty());
-        when(repository.insertLanguage("fr-ca", "Français (Canada)", 7L))
-                .thenReturn(language("fr-ca", false, true, 1));
+        when(repository.insertLanguage("fr-ca", "Français (Canada)", 7L)).thenReturn(language("fr-ca", false, true, 1));
         when(repository.replaceOverrides(eq("fr-ca"), any(), eq(1L), eq(7L))).thenReturn(2L);
 
-        var result = service.createLanguage(new CreateLanguageRequest(
-                " FR-CA ", " Français (Canada) ", Map.of("common.save", "Enregistrer")), 7L);
+        var result = service.createLanguage(
+                new CreateLanguageRequest(" FR-CA ", " Français (Canada) ", Map.of("common.save", "Enregistrer")), 7L);
 
         assertThat(result.code()).isEqualTo("fr-ca");
         assertThat(result.revision()).isEqualTo(2);
-        verify(repository).replaceOverrides(
-                "fr-ca", Map.of("common.save", "Enregistrer"), 1L, 7L);
+        verify(repository).replaceOverrides("fr-ca", Map.of("common.save", "Enregistrer"), 1L, 7L);
     }
 
     private LanguageRecord language(String code, boolean builtin, boolean active, long revision) {
-        return new LanguageRecord(code, code.toUpperCase(), builtin, active, revision,
-                null, null, Instant.parse("2026-09-04T00:00:00Z"), Instant.parse("2026-09-04T00:00:00Z"));
+        return new LanguageRecord(
+                code,
+                code.toUpperCase(),
+                builtin,
+                active,
+                revision,
+                null,
+                null,
+                Instant.parse("2026-09-04T00:00:00Z"),
+                Instant.parse("2026-09-04T00:00:00Z"));
     }
 }

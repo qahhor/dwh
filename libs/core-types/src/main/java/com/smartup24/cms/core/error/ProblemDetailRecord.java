@@ -1,7 +1,6 @@
 package com.smartup24.cms.core.error;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-
 import java.time.Instant;
 import java.util.List;
 
@@ -17,8 +16,7 @@ public record ProblemDetailRecord(
         String detail,
         String instance,
         Instant timestamp,
-        List<FieldErrorItem> errors
-) {
+        List<FieldErrorItem> errors) {
     public static ProblemDetailRecord of(ErrorCode errorCode, String detail, String instance) {
         return new ProblemDetailRecord(
                 "https://api.dwh.internal/errors/" + errorCode.getCode(),
@@ -28,8 +26,7 @@ public record ProblemDetailRecord(
                 detail,
                 instance,
                 Instant.now(),
-                null
-        );
+                null);
     }
 
     public static ProblemDetailRecord ofValidation(String detail, String instance, List<FieldErrorItem> errors) {
@@ -41,7 +38,6 @@ public record ProblemDetailRecord(
                 detail,
                 instance,
                 Instant.now(),
-                errors
-        );
+                errors);
     }
 }

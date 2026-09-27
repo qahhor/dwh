@@ -2,12 +2,11 @@ package com.smartup24.cms.instance.search.typesense;
 
 import com.smartup24.cms.instance.search.service.SearchService.SearchHit;
 import com.smartup24.cms.instance.search.typesense.TypesenseClient.CollectionSearch;
+import java.util.ArrayList;
+import java.util.List;
 import org.springframework.web.util.HtmlUtils;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /** Strictly validates and maps one Typesense multi-search response as one atomic operation. */
 public final class TypesenseSearchMapper {
@@ -72,8 +71,7 @@ public final class TypesenseSearchMapper {
         long id = requiredDocumentId(document, "note_id");
         String title = requiredText(document, "title");
         String fallback = optionalText(document, "content_md");
-        return new SearchHit("NOTE", Long.toString(id), title,
-                snippet(hit, fallback), "/notes?id=" + id);
+        return new SearchHit("NOTE", Long.toString(id), title, snippet(hit, fallback), "/notes?id=" + id);
     }
 
     private SearchHit task(JsonNode hit, JsonNode document) {
@@ -81,15 +79,18 @@ public final class TypesenseSearchMapper {
         String title = requiredText(document, "title");
         String fallback = optionalText(document, "description_markdown");
         if (fallback.isBlank()) fallback = taskMetadata(document);
-        return new SearchHit("TASK", Long.toString(id), title,
-                snippet(hit, fallback), "/tasks/items/" + id);
+        return new SearchHit("TASK", Long.toString(id), title, snippet(hit, fallback), "/tasks/items/" + id);
     }
 
     private SearchHit project(JsonNode hit, JsonNode document) {
         requireActive(document);
         long id = requiredDocumentId(document, "project_id");
-        return new SearchHit("PROJECT", Long.toString(id), requiredText(document, "name"),
-                snippet(hit, optionalText(document, "description")), "/tasks/projects/" + id);
+        return new SearchHit(
+                "PROJECT",
+                Long.toString(id),
+                requiredText(document, "name"),
+                snippet(hit, optionalText(document, "description")),
+                "/tasks/projects/" + id);
     }
 
     private SearchHit user(JsonNode hit, JsonNode document) {
@@ -98,8 +99,8 @@ public final class TypesenseSearchMapper {
         String login = requiredText(document, "login");
         String email = requiredText(document, "email");
         String fallback = email + " (@" + login + ")";
-        return new SearchHit("USER", Long.toString(id), requiredText(document, "name"),
-                snippet(hit, fallback), "/iam/users/" + id);
+        return new SearchHit(
+                "USER", Long.toString(id), requiredText(document, "name"), snippet(hit, fallback), "/iam/users/" + id);
     }
 
     private static long requiredDocumentId(JsonNode document, String typedIdField) {

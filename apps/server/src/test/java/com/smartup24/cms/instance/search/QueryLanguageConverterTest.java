@@ -1,9 +1,9 @@
 package com.smartup24.cms.instance.search;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.smartup24.cms.instance.search.service.QueryLanguageConverter;
 import org.junit.jupiter.api.Test;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 class QueryLanguageConverterTest {
 

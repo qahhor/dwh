@@ -12,15 +12,14 @@ import com.smartup24.cms.instance.upl.upload.UplPackageModel.ErrorRow;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.ErrorsView;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.NewPackage;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.PackageRow;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Пакеты загрузки: запись принятого файла, итог разбора и чтение списка с ошибками (контракт И5).
@@ -57,8 +56,7 @@ public class UplPackageService {
     /** Пакет по идентификатору из API; строка не uuid или пакета нет — 404. */
     @Transactional(readOnly = true)
     public PackageRow get(String publicId) {
-        return find(toUuid(publicId))
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, UPL_PKG_NOT_FOUND));
+        return find(toUuid(publicId)).orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, UPL_PKG_NOT_FOUND));
     }
 
     @Transactional(readOnly = true)
@@ -90,8 +88,8 @@ public class UplPackageService {
     public void saveParseResult(long id, UplParseResult result) {
         actors.apply(actors.system());
         int updated = result.outcome() == UplParseResult.Outcome.VERIFIED
-                ? repo.markVerified(id, result.rowsTotal(), result.rowsAccepted(), result.rowsRejected(),
-                        result.errorsTotal())
+                ? repo.markVerified(
+                        id, result.rowsTotal(), result.rowsAccepted(), result.rowsRejected(), result.errorsTotal())
                 : repo.markRejected(id, result.rejectCode(), result.rejectParams(), result.errorsTotal());
         if (updated == 0) {
             throw new IllegalStateException("Пакет " + id + " уже не в статусе «получен»");
@@ -113,8 +111,14 @@ public class UplPackageService {
         List<ErrorRow> rows = new ArrayList<>(errors.size());
         int ordinal = 1;
         for (UplParseResult.ErrorRecord error : errors) {
-            rows.add(new ErrorRow(ordinal, error.sheet(), error.rowNo(), error.columnName(), error.cellValue(),
-                    error.code(), error.params()));
+            rows.add(new ErrorRow(
+                    ordinal,
+                    error.sheet(),
+                    error.rowNo(),
+                    error.columnName(),
+                    error.cellValue(),
+                    error.code(),
+                    error.params()));
             ordinal++;
         }
         return rows;

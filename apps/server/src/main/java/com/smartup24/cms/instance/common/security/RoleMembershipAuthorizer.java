@@ -13,7 +13,8 @@ public class RoleMembershipAuthorizer {
     }
 
     public boolean hasActiveRole(Long userId, String rolePcode) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select exists (
                     select 1
                     from md_user_roles ur

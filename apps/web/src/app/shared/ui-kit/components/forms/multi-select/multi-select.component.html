@@ -10,7 +10,8 @@
               type="button"
               class="smt-multi-select__chip-remove"
               [attr.aria-label]="i18n.messages().select.remove(chip.label)"
-              (click)="remove(chip.id)">
+              (click)="remove(chip.id)"
+            >
               <span class="material-symbols-outlined" aria-hidden="true">close</span>
             </button>
           }
@@ -30,7 +31,8 @@
     [attr.aria-label]="ariaLabel() || i18n.messages().select.add"
     [attr.aria-required]="required() ? 'true' : null"
     (click)="toggle()"
-    (keydown)="onTriggerKeydown($event)">
+    (keydown)="onTriggerKeydown($event)"
+  >
     <span class="material-symbols-outlined smt-multi-select__add-icon" aria-hidden="true">add</span>
     <span>{{ chips().length ? i18n.messages().select.addMore : placeholder() || i18n.messages().select.add }}</span>
   </button>
@@ -44,7 +46,8 @@
   [cdkConnectedOverlayMinWidth]="origin.elementRef.nativeElement.offsetWidth || 260"
   (overlayOutsideClick)="close(false)"
   (detach)="close(false)"
-  (attach)="onAttached()">
+  (attach)="onAttached()"
+>
   <div class="smt-select__popup" [id]="listboxId + '-popup'" (focusout)="onPopupFocusOut($event)">
     <div class="smt-select__search">
       <span class="material-symbols-outlined smt-select__search-icon" aria-hidden="true">search</span>
@@ -62,9 +65,15 @@
         [placeholder]="searchPlaceholder() || i18n.messages().select.search"
         [value]="query()"
         (input)="onSearchInput($event)"
-        (keydown)="onSearchKeydown($event)" />
+        (keydown)="onSearchKeydown($event)"
+      />
       @if (query()) {
-        <button type="button" class="smt-select__mini" [attr.aria-label]="i18n.messages().select.clearSearch" (click)="clearSearch()">
+        <button
+          type="button"
+          class="smt-select__mini"
+          [attr.aria-label]="i18n.messages().select.clearSearch"
+          (click)="clearSearch()"
+        >
           <span class="material-symbols-outlined" aria-hidden="true">close</span>
         </button>
       }
@@ -75,7 +84,8 @@
       role="listbox"
       aria-multiselectable="true"
       [id]="listboxId"
-      [attr.aria-label]="ariaLabel() || i18n.messages().select.name">
+      [attr.aria-label]="ariaLabel() || i18n.messages().select.name"
+    >
       @for (option of visibleOptions(); track $index; let index = $index) {
         <li
           class="smt-select__option"
@@ -87,7 +97,8 @@
           [attr.aria-disabled]="option.disabled ? 'true' : null"
           (mousedown)="$event.preventDefault()"
           (mouseenter)="highlight(index)"
-          (click)="toggleOption(option)">
+          (click)="toggleOption(option)"
+        >
           <span class="material-symbols-outlined smt-multi-select__box-icon" aria-hidden="true">
             {{ isSelected(option) ? 'check_box' : 'check_box_outline_blank' }}
           </span>
@@ -108,11 +119,15 @@
     @if (loadError() && !loading()) {
       <div class="smt-select__error" role="alert">
         <span>{{ i18n.messages().select.loadFailed }}</span>
-        <button type="button" class="smt-select__link" (click)="retry.emit()">{{ i18n.messages().select.retry }}</button>
+        <button type="button" class="smt-select__link" (click)="retry.emit()">
+          {{ i18n.messages().select.retry }}
+        </button>
       </div>
     }
     @if (hasMore() && !loading() && !loadError()) {
-      <button type="button" class="smt-select__more" (click)="loadMore.emit()">{{ i18n.messages().select.loadMore }}</button>
+      <button type="button" class="smt-select__more" (click)="loadMore.emit()">
+        {{ i18n.messages().select.loadMore }}
+      </button>
     }
   </div>
 </ng-template>

@@ -64,7 +64,7 @@ export function monthName(month: number, locale: string): string {
 export function weekdayNames(locale: string, style: 'short' | 'long' = 'short'): string[] {
   // 2026-09-21 is a Monday.
   return Array.from({ length: 7 }, (_, index) =>
-    new Intl.DateTimeFormat(locale, { weekday: style }).format(new Date(2026, 8, 21 + index))
+    new Intl.DateTimeFormat(locale, { weekday: style }).format(new Date(2026, 8, 21 + index)),
   );
 }
 

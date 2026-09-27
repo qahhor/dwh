@@ -66,7 +66,7 @@ export class LookupState<Row, K extends SMTLookupKey> {
         this.remember(rows);
         this.rows.set(append ? [...this.rows(), ...rows] : rows);
       },
-      null
+      null,
     );
     this.loading = this.channel.loading;
     this.error = this.channel.error;
@@ -94,12 +94,14 @@ export class LookupState<Row, K extends SMTLookupKey> {
 
   /** Rows of the current search, as options, without the excluded ones. */
   listed(exclude: (row: Row) => boolean): SMTSelectOption<K>[] {
-    return this.rows().filter(row => !exclude(row)).map(row => this.optionOf(row));
+    return this.rows()
+      .filter((row) => !exclude(row))
+      .map((row) => this.optionOf(row));
   }
 
   /** The chosen keys as options: named when known, by id until then — never shown as "nothing chosen". */
   chosen(keys: readonly K[]): SMTSelectOption<K>[] {
-    return keys.map(key => {
+    return keys.map((key) => {
       const row = this.known().get(key);
       return row ? this.optionOf(row) : this.unnamed(key);
     });
@@ -108,12 +110,14 @@ export class LookupState<Row, K extends SMTLookupKey> {
   /** Asks the source, once per key, for chosen keys no page has brought. */
   resolve(keys: readonly K[]): void {
     const resolve = this.source().resolve;
-    const missing = keys.filter(key => !this.known().has(key) && !this.requested.has(key) && !this.unavailable().has(key));
+    const missing = keys.filter(
+      (key) => !this.known().has(key) && !this.requested.has(key) && !this.unavailable().has(key),
+    );
     if (!resolve || missing.length === 0) return;
-    missing.forEach(key => this.requested.add(key));
+    missing.forEach((key) => this.requested.add(key));
     const settle = (found: readonly Row[]) => {
       this.remember(found);
-      const named = new Set(found.map(row => this.source().key(row)));
+      const named = new Set(found.map((row) => this.source().key(row)));
       const next = new Set(this.unavailable());
       for (const key of missing) {
         this.requested.delete(key);
@@ -126,7 +130,7 @@ export class LookupState<Row, K extends SMTLookupKey> {
 
   cancel(): void {
     this.channel.cancel();
-    this.resolving.forEach(subscription => subscription.unsubscribe());
+    this.resolving.forEach((subscription) => subscription.unsubscribe());
     this.resolving = [];
   }
 
@@ -159,6 +163,12 @@ export class LookupState<Row, K extends SMTLookupKey> {
 }
 
 function sameOption<K>(a: SMTSelectOption<K>, b: Omit<SMTSelectOption<K>, 'id'>): boolean {
-  return a.label === b.label && a.subLabel === b.subLabel && a.icon === b.icon && a.color === b.color
-    && a.disabled === b.disabled && (a.columns ?? []).join('\u0000') === (b.columns ?? []).join('\u0000');
+  return (
+    a.label === b.label &&
+    a.subLabel === b.subLabel &&
+    a.icon === b.icon &&
+    a.color === b.color &&
+    a.disabled === b.disabled &&
+    (a.columns ?? []).join('\u0000') === (b.columns ?? []).join('\u0000')
+  );
 }

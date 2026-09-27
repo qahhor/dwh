@@ -43,7 +43,7 @@ export class TableColumnStateStore {
 function parseState(value: unknown): TableColumnState | null {
   if (!value || typeof value !== 'object') return null;
   const { order, hidden, widths } = value as Record<string, unknown>;
-  const strings = (list: unknown) => Array.isArray(list) && list.every(item => typeof item === 'string');
+  const strings = (list: unknown) => Array.isArray(list) && list.every((item) => typeof item === 'string');
   if (!strings(order) || !strings(hidden) || !widths || typeof widths !== 'object' || Array.isArray(widths)) {
     return null;
   }

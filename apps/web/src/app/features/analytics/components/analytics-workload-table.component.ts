@@ -12,10 +12,12 @@ import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
   selector: 'app-analytics-workload-table',
   standalone: true,
   imports: [
-    SMTAvatarComponent, SMTInputComponent, CommonModule,
+    SMTAvatarComponent,
+    SMTInputComponent,
+    CommonModule,
     TranslatePipe,
     UiBadgeComponent,
-    UiLocalTableComponent
+    UiLocalTableComponent,
   ],
   template: `
     <div class="table-card" style="margin-top: 20px;">
@@ -36,11 +38,22 @@ import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
           [placeholder]="'analytics.poisk_sotrudnika' | t"
           [smtAriaLabel]="'analytics.poisk_sotrudnika' | t"
           [value]="searchUserQuery()"
-          (valueChange)="searchUserQuery.set($any($event) ?? '')" />
+          (valueChange)="searchUserQuery.set($any($event) ?? '')"
+        />
       </div>
 
-      <div class="table-scroll" role="region" tabindex="0" [attr.aria-label]="'analytics.utilizaciya_i_zagruzka_komandy' | t">
-        <ui-local-table [rows]="filteredWorkload()" [config]="config()" [sortValues]="sortValues" [emptyTemplate]="emptyWorkload" />
+      <div
+        class="table-scroll"
+        role="region"
+        tabindex="0"
+        [attr.aria-label]="'analytics.utilizaciya_i_zagruzka_komandy' | t"
+      >
+        <ui-local-table
+          [rows]="filteredWorkload()"
+          [config]="config()"
+          [sortValues]="sortValues"
+          [emptyTemplate]="emptyWorkload"
+        />
       </div>
     </div>
 
@@ -50,20 +63,25 @@ import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
         <span class="user-name-text">{{ u.userName }}</span>
       </div>
     </ng-template>
-    <ng-template #loginCell let-u><span class="mono badge badge-neutral">{{ u.userLogin }}</span></ng-template>
-    <ng-template #assignedCell let-u><span class="num-strong">{{ u.assignedTasks }}</span></ng-template>
-    <ng-template #completedCell let-u><span class="num-strong text-success">{{ u.completedTasks }}</span></ng-template>
+    <ng-template #loginCell let-u
+      ><span class="mono badge badge-neutral">{{ u.userLogin }}</span></ng-template
+    >
+    <ng-template #assignedCell let-u
+      ><span class="num-strong">{{ u.assignedTasks }}</span></ng-template
+    >
+    <ng-template #completedCell let-u
+      ><span class="num-strong text-success">{{ u.completedTasks }}</span></ng-template
+    >
     <ng-template #efficiencyCell let-u>
       <div class="efficiency-cell">
-        <ui-badge [variant]="efficiencyOf(u) >= 0.7 ? 'success' : 'neutral'">
-          {{ getEfficiencyPercent(u) }}%
-        </ui-badge>
+        <ui-badge [variant]="efficiencyOf(u) >= 0.7 ? 'success' : 'neutral'"> {{ getEfficiencyPercent(u) }}% </ui-badge>
         @if (u.assignedTasks > 0) {
           <div class="eff-mini-bar-bg" aria-hidden="true">
-            <div class="eff-mini-bar-fill"
+            <div
+              class="eff-mini-bar-fill"
               [style.width.%]="getEfficiencyPercent(u)"
-              [style.background-color]="efficiencyOf(u) >= 0.7 ? 'var(--success)' : 'var(--primary)'">
-            </div>
+              [style.background-color]="efficiencyOf(u) >= 0.7 ? 'var(--success)' : 'var(--primary)'"
+            ></div>
           </div>
         }
       </div>
@@ -74,108 +92,113 @@ import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
       }
     </ng-template>
   `,
-  styles: [`
-    .table-card {
-      min-width: 0;
-      max-width: 100%;
-      background-color: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-sm);
-      overflow: hidden;
-    }
+  styles: [
+    `
+      .table-card {
+        min-width: 0;
+        max-width: 100%;
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+      }
 
-    .card-header-row {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
+      .card-header-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
 
-    .card-title {
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--text-main);
-      overflow-wrap: anywhere;
-    }
+      .card-title {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text-main);
+        overflow-wrap: anywhere;
+      }
 
-    .card-subtitle {
-      font-size: 12px;
-      color: var(--text-muted);
-      margin-top: 2px;
-      overflow-wrap: anywhere;
-    }
+      .card-subtitle {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-top: 2px;
+        overflow-wrap: anywhere;
+      }
 
-    .user-search-box {
-      width: 190px;
-      font-size: 12px;
-    }
+      .user-search-box {
+        width: 190px;
+        font-size: 12px;
+      }
 
-    .table-scroll {
-      width: 100%;
-      overflow-x: auto;
-    }
-    .table-scroll:focus-visible {
-      outline: 2px solid var(--primary);
-      outline-offset: -2px;
-    }
+      .table-scroll {
+        width: 100%;
+        overflow-x: auto;
+      }
+      .table-scroll:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: -2px;
+      }
 
-    .num-strong { font-weight: 600; }
+      .num-strong {
+        font-weight: 600;
+      }
 
-    .user-cell {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+      .user-cell {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
 
+      .user-name-text {
+        font-weight: 600;
+        color: var(--text-main);
+      }
 
-    .user-name-text {
-      font-weight: 600;
-      color: var(--text-main);
-    }
+      .mono {
+        font-family: monospace;
+      }
 
-    .mono {
-      font-family: monospace;
-    }
+      .badge {
+        font-size: 11px;
+        font-weight: 500;
+        padding: 2px 6px;
+        border-radius: 4px;
+      }
+      .badge-neutral {
+        background-color: var(--bg-hover);
+        color: var(--text-muted);
+      }
 
-    .badge {
-      font-size: 11px;
-      font-weight: 500;
-      padding: 2px 6px;
-      border-radius: 4px;
-    }
-    .badge-neutral {
-      background-color: var(--bg-hover);
-      color: var(--text-muted);
-    }
+      .text-success {
+        color: var(--success);
+      }
 
-    .text-success { color: var(--success); }
+      .efficiency-cell {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .eff-mini-bar-bg {
+        width: 50px;
+        height: 5px;
+        border-radius: 9999px;
+        background-color: var(--bg-hover);
+        overflow: hidden;
+      }
+      .eff-mini-bar-fill {
+        height: 100%;
+        border-radius: 9999px;
+        transition: width 0.2s ease;
+      }
 
-    .efficiency-cell {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .eff-mini-bar-bg {
-      width: 50px;
-      height: 5px;
-      border-radius: 9999px;
-      background-color: var(--bg-hover);
-      overflow: hidden;
-    }
-    .eff-mini-bar-fill {
-      height: 100%;
-      border-radius: 9999px;
-      transition: width 0.2s ease;
-    }
-
-    .empty {
-      padding: 30px;
-      text-align: center;
-      color: var(--text-muted);
-    }
-  `]
+      .empty {
+        padding: 30px;
+        text-align: center;
+        color: var(--text-muted);
+      }
+    `,
+  ],
 })
 export class AnalyticsWorkloadTableComponent {
   private readonly i18n = inject(I18nService);
@@ -197,10 +220,7 @@ export class AnalyticsWorkloadTableComponent {
     const query = this.searchUserQuery().trim().toLowerCase();
     let list = this._workload();
     if (query) {
-      list = list.filter(u =>
-        u.userName.toLowerCase().includes(query) ||
-        u.userLogin.toLowerCase().includes(query)
-      );
+      list = list.filter((u) => u.userName.toLowerCase().includes(query) || u.userLogin.toLowerCase().includes(query));
     }
     return [...list].sort((a, b) => b.assignedTasks - a.assignedTasks || a.userName.localeCompare(b.userName));
   });
@@ -217,9 +237,9 @@ export class AnalyticsWorkloadTableComponent {
         login: { header: header('analytics.login'), content: cell(this.loginCell) },
         assigned: { header: header('analytics.naznacheno_zadach'), content: cell(this.assignedCell), align: 'right' },
         completed: { header: header('analytics.zaversheno'), content: cell(this.completedCell), align: 'right' },
-        efficiency: { header: header('analytics.effektivnost'), content: cell(this.efficiencyCell) }
+        efficiency: { header: header('analytics.effektivnost'), content: cell(this.efficiencyCell) },
       },
-      columnsOrder: ['name', 'login', 'assigned', 'completed', 'efficiency']
+      columnsOrder: ['name', 'login', 'assigned', 'completed', 'efficiency'],
     };
   });
 
@@ -232,7 +252,7 @@ export class AnalyticsWorkloadTableComponent {
     login: (u: UserWorkload) => u.userLogin,
     assigned: (u: UserWorkload) => u.assignedTasks,
     completed: (u: UserWorkload) => u.completedTasks,
-    efficiency: (u: UserWorkload) => this.efficiencyOf(u)
+    efficiency: (u: UserWorkload) => this.efficiencyOf(u),
   };
 
   @Input() set workload(value: UserWorkload[]) {
@@ -250,6 +270,4 @@ export class AnalyticsWorkloadTableComponent {
   getEfficiencyPercent(u: UserWorkload): number {
     return Math.min(100, Math.round(this.efficiencyOf(u) * 100));
   }
-
-
 }

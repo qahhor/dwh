@@ -1,4 +1,11 @@
-import { fieldLabel, QueryCondition, QueryFieldMeta, QueryListMeta, QueryOp, QueryValue } from '../../core/models/query-meta.models';
+import {
+  fieldLabel,
+  QueryCondition,
+  QueryFieldMeta,
+  QueryListMeta,
+  QueryOp,
+  QueryValue,
+} from '../../core/models/query-meta.models';
 
 /**
  * One row of the filter builder while it is being edited. Values are kept as
@@ -24,7 +31,7 @@ export function opTakesValue(op: QueryOp): boolean {
 }
 
 export function filterableFields(meta: QueryListMeta): QueryFieldMeta[] {
-  return meta.fields.filter(field => field.ops.length > 0);
+  return meta.fields.filter((field) => field.ops.length > 0);
 }
 
 /** A new row on the first filterable field with its first operation. */
@@ -63,14 +70,14 @@ export function fromCondition(condition: QueryCondition): FilterDraft {
  * trip and points at the row.
  */
 export function draftError(draft: FilterDraft, meta: QueryListMeta): string | null {
-  const field = meta.fields.find(item => item.key === draft.field);
+  const field = meta.fields.find((item) => item.key === draft.field);
   if (!field || !field.ops.includes(draft.op)) return 'ui.filter.err.field';
   if (!opTakesValue(draft.op)) return null;
   if (draft.op === 'in') {
     const items = inValues(draft, field);
     if (items.length === 0) return 'ui.filter.err.required';
     if (items.length > meta.maxInValues) return 'ui.filter.err.too_many';
-    return items.every(item => valueFits(field, item)) ? null : errorFor(field);
+    return items.every((item) => valueFits(field, item)) ? null : errorFor(field);
   }
   if (draft.op === 'between') {
     if (draft.value.trim() === '' || draft.valueTo.trim() === '') return 'ui.filter.err.required';
@@ -82,9 +89,10 @@ export function draftError(draft: FilterDraft, meta: QueryListMeta): string | nu
 
 /** The DSL condition of a complete row. */
 export function toCondition(draft: FilterDraft, meta: QueryListMeta): QueryCondition {
-  const field = meta.fields.find(item => item.key === draft.field)!;
+  const field = meta.fields.find((item) => item.key === draft.field)!;
   if (!opTakesValue(draft.op)) return { field: field.key, op: draft.op };
-  if (draft.op === 'in') return { field: field.key, op: 'in', value: inValues(draft, field).map(item => typed(field, item)) };
+  if (draft.op === 'in')
+    return { field: field.key, op: 'in', value: inValues(draft, field).map((item) => typed(field, item)) };
   if (draft.op === 'between') {
     return { field: field.key, op: 'between', value: [typed(field, draft.value), typed(field, draft.valueTo)] };
   }
@@ -93,8 +101,12 @@ export function toCondition(draft: FilterDraft, meta: QueryListMeta): QueryCondi
 }
 
 /** A short reading of a condition for its chip: "Periodicity: one of month, year". */
-export function describeCondition(condition: QueryCondition, meta: QueryListMeta, translate: (key: string) => string): string {
-  const field = meta.fields.find(item => item.key === condition.field);
+export function describeCondition(
+  condition: QueryCondition,
+  meta: QueryListMeta,
+  translate: (key: string) => string,
+): string {
+  const field = meta.fields.find((item) => item.key === condition.field);
   const label = field ? fieldLabel(field, translate) : condition.field;
   const op = translate(`ui.filter.op.${condition.op}`);
   const show = (value: QueryValue) => displayValue(value, field, translate);
@@ -107,15 +119,23 @@ export function describeCondition(condition: QueryCondition, meta: QueryListMeta
   return `${label}: ${op} ${show(condition.value)}`;
 }
 
-export function displayValue(value: QueryValue, field: QueryFieldMeta | undefined, translate: (key: string) => string): string {
-  if (field?.type === 'enum') return field.enumLabelPrefix ? translate(`${field.enumLabelPrefix}${value}`) : String(value);
+export function displayValue(
+  value: QueryValue,
+  field: QueryFieldMeta | undefined,
+  translate: (key: string) => string,
+): string {
+  if (field?.type === 'enum')
+    return field.enumLabelPrefix ? translate(`${field.enumLabelPrefix}${value}`) : String(value);
   if (field?.type === 'boolean') return translate(value === true || value === 'true' ? 'common.yes' : 'common.no');
   return String(value);
 }
 
 function inValues(draft: FilterDraft, field: QueryFieldMeta): string[] {
-  if (field.type === 'enum') return draft.values.filter(item => field.enumValues.includes(item));
-  return draft.value.split(',').map(item => item.trim()).filter(item => item.length > 0);
+  if (field.type === 'enum') return draft.values.filter((item) => field.enumValues.includes(item));
+  return draft.value
+    .split(',')
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
 }
 
 function valueFits(field: QueryFieldMeta, text: string): boolean {
@@ -137,8 +157,10 @@ function valueFits(field: QueryFieldMeta, text: string): boolean {
 }
 
 function errorFor(field: QueryFieldMeta): string {
-  return field.type === 'number' ? 'ui.filter.err.number'
-    : field.type === 'date' || field.type === 'instant' ? 'ui.filter.err.date'
+  return field.type === 'number'
+    ? 'ui.filter.err.number'
+    : field.type === 'date' || field.type === 'instant'
+      ? 'ui.filter.err.date'
       : 'ui.filter.err.value';
 }
 

@@ -1,11 +1,10 @@
 package com.smartup24.cms.instance.kauth.repository;
 
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
 
 @Repository
 public class KauthLoginAttemptRepository {
@@ -17,7 +16,8 @@ public class KauthLoginAttemptRepository {
     }
 
     public void recordAttempt(String login, String ip, boolean isSuccess, String failureReason) {
-        jdbcClient.sql("""
+        jdbcClient
+                .sql("""
                 insert into kauth_login_attempts (login, ip, is_success, failure_reason, attempt_at)
                 values (:login, cast(:ip as inet), :isSuccess, :failureReason, now())
                 """)
@@ -29,7 +29,8 @@ public class KauthLoginAttemptRepository {
     }
 
     public int countFailedAttemptsForIpSince(String ip, Instant since) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select count(*) from kauth_login_attempts
                 where ip = cast(:ip as inet) and not is_success and attempt_at >= :since
                 """)
@@ -41,7 +42,8 @@ public class KauthLoginAttemptRepository {
 
     /** Failures with the given reason from one address: password reset links, for one. */
     public int countFailedAttemptsForIpSince(String ip, String failureReason, Instant since) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select count(*) from kauth_login_attempts
                 where ip = cast(:ip as inet) and not is_success and failure_reason = :failureReason
                   and attempt_at >= :since
@@ -54,7 +56,8 @@ public class KauthLoginAttemptRepository {
     }
 
     public int countFailedAttemptsForLoginSince(String login, Instant since) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select count(*) from kauth_login_attempts
                 where login = :login and not is_success and attempt_at >= :since
                 """)
@@ -65,16 +68,11 @@ public class KauthLoginAttemptRepository {
     }
 
     public record LoginAttemptRecord(
-            Long id,
-            String login,
-            String ip,
-            boolean isSuccess,
-            String failureReason,
-            Instant attemptAt
-    ) {}
+            Long id, String login, String ip, boolean isSuccess, String failureReason, Instant attemptAt) {}
 
     public List<LoginAttemptRecord> findRecentAttemptsForLogin(String login, int limit) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select id, login, host(ip) as ip, is_success, failure_reason, attempt_at
                 from kauth_login_attempts
                 where lower(login) = lower(:login)
@@ -89,8 +87,7 @@ public class KauthLoginAttemptRepository {
                         rs.getString("ip"),
                         rs.getBoolean("is_success"),
                         rs.getString("failure_reason"),
-                        rs.getTimestamp("attempt_at").toInstant()
-                ))
+                        rs.getTimestamp("attempt_at").toInstant()))
                 .list();
     }
 }

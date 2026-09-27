@@ -22,6 +22,6 @@ export const sessionExpiredInterceptor: HttpInterceptorFn = (request, next) => {
         injector.get(AuthService).sessionExpired();
       }
       return throwError(() => error);
-    })
+    }),
   );
 };

@@ -6,11 +6,9 @@ import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.ms.note.service.MsNoteService;
 import com.smartup24.cms.instance.ms.note.service.MsNoteService.NoteView;
+import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/notes")
@@ -23,20 +21,10 @@ public class MsNoteController {
     }
 
     public record CreateNoteRequest(
-            String title,
-            String contentMd,
-            String color,
-            boolean isPinned,
-            Map<String, Object> attributes
-    ) {}
+            String title, String contentMd, String color, boolean isPinned, Map<String, Object> attributes) {}
 
     public record UpdateNoteRequest(
-            String title,
-            String contentMd,
-            String color,
-            Boolean isPinned,
-            Map<String, Object> attributes
-    ) {}
+            String title, String contentMd, String color, Boolean isPinned, Map<String, Object> attributes) {}
 
     @GetMapping
     @RequiresPermission(form = "notes", action = "view")
@@ -66,8 +54,7 @@ public class MsNoteController {
         Long userId = SecurityContext.getCurrentUserId();
         if (userId == null) throw ApiException.unauthorized("Пользователь не авторизован");
         return ResponseEntity.ok(noteService.createNote(
-                body.title(), body.contentMd(), body.color(), body.isPinned(), body.attributes(), userId
-        ));
+                body.title(), body.contentMd(), body.color(), body.isPinned(), body.attributes(), userId));
     }
 
     @PutMapping("/{id}")
@@ -76,8 +63,7 @@ public class MsNoteController {
         Long userId = SecurityContext.getCurrentUserId();
         if (userId == null) throw ApiException.unauthorized("Пользователь не авторизован");
         return ResponseEntity.ok(noteService.updateNote(
-                id, body.title(), body.contentMd(), body.color(), body.isPinned(), body.attributes(), userId
-        ));
+                id, body.title(), body.contentMd(), body.color(), body.isPinned(), body.attributes(), userId));
     }
 
     @PostMapping("/{id}/pin")

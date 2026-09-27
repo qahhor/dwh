@@ -14,7 +14,7 @@ import { SMTCheckboxComponent } from './checkbox.component';
 })
 class FormHost {
   readonly model = signal({ accepted: false });
-  readonly terms = form(this.model, path => required(path.accepted));
+  readonly terms = form(this.model, (path) => required(path.accepted));
 }
 
 describe('SMTCheckboxComponent with Signal Forms', () => {

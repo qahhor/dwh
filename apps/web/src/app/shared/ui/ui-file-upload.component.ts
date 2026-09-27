@@ -20,8 +20,7 @@ export interface QueuedUpload {
 @Component({
   selector: 'ui-file-upload',
   standalone: true,
-  imports: [
-    TranslatePipe, CommonModule, SMTDropzoneComponent, SMTFileCardComponent],
+  imports: [TranslatePipe, CommonModule, SMTDropzoneComponent, SMTFileCardComponent],
   template: `
     <div class="file-upload-wrapper">
       <!-- Picking files: the shared dropzone (a label for a real file input). -->
@@ -34,13 +33,17 @@ export interface QueuedUpload {
 
       <!-- Upload queue: one file at a time, each with its own progress and actions. -->
       <ul class="upload-queue" *ngIf="queue().length > 0" [attr.aria-label]="'ui.file_upload.queue' | t">
-        <li *ngFor="let item of queue(); trackBy: trackQueued" class="queue-item" [class.failed]="item.status === 'failed'">
+        <li
+          *ngFor="let item of queue(); trackBy: trackQueued"
+          class="queue-item"
+          [class.failed]="item.status === 'failed'"
+        >
           <span class="queue-name">{{ item.file.name }}</span>
           <div
             *ngIf="item.status === 'uploading'"
             class="queue-progress"
             role="progressbar"
-            [attr.aria-label]="'ui.file_upload.upload_progress' | t:{progress: item.progress}"
+            [attr.aria-label]="'ui.file_upload.upload_progress' | t: { progress: item.progress }"
             aria-valuemin="0"
             aria-valuemax="100"
             [attr.aria-valuenow]="item.progress"
@@ -56,7 +59,7 @@ export interface QueuedUpload {
               type="button"
               class="action-btn"
               (click)="retry(item)"
-              [attr.aria-label]="'ui.file_upload.retry_named' | t:{name: item.file.name}"
+              [attr.aria-label]="'ui.file_upload.retry_named' | t: { name: item.file.name }"
             >
               <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
             </button>
@@ -64,7 +67,10 @@ export interface QueuedUpload {
               type="button"
               class="action-btn delete"
               (click)="cancel(item)"
-              [attr.aria-label]="(item.status === 'failed' ? 'ui.file_upload.dismiss_named' : 'ui.file_upload.cancel_named') | t:{name: item.file.name}"
+              [attr.aria-label]="
+                (item.status === 'failed' ? 'ui.file_upload.dismiss_named' : 'ui.file_upload.cancel_named')
+                  | t: { name: item.file.name }
+              "
             >
               <span class="material-symbols-outlined" aria-hidden="true">close</span>
             </button>
@@ -73,7 +79,12 @@ export interface QueuedUpload {
       </ul>
 
       <!-- File Attachment List -->
-      <div class="attachments-list" *ngIf="files && files.length > 0" role="list" [attr.aria-label]="'ui.file_upload.prikreplennye_fayly' | t">
+      <div
+        class="attachments-list"
+        *ngIf="files && files.length > 0"
+        role="list"
+        [attr.aria-label]="'ui.file_upload.prikreplennye_fayly' | t"
+      >
         <smt-file-card
           *ngFor="let file of files; trackBy: trackFile"
           role="listitem"
@@ -83,7 +94,8 @@ export interface QueuedUpload {
           [smtRemovable]="canDelete"
           (download)="downloadFile(file)"
           (preview)="previewFile(file)"
-          (remove)="removeFile(file)" />
+          (remove)="removeFile(file)"
+        />
       </div>
 
       <div *ngIf="(!files || files.length === 0) && !canUpload" class="empty-files">
@@ -92,93 +104,94 @@ export interface QueuedUpload {
       </div>
     </div>
   `,
-  styles: [`
-    .file-upload-wrapper {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      width: 100%;
-    }
+  styles: [
+    `
+      .file-upload-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        width: 100%;
+      }
 
-    .upload-queue {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      margin: 0;
-      padding: 0;
-      list-style: none;
-    }
+      .upload-queue {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
 
-    .queue-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 8px 10px;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      background-color: var(--bg-surface);
-      color: var(--text-main);
-      font-size: 12px;
-    }
+      .queue-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        background-color: var(--bg-surface);
+        color: var(--text-main);
+        font-size: 12px;
+      }
 
-    .queue-item.failed {
-      border-color: var(--danger-border);
-    }
+      .queue-item.failed {
+        border-color: var(--danger-border);
+      }
 
-    .queue-name {
-      flex: 0 1 40%;
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
+      .queue-name {
+        flex: 0 1 40%;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
 
-    .queue-progress {
-      flex: 1;
-    }
+      .queue-progress {
+        flex: 1;
+      }
 
-    .queue-state {
-      flex: 1;
-      color: var(--text-muted);
-    }
+      .queue-state {
+        flex: 1;
+        color: var(--text-muted);
+      }
 
-    .queue-error {
-      color: var(--danger-text);
-    }
+      .queue-error {
+        color: var(--danger-text);
+      }
 
-    .progress-track {
-      height: 6px;
-      overflow: hidden;
-      border-radius: 999px;
-      background-color: var(--bg-hover);
-    }
+      .progress-track {
+        height: 6px;
+        overflow: hidden;
+        border-radius: 999px;
+        background-color: var(--bg-hover);
+      }
 
-    .progress-fill {
-      height: 100%;
-      background-color: var(--primary);
-      transition: width 0.15s ease;
-    }
+      .progress-fill {
+        height: 100%;
+        background-color: var(--primary);
+        transition: width 0.15s ease;
+      }
 
-    .attachments-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: 8px;
-    }
+      .attachments-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 8px;
+      }
 
+      .empty-files {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: var(--text-muted);
+        padding: 8px 0;
+      }
 
-    .empty-files {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 13px;
-      color: var(--text-muted);
-      padding: 8px 0;
-    }
-
-    .empty-icon {
-      font-size: 18px;
-    }
-  `]
+      .empty-icon {
+        font-size: 18px;
+      }
+    `,
+  ],
 })
 export class UiFileUploadComponent {
   private readonly preview = inject(SMTFilePreviewService);
@@ -200,14 +213,19 @@ export class UiFileUploadComponent {
 
   constructor(
     private http: HttpClient,
-    private toast: ToastService
+    private toast: ToastService,
   ) {
     this.destroyRef.onDestroy(() => this.current?.unsubscribe());
   }
 
   uploadFiles(filesToUpload: File[]) {
-    const added = filesToUpload.map(file => ({ id: this.nextQueueId++, file, status: 'queued' as const, progress: 0 }));
-    this.queue.update(queue => [...queue, ...added]);
+    const added = filesToUpload.map((file) => ({
+      id: this.nextQueueId++,
+      file,
+      status: 'queued' as const,
+      progress: 0,
+    }));
+    this.queue.update((queue) => [...queue, ...added]);
     this.pump();
   }
 
@@ -222,7 +240,7 @@ export class UiFileUploadComponent {
       this.current?.unsubscribe();
       this.current = null;
     }
-    this.queue.update(queue => queue.filter(entry => entry.id !== item.id));
+    this.queue.update((queue) => queue.filter((entry) => entry.id !== item.id));
     this.pump();
   }
 
@@ -240,10 +258,15 @@ export class UiFileUploadComponent {
 
   /** Opens the attached images in the preview, starting at this one. */
   previewFile(file: TaskFile) {
-    const previews = this.files.map(item => ({ name: item.fileName, mimeType: item.mimeType, url: `/api/v1/files/${item.fileId}/download`, item }));
-    const chosen = previews.find(preview => preview.item === file);
+    const previews = this.files.map((item) => ({
+      name: item.fileName,
+      mimeType: item.mimeType,
+      url: `/api/v1/files/${item.fileId}/download`,
+      item,
+    }));
+    const chosen = previews.find((preview) => preview.item === file);
     if (!chosen) return;
-    this.preview.open(previews, chosen, preview => this.downloadFile((preview as typeof chosen).item));
+    this.preview.open(previews, chosen, (preview) => this.downloadFile((preview as typeof chosen).item));
   }
 
   trackFile(_index: number, file: TaskFile): string {
@@ -253,52 +276,54 @@ export class UiFileUploadComponent {
   /** Starts the next queued file when nothing is uploading. */
   private pump() {
     if (this.current) return;
-    const next = this.queue().find(item => item.status === 'queued');
+    const next = this.queue().find((item) => item.status === 'queued');
     if (!next) return;
     this.patch(next.id, { status: 'uploading', progress: 0 });
 
     const formData = new FormData();
     formData.append('file', next.file);
-    this.current = this.http.post<any>('/api/v1/files/upload', formData, {
-      reportProgress: true,
-      observe: 'events',
-      withCredentials: true
-    }).subscribe({
-      next: (event) => {
-        if (event.type === HttpEventType.UploadProgress && event.total) {
-          this.patch(next.id, { progress: Math.round((100 * event.loaded) / event.total) });
-        } else if (event.type === HttpEventType.Response) {
-          const body = event.body;
-          const taskFile: TaskFile = {
-            fileId: body.id,
-            fileName: body.originalName || next.file.name,
-            sizeBytes: body.sizeBytes || next.file.size,
-            mimeType: body.mimeType || next.file.type,
-            createdAt: body.createdAt || new Date().toISOString()
-          };
-          this.finish(next.id);
-          this.fileAttached.emit(taskFile);
-          this.toast.success(this.uiI18n.translate('ui.file_upload.uploaded_named', { name: taskFile.fileName }));
-        }
-      },
-      error: (err) => {
-        const msg = err.error?.detail || err.error?.message || this.uiI18n.translate('ui.file_upload.oshibka_zagruzki_fayla');
-        this.current = null;
-        this.patch(next.id, { status: 'failed', error: msg });
-        this.toast.error(msg, this.uiI18n.translate('ui.file_upload.zagruzka_ne_udalas'));
-        this.pump();
-      }
-    });
+    this.current = this.http
+      .post<any>('/api/v1/files/upload', formData, {
+        reportProgress: true,
+        observe: 'events',
+        withCredentials: true,
+      })
+      .subscribe({
+        next: (event) => {
+          if (event.type === HttpEventType.UploadProgress && event.total) {
+            this.patch(next.id, { progress: Math.round((100 * event.loaded) / event.total) });
+          } else if (event.type === HttpEventType.Response) {
+            const body = event.body;
+            const taskFile: TaskFile = {
+              fileId: body.id,
+              fileName: body.originalName || next.file.name,
+              sizeBytes: body.sizeBytes || next.file.size,
+              mimeType: body.mimeType || next.file.type,
+              createdAt: body.createdAt || new Date().toISOString(),
+            };
+            this.finish(next.id);
+            this.fileAttached.emit(taskFile);
+            this.toast.success(this.uiI18n.translate('ui.file_upload.uploaded_named', { name: taskFile.fileName }));
+          }
+        },
+        error: (err) => {
+          const msg =
+            err.error?.detail || err.error?.message || this.uiI18n.translate('ui.file_upload.oshibka_zagruzki_fayla');
+          this.current = null;
+          this.patch(next.id, { status: 'failed', error: msg });
+          this.toast.error(msg, this.uiI18n.translate('ui.file_upload.zagruzka_ne_udalas'));
+          this.pump();
+        },
+      });
   }
 
   private finish(id: number) {
     this.current = null;
-    this.queue.update(queue => queue.filter(entry => entry.id !== id));
+    this.queue.update((queue) => queue.filter((entry) => entry.id !== id));
     this.pump();
   }
 
   private patch(id: number, changes: Partial<QueuedUpload>) {
-    this.queue.update(queue => queue.map(entry => (entry.id === id ? { ...entry, ...changes } : entry)));
+    this.queue.update((queue) => queue.map((entry) => (entry.id === id ? { ...entry, ...changes } : entry)));
   }
-
 }

@@ -4,12 +4,11 @@ import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.md.repository.MdOrgUnitRepository;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Оргструктура экземпляра (ADR-0013). Дерево, на которое опирается скоуп данных.
@@ -25,9 +24,8 @@ public class MdOrgUnitService {
     private final MdScopeService scopeService;
     private final AuditLogService auditLogService;
 
-    public MdOrgUnitService(MdOrgUnitRepository orgUnitRepository,
-                            MdScopeService scopeService,
-                            AuditLogService auditLogService) {
+    public MdOrgUnitService(
+            MdOrgUnitRepository orgUnitRepository, MdScopeService scopeService, AuditLogService auditLogService) {
         this.orgUnitRepository = orgUnitRepository;
         this.scopeService = scopeService;
         this.auditLogService = auditLogService;
@@ -41,7 +39,8 @@ public class MdOrgUnitService {
     @Transactional(readOnly = true)
     public MdOrgUnitRepository.OrgUnitRecord getById(Long id) {
         requirePositiveId(id);
-        return orgUnitRepository.findById(id)
+        return orgUnitRepository
+                .findById(id)
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Узел оргструктуры не найден"));
     }
 
@@ -56,8 +55,8 @@ public class MdOrgUnitService {
         } else if (orgUnitRepository.hasRoot()) {
             // Экземпляр принадлежит одному клиенту (ADR-0004), поэтому дерево одно.
             // Без этой проверки ограничение БД срабатывало бы конфликтом без объяснения.
-            throw ApiException.conflict(ErrorCode.CONFLICT,
-                    "Корень оргструктуры уже существует — укажите родительский узел");
+            throw ApiException.conflict(
+                    ErrorCode.CONFLICT, "Корень оргструктуры уже существует — укажите родительский узел");
         }
         if (orgUnitRepository.existsByCode(code)) {
             throw ApiException.conflict(ErrorCode.CONFLICT, "Узел с таким кодом уже существует");
@@ -65,11 +64,21 @@ public class MdOrgUnitService {
         var unit = orgUnitRepository.create(parentId, code, name, kind, orderNo);
         scopeService.recalculateForUnitSubtree(unit.id());
 
-        auditLogService.logChange("md_org_units", String.valueOf(unit.id()), "I",
+        auditLogService.logChange(
+                "md_org_units",
+                String.valueOf(unit.id()),
+                "I",
                 List.of("code", "name", "kind", "parent_id"),
                 null,
-                Map.of("code", code, "name", name, "kind", unit.kind(),
-                        "parent_id", parentId != null ? parentId : "null"));
+                Map.of(
+                        "code",
+                        code,
+                        "name",
+                        name,
+                        "kind",
+                        unit.kind(),
+                        "parent_id",
+                        parentId != null ? parentId : "null"));
 
         return unit;
     }
@@ -80,7 +89,8 @@ public class MdOrgUnitService {
     }
 
     @Transactional
-    public void update(Long id, boolean parentIdPresent, Long parentId, String name, String kind, String state, Integer orderNo) {
+    public void update(
+            Long id, boolean parentIdPresent, Long parentId, String name, String kind, String state, Integer orderNo) {
         scopeService.acquireMutationLock();
         var unit = getById(id);
         Long finalParentId = parentIdPresent ? parentId : unit.parentId();
@@ -105,8 +115,7 @@ public class MdOrgUnitService {
 
         // I-ORG-1: перенос под собственного потомка отрезал бы ветку от корня — молча.
         if (finalParentId != null && orgUnitRepository.isDescendant(id, finalParentId)) {
-            throw ApiException.conflict(ErrorCode.CONFLICT,
-                    "Узел нельзя перенести под собственного потомка");
+            throw ApiException.conflict(ErrorCode.CONFLICT, "Узел нельзя перенести под собственного потомка");
         }
 
         var affectedUsers = new TreeSet<>(scopeService.getUserIdsAffectedByUnit(id));
@@ -116,12 +125,29 @@ public class MdOrgUnitService {
             scopeService.recalculateFor(userId);
         }
 
-        auditLogService.logChange("md_org_units", String.valueOf(id), "U",
+        auditLogService.logChange(
+                "md_org_units",
+                String.valueOf(id),
+                "U",
                 List.of("parent_id", "name", "kind", "state", "order_no"),
-                Map.of("name", unit.name(), "kind", unit.kind(), "state", unit.state(),
-                        "parent_id", unit.parentId() != null ? unit.parentId() : "null"),
-                Map.of("name", newName, "kind", newKind, "state", newState,
-                        "parent_id", finalParentId != null ? finalParentId : "null"));
+                Map.of(
+                        "name",
+                        unit.name(),
+                        "kind",
+                        unit.kind(),
+                        "state",
+                        unit.state(),
+                        "parent_id",
+                        unit.parentId() != null ? unit.parentId() : "null"),
+                Map.of(
+                        "name",
+                        newName,
+                        "kind",
+                        newKind,
+                        "state",
+                        newState,
+                        "parent_id",
+                        finalParentId != null ? finalParentId : "null"));
     }
 
     @Transactional
@@ -132,12 +158,11 @@ public class MdOrgUnitService {
         // I-ORG-2: у узла есть дети или сотрудники — удаление здесь означало бы
         // либо каскад по дереву, либо потерю привязок. И то и другое молча.
         if (orgUnitRepository.hasChildren(id)) {
-            throw ApiException.conflict(ErrorCode.CONFLICT,
-                    "У узла есть подчинённые узлы — сначала перенесите или удалите их");
+            throw ApiException.conflict(
+                    ErrorCode.CONFLICT, "У узла есть подчинённые узлы — сначала перенесите или удалите их");
         }
         if (orgUnitRepository.isAssignedToUsers(id)) {
-            throw ApiException.conflict(ErrorCode.CONFLICT,
-                    "К узлу привязаны сотрудники — сначала снимите привязку");
+            throw ApiException.conflict(ErrorCode.CONFLICT, "К узлу привязаны сотрудники — сначала снимите привязку");
         }
 
         var affectedUsers = scopeService.getUserIdsAffectedByUnit(id);
@@ -146,7 +171,10 @@ public class MdOrgUnitService {
             scopeService.recalculateFor(userId);
         }
 
-        auditLogService.logChange("md_org_units", String.valueOf(id), "D",
+        auditLogService.logChange(
+                "md_org_units",
+                String.valueOf(id),
+                "D",
                 List.of("code", "name"),
                 Map.of("code", unit.code(), "name", unit.name()),
                 null);
@@ -154,7 +182,8 @@ public class MdOrgUnitService {
 
     private static void requirePositiveId(Long id) {
         if (id == null || id <= 0) {
-            throw ApiException.badRequest(ErrorCode.VALIDATION_FAILED, "Идентификатор узла должен быть положительным числом");
+            throw ApiException.badRequest(
+                    ErrorCode.VALIDATION_FAILED, "Идентификатор узла должен быть положительным числом");
         }
     }
 

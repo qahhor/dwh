@@ -12,7 +12,7 @@ import {
   Output,
   SimpleChanges,
   inject,
-  signal
+  signal,
 } from '@angular/core';
 import { ProblemDetail } from '../../../core/models/common.models';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
@@ -27,7 +27,7 @@ import {
   UPL_PACKAGE_STATUS_KEY,
   UPL_PACKAGE_STATUS_VARIANT,
   formatUplDateTime,
-  formatUplPeriod
+  formatUplPeriod,
 } from './packages-labels';
 import { SMTAlertComponent } from '../../../shared/ui-kit/components/alert';
 
@@ -38,18 +38,39 @@ const NOT_FOUND = 'UPL_PKG_NOT_FOUND';
   selector: 'app-upl-package-card',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTAlertComponent, CommonModule, TranslatePipe, UiBadgeComponent, SMTButtonComponent, UiLocalTableComponent],
+  imports: [
+    SMTAlertComponent,
+    CommonModule,
+    TranslatePipe,
+    UiBadgeComponent,
+    SMTButtonComponent,
+    UiLocalTableComponent,
+  ],
   template: `
     <div class="upl-pkg-card">
       <div class="upl-pkg-card-head">
         <button smt-button type="button" smtVariant="ghost" data-testid="upl-pkg-back" (click)="back.emit()">
           {{ 'upl.pkg.card.back' | t }}
         </button>
-        <button smt-button type="button" smtVariant="secondary" smtIcon="refresh" data-testid="upl-pkg-card-refresh" (click)="refresh.emit()">
+        <button
+          smt-button
+          type="button"
+          smtVariant="secondary"
+          smtIcon="refresh"
+          data-testid="upl-pkg-card-refresh"
+          (click)="refresh.emit()"
+        >
           {{ 'upl.pkg.refresh' | t }}
         </button>
         @if (item.status === 'verified' && canApply && (item.rowsAccepted ?? 0) > 0) {
-          <button smt-button type="button" smtVariant="primary" data-testid="upl-pkg-apply" [disabled]="applying()" (click)="apply()">
+          <button
+            smt-button
+            type="button"
+            smtVariant="primary"
+            data-testid="upl-pkg-apply"
+            [disabled]="applying()"
+            (click)="apply()"
+          >
             {{ 'upl.pkg.card.apply' | t }}
           </button>
         }
@@ -76,7 +97,10 @@ const NOT_FOUND = 'UPL_PKG_NOT_FOUND';
             }
             <span class="upl-pkg-hint">{{ 'upl.pkg.card.rejected_hint' | t }}</span>
             @if (structRows().length > 0) {
-              <a class="upl-pkg-errors-file" data-testid="upl-pkg-errors-file" [href]="errorsFileUrl()" download><span class="material-symbols-outlined" aria-hidden="true">download</span>{{ 'upl.errfile.download' | t }}</a>
+              <a class="upl-pkg-errors-file" data-testid="upl-pkg-errors-file" [href]="errorsFileUrl()" download
+                ><span class="material-symbols-outlined" aria-hidden="true">download</span
+                >{{ 'upl.errfile.download' | t }}</a
+              >
             }
           </smt-alert>
         } @else {
@@ -95,14 +119,26 @@ const NOT_FOUND = 'UPL_PKG_NOT_FOUND';
             </span>
           </div>
           @if (reconciliationText(); as line) {
-            <smt-alert smtTone="success" smtLive="off" class="upl-pkg-reconciliation" data-testid="upl-pkg-reconciliation">{{ line }}</smt-alert>
+            <smt-alert
+              smtTone="success"
+              smtLive="off"
+              class="upl-pkg-reconciliation"
+              data-testid="upl-pkg-reconciliation"
+              >{{ line }}</smt-alert
+            >
           }
         }
 
         @if (loadError()) {
           <smt-alert smtTone="danger" class="upl-pkg-alert" data-testid="upl-pkg-errors-load-error">
             <span>{{ loadError() }}</span>
-            <button smt-button type="button" smtVariant="secondary" data-testid="upl-pkg-errors-retry" (click)="reloadErrors()">
+            <button
+              smt-button
+              type="button"
+              smtVariant="secondary"
+              data-testid="upl-pkg-errors-retry"
+              (click)="reloadErrors()"
+            >
               {{ 'upl.common.retry' | t }}
             </button>
           </smt-alert>
@@ -120,7 +156,10 @@ const NOT_FOUND = 'UPL_PKG_NOT_FOUND';
                   {{ 'upl.pkg.errors.shown_first' | t: { shown: loaded.shown, n: loaded.total } }}
                 </p>
               }
-              <a class="upl-pkg-errors-file" data-testid="upl-pkg-errors-file" [href]="errorsFileUrl()" download><span class="material-symbols-outlined" aria-hidden="true">download</span>{{ 'upl.errfile.download' | t }}</a>
+              <a class="upl-pkg-errors-file" data-testid="upl-pkg-errors-file" [href]="errorsFileUrl()" download
+                ><span class="material-symbols-outlined" aria-hidden="true">download</span
+                >{{ 'upl.errfile.download' | t }}</a
+              >
               <div class="table-card">
                 <div class="table-scroll">
                   <div data-testid="upl-pkg-errors-table">
@@ -134,127 +173,136 @@ const NOT_FOUND = 'UPL_PKG_NOT_FOUND';
       }
     </div>
 
-    <ng-template #errorValueCell let-row><code class="upl-pkg-value" [title]="row.value ?? ''">{{ row.value ?? '—' }}</code></ng-template>
+    <ng-template #errorValueCell let-row
+      ><code class="upl-pkg-value" [title]="row.value ?? ''">{{ row.value ?? '—' }}</code></ng-template
+    >
     <ng-template #errorWhatCell let-row>{{ codeText(row) }}</ng-template>
   `,
-  styles: [`
-    .upl-pkg-card {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
+  styles: [
+    `
+      .upl-pkg-card {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
 
-    .upl-pkg-card-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-    }
+      .upl-pkg-card-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+      }
 
-    .upl-pkg-card-title {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
+      .upl-pkg-card-title {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
 
-    .upl-pkg-file {
-      font-family: var(--font-family);
-      font-size: 1.25rem;
-      color: var(--text-main);
-    }
+      .upl-pkg-file {
+        font-family: var(--font-family);
+        font-size: 1.25rem;
+        color: var(--text-main);
+      }
 
-    .upl-pkg-card-meta {
-      color: var(--text-muted);
-      font-size: 0.875rem;
-    }
+      .upl-pkg-card-meta {
+        color: var(--text-muted);
+        font-size: 0.875rem;
+      }
 
-    .upl-pkg-checking {
-      margin: 0;
-      color: var(--text-muted);
-    }
+      .upl-pkg-checking {
+        margin: 0;
+        color: var(--text-muted);
+      }
 
-    .upl-pkg-counters {
-      display: flex;
-      gap: 2rem;
-    }
+      .upl-pkg-counters {
+        display: flex;
+        gap: 2rem;
+      }
 
-    .upl-pkg-counter {
-      display: flex;
-      flex-direction: column;
-      gap: 0.125rem;
-    }
+      .upl-pkg-counter {
+        display: flex;
+        flex-direction: column;
+        gap: 0.125rem;
+      }
 
-    .upl-pkg-counter-label {
-      color: var(--text-muted);
-      font-size: 0.8125rem;
-    }
+      .upl-pkg-counter-label {
+        color: var(--text-muted);
+        font-size: 0.8125rem;
+      }
 
-    .upl-pkg-counter-value {
-      font-size: 1.25rem;
-      color: var(--text-main);
-    }
+      .upl-pkg-counter-value {
+        font-size: 1.25rem;
+        color: var(--text-main);
+      }
 
-    .upl-pkg-rejected {
-      display: flex;
-      flex-direction: column;
-      gap: 0.375rem;
-    }
+      .upl-pkg-rejected {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+      }
 
-    .upl-pkg-errors-file {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      align-self: flex-start;
-      font-size: 0.8125rem;
-      color: var(--primary-text, var(--primary));
-    }
+      .upl-pkg-errors-file {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        align-self: flex-start;
+        font-size: 0.8125rem;
+        color: var(--primary-text, var(--primary));
+      }
 
-    .upl-pkg-errors-file .material-symbols-outlined {
-      font-size: 16px;
-    }
+      .upl-pkg-errors-file .material-symbols-outlined {
+        font-size: 16px;
+      }
 
-    .upl-pkg-hint {
-      color: var(--text-muted);
-      font-size: 0.8125rem;
-    }
+      .upl-pkg-hint {
+        color: var(--text-muted);
+        font-size: 0.8125rem;
+      }
 
-    .upl-pkg-alert {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-    }
+      .upl-pkg-alert {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+      }
 
-    .upl-pkg-no-errors,
-    .upl-pkg-shown {
-      margin: 0;
-      color: var(--text-muted);
-    }
+      .upl-pkg-no-errors,
+      .upl-pkg-shown {
+        margin: 0;
+        color: var(--text-muted);
+      }
 
-    .upl-pkg-value {
-      display: inline-block;
-      max-width: 14rem;
-      overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      vertical-align: bottom;
-      font-family: monospace;
-      color: var(--text-main);
-    }
+      .upl-pkg-value {
+        display: inline-block;
+        max-width: 14rem;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        vertical-align: bottom;
+        font-family: monospace;
+        color: var(--text-main);
+      }
 
-    .upl-pkg-skeleton-bar {
-      display: block;
-      height: 1rem;
-      border-radius: var(--radius-sm);
-      background: var(--bg-hover);
-      animation: upl-pkg-skeleton-pulse 1.2s ease-in-out infinite;
-    }
+      .upl-pkg-skeleton-bar {
+        display: block;
+        height: 1rem;
+        border-radius: var(--radius-sm);
+        background: var(--bg-hover);
+        animation: upl-pkg-skeleton-pulse 1.2s ease-in-out infinite;
+      }
 
-    @keyframes upl-pkg-skeleton-pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
-    }
-  `]
+      @keyframes upl-pkg-skeleton-pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.4;
+        }
+      }
+    `,
+  ],
 })
 export class PackageCardComponent implements OnChanges {
   private readonly api = inject(UplPackagesApiService);
@@ -277,13 +325,25 @@ export class PackageCardComponent implements OnChanges {
       ariaLabel: this.i18n.translate('upl.pkg.errors.title'),
       layout: 'fit',
       columns: {
-        sheet: { header: header('upl.pkg.errors.col.sheet'), content: { type: 'primitive', value: row => row.sheet ?? '—' }, width: '140px' },
-        row: { header: header('upl.pkg.errors.col.row'), content: { type: 'primitive', value: row => row.rowNo }, width: '90px', align: 'right' },
-        column: { header: header('upl.pkg.errors.col.column'), content: { type: 'primitive', value: row => row.columnName ?? '—' } },
+        sheet: {
+          header: header('upl.pkg.errors.col.sheet'),
+          content: { type: 'primitive', value: (row) => row.sheet ?? '—' },
+          width: '140px',
+        },
+        row: {
+          header: header('upl.pkg.errors.col.row'),
+          content: { type: 'primitive', value: (row) => row.rowNo },
+          width: '90px',
+          align: 'right',
+        },
+        column: {
+          header: header('upl.pkg.errors.col.column'),
+          content: { type: 'primitive', value: (row) => row.columnName ?? '—' },
+        },
         value: { header: header('upl.pkg.errors.col.value'), content: cell(this.errorValueCell) },
-        what: { header: header('upl.pkg.errors.col.what'), content: cell(this.errorWhatCell) }
+        what: { header: header('upl.pkg.errors.col.what'), content: cell(this.errorWhatCell) },
       },
-      columnsOrder: ['sheet', 'row', 'column', 'value', 'what']
+      columnsOrder: ['sheet', 'row', 'column', 'value', 'what'],
     };
   });
 
@@ -299,7 +359,7 @@ export class PackageCardComponent implements OnChanges {
     row: (row: UplPackageErrorItem) => row.rowNo,
     column: (row: UplPackageErrorItem) => row.columnName,
     value: (row: UplPackageErrorItem) => row.value,
-    what: (row: UplPackageErrorItem) => this.codeText(row)
+    what: (row: UplPackageErrorItem) => this.codeText(row),
   };
   readonly statusKey = UPL_PACKAGE_STATUS_KEY;
   readonly statusVariant = UPL_PACKAGE_STATUS_VARIANT;
@@ -322,7 +382,12 @@ export class PackageCardComponent implements OnChanges {
 
   /** Every stored error as an xlsx the supplier fixes the data from, in the reader's language. */
   errorsFileUrl(): string {
-    return '/api/v1/upl/packages/' + encodeURIComponent(this.item.id) + '/errors/file?lang=' + encodeURIComponent(this.i18n.currentLang());
+    return (
+      '/api/v1/upl/packages/' +
+      encodeURIComponent(this.item.id) +
+      '/errors/file?lang=' +
+      encodeURIComponent(this.i18n.currentLang())
+    );
   }
 
   /** Строка шапки: источник · период · версия анкеты · кто загрузил · когда. */
@@ -333,8 +398,10 @@ export class PackageCardComponent implements OnChanges {
       this.i18n.translate('upl.pkg.card.format_version', { v: this.item.formatVersion }),
       // Who uploaded comes only to those who may see people; without it the line skips the part.
       this.item.uploadedBy ? this.i18n.translate('upl.pkg.card.uploaded_by', { who: this.item.uploadedBy }) : '',
-      formatUplDateTime(this.item.uploadedAt)
-    ].filter(Boolean).join(' · ');
+      formatUplDateTime(this.item.uploadedAt),
+    ]
+      .filter(Boolean)
+      .join(' · ');
   }
 
   /** Причина отклонения словами; кода отклонения нет — оставляем пусто. */
@@ -355,14 +422,14 @@ export class PackageCardComponent implements OnChanges {
     this.applying.set(true);
     this.applyError.set(null);
     this.api.apply(this.item.id).subscribe({
-      next: result => {
+      next: (result) => {
         this.applying.set(false);
         this.applied.emit(result);
       },
       error: (problem: ProblemDetail) => {
         this.applying.set(false);
         this.applyError.set(this.applyErrorText(problem));
-      }
+      },
     });
   }
 
@@ -372,12 +439,12 @@ export class PackageCardComponent implements OnChanges {
 
   /** Расхождения с анкетой: записи без номера строки (сервер пустые поля не передаёт вовсе). */
   structRows(): UplPackageErrorItem[] {
-    return (this.errors()?.items ?? []).filter(row => (row.rowNo ?? null) === null);
+    return (this.errors()?.items ?? []).filter((row) => (row.rowNo ?? null) === null);
   }
 
   /** Ошибки ячеек: записи с адресом строки — они и идут в таблицу. */
   cellRows(): UplPackageErrorItem[] {
-    return (this.errors()?.items ?? []).filter(row => (row.rowNo ?? null) !== null);
+    return (this.errors()?.items ?? []).filter((row) => (row.rowNo ?? null) !== null);
   }
 
   reloadErrors(): void {
@@ -385,14 +452,14 @@ export class PackageCardComponent implements OnChanges {
     this.loadError.set(null);
     this.errors.set(null);
     this.api.errors(this.item.id).subscribe({
-      next: loaded => {
+      next: (loaded) => {
         this.errors.set(loaded ?? null);
         this.isLoading.set(false);
       },
       error: (problem: ProblemDetail) => {
         this.loadError.set(this.loadErrorText(problem));
         this.isLoading.set(false);
-      }
+      },
     });
   }
 

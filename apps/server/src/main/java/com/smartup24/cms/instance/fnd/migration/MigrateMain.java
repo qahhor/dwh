@@ -1,8 +1,7 @@
 package com.smartup24.cms.instance.fnd.migration;
 
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
-
 import java.util.Map;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 /**
  * Шаг «мигрируй» поставки (промпт 02 п.10): применяет миграции OLTP и pg-dwh и завершает процесс.
@@ -21,11 +20,13 @@ public final class MigrateMain {
     private static final String SCOPE_ALL = "all";
     private static final String SCOPE_DWH = "dwh";
 
-    private MigrateMain() {
-    }
+    private MigrateMain() {}
 
     public static void main(String[] args) {
+        // The migration container reports on stdout before any logging is configured.
+        // CHECKSTYLE.OFF: Regexp
         System.out.println(run(System.getenv()));
+        // CHECKSTYLE.ON: Regexp
     }
 
     static String run(Map<String, String> env) {
@@ -36,11 +37,13 @@ public final class MigrateMain {
         int oltp = SCOPE_ALL.equals(scope)
                 ? FndMigrator.migrateOltp(dataSource(env, "DWH_DB_URL", "DWH_DB_USER", "DWH_DB_PASSWORD"))
                 : 0;
-        int dwh = FndMigrator.migrateDwh(dataSource(env, "DWH_DATA_DB_URL", "DWH_DATA_DB_USER", "DWH_DATA_DB_PASSWORD"));
+        int dwh =
+                FndMigrator.migrateDwh(dataSource(env, "DWH_DATA_DB_URL", "DWH_DATA_DB_USER", "DWH_DATA_DB_PASSWORD"));
         return "migrations applied: scope=" + scope + " oltp=" + oltp + " dwh=" + dwh;
     }
 
-    private static DriverManagerDataSource dataSource(Map<String, String> env, String urlKey, String userKey, String passwordKey) {
+    private static DriverManagerDataSource dataSource(
+            Map<String, String> env, String urlKey, String userKey, String passwordKey) {
         String url = env.get(urlKey);
         if (url == null || url.isBlank()) {
             throw new IllegalStateException("Не задана переменная окружения " + urlKey);

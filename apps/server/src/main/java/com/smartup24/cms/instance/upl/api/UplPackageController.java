@@ -13,6 +13,10 @@ import com.smartup24.cms.instance.upl.upload.UplPackageModel.PackageRow;
 import com.smartup24.cms.instance.upl.upload.UplPackageService;
 import com.smartup24.cms.instance.upl.upload.UplUploadService;
 import com.smartup24.cms.instance.upl.upload.UplUploadService.Upload;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -26,11 +30,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-
 /** API загрузок файлов: приём файла, список пакетов и ошибки пакета (контракт И5), применение пакета (И6). */
 @RestController
 @RequestMapping("/api/v1/upl/packages")
@@ -42,8 +41,12 @@ public class UplPackageController {
     private final UplErrorReportBuilder reports;
     private final MdI18nService i18n;
 
-    public UplPackageController(UplUploadService uploads, UplPackageService packages, UplApplyService applies,
-                                UplErrorReportBuilder reports, MdI18nService i18n) {
+    public UplPackageController(
+            UplUploadService uploads,
+            UplPackageService packages,
+            UplApplyService applies,
+            UplErrorReportBuilder reports,
+            MdI18nService i18n) {
         this.uploads = uploads;
         this.packages = packages;
         this.applies = applies;
@@ -61,11 +64,16 @@ public class UplPackageController {
      */
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @RequiresPermission(form = UplPref.FORM_PACKAGES, action = UplPref.ACTION_UPLOAD)
-    public ResponseEntity<PackageItem> upload(@RequestParam(required = false) String sourceId,
-                                              @RequestParam(required = false) String periodFrom,
-                                              @RequestParam(required = false) String periodTo,
-                                              @RequestParam(name = "file", required = false) MultipartFile file) {
-        Upload upload = new Upload(sourceId, periodFrom, periodTo, file != null,
+    public ResponseEntity<PackageItem> upload(
+            @RequestParam(required = false) String sourceId,
+            @RequestParam(required = false) String periodFrom,
+            @RequestParam(required = false) String periodTo,
+            @RequestParam(name = "file", required = false) MultipartFile file) {
+        Upload upload = new Upload(
+                sourceId,
+                periodFrom,
+                periodTo,
+                file != null,
                 file == null ? null : file.getOriginalFilename(),
                 file == null ? null : file.getContentType(),
                 file == null ? 0L : file.getSize(),
@@ -76,11 +84,12 @@ public class UplPackageController {
 
     @GetMapping
     @RequiresPermission(form = UplPref.FORM_PACKAGES, action = UplPref.ACTION_VIEW)
-    public ResponseEntity<KeysetPage<PackageItem>> list(@RequestParam(required = false) Integer limit,
-                                                        @RequestParam(required = false) String cursor,
-                                                        @RequestParam(required = false) String filter,
-                                                        @RequestParam(required = false) String sort,
-                                                        @RequestParam(required = false) String q) {
+    public ResponseEntity<KeysetPage<PackageItem>> list(
+            @RequestParam(required = false) Integer limit,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(required = false) String filter,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String q) {
         KeysetPage<PackageRow> page = packages.list(limit, cursor, filter, sort, q);
         List<PackageItem> items = page.items().stream().map(PackageItem::of).toList();
         return ResponseEntity.ok(KeysetPage.of(items, page.nextCursor(), page.hasMore(), page.totalEstimated()));
@@ -108,12 +117,17 @@ public class UplPackageController {
     public ResponseEntity<byte[]> errorsFile(@PathVariable String id, @RequestParam(required = false) String lang) {
         PackageRow row = packages.get(id);
         Map<String, String> dictionary = i18n.effectiveDictionary(lang);
-        UplErrorReportBuilder.ReportFile file = reports.build(row, packages.errors(id),
-                (key, params) -> fill(dictionary.getOrDefault(key, key), params));
+        UplErrorReportBuilder.ReportFile file = reports.build(
+                row, packages.errors(id), (key, params) -> fill(dictionary.getOrDefault(key, key), params));
         return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
-                .header(HttpHeaders.CONTENT_DISPOSITION,
-                        ContentDisposition.attachment().filename(file.fileName(), StandardCharsets.UTF_8).build().toString())
+                .contentType(
+                        MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename(file.fileName(), StandardCharsets.UTF_8)
+                                .build()
+                                .toString())
                 .body(file.content());
     }
 

@@ -1,5 +1,7 @@
 package com.smartup24.cms.instance.upl;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.smartup24.cms.instance.fnd.FndActors;
 import com.smartup24.cms.instance.fnd.units.FndUnitService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
@@ -11,12 +13,6 @@ import com.smartup24.cms.instance.upl.format.UplFormatModel.Column;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.FormatVersion;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.Sheet;
 import com.smartup24.cms.instance.upl.format.UplSourceService;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.simple.JdbcClient;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
@@ -25,18 +21,24 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.simple.JdbcClient;
 
 /** Анкеты клиентов из фикстур заводятся через сервис без правки кода (И3 шаг 3.7). */
 class UplFixturesTest extends EmbeddedPostgresTest {
 
     @Autowired
     private UplSourceService service;
+
     @Autowired
     private FndUnitService units;
+
     @Autowired
     private FndActors actors;
+
     @Autowired
     private JdbcClient jdbc;
 
@@ -45,10 +47,14 @@ class UplFixturesTest extends EmbeddedPostgresTest {
     @DisplayName("Анкеты фикстуры публикуются через сервис и читаются без потерь")
     void formatsAreConfiguredWithoutCode(DepartmentFixture dept) {
         assertThat(dept.formats()).isNotEmpty();
-        long userId = jdbc.sql("select id from md_users where login = 'system'").query(Long.class).single();
+        long userId = jdbc.sql("select id from md_users where login = 'system'")
+                .query(Long.class)
+                .single();
         UplFixtureSources.registerUnits(units, actors, dept);
         for (Format f : dept.formats()) {
-            long id = service.createSource(UplFixtureSources.sourceData(f), userId).source().id();
+            long id = service.createSource(UplFixtureSources.sourceData(f), userId)
+                    .source()
+                    .id();
             service.createDraft(id, null, userId);
             int lock = service.getVersion(id, UplFixtureSources.FIRST_VERSION).lockVersion();
             service.replaceDraft(id, UplFixtureSources.FIRST_VERSION, lock, UplFixtureSources.draftData(f), userId);
@@ -71,12 +77,13 @@ class UplFixturesTest extends EmbeddedPostgresTest {
                 .filter(path -> hasLiteral(read(path), names))
                 .map(Path::toString)
                 .toList();
-        assertThat(offenders).as("src/main содержит имена фикстуры как литералы").isEmpty();
+        assertThat(offenders)
+                .as("src/main содержит имена фикстуры как литералы")
+                .isEmpty();
     }
 
     private static boolean hasLiteral(String text, List<String> names) {
-        return names.stream().anyMatch(name ->
-                text.contains("\"" + name + "\"") || text.contains("'" + name + "'"));
+        return names.stream().anyMatch(name -> text.contains("\"" + name + "\"") || text.contains("'" + name + "'"));
     }
 
     private static void assertStored(Format f, FormatVersion stored) {

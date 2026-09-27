@@ -1,6 +1,12 @@
 package com.smartup24.cms.instance.fnd.jobs;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -10,13 +16,6 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.ObjectMapper;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 /** Разовое задание в очереди основы: аргументы, неизвестный обработчик и общая транзакция с вызывающим. */
 class FndJobEnqueueOnceTest extends EmbeddedPostgresTest {
 
@@ -24,10 +23,13 @@ class FndJobEnqueueOnceTest extends EmbeddedPostgresTest {
 
     @Autowired
     private JdbcClient jdbc;
+
     @Autowired
     private ObjectMapper json;
+
     @Autowired
     private PlatformTransactionManager transactions;
+
     @Autowired
     private TransactionTemplate tx;
 
@@ -64,7 +66,8 @@ class FndJobEnqueueOnceTest extends EmbeddedPostgresTest {
 
         List<Map<String, Object>> queued = jdbc.sql(
                         "select handler, args ->> 'packageId' as package_id, schedule_code from fnd_job_queue")
-                .query().listOfRows();
+                .query()
+                .listOfRows();
         assertThat(queued).hasSize(1);
         assertThat(queued.get(0).get("handler")).isEqualTo(HANDLER);
         assertThat(queued.get(0).get("package_id")).isEqualTo("TEST-1");
@@ -72,8 +75,13 @@ class FndJobEnqueueOnceTest extends EmbeddedPostgresTest {
 
         assertThat(runner.runQueued()).isEqualTo(1);
         assertThat(received).containsExactly(Map.of("packageId", "TEST-1"));
-        assertThat(jdbc.sql("select count(*) from fnd_job_queue").query(Long.class).single()).isZero();
-        assertThat(jdbc.sql("select status from fnd_job_runs").query(String.class).list())
+        assertThat(jdbc.sql("select count(*) from fnd_job_queue")
+                        .query(Long.class)
+                        .single())
+                .isZero();
+        assertThat(jdbc.sql("select status from fnd_job_runs")
+                        .query(String.class)
+                        .list())
                 .containsExactly("done");
     }
 
@@ -85,7 +93,10 @@ class FndJobEnqueueOnceTest extends EmbeddedPostgresTest {
         assertThatThrownBy(() -> runner.enqueueOnce("test.unknown", Map.of()))
                 .isInstanceOf(IllegalStateException.class);
 
-        assertThat(jdbc.sql("select count(*) from fnd_job_queue").query(Long.class).single()).isZero();
+        assertThat(jdbc.sql("select count(*) from fnd_job_queue")
+                        .query(Long.class)
+                        .single())
+                .isZero();
     }
 
     @Test
@@ -98,6 +109,9 @@ class FndJobEnqueueOnceTest extends EmbeddedPostgresTest {
             status.setRollbackOnly();
         });
 
-        assertThat(jdbc.sql("select count(*) from fnd_job_queue").query(Long.class).single()).isZero();
+        assertThat(jdbc.sql("select count(*) from fnd_job_queue")
+                        .query(Long.class)
+                        .single())
+                .isZero();
     }
 }

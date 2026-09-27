@@ -2,47 +2,47 @@ import { inject, Injectable, signal } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class PermissionService {
   readonly permissions = signal<Set<string>>(new Set());
   readonly permissionVersion = signal<number>(1);
 
   private readonly formAliases: Record<string, string[]> = {
-    'md_users': ['iam.users', 'md_users'],
+    md_users: ['iam.users', 'md_users'],
     'iam.users': ['iam.users', 'md_users'],
-    'md_roles': ['rbac.roles', 'iam.roles', 'md_roles', 'md.roles'],
+    md_roles: ['rbac.roles', 'iam.roles', 'md_roles', 'md.roles'],
     'iam.roles': ['rbac.roles', 'iam.roles', 'md_roles', 'md.roles'],
     'rbac.roles': ['rbac.roles', 'iam.roles', 'md_roles', 'md.roles'],
     'md.roles': ['rbac.roles', 'iam.roles', 'md_roles', 'md.roles'],
     'rbac.assignments': ['rbac.assignments', 'iam.assignments'],
     'md.custom_fields': ['md.custom_fields', 'system.custom_fields', 'md_custom_fields'],
     'system.custom_fields': ['md.custom_fields', 'system.custom_fields', 'md_custom_fields'],
-    'md_custom_fields': ['md.custom_fields', 'system.custom_fields', 'md_custom_fields'],
+    md_custom_fields: ['md.custom_fields', 'system.custom_fields', 'md_custom_fields'],
     'iam.profile': ['iam.profile', 'md_profile'],
-    'md_profile': ['iam.profile', 'md_profile'],
-    'tasks': ['tasks.items', 'tasks'],
+    md_profile: ['iam.profile', 'md_profile'],
+    tasks: ['tasks.items', 'tasks'],
     'tasks.items': ['tasks.items', 'tasks'],
     'tasks.projects': ['tasks.projects', 'projects'],
-    'projects': ['tasks.projects', 'projects'],
-    'audit': ['audit.log', 'audit.logs', 'audit'],
+    projects: ['tasks.projects', 'projects'],
+    audit: ['audit.log', 'audit.logs', 'audit'],
     'audit.log': ['audit.log', 'audit.logs', 'audit'],
     'audit.logs': ['audit.log', 'audit.logs', 'audit'],
     'platform.files': ['platform.files', 'files'],
-    'files': ['platform.files', 'files'],
+    files: ['platform.files', 'files'],
     'platform.settings': ['platform.settings', 'settings'],
-    'settings': ['platform.settings', 'settings'],
+    settings: ['platform.settings', 'settings'],
     'platform.announcements': ['platform.announcements', 'announcements'],
-    'announcements': ['platform.announcements', 'announcements'],
+    announcements: ['platform.announcements', 'announcements'],
     'notify.inbox': ['notify.inbox', 'notifications'],
-    'notifications': ['notify.inbox', 'notifications'],
+    notifications: ['notify.inbox', 'notifications'],
     'platform.webhooks': ['platform.webhooks', 'webhooks'],
-    'webhooks': ['platform.webhooks', 'webhooks'],
+    webhooks: ['platform.webhooks', 'webhooks'],
     'platform.modules': ['platform.modules', 'modules'],
-    'modules': ['platform.modules', 'modules'],
+    modules: ['platform.modules', 'modules'],
     'platform.navigation': ['platform.navigation', 'navigation'],
-    'navigation': ['platform.navigation', 'navigation'],
-    'notes': ['notes']
+    navigation: ['platform.navigation', 'navigation'],
+    notes: ['notes'],
   };
 
   setPermissions(perms: string[], version: number = 1) {
@@ -103,8 +103,6 @@ export function permissionGuard(form: string, action: string = 'view'): CanActiv
   return () => {
     const permissions = inject(PermissionService);
     const router = inject(Router);
-    return permissions.hasPermission(form, action)
-      ? true
-      : router.createUrlTree(['/settings']);
+    return permissions.hasPermission(form, action) ? true : router.createUrlTree(['/settings']);
   };
 }

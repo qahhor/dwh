@@ -5,6 +5,9 @@ import com.smartup24.cms.instance.kwh.repository.KwhOutboxRepository;
 import com.smartup24.cms.instance.kwh.service.KwhWebhookProperties;
 import com.smartup24.cms.instance.kwh.service.KwhWebhookService;
 import com.smartup24.cms.instance.kwh.service.WebhookTargetPolicy;
+import java.net.http.HttpClient;
+import java.time.Instant;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -13,10 +16,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import tools.jackson.databind.ObjectMapper;
-
-import java.net.http.HttpClient;
-import java.time.Instant;
-import java.util.List;
 
 @Component
 public class KwhOutboxWorker {
@@ -29,8 +28,11 @@ public class KwhOutboxWorker {
     private final KwhWebhookProperties properties;
     private final WebhookTargetPolicy targetPolicy;
 
-    public KwhOutboxWorker(KwhOutboxRepository outboxRepository, ObjectMapper objectMapper,
-                           KwhWebhookProperties properties, WebhookTargetPolicy targetPolicy) {
+    public KwhOutboxWorker(
+            KwhOutboxRepository outboxRepository,
+            ObjectMapper objectMapper,
+            KwhWebhookProperties properties,
+            WebhookTargetPolicy targetPolicy) {
         this.outboxRepository = outboxRepository;
         this.objectMapper = objectMapper;
         this.properties = properties;
@@ -67,7 +69,8 @@ public class KwhOutboxWorker {
                 String signature = KwhWebhookService.computeHmacSha256(payloadJson, item.secretToken());
                 long timestamp = Instant.now().getEpochSecond();
 
-                var response = restClient.post()
+                var response = restClient
+                        .post()
                         .uri(target)
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("X-Signature-SHA256", signature)
@@ -108,10 +111,13 @@ public class KwhOutboxWorker {
                 Instant nextAttempt = Instant.now().plusSeconds(backoffSeconds);
 
                 outboxRepository.markFailed(
-                        item.id(), item.claimToken(), newAttempts, nextAttempt,
-                        httpStatus, lastError, isDeadLetter);
-                log.warn("Webhook dispatch failed id={}, attempt {}/{}: {}",
-                        item.id(), newAttempts, item.maxAttempts(), lastError);
+                        item.id(), item.claimToken(), newAttempts, nextAttempt, httpStatus, lastError, isDeadLetter);
+                log.warn(
+                        "Webhook dispatch failed id={}, attempt {}/{}: {}",
+                        item.id(),
+                        newAttempts,
+                        item.maxAttempts(),
+                        lastError);
             }
         }
     }

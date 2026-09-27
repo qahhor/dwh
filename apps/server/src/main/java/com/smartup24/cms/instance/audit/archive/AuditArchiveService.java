@@ -3,15 +3,6 @@ package com.smartup24.cms.instance.audit.archive;
 import com.smartup24.cms.instance.audit.repository.AuditPartitionRepository;
 import com.smartup24.cms.instance.audit.repository.AuditPartitionRepository.AuditPartition;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Profile;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.support.TransactionTemplate;
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -44,6 +35,14 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Archiving of the audit log (decision of 2026-09-27).
@@ -67,7 +66,8 @@ import java.util.zip.GZIPOutputStream;
 public class AuditArchiveService {
 
     private static final Logger log = LoggerFactory.getLogger(AuditArchiveService.class);
-    private static final DateTimeFormatter STAMP = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'").withZone(ZoneOffset.UTC);
+    private static final DateTimeFormatter STAMP =
+            DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'").withZone(ZoneOffset.UTC);
     private static final String ACTOR = "audit-archive";
     private static final Duration LEASE = Duration.ofHours(6);
 
@@ -81,17 +81,26 @@ public class AuditArchiveService {
     private final Clock clock;
 
     @Autowired
-    public AuditArchiveService(AuditPartitionRepository partitions, AuditArchiveRepository archives,
-                               AuditArchiveStore store, AuditArchiveProperties properties,
-                               AuditLogService auditLogService, JdbcClient jdbc,
-                               PlatformTransactionManager transactionManager) {
+    public AuditArchiveService(
+            AuditPartitionRepository partitions,
+            AuditArchiveRepository archives,
+            AuditArchiveStore store,
+            AuditArchiveProperties properties,
+            AuditLogService auditLogService,
+            JdbcClient jdbc,
+            PlatformTransactionManager transactionManager) {
         this(partitions, archives, store, properties, auditLogService, jdbc, transactionManager, Clock.systemUTC());
     }
 
-    AuditArchiveService(AuditPartitionRepository partitions, AuditArchiveRepository archives,
-                        AuditArchiveStore store, AuditArchiveProperties properties,
-                        AuditLogService auditLogService, JdbcClient jdbc,
-                        PlatformTransactionManager transactionManager, Clock clock) {
+    AuditArchiveService(
+            AuditPartitionRepository partitions,
+            AuditArchiveRepository archives,
+            AuditArchiveStore store,
+            AuditArchiveProperties properties,
+            AuditLogService auditLogService,
+            JdbcClient jdbc,
+            PlatformTransactionManager transactionManager,
+            Clock clock) {
         this.partitions = partitions;
         this.archives = archives;
         this.store = store;
@@ -104,7 +113,8 @@ public class AuditArchiveService {
     }
 
     /** What one run did; {@code skipped} when disabled or another instance holds the lease. */
-    public record RunResult(boolean skipped, String archivedKey, List<String> droppedPartitions, List<String> expiredKeys) {}
+    public record RunResult(
+            boolean skipped, String archivedKey, List<String> droppedPartitions, List<String> expiredKeys) {}
 
     public RunResult run() {
         if (!properties.enabled()) {
@@ -171,7 +181,10 @@ public class AuditArchiveService {
 
     private String archive(List<AuditPartition> waiting, Instant now) throws IOException {
         LocalDate from = waiting.getFirst().from();
-        LocalDate to = waiting.stream().map(AuditPartition::to).max(LocalDate::compareTo).orElseThrow();
+        LocalDate to = waiting.stream()
+                .map(AuditPartition::to)
+                .max(LocalDate::compareTo)
+                .orElseThrow();
         // The suffix keeps two archives of one period apart (a renewed copy may share the second of the old one).
         String key = "audit-log_" + from + "_" + to + "_" + STAMP.format(now) + "_"
                 + UUID.randomUUID().toString().substring(0, 8) + ".jsonl.gz";
@@ -181,17 +194,25 @@ public class AuditArchiveService {
             MessageDigest digest = sha256();
             Map<String, Long> rowsByPartition = new LinkedHashMap<>();
             try (OutputStream out = new DigestOutputStream(Files.newOutputStream(file), digest);
-                 Writer writer = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(out), StandardCharsets.UTF_8))) {
+                    Writer writer = new BufferedWriter(
+                            new OutputStreamWriter(new GZIPOutputStream(out), StandardCharsets.UTF_8))) {
                 for (AuditPartition partition : waiting) {
                     rowsByPartition.put(recordedName(partition.name()), export(partition, writer));
                 }
             }
-            long rows = rowsByPartition.values().stream().mapToLong(Long::longValue).sum();
+            long rows =
+                    rowsByPartition.values().stream().mapToLong(Long::longValue).sum();
             String sha256 = HexFormat.of().formatHex(digest.digest());
             long bytes = Files.size(file);
 
-            long archiveId = archives.create(key, store.storage(), from.atStartOfDay().toInstant(ZoneOffset.UTC),
-                    to.atStartOfDay().toInstant(ZoneOffset.UTC), rows, bytes, sha256);
+            long archiveId = archives.create(
+                    key,
+                    store.storage(),
+                    from.atStartOfDay().toInstant(ZoneOffset.UTC),
+                    to.atStartOfDay().toInstant(ZoneOffset.UTC),
+                    rows,
+                    bytes,
+                    sha256);
             rowsByPartition.forEach((name, count) -> archives.addPartition(archiveId, name, count));
             store.put(key, file);
             verify(key, sha256, rows);
@@ -199,11 +220,29 @@ public class AuditArchiveService {
                 throw new IllegalStateException("Archive record " + key + " vanished before it was verified");
             }
 
-            auditLogService.logSecurityEvent("AUDIT_ARCHIVED", null, null, ACTOR, Map.of(
-                    "file", key, "storage", store.storage(), "rows", rows, "bytes", bytes,
-                    "partitions", String.join(",", rowsByPartition.keySet())));
-            log.info("audit_archived file={} storage={} partitions={} rows={} bytes={}",
-                    key, store.storage(), rowsByPartition.size(), rows, bytes);
+            auditLogService.logSecurityEvent(
+                    "AUDIT_ARCHIVED",
+                    null,
+                    null,
+                    ACTOR,
+                    Map.of(
+                            "file",
+                            key,
+                            "storage",
+                            store.storage(),
+                            "rows",
+                            rows,
+                            "bytes",
+                            bytes,
+                            "partitions",
+                            String.join(",", rowsByPartition.keySet())));
+            log.info(
+                    "audit_archived file={} storage={} partitions={} rows={} bytes={}",
+                    key,
+                    store.storage(),
+                    rowsByPartition.size(),
+                    rows,
+                    bytes);
             return key;
         } finally {
             Files.deleteIfExists(file);
@@ -236,9 +275,9 @@ public class AuditArchiveService {
         MessageDigest digest = sha256();
         long lines = 0;
         try (InputStream stored = store.open(key);
-             DigestInputStream digested = new DigestInputStream(stored, digest);
-             BufferedReader reader = new BufferedReader(
-                     new InputStreamReader(new GZIPInputStream(digested), StandardCharsets.UTF_8))) {
+                DigestInputStream digested = new DigestInputStream(stored, digest);
+                BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(new GZIPInputStream(digested), StandardCharsets.UTF_8))) {
             while (reader.readLine() != null) {
                 lines++;
             }
@@ -292,8 +331,10 @@ public class AuditArchiveService {
             try {
                 // The database cannot see the store: a file removed outside the server is no copy.
                 if (!store.exists(archived.fileKey())) {
-                    log.error("audit_partition_kept partition={}: its archive {} is missing from the store",
-                            partition.name(), archived.fileKey());
+                    log.error(
+                            "audit_partition_kept partition={}: its archive {} is missing from the store",
+                            partition.name(),
+                            archived.fileKey());
                     continue;
                 }
                 partitions.dropArchived(partition);
@@ -303,8 +344,8 @@ public class AuditArchiveService {
             }
         }
         if (!dropped.isEmpty()) {
-            auditLogService.logSecurityEvent("AUDIT_PARTITIONS_DROPPED", null, null, ACTOR,
-                    Map.of("partitions", String.join(",", dropped)));
+            auditLogService.logSecurityEvent(
+                    "AUDIT_PARTITIONS_DROPPED", null, null, ACTOR, Map.of("partitions", String.join(",", dropped)));
             log.warn("audit_partitions_dropped after verified archive: {}", String.join(", ", dropped));
         }
         return dropped;
@@ -322,8 +363,16 @@ public class AuditArchiveService {
             }
         }
         if (!removed.isEmpty()) {
-            auditLogService.logSecurityEvent("AUDIT_ARCHIVES_EXPIRED", null, null, ACTOR,
-                    Map.of("files", String.join(",", removed), "retention", properties.retention().toString()));
+            auditLogService.logSecurityEvent(
+                    "AUDIT_ARCHIVES_EXPIRED",
+                    null,
+                    null,
+                    ACTOR,
+                    Map.of(
+                            "files",
+                            String.join(",", removed),
+                            "retention",
+                            properties.retention().toString()));
         }
         return removed;
     }

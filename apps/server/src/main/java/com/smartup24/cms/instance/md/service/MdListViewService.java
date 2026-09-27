@@ -1,8 +1,8 @@
 package com.smartup24.cms.instance.md.service;
 
 import com.smartup24.cms.core.error.ErrorCode;
-import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.core.error.FieldErrorItem;
+import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.query.QueryCompiler;
 import com.smartup24.cms.instance.common.query.QueryField;
@@ -11,14 +11,6 @@ import com.smartup24.cms.instance.common.query.QueryListRegistry;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.md.repository.MdListViewRepository;
 import com.smartup24.cms.instance.md.repository.MdListViewRepository.ListView;
-import org.springframework.dao.DuplicateKeyException;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
-import tools.jackson.databind.node.ArrayNode;
-import tools.jackson.databind.node.ObjectNode;
-
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -26,6 +18,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 
 /**
  * Сохранённые представления списка (ADR-0016): колонки, сортировка и фильтр, которые пользователь
@@ -43,6 +42,7 @@ public class MdListViewService {
 
     /** Больше представлений одного списка человек не различает в меню. */
     public static final int MAX_VIEWS_PER_LIST = 20;
+
     public static final int MAX_NAME = 80;
 
     private static final Pattern WIDTH = Pattern.compile("^\\d{1,4}px$");
@@ -62,8 +62,7 @@ public class MdListViewService {
         this.audit = audit;
     }
 
-    public record ViewData(String name, JsonNode state, boolean isDefault) {
-    }
+    public record ViewData(String name, JsonNode state, boolean isDefault) {}
 
     @Transactional(readOnly = true)
     public List<ListView> list(long userId, String listCode) {
@@ -77,8 +76,10 @@ public class MdListViewService {
         String name = checkName(data.name());
         String state = canonicalState(list, data.state());
         if (repo.count(userId, listCode) >= MAX_VIEWS_PER_LIST) {
-            throw ApiException.validation(LIST_VIEW_LIMIT, List.of(new FieldErrorItem("name", LIST_VIEW_LIMIT,
-                    "at most " + MAX_VIEWS_PER_LIST + " views per list")));
+            throw ApiException.validation(
+                    LIST_VIEW_LIMIT,
+                    List.of(new FieldErrorItem(
+                            "name", LIST_VIEW_LIMIT, "at most " + MAX_VIEWS_PER_LIST + " views per list")));
         }
         if (data.isDefault()) {
             repo.clearDefault(userId, listCode, null);
@@ -135,8 +136,10 @@ public class MdListViewService {
     private static String checkName(String raw) {
         String name = raw == null ? "" : raw.strip();
         if (name.isEmpty() || name.length() > MAX_NAME) {
-            throw ApiException.validation(LIST_VIEW_INVALID, List.of(new FieldErrorItem("name", LIST_VIEW_INVALID,
-                    "name must be 1 to " + MAX_NAME + " characters")));
+            throw ApiException.validation(
+                    LIST_VIEW_INVALID,
+                    List.of(new FieldErrorItem(
+                            "name", LIST_VIEW_INVALID, "name must be 1 to " + MAX_NAME + " characters")));
         }
         return name;
     }
@@ -156,7 +159,8 @@ public class MdListViewService {
                 errors.add(new FieldErrorItem("state." + entry.getKey(), LIST_VIEW_INVALID, "unknown key"));
             }
         }
-        Set<String> keys = new HashSet<>(list.fields().stream().map(QueryField::key).toList());
+        Set<String> keys =
+                new HashSet<>(list.fields().stream().map(QueryField::key).toList());
         ObjectNode canonical = JSON.createObjectNode();
         canonical.set("columns", columns(state.get("columns"), keys, errors));
 
@@ -218,7 +222,8 @@ public class MdListViewService {
                     String at = "state.columns.widths." + entry.getKey();
                     if (!keys.contains(entry.getKey())) {
                         errors.add(new FieldErrorItem(at, LIST_VIEW_INVALID, "unknown column"));
-                    } else if (!entry.getValue().isString() || !WIDTH.matcher(entry.getValue().asString()).matches()) {
+                    } else if (!entry.getValue().isString()
+                            || !WIDTH.matcher(entry.getValue().asString()).matches()) {
                         errors.add(new FieldErrorItem(at, LIST_VIEW_INVALID, "width must be like 180px"));
                     } else {
                         widths.put(entry.getKey(), entry.getValue().asString());
@@ -229,7 +234,8 @@ public class MdListViewService {
         return columns;
     }
 
-    private static void keyList(JsonNode node, String at, Set<String> keys, ArrayNode into, List<FieldErrorItem> errors) {
+    private static void keyList(
+            JsonNode node, String at, Set<String> keys, ArrayNode into, List<FieldErrorItem> errors) {
         if (node == null || node.isNull()) {
             return;
         }
@@ -262,8 +268,9 @@ public class MdListViewService {
     }
 
     private static ApiException nameTaken() {
-        return ApiException.validation(LIST_VIEW_NAME_TAKEN, List.of(new FieldErrorItem("name", LIST_VIEW_NAME_TAKEN,
-                "a view with this name already exists")));
+        return ApiException.validation(
+                LIST_VIEW_NAME_TAKEN,
+                List.of(new FieldErrorItem("name", LIST_VIEW_NAME_TAKEN, "a view with this name already exists")));
     }
 
     private static ApiException notFound() {

@@ -6,9 +6,17 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { SMTI18nService } from '../../i18n';
 import { testI18n } from '../../i18n/test-messages';
 import { tickInZone } from '../../testing/zone-tick';
-import { SMTSortableActionsDirective, SMTSortableItemDirective, SMTSortableListComponent } from './sortable-list.component';
+import {
+  SMTSortableActionsDirective,
+  SMTSortableItemDirective,
+  SMTSortableListComponent,
+} from './sortable-list.component';
 
-interface Status { id: number; name: string; system?: boolean }
+interface Status {
+  id: number;
+  name: string;
+  system?: boolean;
+}
 
 @Component({
   standalone: true,
@@ -20,9 +28,14 @@ interface Status { id: number; name: string; system?: boolean }
       [trackBy]="byId"
       [itemLabel]="nameOf"
       [locked]="isSystem"
-      (reorder)="items.set($event); orders.push($event)">
-      <ng-template smtSortableItem let-status let-index="index"><span class="name">{{ index + 1 }}. {{ status.name }}</span></ng-template>
-      <ng-template smtSortableActions let-status><button type="button" class="delete">Delete {{ status.name }}</button></ng-template>
+      (reorder)="items.set($event); orders.push($event)"
+    >
+      <ng-template smtSortableItem let-status let-index="index"
+        ><span class="name">{{ index + 1 }}. {{ status.name }}</span></ng-template
+      >
+      <ng-template smtSortableActions let-status
+        ><button type="button" class="delete">Delete {{ status.name }}</button></ng-template
+      >
     </smt-sortable-list>
   `,
 })
@@ -53,12 +66,13 @@ describe('SMTSortableListComponent', () => {
     };
     await settle();
     const element = fixture.nativeElement as HTMLElement;
-    const names = () => Array.from(element.querySelectorAll('.name')).map(node => node.textContent!.trim());
-    const button = (label: string) => element.querySelector(`button[aria-label="${label}"]`) as HTMLButtonElement | null;
+    const names = () => Array.from(element.querySelectorAll('.name')).map((node) => node.textContent!.trim());
+    const button = (label: string) =>
+      element.querySelector(`button[aria-label="${label}"]`) as HTMLButtonElement | null;
     return { fixture, element, names, button, settle };
   }
 
-  it('is a named list whose rows carry the caller\'s body and actions', async () => {
+  it("is a named list whose rows carry the caller's body and actions", async () => {
     const { element, names } = await render();
     const list = element.querySelector('[role="list"]')!;
     expect(list.getAttribute('aria-label')).toBe('Statuses');

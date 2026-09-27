@@ -1,5 +1,11 @@
 package com.smartup24.cms.instance.upl;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+
 import com.jayway.jsonpath.JsonPath;
 import com.smartup24.cms.instance.config.idempotency.IdempotencyFilter;
 import com.smartup24.cms.instance.fnd.FndActors;
@@ -20,6 +26,17 @@ import com.smartup24.cms.instance.upl.format.UplSourceService;
 import com.smartup24.cms.instance.upl.parse.UplXlsxParser;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel;
 import jakarta.servlet.http.Cookie;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HexFormat;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -36,24 +53,6 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.context.WebApplicationContext;
 import tools.jackson.databind.ObjectMapper;
-
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HexFormat;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.regex.Pattern;
-import java.util.stream.Stream;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 /**
  * Сквозная проверка загрузки для конфигураций экземпляров из фикстур: анкета опубликована,
@@ -73,23 +72,32 @@ class UplPackageEndToEndTest extends EmbeddedPostgresTest {
 
     @Autowired
     private WebApplicationContext wac;
+
     @Autowired
     private MdUserService users;
+
     @Autowired
     private JdbcClient jdbc;
+
     @Autowired
     private UplSourceService sources;
+
     @Autowired
     private FndJobRunner jobs;
+
     @Autowired
     private FndActors actors;
+
     @Autowired
     private FndUnitService units;
+
     @Autowired
     private TransactionTemplate tx;
+
     @Autowired
     @Qualifier(FndPref.DWH)
     private JdbcClient dwhJdbc;
+
     @Autowired
     private FndLoadService loads;
 
@@ -97,24 +105,25 @@ class UplPackageEndToEndTest extends EmbeddedPostgresTest {
     private String analystLogin;
     private long systemUserId;
 
-    private record Session(Cookie session, Cookie csrf) {
-    }
+    private record Session(Cookie session, Cookie csrf) {}
 
     /** Собранный файл и ожидания по нему: счётчики строк и адреса ошибочных ячеек. */
-    private record Sample(byte[] content, int total, int rejected, int errors, List<Integer> badKeyRowNos,
-                          int doubleBadRowNo) {
-    }
+    private record Sample(
+            byte[] content, int total, int rejected, int errors, List<Integer> badKeyRowNos, int doubleBadRowNo) {}
 
     @BeforeEach
     void setUp() {
         DefaultMockMvcBuilder builder = MockMvcBuilders.webAppContextSetup(wac).apply(springSecurity());
-        IdempotencyFilter idempotency = wac.getBeanProvider(IdempotencyFilter.class).getIfAvailable();
+        IdempotencyFilter idempotency =
+                wac.getBeanProvider(IdempotencyFilter.class).getIfAvailable();
         if (idempotency != null) {
             builder.addFilters(idempotency);
         }
         mvc = builder.build();
 
-        systemUserId = jdbc.sql("select id from md_users where login = 'system'").query(Long.class).single();
+        systemUserId = jdbc.sql("select id from md_users where login = 'system'")
+                .query(Long.class)
+                .single();
         tx.executeWithoutResult(status -> {
             actors.apply(actors.system());
             jdbc.sql("delete from upl_package_errors").update();
@@ -123,7 +132,8 @@ class UplPackageEndToEndTest extends EmbeddedPostgresTest {
             jdbc.sql("delete from fnd_job_runs").update();
         });
 
-        analystLogin = "upl-e2e-analyst-" + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+        analystLogin = "upl-e2e-analyst-"
+                + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
         createUser(analystLogin, roleId("analyst"));
     }
 
@@ -145,13 +155,19 @@ class UplPackageEndToEndTest extends EmbeddedPostgresTest {
         Map<String, Object> received = read(accepted, "$");
         assertThat(received.get("rowsTotal")).isNull();
 
-        assertThat(jdbc.sql("select file_sha256 from upl_packages").query(String.class).single())
+        assertThat(jdbc.sql("select file_sha256 from upl_packages")
+                        .query(String.class)
+                        .single())
                 .isEqualTo(sha256(sample.content()));
-        assertThat(jdbc.sql("select file_size_bytes from upl_packages").query(Long.class).single())
+        assertThat(jdbc.sql("select file_size_bytes from upl_packages")
+                        .query(Long.class)
+                        .single())
                 .isEqualTo(sample.content().length);
         assertThat(storedFiles(sample.content())).isEqualTo(1);
 
-        assertThat(jdbc.sql("select handler from fnd_job_queue").query(String.class).list())
+        assertThat(jdbc.sql("select handler from fnd_job_queue")
+                        .query(String.class)
+                        .list())
                 .containsExactly(UplPref.JOB_PARSE);
         assertThat(jobs.runQueued()).isEqualTo(1);
 
@@ -186,8 +202,13 @@ class UplPackageEndToEndTest extends EmbeddedPostgresTest {
         assertThat(second.getStatus()).as(second.getContentAsString()).isEqualTo(202);
         assertThat((String) read(first, "$.id")).isNotEqualTo(read(second, "$.id"));
 
-        assertThat(jdbc.sql("select count(*) from upl_packages").query(Long.class).single()).isEqualTo(2);
-        assertThat(jdbc.sql("select count(distinct file_id) from upl_packages").query(Long.class).single())
+        assertThat(jdbc.sql("select count(*) from upl_packages")
+                        .query(Long.class)
+                        .single())
+                .isEqualTo(2);
+        assertThat(jdbc.sql("select count(distinct file_id) from upl_packages")
+                        .query(Long.class)
+                        .single())
                 .isEqualTo(1);
         assertThat(storedFiles(sample.content())).isEqualTo(1);
         assertThat(jobs.runQueued()).isEqualTo(2);
@@ -205,7 +226,8 @@ class UplPackageEndToEndTest extends EmbeddedPostgresTest {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("com.smartup24.cms.instance.support.fixtures.DepartmentFixture#departments")
-    @DisplayName("Проверенный файл применён: строки в raw с адресом исходника, второй пакет периода — своя загрузка, первая не тронута")
+    @DisplayName(
+            "Проверенный файл применён: строки в raw с адресом исходника, второй пакет периода — своя загрузка, первая не тронута")
     void verifiedPackageIsAppliedToRaw(DepartmentFixture fixture) throws Exception {
         UplFixtureSources.registerUnits(units, actors, fixture);
         Format format = xlsxFormat(fixture);
@@ -221,11 +243,16 @@ class UplPackageEndToEndTest extends EmbeddedPostgresTest {
 
         assertThat(rawRows(firstLoad)).isEqualTo(first.total());
         assertThat(dwhJdbc.sql("select count(distinct source_row_no) from raw.rows where load_id = :id"
-                        + " and sheet = :sheet and source_row_no is not null")
-                .param("id", firstLoad).param("sheet", sheet.sheetName()).query(Long.class).single())
+                                + " and sheet = :sheet and source_row_no is not null")
+                        .param("id", firstLoad)
+                        .param("sheet", sheet.sheetName())
+                        .query(Long.class)
+                        .single())
                 .isEqualTo(first.total());
         assertThat(dwhJdbc.sql("select min(source_row_no) from raw.rows where load_id = :id")
-                .param("id", firstLoad).query(Long.class).single())
+                        .param("id", firstLoad)
+                        .query(Long.class)
+                        .single())
                 .isGreaterThan(sheet.headerRow());
         assertThat(loads.find(firstLoad).orElseThrow().status()).isEqualTo(FndLoad.APPLIED);
 
@@ -241,7 +268,8 @@ class UplPackageEndToEndTest extends EmbeddedPostgresTest {
 
         var list = sendGet(admin, BASE, 200);
         List<Map<String, Object>> items = read(list, "$.items");
-        assertThat(items).filteredOn(item -> firstId.equals(item.get("id")))
+        assertThat(items)
+                .filteredOn(item -> firstId.equals(item.get("id")))
                 .singleElement()
                 .satisfies(item -> assertThat(item).containsEntry("status", UplPackageModel.APPLIED));
     }
@@ -263,7 +291,9 @@ class UplPackageEndToEndTest extends EmbeddedPostgresTest {
 
     private long rawRows(long loadId) {
         return dwhJdbc.sql("select count(*) from raw.rows where load_id = :id")
-                .param("id", loadId).query(Long.class).single();
+                .param("id", loadId)
+                .query(Long.class)
+                .single();
     }
 
     // ---------- ожидания по ошибкам ----------
@@ -294,9 +324,11 @@ class UplPackageEndToEndTest extends EmbeddedPostgresTest {
                 .toList();
         assertThat(requiredErrors).hasSize(1);
         assertThat(requiredErrors.getFirst()).containsEntry("rowNo", sample.doubleBadRowNo());
-        assertThat(requiredErrors.getFirst()).containsEntry("columnName", requiredColumn(sheet).name());
+        assertThat(requiredErrors.getFirst())
+                .containsEntry("columnName", requiredColumn(sheet).name());
 
-        assertThat(items.stream().map(item -> (Integer) item.get("rowNo")).toList()).isSorted();
+        assertThat(items.stream().map(item -> (Integer) item.get("rowNo")).toList())
+                .isSorted();
     }
 
     // ---------- сборка файла по анкете фикстуры ----------
@@ -434,21 +466,27 @@ class UplPackageEndToEndTest extends EmbeddedPostgresTest {
     }
 
     private MockHttpServletResponse sendGet(Session session, String url, int expectedStatus) throws Exception {
-        var response = mvc.perform(get(url).cookie(session.session(), session.csrf())).andReturn().getResponse();
+        var response = mvc.perform(get(url).cookie(session.session(), session.csrf()))
+                .andReturn()
+                .getResponse();
         assertThat(response.getStatus()).as(response.getContentAsString()).isEqualTo(expectedStatus);
         return response;
     }
 
     private Session login(String login) throws Exception {
-        var response = mvc.perform(post("/api/v1/auth/login").contentType("application/json")
+        var response = mvc.perform(post("/api/v1/auth/login")
+                        .contentType("application/json")
                         .content(json(Map.of("login", login, "password", PASSWORD, "deviceInfo", "test"))))
-                .andReturn().getResponse();
+                .andReturn()
+                .getResponse();
         assertThat(response.getStatus()).as(response.getContentAsString()).isEqualTo(200);
         Cookie session = response.getCookie(KauthPref.SESSION_COOKIE_NAME);
         assertThat(session).as("session cookie").isNotNull();
         Cookie csrf = response.getCookie("XSRF-TOKEN");
         if (csrf == null) {
-            var handshake = mvc.perform(get("/api/v1/auth/me").cookie(session)).andReturn().getResponse();
+            var handshake = mvc.perform(get("/api/v1/auth/me").cookie(session))
+                    .andReturn()
+                    .getResponse();
             assertThat(handshake.getStatus()).isEqualTo(200);
             csrf = handshake.getCookie("XSRF-TOKEN");
         }
@@ -457,18 +495,35 @@ class UplPackageEndToEndTest extends EmbeddedPostgresTest {
     }
 
     private void createUser(String login, Long roleId) {
-        users.createUser("TEST " + login, login, login + "@test.local", null, PASSWORD, null, "ru", "UTC", null,
-                Map.of(), false, false, roleId == null ? List.of() : List.of(roleId), systemUserId);
+        users.createUser(
+                "TEST " + login,
+                login,
+                login + "@test.local",
+                null,
+                PASSWORD,
+                null,
+                "ru",
+                "UTC",
+                null,
+                Map.of(),
+                false,
+                false,
+                roleId == null ? List.of() : List.of(roleId),
+                systemUserId);
     }
 
     private Long roleId(String role) {
-        return jdbc.sql("select id from md_roles where pcode = :role").param("role", role)
-                .query(Long.class).single();
+        return jdbc.sql("select id from md_roles where pcode = :role")
+                .param("role", role)
+                .query(Long.class)
+                .single();
     }
 
     private long storedFiles(byte[] content) {
         return jdbc.sql("select count(*) from mf_files where sha256 = :sha")
-                .param("sha", sha256(content)).query(Long.class).single();
+                .param("sha", sha256(content))
+                .query(Long.class)
+                .single();
     }
 
     private static String sha256(byte[] content) {

@@ -50,7 +50,10 @@ docs/                     requirements, ADRs, engineering and operations docs
 Maven/ArchUnit и
 [`scripts/architecture/test-unified-boundaries.ps1`](../../scripts/architecture/test-unified-boundaries.ps1)
 автоматизируют только настроенные проверки: состав reactor/runtime и отдельные
-package-level границы сервера. Направление всех зависимостей, использование
+package-level границы сервера. Границы модулей сервера (`common` без бизнес-модулей,
+контроллер без репозиториев, связь модулей через `service`/`api`, SQL только к своим
+таблицам) проверяет `ModuleBoundariesTest`; текущие нарушения заморожены и только
+уменьшаются ([ADR-0006, 2.3.1](../adr/ADR-0006-modular-monolith.md)). Направление всех зависимостей, использование
 браузером только server API и отсутствие авторизации через Typesense дополнительно
 проверяются review и целевыми тестами; единого статического правила для каждого
 такого ребра или browser-запроса сейчас нет.

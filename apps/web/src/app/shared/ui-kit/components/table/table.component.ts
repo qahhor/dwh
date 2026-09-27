@@ -337,7 +337,7 @@ export class SMTTableComponent<T> {
   protected columnResizeBasisWidth = computed(() =>
     this.biruniGridLayout()
       ? getBiruniTableSizingBasisWidth(this.scrollContainerClientWidth())
-      : this.resizeContainerWidth()
+      : this.resizeContainerWidth(),
   );
 
   /** Biruni always appends trailing `1fr` after the percent tracks. */
@@ -403,7 +403,7 @@ export class SMTTableComponent<T> {
   protected columnTrackWidthsPx = computed(() => {
     if (!this.biruniGridLayout()) return [];
     const basis = this.columnResizeBasisWidth();
-    return this.config().columnsOrder.map(column => this.getBiruniColumnTrackWidthPx(column, basis));
+    return this.config().columnsOrder.map((column) => this.getBiruniColumnTrackWidthPx(column, basis));
   });
 
   protected dedicatedCheckboxWidthPx = computed(() => {
@@ -531,13 +531,15 @@ export class SMTTableComponent<T> {
   });
 
   protected tableRefClass = computed(() =>
-    this.biruniGridLayout() || this.config().layout === 'fit' ? 'w-full smt-grid-table' : 'min-w-full w-max smt-grid-table'
+    this.biruniGridLayout() || this.config().layout === 'fit'
+      ? 'w-full smt-grid-table'
+      : 'min-w-full w-max smt-grid-table',
   );
 
-  protected visibleTabs = computed(() => this.tabs().filter(tab => tab.id?.trim().length > 0));
+  protected visibleTabs = computed(() => this.tabs().filter((tab) => tab.id?.trim().length > 0));
 
   protected hasTabs = computed(
-    () => this.showTabs() && this.visibleTabs().length > 0 && this.tabsPlacement() === 'top'
+    () => this.showTabs() && this.visibleTabs().length > 0 && this.tabsPlacement() === 'top',
   );
 
   protected resolvedActiveTabId = computed(() => {
@@ -547,18 +549,18 @@ export class SMTTableComponent<T> {
   });
 
   protected tabBarTabs = computed<Tab[]>(() =>
-    this.visibleTabs().map(tab => ({
+    this.visibleTabs().map((tab) => ({
       label: tab.label,
       badgeValue: tab.badge,
       disabled: tab.disabled,
-    }))
+    })),
   );
 
   protected activeTabIndex = computed(() => {
     const tabs = this.visibleTabs();
     if (tabs.length === 0) return 0;
     const activeId = this.resolvedActiveTabId();
-    const index = tabs.findIndex(tab => tab.id === activeId);
+    const index = tabs.findIndex((tab) => tab.id === activeId);
     return index >= 0 ? index : 0;
   });
 
@@ -676,7 +678,7 @@ export class SMTTableComponent<T> {
       }
       if (!this.virtualScrollActive() || this.detailClosing()) return;
       const detailEl = this.scrollContainer()?.nativeElement?.querySelector<HTMLElement>(
-        '.smt-grid-body > .smt-detail-row'
+        '.smt-grid-body > .smt-detail-row',
       );
       if (!detailEl) return;
       const height = detailEl.getBoundingClientRect().height;
@@ -705,7 +707,7 @@ export class SMTTableComponent<T> {
       this.dndData.set([...source]);
     });
 
-    effect(onCleanup => {
+    effect((onCleanup) => {
       const row = this.expandedRow();
       const closing = this.detailClosing();
 
@@ -749,14 +751,14 @@ export class SMTTableComponent<T> {
         return;
       }
 
-      if (controlled && tabs.some(tab => tab.id === controlled)) {
+      if (controlled && tabs.some((tab) => tab.id === controlled)) {
         return;
       }
 
       const fallback =
-        (defaultTabId && tabs.some(tab => tab.id === defaultTabId) ? defaultTabId : '') ||
-        (current && tabs.some(tab => tab.id === current) ? current : '') ||
-        tabs.find(tab => !tab.disabled)?.id ||
+        (defaultTabId && tabs.some((tab) => tab.id === defaultTabId) ? defaultTabId : '') ||
+        (current && tabs.some((tab) => tab.id === current) ? current : '') ||
+        tabs.find((tab) => !tab.disabled)?.id ||
         tabs[0].id;
 
       if (fallback && fallback !== current) {
@@ -768,7 +770,7 @@ export class SMTTableComponent<T> {
       const activeId = this.resolvedActiveTabId();
       const tabs = this.visibleTabs();
       if (!activeId || tabs.length === 0) return;
-      const tab = tabs.find(item => item.id === activeId);
+      const tab = tabs.find((item) => item.id === activeId);
       if (!tab) return;
 
       if (!this.isTabSyncInitialized) {
@@ -814,7 +816,10 @@ export class SMTTableComponent<T> {
     // the old state. It also leaves the owner's config object untouched.
     const config = this.config();
     const columns = Object.fromEntries(
-      Object.entries(config.columns).map(([name, info]) => [name, { ...info, sortedBy: name === column ? sortBy : undefined }])
+      Object.entries(config.columns).map(([name, info]) => [
+        name,
+        { ...info, sortedBy: name === column ? sortBy : undefined },
+      ]),
     );
     this.config.set({ ...config, columns });
     this.sortChange.emit(sortBy ? { column: key, sortBy } : undefined);
@@ -822,9 +827,9 @@ export class SMTTableComponent<T> {
 
   toggleSelection(row: T) {
     if (this.isLoading() || typeof (row as unknown) === 'number') return;
-    const isSelected = this.selectedItems().some(r => r === row);
+    const isSelected = this.selectedItems().some((r) => r === row);
     if (isSelected) {
-      this.selectedItems.set(this.selectedItems().filter(r => r !== row));
+      this.selectedItems.set(this.selectedItems().filter((r) => r !== row));
     } else {
       this.selectedItems.set([...this.selectedItems(), row]);
     }
@@ -1119,7 +1124,7 @@ export class SMTTableComponent<T> {
 
   private emitTabChange(tab: TableTabItem, source: 'click' | 'programmatic'): void {
     const tabs = this.visibleTabs();
-    const index = tabs.findIndex(item => item.id === tab.id);
+    const index = tabs.findIndex((item) => item.id === tab.id);
     if (index < 0) return;
     this.tabChange.emit({
       tabId: tab.id,
@@ -1196,7 +1201,7 @@ export class SMTTableComponent<T> {
       clientW,
       tableSurface?.scrollWidth ?? 0,
       tableSurface?.getBoundingClientRect().width ?? 0,
-      container.scrollWidth ?? 0
+      container.scrollWidth ?? 0,
     );
     const rounded = Math.round(width);
     if (this.resizeContainerWidth() !== rounded) this.resizeContainerWidth.set(rounded);
@@ -1209,8 +1214,9 @@ export class SMTTableComponent<T> {
   }
 }
 
-const CELL_CONTROL = 'a[href], button, input, select, textarea, label, summary, [contenteditable]:not([contenteditable="false"]), '
-  + '[role="button"], [role="link"], [role="checkbox"], [role="switch"], [role="option"], [role="combobox"], [role="menuitem"]';
+const CELL_CONTROL =
+  'a[href], button, input, select, textarea, label, summary, [contenteditable]:not([contenteditable="false"]), ' +
+  '[role="button"], [role="link"], [role="checkbox"], [role="switch"], [role="option"], [role="combobox"], [role="menuitem"]';
 
 /** True when the click started inside an interactive element of the row, not on the row itself. */
 function isInsideCellControl(event: MouseEvent): boolean {

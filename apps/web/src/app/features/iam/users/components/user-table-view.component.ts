@@ -1,4 +1,15 @@
-import { Component, computed, EventEmitter, inject, input, Input, Output, Signal, TemplateRef, viewChild } from '@angular/core';
+import {
+  Component,
+  computed,
+  EventEmitter,
+  inject,
+  input,
+  Input,
+  Output,
+  Signal,
+  TemplateRef,
+  viewChild,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
@@ -25,13 +36,20 @@ type UserMenuAction = 'block' | 'unblock' | 'delete';
   selector: 'app-user-table-view',
   standalone: true,
   imports: [
-    SMTDropdownButtonComponent, SMTAvatarComponent, CommonModule,
+    SMTDropdownButtonComponent,
+    SMTAvatarComponent,
+    CommonModule,
     TranslatePipe,
     SMTButtonComponent,
-    UiServerTableComponent
+    UiServerTableComponent,
   ],
   template: `
-    <div class="table-container" role="region" [attr.aria-label]="'iam.tablica_polzovateley' | t" [attr.aria-busy]="pager.loading()">
+    <div
+      class="table-container"
+      role="region"
+      [attr.aria-label]="'iam.tablica_polzovateley' | t"
+      [attr.aria-busy]="pager.loading()"
+    >
       @if (tableConfig(); as config) {
         <ui-server-table
           [pager]="pager"
@@ -46,12 +64,18 @@ type UserMenuAction = 'block' | 'unblock' | 'delete';
           [errorLabel]="'iam.users.load_error' | t"
           errorId="users-load-error"
           [emptyTemplate]="emptyState()"
-          (sortChange)="sortChange.emit($event)" />
+          (sortChange)="sortChange.emit($event)"
+        />
       }
     </div>
 
     <ng-template #identityCell let-u>
-      <button type="button" class="user-identity" (click)="viewUser.emit(u)" [attr.aria-label]="'iam.open_user_profile_named' | t:{name: u.name}">
+      <button
+        type="button"
+        class="user-identity"
+        (click)="viewUser.emit(u)"
+        [attr.aria-label]="'iam.open_user_profile_named' | t: { name: u.name }"
+      >
         <smt-avatar [name]="u.name" smtSize="sm" />
         <span class="identity-info">
           <span class="full-name">{{ u.name }}</span>
@@ -62,25 +86,39 @@ type UserMenuAction = 'block' | 'unblock' | 'delete';
     <ng-template #contactsCell let-u>
       <div class="contacts-cell">
         <span class="contact-email">{{ u.email }}</span>
-        @if (u.phone) { <span class="contact-phone font-mono">{{ u.phone }}</span> }
+        @if (u.phone) {
+          <span class="contact-phone font-mono">{{ u.phone }}</span>
+        }
       </div>
     </ng-template>
     <ng-template #rolesCell let-u>
       @let roleNames = getUserRoleNames(u);
       <div class="roles-wrap">
-        @for (roleName of roleNames; track roleName) { <span class="role-pill">{{ roleName }}</span> }
-        @empty { <span class="muted-dash">—</span> }
+        @for (roleName of roleNames; track roleName) {
+          <span class="role-pill">{{ roleName }}</span>
+        } @empty {
+          <span class="muted-dash">—</span>
+        }
       </div>
     </ng-template>
     <ng-template #managerCell let-u>
       @let managerName = getManagerName(u);
-      @if (managerName) { <span class="manager-text">{{ managerName }}</span> }
-      @else { <span class="muted-dash">—</span> }
+      @if (managerName) {
+        <span class="manager-text">{{ managerName }}</span>
+      } @else {
+        <span class="muted-dash">—</span>
+      }
     </ng-template>
     <ng-template #twoFactorCell let-u>
       @let twoFactorLabel = (u.is2faEnabled ? 'iam.two_factor_enabled' : 'iam.two_factor_disabled_short') | t;
       <!-- role="img": the name is announced and the icon's ligature text ("check_circle") is not. -->
-      <span role="img" class="material-symbols-outlined twofa-dot" [class.active]="u.is2faEnabled" [title]="twoFactorLabel" [attr.aria-label]="twoFactorLabel">
+      <span
+        role="img"
+        class="material-symbols-outlined twofa-dot"
+        [class.active]="u.is2faEnabled"
+        [title]="twoFactorLabel"
+        [attr.aria-label]="twoFactorLabel"
+      >
         {{ u.is2faEnabled ? 'check_circle' : 'remove' }}
       </span>
     </ng-template>
@@ -91,22 +129,41 @@ type UserMenuAction = 'block' | 'unblock' | 'delete';
       </span>
     </ng-template>
     <ng-template #createdCell let-u>
-      <span class="text-muted font-mono text-xs tabular-nums">{{ u.createdAt | date:'dd.MM.yyyy' }}</span>
+      <span class="text-muted font-mono text-xs tabular-nums">{{ u.createdAt | date: 'dd.MM.yyyy' }}</span>
     </ng-template>
     <ng-template #actionsCell let-u>
       <div class="row-actions">
-        <button smt-button type="button" smtVariant="ghost" smtSize="sm" smtIcon="visibility" [attr.aria-label]="'iam.view_user_named' | t:{name: u.name}" [title]="'iam.prosmotr' | t" (click)="viewUser.emit(u)"></button>
+        <button
+          smt-button
+          type="button"
+          smtVariant="ghost"
+          smtSize="sm"
+          smtIcon="visibility"
+          [attr.aria-label]="'iam.view_user_named' | t: { name: u.name }"
+          [title]="'iam.prosmotr' | t"
+          (click)="viewUser.emit(u)"
+        ></button>
         @if (canUpdateUser) {
-          <button smt-button type="button" smtVariant="ghost" smtSize="sm" smtIcon="edit" [attr.aria-label]="'iam.edit_user_named' | t:{name: u.name}" [title]="'common.edit' | t" (click)="editUser.emit(u)"></button>
+          <button
+            smt-button
+            type="button"
+            smtVariant="ghost"
+            smtSize="sm"
+            smtIcon="edit"
+            [attr.aria-label]="'iam.edit_user_named' | t: { name: u.name }"
+            [title]="'common.edit' | t"
+            (click)="editUser.emit(u)"
+          ></button>
         }
         @if (moreActions(u); as actions) {
           <smt-dropdown-button
             smtIconOnly
             icon="more_vert"
             data-testid="user-more-actions"
-            [smtAriaLabel]="'iam.more_actions_named' | t:{name: u.name}"
+            [smtAriaLabel]="'iam.more_actions_named' | t: { name: u.name }"
             [items]="actions"
-            (itemSelect)="runAction($event, u)" />
+            (itemSelect)="runAction($event, u)"
+          />
         }
       </div>
     </ng-template>
@@ -117,97 +174,143 @@ type UserMenuAction = 'block' | 'unblock' | 'delete';
       </div>
     </ng-template>
   `,
-  styles: [`
-    :host { display: block; min-width: 0; }
-    .table-container { min-width: 0; }
+  styles: [
+    `
+      :host {
+        display: block;
+        min-width: 0;
+      }
+      .table-container {
+        min-width: 0;
+      }
 
-    /* Identity */
-    .user-identity {
-      width: 100%;
-      border: 0;
-      background: transparent;
-      color: inherit;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      font: inherit;
-      padding: 0;
-      text-align: left;
-    }
-    .identity-info {
-      display: flex;
-      flex-direction: column;
-    }
-    .full-name { font-weight: 500; }
-    .login-handle { font-size: 11px; color: var(--text-muted); }
+      /* Identity */
+      .user-identity {
+        width: 100%;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        font: inherit;
+        padding: 0;
+        text-align: left;
+      }
+      .identity-info {
+        display: flex;
+        flex-direction: column;
+      }
+      .full-name {
+        font-weight: 500;
+      }
+      .login-handle {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
 
-    .contacts-cell {
-      display: flex;
-      flex-direction: column;
-    }
-    .contact-email { font-size: 12px; }
-    .contact-phone { font-size: 11px; color: var(--text-muted); }
+      .contacts-cell {
+        display: flex;
+        flex-direction: column;
+      }
+      .contact-email {
+        font-size: 12px;
+      }
+      .contact-phone {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
 
-    .roles-wrap {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-    }
-    .role-pill {
-      font-size: 11px;
-      padding: 1px 6px;
-      border-radius: 4px;
-      background-color: var(--bg-hover);
-      border: 1px solid var(--border-color);
-      color: var(--text-main);
-    }
-    .manager-text { font-size: 12px; }
-    .muted-dash { color: var(--text-light); }
+      .roles-wrap {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+      .role-pill {
+        font-size: 11px;
+        padding: 1px 6px;
+        border-radius: 4px;
+        background-color: var(--bg-hover);
+        border: 1px solid var(--border-color);
+        color: var(--text-main);
+      }
+      .manager-text {
+        font-size: 12px;
+      }
+      .muted-dash {
+        color: var(--text-light);
+      }
 
-    .twofa-dot {
-      font-size: 16px;
-      color: var(--text-light);
-    }
-    .twofa-dot.active { color: var(--success); }
+      .twofa-dot {
+        font-size: 16px;
+        color: var(--text-light);
+      }
+      .twofa-dot.active {
+        color: var(--success);
+      }
 
-    .status-indicator {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-    .status-indicator .dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background-color: var(--text-light);
-    }
-    .status-indicator.active { color: var(--text-main); }
-    .status-indicator.active .dot { background-color: var(--success); }
+      .status-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+      .status-indicator .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: var(--text-light);
+      }
+      .status-indicator.active {
+        color: var(--text-main);
+      }
+      .status-indicator.active .dot {
+        background-color: var(--success);
+      }
 
-    .row-actions { display: flex; justify-content: flex-end; gap: 2px; }
+      .row-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 2px;
+      }
 
-    .empty-state {
-      text-align: center;
-      padding: 32px 12px;
-      color: var(--text-muted);
-    }
-    .empty-ico { font-size: 32px; color: var(--text-light); margin-bottom: 4px; }
-    .empty-text { font-size: 13px; margin: 0; }
+      .empty-state {
+        text-align: center;
+        padding: 32px 12px;
+        color: var(--text-muted);
+      }
+      .empty-ico {
+        font-size: 32px;
+        color: var(--text-light);
+        margin-bottom: 4px;
+      }
+      .empty-text {
+        font-size: 13px;
+        margin: 0;
+      }
 
-    .font-mono { font-family: monospace; }
-    .text-muted { color: var(--text-muted); }
-    .text-xs { font-size: 11px; }
-    .tabular-nums { font-variant-numeric: tabular-nums; }
+      .font-mono {
+        font-family: monospace;
+      }
+      .text-muted {
+        color: var(--text-muted);
+      }
+      .text-xs {
+        font-size: 11px;
+      }
+      .tabular-nums {
+        font-variant-numeric: tabular-nums;
+      }
 
-    .user-identity:focus-visible {
-      outline: 2px solid var(--primary);
-      outline-offset: 2px;
-      border-radius: var(--radius-sm);
-    }
-  `]
+      .user-identity:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+        border-radius: var(--radius-sm);
+      }
+    `,
+  ],
 })
 export class UserTableViewComponent {
   private readonly i18n = inject(I18nService);
@@ -237,7 +340,7 @@ export class UserTableViewComponent {
     // Every row is its own grid, so tracks are fixed or shares of the width, never content-sized.
     const share = 'max(150px, calc((100% - 480px) / 4))';
     const base = registryTableConfig<User>(meta, {
-      translate: key => this.i18n.translate(key),
+      translate: (key) => this.i18n.translate(key),
       trackBy: (_index, user) => user.id,
       ariaLabel: this.i18n.translate('iam.spisok_polzovateley'),
       sort: this.views()?.sort() ?? null,
@@ -246,10 +349,10 @@ export class UserTableViewComponent {
         email: cell(this.contactsCell),
         is2faEnabled: cell(this.twoFactorCell),
         state: cell(this.statusCell),
-        createdAt: cell(this.createdCell)
+        createdAt: cell(this.createdCell),
       },
       widths: { name: share, email: share, is2faEnabled: '60px', state: '130px', createdAt: '100px' },
-      align: { is2faEnabled: 'center', createdAt: 'right' }
+      align: { is2faEnabled: 'center', createdAt: 'right' },
     });
     const order = [...base.columnsOrder];
     const afterEmail = order.includes('email') ? order.indexOf('email') + 1 : order.length;
@@ -259,11 +362,27 @@ export class UserTableViewComponent {
       layout: 'fit',
       columns: {
         ...base.columns,
-        roles: { key: 'roles', header: header(this.i18n.translate('iam.roli')), content: cell(this.rolesCell), width: share },
-        manager: { key: 'manager', header: header(this.i18n.translate('iam.rukovoditel')), content: cell(this.managerCell), width: share },
-        actions: { key: 'actions', header: header(this.i18n.translate('common.actions')), content: cell(this.actionsCell), width: '190px', align: 'right' }
+        roles: {
+          key: 'roles',
+          header: header(this.i18n.translate('iam.roli')),
+          content: cell(this.rolesCell),
+          width: share,
+        },
+        manager: {
+          key: 'manager',
+          header: header(this.i18n.translate('iam.rukovoditel')),
+          content: cell(this.managerCell),
+          width: share,
+        },
+        actions: {
+          key: 'actions',
+          header: header(this.i18n.translate('common.actions')),
+          content: cell(this.actionsCell),
+          width: '190px',
+          align: 'right',
+        },
       },
-      columnsOrder: [...order, 'actions']
+      columnsOrder: [...order, 'actions'],
     };
   });
 
@@ -278,7 +397,7 @@ export class UserTableViewComponent {
 
   @Output() viewUser = new EventEmitter<User>();
   @Output() editUser = new EventEmitter<User>();
-  @Output() toggleState = new EventEmitter<{ user: User, action: 'block' | 'unblock' }>();
+  @Output() toggleState = new EventEmitter<{ user: User; action: 'block' | 'unblock' }>();
   @Output() deleteUser = new EventEmitter<User>();
   @Output() sortChange = new EventEmitter<{ column: string; sortBy: OrderBy } | undefined>();
   /** Per user, the menu built for the rights and language it was built with, so an open menu is not rebuilt. */
@@ -295,7 +414,17 @@ export class UserTableViewComponent {
     const items: SMTMenuItem<UserMenuAction>[] = [
       ...(block ? [{ id: 'block' as const, label: this.i18n.translate('common.block'), icon: 'lock' }] : []),
       ...(unblock ? [{ id: 'unblock' as const, label: this.i18n.translate('common.unblock'), icon: 'lock_open' }] : []),
-      ...(remove ? [{ id: 'delete' as const, label: this.i18n.translate('common.delete'), icon: 'delete', danger: true, separated: block || unblock }] : []),
+      ...(remove
+        ? [
+            {
+              id: 'delete' as const,
+              label: this.i18n.translate('common.delete'),
+              icon: 'delete',
+              danger: true,
+              separated: block || unblock,
+            },
+          ]
+        : []),
     ];
     const result = items.length > 0 ? items : null;
     this.actionMenus.set(user, { key, items: result });

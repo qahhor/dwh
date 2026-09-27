@@ -1,12 +1,11 @@
 package com.smartup24.cms.instance.md.repository;
 
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
 
 @Repository
 public class MdPermissionRepository {
@@ -18,7 +17,8 @@ public class MdPermissionRepository {
     }
 
     public void registerForm(String code, String module, String name) {
-        jdbcClient.sql("""
+        jdbcClient
+                .sql("""
                 insert into md_forms (code, module, name, is_deprecated)
                 values (:code, :module, :name, false)
                 on conflict (code) do update
@@ -31,7 +31,8 @@ public class MdPermissionRepository {
     }
 
     public void registerFormAction(String formCode, String action, String name) {
-        jdbcClient.sql("""
+        jdbcClient
+                .sql("""
                 insert into md_form_actions (form_code, action, name, is_deprecated)
                 values (:formCode, :action, :name, false)
                 on conflict (form_code, action) do update
@@ -56,15 +57,20 @@ public class MdPermissionRepository {
         if (livePairs.isEmpty()) {
             // Ни одной пары в коде — значит живых прав нет вовсе.
             // Ситуация ненормальная, но помечать надо честно, а не молчать.
-            return jdbcClient.sql("update md_form_actions set is_deprecated = true where not is_deprecated").update()
-                    + jdbcClient.sql("update md_forms set is_deprecated = true where not is_deprecated").update();
+            return jdbcClient
+                            .sql("update md_form_actions set is_deprecated = true where not is_deprecated")
+                            .update()
+                    + jdbcClient
+                            .sql("update md_forms set is_deprecated = true where not is_deprecated")
+                            .update();
         }
 
         Set<String> liveForms = livePairs.stream()
                 .map(pair -> pair.substring(0, pair.lastIndexOf('.')))
                 .collect(Collectors.toSet());
 
-        int actions = jdbcClient.sql("""
+        int actions = jdbcClient
+                .sql("""
                 update md_form_actions
                 set is_deprecated = true
                 where not is_deprecated and (form_code || '.' || action) <> all (:pairs)
@@ -72,7 +78,8 @@ public class MdPermissionRepository {
                 .param("pairs", livePairs.toArray(new String[0]))
                 .update();
 
-        int forms = jdbcClient.sql("""
+        int forms = jdbcClient
+                .sql("""
                 update md_forms
                 set is_deprecated = true
                 where not is_deprecated and code <> all (:forms)
@@ -90,9 +97,7 @@ public class MdPermissionRepository {
                 from md_form_actions fa
                 join md_forms f on f.code = fa.form_code
                 where not fa.is_deprecated and not f.is_deprecated
-                """)
-                .query(String.class)
-                .list());
+                """).query(String.class).list());
     }
 
     public Set<String> getEffectivePermissionsForUser(Long userId) {
@@ -100,14 +105,12 @@ public class MdPermissionRepository {
                 select form_code || '.' || action as perm
                 from md_effective_permissions
                 where user_id = :userId
-                """)
-                .param("userId", userId)
-                .query(String.class)
-                .set();
+                """).param("userId", userId).query(String.class).set();
     }
 
     public long getPermissionVersion(Long userId) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select permissions_version
                 from md_user_permission_versions
                 where user_id = :userId
@@ -123,7 +126,8 @@ public class MdPermissionRepository {
 
     public void recalculateEffectivePermissions(Long userId) {
         // Materialize effective permissions = Union of Role Permissions + Personal Permissions
-        jdbcClient.sql("delete from md_effective_permissions where user_id = :userId")
+        jdbcClient
+                .sql("delete from md_effective_permissions where user_id = :userId")
                 .param("userId", userId)
                 .update();
 
@@ -136,9 +140,7 @@ public class MdPermissionRepository {
                 join md_role_permissions rp on rp.role_id = r.id
                 where ur.user_id = :userId
                 on conflict (user_id, form_code, action) do nothing
-                """)
-                .param("userId", userId)
-                .update();
+                """).param("userId", userId).update();
 
         // 2. Personal permissions
         jdbcClient.sql("""
@@ -147,9 +149,7 @@ public class MdPermissionRepository {
                 from md_user_permissions up
                 where up.user_id = :userId
                 on conflict (user_id, form_code, action) do nothing
-                """)
-                .param("userId", userId)
-                .update();
+                """).param("userId", userId).update();
 
         // 3. Bump version
         jdbcClient.sql("""
@@ -158,13 +158,12 @@ public class MdPermissionRepository {
                 on conflict (user_id) do update
                 set permissions_version = md_user_permission_versions.permissions_version + 1,
                     is_recalculating = false
-                """)
-                .param("userId", userId)
-                .update();
+                """).param("userId", userId).update();
     }
 
     public List<FormTreeItem> getAllFormsWithActions() {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select f.code as form_code, f.module, f.name as form_name,
                        fa.action, fa.name as action_name,
                        (f.is_deprecated or fa.is_deprecated) as is_deprecated
@@ -178,19 +177,17 @@ public class MdPermissionRepository {
                         rs.getString("form_name"),
                         rs.getString("action"),
                         rs.getString("action_name"),
-                        rs.getBoolean("is_deprecated")
-                ))
+                        rs.getBoolean("is_deprecated")))
                 .list();
     }
-
 
     // ------------------------------------------------------------------
     // Персональные права поверх ролей (FR-PERM-5)
     // ------------------------------------------------------------------
 
     public Set<String> getUserPersonalPermissions(Long userId) {
-        return new HashSet<>(jdbcClient.sql(
-                        "select form_code || '.' || action from md_user_permissions where user_id = :userId")
+        return new HashSet<>(jdbcClient
+                .sql("select form_code || '.' || action from md_user_permissions where user_id = :userId")
                 .param("userId", userId)
                 .query(String.class)
                 .list());
@@ -198,11 +195,13 @@ public class MdPermissionRepository {
 
     /** Полная замена набора персональных прав (семантика PUT из ТЗ-04). */
     public void replaceUserPermissions(Long userId, List<MdRoleRepository.PermissionPair> permissions) {
-        jdbcClient.sql("delete from md_user_permissions where user_id = :userId")
+        jdbcClient
+                .sql("delete from md_user_permissions where user_id = :userId")
                 .param("userId", userId)
                 .update();
         for (var p : permissions) {
-            jdbcClient.sql("""
+            jdbcClient
+                    .sql("""
                             insert into md_user_permissions (user_id, form_code, action)
                             values (:userId, :formCode, :action)
                             on conflict do nothing
@@ -219,7 +218,8 @@ public class MdPermissionRepository {
      * пользователя» (FR-PERM-10): видно, откуда пришло каждое право.
      */
     public List<EffectivePermissionItem> getEffectivePermissionsWithSource(Long userId) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                         select ep.form_code, ep.action, ep.source_role_id, r.name as role_name
                         from md_effective_permissions ep
                         left join md_roles r on r.id = ep.source_role_id
@@ -230,20 +230,12 @@ public class MdPermissionRepository {
                 .query((rs, rowNum) -> new EffectivePermissionItem(
                         rs.getString("form_code"),
                         rs.getString("action"),
-                        rs.getString("role_name") != null
-                                ? "role:" + rs.getString("role_name")
-                                : "personal"))
+                        rs.getString("role_name") != null ? "role:" + rs.getString("role_name") : "personal"))
                 .list();
     }
 
     public record EffectivePermissionItem(String formCode, String action, String source) {}
 
     public record FormTreeItem(
-            String formCode,
-            String module,
-            String formName,
-            String action,
-            String actionName,
-            boolean isDeprecated
-    ) {}
+            String formCode, String module, String formName, String action, String actionName, boolean isDeprecated) {}
 }

@@ -11,23 +11,25 @@ describe('moduleActiveGuard', () => {
   const dummyRoute = {} as ActivatedRouteSnapshot;
   const dummyState = {} as RouterStateSnapshot;
 
-  function setup(overrides: {
-    isLoaded?: boolean;
-    isModuleActive?: (code: string) => boolean;
-    loadActiveModules?: () => any;
-  } = {}) {
+  function setup(
+    overrides: {
+      isLoaded?: boolean;
+      isModuleActive?: (code: string) => boolean;
+      loadActiveModules?: () => any;
+    } = {},
+  ) {
     const moduleService = {
       isLoaded: vi.fn(() => overrides.isLoaded ?? true),
       isModuleActive: vi.fn(overrides.isModuleActive ?? ((code: string) => code === 'notes')),
-      loadActiveModules: vi.fn(overrides.loadActiveModules ?? (() => of([])))
+      loadActiveModules: vi.fn(overrides.loadActiveModules ?? (() => of([]))),
     };
     const toastService = {
       warning: vi.fn(),
       success: vi.fn(),
-      error: vi.fn()
+      error: vi.fn(),
     };
     const i18nService = {
-      translate: vi.fn((key: string) => `translated:${key}`)
+      translate: vi.fn((key: string) => `translated:${key}`),
     };
 
     TestBed.configureTestingModule({
@@ -35,8 +37,8 @@ describe('moduleActiveGuard', () => {
         provideRouter([]),
         { provide: ModuleService, useValue: moduleService },
         { provide: ToastService, useValue: toastService },
-        { provide: I18nService, useValue: i18nService }
-      ]
+        { provide: I18nService, useValue: i18nService },
+      ],
     });
 
     const router = TestBed.inject(Router);
@@ -74,7 +76,7 @@ describe('moduleActiveGuard', () => {
       loadActiveModules: () => {
         active = true;
         return of([{ code: 'notes', status: 'ACTIVE', isActive: true }]);
-      }
+      },
     });
 
     const guard = moduleActiveGuard('notes');

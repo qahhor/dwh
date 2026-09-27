@@ -1,24 +1,21 @@
 package com.smartup24.cms.instance.ms.notify.listener;
 
-import com.smartup24.cms.instance.ms.notify.pref.MsNotifyPref;
-import com.smartup24.cms.instance.ms.notify.service.MsNotificationService;
-import com.smartup24.cms.instance.ms.task.event.MsTaskEvents;
-import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-
-import java.time.Instant;
-import java.util.List;
-
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+
+import com.smartup24.cms.instance.ms.notify.pref.MsNotifyPref;
+import com.smartup24.cms.instance.ms.notify.service.MsNotificationService;
+import com.smartup24.cms.instance.ms.task.event.MsTaskEvents;
+import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
+import java.time.Instant;
+import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 class MsTaskNotificationListenerTest {
 
@@ -38,47 +35,50 @@ class MsTaskNotificationListenerTest {
 
         listener.onTaskAssigned(event);
 
-        verify(notificationService).sendInAppNotification(
-                eq(10L),
-                eq(MsNotifyPref.TYPE_INFO),
-                eq("Вы назначены ответственным за задачу"),
-                eq("Подготовить отчёт"),
-                eq("/tasks/items/100"),
-                eq("task-assigned-100-R"));
+        verify(notificationService)
+                .sendInAppNotification(
+                        eq(10L),
+                        eq(MsNotifyPref.TYPE_INFO),
+                        eq("Вы назначены ответственным за задачу"),
+                        eq("Подготовить отчёт"),
+                        eq("/tasks/items/100"),
+                        eq("task-assigned-100-R"));
     }
 
     @Test
     @DisplayName("Соисполнитель получает уведомление с текстом добавления соисполнителем")
     void notifiesExecutorWithRoleText() {
-        var event = new MsTaskEvents.TaskAssigned(
-                100L, "Подготовить отчёт", List.of(20L), MsTaskPref.INVOLVE_EXECUTOR, 1L);
+        var event =
+                new MsTaskEvents.TaskAssigned(100L, "Подготовить отчёт", List.of(20L), MsTaskPref.INVOLVE_EXECUTOR, 1L);
 
         listener.onTaskAssigned(event);
 
-        verify(notificationService).sendInAppNotification(
-                eq(20L),
-                eq(MsNotifyPref.TYPE_INFO),
-                eq("Вы добавлены соисполнителем задачи"),
-                eq("Подготовить отчёт"),
-                eq("/tasks/items/100"),
-                eq("task-assigned-100-E"));
+        verify(notificationService)
+                .sendInAppNotification(
+                        eq(20L),
+                        eq(MsNotifyPref.TYPE_INFO),
+                        eq("Вы добавлены соисполнителем задачи"),
+                        eq("Подготовить отчёт"),
+                        eq("/tasks/items/100"),
+                        eq("task-assigned-100-E"));
     }
 
     @Test
     @DisplayName("Наблюдатель получает уведомление с текстом добавления наблюдателем")
     void notifiesObserverWithRoleText() {
-        var event = new MsTaskEvents.TaskAssigned(
-                100L, "Подготовить отчёт", List.of(30L), MsTaskPref.INVOLVE_OBSERVER, 1L);
+        var event =
+                new MsTaskEvents.TaskAssigned(100L, "Подготовить отчёт", List.of(30L), MsTaskPref.INVOLVE_OBSERVER, 1L);
 
         listener.onTaskAssigned(event);
 
-        verify(notificationService).sendInAppNotification(
-                eq(30L),
-                eq(MsNotifyPref.TYPE_INFO),
-                eq("Вы добавлены наблюдателем задачи"),
-                eq("Подготовить отчёт"),
-                eq("/tasks/items/100"),
-                eq("task-assigned-100-O"));
+        verify(notificationService)
+                .sendInAppNotification(
+                        eq(30L),
+                        eq(MsNotifyPref.TYPE_INFO),
+                        eq("Вы добавлены наблюдателем задачи"),
+                        eq("Подготовить отчёт"),
+                        eq("/tasks/items/100"),
+                        eq("task-assigned-100-O"));
     }
 
     @Test
@@ -89,15 +89,15 @@ class MsTaskNotificationListenerTest {
 
         listener.onTaskAssigned(event);
 
-        verify(notificationService).sendInAppNotification(
-                eq(2L),
-                eq(MsNotifyPref.TYPE_INFO),
-                eq("Вы добавлены соисполнителем задачи"),
-                eq("Подготовить отчёт"),
-                eq("/tasks/items/100"),
-                eq("task-assigned-100-E"));
-        verify(notificationService, never()).sendInAppNotification(
-                eq(1L), any(), any(), any(), any(), any());
+        verify(notificationService)
+                .sendInAppNotification(
+                        eq(2L),
+                        eq(MsNotifyPref.TYPE_INFO),
+                        eq("Вы добавлены соисполнителем задачи"),
+                        eq("Подготовить отчёт"),
+                        eq("/tasks/items/100"),
+                        eq("task-assigned-100-E"));
+        verify(notificationService, never()).sendInAppNotification(eq(1L), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -108,13 +108,14 @@ class MsTaskNotificationListenerTest {
 
         listener.onTaskDeadlineChanged(event);
 
-        verify(notificationService).sendInAppNotification(
-                eq(10L),
-                eq(MsNotifyPref.TYPE_WARNING),
-                eq("Изменён дедлайн задачи"),
-                eq("Подготовить отчёт"),
-                eq("/tasks/items/100"),
-                eq("task-deadline-100"));
+        verify(notificationService)
+                .sendInAppNotification(
+                        eq(10L),
+                        eq(MsNotifyPref.TYPE_WARNING),
+                        eq("Изменён дедлайн задачи"),
+                        eq("Подготовить отчёт"),
+                        eq("/tasks/items/100"),
+                        eq("task-deadline-100"));
     }
 
     @Test
@@ -125,13 +126,14 @@ class MsTaskNotificationListenerTest {
 
         listener.onTaskMemberRemoved(event);
 
-        verify(notificationService).sendInAppNotification(
-                eq(20L),
-                eq(MsNotifyPref.TYPE_INFO),
-                eq("Вы сняты с роли соисполнителя задачи"),
-                eq("Подготовить отчёт"),
-                eq("/tasks/items/100"),
-                eq("task-removed-100"));
+        verify(notificationService)
+                .sendInAppNotification(
+                        eq(20L),
+                        eq(MsNotifyPref.TYPE_INFO),
+                        eq("Вы сняты с роли соисполнителя задачи"),
+                        eq("Подготовить отчёт"),
+                        eq("/tasks/items/100"),
+                        eq("task-removed-100"));
     }
 
     @Test
@@ -140,12 +142,11 @@ class MsTaskNotificationListenerTest {
         when(notificationService.isNotificationEnabled(eq(40L), eq("task_assigned"), eq("in_app")))
                 .thenReturn(false);
 
-        var event = new MsTaskEvents.TaskAssigned(
-                100L, "Подготовить отчёт", List.of(40L), MsTaskPref.INVOLVE_OBSERVER, 1L);
+        var event =
+                new MsTaskEvents.TaskAssigned(100L, "Подготовить отчёт", List.of(40L), MsTaskPref.INVOLVE_OBSERVER, 1L);
 
         listener.onTaskAssigned(event);
 
-        verify(notificationService, never()).sendInAppNotification(
-                any(), any(), any(), any(), any(), any());
+        verify(notificationService, never()).sendInAppNotification(any(), any(), any(), any(), any(), any());
     }
 }

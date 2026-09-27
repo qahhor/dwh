@@ -9,12 +9,11 @@ import com.smartup24.cms.instance.upl.upload.UplPackageModel;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.PackageRow;
 import com.smartup24.cms.instance.upl.upload.UplPackageService;
 import com.smartup24.cms.spi.storage.FileDownloadStream;
-import org.springframework.stereotype.Component;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Map;
 import java.util.UUID;
+import org.springframework.stereotype.Component;
 
 /**
  * Задание «разобрать файл пакета»: берёт файл из хранилища каркаса, разбирает его по анкете,
@@ -35,8 +34,8 @@ public class UplParseJob implements FndJobHandler {
     private final MfFileService files;
     private final UplXlsxParser parser;
 
-    public UplParseJob(UplPackageService packages, UplSourceService sources, MfFileService files,
-                       UplXlsxParser parser) {
+    public UplParseJob(
+            UplPackageService packages, UplSourceService sources, MfFileService files, UplXlsxParser parser) {
         this.packages = packages;
         this.sources = sources;
         this.files = files;
@@ -85,8 +84,10 @@ public class UplParseJob implements FndJobHandler {
         try {
             return UUID.fromString(raw.toString());
         } catch (IllegalArgumentException notUuid) {
-            throw new IllegalStateException("Аргумент " + ARG_PACKAGE_ID + " задания " + UplPref.JOB_PARSE
-                    + " не является идентификатором пакета", notUuid);
+            throw new IllegalStateException(
+                    "Аргумент " + ARG_PACKAGE_ID + " задания " + UplPref.JOB_PARSE
+                            + " не является идентификатором пакета",
+                    notUuid);
         }
     }
 }

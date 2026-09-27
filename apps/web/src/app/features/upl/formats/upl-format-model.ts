@@ -40,7 +40,7 @@ export function emptyColumn(): UplColumn {
     keyPadLength: null,
     keyPadMax: null,
     refBookCode: null,
-    headerSynonyms: []
+    headerSynonyms: [],
   };
 }
 
@@ -56,8 +56,10 @@ export function clearFieldsForType(column: UplColumn): boolean {
     column.baseUnit = null;
     cleared = true;
   }
-  if (column.dataType !== 'object_key'
-    && (isFilled(column.keyMask) || isFilled(column.keyPadLength) || isFilled(column.keyPadMax))) {
+  if (
+    column.dataType !== 'object_key' &&
+    (isFilled(column.keyMask) || isFilled(column.keyPadLength) || isFilled(column.keyPadMax))
+  ) {
     column.keyMask = null;
     column.keyPadLength = null;
     column.keyPadMax = null;

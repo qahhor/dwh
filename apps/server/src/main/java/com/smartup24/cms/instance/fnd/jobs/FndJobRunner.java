@@ -1,5 +1,9 @@
 package com.smartup24.cms.instance.fnd.jobs;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -9,11 +13,6 @@ import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.ObjectMapper;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 
 /**
  * Снимает задания основы с очереди {@code fnd_job_queue} и пишет результат в {@code fnd_job_runs}
@@ -45,8 +44,8 @@ public class FndJobRunner {
     private final TransactionTemplate handlerTx;
     private final Map<String, FndJobHandler> handlers = new HashMap<>();
 
-    public FndJobRunner(JdbcClient jdbc, ObjectMapper json, PlatformTransactionManager transactions,
-                        List<FndJobHandler> handlers) {
+    public FndJobRunner(
+            JdbcClient jdbc, ObjectMapper json, PlatformTransactionManager transactions, List<FndJobHandler> handlers) {
         this.jdbc = jdbc;
         this.json = json;
         this.jobTx = new TransactionTemplate(transactions);
@@ -71,7 +70,8 @@ public class FndJobRunner {
                             select handler, args, code from fnd_job_schedule where code = :code
                             """).param("code", code).update();
             jdbc.sql("update fnd_job_schedule set last_enqueued = now() where code = :code")
-                    .param("code", code).update();
+                    .param("code", code)
+                    .update();
         }
         return due.size();
     }
@@ -124,25 +124,35 @@ public class FndJobRunner {
         long queueId = ((Number) job.get("id")).longValue();
         String handlerCode = (String) job.get("handler");
         String rawArgs = (String) job.get("args");
-        jdbc.sql("update fnd_job_queue set attempts = attempts + 1 where id = :id").param("id", queueId).update();
+        jdbc.sql("update fnd_job_queue set attempts = attempts + 1 where id = :id")
+                .param("id", queueId)
+                .update();
         long runId = jdbc.sql("insert into fnd_job_runs (queue_id, handler, args, status)"
                         + " values (:queue, :handler, cast(:args as jsonb), 'running') returning id")
-                .param("queue", queueId).param("handler", handlerCode)
-                .param("args", rawArgs).query(Long.class).single();
+                .param("queue", queueId)
+                .param("handler", handlerCode)
+                .param("args", rawArgs)
+                .query(Long.class)
+                .single();
         boolean success;
         try {
             handlerTx.executeWithoutResult(nested -> handler(handlerCode).run(args(rawArgs)));
             jdbc.sql("update fnd_job_runs set status = 'done', finished_at = now() where id = :id")
-                    .param("id", runId).update();
+                    .param("id", runId)
+                    .update();
             success = true;
         } catch (RuntimeException failure) {
             log.error("job_failed handler={} queue_id={}", handlerCode, queueId, failure);
             jdbc.sql("update fnd_job_runs set status = 'failed', finished_at = now(), error = :error"
                             + " where id = :id")
-                    .param("error", describe(failure)).param("id", runId).update();
+                    .param("error", describe(failure))
+                    .param("id", runId)
+                    .update();
             success = false;
         }
-        jdbc.sql("delete from fnd_job_queue where id = :id").param("id", queueId).update();
+        jdbc.sql("delete from fnd_job_queue where id = :id")
+                .param("id", queueId)
+                .update();
         return success;
     }
 
@@ -156,7 +166,9 @@ public class FndJobRunner {
 
     private boolean jobsEnabled() {
         return jdbc.sql("select value from md_settings where user_id is null and key = :key")
-                .param("key", JOBS_ENABLED_KEY).query(String.class).optional()
+                .param("key", JOBS_ENABLED_KEY)
+                .query(String.class)
+                .optional()
                 .map(value -> !"false".equalsIgnoreCase(value.trim()))
                 .orElse(true);
     }

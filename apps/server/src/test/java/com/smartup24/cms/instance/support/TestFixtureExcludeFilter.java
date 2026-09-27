@@ -1,10 +1,9 @@
 package com.smartup24.cms.instance.support;
 
+import java.io.IOException;
 import org.springframework.boot.context.TypeExcludeFilter;
 import org.springframework.core.type.classreading.MetadataReader;
 import org.springframework.core.type.classreading.MetadataReaderFactory;
-
-import java.io.IOException;
 
 /**
  * Убирает из компонент-скана {@code @SpringBootTest} тестовые конфигурации каркаса.
@@ -19,7 +18,8 @@ import java.io.IOException;
 public class TestFixtureExcludeFilter extends TypeExcludeFilter {
 
     @Override
-    public boolean match(MetadataReader metadataReader, MetadataReaderFactory metadataReaderFactory) throws IOException {
+    public boolean match(MetadataReader metadataReader, MetadataReaderFactory metadataReaderFactory)
+            throws IOException {
         String location = metadataReader.getResource().getURI().toString().replace('\\', '/');
         return location.contains("/test-classes/");
     }

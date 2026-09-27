@@ -10,12 +10,14 @@ import { PASSWORD_POLICY } from '../../../core/security/password-policy';
 @Component({
   selector: 'app-settings-security-panel',
   standalone: true,
-  imports: [SMTInputComponent, SMTInputValueAccessor, 
+  imports: [
+    SMTInputComponent,
+    SMTInputValueAccessor,
     SMTSwitchComponent,
     CommonModule,
     FormsModule,
     TranslatePipe,
-    SMTButtonComponent
+    SMTButtonComponent,
   ],
   template: `
     <div class="settings-card">
@@ -39,7 +41,10 @@ import { PASSWORD_POLICY } from '../../../core/security/password-policy';
         <div class="form-group">
           <label class="form-label" for="settings-session-lifetime">
             {{ 'settings.session_lifetime' | t }}
-            <span class="unit-badge" *ngIf="formatSessionHours(systemSettings['security.session_lifetime_hours']) as sessionBadge">
+            <span
+              class="unit-badge"
+              *ngIf="formatSessionHours(systemSettings['security.session_lifetime_hours']) as sessionBadge"
+            >
               {{ sessionBadge }}
             </span>
           </label>
@@ -51,8 +56,11 @@ import { PASSWORD_POLICY } from '../../../core/security/password-policy';
             [smtMax]="8760"
             [disabled]="!canUpdateSystemSettings || isSaving"
             smtDescribedBy="settings-session-lifetime-hint"
-            [(ngModel)]="systemSettings['security.session_lifetime_hours']" />
-          <span id="settings-session-lifetime-hint" class="hint-text">{{ 'settings.po_umolchaniyu_720_chasov_30_dney' | t }}</span>
+            [(ngModel)]="systemSettings['security.session_lifetime_hours']"
+          />
+          <span id="settings-session-lifetime-hint" class="hint-text">{{
+            'settings.po_umolchaniyu_720_chasov_30_dney' | t
+          }}</span>
         </div>
 
         <div class="form-group">
@@ -65,7 +73,8 @@ import { PASSWORD_POLICY } from '../../../core/security/password-policy';
             [smtMax]="1440"
             [disabled]="!canUpdateSystemSettings || isSaving"
             smtDescribedBy="settings-idle-lock-hint"
-            [(ngModel)]="systemSettings['security.idle_lock_minutes']" />
+            [(ngModel)]="systemSettings['security.idle_lock_minutes']"
+          />
           <span id="settings-idle-lock-hint" class="hint-text">{{ 'settings.idle_lock_hint' | t }}</span>
         </div>
 
@@ -73,7 +82,9 @@ import { PASSWORD_POLICY } from '../../../core/security/password-policy';
           <div class="toggle-row">
             <div class="toggle-info">
               <span id="settings-require-2fa-label" class="toggle-title">{{ 'settings.require_2fa' | t }}</span>
-              <span id="settings-require-2fa-desc" class="toggle-desc">{{ 'settings.prinuditelno_trebovat_dvuhfaktornuyu_autentifika' | t }}</span>
+              <span id="settings-require-2fa-desc" class="toggle-desc">{{
+                'settings.prinuditelno_trebovat_dvuhfaktornuyu_autentifika' | t
+              }}</span>
             </div>
             <smt-switch
               smtFieldId="settings-require-2fa"
@@ -81,7 +92,8 @@ import { PASSWORD_POLICY } from '../../../core/security/password-policy';
               smtDescribedBy="settings-require-2fa-desc"
               [disabled]="!canUpdateSystemSettings || isSaving"
               [checked]="systemSettings['security.require_2fa'] === 'true'"
-              (smtUserChange)="toggleRequire2fa.emit($event)" />
+              (smtUserChange)="toggleRequire2fa.emit($event)"
+            />
           </div>
         </div>
       </div>
@@ -93,141 +105,143 @@ import { PASSWORD_POLICY } from '../../../core/security/password-policy';
       </div>
     </div>
   `,
-  styles: [`
-    .settings-card {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      padding: 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-    .card-header-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid var(--border-subtle);
-      padding-bottom: 16px;
-    }
-    .card-title-group {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .card-icon {
-      font-size: 28px;
-      color: var(--primary-text);
-    }
-    .card-title {
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--text-main);
-      margin: 0;
-    }
-    .card-desc {
-      font-size: 13px;
-      color: var(--text-light);
-      margin: 2px 0 0 0;
-    }
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 18px;
-    }
-    @media (max-width: 768px) {
+  styles: [
+    `
+      .settings-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .card-header-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--border-subtle);
+        padding-bottom: 16px;
+      }
+      .card-title-group {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .card-icon {
+        font-size: 28px;
+        color: var(--primary-text);
+      }
+      .card-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text-main);
+        margin: 0;
+      }
+      .card-desc {
+        font-size: 13px;
+        color: var(--text-light);
+        margin: 2px 0 0 0;
+      }
       .form-grid {
-        grid-template-columns: 1fr;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 18px;
       }
-    }
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .form-group.full-width {
-      grid-column: span 2;
-    }
-    @media (max-width: 768px) {
+      @media (max-width: 768px) {
+        .form-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
       .form-group.full-width {
-        grid-column: span 1;
+        grid-column: span 2;
       }
-    }
-    .form-label {
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text-main);
-    }
-    .form-input {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 9px 12px;
-      color: var(--text-main);
-      font-size: 13px;
-      outline: none;
-      transition: border-color 0.15s ease;
-    }
-    .form-input:focus {
-      border-color: var(--primary);
-    }
-    .hint-text {
-      font-size: 11px;
-      color: var(--text-light);
-    }
-    .toggle-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 16px;
-      background: var(--bg-hover);
-      border: 1px solid var(--border-subtle);
-      border-radius: 8px;
-    }
-    .toggle-info {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-    .toggle-title {
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--text-main);
-    }
-    .toggle-desc {
-      font-size: 12px;
-      color: var(--text-light);
-    }
-    .card-footer-actions {
-      display: flex;
-      justify-content: flex-end;
-      padding-top: 12px;
-      border-top: 1px solid var(--border-subtle);
-    }
-    .badge-neutral {
-      background-color: var(--bg-active);
-      color: var(--text-muted);
-    }
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      padding: 3px 8px;
-      font-size: 11px;
-      font-weight: 600;
-      border-radius: var(--radius-xs);
-    }
-    .unit-badge {
-      display: inline-flex;
-      align-items: center;
-      padding: 2px 7px;
-      margin-left: 6px;
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--primary-text);
-      background: var(--primary-subtle);
-      border-radius: var(--radius-sm);
-    }
-  `]
+      @media (max-width: 768px) {
+        .form-group.full-width {
+          grid-column: span 1;
+        }
+      }
+      .form-label {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-main);
+      }
+      .form-input {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 9px 12px;
+        color: var(--text-main);
+        font-size: 13px;
+        outline: none;
+        transition: border-color 0.15s ease;
+      }
+      .form-input:focus {
+        border-color: var(--primary);
+      }
+      .hint-text {
+        font-size: 11px;
+        color: var(--text-light);
+      }
+      .toggle-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 16px;
+        background: var(--bg-hover);
+        border: 1px solid var(--border-subtle);
+        border-radius: 8px;
+      }
+      .toggle-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .toggle-title {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-main);
+      }
+      .toggle-desc {
+        font-size: 12px;
+        color: var(--text-light);
+      }
+      .card-footer-actions {
+        display: flex;
+        justify-content: flex-end;
+        padding-top: 12px;
+        border-top: 1px solid var(--border-subtle);
+      }
+      .badge-neutral {
+        background-color: var(--bg-active);
+        color: var(--text-muted);
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 3px 8px;
+        font-size: 11px;
+        font-weight: 600;
+        border-radius: var(--radius-xs);
+      }
+      .unit-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 7px;
+        margin-left: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--primary-text);
+        background: var(--primary-subtle);
+        border-radius: var(--radius-sm);
+      }
+    `,
+  ],
 })
 export class SettingsSecurityPanelComponent {
   private readonly i18n = inject(I18nService);

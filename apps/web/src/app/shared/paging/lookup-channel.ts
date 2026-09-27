@@ -30,7 +30,7 @@ export class LookupChannel<T, S> {
     fetch: (query: string, cursor: string | null, pageSize: number) => Observable<KeysetResponse<T> | null | undefined>,
     apply: (rows: T[], append: boolean, selected: S) => void,
     noSelection: S,
-    options: LookupChannelOptions = {}
+    options: LookupChannelOptions = {},
   ) {
     this.selected = () => noSelection;
     this.searchDelayMs = options.searchDelayMs ?? 300;

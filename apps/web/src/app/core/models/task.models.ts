@@ -107,4 +107,3 @@ export interface TaskDetailResponse {
   ancestors?: Task[];
   files?: TaskFile[];
 }
-

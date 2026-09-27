@@ -1,23 +1,21 @@
 package com.smartup24.cms.instance.kwh.service;
 
-import com.smartup24.cms.instance.common.error.ApiException;
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.smartup24.cms.instance.common.error.ApiException;
 import java.net.InetAddress;
 import java.time.Duration;
 import java.util.List;
 import java.util.Set;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.junit.jupiter.api.Test;
 
 class WebhookTargetPolicyTest {
 
     @Test
     void rejectsAllTargetsWhileWebhooksAreDisabled() throws Exception {
         var properties = properties(false, Set.of("hooks.example"), false);
-        var policy = new WebhookTargetPolicy(properties,
-                host -> List.of(InetAddress.getByName("93.184.216.34")));
+        var policy = new WebhookTargetPolicy(properties, host -> List.of(InetAddress.getByName("93.184.216.34")));
 
         assertThatThrownBy(() -> policy.validate("https://hooks.example/events"))
                 .isInstanceOf(ApiException.class)
@@ -27,8 +25,7 @@ class WebhookTargetPolicyTest {
     @Test
     void rejectsHostsOutsideTheExplicitAllowList() throws Exception {
         var properties = properties(true, Set.of("hooks.example"), false);
-        var policy = new WebhookTargetPolicy(properties,
-                host -> List.of(InetAddress.getByName("93.184.216.34")));
+        var policy = new WebhookTargetPolicy(properties, host -> List.of(InetAddress.getByName("93.184.216.34")));
 
         assertThatThrownBy(() -> policy.validate("https://attacker.example/events"))
                 .isInstanceOf(ApiException.class)
@@ -40,8 +37,7 @@ class WebhookTargetPolicyTest {
         var properties = properties(true, Set.of("hook.example"), false);
 
         for (String address : List.of("127.0.0.1", "10.0.0.5", "169.254.169.254", "::1", "fd00::1")) {
-            var policy = new WebhookTargetPolicy(properties,
-                    host -> List.of(InetAddress.getByName(address)));
+            var policy = new WebhookTargetPolicy(properties, host -> List.of(InetAddress.getByName(address)));
 
             assertThatThrownBy(() -> policy.validate("https://hook.example/events"))
                     .as("address %s must not cross the outbound trust boundary", address)
@@ -53,7 +49,8 @@ class WebhookTargetPolicyTest {
     @Test
     void acceptsOnlyAnAllowListedHostWhoseEveryAddressIsPublic() throws Exception {
         var properties = properties(true, Set.of("HOOKS.EXAMPLE."), false);
-        var policy = new WebhookTargetPolicy(properties,
+        var policy = new WebhookTargetPolicy(
+                properties,
                 host -> List.of(
                         InetAddress.getByName("93.184.216.34"),
                         InetAddress.getByName("2606:2800:220:1:248:1893:25c8:1946")));
@@ -67,8 +64,7 @@ class WebhookTargetPolicyTest {
     @Test
     void permitsPrivateDestinationsOnlyAfterAnExplicitOperatorOptIn() throws Exception {
         var properties = properties(true, Set.of("internal-hook.example"), true);
-        var policy = new WebhookTargetPolicy(properties,
-                host -> List.of(InetAddress.getByName("10.20.30.40")));
+        var policy = new WebhookTargetPolicy(properties, host -> List.of(InetAddress.getByName("10.20.30.40")));
 
         assertThat(policy.validate("http://internal-hook.example:8080/events").toString())
                 .isEqualTo("http://internal-hook.example:8080/events");
@@ -77,8 +73,7 @@ class WebhookTargetPolicyTest {
     @Test
     void rejectsCredentialsFragmentsAndNonHttpSchemes() throws Exception {
         var properties = properties(true, Set.of("hooks.example"), false);
-        var policy = new WebhookTargetPolicy(properties,
-                host -> List.of(InetAddress.getByName("93.184.216.34")));
+        var policy = new WebhookTargetPolicy(properties, host -> List.of(InetAddress.getByName("93.184.216.34")));
 
         assertThatThrownBy(() -> policy.validate("https://user:secret@hooks.example/events"))
                 .isInstanceOf(ApiException.class);
@@ -88,8 +83,8 @@ class WebhookTargetPolicyTest {
                 .isInstanceOf(ApiException.class);
     }
 
-    private static KwhWebhookProperties properties(boolean enabled, Set<String> allowedHosts,
-                                                    boolean allowPrivateAddresses) {
+    private static KwhWebhookProperties properties(
+            boolean enabled, Set<String> allowedHosts, boolean allowPrivateAddresses) {
         var properties = new KwhWebhookProperties();
         properties.setEnabled(enabled);
         properties.setAllowedHosts(allowedHosts);

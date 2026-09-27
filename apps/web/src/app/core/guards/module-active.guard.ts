@@ -21,9 +21,7 @@ export function moduleActiveGuard(moduleCode: string): CanActivateFn {
     };
 
     if (!moduleService.isLoaded()) {
-      return moduleService.loadActiveModules().pipe(
-        map(() => check())
-      );
+      return moduleService.loadActiveModules().pipe(map(() => check()));
     }
     return of(check());
   };

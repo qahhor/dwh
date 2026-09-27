@@ -1,8 +1,7 @@
 package com.smartup24.cms.instance.common.security;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-
 import java.util.List;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
  * Конфигурация доверенных прокси-серверов и сетей (H05, FR-SEC-2).
@@ -15,18 +14,9 @@ import java.util.List;
  * </ul>
  */
 @ConfigurationProperties(prefix = "dwh.security")
-public record TrustedProxyProperties(
-        List<String> trustedProxies
-) {
+public record TrustedProxyProperties(List<String> trustedProxies) {
     public static final List<String> DEFAULT_TRUSTED_PROXIES = List.of(
-            "127.0.0.1/32",
-            "::1/128",
-            "10.0.0.0/8",
-            "172.16.0.0/12",
-            "192.168.0.0/16",
-            "fc00::/7",
-            "fe80::/10"
-    );
+            "127.0.0.1/32", "::1/128", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "fc00::/7", "fe80::/10");
 
     public TrustedProxyProperties {
         if (trustedProxies == null || trustedProxies.isEmpty()) {

@@ -49,9 +49,9 @@ describe('date utils', () => {
     const grid = monthGrid(2026, 8);
 
     expect(grid).toHaveLength(6);
-    expect(grid.every(week => week.length === 7)).toBe(true);
+    expect(grid.every((week) => week.length === 7)).toBe(true);
     expect(iso(grid[0][0])).toBe('2026-08-31');
-    expect(grid.flat().filter(day => day.month === 8)).toHaveLength(30);
+    expect(grid.flat().filter((day) => day.month === 8)).toHaveLength(30);
   });
 
   it('computes the presets from a given today', () => {

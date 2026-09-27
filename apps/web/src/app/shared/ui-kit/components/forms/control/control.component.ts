@@ -41,8 +41,18 @@ import { fromLegacyErrors, messageForError, type SMTControlError } from './contr
 
 // A radio group, a switch and a tag group are fields too (smt-radio-group, smt-switch, smt-tag-group): the label names them.
 // A part marked data-smt-field-part (a phone's country list) is skipped, so the label names the field itself.
-const FIELD_SELECTOR = ['input:not([type="hidden"])', 'select', 'textarea', '[role="combobox"]', '[role="textbox"]', '[role="radiogroup"]', '[role="switch"]', '[role="group"]', '[contenteditable="true"]']
-  .map(selector => selector + ':not([data-smt-field-part])')
+const FIELD_SELECTOR = [
+  'input:not([type="hidden"])',
+  'select',
+  'textarea',
+  '[role="combobox"]',
+  '[role="textbox"]',
+  '[role="radiogroup"]',
+  '[role="switch"]',
+  '[role="group"]',
+  '[contenteditable="true"]',
+]
+  .map((selector) => selector + ':not([data-smt-field-part])')
   .join(', ');
 const LABELABLE = new Set(['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON', 'METER', 'OUTPUT', 'PROGRESS']);
 
@@ -110,7 +120,7 @@ export class SMTControlComponent {
   });
 
   readonly showError = computed(
-    () => !!this.error() || shouldShowSMTFormControlError({ errors: this.errors(), touched: this.touched() })
+    () => !!this.error() || shouldShowSMTFormControlError({ errors: this.errors(), touched: this.touched() }),
   );
 
   readonly errorMessage = computed(() => {
@@ -140,13 +150,13 @@ export class SMTControlComponent {
 
   constructor() {
     this.fieldId.set(`smt-control-field-${this.id}`);
-    effect(onCleanup => {
+    effect((onCleanup) => {
       // `[formField]` also provides an NgControl for interop; its control has
       // no event stream, and the field state is read from signals anyway.
       if (this.formField()) return;
       const events = this.ngControl()?.control?.events;
       if (!events) return;
-      const subscription = events.subscribe(() => this.legacyVersion.update(version => version + 1));
+      const subscription = events.subscribe(() => this.legacyVersion.update((version) => version + 1));
       onCleanup(() => subscription.unsubscribe());
     });
 
@@ -174,7 +184,7 @@ export class SMTControlComponent {
 
         const kept = (field.getAttribute('aria-describedby') ?? '')
           .split(/\s+/)
-          .filter(token => token && !this.ownDescribedBy.includes(token));
+          .filter((token) => token && !this.ownDescribedBy.includes(token));
         const next = [...kept, ...describedBy];
         if (next.length) field.setAttribute('aria-describedby', next.join(' '));
         else field.removeAttribute('aria-describedby');

@@ -4,6 +4,10 @@ import com.smartup24.cms.spi.common.ProviderHealth;
 import com.smartup24.cms.spi.messenger.MessengerMessage;
 import com.smartup24.cms.spi.messenger.MessengerProvider;
 import com.smartup24.cms.spi.messenger.MessengerSendResult;
+import java.time.Duration;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,11 +15,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
-
-import java.time.Duration;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * FR-NOTIF-4: доставка через Telegram Bot API.
@@ -36,8 +35,9 @@ public class TelegramBotMessengerProvider implements MessengerProvider {
     private final RestClient restClient;
     private final String apiBase;
 
-    public TelegramBotMessengerProvider(@Value("${dwh.telegram.bot-token}") String botToken,
-                                        @Value("${dwh.telegram.api-url:https://api.telegram.org}") String apiUrl) {
+    public TelegramBotMessengerProvider(
+            @Value("${dwh.telegram.bot-token}") String botToken,
+            @Value("${dwh.telegram.api-url:https://api.telegram.org}") String apiUrl) {
         this.apiBase = apiUrl + "/bot" + botToken;
         var factory = new JdkClientHttpRequestFactory();
         factory.setReadTimeout(TIMEOUT);
@@ -59,12 +59,17 @@ public class TelegramBotMessengerProvider implements MessengerProvider {
         body.put("parse_mode", "Markdown");
 
         if (message.inlineButtonText() != null && message.inlineButtonUrl() != null) {
-            body.put("reply_markup", Map.of("inline_keyboard",
-                    List.of(List.of(Map.of("text", message.inlineButtonText(), "url", message.inlineButtonUrl())))));
+            body.put(
+                    "reply_markup",
+                    Map.of(
+                            "inline_keyboard",
+                            List.of(List.of(
+                                    Map.of("text", message.inlineButtonText(), "url", message.inlineButtonUrl())))));
         }
 
         try {
-            Map<?, ?> response = restClient.post()
+            Map<?, ?> response = restClient
+                    .post()
                     .uri(apiBase + "/sendMessage")
                     .body(body)
                     .retrieve()
@@ -94,18 +99,16 @@ public class TelegramBotMessengerProvider implements MessengerProvider {
     public ProviderHealth checkHealth() {
         long startedAt = System.nanoTime();
         try {
-            Map<?, ?> response = restClient.get()
-                    .uri(apiBase + "/getMe")
-                    .retrieve()
-                    .body(Map.class);
+            Map<?, ?> response =
+                    restClient.get().uri(apiBase + "/getMe").retrieve().body(Map.class);
 
             if (response != null && Boolean.TRUE.equals(response.get("ok"))) {
                 return ProviderHealth.healthy(getProviderCode(), elapsedMs(startedAt));
             }
             return ProviderHealth.unhealthy(getProviderCode(), "Telegram API отклонил getMe", elapsedMs(startedAt));
         } catch (Exception ex) {
-            return ProviderHealth.unhealthy(getProviderCode(),
-                    "Telegram API недоступен: " + ex.getMessage(), elapsedMs(startedAt));
+            return ProviderHealth.unhealthy(
+                    getProviderCode(), "Telegram API недоступен: " + ex.getMessage(), elapsedMs(startedAt));
         }
     }
 

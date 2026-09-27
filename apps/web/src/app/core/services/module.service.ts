@@ -37,7 +37,7 @@ export class ModuleService {
     this.isLoading.set(true);
     return this.api.get<any[]>('/modules/active').pipe(
       tap({
-        next: data => {
+        next: (data) => {
           const list = this.normalizeModules(data || []);
           const activeSet = new Set<string>(SYSTEM_MODULES);
           for (const m of list) {
@@ -52,8 +52,8 @@ export class ModuleService {
         },
         error: () => {
           this.isLoading.set(false);
-        }
-      })
+        },
+      }),
     );
   }
 
@@ -61,7 +61,7 @@ export class ModuleService {
     this.isLoading.set(true);
     return this.api.get<any[]>('/modules').pipe(
       tap({
-        next: data => {
+        next: (data) => {
           const list = this.normalizeModules(data || []);
           const activeSet = new Set<string>(SYSTEM_MODULES);
           for (const m of list) {
@@ -76,8 +76,8 @@ export class ModuleService {
         },
         error: () => {
           this.isLoading.set(false);
-        }
-      })
+        },
+      }),
     );
   }
 
@@ -94,24 +94,24 @@ export class ModuleService {
 
   getActiveCustomModules(): InstalledModule[] {
     return this.modules().filter(
-      m => !m.isSystem && m.isActive && m.route && !BUILT_IN_NAV_MODULES.has(m.code.toLowerCase())
+      (m) => !m.isSystem && m.isActive && m.route && !BUILT_IN_NAV_MODULES.has(m.code.toLowerCase()),
     );
   }
 
   toggleModule(code: string, enabled: boolean): Observable<InstalledModule> {
     const normalizedCode = code.toLowerCase().trim();
     return this.api.post<any>(`/modules/${encodeURIComponent(normalizedCode)}/toggle`, { enabled }).pipe(
-      tap(updated => {
+      tap((updated) => {
         const normalized = this.normalizeSingle(updated, normalizedCode, enabled);
-        this.modules.update(list => {
-          const existing = list.some(m => m.code === normalizedCode);
+        this.modules.update((list) => {
+          const existing = list.some((m) => m.code === normalizedCode);
           if (existing) {
-            return list.map(m => (m.code === normalizedCode ? normalized : m));
+            return list.map((m) => (m.code === normalizedCode ? normalized : m));
           }
           return [...list, normalized];
         });
 
-        this.activeModuleCodes.update(current => {
+        this.activeModuleCodes.update((current) => {
           const updatedSet = new Set(current);
           if (normalized.isActive) {
             updatedSet.add(normalizedCode);
@@ -120,12 +120,12 @@ export class ModuleService {
           }
           return updatedSet;
         });
-      })
+      }),
     );
   }
 
   private normalizeModules(data: any[]): InstalledModule[] {
-    return data.map(m => {
+    return data.map((m) => {
       const code = (m.code || m.moduleCode || '').toLowerCase().trim();
       const isActive = m.status ? m.status === 'ACTIVE' : (m.isActive ?? true);
       return {
@@ -133,7 +133,7 @@ export class ModuleService {
         code,
         moduleCode: code,
         isActive,
-        status: isActive ? 'ACTIVE' : 'DISABLED'
+        status: isActive ? 'ACTIVE' : 'DISABLED',
       };
     });
   }
@@ -146,7 +146,7 @@ export class ModuleService {
       code,
       moduleCode: code,
       isActive,
-      status: isActive ? 'ACTIVE' : 'DISABLED'
+      status: isActive ? 'ACTIVE' : 'DISABLED',
     };
   }
 }

@@ -2,13 +2,12 @@ package com.smartup24.cms.instance.ms.task.worker;
 
 import com.smartup24.cms.instance.ms.notify.service.MsNotificationService;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository;
+import java.time.Duration;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-
-import java.time.Duration;
-import java.util.List;
 
 @Component
 public class TaskDeadlineReminderWorker {
@@ -64,8 +63,7 @@ public class TaskDeadlineReminderWorker {
                 "Приближается дедлайн по задаче #" + row.taskId(),
                 "Срок выполнения задачи '" + row.title() + "' истекает в ближайшие 24 часа.",
                 "/tasks",
-                reminderKey
-        );
+                reminderKey);
         log.info("deadline_reminder_sent task={} user={}", row.taskId(), row.userId());
     }
 }

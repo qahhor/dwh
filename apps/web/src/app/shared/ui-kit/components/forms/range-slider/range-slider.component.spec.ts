@@ -12,7 +12,14 @@ import { SMTRange, SMTRangeSliderComponent } from './range-slider.component';
 @Component({
   standalone: true,
   imports: [SMTRangeSliderComponent],
-  template: `<smt-range-slider smtAriaLabel="Days" smtSuffix=" d" [smtMin]="0" [smtMax]="90" [smtStep]="5" [(value)]="band" />`,
+  template: `<smt-range-slider
+    smtAriaLabel="Days"
+    smtSuffix=" d"
+    [smtMin]="0"
+    [smtMax]="90"
+    [smtStep]="5"
+    [(value)]="band"
+  />`,
 })
 class Host {
   band: SMTRange | null = { from: 10, to: 40 };

@@ -7,11 +7,10 @@ import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.md.service.MdCustomFieldService;
 import com.smartup24.cms.instance.ms.task.repository.MsProjectRepository;
 import com.smartup24.cms.instance.search.SearchChangePublisher;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.util.List;
 import java.util.Map;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class MsProjectService {
@@ -45,7 +44,10 @@ public class MsProjectService {
         var project = projectRepository.create(normalizedName, description, state, attributes, createdBy);
         searchChangePublisher.projectChanged(project.id());
 
-        auditLogService.logChange("ms_task_projects", String.valueOf(project.id()), "I",
+        auditLogService.logChange(
+                "ms_task_projects",
+                String.valueOf(project.id()),
+                "I",
                 List.of("name", "state"),
                 null,
                 Map.of("name", normalizedName, "state", project.state()));
@@ -53,10 +55,10 @@ public class MsProjectService {
         return project;
     }
 
-
     @Transactional(readOnly = true)
     public MsProjectRepository.ProjectRecord getProjectById(Long id) {
-        return projectRepository.findById(id)
+        return projectRepository
+                .findById(id)
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.PROJECT_NOT_FOUND, "Проект не найден"));
     }
 
@@ -73,37 +75,39 @@ public class MsProjectService {
         if (attributes != null) {
             customFieldService.validateAttributes("PROJECT", attributes);
         }
-        projectRepository.update(
-                id,
-                normalizedName,
-                description,
-                state,
-                attributes);
+        projectRepository.update(id, normalizedName, description, state, attributes);
         searchChangePublisher.projectChanged(id);
 
-        auditLogService.logChange("ms_task_projects", String.valueOf(id), "U",
+        auditLogService.logChange(
+                "ms_task_projects",
+                String.valueOf(id),
+                "U",
                 List.of("name", "description", "state"),
                 Map.of("name", before.name(), "state", before.state()),
-                Map.of("name", normalizedName != null ? normalizedName : before.name(),
-                        "state", state != null ? state : before.state()));
+                Map.of(
+                        "name",
+                        normalizedName != null ? normalizedName : before.name(),
+                        "state",
+                        state != null ? state : before.state()));
     }
 
     private String validateAndNormalizeName(String name, boolean required) {
         String normalizedName = name != null ? name.trim() : null;
         if ((required && normalizedName == null) || (normalizedName != null && normalizedName.isBlank())) {
-            throw ApiException.validation("Название проекта обязательно", List.of(
-                    new FieldErrorItem("name", "required", "Название проекта обязательно")));
+            throw ApiException.validation(
+                    "Название проекта обязательно",
+                    List.of(new FieldErrorItem("name", "required", "Название проекта обязательно")));
         }
         return normalizedName;
     }
 
     private void validateState(String state) {
         if (state != null && !state.equals("A") && !state.equals("P")) {
-            throw ApiException.validation("Недопустимый статус проекта", List.of(
-                    new FieldErrorItem("state", "invalid", "Допустимые значения: A, P")));
+            throw ApiException.validation(
+                    "Недопустимый статус проекта",
+                    List.of(new FieldErrorItem("state", "invalid", "Допустимые значения: A, P")));
         }
     }
-
 
     @Transactional
     public void addProjectMember(Long projectId, Long userId, String accessKind) {
@@ -112,7 +116,10 @@ public class MsProjectService {
 
         // Состав участников проекта — это доступ к его задачам, а значит
         // изменение доступа: журналируется наравне с выдачей прав.
-        auditLogService.logChange("ms_task_project_members", projectId + ":" + userId, "I",
+        auditLogService.logChange(
+                "ms_task_project_members",
+                projectId + ":" + userId,
+                "I",
                 List.of("user_id", "access_kind"),
                 null,
                 Map.of("project_id", projectId, "user_id", userId, "access_kind", accessKind));
@@ -122,7 +129,10 @@ public class MsProjectService {
     public void removeProjectMember(Long projectId, Long userId) {
         projectRepository.removeMember(projectId, userId);
 
-        auditLogService.logChange("ms_task_project_members", projectId + ":" + userId, "D",
+        auditLogService.logChange(
+                "ms_task_project_members",
+                projectId + ":" + userId,
+                "D",
                 List.of("user_id"),
                 Map.of("project_id", projectId, "user_id", userId),
                 null);

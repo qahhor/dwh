@@ -6,20 +6,39 @@ import { ApiService } from '../../core/services/api.service';
 import { HistoryEntry, UiRecordHistoryComponent } from './ui-record-history.component';
 
 const update: HistoryEntry = {
-  id: 2, event: 'U', changedAt: '2026-09-20T10:00:00Z', changedBy: 7, changedByName: 'Анна', changedByLogin: 'anna',
-  isApi: false, changes: [{ field: 'title', labelKey: 'task.title', oldValue: 'Было', newValue: 'Стало' }]
+  id: 2,
+  event: 'U',
+  changedAt: '2026-09-20T10:00:00Z',
+  changedBy: 7,
+  changedByName: 'Анна',
+  changedByLogin: 'anna',
+  isApi: false,
+  changes: [{ field: 'title', labelKey: 'task.title', oldValue: 'Было', newValue: 'Стало' }],
 };
 const creation: HistoryEntry = {
-  id: 1, event: 'I', changedAt: '2026-09-19T10:00:00Z', changedBy: null, changedByName: null, changedByLogin: null,
-  isApi: true, changes: [{ field: 'priority', newValue: 'high' }, { field: 'closed', newValue: false }]
+  id: 1,
+  event: 'I',
+  changedAt: '2026-09-19T10:00:00Z',
+  changedBy: null,
+  changedByName: null,
+  changedByLogin: null,
+  isApi: true,
+  changes: [
+    { field: 'priority', newValue: 'high' },
+    { field: 'closed', newValue: false },
+  ],
 };
-const page = (items: HistoryEntry[], nextCursor: string | null = null): KeysetPage<HistoryEntry> =>
-  ({ items, nextCursor, hasMore: nextCursor !== null, totalReturned: items.length });
+const page = (items: HistoryEntry[], nextCursor: string | null = null): KeysetPage<HistoryEntry> => ({
+  items,
+  nextCursor,
+  hasMore: nextCursor !== null,
+  totalReturned: items.length,
+});
 
 async function render(get: ReturnType<typeof vi.fn>, recordId: number = 42) {
   await TestBed.configureTestingModule({
     imports: [UiRecordHistoryComponent],
-    providers: [{ provide: ApiService, useValue: { get } }]
+    providers: [{ provide: ApiService, useValue: { get } }],
   }).compileComponents();
   const fixture = TestBed.createComponent(UiRecordHistoryComponent);
   fixture.componentRef.setInput('kind', 'tasks');
@@ -53,12 +72,13 @@ describe('ui-record-history', () => {
     // Creation by the system through the API: raw field names without a label, flags as yes/no.
     expect(entries[1].textContent).toContain('Система');
     expect(entries[1].textContent).toContain('через API');
-    expect([...entries[1].querySelectorAll('dt')].map(dt => dt.textContent)).toEqual(['priority', 'closed']);
+    expect([...entries[1].querySelectorAll('dt')].map((dt) => dt.textContent)).toEqual(['priority', 'closed']);
     expect(entries[1].querySelectorAll('dd')[1].textContent?.trim()).toBe('Нет');
   });
 
   it('pages with the cursor and says when there are no changes', async () => {
-    const get = vi.fn()
+    const get = vi
+      .fn()
       .mockReturnValueOnce(of(page([update], 'c2')))
       .mockReturnValueOnce(of(page([creation])));
     const { fixture, host, toggle } = await render(get);
@@ -76,12 +96,15 @@ describe('ui-record-history', () => {
     const empty = await render(vi.fn(() => of(page([]))));
     empty.toggle.click();
     empty.fixture.detectChanges();
-    expect(empty.host.querySelector('[data-testid="record-history-empty"]')?.textContent).toContain('Изменений пока нет');
+    expect(empty.host.querySelector('[data-testid="record-history-empty"]')?.textContent).toContain(
+      'Изменений пока нет',
+    );
   });
 
   it('shows a failure with a retry and starts over for another record', async () => {
     const later = new Subject<KeysetPage<HistoryEntry>>();
-    const get = vi.fn()
+    const get = vi
+      .fn()
       .mockReturnValueOnce(throwError(() => ({ status: 403 })))
       .mockReturnValueOnce(of(page([update])))
       .mockReturnValueOnce(later);

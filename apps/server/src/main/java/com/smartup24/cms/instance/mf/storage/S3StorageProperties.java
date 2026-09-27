@@ -1,11 +1,10 @@
 package com.smartup24.cms.instance.mf.storage;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-
 import java.net.URI;
 import java.time.Duration;
 import java.util.Locale;
 import java.util.Set;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "dwh.storage.s3")
 public class S3StorageProperties {
@@ -22,7 +21,8 @@ public class S3StorageProperties {
     private Duration readTimeout = Duration.ofSeconds(30);
 
     public void validate() {
-        if (endpoint == null || !endpoint.isAbsolute()
+        if (endpoint == null
+                || !endpoint.isAbsolute()
                 || !ALLOWED_SCHEMES.contains(endpoint.getScheme().toLowerCase(Locale.ROOT))) {
             throw new IllegalStateException("DWH_S3_ENDPOINT must be an absolute HTTP(S) URI");
         }
